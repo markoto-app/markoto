@@ -1,0 +1,115 @@
+{
+  "app": {
+    "name": "YPad",
+    "tagline": "Collaborative Markdown Editor"
+  },
+  "landing": {
+    "hero": "Write together, in real time",
+    "subtitle": "A collaborative markdown editor with live sync, AI assistance, and full document management.",
+    "newDocument": "New Document",
+    "openDocument": "Open Document",
+    "recentDocuments": "Recent Documents",
+    "noRecent": "No recent documents"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "loginGithub": "Continue with GitHub",
+    "loginGoogle": "Continue with Google",
+    "loginRequired": "Login required"
+  },
+  "editor": {
+    "untitled": "Untitled",
+    "placeholder": "Start writing...",
+    "bold": "Bold",
+    "italic": "Italic",
+    "heading": "Heading",
+    "link": "Link",
+    "code": "Code",
+    "quote": "Quote",
+    "list": "List",
+    "orderedList": "Ordered List",
+    "taskList": "Task List",
+    "image": "Image",
+    "preview": "Preview",
+    "edit": "Edit",
+    "splitView": "Split View",
+    "strikethrough": "Strikethrough",
+    "horizontalRule": "Horizontal Rule",
+    "table": "Table"
+  },
+  "status": {
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "synced": "Synced",
+    "users": "{count} user | {count} users"
+  },
+  "share": {
+    "title": "Share Document",
+    "share": "Share",
+    "copyLink": "Copy Link",
+    "linkCopied": "Link copied!",
+    "accessMode": "Access Mode",
+    "openEdit": "Anyone can edit",
+    "openView": "Anyone can view",
+    "passwordProtected": "Password protected",
+    "setPassword": "Set document password",
+    "passwordPlaceholder": "Enter a password...",
+    "passwordMinLength": "Minimum 4 characters",
+    "passwordRequired": "Password Required",
+    "passwordRequiredDesc": "This document is protected. Enter the password to continue.",
+    "enterPassword": "Password",
+    "invalidPassword": "Incorrect password. Please try again.",
+    "unlock": "Unlock",
+    "viewOnly": "View only"
+  },
+  "activity": {
+    "title": "Activity",
+    "noActivity": "No activity yet",
+    "anonymous": "Anonymous",
+    "justNow": "just now",
+    "minutesAgo": "{count}m ago",
+    "hoursAgo": "{count}h ago",
+    "daysAgo": "{count}d ago",
+    "action": {
+      "edit": "edited the document",
+      "join": "joined",
+      "leave": "left"
+    }
+  },
+  "image": {
+    "loginToUpload": "Please log in to upload images.",
+    "uploadFailed": "Image upload failed",
+    "dropToUpload": "Drop image to upload",
+    "uploading": "Uploading..."
+  },
+  "import": {
+    "title": "Import Document",
+    "description": "Convert a file to markdown and load it into the editor.",
+    "selectFile": "Click to select a file",
+    "formats": "Supported: DOCX, PDF, HTML, LaTeX, RST, ODT, EPUB",
+    "import": "Import",
+    "error": "Import failed. Please try a different file.",
+    "conflictTitle": "Document has existing content",
+    "conflictDesc": "How would you like to handle the imported content?",
+    "replace": "Replace all",
+    "append": "Append"
+  },
+  "export": {
+    "title": "Export",
+    "markdown": "Markdown (.md)",
+    "html": "HTML (.html)",
+    "pdf": "PDF (.pdf)",
+    "docx": "Word (.docx)",
+    "exporting": "Exporting..."
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "close": "Close",
+    "loading": "Loading..."
+  }
+}

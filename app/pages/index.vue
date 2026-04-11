@@ -1,76 +1,143 @@
+<script setup lang="ts">
+const { t } = useI18n()
+const router = useRouter()
+const { loggedIn } = useUserSession()
+const creating = ref(false)
+
+async function createDocument() {
+  creating.value = true
+  try {
+    const { docId } = await $fetch<{ docId: string }>('/api/docs', { method: 'POST' })
+    router.push(`/d/${docId}`)
+  } catch {
+    // Fallback: generate client-side ID
+    const id = Math.random().toString(36).substring(2, 12)
+    router.push(`/d/${id}`)
+  } finally {
+    creating.value = false
+  }
+}
+
+// Fetch user's documents if logged in
+const myDocs = ref<any[]>([])
+const loadingDocs = ref(false)
+
+watch(loggedIn, async (val) => {
+  if (val) {
+    loadingDocs.value = true
+    try {
+      myDocs.value = await $fetch<any[]>('/api/user/documents')
+    } catch {
+      // Not logged in or error
+    } finally {
+      loadingDocs.value = false
+    }
+  } else {
+    myDocs.value = []
+  }
+}, { immediate: true })
+
+function formatDate(value: string | number | Date) {
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return ''
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+</script>
+
 <template>
-  <div>
-    <UPageHero
-      title="Nuxt Starter Template"
-      description="A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours."
-      :links="[{
-        label: 'Get started',
-        to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-        target: '_blank',
-        trailingIcon: 'i-lucide-arrow-right',
-        size: 'xl'
-      }, {
-        label: 'Use this template',
-        to: 'https://github.com/nuxt-ui-templates/starter',
-        target: '_blank',
-        icon: 'i-simple-icons-github',
-        size: 'xl',
-        color: 'neutral',
-        variant: 'subtle'
-      }]"
-    />
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="border-b border-default px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <UIcon name="i-lucide-file-text" class="text-primary size-6" />
+        <span class="text-lg font-semibold">{{ t('app.name') }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <AuthUserMenu />
+        <UColorModeButton />
+      </div>
+    </header>
 
-    <UPageSection
-      id="features"
-      title="Everything you need to build modern Nuxt apps"
-      description="Start with a solid foundation. This template includes all the essentials for building production-ready applications with Nuxt UI's powerful component system."
-      :features="[{
-        icon: 'i-lucide-rocket',
-        title: 'Production-ready from day one',
-        description: 'Pre-configured with TypeScript, ESLint, Tailwind CSS, and all the best practices. Focus on building features, not setting up tooling.'
-      }, {
-        icon: 'i-lucide-palette',
-        title: 'Beautiful by default',
-        description: 'Leveraging Nuxt UI\'s design system with automatic dark mode, consistent spacing, and polished components that look great out of the box.'
-      }, {
-        icon: 'i-lucide-zap',
-        title: 'Lightning fast',
-        description: 'Optimized for performance with SSR/SSG support, automatic code splitting, and edge-ready deployment. Your users will love the speed.'
-      }, {
-        icon: 'i-lucide-blocks',
-        title: '100+ components included',
-        description: 'Access Nuxt UI\'s comprehensive component library. From forms to navigation, everything is accessible, responsive, and customizable.'
-      }, {
-        icon: 'i-lucide-code-2',
-        title: 'Developer experience first',
-        description: 'Auto-imports, hot module replacement, and TypeScript support. Write less boilerplate and ship more features.'
-      }, {
-        icon: 'i-lucide-shield-check',
-        title: 'Built for scale',
-        description: 'Enterprise-ready architecture with proper error handling, SEO optimization, and security best practices built-in.'
-      }]"
-    />
+    <!-- Hero -->
+    <main class="flex-1 flex flex-col items-center px-6 py-12">
+      <div class="max-w-2xl text-center space-y-6">
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight">
+          {{ t('landing.hero') }}
+        </h1>
+        <p class="text-lg text-muted">
+          {{ t('landing.subtitle') }}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <UButton
+            size="xl"
+            icon="i-lucide-plus"
+            :loading="creating"
+            @click="createDocument"
+          >
+            {{ t('landing.newDocument') }}
+          </UButton>
+        </div>
+      </div>
 
-    <UPageSection>
-      <UPageCTA
-        title="Ready to build your next Nuxt app?"
-        description="Join thousands of developers building with Nuxt and Nuxt UI. Get this template and start shipping today."
-        variant="subtle"
-        :links="[{
-          label: 'Start building',
-          to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-          target: '_blank',
-          trailingIcon: 'i-lucide-arrow-right',
-          color: 'neutral'
-        }, {
-          label: 'View on GitHub',
-          to: 'https://github.com/nuxt-ui-templates/starter',
-          target: '_blank',
-          icon: 'i-simple-icons-github',
-          color: 'neutral',
-          variant: 'outline'
-        }]"
-      />
-    </UPageSection>
+      <!-- Recent documents -->
+      <div v-if="loggedIn && myDocs.length > 0" class="mt-12 w-full max-w-2xl">
+        <h2 class="text-lg font-semibold mb-4">{{ t('landing.recentDocuments') }}</h2>
+        <div class="space-y-2">
+          <NuxtLink
+            v-for="doc in myDocs"
+            :key="doc.docId"
+            :to="`/d/${doc.docId}`"
+            class="flex items-center justify-between p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <UIcon name="i-lucide-file-text" class="size-5 text-muted shrink-0" />
+              <div class="min-w-0">
+                <p class="text-sm font-medium truncate">{{ doc.title }}</p>
+                <p class="text-xs text-muted">{{ formatDate(doc.lastActive) }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <UBadge v-if="doc.accessMode !== 'open-edit'" size="xs" color="neutral" variant="subtle">
+                {{ doc.accessMode === 'open-view' ? 'View only' : 'Protected' }}
+              </UBadge>
+              <span class="text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
+
+      <div v-else-if="loggedIn && loadingDocs" class="mt-12">
+        <UIcon name="i-lucide-loader" class="size-6 animate-spin text-muted" />
+      </div>
+
+      <!-- Features -->
+      <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl w-full">
+        <div class="text-center space-y-2">
+          <UIcon name="i-lucide-users" class="text-primary size-8 mx-auto" />
+          <h3 class="font-semibold">Real-time Collaboration</h3>
+          <p class="text-sm text-muted">Edit together with live cursors and presence indicators</p>
+        </div>
+        <div class="text-center space-y-2">
+          <UIcon name="i-lucide-sparkles" class="text-primary size-8 mx-auto" />
+          <h3 class="font-semibold">AI Writing Assistant</h3>
+          <p class="text-sm text-muted">Get intelligent suggestions and completions as you write</p>
+        </div>
+        <div class="text-center space-y-2">
+          <UIcon name="i-lucide-shield-check" class="text-primary size-8 mx-auto" />
+          <h3 class="font-semibold">Flexible Sharing</h3>
+          <p class="text-sm text-muted">Public, view-only, or password-protected documents</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-default px-6 py-4 text-center text-sm text-muted">
+      YPad — Collaborative Markdown Editor
+    </footer>
   </div>
 </template>

@@ -1,0 +1,126 @@
+networks:
+  web:
+    name: web
+  internal:
+    name: internal
+
+services:
+  traefik:
+    image: traefik:v3
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=web"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.le.acme.storage=/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/acme.json
+    networks:
+      - web
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
+      - NUXT_OAUTH_GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - NUXT_OAUTH_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NUXT_S3_ENDPOINT=http://seaweedfs:8333
+      - NUXT_S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - NUXT_S3_SECRET_KEY=${S3_SECRET_KEY}
+      - NUXT_JWT_SECRET=${JWT_SECRET}
+      - NUXT_LLM_API_URL=${LLM_API_URL}
+      - NUXT_LLM_API_KEY=${LLM_API_KEY}
+      - NUXT_LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN}
+      - NUXT_PANDOC_URL=http://pandoc:8080
+      - DATABASE_PATH=/data/ypad.db
+    volumes:
+      - app_data:/data
+    expose:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=le"
+      - "traefik.http.services.app.loadbalancer.server.port=3000"
+    depends_on:
+      - seaweedfs
+    networks:
+      - web
+      - internal
+
+  sync:
+    build: ./sync-server
+    restart: unless-stopped
+    environment:
+      - PORT=4001
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_BUCKET=ypad
+      - JWT_SECRET=${JWT_SECRET}
+    expose:
+      - "4001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sync.rule=Host(`sync.${DOMAIN}`)"
+      - "traefik.http.routers.sync.entrypoints=websecure"
+      - "traefik.http.routers.sync.tls.certresolver=le"
+      - "traefik.http.services.sync.loadbalancer.server.port=4001"
+    depends_on:
+      - seaweedfs
+    networks:
+      - web
+      - internal
+
+  pandoc:
+    build: ./pandoc-server
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - internal
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    restart: unless-stopped
+    command: >
+      server -s3
+      -ip=seaweedfs -ip.bind=0.0.0.0
+      -dir=/data -s3.config=/etc/seaweedfs/s3.json -s3.port=8333
+    volumes:
+      - seaweed_data:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    expose:
+      - "8333"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.s3.rule=Host(`s3.${DOMAIN}`)"
+      - "traefik.http.routers.s3.entrypoints=websecure"
+      - "traefik.http.routers.s3.tls.certresolver=le"
+      - "traefik.http.services.s3.loadbalancer.server.port=8333"
+      - "traefik.http.middlewares.s3-cors.headers.accesscontrolalloworiginlist=https://${DOMAIN}"
+      - "traefik.http.middlewares.s3-cors.headers.accesscontrolallowmethods=GET,PUT,HEAD,OPTIONS"
+      - "traefik.http.middlewares.s3-cors.headers.accesscontrolallowheaders=Content-Type,Content-Length"
+      - "traefik.http.routers.s3.middlewares=s3-cors"
+    networks:
+      - web
+      - internal
+
+volumes:
+  app_data:
+  seaweed_data:

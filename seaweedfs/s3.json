@@ -1,0 +1,21 @@
+{
+  "identities": [
+    {
+      "name": "ypad",
+      "credentials": [
+        {
+          "accessKey": "ypad-access-key",
+          "secretKey": "ypad-secret-key"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "Write",
+        "List",
+        "Tagging",
+        "Lock"
+      ]
+    }
+  ]
+}
