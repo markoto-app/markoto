@@ -19,6 +19,7 @@ const {
   isOwner,
   isDeleted,
   requiresPassword,
+  forbidden,
   accessMode,
   undoManager,
   title,
@@ -57,6 +58,22 @@ watch(isDeleted, (deleted) => {
 const showActivity = ref(false)
 // Export state
 const exporting = ref(false)
+
+// Access-mode header button — closed lock when the doc is restricted (private
+// or password-protected), open lock when anyone with the link gets in (view or
+// edit). Keeping the icon binary avoids collisions with nearby icons (the eye
+// is already used by the preview/split toggle) and matches the mental model
+// users have for "is this locked or not". The tooltip carries the precise
+// label so view-only vs open-edit is still distinguishable on hover.
+const ACCESS_LABELS: Record<string, string> = {
+  private: 'share.private',
+  'open-edit': 'share.openEdit',
+  'open-view': 'share.openView',
+  'password-protected': 'share.passwordProtected'
+}
+const LOCKED_MODES = new Set(['private', 'password-protected'])
+const accessIcon = computed(() => LOCKED_MODES.has(accessMode.value) ? 'i-lucide-lock' : 'i-lucide-lock-open')
+const accessLabelKey = computed(() => ACCESS_LABELS[accessMode.value] ?? 'share.openEdit')
 
 async function exportDocument(format: 'pdf' | 'docx' | 'html') {
   exporting.value = true
@@ -271,7 +288,33 @@ const statusIcon = computed(() => {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col">
+  <!-- Private document, accessed by someone who isn't the owner. Short-circuit
+       before rendering any editor chrome — we never fetched a token, there's
+       no Y.Doc content, and the user can't interact with any toolbar actions. -->
+  <div
+    v-if="forbidden"
+    class="h-screen flex items-center justify-center p-6 bg-[var(--ui-bg)]"
+  >
+    <div class="max-w-md w-full text-center space-y-4">
+      <div class="mx-auto size-14 rounded-full bg-amber-500/10 flex items-center justify-center">
+        <UIcon name="i-lucide-lock-keyhole" class="size-7 text-amber-500" />
+      </div>
+      <h1 class="text-xl font-semibold">{{ t('access.privateTitle') }}</h1>
+      <p class="text-sm text-muted">
+        {{ loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
+      </p>
+      <div class="flex justify-center gap-2 pt-2">
+        <UButton variant="soft" @click="navigateTo('/')">
+          {{ t('access.backHome') }}
+        </UButton>
+        <UButton v-if="!loggedIn" color="primary" @click="navigateTo('/auth/github', { external: true })">
+          {{ t('auth.login') }}
+        </UButton>
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="h-screen flex flex-col">
     <!-- Editor Header -->
     <header class="border-b border-default px-4 py-2 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-3 min-w-0">
@@ -348,10 +391,13 @@ const statusIcon = computed(() => {
           </UTooltip>
         </div>
 
-        <!-- Share button: always visible (primary collaboration action) -->
-        <UTooltip :text="t('share.share')">
+        <!-- Access-mode button. The icon mirrors the current access mode so the
+             header communicates "this is access control" (locked = private /
+             password, eye = view only, pencil = open edit) instead of "sharing"
+             — there's only ever one URL, its permissions are what changes. -->
+        <UTooltip :text="`${t('share.accessMode')}: ${t(accessLabelKey)}`">
           <UButton
-            icon="i-lucide-share-2"
+            :icon="accessIcon"
             color="neutral"
             variant="ghost"
             size="xs"

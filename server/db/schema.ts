@@ -17,7 +17,14 @@ export const documents = sqliteTable('documents', {
   docId: text('doc_id').notNull().unique(),
   ownerId: integer('owner_id').references(() => users.id),
   title: text('title').notNull().default('Untitled'),
-  accessMode: text('access_mode', { enum: ['open-edit', 'open-view', 'password-protected'] }).notNull().default('open-edit'),
+  // `private` = owner-only (default for logged-in users on creation).
+  // `open-edit` = anyone with the link can edit (default for anonymous creation,
+  //                since otherwise the anonymous creator locks themselves out).
+  // `open-view` = anyone can view; only the owner can edit.
+  // `password-protected` = view/edit gated by a shared password.
+  accessMode: text('access_mode', {
+    enum: ['private', 'open-edit', 'open-view', 'password-protected']
+  }).notNull().default('open-edit'),
   passwordHash: text('password_hash'),
   sizeBytes: integer('size_bytes').default(0),
   wordCount: integer('word_count').default(0),

@@ -30,7 +30,7 @@ async function createDocument() {
 interface DocumentListItem {
   docId: string
   title: string
-  accessMode: 'open-edit' | 'open-view' | 'password-protected'
+  accessMode: 'private' | 'open-edit' | 'open-view' | 'password-protected'
   wordCount: number
   lastActive: string | number | Date
   sizeBytes: number
@@ -141,7 +141,11 @@ function formatDate(value: string | number | Date) {
             </NuxtLink>
             <div class="flex items-center gap-2 shrink-0">
               <UBadge v-if="doc.accessMode !== 'open-edit'" size="xs" color="neutral" variant="subtle">
-                {{ doc.accessMode === 'open-view' ? 'View only' : 'Protected' }}
+                {{
+                  doc.accessMode === 'private' ? 'Private'
+                    : doc.accessMode === 'open-view' ? 'View only'
+                    : 'Protected'
+                }}
               </UBadge>
               <span class="text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
               <UDropdownMenu

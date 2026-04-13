@@ -33,6 +33,7 @@ watch(() => props.currentAccessMode, (v) => {
 })
 
 const accessOptions = [
+  { value: 'private', label: 'share.private', icon: 'i-lucide-lock-keyhole' },
   { value: 'open-edit', label: 'share.openEdit', icon: 'i-lucide-pencil' },
   { value: 'open-view', label: 'share.openView', icon: 'i-lucide-eye' },
   { value: 'password-protected', label: 'share.passwordProtected', icon: 'i-lucide-lock' }
@@ -102,7 +103,10 @@ async function setPassword() {
   <UModal v-model:open="open" :title="t('share.title')" :description="shareUrl">
     <template #content>
       <div class="p-6 space-y-5">
-        <h3 class="text-lg font-semibold">{{ t('share.title') }}</h3>
+        <div>
+          <h3 class="text-lg font-semibold">{{ t('share.title') }}</h3>
+          <p class="text-xs text-muted mt-1">{{ t('share.subtitle') }}</p>
+        </div>
 
         <!-- Copy link -->
         <div>

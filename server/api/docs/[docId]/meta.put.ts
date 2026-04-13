@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.access_mode !== undefined) {
-    const allowed = new Set(['open-edit', 'open-view', 'password-protected'])
+    const allowed = new Set(['private', 'open-edit', 'open-view', 'password-protected'])
     if (!allowed.has(body.access_mode)) throw createError({ statusCode: 400, message: 'Invalid access mode' })
     updates.accessMode = body.access_mode
   }

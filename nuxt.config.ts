@@ -15,6 +15,17 @@ export default defineNuxtConfig({
     }
   },
 
+  // Vite's dev server has DNS-rebinding protection that 403s any request whose
+  // Host header isn't in an allowlist. The sync-server container reaches the
+  // Nuxt dev server via `host.docker.internal`, so without this entry every
+  // activity-logger POST silently gets rejected before our middleware sees it.
+  // Production doesn't care — Traefik terminates TLS and forwards the right Host.
+  vite: {
+    server: {
+      allowedHosts: ['host.docker.internal', 'localhost']
+    }
+  },
+
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui',

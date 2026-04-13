@@ -25,12 +25,21 @@ export default defineEventHandler(async (event) => {
   const doc = db.select().from(documents).where(eq(documents.docId, docId)).get()
   let readOnly = false
   let requiresPassword = false
+  let forbidden = false
   const accessMode = doc?.accessMode ?? 'open-edit'
   const ownerId = doc?.ownerId ?? null
 
   if (doc) {
     const userId = session?.user?.id
     const isOwner = ownerId != null && typeof userId === 'number' && ownerId === userId
+
+    if (doc.accessMode === 'private' && !isOwner) {
+      // No token — same pattern as password-protected. Hocuspocus rejects the
+      // connection so no content leaks. The client shows a private-document
+      // lock screen with a prompt to log in or contact the owner.
+      forbidden = true
+      readOnly = true
+    }
 
     if (doc.accessMode === 'open-view' && !isOwner) {
       readOnly = true
@@ -42,11 +51,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Password-protected docs: do NOT issue a token until password is verified.
-  // Without a valid token, Hocuspocus will reject the connection entirely,
-  // so no document content is leaked before password entry.
-  if (requiresPassword) {
-    return { token: null, readOnly, requiresPassword, accessMode, ownerId }
+  // No-token exits: private (no path to unlock from the client) and
+  // password-protected (unlocked after /password verify).
+  if (forbidden || requiresPassword) {
+    return { token: null, readOnly, requiresPassword, forbidden, accessMode, ownerId }
   }
 
   const token = jwt.sign(
@@ -64,5 +72,5 @@ export default defineEventHandler(async (event) => {
     { expiresIn: '2h' }
   )
 
-  return { token, readOnly, requiresPassword, accessMode, ownerId }
+  return { token, readOnly, requiresPassword, forbidden: false, accessMode, ownerId }
 })

@@ -13,6 +13,11 @@ export function useDocument(docId: string) {
   const isReadOnly = ref(false)
   const isOwner = ref(false)
   const requiresPassword = ref(false)
+  // True when the doc is private and the caller isn't the owner. Same treatment
+  // as `requiresPassword` (no token issued, no Hocuspocus connection), but with
+  // no way to unlock from the client — you either log in as the owner or don't
+  // get to see it. The UI renders a dedicated lock screen for this case.
+  const forbidden = ref(false)
   const accessMode = ref<string>('open-edit')
   const docSizeBytes = ref(0)
   const syncUrl = useRuntimeConfig().public.syncUrl
@@ -38,16 +43,18 @@ export function useDocument(docId: string) {
   async function fetchToken() {
     try {
       const data = await $fetch<{
-        token: string
+        token: string | null
         readOnly: boolean
         requiresPassword?: boolean
+        forbidden?: boolean
         accessMode: string
         ownerId: number | null
       }>(`/api/docs/${docId}/token`)
 
-      tokenData.value = data
+      tokenData.value = data as any
       isReadOnly.value = data.readOnly
       requiresPassword.value = !!data.requiresPassword
+      forbidden.value = !!data.forbidden
       accessMode.value = data.accessMode
 
       // Check ownership with type-safe comparison
@@ -159,7 +166,10 @@ export function useDocument(docId: string) {
   // Password-protected docs must NOT connect until password is verified —
   // otherwise the Y.js document syncs and content is visible behind the modal.
   fetchToken().then(() => {
-    if (!requiresPassword.value) connect()
+    // Don't connect if the server declined to issue a token. Either the doc is
+    // password-protected (PasswordModal will unlock it) or private (no unlock
+    // path — the EditorLayout shows a lock screen).
+    if (!requiresPassword.value && !forbidden.value) connect()
   })
 
   function destroy() {
@@ -189,6 +199,7 @@ export function useDocument(docId: string) {
     isOwner: readonly(isOwner),
     isDeleted: readonly(isDeleted),
     requiresPassword: readonly(requiresPassword),
+    forbidden: readonly(forbidden),
     accessMode: readonly(accessMode),
     docSizeBytes: readonly(docSizeBytes),
     docSizeWarning,

@@ -46,11 +46,13 @@
     "users": "{count} user | {count} users"
   },
   "share": {
-    "title": "Share Document",
+    "title": "Document access",
+    "subtitle": "Every visitor uses the same link. The access mode below controls what they can do with it.",
     "share": "Share",
     "copyLink": "Copy Link",
     "linkCopied": "Link copied!",
     "accessMode": "Access Mode",
+    "private": "Private — only you",
     "openEdit": "Anyone can edit",
     "openView": "Anyone can view",
     "passwordProtected": "Password protected",
@@ -63,6 +65,12 @@
     "invalidPassword": "Incorrect password. Please try again.",
     "unlock": "Unlock",
     "viewOnly": "View only"
+  },
+  "access": {
+    "privateTitle": "This document is private",
+    "privateDescLoggedIn": "Only the owner can open this document. If you think you should have access, ask them to change the sharing settings.",
+    "privateDescAnon": "Only the owner can open this document. If you have access, log in to continue.",
+    "backHome": "Back to home"
   },
   "activity": {
     "title": "Activity",
