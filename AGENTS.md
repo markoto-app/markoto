@@ -178,7 +178,8 @@ export default defineNuxtConfig({
     },
     anthropic: {
       apiKey: '',                      // NUXT_ANTHROPIC_API_KEY (required at startup)
-      model: 'claude-sonnet-4-6',      // NUXT_ANTHROPIC_MODEL — agentic prompt loop (rewrites use claude-haiku-4-5)
+      model: 'claude-sonnet-4-6',              // NUXT_ANTHROPIC_MODEL — agentic prompt loop
+      rewriteModel: 'claude-haiku-4-5',        // NUXT_ANTHROPIC_REWRITE_MODEL — inline selection rewrites
     },
     jwtSecret: '',                 // NUXT_JWT_SECRET (for Hocuspocus tokens)
     internalApiSecret: '',         // NUXT_INTERNAL_API_SECRET (shared secret for server↔sync-server calls)
@@ -1169,7 +1170,7 @@ Error status gets a longer linger (2.5 s vs 500 ms for success) so clients can l
 
 `server/api/ai/rewrite.post.ts` is structurally different from the prompt endpoint:
 
-- **Model:** `claude-haiku-4-5` (hardcoded — rewrites are simple text transformations where Haiku shines; prompt-loop tool orchestration still uses Sonnet from `config.anthropic.model`).
+- **Model:** `config.anthropic.rewriteModel` (defaults to `claude-haiku-4-5`, set via `NUXT_ANTHROPIC_REWRITE_MODEL`). Rewrites are simple text transformations where Haiku shines; prompt-loop tool orchestration still uses Sonnet from `config.anthropic.model`.
 - **No tools.** Single `anthropic.messages.create(...)` call, non-streaming.
 - **Full document as context.** The system prompt receives `<document>…</document>` alongside `<instruction>` and `<text>`, windowed to 40 k chars around the selection for very large docs. Claude matches tone/style from the surrounding prose but rewrites only the selection.
 - **Race-safe positions.** The client sends a Y.js `RelativePosition` for both ends of the selection (`Y.createRelativePositionFromTypeIndex`). The server resolves to absolute positions at apply time via `createAbsolutePositionFromRelativePosition`. If the human edited within the selection in the meantime, `RelativePosition` slides with the edit. Fallback chain: relative pos → raw index sanity check → single-`indexOf` fallback → **409 "Selection has moved"** if ambiguous.
@@ -1194,7 +1195,7 @@ NUXT_ANTHROPIC_API_KEY=sk-ant-api03-…
 NUXT_ANTHROPIC_MODEL=claude-sonnet-4-6
 ```
 
-Docker compose passes `ANTHROPIC_API_KEY → NUXT_ANTHROPIC_API_KEY` via env. The rewrite model (`claude-haiku-4-5`) is currently a constant in the rewrite endpoint — env-ify it only if we end up wanting to swap without a deploy.
+Docker compose passes `ANTHROPIC_API_KEY → NUXT_ANTHROPIC_API_KEY` via env. Both models are env-configurable (`NUXT_ANTHROPIC_MODEL` for the prompt loop, `NUXT_ANTHROPIC_REWRITE_MODEL` for rewrites) so you can swap without a redeploy.
 
 ### 15.11 File map
 

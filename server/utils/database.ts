@@ -87,6 +87,31 @@ function runMigrations(sqlite: Database.Database) {
       created_at    INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS ai_sessions (
+      session_id        TEXT PRIMARY KEY,
+      doc_id            TEXT NOT NULL,
+      initiator_user_id INTEGER NOT NULL REFERENCES users(id),
+      initiator_name    TEXT NOT NULL,
+      initiator_color   TEXT NOT NULL,
+      started_at        INTEGER NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS ai_sessions_user_doc_unq
+      ON ai_sessions(initiator_user_id, doc_id);
+    CREATE INDEX IF NOT EXISTS idx_ai_sessions_started_at
+      ON ai_sessions(started_at);
+
+    CREATE TABLE IF NOT EXISTS rate_limits (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      namespace   TEXT NOT NULL,
+      key         TEXT NOT NULL,
+      created_at  INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_rate_limits_lookup
+      ON rate_limits(namespace, key, created_at);
+    CREATE INDEX IF NOT EXISTS idx_rate_limits_cleanup
+      ON rate_limits(created_at);
+
     CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id);
     CREATE INDEX IF NOT EXISTS idx_documents_last_active ON documents(last_active);
     CREATE INDEX IF NOT EXISTS idx_workspace_docs ON workspace_documents(workspace_id);

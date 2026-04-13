@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
   // SET password — owner only
   if (action === 'set') {
-    const session = await requireUserSession(event)
+    const session = await requireValidatedUserSession(event)
     if (doc.ownerId !== session.user.id) {
       throw createError({ statusCode: 403, message: 'Not the document owner' })
     }
@@ -61,12 +61,14 @@ export default defineEventHandler(async (event) => {
     if (!config.jwtSecret) {
       throw createError({ statusCode: 500, message: 'JWT secret not configured' })
     }
-    const session = await getUserSession(event)
+    const session = await getValidatedUserSession(event)
 
     const token = jwt.default.sign(
       {
         docId,
         userId: session?.user?.id || 'anonymous',
+        // Carry name for sync-server attribution — matches token.get.ts.
+        userName: session?.user?.name ?? null,
         readOnly: false
       },
       config.jwtSecret,
@@ -78,7 +80,7 @@ export default defineEventHandler(async (event) => {
 
   // REMOVE password — owner only
   if (action === 'remove') {
-    const session = await requireUserSession(event)
+    const session = await requireValidatedUserSession(event)
     if (doc.ownerId !== session.user.id) {
       throw createError({ statusCode: 403, message: 'Not the document owner' })
     }

@@ -52,8 +52,9 @@ export default defineNuxtConfig({
       bucket: 'ypad'
     },
     anthropic: {
-      apiKey: '',                 // NUXT_ANTHROPIC_API_KEY
-      model: 'claude-sonnet-4-6'  // NUXT_ANTHROPIC_MODEL — Sonnet chosen for cost/speed in agentic loops
+      apiKey: '',                         // NUXT_ANTHROPIC_API_KEY
+      model: 'claude-sonnet-4-6',         // NUXT_ANTHROPIC_MODEL — agentic prompt loop (tool orchestration, web_search, multi-edit)
+      rewriteModel: 'claude-haiku-4-5'    // NUXT_ANTHROPIC_REWRITE_MODEL — one-shot selection rewrites (Haiku: cheap + fast, no tools)
     },
     jwtSecret: '',
     internalApiSecret: '',

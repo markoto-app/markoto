@@ -10,7 +10,7 @@ const ALLOWED_TYPES = new Set([
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
+  const session = await requireValidatedUserSession(event)
   const { docId, filename, contentType, size } = await readBody(event)
 
   if (!docId || !filename || !contentType) {

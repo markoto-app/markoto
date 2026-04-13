@@ -1,6 +1,23 @@
-// In-memory registry of active AI sessions.
-// Not shared across Nitro workers — each process has its own map.
-// The 3-minute sweeper plugin ensures stuck entries eventually clear.
+import { eq, and, lt } from 'drizzle-orm'
+import { aiSessions } from '../db/schema'
+
+/**
+ * AI session registry.
+ *
+ * Metadata (session_id, initiator, startedAt, …) lives in SQLite so:
+ *   - Per-user-per-doc cap survives a Nitro restart (UNIQUE index enforces it
+ *     at the DB level; an INSERT that would duplicate fails with constraint
+ *     error — we translate that to `DuplicateSessionError`).
+ *   - The sweeper can reap stale entries left behind by a crash.
+ *
+ * AbortControllers themselves stay in-process memory, keyed by sessionId.
+ * They can't be serialized, and aborts only need to work within the process
+ * that's running the Anthropic loop anyway. If a request to /api/ai/abort
+ * lands on a different process than the one running the loop (future
+ * multi-worker setup) it will see the DB row but no local controller —
+ * `getAiSession` returns the row with `abortController: null`, and the abort
+ * endpoint treats that as "stuck, just drop it from the registry".
+ */
 
 export interface ActiveAISession {
   sessionId: string
@@ -8,18 +25,13 @@ export interface ActiveAISession {
   initiatorUserId: number
   initiatorName: string
   initiatorColor: string
-  abortController: AbortController
   startedAt: number
+  /** May be null if this process didn't start the session. */
+  abortController: AbortController | null
 }
 
-const activeAISessions = new Map<string, ActiveAISession>()
-
-export function hasUserAiSession(userId: number, docId: string): boolean {
-  for (const s of activeAISessions.values()) {
-    if (s.initiatorUserId === userId && s.docId === docId) return true
-  }
-  return false
-}
+// Local-only — only contains controllers for sessions started in THIS process.
+const localControllers = new Map<string, AbortController>()
 
 export class DuplicateSessionError extends Error {
   constructor() {
@@ -27,29 +39,87 @@ export class DuplicateSessionError extends Error {
   }
 }
 
-export function addAiSession(session: ActiveAISession): void {
-  if (hasUserAiSession(session.initiatorUserId, session.docId)) {
-    throw new DuplicateSessionError()
-  }
-  activeAISessions.set(session.sessionId, session)
+export function hasUserAiSession(userId: number, docId: string): boolean {
+  const db = useDatabase()
+  const row = db
+    .select({ sessionId: aiSessions.sessionId })
+    .from(aiSessions)
+    .where(and(eq(aiSessions.initiatorUserId, userId), eq(aiSessions.docId, docId)))
+    .get()
+  return !!row
 }
 
-export function allAiSessions(): ActiveAISession[] {
-  return Array.from(activeAISessions.values())
+export function addAiSession(session: Omit<ActiveAISession, 'abortController'> & { abortController: AbortController }): void {
+  const db = useDatabase()
+  try {
+    db.insert(aiSessions).values({
+      sessionId: session.sessionId,
+      docId: session.docId,
+      initiatorUserId: session.initiatorUserId,
+      initiatorName: session.initiatorName,
+      initiatorColor: session.initiatorColor,
+      startedAt: session.startedAt
+    }).run()
+  } catch (e: any) {
+    // UNIQUE constraint violation on (initiator_user_id, doc_id) → per-user cap hit.
+    if (typeof e?.message === 'string' && /UNIQUE constraint failed/i.test(e.message)) {
+      throw new DuplicateSessionError()
+    }
+    throw e
+  }
+  localControllers.set(session.sessionId, session.abortController)
 }
 
 export function removeAiSession(sessionId: string): void {
-  activeAISessions.delete(sessionId)
+  const db = useDatabase()
+  db.delete(aiSessions).where(eq(aiSessions.sessionId, sessionId)).run()
+  localControllers.delete(sessionId)
 }
 
 export function getAiSession(sessionId: string): ActiveAISession | undefined {
-  return activeAISessions.get(sessionId)
+  const db = useDatabase()
+  const row = db
+    .select()
+    .from(aiSessions)
+    .where(eq(aiSessions.sessionId, sessionId))
+    .get()
+  if (!row) return undefined
+  return {
+    sessionId: row.sessionId,
+    docId: row.docId,
+    initiatorUserId: row.initiatorUserId,
+    initiatorName: row.initiatorName,
+    initiatorColor: row.initiatorColor,
+    startedAt: row.startedAt,
+    abortController: localControllers.get(sessionId) ?? null
+  }
 }
 
 /**
- * Snapshot all currently-registered AI sessions. Used by the sweeper plugin.
- * Returns a fresh array — safe to iterate even if the map mutates during sweep.
+ * All sessions currently registered in the DB. Used by the sweeper.
  */
 export function snapshotAiSessions(): ActiveAISession[] {
-  return Array.from(activeAISessions.values())
+  const db = useDatabase()
+  const rows = db.select().from(aiSessions).all()
+  return rows.map((row) => ({
+    sessionId: row.sessionId,
+    docId: row.docId,
+    initiatorUserId: row.initiatorUserId,
+    initiatorName: row.initiatorName,
+    initiatorColor: row.initiatorColor,
+    startedAt: row.startedAt,
+    abortController: localControllers.get(row.sessionId) ?? null
+  }))
+}
+
+/**
+ * Delete rows older than `olderThanMs`. Used at startup to clean up entries
+ * left behind by a previous process crash, and by the sweeper during runtime.
+ * Returns the number of rows deleted.
+ */
+export function purgeStaleAiSessions(olderThanMs: number): number {
+  const db = useDatabase()
+  const cutoff = Date.now() - olderThanMs
+  const result = db.delete(aiSessions).where(lt(aiSessions.startedAt, cutoff)).run()
+  return result.changes ?? 0
 }

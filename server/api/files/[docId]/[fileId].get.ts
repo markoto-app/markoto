@@ -19,10 +19,8 @@ export default defineEventHandler(async (event) => {
     .get()
 
   if (doc?.accessMode === 'password-protected') {
-    const session = await getUserSession(event)
-    const isOwner = doc.ownerId != null
-      && typeof session?.user?.id === 'number'
-      && doc.ownerId === session.user.id
+    const session = await getValidatedUserSession(event)
+    const isOwner = doc.ownerId != null && doc.ownerId === session?.user.id
     if (!isOwner) {
       throw createError({ statusCode: 403, message: 'Access denied' })
     }

@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const docId = getRouterParam(event, 'docId')
   if (!docId) throw createError({ statusCode: 400, message: 'Missing docId' })
 
-  const session = await getUserSession(event)
+  const session = await getValidatedUserSession(event)
   const db = useDatabase()
   const config = useRuntimeConfig()
 
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
       // from awareness (a cursor move by User A can otherwise steal attribution
       // from a real edit by User B). Anonymous users end up with null here; the
       // sync-server falls back to awareness in that case.
-      userName: (session?.user as { name?: string } | undefined)?.name ?? null,
+      userName: session?.user?.name ?? null,
       readOnly
     },
     config.jwtSecret,

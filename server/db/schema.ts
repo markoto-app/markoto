@@ -54,6 +54,34 @@ export const workspaceDocuments = sqliteTable('workspace_documents', {
   primaryKey({ columns: [table.workspaceId, table.docId] })
 ])
 
+// Active AI sessions. Survives Nitro restarts so the per-user-per-doc cap can't
+// be bypassed by restarting the process. Abort controllers themselves are
+// in-memory only — that's an acceptable single-process limitation for now.
+export const aiSessions = sqliteTable('ai_sessions', {
+  sessionId: text('session_id').primaryKey(),
+  docId: text('doc_id').notNull(),
+  initiatorUserId: integer('initiator_user_id').notNull().references(() => users.id),
+  initiatorName: text('initiator_name').notNull(),
+  initiatorColor: text('initiator_color').notNull(),
+  startedAt: integer('started_at').notNull()
+}, (table) => [
+  uniqueIndex('ai_sessions_user_doc_unq').on(table.initiatorUserId, table.docId),
+  index('idx_ai_sessions_started_at').on(table.startedAt)
+])
+
+// Rate-limit hits. One row per attempt within a window. `checkRateLimit` inserts
+// one and counts rows within the window; a startup + periodic job prunes older
+// rows. A single shared table across namespaces, since SQLite has no TTL.
+export const rateLimits = sqliteTable('rate_limits', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  namespace: text('namespace').notNull(),
+  key: text('key').notNull(),
+  createdAt: integer('created_at').notNull()
+}, (table) => [
+  index('idx_rate_limits_lookup').on(table.namespace, table.key, table.createdAt),
+  index('idx_rate_limits_cleanup').on(table.createdAt)
+])
+
 export const activityLog = sqliteTable('activity_log', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   docId: text('doc_id').notNull().references(() => documents.docId),

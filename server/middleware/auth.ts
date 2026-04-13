@@ -35,6 +35,9 @@ export default defineEventHandler(async (event) => {
   ]
 
   if (protectedPrefixes.some(p => path.startsWith(p))) {
-    await requireUserSession(event)
+    // Uses the validated helper so stale-user sessions are cleared centrally.
+    // Result is cached on event.context — endpoints that call the helper again
+    // don't re-query the DB.
+    await requireValidatedUserSession(event)
   }
 })

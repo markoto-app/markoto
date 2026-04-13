@@ -1,8 +1,8 @@
-import { getAiSession } from '../../utils/aiSessions'
+import { getAiSession, removeAiSession } from '../../utils/aiSessions'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const userId = session.user.id as number
+  const session = await requireValidatedUserSession(event)
+  const userId = session.user.id
 
   const body = await readBody(event) as { sessionId?: string }
   const sessionId = body.sessionId
@@ -23,6 +23,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  aiSession.abortController.abort()
-  return { success: true }
+  if (aiSession.abortController) {
+    aiSession.abortController.abort()
+    return { success: true }
+  }
+
+  // Row exists in the DB but no local AbortController — this process isn't
+  // the one running the Anthropic loop (e.g. after a restart the DB row
+  // survived, or a future multi-worker setup). Best we can do from here is
+  // drop the registry row so the per-user cap unblocks; the stuck loop (if
+  // any) will exit on its own deadline. Awareness cleanup happens when that
+  // loop's finally block runs.
+  removeAiSession(sessionId)
+  return { success: true, note: 'session was orphaned (no abort controller in this process); registry cleared' }
 })

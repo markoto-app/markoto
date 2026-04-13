@@ -3,7 +3,7 @@ import { ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { documents, documentShares, workspaceDocuments, activityLog } from '../../../db/schema'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
+  const session = await requireValidatedUserSession(event)
   const { docId } = getRouterParams(event)
   const db = useDatabase()
 

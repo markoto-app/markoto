@@ -10,6 +10,7 @@ const props = defineProps<{
     lastError: ReturnType<typeof useAI>['lastError']
     prompt: ReturnType<typeof useAI>['prompt']
     abort: ReturnType<typeof useAI>['abort']
+    clearLastError: ReturnType<typeof useAI>['clearLastError']
   }
 }>()
 
@@ -38,8 +39,9 @@ async function onSubmit() {
   // the `lastError` watcher below so we don't duplicate the toast here.
 }
 
-// Any time `lastError` changes to a non-empty string, show a toast and then clear it
-// so the next error fires its own toast.
+// Any time `lastError` changes to a non-empty string, show a toast and ask the
+// composable to clear it so the next error fires its own toast. `lastError` is
+// exposed readonly — we never mutate it directly from the component.
 watch(() => props.ai.lastError.value, (err) => {
   if (!err) return
   toast.add({
@@ -48,7 +50,7 @@ watch(() => props.ai.lastError.value, (err) => {
     icon: 'i-lucide-alert-circle',
     color: 'error'
   })
-  props.ai.lastError.value = null
+  props.ai.clearLastError()
 })
 
 async function onStop() {

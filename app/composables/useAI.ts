@@ -142,15 +142,25 @@ export function useAI(docId: Ref<string>, awareness: Awareness) {
     }
   }
 
+  // Exposed for consumers as a readonly ref plus an explicit `clearLastError`
+  // helper. Previously the component mutated `lastError.value = null` directly,
+  // which worked but gave no visible API contract and made it easy for the
+  // error to stick around if a new caller forgot to clear it. Now the intent is
+  // explicit: callers read `lastError`, show a toast, then call `clearLastError()`.
+  function clearLastError() {
+    lastError.value = null
+  }
+
   return {
     activeSessions,
     mySession,
     mySessionId,
     otherSessions,
     submitting,
-    lastError,
+    lastError: readonly(lastError),
     prompt,
     rewrite,
-    abort
+    abort,
+    clearLastError
   }
 }

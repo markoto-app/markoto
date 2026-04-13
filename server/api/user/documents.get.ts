@@ -2,7 +2,7 @@ import { eq, or, sql } from 'drizzle-orm'
 import { documents, documentShares } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
+  const session = await requireValidatedUserSession(event)
   const db = useDatabase()
   const userId = session.user.id
 

@@ -12,12 +12,11 @@ The full document is provided inside <document>...</document> for context — us
 
 Reply with ONLY the rewritten text — no preamble, no commentary, no markdown fences, no quotation marks wrapping the whole thing. Match the register and length of the original unless the instruction explicitly asks otherwise.`
 
-const REWRITE_MODEL = 'claude-haiku-4-5'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const userId = session.user.id as number
-  const userName = session.user.name as string
+  const session = await requireValidatedUserSession(event)
+  const userId = session.user.id
+  const userName = session.user.name
   const config = useRuntimeConfig()
 
   if (!config.anthropic.apiKey) {
@@ -108,7 +107,7 @@ export default defineEventHandler(async (event) => {
 
     const anthropic = new Anthropic({ apiKey: config.anthropic.apiKey })
     const response = await anthropic.messages.create({
-      model: REWRITE_MODEL,
+      model: config.anthropic.rewriteModel,
       max_tokens: Math.min(4096, selectionText.length * 4 + 200),
       system: REWRITE_SYSTEM,
       messages: [

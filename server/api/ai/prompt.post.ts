@@ -34,9 +34,9 @@ Guidelines:
 - Do NOT mention these tools or your internal process in user-facing text. Just do the work.`
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const userId = session.user.id as number
-  const userName = session.user.name as string
+  const session = await requireValidatedUserSession(event)
+  const userId = session.user.id
+  const userName = session.user.name
   const config = useRuntimeConfig()
 
   if (!config.anthropic.apiKey) {
