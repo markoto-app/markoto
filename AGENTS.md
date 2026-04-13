@@ -14,9 +14,9 @@ A collaborative markdown editor with live sync via Y.js CRDT and Hocuspocus, OAu
 │              Nuxt 4 (SSR + SPA hydration)                         │
 │                                                                    │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────────────┐  │
-│  │CodeMirror│ │ Nuxt UI  │ │ Y.js     │ │   AI Provider       │  │
-│  │  6 +     │ │   v4     │ │ Hocusp.  │ │ Cloud (default)     │  │
-│  │  yCollab │ │   i18n   │ │ Provider │ │ Gemma WebGPU (opt)  │  │
+│  │CodeMirror│ │ Nuxt UI  │ │ Y.js     │ │   Claude (Anthropic)│  │
+│  │  6 +     │ │   v4     │ │ Hocusp.  │ │ joins doc as a      │  │
+│  │  yCollab │ │   i18n   │ │ Provider │ │ Y.js client         │  │
 │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └──────────┬──────────┘  │
 │       └──────────────┴───────────┴──────────────────┘             │
 │                   │ WSS              │ HTTPS                      │
@@ -54,7 +54,7 @@ A collaborative markdown editor with live sync via Y.js CRDT and Hocuspocus, OAu
 - **Drizzle ORM + SQLite for user data.** Type-safe ORM over `better-sqlite3`. Schema defined in `server/db/schema.ts` with full TypeScript inference. Stores users, document ownership, workspace membership, and permissions. No external database container.
 - **Y.js CRDT for conflict-free collaboration.** Browsers maintain a local Y.Doc that merges automatically. No custom OT.
 - **Hocuspocus is the sync server.** WebSocket rooms, Y.js persistence to S3, awareness (cursors/presence), auth hooks, read-only access — all out of the box.
-- **AI is cloud-first with an optional local fallback.** Cloud AI (any OpenAI-compatible API) ships first. On-device Gemma 4 via WebGPU is opt-in for privacy-conscious users.
+- **AI is Claude, and it joins the document as a real Y.js collaborator.** The Nuxt server opens its own `HocuspocusProvider` connection as "Claude"; every edit lands via `ydoc.transact(...)` and broadcasts through the existing sync infrastructure. No SSE/streaming protocol to the browser — status updates ride on Y.js awareness. See Section 15.
 - **Pandoc runs as a separate HTTP service.** A lightweight Python HTTP wrapper around `pandoc/extra` Docker image. Both dev and production use the same container. Keeps the Nuxt container lightweight (no TeX/font dependencies).
 
 ---
@@ -101,7 +101,7 @@ All registered in `nuxt.config.ts` `modules` array. Auto-import composables and 
 | `highlight.js` | 11.11.1 | Code highlighting in preview |
 | `dompurify` | 3.2.4 | XSS sanitization |
 | `nanoid` | 5.1.5 | Document/workspace ID generation |
-| `@huggingface/transformers` | 4.3.0 | WebGPU AI inference (MMP phase) |
+| `@anthropic-ai/sdk` | 0.88.0 | Claude API client — streaming, tools, web_search/web_fetch |
 
 ### 2.4 Hocuspocus Sync Server Dependencies
 
@@ -176,13 +176,14 @@ export default defineNuxtConfig({
       secretKey: '',               // NUXT_S3_SECRET_KEY
       bucket: 'ypad',             // NUXT_S3_BUCKET
     },
-    llm: {
-      apiUrl: '',                  // NUXT_LLM_API_URL
-      apiKey: '',                  // NUXT_LLM_API_KEY
-      model: 'gpt-4o-mini',       // NUXT_LLM_MODEL
+    anthropic: {
+      apiKey: '',                      // NUXT_ANTHROPIC_API_KEY (required at startup)
+      model: 'claude-sonnet-4-6',      // NUXT_ANTHROPIC_MODEL — agentic prompt loop (rewrites use claude-haiku-4-5)
     },
     jwtSecret: '',                 // NUXT_JWT_SECRET (for Hocuspocus tokens)
+    internalApiSecret: '',         // NUXT_INTERNAL_API_SECRET (shared secret for server↔sync-server calls)
     pandocUrl: '',                 // NUXT_PANDOC_URL (http://pandoc:8080 in Docker, http://localhost:8080 in dev)
+    syncInternalUrl: 'http://localhost:4001', // NUXT_SYNC_INTERNAL_URL (internal HTTP URL of sync-server for notify-deleted etc.)
     // Public (exposed to client)
     public: {
       syncUrl: '',                 // NUXT_PUBLIC_SYNC_URL (wss://sync.yourdomain.com in prod, ws://localhost:4001 in dev)
@@ -503,13 +504,16 @@ GET    /auth/google                    → OAuth redirect to Google
 GET    /api/_auth/session              → Get current session (auto)
 
 # Documents
-POST   /api/docs                       Create document (requires login)
+POST   /api/docs                       Create document (anonymous or owned by session user)
 GET    /api/docs/:docId/meta           Get document metadata
-PUT    /api/docs/:docId/meta           Update title, access mode
-DELETE /api/docs/:docId                Delete document (owner only)
-GET    /api/docs/:docId/token          Get Hocuspocus JWT
-GET    /api/docs/:docId/activity       Get activity log
+PUT    /api/docs/:docId/meta           Update title, access mode, wordCount, sizeBytes (owner only)
+DELETE /api/docs/:docId                Delete document + cascade S3 cleanup + notify sync-server (owner only)
+GET    /api/docs/:docId/token          Get Hocuspocus JWT (null for password-protected until verified)
+GET    /api/docs/:docId/activity       Get activity log (latest 50 entries)
 POST   /api/docs/:docId/password       Set/verify/remove password
+
+# Internal (secret-auth'd via X-Internal-Secret header; called only by sync-server)
+POST   /api/internal/activity          Log an activity entry (edit/join/leave)
 
 # User
 GET    /api/user/documents             List user's documents
@@ -532,8 +536,10 @@ POST   /api/workspaces/:wsId/docs      Add document to workspace
 DELETE /api/workspaces/:wsId/docs/:docId  Remove doc from workspace
 GET    /api/user/workspaces            List user's workspaces
 
-# AI
-POST   /api/ai/generate                Streaming LLM proxy
+# AI — see Section 15
+POST   /api/ai/prompt                  Start an agentic prompt session (returns { sessionId })
+POST   /api/ai/rewrite                 Inline selection rewrite (Haiku, no tools)
+POST   /api/ai/abort                   Cancel a session (initiator only; 403 otherwise)
 ```
 
 ### 6.2 Key Server Route Implementations
@@ -631,32 +637,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-**AI proxy (streaming):**
-
-```typescript
-// server/api/ai/generate.post.ts
-export default defineEventHandler(async (event) => {
-  const { prompt, context } = await readBody(event)
-  const config = useRuntimeConfig()
-
-  const upstream = await fetch(config.llm.apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.llm.apiKey}` },
-    body: JSON.stringify({
-      model: config.llm.model,
-      stream: true,
-      messages: [
-        { role: 'system', content: 'You are a writing assistant. Be concise. Match the document tone.' },
-        { role: 'user', content: `Document:\n${context}\n\nRequest: ${prompt}` },
-      ],
-      max_tokens: 512,
-    }),
-  })
-
-  setResponseHeaders(event, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' })
-  return sendStream(event, upstream.body)
-})
-```
+**AI endpoints:** see Section 15 for the full architecture. The prompt endpoint returns `{ sessionId }` immediately and runs the agentic loop in a background task; edits stream to the client over Y.js (awareness + Hocuspocus), not SSE.
 
 ### 6.3 Server Middleware — Auth Guard
 
@@ -828,7 +809,30 @@ export const rateLimiter = {
 }
 ```
 
-### 7.5 Sync Server Dockerfile
+### 7.5 Activity Logging
+
+Sync-server logs an `edit` activity entry per `onStoreDocument` fire (debounced 2-10s by Hocuspocus).
+
+- **Attribution**: `mostRecentEditorFromAwareness(awareness)` uses `awareness.meta.lastUpdated` to pick the user whose awareness state was most recently updated. Since `y-codemirror.next` ticks awareness on every cursor/selection change, this correctly identifies the active editor. (Previously we naively picked the first user in the map, misattributing edits in multi-user sessions.)
+- **Transport**: fire-and-forget HTTP POST to `${APP_URL}/api/internal/activity` with `X-Internal-Secret` header. 5s timeout. Failures are logged, never block sync.
+- **Cap**: Nuxt endpoint keeps only the latest 500 entries per doc (older ones are deleted on each insert past the cap).
+- **Dev networking**: sync-server runs in Docker, Nuxt dev runs on host. Sync-server uses `host.docker.internal` (with `host-gateway` extra_host on Linux) to reach the host. Nuxt dev must bind to `0.0.0.0` (`bun run dev --host 0.0.0.0`).
+
+### 7.6 Internal HTTP Endpoints
+
+Sync-server uses Hocuspocus's `onRequest` hook to handle internal HTTP routes. All routes require `X-Internal-Secret` matching `INTERNAL_API_SECRET`.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /internal/notify-deleted` | Sets `ymeta._deleted = Date.now()` on the in-memory Y.Doc, broadcasting to connected clients. Called by Nuxt delete endpoint. |
+
+Implementation in `sync-server/src/internal-http.ts`:
+- Matches `url.startsWith('/internal/')`
+- Validates secret header
+- Reads JSON body (capped at 10KB)
+- `handleInternalRequest()` returns `true` if handled; caller throws `null` (Hocuspocus's sentinel) to skip default request handling
+
+### 7.7 Sync Server Dockerfile
 
 **Note:** We run TypeScript directly with Bun rather than pre-bundling. Bun's bundler had issues with Hocuspocus's CJS/ESM exports, and the startup time difference is negligible.
 
@@ -990,6 +994,7 @@ Key design decisions in the actual implementation:
 - **`useUserSession()` declared before `connect()`** to avoid fragile variable ordering.
 - **Welcome content insertion** on `onSynced` (server had no content), `onDisconnect` (server unreachable and never synced), or no-sync path (no syncUrl configured).
 - **Password flow:** Token endpoint returns `token: null` for password-protected docs (non-owners). `connect()` is NOT called until password is verified. After verification, `onPasswordVerified(token)` connects with the new token, and `requiresPassword` is cleared only in `onSynced` — this ensures the editor mounts with content already loaded (prevents empty-doc bug where typed text was prepended to the document).
+- **Remote deletion:** `ymeta` is observed for a `_deleted` flag set by the sync-server on broadcast. `isDeleted` is exposed as a reactive ref; EditorLayout watches it and shows a toast + redirects to home.
 - **`setAccessMode(mode)`** allows the ShareModal to propagate access mode changes back to the composable.
 
 ```typescript
@@ -1002,6 +1007,7 @@ return {
   userCount: readonly(userCount),
   isReadOnly: readonly(isReadOnly),
   isOwner: readonly(isOwner),
+  isDeleted: readonly(isDeleted),  // broadcast from sync-server via ymeta._deleted
   requiresPassword: readonly(requiresPassword),
   accessMode: readonly(accessMode),
   docSizeBytes: readonly(docSizeBytes),
@@ -1031,60 +1037,242 @@ Rendering is reactive via `watch(source, ...)` set up after init resolves. Outpu
 
 ---
 
-## 15. AI Writing Assistance
+## 15. AI Features — Claude as Collaborator
 
-### 15.1 Dual Provider Architecture
+YPad integrates Claude (Anthropic) as a real-time collaborator. Two user-facing flows share one backend architecture:
 
-Cloud AI ships in the MVP. On-device Gemma 4 via WebGPU is MMP.
+- **Top-bar prompt (`AIPromptBar`)** — horizontal input below the formatting toolbar. The user types a task, Claude runs an agentic loop with `str_replace_based_edit_tool` + `web_search` + `web_fetch`, and edits the document live.
+- **Inline selection rewrite (`AISelectionPopup`)** — user selects text → sparkles button appears → click turns it into an input → Claude rewrites just that selection. No tools, single round-trip, Haiku (cheap + fast).
 
-```typescript
-// app/composables/useAI.ts
-interface AIProvider {
-  name: string
-  label: string
-  available: boolean
-  generate(prompt: string, context: string): AsyncGenerator<string>
-}
+Both flows are **logged-in only**. Anonymous viewers see nothing.
 
-export function useAI() {
-  const provider = ref<'cloud' | 'local'>('cloud')
-  const { t } = useI18n()
-  const cloudProvider = useCloudAI()
-  const localProvider = useLocalAI()
+### 15.1 AI-as-collaborator — Claude joins as a real Y.js client
 
-  const active = computed(() =>
-    provider.value === 'local' && localProvider.available ? localProvider : cloudProvider
-  )
+When a prompt arrives, the server does NOT inject edits directly into the doc — it connects to Hocuspocus as its own client, exactly like a human browser would:
 
-  return { provider, active, switchProvider: (p: 'cloud' | 'local') => { provider.value = p } }
+1. Generate a unique `sessionId` (`nanoid(12)`).
+2. Mint a JWT with `userId: 'ai:claude:{sessionId}'` and the same `jwtSecret` the regular auth flow uses.
+3. Open a `HocuspocusProvider` pointed at `config.syncInternalUrl` (the internal-network URL, not the public `wss://sync.…`). See `server/utils/aiClient.ts`.
+4. Set awareness state:
+   ```
+   user:      { name: 'Claude', color, isAI: true }
+   aiSession: { sessionId, initiatorName, initiatorUserId, initiatorColor, prompt }
+   aiStatus:  { phase, message }
+   ```
+5. Run the Anthropic agentic loop; every `str_replace` / `insert` lands inside `ydoc.transact(fn, 'ai:claude:{sessionId}')`. Hocuspocus broadcasts the Y.js updates, all browsers see edits stream in, no custom push channel needed.
+6. On completion, abort, or error: clear awareness, disconnect the provider, remove the session entry, destroy the in-memory Y.Doc.
+
+The browser learns "Claude is here" through standard awareness events — no new protocol. `PresenceBar.vue` just renders any awareness entry with `isAI: true` using a sparkles avatar and a pulsing ring while `aiStatus.phase !== 'done'`.
+
+### 15.2 Concurrent sessions (multiple Claudes per doc, one per user)
+
+**No doc-level lock.** Two humans editing the same doc can each have their own Claude running simultaneously — each is a distinct Y.js client with its own awareness entry. Edits from any Claude merge via Y.js CRDT (same as two humans editing at once). Semantic conflicts (Alice says "make formal", Bob says "make casual") are an accepted trade-off for parallelism.
+
+**Per-user cap:** one active session per user per doc. A second POST from the same user returns **409 Conflict** (`"You already have Claude running on this document."`). Prevents runaway cost per user.
+
+Server-side state lives in `server/utils/aiSessions.ts`:
+```ts
+const activeAISessions = new Map<string, ActiveAISession>()  // keyed by sessionId
+hasUserAiSession(userId, docId)
+addAiSession(session)                     // throws DuplicateSessionError on per-user dup
+removeAiSession(sessionId)
+getAiSession(sessionId)
+snapshotAiSessions()                      // for the sweeper
+```
+
+The Map is in-memory; it's dropped on Nuxt restart. Orphaned awareness entries from a crashed session are cleaned up by the sweeper plugin (see 15.8).
+
+### 15.3 Cancellation — initiator only
+
+`POST /api/ai/abort { sessionId }`:
+- 404 if the session already ended (normal race; the client silently swallows 404).
+- **403 if `session.initiatorUserId !== req.session.user.id`** — only the user who started the session can cancel it.
+- Otherwise `session.abortController.abort()`; the agentic loop unwinds, awareness clears, session is removed.
+
+Client-side abort detection is belt-and-suspenders: the server treats **any error thrown after `abortController.signal.aborted === true`** as an abort, regardless of the SDK error shape (`AbortError`, `APIUserAbortError`, wrapped fetch aborts, etc.). Status becomes `phase: 'done', message: 'Stopped'` — no error toast.
+
+### 15.4 The `str_replace_based_edit_tool` → Y.Text adapter
+
+`server/utils/aiToolAdapter.ts` translates Anthropic's `text_editor_20250728` tool commands into Y.Text operations on the AI session's local Y.Doc:
+
+| Command | Translation |
+|---|---|
+| `view(path, view_range?, max_characters?)` | Return `ytext.toString()` with 1-indexed line-number prefixes. `path` must be `document.md`. |
+| `str_replace(path, old_str, new_str)` | 0 matches → `is_error: "No match found"`. 2+ matches → `is_error: "Found N matches, add more context"`. Exactly 1 → `ydoc.transact(() => { ytext.delete(pos, old_str.length); ytext.insert(pos, new_str) }, 'ai:claude:{sessionId}')`. |
+| `insert(path, insert_line, insert_text)` | Map line to char index; transact insert. |
+| `create(path, file_text)` | Refuse: "This document already exists." |
+
+Every edit is its own `ydoc.transact(fn, origin)` so:
+- Each edit broadcasts independently — users watch Claude type in real time.
+- The origin string carries the session id, so the activity log can attribute edits to the initiator.
+- Multi-edit requests ("update all headings") produce clean, ordered updates even when Claude emits several `str_replace` blocks in one response. Each transaction is atomic.
+
+The content-based match of `str_replace` (as opposed to byte-offset-based) means earlier edits that shift text positions don't invalidate later edits in the same response — each one's `old_str` re-locates itself at apply time.
+
+### 15.5 The agentic loop — termination & safety
+
+`server/api/ai/prompt.post.ts` runs a standard Anthropic agentic loop:
+
+- **`stop_reason === 'end_turn'`** → loop exits (the natural "I'm done" signal from Claude; no explicit "done" tool needed).
+- **`stop_reason === 'pause_turn'`** → server-tool loop mid-run (e.g. `web_search_20260209` waiting on its `code_execution` wrapper); continue with existing history.
+- **`stop_reason === 'tool_use'`** → execute client-side tools, append `tool_result` blocks, continue.
+- **`stop_reason === 'max_tokens' | 'refusal' | …`** → bail.
+- **`MAX_TURNS = 20`** hard cap.
+- **`HARD_DEADLINE_MS = 5 min`** — one `web_search_20260209` can take 60-90 s by itself (see 15.7); the deadline has to be generous.
+
+No explicit "done" tool is registered — the built-in `end_turn` stop reason IS the done signal. Adding a pseudo-tool confuses models.
+
+### 15.6 Tool registration
+
+The prompt endpoint registers three tools:
+
+| Tool | Type string | Executor | Purpose |
+|---|---|---|---|
+| `str_replace_based_edit_tool` | `text_editor_20250728` | **Client-side** (our adapter) | View + edit the Y.Doc. |
+| `web_search` | `web_search_20260209` | **Server-side** (Anthropic) | Live web queries with dynamic filtering via code_execution. |
+| `web_fetch` | `web_fetch_20260209` | **Server-side** (Anthropic) | Full-page retrieval. Can only fetch URLs already present in the conversation (e.g., from a prior web_search result). |
+
+`max_uses: 5` on both web tools as a cost cap per loop.
+
+> **Prereq:** Web search must be enabled by the org admin in the Anthropic Console (Privacy settings). If disabled, `web_search_tool_result` blocks arrive with `error_code: "unavailable"` — surfaced in the server logs as `[ai/prompt …] server-tool error: …`.
+
+### 15.7 Streaming status via awareness (no SSE)
+
+The prompt loop calls `anthropic.messages.stream(...)` (not `create`) and hooks four event types to update `aiStatus` in awareness live:
+
+- `streamEvent` of type `message_delta` — **captures the `code_execution` `container.id`** for use on subsequent turns. The SDK's accumulator silently drops `delta.container`, so `finalMessage().container` is unreliable and we read it off the raw stream ourselves. See `server/api/ai/prompt.post.ts`. Without this, turn 2 after a web_search fails with `400: container_id is required when there are pending tool uses generated by code execution with tools.`
+- `streamEvent` of type `content_block_start` (text only) — "Wrapping up…".
+- `inputJson` — fires repeatedly with the accumulating tool input JSON. We extract:
+  - `snap.query` → "Searching the web for 'XXX'"
+  - `snap.url` → "Reading webpage XXX.com"
+  - `snap.command` + `snap.old_str` → "Editing '…snippet…'"
+  - `snap.code` (inside the code_execution wrapper) — regex out every `web_search(...)` / `web_fetch(...)` call and show the **last** one (= currently executing). Handles multiple searches in a single code block.
+- `contentBlock` — resets the per-block dedupe tracker; also logs the code_execution `code` field for debugging.
+
+We deliberately do NOT announce on `content_block_start` for tool blocks — there's a ~100-500 ms gap before `inputJson` streams enough to be parseable, and a generic "Searching the web…" flash before the specific query is distracting. The prior "Thinking…" status holds steady until `inputJson` has something concrete.
+
+Error status gets a longer linger (2.5 s vs 500 ms for success) so clients can latch the message before awareness cleanup destroys the session. The client (`useAI.ts`) watches `mySession` for `phase === 'error'` and promotes the message into `lastError`, which `AIPromptBar.vue` toasts.
+
+### 15.8 Rate limits, timeouts, and the sweeper
+
+- **Rate limits** (via `server/utils/rateLimit.ts`):
+  - `ai-prompt:{userId}` → 20 / hour
+  - `ai-rewrite:{userId}` → 30 / hour
+- **Deadlines:**
+  - Per-prompt `HARD_DEADLINE_MS = 5 min`
+  - Per-rewrite deadline 30 s (rewrites are one-shot, no tool loop)
+  - Sweeper `STALE_THRESHOLD_MS = 7 min` (must be > prompt deadline so legitimate long searches don't get killed)
+- **Sweeper** (`server/plugins/ai-session-sweep.ts`): runs every 60 s. Aborts any session older than the stale threshold. Safety net for crash paths that skip the `finally` cleanup; normal sessions clean themselves up.
+- **Disconnect cleanup:** the prompt endpoint hooks `event.node.req.on('close')` to abort if the client tab closes mid-request.
+
+### 15.9 Inline rewrite — selection → replace in place
+
+`server/api/ai/rewrite.post.ts` is structurally different from the prompt endpoint:
+
+- **Model:** `claude-haiku-4-5` (hardcoded — rewrites are simple text transformations where Haiku shines; prompt-loop tool orchestration still uses Sonnet from `config.anthropic.model`).
+- **No tools.** Single `anthropic.messages.create(...)` call, non-streaming.
+- **Full document as context.** The system prompt receives `<document>…</document>` alongside `<instruction>` and `<text>`, windowed to 40 k chars around the selection for very large docs. Claude matches tone/style from the surrounding prose but rewrites only the selection.
+- **Race-safe positions.** The client sends a Y.js `RelativePosition` for both ends of the selection (`Y.createRelativePositionFromTypeIndex`). The server resolves to absolute positions at apply time via `createAbsolutePositionFromRelativePosition`. If the human edited within the selection in the meantime, `RelativePosition` slides with the edit. Fallback chain: relative pos → raw index sanity check → single-`indexOf` fallback → **409 "Selection has moved"** if ambiguous.
+- **Same Y.js transact pattern** with origin `ai:claude:{sessionId}` so activity attribution still works.
+
+### 15.10 Configuration
+
+```ts
+// nuxt.config.ts
+runtimeConfig: {
+  anthropic: {
+    apiKey: '',              // NUXT_ANTHROPIC_API_KEY (required; throws on missing)
+    model: 'claude-sonnet-4-6' // NUXT_ANTHROPIC_MODEL — agentic prompt loop
+  },
+  // … unchanged …
 }
 ```
 
-### 15.2 AI Suggestion UX
+`.env`:
+```
+NUXT_ANTHROPIC_API_KEY=sk-ant-api03-…
+NUXT_ANTHROPIC_MODEL=claude-sonnet-4-6
+```
 
-Suggestions are **local-only** until accepted. Ghost text appears in the requesting user's editor only. On accept (Tab), the text is written to the Y.js document and syncs normally.
+Docker compose passes `ANTHROPIC_API_KEY → NUXT_ANTHROPIC_API_KEY` via env. The rewrite model (`claude-haiku-4-5`) is currently a constant in the rewrite endpoint — env-ify it only if we end up wanting to swap without a deploy.
+
+### 15.11 File map
+
+```
+server/
+  api/ai/
+    prompt.post.ts        # Agentic loop + streaming status via awareness
+    rewrite.post.ts       # Inline selection rewrite (Haiku, no tools)
+    abort.post.ts         # Initiator-only cancellation
+  utils/
+    aiSessions.ts         # In-memory session map + DuplicateSessionError
+    aiClient.ts           # Claude as a Y.js client (HocuspocusProvider, awareness)
+    aiToolAdapter.ts      # str_replace_based_edit_tool → Y.Text ops
+  plugins/
+    ai-session-sweep.ts   # 60 s sweep; aborts sessions > 7 min old
+
+app/
+  composables/
+    useAI.ts              # Reactive state derived from awareness; prompt/rewrite/abort
+  components/ai/
+    AIPromptBar.vue       # Top bar — prompt input, live status, Stop button
+    AISelectionPopup.vue  # Floating sparkles → input; captures Y.js RelativePosition
+  components/collab/
+    PresenceBar.vue       # Renders AI avatars with sparkles + pulsing ring
+```
+
+### 15.12 Open for later (explicitly not in scope)
+
+- Multi-turn conversation history per user per doc.
+- Prompt caching on document content (breaks on every edit — likely not worth it).
+- Streaming text responses to UI (currently discarded; edits ARE the response).
+- Activity log attribution as "Claude (for Alice)" — currently shows just "Claude".
+- User-selectable model (Opus vs Sonnet).
+- Cost telemetry / budget caps.
+- Env-configurable prompt-loop model (`NUXT_ANTHROPIC_PROMPT_MODEL`) for Haiku/Sonnet swapping.
 
 ---
 
 ## 16. Mobile Editing
 
-CodeMirror 6 on mobile requires specific attention:
+**Breakpoint:** `useMediaQuery('(max-width: 639px)')` — matches Tailwind's `sm:` (640px+ = not-mobile). This must match the CSS breakpoint used for `sm:hidden`/`sm:flex` classes; previously a 768px JS value caused layout inconsistencies in the 640–768px range.
 
-1. **Edit-only default** — no split pane on narrow screens
-2. **Floating toolbar** above virtual keyboard via `visualViewport` API
-3. **44px touch targets** on toolbar buttons
-4. **Bottom tab bar** for Edit / Preview / AI switching
-5. **Sidebar as bottom sheet** on mobile
-6. **CM6 mobile extensions:** `autocapitalize`, `autocorrect`, larger font/line-height
+### 16.1 Implemented
+
+- **Edit-only default** on narrow screens — `watchEffect` forces `viewMode = 'edit'` when `isMobile && viewMode === 'split'`.
+- **CM6 responsive theme via Compartment** — font (16px on mobile to prevent iOS auto-zoom), line-height (1.7), padding (12/16px), reconfigured live on viewport resize/rotation using `watch(isMobile, ...)` + `responsiveThemeCompartment.reconfigure(...)`.
+- **CM6 content attributes:** `autocapitalize: 'sentences'`, `autocorrect: 'on'`, `spellcheck: 'true'` (always, not just mobile — no downside on desktop).
+- **Toolbar wraps with `flex-wrap`** — formatting buttons flow to a second row on narrow viewports instead of horizontal-scrolling. Document action buttons (import/export/activity) stay anchored top-right via `items-start` + `shrink-0`.
+- **Collapsed top-bar menu:** on mobile, a `UDropdownMenu` (hamburger) consolidates view-mode toggle, theme toggle, and auth actions. Visible controls on mobile: logo, title, collaborators, connection icon, share, menu. On desktop (`sm:`), everything is inline.
+- **Icon-only connection badge** on mobile (`<span class="hidden sm:inline">` for the label).
+- **Responsive title max-width:** `max-w-[180px] sm:max-w-56 md:max-w-80` — grows with viewport size. Truncates with ellipsis.
 
 ```typescript
-const isMobile = useMediaQuery('(max-width: 768px)')
+// EditorPane.vue — responsive theme via Compartment
+const responsiveThemeCompartment = new Compartment()
+const isMobile = useMediaQuery('(max-width: 639px)')
 
-const mobileExtensions = computed(() => isMobile.value ? [
-  EditorView.contentAttributes.of({ autocapitalize: 'sentences', autocorrect: 'on' }),
-  EditorView.theme({ '.cm-content': { lineHeight: '1.8', fontSize: '16px', padding: '12px 16px' } }),
-] : [])
+function buildResponsiveTheme(mobile: boolean) {
+  return EditorView.theme({
+    '&': { fontSize: mobile ? '16px' : '15px' },
+    '.cm-scroller': { lineHeight: mobile ? '1.7' : '1.5' },
+    '.cm-content': { padding: mobile ? '12px 16px' : '16px 20px' }
+  })
+}
+
+// On viewport change, reconfigure the compartment live (no remount)
+watch(isMobile, (mobile) => {
+  view.value?.dispatch({
+    effects: responsiveThemeCompartment.reconfigure(buildResponsiveTheme(mobile))
+  })
+})
 ```
+
+### 16.2 Deferred (MMP)
+
+- **Floating toolbar** above virtual keyboard via `visualViewport` API
+- **Bottom tab bar** for Edit / Preview / AI switching
+- **Sidebar as bottom sheet** on mobile
 
 ---
 
@@ -1129,10 +1317,11 @@ services:
       - NUXT_S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - NUXT_S3_SECRET_KEY=${S3_SECRET_KEY}
       - NUXT_JWT_SECRET=${JWT_SECRET}
-      - NUXT_LLM_API_URL=${LLM_API_URL}
-      - NUXT_LLM_API_KEY=${LLM_API_KEY}
-      - NUXT_LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - NUXT_INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - NUXT_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - NUXT_ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-6}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN}
+      - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_PANDOC_URL=http://pandoc:8080
       - DATABASE_PATH=/data/ypad.db
     volumes:
@@ -1156,6 +1345,8 @@ services:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - JWT_SECRET=${JWT_SECRET}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - APP_URL=http://app:3000  # for activity logger to call Nuxt
     expose: ["4001"]
     labels:
       - "traefik.enable=true"
@@ -1260,12 +1451,12 @@ GOOGLE_CLIENT_SECRET=...
 S3_ACCESS_KEY=ypad-access-key
 S3_SECRET_KEY=change-me-to-something-secure
 JWT_SECRET=change-me-to-something-random-64-chars
-LLM_API_URL=https://api.openai.com/v1/chat/completions
-LLM_API_KEY=sk-...
-LLM_MODEL=gpt-4o-mini
+INTERNAL_API_SECRET=change-me-to-something-random-used-between-app-and-sync-server
+ANTHROPIC_API_KEY=sk-ant-api03-...
+ANTHROPIC_MODEL=claude-sonnet-4-6
 ```
 
-**Dev `.env` (checked in, no secrets):**
+**Dev `.env` (git-ignored; OAuth client secrets are per-developer):**
 
 ```env
 NUXT_SESSION_PASSWORD=development-session-password-at-least-32-chars
@@ -1274,9 +1465,13 @@ NUXT_S3_ACCESS_KEY=ypad-access-key
 NUXT_S3_SECRET_KEY=ypad-secret-key
 NUXT_S3_BUCKET=ypad
 NUXT_JWT_SECRET=development-jwt-secret-change-me-in-production-64chars
+NUXT_INTERNAL_API_SECRET=development-internal-api-secret-change-me
 NUXT_PANDOC_URL=http://localhost:8080
 NUXT_PUBLIC_SYNC_URL=ws://localhost:4001
+NUXT_SYNC_INTERNAL_URL=http://localhost:4001
 ```
+
+**Dev: run Nuxt with `--host 0.0.0.0`** so the sync-server Docker container can reach it via `host.docker.internal` (required for activity logging to work in dev).
 
 ---
 
@@ -1305,10 +1500,8 @@ ypad/
 │   │   │   ├── ConnectionStatus.vue
 │   │   │   └── ActivityFeed.vue
 │   │   ├── ai/
-│   │   │   ├── AiPanel.vue
-│   │   │   ├── AiSuggestion.vue
-│   │   │   ├── ProviderToggle.vue
-│   │   │   └── ModelLoader.vue
+│   │   │   ├── AIPromptBar.vue             # Top-bar prompt input, live status, Stop
+│   │   │   └── AISelectionPopup.vue        # Inline sparkles → rewrite popup
 │   │   ├── sharing/
 │   │   │   ├── ShareModal.vue
 │   │   │   ├── PasswordModal.vue
@@ -1330,9 +1523,7 @@ ypad/
 │   │       └── SizeWarning.vue
 │   ├── composables/
 │   │   ├── useDocument.ts               # Y.js + HocuspocusProvider
-│   │   ├── useAI.ts                     # Provider abstraction
-│   │   ├── useCloudAI.ts               # Cloud AI provider
-│   │   ├── useLocalAI.ts               # WebGPU Gemma (MMP)
+│   │   ├── useAI.ts                     # Reactive AI state (derived from awareness) + prompt/rewrite/abort
 │   │   ├── useImageUpload.ts           # useMutation-based upload
 │   │   ├── useDocumentImport.ts         # Import with conflict handling
 │   │   └── useMarkdownPreview.ts
@@ -1370,7 +1561,10 @@ ypad/
 │   │   │   └── [docId]/[fileId].get.ts # 302 to presigned GET
 │   │   ├── import.post.ts              # PDF/DOCX → markdown
 │   │   ├── export/[docId].post.ts      # Markdown → PDF/DOCX
-│   │   ├── ai/generate.post.ts         # Streaming LLM proxy
+│   │   ├── ai/
+│   │   │   ├── prompt.post.ts          # Agentic loop with tools (web_search, web_fetch, str_replace)
+│   │   │   ├── rewrite.post.ts         # Inline selection rewrite (Haiku, no tools)
+│   │   │   └── abort.post.ts           # Initiator-only cancel
 │   │   ├── workspaces.post.ts          # Create workspace
 │   │   ├── workspaces/
 │   │   │   ├── [wsId].get.ts           # Get workspace
@@ -1383,24 +1577,30 @@ ypad/
 │   │   └── schema.ts                    # Drizzle ORM schema (all tables)
 │   ├── middleware/
 │   │   └── auth.ts                      # Server-side auth guard
+│   ├── plugins/
+│   │   ├── orphan-cleanup.ts            # Hourly S3 orphan reconciliation
+│   │   └── ai-session-sweep.ts          # 60 s sweep; aborts AI sessions > 7 min old
 │   └── utils/
 │       ├── database.ts                  # Drizzle ORM + better-sqlite3 singleton
 │       ├── s3.ts                        # S3 client singleton
-│       └── rateLimit.ts                 # In-memory rate limiter (password, import, export)
+│       ├── rateLimit.ts                 # In-memory rate limiter (password, import, export, token, AI)
+│       ├── aiSessions.ts                # In-memory AI session map + per-user-per-doc cap
+│       ├── aiClient.ts                  # Claude as a Y.js client (HocuspocusProvider)
+│       └── aiToolAdapter.ts             # str_replace_based_edit_tool → Y.Text ops
 ├── sync-server/                         # Hocuspocus (separate container)
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── bun.lock
 │   └── src/
-│       ├── index.ts
-│       ├── persistence.ts
-│       ├── auth.ts
-│       └── rate-limiter.ts
+│       ├── index.ts                     # Server entry, Hocuspocus hooks, onRequest dispatch
+│       ├── persistence.ts                # S3 load/store hooks for Y.Doc state
+│       ├── auth.ts                       # JWT verification (requires valid token)
+│       ├── rate-limiter.ts               # Per-IP connection limits
+│       ├── activity-logger.ts            # Posts edit events to Nuxt /api/internal/activity
+│       └── internal-http.ts              # Internal endpoints (notify-deleted), secret-auth'd
 ├── pandoc-server/                       # Pandoc HTTP service (separate container)
 │   ├── Dockerfile
 │   └── server.py
-├── workers/
-│   └── gemma-worker.ts                  # WebGPU AI (MMP)
 ├── i18n/
 │   └── locales/                         # i18n locale files (lazy-loaded)
 │       ├── en.json
@@ -1502,23 +1702,35 @@ ypad/
 - [x] Security: input validation on `meta.put` (title length, access_mode enum, numeric bounds)
 - [x] Security: password token expiry reduced from 24h to 2h
 
-#### Phase 5: Mobile & Document Management (Week 6)
-- [ ] Mobile floating toolbar (visualViewport API)
-- [ ] Mobile bottom tab bar, sidebar as bottom sheet
-- [ ] Touch-optimized CM6 extensions
-- [ ] Document deletion (owner only, confirmation modal)
-- [x] Document metadata updates (title, access mode) — done in Phase 4.5
-- [ ] Activity logging in Hocuspocus `onStoreDocument`
-- [ ] Activity feed in sidebar
+#### Phase 5: Mobile & Document Management (Week 6) ✅ mostly
+- [ ] Mobile floating toolbar (visualViewport API) — deferred to MMP
+- [ ] Mobile bottom tab bar — deferred to MMP
+- [ ] Sidebar as bottom sheet on mobile — deferred to MMP
+- [x] Touch-optimized CM6 extensions (autocapitalize, autocorrect, 16px mobile font via reactive Compartment)
+- [x] Document deletion (owner only, DeleteConfirmModal with type-to-confirm safety)
+- [x] S3 cleanup on delete (ListObjectsV2 + DeleteObjectsCommand) + orphan reconciliation plugin (hourly)
+- [x] Delete-cascade broadcast: sync-server `onRequest` hook sets `ymeta._deleted`, clients observe and redirect
+- [x] Document metadata updates (title, access mode, wordCount, sizeBytes — all validated)
+- [x] Activity logging in Hocuspocus `onStoreDocument` (attribution via `awareness.meta.lastUpdated`, 500-entry cap per doc)
+- [x] Activity feed in sidebar (30s auto-refresh, relative timestamps)
+- [x] Mobile UX redesign: collapsed top-bar menu (⋮), icon-only connection badge, responsive title, wrap toolbar instead of horizontal scroll
+- [x] Mobile breakpoint standardized on 640px (matches Tailwind `sm:`)
 
-#### Phase 6: AI & Polish (Week 7)
-- [ ] Cloud AI proxy endpoint (streaming SSE)
-- [ ] AI sidebar with Nuxt UI chat components
-- [ ] Quick actions on text selection
-- [ ] Ghost text suggestions (local-only until accepted)
+#### Phase 6: AI & Polish (Week 7) ✅
+- [x] **Claude as a Y.js collaborator** — server opens its own HocuspocusProvider, edits via `ydoc.transact` with origin `ai:claude:{sessionId}` (`server/utils/aiClient.ts`)
+- [x] **Agentic prompt loop** with `text_editor_20250728` + `web_search_20260209` + `web_fetch_20260209` (`server/api/ai/prompt.post.ts`)
+- [x] **Inline selection rewrite** with Haiku + full-doc context + Y.js RelativePosition race safety (`server/api/ai/rewrite.post.ts`, `app/components/ai/AISelectionPopup.vue`)
+- [x] **Streaming status via awareness** — `inputJson` events surface live tool inputs ("Searching the web for '…'", "Reading webpage X.com", "Editing '…'"); no SSE/push channel to client
+- [x] **Concurrent sessions allowed**, one per user per doc (`DuplicateSessionError` → 409)
+- [x] **Initiator-only cancel** via `POST /api/ai/abort`
+- [x] `code_execution` container id captured off raw stream (SDK gap workaround) so turn ≥ 2 after web_search doesn't 400
+- [x] Per-user rate limits (`ai-prompt: 20/h`, `ai-rewrite: 30/h`) + 5-min deadline + 7-min sweeper (`server/plugins/ai-session-sweep.ts`)
+- [x] AI avatars with sparkles + pulsing ring in `PresenceBar.vue`
+- [x] Error toasts on mid-loop failures; abort is never an error
 - [ ] PWA setup via `@vite-pwa/nuxt`
 - [x] Rate limiting on Nuxt server routes — done in Phase 4.5 (token, password, import, export)
-- [ ] Scheduled cleanup (inactive docs, orphaned S3 objects)
+- [x] Scheduled cleanup of orphaned S3 objects — done in Phase 5 (`server/plugins/orphan-cleanup.ts`)
+- [ ] Scheduled cleanup of inactive documents (deferred)
 
 **MVP ships at end of Week 7.**
 
@@ -1570,6 +1782,9 @@ ypad/
 | **`nuxt-codemirror` over raw CM6** | Vue-wrapped component with reactive props and lifecycle management. Y.js integration via raw extensions. |
 | **Y.js CRDT over custom OT** | Proven convergence under all concurrency. No custom conflict resolution code. |
 | **Hocuspocus as separate container** | Long-lived WebSocket connections with in-memory Y.Doc state shouldn't share the event loop with HTTP request handling. |
+| **Sync-server ↔ Nuxt via shared-secret HTTP** | Alternatives (direct DB access from sync-server, message queue) were heavier. HTTP + `X-Internal-Secret` is simple, debuggable, and already the contract we use for OAuth callbacks etc. Sync-server calls Nuxt for activity logging; Nuxt calls sync-server for delete broadcasts. |
+| **Orphan S3 cleanup via hourly reconciliation** | On-delete S3 cleanup is best-effort (wrapped in try/catch). A server plugin reconciles S3 prefixes against the `documents` table every hour, deleting orphans from failed deletes AND any other cause. Self-healing. |
+| **Delete broadcast via `ymeta._deleted`** | Re-uses Y.js broadcast infrastructure instead of adding a custom WebSocket message. Sync-server sets the flag on the in-memory Y.Doc, clients observe via the existing `ymeta.observe` they already use for the title. |
 | **OAuth optional, not mandatory** | Public docs work anonymously. Login required only for ownership/management. Low friction for casual use. |
 | **Read-only at 3 layers** | Hocuspocus (server), CM6 (editor), UI (visual) — defense-in-depth. |
 | **AI suggestions local-only** | Ghost text not broadcast to collaborators. Accepted text syncs as normal Y.js edits. |
@@ -1586,6 +1801,7 @@ ypad/
 - **Hocuspocus always requires a valid JWT** — no anonymous WebSocket bypass. Every connection must go through the Nuxt token endpoint first, which checks document access mode and sets the correct `readOnly` flag. Connecting without a token is rejected with "Authentication required".
 - **JWT secret required at startup** — both the Nuxt server (`config.jwtSecret`) and the sync-server (`JWT_SECRET` env var) throw hard errors if the secret is missing. No dev-secret fallbacks exist.
 - **S3 credentials required at startup** — sync-server throws if `S3_ENDPOINT`, `S3_ACCESS_KEY`, or `S3_SECRET_KEY` are not set. No hardcoded fallbacks.
+- **Internal API secret** — server↔sync-server calls (activity logging, delete notifications) are authed via `INTERNAL_API_SECRET` shared between both services. Nuxt middleware whitelists `/api/internal/*` from user-session auth; those endpoints validate the secret themselves. Routes are only reachable on the internal Docker network in production; dev binds Nuxt to `0.0.0.0` and uses `host.docker.internal` for sync→Nuxt reachability.
 
 ### 21.2 Access Control (4 layers for read-only, 3 layers for password)
 

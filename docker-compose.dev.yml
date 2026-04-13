@@ -34,6 +34,12 @@ services:
       - S3_SECRET_KEY=ypad-secret-key
       - S3_BUCKET=ypad
       - JWT_SECRET=development-jwt-secret-change-me-in-production-64chars
+      - INTERNAL_API_SECRET=development-internal-api-secret-change-me
+      # Sync server reaches the Nuxt app on host for activity logging.
+      # host.docker.internal works on Mac/Windows; on Linux, use host-gateway extra_host.
+      - APP_URL=http://host.docker.internal:3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "4001:4001"
     depends_on:

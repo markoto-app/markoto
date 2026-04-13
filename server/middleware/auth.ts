@@ -13,7 +13,8 @@ export default defineEventHandler(async (event) => {
     { path: /^\/api\/docs\/[^/]+\/password$/, methods: ['POST'] },  // Password verify is public; set/remove check ownership inside
     { path: /^\/api\/docs\/[^/]+\/activity$/, methods: ['GET'] },  // Activity log is public for viewers
     { path: /^\/api\/export\//, methods: ['POST'] },  // Export is public — user already has the content client-side
-    { path: /^\/api\/import$/, methods: ['POST'] }  // Import is public — user uploads their own file for conversion
+    { path: /^\/api\/import$/, methods: ['POST'] },  // Import is public — user uploads their own file for conversion
+    { path: /^\/api\/internal\//, methods: ['POST'] }  // Internal endpoints auth via shared secret header (not user session)
   ]
 
   const isPublic = publicRoutes.some(

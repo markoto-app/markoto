@@ -60,6 +60,8 @@ export const activityLog = sqliteTable('activity_log', {
   userName: text('user_name'),
   action: text('action', { enum: ['edit', 'join', 'leave'] }).notNull(),
   wordCount: integer('word_count'),
+  linesAdded: integer('lines_added'),
+  linesRemoved: integer('lines_removed'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`)
 }, (table) => [
   index('idx_activity_doc').on(table.docId, table.createdAt)

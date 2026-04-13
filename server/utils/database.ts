@@ -77,12 +77,14 @@ function runMigrations(sqlite: Database.Database) {
     );
 
     CREATE TABLE IF NOT EXISTS activity_log (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      doc_id       TEXT NOT NULL REFERENCES documents(doc_id),
-      user_name    TEXT,
-      action       TEXT NOT NULL,
-      word_count   INTEGER,
-      created_at   INTEGER NOT NULL DEFAULT (unixepoch())
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      doc_id        TEXT NOT NULL REFERENCES documents(doc_id),
+      user_name     TEXT,
+      action        TEXT NOT NULL,
+      word_count    INTEGER,
+      lines_added   INTEGER,
+      lines_removed INTEGER,
+      created_at    INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
     CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id);
@@ -90,4 +92,15 @@ function runMigrations(sqlite: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_workspace_docs ON workspace_documents(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_activity_doc ON activity_log(doc_id, created_at);
   `)
+
+  // Additive column migrations for tables that may pre-date them. ALTER TABLE ADD
+  // COLUMN isn't idempotent in SQLite, so gate on PRAGMA table_info.
+  addColumnIfMissing(sqlite, 'activity_log', 'lines_added', 'INTEGER')
+  addColumnIfMissing(sqlite, 'activity_log', 'lines_removed', 'INTEGER')
+}
+
+function addColumnIfMissing(sqlite: Database.Database, table: string, column: string, decl: string) {
+  const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+  if (cols.some((c) => c.name === column)) return
+  sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${decl}`)
 }

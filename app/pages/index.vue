@@ -4,38 +4,74 @@ const router = useRouter()
 const { loggedIn } = useUserSession()
 const creating = ref(false)
 
+const toast = useToast()
+
 async function createDocument() {
   creating.value = true
   try {
     const { docId } = await $fetch<{ docId: string }>('/api/docs', { method: 'POST' })
     router.push(`/d/${docId}`)
-  } catch {
-    // Fallback: generate client-side ID
-    const id = Math.random().toString(36).substring(2, 12)
-    router.push(`/d/${id}`)
+  } catch (e: any) {
+    // NO client-side fallback. If POST /api/docs fails we want to see it — a silent
+    // `Math.random()` fallback used to mask server errors and produce orphaned docIds
+    // with no `documents` row, which then broke activity logging / sharing / deletion.
+    toast.add({
+      title: 'Could not create document',
+      description: e?.data?.message || e?.message || 'Server refused the request',
+      icon: 'i-lucide-alert-circle',
+      color: 'error'
+    })
   } finally {
     creating.value = false
   }
 }
 
 // Fetch user's documents if logged in
-const myDocs = ref<any[]>([])
+interface DocumentListItem {
+  docId: string
+  title: string
+  accessMode: 'open-edit' | 'open-view' | 'password-protected'
+  wordCount: number
+  lastActive: string | number | Date
+  sizeBytes: number
+  isOwner: boolean | number
+}
+
+const myDocs = ref<DocumentListItem[]>([])
 const loadingDocs = ref(false)
 
-watch(loggedIn, async (val) => {
-  if (val) {
-    loadingDocs.value = true
-    try {
-      myDocs.value = await $fetch<any[]>('/api/user/documents')
-    } catch {
-      // Not logged in or error
-    } finally {
-      loadingDocs.value = false
-    }
-  } else {
+async function loadDocs() {
+  if (!loggedIn.value) {
     myDocs.value = []
+    return
   }
-}, { immediate: true })
+  loadingDocs.value = true
+  try {
+    myDocs.value = await $fetch<DocumentListItem[]>('/api/user/documents')
+  } catch {
+    // Not logged in or error
+  } finally {
+    loadingDocs.value = false
+  }
+}
+
+watch(loggedIn, loadDocs, { immediate: true })
+
+// Delete modal state
+const deleteTarget = ref<DocumentListItem | null>(null)
+const showDeleteConfirm = ref(false)
+
+function openDeleteConfirm(doc: DocumentListItem) {
+  deleteTarget.value = doc
+  showDeleteConfirm.value = true
+}
+
+function onDocDeleted() {
+  if (!deleteTarget.value) return
+  // Optimistically remove from list (the server call already succeeded at this point)
+  myDocs.value = myDocs.value.filter(d => d.docId !== deleteTarget.value!.docId)
+  deleteTarget.value = null
+}
 
 function formatDate(value: string | number | Date) {
   const date = new Date(value)
@@ -88,28 +124,58 @@ function formatDate(value: string | number | Date) {
       <div v-if="loggedIn && myDocs.length > 0" class="mt-12 w-full max-w-2xl">
         <h2 class="text-lg font-semibold mb-4">{{ t('landing.recentDocuments') }}</h2>
         <div class="space-y-2">
-          <NuxtLink
+          <div
             v-for="doc in myDocs"
             :key="doc.docId"
-            :to="`/d/${doc.docId}`"
-            class="flex items-center justify-between p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
+            class="group flex items-center gap-3 p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
           >
-            <div class="flex items-center gap-3 min-w-0">
+            <NuxtLink
+              :to="`/d/${doc.docId}`"
+              class="flex items-center gap-3 min-w-0 flex-1"
+            >
               <UIcon name="i-lucide-file-text" class="size-5 text-muted shrink-0" />
               <div class="min-w-0">
                 <p class="text-sm font-medium truncate">{{ doc.title }}</p>
                 <p class="text-xs text-muted">{{ formatDate(doc.lastActive) }}</p>
               </div>
-            </div>
+            </NuxtLink>
             <div class="flex items-center gap-2 shrink-0">
               <UBadge v-if="doc.accessMode !== 'open-edit'" size="xs" color="neutral" variant="subtle">
                 {{ doc.accessMode === 'open-view' ? 'View only' : 'Protected' }}
               </UBadge>
               <span class="text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+              <UDropdownMenu
+                v-if="doc.isOwner"
+                :items="[
+                  {
+                    label: t('common.delete'),
+                    icon: 'i-lucide-trash-2',
+                    color: 'error',
+                    onSelect: () => openDeleteConfirm(doc)
+                  }
+                ]"
+              >
+                <UButton
+                  icon="i-lucide-more-vertical"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  class="opacity-60 group-hover:opacity-100 transition-opacity"
+                />
+              </UDropdownMenu>
             </div>
-          </NuxtLink>
+          </div>
         </div>
       </div>
+
+      <!-- Delete confirmation (shared across all doc rows) -->
+      <DocumentDeleteConfirmModal
+        v-if="deleteTarget"
+        v-model:open="showDeleteConfirm"
+        :doc-id="deleteTarget.docId"
+        :title="deleteTarget.title"
+        @deleted="onDocDeleted"
+      />
 
       <div v-else-if="loggedIn && loadingDocs" class="mt-12">
         <UIcon name="i-lucide-loader" class="size-6 animate-spin text-muted" />

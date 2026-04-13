@@ -41,10 +41,11 @@ services:
       - NUXT_S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - NUXT_S3_SECRET_KEY=${S3_SECRET_KEY}
       - NUXT_JWT_SECRET=${JWT_SECRET}
-      - NUXT_LLM_API_URL=${LLM_API_URL}
-      - NUXT_LLM_API_KEY=${LLM_API_KEY}
-      - NUXT_LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - NUXT_INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - NUXT_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - NUXT_ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-6}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN}
+      - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_PANDOC_URL=http://pandoc:8080
       - DATABASE_PATH=/data/ypad.db
     volumes:
@@ -73,6 +74,8 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_BUCKET=ypad
       - JWT_SECRET=${JWT_SECRET}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - APP_URL=http://app:3000
     expose:
       - "4001"
     labels:

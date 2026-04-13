@@ -51,13 +51,16 @@ export default defineNuxtConfig({
       secretKey: '',
       bucket: 'ypad'
     },
-    llm: {
-      apiUrl: '',
-      apiKey: '',
-      model: 'gpt-4o-mini'
+    anthropic: {
+      apiKey: '',                 // NUXT_ANTHROPIC_API_KEY
+      model: 'claude-sonnet-4-6'  // NUXT_ANTHROPIC_MODEL — Sonnet chosen for cost/speed in agentic loops
     },
     jwtSecret: '',
+    internalApiSecret: '',
     pandocUrl: '',
+    // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
+    // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
+    syncInternalUrl: 'http://localhost:4001',
     public: {
       syncUrl: ''
     }

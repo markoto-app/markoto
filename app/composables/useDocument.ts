@@ -133,8 +133,12 @@ export function useDocument(docId: string) {
   // Bridge Y.js Map reactivity to Vue: ymeta.get() isn't tracked by Vue,
   // so we observe the Map and update a reactive ref on every change.
   const _titleRef = ref((ymeta.get('title') as string) || 'Untitled')
+  // `_deleted` flag is set by the sync-server when the owner deletes the doc —
+  // all connected clients see this via Y.js broadcast and redirect away.
+  const isDeleted = ref(!!ymeta.get('_deleted'))
   ymeta.observe(() => {
     _titleRef.value = (ymeta.get('title') as string) || 'Untitled'
+    if (ymeta.get('_deleted')) isDeleted.value = true
   })
 
   const title = computed({
@@ -183,6 +187,7 @@ export function useDocument(docId: string) {
     userCount: readonly(userCount),
     isReadOnly: readonly(isReadOnly),
     isOwner: readonly(isOwner),
+    isDeleted: readonly(isDeleted),
     requiresPassword: readonly(requiresPassword),
     accessMode: readonly(accessMode),
     docSizeBytes: readonly(docSizeBytes),

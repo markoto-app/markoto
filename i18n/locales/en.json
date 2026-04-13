@@ -111,5 +111,43 @@
     "confirm": "Confirm",
     "close": "Close",
     "loading": "Loading..."
+  },
+  "menu": {
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "account": "Account"
+  },
+  "ai": {
+    "placeholder": "Tell Claude what to do…",
+    "send": "Send",
+    "stop": "Stop",
+    "loginRequired": "Log in to use Claude",
+    "statusThinking": "Claude is thinking…",
+    "statusSearching": "Claude is searching the web…",
+    "statusFetching": "Claude is reading a page…",
+    "statusEditing": "Claude is editing the document…",
+    "statusDone": "Done",
+    "otherSessions": "{n} other session | {n} other sessions",
+    "helpingTooltip": "Claude is helping {name}",
+    "rewriteButton": "Rewrite with Claude",
+    "rewritePlaceholder": "How should Claude rewrite this?",
+    "alreadyRunning": "You already have Claude running on this document.",
+    "rateLimited": "Too many AI requests. Try again in a minute.",
+    "failed": "Claude failed"
+  },
+  "delete": {
+    "title": "Delete Document",
+    "warning": "This will permanently delete the document and all its content. This action cannot be undone.",
+    "document": "Document",
+    "confirmPrompt": "Type \"{title}\" to confirm:",
+    "confirm": "Delete Document",
+    "dangerZone": "Danger Zone",
+    "dangerZoneDesc": "Deleting a document is permanent. All collaborators will lose access.",
+    "deleteButton": "Delete this document",
+    "success": "Document deleted",
+    "successDesc": "\"{title}\" has been permanently deleted.",
+    "failed": "Deletion failed",
+    "remoteTitle": "Document deleted",
+    "remoteDesc": "This document was deleted by the owner."
   }
 }

@@ -53,6 +53,11 @@ export default defineEventHandler(async (event) => {
     {
       docId,
       userId: session?.user?.id || 'anonymous',
+      // Carried so the sync-server can attribute edits reliably without guessing
+      // from awareness (a cursor move by User A can otherwise steal attribution
+      // from a real edit by User B). Anonymous users end up with null here; the
+      // sync-server falls back to awareness in that case.
+      userName: (session?.user as { name?: string } | undefined)?.name ?? null,
       readOnly
     },
     config.jwtSecret,

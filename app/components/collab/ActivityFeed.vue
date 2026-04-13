@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import type * as Y from 'yjs'
+
 const props = defineProps<{
   docId: string
+  ydoc?: Y.Doc | null
 }>()
 
 const { t } = useI18n()
@@ -11,6 +14,8 @@ interface ActivityEntry {
   userName: string | null
   action: 'edit' | 'join' | 'leave'
   wordCount: number | null
+  linesAdded: number | null
+  linesRemoved: number | null
   createdAt: string | number
 }
 
@@ -29,11 +34,25 @@ async function loadActivity() {
 
 onMounted(loadActivity)
 
-// Auto-refresh every 30 seconds while the sidebar is visible
-const { pause, resume } = useIntervalFn(loadActivity, 30_000)
+// Safety-net poll — covers join/leave entries and recovers from missed updates.
+// The main trigger is the Y.js update listener below, which gives us near-live
+// refreshes whenever anyone (human or Claude) edits the document.
+const { pause } = useIntervalFn(loadActivity, 30_000)
+
+// Sync-server debounces `onStoreDocument` (and therefore activity logging) at
+// 2-10 s after the last change. Refetch ~3 s after the doc stops changing so
+// the feed catches the new entry without hammering the API on every keystroke.
+const debouncedReload = useDebounceFn(loadActivity, 3_000)
+function onYUpdate() { debouncedReload() }
+
+watch(() => props.ydoc, (doc, prev) => {
+  prev?.off('update', onYUpdate)
+  doc?.on('update', onYUpdate)
+}, { immediate: true })
 
 onUnmounted(() => {
   pause()
+  props.ydoc?.off('update', onYUpdate)
 })
 
 const actionIcons: Record<string, string> = {
@@ -67,17 +86,31 @@ function formatTime(ts: string | number) {
     <div
       v-for="entry in entries"
       :key="entry.id"
-      class="flex items-start gap-2 py-1.5 px-2 rounded text-sm"
+      class="flex items-start gap-2 py-2 px-2 rounded text-sm"
     >
       <UIcon
+        v-if="entry.userName === 'Claude'"
+        name="i-lucide-sparkles"
+        class="size-4 mt-0.5 text-amber-500 shrink-0"
+      />
+      <UIcon
+        v-else
         :name="actionIcons[entry.action] || 'i-lucide-activity'"
         class="size-4 mt-0.5 text-muted shrink-0"
       />
-      <div class="min-w-0 flex-1">
+      <div class="min-w-0 flex-1 leading-snug">
         <span class="font-medium">{{ entry.userName || t('activity.anonymous') }}</span>
-        <span class="text-muted"> {{ t(`activity.action.${entry.action}`) }}</span>
+        <span class="text-muted ml-1">{{ t(`activity.action.${entry.action}`) }}</span>
+        <!-- Git-style diff badges (edits only, when we have numbers). -->
+        <span
+          v-if="entry.action === 'edit' && (entry.linesAdded || entry.linesRemoved)"
+          class="ml-1.5 inline-flex items-center gap-1 text-xs font-mono"
+        >
+          <span v-if="entry.linesAdded" class="text-green-500">+{{ entry.linesAdded }}</span>
+          <span v-if="entry.linesRemoved" class="text-red-500">-{{ entry.linesRemoved }}</span>
+        </span>
+        <div class="text-xs text-muted mt-0.5">{{ formatTime(entry.createdAt) }}</div>
       </div>
-      <span class="text-xs text-muted shrink-0">{{ formatTime(entry.createdAt) }}</span>
     </div>
   </div>
 </template>

@@ -95,7 +95,7 @@ const actions = computed(() => [
 </script>
 
 <template>
-  <div v-if="!readOnly" class="flex items-center gap-0.5 px-2 py-1 overflow-x-auto">
+  <div v-if="!readOnly" class="flex flex-wrap items-center gap-0.5 px-2 py-1 min-w-0">
     <template v-for="(item, i) in actions" :key="i">
       <USeparator v-if="item.divider" orientation="vertical" class="h-5 mx-1" />
       <UTooltip v-else :text="item.label">

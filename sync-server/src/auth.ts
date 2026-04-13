@@ -20,12 +20,19 @@ export const auth = {
       const payload = jwt.verify(token, JWT_SECRET) as {
         docId: string
         userId: string
+        userName?: string | null
         readOnly: boolean
       }
       if (payload.docId !== documentName) {
         throw new Error('Token scope mismatch')
       }
-      return { readOnly: payload.readOnly }
+      // Pass userId + userName through the connection context so onChange can
+      // attribute edits without guessing from awareness timestamps.
+      return {
+        readOnly: payload.readOnly,
+        userId: payload.userId,
+        userName: payload.userName ?? null
+      }
     } catch (e: any) {
       console.warn(`[auth] Invalid token for ${documentName}:`, e.message)
       throw new Error('Invalid token')

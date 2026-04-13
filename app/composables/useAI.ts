@@ -1,0 +1,156 @@
+import type { Awareness } from 'y-protocols/awareness'
+
+export interface AiSessionInfo {
+  sessionId: string
+  initiatorName: string
+  initiatorUserId: number
+  prompt: string
+  phase: 'thinking' | 'tool' | 'editing' | 'done' | 'error' | string
+  message: string | null
+}
+
+/**
+ * Exposes AI prompt / rewrite / abort actions and reactive state derived from
+ * Y.js awareness. Claude joins the document as its own client, so every tab
+ * naturally sees the AI "user" appear, change status, and leave.
+ */
+export function useAI(docId: Ref<string>, awareness: Awareness) {
+  const { loggedIn, user: sessionUser } = useUserSession()
+
+  // All active AI sessions on this doc, derived from awareness entries that
+  // advertise `isAI: true` + an `aiSession` metadata block.
+  const activeSessions = ref<AiSessionInfo[]>([])
+
+  function refresh() {
+    const list: AiSessionInfo[] = []
+    for (const state of awareness.getStates().values()) {
+      const user = state?.user
+      const ai = state?.aiSession
+      const status = state?.aiStatus
+      if (!user?.isAI || !ai?.sessionId) continue
+      list.push({
+        sessionId: ai.sessionId,
+        initiatorName: ai.initiatorName,
+        initiatorUserId: ai.initiatorUserId,
+        prompt: ai.prompt ?? '',
+        phase: status?.phase ?? 'thinking',
+        message: status?.message ?? null
+      })
+    }
+    activeSessions.value = list
+  }
+
+  awareness.on('change', refresh)
+  refresh()
+  onUnmounted(() => awareness.off('change', refresh))
+
+  // The current user's session on this doc — used to show Stop button + disable input.
+  const mySessionId = computed<string | null>(() => {
+    if (!loggedIn.value) return null
+    const myId = sessionUser.value?.id as number | undefined
+    if (typeof myId !== 'number') return null
+    const mine = activeSessions.value.find(s => s.initiatorUserId === myId)
+    return mine?.sessionId ?? null
+  })
+
+  const mySession = computed<AiSessionInfo | null>(() => {
+    if (!mySessionId.value) return null
+    return activeSessions.value.find(s => s.sessionId === mySessionId.value) ?? null
+  })
+
+  const otherSessions = computed<AiSessionInfo[]>(() => {
+    if (!loggedIn.value) return activeSessions.value
+    const myId = sessionUser.value?.id
+    return activeSessions.value.filter(s => s.initiatorUserId !== myId)
+  })
+
+  const submitting = ref(false)
+  const lastError = ref<string | null>(null)
+
+  // Surface errors that happen mid-loop (server-side) back through `lastError` so
+  // AIPromptBar can toast them. Awareness clears the session ~2.5s after the error
+  // is written, so we must capture the message while it's still visible.
+  watch(mySession, (session, prev) => {
+    if (session?.phase === 'error' && session.message) {
+      lastError.value = session.message.replace(/^Error:\s*/i, '')
+    } else if (!session && prev?.phase === 'error') {
+      // Session just cleaned up after an error — keep lastError around for the toast.
+    }
+  })
+
+  async function prompt(text: string): Promise<boolean> {
+    const trimmed = text.trim()
+    if (!trimmed || submitting.value || mySessionId.value) return false
+    submitting.value = true
+    lastError.value = null
+    try {
+      await $fetch<{ sessionId: string }>('/api/ai/prompt', {
+        method: 'POST',
+        body: { docId: docId.value, prompt: trimmed }
+      })
+      return true
+    } catch (e: any) {
+      lastError.value = e.data?.message || e.message || 'Request failed'
+      return false
+    } finally {
+      submitting.value = false
+    }
+  }
+
+  async function rewrite(params: {
+    selectionText: string
+    selectionFrom: number
+    selectionTo: number
+    relFrom?: any
+    relTo?: any
+    instruction: string
+  }): Promise<boolean> {
+    lastError.value = null
+    try {
+      await $fetch('/api/ai/rewrite', {
+        method: 'POST',
+        body: {
+          docId: docId.value,
+          selectionText: params.selectionText,
+          selectionFrom: params.selectionFrom,
+          selectionTo: params.selectionTo,
+          relFrom: params.relFrom,
+          relTo: params.relTo,
+          prompt: params.instruction
+        }
+      })
+      return true
+    } catch (e: any) {
+      lastError.value = e.data?.message || e.message || 'Rewrite failed'
+      return false
+    }
+  }
+
+  async function abort(): Promise<void> {
+    const id = mySessionId.value
+    if (!id) return
+    try {
+      await $fetch('/api/ai/abort', {
+        method: 'POST',
+        body: { sessionId: id }
+      })
+    } catch (e: any) {
+      // 404 = session already finished on the server between us reading mySessionId
+      // and sending the request. That's a benign race — treat it as success.
+      if (e?.statusCode === 404 || e?.data?.statusCode === 404) return
+      lastError.value = e.data?.message || e.message || 'Abort failed'
+    }
+  }
+
+  return {
+    activeSessions,
+    mySession,
+    mySessionId,
+    otherSessions,
+    submitting,
+    lastError,
+    prompt,
+    rewrite,
+    abort
+  }
+}

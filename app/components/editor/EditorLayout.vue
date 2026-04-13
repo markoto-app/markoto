@@ -17,6 +17,7 @@ const {
   userCount,
   isReadOnly,
   isOwner,
+  isDeleted,
   requiresPassword,
   accessMode,
   undoManager,
@@ -24,6 +25,11 @@ const {
   onPasswordVerified,
   setAccessMode
 } = useDocument(props.docId)
+
+// AI collaborator — joins doc as its own Y.js client; edits broadcast naturally.
+const ai = useAI(computed(() => props.docId), awareness)
+
+const toast = useToast()
 
 // Share modal state
 const showShareModal = ref(false)
@@ -34,6 +40,19 @@ const passwordModalOpen = ref(false)
 watch(requiresPassword, (val) => {
   passwordModalOpen.value = val
 }, { immediate: true })
+
+// If the doc was deleted remotely (e.g. by the owner from another session),
+// show a toast and redirect to the landing page.
+watch(isDeleted, (deleted) => {
+  if (!deleted) return
+  toast.add({
+    title: t('delete.remoteTitle'),
+    description: t('delete.remoteDesc'),
+    icon: 'i-lucide-trash-2',
+    color: 'warning'
+  })
+  navigateTo('/')
+})
 // Activity sidebar state
 const showActivity = ref(false)
 // Export state
@@ -76,7 +95,8 @@ function exportHtml() {
 
 // View mode: 'edit' | 'preview' | 'split'
 const viewMode = ref<'edit' | 'preview' | 'split'>('split')
-const isMobile = useMediaQuery('(max-width: 768px)')
+// Matches Tailwind's sm: breakpoint (640px and up = not-mobile)
+const isMobile = useMediaQuery('(max-width: 639px)')
 
 // Adjust view mode based on readOnly state and screen size
 watch(isReadOnly, (readOnly) => {
@@ -97,6 +117,70 @@ watchEffect(() => {
 // Track editor view for toolbar
 const editorPaneRef = ref<{ view: EditorView | null } | null>(null)
 const editorView = computed(() => editorPaneRef.value?.view ?? null)
+
+// Mobile dropdown menu — consolidates view mode, theme, and auth actions
+// to reduce top-bar clutter on small screens.
+const colorMode = useColorMode()
+const { loggedIn, user: sessionUser, clear: clearSession } = useUserSession()
+
+const mobileMenuItems = computed(() => {
+  const viewModeGroup = [
+    {
+      label: t('editor.edit'),
+      icon: 'i-lucide-code-2',
+      checked: viewMode.value === 'edit',
+      type: 'checkbox' as const,
+      onSelect: () => { viewMode.value = 'edit' }
+    },
+    {
+      label: t('editor.preview'),
+      icon: 'i-lucide-eye',
+      checked: viewMode.value === 'preview',
+      type: 'checkbox' as const,
+      onSelect: () => { viewMode.value = 'preview' }
+    }
+  ]
+
+  const themeGroup = [
+    {
+      label: colorMode.value === 'dark' ? t('menu.lightMode') : t('menu.darkMode'),
+      icon: colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon',
+      onSelect: () => {
+        colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+      }
+    }
+  ]
+
+  const authGroup = loggedIn.value
+    ? [
+        {
+          label: sessionUser.value?.name || t('menu.account'),
+          icon: 'i-lucide-user',
+          disabled: true
+        },
+        {
+          label: t('auth.logout'),
+          icon: 'i-lucide-log-out',
+          onSelect: () => clearSession()
+        }
+      ]
+    : [
+        {
+          label: t('auth.loginGithub'),
+          icon: 'i-simple-icons-github',
+          to: '/auth/github',
+          external: true
+        },
+        {
+          label: t('auth.loginGoogle'),
+          icon: 'i-simple-icons-google',
+          to: '/auth/google',
+          external: true
+        }
+      ]
+
+  return [viewModeGroup, themeGroup, authGroup]
+})
 
 // Track Y.js text content as a reactive string for preview.
 // We observe on the Y.Doc 'update' event rather than ytext.observe because
@@ -210,7 +294,7 @@ const statusIcon = computed(() => {
         </div>
         <button
           v-else
-          class="text-sm text-muted hover:text-default transition-colors truncate max-w-48"
+          class="text-sm text-muted hover:text-default transition-colors truncate min-w-0 max-w-[180px] sm:max-w-56 md:max-w-80"
           @click="startEditTitle"
         >
           {{ title }}
@@ -219,10 +303,10 @@ const statusIcon = computed(() => {
         <!-- Collaborators next to title -->
         <CollabPresenceBar :awareness="awareness" />
 
-        <!-- Connection status -->
+        <!-- Connection status: icon-only on mobile to save space -->
         <UBadge :color="statusColor" variant="subtle" size="sm">
-          <UIcon :name="statusIcon" class="size-3 mr-1" />
-          {{ t(`status.${status}`) }}
+          <UIcon :name="statusIcon" class="size-3 sm:mr-1" />
+          <span class="hidden sm:inline">{{ t(`status.${status}`) }}</span>
         </UBadge>
 
         <!-- User count -->
@@ -233,8 +317,8 @@ const statusIcon = computed(() => {
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
-        <!-- View mode toggle -->
-        <div class="flex">
+        <!-- View mode toggle: desktop only -->
+        <div class="hidden sm:flex">
           <UTooltip :text="t('editor.edit')">
             <UButton
               icon="i-lucide-code-2"
@@ -244,7 +328,7 @@ const statusIcon = computed(() => {
               @click="viewMode = 'edit'"
             />
           </UTooltip>
-          <UTooltip v-if="!isMobile" :text="t('editor.splitView')">
+          <UTooltip :text="t('editor.splitView')">
             <UButton
               icon="i-lucide-columns-2"
               size="xs"
@@ -264,7 +348,7 @@ const statusIcon = computed(() => {
           </UTooltip>
         </div>
 
-        <!-- Share button -->
+        <!-- Share button: always visible (primary collaboration action) -->
         <UTooltip :text="t('share.share')">
           <UButton
             icon="i-lucide-share-2"
@@ -275,22 +359,42 @@ const statusIcon = computed(() => {
           />
         </UTooltip>
 
-        <AuthUserMenu />
-        <UColorModeButton />
+        <!-- Desktop: user menu + color mode inline -->
+        <div class="hidden sm:flex items-center gap-2">
+          <AuthUserMenu />
+          <UColorModeButton />
+        </div>
+
+        <!-- Mobile: everything secondary behind a single "more" menu -->
+        <UDropdownMenu
+          class="sm:hidden"
+          :items="mobileMenuItems"
+          :content="{ align: 'end' }"
+        >
+          <UButton
+            icon="i-lucide-menu"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+          />
+        </UDropdownMenu>
       </div>
     </header>
 
     <!-- Everything below the header is hidden until password is verified -->
     <template v-if="!requiresPassword">
-      <!-- Toolbar row: formatting left, document actions right -->
-      <div class="flex items-center justify-between border-b border-default shrink-0">
-        <EditorToolbar
-          v-if="viewMode !== 'preview'"
-          :view="editorView"
-          :read-only="isReadOnly"
-          :doc-id="docId"
-        />
-        <div v-else />
+      <!-- Toolbar row: formatting left, document actions right.
+           On narrow viewports the formatting toolbar wraps to multiple rows
+           while action buttons stay top-right. -->
+      <div class="flex items-start justify-between border-b border-default shrink-0 gap-2">
+        <div class="flex-1 min-w-0">
+          <EditorToolbar
+            v-if="viewMode !== 'preview'"
+            :view="editorView"
+            :read-only="isReadOnly"
+            :doc-id="docId"
+          />
+        </div>
 
         <div class="flex items-center gap-0.5 px-2 py-1 shrink-0">
           <!-- Import button -->
@@ -355,6 +459,12 @@ const statusIcon = computed(() => {
         </div>
       </div>
 
+      <!-- AI prompt bar (hidden in preview-only or when read-only) -->
+      <AIPromptBar
+        v-if="!isReadOnly && viewMode !== 'preview'"
+        :ai="ai"
+      />
+
       <!-- Read-only banner -->
       <div v-if="isReadOnly" class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-1.5 text-center text-sm text-amber-600 dark:text-amber-400">
         <UIcon name="i-lucide-lock" class="size-3.5 mr-1 align-text-bottom" />
@@ -393,10 +503,15 @@ const statusIcon = computed(() => {
           <PreviewPane :source="textContent" />
         </div>
 
-        <!-- Activity sidebar -->
+        <!-- Activity sidebar — fills the right pane in split/preview; sidebar-width in edit mode -->
         <div
           v-if="showActivity"
-          class="w-full sm:w-80 border-l border-default h-full overflow-y-auto shrink-0"
+          :class="[
+            viewMode === 'split' ? 'w-full sm:w-1/2' : '',
+            viewMode === 'preview' ? 'w-full' : '',
+            viewMode === 'edit' ? 'w-full sm:w-80' : ''
+          ]"
+          class="border-l border-default h-full overflow-y-auto shrink-0"
         >
           <div class="p-3 border-b border-default flex items-center justify-between">
             <h3 class="text-sm font-semibold">{{ t('activity.title') }}</h3>
@@ -409,7 +524,7 @@ const statusIcon = computed(() => {
             />
           </div>
           <div class="p-2">
-            <CollabActivityFeed :doc-id="docId" />
+            <CollabActivityFeed :doc-id="docId" :ydoc="ydoc" />
           </div>
         </div>
       </main>
@@ -451,9 +566,11 @@ const statusIcon = computed(() => {
     <SharingShareModal
       v-model:open="showShareModal"
       :doc-id="docId"
+      :doc-title="title"
       :is-owner="isOwner"
       :current-access-mode="accessMode"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
+      @deleted="navigateTo('/')"
     />
 
     <!-- Password gate -->
@@ -462,6 +579,14 @@ const statusIcon = computed(() => {
       :doc-id="docId"
       @verified="onPasswordVerified"
       @cancel="navigateTo('/')"
+    />
+
+    <!-- AI selection popup — floats near the editor's current selection -->
+    <AISelectionPopup
+      v-if="!isReadOnly && !requiresPassword"
+      :view="editorView"
+      :ytext="ytext"
+      :on-rewrite="(params) => ai.rewrite(params)"
     />
   </div>
 </template>

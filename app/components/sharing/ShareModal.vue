@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   docId: string
+  docTitle: string
   isOwner: boolean
   currentAccessMode: string
 }>()
@@ -9,6 +10,7 @@ const open = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{
   updated: [accessMode: string]
+  deleted: []
 }>()
 
 const { t } = useI18n()
@@ -18,6 +20,12 @@ const accessMode = ref(props.currentAccessMode)
 const password = ref('')
 const saving = ref(false)
 const settingPassword = ref(false)
+const showDeleteConfirm = ref(false)
+
+function onDocDeleted() {
+  open.value = false
+  emit('deleted')
+}
 
 // Keep local accessMode in sync if parent prop changes
 watch(() => props.currentAccessMode, (v) => {
@@ -178,6 +186,21 @@ async function setPassword() {
           </UBadge>
         </div>
 
+        <!-- Danger zone (owner only) -->
+        <div v-if="isOwner" class="border-t border-default pt-4">
+          <h4 class="text-sm font-semibold text-red-500 mb-1">{{ t('delete.dangerZone') }}</h4>
+          <p class="text-xs text-muted mb-3">{{ t('delete.dangerZoneDesc') }}</p>
+          <UButton
+            color="error"
+            variant="soft"
+            icon="i-lucide-trash-2"
+            size="sm"
+            @click="showDeleteConfirm = true"
+          >
+            {{ t('delete.deleteButton') }}
+          </UButton>
+        </div>
+
         <!-- Close -->
         <div class="flex justify-end pt-2">
           <UButton variant="ghost" @click="open = false">
@@ -187,4 +210,12 @@ async function setPassword() {
       </div>
     </template>
   </UModal>
+
+  <!-- Delete confirmation (rendered outside the share modal so it stacks on top) -->
+  <DocumentDeleteConfirmModal
+    v-model:open="showDeleteConfirm"
+    :doc-id="docId"
+    :title="docTitle"
+    @deleted="onDocDeleted"
+  />
 </template>
