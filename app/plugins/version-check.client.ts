@@ -16,11 +16,21 @@
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000
 
+// @vite-pwa/nuxt augments NuxtApp with `$pwa`, but that augmentation isn't
+// visible under `.nuxt/tsconfig.server.json`, so we re-assert the shape
+// using the module's own canonical `PwaInjection` interface. If the module
+// reshapes its exports (rename, move, drop a field we use) we get a clear
+// type error here instead of a silent runtime miss.
+import type { UnwrapNestedRefs } from 'vue'
+import type { PwaInjection } from '@vite-pwa/nuxt/dist/runtime/plugins/types.js'
+
+type Pwa = UnwrapNestedRefs<PwaInjection>
+
 export default defineNuxtPlugin((nuxtApp) => {
   const toast = useToast()
-  const pwa = nuxtApp.$pwa as
-    | { needRefresh: Ref<boolean>; updateServiceWorker: (reload?: boolean) => Promise<void> }
-    | undefined
+  // `$pwa` is absent when the module is disabled (dev with
+  // devOptions.enabled: false) — hence the optional.
+  const pwa = nuxtApp.$pwa as Pwa | undefined
   let baseline: string | null = null
   let shown = false
   let interval: ReturnType<typeof setInterval> | null = null
@@ -44,9 +54,11 @@ export default defineNuxtPlugin((nuxtApp) => {
   }
 
   // SW-driven path: watch $pwa.needRefresh and delegate the reload to the
-  // SW so the next navigation loads the new precache.
+  // SW so the next navigation loads the new precache. `UnwrapNestedRefs`
+  // means `.needRefresh` is a plain boolean here (not a Ref), so we pass
+  // the field directly — Vue's watcher tracks the reactive source for us.
   if (pwa) {
-    watch(() => pwa.needRefresh.value, (needs) => {
+    watch(() => pwa.needRefresh, (needs) => {
       if (needs) promptReload(() => pwa.updateServiceWorker(true))
     }, { immediate: true })
   }

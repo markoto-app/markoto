@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ypgPersistence } from './persistence'
-import { matchesCurrentOrPrevious } from './secrets'
+import { matchesCurrentOrPrevious } from '../../shared/utils/secrets'
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
 const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || undefined

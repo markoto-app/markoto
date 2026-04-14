@@ -1,19 +1,27 @@
 # Runs TypeScript directly with Bun — no build step, so a single stage is
 # enough. See AGENTS.md §7.7: pre-bundling hit CJS/ESM issues with Hocuspocus
 # and the cold-start delta is negligible.
+#
+# Build context is the repo root (not sync-server/) so we can COPY in
+# shared/utils/ alongside the sync-server sources. Compose files wire
+# this up via `build: { context: ., dockerfile: sync-server/Dockerfile }`.
 FROM oven/bun:1.3-alpine
 
+USER root
+RUN mkdir -p /app && chown bun:bun /app
 WORKDIR /app
-# /app is created by WORKDIR as root-owned. Hand it to bun so the unprivileged
-# install can write node_modules.
-RUN chown bun:bun /app
-
-# Dependency layer first so source edits don't bust the install cache.
-COPY --chown=bun:bun package.json bun.lock ./
 USER bun
+
+# Layered COPYs so source edits don't bust the install cache.
+COPY --chown=bun:bun sync-server/package.json sync-server/bun.lock ./sync-server/
+WORKDIR /app/sync-server
 RUN bun install --frozen-lockfile
 
-COPY --chown=bun:bun . .
+# Runtime source + shared utilities. Mirrors the repo layout so imports
+# like `../../shared/utils/secrets` from `src/*.ts` resolve the same way
+# inside the container as they do on a developer's machine.
+COPY --chown=bun:bun sync-server/src ./src
+COPY --chown=bun:bun shared /app/shared
 
 EXPOSE 4001
 

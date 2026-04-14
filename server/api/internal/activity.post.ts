@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import { activityLog, documents } from '../../db/schema'
-import { matchesCurrentOrPrevious } from '../../utils/secrets'
+import { matchesCurrentOrPrevious } from '../../../shared/utils/secrets'
 
 // Internal endpoint called by the sync-server to log user activity.
 // Auth: shared secret header X-Internal-Secret (must match INTERNAL_API_SECRET env var).

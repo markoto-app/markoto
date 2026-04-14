@@ -134,7 +134,9 @@ services:
       - internal
 
   sync:
-    build: ./sync-server
+    build:
+      context: .
+      dockerfile: sync-server/Dockerfile
     restart: unless-stopped
     stop_grace_period: 30s
     environment:

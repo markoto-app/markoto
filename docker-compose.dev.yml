@@ -64,8 +64,10 @@ services:
 
   sync:
     build:
-      context: ./sync-server
-      dockerfile: Dockerfile
+      # Build from the repo root so shared/utils/ is visible to the
+      # sync-server Dockerfile's COPY step.
+      context: .
+      dockerfile: sync-server/Dockerfile
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
