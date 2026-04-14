@@ -201,11 +201,16 @@ export function executeFunctionByName(
   args: unknown
 ): ToolResult {
   switch (name) {
-    case 'view_document':
+    case 'view_document': {
+      const vr = (args as ViewDocumentInput).view_range
+      // Zod schema guarantees exactly two integers when present (min(2).max(2)).
+      // The `!` non-null assertions tell TS what the runtime validator already
+      // enforces. Narrowing to a tuple keeps `handleView`'s signature tight.
       return handleView(session, {
         path: DOCUMENT_PATH,
-        view_range: (args as ViewDocumentInput).view_range
+        view_range: vr ? [vr[0]!, vr[1]!] : undefined
       })
+    }
     case 'replace_text': {
       const a = args as ReplaceTextInput
       return handleStrReplace(session, {

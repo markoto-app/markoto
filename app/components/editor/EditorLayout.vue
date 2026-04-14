@@ -526,7 +526,11 @@ const statusIcon = computed(() => {
         View only
       </div>
 
-      <!-- Main editor area -->
+      <!-- Main editor area.
+           Layout uses flex siblings with `flex-1`/`min-w-0` so each pane
+           grows into the remaining space. Triple-split (editor + preview +
+           activity sidebar) kicks in at `xl` (1280px+) — below that, the
+           activity replaces the preview to keep each pane legible. -->
       <main class="flex-1 flex min-h-0">
         <!-- Editor (wrapped in ImageDropZone for drag-drop + paste uploads) -->
         <EditorImageDropZone
@@ -535,7 +539,13 @@ const statusIcon = computed(() => {
           :editor-view="editorView"
           :read-only="isReadOnly"
           :class="[
-            viewMode === 'split' ? 'w-1/2 border-r border-default' : 'w-full',
+            // Flex member — shares remaining width with preview / activity.
+            // `min-w-0` lets the pane shrink past its intrinsic content width.
+            'flex-1 min-w-0',
+            // Right border only when something visible sits to its right.
+            (viewMode === 'split' || showActivity) ? 'border-r border-default' : '',
+            // On xs, when activity is open it covers the whole viewport —
+            // hide the editor so it doesn't compete for layout space.
             showActivity ? 'hidden sm:block' : ''
           ]"
           class="h-full"
@@ -549,24 +559,34 @@ const statusIcon = computed(() => {
           />
         </EditorImageDropZone>
 
-        <!-- Preview -->
+        <!-- Preview.
+             Always rendered when not in edit mode. Hidden by CSS (not v-if)
+             when activity is open AND viewport is below xl — that way the
+             preview re-appears instantly on resize past xl without re-mounting
+             the markdown-it pipeline. -->
         <div
-          v-if="viewMode !== 'edit' && !showActivity"
-          :class="viewMode === 'split' ? 'w-1/2' : 'w-full'"
-          class="h-full"
+          v-if="viewMode !== 'edit'"
+          :class="[
+            'flex-1 min-w-0 h-full',
+            showActivity ? 'hidden xl:block' : ''
+          ]"
         >
           <PreviewPane :source="textContent" />
         </div>
 
-        <!-- Activity sidebar — fills the right pane in split/preview; sidebar-width in edit mode -->
+        <!-- Activity sidebar. Three shapes depending on mode and viewport:
+             - edit mode:                fixed sidebar (w-80), full-width on xs
+             - split/preview, <xl:       takes the right half (flex-1); the
+                                         preview is hidden on that breakpoint
+             - split/preview, xl+:       fixed 320px sidebar → triple-split -->
         <div
           v-if="showActivity"
           :class="[
-            viewMode === 'split' ? 'w-full sm:w-1/2' : '',
-            viewMode === 'preview' ? 'w-full' : '',
-            viewMode === 'edit' ? 'w-full sm:w-80' : ''
+            viewMode === 'edit'
+              ? 'w-full sm:w-80 sm:shrink-0'
+              : 'flex-1 min-w-0 xl:flex-none xl:w-80 xl:shrink-0'
           ]"
-          class="border-l border-default h-full overflow-y-auto shrink-0"
+          class="border-l border-default h-full overflow-y-auto"
         >
           <div class="p-3 border-b border-default flex items-center justify-between">
             <h3 class="text-sm font-semibold">{{ t('activity.title') }}</h3>

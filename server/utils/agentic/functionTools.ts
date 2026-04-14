@@ -18,8 +18,15 @@ import { z, type ZodType } from 'zod'
 
 // --- Schemas --------------------------------------------------------------
 
+// NOTE on `view_range`: we want semantically a [start, end] tuple, but Zod's
+// `z.tuple(...)` emits JSON Schema in draft-7 tuple form (`items: [...]`) or
+// 2020-12 (`prefixItems: [...]`) — Gemini's function-declaration validator
+// rejects both with "schema at properties.view_range.items must be a boolean
+// or an object." A length-bounded array of integers flattens to the
+// single-schema `items` shape Gemini accepts. The [start, end] ordering is
+// enforced by description + runtime bounds check in `handleView`.
 const ViewDocumentArgs = z.object({
-  view_range: z.tuple([z.number().int(), z.number().int()])
+  view_range: z.array(z.number().int()).min(2).max(2)
     .describe('Inclusive [startLine, endLine], 1-indexed. Use -1 as endLine to read to end of file.')
     .optional()
 }).describe('Read the current document with 1-indexed line numbers.')

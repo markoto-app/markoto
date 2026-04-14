@@ -45,10 +45,13 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
-    sessionPassword: '',
-    // nuxt-auth-utils session config — explicit TTL so cookies don't linger
-    // forever, and no surprise dev/prod differences.
+    // nuxt-auth-utils reads `runtimeConfig.session` (shape = h3's SessionConfig,
+    // which requires `password`). `NUXT_SESSION_PASSWORD` env var populates
+    // `session.password` via Nuxt's nested env→runtimeConfig resolution. The
+    // old top-level `sessionPassword` was stale — left over from an earlier
+    // config shape and never read by the runtime.
     session: {
+      password: '',
       maxAge: 60 * 60 * 24 * 7   // 7 days
     },
     oauth: {
