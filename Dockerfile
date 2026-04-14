@@ -1,7 +1,7 @@
 # --- Builder stage ---------------------------------------------------------
 # We run the build as the built-in `bun` user (uid 1000) so the resulting
 # node_modules/.output trees aren't owned by root when copied across stages.
-FROM oven/bun:1.3-alpine AS builder
+FROM oven/bun:1.3-alpine@sha256:26d8996560ca94eab9ce48afc0c7443825553c9a851f40ae574d47d20906826d AS builder
 # WORKDIR creates /app owned by root by default — must chown before USER switch
 # or bun install can't write node_modules.
 USER root
@@ -24,7 +24,7 @@ RUN bun run build
 #
 # Production command per https://bun.com/docs/guides/ecosystem/nuxt:
 # `bun run ./.output/server/index.mjs`.
-FROM oven/bun:1.3-alpine
+FROM oven/bun:1.3-alpine@sha256:26d8996560ca94eab9ce48afc0c7443825553c9a851f40ae574d47d20906826d
 
 USER root
 RUN mkdir -p /app && chown bun:bun /app

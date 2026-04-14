@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (!providedSecret || !matchesCurrentOrPrevious(
     providedSecret,
     config.internalApiSecret,
-    (config.internalApiSecretPrevious as string | undefined) || undefined
+    config.internalApiSecretPrevious || undefined
   )) {
     throw createError({ statusCode: 401, message: 'Invalid internal secret' })
   }

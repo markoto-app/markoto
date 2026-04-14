@@ -15,7 +15,7 @@
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416
     restart: unless-stopped
     environment:
       - POSTGRES_USER=ypad
@@ -33,7 +33,7 @@ services:
       - "5432:5432"
 
   valkey:
-    image: valkey/valkey:8-alpine
+    image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
     restart: unless-stopped
     # AOF with fsync-every-second is a fine trade for rate-limit data: worst
     # case we lose ≤1s of hits on crash, sliding windows self-heal.

@@ -19,7 +19,7 @@ networks:
 
 services:
   traefik:
-    image: traefik:v3
+    image: traefik:v3@sha256:5ae9c349154d5298a5d61a7b25e5f3a9f53314f1515e87632120b95051c7917c
     restart: unless-stopped
     command:
       - "--api.dashboard=true"
@@ -42,7 +42,7 @@ services:
       - web
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416
     restart: unless-stopped
     environment:
       - POSTGRES_USER=ypad
@@ -62,7 +62,7 @@ services:
       - internal
 
   valkey:
-    image: valkey/valkey:8-alpine
+    image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
     restart: unless-stopped
     command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
