@@ -1,7 +1,9 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ypgPersistence } from './persistence'
+import { matchesCurrentOrPrevious } from './secrets'
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
+const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || undefined
 
 function sendJson(response: ServerResponse, status: number, body: Record<string, unknown>) {
   response.writeHead(status, { 'Content-Type': 'application/json' })
@@ -38,7 +40,12 @@ export async function handleInternalRequest(
     sendJson(response, 500, { error: 'Internal secret not configured' })
     return true
   }
-  if (request.headers['x-internal-secret'] !== INTERNAL_SECRET) {
+  const providedSecret = request.headers['x-internal-secret']
+  if (typeof providedSecret !== 'string' || !matchesCurrentOrPrevious(
+    providedSecret,
+    INTERNAL_SECRET,
+    INTERNAL_SECRET_PREVIOUS
+  )) {
     sendJson(response, 401, { error: 'Invalid internal secret' })
     return true
   }

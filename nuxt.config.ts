@@ -76,7 +76,12 @@ export default defineNuxtConfig({
       rewriteModel: 'gemini-2.5-flash-lite'        // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
     },
     jwtSecret: '',
+    // Optional: previous JWT_SECRET, accepted by verifiers during rotation.
+    // See docs/SECRETS-ROTATION.md.
+    jwtSecretPrevious: '',
     internalApiSecret: '',
+    // Optional: previous INTERNAL_API_SECRET, accepted during rotation.
+    internalApiSecretPrevious: '',
     pandocUrl: '',
     // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
     // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.

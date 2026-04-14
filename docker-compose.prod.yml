@@ -100,7 +100,11 @@ services:
       - NUXT_S3_SECRET_KEY=${S3_SECRET_KEY}
       - NUXT_S3_BUCKET=${S3_BUCKET:-ypad}
       - NUXT_JWT_SECRET=${JWT_SECRET}
+      # Optional, only set during rotation — see docs/SECRETS-ROTATION.md.
+      # Nuxt runtimeConfig reads `jwtSecretPrevious` via NUXT_ prefix.
+      - NUXT_JWT_SECRET_PREVIOUS=${JWT_SECRET_PREVIOUS:-}
       - NUXT_INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - NUXT_INTERNAL_API_SECRET_PREVIOUS=${INTERNAL_API_SECRET_PREVIOUS:-}
       - NUXT_GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - NUXT_GOOGLE_MODEL=${GOOGLE_MODEL:-gemini-3.1-flash-lite-preview}
       - NUXT_GOOGLE_REWRITE_MODEL=${GOOGLE_REWRITE_MODEL:-gemini-2.5-flash-lite}
@@ -137,7 +141,9 @@ services:
       - PORT=4001
       - DATABASE_URL=postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/ypad
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET_PREVIOUS=${JWT_SECRET_PREVIOUS:-}
       - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - INTERNAL_API_SECRET_PREVIOUS=${INTERNAL_API_SECRET_PREVIOUS:-}
       - APP_URL=http://app:3000
     expose:
       - "4001"

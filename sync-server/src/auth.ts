@@ -1,9 +1,11 @@
-import jwt from 'jsonwebtoken'
+import { verifyJwtWithRotation } from './secrets'
 
 const JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) {
   throw new Error('[auth] JWT_SECRET environment variable is required')
 }
+// Optional previous secret accepted during rotation windows.
+const JWT_SECRET_PREVIOUS = process.env.JWT_SECRET_PREVIOUS || undefined
 
 export const auth = {
   async onAuthenticate({ documentName, token }: { documentName: string; token: string | null }) {
@@ -17,12 +19,12 @@ export const auth = {
     }
 
     try {
-      const payload = jwt.verify(token, JWT_SECRET) as {
+      const payload = verifyJwtWithRotation<{
         docId: string
         userId: string
         userName?: string | null
         readOnly: boolean
-      }
+      }>(token, JWT_SECRET, JWT_SECRET_PREVIOUS)
       if (payload.docId !== documentName) {
         throw new Error('Token scope mismatch')
       }
