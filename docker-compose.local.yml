@@ -7,7 +7,9 @@
 # Access:
 #   App:           https://ypad.127.0.0.1.nip.io
 #   Sync:          wss://sync.ypad.127.0.0.1.nip.io
-#   Traefik UI:    http://localhost:8080
+#   Traefik UI:    `docker compose -f docker-compose.local.yml exec traefik wget -qO- localhost:8080/api/rawdata`
+#                  (dashboard isn't bound to host to avoid port clashes with
+#                  other dev tools; run via exec when you need it)
 
 networks:
   web:
@@ -33,7 +35,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/local:/etc/traefik/dynamic:ro
@@ -57,8 +58,6 @@ services:
       start_period: 10s
     expose:
       - "5432"
-    ports:
-      - "5432:5432"
     networks:
       - internal
 

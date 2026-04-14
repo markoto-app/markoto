@@ -1,42 +1,34 @@
-// Polls /api/version every few minutes and on window focus. If the server's
-// build id no longer matches the one we first saw, the SPA is stale relative
-// to the deployed code — prompt the user to reload.
+// Two update signals, one toast.
+//
+// 1. `$pwa.needRefresh` — set by the service worker when a new precache is
+//    ready. Fires on PWA-installed clients; primary path for users who
+//    added YPad to home screen.
+// 2. `/api/version` poll — covers the non-PWA path (tabs without a SW, or
+//    dev where the SW is disabled). Mismatched `buildId` means the SPA
+//    shell is older than the server.
 //
 // We deliberately don't auto-reload: the user might be mid-edit. A sticky
-// toast with a manual Reload button is the right balance.
+// toast with a manual action is the right balance. Whichever signal lands
+// first wins; we stop polling after showing the prompt to avoid duplicates.
 //
-// In dev (`buildId === 'dev'`) this is effectively a no-op: dev builds keep
-// the same id forever, so a mismatch is impossible. The poll still runs but
-// quietly.
+// In dev (`buildId === 'dev'`) the poll is effectively a no-op — dev keeps
+// the same id across requests, so no mismatch is possible.
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000
 
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin((nuxtApp) => {
   const toast = useToast()
+  const pwa = nuxtApp.$pwa as
+    | { needRefresh: Ref<boolean>; updateServiceWorker: (reload?: boolean) => Promise<void> }
+    | undefined
   let baseline: string | null = null
-  let stop = false
+  let shown = false
   let interval: ReturnType<typeof setInterval> | null = null
 
-  async function check() {
-    if (stop) return
-    let buildId: string | null = null
-    try {
-      const res = await $fetch<{ buildId: string }>('/api/version')
-      buildId = res?.buildId ?? null
-    } catch {
-      return
-    }
-    if (!buildId) return
-
-    if (baseline === null) {
-      baseline = buildId
-      return
-    }
-    if (buildId === baseline) return
-
-    // Mismatch — show the prompt once and stop polling so we don't pile up toasts.
-    stop = true
-    if (interval) clearInterval(interval)
+  function promptReload(action: () => void) {
+    if (shown) return
+    shown = true
+    if (interval) { clearInterval(interval); interval = null }
 
     toast.add({
       title: 'New version available',
@@ -46,13 +38,36 @@ export default defineNuxtPlugin(() => {
       duration: 0,
       actions: [{
         label: 'Reload',
-        onClick: () => window.location.reload()
+        onClick: action
       }]
     })
   }
 
-  // Initial baseline fetch, then polling + focus re-check.
-  check()
-  interval = setInterval(check, POLL_INTERVAL_MS)
-  window.addEventListener('focus', check)
+  // SW-driven path: watch $pwa.needRefresh and delegate the reload to the
+  // SW so the next navigation loads the new precache.
+  if (pwa) {
+    watch(() => pwa.needRefresh.value, (needs) => {
+      if (needs) promptReload(() => pwa.updateServiceWorker(true))
+    }, { immediate: true })
+  }
+
+  // Polling path: server-id mismatch.
+  async function checkBuildId() {
+    if (shown) return
+    let buildId: string | null = null
+    try {
+      const res = await $fetch<{ buildId: string }>('/api/version')
+      buildId = res?.buildId ?? null
+    } catch {
+      return
+    }
+    if (!buildId) return
+    if (baseline === null) { baseline = buildId; return }
+    if (buildId === baseline) return
+    promptReload(() => window.location.reload())
+  }
+
+  checkBuildId()
+  interval = setInterval(checkBuildId, POLL_INTERVAL_MS)
+  window.addEventListener('focus', checkBuildId)
 })

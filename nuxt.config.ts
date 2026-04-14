@@ -114,18 +114,46 @@ export default defineNuxtConfig({
       short_name: 'YPad',
       description: 'Collaborative Markdown Editor',
       theme_color: '#0f172a',
+      background_color: '#0f172a',
+      display: 'standalone',
+      start_url: '/',
       icons: [
         { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
       ]
     },
     workbox: {
-      navigateFallback: undefined,
+      // SPA fallback: any navigation miss serves the app shell so deep links
+      // (e.g. /d/abc123) work offline. Denylist keeps API and OAuth flows on
+      // the network — a cached 401 or stale token response would be worse
+      // than an offline error page.
+      navigateFallback: '/',
+      navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
+      cleanupOutdatedCaches: true,
+      // Runtime caching: static CDN assets only. Docs, doc tokens, AI, and
+      // upload endpoints intentionally bypass the SW — freshness beats
+      // offline for collaborative state.
       runtimeCaching: [{
         urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
         handler: 'CacheFirst',
         options: { cacheName: 'cdn-cache', expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 3600 } }
       }]
+    },
+    client: {
+      // Lets us hook into the browser's `beforeinstallprompt` via `$pwa.install()`.
+      installPrompt: true,
+      // Hourly check for a fresh SW in the background — complements the
+      // /api/version polling in version-check.client.ts, which covers the
+      // non-PWA SSR path.
+      periodicSyncForUpdates: 3600
+    },
+    // `autoUpdate` defaults to registering the SW in prod only. The dev
+    // option lets us smoke-test PWA flows against docker-compose.local
+    // without shipping a prod build.
+    devOptions: {
+      enabled: false,
+      type: 'module'
     }
   },
 

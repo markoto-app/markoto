@@ -686,7 +686,7 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 
 - [ ] DNS: `yourdomain.com`, `sync.` subdomains (prod deploy).
 - [ ] CORS: Traefik middleware for S3 (prod deploy).
-- [ ] PWA setup via `@vite-pwa/nuxt`.
+- [x] PWA setup via `@vite-pwa/nuxt` (manifest, SW, install prompt, periodic-sync, unified with `/api/version` staleness poll).
 - [ ] Scheduled cleanup of inactive documents.
 - [ ] Dual-secret rotation (`JWT_SECRET`, `SESSION_PASSWORD`, `INTERNAL_API_SECRET`).
 - [ ] Observability (GlitchTip self-hosted / structured logs / metrics).
