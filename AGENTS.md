@@ -743,7 +743,7 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 | `y-postgresql` (was S3 blob overwrite) | Append + merge is vastly more durable; failed write can't nuke prior state. One `pg_dump` covers both app and Y.js data. Caveat: `useIndex: true` has a SQL bug in 1.0.1. |
 | Text-enum columns, not `pgEnum` | Adding values is TS-only — no `ALTER TYPE` migration friction. |
 | Migrations at boot via `00-db-migrate.ts` | Numeric prefix forces load-first so sweeper/rate-limit-cleanup don't race empty schema. `99-shutdown.ts` mirrors on teardown. |
-| Bun over Node | 4× startup, 6–35× installs, TS without transpile. |
+| Bun at build time, Node 24 at runtime | Bun wins on install speed + direct TS; runtime just executes the Nitro-bundled `.output/server/index.mjs` so the speed deltas don't apply. Switched after hitting an upstream lib0@0.2.117 bug: its `bun` conditional export for `./logging` points at a file that doesn't exist in the published tarball, only `logging.node.js` does (which Node picks via the `node` condition). Sync-server stays on Bun — it runs TS directly with no Nitro output and doesn't import the broken lib0 subpath. |
 | Pinia Colada over raw `$fetch` | Caching, dedup, loading/error states, invalidation for free. |
 | VueUse over custom composables | 200+ battle-tested, auto-imported. |
 | `@nuxtjs/i18n` lazy | Locale files on-demand. `strategy: 'no_prefix'` keeps clean URLs. |
