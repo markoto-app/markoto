@@ -1,4 +1,5 @@
 import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../utils/aiSessions'
+import { migrationsComplete } from '../utils/migrations'
 
 // Every 60s, abort any AI session older than the stale threshold. Protects
 // against crashes that leave awareness entries orphaned on Hocuspocus docs.
@@ -17,8 +18,11 @@ const STALE_THRESHOLD_MS = 7 * 60 * 1000  // 7 min — safely longer than 5-min 
 const SWEEP_INTERVAL_MS = 60_000
 
 export default defineNitroPlugin((nitroApp) => {
-  // Startup purge — clears any rows from a crashed prior process.
+  // Startup purge — clears any rows from a crashed prior process. Wait on
+  // the migration signal first; otherwise on a freshly-provisioned DB the
+  // query races `00-db-migrate.ts` and hits a missing table.
   void (async () => {
+    await migrationsComplete
     try {
       const removed = await purgeStaleAiSessions(STALE_THRESHOLD_MS)
       if (removed > 0) {
