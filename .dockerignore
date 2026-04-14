@@ -1,0 +1,39 @@
+# Build output and caches — regenerated inside the image by `bun run build`.
+node_modules
+.nuxt
+.output
+.cache
+dist
+
+# Local dev state — must never land inside an image.
+.env
+.env.*
+!.env.example
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# VCS / IDE noise.
+.git
+.gitignore
+.github
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# Docs + tooling artifacts that don't affect runtime.
+README.md
+LICENSE
+AGENTS.md
+.claude/
+renovate.json
+eslint.config.mjs
+
+# Compose / deploy files — not needed inside the image itself.
+docker-compose*.yml
+Dockerfile
+**/Dockerfile
+.dockerignore

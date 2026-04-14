@@ -16,7 +16,7 @@ const { loggedIn, user, clear } = useUserSession()
     >
       <UButton color="neutral" variant="ghost" class="gap-2">
         <UAvatar
-          :src="user?.avatar"
+          :src="user?.avatar ?? undefined"
           :alt="user?.name"
           size="xs"
         />

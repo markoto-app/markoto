@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing sessionId' })
   }
 
-  const aiSession = getAiSession(sessionId)
+  const aiSession = await getAiSession(sessionId)
   if (!aiSession) {
     // Already done or never existed — treat as success
     return { success: true, note: 'session not found (may have already finished)' }
@@ -34,6 +34,6 @@ export default defineEventHandler(async (event) => {
   // drop the registry row so the per-user cap unblocks; the stuck loop (if
   // any) will exit on its own deadline. Awareness cleanup happens when that
   // loop's finally block runs.
-  removeAiSession(sessionId)
+  await removeAiSession(sessionId)
   return { success: true, note: 'session was orphaned (no abort controller in this process); registry cleared' }
 })

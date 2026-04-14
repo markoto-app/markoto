@@ -3,6 +3,16 @@ import { eq } from 'drizzle-orm'
 import { users } from '../db/schema'
 
 /**
+ * Bump this constant whenever the session shape changes (new required fields,
+ * type changes on existing fields, etc.). Sessions whose stored `v` doesn't
+ * match are treated as stale and cleared — the user is forced to log in again,
+ * but they never crash on missing fields. We deliberately do NOT preserve
+ * backwards compatibility; rotating sessions on shape change is the simpler
+ * and safer contract while we're early.
+ */
+export const SESSION_VERSION = 1
+
+/**
  * Session helpers that validate `session.user.id` still references an existing
  * row in the `users` table. Sealed cookies from `nuxt-auth-utils` survive DB
  * resets / user deletions, so `requireUserSession` alone can hand back a
@@ -11,8 +21,8 @@ import { users } from '../db/schema'
  *
  * These helpers:
  *   - Validate the user id once per request (cached on `event.context`).
- *   - Clear the cookie when the user is gone, so subsequent requests don't
- *     keep carrying the stale pointer.
+ *   - Clear the cookie when the user is gone OR the session shape is stale,
+ *     so subsequent requests don't keep carrying the stale pointer.
  *
  * Use these everywhere a route reads `session.user.id`. Always prefer the
  * `require*` variant for endpoints that mutate state on behalf of a user.
@@ -43,12 +53,20 @@ async function resolveValidatedUser(event: H3Event): Promise<ValidatedUser | nul
     return null
   }
 
+  // Stale session shape — clear cookie and treat as anonymous. The user can
+  // re-authenticate to get a fresh session at the current SESSION_VERSION.
+  if ((session as { v?: number }).v !== SESSION_VERSION) {
+    await clearUserSession(event)
+    cache.validatedUser = null
+    return null
+  }
+
   const db = useDatabase()
-  const row = db
+  const row = (await db
     .select({ id: users.id, name: users.name })
     .from(users)
     .where(eq(users.id, sessionUserId))
-    .get()
+    .limit(1))[0]
 
   if (!row) {
     // Session references a user that no longer exists. Clear the cookie so

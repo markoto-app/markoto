@@ -1,13 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
-import { documents, documentShares, workspaceDocuments, activityLog } from '../../../db/schema'
+import { documents, documentShares, workspaceDocuments, activityLog, uploads } from '../../../db/schema'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
-  const { docId } = getRouterParams(event)
+  const docId = requireDocId(event)
   const db = useDatabase()
 
-  const doc = db.select({ ownerId: documents.ownerId }).from(documents).where(eq(documents.docId, docId)).get()
+  const doc = (await db.select({ ownerId: documents.ownerId }).from(documents).where(eq(documents.docId, docId)).limit(1))[0]
   if (!doc) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
@@ -17,13 +17,15 @@ export default defineEventHandler(async (event) => {
 
   // Delete DB rows first (most critical — if this succeeds, the doc is gone
   // from the user's perspective even if S3 cleanup fails).
-  db.delete(activityLog).where(eq(activityLog.docId, docId)).run()
-  db.delete(workspaceDocuments).where(eq(workspaceDocuments.docId, docId)).run()
-  db.delete(documentShares).where(eq(documentShares.docId, docId)).run()
-  db.delete(documents).where(eq(documents.docId, docId)).run()
+  await db.delete(activityLog).where(eq(activityLog.docId, docId))
+  await db.delete(workspaceDocuments).where(eq(workspaceDocuments.docId, docId))
+  await db.delete(documentShares).where(eq(documentShares.docId, docId))
+  await db.delete(uploads).where(eq(uploads.docId, docId))
+  await db.delete(documents).where(eq(documents.docId, docId))
 
-  // Best-effort S3 cleanup — remove Y.js state, history snapshots, and uploaded files.
-  // If this fails, we log and continue; a scheduled cleanup job can reap orphans later.
+  // Best-effort S3 cleanup — uploaded files only (Y.js state lives in Postgres
+  // now, cleared by the sync-server via the notify-deleted internal call below).
+  // If this fails we log and continue; the orphan-cleanup plugin reaps later.
   try {
     const s3 = useS3Client()
     const config = useRuntimeConfig()
@@ -58,9 +60,10 @@ export default defineEventHandler(async (event) => {
     // Don't fail the request — DB is already cleaned up
   }
 
-  // Notify sync-server to broadcast deletion to any currently-connected clients.
-  // Fire-and-forget: if sync-server is down or there are no active clients,
-  // the deletion still succeeds from the client's perspective.
+  // Notify sync-server: it broadcasts deletion to connected clients AND clears
+  // the Y.js rows from y-postgresql. Fire-and-forget — if sync is down, the
+  // delete still succeeds from the client's perspective and the rows can be
+  // pruned manually if they ever matter.
   const config = useRuntimeConfig()
   if (config.syncInternalUrl && config.internalApiSecret) {
     fetch(`${config.syncInternalUrl}/internal/notify-deleted`, {

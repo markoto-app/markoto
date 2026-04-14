@@ -126,22 +126,22 @@
     "account": "Account"
   },
   "ai": {
-    "placeholder": "Tell Claude what to do…",
+    "placeholder": "Tell the AI what to do…",
     "send": "Send",
     "stop": "Stop",
-    "loginRequired": "Log in to use Claude",
-    "statusThinking": "Claude is thinking…",
-    "statusSearching": "Claude is searching the web…",
-    "statusFetching": "Claude is reading a page…",
-    "statusEditing": "Claude is editing the document…",
+    "loginRequired": "Log in to use the AI assistant",
+    "statusThinking": "AI is thinking…",
+    "statusSearching": "AI is searching the web…",
+    "statusFetching": "AI is reading a page…",
+    "statusEditing": "AI is editing the document…",
     "statusDone": "Done",
     "otherSessions": "{n} other session | {n} other sessions",
-    "helpingTooltip": "Claude is helping {name}",
-    "rewriteButton": "Rewrite with Claude",
-    "rewritePlaceholder": "How should Claude rewrite this?",
-    "alreadyRunning": "You already have Claude running on this document.",
+    "helpingTooltip": "AI is helping {name}",
+    "rewriteButton": "Rewrite with AI",
+    "rewritePlaceholder": "How should the AI rewrite this?",
+    "alreadyRunning": "You already have an AI session running on this document.",
     "rateLimited": "Too many AI requests. Try again in a minute.",
-    "failed": "Claude failed"
+    "failed": "AI request failed"
   },
   "delete": {
     "title": "Delete Document",

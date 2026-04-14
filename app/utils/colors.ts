@@ -5,5 +5,7 @@ const palette = [
 ]
 
 export function pickColor(): string {
-  return palette[Math.floor(Math.random() * palette.length)]
+  // Non-null assertion is safe: the random index is always a valid palette
+  // position. Typescript can't prove that from `array[number]`, hence `!`.
+  return palette[Math.floor(Math.random() * palette.length)]!
 }

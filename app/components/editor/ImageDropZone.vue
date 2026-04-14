@@ -61,7 +61,10 @@ async function handleDrop(e: DragEvent) {
   }
 }
 
-async function handlePaste(e: ClipboardEvent) {
+// Typed as `Event` so it matches the `EventListener` contract expected by
+// add/removeEventListener without a cast. We narrow with `instanceof` inside.
+async function handlePaste(e: Event) {
+  if (!(e instanceof ClipboardEvent)) return
   if (props.readOnly || !props.editorView) return
 
   const items = Array.from(e.clipboardData?.items || [])
@@ -79,11 +82,11 @@ async function handlePaste(e: ClipboardEvent) {
 }
 
 onMounted(() => {
-  containerRef.value?.addEventListener('paste', handlePaste as EventListener)
+  containerRef.value?.addEventListener('paste', handlePaste)
 })
 
 onUnmounted(() => {
-  containerRef.value?.removeEventListener('paste', handlePaste as EventListener)
+  containerRef.value?.removeEventListener('paste', handlePaste)
 })
 </script>
 

@@ -4,7 +4,7 @@ import { aiSessions } from '../db/schema'
 /**
  * AI session registry.
  *
- * Metadata (session_id, initiator, startedAt, …) lives in SQLite so:
+ * Metadata (session_id, initiator, startedAt, …) lives in Postgres so:
  *   - Per-user-per-doc cap survives a Nitro restart (UNIQUE index enforces it
  *     at the DB level; an INSERT that would duplicate fails with constraint
  *     error — we translate that to `DuplicateSessionError`).
@@ -25,7 +25,7 @@ export interface ActiveAISession {
   initiatorUserId: number
   initiatorName: string
   initiatorColor: string
-  startedAt: number
+  startedAt: Date
   /** May be null if this process didn't start the session. */
   abortController: AbortController | null
 }
@@ -39,30 +39,31 @@ export class DuplicateSessionError extends Error {
   }
 }
 
-export function hasUserAiSession(userId: number, docId: string): boolean {
+export async function hasUserAiSession(userId: number, docId: string): Promise<boolean> {
   const db = useDatabase()
-  const row = db
+  const row = (await db
     .select({ sessionId: aiSessions.sessionId })
     .from(aiSessions)
     .where(and(eq(aiSessions.initiatorUserId, userId), eq(aiSessions.docId, docId)))
-    .get()
+    .limit(1))[0]
   return !!row
 }
 
-export function addAiSession(session: Omit<ActiveAISession, 'abortController'> & { abortController: AbortController }): void {
+export async function addAiSession(session: Omit<ActiveAISession, 'abortController'> & { abortController: AbortController }): Promise<void> {
   const db = useDatabase()
   try {
-    db.insert(aiSessions).values({
+    await db.insert(aiSessions).values({
       sessionId: session.sessionId,
       docId: session.docId,
       initiatorUserId: session.initiatorUserId,
       initiatorName: session.initiatorName,
       initiatorColor: session.initiatorColor,
       startedAt: session.startedAt
-    }).run()
+    })
   } catch (e: any) {
-    // UNIQUE constraint violation on (initiator_user_id, doc_id) → per-user cap hit.
-    if (typeof e?.message === 'string' && /UNIQUE constraint failed/i.test(e.message)) {
+    // Postgres unique-violation code → per-user cap hit. Belt-and-suspenders:
+    // also accept a substring match in case the driver reshapes the error.
+    if (e?.code === '23505' || /duplicate key value|unique constraint/i.test(String(e?.message ?? ''))) {
       throw new DuplicateSessionError()
     }
     throw e
@@ -70,19 +71,19 @@ export function addAiSession(session: Omit<ActiveAISession, 'abortController'> &
   localControllers.set(session.sessionId, session.abortController)
 }
 
-export function removeAiSession(sessionId: string): void {
+export async function removeAiSession(sessionId: string): Promise<void> {
   const db = useDatabase()
-  db.delete(aiSessions).where(eq(aiSessions.sessionId, sessionId)).run()
+  await db.delete(aiSessions).where(eq(aiSessions.sessionId, sessionId))
   localControllers.delete(sessionId)
 }
 
-export function getAiSession(sessionId: string): ActiveAISession | undefined {
+export async function getAiSession(sessionId: string): Promise<ActiveAISession | undefined> {
   const db = useDatabase()
-  const row = db
+  const row = (await db
     .select()
     .from(aiSessions)
     .where(eq(aiSessions.sessionId, sessionId))
-    .get()
+    .limit(1))[0]
   if (!row) return undefined
   return {
     sessionId: row.sessionId,
@@ -98,9 +99,9 @@ export function getAiSession(sessionId: string): ActiveAISession | undefined {
 /**
  * All sessions currently registered in the DB. Used by the sweeper.
  */
-export function snapshotAiSessions(): ActiveAISession[] {
+export async function snapshotAiSessions(): Promise<ActiveAISession[]> {
   const db = useDatabase()
-  const rows = db.select().from(aiSessions).all()
+  const rows = await db.select().from(aiSessions)
   return rows.map((row) => ({
     sessionId: row.sessionId,
     docId: row.docId,
@@ -117,9 +118,12 @@ export function snapshotAiSessions(): ActiveAISession[] {
  * left behind by a previous process crash, and by the sweeper during runtime.
  * Returns the number of rows deleted.
  */
-export function purgeStaleAiSessions(olderThanMs: number): number {
+export async function purgeStaleAiSessions(olderThanMs: number): Promise<number> {
   const db = useDatabase()
-  const cutoff = Date.now() - olderThanMs
-  const result = db.delete(aiSessions).where(lt(aiSessions.startedAt, cutoff)).run()
-  return result.changes ?? 0
+  const cutoff = new Date(Date.now() - olderThanMs)
+  const result = await db
+    .delete(aiSessions)
+    .where(lt(aiSessions.startedAt, cutoff))
+    .returning({ sessionId: aiSessions.sessionId })
+  return result.length
 }

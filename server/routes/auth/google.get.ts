@@ -1,28 +1,29 @@
 import { eq } from 'drizzle-orm'
 import { users } from '../../db/schema'
+import { SESSION_VERSION } from '../../utils/validatedSession'
 
 export default defineOAuthGoogleEventHandler({
   config: { scope: ['openid', 'email', 'profile'] },
   async onSuccess(event, { user }) {
     const db = useDatabase()
 
-    const existing = db.select().from(users).where(eq(users.googleId, user.sub)).get()
+    const existing = (await db.select().from(users).where(eq(users.googleId, user.sub)).limit(1))[0]
     if (existing) {
-      db.update(users).set({
+      await db.update(users).set({
         name: user.name,
         email: user.email,
         avatarUrl: user.picture
-      }).where(eq(users.googleId, user.sub)).run()
+      }).where(eq(users.googleId, user.sub))
     } else {
-      db.insert(users).values({
+      await db.insert(users).values({
         googleId: user.sub,
         name: user.name,
         email: user.email,
         avatarUrl: user.picture
-      }).run()
+      })
     }
 
-    const dbUser = db.select({ id: users.id }).from(users).where(eq(users.googleId, user.sub)).get()!
+    const dbUser = (await db.select({ id: users.id }).from(users).where(eq(users.googleId, user.sub)).limit(1))[0]!
 
     await setUserSession(event, {
       user: {
@@ -32,7 +33,8 @@ export default defineOAuthGoogleEventHandler({
         avatar: user.picture,
         provider: 'google'
       },
-      loggedInAt: Date.now()
+      loggedInAt: Date.now(),
+      v: SESSION_VERSION
     })
     return sendRedirect(event, '/')
   }

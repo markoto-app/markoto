@@ -7,10 +7,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, message: 'Too many export requests. Try again later.' })
   }
 
-  const docId = getRouterParam(event, 'docId')
-  if (!docId) {
-    throw createError({ statusCode: 400, message: 'Missing docId' })
-  }
+  const docId = requireDocId(event)
 
   const body = await readBody(event)
   const { markdown, format } = body as { markdown: string; format: 'pdf' | 'docx' | 'html' }

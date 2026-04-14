@@ -1751,13 +1751,7 @@ ypad/
 - [ ] Timeline scrubber, diff view, restore, export at point
 - [ ] Playback animation
 
-#### Phase 9: On-Device AI (Weeks 11-12)
-- [ ] WebGPU Gemma 4 E2B in Web Worker
-- [ ] Model download progress UI
-- [ ] Provider toggle (Cloud / On-device)
-- [ ] WebGPU detection + graceful fallback
-
-#### Phase 10: Power Features (Weeks 13-14)
+#### Phase 9: Power Features (Weeks 13-14)
 - [ ] Command palette
 - [ ] Table of contents sidebar
 - [ ] Follow cursor

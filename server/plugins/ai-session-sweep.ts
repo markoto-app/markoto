@@ -18,21 +18,31 @@ const SWEEP_INTERVAL_MS = 60_000
 
 export default defineNitroPlugin((nitroApp) => {
   // Startup purge — clears any rows from a crashed prior process.
-  try {
-    const removed = purgeStaleAiSessions(STALE_THRESHOLD_MS)
-    if (removed > 0) {
-      console.log(`[ai-sweep] Startup: purged ${removed} stale AI session row(s) from a prior process.`)
+  void (async () => {
+    try {
+      const removed = await purgeStaleAiSessions(STALE_THRESHOLD_MS)
+      if (removed > 0) {
+        console.log(`[ai-sweep] Startup: purged ${removed} stale AI session row(s) from a prior process.`)
+      }
+    } catch (e: any) {
+      console.warn('[ai-sweep] Startup purge failed:', e?.message || e)
     }
-  } catch (e: any) {
-    console.warn('[ai-sweep] Startup purge failed:', e?.message || e)
-  }
+  })()
 
-  function sweep() {
+  async function sweep() {
     const now = Date.now()
-    for (const s of snapshotAiSessions()) {
-      if (now - s.startedAt <= STALE_THRESHOLD_MS) continue
+    let sessions: Awaited<ReturnType<typeof snapshotAiSessions>>
+    try {
+      sessions = await snapshotAiSessions()
+    } catch (e: any) {
+      console.warn('[ai-sweep] snapshot failed:', e?.message || e)
+      return
+    }
+    for (const s of sessions) {
+      const ageMs = now - s.startedAt.getTime()
+      if (ageMs <= STALE_THRESHOLD_MS) continue
       console.warn(
-        `[ai-sweep] Aborting stuck session ${s.sessionId} for doc ${s.docId} (age ${Math.round((now - s.startedAt) / 1000)}s)`
+        `[ai-sweep] Aborting stuck session ${s.sessionId} for doc ${s.docId} (age ${Math.round(ageMs / 1000)}s)`
       )
       if (s.abortController) {
         // Local to this process — signal the loop to unwind cleanly. The loop's
@@ -41,11 +51,11 @@ export default defineNitroPlugin((nitroApp) => {
       } else {
         // Orphan row (e.g. from a prior process). Just drop the DB entry so the
         // per-user cap unblocks.
-        try { removeAiSession(s.sessionId) } catch { /* ignore */ }
+        try { await removeAiSession(s.sessionId) } catch { /* ignore */ }
       }
     }
   }
 
-  const timer = setInterval(sweep, SWEEP_INTERVAL_MS)
+  const timer = setInterval(() => { void sweep() }, SWEEP_INTERVAL_MS)
   nitroApp.hooks.hook('close', () => clearInterval(timer))
 })

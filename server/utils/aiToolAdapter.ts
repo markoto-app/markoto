@@ -1,7 +1,18 @@
-// Translates Anthropic's `str_replace_based_edit_tool` commands to Y.Text operations
-// on a Y.Doc shared via Hocuspocus. Edits appear live on every connected client.
+// Translates text-editor tool commands to Y.Text operations on a Y.Doc shared
+// via Hocuspocus. Edits appear live on every connected client.
+//
+// Two entry points:
+//   - `executeEditorTool(session, input)` — legacy (Anthropic-shaped; takes
+//     `{ command, ...args }`). Preserved for any future consumer.
+//   - `executeFunctionByName(session, name, args)` — Gemini-shaped; takes a
+//     function name and the args object, routes to the right handler.
 
 import type { AiSession } from './aiClient'
+import type {
+  ViewDocumentInput,
+  ReplaceTextInput,
+  InsertTextInput
+} from './agentic/functionTools'
 
 // The AI only ever operates on a single logical "file".
 export const DOCUMENT_PATH = 'document.md'
@@ -98,7 +109,7 @@ function handleStrReplace(
 
   session.updateStatus('editing', 'Applying edit…')
 
-  const origin = `ai:claude:${session.sessionId}`
+  const origin = `ai:assistant:${session.sessionId}`
   session.ydoc.transact(() => {
     session.ytext.delete(found, input.old_str.length)
     session.ytext.insert(found, input.new_str)
@@ -132,12 +143,13 @@ function handleInsert(
   // insert_line=N → after line N, i.e., at the start of line N+1.
   let idx = 0
   for (let i = 0; i < input.insert_line; i++) {
-    idx += lines[i].length + 1 // +1 for the newline
+    // Bounds-checked above (insert_line <= lines.length); `!` tells TS.
+    idx += lines[i]!.length + 1 // +1 for the newline
   }
 
   session.updateStatus('editing', 'Applying insert…')
 
-  const origin = `ai:claude:${session.sessionId}`
+  const origin = `ai:assistant:${session.sessionId}`
   // Ensure the insertion itself ends with a newline so it forms clean lines.
   const insertText = input.insert_text.endsWith('\n') ? input.insert_text : input.insert_text + '\n'
   session.ydoc.transact(() => {
@@ -152,8 +164,9 @@ function handleCreate(): ToolResult {
 }
 
 /**
- * Dispatches an Anthropic `str_replace_based_edit_tool` tool_use block to the matching
- * handler and returns a ToolResult suitable for inclusion in the next message.
+ * Legacy Anthropic-shaped dispatcher. Kept for any future consumer that still
+ * talks the `{ command, ...args }` shape; our Gemini loop calls
+ * `executeFunctionByName` directly instead.
  */
 export function executeEditorTool(session: AiSession, input: any): ToolResult {
   const command = input?.command
@@ -168,5 +181,48 @@ export function executeEditorTool(session: AiSession, input: any): ToolResult {
       return handleCreate()
     default:
       return err(`Error: Unknown command "${command}". Supported: view, str_replace, insert.`)
+  }
+}
+
+/**
+ * Gemini-shaped dispatcher. Args are expected pre-validated by Zod (see
+ * `server/utils/agentic/functionTools.ts`); callers must not pass unvalidated
+ * input. Defensive casts that used to live here (`String(...)`, `Number(...)`)
+ * are now handled upstream — if args fail the Zod schema, the loop emits a
+ * `functionResponse.isError` and this function is never called.
+ *
+ * `web_search` is NOT routed here — the main loop handles it via the
+ * `webSearch` sub-call helper in `functionTools.ts` because it needs the
+ * `GoogleGenAI` client and is async.
+ */
+export function executeFunctionByName(
+  session: AiSession,
+  name: string,
+  args: unknown
+): ToolResult {
+  switch (name) {
+    case 'view_document':
+      return handleView(session, {
+        path: DOCUMENT_PATH,
+        view_range: (args as ViewDocumentInput).view_range
+      })
+    case 'replace_text': {
+      const a = args as ReplaceTextInput
+      return handleStrReplace(session, {
+        path: DOCUMENT_PATH,
+        old_str: a.old_str,
+        new_str: a.new_str
+      })
+    }
+    case 'insert_text': {
+      const a = args as InsertTextInput
+      return handleInsert(session, {
+        path: DOCUMENT_PATH,
+        insert_line: a.insert_line,
+        insert_text: a.insert_text
+      })
+    }
+    default:
+      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search.`)
   }
 }

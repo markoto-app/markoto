@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const db = useDatabase()
   const userId = session.user.id
 
-  const docs = db.select({
+  const docs = await db.select({
     docId: documents.docId,
     title: documents.title,
     accessMode: documents.accessMode,
@@ -22,7 +22,6 @@ export default defineEventHandler(async (event) => {
       sql`${documentShares.userId} IS NOT NULL`
     ))
     .orderBy(sql`${documents.lastActive} DESC`)
-    .all()
 
   return docs
 })

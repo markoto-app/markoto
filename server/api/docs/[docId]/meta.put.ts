@@ -1,13 +1,13 @@
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { documents } from '../../../db/schema'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
-  const { docId } = getRouterParams(event)
+  const docId = requireDocId(event)
   const body = await readBody(event)
   const db = useDatabase()
 
-  const doc = db.select({ ownerId: documents.ownerId }).from(documents).where(eq(documents.docId, docId)).get()
+  const doc = (await db.select({ ownerId: documents.ownerId }).from(documents).where(eq(documents.docId, docId)).limit(1))[0]
   if (!doc) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
@@ -44,8 +44,8 @@ export default defineEventHandler(async (event) => {
   }
 
   if (Object.keys(updates).length > 0) {
-    updates.lastActive = sql`(unixepoch())`
-    db.update(documents).set(updates).where(eq(documents.docId, docId)).run()
+    updates.lastActive = new Date()
+    await db.update(documents).set(updates).where(eq(documents.docId, docId))
   }
 
   return { success: true }

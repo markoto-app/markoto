@@ -2,7 +2,7 @@ import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
 import { eq } from 'drizzle-orm'
-import { documents } from '../../db/schema'
+import { documents, uploads } from '../../db/schema'
 
 const ALLOWED_TYPES = new Set([
   'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   // Verify user has write access to this document
   const db = useDatabase()
-  const doc = db.select().from(documents).where(eq(documents.docId, docId)).get()
+  const doc = (await db.select().from(documents).where(eq(documents.docId, docId)).limit(1))[0]
 
   if (doc) {
     // If doc exists and is view-only, only the owner can upload
@@ -43,6 +43,22 @@ export default defineEventHandler(async (event) => {
   const fileId = nanoid(12)
   const ext = filename.split('.').pop() || 'bin'
   const key = `docs/${docId}/${fileId}.${ext}`
+
+  // Insert an unconfirmed upload row BEFORE issuing the URL so the orphan
+  // cleanup has a record to compare against. If the user never PUTs the
+  // file, this row stays unconfirmed and gets reaped after 24 h. If the
+  // doc itself doesn't exist in DB yet (anonymous-doc edge case), skip the
+  // insert — there's no FK target.
+  if (doc) {
+    await db.insert(uploads).values({
+      docId,
+      fileId: `${fileId}.${ext}`,
+      uploaderId: session.user.id,
+      contentType,
+      sizeBytes: size,
+      s3Key: key
+    })
+  }
 
   const uploadUrl = await getSignedUrl(
     s3,

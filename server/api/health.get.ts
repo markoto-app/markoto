@@ -1,15 +1,15 @@
 import { count } from 'drizzle-orm'
 import { users } from '../db/schema'
 
-export default defineEventHandler(() => {
+export default defineEventHandler(async () => {
   const db = useDatabase()
-  const result = db.select({ count: count() }).from(users).get()
+  const result = (await db.select({ count: count() }).from(users))[0]
 
   return {
     status: 'ok',
     database: {
       connected: true,
-      userCount: result?.count ?? 0
+      userCount: Number(result?.count ?? 0)
     },
     timestamp: Date.now()
   }

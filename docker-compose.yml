@@ -28,29 +28,53 @@ services:
     networks:
       - web
 
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=ypad
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=ypad
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ypad -d ypad"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    expose:
+      - "5432"
+    networks:
+      - internal
+
   app:
     build: .
     restart: unless-stopped
+    # Give the SIGTERM handler time to drain in-flight HTTP and close the pg pool.
+    # Defaults to 10s which is too short for active editor sessions.
+    stop_grace_period: 30s
     environment:
       - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
       - NUXT_OAUTH_GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
       - NUXT_OAUTH_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - NUXT_S3_ENDPOINT=http://seaweedfs:8333
+      # S3 is now external (Infomaniak / R2 / etc.) — no in-stack SeaweedFS.
+      # Set NUXT_S3_ENDPOINT in .env to your provider's S3 URL.
+      - NUXT_S3_ENDPOINT=${S3_ENDPOINT}
       - NUXT_S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - NUXT_S3_SECRET_KEY=${S3_SECRET_KEY}
+      - NUXT_S3_BUCKET=${S3_BUCKET:-ypad}
       - NUXT_JWT_SECRET=${JWT_SECRET}
       - NUXT_INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
-      - NUXT_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - NUXT_ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-6}
-      - NUXT_ANTHROPIC_REWRITE_MODEL=${ANTHROPIC_REWRITE_MODEL:-claude-haiku-4-5}
+      - NUXT_GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - NUXT_GOOGLE_MODEL=${GOOGLE_MODEL:-gemini-3.1-flash-lite-preview}
+      - NUXT_GOOGLE_REWRITE_MODEL=${GOOGLE_REWRITE_MODEL:-gemini-2.5-flash-lite}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_PANDOC_URL=http://pandoc:8080
-      - DATABASE_PATH=/data/ypad.db
-    volumes:
-      - app_data:/data
+      - DATABASE_URL=postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/ypad
     expose:
       - "3000"
     labels:
@@ -59,8 +83,14 @@ services:
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls.certresolver=le"
       - "traefik.http.services.app.loadbalancer.server.port=3000"
+      # Traefik-side healthcheck: stops routing to the container the moment its
+      # /api/health endpoint goes red (e.g. during graceful shutdown).
+      - "traefik.http.services.app.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.app.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.app.loadbalancer.healthcheck.timeout=3s"
     depends_on:
-      - seaweedfs
+      postgres:
+        condition: service_healthy
     networks:
       - web
       - internal
@@ -68,12 +98,12 @@ services:
   sync:
     build: ./sync-server
     restart: unless-stopped
+    # See `app` above — graceful shutdown needs time to close WS connections
+    # and await pending Y.js stores.
+    stop_grace_period: 30s
     environment:
       - PORT=4001
-      - S3_ENDPOINT=http://seaweedfs:8333
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - S3_BUCKET=ypad
+      - DATABASE_URL=postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/ypad
       - JWT_SECRET=${JWT_SECRET}
       - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
       - APP_URL=http://app:3000
@@ -85,8 +115,12 @@ services:
       - "traefik.http.routers.sync.entrypoints=websecure"
       - "traefik.http.routers.sync.tls.certresolver=le"
       - "traefik.http.services.sync.loadbalancer.server.port=4001"
+      - "traefik.http.services.sync.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.sync.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.sync.loadbalancer.healthcheck.timeout=3s"
     depends_on:
-      - seaweedfs
+      postgres:
+        condition: service_healthy
     networks:
       - web
       - internal
@@ -99,32 +133,25 @@ services:
     networks:
       - internal
 
-  seaweedfs:
-    image: chrislusf/seaweedfs:latest
+  backup:
+    build: ./backup-server
     restart: unless-stopped
-    command: >
-      server -s3
-      -ip=seaweedfs -ip.bind=0.0.0.0
-      -dir=/data -s3.config=/etc/seaweedfs/s3.json -s3.port=8333
-    volumes:
-      - seaweed_data:/data
-      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
-    expose:
-      - "8333"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.s3.rule=Host(`s3.${DOMAIN}`)"
-      - "traefik.http.routers.s3.entrypoints=websecure"
-      - "traefik.http.routers.s3.tls.certresolver=le"
-      - "traefik.http.services.s3.loadbalancer.server.port=8333"
-      - "traefik.http.middlewares.s3-cors.headers.accesscontrolalloworiginlist=https://${DOMAIN}"
-      - "traefik.http.middlewares.s3-cors.headers.accesscontrolallowmethods=GET,PUT,HEAD,OPTIONS"
-      - "traefik.http.middlewares.s3-cors.headers.accesscontrolallowheaders=Content-Type,Content-Length"
-      - "traefik.http.routers.s3.middlewares=s3-cors"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=ypad
+      - POSTGRES_DB=ypad
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_BUCKET=${S3_BUCKET:-ypad}
+      - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:-86400}
+      - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:-30}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
-      - web
       - internal
 
 volumes:
-  app_data:
-  seaweed_data:
+  pg_data:

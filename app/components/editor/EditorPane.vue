@@ -16,7 +16,12 @@ const props = defineProps<{
 }>()
 
 const editorRef = ref<HTMLElement | null>(null)
-const view = ref<EditorView | null>(null)
+// `shallowRef` (not `ref`) because EditorView is a class with private fields
+// that Vue's deep-reactivity Proxy strips. With `ref`, consumers see a
+// structurally-similar-but-incomplete EditorView type (missing
+// dispatchTransactions/_root/plugins/…) and typecheck breaks. shallowRef
+// preserves the exact instance without wrapping it.
+const view = shallowRef<EditorView | null>(null)
 
 // Compartments allow dynamic reconfiguration of readOnly and responsive theme
 const editableCompartment = new Compartment()

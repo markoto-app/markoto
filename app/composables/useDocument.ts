@@ -1,143 +1,83 @@
 import * as Y from 'yjs'
-import { HocuspocusProvider } from '@hocuspocus/provider'
 import { Awareness } from 'y-protocols/awareness'
 
+/**
+ * Thin orchestrator that wires together the three sub-composables a document
+ * needs:
+ *   - `useDocToken`       — /token fetch, access-mode, password-unlock flow
+ *   - `useHocuspocusSync` — provider lifecycle, status/synced/userCount
+ *   - (owned here)        — Y.Doc itself, title bridge, deletion observer,
+ *                           awareness bootstrap, welcome-doc seeding
+ *
+ * External API must stay bit-for-bit stable — `EditorLayout.vue` destructures
+ * 17 fields from this return.
+ */
 export function useDocument(docId: string) {
   const ydoc = new Y.Doc()
   const ytext = ydoc.getText('content')
   const ymeta = ydoc.getMap('meta')
 
-  const status = ref<'connecting' | 'connected' | 'disconnected'>('connecting')
-  const synced = ref(false)
-  const userCount = ref(1)
-  const isReadOnly = ref(false)
-  const isOwner = ref(false)
-  const requiresPassword = ref(false)
-  // True when the doc is private and the caller isn't the owner. Same treatment
-  // as `requiresPassword` (no token issued, no Hocuspocus connection), but with
-  // no way to unlock from the client — you either log in as the owner or don't
-  // get to see it. The UI renders a dedicated lock screen for this case.
-  const forbidden = ref(false)
-  const accessMode = ref<string>('open-edit')
-  const docSizeBytes = ref(0)
-  const syncUrl = useRuntimeConfig().public.syncUrl
-
-  const provider = ref<HocuspocusProvider | null>(null)
   // Single stable Awareness instance — passed to HocuspocusProvider so both
   // local and remote clients share the same object. Components (PresenceBar,
   // yCollab) bind to this once at mount and never need to re-subscribe.
   const awareness = new Awareness(ydoc)
 
-  // Session info — declared early so connect() can reference it
+  const undoManager = new Y.UndoManager(ytext)
+
   const { loggedIn, user: sessionUser } = useUserSession()
 
-  // Token data from server (single endpoint provides token + meta)
-  const tokenData = ref<{
-    token: string
-    readOnly: boolean
-    requiresPassword?: boolean
-    accessMode?: string
-    ownerId?: number | null
-  } | null>(null)
+  // Access-mode / password / ownership state.
+  const tokenState = useDocToken(docId)
 
-  async function fetchToken() {
-    try {
-      const data = await $fetch<{
-        token: string | null
-        readOnly: boolean
-        requiresPassword?: boolean
-        forbidden?: boolean
-        accessMode: string
-        ownerId: number | null
-      }>(`/api/docs/${docId}/token`)
-
-      tokenData.value = data as any
-      isReadOnly.value = data.readOnly
-      requiresPassword.value = !!data.requiresPassword
-      forbidden.value = !!data.forbidden
-      accessMode.value = data.accessMode
-
-      // Check ownership with type-safe comparison
-      const userId = sessionUser.value?.id
-      isOwner.value = data.ownerId != null
-        && typeof userId === 'number'
-        && data.ownerId === userId
-    } catch {
-      tokenData.value = { token: '', readOnly: false }
+  // Provider lifecycle. Reads the token lazily via `getToken` so the
+  // post-password-verify reconnect picks up the fresh JWT automatically.
+  const sync = useHocuspocusSync({
+    docId,
+    ydoc,
+    awareness,
+    syncUrl: useRuntimeConfig().public.syncUrl,
+    getToken: () => tokenState.tokenData.value?.token || '',
+    onSynced: () => {
+      insertWelcomeIfEmpty()
+      // If this sync came after password verification, now it's safe to show
+      // the editor content — flipping `requiresPassword` false causes the
+      // template's `v-if` gate to mount the editor.
+      tokenState.clearPendingUnlock()
+    },
+    onDisconnect: (everSynced) => {
+      // Server unreachable from the first try? Seed welcome so the user isn't
+      // staring at an empty editor. If we'd already synced once, the doc has
+      // real content (possibly) and the welcome seed would be wrong.
+      if (!everSynced) insertWelcomeIfEmpty()
+    },
+    onAuthFailed: () => {
+      tokenState.markReadOnly()
     }
-  }
-
-  // Track whether we're waiting for post-password sync
-  const pendingPasswordUnlock = ref(false)
-
-  function onPasswordVerified(newToken: string) {
-    // Don't clear requiresPassword yet — wait for sync so the editor
-    // mounts with content already loaded (prevents empty doc + prepend bug)
-    pendingPasswordUnlock.value = true
-    isReadOnly.value = false
-    tokenData.value = { token: newToken, readOnly: false }
-    provider.value?.destroy()
-    connect()
-  }
+  })
 
   function insertWelcomeIfEmpty() {
-    if (ytext.length === 0 && !isReadOnly.value) {
+    if (ytext.length === 0 && !tokenState.isReadOnly.value) {
       ytext.insert(0, welcomeMarkdown)
     }
   }
 
-  function connect() {
-    if (!syncUrl) {
-      status.value = 'disconnected'
-      synced.value = true
-      insertWelcomeIfEmpty()
-      return
-    }
-
-    // Set awareness user info before connecting so the first sync includes it
-    awareness.setLocalStateField('user', {
-      name: loggedIn.value ? sessionUser.value?.name : generateRandomName(),
-      color: pickColor(),
-      avatar: sessionUser.value?.avatar
-    })
-
-    provider.value = new HocuspocusProvider({
-      url: syncUrl,
-      name: docId,
-      document: ydoc,
-      awareness,
-      token: tokenData.value?.token || '',
-      onConnect: () => { status.value = 'connected' },
-      onDisconnect: () => {
-        status.value = 'disconnected'
-        if (!synced.value) insertWelcomeIfEmpty()
-      },
-      onSynced: () => {
-        synced.value = true
-        docSizeBytes.value = Y.encodeStateAsUpdate(ydoc).byteLength
-        insertWelcomeIfEmpty()
-        // If this sync came after password verification, now it's safe to show content
-        if (pendingPasswordUnlock.value) {
-          pendingPasswordUnlock.value = false
-          requiresPassword.value = false
-        }
-      },
-      onAuthenticationFailed: () => { isReadOnly.value = true },
-      onAwarenessChange: ({ states }: { states: Map<number, any> }) => {
-        userCount.value = states.size
-      }
-    })
-  }
-
-  // Set default awareness user info (will be overwritten in connect() with real user data)
+  // Awareness bootstrap. A placeholder name/color is set eagerly so yCollab
+  // (which may attach before `connect()` runs) has something to show. The
+  // real session-aware values are re-applied inside `connect()`.
   awareness.setLocalStateField('user', {
     name: generateRandomName(),
     color: pickColor()
   })
 
-  const undoManager = new Y.UndoManager(ytext)
+  function applySessionAwareness() {
+    awareness.setLocalStateField('user', {
+      name: loggedIn.value ? sessionUser.value?.name : generateRandomName(),
+      color: pickColor(),
+      avatar: sessionUser.value?.avatar
+    })
+  }
 
-  // Bridge Y.js Map reactivity to Vue: ymeta.get() isn't tracked by Vue,
+  // Bridge Y.js Map reactivity to Vue: `ymeta.get()` isn't tracked by Vue,
   // so we observe the Map and update a reactive ref on every change.
   const _titleRef = ref((ymeta.get('title') as string) || 'Untitled')
   // `_deleted` flag is set by the sync-server when the owner deletes the doc —
@@ -151,29 +91,38 @@ export function useDocument(docId: string) {
   const title = computed({
     get: () => _titleRef.value,
     set: (v: string) => {
-      if (!isReadOnly.value) ymeta.set('title', v)
+      if (!tokenState.isReadOnly.value) ymeta.set('title', v)
     }
   })
 
   const docSizeWarning = computed(() => {
-    const mb = docSizeBytes.value / (1024 * 1024)
+    const mb = sync.docSizeBytes.value / (1024 * 1024)
     if (mb > 8) return 'critical'
     if (mb > 5) return 'warning'
     return null
   })
 
-  // Single initialization: fetch token, then connect only if no password required.
-  // Password-protected docs must NOT connect until password is verified —
-  // otherwise the Y.js document syncs and content is visible behind the modal.
-  fetchToken().then(() => {
-    // Don't connect if the server declined to issue a token. Either the doc is
-    // password-protected (PasswordModal will unlock it) or private (no unlock
-    // path — the EditorLayout shows a lock screen).
-    if (!requiresPassword.value && !forbidden.value) connect()
+  // Initial connect. Password-protected / private docs must NOT connect until
+  // the user unlocks them, otherwise content syncs before the gate appears.
+  tokenState.fetchToken().then(() => {
+    applySessionAwareness()
+    if (!tokenState.requiresPassword.value && !tokenState.forbidden.value) {
+      sync.connect()
+    }
   })
 
+  /**
+   * Called by PasswordModal. Updates the token in place, then reconnects the
+   * provider with the new JWT. `requiresPassword` stays true until the first
+   * sync completes — see `onSynced` above.
+   */
+  function onPasswordVerified(newToken: string) {
+    tokenState.onPasswordVerified(newToken)
+    sync.reconnect()
+  }
+
   function destroy() {
-    provider.value?.destroy()
+    sync.destroy()
     awareness.destroy()
     ydoc.destroy()
   }
@@ -182,31 +131,26 @@ export function useDocument(docId: string) {
     destroy()
   })
 
-  // Update accessMode from outside (e.g. ShareModal changed it)
-  function setAccessMode(mode: string) {
-    accessMode.value = mode
-  }
-
   return {
     ydoc,
     ytext,
     awareness,
-    provider: readonly(provider),
-    status: readonly(status),
-    synced: readonly(synced),
-    userCount: readonly(userCount),
-    isReadOnly: readonly(isReadOnly),
-    isOwner: readonly(isOwner),
+    provider: readonly(sync.provider),
+    status: readonly(sync.status),
+    synced: readonly(sync.synced),
+    userCount: readonly(sync.userCount),
+    isReadOnly: readonly(tokenState.isReadOnly),
+    isOwner: readonly(tokenState.isOwner),
     isDeleted: readonly(isDeleted),
-    requiresPassword: readonly(requiresPassword),
-    forbidden: readonly(forbidden),
-    accessMode: readonly(accessMode),
-    docSizeBytes: readonly(docSizeBytes),
+    requiresPassword: readonly(tokenState.requiresPassword),
+    forbidden: readonly(tokenState.forbidden),
+    accessMode: readonly(tokenState.accessMode),
+    docSizeBytes: readonly(sync.docSizeBytes),
     docSizeWarning,
     undoManager,
     title,
     onPasswordVerified,
-    setAccessMode,
+    setAccessMode: tokenState.setAccessMode,
     destroy
   }
 }

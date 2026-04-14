@@ -1,4 +1,4 @@
-import { eq, sql, lt } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { activityLog, documents } from '../../db/schema'
 
 // Internal endpoint called by the sync-server to log user activity.
@@ -38,37 +38,36 @@ export default defineEventHandler(async (event) => {
 
   // Only log activity for documents that exist in the DB.
   // Anonymous/direct-URL docs without a DB row are skipped.
-  const doc = db.select({ docId: documents.docId }).from(documents).where(eq(documents.docId, body.docId)).get()
+  const doc = (await db.select({ docId: documents.docId }).from(documents).where(eq(documents.docId, body.docId)).limit(1))[0]
   if (!doc) return { success: true, logged: false }
 
-  db.insert(activityLog).values({
+  await db.insert(activityLog).values({
     docId: body.docId,
     userName: body.userName || null,
     action: body.action,
     wordCount: typeof body.wordCount === 'number' ? Math.round(body.wordCount) : null,
     linesAdded: typeof body.linesAdded === 'number' ? Math.max(0, Math.round(body.linesAdded)) : null,
     linesRemoved: typeof body.linesRemoved === 'number' ? Math.max(0, Math.round(body.linesRemoved)) : null
-  }).run()
+  })
 
-  // Cap the log: keep only the latest N entries per document to prevent unbounded growth
-  const excess = db.select({ count: sql<number>`count(*)` })
+  // Cap the log: keep only the latest N entries per document to prevent unbounded growth.
+  // Postgres returns count(*) as a string (bigint) for sql<number>`count(*)` so we cast
+  // explicitly to ::int and coerce the result through Number() for safety.
+  const excess = (await db.select({ count: sql<number>`count(*)::int` })
     .from(activityLog)
-    .where(eq(activityLog.docId, body.docId))
-    .get()
+    .where(eq(activityLog.docId, body.docId)))[0]
 
-  if (excess && excess.count > MAX_ACTIVITY_ENTRIES_PER_DOC) {
+  if (excess && Number(excess.count) > MAX_ACTIVITY_ENTRIES_PER_DOC) {
     // Delete everything older than the most recent MAX entries
-    const cutoff = db.select({ id: activityLog.id })
+    const cutoff = (await db.select({ id: activityLog.id })
       .from(activityLog)
       .where(eq(activityLog.docId, body.docId))
       .orderBy(sql`${activityLog.id} DESC`)
       .limit(1)
-      .offset(MAX_ACTIVITY_ENTRIES_PER_DOC - 1)
-      .get()
+      .offset(MAX_ACTIVITY_ENTRIES_PER_DOC - 1))[0]
     if (cutoff) {
-      db.delete(activityLog)
+      await db.delete(activityLog)
         .where(sql`${activityLog.docId} = ${body.docId} AND ${activityLog.id} < ${cutoff.id}`)
-        .run()
     }
   }
 

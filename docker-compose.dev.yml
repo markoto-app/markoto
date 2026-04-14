@@ -1,16 +1,39 @@
 # Development infrastructure only.
 # Run: docker compose -f docker-compose.dev.yml up -d
 #
-# This starts SeaweedFS (S3), Hocuspocus sync, and Pandoc conversion.
-# The Nuxt app runs on the host via `bun run dev`.
+# This starts Postgres, SeaweedFS (S3 for image uploads + backups in dev),
+# Hocuspocus sync, Pandoc, and the backup sidecar.
 #
-# SeaweedFS: http://localhost:8333  (S3 API)
-# Hocuspocus: ws://localhost:4001   (WebSocket sync)
+# Production uses external S3 (Infomaniak) and drops SeaweedFS entirely;
+# only this dev compose still ships it.
+#
+# Postgres:   localhost:5432  (postgres://ypad:devpassword@localhost:5432/ypad)
+# SeaweedFS:  http://localhost:8333  (S3 API for image uploads + dev backups)
+# Hocuspocus: ws://localhost:4001    (WebSocket sync — connects directly to PG inside the container)
 # Pandoc:     http://localhost:8080  (conversion API)
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=ypad
+      - POSTGRES_PASSWORD=devpassword
+      - POSTGRES_DB=ypad
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ypad -d ypad"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    ports:
+      - "5432:5432"
+
   seaweedfs:
-    image: chrislusf/seaweedfs:latest
+    # Pinned to match production (docker-compose.yml). Bump together.
+    image: chrislusf/seaweedfs@sha256:854479eebcbc0060d803edb27b3bd88a0552e23fde08a26a6482e59aff887a77
     restart: unless-stopped
     command: >
       server -s3
@@ -27,12 +50,10 @@ services:
       context: ./sync-server
       dockerfile: Dockerfile
     restart: unless-stopped
+    stop_grace_period: 30s
     environment:
       - PORT=4001
-      - S3_ENDPOINT=http://seaweedfs:8333
-      - S3_ACCESS_KEY=ypad-access-key
-      - S3_SECRET_KEY=ypad-secret-key
-      - S3_BUCKET=ypad
+      - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
       - JWT_SECRET=development-jwt-secret-change-me-in-production-64chars
       - INTERNAL_API_SECRET=development-internal-api-secret-change-me
       # Sync server reaches the Nuxt app on host for activity logging.
@@ -43,7 +64,8 @@ services:
     ports:
       - "4001:4001"
     depends_on:
-      - seaweedfs
+      postgres:
+        condition: service_healthy
 
   pandoc:
     build: ./pandoc-server
@@ -51,5 +73,28 @@ services:
     ports:
       - "8080:8080"
 
+  # Same image / script as prod. Short interval so devs can verify the loop
+  # without waiting a day; retention low so SeaweedFS doesn't grow unbounded.
+  backup:
+    build: ./backup-server
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=ypad
+      - POSTGRES_DB=ypad
+      - PGPASSWORD=devpassword
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ACCESS_KEY=ypad-access-key
+      - S3_SECRET_KEY=ypad-secret-key
+      - S3_BUCKET=ypad
+      - BACKUP_INTERVAL_SECONDS=3600   # 1 h in dev (tight loop for testing)
+      - BACKUP_RETENTION_COUNT=5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_started
+
 volumes:
+  pg_data:
   seaweed_data:

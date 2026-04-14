@@ -1,12 +1,32 @@
+# --- Builder stage ---------------------------------------------------------
+# We run the build as the built-in `bun` user (uid 1000) so the resulting
+# node_modules/.output trees aren't owned by root when copied across stages.
 FROM oven/bun:1.3-alpine AS builder
 WORKDIR /app
-COPY package.json bun.lock ./
+
+# Dependency install layer first, so source changes don't bust the package cache.
+COPY --chown=bun:bun package.json bun.lock ./
+USER bun
 RUN bun install --frozen-lockfile
-COPY . .
+
+COPY --chown=bun:bun . .
 RUN bun run build
 
+# --- Runtime stage ---------------------------------------------------------
 FROM oven/bun:1.3-alpine
+
 WORKDIR /app
-COPY --from=builder /app/.output .output
+COPY --from=builder --chown=bun:bun /app/.output .output
+# Drizzle migration files — applied at boot by server/plugins/db-migrate.ts.
+# Path resolution uses process.cwd() (= /app), so the plugin reads ./drizzle.
+COPY --from=builder --chown=bun:bun /app/drizzle ./drizzle
+
+USER bun
 EXPOSE 3000
+
+# Health probe hits the DB-touching /api/health so a wedged DB connection
+# surfaces as unhealthy, not just a live HTTP port.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD wget -qO- --tries=1 --timeout=5 http://127.0.0.1:3000/api/health || exit 1
+
 CMD ["bun", "run", ".output/server/index.mjs"]

@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { ypgPersistence } from './persistence'
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
 
@@ -57,14 +58,22 @@ export async function handleInternalRequest(
       if (doc) {
         const ymeta = doc.getMap('meta')
         ymeta.set('_deleted', Date.now())
-        // Let Hocuspocus broadcast the update and persist nothing further.
-        // Optionally unload after a short delay so clients receive the message.
+        // Let Hocuspocus broadcast the update, then unload after a short
+        // delay so clients receive the message before the room closes.
         setTimeout(() => {
           try {
             instance.unloadDocument?.(doc)
           } catch { /* ignore */ }
         }, 2000)
       }
+
+      // Clear the persisted Y.js rows so the doc can't be revived from disk.
+      // Wait briefly so any in-flight broadcast persists `_deleted` first.
+      setTimeout(() => {
+        ypgPersistence.clearDocument(docId).catch((e) => {
+          console.warn(`[internal-http] clearDocument(${docId}) failed:`, e?.message || e)
+        })
+      }, 3000)
 
       sendJson(response, 200, { success: true, notified: !!doc })
       return true

@@ -39,7 +39,13 @@ export default defineEventHandler(async (event) => {
       'Content-Type': 'application/octet-stream',
       'Content-Length': String(file.data.length)
     },
-    body: file.data
+    // `file.data` is a Node Buffer. At runtime undici's fetch accepts Buffer
+    // directly; there is no type-clean path across @types/node, lib.dom, and
+    // Bun's type overrides because `Buffer<ArrayBufferLike>` is not assignable
+    // to `BodyInit` (which wants `ArrayBuffer`, not `SharedArrayBuffer`-
+    // compatible backing). The cast is the pragmatic fix — no runtime copy,
+    // imports can be up to 50 MB.
+    body: file.data as unknown as BodyInit
   })
 
   if (!response.ok) {

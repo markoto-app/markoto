@@ -27,9 +27,12 @@ export interface SessionMeta {
 }
 
 /**
- * Connects to Hocuspocus as "Claude" — the AI's own Y.js client.
+ * Connects to Hocuspocus as "AI Assistant" — the AI's own Y.js client.
  * Awareness advertises the AI identity + initiator + live status so the UI
- * can render a distinct avatar and show what Claude is doing.
+ * can render a distinct avatar and show what the AI is doing. The display
+ * name is deliberately vendor-neutral ("AI Assistant") so swapping the
+ * underlying model (Claude → Gemini today, possibly more tomorrow) is a
+ * config change, not a UI rename.
  */
 export async function createAiSession(
   docId: string,
@@ -47,10 +50,10 @@ export async function createAiSession(
   const token = jwt.sign(
     {
       docId,
-      userId: `ai:claude:${meta.sessionId}`,
+      userId: `ai:assistant:${meta.sessionId}`,
       // Activity log attribution picks this up via the onChange hook. Always
-      // "Claude" — the initiator's name lives in awareness.aiSession for UI display.
-      userName: 'Claude',
+      // "AI Assistant" — the initiator's name lives in awareness.aiSession for UI display.
+      userName: 'AI Assistant',
       readOnly: false
     },
     config.jwtSecret,
@@ -62,7 +65,7 @@ export async function createAiSession(
 
   // Set identity BEFORE connecting so the first sync carries it.
   awareness.setLocalStateField('user', {
-    name: 'Claude',
+    name: 'AI Assistant',
     color: meta.initiatorColor,
     isAI: true
   })

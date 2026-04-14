@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenAI } from '@google/genai'
 import { nanoid } from 'nanoid'
 import { eq } from 'drizzle-orm'
 import { users } from '../../db/schema'
@@ -19,11 +19,11 @@ export default defineEventHandler(async (event) => {
   const userName = session.user.name
   const config = useRuntimeConfig()
 
-  if (!config.anthropic.apiKey) {
-    throw createError({ statusCode: 500, message: 'Anthropic API key not configured' })
+  if (!config.google.apiKey) {
+    throw createError({ statusCode: 500, message: 'Google API key not configured' })
   }
 
-  if (!checkRateLimit('ai-rewrite', String(userId), 30, 60 * 60 * 1000)) {
+  if (!(await checkRateLimit('ai-rewrite', String(userId), 30, 60 * 60 * 1000))) {
     throw createError({ statusCode: 429, message: 'Too many AI requests. Try again in a minute.' })
   }
 
@@ -50,12 +50,19 @@ export default defineEventHandler(async (event) => {
   if (selectionText.length > 20000) throw createError({ statusCode: 400, message: 'Selection too long (max 20000 chars)' })
   if (!prompt) throw createError({ statusCode: 400, message: 'Missing prompt' })
   if (prompt.length > 2000) throw createError({ statusCode: 400, message: 'Prompt too long (max 2000 chars)' })
-  if (typeof selectionFrom !== 'number' || typeof selectionTo !== 'number' || selectionTo <= selectionFrom) {
+  if (
+    typeof selectionFrom !== 'number'
+    || typeof selectionTo !== 'number'
+    || !Number.isInteger(selectionFrom)
+    || !Number.isInteger(selectionTo)
+    || selectionFrom < 0
+    || selectionTo <= selectionFrom
+  ) {
     throw createError({ statusCode: 400, message: 'Invalid selection range' })
   }
 
   const db = useDatabase()
-  const userRow = db.select({ name: users.name }).from(users).where(eq(users.id, userId)).get()
+  const userRow = (await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1))[0]
   const initiatorName = userRow?.name || userName
   const initiatorColor = '#d97706'
 
@@ -63,18 +70,18 @@ export default defineEventHandler(async (event) => {
   const abortController = new AbortController()
 
   try {
-    addAiSession({
+    await addAiSession({
       sessionId,
       docId,
       initiatorUserId: userId,
       initiatorName,
       initiatorColor,
       abortController,
-      startedAt: Date.now()
+      startedAt: new Date()
     })
   } catch (e) {
     if (e instanceof DuplicateSessionError) {
-      throw createError({ statusCode: 409, message: 'You already have Claude running on this document.' })
+      throw createError({ statusCode: 409, message: 'You already have an AI session running on this document.' })
     }
     throw e
   }
@@ -94,7 +101,7 @@ export default defineEventHandler(async (event) => {
     aiSession.updateStatus('thinking', 'Rewriting…')
 
     // Pull the current document for context. Cap to avoid runaway token usage on huge docs;
-    // the selection itself is also included explicitly in <text> so Claude can't miss it.
+    // the selection itself is also included explicitly in <text> so the model can't miss it.
     const MAX_DOC_CONTEXT = 40000
     let documentContext = aiSession.ytext.toString()
     if (documentContext.length > MAX_DOC_CONTEXT) {
@@ -105,23 +112,28 @@ export default defineEventHandler(async (event) => {
       documentContext = (start > 0 ? '…' : '') + documentContext.slice(start, end) + (end < documentContext.length ? '…' : '')
     }
 
-    const anthropic = new Anthropic({ apiKey: config.anthropic.apiKey })
-    const response = await anthropic.messages.create({
-      model: config.anthropic.rewriteModel,
-      max_tokens: Math.min(4096, selectionText.length * 4 + 200),
-      system: REWRITE_SYSTEM,
-      messages: [
+    const ai = new GoogleGenAI({ apiKey: config.google.apiKey })
+    const response = await ai.models.generateContent({
+      model: config.google.rewriteModel,
+      contents: [
         {
           role: 'user',
-          content: `<document>${documentContext}</document>\n\n<instruction>${prompt}</instruction>\n\n<text>${selectionText}</text>`
+          parts: [{
+            text: `<document>${documentContext}</document>\n\n<instruction>${prompt}</instruction>\n\n<text>${selectionText}</text>`
+          }]
         }
-      ]
-    }, { signal: abortController.signal })
+      ],
+      config: {
+        systemInstruction: REWRITE_SYSTEM,
+        // Bound output so a runaway response can't exceed 4× selection length.
+        maxOutputTokens: Math.min(4096, selectionText.length * 4 + 200),
+        abortSignal: abortController.signal
+      }
+    })
 
-    const textBlock = response.content.find(b => b.type === 'text') as Anthropic.Messages.TextBlock | undefined
-    const newText = (textBlock?.text ?? '').trim()
+    const newText = (response.text ?? '').trim()
     if (!newText) {
-      throw createError({ statusCode: 502, message: 'Claude returned empty response' })
+      throw createError({ statusCode: 502, message: 'AI returned empty response' })
     }
 
     // Resolve selection positions. If relative positions are provided, prefer those
@@ -141,6 +153,18 @@ export default defineEventHandler(async (event) => {
       }
     } catch {
       // fall back to raw indices
+    }
+
+    // Bounds-check against current doc length. A tampered client (or a relative
+    // position from a very different doc state) could resolve to positions
+    // outside the current text; slicing would silently succeed and the
+    // indexOf-fallback below could then target the wrong range. Refuse early.
+    const docLen = aiSession.ytext.length
+    if (from < 0 || to > docLen || from >= to) {
+      throw createError({
+        statusCode: 409,
+        message: 'Selection has moved — please re-select and try again.'
+      })
     }
 
     // Sanity check: the selection text should still match what's in the doc.
@@ -163,7 +187,7 @@ export default defineEventHandler(async (event) => {
     }
 
     aiSession.updateStatus('editing', 'Applying rewrite…')
-    const origin = `ai:claude:${sessionId}`
+    const origin = `ai:assistant:${sessionId}`
     aiSession.ydoc.transact(() => {
       aiSession!.ytext.delete(from, to - from)
       aiSession!.ytext.insert(from, newText)
@@ -179,6 +203,6 @@ export default defineEventHandler(async (event) => {
     // Brief pause so the "done" status is visible to clients
     await new Promise((r) => setTimeout(r, 300))
     if (aiSession) await aiSession.destroy()
-    removeAiSession(sessionId)
+    await removeAiSession(sessionId)
   }
 })

@@ -46,6 +46,11 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     sessionPassword: '',
+    // nuxt-auth-utils session config — explicit TTL so cookies don't linger
+    // forever, and no surprise dev/prod differences.
+    session: {
+      maxAge: 60 * 60 * 24 * 7   // 7 days
+    },
     oauth: {
       github: {
         clientId: '',
@@ -62,10 +67,10 @@ export default defineNuxtConfig({
       secretKey: '',
       bucket: 'ypad'
     },
-    anthropic: {
-      apiKey: '',                         // NUXT_ANTHROPIC_API_KEY
-      model: 'claude-sonnet-4-6',         // NUXT_ANTHROPIC_MODEL — agentic prompt loop (tool orchestration, web_search, multi-edit)
-      rewriteModel: 'claude-haiku-4-5'    // NUXT_ANTHROPIC_REWRITE_MODEL — one-shot selection rewrites (Haiku: cheap + fast, no tools)
+    google: {
+      apiKey: '',                                  // NUXT_GOOGLE_API_KEY
+      model: 'gemini-3.1-flash-lite-preview',      // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
+      rewriteModel: 'gemini-2.5-flash-lite'        // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
     },
     jwtSecret: '',
     internalApiSecret: '',
@@ -88,7 +93,8 @@ export default defineNuxtConfig({
       { code: 'zh', language: 'zh-CN', name: '中文', file: 'zh.json' }
     ],
     defaultLocale: 'en',
-    lazy: true,
+    // `lazy` was removed in @nuxtjs/i18n v10 — lazy loading is now the default
+    // whenever `locales[].file` is set (which it is for us, via langDir).
     langDir: 'locales/',
     strategy: 'no_prefix',
     detectBrowserLanguage: {

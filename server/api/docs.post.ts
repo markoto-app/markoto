@@ -16,11 +16,11 @@ export default defineEventHandler(async (event) => {
   //     "private" to, so defaulting to private would lock the creator out.
   const accessMode = ownerId != null ? 'private' : 'open-edit'
 
-  db.insert(documents).values({
+  await db.insert(documents).values({
     docId,
     ownerId,
     accessMode
-  }).run()
+  })
 
   return { docId }
 })

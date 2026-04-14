@@ -36,7 +36,7 @@ onMounted(loadActivity)
 
 // Safety-net poll — covers join/leave entries and recovers from missed updates.
 // The main trigger is the Y.js update listener below, which gives us near-live
-// refreshes whenever anyone (human or Claude) edits the document.
+// refreshes whenever anyone (human or the AI assistant) edits the document.
 const { pause } = useIntervalFn(loadActivity, 30_000)
 
 // Sync-server debounces `onStoreDocument` (and therefore activity logging) at
@@ -89,7 +89,7 @@ function formatTime(ts: string | number) {
       class="flex items-start gap-2 py-2 px-2 rounded text-sm"
     >
       <UIcon
-        v-if="entry.userName === 'Claude'"
+        v-if="entry.userName === 'AI Assistant'"
         name="i-lucide-sparkles"
         class="size-4 mt-0.5 text-amber-500 shrink-0"
       />

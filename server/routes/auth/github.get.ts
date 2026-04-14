@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { users } from '../../db/schema'
+import { SESSION_VERSION } from '../../utils/validatedSession'
 
 export default defineOAuthGitHubEventHandler({
   config: { emailRequired: true },
@@ -7,25 +8,25 @@ export default defineOAuthGitHubEventHandler({
     const db = useDatabase()
 
     // Upsert user
-    const existing = db.select().from(users).where(eq(users.githubId, user.id.toString())).get()
+    const existing = (await db.select().from(users).where(eq(users.githubId, user.id.toString())).limit(1))[0]
     if (existing) {
-      db.update(users).set({
+      await db.update(users).set({
         login: user.login,
         name: user.name || user.login,
         email: user.email,
         avatarUrl: user.avatar_url
-      }).where(eq(users.githubId, user.id.toString())).run()
+      }).where(eq(users.githubId, user.id.toString()))
     } else {
-      db.insert(users).values({
+      await db.insert(users).values({
         githubId: user.id.toString(),
         login: user.login,
         name: user.name || user.login,
         email: user.email,
         avatarUrl: user.avatar_url
-      }).run()
+      })
     }
 
-    const dbUser = db.select({ id: users.id }).from(users).where(eq(users.githubId, user.id.toString())).get()!
+    const dbUser = (await db.select({ id: users.id }).from(users).where(eq(users.githubId, user.id.toString())).limit(1))[0]!
 
     await setUserSession(event, {
       user: {
@@ -36,7 +37,8 @@ export default defineOAuthGitHubEventHandler({
         avatar: user.avatar_url,
         provider: 'github'
       },
-      loggedInAt: Date.now()
+      loggedInAt: Date.now(),
+      v: SESSION_VERSION
     })
     return sendRedirect(event, '/')
   }

@@ -131,9 +131,18 @@ watchEffect(() => {
   }
 })
 
-// Track editor view for toolbar
+// Track editor view for toolbar.
+// Gnarly type dance: Vue's `ref<{ view: EditorView | null }>` recursively
+// applies `UnwrapRef` to the wrapped object, which turns the inner
+// `EditorView` into a `Readonly<EditorView>`. TS treats classes with private
+// fields nominally — `Readonly<EditorView>` fails the assignability check to
+// `EditorView` (missing `dispatchTransactions`, `_root`, `plugins`, …).
+// The cast inside the computed re-asserts the real runtime type; the
+// shallowRef on the child side keeps the instance unproxied so this is safe.
 const editorPaneRef = ref<{ view: EditorView | null } | null>(null)
-const editorView = computed(() => editorPaneRef.value?.view ?? null)
+const editorView = computed<EditorView | null>(
+  () => (editorPaneRef.value?.view ?? null) as EditorView | null
+)
 
 // Mobile dropdown menu — consolidates view mode, theme, and auth actions
 // to reduce top-bar clutter on small screens.
