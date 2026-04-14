@@ -11,6 +11,19 @@
 #                  (dashboard isn't bound to host to avoid port clashes with
 #                  other dev tools; run via exec when you need it)
 
+x-glitchtip-env: &glitchtip-env
+  DATABASE_URL: postgres://ypad:devpassword@postgres:5432/glitchtip
+  VALKEY_URL: redis://valkey:6379/1
+  SECRET_KEY: local-glitchtip-secret-not-for-prod-at-least-50-chars-xxxxx
+  GLITCHTIP_DOMAIN: https://telemetry.ypad.127.0.0.1.nip.io
+  CSRF_TRUSTED_ORIGINS: https://telemetry.ypad.127.0.0.1.nip.io
+  DEFAULT_FROM_EMAIL: errors@localhost
+  EMAIL_URL: consolemail://
+  # Registration off — we seed the initial admin via the glitchtip-init
+  # one-shot (DJANGO_SUPERUSER_* env). Keeps local ≈ prod.
+  ENABLE_USER_REGISTRATION: "False"
+  ENABLE_ORGANIZATION_CREATION: "False"
+
 networks:
   web:
     name: web-local
@@ -77,6 +90,75 @@ services:
     networks:
       - internal
 
+  # Local GlitchTip for Sentry-SDK smoke testing. No oauth2-proxy here
+  # (nothing is publicly exposed). Access directly at
+  # https://telemetry.ypad.127.0.0.1.nip.io/ — covered by the mkcert
+  # wildcard cert. Web + worker share config via the x-glitchtip-env
+  # anchor at the bottom of this file.
+  # One-shot: apply GlitchTip migrations, then seed the admin user from
+  # DJANGO_SUPERUSER_* env vars. Idempotent — `createsuperuser --no-input`
+  # errors on second run, we swallow that. To change the password later,
+  # use the web UI or `./manage.py changepassword` inside the glitchtip
+  # container; the env var is a bootstrap, not a source of truth.
+  glitchtip-init:
+    image: glitchtip/glitchtip:v6
+    restart: "no"
+    environment:
+      <<: *glitchtip-env
+      DJANGO_SUPERUSER_EMAIL: ${GLITCHTIP_ADMIN_EMAIL:-admin@localhost}
+      DJANGO_SUPERUSER_PASSWORD: ${GLITCHTIP_ADMIN_PASSWORD:-local-admin-password-change-me}
+    command: >
+      sh -c "
+        ./manage.py migrate --no-input &&
+        ./manage.py createsuperuser --no-input 2>/dev/null || true
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  glitchtip:
+    image: glitchtip/glitchtip:v6
+    restart: unless-stopped
+    environment:
+      <<: *glitchtip-env
+      SERVER_ROLE: web
+    volumes:
+      - glitchtip_uploads:/code/uploads
+    depends_on:
+      glitchtip-init:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+    expose:
+      - "8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.glitchtip.rule=Host(`telemetry.ypad.127.0.0.1.nip.io`)"
+      - "traefik.http.routers.glitchtip.entrypoints=websecure"
+      - "traefik.http.routers.glitchtip.tls=true"
+      - "traefik.http.services.glitchtip.loadbalancer.server.port=8000"
+    networks:
+      - web
+      - internal
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:v6
+    restart: unless-stopped
+    environment:
+      <<: *glitchtip-env
+      SERVER_ROLE: worker
+    volumes:
+      - glitchtip_uploads:/code/uploads
+    depends_on:
+      glitchtip-init:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+    networks:
+      - internal
+
   seaweedfs:
     image: chrislusf/seaweedfs@sha256:854479eebcbc0060d803edb27b3bd88a0552e23fde08a26a6482e59aff887a77
     restart: unless-stopped
@@ -116,6 +198,11 @@ services:
       - NUXT_PANDOC_URL=http://pandoc:8080
       - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
       - VALKEY_URL=redis://valkey:6379/0
+      # Sentry / GlitchTip. Browser → public HTTPS host. Server →
+      # Docker internal DNS (skip Traefik + public round-trip). Same
+      # pattern as prod.
+      - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
     expose:
       - "3000"
     labels:
@@ -144,6 +231,7 @@ services:
       - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
       - JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
       - INTERNAL_API_SECRET=local-internal-api-secret-change-me
+      - SENTRY_DSN=${SENTRY_DSN:-}
       - APP_URL=http://app:3000
     expose:
       - "4001"
@@ -194,3 +282,4 @@ volumes:
   pg_data:
   seaweed_data:
   valkey_data:
+  glitchtip_uploads:

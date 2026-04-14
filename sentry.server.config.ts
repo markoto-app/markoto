@@ -8,7 +8,10 @@ import * as Sentry from '@sentry/nuxt'
 // Dev stays silent when DSN is empty, so local work doesn't need a
 // telemetry sink running.
 
-const dsn = process.env.NUXT_PUBLIC_SENTRY_DSN
+// Server prefers SENTRY_DSN (may point at an internal service URL like
+// http://glitchtip:8000/<projectId> to bypass Traefik TLS and public DNS),
+// falls back to the browser DSN so small setups can run with one value.
+const dsn = process.env.SENTRY_DSN || process.env.NUXT_PUBLIC_SENTRY_DSN
 
 if (dsn) {
   Sentry.init({

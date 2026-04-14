@@ -4,6 +4,21 @@
 #
 # See docs/DEPLOY.md for DNS and TLS prerequisites.
 
+x-glitchtip-env: &glitchtip-env
+  DATABASE_URL: postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+  # Separate Valkey logical DB so GlitchTip's Celery queue doesn't
+  # collide with our rate-limiter's keyspace on DB 0.
+  VALKEY_URL: redis://:${VALKEY_PASSWORD}@valkey:6379/1
+  SECRET_KEY: ${GLITCHTIP_SECRET_KEY}
+  GLITCHTIP_DOMAIN: https://telemetry.${DOMAIN}
+  CSRF_TRUSTED_ORIGINS: https://telemetry.${DOMAIN}
+  DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-errors@localhost}
+  EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+  # After the first superuser is created via `./manage.py
+  # createsuperuser`, pull up the drawbridge.
+  ENABLE_USER_REGISTRATION: "False"
+  ENABLE_ORGANIZATION_CREATION: "False"
+
 networks:
   web:
     name: web
@@ -25,17 +40,12 @@ services:
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.le.acme.storage=/acme.json"
-      # File provider for middlewares that docker labels can't express
-      # cleanly (see traefik/prod/dynamic.yml — oauth2-proxy ForwardAuth).
-      - "--providers.file.directory=/etc/traefik/dynamic"
-      - "--providers.file.watch=true"
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/acme.json:/acme.json
-      - ./traefik/prod:/etc/traefik/dynamic:ro
     networks:
       - web
 
@@ -114,9 +124,11 @@ services:
       - NUXT_JWT_SECRET_PREVIOUS=${JWT_SECRET_PREVIOUS:-}
       - NUXT_INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
       - NUXT_INTERNAL_API_SECRET_PREVIOUS=${INTERNAL_API_SECRET_PREVIOUS:-}
-      # Sentry / GlitchTip ingest DSN. Empty in non-prod; prod points at
-      # https://<publicKey>@telemetry.${DOMAIN}/<projectId>.
+      # Sentry / GlitchTip. Browser uses the public host (front-end);
+      # server-side uses the internal service name so events don't
+      # round-trip through public DNS.
       - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
       - NUXT_GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - NUXT_GOOGLE_MODEL=${GOOGLE_MODEL:-gemini-3.1-flash-lite-preview}
       - NUXT_GOOGLE_REWRITE_MODEL=${GOOGLE_REWRITE_MODEL:-gemini-2.5-flash-lite}
@@ -156,8 +168,8 @@ services:
       - JWT_SECRET_PREVIOUS=${JWT_SECRET_PREVIOUS:-}
       - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
       - INTERNAL_API_SECRET_PREVIOUS=${INTERNAL_API_SECRET_PREVIOUS:-}
-      # Sentry / GlitchTip ingest DSN — sync-server reads the bare name.
-      - SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN:-}
+      # Sentry / GlitchTip — internal service URL, same as app container.
+      - SENTRY_DSN=${SENTRY_DSN:-}
       - APP_URL=http://app:3000
     expose:
       - "4001"
@@ -206,36 +218,53 @@ services:
       - internal
 
   # ──────────────────────────────────────────────────────────────────────
-  # Observability: self-hosted GlitchTip (Sentry-protocol-compatible),
-  # protected by oauth2-proxy + GitHub OAuth. See docs/OBSERVABILITY.md.
+  # Observability: self-hosted GlitchTip (Sentry-protocol-compatible).
+  # Admin access is via GlitchTip's own email/password login — registration
+  # is off (ENABLE_USER_REGISTRATION=False), the admin is seeded at boot
+  # by the glitchtip-init one-shot from DJANGO_SUPERUSER_* env vars.
+  #
+  # Web + worker split — the image dispatches on `SERVER_ROLE`
+  # (web | worker | beat). Without the worker, events queue in Valkey
+  # but never process. Shared env via the `x-glitchtip-env` anchor at
+  # the bottom of this file.
   # ──────────────────────────────────────────────────────────────────────
 
-  glitchtip:
-    # Pinning to the major. GlitchTip publishes no SHA digests; `:6` is
-    # the stable channel.
+  glitchtip-init:
+    # One-shot: migrate + seed admin user. Idempotent on reruns —
+    # createsuperuser errors if the user already exists; we swallow.
+    # Change the admin password after first boot via the web UI or
+    # `./manage.py changepassword` inside the glitchtip container;
+    # the env var is a bootstrap, not a source of truth.
     image: glitchtip/glitchtip:v6
-    restart: unless-stopped
-    # all-in-one mode runs web + Celery worker + migrate in one process —
-    # appropriate for our single-VPS footprint (~512MB RAM).
+    restart: "no"
     environment:
-      - DATABASE_URL=postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
-      # Separate Valkey logical DB so GlitchTip's Celery queue doesn't
-      # collide with our rate-limiter's keyspace on DB 0.
-      - VALKEY_URL=redis://:${VALKEY_PASSWORD}@valkey:6379/1
-      - SECRET_KEY=${GLITCHTIP_SECRET_KEY}
-      - GLITCHTIP_DOMAIN=https://telemetry.${DOMAIN}
-      - CSRF_TRUSTED_ORIGINS=https://telemetry.${DOMAIN}
-      - DEFAULT_FROM_EMAIL=${GLITCHTIP_FROM_EMAIL:-errors@localhost}
-      - EMAIL_URL=${GLITCHTIP_EMAIL_URL:-consolemail://}
-      # After the first superuser is created via `./manage.py
-      # createsuperuser`, pull up the drawbridge.
-      - ENABLE_USER_REGISTRATION=False
-      - ENABLE_ORGANIZATION_CREATION=False
-    volumes:
-      - glitchtip_uploads:/code/uploads
+      <<: *glitchtip-env
+      DJANGO_SUPERUSER_EMAIL: ${GLITCHTIP_ADMIN_EMAIL}
+      DJANGO_SUPERUSER_PASSWORD: ${GLITCHTIP_ADMIN_PASSWORD}
+    command: >
+      sh -c "
+        ./manage.py migrate --no-input &&
+        ./manage.py createsuperuser --no-input 2>/dev/null || true
+      "
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - internal
+
+  glitchtip:
+    # Pinning to the major. GlitchTip publishes no SHA digests; `:v6` is
+    # the stable channel.
+    image: glitchtip/glitchtip:v6
+    restart: unless-stopped
+    environment:
+      <<: *glitchtip-env
+      SERVER_ROLE: web
+    volumes:
+      - glitchtip_uploads:/code/uploads
+    depends_on:
+      glitchtip-init:
+        condition: service_completed_successfully
       valkey:
         condition: service_healthy
     expose:
@@ -245,52 +274,26 @@ services:
       - "traefik.http.routers.glitchtip.rule=Host(`telemetry.${DOMAIN}`)"
       - "traefik.http.routers.glitchtip.entrypoints=websecure"
       - "traefik.http.routers.glitchtip.tls.certresolver=le"
-      # ForwardAuth → oauth2-proxy. Defined in traefik/prod/dynamic.yml.
-      - "traefik.http.routers.glitchtip.middlewares=oauth2-auth@file"
       - "traefik.http.services.glitchtip.loadbalancer.server.port=8000"
     networks:
       - web
       - internal
 
-  oauth2-proxy:
-    # oauth2-proxy sits in front of the telemetry subdomain. GitHub OAuth
-    # App limited to a single user via --github-user; no access without
-    # that GitHub account *and* 2FA on it.
-    image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
+  glitchtip-worker:
+    image: glitchtip/glitchtip:v6
     restart: unless-stopped
-    command:
-      - --http-address=0.0.0.0:4180
-      - --reverse-proxy=true
-      # static://202 means "answer all upstream probes with 202" — the
-      # modern pattern for ForwardAuth-only use (no direct proxying).
-      - --upstream=static://202
-      - --provider=github
-      - --github-user=${GITHUB_ALLOWED_USER}
-      - --email-domain=*
-      - --cookie-secure=true
-      - --cookie-expire=168h
-      - --cookie-refresh=1h
-      - --cookie-domain=.${DOMAIN}
-      - --whitelist-domain=.${DOMAIN}
-      - --set-xauthrequest=true
-      - --redirect-url=https://telemetry.${DOMAIN}/oauth2/callback
     environment:
-      - OAUTH2_PROXY_CLIENT_ID=${OAUTH2_PROXY_CLIENT_ID}
-      - OAUTH2_PROXY_CLIENT_SECRET=${OAUTH2_PROXY_CLIENT_SECRET}
-      - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH2_PROXY_COOKIE_SECRET}
-    expose:
-      - "4180"
-    labels:
-      - "traefik.enable=true"
-      # The /oauth2/ PathPrefix router handles the OAuth redirect flow
-      # itself — it MUST NOT carry the oauth2-auth middleware (infinite
-      # auth loop).
-      - "traefik.http.routers.oauth2-proxy.rule=Host(`telemetry.${DOMAIN}`) && PathPrefix(`/oauth2/`)"
-      - "traefik.http.routers.oauth2-proxy.entrypoints=websecure"
-      - "traefik.http.routers.oauth2-proxy.tls.certresolver=le"
-      - "traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180"
+      <<: *glitchtip-env
+      SERVER_ROLE: worker
+    volumes:
+      - glitchtip_uploads:/code/uploads
+    depends_on:
+      glitchtip-init:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
     networks:
-      - web
+      - internal
 
 volumes:
   pg_data:

@@ -689,7 +689,7 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 - [x] PWA setup via `@vite-pwa/nuxt` (manifest, SW, install prompt, periodic-sync, unified with `/api/version` staleness poll).
 - [x] Scheduled cleanup of inactive documents — `server/plugins/inactive-doc-sweep.ts`, reaps via shared `deleteDocument` helper. TTL knobs: `NUXT_INACTIVE_DOC_TTL_DAYS` (anon, default 180) and `NUXT_INACTIVE_DOC_OWNED_TTL_DAYS` (owner-owned, default 365); workspace-attached docs never reap.
 - [x] Dual-secret rotation (`JWT_SECRET`, `INTERNAL_API_SECRET`) via `*_PREVIOUS` fallback — see `docs/SECRETS-ROTATION.md`. `SESSION_PASSWORD` rotates via `SESSION_VERSION` bump (documented in the same runbook).
-- [x] Observability: self-hosted GlitchTip + `@sentry/nuxt` + `@sentry/bun`, behind oauth2-proxy (GitHub, single-user). See `docs/OBSERVABILITY.md`.
+- [x] Observability: self-hosted GlitchTip + `@sentry/nuxt` + `@sentry/bun`. Admin seeded via `DJANGO_SUPERUSER_*` env vars, registration off. See `docs/OBSERVABILITY.md`.
 - [x] Rate-limit cleanup failure surfacing — fail-open path in `rateLimit.ts` now captures to Sentry with `component: rateLimit, event: valkey_unavailable`.
 - [x] Valkey container for rate limiting + caching (replaces Postgres-backed rate limiter; shared with GlitchTip which also needs Valkey). *Caching layer not yet wired — tracked under MMP.*
 
