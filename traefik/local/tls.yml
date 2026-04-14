@@ -1,0 +1,10 @@
+tls:
+  certificates:
+    - certFile: /etc/traefik/dynamic/ypad.127.0.0.1.nip.io.pem
+      keyFile: /etc/traefik/dynamic/ypad.127.0.0.1.nip.io-key.pem
+
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/dynamic/ypad.127.0.0.1.nip.io.pem
+        keyFile: /etc/traefik/dynamic/ypad.127.0.0.1.nip.io-key.pem

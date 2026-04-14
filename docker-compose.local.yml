@@ -1,0 +1,175 @@
+# Full-stack local run — Traefik with mkcert TLS, all images built from source.
+# Domain: ypad.127.0.0.1.nip.io (nip.io wildcards resolve *.127.0.0.1.nip.io → 127.0.0.1).
+# Run: docker compose -f docker-compose.local.yml up -d --build
+#
+# First-time setup: see docs/LOCAL.md.
+#
+# Access:
+#   App:           https://ypad.127.0.0.1.nip.io
+#   Sync:          wss://sync.ypad.127.0.0.1.nip.io
+#   Traefik UI:    http://localhost:8080
+
+networks:
+  web:
+    name: web-local
+  internal:
+    name: internal-local
+
+services:
+  traefik:
+    image: traefik:v3
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=web-local"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/local:/etc/traefik/dynamic:ro
+    networks:
+      - web
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=ypad
+      - POSTGRES_PASSWORD=devpassword
+      - POSTGRES_DB=ypad
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ypad -d ypad"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
+    networks:
+      - internal
+
+  seaweedfs:
+    image: chrislusf/seaweedfs@sha256:854479eebcbc0060d803edb27b3bd88a0552e23fde08a26a6482e59aff887a77
+    restart: unless-stopped
+    command: >
+      server -s3
+      -ip=seaweedfs -ip.bind=0.0.0.0
+      -dir=/data -s3.config=/etc/seaweedfs/s3.json -s3.port=8333
+    ports:
+      - "8333:8333"
+    volumes:
+      - seaweed_data:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    networks:
+      - internal
+
+  app:
+    build: .
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      - NUXT_SESSION_PASSWORD=local-session-password-at-least-32-characters-long
+      - NUXT_OAUTH_GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - NUXT_OAUTH_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - NUXT_S3_ENDPOINT=http://seaweedfs:8333
+      - NUXT_S3_ACCESS_KEY=ypad-access-key
+      - NUXT_S3_SECRET_KEY=ypad-secret-key
+      - NUXT_S3_BUCKET=ypad
+      - NUXT_JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
+      - NUXT_INTERNAL_API_SECRET=local-internal-api-secret-change-me
+      - NUXT_GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - NUXT_GOOGLE_MODEL=${GOOGLE_MODEL:-gemini-3.1-flash-lite-preview}
+      - NUXT_GOOGLE_REWRITE_MODEL=${GOOGLE_REWRITE_MODEL:-gemini-2.5-flash-lite}
+      - NUXT_PUBLIC_SYNC_URL=wss://sync.ypad.127.0.0.1.nip.io
+      - NUXT_SYNC_INTERNAL_URL=http://sync:4001
+      - NUXT_PANDOC_URL=http://pandoc:8080
+      - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
+    expose:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`ypad.127.0.0.1.nip.io`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.services.app.loadbalancer.server.port=3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - web
+      - internal
+
+  sync:
+    build: ./sync-server
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      - PORT=4001
+      - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
+      - JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
+      - INTERNAL_API_SECRET=local-internal-api-secret-change-me
+      - APP_URL=http://app:3000
+    expose:
+      - "4001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sync.rule=Host(`sync.ypad.127.0.0.1.nip.io`)"
+      - "traefik.http.routers.sync.entrypoints=websecure"
+      - "traefik.http.routers.sync.tls=true"
+      - "traefik.http.services.sync.loadbalancer.server.port=4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - web
+      - internal
+
+  pandoc:
+    build: ./pandoc-server
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - internal
+
+  backup:
+    build: ./backup-server
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=ypad
+      - POSTGRES_DB=ypad
+      - PGPASSWORD=devpassword
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ACCESS_KEY=ypad-access-key
+      - S3_SECRET_KEY=ypad-secret-key
+      - S3_BUCKET=ypad
+      - BACKUP_INTERVAL_SECONDS=3600
+      - BACKUP_RETENTION_COUNT=5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_started
+    networks:
+      - internal
+
+volumes:
+  pg_data:
+  seaweed_data:

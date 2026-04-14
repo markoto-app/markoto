@@ -48,7 +48,7 @@ flowchart TB
 - **OAuth optional.** Anonymous users can view/edit public docs; login gates ownership and AI.
 - **Drizzle + Postgres for app data.** Versioned migrations in `drizzle/` applied at boot.
 - **Y.js state lives in Postgres** via `y-postgresql` (`yjs_documents` table). Append-only updates + periodic merge replaces the earlier S3-blob-overwrite scheme — durable, one `pg_dump` covers everything.
-- **S3 = image uploads + pg backups, nothing else.** External S3 in prod; SeaweedFS only in `docker-compose.dev.yml`.
+- **S3 = image uploads + pg backups, nothing else.** External S3 in `docker-compose.prod.yml`; SeaweedFS in `docker-compose.dev.yml` and `docker-compose.local.yml`.
 - **Hocuspocus as separate container.** Long-lived WS + in-memory Y.Doc state shouldn't share the Nitro event loop. Server↔sync talk over shared-secret HTTP.
 - **AI joins the doc as a real Y.js client** (see §7).
 - **Pandoc isolated.** Python HTTP wrapper around `pandoc/extra` so Nuxt stays lean (no TeX/fonts).
@@ -482,6 +482,16 @@ Activity-feed layout:
 
 ## 12. Docker Compose
 
+Three files for three purposes:
+
+| File | Scope | TLS | Images | Use |
+|---|---|---|---|---|
+| `docker-compose.dev.yml` | infra only (postgres, seaweedfs, sync, pandoc, backup) — Nuxt runs on host | — | `build:` where needed | daily dev with HMR |
+| `docker-compose.local.yml` | full stack incl. Traefik | mkcert (file provider) on `ypad.127.0.0.1.nip.io` | `build:` from source | pre-push full-stack verification — see `docs/LOCAL.md` |
+| `docker-compose.prod.yml` | full stack incl. Traefik | Let's Encrypt (`tlschallenge`) | GHCR (`${REGISTRY}/md-online-{app,sync,pandoc,backup}:${IMAGE_TAG}`) | VPS deploy — see `docs/DEPLOY.md` |
+
+The three files are standalone — no shared base. Duplication is accepted in exchange for each being readable top-to-bottom.
+
 ### Production (6 containers)
 
 Traefik, postgres, app, sync, pandoc, backup sidecar. No SeaweedFS in prod — S3 is external.
@@ -586,7 +596,9 @@ i18n/locales/     en, de, fr, es, ja, zh .json
 shared/types/     auth.d.ts, markdown-it-plugins.d.ts
 public/           icons, favicon
 
-Dockerfile, docker-compose.yml, docker-compose.dev.yml, nuxt.config.ts, package.json, bun.lock, colada.options.ts, .env
+Dockerfile, docker-compose.{dev,local,prod}.yml, nuxt.config.ts, package.json, bun.lock, colada.options.ts, .env
+traefik/local/                                        # mkcert .pem files (gitignored) + tls.yml
+docs/                                                  # DEPLOY.md, LOCAL.md, S3-SETUP.md
 ```
 
 ---
