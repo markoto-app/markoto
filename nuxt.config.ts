@@ -4,6 +4,13 @@ export default defineNuxtConfig({
   // so the browser only talks to one origin (no CORS issues).
   // In production, Traefik handles these routes to the correct containers.
   nitro: {
+    // Match the runtime: the Dockerfile's runtime stage runs the output with
+    // `bun`, and packages like lib0 have `bun` conditional exports that
+    // resolve to different files than the `node` condition. The default
+    // node-server preset traces via the `node` condition and ships a
+    // module graph that Bun then fails to execute. See
+    // https://bun.com/docs/guides/ecosystem/nuxt.
+    preset: 'bun',
     // Dev proxy: forward S3 requests through localhost:3000 to avoid CORS.
     // WebSocket (Hocuspocus) connects directly — no same-origin restriction.
     // In production, Traefik handles routing for all subdomains.
@@ -12,6 +19,17 @@ export default defineNuxtConfig({
         target: 'http://localhost:8333',
         changeOrigin: true
       }
+    },
+    // `ws` is a transitive dep of `@google/genai` that Nitro's NFT tracer
+    // doesn't follow through the SDK's dist bundle — the output emits
+    // `import 'ws'` but omits the package. `traceInclude` takes glob
+    // patterns (not bare package names); `ws` itself has no deps so one
+    // glob is enough. Tracked upstream in nitrojs/nitro#2923.
+    externals: {
+      // Point the tracer at ws's real entry — NFT then follows its imports
+      // and copies the whole package (lib/*.js, browser.js, etc.). Pointing
+      // at just package.json only copies that one file.
+      traceInclude: ['node_modules/ws/index.js']
     }
   },
 

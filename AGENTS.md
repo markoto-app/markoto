@@ -743,7 +743,7 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 | `y-postgresql` (was S3 blob overwrite) | Append + merge is vastly more durable; failed write can't nuke prior state. One `pg_dump` covers both app and Y.js data. Caveat: `useIndex: true` has a SQL bug in 1.0.1. |
 | Text-enum columns, not `pgEnum` | Adding values is TS-only — no `ALTER TYPE` migration friction. |
 | Migrations at boot via `00-db-migrate.ts` | Numeric prefix forces load-first so sweeper/rate-limit-cleanup don't race empty schema. `99-shutdown.ts` mirrors on teardown. |
-| Bun at build time, Node 24 at runtime | Bun wins on install speed + direct TS; runtime just executes the Nitro-bundled `.output/server/index.mjs` so the speed deltas don't apply. Switched after hitting an upstream lib0@0.2.117 bug: its `bun` conditional export for `./logging` points at a file that doesn't exist in the published tarball, only `logging.node.js` does (which Node picks via the `node` condition). Sync-server stays on Bun — it runs TS directly with no Nitro output and doesn't import the broken lib0 subpath. |
+| Bun everywhere (build + runtime + sync-server), `nitro.preset: 'bun'` | Required for packages with Bun-specific exports (lib0 resolves `./logging` differently under the `bun` vs `node` conditions). The default `node-server` preset traces via the `node` condition and produces output Bun can't execute; the `bun` preset traces via the `bun` condition so the output's module graph matches the runtime. Official guidance: https://bun.com/docs/guides/ecosystem/nuxt. |
 | Pinia Colada over raw `$fetch` | Caching, dedup, loading/error states, invalidation for free. |
 | VueUse over custom composables | 200+ battle-tested, auto-imported. |
 | `@nuxtjs/i18n` lazy | Locale files on-demand. `strategy: 'no_prefix'` keeps clean URLs. |
@@ -780,6 +780,8 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 - **Hocuspocus v3 Server vs Hocuspocus class** — `Server` wraps `Hocuspocus` with HTTP+WS+`.listen()`; use `Server` for standalone.
 - **Hocuspocus v3 hook shapes vary** — rate-limiter uses separate `connectionIPs: Map<socketId, ip>` rather than mutating connection object.
 - **Bun can't pre-bundle Hocuspocus** — run TS directly via `bun run src/index.ts`.
+- **`nitro.preset` must match the runtime.** Default is `node-server`; if the CMD is `bun run`, flip to `'bun'` or packages with `bun` conditional exports (lib0, more as the ecosystem adopts) resolve to files the runtime can't execute.
+- **Nitro's NFT tracer misses `@google/genai`'s transitive `ws`** (upstream [nitrojs/nitro#2923](https://github.com/nitrojs/nitro/issues/2923)). Fix with `nitro.externals.traceInclude: ['node_modules/ws/index.js']` — the entry, not the package.json (that copies one file); NFT follows its imports and pulls the whole lib/ dir in.
 - **Dev sync-server networking** — `host.docker.internal` + `host-gateway` extra_host on Linux; Nuxt dev must bind `0.0.0.0`.
 - **Activity attribution fallback warning** is the canary — grep prod logs for `[hocuspocus] Attribution fallback` to detect drift.
 - **Drizzle `node-postgres` queries are Promise-returning** — no `.get()` / `.all()` / `.run()`. Use `(await db.select()...limit(1))[0]` idiom.
