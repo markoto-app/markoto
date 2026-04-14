@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@hocuspocus/server": "^3.4.4",
+    "@sentry/bun": "^10.48.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.20.0",
     "y-postgresql": "^1.0.1",

@@ -1,5 +1,6 @@
 import { and, isNull, lt } from 'drizzle-orm'
 import { ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
+import * as Sentry from '@sentry/nuxt'
 import { documents, uploads } from '../db/schema'
 
 const ONE_HOUR_MS = 60 * 60 * 1000
@@ -54,6 +55,7 @@ export default defineNitroPlugin((nitroApp) => {
             }))
           } catch (e: any) {
             console.warn('[orphan-cleanup] S3 delete failed during unconfirmed sweep:', e.message)
+            Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 's3_delete_failed', sweep: 'unconfirmed' } })
           }
         }
         // Drop the rows whether or not the S3 delete succeeded — the row
@@ -157,6 +159,7 @@ export default defineNitroPlugin((nitroApp) => {
       }
     } catch (e: any) {
       console.error('[orphan-cleanup] Reconciliation failed:', e.message)
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
     } finally {
       running = false
     }

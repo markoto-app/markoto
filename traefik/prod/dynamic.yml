@@ -1,0 +1,17 @@
+# Traefik file-provider dynamic config. Mounted read-only into the traefik
+# container at /etc/traefik/dynamic/. Used for middleware definitions that
+# docker labels don't express naturally — in particular, ForwardAuth
+# pointing at oauth2-proxy for the telemetry subdomain.
+http:
+  middlewares:
+    # Locks `telemetry.${DOMAIN}` behind GitHub OAuth via oauth2-proxy.
+    # Cookie-restricted to a single GitHub user at the oauth2-proxy layer
+    # (--github-user=...) so authentication implies identity.
+    oauth2-auth:
+      forwardAuth:
+        address: http://oauth2-proxy:4180/
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-Auth-Request-User
+          - X-Auth-Request-Email
+          - Authorization

@@ -1,3 +1,7 @@
+// Sentry must be imported first so its Bun instrumentation patches stdlib
+// targets before any other module grabs references to them.
+import './sentry'
+import { captureException, captureMessage } from './sentry'
 import { Server } from '@hocuspocus/server'
 import { ypgPersistence } from './persistence'
 import { auth } from './auth'
@@ -80,7 +84,12 @@ const server = new Server({
       if (!tracked) {
         // Log so we can see in prod logs whether the fallback path is hit
         // often. If it is, the bootstrap-on-demand design needs revisiting.
+        // Also surfaced to Sentry — drift canary for prod attribution.
         console.warn(`[hocuspocus] Attribution fallback for doc ${data.documentName}: no onChange tracked, using awareness heuristic`)
+        captureMessage(`[hocuspocus] Attribution fallback for doc ${data.documentName}`, {
+          level: 'warning',
+          tags: { component: 'hocuspocus', event: 'attribution_fallback' }
+        })
       }
       if (!userName) {
         const awareness = (data.document as any).awareness

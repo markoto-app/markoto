@@ -689,8 +689,8 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 - [x] PWA setup via `@vite-pwa/nuxt` (manifest, SW, install prompt, periodic-sync, unified with `/api/version` staleness poll).
 - [ ] Scheduled cleanup of inactive documents.
 - [x] Dual-secret rotation (`JWT_SECRET`, `INTERNAL_API_SECRET`) via `*_PREVIOUS` fallback — see `docs/SECRETS-ROTATION.md`. `SESSION_PASSWORD` rotates via `SESSION_VERSION` bump (documented in the same runbook).
-- [ ] Observability (GlitchTip self-hosted / structured logs / metrics).
-- [ ] Rate-limit cleanup failure surfacing.
+- [x] Observability: self-hosted GlitchTip + `@sentry/nuxt` + `@sentry/bun`, behind oauth2-proxy (GitHub, single-user). See `docs/OBSERVABILITY.md`.
+- [x] Rate-limit cleanup failure surfacing — fail-open path in `rateLimit.ts` now captures to Sentry with `component: rateLimit, event: valkey_unavailable`.
 - [x] Valkey container for rate limiting + caching (replaces Postgres-backed rate limiter; shared with GlitchTip which also needs Valkey). *Caching layer not yet wired — tracked under MMP.*
 
 ### MMP

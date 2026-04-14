@@ -1,5 +1,6 @@
 import * as Y from 'yjs'
 import { PostgresqlPersistence } from 'y-postgresql'
+import { captureException } from './sentry'
 
 if (!process.env.DATABASE_URL) {
   throw new Error('[persistence] DATABASE_URL environment variable is required')
@@ -29,6 +30,7 @@ export const ypgPersistence = {
       return doc
     } catch (e: any) {
       console.error(`[persistence] Error loading ${documentName}:`, e?.message || e)
+      captureException(e, { tags: { component: 'persistence', event: 'load_failed', docId: documentName } })
       // Hand back a fresh doc so Hocuspocus doesn't crash; subsequent edits
       // will overwrite once the persistence layer recovers.
       return new Y.Doc()
@@ -44,6 +46,7 @@ export const ypgPersistence = {
       // meantime the in-memory Y.Doc is still the source of truth for
       // connected clients.
       console.error(`[persistence] Error storing ${documentName}:`, e?.message || e)
+      captureException(e, { tags: { component: 'persistence', event: 'store_failed', docId: documentName } })
     }
   },
 

@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import * as Sentry from '@sentry/nuxt'
 import { useValkey } from './valkey'
 
 // Sliding-window-log rate limiter backed by Valkey sorted sets.
@@ -51,6 +52,11 @@ export async function checkRateLimit(
     return true
   } catch (e: any) {
     console.warn('[rateLimit] valkey error, failing open:', e?.message || e)
+    // Surface to the telemetry sink with a stable tag so operators can
+    // dashboard "rate-limit protection is currently bypassed" volume.
+    Sentry.captureException(e, {
+      tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
+    })
     return true
   }
 }

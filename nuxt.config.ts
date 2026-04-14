@@ -53,7 +53,8 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@pinia/colada-nuxt',
     '@vite-pwa/nuxt',
-    'nuxt-codemirror'
+    'nuxt-codemirror',
+    '@sentry/nuxt/module'
   ],
 
   devtools: {
@@ -105,7 +106,12 @@ export default defineNuxtConfig({
     // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
     syncInternalUrl: 'http://localhost:4001',
     public: {
-      syncUrl: ''
+      syncUrl: '',
+      sentry: {
+        // GlitchTip / Sentry DSN for browser error reporting. Empty in dev;
+        // set via NUXT_PUBLIC_SENTRY_DSN in prod .env.
+        dsn: ''
+      }
     }
   },
 

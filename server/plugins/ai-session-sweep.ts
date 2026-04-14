@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nuxt'
 import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../utils/aiSessions'
 import { migrationsComplete } from '../utils/migrations'
 
@@ -30,6 +31,7 @@ export default defineNitroPlugin((nitroApp) => {
       }
     } catch (e: any) {
       console.warn('[ai-sweep] Startup purge failed:', e?.message || e)
+      Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'startup_purge_failed' } })
     }
   })()
 
@@ -40,6 +42,7 @@ export default defineNitroPlugin((nitroApp) => {
       sessions = await snapshotAiSessions()
     } catch (e: any) {
       console.warn('[ai-sweep] snapshot failed:', e?.message || e)
+      Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'snapshot_failed' } })
       return
     }
     for (const s of sessions) {
