@@ -1,22 +1,21 @@
-import { and, count, eq, gt, lt } from 'drizzle-orm'
-import { rateLimits } from '../db/schema'
+import { randomBytes } from 'node:crypto'
+import { useValkey } from './valkey'
 
-/**
- * Postgres-backed sliding-window rate limiter.
- *
- * Why persistent: the previous in-memory implementation reset on every Nitro
- * restart, which meant a user could burst past any quota by triggering a
- * restart. Persistence also means multiple Nitro workers share one quota.
- *
- * Mechanism: each successful `checkRateLimit` inserts one row tagged with the
- * namespace/key and a timestamp. The same call counts rows within the window
- * and compares against `maxAttempts`. A periodic cleanup job prunes rows that
- * have aged out of every possible window.
- */
-
-// Keep deleted rows around for a day — covers every window we actually use
-// (hours at most) with plenty of slack. Cleanup job drops anything older.
-const RETENTION_MS = 24 * 60 * 60 * 1000
+// Sliding-window-log rate limiter backed by Valkey sorted sets.
+//
+// Key shape:   rl:{namespace}:{key}
+// Members:     `{timestamp}:{random}` — random suffix prevents ZADD dedupe
+//              when two calls land in the same millisecond.
+// TTL:         2× window (via PEXPIRE), so abandoned keys self-clean.
+//
+// Two-step (count → add) is NOT atomic, but for our scale the race tolerance
+// is trivial: two concurrent requests at count = max-1 can both succeed,
+// admitting one extra attempt per burst. Protecting against that needs a
+// Lua script and the friction isn't worth it for rate limits.
+//
+// Fails open: if Valkey is unreachable, the request is allowed through.
+// Rate limits are defense-in-depth (backend still validates payload size,
+// auth, etc.) — a wedged Valkey shouldn't DoS the app.
 
 export async function checkRateLimit(
   namespace: string,
@@ -24,55 +23,34 @@ export async function checkRateLimit(
   maxAttempts: number,
   windowMs: number
 ): Promise<boolean> {
-  const db = useDatabase()
-  const now = new Date()
-  const windowStart = new Date(Date.now() - windowMs)
+  const zkey = `rl:${namespace}:${key}`
+  const now = Date.now()
+  const windowStart = now - windowMs
 
-  // Fast path: count existing attempts within the window.
-  const existing = (await db
-    .select({ count: count() })
-    .from(rateLimits)
-    .where(and(
-      eq(rateLimits.namespace, namespace),
-      eq(rateLimits.key, key),
-      gt(rateLimits.createdAt, windowStart)
-    )))[0]
+  try {
+    const valkey = useValkey()
 
-  if (Number(existing?.count ?? 0) >= maxAttempts) {
-    return false
+    // Drop expired entries, then count — pipelined so it's one RTT.
+    const pipeline = valkey.multi()
+    pipeline.zremrangebyscore(zkey, '-inf', windowStart)
+    pipeline.zcard(zkey)
+    const results = await pipeline.exec()
+    if (!results) return true   // exec returned null (transaction discarded)
+
+    const count = (results[1]?.[1] as number) ?? 0
+
+    if (count >= maxAttempts) return false
+
+    // Under limit — record and refresh the TTL in one pipeline.
+    const member = `${now}:${randomBytes(6).toString('hex')}`
+    await valkey.multi()
+      .zadd(zkey, now, member)
+      .pexpire(zkey, windowMs * 2)
+      .exec()
+
+    return true
+  } catch (e: any) {
+    console.warn('[rateLimit] valkey error, failing open:', e?.message || e)
+    return true
   }
-
-  await db.insert(rateLimits).values({
-    namespace,
-    key,
-    createdAt: now
-  })
-
-  return true
-}
-
-let cleanupStarted = false
-
-/**
- * Start the periodic cleanup job. Idempotent. Called from a Nitro plugin at
- * startup so rows don't accumulate indefinitely.
- */
-export function startRateLimitCleanup() {
-  if (cleanupStarted) return
-  cleanupStarted = true
-
-  async function cleanup() {
-    try {
-      const db = useDatabase()
-      const cutoff = new Date(Date.now() - RETENTION_MS)
-      await db.delete(rateLimits).where(lt(rateLimits.createdAt, cutoff))
-    } catch (e: any) {
-      console.warn('[rateLimit] cleanup failed:', e?.message || e)
-    }
-  }
-
-  // Run once at startup to clean up anything from previous processes, then
-  // every hour. Cheaper than piggybacking on each checkRateLimit call.
-  void cleanup()
-  setInterval(() => { void cleanup() }, 60 * 60 * 1000)
 }

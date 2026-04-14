@@ -3,7 +3,7 @@ export default defineEventHandler(async (event) => {
   const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
     || getRequestHeader(event, 'x-real-ip')
     || 'unknown'
-  if (!checkRateLimit('export', ip, 10, 60_000)) {
+  if (!(await checkRateLimit('export', ip, 10, 60_000))) {
     throw createError({ statusCode: 429, message: 'Too many export requests. Try again later.' })
   }
 

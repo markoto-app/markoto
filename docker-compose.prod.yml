@@ -54,6 +54,36 @@ services:
     networks:
       - internal
 
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    # Password-protected. AOF with fsync-every-second gives durability
+    # adequate for rate-limit + future GlitchTip broker use.
+    # maxmemory caps container RAM; allkeys-lru keeps hot keys under pressure.
+    command:
+      - "valkey-server"
+      - "--requirepass"
+      - "${VALKEY_PASSWORD}"
+      - "--appendonly"
+      - "yes"
+      - "--appendfsync"
+      - "everysec"
+      - "--maxmemory"
+      - "256mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    expose:
+      - "6379"
+    volumes:
+      - valkey_data:/data
+    networks:
+      - internal
+
   app:
     image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/md-online-app:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -78,6 +108,7 @@ services:
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_PANDOC_URL=http://pandoc:8080
       - DATABASE_URL=postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/ypad
+      - VALKEY_URL=redis://:${VALKEY_PASSWORD}@valkey:6379/0
     expose:
       - "3000"
     labels:
@@ -91,6 +122,8 @@ services:
       - "traefik.http.services.app.loadbalancer.healthcheck.timeout=3s"
     depends_on:
       postgres:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     networks:
       - web
@@ -154,3 +187,4 @@ services:
 
 volumes:
   pg_data:
+  valkey_data:

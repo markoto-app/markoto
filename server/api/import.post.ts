@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
     || getRequestHeader(event, 'x-real-ip')
     || 'unknown'
-  if (!checkRateLimit('import', ip, 10, 60_000)) {
+  if (!(await checkRateLimit('import', ip, 10, 60_000))) {
     throw createError({ statusCode: 429, message: 'Too many import requests. Try again later.' })
   }
 

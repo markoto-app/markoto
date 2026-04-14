@@ -368,7 +368,7 @@ Tool semantics (`server/utils/aiToolAdapter.ts`):
 
 ### Limits & sweeper
 
-- Rate limits (Postgres sliding window via `server/utils/rateLimit.ts`): `ai-prompt: 20/h`, `ai-rewrite: 30/h` per user.
+- Rate limits (Valkey sliding-window-log via `server/utils/rateLimit.ts`): `ai-prompt: 20/h`, `ai-rewrite: 30/h` per user.
 - Deadlines: prompt 5 min, rewrite 30 s, loop `MAX_TURNS = 20`.
 - Sweeper (`server/plugins/ai-session-sweep.ts`) — 60s tick, aborts sessions >7 min old (threshold > prompt deadline so legit long grounded searches aren't killed). One-shot startup purge clears rows from crashed prior process so per-user cap unblocks.
 - `event.node.req.on('close')` aborts if client tab closes mid-request.
@@ -691,7 +691,7 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 - [ ] Dual-secret rotation (`JWT_SECRET`, `SESSION_PASSWORD`, `INTERNAL_API_SECRET`).
 - [ ] Observability (GlitchTip self-hosted / structured logs / metrics).
 - [ ] Rate-limit cleanup failure surfacing.
-- [ ] Valkey container for rate limiting + caching (replaces Postgres-backed rate limiter; shared with GlitchTip which also needs Valkey).
+- [x] Valkey container for rate limiting + caching (replaces Postgres-backed rate limiter; shared with GlitchTip which also needs Valkey). *Caching layer not yet wired — tracked under MMP.*
 
 ### MMP
 

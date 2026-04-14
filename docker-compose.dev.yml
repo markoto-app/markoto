@@ -8,6 +8,7 @@
 # only this dev compose still ships it.
 #
 # Postgres:   localhost:5432  (postgres://ypad:devpassword@localhost:5432/ypad)
+# Valkey:     localhost:6379  (redis://localhost:6379/0 — rate limit + future cache)
 # SeaweedFS:  http://localhost:8333  (S3 API for image uploads + dev backups)
 # Hocuspocus: ws://localhost:4001    (WebSocket sync — connects directly to PG inside the container)
 # Pandoc:     http://localhost:8080  (conversion API)
@@ -30,6 +31,22 @@ services:
       start_period: 5s
     ports:
       - "5432:5432"
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    # AOF with fsync-every-second is a fine trade for rate-limit data: worst
+    # case we lose ≤1s of hits on crash, sliding windows self-heal.
+    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
 
   seaweedfs:
     # Pinned to match production (docker-compose.yml). Bump together.
@@ -98,3 +115,4 @@ services:
 volumes:
   pg_data:
   seaweed_data:
+  valkey_data:

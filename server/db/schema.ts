@@ -75,19 +75,6 @@ export const aiSessions = pgTable('ai_sessions', {
   index('idx_ai_sessions_started_at').on(table.startedAt)
 ])
 
-// Rate-limit hits. One row per attempt within a window. `checkRateLimit` inserts
-// one and counts rows within the window; a startup + periodic job prunes older
-// rows. A single shared table across namespaces.
-export const rateLimits = pgTable('rate_limits', {
-  id: serial('id').primaryKey(),
-  namespace: text('namespace').notNull(),
-  key: text('key').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-}, (table) => [
-  index('idx_rate_limits_lookup').on(table.namespace, table.key, table.createdAt),
-  index('idx_rate_limits_cleanup').on(table.createdAt)
-])
-
 // Image / file uploads. Inserted (unconfirmed) when the client requests a
 // presigned URL; flipped to confirmed when the client posts back after the
 // PUT. The orphan-cleanup plugin uses this table as the source of truth:

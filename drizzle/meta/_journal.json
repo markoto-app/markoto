@@ -15,6 +15,13 @@
       "when": 1776154147577,
       "tag": "0001_supreme_colleen_wing",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776180135415,
+      "tag": "0002_brave_captain_flint",
+      "breakpoints": true
     }
   ]
 }
