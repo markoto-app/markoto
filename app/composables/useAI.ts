@@ -11,7 +11,7 @@ export interface AiSessionInfo {
 
 /**
  * Exposes AI prompt / rewrite / abort actions and reactive state derived from
- * Y.js awareness. Claude joins the document as its own client, so every tab
+ * Y.js awareness. Gemini joins the document as its own client, so every tab
  * naturally sees the AI "user" appear, change status, and leave.
  */
 export function useAI(docId: Ref<string>, awareness: Awareness) {

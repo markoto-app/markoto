@@ -7,7 +7,7 @@ import type { FunctionCall } from '@google/genai'
  * the main loop can focus on SDK mechanics.
  *
  * Granularity note: Gemini's streaming typically surfaces a function call as a
- * complete unit (args arrive as one chunk, not progressively like Claude's
+ * complete unit (args arrive as one chunk, not progressively like Gemini's
  * `input_json_delta`). We get one status announcement per tool call rather
  * than per-character streaming — acceptable: users perceive tool-call-level
  * granularity, not token-level.
@@ -40,7 +40,7 @@ export function newStreamState(): StreamState {
  * decide whether to update the awareness status.
  *
  * Text parts are ignored for status — they land in the final response but
- * we don't announce "speaking" for them (matches Claude behaviour).
+ * we don't announce "speaking" for them (matches Gemini behaviour).
  */
 export function processChunk(
   chunk: { functionCalls?: FunctionCall[]; text?: string },
@@ -69,7 +69,7 @@ export function processChunk(
  *
  * Returns null if the inputs don't carry a field we can speak to — callers
  * should leave the previous status in place rather than flash something
- * generic (same philosophy as the Claude implementation).
+ * generic (same philosophy as the Gemini implementation).
  */
 export function describeToolInput(name: string, args: Record<string, unknown>): string | null {
   switch (name) {
