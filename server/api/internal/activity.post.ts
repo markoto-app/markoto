@@ -55,6 +55,16 @@ export default defineEventHandler(async (event) => {
     linesRemoved: typeof body.linesRemoved === 'number' ? Math.max(0, Math.round(body.linesRemoved)) : null
   })
 
+  // Edit events bump `lastActive`, which the inactive-doc sweep reads. Without
+  // this, a document actively being edited but never hitting `meta.put` would
+  // age out at the TTL and get reaped. Non-edit actions (join/leave) don't
+  // count — a passive viewer shouldn't keep an abandoned doc alive.
+  if (body.action === 'edit') {
+    await db.update(documents)
+      .set({ lastActive: new Date() })
+      .where(eq(documents.docId, body.docId))
+  }
+
   // Cap the log: keep only the latest N entries per document to prevent unbounded growth.
   // Postgres returns count(*) as a string (bigint) for sql<number>`count(*)` so we cast
   // explicitly to ::int and coerce the result through Number() for safety.

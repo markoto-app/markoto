@@ -105,6 +105,12 @@ export default defineNuxtConfig({
     // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
     // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
     syncInternalUrl: 'http://localhost:4001',
+    // Inactive-doc auto-cleanup thresholds (in days). Anonymous docs age
+    // out at the shorter TTL; owner-owned docs get the longer grace.
+    // Workspace-attached docs are never auto-reaped. 0 disables the sweep
+    // entirely. Override via NUXT_INACTIVE_DOC_TTL_DAYS / _OWNED_TTL_DAYS.
+    inactiveDocTtlDays: 180,
+    inactiveDocOwnedTtlDays: 365,
     public: {
       syncUrl: '',
       sentry: {
