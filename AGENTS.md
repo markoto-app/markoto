@@ -677,8 +677,9 @@ Dockerfile, docker-compose.yml, docker-compose.dev.yml, nuxt.config.ts, package.
 - [ ] PWA setup via `@vite-pwa/nuxt`.
 - [ ] Scheduled cleanup of inactive documents.
 - [ ] Dual-secret rotation (`JWT_SECRET`, `SESSION_PASSWORD`, `INTERNAL_API_SECRET`).
-- [ ] Observability (Sentry / structured logs / metrics).
+- [ ] Observability (GlitchTip self-hosted / structured logs / metrics).
 - [ ] Rate-limit cleanup failure surfacing.
+- [ ] Valkey container for rate limiting + caching (replaces Postgres-backed rate limiter; shared with GlitchTip which also needs Valkey).
 
 ### MMP
 
