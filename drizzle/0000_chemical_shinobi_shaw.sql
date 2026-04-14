@@ -40,11 +40,17 @@ CREATE TABLE "documents" (
 	CONSTRAINT "documents_doc_id_unique" UNIQUE("doc_id")
 );
 --> statement-breakpoint
-CREATE TABLE "rate_limits" (
+CREATE TABLE "uploads" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"namespace" text NOT NULL,
-	"key" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"doc_id" text NOT NULL,
+	"file_id" text NOT NULL,
+	"uploader_id" integer,
+	"content_type" text NOT NULL,
+	"size_bytes" integer NOT NULL,
+	"s3_key" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"confirmed_at" timestamp with time zone,
+	CONSTRAINT "uploads_s3_key_unique" UNIQUE("s3_key")
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -81,6 +87,8 @@ ALTER TABLE "ai_sessions" ADD CONSTRAINT "ai_sessions_initiator_user_id_users_id
 ALTER TABLE "document_shares" ADD CONSTRAINT "document_shares_doc_id_documents_doc_id_fk" FOREIGN KEY ("doc_id") REFERENCES "public"."documents"("doc_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "document_shares" ADD CONSTRAINT "document_shares_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "documents" ADD CONSTRAINT "documents_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "uploads" ADD CONSTRAINT "uploads_doc_id_documents_doc_id_fk" FOREIGN KEY ("doc_id") REFERENCES "public"."documents"("doc_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "uploads" ADD CONSTRAINT "uploads_uploader_id_users_id_fk" FOREIGN KEY ("uploader_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspace_documents" ADD CONSTRAINT "workspace_documents_workspace_id_workspaces_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("workspace_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspace_documents" ADD CONSTRAINT "workspace_documents_doc_id_documents_doc_id_fk" FOREIGN KEY ("doc_id") REFERENCES "public"."documents"("doc_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -90,5 +98,5 @@ CREATE INDEX "idx_ai_sessions_started_at" ON "ai_sessions" USING btree ("started
 CREATE UNIQUE INDEX "idx_share_unique" ON "document_shares" USING btree ("doc_id","user_id");--> statement-breakpoint
 CREATE INDEX "idx_documents_owner" ON "documents" USING btree ("owner_id");--> statement-breakpoint
 CREATE INDEX "idx_documents_last_active" ON "documents" USING btree ("last_active");--> statement-breakpoint
-CREATE INDEX "idx_rate_limits_lookup" ON "rate_limits" USING btree ("namespace","key","created_at");--> statement-breakpoint
-CREATE INDEX "idx_rate_limits_cleanup" ON "rate_limits" USING btree ("created_at");
+CREATE INDEX "idx_uploads_doc" ON "uploads" USING btree ("doc_id");--> statement-breakpoint
+CREATE INDEX "idx_uploads_unconfirmed" ON "uploads" USING btree ("confirmed_at","created_at");

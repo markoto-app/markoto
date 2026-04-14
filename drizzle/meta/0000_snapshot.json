@@ -1,5 +1,5 @@
 {
-  "id": "917ce7b2-3b85-4052-8244-a2f232c929b3",
+  "id": "65e1a38f-e038-4dc6-a3b8-2cfe8daf753b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -429,8 +429,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.rate_limits": {
-      "name": "rate_limits",
+    "public.uploads": {
+      "name": "uploads",
       "schema": "",
       "columns": {
         "id": {
@@ -439,14 +439,38 @@
           "primaryKey": true,
           "notNull": true
         },
-        "namespace": {
-          "name": "namespace",
+        "doc_id": {
+          "name": "doc_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "key": {
-          "name": "key",
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploader_id": {
+          "name": "uploader_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content_type": {
+          "name": "content_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "s3_key": {
+          "name": "s3_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -457,26 +481,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "confirmed_at": {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
-        "idx_rate_limits_lookup": {
-          "name": "idx_rate_limits_lookup",
+        "idx_uploads_doc": {
+          "name": "idx_uploads_doc",
           "columns": [
             {
-              "expression": "namespace",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
+              "expression": "doc_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -487,9 +505,15 @@
           "method": "btree",
           "with": {}
         },
-        "idx_rate_limits_cleanup": {
-          "name": "idx_rate_limits_cleanup",
+        "idx_uploads_unconfirmed": {
+          "name": "idx_uploads_unconfirmed",
           "columns": [
+            {
+              "expression": "confirmed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
             {
               "expression": "created_at",
               "isExpression": false,
@@ -503,9 +527,44 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "uploads_doc_id_documents_doc_id_fk": {
+          "name": "uploads_doc_id_documents_doc_id_fk",
+          "tableFrom": "uploads",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "doc_id"
+          ],
+          "columnsTo": [
+            "doc_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "uploads_uploader_id_users_id_fk": {
+          "name": "uploads_uploader_id_users_id_fk",
+          "tableFrom": "uploads",
+          "tableTo": "users",
+          "columnsFrom": [
+            "uploader_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "uploads_s3_key_unique": {
+          "name": "uploads_s3_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "s3_key"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

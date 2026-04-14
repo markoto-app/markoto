@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1776152605118,
-      "tag": "0000_broad_sphinx",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1776154147577,
-      "tag": "0001_supreme_colleen_wing",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1776180135415,
-      "tag": "0002_brave_captain_flint",
+      "when": 1776184195784,
+      "tag": "0000_chemical_shinobi_shaw",
       "breakpoints": true
     }
   ]
