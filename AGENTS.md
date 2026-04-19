@@ -126,7 +126,7 @@ flowchart TB
 
 | Data | Storage |
 |---|---|
-| Users, documents, shares, workspaces, uploads, activity, rate-limits, AI sessions | PostgreSQL (Drizzle) |
+| Users, documents (incl. per-doc theme JSONB), shares, workspaces, uploads, activity, rate-limits, AI sessions | PostgreSQL (Drizzle) |
 | Y.js document state | PostgreSQL (`yjs_documents` via `y-postgresql`) |
 | Image blobs | S3 (`docs/{docId}/{fileId}.ext`) |
 | Postgres backups | S3 (`backups/postgres/{ISO8601}.sql.gz`) |
@@ -203,7 +203,7 @@ GET    /api/version                        { buildId } — SPA staleness detecti
 # Documents
 POST   /api/docs                           Create (anonymous OK; defaults to private if logged-in, open-edit if not)
 GET    /api/docs/:docId/meta
-PUT    /api/docs/:docId/meta               Owner only; validates title/accessMode/wordCount/sizeBytes
+PUT    /api/docs/:docId/meta               Owner only; validates title/accessMode/wordCount/sizeBytes/theme
 DELETE /api/docs/:docId                    Owner only; cascades S3 cleanup + notify-deleted to sync
 GET    /api/docs/:docId/token              Consolidated: token + readOnly + requiresPassword + forbidden + accessMode + ownerId
 GET    /api/docs/:docId/activity           Latest 50 entries
@@ -334,6 +334,8 @@ No SSE — status rides on Y.js awareness. Each edit is its own `ydoc.transact` 
 - Multi-edit responses land as clean ordered atomic updates.
 - `replace_text` matches content (not byte-offset), so earlier edits don't invalidate later ones in the same turn.
 
+**Session `kind` discriminator** — both `/api/ai/prompt` and `/api/ai/rewrite` flow through the same `createAiSession` (same Y.js awareness payload, same per-user-per-doc cap). The awareness `aiSession.kind` field (`'prompt' | 'rewrite'`) lets the client tell them apart so the floating bottom AI bar's rainbow-pulse animation only fires for prompt sessions, and the inline selection popup's animation only fires for rewrite sessions. Without this gate both surfaces would animate on every rewrite.
+
 ### Concurrency
 
 - No doc-level lock — multiple AI sessions on the same doc are fine; edits merge via CRDT. Semantic conflict ("make formal" vs "make casual") is accepted.
@@ -399,18 +401,21 @@ Pricing (at time of writing): `gemini-3.1-flash-lite-preview` $0.25/$1.50 per 1M
 
 Orchestrator + two workers:
 
-- `useDocToken.ts` — fetches `/api/docs/:docId/token`; handles password-verify reconnect; exposes `{token, readOnly, requiresPassword, forbidden, accessMode, isOwner, pendingPasswordUnlock, setAccessMode}`.
+- `useDocToken.ts` — fetches `/api/docs/:docId/token`; handles password-verify reconnect; exposes `{token, readOnly, requiresPassword, forbidden, accessMode, isOwner, hasOwner, initialTheme, pendingPasswordUnlock, setAccessMode}`. The single round-trip also seeds the initial theme so the preview can paint before Y.js sync settles.
 - `useHocuspocusSync.ts` — provider lifecycle only. `getToken()` callback so reconnects pick up password-verified JWTs without wiring. Exposes `{provider, status, synced, userCount, docSizeBytes, reconnect}`.
 - `useDocument.ts` — thin orchestrator. Creates Y.Doc + awareness + undoManager, composes the workers, owns the title bridge (`ymeta.observe` → Vue ref), deletion observer (`ymeta._deleted`), welcome-doc seeding.
 
 Preserved design points:
-- **Single consolidated fetch on init** (token endpoint returns metadata too — no separate `/meta` call).
+- **Single consolidated fetch on init** (token endpoint returns metadata + initial theme too — no separate `/meta` call).
 - **Single Awareness instance** passed to both `HocuspocusProvider` and yCollab for the component lifetime.
 - **Title bridge** — `ymeta.observe()` updates a reactive ref; computed wraps get/set.
+- **Theme bridge** — same pattern as title: `ymeta.theme` Y.Map entry → reactive `theme` ref, `setTheme()` writes both ymeta (live broadcast) and the DB row (debounced 800 ms). Owner edits get DB persistence; ownerless docs (anonymous-created) skip the DB write since `PUT /meta` requires ownership — Y.js sync covers it.
 - **Welcome content insertion** fires on `onSynced` (server empty), `onDisconnect` before-ever-synced, or no-syncUrl path.
 - **Password flow** — `onPasswordVerified(newToken)` stashes JWT, orchestrator listens and calls `useHocuspocusSync.reconnect()`. `requiresPassword` flips false only on `onSynced` (via `clearPendingUnlock`) — prevents empty-doc-prepend bug.
 
-Return shape (~17 fields, unchanged by the split): `ydoc, ytext, awareness, provider, status, synced, userCount, isReadOnly, isOwner, isDeleted, requiresPassword, forbidden, accessMode, docSizeBytes, docSizeWarning, undoManager, title, onPasswordVerified, setAccessMode, destroy`.
+Return shape (~21 fields): `ydoc, ytext, awareness, provider, status, synced, userCount, isReadOnly, isOwner, isDeleted, requiresPassword, forbidden, accessMode, docSizeBytes, docSizeWarning, undoManager, title, theme, canEditTheme, setTheme, resetTheme, onPasswordVerified, setAccessMode, destroy`.
+
+`canEditTheme` is a computed that mirrors content edit access: read-only = false, owner = true, anonymous on an ownerless doc = true (open-edit means "anyone can change anything", theme included).
 
 ---
 
@@ -428,13 +433,19 @@ The right pane shows **paged** output — discrete A4/Letter pages, not continuo
 
 ### Theme system
 
-`shared/types/theme.ts:DocTheme` — single shape that drives preview AND print. Phase 1 ships hardcoded `defaultTheme` (A4, Inter 11 pt, brand `#3B82F6`, header `{title}`, footer `{page} / {pages}`). Phase 2 will add a JSONB `documents.theme` column + `ymeta.theme` mirror for live broadcast; Phase 3 ships built-in presets; Phase 4 adds user-saved themes.
+`shared/types/theme.ts:DocTheme` — single shape that drives preview AND print. Per-doc, stored in `documents.theme` JSONB (server-validated by `shared/utils/themeValidation.ts`) and mirrored to `ymeta.theme` for live multi-collaborator broadcast.
 
-Header/footer templates support tokens: `{title}`, `{date}`, `{page}`, `{pages}`. Title/date are baked into the CSS string at compile time (see "margin boxes are siblings" gotcha); page/pages map to paged.js's built-in `counter()` calls.
+- **Default** (`shared/utils/defaultTheme.ts`): A4 portrait 20mm, Inter 11pt 1.3 line-height, brand `#3B82F6`, justify body alignment, header `{title}` left, footer `{page} / {pages}` center.
+- **Built-in templates** (`shared/utils/themePresets.ts`): Modern, Academic Paper, Tech Report, Business Report, Novel — each a complete `DocTheme` shown in the editor's template picker. Selecting one swaps the entire theme.
+- **Editor UI** (`app/components/document/ThemeEditorPanel.vue`) lives in the unified right-sidebar slot (Activity / Theme are mutually exclusive). Owner-only on owned docs, open to anyone on ownerless docs.
+- **Font picker** loads every entry in `shared/utils/themeFonts.ts` from Google Fonts in one combined request when the panel mounts; each picker item renders its own label in its own face.
+- **Phase 4** (user-saved themes — `themes` table + CRUD) is still pending; everything above is shipped.
+
+Header/footer templates support tokens: `{title}`, `{date}`, `{page}`, `{pages}`. Title/date are baked into the CSS string at compile time (see "margin boxes are siblings" gotcha); page/pages map to paged.js's built-in `counter()` calls. Inserting a token from the chip row is cursor-aware — it splices into the focused input at the caret, dispatched via `data-slot` / `data-position` attributes on each input.
 
 ### Why an iframe (load-bearing)
 
-paged.js was designed to paginate a static document **once**. It mutates global state — appends `<style>` to `document.head`, sets `:root` custom properties, re-paginates the entire doc on every call. Re-running it into the host page on every keystroke caused cumulative cross-contamination and visible layout jitter no amount of off-screen-swap mitigation cleaned up. An iframe gives paged.js its own document context; the host app stays insulated. Inside the iframe, scroll position is captured before swap and restored after (snap-to-bottom if user was within 50 px of end).
+paged.js was designed to paginate a static document **once**. It mutates global state — appends `<style>` to `document.head`, sets `:root` custom properties, re-paginates the entire doc on every call. Re-running it into the host page on every keystroke caused cumulative cross-contamination and visible layout jitter no amount of off-screen-swap mitigation cleaned up. An iframe gives paged.js its own document context; the host app stays insulated. Inside the iframe, scroll position is captured before swap and restored after (snap-to-bottom if user was within 50 px of end). The snap-to-bottom check is gated on the *previous* render having had real scrollable content (`prevScrollHeight > viewport + 100`) — without that gate, the empty pre-paint mount false-positives the "near bottom" check on every page reload and dumps the user at the end of the doc.
 
 Communication is one-way:
 - Parent → iframe: `iframe.contentWindow.__renderDoc(opts)`
@@ -452,6 +463,16 @@ paged.js polyfill loaded from `https://cdn.jsdelivr.net/npm/pagedjs@${VERSION}/d
 
 Versioned URL = automatic cache-bust on upgrade. Workbox `runtimeCaching` on `cdn.jsdelivr.net` caches the asset for offline reload. Local bundling via `?url` was tried first but pagedjs's package "exports" field blocks subpath imports of `dist/`, and a Nitro endpoint reading from `node_modules` was fragile — CDN is the simpler, durable answer.
 
+### Dark preview
+
+In dark mode the **chrome around the pages** flips to match the parent app's canvas, but the pages themselves stay as the theme defines them (white paper, dark text). Print/export reads the theme directly so PDFs always come out on a real white page regardless of viewing mode.
+
+Implementation: srcdoc iframe is same-origin so it reads `window.parent.document.documentElement.classList.contains('dark')` and the parent's body bg via `getComputedStyle`. A `MutationObserver` on the parent's html `class` attribute mirrors changes onto the iframe's body class + `color-scheme` (so native scrollbars switch to dark too). No re-render needed — pure CSS swap.
+
+### Floating AI bar overlap
+
+The agentic AI prompt bar floats `position: absolute; bottom-6` over `<main>`. To stop it from covering the last lines of the doc, both scroll containers (CodeMirror's `.cm-scroller` and the iframe `body`) get `padding-bottom: 120 px` so content can scroll fully past the bar.
+
 ---
 
 ## 10. Mobile
@@ -467,9 +488,9 @@ Implemented:
 - Icon-only connection badge (`<span class="hidden sm:inline">`).
 - Responsive title `max-w-[180px] sm:max-w-56 md:max-w-80`.
 
-Activity-feed layout:
-- `< xl` (≤1279px): opening activity hides preview; in edit mode activity is `w-80` sidebar (full-width xs).
-- `xl+`: activity is fixed `w-80` right sidebar regardless of view mode → genuine triple-pane when split. Preview uses `hidden xl:block` (CSS) not `v-if` so resize past xl brings it back instantly without remounting markdown pipeline.
+Right-sidebar layout (Activity OR Theme — mutually exclusive, single slot):
+- `< xl` (≤1279px): opening either panel hides preview; in edit mode the panel is `w-80` sidebar (full-width xs).
+- `xl+`: panel is fixed `w-80` right sidebar regardless of view mode → genuine triple-pane when split. Preview uses `hidden xl:block` (CSS) not `v-if` so resize past xl brings it back instantly without remounting markdown pipeline.
 
 ---
 
@@ -495,7 +516,7 @@ Activity-feed layout:
 
 ### Input validation
 
-- `meta.put`: title (≤255), accessMode (enum), wordCount (0–10M, finite), sizeBytes (0–100M, finite).
+- `meta.put`: title (≤255), accessMode (enum), wordCount (0–10M, finite), sizeBytes (0–100M, finite), theme (full structural validation in `shared/utils/themeValidation.ts` — bounded numeric ranges, hex-color regex, font-name allowlist, header/footer template safety check).
 - Uploads: PNG/JPEG/GIF/WebP/SVG, 10MB max.
 - Imports: extension whitelist, 50MB max.
 
@@ -584,15 +605,14 @@ app/
   app.vue, app.config.ts, assets/css/main.css
   components/
     auth/         LoginButtons, UserMenu
-    editor/       EditorLayout, EditorPane, EditorToolbar, MobileToolbar, ImageDropZone
+    editor/       EditorLayout, EditorMenuBar, EditorPane, EditorToolbar, MobileToolbar, ImageDropZone
     preview/      PreviewPane                                  # hosts the paged.js iframe via usePagedPreview
     collab/       PresenceBar, ConnectionStatus, ActivityFeed
-    ai/           AIPromptBar, AISelectionPopup
-    sharing/      ShareModal, PasswordModal, DeleteConfirmModal
-    document/     ImportModal
+    ai/           AIPromptBar, AISelectionPopup                # both blue + animated; kind-discriminated (§7)
+    sharing/      ShareModal, PasswordModal
+    document/     ImportModal, DeleteConfirmModal, ThemeEditorPanel
     workspace/    WorkspaceList, WorkspaceDocTable
     history/      HistoryTimeline, DiffViewer   (MMP)
-    layout/       AppSidebar, AppHeader, MobileBottomSheet, LanguageSwitcher
     common/       SizeWarning
   composables/    useDocument, useDocToken, useHocuspocusSync, useAI, useImageUpload,
                   useDocumentImport, useMarkdownPreview, usePagedPreview
@@ -632,7 +652,8 @@ drizzle.config.ts
 i18n/locales/     en, de, fr, es, ja, zh .json
 shared/
   types/          auth.d.ts, markdown-it-plugins.d.ts, pagedjs.d.ts, theme.ts
-  utils/          defaultTheme.ts, themeToCss.ts, pagedjsCdn.ts, secrets.ts
+  utils/          defaultTheme.ts, themeToCss.ts, themeValidation.ts, themeFonts.ts, themePresets.ts,
+                  pagedjsCdn.ts, secrets.ts
 public/           icons, favicon
 
 Dockerfile, docker-compose.{dev,local,prod}.yml, nuxt.config.ts, package.json, bun.lock, colada.options.ts, .env
@@ -682,9 +703,32 @@ docs/                                                          # DEPLOY.md, LOCA
 - Same `themeToCss(theme)` drives live preview AND printed PDF.
 - Iframe isolation for paged.js (preview + print) — see §9 for the why.
 - Polyfill loaded from `cdn.jsdelivr.net`, version pinned in `shared/utils/pagedjsCdn.ts`.
-- Phase 1 default theme (A4, Inter 11 pt, brand `#3B82F6`); Phases 2–4 (editor, presets, user themes) tracked in §15.
 - Page count surfaced in editor status bar.
 - Responsive page sizing via CSS `zoom` so A4 (794 px) fits narrow viewports.
+- `Cmd/Ctrl+P` intercepted at the document level (capture-phase) → routes through the same paged.js print iframe instead of printing the whole app chrome.
+- Dark mode preview: chrome-only inversion (page stays white-paper / dark-text); native scrollbars switch via `color-scheme: dark`.
+- Snap-to-bottom guard so empty pre-paint mount doesn't false-positive on first reload.
+- Image `decode()` await before paginate so paged.js measures real image dimensions, not placeholder sizes.
+
+### Theme system (Phases 1–3)
+- Per-document theme: `documents.theme` JSONB column, `ymeta.theme` Y.Map mirror for live broadcast (same pattern as title).
+- Server validator (`shared/utils/themeValidation.ts`) gates structure + numeric ranges + safe color/font/template chars.
+- Theme editor as right-sidebar panel (`ThemeEditorPanel.vue`), mutually exclusive with the activity panel in a single sidebar slot.
+- Owner-only writes on owned docs; open to anyone on ownerless (anonymous-created) docs — `canEditTheme` mirrors content edit access.
+- Live editing via local draft + deep watcher → `setTheme` → ymeta + debounced PUT.
+- Curated Google Fonts picker (`shared/utils/themeFonts.ts` — 20 sans/serif fonts) — each picker label rendered in its own face, all fonts loaded in one combined Google Fonts request.
+- Built-in templates (`shared/utils/themePresets.ts`): Modern, Academic Paper, Tech Report, Business Report, Novel — clickable cards in the panel.
+- Header/footer token chips (`{title}`, `{date}`, `{page}`, `{pages}`) insert at cursor in the focused input via `data-slot` / `data-position` attributes.
+- Text alignment (`left` | `justify`) with hyphenation + `text-align-last: left` for clean justified bodies.
+- Two-column fix via `column-fill: auto` (default `balance` mid-splits paragraphs).
+- `:first-child` margin reset so a leading H1 doesn't push whitespace at the top of page 1.
+
+### Editor chrome (menu bar + sidebar unification)
+- Top-level menu bar (`EditorMenuBar.vue`) — File / Edit / View / Insert / Format / Sharing / Help, Google-Docs-style. Replaces the prior assortment of icon-only buttons; high-frequency actions still have visible header/toolbar shortcuts for one-click access.
+- View → Language switcher cycles through the 6 i18n locales.
+- Right sidebar slot is a single mutually-exclusive column shared by Activity and Theme; toggle from header (right-aligned in the formatting toolbar row) or via View menu.
+- View-mode group (Edit/Split/Preview) centered in the header.
+- Delete extracted from share modal into File → Delete with its own dedicated `DeleteConfirmModal`.
 
 ### Security hardening
 - No hardcoded JWT/S3 fallbacks — fail-fast on missing env.
@@ -712,6 +756,9 @@ docs/                                                          # DEPLOY.md, LOCA
 - Concurrent sessions allowed; 1-per-user-per-doc enforced by Postgres UNIQUE index.
 - Initiator-only cancel. Per-user rate limits + 5-min deadline + 7-min sweeper.
 - Sparkles avatars + pulsing ring in PresenceBar.
+- **Floating prompt bar** (Android on-screen-AI inspired): pill-shaped, frosted backdrop, blue accent ring, 48 px circle send button edge-to-edge with input. While the agentic loop is active the ring cycles through the rainbow (8 s) and the glow breathes (2.8 s ease-in-out); reduced-motion users get a static violet ring.
+- **Selection popup** matches the same visual family at smaller scale (36 px send circle, 1.5 → 3 px ring pulse). Animation fires only during inline rewrites.
+- **Animation decoupling** via `aiSession.kind` ('prompt' | 'rewrite') so the floating bar's animation stays quiet during inline rewrites and vice versa, even though both endpoints share the same Y.js awareness machinery.
 
 ### Production hardening (Phase 7)
 - SQLite → Postgres.
@@ -753,15 +800,54 @@ docs/                                                          # DEPLOY.md, LOCA
 - [ ] Timeline scrubber, diff view, restore, export at point.
 - [ ] Playback animation.
 
-**Theme system (Phases 2–4 of the paged-preview pivot)**
-- [ ] Phase 2: `documents.theme` JSONB column + Drizzle migration; `ymeta.theme` mirror for live broadcast; owner-only theme settings panel UI; Google Fonts picker.
-- [ ] Phase 3: Built-in theme presets (4–6) shipped as JSON in `shared/themes/builtins/`.
+**Theme system**
+- [x] Phase 2: `documents.theme` JSONB column + Drizzle migration; `ymeta.theme` mirror for live broadcast; theme settings panel UI; Google Fonts picker rendering each name in its own face.
+- [x] Phase 3: Built-in theme templates (Modern, Academic Paper, Tech Report, Business Report, Novel) as a card picker at the top of the panel.
 - [ ] Phase 4: User-saved themes — new `themes` table + CRUD endpoints.
 - [ ] AI `update_theme` tool in agentic loop (theme injected as context).
 
 **Preview/print polish (paged.js)**
-- [ ] `await Promise.all(images.map(img => img.decode()))` inside the iframe before paginate, so paged.js doesn't measure against placeholder image sizes.
+- [x] `await Promise.all(images.map(img => img.decode()))` inside the iframe before paginate, so paged.js doesn't measure against placeholder image sizes.
 - [ ] Refactor `IFRAME_BOOTSTRAP` template literal in `usePagedPreview.ts` to its own file (cosmetic).
+
+**Markdown extensions**
+The renderer currently ships markdown-it core + emoji + footnote + task-lists + container (`:::warning/info/tip` registered but unstyled). Below are the planned additions, batched by risk and bundle cost. All must round-trip cleanly to PDF — no interactive plugins (tabs, lightbox, lazy-load, spoiler, demo).
+
+- [ ] **Batch 1 — typography & semantic markup** (small, low-bundle, additive):
+  - `@mdit/plugin-attrs` — `# Heading {#id .class}` for inline IDs/classes (prereq for TOC anchors).
+  - `@mdit/plugin-mark` — `==highlight==` → `<mark>`.
+  - `@mdit/plugin-ins` — `++inserted++` → `<ins>`. Pairs with `mark` and the existing strikethrough for full edit-suggestion vocabulary.
+  - `@mdit/plugin-sub` / `@mdit/plugin-sup` — `H~2~O`, `E=mc^2^`.
+  - `@mdit/plugin-dl` — `Term\n: Definition` → `<dl>/<dt>/<dd>` for glossaries.
+  - `@mdit/plugin-abbr` — `*[HTML]: HyperText…` for acronym tooltips.
+  - `@mdit/plugin-figure` — turn `![caption](img)` into `<figure>` + `<figcaption>` for print-quality captions.
+  - `@mdit/plugin-img-size` — `![alt](img =200x100)` for inline image dimensions.
+  - DOMPurify allowlist needs `mark`, `ins`, `dl`, `dt`, `dd`, `figure`, `figcaption`, `abbr`.
+
+- [ ] **Batch 2 — math + GitHub-style alerts** (high user expectation):
+  - `@mdit/plugin-katex` — `$x^2$` / `$$\sum$$`. Lighter than `mathjax3`. Needs KaTeX CSS imported the same way as github-dark code highlighting.
+  - `@mdit/plugin-alert` — `> [!NOTE]` / `[!TIP]` / `[!WARNING]` / `[!CAUTION]` / `[!IMPORTANT]`. Pair with theme CSS for both this AND the existing `:::warning/info/tip` containers (currently unstyled).
+
+- [ ] **Batch 3 — diagrams + auto-TOC**:
+  - `mermaid` — flowcharts/sequence/gantt/class via fenced ` ```mermaid ` blocks. Big bundle (~1 MB); lazy-load on first encounter only. Render inside the iframe. Skip the live editor / live preview features — ours is print-target.
+  - `@mdit/plugin-plantuml` — PlantUML diagrams. Renders client-side via the public plantuml.com SVG endpoint (URL-encoded), so no server dep. Lighter than Mermaid for activity/sequence diagrams; complements rather than replaces.
+  - `markdown-it-anchor` + `markdown-it-toc-done-right` — `[[toc]]` placeholder generates a TOC from headings; relies on Batch 1's attrs to give headings stable IDs.
+
+- [ ] **Batch 4 — editorial markup**:
+  - `markdown-it-criticmarkup` — `{++add++}` `{--del--}` `{~~old~>new~~}` `{>>note<<}` `{==hl==}` for editorial review workflows.
+  - `markdown-it-multimd-table` — rowspan, colspan, multi-line cells, table captions; what GFM tables can't express.
+  - **Citations** — academic `[@key]` references. Pandoc's `--citeproc` is the standard but would re-introduce a server dep; explore client-side BibTeX parsing instead (limited CSL support but no infra cost).
+
+- [ ] **Niche / nice-to-haves** (one-off, ship when asked):
+  - `@mdit/plugin-icon` — first-class `:icon[name]:` syntax (cleaner than rolling our own through `@mdit/plugin-stylize`).
+  - `@mdit/plugin-stylize` — generic inline-token transformer for custom shortcodes that don't fit `icon`'s contract.
+  - `@mdit/plugin-snippet` — pull code snippets from external files into a doc (distinct from `include`, which composes whole markdown files).
+  - `@mdit/plugin-include` — `@include(./other.md)` doc composition; needs an opinion on workspace-relative vs same-doc-only for safety.
+  - `@mdit/plugin-layout` — Flexbox / Grid / Multi-column block layouts. Powerful but interacts with paged.js's column engine in non-obvious ways; budget time for fragmentation testing.
+  - `@mdit/plugin-field` — labelled key-value field containers (e.g. metadata blocks at the top of academic papers).
+  - `@mdit/plugin-ruby` — Japanese furigana annotations.
+  - `markdown-it-color` — color hex preview chips for design specs / brand books.
+  - `markdown-it-front-matter` — YAML headers; could auto-feed `documents.title` / `documents.theme`.
 
 **Power features**
 - [ ] Command palette.
