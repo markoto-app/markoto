@@ -124,9 +124,18 @@ function exportMarkdown() {
 // AI bar — alongside the doc and look terrible). We intercept at the
 // document level with `capture: true` so we win against any element
 // that may be focused (CodeMirror, slideovers, modals).
+//
+// Mac detection prefers `navigator.userAgentData.platform` (the modern
+// Client Hints API); falls back to `navigator.platform` for browsers
+// that don't ship userAgentData yet (Safari < 17, Firefox until recently).
+const isMacPlatform = (): boolean => {
+  const uad = (navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData
+  if (uad?.platform) return /mac/i.test(uad.platform)
+  return /Mac|iPhone|iPad/.test(navigator.platform)
+}
+
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
-  const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
-  const isPrint = (isMac ? e.metaKey : e.ctrlKey) && !e.shiftKey && !e.altKey
+  const isPrint = (isMacPlatform() ? e.metaKey : e.ctrlKey) && !e.shiftKey && !e.altKey
     && (e.key === 'p' || e.key === 'P')
   if (!isPrint) return
   e.preventDefault()

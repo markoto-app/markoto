@@ -2,6 +2,7 @@
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
+import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 
 // Eagerly load every picker font in a single Google Fonts request so each
 // item in the font dropdowns can be rendered in its own face. Done via
@@ -160,6 +161,26 @@ function doReset() {
   draft.value = structuredClone(defaultTheme)
   emit('reset')
 }
+
+const toast = useToast()
+
+// Apply a built-in preset. Replaces the entire draft (presets are
+// complete themes, not partial overrides) and emits up so the live
+// theme + DB persist via the same path as a manual edit. The deep
+// watcher below picks up the swap and fires `update:theme`, but we
+// also call emit explicitly to keep behavior identical even if the
+// JSON.stringify equality check ever short-circuits the watcher.
+function applyPreset(preset: typeof THEME_PRESETS[number]) {
+  if (!props.canEdit) return
+  draft.value = structuredClone(preset.theme)
+  emit('update:theme', structuredClone(preset.theme))
+  toast.add({
+    title: t(`theme.presets.${preset.id}.name`),
+    description: t('theme.presets.applied'),
+    icon: 'i-lucide-palette',
+    color: 'success'
+  })
+}
 </script>
 
 <template>
@@ -186,13 +207,50 @@ function doReset() {
         {{ t('theme.readOnly') }}
       </div>
 
-      <UAccordion
-        v-else
-        :items="sectionItems"
-        :default-value="['page', 'typography', 'color']"
-        type="multiple"
-        :unmount-on-hide="false"
-      >
+      <template v-else>
+        <!-- Templates — clickable preset cards at the top of the panel.
+             Each card shows the brand color + body font in their own
+             face so the user gets a visual sense of the look without
+             applying it. Tap a card → entire theme swaps. -->
+        <section class="mb-4">
+          <div class="flex items-baseline justify-between mb-2 px-1">
+            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted">
+              {{ t('theme.presets.title') }}
+            </h4>
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <button
+              v-for="preset in THEME_PRESETS"
+              :key="preset.id"
+              type="button"
+              class="text-left rounded-md border border-default p-3 hover:border-primary hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              @click="applyPreset(preset)"
+            >
+              <div class="flex items-center gap-2 mb-1">
+                <span
+                  class="size-3 rounded-full shrink-0"
+                  :style="{ backgroundColor: preset.theme.color.brand }"
+                />
+                <span
+                  class="text-sm font-semibold truncate"
+                  :style="{ fontFamily: `'${preset.theme.typography.headingFont}', system-ui, sans-serif` }"
+                >
+                  {{ t(`theme.presets.${preset.id}.name`) }}
+                </span>
+              </div>
+              <p class="text-xs text-muted leading-snug line-clamp-2">
+                {{ t(`theme.presets.${preset.id}.description`) }}
+              </p>
+            </button>
+          </div>
+        </section>
+
+        <UAccordion
+          :items="sectionItems"
+          :default-value="[]"
+          type="multiple"
+          :unmount-on-hide="false"
+        >
         <template #page-body>
           <div class="space-y-4 pt-2 pb-4">
             <UFormField :label="t('theme.page.size')">
@@ -414,7 +472,8 @@ function doReset() {
             </UFormField>
           </div>
         </template>
-      </UAccordion>
+        </UAccordion>
+      </template>
     </div>
 
     <!-- Footer — Reset button (only when editable) -->
