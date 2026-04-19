@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
+import {
+  toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode,
+  insertBlock, insertFootnote, insertCallout, insertDefinitionList
+} from '~/utils/editorCommands'
 
 /**
  * Top-level menu bar — Google-Docs-style. Replaces the assortment of
@@ -46,35 +50,14 @@ const { t, locale, locales, setLocale } = useI18n()
 const router = useRouter()
 const colorMode = useColorMode()
 
-// ── Editor command helpers — operate on view directly ───────────────
+// ── Editor command helpers — delegate to shared utils so menu and
+// toolbar produce identical output (smart toggle, whitespace trim,
+// prefix replacement instead of dumb prepend). See
+// `app/utils/editorCommands.ts`.
 
-function wrap(before: string, after: string) {
+function call(fn: (v: EditorView) => void) {
   if (!props.view || props.isReadOnly) return
-  const v = props.view
-  const { from, to } = v.state.selection.main
-  const selected = v.state.sliceDoc(from, to)
-  v.dispatch({
-    changes: { from, to, insert: `${before}${selected}${after}` },
-    selection: { anchor: from + before.length, head: to + before.length }
-  })
-  v.focus()
-}
-
-function prefix(p: string) {
-  if (!props.view || props.isReadOnly) return
-  const v = props.view
-  const { from } = v.state.selection.main
-  const line = v.state.doc.lineAt(from)
-  v.dispatch({ changes: { from: line.from, to: line.from, insert: p } })
-  v.focus()
-}
-
-function insertBlock(text: string) {
-  if (!props.view || props.isReadOnly) return
-  const v = props.view
-  const { from, to } = v.state.selection.main
-  v.dispatch({ changes: { from, to, insert: text } })
-  v.focus()
+  fn(props.view)
 }
 
 // ── Menu item builders ──────────────────────────────────────────────
@@ -182,39 +165,68 @@ const viewItems = computed(() => [
   ]
 ])
 
+// Link is a special case (asymmetric wrap with URL placeholder).
+function linkAction() {
+  if (!props.view || props.isReadOnly) return
+  const v = props.view
+  const { from, to } = v.state.selection.main
+  const selected = v.state.sliceDoc(from, to) || 'text'
+  v.dispatch({
+    changes: { from, to, insert: `[${selected}](url)` },
+    selection: { anchor: from + selected.length + 3, head: from + selected.length + 6 }
+  })
+  v.focus()
+}
+
 const insertItems = computed(() => {
   if (props.isReadOnly) return [[]]
   return [[
     { label: t('editor.image'), icon: 'i-lucide-image', onSelect: () => emit('open-image-picker') },
-    { label: t('editor.link'), icon: 'i-lucide-link', onSelect: () => wrap('[', '](url)') },
+    { label: t('editor.link'), icon: 'i-lucide-link', onSelect: linkAction },
     {
       label: t('editor.heading'),
       icon: 'i-lucide-heading',
       children: [
-        { label: 'H1', icon: 'i-lucide-heading-1', onSelect: () => prefix('# ') },
-        { label: 'H2', icon: 'i-lucide-heading-2', onSelect: () => prefix('## ') },
-        { label: 'H3', icon: 'i-lucide-heading-3', onSelect: () => prefix('### ') }
+        { label: 'H1', icon: 'i-lucide-heading-1', onSelect: () => call(v => toggleHeading(v, 1)) },
+        { label: 'H2', icon: 'i-lucide-heading-2', onSelect: () => call(v => toggleHeading(v, 2)) },
+        { label: 'H3', icon: 'i-lucide-heading-3', onSelect: () => call(v => toggleHeading(v, 3)) }
       ]
     },
     { type: 'separator' as const },
-    { label: t('menubar.insert.codeBlock'), icon: 'i-lucide-code', onSelect: () => insertBlock('\n```\n\n```\n') },
-    { label: t('editor.quote'), icon: 'i-lucide-quote', onSelect: () => prefix('> ') },
-    { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => insertBlock('\n| Column 1 | Column 2 |\n|----------|----------|\n| Cell     | Cell     |\n') },
-    { label: t('editor.horizontalRule'), icon: 'i-lucide-minus', onSelect: () => insertBlock('\n---\n') }
+    { label: t('menubar.insert.codeBlock'), icon: 'i-lucide-code', onSelect: () => call(v => insertBlock(v, '\n```\n\n```\n')) },
+    { label: t('editor.quote'), icon: 'i-lucide-quote', onSelect: () => call(v => toggleLinePrefix(v, '> ')) },
+    { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => call(v => insertBlock(v, '\n| Column 1 | Column 2 |\n|----------|----------|\n| Cell     | Cell     |\n')) },
+    { label: t('editor.horizontalRule'), icon: 'i-lucide-minus', onSelect: () => call(v => insertBlock(v, '\n---\n')) },
+    { type: 'separator' as const },
+    { label: t('menubar.insert.footnote'), icon: 'i-lucide-asterisk', onSelect: () => call(v => insertFootnote(v)) },
+    {
+      label: t('menubar.insert.callout'),
+      icon: 'i-lucide-message-square-warning',
+      children: [
+        { label: t('menubar.insert.calloutWarning'), icon: 'i-lucide-alert-triangle', onSelect: () => call(v => insertCallout(v, 'warning')) },
+        { label: t('menubar.insert.calloutInfo'), icon: 'i-lucide-info', onSelect: () => call(v => insertCallout(v, 'info')) },
+        { label: t('menubar.insert.calloutTip'), icon: 'i-lucide-lightbulb', onSelect: () => call(v => insertCallout(v, 'tip')) }
+      ]
+    },
+    { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) }
   ]]
 })
 
 const formatItems = computed(() => {
   if (props.isReadOnly) return [[]]
   return [[
-    { label: t('editor.bold'), icon: 'i-lucide-bold', kbds: ['cmd', 'b'], onSelect: () => wrap('**', '**') },
-    { label: t('editor.italic'), icon: 'i-lucide-italic', kbds: ['cmd', 'i'], onSelect: () => wrap('*', '*') },
-    { label: t('editor.strikethrough'), icon: 'i-lucide-strikethrough', onSelect: () => wrap('~~', '~~') },
-    { label: t('menubar.format.inlineCode'), icon: 'i-lucide-code', onSelect: () => wrap('`', '`') },
+    { label: t('editor.bold'), icon: 'i-lucide-bold', kbds: ['cmd', 'b'], onSelect: () => call(v => toggleWrap(v, '**')) },
+    { label: t('editor.italic'), icon: 'i-lucide-italic', kbds: ['cmd', 'i'], onSelect: () => call(v => toggleWrap(v, '*')) },
+    { label: t('editor.strikethrough'), icon: 'i-lucide-strikethrough', onSelect: () => call(v => toggleWrap(v, '~~')) },
+    { label: t('editor.highlight'), icon: 'i-lucide-highlighter', onSelect: () => call(v => toggleWrap(v, '==')) },
+    { label: t('editor.insert'), icon: 'i-lucide-underline', onSelect: () => call(v => toggleWrap(v, '++')) },
+    { label: t('menubar.format.inlineCode'), icon: 'i-lucide-code', onSelect: () => call(v => toggleCode(v)) },
+    { label: t('editor.subscript'), icon: 'i-lucide-subscript', onSelect: () => call(v => toggleWrap(v, '~')) },
+    { label: t('editor.superscript'), icon: 'i-lucide-superscript', onSelect: () => call(v => toggleWrap(v, '^')) },
     { type: 'separator' as const },
-    { label: t('editor.list'), icon: 'i-lucide-list', onSelect: () => prefix('- ') },
-    { label: t('editor.orderedList'), icon: 'i-lucide-list-ordered', onSelect: () => prefix('1. ') },
-    { label: t('editor.taskList'), icon: 'i-lucide-list-checks', onSelect: () => prefix('- [ ] ') }
+    { label: t('editor.list'), icon: 'i-lucide-list', onSelect: () => call(v => toggleLinePrefix(v, '- ')) },
+    { label: t('editor.orderedList'), icon: 'i-lucide-list-ordered', onSelect: () => call(v => toggleOrderedList(v)) },
+    { label: t('editor.taskList'), icon: 'i-lucide-list-checks', onSelect: () => call(v => toggleLinePrefix(v, '- [ ] ')) }
   ]]
 })
 

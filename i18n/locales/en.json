@@ -35,6 +35,10 @@
     "edit": "Edit",
     "splitView": "Split View",
     "strikethrough": "Strikethrough",
+    "highlight": "Highlight",
+    "insert": "Insert (underline)",
+    "subscript": "Subscript",
+    "superscript": "Superscript",
     "horizontalRule": "Horizontal Rule",
     "table": "Table"
   },
@@ -144,7 +148,13 @@
     },
     "insert": {
       "title": "Insert",
-      "codeBlock": "Code block"
+      "codeBlock": "Code block",
+      "footnote": "Footnote",
+      "callout": "Callout",
+      "calloutWarning": "Warning",
+      "calloutInfo": "Info",
+      "calloutTip": "Tip",
+      "definitionList": "Definition list"
     },
     "format": {
       "title": "Format",
@@ -192,12 +202,15 @@
     "columns": "columns",
     "section": {
       "page": "Page",
-      "typography": "Typography",
+      "body": "Body text",
+      "headings": "Headings",
       "color": "Colors",
       "layout": "Layout",
-      "header": "Header",
-      "footer": "Footer",
-      "blocks": "Images, code & quotes"
+      "header": "Page header",
+      "footer": "Page footer",
+      "code": "Code blocks",
+      "tables": "Tables",
+      "blocks": "Images & quotes"
     },
     "page": {
       "size": "Page size",
@@ -205,15 +218,22 @@
       "margin": "Margin (mm)",
       "marginHelp": "Uniform margin on all four sides."
     },
-    "typography": {
-      "bodyFont": "Body font",
-      "headingFont": "Heading font",
-      "bodySize": "Body size (pt)",
+    "body": {
+      "font": "Font",
+      "size": "Size (pt)",
       "lineHeight": "Line height",
-      "headingScale": "Heading scale",
-      "headingUnderline": "Underline headings",
       "textAlign": "Paragraph alignment",
-      "textAlignHelp": "Justify fills the line edge-to-edge with hyphenation."
+      "textAlignHelp": "Justify fills the line edge-to-edge with hyphenation.",
+      "color": "Text color",
+      "background": "Page background"
+    },
+    "headings": {
+      "font": "Font",
+      "scale": "Scale ratio",
+      "weight": "Weight",
+      "color": "Color",
+      "colorHelp": "Often the brand color, but kept independent so you can pair them.",
+      "underline": "Underline (with brand color)"
     },
     "align": {
       "left": "Left",
@@ -225,9 +245,7 @@
     },
     "color": {
       "brand": "Brand color",
-      "brandHelp": "Used for links, accents, and heading underlines.",
-      "text": "Text color",
-      "background": "Background"
+      "brandHelp": "Used for links, accents, table headers (when picked), and heading underlines."
     },
     "layout": {
       "columns": "Columns",
@@ -240,22 +258,33 @@
       "help": "Use the tokens below for dynamic values like the page number.",
       "tokens": "Insert:"
     },
-    "token": {
-      "title": "Title",
-      "date": "Date",
-      "page": "Page #",
-      "pages": "Total pages"
+    "code": {
+      "theme": "Color theme",
+      "fontSize": "Font size (pt)",
+      "none": "Plain (no syntax highlighting)"
+    },
+    "tables": {
+      "headerBackground": "Header background",
+      "headerBgBrand": "Brand color",
+      "headerBgMuted": "Subtle tint",
+      "headerBgNone": "None",
+      "headerTextColor": "Header text color",
+      "headerTextColorHelp": "Auto picks white when the header is brand-colored.",
+      "headerColorAuto": "Auto",
+      "headerColorInherit": "Inherit (body color)",
+      "borders": "Border style",
+      "bordersAll": "Around every cell",
+      "bordersHorizontal": "Between rows only",
+      "bordersMinimal": "Top + bottom + below header",
+      "bordersNone": "No borders",
+      "zebra": "Alternating row colors",
+      "zebraHelp": "Subtle stripes on every other row.",
+      "cellPadding": "Cell padding (px)"
     },
     "blocks": {
       "imageRadius": "Image radius (px)",
       "imageMaxWidth": "Image max width (%)",
-      "codeBlockTheme": "Code block style",
       "blockquoteStyle": "Blockquote style"
-    },
-    "code": {
-      "light": "Light background",
-      "dark": "Dark background",
-      "none": "No background"
     },
     "blockquote": {
       "border": "Left border",
@@ -271,19 +300,23 @@
       },
       "academic": {
         "name": "Academic Paper",
-        "description": "Source Serif body, generous margins, page numbers in the running head — journal-style."
+        "description": "Source Serif body, generous margins, page numbers in the running head, minimal table borders — journal-style."
       },
       "tech": {
         "name": "Tech Report",
-        "description": "Compact IBM Plex Sans with dark code blocks and underlined headings."
+        "description": "Compact IBM Plex Sans, cyan brand color, dark code blocks, brand-colored table headers with zebra rows."
       },
       "business": {
         "name": "Business Report",
-        "description": "Playfair headings over Source Sans body, warm amber accent, centered title."
+        "description": "Playfair headings over Source Sans body, warm amber accent, brand-colored table headers, centered title."
       },
       "novel": {
         "name": "Novel",
-        "description": "Crimson Text serif for long-form reading. Just a page number in the footer."
+        "description": "Crimson Text serif for long-form reading. No code blocks, plain blockquotes, just a page number in the footer."
+      },
+      "newsletter": {
+        "name": "Newsletter",
+        "description": "Two-column layout, dense Karla body under PT Serif headings, green accent, brand-colored table headers."
       }
     }
   },

@@ -1,47 +1,40 @@
 import type { DocTheme, RunningSlots } from '../types/theme'
 
 /**
- * Runtime values interpolated into the theme CSS — kept separate from the
- * theme itself because they change at a different cadence (title on rename,
- * date once per render) and because baking them into the CSS string is
- * simpler than the CSS-custom-property dance.
- *
- * Why not `var(--doc-title)` referenced from `@page` margin boxes: paged.js
- * extracts the source content, reflows it into a new tree of `pagedjs_page`
- * boxes, and the margin boxes live as siblings (not descendants) of the
- * original `.paged-doc` element. Custom properties set on `.paged-doc`
- * don't propagate up to the margin pseudo-elements, leaving headers blank.
+ * Runtime values interpolated into the theme CSS. Kept separate from
+ * the theme itself because they change at a different cadence (title
+ * on rename, date once per render) and because baking them into the
+ * CSS string is simpler than the CSS-custom-property dance — paged.js
+ * extracts header/footer content into margin boxes that are NOT
+ * descendants of `.paged-doc`, so vars set there don't propagate.
  */
 export type ThemeRuntime = {
   title: string
-  date: string  // ISO YYYY-MM-DD; ship as-is, no formatting in Phase 1
+  date: string  // ISO YYYY-MM-DD
 }
 
 /**
- * Compile a DocTheme into a single CSS stylesheet that drives both the live
- * paged preview and the PDF print iframe. Same theme + runtime → identical
- * output — load-bearing for "what you see in the preview is what you get
- * in the PDF". The runtime values (title, date) are interpolated into the
- * `@page` margin-box `content:` declarations directly.
+ * Compile a DocTheme into a single CSS stylesheet that drives both the
+ * live paged preview and the PDF print iframe.
  */
 export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
   return [
     pageBlock(theme, runtime),
     rootBlock(theme),
     typographyBlock(theme),
+    tableBlock(theme),
     blockBlock(theme),
+    codeBlock(theme),
     breakHints()
   ].join('\n\n')
 }
 
 /**
- * The Google Fonts @import URL for the theme's chosen fonts. Returned
- * separately because consumers want it in the document <head>, not inline
- * with the rest of the theme CSS — that way swapping a theme color doesn't
- * trigger a font refetch.
+ * Google Fonts @import URL for the theme's fonts. Returned separately
+ * so changing a color doesn't trigger a font refetch.
  */
 export function themeFontsImport(theme: DocTheme): string {
-  const unique = [...new Set([theme.typography.bodyFont, theme.typography.headingFont])]
+  const unique = [...new Set([theme.body.font, theme.headings.font])]
     .filter(f => f && f.trim())
   if (unique.length === 0) return ''
   const families = unique.map(googleFamilyParam).join('&')
@@ -52,12 +45,9 @@ export function themeFontsImport(theme: DocTheme): string {
 
 function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const { size, orientation, margin } = theme.page
-  const textColor = theme.color.text
+  const textColor = theme.body.color
   const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor)
   const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor)
-  // @footnote area styling — separator + smaller text. paged.js renders
-  // floated footnotes (.footnote { float: footnote }) into this region
-  // at the bottom of each page where a reference appears.
   return `@page {
   size: ${size} ${orientation};
   margin: ${margin}mm;
@@ -90,13 +80,6 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
     .join('\n')
 }
 
-/**
- * Compile a header/footer template like "Page {page} of {pages}" into the
- * CSS `content:` value:  "Page " counter(page) " of " counter(pages)
- *
- * `{title}` and `{date}` interpolate the runtime values directly into the
- * CSS string. `{page}` and `{pages}` map to paged.js's built-in counters.
- */
 function compileTemplate(template: string, runtime: ThemeRuntime): string {
   const parts: string[] = []
   const regex = /\{(title|page|pages|date)\}/g
@@ -128,21 +111,17 @@ function tokenToCss(token: string, runtime: ThemeRuntime): string {
 // — root block ————————————————————————————————————————————————————————
 
 function rootBlock(theme: DocTheme): string {
-  const { brand, text, background } = theme.color
+  const { brand } = theme.color
+  const { color: text, background, font, size, lineHeight } = theme.body
   const { columns, columnGap } = theme.layout
-  // `column-fill: auto` is the native fix for "fill column 1 before
-  // starting column 2": with the default `balance`, the browser tries
-  // to equalize column heights inside the container, which inside a
-  // paged.js page box reads as the second column starting prematurely
-  // mid-paragraph. `auto` flows top-to-bottom column-by-column, which
-  // is the print-typography convention the user expects.
   return `.paged-doc {
   --doc-brand: ${brand};
   --doc-text: ${text};
   --doc-bg: ${background};
-  font-family: ${cssFontStack(theme.typography.bodyFont)};
-  font-size: ${theme.typography.bodySize}pt;
-  line-height: ${theme.typography.lineHeight};
+  --doc-heading-color: ${theme.headings.color};
+  font-family: ${cssFontStack(font)};
+  font-size: ${size}pt;
+  line-height: ${lineHeight};
   color: var(--doc-text);
   background: var(--doc-bg);
 ${columns > 1 ? `  column-count: ${columns};\n  column-gap: ${columnGap}mm;\n  column-fill: auto;` : ''}
@@ -152,39 +131,43 @@ ${columns > 1 ? `  column-count: ${columns};\n  column-gap: ${columnGap}mm;\n  c
 // — typography ————————————————————————————————————————————————————————
 
 function typographyBlock(theme: DocTheme): string {
-  const { bodySize, headingFont, headingScale, headingUnderline } = theme.typography
+  const bodySize = theme.body.size
+  const { font: headingFont, scale, weight, underline } = theme.headings
   const headingFamily = cssFontStack(headingFont)
   const headingRules: string[] = []
   // Modular scale: h6 at body, h1 at body * scale^5
   for (let level = 1; level <= 6; level++) {
     const exponent = 6 - level
-    const sizePt = (bodySize * Math.pow(headingScale, exponent)).toFixed(2)
+    const sizePt = (bodySize * Math.pow(scale, exponent)).toFixed(2)
     headingRules.push(`.paged-doc h${level} {
   font-family: ${headingFamily};
   font-size: ${sizePt}pt;
-  font-weight: 600;
+  font-weight: ${weight};
   line-height: 1.2;
+  color: var(--doc-heading-color);
   margin-top: ${(level <= 2 ? 1.4 : 1.0).toFixed(2)}em;
-  margin-bottom: 0.5em;${headingUnderline ? `\n  border-bottom: 1px solid var(--doc-brand);\n  padding-bottom: 0.2em;` : ''}
+  margin-bottom: 0.5em;${underline ? `\n  border-bottom: 1px solid var(--doc-brand);\n  padding-bottom: 0.2em;` : ''}
 }`)
   }
+
   // Justified paragraphs need hyphenation (otherwise word-spacing
   // rivers) and `text-align-last: left` so the final line of each
   // paragraph isn't stretched.
-  const align = theme.typography.textAlign
+  const align = theme.body.textAlign
   const justifyExtras = align === 'justify'
     ? `\n  hyphens: auto;\n  -webkit-hyphens: auto;\n  text-align-last: left;`
     : ''
 
   return [
     headingRules.join('\n'),
-    // Suppress top margin on whatever leads the document — otherwise an
-    // opening h1/h2 (or paragraph) pushes a chunk of whitespace to the
-    // top of page 1.
+    // Suppress top margin on the leading element so an opening h1
+    // doesn't push whitespace at the top of page 1.
     `.paged-doc > :first-child { margin-top: 0; }`,
     `.paged-doc p { margin: 0.6em 0; orphans: 3; widows: 3; text-align: ${align};${justifyExtras} }`,
     `.paged-doc strong { font-weight: 700; }`,
     `.paged-doc em { font-style: italic; }`,
+    `.paged-doc ins { text-decoration: underline; }`,
+    `.paged-doc mark { background: color-mix(in srgb, var(--doc-brand) 25%, transparent); padding: 0 0.1em; }`,
     `.paged-doc a {
   color: var(--doc-brand);
   text-decoration: underline;
@@ -194,25 +177,104 @@ function typographyBlock(theme: DocTheme): string {
     `.paged-doc li { margin: 0.2em 0; }`,
     `.paged-doc li.task-list-item { list-style-type: none; margin-left: -1.2em; }`,
     `.paged-doc li.task-list-item input[type="checkbox"] { margin-right: 0.4em; }`,
+    `.paged-doc dl { margin: 0.8em 0; }`,
+    `.paged-doc dt { font-weight: 600; margin-top: 0.5em; }`,
+    `.paged-doc dd { margin: 0.2em 0 0.4em 1.4em; }`,
+    `.paged-doc abbr { text-decoration: underline dotted; cursor: help; }`,
+    `.paged-doc figure { margin: 1em 0; text-align: center; }`,
+    `.paged-doc figcaption { font-size: 0.85em; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); margin-top: 0.4em; font-style: italic; }`,
     `.paged-doc hr { border: none; border-top: 1px solid var(--doc-text); opacity: 0.2; margin: 1.5em 0; }`,
-    `.paged-doc table { border-collapse: collapse; width: 100%; margin: 1em 0; }`,
-    `.paged-doc th, .paged-doc td { border: 1px solid var(--doc-text); padding: 0.4em 0.6em; text-align: left; }`,
-    `.paged-doc th { font-weight: 600; background: color-mix(in srgb, var(--doc-text) 6%, transparent); }`,
-    // Footnotes — `transformFootnotesForPagedMedia` (renderMarkdown.ts)
-    // converts markdown-it-footnote's end-of-doc <section> into inline
-    // <span class="footnote"> elements. `float: footnote` is the CSS Print
-    // signal paged.js uses to lift each one into the page-bottom @footnote
-    // area defined in pageBlock().
+    // Footnote support — see `transformFootnotesForPagedMedia` in
+    // app/utils/renderMarkdown.ts.
     `.paged-doc .footnote { float: footnote; font-size: 0.85em; }`,
     `.paged-doc ::footnote-call { content: counter(footnote); vertical-align: super; font-size: 0.7em; color: var(--doc-brand); line-height: 0; }`,
     `.paged-doc ::footnote-marker { content: counter(footnote) ". "; font-weight: 600; color: var(--doc-brand); }`
   ].join('\n')
 }
 
-// — blocks (images / code / blockquote) ——————————————————————————————
+// — tables ————————————————————————————————————————————————————————————
+
+function tableBlock(theme: DocTheme): string {
+  const { headerBackground, headerTextColor, borders, zebra, cellPadding } = theme.tables
+
+  // Border CSS varies by setting:
+  //   all        — border on every cell (the default GFM look)
+  //   horizontal — only between rows (newspaper / report style)
+  //   minimal    — only at table top + bottom + below header
+  //   none       — no borders at all
+  let borderRules = ''
+  switch (borders) {
+    case 'all':
+      borderRules = `.paged-doc th, .paged-doc td { border: 1px solid var(--doc-text); }`
+      break
+    case 'horizontal':
+      borderRules = `.paged-doc tr { border-bottom: 1px solid color-mix(in srgb, var(--doc-text) 30%, transparent); }
+.paged-doc tr:last-child { border-bottom: none; }`
+      break
+    case 'minimal':
+      borderRules = `.paged-doc table { border-top: 2px solid var(--doc-text); border-bottom: 2px solid var(--doc-text); }
+.paged-doc thead { border-bottom: 1px solid var(--doc-text); }`
+      break
+    case 'none':
+      borderRules = ''
+      break
+  }
+
+  // Header background:
+  //   brand  — full brand color (caller picks header text color)
+  //   muted  — subtle tint of body text color
+  //   none   — transparent (no fill)
+  let headerBg = ''
+  switch (headerBackground) {
+    case 'brand':
+      headerBg = `background: var(--doc-brand);`
+      break
+    case 'muted':
+      headerBg = `background: color-mix(in srgb, var(--doc-text) 6%, transparent);`
+      break
+    case 'none':
+      headerBg = ''
+      break
+  }
+
+  // Header text color:
+  //   auto   — pick contrasting text against the bg (white on brand,
+  //            inherit on muted/none)
+  //   inherit — body color regardless
+  let headerColor = ''
+  if (headerTextColor === 'auto' && headerBackground === 'brand') {
+    headerColor = 'color: white;'
+  }
+
+  const zebraRule = zebra
+    ? `.paged-doc tbody tr:nth-child(even) { background: color-mix(in srgb, var(--doc-text) 4%, transparent); }`
+    : ''
+
+  return [
+    `.paged-doc table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}`,
+    `.paged-doc th, .paged-doc td {
+  padding: ${cellPadding}px ${Math.round(cellPadding * 1.5)}px;
+  text-align: left;
+  vertical-align: top;
+}`,
+    `.paged-doc th {
+  font-weight: 600;
+  ${headerBg}
+  ${headerColor}
+}`,
+    borderRules,
+    zebraRule
+  ].filter(Boolean).join('\n')
+}
+
+// — blocks (images / blockquote) ——————————————————————————————————————
 
 function blockBlock(theme: DocTheme): string {
-  const { imageRadius, imageMaxWidth, codeBlockTheme, blockquoteStyle } = theme.blocks
+  const { imageRadius, imageMaxWidth, blockquoteStyle } = theme.blocks
   return [
     `.paged-doc img {
   max-width: ${imageMaxWidth}%;
@@ -220,46 +282,7 @@ function blockBlock(theme: DocTheme): string {
   border-radius: ${imageRadius}px;
   margin: 0.8em 0;
 }`,
-    codeBlockCss(codeBlockTheme),
     blockquoteCss(blockquoteStyle)
-  ].join('\n')
-}
-
-function codeBlockCss(variant: DocTheme['blocks']['codeBlockTheme']): string {
-  const monoStack = `ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace`
-  const inlineCode = `.paged-doc :not(pre) > code {
-  font-family: ${monoStack};
-  font-size: 0.88em;
-  padding: 0.1em 0.35em;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--doc-text) 8%, transparent);
-}`
-  if (variant === 'none') {
-    return [
-      inlineCode,
-      `.paged-doc pre {
-  font-family: ${monoStack};
-  font-size: 0.88em;
-  margin: 1em 0;
-  padding: 0.5em 0;
-}`
-    ].join('\n')
-  }
-  const dark = variant === 'dark'
-  return [
-    inlineCode,
-    `.paged-doc pre {
-  font-family: ${monoStack};
-  font-size: 0.85em;
-  background: ${dark ? '#0f172a' : '#f8fafc'};
-  color: ${dark ? '#e2e8f0' : 'inherit'};
-  border: 1px solid ${dark ? '#1e293b' : '#e2e8f0'};
-  border-radius: 4px;
-  padding: 0.8em 1em;
-  margin: 1em 0;
-  overflow-x: auto;
-}`,
-    `.paged-doc pre code { background: none; padding: 0; }`
   ].join('\n')
 }
 
@@ -284,6 +307,55 @@ function blockquoteCss(variant: DocTheme['blocks']['blockquoteStyle']): string {
 }`
 }
 
+// — code ——————————————————————————————————————————————————————————————
+
+function codeBlock(theme: DocTheme): string {
+  const monoStack = `ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace`
+  const { theme: codeTheme, fontSize } = theme.code
+
+  // Inline code is always lightly tinted regardless of code theme — it
+  // sits inline with body text and shouldn't pull a heavy fill.
+  const inlineCode = `.paged-doc :not(pre) > code {
+  font-family: ${monoStack};
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--doc-text) 8%, transparent);
+}`
+
+  if (codeTheme === 'none') {
+    // No syntax styling. Strip the .hljs background that the hljs
+    // stylesheet would otherwise paint, so the block reads as plain
+    // monospace on the page background.
+    return [
+      inlineCode,
+      `.paged-doc pre {
+  font-family: ${monoStack};
+  font-size: ${fontSize}pt;
+  margin: 1em 0;
+  padding: 0.5em 0;
+}`,
+      `.paged-doc pre code.hljs { background: none; padding: 0; color: inherit; }`
+    ].join('\n')
+  }
+
+  // For all other themes, hljs's stylesheet (loaded into the iframe
+  // head from CDN — see hljsCdn.ts) owns the code block visuals
+  // (background, foreground, padding, per-token colors). Theme CSS
+  // only controls the surrounding box: font stack + size, margin,
+  // border-radius, overflow.
+  return [
+    inlineCode,
+    `.paged-doc pre {
+  font-family: ${monoStack};
+  font-size: ${fontSize}pt;
+  margin: 1em 0;
+  border-radius: 4px;
+  overflow-x: auto;
+}`
+  ].join('\n')
+}
+
 // — page-break hints (typography hygiene) —————————————————————————————
 
 function breakHints(): string {
@@ -305,5 +377,5 @@ function cssFontStack(name: string): string {
 }
 
 function googleFamilyParam(name: string): string {
-  return `family=${name.trim().replace(/ /g, '+')}:wght@400;500;600;700`
+  return `family=${name.trim().replace(/ /g, '+')}:wght@400;500;600;700;800`
 }

@@ -2,6 +2,7 @@ import type { Ref } from 'vue'
 import type { DocTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
+import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 
 /**
  * Preview pane backed by a persistent same-origin iframe.
@@ -83,11 +84,13 @@ export function usePagedPreview(opts: {
       date: new Date().toISOString().slice(0, 10)
     })
     const fontsImport = themeFontsImport(opts.theme.value)
+    const hljsUrl = hljsThemeUrl(opts.theme.value.code.theme)
     isPaginating.value = true
     ;(iframe.contentWindow as unknown as { __renderDoc: (o: unknown) => void }).__renderDoc({
       html: opts.html.value,
       themeCss,
-      fontsImport
+      fontsImport,
+      hljsUrl
     })
   }
 
@@ -113,7 +116,10 @@ export function usePagedPreview(opts: {
     iframe = document.createElement('iframe')
     iframe.title = 'Document preview'
     iframe.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: transparent;'
-    iframe.srcdoc = IFRAME_BOOTSTRAP.replace('__PAGEDJS_POLYFILL_URL__', PAGEDJS_POLYFILL_URL)
+    // hljs theme is set per-render (depends on `theme.blocks.codeBlockTheme`).
+    // Bootstrap leaves the link href empty; renderDoc fills it.
+    iframe.srcdoc = IFRAME_BOOTSTRAP
+      .replace('__PAGEDJS_POLYFILL_URL__', PAGEDJS_POLYFILL_URL)
     opts.container.value.appendChild(iframe)
   })
 
@@ -283,6 +289,7 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
   whenPagedReady(function() {
     var Previewer = window.Paged.Previewer;
     var lastFontsImport = null;
+    var lastHljsUrl = null;
     // Track paged.js's accumulated <style> elements so they don't pile up
     // in iframe head over a long editing session and slow re-renders.
     var stylesFromLastRender = [];
@@ -318,7 +325,40 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
           lastFontsImport = opts.fontsImport;
         }
 
-        await document.fonts.ready;
+        // Swap the highlight.js theme stylesheet when the user switches
+        // codeBlockTheme. Idempotent: only update href when it changes,
+        // so we don't trigger an unnecessary network round-trip per
+        // re-render. An empty url ('none' theme) clears the link so
+        // theme CSS's plain-monospace rules take over.
+        // Highlight.js theme stylesheet — created lazily and only when
+        // a non-empty URL is requested. We intentionally do NOT keep a
+        // pre-injected `<link>` around: a link element without an href
+        // (or with an empty one) confused paged.js's Polisher and
+        // wedged pagination silently.
+        if (opts.hljsUrl !== lastHljsUrl) {
+          var hljsEl = document.getElementById('hljs-theme');
+          if (opts.hljsUrl) {
+            if (!hljsEl) {
+              hljsEl = document.createElement('link');
+              hljsEl.id = 'hljs-theme';
+              hljsEl.rel = 'stylesheet';
+              document.head.appendChild(hljsEl);
+            }
+            hljsEl.setAttribute('href', opts.hljsUrl);
+          } else if (hljsEl) {
+            hljsEl.remove();
+          }
+          lastHljsUrl = opts.hljsUrl;
+        }
+
+        // Cap font wait at 1s — if Google Fonts is slow or a font name
+        // is unresolvable, document.fonts.ready can stall forever and
+        // wedge the entire pagination. Falls back to whatever fonts are
+        // ready by then; the next render will pick up any late arrivals.
+        await Promise.race([
+          document.fonts.ready,
+          new Promise(function (r) { setTimeout(r, 1000); })
+        ]);
 
         var mount = document.getElementById('mount');
         var pending = document.getElementById('pending');

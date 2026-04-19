@@ -6,11 +6,15 @@ YPad is a **collaborative markdown editor** with live sync, AI assistance, and f
 
 ## Text Formatting
 
-You can write **bold text**, *italic text*, ~~strikethrough~~, or combine them for ***bold italic***. Use \`inline code\` for technical terms.
+You can write **bold text**, *italic text*, ~~strikethrough~~, ++inserted text++, or combine them for ***bold italic***. Use \`inline code\` for technical terms, ==highlight important parts==, and reach for H~2~O subscripts or E=mc^2^ superscripts when you need them.
 
 ## Headings
 
-Use \`#\` for headings — from \`#\` (largest) to \`######\` (smallest).
+Use \`#\` for headings — from \`#\` (largest) to \`######\` (smallest). Attach an ID or CSS class with the \`{#id .class}\` suffix:
+
+### Pinned section {#pinned}
+
+The heading above renders with \`id="pinned"\` so you can link straight to it from elsewhere in the doc.
 
 ## Lists
 
@@ -35,6 +39,31 @@ Use \`#\` for headings — from \`#\` (largest) to \`######\` (smallest).
 ## Links & Images
 
 [Visit GitHub](https://github.com) — links are created with \`[text](url)\`.
+
+Images can be sized inline using \`![Alt =widthxheight](url)\`:
+
+![A 240×120 placeholder =240x120](https://placehold.co/240x120)
+
+A standalone image with descriptive alt text becomes a \`<figure>\` with caption:
+
+![Caption flows below the image, taken from the alt text.](https://placehold.co/320x140)
+
+## Definitions & Abbreviations
+
+Definition lists pair a term with one or more meanings:
+
+CRDT
+: Conflict-free Replicated Data Type — the algorithm family Y.js uses to merge edits across collaborators without a central server.
+
+CSS
+: Cascading Style Sheets.
+: A stylesheet language for styling structured documents.
+
+Abbreviations get tooltips when you mouse over them: hover HTML or JSON to see what they expand to.
+
+*[HTML]: HyperText Markup Language
+*[JSON]: JavaScript Object Notation
+*[CRDT]: Conflict-free Replicated Data Type
 
 ## Code Blocks
 

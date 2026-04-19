@@ -1,6 +1,7 @@
 import type { DocTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
+import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { renderMarkdown } from '~/utils/renderMarkdown'
 
 /**
@@ -69,6 +70,18 @@ export async function printDocumentAsPdf(opts: {
       const style = idoc.createElement('style')
       style.textContent = `${fontsImport}\n${themeCss}`
       idoc.head.appendChild(style)
+
+      // Highlight.js theme — same CDN-loaded pattern as the live preview
+      // iframe (see usePagedPreview.ts and shared/utils/hljsCdn.ts).
+      // Variant follows the doc theme's `code.theme`; 'none' skips
+      // the link entirely so plain monospace renders.
+      const hljsUrl = hljsThemeUrl(opts.theme.code.theme)
+      if (hljsUrl) {
+        const hljsLink = idoc.createElement('link')
+        hljsLink.rel = 'stylesheet'
+        hljsLink.href = hljsUrl
+        idoc.head.appendChild(hljsLink)
+      }
 
       const root = idoc.createElement('div')
       root.className = 'paged-doc'

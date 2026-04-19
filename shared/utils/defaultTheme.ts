@@ -1,9 +1,8 @@
 import type { DocTheme } from '../types/theme'
 
 /**
- * Default theme applied to every document in Phase 1. Once Phase 2 lands,
- * this becomes the seed value for the documents.theme JSONB column and the
- * fallback when a document was created before themes existed.
+ * Default theme — used as the initial value for newly-created documents
+ * and as the fallback when a doc's stored theme fails validation.
  */
 export const defaultTheme: DocTheme = {
   page: {
@@ -11,24 +10,26 @@ export const defaultTheme: DocTheme = {
     orientation: 'portrait',
     margin: 20
   },
-  typography: {
-    bodyFont: 'Inter',
-    bodySize: 11,
+  body: {
+    font: 'Inter',
+    size: 11,
     // 1.3 lines up with print-typography norms (LibreOffice/Word
     // "single" sits around 1.15–1.2; 1.3 nudges a little roomier
-    // because Inter's x-height is taller than Times/Calibri). Earlier
-    // 1.55 was web-reading-loose and dropped the per-page word count
-    // by ~30 % vs. equivalent point sizes in LibreOffice.
+    // because Inter's x-height is taller than Times/Calibri).
     lineHeight: 1.3,
-    headingFont: 'Inter',
-    headingScale: 1.25,
-    headingUnderline: false,
-    textAlign: 'justify'
+    textAlign: 'justify',
+    color: '#111827',
+    background: '#FFFFFF'
+  },
+  headings: {
+    font: 'Inter',
+    scale: 1.25,
+    weight: 600,
+    underline: false,
+    color: '#111827'
   },
   color: {
-    brand: '#3B82F6',
-    text: '#111827',
-    background: '#FFFFFF'
+    brand: '#3B82F6'
   },
   layout: {
     columns: 1,
@@ -44,10 +45,20 @@ export const defaultTheme: DocTheme = {
     center: '{page} / {pages}',
     right: ''
   },
+  code: {
+    theme: 'github-dark',
+    fontSize: 9
+  },
+  tables: {
+    headerBackground: 'muted',
+    headerTextColor: 'inherit',
+    borders: 'all',
+    zebra: false,
+    cellPadding: 6
+  },
   blocks: {
     imageRadius: 4,
     imageMaxWidth: 100,
-    codeBlockTheme: 'light',
     blockquoteStyle: 'border'
   }
 }

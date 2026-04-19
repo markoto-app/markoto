@@ -16,35 +16,35 @@ import type { DocTheme } from '../types/theme'
 const PAGE_SIZES = new Set(['A4', 'Letter', 'Legal'])
 const ORIENTATIONS = new Set(['portrait', 'landscape'])
 const COLUMN_COUNTS = new Set([1, 2, 3])
-const CODE_THEMES = new Set(['light', 'dark', 'none'])
-const BLOCKQUOTE_STYLES = new Set(['border', 'background', 'none'])
 const TEXT_ALIGNS = new Set(['left', 'justify'])
+const BLOCKQUOTE_STYLES = new Set(['border', 'background', 'none'])
+const HEADING_WEIGHTS = new Set([400, 500, 600, 700, 800, 900])
+const CODE_THEMES = new Set([
+  'github-light', 'github-dark', 'monokai', 'dracula',
+  'solarized-light', 'solarized-dark', 'none'
+])
+const TABLE_HEADER_BGS = new Set(['brand', 'muted', 'none'])
+const TABLE_HEADER_COLORS = new Set(['auto', 'inherit'])
+const TABLE_BORDERS = new Set(['all', 'horizontal', 'minimal', 'none'])
+
 const TOKEN_REGEX = /\{(?:title|page|pages|date)\}/g
-// Allow any chars except CSS-syntax-breaking ones in the literal portions
-// of header/footer templates. Tokens are stripped before this check.
 const SAFE_TEXT = /^[^"\\\n\r<>]*$/
 const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
-// Conservative font-name pattern — Google Fonts allows letters, digits,
+// Conservative font-name pattern. Google Fonts allows letters, digits,
 // spaces. No quotes or CSS metacharacters: themeToCss wraps the name in
 // quotes, so a stray quote would let a payload escape the family= URL.
 const FONT_NAME = /^[A-Za-z0-9 ]{1,40}$/
 
-function isHex(s: unknown): s is string {
-  return typeof s === 'string' && HEX_COLOR.test(s)
-}
+const isHex = (s: unknown): s is string => typeof s === 'string' && HEX_COLOR.test(s)
+const isFontName = (s: unknown): s is string => typeof s === 'string' && FONT_NAME.test(s)
+const isNumberInRange = (v: unknown, min: number, max: number): v is number =>
+  typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max
+const isIntInRange = (v: unknown, min: number, max: number): v is number =>
+  Number.isInteger(v) && (v as number) >= min && (v as number) <= max
 
-function isFontName(s: unknown): s is string {
-  return typeof s === 'string' && FONT_NAME.test(s)
-}
-
-function isNumberInRange(v: unknown, min: number, max: number): v is number {
-  return typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max
-}
-
-function isSlotTemplate(s: unknown): s is string {
+const isSlotTemplate = (s: unknown): s is string => {
   if (typeof s !== 'string') return false
   if (s.length > 200) return false
-  // Strip allowed tokens, then validate what remains is plain text.
   return SAFE_TEXT.test(s.replace(TOKEN_REGEX, ''))
 }
 
@@ -52,30 +52,39 @@ export function isValidTheme(t: unknown): t is DocTheme {
   if (!t || typeof t !== 'object') return false
   const theme = t as Record<string, any>
 
+  // page
   if (!theme.page || typeof theme.page !== 'object') return false
   if (!PAGE_SIZES.has(theme.page.size)) return false
   if (!ORIENTATIONS.has(theme.page.orientation)) return false
   if (!isNumberInRange(theme.page.margin, 0, 60)) return false
 
-  if (!theme.typography || typeof theme.typography !== 'object') return false
-  const typo = theme.typography
-  if (!isFontName(typo.bodyFont)) return false
-  if (!isFontName(typo.headingFont)) return false
-  if (!isNumberInRange(typo.bodySize, 6, 24)) return false
-  if (!isNumberInRange(typo.lineHeight, 0.8, 3)) return false
-  if (!isNumberInRange(typo.headingScale, 1, 2)) return false
-  if (typeof typo.headingUnderline !== 'boolean') return false
-  if (!TEXT_ALIGNS.has(typo.textAlign)) return false
+  // body
+  if (!theme.body || typeof theme.body !== 'object') return false
+  if (!isFontName(theme.body.font)) return false
+  if (!isNumberInRange(theme.body.size, 6, 24)) return false
+  if (!isNumberInRange(theme.body.lineHeight, 0.8, 3)) return false
+  if (!TEXT_ALIGNS.has(theme.body.textAlign)) return false
+  if (!isHex(theme.body.color)) return false
+  if (!isHex(theme.body.background)) return false
 
+  // headings
+  if (!theme.headings || typeof theme.headings !== 'object') return false
+  if (!isFontName(theme.headings.font)) return false
+  if (!isNumberInRange(theme.headings.scale, 1, 2)) return false
+  if (!HEADING_WEIGHTS.has(theme.headings.weight)) return false
+  if (typeof theme.headings.underline !== 'boolean') return false
+  if (!isHex(theme.headings.color)) return false
+
+  // color
   if (!theme.color || typeof theme.color !== 'object') return false
   if (!isHex(theme.color.brand)) return false
-  if (!isHex(theme.color.text)) return false
-  if (!isHex(theme.color.background)) return false
 
+  // layout
   if (!theme.layout || typeof theme.layout !== 'object') return false
   if (!COLUMN_COUNTS.has(theme.layout.columns)) return false
   if (!isNumberInRange(theme.layout.columnGap, 0, 30)) return false
 
+  // header / footer
   for (const slot of [theme.header, theme.footer]) {
     if (!slot || typeof slot !== 'object') return false
     if (!isSlotTemplate(slot.left)) return false
@@ -83,10 +92,23 @@ export function isValidTheme(t: unknown): t is DocTheme {
     if (!isSlotTemplate(slot.right)) return false
   }
 
+  // code
+  if (!theme.code || typeof theme.code !== 'object') return false
+  if (!CODE_THEMES.has(theme.code.theme)) return false
+  if (!isNumberInRange(theme.code.fontSize, 6, 16)) return false
+
+  // tables
+  if (!theme.tables || typeof theme.tables !== 'object') return false
+  if (!TABLE_HEADER_BGS.has(theme.tables.headerBackground)) return false
+  if (!TABLE_HEADER_COLORS.has(theme.tables.headerTextColor)) return false
+  if (!TABLE_BORDERS.has(theme.tables.borders)) return false
+  if (typeof theme.tables.zebra !== 'boolean') return false
+  if (!isIntInRange(theme.tables.cellPadding, 0, 24)) return false
+
+  // blocks
   if (!theme.blocks || typeof theme.blocks !== 'object') return false
   if (!isNumberInRange(theme.blocks.imageRadius, 0, 32)) return false
   if (!isNumberInRange(theme.blocks.imageMaxWidth, 10, 100)) return false
-  if (!CODE_THEMES.has(theme.blocks.codeBlockTheme)) return false
   if (!BLOCKQUOTE_STYLES.has(theme.blocks.blockquoteStyle)) return false
 
   return true

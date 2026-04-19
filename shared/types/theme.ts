@@ -2,20 +2,39 @@
  * Per-document theme. Drives both the live paged preview and the printed PDF
  * via a single shared `themeToCss(theme)` function.
  *
- * Phase 1 ships a hardcoded `defaultTheme`. Phase 2 will add a JSONB column on
- * the documents table and a slide-out editor panel (owner-only) wired through
- * `ymeta.theme` for live broadcast. Phase 3 introduces built-in presets;
- * Phase 4 introduces user-saved themes. The shape here is forward-compatible
- * with all of those — every field is "one knob per concept" by design, no
- * per-element overrides.
+ * The shape is intentionally granular: separate `body` / `headings` blocks,
+ * dedicated `tables` and `code` sections, so users can tune each surface
+ * without touching unrelated knobs. The cost is more validator code and a
+ * larger editor panel — the win is themes that actually express
+ * publication-grade design.
  */
 
 export type PageSize = 'A4' | 'Letter' | 'Legal'
 export type PageOrientation = 'portrait' | 'landscape'
 export type ColumnCount = 1 | 2 | 3
-export type CodeBlockTheme = 'light' | 'dark' | 'none'
-export type BlockquoteStyle = 'border' | 'background' | 'none'
 export type TextAlign = 'left' | 'justify'
+export type BlockquoteStyle = 'border' | 'background' | 'none'
+export type HeadingWeight = 400 | 500 | 600 | 700 | 800 | 900
+
+/**
+ * Pre-curated highlight.js stylesheet. Maps to a single CDN URL via
+ * `shared/utils/hljsCdn.ts`. Adding more is a matter of (a) adding the
+ * variant here, (b) extending the URL map, (c) extending the validator
+ * allow-list, (d) adding an i18n label.
+ */
+export type CodeTheme =
+  | 'github-light'
+  | 'github-dark'
+  | 'monokai'
+  | 'dracula'
+  | 'solarized-light'
+  | 'solarized-dark'
+  | 'none'
+
+export type TableHeaderBg = 'brand' | 'muted' | 'none'
+/** `auto` picks black/white based on the chosen header bg's luminance. */
+export type TableHeaderColor = 'auto' | 'inherit'
+export type TableBorders = 'all' | 'horizontal' | 'minimal' | 'none'
 
 /**
  * Header/footer slot. Templates support these tokens:
@@ -35,32 +54,46 @@ export type DocTheme = {
   page: {
     size: PageSize
     orientation: PageOrientation
-    margin: number  // mm — uniform on all four sides
+    margin: number             // mm — uniform on all four sides
   }
-  typography: {
-    bodyFont: string         // CSS font-family value (e.g. "Inter")
-    bodySize: number         // pt
-    lineHeight: number       // unitless multiplier
-    headingFont: string
-    headingScale: number     // modular ratio (1.2 / 1.25 / 1.333)
-    headingUnderline: boolean
-    textAlign: TextAlign     // 'left' (default) or 'justify' (fill)
+  body: {
+    font: string               // CSS font-family value (e.g. "Inter")
+    size: number               // pt
+    lineHeight: number         // unitless multiplier
+    textAlign: TextAlign
+    color: string              // hex
+    background: string         // hex
+  }
+  headings: {
+    font: string
+    scale: number              // modular ratio (1.2 / 1.25 / 1.333)
+    weight: HeadingWeight
+    underline: boolean         // border-bottom in brand color
+    color: string              // hex — independent so users can pick brand color for headings
   }
   color: {
-    brand: string            // hex; used for links + accent borders + heading underline
-    text: string
-    background: string
+    brand: string              // hex; used for links + accent borders + (optionally) heading underline
   }
   layout: {
     columns: ColumnCount
-    columnGap: number        // mm
+    columnGap: number          // mm
   }
   header: RunningSlots
   footer: RunningSlots
+  code: {
+    theme: CodeTheme
+    fontSize: number           // pt — separate from body so code can be tighter
+  }
+  tables: {
+    headerBackground: TableHeaderBg
+    headerTextColor: TableHeaderColor
+    borders: TableBorders
+    zebra: boolean             // alternating row backgrounds
+    cellPadding: number        // px
+  }
   blocks: {
-    imageRadius: number      // px
-    imageMaxWidth: number    // % of column width
-    codeBlockTheme: CodeBlockTheme
+    imageRadius: number        // px
+    imageMaxWidth: number      // % of column width
     blockquoteStyle: BlockquoteStyle
   }
 }

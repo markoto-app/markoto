@@ -1,0 +1,494 @@
+import type { EditorView } from '@codemirror/view'
+import type { ChangeSpec } from '@codemirror/state'
+
+/**
+ * Editor command helpers for the formatting toolbar + menu bar.
+ *
+ * Design rules (apply to every helper):
+ *
+ *  1. **Idempotent.** Clicking the same action twice on the same
+ *     selection always toggles. Never accumulates markers
+ *     (`****foo****`) or stacks prefixes (`# ## Foo`).
+ *
+ *  2. **Whitespace-safe.** Wrapping a selection like `  foo  ` puts
+ *     the markers OUTSIDE the trimmed range so the result is
+ *     `  **foo**  `, which is valid markdown. Whitespace-only
+ *     selections behave like empty (drop a marker pair, cursor inside).
+ *
+ *  3. **Per-line for line-anchored ops.** Headings, lists, quotes
+ *     apply to every non-blank line in the selection — clicking H1
+ *     across three lines makes all three H1. Blank lines are skipped
+ *     (we don't add `# ` to an empty line).
+ *
+ *  4. **Per-line for inline wraps when multi-line.** If the selection
+ *     spans more than one line, each non-blank line gets the marker
+ *     individually. Otherwise the existing wrap goes outside the
+ *     trimmed selection.
+ *
+ *  5. **Mixed-state toggle policy.** When a multi-line action would
+ *     have an asymmetric effect (some lines already have the
+ *     marker/prefix, some don't), we **add** to all missing rather
+ *     than removing from all present. So a single click is always
+ *     either "make all this X" or "remove X from all this", never
+ *     partial. Toggle off only fires when ALL non-blank lines already
+ *     have the marker/prefix.
+ *
+ *  6. **Disambiguation.** Single-char markers (`*` italic, `~` sub)
+ *     never steal from doubled markers (`**` bold, `~~` strike). So
+ *     italic on `**foo**` produces `***foo***`, not `*foo*` corruption.
+ *
+ *  7. **Code is special.** `toggleCode` produces inline backticks for
+ *     single-line selections, a fenced ` ``` ` block for multi-line.
+ */
+
+// — line walking ——————————————————————————————————————————————————
+
+interface LineInfo { from: number; to: number; text: string; number: number }
+
+function linesInPrimarySelection(view: EditorView): LineInfo[] {
+  const { from, to } = view.state.selection.main
+  const startLine = view.state.doc.lineAt(from).number
+  const endLine = view.state.doc.lineAt(to).number
+  const out: LineInfo[] = []
+  for (let i = startLine; i <= endLine; i++) {
+    const line = view.state.doc.line(i)
+    out.push({ from: line.from, to: line.to, text: line.text, number: i })
+  }
+  return out
+}
+
+const isBlank = (s: string) => s.trim().length === 0
+
+const BLOCK_PREFIX_RE = /^(\s*)([-*]\s+\[[ xX]\]\s+|[-*]\s+|\d+\.\s+|>\s+)/
+const HEADING_PREFIX_RE = /^(#{1,6})\s+/
+
+// — inline wrap (single-line core) —————————————————————————————————
+
+/**
+ * Wrap/unwrap one selection range with `marker`. Used directly for
+ * single-line ops; the multi-line `toggleWrap` calls into this per
+ * line. Builds and returns a ChangeSpec list rather than dispatching
+ * so callers can batch.
+ */
+function wrapRangeChanges(
+  view: EditorView,
+  from: number,
+  to: number,
+  marker: string
+): { changes: ChangeSpec[]; finalFrom: number; finalTo: number } | null {
+  const docLen = view.state.doc.length
+  const selected = view.state.sliceDoc(from, to)
+  const leading = selected.match(/^\s*/)![0]
+  const trailing = selected.match(/\s*$/)![0]
+  const trimmed = selected.slice(leading.length, selected.length - trailing.length)
+
+  // Empty / whitespace-only — caller decides if it makes sense to act.
+  if (trimmed.length === 0) {
+    if (from === to) {
+      // Empty cursor — drop marker pair, cursor between.
+      return {
+        changes: [{ from, to, insert: marker + marker }],
+        finalFrom: from + marker.length,
+        finalTo: from + marker.length
+      }
+    }
+    return null  // skip whitespace-only inside a multi-line batch
+  }
+
+  const trimFrom = from + leading.length
+  const trimTo = to - trailing.length
+
+  // Outside-wrap: marker chars adjacent to the trimmed range.
+  const before = view.state.sliceDoc(Math.max(0, trimFrom - marker.length), trimFrom)
+  const after = view.state.sliceDoc(trimTo, Math.min(docLen, trimTo + marker.length))
+  let wrappedOutside = before === marker && after === marker
+
+  // `*`/`~` must not steal from `**`/`~~`.
+  if (wrappedOutside && marker.length === 1 && (marker === '*' || marker === '~')) {
+    const outerBefore = view.state.sliceDoc(Math.max(0, trimFrom - 2), trimFrom - 1)
+    const outerAfter = view.state.sliceDoc(trimTo + 1, Math.min(docLen, trimTo + 2))
+    if (outerBefore === marker || outerAfter === marker) wrappedOutside = false
+  }
+
+  if (wrappedOutside) {
+    return {
+      changes: [
+        { from: trimFrom - marker.length, to: trimTo + marker.length, insert: trimmed }
+      ],
+      finalFrom: trimFrom - marker.length,
+      finalTo: trimFrom - marker.length + trimmed.length
+    }
+  }
+
+  // Inside-wrap: trimmed text starts AND ends with marker (selection
+  // dragged across the wrappers).
+  let insideWrap = trimmed.length >= marker.length * 2
+    && trimmed.startsWith(marker) && trimmed.endsWith(marker)
+  if (insideWrap && marker.length === 1 && (marker === '*' || marker === '~')) {
+    if (trimmed[marker.length] === marker
+      || trimmed[trimmed.length - marker.length - 1] === marker) {
+      insideWrap = false
+    }
+  }
+
+  if (insideWrap) {
+    const stripped = trimmed.slice(marker.length, trimmed.length - marker.length)
+    return {
+      changes: [{ from, to, insert: leading + stripped + trailing }],
+      finalFrom: from + leading.length,
+      finalTo: from + leading.length + stripped.length
+    }
+  }
+
+  // Default: wrap outside the trimmed range.
+  return {
+    changes: [{ from, to, insert: leading + marker + trimmed + marker + trailing }],
+    finalFrom: trimFrom + marker.length,
+    finalTo: trimTo + marker.length
+  }
+}
+
+/**
+ * `**bold**`, `*italic*`, `~~strike~~`, `==mark==`, `++ins++`, `~sub~`,
+ * `^sup^`, `` `code` ``. Per-line on multi-line selections (each line
+ * wrapped/unwrapped individually; blank lines skipped; mixed state →
+ * wrap the missing ones).
+ */
+export function toggleWrap(view: EditorView, marker: string): void {
+  const { from, to } = view.state.selection.main
+  const selected = view.state.sliceDoc(from, to)
+
+  // Single-line path (or empty selection).
+  if (!selected.includes('\n')) {
+    const result = wrapRangeChanges(view, from, to, marker)
+    if (!result) return
+    view.dispatch({
+      changes: result.changes,
+      selection: { anchor: result.finalFrom, head: result.finalTo }
+    })
+    view.focus()
+    return
+  }
+
+  // Multi-line path — per non-blank line.
+  const lines = linesInPrimarySelection(view)
+  const nonBlank = lines.filter(l => !isBlank(l.text))
+  if (nonBlank.length === 0) return
+
+  const wrappedTrimmed = (text: string) => {
+    const trimmed = text.trim()
+    if (trimmed.length < marker.length * 2) return false
+    if (!trimmed.startsWith(marker) || !trimmed.endsWith(marker)) return false
+    if (marker.length === 1 && (marker === '*' || marker === '~')) {
+      // Defensive: don't treat `**foo**` as italic-wrapped.
+      if (trimmed[marker.length] === marker
+        || trimmed[trimmed.length - marker.length - 1] === marker) return false
+    }
+    return true
+  }
+
+  const allWrapped = nonBlank.every(l => wrappedTrimmed(l.text))
+  const changes: ChangeSpec[] = []
+
+  for (const line of nonBlank) {
+    const text = line.text
+    const leading = text.match(/^\s*/)![0]
+    const trailing = text.match(/\s*$/)![0]
+    const trimmed = text.slice(leading.length, text.length - trailing.length)
+
+    if (allWrapped) {
+      // Strip wrap on every line.
+      const stripped = trimmed.slice(marker.length, trimmed.length - marker.length)
+      changes.push({ from: line.from, to: line.to, insert: leading + stripped + trailing })
+    } else {
+      // Add wrap only to lines that don't already have it (idempotent).
+      if (wrappedTrimmed(text)) continue
+      changes.push({
+        from: line.from,
+        to: line.to,
+        insert: leading + marker + trimmed + marker + trailing
+      })
+    }
+  }
+
+  if (changes.length === 0) return
+  view.dispatch({ changes })
+  view.focus()
+}
+
+// — code (special) ————————————————————————————————————————————————
+
+/**
+ * Inline backticks for single-line selections; fenced ` ``` ` block for
+ * multi-line. The fenced toggle detects an existing fence above/below
+ * the selection and strips it; otherwise wraps the selection in a new
+ * fence.
+ */
+export function toggleCode(view: EditorView): void {
+  const { from, to } = view.state.selection.main
+  const selected = view.state.sliceDoc(from, to)
+
+  if (!selected.includes('\n')) {
+    return toggleWrap(view, '`')
+  }
+
+  const startLine = view.state.doc.lineAt(from)
+  const endLine = view.state.doc.lineAt(to)
+
+  const fenceOpen = /^```\w*\s*$/
+  const fenceClose = /^```\s*$/
+
+  // Case A: selection includes the fence lines themselves (user selected
+  // the whole block).
+  if (fenceOpen.test(startLine.text) && fenceClose.test(endLine.text) && startLine.number < endLine.number) {
+    // Strip the first and last line of the selection (the fences) plus
+    // the newline that follows / precedes them.
+    const secondLine = view.state.doc.line(startLine.number + 1)
+    const beforeLast = view.state.doc.line(endLine.number - 1)
+    view.dispatch({
+      changes: [
+        { from: startLine.from, to: secondLine.from, insert: '' },
+        { from: beforeLast.to, to: endLine.to, insert: '' }
+      ]
+    })
+    view.focus()
+    return
+  }
+
+  // Case B: selection is between fence lines (above startLine and below endLine).
+  const lineBefore = startLine.number > 1 ? view.state.doc.line(startLine.number - 1) : null
+  const lineAfter = endLine.number < view.state.doc.lines ? view.state.doc.line(endLine.number + 1) : null
+  const fenceBefore = lineBefore && fenceOpen.test(lineBefore.text)
+  const fenceAfter = lineAfter && fenceClose.test(lineAfter.text)
+
+  if (fenceBefore && fenceAfter) {
+    view.dispatch({
+      changes: [
+        { from: lineBefore!.from, to: startLine.from, insert: '' },
+        { from: endLine.to, to: lineAfter!.to, insert: '' }
+      ]
+    })
+    view.focus()
+    return
+  }
+
+  // Default: wrap.
+  view.dispatch({
+    changes: [
+      { from: startLine.from, insert: '```\n' },
+      { from: endLine.to, insert: '\n```' }
+    ]
+  })
+  view.focus()
+}
+
+// — heading prefix —————————————————————————————————————————————————
+
+/**
+ * Heading toggle. Per-line on multi-line selections.
+ *
+ * Single line:
+ *   - same level → strip prefix
+ *   - different level → replace
+ *   - no heading → prepend
+ *
+ * Multi-line:
+ *   - all non-blank lines already at this level → strip all
+ *   - otherwise → set all (replacing any existing heading prefix)
+ *   - blank lines untouched
+ */
+export function toggleHeading(view: EditorView, level: number): void {
+  const lines = linesInPrimarySelection(view)
+  const nonBlank = lines.filter(l => !isBlank(l.text))
+  if (nonBlank.length === 0) return
+
+  const atLevel = (text: string) => {
+    const m = text.match(HEADING_PREFIX_RE)
+    return !!m && m[1].length === level
+  }
+  const allAtLevel = nonBlank.every(l => atLevel(l.text))
+
+  const changes: ChangeSpec[] = []
+  for (const line of nonBlank) {
+    const m = line.text.match(HEADING_PREFIX_RE)
+    const oldPrefixLen = m ? m[0].length : 0
+    const newPrefix = allAtLevel ? '' : '#'.repeat(level) + ' '
+    changes.push({ from: line.from, to: line.from + oldPrefixLen, insert: newPrefix })
+  }
+  view.dispatch({ changes })
+  view.focus()
+}
+
+// — line prefix (quote, unordered list, task list) ————————————————————
+
+/**
+ * Line-anchored block prefix toggle (`> `, `- `, `- [ ] `, …). Per-line
+ * on multi-line selections.
+ *
+ * Single line:
+ *   - same prefix → strip
+ *   - different list-style prefix → replace
+ *   - no prefix → prepend
+ *
+ * Multi-line:
+ *   - all non-blank lines have this exact prefix → strip all
+ *   - otherwise → set all (replacing any existing list-style prefix)
+ *   - blank lines untouched
+ *
+ * For sequentially-numbered ordered lists, use `toggleOrderedList`
+ * instead — it numbers each line `1.`, `2.`, `3.` rather than giving
+ * every line the same prefix.
+ */
+export function toggleLinePrefix(view: EditorView, prefix: string): void {
+  const lines = linesInPrimarySelection(view)
+  const nonBlank = lines.filter(l => !isBlank(l.text))
+  if (nonBlank.length === 0) return
+
+  const hasPrefix = (text: string) => {
+    const m = text.match(BLOCK_PREFIX_RE)
+    return !!m && m[2] === prefix.replace(/^\s*/, '')
+  }
+  const allHavePrefix = nonBlank.every(l => hasPrefix(l.text))
+
+  const changes: ChangeSpec[] = []
+  for (const line of nonBlank) {
+    const m = line.text.match(BLOCK_PREFIX_RE)
+    const indent = m ? m[1] : ''
+    const oldPrefixLen = (m ? m[0].length : 0)
+    const newPrefix = allHavePrefix ? '' : prefix
+    changes.push({
+      from: line.from,
+      to: line.from + oldPrefixLen,
+      insert: indent + newPrefix
+    })
+  }
+  view.dispatch({ changes })
+  view.focus()
+}
+
+/**
+ * Ordered-list toggle with sequential numbering on multi-line.
+ *
+ * Single line:
+ *   - already `\d+. ` → strip
+ *   - other list prefix → replace with `1. `
+ *   - no prefix → prepend `1. `
+ *
+ * Multi-line:
+ *   - all non-blank lines numbered → strip all
+ *   - otherwise → number sequentially `1. `, `2. `, `3. `, …
+ *   - blank lines untouched (and don't increment the counter)
+ */
+export function toggleOrderedList(view: EditorView): void {
+  const lines = linesInPrimarySelection(view)
+  const nonBlank = lines.filter(l => !isBlank(l.text))
+  if (nonBlank.length === 0) return
+
+  const numbered = (text: string) => /^\s*\d+\.\s+/.test(text)
+  const allNumbered = nonBlank.every(l => numbered(l.text))
+
+  const changes: ChangeSpec[] = []
+  let counter = 1
+  for (const line of nonBlank) {
+    const m = line.text.match(BLOCK_PREFIX_RE)
+    const indent = m ? m[1] : ''
+    const oldPrefixLen = (m ? m[0].length : 0)
+    const newPrefix = allNumbered ? '' : `${counter}. `
+    changes.push({
+      from: line.from,
+      to: line.from + oldPrefixLen,
+      insert: indent + newPrefix
+    })
+    if (!allNumbered) counter++
+  }
+  view.dispatch({ changes })
+  view.focus()
+}
+
+// — block insert ——————————————————————————————————————————————————
+
+/**
+ * Replace the current selection with a block of text. Used for HRs and
+ * tables. No toggle, no per-line — just an insertion.
+ */
+export function insertBlock(view: EditorView, text: string): void {
+  const { from, to } = view.state.selection.main
+  view.dispatch({
+    changes: { from, to, insert: text },
+    selection: { anchor: from + text.length }
+  })
+  view.focus()
+}
+
+/**
+ * Insert a footnote pair: the `[^N]` ref at the cursor and a matching
+ * `[^N]: ` definition at the end of the doc, with the cursor placed at
+ * the empty definition body so the user can type immediately.
+ *
+ * `N` is auto-numbered: scans existing `[^digit]` refs and picks the
+ * next integer. So adding three footnotes in a row produces 1, 2, 3
+ * regardless of where they're inserted in the doc body.
+ */
+export function insertFootnote(view: EditorView): void {
+  const docText = view.state.doc.toString()
+  const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => parseInt(m[1], 10))
+  const next = refs.length > 0 ? Math.max(...refs) + 1 : 1
+  const ref = `[^${next}]`
+
+  const { from, to } = view.state.selection.main
+  const docLen = view.state.doc.length
+
+  // Make sure the definition lands on its own line. If the doc is empty
+  // or already ends with a newline, just append; otherwise prefix with
+  // `\n\n` so it sits in its own paragraph at the bottom.
+  const lastChar = docLen > 0 ? view.state.sliceDoc(docLen - 1, docLen) : ''
+  const sep = docLen === 0 ? '' : (lastChar === '\n' ? '\n' : '\n\n')
+  const def = `${sep}[^${next}]: `
+
+  view.dispatch({
+    changes: [
+      { from, to, insert: ref },
+      { from: docLen, insert: def }
+    ],
+    // Cursor at the end of the empty definition body (post-both-changes).
+    selection: { anchor: docLen + ref.length + def.length }
+  })
+  view.focus()
+}
+
+/**
+ * Insert a markdown-it-container callout block at the current selection.
+ * Wraps any selected text as the body so the user can type a paragraph
+ * first, then turn it into a callout. Cursor lands at the end of the
+ * body for further typing. The variant (`warning`, `info`, `tip`) is
+ * the only kind we register in `renderMarkdown.ts`.
+ */
+export function insertCallout(view: EditorView, kind: 'warning' | 'info' | 'tip'): void {
+  const { from, to } = view.state.selection.main
+  const selected = view.state.sliceDoc(from, to)
+  const body = selected || ''
+  const opener = `:::${kind}\n`
+  const closer = `\n:::`
+  const block = opener + body + closer
+  view.dispatch({
+    changes: { from, to, insert: block },
+    selection: { anchor: from + opener.length + body.length }
+  })
+  view.focus()
+}
+
+/**
+ * Insert a definition-list template (`Term\n: Definition`) at the
+ * cursor. Selects "Term" so the user can immediately type a real term;
+ * the definition placeholder gets typed-into next via Tab/click.
+ */
+export function insertDefinitionList(view: EditorView): void {
+  const { from, to } = view.state.selection.main
+  const template = 'Term\n: Definition'
+  view.dispatch({
+    changes: { from, to, insert: template },
+    // Pre-select "Term" (4 chars) so typing replaces it.
+    selection: { anchor: from, head: from + 4 }
+  })
+  view.focus()
+}

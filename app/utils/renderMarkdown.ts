@@ -30,7 +30,18 @@ async function init(): Promise<void> {
       taskListsMod,
       emojiMod,
       footnoteMod,
-      containerMod
+      containerMod,
+      // Batch 1 — typography & semantic markup. Each is a named export
+      // from `@mdit/plugin-*` and wires through the same `.use()` chain.
+      { attrs },
+      { mark },
+      { ins },
+      { sub },
+      { sup },
+      { dl },
+      { abbr },
+      { figure },
+      { imgSize }
     ] = await Promise.all([
       import('markdown-it'),
       import('highlight.js'),
@@ -38,7 +49,16 @@ async function init(): Promise<void> {
       import('markdown-it-task-lists'),
       import('markdown-it-emoji'),
       import('markdown-it-footnote'),
-      import('markdown-it-container')
+      import('markdown-it-container'),
+      import('@mdit/plugin-attrs'),
+      import('@mdit/plugin-mark'),
+      import('@mdit/plugin-ins'),
+      import('@mdit/plugin-sub'),
+      import('@mdit/plugin-sup'),
+      import('@mdit/plugin-dl'),
+      import('@mdit/plugin-abbr'),
+      import('@mdit/plugin-figure'),
+      import('@mdit/plugin-img-size')
     ])
 
     // Syntax highlighting CSS — same theme on screen and in PDF.
@@ -54,11 +74,31 @@ async function init(): Promise<void> {
       html: false,
       linkify: true,
       typographer: true,
+      // GFM-style hard-wrap: a single newline inside a paragraph
+      // becomes a <br>. Without this, `a\nb\nc` renders as `a b c`
+      // on one line (CommonMark default), which is consistently
+      // confusing for users who expect WYSIWYG behavior. Blank-line
+      // paragraph breaks still create new paragraphs.
+      breaks: true,
+      // Return the full `<pre><code class="hljs ...">` wrapper rather
+      // than just the inner highlighted spans, so the github-dark
+      // stylesheet's `.hljs { background; color; }` rules actually
+      // apply. If we returned only the spans (markdown-it's default
+      // contract), markdown-it would wrap them in `<pre><code class="
+      // language-X">` — without `.hljs`, the base background/color
+      // never lands and the result looks half-styled.
+      //
+      // Returning a string starting with `<pre` tells markdown-it to
+      // use it verbatim instead of wrapping again.
       highlight: (str: string, lang: string) => {
+        const escaped = md.utils?.escapeHtml?.(str) ?? str
         if (lang && hljs.getLanguage(lang)) {
-          try { return hljs.highlight(str, { language: lang }).value } catch {}
+          try {
+            const out = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value
+            return `<pre><code class="hljs language-${lang}">${out}</code></pre>`
+          } catch {}
         }
-        return ''
+        return `<pre><code class="hljs">${escaped}</code></pre>`
       }
     })
       .use(taskLists, { enabled: true })
@@ -67,6 +107,16 @@ async function init(): Promise<void> {
       .use(container, 'warning')
       .use(container, 'info')
       .use(container, 'tip')
+      // Batch 1 — typography & semantic markup
+      .use(attrs)
+      .use(mark)
+      .use(ins)
+      .use(sub)
+      .use(sup)
+      .use(dl)
+      .use(abbr)
+      .use(figure, { copyAttrsOnFigure: true })
+      .use(imgSize)
 
     // Open all preview links in a new tab. `rel="noopener noreferrer"`
     // prevents the opened page from reaching back into our window.
@@ -91,16 +141,20 @@ async function init(): Promise<void> {
 
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
-    'a', 'b', 'blockquote', 'br', 'code', 'del', 'div', 'em', 'h1', 'h2',
-    'h3', 'h4', 'h5', 'h6', 'hr', 'i', 'img', 'input', 'li', 'ol', 'p',
-    'pre', 's', 'section', 'span', 'strong', 'sub', 'sup', 'table',
-    'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'u', 'ul'
+    'a', 'abbr', 'b', 'blockquote', 'br', 'code', 'dd', 'del', 'div', 'dl',
+    'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'hr', 'i', 'img', 'input', 'ins', 'li', 'mark', 'ol', 'p', 'pre', 's',
+    'section', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td',
+    'tfoot', 'th', 'thead', 'tr', 'u', 'ul'
   ],
   ALLOWED_ATTR: [
     'href', 'src', 'alt', 'title', 'target', 'rel',
     'class',
     'id',
-    'type', 'checked', 'disabled'
+    'type', 'checked', 'disabled',
+    // img-size emits width/height as bare attrs; figure emits no
+    // extra attrs by default but gets them via attrs plugin if used.
+    'width', 'height'
   ],
   ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
 }
