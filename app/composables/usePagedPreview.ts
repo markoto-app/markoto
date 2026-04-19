@@ -188,6 +188,24 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
     visibility: hidden;
     pointer-events: none;
   }
+
+  /* Dark-mode preview — Word/Docs-style page inversion. Only the
+     viewing surface flips: the chrome behind the pages, the page
+     background itself, and the doc's default text color. The theme
+     JSON is untouched — brand colors, code blocks, blockquote tints,
+     and images stay exactly as the theme defined. PDF export reads
+     the theme directly, so prints always come out on a real white page.
+     The body's background-color is overwritten at runtime to match
+     the parent app's chrome (see syncDarkPreview below) — leaving
+     this default empty so an unmatched first paint doesn't flash. */
+  body.dark-preview .paged-mount .pagedjs_page {
+    background: #18181b;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
+  }
+  body.dark-preview .paged-doc {
+    color: #e5e7eb;
+    background: transparent;
+  }
 </style>
 <style id="theme-fonts"></style>
 <style id="theme-css"></style>
@@ -207,6 +225,46 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
   var POLL_INTERVAL = 30;
   var POLL_TIMEOUT = 10000;
   var pollStart = Date.now();
+
+  // Mirror the parent app's color mode + chrome bg onto the iframe so
+  // the dark-preview overrides kick in AND the area around the pages
+  // matches the rest of the app (instead of hardcoded pure black).
+  // srcdoc iframes share the parent origin, so we can read parent
+  // styles directly and observe class-list changes — no postMessage
+  // round-trip needed.
+  function readParentChromeBg() {
+    try {
+      // Walk up from body to html, returning the first non-transparent
+      // background. Nuxt UI tends to put the canvas color on body, but
+      // some layouts move it to html.
+      var candidates = [window.parent.document.body, window.parent.document.documentElement];
+      for (var i = 0; i < candidates.length; i++) {
+        var el = candidates[i];
+        if (!el) continue;
+        var bg = window.parent.getComputedStyle(el).backgroundColor;
+        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
+      }
+    } catch (e) { /* parent inaccessible */ }
+    return null;
+  }
+
+  function syncDarkPreview() {
+    try {
+      var parentHtml = window.parent.document.documentElement;
+      var isDark = parentHtml.classList.contains('dark');
+      document.body.classList.toggle('dark-preview', isDark);
+      var bg = readParentChromeBg();
+      if (bg) document.body.style.background = bg;
+    } catch (e) { /* parent inaccessible — give up silently */ }
+  }
+  syncDarkPreview();
+  try {
+    var parentObserver = new MutationObserver(syncDarkPreview);
+    parentObserver.observe(window.parent.document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  } catch (e) { /* MutationObserver setup failed — initial sync is still in place */ }
 
   function whenPagedReady(cb) {
     if (window.Paged && window.Paged.Previewer) { cb(); return; }

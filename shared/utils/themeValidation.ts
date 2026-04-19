@@ -18,6 +18,7 @@ const ORIENTATIONS = new Set(['portrait', 'landscape'])
 const COLUMN_COUNTS = new Set([1, 2, 3])
 const CODE_THEMES = new Set(['light', 'dark', 'none'])
 const BLOCKQUOTE_STYLES = new Set(['border', 'background', 'none'])
+const TEXT_ALIGNS = new Set(['left', 'justify'])
 const TOKEN_REGEX = /\{(?:title|page|pages|date)\}/g
 // Allow any chars except CSS-syntax-breaking ones in the literal portions
 // of header/footer templates. Tokens are stripped before this check.
@@ -64,6 +65,7 @@ export function isValidTheme(t: unknown): t is DocTheme {
   if (!isNumberInRange(typo.lineHeight, 0.8, 3)) return false
   if (!isNumberInRange(typo.headingScale, 1, 2)) return false
   if (typeof typo.headingUnderline !== 'boolean') return false
+  if (!TEXT_ALIGNS.has(typo.textAlign)) return false
 
   if (!theme.color || typeof theme.color !== 'object') return false
   if (!isHex(theme.color.brand)) return false

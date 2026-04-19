@@ -40,8 +40,16 @@ const toast = useToast()
 const showShareModal = ref(false)
 // Import modal state
 const showImportModal = ref(false)
-// Theme editor state — opened from a top-bar button, owner-only.
-const showThemeEditor = ref(false)
+// Right-sidebar slot — mutually exclusive between activity and theme.
+// Both panels share the same column so the layout shift is predictable
+// regardless of which one is open.
+const rightSidebar = ref<'activity' | 'theme' | null>(null)
+function toggleSidebar(panel: 'activity' | 'theme') {
+  rightSidebar.value = rightSidebar.value === panel ? null : panel
+}
+function closeSidebar() {
+  rightSidebar.value = null
+}
 // Password modal: open when requiresPassword is true, closable only via verify/cancel
 const passwordModalOpen = ref(false)
 watch(requiresPassword, (val) => {
@@ -60,8 +68,6 @@ watch(isDeleted, (deleted) => {
   })
   navigateTo('/')
 })
-// Activity sidebar state
-const showActivity = ref(false)
 // PDF export state — drives the dropdown loader spinner.
 const exporting = ref(false)
 // Page count from the paged.js preview, surfaced in the status bar.
@@ -106,6 +112,58 @@ async function exportPdf() {
 
 function exportMarkdown() {
   downloadMarkdown(textContent.value, title.value)
+}
+
+// Hidden file input for image insert via menu (mirrors the same flow
+// EditorToolbar uses for its image button — keeps the upload pipeline
+// in one place behind useImageUpload).
+const menuImageInput = ref<HTMLInputElement | null>(null)
+const { uploadAndInsert: uploadImageAndInsert, error: imageUploadError } = useImageUpload(props.docId)
+watch(imageUploadError, (err) => {
+  if (!err) return
+  toast.add({
+    title: err === 'login_required' ? t('auth.loginRequired') : t('image.uploadFailed'),
+    description: err === 'login_required' ? t('image.loginToUpload') : err,
+    color: 'error'
+  })
+})
+function openImagePicker() {
+  menuImageInput.value?.click()
+}
+async function onMenuImageSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !editorView.value) return
+  await uploadImageAndInsert(file, editorView.value)
+  input.value = ''
+}
+
+// Menu-driven file actions. New-document hits the same endpoint as the
+// landing-page "New" button; we navigate immediately so the user lands
+// in their fresh doc.
+async function newDocument() {
+  try {
+    const data = await $fetch<{ docId: string }>('/api/docs', { method: 'POST' })
+    navigateTo(`/d/${data.docId}`)
+  } catch {
+    toast.add({ title: 'Could not create document', color: 'error' })
+  }
+}
+
+// Undo / redo dispatched on the local UndoManager — same instance the
+// keyboard shortcut hits, so menu and keyboard stay in lockstep.
+function undo() { undoManager.undo() }
+function redo() { undoManager.redo() }
+
+// Sharing → Password and Sharing → Delete both open the existing share
+// modal — that modal already houses the password setup and danger-zone
+// delete flows. Auto-scrolling to the right section is a polish item;
+// for now we just open it and the user sees everything in one panel.
+function openShareAtPassword() {
+  showShareModal.value = true
+}
+function openShareAtDelete() {
+  showShareModal.value = true
 }
 
 // View mode: 'edit' | 'preview' | 'split'
@@ -322,9 +380,13 @@ const statusIcon = computed(() => {
   </div>
 
   <div v-else class="h-screen flex flex-col">
-    <!-- Editor Header -->
-    <header class="border-b border-default px-4 py-2 flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-3 min-w-0">
+    <!-- Editor Header — three-column flex so the view-mode group sits
+         visually centered in the bar (the page is the doc, view mode
+         picks how you look at it; centering matches the right-pane
+         framing). Left/right sides own equal flex space and align their
+         contents inward toward the center group. -->
+    <header class="border-b border-default px-4 py-2 flex items-center gap-3 shrink-0">
+      <div class="flex-1 min-w-0 flex items-center gap-3">
         <NuxtLink to="/" class="flex items-center gap-1.5 text-muted hover:text-default transition-colors shrink-0">
           <UIcon name="i-lucide-file-text" class="text-primary size-5" />
           <span class="font-semibold text-sm hidden sm:inline">{{ t('app.name') }}</span>
@@ -366,56 +428,53 @@ const statusIcon = computed(() => {
         </UBadge>
       </div>
 
-      <div class="flex items-center gap-2 shrink-0">
-        <!-- View mode toggle: desktop only -->
-        <div class="hidden sm:flex">
-          <UTooltip :text="t('editor.edit')">
-            <UButton
-              icon="i-lucide-code-2"
-              size="xs"
-              :color="viewMode === 'edit' ? 'primary' : 'neutral'"
-              :variant="viewMode === 'edit' ? 'solid' : 'ghost'"
-              @click="viewMode = 'edit'"
-            />
-          </UTooltip>
-          <UTooltip :text="t('editor.splitView')">
-            <UButton
-              icon="i-lucide-columns-2"
-              size="xs"
-              :color="viewMode === 'split' ? 'primary' : 'neutral'"
-              :variant="viewMode === 'split' ? 'solid' : 'ghost'"
-              @click="viewMode = 'split'"
-            />
-          </UTooltip>
-          <UTooltip :text="t('editor.preview')">
-            <UButton
-              icon="i-lucide-eye"
-              size="xs"
-              :color="viewMode === 'preview' ? 'primary' : 'neutral'"
-              :variant="viewMode === 'preview' ? 'solid' : 'ghost'"
-              @click="viewMode = 'preview'"
-            />
-          </UTooltip>
-        </div>
-
-        <!-- Theme editor. Visible to anyone with edit access — for owned
-             docs that's just the owner, but for anonymous-created docs
-             (open-edit, ownerId NULL) anyone can change the theme since
-             everyone shares full edit rights anyway. -->
-        <UTooltip v-if="canEditTheme" :text="t('theme.title')">
+      <!-- Center group — view-mode toggle. Sits in its own zero-flex
+           column so the left/right groups balance around it; the buttons
+           themselves are tightly packed (no `gap` here). -->
+      <div class="hidden sm:flex shrink-0 items-center justify-center">
+        <UTooltip :text="t('editor.edit')">
           <UButton
-            icon="i-lucide-palette"
-            color="neutral"
-            variant="ghost"
+            icon="i-lucide-code-2"
             size="xs"
-            @click="showThemeEditor = true"
+            :color="viewMode === 'edit' ? 'primary' : 'neutral'"
+            :variant="viewMode === 'edit' ? 'solid' : 'ghost'"
+            @click="viewMode = 'edit'"
           />
         </UTooltip>
+        <UTooltip :text="t('editor.splitView')">
+          <UButton
+            icon="i-lucide-columns-2"
+            size="xs"
+            :color="viewMode === 'split' ? 'primary' : 'neutral'"
+            :variant="viewMode === 'split' ? 'solid' : 'ghost'"
+            @click="viewMode = 'split'"
+          />
+        </UTooltip>
+        <UTooltip :text="t('editor.preview')">
+          <UButton
+            icon="i-lucide-eye"
+            size="xs"
+            :color="viewMode === 'preview' ? 'primary' : 'neutral'"
+            :variant="viewMode === 'preview' ? 'solid' : 'ghost'"
+            @click="viewMode = 'preview'"
+          />
+        </UTooltip>
+      </div>
 
-        <!-- Access-mode button. The icon mirrors the current access mode so the
-             header communicates "this is access control" (locked = private /
-             password, eye = view only, pencil = open edit) instead of "sharing"
-             — there's only ever one URL, its permissions are what changes. -->
+      <!-- Right group — lock shortcut, identity, mobile menu, and the
+           right-sidebar toggles. `flex-1 justify-end` mirrors the left
+           group so the center view-mode group lands optically
+           dead-center regardless of the left group's width.
+
+           The sidebar toggles (Activity, Theme) sit at the very edge,
+           after a separator, so they're spatially aligned with the
+           sidebar column that opens directly below them. The lock /
+           identity / theme controls stay closer to the center to keep
+           the visual mapping "panel toggles → panel".  -->
+      <div class="flex-1 min-w-0 flex items-center gap-2 justify-end">
+        <!-- Access-mode shortcut. Also under Sharing → Access; kept in
+             the header because the icon doubles as a status indicator
+             (open vs closed lock = at-a-glance access tier). -->
         <UTooltip :text="`${t('share.accessMode')}: ${t(accessLabelKey)}`">
           <UButton
             :icon="accessIcon"
@@ -445,15 +504,48 @@ const statusIcon = computed(() => {
             size="xs"
           />
         </UDropdownMenu>
+
       </div>
     </header>
 
     <!-- Everything below the header is hidden until password is verified -->
     <template v-if="!requiresPassword">
-      <!-- Toolbar row: formatting left, document actions right.
-           On narrow viewports the formatting toolbar wraps to multiple rows
-           while action buttons stay top-right. -->
-      <div class="flex items-start justify-between border-b border-default shrink-0 gap-2">
+      <!-- Top-level menu bar — File / Edit / View / Insert / Format /
+           Sharing / Help. Discoverable home for everything that's not
+           high-frequency editing. Header icons above are quick
+           shortcuts for the most common ones (view-mode, sidebars,
+           access lock); the menus duplicate them for findability. -->
+      <EditorMenuBar
+        :view="editorView"
+        :doc-id="docId"
+        :is-read-only="isReadOnly"
+        :logged-in="loggedIn"
+        :right-sidebar="rightSidebar"
+        :view-mode="viewMode"
+        @open-import="showImportModal = true"
+        @open-share="showShareModal = true"
+        @open-share-password="openShareAtPassword"
+        @export-markdown="exportMarkdown"
+        @export-pdf="exportPdf"
+        @new-document="newDocument"
+        @delete-document="openShareAtDelete"
+        @set-view-mode="(m) => viewMode = m"
+        @toggle-sidebar="toggleSidebar"
+        @undo="undo"
+        @redo="redo"
+        @open-image-picker="openImagePicker"
+      />
+
+      <!-- Toolbar row.
+           Left:  formatting actions (bold / italic / headings / list / …).
+                  High-frequency editing — kept as a visible icon row
+                  even though the same actions live under Format / Insert
+                  menus, because icons are faster once learned.
+           Right: panel toggles (Activity, Theme). Sit on the same row
+                  as the formatting buttons so they share the toolbar's
+                  visual weight, and right-aligned so they're directly
+                  above the right-sidebar column they open. -->
+      <div class="border-b border-default shrink-0 flex items-center justify-between">
         <div class="flex-1 min-w-0">
           <EditorToolbar
             v-if="viewMode !== 'preview'"
@@ -462,65 +554,36 @@ const statusIcon = computed(() => {
             :doc-id="docId"
           />
         </div>
-
         <div class="flex items-center gap-0.5 px-2 py-1 shrink-0">
-          <!-- Import button -->
-          <UTooltip v-if="!isReadOnly" :text="t('import.title')">
-            <UButton
-              icon="i-lucide-file-up"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              @click="showImportModal = true"
-            />
-          </UTooltip>
-
-          <!-- Export dropdown -->
-          <UDropdownMenu
-            :items="[
-              {
-                label: t('export.markdown'),
-                icon: 'i-lucide-file-text',
-                onSelect: exportMarkdown
-              },
-              {
-                label: t('export.pdf'),
-                icon: 'i-lucide-file-output',
-                onSelect: exportPdf
-              }
-            ]"
-          >
-            <UTooltip :text="t('export.title')">
-              <UButton
-                icon="i-lucide-download"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                :loading="exporting"
-              />
-            </UTooltip>
-          </UDropdownMenu>
-
-          <USeparator orientation="vertical" class="h-5 mx-1" />
-
-          <!-- Activity button -->
           <UTooltip :text="t('activity.title')">
             <UButton
               icon="i-lucide-activity"
               color="neutral"
-              variant="ghost"
+              :variant="rightSidebar === 'activity' ? 'soft' : 'ghost'"
               size="xs"
-              @click="showActivity = !showActivity"
+              @click="toggleSidebar('activity')"
+            />
+          </UTooltip>
+          <UTooltip v-if="canEditTheme" :text="t('theme.title')">
+            <UButton
+              icon="i-lucide-palette"
+              color="neutral"
+              :variant="rightSidebar === 'theme' ? 'soft' : 'ghost'"
+              size="xs"
+              @click="toggleSidebar('theme')"
             />
           </UTooltip>
         </div>
       </div>
 
-      <!-- AI prompt bar (hidden in preview-only or when read-only) -->
-      <AIPromptBar
-        v-if="!isReadOnly && viewMode !== 'preview'"
-        :ai="ai"
-      />
+      <!-- Hidden file input owned by the menu's "Insert → Image" path. -->
+      <input
+        ref="menuImageInput"
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+        class="hidden"
+        @change="onMenuImageSelected"
+      >
 
       <!-- Read-only banner -->
       <div v-if="isReadOnly" class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-1.5 text-center text-sm text-amber-600 dark:text-amber-400">
@@ -532,8 +595,11 @@ const statusIcon = computed(() => {
            Layout uses flex siblings with `flex-1`/`min-w-0` so each pane
            grows into the remaining space. Triple-split (editor + preview +
            activity sidebar) kicks in at `xl` (1280px+) — below that, the
-           activity replaces the preview to keep each pane legible. -->
-      <main class="flex-1 flex min-h-0">
+           activity replaces the preview to keep each pane legible.
+           `relative` so the floating AI prompt bar (absolute-positioned
+           inside this container) anchors to the bottom of the
+           editor + preview + sidebar zone, not the page. -->
+      <main class="flex-1 flex min-h-0 relative">
         <!-- Editor (wrapped in ImageDropZone for drag-drop + paste uploads) -->
         <EditorImageDropZone
           v-if="viewMode !== 'preview'"
@@ -541,14 +607,14 @@ const statusIcon = computed(() => {
           :editor-view="editorView"
           :read-only="isReadOnly"
           :class="[
-            // Flex member — shares remaining width with preview / activity.
+            // Flex member — shares remaining width with preview / sidebar.
             // `min-w-0` lets the pane shrink past its intrinsic content width.
             'flex-1 min-w-0',
             // Right border only when something visible sits to its right.
-            (viewMode === 'split' || showActivity) ? 'border-r border-default' : '',
-            // On xs, when activity is open it covers the whole viewport —
-            // hide the editor so it doesn't compete for layout space.
-            showActivity ? 'hidden sm:block' : ''
+            (viewMode === 'split' || rightSidebar) ? 'border-r border-default' : '',
+            // On xs, when the right sidebar is open it covers the whole
+            // viewport — hide the editor so it doesn't compete for layout.
+            rightSidebar ? 'hidden sm:block' : ''
           ]"
           class="h-full"
         >
@@ -563,14 +629,14 @@ const statusIcon = computed(() => {
 
         <!-- Preview.
              Always rendered when not in edit mode. Hidden by CSS (not v-if)
-             when activity is open AND viewport is below xl — that way the
-             preview re-appears instantly on resize past xl without re-mounting
-             the markdown-it pipeline. -->
+             when the right sidebar is open AND viewport is below xl — that way
+             the preview re-appears instantly on resize past xl without
+             re-mounting the markdown-it pipeline. -->
         <div
           v-if="viewMode !== 'edit'"
           :class="[
             'flex-1 min-w-0 h-full',
-            showActivity ? 'hidden xl:block' : ''
+            rightSidebar ? 'hidden xl:block' : ''
           ]"
         >
           <PreviewPane
@@ -581,34 +647,60 @@ const statusIcon = computed(() => {
           />
         </div>
 
-        <!-- Activity sidebar. Three shapes depending on mode and viewport:
-             - edit mode:                fixed sidebar (w-80), full-width on xs
-             - split/preview, <xl:       takes the right half (flex-1); the
-                                         preview is hidden on that breakpoint
-             - split/preview, xl+:       fixed 320px sidebar → triple-split -->
-        <div
-          v-if="showActivity"
+        <!-- Right sidebar — single slot shared between Activity and Theme.
+             Only one shows at a time; selection is mutually exclusive via
+             `toggleSidebar`. Sizing matches the prior activity layout:
+             - edit mode:           fixed sidebar (w-80), full-width on xs
+             - split/preview, <xl:  takes the right half (flex-1); preview
+                                    is hidden at that breakpoint
+             - split/preview, xl+:  fixed 320px sidebar → triple-split -->
+        <aside
+          v-if="rightSidebar"
           :class="[
             viewMode === 'edit'
               ? 'w-full sm:w-80 sm:shrink-0'
               : 'flex-1 min-w-0 xl:flex-none xl:w-80 xl:shrink-0'
           ]"
-          class="border-l border-default h-full overflow-y-auto"
+          class="border-l border-default h-full overflow-hidden"
         >
-          <div class="p-3 border-b border-default flex items-center justify-between">
-            <h3 class="text-sm font-semibold">{{ t('activity.title') }}</h3>
-            <UButton
-              icon="i-lucide-x"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              @click="showActivity = false"
-            />
+          <div v-if="rightSidebar === 'activity'" class="h-full flex flex-col">
+            <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
+              <div class="flex items-center gap-1.5">
+                <UIcon name="i-lucide-activity" class="size-4 text-muted" />
+                <h3 class="text-sm font-semibold">{{ t('activity.title') }}</h3>
+              </div>
+              <UButton
+                icon="i-lucide-x"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                @click="closeSidebar"
+              />
+            </div>
+            <div class="flex-1 overflow-y-auto p-2 min-h-0">
+              <CollabActivityFeed :doc-id="docId" :ydoc="ydoc" />
+            </div>
           </div>
-          <div class="p-2">
-            <CollabActivityFeed :doc-id="docId" :ydoc="ydoc" />
-          </div>
-        </div>
+          <DocumentThemeEditorPanel
+            v-else-if="rightSidebar === 'theme'"
+            :theme="theme"
+            :can-edit="canEditTheme"
+            @update:theme="setTheme"
+            @reset="resetTheme"
+            @close="closeSidebar"
+          />
+        </aside>
+
+        <!-- Floating AI prompt bar — overlay at the bottom of the
+             content area so it spans the full editor + preview + sidebar
+             zone. Hidden in preview-only mode (no editing happens) and
+             when the doc is read-only (no edits accepted). The component
+             positions itself absolutely; we just need this `<main>` to
+             be `relative` (set above). -->
+        <AIPromptBar
+          v-if="!isReadOnly && viewMode !== 'preview'"
+          :ai="ai"
+        />
       </main>
 
       <!-- Status bar -->
@@ -654,16 +746,6 @@ const statusIcon = computed(() => {
       :current-access-mode="accessMode"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
       @deleted="navigateTo('/')"
-    />
-
-    <!-- Theme editor. The button to open it is gated above; the
-         component is always mounted so its open/close transition works. -->
-    <DocumentThemeEditorSlideover
-      v-model:open="showThemeEditor"
-      :theme="theme"
-      :can-edit="canEditTheme"
-      @update:theme="setTheme"
-      @reset="resetTheme"
     />
 
     <!-- Password gate -->

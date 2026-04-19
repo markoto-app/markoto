@@ -3,64 +3,67 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 
+// Eagerly load every picker font in a single Google Fonts request so each
+// item in the font dropdowns can be rendered in its own face. Done via
+// useHead so Nuxt manages the <link> across page navigations and dedupes
+// it across multiple panel mounts. Only fires client-side (head injection
+// during SSR would block the doc shell on a third-party stylesheet).
+if (import.meta.client) {
+  const families = THEME_FONTS
+    .map(f => `family=${f.name.replace(/ /g, '+')}:wght@400;500;600;700`)
+    .join('&')
+  useHead({
+    link: [{
+      key: 'theme-font-picker-preview',     // dedupe key — Nuxt won't add twice
+      rel: 'stylesheet',
+      href: `https://fonts.googleapis.com/css2?${families}&display=swap`
+    }]
+  })
+}
+
 /**
- * Owner-only theme editor. Lives in a USlideover so the right pane
- * (paged.js preview) stays visible while the user tweaks knobs — every
- * change applies live via `setTheme`, so the user sees pagination shift
- * in real time.
+ * Embedded theme editor — sits in the right sidebar slot alongside the
+ * activity panel. Layout-shift (not overlay) so the user can keep
+ * editing the doc and watch the preview re-paginate as they tweak.
  *
- * Local draft pattern: when the slideover opens, we deep-clone
- * `theme.value` into `draft`. All form controls bind to `draft`. A
- * deep-watch on `draft` fires `setTheme(draft)` (debounced inside
- * useDocument's persistTheme — typing fast doesn't spam PUTs).
- *
- * Why not bind controls directly to `theme.value`: it's `readonly()`,
- * and we'd be writing through the proxy on every keystroke. Local draft
- * + watch is cheaper and lets us add a "Discard changes" button later
- * if we want one.
+ * Local draft pattern: clones `props.theme` on mount and on every
+ * external change (e.g. a remote collaborator). All form controls bind
+ * to the draft; deep-watch fires `update:theme` upstream which calls
+ * `setTheme` (Y.js write + debounced PUT).
  */
 const props = defineProps<{
   theme: DocTheme
   // True when the current user has theme write access — owners always,
-  // and any visitor on an ownerless (anonymous-created) doc since that
-  // doc's whole access model is "anyone can change anything".
+  // and any visitor on an ownerless (anonymous-created) doc.
   canEdit: boolean
 }>()
 
 const emit = defineEmits<{
   'update:theme': [DocTheme]
   'reset': []
+  'close': []
 }>()
-
-const open = defineModel<boolean>('open', { required: true })
 
 const { t } = useI18n()
 
-// Working draft. Re-cloned every time the slideover opens so external
-// edits made between sessions are picked up. structuredClone preserves
-// nested object shape (DocTheme has page/typography/color/layout/...).
 const draft = ref<DocTheme>(structuredClone(toRaw(props.theme)))
 
-watch(open, (isOpen) => {
-  if (isOpen) {
-    draft.value = structuredClone(toRaw(props.theme))
+// Re-clone whenever the external theme changes (initial load, remote
+// edit). Without this the panel keeps showing the old draft after a
+// collaborator changes the theme out from under us.
+watch(() => props.theme, (next) => {
+  if (JSON.stringify(next) !== JSON.stringify(draft.value)) {
+    draft.value = structuredClone(toRaw(next))
   }
-})
+}, { deep: true })
 
-// Push live edits up. Deep watch — every nested field counts.
-// useDebounceFn covers the DB write side (in useDocument.persistTheme),
-// but the in-doc Y.Map write fires immediately so collaborators see
-// changes with no perceptible lag. Bypass the very first invocation
-// (immediate run on watcher attach) by comparing against props.theme.
+// Push live edits up. Skip the no-op case where draft already matches
+// props (covers the initial mount + the re-clone watcher above).
 watch(draft, (next) => {
   if (JSON.stringify(next) === JSON.stringify(props.theme)) return
   emit('update:theme', structuredClone(toRaw(next)))
 }, { deep: true })
 
-// Sections — UAccordion items. `open` defaults to all so the user can
-// see everything at once when the panel opens (a closed-everything
-// default reads as "what now?"). Per-section state lives in the
-// component for free.
 // `slot` enables per-item template overrides — Nuxt UI v4 then exposes
 // `#<slot>` (custom trigger) and `#<slot>-body` (custom body) for each
 // item. Without `slot`, the named templates below are silently ignored
@@ -75,7 +78,6 @@ const sectionItems = computed(() => [
   { value: 'blocks', slot: 'blocks', label: t('theme.section.blocks'), icon: 'i-lucide-image' }
 ])
 
-// Items for select inputs. Built as computed so i18n switching reapplies.
 const pageSizeItems = [
   { label: 'A4 (210 × 297 mm)', value: 'A4' },
   { label: 'Letter (8.5 × 11 in)', value: 'Letter' },
@@ -100,6 +102,10 @@ const blockquoteItems = computed(() => [
   { label: t('theme.blockquote.background'), value: 'background' },
   { label: t('theme.blockquote.none'), value: 'none' }
 ])
+const textAlignItems = computed(() => [
+  { label: t('theme.align.left'), value: 'left' },
+  { label: t('theme.align.justify'), value: 'justify' }
+])
 const headingScaleItems = [
   { label: '1.067 (Minor Second)', value: 1.067 },
   { label: '1.125 (Major Second)', value: 1.125 },
@@ -109,9 +115,6 @@ const headingScaleItems = [
   { label: '1.414 (Augmented Fourth)', value: 1.414 },
   { label: '1.500 (Perfect Fifth)', value: 1.5 }
 ]
-
-// Font picker items. We pre-group sans / serif so the dropdown reads
-// like a curated list, not a flat alphabetical mush.
 const fontPickerItems = computed(() => [
   { type: 'label' as const, label: t('theme.fonts.sans') },
   ...THEME_FONTS.filter(f => f.category === 'sans').map(f => ({ label: f.name, value: f.name })),
@@ -119,39 +122,66 @@ const fontPickerItems = computed(() => [
   ...THEME_FONTS.filter(f => f.category === 'serif').map(f => ({ label: f.name, value: f.name }))
 ])
 
-// Header/footer template tokens — clickable chips that insert the token
-// into the focused input. We track which input was last focused so the
-// chip click knows where to insert.
 const tokenChips = [
-  { token: '{title}', labelKey: 'theme.token.title' },
-  { token: '{date}', labelKey: 'theme.token.date' },
-  { token: '{page}', labelKey: 'theme.token.page' },
-  { token: '{pages}', labelKey: 'theme.token.pages' }
+  { token: '{title}' },
+  { token: '{date}' },
+  { token: '{page}' },
+  { token: '{pages}' }
 ]
 
-function insertToken(slot: 'header' | 'footer', position: 'left' | 'center' | 'right', token: string) {
+// Track the most-recently-focused header/footer input so a chip click
+// can insert into the right slot+position. Inputs identify themselves
+// via `data-slot` / `data-position` so the dispatch stays declarative
+// instead of needing one ref per input.
+const activeSlotInput = ref<HTMLInputElement | null>(null)
+
+function insertToken(token: string) {
+  const el = activeSlotInput.value
+  if (!el) return
+  const slot = el.dataset.slot as 'header' | 'footer' | undefined
+  const position = el.dataset.position as 'left' | 'center' | 'right' | undefined
+  if (!slot || !position) return
+
+  const start = el.selectionStart ?? el.value.length
+  const end = el.selectionEnd ?? el.value.length
   const current = draft.value[slot][position]
-  draft.value[slot][position] = current + token
+  draft.value[slot][position] = current.slice(0, start) + token + current.slice(end)
+
+  // Restore focus + place caret right after the inserted token.
+  // Wait one tick so Vue's reactivity has flushed the new value.
+  nextTick(() => {
+    el.focus()
+    const caret = start + token.length
+    el.setSelectionRange(caret, caret)
+  })
 }
 
 function doReset() {
   draft.value = structuredClone(defaultTheme)
   emit('reset')
 }
-
-function dismiss() {
-  open.value = false
-}
 </script>
 
 <template>
-  <USlideover
-    v-model:open="open"
-    :title="t('theme.title')"
-    :description="t('theme.description')"
-    :ui="{ content: 'sm:max-w-md' }"
-  >
-    <template #body>
+  <div class="flex flex-col h-full">
+    <!-- Panel header — mirrors the activity feed header pattern so the
+         right sidebar reads consistently regardless of which slot is open. -->
+    <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-1.5">
+        <UIcon name="i-lucide-palette" class="size-4 text-muted" />
+        <h3 class="text-sm font-semibold">{{ t('theme.title') }}</h3>
+      </div>
+      <UButton
+        icon="i-lucide-x"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        @click="emit('close')"
+      />
+    </div>
+
+    <!-- Body — scrollable; flex-1 so the form fills the remaining height. -->
+    <div class="flex-1 overflow-y-auto p-3 min-h-0">
       <div v-if="!canEdit" class="text-sm text-muted">
         {{ t('theme.readOnly') }}
       </div>
@@ -163,9 +193,8 @@ function dismiss() {
         type="multiple"
         :unmount-on-hide="false"
       >
-        <!-- Page -->
         <template #page-body>
-          <div class="space-y-4 pt-2">
+          <div class="space-y-4 pt-2 pb-4">
             <UFormField :label="t('theme.page.size')">
               <USelect v-model="draft.page.size" :items="pageSizeItems" class="w-full" />
             </UFormField>
@@ -178,14 +207,31 @@ function dismiss() {
           </div>
         </template>
 
-        <!-- Typography -->
         <template #typography-body>
-          <div class="space-y-4 pt-2">
+          <div class="space-y-4 pt-2 pb-4">
             <UFormField :label="t('theme.typography.bodyFont')">
-              <USelectMenu v-model="draft.typography.bodyFont" :items="fontPickerItems" value-key="value" class="w-full" />
+              <USelectMenu v-model="draft.typography.bodyFont" :items="fontPickerItems" value-key="value" class="w-full">
+                <!-- Render each label in its own typeface so the user
+                     sees the actual look of every option. The Google
+                     Fonts request injected at script load covers every
+                     value in THEME_FONTS, so any item with `value` set
+                     resolves to a real face (the section-label items
+                     have no value and fall back to system UI). -->
+                <template #item-label="{ item }">
+                  <span :style="item.value ? { fontFamily: `'${item.value}', sans-serif` } : undefined">
+                    {{ item.label }}
+                  </span>
+                </template>
+              </USelectMenu>
             </UFormField>
             <UFormField :label="t('theme.typography.headingFont')">
-              <USelectMenu v-model="draft.typography.headingFont" :items="fontPickerItems" value-key="value" class="w-full" />
+              <USelectMenu v-model="draft.typography.headingFont" :items="fontPickerItems" value-key="value" class="w-full">
+                <template #item-label="{ item }">
+                  <span :style="item.value ? { fontFamily: `'${item.value}', sans-serif` } : undefined">
+                    {{ item.label }}
+                  </span>
+                </template>
+              </USelectMenu>
             </UFormField>
             <div class="grid grid-cols-2 gap-3">
               <UFormField :label="t('theme.typography.bodySize')">
@@ -198,15 +244,17 @@ function dismiss() {
             <UFormField :label="t('theme.typography.headingScale')">
               <USelect v-model="draft.typography.headingScale" :items="headingScaleItems" class="w-full" />
             </UFormField>
+            <UFormField :label="t('theme.typography.textAlign')" :help="t('theme.typography.textAlignHelp')">
+              <USelect v-model="draft.typography.textAlign" :items="textAlignItems" class="w-full" />
+            </UFormField>
             <UFormField :label="t('theme.typography.headingUnderline')">
               <USwitch v-model="draft.typography.headingUnderline" />
             </UFormField>
           </div>
         </template>
 
-        <!-- Color -->
         <template #color-body>
-          <div class="space-y-4 pt-2">
+          <div class="space-y-4 pt-2 pb-4">
             <UFormField :label="t('theme.color.brand')" :help="t('theme.color.brandHelp')">
               <UPopover>
                 <UButton color="neutral" variant="outline" class="w-full justify-start">
@@ -243,9 +291,8 @@ function dismiss() {
           </div>
         </template>
 
-        <!-- Layout -->
         <template #layout-body>
-          <div class="space-y-4 pt-2">
+          <div class="space-y-4 pt-2 pb-4">
             <UFormField :label="t('theme.layout.columns')">
               <USelect v-model="draft.layout.columns" :items="columnItems" class="w-full" />
             </UFormField>
@@ -255,18 +302,35 @@ function dismiss() {
           </div>
         </template>
 
-        <!-- Header -->
         <template #header-body>
-          <div class="space-y-3 pt-2">
+          <div class="space-y-3 pt-2 pb-4">
             <p class="text-xs text-muted">{{ t('theme.runningSlots.help') }}</p>
             <UFormField :label="t('theme.runningSlots.left')">
-              <UInput v-model="draft.header.left" class="w-full" placeholder="" />
+              <UInput
+                v-model="draft.header.left"
+                class="w-full"
+                data-slot="header"
+                data-position="left"
+                @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
+              />
             </UFormField>
             <UFormField :label="t('theme.runningSlots.center')">
-              <UInput v-model="draft.header.center" class="w-full" placeholder="" />
+              <UInput
+                v-model="draft.header.center"
+                class="w-full"
+                data-slot="header"
+                data-position="center"
+                @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
+              />
             </UFormField>
             <UFormField :label="t('theme.runningSlots.right')">
-              <UInput v-model="draft.header.right" class="w-full" placeholder="" />
+              <UInput
+                v-model="draft.header.right"
+                class="w-full"
+                data-slot="header"
+                data-position="right"
+                @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
+              />
             </UFormField>
             <div class="flex flex-wrap gap-1.5 pt-1">
               <span class="text-xs text-muted self-center mr-1">{{ t('theme.runningSlots.tokens') }}</span>
@@ -276,7 +340,8 @@ function dismiss() {
                 size="xs"
                 color="neutral"
                 variant="soft"
-                @click="insertToken('header', 'left', chip.token)"
+                @mousedown.prevent
+                @click="insertToken(chip.token)"
               >
                 {{ chip.token }}
               </UButton>
@@ -284,18 +349,35 @@ function dismiss() {
           </div>
         </template>
 
-        <!-- Footer -->
         <template #footer-body>
-          <div class="space-y-3 pt-2">
+          <div class="space-y-3 pt-2 pb-4">
             <p class="text-xs text-muted">{{ t('theme.runningSlots.help') }}</p>
             <UFormField :label="t('theme.runningSlots.left')">
-              <UInput v-model="draft.footer.left" class="w-full" />
+              <UInput
+                v-model="draft.footer.left"
+                class="w-full"
+                data-slot="footer"
+                data-position="left"
+                @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
+              />
             </UFormField>
             <UFormField :label="t('theme.runningSlots.center')">
-              <UInput v-model="draft.footer.center" class="w-full" />
+              <UInput
+                v-model="draft.footer.center"
+                class="w-full"
+                data-slot="footer"
+                data-position="center"
+                @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
+              />
             </UFormField>
             <UFormField :label="t('theme.runningSlots.right')">
-              <UInput v-model="draft.footer.right" class="w-full" />
+              <UInput
+                v-model="draft.footer.right"
+                class="w-full"
+                data-slot="footer"
+                data-position="right"
+                @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
+              />
             </UFormField>
             <div class="flex flex-wrap gap-1.5 pt-1">
               <span class="text-xs text-muted self-center mr-1">{{ t('theme.runningSlots.tokens') }}</span>
@@ -305,7 +387,8 @@ function dismiss() {
                 size="xs"
                 color="neutral"
                 variant="soft"
-                @click="insertToken('footer', 'center', chip.token)"
+                @mousedown.prevent
+                @click="insertToken(chip.token)"
               >
                 {{ chip.token }}
               </UButton>
@@ -313,9 +396,8 @@ function dismiss() {
           </div>
         </template>
 
-        <!-- Blocks -->
         <template #blocks-body>
-          <div class="space-y-4 pt-2">
+          <div class="space-y-4 pt-2 pb-4">
             <div class="grid grid-cols-2 gap-3">
               <UFormField :label="t('theme.blocks.imageRadius')">
                 <UInputNumber v-model="draft.blocks.imageRadius" :min="0" :max="32" :step="1" class="w-full" />
@@ -333,24 +415,19 @@ function dismiss() {
           </div>
         </template>
       </UAccordion>
-    </template>
+    </div>
 
-    <template #footer>
-      <div class="flex items-center justify-between w-full">
-        <UButton
-          v-if="canEdit"
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-rotate-ccw"
-          @click="doReset"
-        >
-          {{ t('theme.reset') }}
-        </UButton>
-        <span v-else />
-        <UButton color="primary" @click="dismiss">
-          {{ t('common.close') }}
-        </UButton>
-      </div>
-    </template>
-  </USlideover>
+    <!-- Footer — Reset button (only when editable) -->
+    <div v-if="canEdit" class="p-3 border-t border-default shrink-0">
+      <UButton
+        block
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-rotate-ccw"
+        @click="doReset"
+      >
+        {{ t('theme.reset') }}
+      </UButton>
+    </div>
+  </div>
 </template>

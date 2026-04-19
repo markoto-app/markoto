@@ -130,6 +130,12 @@ function tokenToCss(token: string, runtime: ThemeRuntime): string {
 function rootBlock(theme: DocTheme): string {
   const { brand, text, background } = theme.color
   const { columns, columnGap } = theme.layout
+  // `column-fill: auto` is the native fix for "fill column 1 before
+  // starting column 2": with the default `balance`, the browser tries
+  // to equalize column heights inside the container, which inside a
+  // paged.js page box reads as the second column starting prematurely
+  // mid-paragraph. `auto` flows top-to-bottom column-by-column, which
+  // is the print-typography convention the user expects.
   return `.paged-doc {
   --doc-brand: ${brand};
   --doc-text: ${text};
@@ -139,7 +145,7 @@ function rootBlock(theme: DocTheme): string {
   line-height: ${theme.typography.lineHeight};
   color: var(--doc-text);
   background: var(--doc-bg);
-${columns > 1 ? `  column-count: ${columns};\n  column-gap: ${columnGap}mm;` : ''}
+${columns > 1 ? `  column-count: ${columns};\n  column-gap: ${columnGap}mm;\n  column-fill: auto;` : ''}
 }`
 }
 
@@ -162,9 +168,21 @@ function typographyBlock(theme: DocTheme): string {
   margin-bottom: 0.5em;${headingUnderline ? `\n  border-bottom: 1px solid var(--doc-brand);\n  padding-bottom: 0.2em;` : ''}
 }`)
   }
+  // Justified paragraphs need hyphenation (otherwise word-spacing
+  // rivers) and `text-align-last: left` so the final line of each
+  // paragraph isn't stretched.
+  const align = theme.typography.textAlign
+  const justifyExtras = align === 'justify'
+    ? `\n  hyphens: auto;\n  -webkit-hyphens: auto;\n  text-align-last: left;`
+    : ''
+
   return [
     headingRules.join('\n'),
-    `.paged-doc p { margin: 0.6em 0; orphans: 3; widows: 3; }`,
+    // Suppress top margin on whatever leads the document — otherwise an
+    // opening h1/h2 (or paragraph) pushes a chunk of whitespace to the
+    // top of page 1.
+    `.paged-doc > :first-child { margin-top: 0; }`,
+    `.paged-doc p { margin: 0.6em 0; orphans: 3; widows: 3; text-align: ${align};${justifyExtras} }`,
     `.paged-doc strong { font-weight: 700; }`,
     `.paged-doc em { font-style: italic; }`,
     `.paged-doc a {

@@ -124,6 +124,45 @@
     "darkMode": "Dark mode",
     "account": "Account"
   },
+  "menubar": {
+    "file": {
+      "title": "File",
+      "new": "New document",
+      "import": "Import…",
+      "export": "Export",
+      "print": "Print / Save as PDF"
+    },
+    "edit": {
+      "title": "Edit",
+      "undo": "Undo",
+      "redo": "Redo"
+    },
+    "view": {
+      "title": "View",
+      "language": "Language"
+    },
+    "insert": {
+      "title": "Insert",
+      "codeBlock": "Code block"
+    },
+    "format": {
+      "title": "Format",
+      "inlineCode": "Inline code"
+    },
+    "sharing": {
+      "title": "Sharing",
+      "access": "Sharing settings…",
+      "password": "Set or change password…",
+      "copyLink": "Copy link",
+      "delete": "Delete document…"
+    },
+    "help": {
+      "title": "Help",
+      "shortcuts": "Keyboard shortcuts",
+      "feedback": "Report an issue",
+      "github": "View on GitHub"
+    }
+  },
   "ai": {
     "placeholder": "Tell the AI what to do…",
     "send": "Send",
@@ -172,7 +211,13 @@
       "bodySize": "Body size (pt)",
       "lineHeight": "Line height",
       "headingScale": "Heading scale",
-      "headingUnderline": "Underline headings"
+      "headingUnderline": "Underline headings",
+      "textAlign": "Paragraph alignment",
+      "textAlignHelp": "Justify fills the line edge-to-edge with hyphenation."
+    },
+    "align": {
+      "left": "Left",
+      "justify": "Justify (fill)"
     },
     "fonts": {
       "sans": "Sans-serif",

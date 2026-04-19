@@ -95,7 +95,8 @@ export default defineEventHandler(async (event) => {
       initiatorName,
       initiatorUserId: userId,
       initiatorColor,
-      prompt: `(rewrite) ${prompt}`
+      prompt: `(rewrite) ${prompt}`,
+      kind: 'rewrite'
     }, abortController.signal)
 
     aiSession.updateStatus('thinking', 'Rewriting…')

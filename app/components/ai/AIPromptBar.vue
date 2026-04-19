@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { AiSessionInfo } from '../../composables/useAI'
-
 const props = defineProps<{
   ai: {
     mySession: ReturnType<typeof useAI>['mySession']
@@ -19,10 +17,16 @@ const { loggedIn } = useUserSession()
 const toast = useToast()
 
 const input = ref('')
+const focused = ref(false)
 
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
-  if (props.ai.mySession.value) return props.ai.mySession.value.message || t('ai.statusThinking')
+  // Only mirror the session message for prompt-kind sessions; rewrite
+  // sessions belong to the selection popup's UX and the bottom bar
+  // should stay visually neutral during them (still disabled — see
+  // `disabled` below — but no "Rewriting…" status leaking up here).
+  const s = props.ai.mySession.value
+  if (s && s.kind !== 'rewrite') return s.message || t('ai.statusThinking')
   return t('ai.placeholder')
 })
 
@@ -35,13 +39,8 @@ async function onSubmit() {
   if (!text || disabled.value) return
   const ok = await props.ai.prompt(text)
   if (ok) input.value = ''
-  // Errors — whether from submission or from a mid-session failure — are surfaced via
-  // the `lastError` watcher below so we don't duplicate the toast here.
 }
 
-// Any time `lastError` changes to a non-empty string, show a toast and ask the
-// composable to clear it so the next error fires its own toast. `lastError` is
-// exposed readonly — we never mutate it directly from the component.
 watch(() => props.ai.lastError.value, (err) => {
   if (!err) return
   toast.add({
@@ -69,61 +68,231 @@ const statusIcon = computed(() => {
     default: return 'i-lucide-sparkles'
   }
 })
+
+// Animate the bottom bar only for *prompt* sessions, never for inline
+// rewrites — those have their own surface (`AISelectionPopup`) with its
+// own animation. Both endpoints flow through the same Y.js awareness
+// machinery server-side, so without this gate the rainbow + pulse
+// would also fire on the bottom bar during a rewrite, which reads as
+// "two things happening" when only one is.
+const isActive = computed(() => {
+  const s = props.ai.mySession.value
+  return !!s && s.kind !== 'rewrite'
+})
 </script>
 
 <template>
-  <div class="border-b border-default px-2 py-1.5 shrink-0 flex items-center gap-2">
-    <!-- Sparkles icon / live status icon -->
-    <UIcon
-      :name="ai.mySession.value ? statusIcon : 'i-lucide-sparkles'"
-      :class="[
-        'size-4 shrink-0',
-        ai.mySession.value ? 'text-amber-500 animate-pulse' : 'text-amber-500'
-      ]"
-    />
+  <!-- Floating AI bar — positioned by parent (`<main>` should be
+       `relative`). Sits above the bottom edge of the editor + preview
+       area, centered and prominent. Pill shape, frosted backdrop, blue
+       accent ring + heavy soft glow so it reads as "AI surface" against
+       the doc body — analogous to Android's on-screen Google AI bar. -->
+  <div
+    class="ai-prompt-bar pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center px-4"
+    :class="{ 'is-focused': focused, 'is-active': isActive }"
+  >
+    <div
+      class="ai-prompt-bar__shell pointer-events-auto w-full max-w-3xl flex items-center gap-0 rounded-full pl-5 pr-0 py-0 backdrop-blur-md transition-all"
+    >
+      <!-- Leading sparkle / live status icon. Bigger than a typical
+           toolbar icon to anchor the bar visually; pulses gently while
+           a session is in flight. -->
+      <UIcon
+        :name="isActive ? statusIcon : 'i-lucide-sparkles'"
+        :class="[
+          'size-5 shrink-0 mr-3 transition-colors',
+          isActive ? 'text-blue-500 animate-pulse' : 'text-blue-500'
+        ]"
+      />
 
-    <!-- Prompt input -->
-    <input
-      v-model="input"
-      type="text"
-      :placeholder="placeholder"
-      :disabled="disabled"
-      class="flex-1 bg-transparent outline-none text-sm placeholder:text-muted disabled:text-muted"
-      :class="{ 'italic': disabled && !!ai.mySession.value }"
-      @keydown.enter="onSubmit"
-    >
+      <input
+        v-model="input"
+        type="text"
+        :placeholder="placeholder"
+        :disabled="disabled"
+        class="flex-1 min-w-0 bg-transparent outline-none text-base placeholder:text-muted disabled:text-muted py-3 pr-0"
+        :class="{ 'italic': disabled && isActive }"
+        @focus="focused = true"
+        @blur="focused = false"
+        @keydown.enter="onSubmit"
+      >
 
-    <!-- Other-sessions indicator (non-mine) -->
-    <UTooltip
-      v-if="ai.otherSessions.value.length > 0"
-      :text="ai.otherSessions.value.map(s => `${s.initiatorName}: ${s.prompt}`).join('\n')"
-    >
-      <UBadge color="warning" variant="subtle" size="sm">
-        <UIcon name="i-lucide-users" class="size-3 mr-1" />
-        {{ t('ai.otherSessions', ai.otherSessions.value.length) }}
-      </UBadge>
-    </UTooltip>
+      <!-- Other-sessions indicator — kept compact so the bar doesn't
+           grow visually when collaborators are also asking the AI. -->
+      <UTooltip
+        v-if="ai.otherSessions.value.length > 0"
+        :text="ai.otherSessions.value.map(s => `${s.initiatorName}: ${s.prompt}`).join('\n')"
+      >
+        <UBadge color="info" variant="subtle" size="sm" class="rounded-full mr-2">
+          <UIcon name="i-lucide-users" class="size-3 mr-1" />
+          {{ ai.otherSessions.value.length }}
+        </UBadge>
+      </UTooltip>
 
-    <!-- Send / Stop button -->
-    <UButton
-      v-if="!ai.mySession.value"
-      size="xs"
-      color="primary"
-      icon="i-lucide-send"
-      :loading="ai.submitting.value"
-      :disabled="!loggedIn || !input.trim()"
-      @click="onSubmit"
-    >
-      {{ t('ai.send') }}
-    </UButton>
-    <UButton
-      v-else
-      size="xs"
-      color="error"
-      icon="i-lucide-square"
-      @click="onStop"
-    >
-      {{ t('ai.stop') }}
-    </UButton>
+      <!-- Send / Stop — perfect circle, hugs the input height edge to
+           edge. Icon-only (label kept on `aria-label` so screen readers
+           still get it); the action is unambiguous from the icon and a
+           text label would break the round shape. -->
+      <UButton
+        v-if="!isActive"
+        color="info"
+        icon="i-lucide-send"
+        :loading="ai.submitting.value"
+        :disabled="!loggedIn || !input.trim()"
+        :aria-label="t('ai.send')"
+        class="ai-prompt-bar__action"
+        @click="onSubmit"
+      />
+      <UButton
+        v-else
+        color="error"
+        icon="i-lucide-square"
+        :aria-label="t('ai.stop')"
+        class="ai-prompt-bar__action"
+        @click="onStop"
+      />
+    </div>
   </div>
 </template>
+
+<style scoped>
+/*
+ * AI surface treatment.
+ *
+ * - Light mode: white frosted background with a blue accent ring + soft
+ *   glow. The ring is the primary AI-distinct visual cue ("not part of
+ *   the doc"); the heavy drop shadow lifts the bar off the page.
+ * - Dark mode: tinted dark background, slightly stronger ring opacity
+ *   so the glow still reads against deep neutrals.
+ * - On focus (input has caret) and during an active AI session, the
+ *   ring tightens and the glow expands so the user gets clear "I'm
+ *   composing" and "AI is doing something" affordances.
+ *
+ * Using inline classes for layout (Tailwind), inline styles for the
+ * gradient/shadow stack — Tailwind's arbitrary-value escapes for
+ * stacked shadows with color-mix become unreadable.
+ */
+.ai-prompt-bar__shell {
+  background: color-mix(in srgb, var(--ui-bg) 88%, transparent);
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--color-blue-500, #3b82f6) 45%, transparent),
+    0 16px 48px -12px color-mix(in srgb, var(--color-blue-500, #3b82f6) 35%, transparent),
+    0 8px 24px -8px rgb(0 0 0 / 0.15);
+}
+
+.dark .ai-prompt-bar__shell {
+  background: color-mix(in srgb, var(--ui-bg) 78%, transparent);
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--color-blue-500, #3b82f6) 55%, transparent),
+    0 16px 48px -12px color-mix(in srgb, var(--color-blue-500, #3b82f6) 45%, transparent),
+    0 8px 24px -8px rgb(0 0 0 / 0.5);
+}
+
+.ai-prompt-bar.is-focused .ai-prompt-bar__shell {
+  box-shadow:
+    0 0 0 2.5px color-mix(in srgb, var(--color-blue-500, #3b82f6) 70%, transparent),
+    0 20px 56px -12px color-mix(in srgb, var(--color-blue-500, #3b82f6) 50%, transparent),
+    0 8px 24px -8px rgb(0 0 0 / 0.18);
+}
+
+/*
+ * Active session — rainbow ring + pulsing glow.
+ *
+ * Two simultaneous animations drive the look:
+ *   1. `ai-rainbow` — cycles hue 0→360 over 8s, linear, so the ring
+ *      and glow drift through red → yellow → green → cyan → blue →
+ *      magenta and back at a calm pace (fast cycling reads as anxious).
+ *   2. `ai-pulse` — eases a 0→1 value up and down every 2.8s, used to
+ *      breathe the ring thickness and the glow's blur + opacity so the
+ *      bar feels "alive" rather than just a moving color wheel.
+ *
+ * Custom properties are declared via `@property` because CSS otherwise
+ * treats unknown vars as opaque strings and refuses to interpolate
+ * them. With the syntax declared, browsers tween numerically and the
+ * box-shadow recomputes per frame.
+ */
+@property --ai-rainbow-hue {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --ai-rainbow-pulse {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes ai-rainbow {
+  to { --ai-rainbow-hue: 360; }
+}
+@keyframes ai-pulse {
+  0%, 100% { --ai-rainbow-pulse: 0; }
+  50%      { --ai-rainbow-pulse: 1; }
+}
+
+.ai-prompt-bar.is-active .ai-prompt-bar__shell {
+  animation:
+    ai-rainbow 8s linear infinite,
+    ai-pulse 2.8s ease-in-out infinite;
+  /* Compose values in derived custom props so the shadow rule below
+     stays readable. `_h` carries the deg-suffixed hue, `_p` is the
+     0..1 pulse for use in linear interpolations below. */
+  --_h: calc(var(--ai-rainbow-hue) * 1deg);
+  --_p: var(--ai-rainbow-pulse);
+
+  box-shadow:
+    /* Border ring — thickness pulses 2 px → 4 px */
+    0 0 0 calc(2px + var(--_p) * 2px) hsl(var(--_h) 90% 60% / 0.85),
+    /* Outer glow — y-offset, blur, and opacity all breathe */
+    0 calc(18px + var(--_p) * 14px) calc(48px + var(--_p) * 28px) -12px hsl(var(--_h) 95% 60% / calc(0.45 + var(--_p) * 0.3)),
+    /* Static drop shadow — kept dark/neutral so the bar still has
+       depth against the page even at the dimmest pulse phase */
+    0 8px 24px -8px rgb(0 0 0 / 0.2);
+}
+
+/* Respect users who've asked for reduced motion — drop the animations
+ * but keep the active state visually distinct via a static rainbow-y
+ * tint so the AI cue still reads. */
+@media (prefers-reduced-motion: reduce) {
+  .ai-prompt-bar.is-active .ai-prompt-bar__shell {
+    animation: none;
+    box-shadow:
+      0 0 0 2.5px color-mix(in srgb, var(--color-violet-500, #8b5cf6) 70%, transparent),
+      0 20px 56px -12px color-mix(in srgb, var(--color-violet-500, #8b5cf6) 50%, transparent),
+      0 8px 24px -8px rgb(0 0 0 / 0.18);
+  }
+}
+
+/*
+ * Action button — perfect circle that hugs the input row's height.
+ * UButton's own size/rounded utilities ship at the same specificity as
+ * any utility class we'd put on the element, so the override here uses
+ * `!important` to win unconditionally. Width / height are pinned at 40
+ * px, matching the input's 40 px content row (the bar is 52 px tall =
+ * 40 input + 12 padding) so the button reads as edge-to-edge inside
+ * the pill.
+ */
+/* `:deep` is required because UButton renders the actual <button> as a
+ * child-component root — scoped CSS attribute selectors otherwise miss
+ * it. With :deep, the selector applies regardless of scope tagging. */
+/* Match the input row's height exactly so the button is edge-to-edge
+ * with the input — no white margin on top/bottom/right. The shell has
+ * `py-0` + `pr-0`; the input is `py-3` (24 px padding) + ~24 px line
+ * height = 48 px content row, so the button is 48 px square. */
+.ai-prompt-bar__shell :deep(.ai-prompt-bar__action) {
+  width: 3rem !important;          /* 48 px */
+  height: 3rem !important;
+  min-height: 3rem !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  gap: 0 !important;
+}
+.ai-prompt-bar__shell :deep(.ai-prompt-bar__action .iconify) {
+  width: 1.25rem !important;       /* 20 px — proportional to the 48 px button */
+  height: 1.25rem !important;
+}
+</style>

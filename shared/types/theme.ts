@@ -15,6 +15,7 @@ export type PageOrientation = 'portrait' | 'landscape'
 export type ColumnCount = 1 | 2 | 3
 export type CodeBlockTheme = 'light' | 'dark' | 'none'
 export type BlockquoteStyle = 'border' | 'background' | 'none'
+export type TextAlign = 'left' | 'justify'
 
 /**
  * Header/footer slot. Templates support these tokens:
@@ -43,6 +44,7 @@ export type DocTheme = {
     headingFont: string
     headingScale: number     // modular ratio (1.2 / 1.25 / 1.333)
     headingUnderline: boolean
+    textAlign: TextAlign     // 'left' (default) or 'justify' (fill)
   }
   color: {
     brand: string            // hex; used for links + accent borders + heading underline

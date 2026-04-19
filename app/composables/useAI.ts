@@ -5,6 +5,11 @@ export interface AiSessionInfo {
   initiatorName: string
   initiatorUserId: number
   prompt: string
+  // 'prompt' = full agentic loop (drives the bottom prompt bar's
+  // animation). 'rewrite' = inline selection rewrite (drives the
+  // selection popup's animation). Older sessions without the field
+  // default to 'prompt' to preserve legacy behavior.
+  kind: 'prompt' | 'rewrite'
   phase: 'thinking' | 'tool' | 'editing' | 'done' | 'error' | string
   message: string | null
 }
@@ -33,6 +38,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness) {
         initiatorName: ai.initiatorName,
         initiatorUserId: ai.initiatorUserId,
         prompt: ai.prompt ?? '',
+        kind: ai.kind === 'rewrite' ? 'rewrite' : 'prompt',
         phase: status?.phase ?? 'thinking',
         message: status?.message ?? null
       })

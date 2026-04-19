@@ -24,6 +24,12 @@ export interface SessionMeta {
   initiatorUserId: number
   initiatorColor: string
   prompt: string
+  // 'prompt' = full agentic loop (long-running, gets the bottom bar's
+  // attention treatment). 'rewrite' = inline selection rewrite (short,
+  // its own UI surface — should NOT animate the bottom bar). Defaults
+  // to 'prompt' when omitted so the legacy behavior holds for any
+  // future caller that forgets to set it.
+  kind?: 'prompt' | 'rewrite'
 }
 
 /**
@@ -73,7 +79,8 @@ export async function createAiSession(
     sessionId: meta.sessionId,
     initiatorName: meta.initiatorName,
     initiatorUserId: meta.initiatorUserId,
-    prompt: meta.prompt
+    prompt: meta.prompt,
+    kind: meta.kind ?? 'prompt'
   })
   awareness.setLocalStateField('aiStatus', { phase: 'thinking', message: null })
 

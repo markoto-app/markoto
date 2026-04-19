@@ -17,7 +17,8 @@ export const defaultTheme: DocTheme = {
     lineHeight: 1.55,
     headingFont: 'Inter',
     headingScale: 1.25,
-    headingUnderline: false
+    headingUnderline: false,
+    textAlign: 'justify'
   },
   color: {
     brand: '#3B82F6',
