@@ -332,9 +332,9 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
         // theme CSS's plain-monospace rules take over.
         // Highlight.js theme stylesheet — created lazily and only when
         // a non-empty URL is requested. We intentionally do NOT keep a
-        // pre-injected `<link>` around: a link element without an href
-        // (or with an empty one) confused paged.js's Polisher and
-        // wedged pagination silently.
+        // pre-injected link element around: a link without an href (or
+        // with an empty one) confused paged.js's Polisher and wedged
+        // pagination silently.
         if (opts.hljsUrl !== lastHljsUrl) {
           var hljsEl = document.getElementById('hljs-theme');
           if (opts.hljsUrl) {
