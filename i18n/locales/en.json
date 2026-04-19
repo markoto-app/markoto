@@ -107,9 +107,7 @@
   "export": {
     "title": "Export",
     "markdown": "Markdown (.md)",
-    "html": "HTML (.html)",
     "pdf": "PDF (.pdf)",
-    "docx": "Word (.docx)",
     "exporting": "Exporting..."
   },
   "common": {

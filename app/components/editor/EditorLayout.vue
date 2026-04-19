@@ -56,8 +56,10 @@ watch(isDeleted, (deleted) => {
 })
 // Activity sidebar state
 const showActivity = ref(false)
-// Export state
+// PDF export state — drives the dropdown loader spinner.
 const exporting = ref(false)
+// Page count from the paged.js preview, surfaced in the status bar.
+const pageCount = ref(0)
 
 // Access-mode header button — closed lock when the doc is restricted (private
 // or password-protected), open lock when anyone with the link gets in (view or
@@ -75,21 +77,22 @@ const LOCKED_MODES = new Set(['private', 'password-protected'])
 const accessIcon = computed(() => LOCKED_MODES.has(accessMode.value) ? 'i-lucide-lock' : 'i-lucide-lock-open')
 const accessLabelKey = computed(() => ACCESS_LABELS[accessMode.value] ?? 'share.openEdit')
 
-async function exportDocument(format: 'pdf' | 'docx' | 'html') {
+async function exportPdf() {
   exporting.value = true
   try {
-    // Read content fresh from ytext — shallowRef may be stale after HMR
-    const content = ytext.toString()
-    const response = await fetch(`/api/export/${props.docId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown: content, format })
+    // Read content fresh from ytext — shallowRef may be stale after HMR.
+    await printDocumentAsPdf({
+      source: ytext.toString(),
+      theme: defaultTheme,
+      title: title.value
     })
-    if (!response.ok) throw new Error(`Export failed: ${response.status}`)
-    const blob = await response.blob()
-    downloadFile(blob, `${title.value}.${format}`)
   } catch (e: any) {
-    console.error('Export failed:', e)
+    console.error('PDF export failed:', e)
+    toast.add({
+      title: 'PDF export failed',
+      description: e?.message ?? 'Unknown error',
+      color: 'error'
+    })
   } finally {
     exporting.value = false
   }
@@ -97,17 +100,6 @@ async function exportDocument(format: 'pdf' | 'docx' | 'html') {
 
 function exportMarkdown() {
   downloadMarkdown(textContent.value, title.value)
-}
-
-function exportHtml() {
-  // Use the preview rendered HTML
-  const previewEl = document.querySelector('.preview-content')
-  if (previewEl) {
-    downloadHtml(previewEl.innerHTML, title.value)
-  } else {
-    // Fallback: export raw markdown as HTML via Pandoc
-    exportDocument('html')
-  }
 }
 
 // View mode: 'edit' | 'preview' | 'split'
@@ -472,19 +464,9 @@ const statusIcon = computed(() => {
                 onSelect: exportMarkdown
               },
               {
-                label: t('export.html'),
-                icon: 'i-lucide-code',
-                onSelect: exportHtml
-              },
-              {
                 label: t('export.pdf'),
                 icon: 'i-lucide-file-output',
-                onSelect: () => exportDocument('pdf')
-              },
-              {
-                label: t('export.docx'),
-                icon: 'i-lucide-file-output',
-                onSelect: () => exportDocument('docx')
+                onSelect: exportPdf
               }
             ]"
           >
@@ -571,7 +553,11 @@ const statusIcon = computed(() => {
             showActivity ? 'hidden xl:block' : ''
           ]"
         >
-          <PreviewPane :source="textContent" />
+          <PreviewPane
+            v-model:page-count="pageCount"
+            :source="textContent"
+            :title="title"
+          />
         </div>
 
         <!-- Activity sidebar. Three shapes depending on mode and viewport:
@@ -608,6 +594,7 @@ const statusIcon = computed(() => {
       <footer class="border-t border-default px-4 py-1 flex items-center justify-between text-xs text-muted shrink-0">
         <div class="flex items-center gap-4">
           <span>{{ wordCount }} words</span>
+          <span v-if="viewMode !== 'edit' && pageCount > 0">{{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }}</span>
           <span>{{ charCount }} chars</span>
         </div>
         <div class="flex items-center gap-4">

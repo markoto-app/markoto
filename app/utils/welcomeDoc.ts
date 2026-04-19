@@ -81,6 +81,13 @@ Use \`---\` to create a divider:
 
 Emoji shortcodes like \`:rocket:\` → 🚀, \`:heart:\` → ❤️
 
+## Footnotes
+
+YPad supports inline footnotes[^1] that render at the bottom of the page where they appear[^2] — useful for citations, asides, and disclaimers.
+
+[^1]: Like this one. Each footnote is anchored to its reference and floated into the page's bottom margin.
+[^2]: Multiple footnotes per page are supported, numbered automatically across the document.
+
 ## Tips
 
 - Press **Ctrl+B** for bold, **Ctrl+I** for italic

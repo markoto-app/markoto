@@ -12,7 +12,6 @@ export default defineEventHandler(async (event) => {
     { path: /^\/api\/docs\/[^/]+\/token$/, methods: ['GET'] },  // Returns anonymous token if no session
     { path: /^\/api\/docs\/[^/]+\/password$/, methods: ['POST'] },  // Password verify is public; set/remove check ownership inside
     { path: /^\/api\/docs\/[^/]+\/activity$/, methods: ['GET'] },  // Activity log is public for viewers
-    { path: /^\/api\/export\//, methods: ['POST'] },  // Export is public — user already has the content client-side
     { path: /^\/api\/import$/, methods: ['POST'] },  // Import is public — user uploads their own file for conversion
     { path: /^\/api\/internal\//, methods: ['POST'] }  // Internal endpoints auth via shared secret header (not user session)
   ]
@@ -30,7 +29,6 @@ export default defineEventHandler(async (event) => {
     '/api/user',
     '/api/upload',
     '/api/import',
-    '/api/export',
     '/api/ai'
   ]
 
