@@ -38,6 +38,10 @@ const toast = useToast()
 
 // Share modal state
 const showShareModal = ref(false)
+// Delete-confirmation modal — its own modal under File → Delete (and
+// available to Sharing as a backup shortcut). Was previously buried in
+// the share modal's danger-zone block; lives standalone now.
+const showDeleteModal = ref(false)
 // Import modal state
 const showImportModal = ref(false)
 // Right-sidebar slot — mutually exclusive between activity and theme.
@@ -114,6 +118,21 @@ function exportMarkdown() {
   downloadMarkdown(textContent.value, title.value)
 }
 
+// Hijack Cmd/Ctrl+P so the shortcut shown in File → Print actually runs
+// our hidden-iframe PDF flow instead of the browser's default print
+// (which would render the entire app chrome — toolbars, sidebars, the
+// AI bar — alongside the doc and look terrible). We intercept at the
+// document level with `capture: true` so we win against any element
+// that may be focused (CodeMirror, slideovers, modals).
+useEventListener(document, 'keydown', (e: KeyboardEvent) => {
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
+  const isPrint = (isMac ? e.metaKey : e.ctrlKey) && !e.shiftKey && !e.altKey
+    && (e.key === 'p' || e.key === 'P')
+  if (!isPrint) return
+  e.preventDefault()
+  exportPdf()
+}, { capture: true })
+
 // Hidden file input for image insert via menu (mirrors the same flow
 // EditorToolbar uses for its image button — keeps the upload pipeline
 // in one place behind useImageUpload).
@@ -155,14 +174,10 @@ async function newDocument() {
 function undo() { undoManager.undo() }
 function redo() { undoManager.redo() }
 
-// Sharing → Password and Sharing → Delete both open the existing share
-// modal — that modal already houses the password setup and danger-zone
-// delete flows. Auto-scrolling to the right section is a polish item;
-// for now we just open it and the user sees everything in one panel.
+// Sharing → Password opens the existing share modal — auto-scrolling to
+// the right section is a polish item; for now we just open it and the
+// user sees the password section in the panel.
 function openShareAtPassword() {
-  showShareModal.value = true
-}
-function openShareAtDelete() {
   showShareModal.value = true
 }
 
@@ -528,7 +543,7 @@ const statusIcon = computed(() => {
         @export-markdown="exportMarkdown"
         @export-pdf="exportPdf"
         @new-document="newDocument"
-        @delete-document="openShareAtDelete"
+        @delete-document="showDeleteModal = true"
         @set-view-mode="(m) => viewMode = m"
         @toggle-sidebar="toggleSidebar"
         @undo="undo"
@@ -745,6 +760,13 @@ const statusIcon = computed(() => {
       :is-owner="isOwner"
       :current-access-mode="accessMode"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
+    />
+
+    <!-- Delete confirmation — owner-only entry from File → Delete. -->
+    <DocumentDeleteConfirmModal
+      v-model:open="showDeleteModal"
+      :doc-id="docId"
+      :title="title"
       @deleted="navigateTo('/')"
     />
 

@@ -189,22 +189,14 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
     pointer-events: none;
   }
 
-  /* Dark-mode preview — Word/Docs-style page inversion. Only the
-     viewing surface flips: the chrome behind the pages, the page
-     background itself, and the doc's default text color. The theme
-     JSON is untouched — brand colors, code blocks, blockquote tints,
-     and images stay exactly as the theme defined. PDF export reads
-     the theme directly, so prints always come out on a real white page.
-     The body's background-color is overwritten at runtime to match
-     the parent app's chrome (see syncDarkPreview below) — leaving
-     this default empty so an unmatched first paint doesn't flash. */
+  /* Dark-mode preview — only the chrome behind the pages flips. The
+     pages themselves render exactly as the theme says (white paper,
+     dark text) so what you see in the editor is what you'll print.
+     The body bg is overridden at runtime to match the parent app's
+     chrome (see syncDarkPreview below); page styling stays untouched.
+     Heavier shadow so the page sits cleanly against the dark canvas. */
   body.dark-preview .paged-mount .pagedjs_page {
-    background: #18181b;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35);
-  }
-  body.dark-preview .paged-doc {
-    color: #e5e7eb;
-    background: transparent;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 </style>
 <style id="theme-fonts"></style>
@@ -253,6 +245,12 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
       var parentHtml = window.parent.document.documentElement;
       var isDark = parentHtml.classList.contains('dark');
       document.body.classList.toggle('dark-preview', isDark);
+      // \`color-scheme\` is what tells the browser to render native UA
+      // widgets (scrollbar, form controls) in dark variants. Without
+      // this the iframe scrollbar stays light grey in dark mode and
+      // breaks the theme line. Mirroring the parent so the iframe
+      // scrollbar always matches the app's.
+      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
       var bg = readParentChromeBg();
       if (bg) document.body.style.background = bg;
     } catch (e) { /* parent inaccessible — give up silently */ }
@@ -367,7 +365,15 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
         // can't lay out an empty mount between clearing and refilling —
         // scroll height stays stable, no scrollbar thumb resize.
         var scrollY = window.scrollY;
-        var wasNearBottom = (scrollY + window.innerHeight >= document.documentElement.scrollHeight - 50);
+        // Snap-to-bottom heuristic only kicks in when the previous doc
+        // was meaningfully scrollable. Before the first render the mount
+        // is empty and scrollHeight equals the viewport, which would
+        // false-positive the "near bottom" check on every page reload
+        // and dump the user at the end of the doc.
+        var prevScrollHeight = document.documentElement.scrollHeight;
+        var hadScrollableContent = prevScrollHeight > window.innerHeight + 100;
+        var wasNearBottom = hadScrollableContent
+          && (scrollY + window.innerHeight >= prevScrollHeight - 50);
         mount.replaceChildren.apply(mount, Array.prototype.slice.call(pending.children));
 
         // Remove the previous render's paged.js stylesheets only AFTER

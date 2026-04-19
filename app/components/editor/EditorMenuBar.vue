@@ -101,6 +101,13 @@ const fileItems = computed(() => {
   })
   items.push({ type: 'separator' })
   items.push({ label: t('menubar.file.print'), icon: 'i-lucide-printer', kbds: ['cmd', 'p'], onSelect: () => emit('export-pdf') })
+  // Delete sits at the bottom of File — destructive, kept under a
+  // separator so it's not a one-click slip from the export entries.
+  // Owner-only (the destination handler also enforces it).
+  if (props.loggedIn) {
+    items.push({ type: 'separator' })
+    items.push({ label: t('menubar.file.delete'), icon: 'i-lucide-trash-2', onSelect: () => emit('delete-document') })
+  }
   return [items]
 })
 
@@ -222,14 +229,10 @@ const sharingItems = computed(() => [[
       try {
         await navigator.clipboard.writeText(window.location.href)
       } catch {
-        // ignore — older browsers / iframe contexts
+        // older browsers / iframe contexts
       }
     }
-  },
-  ...(props.loggedIn
-    ? [{ type: 'separator' as const },
-        { label: t('menubar.sharing.delete'), icon: 'i-lucide-trash-2', onSelect: () => emit('delete-document') }]
-    : [])
+  }
 ]])
 
 const helpItems = computed(() => [[

@@ -14,7 +14,12 @@ export const defaultTheme: DocTheme = {
   typography: {
     bodyFont: 'Inter',
     bodySize: 11,
-    lineHeight: 1.55,
+    // 1.3 lines up with print-typography norms (LibreOffice/Word
+    // "single" sits around 1.15–1.2; 1.3 nudges a little roomier
+    // because Inter's x-height is taller than Times/Calibri). Earlier
+    // 1.55 was web-reading-loose and dropped the per-page word count
+    // by ~30 % vs. equivalent point sizes in LibreOffice.
+    lineHeight: 1.3,
     headingFont: 'Inter',
     headingScale: 1.25,
     headingUnderline: false,

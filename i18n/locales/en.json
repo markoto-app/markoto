@@ -130,7 +130,8 @@
       "new": "New document",
       "import": "Import…",
       "export": "Export",
-      "print": "Print / Save as PDF"
+      "print": "Print / Save as PDF",
+      "delete": "Delete document…"
     },
     "edit": {
       "title": "Edit",
@@ -153,8 +154,7 @@
       "title": "Sharing",
       "access": "Sharing settings…",
       "password": "Set or change password…",
-      "copyLink": "Copy link",
-      "delete": "Delete document…"
+      "copyLink": "Copy link"
     },
     "help": {
       "title": "Help",
