@@ -156,7 +156,11 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
     scrollbar-gutter: stable;
   }
   body {
-    padding: 24px 16px;
+    /* Heavy bottom padding so scrolling reveals the last page in full
+       even though the floating AI bar (in the parent app) overlays
+       this iframe's bottom 80–100 px. Without it the final page sits
+       behind the bar and looks cropped. */
+    padding: 24px 16px 120px 16px;
     min-height: 100vh;
     box-sizing: border-box;
   }

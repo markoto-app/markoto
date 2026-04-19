@@ -21,3 +21,11 @@
    (see shared/utils/themeToCss.ts). The old `.prose` styles have been
    removed — theme CSS is the single source of truth for document
    presentation, shared between the live preview and the PDF print output. */
+
+/* Push CodeMirror's scrollable area down so the floating AI bar
+   (positioned `absolute bottom-6` over `<main>`) doesn't cover the
+   last few lines of the doc when the user scrolls to the end.
+   Mirrors the iframe body's bottom padding. */
+.cm-scroller {
+  padding-bottom: 120px;
+}
