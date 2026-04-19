@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { documents } from '../../../db/schema'
+// `isValidTheme` is auto-imported by Nuxt from shared/utils/themeValidation.ts
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -41,6 +42,14 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Invalid sizeBytes' })
     }
     updates.sizeBytes = Math.round(body.sizeBytes)
+  }
+
+  if (body.theme !== undefined) {
+    // null = reset to defaultTheme; otherwise must be a structurally valid DocTheme.
+    if (body.theme !== null && !isValidTheme(body.theme)) {
+      throw createError({ statusCode: 400, message: 'Invalid theme payload' })
+    }
+    updates.theme = body.theme
   }
 
   if (Object.keys(updates).length > 0) {

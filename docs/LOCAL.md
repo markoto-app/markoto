@@ -43,7 +43,7 @@ The two `.pem` files are gitignored. The wildcard covers `sync.ypad.127.0.0.1.ni
 docker compose -f docker-compose.local.yml up -d --build
 ```
 
-First build takes a few minutes (pulls base images, builds the Nuxt app, builds sync-server and pandoc).
+First build takes a few minutes (pulls base images, builds the Nuxt app, builds sync-server and markitdown).
 
 Verify:
 

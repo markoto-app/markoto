@@ -1,5 +1,19 @@
-const ALLOWED_EXTENSIONS = new Set(['docx', 'pdf', 'html', 'htm', 'tex', 'rst', 'odt', 'epub'])
-const MAX_SIZE = 50 * 1024 * 1024 // 50 MB
+// Subset of formats markitdown handles well as document imports. Markitdown
+// also supports CSV/JSON/XML/audio/images, but those don't make sense as a
+// "drop a doc in to seed your markdown" path — they round-trip into markdown
+// poorly or need extra LLM/OCR config. Keep the whitelist tight; widen later
+// if users ask.
+const ALLOWED_EXTENSIONS = new Set([
+  'docx',
+  'pdf',
+  'pptx',
+  'xlsx',
+  'xls',
+  'html',
+  'htm',
+  'epub'
+])
+const MAX_SIZE = 50 * 1024 * 1024 // 50 MB — kept in sync with markitdown-server/server.py
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 10 imports per IP per minute
@@ -26,14 +40,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = useRuntimeConfig()
-  if (!config.pandocUrl) {
-    throw createError({ statusCode: 503, message: 'Pandoc service not configured' })
+  if (!config.markitdownUrl) {
+    throw createError({ statusCode: 503, message: 'Markitdown service not configured' })
   }
 
-  // Call Pandoc HTTP service
-  const pandocUrl = `${config.pandocUrl}/convert?from=${ext}&to=gfm`
+  // Markitdown's converter routing is extension-driven (see StreamInfo in
+  // markitdown-server/server.py), so we pass the validated extension as a
+  // query param rather than relying on Content-Type sniffing.
+  const url = `${config.markitdownUrl}/convert?ext=${encodeURIComponent(ext)}`
 
-  const response = await fetch(pandocUrl, {
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/octet-stream',
@@ -51,8 +67,8 @@ export default defineEventHandler(async (event) => {
   if (!response.ok) {
     const errorText = await response.text()
     throw createError({
-      statusCode: 422,
-      message: `Pandoc conversion failed: ${errorText.slice(0, 200)}`
+      statusCode: response.status === 415 ? 415 : 422,
+      message: `Conversion failed: ${errorText.slice(0, 200)}`
     })
   }
 

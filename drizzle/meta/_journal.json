@@ -8,6 +8,13 @@
       "when": 1776184195784,
       "tag": "0000_chemical_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776608788332,
+      "tag": "0001_solid_rhodey",
+      "breakpoints": true
     }
   ]
 }

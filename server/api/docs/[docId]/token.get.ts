@@ -23,8 +23,10 @@ export default defineEventHandler(async (event) => {
 
   // Explicit projection — passwordHash is never needed here and the caller is
   // a public endpoint. Also lets us 404 before doing any further work.
+  // `theme` is shipped here too so the client doesn't need a separate /meta
+  // round-trip on init — it seeds the live preview before sync settles.
   const doc = (await db
-    .select({ accessMode: documents.accessMode, ownerId: documents.ownerId })
+    .select({ accessMode: documents.accessMode, ownerId: documents.ownerId, theme: documents.theme })
     .from(documents)
     .where(eq(documents.docId, docId))
     .limit(1))[0]
@@ -66,7 +68,7 @@ export default defineEventHandler(async (event) => {
   // No-token exits: private (no path to unlock from the client) and
   // password-protected (unlocked after /password verify).
   if (forbidden || requiresPassword) {
-    return { token: null, readOnly, requiresPassword, forbidden, accessMode, ownerId }
+    return { token: null, readOnly, requiresPassword, forbidden, accessMode, ownerId, theme: doc.theme }
   }
 
   const token = jwt.sign(
@@ -84,5 +86,5 @@ export default defineEventHandler(async (event) => {
     { expiresIn: '2h' }
   )
 
-  return { token, readOnly, requiresPassword, forbidden: false, accessMode, ownerId }
+  return { token, readOnly, requiresPassword, forbidden: false, accessMode, ownerId, theme: doc.theme }
 })

@@ -1,8 +1,8 @@
 # Development infrastructure only.
 # Run: docker compose -f docker-compose.dev.yml up -d
 #
-# This starts Postgres, SeaweedFS (S3 for image uploads + backups in dev),
-# Hocuspocus sync, Pandoc, and the backup sidecar.
+# This starts Postgres, Valkey, SeaweedFS (S3 for image uploads + backups in dev),
+# Hocuspocus sync, markitdown (file → markdown converter), and the backup sidecar.
 #
 # Production uses external S3 (Infomaniak) and drops SeaweedFS entirely;
 # only this dev compose still ships it.
@@ -10,8 +10,8 @@
 # Postgres:   localhost:5432  (postgres://ypad:devpassword@localhost:5432/ypad)
 # Valkey:     localhost:6379  (redis://localhost:6379/0 — rate limit + future cache)
 # SeaweedFS:  http://localhost:8333  (S3 API for image uploads + dev backups)
-# Hocuspocus: ws://localhost:4001    (WebSocket sync — connects directly to PG inside the container)
-# Pandoc:     http://localhost:8080  (conversion API)
+# Hocuspocus:  ws://localhost:4001    (WebSocket sync — connects directly to PG inside the container)
+# Markitdown:  http://localhost:8080  (file → markdown conversion API)
 
 services:
   postgres:
@@ -86,8 +86,8 @@ services:
       postgres:
         condition: service_healthy
 
-  pandoc:
-    build: ./pandoc-server
+  markitdown:
+    build: ./markitdown-server
     restart: unless-stopped
     ports:
       - "8080:8080"

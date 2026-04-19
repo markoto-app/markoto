@@ -269,6 +269,30 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
         pending.style.width = mount.clientWidth + 'px';
         pending.innerHTML = '';
 
+        // Wait for images to decode so paged.js measures real dimensions,
+        // not placeholder sizes. Without this, an image that loads after
+        // pagination triggers a second re-paginate as the doc reflows
+        // around the now-known-size image — visible jitter on every edit
+        // that touches a paragraph above an image. We decode against an
+        // off-screen scratch container (not pending — paged.js needs
+        // pending empty so it can append its own pages there).
+        // img.decode() rejects for broken images; swallow per-image
+        // errors so one bad img doesn't kill the whole render.
+        var scratch = document.createElement('div');
+        scratch.style.cssText = 'position:fixed;left:-20000px;top:0;visibility:hidden;';
+        scratch.innerHTML = opts.html;
+        document.body.appendChild(scratch);
+        try {
+          var imgs = scratch.querySelectorAll('img');
+          if (imgs.length > 0) {
+            await Promise.all(Array.prototype.map.call(imgs, function(img) {
+              return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
+            }));
+          }
+        } finally {
+          scratch.remove();
+        }
+
         var stylesBefore = new Set(document.head.querySelectorAll('style'));
 
         var previewer = new Previewer();

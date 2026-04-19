@@ -101,7 +101,7 @@ export default defineNuxtConfig({
     internalApiSecret: '',
     // Optional: previous INTERNAL_API_SECRET, accepted during rotation.
     internalApiSecretPrevious: '',
-    pandocUrl: '',
+    markitdownUrl: '',
     // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
     // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
     syncInternalUrl: 'http://localhost:4001',

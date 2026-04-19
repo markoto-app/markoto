@@ -23,6 +23,10 @@ const {
   accessMode,
   undoManager,
   title,
+  theme,
+  canEditTheme,
+  setTheme,
+  resetTheme,
   onPasswordVerified,
   setAccessMode
 } = useDocument(props.docId)
@@ -36,6 +40,8 @@ const toast = useToast()
 const showShareModal = ref(false)
 // Import modal state
 const showImportModal = ref(false)
+// Theme editor state — opened from a top-bar button, owner-only.
+const showThemeEditor = ref(false)
 // Password modal: open when requiresPassword is true, closable only via verify/cancel
 const passwordModalOpen = ref(false)
 watch(requiresPassword, (val) => {
@@ -83,7 +89,7 @@ async function exportPdf() {
     // Read content fresh from ytext — shallowRef may be stale after HMR.
     await printDocumentAsPdf({
       source: ytext.toString(),
-      theme: defaultTheme,
+      theme: theme.value,
       title: title.value
     })
   } catch (e: any) {
@@ -392,6 +398,20 @@ const statusIcon = computed(() => {
           </UTooltip>
         </div>
 
+        <!-- Theme editor. Visible to anyone with edit access — for owned
+             docs that's just the owner, but for anonymous-created docs
+             (open-edit, ownerId NULL) anyone can change the theme since
+             everyone shares full edit rights anyway. -->
+        <UTooltip v-if="canEditTheme" :text="t('theme.title')">
+          <UButton
+            icon="i-lucide-palette"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            @click="showThemeEditor = true"
+          />
+        </UTooltip>
+
         <!-- Access-mode button. The icon mirrors the current access mode so the
              header communicates "this is access control" (locked = private /
              password, eye = view only, pencil = open edit) instead of "sharing"
@@ -557,6 +577,7 @@ const statusIcon = computed(() => {
             v-model:page-count="pageCount"
             :source="textContent"
             :title="title"
+            :theme="theme"
           />
         </div>
 
@@ -633,6 +654,16 @@ const statusIcon = computed(() => {
       :current-access-mode="accessMode"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
       @deleted="navigateTo('/')"
+    />
+
+    <!-- Theme editor. The button to open it is gated above; the
+         component is always mounted so its open/close transition works. -->
+    <DocumentThemeEditorSlideover
+      v-model:open="showThemeEditor"
+      :theme="theme"
+      :can-edit="canEditTheme"
+      @update:theme="setTheme"
+      @reset="resetTheme"
     />
 
     <!-- Password gate -->

@@ -1,5 +1,8 @@
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
+import type { DocTheme } from '~~/shared/types/theme'
+import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { isValidTheme } from '~~/shared/utils/themeValidation'
 
 /**
  * Thin orchestrator that wires together the three sub-composables a document
@@ -83,9 +86,19 @@ export function useDocument(docId: string) {
   // `_deleted` flag is set by the sync-server when the owner deletes the doc —
   // all connected clients see this via Y.js broadcast and redirect away.
   const isDeleted = ref(!!ymeta.get('_deleted'))
+  // Theme: lives on ymeta.theme as a plain JSON object so changes broadcast
+  // to all collaborators in the same way the title does. Falls back to the
+  // hardcoded `defaultTheme` until either (a) the /token round-trip seeds
+  // the DB-stored theme, or (b) sync delivers what's currently on the doc.
+  const _themeRef = ref<DocTheme>(defaultTheme)
+  function readTheme(): DocTheme {
+    const raw = ymeta.get('theme')
+    return isValidTheme(raw) ? raw : defaultTheme
+  }
   ymeta.observe(() => {
     _titleRef.value = (ymeta.get('title') as string) || 'Untitled'
     if (ymeta.get('_deleted')) isDeleted.value = true
+    _themeRef.value = readTheme()
   })
 
   const title = computed({
@@ -94,6 +107,68 @@ export function useDocument(docId: string) {
       if (!tokenState.isReadOnly.value) ymeta.set('title', v)
     }
   })
+
+  /**
+   * Theme write access mirrors content write access:
+   *   - read-only? no.
+   *   - has an owner and you're not them? no.
+   *   - no owner (anonymous-created doc)? yes — same liberal default
+   *     as the doc itself, since open-edit means "anyone can change
+   *     anything".
+   * The DB-write path uses PUT /meta which checks ownership server-side
+   * for owned docs; for ownerless docs the meta endpoint would 403 today.
+   * That's covered below — we skip the persist call when there's no
+   * owner and let Y.js sync be the source of truth.
+   */
+  const canEditTheme = computed(() => {
+    if (tokenState.isReadOnly.value) return false
+    if (tokenState.isOwner.value) return true
+    return !tokenState.hasOwner.value
+  })
+
+  /**
+   * Pushes into ymeta (broadcasts live to all clients) and, for owned
+   * docs, persists to the DB row via PUT /meta (debounced) so a fresh
+   * visitor on a brand-new socket sees the right theme during the
+   * window before y-postgresql replays the Y.js update history.
+   *
+   * For ownerless docs the DB row stays NULL — Y.js is the only source
+   * of truth and the next visitor seeds from sync, not the DB. (The
+   * `/meta` endpoint requires ownership and would 403 us anyway.)
+   *
+   * The DB write is best-effort — Y.js stays the live source of truth,
+   * the DB is just the seed for new sessions.
+   */
+  const persistTheme = useDebounceFn((next: DocTheme) => {
+    $fetch(`/api/docs/${docId}/meta`, {
+      method: 'PUT',
+      body: { theme: next }
+    }).catch(() => {})
+  }, 800)
+
+  function setTheme(next: DocTheme) {
+    if (!canEditTheme.value) return
+    if (!isValidTheme(next)) return
+    ymeta.set('theme', next)  // observer above updates _themeRef
+    if (tokenState.isOwner.value) persistTheme(next)
+  }
+
+  // Reset to defaults — clears the ymeta entry and (for owned docs) asks
+  // the server to null the DB column. After this, `readTheme()` falls
+  // back to `defaultTheme` for everyone.
+  function resetTheme() {
+    if (!canEditTheme.value) return
+    ymeta.delete('theme')
+    _themeRef.value = defaultTheme
+    if (tokenState.isOwner.value) {
+      $fetch(`/api/docs/${docId}/meta`, {
+        method: 'PUT',
+        body: { theme: null }
+      }).catch(() => {})
+    }
+  }
+
+  const theme = readonly(_themeRef)
 
   const docSizeWarning = computed(() => {
     const mb = sync.docSizeBytes.value / (1024 * 1024)
@@ -106,6 +181,12 @@ export function useDocument(docId: string) {
   // the user unlocks them, otherwise content syncs before the gate appears.
   tokenState.fetchToken().then(() => {
     applySessionAwareness()
+    // Seed the local theme ref from the DB-stored value so the preview can
+    // paint with the right page size/colors before sync settles. If the
+    // owner edits the theme later, that overwrites ymeta and broadcasts.
+    if (tokenState.initialTheme.value && isValidTheme(tokenState.initialTheme.value)) {
+      _themeRef.value = tokenState.initialTheme.value
+    }
     if (!tokenState.requiresPassword.value && !tokenState.forbidden.value) {
       sync.connect()
     }
@@ -149,6 +230,10 @@ export function useDocument(docId: string) {
     docSizeWarning,
     undoManager,
     title,
+    theme,
+    canEditTheme: readonly(canEditTheme),
+    setTheme,
+    resetTheme,
     onPasswordVerified,
     setAccessMode: tokenState.setAccessMode,
     destroy

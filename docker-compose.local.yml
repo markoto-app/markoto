@@ -195,7 +195,7 @@ services:
       - NUXT_GOOGLE_REWRITE_MODEL=${GOOGLE_REWRITE_MODEL:-gemini-2.5-flash-lite}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.ypad.127.0.0.1.nip.io
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
-      - NUXT_PANDOC_URL=http://pandoc:8080
+      - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
       - VALKEY_URL=redis://valkey:6379/0
       # Sentry / GlitchTip. Browser → public HTTPS host. Server →
@@ -248,8 +248,8 @@ services:
       - web
       - internal
 
-  pandoc:
-    build: ./pandoc-server
+  markitdown:
+    build: ./markitdown-server
     restart: unless-stopped
     expose:
       - "8080"

@@ -1,4 +1,5 @@
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb } from 'drizzle-orm/pg-core'
+import type { DocTheme } from '~~/shared/types/theme'
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -27,6 +28,11 @@ export const documents = pgTable('documents', {
   passwordHash: text('password_hash'),
   sizeBytes: integer('size_bytes').default(0),
   wordCount: integer('word_count').default(0),
+  // Per-doc theme (page size, fonts, colors, headers/footers, etc).
+  // NULL = use the in-code `defaultTheme`. Mirrored to ymeta.theme on the
+  // Y.Doc so changes broadcast live to every connected client; the DB row
+  // is the source of truth for new connections that haven't synced yet.
+  theme: jsonb('theme').$type<DocTheme>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow()
 }, (table) => [

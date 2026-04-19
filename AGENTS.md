@@ -14,6 +14,7 @@ flowchart TB
         CM[CodeMirror 6 + yCollab]
         UI[Nuxt UI v4 + i18n]
         YP[Y.js + Hocuspocus Provider]
+        Paged[paged.js iframe<br/>preview + PDF print]
         AIC[AI awareness / edits]
     end
 
@@ -27,13 +28,13 @@ flowchart TB
         App[Nuxt 4 full-stack<br/>Bun + Nitro<br/>OAuth, API, Drizzle, AI agent]
         Sync[Hocuspocus<br/>Y.js rooms, awareness,<br/>JWT auth, SIGTERM drain]
         PG[(PostgreSQL 16<br/>users, docs, workspaces,<br/>uploads, activity,<br/>yjs_documents,<br/>drizzle migrations)]
-        Pandoc[Pandoc Server<br/>HTTP wrapper]
+        Markitdown[Markitdown Server<br/>FastAPI wrapper<br/>imports only]
         Backup[Backup sidecar<br/>pg_dump → S3 daily]
     end
 
     App --> PG
     Sync --> PG
-    App --> Pandoc
+    App --> Markitdown
     Backup --> PG
     App -->|internal HTTP| Sync
     Sync -->|internal HTTP<br/>activity logging| App
@@ -51,7 +52,8 @@ flowchart TB
 - **S3 = image uploads + pg backups, nothing else.** External S3 in `docker-compose.prod.yml`; SeaweedFS in `docker-compose.dev.yml` and `docker-compose.local.yml`.
 - **Hocuspocus as separate container.** Long-lived WS + in-memory Y.Doc state shouldn't share the Nitro event loop. Server↔sync talk over shared-secret HTTP.
 - **AI joins the doc as a real Y.js client** (see §7).
-- **Pandoc isolated.** Python HTTP wrapper around `pandoc/extra` so Nuxt stays lean (no TeX/fonts).
+- **Preview is paged, in an iframe.** The right pane shows discrete A4/Letter pages via paged.js. The same `themeToCss(theme)` output drives both the live preview iframe AND the PDF print iframe — what you see is what you print. No server Chromium (see §9).
+- **Markitdown isolated.** Python/FastAPI wrapper around Microsoft markitdown for `.docx`/`.pdf`/`.pptx`/etc. → markdown imports. Replaced the prior pandoc/extra image (~1.1 GB → ~615 MB); Nuxt stays lean.
 - **Daily pg backups to S3** via sidecar (same script for dev/prod, endpoint differs).
 
 ---
@@ -90,6 +92,7 @@ flowchart TB
 | `markdown-it` + plugins | 14.1.0 | Preview rendering (task-lists, emoji, footnote, container) |
 | `highlight.js` | 11.11.1 | Preview code highlighting |
 | `dompurify` | 3.2.4 | XSS sanitization |
+| `pagedjs` (CDN) | 0.4.3 | CSS Paged Media polyfill — preview AND PDF print. Loaded from `cdn.jsdelivr.net` (not bundled), version pinned in `shared/utils/pagedjsCdn.ts`. |
 | `nanoid` | 5.1.5 | ID generation |
 | `@google/genai` | ^1.50 | Gemini SDK |
 
@@ -219,9 +222,12 @@ POST   /api/upload/request                 Presigned PUT + insert unconfirmed up
 POST   /api/upload/confirm                 HEAD S3 + flip confirmed_at
 GET    /api/files/:docId/:fileId           302 → presigned GET (access-controlled)
 
-# Import/Export (public — user already has the content)
-POST   /api/import                         PDF/DOCX → markdown via Pandoc, 50MB cap
-POST   /api/export/:docId                  Markdown → PDF/DOCX via Pandoc (XeLaTeX for Unicode/emoji)
+# Import (public — user uploads their own file)
+POST   /api/import                         DOCX/PDF/PPTX/XLSX/HTML/EPUB → markdown via markitdown, 50MB cap
+
+# Export — client-side, no endpoint:
+#   - Markdown:  app/utils/download.ts:downloadMarkdown
+#   - PDF:       app/utils/printPdf.ts (paged.js iframe + window.print)
 
 # Workspaces (login required)
 POST   /api/workspaces
@@ -236,7 +242,7 @@ POST   /api/ai/rewrite                     Inline selection rewrite, no tools
 POST   /api/ai/abort                       Initiator only (403 otherwise)
 ```
 
-Auth guard: `server/middleware/auth.ts` whitelists public patterns and calls `requireUserSession` for the protected prefixes (`/api/docs/` outside whitelist, `/api/workspaces`, `/api/user`, `/api/upload`, `/api/ai`).
+Auth guard: `server/middleware/auth.ts` whitelists public patterns and calls `requireValidatedUserSession` for the protected prefixes (`/api/docs/` outside whitelist, `/api/workspaces`, `/api/user`, `/api/upload`, `/api/import`, `/api/ai`). `/api/import` is public — anyone can upload their own file for conversion.
 
 Token endpoint **never issues a usable JWT for forbidden or password-gated docs** — returns `{ token: null, ... }` so Hocuspocus rejects until unlock.
 
@@ -408,16 +414,43 @@ Return shape (~17 fields, unchanged by the split): `ydoc, ytext, awareness, prov
 
 ---
 
-## 9. Preview Rendering
+## 9. Preview Rendering & PDF Export
 
-All markdown-it plugins loaded via **async dynamic imports** inside `initMd()`, guarded `if (import.meta.client)`:
-1. Plugins have mixed CJS/ESM exports that crash SSR.
-2. DOMPurify needs a browser DOM.
-3. highlight.js is large — lazy load.
+The right pane shows **paged** output — discrete A4/Letter pages, not continuous markdown — inside a same-origin iframe. PDF export is the same pipeline run in a hidden iframe + `window.print()`. No server-side Chromium.
 
-- `markdown-it-emoji` needs `.full`: `const emoji = (mod as any).full || (mod as any).default || mod`.
-- **Import `highlight.js/styles/github-dark.min.css` dynamically inside `initMd()`** — without it, code blocks render with right class names but all-white text.
-- `watch(source, ...)` set up after init resolves. `v-html` fed DOMPurify output.
+### Pipeline
+
+1. **`app/utils/renderMarkdown.ts`** — singleton markdown-it + DOMPurify with strict `ALLOWED_TAGS`/`ALLOWED_ATTR` allowlist. Plugins lazy-imported inside `init()` (mixed CJS/ESM crashes SSR; DOMPurify needs DOM; highlight.js is large). Used by both the live preview and the PDF print flow → identical XSS boundary. The `highlight.js/styles/github-dark.min.css` import lives inside `init()` too — without it, code blocks render with the right classes but all-white text.
+2. **`transformFootnotesForPagedMedia(html)`** lifts each `<li>` from markdown-it-footnote's end-of-doc `<section>` into a `<span class="footnote">` at the original `<sup>` ref site. Theme CSS then applies `float: footnote`, which paged.js places in the page-bottom `@footnote` margin area.
+3. **`shared/utils/themeToCss.ts`** compiles `DocTheme + {title, date}` into the entire stylesheet — `@page` + `@top-*`/`@bottom-*`/`@footnote` margin boxes, `.paged-doc` body styles, modular-scale headings, image/code/blockquote variants. `themeFontsImport(theme)` returns a Google Fonts `@import` URL (separate so swapping a color doesn't refetch fonts).
+4. **`app/composables/usePagedPreview.ts`** mounts a persistent srcdoc iframe. Parent calls `iframe.contentWindow.__renderDoc({html, themeCss, fontsImport})` on every change (250 ms debounce); iframe re-paginates and posts back `{type:'paginated', pageCount}`. `error` ref surfaces a 10 s init timeout or polyfill load failure.
+5. **`app/utils/printPdf.ts`** — hidden iframe with theme CSS in `<style>`, content in `.paged-doc`, `window.PagedConfig = { auto: true, after: () => print() }`, `afterprint` listener cleans up. 30 s safety timeout.
+
+### Theme system
+
+`shared/types/theme.ts:DocTheme` — single shape that drives preview AND print. Phase 1 ships hardcoded `defaultTheme` (A4, Inter 11 pt, brand `#3B82F6`, header `{title}`, footer `{page} / {pages}`). Phase 2 will add a JSONB `documents.theme` column + `ymeta.theme` mirror for live broadcast; Phase 3 ships built-in presets; Phase 4 adds user-saved themes.
+
+Header/footer templates support tokens: `{title}`, `{date}`, `{page}`, `{pages}`. Title/date are baked into the CSS string at compile time (see "margin boxes are siblings" gotcha); page/pages map to paged.js's built-in `counter()` calls.
+
+### Why an iframe (load-bearing)
+
+paged.js was designed to paginate a static document **once**. It mutates global state — appends `<style>` to `document.head`, sets `:root` custom properties, re-paginates the entire doc on every call. Re-running it into the host page on every keystroke caused cumulative cross-contamination and visible layout jitter no amount of off-screen-swap mitigation cleaned up. An iframe gives paged.js its own document context; the host app stays insulated. Inside the iframe, scroll position is captured before swap and restored after (snap-to-bottom if user was within 50 px of end).
+
+Communication is one-way:
+- Parent → iframe: `iframe.contentWindow.__renderDoc(opts)`
+- Iframe → parent: `postMessage` with `{type: 'iframe-ready' | 'paginated' | 'iframe-error'}`
+
+`postMessage` `targetOrigin: '*'` is intentional — srcdoc has an opaque origin in some browsers (Chromium reports `"null"`) and an origin-restricted post would silently fail. Trust boundary on the parent side is `e.source === iframe.contentWindow`.
+
+### Responsive page sizing
+
+A4 = 794 px @ 96 dpi — clips on narrow viewports. The iframe sets `--page-zoom` on `.pagedjs_pages` via the CSS `zoom` property (shrinks both visual and layout box, unlike `transform: scale` which leaves the layout box at full size and overflows). Recomputed after each pagination and on iframe `resize`, capped at 1 (never enlarge).
+
+### CDN-loaded polyfill
+
+paged.js polyfill loaded from `https://cdn.jsdelivr.net/npm/pagedjs@${VERSION}/dist/paged.polyfill.min.js` — version pinned in `shared/utils/pagedjsCdn.ts`. Used by both `usePagedPreview` and `printPdf`.
+
+Versioned URL = automatic cache-bust on upgrade. Workbox `runtimeCaching` on `cdn.jsdelivr.net` caches the asset for offline reload. Local bundling via `?url` was tried first but pagedjs's package "exports" field blocks subpath imports of `dist/`, and a Nitro endpoint reading from `node_modules` was fragile — CDN is the simpler, durable answer.
 
 ---
 
@@ -455,7 +488,7 @@ Activity-feed layout:
 |---|---|
 | Password brute-force | 5 per IP+docId per minute |
 | Token endpoint | 30 per IP per minute (prevents enumeration) |
-| Import/export | 10 per IP per minute |
+| Import | 10 per IP per minute (PDF export is client-side, no server limit) |
 | AI prompt | 20 per user per hour |
 | AI rewrite | 30 per user per hour |
 | Hocuspocus | 20 connections per IP, 5000 rooms |
@@ -486,15 +519,15 @@ Three files for three purposes:
 
 | File | Scope | TLS | Images | Use |
 |---|---|---|---|---|
-| `docker-compose.dev.yml` | infra only (postgres, seaweedfs, sync, pandoc, backup) — Nuxt runs on host | — | `build:` where needed | daily dev with HMR |
-| `docker-compose.local.yml` | full stack incl. Traefik | mkcert (file provider) on `ypad.127.0.0.1.nip.io` | `build:` from source | pre-push full-stack verification — see `docs/LOCAL.md` |
-| `docker-compose.prod.yml` | full stack incl. Traefik | Let's Encrypt (`tlschallenge`) | GHCR (`${REGISTRY}/md-online-{app,sync,pandoc,backup}:${IMAGE_TAG}`) | VPS deploy — see `docs/DEPLOY.md` |
+| `docker-compose.dev.yml` | infra only (postgres, valkey, seaweedfs, sync, markitdown, backup) — Nuxt runs on host | — | `build:` where needed | daily dev with HMR |
+| `docker-compose.local.yml` | full stack incl. Traefik + GlitchTip | mkcert (file provider) on `ypad.127.0.0.1.nip.io` | `build:` from source | pre-push full-stack verification — see `docs/LOCAL.md` |
+| `docker-compose.prod.yml` | full stack incl. Traefik + GlitchTip | Let's Encrypt (`tlschallenge`) | GHCR (`${REGISTRY}/md-online-{app,sync,markitdown,backup}:${IMAGE_TAG}`) | VPS deploy — see `docs/DEPLOY.md` |
 
 The three files are standalone — no shared base. Duplication is accepted in exchange for each being readable top-to-bottom.
 
-### Production (6 containers)
+### Production (containers)
 
-Traefik, postgres, app, sync, pandoc, backup sidecar. No SeaweedFS in prod — S3 is external.
+Traefik, postgres, valkey, app, sync, markitdown, backup sidecar, GlitchTip (web + worker + init). No SeaweedFS in prod — S3 is external.
 
 Key points:
 - `postgres:16-alpine` with `pg_isready` healthcheck. Named `pg_data` volume.
@@ -511,11 +544,11 @@ Nuxt app Dockerfile multi-stages builder → runtime; **must `COPY drizzle/`** i
 ### Development
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d    # Postgres + SeaweedFS + Hocuspocus + Pandoc + backup
+docker compose -f docker-compose.dev.yml up -d    # Postgres + Valkey + SeaweedFS + Hocuspocus + markitdown + backup
 bun run dev --host 0.0.0.0                         # Nuxt dev on host (HMR); 0.0.0.0 so sync container can reach via host.docker.internal
 ```
 
-Ports exposed: Postgres 5432, SeaweedFS 8333, Hocuspocus 4001, Pandoc 8080. Nitro `devProxy` forwards `/_s3/*` to SeaweedFS to sidestep CORS. WebSocket connects directly (no same-origin constraint).
+Ports exposed: Postgres 5432, Valkey 6379, SeaweedFS 8333, Hocuspocus 4001, markitdown 8080. Nitro `devProxy` forwards `/_s3/*` to SeaweedFS to sidestep CORS. WebSocket connects directly (no same-origin constraint).
 
 Backup sidecar runs with tight loop in dev (1h interval, 5-file retention) so you can verify locally without waiting a day.
 
@@ -552,7 +585,7 @@ app/
   components/
     auth/         LoginButtons, UserMenu
     editor/       EditorLayout, EditorPane, EditorToolbar, MobileToolbar, ImageDropZone
-    preview/      PreviewPane
+    preview/      PreviewPane                                  # hosts the paged.js iframe via usePagedPreview
     collab/       PresenceBar, ConnectionStatus, ActivityFeed
     ai/           AIPromptBar, AISelectionPopup
     sharing/      ShareModal, PasswordModal, DeleteConfirmModal
@@ -561,11 +594,14 @@ app/
     history/      HistoryTimeline, DiffViewer   (MMP)
     layout/       AppSidebar, AppHeader, MobileBottomSheet, LanguageSwitcher
     common/       SizeWarning
-  composables/    useDocument, useDocToken, useHocuspocusSync, useAI, useImageUpload, useDocumentImport, useMarkdownPreview
+  composables/    useDocument, useDocToken, useHocuspocusSync, useAI, useImageUpload,
+                  useDocumentImport, useMarkdownPreview, usePagedPreview
   pages/          index.vue, d/[id].vue, w/[id].vue
   middleware/     auth.ts
   plugins/        version-check.client.ts
-  utils/          queryKeys, colors, names, download, welcomeDoc
+  utils/          queryKeys, colors, names, download, welcomeDoc,
+                  renderMarkdown,                              # markdown-it + DOMPurify singleton (preview + PDF)
+                  printPdf                                     # paged.js hidden-iframe + window.print()
 
 server/
   routes/auth/    github.get.ts, google.get.ts
@@ -574,31 +610,34 @@ server/
     docs.post.ts, docs/[docId]/{meta,index,token,activity,password}.*
     upload/{request,confirm}.post.ts
     files/[docId]/[fileId].get.ts
-    import.post.ts, export/[docId].post.ts
+    import.post.ts                                             # → markitdown service; no /api/export anymore
     internal/activity.post.ts
     ai/{prompt,rewrite,abort}.post.ts
     user/{documents,workspaces,recent}.get.ts
   db/schema.ts
   middleware/auth.ts
-  plugins/        00-db-migrate, 99-shutdown, orphan-cleanup, ai-session-sweep, rate-limit-cleanup
-  utils/          database, s3, rateLimit, routeParams, validatedSession,
+  plugins/        00-db-migrate, 99-shutdown, orphan-cleanup, ai-session-sweep,
+                  rate-limit-cleanup, inactive-doc-sweep
+  utils/          database, s3, rateLimit, routeParams, validatedSession, secrets,
                   aiSessions, aiClient, aiToolAdapter,
                   agentic/{runLoop, functionTools, streamStatus}
 
 sync-server/      Dockerfile, src/{index, persistence, auth, rate-limiter, activity-logger, internal-http}.ts
-pandoc-server/    Dockerfile, server.py
+markitdown-server/ Dockerfile, server.py                       # FastAPI wrapper around Microsoft markitdown
 backup-server/    Dockerfile (postgres:16-alpine + aws-cli), backup.sh
 
-drizzle/          0000_*.sql, meta/*                     # generated, committed
+drizzle/          0000_*.sql, meta/*                           # generated, committed
 drizzle.config.ts
 
 i18n/locales/     en, de, fr, es, ja, zh .json
-shared/types/     auth.d.ts, markdown-it-plugins.d.ts
+shared/
+  types/          auth.d.ts, markdown-it-plugins.d.ts, pagedjs.d.ts, theme.ts
+  utils/          defaultTheme.ts, themeToCss.ts, pagedjsCdn.ts, secrets.ts
 public/           icons, favicon
 
 Dockerfile, docker-compose.{dev,local,prod}.yml, nuxt.config.ts, package.json, bun.lock, colada.options.ts, .env
-traefik/local/                                        # mkcert .pem files (gitignored) + tls.yml
-docs/                                                  # DEPLOY.md, LOCAL.md, S3-SETUP.md
+traefik/local/                                                 # mkcert .pem files (gitignored) + tls.yml
+docs/                                                          # DEPLOY.md, LOCAL.md, S3-SETUP.md, OBSERVABILITY.md, SECRETS-ROTATION.md
 ```
 
 ---
@@ -606,11 +645,11 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 ## 14. Shipped Features (MVP done)
 
 ### Infrastructure
-- Compose stack (Traefik + postgres + app + sync + pandoc + backup). Dev variant runs infra only, Nuxt on host.
+- Compose stack (Traefik + postgres + valkey + app + sync + markitdown + backup + GlitchTip). Dev variant runs infra only, Nuxt on host.
 - Drizzle schema + versioned migrations applied at boot. pg pool singleton + graceful close.
 - Hocuspocus with `y-postgresql` persistence + JWT auth + rate limiting + SIGTERM drain.
 - S3 client singleton; Nitro `devProxy` for S3 CORS in dev.
-- Pandoc HTTP service (Python wrapper around `pandoc/extra`).
+- Markitdown HTTP service (FastAPI wrapper around Microsoft markitdown — replaced pandoc/extra).
 - Daily Postgres backup sidecar with retention pruning.
 
 ### Auth & core editor
@@ -635,9 +674,17 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 ### Files, import & export
 - Presigned upload flow (request → PUT → confirm) with DB tracking.
 - Drag-drop + paste image upload.
-- Import via Pandoc HTTP (with replace/append/cancel conflict handling).
-- Export PDF/DOCX via Pandoc (XeLaTeX for Unicode/emoji).
-- Client-side `.md` and `.html` download.
+- Import via markitdown HTTP (DOCX/PDF/PPTX/XLSX/HTML/EPUB → markdown), with replace/append/cancel conflict handling.
+- Export: client-side `.md` download + client-side PDF via paged.js iframe + `window.print()`. (DOCX/HTML export dropped intentionally — see §16.)
+
+### Preview & PDF (paged.js pivot)
+- Paged preview model (A4/Letter pages, header/footer, page-bottom footnotes via `float: footnote`).
+- Same `themeToCss(theme)` drives live preview AND printed PDF.
+- Iframe isolation for paged.js (preview + print) — see §9 for the why.
+- Polyfill loaded from `cdn.jsdelivr.net`, version pinned in `shared/utils/pagedjsCdn.ts`.
+- Phase 1 default theme (A4, Inter 11 pt, brand `#3B82F6`); Phases 2–4 (editor, presets, user themes) tracked in §15.
+- Page count surfaced in editor status bar.
+- Responsive page sizing via CSS `zoom` so A4 (794 px) fits narrow viewports.
 
 ### Security hardening
 - No hardcoded JWT/S3 fallbacks — fail-fast on missing env.
@@ -706,6 +753,16 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 - [ ] Timeline scrubber, diff view, restore, export at point.
 - [ ] Playback animation.
 
+**Theme system (Phases 2–4 of the paged-preview pivot)**
+- [ ] Phase 2: `documents.theme` JSONB column + Drizzle migration; `ymeta.theme` mirror for live broadcast; owner-only theme settings panel UI; Google Fonts picker.
+- [ ] Phase 3: Built-in theme presets (4–6) shipped as JSON in `shared/themes/builtins/`.
+- [ ] Phase 4: User-saved themes — new `themes` table + CRUD endpoints.
+- [ ] AI `update_theme` tool in agentic loop (theme injected as context).
+
+**Preview/print polish (paged.js)**
+- [ ] `await Promise.all(images.map(img => img.decode()))` inside the iframe before paginate, so paged.js doesn't measure against placeholder image sizes.
+- [ ] Refactor `IFRAME_BOOTSTRAP` template literal in `usePagedPreview.ts` to its own file (cosmetic).
+
 **Power features**
 - [ ] Command palette.
 - [ ] Table of contents sidebar.
@@ -715,6 +772,7 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 - [ ] Offline mode (PWA cache).
 - [ ] Y.js document compaction for oversized docs.
 - [ ] Remaining locale translations (de, fr, es, ja, zh).
+- [ ] Markdown export with base64-inlined images (currently exports source as-is, image refs are presigned URLs).
 
 **Mobile MMP**
 - [ ] Floating toolbar above virtual keyboard via `visualViewport` API.
@@ -762,7 +820,13 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 | Google Gemini via `@google/genai` (was Claude) | Materially cheaper at comparable quality for our two AI features. Display name vendor-neutral ("AI Assistant") so swaps are a config change. |
 | Custom `web_search` wrapping `googleSearch` | Never mix `googleSearch` with `functionDeclarations` in one request — coexistence rules shift between model versions. Wrapping also gives live "Searching the web for 'X'…" status. One extra sub-call per search; immaterial at Gemini pricing. |
 | Zod as AI-tool source-of-truth | `z.toJSONSchema` (Zod 4 native — not `zod-to-json-schema`) generates both Gemini's param schema and runtime validator. Malformed args round-trip back as `functionResponse.isError` with Zod issue path so the model self-corrects. Gotcha: use `.array().min(2).max(2)` not `.tuple()` — Gemini's validator rejects tuple-shaped `items: [...]`. |
-| Pandoc as separate HTTP service | Keeps Nuxt container lean. Same container for dev/prod. |
+| Paged preview over flowed preview | "Businesses think in pages." Right pane shows discrete A4/Letter pages so the preview is the document the user will print. Same `themeToCss` drives both → genuine WYSIWYG. |
+| paged.js inside a same-origin iframe | paged.js mutates global state (head styles, `:root` vars, accumulated stylesheets) and re-paginates the entire doc on every call. Live re-running it on the host page caused cumulative cross-contamination and visible jitter no off-screen-swap dance fixed. The iframe gives paged.js its own document context; the host stays insulated. See §9. |
+| Single `themeToCss(theme)` for preview AND print | Load-bearing for "what you see is what you print." One function, one stylesheet, two iframe consumers. Diverging would re-introduce the surprise gap users hated about the prior previews. |
+| Client-side PDF via paged.js + `window.print()` | No server Chromium / no print microservice / no S3 round-trip / no queue. The user's own browser paginates the same iframe pipeline they were just looking at and the OS save-to-PDF dialog completes. |
+| Drop DOCX/HTML export | Maintenance overhead (XeLaTeX font/Unicode breakage, HTML "what's the right styling" rabbit hole) for outputs that already exist via "open in Word" / "view in browser" workflows. Markdown export covers source-of-truth needs; PDF covers fixed-layout. |
+| Markitdown over pandoc/extra | Image dropped from ~1.1 GB (pandoc + TeX + fonts) to ~615 MB. Faster cold start, fewer CVEs to track. Trade-off: narrower output coverage, but `/api/import` only converts **TO** markdown (export is client-side now), so the rich pandoc output formats were never used. |
+| paged.js polyfill via CDN, not bundled | pagedjs's package "exports" field blocks subpath imports of `dist/`. Tried Nitro endpoint reading from `node_modules` (fragile across `process.cwd()` shifts), dropped for `cdn.jsdelivr.net/npm/pagedjs@${VERSION}/...` — versioned URL = automatic cache-bust on upgrade, Workbox caches the CDN host for offline. |
 
 ---
 
@@ -792,3 +856,10 @@ docs/                                                  # DEPLOY.md, LOCAL.md, S3
 - **Inline rewrite positions via `RelativePosition`** — not raw indices — so concurrent human edits inside selection don't misplace the replacement. 409 on ambiguous fallback.
 - **Presigned read URL TTL: 120s** — they can't be revoked; long TTLs outlive access-mode/password/deletion changes.
 - **Mobile breakpoint: 639px** — matches Tailwind `sm:`. Don't re-introduce 768px.
+- **paged.js mutates global state.** Head `<style>` insertions, `:root` custom properties, full re-pagination on every call. Never run paged.js directly on a host page — always inside an iframe (preview AND print). The host-page approach was tried; the resulting layout shift was unsalvageable.
+- **paged.js Polisher only processes `@page` rules from CSS passed via the `stylesheets` argument** — `<style>` tags in the content tree are ignored for `@page`/margin-box parsing. Pass theme CSS as `[{ 'theme.css': cssText }]` to `previewer.preview(html, stylesheets, mount)`.
+- **`Polisher.add()` accepts `{filename: cssText}` map objects, not Style elements.** Passing a `<style>` element gets treated as iterable and quietly emits `undefined`, leaving margin boxes unstyled.
+- **Margin boxes are siblings of `.paged-doc`, not descendants.** paged.js extracts content into a fresh `pagedjs_page` tree where `@top-*`/`@bottom-*` boxes are not under the original root. CSS custom properties on `.paged-doc` don't propagate up. Bake `{title}`/`{date}` directly into the CSS string in `themeToCss`; `counter(page)` / `counter(pages)` for numbers.
+- **srcdoc iframe + postMessage:** `targetOrigin` must be `'*'` — srcdoc has an opaque origin in some browsers (Chromium reports `"null"`) and an origin-restricted post would silently fail. Trust boundary on the parent is `e.source === iframe.contentWindow`.
+- **Use CSS `zoom`, not `transform: scale`, for responsive page shrinking.** `transform: scale` leaves the layout box at full size and the doc overflows; `zoom` shrinks both visual and layout box so the page fits the available column.
+- **Footnotes need a manual lift.** markdown-it-footnote emits all footnotes as a `<section>` at the end of the doc; paged.js's `float: footnote` only works on inline elements at the reference site. `transformFootnotesForPagedMedia` (in `app/utils/renderMarkdown.ts`) rewrites the structure before paged.js sees it.

@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
       accessMode: documents.accessMode,
       sizeBytes: documents.sizeBytes,
       wordCount: documents.wordCount,
+      theme: documents.theme,
       createdAt: documents.createdAt,
       lastActive: documents.lastActive
     })

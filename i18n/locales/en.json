@@ -96,7 +96,8 @@
     "title": "Import Document",
     "description": "Convert a file to markdown and load it into the editor.",
     "selectFile": "Click to select a file",
-    "formats": "Supported: DOCX, PDF, HTML, LaTeX, RST, ODT, EPUB",
+    "changeFile": "Choose a different file",
+    "formats": "Supported: DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Import",
     "error": "Import failed. Please try a different file.",
     "conflictTitle": "Document has existing content",
@@ -140,6 +141,82 @@
     "alreadyRunning": "You already have an AI session running on this document.",
     "rateLimited": "Too many AI requests. Try again in a minute.",
     "failed": "AI request failed"
+  },
+  "theme": {
+    "title": "Document theme",
+    "description": "Customize the look of this document. Changes apply live for everyone with access.",
+    "readOnly": "You don't have permission to edit this document's theme.",
+    "reset": "Reset to defaults",
+    "portrait": "Portrait",
+    "landscape": "Landscape",
+    "column": "column",
+    "columns": "columns",
+    "section": {
+      "page": "Page",
+      "typography": "Typography",
+      "color": "Colors",
+      "layout": "Layout",
+      "header": "Header",
+      "footer": "Footer",
+      "blocks": "Images, code & quotes"
+    },
+    "page": {
+      "size": "Page size",
+      "orientation": "Orientation",
+      "margin": "Margin (mm)",
+      "marginHelp": "Uniform margin on all four sides."
+    },
+    "typography": {
+      "bodyFont": "Body font",
+      "headingFont": "Heading font",
+      "bodySize": "Body size (pt)",
+      "lineHeight": "Line height",
+      "headingScale": "Heading scale",
+      "headingUnderline": "Underline headings"
+    },
+    "fonts": {
+      "sans": "Sans-serif",
+      "serif": "Serif"
+    },
+    "color": {
+      "brand": "Brand color",
+      "brandHelp": "Used for links, accents, and heading underlines.",
+      "text": "Text color",
+      "background": "Background"
+    },
+    "layout": {
+      "columns": "Columns",
+      "columnGap": "Column gap (mm)"
+    },
+    "runningSlots": {
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "help": "Use the tokens below for dynamic values like the page number.",
+      "tokens": "Insert:"
+    },
+    "token": {
+      "title": "Title",
+      "date": "Date",
+      "page": "Page #",
+      "pages": "Total pages"
+    },
+    "blocks": {
+      "imageRadius": "Image radius (px)",
+      "imageMaxWidth": "Image max width (%)",
+      "codeBlockTheme": "Code block style",
+      "blockquoteStyle": "Blockquote style"
+    },
+    "code": {
+      "light": "Light background",
+      "dark": "Dark background",
+      "none": "No background"
+    },
+    "blockquote": {
+      "border": "Left border",
+      "background": "Tinted background",
+      "none": "Plain"
+    }
   },
   "delete": {
     "title": "Delete Document",
