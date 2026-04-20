@@ -27,6 +27,8 @@ const TABLE_HEADER_BGS = new Set(['brand', 'muted', 'none'])
 const TABLE_HEADER_COLORS = new Set(['auto', 'inherit'])
 const TABLE_BORDERS = new Set(['all', 'horizontal', 'minimal', 'none'])
 const MERMAID_THEMES = new Set(['default', 'dark', 'forest', 'neutral', 'base'])
+const TOC_LEADER_STYLES = new Set(['dotted', 'dashed', 'none'])
+const TOC_MAX_DEPTHS = new Set([2, 3, 4])
 
 const TOKEN_REGEX = /\{(?:title|page|pages|date)\}/g
 const SAFE_TEXT = /^[^"\\\n\r<>]*$/
@@ -115,6 +117,12 @@ export function isValidTheme(t: unknown): t is DocTheme {
   // mermaid
   if (!theme.mermaid || typeof theme.mermaid !== 'object') return false
   if (!MERMAID_THEMES.has(theme.mermaid.theme)) return false
+
+  // toc
+  if (!theme.toc || typeof theme.toc !== 'object') return false
+  if (!TOC_MAX_DEPTHS.has(theme.toc.maxDepth)) return false
+  if (typeof theme.toc.showPageNumbers !== 'boolean') return false
+  if (!TOC_LEADER_STYLES.has(theme.toc.leaderStyle)) return false
 
   return true
 }

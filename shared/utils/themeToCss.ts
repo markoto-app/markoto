@@ -28,7 +28,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     alertBlock(),
     katexBlock(),
     mermaidBlock(),
-    tocBlock(),
+    tocBlock(theme),
     breakHints()
   ].join('\n\n')
 }
@@ -500,7 +500,44 @@ function mermaidBlock(): string {
  * Resetting list-style hides the bullets (typographers don't put
  * bullets next to TOC entries — the dotted leader carries the eye).
  */
-function tocBlock(): string {
+function tocBlock(theme: DocTheme): string {
+  const { maxDepth, showPageNumbers, leaderStyle } = theme.toc
+
+  // Renderer always emits up to h4 (4 nested ULs in worst case). To
+  // honor a smaller maxDepth, hide every ul beyond that level. depth 2
+  // keeps only the second-level ul (h2 entries under h1), so we hide
+  // any ul nested 2+ deep inside that.
+  const depthHide: string[] = []
+  if (maxDepth < 4) depthHide.push(`.paged-doc .table-of-contents ul ul ul ul { display: none; }`)
+  if (maxDepth < 3) depthHide.push(`.paged-doc .table-of-contents ul ul ul { display: none; }`)
+  if (maxDepth < 2) depthHide.push(`.paged-doc .table-of-contents ul ul { display: none; }`)
+
+  // Leader: a flex item with a bottom border. \`none\` skips the rule
+  // entirely so the layout collapses to title-then-page-number with no
+  // line between them.
+  const leaderRule = leaderStyle === 'none'
+    ? ''
+    : `.paged-doc .table-of-contents a::before {
+  content: '';
+  flex: 1;
+  order: 2;
+  border-bottom: 1px ${leaderStyle} color-mix(in srgb, var(--doc-text) 35%, transparent);
+  transform: translateY(-0.25em);
+  margin: 0 0.3em;
+}`
+
+  // Page numbers via paged.js target-counter. When disabled we drop
+  // the ::after rule and the leader's flex:1 still spreads to the
+  // right edge (link text on left, blank space / leader to the right).
+  const pageNumberRule = showPageNumbers
+    ? `.paged-doc .table-of-contents a::after {
+  content: target-counter(attr(href url), page);
+  order: 3;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg));
+}`
+    : ''
+
   return [
     `.paged-doc .table-of-contents {
   margin: 1.2em 0;
@@ -526,27 +563,10 @@ function tocBlock(): string {
   text-decoration: none;
   color: var(--doc-text);
 }`,
-    // The bookish dotted leader between heading and page number, drawn
-    // by an empty flex item with a dotted bottom border. Visual-only
-    // (aria-hidden) — screen readers shouldn't read the dots.
-    `.paged-doc .table-of-contents a::before {
-  content: '';
-  flex: 1;
-  order: 2;
-  border-bottom: 1px dotted color-mix(in srgb, var(--doc-text) 35%, transparent);
-  transform: translateY(-0.25em);
-  margin: 0 0.3em;
-}`,
-    // Page number rendered by paged.js's target-counter. \`order: 3\`
-    // pushes it to the right of the dotted leader (which is order: 2);
-    // the heading title (the link's text) stays at order: 1 (default).
-    `.paged-doc .table-of-contents a::after {
-  content: target-counter(attr(href url), page);
-  order: 3;
-  font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg));
-}`
-  ].join('\n')
+    leaderRule,
+    pageNumberRule,
+    ...depthHide
+  ].filter(Boolean).join('\n')
 }
 
 // — page-break hints (typography hygiene) —————————————————————————————

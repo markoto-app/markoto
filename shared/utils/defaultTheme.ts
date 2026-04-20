@@ -63,5 +63,10 @@ export const defaultTheme: DocTheme = {
   },
   mermaid: {
     theme: 'default'
+  },
+  toc: {
+    maxDepth: 4,
+    showPageNumbers: true,
+    leaderStyle: 'dotted'
   }
 }

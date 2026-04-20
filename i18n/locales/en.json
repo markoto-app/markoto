@@ -226,6 +226,7 @@
       "code": "Code blocks",
       "tables": "Tables",
       "blocks": "Images & quotes",
+      "toc": "Table of contents",
       "mermaid": "Diagrams"
     },
     "page": {
@@ -315,6 +316,19 @@
       "themeForest": "Forest (green)",
       "themeNeutral": "Neutral (grayscale)",
       "themeBase": "Base (brand-tinted)"
+    },
+    "toc": {
+      "maxDepth": "Maximum heading level",
+      "maxDepthHelp": "How deep the auto-generated TOC goes.",
+      "depth2": "H1–H2 (sections only)",
+      "depth3": "H1–H3",
+      "depth4": "H1–H4 (everything)",
+      "showPageNumbers": "Show page numbers",
+      "showPageNumbersHelp": "Print-style page numbers next to each entry.",
+      "leaderStyle": "Leader between title and number",
+      "leaderDotted": "Dotted",
+      "leaderDashed": "Dashed",
+      "leaderNone": "None"
     },
     "presets": {
       "title": "Templates",

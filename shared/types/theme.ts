@@ -42,6 +42,12 @@ export type TableBorders = 'all' | 'horizontal' | 'minimal' | 'none'
  */
 export type MermaidTheme = 'default' | 'dark' | 'forest' | 'neutral' | 'base'
 
+/** Visual style of the dotted leader between TOC entry and page number. */
+export type TocLeaderStyle = 'dotted' | 'dashed' | 'none'
+
+/** Maximum heading depth shown in the auto-TOC (h1 through h{n}). */
+export type TocMaxDepth = 2 | 3 | 4
+
 /**
  * Header/footer slot. Templates support these tokens:
  *   {title}  → document title
@@ -104,5 +110,10 @@ export type DocTheme = {
   }
   mermaid: {
     theme: MermaidTheme
+  }
+  toc: {
+    maxDepth: TocMaxDepth         // include h1 through h{maxDepth}
+    showPageNumbers: boolean      // print-style page nums via paged.js target-counter
+    leaderStyle: TocLeaderStyle   // line between entry and page number
   }
 }

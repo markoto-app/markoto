@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DocTheme, CodeTheme, MermaidTheme } from '~~/shared/types/theme'
+import type { DocTheme, CodeTheme, MermaidTheme, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
@@ -73,6 +73,7 @@ const sectionItems = computed(() => [
   { value: 'code', slot: 'code', label: t('theme.section.code'), icon: 'i-lucide-code' },
   { value: 'tables', slot: 'tables', label: t('theme.section.tables'), icon: 'i-lucide-table' },
   { value: 'blocks', slot: 'blocks', label: t('theme.section.blocks'), icon: 'i-lucide-image' },
+  { value: 'toc', slot: 'toc', label: t('theme.section.toc'), icon: 'i-lucide-list-tree' },
   { value: 'mermaid', slot: 'mermaid', label: t('theme.section.mermaid'), icon: 'i-lucide-workflow' }
 ])
 
@@ -140,6 +141,16 @@ const tableBordersItems = computed(() => [
   { label: t('theme.tables.bordersHorizontal'), value: 'horizontal' },
   { label: t('theme.tables.bordersMinimal'), value: 'minimal' },
   { label: t('theme.tables.bordersNone'), value: 'none' }
+])
+const tocMaxDepthItems = computed(() => [
+  { label: t('theme.toc.depth2'), value: 2 as TocMaxDepth },
+  { label: t('theme.toc.depth3'), value: 3 as TocMaxDepth },
+  { label: t('theme.toc.depth4'), value: 4 as TocMaxDepth }
+])
+const tocLeaderItems = computed(() => [
+  { label: t('theme.toc.leaderDotted'), value: 'dotted' as TocLeaderStyle },
+  { label: t('theme.toc.leaderDashed'), value: 'dashed' as TocLeaderStyle },
+  { label: t('theme.toc.leaderNone'), value: 'none' as TocLeaderStyle }
 ])
 const mermaidThemeItems = computed(() => [
   { label: t('theme.mermaid.themeDefault'), value: 'default' as MermaidTheme },
@@ -494,19 +505,36 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
             </div>
           </template>
 
-          <!-- Blocks (images + quotes) -->
+          <!-- Blocks (images + quotes).
+               Image radius + max-width are stacked rather than side-by-
+               side because the labels wrap unevenly in a w-80 sidebar
+               and shift the input boxes to different baselines. Single
+               column keeps every input flush. -->
           <template #blocks-body>
             <div class="space-y-4 pt-2 pb-4">
-              <div class="grid grid-cols-2 gap-3">
-                <UFormField :label="t('theme.blocks.imageRadius')">
-                  <UInputNumber v-model="draft.blocks.imageRadius" :min="0" :max="32" :step="1" class="w-full" />
-                </UFormField>
-                <UFormField :label="t('theme.blocks.imageMaxWidth')">
-                  <UInputNumber v-model="draft.blocks.imageMaxWidth" :min="10" :max="100" :step="5" class="w-full" />
-                </UFormField>
-              </div>
+              <UFormField :label="t('theme.blocks.imageRadius')">
+                <UInputNumber v-model="draft.blocks.imageRadius" :min="0" :max="32" :step="1" class="w-full" />
+              </UFormField>
+              <UFormField :label="t('theme.blocks.imageMaxWidth')">
+                <UInputNumber v-model="draft.blocks.imageMaxWidth" :min="10" :max="100" :step="5" class="w-full" />
+              </UFormField>
               <UFormField :label="t('theme.blocks.blockquoteStyle')">
                 <USelect v-model="draft.blocks.blockquoteStyle" :items="blockquoteItems" class="w-full" />
+              </UFormField>
+            </div>
+          </template>
+
+          <!-- Table of contents -->
+          <template #toc-body>
+            <div class="space-y-4 pt-2 pb-4">
+              <UFormField :label="t('theme.toc.maxDepth')" :help="t('theme.toc.maxDepthHelp')">
+                <USelect v-model="draft.toc.maxDepth" :items="tocMaxDepthItems" class="w-full" />
+              </UFormField>
+              <UFormField :label="t('theme.toc.showPageNumbers')" :help="t('theme.toc.showPageNumbersHelp')">
+                <USwitch v-model="draft.toc.showPageNumbers" />
+              </UFormField>
+              <UFormField :label="t('theme.toc.leaderStyle')">
+                <USelect v-model="draft.toc.leaderStyle" :items="tocLeaderItems" class="w-full" />
               </UFormField>
             </div>
           </template>
