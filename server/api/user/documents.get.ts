@@ -1,6 +1,9 @@
-import { eq, or, sql } from 'drizzle-orm'
-import { documents, documentShares } from '../../db/schema'
+import { eq, sql } from 'drizzle-orm'
+import { documents } from '../../db/schema'
 
+// "My Documents" for the dashboard. Returns docs the caller owns. Workspace
+// docs they don't own stay inside the workspace view — keeps this list
+// semantically "my stuff" vs. "everything I can edit".
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const db = useDatabase()
@@ -13,14 +16,10 @@ export default defineEventHandler(async (event) => {
     wordCount: documents.wordCount,
     lastActive: documents.lastActive,
     sizeBytes: documents.sizeBytes,
-    isOwner: sql<boolean>`${documents.ownerId} = ${userId}`
+    isOwner: sql<boolean>`true`
   })
     .from(documents)
-    .leftJoin(documentShares, sql`${documentShares.docId} = ${documents.docId} AND ${documentShares.userId} = ${userId}`)
-    .where(or(
-      eq(documents.ownerId, userId),
-      sql`${documentShares.userId} IS NOT NULL`
-    ))
+    .where(eq(documents.ownerId, userId))
     .orderBy(sql`${documents.lastActive} DESC`)
 
   return docs

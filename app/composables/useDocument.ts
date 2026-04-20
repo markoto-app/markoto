@@ -74,6 +74,11 @@ export function useDocument(docId: string) {
 
   function applySessionAwareness() {
     awareness.setLocalStateField('user', {
+      // Seed `id` from the session so remote clients can match this awareness
+      // state to a workspace-member row (role tooltips, "is this person live"
+      // lookup in PresenceBar). Unauthenticated visitors stay id-less and
+      // appear as "Anonymous editor" downstream.
+      id: loggedIn.value ? sessionUser.value?.id : undefined,
       name: loggedIn.value ? sessionUser.value?.name : generateRandomName(),
       color: pickColor(),
       avatar: sessionUser.value?.avatar
@@ -149,7 +154,7 @@ export function useDocument(docId: string) {
   function setTheme(next: DocTheme) {
     if (!canEditTheme.value) return
     if (!isValidTheme(next)) return
-    ymeta.set('theme', next)  // observer above updates _themeRef
+    ymeta.set('theme', next) // observer above updates _themeRef
     if (tokenState.isOwner.value) persistTheme(next)
   }
 

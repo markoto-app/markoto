@@ -77,6 +77,11 @@
     "privateDescAnon": "Only the owner can open this document. If you have access, log in to continue.",
     "backHome": "Back to home"
   },
+  "presence": {
+    "offline": "offline",
+    "anonymousEditor": "Anonymous editor",
+    "guest": "Guest"
+  },
   "activity": {
     "title": "Activity",
     "noActivity": "No activity yet",

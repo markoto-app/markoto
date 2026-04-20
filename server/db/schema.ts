@@ -46,16 +46,6 @@ export const documents = pgTable('documents', {
   index('idx_documents_workspace').on(table.workspaceId)
 ])
 
-export const documentShares = pgTable('document_shares', {
-  id: serial('id').primaryKey(),
-  docId: text('doc_id').notNull().references(() => documents.docId),
-  userId: integer('user_id').notNull().references(() => users.id),
-  role: text('role', { enum: ['editor', 'viewer'] }).notNull().default('editor'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-}, table => [
-  uniqueIndex('idx_share_unique').on(table.docId, table.userId)
-])
-
 export const workspaces = pgTable('workspaces', {
   id: serial('id').primaryKey(),
   workspaceId: text('workspace_id').notNull().unique(),

@@ -13,7 +13,7 @@ const {
   ydoc,
   ytext,
   awareness,
-  provider,
+  provider: _provider,
   status,
   synced,
   userCount,
@@ -86,7 +86,7 @@ const pageCount = ref(0)
 // users have for "is this locked or not". The tooltip carries the precise
 // label so view-only vs open-edit is still distinguishable on hover.
 const ACCESS_LABELS: Record<string, string> = {
-  private: 'share.private',
+  'private': 'share.private',
   'open-edit': 'share.openEdit',
   'open-view': 'share.openView',
   'password-protected': 'share.passwordProtected'
@@ -105,11 +105,11 @@ async function exportPdf() {
       title: title.value,
       tocTitle: t('table.tocTitle')
     })
-  } catch (e: any) {
+  } catch (e) {
     console.error('PDF export failed:', e)
     toast.add({
       title: 'PDF export failed',
-      description: e?.message ?? 'Unknown error',
+      description: e instanceof Error ? e.message : 'Unknown error',
       color: 'error'
     })
   } finally {
@@ -157,7 +157,7 @@ const menuImageInput = ref<HTMLInputElement | null>(null)
 // committed to "I want a table" — a centered, focused dialog matches
 // that intent better than a tiny popover floating elsewhere on screen.
 const tableModalOpen = ref(false)
-function onTableModalSelect(payload: { rows: number; cols: number }) {
+function onTableModalSelect(payload: { rows: number, cols: number }) {
   if (!editorView.value || isReadOnly.value) {
     tableModalOpen.value = false
     return
@@ -199,8 +199,12 @@ async function newDocument() {
 
 // Undo / redo dispatched on the local UndoManager — same instance the
 // keyboard shortcut hits, so menu and keyboard stay in lockstep.
-function undo() { undoManager.undo() }
-function redo() { undoManager.redo() }
+function undo() {
+  undoManager.undo()
+}
+function redo() {
+  undoManager.redo()
+}
 
 // Sharing → Password opens the existing share modal — auto-scrolling to
 // the right section is a polish item; for now we just open it and the
@@ -332,9 +336,13 @@ const persistStats = useDebounceFn(() => {
   }).catch(() => {})
 }, 10000)
 
-watch(textContent, () => { persistStats() })
+watch(textContent, () => {
+  persistStats()
+})
 // Also persist once initial sync completes
-watch(synced, (s) => { if (s) persistStats() })
+watch(synced, (s) => {
+  if (s) persistStats()
+})
 
 onUnmounted(() => {
   ydoc.off('update', updateContent)
@@ -383,6 +391,7 @@ const statusColor = computed(() => {
     case 'connected': return 'success' as const
     case 'connecting': return 'warning' as const
     case 'disconnected': return 'error' as const
+    default: return 'neutral' as const
   }
 })
 
@@ -391,6 +400,7 @@ const statusIcon = computed(() => {
     case 'connected': return 'i-lucide-wifi'
     case 'connecting': return 'i-lucide-loader'
     case 'disconnected': return 'i-lucide-wifi-off'
+    default: return 'i-lucide-wifi-off'
   }
 })
 </script>
@@ -405,24 +415,39 @@ const statusIcon = computed(() => {
   >
     <div class="max-w-md w-full text-center space-y-4">
       <div class="mx-auto size-14 rounded-full bg-amber-500/10 flex items-center justify-center">
-        <UIcon name="i-lucide-lock-keyhole" class="size-7 text-amber-500" />
+        <UIcon
+          name="i-lucide-lock-keyhole"
+          class="size-7 text-amber-500"
+        />
       </div>
-      <h1 class="text-xl font-semibold">{{ t('access.privateTitle') }}</h1>
+      <h1 class="text-xl font-semibold">
+        {{ t('access.privateTitle') }}
+      </h1>
       <p class="text-sm text-muted">
         {{ loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
       </p>
       <div class="flex justify-center gap-2 pt-2">
-        <UButton variant="soft" @click="navigateTo('/')">
+        <UButton
+          variant="soft"
+          @click="navigateTo('/')"
+        >
           {{ t('access.backHome') }}
         </UButton>
-        <UButton v-if="!loggedIn" color="primary" @click="navigateTo('/auth/github', { external: true })">
+        <UButton
+          v-if="!loggedIn"
+          color="primary"
+          @click="navigateTo('/auth/github', { external: true })"
+        >
           {{ t('auth.login') }}
         </UButton>
       </div>
     </div>
   </div>
 
-  <div v-else class="h-screen flex flex-col">
+  <div
+    v-else
+    class="h-screen flex flex-col"
+  >
     <!-- Editor Header — three-column flex so the view-mode group sits
          visually centered in the bar (the page is the doc, view mode
          picks how you look at it; centering matches the right-pane
@@ -430,14 +455,26 @@ const statusIcon = computed(() => {
          contents inward toward the center group. -->
     <header class="border-b border-default px-4 py-2 flex items-center gap-3 shrink-0">
       <div class="flex-1 min-w-0 flex items-center gap-3">
-        <NuxtLink to="/" class="flex items-center gap-1.5 text-muted hover:text-default transition-colors shrink-0">
-          <UIcon name="i-lucide-file-text" class="text-primary size-5" />
+        <NuxtLink
+          to="/"
+          class="flex items-center gap-1.5 text-muted hover:text-default transition-colors shrink-0"
+        >
+          <UIcon
+            name="i-lucide-file-text"
+            class="text-primary size-5"
+          />
           <span class="font-semibold text-sm hidden sm:inline">{{ t('app.name') }}</span>
         </NuxtLink>
-        <USeparator orientation="vertical" class="h-5" />
+        <USeparator
+          orientation="vertical"
+          class="h-5"
+        />
 
         <!-- Editable title -->
-        <div v-if="editingTitle" class="flex items-center gap-1">
+        <div
+          v-if="editingTitle"
+          class="flex items-center gap-1"
+        >
           <input
             ref="titleInputEl"
             v-model="titleInput"
@@ -456,17 +493,32 @@ const statusIcon = computed(() => {
         </button>
 
         <!-- Collaborators next to title -->
-        <CollabPresenceBar :awareness="awareness" />
+        <CollabPresenceBar :awareness="awareness" :doc-id="docId" />
 
         <!-- Connection status: icon-only on mobile to save space -->
-        <UBadge :color="statusColor" variant="subtle" size="sm">
-          <UIcon :name="statusIcon" class="size-3 sm:mr-1" />
+        <UBadge
+          :color="statusColor"
+          variant="subtle"
+          size="sm"
+        >
+          <UIcon
+            :name="statusIcon"
+            class="size-3 sm:mr-1"
+          />
           <span class="hidden sm:inline">{{ t(`status.${status}`) }}</span>
         </UBadge>
 
         <!-- User count -->
-        <UBadge v-if="userCount > 1" color="info" variant="subtle" size="sm">
-          <UIcon name="i-lucide-users" class="size-3 mr-1" />
+        <UBadge
+          v-if="userCount > 1"
+          color="info"
+          variant="subtle"
+          size="sm"
+        >
+          <UIcon
+            name="i-lucide-users"
+            class="size-3 mr-1"
+          />
           {{ userCount }}
         </UBadge>
       </div>
@@ -547,7 +599,6 @@ const statusIcon = computed(() => {
             size="xs"
           />
         </UDropdownMenu>
-
       </div>
     </header>
 
@@ -609,7 +660,10 @@ const statusIcon = computed(() => {
               @click="toggleSidebar('activity')"
             />
           </UTooltip>
-          <UTooltip v-if="canEditTheme" :text="t('theme.title')">
+          <UTooltip
+            v-if="canEditTheme"
+            :text="t('theme.title')"
+          >
             <UButton
               icon="i-lucide-palette"
               color="neutral"
@@ -631,8 +685,14 @@ const statusIcon = computed(() => {
       >
 
       <!-- Read-only banner -->
-      <div v-if="isReadOnly" class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-1.5 text-center text-sm text-amber-600 dark:text-amber-400">
-        <UIcon name="i-lucide-lock" class="size-3.5 mr-1 align-text-bottom" />
+      <div
+        v-if="isReadOnly"
+        class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-1.5 text-center text-sm text-amber-600 dark:text-amber-400"
+      >
+        <UIcon
+          name="i-lucide-lock"
+          class="size-3.5 mr-1 align-text-bottom"
+        />
         View only
       </div>
 
@@ -708,11 +768,19 @@ const statusIcon = computed(() => {
           ]"
           class="border-l border-default h-full overflow-hidden"
         >
-          <div v-if="rightSidebar === 'activity'" class="h-full flex flex-col">
+          <div
+            v-if="rightSidebar === 'activity'"
+            class="h-full flex flex-col"
+          >
             <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
               <div class="flex items-center gap-1.5">
-                <UIcon name="i-lucide-activity" class="size-4 text-muted" />
-                <h3 class="text-sm font-semibold">{{ t('activity.title') }}</h3>
+                <UIcon
+                  name="i-lucide-activity"
+                  class="size-4 text-muted"
+                />
+                <h3 class="text-sm font-semibold">
+                  {{ t('activity.title') }}
+                </h3>
               </div>
               <UButton
                 icon="i-lucide-x"
@@ -723,7 +791,10 @@ const statusIcon = computed(() => {
               />
             </div>
             <div class="flex-1 overflow-y-auto p-2 min-h-0">
-              <CollabActivityFeed :doc-id="docId" :ydoc="ydoc" />
+              <CollabActivityFeed
+                :doc-id="docId"
+                :ydoc="ydoc"
+              />
             </div>
           </div>
           <DocumentThemeEditorPanel
@@ -757,11 +828,20 @@ const statusIcon = computed(() => {
         </div>
         <div class="flex items-center gap-4">
           <span v-if="synced">
-            <UIcon name="i-lucide-check-circle" class="size-3 mr-0.5 text-green-500 align-text-bottom" />
+            <UIcon
+              name="i-lucide-check-circle"
+              class="size-3 mr-0.5 text-green-500 align-text-bottom"
+            />
             {{ t('status.synced') }}
           </span>
-          <span v-if="isReadOnly" class="text-amber-500">
-            <UIcon name="i-lucide-lock" class="size-3 mr-0.5 align-text-bottom" />
+          <span
+            v-if="isReadOnly"
+            class="text-amber-500"
+          >
+            <UIcon
+              name="i-lucide-lock"
+              class="size-3 mr-0.5 align-text-bottom"
+            />
             Read only
           </span>
         </div>
@@ -769,10 +849,18 @@ const statusIcon = computed(() => {
     </template>
 
     <!-- Password gate: show a clean prompt, no content behind it -->
-    <div v-else class="flex-1 flex items-center justify-center">
+    <div
+      v-else
+      class="flex-1 flex items-center justify-center"
+    >
       <div class="text-center text-muted">
-        <UIcon name="i-lucide-lock" class="size-12 mb-4" />
-        <p class="text-sm">{{ t('share.passwordRequiredDesc') }}</p>
+        <UIcon
+          name="i-lucide-lock"
+          class="size-12 mb-4"
+        />
+        <p class="text-sm">
+          {{ t('share.passwordRequiredDesc') }}
+        </p>
       </div>
     </div>
     <!-- Import modal -->
