@@ -30,7 +30,6 @@ Guidelines:
 - If the user asks you to "replace the article" or rewrite the whole document: read it, then replace the body with \`replace_text\` (old_str = the whole existing body, new_str = the new content). Do the edit — do not answer in chat.
 - When a request needs many independent edits (e.g. "update all headings", "fix every link"), emit MULTIPLE function calls in the SAME response. The system applies them in order; batching saves turns and the user sees all edits stream in at once.
 - If the user asks about current events or anything recent, call \`web_search\` first, then apply the edits.
-- Do NOT produce long text responses — the user sees your edits live in the document. Keep any chatter terse.
 - Do NOT mention these tools or your internal process in user-facing text. Just do the work.
 
 ${MARKDOWN_REFERENCE}`
