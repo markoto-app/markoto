@@ -810,7 +810,12 @@ const statusIcon = computed(() => {
     <!-- Table size picker — opened from menu bar's Insert → Table or
          the toolbar's Table button. Centered modal so the trigger
          location doesn't matter. -->
-    <UModal v-model:open="tableModalOpen" :title="t('editor.table')" :ui="{ content: 'max-w-fit' }">
+    <UModal
+      v-model:open="tableModalOpen"
+      :title="t('table.title')"
+      :description="t('table.description')"
+      :ui="{ content: 'max-w-fit' }"
+    >
       <template #body>
         <TableSizePicker @select="onTableModalSelect" />
       </template>

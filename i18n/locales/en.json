@@ -344,6 +344,10 @@
       }
     }
   },
+  "table": {
+    "title": "Insert table",
+    "description": "Hover to choose the size, then click to insert."
+  },
   "delete": {
     "title": "Delete Document",
     "warning": "This will permanently delete the document and all its content. This action cannot be undone.",
