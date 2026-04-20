@@ -456,23 +456,65 @@ export function insertFootnote(view: EditorView): void {
   view.focus()
 }
 
+export type AlertKind = 'NOTE' | 'TIP' | 'IMPORTANT' | 'WARNING' | 'CAUTION'
+
 /**
- * Insert a markdown-it-container callout block at the current selection.
- * Wraps any selected text as the body so the user can type a paragraph
- * first, then turn it into a callout. Cursor lands at the end of the
- * body for further typing. The variant (`warning`, `info`, `tip`) is
- * the only kind we register in `renderMarkdown.ts`.
+ * Insert a GitHub-style alert block at the current selection. Renders to
+ * a `.markdown-alert` div via `@mdit/plugin-alert`. The selection (if
+ * any) becomes the body; otherwise inserts a placeholder line and lands
+ * the cursor where the user can immediately type.
+ *
+ * Each line of the body is prefixed with `> ` so the alert reads as a
+ * single blockquote — that's the syntax the plugin parses.
  */
-export function insertCallout(view: EditorView, kind: 'warning' | 'info' | 'tip'): void {
+export function insertAlert(view: EditorView, kind: AlertKind): void {
   const { from, to } = view.state.selection.main
   const selected = view.state.sliceDoc(from, to)
-  const body = selected || ''
-  const opener = `:::${kind}\n`
-  const closer = `\n:::`
-  const block = opener + body + closer
+  const bodyText = selected || ''
+  const bodyLines = bodyText.length > 0
+    ? bodyText.split('\n').map(l => `> ${l}`).join('\n')
+    : '> '
+  const block = `> [!${kind}]\n${bodyLines}`
   view.dispatch({
     changes: { from, to, insert: block },
-    selection: { anchor: from + opener.length + body.length }
+    // Cursor at end of body for continued typing.
+    selection: { anchor: from + block.length }
+  })
+  view.focus()
+}
+
+/**
+ * Insert KaTeX math at the current selection. Inline wraps the selection
+ * in single `$…$`; block emits a `$$…$$` fenced display equation on its
+ * own line(s). Empty selection drops the cursor between the delimiters
+ * so the user can type the formula immediately.
+ */
+export function insertMath(view: EditorView, mode: 'inline' | 'block'): void {
+  const { from, to } = view.state.selection.main
+  const selected = view.state.sliceDoc(from, to)
+
+  if (mode === 'inline') {
+    const body = selected || ''
+    const block = `$${body}$`
+    view.dispatch({
+      changes: { from, to, insert: block },
+      selection: body.length > 0
+        ? { anchor: from + 1, head: from + 1 + body.length }
+        : { anchor: from + 1 }
+    })
+    view.focus()
+    return
+  }
+
+  // Block: ensure delimiters sit on their own lines for the parser.
+  const body = selected || ''
+  const block = `$$\n${body}\n$$`
+  const cursor = body.length > 0
+    ? from + 3 + body.length  // end of body
+    : from + 3                 // empty body, cursor between fences
+  view.dispatch({
+    changes: { from, to, insert: block },
+    selection: { anchor: cursor }
   })
   view.focus()
 }

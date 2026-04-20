@@ -15,6 +15,8 @@ import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
 // sessions that skip the `finally` cleanup.
 const HARD_DEADLINE_MS = 5 * 60_000
 
+import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
+
 const SYSTEM_PROMPT = `You are an AI assistant collaborating on a shared markdown document in a Google-Docs-style editor.
 
 You have access to four tools, called as functions:
@@ -29,7 +31,9 @@ Guidelines:
 - When a request needs many independent edits (e.g. "update all headings", "fix every link"), emit MULTIPLE function calls in the SAME response. The system applies them in order; batching saves turns and the user sees all edits stream in at once.
 - If the user asks about current events or anything recent, call \`web_search\` first, then apply the edits.
 - Do NOT produce long text responses — the user sees your edits live in the document. Keep any chatter terse.
-- Do NOT mention these tools or your internal process in user-facing text. Just do the work.`
+- Do NOT mention these tools or your internal process in user-facing text. Just do the work.
+
+${MARKDOWN_REFERENCE}`
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)

@@ -10,8 +10,9 @@
  * Tag sources: markdown-it core (headings, paragraphs, code, lists,
  * emphasis, links, images, tables, blockquote, hr, sup/sub via inline
  * tokens), markdown-it-footnote (sup, section, ol+li with ids/classes),
- * markdown-it-container (div wrappers), markdown-it-emoji (raw unicode,
- * no tags), markdown-it-task-lists (input[type=checkbox]).
+ * markdown-it-emoji (raw unicode, no tags), markdown-it-task-lists
+ * (input[type=checkbox]), @mdit/plugin-alert (div.markdown-alert + p.title),
+ * @mdit/plugin-katex (span.katex + MathML when output=htmlAndMathml).
  */
 
 let md: any = null
@@ -30,7 +31,6 @@ async function init(): Promise<void> {
       taskListsMod,
       emojiMod,
       footnoteMod,
-      containerMod,
       // Batch 1 — typography & semantic markup. Each is a named export
       // from `@mdit/plugin-*` and wires through the same `.use()` chain.
       { attrs },
@@ -41,7 +41,10 @@ async function init(): Promise<void> {
       { dl },
       { abbr },
       { figure },
-      { imgSize }
+      { imgSize },
+      // Batch 2 — math + GitHub-style alerts.
+      { alert },
+      { katex }
     ] = await Promise.all([
       import('markdown-it'),
       import('highlight.js'),
@@ -49,7 +52,6 @@ async function init(): Promise<void> {
       import('markdown-it-task-lists'),
       import('markdown-it-emoji'),
       import('markdown-it-footnote'),
-      import('markdown-it-container'),
       import('@mdit/plugin-attrs'),
       import('@mdit/plugin-mark'),
       import('@mdit/plugin-ins'),
@@ -58,7 +60,9 @@ async function init(): Promise<void> {
       import('@mdit/plugin-dl'),
       import('@mdit/plugin-abbr'),
       import('@mdit/plugin-figure'),
-      import('@mdit/plugin-img-size')
+      import('@mdit/plugin-img-size'),
+      import('@mdit/plugin-alert'),
+      import('@mdit/plugin-katex')
     ])
 
     // Syntax highlighting CSS — same theme on screen and in PDF.
@@ -68,7 +72,6 @@ async function init(): Promise<void> {
     const taskLists = taskListsMod.default || taskListsMod
     const emoji = (emojiMod as any).full || (emojiMod as any).default || emojiMod
     const footnote = footnoteMod.default || footnoteMod
-    const container = containerMod.default || containerMod
 
     md = new MarkdownIt({
       html: false,
@@ -104,9 +107,6 @@ async function init(): Promise<void> {
       .use(taskLists, { enabled: true })
       .use(emoji)
       .use(footnote)
-      .use(container, 'warning')
-      .use(container, 'info')
-      .use(container, 'tip')
       // Batch 1 — typography & semantic markup
       .use(attrs)
       .use(mark)
@@ -117,6 +117,21 @@ async function init(): Promise<void> {
       .use(abbr)
       .use(figure, { copyAttrsOnFigure: true })
       .use(imgSize)
+      // Batch 2 — math + GitHub-style alerts.
+      // Defaults already match the 5-kind GH set; setting it explicitly
+      // here keeps the contract visible at the call site.
+      .use(alert, { alertNames: ['note', 'tip', 'important', 'warning', 'caution'] })
+      // KaTeX with `htmlAndMathml` so screen readers / copy-paste get the
+      // semantic MathML alongside the visually-laid-out HTML. throwOnError
+      // off so a malformed `$\frac{`  doesn't 500 the whole render — bad
+      // expressions render in errorColor and the rest of the doc carries
+      // on. Ref: @mdit/plugin-katex docs.
+      .use(katex, {
+        output: 'htmlAndMathml',
+        throwOnError: false,
+        errorColor: '#cc0000',
+        strict: false
+      })
 
     // Open all preview links in a new tab. `rel="noopener noreferrer"`
     // prevents the opened page from reaching back into our window.
@@ -145,7 +160,14 @@ const SANITIZE_OPTS = {
     'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
     'hr', 'i', 'img', 'input', 'ins', 'li', 'mark', 'ol', 'p', 'pre', 's',
     'section', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td',
-    'tfoot', 'th', 'thead', 'tr', 'u', 'ul'
+    'tfoot', 'th', 'thead', 'tr', 'u', 'ul',
+    // KaTeX MathML output (@mdit/plugin-katex with output=htmlAndMathml).
+    // The HTML side is built from spans we already allow; the MathML
+    // mirror gives screen readers + copy-paste the semantic tree.
+    'math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'mtext',
+    'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mover', 'munder',
+    'munderover', 'mspace', 'mstyle', 'mpadded', 'menclose', 'mtable',
+    'mtr', 'mtd'
   ],
   ALLOWED_ATTR: [
     'href', 'src', 'alt', 'title', 'target', 'rel',
@@ -154,7 +176,16 @@ const SANITIZE_OPTS = {
     'type', 'checked', 'disabled',
     // img-size emits width/height as bare attrs; figure emits no
     // extra attrs by default but gets them via attrs plugin if used.
-    'width', 'height'
+    'width', 'height',
+    // KaTeX uses inline `style` for vertical alignment of fractions,
+    // square roots, etc. — its CSS classes alone don't position the
+    // glyph stack. DOMPurify v3 sanitizes style values (strips
+    // expression(), url(javascript:…)) so this is safe to allow.
+    'style',
+    // MathML attributes used by KaTeX's mathml output.
+    'mathvariant', 'displaystyle', 'scriptlevel', 'encoding',
+    // ARIA + role for KaTeX's a11y wrapping of the HTML rendering.
+    'aria-hidden', 'role'
   ],
   ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
 }

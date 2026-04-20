@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock } from '~/utils/editorCommands'
+import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath } from '~/utils/editorCommands'
 
 const { t } = useI18n()
 
@@ -101,7 +101,12 @@ const actions = computed(() => [
   // Table + HR — common insertions worth a one-click toolbar slot in
   // addition to the Insert menu entries.
   { icon: 'i-lucide-table', label: t('editor.table'), action: withView(v => insertBlock(v, '\n| Column 1 | Column 2 |\n|----------|----------|\n| Cell     | Cell     |\n')) },
-  { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) }
+  { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) },
+  // Math (inline `$…$`) and a default NOTE alert. Block math + the
+  // four other alert kinds live in the Insert menu — these toolbar
+  // buttons cover the common one-click case.
+  { icon: 'i-lucide-sigma', label: t('menubar.insert.mathInline'), action: withView(v => insertMath(v, 'inline')) },
+  { icon: 'i-lucide-message-square-warning', label: t('menubar.insert.alert'), action: withView(v => insertAlert(v, 'NOTE')) }
 ])
 </script>
 

@@ -6,11 +6,15 @@ import { addAiSession, removeAiSession, DuplicateSessionError } from '../../util
 import { createAiSession } from '../../utils/aiClient'
 import * as Y from 'yjs'
 
+import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
+
 const REWRITE_SYSTEM = `Rewrite the text inside <text>...</text> according to the instruction inside <instruction>...</instruction>.
 
 The full document is provided inside <document>...</document> for context — use it to match tone, style, and terminology, but rewrite ONLY the selection. Do not reproduce surrounding content.
 
-Reply with ONLY the rewritten text — no preamble, no commentary, no markdown fences, no quotation marks wrapping the whole thing. Match the register and length of the original unless the instruction explicitly asks otherwise.`
+Reply with ONLY the rewritten text — no preamble, no commentary, no markdown fences, no quotation marks wrapping the whole thing. Match the register and length of the original unless the instruction explicitly asks otherwise.
+
+${MARKDOWN_REFERENCE}`
 
 
 export default defineEventHandler(async (event) => {

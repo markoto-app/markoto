@@ -2,6 +2,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
+import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
 import { renderMarkdown } from '~/utils/renderMarkdown'
 
 /**
@@ -82,6 +83,12 @@ export async function printDocumentAsPdf(opts: {
         hljsLink.href = hljsUrl
         idoc.head.appendChild(hljsLink)
       }
+
+      // KaTeX stylesheet — static across themes. Same CDN pattern as hljs.
+      const katexLink = idoc.createElement('link')
+      katexLink.rel = 'stylesheet'
+      katexLink.href = KATEX_CSS_URL
+      idoc.head.appendChild(katexLink)
 
       const root = idoc.createElement('div')
       root.className = 'paged-doc'

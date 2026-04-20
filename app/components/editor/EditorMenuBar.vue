@@ -2,7 +2,7 @@
 import type { EditorView } from '@codemirror/view'
 import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode,
-  insertBlock, insertFootnote, insertCallout, insertDefinitionList
+  insertBlock, insertFootnote, insertAlert, insertMath, insertDefinitionList
 } from '~/utils/editorCommands'
 
 /**
@@ -200,12 +200,22 @@ const insertItems = computed(() => {
     { type: 'separator' as const },
     { label: t('menubar.insert.footnote'), icon: 'i-lucide-asterisk', onSelect: () => call(v => insertFootnote(v)) },
     {
-      label: t('menubar.insert.callout'),
+      label: t('menubar.insert.alert'),
       icon: 'i-lucide-message-square-warning',
       children: [
-        { label: t('menubar.insert.calloutWarning'), icon: 'i-lucide-alert-triangle', onSelect: () => call(v => insertCallout(v, 'warning')) },
-        { label: t('menubar.insert.calloutInfo'), icon: 'i-lucide-info', onSelect: () => call(v => insertCallout(v, 'info')) },
-        { label: t('menubar.insert.calloutTip'), icon: 'i-lucide-lightbulb', onSelect: () => call(v => insertCallout(v, 'tip')) }
+        { label: t('menubar.insert.alertNote'), icon: 'i-lucide-info', onSelect: () => call(v => insertAlert(v, 'NOTE')) },
+        { label: t('menubar.insert.alertTip'), icon: 'i-lucide-lightbulb', onSelect: () => call(v => insertAlert(v, 'TIP')) },
+        { label: t('menubar.insert.alertImportant'), icon: 'i-lucide-megaphone', onSelect: () => call(v => insertAlert(v, 'IMPORTANT')) },
+        { label: t('menubar.insert.alertWarning'), icon: 'i-lucide-alert-triangle', onSelect: () => call(v => insertAlert(v, 'WARNING')) },
+        { label: t('menubar.insert.alertCaution'), icon: 'i-lucide-octagon-alert', onSelect: () => call(v => insertAlert(v, 'CAUTION')) }
+      ]
+    },
+    {
+      label: t('menubar.insert.math'),
+      icon: 'i-lucide-sigma',
+      children: [
+        { label: t('menubar.insert.mathInline'), icon: 'i-lucide-pi', onSelect: () => call(v => insertMath(v, 'inline')) },
+        { label: t('menubar.insert.mathBlock'), icon: 'i-lucide-square-sigma', onSelect: () => call(v => insertMath(v, 'block')) }
       ]
     },
     { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) }

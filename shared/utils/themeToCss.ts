@@ -25,6 +25,8 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     tableBlock(theme),
     blockBlock(theme),
     codeBlock(theme),
+    alertBlock(),
+    katexBlock(),
     breakHints()
   ].join('\n\n')
 }
@@ -353,6 +355,80 @@ function codeBlock(theme: DocTheme): string {
   border-radius: 4px;
   overflow-x: auto;
 }`
+  ].join('\n')
+}
+
+// — alerts (GitHub-style admonitions) —————————————————————————————————
+
+/**
+ * GitHub-style alert blocks emitted by `@mdit/plugin-alert`. Five kinds,
+ * each in its own semantic color so the meaning reads at a glance even
+ * when the doc theme picks an unrelated brand. Colors mirror GitHub's
+ * own admonition palette (blue/green/purple/amber/red) — these are
+ * intentionally NOT theme-driven because the alert kind itself carries
+ * meaning that the brand color shouldn't override.
+ *
+ * HTML structure (from the plugin):
+ *   <div class="markdown-alert markdown-alert-{kind}">
+ *     <p class="markdown-alert-title">Note</p>
+ *     <p>...body...</p>
+ *   </div>
+ */
+function alertBlock(): string {
+  const kinds: Array<{ name: string; color: string }> = [
+    { name: 'note', color: '#0969da' },
+    { name: 'tip', color: '#1a7f37' },
+    { name: 'important', color: '#8250df' },
+    { name: 'warning', color: '#9a6700' },
+    { name: 'caution', color: '#cf222e' }
+  ]
+  const variants = kinds.map(k => `.paged-doc .markdown-alert-${k.name} {
+  border-left-color: ${k.color};
+  background: color-mix(in srgb, ${k.color} 8%, transparent);
+}
+.paged-doc .markdown-alert-${k.name} .markdown-alert-title {
+  color: ${k.color};
+}`).join('\n')
+  return [
+    `.paged-doc .markdown-alert {
+  border-left: 4px solid;
+  padding: 0.6em 1em;
+  margin: 1em 0;
+  border-radius: 4px;
+  break-inside: avoid;
+}`,
+    `.paged-doc .markdown-alert > :first-child { margin-top: 0; }`,
+    `.paged-doc .markdown-alert > :last-child { margin-bottom: 0; }`,
+    `.paged-doc .markdown-alert-title {
+  font-weight: 600;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.4em 0;
+}`,
+    variants
+  ].join('\n')
+}
+
+// — KaTeX math —————————————————————————————————————————————————————————
+
+/**
+ * Layout-only adjustments around `@mdit/plugin-katex` output. Glyph
+ * positioning and font selection come from the KaTeX stylesheet (loaded
+ * via CDN inside the iframe). What remains here is print-context hygiene:
+ * block math gets a vertical breathing room, doesn't break across pages,
+ * and overflows horizontally rather than clipping when the equation is
+ * wider than the page.
+ */
+function katexBlock(): string {
+  return [
+    `.paged-doc .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  break-inside: avoid;
+}`,
+    `.paged-doc .katex { font-size: 1.05em; }`
   ].join('\n')
 }
 

@@ -3,6 +3,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
+import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
 
 /**
  * Preview pane backed by a persistent same-origin iframe.
@@ -120,6 +121,7 @@ export function usePagedPreview(opts: {
     // Bootstrap leaves the link href empty; renderDoc fills it.
     iframe.srcdoc = IFRAME_BOOTSTRAP
       .replace('__PAGEDJS_POLYFILL_URL__', PAGEDJS_POLYFILL_URL)
+      .replace('__KATEX_CSS_URL__', KATEX_CSS_URL)
     opts.container.value.appendChild(iframe)
   })
 
@@ -209,6 +211,10 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 </style>
+<!-- KaTeX stylesheet — static, doesn't change with theme. Loaded
+     statically in head so the math glyph fonts start fetching as soon
+     as the iframe initializes. -->
+<link rel="stylesheet" href="__KATEX_CSS_URL__">
 <style id="theme-fonts"></style>
 <style id="theme-css"></style>
 </head>
