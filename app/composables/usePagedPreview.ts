@@ -296,6 +296,24 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
     setTimeout(function() { whenPagedReady(cb); }, POLL_INTERVAL);
   }
 
+  // Intercept in-document anchor clicks (TOC entries, footnote refs,
+  // any \`<a href="#id">\`). srcdoc iframes have no real URL, so the
+  // browser resolves the # link against the parent's URL and tries to
+  // navigate the iframe there — which yanks the user out of the
+  // preview into a copy of the editor page. Handling the scroll
+  // ourselves keeps the click within the iframe and gives a smooth
+  // jump to the target heading.
+  document.addEventListener('click', function(e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    if (href.length < 2) return;
+    e.preventDefault();
+    var id = decodeURIComponent(href.slice(1));
+    var target = document.getElementById(id);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   whenPagedReady(function() {
     var Previewer = window.Paged.Previewer;
     var lastFontsImport = null;
