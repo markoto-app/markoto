@@ -25,7 +25,9 @@ Inline:
   H~2~O (subscript), E=mc^2^ (superscript)
   [link](https://example.com), abbreviation defined elsewhere: *[HTML]: HyperText Markup Language
 
-Headings: #, ##, ..., ###### (1–6). Optionally suffix with {#id .class} for anchors.
+Headings: #, ##, ..., ###### (1–6). Every heading auto-gets an \`id\` slug for linking; you can override with \`{#custom-id}\` after the heading text.
+
+Auto table of contents: \`[[toc]]\` on its own line generates a hierarchical link list of every heading (h1–h4), with page numbers in the printed output. Drop one near the top of long documents.
 
 Lists:
   - unordered (also * works)

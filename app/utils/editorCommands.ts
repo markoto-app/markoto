@@ -630,6 +630,22 @@ export function insertDiagram(view: EditorView, kind: MermaidKind): void {
 }
 
 /**
+ * Insert a `[[toc]]` placeholder. The renderer (markdown-it-toc-done-
+ * right) rewrites it into a nested list of links to every heading in
+ * the doc. Always lands on its own line so the placeholder parses as
+ * a block-level token, not inline text.
+ */
+export function insertToc(view: EditorView): void {
+  const { from, to } = view.state.selection.main
+  const block = '\n[[toc]]\n'
+  view.dispatch({
+    changes: { from, to, insert: block },
+    selection: { anchor: from + block.length }
+  })
+  view.focus()
+}
+
+/**
  * Insert a definition-list template (`Term\n: Definition`) at the
  * cursor. Selects "Term" so the user can immediately type a real term;
  * the definition placeholder gets typed-into next via Tab/click.

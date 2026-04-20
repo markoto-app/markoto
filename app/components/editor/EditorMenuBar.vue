@@ -3,7 +3,7 @@ import type { EditorView } from '@codemirror/view'
 import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode,
   insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram,
-  insertDefinitionList
+  insertToc, insertDefinitionList
 } from '~/utils/editorCommands'
 
 /**
@@ -239,6 +239,7 @@ const insertItems = computed(() => {
         { label: t('menubar.insert.diagramMindmap'), icon: 'i-lucide-network', onSelect: () => call(v => insertDiagram(v, 'mindmap')) }
       ]
     },
+    { label: t('menubar.insert.toc'), icon: 'i-lucide-list-tree', onSelect: () => call(v => insertToc(v)) },
     { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) }
   ]]
 })

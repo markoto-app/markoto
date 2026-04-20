@@ -19,6 +19,22 @@ let md: any = null
 let purify: any = null
 let initPromise: Promise<void> | null = null
 
+/**
+ * Slugify shared by anchor + toc so the heading IDs and the TOC link
+ * targets always agree. Lowercase, strip punctuation, hyphenate spaces
+ * — same shape as GitHub's slugger so collaborators familiar with
+ * GitHub anchors get the same URLs.
+ */
+function defaultSlugify(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\u00A0]+/g, '-')
+    .replace(/[^\p{L}\p{N}\-_]/gu, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 async function init(): Promise<void> {
   if (md) return
   if (initPromise) return initPromise
@@ -44,7 +60,11 @@ async function init(): Promise<void> {
       { imgSize },
       // Batch 2 — math + GitHub-style alerts.
       { alert },
-      { katex }
+      { katex },
+      // Batch 3 — anchors + auto-TOC. anchor must load BEFORE toc so
+      // the toc plugin sees stable heading IDs to link against.
+      anchorMod,
+      tocMod
     ] = await Promise.all([
       import('markdown-it'),
       import('highlight.js'),
@@ -62,7 +82,9 @@ async function init(): Promise<void> {
       import('@mdit/plugin-figure'),
       import('@mdit/plugin-img-size'),
       import('@mdit/plugin-alert'),
-      import('@mdit/plugin-katex')
+      import('@mdit/plugin-katex'),
+      import('markdown-it-anchor'),
+      import('markdown-it-toc-done-right')
     ])
 
     // Syntax highlighting CSS — same theme on screen and in PDF.
@@ -72,6 +94,8 @@ async function init(): Promise<void> {
     const taskLists = taskListsMod.default || taskListsMod
     const emoji = (emojiMod as any).full || (emojiMod as any).default || emojiMod
     const footnote = footnoteMod.default || footnoteMod
+    const anchor = (anchorMod as any).default || anchorMod
+    const toc = (tocMod as any).default || tocMod
 
     md = new MarkdownIt({
       html: false,
@@ -138,6 +162,21 @@ async function init(): Promise<void> {
         errorColor: '#cc0000',
         strict: false
       })
+      // Batch 3 — anchors + auto-TOC. Anchor adds stable `id` attrs to
+      // every heading so the TOC links resolve cleanly (and so deep
+      // links to specific sections work). Permalink off — the inserted
+      // `¶` glyphs would clutter the printed page. TOC plugin renders
+      // the `[[toc]]` placeholder into a nested `<nav class="table-of-
+      // contents"><ul>…</ul></nav>` from h2/h3 by default; we expose
+      // h1–h4 so a user putting a TOC in a structured doc gets useful
+      // depth.
+      .use(anchor, { permalink: false, slugify: defaultSlugify })
+      .use(toc, {
+        listType: 'ul',
+        level: [1, 2, 3, 4],
+        containerClass: 'table-of-contents',
+        slugify: defaultSlugify
+      })
 
     // Open all preview links in a new tab. `rel="noopener noreferrer"`
     // prevents the opened page from reaching back into our window.
@@ -164,8 +203,8 @@ const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
     'a', 'abbr', 'b', 'blockquote', 'br', 'code', 'dd', 'del', 'div', 'dl',
     'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'hr', 'i', 'img', 'input', 'ins', 'li', 'mark', 'ol', 'p', 'pre', 's',
-    'section', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td',
+    'hr', 'i', 'img', 'input', 'ins', 'li', 'mark', 'nav', 'ol', 'p', 'pre',
+    's', 'section', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td',
     'tfoot', 'th', 'thead', 'tr', 'u', 'ul',
     // KaTeX MathML output (@mdit/plugin-katex with output=htmlAndMathml).
     // The HTML side is built from spans we already allow; the MathML

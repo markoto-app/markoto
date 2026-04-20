@@ -28,6 +28,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     alertBlock(),
     katexBlock(),
     mermaidBlock(),
+    tocBlock(),
     breakHints()
   ].join('\n\n')
 }
@@ -482,6 +483,68 @@ function mermaidBlock(): string {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 0.85em;
   color: #cf222e;
+}`
+  ].join('\n')
+}
+
+// — table of contents —————————————————————————————————————————————————
+
+/**
+ * Auto-generated TOC from \`[[toc]]\` (markdown-it-toc-done-right). Plays
+ * to paged.js's killer feature: \`target-counter(attr(href url), page)\`
+ * resolves the page number of each TOC link's target heading at print
+ * time. The result reads like a real book TOC — heading title on the
+ * left, dotted leader, page number on the right.
+ *
+ * Indentation is by nested \`<ul>\` levels; the renderer emits up to h4.
+ * Resetting list-style hides the bullets (typographers don't put
+ * bullets next to TOC entries — the dotted leader carries the eye).
+ */
+function tocBlock(): string {
+  return [
+    `.paged-doc .table-of-contents {
+  margin: 1.2em 0;
+  break-inside: avoid;
+}`,
+    `.paged-doc .table-of-contents ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}`,
+    `.paged-doc .table-of-contents ul ul {
+  padding-left: 1.2em;
+  margin: 0.1em 0;
+}`,
+    `.paged-doc .table-of-contents li {
+  margin: 0.25em 0;
+  break-inside: avoid;
+}`,
+    `.paged-doc .table-of-contents a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  text-decoration: none;
+  color: var(--doc-text);
+}`,
+    // The bookish dotted leader between heading and page number, drawn
+    // by an empty flex item with a dotted bottom border. Visual-only
+    // (aria-hidden) — screen readers shouldn't read the dots.
+    `.paged-doc .table-of-contents a::before {
+  content: '';
+  flex: 1;
+  order: 2;
+  border-bottom: 1px dotted color-mix(in srgb, var(--doc-text) 35%, transparent);
+  transform: translateY(-0.25em);
+  margin: 0 0.3em;
+}`,
+    // Page number rendered by paged.js's target-counter. \`order: 3\`
+    // pushes it to the right of the dotted leader (which is order: 2);
+    // the heading title (the link's text) stays at order: 1 (default).
+    `.paged-doc .table-of-contents a::after {
+  content: target-counter(attr(href url), page);
+  order: 3;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg));
 }`
   ].join('\n')
 }
