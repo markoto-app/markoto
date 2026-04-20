@@ -89,8 +89,12 @@ flowchart TB
 | `@hocuspocus/provider` | 3.4.4 | WS provider |
 | `@codemirror/lang-markdown` | 6.3.2 | Markdown + GFM |
 | `@codemirror/language-data` | 6.5.1 | Code-fence highlighting |
-| `markdown-it` + plugins | 14.1.0 | Preview rendering (task-lists, emoji, footnote, container) |
-| `highlight.js` | 11.11.1 | Preview code highlighting |
+| `markdown-it` + plugins | 14.1.0 | Core renderer (task-lists, emoji, footnote + custom pagebreak rule) |
+| `@mdit/plugin-{attrs,mark,ins,sub,sup,dl,abbr,figure,img-size}` | 0.23–0.25 | Batch 1: typography & semantic markup |
+| `@mdit/plugin-alert` + `@mdit/plugin-katex` + `katex` | 0.23–0.25 / 0.16 | Batch 2: `> [!NOTE]` alerts + math |
+| `markdown-it-anchor` + `markdown-it-toc-done-right` | 9.2.0 / 4.2.0 | Batch 3: heading IDs + `[[toc]]` |
+| `mermaid` (CDN ESM, lazy) | 11.x | Batch 3: `\`\`\`mermaid` diagrams; pinned in `shared/utils/mermaidCdn.ts` |
+| `highlight.js` | 11.11.1 | Code highlighting (CDN stylesheet varies by `theme.code.theme`) |
 | `dompurify` | 3.2.4 | XSS sanitization |
 | `pagedjs` (CDN) | 0.4.3 | CSS Paged Media polyfill — preview AND PDF print. Loaded from `cdn.jsdelivr.net` (not bundled), version pinned in `shared/utils/pagedjsCdn.ts`. |
 | `nanoid` | 5.1.5 | ID generation |
@@ -425,20 +429,23 @@ The right pane shows **paged** output — discrete A4/Letter pages, not continuo
 
 ### Pipeline
 
-1. **`app/utils/renderMarkdown.ts`** — singleton markdown-it + DOMPurify with strict `ALLOWED_TAGS`/`ALLOWED_ATTR` allowlist. Plugins lazy-imported inside `init()` (mixed CJS/ESM crashes SSR; DOMPurify needs DOM; highlight.js is large). Used by both the live preview and the PDF print flow → identical XSS boundary. The `highlight.js/styles/github-dark.min.css` import lives inside `init()` too — without it, code blocks render with the right classes but all-white text.
+1. **`app/utils/renderMarkdown.ts`** — singleton markdown-it + DOMPurify with strict `ALLOWED_TAGS`/`ALLOWED_ATTR` allowlist. Plugins lazy-imported inside `init()` (mixed CJS/ESM crashes SSR; DOMPurify needs DOM; highlight.js is large). Pipeline: core + task-lists + emoji + footnote + Batch 1 (attrs/mark/ins/sub/sup/dl/abbr/figure/img-size) + Batch 2 (alert/katex) + Batch 3 (anchor/toc) + custom `pagebreakPlugin` (block rule matching `<!-- pagebreak -->`). Used by both live preview and PDF print → identical XSS boundary. The `highlight.js/styles/github-dark.min.css` import lives inside `init()` too — without it, code blocks render with the right classes but all-white text. Highlight callback **always** emits `language-${lang}` class (not just for hljs-known languages) so the iframe-side mermaid detector can find `pre code.language-mermaid`.
 2. **`transformFootnotesForPagedMedia(html)`** lifts each `<li>` from markdown-it-footnote's end-of-doc `<section>` into a `<span class="footnote">` at the original `<sup>` ref site. Theme CSS then applies `float: footnote`, which paged.js places in the page-bottom `@footnote` margin area.
-3. **`shared/utils/themeToCss.ts`** compiles `DocTheme + {title, date}` into the entire stylesheet — `@page` + `@top-*`/`@bottom-*`/`@footnote` margin boxes, `.paged-doc` body styles, modular-scale headings, image/code/blockquote variants. `themeFontsImport(theme)` returns a Google Fonts `@import` URL (separate so swapping a color doesn't refetch fonts).
-4. **`app/composables/usePagedPreview.ts`** mounts a persistent srcdoc iframe. Parent calls `iframe.contentWindow.__renderDoc({html, themeCss, fontsImport})` on every change (250 ms debounce); iframe re-paginates and posts back `{type:'paginated', pageCount}`. `error` ref surfaces a 10 s init timeout or polyfill load failure.
-5. **`app/utils/printPdf.ts`** — hidden iframe with theme CSS in `<style>`, content in `.paged-doc`, `window.PagedConfig = { auto: true, after: () => print() }`, `afterprint` listener cleans up. 30 s safety timeout.
+3. **`shared/utils/themeToCss.ts`** compiles `DocTheme + {title, date, tocTitle}` into the entire stylesheet — `@page` + `@top-*`/`@bottom-*`/`@footnote` margin boxes, `.paged-doc` body styles, modular-scale headings, image/code/blockquote variants, alerts, KaTeX, mermaid, TOC (with `target-counter` page numbers), page-break, `column-span: all` spanners. `themeFontsImport(theme)` returns a Google Fonts `@import` URL (separate so swapping a color doesn't refetch fonts).
+4. **`app/composables/usePagedPreview.ts`** mounts a persistent srcdoc iframe. Parent calls `iframe.contentWindow.__renderDoc({html, themeCss, fontsImport, hljsUrl, mermaidTheme})` on every change (250 ms debounce). Before handing HTML to paged.js, the iframe pre-processes: decodes images (await `.decode()`), then scans for `pre code.language-mermaid` and lazy-loads mermaid from CDN on first encounter, replacing each block with its rendered SVG. paged.js sees plain inline SVG it can paginate normally. iframe re-paginates and posts back `{type:'paginated', pageCount}`. Internal anchor clicks (`<a href="#id">`) are intercepted so TOC/footnote links don't navigate the iframe away from srcdoc.
+5. **`app/utils/printPdf.ts`** — hidden iframe with theme CSS in `<style>`, content in `.paged-doc`, `window.PagedConfig = { auto: true, after: () => print() }`, `afterprint` listener cleans up. 30 s safety timeout. Mermaid pre-processing runs in the parent document context (different window from the preview iframe) before the HTML is handed to the print iframe.
 
 ### Theme system
 
 `shared/types/theme.ts:DocTheme` — single shape that drives preview AND print. Per-doc, stored in `documents.theme` JSONB (server-validated by `shared/utils/themeValidation.ts`) and mirrored to `ymeta.theme` for live multi-collaborator broadcast.
 
 - **Default** (`shared/utils/defaultTheme.ts`): A4 portrait 20mm, Inter 11pt 1.3 line-height, brand `#3B82F6`, justify body alignment, header `{title}` left, footer `{page} / {pages}` center.
-- **Built-in templates** (`shared/utils/themePresets.ts`): Modern, Academic Paper, Tech Report, Business Report, Novel — each a complete `DocTheme` shown in the editor's template picker. Selecting one swaps the entire theme.
+- **Built-in templates** (`shared/utils/themePresets.ts`): Modern, Academic Paper (2-col journal), Tech Report, Business Report, Novel, Newsletter — each a complete `DocTheme` shown in the editor's template picker. Selecting one swaps the entire theme.
+- **Granular sections** — the editor panel exposes separate accordion sections for Page / Body / Headings / Colors / Layout / Header / Footer / Code / Tables / Images & quotes / Table of contents / Diagrams. Each section reads its own slice of the DocTheme; changing (say) a table header color doesn't perturb body typography.
 - **Editor UI** (`app/components/document/ThemeEditorPanel.vue`) lives in the unified right-sidebar slot (Activity / Theme are mutually exclusive). Owner-only on owned docs, open to anyone on ownerless docs.
 - **Font picker** loads every entry in `shared/utils/themeFonts.ts` from Google Fonts in one combined request when the panel mounts; each picker item renders its own label in its own face.
+- **TOC controls** — `theme.toc.{maxDepth, showTitle, showPageNumbers, leaderStyle}`. `maxDepth` is enforced by CSS (hiding deeper nested `ul`s) since the renderer always emits h1–h4; the dynamic CSS approach avoids re-initializing markdown-it per render.
+- **Mermaid theme** — `theme.mermaid.theme` picks one of mermaid's five built-in palettes (default/dark/forest/neutral/base). Applied via `mermaid.initialize({ theme })` before each iframe render.
 - **Phase 4** (user-saved themes — `themes` table + CRUD) is still pending; everything above is shipped.
 
 Header/footer templates support tokens: `{title}`, `{date}`, `{page}`, `{pages}`. Title/date are baked into the CSS string at compile time (see "margin boxes are siblings" gotcha); page/pages map to paged.js's built-in `counter()` calls. Inserting a token from the chip row is cursor-aware — it splices into the focused input at the caret, dispatched via `data-slot` / `data-position` attributes on each input.
@@ -605,7 +612,7 @@ app/
   app.vue, app.config.ts, assets/css/main.css
   components/
     auth/         LoginButtons, UserMenu
-    editor/       EditorLayout, EditorMenuBar, EditorPane, EditorToolbar, MobileToolbar, ImageDropZone
+    editor/       EditorLayout, EditorMenuBar, EditorPane, EditorToolbar, MobileToolbar, ImageDropZone, TableSizePicker
     preview/      PreviewPane                                  # hosts the paged.js iframe via usePagedPreview
     collab/       PresenceBar, ConnectionStatus, ActivityFeed
     ai/           AIPromptBar, AISelectionPopup                # both blue + animated; kind-discriminated (§7)
@@ -620,8 +627,9 @@ app/
   middleware/     auth.ts
   plugins/        version-check.client.ts
   utils/          queryKeys, colors, names, download, welcomeDoc,
-                  renderMarkdown,                              # markdown-it + DOMPurify singleton (preview + PDF)
-                  printPdf                                     # paged.js hidden-iframe + window.print()
+                  renderMarkdown,                              # markdown-it + DOMPurify singleton + inline pagebreak rule
+                  printPdf,                                    # paged.js hidden-iframe + window.print() + mermaid pre-process
+                  editorCommands                               # toggleWrap/Heading/…, insertTable/Toc/Alert/Math/Diagram/PageBreak
 
 server/
   routes/auth/    github.get.ts, google.get.ts
@@ -640,7 +648,10 @@ server/
                   rate-limit-cleanup, inactive-doc-sweep
   utils/          database, s3, rateLimit, routeParams, validatedSession, secrets,
                   aiSessions, aiClient, aiToolAdapter,
-                  agentic/{runLoop, functionTools, streamStatus}
+                  agentic/{runLoop, functionTools, streamStatus, markdownReference}
+                                                                # markdownReference: full vocabulary injected into both
+                                                                # prompt + rewrite system prompts so the model knows
+                                                                # TOC/page-break/alerts/math/mermaid etc.
 
 sync-server/      Dockerfile, src/{index, persistence, auth, rate-limiter, activity-logger, internal-http}.ts
 markitdown-server/ Dockerfile, server.py                       # FastAPI wrapper around Microsoft markitdown
@@ -653,7 +664,7 @@ i18n/locales/     en, de, fr, es, ja, zh .json
 shared/
   types/          auth.d.ts, markdown-it-plugins.d.ts, pagedjs.d.ts, theme.ts
   utils/          defaultTheme.ts, themeToCss.ts, themeValidation.ts, themeFonts.ts, themePresets.ts,
-                  pagedjsCdn.ts, secrets.ts
+                  pagedjsCdn.ts, hljsCdn.ts, katexCdn.ts, mermaidCdn.ts, secrets.ts
 public/           icons, favicon
 
 Dockerfile, docker-compose.{dev,local,prod}.yml, nuxt.config.ts, package.json, bun.lock, colada.options.ts, .env
@@ -717,11 +728,30 @@ docs/                                                          # DEPLOY.md, LOCA
 - Owner-only writes on owned docs; open to anyone on ownerless (anonymous-created) docs — `canEditTheme` mirrors content edit access.
 - Live editing via local draft + deep watcher → `setTheme` → ymeta + debounced PUT.
 - Curated Google Fonts picker (`shared/utils/themeFonts.ts` — 20 sans/serif fonts) — each picker label rendered in its own face, all fonts loaded in one combined Google Fonts request.
-- Built-in templates (`shared/utils/themePresets.ts`): Modern, Academic Paper, Tech Report, Business Report, Novel — clickable cards in the panel.
+- Built-in templates (`shared/utils/themePresets.ts`): Modern, Academic Paper (2-col), Tech Report, Business Report, Novel, Newsletter — clickable cards in the panel.
+- Granular editor sections (11 accordion panels): Page / Body / Headings / Colors / Layout / Header / Footer / Code / Tables / Images & quotes / TOC / Diagrams.
+- **TOC controls** — `maxDepth` (2/3/4), `showTitle`, `showPageNumbers`, `leaderStyle` (dotted/dashed/none). Dynamic CSS in `tocBlock(theme, runtime)` hides deeper ULs, swaps border-style, conditionally emits target-counter rule, bakes localized title text into `content:`.
+- **Mermaid theme** — `theme.mermaid.theme` picks default/dark/forest/neutral/base; threaded into `mermaid.initialize()` per iframe render.
 - Header/footer token chips (`{title}`, `{date}`, `{page}`, `{pages}`) insert at cursor in the focused input via `data-slot` / `data-position` attributes.
 - Text alignment (`left` | `justify`) with hyphenation + `text-align-last: left` for clean justified bodies.
 - Two-column fix via `column-fill: auto` (default `balance` mid-splits paragraphs).
+- First-H1 and TOC get `column-span: all` so they span the full page width in multi-column layouts; no-op in single-column docs.
 - `:first-child` margin reset so a leading H1 doesn't push whitespace at the top of page 1.
+
+### Markdown extensions (Batches 1–3)
+- **Batch 1** (`@mdit/plugin-*`): `attrs` (`# Heading {#id}`), `mark` (`==highlight==`), `ins` (`++insert++`), `sub` / `sup`, `dl` (definition lists), `abbr` (`*[HTML]: …`), `figure` (standalone images get `<figure>`+caption), `img-size` (`![alt =200x100]`).
+- **Batch 2** (`@mdit/plugin-alert` + `@mdit/plugin-katex`): GitHub-style alerts (`> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION]`), KaTeX math (inline `$x$` + block `$$…$$`, MathML output for a11y). KaTeX CSS via CDN inside iframe (same pattern as hljs).
+- **Batch 3** (`markdown-it-anchor` + `markdown-it-toc-done-right` + Mermaid): auto heading IDs, `[[toc]]` placeholder renders as hierarchical list with paged.js `target-counter(attr(href url), page)` for real page numbers + dotted/dashed/none leaders. Mermaid lazy-loaded from CDN on first encounter; SVG inlined pre-pagination in the preview iframe (and parent context for print). Eight diagram types exposed via the Insert menu (flowchart, sequence, class, state, ER, gantt, pie, mindmap).
+- **Page break**: custom inline markdown-it block rule matches `<!-- pagebreak -->` and emits `<div class="page-break">` → theme CSS does `break-after: page`. HTML-comment syntax is invisible in other markdown renderers.
+- **AI vocabulary**: `server/utils/agentic/markdownReference.ts` is a single-source-of-truth reference injected into both prompt + rewrite system instructions. Every feature above has an entry so the model knows it can produce them. File header has a reminder: "When a new plugin is added in renderMarkdown.ts, add a line here too."
+
+### Editor surfaces for extensions
+- **Table size picker** (Word-style 8×8 hover-grid in a centered UModal) — both the toolbar Table button and Insert menu entry open the same modal.
+- **Diagram dropdown** (8 mermaid kinds — flowchart/sequence/class/state/ER/gantt/pie/mindmap) — toolbar + Insert menu. Each option inserts a minimal working example.
+- **Alert dropdown** (5 kinds) — toolbar + Insert menu.
+- **Math dropdown** (inline + block) — toolbar + Insert menu.
+- **TOC / Page break / Footnote / Definition list / HR** — toolbar single-click buttons + Insert menu entries.
+- All extension commands live in `app/utils/editorCommands.ts`: `insertTable(view, rows, cols)`, `insertDiagram(view, kind)`, `insertAlert(view, kind)`, `insertMath(view, mode)`, `insertToc(view)`, `insertPageBreak(view)`, `insertFootnote(view)`, `insertDefinitionList(view)`.
 
 ### Editor chrome (menu bar + sidebar unification)
 - Top-level menu bar (`EditorMenuBar.vue`) — File / Edit / View / Insert / Format / Sharing / Help, Google-Docs-style. Replaces the prior assortment of icon-only buttons; high-frequency actions still have visible header/toolbar shortcuts for one-click access.
@@ -811,45 +841,22 @@ docs/                                                          # DEPLOY.md, LOCA
 - [ ] Refactor `IFRAME_BOOTSTRAP` template literal in `usePagedPreview.ts` to its own file (cosmetic).
 
 **Markdown extensions**
-The renderer currently ships markdown-it core + emoji + footnote + task-lists + container (`:::warning/info/tip` registered but unstyled). Below are the planned additions, batched by risk and bundle cost. All must round-trip cleanly to PDF — no interactive plugins (tabs, lightbox, lazy-load, spoiler, demo).
+Renderer ships markdown-it core + emoji + footnote + task-lists + Batches 1–3 (see §14). All shipped features are also mentioned in `server/utils/agentic/markdownReference.ts` so the AI can produce them.
 
-- [ ] **Batch 1 — typography & semantic markup** (small, low-bundle, additive):
-  - `@mdit/plugin-attrs` — `# Heading {#id .class}` for inline IDs/classes (prereq for TOC anchors).
-  - `@mdit/plugin-mark` — `==highlight==` → `<mark>`.
-  - `@mdit/plugin-ins` — `++inserted++` → `<ins>`. Pairs with `mark` and the existing strikethrough for full edit-suggestion vocabulary.
-  - `@mdit/plugin-sub` / `@mdit/plugin-sup` — `H~2~O`, `E=mc^2^`.
-  - `@mdit/plugin-dl` — `Term\n: Definition` → `<dl>/<dt>/<dd>` for glossaries.
-  - `@mdit/plugin-abbr` — `*[HTML]: HyperText…` for acronym tooltips.
-  - `@mdit/plugin-figure` — turn `![caption](img)` into `<figure>` + `<figcaption>` for print-quality captions.
-  - `@mdit/plugin-img-size` — `![alt](img =200x100)` for inline image dimensions.
-  - DOMPurify allowlist needs `mark`, `ins`, `dl`, `dt`, `dd`, `figure`, `figcaption`, `abbr`.
-
-- [ ] **Batch 2 — math + GitHub-style alerts** (high user expectation):
-  - `@mdit/plugin-katex` — `$x^2$` / `$$\sum$$`. Lighter than `mathjax3`. Needs KaTeX CSS imported the same way as github-dark code highlighting.
-  - `@mdit/plugin-alert` — `> [!NOTE]` / `[!TIP]` / `[!WARNING]` / `[!CAUTION]` / `[!IMPORTANT]`. Pair with theme CSS for both this AND the existing `:::warning/info/tip` containers (currently unstyled).
-
-- [ ] **Batch 3 — diagrams + auto-TOC**:
-  - `mermaid` — flowcharts/sequence/gantt/class via fenced ` ```mermaid ` blocks. Big bundle (~1 MB); lazy-load on first encounter only. Render inside the iframe. Skip the live editor / live preview features — ours is print-target.
-  - `@mdit/plugin-plantuml` — PlantUML diagrams. Renders client-side via the public plantuml.com SVG endpoint (URL-encoded), so no server dep. Lighter than Mermaid for activity/sequence diagrams; complements rather than replaces.
-  - `markdown-it-anchor` + `markdown-it-toc-done-right` — `[[toc]]` placeholder generates a TOC from headings; relies on Batch 1's attrs to give headings stable IDs.
+- [x] **Batch 1 — typography & semantic markup**: `attrs`, `mark`, `ins`, `sub`, `sup`, `dl`, `abbr`, `figure`, `img-size`. DOMPurify allowlist extended.
+- [x] **Batch 2 — math + alerts**: `@mdit/plugin-katex` (inline + block, MathML a11y output) + `@mdit/plugin-alert` (5 GitHub-style kinds). Old `:::warning/info/tip` containers dropped — alerts replace them.
+- [x] **Batch 3a — anchors + auto-TOC**: `markdown-it-anchor` + `markdown-it-toc-done-right`, with paged.js `target-counter` for page numbers, configurable depth/leader/title/page-nums, column-span in multi-column layouts.
+- [x] **Batch 3b — Mermaid diagrams**: lazy-loaded CDN ESM, iframe pre-process to SVG, 8 diagram kinds in the Insert menu + theme picker for mermaid's 5 built-in palettes. PlantUML was considered and deliberately skipped.
+- [x] **Page break**: custom inline markdown-it block rule — `<!-- pagebreak -->` → `<div class="page-break">` + `break-after: page`. Not a plugin per se (didn't need a package), just ~15 lines in `renderMarkdown.ts`.
 
 - [ ] **Batch 4 — editorial markup**:
   - `markdown-it-criticmarkup` — `{++add++}` `{--del--}` `{~~old~>new~~}` `{>>note<<}` `{==hl==}` for editorial review workflows.
   - `markdown-it-multimd-table` — rowspan, colspan, multi-line cells, table captions; what GFM tables can't express.
   - **Citations** — academic `[@key]` references. Pandoc's `--citeproc` is the standard but would re-introduce a server dep; explore client-side BibTeX parsing instead (limited CSL support but no infra cost).
 
-- [ ] **Niche / nice-to-haves** (one-off, ship when asked):
-  - `@mdit/plugin-icon` — first-class `:icon[name]:` syntax (cleaner than rolling our own through `@mdit/plugin-stylize`).
-  - `@mdit/plugin-stylize` — generic inline-token transformer for custom shortcodes that don't fit `icon`'s contract.
-  - `@mdit/plugin-snippet` — pull code snippets from external files into a doc (distinct from `include`, which composes whole markdown files).
-  - `@mdit/plugin-include` — `@include(./other.md)` doc composition; needs an opinion on workspace-relative vs same-doc-only for safety.
-  - `@mdit/plugin-layout` — Flexbox / Grid / Multi-column block layouts. Powerful but interacts with paged.js's column engine in non-obvious ways; budget time for fragmentation testing.
-  - `@mdit/plugin-field` — labelled key-value field containers (e.g. metadata blocks at the top of academic papers).
-  - `@mdit/plugin-ruby` — Japanese furigana annotations.
-  - `markdown-it-color` — color hex preview chips for design specs / brand books.
-  - `markdown-it-front-matter` — YAML headers; could auto-feed `documents.title` / `documents.theme`.
-
 **Power features**
+- [ ] Download as markdown includes frontmatter with theme settings, title, etc
+- [ ] Import markdown interprets frontmatter as theme settings, title, etc
 - [ ] Command palette.
 - [ ] Table of contents sidebar.
 - [ ] Follow cursor.
@@ -864,6 +871,12 @@ The renderer currently ships markdown-it core + emoji + footnote + task-lists + 
 - [ ] Floating toolbar above virtual keyboard via `visualViewport` API.
 - [ ] Bottom tab bar (Edit / Preview / AI).
 - [ ] Sidebar as bottom sheet.
+
+**AI Features**
+- [ ] Integrate microphone input with speech-to-text.
+- [ ] Image generation using gemini-3.1-flash-image-preview.
+- [ ] Google Image Search tool
+- [ ] Pexel / Unsplash search tool
 
 **AI (explicitly out of scope for now)**
 - Multi-turn conversation history per user per doc.
@@ -913,6 +926,13 @@ The renderer currently ships markdown-it core + emoji + footnote + task-lists + 
 | Drop DOCX/HTML export | Maintenance overhead (XeLaTeX font/Unicode breakage, HTML "what's the right styling" rabbit hole) for outputs that already exist via "open in Word" / "view in browser" workflows. Markdown export covers source-of-truth needs; PDF covers fixed-layout. |
 | Markitdown over pandoc/extra | Image dropped from ~1.1 GB (pandoc + TeX + fonts) to ~615 MB. Faster cold start, fewer CVEs to track. Trade-off: narrower output coverage, but `/api/import` only converts **TO** markdown (export is client-side now), so the rich pandoc output formats were never used. |
 | paged.js polyfill via CDN, not bundled | pagedjs's package "exports" field blocks subpath imports of `dist/`. Tried Nitro endpoint reading from `node_modules` (fragile across `process.cwd()` shifts), dropped for `cdn.jsdelivr.net/npm/pagedjs@${VERSION}/...` — versioned URL = automatic cache-bust on upgrade, Workbox caches the CDN host for offline. |
+| Same CDN pattern for hljs / KaTeX / Mermaid | Every heavy client dep we need inside the srcdoc iframe — hljs theme stylesheets, KaTeX CSS, Mermaid ESM — loads from `cdn.jsdelivr.net` with a pinned version. Vite can't inject into srcdoc iframes (different document), and bundling heavy CSS/JS would bloat the Nuxt client. CDN cost is one-time per version. |
+| Mermaid lazy-load (not bundled or eagerly loaded) | ~1MB ESM module; docs without diagrams shouldn't pay for it. Iframe pre-processor scans for `pre code.language-mermaid` and dynamic-imports from CDN on first encounter. Initialized with `themeVariables.fontSize: '12px'` + `flowchart: { htmlLabels: true, padding: 25, wrappingWidth: 200 }` + `securityLevel: 'strict'`. |
+| Mermaid pre-process pipeline (not runtime-rendered) | Transform `pre code.language-mermaid` → `<div class="mermaid">{svg}</div>` BEFORE paged.js paginates. paged.js then sees plain inline SVG. Done in the iframe for preview, in parent context for print (different windows = different mermaid module instances). |
+| Page break as a custom markdown-it rule (not a plugin) | ~15 lines: a block-ruler rule matching `<!-- pagebreak -->` on its own line. Didn't need a package. HTML-comment syntax degrades gracefully — every other markdown renderer sees a comment and emits nothing. |
+| TOC page numbers via paged.js `target-counter` | `content: target-counter(attr(href url), page)` on the TOC link's `::after` resolves each heading's page number at print time. Real book-style TOC for free; no JS post-processing. |
+| Single `MARKDOWN_REFERENCE` for AI | Shared between agentic prompt + inline rewrite system instructions, so the model knows the full vocabulary (alerts, math, mermaid, TOC, page break, etc.). File has a comment reminder to update it when adding plugins. Without this, the model defaults to baseline GFM and never reaches for the extensions. |
+| Table size picker as UModal, not popover | Originally anchored to the toolbar button. Menu trigger felt disconnected (picker appeared far from where user clicked), and click events competed with menu close. Centered modal sidesteps both — modal/click semantics don't fight, and the trigger location no longer matters. |
 
 ---
 
@@ -949,3 +969,13 @@ The renderer currently ships markdown-it core + emoji + footnote + task-lists + 
 - **srcdoc iframe + postMessage:** `targetOrigin` must be `'*'` — srcdoc has an opaque origin in some browsers (Chromium reports `"null"`) and an origin-restricted post would silently fail. Trust boundary on the parent is `e.source === iframe.contentWindow`.
 - **Use CSS `zoom`, not `transform: scale`, for responsive page shrinking.** `transform: scale` leaves the layout box at full size and the doc overflows; `zoom` shrinks both visual and layout box so the page fits the available column.
 - **Footnotes need a manual lift.** markdown-it-footnote emits all footnotes as a `<section>` at the end of the doc; paged.js's `float: footnote` only works on inline elements at the reference site. `transformFootnotesForPagedMedia` (in `app/utils/renderMarkdown.ts`) rewrites the structure before paged.js sees it.
+- **Backticks inside IFRAME_BOOTSTRAP template-literal comments.** `usePagedPreview.ts`'s iframe bootstrap is itself a template literal. Any ` ` ` ` character in a JS comment inside that string closes the outer template early, and the browser then tries to execute the surviving fragment as a tagged template call. Fails silently (no errors in the iframe) but pagination wedges. Escape with `\`` or reword the comment.
+- **SVG inside `<foreignObject>` can overflow the foreignObject viewport.** Mermaid with `htmlLabels: true` sometimes undersizes the foreignObject (font-metric drift between measurement and render contexts). The HTML content renders past the hard-clipped viewport edge — text appears cut off ("YPad docume"). Fix: `overflow: visible` on both `.mermaid svg` and `.mermaid foreignObject`, plus `white-space: nowrap` on inner `div/span/p`. Also bumping mermaid's `flowchart.padding` to 25 gives shapes like cylinders/stadiums room for their end-caps around the label.
+- **srcdoc iframes resolve fragment links against the parent URL.** `<a href="#heading-id">` inside a srcdoc iframe — TOC entries, footnote refs — resolves against the parent page's URL and navigates the iframe there. Iframe then shows a copy of the editor at `#heading-id`, not the scrolled target. Fix: iframe bootstrap captures these clicks, preventDefault + `target.scrollIntoView()` manually.
+- **`html: false` doesn't block tokens we push directly.** `html: false` disables markdown-it's html_block core rule (parser won't produce html tokens from raw HTML in source). But a custom block rule like `pagebreakPlugin` that `state.push('html_block', '', 0)` and sets `token.content` manually renders its content verbatim regardless. Use this for controlled HTML emission from a rule.
+- **`<!-- pagebreak -->` as the page-break marker.** HTML-comment syntax is invisible in every other markdown renderer — docs ported elsewhere don't break. LaTeX-style `\pagebreak` was considered but less universal.
+- **TOC heading IDs: anchor must load BEFORE toc plugin.** `markdown-it-toc-done-right` reads heading IDs to link against; `markdown-it-anchor` assigns them. Order matters in the `.use()` chain. Share a single `slugify` function between both so IDs and link targets always agree.
+- **`column-span: all` is a real CSS spec, not a hack.** Standard CSS Multi-column Layout property — the spanned element interrupts the column flow, sits across the full content area, columns resume below. No-op outside multi-column containers. Safe to apply unconditionally to `.paged-doc > h1:first-of-type` and `.table-of-contents`.
+- **KaTeX uses inline `style` for vertical alignment.** Fractions, roots, subscripts position via explicit `style="top: …"`. DOMPurify must allow `style` (v3 sanitizes style-attribute values by default — no `url(javascript:…)` risk). MathML-mode adds `math`/`semantics`/`mrow`/`mi`/`mo`/etc. to the allowlist.
+- **Mermaid `htmlLabels: false` undersizes labels.** SVG `<text>` measurement is imprecise when fonts haven't loaded at render time. Going back to `htmlLabels: true` (foreignObject) fixes measurement — modern paged.js (0.4.x) paginates foreignObject correctly; the historical aversion came from older versions.
+- **Re-export `renderMarkdown` always emits `language-${lang}` class**, even when hljs doesn't recognize the language. Without this, the iframe mermaid detector (which scans for `pre code.language-mermaid`) can't find diagram blocks — they'd come through with just `class="hljs"`.
