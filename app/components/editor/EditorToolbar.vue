@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath, insertDiagram, insertTable } from '~/utils/editorCommands'
-import TableSizePicker from './TableSizePicker.vue'
+import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath, insertDiagram } from '~/utils/editorCommands'
 
 const { t } = useI18n()
 
@@ -9,6 +8,13 @@ const props = defineProps<{
   view: EditorView | null
   readOnly: boolean
   docId: string
+}>()
+
+const emit = defineEmits<{
+  // Toolbar Table button just signals the parent to open the shared
+  // size-picker modal. Same modal the menu bar's Insert → Table opens —
+  // single source of truth for "user wants to insert a table".
+  'open-table-picker': []
 }>()
 
 const { uploadAndInsert, uploading, error: uploadError } = useImageUpload(props.docId)
@@ -109,15 +115,6 @@ const actions = computed(() => [
   // expect.
 ])
 
-// Table picker — opens a Word-style hover-grid. Need v-model on the
-// popover so we can close it after the user picks dimensions; the
-// default close-on-outside-click only fires for outside clicks.
-const tablePickerOpen = ref(false)
-function onTableSelect(payload: { rows: number; cols: number }) {
-  if (!props.view || props.readOnly) return
-  insertTable(props.view, payload.rows, payload.cols)
-  tablePickerOpen.value = false
-}
 
 // Math kinds — surfaces inline + block in the toolbar dropdown.
 const mathItems = computed(() => [[
@@ -167,18 +164,19 @@ const diagramItems = computed(() => [[
     </template>
 
     <!-- Multi-option insertions (table, math, alert, diagram) — surfaced
-         as popovers / dropdowns so the toolbar matches the menu-bar
+         as dropdowns / a modal so the toolbar matches the menu-bar
          Insert submenus and the user picks the variant rather than the
          button forcing a default. Triggers visually match the other
          ghost buttons. -->
-    <UPopover v-model:open="tablePickerOpen" :content="{ align: 'start' }">
-      <UTooltip :text="t('editor.table')">
-        <UButton icon="i-lucide-table" color="neutral" variant="ghost" size="xs" />
-      </UTooltip>
-      <template #content>
-        <TableSizePicker @select="onTableSelect" />
-      </template>
-    </UPopover>
+    <UTooltip :text="t('editor.table')">
+      <UButton
+        icon="i-lucide-table"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        @click="emit('open-table-picker')"
+      />
+    </UTooltip>
     <UDropdownMenu :items="mathItems" :content="{ align: 'start' }">
       <UTooltip :text="t('menubar.insert.math')">
         <UButton icon="i-lucide-sigma" color="neutral" variant="ghost" size="xs" />

@@ -3,7 +3,7 @@ import type { EditorView } from '@codemirror/view'
 import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode,
   insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram,
-  insertTable, insertDefinitionList
+  insertDefinitionList
 } from '~/utils/editorCommands'
 
 /**
@@ -42,6 +42,10 @@ const emit = defineEmits<{
   'undo': []
   'redo': []
   'open-image-picker': []
+  // Table size picker — handed up to EditorLayout which owns the
+  // shared open state. The toolbar's anchored UPopover is the single
+  // visual surface; menu just opens it.
+  'open-table-picker': []
   // Format / insert dispatch on the editor view directly via callbacks
   // rather than emits so we don't have to re-thread every command up
   // through EditorLayout. The view ref is sufficient.
@@ -196,9 +200,9 @@ const insertItems = computed(() => {
     { type: 'separator' as const },
     { label: t('menubar.insert.codeBlock'), icon: 'i-lucide-code', onSelect: () => call(v => insertBlock(v, '\n```\n\n```\n')) },
     { label: t('editor.quote'), icon: 'i-lucide-quote', onSelect: () => call(v => toggleLinePrefix(v, '> ')) },
-    // Menu inserts a sensible default 3×3 — the toolbar has the
-    // hover-grid picker for arbitrary sizes.
-    { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => call(v => insertTable(v, 3, 3)) },
+    // Opens the same hover-grid picker the toolbar's Table button uses.
+    // EditorLayout owns the shared open-state ref.
+    { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => emit('open-table-picker') },
     { label: t('editor.horizontalRule'), icon: 'i-lucide-minus', onSelect: () => call(v => insertBlock(v, '\n---\n')) },
     { type: 'separator' as const },
     { label: t('menubar.insert.footnote'), icon: 'i-lucide-asterisk', onSelect: () => call(v => insertFootnote(v)) },

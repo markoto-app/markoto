@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
+import { insertTable } from '~/utils/editorCommands'
+import TableSizePicker from './TableSizePicker.vue'
 
 const props = defineProps<{
   docId: string
@@ -146,6 +148,22 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
 // EditorToolbar uses for its image button — keeps the upload pipeline
 // in one place behind useImageUpload).
 const menuImageInput = ref<HTMLInputElement | null>(null)
+
+// Table size modal — opened from both the menu bar's Insert → Table
+// entry and (still anchored, less jumpy) the toolbar's Table button.
+// A modal beats anchoring to the toolbar from a menu trigger because
+// the menu and toolbar are visually distant, and the user has just
+// committed to "I want a table" — a centered, focused dialog matches
+// that intent better than a tiny popover floating elsewhere on screen.
+const tableModalOpen = ref(false)
+function onTableModalSelect(payload: { rows: number; cols: number }) {
+  if (!editorView.value || isReadOnly.value) {
+    tableModalOpen.value = false
+    return
+  }
+  insertTable(editorView.value, payload.rows, payload.cols)
+  tableModalOpen.value = false
+}
 const { uploadAndInsert: uploadImageAndInsert, error: imageUploadError } = useImageUpload(props.docId)
 watch(imageUploadError, (err) => {
   if (!err) return
@@ -558,6 +576,7 @@ const statusIcon = computed(() => {
         @undo="undo"
         @redo="redo"
         @open-image-picker="openImagePicker"
+        @open-table-picker="tableModalOpen = true"
       />
 
       <!-- Toolbar row.
@@ -576,6 +595,7 @@ const statusIcon = computed(() => {
             :view="editorView"
             :read-only="isReadOnly"
             :doc-id="docId"
+            @open-table-picker="tableModalOpen = true"
           />
         </div>
         <div class="flex items-center gap-0.5 px-2 py-1 shrink-0">
@@ -786,6 +806,15 @@ const statusIcon = computed(() => {
       @verified="onPasswordVerified"
       @cancel="navigateTo('/')"
     />
+
+    <!-- Table size picker — opened from menu bar's Insert → Table or
+         the toolbar's Table button. Centered modal so the trigger
+         location doesn't matter. -->
+    <UModal v-model:open="tableModalOpen" :title="t('editor.table')" :ui="{ content: 'max-w-fit' }">
+      <template #body>
+        <TableSizePicker @select="onTableModalSelect" />
+      </template>
+    </UModal>
 
     <!-- AI selection popup — floats near the editor's current selection -->
     <AISelectionPopup
