@@ -342,7 +342,7 @@
       },
       "academic": {
         "name": "Academic Paper",
-        "description": "Source Serif body, generous margins, page numbers in the running head, minimal table borders — journal-style."
+        "description": "Two-column Source Serif body, page numbers in the running head, minimal table borders — journal-style."
       },
       "tech": {
         "name": "Tech Report",
@@ -358,7 +358,7 @@
       },
       "newsletter": {
         "name": "Newsletter",
-        "description": "Two-column layout, dense Karla body under PT Serif headings, green accent, brand-colored table headers."
+        "description": "Karla body under PT Serif headings, green accent, brand-colored table headers — weekly-digest feel."
       }
     }
   },

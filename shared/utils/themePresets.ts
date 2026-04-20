@@ -43,11 +43,11 @@ export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'academic',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 25 },
-      body: { font: 'Source Serif 4', size: 12, lineHeight: 1.5, textAlign: 'justify', color: '#0f172a', background: '#FFFFFF' },
+      page: { size: 'A4', orientation: 'portrait', margin: 22 },
+      body: { font: 'Source Serif 4', size: 10, lineHeight: 1.4, textAlign: 'justify', color: '#0f172a', background: '#FFFFFF' },
       headings: { font: 'Source Serif 4', scale: 1.2, weight: 600, underline: false, color: '#0f172a' },
       color: { brand: '#1e3a8a' },
-      layout: { columns: 1, columnGap: 8 },
+      layout: { columns: 2, columnGap: 7 },
       header: { left: '{title}', center: '', right: '{page}' },
       footer: { left: '', center: '', right: '' },
       code: { theme: 'github-light', fontSize: 10 },
@@ -127,11 +127,11 @@ export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'newsletter',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 18 },
-      body: { font: 'Karla', size: 9, lineHeight: 1.35, textAlign: 'justify', color: '#18181b', background: '#FFFFFF' },
-      headings: { font: 'PT Serif', scale: 1.5, weight: 700, underline: false, color: '#047857' },
+      page: { size: 'A4', orientation: 'portrait', margin: 22 },
+      body: { font: 'Karla', size: 10, lineHeight: 1.45, textAlign: 'justify', color: '#18181b', background: '#FFFFFF' },
+      headings: { font: 'PT Serif', scale: 1.25, weight: 700, underline: false, color: '#047857' },
       color: { brand: '#047857' },
-      layout: { columns: 2, columnGap: 8 },
+      layout: { columns: 1, columnGap: 8 },
       header: { left: '{title}', center: '', right: '{date}' },
       footer: { left: '', center: '{page}', right: '' },
       code: { theme: 'github-light', fontSize: 8 },
