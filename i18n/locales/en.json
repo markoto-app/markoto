@@ -159,6 +159,15 @@
       "math": "Math",
       "mathInline": "Inline math",
       "mathBlock": "Block equation",
+      "diagram": "Diagram",
+      "diagramFlowchart": "Flowchart",
+      "diagramSequence": "Sequence diagram",
+      "diagramClass": "Class diagram",
+      "diagramState": "State diagram",
+      "diagramEr": "Entity relationship",
+      "diagramGantt": "Gantt chart",
+      "diagramPie": "Pie chart",
+      "diagramMindmap": "Mind map",
       "definitionList": "Definition list"
     },
     "format": {
@@ -215,7 +224,8 @@
       "footer": "Page footer",
       "code": "Code blocks",
       "tables": "Tables",
-      "blocks": "Images & quotes"
+      "blocks": "Images & quotes",
+      "mermaid": "Diagrams"
     },
     "page": {
       "size": "Page size",
@@ -295,6 +305,15 @@
       "border": "Left border",
       "background": "Tinted background",
       "none": "Plain"
+    },
+    "mermaid": {
+      "theme": "Diagram theme",
+      "themeHelp": "Applies to all Mermaid diagrams in this document.",
+      "themeDefault": "Default",
+      "themeDark": "Dark",
+      "themeForest": "Forest (green)",
+      "themeNeutral": "Neutral (grayscale)",
+      "themeBase": "Base (brand-tinted)"
     },
     "presets": {
       "title": "Templates",

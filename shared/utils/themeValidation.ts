@@ -26,6 +26,7 @@ const CODE_THEMES = new Set([
 const TABLE_HEADER_BGS = new Set(['brand', 'muted', 'none'])
 const TABLE_HEADER_COLORS = new Set(['auto', 'inherit'])
 const TABLE_BORDERS = new Set(['all', 'horizontal', 'minimal', 'none'])
+const MERMAID_THEMES = new Set(['default', 'dark', 'forest', 'neutral', 'base'])
 
 const TOKEN_REGEX = /\{(?:title|page|pages|date)\}/g
 const SAFE_TEXT = /^[^"\\\n\r<>]*$/
@@ -110,6 +111,10 @@ export function isValidTheme(t: unknown): t is DocTheme {
   if (!isNumberInRange(theme.blocks.imageRadius, 0, 32)) return false
   if (!isNumberInRange(theme.blocks.imageMaxWidth, 10, 100)) return false
   if (!BLOCKQUOTE_STYLES.has(theme.blocks.blockquoteStyle)) return false
+
+  // mermaid
+  if (!theme.mermaid || typeof theme.mermaid !== 'object') return false
+  if (!MERMAID_THEMES.has(theme.mermaid.theme)) return false
 
   return true
 }

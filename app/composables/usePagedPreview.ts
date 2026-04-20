@@ -4,6 +4,7 @@ import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
+import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 
 /**
  * Preview pane backed by a persistent same-origin iframe.
@@ -86,12 +87,14 @@ export function usePagedPreview(opts: {
     })
     const fontsImport = themeFontsImport(opts.theme.value)
     const hljsUrl = hljsThemeUrl(opts.theme.value.code.theme)
+    const mermaidTheme = opts.theme.value.mermaid.theme
     isPaginating.value = true
     ;(iframe.contentWindow as unknown as { __renderDoc: (o: unknown) => void }).__renderDoc({
       html: opts.html.value,
       themeCss,
       fontsImport,
-      hljsUrl
+      hljsUrl,
+      mermaidTheme
     })
   }
 
@@ -122,6 +125,7 @@ export function usePagedPreview(opts: {
     iframe.srcdoc = IFRAME_BOOTSTRAP
       .replace('__PAGEDJS_POLYFILL_URL__', PAGEDJS_POLYFILL_URL)
       .replace('__KATEX_CSS_URL__', KATEX_CSS_URL)
+      .replace('__MERMAID_ESM_URL__', MERMAID_ESM_URL)
     opts.container.value.appendChild(iframe)
   })
 
@@ -300,6 +304,44 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
     // in iframe head over a long editing session and slow re-renders.
     var stylesFromLastRender = [];
 
+    // Mermaid lazy loader — only imports the ~1MB ESM module on the
+    // first render that contains a mermaid block. Subsequent renders
+    // reuse the same module; theme is re-initialized only when it
+    // changes (mermaid doesn't expose per-render theme overrides).
+    var mermaidPromise = null;
+    var lastMermaidTheme = null;
+    function ensureMermaid(theme) {
+      if (!mermaidPromise) {
+        mermaidPromise = import('__MERMAID_ESM_URL__').then(function (mod) {
+          return mod.default;
+        }).catch(function (err) {
+          // Reset so a transient network failure doesn't permanently
+          // disable mermaid for the rest of the session.
+          mermaidPromise = null;
+          throw err;
+        });
+      }
+      return mermaidPromise.then(function (m) {
+        if (theme !== lastMermaidTheme) {
+          m.initialize({
+            startOnLoad: false,
+            theme: theme,
+            // Strict blocks raw HTML in diagram labels — safe default
+            // for anything the user (or AI) types into a code fence.
+            securityLevel: 'strict',
+            // SVG <text> instead of <foreignObject> for flowchart node
+            // labels. paged.js measures foreignObject inconsistently
+            // (it uses HTML layout inside SVG) which produces clipped
+            // pages. Plain SVG text avoids the issue entirely.
+            flowchart: { htmlLabels: false },
+            fontFamily: 'inherit'
+          });
+          lastMermaidTheme = theme;
+        }
+        return m;
+      });
+    }
+
     // Recompute the page-fit zoom after pagination and on viewport resize.
     // Page widths are absolute (A4 = 794px @ 96dpi); the available width
     // is the body's content area minus its padding. Capped at 1 — we
@@ -394,6 +436,44 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
             await Promise.all(Array.prototype.map.call(imgs, function(img) {
               return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
             }));
+          }
+
+          // Mermaid pre-process — replace each \`pre code.language-mermaid\`
+          // with the rendered SVG IN PLACE in the scratch DOM, then pick
+          // up the modified innerHTML below. paged.js never sees the
+          // original code blocks; from its perspective the content is
+          // just inline SVG it can paginate normally.
+          //
+          // Done sequentially (not Promise.all) to keep mermaid's internal
+          // id counter and DOM scratch usage predictable. Failures fall
+          // back to an inline error message rather than killing the whole
+          // render — one bad diagram shouldn't blank the preview.
+          var mermaidBlocks = Array.prototype.slice.call(
+            scratch.querySelectorAll('pre code.language-mermaid')
+          );
+          if (mermaidBlocks.length > 0) {
+            var mer = await ensureMermaid(opts.mermaidTheme);
+            for (var mi = 0; mi < mermaidBlocks.length; mi++) {
+              var codeEl = mermaidBlocks[mi];
+              var preEl = codeEl.parentElement;
+              var source = codeEl.textContent || '';
+              var renderId = 'mmd-' + Math.random().toString(36).slice(2, 10);
+              try {
+                var rendered = await mer.render(renderId, source);
+                var wrap = document.createElement('div');
+                wrap.className = 'mermaid';
+                wrap.innerHTML = rendered.svg;
+                preEl.replaceWith(wrap);
+              } catch (err) {
+                var errEl = document.createElement('div');
+                errEl.className = 'mermaid-error';
+                errEl.textContent = 'Mermaid error: ' + (err && err.message ? err.message : 'invalid diagram');
+                preEl.replaceWith(errEl);
+              }
+            }
+            // Hand the post-mermaid HTML to paged.js so it paginates the
+            // SVGs, not the original \`<pre>\` source.
+            opts.html = scratch.innerHTML;
           }
         } finally {
           scratch.remove();

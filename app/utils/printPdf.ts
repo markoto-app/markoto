@@ -1,9 +1,69 @@
-import type { DocTheme } from '~~/shared/types/theme'
+import type { DocTheme, MermaidTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
+import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 import { renderMarkdown } from '~/utils/renderMarkdown'
+
+/**
+ * Mermaid singleton in the parent document context for the print path.
+ * The live preview iframe loads its own copy (different window object,
+ * different module instance) — sharing here would cross document
+ * boundaries which mermaid doesn't support cleanly.
+ *
+ * Pre-processing here (parent context) instead of inside the print
+ * iframe keeps the iframe boot simpler — it gets HTML with SVGs already
+ * inlined and paged.js sees plain inline SVG it can paginate normally.
+ */
+let mermaidPromise: Promise<any> | null = null
+async function loadMermaid(theme: MermaidTheme): Promise<any> {
+  if (!mermaidPromise) {
+    mermaidPromise = import(/* @vite-ignore */ MERMAID_ESM_URL)
+      .then(mod => mod.default)
+      .catch(err => {
+        mermaidPromise = null
+        throw err
+      })
+  }
+  const m = await mermaidPromise
+  m.initialize({
+    startOnLoad: false,
+    theme,
+    securityLevel: 'strict',
+    flowchart: { htmlLabels: false },
+    fontFamily: 'inherit'
+  })
+  return m
+}
+
+async function transformMermaid(html: string, theme: MermaidTheme): Promise<string> {
+  if (html.indexOf('language-mermaid') === -1) return html
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(`<body>${html}</body>`, 'text/html')
+  const blocks = Array.from(doc.querySelectorAll('pre code.language-mermaid'))
+  if (blocks.length === 0) return html
+  const m = await loadMermaid(theme)
+  for (const code of blocks) {
+    const pre = code.parentElement
+    if (!pre) continue
+    const source = code.textContent || ''
+    const id = 'mmd-' + Math.random().toString(36).slice(2, 10)
+    try {
+      const { svg } = await m.render(id, source)
+      const wrap = doc.createElement('div')
+      wrap.className = 'mermaid'
+      wrap.innerHTML = svg
+      pre.replaceWith(wrap)
+    } catch (err: unknown) {
+      const errEl = doc.createElement('div')
+      errEl.className = 'mermaid-error'
+      errEl.textContent = `Mermaid error: ${err instanceof Error ? err.message : 'invalid diagram'}`
+      pre.replaceWith(errEl)
+    }
+  }
+  return doc.body.innerHTML
+}
 
 /**
  * Generate a PDF of the document by:
@@ -27,7 +87,10 @@ export async function printDocumentAsPdf(opts: {
   theme: DocTheme
   title: string
 }): Promise<void> {
-  const html = await renderMarkdown(opts.source)
+  const rawHtml = await renderMarkdown(opts.source)
+  // Replace any mermaid code blocks with their rendered SVG BEFORE the
+  // iframe builds — paged.js then paginates plain inline SVG.
+  const html = await transformMermaid(rawHtml, opts.theme.mermaid.theme)
   const themeCss = themeToCss(opts.theme, {
     title: opts.title || '',
     date: new Date().toISOString().slice(0, 10)

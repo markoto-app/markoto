@@ -84,6 +84,15 @@ GitHub-style alerts (use a blockquote with a \`[!KIND]\` first line):
   > [!CAUTION]
   > Risk of harm or data loss.
 
+Diagrams (Mermaid — fenced code block with \`mermaid\` language):
+  \`\`\`mermaid
+  flowchart LR
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Done]
+    B -->|No| D[Retry]
+  \`\`\`
+Supported diagram types: \`flowchart\`, \`sequenceDiagram\`, \`classDiagram\`, \`stateDiagram-v2\`, \`erDiagram\`, \`gantt\`, \`pie\`, \`mindmap\`, \`gitGraph\`, \`timeline\`. Use Mermaid syntax exactly as documented at mermaid.js. Diagrams render to SVG inside the document; reach for them when a flowchart, sequence, or chart communicates a relationship more clearly than prose.
+
 Emoji shortcodes: \`:rocket:\` → 🚀, \`:heart:\` → ❤️, \`:thumbsup:\` → 👍.
 
 Notes:

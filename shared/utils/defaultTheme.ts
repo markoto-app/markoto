@@ -60,5 +60,8 @@ export const defaultTheme: DocTheme = {
     imageRadius: 4,
     imageMaxWidth: 100,
     blockquoteStyle: 'border'
+  },
+  mermaid: {
+    theme: 'default'
   }
 }

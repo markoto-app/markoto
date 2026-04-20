@@ -2,7 +2,7 @@
 import type { EditorView } from '@codemirror/view'
 import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode,
-  insertBlock, insertFootnote, insertAlert, insertMath, insertDefinitionList
+  insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram, insertDefinitionList
 } from '~/utils/editorCommands'
 
 /**
@@ -216,6 +216,20 @@ const insertItems = computed(() => {
       children: [
         { label: t('menubar.insert.mathInline'), icon: 'i-lucide-pi', onSelect: () => call(v => insertMath(v, 'inline')) },
         { label: t('menubar.insert.mathBlock'), icon: 'i-lucide-square-sigma', onSelect: () => call(v => insertMath(v, 'block')) }
+      ]
+    },
+    {
+      label: t('menubar.insert.diagram'),
+      icon: 'i-lucide-workflow',
+      children: [
+        { label: t('menubar.insert.diagramFlowchart'), icon: 'i-lucide-git-fork', onSelect: () => call(v => insertDiagram(v, 'flowchart')) },
+        { label: t('menubar.insert.diagramSequence'), icon: 'i-lucide-arrow-left-right', onSelect: () => call(v => insertDiagram(v, 'sequence')) },
+        { label: t('menubar.insert.diagramClass'), icon: 'i-lucide-box', onSelect: () => call(v => insertDiagram(v, 'class')) },
+        { label: t('menubar.insert.diagramState'), icon: 'i-lucide-activity', onSelect: () => call(v => insertDiagram(v, 'state')) },
+        { label: t('menubar.insert.diagramEr'), icon: 'i-lucide-database', onSelect: () => call(v => insertDiagram(v, 'er')) },
+        { label: t('menubar.insert.diagramGantt'), icon: 'i-lucide-bar-chart-3', onSelect: () => call(v => insertDiagram(v, 'gantt')) },
+        { label: t('menubar.insert.diagramPie'), icon: 'i-lucide-pie-chart', onSelect: () => call(v => insertDiagram(v, 'pie')) },
+        { label: t('menubar.insert.diagramMindmap'), icon: 'i-lucide-network', onSelect: () => call(v => insertDiagram(v, 'mindmap')) }
       ]
     },
     { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) }

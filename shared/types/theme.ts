@@ -37,6 +37,12 @@ export type TableHeaderColor = 'auto' | 'inherit'
 export type TableBorders = 'all' | 'horizontal' | 'minimal' | 'none'
 
 /**
+ * Mermaid's built-in visual themes. Applied via `mermaid.initialize()`
+ * in the iframe bootstrap before each render.
+ */
+export type MermaidTheme = 'default' | 'dark' | 'forest' | 'neutral' | 'base'
+
+/**
  * Header/footer slot. Templates support these tokens:
  *   {title}  → document title
  *   {page}   → current page number
@@ -95,5 +101,8 @@ export type DocTheme = {
     imageRadius: number        // px
     imageMaxWidth: number      // % of column width
     blockquoteStyle: BlockquoteStyle
+  }
+  mermaid: {
+    theme: MermaidTheme
   }
 }

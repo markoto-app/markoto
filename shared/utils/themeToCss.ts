@@ -27,6 +27,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     codeBlock(theme),
     alertBlock(),
     katexBlock(),
+    mermaidBlock(),
     breakHints()
   ].join('\n\n')
 }
@@ -429,6 +430,39 @@ function katexBlock(): string {
   break-inside: avoid;
 }`,
     `.paged-doc .katex { font-size: 1.05em; }`
+  ].join('\n')
+}
+
+// — mermaid diagrams ——————————————————————————————————————————————————
+
+/**
+ * Mermaid renders to inline SVG inside a `<div class="mermaid">` (the
+ * preview/print iframes do the substitution before paged.js paginates;
+ * see usePagedPreview + printPdf). All visual styling — node fills,
+ * label fonts, edge colors — comes from mermaid's own theme set via
+ * \`mermaid.initialize({ theme })\`. What's left here is layout glue:
+ * center the diagram, cap its width, and avoid splitting across pages.
+ */
+function mermaidBlock(): string {
+  return [
+    `.paged-doc .mermaid {
+  margin: 1em auto;
+  text-align: center;
+  break-inside: avoid;
+}`,
+    `.paged-doc .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}`,
+    `.paged-doc .mermaid-error {
+  margin: 1em 0;
+  padding: 0.6em 1em;
+  border-left: 4px solid #cf222e;
+  background: color-mix(in srgb, #cf222e 8%, transparent);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: #cf222e;
+}`
   ].join('\n')
 }
 

@@ -519,6 +519,85 @@ export function insertMath(view: EditorView, mode: 'inline' | 'block'): void {
   view.focus()
 }
 
+export type MermaidKind =
+  | 'flowchart'
+  | 'sequence'
+  | 'class'
+  | 'state'
+  | 'er'
+  | 'gantt'
+  | 'pie'
+  | 'mindmap'
+
+/**
+ * Minimal working examples for each Mermaid diagram kind. Each snippet
+ * is short enough that the user can edit-in-place rather than read a
+ * tutorial first. Kept as runnable diagrams (not skeletal placeholders)
+ * so a user clicking "Sequence" gets an immediately-rendered preview to
+ * play with.
+ */
+const MERMAID_TEMPLATES: Record<MermaidKind, string> = {
+  flowchart: `flowchart LR
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Done]
+  B -->|No| D[Retry]`,
+  sequence: `sequenceDiagram
+  Alice->>Bob: Hello Bob
+  Bob-->>Alice: Hi Alice`,
+  class: `classDiagram
+  class Animal {
+    +String name
+    +eat()
+  }
+  Animal <|-- Dog`,
+  state: `stateDiagram-v2
+  [*] --> Active
+  Active --> Inactive : pause
+  Inactive --> Active : resume
+  Active --> [*]`,
+  er: `erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains`,
+  gantt: `gantt
+  title Project Plan
+  dateFormat YYYY-MM-DD
+  section Phase 1
+  Design :a1, 2026-01-01, 14d
+  Build  :after a1, 21d`,
+  pie: `pie title Distribution
+  "Apples" : 40
+  "Pears" : 35
+  "Oranges" : 25`,
+  mindmap: `mindmap
+  root((Idea))
+    Branch 1
+      Leaf
+    Branch 2`
+}
+
+/**
+ * Insert a Mermaid code block with a minimal example for the chosen
+ * diagram kind. The block is fenced as ` ```mermaid `; the iframe
+ * pre-processor (preview + print) detects the language and replaces
+ * the block with its rendered SVG before paged.js paginates.
+ *
+ * Always inserts on its own pair of newlines so the fence parses
+ * cleanly regardless of where the cursor was.
+ */
+export function insertDiagram(view: EditorView, kind: MermaidKind): void {
+  const { from, to } = view.state.selection.main
+  const template = MERMAID_TEMPLATES[kind]
+  const block = `\n\`\`\`mermaid\n${template}\n\`\`\`\n`
+  view.dispatch({
+    changes: { from, to, insert: block },
+    // Cursor at the end of the inserted block, ready to add prose
+    // after the diagram. The user can click into the diagram source
+    // to edit it.
+    selection: { anchor: from + block.length }
+  })
+  view.focus()
+}
+
 /**
  * Insert a definition-list template (`Term\n: Definition`) at the
  * cursor. Selects "Term" so the user can immediately type a real term;

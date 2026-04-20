@@ -101,7 +101,13 @@ async function init(): Promise<void> {
             return `<pre><code class="hljs language-${lang}">${out}</code></pre>`
           } catch {}
         }
-        return `<pre><code class="hljs">${escaped}</code></pre>`
+        // Preserve language class even when hljs doesn't recognize the
+        // lang — needed for the iframe-side mermaid pre-processor to
+        // find `pre code.language-mermaid` blocks. Without this, mermaid
+        // (and any future unknown-lang detector) sees `class="hljs"`
+        // only and can't tell what kind of block this is.
+        const langClass = lang ? ` language-${lang.replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
+        return `<pre><code class="hljs${langClass}">${escaped}</code></pre>`
       }
     })
       .use(taskLists, { enabled: true })

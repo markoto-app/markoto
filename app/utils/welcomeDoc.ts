@@ -9,6 +9,13 @@ YPad is a collaborative markdown editor. Open this document on a second device o
 
 Anyone with the link can edit by default. Use **File → Sharing** to lock the document down — make it view-only, password-protect it, or keep it private to just you.
 
+\`\`\`mermaid
+flowchart LR
+  You([You]) -- share link --> Doc[(YPad document)]
+  Doc -- live edits --> Friends([Collaborators])
+  Friends -- live edits --> Doc
+\`\`\`
+
 The avatars at the top show who's currently looking at the doc, and the **Activity** panel on the right keeps a record of who joined, left, and made changes.
 
 ## Writing with the AI

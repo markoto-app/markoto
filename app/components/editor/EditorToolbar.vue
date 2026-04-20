@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath } from '~/utils/editorCommands'
+import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath, insertDiagram } from '~/utils/editorCommands'
 
 const { t } = useI18n()
 
@@ -101,13 +101,42 @@ const actions = computed(() => [
   // Table + HR — common insertions worth a one-click toolbar slot in
   // addition to the Insert menu entries.
   { icon: 'i-lucide-table', label: t('editor.table'), action: withView(v => insertBlock(v, '\n| Column 1 | Column 2 |\n|----------|----------|\n| Cell     | Cell     |\n')) },
-  { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) },
-  // Math (inline `$…$`) and a default NOTE alert. Block math + the
-  // four other alert kinds live in the Insert menu — these toolbar
-  // buttons cover the common one-click case.
-  { icon: 'i-lucide-sigma', label: t('menubar.insert.mathInline'), action: withView(v => insertMath(v, 'inline')) },
-  { icon: 'i-lucide-message-square-warning', label: t('menubar.insert.alert'), action: withView(v => insertAlert(v, 'NOTE')) }
+  { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) }
+  // Math, alerts, and diagrams need a kind picker — rendered as
+  // dropdowns directly in the template after this list. Putting them
+  // in `actions` would force a default kind on the toolbar click,
+  // which doesn't match the menu-bar behavior or what users expect.
 ])
+
+// Math kinds — surfaces inline + block in the toolbar dropdown.
+const mathItems = computed(() => [[
+  { label: t('menubar.insert.mathInline'), icon: 'i-lucide-pi', onSelect: withView(v => insertMath(v, 'inline')) },
+  { label: t('menubar.insert.mathBlock'), icon: 'i-lucide-square-sigma', onSelect: withView(v => insertMath(v, 'block')) }
+]])
+
+// Alert kinds — same five variants the menu bar exposes. Keeping the
+// option set in sync with the menu bar means users learn one
+// vocabulary; toolbar is just a faster path to the same actions.
+const alertItems = computed(() => [[
+  { label: t('menubar.insert.alertNote'), icon: 'i-lucide-info', onSelect: withView(v => insertAlert(v, 'NOTE')) },
+  { label: t('menubar.insert.alertTip'), icon: 'i-lucide-lightbulb', onSelect: withView(v => insertAlert(v, 'TIP')) },
+  { label: t('menubar.insert.alertImportant'), icon: 'i-lucide-megaphone', onSelect: withView(v => insertAlert(v, 'IMPORTANT')) },
+  { label: t('menubar.insert.alertWarning'), icon: 'i-lucide-alert-triangle', onSelect: withView(v => insertAlert(v, 'WARNING')) },
+  { label: t('menubar.insert.alertCaution'), icon: 'i-lucide-octagon-alert', onSelect: withView(v => insertAlert(v, 'CAUTION')) }
+]])
+
+// Diagram kinds — eight Mermaid diagram types, each inserting a
+// minimal working example.
+const diagramItems = computed(() => [[
+  { label: t('menubar.insert.diagramFlowchart'), icon: 'i-lucide-git-fork', onSelect: withView(v => insertDiagram(v, 'flowchart')) },
+  { label: t('menubar.insert.diagramSequence'), icon: 'i-lucide-arrow-left-right', onSelect: withView(v => insertDiagram(v, 'sequence')) },
+  { label: t('menubar.insert.diagramClass'), icon: 'i-lucide-box', onSelect: withView(v => insertDiagram(v, 'class')) },
+  { label: t('menubar.insert.diagramState'), icon: 'i-lucide-activity', onSelect: withView(v => insertDiagram(v, 'state')) },
+  { label: t('menubar.insert.diagramEr'), icon: 'i-lucide-database', onSelect: withView(v => insertDiagram(v, 'er')) },
+  { label: t('menubar.insert.diagramGantt'), icon: 'i-lucide-bar-chart-3', onSelect: withView(v => insertDiagram(v, 'gantt')) },
+  { label: t('menubar.insert.diagramPie'), icon: 'i-lucide-pie-chart', onSelect: withView(v => insertDiagram(v, 'pie')) },
+  { label: t('menubar.insert.diagramMindmap'), icon: 'i-lucide-network', onSelect: withView(v => insertDiagram(v, 'mindmap')) }
+]])
 </script>
 
 <template>
@@ -125,6 +154,26 @@ const actions = computed(() => [
         />
       </UTooltip>
     </template>
+
+    <!-- Multi-option insertions (math, alert, diagram) — surfaced as
+         dropdowns so the toolbar matches the menu-bar Insert submenus
+         and the user picks the variant rather than the button forcing
+         a default. Triggers visually match the other ghost buttons. -->
+    <UDropdownMenu :items="mathItems" :content="{ align: 'start' }">
+      <UTooltip :text="t('menubar.insert.math')">
+        <UButton icon="i-lucide-sigma" color="neutral" variant="ghost" size="xs" />
+      </UTooltip>
+    </UDropdownMenu>
+    <UDropdownMenu :items="alertItems" :content="{ align: 'start' }">
+      <UTooltip :text="t('menubar.insert.alert')">
+        <UButton icon="i-lucide-message-square-warning" color="neutral" variant="ghost" size="xs" />
+      </UTooltip>
+    </UDropdownMenu>
+    <UDropdownMenu :items="diagramItems" :content="{ align: 'start' }">
+      <UTooltip :text="t('menubar.insert.diagram')">
+        <UButton icon="i-lucide-workflow" color="neutral" variant="ghost" size="xs" />
+      </UTooltip>
+    </UDropdownMenu>
 
     <input
       ref="imageInput"

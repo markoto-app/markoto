@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DocTheme, CodeTheme } from '~~/shared/types/theme'
+import type { DocTheme, CodeTheme, MermaidTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
@@ -72,7 +72,8 @@ const sectionItems = computed(() => [
   { value: 'footer', slot: 'footer', label: t('theme.section.footer'), icon: 'i-lucide-panel-bottom' },
   { value: 'code', slot: 'code', label: t('theme.section.code'), icon: 'i-lucide-code' },
   { value: 'tables', slot: 'tables', label: t('theme.section.tables'), icon: 'i-lucide-table' },
-  { value: 'blocks', slot: 'blocks', label: t('theme.section.blocks'), icon: 'i-lucide-image' }
+  { value: 'blocks', slot: 'blocks', label: t('theme.section.blocks'), icon: 'i-lucide-image' },
+  { value: 'mermaid', slot: 'mermaid', label: t('theme.section.mermaid'), icon: 'i-lucide-workflow' }
 ])
 
 // Static option lists
@@ -139,6 +140,13 @@ const tableBordersItems = computed(() => [
   { label: t('theme.tables.bordersHorizontal'), value: 'horizontal' },
   { label: t('theme.tables.bordersMinimal'), value: 'minimal' },
   { label: t('theme.tables.bordersNone'), value: 'none' }
+])
+const mermaidThemeItems = computed(() => [
+  { label: t('theme.mermaid.themeDefault'), value: 'default' as MermaidTheme },
+  { label: t('theme.mermaid.themeDark'), value: 'dark' as MermaidTheme },
+  { label: t('theme.mermaid.themeForest'), value: 'forest' as MermaidTheme },
+  { label: t('theme.mermaid.themeNeutral'), value: 'neutral' as MermaidTheme },
+  { label: t('theme.mermaid.themeBase'), value: 'base' as MermaidTheme }
 ])
 
 const fontPickerItems = computed(() => [
@@ -499,6 +507,15 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
               </div>
               <UFormField :label="t('theme.blocks.blockquoteStyle')">
                 <USelect v-model="draft.blocks.blockquoteStyle" :items="blockquoteItems" class="w-full" />
+              </UFormField>
+            </div>
+          </template>
+
+          <!-- Mermaid -->
+          <template #mermaid-body>
+            <div class="space-y-4 pt-2 pb-4">
+              <UFormField :label="t('theme.mermaid.theme')" :help="t('theme.mermaid.themeHelp')">
+                <USelect v-model="draft.mermaid.theme" :items="mermaidThemeItems" class="w-full" />
               </UFormField>
             </div>
           </template>
