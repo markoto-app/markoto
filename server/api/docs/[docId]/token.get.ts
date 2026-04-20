@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { and, eq } from 'drizzle-orm'
 import { documents, workspaceMembers } from '../../../db/schema'
+import { decideTokenAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 30 token requests per IP per minute
@@ -12,7 +13,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const docId = requireDocId(event)
-
   const session = await getValidatedUserSession(event)
   const db = useDatabase()
   const config = useRuntimeConfig()
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'JWT secret not configured' })
   }
 
-  const doc = (await db
+  const docRow = (await db
     .select({
       accessMode: documents.accessMode,
       ownerId: documents.ownerId,
@@ -32,93 +32,68 @@ export default defineEventHandler(async (event) => {
     .where(eq(documents.docId, docId))
     .limit(1))[0]
 
-  // Workspace-membership lookup is a second query gated on (a) logged in
-  // and (b) doc has a workspace. Kept separate from the doc fetch to avoid
-  // awkward LEFT JOIN semantics for the anon / no-workspace cases.
+  if (!docRow) {
+    // 404 rather than an anonymous token for a nonexistent doc: (a) prevents
+    // "token shape" info-disclosure; (b) avoids a wasted sync-server connect
+    // attempt; (c) gives the client a clear error to display.
+    throw createError({ statusCode: 404, message: 'Document not found' })
+  }
+
+  // Second query, gated on (a) logged in and (b) doc has a workspace.
+  // Kept separate from the doc fetch to avoid awkward LEFT JOIN semantics
+  // for the anon / no-workspace cases.
   let workspaceRole: 'admin' | 'editor' | 'viewer' | null = null
-  if (doc && doc.workspaceId && typeof session?.user?.id === 'number') {
+  if (docRow.workspaceId && typeof session?.user?.id === 'number') {
     const memberRow = (await db
       .select({ role: workspaceMembers.role })
       .from(workspaceMembers)
       .where(and(
-        eq(workspaceMembers.workspaceId, doc.workspaceId),
+        eq(workspaceMembers.workspaceId, docRow.workspaceId),
         eq(workspaceMembers.userId, session.user.id)
       ))
       .limit(1))[0]
-    workspaceRole = (memberRow?.role ?? null) as any
+    workspaceRole = (memberRow?.role ?? null) as typeof workspaceRole
   }
 
-  if (!doc) {
-    // Previously we fell through and minted a JWT for a nonexistent doc.
-    // That's an info-disclosure primitive (token shape proves the endpoint
-    // works) and wastes a sync-server connection attempt. 404 is the honest
-    // answer and keeps the client from spinning in "connecting" forever.
-    throw createError({ statusCode: 404, message: 'Document not found' })
+  const doc: DocState = {
+    ownerId: docRow.ownerId,
+    workspaceId: docRow.workspaceId,
+    accessMode: docRow.accessMode
+  }
+  const actor: ActorState = {
+    userId: session?.user?.id ?? null,
+    workspaceRole
   }
 
-  let readOnly = false
-  let requiresPassword = false
-  let forbidden = false
-  const accessMode = doc.accessMode
-  const ownerId = doc.ownerId
-
-  const userId = session?.user?.id
-  const isOwner = ownerId != null && typeof userId === 'number' && ownerId === userId
-  const wsRole = workspaceRole
-
-  // Admin / editor of the doc's workspace is treated like the owner for
-  // access purposes (bypasses private, full edit). Viewer bypasses private
-  // too but stays read-only. Non-members fall through to the accessMode
-  // rules below — i.e. standalone and anonymous docs are untouched.
-  const isWorkspaceEditor = wsRole === 'admin' || wsRole === 'editor'
-  const isWorkspaceViewer = wsRole === 'viewer'
-  const hasOwnerEquivalentAccess = isOwner || isWorkspaceEditor
-  const hasAnyWorkspaceAccess = hasOwnerEquivalentAccess || isWorkspaceViewer
-
-  if (doc.accessMode === 'private' && !hasAnyWorkspaceAccess) {
-    // No token — same pattern as password-protected. Hocuspocus rejects the
-    // connection so no content leaks. The client shows a private-document
-    // lock screen with a prompt to log in or contact the owner.
-    forbidden = true
-    readOnly = true
+  const decision = decideTokenAccess(doc, actor)
+  const responseBase = {
+    readOnly: decision.readOnly,
+    accessMode: docRow.accessMode,
+    ownerId: docRow.ownerId,
+    theme: docRow.theme
   }
 
-  if (doc.accessMode === 'open-view' && !hasOwnerEquivalentAccess) {
-    readOnly = true
+  if (decision.outcome === 'forbidden') {
+    return { token: null, requiresPassword: false, forbidden: true, ...responseBase }
   }
-
-  if (doc.accessMode === 'password-protected' && !hasOwnerEquivalentAccess) {
-    requiresPassword = true
-    readOnly = true
-  }
-
-  // Viewers of a workspace are always read-only regardless of accessMode —
-  // including when the doc is open-edit (workspace role is more restrictive
-  // than the public accessMode in that case, and must win).
-  if (isWorkspaceViewer && !isOwner) {
-    readOnly = true
-  }
-
-  // No-token exits: private (no path to unlock from the client) and
-  // password-protected (unlocked after /password verify).
-  if (forbidden || requiresPassword) {
-    return { token: null, readOnly, requiresPassword, forbidden, accessMode, ownerId, theme: doc.theme }
+  if (decision.outcome === 'password-required') {
+    return { token: null, requiresPassword: true, forbidden: false, ...responseBase }
   }
 
   const token = jwt.sign(
     {
       docId,
       userId: session?.user?.id || 'anonymous',
-      // Carried so the sync-server can attribute edits reliably without guessing
-      // from awareness (a cursor move by User A can otherwise steal attribution
-      // from a real edit by User B). Anonymous users end up with null here; the
-      // sync-server falls back to awareness in that case.
+      // Carried so the sync-server can attribute edits reliably without
+      // guessing from awareness (a cursor move by User A can otherwise
+      // steal attribution from a real edit by User B). Anonymous users
+      // end up with null here; the sync-server falls back to awareness.
       userName: session?.user?.name ?? null,
-      readOnly
+      readOnly: decision.readOnly
     },
     config.jwtSecret,
     { expiresIn: '2h' }
   )
 
-  return { token, readOnly, requiresPassword, forbidden: false, accessMode, ownerId, theme: doc.theme }
+  return { token, requiresPassword: false, forbidden: false, ...responseBase }
 })

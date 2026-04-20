@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm'
-import { workspaceMembers } from '../../../../db/schema'
+import { documents, workspaceMembers } from '../../../../db/schema'
+import { notifySyncKickUser } from '../../../../utils/syncNotify'
 
 // Change a member's role. Admin-only.
 //
@@ -48,6 +49,16 @@ export default defineEventHandler(async (event) => {
   await db.update(workspaceMembers)
     .set({ role: nextRole })
     .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, targetUserId)))
+
+  // Kick the member on every workspace doc so their next token reflects
+  // the new role. We always kick — even when the role loosens (editor →
+  // admin) — because the alternative is maintaining a "does this change
+  // reduce access" predicate, and any mistake there becomes a stale-JWT
+  // security bug. Reconnect cost is a UI flicker; wrong call is a hole.
+  const wsDocs = await db.select({ docId: documents.docId })
+    .from(documents)
+    .where(eq(documents.workspaceId, wsId))
+  notifySyncKickUser(targetUserId, wsDocs.map(d => d.docId))
 
   return { success: true }
 })

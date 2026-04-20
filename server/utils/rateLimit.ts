@@ -24,6 +24,12 @@ export async function checkRateLimit(
   maxAttempts: number,
   windowMs: number
 ): Promise<boolean> {
+  // Test-mode bypass. The integration suite pounds endpoints far harder
+  // than a real user ever would; without this, password-brute-force and
+  // doc-delete limits make the suite flaky and order-dependent. Rate-limit
+  // behaviour itself has its own targeted tests when needed.
+  if (process.env.TEST_MODE === '1') return true
+
   const zkey = `rl:${namespace}:${key}`
   const now = Date.now()
   const windowStart = now - windowMs

@@ -141,11 +141,19 @@ function handleInsert(
   // Compute char index for the start of line (insert_line + 1).
   // insert_line=0 → beginning of file (idx 0).
   // insert_line=N → after line N, i.e., at the start of line N+1.
+  // insert_line === lines.length → append at end of file.
+  //
+  // The loop body blindly adds `length + 1 (newline)` for every iterated
+  // line, which overshoots by 1 when the doc has no trailing newline and
+  // we're appending — there's no newline after the last line to count.
+  // Clamping to `full.length` snaps us back to the true end; mid-doc
+  // positions are unaffected because they never exceed the total length.
   let idx = 0
   for (let i = 0; i < input.insert_line; i++) {
     // Bounds-checked above (insert_line <= lines.length); `!` tells TS.
     idx += lines[i]!.length + 1 // +1 for the newline
   }
+  idx = Math.min(idx, full.length)
 
   session.updateStatus('editing', 'Applying insert…')
 

@@ -1,0 +1,60 @@
+# Test-only infrastructure. Mirrors docker-compose.dev.yml but on isolated
+# ports and a disposable volume so the dev database is never touched.
+#
+# Run:  docker compose -f docker-compose.test.yml up -d
+#       (then:  bun run test:integration)
+# Stop: docker compose -f docker-compose.test.yml down -v
+#
+# Ports shifted from dev (5432/6379/8333) to (5433/6380/8334) so both stacks
+# can run simultaneously. The test DB name is ypad_test — integration tests
+# refuse to run against any other DB name as a belt-and-braces guard against
+# running TRUNCATEs on a dev database.
+
+services:
+  postgres-test:
+    image: postgres:16-alpine@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=ypad
+      - POSTGRES_PASSWORD=testpassword
+      - POSTGRES_DB=ypad_test
+    # tmpfs for the data dir: every container restart = clean slate. Tests
+    # still TRUNCATE between cases for speed, but if a test suite crashes
+    # mid-run a simple `down -v && up -d` gives you a pristine state.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ypad -d ypad_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 2s
+    ports:
+      - "5433:5432"
+
+  valkey-test:
+    image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
+    restart: unless-stopped
+    # No AOF — tests want a blank slate every boot.
+    command: ["valkey-server", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    ports:
+      - "6380:6379"
+
+  seaweedfs-test:
+    image: chrislusf/seaweedfs@sha256:854479eebcbc0060d803edb27b3bd88a0552e23fde08a26a6482e59aff887a77
+    restart: unless-stopped
+    command: >
+      server -s3
+      -ip=seaweedfs-test -ip.bind=0.0.0.0
+      -dir=/data -s3.config=/etc/seaweedfs/s3.json -s3.port=8333
+    ports:
+      - "8334:8333"
+    tmpfs:
+      - /data
+    volumes:
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro

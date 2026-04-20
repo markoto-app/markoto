@@ -1,7 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { documents, workspaces, workspaceMembers } from '../db/schema'
-
-export type WorkspaceRole = 'admin' | 'editor' | 'viewer'
+import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 
 /**
  * Central authorization for workspace-member docs. The rule of thumb:

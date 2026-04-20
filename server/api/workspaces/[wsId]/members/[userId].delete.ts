@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm'
-import { workspaceMembers } from '../../../../db/schema'
+import { documents, workspaceMembers } from '../../../../db/schema'
+import { notifySyncKickUser } from '../../../../utils/syncNotify'
 
 // Remove a member OR leave the workspace. Same endpoint because "remove"
 // and "leave" are the same underlying row deletion — only the authorisation
@@ -44,6 +45,15 @@ export default defineEventHandler(async (event) => {
 
   await db.delete(workspaceMembers)
     .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, targetUserId)))
+
+  // Kick any live Y.js connections the removed member holds to workspace
+  // docs. Without this the member's 2h JWT stays valid and they keep
+  // edit rights on docs they just lost access to. Owner-owned docs in the
+  // workspace are also kicked but re-grant via the owner path on reconnect.
+  const wsDocs = await db.select({ docId: documents.docId })
+    .from(documents)
+    .where(eq(documents.workspaceId, wsId))
+  notifySyncKickUser(targetUserId, wsDocs.map(d => d.docId))
 
   return { success: true }
 })

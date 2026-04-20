@@ -7,8 +7,12 @@ import './validate-secrets'
 import { captureMessage } from './sentry'
 import { Server } from '@hocuspocus/server'
 import { ypgPersistence } from './persistence'
-import { auth } from './auth'
+import { authFromEnv } from './auth'
 import { rateLimiter } from './rate-limiter'
+
+// Auth singleton — wired from env here (not inside auth.ts) so unit tests
+// can import `createAuth` without tripping a top-level env guard.
+const auth = authFromEnv()
 import { logActivity, mostRecentEditorFromAwareness, countWords, lineDiff } from './activity-logger'
 import { handleInternalRequest } from './internal-http'
 

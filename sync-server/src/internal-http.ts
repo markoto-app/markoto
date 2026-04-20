@@ -1,18 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { Doc as YDoc } from 'yjs'
 import { ypgPersistence } from './persistence'
 import { matchesCurrentOrPrevious } from '../../shared/utils/secrets'
+import { performKickUser, type HocuspocusInstance } from './kickUser'
+
+export type { HocuspocusConnection, HocuspocusDocument, HocuspocusInstance } from './kickUser'
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
 const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || undefined
-
-// Minimal shape of the Hocuspocus server instance we actually touch.
-// The full Hocuspocus type graph is heavy and shifts between patch releases;
-// this stub covers just what this module needs.
-interface HocuspocusInstance {
-  documents?: Map<string, YDoc>
-  unloadDocument?: (doc: YDoc) => void
-}
 
 function sendJson(response: ServerResponse, status: number, body: Record<string, unknown>) {
   response.writeHead(status, { 'Content-Type': 'application/json' })
@@ -92,6 +86,33 @@ export async function handleInternalRequest(
       }, 3000)
 
       sendJson(response, 200, { success: true, notified: !!doc })
+      return true
+    }
+
+    if (url === '/internal/kick-user' && request.method === 'POST') {
+      // Force-close every live WS connection for a given user across a
+      // given set of docs. Called by the app when a workspace membership
+      // changes (role reduced, member removed, workspace deleted). The
+      // client's Hocuspocus provider auto-reconnects, re-hits the token
+      // endpoint, and picks up the new access level — so "kick" here
+      // really means "refresh". Fire-and-forget from the app; we never
+      // fail the caller's mutation on a kick failure.
+      const body = await readJsonBody(request) as { userId?: unknown, docIds?: unknown }
+      const rawUserId = body?.userId
+      const rawDocIds = body?.docIds
+      if ((typeof rawUserId !== 'string' && typeof rawUserId !== 'number')
+        || !Array.isArray(rawDocIds)) {
+        sendJson(response, 400, { error: 'userId (string|number) and docIds (string[]) required' })
+        return true
+      }
+      // JWT payloads may carry userId as number (logged-in) or string
+      // ('anonymous'). Compare as strings to cover both shapes without
+      // a silent skip on number/string mismatch.
+      const targetUserId = String(rawUserId)
+      const targetDocIds = rawDocIds.filter((d): d is string => typeof d === 'string')
+
+      const { kicked, missing } = performKickUser(instance, targetUserId, targetDocIds)
+      sendJson(response, 200, { success: true, kicked, docsNotLoaded: missing })
       return true
     }
 
