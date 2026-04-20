@@ -11,8 +11,8 @@ Anyone with the link can edit by default. Use **File → Sharing** to lock the d
 
 \`\`\`mermaid
 flowchart LR
-  You([You]) -- share link --> Doc[(YPad document)]
-  Doc -- live edits --> Friends([Collaborators])
+  You[You] -- share link --> Doc[YPad document]
+  Doc -- live edits --> Friends[Collaborators]
   Friends -- live edits --> Doc
 \`\`\`
 

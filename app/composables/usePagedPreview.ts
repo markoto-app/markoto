@@ -344,7 +344,7 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
             // historical aversion to it was based on older versions.
             // Extra padding + wider text-wrap give multi-word labels
             // visual breathing room.
-            flowchart: { htmlLabels: true, padding: 15, wrappingWidth: 200 },
+            flowchart: { htmlLabels: true, padding: 25, wrappingWidth: 200 },
             fontFamily: 'inherit'
           });
           lastMermaidTheme = theme;
