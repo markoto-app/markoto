@@ -329,11 +329,22 @@ const IFRAME_BOOTSTRAP = `<!DOCTYPE html>
             // Strict blocks raw HTML in diagram labels — safe default
             // for anything the user (or AI) types into a code fence.
             securityLevel: 'strict',
-            // SVG <text> instead of <foreignObject> for flowchart node
-            // labels. paged.js measures foreignObject inconsistently
-            // (it uses HTML layout inside SVG) which produces clipped
-            // pages. Plain SVG text avoids the issue entirely.
-            flowchart: { htmlLabels: false },
+            // 12px works across diagram types — the default 16px
+            // crowds multi-line cells in tables/state diagrams and
+            // pushes node bounds outside their column on flowcharts.
+            // 12px reads cleanly at print resolution without feeling
+            // cramped on single-word nodes.
+            themeVariables: { fontSize: '12px' },
+            // htmlLabels=true uses <foreignObject> so node sizing comes
+            // from real HTML layout — which is accurate. The previous
+            // SVG-text path consistently undersized cylinders and stadiums
+            // because mermaid couldn't measure text width without fonts
+            // loaded, then clipped multi-word labels. Modern paged.js
+            // (0.4.x) handles foreignObject pagination correctly; the
+            // historical aversion to it was based on older versions.
+            // Extra padding + wider text-wrap give multi-word labels
+            // visual breathing room.
+            flowchart: { htmlLabels: true, padding: 15, wrappingWidth: 200 },
             fontFamily: 'inherit'
           });
           lastMermaidTheme = theme;

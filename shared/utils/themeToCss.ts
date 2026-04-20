@@ -453,6 +453,26 @@ function mermaidBlock(): string {
     `.paged-doc .mermaid svg {
   max-width: 100%;
   height: auto;
+  /* Without this, the SVG hard-clips foreignObject HTML labels at the
+     foreignObject's own bbox even when the inner text is wider — the
+     symptom is "YPad document" rendering as "YPad docume". Letting
+     the SVG paint beyond its viewport keeps overflowing labels visible. */
+  overflow: visible;
+}`,
+    // foreignObject defines a clipping viewport in SVG. mermaid sizes
+    // the foreignObject from a pre-render measurement that comes up
+    // short on multi-character labels (font metrics drift between
+    // measurement context and final render context). Forcing
+    // overflow:visible on foreignObject + nowrap on the inner content
+    // keeps every character readable even when mermaid undersizes the
+    // surrounding shape.
+    `.paged-doc .mermaid foreignObject {
+  overflow: visible;
+}`,
+    `.paged-doc .mermaid foreignObject > div,
+.paged-doc .mermaid foreignObject span,
+.paged-doc .mermaid foreignObject p {
+  white-space: nowrap;
 }`,
     `.paged-doc .mermaid-error {
   margin: 1em 0;

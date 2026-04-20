@@ -31,7 +31,10 @@ async function loadMermaid(theme: MermaidTheme): Promise<any> {
     startOnLoad: false,
     theme,
     securityLevel: 'strict',
-    flowchart: { htmlLabels: false },
+    // Match the live preview iframe (see usePagedPreview.ts) — see
+    // that file for the rationale on font size + htmlLabels.
+    themeVariables: { fontSize: '12px' },
+    flowchart: { htmlLabels: true, padding: 15, wrappingWidth: 200 },
     fontFamily: 'inherit'
   })
   return m
