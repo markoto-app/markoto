@@ -408,6 +408,37 @@ export function toggleOrderedList(view: EditorView): void {
 // — block insert ——————————————————————————————————————————————————
 
 /**
+ * Insert a markdown table sized `rows × cols` (rows includes the header
+ * row, matching the convention users expect from picker-style table
+ * inserters: a "3 × 3" pick yields three visible rows total). The first
+ * row gets `Column 1` … `Column N` placeholders; body cells are blank
+ * (three spaces per cell so the table reads cleanly in source).
+ *
+ * Always inserts on its own pair of newlines so the table parses
+ * cleanly regardless of where the cursor was.
+ */
+export function insertTable(view: EditorView, rows: number, cols: number): void {
+  const safeRows = Math.max(1, rows)
+  const safeCols = Math.max(1, cols)
+  const headerCells = Array.from({ length: safeCols }, (_, i) => `Column ${i + 1}`)
+  const separator = Array.from({ length: safeCols }, () => '---')
+  const emptyCells = Array.from({ length: safeCols }, () => '   ')
+  const bodyRows = Math.max(0, safeRows - 1)
+  const lines = [
+    `| ${headerCells.join(' | ')} |`,
+    `| ${separator.join(' | ')} |`,
+    ...Array.from({ length: bodyRows }, () => `| ${emptyCells.join(' | ')} |`)
+  ]
+  const block = '\n' + lines.join('\n') + '\n'
+  const { from, to } = view.state.selection.main
+  view.dispatch({
+    changes: { from, to, insert: block },
+    selection: { anchor: from + block.length }
+  })
+  view.focus()
+}
+
+/**
  * Replace the current selection with a block of text. Used for HRs and
  * tables. No toggle, no per-line — just an insertion.
  */

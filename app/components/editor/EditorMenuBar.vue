@@ -2,7 +2,8 @@
 import type { EditorView } from '@codemirror/view'
 import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode,
-  insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram, insertDefinitionList
+  insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram,
+  insertTable, insertDefinitionList
 } from '~/utils/editorCommands'
 
 /**
@@ -195,7 +196,9 @@ const insertItems = computed(() => {
     { type: 'separator' as const },
     { label: t('menubar.insert.codeBlock'), icon: 'i-lucide-code', onSelect: () => call(v => insertBlock(v, '\n```\n\n```\n')) },
     { label: t('editor.quote'), icon: 'i-lucide-quote', onSelect: () => call(v => toggleLinePrefix(v, '> ')) },
-    { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => call(v => insertBlock(v, '\n| Column 1 | Column 2 |\n|----------|----------|\n| Cell     | Cell     |\n')) },
+    // Menu inserts a sensible default 3×3 — the toolbar has the
+    // hover-grid picker for arbitrary sizes.
+    { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => call(v => insertTable(v, 3, 3)) },
     { label: t('editor.horizontalRule'), icon: 'i-lucide-minus', onSelect: () => call(v => insertBlock(v, '\n---\n')) },
     { type: 'separator' as const },
     { label: t('menubar.insert.footnote'), icon: 'i-lucide-asterisk', onSelect: () => call(v => insertFootnote(v)) },

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath, insertDiagram } from '~/utils/editorCommands'
+import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath, insertDiagram, insertTable } from '~/utils/editorCommands'
+import TableSizePicker from './TableSizePicker.vue'
 
 const { t } = useI18n()
 
@@ -98,15 +99,25 @@ const actions = computed(() => [
   { icon: 'i-lucide-list-ordered', label: t('editor.orderedList'), action: withView(v => toggleOrderedList(v)) },
   { icon: 'i-lucide-list-checks', label: t('editor.taskList'), action: withView(v => toggleLinePrefix(v, '- [ ] ')) },
   { divider: true },
-  // Table + HR — common insertions worth a one-click toolbar slot in
-  // addition to the Insert menu entries.
-  { icon: 'i-lucide-table', label: t('editor.table'), action: withView(v => insertBlock(v, '\n| Column 1 | Column 2 |\n|----------|----------|\n| Cell     | Cell     |\n')) },
+  // HR is a single-click insertion. Table is a popover with a size
+  // picker (rendered in the template after this list).
   { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) }
-  // Math, alerts, and diagrams need a kind picker — rendered as
-  // dropdowns directly in the template after this list. Putting them
-  // in `actions` would force a default kind on the toolbar click,
-  // which doesn't match the menu-bar behavior or what users expect.
+  // Math, alerts, diagrams, table need a kind/size picker — rendered as
+  // dropdowns / popovers directly in the template after this list.
+  // Putting them in `actions` would force a default on the toolbar
+  // click, which doesn't match the menu-bar behavior or what users
+  // expect.
 ])
+
+// Table picker — opens a Word-style hover-grid. Need v-model on the
+// popover so we can close it after the user picks dimensions; the
+// default close-on-outside-click only fires for outside clicks.
+const tablePickerOpen = ref(false)
+function onTableSelect(payload: { rows: number; cols: number }) {
+  if (!props.view || props.readOnly) return
+  insertTable(props.view, payload.rows, payload.cols)
+  tablePickerOpen.value = false
+}
 
 // Math kinds — surfaces inline + block in the toolbar dropdown.
 const mathItems = computed(() => [[
@@ -155,10 +166,19 @@ const diagramItems = computed(() => [[
       </UTooltip>
     </template>
 
-    <!-- Multi-option insertions (math, alert, diagram) — surfaced as
-         dropdowns so the toolbar matches the menu-bar Insert submenus
-         and the user picks the variant rather than the button forcing
-         a default. Triggers visually match the other ghost buttons. -->
+    <!-- Multi-option insertions (table, math, alert, diagram) — surfaced
+         as popovers / dropdowns so the toolbar matches the menu-bar
+         Insert submenus and the user picks the variant rather than the
+         button forcing a default. Triggers visually match the other
+         ghost buttons. -->
+    <UPopover v-model:open="tablePickerOpen" :content="{ align: 'start' }">
+      <UTooltip :text="t('editor.table')">
+        <UButton icon="i-lucide-table" color="neutral" variant="ghost" size="xs" />
+      </UTooltip>
+      <template #content>
+        <TableSizePicker @select="onTableSelect" />
+      </template>
+    </UPopover>
     <UDropdownMenu :items="mathItems" :content="{ align: 'start' }">
       <UTooltip :text="t('menubar.insert.math')">
         <UButton icon="i-lucide-sigma" color="neutral" variant="ghost" size="xs" />
