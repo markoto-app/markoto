@@ -20,6 +20,31 @@ let purify: any = null
 let initPromise: Promise<void> | null = null
 
 /**
+ * Inline markdown-it plugin: matches `<!-- pagebreak -->` on its own
+ * line and emits an empty `<div class="page-break">`. The HTML-comment
+ * marker degrades gracefully — every other markdown renderer sees a
+ * comment and emits nothing, so docs ported elsewhere don't break.
+ *
+ * The matching CSS rule (`.page-break { break-after: page }`) lives
+ * in themeToCss; this plugin is just the source-text → HTML bridge.
+ */
+function pagebreakPlugin(md: any): void {
+  const re = /^\s*<!--\s*pagebreak\s*-->\s*$/i
+  md.block.ruler.before('paragraph', 'pagebreak', (state: any, startLine: number, _endLine: number, silent: boolean) => {
+    const start = state.bMarks[startLine] + state.tShift[startLine]
+    const max = state.eMarks[startLine]
+    const line = state.src.slice(start, max)
+    if (!re.test(line)) return false
+    if (silent) return true
+    const token = state.push('html_block', '', 0)
+    token.content = '<div class="page-break"></div>\n'
+    token.map = [startLine, startLine + 1]
+    state.line = startLine + 1
+    return true
+  })
+}
+
+/**
  * Slugify shared by anchor + toc so the heading IDs and the TOC link
  * targets always agree. Lowercase, strip punctuation, hyphenate spaces
  * — same shape as GitHub's slugger so collaborators familiar with
@@ -177,6 +202,9 @@ async function init(): Promise<void> {
         containerClass: 'table-of-contents',
         slugify: defaultSlugify
       })
+      // Inline plugin — `<!-- pagebreak -->` on its own line becomes
+      // `<div class="page-break"></div>` for paged.js to break on.
+      .use(pagebreakPlugin)
 
     // Open all preview links in a new tab. `rel="noopener noreferrer"`
     // prevents the opened page from reaching back into our window.

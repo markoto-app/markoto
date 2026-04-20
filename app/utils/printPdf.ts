@@ -89,6 +89,7 @@ export async function printDocumentAsPdf(opts: {
   source: string
   theme: DocTheme
   title: string
+  tocTitle?: string
 }): Promise<void> {
   const rawHtml = await renderMarkdown(opts.source)
   // Replace any mermaid code blocks with their rendered SVG BEFORE the
@@ -96,7 +97,8 @@ export async function printDocumentAsPdf(opts: {
   const html = await transformMermaid(rawHtml, opts.theme.mermaid.theme)
   const themeCss = themeToCss(opts.theme, {
     title: opts.title || '',
-    date: new Date().toISOString().slice(0, 10)
+    date: new Date().toISOString().slice(0, 10),
+    tocTitle: opts.tocTitle || 'Table of Contents'
   })
   const fontsImport = themeFontsImport(opts.theme)
 

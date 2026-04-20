@@ -630,6 +630,22 @@ export function insertDiagram(view: EditorView, kind: MermaidKind): void {
 }
 
 /**
+ * Insert a `<!-- pagebreak -->` marker. The renderer's custom block
+ * rule turns it into `<div class="page-break">`, which paged.js
+ * breaks on. HTML-comment syntax means the marker is invisible in
+ * other markdown renderers — docs ported elsewhere keep working.
+ */
+export function insertPageBreak(view: EditorView): void {
+  const { from, to } = view.state.selection.main
+  const block = '\n<!-- pagebreak -->\n'
+  view.dispatch({
+    changes: { from, to, insert: block },
+    selection: { anchor: from + block.length }
+  })
+  view.focus()
+}
+
+/**
  * Insert a `[[toc]]` placeholder. The renderer (markdown-it-toc-done-
  * right) rewrites it into a nested list of links to every heading in
  * the doc. Always lands on its own line so the placeholder parses as

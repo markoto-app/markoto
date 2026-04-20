@@ -76,6 +76,11 @@ export function usePagedPreview(opts: {
     }
   }
 
+  // i18n at composable scope so themeCss can carry the localized
+  // TOC heading text. Using a stub if i18n isn't installed (tests).
+  const i18n = (typeof useI18n === 'function') ? useI18n() : null
+  const tocTitle = computed(() => i18n?.t('table.tocTitle') ?? 'Table of Contents')
+
   function render() {
     if (!isReady.value || !iframe?.contentWindow) {
       pendingRender = true
@@ -83,7 +88,8 @@ export function usePagedPreview(opts: {
     }
     const themeCss = themeToCss(opts.theme.value, {
       title: opts.title.value || '',
-      date: new Date().toISOString().slice(0, 10)
+      date: new Date().toISOString().slice(0, 10),
+      tocTitle: tocTitle.value
     })
     const fontsImport = themeFontsImport(opts.theme.value)
     const hljsUrl = hljsThemeUrl(opts.theme.value.code.theme)

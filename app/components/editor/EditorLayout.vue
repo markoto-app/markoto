@@ -102,7 +102,8 @@ async function exportPdf() {
     await printDocumentAsPdf({
       source: ytext.toString(),
       theme: theme.value,
-      title: title.value
+      title: title.value,
+      tocTitle: t('table.tocTitle')
     })
   } catch (e: any) {
     console.error('PDF export failed:', e)

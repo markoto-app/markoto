@@ -121,6 +121,7 @@ export function isValidTheme(t: unknown): t is DocTheme {
   // toc
   if (!theme.toc || typeof theme.toc !== 'object') return false
   if (!TOC_MAX_DEPTHS.has(theme.toc.maxDepth)) return false
+  if (typeof theme.toc.showTitle !== 'boolean') return false
   if (typeof theme.toc.showPageNumbers !== 'boolean') return false
   if (!TOC_LEADER_STYLES.has(theme.toc.leaderStyle)) return false
 

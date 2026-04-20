@@ -527,6 +527,9 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <!-- Table of contents -->
           <template #toc-body>
             <div class="space-y-4 pt-2 pb-4">
+              <UFormField :label="t('theme.toc.showTitle')" :help="t('theme.toc.showTitleHelp')">
+                <USwitch v-model="draft.toc.showTitle" />
+              </UFormField>
               <UFormField :label="t('theme.toc.maxDepth')" :help="t('theme.toc.maxDepthHelp')">
                 <USelect v-model="draft.toc.maxDepth" :items="tocMaxDepthItems" class="w-full" />
               </UFormField>

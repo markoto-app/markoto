@@ -113,6 +113,7 @@ export type DocTheme = {
   }
   toc: {
     maxDepth: TocMaxDepth         // include h1 through h{maxDepth}
+    showTitle: boolean            // render a "Table of Contents" heading above the list
     showPageNumbers: boolean      // print-style page nums via paged.js target-counter
     leaderStyle: TocLeaderStyle   // line between entry and page number
   }

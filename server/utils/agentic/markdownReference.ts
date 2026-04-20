@@ -29,6 +29,8 @@ Headings: #, ##, ..., ###### (1–6). Every heading auto-gets an \`id\` slug for
 
 Auto table of contents: \`[[toc]]\` on its own line generates a hierarchical link list of every heading (h1–h4), with page numbers in the printed output. Drop one near the top of long documents.
 
+Page break: \`<!-- pagebreak -->\` on its own line forces a new page in the printed/exported document. Use to keep a heading at the top of a fresh page or to separate logical sections in a long doc.
+
 Lists:
   - unordered (also * works)
   1. ordered

@@ -33,7 +33,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'all', zebra: false, cellPadding: 6 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border' },
       mermaid: { theme: 'default' },
-      toc: { maxDepth: 3, showPageNumbers: true, leaderStyle: 'dotted' }
+      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' }
     }
   },
 
@@ -54,7 +54,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 90, blockquoteStyle: 'border' },
       mermaid: { theme: 'neutral' },
-      toc: { maxDepth: 4, showPageNumbers: true, leaderStyle: 'dotted' }
+      toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' }
     }
   },
 
@@ -75,7 +75,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background' },
       mermaid: { theme: 'dark' },
-      toc: { maxDepth: 4, showPageNumbers: true, leaderStyle: 'dashed' }
+      toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dashed' }
     }
   },
 
@@ -96,7 +96,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8 },
       blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background' },
       mermaid: { theme: 'forest' },
-      toc: { maxDepth: 3, showPageNumbers: true, leaderStyle: 'dotted' }
+      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' }
     }
   },
 
@@ -117,7 +117,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 80, blockquoteStyle: 'none' },
       mermaid: { theme: 'neutral' },
-      toc: { maxDepth: 2, showPageNumbers: true, leaderStyle: 'dotted' }
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' }
     }
   },
 
@@ -138,7 +138,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background' },
       mermaid: { theme: 'forest' },
-      toc: { maxDepth: 3, showPageNumbers: false, leaderStyle: 'none' }
+      toc: { maxDepth: 3, showTitle: false, showPageNumbers: false, leaderStyle: 'none' }
     }
   }
 ]

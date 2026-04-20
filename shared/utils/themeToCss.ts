@@ -11,6 +11,11 @@ import type { DocTheme, RunningSlots } from '../types/theme'
 export type ThemeRuntime = {
   title: string
   date: string  // ISO YYYY-MM-DD
+  // Localized text rendered by CSS \`content:\` for the optional TOC
+  // heading. Lives in runtime (not the theme) because i18n strings
+  // shouldn't be persisted to the doc — same translation should apply
+  // when the doc opens in another language.
+  tocTitle: string
 }
 
 /**
@@ -28,7 +33,8 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     alertBlock(),
     katexBlock(),
     mermaidBlock(),
-    tocBlock(theme),
+    tocBlock(theme, runtime),
+    pageBreakBlock(),
     breakHints()
   ].join('\n\n')
 }
@@ -500,8 +506,8 @@ function mermaidBlock(): string {
  * Resetting list-style hides the bullets (typographers don't put
  * bullets next to TOC entries — the dotted leader carries the eye).
  */
-function tocBlock(theme: DocTheme): string {
-  const { maxDepth, showPageNumbers, leaderStyle } = theme.toc
+function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
+  const { maxDepth, showTitle, showPageNumbers, leaderStyle } = theme.toc
 
   // Renderer always emits up to h4 (4 nested ULs in worst case). To
   // honor a smaller maxDepth, hide every ul beyond that level. depth 2
@@ -512,9 +518,25 @@ function tocBlock(theme: DocTheme): string {
   if (maxDepth < 3) depthHide.push(`.paged-doc .table-of-contents ul ul ul { display: none; }`)
   if (maxDepth < 2) depthHide.push(`.paged-doc .table-of-contents ul ul { display: none; }`)
 
+  // Optional "Table of Contents" heading rendered via CSS ::before so
+  // the source markdown stays clean (no manual heading line above
+  // [[toc]]). Title text comes through runtime so it can be localized
+  // — themeToCss bakes it into the CSS string at render time.
+  const titleRule = showTitle
+    ? `.paged-doc .table-of-contents::before {
+  content: ${cssString(runtime.tocTitle)};
+  display: block;
+  font-family: ${cssFontStack(theme.headings.font)};
+  font-size: 1.25em;
+  font-weight: 700;
+  color: var(--doc-heading-color);
+  margin-bottom: 0.6em;
+}`
+    : ''
+
   // Leader: a flex item with a bottom border. \`none\` skips the rule
-  // entirely so the layout collapses to title-then-page-number with no
-  // line between them.
+  // entirely so the layout collapses to title + (auto-margin) + page
+  // number with no line between them.
   const leaderRule = leaderStyle === 'none'
     ? ''
     : `.paged-doc .table-of-contents a::before {
@@ -526,23 +548,29 @@ function tocBlock(theme: DocTheme): string {
   margin: 0 0.3em;
 }`
 
-  // Page numbers via paged.js target-counter. When disabled we drop
-  // the ::after rule and the leader's flex:1 still spreads to the
-  // right edge (link text on left, blank space / leader to the right).
+  // Page numbers via paged.js target-counter. \`margin-left: auto\`
+  // pushes the number to the right edge regardless of whether the
+  // leader is present — without it, leader=none would leave the
+  // page number sitting flush against the title.
   const pageNumberRule = showPageNumbers
     ? `.paged-doc .table-of-contents a::after {
   content: target-counter(attr(href url), page);
   order: 3;
+  margin-left: auto;
   font-variant-numeric: tabular-nums;
   color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg));
 }`
     : ''
 
   return [
+    // Bottom margin bumped from 1.2em to 2.2em so the TOC has visible
+    // breathing room before the first chapter heading — without it,
+    // the TOC felt jammed against the body content.
     `.paged-doc .table-of-contents {
-  margin: 1.2em 0;
+  margin: 1.2em 0 2.2em 0;
   break-inside: avoid;
 }`,
+    titleRule,
     `.paged-doc .table-of-contents ul {
   list-style: none;
   padding-left: 0;
@@ -567,6 +595,22 @@ function tocBlock(theme: DocTheme): string {
     pageNumberRule,
     ...depthHide
   ].filter(Boolean).join('\n')
+}
+
+// — page break ————————————————————————————————————————————————————————
+
+/**
+ * Hard page break. The \`<!-- pagebreak -->\` marker in source
+ * (handled by the custom block rule in renderMarkdown.ts) renders as
+ * an empty \`<div class="page-break">\`; \`break-after: page\` tells
+ * paged.js to start a new page after it.
+ */
+function pageBreakBlock(): string {
+  return `.paged-doc .page-break {
+  break-after: page;
+  page-break-after: always;
+  height: 0;
+}`
 }
 
 // — page-break hints (typography hygiene) —————————————————————————————

@@ -66,6 +66,7 @@ export const defaultTheme: DocTheme = {
   },
   toc: {
     maxDepth: 4,
+    showTitle: true,
     showPageNumbers: true,
     leaderStyle: 'dotted'
   }

@@ -40,6 +40,7 @@
     "subscript": "Subscript",
     "superscript": "Superscript",
     "horizontalRule": "Horizontal Rule",
+    "pageBreak": "Page break",
     "table": "Table"
   },
   "status": {
@@ -318,6 +319,8 @@
       "themeBase": "Base (brand-tinted)"
     },
     "toc": {
+      "showTitle": "Show \"Table of Contents\" heading",
+      "showTitleHelp": "Adds a styled heading above the list.",
       "maxDepth": "Maximum heading level",
       "maxDepthHelp": "How deep the auto-generated TOC goes.",
       "depth2": "H1–H2 (sections only)",
@@ -361,7 +364,8 @@
   },
   "table": {
     "title": "Insert table",
-    "description": "Hover to choose the size, then click to insert."
+    "description": "Hover to choose the size, then click to insert.",
+    "tocTitle": "Table of Contents"
   },
   "delete": {
     "title": "Delete Document",
