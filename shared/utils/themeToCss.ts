@@ -35,6 +35,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     mermaidBlock(),
     tocBlock(theme, runtime),
     pageBreakBlock(),
+    columnSpanBlock(),
     breakHints()
   ].join('\n\n')
 }
@@ -611,6 +612,33 @@ function pageBreakBlock(): string {
   page-break-after: always;
   height: 0;
 }`
+}
+
+// — multi-column spanners ———————————————————————————————————————————————
+
+/**
+ * In multi-column layouts (newsletter, magazine), the doc title and
+ * the table of contents read better when they span the full page width
+ * rather than getting jammed into the first column. \`column-span: all\`
+ * is the standard CSS Multi-column Layout property for this — the
+ * spanned element interrupts the column flow, sits across the full
+ * content area, and columns resume below it.
+ *
+ * Rules are unconditional: \`column-span\` is a no-op outside a
+ * multi-column container, so single-column docs aren't affected.
+ *
+ * Why \`:first-of-type\` for the H1: scope is "the first H1 of the doc",
+ * not every H1. Subsequent H1s (rare but possible) stay in-flow.
+ */
+function columnSpanBlock(): string {
+  return [
+    `.paged-doc > h1:first-of-type {
+  column-span: all;
+}`,
+    `.paged-doc .table-of-contents {
+  column-span: all;
+}`
+  ].join('\n')
 }
 
 // — page-break hints (typography hygiene) —————————————————————————————

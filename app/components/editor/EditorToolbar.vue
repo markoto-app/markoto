@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath, insertDiagram, insertPageBreak } from '~/utils/editorCommands'
+import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath, insertDiagram, insertPageBreak, insertToc } from '~/utils/editorCommands'
 
 const { t } = useI18n()
 
@@ -105,10 +105,11 @@ const actions = computed(() => [
   { icon: 'i-lucide-list-ordered', label: t('editor.orderedList'), action: withView(v => toggleOrderedList(v)) },
   { icon: 'i-lucide-list-checks', label: t('editor.taskList'), action: withView(v => toggleLinePrefix(v, '- [ ] ')) },
   { divider: true },
-  // HR + page break are single-click insertions. Table is a popover
+  // HR, page break, TOC are single-click insertions. Table is a popover
   // with a size picker (rendered in the template after this list).
   { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) },
-  { icon: 'i-lucide-scissors-line-dashed', label: t('editor.pageBreak'), action: withView(v => insertPageBreak(v)) }
+  { icon: 'i-lucide-scissors-line-dashed', label: t('editor.pageBreak'), action: withView(v => insertPageBreak(v)) },
+  { icon: 'i-lucide-list-tree', label: t('menubar.insert.toc'), action: withView(v => insertToc(v)) }
   // Math, alerts, diagrams, table need a kind/size picker — rendered as
   // dropdowns / popovers directly in the template after this list.
   // Putting them in `actions` would force a default on the toolbar
