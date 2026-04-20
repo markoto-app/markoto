@@ -40,7 +40,7 @@ function withLineNumbers(text: string, startLine: number = 1): string {
 
 function handleView(
   session: AiSession,
-  input: { path: string; view_range?: [number, number]; max_characters?: number }
+  input: { path: string, view_range?: [number, number], max_characters?: number }
 ): ToolResult {
   if (input.path !== DOCUMENT_PATH) {
     return err(`Error: This agent can only access ${DOCUMENT_PATH}. Got: ${input.path}`)
@@ -68,7 +68,7 @@ function handleView(
   return ok(output)
 }
 
-function findIndexOfOnlyMatch(haystack: string, needle: string): { found: number; count: number } {
+function findIndexOfOnlyMatch(haystack: string, needle: string): { found: number, count: number } {
   if (needle.length === 0) return { found: -1, count: 0 }
   let count = 0
   let first = -1
@@ -85,7 +85,7 @@ function findIndexOfOnlyMatch(haystack: string, needle: string): { found: number
 
 function handleStrReplace(
   session: AiSession,
-  input: { path: string; old_str: string; new_str: string }
+  input: { path: string, old_str: string, new_str: string }
 ): ToolResult {
   if (input.path !== DOCUMENT_PATH) {
     return err(`Error: This agent can only access ${DOCUMENT_PATH}. Got: ${input.path}`)
@@ -120,7 +120,7 @@ function handleStrReplace(
 
 function handleInsert(
   session: AiSession,
-  input: { path: string; insert_line: number; insert_text: string }
+  input: { path: string, insert_line: number, insert_text: string }
 ): ToolResult {
   if (input.path !== DOCUMENT_PATH) {
     return err(`Error: This agent can only access ${DOCUMENT_PATH}. Got: ${input.path}`)
@@ -168,6 +168,11 @@ function handleCreate(): ToolResult {
  * talks the `{ command, ...args }` shape; our Gemini loop calls
  * `executeFunctionByName` directly instead.
  */
+// Legacy dispatcher input: downstream handlers each expect their own typed
+// shape; this function exists only for the Anthropic-era `{ command, …args }`
+// call convention, so passing the args through without per-command narrowing
+// here is intentional.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function executeEditorTool(session: AiSession, input: any): ToolResult {
   const command = input?.command
   switch (command) {

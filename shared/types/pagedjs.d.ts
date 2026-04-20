@@ -9,6 +9,6 @@ declare module 'pagedjs' {
       content: string | HTMLElement,
       stylesheets: (string | HTMLStyleElement)[],
       renderTo: HTMLElement
-    ): Promise<{ total: number; pages: unknown[] }>
+    ): Promise<{ total: number, pages: unknown[] }>
   }
 }

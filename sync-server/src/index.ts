@@ -1,7 +1,10 @@
-// Sentry must be imported first so its Bun instrumentation patches stdlib
-// targets before any other module grabs references to them.
-import './sentry'
-import { captureException, captureMessage } from './sentry'
+// Validate secrets first so a misconfigured deploy fails with a clear
+// message before any other module grabs its own process.env references.
+import './validate-secrets'
+// Sentry must be imported early so its Bun instrumentation patches stdlib
+// targets before any other module grabs references to them. Importing a
+// name from the module also satisfies the side-effect import.
+import { captureMessage } from './sentry'
 import { Server } from '@hocuspocus/server'
 import { ypgPersistence } from './persistence'
 import { auth } from './auth'
@@ -55,7 +58,7 @@ const server = new Server({
   async onChange(data) {
     // Record the authenticated user who just made a change. `context` carries
     // what we returned from onAuthenticate (readOnly, userId, userName).
-    const ctx = (data as any).context as { userId?: string; userName?: string | null } | undefined
+    const ctx = (data as { context?: { userId?: string, userName?: string | null } }).context
     if (ctx?.userId) {
       lastEditorByDoc.set(data.documentName, {
         userName: ctx.userName ?? null,
@@ -92,7 +95,7 @@ const server = new Server({
         })
       }
       if (!userName) {
-        const awareness = (data.document as any).awareness
+        const awareness = (data.document as unknown as { awareness?: Parameters<typeof mostRecentEditorFromAwareness>[0] }).awareness
         userName = mostRecentEditorFromAwareness(awareness)
       }
 
@@ -114,8 +117,8 @@ const server = new Server({
         linesAdded: added,
         linesRemoved: removed
       })
-    } catch (e: any) {
-      console.warn('[hocuspocus] activity log failed:', e.message)
+    } catch (e) {
+      console.warn('[hocuspocus] activity log failed:', e instanceof Error ? e.message : e)
     }
   },
 
@@ -190,5 +193,9 @@ async function shutdown(signal: string) {
   }
 }
 
-process.on('SIGTERM', () => { void shutdown('SIGTERM') })
-process.on('SIGINT', () => { void shutdown('SIGINT') })
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM')
+})
+process.on('SIGINT', () => {
+  void shutdown('SIGINT')
+})

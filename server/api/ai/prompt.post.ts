@@ -7,6 +7,8 @@ import { createAiSession } from '../../utils/aiClient'
 import { runAgenticLoop } from '../../utils/agentic/runLoop'
 import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
 
+import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
+
 // Hard deadline for a full agentic loop. A grounded `web_search` sub-call can
 // take several seconds; combined with model thinking and multi-edit sequences
 // a realistic budget is several minutes. 5 min gives headroom while still
@@ -14,8 +16,6 @@ import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
 // the sweeper (7 min — must remain ≥ this) is a safety net for abandoned
 // sessions that skip the `finally` cleanup.
 const HARD_DEADLINE_MS = 5 * 60_000
-
-import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
 
 const SYSTEM_PROMPT = `You are an AI assistant collaborating on a shared markdown document in a Google-Docs-style editor.
 
@@ -47,13 +47,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, message: 'Too many AI requests. Try again in a minute.' })
   }
 
-  const body = await readBody(event) as { docId?: string; prompt?: string }
+  const body = await readBody(event) as { docId?: string, prompt?: string }
   const docId = body.docId
   const prompt = body.prompt?.trim()
 
   if (!docId || typeof docId !== 'string') throw createError({ statusCode: 400, message: 'Missing docId' })
   if (!prompt) throw createError({ statusCode: 400, message: 'Missing prompt' })
   if (prompt.length > 4000) throw createError({ statusCode: 400, message: 'Prompt too long (max 4000 chars)' })
+
+  await requireDocEditAccess(docId, userId)
 
   const db = useDatabase()
   const userRow = (await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1))[0]
@@ -132,12 +134,12 @@ export default defineEventHandler(async (event) => {
       // regardless of the error's name/message. The SDK throws various abort
       // variants (AbortError, ApiError wrapping fetch abort, etc.) — our
       // AbortController is the source of truth.
-      const err = e as { name?: string; message?: string }
-      const isAbort =
-        abortController.signal.aborted ||
-        err?.name === 'AbortError' ||
-        err?.message === 'aborted' ||
-        /abort/i.test(String(err?.message ?? ''))
+      const err = e as { name?: string, message?: string }
+      const isAbort
+        = abortController.signal.aborted
+          || err?.name === 'AbortError'
+          || err?.message === 'aborted'
+          || /abort/i.test(String(err?.message ?? ''))
       if (aiSession) {
         setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
       }
@@ -151,7 +153,7 @@ export default defineEventHandler(async (event) => {
       // Leave the final status visible long enough for clients to latch it —
       // errors need more time than success so the user can read the message.
       const lingerMs = status.phase === 'error' ? 2500 : 500
-      await new Promise((r) => setTimeout(r, lingerMs))
+      await new Promise(r => setTimeout(r, lingerMs))
       if (aiSession) await aiSession.destroy()
       await removeAiSession(sessionId)
     }

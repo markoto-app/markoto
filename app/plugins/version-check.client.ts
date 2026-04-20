@@ -14,8 +14,6 @@
 // In dev (`buildId === 'dev'`) the poll is effectively a no-op — dev keeps
 // the same id across requests, so no mismatch is possible.
 
-const POLL_INTERVAL_MS = 5 * 60 * 1000
-
 // @vite-pwa/nuxt augments NuxtApp with `$pwa`, but that augmentation isn't
 // visible under `.nuxt/tsconfig.server.json`, so we re-assert the shape
 // using the module's own canonical `PwaInjection` interface. If the module
@@ -23,6 +21,8 @@ const POLL_INTERVAL_MS = 5 * 60 * 1000
 // type error here instead of a silent runtime miss.
 import type { UnwrapNestedRefs } from 'vue'
 import type { PwaInjection } from '@vite-pwa/nuxt/dist/runtime/plugins/types.js'
+
+const POLL_INTERVAL_MS = 5 * 60 * 1000
 
 type Pwa = UnwrapNestedRefs<PwaInjection>
 
@@ -38,7 +38,10 @@ export default defineNuxtPlugin((nuxtApp) => {
   function promptReload(action: () => void) {
     if (shown) return
     shown = true
-    if (interval) { clearInterval(interval); interval = null }
+    if (interval) {
+      clearInterval(interval)
+      interval = null
+    }
 
     toast.add({
       title: 'New version available',
@@ -74,7 +77,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       return
     }
     if (!buildId) return
-    if (baseline === null) { baseline = buildId; return }
+    if (baseline === null) {
+      baseline = buildId
+      return
+    }
     if (buildId === baseline) return
     promptReload(() => window.location.reload())
   }

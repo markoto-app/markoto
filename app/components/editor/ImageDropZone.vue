@@ -107,8 +107,13 @@ onUnmounted(() => {
         class="absolute inset-0 z-20 flex items-center justify-center bg-primary/10 border-2 border-dashed border-primary rounded-lg pointer-events-none"
       >
         <div class="text-center">
-          <UIcon name="i-lucide-image-plus" class="size-10 text-primary mb-2" />
-          <p class="text-sm font-medium text-primary">{{ t('image.dropToUpload') }}</p>
+          <UIcon
+            name="i-lucide-image-plus"
+            class="size-10 text-primary mb-2"
+          />
+          <p class="text-sm font-medium text-primary">
+            {{ t('image.dropToUpload') }}
+          </p>
         </div>
       </div>
     </Transition>
@@ -118,10 +123,12 @@ onUnmounted(() => {
       v-if="uploading"
       class="absolute top-2 right-2 z-20 flex items-center gap-2 bg-[var(--ui-bg)] border border-default rounded-lg px-3 py-1.5 shadow-lg"
     >
-      <UIcon name="i-lucide-loader" class="size-4 animate-spin text-primary" />
+      <UIcon
+        name="i-lucide-loader"
+        class="size-4 animate-spin text-primary"
+      />
       <span class="text-xs">{{ t('image.uploading') }}</span>
     </div>
-
   </div>
 </template>
 

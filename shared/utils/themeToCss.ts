@@ -10,7 +10,7 @@ import type { DocTheme, RunningSlots } from '../types/theme'
  */
 export type ThemeRuntime = {
   title: string
-  date: string  // ISO YYYY-MM-DD
+  date: string // ISO YYYY-MM-DD
   // Localized text rendered by CSS \`content:\` for the optional TOC
   // heading. Lives in runtime (not the theme) because i18n strings
   // shouldn't be persisted to the doc — same translation should apply
@@ -75,7 +75,7 @@ ${footerSlots}
 }
 
 function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string): string {
-  const boxes: { name: string; tpl: string }[] = [
+  const boxes: { name: string, tpl: string }[] = [
     { name: `${edge}-left`, tpl: slots.left },
     { name: `${edge}-center`, tpl: slots.center },
     { name: `${edge}-right`, tpl: slots.right }
@@ -384,7 +384,7 @@ function codeBlock(theme: DocTheme): string {
  *   </div>
  */
 function alertBlock(): string {
-  const kinds: Array<{ name: string; color: string }> = [
+  const kinds: Array<{ name: string, color: string }> = [
     { name: 'note', color: '#0969da' },
     { name: 'tip', color: '#1a7f37' },
     { name: 'important', color: '#8250df' },

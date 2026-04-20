@@ -18,8 +18,8 @@ export default defineNitroPlugin(async () => {
     await migrate(db, { migrationsFolder })
     console.log('[db-migrate] Migrations applied successfully.')
     signalMigrationsComplete()
-  } catch (e: any) {
-    console.error('[db-migrate] Migration failed:', e?.message || e)
+  } catch (e) {
+    console.error('[db-migrate] Migration failed:', e instanceof Error ? e.message : e)
     throw e
   }
 })

@@ -33,10 +33,11 @@ async function handleDelete() {
     })
     open.value = false
     emit('deleted')
-  } catch (e: any) {
+  } catch (e) {
+    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('delete.failed'),
-      description: e.data?.message || e.message,
+      description: err.data?.message || err.message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -65,10 +66,15 @@ watch(open, (v) => {
       <div class="p-6">
         <div class="flex items-start gap-3 mb-4">
           <div class="size-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
-            <UIcon name="i-lucide-trash-2" class="size-5 text-red-500" />
+            <UIcon
+              name="i-lucide-trash-2"
+              class="size-5 text-red-500"
+            />
           </div>
           <div class="flex-1">
-            <h2 class="text-lg font-semibold">{{ t('delete.title') }}</h2>
+            <h2 class="text-lg font-semibold">
+              {{ t('delete.title') }}
+            </h2>
             <p class="text-sm text-muted mt-1">
               {{ t('delete.warning') }}
             </p>

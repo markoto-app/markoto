@@ -16,7 +16,7 @@ const MAX_ROWS = 8
 const MAX_COLS = 8
 
 const emit = defineEmits<{
-  select: [{ rows: number; cols: number }]
+  select: [{ rows: number, cols: number }]
 }>()
 
 // -1 means nothing highlighted yet (initial state and after mouseleave).

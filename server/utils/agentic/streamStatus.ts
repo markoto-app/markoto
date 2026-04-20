@@ -43,7 +43,7 @@ export function newStreamState(): StreamState {
  * we don't announce "speaking" for them (matches Gemini behaviour).
  */
 export function processChunk(
-  chunk: { functionCalls?: FunctionCall[]; text?: string },
+  chunk: { functionCalls?: FunctionCall[], text?: string },
   state: StreamState,
   opts: StreamStatusOptions
 ): void {

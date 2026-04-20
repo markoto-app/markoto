@@ -36,7 +36,7 @@ export async function checkRateLimit(
     pipeline.zremrangebyscore(zkey, '-inf', windowStart)
     pipeline.zcard(zkey)
     const results = await pipeline.exec()
-    if (!results) return true   // exec returned null (transaction discarded)
+    if (!results) return true // exec returned null (transaction discarded)
 
     const count = (results[1]?.[1] as number) ?? 0
 
@@ -50,8 +50,8 @@ export async function checkRateLimit(
       .exec()
 
     return true
-  } catch (e: any) {
-    console.warn('[rateLimit] valkey error, failing open:', e?.message || e)
+  } catch (e) {
+    console.warn('[rateLimit] valkey error, failing open:', e instanceof Error ? e.message : e)
     // Surface to the telemetry sink with a stable tag so operators can
     // dashboard "rate-limit protection is currently bypassed" volume.
     Sentry.captureException(e, {

@@ -15,8 +15,25 @@
  * @mdit/plugin-katex (span.katex + MathML when output=htmlAndMathml).
  */
 
-let md: any = null
-let purify: any = null
+import type MarkdownIt from 'markdown-it'
+import type Token from 'markdown-it/lib/token.mjs'
+import type Renderer from 'markdown-it/lib/renderer.mjs'
+import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
+
+// markdown-it exports Options as a nested type under the default class; we
+// pluck it from the instance shape so the type resolution doesn't depend on
+// the internal `/lib` path layout.
+type MarkdownItOptions = MarkdownIt['options']
+
+// Minimal DOMPurify shape — we only touch `.sanitize`. Avoids a direct
+// `typeof DOMPurify` import (dompurify v3's default export is both a value
+// and a type in its `.d.ts`, which TS rejects as a type annotation).
+interface DOMPurifySanitizer {
+  sanitize: (source: string, config?: Record<string, unknown>) => string
+}
+
+let md: MarkdownIt | null = null
+let purify: DOMPurifySanitizer | null = null
 let initPromise: Promise<void> | null = null
 
 /**
@@ -28,11 +45,11 @@ let initPromise: Promise<void> | null = null
  * The matching CSS rule (`.page-break { break-after: page }`) lives
  * in themeToCss; this plugin is just the source-text → HTML bridge.
  */
-function pagebreakPlugin(md: any): void {
+function pagebreakPlugin(md: MarkdownIt): void {
   const re = /^\s*<!--\s*pagebreak\s*-->\s*$/i
-  md.block.ruler.before('paragraph', 'pagebreak', (state: any, startLine: number, _endLine: number, silent: boolean) => {
-    const start = state.bMarks[startLine] + state.tShift[startLine]
-    const max = state.eMarks[startLine]
+  md.block.ruler.before('paragraph', 'pagebreak', (state: StateBlock, startLine: number, _endLine: number, silent: boolean) => {
+    const start = state.bMarks[startLine]! + state.tShift[startLine]!
+    const max = state.eMarks[startLine]!
     const line = state.src.slice(start, max)
     if (!re.test(line)) return false
     if (silent) return true
@@ -115,12 +132,22 @@ async function init(): Promise<void> {
     // Syntax highlighting CSS — same theme on screen and in PDF.
     await import('highlight.js/styles/github-dark.min.css')
 
+    // Dynamic-import unwrapping: the dependencies ship mixed CJS/ESM defaults
+    // whose shapes differ by build. Each module has `default`, `full`, or a
+    // direct function export depending on bundler + version — we probe the
+    // known shapes rather than pin to one.
+    type MaybeDefault<T> = T | { default?: T, full?: T }
+    function unwrap<T>(mod: MaybeDefault<T>): T {
+      const m = mod as { default?: T, full?: T }
+      return (m.full ?? m.default ?? mod) as T
+    }
+
     const hljs = hljsMod.default
-    const taskLists = taskListsMod.default || taskListsMod
-    const emoji = (emojiMod as any).full || (emojiMod as any).default || emojiMod
-    const footnote = footnoteMod.default || footnoteMod
-    const anchor = (anchorMod as any).default || anchorMod
-    const toc = (tocMod as any).default || tocMod
+    const taskLists = unwrap(taskListsMod)
+    const emoji = unwrap(emojiMod)
+    const footnote = unwrap(footnoteMod)
+    const anchor = unwrap(anchorMod)
+    const toc = unwrap(tocMod)
 
     md = new MarkdownIt({
       html: false,
@@ -143,12 +170,12 @@ async function init(): Promise<void> {
       // Returning a string starting with `<pre` tells markdown-it to
       // use it verbatim instead of wrapping again.
       highlight: (str: string, lang: string) => {
-        const escaped = md.utils?.escapeHtml?.(str) ?? str
+        const escaped = md?.utils?.escapeHtml?.(str) ?? str
         if (lang && hljs.getLanguage(lang)) {
           try {
             const out = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value
             return `<pre><code class="hljs language-${lang}">${out}</code></pre>`
-          } catch {}
+          } catch { /* fall through to the plain-class path below */ }
         }
         // Preserve language class even when hljs doesn't recognize the
         // lang — needed for the iframe-side mermaid pre-processor to
@@ -208,16 +235,17 @@ async function init(): Promise<void> {
 
     // Open all preview links in a new tab. `rel="noopener noreferrer"`
     // prevents the opened page from reaching back into our window.
-    const defaultLinkOpen = md.renderer.rules.link_open
-      || ((tokens: any[], idx: number, options: any, _env: any, self: any) => self.renderToken(tokens, idx, options))
-    md.renderer.rules.link_open = (tokens: any[], idx: number, options: any, env: any, self: any) => {
-      const token = tokens[idx]
+    type RenderRule = (tokens: Token[], idx: number, options: MarkdownItOptions, env: unknown, self: Renderer) => string
+    const defaultLinkOpen: RenderRule = md.renderer.rules.link_open
+      || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
+    md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+      const token = tokens[idx]!
       const targetIdx = token.attrIndex('target')
       if (targetIdx < 0) token.attrPush(['target', '_blank'])
-      else token.attrs[targetIdx][1] = '_blank'
+      else token.attrs![targetIdx]![1] = '_blank'
       const relIdx = token.attrIndex('rel')
       if (relIdx < 0) token.attrPush(['rel', 'noopener noreferrer'])
-      else token.attrs[relIdx][1] = 'noopener noreferrer'
+      else token.attrs![relIdx]![1] = 'noopener noreferrer'
       return defaultLinkOpen(tokens, idx, options, env, self)
     }
 
@@ -260,7 +288,18 @@ const SANITIZE_OPTS = {
     // ARIA + role for KaTeX's a11y wrapping of the HTML rendering.
     'aria-hidden', 'role'
   ],
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
+  // Explicit URI allowlist — strictly more restrictive than DOMPurify's default.
+  // Permits:
+  //   - http(s) and mailto schemes
+  //   - Any URL without a scheme (absolute paths like `/api/files/…`,
+  //     protocol-relative `//host/…`, fragments `#anchor`, bare relative
+  //     paths like `foo.png`) — the `[^:]*(?:\/|#|$)` branch lets any
+  //     string through iff it never reaches a `:` before hitting a path
+  //     separator / fragment / end-of-string.
+  // Denies:
+  //   - data:, javascript:, vbscript:, file:, ftp:, tel:, and every other
+  //     scheme — any `:` that isn't part of `https:` or `mailto:` fails.
+  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|[^:]*(?:\/|#|$))/i
 }
 
 /**
@@ -269,7 +308,8 @@ const SANITIZE_OPTS = {
  */
 export async function renderMarkdown(source: string): Promise<string> {
   await init()
-  const html = purify.sanitize(md.render(source), SANITIZE_OPTS)
+  // init() guarantees these are set before it resolves.
+  const html = purify!.sanitize(md!.render(source), SANITIZE_OPTS)
   return transformFootnotesForPagedMedia(html)
 }
 
@@ -311,7 +351,7 @@ function transformFootnotesForPagedMedia(html: string): string {
     const id = li.id
     if (!id) return
     const clone = li.cloneNode(true) as Element
-    clone.querySelectorAll('.footnote-backref').forEach((a) => a.remove())
+    clone.querySelectorAll('.footnote-backref').forEach(a => a.remove())
     // Drop the wrapping <p> if it's the only child — keeps inline footnotes flat.
     const inner = clone.querySelector('p')
     contents.set(id, (inner ?? clone).innerHTML.trim())

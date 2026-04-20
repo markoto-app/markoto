@@ -43,7 +43,7 @@ import type { ChangeSpec } from '@codemirror/state'
 
 // — line walking ——————————————————————————————————————————————————
 
-interface LineInfo { from: number; to: number; text: string; number: number }
+interface LineInfo { from: number, to: number, text: string, number: number }
 
 function linesInPrimarySelection(view: EditorView): LineInfo[] {
   const { from, to } = view.state.selection.main
@@ -75,7 +75,7 @@ function wrapRangeChanges(
   from: number,
   to: number,
   marker: string
-): { changes: ChangeSpec[]; finalFrom: number; finalTo: number } | null {
+): { changes: ChangeSpec[], finalFrom: number, finalTo: number } | null {
   const docLen = view.state.doc.length
   const selected = view.state.sliceDoc(from, to)
   const leading = selected.match(/^\s*/)![0]
@@ -92,7 +92,7 @@ function wrapRangeChanges(
         finalTo: from + marker.length
       }
     }
-    return null  // skip whitespace-only inside a multi-line batch
+    return null // skip whitespace-only inside a multi-line batch
   }
 
   const trimFrom = from + leading.length
@@ -304,7 +304,7 @@ export function toggleHeading(view: EditorView, level: number): void {
 
   const atLevel = (text: string) => {
     const m = text.match(HEADING_PREFIX_RE)
-    return !!m && m[1].length === level
+    return !!m && m[1]!.length === level
   }
   const allAtLevel = nonBlank.every(l => atLevel(l.text))
 
@@ -462,7 +462,7 @@ export function insertBlock(view: EditorView, text: string): void {
  */
 export function insertFootnote(view: EditorView): void {
   const docText = view.state.doc.toString()
-  const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => parseInt(m[1], 10))
+  const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => parseInt(m[1]!, 10))
   const next = refs.length > 0 ? Math.max(...refs) + 1 : 1
   const ref = `[^${next}]`
 
@@ -541,8 +541,8 @@ export function insertMath(view: EditorView, mode: 'inline' | 'block'): void {
   const body = selected || ''
   const block = `$$\n${body}\n$$`
   const cursor = body.length > 0
-    ? from + 3 + body.length  // end of body
-    : from + 3                 // empty body, cursor between fences
+    ? from + 3 + body.length // end of body
+    : from + 3 // empty body, cursor between fences
   view.dispatch({
     changes: { from, to, insert: block },
     selection: { anchor: cursor }
@@ -550,15 +550,15 @@ export function insertMath(view: EditorView, mode: 'inline' | 'block'): void {
   view.focus()
 }
 
-export type MermaidKind =
-  | 'flowchart'
-  | 'sequence'
-  | 'class'
-  | 'state'
-  | 'er'
-  | 'gantt'
-  | 'pie'
-  | 'mindmap'
+export type MermaidKind
+  = | 'flowchart'
+    | 'sequence'
+    | 'class'
+    | 'state'
+    | 'er'
+    | 'gantt'
+    | 'pie'
+    | 'mindmap'
 
 /**
  * Minimal working examples for each Mermaid diagram kind. Each snippet

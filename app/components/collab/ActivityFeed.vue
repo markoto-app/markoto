@@ -43,7 +43,9 @@ const { pause } = useIntervalFn(loadActivity, 30_000)
 // 2-10 s after the last change. Refetch ~3 s after the doc stops changing so
 // the feed catches the new entry without hammering the API on every keystroke.
 const debouncedReload = useDebounceFn(loadActivity, 3_000)
-function onYUpdate() { debouncedReload() }
+function onYUpdate() {
+  debouncedReload()
+}
 
 watch(() => props.ydoc, (doc, prev) => {
   prev?.off('update', onYUpdate)
@@ -77,10 +79,19 @@ function formatTime(ts: string | number) {
 
 <template>
   <div class="space-y-1">
-    <div v-if="loading" class="flex justify-center py-4">
-      <UIcon name="i-lucide-loader" class="size-5 animate-spin text-muted" />
+    <div
+      v-if="loading"
+      class="flex justify-center py-4"
+    >
+      <UIcon
+        name="i-lucide-loader"
+        class="size-5 animate-spin text-muted"
+      />
     </div>
-    <div v-else-if="entries.length === 0" class="text-sm text-muted text-center py-4">
+    <div
+      v-else-if="entries.length === 0"
+      class="text-sm text-muted text-center py-4"
+    >
       {{ t('activity.noActivity') }}
     </div>
     <div
@@ -106,10 +117,18 @@ function formatTime(ts: string | number) {
           v-if="entry.action === 'edit' && (entry.linesAdded || entry.linesRemoved)"
           class="ml-1.5 inline-flex items-center gap-1 text-xs font-mono"
         >
-          <span v-if="entry.linesAdded" class="text-green-500">+{{ entry.linesAdded }}</span>
-          <span v-if="entry.linesRemoved" class="text-red-500">-{{ entry.linesRemoved }}</span>
+          <span
+            v-if="entry.linesAdded"
+            class="text-green-500"
+          >+{{ entry.linesAdded }}</span>
+          <span
+            v-if="entry.linesRemoved"
+            class="text-red-500"
+          >-{{ entry.linesRemoved }}</span>
         </span>
-        <div class="text-xs text-muted mt-0.5">{{ formatTime(entry.createdAt) }}</div>
+        <div class="text-xs text-muted mt-0.5">
+          {{ formatTime(entry.createdAt) }}
+        </div>
       </div>
     </div>
   </div>

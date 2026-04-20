@@ -60,10 +60,11 @@ export async function addAiSession(session: Omit<ActiveAISession, 'abortControll
       initiatorColor: session.initiatorColor,
       startedAt: session.startedAt
     })
-  } catch (e: any) {
+  } catch (e) {
+    const err = e as { code?: string, message?: string }
     // Postgres unique-violation code → per-user cap hit. Belt-and-suspenders:
     // also accept a substring match in case the driver reshapes the error.
-    if (e?.code === '23505' || /duplicate key value|unique constraint/i.test(String(e?.message ?? ''))) {
+    if (err?.code === '23505' || /duplicate key value|unique constraint/i.test(String(err?.message ?? ''))) {
       throw new DuplicateSessionError()
     }
     throw e
@@ -102,7 +103,7 @@ export async function getAiSession(sessionId: string): Promise<ActiveAISession |
 export async function snapshotAiSessions(): Promise<ActiveAISession[]> {
   const db = useDatabase()
   const rows = await db.select().from(aiSessions)
-  return rows.map((row) => ({
+  return rows.map(row => ({
     sessionId: row.sessionId,
     docId: row.docId,
     initiatorUserId: row.initiatorUserId,

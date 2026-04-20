@@ -28,24 +28,30 @@ export const ypgPersistence = {
       const doc = await pgdb.getYDoc(documentName)
       console.log(`[persistence] Loaded document: ${documentName}`)
       return doc
-    } catch (e: any) {
-      console.error(`[persistence] Error loading ${documentName}:`, e?.message || e)
+    } catch (e) {
+      console.error(`[persistence] Error loading ${documentName}:`, e instanceof Error ? e.message : e)
       captureException(e, { tags: { component: 'persistence', event: 'load_failed', docId: documentName } })
-      // Hand back a fresh doc so Hocuspocus doesn't crash; subsequent edits
-      // will overwrite once the persistence layer recovers.
-      return new Y.Doc()
+      // Re-throw so Hocuspocus rejects the connection. A previous version
+      // returned a fresh Y.Doc here — which is catastrophic on transient
+      // read failure: clients' cached Y.js state then persists back on
+      // the next onStoreDocument as "new" writes, silently overwriting
+      // the real document. Connection rejection makes clients reconnect
+      // once the persistence layer recovers, preserving state.
+      // (y-postgresql returns an empty Y.Doc for genuinely-absent rows
+      // without throwing, so this branch only fires on real errors.)
+      throw e
     }
   },
 
-  async onStoreDocument({ documentName, document }: { documentName: string; document: Y.Doc }) {
+  async onStoreDocument({ documentName, document }: { documentName: string, document: Y.Doc }) {
     try {
       const update = Y.encodeStateAsUpdate(document)
       await pgdb.storeUpdate(documentName, update)
-    } catch (e: any) {
+    } catch (e) {
       // Log loudly. Hocuspocus will retry on the next debounce tick; in the
       // meantime the in-memory Y.Doc is still the source of truth for
       // connected clients.
-      console.error(`[persistence] Error storing ${documentName}:`, e?.message || e)
+      console.error(`[persistence] Error storing ${documentName}:`, e instanceof Error ? e.message : e)
       captureException(e, { tags: { component: 'persistence', event: 'store_failed', docId: documentName } })
     }
   },

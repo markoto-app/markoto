@@ -16,12 +16,20 @@ import { renderMarkdown } from '~/utils/renderMarkdown'
  * iframe keeps the iframe boot simpler — it gets HTML with SVGs already
  * inlined and paged.js sees plain inline SVG it can paginate normally.
  */
-let mermaidPromise: Promise<any> | null = null
-async function loadMermaid(theme: MermaidTheme): Promise<any> {
+// Mermaid's ESM bundle is loaded via a CDN URL at runtime, so there's no
+// local type to import. We only touch `initialize` and `render` — a minimal
+// stub keeps this `any`-free.
+interface MermaidModule {
+  initialize: (config: Record<string, unknown>) => void
+  render: (id: string, source: string) => Promise<{ svg: string }>
+}
+
+let mermaidPromise: Promise<MermaidModule> | null = null
+async function loadMermaid(theme: MermaidTheme): Promise<MermaidModule> {
   if (!mermaidPromise) {
     mermaidPromise = import(/* @vite-ignore */ MERMAID_ESM_URL)
       .then(mod => mod.default)
-      .catch(err => {
+      .catch((err) => {
         mermaidPromise = null
         throw err
       })
@@ -112,7 +120,9 @@ export async function printDocumentAsPdf(opts: {
     const cleanup = () => {
       if (cleaned) return
       cleaned = true
-      try { iframe.remove() } catch { /* already gone */ }
+      try {
+        iframe.remove()
+      } catch { /* already gone */ }
     }
 
     // Safety timeout — if pagination hangs (unloadable font, runaway
@@ -124,7 +134,10 @@ export async function printDocumentAsPdf(opts: {
 
     try {
       const idoc = iframe.contentDocument
-      const iwin = iframe.contentWindow as any
+      // The iframe window gets a `PagedConfig` property attached before the
+      // paged.js polyfill script runs — the polyfill picks it up to drive
+      // the print flow. Typed inline rather than polluting a d.ts.
+      const iwin = iframe.contentWindow as (Window & { PagedConfig?: { auto: boolean, after: () => void } }) | null
       if (!idoc || !iwin) {
         throw new Error('Could not access iframe document')
       }
@@ -132,8 +145,8 @@ export async function printDocumentAsPdf(opts: {
       // Initialize the iframe document. About:blank inherits the parent
       // origin so /api/* fetches (e.g. resolved image URLs) don't trip CORS.
       idoc.open()
-      idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' +
-        escapeHtml(opts.title) + '</title></head><body></body></html>')
+      idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'
+        + escapeHtml(opts.title) + '</title></head><body></body></html>')
       idoc.close()
 
       const style = idoc.createElement('style')

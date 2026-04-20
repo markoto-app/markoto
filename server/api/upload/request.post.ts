@@ -4,10 +4,22 @@ import { nanoid } from 'nanoid'
 import { eq } from 'drizzle-orm'
 import { documents, uploads } from '../../db/schema'
 
-const ALLOWED_TYPES = new Set([
-  'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'
-])
+// SVG deliberately excluded — SVG can embed <script> and event handlers that
+// execute when the file is opened directly (right-click → open, anchor link to
+// the presigned S3 URL). The markdown pipeline's DOMPurify blocks inline SVG,
+// but uploaded SVGs bypass that path entirely.
+const CONTENT_TYPE_EXT: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp'
+}
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
+
+// nanoid alphabet + a generous length window. Any docId that doesn't match
+// this gets rejected before being interpolated into the S3 key — without
+// this, `docId: "../other-doc"` is signed for an arbitrary key.
+const DOC_ID_RE = /^[A-Za-z0-9_-]{8,32}$/
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -16,10 +28,14 @@ export default defineEventHandler(async (event) => {
   if (!docId || !filename || !contentType) {
     throw createError({ statusCode: 400, message: 'Missing required fields: docId, filename, contentType' })
   }
+  if (typeof docId !== 'string' || !DOC_ID_RE.test(docId)) {
+    throw createError({ statusCode: 400, message: 'Invalid docId' })
+  }
   if (!size || typeof size !== 'number') {
     throw createError({ statusCode: 400, message: 'Missing or invalid file size' })
   }
-  if (!ALLOWED_TYPES.has(contentType)) {
+  const ext = CONTENT_TYPE_EXT[contentType]
+  if (!ext) {
     throw createError({ statusCode: 415, message: `Type not allowed: ${contentType}` })
   }
   if (size > MAX_SIZE) {
@@ -41,7 +57,6 @@ export default defineEventHandler(async (event) => {
   const s3 = useS3Client()
   const config = useRuntimeConfig()
   const fileId = nanoid(12)
-  const ext = filename.split('.').pop() || 'bin'
   const key = `docs/${docId}/${fileId}.${ext}`
 
   // Insert an unconfirmed upload row BEFORE issuing the URL so the orphan

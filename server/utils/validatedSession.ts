@@ -28,7 +28,7 @@ export const SESSION_VERSION = 1
  * `require*` variant for endpoints that mutate state on behalf of a user.
  */
 
-type ValidatedUser = { id: number; name: string }
+type ValidatedUser = { id: number, name: string }
 type SessionCache = {
   // `undefined` = not yet checked in this request
   // `null` = checked, no valid session

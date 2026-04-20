@@ -50,12 +50,13 @@ export function useImageUpload(docId: string) {
 
       const url = `/api/files/${docId}/${fileId}`
       return { fileId, url }
-    } catch (e: any) {
-      const statusCode = e.statusCode || e.data?.statusCode || e.status
+    } catch (e) {
+      const err = e as { statusCode?: number, status?: number, data?: { statusCode?: number, message?: string }, message?: string }
+      const statusCode = err.statusCode || err.data?.statusCode || err.status
       if (statusCode === 401) {
         error.value = 'login_required'
       } else {
-        error.value = e.data?.message || e.message || 'Upload failed'
+        error.value = err.data?.message || err.message || 'Upload failed'
       }
       return null
     } finally {

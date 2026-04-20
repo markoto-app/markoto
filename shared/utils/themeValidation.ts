@@ -53,6 +53,11 @@ const isSlotTemplate = (s: unknown): s is string => {
 
 export function isValidTheme(t: unknown): t is DocTheme {
   if (!t || typeof t !== 'object') return false
+  // Cast to a loose indexable shape — this function's whole job is to
+  // validate an untrusted payload field-by-field, so treating each nested
+  // value as `any` until it passes its specific check is the intended
+  // behavior, not a type hole.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const theme = t as Record<string, any>
 
   // page

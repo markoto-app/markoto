@@ -1,4 +1,4 @@
-import { GoogleGenAI, type FunctionDeclaration } from '@google/genai'
+import type { GoogleGenAI, FunctionDeclaration } from '@google/genai'
 import { z, type ZodType } from 'zod'
 
 /**

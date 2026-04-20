@@ -8,7 +8,7 @@ if (!JWT_SECRET) {
 const JWT_SECRET_PREVIOUS = process.env.JWT_SECRET_PREVIOUS || undefined
 
 export const auth = {
-  async onAuthenticate({ documentName, token }: { documentName: string; token: string | null }) {
+  async onAuthenticate({ documentName, token }: { documentName: string, token: string | null }) {
     // Always require a valid JWT — no anonymous bypass.
     // The Nuxt token endpoint issues JWTs with the correct readOnly flag
     // based on document access mode and user ownership.
@@ -35,8 +35,8 @@ export const auth = {
         userId: payload.userId,
         userName: payload.userName ?? null
       }
-    } catch (e: any) {
-      console.warn(`[auth] Invalid token for ${documentName}:`, e.message)
+    } catch (e) {
+      console.warn(`[auth] Invalid token for ${documentName}:`, e instanceof Error ? e.message : e)
       throw new Error('Invalid token')
     }
   }

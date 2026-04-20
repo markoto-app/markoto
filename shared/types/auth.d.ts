@@ -27,6 +27,7 @@ declare module '#auth-utils' {
 
   // No secure (server-only) session data today; keep the augmentation here
   // so adding fields later is a one-liner.
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface SecureSessionData {}
 }
 

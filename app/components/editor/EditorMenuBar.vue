@@ -52,7 +52,6 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale, locales, setLocale } = useI18n()
-const router = useRouter()
 const colorMode = useColorMode()
 
 // ── Editor command helpers — delegate to shared utils so menu and
@@ -73,7 +72,7 @@ function call(fn: (v: EditorView) => void) {
 // throughout so the menus all look consistent.
 
 const fileItems = computed(() => {
-  const items: any[] = [
+  const items: Array<Record<string, unknown>> = [
     { label: t('menubar.file.new'), icon: 'i-lucide-file-plus', onSelect: () => emit('new-document') }
   ]
   if (!props.isReadOnly) {
@@ -100,7 +99,7 @@ const fileItems = computed(() => {
 })
 
 const editItems = computed(() => {
-  const items: any[] = [
+  const items: Array<Record<string, unknown>> = [
     { label: t('menubar.edit.undo'), icon: 'i-lucide-undo-2', kbds: ['cmd', 'z'], disabled: props.isReadOnly, onSelect: () => emit('undo') },
     { label: t('menubar.edit.redo'), icon: 'i-lucide-redo-2', kbds: ['cmd', 'shift', 'z'], disabled: props.isReadOnly, onSelect: () => emit('redo') }
   ]
@@ -164,7 +163,7 @@ const viewItems = computed(() => [
         label: l.name,
         type: 'checkbox' as const,
         checked: locale.value === l.code,
-        onSelect: () => setLocale(l.code as any)
+        onSelect: () => setLocale(l.code as 'en' | 'de' | 'fr' | 'es' | 'ja' | 'zh')
       }))
     }
   ]
@@ -284,7 +283,7 @@ const helpItems = computed(() => [[
   {
     label: t('menubar.help.shortcuts'),
     icon: 'i-lucide-keyboard',
-    disabled: true  // Not built yet — will surface a kbd cheat sheet later.
+    disabled: true // Not built yet — will surface a kbd cheat sheet later.
   },
   { type: 'separator' as const },
   {
@@ -304,27 +303,71 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
 </script>
 
 <template>
-  <nav class="flex items-center gap-0 px-2 border-b border-default shrink-0" aria-label="Menu bar">
-    <UDropdownMenu :items="fileItems" :content="{ align: 'start' }">
-      <button :class="triggerClass">{{ t('menubar.file.title') }}</button>
+  <nav
+    class="flex items-center gap-0 px-2 border-b border-default shrink-0"
+    aria-label="Menu bar"
+  >
+    <UDropdownMenu
+      :items="fileItems"
+      :content="{ align: 'start' }"
+    >
+      <button :class="triggerClass">
+        {{ t('menubar.file.title') }}
+      </button>
     </UDropdownMenu>
-    <UDropdownMenu :items="editItems" :content="{ align: 'start' }">
-      <button :class="triggerClass">{{ t('menubar.edit.title') }}</button>
+    <UDropdownMenu
+      :items="editItems"
+      :content="{ align: 'start' }"
+    >
+      <button :class="triggerClass">
+        {{ t('menubar.edit.title') }}
+      </button>
     </UDropdownMenu>
-    <UDropdownMenu :items="viewItems" :content="{ align: 'start' }">
-      <button :class="triggerClass">{{ t('menubar.view.title') }}</button>
+    <UDropdownMenu
+      :items="viewItems"
+      :content="{ align: 'start' }"
+    >
+      <button :class="triggerClass">
+        {{ t('menubar.view.title') }}
+      </button>
     </UDropdownMenu>
-    <UDropdownMenu :items="insertItems" :content="{ align: 'start' }">
-      <button :class="triggerClass" :disabled="isReadOnly">{{ t('menubar.insert.title') }}</button>
+    <UDropdownMenu
+      :items="insertItems"
+      :content="{ align: 'start' }"
+    >
+      <button
+        :class="triggerClass"
+        :disabled="isReadOnly"
+      >
+        {{ t('menubar.insert.title') }}
+      </button>
     </UDropdownMenu>
-    <UDropdownMenu :items="formatItems" :content="{ align: 'start' }">
-      <button :class="triggerClass" :disabled="isReadOnly">{{ t('menubar.format.title') }}</button>
+    <UDropdownMenu
+      :items="formatItems"
+      :content="{ align: 'start' }"
+    >
+      <button
+        :class="triggerClass"
+        :disabled="isReadOnly"
+      >
+        {{ t('menubar.format.title') }}
+      </button>
     </UDropdownMenu>
-    <UDropdownMenu :items="sharingItems" :content="{ align: 'start' }">
-      <button :class="triggerClass">{{ t('menubar.sharing.title') }}</button>
+    <UDropdownMenu
+      :items="sharingItems"
+      :content="{ align: 'start' }"
+    >
+      <button :class="triggerClass">
+        {{ t('menubar.sharing.title') }}
+      </button>
     </UDropdownMenu>
-    <UDropdownMenu :items="helpItems" :content="{ align: 'start' }">
-      <button :class="triggerClass">{{ t('menubar.help.title') }}</button>
+    <UDropdownMenu
+      :items="helpItems"
+      :content="{ align: 'start' }"
+    >
+      <button :class="triggerClass">
+        {{ t('menubar.help.title') }}
+      </button>
     </UDropdownMenu>
   </nav>
 </template>

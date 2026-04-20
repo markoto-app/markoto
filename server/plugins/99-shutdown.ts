@@ -14,16 +14,16 @@ export default defineNitroPlugin((nitroApp) => {
     try {
       await closeDatabase()
       console.log('[shutdown] Database pool closed.')
-    } catch (e: any) {
-      console.warn('[shutdown] Database pool close failed:', e?.message || e)
+    } catch (e) {
+      console.warn('[shutdown] Database pool close failed:', e instanceof Error ? e.message : e)
     }
 
     console.log('[shutdown] Closing Valkey client…')
     try {
       await closeValkey()
       console.log('[shutdown] Valkey client closed.')
-    } catch (e: any) {
-      console.warn('[shutdown] Valkey client close failed:', e?.message || e)
+    } catch (e) {
+      console.warn('[shutdown] Valkey client close failed:', e instanceof Error ? e.message : e)
     }
   })
 })

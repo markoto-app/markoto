@@ -58,7 +58,7 @@ export function usePagedPreview(opts: {
 
   function handleMessage(e: MessageEvent) {
     if (!iframe || e.source !== iframe.contentWindow) return
-    const data = e.data as { type?: string; pageCount?: number; message?: string } | undefined
+    const data = e.data as { type?: string, pageCount?: number, message?: string } | undefined
     if (!data?.type) return
     if (data.type === 'iframe-ready') {
       isReady.value = true
@@ -114,7 +114,7 @@ export function usePagedPreview(opts: {
   watch([opts.html, opts.theme, opts.title], () => {
     if (firstRender) {
       firstRender = false
-      render()  // immediate first paint after sync
+      render() // immediate first paint after sync
     } else {
       debouncedRender()
     }

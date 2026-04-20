@@ -122,5 +122,8 @@ defineExpose({ view })
 </script>
 
 <template>
-  <div ref="editorRef" class="h-full overflow-hidden" />
+  <div
+    ref="editorRef"
+    class="h-full overflow-hidden"
+  />
 </template>

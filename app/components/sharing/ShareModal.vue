@@ -61,11 +61,11 @@ async function saveAccessMode(mode: string) {
 
     await $fetch(`/api/docs/${props.docId}/meta`, {
       method: 'PUT',
-      body: { access_mode: mode }
+      body: { accessMode: mode }
     })
     accessMode.value = mode
     emit('updated', mode)
-  } catch (e: any) {
+  } catch (e) {
     console.error('Failed to update access mode:', e)
   } finally {
     saving.value = false
@@ -84,7 +84,7 @@ async function setPassword() {
     settingPassword.value = false
     password.value = ''
     emit('updated', 'password-protected')
-  } catch (e: any) {
+  } catch (e) {
     console.error('Failed to set password:', e)
   } finally {
     saving.value = false
@@ -93,12 +93,20 @@ async function setPassword() {
 </script>
 
 <template>
-  <UModal v-model:open="open" :title="t('share.title')" :description="shareUrl">
+  <UModal
+    v-model:open="open"
+    :title="t('share.title')"
+    :description="shareUrl"
+  >
     <template #content>
       <div class="p-6 space-y-5">
         <div>
-          <h3 class="text-lg font-semibold">{{ t('share.title') }}</h3>
-          <p class="text-xs text-muted mt-1">{{ t('share.subtitle') }}</p>
+          <h3 class="text-lg font-semibold">
+            {{ t('share.title') }}
+          </h3>
+          <p class="text-xs text-muted mt-1">
+            {{ t('share.subtitle') }}
+          </p>
         </div>
 
         <!-- Copy link -->
@@ -137,9 +145,14 @@ async function setPassword() {
               :disabled="saving"
               @click="saveAccessMode(opt.value)"
             >
-              <UIcon :name="opt.icon" class="size-5 shrink-0" />
+              <UIcon
+                :name="opt.icon"
+                class="size-5 shrink-0"
+              />
               <div class="text-left">
-                <div class="text-sm font-medium">{{ t(opt.label) }}</div>
+                <div class="text-sm font-medium">
+                  {{ t(opt.label) }}
+                </div>
               </div>
               <UIcon
                 v-if="accessMode === opt.value"
@@ -150,7 +163,10 @@ async function setPassword() {
           </div>
 
           <!-- Password input -->
-          <div v-if="settingPassword" class="mt-3 p-3 rounded-lg border border-default bg-[var(--ui-bg-muted)]">
+          <div
+            v-if="settingPassword"
+            class="mt-3 p-3 rounded-lg border border-default bg-[var(--ui-bg-muted)]"
+          >
             <label class="block text-sm font-medium mb-2">{{ t('share.setPassword') }}</label>
             <div class="flex gap-2">
               <UInput
@@ -170,22 +186,33 @@ async function setPassword() {
                 {{ t('common.save') }}
               </UButton>
             </div>
-            <p class="text-xs text-muted mt-1">{{ t('share.passwordMinLength') }}</p>
+            <p class="text-xs text-muted mt-1">
+              {{ t('share.passwordMinLength') }}
+            </p>
           </div>
         </div>
 
         <!-- Non-owner: just show current mode -->
         <div v-else>
           <label class="block text-sm font-medium mb-2">{{ t('share.accessMode') }}</label>
-          <UBadge variant="subtle" size="md">
-            <UIcon :name="accessOptions.find(o => o.value === accessMode)?.icon || 'i-lucide-globe'" class="size-3.5 mr-1" />
+          <UBadge
+            variant="subtle"
+            size="md"
+          >
+            <UIcon
+              :name="accessOptions.find(o => o.value === accessMode)?.icon || 'i-lucide-globe'"
+              class="size-3.5 mr-1"
+            />
             {{ t(accessOptions.find(o => o.value === accessMode)?.label || 'share.openEdit') }}
           </UBadge>
         </div>
 
         <!-- Close -->
         <div class="flex justify-end pt-2">
-          <UButton variant="ghost" @click="open = false">
+          <UButton
+            variant="ghost"
+            @click="open = false"
+          >
             {{ t('common.close') }}
           </UButton>
         </div>

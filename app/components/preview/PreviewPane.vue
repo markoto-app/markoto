@@ -25,19 +25,29 @@ const { pageCount: pgCount, isReady, error } = usePagedPreview({
   container: iframeHost
 })
 
-watch(pgCount, (n) => { pageCount.value = n }, { immediate: true })
+watch(pgCount, (n) => {
+  pageCount.value = n
+}, { immediate: true })
 </script>
 
 <template>
   <div class="preview-pane h-full w-full relative">
-    <div ref="iframeHost" class="iframe-host h-full w-full" />
+    <div
+      ref="iframeHost"
+      class="iframe-host h-full w-full"
+    />
     <div
       v-if="error"
       class="absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center text-sm text-amber-700 dark:text-amber-400 bg-[var(--ui-bg-muted)]"
     >
-      <UIcon name="i-lucide-alert-triangle" class="size-6" />
+      <UIcon
+        name="i-lucide-alert-triangle"
+        class="size-6"
+      />
       <p>{{ error }}</p>
-      <p class="text-xs text-muted">Reload the page to retry.</p>
+      <p class="text-xs text-muted">
+        Reload the page to retry.
+      </p>
     </div>
     <div
       v-else-if="!isReady"

@@ -22,14 +22,14 @@ export type HeadingWeight = 400 | 500 | 600 | 700 | 800 | 900
  * variant here, (b) extending the URL map, (c) extending the validator
  * allow-list, (d) adding an i18n label.
  */
-export type CodeTheme =
-  | 'github-light'
-  | 'github-dark'
-  | 'monokai'
-  | 'dracula'
-  | 'solarized-light'
-  | 'solarized-dark'
-  | 'none'
+export type CodeTheme
+  = | 'github-light'
+    | 'github-dark'
+    | 'monokai'
+    | 'dracula'
+    | 'solarized-light'
+    | 'solarized-dark'
+    | 'none'
 
 export type TableHeaderBg = 'brand' | 'muted' | 'none'
 /** `auto` picks black/white based on the chosen header bg's luminance. */
@@ -66,55 +66,55 @@ export type DocTheme = {
   page: {
     size: PageSize
     orientation: PageOrientation
-    margin: number             // mm — uniform on all four sides
+    margin: number // mm — uniform on all four sides
   }
   body: {
-    font: string               // CSS font-family value (e.g. "Inter")
-    size: number               // pt
-    lineHeight: number         // unitless multiplier
+    font: string // CSS font-family value (e.g. "Inter")
+    size: number // pt
+    lineHeight: number // unitless multiplier
     textAlign: TextAlign
-    color: string              // hex
-    background: string         // hex
+    color: string // hex
+    background: string // hex
   }
   headings: {
     font: string
-    scale: number              // modular ratio (1.2 / 1.25 / 1.333)
+    scale: number // modular ratio (1.2 / 1.25 / 1.333)
     weight: HeadingWeight
-    underline: boolean         // border-bottom in brand color
-    color: string              // hex — independent so users can pick brand color for headings
+    underline: boolean // border-bottom in brand color
+    color: string // hex — independent so users can pick brand color for headings
   }
   color: {
-    brand: string              // hex; used for links + accent borders + (optionally) heading underline
+    brand: string // hex; used for links + accent borders + (optionally) heading underline
   }
   layout: {
     columns: ColumnCount
-    columnGap: number          // mm
+    columnGap: number // mm
   }
   header: RunningSlots
   footer: RunningSlots
   code: {
     theme: CodeTheme
-    fontSize: number           // pt — separate from body so code can be tighter
+    fontSize: number // pt — separate from body so code can be tighter
   }
   tables: {
     headerBackground: TableHeaderBg
     headerTextColor: TableHeaderColor
     borders: TableBorders
-    zebra: boolean             // alternating row backgrounds
-    cellPadding: number        // px
+    zebra: boolean // alternating row backgrounds
+    cellPadding: number // px
   }
   blocks: {
-    imageRadius: number        // px
-    imageMaxWidth: number      // % of column width
+    imageRadius: number // px
+    imageMaxWidth: number // % of column width
     blockquoteStyle: BlockquoteStyle
   }
   mermaid: {
     theme: MermaidTheme
   }
   toc: {
-    maxDepth: TocMaxDepth         // include h1 through h{maxDepth}
-    showTitle: boolean            // render a "Table of Contents" heading above the list
-    showPageNumbers: boolean      // print-style page nums via paged.js target-counter
-    leaderStyle: TocLeaderStyle   // line between entry and page number
+    maxDepth: TocMaxDepth // include h1 through h{maxDepth}
+    showTitle: boolean // render a "Table of Contents" heading above the list
+    showPageNumbers: boolean // print-style page nums via paged.js target-counter
+    leaderStyle: TocLeaderStyle // line between entry and page number
   }
 }

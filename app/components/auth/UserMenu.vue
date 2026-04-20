@@ -4,7 +4,10 @@ const { loggedIn, user, clear } = useUserSession()
 </script>
 
 <template>
-  <div v-if="loggedIn" class="flex items-center gap-2">
+  <div
+    v-if="loggedIn"
+    class="flex items-center gap-2"
+  >
     <UDropdownMenu
       :items="[
         {
@@ -14,7 +17,11 @@ const { loggedIn, user, clear } = useUserSession()
         }
       ]"
     >
-      <UButton color="neutral" variant="ghost" class="gap-2">
+      <UButton
+        color="neutral"
+        variant="ghost"
+        class="gap-2"
+      >
         <UAvatar
           :src="user?.avatar ?? undefined"
           :alt="user?.name"

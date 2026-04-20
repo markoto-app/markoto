@@ -68,7 +68,7 @@ async function doImport() {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
 
-    const result = await $fetch<{ markdown: string; source: string; filename?: string }>(
+    const result = await $fetch<{ markdown: string, source: string, filename?: string }>(
       '/api/import',
       { method: 'POST', body: formData }
     )
@@ -81,8 +81,9 @@ async function doImport() {
     } else {
       applyImport('replace')
     }
-  } catch (e: any) {
-    error.value = e.data?.message || e.message || t('import.error')
+  } catch (e) {
+    const err = e as { data?: { message?: string }, message?: string }
+    error.value = err.data?.message || err.message || t('import.error')
   } finally {
     importing.value = false
   }
@@ -111,19 +112,34 @@ function cancelImport() {
 </script>
 
 <template>
-  <UModal v-model:open="open" :title="t('import.title')">
+  <UModal
+    v-model:open="open"
+    :title="t('import.title')"
+  >
     <template #content>
       <div class="p-6 space-y-4">
-        <h3 class="text-lg font-semibold">{{ t('import.title') }}</h3>
+        <h3 class="text-lg font-semibold">
+          {{ t('import.title') }}
+        </h3>
 
         <!-- Conflict resolution -->
-        <div v-if="showConflict" class="space-y-4">
+        <div
+          v-if="showConflict"
+          class="space-y-4"
+        >
           <div class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
             <div class="flex items-start gap-2">
-              <UIcon name="i-lucide-alert-triangle" class="size-5 text-amber-500 mt-0.5 shrink-0" />
+              <UIcon
+                name="i-lucide-alert-triangle"
+                class="size-5 text-amber-500 mt-0.5 shrink-0"
+              />
               <div>
-                <p class="text-sm font-medium">{{ t('import.conflictTitle') }}</p>
-                <p class="text-sm text-muted mt-1">{{ t('import.conflictDesc') }}</p>
+                <p class="text-sm font-medium">
+                  {{ t('import.conflictTitle') }}
+                </p>
+                <p class="text-sm text-muted mt-1">
+                  {{ t('import.conflictDesc') }}
+                </p>
               </div>
             </div>
           </div>
@@ -134,7 +150,10 @@ function cancelImport() {
               color="primary"
               @click="applyImport('replace')"
             >
-              <UIcon name="i-lucide-replace" class="size-4 mr-1" />
+              <UIcon
+                name="i-lucide-replace"
+                class="size-4 mr-1"
+              />
               {{ t('import.replace') }}
             </UButton>
             <UButton
@@ -142,7 +161,10 @@ function cancelImport() {
               variant="outline"
               @click="applyImport('append')"
             >
-              <UIcon name="i-lucide-plus" class="size-4 mr-1" />
+              <UIcon
+                name="i-lucide-plus"
+                class="size-4 mr-1"
+              />
               {{ t('import.append') }}
             </UButton>
             <UButton
@@ -156,7 +178,9 @@ function cancelImport() {
 
         <!-- File selection -->
         <div v-else>
-          <p class="text-sm text-muted mb-3">{{ t('import.description') }}</p>
+          <p class="text-sm text-muted mb-3">
+            {{ t('import.description') }}
+          </p>
 
           <input
             ref="fileInput"
@@ -176,9 +200,16 @@ function cancelImport() {
             @click="selectFile"
           >
             <template v-if="selectedFile">
-              <UIcon name="i-lucide-file-check-2" class="size-10 text-primary mx-auto mb-2" />
-              <p class="text-sm font-medium break-all">{{ selectedFile.name }}</p>
-              <p class="text-xs text-muted mt-1">{{ formatBytes(selectedFile.size) }}</p>
+              <UIcon
+                name="i-lucide-file-check-2"
+                class="size-10 text-primary mx-auto mb-2"
+              />
+              <p class="text-sm font-medium break-all">
+                {{ selectedFile.name }}
+              </p>
+              <p class="text-xs text-muted mt-1">
+                {{ formatBytes(selectedFile.size) }}
+              </p>
               <div class="flex items-center justify-center gap-3 mt-3 text-xs">
                 <button
                   type="button"
@@ -198,16 +229,31 @@ function cancelImport() {
               </div>
             </template>
             <template v-else>
-              <UIcon name="i-lucide-file-up" class="size-10 text-muted mx-auto mb-2" />
-              <p class="text-sm text-muted">{{ t('import.selectFile') }}</p>
-              <p class="text-xs text-muted mt-1">{{ t('import.formats') }}</p>
+              <UIcon
+                name="i-lucide-file-up"
+                class="size-10 text-muted mx-auto mb-2"
+              />
+              <p class="text-sm text-muted">
+                {{ t('import.selectFile') }}
+              </p>
+              <p class="text-xs text-muted mt-1">
+                {{ t('import.formats') }}
+              </p>
             </template>
           </div>
 
-          <p v-if="error" class="text-sm text-red-500 mt-2">{{ error }}</p>
+          <p
+            v-if="error"
+            class="text-sm text-red-500 mt-2"
+          >
+            {{ error }}
+          </p>
 
           <div class="flex justify-end gap-2 mt-4">
-            <UButton variant="ghost" @click="open = false">
+            <UButton
+              variant="ghost"
+              @click="open = false"
+            >
               {{ t('common.cancel') }}
             </UButton>
             <UButton
@@ -215,7 +261,10 @@ function cancelImport() {
               :disabled="!selectedFile"
               @click="doImport"
             >
-              <UIcon name="i-lucide-file-input" class="size-4 mr-1" />
+              <UIcon
+                name="i-lucide-file-input"
+                class="size-4 mr-1"
+              />
               {{ t('import.import') }}
             </UButton>
           </div>

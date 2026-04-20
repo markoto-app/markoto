@@ -1,16 +1,25 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { Doc as YDoc } from 'yjs'
 import { ypgPersistence } from './persistence'
 import { matchesCurrentOrPrevious } from '../../shared/utils/secrets'
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
 const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || undefined
 
+// Minimal shape of the Hocuspocus server instance we actually touch.
+// The full Hocuspocus type graph is heavy and shifts between patch releases;
+// this stub covers just what this module needs.
+interface HocuspocusInstance {
+  documents?: Map<string, YDoc>
+  unloadDocument?: (doc: YDoc) => void
+}
+
 function sendJson(response: ServerResponse, status: number, body: Record<string, unknown>) {
   response.writeHead(status, { 'Content-Type': 'application/json' })
   response.end(JSON.stringify(body))
 }
 
-async function readJsonBody(request: IncomingMessage): Promise<any> {
+async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
   for await (const chunk of request) {
     chunks.push(chunk as Buffer)
@@ -30,7 +39,7 @@ async function readJsonBody(request: IncomingMessage): Promise<any> {
 export async function handleInternalRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  instance: any
+  instance: HocuspocusInstance
 ): Promise<boolean> {
   const url = request.url || ''
 
@@ -52,7 +61,7 @@ export async function handleInternalRequest(
 
   try {
     if (url === '/internal/notify-deleted' && request.method === 'POST') {
-      const body = await readJsonBody(request)
+      const body = await readJsonBody(request) as { docId?: unknown }
       const docId = body?.docId
       if (typeof docId !== 'string') {
         sendJson(response, 400, { error: 'Missing docId' })
@@ -78,7 +87,7 @@ export async function handleInternalRequest(
       // Wait briefly so any in-flight broadcast persists `_deleted` first.
       setTimeout(() => {
         ypgPersistence.clearDocument(docId).catch((e) => {
-          console.warn(`[internal-http] clearDocument(${docId}) failed:`, e?.message || e)
+          console.warn(`[internal-http] clearDocument(${docId}) failed:`, e instanceof Error ? e.message : e)
         })
       }, 3000)
 
@@ -88,9 +97,10 @@ export async function handleInternalRequest(
 
     sendJson(response, 404, { error: 'Not found' })
     return true
-  } catch (e: any) {
-    console.warn('[internal-http]', e.message)
-    sendJson(response, 500, { error: e.message })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.warn('[internal-http]', msg)
+    sendJson(response, 500, { error: msg })
     return true
   }
 }

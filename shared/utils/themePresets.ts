@@ -12,7 +12,7 @@ import type { DocTheme } from '../types/theme'
  */
 
 export interface ThemePreset {
-  id: string                // matches i18n key under theme.presets.<id>
+  id: string // matches i18n key under theme.presets.<id>
   theme: DocTheme
 }
 

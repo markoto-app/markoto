@@ -22,7 +22,7 @@ async function verify() {
   error.value = ''
 
   try {
-    const result = await $fetch<{ success: boolean; token: string; readOnly: boolean }>(
+    const result = await $fetch<{ success: boolean, token: string, readOnly: boolean }>(
       `/api/docs/${props.docId}/password`,
       {
         method: 'POST',
@@ -30,8 +30,9 @@ async function verify() {
       }
     )
     emit('verified', result.token)
-  } catch (e: any) {
-    error.value = e.data?.message || t('share.invalidPassword')
+  } catch (e) {
+    const err = e as { data?: { message?: string } }
+    error.value = err.data?.message || t('share.invalidPassword')
     password.value = ''
   } finally {
     loading.value = false
@@ -54,10 +55,17 @@ function handleClose() {
       <div class="p-6">
         <div class="text-center mb-5">
           <div class="mx-auto mb-3 size-12 rounded-full bg-amber-500/10 flex items-center justify-center">
-            <UIcon name="i-lucide-lock" class="size-6 text-amber-500" />
+            <UIcon
+              name="i-lucide-lock"
+              class="size-6 text-amber-500"
+            />
           </div>
-          <h2 class="text-lg font-semibold">{{ t('share.passwordRequired') }}</h2>
-          <p class="text-sm text-muted mt-1">{{ t('share.passwordRequiredDesc') }}</p>
+          <h2 class="text-lg font-semibold">
+            {{ t('share.passwordRequired') }}
+          </h2>
+          <p class="text-sm text-muted mt-1">
+            {{ t('share.passwordRequiredDesc') }}
+          </p>
         </div>
 
         <form @submit.prevent="verify">
@@ -70,7 +78,12 @@ function handleClose() {
             class="mb-3"
           />
 
-          <p v-if="error" class="text-sm text-red-500 mb-3">{{ error }}</p>
+          <p
+            v-if="error"
+            class="text-sm text-red-500 mb-3"
+          >
+            {{ error }}
+          </p>
 
           <div class="flex gap-2">
             <UButton

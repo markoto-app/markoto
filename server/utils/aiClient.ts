@@ -125,12 +125,13 @@ export async function createAiSession(
       console.error(`[aiClient] auth failed ${meta.sessionId}:`, data?.reason)
       rejectSync(new Error('Sync authentication failed: ' + (data?.reason || 'unknown')))
     },
-    onClose: (data: any) => {
-      console.log(`[aiClient] close ${meta.sessionId}:`, data?.event?.code, data?.event?.reason)
+    onClose: (data) => {
+      const evt = (data as { event?: { code?: number, reason?: string } })?.event
+      console.log(`[aiClient] close ${meta.sessionId}:`, evt?.code, evt?.reason)
       if (!syncResolved) {
         syncResolved = true
         clearTimeout(timer)
-        rejectSync(new Error(`Connection closed: ${data?.event?.code} ${data?.event?.reason || ''}`))
+        rejectSync(new Error(`Connection closed: ${evt?.code} ${evt?.reason || ''}`))
       }
     }
   })
@@ -152,18 +153,22 @@ export async function createAiSession(
   }
 
   const destroy = async () => {
+    // Each teardown step is wrapped individually because they can fail
+    // independently — awareness set can throw after provider destroy, provider
+    // disconnect can throw if the WS already dropped, etc. We want the full
+    // sequence to run regardless.
     try {
       awareness.setLocalState(null) // broadcast disappearance
-    } catch {}
+    } catch { /* best-effort */ }
     try {
       provider.disconnect()
-    } catch {}
+    } catch { /* best-effort */ }
     try {
       provider.destroy()
-    } catch {}
+    } catch { /* best-effort */ }
     try {
       ydoc.destroy()
-    } catch {}
+    } catch { /* best-effort */ }
   }
 
   return {

@@ -160,10 +160,14 @@ const mermaidThemeItems = computed(() => [
   { label: t('theme.mermaid.themeBase'), value: 'base' as MermaidTheme }
 ])
 
+// Section-header entries carry an empty `value` so the union type retains
+// the `value` key (USelectMenu's `value-key` prop only accepts keys that
+// exist on every item variant). Nuxt UI skips `type: 'label'` items for
+// selection, so the empty string is never surfaced as a picked value.
 const fontPickerItems = computed(() => [
-  { type: 'label' as const, label: t('theme.fonts.sans') },
+  { type: 'label' as const, label: t('theme.fonts.sans'), value: '' },
   ...THEME_FONTS.filter(f => f.category === 'sans').map(f => ({ label: f.name, value: f.name })),
-  { type: 'label' as const, label: t('theme.fonts.serif') },
+  { type: 'label' as const, label: t('theme.fonts.serif'), value: '' },
   ...THEME_FONTS.filter(f => f.category === 'serif').map(f => ({ label: f.name, value: f.name }))
 ])
 
@@ -218,14 +222,28 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
   <div class="flex flex-col h-full">
     <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
       <div class="flex items-center gap-1.5">
-        <UIcon name="i-lucide-palette" class="size-4 text-muted" />
-        <h3 class="text-sm font-semibold">{{ t('theme.title') }}</h3>
+        <UIcon
+          name="i-lucide-palette"
+          class="size-4 text-muted"
+        />
+        <h3 class="text-sm font-semibold">
+          {{ t('theme.title') }}
+        </h3>
       </div>
-      <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="xs" @click="emit('close')" />
+      <UButton
+        icon="i-lucide-x"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        @click="emit('close')"
+      />
     </div>
 
     <div class="flex-1 overflow-y-auto p-3 min-h-0">
-      <div v-if="!canEdit" class="text-sm text-muted">
+      <div
+        v-if="!canEdit"
+        class="text-sm text-muted"
+      >
         {{ t('theme.readOnly') }}
       </div>
 
@@ -246,7 +264,10 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
               @click="applyPreset(preset)"
             >
               <div class="flex items-center gap-2 mb-1">
-                <span class="size-3 rounded-full shrink-0" :style="{ backgroundColor: preset.theme.color.brand }" />
+                <span
+                  class="size-3 rounded-full shrink-0"
+                  :style="{ backgroundColor: preset.theme.color.brand }"
+                />
                 <span
                   class="text-sm font-semibold truncate"
                   :style="{ fontFamily: `'${preset.theme.headings.font}', system-ui, sans-serif` }"
@@ -271,13 +292,30 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <template #page-body>
             <div class="space-y-4 pt-2 pb-4">
               <UFormField :label="t('theme.page.size')">
-                <USelect v-model="draft.page.size" :items="pageSizeItems" class="w-full" />
+                <USelect
+                  v-model="draft.page.size"
+                  :items="pageSizeItems"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField :label="t('theme.page.orientation')">
-                <USelect v-model="draft.page.orientation" :items="orientationItems" class="w-full" />
+                <USelect
+                  v-model="draft.page.orientation"
+                  :items="orientationItems"
+                  class="w-full"
+                />
               </UFormField>
-              <UFormField :label="t('theme.page.margin')" :help="t('theme.page.marginHelp')">
-                <UInputNumber v-model="draft.page.margin" :min="0" :max="60" :step="1" class="w-full" />
+              <UFormField
+                :label="t('theme.page.margin')"
+                :help="t('theme.page.marginHelp')"
+              >
+                <UInputNumber
+                  v-model="draft.page.margin"
+                  :min="0"
+                  :max="60"
+                  :step="1"
+                  class="w-full"
+                />
               </UFormField>
             </div>
           </template>
@@ -286,7 +324,12 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <template #body-body>
             <div class="space-y-4 pt-2 pb-4">
               <UFormField :label="t('theme.body.font')">
-                <USelectMenu v-model="draft.body.font" :items="fontPickerItems" value-key="value" class="w-full">
+                <USelectMenu
+                  v-model="draft.body.font"
+                  :items="fontPickerItems"
+                  value-key="value"
+                  class="w-full"
+                >
                   <template #item-label="{ item }">
                     <span :style="item.value ? { fontFamily: `'${item.value}', sans-serif` } : undefined">{{ item.label }}</span>
                   </template>
@@ -294,31 +337,74 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
               </UFormField>
               <div class="grid grid-cols-2 gap-3">
                 <UFormField :label="t('theme.body.size')">
-                  <UInputNumber v-model="draft.body.size" :min="6" :max="24" :step="0.5" class="w-full" />
+                  <UInputNumber
+                    v-model="draft.body.size"
+                    :min="6"
+                    :max="24"
+                    :step="0.5"
+                    class="w-full"
+                  />
                 </UFormField>
                 <UFormField :label="t('theme.body.lineHeight')">
-                  <UInputNumber v-model="draft.body.lineHeight" :min="0.8" :max="3" :step="0.05" class="w-full" />
+                  <UInputNumber
+                    v-model="draft.body.lineHeight"
+                    :min="0.8"
+                    :max="3"
+                    :step="0.05"
+                    class="w-full"
+                  />
                 </UFormField>
               </div>
-              <UFormField :label="t('theme.body.textAlign')" :help="t('theme.body.textAlignHelp')">
-                <USelect v-model="draft.body.textAlign" :items="textAlignItems" class="w-full" />
+              <UFormField
+                :label="t('theme.body.textAlign')"
+                :help="t('theme.body.textAlignHelp')"
+              >
+                <USelect
+                  v-model="draft.body.textAlign"
+                  :items="textAlignItems"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField :label="t('theme.body.color')">
                 <UPopover>
-                  <UButton color="neutral" variant="outline" class="w-full justify-start">
-                    <span class="size-4 rounded border border-default" :style="{ backgroundColor: draft.body.color }" />
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    class="w-full justify-start"
+                  >
+                    <span
+                      class="size-4 rounded border border-default"
+                      :style="{ backgroundColor: draft.body.color }"
+                    />
                     <span class="font-mono text-xs">{{ draft.body.color }}</span>
                   </UButton>
-                  <template #content><UColorPicker v-model="draft.body.color" class="p-2" /></template>
+                  <template #content>
+                    <UColorPicker
+                      v-model="draft.body.color"
+                      class="p-2"
+                    />
+                  </template>
                 </UPopover>
               </UFormField>
               <UFormField :label="t('theme.body.background')">
                 <UPopover>
-                  <UButton color="neutral" variant="outline" class="w-full justify-start">
-                    <span class="size-4 rounded border border-default" :style="{ backgroundColor: draft.body.background }" />
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    class="w-full justify-start"
+                  >
+                    <span
+                      class="size-4 rounded border border-default"
+                      :style="{ backgroundColor: draft.body.background }"
+                    />
                     <span class="font-mono text-xs">{{ draft.body.background }}</span>
                   </UButton>
-                  <template #content><UColorPicker v-model="draft.body.background" class="p-2" /></template>
+                  <template #content>
+                    <UColorPicker
+                      v-model="draft.body.background"
+                      class="p-2"
+                    />
+                  </template>
                 </UPopover>
               </UFormField>
             </div>
@@ -328,25 +414,53 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <template #headings-body>
             <div class="space-y-4 pt-2 pb-4">
               <UFormField :label="t('theme.headings.font')">
-                <USelectMenu v-model="draft.headings.font" :items="fontPickerItems" value-key="value" class="w-full">
+                <USelectMenu
+                  v-model="draft.headings.font"
+                  :items="fontPickerItems"
+                  value-key="value"
+                  class="w-full"
+                >
                   <template #item-label="{ item }">
                     <span :style="item.value ? { fontFamily: `'${item.value}', sans-serif` } : undefined">{{ item.label }}</span>
                   </template>
                 </USelectMenu>
               </UFormField>
               <UFormField :label="t('theme.headings.scale')">
-                <USelect v-model="draft.headings.scale" :items="headingScaleItems" class="w-full" />
+                <USelect
+                  v-model="draft.headings.scale"
+                  :items="headingScaleItems"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField :label="t('theme.headings.weight')">
-                <USelect v-model="draft.headings.weight" :items="headingWeightItems" class="w-full" />
+                <USelect
+                  v-model="draft.headings.weight"
+                  :items="headingWeightItems"
+                  class="w-full"
+                />
               </UFormField>
-              <UFormField :label="t('theme.headings.color')" :help="t('theme.headings.colorHelp')">
+              <UFormField
+                :label="t('theme.headings.color')"
+                :help="t('theme.headings.colorHelp')"
+              >
                 <UPopover>
-                  <UButton color="neutral" variant="outline" class="w-full justify-start">
-                    <span class="size-4 rounded border border-default" :style="{ backgroundColor: draft.headings.color }" />
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    class="w-full justify-start"
+                  >
+                    <span
+                      class="size-4 rounded border border-default"
+                      :style="{ backgroundColor: draft.headings.color }"
+                    />
                     <span class="font-mono text-xs">{{ draft.headings.color }}</span>
                   </UButton>
-                  <template #content><UColorPicker v-model="draft.headings.color" class="p-2" /></template>
+                  <template #content>
+                    <UColorPicker
+                      v-model="draft.headings.color"
+                      class="p-2"
+                    />
+                  </template>
                 </UPopover>
               </UFormField>
               <UFormField :label="t('theme.headings.underline')">
@@ -358,13 +472,28 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <!-- Color (just brand now) -->
           <template #color-body>
             <div class="space-y-4 pt-2 pb-4">
-              <UFormField :label="t('theme.color.brand')" :help="t('theme.color.brandHelp')">
+              <UFormField
+                :label="t('theme.color.brand')"
+                :help="t('theme.color.brandHelp')"
+              >
                 <UPopover>
-                  <UButton color="neutral" variant="outline" class="w-full justify-start">
-                    <span class="size-4 rounded border border-default" :style="{ backgroundColor: draft.color.brand }" />
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    class="w-full justify-start"
+                  >
+                    <span
+                      class="size-4 rounded border border-default"
+                      :style="{ backgroundColor: draft.color.brand }"
+                    />
                     <span class="font-mono text-xs">{{ draft.color.brand }}</span>
                   </UButton>
-                  <template #content><UColorPicker v-model="draft.color.brand" class="p-2" /></template>
+                  <template #content>
+                    <UColorPicker
+                      v-model="draft.color.brand"
+                      class="p-2"
+                    />
+                  </template>
                 </UPopover>
               </UFormField>
             </div>
@@ -374,10 +503,23 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <template #layout-body>
             <div class="space-y-4 pt-2 pb-4">
               <UFormField :label="t('theme.layout.columns')">
-                <USelect v-model="draft.layout.columns" :items="columnItems" class="w-full" />
+                <USelect
+                  v-model="draft.layout.columns"
+                  :items="columnItems"
+                  class="w-full"
+                />
               </UFormField>
-              <UFormField v-if="draft.layout.columns > 1" :label="t('theme.layout.columnGap')">
-                <UInputNumber v-model="draft.layout.columnGap" :min="0" :max="30" :step="1" class="w-full" />
+              <UFormField
+                v-if="draft.layout.columns > 1"
+                :label="t('theme.layout.columnGap')"
+              >
+                <UInputNumber
+                  v-model="draft.layout.columnGap"
+                  :min="0"
+                  :max="30"
+                  :step="1"
+                  class="w-full"
+                />
               </UFormField>
             </div>
           </template>
@@ -385,12 +527,15 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <!-- Header -->
           <template #header-body>
             <div class="space-y-3 pt-2 pb-4">
-              <p class="text-xs text-muted">{{ t('theme.runningSlots.help') }}</p>
+              <p class="text-xs text-muted">
+                {{ t('theme.runningSlots.help') }}
+              </p>
               <UFormField :label="t('theme.runningSlots.left')">
                 <UInput
                   v-model="draft.header.left"
                   class="w-full"
-                  data-slot="header" data-position="left"
+                  data-slot="header"
+                  data-position="left"
                   @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
                 />
               </UFormField>
@@ -398,7 +543,8 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                 <UInput
                   v-model="draft.header.center"
                   class="w-full"
-                  data-slot="header" data-position="center"
+                  data-slot="header"
+                  data-position="center"
                   @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
                 />
               </UFormField>
@@ -406,7 +552,8 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                 <UInput
                   v-model="draft.header.right"
                   class="w-full"
-                  data-slot="header" data-position="right"
+                  data-slot="header"
+                  data-position="right"
                   @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
                 />
               </UFormField>
@@ -415,7 +562,9 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                 <UButton
                   v-for="chip in tokenChips"
                   :key="`hdr-${chip.token}`"
-                  size="xs" color="neutral" variant="soft"
+                  size="xs"
+                  color="neutral"
+                  variant="soft"
                   @mousedown.prevent
                   @click="insertToken(chip.token)"
                 >
@@ -428,12 +577,15 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <!-- Footer -->
           <template #footer-body>
             <div class="space-y-3 pt-2 pb-4">
-              <p class="text-xs text-muted">{{ t('theme.runningSlots.help') }}</p>
+              <p class="text-xs text-muted">
+                {{ t('theme.runningSlots.help') }}
+              </p>
               <UFormField :label="t('theme.runningSlots.left')">
                 <UInput
                   v-model="draft.footer.left"
                   class="w-full"
-                  data-slot="footer" data-position="left"
+                  data-slot="footer"
+                  data-position="left"
                   @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
                 />
               </UFormField>
@@ -441,7 +593,8 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                 <UInput
                   v-model="draft.footer.center"
                   class="w-full"
-                  data-slot="footer" data-position="center"
+                  data-slot="footer"
+                  data-position="center"
                   @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
                 />
               </UFormField>
@@ -449,7 +602,8 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                 <UInput
                   v-model="draft.footer.right"
                   class="w-full"
-                  data-slot="footer" data-position="right"
+                  data-slot="footer"
+                  data-position="right"
                   @focus="(e: FocusEvent) => activeSlotInput = e.target as HTMLInputElement"
                 />
               </UFormField>
@@ -458,7 +612,9 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                 <UButton
                   v-for="chip in tokenChips"
                   :key="`ftr-${chip.token}`"
-                  size="xs" color="neutral" variant="soft"
+                  size="xs"
+                  color="neutral"
+                  variant="soft"
                   @mousedown.prevent
                   @click="insertToken(chip.token)"
                 >
@@ -472,10 +628,20 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <template #code-body>
             <div class="space-y-4 pt-2 pb-4">
               <UFormField :label="t('theme.code.theme')">
-                <USelect v-model="draft.code.theme" :items="codeThemeItems" class="w-full" />
+                <USelect
+                  v-model="draft.code.theme"
+                  :items="codeThemeItems"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField :label="t('theme.code.fontSize')">
-                <UInputNumber v-model="draft.code.fontSize" :min="6" :max="16" :step="0.5" class="w-full" />
+                <UInputNumber
+                  v-model="draft.code.fontSize"
+                  :min="6"
+                  :max="16"
+                  :step="0.5"
+                  class="w-full"
+                />
               </UFormField>
             </div>
           </template>
@@ -484,23 +650,44 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <template #tables-body>
             <div class="space-y-4 pt-2 pb-4">
               <UFormField :label="t('theme.tables.headerBackground')">
-                <USelect v-model="draft.tables.headerBackground" :items="tableHeaderBgItems" class="w-full" />
+                <USelect
+                  v-model="draft.tables.headerBackground"
+                  :items="tableHeaderBgItems"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField
                 v-if="draft.tables.headerBackground !== 'none'"
                 :label="t('theme.tables.headerTextColor')"
                 :help="t('theme.tables.headerTextColorHelp')"
               >
-                <USelect v-model="draft.tables.headerTextColor" :items="tableHeaderColorItems" class="w-full" />
+                <USelect
+                  v-model="draft.tables.headerTextColor"
+                  :items="tableHeaderColorItems"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField :label="t('theme.tables.borders')">
-                <USelect v-model="draft.tables.borders" :items="tableBordersItems" class="w-full" />
+                <USelect
+                  v-model="draft.tables.borders"
+                  :items="tableBordersItems"
+                  class="w-full"
+                />
               </UFormField>
-              <UFormField :label="t('theme.tables.zebra')" :help="t('theme.tables.zebraHelp')">
+              <UFormField
+                :label="t('theme.tables.zebra')"
+                :help="t('theme.tables.zebraHelp')"
+              >
                 <USwitch v-model="draft.tables.zebra" />
               </UFormField>
               <UFormField :label="t('theme.tables.cellPadding')">
-                <UInputNumber v-model="draft.tables.cellPadding" :min="0" :max="24" :step="1" class="w-full" />
+                <UInputNumber
+                  v-model="draft.tables.cellPadding"
+                  :min="0"
+                  :max="24"
+                  :step="1"
+                  class="w-full"
+                />
               </UFormField>
             </div>
           </template>
@@ -513,13 +700,29 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <template #blocks-body>
             <div class="space-y-4 pt-2 pb-4">
               <UFormField :label="t('theme.blocks.imageRadius')">
-                <UInputNumber v-model="draft.blocks.imageRadius" :min="0" :max="32" :step="1" class="w-full" />
+                <UInputNumber
+                  v-model="draft.blocks.imageRadius"
+                  :min="0"
+                  :max="32"
+                  :step="1"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField :label="t('theme.blocks.imageMaxWidth')">
-                <UInputNumber v-model="draft.blocks.imageMaxWidth" :min="10" :max="100" :step="5" class="w-full" />
+                <UInputNumber
+                  v-model="draft.blocks.imageMaxWidth"
+                  :min="10"
+                  :max="100"
+                  :step="5"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField :label="t('theme.blocks.blockquoteStyle')">
-                <USelect v-model="draft.blocks.blockquoteStyle" :items="blockquoteItems" class="w-full" />
+                <USelect
+                  v-model="draft.blocks.blockquoteStyle"
+                  :items="blockquoteItems"
+                  class="w-full"
+                />
               </UFormField>
             </div>
           </template>
@@ -527,17 +730,34 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <!-- Table of contents -->
           <template #toc-body>
             <div class="space-y-4 pt-2 pb-4">
-              <UFormField :label="t('theme.toc.showTitle')" :help="t('theme.toc.showTitleHelp')">
+              <UFormField
+                :label="t('theme.toc.showTitle')"
+                :help="t('theme.toc.showTitleHelp')"
+              >
                 <USwitch v-model="draft.toc.showTitle" />
               </UFormField>
-              <UFormField :label="t('theme.toc.maxDepth')" :help="t('theme.toc.maxDepthHelp')">
-                <USelect v-model="draft.toc.maxDepth" :items="tocMaxDepthItems" class="w-full" />
+              <UFormField
+                :label="t('theme.toc.maxDepth')"
+                :help="t('theme.toc.maxDepthHelp')"
+              >
+                <USelect
+                  v-model="draft.toc.maxDepth"
+                  :items="tocMaxDepthItems"
+                  class="w-full"
+                />
               </UFormField>
-              <UFormField :label="t('theme.toc.showPageNumbers')" :help="t('theme.toc.showPageNumbersHelp')">
+              <UFormField
+                :label="t('theme.toc.showPageNumbers')"
+                :help="t('theme.toc.showPageNumbersHelp')"
+              >
                 <USwitch v-model="draft.toc.showPageNumbers" />
               </UFormField>
               <UFormField :label="t('theme.toc.leaderStyle')">
-                <USelect v-model="draft.toc.leaderStyle" :items="tocLeaderItems" class="w-full" />
+                <USelect
+                  v-model="draft.toc.leaderStyle"
+                  :items="tocLeaderItems"
+                  class="w-full"
+                />
               </UFormField>
             </div>
           </template>
@@ -545,8 +765,15 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           <!-- Mermaid -->
           <template #mermaid-body>
             <div class="space-y-4 pt-2 pb-4">
-              <UFormField :label="t('theme.mermaid.theme')" :help="t('theme.mermaid.themeHelp')">
-                <USelect v-model="draft.mermaid.theme" :items="mermaidThemeItems" class="w-full" />
+              <UFormField
+                :label="t('theme.mermaid.theme')"
+                :help="t('theme.mermaid.themeHelp')"
+              >
+                <USelect
+                  v-model="draft.mermaid.theme"
+                  :items="mermaidThemeItems"
+                  class="w-full"
+                />
               </UFormField>
             </div>
           </template>
@@ -554,8 +781,17 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
       </template>
     </div>
 
-    <div v-if="canEdit" class="p-3 border-t border-default shrink-0">
-      <UButton block color="neutral" variant="outline" icon="i-lucide-rotate-ccw" @click="doReset">
+    <div
+      v-if="canEdit"
+      class="p-3 border-t border-default shrink-0"
+    >
+      <UButton
+        block
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-rotate-ccw"
+        @click="doReset"
+      >
         {{ t('theme.reset') }}
       </UButton>
     </div>

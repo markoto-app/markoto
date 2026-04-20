@@ -175,7 +175,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         validatedArgs = call.args ?? {}
       }
 
-      let result: { content: string; isError: boolean }
+      let result: { content: string, isError: boolean }
       if (call.name === 'web_search') {
         // Safe cast — schema guarantees `{ query: string }`.
         const { query } = validatedArgs as { query: string }

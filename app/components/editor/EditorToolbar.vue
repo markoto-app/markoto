@@ -117,7 +117,6 @@ const actions = computed(() => [
   // expect.
 ])
 
-
 // Math kinds — surfaces inline + block in the toolbar dropdown.
 const mathItems = computed(() => [[
   { label: t('menubar.insert.mathInline'), icon: 'i-lucide-pi', onSelect: withView(v => insertMath(v, 'inline')) },
@@ -150,10 +149,23 @@ const diagramItems = computed(() => [[
 </script>
 
 <template>
-  <div v-if="!readOnly" class="flex flex-wrap items-center gap-0.5 px-2 py-1 min-w-0">
-    <template v-for="(item, i) in actions" :key="i">
-      <USeparator v-if="'divider' in item" orientation="vertical" class="h-5 mx-1" />
-      <UTooltip v-else :text="item.label">
+  <div
+    v-if="!readOnly"
+    class="flex flex-wrap items-center gap-0.5 px-2 py-1 min-w-0"
+  >
+    <template
+      v-for="(item, i) in actions"
+      :key="i"
+    >
+      <USeparator
+        v-if="'divider' in item"
+        orientation="vertical"
+        class="h-5 mx-1"
+      />
+      <UTooltip
+        v-else
+        :text="item.label"
+      >
         <UButton
           :icon="item.icon"
           color="neutral"
@@ -179,19 +191,43 @@ const diagramItems = computed(() => [[
         @click="emit('open-table-picker')"
       />
     </UTooltip>
-    <UDropdownMenu :items="mathItems" :content="{ align: 'start' }">
+    <UDropdownMenu
+      :items="mathItems"
+      :content="{ align: 'start' }"
+    >
       <UTooltip :text="t('menubar.insert.math')">
-        <UButton icon="i-lucide-sigma" color="neutral" variant="ghost" size="xs" />
+        <UButton
+          icon="i-lucide-sigma"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+        />
       </UTooltip>
     </UDropdownMenu>
-    <UDropdownMenu :items="alertItems" :content="{ align: 'start' }">
+    <UDropdownMenu
+      :items="alertItems"
+      :content="{ align: 'start' }"
+    >
       <UTooltip :text="t('menubar.insert.alert')">
-        <UButton icon="i-lucide-message-square-warning" color="neutral" variant="ghost" size="xs" />
+        <UButton
+          icon="i-lucide-message-square-warning"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+        />
       </UTooltip>
     </UDropdownMenu>
-    <UDropdownMenu :items="diagramItems" :content="{ align: 'start' }">
+    <UDropdownMenu
+      :items="diagramItems"
+      :content="{ align: 'start' }"
+    >
       <UTooltip :text="t('menubar.insert.diagram')">
-        <UButton icon="i-lucide-workflow" color="neutral" variant="ghost" size="xs" />
+        <UButton
+          icon="i-lucide-workflow"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+        />
       </UTooltip>
     </UDropdownMenu>
 

@@ -10,8 +10,13 @@ const docId = route.params.id as string
     <template #fallback>
       <div class="h-screen flex items-center justify-center">
         <div class="text-center space-y-3">
-          <UIcon name="i-lucide-loader" class="size-8 animate-spin text-primary mx-auto" />
-          <p class="text-sm text-muted">{{ t('common.loading') }}</p>
+          <UIcon
+            name="i-lucide-loader"
+            class="size-8 animate-spin text-primary mx-auto"
+          />
+          <p class="text-sm text-muted">
+            {{ t('common.loading') }}
+          </p>
         </div>
       </div>
     </template>

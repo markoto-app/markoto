@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { EditorView } from '@codemirror/view'
+import type { EditorView } from '@codemirror/view'
 import * as Y from 'yjs'
 import type { Text as YText } from 'yjs'
 
@@ -10,8 +10,8 @@ const props = defineProps<{
     selectionText: string
     selectionFrom: number
     selectionTo: number
-    relFrom: any
-    relTo: any
+    relFrom: Y.RelativePosition | null
+    relTo: Y.RelativePosition | null
     instruction: string
   }) => Promise<boolean>
 }>()
@@ -21,8 +21,8 @@ const { loggedIn } = useUserSession()
 const toast = useToast()
 
 // Popup state
-const visible = ref(false)     // is the popup rendered
-const expanded = ref(false)    // is the text input shown (vs the sparkles pill)
+const visible = ref(false) // is the popup rendered
+const expanded = ref(false) // is the text input shown (vs the sparkles pill)
 const submitting = ref(false)
 const focused = ref(false)
 const instruction = ref('')
@@ -35,8 +35,8 @@ interface CapturedSelection {
   text: string
   from: number
   to: number
-  relFrom: any
-  relTo: any
+  relFrom: Y.RelativePosition | null
+  relTo: Y.RelativePosition | null
 }
 const captured = ref<CapturedSelection | null>(null)
 
@@ -70,8 +70,8 @@ function captureSelection(view: EditorView) {
   const text = view.state.sliceDoc(sel.from, sel.to).trim()
   if (!text) return null
 
-  let relFrom: any = null
-  let relTo: any = null
+  let relFrom: Y.RelativePosition | null = null
+  let relTo: Y.RelativePosition | null = null
   try {
     relFrom = Y.createRelativePositionFromTypeIndex(props.ytext, sel.from)
     relTo = Y.createRelativePositionFromTypeIndex(props.ytext, sel.to)
@@ -139,7 +139,10 @@ onUnmounted(() => {
 async function onActivate() {
   if (!props.view) return
   const snap = captureSelection(props.view)
-  if (!snap) { hide(); return }
+  if (!snap) {
+    hide()
+    return
+  }
   captured.value = snap
   expanded.value = true
   await nextTick()
@@ -202,7 +205,10 @@ function onKeydown(e: KeyboardEvent) {
       class="ai-selection-popup__pill inline-flex items-center gap-2 rounded-full pl-3 pr-4 py-1.5 text-sm font-medium backdrop-blur-md transition-all"
       @click="onActivate"
     >
-      <UIcon name="i-lucide-sparkles" class="size-4 text-blue-500 shrink-0" />
+      <UIcon
+        name="i-lucide-sparkles"
+        class="size-4 text-blue-500 shrink-0"
+      />
       <span>{{ t('ai.rewriteButton') }}</span>
     </button>
 

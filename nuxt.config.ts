@@ -3,6 +3,89 @@ export default defineNuxtConfig({
   // Dev proxy: mirror production Traefik routing through localhost:3000
   // so the browser only talks to one origin (no CORS issues).
   // In production, Traefik handles these routes to the correct containers.
+
+  modules: [
+    '@nuxt/eslint',
+    '@nuxt/ui',
+    'nuxt-auth-utils',
+    '@nuxtjs/i18n',
+    '@vueuse/nuxt',
+    '@pinia/nuxt',
+    '@pinia/colada-nuxt',
+    '@vite-pwa/nuxt',
+    'nuxt-codemirror',
+    '@sentry/nuxt/module'
+  ],
+
+  devtools: {
+    enabled: true
+  },
+
+  app: {
+    head: { title: 'YPad — Collaborative Markdown' }
+  },
+
+  css: ['~/assets/css/main.css'],
+
+  runtimeConfig: {
+    // nuxt-auth-utils reads `runtimeConfig.session` (shape = h3's SessionConfig,
+    // which requires `password`). `NUXT_SESSION_PASSWORD` env var populates
+    // `session.password` via Nuxt's nested env→runtimeConfig resolution. The
+    // old top-level `sessionPassword` was stale — left over from an earlier
+    // config shape and never read by the runtime.
+    session: {
+      password: '',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    },
+    oauth: {
+      github: {
+        clientId: '',
+        clientSecret: ''
+      },
+      google: {
+        clientId: '',
+        clientSecret: ''
+      }
+    },
+    s3: {
+      endpoint: '',
+      accessKey: '',
+      secretKey: '',
+      bucket: 'ypad'
+    },
+    google: {
+      apiKey: '', // NUXT_GOOGLE_API_KEY
+      model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
+      rewriteModel: 'gemini-2.5-flash-lite' // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
+    },
+    jwtSecret: '',
+    // Optional: previous JWT_SECRET, accepted by verifiers during rotation.
+    // See docs/SECRETS-ROTATION.md.
+    jwtSecretPrevious: '',
+    internalApiSecret: '',
+    // Optional: previous INTERNAL_API_SECRET, accepted during rotation.
+    internalApiSecretPrevious: '',
+    markitdownUrl: '',
+    // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
+    // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
+    syncInternalUrl: 'http://localhost:4001',
+    // Inactive-doc auto-cleanup thresholds (in days). Anonymous docs age
+    // out at the shorter TTL; owner-owned docs get the longer grace.
+    // Workspace-attached docs are never auto-reaped. 0 disables the sweep
+    // entirely. Override via NUXT_INACTIVE_DOC_TTL_DAYS / _OWNED_TTL_DAYS.
+    inactiveDocTtlDays: 180,
+    inactiveDocOwnedTtlDays: 365,
+    public: {
+      syncUrl: '',
+      sentry: {
+        // GlitchTip / Sentry DSN for browser error reporting. Empty in dev;
+        // set via NUXT_PUBLIC_SENTRY_DSN in prod .env.
+        dsn: ''
+      }
+    }
+  },
+
+  compatibilityDate: '2025-01-15',
   nitro: {
     // Match the runtime: the Dockerfile's runtime stage runs the output with
     // `bun`, and packages like lib0 have `bun` conditional exports that
@@ -44,79 +127,11 @@ export default defineNuxtConfig({
     }
   },
 
-  modules: [
-    '@nuxt/eslint',
-    '@nuxt/ui',
-    'nuxt-auth-utils',
-    '@nuxtjs/i18n',
-    '@vueuse/nuxt',
-    '@pinia/nuxt',
-    '@pinia/colada-nuxt',
-    '@vite-pwa/nuxt',
-    'nuxt-codemirror',
-    '@sentry/nuxt/module'
-  ],
-
-  devtools: {
-    enabled: true
-  },
-
-  css: ['~/assets/css/main.css'],
-
-  runtimeConfig: {
-    // nuxt-auth-utils reads `runtimeConfig.session` (shape = h3's SessionConfig,
-    // which requires `password`). `NUXT_SESSION_PASSWORD` env var populates
-    // `session.password` via Nuxt's nested env→runtimeConfig resolution. The
-    // old top-level `sessionPassword` was stale — left over from an earlier
-    // config shape and never read by the runtime.
-    session: {
-      password: '',
-      maxAge: 60 * 60 * 24 * 7   // 7 days
-    },
-    oauth: {
-      github: {
-        clientId: '',
-        clientSecret: ''
-      },
-      google: {
-        clientId: '',
-        clientSecret: ''
-      }
-    },
-    s3: {
-      endpoint: '',
-      accessKey: '',
-      secretKey: '',
-      bucket: 'ypad'
-    },
-    google: {
-      apiKey: '',                                  // NUXT_GOOGLE_API_KEY
-      model: 'gemini-3.1-flash-lite-preview',      // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
-      rewriteModel: 'gemini-2.5-flash-lite'        // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
-    },
-    jwtSecret: '',
-    // Optional: previous JWT_SECRET, accepted by verifiers during rotation.
-    // See docs/SECRETS-ROTATION.md.
-    jwtSecretPrevious: '',
-    internalApiSecret: '',
-    // Optional: previous INTERNAL_API_SECRET, accepted during rotation.
-    internalApiSecretPrevious: '',
-    markitdownUrl: '',
-    // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
-    // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
-    syncInternalUrl: 'http://localhost:4001',
-    // Inactive-doc auto-cleanup thresholds (in days). Anonymous docs age
-    // out at the shorter TTL; owner-owned docs get the longer grace.
-    // Workspace-attached docs are never auto-reaped. 0 disables the sweep
-    // entirely. Override via NUXT_INACTIVE_DOC_TTL_DAYS / _OWNED_TTL_DAYS.
-    inactiveDocTtlDays: 180,
-    inactiveDocOwnedTtlDays: 365,
-    public: {
-      syncUrl: '',
-      sentry: {
-        // GlitchTip / Sentry DSN for browser error reporting. Empty in dev;
-        // set via NUXT_PUBLIC_SENTRY_DSN in prod .env.
-        dsn: ''
+  eslint: {
+    config: {
+      stylistic: {
+        commaDangle: 'never',
+        braceStyle: '1tbs'
       }
     }
   },
@@ -189,21 +204,6 @@ export default defineNuxtConfig({
     devOptions: {
       enabled: false,
       type: 'module'
-    }
-  },
-
-  app: {
-    head: { title: 'YPad — Collaborative Markdown' }
-  },
-
-  compatibilityDate: '2025-01-15',
-
-  eslint: {
-    config: {
-      stylistic: {
-        commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
     }
   }
 })

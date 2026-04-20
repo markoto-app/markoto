@@ -53,8 +53,8 @@ export default defineNitroPlugin((nitroApp) => {
               Bucket: config.s3.bucket,
               Delete: { Objects: batch, Quiet: true }
             }))
-          } catch (e: any) {
-            console.warn('[orphan-cleanup] S3 delete failed during unconfirmed sweep:', e.message)
+          } catch (e) {
+            console.warn('[orphan-cleanup] S3 delete failed during unconfirmed sweep:', e instanceof Error ? e.message : e)
             Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 's3_delete_failed', sweep: 'unconfirmed' } })
           }
         }
@@ -157,8 +157,8 @@ export default defineNitroPlugin((nitroApp) => {
         }
         console.log(`[orphan-cleanup] Defensive sweep removed ${defensiveBatch.length} untracked S3 object(s) older than 24h`)
       }
-    } catch (e: any) {
-      console.error('[orphan-cleanup] Reconciliation failed:', e.message)
+    } catch (e) {
+      console.error('[orphan-cleanup] Reconciliation failed:', e instanceof Error ? e.message : e)
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
     } finally {
       running = false
@@ -166,9 +166,13 @@ export default defineNitroPlugin((nitroApp) => {
   }
 
   // Run once on startup (after a short delay so other subsystems are ready).
-  const startupTimer = setTimeout(() => { reconcile() }, 30_000)
+  const startupTimer = setTimeout(() => {
+    void reconcile()
+  }, 30_000)
   // Then run every hour.
-  const intervalTimer = setInterval(() => { reconcile() }, ONE_HOUR_MS)
+  const intervalTimer = setInterval(() => {
+    void reconcile()
+  }, ONE_HOUR_MS)
 
   nitroApp.hooks.hook('close', () => {
     clearTimeout(startupTimer)

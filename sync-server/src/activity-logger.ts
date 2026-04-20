@@ -29,9 +29,17 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
       body: JSON.stringify(event),
       signal: AbortSignal.timeout(5000)
     })
-  } catch (e: any) {
-    console.warn(`[activity-logger] Failed to log ${event.action} for ${event.docId}:`, e.message)
+  } catch (e) {
+    console.warn(`[activity-logger] Failed to log ${event.action} for ${event.docId}:`, e instanceof Error ? e.message : e)
   }
+}
+
+// Minimal shape of the y-protocols Awareness instance we touch — typed
+// locally so we don't pull y-protocols into the sync-server's deps just for
+// its type exports.
+interface AwarenessLike {
+  getStates: () => Map<number, { user?: { name?: unknown } } | undefined>
+  meta: Map<number, { clock: number, lastUpdated: number }>
 }
 
 /**
@@ -40,11 +48,11 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
  * so `meta.lastUpdated` is a strong signal for "who just edited this".
  * This is far more accurate than picking the first user in the map.
  */
-export function mostRecentEditorFromAwareness(awareness: any, fallback?: string | null): string | null {
+export function mostRecentEditorFromAwareness(awareness: AwarenessLike | null | undefined, fallback?: string | null): string | null {
   if (!awareness?.getStates || !awareness.meta) return fallback ?? null
 
-  const states: Map<number, any> = awareness.getStates()
-  const meta: Map<number, { clock: number, lastUpdated: number }> = awareness.meta
+  const states = awareness.getStates()
+  const meta = awareness.meta
 
   let latestTime = 0
   let latestName: string | null = null
@@ -80,7 +88,7 @@ export function countWords(text: string): number {
  *      LCS positions (i.e. newly inserted lines),
  *   - `removed` is the symmetric count for `before`.
  */
-export function lineDiff(before: string, after: string): { added: number; removed: number } {
+export function lineDiff(before: string, after: string): { added: number, removed: number } {
   if (before === after) return { added: 0, removed: 0 }
   const a = before.split('\n')
   const b = after.split('\n')

@@ -1,6 +1,6 @@
-import { and, eq, isNull, isNotNull, lt, notInArray, or, sql } from 'drizzle-orm'
+import { and, isNull, isNotNull, lt, or, sql } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
-import { documents, workspaceDocuments } from '../db/schema'
+import { documents } from '../db/schema'
 import { deleteDocument } from '../utils/documentLifecycle'
 import { migrationsComplete } from '../utils/migrations'
 
@@ -50,11 +50,6 @@ export default defineNitroPlugin((nitroApp) => {
       const anonCutoff = new Date(now - anonTtlDays * DAY_MS)
       const ownedCutoff = new Date(now - ownedTtlDays * DAY_MS)
 
-      // Subquery for workspace-attached doc IDs — excluded from the sweep.
-      const workspaceDocIds = db
-        .select({ docId: workspaceDocuments.docId })
-        .from(workspaceDocuments)
-
       const branches = [
         anonTtlDays > 0
           ? and(isNull(documents.ownerId), lt(documents.lastActive, anonCutoff))
@@ -64,12 +59,15 @@ export default defineNitroPlugin((nitroApp) => {
           : sql`false`
       ]
 
+      // Workspace-attached docs are pinned: inactivity ≠ abandonment when the
+      // user explicitly organised them. Checked directly against the FK column
+      // on `documents` (migration 0002 replaced the old join table).
       const candidates = await db
         .select({ docId: documents.docId, ownerId: documents.ownerId })
         .from(documents)
         .where(and(
           or(...branches),
-          notInArray(documents.docId, workspaceDocIds)
+          isNull(documents.workspaceId)
         ))
 
       if (candidates.length === 0) return
@@ -81,22 +79,22 @@ export default defineNitroPlugin((nitroApp) => {
         try {
           await deleteDocument(docId)
           reaped++
-        } catch (e: any) {
-          console.warn(`[inactive-doc-sweep] Failed to delete ${docId}:`, e?.message || e)
+        } catch (e) {
+          console.warn(`[inactive-doc-sweep] Failed to delete ${docId}:`, e instanceof Error ? e.message : e)
           Sentry.captureException(e, {
             tags: { component: 'inactive-doc-sweep', event: 'delete_failed', docId }
           })
         }
         // Throttle between deletions. 10/s cap keeps the S3 + pg load sane
         // if a backlog has accumulated (e.g. first post-deploy sweep).
-        await new Promise((r) => setTimeout(r, THROTTLE_MS))
+        await new Promise(r => setTimeout(r, THROTTLE_MS))
       }
 
       if (reaped > 0) {
         console.log(`[inactive-doc-sweep] Reaped ${reaped}/${candidates.length} inactive doc(s)`)
       }
-    } catch (e: any) {
-      console.error('[inactive-doc-sweep] Sweep failed:', e?.message || e)
+    } catch (e) {
+      console.error('[inactive-doc-sweep] Sweep failed:', e instanceof Error ? e.message : e)
       Sentry.captureException(e, {
         tags: { component: 'inactive-doc-sweep', event: 'sweep_failed' }
       })
@@ -105,8 +103,12 @@ export default defineNitroPlugin((nitroApp) => {
     }
   }
 
-  const startupTimer = setTimeout(() => { void sweep() }, STARTUP_DELAY_MS)
-  const intervalTimer = setInterval(() => { void sweep() }, SWEEP_INTERVAL_MS)
+  const startupTimer = setTimeout(() => {
+    void sweep()
+  }, STARTUP_DELAY_MS)
+  const intervalTimer = setInterval(() => {
+    void sweep()
+  }, SWEEP_INTERVAL_MS)
 
   nitroApp.hooks.hook('close', () => {
     clearTimeout(startupTimer)

@@ -15,7 +15,7 @@ import { migrationsComplete } from '../utils/migrations'
 // startup — any rows left over from a crashed previous process are cleaned
 // immediately instead of blocking the per-user cap until the first sweep.
 
-const STALE_THRESHOLD_MS = 7 * 60 * 1000  // 7 min — safely longer than 5-min prompt deadline
+const STALE_THRESHOLD_MS = 7 * 60 * 1000 // 7 min — safely longer than 5-min prompt deadline
 const SWEEP_INTERVAL_MS = 60_000
 
 export default defineNitroPlugin((nitroApp) => {
@@ -29,8 +29,8 @@ export default defineNitroPlugin((nitroApp) => {
       if (removed > 0) {
         console.log(`[ai-sweep] Startup: purged ${removed} stale AI session row(s) from a prior process.`)
       }
-    } catch (e: any) {
-      console.warn('[ai-sweep] Startup purge failed:', e?.message || e)
+    } catch (e) {
+      console.warn('[ai-sweep] Startup purge failed:', e instanceof Error ? e.message : e)
       Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'startup_purge_failed' } })
     }
   })()
@@ -40,8 +40,8 @@ export default defineNitroPlugin((nitroApp) => {
     let sessions: Awaited<ReturnType<typeof snapshotAiSessions>>
     try {
       sessions = await snapshotAiSessions()
-    } catch (e: any) {
-      console.warn('[ai-sweep] snapshot failed:', e?.message || e)
+    } catch (e) {
+      console.warn('[ai-sweep] snapshot failed:', e instanceof Error ? e.message : e)
       Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'snapshot_failed' } })
       return
     }
@@ -54,15 +54,21 @@ export default defineNitroPlugin((nitroApp) => {
       if (s.abortController) {
         // Local to this process — signal the loop to unwind cleanly. The loop's
         // finally block will remove the session row itself.
-        try { s.abortController.abort() } catch { /* ignore */ }
+        try {
+          s.abortController.abort()
+        } catch { /* ignore */ }
       } else {
         // Orphan row (e.g. from a prior process). Just drop the DB entry so the
         // per-user cap unblocks.
-        try { await removeAiSession(s.sessionId) } catch { /* ignore */ }
+        try {
+          await removeAiSession(s.sessionId)
+        } catch { /* ignore */ }
       }
     }
   }
 
-  const timer = setInterval(() => { void sweep() }, SWEEP_INTERVAL_MS)
+  const timer = setInterval(() => {
+    void sweep()
+  }, SWEEP_INTERVAL_MS)
   nitroApp.hooks.hook('close', () => clearInterval(timer))
 })

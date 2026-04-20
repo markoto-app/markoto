@@ -15,7 +15,9 @@ export function useMarkdownPreview(source: Ref<string>) {
       rendered.value = await renderMarkdown(val)
     }
     update(source.value)
-    watch(source, (val) => { update(val) })
+    watch(source, (val) => {
+      update(val)
+    })
   }
 
   return { rendered }

@@ -111,7 +111,7 @@ const isActive = computed(() => {
         :placeholder="placeholder"
         :disabled="disabled"
         class="flex-1 min-w-0 bg-transparent outline-none text-base placeholder:text-muted disabled:text-muted py-3 pr-0"
-        :class="{ 'italic': disabled && isActive }"
+        :class="{ italic: disabled && isActive }"
         @focus="focused = true"
         @blur="focused = false"
         @keydown.enter="onSubmit"
@@ -123,8 +123,16 @@ const isActive = computed(() => {
         v-if="ai.otherSessions.value.length > 0"
         :text="ai.otherSessions.value.map(s => `${s.initiatorName}: ${s.prompt}`).join('\n')"
       >
-        <UBadge color="info" variant="subtle" size="sm" class="rounded-full mr-2">
-          <UIcon name="i-lucide-users" class="size-3 mr-1" />
+        <UBadge
+          color="info"
+          variant="subtle"
+          size="sm"
+          class="rounded-full mr-2"
+        >
+          <UIcon
+            name="i-lucide-users"
+            class="size-3 mr-1"
+          />
           {{ ai.otherSessions.value.length }}
         </UBadge>
       </UTooltip>

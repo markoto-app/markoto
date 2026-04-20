@@ -16,7 +16,6 @@ Reply with ONLY the rewritten text — no preamble, no commentary, no markdown f
 
 ${MARKDOWN_REFERENCE}`
 
-
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
@@ -64,6 +63,8 @@ export default defineEventHandler(async (event) => {
   ) {
     throw createError({ statusCode: 400, message: 'Invalid selection range' })
   }
+
+  await requireDocEditAccess(docId, userId)
 
   const db = useDatabase()
   const userRow = (await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1))[0]
@@ -147,8 +148,11 @@ export default defineEventHandler(async (event) => {
     let to = selectionTo
     try {
       if (body.relFrom && body.relTo) {
-        const relFrom = Y.createRelativePositionFromJSON(body.relFrom as any)
-        const relTo = Y.createRelativePositionFromJSON(body.relTo as any)
+        // Y.createRelativePositionFromJSON's parameter is loosely typed; the
+        // client ships a JSON-round-tripped RelativePosition, so we hand it
+        // through as the same decoded shape yjs expects.
+        const relFrom = Y.createRelativePositionFromJSON(body.relFrom as Parameters<typeof Y.createRelativePositionFromJSON>[0])
+        const relTo = Y.createRelativePositionFromJSON(body.relTo as Parameters<typeof Y.createRelativePositionFromJSON>[0])
         const absFrom = Y.createAbsolutePositionFromRelativePosition(relFrom, aiSession.ydoc)
         const absTo = Y.createAbsolutePositionFromRelativePosition(relTo, aiSession.ydoc)
         if (absFrom && absTo && absTo.index > absFrom.index) {
@@ -200,13 +204,13 @@ export default defineEventHandler(async (event) => {
 
     aiSession.updateStatus('done', 'Done')
     return { success: true, sessionId }
-  } catch (e: any) {
-    if (aiSession) aiSession.updateStatus('error', `Error: ${e.message}`)
+  } catch (e) {
+    if (aiSession) aiSession.updateStatus('error', `Error: ${e instanceof Error ? e.message : 'unknown'}`)
     throw e
   } finally {
     clearTimeout(deadlineTimer)
     // Brief pause so the "done" status is visible to clients
-    await new Promise((r) => setTimeout(r, 300))
+    await new Promise(r => setTimeout(r, 300))
     if (aiSession) await aiSession.destroy()
     await removeAiSession(sessionId)
   }

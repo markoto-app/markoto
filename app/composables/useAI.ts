@@ -95,8 +95,9 @@ export function useAI(docId: Ref<string>, awareness: Awareness) {
         body: { docId: docId.value, prompt: trimmed }
       })
       return true
-    } catch (e: any) {
-      lastError.value = e.data?.message || e.message || 'Request failed'
+    } catch (e) {
+      const err = e as { data?: { message?: string }, message?: string }
+      lastError.value = err.data?.message || err.message || 'Request failed'
       return false
     } finally {
       submitting.value = false
@@ -107,8 +108,8 @@ export function useAI(docId: Ref<string>, awareness: Awareness) {
     selectionText: string
     selectionFrom: number
     selectionTo: number
-    relFrom?: any
-    relTo?: any
+    relFrom?: unknown
+    relTo?: unknown
     instruction: string
   }): Promise<boolean> {
     lastError.value = null
@@ -126,8 +127,9 @@ export function useAI(docId: Ref<string>, awareness: Awareness) {
         }
       })
       return true
-    } catch (e: any) {
-      lastError.value = e.data?.message || e.message || 'Rewrite failed'
+    } catch (e) {
+      const err = e as { data?: { message?: string }, message?: string }
+      lastError.value = err.data?.message || err.message || 'Rewrite failed'
       return false
     }
   }
@@ -140,11 +142,12 @@ export function useAI(docId: Ref<string>, awareness: Awareness) {
         method: 'POST',
         body: { sessionId: id }
       })
-    } catch (e: any) {
+    } catch (e) {
+      const err = e as { statusCode?: number, data?: { statusCode?: number, message?: string }, message?: string }
       // 404 = session already finished on the server between us reading mySessionId
       // and sending the request. That's a benign race — treat it as success.
-      if (e?.statusCode === 404 || e?.data?.statusCode === 404) return
-      lastError.value = e.data?.message || e.message || 'Abort failed'
+      if (err?.statusCode === 404 || err?.data?.statusCode === 404) return
+      lastError.value = err.data?.message || err.message || 'Abort failed'
     }
   }
 
