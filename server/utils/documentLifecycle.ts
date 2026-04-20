@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
-import { documents, documentShares, workspaceDocuments, activityLog, uploads } from '../db/schema'
+import { documents, documentShares, activityLog, uploads } from '../db/schema'
 
 // Full-cascade deletion for a document. Used by:
 // - `server/api/docs/[docId]/index.delete.ts` (user-initiated delete)
@@ -23,7 +23,6 @@ export async function deleteDocument(docId: string): Promise<void> {
   // Delete DB rows first. If this succeeds, the doc is gone from the
   // user's perspective even if S3 cleanup fails.
   await db.delete(activityLog).where(eq(activityLog.docId, docId))
-  await db.delete(workspaceDocuments).where(eq(workspaceDocuments.docId, docId))
   await db.delete(documentShares).where(eq(documentShares.docId, docId))
   await db.delete(uploads).where(eq(uploads.docId, docId))
   await db.delete(documents).where(eq(documents.docId, docId))
@@ -58,8 +57,8 @@ export async function deleteDocument(docId: string): Promise<void> {
         Delete: { Objects: batch, Quiet: true }
       }))
     }
-  } catch (e: any) {
-    console.error(`[deleteDocument] S3 cleanup failed for ${docId}:`, e.message)
+  } catch (e) {
+    console.error(`[deleteDocument] S3 cleanup failed for ${docId}:`, e instanceof Error ? e.message : e)
     Sentry.captureException(e, {
       tags: { component: 'documentLifecycle', event: 's3_cleanup_failed', docId }
     })

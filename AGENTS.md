@@ -130,7 +130,7 @@ flowchart TB
 
 | Data | Storage |
 |---|---|
-| Users, documents (incl. per-doc theme JSONB), shares, workspaces, uploads, activity, rate-limits, AI sessions | PostgreSQL (Drizzle) |
+| Users, documents (incl. per-doc theme JSONB + optional `workspace_id`), shares, workspaces (incl. description), workspace_members (role), uploads, activity, rate-limits, AI sessions | PostgreSQL (Drizzle) |
 | Y.js document state | PostgreSQL (`yjs_documents` via `y-postgresql`) |
 | Image blobs | S3 (`docs/{docId}/{fileId}.ext`) |
 | Postgres backups | S3 (`backups/postgres/{ISO8601}.sql.gz`) |
@@ -169,6 +169,8 @@ backups/postgres/{ISO8601}.sql.gz    # daily pg_dump
 | **Open view** | View | View | Edit + manage |
 | **Password-protected** | Enter password | Enter password | Edit + manage |
 
+**Workspace membership overrides these modes for logged-in members** (see §4 "Workspaces & roles" for the role matrix). A workspace admin/editor bypasses `private` and `password-protected` on docs in their workspace; a workspace viewer gets view access regardless of accessMode but stays read-only even for `open-edit`. Non-members fall through to this table.
+
 ### Read-only enforcement (4 layers)
 
 1. Token endpoint — mints JWT with `readOnly: true` for non-owners of open-view docs.
@@ -188,6 +190,32 @@ backups/postgres/{ISO8601}.sql.gz    # daily pg_dump
 - `SESSION_VERSION` (in `server/utils/validatedSession.ts`) is stamped into every session. Mismatching cookies cleared on next request. Bump the constant to invalidate everyone.
 - OAuth handlers live in `server/routes/auth/` (NOT `server/auth/` — Nitro doesn't map that). GitHub upserts on `users.githubId`, Google on `users.googleId`.
 
+### Workspaces & roles (collab layer over docs)
+
+Workspaces are owner-managed "folders" over documents. Logged-in users can create them, invite others by email, and docs created in a workspace are visible/editable by its members. Anonymous users never interact with workspaces. Standalone docs (docs with `workspace_id IS NULL`) are untouched by the collab layer — owner-only rules remain.
+
+- **Source of truth:** `workspace_members` table (`workspace_id, user_id, role, joined_at`, composite PK). Every member of every workspace — including the creator — has a row here. `workspaces.ownerId` stays as an immutable "original creator" record (for provenance / activity log attribution) but is **never** read for authorization.
+- **Roles:** `admin` / `editor` / `viewer`. Permission matrix (doc-level permissions are orthogonal to the workspace role — a doc owner always has full rights to their own doc regardless of role):
+
+  | Action | Viewer | Editor | Admin | Doc owner |
+  |---|:-:|:-:|:-:|:-:|
+  | View doc | ✓ | ✓ | ✓ | ✓ |
+  | Edit content / title / theme | — | ✓ | ✓ | ✓ |
+  | Change access mode / password | — | — | ✓ | ✓ |
+  | Delete doc | — | own only | any | own |
+  | Create doc in workspace | — | ✓ | ✓ | n/a |
+  | Add / remove members, change roles | — | — | ✓ | n/a |
+  | Rename / edit / delete workspace | — | — | ✓ | n/a |
+  | Leave workspace | ✓ | ✓ | ✓ (if not last admin) | n/a |
+
+- **"Must always have ≥1 admin" invariant** — enforced at the API layer in `workspace_members/[userId].patch.ts` (refuses last-admin demotion) and `workspace_members/[userId].delete.ts` (refuses last-admin removal / self-leave). No SQL constraint for this — it's a cross-row rule, simpler to validate at the endpoint.
+- **Multiple admins allowed.** Any admin can promote/demote any other member, add/remove anyone, and delete the workspace. No separate "owner vs admin" hierarchy — if you trust them to admin, you trust them to delete.
+- **Member invite is exact-email only.** `POST /members` body `{ email }` → case-insensitive exact match. Zero typeahead / substring endpoint because that would enumerate the user base. 404 if no account matches, 409 if already a member. Default role for new invites is `editor`.
+- **Central auth helpers:** `server/utils/workspaceAccess.ts` — `getWorkspaceRole`, `getDocAuthz`, `canEditDoc`, `canManageDoc`, `canManageWorkspace`, `countWorkspaceAdmins`. Every endpoint that used to check `doc.ownerId === session.user.id` now calls `canManageDoc` / `canEditDoc`. These helpers are **additive**: for docs with `workspace_id IS NULL` they return exactly what the owner-only check did, so standalone + anonymous doc flows are untouched. Verified in smoke test: workspace member of one workspace gets `forbidden: true` on a standalone private doc owned by another user.
+- **Token endpoint fold-in.** `/api/docs/:docId/token` does a second small query against `workspace_members` (gated on both `session.user.id != null` and `doc.workspaceId != null`) before falling back to accessMode rules. Workspace admin/editor → `readOnly: false` and bypasses `private`; workspace viewer → token issued but `readOnly: true` regardless of accessMode. This preserves the existing 4-layer read-only enforcement; sync-server is unchanged.
+- **Cascade delete.** Workspace DELETE iterates every doc in the workspace and calls the shared `deleteDocument(docId)` helper per-doc (S3 + Y.js + sync notify). `workspace_members` rows drop via `ON DELETE CASCADE` on the FK. Viewer can only leave, not delete.
+- **Doc list scoping.** `GET /api/user/documents` (dashboard "Recent Documents") still lists only *owned* docs — workspace docs you don't own surface inside the workspace view, not on the dashboard. Deliberate to keep the two lists semantically clean.
+
 ---
 
 ## 5. API Route Map
@@ -205,10 +233,10 @@ GET    /api/health                         DB-touching probe (healthchecks)
 GET    /api/version                        { buildId } — SPA staleness detection
 
 # Documents
-POST   /api/docs                           Create (anonymous OK; defaults to private if logged-in, open-edit if not)
+POST   /api/docs                           Create (anonymous OK; defaults to private if logged-in, open-edit if not); accepts optional `workspaceId` if caller is admin/editor of that workspace
 GET    /api/docs/:docId/meta
-PUT    /api/docs/:docId/meta               Owner only; validates title/accessMode/wordCount/sizeBytes/theme
-DELETE /api/docs/:docId                    Owner only; cascades S3 cleanup + notify-deleted to sync
+PUT    /api/docs/:docId/meta               `canEditDoc` (title/theme/etc.) + `canManageDoc` for `accessMode`
+DELETE /api/docs/:docId                    `canManageDoc` (doc owner OR workspace admin); cascades S3 + notify-deleted to sync
 GET    /api/docs/:docId/token              Consolidated: token + readOnly + requiresPassword + forbidden + accessMode + ownerId
 GET    /api/docs/:docId/activity           Latest 50 entries
 POST   /api/docs/:docId/password           Set/verify/remove
@@ -233,12 +261,15 @@ POST   /api/import                         DOCX/PDF/PPTX/XLSX/HTML/EPUB → mark
 #   - Markdown:  app/utils/download.ts:downloadMarkdown
 #   - PDF:       app/utils/printPdf.ts (paged.js iframe + window.print)
 
-# Workspaces (login required)
-POST   /api/workspaces
-GET    /api/workspaces/:wsId
-PUT    /api/workspaces/:wsId
-POST   /api/workspaces/:wsId/docs
-DELETE /api/workspaces/:wsId/docs/:docId
+# Workspaces (login required) — see §7a
+POST   /api/workspaces                                       Create; inserts creator as role='admin'
+GET    /api/user/workspaces                                  List every workspace I'm a member of (any role)
+GET    /api/workspaces/:wsId                                 Detail: workspace + docs + members + myRole
+PUT    /api/workspaces/:wsId                                 Rename / edit description (admin only)
+DELETE /api/workspaces/:wsId                                 Cascade-delete workspace + every doc in it (admin only)
+POST   /api/workspaces/:wsId/members                         Add by email (admin only; 404 no-such-user, 409 duplicate)
+PATCH  /api/workspaces/:wsId/members/:userId                 Change role (admin only; 409 if last admin demoted)
+DELETE /api/workspaces/:wsId/members/:userId                 Remove or self-leave (409 if last admin)
 
 # AI (login required) — see §7
 POST   /api/ai/prompt                      Returns { sessionId }; loop runs in background
@@ -618,7 +649,9 @@ app/
     ai/           AIPromptBar, AISelectionPopup                # both blue + animated; kind-discriminated (§7)
     sharing/      ShareModal, PasswordModal
     document/     ImportModal, DeleteConfirmModal, ThemeEditorPanel
-    workspace/    WorkspaceList, WorkspaceDocTable
+    workspace/    WorkspaceList, WorkspaceDocTable, WorkspaceMemberAvatars,
+                  WorkspaceMembersModal, WorkspaceFormModal (create+edit),
+                  WorkspaceDeleteConfirmModal
     history/      HistoryTimeline, DiffViewer   (MMP)
     common/       SizeWarning
   composables/    useDocument, useDocToken, useHocuspocusSync, useAI, useImageUpload,
@@ -642,11 +675,17 @@ server/
     internal/activity.post.ts
     ai/{prompt,rewrite,abort}.post.ts
     user/{documents,workspaces,recent}.get.ts
+    workspaces/index.post.ts                                    # create workspace + insert admin row
+    workspaces/[wsId]/{index.get,index.put,index.delete}.ts     # detail / rename / cascade-delete
+    workspaces/[wsId]/members/{index.post,[userId].patch,[userId].delete}.ts  # invite / role-change / remove+leave
   db/schema.ts
   middleware/auth.ts
   plugins/        00-db-migrate, 99-shutdown, orphan-cleanup, ai-session-sweep,
                   rate-limit-cleanup, inactive-doc-sweep
   utils/          database, s3, rateLimit, routeParams, validatedSession, secrets,
+                  workspaceAccess,                                # getWorkspaceRole, getDocAuthz,
+                                                                  # canEdit/ManageDoc, canManageWorkspace
+                  documentAccess, documentLifecycle,
                   aiSessions, aiClient, aiToolAdapter,
                   agentic/{runLoop, functionTools, streamStatus, markdownReference}
                                                                 # markdownReference: full vocabulary injected into both
@@ -775,9 +814,20 @@ docs/                                                          # DEPLOY.md, LOCA
 - (Floating toolbar via `visualViewport`, bottom tab bar, bottom-sheet sidebar → **deferred to MMP**.)
 
 ### Document management
-- Owner-only delete with type-to-confirm safety.
+- Owner-only delete with type-to-confirm safety (workspace admins can also delete any doc in their workspace — see §4).
 - S3 cleanup on delete + hourly 3-layer orphan reconciliation plugin.
 - Delete-cascade broadcast through sync-server `onRequest` → `ymeta._deleted` + y-postgresql `clearDocument`.
+
+### Workspaces & collaboration
+- Workspaces as folders: `documents.workspaceId` nullable FK (`ON DELETE SET NULL` as a defensive fallback; app-level cascade is what actually runs). Immutable after doc creation (no move-between-workspaces yet).
+- `workspace_members` junction table with `role` enum (`admin` / `editor` / `viewer`), composite PK `(workspaceId, userId)`, FK cascades on workspace + user delete. Migration backfills one `admin` row per existing workspace.
+- Invite-by-email flow (case-insensitive exact match); no typeahead endpoint → no user-base enumeration. Default role = editor. 404 on no-such-account, 409 on duplicate.
+- Role matrix enforced server-side via `server/utils/workspaceAccess.ts` (`getWorkspaceRole`, `getDocAuthz`, `canEditDoc`, `canManageDoc`, `canManageWorkspace`, `countWorkspaceAdmins`) — every ownership check refactored to use these helpers, preserving legacy owner-only behavior for standalone + anonymous docs.
+- Token endpoint folds in a `workspace_members` lookup: admin/editor bypasses `private` & `password-protected`, viewer bypasses `private` but stays read-only regardless of accessMode. Sync-server unchanged — existing 4-layer read-only enforcement covers the viewer path.
+- Last-admin invariant: workspace must always have ≥1 admin. Demoting / removing / self-leaving the last admin is refused at the API (409 with actionable message).
+- Cascade workspace delete: iterates all docs, calls shared `deleteDocument` (S3 + Y.js + sync notify) per-doc, then drops the workspace row. `workspace_members` gone via FK cascade.
+- UI: `/w/:id` detail page with role badge, avatar bar (static, not live presence), members-management modal (add / role dropdown / remove / leave) gated by role; workspace card on dashboard tagged with non-admin role; "Recent Documents" stays owned-only (workspace docs surface inside the workspace view).
+- Verified isolation: a workspace member accessing a standalone private doc owned by a different user gets `forbidden: true` — the membership grant only applies within its own workspace.
 
 ### AI
 - Gemini `@google/genai`. Agentic prompt loop (`view_document` / `replace_text` / `insert_text` / `web_search`).
@@ -820,9 +870,10 @@ docs/                                                          # DEPLOY.md, LOCA
 ### MMP
 
 **Workspaces**
-- [ ] Workspace CRUD endpoints + page (`/w/{id}`).
-- [ ] Create doc from workspace, add existing docs.
-- [ ] Workspace doc table with activity indicators.
+- [x] Workspace CRUD endpoints + detail page (`/w/{id}`) — see §4 "Workspaces & roles".
+- [x] Create doc inside a workspace (`POST /api/docs` with `workspaceId`), workspace doc table with per-doc delete gating.
+- [x] Collaboration: invite by email, three-role model (admin/editor/viewer), avatar bar, members-management modal, last-admin invariant, cascade delete of docs on workspace delete.
+- [ ] Move an existing standalone doc into a workspace (and between workspaces). Currently immutable after creation.
 
 **History & snapshots**
 - [ ] Timestamped snapshots in S3 via Hocuspocus hook.
@@ -979,3 +1030,7 @@ Renderer ships markdown-it core + emoji + footnote + task-lists + Batches 1–3 
 - **KaTeX uses inline `style` for vertical alignment.** Fractions, roots, subscripts position via explicit `style="top: …"`. DOMPurify must allow `style` (v3 sanitizes style-attribute values by default — no `url(javascript:…)` risk). MathML-mode adds `math`/`semantics`/`mrow`/`mi`/`mo`/etc. to the allowlist.
 - **Mermaid `htmlLabels: false` undersizes labels.** SVG `<text>` measurement is imprecise when fonts haven't loaded at render time. Going back to `htmlLabels: true` (foreignObject) fixes measurement — modern paged.js (0.4.x) paginates foreignObject correctly; the historical aversion came from older versions.
 - **Re-export `renderMarkdown` always emits `language-${lang}` class**, even when hljs doesn't recognize the language. Without this, the iframe mermaid detector (which scans for `pre code.language-mermaid`) can't find diagram blocks — they'd come through with just `class="hljs"`.
+- **Literal `@` in i18n locale values.** `@intlify/message-compiler` parses `@:key` as a linked message — so a placeholder like `name@example.com` in en.json blows up the build with "Invalid linked format (error code: 10)" and the dev server shows a full-screen Vite error overlay until fixed. Workaround: avoid `@` in literal strings (reword the placeholder to "Enter an email address"), or escape it via the `{'@'}` sequence.
+- **Workspace authz is one helper per concern**, not a grab-bag. `canEditDoc` (owner + admin + editor) gates content edits; `canManageDoc` (owner + admin) gates sharing/destructive actions; `canManageWorkspace` (admin) gates workspace-level changes. Mixing them up — e.g. letting an editor change access mode — would leak the admin surface downward. Read the function name at every call site.
+- **Removing a workspace member doesn't revoke active JWTs.** A member's in-flight token stays valid for up to 2h (token expiry). Next `token.get.ts` refresh denies them; Hocuspocus has no push-revoke mechanism. Acceptable today — if it matters later, add a sync-server `notify-kick` similar to `notify-deleted`.
+- **`workspaces.ownerId` vs `workspace_members.role='admin'`.** They're not interchangeable. `ownerId` is immutable "original creator" for provenance and never authorizes anything. Authorization uses `workspace_members.role`. An admin who isn't the original creator is a full admin; the original creator who was demoted to editor is no longer allowed to manage the workspace.

@@ -8,15 +8,22 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const db = useDatabase()
 
-  const doc = (await db.select({ ownerId: documents.ownerId }).from(documents).where(eq(documents.docId, docId)).limit(1))[0]
-  if (!doc) {
+  // Meta changes split by kind: access_mode is a sharing/ownership change
+  // (owner + workspace admin only), everything else is an edit (owner +
+  // admin + editor). Viewers cannot change anything.
+  const authz = await getDocAuthz(session.user.id, docId)
+  if (!authz.exists) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
-  if (doc.ownerId !== session.user.id) {
-    throw createError({ statusCode: 403, message: 'Not the document owner' })
+  if (!authz.canEdit) {
+    throw createError({ statusCode: 403, message: 'Not authorized to edit this document' })
+  }
+  const accessModeInputEarly = body.accessMode ?? body.access_mode
+  if (accessModeInputEarly !== undefined && !authz.canManage) {
+    throw createError({ statusCode: 403, message: 'Only owners and admins can change access mode' })
   }
 
-  const updates: Record<string, any> = {}
+  const updates: Partial<typeof documents.$inferInsert> = {}
 
   if (body.title !== undefined) {
     if (typeof body.title !== 'string') throw createError({ statusCode: 400, message: 'Title must be a string' })
@@ -24,10 +31,14 @@ export default defineEventHandler(async (event) => {
     updates.title = body.title.trim()
   }
 
-  if (body.access_mode !== undefined) {
+  // Canonical field name is `accessMode` (camelCase). The older `access_mode`
+  // spelling is accepted for one release cycle so any clients mid-upgrade
+  // don't silently fail — remove after the next deploy window.
+  const accessModeInput = body.accessMode ?? body.access_mode
+  if (accessModeInput !== undefined) {
     const allowed = new Set(['private', 'open-edit', 'open-view', 'password-protected'])
-    if (!allowed.has(body.access_mode)) throw createError({ statusCode: 400, message: 'Invalid access mode' })
-    updates.accessMode = body.access_mode
+    if (!allowed.has(accessModeInput)) throw createError({ statusCode: 400, message: 'Invalid access mode' })
+    updates.accessMode = accessModeInput
   }
 
   if (typeof body.wordCount === 'number') {

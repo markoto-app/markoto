@@ -32,3 +32,10 @@ export function requireRouteParam(event: H3Event, name: string): string {
 export function requireDocId(event: H3Event): string {
   return requireRouteParam(event, 'docId')
 }
+
+/**
+ * Shorthand for `requireRouteParam(event, 'wsId')`. Workspace routes.
+ */
+export function requireWsId(event: H3Event): string {
+  return requireRouteParam(event, 'wsId')
+}

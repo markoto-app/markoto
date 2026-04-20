@@ -9,6 +9,26 @@ export default defineEventHandler(async (event) => {
   const docId = nanoid(10)
   const ownerId = session?.user?.id ?? null
 
+  // Optional workspace assignment. Honoured for logged-in admins and editors
+  // of the target workspace. Viewers cannot create docs (no write grant in
+  // the workspace). Anonymous callers can never file into a workspace.
+  // Set at creation only; moves between workspaces aren't supported yet.
+  const body: { workspaceId?: unknown } = await readBody(event).catch(() => ({}))
+  let workspaceId: string | null = null
+  if (typeof body?.workspaceId === 'string' && body.workspaceId.length > 0) {
+    if (ownerId == null) {
+      throw createError({ statusCode: 401, message: 'Login required to use workspaces' })
+    }
+    const role = await getWorkspaceRole(ownerId, body.workspaceId)
+    if (role === null) {
+      throw createError({ statusCode: 403, message: 'Not a member of this workspace' })
+    }
+    if (role === 'viewer') {
+      throw createError({ statusCode: 403, message: 'Viewers cannot create documents' })
+    }
+    workspaceId = body.workspaceId
+  }
+
   // Default visibility:
   //   - Logged-in owner → `private`. The user has to explicitly publish via
   //     the Share modal before anyone else can access it.
@@ -19,6 +39,7 @@ export default defineEventHandler(async (event) => {
   await db.insert(documents).values({
     docId,
     ownerId,
+    workspaceId,
     accessMode
   })
 

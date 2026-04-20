@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
-import { eq } from 'drizzle-orm'
-import { documents } from '../../../db/schema'
+import { and, eq } from 'drizzle-orm'
+import { documents, workspaceMembers } from '../../../db/schema'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 30 token requests per IP per minute
@@ -21,15 +21,32 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'JWT secret not configured' })
   }
 
-  // Explicit projection — passwordHash is never needed here and the caller is
-  // a public endpoint. Also lets us 404 before doing any further work.
-  // `theme` is shipped here too so the client doesn't need a separate /meta
-  // round-trip on init — it seeds the live preview before sync settles.
   const doc = (await db
-    .select({ accessMode: documents.accessMode, ownerId: documents.ownerId, theme: documents.theme })
+    .select({
+      accessMode: documents.accessMode,
+      ownerId: documents.ownerId,
+      theme: documents.theme,
+      workspaceId: documents.workspaceId
+    })
     .from(documents)
     .where(eq(documents.docId, docId))
     .limit(1))[0]
+
+  // Workspace-membership lookup is a second query gated on (a) logged in
+  // and (b) doc has a workspace. Kept separate from the doc fetch to avoid
+  // awkward LEFT JOIN semantics for the anon / no-workspace cases.
+  let workspaceRole: 'admin' | 'editor' | 'viewer' | null = null
+  if (doc && doc.workspaceId && typeof session?.user?.id === 'number') {
+    const memberRow = (await db
+      .select({ role: workspaceMembers.role })
+      .from(workspaceMembers)
+      .where(and(
+        eq(workspaceMembers.workspaceId, doc.workspaceId),
+        eq(workspaceMembers.userId, session.user.id)
+      ))
+      .limit(1))[0]
+    workspaceRole = (memberRow?.role ?? null) as any
+  }
 
   if (!doc) {
     // Previously we fell through and minted a JWT for a nonexistent doc.
@@ -47,8 +64,18 @@ export default defineEventHandler(async (event) => {
 
   const userId = session?.user?.id
   const isOwner = ownerId != null && typeof userId === 'number' && ownerId === userId
+  const wsRole = workspaceRole
 
-  if (doc.accessMode === 'private' && !isOwner) {
+  // Admin / editor of the doc's workspace is treated like the owner for
+  // access purposes (bypasses private, full edit). Viewer bypasses private
+  // too but stays read-only. Non-members fall through to the accessMode
+  // rules below — i.e. standalone and anonymous docs are untouched.
+  const isWorkspaceEditor = wsRole === 'admin' || wsRole === 'editor'
+  const isWorkspaceViewer = wsRole === 'viewer'
+  const hasOwnerEquivalentAccess = isOwner || isWorkspaceEditor
+  const hasAnyWorkspaceAccess = hasOwnerEquivalentAccess || isWorkspaceViewer
+
+  if (doc.accessMode === 'private' && !hasAnyWorkspaceAccess) {
     // No token — same pattern as password-protected. Hocuspocus rejects the
     // connection so no content leaks. The client shows a private-document
     // lock screen with a prompt to log in or contact the owner.
@@ -56,12 +83,19 @@ export default defineEventHandler(async (event) => {
     readOnly = true
   }
 
-  if (doc.accessMode === 'open-view' && !isOwner) {
+  if (doc.accessMode === 'open-view' && !hasOwnerEquivalentAccess) {
     readOnly = true
   }
 
-  if (doc.accessMode === 'password-protected' && !isOwner) {
+  if (doc.accessMode === 'password-protected' && !hasOwnerEquivalentAccess) {
     requiresPassword = true
+    readOnly = true
+  }
+
+  // Viewers of a workspace are always read-only regardless of accessMode —
+  // including when the doc is open-edit (workspace role is more restrictive
+  // than the public accessMode in that case, and must win).
+  if (isWorkspaceViewer && !isOwner) {
     readOnly = true
   }
 

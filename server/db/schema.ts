@@ -16,6 +16,11 @@ export const documents = pgTable('documents', {
   id: serial('id').primaryKey(),
   docId: text('doc_id').notNull().unique(),
   ownerId: integer('owner_id').references(() => users.id),
+  // Optional parent workspace. Folder-like containment: set at creation,
+  // immutable (no move-between-workspaces yet). Workspace delete cascades
+  // at the app layer via `deleteDocument()` per-doc — FK kept at
+  // `set null` as a defensive fallback if a row survives the cascade.
+  workspaceId: text('workspace_id').references(() => workspaces.workspaceId, { onDelete: 'set null' }),
   title: text('title').notNull().default('Untitled'),
   // `private` = owner-only (default for logged-in users on creation).
   // `open-edit` = anyone with the link can edit (default for anonymous creation,
@@ -35,9 +40,10 @@ export const documents = pgTable('documents', {
   theme: jsonb('theme').$type<DocTheme>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow()
-}, (table) => [
+}, table => [
   index('idx_documents_owner').on(table.ownerId),
-  index('idx_documents_last_active').on(table.lastActive)
+  index('idx_documents_last_active').on(table.lastActive),
+  index('idx_documents_workspace').on(table.workspaceId)
 ])
 
 export const documentShares = pgTable('document_shares', {
@@ -46,24 +52,40 @@ export const documentShares = pgTable('document_shares', {
   userId: integer('user_id').notNull().references(() => users.id),
   role: text('role', { enum: ['editor', 'viewer'] }).notNull().default('editor'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-}, (table) => [
+}, table => [
   uniqueIndex('idx_share_unique').on(table.docId, table.userId)
 ])
 
 export const workspaces = pgTable('workspaces', {
   id: serial('id').primaryKey(),
   workspaceId: text('workspace_id').notNull().unique(),
+  // Immutable "original creator" field. Authorization goes through
+  // `workspace_members.role` — ownerId is for record-keeping only (e.g.
+  // "who invited everyone here"). Promoting/demoting admins never touches
+  // this row; deleting the creator's account would need separate handling.
   ownerId: integer('owner_id').notNull().references(() => users.id),
   name: text('name').notNull().default('My Workspace'),
+  description: text('description'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-})
+}, table => [
+  index('idx_workspaces_owner').on(table.ownerId)
+])
 
-export const workspaceDocuments = pgTable('workspace_documents', {
-  workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId),
-  docId: text('doc_id').notNull().references(() => documents.docId),
-  addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow()
-}, (table) => [
-  primaryKey({ columns: [table.workspaceId, table.docId] })
+// Membership + role table. Single source of truth for "who can do what" in
+// a workspace. The creator always has a row here with role='admin' (inserted
+// on workspace creation). FK cascades keep membership in sync when the
+// workspace or the user disappears.
+//
+// Invariant enforced at the API layer (not SQL): every workspace must have
+// at least one admin. Demoting/removing the last admin is refused.
+export const workspaceMembers = pgTable('workspace_members', {
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role', { enum: ['admin', 'editor', 'viewer'] }).notNull().default('editor'),
+  joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  primaryKey({ columns: [table.workspaceId, table.userId] }),
+  index('idx_workspace_members_user').on(table.userId)
 ])
 
 // Active AI sessions. Survives Nitro restarts so the per-user-per-doc cap can't
@@ -76,7 +98,7 @@ export const aiSessions = pgTable('ai_sessions', {
   initiatorName: text('initiator_name').notNull(),
   initiatorColor: text('initiator_color').notNull(),
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow()
-}, (table) => [
+}, table => [
   uniqueIndex('ai_sessions_user_doc_unq').on(table.initiatorUserId, table.docId),
   index('idx_ai_sessions_started_at').on(table.startedAt)
 ])
@@ -99,7 +121,7 @@ export const uploads = pgTable('uploads', {
   s3Key: text('s3_key').notNull().unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   confirmedAt: timestamp('confirmed_at', { withTimezone: true })
-}, (table) => [
+}, table => [
   index('idx_uploads_doc').on(table.docId),
   index('idx_uploads_unconfirmed').on(table.confirmedAt, table.createdAt)
 ])
@@ -113,6 +135,6 @@ export const activityLog = pgTable('activity_log', {
   linesAdded: integer('lines_added'),
   linesRemoved: integer('lines_removed'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-}, (table) => [
+}, table => [
   index('idx_activity_doc').on(table.docId, table.createdAt)
 ])

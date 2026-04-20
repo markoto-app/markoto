@@ -15,6 +15,20 @@
       "when": 1776608788332,
       "tag": "0001_solid_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776688151512,
+      "tag": "0002_organic_stellaris",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776689821886,
+      "tag": "0003_chilly_shiver_man",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue'
+
 const { t } = useI18n()
 const router = useRouter()
 const { loggedIn } = useUserSession()
@@ -11,13 +13,14 @@ async function createDocument() {
   try {
     const { docId } = await $fetch<{ docId: string }>('/api/docs', { method: 'POST' })
     router.push(`/d/${docId}`)
-  } catch (e: any) {
+  } catch (e) {
     // NO client-side fallback. If POST /api/docs fails we want to see it — a silent
     // `Math.random()` fallback used to mask server errors and produce orphaned docIds
     // with no `documents` row, which then broke activity logging / sharing / deletion.
+    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: 'Could not create document',
-      description: e?.data?.message || e?.message || 'Server refused the request',
+      description: err?.data?.message || err?.message || 'Server refused the request',
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -38,7 +41,9 @@ interface DocumentListItem {
 }
 
 const myDocs = ref<DocumentListItem[]>([])
+const myWorkspaces = ref<WorkspaceListItem[]>([])
 const loadingDocs = ref(false)
+const loadingWorkspaces = ref(false)
 
 async function loadDocs() {
   if (!loggedIn.value) {
@@ -55,7 +60,25 @@ async function loadDocs() {
   }
 }
 
-watch(loggedIn, loadDocs, { immediate: true })
+async function loadWorkspaces() {
+  if (!loggedIn.value) {
+    myWorkspaces.value = []
+    return
+  }
+  loadingWorkspaces.value = true
+  try {
+    myWorkspaces.value = await $fetch<WorkspaceListItem[]>('/api/user/workspaces')
+  } catch {
+    // ignore
+  } finally {
+    loadingWorkspaces.value = false
+  }
+}
+
+watch(loggedIn, () => {
+  loadDocs()
+  loadWorkspaces()
+}, { immediate: true })
 
 // Delete modal state
 const deleteTarget = ref<DocumentListItem | null>(null)
@@ -71,6 +94,13 @@ function onDocDeleted() {
   // Optimistically remove from list (the server call already succeeded at this point)
   myDocs.value = myDocs.value.filter(d => d.docId !== deleteTarget.value!.docId)
   deleteTarget.value = null
+}
+
+// Workspace create
+const showCreateWorkspace = ref(false)
+
+function onWorkspaceCreated(workspaceId: string) {
+  router.push(`/w/${workspaceId}`)
 }
 
 function formatDate(value: string | number | Date) {
@@ -90,7 +120,10 @@ function formatDate(value: string | number | Date) {
     <!-- Header -->
     <header class="border-b border-default px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <UIcon name="i-lucide-file-text" class="text-primary size-6" />
+        <UIcon
+          name="i-lucide-file-text"
+          class="text-primary size-6"
+        />
         <span class="text-lg font-semibold">{{ t('app.name') }}</span>
       </div>
       <div class="flex items-center gap-2">
@@ -117,12 +150,41 @@ function formatDate(value: string | number | Date) {
           >
             {{ t('landing.newDocument') }}
           </UButton>
+          <UButton
+            v-if="loggedIn"
+            size="xl"
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-folder-plus"
+            @click="showCreateWorkspace = true"
+          >
+            {{ t('workspace.newWorkspace') }}
+          </UButton>
         </div>
       </div>
 
+      <!-- My workspaces -->
+      <div
+        v-if="loggedIn && (myWorkspaces.length > 0 || loadingWorkspaces)"
+        class="mt-12 w-full max-w-4xl"
+      >
+        <h2 class="text-lg font-semibold mb-4">
+          {{ t('workspace.sectionTitle') }}
+        </h2>
+        <WorkspaceList
+          :workspaces="myWorkspaces"
+          :loading="loadingWorkspaces"
+        />
+      </div>
+
       <!-- Recent documents -->
-      <div v-if="loggedIn && myDocs.length > 0" class="mt-12 w-full max-w-2xl">
-        <h2 class="text-lg font-semibold mb-4">{{ t('landing.recentDocuments') }}</h2>
+      <div
+        v-if="loggedIn && myDocs.length > 0"
+        class="mt-12 w-full max-w-2xl"
+      >
+        <h2 class="text-lg font-semibold mb-4">
+          {{ t('landing.recentDocuments') }}
+        </h2>
         <div class="space-y-2">
           <div
             v-for="doc in myDocs"
@@ -133,17 +195,25 @@ function formatDate(value: string | number | Date) {
               :to="`/d/${doc.docId}`"
               class="flex items-center gap-3 min-w-0 flex-1"
             >
-              <UIcon name="i-lucide-file-text" class="size-5 text-muted shrink-0" />
+              <UIcon
+                name="i-lucide-file-text"
+                class="size-5 text-muted shrink-0"
+              />
               <div class="min-w-0">
                 <p class="text-sm font-medium truncate">{{ doc.title }}</p>
                 <p class="text-xs text-muted">{{ formatDate(doc.lastActive) }}</p>
               </div>
             </NuxtLink>
             <div class="flex items-center gap-2 shrink-0">
-              <UBadge v-if="doc.accessMode !== 'open-edit'" size="xs" color="neutral" variant="subtle">
+              <UBadge
+                v-if="doc.accessMode !== 'open-edit'"
+                size="xs"
+                color="neutral"
+                variant="subtle"
+              >
                 {{
                   doc.accessMode === 'private' ? 'Private'
-                    : doc.accessMode === 'open-view' ? 'View only'
+                  : doc.accessMode === 'open-view' ? 'View only'
                     : 'Protected'
                 }}
               </UBadge>
@@ -181,26 +251,59 @@ function formatDate(value: string | number | Date) {
         @deleted="onDocDeleted"
       />
 
-      <div v-else-if="loggedIn && loadingDocs" class="mt-12">
-        <UIcon name="i-lucide-loader" class="size-6 animate-spin text-muted" />
+      <!-- Create workspace modal -->
+      <WorkspaceFormModal
+        v-model:open="showCreateWorkspace"
+        @created="onWorkspaceCreated"
+      />
+
+      <div
+        v-if="loggedIn && loadingDocs && myDocs.length === 0"
+        class="mt-12"
+      >
+        <UIcon
+          name="i-lucide-loader"
+          class="size-6 animate-spin text-muted"
+        />
       </div>
 
       <!-- Features -->
       <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl w-full">
         <div class="text-center space-y-2">
-          <UIcon name="i-lucide-users" class="text-primary size-8 mx-auto" />
-          <h3 class="font-semibold">Real-time Collaboration</h3>
-          <p class="text-sm text-muted">Edit together with live cursors and presence indicators</p>
+          <UIcon
+            name="i-lucide-users"
+            class="text-primary size-8 mx-auto"
+          />
+          <h3 class="font-semibold">
+            Real-time Collaboration
+          </h3>
+          <p class="text-sm text-muted">
+            Edit together with live cursors and presence indicators
+          </p>
         </div>
         <div class="text-center space-y-2">
-          <UIcon name="i-lucide-sparkles" class="text-primary size-8 mx-auto" />
-          <h3 class="font-semibold">AI Writing Assistant</h3>
-          <p class="text-sm text-muted">Get intelligent suggestions and completions as you write</p>
+          <UIcon
+            name="i-lucide-sparkles"
+            class="text-primary size-8 mx-auto"
+          />
+          <h3 class="font-semibold">
+            AI Writing Assistant
+          </h3>
+          <p class="text-sm text-muted">
+            Get intelligent suggestions and completions as you write
+          </p>
         </div>
         <div class="text-center space-y-2">
-          <UIcon name="i-lucide-shield-check" class="text-primary size-8 mx-auto" />
-          <h3 class="font-semibold">Flexible Sharing</h3>
-          <p class="text-sm text-muted">Public, view-only, or password-protected documents</p>
+          <UIcon
+            name="i-lucide-shield-check"
+            class="text-primary size-8 mx-auto"
+          />
+          <h3 class="font-semibold">
+            Flexible Sharing
+          </h3>
+          <p class="text-sm text-muted">
+            Public, view-only, or password-protected documents
+          </p>
         </div>
       </div>
     </main>

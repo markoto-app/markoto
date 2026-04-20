@@ -11,13 +11,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const { action, password } = body as { action: 'set' | 'verify' | 'remove'; password?: string }
+  const { action, password } = body as { action: 'set' | 'verify' | 'remove', password?: string }
 
-  // SET password — owner only
+  // SET password — doc owner or workspace admin. `canManageDoc` encapsulates
+  // the orthogonal "doc owner vs workspace admin" branches; both can change
+  // access controls. Editors / viewers cannot.
   if (action === 'set') {
     const session = await requireValidatedUserSession(event)
-    if (doc.ownerId !== session.user.id) {
-      throw createError({ statusCode: 403, message: 'Not the document owner' })
+    if (!(await canManageDoc(session.user.id, docId))) {
+      throw createError({ statusCode: 403, message: 'Not authorized to manage this document' })
     }
     if (!password || password.length < 4) {
       throw createError({ statusCode: 400, message: 'Password must be at least 4 characters' })
@@ -77,11 +79,11 @@ export default defineEventHandler(async (event) => {
     return { success: true, token, readOnly: false }
   }
 
-  // REMOVE password — owner only
+  // REMOVE password — doc owner or workspace admin.
   if (action === 'remove') {
     const session = await requireValidatedUserSession(event)
-    if (doc.ownerId !== session.user.id) {
-      throw createError({ statusCode: 403, message: 'Not the document owner' })
+    if (!(await canManageDoc(session.user.id, docId))) {
+      throw createError({ statusCode: 403, message: 'Not authorized to manage this document' })
     }
 
     await db.update(documents)
