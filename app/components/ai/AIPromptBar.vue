@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import WaveformVisualizer from './WaveformVisualizer.vue'
+
 const props = defineProps<{
   ai: {
     mySession: ReturnType<typeof useAI>['mySession']
@@ -19,6 +21,44 @@ const toast = useToast()
 const input = ref('')
 const focused = ref(false)
 
+// Voice input state machine. On a successful transcription we land the
+// text in the input field briefly (so the user sees what we heard) and
+// then auto-submit it as a normal AI prompt. The brief on-screen flash
+// is intentional — silent auto-submit feels like a black box when the
+// model mishears.
+const voice = useVoicePrompt({
+  onTranscript: async (text) => {
+    input.value = text
+    // Tiny pause so the transcribed text is visible before submit clears
+    // the input. Chosen by feel — any shorter and it looks like nothing
+    // happened, any longer and the user starts to edit.
+    await new Promise(resolve => setTimeout(resolve, 150))
+    const ok = await props.ai.prompt(text)
+    if (ok) input.value = ''
+  },
+  onInaudible: () => {
+    toast.add({
+      title: t('ai.micInaudibleTitle'),
+      description: t('ai.micInaudibleDescription'),
+      icon: 'i-lucide-mic-off',
+      color: 'warning'
+    })
+  }
+})
+
+// Show voice errors as a toast — same UX as regular AI errors. `clearError`
+// resets the composable so the button isn't stuck showing an error icon.
+watch(() => voice.errorMessage.value, (err) => {
+  if (!err) return
+  toast.add({
+    title: t('ai.micErrorTitle'),
+    description: err,
+    icon: 'i-lucide-alert-circle',
+    color: 'error'
+  })
+  voice.clearError()
+})
+
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
   // Only mirror the session message for prompt-kind sessions; rewrite
@@ -32,6 +72,39 @@ const placeholder = computed(() => {
 
 const disabled = computed(() => {
   return !loggedIn.value || !!props.ai.mySessionId.value || props.ai.submitting.value
+})
+
+// Voice UI is mutually exclusive with the text input; each voice state
+// maps to one of four display modes for the middle slot of the bar.
+const isRecording = computed(() => voice.state.value === 'recording')
+const isTranscribing = computed(() => voice.state.value === 'transcribing')
+const isRequestingPerm = computed(() => voice.state.value === 'requesting-permission')
+const voiceActive = computed(() => isRecording.value || isTranscribing.value || isRequestingPerm.value)
+
+// The mic button is hidden during an active AI session (the stop button
+// takes its slot). It's also disabled when the user is mid-submit or when
+// they're not logged in — transcribe is a protected endpoint.
+const micDisabled = computed(() => {
+  return !loggedIn.value || !!props.ai.mySessionId.value || props.ai.submitting.value
+})
+
+// Timer display ticks with `durationSec` (updated by the composable's RAF
+// loop). MM:SS is enough — voice input caps at 60s so minutes are always 0
+// or 1 but the format stays familiar.
+const formattedTime = computed(() => {
+  const s = Math.max(0, Math.floor(voice.durationSec.value))
+  const mm = String(Math.floor(s / 60)).padStart(1, '0')
+  const ss = String(s % 60).padStart(2, '0')
+  return `${mm}:${ss}`
+})
+
+// Amber at the last 10s, red at the last 5s — gives the user a moment
+// to wrap up before the hard auto-stop fires.
+const timerColorClass = computed(() => {
+  const remaining = voice.maxDurationSec - voice.durationSec.value
+  if (remaining <= 5) return 'text-red-500'
+  if (remaining <= 10) return 'text-amber-500'
+  return 'text-muted'
 })
 
 async function onSubmit() {
@@ -89,23 +162,58 @@ const isActive = computed(() => {
        the doc body — analogous to Android's on-screen Google AI bar. -->
   <div
     class="ai-prompt-bar pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center px-4"
-    :class="{ 'is-focused': focused, 'is-active': isActive }"
+    :class="{ 'is-focused': focused, 'is-active': isActive, 'is-recording': isRecording }"
   >
     <div
       class="ai-prompt-bar__shell pointer-events-auto w-full max-w-3xl flex items-center gap-0 rounded-full pl-5 pr-0 py-0 backdrop-blur-md transition-all"
     >
       <!-- Leading sparkle / live status icon. Bigger than a typical
            toolbar icon to anchor the bar visually; pulses gently while
-           a session is in flight. -->
+           a session is in flight. During recording the icon swaps to a
+           pulsing mic so the bar communicates "listening" at a glance. -->
       <UIcon
-        :name="isActive ? statusIcon : 'i-lucide-sparkles'"
+        :name="isRecording ? 'i-lucide-mic' : (isActive ? statusIcon : 'i-lucide-sparkles')"
         :class="[
           'size-5 shrink-0 mr-3 transition-colors',
-          isActive ? 'text-blue-500 animate-pulse' : 'text-blue-500'
+          isRecording
+            ? 'text-red-500 animate-pulse'
+            : isActive ? 'text-blue-500 animate-pulse' : 'text-blue-500'
         ]"
       />
 
+      <!-- Middle slot: text input, waveform, or a transient label. The
+           three voice-state branches sit above the normal `<input>` via
+           `v-if`/`v-else-if` chain so only one mounts at a time — keeps
+           a11y simple and prevents the input from absorbing keystrokes
+           while the user is mid-recording. -->
+      <div
+        v-if="isRecording"
+        class="flex-1 min-w-0 flex items-center gap-3 py-3"
+      >
+        <WaveformVisualizer
+          :levels="voice.levels.value"
+          :height="32"
+          class="flex-1 min-w-0"
+        />
+        <span
+          class="voice-timer text-sm tabular-nums font-medium shrink-0"
+          :class="timerColorClass"
+        >{{ formattedTime }}</span>
+      </div>
+      <div
+        v-else-if="isTranscribing"
+        class="flex-1 min-w-0 flex items-center py-3"
+      >
+        <span class="text-muted italic transcribing-shimmer">{{ t('ai.micTranscribing') }}</span>
+      </div>
+      <div
+        v-else-if="isRequestingPerm"
+        class="flex-1 min-w-0 flex items-center py-3"
+      >
+        <span class="text-muted italic">{{ t('ai.micRequestingPermission') }}</span>
+      </div>
       <input
+        v-else
         v-model="input"
         type="text"
         :placeholder="placeholder"
@@ -120,7 +228,7 @@ const isActive = computed(() => {
       <!-- Other-sessions indicator — kept compact so the bar doesn't
            grow visually when collaborators are also asking the AI. -->
       <UTooltip
-        v-if="ai.otherSessions.value.length > 0"
+        v-if="ai.otherSessions.value.length > 0 && !voiceActive"
         :text="ai.otherSessions.value.map(s => `${s.initiatorName}: ${s.prompt}`).join('\n')"
       >
         <UBadge
@@ -137,12 +245,40 @@ const isActive = computed(() => {
         </UBadge>
       </UTooltip>
 
-      <!-- Send / Stop — perfect circle, hugs the input height edge to
-           edge. Icon-only (label kept on `aria-label` so screen readers
-           still get it); the action is unambiguous from the icon and a
-           text label would break the round shape. -->
+      <!-- Cancel — only during voice capture. `ghost` variant so it reads
+           as a tertiary action relative to the primary stop/send button. -->
       <UButton
-        v-if="!isActive"
+        v-if="isRecording || isTranscribing"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-x"
+        :aria-label="t('ai.micCancel')"
+        class="ai-prompt-bar__secondary"
+        @click="voice.cancel()"
+      />
+
+      <!-- Mic — visible unless an AI session is already active. During
+           recording it swaps to a stop-square icon and turns red, same
+           affordance as the AI-session stop button so users learn one
+           "tap to stop" pattern. -->
+      <UButton
+        v-if="!isActive && !isTranscribing"
+        :color="isRecording ? 'error' : 'neutral'"
+        :variant="isRecording ? 'solid' : 'ghost'"
+        :icon="isRecording ? 'i-lucide-square' : 'i-lucide-mic'"
+        :disabled="micDisabled"
+        :aria-label="isRecording ? t('ai.micStop') : t('ai.micStart')"
+        :class="isRecording ? 'ai-prompt-bar__action' : 'ai-prompt-bar__secondary'"
+        @click="voice.toggle()"
+      />
+
+      <!-- Send — perfect circle, hugs the input height edge to edge.
+           Icon-only (label kept on `aria-label` so screen readers still
+           get it); the action is unambiguous from the icon and a text
+           label would break the round shape. Hidden while recording /
+           transcribing — the mic-stop button takes the primary slot. -->
+      <UButton
+        v-if="!isActive && !voiceActive"
         color="info"
         icon="i-lucide-send"
         :loading="ai.submitting.value"
@@ -152,12 +288,22 @@ const isActive = computed(() => {
         @click="onSubmit"
       />
       <UButton
-        v-else
+        v-else-if="isActive"
         color="error"
         icon="i-lucide-square"
         :aria-label="t('ai.stop')"
         class="ai-prompt-bar__action"
         @click="onStop"
+      />
+      <!-- Transcribing: spinner in the primary slot. No click handler —
+           cancel (× button above) is the escape hatch. -->
+      <UButton
+        v-else-if="isTranscribing"
+        color="info"
+        :loading="true"
+        :disabled="true"
+        :aria-label="t('ai.micTranscribing')"
+        class="ai-prompt-bar__action"
       />
     </div>
   </div>
@@ -201,6 +347,19 @@ const isActive = computed(() => {
     0 0 0 2.5px color-mix(in srgb, var(--color-blue-500, #3b82f6) 70%, transparent),
     0 20px 56px -12px color-mix(in srgb, var(--color-blue-500, #3b82f6) 50%, transparent),
     0 8px 24px -8px rgb(0 0 0 / 0.18);
+}
+
+/*
+ * Recording treatment — a calm red ring so "listening" reads instantly
+ * without fighting the rainbow animation used for active AI sessions.
+ * Stays static (not animated) so the waveform bars are the only moving
+ * element in the bar; two simultaneous animations look frantic.
+ */
+.ai-prompt-bar.is-recording .ai-prompt-bar__shell {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-red-500, #ef4444) 70%, transparent),
+    0 18px 48px -12px color-mix(in srgb, var(--color-red-500, #ef4444) 45%, transparent),
+    0 8px 24px -8px rgb(0 0 0 / 0.2);
 }
 
 /*
@@ -272,6 +431,29 @@ const isActive = computed(() => {
 }
 
 /*
+ * Transcribing shimmer — a subtle left-to-right gradient sweep on the
+ * "Transcribing…" label so the UI reads as "working" without a full
+ * spinner (the primary button already carries one).
+ */
+@keyframes transcribe-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.transcribing-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ui-text-muted) 60%, transparent) 0%,
+    var(--color-blue-500, #3b82f6) 50%,
+    color-mix(in srgb, var(--ui-text-muted) 60%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: transcribe-shimmer 2s linear infinite;
+}
+
+/*
  * Action button — perfect circle that hugs the input row's height.
  * UButton's own size/rounded utilities ship at the same specificity as
  * any utility class we'd put on the element, so the override here uses
@@ -302,5 +484,28 @@ const isActive = computed(() => {
 .ai-prompt-bar__shell :deep(.ai-prompt-bar__action .iconify) {
   width: 1.25rem !important;       /* 20 px — proportional to the 48 px button */
   height: 1.25rem !important;
+}
+
+/*
+ * Secondary button — mic (idle), cancel (×). Smaller + ghost so the
+ * primary send button reads as the main action. Square-ish with
+ * rounded corners to sit comfortably next to the round primary.
+ */
+.ai-prompt-bar__shell :deep(.ai-prompt-bar__secondary) {
+  width: 2.25rem !important;       /* 36 px */
+  height: 2.25rem !important;
+  min-height: 2.25rem !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  margin-right: 0.375rem;            /* 6 px gap before the primary button */
+  gap: 0 !important;
+}
+.ai-prompt-bar__shell :deep(.ai-prompt-bar__secondary .iconify) {
+  width: 1.125rem !important;       /* 18 px */
+  height: 1.125rem !important;
 }
 </style>

@@ -344,9 +344,17 @@ export function toggleLinePrefix(view: EditorView, prefix: string): void {
   const nonBlank = lines.filter(l => !isBlank(l.text))
   if (nonBlank.length === 0) return
 
+  const wanted = prefix.replace(/^\s*/, '')
+  // Checked (`- [x] `) and unchecked (`- [ ] `) task items are the same
+  // list type — clicking "task list" on a checked item should toggle
+  // the whole task off, not normalize the check state.
+  const isTaskPrefix = (s: string) => /^[-*]\s+\[[ xX]\]\s+/.test(s)
   const hasPrefix = (text: string) => {
     const m = text.match(BLOCK_PREFIX_RE)
-    return !!m && m[2] === prefix.replace(/^\s*/, '')
+    if (!m) return false
+    if (m[2] === wanted) return true
+    if (isTaskPrefix(m[2]!) && isTaskPrefix(wanted)) return true
+    return false
   }
   const allHavePrefix = nonBlank.every(l => hasPrefix(l.text))
 

@@ -210,7 +210,15 @@
     "rewritePlaceholder": "How should the AI rewrite this?",
     "alreadyRunning": "You already have an AI session running on this document.",
     "rateLimited": "Too many AI requests. Try again in a minute.",
-    "failed": "AI request failed"
+    "failed": "AI request failed",
+    "micStart": "Start voice input",
+    "micStop": "Stop and send",
+    "micCancel": "Cancel voice input",
+    "micRequestingPermission": "Waiting for microphone…",
+    "micTranscribing": "Transcribing…",
+    "micInaudibleTitle": "Didn't catch that",
+    "micInaudibleDescription": "The recording was silent or unintelligible. Try again.",
+    "micErrorTitle": "Voice input failed"
   },
   "theme": {
     "title": "Document theme",

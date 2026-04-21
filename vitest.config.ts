@@ -1,15 +1,28 @@
 import { defineConfig } from 'vitest/config'
+import { defineVitestProject } from '@nuxt/test-utils/config'
 import { fileURLToPath } from 'node:url'
 
 // Test runner config.
 //
-// Two suites:
-//   - tests/unit/**     — pure function tests. No DB, no server, no Nuxt.
-//                         Sub-second feedback loop. Safe to run always.
+// Projects:
+//   - tests/unit/**        — pure function tests. No DB, no server, no Nuxt.
+//                            Sub-second feedback loop. Safe to run always.
+//   - tests/dom/**         — browser-ish tests on plain happy-dom. No Nuxt
+//                            runtime; use for isolated utilities that need
+//                            a DOM (e.g. DOMPurify on renderMarkdown output).
+//   - tests/nuxt/**        — composables/components inside the full Nuxt
+//                            environment. `mockNuxtImport` + `registerEndpoint`
+//                            are available. Heavier boot — only use when
+//                            auto-imports or Nitro endpoints are needed.
+//                            Must be wrapped in `defineVitestProject` so the
+//                            Nuxt env gets registered; `defineVitestConfig`
+//                            cannot be used at the root while `projects` is.
+//   - tests/repos/**       — DB-backed repository tests. Serialized, share
+//                            the test Postgres.
 //   - tests/integration/** — REST endpoints + sync-server. Need the dev
 //                            Postgres from docker-compose.dev.yml and a
 //                            running app. Opted-in via the `integration`
-//                            project; bun run test runs unit by default.
+//                            project; bun run test runs unit + dom + nuxt.
 export default defineConfig({
   resolve: {
     alias: {
@@ -43,6 +56,21 @@ export default defineConfig({
           sequence: { groupOrder: 0 }
         }
       },
+      defineVitestProject({
+        extends: true,
+        test: {
+          name: 'nuxt',
+          include: ['tests/nuxt/**/*.test.ts'],
+          // Full Nuxt runtime: auto-imports, `$fetch`, Nitro endpoint
+          // stubs via `registerEndpoint`, composables/components via
+          // `mountSuspended`. Heavier boot than `dom` — don't use this
+          // project for pure functions.
+          environment: 'nuxt',
+          sequence: { groupOrder: 0 },
+          testTimeout: 15_000,
+          hookTimeout: 60_000
+        }
+      }),
       {
         extends: true,
         test: {

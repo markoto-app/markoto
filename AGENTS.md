@@ -167,7 +167,7 @@ Workspace membership overrides: admin/editor bypasses `private` and `password-pr
 
 **Workspaces (login required):** `POST /api/workspaces`, `GET/PUT/DELETE /api/workspaces/:wsId`, `POST /api/workspaces/:wsId/members`, `PATCH/DELETE /api/workspaces/:wsId/members/:userId`
 
-**AI (login required):** `POST /api/ai/prompt` (returns `{sessionId}`), `POST /api/ai/rewrite`, `POST /api/ai/abort` (initiator only, 403 otherwise)
+**AI (login required):** `POST /api/ai/prompt` (returns `{sessionId}`), `POST /api/ai/rewrite`, `POST /api/ai/abort` (initiator only, 403 otherwise), `POST /api/ai/transcribe` (voice → text for the prompt bar; `{text, inaudible}`)
 
 Auth guard: `server/middleware/auth.ts` whitelists public patterns; protects `/api/docs/` (outside whitelist), `/api/workspaces`, `/api/user`, `/api/upload`, `/api/ai`. Token endpoint never issues a usable JWT for forbidden/password-gated docs.
 
@@ -191,30 +191,44 @@ Config at `sync-server/src/index.ts`. Hooks: `onLoadDocument`, `onStoreDocument`
 
 ## 7. AI Features — Gemini as Collaborator
 
-Two flows:
-- **Top-bar prompt** (`AIPromptBar.vue`) — agentic loop, tools: `view_document`, `replace_text`, `insert_text`, `web_search`. Model: `NUXT_GOOGLE_MODEL` (default `gemini-3.1-flash-lite-preview`).
+Three flows:
+- **Top-bar prompt** (`AIPromptBar.vue`) — agentic loop, 9 tools (below). Model: `NUXT_GOOGLE_MODEL` (default `gemini-3.1-flash-lite-preview`). Image generation uses `NUXT_GOOGLE_IMAGE_MODEL` (default `gemini-3.1-flash-image-preview`).
 - **Inline selection rewrite** (`AISelectionPopup.vue`) — one-shot, no tools, full-doc context windowed to 40k chars. Model: `NUXT_GOOGLE_REWRITE_MODEL` (default `gemini-2.5-flash-lite`).
+- **Voice input for the prompt bar** (mic button inside `AIPromptBar.vue`) — one-shot transcription. `MediaRecorder` + `AudioWorklet`-style `AnalyserNode` visualiser in `useVoicePrompt.ts`, POSTs base64 audio to `/api/ai/transcribe`, Gemini inlineData → plain text → auto-submits as a normal prompt. 60s cap, 5 MiB max. Model: `NUXT_GOOGLE_TRANSCRIBE_MODEL` (default `gemini-2.5-flash-lite`). No Y.js session — transcription itself doesn't touch the doc; the downstream `/api/ai/prompt` call enforces all the usual content gates.
 
-**AI-as-Y.js-client:** Server mints a JWT (`userId=ai:assistant:{sessionId}`), opens a `HocuspocusProvider`, sets awareness `{isAI, aiSession, aiStatus}`. Each edit is `ydoc.transact(fn, 'ai:assistant:{sessionId}')` — users watch edits land in real time. No SSE; status rides on awareness. `aiSession.kind` (`'prompt' | 'rewrite'`) discriminates animations so the floating bar only pulses during prompt sessions and vice versa.
+**Thinking budget:** `NUXT_GOOGLE_THINKING_BUDGET` (default `0` = disabled, cheapest/fastest). Applied only to the main agentic loop; rewrites and sub-calls stay thinking-free. We only pass `thinkingConfig` when `budget > 0` — some models (older `flash-lite`) 400 on an empty thinkingConfig.
+
+**AI-as-Y.js-client:** Server mints a JWT (`userId=ai:assistant:{sessionId}`), opens a `HocuspocusProvider`, sets awareness `{isAI, aiSession, aiStatus}`. Each edit is `ydoc.transact(fn, 'ai:assistant:{sessionId}')` — users watch edits land in real time. No SSE; status rides on awareness. `aiSession.kind` (`'prompt' | 'rewrite'`) discriminates animations so the floating bar only pulses during prompt sessions and vice versa. The `AiSession` interface exposes `docId` and `initiatorUserId` so tools can attribute audited writes (e.g. `uploads.uploaderId` from `generate_image`) to the real human initiator rather than the synthetic AI principal.
 
 **Function tools** (`server/utils/agentic/functionTools.ts` + `server/utils/aiToolAdapter.ts`):
 
 | Tool | Behavior |
 |---|---|
-| `view_document({ view_range? })` | Returns `ytext.toString()` with 1-indexed line prefixes |
-| `replace_text({ old_str, new_str })` | 0 matches → error; 2+ → "Found N matches"; 1 → transact delete+insert |
-| `insert_text({ insert_line, insert_text })` | Maps line → char idx; transacts insert |
-| `web_search({ query })` | Isolated sub-call with `googleSearch` only; never mixed with `functionDeclarations` |
+| `view_document({ view_range? })` | Returns `ytext.toString()` with 1-indexed line prefixes. Schema refines `start >= 1` so `[-1,-1]` is caught at Zod, not the handler. |
+| `replace_text({ old_str, new_str })` | 0 matches → error; 2+ → "Found N matches"; 1 → transact delete+insert. |
+| `insert_text({ insert_line, insert_text })` | Maps line → char idx via shared `lineToCharOffset`; transacts insert. |
+| `update_theme({ preset?, page?, body?, … })` | Partial theme patch. `preset` (`modern`/`academic`/`tech`/`business`/`novel`/`newsletter`) replaces base; other fields merge on top. Validates via `isValidTheme`, writes `ymeta.theme` + persists to `documents.theme` JSONB. |
+| `set_title({ title })` | Trim + 1–255 bound; writes `ymeta.title` + persists via `updateDocMeta`. |
+| `view_image({ src })` | Fetches image bytes and smuggles them back to the model via `inlineData` on the next turn (Gemini functionResponse is JSON-only — see `ToolResult.extraParts` below). Internal `/api/files/{docId}/{fileId}` → S3 direct (with cross-doc rejection); external `http(s)://` → `fetch` with 10s timeout + 5 MiB cap + MIME allowlist. |
+| `generate_image({ prompt, alt })` | Gemini image-model sub-call (`responseModalities: ['IMAGE','TEXT']`) → S3 upload (same `docs/{docId}/{fileId}.ext` key shape as user uploads) → uploads row (pending+confirmed) → returns markdown reference. AI follows up with `insert_text`/`replace_text` — the tool does not place it. |
+| `web_search({ query })` | Isolated sub-call with `googleSearch` grounding only. Freeform answer text + deduped sources from `groundingMetadata` (never mixed with `functionDeclarations` or `responseSchema` — coexistence 400s across model versions). |
+| `fetch_url({ url })` | Isolated sub-call with `urlContext` + structured output (`responseSchema`: `{summary, images[]}`). Returns formatted text the agent can parse. Scheme-less URLs get `https://` prepended. |
 
-Zod schemas are the source of truth — `z.toJSONSchema(schema, { target: 'draft-7' })` generates both Gemini's param schema and the runtime validator. Parse failures return as `functionResponse.isError` so the model self-corrects.
+**`ToolResult.extraParts`:** tools whose output includes binary data (currently `view_image` with inline image bytes) return a `ToolResult` with an `extraParts: Part[]` field; the runLoop appends those sibling parts on the user message AFTER the `functionResponse`, so Gemini links them to the right call. Gemini's `functionResponse.response` is JSON-only — this is the smuggling path for anything non-JSON.
+
+**Source-of-truth for schemas:** Zod drives everything. `z.toJSONSchema(schema, { target: 'draft-7' })` generates both Gemini's param schema and the runtime validator. Schema-level rejections flow back via `functionResponse.isError` so the model self-corrects instead of us silently coercing garbage. Drift-prone strings in the system prompt (preset names, font-category hints) are derived at module load from `THEME_PRESETS` / `THEME_FONTS`, so adding a preset/font automatically propagates.
 
 **Inline rewrite race safety:** Client sends Y.js `RelativePosition` for selection; server resolves to absolute. Fallback chain: relative pos → raw index → single `indexOf` → 409 "Selection has moved".
+
+**Authorization:** All AI routes check `requireDocEditAccess(docId, userId)` before starting. Workspace viewers and non-members are blocked there, so every tool inherits "content-edit" permission — no per-tool authz check needed. `update_theme`/`set_title` write through the same gate.
 
 **Limits:** `ai-prompt: 20/h`, `ai-rewrite: 30/h` per user. Prompt deadline 5 min, rewrite 30s, `MAX_TURNS = 20`. Sweeper (`server/plugins/ai-session-sweep.ts`) aborts sessions >7 min (threshold intentionally above prompt deadline). Error status lingers 2.5s in awareness so clients latch before cleanup.
 
 **Cancellation:** `POST /api/ai/abort` — 404 if ended, 403 if not initiator. Status → `{phase:'done', message:'Stopped'}`.
 
 **Per-user cap:** 1 session per user per doc, enforced by Postgres UNIQUE index in `ai_sessions`.
+
+**Frontend status display:** `describeToolInput` in `streamStatus.ts` has a labelled case for every tool (announced via awareness). `AIPromptBar.vue` shows the message as the input placeholder; `PresenceBar.vue` appends the status to the avatar tooltip (`"Helping Joel — Fetching example.com"`) so collaborators can see what someone else's AI run is doing.
 
 ---
 
@@ -275,6 +289,7 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 | Import | 10 per IP/min |
 | AI prompt | 20 per user/hour |
 | AI rewrite | 30 per user/hour |
+| AI transcribe | 60 per user/hour |
 | Hocuspocus | 20 connections/IP, 5000 rooms |
 
 **Input validation:** `meta.put` validates title (≤255), accessMode (enum), wordCount (0–10M), sizeBytes (0–100M), theme (structural + numeric ranges + hex-color regex + font allowlist). Uploads: PNG/JPEG/GIF/WebP/SVG, 10MB. Imports: extension whitelist, 50MB.
@@ -297,7 +312,7 @@ Three standalone files — no shared base. Dev: `bun run dev --host 0.0.0.0` (0.
 
 Prod key points: postgres healthcheck gates `app` + `sync` startup; `stop_grace_period: 30s`; Traefik healthcheck labels on `/api/health` + `/health`; backup sidecar pipes `pg_dump | gzip | aws s3 cp`; Dockerfile **must `COPY drizzle/`** into runtime image.
 
-Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE_CLIENT_*`, `POSTGRES_PASSWORD`, `S3_*`, `JWT_SECRET` (≥64), `INTERNAL_API_SECRET`, `GOOGLE_API_KEY/MODEL/REWRITE_MODEL`, `BACKUP_*`.
+Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE_CLIENT_*`, `POSTGRES_PASSWORD`, `S3_*`, `JWT_SECRET` (≥64), `INTERNAL_API_SECRET`, `GOOGLE_API_KEY/MODEL/REWRITE_MODEL/IMAGE_MODEL/TRANSCRIBE_MODEL`, `BACKUP_*`. Optional AI tuning: `NUXT_GOOGLE_THINKING_BUDGET` (default `0`).
 
 ---
 
@@ -312,6 +327,8 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 `shared/` — Cross-cutting: `types/` (theme, auth, pagedjs), `utils/` (themeToCss, themeValidation, themePresets, themeFonts, defaultTheme, CDN version pins).
 
 `drizzle/` — generated migrations + meta snapshots (committed). `i18n/locales/` — en/de/fr/es/ja/zh JSON. `docs/` — DEPLOY.md, LOCAL.md, S3-SETUP.md, OBSERVABILITY.md, SECRETS-ROTATION.md.
+
+`scripts/` — standalone Bun scripts for offline verification. `audit-markdown-pipeline.mjs` runs the full markdown-it + every plugin + DOMPurify chain (identical config to `app/utils/renderMarkdown.ts`) and prints raw + sanitized output per case. Run before adding a syntax claim to `server/utils/agentic/markdownReference.ts` — only document what the script confirms renders. See §17 for why this matters.
 
 ---
 
@@ -335,7 +352,7 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 **Workspaces:** Three-role model (admin/editor/viewer), invite-by-email, last-admin invariant, cascade delete, role-gated UI at `/w/:id`, workspace doc table.
 
-**AI:** Gemini agentic loop (4 tools), inline rewrite with RelativePosition race safety, awareness-based status, per-user-per-doc cap via Postgres UNIQUE index, initiator-only cancel, floating prompt bar (rainbow ring animation), selection popup, animation decoupled by `kind`.
+**AI:** Gemini agentic loop with 9 tools: `view_document`, `replace_text`, `insert_text`, `update_theme` (partial patches + 6 presets), `set_title`, `view_image` (multimodal — smuggles bytes via `extraParts` since functionResponse is JSON-only), `generate_image` (Gemini image-model → S3 → markdown ref), `web_search` (grounded sub-call), `fetch_url` (urlContext sub-call with structured output). Inline rewrite with RelativePosition race safety. Awareness-based status propagates to the prompt bar placeholder and presence-bar tooltip. Per-user-per-doc cap via Postgres UNIQUE index, initiator-only cancel, floating prompt bar (rainbow ring animation), selection popup, animation decoupled by `kind`. Configurable thinking budget (`NUXT_GOOGLE_THINKING_BUDGET`, default 0). **Voice input:** mic button on the prompt bar → `MediaRecorder` opus/webm → base64 → `/api/ai/transcribe` (Gemini inlineData → text) → auto-submit. Live frequency-bar visualiser via `AnalyserNode`, MM:SS timer with amber@-10s/red@-5s, 60s cap, cancel button, hard 5 MiB payload ceiling, explicit `MediaStream` cleanup so the browser mic indicator clears immediately.
 
 **Security hardening:** Fail-fast env, rate limits, file access control, `meta.put` validation, 2h password token expiry.
 
@@ -361,10 +378,6 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 **Theme system**
 - [ ] Phase 4: User-saved themes — `themes` table + CRUD endpoints
-- [ ] AI `update_theme` tool in agentic loop
-
-**Preview/print**
-- [ ] Refactor `IFRAME_BOOTSTRAP` template literal in `usePagedPreview.ts` to its own file
 
 **Markdown extensions**
 - [ ] Batch 4: `markdown-it-criticmarkup`, `markdown-it-multimd-table`, client-side BibTeX citations
@@ -373,10 +386,10 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - [ ] Markdown frontmatter (export theme/title; import interprets it)
 - [ ] Command palette
 - [ ] Table of contents sidebar
-- [ ] Follow cursor
+- [ ] Markdown folding per-chapter / sub-chapter etc
+- [ ] Markdown highlighting
 - [ ] QR code sharing
 - [ ] Keyboard shortcuts cheat sheet
-- [ ] Offline mode (PWA cache)
 - [ ] Y.js document compaction for oversized docs
 - [ ] Remaining locale translations (de, fr, es, ja, zh)
 - [ ] Markdown export with base64-inlined images
@@ -387,12 +400,13 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - [ ] Sidebar as bottom sheet
 
 **AI**
-- [ ] Microphone input with speech-to-text
-- [ ] Image generation (`gemini-3.1-flash-image-preview`)
-- [ ] Google Image Search tool
-- [ ] Pexels / Unsplash search tool
+- [ ] Live dictation into the editor (Feature A): Gemini Live API over WebSocket → `inputAudioTranscription` → interim + final transcripts → Y.js transact inserts at cursor. 24 languages, mic-anywhere-in-the-doc UX. Prompt-bar voice input (Feature B) is shipped.
+- [ ] Semantic search across docs via `ai.models.embedContent()` — "find the section about X", "suggest related docs"
 
-**AI (explicitly out of scope for now):** multi-turn conversation history, streaming text to UI, activity attribution "AI for Alice", user-selectable model, grounded-search caching, cost telemetry, provider-swap adapter.
+**AI (explicitly out of scope for now):**
+- Multi-turn conversation history, streaming text to UI, activity attribution "AI for Alice", user-selectable model, grounded-search caching, cost telemetry, provider-swap adapter.
+- **Generic image search** (Bing deprecated, Google CSE costs $5/1k after 100/day, Brave is viable but not yet needed, DDG unofficial violates ToS). Covered indirectly: `fetch_url` extracts image URLs from a user-named source page, which handles the "image of X from their website" case without a search API. Revisit (Brave or self-hosted SearXNG) when users ask for sourceless image search.
+- **Pexels/Unsplash stock-photo search** — stock-only, misses the "image of a specific person/entity" case, and `generate_image` covers the generic "illustration of X" case. Not worth a tool slot.
 
 ---
 
@@ -418,8 +432,20 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 | Mermaid pre-process before paged.js | paged.js sees plain inline SVG; no runtime rendering during pagination |
 | Zod as AI-tool source-of-truth | `z.toJSONSchema` generates Gemini schema + runtime validator; malformed args self-correct |
 | Custom `web_search` wrapping `googleSearch` | `googleSearch` + `functionDeclarations` coexistence shifts between model versions; wrapping also gives pre-call status UX |
+| Structured output for `fetch_url` but NOT `web_search` | `urlContext` + `responseSchema` works; `googleSearch` + `responseSchema` 400s across versions. `web_search` keeps freeform answer + `groundingMetadata` for sources |
+| `ToolResult.extraParts` for binary tool outputs | Gemini `functionResponse.response` is JSON-only; `view_image` smuggles inline image bytes as sibling parts on the same user message |
+| External image URLs for search results, not rehost | Link-rot vs. copyright — hosting arbitrary images we didn't license is the bigger risk. Opt-in `archive_image` for the exceptions |
+| Thinking budget default 0 (disabled) | Keep minimal-by-default for cost/latency; operator opts in per env. Only pass `thinkingConfig` when budget > 0 — older `flash-lite` 400s on an empty config |
+| Implicit Gemini prefix cache, no explicit `ai.caches.create` | The automatic prefix cache handles both within-loop sharing and cross-user system-prompt sharing for free; explicit caching has minimum-size, storage-cost, and TTL-refresh overhead that only pays off on bursty traffic patterns we don't have |
+| `generate_image` returns markdown, does NOT place it | Separation of concerns — AI decides whether to `insert_text` / `replace_text` / replace an existing image. Initial version bundled placement; felt too opinionated |
+| Derive preset/font lists into system prompt at module load | Prevents drift between `THEME_PRESETS` / `THEME_FONTS` and what the system prompt claims the AI can use |
+| `scripts/audit-markdown-pipeline.mjs` as source of truth for `markdownReference.ts` | AI was being told syntaxes that didn't actually render (e.g. `![alt](url =50%)` from @mdit/plugin-img-size). Only document what the full pipeline — markdown-it + plugins + DOMPurify — actually emits |
 | Table size picker as UModal | Anchored popover had trigger location and click-competition issues; centered modal sidesteps both |
 | Gemini over Claude | Materially cheaper; display name vendor-neutral ("AI Assistant") |
+| Voice input: one-shot `generateContent` + inlineData, NOT Live API | User finishes speaking before we need the text, so the bidirectional overhead (WebSocket relay, Live API session accounting) isn't worth it. Simple POST with base64 audio reuses the existing auth, rate-limit, and SDK paths. Live API is the right call for Feature A (live dictation into the doc) where interim transcripts actually matter |
+| Voice input auto-submits after transcription | Picks the "Siri-like" feel over "Google Docs voice typing"-style manual confirmation. The transcript briefly lands in the input field (150ms) so the user sees what was heard before it's sent — silent auto-submit feels like a black box when the model mishears |
+| Hand-rolled canvas visualiser over a library | The Vue ecosystem has no good "live recording bars" library; `wavesurfer.js` is playback-focused and `vue-audio-visual` is unmaintained. An `AnalyserNode` + 40-line canvas draw is smaller, theme-aware, and zero-dep |
+| Voice input skips `requireDocEditAccess` | Transcription doesn't touch the doc — it returns bytes-to-text. The downstream `/api/ai/prompt` call (triggered by auto-submit) enforces the content-edit gate. Adding it to `/api/ai/transcribe` would only duplicate that check |
 
 ---
 
@@ -452,7 +478,7 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - **srcdoc iframe `postMessage`:** `targetOrigin: '*'` required — srcdoc has opaque origin in Chromium (`"null"`). Trust boundary: `e.source === iframe.contentWindow`.
 - **CSS `zoom` not `transform: scale`** — `scale` leaves layout box full-size and overflows; `zoom` shrinks both.
 - **Footnotes need `transformFootnotesForPagedMedia()`** — markdown-it-footnote puts all footnotes at end of doc; paged.js `float: footnote` needs inline `<span>` at the ref site.
-- **Backticks in `IFRAME_BOOTSTRAP` template literal** — any unescaped backtick inside the string closes the outer template early. Use `\`` or reword.
+- **Iframe bootstrap lives in `pagedPreviewIframe.html`, not a template literal** — imported as a raw string via `?raw`. URL placeholders (`__PAGEDJS_POLYFILL_URL__`, `__KATEX_CSS_URL__`, `__MERMAID_ESM_URL__`) are substituted at mount. If you ever inline it back into TS, remember to escape backticks (`` \` ``) — they close the outer template early.
 - **Mermaid SVG overflow** — `overflow: visible` on `.mermaid svg` + `.mermaid foreignObject`, `white-space: nowrap` on inner elements. Use `htmlLabels: true` (foreignObject) — `htmlLabels: false` undersizes SVG `<text>` nodes.
 - **srcdoc fragment links navigate the iframe** — capture `<a href="#...">` clicks in iframe bootstrap; `preventDefault + target.scrollIntoView()`.
 - **`html: false` doesn't block manually pushed tokens** — custom block rules that call `state.push('html_block')` render verbatim regardless. Use this for controlled HTML emission.
@@ -463,3 +489,17 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - **Workspace authz: one helper per concern.** `canEditDoc` (content), `canManageDoc` (sharing/delete), `canManageWorkspace` (admin actions). Mixing leaks permissions.
 - **Removing a workspace member doesn't revoke active JWTs** — valid until next token refresh (up to 2h). Acceptable for now.
 - **`workspaces.ownerId` vs `workspace_members.role='admin'`** — `ownerId` is provenance only, never used for authz. An original creator demoted to editor loses admin rights.
+- **`@mdit/plugin-img-size` in our stack does NOT parse `=WIDTHxHEIGHT`** — despite the package's readme. Use the `@mdit/plugin-attrs` syntax instead: `![alt](url){width=50%}`. The audit script catches mis-documented syntaxes like this — always run it before adding claims to `markdownReference.ts`.
+- **Gemini image model names drift** — before setting `NUXT_GOOGLE_IMAGE_MODEL`, verify with `curl "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY" | grep image`. Example: `gemini-2.5-flash-image-preview` is NOT real (no `-preview`); the correct names are `gemini-2.5-flash-image` (stable) and `gemini-3.1-flash-image-preview` (current preview).
+- **Gemini sometimes hallucinates tool outputs** — rather than emitting a `functionCall`, the model writes what it *thinks* the tool would return. Symptom: placeholder URLs like `/api/files/placeholder/joel.png`. Fix is in the system prompt: explicitly forbid fabricating `/api/files/...` paths, tell the model these ONLY exist after a real `generate_image` call.
+- **`googleSearch` + `responseSchema` coexistence 400s on some models** — if you're adding a new grounded sub-call, stick to freeform text output and parse `groundingMetadata` for structure. `urlContext` + `responseSchema` does work (verified).
+- **`z.string().trim().min(1)` ordering matters in Zod 4** — with `.min(1).trim()`, whitespace-only strings pass the min check and only collapse to empty later. Put `.trim()` BEFORE `.min(1)` so the length check sees the trimmed value.
+- **`view_range: [-1, -1]` keeps coming back from the model** — enforce `start >= 1` with a `.refine` on the schema so Gemini gets a schema-level rejection it self-corrects from, instead of burning a turn on the handler's runtime error.
+- **`@mdit/plugin-alert` doesn't support `> [!NOTE] Custom title`** — the text after `[!KIND]` on the first line is silently dropped and the block falls through to a plain blockquote. The `[!KIND]` line must be alone.
+- **`data-*` attributes don't survive DOMPurify** — not in our `ALLOWED_ATTR`. If the AI tries to encode state via `data-foo="bar"`, it's silently stripped. Tell the AI only `class`, `id`, `style`, `width`, `height`, `aria-*`, `role`, `target`, `rel`, `title` survive on most elements.
+- **`responseModalities: ['IMAGE', 'TEXT']`** — required on image-gen calls so the model can narrate alongside the image. But we ignore the text part in favor of the caller-provided alt; if the response has no `inlineData` part, surface the finish reason + text (it's usually a safety block with an explanation the user needs to see).
+- **AI `extraParts` must come AFTER the `functionResponse`** — Gemini links binary parts to the most-recent function call on the same user message. Putting them before breaks the association.
+- **`MediaRecorder` MIME preference order matters per browser** — Chrome/Firefox want `audio/webm;codecs=opus`, Safari falls back to `audio/mp4`. `useVoicePrompt.ts` probes `MediaRecorder.isTypeSupported()` in that order; the server's `ALLOWED_MIME` list must stay in lockstep or Safari recordings 400.
+- **Always call `track.stop()` on every `MediaStream` track explicitly** — just stopping the `MediaRecorder` leaves the audio tracks live and the browser's "site is using your microphone" indicator stays on. Cleanup must iterate `stream.getTracks()` and call `.stop()` per-track, on both the happy path AND every error/cancel path.
+- **`String.fromCharCode(...bytes)` blows the stack on large buffers** — the spread operator pushes every byte as an argument. Chunk in 0x8000-byte slices when converting audio `ArrayBuffer` → base64.
+- **Gemini transcription: dummy API key returns HTTP 400** (not 500) — the SDK propagates the upstream 400 verbatim. Integration tests that expect "validation passed → request reached Gemini" must check the error *message*, not just the status code, because both "our allowlist rejected this" and "upstream key invalid" return 400.

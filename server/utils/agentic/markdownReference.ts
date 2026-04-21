@@ -15,20 +15,28 @@
  * already fluent in markdown — this is a delta against its baseline.
  *
  * Every claim below has been verified against the live render pipeline
- * (see `/tmp/md-audit.mjs` pattern). When a new plugin is added in
- * `app/utils/renderMarkdown.ts`, (1) add it to the audit script, (2)
- * verify the syntax actually renders, (3) add the confirmed form here.
- * Do NOT add "should work" syntaxes — the AI will happily emit them
- * and silently produce broken output.
+ * by `scripts/audit-markdown-pipeline.mjs` — that script runs the full
+ * markdown-it + every plugin + DOMPurify chain (identical config to
+ * `app/utils/renderMarkdown.ts`) and prints both raw and sanitized
+ * output for every case. Rules for edits to this file:
+ *   1. Add the syntax case to the audit script first.
+ *   2. Run `bun scripts/audit-markdown-pipeline.mjs` and confirm the
+ *      CLEAN output matches what you're about to claim here.
+ *   3. Only then update the reference text.
+ * Do NOT add "should work" syntaxes — the AI will emit them and ship
+ * broken output silently.
  */
 export const MARKDOWN_REFERENCE = `MARKDOWN VOCABULARY (features verified to render correctly in YPad):
 
 Inline:
   **bold**  *italic*  ~~strike~~  ==highlight==  ++inserted++  \`code\`
   H~2~O (subscript), E=mc^2^ (superscript)
-  [link](https://example.com) — auto-opens in a new tab; do NOT add target/rel manually.
-  abbreviation defined elsewhere: *[HTML]: HyperText Markup Language
-  Emoji shortcodes: :rocket: → 🚀, :heart: → ❤️, :+1: → 👍, :100: → 💯.
+  [link](https://example.com) — inline link. Auto-opens in a new tab; do NOT add target/rel manually.
+  [link text][ref] … [ref]: https://example.com  — reference-style link (define once, reuse).
+  Bare URLs are auto-linked: https://example.com → clickable. Emails too: foo@bar.com → mailto link.
+  Abbreviation (case-sensitive, can be defined before OR after use): *[HTML]: HyperText Markup Language
+  Emoji shortcodes: :rocket: → 🚀, :heart: → ❤️, :+1: → 👍, :100: → 💯. Also works inside headings.
+  Clickable image: [![alt](cat.jpg)](https://target.com)  — wraps the figure's image in an anchor.
 
 Typography (auto — don't fight it):
   --  becomes  –  (en-dash),  ---  becomes  —  (em-dash),  ...  becomes  …,  "x"/'x' become smart quotes.
@@ -42,6 +50,7 @@ Attribute syntax \`{…}\` (CRITICAL — unlocks classes / custom IDs / inline s
     {.class-name}                    add a class (space-separated = multiple classes)
     {key=value}                      set attribute (bare values, or quoted for spaces)
     {style="css: value"}             inline CSS
+    {aria-label="…"} / {role="…"}    a11y attributes pass through unchanged.
     Combine: {#intro .lead style="text-align: center"}
   Works on: headings, paragraphs, links, inline code, images, blockquotes.
   Heading example:          # Title {#intro .lead}
@@ -49,6 +58,7 @@ Attribute syntax \`{…}\` (CRITICAL — unlocks classes / custom IDs / inline s
   Link example:             [click](url){.btn}
   Inline code example:      \`var x\`{.highlight}
   Image examples below.
+  Note: \`data-*\` attributes are stripped by the sanitizer — only a curated allow-list survives (class, id, style, width, height, target, rel, title, aria-*, role, and a few MathML bits).
 
 Images (always render as <figure> with alt as the caption):
   ![alt text](url)                              figure with alt as caption
@@ -95,11 +105,12 @@ Horizontal rule: \`---\`, \`***\`, or \`___\` on its own line.
 Footnotes: text[^1]. … and [^1]: footnote body somewhere later in the doc.
 
 Math (KaTeX):
-  Inline: $E = mc^2$
+  Inline: $E = mc^2$.  Escape a literal dollar sign with \\$ so it isn't parsed as math.
   Block (markers on their own lines):
     $$
     \\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}
     $$
+  Environments work too: \`\\begin{pmatrix}…\\end{pmatrix}\`, \`\\begin{aligned}…\\end{aligned}\`, \`\\begin{cases}…\\end{cases}\`, etc.
   Malformed math renders in red rather than crashing the doc — but fix it when you see it.
 
 GitHub-style alerts — use a blockquote whose first line is \`[!KIND]\` ALONE:
@@ -118,7 +129,8 @@ GitHub-style alerts — use a blockquote whose first line is \`[!KIND]\` ALONE:
   > [!CAUTION]
   > Risk of harm or data loss.
 
-  Valid kinds: \`NOTE\`, \`TIP\`, \`IMPORTANT\`, \`WARNING\`, \`CAUTION\`. The \`[!KIND]\` line must be alone — trailing text like \`> [!NOTE] Custom title\` is NOT supported and degrades to a plain blockquote.
+  Valid kinds: \`NOTE\`, \`TIP\`, \`IMPORTANT\`, \`WARNING\`, \`CAUTION\` (lowercase also accepted: \`[!note]\` works). Any other kind (\`DANGER\`, \`INFO\`, etc.) degrades to a plain blockquote. The \`[!KIND]\` line must be alone — trailing text like \`> [!NOTE] Custom title\` is NOT supported.
+  Nested content works: lists, bold, inline code, and links all render normally inside an alert body.
 
 Diagrams (Mermaid — fenced code block with \`mermaid\` language):
   \`\`\`mermaid

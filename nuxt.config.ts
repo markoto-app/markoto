@@ -58,6 +58,7 @@ export default defineNuxtConfig({
       model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
       rewriteModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
       imageModel: 'gemini-3.1-flash-image-preview', // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool. Alternatives: `gemini-2.5-flash-image` (stable, older), `gemini-3-pro-image-preview` (higher quality, slower, more expensive).
+      transcribeModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_TRANSCRIBE_MODEL — one-shot voice-to-text for the AI prompt bar. Cheapest tier is plenty; transcription is an easy task for any Gemini model.
       // NUXT_GOOGLE_THINKING_BUDGET — tokens the model may spend on internal
       // reasoning before producing its response. 0 disables thinking entirely
       // (cheapest + fastest, recommended default). Typical "minimal" budgets
