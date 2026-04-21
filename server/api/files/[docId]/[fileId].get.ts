@@ -1,7 +1,6 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { and, eq } from 'drizzle-orm'
-import { documents, workspaceMembers } from '../../../db/schema'
+import { getDocWithActorRole } from '../../../repos/documents'
 import { decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 
@@ -19,51 +18,25 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid file id' })
   }
 
-  const db = useDatabase()
-  const docRow = (await db
-    .select({
-      accessMode: documents.accessMode,
-      ownerId: documents.ownerId,
-      workspaceId: documents.workspaceId
-    })
-    .from(documents)
-    .where(eq(documents.docId, docId))
-    .limit(1))[0]
+  const session = await getValidatedUserSession(event)
+  const row = await getDocWithActorRole(docId, session?.user?.id ?? null)
 
   // Gone from the DB → refuse to sign. Without this the endpoint would
   // happily presign for a deleted doc whose S3 objects outlived the
   // best-effort cleanup, exposing orphan content to anyone guessing the
   // docId / fileId pair.
-  if (!docRow) {
+  if (!row) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const session = await getValidatedUserSession(event)
-
-  // Look up workspace role only if there's something to look up. For anon
-  // requests or docs without a workspace this is a no-op — the decision
-  // function handles the null role.
-  let workspaceRole: 'admin' | 'editor' | 'viewer' | null = null
-  if (docRow.workspaceId && typeof session?.user?.id === 'number') {
-    const memberRow = (await db
-      .select({ role: workspaceMembers.role })
-      .from(workspaceMembers)
-      .where(and(
-        eq(workspaceMembers.workspaceId, docRow.workspaceId),
-        eq(workspaceMembers.userId, session.user.id)
-      ))
-      .limit(1))[0]
-    workspaceRole = (memberRow?.role ?? null) as typeof workspaceRole
-  }
-
   const doc: DocState = {
-    ownerId: docRow.ownerId,
-    workspaceId: docRow.workspaceId,
-    accessMode: docRow.accessMode
+    ownerId: row.ownerId,
+    workspaceId: row.workspaceId,
+    accessMode: row.accessMode
   }
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
-    workspaceRole,
+    workspaceRole: row.workspaceRole,
     hasValidDocJwt: hasValidDocJwt(event, docId)
   }
 

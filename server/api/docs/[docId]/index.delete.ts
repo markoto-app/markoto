@@ -1,5 +1,4 @@
-import { and, eq } from 'drizzle-orm'
-import { documents, workspaceMembers } from '../../../db/schema'
+import { getDocWithActorRole } from '../../../repos/documents'
 import { deleteDocument } from '../../../utils/documentLifecycle'
 import { decideDocDelete, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 
@@ -25,47 +24,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, message: 'Too many delete requests. Try again later.' })
   }
 
-  const db = useDatabase()
-  const docRow = (await db
-    .select({
-      accessMode: documents.accessMode,
-      ownerId: documents.ownerId,
-      workspaceId: documents.workspaceId
-    })
-    .from(documents)
-    .where(eq(documents.docId, docId))
-    .limit(1))[0]
-
-  if (!docRow) {
+  // Session is optional — anon can reach this endpoint to delete an
+  // anon doc. `getValidatedUserSession` still clears stale cookies as
+  // a side effect, which is fine.
+  const session = await getValidatedUserSession(event)
+  const row = await getDocWithActorRole(docId, session?.user?.id ?? null)
+  if (!row) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  // Session is optional here — anon can reach this endpoint to delete an
-  // anon doc. `getValidatedUserSession` still clears stale cookies as a
-  // side effect, which is fine.
-  const session = await getValidatedUserSession(event)
-
-  let workspaceRole: 'admin' | 'editor' | 'viewer' | null = null
-  if (docRow.workspaceId && typeof session?.user?.id === 'number') {
-    const memberRow = (await db
-      .select({ role: workspaceMembers.role })
-      .from(workspaceMembers)
-      .where(and(
-        eq(workspaceMembers.workspaceId, docRow.workspaceId),
-        eq(workspaceMembers.userId, session.user.id)
-      ))
-      .limit(1))[0]
-    workspaceRole = (memberRow?.role ?? null) as typeof workspaceRole
-  }
-
   const doc: DocState = {
-    ownerId: docRow.ownerId,
-    workspaceId: docRow.workspaceId,
-    accessMode: docRow.accessMode
+    ownerId: row.ownerId,
+    workspaceId: row.workspaceId,
+    accessMode: row.accessMode
   }
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
-    workspaceRole
+    workspaceRole: row.workspaceRole
   }
 
   const decision = decideDocDelete(doc, actor)

@@ -14,6 +14,14 @@ export interface AiSession {
   awareness: Awareness
   provider: HocuspocusProvider
   sessionId: string
+  docId: string
+  /**
+   * User id of whoever kicked off the session. Tools that write to
+   * audited tables (e.g. `uploads.uploaderId` from `generate_image`)
+   * attribute to this id rather than the AI's synthetic `ai:assistant:*`
+   * principal, so activity logs stay human-readable.
+   */
+  initiatorUserId: number
   updateStatus(phase: AiStatusPhase, message?: string): void
   destroy(): Promise<void>
 }
@@ -27,8 +35,7 @@ export interface SessionMeta {
   // 'prompt' = full agentic loop (long-running, gets the bottom bar's
   // attention treatment). 'rewrite' = inline selection rewrite (short,
   // its own UI surface — should NOT animate the bottom bar). Defaults
-  // to 'prompt' when omitted so the legacy behavior holds for any
-  // future caller that forgets to set it.
+  // to 'prompt' when omitted.
   kind?: 'prompt' | 'rewrite'
 }
 
@@ -37,8 +44,7 @@ export interface SessionMeta {
  * Awareness advertises the AI identity + initiator + live status so the UI
  * can render a distinct avatar and show what the AI is doing. The display
  * name is deliberately vendor-neutral ("AI Assistant") so swapping the
- * underlying model (Claude → Gemini today, possibly more tomorrow) is a
- * config change, not a UI rename.
+ * underlying model provider is a config change, not a UI rename.
  */
 export async function createAiSession(
   docId: string,
@@ -178,6 +184,8 @@ export async function createAiSession(
     awareness,
     provider,
     sessionId: meta.sessionId,
+    docId,
+    initiatorUserId: meta.initiatorUserId,
     updateStatus,
     destroy
   }

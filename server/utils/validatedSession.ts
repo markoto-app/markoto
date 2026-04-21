@@ -1,6 +1,5 @@
 import type { H3Event } from 'h3'
-import { eq } from 'drizzle-orm'
-import { users } from '../db/schema'
+import { findUserById } from '../repos/users'
 
 /**
  * Bump this constant whenever the session shape changes (new required fields,
@@ -61,23 +60,19 @@ async function resolveValidatedUser(event: H3Event): Promise<ValidatedUser | nul
     return null
   }
 
-  const db = useDatabase()
-  const row = (await db
-    .select({ id: users.id, name: users.name })
-    .from(users)
-    .where(eq(users.id, sessionUserId))
-    .limit(1))[0]
-
+  const row = await findUserById(sessionUserId)
   if (!row) {
-    // Session references a user that no longer exists. Clear the cookie so
-    // future requests are either cleanly anonymous or cleanly logged-in again.
+    // Session references a user that no longer exists. Clear the cookie
+    // so future requests are either cleanly anonymous or cleanly
+    // logged-in again.
     await clearUserSession(event)
     cache.validatedUser = null
     return null
   }
 
-  cache.validatedUser = row
-  return row
+  const user = { id: row.id, name: row.name }
+  cache.validatedUser = user
+  return user
 }
 
 /**

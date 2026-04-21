@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken'
-import { and, eq } from 'drizzle-orm'
-import { documents, workspaceMembers } from '../../../db/schema'
+import { getDocWithActorRole } from '../../../repos/documents'
 import { decideTokenAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 
 export default defineEventHandler(async (event) => {
@@ -14,63 +13,36 @@ export default defineEventHandler(async (event) => {
 
   const docId = requireDocId(event)
   const session = await getValidatedUserSession(event)
-  const db = useDatabase()
   const config = useRuntimeConfig()
 
   if (!config.jwtSecret) {
     throw createError({ statusCode: 500, message: 'JWT secret not configured' })
   }
 
-  const docRow = (await db
-    .select({
-      accessMode: documents.accessMode,
-      ownerId: documents.ownerId,
-      theme: documents.theme,
-      workspaceId: documents.workspaceId
-    })
-    .from(documents)
-    .where(eq(documents.docId, docId))
-    .limit(1))[0]
-
-  if (!docRow) {
+  const row = await getDocWithActorRole(docId, session?.user?.id ?? null)
+  if (!row) {
     // 404 rather than an anonymous token for a nonexistent doc: (a) prevents
     // "token shape" info-disclosure; (b) avoids a wasted sync-server connect
     // attempt; (c) gives the client a clear error to display.
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  // Second query, gated on (a) logged in and (b) doc has a workspace.
-  // Kept separate from the doc fetch to avoid awkward LEFT JOIN semantics
-  // for the anon / no-workspace cases.
-  let workspaceRole: 'admin' | 'editor' | 'viewer' | null = null
-  if (docRow.workspaceId && typeof session?.user?.id === 'number') {
-    const memberRow = (await db
-      .select({ role: workspaceMembers.role })
-      .from(workspaceMembers)
-      .where(and(
-        eq(workspaceMembers.workspaceId, docRow.workspaceId),
-        eq(workspaceMembers.userId, session.user.id)
-      ))
-      .limit(1))[0]
-    workspaceRole = (memberRow?.role ?? null) as typeof workspaceRole
-  }
-
   const doc: DocState = {
-    ownerId: docRow.ownerId,
-    workspaceId: docRow.workspaceId,
-    accessMode: docRow.accessMode
+    ownerId: row.ownerId,
+    workspaceId: row.workspaceId,
+    accessMode: row.accessMode
   }
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
-    workspaceRole
+    workspaceRole: row.workspaceRole
   }
 
   const decision = decideTokenAccess(doc, actor)
   const responseBase = {
     readOnly: decision.readOnly,
-    accessMode: docRow.accessMode,
-    ownerId: docRow.ownerId,
-    theme: docRow.theme
+    accessMode: row.accessMode,
+    ownerId: row.ownerId,
+    theme: row.theme
   }
 
   if (decision.outcome === 'forbidden') {

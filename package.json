@@ -14,6 +14,7 @@
     "test": "vitest run --project=unit --project=dom",
     "test:unit": "vitest run --project=unit",
     "test:dom": "vitest run --project=dom",
+    "test:repos": "vitest run --project=repos",
     "test:integration": "vitest run --project=integration",
     "test:all": "vitest run",
     "test:watch": "vitest --project=unit --project=dom",

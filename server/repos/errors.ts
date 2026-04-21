@@ -1,0 +1,66 @@
+// Domain errors thrown by the repositories. Endpoints catch these and
+// translate to HTTP codes via `toHttpError(e)` at the end of the handler,
+// so individual endpoints no longer spell out "throw 404 if not found,
+// throw 409 if duplicate" for every operation.
+//
+// Every repo function returns either a valid domain value or throws one
+// of these. Never an HTTP status, never a pg error code — those details
+// stop at the repo boundary.
+
+export class RepoError extends Error {
+  constructor(message: string, public readonly httpStatus: number) {
+    super(message)
+    this.name = 'RepoError'
+  }
+}
+
+export class NotFoundError extends RepoError {
+  constructor(what: string) {
+    super(`${what} not found`, 404)
+    this.name = 'NotFoundError'
+  }
+}
+
+export class ForbiddenError extends RepoError {
+  constructor(message = 'Forbidden') {
+    super(message, 403)
+    this.name = 'ForbiddenError'
+  }
+}
+
+export class ConflictError extends RepoError {
+  constructor(message: string) {
+    super(message, 409)
+    this.name = 'ConflictError'
+  }
+}
+
+export class DuplicateError extends ConflictError {
+  constructor(what: string) {
+    super(`${what} already exists`)
+    this.name = 'DuplicateError'
+  }
+}
+
+export class LastAdminError extends ConflictError {
+  constructor(message = 'Workspace must have at least one admin — promote someone else first, or delete the workspace.') {
+    super(message)
+    this.name = 'LastAdminError'
+  }
+}
+
+export class ValidationError extends RepoError {
+  constructor(message: string) {
+    super(message, 400)
+    this.name = 'ValidationError'
+  }
+}
+
+/**
+ * Translate a RepoError to an H3 createError call. Endpoints use this at
+ * the top level so the handler body can call repo functions without
+ * wrapping every call in try/catch.
+ */
+export function isRepoError(e: unknown): e is RepoError {
+  return e instanceof RepoError
+}

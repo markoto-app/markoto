@@ -1,13 +1,20 @@
 import { GoogleGenAI } from '@google/genai'
 import { nanoid } from 'nanoid'
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
+import { findUserNameById } from '../../repos/users'
 import { addAiSession, removeAiSession, DuplicateSessionError } from '../../utils/aiSessions'
 import { createAiSession } from '../../utils/aiClient'
 import { runAgenticLoop } from '../../utils/agentic/runLoop'
 import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
 
 import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
+import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { THEME_FONTS } from '~~/shared/utils/themeFonts'
+
+// System prompt bits derived from source-of-truth data — keeps them in sync
+// when presets or fonts are added/removed without hand-editing the prompt.
+const PRESET_LIST = THEME_PRESETS.map(p => p.id).join(', ')
+const SERIF_FONTS = THEME_FONTS.filter(f => f.category === 'serif').map(f => f.name).join(', ')
+const SANS_FONTS = THEME_FONTS.filter(f => f.category === 'sans').map(f => f.name).join(', ')
 
 // Hard deadline for a full agentic loop. A grounded `web_search` sub-call can
 // take several seconds; combined with model thinking and multi-edit sequences
@@ -19,14 +26,22 @@ const HARD_DEADLINE_MS = 5 * 60_000
 
 const SYSTEM_PROMPT = `You are an AI assistant collaborating on a shared markdown document in a Google-Docs-style editor.
 
-You have access to four tools, called as functions:
-- \`view_document\` — read the current document (line-numbered). Call this FIRST before any edit so you're matching against current content.
+You have access to nine tools, called as functions:
+- \`view_document\` — read the current document (line-numbered). Call this FIRST before any content edit. After multi-step edits, a failed \`replace_text\` ("no match" means the text shifted), or a long pause, re-read before the next edit — the doc is collaborative and may have changed under you.
 - \`replace_text\` — replace an exact-match \`old_str\` with \`new_str\`. \`old_str\` must be unique in the document; include enough surrounding context.
 - \`insert_text\` — insert text after a specific line (1-indexed; 0 means start of file).
-- \`web_search\` — search the web for up-to-date info. Use for anything time-sensitive (recent events, prices, today's news) BEFORE writing.
+- \`web_search\` — search the web for up-to-date info on a TOPIC. Use for anything time-sensitive (recent events, prices, today's news) BEFORE writing. Returns a synthesised answer with sources.
+- \`fetch_url\` — fetch a SPECIFIC URL the user named or linked, and extract both its readable text content AND a list of image URLs visible on the page. Use when the user says "from <site>", "about me based on <url>", or pastes a link. Returns both the page summary and image URLs you can then \`view_image\` to validate or embed externally via \`insert_text\` as \`![alt](https://...)\`. Prefer this over \`web_search\` when you already have a URL.
+- \`update_theme\` — change document styling: page size/orientation/margins, body and heading fonts, font sizes, colors, columns, header/footer templates, code theme, table styling, TOC options, mermaid diagram theme. Pass ONLY the fields you want to change — all others keep their current value. Also accepts \`preset\` to apply a built-in template as the base (available presets: ${PRESET_LIST}), optionally tweaked by other fields in the same call. The document is rendered as a paged PDF-style preview, so typography matters. Use this whenever the user asks for styling, layout, fonts, colors, or "make it look X" — do NOT try to emulate styling with markdown.
+- \`set_title\` — rename the document. The title shows in the browser tab, topbar, and document listings, and can be referenced via \`{title}\` in header/footer templates. Use when the user asks to rename, or when giving an untitled doc a title based on its contents.
+- \`view_image\` — fetch an image embedded in the document (by the URL as written in markdown, e.g. \`/api/files/{docId}/{fileId}.png\` for uploads or an \`https://...\` URL for external images) and inline it into the conversation so you can see what it actually depicts. Markdown \`![alt](url)\` only tells you the alt text — the pixels are only visible after calling this. Always call it before writing alt text, describing a figure, summarising a chart, or validating that a caption matches the image.
+- \`generate_image\` — generate a photo or illustration from a text prompt and upload it to the document's file store. Returns the markdown reference (e.g. \`![alt](/api/files/…/x.png)\`) but does NOT place it in the document — follow up with \`insert_text\` to add it at a chosen line, or \`replace_text\` to swap an existing image. Write a detailed prompt (subject, style, composition, mood) and concise alt text. Use for pictorial content (photos, illustrations, artwork). For diagrams, flowcharts, sequence diagrams, Gantt charts, class diagrams, ER diagrams, and pie charts, write a Mermaid \`\`\`mermaid fenced code block via \`insert_text\` instead — Mermaid is rendered natively by the preview and stays editable as text.
 
 Guidelines:
-- Always call \`view_document\` first to see current content, then decide what to change.
+- Always call \`view_document\` first before CONTENT edits. Theme and title changes don't require reading the document unless the user wants the title derived from the content. Re-read between edits if a \`replace_text\` failed with "no match" or if a lot has changed.
+- For styling requests ("make it look more classy", "change the font to Times", "use a serif body font", "make it A4 landscape with wider margins"): call \`update_theme\` directly. The \`body.font\` and \`headings.font\` enums list the full font palette — pick the closest curated match to what the user asked for. Available serif fonts: ${SERIF_FONTS}. Available sans-serif fonts: ${SANS_FONTS}. If the user names a font not in the enum (e.g. "Times", "Helvetica", "Comic Sans"), choose the closest visual match from these lists.
+- For preset requests ("change this to the modern theme", "make it look like an academic paper"): call \`update_theme\` with the \`preset\` field set. If the user asks for a preset plus a tweak ("academic theme but single column"), pass both \`preset\` and the override fields in ONE call.
+- For rename requests ("title this 'Project Brief'", "call the document X", "give it a better title"): call \`set_title\`. If the user asks you to title the document based on its contents, \`view_document\` first, then \`set_title\`.
 - If the user asks you to "replace the article" or rewrite the whole document: read it, then replace the body with \`replace_text\` (old_str = the whole existing body, new_str = the new content). Do the edit — do not answer in chat.
 - When a request needs many independent edits (e.g. "update all headings", "fix every link"), emit MULTIPLE function calls in the SAME response. The system applies them in order; batching saves turns and the user sees all edits stream in at once.
 - If the user asks about current events or anything recent, call \`web_search\` first, then apply the edits.
@@ -57,9 +72,7 @@ export default defineEventHandler(async (event) => {
 
   await requireDocEditAccess(docId, userId)
 
-  const db = useDatabase()
-  const userRow = (await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1))[0]
-  const initiatorName = userRow?.name || userName
+  const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706' // Warm orange — reused from the original AI-as-collaborator design
 
   const sessionId = nanoid(12)

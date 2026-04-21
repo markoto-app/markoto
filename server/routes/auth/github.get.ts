@@ -1,36 +1,21 @@
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
+import { upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/validatedSession'
 
 export default defineOAuthGitHubEventHandler({
   config: { emailRequired: true },
   async onSuccess(event, { user }) {
-    const db = useDatabase()
-
-    // Upsert user
-    const existing = (await db.select().from(users).where(eq(users.githubId, user.id.toString())).limit(1))[0]
-    if (existing) {
-      await db.update(users).set({
-        login: user.login,
-        name: user.name || user.login,
-        email: user.email,
-        avatarUrl: user.avatar_url
-      }).where(eq(users.githubId, user.id.toString()))
-    } else {
-      await db.insert(users).values({
-        githubId: user.id.toString(),
-        login: user.login,
-        name: user.name || user.login,
-        email: user.email,
-        avatarUrl: user.avatar_url
-      })
-    }
-
-    const dbUser = (await db.select({ id: users.id }).from(users).where(eq(users.githubId, user.id.toString())).limit(1))[0]!
+    const userId = await upsertOAuthUser({
+      provider: 'github',
+      providerUserId: user.id.toString(),
+      login: user.login,
+      name: user.name || user.login,
+      email: user.email,
+      avatarUrl: user.avatar_url
+    })
 
     await setUserSession(event, {
       user: {
-        id: dbUser.id,
+        id: userId,
         login: user.login,
         name: user.name || user.login,
         email: user.email,

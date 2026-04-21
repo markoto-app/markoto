@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { workspaces, workspaceMembers } from '../../db/schema'
+import { createWorkspace } from '../../repos/workspaces'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -22,21 +22,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const workspaceId = nanoid(10)
-  const db = useDatabase()
 
-  // Creator gets a workspace row (for the immutable ownerId record) and a
-  // workspace_members row with role='admin'. Membership table is the source
-  // of truth for authorization; workspaces.ownerId is for history only.
-  await db.insert(workspaces).values({
+  // createWorkspace writes the workspaces row AND the creator's admin
+  // membership row in one transaction — neither can land without the
+  // other, so the ≥1-admin invariant holds from t=0.
+  await createWorkspace({
     workspaceId,
     ownerId: session.user.id,
     name: rawName,
     description
-  })
-  await db.insert(workspaceMembers).values({
-    workspaceId,
-    userId: session.user.id,
-    role: 'admin'
   })
 
   return { workspaceId }

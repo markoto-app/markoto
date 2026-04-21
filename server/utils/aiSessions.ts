@@ -1,5 +1,6 @@
 import { eq, and, lt } from 'drizzle-orm'
 import { aiSessions } from '../db/schema'
+import { useDatabase } from './database'
 
 /**
  * AI session registry.
@@ -12,7 +13,7 @@ import { aiSessions } from '../db/schema'
  *
  * AbortControllers themselves stay in-process memory, keyed by sessionId.
  * They can't be serialized, and aborts only need to work within the process
- * that's running the Anthropic loop anyway. If a request to /api/ai/abort
+ * that's running the agentic loop anyway. If a request to /api/ai/abort
  * lands on a different process than the one running the loop (future
  * multi-worker setup) it will see the DB row but no local controller —
  * `getAiSession` returns the row with `abortController: null`, and the abort
@@ -61,10 +62,21 @@ export async function addAiSession(session: Omit<ActiveAISession, 'abortControll
       startedAt: session.startedAt
     })
   } catch (e) {
-    const err = e as { code?: string, message?: string }
-    // Postgres unique-violation code → per-user cap hit. Belt-and-suspenders:
-    // also accept a substring match in case the driver reshapes the error.
-    if (err?.code === '23505' || /duplicate key value|unique constraint/i.test(String(err?.message ?? ''))) {
+    // Postgres 23505 = unique_violation. Drizzle wraps it in a
+    // DrizzleQueryError whose `.cause` carries the original pg error
+    // with `.code`. Walk the cause chain so the check works regardless
+    // of which driver version is in use, and fall back to a message
+    // substring match as belt-and-braces.
+    const codes = new Set<string>()
+    const messages: string[] = []
+    let cur: unknown = e
+    for (let depth = 0; cur && depth < 5; depth++) {
+      const n = cur as { code?: string, message?: string, cause?: unknown }
+      if (typeof n.code === 'string') codes.add(n.code)
+      if (typeof n.message === 'string') messages.push(n.message)
+      cur = n.cause
+    }
+    if (codes.has('23505') || messages.some(m => /duplicate key value|unique constraint/i.test(m))) {
       throw new DuplicateSessionError()
     }
     throw e

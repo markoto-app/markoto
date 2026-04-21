@@ -46,6 +46,24 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: 'repos',
+          include: ['tests/repos/**/*.test.ts'],
+          environment: 'node',
+          // Repos share the test DB — serialize everything. Same
+          // groupOrder as integration so they don't race for the DB.
+          pool: 'forks',
+          isolate: false,
+          fileParallelism: false,
+          maxConcurrency: 1,
+          sequence: { concurrent: false, groupOrder: 1 },
+          testTimeout: 15_000,
+          hookTimeout: 30_000,
+          globalSetup: ['./tests/repos/setup/globalSetup.ts']
+        }
+      },
+      {
+        extends: true,
+        test: {
           name: 'integration',
           include: ['tests/integration/**/*.test.ts'],
           environment: 'node',

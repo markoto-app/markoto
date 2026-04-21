@@ -129,12 +129,276 @@ describe('web_search schema', () => {
   })
 })
 
+describe('update_theme schema', () => {
+  it('accepts empty object (all fields optional)', () => {
+    expect(parse('update_theme', {}).success).toBe(true)
+  })
+
+  it('accepts a single nested field (partial update)', () => {
+    expect(parse('update_theme', { body: { size: 12 } }).success).toBe(true)
+  })
+
+  it('rejects body.size out of range', () => {
+    // isValidTheme caps body.size at 6–24; the Zod schema mirrors that
+    // so Gemini gets a schema-level rejection instead of the loop
+    // returning a runtime "merged theme failed validation" error.
+    expect(parse('update_theme', { body: { size: 100 } }).success).toBe(false)
+    expect(parse('update_theme', { body: { size: 2 } }).success).toBe(false)
+  })
+
+  it('rejects invalid hex color', () => {
+    expect(parse('update_theme', { color: { brand: 'red' } }).success).toBe(false)
+    expect(parse('update_theme', { color: { brand: '#zzz' } }).success).toBe(false)
+  })
+
+  it('accepts valid hex colors (3-char and 6-char)', () => {
+    expect(parse('update_theme', { color: { brand: '#fff' } }).success).toBe(true)
+    expect(parse('update_theme', { color: { brand: '#3B82F6' } }).success).toBe(true)
+  })
+
+  it('rejects fonts not in the curated enum', () => {
+    // Handlers merge on top of current theme and re-validate; if an
+    // off-list font slipped through, themeToCss would render the
+    // system fallback, not what the user asked for. Keep the gate tight.
+    expect(parse('update_theme', { body: { font: 'Times New Roman' } }).success).toBe(false)
+    expect(parse('update_theme', { body: { font: 'Comic Sans MS' } }).success).toBe(false)
+  })
+
+  it('accepts curated font names', () => {
+    expect(parse('update_theme', { body: { font: 'Inter' } }).success).toBe(true)
+    expect(parse('update_theme', { body: { font: 'EB Garamond' } }).success).toBe(true)
+  })
+
+  it('accepts valid preset ids', () => {
+    expect(parse('update_theme', { preset: 'modern' }).success).toBe(true)
+    expect(parse('update_theme', { preset: 'academic' }).success).toBe(true)
+  })
+
+  it('rejects unknown preset id', () => {
+    expect(parse('update_theme', { preset: 'sparkly' }).success).toBe(false)
+  })
+
+  it('accepts preset + field override in the same call', () => {
+    // Documented shape: preset replaces the base, then other fields
+    // merge on top. Schema must not treat these as mutually exclusive.
+    expect(parse('update_theme', { preset: 'modern', layout: { columns: '2' } }).success).toBe(true)
+  })
+
+  it('accepts numeric-ish fields as string enums (Gemini schema quirk)', () => {
+    // headings.weight, layout.columns, toc.maxDepth are declared as
+    // string enums for Gemini-schema stability; the handler coerces.
+    expect(parse('update_theme', { headings: { weight: '600' } }).success).toBe(true)
+    expect(parse('update_theme', { layout: { columns: '2' } }).success).toBe(true)
+    expect(parse('update_theme', { toc: { maxDepth: '3' } }).success).toBe(true)
+  })
+
+  it('rejects numeric-ish fields passed as numbers', () => {
+    // If these ever get declared as number enums, the coercion in
+    // aiToolAdapter becomes dead code — this test pins the contract.
+    expect(parse('update_theme', { headings: { weight: 600 } }).success).toBe(false)
+    expect(parse('update_theme', { layout: { columns: 2 } }).success).toBe(false)
+  })
+
+  it('rejects page.margin out of range', () => {
+    expect(parse('update_theme', { page: { margin: -5 } }).success).toBe(false)
+    expect(parse('update_theme', { page: { margin: 200 } }).success).toBe(false)
+  })
+
+  describe('shared-enum-schema drift guards', () => {
+    // These schemas are imported from `shared/types/theme.ts`. If anyone
+    // edits the theme schemas they should cascade here automatically.
+    // The tests ONLY verify the values listed in DocTheme's enums are
+    // accepted — if a new variant is added there, it should be reachable
+    // from the AI tool too. If the AI tool path diverges, update the
+    // comment in functionTools.ts explaining why.
+
+    it.each(['A4', 'Letter', 'Legal'])('page.size accepts %s (shared PageSizeSchema)', (size) => {
+      expect(parse('update_theme', { page: { size } }).success).toBe(true)
+    })
+
+    it.each(['portrait', 'landscape'])('page.orientation accepts %s', (orientation) => {
+      expect(parse('update_theme', { page: { orientation } }).success).toBe(true)
+    })
+
+    it.each(['left', 'justify'])('body.textAlign accepts %s', (textAlign) => {
+      expect(parse('update_theme', { body: { textAlign } }).success).toBe(true)
+    })
+
+    it.each([
+      'github-light', 'github-dark', 'monokai', 'dracula',
+      'solarized-light', 'solarized-dark', 'none'
+    ])('code.theme accepts %s (shared CodeThemeSchema)', (theme) => {
+      expect(parse('update_theme', { code: { theme } }).success).toBe(true)
+    })
+
+    it.each(['brand', 'muted', 'none'])('tables.headerBackground accepts %s', (headerBackground) => {
+      expect(parse('update_theme', { tables: { headerBackground } }).success).toBe(true)
+    })
+
+    it.each(['auto', 'inherit'])('tables.headerTextColor accepts %s', (headerTextColor) => {
+      expect(parse('update_theme', { tables: { headerTextColor } }).success).toBe(true)
+    })
+
+    it.each(['all', 'horizontal', 'minimal', 'none'])('tables.borders accepts %s', (borders) => {
+      expect(parse('update_theme', { tables: { borders } }).success).toBe(true)
+    })
+
+    it.each(['border', 'background', 'none'])('blocks.blockquoteStyle accepts %s', (blockquoteStyle) => {
+      expect(parse('update_theme', { blocks: { blockquoteStyle } }).success).toBe(true)
+    })
+
+    it.each(['default', 'dark', 'forest', 'neutral', 'base'])('mermaid.theme accepts %s', (theme) => {
+      expect(parse('update_theme', { mermaid: { theme } }).success).toBe(true)
+    })
+
+    it.each(['dotted', 'dashed', 'none'])('toc.leaderStyle accepts %s', (leaderStyle) => {
+      expect(parse('update_theme', { toc: { leaderStyle } }).success).toBe(true)
+    })
+
+    it('rejects invalid page.size (proves PageSizeSchema is actually wired)', () => {
+      // If the `.optional()` chain accidentally dropped the schema, any
+      // string would pass. This guard would catch that regression.
+      expect(parse('update_theme', { page: { size: 'Tabloid' } }).success).toBe(false)
+    })
+
+    it('rejects invalid code.theme', () => {
+      expect(parse('update_theme', { code: { theme: 'made-up-theme' } }).success).toBe(false)
+    })
+  })
+})
+
+describe('set_title schema', () => {
+  it('accepts a normal title', () => {
+    expect(parse('set_title', { title: 'Project Brief' }).success).toBe(true)
+  })
+
+  it('rejects empty title', () => {
+    expect(parse('set_title', { title: '' }).success).toBe(false)
+  })
+
+  it('rejects whitespace-only title (Zod trim reduces to empty)', () => {
+    // Zod's .trim() runs before .min(1), so "   " becomes "" and fails.
+    // Pins the invariant that the handler never has to deal with blank titles.
+    expect(parse('set_title', { title: '   ' }).success).toBe(false)
+  })
+
+  it('rejects title > 255 chars', () => {
+    expect(parse('set_title', { title: 'x'.repeat(256) }).success).toBe(false)
+  })
+
+  it('accepts title at 255-char boundary', () => {
+    expect(parse('set_title', { title: 'x'.repeat(255) }).success).toBe(true)
+  })
+
+  it('rejects non-string title', () => {
+    expect(parse('set_title', { title: 42 }).success).toBe(false)
+  })
+})
+
+describe('view_image schema', () => {
+  it('accepts a relative /api/files path', () => {
+    expect(parse('view_image', { src: '/api/files/abc123/def456.png' }).success).toBe(true)
+  })
+
+  it('accepts an absolute https URL', () => {
+    expect(parse('view_image', { src: 'https://example.com/chart.jpg' }).success).toBe(true)
+  })
+
+  it('rejects empty src', () => {
+    expect(parse('view_image', { src: '' }).success).toBe(false)
+  })
+
+  it('rejects src > 2048 chars (guard against payload bloat)', () => {
+    expect(parse('view_image', { src: 'https://example.com/' + 'a'.repeat(2048) }).success).toBe(false)
+  })
+
+  it('rejects missing src', () => {
+    expect(parse('view_image', {}).success).toBe(false)
+  })
+})
+
+describe('fetch_url schema', () => {
+  it('accepts an absolute https URL', () => {
+    expect(parse('fetch_url', { url: 'https://example.com/about' }).success).toBe(true)
+  })
+
+  it('accepts a bare hostname (handler adds scheme)', () => {
+    // Handler normalises missing schemes to https://, so the schema
+    // doesn't strictly require one. Keeps the AI from tripping over
+    // the common "write about X from foo.com" phrasing where the user
+    // didn't include a scheme.
+    expect(parse('fetch_url', { url: 'example.com' }).success).toBe(true)
+  })
+
+  it('rejects empty url', () => {
+    expect(parse('fetch_url', { url: '' }).success).toBe(false)
+  })
+
+  it('rejects whitespace-only url', () => {
+    expect(parse('fetch_url', { url: '   ' }).success).toBe(false)
+  })
+
+  it('rejects url > 2048 chars', () => {
+    expect(parse('fetch_url', { url: 'https://example.com/' + 'a'.repeat(2048) }).success).toBe(false)
+  })
+
+  it('rejects missing url', () => {
+    expect(parse('fetch_url', {}).success).toBe(false)
+  })
+})
+
+describe('generate_image schema', () => {
+  const valid = { prompt: 'a cat on a skateboard', alt: 'cat skateboarding' }
+
+  it('accepts a full valid payload', () => {
+    expect(parse('generate_image', valid).success).toBe(true)
+  })
+
+  it('rejects empty prompt', () => {
+    expect(parse('generate_image', { ...valid, prompt: '' }).success).toBe(false)
+  })
+
+  it('rejects whitespace-only prompt', () => {
+    // .trim().min(1) ordering: whitespace collapses then fails min.
+    expect(parse('generate_image', { ...valid, prompt: '   ' }).success).toBe(false)
+  })
+
+  it('rejects prompt > 2000 chars', () => {
+    expect(parse('generate_image', { ...valid, prompt: 'x'.repeat(2001) }).success).toBe(false)
+  })
+
+  it('rejects empty alt', () => {
+    expect(parse('generate_image', { ...valid, alt: '' }).success).toBe(false)
+  })
+
+  it('rejects alt > 200 chars', () => {
+    expect(parse('generate_image', { ...valid, alt: 'x'.repeat(201) }).success).toBe(false)
+  })
+
+  it('rejects missing required fields', () => {
+    expect(parse('generate_image', { alt: 'x' }).success).toBe(false)
+    expect(parse('generate_image', { prompt: 'x' }).success).toBe(false)
+    expect(parse('generate_image', {}).success).toBe(false)
+  })
+
+  it('ignores extra placement-related fields (tool no longer inserts)', () => {
+    // Ensures old prompts referencing insert_line/caption still parse —
+    // Zod's default is strip-unknown, so extras don't fail validation.
+    expect(parse('generate_image', { ...valid, insert_line: 0, caption: 'x' }).success).toBe(true)
+  })
+})
+
 describe('TOOL_SCHEMAS registry', () => {
-  it('registers exactly the four declared tools', () => {
+  it('registers exactly the declared tools (drift guard against added/removed entries)', () => {
     expect(Object.keys(TOOL_SCHEMAS).sort()).toEqual([
+      'fetch_url',
+      'generate_image',
       'insert_text',
       'replace_text',
+      'set_title',
+      'update_theme',
       'view_document',
+      'view_image',
       'web_search'
     ])
   })

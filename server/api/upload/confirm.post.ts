@@ -1,6 +1,5 @@
 import { HeadObjectCommand } from '@aws-sdk/client-s3'
-import { eq } from 'drizzle-orm'
-import { uploads } from '../../db/schema'
+import { markConfirmed } from '../../repos/uploads'
 
 export default defineEventHandler(async (event) => {
   const { key } = await readBody(event)
@@ -23,12 +22,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Flip the matching uploads row to confirmed. We don't fail if the row is
-  // missing (anonymous-doc upload path doesn't create a row) — the HEAD check
-  // above is the real "did it land in S3" gate.
-  const db = useDatabase()
-  await db.update(uploads)
-    .set({ confirmedAt: new Date() })
-    .where(eq(uploads.s3Key, key))
+  // missing (anonymous-doc upload path doesn't create a row) — the HEAD
+  // check above is the real "did it land in S3" gate.
+  await markConfirmed(key)
 
   return {
     success: true,

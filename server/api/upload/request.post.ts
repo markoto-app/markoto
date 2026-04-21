@@ -1,13 +1,14 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
-import { eq } from 'drizzle-orm'
-import { documents, uploads } from '../../db/schema'
+import { getDoc } from '../../repos/documents'
+import { recordPending } from '../../repos/uploads'
 
-// SVG deliberately excluded — SVG can embed <script> and event handlers that
-// execute when the file is opened directly (right-click → open, anchor link to
-// the presigned S3 URL). The markdown pipeline's DOMPurify blocks inline SVG,
-// but uploaded SVGs bypass that path entirely.
+// SVG deliberately excluded — SVG can embed <script> and event handlers
+// that execute when the file is opened directly (right-click → open,
+// anchor link to the presigned S3 URL). The markdown pipeline's
+// DOMPurify blocks inline SVG, but uploaded SVGs bypass that path
+// entirely.
 const CONTENT_TYPE_EXT: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
@@ -16,9 +17,9 @@ const CONTENT_TYPE_EXT: Record<string, string> = {
 }
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 
-// nanoid alphabet + a generous length window. Any docId that doesn't match
-// this gets rejected before being interpolated into the S3 key — without
-// this, `docId: "../other-doc"` is signed for an arbitrary key.
+// nanoid alphabet + a generous length window. Any docId that doesn't
+// match this gets rejected before being interpolated into the S3 key —
+// without this, `docId: "../other-doc"` is signed for an arbitrary key.
 const DOC_ID_RE = /^[A-Za-z0-9_-]{8,32}$/
 
 export default defineEventHandler(async (event) => {
@@ -43,9 +44,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify user has write access to this document
-  const db = useDatabase()
-  const doc = (await db.select().from(documents).where(eq(documents.docId, docId)).limit(1))[0]
-
+  const doc = await getDoc(docId)
   if (doc) {
     // If doc exists and is view-only, only the owner can upload
     if (doc.accessMode === 'open-view' && doc.ownerId !== session.user.id) {
@@ -59,13 +58,13 @@ export default defineEventHandler(async (event) => {
   const fileId = nanoid(12)
   const key = `docs/${docId}/${fileId}.${ext}`
 
-  // Insert an unconfirmed upload row BEFORE issuing the URL so the orphan
-  // cleanup has a record to compare against. If the user never PUTs the
-  // file, this row stays unconfirmed and gets reaped after 24 h. If the
-  // doc itself doesn't exist in DB yet (anonymous-doc edge case), skip the
-  // insert — there's no FK target.
+  // Insert an unconfirmed upload row BEFORE issuing the URL so the
+  // orphan cleanup has a record to compare against. If the user never
+  // PUTs the file, this row stays unconfirmed and gets reaped after
+  // 24h. If the doc itself doesn't exist in DB yet (anonymous-doc edge
+  // case), skip the insert — there's no FK target.
   if (doc) {
-    await db.insert(uploads).values({
+    await recordPending({
       docId,
       fileId: `${fileId}.${ext}`,
       uploaderId: session.user.id,

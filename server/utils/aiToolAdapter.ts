@@ -1,25 +1,40 @@
-// Translates text-editor tool commands to Y.Text operations on a Y.Doc shared
-// via Hocuspocus. Edits appear live on every connected client.
+// Translates Gemini tool calls to Y.Doc operations on a document shared via
+// Hocuspocus. Edits appear live on every connected client.
 //
-// Two entry points:
-//   - `executeEditorTool(session, input)` — legacy (Anthropic-shaped; takes
-//     `{ command, ...args }`). Preserved for any future consumer.
-//   - `executeFunctionByName(session, name, args)` — Gemini-shaped; takes a
-//     function name and the args object, routes to the right handler.
+// Entry point: `executeFunctionByName(session, name, args)` — dispatches a
+// validated tool call to the right handler.
 
+import type { Part } from '@google/genai'
+import { GoogleGenAI } from '@google/genai'
+import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { nanoid } from 'nanoid'
 import type { AiSession } from './aiClient'
 import type {
   ViewDocumentInput,
   ReplaceTextInput,
-  InsertTextInput
+  InsertTextInput,
+  UpdateThemeInput,
+  SetTitleInput,
+  ViewImageInput,
+  GenerateImageInput
 } from './agentic/functionTools'
-
-// The AI only ever operates on a single logical "file".
-export const DOCUMENT_PATH = 'document.md'
+import type { DocTheme } from '~~/shared/types/theme'
+import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { getDoc, updateDocMeta } from '../repos/documents'
+import { recordPending, markConfirmed } from '../repos/uploads'
 
 export interface ToolResult {
   content: string
   isError: boolean
+  /**
+   * Extra content parts (e.g. image inlineData) appended to the user
+   * message AFTER the functionResponse so the model can see them on the
+   * next turn. Gemini's functionResponse is JSON-only — binary data has
+   * to ride as a sibling `inlineData` part.
+   */
+  extraParts?: Part[]
 }
 
 function ok(content: string): ToolResult {
@@ -30,9 +45,6 @@ function err(content: string): ToolResult {
   return { content, isError: true }
 }
 
-/**
- * Prepends 1-indexed line numbers to each line, matching Anthropic's docs.
- */
 function withLineNumbers(text: string, startLine: number = 1): string {
   const lines = text.split('\n')
   return lines.map((line, i) => `${startLine + i}: ${line}`).join('\n')
@@ -40,12 +52,8 @@ function withLineNumbers(text: string, startLine: number = 1): string {
 
 function handleView(
   session: AiSession,
-  input: { path: string, view_range?: [number, number], max_characters?: number }
+  input: { view_range?: [number, number], max_characters?: number }
 ): ToolResult {
-  if (input.path !== DOCUMENT_PATH) {
-    return err(`Error: This agent can only access ${DOCUMENT_PATH}. Got: ${input.path}`)
-  }
-
   const fullText = session.ytext.toString()
   const lines = fullText.split('\n')
   let startLine = 1
@@ -85,16 +93,10 @@ function findIndexOfOnlyMatch(haystack: string, needle: string): { found: number
 
 function handleStrReplace(
   session: AiSession,
-  input: { path: string, old_str: string, new_str: string }
+  input: { old_str: string, new_str: string }
 ): ToolResult {
-  if (input.path !== DOCUMENT_PATH) {
-    return err(`Error: This agent can only access ${DOCUMENT_PATH}. Got: ${input.path}`)
-  }
-  if (typeof input.old_str !== 'string' || typeof input.new_str !== 'string') {
-    return err('Error: old_str and new_str are required')
-  }
   if (input.old_str.length === 0) {
-    return err('Error: old_str cannot be empty (use `insert` for empty insertion)')
+    return err('Error: old_str cannot be empty (use `insert_text` for empty insertion)')
   }
 
   const full = session.ytext.toString()
@@ -118,42 +120,40 @@ function handleStrReplace(
   return ok('Successfully replaced text at exactly one location.')
 }
 
+/**
+ * Resolve a 1-indexed "insert after line N" into a character offset
+ * into `full`. Returns null if the line is beyond EOF.
+ *
+ * - insert_line=0 → 0 (beginning of file)
+ * - insert_line=N → start of line N+1
+ * - insert_line === lines.length → end of file
+ *
+ * The +1-per-newline tally overshoots when the doc has no trailing
+ * newline and we're appending; `Math.min(idx, full.length)` clamps us
+ * back. Mid-doc positions never exceed total length, so they're
+ * unaffected.
+ */
+/** @internal exported for unit tests; not part of the public API. */
+export function lineToCharOffset(full: string, insertLine: number): number | null {
+  const lines = full.split('\n')
+  if (insertLine > lines.length) return null
+  let idx = 0
+  for (let i = 0; i < insertLine; i++) {
+    idx += lines[i]!.length + 1
+  }
+  return Math.min(idx, full.length)
+}
+
 function handleInsert(
   session: AiSession,
-  input: { path: string, insert_line: number, insert_text: string }
+  input: { insert_line: number, insert_text: string }
 ): ToolResult {
-  if (input.path !== DOCUMENT_PATH) {
-    return err(`Error: This agent can only access ${DOCUMENT_PATH}. Got: ${input.path}`)
-  }
-  if (typeof input.insert_line !== 'number' || input.insert_line < 0) {
-    return err('Error: insert_line must be >= 0 (0 means beginning of file)')
-  }
-  if (typeof input.insert_text !== 'string') {
-    return err('Error: insert_text is required')
-  }
-
   const full = session.ytext.toString()
-  const lines = full.split('\n')
-  if (input.insert_line > lines.length) {
-    return err(`Error: insert_line ${input.insert_line} is beyond the end of the file (${lines.length} lines)`)
+  const idx = lineToCharOffset(full, input.insert_line)
+  if (idx === null) {
+    const lineCount = full.split('\n').length
+    return err(`Error: insert_line ${input.insert_line} is beyond the end of the file (${lineCount} lines)`)
   }
-
-  // Compute char index for the start of line (insert_line + 1).
-  // insert_line=0 → beginning of file (idx 0).
-  // insert_line=N → after line N, i.e., at the start of line N+1.
-  // insert_line === lines.length → append at end of file.
-  //
-  // The loop body blindly adds `length + 1 (newline)` for every iterated
-  // line, which overshoots by 1 when the doc has no trailing newline and
-  // we're appending — there's no newline after the last line to count.
-  // Clamping to `full.length` snaps us back to the true end; mid-doc
-  // positions are unaffected because they never exceed the total length.
-  let idx = 0
-  for (let i = 0; i < input.insert_line; i++) {
-    // Bounds-checked above (insert_line <= lines.length); `!` tells TS.
-    idx += lines[i]!.length + 1 // +1 for the newline
-  }
-  idx = Math.min(idx, full.length)
 
   session.updateStatus('editing', 'Applying insert…')
 
@@ -167,52 +167,430 @@ function handleInsert(
   return ok('Successfully inserted text.')
 }
 
-function handleCreate(): ToolResult {
-  return err('Error: The document already exists and cannot be re-created. Use str_replace or insert to modify its contents.')
+// --- Theme update ---------------------------------------------------------
+
+/**
+ * Numeric fields are declared as string enums in the Zod schema for
+ * Gemini-schema stability: weight (headings), columns (layout), maxDepth
+ * (toc). Coerce them back to numbers before deep-merge + isValidTheme.
+ */
+/** @internal exported for unit tests; not part of the public API. */
+export function coerceThemePatch(patch: UpdateThemeInput): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...patch }
+  // `preset` is a directive, not a theme field — strip it so it doesn't
+  // leak into mergeTheme and land on the final DocTheme.
+  delete out.preset
+  if (patch.headings?.weight !== undefined) {
+    out.headings = { ...patch.headings, weight: Number(patch.headings.weight) }
+  }
+  if (patch.layout?.columns !== undefined) {
+    out.layout = { ...patch.layout, columns: Number(patch.layout.columns) }
+  }
+  if (patch.toc?.maxDepth !== undefined) {
+    out.toc = { ...patch.toc, maxDepth: Number(patch.toc.maxDepth) }
+  }
+  return out
 }
 
 /**
- * Legacy Anthropic-shaped dispatcher. Kept for any future consumer that still
- * talks the `{ command, ...args }` shape; our Gemini loop calls
- * `executeFunctionByName` directly instead.
+ * Deep-merge a partial theme patch over a complete current theme. Only
+ * two levels deep (top-level sections like `body`, sub-fields like
+ * `body.size`) — the theme shape is flat enough that a generic deep
+ * merge isn't worth it.
  */
-// Legacy dispatcher input: downstream handlers each expect their own typed
-// shape; this function exists only for the Anthropic-era `{ command, …args }`
-// call convention, so passing the args through without per-command narrowing
-// here is intentional.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function executeEditorTool(session: AiSession, input: any): ToolResult {
-  const command = input?.command
-  switch (command) {
-    case 'view':
-      return handleView(session, input)
-    case 'str_replace':
-      return handleStrReplace(session, input)
-    case 'insert':
-      return handleInsert(session, input)
-    case 'create':
-      return handleCreate()
-    default:
-      return err(`Error: Unknown command "${command}". Supported: view, str_replace, insert.`)
+/** @internal exported for unit tests; not part of the public API. */
+export function mergeTheme(current: DocTheme, patch: Record<string, unknown>): DocTheme {
+  const merged: Record<string, unknown> = { ...(current as unknown as Record<string, unknown>) }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      merged[key] = {
+        ...(current as unknown as Record<string, Record<string, unknown>>)[key],
+        ...(value as Record<string, unknown>)
+      }
+    } else if (value !== undefined) {
+      merged[key] = value
+    }
   }
+  return merged as unknown as DocTheme
+}
+
+/**
+ * Short human-readable summary of what the patch changed.
+ * @internal exported for unit tests; not part of the public API.
+ */
+export function summarizePatch(patch: UpdateThemeInput): string {
+  const parts: string[] = []
+  if (patch.preset) parts.push(`preset=${patch.preset}`)
+  const touched = Object.entries(patch)
+    .filter(([k, v]) => k !== 'preset' && v && typeof v === 'object' && Object.keys(v).length > 0)
+    .map(([k]) => k)
+  if (touched.length) parts.push(touched.join(', '))
+  return parts.length ? parts.join(' + ') : '(no changes)'
+}
+
+async function handleUpdateTheme(
+  session: AiSession,
+  input: UpdateThemeInput
+): Promise<ToolResult> {
+  // Base theme selection:
+  //   - If `preset` is set, use that preset's theme as the base (full
+  //     replacement — user said "change to X", so current values are
+  //     discarded). Any other fields in the same call are then merged on
+  //     top of the preset.
+  //   - Otherwise, resolve the current theme: ymeta.theme → DB
+  //     documents.theme JSONB → defaultTheme.
+  let base: DocTheme
+  if (input.preset) {
+    const preset = THEME_PRESETS.find(p => p.id === input.preset)
+    if (!preset) {
+      // Should be unreachable — Zod enum restricts `preset` to known ids.
+      return err(`Error: Unknown preset "${input.preset}".`)
+    }
+    base = preset.theme
+  } else {
+    const fromYmeta = session.ymeta.get('theme')
+    if (isValidTheme(fromYmeta)) {
+      base = fromYmeta
+    } else {
+      const doc = await getDoc(session.docId)
+      base = (doc?.theme && isValidTheme(doc.theme)) ? doc.theme : defaultTheme
+    }
+  }
+
+  const coerced = coerceThemePatch(input)
+  const merged = mergeTheme(base, coerced)
+
+  if (!isValidTheme(merged)) {
+    // Should never happen — the Zod schema's enums/ranges mirror
+    // isValidTheme — but this is defence-in-depth so we never write
+    // structurally invalid JSON into the DB or Y.Doc.
+    return err('Error: merged theme failed validation. Try narrower changes.')
+  }
+
+  session.updateStatus('editing', 'Updating theme…')
+
+  const origin = `ai:assistant:${session.sessionId}`
+  session.ydoc.transact(() => {
+    session.ymeta.set('theme', merged)
+  }, origin)
+
+  // Persist to DB so fresh visitors on a new socket see the new theme
+  // during the window before y-postgresql replays Y.js state. Mirrors
+  // the client-side `persistTheme` debounce in `useDocument.ts`.
+  try {
+    await updateDocMeta(session.docId, { theme: merged })
+  } catch (e) {
+    // DB write is best-effort — Y.js broadcast already landed the change
+    // live to everyone. Worst case: a new visitor sees stale theme for
+    // the few hundred ms between connect and first Y.js sync.
+    console.warn(`[aiToolAdapter] theme DB persist failed for ${session.docId}:`, e)
+  }
+
+  return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.`)
+}
+
+// --- Set title ------------------------------------------------------------
+
+async function handleSetTitle(
+  session: AiSession,
+  input: SetTitleInput
+): Promise<ToolResult> {
+  // Zod trims and enforces 1–255; belt-and-braces re-check so an empty
+  // trim result never reaches ymeta/DB (the meta.put endpoint also
+  // validates server-side, but AI bypasses that route).
+  const title = input.title.trim()
+  if (title.length === 0) return err('Error: title cannot be empty')
+  if (title.length > 255) return err('Error: title too long (max 255 chars)')
+
+  session.updateStatus('editing', 'Updating title…')
+
+  const origin = `ai:assistant:${session.sessionId}`
+  session.ydoc.transact(() => {
+    session.ymeta.set('title', title)
+  }, origin)
+
+  try {
+    await updateDocMeta(session.docId, { title })
+  } catch (e) {
+    // Same tradeoff as theme: Y.js already broadcast the change live;
+    // DB failure only affects what brand-new visitors see before sync.
+    console.warn(`[aiToolAdapter] title DB persist failed for ${session.docId}:`, e)
+  }
+
+  return ok(`Title set to "${title}".`)
+}
+
+// --- View image -----------------------------------------------------------
+
+// Gemini accepts a handful of image MIME types inline. Keep the allowlist
+// aligned with what our upload pipeline emits plus what Gemini actually
+// renders — reject anything else rather than gamble on model behavior.
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif'
+])
+
+// 5 MiB cap: matches the upload flow's practical ceiling, keeps one turn's
+// context footprint sane. Gemini inlines up to ~20MB per part but a 20MB
+// image on every turn quickly blows up prompt-caching economics.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+// Extracts `{ docId, fileId }` from either a relative path
+// (`/api/files/abc/def.png`) or an absolute URL pointing at our own
+// /api/files endpoint. Returns null for anything else.
+/** @internal exported for unit tests; not part of the public API. */
+export function parseInternalFileRef(src: string): { docId: string, fileId: string } | null {
+  const match = src.match(/\/api\/files\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+\.[A-Za-z0-9]+)(?:$|[?#])/)
+  if (!match) return null
+  return { docId: match[1]!, fileId: match[2]! }
+}
+
+async function fetchFromS3(docId: string, fileId: string): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
+  const s3 = useS3Client()
+  const config = useRuntimeConfig()
+  try {
+    const resp = await s3.send(new GetObjectCommand({
+      Bucket: config.s3.bucket,
+      Key: `docs/${docId}/${fileId}`
+    }))
+    const mimeType = resp.ContentType ?? 'application/octet-stream'
+    if (!ALLOWED_IMAGE_TYPES.has(mimeType)) {
+      return { error: `Unsupported image type "${mimeType}". Allowed: ${[...ALLOWED_IMAGE_TYPES].join(', ')}.` }
+    }
+    if (typeof resp.ContentLength === 'number' && resp.ContentLength > MAX_IMAGE_BYTES) {
+      return { error: `Image is ${Math.round(resp.ContentLength / 1024)}KB, which exceeds the ${MAX_IMAGE_BYTES / (1024 * 1024)}MB limit for inlining.` }
+    }
+    const bytes = await resp.Body!.transformToByteArray()
+    if (bytes.byteLength > MAX_IMAGE_BYTES) {
+      return { error: `Image exceeded the ${MAX_IMAGE_BYTES / (1024 * 1024)}MB limit after fetch.` }
+    }
+    return { bytes, mimeType }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    return { error: `Failed to fetch image from storage: ${msg}` }
+  }
+}
+
+async function fetchExternalImage(url: string): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
+  // 10s hard cap — an AI session that's already racing the 5-minute
+  // deadline shouldn't spend a whole minute on one image fetch.
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 10_000)
+  try {
+    const resp = await fetch(url, { signal: ctrl.signal, redirect: 'follow' })
+    if (!resp.ok) {
+      return { error: `Remote returned HTTP ${resp.status}.` }
+    }
+    const mimeType = (resp.headers.get('content-type') || '').split(';')[0]!.trim().toLowerCase()
+    if (!ALLOWED_IMAGE_TYPES.has(mimeType)) {
+      return { error: `Remote returned content-type "${mimeType || '(none)'}". Allowed: ${[...ALLOWED_IMAGE_TYPES].join(', ')}.` }
+    }
+    const contentLength = Number(resp.headers.get('content-length') ?? '0')
+    if (contentLength && contentLength > MAX_IMAGE_BYTES) {
+      return { error: `Remote image is ${Math.round(contentLength / 1024)}KB, which exceeds the ${MAX_IMAGE_BYTES / (1024 * 1024)}MB limit.` }
+    }
+    const bytes = new Uint8Array(await resp.arrayBuffer())
+    if (bytes.byteLength > MAX_IMAGE_BYTES) {
+      return { error: `Remote image exceeded the ${MAX_IMAGE_BYTES / (1024 * 1024)}MB limit after fetch.` }
+    }
+    return { bytes, mimeType }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    return { error: `Failed to fetch image: ${msg}` }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function handleViewImage(
+  session: AiSession,
+  input: ViewImageInput
+): Promise<ToolResult> {
+  const src = input.src.trim()
+  session.updateStatus('tool', 'Fetching image…')
+
+  // Internal /api/files/... path → S3 direct fetch (bypass the HTTP
+  // endpoint because we're already server-side with S3 creds). Verify
+  // the docId in the URL matches the session's docId so the AI can't be
+  // tricked into reading images from docs the initiator shouldn't see.
+  const internal = parseInternalFileRef(src)
+  let result: { bytes: Uint8Array, mimeType: string } | { error: string }
+  if (internal) {
+    if (internal.docId !== session.docId) {
+      return err('Error: cross-document image reads are not allowed. The image must belong to the current document.')
+    }
+    result = await fetchFromS3(internal.docId, internal.fileId)
+  } else if (/^https?:\/\//i.test(src)) {
+    result = await fetchExternalImage(src)
+  } else {
+    return err(`Error: unsupported image src "${src.slice(0, 80)}…". Use a /api/files/{docId}/{fileId} path or an absolute http(s):// URL.`)
+  }
+
+  if ('error' in result) return err(`Error: ${result.error}`)
+
+  const { bytes, mimeType } = result
+  const base64 = Buffer.from(bytes).toString('base64')
+  const sizeKB = Math.round(bytes.byteLength / 1024)
+
+  return {
+    content: `Fetched ${mimeType} image (${sizeKB}KB). See the following image part for the contents.`,
+    isError: false,
+    extraParts: [{ inlineData: { mimeType, data: base64 } }]
+  }
+}
+
+// --- Generate image -------------------------------------------------------
+
+// Map Gemini's image MIME to the extension the upload pipeline uses.
+// (Keep the set narrow — the file-id regex in /api/files only accepts
+// these extensions; anything else would be unreachable via /api/files.)
+const IMAGE_MIME_EXT: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp'
+}
+
+/**
+ * Call Gemini's image-gen model with the prompt and pull the first
+ * inlineData part out of the response. Returns the raw bytes plus
+ * MIME type, or an error string.
+ */
+async function generateImageBytes(
+  prompt: string,
+  signal: AbortSignal
+): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
+  const config = useRuntimeConfig()
+  if (!config.google.apiKey) return { error: 'Google API key not configured on the server.' }
+  if (!config.google.imageModel) return { error: 'Image model not configured on the server.' }
+
+  const ai = new GoogleGenAI({ apiKey: config.google.apiKey })
+
+  try {
+    const response = await ai.models.generateContent({
+      model: config.google.imageModel,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        // The flash-image models return an image part by default; asking
+        // for both modalities lets the model narrate alongside the image
+        // if it wants to (we ignore the text in favor of the caller's alt).
+        responseModalities: ['IMAGE', 'TEXT'],
+        abortSignal: signal
+      }
+    })
+    const parts = response.candidates?.[0]?.content?.parts ?? []
+    const imgPart = parts.find(p => p.inlineData?.data)
+    if (!imgPart?.inlineData?.data) {
+      return { error: 'Image model returned no image part. The prompt may have been blocked by safety filters — try rephrasing.' }
+    }
+    const mimeType = imgPart.inlineData.mimeType ?? 'image/png'
+    if (!IMAGE_MIME_EXT[mimeType]) {
+      return { error: `Image model returned unsupported MIME type "${mimeType}".` }
+    }
+    const bytes = Buffer.from(imgPart.inlineData.data, 'base64')
+    return { bytes, mimeType }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    return { error: `Image generation failed: ${msg}` }
+  }
+}
+
+/**
+ * Escape characters that would terminate a markdown image `![alt](url)`
+ * bracket pair. Alt and caption are user-facing but AI-authored; a
+ * stray `]` or `)` would fragment the link.
+ */
+/** @internal exported for unit tests; not part of the public API. */
+export function sanitizeAltText(s: string): string {
+  return s.replace(/[[\]()]/g, '').replace(/\s+/g, ' ').trim()
+}
+
+async function handleGenerateImage(
+  session: AiSession,
+  input: GenerateImageInput
+): Promise<ToolResult> {
+  session.updateStatus('tool', 'Generating image…')
+
+  // 1. Generate. The 5-minute loop deadline is the effective cap — we
+  //    don't thread a finer-grained signal here.
+  const controller = new AbortController()
+  const gen = await generateImageBytes(input.prompt, controller.signal)
+  if ('error' in gen) return err(`Error: ${gen.error}`)
+
+  // 2. Upload to S3 using the same key shape as user uploads so the
+  //    existing /api/files endpoint serves it with no extra plumbing.
+  session.updateStatus('tool', 'Uploading generated image…')
+
+  const ext = IMAGE_MIME_EXT[gen.mimeType]!
+  const fileIdWithExt = `${nanoid(12)}.${ext}`
+  const key = `docs/${session.docId}/${fileIdWithExt}`
+  const s3 = useS3Client()
+  const config = useRuntimeConfig()
+
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: config.s3.bucket,
+      Key: key,
+      Body: gen.bytes,
+      ContentType: gen.mimeType,
+      ContentLength: gen.bytes.byteLength
+    }))
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    return err(`Error: failed to upload generated image: ${msg}`)
+  }
+
+  // 3. Record pending + confirm in the uploads table so orphan-cleanup
+  //    doesn't reap it. Skip for anonymous-doc edge case (no FK target)
+  //    — same behaviour as /api/upload/request. Best-effort: an S3
+  //    object with no DB row still serves correctly; it just risks being
+  //    cleaned up later if anonymous→owned promotion doesn't reconcile.
+  const doc = await getDoc(session.docId)
+  if (doc) {
+    try {
+      await recordPending({
+        docId: session.docId,
+        fileId: fileIdWithExt,
+        uploaderId: session.initiatorUserId,
+        contentType: gen.mimeType,
+        sizeBytes: gen.bytes.byteLength,
+        s3Key: key
+      })
+      await markConfirmed(key)
+    } catch (e) {
+      // Non-fatal — see note above.
+      console.warn(`[aiToolAdapter] uploads row insert failed for ${key}:`, e)
+    }
+  }
+
+  // 4. Build and return the markdown. Caller chooses placement via a
+  //    follow-up insert_text / replace_text call.
+  const alt = sanitizeAltText(input.alt)
+  const url = `/api/files/${session.docId}/${fileIdWithExt}`
+  const md = `![${alt}](${url})`
+
+  const sizeKB = Math.round(gen.bytes.byteLength / 1024)
+  return ok(`Generated and uploaded ${gen.mimeType} image (${sizeKB}KB). Markdown reference (copy verbatim into insert_text or replace_text): ${md}`)
 }
 
 /**
  * Gemini-shaped dispatcher. Args are expected pre-validated by Zod (see
  * `server/utils/agentic/functionTools.ts`); callers must not pass unvalidated
- * input. Defensive casts that used to live here (`String(...)`, `Number(...)`)
- * are now handled upstream — if args fail the Zod schema, the loop emits a
+ * input. If args fail the Zod schema, the loop emits a
  * `functionResponse.isError` and this function is never called.
  *
  * `web_search` is NOT routed here — the main loop handles it via the
  * `webSearch` sub-call helper in `functionTools.ts` because it needs the
  * `GoogleGenAI` client and is async.
  */
-export function executeFunctionByName(
+export async function executeFunctionByName(
   session: AiSession,
   name: string,
   args: unknown
-): ToolResult {
+): Promise<ToolResult> {
   switch (name) {
     case 'view_document': {
       const vr = (args as ViewDocumentInput).view_range
@@ -220,27 +598,22 @@ export function executeFunctionByName(
       // The `!` non-null assertions tell TS what the runtime validator already
       // enforces. Narrowing to a tuple keeps `handleView`'s signature tight.
       return handleView(session, {
-        path: DOCUMENT_PATH,
         view_range: vr ? [vr[0]!, vr[1]!] : undefined
       })
     }
-    case 'replace_text': {
-      const a = args as ReplaceTextInput
-      return handleStrReplace(session, {
-        path: DOCUMENT_PATH,
-        old_str: a.old_str,
-        new_str: a.new_str
-      })
-    }
-    case 'insert_text': {
-      const a = args as InsertTextInput
-      return handleInsert(session, {
-        path: DOCUMENT_PATH,
-        insert_line: a.insert_line,
-        insert_text: a.insert_text
-      })
-    }
+    case 'replace_text':
+      return handleStrReplace(session, args as ReplaceTextInput)
+    case 'insert_text':
+      return handleInsert(session, args as InsertTextInput)
+    case 'update_theme':
+      return handleUpdateTheme(session, args as UpdateThemeInput)
+    case 'set_title':
+      return handleSetTitle(session, args as SetTitleInput)
+    case 'view_image':
+      return handleViewImage(session, args as ViewImageInput)
+    case 'generate_image':
+      return handleGenerateImage(session, args as GenerateImageInput)
     default:
-      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search.`)
+      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, set_title, view_image, generate_image.`)
   }
 }

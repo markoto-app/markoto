@@ -1,15 +1,16 @@
-import { and, eq } from 'drizzle-orm'
-import { documents, workspaceMembers } from '../../../../db/schema'
+import { removeMember } from '../../../../repos/workspaceMembers'
+import { listDocIdsInWorkspace } from '../../../../repos/documents'
+import { LastAdminError, NotFoundError, isRepoError } from '../../../../repos/errors'
 import { notifySyncKickUser } from '../../../../utils/syncNotify'
 
 // Remove a member OR leave the workspace. Same endpoint because "remove"
-// and "leave" are the same underlying row deletion — only the authorisation
-// differs:
+// and "leave" are the same underlying row deletion — only the
+// authorisation differs:
 //   - An admin may remove any other member (including other admins).
 //   - Any non-admin may remove themselves (leave) but never anyone else.
 //   - Admins can also remove themselves (leave) provided they're not the
-//     last admin — the "at least one admin" invariant would otherwise be
-//     broken.
+//     last admin — the "at least one admin" invariant would otherwise
+//     be broken. `removeMember` enforces that invariant transactionally.
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const wsId = requireWsId(event)
@@ -26,34 +27,22 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only admins can remove other members' })
   }
 
-  const db = useDatabase()
-  const existing = (await db.select({ role: workspaceMembers.role })
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, targetUserId)))
-    .limit(1))[0]
-  if (!existing) throw createError({ statusCode: 404, message: 'Member not found' })
-
-  // Last-admin guard: whether self-leaving or being removed, refuse to drop
-  // the final admin. The remaining workspace would have no one who can
-  // manage membership or delete it.
-  if (existing.role === 'admin') {
-    const adminCount = await countWorkspaceAdmins(wsId)
-    if (adminCount <= 1) {
-      throw createError({ statusCode: 409, message: 'Workspace must have at least one admin — promote someone else first, or delete the workspace.' })
-    }
+  try {
+    await removeMember(wsId, targetUserId)
+  } catch (e) {
+    if (e instanceof NotFoundError) throw createError({ statusCode: 404, message: 'Member not found' })
+    if (e instanceof LastAdminError) throw createError({ statusCode: 409, message: e.message })
+    if (isRepoError(e)) throw createError({ statusCode: e.httpStatus, message: e.message })
+    throw e
   }
-
-  await db.delete(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, targetUserId)))
 
   // Kick any live Y.js connections the removed member holds to workspace
   // docs. Without this the member's 2h JWT stays valid and they keep
-  // edit rights on docs they just lost access to. Owner-owned docs in the
-  // workspace are also kicked but re-grant via the owner path on reconnect.
-  const wsDocs = await db.select({ docId: documents.docId })
-    .from(documents)
-    .where(eq(documents.workspaceId, wsId))
-  notifySyncKickUser(targetUserId, wsDocs.map(d => d.docId))
+  // edit rights on docs they just lost access to. Owner-owned docs in
+  // the workspace are also kicked but re-grant via the owner path on
+  // reconnect.
+  const wsDocIds = await listDocIdsInWorkspace(wsId)
+  notifySyncKickUser(targetUserId, wsDocIds)
 
   return { success: true }
 })

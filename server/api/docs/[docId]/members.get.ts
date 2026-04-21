@@ -1,5 +1,5 @@
-import { and, eq, sql } from 'drizzle-orm'
-import { documents, workspaceMembers, users } from '../../../db/schema'
+import { getDoc } from '../../../repos/documents'
+import { listMembersForDoc } from '../../../repos/workspaceMembers'
 
 // Access roster for a doc. Used by the in-doc presence bar to render
 // everyone who HAS access, not just who's live. Non-live members render
@@ -11,19 +11,14 @@ import { documents, workspaceMembers, users } from '../../../db/schema'
 //     a public-link doc shouldn't reveal the team roster. This matches
 //     Google Docs behavior (link-holders don't see the sharing list).
 //
-// Standalone docs (no workspaceId) return an empty roster. The doc owner is
-// already implicit and showing just themselves offline is clutter.
+// Standalone docs (no workspaceId) return an empty roster. The doc owner
+// is already implicit and showing just themselves offline is clutter.
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
   const session = await getValidatedUserSession(event)
-  const db = useDatabase()
 
-  const doc = (await db
-    .select({ workspaceId: documents.workspaceId, ownerId: documents.ownerId })
-    .from(documents)
-    .where(eq(documents.docId, docId))
-    .limit(1))[0]
+  const doc = await getDoc(docId)
   if (!doc) throw createError({ statusCode: 404, message: 'Document not found' })
 
   // No workspace ⇒ no roster to disclose.
@@ -38,18 +33,6 @@ export default defineEventHandler(async (event) => {
   const isDocOwner = doc.ownerId === userId
   if (role === null && !isDocOwner) return { members: [] }
 
-  const rows = await db.select({
-    userId: users.id,
-    name: users.name,
-    avatarUrl: users.avatarUrl,
-    login: users.login,
-    role: workspaceMembers.role,
-    isDocOwner: sql<boolean>`${users.id} = ${doc.ownerId}`
-  })
-    .from(workspaceMembers)
-    .innerJoin(users, eq(users.id, workspaceMembers.userId))
-    .where(eq(workspaceMembers.workspaceId, doc.workspaceId))
-    .orderBy(sql`case ${workspaceMembers.role} when 'admin' then 0 when 'editor' then 1 else 2 end, ${workspaceMembers.joinedAt} asc`)
-
-  return { members: rows }
+  const members = await listMembersForDoc(doc.workspaceId, doc.ownerId)
+  return { members }
 })

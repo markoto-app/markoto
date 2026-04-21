@@ -6,7 +6,7 @@ import {
 } from '@google/genai'
 import type { AiSession } from '../aiClient'
 import { executeFunctionByName } from '../aiToolAdapter'
-import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch } from './functionTools'
+import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch, fetchUrl } from './functionTools'
 import {
   newStreamState,
   processChunk,
@@ -24,9 +24,7 @@ import {
  *     `abortController.signal.aborted` in its own catch block.
  *   - Emits `setStatus(...)` at every state transition.
  *
- * Unlike the Anthropic version, Gemini has no `pause_turn` / `container`
- * machinery. The loop is structurally simpler: each turn either wants tools
- * (functionCalls present) or is terminal.
+ * Each turn either wants tools (functionCalls present) or is terminal.
  */
 
 const MAX_TURNS = 20
@@ -175,7 +173,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         validatedArgs = call.args ?? {}
       }
 
-      let result: { content: string, isError: boolean }
+      let result: { content: string, isError: boolean, extraParts?: NonNullable<Content['parts']> }
       if (call.name === 'web_search') {
         // Safe cast — schema guarantees `{ query: string }`.
         const { query } = validatedArgs as { query: string }
@@ -187,8 +185,29 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
           if (abortController.signal.aborted) throw e
           result = { content: `Error: web_search failed: ${msg}`, isError: true }
         }
+      } else if (call.name === 'fetch_url') {
+        // Schema guarantees `{ url: string }`. Routed here (not through
+        // the adapter) because — like web_search — it's an async sub-call
+        // that needs the GoogleGenAI client and runs `urlContext` in
+        // isolation from our `functionDeclarations`.
+        const { url } = validatedArgs as { url: string }
+        try {
+          const text = await fetchUrl(ai, model, url, abortController.signal)
+          result = { content: text, isError: false }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Unknown error'
+          if (abortController.signal.aborted) throw e
+          result = { content: `Error: fetch_url failed: ${msg}`, isError: true }
+        }
       } else {
-        result = executeFunctionByName(aiSession, call.name, validatedArgs)
+        try {
+          result = await executeFunctionByName(aiSession, call.name, validatedArgs)
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Unknown error'
+          if (abortController.signal.aborted) throw e
+          log(`function_call threw: ${call.name}: ${msg}`)
+          result = { content: `Error: ${call.name} failed: ${msg}`, isError: true }
+        }
       }
 
       responseParts.push({
@@ -201,6 +220,10 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
           response: { output: result.content, isError: result.isError }
         }
       })
+      // Tools that return non-JSON payloads (view_image → inlineData) smuggle
+      // them out as sibling parts on the same user message. Must come AFTER
+      // the functionResponse so the model links them to the right call.
+      if (result.extraParts?.length) responseParts.push(...result.extraParts)
     }
 
     if (responseParts.length === 0) {

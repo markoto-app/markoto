@@ -1,5 +1,6 @@
-import { eq, sql } from 'drizzle-orm'
-import { workspaces, documents, workspaceMembers, users } from '../../../db/schema'
+import { getWorkspace } from '../../../repos/workspaces'
+import { listWorkspaceDocsWithOwnerFlag } from '../../../repos/documents'
+import { listMembers } from '../../../repos/workspaceMembers'
 
 // Workspace detail. Gated by membership (any role). Returns the workspace
 // row, the complete doc list (every doc in the workspace — not just the
@@ -12,20 +13,9 @@ import { workspaces, documents, workspaceMembers, users } from '../../../db/sche
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const wsId = requireWsId(event)
-  const db = useDatabase()
   const userId = session.user.id
 
-  const ws = (await db.select({
-    workspaceId: workspaces.workspaceId,
-    ownerId: workspaces.ownerId,
-    name: workspaces.name,
-    description: workspaces.description,
-    createdAt: workspaces.createdAt
-  })
-    .from(workspaces)
-    .where(eq(workspaces.workspaceId, wsId))
-    .limit(1))[0]
-
+  const ws = await getWorkspace(wsId)
   if (!ws) throw createError({ statusCode: 404, message: 'Workspace not found' })
 
   const myRole = await getWorkspaceRole(userId, wsId)
@@ -35,33 +25,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Workspace not found' })
   }
 
-  const docs = await db.select({
-    docId: documents.docId,
-    title: documents.title,
-    accessMode: documents.accessMode,
-    wordCount: documents.wordCount,
-    sizeBytes: documents.sizeBytes,
-    lastActive: documents.lastActive,
-    ownerId: documents.ownerId,
-    isOwner: sql<boolean>`${documents.ownerId} = ${userId}`
-  })
-    .from(documents)
-    .where(eq(documents.workspaceId, wsId))
-    .orderBy(sql`${documents.lastActive} desc`)
-
-  const members = await db.select({
-    userId: users.id,
-    name: users.name,
-    email: users.email,
-    login: users.login,
-    avatarUrl: users.avatarUrl,
-    role: workspaceMembers.role,
-    joinedAt: workspaceMembers.joinedAt
-  })
-    .from(workspaceMembers)
-    .innerJoin(users, eq(users.id, workspaceMembers.userId))
-    .where(eq(workspaceMembers.workspaceId, wsId))
-    .orderBy(sql`case ${workspaceMembers.role} when 'admin' then 0 when 'editor' then 1 else 2 end, ${workspaceMembers.joinedAt} asc`)
+  const [documents, members] = await Promise.all([
+    listWorkspaceDocsWithOwnerFlag(wsId, userId),
+    listMembers(wsId)
+  ])
 
   return {
     workspace: {
@@ -72,7 +39,7 @@ export default defineEventHandler(async (event) => {
       myRole,
       ownerId: ws.ownerId
     },
-    documents: docs,
+    documents,
     members
   }
 })

@@ -1,5 +1,5 @@
-import { and, desc, eq } from 'drizzle-orm'
-import { activityLog, documents, workspaceMembers } from '../../../db/schema'
+import { getDocWithActorRole } from '../../../repos/documents'
+import { listRecentActivity } from '../../../repos/activity'
 import { decideActivityAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 
@@ -11,45 +11,21 @@ import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
-  const db = useDatabase()
+  const session = await getValidatedUserSession(event)
 
-  const docRow = (await db
-    .select({
-      accessMode: documents.accessMode,
-      ownerId: documents.ownerId,
-      workspaceId: documents.workspaceId
-    })
-    .from(documents)
-    .where(eq(documents.docId, docId))
-    .limit(1))[0]
-
-  if (!docRow) {
+  const row = await getDocWithActorRole(docId, session?.user?.id ?? null)
+  if (!row) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const session = await getValidatedUserSession(event)
-
-  let workspaceRole: 'admin' | 'editor' | 'viewer' | null = null
-  if (docRow.workspaceId && typeof session?.user?.id === 'number') {
-    const memberRow = (await db
-      .select({ role: workspaceMembers.role })
-      .from(workspaceMembers)
-      .where(and(
-        eq(workspaceMembers.workspaceId, docRow.workspaceId),
-        eq(workspaceMembers.userId, session.user.id)
-      ))
-      .limit(1))[0]
-    workspaceRole = (memberRow?.role ?? null) as typeof workspaceRole
-  }
-
   const doc: DocState = {
-    ownerId: docRow.ownerId,
-    workspaceId: docRow.workspaceId,
-    accessMode: docRow.accessMode
+    ownerId: row.ownerId,
+    workspaceId: row.workspaceId,
+    accessMode: row.accessMode
   }
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
-    workspaceRole,
+    workspaceRole: row.workspaceRole,
     hasValidDocJwt: hasValidDocJwt(event, docId)
   }
 
@@ -58,11 +34,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
 
-  const entries = await db.select()
-    .from(activityLog)
-    .where(eq(activityLog.docId, docId))
-    .orderBy(desc(activityLog.createdAt))
-    .limit(50)
-
-  return entries
+  return listRecentActivity(docId, 50)
 })

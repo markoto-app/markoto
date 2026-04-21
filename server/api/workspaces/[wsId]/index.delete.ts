@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm'
-import { workspaces, documents } from '../../../db/schema'
+import { deleteWorkspaceRow } from '../../../repos/workspaces'
+import { listDocIdsInWorkspace } from '../../../repos/documents'
 import { deleteDocument } from '../../../utils/documentLifecycle'
 
 // Cascade delete: wipe every doc in this workspace (S3 + Y.js + activity
@@ -18,7 +18,6 @@ import { deleteDocument } from '../../../utils/documentLifecycle'
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const wsId = requireWsId(event)
-  const db = useDatabase()
 
   const role = await getWorkspaceRole(session.user.id, wsId)
   if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
@@ -26,17 +25,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only admins can delete the workspace' })
   }
 
-  const childDocs = await db.select({ docId: documents.docId })
-    .from(documents)
-    .where(eq(documents.workspaceId, wsId))
-
-  for (const { docId } of childDocs) {
+  const childDocIds = await listDocIdsInWorkspace(wsId)
+  for (const docId of childDocIds) {
     await deleteDocument(docId)
   }
 
   // workspace_members rows are removed automatically by the ON DELETE
   // CASCADE foreign key.
-  await db.delete(workspaces).where(eq(workspaces.workspaceId, wsId))
+  await deleteWorkspaceRow(wsId)
 
-  return { success: true, deletedDocs: childDocs.length }
+  return { success: true, deletedDocs: childDocIds.length }
 })

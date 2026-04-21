@@ -56,7 +56,8 @@ export default defineNuxtConfig({
     google: {
       apiKey: '', // NUXT_GOOGLE_API_KEY
       model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
-      rewriteModel: 'gemini-2.5-flash-lite' // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
+      rewriteModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
+      imageModel: 'gemini-2.5-flash-image-preview' // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool
     },
     jwtSecret: '',
     // Optional: previous JWT_SECRET, accepted by verifiers during rotation.

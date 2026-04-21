@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Row exists in the DB but no local AbortController — this process isn't
-  // the one running the Anthropic loop (e.g. after a restart the DB row
+  // the one running the agentic loop (e.g. after a restart the DB row
   // survived, or a future multi-worker setup). Best we can do from here is
   // drop the registry row so the per-user cap unblocks; the stuck loop (if
   // any) will exit on its own deadline. Awareness cleanup happens when that

@@ -1,28 +1,28 @@
-import { and, isNull, lt } from 'drizzle-orm'
 import { ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
-import { documents, uploads } from '../db/schema'
+import { listAllDocIds } from '../repos/documents'
+import { listStaleUnconfirmed, purgeStaleUnconfirmed, listAllS3Keys } from '../repos/uploads'
 
 const ONE_HOUR_MS = 60 * 60 * 1000
 const ONE_DAY_MS = 24 * ONE_HOUR_MS
 
 // Reconciles S3 against the documents + uploads tables. Three layers:
 //
-//   1. Unconfirmed-upload sweep: delete uploads rows where confirmed_at IS NULL
-//      AND created_at < now - 24h. Their S3 object (if any) is also removed.
-//      Catches abandoned upload flows (user requested a presigned URL but
-//      never PUT, or PUT failed on the client side).
+//   1. Unconfirmed-upload sweep: delete uploads rows where confirmed_at
+//      IS NULL AND created_at < now - 24h. Their S3 object (if any) is
+//      also removed. Catches abandoned upload flows (user requested a
+//      presigned URL but never PUT, or PUT failed on the client side).
 //
-//   2. Doc-level orphan sweep: list `docs/{id}/` prefixes; if `id` isn't in
-//      the documents table, drop the entire prefix. Catches force-deletes
-//      where the per-row cascade missed something.
+//   2. Doc-level orphan sweep: list `docs/{id}/` prefixes; if `id` isn't
+//      in the documents table, drop the entire prefix. Catches force-
+//      deletes where the per-row cascade missed something.
 //
-//   3. Defensive S3 sweep: under each surviving doc prefix, list objects and
-//      drop any whose key isn't in uploads AND whose last-modified is
-//      > 24h old. The 24h grace prevents racing the create-doc flow (where
-//      a file can briefly land in S3 before its uploads row commits, though
-//      our request handler now writes the row first — kept for belt-and-
-//      suspenders).
+//   3. Defensive S3 sweep: under each surviving doc prefix, list objects
+//      and drop any whose key isn't in uploads AND whose last-modified
+//      is > 24h old. The 24h grace prevents racing the create-doc flow
+//      (where a file can briefly land in S3 before its uploads row
+//      commits, though our request handler now writes the row first —
+//      kept for belt-and-suspenders).
 //
 // Runs once on server startup (after a 30s delay so other subsystems are
 // ready), then every hour.
@@ -35,15 +35,10 @@ export default defineNitroPlugin((nitroApp) => {
     try {
       const s3 = useS3Client()
       const config = useRuntimeConfig()
-      const db = useDatabase()
       const now = Date.now()
 
       // ─── 1. Unconfirmed-upload sweep ──────────────────────────────────
-      const cutoff = new Date(now - ONE_DAY_MS)
-      const stale = await db.select({ s3Key: uploads.s3Key })
-        .from(uploads)
-        .where(and(isNull(uploads.confirmedAt), lt(uploads.createdAt, cutoff)))
-
+      const stale = await listStaleUnconfirmed(ONE_DAY_MS)
       if (stale.length > 0) {
         const keysToDelete = stale.map(u => ({ Key: u.s3Key }))
         for (let i = 0; i < keysToDelete.length; i += 1000) {
@@ -59,9 +54,9 @@ export default defineNitroPlugin((nitroApp) => {
           }
         }
         // Drop the rows whether or not the S3 delete succeeded — the row
-        // itself is what blocks future re-use, and the S3 sweep below catches
-        // any leftover objects.
-        await db.delete(uploads).where(and(isNull(uploads.confirmedAt), lt(uploads.createdAt, cutoff)))
+        // itself is what blocks future re-use, and the S3 sweep below
+        // catches any leftover objects.
+        await purgeStaleUnconfirmed(ONE_DAY_MS)
         console.log(`[orphan-cleanup] Reaped ${stale.length} unconfirmed upload row(s)`)
       }
 
@@ -85,8 +80,7 @@ export default defineNitroPlugin((nitroApp) => {
         .map(p => p.replace(/^docs\//, '').replace(/\/$/, ''))
         .filter(Boolean)
 
-      const existingDocs = await db.select({ docId: documents.docId }).from(documents)
-      const existingDocSet = new Set(existingDocs.map(d => d.docId))
+      const existingDocSet = new Set(await listAllDocIds())
       const orphanDocs = s3DocIds.filter(id => !existingDocSet.has(id))
 
       let totalDocLevelDeleted = 0
@@ -120,10 +114,9 @@ export default defineNitroPlugin((nitroApp) => {
       }
 
       // ─── 3. Defensive S3 sweep ────────────────────────────────────────
-      // For surviving doc prefixes, drop any S3 objects without a matching
-      // uploads row AND older than the 24h race window.
-      const allUploads = await db.select({ s3Key: uploads.s3Key }).from(uploads)
-      const knownKeys = new Set(allUploads.map(u => u.s3Key))
+      // For surviving doc prefixes, drop any S3 objects without a
+      // matching uploads row AND older than the 24h race window.
+      const knownKeys = new Set(await listAllS3Keys())
       const liveDocPrefixes = s3DocIds.filter(id => existingDocSet.has(id))
       const ageCutoff = now - ONE_DAY_MS
       const defensiveBatch: { Key: string }[] = []

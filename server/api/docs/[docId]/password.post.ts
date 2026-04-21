@@ -1,12 +1,10 @@
-import { eq } from 'drizzle-orm'
-import { documents } from '../../../db/schema'
+import { getDoc, setDocPassword, clearDocPassword } from '../../../repos/documents'
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
   const body = await readBody(event)
-  const db = useDatabase()
 
-  const doc = (await db.select().from(documents).where(eq(documents.docId, docId)).limit(1))[0]
+  const doc = await getDoc(docId)
   if (!doc) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
@@ -26,9 +24,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const hash = await hashPassword(password)
-    await db.update(documents)
-      .set({ passwordHash: hash, accessMode: 'password-protected' })
-      .where(eq(documents.docId, docId))
+    await setDocPassword(docId, hash)
 
     return { success: true }
   }
@@ -86,9 +82,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, message: 'Not authorized to manage this document' })
     }
 
-    await db.update(documents)
-      .set({ passwordHash: null, accessMode: 'open-edit' })
-      .where(eq(documents.docId, docId))
+    await clearDocPassword(docId)
 
     return { success: true }
   }

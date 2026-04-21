@@ -1,5 +1,4 @@
-import { eq } from 'drizzle-orm'
-import { workspaces } from '../../../db/schema'
+import { updateWorkspace, type WorkspaceUpdate } from '../../../repos/workspaces'
 
 // Rename / edit workspace. Admins only — editors and viewers can't change
 // the workspace's identity. The "is the workspace still there at all"
@@ -8,7 +7,6 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const wsId = requireWsId(event)
   const body = await readBody<{ name?: unknown, description?: unknown }>(event)
-  const db = useDatabase()
 
   const role = await getWorkspaceRole(session.user.id, wsId)
   if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
@@ -16,7 +14,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only admins can edit the workspace' })
   }
 
-  const updates: Record<string, unknown> = {}
+  const updates: WorkspaceUpdate = {}
 
   if (body?.name !== undefined) {
     if (typeof body.name !== 'string') throw createError({ statusCode: 400, message: 'Name must be a string' })
@@ -41,9 +39,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  if (Object.keys(updates).length > 0) {
-    await db.update(workspaces).set(updates).where(eq(workspaces.workspaceId, wsId))
-  }
-
+  await updateWorkspace(wsId, updates)
   return { success: true }
 })

@@ -1,10 +1,9 @@
 import { GoogleGenAI } from '@google/genai'
 import { nanoid } from 'nanoid'
-import { eq } from 'drizzle-orm'
-import { users } from '../../db/schema'
+import { findUserNameById } from '../../repos/users'
 import { addAiSession, removeAiSession, DuplicateSessionError } from '../../utils/aiSessions'
 import { createAiSession } from '../../utils/aiClient'
-import * as Y from 'yjs'
+import { resolveSelection } from '../../utils/agentic/resolveSelection'
 
 import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
 
@@ -66,9 +65,7 @@ export default defineEventHandler(async (event) => {
 
   await requireDocEditAccess(docId, userId)
 
-  const db = useDatabase()
-  const userRow = (await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1))[0]
-  const initiatorName = userRow?.name || userName
+  const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706'
 
   const sessionId = nanoid(12)
@@ -142,58 +139,24 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 502, message: 'AI returned empty response' })
     }
 
-    // Resolve selection positions. If relative positions are provided, prefer those
-    // (they survive concurrent edits). Otherwise fall back to raw indices.
-    let from = selectionFrom
-    let to = selectionTo
-    try {
-      if (body.relFrom && body.relTo) {
-        // Y.createRelativePositionFromJSON's parameter is loosely typed; the
-        // client ships a JSON-round-tripped RelativePosition, so we hand it
-        // through as the same decoded shape yjs expects.
-        const relFrom = Y.createRelativePositionFromJSON(body.relFrom as Parameters<typeof Y.createRelativePositionFromJSON>[0])
-        const relTo = Y.createRelativePositionFromJSON(body.relTo as Parameters<typeof Y.createRelativePositionFromJSON>[0])
-        const absFrom = Y.createAbsolutePositionFromRelativePosition(relFrom, aiSession.ydoc)
-        const absTo = Y.createAbsolutePositionFromRelativePosition(relTo, aiSession.ydoc)
-        if (absFrom && absTo && absTo.index > absFrom.index) {
-          from = absFrom.index
-          to = absTo.index
-        }
-      }
-    } catch {
-      // fall back to raw indices
-    }
-
-    // Bounds-check against current doc length. A tampered client (or a relative
-    // position from a very different doc state) could resolve to positions
-    // outside the current text; slicing would silently succeed and the
-    // indexOf-fallback below could then target the wrong range. Refuse early.
-    const docLen = aiSession.ytext.length
-    if (from < 0 || to > docLen || from >= to) {
+    // Resolve which span to rewrite. Pure helper — walks the
+    // RelativePosition → raw → indexOf fallback chain and returns a
+    // definite (from, to) or flags the selection as moved. See
+    // `resolveSelection.ts` for the full reasoning.
+    const resolved = resolveSelection(aiSession.ydoc, aiSession.ytext, {
+      selectionText,
+      selectionFrom,
+      selectionTo,
+      relFrom: body.relFrom,
+      relTo: body.relTo
+    })
+    if (!resolved.ok) {
       throw createError({
         statusCode: 409,
         message: 'Selection has moved — please re-select and try again.'
       })
     }
-
-    // Sanity check: the selection text should still match what's in the doc.
-    // If it drifted too far, refuse to apply (don't overwrite the wrong range).
-    const docText = aiSession.ytext.toString()
-    const currentSlice = docText.slice(from, to)
-    if (currentSlice !== selectionText) {
-      // Try a best-effort fallback: find the exact selection text in the doc once
-      const idx = docText.indexOf(selectionText)
-      const lastIdx = docText.lastIndexOf(selectionText)
-      if (idx >= 0 && idx === lastIdx) {
-        from = idx
-        to = idx + selectionText.length
-      } else {
-        throw createError({
-          statusCode: 409,
-          message: 'Selection has moved — please re-select and try again.'
-        })
-      }
-    }
+    const { from, to } = resolved
 
     aiSession.updateStatus('editing', 'Applying rewrite…')
     const origin = `ai:assistant:${sessionId}`

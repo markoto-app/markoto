@@ -1,63 +1,23 @@
-import { eq, and } from 'drizzle-orm'
-import { documents, workspaces, workspaceMembers } from '../db/schema'
+import { getDocWithActorRole } from '../repos/documents'
+import { getMemberRole, countAdmins } from '../repos/workspaceMembers'
+import { getWorkspace as repoGetWorkspace } from '../repos/workspaces'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 
-/**
- * Central authorization for workspace-member docs. The rule of thumb:
- *
- *   - Owner of the doc is always allowed to do anything to it (unchanged).
- *   - Workspace *admin* gets doc-owner-equivalent rights over every doc in the
- *     workspace (delete any, change access mode, change password).
- *   - Workspace *editor* can edit content / title / theme of any doc in the
- *     workspace, plus delete docs *they created* (via the owner path).
- *   - Workspace *viewer* can view docs in the workspace only.
- *
- * For docs with NULL workspaceId (standalone or anonymous docs), the workspace
- * branch is inert — these helpers return exactly what the legacy owner-only
- * checks did. That's the invariant that keeps standalone + anonymous docs
- * behaving identically to pre-workspaces-collab.
- */
-
-interface DocAuthzContext {
-  ownerId: number | null
-  workspaceId: string | null
-  workspaceRole: WorkspaceRole | null
-}
-
-async function loadDocContext(userId: number, docId: string): Promise<DocAuthzContext | null> {
-  const db = useDatabase()
-  const row = (await db
-    .select({
-      ownerId: documents.ownerId,
-      workspaceId: documents.workspaceId,
-      role: workspaceMembers.role
-    })
-    .from(documents)
-    .leftJoin(
-      workspaceMembers,
-      and(
-        eq(workspaceMembers.workspaceId, documents.workspaceId),
-        eq(workspaceMembers.userId, userId)
-      )
-    )
-    .where(eq(documents.docId, docId))
-    .limit(1))[0]
-  if (!row) return null
-  return {
-    ownerId: row.ownerId,
-    workspaceId: row.workspaceId,
-    workspaceRole: (row.role ?? null) as WorkspaceRole | null
-  }
-}
+// Thin authz shortcuts for workspace / document operations. The API here
+// is stable (many endpoints auto-import these via Nitro's `server/utils`
+// auto-import); internals now delegate to the repos in server/repos/.
+//
+// Rule of thumb (reiterated from before the repo extraction):
+//
+//   - Owner of the doc is always allowed to do anything to it.
+//   - Workspace *admin* gets doc-owner-equivalent rights over every doc
+//     in the workspace (delete any, change access mode, change password).
+//   - Workspace *editor* can edit content / title / theme of any doc in
+//     the workspace, plus delete docs *they created* (via the owner path).
+//   - Workspace *viewer* can view docs in the workspace only.
 
 export async function getWorkspaceRole(userId: number, wsId: string): Promise<WorkspaceRole | null> {
-  const db = useDatabase()
-  const row = (await db
-    .select({ role: workspaceMembers.role })
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, userId)))
-    .limit(1))[0]
-  return (row?.role ?? null) as WorkspaceRole | null
+  return getMemberRole(wsId, userId)
 }
 
 /**
@@ -67,7 +27,7 @@ export async function getWorkspaceRole(userId: number, wsId: string): Promise<Wo
  * For non-workspace docs, this is false — fall back to existing rules.
  */
 export async function canViewAsMember(userId: number, docId: string): Promise<boolean> {
-  const ctx = await loadDocContext(userId, docId)
+  const ctx = await getDocWithActorRole(docId, userId)
   if (!ctx) return false
   if (ctx.ownerId === userId) return true
   if (ctx.workspaceId && ctx.workspaceRole) return true
@@ -76,11 +36,11 @@ export async function canViewAsMember(userId: number, docId: string): Promise<bo
 
 /**
  * Can this user edit content / title / theme of the doc?
- * True for: doc owner, workspace admin, workspace editor. False for viewer.
- * For non-workspace docs, only true for the owner — same as before.
+ * True for: doc owner, workspace admin, workspace editor. False for
+ * viewer. For non-workspace docs, only true for the owner.
  */
 export async function canEditDoc(userId: number, docId: string): Promise<boolean> {
-  const ctx = await loadDocContext(userId, docId)
+  const ctx = await getDocWithActorRole(docId, userId)
   if (!ctx) return false
   if (ctx.ownerId === userId) return true
   if (ctx.workspaceRole === 'admin' || ctx.workspaceRole === 'editor') return true
@@ -89,12 +49,12 @@ export async function canEditDoc(userId: number, docId: string): Promise<boolean
 
 /**
  * Can this user manage doc-level settings that affect sharing with outsiders?
- * Covers: delete, change accessMode, set/change/remove password, delete.
+ * Covers: delete, change accessMode, set/change/remove password.
  * True for: doc owner, workspace admin. False for editor, viewer.
- * For non-workspace docs, only true for the owner — same as before.
+ * For non-workspace docs, only true for the owner.
  */
 export async function canManageDoc(userId: number, docId: string): Promise<boolean> {
-  const ctx = await loadDocContext(userId, docId)
+  const ctx = await getDocWithActorRole(docId, userId)
   if (!ctx) return false
   if (ctx.ownerId === userId) return true
   if (ctx.workspaceRole === 'admin') return true
@@ -117,7 +77,7 @@ export interface DocAuthz {
 }
 
 export async function getDocAuthz(userId: number, docId: string): Promise<DocAuthz> {
-  const ctx = await loadDocContext(userId, docId)
+  const ctx = await getDocWithActorRole(docId, userId)
   if (!ctx) {
     return {
       exists: false,
@@ -147,7 +107,7 @@ export async function getDocAuthz(userId: number, docId: string): Promise<DocAut
 }
 
 export async function canManageWorkspace(userId: number, wsId: string): Promise<boolean> {
-  return (await getWorkspaceRole(userId, wsId)) === 'admin'
+  return (await getMemberRole(wsId, userId)) === 'admin'
 }
 
 /**
@@ -155,24 +115,13 @@ export async function canManageWorkspace(userId: number, wsId: string): Promise<
  * Called before demoting or removing a member whose role is 'admin'.
  */
 export async function countWorkspaceAdmins(wsId: string): Promise<number> {
-  const db = useDatabase()
-  const row = (await db
-    .select({ role: workspaceMembers.role })
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.role, 'admin'))))
-  return row.length
+  return countAdmins(wsId)
 }
 
 /**
- * Resolve the workspace row by id. Convenience because several endpoints
- * need the full row (name, ownerId, description) and repeating the query is
- * noisy.
+ * Resolve the workspace row by id. Thin wrapper around the repo call;
+ * kept for backward-compat with any caller that auto-imports it.
  */
 export async function getWorkspace(wsId: string) {
-  const db = useDatabase()
-  return (await db
-    .select()
-    .from(workspaces)
-    .where(eq(workspaces.workspaceId, wsId))
-    .limit(1))[0] ?? null
+  return repoGetWorkspace(wsId)
 }

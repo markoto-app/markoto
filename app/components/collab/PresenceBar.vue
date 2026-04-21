@@ -164,10 +164,18 @@ function roleLabel(role: 'admin' | 'editor' | 'viewer') {
 
 function tooltipFor(e: DisplayEntry): string {
   if (e.kind === 'live' && e.isAI) {
-    if (e.aiSession?.initiatorName) {
-      return t('ai.helpingTooltip', { name: e.aiSession.initiatorName })
+    // Build "Helping Joel — <current status>" so collaborators watching
+    // someone else's AI session can see *what* it's doing at a glance
+    // (fetching a URL, updating the theme, etc.). The status message
+    // is produced by `describeToolInput` on the server side.
+    const base = e.aiSession?.initiatorName
+      ? t('ai.helpingTooltip', { name: e.aiSession.initiatorName })
+      : e.user.name
+    const status = e.aiStatus
+    if (status && isActivePhase(status) && status.message) {
+      return `${base} — ${status.message}`
     }
-    return e.user.name
+    return base
   }
   if (e.kind === 'live') {
     // Try to match live user to a roster row by userId to surface the role.

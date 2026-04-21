@@ -87,6 +87,41 @@ export function describeToolInput(name: string, args: Record<string, unknown>): 
     }
     case 'insert_text':
       return 'Inserting text…'
+    case 'update_theme': {
+      const sections = Object.entries(args)
+        .filter(([, v]) => v && typeof v === 'object' && Object.keys(v as object).length > 0)
+        .map(([k]) => k)
+      if (sections.length === 0) return 'Updating theme…'
+      if (sections.length <= 2) return `Updating theme (${sections.join(', ')})…`
+      return `Updating theme (${sections.length} sections)…`
+    }
+    case 'set_title': {
+      const title = typeof args.title === 'string' ? args.title.trim() : ''
+      if (!title) return 'Updating title…'
+      const preview = title.length > 40 ? title.slice(0, 40) + '…' : title
+      return `Setting title to "${preview}"`
+    }
+    case 'view_image': {
+      const src = typeof args.src === 'string' ? args.src : ''
+      if (!src) return 'Looking at an image…'
+      const leaf = src.split('/').pop() || src
+      const preview = leaf.length > 40 ? leaf.slice(0, 40) + '…' : leaf
+      return `Looking at "${preview}"`
+    }
+    case 'generate_image': {
+      const prompt = typeof args.prompt === 'string' ? args.prompt.trim() : ''
+      if (!prompt) return 'Generating image…'
+      const preview = prompt.length > 50 ? prompt.slice(0, 50) + '…' : prompt
+      return `Generating image: "${preview}"`
+    }
+    case 'fetch_url': {
+      const url = typeof args.url === 'string' ? args.url.trim() : ''
+      if (!url) return 'Fetching URL…'
+      // Strip scheme + trailing slash for a tidier display.
+      const display = url.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+      const preview = display.length > 50 ? display.slice(0, 50) + '…' : display
+      return `Fetching ${preview}`
+    }
     default:
       // Unknown function — don't spam awareness; the loop will still fire
       // an "unsupported tool" error response back to the model.

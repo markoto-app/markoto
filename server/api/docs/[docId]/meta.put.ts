@@ -1,12 +1,9 @@
-import { eq } from 'drizzle-orm'
-import { documents } from '../../../db/schema'
-// `isValidTheme` is auto-imported by Nuxt from shared/utils/themeValidation.ts
+import { updateDocMeta, type MetaUpdate } from '../../../repos/documents'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const docId = requireDocId(event)
   const body = await readBody(event)
-  const db = useDatabase()
 
   // Meta changes split by kind: access_mode is a sharing/ownership change
   // (owner + workspace admin only), everything else is an edit (owner +
@@ -23,7 +20,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only owners and admins can change access mode' })
   }
 
-  const updates: Partial<typeof documents.$inferInsert> = {}
+  const updates: MetaUpdate = {}
 
   if (body.title !== undefined) {
     if (typeof body.title !== 'string') throw createError({ statusCode: 400, message: 'Title must be a string' })
@@ -63,10 +60,6 @@ export default defineEventHandler(async (event) => {
     updates.theme = body.theme
   }
 
-  if (Object.keys(updates).length > 0) {
-    updates.lastActive = new Date()
-    await db.update(documents).set(updates).where(eq(documents.docId, docId))
-  }
-
+  await updateDocMeta(docId, updates)
   return { success: true }
 })

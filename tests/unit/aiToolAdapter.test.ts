@@ -1,13 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import * as Y from 'yjs'
-import {
-  executeFunctionByName,
-  executeEditorTool,
-  DOCUMENT_PATH
-} from '../../server/utils/aiToolAdapter'
+import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
 import type { AiSession } from '../../server/utils/aiClient'
 
-// AI tool handlers — the three functions Gemini uses to mutate user docs
+// AI tool handlers — the functions Gemini uses to mutate user docs
 // (view_document, replace_text, insert_text). Wrong semantics here =
 // silent data corruption in the user's document, so every branch gets
 // pinned: match-count rules, line-to-char mapping, transaction origin
@@ -55,63 +51,63 @@ function makeSession(initial = '', sessionId = 'test-session'): StubSession {
 }
 
 describe('view_document', () => {
-  it('returns full doc with 1-indexed line prefixes', () => {
+  it('returns full doc with 1-indexed line prefixes', async () => {
     const { session } = makeSession('hello\nworld\n!')
-    const res = executeFunctionByName(session, 'view_document', {})
+    const res = await executeFunctionByName(session, 'view_document', {})
     expect(res.isError).toBe(false)
     expect(res.content).toBe('1: hello\n2: world\n3: !')
   })
 
-  it('handles empty doc', () => {
+  it('handles empty doc', async () => {
     // An empty Y.Text splits to [""], so the view shows "1: " (one empty
     // line). This matches what the model would see for a brand-new doc.
     const { session } = makeSession('')
-    const res = executeFunctionByName(session, 'view_document', {})
+    const res = await executeFunctionByName(session, 'view_document', {})
     expect(res.isError).toBe(false)
     expect(res.content).toBe('1: ')
   })
 
-  it('respects view_range [start, end]', () => {
+  it('respects view_range [start, end]', async () => {
     const { session } = makeSession('a\nb\nc\nd\ne')
-    const res = executeFunctionByName(session, 'view_document', { view_range: [2, 4] })
+    const res = await executeFunctionByName(session, 'view_document', { view_range: [2, 4] })
     expect(res.content).toBe('2: b\n3: c\n4: d')
   })
 
-  it('interprets end=-1 as "to end of file"', () => {
+  it('interprets end=-1 as "to end of file"', async () => {
     const { session } = makeSession('a\nb\nc')
-    const res = executeFunctionByName(session, 'view_document', { view_range: [2, -1] })
+    const res = await executeFunctionByName(session, 'view_document', { view_range: [2, -1] })
     expect(res.content).toBe('2: b\n3: c')
   })
 
-  it('errors on start < 1', () => {
+  it('errors on start < 1', async () => {
     const { session } = makeSession('a\nb')
-    const res = executeFunctionByName(session, 'view_document', { view_range: [0, 2] })
+    const res = await executeFunctionByName(session, 'view_document', { view_range: [0, 2] })
     expect(res.isError).toBe(true)
     expect(res.content).toContain('view_range start must be >= 1')
   })
 
-  it('errors on end < start', () => {
+  it('errors on end < start', async () => {
     const { session } = makeSession('a\nb\nc')
-    const res = executeFunctionByName(session, 'view_document', { view_range: [3, 2] })
+    const res = await executeFunctionByName(session, 'view_document', { view_range: [3, 2] })
     expect(res.isError).toBe(true)
     expect(res.content).toContain('view_range end must be >= start')
   })
 
-  it('range beyond file returns empty slice with start prefix (no error)', () => {
+  it('range beyond file returns empty slice with start prefix (no error)', async () => {
     // Current behaviour — documented here so a future change to "error on
     // past-end range" is an explicit decision, not an accident. Model
     // should figure it out from the empty result; we don't need to block.
     const { session } = makeSession('a\nb')
-    const res = executeFunctionByName(session, 'view_document', { view_range: [5, 10] })
+    const res = await executeFunctionByName(session, 'view_document', { view_range: [5, 10] })
     expect(res.isError).toBe(false)
     expect(res.content).toBe('5: ')
   })
 })
 
 describe('replace_text', () => {
-  it('replaces a unique match', () => {
+  it('replaces a unique match', async () => {
     const { session, ytext } = makeSession('hello world')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: 'world',
       new_str: 'moon'
     })
@@ -119,9 +115,9 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('hello moon')
   })
 
-  it('allows empty new_str (delete-only)', () => {
+  it('allows empty new_str (delete-only)', async () => {
     const { session, ytext } = makeSession('hello world')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: ' world',
       new_str: ''
     })
@@ -129,9 +125,9 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('hello')
   })
 
-  it('errors when no matches found', () => {
+  it('errors when no matches found', async () => {
     const { session, ytext } = makeSession('hello')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: 'nope',
       new_str: 'yep'
     })
@@ -140,11 +136,11 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('hello')
   })
 
-  it('errors on multiple matches with count in message', () => {
+  it('errors on multiple matches with count in message', async () => {
     // Regression target — if this silently took the first match, an AI
     // replace of a common word would rewrite the wrong sentence.
     const { session, ytext } = makeSession('foo bar foo bar foo')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: 'foo',
       new_str: 'BAZ'
     })
@@ -153,9 +149,9 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('foo bar foo bar foo')
   })
 
-  it('match at start of doc', () => {
+  it('match at start of doc', async () => {
     const { session, ytext } = makeSession('abc def')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: 'abc',
       new_str: 'XYZ'
     })
@@ -163,9 +159,9 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('XYZ def')
   })
 
-  it('match at end of doc', () => {
+  it('match at end of doc', async () => {
     const { session, ytext } = makeSession('abc def')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: 'def',
       new_str: 'XYZ'
     })
@@ -173,9 +169,9 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('abc XYZ')
   })
 
-  it('match spans multiple lines', () => {
+  it('match spans multiple lines', async () => {
     const { session, ytext } = makeSession('line1\nline2\nline3')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: 'line1\nline2',
       new_str: 'merged'
     })
@@ -183,13 +179,13 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('merged\nline3')
   })
 
-  it('unicode / emoji match aligns with Y.Text indexing', () => {
+  it('unicode / emoji match aligns with Y.Text indexing', async () => {
     // Both JS String.prototype.indexOf and Y.Text.insert/delete operate
     // in UTF-16 code units. An emoji like 😀 is 2 code units, and an
     // indexOf match must carry the right code-unit length to the
     // Y.Text.delete call. Regression guard.
     const { session, ytext } = makeSession('hello 😀 world')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: '😀',
       new_str: '🎉'
     })
@@ -197,32 +193,32 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('hello 🎉 world')
   })
 
-  it('tags transaction with ai:assistant:{sessionId} origin', () => {
+  it('tags transaction with ai:assistant:{sessionId} origin', async () => {
     // The UI filters remote-origin updates to animate AI edits
     // differently — if this tag drifts, the animation breaks silently.
     const { session, originsSeen } = makeSession('hello', 'sess-42')
-    executeFunctionByName(session, 'replace_text', {
+    await executeFunctionByName(session, 'replace_text', {
       old_str: 'hello',
       new_str: 'goodbye'
     })
     expect(originsSeen.has('ai:assistant:sess-42')).toBe(true)
   })
 
-  it('emits "editing" status before mutating', () => {
+  it('emits "editing" status before mutating', async () => {
     const { session, statusCalls } = makeSession('hello')
-    executeFunctionByName(session, 'replace_text', {
+    await executeFunctionByName(session, 'replace_text', {
       old_str: 'hello',
       new_str: 'hi'
     })
     expect(statusCalls[0]?.phase).toBe('editing')
   })
 
-  it('leading/trailing whitespace is NOT stripped — exact match required', () => {
+  it('leading/trailing whitespace is NOT stripped — exact match required', async () => {
     // The model is instructed to match exactly including whitespace.
     // If we trimmed, a replace of "  foo" in "  foo  " would succeed
     // with 3 hidden matches (leading, trailing, both).
     const { session, ytext } = makeSession('  hello  ')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: 'hello',
       new_str: 'HI'
     })
@@ -230,13 +226,13 @@ describe('replace_text', () => {
     expect(ytext.toString()).toBe('  HI  ')
   })
 
-  it('non-overlapping match counter (matches cannot overlap)', () => {
+  it('non-overlapping match counter (matches cannot overlap)', async () => {
     // "aa" in "aaaa" is counted as 2 non-overlapping matches (positions
     // 0, 2) — NOT 3 overlapping. Confirms indexOf advances by
     // needle.length, not by 1. If the counter went to 3+ and then threw
     // on "multiple matches", a legit dedupe would wrongly error.
     const { session } = makeSession('aaaa')
-    const res = executeFunctionByName(session, 'replace_text', {
+    const res = await executeFunctionByName(session, 'replace_text', {
       old_str: 'aa',
       new_str: 'X'
     })
@@ -246,9 +242,9 @@ describe('replace_text', () => {
 })
 
 describe('insert_text', () => {
-  it('insert_line=0 prepends at start of file', () => {
+  it('insert_line=0 prepends at start of file', async () => {
     const { session, ytext } = makeSession('world\n')
-    const res = executeFunctionByName(session, 'insert_text', {
+    const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 0,
       insert_text: 'hello\n'
     })
@@ -256,9 +252,9 @@ describe('insert_text', () => {
     expect(ytext.toString()).toBe('hello\nworld\n')
   })
 
-  it('insert_line=N inserts after line N', () => {
+  it('insert_line=N inserts after line N', async () => {
     const { session, ytext } = makeSession('a\nb\nc')
-    const res = executeFunctionByName(session, 'insert_text', {
+    const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 1,
       insert_text: 'X'
     })
@@ -267,14 +263,14 @@ describe('insert_text', () => {
     expect(ytext.toString()).toBe('a\nX\nb\nc')
   })
 
-  it('insert_line === lines.length appends at end (regression for off-by-one)', () => {
+  it('insert_line === lines.length appends at end (regression for off-by-one)', async () => {
     // Regression target: pre-fix, this overshot by 1 because the loop
     // added "+1 for newline" after the last line even though there's no
     // trailing newline. Result depended on yjs's bounds-handling and
     // silently put content in the wrong place. The `Math.min(idx, full.length)`
     // clamp in handleInsert pins this to the true end.
     const { session, ytext } = makeSession('hello\nworld')
-    const res = executeFunctionByName(session, 'insert_text', {
+    const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 2,
       insert_text: '!'
     })
@@ -282,10 +278,10 @@ describe('insert_text', () => {
     expect(ytext.toString()).toBe('hello\nworld!\n')
   })
 
-  it('insert_line === lines.length on doc with trailing newline appends cleanly', () => {
+  it('insert_line === lines.length on doc with trailing newline appends cleanly', async () => {
     const { session, ytext } = makeSession('hello\nworld\n')
     // split on "\n" gives ["hello", "world", ""], so lines.length = 3.
-    const res = executeFunctionByName(session, 'insert_text', {
+    const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 3,
       insert_text: '!'
     })
@@ -293,9 +289,9 @@ describe('insert_text', () => {
     expect(ytext.toString()).toBe('hello\nworld\n!\n')
   })
 
-  it('insert_line > lines.length errors', () => {
+  it('insert_line > lines.length errors', async () => {
     const { session, ytext } = makeSession('hello\nworld')
-    const res = executeFunctionByName(session, 'insert_text', {
+    const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 99,
       insert_text: 'X'
     })
@@ -304,9 +300,9 @@ describe('insert_text', () => {
     expect(ytext.toString()).toBe('hello\nworld')
   })
 
-  it('insert_line=0 on empty doc works', () => {
+  it('insert_line=0 on empty doc works', async () => {
     const { session, ytext } = makeSession('')
-    const res = executeFunctionByName(session, 'insert_text', {
+    const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 0,
       insert_text: 'first line'
     })
@@ -314,18 +310,18 @@ describe('insert_text', () => {
     expect(ytext.toString()).toBe('first line\n')
   })
 
-  it('appends auto-newline if insert_text does not end with \\n', () => {
+  it('appends auto-newline if insert_text does not end with \\n', async () => {
     const { session, ytext } = makeSession('a\n')
-    executeFunctionByName(session, 'insert_text', {
+    await executeFunctionByName(session, 'insert_text', {
       insert_line: 0,
       insert_text: 'X' // no trailing \n
     })
     expect(ytext.toString()).toBe('X\na\n')
   })
 
-  it('does NOT double-append \\n if insert_text already has one', () => {
+  it('does NOT double-append \\n if insert_text already has one', async () => {
     const { session, ytext } = makeSession('a\n')
-    executeFunctionByName(session, 'insert_text', {
+    await executeFunctionByName(session, 'insert_text', {
       insert_line: 0,
       insert_text: 'X\n'
     })
@@ -334,9 +330,9 @@ describe('insert_text', () => {
     expect(ytext.toString()).not.toContain('X\n\n')
   })
 
-  it('tags transaction with ai:assistant:{sessionId} origin', () => {
+  it('tags transaction with ai:assistant:{sessionId} origin', async () => {
     const { session, originsSeen } = makeSession('hello', 'sess-99')
-    executeFunctionByName(session, 'insert_text', {
+    await executeFunctionByName(session, 'insert_text', {
       insert_line: 0,
       insert_text: 'prefix\n'
     })
@@ -345,74 +341,21 @@ describe('insert_text', () => {
 })
 
 describe('executeFunctionByName — dispatch', () => {
-  it('rejects unknown function name', () => {
+  it('rejects unknown function name', async () => {
     const { session } = makeSession('hello')
-    const res = executeFunctionByName(session, 'not_a_tool', {})
+    const res = await executeFunctionByName(session, 'not_a_tool', {})
     expect(res.isError).toBe(true)
     expect(res.content).toContain('Unsupported function')
   })
 
-  it('web_search is NOT routed here (handled by runLoop)', () => {
+  it('web_search is NOT routed here (handled by runLoop)', async () => {
     // Documented in the handler comment — web_search needs the
     // GoogleGenAI client and is async, so the loop calls the
     // `webSearch` helper directly. If the dispatcher started handling
     // it, that'd invoke a nonsense `handleWebSearch` we never wrote.
     const { session } = makeSession('')
-    const res = executeFunctionByName(session, 'web_search', { query: 'x' })
+    const res = await executeFunctionByName(session, 'web_search', { query: 'x' })
     expect(res.isError).toBe(true)
     expect(res.content).toContain('Unsupported function')
-  })
-})
-
-describe('executeEditorTool — legacy Anthropic-shaped dispatcher', () => {
-  // Kept for any surviving consumer. Tested lightly to pin the contract.
-  it('routes view command', () => {
-    const { session } = makeSession('hello')
-    const res = executeEditorTool(session, { command: 'view', path: DOCUMENT_PATH })
-    expect(res.isError).toBe(false)
-    expect(res.content).toBe('1: hello')
-  })
-
-  it('routes str_replace', () => {
-    const { session, ytext } = makeSession('hello world')
-    const res = executeEditorTool(session, {
-      command: 'str_replace',
-      path: DOCUMENT_PATH,
-      old_str: 'world',
-      new_str: 'moon'
-    })
-    expect(res.isError).toBe(false)
-    expect(ytext.toString()).toBe('hello moon')
-  })
-
-  it('rejects non-DOCUMENT_PATH (path isolation)', () => {
-    // Only reachable via this legacy dispatcher — the Gemini one hardcodes
-    // DOCUMENT_PATH. Defensive guard against a future consumer passing an
-    // attacker-controlled path.
-    const { session } = makeSession('hello')
-    const res = executeEditorTool(session, {
-      command: 'view',
-      path: '/etc/passwd'
-    })
-    expect(res.isError).toBe(true)
-    expect(res.content).toContain('can only access')
-  })
-
-  it('create command is refused (doc already exists)', () => {
-    const { session } = makeSession('hello')
-    const res = executeEditorTool(session, {
-      command: 'create',
-      path: DOCUMENT_PATH,
-      file_text: 'replacement'
-    })
-    expect(res.isError).toBe(true)
-    expect(res.content).toContain('cannot be re-created')
-  })
-
-  it('unknown command → error', () => {
-    const { session } = makeSession('hello')
-    const res = executeEditorTool(session, { command: 'delete_all', path: DOCUMENT_PATH })
-    expect(res.isError).toBe(true)
-    expect(res.content).toContain('Unknown command')
   })
 })
