@@ -42,7 +42,13 @@ import {
 // enforced by description + runtime bounds check in `handleView`.
 const ViewDocumentArgs = z.object({
   view_range: z.array(z.number().int()).min(2).max(2)
-    .describe('Inclusive [startLine, endLine], 1-indexed. Use -1 as endLine to read to end of file.')
+    // Enforce at the schema level so Gemini self-corrects with a clean
+    // error instead of hitting the runtime check in `handleView` (which
+    // produces a less model-friendly message and burns a loop turn).
+    .refine(([start, end]) => start !== undefined && end !== undefined && start >= 1 && (end === -1 || end >= start), {
+      message: 'view_range must be [start, end] where start >= 1 and end is either -1 (read to EOF) or >= start'
+    })
+    .describe('Inclusive [startLine, endLine], both 1-indexed positive integers. Use -1 ONLY as the endLine sentinel (read to end of file). Never use -1 as start — start must be >= 1.')
     .optional()
 }).describe('Read the current document with 1-indexed line numbers.')
 
@@ -327,6 +333,12 @@ export async function webSearch(
   // Abort guard — if we're already past the deadline, don't even issue the call.
   if (signal.aborted) throw new Error('aborted')
 
+  // Grounding tools (`googleSearch`) and structured output (`responseSchema`)
+  // don't coexist cleanly across model versions — Gemini will 400 if you
+  // pass both. Stay with freeform-text + groundingMetadata: the sources
+  // come back already-structured from grounding metadata, and the answer
+  // text is the one field where losing strict formatting is harmless (we
+  // pass it straight through to the main model, which reads prose fine).
   const response = await ai.models.generateContent({
     model,
     contents: [
@@ -335,7 +347,7 @@ export async function webSearch(
         parts: [{
           text:
             `Answer this question using up-to-date web sources. Be concise (3–6 sentences). `
-            + `End with a bulleted "Sources:" list of the URLs you used.\n\nQuery: ${query}`
+            + `Return ONLY the answer — do NOT list sources in the text; the caller pulls them from grounding metadata.\n\nQuery: ${query}`
         }]
       }
     ],
@@ -347,18 +359,22 @@ export async function webSearch(
 
   const answer = (response.text ?? '').trim()
   const md = response.candidates?.[0]?.groundingMetadata
-  const sources = (md?.groundingChunks ?? [])
-    .flatMap(c => (c.web?.uri ? [{ title: c.web.title ?? c.web.uri, uri: c.web.uri }] : []))
+  // Deduplicate by URI — grounding metadata frequently repeats the same
+  // source multiple times (one chunk per quoted span).
+  const seen = new Set<string>()
+  const sources: Array<{ title: string, uri: string }> = []
+  for (const c of md?.groundingChunks ?? []) {
+    const uri = c.web?.uri
+    if (!uri || seen.has(uri)) continue
+    seen.add(uri)
+    sources.push({ title: c.web?.title ?? uri, uri })
+  }
 
   if (!answer) {
     return 'No answer returned. The search may not have surfaced relevant results.'
   }
 
-  // If the model already included sources in its answer (it was asked to),
-  // don't duplicate. Otherwise append our own list from groundingMetadata.
-  const hasEmbeddedSources = /sources\s*:/i.test(answer)
-  if (hasEmbeddedSources || sources.length === 0) return answer
-
+  if (sources.length === 0) return answer
   const sourceList = sources.map(s => `  - ${s.title}: ${s.uri}`).join('\n')
   return `${answer}\n\nSources:\n${sourceList}`
 }
@@ -377,6 +393,16 @@ export async function webSearch(
  * because JSON mode + urlContext coexistence is not documented as stable,
  * and the main model parses the informal format fine.
  */
+/**
+ * Structured shape Gemini returns for `fetch_url`. Mirrors the
+ * `responseSchema` below — kept as a TS interface so the parser/narrower
+ * can type-check the response without an extra schema wrapper.
+ */
+interface FetchUrlResponse {
+  summary: string
+  images: Array<{ url: string, description?: string }>
+}
+
 export async function fetchUrl(
   ai: GoogleGenAI,
   model: string,
@@ -399,23 +425,68 @@ export async function fetchUrl(
         parts: [{
           text:
             `Fetch this URL and read its content: ${url}\n\n`
-            + `Produce output in EXACTLY this format:\n\n`
-            + `Summary:\n<4–8 sentences synthesising the factual content of the page (who, what, when, where, why). If the page is unreachable or empty, say so plainly.>\n\n`
-            + `Images observed on the page:\n`
-            + `<Bulleted list of up to 6 direct image URLs you saw on the page (og:image, hero images, figure images — not site-chrome icons/logos). Each line: "- <absolute URL>: <short description of what it depicts>". If none, write "- (none found)".>\n\n`
-            + `Do NOT add commentary outside the two labelled sections.`
+            + `Produce a JSON object matching the schema. Fields:\n`
+            + `- "summary": 4–8 sentences synthesising the factual content of the page (who, what, when, where, why). If the page is unreachable or empty, say so plainly here.\n`
+            + `- "images": up to 6 direct image URLs visible on the page, prioritising og:image, hero images, and figure images (NOT site-chrome icons/logos). Each entry is {"url": absolute URL, "description": what it depicts}. Return an empty array if none.\n\n`
+            + `Do NOT include anything outside the JSON.`
         }]
       }
     ],
     config: {
       tools: [{ urlContext: {} }],
+      // Structured output hardens the shape — the main loop never has to
+      // parse free-form "Images observed:" prose. If Gemini rejects
+      // urlContext+JSON coexistence on a given model version, we catch
+      // and fall back to raw text below.
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'object',
+        properties: {
+          summary: { type: 'string' },
+          images: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                url: { type: 'string' },
+                description: { type: 'string' }
+              },
+              required: ['url']
+            }
+          }
+        },
+        required: ['summary', 'images']
+      },
       abortSignal: signal
     }
   })
 
-  const text = (response.text ?? '').trim()
-  if (!text) {
+  const raw = (response.text ?? '').trim()
+  if (!raw) {
     return `Unable to extract content from ${url}. The page may be unreachable, require authentication, or block crawlers.`
   }
-  return text
+
+  // Parse the JSON Gemini returned per the schema. If parsing fails (model
+  // emitted prose or malformed JSON despite the schema hint), hand the raw
+  // text back — the main model can still make sense of it.
+  let parsed: FetchUrlResponse
+  try {
+    parsed = JSON.parse(raw) as FetchUrlResponse
+  } catch {
+    return raw
+  }
+
+  const lines: string[] = []
+  lines.push('Summary:', parsed.summary || '(empty)')
+  lines.push('')
+  lines.push('Images observed on the page:')
+  if (!parsed.images?.length) {
+    lines.push('- (none found)')
+  } else {
+    for (const img of parsed.images) {
+      if (!img?.url) continue
+      lines.push(img.description ? `- ${img.url}: ${img.description}` : `- ${img.url}`)
+    }
+  }
+  return lines.join('\n')
 }

@@ -470,6 +470,7 @@ async function generateImageBytes(
   const ai = new GoogleGenAI({ apiKey: config.google.apiKey })
 
   try {
+    console.log(`[generate_image] calling model=${config.google.imageModel} prompt="${prompt.slice(0, 100)}…"`)
     const response = await ai.models.generateContent({
       model: config.google.imageModel,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -481,19 +482,33 @@ async function generateImageBytes(
         abortSignal: signal
       }
     })
-    const parts = response.candidates?.[0]?.content?.parts ?? []
+    const cand = response.candidates?.[0]
+    const parts = cand?.content?.parts ?? []
+    const finishReason = cand?.finishReason
+    const partKinds = parts.map(p => Object.keys(p).find(k => k !== 'thought' && p[k as keyof typeof p] !== undefined)).filter(Boolean)
+    console.log(`[generate_image] finishReason=${finishReason} parts=[${partKinds.join(',')}]`)
+
     const imgPart = parts.find(p => p.inlineData?.data)
     if (!imgPart?.inlineData?.data) {
-      return { error: 'Image model returned no image part. The prompt may have been blocked by safety filters — try rephrasing.' }
+      // Surface the finish reason + any text the model returned — flash-image
+      // sometimes returns only text with an explanation (safety block,
+      // model refusal, prompt misinterpretation).
+      const text = parts.map(p => p.text).filter(Boolean).join(' ').slice(0, 300)
+      return {
+        error: `Image model returned no image part (finishReason=${finishReason ?? 'unknown'}).`
+          + (text ? ` Model text: ${text}` : ' The prompt may have been blocked by safety filters — try rephrasing.')
+      }
     }
     const mimeType = imgPart.inlineData.mimeType ?? 'image/png'
     if (!IMAGE_MIME_EXT[mimeType]) {
       return { error: `Image model returned unsupported MIME type "${mimeType}".` }
     }
     const bytes = Buffer.from(imgPart.inlineData.data, 'base64')
+    console.log(`[generate_image] got ${mimeType} image, ${bytes.byteLength} bytes`)
     return { bytes, mimeType }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
+    console.error('[generate_image] SDK threw:', msg)
     return { error: `Image generation failed: ${msg}` }
   }
 }

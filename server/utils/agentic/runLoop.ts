@@ -38,6 +38,14 @@ export interface RunLoopOptions {
   sessionId: string
   abortController: AbortController
   setStatus: (phase: StreamStatusPhase, message?: string) => void
+  /**
+   * Tokens the model may spend on internal reasoning per turn. 0 = thinking
+   * disabled (cheapest + fastest). Only passed through when > 0 — Gemini
+   * models that don't support thinkingConfig (e.g. older flash-lite) error
+   * when they see an empty thinkingConfig, so we omit the key entirely for
+   * the disabled case.
+   */
+  thinkingBudget?: number
   /** Optional logger — defaults to `console.log` tagged with the session id. */
   logger?: (msg: string) => void
 }
@@ -48,6 +56,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     aiSession, sessionId, abortController, setStatus
   } = opts
   const log = opts.logger ?? ((msg: string) => console.log(`[ai/prompt ${sessionId}] ${msg}`))
+  const thinkingBudget = opts.thinkingBudget ?? 0
 
   // Manual `contents` history. Each turn:
   //   - push `{ role: 'model', parts: [...] }` with whatever the model returned
@@ -71,7 +80,12 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       config: {
         systemInstruction: systemPrompt,
         tools: [{ functionDeclarations: ALL_TOOL_DECLARATIONS }],
-        abortSignal: abortController.signal
+        abortSignal: abortController.signal,
+        // Only pass thinkingConfig when the operator actually opted in.
+        // Models without thinking support (e.g. some flash-lite variants)
+        // reject `thinkingConfig: { thinkingBudget: 0 }` with a schema
+        // error, so we omit the key entirely for the disabled case.
+        ...(thinkingBudget > 0 ? { thinkingConfig: { thinkingBudget } } : {})
       }
     })
 

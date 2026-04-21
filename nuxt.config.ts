@@ -57,7 +57,15 @@ export default defineNuxtConfig({
       apiKey: '', // NUXT_GOOGLE_API_KEY
       model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
       rewriteModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
-      imageModel: 'gemini-2.5-flash-image-preview' // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool
+      imageModel: 'gemini-3.1-flash-image-preview', // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool. Alternatives: `gemini-2.5-flash-image` (stable, older), `gemini-3-pro-image-preview` (higher quality, slower, more expensive).
+      // NUXT_GOOGLE_THINKING_BUDGET — tokens the model may spend on internal
+      // reasoning before producing its response. 0 disables thinking entirely
+      // (cheapest + fastest, recommended default). Typical "minimal" budgets
+      // are 128–512 for noticeable-but-bounded gains on multi-step edits.
+      // Applied only to the main agentic loop — rewrites and sub-calls stay
+      // thinking-free. Nitro parses env-var strings with `destr`, so bare
+      // numbers come through as numbers.
+      thinkingBudget: 0
     },
     jwtSecret: '',
     // Optional: previous JWT_SECRET, accepted by verifiers during rotation.
