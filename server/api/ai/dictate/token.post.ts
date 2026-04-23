@@ -14,7 +14,11 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
   const config = useRuntimeConfig()
-  if (!config.jwtSecret) {
+  // Prefer the dictation-specific secret; fall back to the Hocuspocus
+  // jwtSecret so this still works in dev without setting a second var.
+  // Prod should set both independently.
+  const secret = config.google.dictateJwtSecret || config.jwtSecret
+  if (!secret) {
     throw createError({ statusCode: 500, message: 'JWT secret not configured' })
   }
 
@@ -26,12 +30,12 @@ export default defineEventHandler(async (event) => {
 
   // Doc-edit access is re-checked on the WS side too (defense in depth),
   // but rejecting here gives the user an immediate 403 before they
-  // open a socket that would only fail on upgrade.
+  // open a socket that would only fail on the auth message.
   await requireDocEditAccess(docId, userId)
 
   const token = jwt.sign(
     { userId, docId, kind: 'dictate' },
-    config.jwtSecret,
+    secret,
     { expiresIn: '60s' }
   )
   return { token }

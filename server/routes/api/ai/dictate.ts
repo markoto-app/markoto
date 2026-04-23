@@ -1,78 +1,102 @@
-import { GoogleGenAI, Modality, type Session } from '@google/genai'
 import jwt from 'jsonwebtoken'
-import { consumeRateLimitBudget } from '../../../utils/rateLimit'
+import {
+  consumeRateLimitBudget,
+  tryAcquireSessionLock,
+  releaseSessionLock
+} from '../../../utils/rateLimit'
+import { tryParseControl, normalizeLanguageCode } from '../../../utils/agentic/dictateHelpers'
+import { createDictateSpeechClient, type SpeechStream } from '../../../utils/agentic/dictateSpeechClient'
 
 // WebSocket relay for live voice dictation. Bridges the browser's PCM
-// audio stream to Gemini's Live API and forwards `inputTranscription`
-// events back to the client.
+// audio stream to Google Cloud Speech-to-Text v1 `streamingRecognize`
+// and forwards transcript events back to the client.
+//
+// Why Cloud STT (not Gemini Live): Gemini Live is a CONVERSATIONAL
+// duplex model — its server-side VAD buffers audio until end-of-turn
+// and emits transcripts in a burst, so "I spoke 30 s without a pause"
+// showed nothing on screen until I stopped. Cloud STT is purpose-built
+// for dictation: true interim-result streaming the moment a phoneme
+// is confident, and `is_final: true` when the recognizer commits.
+// Also ~5× cheaper per minute.
+//
+// Why v1 (not v2): v2's `streamingRecognize` requires a project id in
+// the recognizer resource path (`projects/{project}/locations/...`).
+// API-key auth gives us the project implicitly, so v1 — which doesn't
+// need the path — keeps the server code to a minimum. `chirp_2` is
+// v2-only, but `latest_long` in v1 is more than good enough for
+// dictation.
 //
 // Wire format:
-//   Client → server:
-//     - binary frames: raw int16 PCM chunks from the AudioWorklet (2048
-//       samples @ 16kHz = 128ms per chunk).
-//     - `{ type: 'stop' }` JSON: graceful shutdown after the final chunk
+//   Client → server (JSON, before auth):
+//     - `{ type: 'auth', token, languageCode? }` — FIRST message after
+//       open. Must arrive within `AUTH_DEADLINE_MS` or we close. Token
+//       is the short-lived JWT from POST /api/ai/dictate/token.
+//       Passing the token in the first WS MESSAGE (not `?token=` in the
+//       URL) avoids leaking it into access logs, referer headers, and
+//       browser history — the URL never carries a credential.
+//   Client → server (after auth):
+//     - binary frames: raw int16 PCM chunks from the AudioWorklet
+//       (2048 samples @ 16 kHz = 128 ms per chunk).
+//     - `{ type: 'stop' }` JSON: graceful shutdown; caller finalizes.
 //   Server → client (JSON, always):
-//     - `{ type: 'ready' }`: Gemini session is up — start sending audio
-//     - `{ type: 'partial', text }`: interim transcript (may be revised)
-//     - `{ type: 'final', text }`: finalized phrase, safe to commit
-//     - `{ type: 'error', message }`: fatal; the socket will close next
-//     - `{ type: 'budget-exhausted', remaining }`: daily budget used up
-//     - `{ type: 'session-cap' }`: 10-minute per-session cap reached
-//     - `{ type: 'idle-timeout' }`: no audio for 30s — session closed
+//     - `{ type: 'hello' }` immediately on open — "send auth now"
+//     - `{ type: 'ready' }` after auth + STT stream up — "send audio now"
+//     - `{ type: 'partial', text }` interim transcripts
+//     - `{ type: 'final', text }` finalized phrases
+//     - `{ type: 'error', message }` fatal; socket closes next
+//     - `{ type: 'budget-exhausted', remaining }` daily cap hit
+//     - `{ type: 'session-cap' }` per-session 10 min cap
+//     - `{ type: 'idle-timeout' }` 30 s without audio
 //
-// Auth: the upgrade URL carries a short-lived JWT minted by
-// POST /api/ai/dictate/token. crossws's upgrade hook only has access
-// to a raw Request (not an H3Event), so reading the sealed session
-// cookie directly isn't an option — the JWT route keeps things simple
-// and parallels Hocuspocus authentication.
-//
-// Rate-limiting: dictation is billed by the SECOND, not per request.
-// Every audio chunk (128ms @ 16kHz) debits `CHUNK_SEC` seconds from
-// the user's daily budget; when exhausted we close the session with
-// a structured `budget-exhausted` message so the client can surface
-// a friendly error. See `consumeRateLimitBudget` for the sliding-
-// window math.
+// Rate-limit: audio-ms (NOT requests). Each 2048-sample chunk @ 16 kHz
+// = 128 ms of audio; we debit that into a per-user daily budget.
 
-// Daily budget in seconds. 1800s = 30 minutes — conservative initial
-// cap while the feature is new. Bump once we have real usage data.
-const DAILY_BUDGET_SEC = 1800
+const DAILY_BUDGET_MS = 30 * 60 * 1000 // 30 min/user/day
 const DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
-
-// Per-session hard cap. Prevents a forgotten-mic-on scenario from
-// silently burning through the daily budget.
 const SESSION_HARD_CAP_MS = 10 * 60 * 1000
-
-// Idle timeout — no audio chunk for this many ms → auto-close. The
-// user's MediaRecorder may stop emitting chunks if the tab goes
-// background; a stuck Gemini session left open would keep billing.
 const IDLE_TIMEOUT_MS = 30_000
+// Deadline for the client's first `auth` message. Long enough to cover
+// a slow first paint but short enough that an unauthenticated socket
+// can't sit open consuming resources indefinitely.
+const AUTH_DEADLINE_MS = 5_000
+const CHUNK_AUDIO_MS = Math.round((2048 / 16000) * 1000) // 128 ms per chunk
 
-// Each AudioWorklet chunk is 2048 int16 samples at 16kHz = 0.128s audio.
-// Precomputed so we can debit precisely without inferring from byte
-// length (which varies with frame boundaries).
-const CHUNK_SEC = 2048 / 16000
+// Concurrent-session cap is enforced via a Valkey lock (see
+// `tryAcquireSessionLock`) rather than an in-memory Set. An in-memory
+// Set would only catch same-process conflicts, so two tabs landing on
+// different Nitro workers / containers would both slip through. The
+// Valkey lock's TTL is set to `SESSION_HARD_CAP_MS` below so a
+// crashed process self-heals its lock.
+
+// Minimal surface of the Cloud STT streaming API we actually use.
+// Defined in dictateSpeechClient.ts so the real SpeechClient and the
+// test-mode mock satisfy the same contract — imported here as SttStream
+// (alias) for backwards compat with the names in this file.
+type SttStream = SpeechStream
 
 interface DictatePeerContext {
   userId?: number
   docId?: string
-  gemini?: Session
+  /**
+   * Cloud STT stream. Populated in `handleAuth` after the JWT checks
+   * out; every code path that reaches for it also checks `authed`.
+   */
+  stt?: SttStream
+  authed?: boolean
   closed?: boolean
+  /**
+   * Flipped to `true` once the client sends `{type:'stop'}` or we
+   * otherwise call `stt.end()`. Guards the audio-write path: any
+   * chunks the worklet had queued in postMessage but hadn't yet sent
+   * when the client fired stop will arrive here post-end and would
+   * otherwise error with "write after end" — we drop them silently.
+   */
+  sttEnded?: boolean
   idleTimer?: ReturnType<typeof setTimeout>
   hardCapTimer?: ReturnType<typeof setTimeout>
-  // Accumulated interim transcript for the current turn. Gemini's
-  // `inputTranscription.text` arrives as incremental CHUNKS (not
-  // monotonic snapshots), and `turnComplete` fires in its OWN message
-  // with no transcription field. So we concatenate chunks here, emit
-  // each running total as a `partial` to the client, and when
-  // `turnComplete` lands we flush the whole buffer as `final` and
-  // reset. Without this, `final` never fires and nothing commits to
-  // the doc.
-  transcriptBuffer?: string
+  authTimer?: ReturnType<typeof setTimeout>
 }
 
-// Narrow peer surface — peer implementations from different adapters
-// share `send`/`close`/`context` but differ on niche methods we don't
-// use. Keeping this tight avoids TS fighting with the Peer type.
 interface PeerLike {
   send: (data: string) => unknown
   close: (code?: number, reason?: string) => void
@@ -80,188 +104,103 @@ interface PeerLike {
 }
 
 export default defineEventHandler({
-  // Plain HTTP GET/POST bounces — this route is WS-only.
   handler() {
     throw createError({ statusCode: 426, message: 'Upgrade Required: WebSocket only' })
   },
 
   websocket: {
-    // Upgrade runs before the socket is promoted. Parse the JWT off
-    // `?token=X` and reject unauthorized clients with 401. Passing
-    // `userId`/`docId` through `context` lets later hooks skip re-
-    // verifying the token.
-    async upgrade(request) {
-      const config = useRuntimeConfig()
-      if (!config.jwtSecret) {
-        throw createError({ statusCode: 500, message: 'JWT secret not configured' })
-      }
-      const url = new URL(request.url)
-      const token = url.searchParams.get('token')
-      if (!token) {
-        throw createError({ statusCode: 401, message: 'Missing token' })
-      }
-      let payload: { userId?: number, docId?: string, kind?: string }
-      try {
-        payload = jwt.verify(token, config.jwtSecret) as typeof payload
-      } catch {
-        throw createError({ statusCode: 401, message: 'Invalid or expired token' })
-      }
-      if (payload.kind !== 'dictate' || typeof payload.userId !== 'number' || typeof payload.docId !== 'string') {
-        throw createError({ statusCode: 401, message: 'Malformed dictation token' })
-      }
-      return {
-        context: { userId: payload.userId, docId: payload.docId } satisfies DictatePeerContext as Record<string, unknown>
-      }
+    // The upgrade hook no longer authenticates — auth moved to the
+    // first WS message so the JWT never appears in the URL. crossws's
+    // upgrade hook would otherwise give us a raw Request with no
+    // Authorization header support, forcing us to either reject every
+    // WS (no auth yet) or accept every WS (unsafe). The auth-on-first-
+    // message pattern keeps the token off the URL while still closing
+    // the socket in 5s if nothing valid arrives.
+    upgrade() {
+      // Intentionally empty — every connection is allowed to OPEN.
+      // Authentication + user binding happen in the `message` hook
+      // below; the `open` hook arms a deadline that closes the socket
+      // if no valid auth arrives in time.
     },
 
-    async open(peer) {
-      const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
-      const userId = ctx.userId!
-
-      // Up-front budget check. `cost: 0` peeks the remaining balance
-      // without spending anything — avoids a pointless Gemini roundtrip
-      // for a user who's already over their daily cap.
-      const { allowed, remaining } = await consumeRateLimitBudget(
-        'ai-dictate-sec', String(userId), 0, DAILY_BUDGET_SEC, DAILY_WINDOW_MS
-      )
-      if (!allowed || remaining < 1) {
-        (peer as unknown as PeerLike).send(JSON.stringify({ type: 'budget-exhausted', remaining }))
-        ;(peer as unknown as PeerLike).close(4002, 'budget exhausted')
-        return
-      }
-
-      const config = useRuntimeConfig()
-      if (!config.google.apiKey) {
-        (peer as unknown as PeerLike).send(JSON.stringify({ type: 'error', message: 'Server misconfigured' }))
-        ;(peer as unknown as PeerLike).close(1011, 'no api key')
-        return
-      }
-
-      const ai = new GoogleGenAI({ apiKey: config.google.apiKey })
-      try {
-        const gemini = await ai.live.connect({
-          model: config.google.liveModel,
-          config: {
-            // `gemini-3.1-flash-live-preview` requires an AUDIO
-            // modality — the API errors with a generic "Internal
-            // error" on text-only. We request AUDIO (the default)
-            // to satisfy the validator, then IGNORE any audio parts
-            // that come back on the server side; we only forward
-            // `inputAudioTranscription` messages (the user's speech
-            // transcribed) to the client. Pricier in theory (the
-            // model still generates responses), but the VAD-based
-            // server only responds if the input is conversational
-            // and we pass a system instruction asking it to stay
-            // silent.
-            responseModalities: [Modality.AUDIO],
-            inputAudioTranscription: {},
-            systemInstruction: 'You are a silent transcription relay. Do not generate any spoken or written response. Only listen to the user and transcribe their speech.'
-          },
-          callbacks: {
-            onopen: () => {
-              (peer as unknown as PeerLike).send(JSON.stringify({ type: 'ready' }))
-            },
-            onmessage: (msg) => {
-              // Gemini's input-transcription protocol:
-              //  - `inputTranscription.text` arrives in SMALL CHUNKS,
-              //    each a delta (NOT a full snapshot).
-              //  - `turnComplete: true` arrives in its OWN message,
-              //    typically WITHOUT an `inputTranscription` field,
-              //    once the server-side VAD detects end of speech.
-              // Accumulate deltas into `transcriptBuffer`; emit the
-              // running total as `partial` so the client's ghost text
-              // keeps growing; when `turnComplete` arrives, flush the
-              // buffer as `final` and reset for the next turn.
-              const delta = msg.serverContent?.inputTranscription?.text
-              if (delta) {
-                ctx.transcriptBuffer = (ctx.transcriptBuffer ?? '') + delta
-                ;(peer as unknown as PeerLike).send(JSON.stringify({
-                  type: 'partial',
-                  text: ctx.transcriptBuffer
-                }))
-              }
-              if (msg.serverContent?.turnComplete && ctx.transcriptBuffer) {
-                (peer as unknown as PeerLike).send(JSON.stringify({
-                  type: 'final',
-                  text: ctx.transcriptBuffer
-                }))
-                ctx.transcriptBuffer = ''
-              }
-            },
-            onerror: (err) => {
-              console.error('[dictate] gemini error:', err)
-              if (!ctx.closed) {
-                (peer as unknown as PeerLike).send(JSON.stringify({ type: 'error', message: 'transcription error' }))
-                ;(peer as unknown as PeerLike).close(1011, 'gemini error')
-              }
-            },
-            onclose: (ev) => {
-              const info = ev as { code?: number, reason?: string } | undefined
-              if (!ctx.closed) {
-                // Propagate the reason to the client so a downstream
-                // failure (model name invalid, quota exhausted, etc.)
-                // surfaces as a usable error instead of a silent
-                // 1000 close.
-                try {
-                  (peer as unknown as PeerLike).send(JSON.stringify({
-                    type: 'error',
-                    message: `Gemini closed: ${info?.reason ?? 'unknown'}`
-                  }))
-                } catch { /* best-effort */ }
-                ;(peer as unknown as PeerLike).close(1000, 'gemini closed')
-              }
-            }
-          }
-        })
-        ctx.gemini = gemini
-      } catch (e) {
-        console.error('[dictate] live.connect failed:', e)
-        (peer as unknown as PeerLike).send(JSON.stringify({ type: 'error', message: 'Could not start Gemini Live session' }))
-        ;(peer as unknown as PeerLike).close(1011, 'gemini connect failed')
-        return
-      }
-
-      // Hard cap + idle timer. Both call `close()` through the SAME
-      // `close` hook below, so Gemini session cleanup is centralised.
-      ctx.hardCapTimer = setTimeout(() => {
-        (peer as unknown as PeerLike).send(JSON.stringify({ type: 'session-cap' }))
-        ;(peer as unknown as PeerLike).close(4003, 'session cap')
-      }, SESSION_HARD_CAP_MS)
-      resetIdleTimer(peer as unknown as PeerLike, ctx)
+    open(peer) {
+      const p = peer as unknown as PeerLike
+      const ctx = p.context as DictatePeerContext
+      p.send(JSON.stringify({ type: 'hello' }))
+      ctx.authTimer = setTimeout(() => {
+        if (!ctx.authed) {
+          p.send(JSON.stringify({ type: 'error', message: 'Auth timeout' }))
+          p.close(4000, 'auth timeout')
+        }
+      }, AUTH_DEADLINE_MS)
     },
 
     async message(peer, message) {
-      const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
-      if (ctx.closed || !ctx.gemini) return
+      const p = peer as unknown as PeerLike
+      const ctx = p.context as DictatePeerContext
+      if (ctx.closed) return
 
-      // Control frames come as text (JSON). Audio arrives as binary.
-      // We can't just `message.text()` the audio — it'd corrupt the
-      // bytes — so we branch on message type via `rawData`.
-      if (typeof message.rawData === 'string') {
-        try {
-          const parsed = JSON.parse(message.rawData) as { type?: string }
-          if (parsed.type === 'stop') {
-            try { ctx.gemini.close() } catch { /* best-effort */ }
-          }
-        } catch { /* ignore malformed control frames */ }
+      // Text-vs-binary detection is tricky with crossws over the Node
+      // `ws` library: text frames arrive as Buffer too, so `typeof
+      // rawData === 'string'` is not reliable. We distinguish by
+      // trying to parse the frame as JSON via `message.text()` — a
+      // valid JSON object with a known `type` is a control frame;
+      // anything else is treated as binary audio. This is safe because
+      // our audio path is raw int16 PCM (never valid JSON).
+      const parsedControl = tryParseControl(message)
+
+      // Pre-auth branch: must receive a valid `{type:'auth'}` message
+      // before we'll accept anything else. Anything non-control (i.e.
+      // binary audio) pre-auth is rejected so a malicious client can't
+      // ship audio bytes before auth.
+      if (!ctx.authed) {
+        if (!parsedControl) {
+          p.send(JSON.stringify({ type: 'error', message: 'Auth required before audio' }))
+          p.close(4000, 'pre-auth binary')
+          return
+        }
+        if (parsedControl.type !== 'auth') {
+          p.send(JSON.stringify({ type: 'error', message: 'First message must be auth' }))
+          p.close(4000, 'auth first')
+          return
+        }
+        await handleAuth(p, ctx, parsedControl.token, parsedControl.languageCode)
         return
       }
 
-      // Binary frame — int16 PCM from the AudioWorklet. Debit budget
-      // BEFORE forwarding so a burst can't land free.
+      // Post-auth branch. Control frames (`{type:'stop'}`) and audio
+      // (raw binary) both land here; the type-parse above routes us.
+      if (parsedControl) {
+        if (parsedControl.type === 'stop') {
+          ctx.sttEnded = true
+          try { ctx.stt?.end() } catch { /* best-effort */ }
+        }
+        return
+      }
+
+      // Drop audio chunks that arrive after `stop`. The browser's
+      // AudioWorklet posts to the main thread via postMessage; up to
+      // ~128 ms of chunks can be in-flight between "user clicked
+      // stop" and "composable disconnected the worklet". Without this
+      // guard, each straggler would hit `stt.write(...)` on an ended
+      // stream and surface as an "error" frame on the wire.
+      if (ctx.sttEnded) return
+
+      if (!ctx.stt) return
+
+      // Debit budget BEFORE forwarding so a burst past the cap can't
+      // land free. `remaining` returns in ms (matching the budget's
+      // units) so the client can surface a meaningful "minutes left".
       const { allowed, remaining } = await consumeRateLimitBudget(
-        'ai-dictate-sec',
+        'ai-dictate-ms',
         String(ctx.userId),
-        // consumeRateLimitBudget expects integer cost; convert our
-        // fractional chunk-seconds to ms and let the daily budget be
-        // billed in ms-of-audio for precision. 1800s * 1000 = 1.8M ms.
-        Math.ceil(CHUNK_SEC * 1000),
-        DAILY_BUDGET_SEC * 1000,
+        CHUNK_AUDIO_MS,
+        DAILY_BUDGET_MS,
         DAILY_WINDOW_MS
       )
       if (!allowed) {
-        (peer as unknown as PeerLike).send(JSON.stringify({ type: 'budget-exhausted', remaining: Math.floor(remaining / 1000) }))
-        ;(peer as unknown as PeerLike).close(4002, 'budget exhausted')
+        p.send(JSON.stringify({ type: 'budget-exhausted', remaining }))
+        p.close(4002, 'budget exhausted')
         return
       }
 
@@ -270,38 +209,179 @@ export default defineEventHandler({
         ? Buffer.from(raw)
         : Buffer.from(raw as Uint8Array)
       try {
-        ctx.gemini.sendRealtimeInput({
-          audio: {
-            data: buf.toString('base64'),
-            mimeType: 'audio/pcm;rate=16000'
-          }
-        })
+        ctx.stt.write(buf)
       } catch (e) {
-        console.error('[dictate] sendRealtimeInput failed:', e)
-        (peer as unknown as PeerLike).send(JSON.stringify({ type: 'error', message: 'upstream send failed' }))
-        ;(peer as unknown as PeerLike).close(1011, 'upstream send failed')
+        console.error('[dictate] stt write failed:', e)
+        p.send(JSON.stringify({ type: 'error', message: 'upstream send failed' }))
+        p.close(1011, 'stt write failed')
         return
       }
 
-      resetIdleTimer(peer as unknown as PeerLike, ctx)
+      resetIdleTimer(p, ctx)
     },
 
     close(peer) {
       const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
       ctx.closed = true
+      if (ctx.authTimer) clearTimeout(ctx.authTimer)
       if (ctx.idleTimer) clearTimeout(ctx.idleTimer)
       if (ctx.hardCapTimer) clearTimeout(ctx.hardCapTimer)
-      try { ctx.gemini?.close() } catch { /* best-effort */ }
+      try { ctx.stt?.destroy() } catch { /* best-effort */ }
+      if (ctx.userId !== undefined) {
+        void releaseSessionLock('ai-dictate-active', String(ctx.userId))
+      }
     },
 
     error(peer, err) {
       console.error('[dictate] ws error:', err)
       const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
       ctx.closed = true
-      try { ctx.gemini?.close() } catch { /* best-effort */ }
+      try { ctx.stt?.destroy() } catch { /* best-effort */ }
+      if (ctx.userId !== undefined) {
+        void releaseSessionLock('ai-dictate-active', String(ctx.userId))
+      }
     }
   }
 })
+
+async function handleAuth(
+  peer: PeerLike,
+  ctx: DictatePeerContext,
+  token: unknown,
+  languageCode: unknown
+) {
+  const config = useRuntimeConfig()
+  const secret = config.google.dictateJwtSecret || config.jwtSecret
+  if (!secret) {
+    peer.send(JSON.stringify({ type: 'error', message: 'Server misconfigured' }))
+    peer.close(1011, 'no jwt secret')
+    return
+  }
+  if (typeof token !== 'string' || !token) {
+    peer.send(JSON.stringify({ type: 'error', message: 'Missing token' }))
+    peer.close(4001, 'missing token')
+    return
+  }
+  let payload: { userId?: number, docId?: string, kind?: string }
+  try {
+    payload = jwt.verify(token, secret) as typeof payload
+  } catch {
+    peer.send(JSON.stringify({ type: 'error', message: 'Invalid or expired token' }))
+    peer.close(4001, 'invalid token')
+    return
+  }
+  if (payload.kind !== 'dictate' || typeof payload.userId !== 'number' || typeof payload.docId !== 'string') {
+    peer.send(JSON.stringify({ type: 'error', message: 'Malformed token' }))
+    peer.close(4001, 'malformed payload')
+    return
+  }
+
+  // Concurrent-session cap: one dictation session per user. Prevents a
+  // user with multiple tabs open from silently burning their daily
+  // budget 2-3× faster than expected (each chunk debits the shared
+  // bucket, so concurrency amplifies spend without any UX signal).
+  // TTL matches the session hard cap so a crashed worker's lock
+  // self-expires.
+  const lockAcquired = await tryAcquireSessionLock(
+    'ai-dictate-active',
+    String(payload.userId),
+    SESSION_HARD_CAP_MS
+  )
+  if (!lockAcquired) {
+    peer.send(JSON.stringify({ type: 'error', message: 'Another dictation session is already active' }))
+    peer.close(4001, 'session already active')
+    return
+  }
+
+  ctx.userId = payload.userId
+  ctx.docId = payload.docId
+  ctx.authed = true
+  if (ctx.authTimer) {
+    clearTimeout(ctx.authTimer)
+    ctx.authTimer = undefined
+  }
+
+  // Peek the daily budget (cost: 0 debits nothing, returns remaining).
+  const budget = await consumeRateLimitBudget(
+    'ai-dictate-ms', String(payload.userId), 0, DAILY_BUDGET_MS, DAILY_WINDOW_MS
+  )
+  if (!budget.allowed || budget.remaining < CHUNK_AUDIO_MS) {
+    peer.send(JSON.stringify({ type: 'budget-exhausted', remaining: budget.remaining }))
+    peer.close(4002, 'budget exhausted')
+    return
+  }
+
+  if (!config.google.speechToTextApiKey) {
+    peer.send(JSON.stringify({ type: 'error', message: 'Server misconfigured: missing Speech-to-Text API key' }))
+    peer.close(1011, 'no api key')
+    return
+  }
+
+  const client = createDictateSpeechClient(config.google.speechToTextApiKey)
+
+  // Normalize language: accept either BCP-47 (`de-DE`) or the short
+  // ISO 639-1 UI locale (`de`). Defaults to en-US if nothing usable
+  // arrived — Cloud STT requires a valid language code or rejects.
+  const lang = normalizeLanguageCode(languageCode)
+
+  let sttStream: SttStream
+  try {
+    sttStream = client.streamingRecognize({
+      config: {
+        encoding: 'LINEAR16',
+        sampleRateHertz: 16000,
+        languageCode: lang,
+        enableAutomaticPunctuation: true,
+        model: 'latest_long'
+      },
+      interimResults: true
+    })
+  } catch (e) {
+    console.error('[dictate] streamingRecognize init failed:', e)
+    peer.send(JSON.stringify({ type: 'error', message: 'Could not start Speech-to-Text session' }))
+    peer.close(1011, 'stt init failed')
+    return
+  }
+
+  sttStream.on('data', (raw) => {
+    const data = raw as {
+      results?: Array<{
+        alternatives?: Array<{ transcript?: string }>
+        isFinal?: boolean
+      }>
+    }
+    const r = data.results?.[0]
+    const text = r?.alternatives?.[0]?.transcript
+    if (!text) return
+    peer.send(JSON.stringify({ type: r?.isFinal ? 'final' : 'partial', text }))
+  })
+
+  sttStream.on('error', (err) => {
+    const msg = (err as { message?: string })?.message ?? 'transcription error'
+    // "write after end" is expected if the client fired stop and a
+    // stray audio chunk slipped past the `sttEnded` guard. Drop it
+    // silently — surfacing it as a UI error on the client would show
+    // a toast for what was really a clean shutdown.
+    if (ctx.sttEnded && /write after end/i.test(msg)) return
+    console.error('[dictate] stt error:', err)
+    if (!ctx.closed) {
+      peer.send(JSON.stringify({ type: 'error', message: msg }))
+      peer.close(1011, 'stt error')
+    }
+  })
+  sttStream.on('end', () => {
+    if (!ctx.closed) peer.close(1000, 'stt ended')
+  })
+
+  ctx.stt = sttStream
+  peer.send(JSON.stringify({ type: 'ready' }))
+
+  ctx.hardCapTimer = setTimeout(() => {
+    peer.send(JSON.stringify({ type: 'session-cap' }))
+    peer.close(4003, 'session cap')
+  }, SESSION_HARD_CAP_MS)
+  resetIdleTimer(peer, ctx)
+}
 
 function resetIdleTimer(peer: PeerLike, ctx: DictatePeerContext) {
   if (ctx.idleTimer) clearTimeout(ctx.idleTimer)

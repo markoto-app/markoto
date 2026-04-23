@@ -54,12 +54,25 @@ export default defineNuxtConfig({
       bucket: 'ypad'
     },
     google: {
-      apiKey: '', // NUXT_GOOGLE_API_KEY
+      // Two keys because Gemini and Cloud Speech-to-Text bill separately
+      // and we restrict each key to a single API in GCP for blast-radius
+      // containment.
+      geminiApiKey: '', // NUXT_GOOGLE_GEMINI_API_KEY
+      speechToTextApiKey: '', // NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY
+      // Separate JWT secret for the dictation WS token. Falls back to
+      // the top-level `jwtSecret` (Hocuspocus) if unset, but you want
+      // this set in prod so a compromised Hocuspocus secret doesn't
+      // also forge dictation tokens (and vice versa).
+      dictateJwtSecret: '', // NUXT_GOOGLE_DICTATE_JWT_SECRET
       model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
       rewriteModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
       imageModel: 'gemini-3.1-flash-image-preview', // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool. Alternatives: `gemini-2.5-flash-image` (stable, older), `gemini-3-pro-image-preview` (higher quality, slower, more expensive).
-      transcribeModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_TRANSCRIBE_MODEL — one-shot voice-to-text for the AI prompt bar. Cheapest tier is plenty; transcription is an easy task for any Gemini model.
-      liveModel: 'gemini-3.1-flash-live-preview', // NUXT_GOOGLE_LIVE_MODEL — bidirectional Live API for live dictation into the editor. Check `curl "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY" | python3 -c "import json,sys;[print(m['name']) for m in json.load(sys.stdin)['models'] if 'bidiGenerateContent' in m.get('supportedGenerationMethods',[])]"` to find `bidiGenerateContent`-capable models. The 2.5-native-audio variants also work, but 3.1-flash-live-preview is the current canonical Live API model.
+      // Google Cloud Speech-to-Text model for live dictation. v1 accepts
+      // API-key auth without needing a project id in the path (unlike v2),
+      // which keeps the server code simple. `latest_long` is the default
+      // streaming model tuned for dictation-length audio; `chirp_2` is
+      // v2-only so we can't use it via API-key auth here.
+      speechModel: 'latest_long', // NUXT_GOOGLE_SPEECH_MODEL
       // NUXT_GOOGLE_THINKING_BUDGET — tokens the model may spend on internal
       // reasoning before producing its response. 0 disables thinking entirely
       // (cheapest + fastest, recommended default). Typical "minimal" budgets
@@ -99,8 +112,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-15',
   nitro: {
     // Native WebSocket route support for `/api/ai/dictate` (voice
-    // dictation relay to Gemini Live API). Other WS traffic (Hocuspocus
-    // Y.js sync) flows through its own standalone container, not Nitro.
+    // dictation relay to Google Cloud Speech-to-Text). Other WS traffic
+    // (Hocuspocus Y.js sync) flows through its own standalone container,
+    // not Nitro.
     experimental: {
       websocket: true
     },

@@ -261,14 +261,13 @@ const diagramItems = computed(() => [[
       class="h-5 mx-1"
     />
     <UTooltip
-      :text="dictationActive ? t('ai.dictateStop') : t('ai.dictateStart')"
+      :text="dictationActive || dictationBusy ? t('ai.dictateStop') : t('ai.dictateStart')"
     >
       <UButton
         icon="i-lucide-mic"
-        :color="dictationActive ? 'error' : 'neutral'"
-        :variant="dictationActive ? 'solid' : 'ghost'"
-        :loading="dictationBusy"
-        :class="{ 'animate-pulse': props.dictationState === 'recording' }"
+        :color="dictationActive || dictationBusy ? 'error' : 'neutral'"
+        :variant="dictationActive || dictationBusy ? 'solid' : 'ghost'"
+        :class="{ 'dictation-icon-busy': dictationBusy, 'animate-pulse': dictationActive }"
         size="xs"
         @click="emit('toggle-dictation')"
       />
@@ -283,3 +282,21 @@ const diagramItems = computed(() => [[
     >
   </div>
 </template>
+
+<style scoped>
+/*
+ * Spin the mic icon INSIDE the dictation button, not the whole button.
+ * Applying `animate-spin` directly on the UButton root rotates the
+ * entire pill (including the background) which reads as a stuck /
+ * glitched element rather than a loading state. Scoping the spin to
+ * the iconify child with `:deep` reaches through UButton's own scoped
+ * styles (the button renders as a nested root component, so ordinary
+ * scoped selectors don't match).
+ */
+@keyframes dictation-icon-spin {
+  to { transform: rotate(360deg); }
+}
+.dictation-icon-busy :deep(.iconify) {
+  animation: dictation-icon-spin 1s linear infinite;
+}
+</style>

@@ -21,8 +21,8 @@ export default defineEventHandler(async (event) => {
   const userName = session.user.name
   const config = useRuntimeConfig()
 
-  if (!config.google.apiKey) {
-    throw createError({ statusCode: 500, message: 'Google API key not configured' })
+  if (!config.google.geminiApiKey) {
+    throw createError({ statusCode: 500, message: 'Gemini API key not configured' })
   }
 
   if (!(await checkRateLimit('ai-rewrite', String(userId), 30, 60 * 60 * 1000))) {
@@ -115,7 +115,7 @@ export default defineEventHandler(async (event) => {
       documentContext = (start > 0 ? '…' : '') + documentContext.slice(start, end) + (end < documentContext.length ? '…' : '')
     }
 
-    const ai = new GoogleGenAI({ apiKey: config.google.apiKey })
+    const ai = new GoogleGenAI({ apiKey: config.google.geminiApiKey })
     const response = await ai.models.generateContent({
       model: config.google.rewriteModel,
       contents: [

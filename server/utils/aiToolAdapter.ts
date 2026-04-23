@@ -464,10 +464,10 @@ async function generateImageBytes(
   signal: AbortSignal
 ): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
   const config = useRuntimeConfig()
-  if (!config.google.apiKey) return { error: 'Google API key not configured on the server.' }
+  if (!config.google.geminiApiKey) return { error: 'Gemini API key not configured on the server.' }
   if (!config.google.imageModel) return { error: 'Image model not configured on the server.' }
 
-  const ai = new GoogleGenAI({ apiKey: config.google.apiKey })
+  const ai = new GoogleGenAI({ apiKey: config.google.geminiApiKey })
 
   try {
     console.log(`[generate_image] calling model=${config.google.imageModel} prompt="${prompt.slice(0, 100)}…"`)

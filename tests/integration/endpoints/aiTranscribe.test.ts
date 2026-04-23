@@ -3,15 +3,15 @@ import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 
-// POST /api/ai/transcribe — validation surface only. The Gemini call
-// itself isn't exercised here (tests use a dummy API key) but every
-// request passes through the full validation ladder before reaching the
-// SDK, so 4xx paths are fully covered.
+// POST /api/ai/transcribe — validation surface only. The Cloud STT
+// call itself isn't exercised here (tests use a dummy API key) but
+// every request passes through the full validation ladder before
+// reaching Google, so 4xx paths are fully covered.
 //
 // Happy-path is covered indirectly: if validation lets a request
-// through, the Gemini SDK fails with an upstream error — that branch
-// does not need integration coverage since it's just the standard
-// SDK error-propagation pattern shared with the other AI endpoints.
+// through, Cloud STT fails with its own upstream error — that branch
+// surfaces as a 502 from our endpoint and doesn't need integration
+// coverage since it's just upstream error propagation.
 
 // Minimal valid base64-encoded payload — 200 bytes of zeroes, well above
 // the 100-byte minimum. The MIME type is checked against an allowlist
@@ -57,21 +57,19 @@ describe('POST /api/ai/transcribe', () => {
       expect(res.status).toBe(400)
     })
 
-    it('accepts all browser-native MIME types', async () => {
-      // Each of these must pass our validation ladder. The test env's
-      // dummy Google key means the downstream Gemini call will fail with
-      // its own 400 ("API key not valid"), which the SDK propagates
-      // back. That's FINE — the assertion just has to distinguish "our
-      // mimeType gate rejected this" from "Gemini's upstream failure".
+    it('accepts Cloud STT-compatible MIME types', async () => {
+      // Each of these must pass OUR validation ladder. The test env
+      // uses a dummy API key so the Cloud STT call itself fails with
+      // a 502 from our endpoint — that's fine; the assertion here
+      // only distinguishes "our mimeType gate rejected this" (bad)
+      // from "Cloud STT rejected this" (fine, upstream).
       const user = await createUser()
       const client = await loggedInClient(user.id)
       const cases = [
         'audio/webm',
         'audio/webm;codecs=opus',
         'audio/ogg',
-        'audio/mp4',
-        'audio/mpeg',
-        'audio/mp3',
+        'audio/ogg;codecs=opus',
         'audio/wav'
       ]
       for (const mimeType of cases) {
@@ -81,12 +79,27 @@ describe('POST /api/ai/transcribe', () => {
         })
         if (res.status === 400) {
           const body = await res.json() as { message?: string }
-          // Only fail if OUR mimeType gate rejected it — Gemini's
-          // upstream 400 mentions "API key", not "mimeType".
           if (body.message && /mimeType/i.test(body.message)) {
             throw new Error(`${mimeType} rejected at our gate: ${body.message}`)
           }
         }
+      }
+    })
+
+    it('rejects MP4 / AAC (Safari MediaRecorder default)', async () => {
+      // Cloud STT sync recognize doesn't accept MP4 containers.
+      // Pre-migration we passed these through to Gemini which did
+      // accept them. The server must now return 400 so the client
+      // gets a clean error — Cloud STT would otherwise return a
+      // confusing upstream 400.
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      for (const mimeType of ['audio/mp4', 'audio/mpeg', 'audio/mp3']) {
+        const res = await client.post('/api/ai/transcribe', {
+          audio: MIN_VALID_AUDIO_B64,
+          mimeType
+        })
+        expect(res.status).toBe(400)
       }
     })
 
@@ -127,6 +140,29 @@ describe('POST /api/ai/transcribe', () => {
         mimeType: VALID_MIME
       })
       expect(res.status).toBe(413)
+    })
+
+    it('accepts requests with a languageCode field', async () => {
+      // Guard against a regression that starts 400ing valid payloads
+      // when the client ships a UI locale. Per-locale mapping
+      // (`de` → `de-DE` etc.) is covered by the unit test for
+      // `normalizeLanguageCode`; this test only verifies the field is
+      // forwarded past our own validation ladder. The dummy Cloud
+      // STT key surfaces as a 502 which is fine — we're asserting
+      // what it's NOT (a 400 from our gate).
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      for (const languageCode of ['de', 'de-DE', 'fr-FR', 'en', undefined]) {
+        const res = await client.post('/api/ai/transcribe', {
+          audio: MIN_VALID_AUDIO_B64,
+          mimeType: VALID_MIME,
+          languageCode
+        })
+        if (res.status === 400) {
+          const body = await res.json() as { message?: string }
+          throw new Error(`languageCode=${languageCode} rejected: ${body.message}`)
+        }
+      }
     })
   })
 })

@@ -59,6 +59,13 @@ export async function startNuxt(): Promise<void> {
     NUXT_OAUTH_GOOGLE_CLIENT_ID: 'test',
     NUXT_OAUTH_GOOGLE_CLIENT_SECRET: 'test',
     NUXT_GOOGLE_API_KEY: 'test',
+    NUXT_GOOGLE_GEMINI_API_KEY: 'test',
+    NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY: 'test',
+    // Substitutes a fake SpeechClient for the dictation WS route so
+    // integration tests can drive the full handshake and message
+    // flow without hitting Google or paying per-minute. See
+    // `server/utils/agentic/dictateSpeechClient.ts`.
+    NUXT_GOOGLE_SPEECH_MOCK: '1',
     NUXT_MARKITDOWN_URL: 'http://127.0.0.1:1',
     // Inactive-doc sweeper. Set TTL to 0 to disable for tests — no point
     // letting it fire during a short integration run.

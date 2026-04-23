@@ -1,0 +1,34 @@
+// Pure helpers for the one-shot voice-to-text endpoint
+// (POST /api/ai/transcribe). Same split rationale as
+// `dictateHelpers.ts` — extracted so unit tests don't pull in Nuxt
+// runtime + auth machinery just to assert on MIME/language mapping.
+//
+// `normalizeLanguageCode` is re-exported from `dictateHelpers.ts`
+// because both endpoints need identical locale handling; changing
+// either would produce inconsistent behavior between live dictation
+// and one-shot prompt transcription.
+export { normalizeLanguageCode } from './dictateHelpers'
+
+/**
+ * Map a client-reported MIME type to Cloud STT's encoding enum. We
+ * default to WEBM_OPUS for unspecified opus containers because that's
+ * what modern Chrome/Firefox MediaRecorder outputs natively.
+ *
+ * Cloud STT v1 sync `recognize` doesn't accept MP4/AAC — Safari's
+ * MediaRecorder default — so we return `null` for that surface and
+ * the caller rejects at the MIME gate with a 400. Transcoding server-
+ * side (via ffmpeg or the Files API) is a TODO before we support
+ * Safari voice input.
+ *
+ * Must stay in lockstep with the caller's ALLOWED_MIME allowlist: if
+ * a MIME passes the allowlist but we return null here, the caller
+ * has to surface a separate "unsupported encoding" error — an
+ * inconsistency that'd confuse debugging.
+ */
+export function mimeToEncoding(mimeType: string): string | null {
+  const m = mimeType.toLowerCase()
+  if (m.startsWith('audio/webm')) return 'WEBM_OPUS'
+  if (m.startsWith('audio/ogg')) return 'OGG_OPUS'
+  if (m.startsWith('audio/wav') || m.startsWith('audio/x-wav')) return 'LINEAR16'
+  return null
+}

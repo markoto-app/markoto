@@ -63,6 +63,7 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 | `pagedjs` (CDN) | 0.4.3 | CSS Paged Media polyfill; pinned in `shared/utils/pagedjsCdn.ts` |
 | `nanoid` | 5.1.5 | ID generation |
 | `@google/genai` | ^1.50 | Gemini SDK |
+| `@google-cloud/speech` | ^7.3 | Cloud Speech-to-Text SDK (used with API-key auth, NOT a service account) |
 
 ### Sync server (`sync-server/`)
 
@@ -167,7 +168,7 @@ Workspace membership overrides: admin/editor bypasses `private` and `password-pr
 
 **Workspaces (login required):** `POST /api/workspaces`, `GET/PUT/DELETE /api/workspaces/:wsId`, `POST /api/workspaces/:wsId/members`, `PATCH/DELETE /api/workspaces/:wsId/members/:userId`
 
-**AI (login required):** `POST /api/ai/prompt` (returns `{sessionId}`), `POST /api/ai/rewrite`, `POST /api/ai/abort` (initiator only, 403 otherwise), `POST /api/ai/transcribe` (voice → text for the prompt bar; `{text, inaudible}`)
+**AI (login required):** `POST /api/ai/prompt` (returns `{sessionId}`), `POST /api/ai/rewrite`, `POST /api/ai/abort` (initiator only, 403 otherwise), `POST /api/ai/transcribe` (voice → text via Cloud STT sync; `{text, inaudible}`), `POST /api/ai/dictate/token` (mints 60s JWT for the dictation WS), `WS /api/ai/dictate` (live dictation relay — JWT auth via first message, NOT query string)
 
 Auth guard: `server/middleware/auth.ts` whitelists public patterns; protects `/api/docs/` (outside whitelist), `/api/workspaces`, `/api/user`, `/api/upload`, `/api/ai`. Token endpoint never issues a usable JWT for forbidden/password-gated docs.
 
@@ -189,12 +190,15 @@ Config at `sync-server/src/index.ts`. Hooks: `onLoadDocument`, `onStoreDocument`
 
 ---
 
-## 7. AI Features — Gemini as Collaborator
+## 7. AI Features — Gemini + Cloud Speech-to-Text
 
-Three flows:
+Two Google vendors: **Gemini** (Generative Language API, via `@google/genai`) for all generative flows, **Google Cloud Speech-to-Text** (v1 via `@google-cloud/speech`) for all speech transcription. The keys are split on purpose — each is restricted per-API in GCP so a compromise of one doesn't pivot to the other. Read via `config.google.geminiApiKey` / `config.google.speechToTextApiKey`.
+
+Four flows:
 - **Top-bar prompt** (`AIPromptBar.vue`) — agentic loop, 9 tools (below). Model: `NUXT_GOOGLE_MODEL` (default `gemini-3.1-flash-lite-preview`). Image generation uses `NUXT_GOOGLE_IMAGE_MODEL` (default `gemini-3.1-flash-image-preview`).
 - **Inline selection rewrite** (`AISelectionPopup.vue`) — one-shot, no tools, full-doc context windowed to 40k chars. Model: `NUXT_GOOGLE_REWRITE_MODEL` (default `gemini-2.5-flash-lite`).
-- **Voice input for the prompt bar** (mic button inside `AIPromptBar.vue`) — one-shot transcription. `MediaRecorder` + `AudioWorklet`-style `AnalyserNode` visualiser in `useVoicePrompt.ts`, POSTs base64 audio to `/api/ai/transcribe`, Gemini inlineData → plain text → auto-submits as a normal prompt. 60s cap, 5 MiB max. Model: `NUXT_GOOGLE_TRANSCRIBE_MODEL` (default `gemini-2.5-flash-lite`). No Y.js session — transcription itself doesn't touch the doc; the downstream `/api/ai/prompt` call enforces all the usual content gates.
+- **Voice input for the prompt bar** (mic button inside `AIPromptBar.vue`) — one-shot transcription via Cloud STT sync `speech:recognize`. `MediaRecorder` + `AnalyserNode` visualiser in `useVoicePrompt.ts`, POSTs base64 audio + MIME + languageCode to `/api/ai/transcribe` → Cloud STT → plain text → auto-submits as a normal prompt. 60s cap, 5 MiB max. No Y.js session — transcription itself doesn't touch the doc; the downstream `/api/ai/prompt` call enforces all the usual content gates.
+- **Live dictation into the editor** (mic button in the formatting toolbar) — streaming transcription via Cloud STT `streamingRecognize` over a Nitro WebSocket at `/api/ai/dictate`. Interim partials render as ghost text at the CM6 caret; finals commit into Y.js with a `dictation:{userId}` origin. Auth via short-lived JWT sent as the FIRST WS message (NOT `?token=`, which would leak into access logs). One session per user enforced via Valkey `SET NX EX` lock keyed on `lock:ai-dictate-active:{userId}`. Audio-seconds metered into a daily budget. See `useVoiceDictation.ts` + `dictationExtensions.ts` + `server/routes/api/ai/dictate.ts`.
 
 **Thinking budget:** `NUXT_GOOGLE_THINKING_BUDGET` (default `0` = disabled, cheapest/fastest). Applied only to the main agentic loop; rewrites and sub-calls stay thinking-free. We only pass `thinkingConfig` when `budget > 0` — some models (older `flash-lite`) 400 on an empty thinkingConfig.
 
@@ -229,6 +233,30 @@ Three flows:
 **Per-user cap:** 1 session per user per doc, enforced by Postgres UNIQUE index in `ai_sessions`.
 
 **Frontend status display:** `describeToolInput` in `streamStatus.ts` has a labelled case for every tool (announced via awareness). `AIPromptBar.vue` shows the message as the input placeholder; `PresenceBar.vue` appends the status to the avatar tooltip (`"Helping Joel — Fetching example.com"`) so collaborators can see what someone else's AI run is doing.
+
+### Live dictation stack
+
+**Transport:** Nitro native WebSockets (`nitro.experimental.websocket: true`). Single WS route: `server/routes/api/ai/dictate.ts` implements `{ websocket: { upgrade, open, message, close, error } }` hooks. An HTTP fallback on the same path 426s so a stray GET/POST gets a useful error. `defineEventHandler({ websocket: ... })` also needs the `experimental.websocket: true` flag or Nitro silently ignores the hooks.
+
+**Protocol** (sym docs live in the handler's head comment):
+- Server → client: `{type:'hello'}` on open → `{type:'ready'}` after auth + STT up → `{type:'partial', text}` / `{type:'final', text}` → terminal frames `budget-exhausted` / `session-cap` / `idle-timeout` / `error`.
+- Client → server: `{type:'auth', token, languageCode?}` as the FIRST message (no `?token=` in the URL — avoids access-log leakage) → binary PCM chunks → `{type:'stop'}` for graceful finalize.
+
+**Text-vs-binary detection:** crossws + the Node `ws` library deliver TEXT frames as Buffer, so `typeof rawData === 'string'` never matches. `tryParseControl` in `server/utils/agentic/dictateHelpers.ts` peeks the first byte for `{` (0x7B) before attempting a `JSON.parse` + whitelist the `type` field — audio chunks that coincidentally start with `{` don't get routed as control frames.
+
+**Auth lifecycle:** `POST /api/ai/dictate/token` mints a 60s JWT with `{userId, docId, kind: 'dictate'}` signed with `config.google.dictateJwtSecret` (falls back to `config.jwtSecret` for dev). Middleware whitelists `/api/ai/dictate` because the WS upgrade hook gets a raw Request (not an H3Event), so reading the sealed session cookie there isn't practical. The WS `open` hook arms a 5s auth-deadline timer that closes the socket if no valid `{type:'auth'}` arrives in time.
+
+**Concurrent-session cap:** `tryAcquireSessionLock('ai-dictate-active', userId, SESSION_HARD_CAP_MS)` in `server/utils/rateLimit.ts`. Valkey `SET NX PX` — one dictation session per user across ALL Nitro workers / containers (an in-memory Set would silently fail across workers behind Traefik). TTL matches the session hard cap so a crashed worker's lock self-expires. Released via `releaseSessionLock` on every WS close/error hook. Fails **closed** on Valkey errors (correctness lock, not a rate limit — failing open would double-bill GCP).
+
+**Audio-seconds budget:** `consumeRateLimitBudget('ai-dictate-ms', userId, CHUNK_AUDIO_MS, DAILY_BUDGET_MS, DAILY_WINDOW_MS)` — 30 min/user/day counted in ms, not requests. Each AudioWorklet chunk (2048 samples @ 16 kHz = 128 ms) debits 128. Peek mode (`cost: 0`) returns the REAL remaining (`maxCost - current`), not a naive `maxCost` — the session-open check would otherwise always pass for exhausted users and only trip on the first chunk (open-then-close flicker).
+
+**Client state machine** (`useVoiceDictation.ts`): `idle → requesting-permission → connecting → recording → idle/error`. VueUse primitives: `useUserMedia` for stream lifecycle (explicit `track.stop()` on unmount so the mic indicator clears), `useWebSocket` with `immediate: false` AND `autoConnect: false` — default `autoConnect:true` watches the URL ref and opens a socket on change, racing an explicit `.open()` call and spawning TWO connections per click. Audio pipeline: `AudioContext({ sampleRate: 16000 })` → `MediaStreamAudioSource` → `AudioWorkletNode` loading `/public/worklets/pcm-recorder.js` → 2048-sample Int16 chunks → WS binary send.
+
+**CM6 integration** (`app/utils/dictationExtensions.ts`): a `StateField<string>` holds the current interim text, dispatched via `setDictationInterim.of(text)` from the composable. A `ViewPlugin` rebuilds a `Decoration.widget` at the caret whenever the state field, doc, or selection changes — so the ghost text reflects caret moves (the "click elsewhere and keep dictating" UX). `commitDictationFinal` inserts finalized phrases via `ydoc.transact(fn, 'dictation:{userId}')` with smart spacing: a leading space is inserted if the caret is inside a word (`fo|o` + "bar" → `fo bar o`), same for trailing. Wrapped in a yCollab-ready ydoc transaction so collaborators see the commit land.
+
+**Straggler-chunk guard:** `stt.end()` on `{type:'stop'}` sets `ctx.sttEnded = true`. Audio chunks still in the browser's worklet → postMessage queue between "user clicked stop" and "composable disconnected" (~128 ms window) land at the WS post-end; the flag drops them before they hit `stt.write()`, which would otherwise throw "write after end" and surface as a UI error toast. A second defense: the SpeechClient's error listener recognizes `"write after end"` when `sttEnded` is true and silently swallows it.
+
+**Mock for tests:** `createDictateSpeechClient(apiKey)` in `dictateSpeechClient.ts` returns a real SpeechClient or, when `TEST_MODE=1` + `NUXT_GOOGLE_SPEECH_MOCK=1`, a fake that emits canned interim → final responses on fixed chunk thresholds. Lets integration tests drive the full dictation state machine without hitting Google or paying per-minute.
 
 ---
 
@@ -290,6 +318,7 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 | AI prompt | 20 per user/hour |
 | AI rewrite | 30 per user/hour |
 | AI transcribe | 60 per user/hour |
+| Live dictation | 1 session/user (Valkey `SET NX`), 30 min/user/day audio, 10 min/session, 30s idle |
 | Hocuspocus | 20 connections/IP, 5000 rooms |
 
 **Input validation:** `meta.put` validates title (≤255), accessMode (enum), wordCount (0–10M), sizeBytes (0–100M), theme (structural + numeric ranges + hex-color regex + font allowlist). Uploads: PNG/JPEG/GIF/WebP/SVG, 10MB. Imports: extension whitelist, 50MB.
@@ -312,7 +341,7 @@ Three standalone files — no shared base. Dev: `bun run dev --host 0.0.0.0` (0.
 
 Prod key points: postgres healthcheck gates `app` + `sync` startup; `stop_grace_period: 30s`; Traefik healthcheck labels on `/api/health` + `/health`; backup sidecar pipes `pg_dump | gzip | aws s3 cp`; Dockerfile **must `COPY drizzle/`** into runtime image.
 
-Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE_CLIENT_*`, `POSTGRES_PASSWORD`, `S3_*`, `JWT_SECRET` (≥64), `INTERNAL_API_SECRET`, `GOOGLE_API_KEY/MODEL/REWRITE_MODEL/IMAGE_MODEL/TRANSCRIBE_MODEL`, `BACKUP_*`. Optional AI tuning: `NUXT_GOOGLE_THINKING_BUDGET` (default `0`).
+Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE_CLIENT_*`, `POSTGRES_PASSWORD`, `S3_*`, `JWT_SECRET` (≥64), `INTERNAL_API_SECRET`, `GOOGLE_GEMINI_API_KEY`, `GOOGLE_SPEECH_TO_TEXT_API_KEY`, `GOOGLE_MODEL/REWRITE_MODEL/IMAGE_MODEL/SPEECH_MODEL`, `BACKUP_*`. Optional AI tuning: `NUXT_GOOGLE_THINKING_BUDGET` (default `0`), `NUXT_GOOGLE_DICTATE_JWT_SECRET` (recommended in prod — falls back to `JWT_SECRET` for dev so a compromised Hocuspocus secret doesn't also forge dictation tokens). Testing: `NUXT_GOOGLE_SPEECH_MOCK=1` (requires `TEST_MODE=1`) swaps the Cloud STT client for a canned fake.
 
 ---
 
@@ -320,7 +349,7 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 `app/` — Vue frontend: `components/{auth,editor,preview,collab,ai,sharing,document,workspace,common}/`, `composables/`, `pages/` (index, `d/[id]`, `w/[id]`), `utils/` (renderMarkdown, printPdf, editorCommands, download, welcomeDoc).
 
-`server/` — Nitro API: `routes/auth/` (OAuth), `api/` (docs, upload, files, import, internal, ai, user, workspaces), `db/schema.ts`, `middleware/auth.ts`, `plugins/` (00-db-migrate, 99-shutdown, orphan-cleanup, ai-session-sweep, inactive-doc-sweep), `utils/` (workspaceAccess, documentAccess, documentLifecycle, aiSessions, aiClient, aiToolAdapter, agentic/).
+`server/` — Nitro API: `routes/auth/` (OAuth), `routes/api/ai/dictate.ts` (live dictation WS handler; lives in `routes/` because native WS routes need the full path there), `api/` (docs, upload, files, import, internal, ai, user, workspaces — including `api/ai/dictate/token.post.ts`), `db/schema.ts`, `middleware/auth.ts`, `plugins/` (00-db-migrate, 99-shutdown, orphan-cleanup, ai-session-sweep, inactive-doc-sweep), `utils/` (workspaceAccess, documentAccess, documentLifecycle, aiSessions, aiClient, aiToolAdapter, rateLimit, agentic/ — including dictateHelpers, transcribeHelpers, dictateSpeechClient).
 
 `sync-server/src/` — Hocuspocus: index, persistence, auth, rate-limiter, activity-logger, internal-http.
 
@@ -352,7 +381,7 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 **Workspaces:** Three-role model (admin/editor/viewer), invite-by-email, last-admin invariant, cascade delete, role-gated UI at `/w/:id`, workspace doc table.
 
-**AI:** Gemini agentic loop with 9 tools: `view_document`, `replace_text`, `insert_text`, `update_theme` (partial patches + 6 presets), `set_title`, `view_image` (multimodal — smuggles bytes via `extraParts` since functionResponse is JSON-only), `generate_image` (Gemini image-model → S3 → markdown ref), `web_search` (grounded sub-call), `fetch_url` (urlContext sub-call with structured output). Inline rewrite with RelativePosition race safety. Awareness-based status propagates to the prompt bar placeholder and presence-bar tooltip. Per-user-per-doc cap via Postgres UNIQUE index, initiator-only cancel, floating prompt bar (rainbow ring animation), selection popup, animation decoupled by `kind`. Configurable thinking budget (`NUXT_GOOGLE_THINKING_BUDGET`, default 0). **Voice input:** mic button on the prompt bar → `MediaRecorder` opus/webm → base64 → `/api/ai/transcribe` (Gemini inlineData → text) → auto-submit. Live frequency-bar visualiser via `AnalyserNode`, MM:SS timer with amber@-10s/red@-5s, 60s cap, cancel button, hard 5 MiB payload ceiling, explicit `MediaStream` cleanup so the browser mic indicator clears immediately.
+**AI:** Gemini agentic loop with 9 tools: `view_document`, `replace_text`, `insert_text`, `update_theme` (partial patches + 6 presets), `set_title`, `view_image` (multimodal — smuggles bytes via `extraParts` since functionResponse is JSON-only), `generate_image` (Gemini image-model → S3 → markdown ref), `web_search` (grounded sub-call), `fetch_url` (urlContext sub-call with structured output). Inline rewrite with RelativePosition race safety. Awareness-based status propagates to the prompt bar placeholder and presence-bar tooltip. Per-user-per-doc cap via Postgres UNIQUE index, initiator-only cancel, floating prompt bar (rainbow ring animation), selection popup, animation decoupled by `kind`. Configurable thinking budget (`NUXT_GOOGLE_THINKING_BUDGET`, default 0). **Editor-state context:** every prompt ships with an `<editor_state>` wrapper carrying cursor line + column + surrounding line text with a `<CURSOR_IS_HERE>` marker so the model can resolve "add X here" / "fix this" without counting characters — handled in `server/utils/agentic/editorStatePrompt.ts` and validated client-side in `app/utils/editorSelection.ts`. **Voice input for the prompt bar:** mic button → `MediaRecorder` opus/webm → base64 → `/api/ai/transcribe` (Cloud STT sync `recognize` → text) → auto-submit. Live frequency-bar visualiser via `AnalyserNode`, MM:SS timer with amber@-10s/red@-5s, 60s cap, cancel button, hard 5 MiB payload ceiling, explicit `MediaStream` cleanup so the browser mic indicator clears immediately. Language auto-picks from the UI locale. **Live dictation:** mic button in the formatting toolbar → Nitro WebSocket relay (`/api/ai/dictate`, JWT via first message — NOT `?token=`) → Cloud STT streaming → interim partials render as grey italic ghost text at the CM6 caret (CM6 `StateField` + `ViewPlugin`), finals commit into Y.js via `ydoc.transact(fn, 'dictation:{userId}')` with smart spacing (mid-word inserts a leading space so `fo|o` + "bar" becomes `fo bar o`). Language from UI locale. One session per user via Valkey `SET NX PX` lock, 30 min/user/day audio budget, 10 min/session cap, 30s idle timeout. Click-anywhere-and-continue: the ghost text reanchors to the new caret because the view plugin rebuilds on `selectionSet`. Straggler-chunk guard silently drops audio that arrives after `stop` so the client never sees "write after end" as an error.
 
 **Security hardening:** Fail-fast env, rate limits, file access control, `meta.put` validation, 2h password token expiry.
 
@@ -400,8 +429,8 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - [ ] Sidebar as bottom sheet
 
 **AI**
-- [ ] Live dictation into the editor (Feature A): Gemini Live API over WebSocket → `inputAudioTranscription` → interim + final transcripts → Y.js transact inserts at cursor. 24 languages, mic-anywhere-in-the-doc UX. Prompt-bar voice input (Feature B) is shipped.
 - [ ] Semantic search across docs via `ai.models.embedContent()` — "find the section about X", "suggest related docs"
+- [ ] Safari support for voice input / dictation — Safari's `MediaRecorder` only emits `audio/mp4` (AAC) which Cloud STT sync doesn't accept. Options: server-side ffmpeg transcode on upload, or route Safari through Cloud STT's batch Files API which DOES accept MP4.
 
 **AI (explicitly out of scope for now):**
 - Multi-turn conversation history, streaming text to UI, activity attribution "AI for Alice", user-selectable model, grounded-search caching, cost telemetry, provider-swap adapter.
@@ -442,10 +471,17 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 | `scripts/audit-markdown-pipeline.mjs` as source of truth for `markdownReference.ts` | AI was being told syntaxes that didn't actually render (e.g. `![alt](url =50%)` from @mdit/plugin-img-size). Only document what the full pipeline — markdown-it + plugins + DOMPurify — actually emits |
 | Table size picker as UModal | Anchored popover had trigger location and click-competition issues; centered modal sidesteps both |
 | Gemini over Claude | Materially cheaper; display name vendor-neutral ("AI Assistant") |
-| Voice input: one-shot `generateContent` + inlineData, NOT Live API | User finishes speaking before we need the text, so the bidirectional overhead (WebSocket relay, Live API session accounting) isn't worth it. Simple POST with base64 audio reuses the existing auth, rate-limit, and SDK paths. Live API is the right call for Feature A (live dictation into the doc) where interim transcripts actually matter |
-| Voice input auto-submits after transcription | Picks the "Siri-like" feel over "Google Docs voice typing"-style manual confirmation. The transcript briefly lands in the input field (150ms) so the user sees what was heard before it's sent — silent auto-submit feels like a black box when the model mishears |
+| Cloud Speech-to-Text over Gemini Live / Gemini inline audio | Gemini Live is a conversational duplex model: server-side VAD buffers audio until end-of-turn, so "I spoke 30s without a pause" showed nothing until stop — wrong model for dictation. Gemini inline audio works for one-shot but costs ~4× per minute. Cloud STT is purpose-built for streaming STT, cheaper per minute, and lets Feature A and Feature B share one vendor + quota + billing line |
+| Cloud STT v1 (not v2) | v2's `streamingRecognize` requires a project id in the recognizer path (`projects/{project}/locations/...`); v1 doesn't. Our API-key auth gives us the project implicitly — v1 keeps the server code to a single SDK call with no path construction. `chirp_2` is v2-only but `latest_long` in v1 is plenty for dictation quality |
+| Split Google API keys (Gemini + Cloud STT) | Two separately-restricted keys in GCP so a leak of one doesn't pivot to the other. Separate billing lines too. Cost: two env vars instead of one — trivial |
+| Separate `dictateJwtSecret` | Rotate independently of the Hocuspocus secret so compromising one surface doesn't forge tokens for the other. Falls back to `jwtSecret` for dev |
+| JWT in first WS message, NOT `?token=` | Query-string auth leaks into access logs, referer headers, and browser history. First-message auth keeps the URL credential-free. Cost: ~10 extra lines of state machine for the pre-auth vs post-auth branches |
+| Valkey-backed concurrent-session lock | In-memory `Set<userId>` silently fails when Nitro runs behind Traefik with multiple workers/containers. `SET NX PX` is cluster-consistent in one RTT. Fails CLOSED on Valkey errors (correctness lock, not a rate limit — failing open would double-bill GCP) |
+| Audio-ms budget, not request count | Dictation billing is per audio-second; rate-limiting by request count is the wrong unit. `consumeRateLimitBudget` tracks a signed counter (`cost` per debit, peek via `cost: 0`) so one "request" can debit arbitrary ms. The peek returns `maxCost - current` — NOT a naive `maxCost` — so the session-open check actually rejects exhausted users at open time |
+| Voice input (Feature B) auto-submits after transcription | Picks the "Siri-like" feel over "Google Docs voice typing"-style manual confirmation. The transcript briefly lands in the input field (150ms) so the user sees what was heard before it's sent — silent auto-submit feels like a black box when the model mishears |
 | Hand-rolled canvas visualiser over a library | The Vue ecosystem has no good "live recording bars" library; `wavesurfer.js` is playback-focused and `vue-audio-visual` is unmaintained. An `AnalyserNode` + 40-line canvas draw is smaller, theme-aware, and zero-dep |
 | Voice input skips `requireDocEditAccess` | Transcription doesn't touch the doc — it returns bytes-to-text. The downstream `/api/ai/prompt` call (triggered by auto-submit) enforces the content-edit gate. Adding it to `/api/ai/transcribe` would only duplicate that check |
+| Dictation mock behind `NUXT_GOOGLE_SPEECH_MOCK=1` | Lets integration tests drive the full WS state machine (handshake → partials → finals → close) without hitting Google. Fake SpeechClient emits canned responses on fixed chunk thresholds so `partial` → `final` ordering is deterministic |
 
 ---
 
@@ -503,3 +539,15 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - **Always call `track.stop()` on every `MediaStream` track explicitly** — just stopping the `MediaRecorder` leaves the audio tracks live and the browser's "site is using your microphone" indicator stays on. Cleanup must iterate `stream.getTracks()` and call `.stop()` per-track, on both the happy path AND every error/cancel path.
 - **`String.fromCharCode(...bytes)` blows the stack on large buffers** — the spread operator pushes every byte as an argument. Chunk in 0x8000-byte slices when converting audio `ArrayBuffer` → base64.
 - **Gemini transcription: dummy API key returns HTTP 400** (not 500) — the SDK propagates the upstream 400 verbatim. Integration tests that expect "validation passed → request reached Gemini" must check the error *message*, not just the status code, because both "our allowlist rejected this" and "upstream key invalid" return 400.
+- **Nitro WS requires `nitro.experimental.websocket: true`** — set it in `nuxt.config.ts`. Without the flag, `defineEventHandler({ websocket })` silently ignores the hooks and falls through to the HTTP handler. Adding a new WS route needs a server restart; HMR doesn't re-register the experimental feature.
+- **crossws upgrade hook must RETURN `void`, not an object with `{ context }`** — the return type is `Response | ResponseInit | void`. An object with a non-ResponseInit shape is silently treated as a bad ResponseInit and corrupts the handshake with an ECONNRESET that crashes the Nitro worker. Mutate `request.context` in-place instead.
+- **crossws + Node `ws` delivers text frames as Buffer** — `typeof message.rawData === 'string'` is unreliable. To distinguish text control frames from binary audio: peek the first byte for `{` (0x7B), then try `JSON.parse(message.text())`, then whitelist by `type`. See `tryParseControl` in `server/utils/agentic/dictateHelpers.ts`.
+- **`useWebSocket` has TWO independent flags: `immediate` AND `autoConnect`** — both default to `true`. `immediate: false` alone still leaves `autoConnect: true`, which WATCHES the URL ref and opens a socket on change. Combined with an explicit `.open()` call, that spawns TWO sockets per action. Set both `immediate: false, autoConnect: false` when you want manual lifecycle control.
+- **`@google-cloud/speech` streaming: `stream.write(buf)` NOT `stream.write({ audioContent: buf })`** — the helper's internal PassThrough wraps each raw Buffer as `{ audioContent }` before forwarding to gRPC. Wrapping it yourself produces `{ audioContent: { audioContent: Buffer } }` which Google rejects with "Expected audio_content none was set". The README example showing `stream.write(request)` is wrong/outdated; the authoritative pattern is in the package's `system-test/speech_system_test_v1.js` — pipe raw audio in.
+- **`@google-cloud/speech` SpeechClient `apiKey` option isn't in the TS types** — needs `@ts-expect-error` but works at runtime via google-auth-library. Upstream types are incomplete.
+- **Cloud STT v1 sync `recognize` doesn't accept MP4/AAC** — only `WEBM_OPUS`, `OGG_OPUS`, `LINEAR16`, `FLAC`, `MULAW`, `AMR`, `AMR_WB`. Safari's MediaRecorder default (`audio/mp4`) is rejected. Either transcode server-side or route Safari through the batch Files API which does accept MP4.
+- **Cloud STT model names:** v1 has `latest_long` (dictation-tuned) and `latest_short` (for short utterances — chops long dictation). `chirp_2` is v2-ONLY and requires a project id in the recognizer path; not usable with v1 sync via API key.
+- **`tryAcquireSessionLock` fails CLOSED, `consumeRateLimitBudget` fails OPEN** — opposite polarity by design. The lock is a correctness cap (fail-open would let unlimited concurrent sessions through and double-bill GCP); the budget is a DoS limit (fail-open prevents a wedged Valkey from DoS'ing the app). Don't accidentally flip either.
+- **`consumeRateLimitBudget` with `cost: 0` must PEEK the actual remaining** — used at session-open time. Earlier version returned `maxCost` unconditionally which let exhausted users open a session only to trip on the first chunk (open-then-close flicker). The peek path now reads the bucket without touching it.
+- **Dictation WS auth via FIRST MESSAGE, not `?token=`** — the query string leaks into access logs, referer headers, and browser history. Server's `upgrade` hook is empty (accepts all); the `open` hook arms a 5s deadline, the `message` hook rejects non-`auth` frames until authed. Pre-auth binary is also rejected (malicious clients shipping audio before auth).
+- **Dictation straggler-chunk guard:** after `ctx.stt.end()`, audio chunks already queued by the browser's AudioWorklet → postMessage → WS pipeline arrive post-end. `ctx.sttEnded` flag drops them at the peer's `message` handler; a second defense in the stream error listener silently swallows "write after end" errors when the flag is set. Without either, `stop` → "error: write after end" UI toast.

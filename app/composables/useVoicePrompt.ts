@@ -45,15 +45,22 @@ export interface UseVoicePromptOptions {
 const DEFAULT_MAX_DURATION_SEC = 60
 const LEVEL_SAMPLE_COUNT = 64 // visualizer bar count — thin bars read as a smooth wave rather than a chunky equalizer
 
-// MediaRecorder's MIME preference order. Chrome/Firefox emit opus/webm
-// (best quality:size), Safari falls back to MP4/AAC. Gemini accepts both.
+// MediaRecorder's MIME preference order.
+//
+// We only return opus-based containers because Cloud Speech-to-Text's
+// sync `recognize` endpoint supports WEBM_OPUS / OGG_OPUS / LINEAR16
+// but NOT MP4/AAC. Safari's MediaRecorder currently only emits
+// `audio/mp4` (AAC) — so voice input is effectively Chrome/Firefox-
+// only until we add a server-side transcoder or switch to the Cloud
+// STT batch Files API (which does accept MP4). Returning `undefined`
+// on Safari lets `start()` fail with a friendly "unsupported browser"
+// error rather than shipping bytes that Cloud STT will reject.
 function pickMimeType(): string | undefined {
   const candidates = [
     'audio/webm;codecs=opus',
     'audio/webm',
     'audio/ogg;codecs=opus',
-    'audio/mp4',
-    'audio/mpeg'
+    'audio/wav'
   ]
   if (typeof MediaRecorder === 'undefined') return undefined
   for (const m of candidates) {
@@ -76,6 +83,12 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 export function useVoicePrompt(opts: UseVoicePromptOptions) {
+  // Capture i18n at setup time — useI18n throws "Must be called at the
+  // top of a `setup` function" if called inside the async transcribe
+  // path. We read `locale.value` lazily at send time so language
+  // changes still propagate without a re-invocation.
+  const { locale } = useI18n()
+
   const state = ref<VoicePromptState>('idle')
   const errorMessage = ref<string | null>(null)
   const durationSec = ref(0)
@@ -312,9 +325,14 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     }
 
     try {
+      // `languageCode` piggybacks the UI locale so a German speaker
+      // doesn't get English transcription. Cloud STT accepts either a
+      // BCP-47 tag (`de-DE`) or, via our server-side normalizer, the
+      // short ISO 639-1 code (`de`) we store for the UI. `locale` was
+      // captured at setup-time (see top of composable).
       const res = await $fetch<{ text: string, inaudible: boolean }>('/api/ai/transcribe', {
         method: 'POST',
-        body: { audio: audioB64, mimeType }
+        body: { audio: audioB64, mimeType, languageCode: locale.value }
       })
       if (res.inaudible || !res.text) {
         resetState()

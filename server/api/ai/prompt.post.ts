@@ -97,8 +97,8 @@ export default defineEventHandler(async (event) => {
   const userName = session.user.name
   const config = useRuntimeConfig()
 
-  if (!config.google.apiKey) {
-    throw createError({ statusCode: 500, message: 'Google API key not configured' })
+  if (!config.google.geminiApiKey) {
+    throw createError({ statusCode: 500, message: 'Gemini API key not configured' })
   }
   if (!(await checkRateLimit('ai-prompt', String(userId), 20, 60 * 60 * 1000))) {
     throw createError({ statusCode: 429, message: 'Too many AI requests. Try again in a minute.' })
@@ -181,7 +181,7 @@ export default defineEventHandler(async (event) => {
       }, abortController.signal)
 
       await runAgenticLoop({
-        ai: new GoogleGenAI({ apiKey: config.google.apiKey }),
+        ai: new GoogleGenAI({ apiKey: config.google.geminiApiKey }),
         model: config.google.model,
         systemPrompt: SYSTEM_PROMPT,
         initialPrompt: wrappedPrompt,

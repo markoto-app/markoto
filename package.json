@@ -27,6 +27,7 @@
     "@aws-sdk/s3-request-presigner": "^3.750.0",
     "@codemirror/lang-markdown": "^6.3.2",
     "@codemirror/language-data": "^6.5.1",
+    "@google-cloud/speech": "^7.3.0",
     "@google/genai": "^1.50.0",
     "@hocuspocus/provider": "^3.4.4",
     "@iconify-json/lucide": "^1.2.101",

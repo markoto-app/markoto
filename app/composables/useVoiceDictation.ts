@@ -54,6 +54,14 @@ export interface UseVoiceDictationOptions {
 }
 
 export function useVoiceDictation(options: UseVoiceDictationOptions) {
+  // `useI18n()` MUST be called synchronously during setup — calling it
+  // later (e.g. inside an async click handler) throws
+  // "Must be called at the top of a `setup` function". We capture the
+  // reactive `locale` ref here and read `locale.value` lazily at the
+  // point of use so we still pick up language changes without
+  // re-invoking useI18n.
+  const { locale } = useI18n()
+
   const state = ref<VoiceDictationState>('idle')
   const errorMessage = ref<string | null>(null)
 
@@ -66,6 +74,11 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   let worklet: AudioWorkletNode | null = null
   let wsUrl = ref<string | undefined>(undefined)
   let closing = false
+  // Connect watchdog. If we never receive `ready` from the server
+  // within 10s (Gemini session slow to open, auth issue, upstream
+  // outage), transition to `error` rather than spin forever. Cleared
+  // in `startPumping` once we're actually recording.
+  let connectWatchdog: ReturnType<typeof setTimeout> | null = null
 
   // VueUse: mediaStream lifecycle + track cleanup. `enabled` flips
   // with our toggle; the composable will request permission the
@@ -77,21 +90,37 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   // fully driven by our `ws.open()` call. Leaving `autoConnect` on
   // would re-open the socket every time we mutate `wsUrl`, racing
   // our explicit `open()` and producing duplicate connections.
+  // Pending auth payload — sent on the FIRST message after `open`
+  // rather than as a URL query param. Keeps the JWT out of access
+  // logs, browser history, and `Referer` headers.
+  let pendingAuth: { token: string, languageCode?: string } | null = null
+
   const ws = useWebSocket(wsUrl, {
     immediate: false,
     autoConnect: false,
     autoReconnect: false, // dictation sessions are short-lived; reconnect would mis-bill
-    onConnected() {
-      // `ready` message from the server triggers audio start — we
-      // don't start pumping bytes until Gemini says it's ready.
+    onConnected(socket) {
+      // Send the auth message as the FIRST frame. Server waits up to
+      // 5s for this and closes otherwise — so we ship it immediately
+      // on connect, not lazily.
+      if (pendingAuth) {
+        socket.send(JSON.stringify({ type: 'auth', ...pendingAuth }))
+      }
     },
     onMessage(_, ev) {
       if (typeof ev.data !== 'string') return
       try {
         const msg = JSON.parse(ev.data) as { type: string, text?: string, remaining?: number }
         switch (msg.type) {
+          case 'hello':
+            // Server acknowledged open and is waiting for auth. We
+            // already sent the auth message in `onConnected`; this
+            // hello is just the "send auth now" signal. No-op client
+            // side — kept as an explicit case so unknown-type fallthrough
+            // doesn't match it.
+            break
           case 'ready':
-            // Now safe to start sending audio — Gemini is listening.
+            // Auth + STT stream both up — safe to start sending audio.
             void startPumping()
             break
           case 'partial':
@@ -156,9 +185,9 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
 
     state.value = 'connecting'
 
-    // Mint a short-lived JWT and open the WS. The server mints it on
-    // condition of a session + doc-edit access; any 401/403 here is
-    // a user-facing error we surface.
+    // Mint a short-lived JWT. Posting to /api/ai/dictate/token happens
+    // over HTTPS where the request body is encrypted, so the token
+    // never appears in a URL, log line, or referer.
     let token: string
     try {
       const res = await $fetch<{ token: string }>('/api/ai/dictate/token', {
@@ -172,7 +201,13 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       return
     }
 
-    wsUrl.value = buildWsUrl(token)
+    // Stash auth for onConnected to send as the first WS frame. We
+    // also piggyback the UI locale so Cloud STT transcribes in the
+    // user's language — same pattern as Feature B. `locale` was
+    // captured at setup-time above (Vue I18n rule: useI18n must run
+    // during setup, not lazily).
+    pendingAuth = { token, languageCode: locale.value }
+    wsUrl.value = buildWsUrl()
     ws.open()
   }
 
@@ -293,9 +328,11 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   }
 }
 
-function buildWsUrl(token: string): string {
+function buildWsUrl(): string {
   // Respect the current page's protocol — wss:// on HTTPS, ws:// on
-  // plain HTTP. Port is inherited from location.host.
+  // plain HTTP. Port is inherited from location.host. The auth token
+  // is NOT appended here; it's sent as the first WS message instead,
+  // so it can't leak into access logs or the browser history stack.
   const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${scheme}//${window.location.host}/api/ai/dictate?token=${encodeURIComponent(token)}`
+  return `${scheme}//${window.location.host}/api/ai/dictate`
 }

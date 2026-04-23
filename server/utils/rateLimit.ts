@@ -68,6 +68,75 @@ export async function checkRateLimit(
 }
 
 /**
+ * Single-holder semaphore, backed by `SET NX EX` on Valkey. The first
+ * caller wins (returns true); subsequent callers see `false` until the
+ * holder releases or the TTL expires.
+ *
+ * Used for the dictation concurrent-session cap: only one WS session
+ * per user. An in-memory `Set<userId>` would silently break across
+ * multiple Nitro workers / containers (a user's two tabs could land
+ * on different processes and both slip through). Valkey gives us a
+ * cluster-consistent lock in one network round-trip.
+ *
+ * TTL is a safety net — if a process crashes without releasing the
+ * lock, it self-expires after `ttlMs`. Callers should pass a value
+ * ≥ the longest legitimate session length so a live session never
+ * loses its lock while still in use.
+ *
+ * Returns `false` (i.e. "don't proceed") if Valkey is unreachable
+ * because this is a CAP not a rate limiter — failing open would let
+ * unlimited concurrent sessions through on a Valkey outage. Callers
+ * should surface the error; the app already degrades gracefully when
+ * dictation is unavailable.
+ */
+export async function tryAcquireSessionLock(
+  namespace: string,
+  key: string,
+  ttlMs: number
+): Promise<boolean> {
+  // NOTE: deliberately NO `TEST_MODE === '1'` bypass here, unlike
+  // `checkRateLimit` / `consumeRateLimitBudget`. Those are DoS
+  // limits where tests would pound the endpoint; a bypass prevents
+  // flakiness. This function is a CORRECTNESS lock (one dictation
+  // session per user), and tests need to verify concurrent-session
+  // rejection. Valkey self-cleans via TTL + explicit
+  // `releaseSessionLock` on the server's WS close hook.
+
+  const lockKey = `lock:${namespace}:${key}`
+  try {
+    const valkey = useValkey()
+    const res = await valkey.set(lockKey, '1', 'PX', ttlMs, 'NX')
+    return res === 'OK'
+  } catch (e) {
+    console.warn('[rateLimit] valkey error on session lock, failing closed:', e instanceof Error ? e.message : e)
+    Sentry.captureException(e, {
+      tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
+    })
+    return false
+  }
+}
+
+/**
+ * Release a session lock acquired via `tryAcquireSessionLock`.
+ * Best-effort: if Valkey is unreachable, we rely on TTL expiration.
+ */
+export async function releaseSessionLock(
+  namespace: string,
+  key: string
+): Promise<void> {
+  // Same rationale as `tryAcquireSessionLock` — session locks need to
+  // actually release in tests so subsequent tests (or a test that
+  // deliberately opens a second session after closing the first)
+  // can reacquire the lock.
+
+  const lockKey = `lock:${namespace}:${key}`
+  try {
+    const valkey = useValkey()
+    await valkey.del(lockKey)
+  } catch { /* best-effort; TTL will clean up */ }
+}
+
+/**
  * Cost-based sliding window, backed by a plain Valkey counter with a
  * windowed TTL. Unlike `checkRateLimit` (which counts DISCRETE
  * attempts), this bucket sums arbitrary integer costs — the intended
@@ -99,7 +168,6 @@ export async function consumeRateLimitBudget(
   windowMs: number
 ): Promise<{ allowed: boolean, remaining: number }> {
   if (process.env.TEST_MODE === '1') return { allowed: true, remaining: maxCost }
-  if (cost <= 0) return { allowed: true, remaining: maxCost }
 
   const bkey = `rlb:${namespace}:${key}`
 
@@ -110,6 +178,17 @@ export async function consumeRateLimitBudget(
     // INCRBY would admit the cost first and force us to roll back.
     const currentStr = await valkey.get(bkey)
     const current = currentStr ? Number(currentStr) : 0
+
+    // Cost 0 = peek. Return the actual remaining without touching
+    // the bucket. Callers use this at session-open time to decide
+    // whether to proceed; a naive "return maxCost" would always let
+    // exhausted users open a session and only the first chunk would
+    // trip the real debit, which is a bad UX (opens, then closes
+    // immediately with `budget-exhausted`).
+    if (cost <= 0) {
+      return { allowed: true, remaining: Math.max(0, maxCost - current) }
+    }
+
     if (current + cost > maxCost) {
       return { allowed: false, remaining: Math.max(0, maxCost - current) }
     }
