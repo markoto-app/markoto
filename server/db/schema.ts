@@ -1,5 +1,14 @@
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, customType } from 'drizzle-orm/pg-core'
+import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
+
+// Postgres `tsvector` — drizzle doesn't ship a native type for it, but
+// generated columns + the usual operators work fine via customType. We
+// use STORED generation (the drizzle default) so the vector is computed
+// at write time and the GIN index stays in sync without triggers.
+const tsvector = customType<{ data: string }>({
+  dataType() { return 'tsvector' }
+})
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -16,10 +25,12 @@ export const documents = pgTable('documents', {
   id: serial('id').primaryKey(),
   docId: text('doc_id').notNull().unique(),
   ownerId: integer('owner_id').references(() => users.id),
-  // Optional parent workspace. Folder-like containment: set at creation,
-  // immutable (no move-between-workspaces yet). Workspace delete cascades
-  // at the app layer via `deleteDocument()` per-doc — FK kept at
-  // `set null` as a defensive fallback if a row survives the cascade.
+  // Optional parent workspace. Folder-like containment: set at creation
+  // and moveable afterwards via PATCH /api/docs/:docId/workspace
+  // (authz: canManageDoc on source + admin/editor on target).
+  // Workspace delete cascades at the app layer via `deleteDocument()`
+  // per-doc — FK kept at `set null` as a defensive fallback if a row
+  // survives the cascade.
   workspaceId: text('workspace_id').references(() => workspaces.workspaceId, { onDelete: 'set null' }),
   title: text('title').notNull().default('Untitled'),
   // `private` = owner-only (default for logged-in users on creation).
@@ -114,6 +125,82 @@ export const uploads = pgTable('uploads', {
 }, table => [
   index('idx_uploads_doc').on(table.docId),
   index('idx_uploads_unconfirmed').on(table.confirmedAt, table.createdAt)
+])
+
+// Workspace-level knowledge base. Files (PDFs, DOCX, PPTX, etc.) that
+// workspace members upload so the AI assistant can retrieve grounded
+// content when writing in any doc under that workspace. Ingest pipeline:
+// S3 → markitdown (→ markdown) → chunker → gemini-embedding-2-preview
+// (768-dim via MRL) → chunks table. Vector search + full-text retrieval
+// is exposed to the AI via `search_knowledge` and `get_knowledge_file`
+// tools.
+//
+// Cascades: workspace delete drops rows via FK; per-row delete also
+// tears down chunks via chunks' FK cascade AND the original S3 object.
+export const workspaceKnowledge = pgTable('workspace_knowledge', {
+  id: serial('id').primaryKey(),
+  knowledgeId: text('knowledge_id').notNull().unique(),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
+  // Display name. Collisions are resolved with a numeric suffix
+  // (`report.pdf`, `report (2).pdf`) at confirm time — see duplicate
+  // handling in the knowledge repo.
+  filename: text('filename').notNull(),
+  // Extension hint routed to markitdown (pdf, docx, pptx, xlsx, html, epub, …).
+  sourceExt: text('source_ext').notNull(),
+  mimeType: text('mime_type').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  // S3 key of the original uploaded file. Shape: `workspaces/{wsId}/knowledge/{kId}.{ext}`.
+  s3Key: text('s3_key').notNull().unique(),
+  // Parsed markdown, cached so `get_knowledge_file` returns instantly.
+  // Populated by the processing pipeline once markitdown succeeds.
+  markdownCache: text('markdown_cache'),
+  status: text('status', { enum: ['processing', 'ready', 'failed'] }).notNull().default('processing'),
+  errorMessage: text('error_message'),
+  chunkCount: integer('chunk_count').notNull().default(0),
+  tokenCount: integer('token_count').notNull().default(0),
+  // String key like `gemini-embedding-2-preview:768` so we can detect
+  // chunks produced with an old model/dim and re-embed lazily.
+  embeddingVersion: text('embedding_version').notNull(),
+  uploaderId: integer('uploader_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  processedAt: timestamp('processed_at', { withTimezone: true })
+}, table => [
+  index('idx_wk_workspace').on(table.workspaceId),
+  // Sweep stuck-processing rows older than N minutes.
+  index('idx_wk_status_created').on(table.status, table.createdAt),
+  // Enforce per-workspace filename uniqueness at the DB layer — the
+  // confirm endpoint suffixes on collision before insert.
+  uniqueIndex('wk_workspace_filename_unq').on(table.workspaceId, table.filename)
+])
+
+// Per-chunk embeddings + content for a knowledge file. One row per
+// chunk; `chunkIndex` preserves ordering. `workspaceId` is denormalized
+// so vector-search queries can filter by workspace without a join.
+// Chunks cascade-delete with the parent knowledge row.
+export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
+  id: serial('id').primaryKey(),
+  knowledgeId: text('knowledge_id').notNull().references(() => workspaceKnowledge.knowledgeId, { onDelete: 'cascade' }),
+  workspaceId: text('workspace_id').notNull(),
+  chunkIndex: integer('chunk_index').notNull(),
+  content: text('content').notNull(),
+  tokens: integer('tokens').notNull(),
+  // 768 dims = Gemini MRL lower tier. HNSW-compatible (pgvector caps
+  // HNSW at 2000 dims, so 3072 would require IVFFlat — slower + worse
+  // recall at typical corpus sizes). Plenty for doc-retrieval.
+  embedding: vector('embedding', { dimensions: 768 }),
+  // Generated tsvector for BM25-style full-text search. Combined with
+  // the vector similarity via Reciprocal Rank Fusion in `searchKnowledge`.
+  // `STORED` (drizzle default) means Postgres materializes the vector at
+  // write time and the GIN index stays in sync without triggers.
+  contentTsv: tsvector('content_tsv').generatedAlwaysAs(
+    (): SQL => sql`to_tsvector('english', ${workspaceKnowledgeChunks.content})`
+  ),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_wkc_knowledge').on(table.knowledgeId),
+  index('idx_wkc_workspace').on(table.workspaceId),
+  index('idx_wkc_embedding').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  index('idx_wkc_content_tsv').using('gin', table.contentTsv)
 ])
 
 export const activityLog = pgTable('activity_log', {

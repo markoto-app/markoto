@@ -16,7 +16,9 @@ import type {
   UpdateThemeInput,
   SetTitleInput,
   ViewImageInput,
-  GenerateImageInput
+  GenerateImageInput,
+  SearchKnowledgeInput,
+  GetKnowledgeFileInput
 } from './agentic/functionTools'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
@@ -24,6 +26,8 @@ import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { getDoc, updateDocMeta } from '../repos/documents'
 import { recordPending, markConfirmed } from '../repos/uploads'
+import { getKnowledgeWithMarkdown, searchKnowledge } from '../repos/knowledge'
+import { embedQuery } from './embeddings'
 
 export interface ToolResult {
   content: string
@@ -628,7 +632,103 @@ export async function executeFunctionByName(
       return handleViewImage(session, args as ViewImageInput)
     case 'generate_image':
       return handleGenerateImage(session, args as GenerateImageInput)
+    case 'search_knowledge':
+      return handleSearchKnowledge(session, args as SearchKnowledgeInput)
+    case 'get_knowledge_file':
+      return handleGetKnowledgeFile(session, args as GetKnowledgeFileInput)
     default:
-      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, set_title, view_image, generate_image.`)
+      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, set_title, view_image, generate_image, search_knowledge, get_knowledge_file.`)
   }
+}
+
+// --- Knowledge tools -------------------------------------------------------
+
+// Max chars returned to the model for `get_knowledge_file`. Matches the
+// inline-rewrite window — enough to fit a ~15-20k-token document, which
+// covers most workspace uploads. Anything larger gets truncated with a
+// marker so the model knows to re-query via `search_knowledge` for the
+// rest of the content.
+const KNOWLEDGE_FILE_CHAR_CAP = 40_000
+// We no longer floor by raw cosine similarity — the hybrid fusion can
+// surface a low-sim chunk that's a strong BM25 match (e.g. "section 4.3"
+// queries) and that's the point of having BM25. Drop obvious junk via
+// the per-source candidate pool size instead.
+
+async function handleSearchKnowledge(session: AiSession, input: SearchKnowledgeInput): Promise<ToolResult> {
+  if (!session.workspaceId) {
+    // Defense in depth: the runtime filter should already have hidden
+    // this tool from the model on non-workspace sessions. If it still
+    // lands here, return a self-correcting error.
+    return err('Error: search_knowledge is only available for documents inside a workspace.')
+  }
+  const topK = input.top_k ?? 5
+
+  session.updateStatus('tool', `Searching workspace knowledge for "${input.query.slice(0, 80)}"…`)
+
+  let queryEmbedding: number[]
+  try {
+    queryEmbedding = await embedQuery(input.query)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    return err(`Error: failed to embed query: ${msg}`)
+  }
+
+  const hits = await searchKnowledge({
+    workspaceId: session.workspaceId,
+    queryText: input.query,
+    queryEmbedding,
+    topK
+  })
+
+  if (hits.length === 0) {
+    return ok('No relevant chunks found in the workspace knowledge base for this query. The knowledge base may not contain information on this topic — consider web_search, fetch_url, or asking the user.')
+  }
+
+  // Format: show semantic + lexical signals so the model can tell a
+  // "paraphrased near-miss" (high sim, zero textScore) from an "exact
+  // phrase hit" (low sim, high textScore). Keeps RRF transparent.
+  const lines: string[] = [
+    `Found ${hits.length} relevant chunk${hits.length === 1 ? '' : 's'}:`,
+    ''
+  ]
+  for (const h of hits) {
+    const sim = h.similarity > 0 ? h.similarity.toFixed(3) : '—'
+    const bm25 = h.textScore > 0 ? h.textScore.toFixed(3) : '—'
+    lines.push(`--- ${h.filename} (chunk ${h.chunkIndex}, semantic=${sim} lexical=${bm25}) ---`)
+    lines.push(h.content)
+    lines.push('')
+  }
+  return ok(lines.join('\n'))
+}
+
+async function handleGetKnowledgeFile(session: AiSession, input: GetKnowledgeFileInput): Promise<ToolResult> {
+  if (!session.workspaceId) {
+    return err('Error: get_knowledge_file is only available for documents inside a workspace.')
+  }
+
+  session.updateStatus('tool', `Reading knowledge file ${input.knowledge_id}…`)
+
+  const row = await getKnowledgeWithMarkdown(input.knowledge_id)
+  if (!row) {
+    return err(`Error: knowledge_id "${input.knowledge_id}" not found. Use only ids from the <knowledge_files> block in the system prompt.`)
+  }
+  // Scope check — knowledge is workspace-scoped, session is workspace-scoped.
+  if (row.workspaceId !== session.workspaceId) {
+    return err(`Error: knowledge_id "${input.knowledge_id}" belongs to a different workspace.`)
+  }
+  if (row.status !== 'ready') {
+    return err(`Error: knowledge file "${row.filename}" is currently in status "${row.status}"${row.errorMessage ? `: ${row.errorMessage}` : ''}.`)
+  }
+  if (!row.markdownCache) {
+    return err(`Error: knowledge file "${row.filename}" has no cached content. Try search_knowledge instead.`)
+  }
+
+  const md = row.markdownCache
+  if (md.length <= KNOWLEDGE_FILE_CHAR_CAP) {
+    return ok(`# ${row.filename}\n\n${md}`)
+  }
+  const head = md.slice(0, KNOWLEDGE_FILE_CHAR_CAP)
+  return ok(
+    `# ${row.filename}\n\n${head}\n\n[… truncated at ${KNOWLEDGE_FILE_CHAR_CAP} characters of ${md.length}. Use search_knowledge with a targeted query to retrieve the remaining content. …]`
+  )
 }

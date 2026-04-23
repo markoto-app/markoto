@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt } from 'drizzle-orm'
+import { and, eq, isNull, lt, sql } from 'drizzle-orm'
 import { uploads } from '../db/schema'
 import { useDatabase } from '../utils/database'
 
@@ -82,4 +82,61 @@ export async function listAllS3Keys(): Promise<string[]> {
 export async function deleteUploadsForDoc(docId: string): Promise<void> {
   const db = useDatabase()
   await db.delete(uploads).where(eq(uploads.docId, docId))
+}
+
+/**
+ * Every confirmed upload row for a doc. Used by the duplicate flow to
+ * clone image assets into the new doc's S3 prefix. Unconfirmed rows are
+ * skipped — their S3 object may not exist, and they'll be swept away
+ * within 24h either way.
+ */
+export interface UploadRow {
+  fileId: string
+  contentType: string
+  sizeBytes: number
+  s3Key: string
+  uploaderId: number | null
+}
+
+export async function listConfirmedUploadsForDoc(docId: string): Promise<UploadRow[]> {
+  const db = useDatabase()
+  return db
+    .select({
+      fileId: uploads.fileId,
+      contentType: uploads.contentType,
+      sizeBytes: uploads.sizeBytes,
+      s3Key: uploads.s3Key,
+      uploaderId: uploads.uploaderId
+    })
+    .from(uploads)
+    .where(and(eq(uploads.docId, docId), sql`${uploads.confirmedAt} is not null`))
+}
+
+/**
+ * Bulk-insert already-confirmed upload rows for a doc. Each row carries
+ * a fresh s3Key (caller is responsible for having CopyObject'd the
+ * underlying S3 objects before this runs).
+ */
+export interface InsertConfirmedUpload {
+  docId: string
+  fileId: string
+  uploaderId: number | null
+  contentType: string
+  sizeBytes: number
+  s3Key: string
+}
+
+export async function insertConfirmedUploads(rows: InsertConfirmedUpload[]): Promise<void> {
+  if (rows.length === 0) return
+  const db = useDatabase()
+  const now = new Date()
+  await db.insert(uploads).values(rows.map(r => ({
+    docId: r.docId,
+    fileId: r.fileId,
+    uploaderId: r.uploaderId,
+    contentType: r.contentType,
+    sizeBytes: r.sizeBytes,
+    s3Key: r.s3Key,
+    confirmedAt: now
+  })))
 }

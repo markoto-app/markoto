@@ -1,0 +1,172 @@
+import { GetObjectCommand } from '@aws-sdk/client-s3'
+import * as Sentry from '@sentry/nuxt'
+import { eq } from 'drizzle-orm'
+import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
+import { useDatabase } from './database'
+import { chunkMarkdown } from './chunkMarkdown'
+import { embedDocuments, embeddingVersionTag, resolveEmbeddingsConfig } from './embeddings'
+
+/**
+ * End-to-end ingestion for one knowledge file:
+ *   1. Fetch the original file bytes from S3.
+ *   2. POST to the markitdown service — same endpoint the user-facing
+ *      /api/import uses, so we share all format support for free.
+ *   3. Chunk the returned markdown.
+ *   4. Embed each chunk (batched) with Gemini.
+ *   5. Persist chunks + flip the parent row to status='ready'.
+ *
+ * This runs fire-and-forget from the confirm endpoint. A sweep plugin
+ * (`knowledge-sweep`) re-kicks rows stuck in `processing` past the
+ * deadline — crash-safe in case the worker dies between step 2 and
+ * step 5.
+ *
+ * Errors are caught at every phase and flip the row to `status='failed'`
+ * with a short `errorMessage`. The original S3 object is left in place
+ * so the user can retry (re-uploading is a separate flow; for now
+ * failed rows are just shown with a red badge and a Delete action).
+ */
+
+const MARKITDOWN_TIMEOUT_MS = 60_000
+
+export async function processKnowledge(knowledgeId: string): Promise<void> {
+  const db = useDatabase()
+
+  const rows = await db.select().from(workspaceKnowledge)
+    .where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+    .limit(1)
+  const row = rows[0]
+  if (!row) {
+    console.warn(`[processKnowledge] ${knowledgeId} not found`)
+    return
+  }
+  if (row.status !== 'processing') {
+    console.log(`[processKnowledge] ${knowledgeId} already ${row.status}, skipping`)
+    return
+  }
+
+  try {
+    const markdown = await runConversion(row.s3Key, row.sourceExt)
+
+    // Row may have been deleted by the user mid-conversion. Bail out
+    // before we spend money on embeddings for a row nobody needs.
+    if (!(await rowStillExists(knowledgeId))) {
+      console.log(`[processKnowledge] ${knowledgeId} was deleted during conversion, aborting`)
+      return
+    }
+
+    if (!markdown.trim()) {
+      await markFailed(knowledgeId, 'markitdown produced empty markdown')
+      return
+    }
+
+    const chunks = chunkMarkdown(markdown)
+    if (chunks.length === 0) {
+      await markFailed(knowledgeId, 'no chunks produced from parsed content')
+      return
+    }
+
+    const embedCfg = resolveEmbeddingsConfig()
+    const embeddings = await embedDocuments(
+      chunks.map(c => c.content),
+      { config: embedCfg }
+    )
+
+    // Final existence check before the write-heavy phase — embeddings
+    // are the expensive step, but chunks insert + status flip still
+    // waste FK-failed round trips if the row is gone.
+    if (!(await rowStillExists(knowledgeId))) {
+      console.log(`[processKnowledge] ${knowledgeId} was deleted during embedding, aborting`)
+      return
+    }
+
+    const tokenCount = chunks.reduce((n, c) => n + c.tokens, 0)
+
+    // Insert chunks + flip status in one logical step. The chunks insert
+    // is a single round-trip (multi-row VALUES); the update is a single
+    // UPDATE. We intentionally don't wrap in a transaction — pg+HNSW
+    // writes don't play great inside long txns and partial inserts are
+    // recoverable (a re-process deletes by knowledgeId first).
+    await db.delete(workspaceKnowledgeChunks)
+      .where(eq(workspaceKnowledgeChunks.knowledgeId, knowledgeId))
+
+    if (chunks.length > 0) {
+      await db.insert(workspaceKnowledgeChunks).values(
+        chunks.map((c, i) => ({
+          knowledgeId,
+          workspaceId: row.workspaceId,
+          chunkIndex: c.index,
+          content: c.content,
+          tokens: c.tokens,
+          embedding: embeddings[i]!
+        }))
+      )
+    }
+
+    await db.update(workspaceKnowledge).set({
+      status: 'ready' as const,
+      chunkCount: chunks.length,
+      tokenCount,
+      markdownCache: markdown,
+      embeddingVersion: embeddingVersionTag(embedCfg),
+      processedAt: new Date(),
+      errorMessage: null
+    }).where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+
+    console.log(`[processKnowledge] ${knowledgeId} ready: ${chunks.length} chunks, ${tokenCount} tokens`)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error(`[processKnowledge] ${knowledgeId} failed:`, msg)
+    Sentry.captureException(e, {
+      tags: { component: 'processKnowledge', knowledgeId }
+    })
+    await markFailed(knowledgeId, msg.slice(0, 500))
+  }
+}
+
+async function markFailed(knowledgeId: string, message: string): Promise<void> {
+  const db = useDatabase()
+  await db.update(workspaceKnowledge).set({
+    status: 'failed' as const,
+    errorMessage: message,
+    processedAt: new Date()
+  }).where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+}
+
+async function rowStillExists(knowledgeId: string): Promise<boolean> {
+  const db = useDatabase()
+  const rows = await db.select({ id: workspaceKnowledge.knowledgeId })
+    .from(workspaceKnowledge)
+    .where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+    .limit(1)
+  return rows.length > 0
+}
+
+async function runConversion(s3Key: string, ext: string): Promise<string> {
+  const config = useRuntimeConfig()
+  if (!config.markitdownUrl) {
+    throw new Error('markitdown service not configured')
+  }
+
+  const s3 = useS3Client()
+  const object = await s3.send(new GetObjectCommand({
+    Bucket: config.s3.bucket,
+    Key: s3Key
+  }))
+  const bytes = await object.Body!.transformToByteArray()
+
+  const url = `${config.markitdownUrl}/convert?ext=${encodeURIComponent(ext)}`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Length': String(bytes.byteLength)
+    },
+    body: bytes as BodyInit,
+    signal: AbortSignal.timeout(MARKITDOWN_TIMEOUT_MS)
+  })
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`markitdown returned ${response.status}: ${text.slice(0, 200)}`)
+  }
+  return await response.text()
+}

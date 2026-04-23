@@ -76,6 +76,22 @@ const FetchUrlArgs = z.object({
     .describe('The URL to fetch. Any public web page (article, blog, docs, portfolio). A missing scheme is treated as https://. Do not pass /api/files/... paths — use view_image for those.')
 }).describe('Fetch a specific URL and extract its readable text content plus any image URLs visible on the page. Use when the user names or links a source to draw information from. Returns both synthesised text AND a list of image URLs you can then inspect with view_image or embed verbatim via insert_text.')
 
+// Only exposed when the current document is inside a workspace that the
+// initiator is a member of — the runtime tool filter in prompt.post.ts
+// drops these from the declarations otherwise, so the model isn't told
+// about capabilities it can't actually use.
+const SearchKnowledgeArgs = z.object({
+  query: z.string().trim().min(1).max(500)
+    .describe('Natural-language query. Semantic match, so ask the way you would ask a colleague — full phrases, not keyword salads. Example: "what does the procurement policy say about vendor onboarding timelines" rather than "procurement vendor timeline".'),
+  top_k: z.number().int().min(1).max(15).optional()
+    .describe('How many chunks to return. Default 5. Use 10–15 for research-style queries where you want to survey; use 3 when you want the single best hit.')
+}).describe('Search the workspace knowledge base (uploaded PDFs, DOCX, etc.) by meaning and return the most relevant chunks with their source filename. Use BEFORE writing when the user references uploaded material ("what did the grant proposal say about X?", "summarise the research brief"), or when asked to write something grounded in workspace context. Only available when the document is in a workspace that has knowledge files.')
+
+const GetKnowledgeFileArgs = z.object({
+  knowledge_id: z.string().trim().min(1).max(64)
+    .describe('The exact knowledge_id from the <knowledge_files> block in the system prompt. Do NOT guess — only pass ids that are listed there.')
+}).describe('Retrieve the full parsed markdown of a single knowledge file. Use after `search_knowledge` when the returned chunks are insufficient and you need the whole document, or when the user asks to read / summarise a specific file by name (match it to the right knowledge_id from <knowledge_files>). Response may be truncated for very large files — an explicit marker is appended if so.')
+
 const SetTitleArgs = z.object({
   // `.trim()` must come BEFORE `.min(1)` in Zod 4 for the length check
   // to see the trimmed string — otherwise "   " passes min(1) and only
@@ -225,6 +241,8 @@ export type SetTitleInput = z.infer<typeof SetTitleArgs>
 export type ViewImageInput = z.infer<typeof ViewImageArgs>
 export type GenerateImageInput = z.infer<typeof GenerateImageArgs>
 export type FetchUrlInput = z.infer<typeof FetchUrlArgs>
+export type SearchKnowledgeInput = z.infer<typeof SearchKnowledgeArgs>
+export type GetKnowledgeFileInput = z.infer<typeof GetKnowledgeFileArgs>
 
 // --- Name → schema registry used by runLoop for validate-before-dispatch --
 //
@@ -239,7 +257,9 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   set_title: SetTitleArgs,
   view_image: ViewImageArgs,
   generate_image: GenerateImageArgs,
-  fetch_url: FetchUrlArgs
+  fetch_url: FetchUrlArgs,
+  search_knowledge: SearchKnowledgeArgs,
+  get_knowledge_file: GetKnowledgeFileArgs
 }
 
 // --- FunctionDeclarations (what Gemini sees) ------------------------------
@@ -305,6 +325,26 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
     'fetch_url',
     'Fetch a specific URL and extract both its readable text content AND a list of image URLs visible on the page. Use when the user names or links a source to draw information from (e.g. "write about me based on myportfolio.com"). Differs from `web_search` — that one searches the web for a topic; this one reads a URL you already have. The returned image URLs can be passed to `view_image` to inspect them or embedded directly via `insert_text` as `![alt](https://...)`.',
     FetchUrlArgs
+  )
+]
+
+/**
+ * Knowledge-base tools. Split out so `prompt.post.ts` can decide per
+ * session whether to expose them — they're only meaningful when the
+ * document is in a workspace the caller belongs to AND that workspace
+ * has at least one `status='ready'` knowledge file. Exposing them
+ * empty-handed invites the model to hallucinate filenames.
+ */
+export const KNOWLEDGE_TOOL_DECLARATIONS: FunctionDeclaration[] = [
+  decl(
+    'search_knowledge',
+    'Semantic search over this workspace\'s uploaded knowledge (PDFs, DOCX, etc.). Returns the top-K most relevant chunks with filename, chunk index, similarity score, and content. Use BEFORE writing when the user references uploaded files ("based on the grant proposal…", "what does the policy say about…"). Prefer this over `web_search` for workspace-private info. Only call for queries you actually intend to use — the model pays for each call.',
+    SearchKnowledgeArgs
+  ),
+  decl(
+    'get_knowledge_file',
+    'Retrieve the full parsed markdown of one specific knowledge file, given its knowledge_id from the <knowledge_files> block. Use when chunks from `search_knowledge` are insufficient and you need the whole document, or when the user asks to summarise / quote a specific file by name. Large files may be truncated with an explicit marker — re-chunk your reasoning instead of asking again.',
+    GetKnowledgeFileArgs
   )
 ]
 

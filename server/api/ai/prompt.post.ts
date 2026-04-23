@@ -1,9 +1,13 @@
 import { GoogleGenAI } from '@google/genai'
 import { nanoid } from 'nanoid'
 import { findUserNameById } from '../../repos/users'
+import { getDoc } from '../../repos/documents'
+import { getMemberRole } from '../../repos/workspaceMembers'
+import { listReadyKnowledgeBrief } from '../../repos/knowledge'
 import { addAiSession, removeAiSession, DuplicateSessionError } from '../../utils/aiSessions'
 import { createAiSession } from '../../utils/aiClient'
 import { runAgenticLoop } from '../../utils/agentic/runLoop'
+import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../utils/agentic/functionTools'
 import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
 
 import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
@@ -27,7 +31,7 @@ const HARD_DEADLINE_MS = 5 * 60_000
 
 const SYSTEM_PROMPT = `You are an AI assistant collaborating on a shared markdown document in a Google-Docs-style editor.
 
-You have access to nine tools, called as functions:
+You have access to the following tools, called as functions:
 - \`view_document\` — read the current document (line-numbered). Call this FIRST before any content edit. After multi-step edits, a failed \`replace_text\` ("no match" means the text shifted), or a long pause, re-read before the next edit — the doc is collaborative and may have changed under you.
 - \`replace_text\` — replace an exact-match \`old_str\` with \`new_str\`. \`old_str\` must be unique in the document; include enough surrounding context.
 - \`insert_text\` — insert text after a specific line (1-indexed; 0 means start of file).
@@ -39,6 +43,17 @@ You have access to nine tools, called as functions:
 - \`generate_image\` — generate a photo or illustration from a text prompt and upload it to the document's file store. Returns a real, freshly-minted markdown reference (e.g. \`![alt](/api/files/{docId}/{fileId}.png)\`) — you MUST call this tool to obtain it. Follow up with \`insert_text\` to add it at a chosen line, or \`replace_text\` to swap an existing image. Write a detailed prompt (subject, style, composition, mood) and concise alt text. Use for pictorial content (photos, illustrations, artwork). For diagrams, flowcharts, sequence diagrams, Gantt charts, class diagrams, ER diagrams, and pie charts, write a Mermaid \`\`\`mermaid fenced code block via \`insert_text\` instead — Mermaid is rendered natively by the preview and stays editable as text.
 
 CRITICAL IMAGE RULE: Never write a \`/api/files/...\` URL yourself. Those paths ONLY exist after a real \`generate_image\` call returns one, and you must copy the returned URL verbatim into \`insert_text\` or \`replace_text\`. Placeholders like \`/api/files/placeholder/x.png\`, \`/api/files/docId/image.png\`, \`/api/files/example/...\` are forbidden — they'll render as broken images. The same rule applies to external image URLs (https://...): do not guess them; only embed URLs that came back from a real tool call (\`generate_image\`, \`fetch_url\`, or explicitly provided by the user).
+
+CRITICAL OUTPUT RULE — NON-NEGOTIABLE: There is NO chat UI. The user NEVER sees your prose. Every turn MUST end with an \`insert_text\` or \`replace_text\` call, otherwise the user sees absolutely NOTHING and concludes you did nothing.
+- This applies to EVERYTHING: "summarize X", "explain Y", "what does Z say", "tell me about …", "write about …", "compare A and B", even "give me your opinion on …". The answer always goes INTO the document.
+- Pick a sensible location without asking: at the user's cursor (see editor_state routing), at the end of the doc if it already has content and no location was indicated, or as the whole doc body if it's empty. Never return plain text hoping the user will see it.
+- Do NOT narrate the plan in prose either ("I'll now search the knowledge base and write a summary…"). Just do it.
+
+NO CLARIFYING QUESTIONS: You CANNOT ask the user follow-up questions. There is no channel to reach them — any question you write as plain text is invisible. When the request is ambiguous, make a reasonable interpretation and COMMIT to it via an edit. The user can always undo, refine, or redirect with a next prompt. Acting on a best-guess interpretation is ALWAYS better than asking, because asking delivers nothing.
+- Ambiguous scope? Pick the middle interpretation. Ambiguous length? Default to 3–8 paragraphs for "summarize", one heading + 2–4 paragraphs for "explain", one paragraph for "describe briefly".
+- Ambiguous style/tone? Match the doc's existing style if there is any; otherwise use neutral professional prose.
+- Ambiguous location? See routing rules below — cursor position wins; end-of-doc is the safe fallback.
+- Missing information the user didn't give you? Proceed with plausible defaults and write the answer. If a detail is truly required and unguessable, say so IN the inserted text: "(I assumed X because you didn't specify; change this if needed.)"
 
 Guidelines:
 - Always call \`view_document\` first before CONTENT edits. Theme and title changes don't require reading the document unless the user wants the title derived from the content. Re-read between edits if a \`replace_text\` failed with "no match" or if a lot has changed.
@@ -91,6 +106,31 @@ Editor state (cursor / selection context):
 
 ${MARKDOWN_REFERENCE}`
 
+/**
+ * Build a `<knowledge_files>` block listing the workspace's ready
+ * knowledge files, appended to the system prompt so the model knows
+ * which files exist before calling `search_knowledge` /
+ * `get_knowledge_file`. Keeps it honest — the model won't fabricate
+ * knowledge_ids the user never uploaded.
+ *
+ * Returns an empty string when there's nothing to expose (non-workspace
+ * doc, or workspace has zero ready files). In that case, knowledge
+ * tools are ALSO filtered out of the tool list.
+ */
+function buildKnowledgeBlock(files: Array<{ knowledgeId: string, filename: string, sizeBytes: number, sourceExt: string, tokenCount: number }>): string {
+  if (files.length === 0) return ''
+  const lines = files.map((f) => {
+    const kb = Math.max(1, Math.round(f.sizeBytes / 1024))
+    return `- knowledge_id="${f.knowledgeId}" filename="${f.filename}" type=${f.sourceExt} size=${kb}KB tokens=${f.tokenCount}`
+  })
+  return (
+    `\n\n<knowledge_files>\n`
+    + `The user's workspace has the following uploaded knowledge files. Call \`search_knowledge\` to query across them, or \`get_knowledge_file\` with a specific knowledge_id when you need the full text. Only ids listed here are valid — do NOT invent or guess.\n\n`
+    + `${lines.join('\n')}\n`
+    + `</knowledge_files>`
+  )
+}
+
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
@@ -119,6 +159,27 @@ export default defineEventHandler(async (event) => {
   const wrappedPrompt = wrapPromptWithEditorState(prompt, editorSelection)
 
   await requireDocEditAccess(docId, userId)
+
+  // Resolve workspace context for knowledge-base tool exposure. We only
+  // expose the knowledge tools if (a) the doc is in a workspace, (b)
+  // the caller is a member, and (c) the workspace has at least one
+  // ready knowledge file. Any missing condition → standard tool set.
+  let workspaceId: string | null = null
+  let knowledgeFiles: Awaited<ReturnType<typeof listReadyKnowledgeBrief>> = []
+  const doc = await getDoc(docId)
+  if (doc?.workspaceId) {
+    const role = await getMemberRole(doc.workspaceId, userId)
+    if (role !== null) {
+      workspaceId = doc.workspaceId
+      knowledgeFiles = await listReadyKnowledgeBrief(doc.workspaceId)
+    }
+  }
+  const knowledgeBlock = buildKnowledgeBlock(knowledgeFiles)
+  const exposeKnowledgeTools = workspaceId !== null && knowledgeFiles.length > 0
+  const toolDeclarations = exposeKnowledgeTools
+    ? [...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]
+    : ALL_TOOL_DECLARATIONS
+  const systemPrompt = SYSTEM_PROMPT + knowledgeBlock
 
   const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706' // Warm orange — reused from the original AI-as-collaborator design
@@ -177,14 +238,16 @@ export default defineEventHandler(async (event) => {
         initiatorName,
         initiatorUserId: userId,
         initiatorColor,
-        prompt
+        prompt,
+        workspaceId
       }, abortController.signal)
 
       await runAgenticLoop({
         ai: new GoogleGenAI({ apiKey: config.google.geminiApiKey }),
         model: config.google.model,
-        systemPrompt: SYSTEM_PROMPT,
+        systemPrompt,
         initialPrompt: wrappedPrompt,
+        toolDeclarations,
         // Minimal-by-default (0 = thinking disabled) — bumped per env.
         // Coerced: runtime config values may arrive as strings on some
         // Nitro presets even though nuxt.config declares `: 0`.

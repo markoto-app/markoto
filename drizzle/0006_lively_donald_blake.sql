@@ -1,0 +1,2 @@
+ALTER TABLE "workspace_knowledge_chunks" ADD COLUMN "content_tsv" "tsvector" GENERATED ALWAYS AS (to_tsvector('english', "workspace_knowledge_chunks"."content")) STORED;--> statement-breakpoint
+CREATE INDEX "idx_wkc_content_tsv" ON "workspace_knowledge_chunks" USING gin ("content_tsv");

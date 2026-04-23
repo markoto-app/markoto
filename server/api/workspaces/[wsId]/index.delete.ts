@@ -1,6 +1,8 @@
 import { deleteWorkspaceRow } from '../../../repos/workspaces'
 import { listDocIdsInWorkspace } from '../../../repos/documents'
+import { listKnowledge } from '../../../repos/knowledge'
 import { deleteDocument } from '../../../utils/documentLifecycle'
+import { deleteKnowledgeArtifact } from '../../../utils/knowledgeAccess'
 
 // Cascade delete: wipe every doc in this workspace (S3 + Y.js + activity
 // etc via `deleteDocument`), then drop the workspace row itself. Deletes
@@ -30,9 +32,17 @@ export default defineEventHandler(async (event) => {
     await deleteDocument(docId)
   }
 
+  // Knowledge S3 cleanup is per-object (one key per row) — the FK on
+  // workspace_knowledge → workspaces cascades the DB row automatically,
+  // but S3 objects are orphaned without this explicit sweep.
+  const knowledgeRows = await listKnowledge(wsId)
+  for (const row of knowledgeRows) {
+    await deleteKnowledgeArtifact(row.knowledgeId)
+  }
+
   // workspace_members rows are removed automatically by the ON DELETE
   // CASCADE foreign key.
   await deleteWorkspaceRow(wsId)
 
-  return { success: true, deletedDocs: childDocIds.length }
+  return { success: true, deletedDocs: childDocIds.length, deletedKnowledge: knowledgeRows.length }
 })

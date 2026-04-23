@@ -227,6 +227,8 @@ export function useDocument(docId: string) {
     requiresPassword: readonly(tokenState.requiresPassword),
     forbidden: readonly(tokenState.forbidden),
     accessMode: readonly(tokenState.accessMode),
+    workspaceId: readonly(tokenState.workspaceId),
+    workspaceRole: readonly(tokenState.workspaceRole),
     docSizeBytes: readonly(sync.docSizeBytes),
     docSizeWarning,
     undoManager,

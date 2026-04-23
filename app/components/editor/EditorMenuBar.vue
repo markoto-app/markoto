@@ -22,9 +22,17 @@ const props = defineProps<{
   docId: string
   isReadOnly: boolean
   loggedIn: boolean
+  // Can the user perform sharing/delete-grade actions on this doc? Owner
+  // or workspace admin only. Gates the destructive / ownership-changing
+  // entries in File (Move, Delete).
+  canManage: boolean
   // Right-sidebar state — used to render check marks next to "Activity"
   // and "Theme" in the View menu so the user can see what's currently open.
-  rightSidebar: 'activity' | 'theme' | null
+  rightSidebar: 'activity' | 'theme' | 'knowledge' | null
+  // Whether the current doc belongs to a workspace the viewer is a
+  // member of. Only then is the Knowledge panel meaningful — gate the
+  // menu entry on this so non-workspace docs don't show a disabled item.
+  hasKnowledgeAccess: boolean
   // View mode: 'edit' | 'split' | 'preview'.
   viewMode: 'edit' | 'split' | 'preview'
   /**
@@ -42,9 +50,11 @@ const emit = defineEmits<{
   'export-markdown': []
   'export-pdf': []
   'new-document': []
+  'duplicate-document': []
+  'move-document': []
   'delete-document': []
   'set-view-mode': ['edit' | 'split' | 'preview']
-  'toggle-sidebar': ['activity' | 'theme']
+  'toggle-sidebar': ['activity' | 'theme' | 'knowledge']
   'undo': []
   'redo': []
   'open-image-picker': []
@@ -97,10 +107,18 @@ const fileItems = computed(() => {
   })
   items.push({ type: 'separator' })
   items.push({ label: t('menubar.file.print'), icon: 'i-lucide-printer', kbds: ['cmd', 'p'], onSelect: () => emit('export-pdf') })
-  // Delete sits at the bottom of File — destructive, kept under a
-  // separator so it's not a one-click slip from the export entries.
-  // Owner-only (the destination handler also enforces it).
+  // Duplicate is available to anyone who can edit the doc (server
+  // re-checks); Move requires manage rights. Both need login — the
+  // server rejects anonymous on both paths because they need an owner.
   if (props.loggedIn) {
+    items.push({ type: 'separator' })
+    items.push({ label: t('menubar.file.duplicate'), icon: 'i-lucide-copy', onSelect: () => emit('duplicate-document') })
+    if (props.canManage) {
+      items.push({ label: t('menubar.file.move'), icon: 'i-lucide-folder-input', onSelect: () => emit('move-document') })
+    }
+    // Delete sits at the bottom of File — destructive, kept under its
+    // own separator so it's not a one-click slip from the copy/move
+    // entries.
     items.push({ type: 'separator' })
     items.push({ label: t('menubar.file.delete'), icon: 'i-lucide-trash-2', onSelect: () => emit('delete-document') })
   }
@@ -156,7 +174,18 @@ const viewItems = computed(() => [
       type: 'checkbox' as const,
       checked: props.rightSidebar === 'theme',
       onSelect: () => emit('toggle-sidebar', 'theme')
-    }
+    },
+    // Knowledge — only meaningful for workspace docs. Hidden otherwise
+    // so the menu doesn't advertise a capability that isn't available.
+    ...(props.hasKnowledgeAccess
+      ? [{
+          label: t('knowledge.title'),
+          icon: 'i-lucide-library',
+          type: 'checkbox' as const,
+          checked: props.rightSidebar === 'knowledge',
+          onSelect: () => emit('toggle-sidebar', 'knowledge')
+        }]
+      : [])
   ],
   // Display preferences
   [

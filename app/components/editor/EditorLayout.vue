@@ -23,6 +23,8 @@ const {
   requiresPassword,
   forbidden,
   accessMode,
+  workspaceId: docWorkspaceId,
+  workspaceRole: docWorkspaceRole,
   undoManager,
   title,
   theme,
@@ -129,18 +131,40 @@ const showShareModal = ref(false)
 // available to Sharing as a backup shortcut). Was previously buried in
 // the share modal's danger-zone block; lives standalone now.
 const showDeleteModal = ref(false)
+// Duplicate + Move modals under File menu. Both round-trip the server
+// which re-checks authz, so the File menu's canManage gate is UX-only.
+const showDuplicateModal = ref(false)
+const showMoveModal = ref(false)
+// Can this user change sharing/placement? Owner or workspace admin.
+// Mirrors server-side canManageDoc. Workspace editors / viewers can
+// edit content (covered by !isReadOnly) but not move the doc.
+const canManageDoc = computed(() =>
+  isOwner.value || docWorkspaceRole.value === 'admin'
+)
 // Import modal state
 const showImportModal = ref(false)
-// Right-sidebar slot — mutually exclusive between activity and theme.
-// Both panels share the same column so the layout shift is predictable
-// regardless of which one is open.
-const rightSidebar = ref<'activity' | 'theme' | null>(null)
-function toggleSidebar(panel: 'activity' | 'theme') {
+// Right-sidebar slot — mutually exclusive between activity, theme, and
+// knowledge. All three share the same column so the layout shift is
+// predictable regardless of which one is open. Knowledge only appears
+// for workspace docs (see `hasKnowledgeAccess`).
+const rightSidebar = ref<'activity' | 'theme' | 'knowledge' | null>(null)
+function toggleSidebar(panel: 'activity' | 'theme' | 'knowledge') {
   rightSidebar.value = rightSidebar.value === panel ? null : panel
 }
 function closeSidebar() {
   rightSidebar.value = null
 }
+// Knowledge is a workspace-level concern — a standalone / anonymous doc
+// has no knowledge base attached, and non-members shouldn't see the tab
+// either. The doc composable already resolves workspace membership
+// (`docWorkspaceRole` is non-null iff the viewer is a member).
+const hasKnowledgeAccess = computed(() => Boolean(docWorkspaceId.value) && docWorkspaceRole.value !== null)
+// If the user has knowledge open and the doc moves to a workspace they
+// aren't in (or out of a workspace entirely), close the panel so the
+// layout doesn't leave an empty column.
+watch(hasKnowledgeAccess, (allowed) => {
+  if (!allowed && rightSidebar.value === 'knowledge') rightSidebar.value = null
+})
 // Password modal: open when requiresPassword is true, closable only via verify/cancel
 const passwordModalOpen = ref(false)
 watch(requiresPassword, (val) => {
@@ -598,7 +622,10 @@ const statusIcon = computed(() => {
         </button>
 
         <!-- Collaborators next to title -->
-        <CollabPresenceBar :awareness="awareness" :doc-id="docId" />
+        <CollabPresenceBar
+          :awareness="awareness"
+          :doc-id="docId"
+        />
 
         <!-- Connection status: icon-only on mobile to save space -->
         <UBadge
@@ -719,7 +746,9 @@ const statusIcon = computed(() => {
         :doc-id="docId"
         :is-read-only="isReadOnly"
         :logged-in="loggedIn"
+        :can-manage="canManageDoc"
         :right-sidebar="rightSidebar"
+        :has-knowledge-access="hasKnowledgeAccess"
         :view-mode="viewMode"
         :dictation-state="dictation.state.value"
         @open-import="showImportModal = true"
@@ -728,6 +757,8 @@ const statusIcon = computed(() => {
         @export-markdown="exportMarkdown"
         @export-pdf="exportPdf"
         @new-document="newDocument"
+        @duplicate-document="showDuplicateModal = true"
+        @move-document="showMoveModal = true"
         @delete-document="showDeleteModal = true"
         @set-view-mode="(m) => viewMode = m"
         @toggle-sidebar="toggleSidebar"
@@ -779,6 +810,18 @@ const statusIcon = computed(() => {
               :variant="rightSidebar === 'theme' ? 'soft' : 'ghost'"
               size="xs"
               @click="toggleSidebar('theme')"
+            />
+          </UTooltip>
+          <UTooltip
+            v-if="hasKnowledgeAccess"
+            :text="t('knowledge.title')"
+          >
+            <UButton
+              icon="i-lucide-library"
+              color="neutral"
+              :variant="rightSidebar === 'knowledge' ? 'soft' : 'ghost'"
+              size="xs"
+              @click="toggleSidebar('knowledge')"
             />
           </UTooltip>
         </div>
@@ -914,6 +957,41 @@ const statusIcon = computed(() => {
             @reset="resetTheme"
             @close="closeSidebar"
           />
+          <!-- Knowledge panel — same upload/list/delete surface as the
+               workspace overview, scoped to this doc's workspace. Only
+               ever rendered when hasKnowledgeAccess so workspaceId /
+               docWorkspaceRole are guaranteed non-null here. -->
+          <div
+            v-else-if="rightSidebar === 'knowledge' && docWorkspaceId && docWorkspaceRole"
+            class="h-full flex flex-col"
+          >
+            <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
+              <div class="flex items-center gap-1.5">
+                <UIcon
+                  name="i-lucide-library"
+                  class="size-4 text-muted"
+                />
+                <h3 class="text-sm font-semibold">
+                  {{ t('knowledge.title') }}
+                </h3>
+              </div>
+              <UButton
+                icon="i-lucide-x"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                @click="closeSidebar"
+              />
+            </div>
+            <div class="flex-1 overflow-y-auto p-3 min-h-0">
+              <WorkspaceKnowledgePanel
+                :workspace-id="docWorkspaceId"
+                :my-role="docWorkspaceRole"
+                :my-user-id="(sessionUser as any)?.id ?? null"
+                compact
+              />
+            </div>
+          </div>
         </aside>
 
         <!-- Floating AI prompt bar — overlay at the bottom of the
@@ -987,6 +1065,25 @@ const statusIcon = computed(() => {
       :is-owner="isOwner"
       :current-access-mode="accessMode"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
+    />
+
+    <!-- Duplicate — creates a new doc owned by the current user,
+         same content + theme + images. Redirects to the new doc on
+         success. -->
+    <DocumentDuplicateDocModal
+      v-model:open="showDuplicateModal"
+      :doc-id="docId"
+      :source-title="title"
+      @duplicated="(newDocId) => navigateTo(`/d/${newDocId}`)"
+    />
+
+    <!-- Move — reassigns the doc's workspace. Manage rights only
+         (owner or workspace admin). -->
+    <DocumentMoveWorkspaceModal
+      v-model:open="showMoveModal"
+      :doc-id="docId"
+      :doc-title="title"
+      :current-workspace-id="docWorkspaceId"
     />
 
     <!-- Delete confirmation — owner-only entry from File → Delete. -->

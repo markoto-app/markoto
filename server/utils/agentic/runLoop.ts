@@ -2,6 +2,7 @@ import {
   FinishReason,
   type Content,
   type FunctionCall,
+  type FunctionDeclaration,
   type GoogleGenAI
 } from '@google/genai'
 import type { AiSession } from '../aiClient'
@@ -46,6 +47,13 @@ export interface RunLoopOptions {
    * the disabled case.
    */
   thinkingBudget?: number
+  /**
+   * Override the function declarations handed to Gemini. Defaults to
+   * `ALL_TOOL_DECLARATIONS`. Callers that want additional tools (e.g.
+   * knowledge-base access for workspace docs) pass
+   * `[...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]`.
+   */
+  toolDeclarations?: FunctionDeclaration[]
   /** Optional logger — defaults to `console.log` tagged with the session id. */
   logger?: (msg: string) => void
 }
@@ -57,6 +65,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
   } = opts
   const log = opts.logger ?? ((msg: string) => console.log(`[ai/prompt ${sessionId}] ${msg}`))
   const thinkingBudget = opts.thinkingBudget ?? 0
+  const toolDeclarations = opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS
 
   // Manual `contents` history. Each turn:
   //   - push `{ role: 'model', parts: [...] }` with whatever the model returned
@@ -79,7 +88,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       contents,
       config: {
         systemInstruction: systemPrompt,
-        tools: [{ functionDeclarations: ALL_TOOL_DECLARATIONS }],
+        tools: [{ functionDeclarations: toolDeclarations }],
         abortSignal: abortController.signal,
         // Only pass thinkingConfig when the operator actually opted in.
         // Models without thinking support (e.g. some flash-lite variants)

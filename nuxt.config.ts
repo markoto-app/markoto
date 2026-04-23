@@ -67,6 +67,16 @@ export default defineNuxtConfig({
       model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
       rewriteModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
       imageModel: 'gemini-3.1-flash-image-preview', // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool. Alternatives: `gemini-2.5-flash-image` (stable, older), `gemini-3-pro-image-preview` (higher quality, slower, more expensive).
+      // Embedding model for workspace knowledge. `gemini-embedding-2-preview`
+      // is the latest multimodal embedding model (text/image/video/audio/
+      // documents into a unified space). We use it text-only today.
+      // `outputDimensionality: 768` via MRL — fits pgvector HNSW (2000-dim
+      // cap) and is measurably cheaper than 1536/3072 with little recall
+      // cost at typical corpus sizes. Bump via NUXT_GOOGLE_EMBEDDING_MODEL;
+      // if you change dimensions you must also bump `embeddingVersion`
+      // in the processing pipeline to trigger a re-embed.
+      embeddingModel: 'gemini-embedding-2-preview', // NUXT_GOOGLE_EMBEDDING_MODEL
+      embeddingDims: 768, // NUXT_GOOGLE_EMBEDDING_DIMS
       // Google Cloud Speech-to-Text model for live dictation. v1 accepts
       // API-key auth without needing a project id in the path (unlike v2),
       // which keeps the server code simple. `latest_long` is the default
@@ -99,6 +109,15 @@ export default defineNuxtConfig({
     // never auto-reaped. 0 disables sweeping entirely. Override via
     // NUXT_INACTIVE_DOC_TTL_DAYS.
     inactiveDocTtlDays: 180,
+    // Workspace knowledge base limits. Per-file cap mirrors markitdown's
+    // ceiling (keeps the conversion step predictable). Per-workspace
+    // caps are soft — enforced at upload-request time, not as hard DB
+    // constraints.
+    knowledge: {
+      maxFileBytes: 25 * 1024 * 1024, // NUXT_KNOWLEDGE_MAX_FILE_BYTES (25 MB)
+      maxFilesPerWorkspace: 500, // NUXT_KNOWLEDGE_MAX_FILES_PER_WORKSPACE
+      maxTotalBytesPerWorkspace: 1024 * 1024 * 1024 // NUXT_KNOWLEDGE_MAX_TOTAL_BYTES_PER_WORKSPACE (1 GB)
+    },
     public: {
       syncUrl: '',
       sentry: {

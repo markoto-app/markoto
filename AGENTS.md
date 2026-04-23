@@ -156,7 +156,7 @@ Workspace membership overrides: admin/editor bypasses `private` and `password-pr
 
 **Meta:** `GET /api/health` (DB probe), `GET /api/version` (SPA staleness)
 
-**Documents:** `POST /api/docs` (anon OK; accepts `workspaceId`), `GET/PUT /api/docs/:id/meta`, `DELETE /api/docs/:id` (`canManageDoc`), `GET /api/docs/:id/token` (consolidated: token + readOnly + requiresPassword + forbidden + accessMode + ownerId), `GET /api/docs/:id/activity`, `POST /api/docs/:id/password`
+**Documents:** `POST /api/docs` (anon OK; accepts `workspaceId`), `GET/PUT /api/docs/:id/meta`, `DELETE /api/docs/:id` (`canManageDoc`), `GET /api/docs/:id/token` (consolidated: token + readOnly + requiresPassword + forbidden + accessMode + ownerId + workspaceId + workspaceRole), `GET /api/docs/:id/activity`, `POST /api/docs/:id/password`, `PATCH /api/docs/:id/workspace` (move; `canManageDoc` on source + admin/editor on target), `POST /api/docs/:id/duplicate` (clone row + Y.js state with URL rewrite + S3 assets; `canEditDoc` on source, new owner = duplicator)
 
 **Internal (sync→app, `X-Internal-Secret`):** `POST /api/internal/activity`
 
@@ -379,7 +379,9 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 **Editor chrome:** Google-Docs-style menu bar (File/Edit/View/Insert/Format/Sharing/Help), table size picker (8×8 modal), diagram/alert/math dropdowns, right sidebar (Activity OR Theme), view-mode toggle (Edit/Split/Preview), `DeleteConfirmModal`.
 
-**Workspaces:** Three-role model (admin/editor/viewer), invite-by-email, last-admin invariant, cascade delete, role-gated UI at `/w/:id`, workspace doc table.
+**Workspaces:** Three-role model (admin/editor/viewer), invite-by-email, last-admin invariant, cascade delete, role-gated UI at `/w/:id`, workspace doc table. Docs are moveable between workspaces post-creation via PATCH /api/docs/:id/workspace.
+
+**Document duplication:** `POST /api/docs/:id/duplicate` clones a doc end-to-end — new `documents` row (duplicator becomes owner), Y.js state with image-URL rewrite (reconstructs the source Y.Doc via `yjs_documents` replay, rewrites `/api/files/{sourceDocId}/` → `/api/files/{newDocId}/` in the markdown, re-encodes as a single initial update), and S3 image assets via `CopyObject` into the new prefix. Permissions inherit automatically from the target workspace. See `server/utils/duplicateDocument.ts` + `server/utils/cloneYjsState.ts`.
 
 **AI:** Gemini agentic loop with 9 tools: `view_document`, `replace_text`, `insert_text`, `update_theme` (partial patches + 6 presets), `set_title`, `view_image` (multimodal — smuggles bytes via `extraParts` since functionResponse is JSON-only), `generate_image` (Gemini image-model → S3 → markdown ref), `web_search` (grounded sub-call), `fetch_url` (urlContext sub-call with structured output). Inline rewrite with RelativePosition race safety. Awareness-based status propagates to the prompt bar placeholder and presence-bar tooltip. Per-user-per-doc cap via Postgres UNIQUE index, initiator-only cancel, floating prompt bar (rainbow ring animation), selection popup, animation decoupled by `kind`. Configurable thinking budget (`NUXT_GOOGLE_THINKING_BUDGET`, default 0). **Editor-state context:** every prompt ships with an `<editor_state>` wrapper carrying cursor line + column + surrounding line text with a `<CURSOR_IS_HERE>` marker so the model can resolve "add X here" / "fix this" without counting characters — handled in `server/utils/agentic/editorStatePrompt.ts` and validated client-side in `app/utils/editorSelection.ts`. **Voice input for the prompt bar:** mic button → `MediaRecorder` opus/webm → base64 → `/api/ai/transcribe` (Cloud STT sync `recognize` → text) → auto-submit. Live frequency-bar visualiser via `AnalyserNode`, MM:SS timer with amber@-10s/red@-5s, 60s cap, cancel button, hard 5 MiB payload ceiling, explicit `MediaStream` cleanup so the browser mic indicator clears immediately. Language auto-picks from the UI locale. **Live dictation:** mic button in the formatting toolbar → Nitro WebSocket relay (`/api/ai/dictate`, JWT via first message — NOT `?token=`) → Cloud STT streaming → interim partials render as grey italic ghost text at the CM6 caret (CM6 `StateField` + `ViewPlugin`), finals commit into Y.js via `ydoc.transact(fn, 'dictation:{userId}')` with smart spacing (mid-word inserts a leading space so `fo|o` + "bar" becomes `fo bar o`). Language from UI locale. One session per user via Valkey `SET NX PX` lock, 30 min/user/day audio budget, 10 min/session cap, 30s idle timeout. Click-anywhere-and-continue: the ghost text reanchors to the new caret because the view plugin rebuilds on `selectionSet`. Straggler-chunk guard silently drops audio that arrives after `stop` so the client never sees "write after end" as an error.
 
@@ -396,9 +398,6 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - [ ] CORS: Traefik middleware for S3 (prod deploy)
 
 ### MMP
-
-**Workspaces**
-- [ ] Move an existing doc into / between workspaces (currently immutable after creation)
 
 **History & snapshots**
 - [ ] Timestamped snapshots in S3 via Hocuspocus hook

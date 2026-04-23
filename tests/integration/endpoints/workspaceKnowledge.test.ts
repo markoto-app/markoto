@@ -1,0 +1,268 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { resetDb, testDb } from '../setup/db'
+import { anonClient, loggedInClient } from '../setup/client'
+import {
+  createUser,
+  createWorkspace,
+  setMemberRole
+} from '../setup/fixtures'
+
+// Knowledge-base REST endpoints. These cover the DB + authz surface.
+// Upload-request issues a presigned S3 URL — we don't exercise the PUT
+// itself (that's S3's problem); confirm + list + delete are tested
+// against seeded rows. processKnowledge() runs fire-and-forget and is
+// not covered here (needs markitdown); its failure path is exercised
+// via the sweep plugin.
+
+interface KnowledgeRow {
+  knowledge_id: string
+  workspace_id: string
+  filename: string
+  status: string
+  uploader_id: number | null
+  size_bytes: number
+}
+
+async function seedKnowledge(
+  overrides: Partial<KnowledgeRow> & { workspace_id: string, knowledge_id?: string, filename?: string }
+): Promise<KnowledgeRow> {
+  const db = testDb()
+  const row: KnowledgeRow = {
+    knowledge_id: overrides.knowledge_id ?? `kn-${Math.random().toString(36).slice(2, 10)}`,
+    workspace_id: overrides.workspace_id,
+    filename: overrides.filename ?? 'sample.pdf',
+    status: overrides.status ?? 'ready',
+    uploader_id: overrides.uploader_id ?? null,
+    size_bytes: overrides.size_bytes ?? 1024
+  }
+  await db.query(
+    `INSERT INTO workspace_knowledge
+     (knowledge_id, workspace_id, filename, source_ext, mime_type, size_bytes, s3_key, status, embedding_version, uploader_id, chunk_count, token_count)
+     VALUES ($1, $2, $3, 'pdf', 'application/pdf', $4, $5, $6, 'test:768', $7, 0, 0)`,
+    [
+      row.knowledge_id,
+      row.workspace_id,
+      row.filename,
+      row.size_bytes,
+      `workspaces/${row.workspace_id}/knowledge/${row.knowledge_id}.pdf`,
+      row.status,
+      row.uploader_id
+    ]
+  )
+  return row
+}
+
+async function countRows(workspaceId: string): Promise<number> {
+  const db = testDb()
+  const r = await db.query<{ c: string }>(
+    'SELECT COUNT(*) AS c FROM workspace_knowledge WHERE workspace_id = $1',
+    [workspaceId]
+  )
+  return Number(r.rows[0]?.c ?? 0)
+}
+
+describe('POST /api/workspaces/:wsId/knowledge/upload-request', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('401 for anonymous callers', async () => {
+    const res = await anonClient().post('/api/workspaces/ws-anything/knowledge/upload-request', {
+      filename: 'x.pdf',
+      size: 1024
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it('404 for non-members (avoids leaking workspace existence)', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const outsider = await createUser()
+    const client = await loggedInClient(outsider.id)
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
+      filename: 'x.pdf',
+      size: 1024
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it('403 for viewers (can see knowledge but not upload)', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const viewer = await createUser()
+    await setMemberRole(ws.workspaceId, viewer.id, 'viewer')
+    const client = await loggedInClient(viewer.id)
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
+      filename: 'x.pdf',
+      size: 1024
+    })
+    expect(res.status).toBe(403)
+  })
+
+  it('415 for unsupported extensions', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const client = await loggedInClient(owner.id)
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
+      filename: 'malware.exe',
+      size: 1024
+    })
+    expect(res.status).toBe(415)
+  })
+
+  it('413 when file exceeds maxFileBytes', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const client = await loggedInClient(owner.id)
+    // Default cap is 25 MB — go just above.
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
+      filename: 'big.pdf',
+      size: 26 * 1024 * 1024
+    })
+    expect(res.status).toBe(413)
+  })
+
+  it('admin can request a presigned URL', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const client = await loggedInClient(owner.id)
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
+      filename: 'brief.pdf',
+      size: 10_000
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as { knowledgeId: string, uploadUrl: string, s3Key: string, ext: string, mimeType: string }
+    expect(body.knowledgeId).toBeTruthy()
+    expect(body.uploadUrl).toMatch(/^https?:\/\//)
+    expect(body.s3Key).toBe(`workspaces/${ws.workspaceId}/knowledge/${body.knowledgeId}.pdf`)
+    expect(body.ext).toBe('pdf')
+    expect(body.mimeType).toBe('application/pdf')
+  })
+
+  it('editor can request a presigned URL', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const editor = await createUser()
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    const client = await loggedInClient(editor.id)
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
+      filename: 'notes.docx',
+      size: 5000
+    })
+    expect(res.status).toBe(200)
+  })
+})
+
+describe('GET /api/workspaces/:wsId/knowledge', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('401 for anonymous', async () => {
+    const res = await anonClient().get('/api/workspaces/ws-any/knowledge')
+    expect(res.status).toBe(401)
+  })
+
+  it('404 for non-members', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const outsider = await createUser()
+    const client = await loggedInClient(outsider.id)
+    const res = await client.get(`/api/workspaces/${ws.workspaceId}/knowledge`)
+    expect(res.status).toBe(404)
+  })
+
+  it('any role (including viewer) can list', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    await seedKnowledge({ workspace_id: ws.workspaceId, filename: 'a.pdf' })
+    await seedKnowledge({ workspace_id: ws.workspaceId, filename: 'b.pdf' })
+    const viewer = await createUser()
+    await setMemberRole(ws.workspaceId, viewer.id, 'viewer')
+    const client = await loggedInClient(viewer.id)
+    const res = await client.get(`/api/workspaces/${ws.workspaceId}/knowledge`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { items: Array<{ filename: string }>, usage: { count: number } }
+    expect(body.items).toHaveLength(2)
+    expect(body.usage.count).toBe(2)
+  })
+
+  it('response excludes markdownCache even when present', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId })
+    const db = testDb()
+    await db.query(
+      'UPDATE workspace_knowledge SET markdown_cache = $1 WHERE knowledge_id = $2',
+      ['# Secret content that should not appear in list payload', kn.knowledge_id]
+    )
+    const client = await loggedInClient(owner.id)
+    const res = await client.get(`/api/workspaces/${ws.workspaceId}/knowledge`)
+    const body = await res.text()
+    expect(body).not.toContain('Secret content')
+  })
+})
+
+describe('DELETE /api/workspaces/:wsId/knowledge/:id', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('404 when the knowledge row belongs to a different workspace (no probing)', async () => {
+    const owner = await createUser()
+    const wsA = await createWorkspace(owner.id)
+    const wsB = await createWorkspace(owner.id, { workspaceId: `ws-other-${Date.now()}` })
+    const kn = await seedKnowledge({ workspace_id: wsB.workspaceId })
+    const client = await loggedInClient(owner.id)
+    const res = await client.delete(`/api/workspaces/${wsA.workspaceId}/knowledge/${kn.knowledge_id}`)
+    expect(res.status).toBe(404)
+    expect(await countRows(wsB.workspaceId)).toBe(1)
+  })
+
+  it('admin can delete any upload in their workspace', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const editor = await createUser()
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId, uploader_id: editor.id })
+    const client = await loggedInClient(admin.id)
+    const res = await client.delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)
+    expect(res.status).toBe(200)
+    expect(await countRows(ws.workspaceId)).toBe(0)
+  })
+
+  it('editor can delete their own upload', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const editor = await createUser()
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId, uploader_id: editor.id })
+    const client = await loggedInClient(editor.id)
+    const res = await client.delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)
+    expect(res.status).toBe(200)
+  })
+
+  it('editor cannot delete another user\'s upload', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const editor = await createUser()
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    // Upload attributed to admin; editor tries to delete.
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId, uploader_id: admin.id })
+    const client = await loggedInClient(editor.id)
+    const res = await client.delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)
+    expect(res.status).toBe(403)
+    expect(await countRows(ws.workspaceId)).toBe(1)
+  })
+
+  it('viewer cannot delete at all', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const viewer = await createUser()
+    await setMemberRole(ws.workspaceId, viewer.id, 'viewer')
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId })
+    const client = await loggedInClient(viewer.id)
+    const res = await client.delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)
+    expect(res.status).toBe(403)
+  })
+})

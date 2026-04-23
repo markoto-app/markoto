@@ -49,17 +49,28 @@ export async function resetDb(): Promise<void> {
       activity_log,
       uploads,
       ai_sessions,
+      workspace_knowledge_chunks,
+      workspace_knowledge,
       workspace_members,
       workspaces,
       documents,
       users
     RESTART IDENTITY CASCADE
   `)
-  // Drop any Y.js rows the sync-server might have parked. The sync server
-  // isn't running during these tests, but notify-deleted handlers still
-  // write here in some error paths.
-  await db.query('TRUNCATE TABLE IF EXISTS yjs_documents')
-    .catch(() => { /* table may not exist on first run */ })
+  // Drop any Y.js rows parked in the sync-server's table. `TRUNCATE
+  // IF EXISTS` isn't valid Postgres syntax — we probe pg_tables first
+  // and only issue the TRUNCATE when the table exists. This matters
+  // for tests that seed yjs_documents directly (duplicate flow):
+  // without a proper per-test reset, stale source rows bleed between
+  // cases and assertions fail non-deterministically.
+  const yjsExists = await db.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'yjs_documents'
+     ) AS exists`
+  )
+  if (yjsExists.rows[0].exists) {
+    await db.query('TRUNCATE TABLE yjs_documents RESTART IDENTITY')
+  }
 }
 
 /**

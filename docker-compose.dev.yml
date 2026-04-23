@@ -15,7 +15,11 @@
 
 services:
   postgres:
-    image: postgres:16-alpine@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416
+    # pgvector/pgvector is Postgres 16 (alpine-based) with the `vector`
+    # extension pre-built. Drop-in replacement for postgres:16-alpine —
+    # data directory + client protocol are identical; CREATE EXTENSION
+    # vector is run by the first migration.
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       - POSTGRES_USER=ypad

@@ -44,6 +44,11 @@ export function useDocToken(docId: string) {
   // but with no client-side unlock path. EditorLayout renders a lock screen.
   const forbidden = ref(false)
   const accessMode = ref<string>('open-edit')
+  // Current workspace assignment + caller's role inside it, if any. Used
+  // by the File menu to decide which of Duplicate / Move / Delete to
+  // render, and by MoveWorkspaceModal to preselect "current workspace".
+  const workspaceId = ref<string | null>(null)
+  const workspaceRole = ref<'admin' | 'editor' | 'viewer' | null>(null)
   // DB-stored theme (or null = use defaultTheme). Initial value comes back
   // on the same /token round-trip so the preview can paint immediately,
   // before Y.js sync settles. Once synced, ymeta.theme takes over as the
@@ -66,6 +71,8 @@ export function useDocToken(docId: string) {
         forbidden?: boolean
         accessMode: string
         ownerId: number | null
+        workspaceId: string | null
+        workspaceRole: 'admin' | 'editor' | 'viewer' | null
         theme?: DocTheme | null
       }>(`/api/docs/${docId}/token`)
 
@@ -74,6 +81,8 @@ export function useDocToken(docId: string) {
       requiresPassword.value = !!data.requiresPassword
       forbidden.value = !!data.forbidden
       accessMode.value = data.accessMode
+      workspaceId.value = data.workspaceId
+      workspaceRole.value = data.workspaceRole
       initialTheme.value = data.theme ?? null
 
       const userId = sessionUser.value?.id
@@ -126,6 +135,8 @@ export function useDocToken(docId: string) {
     requiresPassword,
     forbidden,
     accessMode,
+    workspaceId,
+    workspaceRole,
     pendingPasswordUnlock,
     initialTheme,
     // Actions

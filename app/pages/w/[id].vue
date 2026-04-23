@@ -85,15 +85,56 @@ const membersOpen = ref(false)
 const deleteTargetDoc = ref<WorkspaceDoc | null>(null)
 const showDocDeleteConfirm = ref(false)
 
+// Duplicate / Move per-row targets. Using a single ref per action rather
+// than a single "active doc" ref because the modals are independent and
+// the user could (in theory) cancel one while the other is open.
+const duplicateTargetDoc = ref<WorkspaceDoc | null>(null)
+const showDuplicateModal = ref(false)
+const moveTargetDoc = ref<WorkspaceDoc | null>(null)
+const showMoveModal = ref(false)
+
 function openDocDelete(doc: WorkspaceDoc) {
   deleteTargetDoc.value = doc
   showDocDeleteConfirm.value = true
+}
+
+function openDocDuplicate(doc: WorkspaceDoc) {
+  duplicateTargetDoc.value = doc
+  showDuplicateModal.value = true
+}
+
+function openDocMove(doc: WorkspaceDoc) {
+  moveTargetDoc.value = doc
+  showMoveModal.value = true
 }
 
 function onDocDeleted() {
   if (!deleteTargetDoc.value || !data.value) return
   data.value.documents = data.value.documents.filter(d => d.docId !== deleteTargetDoc.value!.docId)
   deleteTargetDoc.value = null
+}
+
+function onDocDuplicated(newDocId: string) {
+  // Send the user into their fresh copy — matches the "file → duplicate"
+  // flow in desktop apps, and the workspace view will re-hydrate on the
+  // next visit. If the duplicate stayed in this workspace, reloading
+  // here would surface it in the list too, but we'd rather the user
+  // start editing immediately.
+  router.push(`/d/${newDocId}`)
+}
+
+function onDocMoved(newWorkspaceId: string | null) {
+  // Doc left this workspace (target is different): drop it from the
+  // current list. Same-workspace no-op is impossible here because the
+  // row's modal doesn't allow picking the current workspace's option
+  // server-side it's a no-op anyway.
+  if (!moveTargetDoc.value || !data.value) return
+  if (newWorkspaceId !== workspaceId.value) {
+    data.value.documents = data.value.documents.filter(
+      d => d.docId !== moveTargetDoc.value!.docId
+    )
+  }
+  moveTargetDoc.value = null
 }
 
 function onWorkspaceUpdated(payload: { name: string, description: string | null }) {
@@ -200,28 +241,50 @@ async function leaveWorkspace() {
     </header>
 
     <main class="flex-1 px-6 py-8">
-      <div v-if="loading" class="flex justify-center py-16">
-        <UIcon name="i-lucide-loader" class="size-8 animate-spin text-muted" />
+      <div
+        v-if="loading"
+        class="flex justify-center py-16"
+      >
+        <UIcon
+          name="i-lucide-loader"
+          class="size-8 animate-spin text-muted"
+        />
       </div>
 
       <div
         v-else-if="notFound || forbidden"
         class="max-w-md mx-auto text-center space-y-4 py-16"
       >
-        <UIcon name="i-lucide-folder-x" class="size-10 text-muted mx-auto" />
-        <h1 class="text-xl font-semibold">{{ t('workspace.notFound') }}</h1>
-        <p class="text-sm text-muted">{{ t('workspace.notFoundDesc') }}</p>
-        <UButton to="/" variant="ghost" icon="i-lucide-arrow-left">
+        <UIcon
+          name="i-lucide-folder-x"
+          class="size-10 text-muted mx-auto"
+        />
+        <h1 class="text-xl font-semibold">
+          {{ t('workspace.notFound') }}
+        </h1>
+        <p class="text-sm text-muted">
+          {{ t('workspace.notFoundDesc') }}
+        </p>
+        <UButton
+          to="/"
+          variant="ghost"
+          icon="i-lucide-arrow-left"
+        >
           {{ t('access.backHome') }}
         </UButton>
       </div>
 
-      <div v-else-if="data" class="max-w-3xl mx-auto space-y-6">
+      <div
+        v-else-if="data"
+        class="max-w-3xl mx-auto space-y-6"
+      >
         <!-- Header block with title + description + avatar row + actions -->
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-3 flex-wrap">
-              <h1 class="text-2xl font-bold tracking-tight">{{ data.workspace.name }}</h1>
+              <h1 class="text-2xl font-bold tracking-tight">
+                {{ data.workspace.name }}
+              </h1>
               <UBadge
                 v-if="myRole !== 'admin'"
                 size="xs"
@@ -254,7 +317,11 @@ async function leaveWorkspace() {
               {{ t('workspace.newDocument') }}
             </UButton>
             <UDropdownMenu :items="workspaceMenuItems">
-              <UButton icon="i-lucide-more-vertical" color="neutral" variant="ghost" />
+              <UButton
+                icon="i-lucide-more-vertical"
+                color="neutral"
+                variant="ghost"
+              />
             </UDropdownMenu>
           </div>
         </div>
@@ -264,6 +331,9 @@ async function leaveWorkspace() {
           <WorkspaceDocTable
             :documents="data.documents"
             :my-role="myRole || 'viewer'"
+            :workspace-id="data.workspace.workspaceId"
+            @duplicate-requested="openDocDuplicate"
+            @move-requested="openDocMove"
             @delete-requested="openDocDelete"
           />
         </div>
@@ -271,8 +341,13 @@ async function leaveWorkspace() {
           v-else
           class="text-center py-16 border border-dashed border-default rounded-lg"
         >
-          <UIcon name="i-lucide-file-plus" class="size-8 text-muted mx-auto mb-2" />
-          <p class="text-base font-medium">{{ t('workspace.empty') }}</p>
+          <UIcon
+            name="i-lucide-file-plus"
+            class="size-8 text-muted mx-auto mb-2"
+          />
+          <p class="text-base font-medium">
+            {{ t('workspace.empty') }}
+          </p>
           <p class="text-sm text-muted mt-1">
             {{ canCreateDoc ? t('workspace.emptyDescription') : t('workspace.emptyDescriptionViewer') }}
           </p>
@@ -286,6 +361,15 @@ async function leaveWorkspace() {
             {{ t('workspace.newDocument') }}
           </UButton>
         </div>
+
+        <!-- Knowledge base: sits below the doc list so docs stay the
+             primary surface. Members can always see it (even viewers),
+             but only editor+ can upload/delete. -->
+        <WorkspaceKnowledgePanel
+          :workspace-id="data.workspace.workspaceId"
+          :my-role="data.workspace.myRole"
+          :my-user-id="myUserId ?? null"
+        />
       </div>
     </main>
 
@@ -325,6 +409,23 @@ async function leaveWorkspace() {
       :doc-id="deleteTargetDoc.docId"
       :title="deleteTargetDoc.title"
       @deleted="onDocDeleted"
+    />
+
+    <DocumentDuplicateDocModal
+      v-if="duplicateTargetDoc"
+      v-model:open="showDuplicateModal"
+      :doc-id="duplicateTargetDoc.docId"
+      :source-title="duplicateTargetDoc.title"
+      @duplicated="onDocDuplicated"
+    />
+
+    <DocumentMoveWorkspaceModal
+      v-if="moveTargetDoc && data"
+      v-model:open="showMoveModal"
+      :doc-id="moveTargetDoc.docId"
+      :doc-title="moveTargetDoc.title"
+      :current-workspace-id="data.workspace.workspaceId"
+      @moved="onDocMoved"
     />
   </div>
 </template>

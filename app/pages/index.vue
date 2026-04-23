@@ -37,6 +37,7 @@ interface DocumentListItem {
   wordCount: number
   lastActive: string | number | Date
   sizeBytes: number
+  workspaceId: string | null
   isOwner: boolean | number
 }
 
@@ -94,6 +95,35 @@ function onDocDeleted() {
   // Optimistically remove from list (the server call already succeeded at this point)
   myDocs.value = myDocs.value.filter(d => d.docId !== deleteTarget.value!.docId)
   deleteTarget.value = null
+}
+
+// Duplicate / Move modals. Dashboard shows personal + owned-in-workspace
+// docs; every entry here is owned by the caller, so canManage is true
+// for all of them (no per-row gating needed).
+const duplicateTarget = ref<DocumentListItem | null>(null)
+const showDuplicateModal = ref(false)
+const moveTarget = ref<DocumentListItem | null>(null)
+const showMoveModal = ref(false)
+
+function openDuplicate(doc: DocumentListItem) {
+  duplicateTarget.value = doc
+  showDuplicateModal.value = true
+}
+function openMove(doc: DocumentListItem) {
+  moveTarget.value = doc
+  showMoveModal.value = true
+}
+function onDocDuplicated(newDocId: string) {
+  router.push(`/d/${newDocId}`)
+}
+function onDocMoved(newWorkspaceId: string | null) {
+  // The "Recent Documents" list on the dashboard shows all owned docs
+  // regardless of workspace, so a move doesn't need to drop the row.
+  // If the target is a workspace, the user probably wants to see the
+  // doc in the workspace view — but re-fetching here is enough for
+  // updated metadata. Noop for now; visible state already accurate.
+  void newWorkspaceId
+  moveTarget.value = null
 }
 
 // Workspace create
@@ -220,14 +250,25 @@ function formatDate(value: string | number | Date) {
               <span class="text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
               <UDropdownMenu
                 v-if="doc.isOwner"
-                :items="[
+                :items="[[
+                  {
+                    label: t('common.duplicate'),
+                    icon: 'i-lucide-copy',
+                    onSelect: () => openDuplicate(doc)
+                  },
+                  {
+                    label: t('common.move'),
+                    icon: 'i-lucide-folder-input',
+                    onSelect: () => openMove(doc)
+                  },
+                  { type: 'separator' },
                   {
                     label: t('common.delete'),
                     icon: 'i-lucide-trash-2',
                     color: 'error',
                     onSelect: () => openDeleteConfirm(doc)
                   }
-                ]"
+                ]]"
               >
                 <UButton
                   icon="i-lucide-more-vertical"
@@ -249,6 +290,23 @@ function formatDate(value: string | number | Date) {
         :doc-id="deleteTarget.docId"
         :title="deleteTarget.title"
         @deleted="onDocDeleted"
+      />
+
+      <DocumentDuplicateDocModal
+        v-if="duplicateTarget"
+        v-model:open="showDuplicateModal"
+        :doc-id="duplicateTarget.docId"
+        :source-title="duplicateTarget.title"
+        @duplicated="onDocDuplicated"
+      />
+
+      <DocumentMoveWorkspaceModal
+        v-if="moveTarget"
+        v-model:open="showMoveModal"
+        :doc-id="moveTarget.docId"
+        :doc-title="moveTarget.title"
+        :current-workspace-id="moveTarget.workspaceId"
+        @moved="onDocMoved"
       />
 
       <!-- Create workspace modal -->

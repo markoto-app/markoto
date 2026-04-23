@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   // Optional workspace assignment. Honoured for logged-in admins and editors
   // of the target workspace. Viewers cannot create docs (no write grant in
   // the workspace). Anonymous callers can never file into a workspace.
-  // Set at creation only; moves between workspaces aren't supported yet.
+  // Post-creation moves live at PATCH /api/docs/:docId/workspace.
   const body: { workspaceId?: unknown } = await readBody(event).catch(() => ({}))
   let workspaceId: string | null = null
   if (typeof body?.workspaceId === 'string' && body.workspaceId.length > 0) {

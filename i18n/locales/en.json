@@ -125,6 +125,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
+    "duplicate": "Duplicate",
+    "move": "Move to workspace…",
     "confirm": "Confirm",
     "close": "Close",
     "loading": "Loading..."
@@ -141,6 +143,8 @@
       "import": "Import…",
       "export": "Export",
       "print": "Print / Save as PDF",
+      "duplicate": "Duplicate…",
+      "move": "Move to workspace…",
       "delete": "Delete document…"
     },
     "edit": {
@@ -391,6 +395,28 @@
     "description": "Hover to choose the size, then click to insert.",
     "tocTitle": "Table of Contents"
   },
+  "duplicate": {
+    "title": "Duplicate document",
+    "description": "Creates an independent copy with the same content, theme, and access settings. Images are copied too.",
+    "titleLabel": "New document title",
+    "titlePlaceholder": "Copy of …",
+    "confirm": "Duplicate",
+    "success": "Document duplicated",
+    "successDesc": "\"{title}\" is ready.",
+    "failed": "Could not duplicate"
+  },
+  "move": {
+    "title": "Move document",
+    "description": "Pick where this document should live. Members of the target workspace will get access according to their role.",
+    "document": "Document",
+    "personal": "Personal (no workspace)",
+    "noWorkspaces": "You don't have any workspaces where you can file documents.",
+    "confirm": "Move",
+    "success": "Document moved",
+    "successToPersonal": "\"{title}\" is now a personal document.",
+    "successToWorkspace": "\"{title}\" is now in {workspace}.",
+    "failed": "Could not move document"
+  },
   "delete": {
     "title": "Delete Document",
     "warning": "This will permanently delete the document and all its content. This action cannot be undone.",
@@ -462,6 +488,28 @@
       "leave": "Leave workspace",
       "leaveFailed": "Could not leave workspace",
       "leftToast": "You have left the workspace"
+    }
+  },
+  "knowledge": {
+    "title": "Knowledge base",
+    "description": "Upload PDFs, Word docs, slides, or spreadsheets. The AI assistant can search them when writing in any document in this workspace.",
+    "upload": "Upload files",
+    "empty": "No knowledge files yet.",
+    "emptyDescription": "Upload a PDF or Word doc so the AI has context when you write.",
+    "emptyDescriptionViewer": "Nothing has been uploaded to this workspace yet.",
+    "uploadQueued": "Upload queued",
+    "uploadFailed": "Upload failed",
+    "deleted": "File removed",
+    "deleteFailed": "Could not remove file",
+    "loadFailed": "Could not load knowledge base",
+    "deleteTitle": "Remove from knowledge base",
+    "deleteWarning": "The AI will no longer be able to reference this file when writing. Anything already written using it stays in your documents.",
+    "deleteConfirm": "Remove file",
+    "chunks": "chunks",
+    "status": {
+      "processing": "Processing",
+      "ready": "Ready",
+      "failed": "Failed"
     }
   }
 }

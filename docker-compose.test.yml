@@ -12,7 +12,9 @@
 
 services:
   postgres-test:
-    image: postgres:16-alpine@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416
+    # pgvector/pgvector:pg16 mirrors dev/prod so schema migrations
+    # (which enable the vector extension) apply cleanly here too.
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       - POSTGRES_USER=ypad

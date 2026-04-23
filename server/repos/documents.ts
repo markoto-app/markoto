@@ -182,6 +182,56 @@ export async function updateDocMeta(docId: string, update: MetaUpdate): Promise<
 }
 
 /**
+ * Assign or clear the parent workspace. `null` detaches the doc.
+ * No authz — callers gate via canManageDoc (source) + target-workspace
+ * role. Bumps lastActive so the move surfaces in "recent" lists.
+ */
+export async function moveDocToWorkspace(docId: string, workspaceId: string | null): Promise<void> {
+  const db = useDatabase()
+  const result = await db
+    .update(documents)
+    .set({ workspaceId, lastActive: new Date() })
+    .where(eq(documents.docId, docId))
+    .returning({ docId: documents.docId })
+  if (result.length === 0) {
+    throw new NotFoundError('Document')
+  }
+}
+
+/**
+ * Insert a new documents row as a copy of the source. Every field the
+ * caller cares about is passed explicitly so this doesn't silently
+ * inherit future schema additions — new columns must be audited for
+ * duplication safety.
+ */
+export interface DuplicateDocInput {
+  newDocId: string
+  ownerId: number | null
+  workspaceId: string | null
+  title: string
+  accessMode: AccessMode
+  passwordHash: string | null
+  theme: DocTheme | null
+  wordCount: number | null
+  sizeBytes: number | null
+}
+
+export async function insertDuplicateDoc(input: DuplicateDocInput): Promise<void> {
+  const db = useDatabase()
+  await db.insert(documents).values({
+    docId: input.newDocId,
+    ownerId: input.ownerId,
+    workspaceId: input.workspaceId,
+    title: input.title,
+    accessMode: input.accessMode,
+    passwordHash: input.passwordHash,
+    theme: input.theme,
+    wordCount: input.wordCount ?? 0,
+    sizeBytes: input.sizeBytes ?? 0
+  })
+}
+
+/**
  * Set the password hash AND flip accessMode to password-protected in one
  * write. Called by /password action=set.
  */
@@ -229,6 +279,8 @@ export async function deleteDocRow(docId: string): Promise<void> {
 
 /**
  * List docs owned by a user — powers the "My Documents" dashboard.
+ * workspaceId is included so the Move modal can preselect the doc's
+ * current workspace.
  */
 export async function listOwnedByUser(userId: number): Promise<Array<{
   docId: string
@@ -237,6 +289,7 @@ export async function listOwnedByUser(userId: number): Promise<Array<{
   wordCount: number | null
   sizeBytes: number | null
   lastActive: Date
+  workspaceId: string | null
 }>> {
   const db = useDatabase()
   return db
@@ -246,7 +299,8 @@ export async function listOwnedByUser(userId: number): Promise<Array<{
       accessMode: documents.accessMode,
       wordCount: documents.wordCount,
       sizeBytes: documents.sizeBytes,
-      lastActive: documents.lastActive
+      lastActive: documents.lastActive,
+      workspaceId: documents.workspaceId
     })
     .from(documents)
     .where(eq(documents.ownerId, userId))

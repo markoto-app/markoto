@@ -22,6 +22,14 @@ export interface AiSession {
    * principal, so activity logs stay human-readable.
    */
   initiatorUserId: number
+  /**
+   * Workspace the parent document belongs to, if any. Resolved once at
+   * session-open time so the knowledge-base tools don't re-query every
+   * call. `null` for standalone / anonymous docs — those sessions don't
+   * have `search_knowledge` / `get_knowledge_file` exposed in the first
+   * place, but the field is read defensively inside the handlers too.
+   */
+  workspaceId: string | null
   updateStatus(phase: AiStatusPhase, message?: string): void
   destroy(): Promise<void>
 }
@@ -37,6 +45,8 @@ export interface SessionMeta {
   // its own UI surface — should NOT animate the bottom bar). Defaults
   // to 'prompt' when omitted.
   kind?: 'prompt' | 'rewrite'
+  /** Workspace the doc belongs to, forwarded to the resulting AiSession. */
+  workspaceId?: string | null
 }
 
 /**
@@ -186,6 +196,7 @@ export async function createAiSession(
     sessionId: meta.sessionId,
     docId,
     initiatorUserId: meta.initiatorUserId,
+    workspaceId: meta.workspaceId ?? null,
     updateStatus,
     destroy
   }

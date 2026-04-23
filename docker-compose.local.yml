@@ -55,7 +55,9 @@ services:
       - web
 
   postgres:
-    image: postgres:16-alpine@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416
+    # pgvector/pgvector is Postgres 16 with the `vector` extension
+    # pre-built — see docker-compose.dev.yml for the swap rationale.
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       - POSTGRES_USER=ypad

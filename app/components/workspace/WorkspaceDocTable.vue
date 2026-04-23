@@ -1,10 +1,10 @@
 <script setup lang="ts">
-// Doc list for the workspace detail page. Delete action is gated by role:
-//   - Admin: can delete any doc in the workspace.
-//   - Editor: can delete only docs they created (isOwner).
-//   - Viewer: cannot delete anything.
-// The gating here is purely UX (hide the menu); the server enforces the
-// same rule on DELETE /api/docs/:docId (canManageDoc).
+// Doc list for the workspace detail page. Action gates:
+//   - Duplicate: any editor or admin (anyone with edit access).
+//   - Move: admin OR doc owner (canManage equivalent).
+//   - Delete: admin OR doc owner (canManage equivalent).
+// Viewers see no action menu. The server re-checks all three rules on
+// the underlying endpoints — the UI gates are UX-only.
 
 export interface WorkspaceDoc {
   docId: string
@@ -20,16 +20,52 @@ export interface WorkspaceDoc {
 const props = defineProps<{
   documents: WorkspaceDoc[]
   myRole: 'admin' | 'editor' | 'viewer'
+  // Current workspaceId — threaded into row actions so the Move modal
+  // can preselect "this workspace" and the server's no-op check trips.
+  workspaceId: string
 }>()
 
 const emit = defineEmits<{
+  duplicateRequested: [doc: WorkspaceDoc]
+  moveRequested: [doc: WorkspaceDoc]
   deleteRequested: [doc: WorkspaceDoc]
 }>()
 
 const { t } = useI18n()
 
-function canDelete(doc: WorkspaceDoc) {
+function canEdit() {
+  return props.myRole === 'admin' || props.myRole === 'editor'
+}
+function canManage(doc: WorkspaceDoc) {
   return props.myRole === 'admin' || doc.isOwner
+}
+function hasAnyAction(doc: WorkspaceDoc) {
+  return canEdit() || canManage(doc)
+}
+
+function rowMenu(doc: WorkspaceDoc) {
+  const items: Array<Record<string, unknown>> = []
+  if (canEdit()) {
+    items.push({
+      label: t('common.duplicate'),
+      icon: 'i-lucide-copy',
+      onSelect: () => emit('duplicateRequested', doc)
+    })
+  }
+  if (canManage(doc)) {
+    items.push({
+      label: t('common.move'),
+      icon: 'i-lucide-folder-input',
+      onSelect: () => emit('moveRequested', doc)
+    })
+    items.push({
+      label: t('common.delete'),
+      icon: 'i-lucide-trash-2',
+      color: 'error',
+      onSelect: () => emit('deleteRequested', doc)
+    })
+  }
+  return [items]
 }
 
 function formatDate(value: string | number | Date) {
@@ -55,7 +91,10 @@ function formatDate(value: string | number | Date) {
         :to="`/d/${doc.docId}`"
         class="flex items-center gap-3 min-w-0 flex-1"
       >
-        <UIcon name="i-lucide-file-text" class="size-5 text-muted shrink-0" />
+        <UIcon
+          name="i-lucide-file-text"
+          class="size-5 text-muted shrink-0"
+        />
         <div class="min-w-0">
           <p class="text-sm font-medium truncate">{{ doc.title || t('workspace.untitledDoc') }}</p>
           <p class="text-xs text-muted">{{ formatDate(doc.lastActive) }}</p>
@@ -70,21 +109,14 @@ function formatDate(value: string | number | Date) {
         >
           {{
             doc.accessMode === 'open-edit' ? t('share.openEdit')
-              : doc.accessMode === 'open-view' ? t('share.openView')
-                : t('share.passwordProtected')
+            : doc.accessMode === 'open-view' ? t('share.openView')
+              : t('share.passwordProtected')
           }}
         </UBadge>
         <span class="text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
         <UDropdownMenu
-          v-if="canDelete(doc)"
-          :items="[
-            {
-              label: t('common.delete'),
-              icon: 'i-lucide-trash-2',
-              color: 'error',
-              onSelect: () => emit('deleteRequested', doc)
-            }
-          ]"
+          v-if="hasAnyAction(doc)"
+          :items="rowMenu(doc)"
         >
           <UButton
             icon="i-lucide-more-vertical"

@@ -38,10 +38,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const decision = decideTokenAccess(doc, actor)
+  // workspaceId + workspaceRole leak to the client so the editor UI can
+  // decide which File-menu items to render without a second round-trip.
+  // They don't widen access — the client already knows it has the doc
+  // open, and the server re-checks every mutation anyway.
   const responseBase = {
     readOnly: decision.readOnly,
     accessMode: row.accessMode,
     ownerId: row.ownerId,
+    workspaceId: row.workspaceId,
+    workspaceRole: row.workspaceRole,
     theme: row.theme
   }
 

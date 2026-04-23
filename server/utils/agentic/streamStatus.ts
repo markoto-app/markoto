@@ -122,6 +122,17 @@ export function describeToolInput(name: string, args: Record<string, unknown>): 
       const preview = display.length > 50 ? display.slice(0, 50) + '…' : display
       return `Fetching ${preview}`
     }
+    case 'search_knowledge': {
+      const q = typeof args.query === 'string' ? args.query.trim() : ''
+      if (!q) return 'Searching workspace knowledge…'
+      const preview = q.length > 60 ? q.slice(0, 60) + '…' : q
+      return `Searching workspace knowledge for "${preview}"`
+    }
+    case 'get_knowledge_file': {
+      const id = typeof args.knowledge_id === 'string' ? args.knowledge_id : ''
+      if (!id) return 'Opening a workspace knowledge file…'
+      return `Opening workspace knowledge file ${id}`
+    }
     default:
       // Unknown function — don't spam awareness; the loop will still fire
       // an "unsupported tool" error response back to the model.
