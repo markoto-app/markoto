@@ -218,7 +218,18 @@
     "micTranscribing": "Transcribing…",
     "micInaudibleTitle": "Didn't catch that",
     "micInaudibleDescription": "The recording was silent or unintelligible. Try again.",
-    "micErrorTitle": "Voice input failed"
+    "micErrorTitle": "Voice input failed",
+    "dictateStart": "Start dictation",
+    "dictateStop": "Stop dictation",
+    "dictateConnecting": "Connecting…",
+    "dictateListening": "Listening…",
+    "dictateBudgetExhaustedTitle": "Daily dictation budget reached",
+    "dictateBudgetExhaustedDescription": "You've used this day's dictation minutes. Try again tomorrow.",
+    "dictateSessionCapTitle": "Dictation session ended",
+    "dictateSessionCapDescription": "Sessions cap at 10 minutes. Start a new one to continue.",
+    "dictateIdleTitle": "Dictation paused",
+    "dictateIdleDescription": "No audio for 30 seconds — dictation stopped.",
+    "dictateErrorTitle": "Dictation failed"
   },
   "theme": {
     "title": "Document theme",

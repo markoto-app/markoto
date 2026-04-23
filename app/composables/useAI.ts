@@ -1,4 +1,16 @@
 import type { Awareness } from 'y-protocols/awareness'
+import type { EditorSelectionSnapshot } from '~~/shared/types/editorSelection'
+
+export interface UseAIOptions {
+  /**
+   * Optional callback invoked at prompt-submit time to snapshot the
+   * user's current caret or selection. The result is shipped alongside
+   * the prompt so the server can wrap it with `<editor_state>` context
+   * for the model. Called lazily (only when a prompt is actually sent),
+   * so a costly read is fine.
+   */
+  getEditorSelection?: () => EditorSelectionSnapshot
+}
 
 export interface AiSessionInfo {
   sessionId: string
@@ -19,7 +31,7 @@ export interface AiSessionInfo {
  * Y.js awareness. Gemini joins the document as its own client, so every tab
  * naturally sees the AI "user" appear, change status, and leave.
  */
-export function useAI(docId: Ref<string>, awareness: Awareness) {
+export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOptions = {}) {
   const { loggedIn, user: sessionUser } = useUserSession()
 
   // All active AI sessions on this doc, derived from awareness entries that
@@ -89,10 +101,14 @@ export function useAI(docId: Ref<string>, awareness: Awareness) {
     if (!trimmed || submitting.value || mySessionId.value) return false
     submitting.value = true
     lastError.value = null
+    // Snapshot selection at the moment of send. Safe to call even when
+    // the getter is unset — we just skip the field and the server
+    // treats the request as `kind: 'none'`.
+    const editorSelection = options.getEditorSelection?.()
     try {
       await $fetch<{ sessionId: string }>('/api/ai/prompt', {
         method: 'POST',
-        body: { docId: docId.value, prompt: trimmed }
+        body: { docId: docId.value, prompt: trimmed, editorSelection }
       })
       return true
     } catch (e) {

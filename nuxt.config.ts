@@ -59,6 +59,7 @@ export default defineNuxtConfig({
       rewriteModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
       imageModel: 'gemini-3.1-flash-image-preview', // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool. Alternatives: `gemini-2.5-flash-image` (stable, older), `gemini-3-pro-image-preview` (higher quality, slower, more expensive).
       transcribeModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_TRANSCRIBE_MODEL — one-shot voice-to-text for the AI prompt bar. Cheapest tier is plenty; transcription is an easy task for any Gemini model.
+      liveModel: 'gemini-3.1-flash-live-preview', // NUXT_GOOGLE_LIVE_MODEL — bidirectional Live API for live dictation into the editor. Check `curl "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY" | python3 -c "import json,sys;[print(m['name']) for m in json.load(sys.stdin)['models'] if 'bidiGenerateContent' in m.get('supportedGenerationMethods',[])]"` to find `bidiGenerateContent`-capable models. The 2.5-native-audio variants also work, but 3.1-flash-live-preview is the current canonical Live API model.
       // NUXT_GOOGLE_THINKING_BUDGET — tokens the model may spend on internal
       // reasoning before producing its response. 0 disables thinking entirely
       // (cheapest + fastest, recommended default). Typical "minimal" budgets
@@ -97,6 +98,12 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
   nitro: {
+    // Native WebSocket route support for `/api/ai/dictate` (voice
+    // dictation relay to Gemini Live API). Other WS traffic (Hocuspocus
+    // Y.js sync) flows through its own standalone container, not Nitro.
+    experimental: {
+      websocket: true
+    },
     // Match the runtime: the Dockerfile's runtime stage runs the output with
     // `bun`, and packages like lib0 have `bun` conditional exports that
     // resolve to different files than the `node` condition. The default

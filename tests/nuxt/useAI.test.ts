@@ -1,0 +1,787 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
+import { ref, nextTick } from 'vue'
+import * as Y from 'yjs'
+import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
+import type { H3Event } from 'h3'
+import { setResponseStatus } from 'h3'
+
+// Signal to a registerEndpoint handler: respond with a non-2xx status
+// and the given body. We can't `throw createError({...})` from the
+// handler — h3's error path serializes the body as `{ statusCode,
+// statusMessage, data }`, which doesn't match the shape the composable
+// reads (`err.data.message`, where `err.data` IS the response body).
+// Using setResponseStatus + return gives us full control over the body.
+class ApiError {
+  constructor(public statusCode: number, public body: unknown) {}
+}
+async function respond(event: H3Event, out: unknown): Promise<unknown> {
+  if (out instanceof ApiError) {
+    setResponseStatus(event, out.statusCode)
+    return out.body
+  }
+  return out
+}
+
+// Composable under test: awareness-driven AI session state + prompt /
+// rewrite / abort actions. See app/composables/useAI.ts.
+//
+// External dependencies:
+//   - `useUserSession()` (auto-import) — mocked via mockNuxtImport, the
+//     hoisted `sessionState` lets tests toggle loggedIn + user id.
+//   - `$fetch('/api/ai/prompt' | '/rewrite' | '/abort')` — stubbed with
+//     registerEndpoint. Each endpoint reads from a per-test config
+//     holder so tests can rewrite responses without re-registering.
+//
+// Awareness simulation: we build a real Awareness on a real Y.Doc for
+// the composable to consume, and spawn secondary Awareness objects
+// representing "other clients" (the AI, a human collaborator). Their
+// state is pushed into the composable's awareness via
+// encodeAwarenessUpdate / applyAwarenessUpdate — the same path
+// Hocuspocus would use in prod.
+
+const { sessionState } = vi.hoisted(() => ({
+  sessionState: {
+    loggedIn: { value: false },
+    user: { value: null as { id: number, name?: string } | null }
+  }
+}))
+
+mockNuxtImport('useUserSession', () => {
+  return () => ({
+    loggedIn: sessionState.loggedIn,
+    user: sessionState.user
+  })
+})
+
+interface EndpointConfig<Req = unknown, Res = unknown> {
+  // Handlers return either the response body, an `ApiError` (which
+  // becomes a non-2xx response with the given body), or a Promise
+  // thereof. We deliberately don't `throw` — h3's error pipeline wraps
+  // the body in a shape the composable doesn't expect.
+  handler: (body: Req, event: H3Event) => Res | ApiError | Promise<Res | ApiError>
+}
+const promptEp: EndpointConfig = {
+  handler: () => ({ sessionId: 'srv-sid-1' })
+}
+const rewriteEp: EndpointConfig = {
+  handler: () => ({ ok: true })
+}
+const abortEp: EndpointConfig = {
+  handler: () => ({ ok: true })
+}
+const promptCalls: Array<{ body: unknown }> = []
+const rewriteCalls: Array<{ body: unknown }> = []
+const abortCalls: Array<{ body: unknown }> = []
+
+async function readBody(event: H3Event): Promise<unknown> {
+  const { readBody } = await import('h3')
+  return readBody(event)
+}
+
+registerEndpoint('/api/ai/prompt', {
+  method: 'POST',
+  handler: async (event) => {
+    const body = await readBody(event)
+    promptCalls.push({ body })
+    const out = await promptEp.handler(body, event)
+    return respond(event, out)
+  }
+})
+registerEndpoint('/api/ai/rewrite', {
+  method: 'POST',
+  handler: async (event) => {
+    const body = await readBody(event)
+    rewriteCalls.push({ body })
+    const out = await rewriteEp.handler(body, event)
+    return respond(event, out)
+  }
+})
+registerEndpoint('/api/ai/abort', {
+  method: 'POST',
+  handler: async (event) => {
+    const body = await readBody(event)
+    abortCalls.push({ body })
+    const out = await abortEp.handler(body, event)
+    return respond(event, out)
+  }
+})
+
+import { useAI } from '~/composables/useAI'
+
+// — awareness helpers ——————————————————————————————————————————————
+//
+// Build a side Awareness, stamp a full state, encode-and-apply it onto
+// `target`. The composable's `refresh()` then sees the state as if a
+// remote client published it. We keep each "remote client" on its own
+// Y.Doc so the client IDs don't collide.
+
+interface AiClientState {
+  isAI?: boolean
+  sessionId: string
+  initiatorName: string
+  initiatorUserId: number
+  prompt?: string
+  kind?: 'prompt' | 'rewrite'
+  phase?: string
+  message?: string | null
+}
+
+function pushAiClient(target: Awareness, state: AiClientState): Awareness {
+  const peer = new Awareness(new Y.Doc())
+  peer.setLocalStateField('user', { isAI: state.isAI !== false, name: state.initiatorName })
+  peer.setLocalStateField('aiSession', {
+    sessionId: state.sessionId,
+    initiatorName: state.initiatorName,
+    initiatorUserId: state.initiatorUserId,
+    prompt: state.prompt ?? '',
+    kind: state.kind ?? 'prompt'
+  })
+  if (state.phase !== undefined || state.message !== undefined) {
+    peer.setLocalStateField('aiStatus', {
+      phase: state.phase ?? 'thinking',
+      message: state.message ?? null
+    })
+  }
+  const update = encodeAwarenessUpdate(peer, [peer.clientID])
+  applyAwarenessUpdate(target, update, 'test')
+  return peer
+}
+
+function updateAiStatus(
+  peer: Awareness,
+  target: Awareness,
+  status: { phase: string, message?: string | null }
+) {
+  peer.setLocalStateField('aiStatus', {
+    phase: status.phase,
+    message: status.message ?? null
+  })
+  const update = encodeAwarenessUpdate(peer, [peer.clientID])
+  applyAwarenessUpdate(target, update, 'test')
+}
+
+function removePeer(peer: Awareness, target: Awareness) {
+  // Mark the peer offline by clearing its state + re-encoding. The
+  // composable's `refresh()` sees the entry disappear.
+  peer.setLocalState(null)
+  const update = encodeAwarenessUpdate(peer, [peer.clientID])
+  applyAwarenessUpdate(target, update, 'test')
+}
+
+function pushHumanClient(target: Awareness, user: { id: number, name: string }): Awareness {
+  const peer = new Awareness(new Y.Doc())
+  peer.setLocalStateField('user', { id: user.id, name: user.name })
+  const update = encodeAwarenessUpdate(peer, [peer.clientID])
+  applyAwarenessUpdate(target, update, 'test')
+  return peer
+}
+
+function makeCtx() {
+  const ydoc = new Y.Doc()
+  const awareness = new Awareness(ydoc)
+  // Drop the default local state so our "own" client doesn't get
+  // accidentally flagged as AI or collide with pushed peers.
+  awareness.setLocalState(null)
+  const docId = ref('doc-abc')
+  return { ydoc, awareness, docId }
+}
+
+beforeEach(() => {
+  sessionState.loggedIn.value = false
+  sessionState.user.value = null
+  promptEp.handler = () => ({ sessionId: 'srv-sid-1' })
+  rewriteEp.handler = () => ({ ok: true })
+  abortEp.handler = () => ({ ok: true })
+  promptCalls.length = 0
+  rewriteCalls.length = 0
+  abortCalls.length = 0
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// activeSessions — derived from awareness entries
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useAI — activeSessions derivation', () => {
+  it('returns an empty list when no awareness entries exist', () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value).toEqual([])
+  })
+
+  it('ignores non-AI clients (human collaborators)', () => {
+    const { awareness, docId } = makeCtx()
+    pushHumanClient(awareness, { id: 1, name: 'Alice' })
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value).toEqual([])
+  })
+
+  it('ignores AI-flagged entries without an aiSession block', () => {
+    // Defensive: malformed awareness state shouldn't crash the UI.
+    const { awareness, docId } = makeCtx()
+    const peer = new Awareness(new Y.Doc())
+    peer.setLocalStateField('user', { isAI: true, name: 'Ghost' })
+    applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'test')
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value).toEqual([])
+  })
+
+  it('ignores AI entries whose aiSession is missing sessionId', () => {
+    const { awareness, docId } = makeCtx()
+    const peer = new Awareness(new Y.Doc())
+    peer.setLocalStateField('user', { isAI: true, name: 'Ghost' })
+    peer.setLocalStateField('aiSession', { initiatorName: 'Bob', initiatorUserId: 7 })
+    applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'test')
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value).toEqual([])
+  })
+
+  it('surfaces a well-formed AI session with all fields populated', () => {
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, {
+      sessionId: 'sid-1',
+      initiatorName: 'Alice',
+      initiatorUserId: 1,
+      prompt: 'Draft a haiku',
+      kind: 'prompt',
+      phase: 'tool',
+      message: 'Searching the web'
+    })
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value).toHaveLength(1)
+    expect(ai.activeSessions.value[0]).toEqual({
+      sessionId: 'sid-1',
+      initiatorName: 'Alice',
+      initiatorUserId: 1,
+      prompt: 'Draft a haiku',
+      kind: 'prompt',
+      phase: 'tool',
+      message: 'Searching the web'
+    })
+  })
+
+  it('defaults kind to "prompt" when the value is missing or unknown', () => {
+    // Older sessions may not carry a `kind`. Anything not exactly
+    // "rewrite" collapses to "prompt" to preserve legacy behavior.
+    const { awareness, docId } = makeCtx()
+    const peer = new Awareness(new Y.Doc())
+    peer.setLocalStateField('user', { isAI: true, name: 'Bot' })
+    peer.setLocalStateField('aiSession', {
+      sessionId: 'sid-1',
+      initiatorName: 'Alice',
+      initiatorUserId: 1
+      // no kind
+    })
+    applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'test')
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value[0]?.kind).toBe('prompt')
+  })
+
+  it('preserves kind="rewrite" when explicitly set', () => {
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, {
+      sessionId: 'sid-r', initiatorName: 'A', initiatorUserId: 1,
+      kind: 'rewrite'
+    })
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value[0]?.kind).toBe('rewrite')
+  })
+
+  it('defaults phase to "thinking" when aiStatus is absent', () => {
+    const { awareness, docId } = makeCtx()
+    // Omit status entirely.
+    const peer = new Awareness(new Y.Doc())
+    peer.setLocalStateField('user', { isAI: true })
+    peer.setLocalStateField('aiSession', {
+      sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1, kind: 'prompt'
+    })
+    applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'test')
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value[0]?.phase).toBe('thinking')
+    expect(ai.activeSessions.value[0]?.message).toBe(null)
+  })
+
+  it('reacts to awareness changes (new client appears → list updates)', async () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value).toHaveLength(0)
+
+    pushAiClient(awareness, {
+      sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1
+    })
+    // Awareness 'change' events fire synchronously — refresh() already ran.
+    expect(ai.activeSessions.value).toHaveLength(1)
+  })
+
+  it('reacts to awareness changes (client disappears → list shrinks)', () => {
+    const { awareness, docId } = makeCtx()
+    const peer = pushAiClient(awareness, {
+      sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1
+    })
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value).toHaveLength(1)
+
+    removePeer(peer, awareness)
+    expect(ai.activeSessions.value).toHaveLength(0)
+  })
+
+  it('surfaces multiple concurrent AI sessions', () => {
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, { sessionId: 'sid-a', initiatorName: 'Alice', initiatorUserId: 1 })
+    pushAiClient(awareness, { sessionId: 'sid-b', initiatorName: 'Bob', initiatorUserId: 2 })
+    const ai = useAI(docId, awareness)
+    const ids = ai.activeSessions.value.map(s => s.sessionId).sort()
+    expect(ids).toEqual(['sid-a', 'sid-b'])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// mySession / mySessionId / otherSessions — user-relative derivations
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useAI — mySession / otherSessions', () => {
+  it('mySessionId is null when anonymous (loggedIn false)', () => {
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, { sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1 })
+    const ai = useAI(docId, awareness)
+    expect(ai.mySessionId.value).toBe(null)
+    expect(ai.mySession.value).toBe(null)
+  })
+
+  it('mySessionId is null when logged-in but no AI matches my user id', () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 99 }
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, { sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1 })
+    const ai = useAI(docId, awareness)
+    expect(ai.mySessionId.value).toBe(null)
+    expect(ai.mySession.value).toBe(null)
+  })
+
+  it('mySessionId matches the AI whose initiatorUserId equals my id', () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    pushAiClient(awareness, { sessionId: 'sid-theirs', initiatorName: 'Other', initiatorUserId: 8 })
+    const ai = useAI(docId, awareness)
+    expect(ai.mySessionId.value).toBe('sid-mine')
+    expect(ai.mySession.value?.sessionId).toBe('sid-mine')
+  })
+
+  it('otherSessions excludes my session when logged in', () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    pushAiClient(awareness, { sessionId: 'sid-theirs', initiatorName: 'Other', initiatorUserId: 8 })
+    const ai = useAI(docId, awareness)
+    const ids = ai.otherSessions.value.map(s => s.sessionId).sort()
+    expect(ids).toEqual(['sid-theirs'])
+  })
+
+  it('otherSessions equals activeSessions when anonymous', () => {
+    // Anonymous viewers see everyone's AI work — there is no "mine".
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, { sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1 })
+    pushAiClient(awareness, { sessionId: 'sid-2', initiatorName: 'B', initiatorUserId: 2 })
+    const ai = useAI(docId, awareness)
+    expect(ai.otherSessions.value.length).toBe(ai.activeSessions.value.length)
+    expect(ai.otherSessions.value.length).toBe(2)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// watch(mySession, ...) — error capture into lastError
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useAI — error capture via watch(mySession)', () => {
+  it('captures session.message when phase transitions to error', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    const peer = pushAiClient(awareness, {
+      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7,
+      phase: 'thinking'
+    })
+    const ai = useAI(docId, awareness)
+    expect(ai.lastError.value).toBe(null)
+
+    updateAiStatus(peer, awareness, { phase: 'error', message: 'Rate limit exceeded' })
+    await nextTick()
+
+    expect(ai.lastError.value).toBe('Rate limit exceeded')
+  })
+
+  it('strips a leading "Error: " prefix from the captured message', () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    const peer = pushAiClient(awareness, {
+      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7,
+      phase: 'thinking'
+    })
+    const ai = useAI(docId, awareness)
+
+    updateAiStatus(peer, awareness, { phase: 'error', message: 'Error: Something broke' })
+    return nextTick().then(() => {
+      expect(ai.lastError.value).toBe('Something broke')
+    })
+  })
+
+  it('lastError survives past the session cleanup so the toast still fires', async () => {
+    // Awareness clears the session ~2.5s after error — the composable
+    // must latch the message before cleanup so the toast has a string.
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    const peer = pushAiClient(awareness, {
+      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7,
+      phase: 'thinking'
+    })
+    const ai = useAI(docId, awareness)
+
+    updateAiStatus(peer, awareness, { phase: 'error', message: 'Kaboom' })
+    await nextTick()
+    expect(ai.lastError.value).toBe('Kaboom')
+
+    removePeer(peer, awareness)
+    await nextTick()
+    // The peer is gone but the error is still surfaced to the UI.
+    expect(ai.mySession.value).toBe(null)
+    expect(ai.lastError.value).toBe('Kaboom')
+  })
+
+  it('does NOT set lastError when phase is done (normal completion)', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    const peer = pushAiClient(awareness, {
+      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7,
+      phase: 'thinking'
+    })
+    const ai = useAI(docId, awareness)
+
+    updateAiStatus(peer, awareness, { phase: 'done', message: 'All set' })
+    await nextTick()
+    expect(ai.lastError.value).toBe(null)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// prompt() — submit gating + POST shape + error capture
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useAI — prompt()', () => {
+  it('rejects an empty string without hitting the server', async () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    const ok = await ai.prompt('')
+    expect(ok).toBe(false)
+    expect(promptCalls).toHaveLength(0)
+  })
+
+  it('rejects a whitespace-only string without hitting the server', async () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    const ok = await ai.prompt('   \n\t  ')
+    expect(ok).toBe(false)
+    expect(promptCalls).toHaveLength(0)
+  })
+
+  it('trims the prompt before sending', async () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.prompt('   hello there   ')
+    expect(promptCalls).toHaveLength(1)
+    expect((promptCalls[0]!.body as { prompt: string }).prompt).toBe('hello there')
+  })
+
+  it('forwards docId.value in the POST body (not the ref itself)', async () => {
+    const { awareness, docId } = makeCtx()
+    docId.value = 'doc-xyz'
+    const ai = useAI(docId, awareness)
+    await ai.prompt('hi')
+    expect((promptCalls[0]!.body as { docId: string }).docId).toBe('doc-xyz')
+  })
+
+  it('returns true on success', async () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    const ok = await ai.prompt('hi')
+    expect(ok).toBe(true)
+  })
+
+  it('returns false and captures data.message from a server error', async () => {
+    promptEp.handler = () => new ApiError(500, { message: 'Service unavailable' })
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    const ok = await ai.prompt('hi')
+    expect(ok).toBe(false)
+    expect(ai.lastError.value).toBe('Service unavailable')
+  })
+
+  it('falls back to "Request failed" when the error carries no message payload', async () => {
+    // 5xx with an empty-object body — composable's catch sees
+    // err.data.message undefined and err.message undefined (or a
+    // generic $fetch string).
+    promptEp.handler = () => new ApiError(500, {})
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.prompt('hi')
+    // Either "Request failed" (no fields) or $fetch's generic message
+    // fallback ("[POST] …: 500 …") — the composable picks `.message`
+    // over "Request failed" when present. What we really care about is
+    // that SOME non-null string lands; the exact fallback string
+    // depends on $fetch's error format across versions.
+    expect(ai.lastError.value).toBeTruthy()
+  })
+
+  it('blocks a second submit while the first is in flight', async () => {
+    // Gate the handler on a resolvable promise so the first call stays
+    // pending while we fire the second.
+    let resolveGate: () => void = () => {}
+    const gate = new Promise<void>((res) => { resolveGate = res })
+    promptEp.handler = async () => { await gate; return { sessionId: 'done' } }
+
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    const firstPromise = ai.prompt('one')
+    // `submitting` flips true synchronously in the composable, so the
+    // second call bails on the guard before fetching — `second === false`
+    // without waiting for any HTTP round trip.
+    expect(ai.submitting.value).toBe(true)
+    const second = await ai.prompt('two')
+    expect(second).toBe(false)
+
+    resolveGate()
+    await firstPromise
+    // Only ONE request ever reached the server.
+    expect(promptCalls).toHaveLength(1)
+  })
+
+  it('blocks a new prompt while I already have a live session on the doc', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, {
+      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7
+    })
+    const ai = useAI(docId, awareness)
+    // The per-user-per-doc cap is enforced server-side, but the client
+    // shouldn't even try — it skips when mySessionId is already set.
+    const ok = await ai.prompt('new request')
+    expect(ok).toBe(false)
+    expect(promptCalls).toHaveLength(0)
+  })
+
+  it('clears lastError on a fresh submit', async () => {
+    promptEp.handler = () => new ApiError(500, { message: 'first failure' })
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.prompt('one')
+    expect(ai.lastError.value).toBe('first failure')
+
+    promptEp.handler = () => ({ sessionId: 'ok' })
+    await ai.prompt('two')
+    expect(ai.lastError.value).toBe(null)
+  })
+
+  it('calls getEditorSelection exactly once per prompt and forwards the snapshot', async () => {
+    const snapshot = { kind: 'selection', from: 3, to: 7, text: 'foo' } as const
+    const getter = vi.fn(() => snapshot)
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness, { getEditorSelection: getter })
+    await ai.prompt('hi')
+    expect(getter).toHaveBeenCalledTimes(1)
+    expect((promptCalls[0]!.body as { editorSelection: unknown }).editorSelection)
+      .toEqual(snapshot)
+  })
+
+  it('omits editorSelection when no getter is provided', async () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.prompt('hi')
+    const body = promptCalls[0]!.body as Record<string, unknown>
+    // `editorSelection` is sent as `undefined`; JSON.stringify drops it, so
+    // the received body simply doesn't include it.
+    expect(body).not.toHaveProperty('editorSelection')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// rewrite() — POST shape + error capture
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useAI — rewrite()', () => {
+  const baseArgs = {
+    selectionText: 'hello world',
+    selectionFrom: 10,
+    selectionTo: 21,
+    instruction: 'make it formal'
+  }
+
+  it('forwards all rewrite fields under the right keys (prompt ← instruction)', async () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    const ok = await ai.rewrite({ ...baseArgs, relFrom: 'rel-from', relTo: 'rel-to' })
+    expect(ok).toBe(true)
+    expect(rewriteCalls).toHaveLength(1)
+    expect(rewriteCalls[0]!.body).toEqual({
+      docId: 'doc-abc',
+      selectionText: 'hello world',
+      selectionFrom: 10,
+      selectionTo: 21,
+      relFrom: 'rel-from',
+      relTo: 'rel-to',
+      prompt: 'make it formal'
+    })
+  })
+
+  it('forwards the current docId.value (not a stale ref)', async () => {
+    const { awareness, docId } = makeCtx()
+    docId.value = 'doc-zzz'
+    const ai = useAI(docId, awareness)
+    await ai.rewrite(baseArgs)
+    expect((rewriteCalls[0]!.body as { docId: string }).docId).toBe('doc-zzz')
+  })
+
+  it('returns false and captures server error message', async () => {
+    rewriteEp.handler = () => new ApiError(409, { message: 'Selection moved' })
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    const ok = await ai.rewrite(baseArgs)
+    expect(ok).toBe(false)
+    expect(ai.lastError.value).toBe('Selection moved')
+  })
+
+  it('falls back to a non-null error when the server body has no message', async () => {
+    rewriteEp.handler = () => new ApiError(500, {})
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.rewrite(baseArgs)
+    expect(ai.lastError.value).toBeTruthy()
+  })
+
+  it('clears lastError at the start of a rewrite call (before the fetch)', async () => {
+    // Seed an error, then trigger a successful rewrite, then assert
+    // lastError is null. (Verifies the sequencing — failing rewrite
+    // would re-set; we want the clear-on-entry to be the cause.)
+    promptEp.handler = () => new ApiError(500, { message: 'prev' })
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.prompt('anything') // seeds lastError
+    expect(ai.lastError.value).toBe('prev')
+
+    await ai.rewrite(baseArgs)
+    expect(ai.lastError.value).toBe(null)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// abort() — 404 race tolerance + no-session guard
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useAI — abort()', () => {
+  it('is a no-op when there is no active session of mine', async () => {
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.abort()
+    expect(abortCalls).toHaveLength(0)
+  })
+
+  it('POSTs /api/ai/abort with my sessionId when I have one', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, {
+      sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7
+    })
+    const ai = useAI(docId, awareness)
+
+    await ai.abort()
+    expect(abortCalls).toHaveLength(1)
+    expect(abortCalls[0]!.body).toEqual({ sessionId: 'sid-mine' })
+  })
+
+  it('swallows a 404 (session already finished between read and send)', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, {
+      sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7
+    })
+    abortEp.handler = () => new ApiError(404, { message: 'Session not found' })
+    const ai = useAI(docId, awareness)
+
+    await ai.abort()
+    expect(ai.lastError.value).toBe(null)
+  })
+
+  it('captures non-404 errors in lastError', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, {
+      sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7
+    })
+    abortEp.handler = () => new ApiError(403, { message: 'Not the initiator' })
+    const ai = useAI(docId, awareness)
+
+    await ai.abort()
+    expect(ai.lastError.value).toBe('Not the initiator')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// clearLastError + submitting + general state contract
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useAI — clearLastError + submitting', () => {
+  it('clearLastError resets lastError to null', async () => {
+    promptEp.handler = () => new ApiError(500, { message: 'boom' })
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.prompt('hi')
+    expect(ai.lastError.value).toBe('boom')
+
+    ai.clearLastError()
+    expect(ai.lastError.value).toBe(null)
+  })
+
+  it('submitting flips true during in-flight prompt and back to false afterwards', async () => {
+    // Gate the handler on a promise we resolve from the test. We can't
+    // capture `release` inside the handler factory and call it from the
+    // test body — $fetch is async, so the handler hasn't run yet when
+    // the test reaches `release()`. Instead, the handler awaits a
+    // module-scoped gate that the test can resolve at any point.
+    let gate: Promise<void>
+    let resolveGate: () => void = () => {}
+    gate = new Promise<void>((res) => { resolveGate = res })
+    promptEp.handler = async () => {
+      await gate
+      return { sessionId: 'ok' }
+    }
+
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    expect(ai.submitting.value).toBe(false)
+
+    const pending = ai.prompt('hello')
+    // `submitting` flips true synchronously in the composable (before
+    // the first `await`), so we can read it immediately.
+    expect(ai.submitting.value).toBe(true)
+
+    resolveGate()
+    await pending
+    expect(ai.submitting.value).toBe(false)
+  })
+
+  it('submitting returns to false even when the server errors', async () => {
+    promptEp.handler = () => new ApiError(500, { message: 'boom' })
+    const { awareness, docId } = makeCtx()
+    const ai = useAI(docId, awareness)
+    await ai.prompt('hi')
+    expect(ai.submitting.value).toBe(false)
+  })
+})

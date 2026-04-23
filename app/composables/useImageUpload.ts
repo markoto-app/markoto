@@ -1,11 +1,10 @@
 import type { EditorView } from '@codemirror/view'
+import { nanoid } from 'nanoid'
 
 interface UploadResult {
   fileId: string
   url: string
 }
-
-let uploadCounter = 0
 
 export function useImageUpload(docId: string) {
   const uploading = ref(false)
@@ -66,9 +65,10 @@ export function useImageUpload(docId: string) {
 
   async function uploadAndInsert(file: File, view: EditorView) {
     const alt = file.name.replace(/\.[^.]+$/, '')
-    // Use a unique ID so concurrent uploads don't collide
-    const uploadId = `upload-${++uploadCounter}-${Date.now()}`
-    const placeholder = `![Uploading ${alt}...](${uploadId})`
+    // Unique per-call so concurrent uploads don't collide on the
+    // post-upload `indexOf` lookup. Any collision-free token works;
+    // nanoid is already a project dep.
+    const placeholder = `![Uploading ${alt}...](upload-${nanoid()})`
 
     const pos = view.state.selection.main.head
     view.dispatch({

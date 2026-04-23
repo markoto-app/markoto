@@ -3,6 +3,11 @@ import { Awareness } from 'y-protocols/awareness'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
+import {
+  readThemeFromYmeta,
+  canEditTheme as computeCanEditTheme,
+  docSizeWarning as computeDocSizeWarning
+} from '~~/shared/utils/documentHelpers'
 
 /**
  * Thin orchestrator that wires together the three sub-composables a document
@@ -96,14 +101,10 @@ export function useDocument(docId: string) {
   // hardcoded `defaultTheme` until either (a) the /token round-trip seeds
   // the DB-stored theme, or (b) sync delivers what's currently on the doc.
   const _themeRef = ref<DocTheme>(defaultTheme)
-  function readTheme(): DocTheme {
-    const raw = ymeta.get('theme')
-    return isValidTheme(raw) ? raw : defaultTheme
-  }
   ymeta.observe(() => {
     _titleRef.value = (ymeta.get('title') as string) || 'Untitled'
     if (ymeta.get('_deleted')) isDeleted.value = true
-    _themeRef.value = readTheme()
+    _themeRef.value = readThemeFromYmeta(ymeta)
   })
 
   const title = computed({
@@ -125,11 +126,11 @@ export function useDocument(docId: string) {
    * That's covered below — we skip the persist call when there's no
    * owner and let Y.js sync be the source of truth.
    */
-  const canEditTheme = computed(() => {
-    if (tokenState.isReadOnly.value) return false
-    if (tokenState.isOwner.value) return true
-    return !tokenState.hasOwner.value
-  })
+  const canEditTheme = computed(() => computeCanEditTheme({
+    isReadOnly: tokenState.isReadOnly.value,
+    isOwner: tokenState.isOwner.value,
+    hasOwner: tokenState.hasOwner.value
+  }))
 
   /**
    * Pushes into ymeta (broadcasts live to all clients) and, for owned
@@ -175,12 +176,7 @@ export function useDocument(docId: string) {
 
   const theme = readonly(_themeRef)
 
-  const docSizeWarning = computed(() => {
-    const mb = sync.docSizeBytes.value / (1024 * 1024)
-    if (mb > 8) return 'critical'
-    if (mb > 5) return 'warning'
-    return null
-  })
+  const docSizeWarning = computed(() => computeDocSizeWarning(sync.docSizeBytes.value))
 
   // Initial connect. Password-protected / private docs must NOT connect until
   // the user unlocks them, otherwise content syncs before the gate appears.

@@ -69,8 +69,11 @@ function draw() {
     const barHeight = Math.max(minBar, amp * h)
     const x = i * (barWidth + gapPx)
     const y = (h - barHeight) / 2
-    // Rounded bars — roundRect is broadly available in Chrome/Safari/FF ≥2023.
-    const r = Math.min(barWidth / 2, 2 * dpr)
+    // Pill-shaped bars — radius = half the bar width rounds both top AND
+    // bottom to a semicircle, which reads as a clean voice waveform
+    // rather than a chunky equalizer. Clamped to barHeight/2 so very
+    // short bars stay proportional instead of overflowing their row.
+    const r = Math.min(barWidth / 2, barHeight / 2)
     if (typeof ctx.roundRect === 'function') {
       ctx.beginPath()
       ctx.roundRect(x, y, barWidth, barHeight, r)

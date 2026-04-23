@@ -18,7 +18,13 @@ export default defineEventHandler(async (event) => {
     { path: /^\/api\/docs\/[^/]+\/password$/, methods: ['POST'] }, // Password verify is public; set/remove check ownership inside
     { path: /^\/api\/docs\/[^/]+\/activity$/, methods: ['GET'] }, // Endpoint-gated — public on open-edit/open-view, members-only on private/password-protected
     { path: /^\/api\/import$/, methods: ['POST'] }, // Import is public — user uploads their own file for conversion
-    { path: /^\/api\/internal\//, methods: ['POST'] } // Internal endpoints auth via shared secret header (not user session)
+    { path: /^\/api\/internal\//, methods: ['POST'] }, // Internal endpoints auth via shared secret header (not user session)
+    // Live-dictation WS relay: authenticated via short-lived JWT in
+    // the upgrade URL (`?token=`), not the session cookie — crossws
+    // gives the upgrade hook a raw Request, not an H3Event, so reading
+    // the sealed cookie there isn't feasible. The JWT itself is minted
+    // by POST /api/ai/dictate/token which still requires a session.
+    { path: /^\/api\/ai\/dictate$/, methods: ['GET'] }
   ]
 
   const isPublic = publicRoutes.some(

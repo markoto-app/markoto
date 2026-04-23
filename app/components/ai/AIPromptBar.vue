@@ -162,22 +162,21 @@ const isActive = computed(() => {
        the doc body — analogous to Android's on-screen Google AI bar. -->
   <div
     class="ai-prompt-bar pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center px-4"
-    :class="{ 'is-focused': focused, 'is-active': isActive, 'is-recording': isRecording }"
+    :class="{ 'is-focused': focused, 'is-active': isActive }"
   >
     <div
       class="ai-prompt-bar__shell pointer-events-auto w-full max-w-3xl flex items-center gap-0 rounded-full pl-5 pr-0 py-0 backdrop-blur-md transition-all"
     >
       <!-- Leading sparkle / live status icon. Bigger than a typical
            toolbar icon to anchor the bar visually; pulses gently while
-           a session is in flight. During recording the icon swaps to a
-           pulsing mic so the bar communicates "listening" at a glance. -->
+           a session is in flight. Stays the same through voice states —
+           we want the prompt bar to feel the same regardless of whether
+           the user is typing or speaking; only the middle slot changes. -->
       <UIcon
-        :name="isRecording ? 'i-lucide-mic' : (isActive ? statusIcon : 'i-lucide-sparkles')"
+        :name="isActive ? statusIcon : 'i-lucide-sparkles'"
         :class="[
-          'size-5 shrink-0 mr-3 transition-colors',
-          isRecording
-            ? 'text-red-500 animate-pulse'
-            : isActive ? 'text-blue-500 animate-pulse' : 'text-blue-500'
+          'size-5 shrink-0 mr-3 transition-colors text-blue-500',
+          isActive ? 'animate-pulse' : ''
         ]"
       />
 
@@ -186,9 +185,13 @@ const isActive = computed(() => {
            `v-if`/`v-else-if` chain so only one mounts at a time — keeps
            a11y simple and prevents the input from absorbing keystrokes
            while the user is mid-recording. -->
+      <!-- `py-2` (not `py-3` like the text input) compensates for the
+           32px waveform canvas: 8 + 32 + 8 = 48 px matches the text
+           input's 12 + 24 (line-height) + 12 exactly, so the pill
+           doesn't grow vertically when the user toggles the mic. -->
       <div
         v-if="isRecording"
-        class="flex-1 min-w-0 flex items-center gap-3 py-3"
+        class="flex-1 min-w-0 flex items-center gap-3 py-2"
       >
         <WaveformVisualizer
           :levels="voice.levels.value"
@@ -245,10 +248,13 @@ const isActive = computed(() => {
         </UBadge>
       </UTooltip>
 
-      <!-- Cancel — only during voice capture. `ghost` variant so it reads
-           as a tertiary action relative to the primary stop/send button. -->
+      <!-- Secondary slot: mic button (idle) or cancel × (during voice
+           capture). Same physical location keeps the bar visually stable —
+           only the icon + meaning flip. During transcription the slot
+           still holds the cancel × so the user has an escape hatch
+           while the spinner spins on the primary slot. -->
       <UButton
-        v-if="isRecording || isTranscribing"
+        v-if="!isActive && (isRecording || isTranscribing)"
         color="neutral"
         variant="ghost"
         icon="i-lucide-x"
@@ -256,29 +262,42 @@ const isActive = computed(() => {
         class="ai-prompt-bar__secondary"
         @click="voice.cancel()"
       />
-
-      <!-- Mic — visible unless an AI session is already active. During
-           recording it swaps to a stop-square icon and turns red, same
-           affordance as the AI-session stop button so users learn one
-           "tap to stop" pattern. -->
       <UButton
-        v-if="!isActive && !isTranscribing"
-        :color="isRecording ? 'error' : 'neutral'"
-        :variant="isRecording ? 'solid' : 'ghost'"
-        :icon="isRecording ? 'i-lucide-square' : 'i-lucide-mic'"
+        v-else-if="!isActive"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-mic"
         :disabled="micDisabled"
-        :aria-label="isRecording ? t('ai.micStop') : t('ai.micStart')"
-        :class="isRecording ? 'ai-prompt-bar__action' : 'ai-prompt-bar__secondary'"
+        :aria-label="t('ai.micStart')"
+        class="ai-prompt-bar__secondary"
         @click="voice.toggle()"
       />
 
-      <!-- Send — perfect circle, hugs the input height edge to edge.
-           Icon-only (label kept on `aria-label` so screen readers still
-           get it); the action is unambiguous from the icon and a text
-           label would break the round shape. Hidden while recording /
-           transcribing — the mic-stop button takes the primary slot. -->
+      <!-- Primary slot: send. Stays blue across idle + recording so the
+           bar doesn't visually shift when the user starts speaking —
+           only the input area swaps to the waveform. Clicking during
+           recording stops the mic, which triggers transcription + auto-
+           submit via the composable's state machine. During transcription
+           the button shows a spinner and is disabled; cancel (×) in the
+           secondary slot is the only escape. -->
       <UButton
-        v-if="!isActive && !voiceActive"
+        v-if="!isActive && isRecording"
+        color="info"
+        icon="i-lucide-send"
+        :aria-label="t('ai.micStop')"
+        class="ai-prompt-bar__action"
+        @click="voice.stop()"
+      />
+      <UButton
+        v-else-if="!isActive && isTranscribing"
+        color="info"
+        :loading="true"
+        :disabled="true"
+        :aria-label="t('ai.micTranscribing')"
+        class="ai-prompt-bar__action"
+      />
+      <UButton
+        v-else-if="!isActive"
         color="info"
         icon="i-lucide-send"
         :loading="ai.submitting.value"
@@ -288,22 +307,12 @@ const isActive = computed(() => {
         @click="onSubmit"
       />
       <UButton
-        v-else-if="isActive"
+        v-else
         color="error"
         icon="i-lucide-square"
         :aria-label="t('ai.stop')"
         class="ai-prompt-bar__action"
         @click="onStop"
-      />
-      <!-- Transcribing: spinner in the primary slot. No click handler —
-           cancel (× button above) is the escape hatch. -->
-      <UButton
-        v-else-if="isTranscribing"
-        color="info"
-        :loading="true"
-        :disabled="true"
-        :aria-label="t('ai.micTranscribing')"
-        class="ai-prompt-bar__action"
       />
     </div>
   </div>
@@ -347,19 +356,6 @@ const isActive = computed(() => {
     0 0 0 2.5px color-mix(in srgb, var(--color-blue-500, #3b82f6) 70%, transparent),
     0 20px 56px -12px color-mix(in srgb, var(--color-blue-500, #3b82f6) 50%, transparent),
     0 8px 24px -8px rgb(0 0 0 / 0.18);
-}
-
-/*
- * Recording treatment — a calm red ring so "listening" reads instantly
- * without fighting the rainbow animation used for active AI sessions.
- * Stays static (not animated) so the waveform bars are the only moving
- * element in the bar; two simultaneous animations look frantic.
- */
-.ai-prompt-bar.is-recording .ai-prompt-bar__shell {
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--color-red-500, #ef4444) 70%, transparent),
-    0 18px 48px -12px color-mix(in srgb, var(--color-red-500, #ef4444) 45%, transparent),
-    0 8px 24px -8px rgb(0 0 0 / 0.2);
 }
 
 /*

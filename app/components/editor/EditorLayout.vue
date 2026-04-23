@@ -33,10 +33,95 @@ const {
   setAccessMode
 } = useDocument(props.docId)
 
+// Track whether the user has ever focused the editor in this session.
+// Consumed by the AI prompt path so "cursor not in the doc at all" can
+// be distinguished from "cursor placed somewhere" — CM6's selection
+// sits at position 0 by default, so without this flag every freshly-
+// opened doc would falsely report "cursor on line 1".
+const editorEverFocused = ref(false)
+
 // AI collaborator — joins doc as its own Y.js client; edits broadcast naturally.
-const ai = useAI(computed(() => props.docId), awareness)
+// `getEditorSelection` snapshots the current caret / selection at submit
+// time so the model can resolve "here" / "this" / "at my cursor" to a
+// concrete location instead of guessing or re-reading the doc.
+const ai = useAI(computed(() => props.docId), awareness, {
+  getEditorSelection: () => snapshotEditorSelection(editorView.value, editorEverFocused.value)
+})
 
 const toast = useToast()
+
+// Live voice dictation. Mic button in the toolbar opens a WebSocket
+// relay to Gemini's Live API; interim transcripts show as ghost text
+// at the caret (see `dictationExtensions.ts`) and finalized phrases
+// commit to Y.js at the current caret. Awareness field `dictation`
+// advertises the "🎙 listening" state to collaborators.
+const dictation = useVoiceDictation({
+  docId: computed(() => props.docId),
+  onPartial: (text) => {
+    const view = editorView.value
+    if (!view) return
+    view.dispatch({ effects: setDictationInterim.of(text) })
+  },
+  onFinal: (text) => {
+    const view = editorView.value
+    if (!view) return
+    // Clear the ghost first — committing is instant enough that we
+    // want the transition interim→final to feel seamless.
+    view.dispatch({ effects: setDictationInterim.of('') })
+    const uid = (sessionUser.value?.id as number | undefined) ?? null
+    commitDictationFinal(view, ydoc, ytext, uid, text)
+  },
+  onError: (message) => {
+    toast.add({
+      title: t('ai.dictateErrorTitle'),
+      description: message,
+      icon: 'i-lucide-alert-circle',
+      color: 'error'
+    })
+  },
+  onBudgetExhausted: () => {
+    toast.add({
+      title: t('ai.dictateBudgetExhaustedTitle'),
+      description: t('ai.dictateBudgetExhaustedDescription'),
+      icon: 'i-lucide-battery-low',
+      color: 'warning'
+    })
+  },
+  onSessionCap: () => {
+    toast.add({
+      title: t('ai.dictateSessionCapTitle'),
+      description: t('ai.dictateSessionCapDescription'),
+      icon: 'i-lucide-clock',
+      color: 'info'
+    })
+  },
+  onIdleTimeout: () => {
+    toast.add({
+      title: t('ai.dictateIdleTitle'),
+      description: t('ai.dictateIdleDescription'),
+      icon: 'i-lucide-pause',
+      color: 'info'
+    })
+  }
+})
+
+// Broadcast dictation state to collaborators via awareness. Mirrors
+// how `aiStatus` rides on awareness — cheap channel, auto-cleans on
+// disconnect.
+watch(() => dictation.state.value, (s) => {
+  const active = s === 'recording' || s === 'connecting' || s === 'requesting-permission'
+  awareness.setLocalStateField('dictation', active ? { active: true } : null)
+})
+
+// Clear the ghost on state transitions away from recording — the
+// composable owns the socket, but only this layer knows about the
+// editor view.
+watch(() => dictation.state.value, (s) => {
+  if (s === 'idle' || s === 'error') {
+    const view = editorView.value
+    if (view) view.dispatch({ effects: setDictationInterim.of('') })
+  }
+})
 
 // Share modal state
 const showShareModal = ref(false)
@@ -246,6 +331,26 @@ const editorPaneRef = ref<{ view: EditorView | null } | null>(null)
 const editorView = computed<EditorView | null>(
   () => (editorPaneRef.value?.view ?? null) as EditorView | null
 )
+
+// First-focus tracker: once CM6 mounts, attach a one-shot focus listener
+// to its contentDOM. We use `focus` on contentDOM (not the outer `.cm-editor`
+// wrapper) because CM6 forwards keyboard focus there; that's the event
+// fired when the user clicks anywhere inside the editor surface.
+watch(editorView, (view, prev) => {
+  if (prev && !view) editorEverFocused.value = false // editor remounted — reset
+  if (!view) return
+  if (view.hasFocus) {
+    // Rare but possible if the editor auto-focuses before this watcher
+    // fires (e.g. parent restores focus after a password-gate dismiss).
+    editorEverFocused.value = true
+    return
+  }
+  const handler = () => {
+    editorEverFocused.value = true
+    view.contentDOM.removeEventListener('focus', handler)
+  }
+  view.contentDOM.addEventListener('focus', handler)
+}, { immediate: true })
 
 // Mobile dropdown menu — consolidates view mode, theme, and auth actions
 // to reduce top-bar clutter on small screens.
@@ -616,6 +721,7 @@ const statusIcon = computed(() => {
         :logged-in="loggedIn"
         :right-sidebar="rightSidebar"
         :view-mode="viewMode"
+        :dictation-state="dictation.state.value"
         @open-import="showImportModal = true"
         @open-share="showShareModal = true"
         @open-share-password="openShareAtPassword"
@@ -629,6 +735,7 @@ const statusIcon = computed(() => {
         @redo="redo"
         @open-image-picker="openImagePicker"
         @open-table-picker="tableModalOpen = true"
+        @toggle-dictation="dictation.toggle()"
       />
 
       <!-- Toolbar row.
@@ -647,7 +754,9 @@ const statusIcon = computed(() => {
             :view="editorView"
             :read-only="isReadOnly"
             :doc-id="docId"
+            :dictation-state="dictation.state.value"
             @open-table-picker="tableModalOpen = true"
+            @toggle-dictation="dictation.toggle()"
           />
         </div>
         <div class="flex items-center gap-0.5 px-2 py-1 shrink-0">

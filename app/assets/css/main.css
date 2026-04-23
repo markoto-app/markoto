@@ -29,3 +29,11 @@
 .cm-scroller {
   padding-bottom: 120px;
 }
+
+/* Blinking cursor at the tail of the dictation ghost-text widget.
+   Keyframes live in global CSS because CM6's `EditorView.theme`
+   can't declare @keyframes — the scoped rules attach to the editor's
+   scoped cascade but keyframes are document-level. */
+@keyframes cm-dictation-ghost-blink {
+  to { opacity: 0; }
+}

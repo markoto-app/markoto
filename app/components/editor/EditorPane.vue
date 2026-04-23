@@ -7,6 +7,7 @@ import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirro
 import { yCollab } from 'y-codemirror.next'
 import type { Text as YText, UndoManager } from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
+import { dictationExtensions } from '~/utils/dictationExtensions'
 
 const props = defineProps<{
   ytext: YText
@@ -59,6 +60,22 @@ function buildResponsiveTheme(mobile: boolean) {
       opacity: '0.9',
       fontFamily: 'system-ui, sans-serif',
       fontWeight: '500'
+    },
+    // Dictation ghost text. Muted + italic so it reads as
+    // "provisional" rather than committed text; the trailing
+    // blinking dot is a pseudo-element driven by the global
+    // `cm-dictation-ghost-blink` keyframes in main.css.
+    '.cm-dictation-ghost': {
+      opacity: '0.55',
+      fontStyle: 'italic',
+      pointerEvents: 'none',
+      userSelect: 'none',
+      color: 'var(--ui-text-muted)'
+    },
+    '.cm-dictation-ghost::after': {
+      content: '"▍"',
+      marginLeft: '2px',
+      animation: 'cm-dictation-ghost-blink 1.1s steps(2, end) infinite'
     }
   })
 }
@@ -81,7 +98,10 @@ onMounted(() => {
     responsiveThemeCompartment.of(buildResponsiveTheme(isMobile.value)),
     editableCompartment.of(EditorView.editable.of(!props.readOnly)),
     readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
-    yCollab(props.ytext, props.awareness, { undoManager: props.undoManager })
+    yCollab(props.ytext, props.awareness, { undoManager: props.undoManager }),
+    // Dictation ghost-text decoration. No-op when dictation isn't
+    // active (state field starts empty). See `dictationExtensions.ts`.
+    ...dictationExtensions
   ]
 
   view.value = new EditorView({

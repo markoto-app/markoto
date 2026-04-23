@@ -8,6 +8,13 @@ const props = defineProps<{
   view: EditorView | null
   readOnly: boolean
   docId: string
+  /**
+   * Current dictation state, hoisted from the parent's
+   * `useVoiceDictation`. 'idle' = the button shows the mic icon; any
+   * other value means a session is in-flight and the button styles
+   * itself as "active / stop".
+   */
+  dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
 }>()
 
 const emit = defineEmits<{
@@ -15,7 +22,18 @@ const emit = defineEmits<{
   // size-picker modal. Same modal the menu bar's Insert → Table opens —
   // single source of truth for "user wants to insert a table".
   'open-table-picker': []
+  // Dictation toggle is hoisted to the parent so the composable can
+  // own the editor/ydoc/awareness wiring — the toolbar just renders
+  // the button and emits clicks.
+  'toggle-dictation': []
 }>()
+
+const dictationActive = computed(() =>
+  props.dictationState === 'recording' || props.dictationState === 'connecting'
+)
+const dictationBusy = computed(() =>
+  props.dictationState === 'connecting' || props.dictationState === 'requesting-permission'
+)
 
 const { uploadAndInsert, uploading, error: uploadError } = useImageUpload(props.docId)
 const imageInput = ref<HTMLInputElement | null>(null)
@@ -230,6 +248,31 @@ const diagramItems = computed(() => [[
         />
       </UTooltip>
     </UDropdownMenu>
+
+    <!-- Live voice dictation. Sits at the tail of the toolbar so it
+         doesn't shift the position of the muscle-memory formatting
+         buttons. Red solid-variant while recording reads as "active"
+         without being loud; the pulse + animate-ping ring on the
+         icon signal live microphone without needing an explicit
+         badge. Loading spinner covers the permission / connecting
+         states. -->
+    <USeparator
+      orientation="vertical"
+      class="h-5 mx-1"
+    />
+    <UTooltip
+      :text="dictationActive ? t('ai.dictateStop') : t('ai.dictateStart')"
+    >
+      <UButton
+        icon="i-lucide-mic"
+        :color="dictationActive ? 'error' : 'neutral'"
+        :variant="dictationActive ? 'solid' : 'ghost'"
+        :loading="dictationBusy"
+        :class="{ 'animate-pulse': props.dictationState === 'recording' }"
+        size="xs"
+        @click="emit('toggle-dictation')"
+      />
+    </UTooltip>
 
     <input
       ref="imageInput"

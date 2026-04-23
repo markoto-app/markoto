@@ -7,6 +7,7 @@ import { runAgenticLoop } from '../../utils/agentic/runLoop'
 import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
 
 import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
+import { validateEditorSelection, wrapPromptWithEditorState } from '../../utils/agentic/editorStatePrompt'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 
@@ -49,6 +50,45 @@ Guidelines:
 - If the user asks about current events or anything recent, call \`web_search\` first, then apply the edits.
 - Do NOT mention these tools or your internal process in user-facing text. Just do the work.
 
+Editor state (cursor / selection context):
+- Each user message may be wrapped in \`<editor_state>...</editor_state>\` followed by \`<user_request>...</user_request>\`. The editor_state block is GROUND TRUTH for where the user is in the document at the moment they sent the request — always prefer it over guessing or asking.
+
+- \`kind: cursor\` — the user's caret is on line \`cursor_line\` (1-indexed). The block also carries \`line_content\`, which is the full text of that line with the literal marker \`<CURSOR_IS_HERE>\` spliced in at the caret position. Example: if the user's line is \`"This is sentence One. This is sentence Two."\` with the caret right between the two sentences, \`line_content\` will be \`"This is sentence One. <CURSOR_IS_HERE>This is sentence Two."\`. You do NOT have to count characters — just split \`line_content\` on the literal string \`<CURSOR_IS_HERE>\` to get \`before\` (text before the caret) and \`after\` (text after the caret).
+
+  If \`line_truncated: true\` is present, \`line_content\` was windowed around the caret with \`…\` sentinels — call \`view_document({ view_range: [cursor_line, cursor_line] })\` first to see the exact full line before writing a \`replace_text\`.
+
+  CRITICAL insert semantics (read carefully — the obvious choice is wrong):
+  - \`insert_text({ insert_line: N })\` inserts AFTER line N, so the new content appears as a new line BELOW line N — NOT on the cursor's line.
+  - To place block content (a new paragraph, heading, list, code block, etc.) AT the user's cursor — so the inserted block visually appears where they're looking and the previous line N is pushed down — call \`insert_text({ insert_line: N - 1 })\`. When N === 1, use \`insert_line: 0\` (start of file).
+  - Only use \`insert_text({ insert_line: N })\` when the user explicitly wants content placed AFTER their current position: "continue", "next", "after this", "add another one below".
+
+  Routing — pick the tool based on \`before\`, \`after\`, and the shape of the requested edit:
+
+  (a) \`before\` is empty or whitespace-only (caret at start of line):
+      → \`insert_text({ insert_line: N - 1 })\`. The new block lands at line N's position; the previous line N (if any) is pushed down.
+
+  (b) \`after\` is empty or whitespace-only (caret at end of line):
+      → \`insert_text({ insert_line: N })\`. Block lands after line N. Same as appending.
+
+  (c) Both \`before\` and \`after\` are non-empty (caret mid-line, e.g. between two sentences):
+      → \`insert_text\` CANNOT split a line mid-way. Use \`replace_text\`:
+         - \`old_str\` = \`line_content\` with the \`<CURSOR_IS_HERE>\` marker deleted (= the verbatim original line N).
+         - \`new_str\`:
+           * Inline extension ("add 'and pears' here", "insert the word 'really'"): \`before + <new content> + after\`. No line breaks.
+           * Block insert ("add a new paragraph here", "insert a heading at my cursor"): \`before + '\\n\\n' + <new block> + '\\n\\n' + after\`. Splits line N into two lines with the new block between them.
+         - If \`line_truncated: true\`, you only have a window — \`view_document({ view_range: [N, N] })\` to recover the exact full line before building \`old_str\`.
+         - If \`replace_text\` errors with "Found N matches" (the line isn't unique), widen the anchor to include line N-1 and/or line N+1 verbatim, and include them unchanged in \`new_str\`.
+
+  For "what's this section about?", "summarize what I'm looking at": \`view_document({ view_range: [max(1, N-20), N+20] })\` and answer in an edit at the end of the doc or inline as the user asked.
+
+  For "what's this section about?", "summarize what I'm looking at": \`view_document({ view_range: [max(1, N-20), N+20] })\` and answer in an edit at the end of the doc or inline as the user asked.
+
+- \`kind: selection\` with \`selection_lines: X-Y\` and \`selection_text: "..."\` — the user has lines X through Y selected. For requests like "rewrite this", "fix this", "translate this", "make this shorter", "replace this", "change this to...", operate on that exact range via \`replace_text\` (old_str = the full selection, or a unique substring if the selection is very long). If the \`selection_text\` ends with "…" it was truncated — call \`view_document({ view_range: [X, Y] })\` first to see the full region before replacing.
+
+- No \`<editor_state>\` block, or \`kind: none\` — the user's focus is not in the document (they opened the doc but haven't placed a caret, or they've been composing in the prompt bar without engaging the editor). Do NOT assume a location. If the request is about "this" / "here" / "where I am", ask for clarification or \`view_document\` and make a sensible choice based on content. If the request is self-contained ("write an article about X", "change the theme to academic"), proceed normally.
+
+- If the user's request explicitly names a location ("add to the intro", "replace the conclusion", "change line 50"), the explicit location WINS over the editor_state block.
+
 ${MARKDOWN_REFERENCE}`
 
 export default defineEventHandler(async (event) => {
@@ -64,13 +104,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, message: 'Too many AI requests. Try again in a minute.' })
   }
 
-  const body = await readBody(event) as { docId?: string, prompt?: string }
+  const body = await readBody(event) as { docId?: string, prompt?: string, editorSelection?: unknown }
   const docId = body.docId
   const prompt = body.prompt?.trim()
 
   if (!docId || typeof docId !== 'string') throw createError({ statusCode: 400, message: 'Missing docId' })
   if (!prompt) throw createError({ statusCode: 400, message: 'Missing prompt' })
   if (prompt.length > 4000) throw createError({ statusCode: 400, message: 'Prompt too long (max 4000 chars)' })
+
+  // Validate the optional editor-state snapshot. Bad shapes fall back to
+  // `kind: 'none'` rather than hard-erroring — a stale / malformed
+  // snapshot shouldn't block a request that would otherwise succeed.
+  const editorSelection = validateEditorSelection(body.editorSelection)
+  const wrappedPrompt = wrapPromptWithEditorState(prompt, editorSelection)
 
   await requireDocEditAccess(docId, userId)
 
@@ -138,7 +184,7 @@ export default defineEventHandler(async (event) => {
         ai: new GoogleGenAI({ apiKey: config.google.apiKey }),
         model: config.google.model,
         systemPrompt: SYSTEM_PROMPT,
-        initialPrompt: prompt,
+        initialPrompt: wrappedPrompt,
         // Minimal-by-default (0 = thinking disabled) — bumped per env.
         // Coerced: runtime config values may arrive as strings on some
         // Nitro presets even though nuxt.config declares `: 0`.

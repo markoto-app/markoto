@@ -27,6 +27,12 @@ const props = defineProps<{
   rightSidebar: 'activity' | 'theme' | null
   // View mode: 'edit' | 'split' | 'preview'.
   viewMode: 'edit' | 'split' | 'preview'
+  /**
+   * Current live-dictation state, hoisted from the parent so the
+   * Insert menu can toggle the label between "Start" / "Stop
+   * dictation" and show a check mark while active.
+   */
+  dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
 }>()
 
 const emit = defineEmits<{
@@ -46,6 +52,9 @@ const emit = defineEmits<{
   // shared open state. The toolbar's anchored UPopover is the single
   // visual surface; menu just opens it.
   'open-table-picker': []
+  // Dictation toggle — hoisted to the parent where the composable
+  // owns the editor + ydoc + awareness wiring.
+  'toggle-dictation': []
   // Format / insert dispatch on the editor view directly via callbacks
   // rather than emits so we don't have to re-thread every command up
   // through EditorLayout. The view ref is sufficient.
@@ -240,7 +249,21 @@ const insertItems = computed(() => {
       ]
     },
     { label: t('menubar.insert.toc'), icon: 'i-lucide-list-tree', onSelect: () => call(v => insertToc(v)) },
-    { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) }
+    { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) },
+    { type: 'separator' as const },
+    // Live voice dictation — toggles a Gemini Live session that
+    // streams transcribed speech into the doc at the caret. Label
+    // flips so "Stop dictation" is reachable even when the toolbar
+    // mic button isn't visible (e.g. a user who lives in the menu).
+    {
+      label: props.dictationState === 'recording' || props.dictationState === 'connecting'
+        ? t('ai.dictateStop')
+        : t('ai.dictateStart'),
+      icon: 'i-lucide-mic',
+      checked: props.dictationState === 'recording' || props.dictationState === 'connecting',
+      type: 'checkbox' as const,
+      onSelect: () => emit('toggle-dictation')
+    }
   ]]
 })
 

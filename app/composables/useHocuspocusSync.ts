@@ -1,6 +1,15 @@
 import * as Y from 'yjs'
-import { HocuspocusProvider } from '@hocuspocus/provider'
+import { HocuspocusProvider, type HocuspocusProviderConfiguration } from '@hocuspocus/provider'
 import type { Awareness } from 'y-protocols/awareness'
+
+/**
+ * Minimal shape the composable needs from a "provider". Real
+ * HocuspocusProvider satisfies this; tests can inject a fake with the
+ * same surface without having to mock the WebSocket stack.
+ */
+export interface ProviderLike {
+  destroy(): void
+}
 
 /**
  * Owns the Hocuspocus provider lifecycle — WebSocket connect, reconnect,
@@ -33,14 +42,29 @@ export interface HocuspocusSyncOptions {
   onDisconnect?: (everSynced: boolean) => void
   /** Hocuspocus rejected the JWT — caller should flip `isReadOnly`. */
   onAuthFailed?: () => void
+  /**
+   * Factory for the underlying provider. Production passes no value and
+   * gets a real HocuspocusProvider; tests inject a fake that captures the
+   * config (including the lifecycle callbacks) so they can fire
+   * `onConnect` / `onSynced` / `onDisconnect` / `onAuthenticationFailed`
+   * / `onAwarenessChange` on demand without touching WebSockets.
+   */
+  providerFactory?: (config: HocuspocusProviderConfiguration) => ProviderLike
 }
 
 export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
-  const provider = ref<HocuspocusProvider | null>(null)
+  // shallowRef: the provider is an opaque handle (we only care about
+  // identity + its `.destroy()` method). Using `ref` would wrap the
+  // instance in a Proxy and break reference comparisons anywhere
+  // upstream that holds onto `.value`.
+  const provider = shallowRef<ProviderLike | null>(null)
   const status = ref<'connecting' | 'connected' | 'disconnected'>('connecting')
   const synced = ref(false)
   const userCount = ref(1)
   const docSizeBytes = ref(0)
+
+  const makeProvider = opts.providerFactory
+    ?? ((config: HocuspocusProviderConfiguration) => new HocuspocusProvider(config))
 
   function connect() {
     // No sync URL configured (e.g. pure-offline dev): simulate a "synced,
@@ -53,7 +77,7 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
       return
     }
 
-    provider.value = new HocuspocusProvider({
+    provider.value = makeProvider({
       url: opts.syncUrl,
       name: opts.docId,
       document: opts.ydoc,
