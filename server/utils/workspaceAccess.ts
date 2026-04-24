@@ -1,13 +1,11 @@
 import { getDocWithActorRole } from '../repos/documents'
-import { getMemberRole, countAdmins } from '../repos/workspaceMembers'
-import { getWorkspace as repoGetWorkspace } from '../repos/workspaces'
+import { getMemberRole } from '../repos/workspaceMembers'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 
-// Thin authz shortcuts for workspace / document operations. The API here
-// is stable (many endpoints auto-import these via Nitro's `server/utils`
-// auto-import); internals now delegate to the repos in server/repos/.
+// Thin authz shortcuts for workspace / document operations. Delegates to
+// the repos in server/repos/ for the actual queries.
 //
-// Rule of thumb (reiterated from before the repo extraction):
+// Rule of thumb:
 //
 //   - Owner of the doc is always allowed to do anything to it.
 //   - Workspace *admin* gets doc-owner-equivalent rights over every doc
@@ -18,20 +16,6 @@ import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 
 export async function getWorkspaceRole(userId: number, wsId: string): Promise<WorkspaceRole | null> {
   return getMemberRole(wsId, userId)
-}
-
-/**
- * Does this user have the workspace-member "can view" grant for the doc?
- * A member of ANY role (viewer included) bypasses the `private` accessMode
- * gate. The token endpoint still layers its own accessMode logic on top.
- * For non-workspace docs, this is false — fall back to existing rules.
- */
-export async function canViewAsMember(userId: number, docId: string): Promise<boolean> {
-  const ctx = await getDocWithActorRole(docId, userId)
-  if (!ctx) return false
-  if (ctx.ownerId === userId) return true
-  if (ctx.workspaceId && ctx.workspaceRole) return true
-  return false
 }
 
 /**
@@ -108,20 +92,4 @@ export async function getDocAuthz(userId: number, docId: string): Promise<DocAut
 
 export async function canManageWorkspace(userId: number, wsId: string): Promise<boolean> {
   return (await getMemberRole(wsId, userId)) === 'admin'
-}
-
-/**
- * Admin count — used to enforce the "at least one admin" invariant.
- * Called before demoting or removing a member whose role is 'admin'.
- */
-export async function countWorkspaceAdmins(wsId: string): Promise<number> {
-  return countAdmins(wsId)
-}
-
-/**
- * Resolve the workspace row by id. Thin wrapper around the repo call;
- * kept for backward-compat with any caller that auto-imports it.
- */
-export async function getWorkspace(wsId: string) {
-  return repoGetWorkspace(wsId)
 }

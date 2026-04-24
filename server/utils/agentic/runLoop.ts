@@ -225,9 +225,8 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
 
       // Validate args with the Zod schema registered for this tool. Gemini
       // *usually* returns args that match the declared schema, but not
-      // guaranteed — malformed args used to silently coerce via defensive
-      // `String()` / `Number()` casts. Now we surface them cleanly to the
-      // model so it can retry with the correct shape.
+      // guaranteed — surface schema failures cleanly to the model so it
+      // can retry with the correct shape rather than silently coercing.
       const schema = TOOL_SCHEMAS[call.name]
       let validatedArgs: unknown
       if (schema) {

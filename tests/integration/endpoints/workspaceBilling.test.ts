@@ -176,9 +176,9 @@ describe('PATCH /api/workspaces/:wsId/billing', () => {
   })
 
   it('billing state is exposed on GET /api/workspaces/:wsId', async () => {
-    // Phase-4 addition: the workspace GET surfaces {aiEnabled,
-    // billingOwnerId} so the UI can render the toggle state +
-    // "billed to X" banner without a second call.
+    // The workspace GET surfaces {aiEnabled, billingOwnerId} so the
+    // UI can render the toggle state + "billed to X" banner without
+    // a second call.
     const owner = await createUser()
     await setUserPlan(owner.id, 'ultra', new Date(Date.now() + 1e10))
     const ws = await createWorkspace(owner.id)

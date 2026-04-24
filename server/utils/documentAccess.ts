@@ -9,7 +9,7 @@ import { documents } from '../db/schema'
  *
  * Ownership ladder: doc owner → workspace admin/editor (via canEditDoc) →
  * accessMode=open-edit. Viewers and non-members are refused; standalone and
- * anonymous docs take the accessMode fallback (same as before workspaces).
+ * anonymous docs fall through to the accessMode check.
  */
 export async function requireDocEditAccess(docId: string, userId: number): Promise<void> {
   const db = useDatabase()

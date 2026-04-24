@@ -196,16 +196,6 @@ describe('PUT /api/docs/:docId/meta', () => {
       expect(res.status).toBe(400)
     })
 
-    it('accepts snake_case `access_mode` for backwards compat', async () => {
-      // Handler comment says it's supported for one release cycle. Pin
-      // the behaviour so removing it is an explicit change.
-      const owner = await createUser()
-      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
-      const client = await loggedInClient(owner.id)
-      const res = await client.put(`/api/docs/${doc.docId}/meta`, { access_mode: 'open-edit' })
-      expect(res.status).toBe(200)
-      expect((await readDoc(doc.docId)).access_mode).toBe('open-edit')
-    })
   })
 
   describe('wordCount and sizeBytes', () => {

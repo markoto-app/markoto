@@ -41,9 +41,8 @@ const barColor = computed(() => {
 
 // Reset date = `periodEnd`, straight from the server. Matches Stripe's
 // invoice date for paid users (anniversary) and first-of-next-month
-// for free users. We used to derive this as `periodStart + 1 month`
-// which was wrong for different month lengths AND gave paid users a
-// calendar date instead of their anniversary.
+// for free users. Deriving locally as `periodStart + 1 month` would be
+// wrong for different month lengths and would miss paid anniversaries.
 const resetDate = computed(() => {
   const iso = billing.value?.periodEnd
   if (!iso) return ''

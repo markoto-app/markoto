@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
   const body = await readBody(event)
 
-  // Meta changes split by kind: access_mode is a sharing/ownership change
+  // Meta changes split by kind: accessMode is a sharing/ownership change
   // (owner + workspace admin only), everything else is an edit (owner +
   // admin + editor). Viewers cannot change anything.
   const authz = await getDocAuthz(session.user.id, docId)
@@ -15,8 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!authz.canEdit) {
     throw createError({ statusCode: 403, message: 'Not authorized to edit this document' })
   }
-  const accessModeInputEarly = body.accessMode ?? body.access_mode
-  if (accessModeInputEarly !== undefined && !authz.canManage) {
+  if (body.accessMode !== undefined && !authz.canManage) {
     throw createError({ statusCode: 403, message: 'Only owners and admins can change access mode' })
   }
 
@@ -28,14 +27,10 @@ export default defineEventHandler(async (event) => {
     updates.title = body.title.trim()
   }
 
-  // Canonical field name is `accessMode` (camelCase). The older `access_mode`
-  // spelling is accepted for one release cycle so any clients mid-upgrade
-  // don't silently fail — remove after the next deploy window.
-  const accessModeInput = body.accessMode ?? body.access_mode
-  if (accessModeInput !== undefined) {
+  if (body.accessMode !== undefined) {
     const allowed = new Set(['private', 'open-edit', 'open-view', 'password-protected'])
-    if (!allowed.has(accessModeInput)) throw createError({ statusCode: 400, message: 'Invalid access mode' })
-    updates.accessMode = accessModeInput
+    if (!allowed.has(body.accessMode)) throw createError({ statusCode: 400, message: 'Invalid access mode' })
+    updates.accessMode = body.accessMode
   }
 
   if (typeof body.wordCount === 'number') {

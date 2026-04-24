@@ -66,7 +66,7 @@ export default defineNuxtConfig({
       // this set in prod so a compromised Hocuspocus secret doesn't
       // also forge dictation tokens (and vice versa).
       dictateJwtSecret: '', // NUXT_GOOGLE_DICTATE_JWT_SECRET
-      model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call). Also handles selection-scoped rewrites since phase 5 collapsed the dedicated rewrite path into the unified agentic flow.
+      model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call). Also handles selection-scoped rewrites through the unified agentic flow.
       imageModel: 'gemini-3.1-flash-image-preview', // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool. Alternatives: `gemini-2.5-flash-image` (stable, older), `gemini-3-pro-image-preview` (higher quality, slower, more expensive).
       // 0.5K is the cheapest tier ($0.045/image vs $0.067 at 1K).
       // Sharp enough for inline paged.js render + PDF export at normal

@@ -132,9 +132,6 @@ export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUps
   const whereByProviderId = input.provider === 'github'
     ? eq(users.githubId, input.providerUserId)
     : eq(users.googleId, input.providerUserId)
-  const otherProviderColumn = input.provider === 'github'
-    ? users.googleId
-    : users.githubId
 
   return db.transaction(async (tx): Promise<OAuthUpsertResult> => {
     // Branch 1: provider id already on file.
@@ -203,7 +200,6 @@ export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUps
       email: input.email,
       avatarUrl: input.avatarUrl
     }).returning({ id: users.id })
-    void otherProviderColumn // touched for future auditability; ref kept
     return { userId: inserted[0]!.id, outcome: 'inserted' }
   })
 }
