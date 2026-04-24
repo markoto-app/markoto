@@ -234,4 +234,99 @@ describe('verifyDocJwt', () => {
       expect(verifyDocJwt(token, 'doc-1', SECRET, PREVIOUS)).toBe(false)
     })
   })
+
+  // ─── Adversarial: algorithm pinning ────────────────────────────────────
+  //
+  // Finding during review: without `algorithms` pinned in `jwt.verify`,
+  // the library auto-detects from the token header. This means a token
+  // signed with HS384 or HS512 (or any HMAC variant) would be accepted
+  // even though our signer always uses HS256. Not an immediate bug
+  // (our 64-char shared secret is equally strong under any HS*), but
+  // defense-in-depth: pin what we expect, reject anything else.
+  //
+  // The `verifyJwtWithRotation` primitive now passes `algorithms:
+  // ['HS256']` explicitly. These tests pin that enforcement.
+
+  describe('algorithm pinning (HS256-only)', () => {
+    it('accepts HS256-signed tokens (baseline — the signer default)', () => {
+      const token = jwt.sign({ docId: 'doc-1' }, SECRET, { algorithm: 'HS256' })
+      expect(verifyDocJwt(token, 'doc-1', SECRET)).toBe(true)
+    })
+
+    it('REJECTS HS384-signed tokens (defense-in-depth against alg downgrade)', () => {
+      // Before the fix: this token was silently accepted because
+      // jwt.verify auto-detected the alg from the header.
+      const token = jwt.sign({ docId: 'doc-1' }, SECRET, { algorithm: 'HS384' })
+      expect(verifyDocJwt(token, 'doc-1', SECRET)).toBe(false)
+    })
+
+    it('REJECTS HS512-signed tokens (same hardening)', () => {
+      const token = jwt.sign({ docId: 'doc-1' }, SECRET, { algorithm: 'HS512' })
+      expect(verifyDocJwt(token, 'doc-1', SECRET)).toBe(false)
+    })
+
+    it('still enforces HS256-only during rotation (previous secret doesn\'t relax alg)', () => {
+      // A token signed with the previous secret AND a non-HS256 alg
+      // must still be rejected. The pinning applies to both verify
+      // attempts in verifyJwtWithRotation, not just the first.
+      const token = jwt.sign({ docId: 'doc-1' }, PREVIOUS, { algorithm: 'HS512' })
+      expect(verifyDocJwt(token, 'doc-1', SECRET, PREVIOUS)).toBe(false)
+    })
+  })
+
+  // ─── Adversarial: temporal claims ──────────────────────────────────────
+
+  describe('nbf (not-before) claim', () => {
+    it('rejects a token whose nbf is in the future (not yet valid)', () => {
+      // An attacker intercepting a token meant for later use shouldn't
+      // get early access. `jwt.verify` throws NotBeforeError, our catch
+      // returns false.
+      const nbf = Math.floor(Date.now() / 1000) + 3600 // 1h from now
+      const token = jwt.sign({ docId: 'doc-1', nbf }, SECRET)
+      expect(verifyDocJwt(token, 'doc-1', SECRET)).toBe(false)
+    })
+
+    it('accepts a token whose nbf is in the past (already valid)', () => {
+      const nbf = Math.floor(Date.now() / 1000) - 3600 // 1h ago
+      const token = jwt.sign({ docId: 'doc-1', nbf }, SECRET)
+      expect(verifyDocJwt(token, 'doc-1', SECRET)).toBe(true)
+    })
+  })
+})
+
+// ─── Adversarial: extractToken edge cases ─────────────────────────────────
+
+describe('extractToken — adversarial edge cases', () => {
+  it('returns null when the query token is an array (?token=a&token=b)', () => {
+    // h3's getQuery returns an array when a key appears twice. The SUT
+    // checks `typeof q === 'string'` which correctly rejects arrays.
+    // If someone refactored that to `q ?? null` or similar, an attacker
+    // passing `?token=valid&token=evil` could cause downstream code to
+    // pick the wrong element depending on join-order. Belt + braces.
+    const e = fakeEvent({ url: '/?token=first&token=second' })
+    expect(extractToken(e)).toBeNull()
+  })
+
+  it('returns null when the query token is an array with one valid entry', () => {
+    // Same rejection. Even a single "good" entry inside an array form
+    // should be refused — if a client can put one, it can put multiple,
+    // and the precedence is ambiguous.
+    const e = fakeEvent({ url: '/?token[]=valid' })
+    // h3 parses `token[]` as an array key; some parsers emit it as
+    // either { 'token[]': 'valid' } OR { token: ['valid'] }. The SUT
+    // treats both as "not a string" → null.
+    expect(extractToken(e)).toBeNull()
+  })
+
+  it('Authorization header with trailing garbage after the token gets captured verbatim', () => {
+    // Finding (not a bug, pinning behaviour): the regex `^Bearer\s+(.+)$`
+    // is greedy — `Bearer abc def` captures "abc def". That whole
+    // string goes into verifyDocJwt and fails signature check. Safe
+    // (no verification bypass) but a client that accidentally appends
+    // a comma-separated second auth scheme sees a rejected request.
+    // Documented so a future "tighten the regex" change knows what
+    // the current behaviour is.
+    const e = fakeEvent({ headers: { authorization: 'Bearer good.token.here, Basic extra' } })
+    expect(extractToken(e)).toBe('good.token.here, Basic extra')
+  })
 })

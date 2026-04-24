@@ -39,17 +39,29 @@ function safeEqual(a: string, b: string): boolean {
  * secret on signature mismatch. We only swallow `JsonWebTokenError` (the
  * signature-failure path during rotation). Other verify errors — expired,
  * malformed — propagate.
+ *
+ * `algorithms: ['HS256']` is pinned explicitly. Without it, `jwt.verify`
+ * auto-accepts any HMAC variant the token header declares (HS256, HS384,
+ * HS512) — harmless today given our 64-char shared secret, but defense-
+ * in-depth against a future change that (a) introduces an asymmetric
+ * signer (RSA / ECDSA) and accidentally reuses the public key as an HS*
+ * secret somewhere, or (b) some other path that weakens header parsing.
+ * The signer side uses HS256 (jsonwebtoken's default for string secrets),
+ * so pinning HS256-only doesn't reject any legitimate token we issue.
  */
+const ALLOWED_ALGORITHMS = ['HS256'] as const
+
 export function verifyJwtWithRotation<T = Record<string, unknown>>(
   token: string,
   current: string,
   previous?: string | null
 ): T {
+  const opts: jwt.VerifyOptions = { algorithms: ALLOWED_ALGORITHMS as unknown as jwt.Algorithm[] }
   try {
-    return jwt.verify(token, current) as T
+    return jwt.verify(token, current, opts) as T
   } catch (err) {
     if (previous && err instanceof jwt.JsonWebTokenError && !(err instanceof jwt.TokenExpiredError)) {
-      return jwt.verify(token, previous) as T
+      return jwt.verify(token, previous, opts) as T
     }
     throw err
   }
