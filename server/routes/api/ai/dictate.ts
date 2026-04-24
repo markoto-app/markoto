@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import * as Sentry from '@sentry/nuxt'
 import {
   consumeRateLimitBudget,
   tryAcquireSessionLock,
@@ -244,6 +245,9 @@ export default defineEventHandler({
         ctx.stt.write(buf)
       } catch (e) {
         console.error('[dictate] stt write failed:', e)
+        Sentry.captureException(e, {
+          tags: { component: 'dictate', event: 'stt_write_failed' }
+        })
         p.send(JSON.stringify({ type: 'error', message: 'upstream send failed' }))
         p.close(1011, 'stt write failed')
         return
@@ -272,6 +276,9 @@ export default defineEventHandler({
 
     error(peer, err) {
       console.error('[dictate] ws error:', err)
+      Sentry.captureException(err, {
+        tags: { component: 'dictate', event: 'ws_error' }
+      })
       const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
       ctx.closed = true
       try { ctx.stt?.destroy() } catch { /* best-effort */ }
@@ -340,13 +347,24 @@ async function handleAuth(
     ctx.authTimer = undefined
   }
 
-  // Resolve the per-tier daily audio budget. Lapsed paid plans fall
-  // back to free-tier caps defensively — we don't want a lapsed Max
-  // user to still enjoy 60 min/day of dictation until the sweep catches
-  // up. Sticks to the session for stable behaviour across chunks.
-  const billing = await resolveBillingContext(payload.userId, null).catch(() => null)
-  const effectivePlan = billing?.plan ?? 'free'
-  const dailyBudgetMs = TIERS[effectivePlan].dictationMsPerDay
+  // Resolve the per-tier daily audio budget. If resolution fails (DB
+  // blip, missing user row) we close the session rather than silently
+  // downgrade to free — billing is a correctness surface, not a rate
+  // limit, and mis-reporting caps to the user is worse than refusing
+  // to start the session.
+  let billing: Awaited<ReturnType<typeof resolveBillingContext>>
+  try {
+    billing = await resolveBillingContext(payload.userId, null)
+  } catch (e) {
+    console.error('[dictate] billing resolve failed:', e)
+    Sentry.captureException(e, {
+      tags: { component: 'dictate', event: 'billing_resolve_failed', userId: String(payload.userId) }
+    })
+    peer.send(JSON.stringify({ type: 'error', message: 'Could not resolve billing; please retry.' }))
+    peer.close(1011, 'billing resolve failed')
+    return
+  }
+  const dailyBudgetMs = TIERS[billing.plan].dictationMsPerDay
   ctx.dailyBudgetMs = dailyBudgetMs
 
   // Peek the daily budget (cost: 0 debits nothing, returns remaining).
@@ -362,7 +380,7 @@ async function handleAuth(
   // Interaction pre-check (re-using the billing resolution above).
   // Reject at open when remaining < 1 so exhausted users don't get
   // audio-worklet spin-up + mic permission prompt before being cut off.
-  if (billing && billing.interactionsRemaining <= 0) {
+  if (billing.interactionsRemaining <= 0) {
     peer.send(JSON.stringify({
       type: 'budget-exhausted',
       remaining: 0,
@@ -399,6 +417,9 @@ async function handleAuth(
     })
   } catch (e) {
     console.error('[dictate] streamingRecognize init failed:', e)
+    Sentry.captureException(e, {
+      tags: { component: 'dictate', event: 'stt_init_failed' }
+    })
     peer.send(JSON.stringify({ type: 'error', message: 'Could not start Speech-to-Text session' }))
     peer.close(1011, 'stt init failed')
     return
@@ -425,6 +446,9 @@ async function handleAuth(
     // a toast for what was really a clean shutdown.
     if (ctx.sttEnded && /write after end/i.test(msg)) return
     console.error('[dictate] stt error:', err)
+    Sentry.captureException(err, {
+      tags: { component: 'dictate', event: 'stt_stream_error' }
+    })
     if (!ctx.closed) {
       peer.send(JSON.stringify({ type: 'error', message: msg }))
       peer.close(1011, 'stt error')
@@ -481,8 +505,15 @@ async function finaliseDictateBilling(ctx: DictatePeerContext): Promise<void> {
   } catch (e) {
     if (e instanceof BudgetExhausted) {
       console.warn(`[dictate] [billing] over-cap at session close: ${e.message}`)
+      Sentry.captureMessage(`[dictate] over-cap at close: ${e.message}`, {
+        level: 'warning',
+        tags: { component: 'dictate', event: 'billing_overcap_race', userId: String(userId) }
+      })
     } else {
       console.warn('[dictate] [billing] charge failed:', e)
+      Sentry.captureException(e, {
+        tags: { component: 'dictate', event: 'billing_charge_failed', userId: String(userId) }
+      })
     }
   }
 }

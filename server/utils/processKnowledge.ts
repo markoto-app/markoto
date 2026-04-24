@@ -124,6 +124,9 @@ export async function processKnowledge(knowledgeId: string): Promise<void> {
       await s3.send(new DeleteObjectCommand({ Bucket: s3cfg.bucket, Key: row.s3Key }))
     } catch (e) {
       console.warn(`[processKnowledge] ${knowledgeId} original S3 delete failed (keeping row):`, e instanceof Error ? e.message : e)
+      Sentry.captureException(e, {
+        tags: { component: 'processKnowledge', event: 'post_success_s3_delete_failed', knowledgeId }
+      })
     }
 
     console.log(`[processKnowledge] ${knowledgeId} ready: ${chunks.length} chunks, ${tokenCount} tokens`)
@@ -131,7 +134,7 @@ export async function processKnowledge(knowledgeId: string): Promise<void> {
     const msg = e instanceof Error ? e.message : String(e)
     console.error(`[processKnowledge] ${knowledgeId} failed:`, msg)
     Sentry.captureException(e, {
-      tags: { component: 'processKnowledge', knowledgeId }
+      tags: { component: 'processKnowledge', event: 'pipeline_failed', knowledgeId }
     })
     await markFailed(knowledgeId, msg.slice(0, 500))
   }

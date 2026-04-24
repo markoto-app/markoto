@@ -5,7 +5,7 @@
 // Ports are shifted from the dev stack so both can run concurrently:
 //   Nuxt:      3000 (dev)     → 3101 (test)
 //   Postgres:  5432 (dev)     → 5433 (test)
-//   Valkey:    6379 (dev)     → 6380 (test, unused by tests)
+//   Valkey:    6379 (dev)     → 6380 (test)
 //   SeaweedFS: 8333 (dev)     → 8334 (test)
 //   Sync stub: 4001 (dev)     → 4010 (test, in-process Node stub)
 
@@ -31,3 +31,9 @@ export const TEST_SYNC_URL = `http://127.0.0.1:${TEST_SYNC_PORT}`
 export const TEST_JWT_SECRET = 'test-jwt-secret-' + 'x'.repeat(64)
 export const TEST_SESSION_PASSWORD = 'test-session-password-' + 'y'.repeat(64)
 export const TEST_INTERNAL_SECRET = 'test-internal-secret-' + 'z'.repeat(32)
+
+// Valkey-compatible endpoint for the test stack. Rate limits and session
+// locks fall open/closed per `server/utils/rateLimit.ts` semantics when
+// Valkey is unreachable — tests that exercise those paths need a live
+// Valkey. The docker-compose.test.yml stack maps Valkey to localhost:6380.
+export const TEST_VALKEY_URL = 'redis://127.0.0.1:6380/0'

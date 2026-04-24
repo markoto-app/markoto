@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai'
 import { nanoid } from 'nanoid'
+import * as Sentry from '@sentry/nuxt'
 import { findUserNameById } from '../../repos/users'
 import { getDoc } from '../../repos/documents'
 import { getMemberRole } from '../../repos/workspaceMembers'
@@ -294,6 +295,9 @@ export default defineEventHandler(async (event) => {
       }
       if (!isAbort) {
         console.error(`[ai/prompt ${sessionId}] loop failed:`, e)
+        Sentry.captureException(e, {
+          tags: { component: 'aiPrompt', event: 'loop_failed', sessionId, docId }
+        })
       } else {
         console.log(`[ai/prompt ${sessionId}] aborted by user`)
       }

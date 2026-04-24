@@ -59,10 +59,9 @@ export interface RunLoopOptions {
   /**
    * Billing context for the session (who gets charged, what plan
    * caps apply). Drives per-turn and per-sub-call interaction
-   * charges. Absent only in exceptional test paths that bypass the
-   * billing resolver.
+   * charges.
    */
-  billingContext?: BillingContext
+  billingContext: BillingContext
   /** Optional logger — defaults to `console.log` tagged with the session id. */
   logger?: (msg: string) => void
 }
@@ -70,26 +69,22 @@ export interface RunLoopOptions {
 export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
   const {
     ai, model, systemPrompt, initialPrompt,
-    aiSession, sessionId, abortController, setStatus
+    aiSession, sessionId, abortController, setStatus, billingContext
   } = opts
   const log = opts.logger ?? ((msg: string) => console.log(`[ai/prompt ${sessionId}] ${msg}`))
   const thinkingBudget = opts.thinkingBudget ?? 0
   const toolDeclarations = opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS
-  const billingContext = opts.billingContext
 
   // Interaction charging. Every AI call site debits the counter
   // before we incur cost. A mid-loop BudgetExhausted terminates
   // the run with a doc breadcrumb instead of a hard throw — users
   // MUST see an explanation in the doc since there's no chat UI.
   const charge = async (delta: number, reason: string): Promise<void> => {
-    if (!billingContext) return // prompt.post always passes one; defensive guard.
     const { attributedTo, plan, periodStart } = billingContext
     const result = await chargeInteractions({ attributedTo, plan, delta, periodStart, reason })
     log(`[billing] charged ${attributedTo} plan=${plan} delta=${delta} (${reason}; used=${result.used}/${result.used + result.remaining})`)
   }
-  if (billingContext) {
-    log(`[billing] session resolved: ${billingContext.attributedTo} plan=${billingContext.plan} remaining=${billingContext.interactionsRemaining}`)
-  }
+  log(`[billing] session resolved: ${billingContext.attributedTo} plan=${billingContext.plan} remaining=${billingContext.interactionsRemaining}`)
 
   /**
    * Graceful mid-loop exhaustion handler. Writes an upgrade breadcrumb

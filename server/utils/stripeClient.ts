@@ -56,22 +56,17 @@ export function useStripeClient(): Stripe | null {
  * SDK's `{host, port, protocol}` shape. Empty input → no override,
  * SDK defaults to api.stripe.com.
  *
- * Exported for unit testing — has enough branches (empty, malformed,
- * default port, explicit port, http vs https) that a direct test
- * pins them clearly.
+ * Invalid non-empty URLs throw — the secrets-validation plugin catches
+ * them at boot, so reaching this function with a malformed value means
+ * someone bypassed the validator.
  */
 export function buildHostOverride(apiBase: string): Partial<Stripe.StripeConfig> {
   if (!apiBase) return {}
-  try {
-    const u = new URL(apiBase)
-    return {
-      host: u.hostname,
-      port: Number(u.port) || (u.protocol === 'https:' ? 443 : 80),
-      protocol: u.protocol.replace(':', '') as 'http' | 'https'
-    }
-  } catch (e) {
-    console.warn(`[stripe] invalid NUXT_STRIPE_API_BASE="${apiBase}":`, e)
-    return {}
+  const u = new URL(apiBase)
+  return {
+    host: u.hostname,
+    port: Number(u.port) || (u.protocol === 'https:' ? 443 : 80),
+    protocol: u.protocol.replace(':', '') as 'http' | 'https'
   }
 }
 

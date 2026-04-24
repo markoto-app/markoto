@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import * as Sentry from '@sentry/nuxt'
 import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { useStripeClient } from '../../utils/stripeClient'
@@ -95,6 +96,9 @@ export default defineEventHandler(async (event) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Stripe error'
     console.error('[billing/checkout] Stripe rejected the request:', msg)
+    Sentry.captureException(e, {
+      tags: { component: 'billing', event: 'checkout_create_failed', userId: String(session.user.id) }
+    })
     throw createError({ statusCode: 502, message: `Could not start checkout: ${msg}` })
   }
 })

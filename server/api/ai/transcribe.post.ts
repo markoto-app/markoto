@@ -27,6 +27,7 @@
 //     server-side or use the File API. For v1 we reject Safari's
 //     format and tell the user to use Chrome/Firefox. TODO.
 
+import * as Sentry from '@sentry/nuxt'
 import { mimeToEncoding, normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
 
 const ALLOWED_MIME = [
@@ -144,6 +145,9 @@ export default defineEventHandler(async (event) => {
     if (!res.ok) {
       const errText = await res.text().catch(() => '')
       console.error('[transcribe] Cloud STT returned', res.status, errText.slice(0, 500))
+      Sentry.captureMessage('[transcribe] Cloud STT non-2xx', {
+        tags: { component: 'transcribe', event: 'stt_upstream_error', status: String(res.status) }
+      })
       throw createError({ statusCode: 502, message: 'Transcription upstream error' })
     }
 
@@ -187,6 +191,10 @@ export default defineEventHandler(async (event) => {
         // charge). Log and let the response through — we'd rather
         // over-serve by a few seconds than lose the transcript.
         console.warn(`[transcribe] [billing] over-cap after STT succeeded: ${e.message}`)
+        Sentry.captureMessage(`[transcribe] over-cap race: ${e.message}`, {
+          level: 'warning',
+          tags: { component: 'transcribe', event: 'billing_overcap_race' }
+        })
       } else {
         throw e
       }

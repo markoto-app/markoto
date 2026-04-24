@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { buildHostOverride } from '../../server/utils/stripeClient'
 
 // `buildHostOverride` parses the `NUXT_STRIPE_API_BASE` env var into
@@ -36,15 +36,8 @@ describe('buildHostOverride', () => {
     expect(r).toEqual({ host: '127.0.0.1', port: 12111, protocol: 'http' })
   })
 
-  it('returns empty override + warns on malformed URL', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const r = buildHostOverride('not-a-url')
-    expect(r).toEqual({})
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('invalid NUXT_STRIPE_API_BASE'),
-      expect.anything()
-    )
-    warn.mockRestore()
+  it('throws on malformed URL (boot-time validator catches these before we reach here)', () => {
+    expect(() => buildHostOverride('not-a-url')).toThrow()
   })
 
   it('strips trailing colon from protocol', () => {

@@ -1,5 +1,6 @@
 import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
+import { captureExceptionThrottled } from './throttledSentry'
 import { deleteActivityForDoc } from '../repos/activity'
 import { deleteUploadsForDoc } from '../repos/uploads'
 import { deleteDocRow } from '../repos/documents'
@@ -116,6 +117,9 @@ export function notifySyncDeleted(
     signal: AbortSignal.timeout(3000)
   }).catch((e) => {
     console.warn(`[deleteDocument] sync-server notify failed for ${docId}:`, e instanceof Error ? e.message : e)
+    captureExceptionThrottled('documentLifecycle.notify-deleted', e, {
+      tags: { component: 'documentLifecycle', event: 'sync_notify_deleted_failed' }
+    })
   })
   return true
 }

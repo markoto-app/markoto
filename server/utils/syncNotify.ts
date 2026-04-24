@@ -7,6 +7,8 @@
 // doc-delete path and has its own lifecycle notes. Membership-related
 // kicks go through this file.
 
+import { captureExceptionThrottled } from './throttledSentry'
+
 /**
  * Force-close all live Y.js connections for `userId` on the given docs.
  *
@@ -35,5 +37,8 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
     signal: AbortSignal.timeout(3000)
   }).catch((e) => {
     console.warn(`[syncNotify] kick-user for user ${userId} failed:`, e instanceof Error ? e.message : e)
+    captureExceptionThrottled('syncNotify.kick-user', e, {
+      tags: { component: 'syncNotify', event: 'kick_user_failed' }
+    })
   })
 }

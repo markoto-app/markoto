@@ -8,6 +8,7 @@ import type { Part } from '@google/genai'
 import { GoogleGenAI } from '@google/genai'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { nanoid } from 'nanoid'
+import * as Sentry from '@sentry/nuxt'
 import type { AiSession } from './aiClient'
 import type {
   ViewDocumentInput,
@@ -290,6 +291,9 @@ async function handleUpdateTheme(
     // live to everyone. Worst case: a new visitor sees stale theme for
     // the few hundred ms between connect and first Y.js sync.
     console.warn(`[aiToolAdapter] theme DB persist failed for ${session.docId}:`, e)
+    Sentry.captureException(e, {
+      tags: { component: 'aiToolAdapter', event: 'theme_persist_failed', docId: session.docId }
+    })
   }
 
   return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.`)
@@ -321,6 +325,9 @@ async function handleSetTitle(
     // Same tradeoff as theme: Y.js already broadcast the change live;
     // DB failure only affects what brand-new visitors see before sync.
     console.warn(`[aiToolAdapter] title DB persist failed for ${session.docId}:`, e)
+    Sentry.captureException(e, {
+      tags: { component: 'aiToolAdapter', event: 'title_persist_failed', docId: session.docId }
+    })
   }
 
   return ok(`Title set to "${title}".`)
@@ -515,6 +522,9 @@ async function generateImageBytes(
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
     console.error('[generate_image] SDK threw:', msg)
+    Sentry.captureException(e, {
+      tags: { component: 'aiToolAdapter', event: 'image_generate_failed' }
+    })
     return { error: `Image generation failed: ${msg}` }
   }
 }
@@ -606,6 +616,9 @@ async function handleGenerateImage(
     } catch (e) {
       // Non-fatal — see note above.
       console.warn(`[aiToolAdapter] uploads row insert failed for ${key}:`, e)
+      Sentry.captureException(e, {
+        tags: { component: 'aiToolAdapter', event: 'uploads_row_insert_failed', s3Key: key }
+      })
     }
   }
 

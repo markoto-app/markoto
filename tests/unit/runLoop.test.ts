@@ -9,6 +9,20 @@ import { FinishReason, type GenerateContentResponse, type FunctionCall } from '@
 const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
 const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<string>>()
 
+// Billing is a required arg now — stub `chargeInteractions` at the
+// module boundary so the loop's per-turn charge call is a no-op in
+// unit tests (no DB, deterministic). Budget-exhaust paths have their
+// own integration test; this unit suite focuses on the control flow.
+vi.mock('../../server/utils/billing', async () => {
+  const actual = await vi.importActual<typeof import('../../server/utils/billing')>(
+    '../../server/utils/billing'
+  )
+  return {
+    ...actual,
+    chargeInteractions: vi.fn(async () => ({ used: 1, remaining: 999 }))
+  }
+})
+
 vi.mock('../../server/utils/aiToolAdapter', () => ({
   executeFunctionByName
 }))
@@ -108,6 +122,14 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
     sessionId: 'sess-test',
     abortController: new AbortController(),
     setStatus: vi.fn(),
+    billingContext: {
+      attributedTo: 'user:1',
+      plan: 'pro',
+      periodStart: new Date('2026-04-01T00:00:00.000Z'),
+      periodEnd: new Date('2026-05-01T00:00:00.000Z'),
+      interactionsRemaining: 999,
+      attribution: 'user'
+    },
     logger: () => {},
     ...overrides
   }

@@ -1,5 +1,6 @@
 import type Stripe from 'stripe'
 import { eq } from 'drizzle-orm'
+import * as Sentry from '@sentry/nuxt'
 import { users } from '../db/schema'
 import { useDatabase } from './database'
 import type { PlanName } from '~~/shared/config/tiers'
@@ -99,13 +100,23 @@ export async function handleCheckoutSessionCompleted(
   const session = event.data.object
   const userId = session.client_reference_id ? Number(session.client_reference_id) : null
   if (!userId || Number.isNaN(userId)) {
-    console.warn(`[stripe/webhook] checkout.session.completed with no client_reference_id: session=${session.id}`)
+    const msg = `[stripe/webhook] checkout.session.completed with no client_reference_id: session=${session.id}`
+    console.warn(msg)
+    Sentry.captureMessage(msg, {
+      level: 'warning',
+      tags: { component: 'stripeWebhook', event: 'checkout_missing_client_ref' }
+    })
     return { matched: 0, plan: null }
   }
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
   const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null
   if (!customerId) {
-    console.warn(`[stripe/webhook] checkout.session.completed missing customer: session=${session.id}`)
+    const msg = `[stripe/webhook] checkout.session.completed missing customer: session=${session.id}`
+    console.warn(msg)
+    Sentry.captureMessage(msg, {
+      level: 'warning',
+      tags: { component: 'stripeWebhook', event: 'checkout_missing_customer' }
+    })
     return { matched: 0, plan: null }
   }
 
@@ -183,7 +194,12 @@ export async function handleSubscriptionUpdated(
   const priceId = item?.price?.id ?? null
   const plan = priceIdToPlan(priceId, config)
   if (!plan) {
-    console.warn(`[stripe/webhook] subscription.${event.type.split('.').pop()} unknown price: ${priceId} (sub=${sub.id})`)
+    const msg = `[stripe/webhook] subscription.${event.type.split('.').pop()} unknown price: ${priceId} (sub=${sub.id})`
+    console.warn(msg)
+    Sentry.captureMessage(msg, {
+      level: 'warning',
+      tags: { component: 'stripeWebhook', event: 'unknown_price' }
+    })
     return { matched: 0, plan: null }
   }
   // API version 2025-01-27.acacia: period fields on item root.
@@ -277,7 +293,12 @@ export async function handleInvoicePaymentFailed(
 ): Promise<{ matched: number }> {
   const invoice = event.data.object
   const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
-  console.warn(`[stripe/webhook] payment failed for customer=${customerId} invoice=${invoice.id} attempt=${invoice.attempt_count}`)
+  const msg = `[stripe/webhook] payment failed for customer=${customerId} invoice=${invoice.id} attempt=${invoice.attempt_count}`
+  console.warn(msg)
+  Sentry.captureMessage(msg, {
+    level: 'warning',
+    tags: { component: 'stripeWebhook', event: 'invoice_payment_failed' }
+  })
   return { matched: 0 }
 }
 

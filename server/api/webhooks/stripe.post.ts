@@ -1,4 +1,5 @@
 import { readRawBody } from 'h3'
+import * as Sentry from '@sentry/nuxt'
 import { useStripeClient } from '../../utils/stripeClient'
 import { dispatchStripeEvent } from '../../utils/stripeWebhook'
 
@@ -48,6 +49,10 @@ export default defineEventHandler(async (event) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'verification failed'
     console.warn(`[stripe/webhook] signature verification failed: ${msg}`)
+    Sentry.captureException(e, {
+      level: 'warning',
+      tags: { component: 'stripeWebhook', event: 'signature_verify_failed' }
+    })
     throw createError({ statusCode: 400, message: `Signature verification failed: ${msg}` })
   }
 
@@ -65,6 +70,9 @@ export default defineEventHandler(async (event) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'handler failed'
     console.error(`[stripe/webhook] ${stripeEvent.type} failed: ${msg}`, e)
+    Sentry.captureException(e, {
+      tags: { component: 'stripeWebhook', event: 'dispatch_failed', stripeEventType: stripeEvent.type }
+    })
     // 500 → Stripe retries with exponential backoff. Better than
     // acknowledging a failed DB update and losing the state change.
     throw createError({ statusCode: 500, message: `Webhook handler failed: ${msg}` })

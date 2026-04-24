@@ -7,7 +7,8 @@ import {
   TEST_JWT_SECRET,
   TEST_PORT,
   TEST_SESSION_PASSWORD,
-  TEST_SYNC_URL
+  TEST_SYNC_URL,
+  TEST_VALKEY_URL
 } from './env'
 
 // Nuxt dev-server subprocess lifecycle. Boot once for the whole test run
@@ -41,6 +42,7 @@ export async function startNuxt(): Promise<void> {
     PORT: String(TEST_PORT),
     HOST: '127.0.0.1',
     DATABASE_URL: TEST_DB_URL,
+    VALKEY_URL: TEST_VALKEY_URL,
     NUXT_SESSION_PASSWORD: TEST_SESSION_PASSWORD,
     NUXT_JWT_SECRET: TEST_JWT_SECRET,
     NUXT_INTERNAL_API_SECRET: TEST_INTERNAL_SECRET,
