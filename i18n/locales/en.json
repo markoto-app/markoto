@@ -16,7 +16,9 @@
     "logout": "Log out",
     "loginGithub": "Continue with GitHub",
     "loginGoogle": "Continue with Google",
-    "loginRequired": "Login required"
+    "loginRequired": "Login required",
+    "linkedTitle": "Accounts linked",
+    "linkedDescription": "Your {provider} login is now connected to your existing account. You can sign in with either provider from here on."
   },
   "editor": {
     "untitled": "Untitled",

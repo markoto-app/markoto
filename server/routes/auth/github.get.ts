@@ -4,13 +4,20 @@ import { SESSION_VERSION } from '../../utils/validatedSession'
 export default defineOAuthGitHubEventHandler({
   config: { emailRequired: true },
   async onSuccess(event, { user }) {
-    const userId = await upsertOAuthUser({
+    // GitHub + `emailRequired: true` → userinfo returns the user's
+    // PRIMARY verified email. GitHub never exposes a primary email
+    // that hasn't been verified. So a non-null email on this
+    // codepath is safe to treat as verified for merge purposes.
+    const emailVerified = !!user.email
+
+    const { userId, outcome } = await upsertOAuthUser({
       provider: 'github',
       providerUserId: user.id.toString(),
       login: user.login,
       name: user.name || user.login,
       email: user.email,
-      avatarUrl: user.avatar_url
+      avatarUrl: user.avatar_url,
+      emailVerified
     })
 
     await setUserSession(event, {
@@ -25,6 +32,10 @@ export default defineOAuthGitHubEventHandler({
       loggedInAt: Date.now(),
       v: SESSION_VERSION
     })
-    return sendRedirect(event, '/')
+    // `?linked=github` when we merged into an existing account; the
+    // landing page reads this query param and surfaces a one-time
+    // toast so the user understands what happened.
+    const target = outcome === 'merged' ? '/?linked=github' : '/'
+    return sendRedirect(event, target)
   }
 })

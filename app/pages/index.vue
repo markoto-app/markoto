@@ -26,6 +26,28 @@ function onCapReachedClick() {
   router.push('/pricing')
 }
 
+// OAuth account-merge flash. The auth handler redirects to
+// `/?linked=github` or `/?linked=google` when a second-provider
+// sign-in landed on an existing row (matched by verified email) and
+// we added the new provider id to it. Surface a one-time toast
+// explaining what happened, then strip the query param so a reload
+// doesn't re-show the toast.
+onMounted(() => {
+  const route = useRoute()
+  const linked = route.query.linked
+  if (typeof linked === 'string' && (linked === 'github' || linked === 'google')) {
+    const providerName = linked === 'github' ? 'GitHub' : 'Google'
+    toast.add({
+      title: t('auth.linkedTitle'),
+      description: t('auth.linkedDescription', { provider: providerName }),
+      icon: 'i-lucide-link',
+      color: 'success'
+    })
+    // Strip the query param so a reload doesn't re-fire the toast.
+    router.replace({ query: { ...route.query, linked: undefined } })
+  }
+})
+
 async function createDocument() {
   creating.value = true
   try {

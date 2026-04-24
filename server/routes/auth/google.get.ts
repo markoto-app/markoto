@@ -4,25 +4,33 @@ import { SESSION_VERSION } from '../../utils/validatedSession'
 export default defineOAuthGoogleEventHandler({
   config: { scope: ['openid', 'email', 'profile'] },
   async onSuccess(event, { user }) {
-    const userId = await upsertOAuthUser({
+    // Google's OIDC userinfo carries `email_verified: boolean`
+    // directly. Pipe it through unchanged — the merge path only
+    // acts on it when it's strictly true.
+    const googleUser = user as { sub: string, name: string, email: string | null, email_verified?: boolean, picture: string }
+    const emailVerified = googleUser.email_verified === true
+
+    const { userId, outcome } = await upsertOAuthUser({
       provider: 'google',
-      providerUserId: user.sub,
-      name: user.name,
-      email: user.email,
-      avatarUrl: user.picture
+      providerUserId: googleUser.sub,
+      name: googleUser.name,
+      email: googleUser.email,
+      avatarUrl: googleUser.picture,
+      emailVerified
     })
 
     await setUserSession(event, {
       user: {
         id: userId,
-        name: user.name,
-        email: user.email,
-        avatar: user.picture,
+        name: googleUser.name,
+        email: googleUser.email,
+        avatar: googleUser.picture,
         provider: 'google'
       },
       loggedInAt: Date.now(),
       v: SESSION_VERSION
     })
-    return sendRedirect(event, '/')
+    const target = outcome === 'merged' ? '/?linked=google' : '/'
+    return sendRedirect(event, target)
   }
 })
