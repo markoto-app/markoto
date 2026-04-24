@@ -46,7 +46,8 @@ export default defineEventHandler(async (event) => {
   if (!(await checkRateLimit('knowledge-upload', String(userId), 30, 60_000))) {
     throw createError({
       statusCode: 429,
-      message: 'Too many upload requests. Try again in a minute.'
+      message: 'Too many upload requests. Try again in a minute.',
+      data: { code: 'knowledge/rate-limited', messageKey: 'error.rateLimited' }
     })
   }
 

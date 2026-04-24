@@ -8,6 +8,7 @@ const { billing, workspaceCapReached } = useBilling()
 const creating = ref(false)
 
 const toast = useToast()
+const { showError, showContextualError } = useErrorHandler()
 
 // Tooltip shown when the user tries to hover the disabled
 // "New workspace" button. Concrete numbers so the limit is visible;
@@ -57,13 +58,7 @@ async function createDocument() {
     // NO client-side fallback. If POST /api/docs fails we want to see it — a silent
     // `Math.random()` fallback used to mask server errors and produce orphaned docIds
     // with no `documents` row, which then broke activity logging / sharing / deletion.
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: 'Could not create document',
-      description: err?.data?.message || err?.message || 'Server refused the request',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('error.documentCreateFailed', e)
   } finally {
     creating.value = false
   }
@@ -94,8 +89,9 @@ async function loadDocs() {
   loadingDocs.value = true
   try {
     myDocs.value = await $fetch<DocumentListItem[]>('/api/user/documents')
-  } catch {
-    // Not logged in or error
+  } catch (e) {
+    myDocs.value = []
+    showContextualError(e, 'error.generic')
   } finally {
     loadingDocs.value = false
   }
@@ -109,8 +105,9 @@ async function loadWorkspaces() {
   loadingWorkspaces.value = true
   try {
     myWorkspaces.value = await $fetch<WorkspaceListItem[]>('/api/user/workspaces')
-  } catch {
-    // ignore
+  } catch (e) {
+    myWorkspaces.value = []
+    showContextualError(e, 'error.generic')
   } finally {
     loadingWorkspaces.value = false
   }

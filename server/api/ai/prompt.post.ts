@@ -140,10 +140,18 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
 
   if (!config.google.geminiApiKey) {
-    throw createError({ statusCode: 500, message: 'Gemini API key not configured' })
+    throw createError({
+      statusCode: 500,
+      message: 'AI assistant is not configured on this server.',
+      data: { code: 'ai/not-configured', messageKey: 'error.serverError' }
+    })
   }
   if (!(await checkRateLimit('ai-prompt', String(userId), 20, 60 * 60 * 1000))) {
-    throw createError({ statusCode: 429, message: 'Too many AI requests. Try again in a minute.' })
+    throw createError({
+      statusCode: 429,
+      message: 'Too many AI requests. Try again in a minute.',
+      data: { code: 'ai/rate-limited', messageKey: 'error.rateLimited' }
+    })
   }
 
   const body = await readBody(event) as { docId?: string, prompt?: string, editorSelection?: unknown }
@@ -190,8 +198,11 @@ export default defineEventHandler(async (event) => {
   if (billingContext.interactionsRemaining <= 0) {
     throw createError({
       statusCode: 402,
-      message: `You've used all ${billingContext.interactionsRemaining === 0 ? '' : ''}AI actions for this billing period. Upgrade your plan at /pricing to continue.`,
+      message: `You've used all AI actions for this billing period. Upgrade your plan at /pricing to continue.`,
       data: {
+        code: 'ai/budget-exhausted',
+        messageKey: 'ai.budgetExhaustedDescription',
+        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' },
         plan: billingContext.plan,
         attributedTo: billingContext.attributedTo,
         periodStart: billingContext.periodStart.toISOString()

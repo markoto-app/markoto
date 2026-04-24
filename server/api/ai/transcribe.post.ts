@@ -60,7 +60,11 @@ export default defineEventHandler(async (event) => {
   // The real cost governor is the downstream `ai-prompt` bucket; this
   // limit is just abuse prevention.
   if (!(await checkRateLimit('ai-transcribe', String(userId), 60, 60 * 60 * 1000))) {
-    throw createError({ statusCode: 429, message: 'Too many voice-input requests. Try again in a minute.' })
+    throw createError({
+      statusCode: 429,
+      message: 'Too many voice-input requests. Try again in a minute.',
+      data: { code: 'transcribe/rate-limited', messageKey: 'error.rateLimited' }
+    })
   }
 
   // Interaction budget pre-check. A 60s clip (worst case at the
@@ -73,7 +77,13 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 402,
       message: 'Not enough AI actions remaining for a voice clip. Upgrade your plan at /pricing to continue.',
-      data: { plan: billing.plan, remaining: billing.interactionsRemaining }
+      data: {
+        code: 'ai/budget-exhausted',
+        messageKey: 'ai.budgetExhaustedDescription',
+        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' },
+        plan: billing.plan,
+        remaining: billing.interactionsRemaining
+      }
     })
   }
 

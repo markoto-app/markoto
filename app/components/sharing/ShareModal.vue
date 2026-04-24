@@ -14,6 +14,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { copy, copied } = useClipboard()
+const { showContextualError } = useErrorHandler()
 
 const accessMode = ref(props.currentAccessMode)
 const password = ref('')
@@ -66,7 +67,7 @@ async function saveAccessMode(mode: string) {
     accessMode.value = mode
     emit('updated', mode)
   } catch (e) {
-    console.error('Failed to update access mode:', e)
+    showContextualError(e, 'error.shareAccessModeFailed')
   } finally {
     saving.value = false
   }
@@ -85,7 +86,7 @@ async function setPassword() {
     password.value = ''
     emit('updated', 'password-protected')
   } catch (e) {
-    console.error('Failed to set password:', e)
+    showContextualError(e, 'error.sharePasswordFailed')
   } finally {
     saving.value = false
   }

@@ -148,7 +148,8 @@ export async function reserveUploadSlot(args: {
   if (args.size > caps.maxFileBytes) {
     throw createError({
       statusCode: 413,
-      message: `File too large. Max ${Math.round(caps.maxFileBytes / (1024 * 1024))} MB.`
+      message: `File too large. Max ${Math.round(caps.maxFileBytes / (1024 * 1024))} MB.`,
+      data: { code: 'knowledge/file-too-large' }
     })
   }
 
@@ -162,25 +163,41 @@ export async function reserveUploadSlot(args: {
   if (wsCount >= caps.maxFilesPerWorkspace) {
     throw createError({
       statusCode: 409,
-      message: `Workspace knowledge limit reached (${caps.maxFilesPerWorkspace} files).`
+      message: `Workspace knowledge limit reached (${caps.maxFilesPerWorkspace} files).`,
+      data: {
+        code: 'knowledge/workspace-file-cap',
+        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+      }
     })
   }
   if (wsBytes + args.size > caps.maxTotalBytesPerWorkspace) {
     throw createError({
       statusCode: 409,
-      message: `Workspace knowledge storage limit reached (${Math.round(caps.maxTotalBytesPerWorkspace / (1024 * 1024))} MB).`
+      message: `Workspace knowledge storage limit reached (${Math.round(caps.maxTotalBytesPerWorkspace / (1024 * 1024))} MB).`,
+      data: {
+        code: 'knowledge/workspace-bytes-cap',
+        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+      }
     })
   }
   if (userCount >= caps.maxFilesPerUser) {
     throw createError({
       statusCode: 409,
-      message: `You've reached the per-user knowledge upload limit (${caps.maxFilesPerUser} files).`
+      message: `You've reached the per-user knowledge upload limit (${caps.maxFilesPerUser} files).`,
+      data: {
+        code: 'knowledge/user-file-cap',
+        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+      }
     })
   }
   if (userBytes + args.size > caps.maxTotalBytesPerUser) {
     throw createError({
       statusCode: 409,
-      message: `You've reached the per-user knowledge storage limit (${Math.round(caps.maxTotalBytesPerUser / (1024 * 1024))} MB).`
+      message: `You've reached the per-user knowledge storage limit (${Math.round(caps.maxTotalBytesPerUser / (1024 * 1024))} MB).`,
+      data: {
+        code: 'knowledge/user-bytes-cap',
+        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+      }
     })
   }
 

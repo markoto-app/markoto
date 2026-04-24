@@ -561,5 +561,22 @@
       "ready": "Ready",
       "failed": "Failed"
     }
+  },
+  "error": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Check your connection and try again.",
+    "unauthorized": "Please sign in to continue.",
+    "forbidden": "You don't have permission to do that.",
+    "notFound": "Not found.",
+    "rateLimited": "Too many requests — please wait a moment and try again.",
+    "serverError": "Something broke on our side. We've been notified.",
+    "documentCreateFailed": "Could not create document",
+    "documentCreateFailedDescription": "Server refused the request.",
+    "pdfExportFailedTitle": "PDF export failed",
+    "pdfExportFailedDescription": "Unknown error",
+    "shareAccessModeFailed": "Could not update sharing settings",
+    "sharePasswordFailed": "Could not set document password",
+    "activityLoadFailed": "Could not load activity",
+    "retry": "Retry"
   }
 }

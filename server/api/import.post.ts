@@ -21,22 +21,34 @@ export default defineEventHandler(async (event) => {
     || getRequestHeader(event, 'x-real-ip')
     || 'unknown'
   if (!(await checkRateLimit('import', ip, 10, 60_000))) {
-    throw createError({ statusCode: 429, message: 'Too many import requests. Try again later.' })
+    throw createError({
+      statusCode: 429,
+      message: 'Too many import requests. Try again later.',
+      data: { code: 'import/rate-limited', messageKey: 'error.rateLimited' }
+    })
   }
 
   const formData = await readMultipartFormData(event)
   const file = formData?.find(f => f.name === 'file')
 
   if (!file || !file.data.length) {
-    throw createError({ statusCode: 400, message: 'No file provided' })
+    throw createError({ statusCode: 400, message: 'No file provided', data: { code: 'import/no-file' } })
   }
   if (file.data.length > MAX_SIZE) {
-    throw createError({ statusCode: 413, message: 'File too large. Max 50MB.' })
+    throw createError({
+      statusCode: 413,
+      message: 'File too large. Max 50MB.',
+      data: { code: 'import/file-too-large' }
+    })
   }
 
   const ext = file.filename?.split('.').pop()?.toLowerCase() || ''
   if (!ALLOWED_EXTENSIONS.has(ext)) {
-    throw createError({ statusCode: 415, message: `Unsupported format: .${ext}` })
+    throw createError({
+      statusCode: 415,
+      message: `Unsupported format: .${ext}`,
+      data: { code: 'import/unsupported-format' }
+    })
   }
 
   const config = useRuntimeConfig()

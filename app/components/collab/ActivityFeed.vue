@@ -7,6 +7,8 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const { showContextualError } = useErrorHandler()
+const loadErrored = ref(false)
 
 interface ActivityEntry {
   id: number
@@ -25,7 +27,12 @@ const loading = ref(true)
 async function loadActivity() {
   try {
     entries.value = await $fetch<ActivityEntry[]>(`/api/docs/${props.docId}/activity`)
-  } catch {
+    loadErrored.value = false
+  } catch (e) {
+    // Only surface the toast on the FIRST failure — the interval
+    // re-fetches every 30s and would otherwise spam the user.
+    if (!loadErrored.value) showContextualError(e, 'error.activityLoadFailed')
+    loadErrored.value = true
     entries.value = []
   } finally {
     loading.value = false

@@ -37,7 +37,11 @@ export default defineEventHandler(async (event) => {
     const rateLimitKey = `${ip}:${docId}`
 
     if (!(await checkRateLimit('password-verify', rateLimitKey, 5, 60_000))) {
-      throw createError({ statusCode: 429, message: 'Too many attempts. Try again in a minute.' })
+      throw createError({
+        statusCode: 429,
+        message: 'Too many attempts. Try again in a minute.',
+        data: { code: 'password/rate-limited', messageKey: 'error.rateLimited' }
+      })
     }
 
     if (!password) {
@@ -49,7 +53,11 @@ export default defineEventHandler(async (event) => {
 
     const valid = await verifyPassword(doc.passwordHash, password)
     if (!valid) {
-      throw createError({ statusCode: 401, message: 'Invalid password' })
+      throw createError({
+        statusCode: 401,
+        message: 'Invalid password',
+        data: { code: 'password/invalid' }
+      })
     }
 
     // Return a token granting edit access

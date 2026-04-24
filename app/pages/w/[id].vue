@@ -6,6 +6,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const { showError, showContextualError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 
 const workspaceId = computed(() => route.params.id as string)
@@ -39,14 +40,7 @@ async function loadWorkspace() {
   } catch (e: any) {
     if (e?.statusCode === 404) notFound.value = true
     else if (e?.statusCode === 403 || e?.statusCode === 401) forbidden.value = true
-    else {
-      toast.add({
-        title: t('workspace.notFound'),
-        description: e?.data?.message || e?.message,
-        icon: 'i-lucide-alert-circle',
-        color: 'error'
-      })
-    }
+    else showError('workspace.notFound', e)
   } finally {
     loading.value = false
   }
@@ -78,13 +72,8 @@ async function createDocument() {
       body: { workspaceId: workspaceId.value }
     })
     router.push(`/d/${docId}`)
-  } catch (e: any) {
-    toast.add({
-      title: 'Could not create document',
-      description: e?.data?.message || e?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+  } catch (e) {
+    showContextualError(e, 'error.documentCreateFailed')
   } finally {
     creating.value = false
   }

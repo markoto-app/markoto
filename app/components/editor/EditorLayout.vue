@@ -53,6 +53,7 @@ const ai = useAI(computed(() => props.docId), awareness, {
 })
 
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 // Live voice dictation. Mic button in the toolbar opens a WebSocket
 // relay to Gemini's Live API; interim transcripts show as ghost text
@@ -217,12 +218,7 @@ async function exportPdf() {
       tocTitle: t('table.tocTitle')
     })
   } catch (e) {
-    console.error('PDF export failed:', e)
-    toast.add({
-      title: 'PDF export failed',
-      description: e instanceof Error ? e.message : 'Unknown error',
-      color: 'error'
-    })
+    showError('error.pdfExportFailedTitle', e)
   } finally {
     exporting.value = false
   }

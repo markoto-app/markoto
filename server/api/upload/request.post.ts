@@ -37,10 +37,18 @@ export default defineEventHandler(async (event) => {
   }
   const ext = CONTENT_TYPE_EXT[contentType]
   if (!ext) {
-    throw createError({ statusCode: 415, message: `Type not allowed: ${contentType}` })
+    throw createError({
+      statusCode: 415,
+      message: `Type not allowed: ${contentType}`,
+      data: { code: 'upload/unsupported-format' }
+    })
   }
   if (size > MAX_SIZE) {
-    throw createError({ statusCode: 413, message: 'File too large. Max 10MB.' })
+    throw createError({
+      statusCode: 413,
+      message: 'File too large. Max 10MB.',
+      data: { code: 'upload/file-too-large' }
+    })
   }
 
   // Verify user has write access to this document
