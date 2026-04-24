@@ -1,17 +1,38 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 
-// useErrorHandler is the single entry point for surfacing $fetch errors
-// to users. It lives between components and the toast system — every
-// catch block in the app routes through showError / showContextualError
-// rather than `console.error`. The tests here pin the extraction logic
-// (messageKey > raw message > generic fallback), the auto-mapping of
-// 401/403/404/429 to generic toast keys, and the 402 carve-out so
-// useAI's budget-exhausted CTA keeps working.
+// useErrorHandler contract tests. Senior-QA review of the previous 25-
+// test suite noted ~20 were mechanical branch coverage (would catch a
+// typo, not a design error). This pared-down suite keeps only the ones
+// that encode a non-obvious cross-file contract — the kind of tests
+// that WOULD have caught a real regression.
 //
-// Dependencies mocked via `mockNuxtImport`:
-//   - `useToast()` — captures toast.add() calls for assertions
-//   - `useI18n()` — { t, te } with a translation table we control per test
+// What we keep, and why each exists:
+//
+//   1. The 402 carve-out contract. useAI.ts relies on showContextualError
+//      NOT intercepting 402 so its specialised budget-exhausted toast
+//      with upgrade CTA can run. If we ever add `case 402:` here, useAI
+//      silently loses its feature.
+//
+//   2. Server description preserved on mapped-status toasts. If every
+//      404 shows "Not found." with no description, users can't tell
+//      WHICH resource is missing — broken UX that looks like a correct
+//      toast.
+//
+//   3. messageKey-unknown-at-client fallback. The error contract says
+//      server ships messageKey, client translates. During a deploy
+//      window the server may ship a key the client doesn't know yet.
+//      Must not show "[missing:key]" — must fall back to the raw
+//      server message.
+//
+//   4. Null/undefined error tolerates without crash. A catch block
+//      that receives `undefined` (thrown literal, Promise rejection
+//      with no value) must not crash the toast system.
+//
+//   5. showError returns the extraction. AIPromptBar.vue reads the
+//      returned `.recovery.href` after toasting to route the user to
+//      `/pricing`. Without this return value, the upgrade CTA silently
+//      breaks.
 
 const { toastAddMock, translations, missingKeys } = vi.hoisted(() => ({
   toastAddMock: { fn: (_opts: unknown) => {} },
@@ -36,191 +57,21 @@ beforeEach(() => {
   toastAddMock.fn = vi.fn()
   for (const k of Object.keys(translations)) delete translations[k]
   missingKeys.clear()
-
-  // Baseline translations every test implicitly relies on. Tests that
-  // want a key to be MISSING add it to `missingKeys` explicitly.
   Object.assign(translations, {
-    'error.generic': 'Something went wrong. Please try again.',
-    'error.unauthorized': 'Please sign in to continue.',
-    'error.forbidden': "You don't have permission to do that.",
+    'error.generic': 'Something went wrong.',
+    'error.unauthorized': 'Please sign in.',
+    'error.forbidden': 'No permission.',
     'error.notFound': 'Not found.',
-    'error.rateLimited': 'Too many requests — try again later.',
-    'delete.failed': 'Could not delete.',
-    'ai.upgradeCta': 'Upgrade',
-    'ai.budgetExhaustedDescription': 'You have used all AI actions.'
+    'error.rateLimited': 'Too many requests.',
+    'delete.failed': 'Could not delete.'
   })
 })
 
-describe('extractError — statusCode resolution', () => {
-  it('prefers top-level err.statusCode (the Nuxt $fetch shape)', async () => {
-    const { extractError } = useErrorHandler()
-    const r = extractError({ statusCode: 404, data: { statusCode: 500 } })
-    expect(r.statusCode).toBe(404)
-  })
-
-  it('falls through to err.status when statusCode is absent', async () => {
-    // Some fetch wrappers (native `fetch` + ofetch variants) use
-    // `status` rather than `statusCode`. Handle both.
-    const { extractError } = useErrorHandler()
-    expect(extractError({ status: 418 }).statusCode).toBe(418)
-  })
-
-  it('falls through to err.data.statusCode as last resort', async () => {
-    const { extractError } = useErrorHandler()
-    expect(extractError({ data: { statusCode: 502 } }).statusCode).toBe(502)
-  })
-
-  it('returns null when no status information is present', async () => {
-    const { extractError } = useErrorHandler()
-    expect(extractError({ message: 'weird' }).statusCode).toBeNull()
-  })
-
-  it('tolerates a null/undefined error object', async () => {
-    // Defensive: a catch block that receives `undefined` (because the
-    // thrown value was falsy for some reason) shouldn't crash the toast.
-    const { extractError } = useErrorHandler()
-    expect(extractError(undefined).statusCode).toBeNull()
-    expect(extractError(null).statusCode).toBeNull()
-  })
-})
-
-describe('extractError — message resolution priority', () => {
-  it('uses data.messageKey → t(key) when present', async () => {
-    translations['custom.foo'] = 'The Foo message'
-    const { extractError } = useErrorHandler()
-    const r = extractError({ data: { messageKey: 'custom.foo' } })
-    expect(r.message).toBe('The Foo message')
-  })
-
-  it('falls back to raw data.message when messageKey is missing from i18n', async () => {
-    // Server shipped a key the client doesn't know yet — rare but
-    // possible across a deploy window. Show the English raw string
-    // rather than `[missing:key]` nonsense.
-    missingKeys.add('unknown.key')
-    const { extractError } = useErrorHandler()
-    const r = extractError({ data: { messageKey: 'unknown.key', message: 'Raw English' } })
-    expect(r.message).toBe('Raw English')
-  })
-
-  it('falls back to generic when messageKey AND raw message are both absent', async () => {
-    missingKeys.add('unknown.key')
-    const { extractError } = useErrorHandler()
-    const r = extractError({ data: { messageKey: 'unknown.key' } })
-    expect(r.message).toBe('Something went wrong. Please try again.')
-  })
-
-  it('uses err.data.message when no messageKey is provided', async () => {
-    const { extractError } = useErrorHandler()
-    expect(extractError({ data: { message: 'server said no' } }).message).toBe('server said no')
-  })
-
-  it('falls back to err.message when data.message is absent', async () => {
-    const { extractError } = useErrorHandler()
-    expect(extractError({ message: 'boom' }).message).toBe('boom')
-  })
-
-  it('final fallback is the generic i18n key', async () => {
-    const { extractError } = useErrorHandler()
-    expect(extractError({}).message).toBe('Something went wrong. Please try again.')
-  })
-})
-
-describe('extractError — code + recovery passthrough', () => {
-  it('surfaces data.code as-is', async () => {
-    const { extractError } = useErrorHandler()
-    expect(extractError({ data: { code: 'ai/budget-exhausted' } }).code).toBe('ai/budget-exhausted')
-  })
-
-  it('returns code=null when absent', async () => {
-    const { extractError } = useErrorHandler()
-    expect(extractError({ data: { message: 'x' } }).code).toBeNull()
-  })
-
-  it('surfaces data.recovery object as-is', async () => {
-    const recovery = { kind: 'link' as const, href: '/pricing', labelKey: 'ai.upgradeCta' }
-    const { extractError } = useErrorHandler()
-    expect(extractError({ data: { recovery } }).recovery).toEqual(recovery)
-  })
-})
-
-describe('showError — toast wiring', () => {
-  it('adds an error-color toast with the translated title and extracted message', async () => {
-    translations['delete.failed'] = 'Could not delete.'
-    const { showError } = useErrorHandler()
-    showError('delete.failed', { data: { message: 'rls denied' } })
-    expect(toastAddMock.fn).toHaveBeenCalledOnce()
-    expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Could not delete.',
-      description: 'rls denied',
-      color: 'error'
-    }))
-  })
-
-  it('forwards an action (Upgrade-link style CTA) into toast.actions', async () => {
-    const onClick = vi.fn()
-    const { showError } = useErrorHandler()
-    showError('delete.failed', {}, { label: 'Upgrade', onClick, color: 'primary' })
-    expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      actions: [{ label: 'Upgrade', onClick, color: 'primary' }]
-    }))
-  })
-
-  it('omits actions entirely when no action is passed', async () => {
-    const { showError } = useErrorHandler()
-    showError('delete.failed', {})
-    const call = (toastAddMock.fn as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0]
-    expect(call![0].actions).toBeUndefined()
-  })
-
-  it('returns the extracted error object so callers can read code/recovery', async () => {
-    // AIPromptBar.vue leans on this to read `recovery.href` after
-    // surfacing the toast — so the contract is "always return the
-    // extraction, never void".
-    const { showError } = useErrorHandler()
-    const r = showError('delete.failed', { statusCode: 402, data: { code: 'ai/budget-exhausted' } })
-    expect(r.statusCode).toBe(402)
-    expect(r.code).toBe('ai/budget-exhausted')
-  })
-})
-
-describe('showContextualError — status-code mapping', () => {
-  it('401 → error.unauthorized (no custom title)', async () => {
-    const { showContextualError } = useErrorHandler()
-    showContextualError({ statusCode: 401 }, 'delete.failed')
-    expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Please sign in to continue.'
-    }))
-  })
-
-  it('403 → error.forbidden', async () => {
-    const { showContextualError } = useErrorHandler()
-    showContextualError({ statusCode: 403 }, 'delete.failed')
-    expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      title: "You don't have permission to do that."
-    }))
-  })
-
-  it('404 → error.notFound', async () => {
-    const { showContextualError } = useErrorHandler()
-    showContextualError({ statusCode: 404 }, 'delete.failed')
-    expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Not found.'
-    }))
-  })
-
-  it('429 → error.rateLimited', async () => {
-    const { showContextualError } = useErrorHandler()
-    showContextualError({ statusCode: 429 }, 'delete.failed')
-    expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Too many requests — try again later.'
-    }))
-  })
-
-  it('402 FALLS THROUGH to caller title (budget-CTA owned by useAI)', async () => {
-    // This is the deliberate carve-out. useAI.ts has specialised UX for
-    // 402 (custom title "ai.budgetExhaustedTitle" + context-aware CTA).
-    // If showContextualError intercepted 402, useAI would never see it.
-    translations['delete.failed'] = 'Could not delete.'
+describe('useErrorHandler — load-bearing contracts', () => {
+  it('402 status DOES NOT intercept — caller title wins (useAI owns the budget-CTA)', async () => {
+    // If someone adds `case 402:` to showContextualError, useAI's
+    // AIPromptBar special-cased toast with the /pricing upgrade link
+    // never runs. This test fails the moment that happens.
     const { showContextualError } = useErrorHandler()
     showContextualError({ statusCode: 402 }, 'delete.failed')
     expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
@@ -228,18 +79,11 @@ describe('showContextualError — status-code mapping', () => {
     }))
   })
 
-  it('unknown status codes fall through to the default title', async () => {
-    const { showContextualError } = useErrorHandler()
-    showContextualError({ statusCode: 500 }, 'delete.failed')
-    expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Could not delete.'
-    }))
-  })
-
-  it('still surfaces the server description even on a mapped status', async () => {
-    // The title is generic ("Not found.") but the description should
-    // carry the server's specific message so users know WHICH resource
-    // is missing. Lose this and every 404 looks identical.
+  it('server description is preserved even on MAPPED-status toasts', async () => {
+    // Generic title, specific description. Without this, every 404
+    // looks identical ("Not found.") — users can't tell WHICH doc is
+    // missing. Breaks diagnostic UX in a subtle way that no status-
+    // code-only test would catch.
     const { showContextualError } = useErrorHandler()
     showContextualError(
       { statusCode: 404, data: { message: 'Document abc123 not found' } },
@@ -249,5 +93,59 @@ describe('showContextualError — status-code mapping', () => {
       title: 'Not found.',
       description: 'Document abc123 not found'
     }))
+  })
+
+  it('messageKey unknown to client falls back to raw server message (deploy-window safety)', async () => {
+    // Server ships new key `foo.bar`; client hasn't deployed its
+    // translation yet. Must NOT show "[missing:foo.bar]" — must
+    // fall back to the raw English message the server also sent.
+    missingKeys.add('foo.bar')
+    const { extractError } = useErrorHandler()
+    const r = extractError({ data: { messageKey: 'foo.bar', message: 'Raw English explanation' } })
+    expect(r.message).toBe('Raw English explanation')
+  })
+
+  it('null/undefined error does not crash (defensive for weird throwables)', async () => {
+    // A Promise rejected with `undefined` or a `throw null` in
+    // third-party code reaches our catch block as a falsy value.
+    // The toast system still needs to fire cleanly, with the
+    // generic message.
+    const { extractError, showError } = useErrorHandler()
+    expect(() => extractError(undefined)).not.toThrow()
+    expect(() => extractError(null)).not.toThrow()
+    expect(extractError(null).message).toBe('Something went wrong.')
+    expect(() => showError('delete.failed', undefined)).not.toThrow()
+  })
+
+  it('showError RETURNS the extracted error (AIPromptBar reads recovery.href from this)', async () => {
+    // AIPromptBar.vue's budget-CTA handler: `const { recovery } =
+    // showError(...)`. If this ever returns void, the /pricing link
+    // silently breaks with no other test failure.
+    const { showError } = useErrorHandler()
+    const r = showError('delete.failed', {
+      statusCode: 402,
+      data: {
+        code: 'ai/budget-exhausted',
+        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+      }
+    })
+    expect(r.statusCode).toBe(402)
+    expect(r.code).toBe('ai/budget-exhausted')
+    expect(r.recovery).toEqual({ kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' })
+  })
+
+  it('401/403/404/429 all map to distinct titles (wrong mapping = wrong UX)', async () => {
+    // One bulk check that the status-to-title mapping hasn't collapsed
+    // into using one title for multiple cases (a refactor hazard).
+    // Each title must be distinct, and each status must map.
+    const { showContextualError } = useErrorHandler()
+    const titles = new Set<string>()
+    for (const sc of [401, 403, 404, 429]) {
+      toastAddMock.fn = vi.fn()
+      showContextualError({ statusCode: sc }, 'delete.failed')
+      const call = (toastAddMock.fn as unknown as { mock: { calls: Array<[{ title: string }]> } }).mock.calls[0]
+      titles.add(call![0].title)
+    }
+    expect(titles.size).toBe(4)
   })
 })

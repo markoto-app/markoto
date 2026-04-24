@@ -244,4 +244,24 @@ describe('duplicateDocument — rollback', () => {
     expect(deleteDocRow).not.toHaveBeenCalled()
     expect(deleteUploadsForDoc).not.toHaveBeenCalled()
   })
+
+  it('rolls back uploads BEFORE the doc row (FK-safe ordering)', async () => {
+    // `uploads.doc_id` has `ON DELETE CASCADE` today — so in practice
+    // deleting the row first would also wipe the uploads. The SUT
+    // nevertheless deletes uploads FIRST explicitly. Pin that ordering
+    // so a future refactor that drops the CASCADE doesn't silently
+    // create FK-violation errors on rollback (the row-delete would
+    // then leave dangling uploads).
+    const order: string[] = []
+    getDoc.mockResolvedValueOnce(fakeSource())
+    listConfirmedUploadsForDoc.mockResolvedValueOnce([])
+    deleteUploadsForDoc.mockImplementationOnce(async () => { order.push('uploads') })
+    deleteDocRow.mockImplementationOnce(async () => { order.push('row') })
+    cloneYjsStateWithUrlRewrite.mockRejectedValueOnce(new Error('force rollback'))
+
+    await expect(duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b' }))
+      .rejects.toThrow('force rollback')
+
+    expect(order).toEqual(['uploads', 'row'])
+  })
 })

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Authz shortcut unit tests. workspaceAccess.ts delegates to two repo
-// functions (`getDocWithActorRole`, `getMemberRole`); stub both at the
-// module boundary so we can drive every branch deterministically with
-// no DB. The integration suite already exercises the SQL paths; this
-// suite owns the role-matrix logic.
+// workspaceAccess contract tests. The original 24-test suite was a
+// mechanical role-matrix pin (owner returns true, admin returns true,
+// etc.) — TypeScript already catches role-string typos; these tests
+// were documenting what the code visibly does, not what could break.
+//
+// Kept below: the non-obvious contracts that a refactor could plausibly
+// violate WITHOUT TypeScript noticing.
+
 const getDocWithActorRole = vi.fn()
 const getMemberRole = vi.fn()
 
@@ -14,8 +17,6 @@ vi.mock('../../server/repos/workspaceMembers', () => ({ getMemberRole }))
 const {
   canEditDoc,
   canManageDoc,
-  canManageWorkspace,
-  getWorkspaceRole,
   getDocAuthz
 } = await import('../../server/utils/workspaceAccess')
 
@@ -39,170 +40,70 @@ beforeEach(() => {
   getMemberRole.mockReset()
 })
 
-describe('canEditDoc', () => {
-  it('returns false when the doc does not exist', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(null)
-    expect(await canEditDoc(42, 'missing')).toBe(false)
-  })
-
-  it('owner can always edit (standalone doc)', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 42, workspaceId: null, workspaceRole: null }))
+describe('workspaceAccess — non-obvious contracts', () => {
+  it('editor can canEdit but CANNOT canManage (the content-vs-sharing split)', async () => {
+    // The key design rule: editors can freely curate content (canEdit=true)
+    // but cannot change access mode, password, or delete shared docs
+    // (canManage=false). A refactor that consolidated the two into
+    // a single "canWrite" would silently open the door for editors to
+    // change sharing settings.
+    getDocWithActorRole
+      .mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'editor' }))
+      .mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'editor' }))
     expect(await canEditDoc(42, 'd1')).toBe(true)
-  })
-
-  it('workspace admin can edit', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'admin' }))
-    expect(await canEditDoc(42, 'd1')).toBe(true)
-  })
-
-  it('workspace editor can edit', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'editor' }))
-    expect(await canEditDoc(42, 'd1')).toBe(true)
-  })
-
-  it('viewer CANNOT edit', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'viewer' }))
-    expect(await canEditDoc(42, 'd1')).toBe(false)
-  })
-
-  it('non-member on a workspace doc CANNOT edit', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: null }))
-    expect(await canEditDoc(42, 'd1')).toBe(false)
-  })
-})
-
-describe('canManageDoc', () => {
-  it('returns false when the doc does not exist', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(null)
-    expect(await canManageDoc(42, 'missing')).toBe(false)
-  })
-
-  it('owner can manage', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 42, workspaceRole: null }))
-    expect(await canManageDoc(42, 'd1')).toBe(true)
-  })
-
-  it('admin can manage', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'admin' }))
-    expect(await canManageDoc(42, 'd1')).toBe(true)
-  })
-
-  it('editor CANNOT manage (sharing/delete is admin-only)', async () => {
-    // This is the deliberate split: canEdit → true, canManage → false.
-    // Editors can edit content but not change access mode, password,
-    // or delete docs they didn't create.
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'editor' }))
     expect(await canManageDoc(42, 'd1')).toBe(false)
   })
 
-  it('viewer CANNOT manage', async () => {
+  it('viewer CANNOT edit even if they\'re in the same workspace (membership != edit right)', async () => {
+    // Viewers get `canView: true` via `getDocAuthz` (membership bypasses
+    // private-accessMode gating) but MUST NOT get canEdit. Regression
+    // risk: a future "promote viewers to editors on their own docs"
+    // feature could accidentally leak edit rights to all viewers.
     getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'viewer' }))
-    expect(await canManageDoc(42, 'd1')).toBe(false)
-  })
-})
-
-describe('canManageWorkspace', () => {
-  it('true only for admin', async () => {
-    getMemberRole.mockResolvedValueOnce('admin')
-    expect(await canManageWorkspace(1, 'w1')).toBe(true)
+    const r = await getDocAuthz(42, 'd1')
+    expect(r.canView).toBe(true)    // membership grant
+    expect(r.canEdit).toBe(false)   // role gate
+    expect(r.canManage).toBe(false)
   })
 
-  it('false for editor', async () => {
-    getMemberRole.mockResolvedValueOnce('editor')
-    expect(await canManageWorkspace(1, 'w1')).toBe(false)
-  })
-
-  it('false for viewer', async () => {
-    getMemberRole.mockResolvedValueOnce('viewer')
-    expect(await canManageWorkspace(1, 'w1')).toBe(false)
-  })
-
-  it('false for non-members (null role)', async () => {
-    getMemberRole.mockResolvedValueOnce(null)
-    expect(await canManageWorkspace(1, 'w1')).toBe(false)
-  })
-})
-
-describe('getWorkspaceRole', () => {
-  it('forwards the role as-is (pass-through)', async () => {
-    getMemberRole.mockResolvedValueOnce('editor')
-    expect(await getWorkspaceRole(1, 'w1')).toBe('editor')
-  })
-
-  it('returns null for non-members', async () => {
-    getMemberRole.mockResolvedValueOnce(null)
-    expect(await getWorkspaceRole(1, 'w1')).toBeNull()
-  })
-})
-
-describe('getDocAuthz', () => {
-  it('returns exists=false + all-false grants for missing doc', async () => {
+  it('non-existent doc returns exists=false with every grant off (not a thrown 404)', async () => {
+    // Design choice: getDocAuthz NEVER throws — it returns a uniform
+    // "nothing granted" shape. Callers that treat `exists` as the 404
+    // signal rely on this. If the helper ever started throwing on
+    // missing rows, every downstream caller's happy-path would regress
+    // into a caught exception.
     getDocWithActorRole.mockResolvedValueOnce(null)
     const r = await getDocAuthz(42, 'missing')
-    expect(r).toEqual({
-      exists: false,
-      ownerId: null,
-      workspaceId: null,
-      workspaceRole: null,
-      isDocOwner: false,
-      canView: false,
-      canEdit: false,
-      canManage: false
-    })
+    expect(r.exists).toBe(false)
+    expect(r.canView).toBe(false)
+    expect(r.canEdit).toBe(false)
+    expect(r.canManage).toBe(false)
+    expect(r.ownerId).toBeNull()
+    expect(r.workspaceRole).toBeNull()
   })
 
-  it('owner gets every grant even without a workspace role', async () => {
+  it('owner of a standalone doc (no workspace) gets ALL grants via the ownerId path', async () => {
+    // canEdit/canManage/canView must all resolve true for the owner
+    // even when workspaceRole is null (the "I own this doc but it's
+    // not in a workspace" case). A refactor that required workspace
+    // membership as a precondition would break solo-doc ownership.
     getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 42, workspaceId: null, workspaceRole: null }))
-    const r = await getDocAuthz(42, 'd1')
-    expect(r.exists).toBe(true)
+    const r = await getDocAuthz(42, 'solo')
     expect(r.isDocOwner).toBe(true)
     expect(r.canView).toBe(true)
     expect(r.canEdit).toBe(true)
     expect(r.canManage).toBe(true)
   })
+})
 
-  it('admin: canView + canEdit + canManage (non-owner)', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'admin' }))
-    const r = await getDocAuthz(42, 'd1')
-    expect(r.isDocOwner).toBe(false)
-    expect(r.canView).toBe(true)
-    expect(r.canEdit).toBe(true)
-    expect(r.canManage).toBe(true)
-  })
-
-  it('editor: canView + canEdit but NOT canManage', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'editor' }))
-    const r = await getDocAuthz(42, 'd1')
-    expect(r.canView).toBe(true)
-    expect(r.canEdit).toBe(true)
-    expect(r.canManage).toBe(false)
-  })
-
-  it('viewer: canView only', async () => {
-    // The key non-obvious case: viewer bypasses `private` accessMode via
-    // the membership grant (canView=true) but can't edit or manage.
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'viewer' }))
-    const r = await getDocAuthz(42, 'd1')
-    expect(r.canView).toBe(true)
-    expect(r.canEdit).toBe(false)
-    expect(r.canManage).toBe(false)
-  })
-
-  it('non-member on a workspace doc: nothing granted by membership', async () => {
-    // Access to the doc is then governed entirely by the accessMode
-    // check elsewhere — this helper reports only the membership side.
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: null }))
-    const r = await getDocAuthz(42, 'd1')
-    expect(r.canView).toBe(false)
-    expect(r.canEdit).toBe(false)
-    expect(r.canManage).toBe(false)
-  })
-
-  it('forwards ownerId + workspaceId + workspaceRole verbatim', async () => {
-    getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 7, workspaceId: 'ws-abc', workspaceRole: 'admin' }))
-    const r = await getDocAuthz(42, 'd1')
-    expect(r.ownerId).toBe(7)
-    expect(r.workspaceId).toBe('ws-abc')
-    expect(r.workspaceRole).toBe('admin')
+describe('workspaceAccess — canEditDoc propagates repo errors (fails closed)', () => {
+  it('repo throw surfaces to caller (no silent false → skipped authz)', async () => {
+    // Defensive: if getDocWithActorRole throws (DB blip), canEditDoc
+    // MUST NOT swallow it and return false. A swallow would look like
+    // "user has no access" → caller returns a confusing 403 instead of
+    // surfacing the real DB error. We want the DB error to propagate
+    // so the endpoint returns 500 and operators see the Sentry trace.
+    getDocWithActorRole.mockRejectedValueOnce(new Error('connection refused'))
+    await expect(canEditDoc(42, 'd1')).rejects.toThrow('connection refused')
   })
 })

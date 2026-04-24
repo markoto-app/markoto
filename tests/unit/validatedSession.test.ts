@@ -168,3 +168,40 @@ describe('requireValidatedUserSession', () => {
     expect(r).toEqual({ user: { id: 42, name: 'Alice' } })
   })
 })
+
+describe('resolveValidatedUser — concurrent resolution on empty cache', () => {
+  it('two parallel callers both get the same result (idempotent, not a crash)', async () => {
+    // The cache check is `if (cache.validatedUser !== undefined) return`.
+    // There's no locking — two parallel callers on an empty cache both
+    // pass the check and both execute the full resolution. Both writes
+    // to cache.validatedUser end up equivalent because the source-of-
+    // truth (DB row + session cookie) hasn't changed. This test pins
+    // that idempotency contract: same inputs → same result regardless
+    // of concurrency, no crash. If a refactor introduced state between
+    // the cache check and the write (e.g. partial-credential tracking),
+    // this test would catch the race.
+    const event = fakeEvent()
+    let getUserSessionCalls = 0
+    getUserSession.mockImplementation(async () => {
+      getUserSessionCalls++
+      // Tiny tick to let the second call also hit the empty cache.
+      await new Promise(resolve => setTimeout(resolve, 0))
+      return { user: { id: 42 }, v: SESSION_VERSION }
+    })
+    findUserById.mockResolvedValue({ id: 42, name: 'Alice' })
+
+    const [r1, r2] = await Promise.all([
+      getValidatedUserSession(event),
+      getValidatedUserSession(event)
+    ])
+
+    // Both callers get the same valid user — no "first got user,
+    // second got null" race.
+    expect(r1).toEqual({ user: { id: 42, name: 'Alice' } })
+    expect(r2).toEqual({ user: { id: 42, name: 'Alice' } })
+    // Current contract: getUserSession DID run twice (no lock). If
+    // someone adds a lock, the expectation here should drop to 1 —
+    // but the result-equality above is the real invariant.
+    expect(getUserSessionCalls).toBeGreaterThanOrEqual(1)
+  })
+})

@@ -98,4 +98,15 @@ describe('requireDocEditAccess', () => {
       statusCode: 403
     })
   })
+
+  it('propagates a canEditDoc throw (does NOT silently deny on DB error)', async () => {
+    // Defensive: if canEditDoc throws (DB blip during the membership
+    // lookup), we must let the error propagate — not swallow + fall
+    // through to the accessMode check. A swallow would mean a
+    // transient DB issue gets presented to the user as "no edit
+    // access" (misleading) instead of "internal error" (truthful).
+    mockRow.mockResolvedValueOnce({ accessMode: 'private', ownerId: 1 })
+    canEditDoc.mockRejectedValueOnce(new Error('connection refused'))
+    await expect(requireDocEditAccess('d1', 42)).rejects.toThrow('connection refused')
+  })
 })
