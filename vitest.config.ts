@@ -31,19 +31,34 @@ export default defineConfig({
     }
   },
   test: {
-    // Coverage config lives at the root so `vitest run --coverage` merges
-    // output from every project into one report. V8 provider (no Istanbul
-    // transform — faster + no source-map surprises). Include paths are
-    // restricted to the code we actually ship; generated files, migrations,
-    // and scripts-only folders are excluded.
+    // Coverage config. V8 provider (no Istanbul transform — faster + no
+    // source-map surprises).
+    //
+    // Scope is DELIBERATELY narrowed to code that runs in the vitest
+    // process: unit + repos + nuxt projects. The integration project
+    // spawns a separate Nuxt dev subprocess, and its server-side code
+    // (every `server/api/*`, `server/middleware/*`, `server/plugins/*`,
+    // `server/routes/*`) runs through Vite's SSR transform which records
+    // coverage under the opaque URL `evalmachine.<anonymous>` — c8 can't
+    // map that back to source files. See AGENTS.md §19 "coverage
+    // undercounts" for the three dead ends we tried. Rather than publish
+    // a misleading ~27% number that averages real gaps with subprocess
+    // blind spots, we exclude the subprocess-only paths entirely.
+    //
+    // The 300+ tests in tests/integration/ still exercise those files at
+    // runtime — they're the actual safety net for the HTTP surface. The
+    // coverage report now measures what the in-process tests cover, and
+    // nothing more.
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'json-summary'],
       reportsDirectory: './coverage',
       all: true,
       include: [
-        'app/**/*.{ts,vue}',
-        'server/**/*.ts',
+        'app/composables/**/*.ts',
+        'app/utils/**/*.ts',
+        'server/utils/**/*.ts',
+        'server/repos/**/*.ts',
         'shared/**/*.ts',
         'sync-server/src/**/*.ts'
       ],
@@ -51,9 +66,18 @@ export default defineConfig({
         '**/*.d.ts',
         '**/*.test.ts',
         '**/*.config.{ts,mjs}',
-        'app/**/*.stories.{ts,vue}',
+        // Subprocess-only code — covered by integration tests but
+        // invisible to the coverage recorder. Listing them here would
+        // only produce false-zero rows; see the comment above.
+        'server/api/**',
+        'server/middleware/**',
+        'server/plugins/**',
+        'server/routes/**',
         'server/db/schema.ts',
-        'server/plugins/00-db-migrate.ts',
+        // Vue components — covered by manual/e2e UX testing, not unit.
+        'app/components/**',
+        'app/pages/**',
+        'app/layouts/**',
         'drizzle/**',
         'scripts/**',
         'coverage/**',
