@@ -30,3 +30,6 @@ logs
 
 # Claude Code local scheduler state
 /.claude/
+
+# Vitest coverage reports — regenerated via `bun run test:coverage`
+/coverage/

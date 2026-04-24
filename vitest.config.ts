@@ -31,6 +31,37 @@ export default defineConfig({
     }
   },
   test: {
+    // Coverage config lives at the root so `vitest run --coverage` merges
+    // output from every project into one report. V8 provider (no Istanbul
+    // transform — faster + no source-map surprises). Include paths are
+    // restricted to the code we actually ship; generated files, migrations,
+    // and scripts-only folders are excluded.
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'text-summary', 'html', 'json-summary'],
+      reportsDirectory: './coverage',
+      all: true,
+      include: [
+        'app/**/*.{ts,vue}',
+        'server/**/*.ts',
+        'shared/**/*.ts',
+        'sync-server/src/**/*.ts'
+      ],
+      exclude: [
+        '**/*.d.ts',
+        '**/*.test.ts',
+        '**/*.config.{ts,mjs}',
+        'app/**/*.stories.{ts,vue}',
+        'server/db/schema.ts',
+        'server/plugins/00-db-migrate.ts',
+        'drizzle/**',
+        'scripts/**',
+        'coverage/**',
+        '.nuxt/**',
+        '.output/**',
+        'node_modules/**'
+      ]
+    },
     projects: [
       {
         extends: true,

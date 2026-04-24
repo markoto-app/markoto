@@ -18,6 +18,8 @@
     "test:repos": "vitest run --project=repos",
     "test:integration": "vitest run --project=integration",
     "test:all": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:fast": "vitest run --project=unit --project=dom --project=nuxt --project=repos --coverage",
     "test:watch": "vitest --project=unit --project=dom --project=nuxt",
     "test:integration:up": "docker compose -f docker-compose.test.yml up -d",
     "test:integration:down": "docker compose -f docker-compose.test.yml down -v"
@@ -82,6 +84,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/markdown-it": "^14.1.2",
     "@types/pg": "^8.20.0",
+    "@vitest/coverage-v8": "^4.1.4",
     "@vitest/ui": "^4.1.4",
     "@vue/test-utils": "^2.4.6",
     "drizzle-kit": "^0.31.10",
