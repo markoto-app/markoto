@@ -32,6 +32,18 @@ export interface ChunkMarkdownOptions {
   maxTokens?: number
   /** Overlap in tokens between adjacent chunks inside one section. Default 100. */
   overlapTokens?: number
+  /**
+   * Hard ceiling on number of chunks the splitter will emit. Caps the
+   * blast radius on pathological inputs (e.g. 25 MB of single-word
+   * lines) — each chunk becomes one Gemini embedding call, so without
+   * a ceiling a single upload can issue tens of thousands of API calls.
+   *
+   * When hit, the chunker keeps the first `maxChunks - 1` chunks and
+   * replaces everything after with a single sentinel "[truncated]"
+   * chunk so downstream search can still see SOMETHING hit for that
+   * part of the document. Default: no ceiling (undefined).
+   */
+  maxChunks?: number
 }
 
 export interface Chunk {
@@ -189,6 +201,20 @@ export function chunkMarkdown(markdown: string, options: ChunkMarkdownOptions = 
     bufTokens += c.tokens
   }
   flush()
+
+  // Hard ceiling. Keep the first (maxChunks-1) chunks, replace the
+  // rest with one sentinel so downstream search sees something at the
+  // truncation point rather than silently losing the tail.
+  if (options.maxChunks && packed.length > options.maxChunks) {
+    const kept = packed.slice(0, options.maxChunks - 1)
+    const droppedCount = packed.length - kept.length
+    const sentinel: Chunk = {
+      index: kept.length + 1,
+      content: `[Document truncated: the remaining ${droppedCount} chunks were omitted because the file exceeded the per-file chunk limit. Upload a shorter or pre-summarised version for full coverage.]`,
+      tokens: estimateTokens(`[Document truncated: …]`)
+    }
+    return [...kept, sentinel]
+  }
 
   return packed
 }

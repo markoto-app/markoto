@@ -67,6 +67,17 @@ export async function startNuxt(): Promise<void> {
     // `server/utils/agentic/dictateSpeechClient.ts`.
     NUXT_GOOGLE_SPEECH_MOCK: '1',
     NUXT_MARKITDOWN_URL: 'http://127.0.0.1:1',
+    // Stripe: tests talk to the `stripe-mock` container for SDK calls
+    // (checkout, portal) and construct webhook payloads locally with
+    // `computeStripeSig` using this same secret.
+    // stripe-mock accepts any key matching `sk_test_<alphanumeric>`;
+    // use a short suffix that matches their example format.
+    NUXT_STRIPE_SECRET_KEY: 'sk_test_123abc',
+    NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_integration',
+    NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
+    NUXT_STRIPE_PRICE_PRO: 'price_test_pro',
+    NUXT_STRIPE_PRICE_MAX: 'price_test_max',
+    NUXT_STRIPE_PRICE_ULTRA: 'price_test_ultra',
     // Inactive-doc sweeper. Set TTL to 0 to disable for tests — no point
     // letting it fire during a short integration run.
     NUXT_INACTIVE_DOC_TTL_DAYS: '0'

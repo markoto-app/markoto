@@ -43,6 +43,8 @@ const ALLOWED_MIME = [
 // client can't OOM the endpoint.
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024
 
+import { resolveBillingContext, chargeInteractions, interactionsForAudioMs, BudgetExhausted } from '../../utils/billing'
+
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
@@ -58,6 +60,20 @@ export default defineEventHandler(async (event) => {
   // limit is just abuse prevention.
   if (!(await checkRateLimit('ai-transcribe', String(userId), 60, 60 * 60 * 1000))) {
     throw createError({ statusCode: 429, message: 'Too many voice-input requests. Try again in a minute.' })
+  }
+
+  // Interaction budget pre-check. A 60s clip (worst case at the
+  // MAX_AUDIO_BYTES ceiling) costs 5 interactions — require at least
+  // that many remaining before we spend money on STT. Users near
+  // their cap may see a false reject here on a short clip; they can
+  // upgrade or wait for next period.
+  const billing = await resolveBillingContext(userId, null)
+  if (billing.interactionsRemaining < 5) {
+    throw createError({
+      statusCode: 402,
+      message: 'Not enough AI actions remaining for a voice clip. Upgrade your plan at /pricing to continue.',
+      data: { plan: billing.plan, remaining: billing.interactionsRemaining }
+    })
   }
 
   const body = await readBody(event) as {
@@ -135,6 +151,7 @@ export default defineEventHandler(async (event) => {
       results?: Array<{
         alternatives?: Array<{ transcript?: string }>
       }>
+      totalBilledTime?: string // "Ns" — e.g. "15s"
     }
     const data = await res.json() as SttResponse
 
@@ -146,6 +163,34 @@ export default defineEventHandler(async (event) => {
       .filter(Boolean)
       .join(' ')
       .trim()
+
+    // Charge interactions based on the billed audio duration Cloud STT
+    // reports back. Format is `"<N>s"` (e.g. `"15s"`). If we can't
+    // parse it (malformed response, silence → no result), fall back to
+    // 1 interaction flat so we don't give free transcribe cycles.
+    const totalBilled = data.totalBilledTime ?? ''
+    const billedSec = Number.parseFloat(totalBilled.replace(/s$/, '')) || 0
+    const delta = Math.max(1, interactionsForAudioMs(billedSec * 1000))
+    try {
+      await chargeInteractions({
+        attributedTo: billing.attributedTo,
+        plan: billing.plan,
+        delta,
+        periodStart: billing.periodStart,
+        reason: 'voice-input transcribe'
+      })
+    } catch (e) {
+      if (e instanceof BudgetExhausted) {
+        // Race with concurrent charges (shouldn't happen for a single
+        // user, but a `(+)` workspace with multiple active members can
+        // drift us past the cap between the pre-check and the post-
+        // charge). Log and let the response through — we'd rather
+        // over-serve by a few seconds than lose the transcript.
+        console.warn(`[transcribe] [billing] over-cap after STT succeeded: ${e.message}`)
+      } else {
+        throw e
+      }
+    }
 
     if (!text) {
       // No utterances detected at all — pure silence / noise. Same

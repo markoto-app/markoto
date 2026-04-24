@@ -207,3 +207,62 @@ export async function consumeRateLimitBudget(
     return { allowed: true, remaining: maxCost }
   }
 }
+
+/**
+ * Reserve one "inflight slot" under a counter. Used to prevent
+ * concurrent-request races from overshooting caps BEFORE a DB write
+ * commits — e.g. 500 simultaneous knowledge upload-requests all read
+ * count=499 from the DB and all pass the per-workspace cap check.
+ *
+ * Returns `{ allowed, current }`. When `allowed=false`, no slot was
+ * reserved; caller should 409. `current` is post-increment on success.
+ *
+ * TTL is a safety net — the counter is decremented on confirm / abort,
+ * but if the caller crashes between `reserve` and `release` the TTL
+ * lets the slot self-free. Keep `ttlMs` close to the presigned-URL TTL
+ * (plus a margin) so abandoned presigns don't pin slots forever.
+ *
+ * Fails CLOSED on Valkey error — inflight tracking is a correctness
+ * cap, not a rate limit. Failing open would re-open the race.
+ */
+export async function reserveInflightSlot(
+  namespace: string,
+  key: string,
+  maxSlots: number,
+  ttlMs: number
+): Promise<{ allowed: boolean, current: number }> {
+  if (process.env.TEST_MODE === '1') return { allowed: true, current: 0 }
+
+  const ckey = `inflight:${namespace}:${key}`
+  try {
+    const valkey = useValkey()
+    const current = Number(await valkey.get(ckey) ?? 0)
+    if (current >= maxSlots) return { allowed: false, current }
+    const after = await valkey.incr(ckey)
+    // INCR on a missing key creates it with no TTL; set TTL every time
+    // so the worst-case stale counter self-cleans within `ttlMs`.
+    await valkey.pexpire(ckey, ttlMs)
+    return { allowed: true, current: after }
+  } catch (e) {
+    console.warn('[rateLimit] valkey error on inflight reserve, failing closed:', e instanceof Error ? e.message : e)
+    Sentry.captureException(e, {
+      tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
+    })
+    return { allowed: false, current: 0 }
+  }
+}
+
+/**
+ * Decrement an inflight counter. Best-effort — if the decrement fails
+ * or the key is missing, TTL will eventually clean up. Never goes
+ * negative (Valkey `DECR` can; we clamp by deleting at zero).
+ */
+export async function releaseInflightSlot(namespace: string, key: string): Promise<void> {
+  if (process.env.TEST_MODE === '1') return
+  const ckey = `inflight:${namespace}:${key}`
+  try {
+    const valkey = useValkey()
+    const after = await valkey.decr(ckey)
+    if (after <= 0) await valkey.del(ckey)
+  } catch { /* TTL will clean up */ }
+}

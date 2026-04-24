@@ -18,6 +18,8 @@ interface WorkspaceDetail {
     createdAt: string
     myRole: 'admin' | 'editor' | 'viewer'
     ownerId: number
+    aiEnabled: boolean
+    billingOwnerId: number | null
   }
   documents: WorkspaceDoc[]
   members: WorkspaceMember[]
@@ -56,6 +58,16 @@ const myRole = computed(() => data.value?.workspace.myRole ?? null)
 const isAdmin = computed(() => myRole.value === 'admin')
 const canCreateDoc = computed(() => myRole.value === 'admin' || myRole.value === 'editor')
 const myUserId = computed(() => (user.value as any)?.id as number | undefined)
+
+// Tabs split the workspace into three concerns. Default is Documents
+// since that's what most visits are about. Nuxt UI v4's UTabs needs
+// `value` on each item for v-model binding; `slot` picks the template.
+const activeTab = ref<'documents' | 'knowledge' | 'ai'>('documents')
+const tabItems = computed(() => [
+  { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents' as const, value: 'documents' },
+  { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge' as const, value: 'knowledge' },
+  { label: t('workspace.tabs.ai'), icon: 'i-lucide-sparkles', slot: 'ai' as const, value: 'ai' }
+])
 
 const creating = ref(false)
 async function createDocument() {
@@ -326,50 +338,97 @@ async function leaveWorkspace() {
           </div>
         </div>
 
-        <!-- Doc list -->
-        <div v-if="data.documents.length > 0">
-          <WorkspaceDocTable
-            :documents="data.documents"
-            :my-role="myRole || 'viewer'"
-            :workspace-id="data.workspace.workspaceId"
-            @duplicate-requested="openDocDuplicate"
-            @move-requested="openDocMove"
-            @delete-requested="openDocDelete"
-          />
-        </div>
+        <!-- AI workspace banner — visible to every member when the
+             admin has turned the toggle on. Muted palette; it's a
+             persistent status indicator, not a warning. -->
         <div
-          v-else
-          class="text-center py-16 border border-dashed border-default rounded-lg"
+          v-if="data.workspace.aiEnabled"
+          class="flex items-center gap-2 rounded-lg border border-default bg-default/60 px-3 py-2 text-sm text-muted"
         >
-          <UIcon
-            name="i-lucide-file-plus"
-            class="size-8 text-muted mx-auto mb-2"
-          />
-          <p class="text-base font-medium">
-            {{ t('workspace.empty') }}
-          </p>
-          <p class="text-sm text-muted mt-1">
-            {{ canCreateDoc ? t('workspace.emptyDescription') : t('workspace.emptyDescriptionViewer') }}
-          </p>
-          <UButton
-            v-if="canCreateDoc"
-            class="mt-4"
-            icon="i-lucide-plus"
-            :loading="creating"
-            @click="createDocument"
-          >
-            {{ t('workspace.newDocument') }}
-          </UButton>
+          <UIcon name="i-lucide-sparkles" class="shrink-0" />
+          <span>
+            This is an <strong class="text-default">AI workspace</strong> — AI work here runs on the sponsor's credit pool.
+          </span>
         </div>
 
-        <!-- Knowledge base: sits below the doc list so docs stay the
-             primary surface. Members can always see it (even viewers),
-             but only editor+ can upload/delete. -->
-        <WorkspaceKnowledgePanel
-          :workspace-id="data.workspace.workspaceId"
-          :my-role="data.workspace.myRole"
-          :my-user-id="myUserId ?? null"
-        />
+        <!-- Tabs split the workspace into Documents / Knowledge / AI.
+             Keeps the page focused on one concern at a time now that
+             there's enough to manage that cramming them vertically
+             would feel cluttered. -->
+        <UTabs
+          v-model="activeTab"
+          :items="tabItems"
+          :ui="{ content: 'mt-6' }"
+        >
+          <template #documents>
+            <div v-if="data.documents.length > 0">
+              <WorkspaceDocTable
+                :documents="data.documents"
+                :my-role="myRole || 'viewer'"
+                :workspace-id="data.workspace.workspaceId"
+                @duplicate-requested="openDocDuplicate"
+                @move-requested="openDocMove"
+                @delete-requested="openDocDelete"
+              />
+            </div>
+            <div
+              v-else
+              class="text-center py-16 border border-dashed border-default rounded-lg"
+            >
+              <UIcon
+                name="i-lucide-file-plus"
+                class="size-8 text-muted mx-auto mb-2"
+              />
+              <p class="text-base font-medium">
+                {{ t('workspace.empty') }}
+              </p>
+              <p class="text-sm text-muted mt-1">
+                {{ canCreateDoc ? t('workspace.emptyDescription') : t('workspace.emptyDescriptionViewer') }}
+              </p>
+              <UButton
+                v-if="canCreateDoc"
+                class="mt-4"
+                icon="i-lucide-plus"
+                :loading="creating"
+                @click="createDocument"
+              >
+                {{ t('workspace.newDocument') }}
+              </UButton>
+            </div>
+          </template>
+
+          <template #knowledge>
+            <WorkspaceKnowledgePanel
+              :workspace-id="data.workspace.workspaceId"
+              :my-role="data.workspace.myRole"
+              :my-user-id="myUserId ?? null"
+            />
+          </template>
+
+          <template #ai>
+            <!-- Admin-only toggle — non-admins see the read-only
+                 explanation so they understand the feature without
+                 being able to flip it. -->
+            <WorkspaceBillingToggle
+              v-if="isAdmin"
+              :workspace-id="data.workspace.workspaceId"
+              :ai-enabled="data.workspace.aiEnabled"
+              :billing-owner-id="data.workspace.billingOwnerId"
+              @updated="loadWorkspace"
+            />
+            <div
+              v-else
+              class="border border-default rounded-lg p-4 bg-default/50 text-sm text-muted"
+            >
+              <p v-if="data.workspace.aiEnabled">
+                This workspace is an <strong>AI workspace</strong>. AI work here is sponsored by an admin.
+              </p>
+              <p v-else>
+                This is a regular workspace. Members use their own AI credits. An admin can turn it into an AI workspace to sponsor the pool.
+              </p>
+            </div>
+          </template>
+        </UTabs>
       </div>
     </main>
 

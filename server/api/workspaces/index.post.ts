@@ -1,9 +1,40 @@
 import { nanoid } from 'nanoid'
-import { createWorkspace } from '../../repos/workspaces'
+import { eq } from 'drizzle-orm'
+import { createWorkspace, countOwnedWorkspacesByUser } from '../../repos/workspaces'
+import { users } from '../../db/schema'
+import { useDatabase } from '../../utils/database'
+import { TIERS, type PlanName } from '~~/shared/config/tiers'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const body = await readBody<{ name?: unknown, description?: unknown }>(event)
+  const userId = session.user.id
+
+  // Per-user workspace cap, tier-aware. Prevents the "spawn thousands
+  // of workspaces to fan out uploads" fan-out vector — each workspace
+  // independently has a 1 GB knowledge cap, so without a per-user
+  // workspace limit a single account could pin TB of S3. The exact
+  // number depends on the plan: Free=1, Pro=10, Max=30, Ultra=100.
+  // Lapsed paid plans fall back to free-tier caps defensively.
+  const db = useDatabase()
+  const planRows = await db.select({
+    plan: users.plan,
+    planValidUntil: users.planValidUntil
+  }).from(users).where(eq(users.id, userId)).limit(1)
+  const rawPlan = (planRows[0]?.plan ?? 'free') as PlanName
+  const validUntil = planRows[0]?.planValidUntil ?? null
+  const lapsed = validUntil !== null && validUntil.getTime() <= Date.now()
+  const effectivePlan: PlanName = lapsed ? 'free' : rawPlan
+  const cap = TIERS[effectivePlan].workspacesOwned
+
+  const owned = await countOwnedWorkspacesByUser(userId)
+  if (owned >= cap) {
+    throw createError({
+      statusCode: 409,
+      message: `You've reached the workspace limit for your plan (${cap}, ${effectivePlan}). Delete an unused workspace or upgrade at /pricing to create more.`,
+      data: { plan: effectivePlan, cap }
+    })
+  }
 
   const rawName = typeof body?.name === 'string' ? body.name.trim() : ''
   if (!rawName) throw createError({ statusCode: 400, message: 'Name is required' })
@@ -28,7 +59,7 @@ export default defineEventHandler(async (event) => {
   // other, so the ≥1-admin invariant holds from t=0.
   await createWorkspace({
     workspaceId,
-    ownerId: session.user.id,
+    ownerId: userId,
     name: rawName,
     description
   })

@@ -1,26 +1,25 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
-import { countWorkspaceKnowledge, sumWorkspaceKnowledgeBytes } from '../../../../repos/knowledge'
+import { reserveUploadSlot } from '../../../../utils/knowledgeQuota'
 
 /**
  * Step 1 of knowledge upload: mint a presigned PUT URL.
  *
- * We intentionally DO NOT insert the DB row here. That happens at confirm
- * time once the client has successfully PUT the bytes. Reason: if we
- * insert first, a user who abandons the upload leaves `status='processing'`
- * rows behind; the knowledge-sweep plugin would try to re-process
- * something that doesn't exist in S3. Orphaned S3 objects (user PUTs but
- * never confirms) are caught by the existing orphan-cleanup plugin via
- * prefix sweep.
+ * Guard order (fail early):
+ *   1. auth (session cookie)
+ *   2. workspace membership + editor/admin role
+ *   3. IP + user rate limit on presigns (cheap DoS protection)
+ *   4. extension allowlist (rejects .exe etc. before any DB work)
+ *   5. per-user + per-workspace DB caps + Valkey inflight slot reserve
+ *   6. presigned URL mint
  *
- * Caps checked here so we 409 before the user uploads. We re-check at
- * confirm time too — races between concurrent uploads can squeak past.
+ * Row inserts happen at CONFIRM time, not here — that way an abandoned
+ * upload (never PUT) doesn't create a `status='processing'` row the
+ * sweep has to retry. Orphaned S3 objects (PUT but not confirmed) are
+ * swept by orphan-cleanup via prefix listing.
  */
 
-// Markitdown's supported input formats. `md` / `txt` skip markitdown
-// and go straight to the chunker (fast path), but for simplicity we
-// route everything through markitdown for now.
 const EXT_TO_MIME: Record<string, string> = {
   pdf: 'application/pdf',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -40,6 +39,16 @@ export default defineEventHandler(async (event) => {
   const userId = session.user.id
 
   await requireKnowledgeEditAccess(event, wsId, userId)
+
+  // Per-user rate limit on presign requests. 30 per minute is plenty
+  // for a genuine power user batch-uploading; well below the volume
+  // a script would need to meaningfully abuse signing throughput.
+  if (!(await checkRateLimit('knowledge-upload', String(userId), 30, 60_000))) {
+    throw createError({
+      statusCode: 429,
+      message: 'Too many upload requests. Try again in a minute.'
+    })
+  }
 
   const body = await readBody<{ filename?: unknown, size?: unknown }>(event)
   const filename = typeof body?.filename === 'string' ? body.filename.trim() : ''
@@ -64,50 +73,37 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Cap + inflight-slot reservation. Throws on any cap breach; returns
+  // a releaser we invoke on the failure path after this point. The
+  // confirm endpoint releases on success and on its own failures.
+  const { releaseSlots } = await reserveUploadSlot({
+    workspaceId: wsId,
+    userId,
+    size
+  })
+
   const config = useRuntimeConfig()
-  if (size > config.knowledge.maxFileBytes) {
-    throw createError({
-      statusCode: 413,
-      message: `File too large. Max ${Math.round(config.knowledge.maxFileBytes / (1024 * 1024))} MB.`
-    })
-  }
-
-  // Workspace-level caps (soft — only checked at upload time).
-  const [currentCount, currentBytes] = await Promise.all([
-    countWorkspaceKnowledge(wsId),
-    sumWorkspaceKnowledgeBytes(wsId)
-  ])
-  if (currentCount >= config.knowledge.maxFilesPerWorkspace) {
-    throw createError({
-      statusCode: 409,
-      message: `Workspace knowledge limit reached (${config.knowledge.maxFilesPerWorkspace} files).`
-    })
-  }
-  if (currentBytes + size > config.knowledge.maxTotalBytesPerWorkspace) {
-    throw createError({
-      statusCode: 409,
-      message: `Workspace knowledge storage limit reached (${Math.round(config.knowledge.maxTotalBytesPerWorkspace / (1024 * 1024))} MB).`
-    })
-  }
-
   const knowledgeId = nanoid(12)
   const s3Key = `workspaces/${wsId}/knowledge/${knowledgeId}.${ext}`
 
-  const s3 = useS3Client()
-  const uploadUrl = await getSignedUrl(
-    s3,
-    new PutObjectCommand({
-      Bucket: config.s3.bucket,
-      Key: s3Key,
-      ContentType: mimeType,
-      ContentLength: size
-    }),
-    { expiresIn: 300 }
-  )
+  let uploadUrl: string
+  try {
+    const s3 = useS3Client()
+    uploadUrl = await getSignedUrl(
+      s3,
+      new PutObjectCommand({
+        Bucket: config.s3.bucket,
+        Key: s3Key,
+        ContentType: mimeType,
+        ContentLength: size
+      }),
+      { expiresIn: 300 }
+    )
+  } catch (e) {
+    await releaseSlots()
+    throw e
+  }
 
-  // Return the fields the client echoes back to /confirm. `knowledgeId`
-  // is pre-generated so the S3 key is deterministic without a second
-  // DB round-trip.
   return {
     knowledgeId,
     uploadUrl,

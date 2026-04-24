@@ -8,6 +8,7 @@ const props = defineProps<{
     otherSessions: ReturnType<typeof useAI>['otherSessions']
     submitting: ReturnType<typeof useAI>['submitting']
     lastError: ReturnType<typeof useAI>['lastError']
+    budgetExhausted: ReturnType<typeof useAI>['budgetExhausted']
     prompt: ReturnType<typeof useAI>['prompt']
     abort: ReturnType<typeof useAI>['abort']
     clearLastError: ReturnType<typeof useAI>['clearLastError']
@@ -17,6 +18,15 @@ const props = defineProps<{
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
 const toast = useToast()
+
+// Billing state — drives two things in the prompt bar:
+//   1. `refreshBilling` is called after a session ends so the topbar
+//      badge's percentage ticks down live.
+//   2. `creditsExhausted` gates the input + send + mic buttons so the
+//      user can't even type a prompt that the server would reject.
+//      The bar stays visible so the user sees the path forward.
+const { refresh: refreshBilling, creditsExhausted } = useBilling()
+const router = useRouter()
 
 const input = ref('')
 const focused = ref(false)
@@ -61,17 +71,40 @@ watch(() => voice.errorMessage.value, (err) => {
 
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
-  // Only mirror the session message for prompt-kind sessions; rewrite
-  // sessions belong to the selection popup's UX and the bottom bar
-  // should stay visually neutral during them (still disabled — see
-  // `disabled` below — but no "Rewriting…" status leaking up here).
+  // Out of credits → swap the placeholder so the user reads the
+  // reason the bar is disabled + the path forward (click routes to
+  // /pricing).
+  if (creditsExhausted.value) return t('ai.exhaustedPlaceholder')
+  // Active session → mirror the session's status message. Bar doubles
+  // as a status indicator so the user knows the AI isn't stuck.
   const s = props.ai.mySession.value
-  if (s && s.kind !== 'rewrite') return s.message || t('ai.statusThinking')
+  if (s) return s.message || t('ai.statusThinking')
+  // Idle → primary call-to-action copy. The bar is the entry point
+  // for the AI — usage/remaining info lives in the topbar badge where
+  // it doesn't compete with the affordance.
   return t('ai.placeholder')
 })
 
+// At-cap click → /pricing instead of a doomed request. Used by the
+// send button's click handler and by click-on-input (for users who
+// click the grayed-out bar and expect *something* to happen).
+function onCapReached() {
+  router.push('/pricing')
+}
+
+// After a session ends, refresh the billing counter so the topbar
+// usage badge ticks down live.
+watch(() => props.ai.mySessionId.value, (now, prev) => {
+  if (prev && !now) {
+    void refreshBilling()
+  }
+})
+
 const disabled = computed(() => {
-  return !loggedIn.value || !!props.ai.mySessionId.value || props.ai.submitting.value
+  return !loggedIn.value
+    || !!props.ai.mySessionId.value
+    || props.ai.submitting.value
+    || creditsExhausted.value
 })
 
 // Voice UI is mutually exclusive with the text input; each voice state
@@ -85,7 +118,10 @@ const voiceActive = computed(() => isRecording.value || isTranscribing.value || 
 // takes its slot). It's also disabled when the user is mid-submit or when
 // they're not logged in — transcribe is a protected endpoint.
 const micDisabled = computed(() => {
-  return !loggedIn.value || !!props.ai.mySessionId.value || props.ai.submitting.value
+  return !loggedIn.value
+    || !!props.ai.mySessionId.value
+    || props.ai.submitting.value
+    || creditsExhausted.value
 })
 
 // Timer display ticks with `durationSec` (updated by the composable's RAF
@@ -108,6 +144,14 @@ const timerColorClass = computed(() => {
 })
 
 async function onSubmit() {
+  // Exhausted users get routed to /pricing instead of a silent no-op.
+  // `disabled.value` includes `creditsExhausted`, so the body below
+  // guards against the rest of the disabled states (no session, not
+  // logged in, etc).
+  if (creditsExhausted.value) {
+    onCapReached()
+    return
+  }
   const text = input.value.trim()
   if (!text || disabled.value) return
   const ok = await props.ai.prompt(text)
@@ -116,12 +160,29 @@ async function onSubmit() {
 
 watch(() => props.ai.lastError.value, (err) => {
   if (!err) return
-  toast.add({
-    title: t('ai.failed'),
-    description: err,
-    icon: 'i-lucide-alert-circle',
-    color: 'error'
-  })
+  if (props.ai.budgetExhausted.value) {
+    // Dedicated budget-exhausted toast with an Upgrade action. Users
+    // need an obvious path forward — a generic "AI request failed"
+    // toast doesn't tell them what to do.
+    toast.add({
+      title: t('ai.budgetExhaustedTitle'),
+      description: t('ai.budgetExhaustedDescription'),
+      icon: 'i-lucide-credit-card',
+      color: 'warning',
+      actions: [{
+        label: t('ai.upgradeCta'),
+        color: 'primary',
+        onClick: () => { window.location.href = '/pricing' }
+      }]
+    })
+  } else {
+    toast.add({
+      title: t('ai.failed'),
+      description: err,
+      icon: 'i-lucide-alert-circle',
+      color: 'error'
+    })
+  }
   props.ai.clearLastError()
 })
 
@@ -142,16 +203,12 @@ const statusIcon = computed(() => {
   }
 })
 
-// Animate the bottom bar only for *prompt* sessions, never for inline
-// rewrites — those have their own surface (`AISelectionPopup`) with its
-// own animation. Both endpoints flow through the same Y.js awareness
-// machinery server-side, so without this gate the rainbow + pulse
-// would also fire on the bottom bar during a rewrite, which reads as
-// "two things happening" when only one is.
-const isActive = computed(() => {
-  const s = props.ai.mySession.value
-  return !!s && s.kind !== 'rewrite'
-})
+// Bottom bar animates whenever there's an active session for the
+// caller. Since phase 5 collapsed inline rewrite into the unified
+// agentic path, both the bottom bar and the selection popup point at
+// the same session — having both surfaces animate in sync reinforces
+// "AI is working" rather than competing for attention.
+const isActive = computed(() => !!props.ai.mySession.value)
 </script>
 
 <template>
@@ -296,13 +353,18 @@ const isActive = computed(() => {
         :aria-label="t('ai.micTranscribing')"
         class="ai-prompt-bar__action"
       />
+      <!-- Send button. When credits are exhausted we do NOT disable
+           the button — the click routes to /pricing instead. Keeps
+           the "escape hatch" alive so the user can't get stuck. -->
       <UButton
         v-else-if="!isActive"
-        color="info"
-        icon="i-lucide-send"
+        :color="creditsExhausted ? 'neutral' : 'info'"
+        :icon="creditsExhausted ? 'i-lucide-lock' : 'i-lucide-send'"
         :loading="ai.submitting.value"
-        :disabled="!loggedIn || !input.trim()"
-        :aria-label="t('ai.send')"
+        :disabled="!loggedIn || (!creditsExhausted && !input.trim())"
+        :class="creditsExhausted ? 'opacity-70' : ''"
+        :aria-label="creditsExhausted ? t('ai.exhaustedPlaceholder') : t('ai.send')"
+        :title="creditsExhausted ? t('ai.exhaustedPlaceholder') : undefined"
         class="ai-prompt-bar__action"
         @click="onSubmit"
       />

@@ -56,6 +56,33 @@ const uploadProgress = ref<{ filename: string, percent: number } | null>(null)
 
 const canEdit = computed(() => props.myRole === 'admin' || props.myRole === 'editor')
 
+// Cap pre-enforcement. The upload-request endpoint enforces the same
+// caps server-side (409) but we mirror them here so the upload button
+// disables BEFORE the click, not after. Two axes: file count, total
+// bytes. `usage.maxFiles` / `usage.maxBytes` are per-workspace, tier-
+// resolved on the server (AI-workspace uses the sponsor's caps).
+// Per-user caps are ALSO enforced server-side but aren't surfaced
+// here — if a user tops out their per-user bytes in another
+// workspace, they'd click here and see a 409 toast. Acceptable
+// corner case: per-user caps require a dedicated endpoint to surface
+// cleanly, and this is the less common cap to hit.
+const router = useRouter()
+const filesCapReached = computed(() => !!usage.value && usage.value.count >= usage.value.maxFiles)
+const bytesCapReached = computed(() => !!usage.value && usage.value.totalBytes >= usage.value.maxBytes)
+const uploadCapReached = computed(() => filesCapReached.value || bytesCapReached.value)
+const uploadCapTooltip = computed(() => {
+  if (filesCapReached.value) return t('knowledge.capFilesReached', { limit: usage.value?.maxFiles ?? 0 })
+  if (bytesCapReached.value) return t('knowledge.capBytesReached', { limit: Math.round((usage.value?.maxBytes ?? 0) / (1024 * 1024)) })
+  return ''
+})
+function onUploadClick() {
+  if (uploadCapReached.value) {
+    router.push('/pricing')
+    return
+  }
+  pickFile()
+}
+
 function canDelete(row: KnowledgeItem): boolean {
   if (props.myRole === 'admin') return true
   if (props.myRole === 'editor' && row.uploaderId != null && row.uploaderId === props.myUserId) return true
@@ -261,12 +288,16 @@ function iconFor(ext: string): string {
       </div>
       <UButton
         v-if="canEdit"
-        icon="i-lucide-upload"
+        :icon="uploadCapReached ? 'i-lucide-lock' : 'i-lucide-upload'"
         size="sm"
         :loading="uploading"
-        @click="pickFile"
+        :variant="uploadCapReached ? 'ghost' : 'solid'"
+        :color="uploadCapReached ? 'neutral' : 'primary'"
+        :class="uploadCapReached ? 'opacity-60' : ''"
+        :title="uploadCapReached ? uploadCapTooltip : undefined"
+        @click="onUploadClick"
       >
-        {{ t('knowledge.upload') }}
+        {{ uploadCapReached ? t('knowledge.capReachedShort') : t('knowledge.upload') }}
       </UButton>
     </div>
     <p
@@ -291,12 +322,16 @@ function iconFor(ext: string): string {
       </UBadge>
       <UButton
         v-if="canEdit"
-        icon="i-lucide-upload"
+        :icon="uploadCapReached ? 'i-lucide-lock' : 'i-lucide-upload'"
         size="xs"
         :loading="uploading"
-        @click="pickFile"
+        :variant="uploadCapReached ? 'ghost' : 'solid'"
+        :color="uploadCapReached ? 'neutral' : 'primary'"
+        :class="uploadCapReached ? 'opacity-60' : ''"
+        :title="uploadCapReached ? uploadCapTooltip : undefined"
+        @click="onUploadClick"
       >
-        {{ t('knowledge.upload') }}
+        {{ uploadCapReached ? t('knowledge.capReachedShort') : t('knowledge.upload') }}
       </UButton>
     </div>
 

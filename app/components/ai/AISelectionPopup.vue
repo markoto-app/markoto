@@ -1,19 +1,10 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import * as Y from 'yjs'
-import type { Text as YText } from 'yjs'
+import type { EditorSelectionSnapshot } from '~~/shared/types/editorSelection'
 
 const props = defineProps<{
   view: EditorView | null
-  ytext: YText
-  onRewrite: (params: {
-    selectionText: string
-    selectionFrom: number
-    selectionTo: number
-    relFrom: Y.RelativePosition | null
-    relTo: Y.RelativePosition | null
-    instruction: string
-  }) => Promise<boolean>
+  onPrompt: (text: string, overrides: { editorSelection: EditorSelectionSnapshot }) => Promise<boolean>
 }>()
 
 const { t } = useI18n()
@@ -29,16 +20,14 @@ const instruction = ref('')
 const popupX = ref(0)
 const popupY = ref(0)
 
-// Cached selection at the moment we show the popup — don't rely on `view`
-// at submit time because the selection may have changed.
-interface CapturedSelection {
-  text: string
-  from: number
-  to: number
-  relFrom: Y.RelativePosition | null
-  relTo: Y.RelativePosition | null
-}
-const captured = ref<CapturedSelection | null>(null)
+// Cached selection snapshot at the moment we show the popup. Stored as
+// an EditorSelectionSnapshot so we can ship it straight through the
+// same `/api/ai/prompt` endpoint the bottom bar uses — one code path.
+// The server-side `<editor_state>` wrapper points the agentic loop at
+// this range, and the model picks `replace_text` accordingly.
+const captured = ref<
+  (EditorSelectionSnapshot & { kind: 'selection' }) | null
+>(null)
 
 const inputEl = ref<HTMLInputElement | null>(null)
 const popupEl = ref<HTMLElement | null>(null)
@@ -64,26 +53,23 @@ function reposition(view: EditorView) {
   popupY.value = coords.bottom + 6
 }
 
-function captureSelection(view: EditorView) {
+// Char offsets → 1-indexed line numbers, matching how
+// `snapshotEditorSelection` builds its EditorSelectionSnapshot for the
+// prompt bar. Lets the model cross-reference the range with
+// `view_document`'s line-numbered output directly.
+const EDITOR_SELECTION_TEXT_MAX = 400
+
+function captureSelection(view: EditorView): (EditorSelectionSnapshot & { kind: 'selection' }) | null {
   const sel = view.state.selection.main
   if (sel.empty) return null
-  const text = view.state.sliceDoc(sel.from, sel.to).trim()
-  if (!text) return null
-
-  let relFrom: Y.RelativePosition | null = null
-  let relTo: Y.RelativePosition | null = null
-  try {
-    relFrom = Y.createRelativePositionFromTypeIndex(props.ytext, sel.from)
-    relTo = Y.createRelativePositionFromTypeIndex(props.ytext, sel.to)
-  } catch { /* fall back to raw indices on the server */ }
-
-  return {
-    text,
-    from: sel.from,
-    to: sel.to,
-    relFrom: relFrom ? JSON.parse(JSON.stringify(relFrom)) : null,
-    relTo: relTo ? JSON.parse(JSON.stringify(relTo)) : null
-  } as CapturedSelection
+  const rawText = view.state.sliceDoc(sel.from, sel.to)
+  const trimmed = rawText.trim()
+  if (!trimmed) return null
+  const fromLine = view.state.doc.lineAt(sel.from).number
+  const toLine = view.state.doc.lineAt(sel.to).number
+  const truncated = rawText.length > EDITOR_SELECTION_TEXT_MAX
+  const text = truncated ? rawText.slice(0, EDITOR_SELECTION_TEXT_MAX) : rawText
+  return { kind: 'selection', fromLine, toLine, text, truncated }
 }
 
 let removeSelectionListener: (() => void) | null = null
@@ -156,14 +142,12 @@ async function onSubmit() {
 
   submitting.value = true
   try {
-    const ok = await props.onRewrite({
-      selectionText: captured.value.text,
-      selectionFrom: captured.value.from,
-      selectionTo: captured.value.to,
-      relFrom: captured.value.relFrom,
-      relTo: captured.value.relTo,
-      instruction: text
-    })
+    // Wrap the user's raw instruction so the agentic loop treats the
+    // selection as the edit target, not the whole doc. The server's
+    // `<editor_state>` wrapper already carries the range — this wrapper
+    // reinforces the intent in the user-visible prompt text.
+    const wrappedPrompt = `Rewrite the selected text (lines ${captured.value.fromLine}–${captured.value.toLine}) per this instruction, using replace_text so only the selection changes: ${text}`
+    const ok = await props.onPrompt(wrappedPrompt, { editorSelection: captured.value })
     if (ok) {
       hide()
     } else {

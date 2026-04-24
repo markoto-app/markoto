@@ -2,6 +2,8 @@ import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 import { Awareness } from 'y-protocols/awareness'
+import type { AttributedTo } from './billing'
+import type { PlanName } from '~~/shared/config/tiers'
 // Node environment needs a WebSocket implementation; 'ws' is a transitive dep of hocuspocus provider
 // but may not be auto-picked on Bun/Nitro. We import it explicitly at runtime if needed.
 
@@ -30,6 +32,22 @@ export interface AiSession {
    * place, but the field is read defensively inside the handlers too.
    */
   workspaceId: string | null
+  /**
+   * Billing target for this session. `user:{id}` when self-billing,
+   * `workspace:{id}` when a `(+)` workspace's owner covers the cost.
+   * Resolved once at session open via `resolveBillingContext`. Tool
+   * handlers use this directly instead of re-resolving — membership
+   * can drift mid-session, but the billing target is frozen at open.
+   */
+  attributedTo: AttributedTo
+  /** Plan that applies to the session. Same freeze-at-open rule as attributedTo. */
+  plan: PlanName
+  /**
+   * Billing-period start frozen at session-open. Every charge for
+   * this session lands on the same `ai_usage_period` row via this
+   * anchor. Paid users: Stripe anniversary. Free: calendar-month UTC.
+   */
+  periodStart: Date
   updateStatus(phase: AiStatusPhase, message?: string): void
   destroy(): Promise<void>
 }
@@ -40,13 +58,14 @@ export interface SessionMeta {
   initiatorUserId: number
   initiatorColor: string
   prompt: string
-  // 'prompt' = full agentic loop (long-running, gets the bottom bar's
-  // attention treatment). 'rewrite' = inline selection rewrite (short,
-  // its own UI surface — should NOT animate the bottom bar). Defaults
-  // to 'prompt' when omitted.
-  kind?: 'prompt' | 'rewrite'
   /** Workspace the doc belongs to, forwarded to the resulting AiSession. */
   workspaceId?: string | null
+  /** Billing attribution target, resolved by the caller. */
+  attributedTo: AttributedTo
+  /** Plan that applies to the session. */
+  plan: PlanName
+  /** Billing-period start (Stripe anniversary for paid, calendar month for free). */
+  periodStart: Date
 }
 
 /**
@@ -95,8 +114,7 @@ export async function createAiSession(
     sessionId: meta.sessionId,
     initiatorName: meta.initiatorName,
     initiatorUserId: meta.initiatorUserId,
-    prompt: meta.prompt,
-    kind: meta.kind ?? 'prompt'
+    prompt: meta.prompt
   })
   awareness.setLocalStateField('aiStatus', { phase: 'thinking', message: null })
 
@@ -197,6 +215,9 @@ export async function createAiSession(
     docId,
     initiatorUserId: meta.initiatorUserId,
     workspaceId: meta.workspaceId ?? null,
+    attributedTo: meta.attributedTo,
+    plan: meta.plan,
+    periodStart: meta.periodStart,
     updateStatus,
     destroy
   }

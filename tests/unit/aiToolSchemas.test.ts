@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { TOOL_SCHEMAS, ALL_TOOL_DECLARATIONS } from '../../server/utils/agentic/functionTools'
+import { TOOL_SCHEMAS, ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../server/utils/agentic/functionTools'
 
 // Contract between our code and Gemini. The Zod schemas in functionTools.ts
 // are the single source of truth:
@@ -393,8 +393,10 @@ describe('TOOL_SCHEMAS registry', () => {
     expect(Object.keys(TOOL_SCHEMAS).sort()).toEqual([
       'fetch_url',
       'generate_image',
+      'get_knowledge_file',
       'insert_text',
       'replace_text',
+      'search_knowledge',
       'set_title',
       'update_theme',
       'view_document',
@@ -403,11 +405,17 @@ describe('TOOL_SCHEMAS registry', () => {
     ])
   })
 
-  it('registry keys match ALL_TOOL_DECLARATIONS names 1:1', () => {
+  it('registry keys match UNION of ALL + KNOWLEDGE declarations 1:1', () => {
     // Drift guard: if someone adds a new declaration but forgets to
     // register its schema (or vice versa), runLoop.ts's safeParse path
-    // silently no-ops for the unregistered half. Pin them together.
-    const declNames = ALL_TOOL_DECLARATIONS.map(d => d.name).sort()
+    // silently no-ops for the unregistered half. Knowledge tools are
+    // held in a separate declaration array (gated by workspace context)
+    // but must still be represented in TOOL_SCHEMAS so the validate
+    // path works when they're exposed.
+    const declNames = [
+      ...ALL_TOOL_DECLARATIONS.map(d => d.name),
+      ...KNOWLEDGE_TOOL_DECLARATIONS.map(d => d.name)
+    ].sort()
     const schemaNames = Object.keys(TOOL_SCHEMAS).sort()
     expect(schemaNames).toEqual(declNames)
   })

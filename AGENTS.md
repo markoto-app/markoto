@@ -1,6 +1,6 @@
 # YPad — Project Guide
 
-Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google) via `nuxt-auth-utils`, PostgreSQL (app data + Y.js state via `y-postgresql`), external S3 for image uploads & pg backups, multi-lingual UI via `@nuxtjs/i18n`, AI writing assistance via Google Gemini. Single Linux VPS, Docker Compose.
+Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google) via `nuxt-auth-utils`, PostgreSQL (app data + Y.js state via `y-postgresql` + pgvector embeddings), external S3 for image uploads & pg backups, multi-lingual UI via `@nuxtjs/i18n`, AI writing assistance via Google Gemini with workspace knowledge-base retrieval. Single Linux VPS, Docker Compose.
 
 Login is **optional** — public docs work anonymously. Login is required to own, manage permissions, use workspaces, delete, or use AI.
 
@@ -14,7 +14,8 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 - **Full-stack Nuxt.** One Bun process serves SSR + Nitro API + OAuth. No CDN.
 - **OAuth optional.** Anonymous users can view/edit public docs; login gates ownership and AI.
 - **Y.js state in Postgres** via `y-postgresql` (`yjs_documents` table). Append-only + periodic merge; one `pg_dump` covers everything.
-- **S3 = image uploads + pg backups only.** SeaweedFS in dev; external S3 in prod.
+- **S3 = image uploads, workspace knowledge originals (deleted post-processing), and pg backups.** SeaweedFS in dev; external S3 in prod.
+- **Workspace knowledge base.** Files uploaded to a workspace → markitdown → chunked → embedded (Gemini `gemini-embedding-2-preview`, 768-dim MRL) → pgvector HNSW + generated tsvector for hybrid search. Exposed to the AI via `search_knowledge` / `get_knowledge_file` tools, gated on workspace membership.
 - **Hocuspocus as separate container.** Long-lived WS shouldn't share the Nitro event loop. Server↔sync over shared-secret HTTP.
 - **AI joins the doc as a real Y.js client** — edits broadcast live via CRDT, status via awareness.
 - **Preview is paged, in an iframe.** `themeToCss(theme)` drives both live preview AND PDF print. No server Chromium.
@@ -64,6 +65,7 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 | `nanoid` | 5.1.5 | ID generation |
 | `@google/genai` | ^1.50 | Gemini SDK |
 | `@google-cloud/speech` | ^7.3 | Cloud Speech-to-Text SDK (used with API-key auth, NOT a service account) |
+| `file-type` | ^22 | Magic-byte sniffer for knowledge-upload content-type validation (confirm endpoint) |
 
 ### Sync server (`sync-server/`)
 
@@ -95,13 +97,18 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 |---|---|
 | Users, documents (theme JSONB, `workspace_id`), shares, workspaces, workspace_members, uploads, activity, rate-limits, AI sessions | PostgreSQL (Drizzle) |
 | Y.js document state | PostgreSQL (`yjs_documents` via `y-postgresql`) |
+| Workspace knowledge (rows + markdown cache) | PostgreSQL (`workspace_knowledge`) |
+| Knowledge chunks (content + 768-d vector + tsvector) | PostgreSQL (`workspace_knowledge_chunks`, pgvector HNSW + GIN) |
 | Image blobs | S3 at `docs/{docId}/{fileId}.ext` |
+| Knowledge originals (transient — deleted after successful processing) | S3 at `workspaces/{wsId}/knowledge/{kId}.{ext}` |
 | Postgres backups | S3 at `backups/postgres/{ISO8601}.sql.gz` |
 | User sessions | Sealed cookies (`nuxt-auth-utils`), versioned via `SESSION_VERSION` |
 
 Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [...] })` not `pgEnum` — adding values is TS-only, no `ALTER TYPE` friction.
 
 **Migrations:** `bun run db:generate` diffs against `drizzle/meta/` snapshots. `server/plugins/00-db-migrate.ts` applies at boot (numeric prefix forces load-first). `server/plugins/99-shutdown.ts` closes pg pool. `NUXT_S3_ENDPOINT` swaps S3 backends with no code changes.
+
+**Postgres image:** `pgvector/pgvector:pg16` (drop-in for `postgres:16-alpine`, data-dir compatible). Migration `0005_lame_cassandra_nova.sql` runs `CREATE EXTENSION IF NOT EXISTS vector` before the knowledge tables — drizzle doesn't emit CREATE EXTENSION, so it's hand-prepended in the generated file.
 
 ---
 
@@ -166,9 +173,15 @@ Workspace membership overrides: admin/editor bypasses `private` and `password-pr
 
 **Import:** `POST /api/import` (DOCX/PDF/PPTX/XLSX/HTML/EPUB → markdown, 50MB, public)
 
-**Workspaces (login required):** `POST /api/workspaces`, `GET/PUT/DELETE /api/workspaces/:wsId`, `POST /api/workspaces/:wsId/members`, `PATCH/DELETE /api/workspaces/:wsId/members/:userId`
+**Workspaces (login required):** `POST /api/workspaces` (enforces per-user cap), `GET/PUT/DELETE /api/workspaces/:wsId`, `POST /api/workspaces/:wsId/members`, `PATCH/DELETE /api/workspaces/:wsId/members/:userId`
 
-**AI (login required):** `POST /api/ai/prompt` (returns `{sessionId}`), `POST /api/ai/rewrite`, `POST /api/ai/abort` (initiator only, 403 otherwise), `POST /api/ai/transcribe` (voice → text via Cloud STT sync; `{text, inaudible}`), `POST /api/ai/dictate/token` (mints 60s JWT for the dictation WS), `WS /api/ai/dictate` (live dictation relay — JWT auth via first message, NOT query string)
+**Workspace knowledge (login required + membership):**
+- `POST /api/workspaces/:wsId/knowledge/upload-request` — admin/editor; rate-limited + cap-checked; mints 300s presigned PUT + reserves Valkey inflight slot
+- `POST /api/workspaces/:wsId/knowledge/confirm` — HEAD + `file-type` magic sniff + advisory-locked cap recheck + row insert; kicks `processKnowledge` fire-and-forget; always releases inflight slots
+- `GET /api/workspaces/:wsId/knowledge` — any member; returns items (sans `markdown_cache`) + aggregate usage/cap info
+- `DELETE /api/workspaces/:wsId/knowledge/:knowledgeId` — admin or editor-who-uploaded; cascades chunks via FK + best-effort S3 delete
+
+**AI (login required):** `POST /api/ai/prompt` (returns `{sessionId}`; also handles selection-scoped rewrites since phase 5 collapsed the separate rewrite path into this one), `POST /api/ai/abort` (initiator only, 403 otherwise), `POST /api/ai/transcribe` (voice → text via Cloud STT sync; `{text, inaudible}`), `POST /api/ai/dictate/token` (mints 60s JWT for the dictation WS), `WS /api/ai/dictate` (live dictation relay — JWT auth via first message, NOT query string)
 
 Auth guard: `server/middleware/auth.ts` whitelists public patterns; protects `/api/docs/` (outside whitelist), `/api/workspaces`, `/api/user`, `/api/upload`, `/api/ai`. Token endpoint never issues a usable JWT for forbidden/password-gated docs.
 
@@ -194,15 +207,14 @@ Config at `sync-server/src/index.ts`. Hooks: `onLoadDocument`, `onStoreDocument`
 
 Two Google vendors: **Gemini** (Generative Language API, via `@google/genai`) for all generative flows, **Google Cloud Speech-to-Text** (v1 via `@google-cloud/speech`) for all speech transcription. The keys are split on purpose — each is restricted per-API in GCP so a compromise of one doesn't pivot to the other. Read via `config.google.geminiApiKey` / `config.google.speechToTextApiKey`.
 
-Four flows:
-- **Top-bar prompt** (`AIPromptBar.vue`) — agentic loop, 9 tools (below). Model: `NUXT_GOOGLE_MODEL` (default `gemini-3.1-flash-lite-preview`). Image generation uses `NUXT_GOOGLE_IMAGE_MODEL` (default `gemini-3.1-flash-image-preview`).
-- **Inline selection rewrite** (`AISelectionPopup.vue`) — one-shot, no tools, full-doc context windowed to 40k chars. Model: `NUXT_GOOGLE_REWRITE_MODEL` (default `gemini-2.5-flash-lite`).
+Three flows (phase 5 collapsed the separate inline-rewrite path into the unified agentic loop):
+- **Agentic prompt** — one path serving both the bottom `AIPromptBar.vue` and the selection-scoped `AISelectionPopup.vue`. Full tool use, 9 tools + 2 knowledge tools (gated on workspace membership). Model: `NUXT_GOOGLE_MODEL` (default `gemini-3.1-flash-lite-preview`). Image generation uses `NUXT_GOOGLE_IMAGE_MODEL` (default `gemini-3.1-flash-image-preview`). Embeddings use `NUXT_GOOGLE_EMBEDDING_MODEL` (default `gemini-embedding-2-preview`, 768-d via `outputDimensionality` MRL). The selection popup pre-captures an `EditorSelectionSnapshot` (kind=`selection`) and passes it as `editorSelection` on `/api/ai/prompt`, so the model sees the range inside `<editor_state>` and picks `replace_text` accordingly.
 - **Voice input for the prompt bar** (mic button inside `AIPromptBar.vue`) — one-shot transcription via Cloud STT sync `speech:recognize`. `MediaRecorder` + `AnalyserNode` visualiser in `useVoicePrompt.ts`, POSTs base64 audio + MIME + languageCode to `/api/ai/transcribe` → Cloud STT → plain text → auto-submits as a normal prompt. 60s cap, 5 MiB max. No Y.js session — transcription itself doesn't touch the doc; the downstream `/api/ai/prompt` call enforces all the usual content gates.
 - **Live dictation into the editor** (mic button in the formatting toolbar) — streaming transcription via Cloud STT `streamingRecognize` over a Nitro WebSocket at `/api/ai/dictate`. Interim partials render as ghost text at the CM6 caret; finals commit into Y.js with a `dictation:{userId}` origin. Auth via short-lived JWT sent as the FIRST WS message (NOT `?token=`, which would leak into access logs). One session per user enforced via Valkey `SET NX EX` lock keyed on `lock:ai-dictate-active:{userId}`. Audio-seconds metered into a daily budget. See `useVoiceDictation.ts` + `dictationExtensions.ts` + `server/routes/api/ai/dictate.ts`.
 
-**Thinking budget:** `NUXT_GOOGLE_THINKING_BUDGET` (default `0` = disabled, cheapest/fastest). Applied only to the main agentic loop; rewrites and sub-calls stay thinking-free. We only pass `thinkingConfig` when `budget > 0` — some models (older `flash-lite`) 400 on an empty thinkingConfig.
+**Thinking budget:** `NUXT_GOOGLE_THINKING_BUDGET` (default `0` = disabled, cheapest/fastest). Applied only to the main agentic loop. We only pass `thinkingConfig` when `budget > 0` — some models (older `flash-lite`) 400 on an empty thinkingConfig.
 
-**AI-as-Y.js-client:** Server mints a JWT (`userId=ai:assistant:{sessionId}`), opens a `HocuspocusProvider`, sets awareness `{isAI, aiSession, aiStatus}`. Each edit is `ydoc.transact(fn, 'ai:assistant:{sessionId}')` — users watch edits land in real time. No SSE; status rides on awareness. `aiSession.kind` (`'prompt' | 'rewrite'`) discriminates animations so the floating bar only pulses during prompt sessions and vice versa. The `AiSession` interface exposes `docId` and `initiatorUserId` so tools can attribute audited writes (e.g. `uploads.uploaderId` from `generate_image`) to the real human initiator rather than the synthetic AI principal.
+**AI-as-Y.js-client:** Server mints a JWT (`userId=ai:assistant:{sessionId}`), opens a `HocuspocusProvider`, sets awareness `{isAI, aiSession, aiStatus}`. Each edit is `ydoc.transact(fn, 'ai:assistant:{sessionId}')` — users watch edits land in real time. No SSE; status rides on awareness. The `AiSession` interface exposes `docId` and `initiatorUserId` so tools can attribute audited writes (e.g. `uploads.uploaderId` from `generate_image`) to the real human initiator rather than the synthetic AI principal.
 
 **Function tools** (`server/utils/agentic/functionTools.ts` + `server/utils/aiToolAdapter.ts`):
 
@@ -217,16 +229,18 @@ Four flows:
 | `generate_image({ prompt, alt })` | Gemini image-model sub-call (`responseModalities: ['IMAGE','TEXT']`) → S3 upload (same `docs/{docId}/{fileId}.ext` key shape as user uploads) → uploads row (pending+confirmed) → returns markdown reference. AI follows up with `insert_text`/`replace_text` — the tool does not place it. |
 | `web_search({ query })` | Isolated sub-call with `googleSearch` grounding only. Freeform answer text + deduped sources from `groundingMetadata` (never mixed with `functionDeclarations` or `responseSchema` — coexistence 400s across model versions). |
 | `fetch_url({ url })` | Isolated sub-call with `urlContext` + structured output (`responseSchema`: `{summary, images[]}`). Returns formatted text the agent can parse. Scheme-less URLs get `https://` prepended. |
+| `search_knowledge({ query, top_k? })` | Hybrid search over `workspace_knowledge_chunks` (vector cosine via HNSW + BM25 via `ts_rank_cd` on a stored tsvector) fused via Reciprocal Rank Fusion (`k=60`). Returns top-K with `semantic=…` + `lexical=…` score breakdown so the model can tell paraphrase hits from exact-phrase hits. Only exposed when the session has a workspaceId AND the workspace has at least one `status='ready'` file. See §8. |
+| `get_knowledge_file({ knowledge_id })` | Returns the cached markdown of one knowledge file, truncated to 40k chars with an explicit marker. knowledge_ids come from the `<knowledge_files>` system-prompt block — fabrication is rejected with "not found, use only ids from the block". |
+
+**Tool declarations are split:** `ALL_TOOL_DECLARATIONS` = the 9 always-on tools; `KNOWLEDGE_TOOL_DECLARATIONS` = the 2 workspace-gated tools. `server/api/ai/prompt.post.ts` concatenates them only when the session has workspace access AND at least one ready knowledge file, AND appends a `<knowledge_files>` block listing `{knowledge_id, filename, sizeBytes, sourceExt, tokenCount}` so the model can pick ids without guessing. `AiSession.workspaceId` is set at session-open so tool handlers can double-check scope.
 
 **`ToolResult.extraParts`:** tools whose output includes binary data (currently `view_image` with inline image bytes) return a `ToolResult` with an `extraParts: Part[]` field; the runLoop appends those sibling parts on the user message AFTER the `functionResponse`, so Gemini links them to the right call. Gemini's `functionResponse.response` is JSON-only — this is the smuggling path for anything non-JSON.
 
 **Source-of-truth for schemas:** Zod drives everything. `z.toJSONSchema(schema, { target: 'draft-7' })` generates both Gemini's param schema and the runtime validator. Schema-level rejections flow back via `functionResponse.isError` so the model self-corrects instead of us silently coercing garbage. Drift-prone strings in the system prompt (preset names, font-category hints) are derived at module load from `THEME_PRESETS` / `THEME_FONTS`, so adding a preset/font automatically propagates.
 
-**Inline rewrite race safety:** Client sends Y.js `RelativePosition` for selection; server resolves to absolute. Fallback chain: relative pos → raw index → single `indexOf` → 409 "Selection has moved".
-
 **Authorization:** All AI routes check `requireDocEditAccess(docId, userId)` before starting. Workspace viewers and non-members are blocked there, so every tool inherits "content-edit" permission — no per-tool authz check needed. `update_theme`/`set_title` write through the same gate.
 
-**Limits:** `ai-prompt: 20/h`, `ai-rewrite: 30/h` per user. Prompt deadline 5 min, rewrite 30s, `MAX_TURNS = 20`. Sweeper (`server/plugins/ai-session-sweep.ts`) aborts sessions >7 min (threshold intentionally above prompt deadline). Error status lingers 2.5s in awareness so clients latch before cleanup.
+**Limits:** `ai-prompt: 20/h` per user. Prompt deadline 5 min, `MAX_TURNS = 20`. Sweeper (`server/plugins/ai-session-sweep.ts`) aborts sessions >7 min (threshold intentionally above prompt deadline). Error status lingers 2.5s in awareness so clients latch before cleanup.
 
 **Cancellation:** `POST /api/ai/abort` — 404 if ended, 403 if not initiator. Status → `{phase:'done', message:'Stopped'}`.
 
@@ -260,7 +274,74 @@ Four flows:
 
 ---
 
-## 8. Document Composables
+## 8. Workspace Knowledge Base
+
+Workspace-scoped file uploads that the AI can retrieve from. Lives under `/w/:id` (and embedded in the editor's right sidebar via the library icon next to Activity + Theme). Files flow: presigned S3 PUT → markitdown parse → heading-aware chunker → Gemini per-chunk embedding → pgvector row. Retrieval: hybrid RRF over vector + BM25.
+
+### Data
+
+- **`workspace_knowledge`** — one row per uploaded file. Statuses: `processing` → `ready` / `failed`. Columns of note: `markdown_cache` (parsed output, served to `get_knowledge_file`), `embedding_version` (`model:dims`, so future model bumps can detect stale rows), `chunk_count`/`token_count` (audit + surfacing), `s3_key` (original file, deleted after successful processing — see below).
+- **`workspace_knowledge_chunks`** — per-chunk. `embedding vector(768)` + HNSW cosine index + STORED generated `content_tsv tsvector` + GIN index. `workspace_id` is denormalised so the search query doesn't need the parent-table join.
+
+### Upload pipeline
+
+Two-phase presign (same pattern as image uploads):
+
+1. `POST /api/workspaces/:wsId/knowledge/upload-request` — `requireKnowledgeEditAccess` (admin/editor) + rate-limit (30/min/user) + `reserveUploadSlot` (checks per-workspace + per-user caps, reserves Valkey inflight slots) → mints a 300s `ContentType`-bound presigned PUT URL. No DB row yet.
+2. Client PUTs bytes directly to S3.
+3. `POST /api/workspaces/:wsId/knowledge/confirm` — HEADs the object, magic-byte sniff via `file-type` (see below), advisory lock (`pg_advisory_xact_lock(hashtext(wsId))`) + cap recheck + filename disambiguation + row insert in ONE transaction, releases inflight slots in `finally`, then `void processKnowledge(id)` fire-and-forget.
+
+### `processKnowledge` (server/utils/processKnowledge.ts)
+
+Sequential: fetch S3 bytes → POST to markitdown (`markitdown-server` FastAPI at `$NUXT_MARKITDOWN_URL`) with `?ext=…` → chunk the returned markdown (heading + paragraph aware, `maxChunks` cap from config — sentinel truncation chunk on overflow) → embed each chunk with `RETRIEVAL_DOCUMENT` task-type → `DELETE FROM chunks WHERE knowledge_id = :id` then bulk `INSERT` new chunks → flip status to `ready` + populate `markdown_cache` → delete the original S3 object (we never serve it back; `markdown_cache` + chunks are enough). Errors flip the row to `failed` with a truncated `error_message`. Row-existence re-checked after conversion AND after embedding so a user deletion mid-pipeline aborts cleanly without wasting embedding round-trips.
+
+### Embeddings (server/utils/embeddings.ts)
+
+Gemini's JS SDK `embedContent` with `contents: [str, str, …]` returns ONE aggregate embedding for the combined content — NOT one per string like the Python SDK. We loop per-chunk with a bounded `CONCURRENCY = 5` pool. Model + dims live in `config.google.embeddingModel` / `embeddingDims`; `embeddingVersionTag` (`model:dims`) is persisted with every row for future re-embed detection. `RETRIEVAL_DOCUMENT` task-type on ingest, `RETRIEVAL_QUERY` on search — Gemini's hints measurably improve recall over treating both the same.
+
+### Hybrid search (server/repos/knowledge.ts)
+
+Two queries fire in parallel (`candidatePool = 4 × topK` each):
+
+- Vector: `1 - cosineDistance(embedding, :q)` via pgvector, `ORDER BY similarity DESC`.
+- Lexical: `ts_rank_cd(content_tsv, websearch_to_tsquery('english', :qtext))` with `@@` predicate, `ORDER BY score DESC`.
+
+Results are merged by `(knowledgeId, chunkIndex)` and ranked via **Reciprocal Rank Fusion** (`sum over sources of 1/(60 + rank)`). Chunks in both sources get a double contribution; chunks in one still place reasonably. Output carries both scores so the AI can see a "paraphrase hit" vs "exact-phrase hit" distinction. `websearch_to_tsquery` is forgiving (free-form input, quoted phrases, negation) — empty tsquery on all-stopwords returns zero lexical rows and the fusion quietly degrades to vector-only.
+
+### Abuse limits
+
+Defense-in-depth with three layers that each close a different hole:
+
+| Layer | Check | Where |
+|---|---|---|
+| Rate limit | 30 upload-requests / user / min | `checkRateLimit('knowledge-upload', …)` in upload-request |
+| Per-workspace caps | 500 files + 1 GB | DB count/sum at upload-request + confirm |
+| Per-user caps | 100 files + 2 GB across ALL workspaces | DB count/sum at upload-request + confirm |
+| Workspace-per-user cap | 20 owned workspaces | `countOwnedWorkspacesByUser` in `POST /api/workspaces` |
+| Concurrent races | Valkey inflight counters (`knowledge-upload-ws` + `knowledge-upload-user`), 6 min TTL | `reserveInflightSlot` / `releaseInflightSlot` (fail CLOSED) |
+| Confirm race | Postgres advisory lock `pg_advisory_xact_lock(hashtext(wsId))` inside a txn | confirm endpoint |
+| Content-type bypass | Magic-byte sniff via `file-type` on first 4 KB of S3 object | `server/utils/fileTypeGuard.ts`, called in confirm |
+| Chunk-count abuse | `maxChunksPerFile = 300` sentinel-truncation | `chunkMarkdown` in `processKnowledge` |
+| Abandoned `failed` rows | TTL sweep: `status='failed'` rows older than `failedRetentionDays = 7` auto-reaped | `server/plugins/knowledge-sweep.ts` |
+| Stuck `processing` rows | TTL sweep: `status='processing'` rows older than 10 min re-process | same plugin |
+
+All caps live in `config.knowledge.*`; workspaces-per-user in `config.workspaces.maxPerUser`. The inflight counter fails CLOSED (correctness cap); the rate limit fails OPEN (DoS protection, not a cost cap). The advisory lock is load-bearing: without it, two concurrent confirms that both read N-1 used at upload-request time would both commit and land at N+1.
+
+### Content-type validation
+
+`file-type` sniffs the first 4 KB fetched via S3 Range GET (`bytes=0-4095` — enough for file-type's internal readers, including the ZIP-inside-ZIP inspection for Office formats). Allowlist per ext: PDF → `application/pdf`; DOCX/PPTX/XLSX → the specific Office MIME (file-type differentiates by reading `[Content_Types].xml`); XLS → `application/vnd.ms-excel` OR `application/x-cfb` (legacy CFB). Text formats (MD/TXT/HTML/HTM) have no reliable magic — we instead decode as strict UTF-8 and check ≥90% printable chars on the first 1 KB. Mismatch → 415 + orphan S3 delete + slot release.
+
+### AI integration
+
+The two knowledge tools (`search_knowledge`, `get_knowledge_file`) are in `KNOWLEDGE_TOOL_DECLARATIONS`, separate from `ALL_TOOL_DECLARATIONS`, and are ONLY passed to `runAgenticLoop` when both: (a) session has `workspaceId` AND (b) workspace has ≥1 ready file. The system prompt also appends a `<knowledge_files>` block listing `{knowledge_id, filename, sizeBytes, ext, tokenCount}` so the model has ground-truth file identities — we explicitly reject fabricated knowledge_ids. `AiSession.workspaceId` flows from `/api/ai/prompt` resolution → `createAiSession` → tool handlers, which double-check scope as defense in depth.
+
+### UI
+
+`WorkspaceKnowledgePanel.vue` drives upload + list + delete with XHR progress tracking and 5s-interval status polling (auto-stops when no items are `processing`). Mounted in two places: the workspace overview (`app/pages/w/[id].vue`) with the full header, and the editor's right sidebar (`EditorLayout.vue`) with `compact` prop to drop the duplicate heading. The sidebar button (library icon) only appears when `docWorkspaceId` is set AND the viewer is a member. Delete uses `WorkspaceKnowledgeDeleteConfirmModal.vue` (simple yes/no — no "type the name" required, since knowledge is an upload artifact not user-authored content).
+
+---
+
+## 9. Document Composables
 
 Three-file split (`app/composables/`):
 - **`useDocToken.ts`** — fetches `/api/docs/:docId/token`; seeds initial theme; handles password-verify reconnect. Exposes: `token, readOnly, requiresPassword, forbidden, accessMode, isOwner, hasOwner, initialTheme, pendingPasswordUnlock, setAccessMode`.
@@ -273,7 +354,7 @@ Key invariants: single consolidated fetch on init (token endpoint returns metada
 
 ---
 
-## 9. Preview Rendering & PDF Export
+## 10. Preview Rendering & PDF Export
 
 Right pane shows discrete A4/Letter pages inside a same-origin srcdoc iframe. PDF uses the same pipeline in a hidden iframe + `window.print()`. No server Chromium.
 
@@ -292,7 +373,7 @@ Right pane shows discrete A4/Letter pages inside a same-origin srcdoc iframe. PD
 
 ---
 
-## 10. Mobile
+## 11. Mobile
 
 Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Don't reintroduce 768px.
 
@@ -304,7 +385,7 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 
 ---
 
-## 11. Security
+## 12. Security
 
 **Authentication:** OAuth via `nuxt-auth-utils` (HTTP-only cookies, CSRF-protected). `SESSION_VERSION` invalidation. Hocuspocus always requires valid JWT. `JWT_SECRET`, `DATABASE_URL`, `INTERNAL_API_SECRET` fail-fast on missing.
 
@@ -316,20 +397,30 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 | Token endpoint | 30 per IP/min |
 | Import | 10 per IP/min |
 | AI prompt | 20 per user/hour |
-| AI rewrite | 30 per user/hour |
 | AI transcribe | 60 per user/hour |
 | Live dictation | 1 session/user (Valkey `SET NX`), 30 min/user/day audio, 10 min/session, 30s idle |
 | Hocuspocus | 20 connections/IP, 5000 rooms |
+| Knowledge upload | 30 presign-requests/user/min |
+| Knowledge — per workspace | 500 files, 1 GB total, 25 MB per file |
+| Knowledge — per user | 100 files, 2 GB total (across all workspaces) |
+| Knowledge — per file processing | 300-chunk ceiling (sentinel-truncated) |
+| Workspaces per user | 20 owned (invited workspaces don't count) |
 
-**Input validation:** `meta.put` validates title (≤255), accessMode (enum), wordCount (0–10M), sizeBytes (0–100M), theme (structural + numeric ranges + hex-color regex + font allowlist). Uploads: PNG/JPEG/GIF/WebP/SVG, 10MB. Imports: extension whitelist, 50MB.
+**Input validation:** `meta.put` validates title (≤255), accessMode (enum), wordCount (0–10M), sizeBytes (0–100M), theme (structural + numeric ranges + hex-color regex + font allowlist). Image uploads: PNG/JPEG/GIF/WebP/SVG, 10MB. Imports: extension whitelist, 50MB. Knowledge uploads: extension allowlist (pdf/docx/pptx/xlsx/xls/html/htm/epub/md/txt) + magic-byte sniff at confirm (rejects `foo.pdf` holding EXE bytes).
 
-**File access:** `/api/files/:docId/:fileId` checks access mode before presigning. Presigned URL TTL: 5min upload, 120s read (can't be revoked; short to survive access-mode/password/deletion changes).
+**File access:** `/api/files/:docId/:fileId` checks access mode before presigning. Presigned URL TTL: 5min upload, 120s read (can't be revoked; short to survive access-mode/password/deletion changes). **Knowledge originals are never served back** — they're deleted from S3 after successful processing; only `markdown_cache` + embedded chunks remain, accessible only to workspace members via the AI tools.
+
+**S3 bucket policy (prod deployment requirement):** the production S3 bucket MUST deny public `ListBucket`. Our code never issues a presigned GET for knowledge keys, but if the bucket is list-enabled an attacker who guesses one `workspaces/{wsId}/knowledge/` prefix could enumerate knowledge objects by key (keys include a 12-char nanoid = ~70 bits, still not worth relying on). Infomaniak defaults buckets to private; verify with `aws s3api get-bucket-acl --bucket $BUCKET` post-deploy. Dev is fine — `seaweedfs/s3.json` defines a single `ypad` identity with credentials and no anonymous identity, so unauthenticated bucket access is denied by default.
+
+**Mid-session membership drift:** `/api/ai/prompt` resolves `session.workspaceId` once at session open. Knowledge tool handlers (`search_knowledge`, `get_knowledge_file`) re-check `getMemberRole(workspaceId, initiatorUserId)` on every invocation via `verifyWorkspaceMembership()` so an admin demotion mid-session immediately revokes further knowledge access at the next tool call. Viewers keep read access (same semantics as the REST list endpoint); only "no membership at all" is rejected. Documents themselves (`replace_text`/`insert_text`) still rely on the Hocuspocus JWT expiring for revocation — that's an accepted tradeoff (≤1 h), documented separately in this section.
+
+**Confirm-endpoint input binding:** the knowledge-confirm handler requires `knowledgeId` to match the last path segment of `s3Key` (`/{knowledgeId}.{ext}`). Closes the "mint a presign for key A but claim it under knowledgeId B" surface — a confused/crafted client can't decouple the two server-minted values even though both round-trip through the client body.
 
 **Other:** scrypt password hashing, 2h password token expiry, `html: false` + DOMPurify for XSS.
 
 ---
 
-## 12. Docker Compose
+## 13. Docker Compose
 
 | File | Scope | TLS | Use |
 |---|---|---|---|
@@ -337,19 +428,19 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 | `docker-compose.local.yml` | Full stack incl. Traefik + GlitchTip | mkcert on `ypad.127.0.0.1.nip.io` | Pre-push full-stack verification |
 | `docker-compose.prod.yml` | Full stack incl. Traefik + GlitchTip | Let's Encrypt | VPS deploy |
 
-Three standalone files — no shared base. Dev: `bun run dev --host 0.0.0.0` (0.0.0.0 so sync container can reach via `host.docker.internal`). Ports: Postgres 5432, Valkey 6379, SeaweedFS 8333, Hocuspocus 4001, markitdown 8080.
+Three standalone files — no shared base (plus `docker-compose.test.yml` for the integration suite). Dev: `bun run dev --host 0.0.0.0` (0.0.0.0 so sync container can reach via `host.docker.internal`). Ports: Postgres 5432, Valkey 6379, SeaweedFS 8333, Hocuspocus 4001, markitdown 8080. **Postgres image** is `pgvector/pgvector:pg16` across dev / local / test / prod — drop-in replacement for `postgres:16-alpine` with the `vector` extension pre-built.
 
 Prod key points: postgres healthcheck gates `app` + `sync` startup; `stop_grace_period: 30s`; Traefik healthcheck labels on `/api/health` + `/health`; backup sidecar pipes `pg_dump | gzip | aws s3 cp`; Dockerfile **must `COPY drizzle/`** into runtime image.
 
-Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE_CLIENT_*`, `POSTGRES_PASSWORD`, `S3_*`, `JWT_SECRET` (≥64), `INTERNAL_API_SECRET`, `GOOGLE_GEMINI_API_KEY`, `GOOGLE_SPEECH_TO_TEXT_API_KEY`, `GOOGLE_MODEL/REWRITE_MODEL/IMAGE_MODEL/SPEECH_MODEL`, `BACKUP_*`. Optional AI tuning: `NUXT_GOOGLE_THINKING_BUDGET` (default `0`), `NUXT_GOOGLE_DICTATE_JWT_SECRET` (recommended in prod — falls back to `JWT_SECRET` for dev so a compromised Hocuspocus secret doesn't also forge dictation tokens). Testing: `NUXT_GOOGLE_SPEECH_MOCK=1` (requires `TEST_MODE=1`) swaps the Cloud STT client for a canned fake.
+Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE_CLIENT_*`, `POSTGRES_PASSWORD`, `S3_*`, `JWT_SECRET` (≥64), `INTERNAL_API_SECRET`, `GOOGLE_GEMINI_API_KEY`, `GOOGLE_SPEECH_TO_TEXT_API_KEY`, `GOOGLE_MODEL/IMAGE_MODEL/SPEECH_MODEL`, `BACKUP_*`. Optional AI tuning: `NUXT_GOOGLE_THINKING_BUDGET` (default `0`), `NUXT_GOOGLE_DICTATE_JWT_SECRET` (recommended in prod — falls back to `JWT_SECRET` for dev so a compromised Hocuspocus secret doesn't also forge dictation tokens). Testing: `NUXT_GOOGLE_SPEECH_MOCK=1` (requires `TEST_MODE=1`) swaps the Cloud STT client for a canned fake.
 
 ---
 
-## 13. Project Structure
+## 14. Project Structure
 
-`app/` — Vue frontend: `components/{auth,editor,preview,collab,ai,sharing,document,workspace,common}/`, `composables/`, `pages/` (index, `d/[id]`, `w/[id]`), `utils/` (renderMarkdown, printPdf, editorCommands, download, welcomeDoc).
+`app/` — Vue frontend: `components/{auth,editor,preview,collab,ai,sharing,document,workspace,common}/` (workspace incl. `WorkspaceKnowledgePanel.vue` + `WorkspaceKnowledgeDeleteConfirmModal.vue`), `composables/`, `pages/` (index, `d/[id]`, `w/[id]`), `utils/` (renderMarkdown, printPdf, editorCommands, download, welcomeDoc).
 
-`server/` — Nitro API: `routes/auth/` (OAuth), `routes/api/ai/dictate.ts` (live dictation WS handler; lives in `routes/` because native WS routes need the full path there), `api/` (docs, upload, files, import, internal, ai, user, workspaces — including `api/ai/dictate/token.post.ts`), `db/schema.ts`, `middleware/auth.ts`, `plugins/` (00-db-migrate, 99-shutdown, orphan-cleanup, ai-session-sweep, inactive-doc-sweep), `utils/` (workspaceAccess, documentAccess, documentLifecycle, aiSessions, aiClient, aiToolAdapter, rateLimit, agentic/ — including dictateHelpers, transcribeHelpers, dictateSpeechClient).
+`server/` — Nitro API: `routes/auth/` (OAuth), `routes/api/ai/dictate.ts` (live dictation WS handler; lives in `routes/` because native WS routes need the full path there), `api/` (docs, upload, files, import, internal, ai, user, workspaces incl. `workspaces/[wsId]/knowledge/{upload-request,confirm,index.get,[knowledgeId].delete}.ts`), `db/schema.ts`, `middleware/auth.ts`, `plugins/` (00-db-migrate, 99-shutdown, orphan-cleanup, ai-session-sweep, inactive-doc-sweep, knowledge-sweep), `utils/` (workspaceAccess, documentAccess, documentLifecycle, aiSessions, aiClient, aiToolAdapter, rateLimit, embeddings, chunkMarkdown, processKnowledge, knowledgeQuota, knowledgeAccess, fileTypeGuard, agentic/ — including dictateHelpers, transcribeHelpers, dictateSpeechClient), `repos/` (documents, uploads, workspaces, workspaceMembers, knowledge).
 
 `sync-server/src/` — Hocuspocus: index, persistence, auth, rate-limiter, activity-logger, internal-http.
 
@@ -357,11 +448,199 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 `drizzle/` — generated migrations + meta snapshots (committed). `i18n/locales/` — en/de/fr/es/ja/zh JSON. `docs/` — DEPLOY.md, LOCAL.md, S3-SETUP.md, OBSERVABILITY.md, SECRETS-ROTATION.md.
 
-`scripts/` — standalone Bun scripts for offline verification. `audit-markdown-pipeline.mjs` runs the full markdown-it + every plugin + DOMPurify chain (identical config to `app/utils/renderMarkdown.ts`) and prints raw + sanitized output per case. Run before adding a syntax claim to `server/utils/agentic/markdownReference.ts` — only document what the script confirms renders. See §17 for why this matters.
+`scripts/` — standalone Bun scripts for offline verification. `audit-markdown-pipeline.mjs` runs the full markdown-it + every plugin + DOMPurify chain (identical config to `app/utils/renderMarkdown.ts`) and prints raw + sanitized output per case. Run before adding a syntax claim to `server/utils/agentic/markdownReference.ts` — only document what the script confirms renders. See §19 for why this matters.
 
 ---
 
-## 14. Shipped Features
+## 15. Business Model & Unit Economics (design — not yet implemented)
+
+This section captures the pricing design for the four-tier subscription model. **No code exists yet**; this is the plan. The real implementation requires `users.plan` + Stripe integration + an interaction counter threaded through every AI call site. See TODOs.
+
+### Tier structure
+
+Four tiers, per-user subscription. One flat-rate model — no pay-as-you-go overages at launch.
+
+| Tier | Price | AI actions / period | Key differentiator |
+|---|---|---|---|
+| **Free** | $0 | 100 / mo | Try the product; funnel into paid |
+| **Pro** | $10/mo | 1500 / mo | Solo power users; personal AI only |
+| **Max** | $50/mo | 8000 / mo | Small teams; can toggle workspaces `(+)` so member usage bills to them |
+| **Ultra** | $100/mo | 16000 / mo | Large teams; same `(+)` mechanics, bigger pool |
+
+Monthly reset for ALL tiers. Earlier draft gave Free a daily bucket (5/day); dropped it — a per-day cap is too fragmented for a user to complete any meaningful doc-editing task in one sitting, which kills the funnel signal ("I tried it for ten minutes and ran out"). One monthly pool lets Free users burst-try the product (draft one doc with AI help, hit the cap, upgrade). Paid resets align with the Stripe billing-cycle anchor; Free resets on the calendar-month boundary.
+
+### The `(+)` workspace concept
+
+- **Pro users cannot toggle `(+)`.** Their subscription is personal-only. Members they invite to their workspaces still use their own (likely Free) quota.
+- **Max and Ultra users can toggle any workspace they OWN to `(+)`.** While `(+)`, every AI call made by ANY member of that workspace is billed to the owner's quota. No per-member caps, no member-count caps — if you have 50 people burning your pool, that's your problem to manage (and your signal to upgrade or deactivate `(+)`).
+- **Deactivating `(+)` is instant.** Members revert to their own quotas on the next call. Useful for owners watching their pool drain.
+- **Ownership transfer:** `workspaces.billing_owner_id` (separate from `ownerId`) drives billing. If a Max owner leaves and hands the workspace to a Free user, `(+)` auto-disables. If they hand it to another Max/Ultra user, billing continues to the new owner from that point forward.
+- **Plan-downgrade handling:** if a Max owner's subscription lapses, `plan_valid_until` grants them the benefits through end-of-billing-period; after that, `(+)` auto-disables via a sweep job.
+
+### What is an "AI action" / "interaction"?
+
+One unified counter across all AI-cost-incurring operations. Billing term (user-facing): **"AI action"**. Internal term (code + DB): **"interaction"**.
+
+| Operation | Interactions charged |
+|---|---|
+| 1 model turn in the agentic loop (any prompt → one round-trip to Gemini, whether it emits a tool call or final text) | **1** |
+| 1 grounded turn (the turn that invokes `web_search` or `fetch_url`) | **5** |
+| 1 generated image at 0.5K (current default) | **5** |
+| 1 minute of dictation or voice-input transcription | **5** |
+
+A single `/api/ai/prompt` request that runs a 4-turn agentic loop where turn 3 calls `web_search` costs: `1 + 1 + 5 + 1 = 8 interactions`. This is why the UI MUST show live interaction count during the loop — users can't predict cost otherwise.
+
+Embedding calls on knowledge upload are NOT counted — already bounded by the per-file knowledge cap (100 files Pro, etc.).
+
+### Model + resolution choices (locked in)
+
+- **Text model**: `gemini-3.1-flash-lite` for ALL tiers. No per-tier model upgrades — paying users get MORE of the same quality, not different quality. Keeps cost math predictable and avoids the trap where Ultra users burn budget 10× faster on a bigger model.
+- **Image model**: `gemini-3.1-flash-image-preview` at **0.5K resolution** (was 1K; 33% cheaper per image, still sharp enough for inline paged.js render + PDF export at normal zoom). Pin in `config.google.imageResolution` so it can't silently escalate.
+- **STT**: Cloud STT v1 `latest_long`.
+
+### Unit cost math (current pricing, April 2026)
+
+Per Gemini API docs. These numbers drive the tier sizing — re-run the calc if prices move.
+
+**Prompt turn — gemini-3.1-flash-lite:**
+- $0.25/M input, $1.50/M output.
+- Typical turn: 6000 input tokens + 800 output tokens = `(6000 × 0.25 + 800 × 1.50) / 1,000,000 = $0.0027`.
+- Upper bound (turn 10+, full accumulated context): ~15k input + 2k output = `$0.0068`.
+- **Planning number: $0.003 per turn.**
+
+**Grounded turn — `web_search`:**
+- $0.003 (flash-lite inference) + **$14 / 1000 Google Search queries** after the free pool.
+- Free pool: **5000 grounded calls/month shared across our entire Gemini-3 project** (not per-user).
+- Once past free tier: `$0.003 + $0.014 = $0.017` per grounded turn.
+- `fetch_url` using `urlContext` is NOT metered separately (verified at launch); counted as a normal turn cost unless Google pricing changes.
+
+**Image generation — gemini-3.1-flash-image at 0.5K:**
+- $0.50/M input + $0.045 per 0.5K image output.
+- Input tokens per call (prompt + alt): ~300 tokens = ~$0.00015. Negligible.
+- **Planning number: $0.045 per image.**
+- (For reference: 1K = $0.067, 2K = $0.101, 4K = $0.151. We lock 0.5K to avoid cost creep.)
+
+**Dictation — Cloud STT v1 `latest_long`:**
+- **$0.016 per minute.** Hard per-minute caps (30 min/day Free, 60 min/day paid) back up the interaction counter.
+
+### Blended real cost per interaction
+
+Assume a typical usage mix across all interaction types:
+- 70% simple prompt turns
+- 10% grounded turns (past free pool)
+- 10% generated images
+- 10% speech minutes
+
+For each interaction actually charged to a user, how much does it cost us on average?
+
+- Simple turns: 70% × $0.003 ÷ 1 interaction/turn = **$0.0021 per interaction**
+- Grounded turns: 10% × $0.017 ÷ 5 interactions/turn = **$0.00034 per interaction**
+- Images: 10% × $0.045 ÷ 5 interactions/image = **$0.0009 per interaction**
+- Speech: 10% × $0.016 ÷ 5 interactions/min = **$0.00032 per interaction**
+
+**Weighted blended cost per interaction: ~$0.00366** ≈ **$0.0037**.
+
+Adjust upward if users skew image-heavy or grounded-heavy; adjust downward if they skew text-only (typical for doc editing, so $0.0037 is conservative).
+
+### Tier budget derivation
+
+Stripe fees: 2.9% + $0.30 per charge. After-fees net:
+- $10 Pro → $9.41 net
+- $50 Max → $48.25 net
+- $100 Ultra → $96.80 net
+
+Infra overhead per paid user (Postgres, Valkey, S3 storage, backups, GlitchTip, Traefik amortised, Hocuspocus): estimated **$0.50/user/mo**. Net after infra:
+- Pro: $8.91
+- Max: $47.75
+- Ultra: $96.30
+
+**We deliberately chose a lower at-cap margin (~40%)** to be generous with users during growth. The bet: model prices will drop over time while capabilities stay flat or improve. Caps stay constant; unit cost falls; margin rises. Retention beats margin in the first 12-24 months.
+
+Budget math at 40% margin on the after-infra net:
+- Pro: $8.91 × 0.60 = $5.35 AI budget → $5.35 / $0.0037 = **~1445 interactions** → round to **1500/mo**
+- Max: $47.75 × 0.60 = $28.65 AI budget → $28.65 / $0.0037 = **~7740** → round to **8000/mo**
+- Ultra: $96.30 × 0.60 = $57.78 AI budget → $57.78 / $0.0037 = **~15,620** → round to **16000/mo**
+
+Free:
+- 100 interactions/mo. Real cost at cap: 100 × $0.0037 = **$0.37/mo worst case**. Average Free user hits ~30% of cap = $0.11/mo. Acceptable customer-acquisition cost — lower than the daily-cap variant ($0.55 worst case) because the monthly cap is lower in absolute terms (100 vs 150), and real-world monthly utilisation on a "try it once and upgrade" funnel is closer to 20-30% of cap than the 100% a daily bucket would force.
+
+### At-cap margin analysis (worst case — all users max their cap)
+
+| Tier | Revenue net of Stripe + infra | Interactions | AI cost at cap | Margin at cap |
+|---|---|---|---|---|
+| Pro | $8.91 | 1500 | $5.55 | **38%** |
+| Max | $47.75 | 8000 | $29.60 | **38%** |
+| Ultra | $96.30 | 16000 | $59.20 | **39%** |
+
+Thin but positive. Real margin is much higher — SaaS norm is 15-30% of users hitting their cap, which gives effective margin in the 70-80% range. The thin at-cap number is insurance against heavy-use outliers, not the expected case.
+
+### Average-case margin (expected reality)
+
+Assuming 30% average cap utilisation (typical SaaS):
+- Pro avg cost: $5.55 × 0.3 = $1.67 → margin **81%**
+- Max avg cost: $29.60 × 0.3 = $8.88 → margin **81%**
+- Ultra avg cost: $59.20 × 0.3 = $17.76 → margin **82%**
+
+This is what the business looks like in reality. The thin at-cap margin only matters for the ~5-15% of users who heavily utilise.
+
+### Non-interaction caps per tier
+
+Storage + count caps, separate from the interaction counter:
+
+| | Free | Pro | Max | Ultra |
+|---|---|---|---|---|
+| Workspaces you own | 1 | 10 | 30 | 100 |
+| `(+)` workspaces (subset of above) | — | — | unlimited | unlimited |
+| Knowledge files | 5 | 50 | 500 | 2000 |
+| Knowledge bytes total | 50 MB | 2 GB | 10 GB | 50 GB |
+| Dictation hard cap | 5 min/day | 30 min/day | 60 min/day | 60 min/day |
+| AI sessions concurrent (per user) | 1/doc | 1/doc | 1/doc | 1/doc |
+
+The `workspaces.maxPerUser` cap is enforced at `/api/workspaces` POST time (already implemented as a single number; needs per-tier split). Knowledge caps are already per-user + per-workspace (§8); needs tier-aware upgrade to the config.
+
+### The grounded-search free pool — a shared resource
+
+Google gives **5000 free grounded calls/month shared across the entire Gemini-3 project** (not per-user). With 100 paying users doing 10% grounded queries at 1500/mo average = 15,000 grounded calls/mo. The free pool covers the first 5000; remaining 10,000 cost $140/mo aggregate.
+
+This is factored into the blended cost via the $0.017-per-grounded-turn assumption (which already prices past the free pool). No per-user gating needed — the 5× interaction multiplier on grounded turns self-rate-limits heavy searchers.
+
+### Levers we deliberately chose NOT to pull (for now)
+
+We considered these for cost reduction but rejected to keep the implementation simple and the quality stable. Documented here so future-us can revisit when we genuinely need to reclaim margin.
+
+1. **Switching to `gemini-2.5-flash-lite` ($0.10/M in, $0.40/M out — 3× cheaper).** The 2.5 model is measurably worse at multi-tool agentic loops and long-context reasoning. The system prompt has ~30 rules it needs to follow; 2.5 drops some of them. Revisit when we've built an eval harness to measure real quality degradation.
+2. **Turn-adaptive model selection (2.5 for turns 1-3, 3.1 for 4+).** Same rationale as above; adds complexity.
+3. **Grounded-result caching in Valkey.** 20% cache hit would save ~20% on grounded costs, but the 5000/mo free pool covers us initially. Add when grounded spend becomes meaningful.
+4. **Context pruning on long agentic loops.** Would cut turn-10 cost by ~50%, but average loop is 3-5 turns so the savings are modest.
+5. **Output-length control via system prompt.** Would save ~20% on output tokens. Cheap win, might ship opportunistically during a prompt refactor.
+6. **Per-tier model quality.** Max/Ultra getting `gemini-pro` would let you charge more but would 10× their burn rate — users would hate the budget math. Flat model, flat math.
+
+### The bet on model pricing
+
+Gemini pricing has dropped meaningfully over every major-version release. Flash-lite costs today are ~30% of Flash-1.5's original pricing at launch. If the trend continues:
+
+- **If flash-lite drops 40%** (plausible within 12 months): interaction cost drops from $0.0037 to $0.0022. At-cap margins jump from ~38% to ~63% with NO change to tier caps or prices.
+- **If it drops 60%** (optimistic): cost to $0.0015, at-cap margins at ~75%. Effectively the SaaS-typical margin.
+
+Caps stay constant, prices stay constant, margins rise passively. This is the core economic bet.
+
+If prices instead RISE (unlikely but possible — specialty inference gets scarcer as demand grows), we can pull the levers above without a user-visible price change: cache more aggressively, prune context, switch to 2.5 for simpler turns. All are implementation changes, not billing changes.
+
+### Implementation requirements (NOT YET DONE)
+
+- Schema: `users.plan`, `users.plan_valid_until`, `users.stripe_customer_id`, `users.stripe_subscription_id`, `workspaces.billing_owner_id`, `workspaces.ai_enabled` (the `(+)` flag).
+- Tier config split in `nuxt.config.ts`: `tiers.{free,pro,max,ultra}` with every existing `knowledge.*` + `workspaces.maxPerUser` + new interaction caps.
+- `resolveBillingContext(userId, workspaceId)` helper returning `{ plan, attributedTo }`. `attributedTo` keys into the interaction counter — either `user:N` or `workspace:abc`.
+- Interaction counter in Postgres (not Valkey — billing is correctness-critical; Valkey can evict under memory pressure). New table `ai_usage_period` with `(attributedTo, periodStart, interactionsUsed)`, atomic INCR per turn.
+- `runLoop.ts` decrements before each `ai.models.generateContent*` call. Mid-loop exhaust → graceful abort with a doc insert: "Your AI budget is exhausted. Ask the workspace owner or upgrade your plan to continue."
+- Stripe: checkout endpoint, billing portal, webhook. ~200 lines.
+- UI: `/pricing` page, interactions-remaining display in `AIPromptBar`, `(+)` badge in workspace header, plan-downgrade sweep job for lapsed `(+)` workspaces.
+
+Realistic scope: 5-7 days end-to-end including Stripe integration and UI polish.
+
+---
+
+## 16. Shipped Features
 
 **Infrastructure:** Compose stack, Drizzle + versioned migrations at boot, y-postgresql persistence, S3 singleton, Markitdown service, daily pg backup sidecar with retention pruning, GlitchTip observability, Valkey rate limiting, dual-secret rotation, inactive doc sweep, PWA.
 
@@ -383,7 +662,9 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 **Document duplication:** `POST /api/docs/:id/duplicate` clones a doc end-to-end — new `documents` row (duplicator becomes owner), Y.js state with image-URL rewrite (reconstructs the source Y.Doc via `yjs_documents` replay, rewrites `/api/files/{sourceDocId}/` → `/api/files/{newDocId}/` in the markdown, re-encodes as a single initial update), and S3 image assets via `CopyObject` into the new prefix. Permissions inherit automatically from the target workspace. See `server/utils/duplicateDocument.ts` + `server/utils/cloneYjsState.ts`.
 
-**AI:** Gemini agentic loop with 9 tools: `view_document`, `replace_text`, `insert_text`, `update_theme` (partial patches + 6 presets), `set_title`, `view_image` (multimodal — smuggles bytes via `extraParts` since functionResponse is JSON-only), `generate_image` (Gemini image-model → S3 → markdown ref), `web_search` (grounded sub-call), `fetch_url` (urlContext sub-call with structured output). Inline rewrite with RelativePosition race safety. Awareness-based status propagates to the prompt bar placeholder and presence-bar tooltip. Per-user-per-doc cap via Postgres UNIQUE index, initiator-only cancel, floating prompt bar (rainbow ring animation), selection popup, animation decoupled by `kind`. Configurable thinking budget (`NUXT_GOOGLE_THINKING_BUDGET`, default 0). **Editor-state context:** every prompt ships with an `<editor_state>` wrapper carrying cursor line + column + surrounding line text with a `<CURSOR_IS_HERE>` marker so the model can resolve "add X here" / "fix this" without counting characters — handled in `server/utils/agentic/editorStatePrompt.ts` and validated client-side in `app/utils/editorSelection.ts`. **Voice input for the prompt bar:** mic button → `MediaRecorder` opus/webm → base64 → `/api/ai/transcribe` (Cloud STT sync `recognize` → text) → auto-submit. Live frequency-bar visualiser via `AnalyserNode`, MM:SS timer with amber@-10s/red@-5s, 60s cap, cancel button, hard 5 MiB payload ceiling, explicit `MediaStream` cleanup so the browser mic indicator clears immediately. Language auto-picks from the UI locale. **Live dictation:** mic button in the formatting toolbar → Nitro WebSocket relay (`/api/ai/dictate`, JWT via first message — NOT `?token=`) → Cloud STT streaming → interim partials render as grey italic ghost text at the CM6 caret (CM6 `StateField` + `ViewPlugin`), finals commit into Y.js via `ydoc.transact(fn, 'dictation:{userId}')` with smart spacing (mid-word inserts a leading space so `fo|o` + "bar" becomes `fo bar o`). Language from UI locale. One session per user via Valkey `SET NX PX` lock, 30 min/user/day audio budget, 10 min/session cap, 30s idle timeout. Click-anywhere-and-continue: the ghost text reanchors to the new caret because the view plugin rebuilds on `selectionSet`. Straggler-chunk guard silently drops audio that arrives after `stop` so the client never sees "write after end" as an error.
+**Workspace knowledge base:** upload PDFs/DOCX/PPTX/XLSX/HTML/EPUB/MD/TXT to a workspace; pipeline is presigned S3 PUT → `file-type` magic-byte sniff at confirm → markitdown parse → heading-aware chunker (with 300-chunk ceiling + sentinel truncation) → `gemini-embedding-2-preview` at 768-d MRL → pgvector chunks + generated `tsvector` for BM25. Hybrid search via RRF on `search_knowledge`; full-markdown retrieval via `get_knowledge_file` (both exposed only when session has workspace membership). Original S3 object deleted after successful processing (only parsed markdown + embeddings retained). Abuse limits: 30 presigns/min/user rate-limit + per-workspace (500/1 GB) + per-user (100/2 GB) caps + Valkey inflight counters + confirm-time Postgres advisory lock. Background sweeps: stuck-processing retry (10 min TTL) + failed-row cleanup (7 day TTL). UI lives both in `/w/:id` and in the editor's right sidebar (library icon next to Activity + Theme). See §8.
+
+**AI:** Gemini agentic loop with 9 tools: `view_document`, `replace_text`, `insert_text`, `update_theme` (partial patches + 6 presets), `set_title`, `view_image` (multimodal — smuggles bytes via `extraParts` since functionResponse is JSON-only), `generate_image` (Gemini image-model → S3 → markdown ref), `web_search` (grounded sub-call), `fetch_url` (urlContext sub-call with structured output). Single unified path: both the bottom `AIPromptBar` and the selection-scoped `AISelectionPopup` call `/api/ai/prompt`; the popup pre-captures a `kind=selection` `EditorSelectionSnapshot` so the agentic loop's `<editor_state>` wrapper steers the model toward `replace_text`. Awareness-based status propagates to the prompt bar placeholder and presence-bar tooltip. Per-user-per-doc cap via Postgres UNIQUE index, initiator-only cancel, floating prompt bar (rainbow ring animation on any active session). Configurable thinking budget (`NUXT_GOOGLE_THINKING_BUDGET`, default 0). **Editor-state context:** every prompt ships with an `<editor_state>` wrapper carrying cursor line + column + surrounding line text with a `<CURSOR_IS_HERE>` marker so the model can resolve "add X here" / "fix this" without counting characters — handled in `server/utils/agentic/editorStatePrompt.ts` and validated client-side in `app/utils/editorSelection.ts`. **Voice input for the prompt bar:** mic button → `MediaRecorder` opus/webm → base64 → `/api/ai/transcribe` (Cloud STT sync `recognize` → text) → auto-submit. Live frequency-bar visualiser via `AnalyserNode`, MM:SS timer with amber@-10s/red@-5s, 60s cap, cancel button, hard 5 MiB payload ceiling, explicit `MediaStream` cleanup so the browser mic indicator clears immediately. Language auto-picks from the UI locale. **Live dictation:** mic button in the formatting toolbar → Nitro WebSocket relay (`/api/ai/dictate`, JWT via first message — NOT `?token=`) → Cloud STT streaming → interim partials render as grey italic ghost text at the CM6 caret (CM6 `StateField` + `ViewPlugin`), finals commit into Y.js via `ydoc.transact(fn, 'dictation:{userId}')` with smart spacing (mid-word inserts a leading space so `fo|o` + "bar" becomes `fo bar o`). Language from UI locale. One session per user via Valkey `SET NX PX` lock, 30 min/user/day audio budget, 10 min/session cap, 30s idle timeout. Click-anywhere-and-continue: the ghost text reanchors to the new caret because the view plugin rebuilds on `selectionSet`. Straggler-chunk guard silently drops audio that arrives after `stop` so the client never sees "write after end" as an error.
 
 **Security hardening:** Fail-fast env, rate limits, file access control, `meta.put` validation, 2h password token expiry.
 
@@ -391,11 +672,20 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 ---
 
-## 15. TODOs
+## 17. TODOs
 
 ### MVP leftover
 - [ ] DNS: `yourdomain.com`, `sync.` subdomains (prod deploy)
 - [ ] CORS: Traefik middleware for S3 (prod deploy)
+
+### Monetisation (design locked in; see §15)
+- [ ] Schema: `users.plan` + `plan_valid_until` + `stripe_*` cols; `workspaces.billing_owner_id` + `ai_enabled`
+- [ ] `tiers.{free,pro,max,ultra}` config split (split current `knowledge.*` + `workspaces.maxPerUser`)
+- [ ] `resolveBillingContext(userId, workspaceId)` helper → `{ plan, attributedTo }`
+- [ ] `ai_usage_period` table + atomic interaction counter threaded through `runLoop.ts` (decrement pre-call; mid-loop exhaust → graceful doc insert with upgrade CTA)
+- [ ] Stripe checkout + billing portal + webhook (`sub.created/updated/deleted`)
+- [ ] `/pricing` page + plan badges + interactions-remaining display in `AIPromptBar`
+- [ ] `(+)` workspace toggle (admin/editor UI; Max/Ultra only) + sweep job that flips `ai_enabled=false` on lapsed owners
 
 ### MMP
 
@@ -438,7 +728,7 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 ---
 
-## 16. Technical Decisions
+## 18. Technical Decisions
 
 | Decision | Rationale |
 |---|---|
@@ -481,10 +771,26 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 | Hand-rolled canvas visualiser over a library | The Vue ecosystem has no good "live recording bars" library; `wavesurfer.js` is playback-focused and `vue-audio-visual` is unmaintained. An `AnalyserNode` + 40-line canvas draw is smaller, theme-aware, and zero-dep |
 | Voice input skips `requireDocEditAccess` | Transcription doesn't touch the doc — it returns bytes-to-text. The downstream `/api/ai/prompt` call (triggered by auto-submit) enforces the content-edit gate. Adding it to `/api/ai/transcribe` would only duplicate that check |
 | Dictation mock behind `NUXT_GOOGLE_SPEECH_MOCK=1` | Lets integration tests drive the full WS state machine (handshake → partials → finals → close) without hitting Google. Fake SpeechClient emits canned responses on fixed chunk thresholds so `partial` → `final` ordering is deterministic |
+| `pgvector/pgvector:pg16` over stock `postgres:16-alpine` | Data-dir-compatible drop-in; avoids the "install pgvector at runtime" ceremony. Migration `0005` hand-prepends `CREATE EXTENSION IF NOT EXISTS vector` before the vector tables — drizzle doesn't emit extension DDL |
+| 768-d Gemini MRL (not 3072) | HNSW caps at 2000 dims; 3072 forces IVFFlat (slower + worse recall at <10k chunks). 768 is Gemini's recommended lowest tier with minimal recall loss for doc-retrieval. `outputDimensionality: 768` on embedContent truncates via MRL in one SDK param |
+| Loop per-chunk, NOT `contents: [str, …]` batch | Gemini JS SDK treats an array of strings as a SINGLE multi-part Content and returns ONE aggregate vector — Python SDK behaves differently. We run a bounded-concurrency (5) pool of per-chunk calls. Symptom if reverted: `expected N vectors, got 1` in logs |
+| `RETRIEVAL_DOCUMENT` / `RETRIEVAL_QUERY` task-types | Task-type hints measurably improve retrieval recall over treating docs + queries identically (they land on slightly different sub-manifolds of the embedding space). Two code paths (`embedDocuments` / `embedQuery`) to keep the task-type pinned per use case |
+| `embedding_version` column (`model:dims`) | Lets us detect stale vectors on future model/dim bumps without a destructive migration — can lazy re-embed on read or schedule a background reprocess |
+| Hybrid RRF over stacked ranker | Reciprocal Rank Fusion (`k=60`) merges vector + BM25 ranks without tuning per-source weights. Each source contributes `1/(k + rank)`; chunks in both sources accumulate. Handles the "paraphrase" vs "exact phrase" split cleanly — `where_does_the_policy_say_about_X` hits vector; `section 4.3` hits BM25 |
+| STORED generated `tsvector` + GIN | One-line drizzle `generatedAlwaysAs` keeps the search vector in sync with `content` without triggers or app-side maintenance. Write-time cost is worth it — the BM25 query hits GIN in microseconds |
+| Two-phase presign (reserve-before-insert) | Same pattern as image uploads, but we ALSO reserve a Valkey inflight slot at presign and release it at confirm. Closes the "500 concurrent presign requests all read count=499" race that the pure DB-count check can't catch |
+| Advisory lock at confirm, NOT presign | `pg_advisory_xact_lock(hashtext(wsId))` serializes the cap recheck + insert inside one txn. Presigning doesn't serialize — it's rate-limited + inflight-slot-tracked instead (signing is expensive and happens while the user is composing; serializing there would queue innocent clients behind an attacker burst) |
+| Magic-byte sniff at confirm, not presign | At presign time we only have a filename; the bytes don't exist yet. Sniffing the first 4 KB of the uploaded object (via S3 Range GET) catches content/ext mismatches the signed `ContentType` can't (S3 stores whatever bytes the client PUT, not what was signed) |
+| `file-type` library over hand-rolled magic | ZIP-based Office formats (DOCX/PPTX/XLSX) all start with the same `PK\x03\x04` bytes; differentiating requires parsing `[Content_Types].xml` inside the ZIP. `file-type` handles that + 50+ formats in a ~15 KB dep. Not worth reimplementing for uploads |
+| Delete knowledge original after processing | We never serve the original back — only `markdown_cache` and embedded chunks. Keeping the raw file doubles storage and forces content-type concerns to live forever. Parsing failure keeps the file (for retry); success discards it |
+| Per-user caps + per-workspace caps | Per-workspace alone lets one user fan out across 20 workspaces × 1 GB = 20 GB of "their" data. Per-user cap is the actual spend ceiling. Workspaces-per-user (20 owned) closes the "create 1000 workspaces first" vector |
+| Failed-row TTL reap (7 days) | Failed rows still pin quota (their bytes count until deleted) and markdown_cache can be large. Keeping them around a week lets the user see + retry; reaping after prevents "deliberately failing uploads" from being a persistent quota-hoarding strategy |
+| Chunker emits sentinel on overflow, doesn't fail | A 25 MB TXT with no structure produces thousands of tiny chunks → thousands of embedding calls. `maxChunksPerFile = 300` caps the cost; the last chunk is a "[truncated]" marker so downstream search still sees something at the truncation point |
+| System prompt says "always end in insert_text or replace_text" | Early testing showed the model treating "summarize X" as a chat question and emitting plain text we have no UI to display. Explicit rule: EVERY turn ends in a doc edit; no clarifying questions (the user can't see them). Pairs with the editor-state routing to pick an insertion location |
 
 ---
 
-## 17. Gotchas
+## 19. Gotchas
 
 - **`server/auth/` is not a Nitro route dir.** OAuth handlers live in `server/routes/auth/`.
 - **`@nuxtjs/i18n` v10:** `lazy` removed — lazy is default when `locales[].file` is set. `langDir: 'locales/'` resolves relative to `i18n/`, not `app/`.
@@ -505,7 +811,6 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - **Never issue usable JWT for forbidden/password-gated docs** — `token: null` prevents Hocuspocus connection.
 - **Zod `z.tuple(...)` rejected by Gemini** — use `.array().min(N).max(N)`.
 - **AI sweeper threshold must exceed prompt deadline** (7 min > 5 min) — otherwise legit long web searches get killed.
-- **Inline rewrite positions** — `RelativePosition`, not raw indices; 409 on ambiguous fallback.
 - **Presigned read URL TTL: 120s** — can't be revoked; long TTLs outlive access-mode/password changes.
 - **Mobile breakpoint: 639px** — matches Tailwind `sm:`. Don't reintroduce 768px.
 - **paged.js + iframe:** Polisher only processes `@page` from `stylesheets` arg (not `<style>` in content tree). Pass `[{ 'theme.css': cssText }]`. `Polisher.add()` takes `{filename: cssText}` map, not Style elements.
@@ -550,3 +855,14 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 - **`consumeRateLimitBudget` with `cost: 0` must PEEK the actual remaining** — used at session-open time. Earlier version returned `maxCost` unconditionally which let exhausted users open a session only to trip on the first chunk (open-then-close flicker). The peek path now reads the bucket without touching it.
 - **Dictation WS auth via FIRST MESSAGE, not `?token=`** — the query string leaks into access logs, referer headers, and browser history. Server's `upgrade` hook is empty (accepts all); the `open` hook arms a 5s deadline, the `message` hook rejects non-`auth` frames until authed. Pre-auth binary is also rejected (malicious clients shipping audio before auth).
 - **Dictation straggler-chunk guard:** after `ctx.stt.end()`, audio chunks already queued by the browser's AudioWorklet → postMessage → WS pipeline arrive post-end. `ctx.sttEnded` flag drops them at the peer's `message` handler; a second defense in the stream error listener silently swallows "write after end" errors when the flag is set. Without either, `stop` → "error: write after end" UI toast.
+- **Gemini JS SDK `embedContent([str, str, …])` returns ONE vector, not N** — the SDK treats the array as a multi-part Content. Loop per-chunk with bounded concurrency (`server/utils/embeddings.ts`). Python SDK does per-string; don't port Python patterns blindly. Symptom: `[embeddings] expected N vectors, got 1` flipping the row to `failed`.
+- **Drizzle doesn't emit `CREATE EXTENSION vector`** — when `generate` produces a migration with a `vector(…)` column, hand-prepend `CREATE EXTENSION IF NOT EXISTS vector;` + `statement-breakpoint`. Without it the migration fails on a fresh DB with "type vector does not exist".
+- **pgvector HNSW caps at 2000 dims** — 3072-d (Gemini's full `gemini-embedding-2-preview`) can't use HNSW; must use IVFFlat or drop to 768/1536 via MRL. We pick 768 for HNSW compat + cost.
+- **`websearch_to_tsquery` on stopword-only input returns empty tsquery** — the `@@` predicate then returns zero rows. Our hybrid search degrades to vector-only in that case rather than erroring; don't add a guard that short-circuits on empty queries or you lose useful signal on single-keyword searches.
+- **Advisory locks must be INSIDE a txn** — `pg_advisory_xact_lock(hashtext(...))` only releases on COMMIT/ROLLBACK. Outside a transaction it would pin a connection. All knowledge-confirm writes go through `db.transaction(async tx => ...)` so the lock scope is explicit.
+- **Valkey inflight counter fails CLOSED** — if Valkey is down, `reserveInflightSlot` returns `allowed: false`. Trade-off: we'd rather reject uploads on Valkey outage than let uncapped concurrent uploads through. The DB-count cap is still there as a second line, but the race window without the inflight counter is real.
+- **`file-type` returns undefined on plain-text input** — no magic bytes for MD/TXT/HTML. The guard falls through to a printable-UTF-8 ratio check on the first 1 KB. Don't treat `undefined` as "unknown format = allow"; that's an allowlist bypass.
+- **Knowledge S3 original is deleted after processing** — `deleteKnowledgeArtifact` still tries to delete on row-delete, tolerating 404. Don't assume `workspace_knowledge.s3_key` points at a live object for `ready` rows; it's historical after processing.
+- **processKnowledge re-checks row existence after conversion AND after embedding** — user can delete mid-pipeline; without the re-check we'd waste Gemini embedding calls on a doomed insert. Added after we caught it wasting a 160-chunk embedding run on a deleted row.
+- **AI must end every turn with `insert_text`/`replace_text`** — there's no chat surface for model prose. System prompt makes this explicit + bans clarifying questions. If you ever add a chat view, rewrite the "no chat UI" block in `server/api/ai/prompt.post.ts` or the model will still hide its work in edits.
+- **Knowledge tools are in a SEPARATE declaration array** — `KNOWLEDGE_TOOL_DECLARATIONS` is concatenated to `ALL_TOOL_DECLARATIONS` only when the session has workspace access AND ≥1 ready file. The `TOOL_SCHEMAS` drift guard test checks the UNION of both arrays — if you move a knowledge tool into `ALL_*`, update the test and the `hasKnowledgeAccess` gate in `prompt.post.ts`.

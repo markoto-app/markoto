@@ -4,9 +4,27 @@ import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue
 const { t } = useI18n()
 const router = useRouter()
 const { loggedIn } = useUserSession()
+const { billing, workspaceCapReached } = useBilling()
 const creating = ref(false)
 
 const toast = useToast()
+
+// Tooltip shown when the user tries to hover the disabled
+// "New workspace" button. Concrete numbers so the limit is visible;
+// upgrade path advertised on the second line.
+const workspaceCapTooltip = computed(() => {
+  const b = billing.value
+  if (!b) return ''
+  return t('workspace.capReached', {
+    used: b.ownedWorkspaces,
+    limit: b.workspacesOwnedLimit,
+    plan: b.plan.charAt(0).toUpperCase() + b.plan.slice(1)
+  })
+})
+
+function onCapReachedClick() {
+  router.push('/pricing')
+}
 
 async function createDocument() {
   creating.value = true
@@ -180,15 +198,24 @@ function formatDate(value: string | number | Date) {
           >
             {{ t('landing.newDocument') }}
           </UButton>
+          <!-- At-cap pattern: stays visible, muted styling + tooltip +
+               click routes to /pricing. We never hide the button (user
+               should still see the feature exists) and never silently
+               no-op on click (we redirect them toward upgrading). The
+               native `disabled` attribute is NOT used because that
+               would also suppress the click — we want the click to
+               navigate, not do nothing. -->
           <UButton
             v-if="loggedIn"
             size="xl"
             color="neutral"
-            variant="subtle"
-            icon="i-lucide-folder-plus"
-            @click="showCreateWorkspace = true"
+            :variant="workspaceCapReached ? 'ghost' : 'subtle'"
+            :icon="workspaceCapReached ? 'i-lucide-lock' : 'i-lucide-folder-plus'"
+            :class="workspaceCapReached ? 'opacity-60' : ''"
+            :title="workspaceCapReached ? workspaceCapTooltip : undefined"
+            @click="workspaceCapReached ? onCapReachedClick() : (showCreateWorkspace = true)"
           >
-            {{ t('workspace.newWorkspace') }}
+            {{ workspaceCapReached ? t('workspace.capReachedShort') : t('workspace.newWorkspace') }}
           </UButton>
         </div>
       </div>
@@ -321,7 +348,7 @@ function formatDate(value: string | number | Date) {
       >
         <UIcon
           name="i-lucide-loader"
-          class="size-6 animate-spin text-muted"
+          class="size-5 animate-spin text-muted"
         />
       </div>
 

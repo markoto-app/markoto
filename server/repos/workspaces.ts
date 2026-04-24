@@ -17,6 +17,8 @@ export interface WorkspaceRow {
   ownerId: number
   name: string
   description: string | null
+  billingOwnerId: number | null
+  aiEnabled: boolean
   createdAt: Date
 }
 
@@ -93,6 +95,47 @@ export async function updateWorkspace(
   if (result.length === 0) {
     throw new NotFoundError('Workspace')
   }
+}
+
+/**
+ * Update the `(+)` team-billing state for a workspace. Admin-only
+ * semantics + plan eligibility live in the endpoint; this repo just
+ * writes the two columns atomically so `aiEnabled=true` never lands
+ * without a non-null `billingOwnerId`.
+ *
+ * Pass `{ aiEnabled: true, billingOwnerId: N }` to turn on, or
+ * `{ aiEnabled: false, billingOwnerId: null }` to turn off.
+ */
+export async function setWorkspaceBilling(
+  workspaceId: string,
+  update: { aiEnabled: boolean, billingOwnerId: number | null }
+): Promise<void> {
+  const db = useDatabase()
+  const result = await db
+    .update(workspaces)
+    .set({
+      aiEnabled: update.aiEnabled,
+      billingOwnerId: update.billingOwnerId
+    })
+    .where(eq(workspaces.workspaceId, workspaceId))
+    .returning({ workspaceId: workspaces.workspaceId })
+  if (result.length === 0) {
+    throw new NotFoundError('Workspace')
+  }
+}
+
+/**
+ * Count workspaces owned (created) by a user. Only counts `ownerId` —
+ * a user invited to others' workspaces isn't included. Used to enforce
+ * the per-user creation cap so one account can't spawn thousands of
+ * empty workspaces to fan out uploads across them.
+ */
+export async function countOwnedWorkspacesByUser(userId: number): Promise<number> {
+  const db = useDatabase()
+  const rows = await db.select({ n: sql<number>`count(*)::int` })
+    .from(workspaces)
+    .where(eq(workspaces.ownerId, userId))
+  return rows[0]?.n ?? 0
 }
 
 /**

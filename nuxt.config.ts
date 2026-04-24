@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { TIERS, LEGACY_KNOWLEDGE_SHIM, LEGACY_WORKSPACES_SHIM, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
+
 export default defineNuxtConfig({
   // Dev proxy: mirror production Traefik routing through localhost:3000
   // so the browser only talks to one origin (no CORS issues).
@@ -64,9 +66,13 @@ export default defineNuxtConfig({
       // this set in prod so a compromised Hocuspocus secret doesn't
       // also forge dictation tokens (and vice versa).
       dictateJwtSecret: '', // NUXT_GOOGLE_DICTATE_JWT_SECRET
-      model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call)
-      rewriteModel: 'gemini-2.5-flash-lite', // NUXT_GOOGLE_REWRITE_MODEL — one-shot selection rewrites (cheapest tier)
+      model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call). Also handles selection-scoped rewrites since phase 5 collapsed the dedicated rewrite path into the unified agentic flow.
       imageModel: 'gemini-3.1-flash-image-preview', // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool. Alternatives: `gemini-2.5-flash-image` (stable, older), `gemini-3-pro-image-preview` (higher quality, slower, more expensive).
+      // 0.5K is the cheapest tier ($0.045/image vs $0.067 at 1K).
+      // Sharp enough for inline paged.js render + PDF export at normal
+      // zoom. Don't expose as a user option — every bump up the ladder
+      // is a direct cost hit. See §15 in AGENTS.md.
+      imageResolution: '0.5K', // NUXT_GOOGLE_IMAGE_RESOLUTION — values: '0.5K', '1K', '2K', '4K'
       // Embedding model for workspace knowledge. `gemini-embedding-2-preview`
       // is the latest multimodal embedding model (text/image/video/audio/
       // documents into a unified space). We use it text-only today.
@@ -109,15 +115,27 @@ export default defineNuxtConfig({
     // never auto-reaped. 0 disables sweeping entirely. Override via
     // NUXT_INACTIVE_DOC_TTL_DAYS.
     inactiveDocTtlDays: 180,
-    // Workspace knowledge base limits. Per-file cap mirrors markitdown's
-    // ceiling (keeps the conversion step predictable). Per-workspace
-    // caps are soft — enforced at upload-request time, not as hard DB
-    // constraints.
-    knowledge: {
-      maxFileBytes: 25 * 1024 * 1024, // NUXT_KNOWLEDGE_MAX_FILE_BYTES (25 MB)
-      maxFilesPerWorkspace: 500, // NUXT_KNOWLEDGE_MAX_FILES_PER_WORKSPACE
-      maxTotalBytesPerWorkspace: 1024 * 1024 * 1024 // NUXT_KNOWLEDGE_MAX_TOTAL_BYTES_PER_WORKSPACE (1 GB)
-    },
+    // Per-tier caps. Sourced from `shared/config/tiers.ts` so the unit
+    // tests and the eventual client-side pricing page read from the
+    // same typed definition. Numbers documented in AGENTS.md §15.
+    //
+    // Phase 1: enforcement sites still read `config.knowledge.*` and
+    // `config.workspaces.maxPerUser` (the shims below, pinned to the
+    // max-tier numbers so no user sees a regression). Phases 3+4 swap
+    // every call site to `config.tiers[userPlan].*`.
+    tiers: TIERS,
+    // LEGACY SHIMS — existing enforcement sites read these. Values are
+    // defined in `shared/config/tiers.ts` alongside TIERS so unit tests
+    // can assert invariants (shim >= max tier, etc). Phase 3/4 removes
+    // both the shims and the tests that pin their relationships.
+    // Env vars (NUXT_KNOWLEDGE_*, NUXT_WORKSPACES_MAX_PER_USER) still
+    // override at runtime via Nitro's nested key resolution.
+    knowledge: LEGACY_KNOWLEDGE_SHIM,
+    workspaces: LEGACY_WORKSPACES_SHIM,
+    // Stripe keys + price IDs. All empty in dev; populated in prod via
+    // NUXT_STRIPE_* env vars. Phase-1 adds the config shape only — no
+    // code reads these yet.
+    stripe: STRIPE_CONFIG_DEFAULTS,
     public: {
       syncUrl: '',
       sentry: {

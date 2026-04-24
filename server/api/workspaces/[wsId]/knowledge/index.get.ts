@@ -1,4 +1,5 @@
 import { listKnowledge, countWorkspaceKnowledge, sumWorkspaceKnowledgeBytes } from '../../../../repos/knowledge'
+import { resolveCaps } from '../../../../utils/knowledgeQuota'
 
 /**
  * List knowledge files in a workspace. Any member role can call this.
@@ -16,13 +17,12 @@ export default defineEventHandler(async (event) => {
 
   await requireKnowledgeViewAccess(event, wsId, userId)
 
-  const [rows, count, totalBytes] = await Promise.all([
+  const [rows, count, totalBytes, caps] = await Promise.all([
     listKnowledge(wsId),
     countWorkspaceKnowledge(wsId),
-    sumWorkspaceKnowledgeBytes(wsId)
+    sumWorkspaceKnowledgeBytes(wsId),
+    resolveCaps({ workspaceId: wsId, uploaderId: userId })
   ])
-
-  const config = useRuntimeConfig()
 
   return {
     items: rows.map(r => ({
@@ -42,9 +42,15 @@ export default defineEventHandler(async (event) => {
     usage: {
       count,
       totalBytes,
-      maxFiles: config.knowledge.maxFilesPerWorkspace,
-      maxBytes: config.knowledge.maxTotalBytesPerWorkspace,
-      maxFileBytes: config.knowledge.maxFileBytes
+      // Workspace-scoped caps — reflect the (+) billing owner's tier
+      // if enabled, else the workspace creator's tier.
+      maxFiles: caps.maxFilesPerWorkspace,
+      maxBytes: caps.maxTotalBytesPerWorkspace,
+      maxFileBytes: caps.maxFileBytes,
+      // Diagnostic: which plan's caps are being applied. Lets the UI
+      // show "Billed to {owner} at Max tier" without a separate call.
+      workspacePlan: caps.workspacePlan,
+      uploaderPlan: caps.uploaderPlan
     }
   }
 })

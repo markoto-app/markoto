@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "stripe_current_period_start" timestamp with time zone;

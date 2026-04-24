@@ -27,7 +27,9 @@ import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { getDoc, updateDocMeta } from '../repos/documents'
 import { recordPending, markConfirmed } from '../repos/uploads'
 import { getKnowledgeWithMarkdown, searchKnowledge } from '../repos/knowledge'
+import { getMemberRole } from '../repos/workspaceMembers'
 import { embedQuery } from './embeddings'
+import { chargeInteractions, BudgetExhausted } from './billing'
 
 export interface ToolResult {
   content: string
@@ -531,9 +533,31 @@ async function handleGenerateImage(
   session: AiSession,
   input: GenerateImageInput
 ): Promise<ToolResult> {
+  // 1. Charge 5 interactions BEFORE the sub-call — otherwise an
+  //    exhausted user can still trigger an image-gen cost we've
+  //    already incurred. If charging fails we surface the error
+  //    through the tool-result channel so the model sees it and can
+  //    respond to the user (the runLoop also converts BudgetExhausted
+  //    at the turn-charge site into a doc breadcrumb; this is the
+  //    tool-level fallback for when the cap lands mid-tool-call).
+  try {
+    await chargeInteractions({
+      attributedTo: session.attributedTo,
+      plan: session.plan,
+      delta: 5,
+      periodStart: session.periodStart,
+      reason: 'generate_image tool'
+    })
+  } catch (e) {
+    if (e instanceof BudgetExhausted) {
+      return err(`Error: AI budget exhausted — cannot generate the image. Ask the user to upgrade at /pricing.`)
+    }
+    throw e
+  }
+
   session.updateStatus('tool', 'Generating image…')
 
-  // 1. Generate. The 5-minute loop deadline is the effective cap — we
+  // 2. Generate. The 5-minute loop deadline is the effective cap — we
   //    don't thread a finer-grained signal here.
   const controller = new AbortController()
   const gen = await generateImageBytes(input.prompt, controller.signal)
@@ -654,13 +678,36 @@ const KNOWLEDGE_FILE_CHAR_CAP = 40_000
 // queries) and that's the point of having BM25. Drop obvious junk via
 // the per-source candidate pool size instead.
 
-async function handleSearchKnowledge(session: AiSession, input: SearchKnowledgeInput): Promise<ToolResult> {
+/**
+ * Per-call membership recheck for knowledge tools. AI sessions are
+ * long-lived (up to 5 min hard deadline) and session.workspaceId is
+ * resolved ONCE at /api/ai/prompt time. If an admin demotes the
+ * initiator to viewer — or removes them from the workspace entirely —
+ * mid-session, we'd otherwise keep serving knowledge until the loop
+ * ends. One cheap getMemberRole call per tool invocation closes that
+ * window at tool-call granularity.
+ *
+ * Viewer role still passes: viewers can read knowledge (same as the
+ * REST list endpoint). We reject only on "no membership at all".
+ */
+async function verifyWorkspaceMembership(session: AiSession): Promise<string | null> {
   if (!session.workspaceId) {
-    // Defense in depth: the runtime filter should already have hidden
-    // this tool from the model on non-workspace sessions. If it still
-    // lands here, return a self-correcting error.
-    return err('Error: search_knowledge is only available for documents inside a workspace.')
+    return 'Error: this tool is only available for documents inside a workspace.'
   }
+  const role = await getMemberRole(session.workspaceId, session.initiatorUserId)
+  if (!role) {
+    return 'Error: your membership in this workspace has been revoked. Knowledge tools are unavailable.'
+  }
+  return null
+}
+
+async function handleSearchKnowledge(session: AiSession, input: SearchKnowledgeInput): Promise<ToolResult> {
+  const denied = await verifyWorkspaceMembership(session)
+  if (denied) return err(denied)
+  // verifyWorkspaceMembership guarantees workspaceId is non-null when
+  // it returns null; TS can't follow that through the helper, hence
+  // the local narrow.
+  const workspaceId = session.workspaceId!
   const topK = input.top_k ?? 5
 
   session.updateStatus('tool', `Searching workspace knowledge for "${input.query.slice(0, 80)}"…`)
@@ -674,7 +721,7 @@ async function handleSearchKnowledge(session: AiSession, input: SearchKnowledgeI
   }
 
   const hits = await searchKnowledge({
-    workspaceId: session.workspaceId,
+    workspaceId,
     queryText: input.query,
     queryEmbedding,
     topK
@@ -702,9 +749,8 @@ async function handleSearchKnowledge(session: AiSession, input: SearchKnowledgeI
 }
 
 async function handleGetKnowledgeFile(session: AiSession, input: GetKnowledgeFileInput): Promise<ToolResult> {
-  if (!session.workspaceId) {
-    return err('Error: get_knowledge_file is only available for documents inside a workspace.')
-  }
+  const denied = await verifyWorkspaceMembership(session)
+  if (denied) return err(denied)
 
   session.updateStatus('tool', `Reading knowledge file ${input.knowledge_id}…`)
 

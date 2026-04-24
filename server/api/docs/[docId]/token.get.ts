@@ -48,6 +48,13 @@ export default defineEventHandler(async (event) => {
     ownerId: row.ownerId,
     workspaceId: row.workspaceId,
     workspaceRole: row.workspaceRole,
+    // `(+)` AI-workspace state on the parent workspace (if any). Lets
+    // the editor render the "AI workspace" indicator on first paint
+    // without a second round-trip to `/api/workspaces/:id`. The
+    // sponsor block carries the billing owner's profile so the editor
+    // can render their avatar + name inline.
+    workspaceAiEnabled: row.workspaceAiEnabled,
+    workspaceBillingOwner: row.workspaceBillingOwner,
     theme: row.theme
   }
 

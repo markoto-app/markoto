@@ -1,0 +1,22 @@
+{
+  "id": "evt_test_invoice_paid",
+  "object": "event",
+  "api_version": "2024-12-18.acacia",
+  "created": 1778678400,
+  "livemode": false,
+  "type": "invoice.paid",
+  "data": {
+    "object": {
+      "id": "in_test_alice_renewal",
+      "object": "invoice",
+      "customer": "cus_test_alice",
+      "subscription": "sub_test_alice_pro",
+      "status": "paid",
+      "paid": true,
+      "billing_reason": "subscription_cycle",
+      "period_start": 1778678400,
+      "period_end": 1781356800,
+      "total": 1000
+    }
+  }
+}

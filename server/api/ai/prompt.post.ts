@@ -6,6 +6,7 @@ import { getMemberRole } from '../../repos/workspaceMembers'
 import { listReadyKnowledgeBrief } from '../../repos/knowledge'
 import { addAiSession, removeAiSession, DuplicateSessionError } from '../../utils/aiSessions'
 import { createAiSession } from '../../utils/aiClient'
+import { resolveBillingContext } from '../../utils/billing'
 import { runAgenticLoop } from '../../utils/agentic/runLoop'
 import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../utils/agentic/functionTools'
 import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
@@ -181,6 +182,22 @@ export default defineEventHandler(async (event) => {
     : ALL_TOOL_DECLARATIONS
   const systemPrompt = SYSTEM_PROMPT + knowledgeBlock
 
+  // Resolve billing context up-front so we can reject exhausted users
+  // with 402 BEFORE registering a session slot or minting Hocuspocus
+  // tokens. Session-open is the cheapest place to notice exhaustion.
+  const billingContext = await resolveBillingContext(userId, workspaceId)
+  if (billingContext.interactionsRemaining <= 0) {
+    throw createError({
+      statusCode: 402,
+      message: `You've used all ${billingContext.interactionsRemaining === 0 ? '' : ''}AI actions for this billing period. Upgrade your plan at /pricing to continue.`,
+      data: {
+        plan: billingContext.plan,
+        attributedTo: billingContext.attributedTo,
+        periodStart: billingContext.periodStart.toISOString()
+      }
+    })
+  }
+
   const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706' // Warm orange — reused from the original AI-as-collaborator design
 
@@ -239,7 +256,10 @@ export default defineEventHandler(async (event) => {
         initiatorUserId: userId,
         initiatorColor,
         prompt,
-        workspaceId
+        workspaceId,
+        attributedTo: billingContext.attributedTo,
+        plan: billingContext.plan,
+        periodStart: billingContext.periodStart
       }, abortController.signal)
 
       await runAgenticLoop({
@@ -255,7 +275,8 @@ export default defineEventHandler(async (event) => {
         aiSession,
         sessionId,
         abortController,
-        setStatus
+        setStatus,
+        billingContext
       })
     } catch (e: unknown) {
       // Treat anything that happens after we signaled abort as an abort,

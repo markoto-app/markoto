@@ -25,6 +25,8 @@ const {
   accessMode,
   workspaceId: docWorkspaceId,
   workspaceRole: docWorkspaceRole,
+  workspaceAiEnabled: docWorkspaceAiEnabled,
+  workspaceBillingOwner: docWorkspaceSponsor,
   undoManager,
   title,
   theme,
@@ -621,6 +623,29 @@ const statusIcon = computed(() => {
           {{ title }}
         </button>
 
+        <!-- AI workspace indicator. Every member of a (+) workspace
+             should know at-a-glance that AI work here is billed to the
+             sponsor. Muted palette (neutral border, subtle tint) — it
+             shouldn't compete with the title or status badges for
+             attention. Sponsor avatar inline so members can see *who*
+             pays without opening the workspace page. Click → workspace
+             page's AI tab. -->
+        <NuxtLink
+          v-if="docWorkspaceAiEnabled && docWorkspaceId"
+          :to="`/w/${docWorkspaceId}`"
+          class="hidden sm:inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full border border-default bg-default/60 text-xs text-muted hover:text-default hover:bg-muted/40 transition-colors"
+          :title="docWorkspaceSponsor ? t('editor.aiWorkspaceSponsoredBy', { name: docWorkspaceSponsor.name }) : t('editor.aiWorkspaceBadgeTooltip')"
+        >
+          <UAvatar
+            v-if="docWorkspaceSponsor"
+            :src="docWorkspaceSponsor.avatarUrl ?? undefined"
+            :alt="docWorkspaceSponsor.name"
+            size="3xs"
+          />
+          <UIcon v-else name="i-lucide-sparkles" class="size-3" />
+          <span>{{ t('editor.aiWorkspaceBadge') }}</span>
+        </NuxtLink>
+
         <!-- Collaborators next to title -->
         <CollabPresenceBar
           :awareness="awareness"
@@ -1116,12 +1141,14 @@ const statusIcon = computed(() => {
       </template>
     </UModal>
 
-    <!-- AI selection popup — floats near the editor's current selection -->
+    <!-- AI selection popup — floats near the editor's current selection.
+         Uses the same /api/ai/prompt path as the bottom bar; it just
+         pre-captures the selection snapshot so the agentic loop targets
+         the highlighted range via replace_text. -->
     <AISelectionPopup
       v-if="!isReadOnly && !requiresPassword"
       :view="editorView"
-      :ytext="ytext"
-      :on-rewrite="(params) => ai.rewrite(params)"
+      :on-prompt="(text, overrides) => ai.prompt(text, overrides)"
     />
   </div>
 </template>

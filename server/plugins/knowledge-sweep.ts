@@ -4,6 +4,7 @@ import { workspaceKnowledge } from '../db/schema'
 import { useDatabase } from '../utils/database'
 import { migrationsComplete } from '../utils/migrations'
 import { processKnowledge } from '../utils/processKnowledge'
+import { deleteKnowledgeArtifact } from '../utils/knowledgeAccess'
 
 // Re-kicks knowledge-base uploads that got stuck in `status='processing'`
 // past the deadline. Normal ingestion runs fire-and-forget from the
@@ -23,7 +24,7 @@ const STALE_THRESHOLD_MS = 10 * 60 * 1000
 const SWEEP_INTERVAL_MS = 2 * 60 * 1000
 
 export default defineNitroPlugin((nitroApp) => {
-  async function sweep() {
+  async function sweepStuck() {
     const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS)
     let stuck: Array<{ knowledgeId: string }>
     try {
@@ -35,7 +36,7 @@ export default defineNitroPlugin((nitroApp) => {
           lt(workspaceKnowledge.createdAt, cutoff)
         ))
     } catch (e) {
-      console.warn('[knowledge-sweep] query failed:', e instanceof Error ? e.message : e)
+      console.warn('[knowledge-sweep] stuck-query failed:', e instanceof Error ? e.message : e)
       Sentry.captureException(e, { tags: { component: 'knowledge-sweep', event: 'query_failed' } })
       return
     }
@@ -46,6 +47,48 @@ export default defineNitroPlugin((nitroApp) => {
       // processKnowledge already catches its own errors.
       await processKnowledge(row.knowledgeId)
     }
+  }
+
+  // Second sweep pass: reap failed rows past the TTL. Failed rows
+  // hold S3 bytes (we never delete originals on failure — keeps the
+  // retry path cheap) and count against the per-user quota, so
+  // letting them linger forever would let "deliberate failure"
+  // hoard quota. The TTL is per-ops comfort — operators looking at
+  // errors get N days to see what's going wrong before cleanup.
+  async function sweepFailed() {
+    const cfg = useRuntimeConfig().knowledge
+    const cutoffDays = cfg.failedRetentionDays
+    if (cutoffDays <= 0) return
+    const cutoff = new Date(Date.now() - cutoffDays * 24 * 60 * 60 * 1000)
+    let rows: Array<{ knowledgeId: string }>
+    try {
+      const db = useDatabase()
+      rows = await db.select({ knowledgeId: workspaceKnowledge.knowledgeId })
+        .from(workspaceKnowledge)
+        .where(and(
+          eq(workspaceKnowledge.status, 'failed'),
+          lt(workspaceKnowledge.createdAt, cutoff)
+        ))
+    } catch (e) {
+      console.warn('[knowledge-sweep] failed-query failed:', e instanceof Error ? e.message : e)
+      Sentry.captureException(e, { tags: { component: 'knowledge-sweep', event: 'failed_query_failed' } })
+      return
+    }
+    for (const row of rows) {
+      console.log(`[knowledge-sweep] Reaping expired failed row ${row.knowledgeId}`)
+      // deleteKnowledgeArtifact is already idempotent: it no-ops if
+      // the row is missing and best-effort deletes the S3 object.
+      try {
+        await deleteKnowledgeArtifact(row.knowledgeId)
+      } catch (e) {
+        console.warn(`[knowledge-sweep] reap failed for ${row.knowledgeId}:`, e instanceof Error ? e.message : e)
+      }
+    }
+  }
+
+  async function sweep() {
+    await sweepStuck()
+    await sweepFailed()
   }
 
   // Kick first sweep after migrations complete so we don't race 00-db-migrate

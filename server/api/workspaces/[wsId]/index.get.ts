@@ -37,7 +37,12 @@ export default defineEventHandler(async (event) => {
       description: ws.description,
       createdAt: ws.createdAt,
       myRole,
-      ownerId: ws.ownerId
+      ownerId: ws.ownerId,
+      // (+) team-billing state. Surfaced to all members so viewers/
+      // editors can see "AI usage billed to {owner}" banners; only
+      // admins can TOGGLE via PATCH /billing.
+      aiEnabled: ws.aiEnabled,
+      billingOwnerId: ws.billingOwnerId
     },
     documents,
     members

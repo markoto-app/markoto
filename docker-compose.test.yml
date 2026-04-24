@@ -60,3 +60,17 @@ services:
       - /data
     volumes:
       - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
+  # Official Stripe mock server. Implements Stripe's full REST API
+  # surface from their OpenAPI spec, so our code can use the real SDK
+  # unchanged — it just talks to `stripe-mock:12111` instead of
+  # `api.stripe.com`. The mock returns well-formed fixtures with stable
+  # IDs; it does NOT emit webhooks (we test those via hand-crafted
+  # fixtures + signed payloads directly against our webhook handler).
+  stripe-mock:
+    image: stripe/stripe-mock:latest
+    restart: unless-stopped
+    ports:
+      - "12111:12111"
+    # No healthcheck available (image has no shell + no curl); port
+    # 12111 is up as soon as the process binds, which is near-instant.

@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, customType } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 
@@ -18,8 +18,29 @@ export const users = pgTable('users', {
   name: text('name').notNull(),
   email: text('email'),
   avatarUrl: text('avatar_url'),
+  // Subscription tier. `free` is the default for every existing row
+  // (phase-1 migration backfill). Paid tiers are set by the Stripe
+  // webhook in phase 7 — until then the column is read-only from the
+  // app's perspective. See AGENTS.md §15.
+  plan: text('plan', { enum: ['free', 'pro', 'max', 'ultra'] }).notNull().default('free'),
+  // Paid-tier expiry = Stripe's `current_period_end`. NULL for free
+  // users (free never lapses). Set by the Stripe webhook; the
+  // plan-lapse sweep flips the row back to `free` + disables any
+  // `(+)` workspaces once we're past this timestamp.
+  planValidUntil: timestamp('plan_valid_until', { withTimezone: true }),
+  // Stripe's `current_period_start` for paid users — anchors the
+  // AI-credits billing period so quota resets on the invoice day, not
+  // on the 1st of the calendar month. NULL for free users (they fall
+  // back to the calendar-month anchor). Updated on every `invoice.paid`.
+  stripeCurrentPeriodStart: timestamp('stripe_current_period_start', { withTimezone: true }),
+  stripeCustomerId: text('stripe_customer_id').unique(),
+  stripeSubscriptionId: text('stripe_subscription_id').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-})
+}, table => [
+  // Plan-lapse sweep scans for `planValidUntil < now()` among non-free
+  // users. Partial index keeps it cheap as the user table grows.
+  index('idx_users_plan_valid_until').on(table.planValidUntil).where(sql`${table.planValidUntil} is not null`)
+])
 
 export const documents = pgTable('documents', {
   id: serial('id').primaryKey(),
@@ -67,9 +88,21 @@ export const workspaces = pgTable('workspaces', {
   ownerId: integer('owner_id').notNull().references(() => users.id),
   name: text('name').notNull().default('My Workspace'),
   description: text('description'),
+  // `(+)` team-billing target. NULL means "each member pays their own
+  // interactions" (the default). Set by the workspace admin when they
+  // toggle `(+)` on and their plan is max/ultra. `aiEnabled` is the
+  // boolean twin — redundant with `billingOwnerId IS NOT NULL` but kept
+  // as an explicit column so admin UI + filter queries don't need to
+  // NULL-check. Plan-lapse sweep flips both back to (null, false) when
+  // the billing owner's subscription expires.
+  billingOwnerId: integer('billing_owner_id').references(() => users.id, { onDelete: 'set null' }),
+  aiEnabled: boolean('ai_enabled').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
-  index('idx_workspaces_owner').on(table.ownerId)
+  index('idx_workspaces_owner').on(table.ownerId),
+  // Billing resolver reads `(+)` state by workspace id; sweep scans by
+  // billing owner. Both benefit from an index on billingOwnerId.
+  index('idx_workspaces_billing_owner').on(table.billingOwnerId)
 ])
 
 // Membership + role table. Single source of truth for "who can do what" in
@@ -201,6 +234,33 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
   index('idx_wkc_workspace').on(table.workspaceId),
   index('idx_wkc_embedding').using('hnsw', table.embedding.op('vector_cosine_ops')),
   index('idx_wkc_content_tsv').using('gin', table.contentTsv)
+])
+
+// Per-period AI interaction counter. One row per attribution target per
+// billing period.
+//
+// `attributedTo` encodes the billing target as either `user:{userId}` or
+// `workspace:{wsId}` — returned by `resolveBillingContext`. Using a
+// prefixed string here (rather than two nullable FK columns) keeps the
+// primary key simple and the INSERT ... ON CONFLICT idempotent without
+// needing a partial unique index per branch.
+//
+// `periodStart` is the first day of the billing cycle (phase 1: calendar
+// month UTC). Revisit when Stripe comes online in phase 7 if we want to
+// anchor paid-tier periods to the subscription cycle instead.
+//
+// Writes are a single atomic `INSERT ... ON CONFLICT (attributed_to,
+// period_start) DO UPDATE SET interactions_used = interactions_used +
+// EXCLUDED.interactions_used` inside the agentic loop — no read-modify-
+// write races. Enforcement compares the returned `interactions_used`
+// against the tier cap; overshoot → rollback + BudgetExhausted error.
+export const aiUsagePeriod = pgTable('ai_usage_period', {
+  attributedTo: text('attributed_to').notNull(),
+  periodStart: timestamp('period_start', { withTimezone: true, mode: 'date' }).notNull(),
+  interactionsUsed: integer('interactions_used').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  primaryKey({ columns: [table.attributedTo, table.periodStart] })
 ])
 
 export const activityLog = pgTable('activity_log', {

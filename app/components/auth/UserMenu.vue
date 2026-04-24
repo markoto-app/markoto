@@ -8,8 +8,18 @@ const { loggedIn, user, clear } = useUserSession()
     v-if="loggedIn"
     class="flex items-center gap-2"
   >
+    <!-- Plan + usage bar. Clickable → /pricing. Same component used
+         across every page (driven by shared `useBilling` state), so
+         the bar ticks down live as the user consumes credits. -->
+    <AuthUsageBadge />
+
     <UDropdownMenu
       :items="[
+        {
+          label: t('pricing.title'),
+          icon: 'i-lucide-credit-card',
+          to: '/pricing'
+        },
         {
           label: t('auth.logout'),
           icon: 'i-lucide-log-out',

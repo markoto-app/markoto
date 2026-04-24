@@ -6,6 +6,13 @@ import {
 } from '../../../utils/rateLimit'
 import { tryParseControl, normalizeLanguageCode } from '../../../utils/agentic/dictateHelpers'
 import { createDictateSpeechClient, type SpeechStream } from '../../../utils/agentic/dictateSpeechClient'
+import {
+  resolveBillingContext,
+  chargeInteractions,
+  interactionsForAudioMs,
+  BudgetExhausted
+} from '../../../utils/billing'
+import { TIERS } from '~~/shared/config/tiers'
 
 // WebSocket relay for live voice dictation. Bridges the browser's PCM
 // audio stream to Google Cloud Speech-to-Text v1 `streamingRecognize`
@@ -49,9 +56,11 @@ import { createDictateSpeechClient, type SpeechStream } from '../../../utils/age
 //     - `{ type: 'idle-timeout' }` 30 s without audio
 //
 // Rate-limit: audio-ms (NOT requests). Each 2048-sample chunk @ 16 kHz
-// = 128 ms of audio; we debit that into a per-user daily budget.
+// = 128 ms of audio; we debit that into a per-user daily budget whose
+// size depends on the caller's tier (Free=5min, Pro=30min, Max/Ultra=60min).
+// The daily cap backstops the interaction counter — a user can't bypass
+// the monthly interaction budget by dictating continuously for a month.
 
-const DAILY_BUDGET_MS = 30 * 60 * 1000 // 30 min/user/day
 const DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
 const SESSION_HARD_CAP_MS = 10 * 60 * 1000
 const IDLE_TIMEOUT_MS = 30_000
@@ -77,6 +86,27 @@ type SttStream = SpeechStream
 interface DictatePeerContext {
   userId?: number
   docId?: string
+  /**
+   * Per-tier daily audio-ms budget, resolved at auth and pinned for
+   * the lifetime of the connection. We don't re-read the user's plan
+   * per chunk — a mid-session plan lapse keeps the current session on
+   * whatever cap was in effect at auth; the NEXT session starts with
+   * the updated cap. Prevents a weird mid-dictation cutoff when a
+   * Stripe webhook lands during an active stream.
+   */
+  dailyBudgetMs?: number
+  /**
+   * Accumulated audio duration (ms) forwarded to Cloud STT. Charged as
+   * interactions on `close` — 5 per minute (per AGENTS.md §15),
+   * realised as `interactionsForAudioMs(ms)` (ceil(ms/12000)).
+   *
+   * Why on-close rather than per-chunk: chunks are 128 ms each, and 5
+   * interactions/minute is 1/12 of a second — 94 out of every 95
+   * chunks would round to 0. Accumulating + charging once at the end
+   * keeps the atomic increment well-defined and matches the "session
+   * cost" mental model better than a per-chunk drip.
+   */
+  accumulatedAudioMs?: number
   /**
    * Cloud STT stream. Populated in `handleAuth` after the JWT checks
    * out; every code path that reaches for it also checks `authed`.
@@ -191,11 +221,13 @@ export default defineEventHandler({
       // Debit budget BEFORE forwarding so a burst past the cap can't
       // land free. `remaining` returns in ms (matching the budget's
       // units) so the client can surface a meaningful "minutes left".
+      // Budget size comes from the caller's tier, resolved at auth.
+      const dailyBudgetMs = ctx.dailyBudgetMs ?? (5 * 60 * 1000)
       const { allowed, remaining } = await consumeRateLimitBudget(
         'ai-dictate-ms',
         String(ctx.userId),
         CHUNK_AUDIO_MS,
-        DAILY_BUDGET_MS,
+        dailyBudgetMs,
         DAILY_WINDOW_MS
       )
       if (!allowed) {
@@ -217,6 +249,11 @@ export default defineEventHandler({
         return
       }
 
+      // Accumulate audio-ms for the interaction charge on close.
+      // Done AFTER the write succeeds so a failed chunk doesn't
+      // contribute to the bill.
+      ctx.accumulatedAudioMs = (ctx.accumulatedAudioMs ?? 0) + CHUNK_AUDIO_MS
+
       resetIdleTimer(p, ctx)
     },
 
@@ -229,6 +266,7 @@ export default defineEventHandler({
       try { ctx.stt?.destroy() } catch { /* best-effort */ }
       if (ctx.userId !== undefined) {
         void releaseSessionLock('ai-dictate-active', String(ctx.userId))
+        void finaliseDictateBilling(ctx)
       }
     },
 
@@ -239,6 +277,7 @@ export default defineEventHandler({
       try { ctx.stt?.destroy() } catch { /* best-effort */ }
       if (ctx.userId !== undefined) {
         void releaseSessionLock('ai-dictate-active', String(ctx.userId))
+        void finaliseDictateBilling(ctx)
       }
     }
   }
@@ -301,13 +340,35 @@ async function handleAuth(
     ctx.authTimer = undefined
   }
 
+  // Resolve the per-tier daily audio budget. Lapsed paid plans fall
+  // back to free-tier caps defensively — we don't want a lapsed Max
+  // user to still enjoy 60 min/day of dictation until the sweep catches
+  // up. Sticks to the session for stable behaviour across chunks.
+  const billing = await resolveBillingContext(payload.userId, null).catch(() => null)
+  const effectivePlan = billing?.plan ?? 'free'
+  const dailyBudgetMs = TIERS[effectivePlan].dictationMsPerDay
+  ctx.dailyBudgetMs = dailyBudgetMs
+
   // Peek the daily budget (cost: 0 debits nothing, returns remaining).
   const budget = await consumeRateLimitBudget(
-    'ai-dictate-ms', String(payload.userId), 0, DAILY_BUDGET_MS, DAILY_WINDOW_MS
+    'ai-dictate-ms', String(payload.userId), 0, dailyBudgetMs, DAILY_WINDOW_MS
   )
   if (!budget.allowed || budget.remaining < CHUNK_AUDIO_MS) {
     peer.send(JSON.stringify({ type: 'budget-exhausted', remaining: budget.remaining }))
     peer.close(4002, 'budget exhausted')
+    return
+  }
+
+  // Interaction pre-check (re-using the billing resolution above).
+  // Reject at open when remaining < 1 so exhausted users don't get
+  // audio-worklet spin-up + mic permission prompt before being cut off.
+  if (billing && billing.interactionsRemaining <= 0) {
+    peer.send(JSON.stringify({
+      type: 'budget-exhausted',
+      remaining: 0,
+      reason: 'interactions'
+    }))
+    peer.close(4002, 'interactions exhausted')
     return
   }
 
@@ -389,4 +450,39 @@ function resetIdleTimer(peer: PeerLike, ctx: DictatePeerContext) {
     peer.send(JSON.stringify({ type: 'idle-timeout' }))
     peer.close(4001, 'idle timeout')
   }, IDLE_TIMEOUT_MS)
+}
+
+/**
+ * Charge interactions for accumulated dictation audio on WS close.
+ * Runs via `void` — we don't want to block the close hook on a DB
+ * round-trip. Errors are logged but not propagated: a dead DB
+ * shouldn't prevent the WS from tearing down cleanly.
+ *
+ * Resolves billing context fresh at close time (no session state
+ * for dictation, unlike the prompt loop). Over-cap charges are
+ * absorbed — we'd rather over-serve by a few seconds than lose the
+ * accounting entirely on a late-stage race.
+ */
+async function finaliseDictateBilling(ctx: DictatePeerContext): Promise<void> {
+  const userId = ctx.userId
+  const audioMs = ctx.accumulatedAudioMs ?? 0
+  if (userId === undefined || audioMs <= 0) return
+  const delta = interactionsForAudioMs(audioMs)
+  if (delta <= 0) return
+  try {
+    const billing = await resolveBillingContext(userId, null)
+    await chargeInteractions({
+      attributedTo: billing.attributedTo,
+      plan: billing.plan,
+      delta,
+      periodStart: billing.periodStart,
+      reason: `dictation ${audioMs}ms`
+    })
+  } catch (e) {
+    if (e instanceof BudgetExhausted) {
+      console.warn(`[dictate] [billing] over-cap at session close: ${e.message}`)
+    } else {
+      console.warn('[dictate] [billing] charge failed:', e)
+    }
+  }
 }

@@ -1,4 +1,4 @@
-import { GetObjectCommand } from '@aws-sdk/client-s3'
+import { GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
 import { eq } from 'drizzle-orm'
 import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
@@ -59,7 +59,8 @@ export async function processKnowledge(knowledgeId: string): Promise<void> {
       return
     }
 
-    const chunks = chunkMarkdown(markdown)
+    const knowledgeCfg = useRuntimeConfig().knowledge
+    const chunks = chunkMarkdown(markdown, { maxChunks: knowledgeCfg.maxChunksPerFile })
     if (chunks.length === 0) {
       await markFailed(knowledgeId, 'no chunks produced from parsed content')
       return
@@ -111,6 +112,19 @@ export async function processKnowledge(knowledgeId: string): Promise<void> {
       processedAt: new Date(),
       errorMessage: null
     }).where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
+
+    // Original upload is no longer needed — we never serve it back and
+    // `markdown_cache` has the parsed content the AI retrieves. Deleting
+    // halves storage and removes the "stored an unvalidated binary
+    // forever" concern. Best-effort: the delete on the row later will
+    // try again if this fails (ignored 404s).
+    try {
+      const s3 = useS3Client()
+      const s3cfg = useRuntimeConfig().s3
+      await s3.send(new DeleteObjectCommand({ Bucket: s3cfg.bucket, Key: row.s3Key }))
+    } catch (e) {
+      console.warn(`[processKnowledge] ${knowledgeId} original S3 delete failed (keeping row):`, e instanceof Error ? e.message : e)
+    }
 
     console.log(`[processKnowledge] ${knowledgeId} ready: ${chunks.length} chunks, ${tokenCount} tokens`)
   } catch (e) {

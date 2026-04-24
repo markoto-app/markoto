@@ -158,6 +158,31 @@ export async function sumWorkspaceKnowledgeBytes(workspaceId: string): Promise<n
   return Number(rows[0]?.total ?? 0)
 }
 
+/**
+ * Per-uploader counter across every workspace. Used to cap a single
+ * user from fanning out — "upload 500 files into 10 workspaces each"
+ * would fit inside every per-workspace cap but blow this one.
+ *
+ * Intentionally counts rows in ALL statuses (processing/ready/failed).
+ * Failed rows still hold their S3 bytes until the sweep reaps them, so
+ * they're fair game to count against the quota.
+ */
+export async function countKnowledgeByUploader(uploaderId: number): Promise<number> {
+  const db = useDatabase()
+  const rows = await db.select({ n: sql<number>`count(*)::int` })
+    .from(workspaceKnowledge)
+    .where(eq(workspaceKnowledge.uploaderId, uploaderId))
+  return rows[0]?.n ?? 0
+}
+
+export async function sumKnowledgeBytesByUploader(uploaderId: number): Promise<number> {
+  const db = useDatabase()
+  const rows = await db.select({ total: sql<number>`coalesce(sum(size_bytes), 0)::bigint` })
+    .from(workspaceKnowledge)
+    .where(eq(workspaceKnowledge.uploaderId, uploaderId))
+  return Number(rows[0]?.total ?? 0)
+}
+
 export async function deleteKnowledgeRow(knowledgeId: string): Promise<void> {
   const db = useDatabase()
   await db.delete(workspaceKnowledge)

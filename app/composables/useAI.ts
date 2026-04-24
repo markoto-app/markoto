@@ -17,19 +17,18 @@ export interface AiSessionInfo {
   initiatorName: string
   initiatorUserId: number
   prompt: string
-  // 'prompt' = full agentic loop (drives the bottom prompt bar's
-  // animation). 'rewrite' = inline selection rewrite (drives the
-  // selection popup's animation). Older sessions without the field
-  // default to 'prompt' to preserve legacy behavior.
-  kind: 'prompt' | 'rewrite'
   phase: 'thinking' | 'tool' | 'editing' | 'done' | 'error' | string
   message: string | null
 }
 
 /**
- * Exposes AI prompt / rewrite / abort actions and reactive state derived from
- * Y.js awareness. Gemini joins the document as its own client, so every tab
+ * Exposes AI prompt / abort actions and reactive state derived from Y.js
+ * awareness. Gemini joins the document as its own client, so every tab
  * naturally sees the AI "user" appear, change status, and leave.
+ *
+ * Selection-scoped requests (from `AISelectionPopup`) use the same prompt
+ * path: they just supply an `editorSelection` override so the server-side
+ * `<editor_state>` wrapper points the agentic loop at the highlighted range.
  */
 export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOptions = {}) {
   const { loggedIn, user: sessionUser } = useUserSession()
@@ -50,7 +49,6 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         initiatorName: ai.initiatorName,
         initiatorUserId: ai.initiatorUserId,
         prompt: ai.prompt ?? '',
-        kind: ai.kind === 'rewrite' ? 'rewrite' : 'prompt',
         phase: status?.phase ?? 'thinking',
         message: status?.message ?? null
       })
@@ -84,6 +82,13 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
 
   const submitting = ref(false)
   const lastError = ref<string | null>(null)
+  // Separate channel for budget-exhausted (402). The error message
+  // alone isn't enough — we want the UI to render an "Upgrade" CTA
+  // toast + link-to-pricing, which is a different control flow from
+  // the generic "AI request failed" toast. Set when `/api/ai/prompt`
+  // returns 402; cleared whenever a fresh request succeeds or
+  // `clearLastError()` is called.
+  const budgetExhausted = ref(false)
 
   // Surface errors that happen mid-loop (server-side) back through `lastError` so
   // AIPromptBar can toast them. Awareness clears the session ~2.5s after the error
@@ -96,15 +101,20 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     }
   })
 
-  async function prompt(text: string): Promise<boolean> {
+  async function prompt(
+    text: string,
+    overrides?: { editorSelection?: EditorSelectionSnapshot }
+  ): Promise<boolean> {
     const trimmed = text.trim()
     if (!trimmed || submitting.value || mySessionId.value) return false
     submitting.value = true
     lastError.value = null
-    // Snapshot selection at the moment of send. Safe to call even when
-    // the getter is unset — we just skip the field and the server
-    // treats the request as `kind: 'none'`.
-    const editorSelection = options.getEditorSelection?.()
+    budgetExhausted.value = false
+    // Prefer the call-site override (used by the selection popup to
+    // pass a pre-captured range snapshot) — falls back to the lazily
+    // computed default from `options.getEditorSelection`. `undefined`
+    // still ships happily; the server treats absence as `kind: 'none'`.
+    const editorSelection = overrides?.editorSelection ?? options.getEditorSelection?.()
     try {
       await $fetch<{ sessionId: string }>('/api/ai/prompt', {
         method: 'POST',
@@ -112,41 +122,22 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       })
       return true
     } catch (e) {
-      const err = e as { data?: { message?: string }, message?: string }
+      const err = e as {
+        statusCode?: number
+        status?: number
+        data?: { statusCode?: number, message?: string }
+        message?: string
+      }
+      const code = err.statusCode ?? err.status ?? err.data?.statusCode
+      if (code === 402) {
+        // Budget-exhausted. Flip the flag so the prompt-bar toast
+        // renders the upgrade CTA variant.
+        budgetExhausted.value = true
+      }
       lastError.value = err.data?.message || err.message || 'Request failed'
       return false
     } finally {
       submitting.value = false
-    }
-  }
-
-  async function rewrite(params: {
-    selectionText: string
-    selectionFrom: number
-    selectionTo: number
-    relFrom?: unknown
-    relTo?: unknown
-    instruction: string
-  }): Promise<boolean> {
-    lastError.value = null
-    try {
-      await $fetch('/api/ai/rewrite', {
-        method: 'POST',
-        body: {
-          docId: docId.value,
-          selectionText: params.selectionText,
-          selectionFrom: params.selectionFrom,
-          selectionTo: params.selectionTo,
-          relFrom: params.relFrom,
-          relTo: params.relTo,
-          prompt: params.instruction
-        }
-      })
-      return true
-    } catch (e) {
-      const err = e as { data?: { message?: string }, message?: string }
-      lastError.value = err.data?.message || err.message || 'Rewrite failed'
-      return false
     }
   }
 
@@ -174,6 +165,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   // explicit: callers read `lastError`, show a toast, then call `clearLastError()`.
   function clearLastError() {
     lastError.value = null
+    budgetExhausted.value = false
   }
 
   return {
@@ -183,8 +175,8 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     otherSessions,
     submitting,
     lastError: readonly(lastError),
+    budgetExhausted: readonly(budgetExhausted),
     prompt,
-    rewrite,
     abort,
     clearLastError
   }

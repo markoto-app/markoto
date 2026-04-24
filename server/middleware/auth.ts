@@ -19,6 +19,10 @@ export default defineEventHandler(async (event) => {
     { path: /^\/api\/docs\/[^/]+\/activity$/, methods: ['GET'] }, // Endpoint-gated — public on open-edit/open-view, members-only on private/password-protected
     { path: /^\/api\/import$/, methods: ['POST'] }, // Import is public — user uploads their own file for conversion
     { path: /^\/api\/internal\//, methods: ['POST'] }, // Internal endpoints auth via shared secret header (not user session)
+    // Stripe webhooks: auth'd via `Stripe-Signature` header + our
+    // webhook secret. No user session — Stripe's servers don't have
+    // one. Handler does full cryptographic signature verification.
+    { path: /^\/api\/webhooks\/stripe$/, methods: ['POST'] },
     // Live-dictation WS relay: authenticated via short-lived JWT in
     // the upgrade URL (`?token=`), not the session cookie — crossws
     // gives the upgrade hook a raw Request, not an H3Event, so reading
@@ -40,7 +44,8 @@ export default defineEventHandler(async (event) => {
     '/api/user',
     '/api/upload',
     '/api/import',
-    '/api/ai'
+    '/api/ai',
+    '/api/billing' // checkout + portal — user-triggered Stripe actions
   ]
 
   if (protectedPrefixes.some(p => path.startsWith(p))) {

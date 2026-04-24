@@ -203,6 +203,87 @@ describe('GET /api/workspaces/:wsId/knowledge', () => {
   })
 })
 
+describe('POST /api/workspaces/:wsId/knowledge/confirm — input binding', () => {
+  beforeEach(async () => { await resetDb() })
+
+  it('400 when knowledgeId does not match s3Key tail', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const client = await loggedInClient(owner.id)
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/confirm`, {
+      // knowledgeId A, but s3Key names knowledgeId B — reject before
+      // any S3 or DB work.
+      knowledgeId: 'a'.repeat(12),
+      s3Key: `workspaces/${ws.workspaceId}/knowledge/${'b'.repeat(12)}.pdf`,
+      filename: 'x.pdf',
+      ext: 'pdf',
+      mimeType: 'application/pdf'
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json() as { message: string }
+    expect(body.message).toMatch(/knowledgeId.*s3Key/i)
+  })
+})
+
+describe('per-user knowledge caps', () => {
+  beforeEach(async () => { await resetDb() })
+
+  it('409 when the caller has hit their per-user file count across workspaces', async () => {
+    const u = await createUser()
+    const wsA = await createWorkspace(u.id)
+    const wsB = await createWorkspace(u.id, { workspaceId: 'ws-user-fanout' })
+    // Seed 100 rows owned by this user, split across two workspaces —
+    // each workspace has 50, well below the 500/workspace cap, but
+    // the per-user count (100) matches maxFilesPerUser.
+    const db = testDb()
+    for (let i = 0; i < 50; i++) {
+      await db.query(
+        `INSERT INTO workspace_knowledge
+         (knowledge_id, workspace_id, filename, source_ext, mime_type, size_bytes, s3_key, status, embedding_version, uploader_id, chunk_count, token_count)
+         VALUES ($1, $2, $3, 'pdf', 'application/pdf', 1000, $4, 'ready', 'test:768', $5, 0, 0)`,
+        [`kn-a-${i}`, wsA.workspaceId, `file-a-${i}.pdf`, `workspaces/${wsA.workspaceId}/knowledge/kn-a-${i}.pdf`, u.id]
+      )
+    }
+    for (let i = 0; i < 50; i++) {
+      await db.query(
+        `INSERT INTO workspace_knowledge
+         (knowledge_id, workspace_id, filename, source_ext, mime_type, size_bytes, s3_key, status, embedding_version, uploader_id, chunk_count, token_count)
+         VALUES ($1, $2, $3, 'pdf', 'application/pdf', 1000, $4, 'ready', 'test:768', $5, 0, 0)`,
+        [`kn-b-${i}`, wsB.workspaceId, `file-b-${i}.pdf`, `workspaces/${wsB.workspaceId}/knowledge/kn-b-${i}.pdf`, u.id]
+      )
+    }
+    const client = await loggedInClient(u.id)
+    const res = await client.post(`/api/workspaces/${wsA.workspaceId}/knowledge/upload-request`, {
+      filename: 'another.pdf',
+      size: 1000
+    })
+    expect(res.status).toBe(409)
+  })
+})
+
+describe('POST /api/workspaces — per-user workspace cap', () => {
+  beforeEach(async () => { await resetDb() })
+
+  it('409 once the user has hit maxPerUser owned workspaces', async () => {
+    const u = await createUser()
+    // Seed 20 owned workspaces (the default cap).
+    const db = testDb()
+    for (let i = 0; i < 20; i++) {
+      await db.query(
+        `INSERT INTO workspaces (workspace_id, owner_id, name) VALUES ($1, $2, $3)`,
+        [`ws-cap-${i}`, u.id, `Cap ${i}`]
+      )
+      await db.query(
+        `INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'admin')`,
+        [`ws-cap-${i}`, u.id]
+      )
+    }
+    const client = await loggedInClient(u.id)
+    const res = await client.post('/api/workspaces', { name: 'Overflow' })
+    expect(res.status).toBe(409)
+  })
+})
+
 describe('DELETE /api/workspaces/:wsId/knowledge/:id', () => {
   beforeEach(async () => {
     await resetDb()

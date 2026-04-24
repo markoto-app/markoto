@@ -24,12 +24,14 @@ async function respond(event: H3Event, out: unknown): Promise<unknown> {
 }
 
 // Composable under test: awareness-driven AI session state + prompt /
-// rewrite / abort actions. See app/composables/useAI.ts.
+// abort actions. See app/composables/useAI.ts. (The separate rewrite
+// path was removed in phase 5 — selection-scoped requests now flow
+// through `prompt()` with an editorSelection override.)
 //
 // External dependencies:
 //   - `useUserSession()` (auto-import) — mocked via mockNuxtImport, the
 //     hoisted `sessionState` lets tests toggle loggedIn + user id.
-//   - `$fetch('/api/ai/prompt' | '/rewrite' | '/abort')` — stubbed with
+//   - `$fetch('/api/ai/prompt' | '/abort')` — stubbed with
 //     registerEndpoint. Each endpoint reads from a per-test config
 //     holder so tests can rewrite responses without re-registering.
 //
@@ -64,14 +66,10 @@ interface EndpointConfig<Req = unknown, Res = unknown> {
 const promptEp: EndpointConfig = {
   handler: () => ({ sessionId: 'srv-sid-1' })
 }
-const rewriteEp: EndpointConfig = {
-  handler: () => ({ ok: true })
-}
 const abortEp: EndpointConfig = {
   handler: () => ({ ok: true })
 }
 const promptCalls: Array<{ body: unknown }> = []
-const rewriteCalls: Array<{ body: unknown }> = []
 const abortCalls: Array<{ body: unknown }> = []
 
 async function readBody(event: H3Event): Promise<unknown> {
@@ -85,15 +83,6 @@ registerEndpoint('/api/ai/prompt', {
     const body = await readBody(event)
     promptCalls.push({ body })
     const out = await promptEp.handler(body, event)
-    return respond(event, out)
-  }
-})
-registerEndpoint('/api/ai/rewrite', {
-  method: 'POST',
-  handler: async (event) => {
-    const body = await readBody(event)
-    rewriteCalls.push({ body })
-    const out = await rewriteEp.handler(body, event)
     return respond(event, out)
   }
 })
@@ -122,7 +111,6 @@ interface AiClientState {
   initiatorName: string
   initiatorUserId: number
   prompt?: string
-  kind?: 'prompt' | 'rewrite'
   phase?: string
   message?: string | null
 }
@@ -134,8 +122,7 @@ function pushAiClient(target: Awareness, state: AiClientState): Awareness {
     sessionId: state.sessionId,
     initiatorName: state.initiatorName,
     initiatorUserId: state.initiatorUserId,
-    prompt: state.prompt ?? '',
-    kind: state.kind ?? 'prompt'
+    prompt: state.prompt ?? ''
   })
   if (state.phase !== undefined || state.message !== undefined) {
     peer.setLocalStateField('aiStatus', {
@@ -191,10 +178,8 @@ beforeEach(() => {
   sessionState.loggedIn.value = false
   sessionState.user.value = null
   promptEp.handler = () => ({ sessionId: 'srv-sid-1' })
-  rewriteEp.handler = () => ({ ok: true })
   abortEp.handler = () => ({ ok: true })
   promptCalls.length = 0
-  rewriteCalls.length = 0
   abortCalls.length = 0
 })
 
@@ -243,7 +228,6 @@ describe('useAI — activeSessions derivation', () => {
       initiatorName: 'Alice',
       initiatorUserId: 1,
       prompt: 'Draft a haiku',
-      kind: 'prompt',
       phase: 'tool',
       message: 'Searching the web'
     })
@@ -254,37 +238,9 @@ describe('useAI — activeSessions derivation', () => {
       initiatorName: 'Alice',
       initiatorUserId: 1,
       prompt: 'Draft a haiku',
-      kind: 'prompt',
       phase: 'tool',
       message: 'Searching the web'
     })
-  })
-
-  it('defaults kind to "prompt" when the value is missing or unknown', () => {
-    // Older sessions may not carry a `kind`. Anything not exactly
-    // "rewrite" collapses to "prompt" to preserve legacy behavior.
-    const { awareness, docId } = makeCtx()
-    const peer = new Awareness(new Y.Doc())
-    peer.setLocalStateField('user', { isAI: true, name: 'Bot' })
-    peer.setLocalStateField('aiSession', {
-      sessionId: 'sid-1',
-      initiatorName: 'Alice',
-      initiatorUserId: 1
-      // no kind
-    })
-    applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'test')
-    const ai = useAI(docId, awareness)
-    expect(ai.activeSessions.value[0]?.kind).toBe('prompt')
-  })
-
-  it('preserves kind="rewrite" when explicitly set', () => {
-    const { awareness, docId } = makeCtx()
-    pushAiClient(awareness, {
-      sessionId: 'sid-r', initiatorName: 'A', initiatorUserId: 1,
-      kind: 'rewrite'
-    })
-    const ai = useAI(docId, awareness)
-    expect(ai.activeSessions.value[0]?.kind).toBe('rewrite')
   })
 
   it('defaults phase to "thinking" when aiStatus is absent', () => {
@@ -293,7 +249,7 @@ describe('useAI — activeSessions derivation', () => {
     const peer = new Awareness(new Y.Doc())
     peer.setLocalStateField('user', { isAI: true })
     peer.setLocalStateField('aiSession', {
-      sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1, kind: 'prompt'
+      sessionId: 'sid-1', initiatorName: 'A', initiatorUserId: 1
     })
     applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'test')
     const ai = useAI(docId, awareness)
@@ -609,74 +565,9 @@ describe('useAI — prompt()', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// rewrite() — POST shape + error capture
-// ═══════════════════════════════════════════════════════════════════════
-
-describe('useAI — rewrite()', () => {
-  const baseArgs = {
-    selectionText: 'hello world',
-    selectionFrom: 10,
-    selectionTo: 21,
-    instruction: 'make it formal'
-  }
-
-  it('forwards all rewrite fields under the right keys (prompt ← instruction)', async () => {
-    const { awareness, docId } = makeCtx()
-    const ai = useAI(docId, awareness)
-    const ok = await ai.rewrite({ ...baseArgs, relFrom: 'rel-from', relTo: 'rel-to' })
-    expect(ok).toBe(true)
-    expect(rewriteCalls).toHaveLength(1)
-    expect(rewriteCalls[0]!.body).toEqual({
-      docId: 'doc-abc',
-      selectionText: 'hello world',
-      selectionFrom: 10,
-      selectionTo: 21,
-      relFrom: 'rel-from',
-      relTo: 'rel-to',
-      prompt: 'make it formal'
-    })
-  })
-
-  it('forwards the current docId.value (not a stale ref)', async () => {
-    const { awareness, docId } = makeCtx()
-    docId.value = 'doc-zzz'
-    const ai = useAI(docId, awareness)
-    await ai.rewrite(baseArgs)
-    expect((rewriteCalls[0]!.body as { docId: string }).docId).toBe('doc-zzz')
-  })
-
-  it('returns false and captures server error message', async () => {
-    rewriteEp.handler = () => new ApiError(409, { message: 'Selection moved' })
-    const { awareness, docId } = makeCtx()
-    const ai = useAI(docId, awareness)
-    const ok = await ai.rewrite(baseArgs)
-    expect(ok).toBe(false)
-    expect(ai.lastError.value).toBe('Selection moved')
-  })
-
-  it('falls back to a non-null error when the server body has no message', async () => {
-    rewriteEp.handler = () => new ApiError(500, {})
-    const { awareness, docId } = makeCtx()
-    const ai = useAI(docId, awareness)
-    await ai.rewrite(baseArgs)
-    expect(ai.lastError.value).toBeTruthy()
-  })
-
-  it('clears lastError at the start of a rewrite call (before the fetch)', async () => {
-    // Seed an error, then trigger a successful rewrite, then assert
-    // lastError is null. (Verifies the sequencing — failing rewrite
-    // would re-set; we want the clear-on-entry to be the cause.)
-    promptEp.handler = () => new ApiError(500, { message: 'prev' })
-    const { awareness, docId } = makeCtx()
-    const ai = useAI(docId, awareness)
-    await ai.prompt('anything') // seeds lastError
-    expect(ai.lastError.value).toBe('prev')
-
-    await ai.rewrite(baseArgs)
-    expect(ai.lastError.value).toBe(null)
-  })
-})
+// Phase 5 removed the separate /api/ai/rewrite path. Selection-scoped
+// requests now flow through prompt() with an editorSelection override —
+// covered by `passes editorSelection through to the request body` above.
 
 // ═══════════════════════════════════════════════════════════════════════
 // abort() — 404 race tolerance + no-session guard

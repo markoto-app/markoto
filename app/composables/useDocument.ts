@@ -229,6 +229,8 @@ export function useDocument(docId: string) {
     accessMode: readonly(tokenState.accessMode),
     workspaceId: readonly(tokenState.workspaceId),
     workspaceRole: readonly(tokenState.workspaceRole),
+    workspaceAiEnabled: readonly(tokenState.workspaceAiEnabled),
+    workspaceBillingOwner: readonly(tokenState.workspaceBillingOwner),
     docSizeBytes: readonly(sync.docSizeBytes),
     docSizeWarning,
     undoManager,

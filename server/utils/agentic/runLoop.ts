@@ -6,6 +6,8 @@ import {
   type GoogleGenAI
 } from '@google/genai'
 import type { AiSession } from '../aiClient'
+import type { BillingContext } from '../billing'
+import { chargeInteractions, BudgetExhausted } from '../billing'
 import { executeFunctionByName } from '../aiToolAdapter'
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch, fetchUrl } from './functionTools'
 import {
@@ -54,6 +56,14 @@ export interface RunLoopOptions {
    * `[...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]`.
    */
   toolDeclarations?: FunctionDeclaration[]
+  /**
+   * Billing context for the session (who gets charged, what plan caps
+   * apply). Phase 2: log-only — we emit `[billing] would-charge ...`
+   * lines at every AI call site so we can watch attribution flow
+   * through a real agentic loop. Phase 3 threads this into the actual
+   * counter decrement.
+   */
+  billingContext?: BillingContext
   /** Optional logger — defaults to `console.log` tagged with the session id. */
   logger?: (msg: string) => void
 }
@@ -66,6 +76,41 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
   const log = opts.logger ?? ((msg: string) => console.log(`[ai/prompt ${sessionId}] ${msg}`))
   const thinkingBudget = opts.thinkingBudget ?? 0
   const toolDeclarations = opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS
+  const billingContext = opts.billingContext
+
+  // Phase-3 enforcement. Every AI call site debits the counter before
+  // we incur cost. BudgetExhausted mid-loop terminates the run with a
+  // doc breadcrumb instead of a hard throw — users MUST see an
+  // explanation in the doc since there's no chat UI.
+  const charge = async (delta: number, reason: string): Promise<void> => {
+    if (!billingContext) return // Safety: phase-2 shim fallback; prompt.post always passes one in phase 3.
+    const { attributedTo, plan, periodStart } = billingContext
+    const result = await chargeInteractions({ attributedTo, plan, delta, periodStart, reason })
+    log(`[billing] charged ${attributedTo} plan=${plan} delta=${delta} (${reason}; used=${result.used}/${result.used + result.remaining})`)
+  }
+  if (billingContext) {
+    log(`[billing] session resolved: ${billingContext.attributedTo} plan=${billingContext.plan} remaining=${billingContext.interactionsRemaining}`)
+  }
+
+  /**
+   * Graceful mid-loop exhaustion handler. Writes an upgrade breadcrumb
+   * into the Y.Doc via the same transaction origin the other tools
+   * use, so it participates in undo/redo + the normal awareness flow.
+   * Returning vs throwing: we RETURN so the outer try/finally in
+   * prompt.post runs cleanup, tears down the AI session, and logs
+   * "aborted" rather than an unhandled error.
+   */
+  const emitBudgetBreadcrumb = (err: BudgetExhausted): void => {
+    const msg = `\n\n_AI budget exhausted for this billing period (plan: ${err.plan}). [Upgrade your plan](/pricing) to continue._\n`
+    try {
+      aiSession.ydoc.transact(() => {
+        aiSession.ytext.insert(aiSession.ytext.length, msg)
+      }, `ai:assistant:${sessionId}`)
+    } catch (e) {
+      log(`failed to write budget-exhausted breadcrumb: ${e instanceof Error ? e.message : e}`)
+    }
+    setStatus('done', 'Budget exhausted')
+  }
 
   // Manual `contents` history. Each turn:
   //   - push `{ role: 'model', parts: [...] }` with whatever the model returned
@@ -82,6 +127,22 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
 
     setStatus('thinking', 'Thinking…')
     log(`turn ${turns}: calling Gemini (${contents.length} messages)`)
+    // Charge 1 interaction per turn, upfront. Grounded turns that
+    // call web_search/fetch_url later pay an ADDITIONAL 4 (net=5);
+    // we can't know until after the model response whether this turn
+    // will be grounded, and charging upfront keeps the accounting
+    // monotonic (you never owe more than you've already paid). If
+    // the turn ends up grounded, the sub-call adds 4 to reach the
+    // documented 5 total.
+    try {
+      await charge(1, `turn ${turns}`)
+    } catch (e) {
+      if (e instanceof BudgetExhausted) {
+        emitBudgetBreadcrumb(e)
+        return
+      }
+      throw e
+    }
 
     const stream = await ai.models.generateContentStream({
       model,
@@ -200,6 +261,18 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       if (call.name === 'web_search') {
         // Safe cast — schema guarantees `{ query: string }`.
         const { query } = validatedArgs as { query: string }
+        // Grounded sub-call → +4 to reach net=5 for this turn (1
+        // already paid at turn start + 4 here = 5). Charged BEFORE
+        // the Gemini sub-call so exhausted users don't incur cost.
+        try {
+          await charge(4, `web_search grounded sub-call (+4 to reach turn total of 5)`)
+        } catch (e) {
+          if (e instanceof BudgetExhausted) {
+            emitBudgetBreadcrumb(e)
+            return
+          }
+          throw e
+        }
         try {
           const text = await webSearch(ai, model, query, abortController.signal)
           result = { content: text, isError: false }
@@ -214,6 +287,15 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         // that needs the GoogleGenAI client and runs `urlContext` in
         // isolation from our `functionDeclarations`.
         const { url } = validatedArgs as { url: string }
+        try {
+          await charge(4, `fetch_url grounded sub-call (+4 to reach turn total of 5)`)
+        } catch (e) {
+          if (e instanceof BudgetExhausted) {
+            emitBudgetBreadcrumb(e)
+            return
+          }
+          throw e
+        }
         try {
           const text = await fetchUrl(ai, model, url, abortController.signal)
           result = { content: text, isError: false }

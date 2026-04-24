@@ -21,6 +21,9 @@
   "editor": {
     "untitled": "Untitled",
     "placeholder": "Start writing...",
+    "aiWorkspaceBadge": "AI workspace",
+    "aiWorkspaceBadgeTooltip": "This document is in an AI workspace — AI work here uses the sponsor's credit pool, not yours.",
+    "aiWorkspaceSponsoredBy": "AI workspace sponsored by {name}",
     "bold": "Bold",
     "italic": "Italic",
     "heading": "Heading",
@@ -233,7 +236,42 @@
     "dictateSessionCapDescription": "Sessions cap at 10 minutes. Start a new one to continue.",
     "dictateIdleTitle": "Dictation paused",
     "dictateIdleDescription": "No audio for 30 seconds — dictation stopped.",
-    "dictateErrorTitle": "Dictation failed"
+    "dictateErrorTitle": "Dictation failed",
+    "budgetExhaustedTitle": "Out of AI credits",
+    "budgetExhaustedDescription": "You've used all your AI credits for this billing period. Upgrade your plan to keep going.",
+    "exhaustedPlaceholder": "Out of AI credits — upgrade to continue",
+    "upgradeCta": "Upgrade",
+    "remainingLabel": "{remaining} of {limit} AI credits left this month"
+  },
+  "pricing": {
+    "title": "Pricing",
+    "subtitle": "Pick the plan that fits. Every tier runs on the same AI model — paying users just get more of it.",
+    "aiCreditsPerMonth": "AI credits/month",
+    "creditsHint": "A text prompt uses 1 credit; images and grounded searches use 5; voice minutes count 5 per minute.",
+    "workspaces": "workspaces",
+    "knowledgeFiles": "knowledge files",
+    "knowledgeStorage": "total storage",
+    "dictation": "voice dictation",
+    "teamBilling": "AI workspace: sponsor AI for everyone in a workspace",
+    "currentPlan": "Current plan",
+    "manageSubscription": "Manage subscription",
+    "freeForever": "Free forever",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "signUp": "Sign up",
+    "close": "Close",
+    "footnote": "All tiers include real-time collaboration, version history, and unlimited documents. AI credits reset monthly."
+  },
+  "topbar": {
+    "planBadge": "Plan: {plan}",
+    "creditsTooltipTitle": "AI credits",
+    "creditsRemaining": "{remaining} of {limit} credits left",
+    "creditsPercent": "{pct}% remaining",
+    "creditsResetOn": "Resets {date}",
+    "creditsHint": "A text prompt uses 1 credit; images and grounded searches use 5; voice counts 5 per minute.",
+    "upgradeToPlan": "Upgrade to {plan}",
+    "topPlan": "You're on the top plan.",
+    "viewAllPlans": "View all plans"
   },
   "theme": {
     "title": "Document theme",
@@ -433,6 +471,13 @@
     "remoteDesc": "This document was deleted by the owner."
   },
   "workspace": {
+    "tabs": {
+      "documents": "Documents",
+      "knowledge": "Knowledge",
+      "ai": "AI workspace"
+    },
+    "capReached": "{used} of {limit} workspaces used on the {plan} plan. Delete one or upgrade to add more.",
+    "capReachedShort": "Workspace limit reached — upgrade",
     "sectionTitle": "My workspaces",
     "newWorkspace": "New workspace",
     "createTitle": "Create a workspace",
@@ -494,6 +539,9 @@
     "title": "Knowledge base",
     "description": "Upload PDFs, Word docs, slides, or spreadsheets. The AI assistant can search them when writing in any document in this workspace.",
     "upload": "Upload files",
+    "capFilesReached": "This workspace has reached the file limit ({limit}). Delete a file or upgrade to add more.",
+    "capBytesReached": "This workspace has reached its storage limit ({limit} MB). Delete a file or upgrade to add more.",
+    "capReachedShort": "At limit — upgrade",
     "empty": "No knowledge files yet.",
     "emptyDescription": "Upload a PDF or Word doc so the AI has context when you write.",
     "emptyDescriptionViewer": "Nothing has been uploaded to this workspace yet.",
