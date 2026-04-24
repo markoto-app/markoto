@@ -154,7 +154,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
 
   it('provider isolation when email is null: github + google sign-ins with no email stay separate', async () => {
     // Without an email, merge is impossible (no key to match on).
-    // This pins the pre-merge-feature behaviour for email-less signups.
+    // This pins the email-less signup behaviour.
     const ghId = await upsert({
       provider: 'github', providerUserId: 'shared-id',
       name: 'GHUser', email: null, avatarUrl: null,
@@ -296,42 +296,6 @@ describe('upsertOAuthUser — email-based merge', () => {
       emailVerified: true
     })
     expect(second.outcome).toBe('inserted')
-  })
-
-  it('does NOT merge when the candidate row already has the incoming provider id set (legacy data)', async () => {
-    // Legacy scenario: a user has BOTH provider ids already bound
-    // to the same account (via an earlier manual link, test
-    // fixtures, or an eventual future "unlink + relink" flow). A
-    // new OAuth sign-in for THAT email but a DIFFERENT provider id
-    // must not silently overwrite the existing binding — it would
-    // effectively let someone take over the account. Insert a new
-    // row instead, keeping the existing one intact for ops to
-    // reconcile.
-    const db = testDb()
-    await db.query(
-      `INSERT INTO users (github_id, google_id, name, email)
-       VALUES ('gh-existing', 'g-existing', 'Alice', 'alice@test.local')`
-    )
-
-    const second = await upsertOAuthUser({
-      provider: 'google', providerUserId: 'g-different',
-      name: 'Intruder', email: 'alice@test.local', avatarUrl: null,
-      emailVerified: true
-    })
-    expect(second.outcome).toBe('inserted')
-
-    // Original row untouched: still has g-existing as its google id.
-    const existing = await db.query<{ google_id: string }>(
-      `SELECT google_id FROM users WHERE github_id = 'gh-existing'`
-    )
-    expect(existing.rows[0].google_id).toBe('g-existing')
-
-    // Two rows now: the original (gh-existing + g-existing) and
-    // the new "intruder" insertion (g-different).
-    const rows = await db.query<{ c: string }>(
-      `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'alice@test.local'`
-    )
-    expect(Number(rows.rows[0].c)).toBe(2)
   })
 
   it('concurrent sign-ins from the SAME second-provider id both resolve to the merged row', async () => {

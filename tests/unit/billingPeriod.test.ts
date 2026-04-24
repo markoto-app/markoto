@@ -111,11 +111,11 @@ describe('effectivePeriodStart', () => {
     expect(r.toISOString()).toBe('2026-04-01T00:00:00.000Z')
   })
 
-  it('paid + active + planValidUntil null (e.g. lifetime grant) → Stripe anchor wins', () => {
-    // Edge case used by some test fixtures: paid plan with
-    // planValidUntil intentionally null to signal "never lapses".
-    // Must still respect the stripe anchor — we're NOT in the lapsed
-    // branch because null ≠ past timestamp.
+  it('paid + null planValidUntil → calendar fallback (treated as lapsed)', () => {
+    // The Stripe webhook always stamps `plan_valid_until` alongside
+    // `stripe_current_period_start`. A paid plan with null expiry
+    // is inconsistent state; we treat it as not-active rather than
+    // granting an implicit "lifetime" escape hatch.
     const stripeStart = new Date('2026-04-10T00:00:00.000Z')
     const r = effectivePeriodStart({
       plan: 'ultra',
@@ -123,7 +123,7 @@ describe('effectivePeriodStart', () => {
       planValidUntil: null,
       now
     })
-    expect(r.toISOString()).toBe('2026-04-10T00:00:00.000Z')
+    expect(r.toISOString()).toBe('2026-04-01T00:00:00.000Z')
   })
 })
 

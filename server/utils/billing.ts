@@ -4,23 +4,20 @@ import { useDatabase } from './database'
 import { TIERS, type PlanName } from '~~/shared/config/tiers'
 
 /**
- * Billing context resolution.
+ * Billing context resolution. Every AI call site calls
+ * `resolveBillingContext` once and threads the result through:
  *
- * Every AI call (phase 3+) needs to answer two questions:
- *   1. WHICH plan's caps apply (for interaction accounting + tier limits)?
- *   2. WHO gets charged (the caller, or a `(+)` workspace's billing owner)?
+ *   1. WHICH plan's caps apply (interaction accounting + tier limits)?
+ *   2. WHO gets charged — the caller, or a `(+)` workspace's sponsor?
  *
- * `resolveBillingContext` is the single source of truth. Every enforcement
- * site calls this once at session-open and threads the result through.
- *
- * Phase 2 only READS; nothing in this file mutates the DB.
+ * All downstream charge + quota logic trusts the returned context.
  */
 
 /**
- * Identifier for the billing target. Shape is `user:{id}` or
- * `workspace:{id}` — the prefix tells phase-3 code which kind of target
- * a period row refers to without a separate column. This is also the
- * primary key of `ai_usage_period.attributed_to`.
+ * Identifier for the billing target. `user:{id}` or `workspace:{id}`
+ * — the prefix tells period/charge code which kind of target a row
+ * refers to without a separate column. It's also the primary-key
+ * component of `ai_usage_period.attributed_to`.
  */
 export type AttributedTo = `user:${number}` | `workspace:${string}`
 
@@ -32,58 +29,48 @@ export interface BillingContext {
   /**
    * Start of the current billing period. Paid users: Stripe's
    * `current_period_start` (anniversary). Free users: first of the
-   * current calendar month UTC. See `effectivePeriodStart`.
+   * current calendar month UTC.
    */
   periodStart: Date
   /**
    * End of the current billing period. Paid users: Stripe's
    * `current_period_end`. Free users: first of the next calendar
-   * month UTC (= derived from periodStart + 1 month).
+   * month UTC.
    */
   periodEnd: Date
   /** How many interactions remain in this period. Clamped to 0 at cap. */
   interactionsRemaining: number
   /**
-   * For diagnostics: did we redirect via `(+)` or bill the caller
-   * directly? `'workspace'` = `(+)` active and owner's plan covers it;
-   * `'user'` = default self-bill.
+   * For diagnostics: `'workspace'` = `(+)` active and sponsor covers
+   * the caller; `'user'` = self-bill.
    */
   attribution: 'user' | 'workspace'
 }
 
 /**
  * First day of the current calendar month, UTC, at 00:00:00.000.
- * Free users anchor their billing period here; paid users instead use
- * `effectivePeriodStart` which reads their Stripe anniversary.
+ * Free users anchor their billing period here; paid users use their
+ * Stripe anniversary via `effectivePeriodStart`.
  */
 export function currentPeriodStart(now: Date = new Date()): Date {
-  // Construct explicitly in UTC. `new Date(Date.UTC(y, m, 1))` would
-  // work too; this form is symmetric with the way Postgres stores the
-  // column (TIMESTAMP WITH TIME ZONE, mode: 'date').
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0))
 }
 
-/** First of the next calendar month, UTC. Used by `effectivePeriodEnd` for free users. */
+/** First of the next calendar month, UTC. */
 function nextCalendarMonthStart(now: Date = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0, 0))
 }
 
 /**
- * Resolve the billing-period start for a given user. Model C (see
- * AGENTS.md §15 — phase 7):
+ * Resolve the billing-period start for a user. Model C (AGENTS.md §15):
  *
- *   - Free users → calendar-month UTC anchor. One shared cadence for
- *     everyone who isn't paying, no per-user timestamps to track.
- *   - Paid users with `stripeCurrentPeriodStart` set → that timestamp.
- *     Matches Stripe's invoice cycle so quota resets on the renewal
- *     date, which is what users expect.
- *   - Paid users WITHOUT `stripeCurrentPeriodStart` → calendar fallback.
- *     Happens for fixtures / pre-Stripe admin-promoted users. Gives
- *     them SOME period anchor without breaking.
- *   - Lapsed paid users (planValidUntil < now) → calendar fallback,
- *     because the resolver defensively treats them as Free at the
- *     call site (a lapsed user shouldn't still have their stripe
- *     anchor preserved — they effectively switched back to free).
+ *   - Free (or defensively-downgraded lapsed) → calendar-month UTC.
+ *   - Active paid user with Stripe anchor set → that anchor.
+ *
+ * Note: a paid user with no Stripe anchor or a lapsed `planValidUntil`
+ * is treated as Free — the resolver collapses them into the calendar
+ * branch. This matches `effectivePeriodEnd` + the active/lapsed check
+ * in `resolveBillingContext` so start/end always agree on one anchor.
  */
 export function effectivePeriodStart(args: {
   plan: PlanName
@@ -92,19 +79,16 @@ export function effectivePeriodStart(args: {
   now?: Date
 }): Date {
   const now = args.now ?? new Date()
-  const lapsed = args.plan !== 'free'
-    && args.planValidUntil !== null
-    && args.planValidUntil.getTime() <= now.getTime()
-  if (args.plan === 'free' || lapsed) return currentPeriodStart(now)
-  if (args.stripeCurrentPeriodStart) return args.stripeCurrentPeriodStart
-  return currentPeriodStart(now)
+  if (!isPaidAndActive(args.plan, args.planValidUntil, args.stripeCurrentPeriodStart, now)) {
+    return currentPeriodStart(now)
+  }
+  return args.stripeCurrentPeriodStart as Date
 }
 
 /**
- * End of the billing period. Free: first of next calendar month UTC.
- * Paid with Stripe data: `planValidUntil` (aliased to
- * `stripe.current_period_end`). Paid without Stripe data: calendar
- * fallback, matching effectivePeriodStart's same-fallback logic.
+ * End of the billing period. Paid + active → `planValidUntil`
+ * (Stripe's `current_period_end`). Everything else → first of the
+ * next calendar month.
  */
 export function effectivePeriodEnd(args: {
   plan: PlanName
@@ -113,43 +97,51 @@ export function effectivePeriodEnd(args: {
   now?: Date
 }): Date {
   const now = args.now ?? new Date()
-  const lapsed = args.plan !== 'free'
-    && args.planValidUntil !== null
-    && args.planValidUntil.getTime() <= now.getTime()
-  if (args.plan === 'free' || lapsed) return nextCalendarMonthStart(now)
-  if (args.stripeCurrentPeriodStart && args.planValidUntil) return args.planValidUntil
-  return nextCalendarMonthStart(now)
+  if (!isPaidAndActive(args.plan, args.planValidUntil, args.stripeCurrentPeriodStart, now)) {
+    return nextCalendarMonthStart(now)
+  }
+  return args.planValidUntil as Date
 }
 
 /**
- * Whether a plan is a paid plan that supports `(+)` workspace billing.
- * Only max + ultra can be `billing_owner` of a `(+)` workspace — pro
- * users' subscription is personal-only. Free is never a billing
- * attribution target (their cap is 100/mo which would be instantly
- * drained by one coworker).
+ * A user is on a paid anchor iff: plan is not free, has a future
+ * `planValidUntil`, AND has a concrete Stripe `current_period_start`.
+ * Any failure of those → fall back to the calendar anchor. This is
+ * the single place that check lives — both period-start and
+ * period-end helpers call it so they never disagree.
+ */
+function isPaidAndActive(
+  plan: PlanName,
+  planValidUntil: Date | null,
+  stripeCurrentPeriodStart: Date | null,
+  now: Date
+): boolean {
+  if (plan === 'free') return false
+  if (planValidUntil === null || planValidUntil.getTime() <= now.getTime()) return false
+  if (stripeCurrentPeriodStart === null) return false
+  return true
+}
+
+/**
+ * Whether a plan can sponsor `(+)` team-billing. Only Max and Ultra —
+ * Pro is personal-only. Free is never a sponsor target.
  */
 function supportsTeamBilling(plan: PlanName): boolean {
   return plan === 'max' || plan === 'ultra'
 }
 
 /**
- * True if a user's paid-plan entitlements are still active. `plan_valid_until`
- * is NULL for Free (never lapses) and set to current_period_end for paid tiers.
- * A `null` expiry on a paid plan is treated as "never lapses" (e.g. test
- * fixtures); in production every non-free row gets a real timestamp.
+ * Same check as `isPaidAndActive` but exposed as a plain predicate on
+ * the plan + expiry alone (used when resolving (+) sponsor
+ * eligibility — we still want a valid Stripe anchor implied by the
+ * sponsor's non-lapsed state).
  */
 function planActive(plan: PlanName, planValidUntil: Date | null, now: Date): boolean {
   if (plan === 'free') return true
-  if (planValidUntil === null) return true
+  if (planValidUntil === null) return false
   return planValidUntil.getTime() > now.getTime()
 }
 
-/**
- * Look up a user's plan row. Returns a safe fallback (free, no expiry)
- * if the user doesn't exist — phase 2 is non-enforcing so we'd rather
- * log "would-charge user:?" than throw and break the AI flow. Phase 3
- * hardens this to throw; the fallback goes away.
- */
 async function getUserPlan(userId: number): Promise<{
   plan: PlanName
   planValidUntil: Date | null
@@ -169,11 +161,6 @@ async function getUserPlan(userId: number): Promise<{
   }
 }
 
-/**
- * Look up the `(+)` state + billing owner for a workspace. Returns null
- * if the workspace doesn't exist or `aiEnabled` is false — both cases
- * mean "no team billing, bill the caller directly".
- */
 async function getWorkspaceBilling(workspaceId: string): Promise<
   { aiEnabled: boolean, billingOwnerId: number | null } | null
 > {
@@ -187,37 +174,25 @@ async function getWorkspaceBilling(workspaceId: string): Promise<
 }
 
 /**
- * Interactions remaining in the current period for a given attribution
- * target. Reads one row from `ai_usage_period`; returns `cap` if no row
- * exists yet (a user who hasn't used AI this month is at 0 consumed).
- * Always clamped at >= 0 so "over-cap by 3" doesn't surface as a
- * negative remaining.
- */
-/**
- * Thrown by `chargeInteractions` when a charge would push usage past
- * the plan cap. The error carries the target + the attempted delta so
- * the caller can decide how to surface it (402 at session open, an
- * `insert_text` upgrade breadcrumb mid-loop, a 402 on the transcribe
- * endpoint, etc.).
- *
- * Atomicity: the DB increment is rolled back before we throw, so a
- * thrown BudgetExhausted means "no interactions were spent." Never
- * let a charge succeed in the DB and then throw; that would silently
- * drain the pool past its cap.
- */
-/**
  * Convert audio duration to interactions. Rate: 5 interactions per
- * minute (per AGENTS.md §15), implemented as 1 interaction per 12
- * seconds with ceil rounding — so a 7-second clip costs 1, a 13-second
- * clip costs 2, and a 60-second clip costs exactly 5. Finer granularity
- * than "round up to nearest minute" so short clips don't incur a full
- * minute's worth of charge.
+ * minute (AGENTS.md §15), implemented as 1 interaction per 12 seconds
+ * with ceil rounding — so a 7-second clip costs 1, a 13-second clip
+ * costs 2, and a 60-second clip costs exactly 5.
  */
 export function interactionsForAudioMs(ms: number): number {
   if (ms <= 0) return 0
   return Math.ceil(ms / 12_000)
 }
 
+/**
+ * Thrown by `chargeInteractions` when a charge would push usage past
+ * the plan cap. Carries the target + attempted delta so the caller
+ * can decide how to surface it (402 at session open, `insert_text`
+ * upgrade breadcrumb mid-loop, 402 at the transcribe endpoint, …).
+ *
+ * Atomicity: the DB increment is rolled back before we throw, so a
+ * BudgetExhausted always means "no interactions were spent."
+ */
 export class BudgetExhausted extends Error {
   readonly attributedTo: AttributedTo
   readonly plan: PlanName
@@ -242,10 +217,8 @@ export class BudgetExhausted extends Error {
 }
 
 /**
- * Test-mode bypass. Same semantics as the rate-limit helpers:
- * `TEST_MODE=1` in integration suites and dev fixtures skips the
- * charge entirely so tests don't need to reason about quota. Production
- * MUST never set this.
+ * `TEST_MODE=1` in integration suites skips the charge write so tests
+ * don't need to reason about quota. Production MUST never set this.
  */
 function isTestMode(): boolean {
   return process.env.TEST_MODE === '1'
@@ -257,34 +230,24 @@ function isTestMode(): boolean {
  *   DO UPDATE SET interactions_used = used + delta, updated_at = now()
  *   RETURNING interactions_used
  *
- * If the returned counter would exceed the plan cap, the row is rolled
- * back (sub-transaction) and we throw `BudgetExhausted`. The cap check
- * is POST-increment so two concurrent callers see consistent ordering:
- * the atomic increment is the serialization point, not a read-then-write.
+ * Post-increment cap check: if the returned counter exceeds the plan
+ * cap, the transaction rolls back and we throw BudgetExhausted. The
+ * atomic increment IS the serialization point — two concurrent
+ * callers produce a sum that accounts for both (Postgres row lock on
+ * `ON CONFLICT DO UPDATE`).
  *
- * Concurrency: Postgres handles this safely — `ON CONFLICT DO UPDATE`
- * acquires a row lock, so simultaneous `chargeInteractions(user:1, 1)`
- * from two connections produce a sum that accounts for both. The rare
- * "both pushed us past the cap by 1" overshoot is bounded by the
- * number of simultaneous callers × delta, which in practice is < 5
- * interactions for any realistic racing pattern.
- *
- * Test mode (`TEST_MODE=1`) skips the write entirely and returns the
- * remaining-as-full-cap. Integration tests that want to exercise the
- * BudgetExhausted path seed the period row directly via SQL.
+ * Test mode returns `{used: 0, remaining: cap}` without touching the
+ * DB. Integration tests that need BudgetExhausted seed the period
+ * row directly via SQL.
  */
 export async function chargeInteractions(opts: {
   attributedTo: AttributedTo
   plan: PlanName
   delta: number
   /**
-   * REQUIRED: start of the billing period this charge lands in.
-   * Callers resolve this via `effectivePeriodStart()` or pull it from
-   * the `BillingContext` returned by `resolveBillingContext`. We
-   * don't default to `currentPeriodStart()` anymore — that would
-   * silently charge paid users to the wrong row (calendar month vs
-   * Stripe anniversary) and the bug would only surface weeks later
-   * when quotas renewed at the wrong time.
+   * Start of the billing period this charge lands in. Callers pull
+   * it from the `BillingContext` returned by `resolveBillingContext`
+   * (paid users' Stripe anniversary, free users' calendar month).
    */
   periodStart: Date
   reason?: string
@@ -301,13 +264,6 @@ export async function chargeInteractions(opts: {
   const db = useDatabase()
   const cap = TIERS[plan].interactionsPerMonth
 
-  // Wrap the INSERT in a transaction so we can ROLLBACK atomically on
-  // cap-overshoot. Drizzle's tx.rollback() throws — we catch it and
-  // convert to BudgetExhausted so the caller sees a clean boundary.
-  //
-  // `EXCLUDED.interactions_used` inside DO UPDATE is the delta that the
-  // (failed) INSERT tried to set — PostgreSQL's ON CONFLICT resolution
-  // exposes it as the "would-have-been-inserted" tuple.
   let newUsed: number | null = null
   let wasRollback = false
   try {
@@ -320,7 +276,6 @@ export async function chargeInteractions(opts: {
                       updated_at = now()
         RETURNING interactions_used
       `)
-      // node-postgres returns {rows: [...]}; drizzle's execute wraps that.
       const row = (rows as unknown as { rows: Array<{ interactions_used: number }> }).rows[0]
       newUsed = Number(row.interactions_used)
       if (newUsed > cap) {
@@ -337,9 +292,9 @@ export async function chargeInteractions(opts: {
   }
 
   if (wasRollback) {
-    // Read the actual `used` at rollback point — newUsed held the
-    // would-be total, but the row on disk still shows the pre-charge
-    // value. Re-read for accurate error telemetry.
+    // Re-read the row-on-disk's `used` value — `newUsed` held the
+    // would-be total, but the row preserved its pre-charge value
+    // when the tx rolled back.
     const current = await getInteractionsRemaining(attributedTo, plan, periodStart)
     throw new BudgetExhausted({
       attributedTo, plan,
@@ -349,11 +304,14 @@ export async function chargeInteractions(opts: {
     })
   }
 
-  // newUsed is set if we got past the rollback branch.
   const used = newUsed ?? 0
   return { used, remaining: Math.max(0, cap - used) }
 }
 
+/**
+ * Interactions remaining in the current period for a given target.
+ * Returns `cap` if no row exists yet. Always clamped at >= 0.
+ */
 export async function getInteractionsRemaining(
   attributedTo: AttributedTo,
   plan: PlanName,
@@ -377,17 +335,16 @@ export async function getInteractionsRemaining(
 /**
  * Resolve the billing context for an AI call.
  *
- * Rules (in order):
- *   1. No workspace context → bill the caller, plan = caller's plan.
- *   2. Workspace exists + aiEnabled + billingOwner set + billingOwner's
- *      plan supports team billing AND is not lapsed → bill the
- *      workspace, plan = billing owner's plan.
- *   3. Otherwise (aiEnabled=false, no billing owner, or owner's plan
- *      ineligible / lapsed) → bill the caller, plan = caller's plan.
+ * Precedence:
+ *   1. Workspace with `aiEnabled=true`, `billingOwnerId` set, and the
+ *      sponsor's plan is max/ultra + not lapsed → bill the workspace
+ *      at the sponsor's plan + sponsor's Stripe cycle.
+ *   2. Otherwise → bill the caller at their own plan + their own
+ *      Stripe cycle. Lapsed paid users collapse to Free caps.
  *
- * If the caller's user row is missing (unlikely — they'd have no valid
- * session), returns a safe-default context with plan='free' and
- * interactionsRemaining=0. Phase 3 will throw; phase 2 logs-only.
+ * Throws if `userId` doesn't match any row — all callers go through
+ * `requireValidatedUserSession` first, which rejects missing users
+ * at 401 before the handler runs.
  */
 export async function resolveBillingContext(
   userId: number,
@@ -396,47 +353,44 @@ export async function resolveBillingContext(
   const now = new Date()
 
   const caller = await getUserPlan(userId)
-  const callerPlan: PlanName = caller?.plan ?? 'free'
-  const callerActive = caller ? planActive(callerPlan, caller.planValidUntil, now) : true
-  // A lapsed paid user effectively reverts to Free semantics until
-  // Stripe updates them. Phase 4's sweep flips the `plan` column back
-  // to `'free'` on expiry; until that runs, we defensively downgrade
-  // here so a lapsed Pro doesn't still get Pro caps.
-  const effectiveCallerPlan: PlanName = callerActive ? callerPlan : 'free'
+  if (!caller) {
+    throw new Error(`[billing] resolveBillingContext: user ${userId} not found`)
+  }
+  const callerActive = planActive(caller.plan, caller.planValidUntil, now)
+  // A lapsed paid user reverts to Free caps until the plan-lapse
+  // sweep catches up. Prevents a Pro user whose card just failed
+  // from still getting Pro quota.
+  const effectiveCallerPlan: PlanName = callerActive ? caller.plan : 'free'
 
-  // Try the (+) path first. Only kicks in when all FOUR preconditions
-  // align: workspaceId given, workspace row exists, aiEnabled=true,
-  // billingOwnerId non-null, owner's plan supports team billing, owner
-  // not lapsed.
+  // (+) path: kicks in only when every precondition aligns.
   if (workspaceId) {
     const ws = await getWorkspaceBilling(workspaceId)
     if (ws && ws.aiEnabled && ws.billingOwnerId !== null) {
-      const owner = await getUserPlan(ws.billingOwnerId)
-      if (owner && supportsTeamBilling(owner.plan as PlanName)
-          && planActive(owner.plan as PlanName, owner.planValidUntil, now)) {
-        // The period follows the SPONSOR's Stripe cycle, not the
-        // caller's. That way every member of a (+) workspace shares
-        // one counter keyed on (workspace:X, sponsor's periodStart),
-        // and the pool resets when the sponsor's subscription renews.
-        const sponsorPlan = owner.plan as PlanName
+      const sponsor = await getUserPlan(ws.billingOwnerId)
+      if (sponsor
+          && supportsTeamBilling(sponsor.plan)
+          && planActive(sponsor.plan, sponsor.planValidUntil, now)) {
+        // Period follows the SPONSOR's cycle — every member of a
+        // (+) workspace shares one counter row keyed on the
+        // sponsor's period, resetting when their invoice renews.
         const sponsorPeriodStart = effectivePeriodStart({
-          plan: sponsorPlan,
-          stripeCurrentPeriodStart: owner.stripeCurrentPeriodStart,
-          planValidUntil: owner.planValidUntil,
+          plan: sponsor.plan,
+          stripeCurrentPeriodStart: sponsor.stripeCurrentPeriodStart,
+          planValidUntil: sponsor.planValidUntil,
           now
         })
         const sponsorPeriodEnd = effectivePeriodEnd({
-          plan: sponsorPlan,
-          stripeCurrentPeriodStart: owner.stripeCurrentPeriodStart,
-          planValidUntil: owner.planValidUntil,
+          plan: sponsor.plan,
+          stripeCurrentPeriodStart: sponsor.stripeCurrentPeriodStart,
+          planValidUntil: sponsor.planValidUntil,
           now
         })
         const attributedTo = `workspace:${workspaceId}` as const
         const remaining = await getInteractionsRemaining(
-          attributedTo, sponsorPlan, sponsorPeriodStart
+          attributedTo, sponsor.plan, sponsorPeriodStart
         )
         return {
-          plan: sponsorPlan,
+          plan: sponsor.plan,
           attributedTo,
           periodStart: sponsorPeriodStart,
           periodEnd: sponsorPeriodEnd,
@@ -444,27 +398,22 @@ export async function resolveBillingContext(
           attribution: 'workspace'
         }
       }
-      // Falls through to self-bill. This is the safety net: if a Max
-      // user lapses and the workspace is still aiEnabled=true, we
-      // DON'T burn their stale pool — we charge the caller. Phase 4
-      // sweep tidies up by flipping aiEnabled=false.
+      // Fall through to self-bill. Safety net: a lapsed sponsor or
+      // ineligible plan (pro toggled (+) somehow) doesn't burn a
+      // stale pool — the caller pays from their own quota instead.
     }
   }
 
-  // Self-bill path. Period anchored per Model C:
-  //   - Free (including defensively-downgraded lapsed users) →
-  //     calendar-month UTC.
-  //   - Paid + active → Stripe's current_period_start.
   const selfPeriodStart = effectivePeriodStart({
     plan: effectiveCallerPlan,
-    stripeCurrentPeriodStart: caller?.stripeCurrentPeriodStart ?? null,
-    planValidUntil: caller?.planValidUntil ?? null,
+    stripeCurrentPeriodStart: caller.stripeCurrentPeriodStart,
+    planValidUntil: caller.planValidUntil,
     now
   })
   const selfPeriodEnd = effectivePeriodEnd({
     plan: effectiveCallerPlan,
-    stripeCurrentPeriodStart: caller?.stripeCurrentPeriodStart ?? null,
-    planValidUntil: caller?.planValidUntil ?? null,
+    stripeCurrentPeriodStart: caller.stripeCurrentPeriodStart,
+    planValidUntil: caller.planValidUntil,
     now
   })
   const attributedTo = `user:${userId}` as const

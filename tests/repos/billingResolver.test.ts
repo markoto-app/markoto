@@ -8,18 +8,27 @@ import {
 } from '../../server/utils/billing'
 import { TIERS } from '../../shared/config/tiers'
 
-// Helpers to manipulate phase-1 schema columns that the fixtures don't
-// know about yet. Keeps the fixture file stable while this feature
-// stabilises.
+// Helpers to manipulate billing-related schema columns that the
+// fixtures don't know about yet. `setUserPlan` mirrors what the
+// Stripe webhook would land: paid tiers get a future
+// `plan_valid_until` + a concrete `stripe_current_period_start`.
+// Callers can override either to simulate lapsed / mid-stripe-setup
+// states.
 async function setUserPlan(
   userId: number,
   plan: 'free' | 'pro' | 'max' | 'ultra',
-  planValidUntil: Date | null = null
+  planValidUntil: Date | null = plan === 'free'
+    ? null
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  stripeCurrentPeriodStart: Date | null = plan === 'free'
+    ? null
+    : new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
 ): Promise<void> {
   const db = testDb()
   await db.query(
-    'UPDATE users SET plan = $1, plan_valid_until = $2 WHERE id = $3',
-    [plan, planValidUntil, userId]
+    `UPDATE users SET plan = $1, plan_valid_until = $2, stripe_current_period_start = $3
+     WHERE id = $4`,
+    [plan, planValidUntil, stripeCurrentPeriodStart, userId]
   )
 }
 
@@ -96,18 +105,17 @@ describe('resolveBillingContext — self-billing branches', () => {
     expect(ctx.interactionsRemaining).toBe(TIERS.pro.interactionsPerMonth)
   })
 
-  it('caller with no plan row gets safe defaults (free, 100)', async () => {
-    // Nonexistent user id — the session auth should have caught this,
-    // but the resolver is defensive so phase-2 logs don't crash.
-    const ctx = await resolveBillingContext(99999, null)
-    expect(ctx.plan).toBe('free')
-    expect(ctx.attribution).toBe('user')
-    expect(ctx.interactionsRemaining).toBe(TIERS.free.interactionsPerMonth)
+  it('throws when the user row is missing', async () => {
+    // Callers reach this only after `requireValidatedUserSession`
+    // confirms the user exists, so a missing row is a programming
+    // error — fail loudly rather than silently returning a Free
+    // context for a nonexistent user.
+    await expect(resolveBillingContext(99999, null)).rejects.toThrow(/not found/)
   })
 
   it('caller with a lapsed paid plan is downgraded to free until sweep runs', async () => {
     // Paid plans with an expired planValidUntil revert to free-tier
-    // caps on the fly. This is defense-in-depth against the phase-4
+    // caps on the fly. This is defense-in-depth against the plan-lapse
     // sweep being slow to flip `plan` back to 'free' — we don't want
     // a Pro user still getting Pro caps for days after their
     // subscription ended.
@@ -142,7 +150,7 @@ describe('resolveBillingContext — (+) workspace branches', () => {
   beforeEach(async () => { await resetDb() })
 
   it('workspace with ai_enabled=false → self-bill even if billing_owner_id is set', async () => {
-    // The toggle is BOOLEAN + owner. Phase-4 sweep flips the boolean
+    // The toggle is BOOLEAN + owner. The plan-lapse sweep flips the boolean
     // to false on lapse; we must respect the boolean even when the
     // FK still points somewhere.
     const caller = await createUser()
@@ -187,7 +195,7 @@ describe('resolveBillingContext — (+) workspace branches', () => {
     // Pro is personal-only by design. If a DB state somehow flags
     // `(+)` on a Pro-owned workspace, the resolver must REFUSE to
     // charge the pro owner and fall back to the caller. This is the
-    // defense for "phase 4 admin UI bug lets a Pro user toggle (+)".
+    // defense for "a Pro user toggling (+) via an admin UI bug".
     const caller = await createUser()
     const owner = await createUser()
     await setUserPlan(caller.id, 'free')
@@ -202,7 +210,7 @@ describe('resolveBillingContext — (+) workspace branches', () => {
   })
 
   it('(+) with a LAPSED Max owner → safety fallback to self-bill', async () => {
-    // Exactly the scenario phase-4's sweep exists to catch, but
+    // Exactly the scenario the plan-lapse sweep exists to catch, but
     // before the sweep has run. We must NOT burn the lapsed owner's
     // stale pool (which has no corresponding paid subscription to
     // cover the cost).
@@ -235,7 +243,7 @@ describe('resolveBillingContext — (+) workspace branches', () => {
     await setWorkspaceBilling(ws.workspaceId, true, billingOwner.id)
 
     // Delete JUST the billing owner. FK SET NULL nulls billing_owner_id;
-    // ai_enabled stays true until the phase-4 sweep.
+    // ai_enabled stays true until the plan-lapse sweep.
     const db = testDb()
     await db.query('DELETE FROM users WHERE id = $1', [billingOwner.id])
 
@@ -246,17 +254,25 @@ describe('resolveBillingContext — (+) workspace branches', () => {
 
   it('(+) correctly reads usage for the WORKSPACE key, not the caller key', async () => {
     // Seed usage against both keys; resolver must pick up the
-    // workspace key's counter when in (+) mode.
+    // workspace key's counter when in (+) mode, keyed on the
+    // SPONSOR's Stripe anniversary (not the caller's calendar
+    // month).
     const caller = await createUser()
     const owner = await createUser()
     await setUserPlan(caller.id, 'free')
-    await setUserPlan(owner.id, 'max', new Date(Date.now() + 1e10))
+    // Sponsor on a clearly non-calendar anchor (10 days ago →
+    // 20 days from now) so we can tell calendar vs Stripe reads
+    // apart.
+    const sponsorPeriodStart = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+    const sponsorPeriodEnd = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000)
+    await setUserPlan(owner.id, 'max', sponsorPeriodEnd, sponsorPeriodStart)
     const ws = await createWorkspace(owner.id)
     await setWorkspaceBilling(ws.workspaceId, true, owner.id)
 
-    const period = currentPeriodStart()
-    await seedUsage(`user:${caller.id}`, period, 500) // decoy — should NOT be read
-    await seedUsage(`workspace:${ws.workspaceId}`, period, 200)
+    // Decoy on the caller's calendar month — should NOT be read.
+    await seedUsage(`user:${caller.id}`, currentPeriodStart(), 500)
+    // Real counter on the sponsor's Stripe anchor.
+    await seedUsage(`workspace:${ws.workspaceId}`, sponsorPeriodStart, 200)
 
     const ctx = await resolveBillingContext(caller.id, ws.workspaceId)
     expect(ctx.interactionsRemaining).toBe(TIERS.max.interactionsPerMonth - 200)

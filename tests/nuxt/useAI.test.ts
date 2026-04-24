@@ -24,9 +24,9 @@ async function respond(event: H3Event, out: unknown): Promise<unknown> {
 }
 
 // Composable under test: awareness-driven AI session state + prompt /
-// abort actions. See app/composables/useAI.ts. (The separate rewrite
-// path was removed in phase 5 — selection-scoped requests now flow
-// through `prompt()` with an editorSelection override.)
+// abort actions. See app/composables/useAI.ts. Selection-scoped
+// requests flow through `prompt()` with an editorSelection override;
+// there is no separate rewrite endpoint.
 //
 // External dependencies:
 //   - `useUserSession()` (auto-import) — mocked via mockNuxtImport, the
@@ -565,9 +565,9 @@ describe('useAI — prompt()', () => {
   })
 })
 
-// Phase 5 removed the separate /api/ai/rewrite path. Selection-scoped
-// requests now flow through prompt() with an editorSelection override —
-// covered by `passes editorSelection through to the request body` above.
+// Selection-scoped requests flow through prompt() with an
+// editorSelection override — covered by `passes editorSelection
+// through to the request body` above. No separate rewrite path.
 
 // ═══════════════════════════════════════════════════════════════════════
 // abort() — 404 race tolerance + no-session guard

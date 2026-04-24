@@ -25,7 +25,7 @@ export interface UserBilling {
  * `refresh()` is the explicit invalidation point. Call it after actions
  * that might change the state:
  *   - after an AI session ends (interactions consumed)
- *   - after a Stripe webhook might have landed (future phase 7)
+ *   - after Stripe checkout returns (plan may have changed)
  */
 export function useBilling() {
   const { loggedIn } = useUserSession()

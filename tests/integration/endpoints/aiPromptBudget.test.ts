@@ -5,12 +5,12 @@ import { createUser, createDoc } from '../setup/fixtures'
 import { TIERS } from '../../../shared/config/tiers'
 import { currentPeriodStart } from '../../../server/utils/billing'
 
-// POST /api/ai/prompt — session-open budget gate. Phase 3's key
-// integration-level assertion: an exhausted user gets 402 BEFORE
-// Gemini spins up, the Hocuspocus JWT is minted, or an ai_sessions
-// row is inserted. The mid-loop doc breadcrumb path requires a real
-// agentic run to exercise — we skip that here because the integration
-// suite doesn't talk to Gemini.
+// POST /api/ai/prompt — session-open budget gate. Key integration-
+// level assertion: an exhausted user gets 402 BEFORE Gemini spins
+// up, the Hocuspocus JWT is minted, or an ai_sessions row is
+// inserted. The mid-loop doc-breadcrumb path requires a real agentic
+// run to exercise — skipped here because the integration suite
+// doesn't talk to Gemini.
 
 async function seedUsage(
   attributedTo: string,

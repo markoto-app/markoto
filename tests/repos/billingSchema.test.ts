@@ -2,24 +2,23 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
 
-// Phase 1 schema contract tests. These verify DB-level guarantees that
-// TypeScript cannot check at compile time: column defaults, FK cascade
-// behaviour, composite PK semantics, and the atomic-increment pattern
-// phase 3 will rely on.
+// Schema contract tests. These verify DB-level guarantees TypeScript
+// can't check at compile time: column defaults, FK cascade behaviour,
+// composite PK semantics, and the atomic-increment pattern the
+// charger relies on.
 //
 // We deliberately do NOT test "plan accepts only free|pro|max|ultra" —
 // drizzle's text-enum is TypeScript-only and the DB column is plain
-// `text`. That's a documented gap (see the "known-gap" test below);
-// phase 3 enforcement must defend at the app layer.
+// `text`. App-layer enforcement (Stripe webhook is the only writer)
+// guards against bad values; the documented-gap test below pins that
+// expectation.
 
 describe('users.plan — default behaviour', () => {
   beforeEach(async () => { await resetDb() })
 
   it('new users default to plan="free"', async () => {
-    // The whole phase-1 migration leans on this: every pre-existing
-    // user backfills to free, every new OAuth signup inherits free,
-    // and nothing needs to touch the `plan` column until Stripe goes
-    // live in phase 7.
+    // Every new OAuth signup inherits Free. The Stripe webhook is
+    // the only other writer to this column.
     const user = await createUser()
     const db = testDb()
     const r = await db.query<{ plan: string, plan_valid_until: Date | null }>(
@@ -76,7 +75,7 @@ describe('users.plan — default behaviour', () => {
     // raw SQL write from setting plan='enterprise' or anything else.
     //
     // This test documents the gap rather than asserting correctness —
-    // we EXPECT the insert to succeed today. Phase 3's write path
+    // we EXPECT the insert to succeed today. The Stripe webhook
     // (only the Stripe webhook writes `plan`) defends at the app
     // layer. If we later add a DB CHECK constraint, flip this test to
     // assert rejection.
@@ -90,7 +89,7 @@ describe('users.plan — default behaviour', () => {
   })
 })
 
-describe('workspaces — phase 1 columns', () => {
+describe('workspaces — billing columns', () => {
   beforeEach(async () => { await resetDb() })
 
   it('new workspaces default to ai_enabled=false and billing_owner_id=NULL', async () => {
@@ -128,7 +127,7 @@ describe('workspaces — phase 1 columns', () => {
     await db.query('DELETE FROM users WHERE id = $1', [billingOwner.id])
 
     // Workspace must survive with billing_owner_id nulled. ai_enabled
-    // stays true in the DB — phase 4's sweep job flips it back to
+    // stays true in the DB — the plan-lapse sweep flips it back to
     // false; the FK only handles the null, not the boolean.
     const r = await db.query<{ billing_owner_id: number | null, ai_enabled: boolean }>(
       'SELECT billing_owner_id, ai_enabled FROM workspaces WHERE workspace_id = $1',
@@ -136,7 +135,7 @@ describe('workspaces — phase 1 columns', () => {
     )
     expect(r.rows).toHaveLength(1) // workspace not deleted
     expect(r.rows[0].billing_owner_id).toBeNull()
-    expect(r.rows[0].ai_enabled).toBe(true) // phase 4 sweep's job
+    expect(r.rows[0].ai_enabled).toBe(true) // plan-lapse sweep's job
   })
 })
 
@@ -176,11 +175,11 @@ describe('ai_usage_period — composite PK + atomic increment', () => {
     ).rejects.toThrow(/duplicate|unique/i)
   })
 
-  it('INSERT ... ON CONFLICT DO UPDATE increments atomically (the phase-3 pattern)', async () => {
-    // This is the exact pattern `chargeInteractions` will use in
-    // phase 3: one INSERT that either creates the period row at N or
-    // bumps the existing counter by N. Verified against the phase-1
-    // schema so we can't discover at phase-3 time that the PK is
+  it('INSERT ... ON CONFLICT DO UPDATE increments atomically (charge pattern)', async () => {
+    // Exact pattern `chargeInteractions` uses: one INSERT that
+    // either creates the period row at N or bumps the existing
+    // counter by N. Verified here against the schema so a bad PK
+    // shape would surface at test time, not charge time.
     // wrong for this write pattern.
     const db = testDb()
     const stmt = `
@@ -204,7 +203,7 @@ describe('ai_usage_period — composite PK + atomic increment', () => {
     // though they share a numeric suffix. The `attributed_to` column
     // being a full string (not two numeric FK columns) prevents this
     // class of bug entirely, but pin the property so a future "split
-    // into two columns" refactor doesn't break phase-3 attribution.
+    // into two columns" refactor doesn't break attribution.
     const db = testDb()
     await db.query(`
       INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
@@ -225,9 +224,9 @@ describe('ai_usage_period — composite PK + atomic increment', () => {
   })
 })
 
-describe('schema — perf invariants for phase 4', () => {
+describe('schema — perf invariants for plan-lapse sweep', () => {
   it('users.plan_valid_until has a PARTIAL index (not full)', async () => {
-    // Phase 4's plan-lapse sweep runs `WHERE plan_valid_until < now()
+    // The plan-lapse sweep runs `WHERE plan_valid_until < now()
     // AND plan != 'free'`. A full index on plan_valid_until would
     // bloat with every free-tier signup (all NULL). The partial
     // index keeps the scan tight as the user table grows. Verified by
@@ -247,7 +246,7 @@ describe('schema — perf invariants for phase 4', () => {
 
   it('workspaces.billing_owner_id is indexed', async () => {
     // Billing resolver will query by workspaceId (already indexed via
-    // unique constraint) but the phase-4 sweep runs by billingOwnerId
+    // unique constraint) but the plan-lapse sweep runs by billingOwnerId
     // — "find all (+) workspaces whose billing owner lapsed". Without
     // an index, that's a full-table scan. Pin the index exists.
     const db = testDb()

@@ -28,12 +28,21 @@ let client: Stripe | null = null
  * first-use so misconfiguration surfaces immediately (not hours later
  * when a user tries to check out).
  */
+/**
+ * Stripe API version this client speaks. Pinning it decouples our
+ * code from Stripe's rolling defaults — subscription period fields
+ * and other objects change shape across versions, and we want our
+ * webhook handlers to see a stable schema.
+ */
+const STRIPE_API_VERSION = '2025-01-27.acacia'
+
 export function useStripeClient(): Stripe | null {
   if (client) return client
   const config = useRuntimeConfig()
   const secret = config.stripe.secretKey
   if (!secret) return null
   client = new Stripe(secret, {
+    apiVersion: STRIPE_API_VERSION as Stripe.StripeConfig['apiVersion'],
     // Override the API base URL when pointed at `stripe-mock`. Stripe's
     // SDK requires both `host` (hostname) and `port` + `protocol`
     // separately. Do the parsing here so callers only need one env var.

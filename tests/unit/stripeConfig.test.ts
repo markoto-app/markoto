@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { STRIPE_CONFIG_DEFAULTS, STRIPE_CONFIG_KEYS } from '../../shared/config/tiers'
 
-// Stripe config SHAPE test. Phase 1 adds `config.stripe.*` with empty
-// string placeholders — nothing reads them yet. The only value this
-// test adds now is catching a misspelled key before phase 7 goes to
-// use it. Phase 7 adds a fail-fast runtime check for non-empty keys
-// in prod.
+// Stripe config SHAPE test. Catches misspelled keys and accidental
+// credential leakage in the committed source. Runtime fail-fast on
+// empty keys in prod is the deploy-time safety net; this is the
+// source-code-time one.
 
 describe('stripe config shape', () => {
   it('defaults object has every expected key', () => {
@@ -35,8 +34,8 @@ describe('stripe config shape', () => {
   })
 
   it('has exactly the expected keys (no stray additions or removals)', () => {
-    // If a future phase adds a key to the shared module without
-    // updating STRIPE_CONFIG_KEYS, the drift surfaces here.
+    // If a new key is added to the shared module without updating
+    // STRIPE_CONFIG_KEYS, the drift surfaces here.
     expect(Object.keys(STRIPE_CONFIG_DEFAULTS).sort()).toEqual([...STRIPE_CONFIG_KEYS].sort())
   })
 })

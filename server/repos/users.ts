@@ -102,7 +102,7 @@ export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id'
  *
  *   1. **updated** — the provider id matches an existing row. Refresh
  *      the profile fields (name, email, avatarUrl, login-for-github)
- *      in case the user updated them on the provider. Legacy path.
+ *      in case the user changed them on the provider.
  *
  *   2. **merged** — the provider id is new, BUT the verified email
  *      matches a row with the OTHER provider id set. Add our
@@ -119,9 +119,8 @@ export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id'
  *
  * Ordering rules for case #2 (the merge):
  *   - Only merge if the candidate row has NULL for OUR provider id.
- *     If both provider ids are already set on that row, something
- *     is wrong (or legacy data has the email duplicated across two
- *     accounts) — insert instead.
+ *     If both provider ids are already set on that row, insert a
+ *     new row instead — merging would clobber an existing binding.
  *   - `SELECT FOR UPDATE` locks the candidate row for the tx so
  *     two concurrent logins of the same email can't both merge
  *     (which would corrupt "only one of us wins" into "both append
@@ -174,14 +173,12 @@ export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUps
           ? mergeCandidate.github_id !== null
           : mergeCandidate.google_id !== null
         if (!candidateHasOurProvider) {
-          // Merge: add our provider id to the existing row. Keep
-          // name/avatar from the first provider — the user chose
-          // those and may have customised via `/profile` (once we
-          // have that page). Updating login only if we're GitHub
-          // (Google has no equivalent).
+          // Merge: add our provider id to the existing row. Email
+          // casing normalises to the second provider's. Login only
+          // updates on GitHub (Google has no equivalent).
           const setClause: Record<string, unknown> = {
             [input.provider === 'github' ? 'githubId' : 'googleId']: input.providerUserId,
-            email: input.email, // normalise casing to what the second provider gave us
+            email: input.email,
             avatarUrl: input.avatarUrl
           }
           if (input.provider === 'github') setClause.login = input.login ?? null
@@ -190,11 +187,10 @@ export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUps
             .where(eq(users.id, mergeCandidate.id))
           return { userId: mergeCandidate.id, outcome: 'merged' }
         }
-        // Else: candidate has our provider id already set but to a
+        // Else: candidate already has our provider id bound to a
         // DIFFERENT value (otherwise branch 1 would have matched).
-        // This means the email is duplicated across two accounts —
-        // legacy pre-merge-feature data. Don't merge silently; fall
-        // through to insert so both accounts stay separate.
+        // Overwriting would clobber the existing binding — fall
+        // through to insert instead.
       }
     }
 

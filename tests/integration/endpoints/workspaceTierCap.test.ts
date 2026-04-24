@@ -4,10 +4,9 @@ import { loggedInClient } from '../setup/client'
 import { createUser, createWorkspace } from '../setup/fixtures'
 import { TIERS } from '../../../shared/config/tiers'
 
-// Tier-aware workspaces.maxPerUser. Phase 4 replaces the flat
-// config.workspaces.maxPerUser with a per-tier lookup. Test each
-// tier's cap boundary — one more than cap must 409, at-cap must
-// succeed.
+// Tier-aware per-user workspace cap. Every tier has a distinct
+// `workspacesOwned` ceiling; POST /api/workspaces reads the caller's
+// plan and 409s when they're at cap. Test each tier's boundary.
 
 async function setUserPlan(
   userId: number,

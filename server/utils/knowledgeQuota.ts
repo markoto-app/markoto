@@ -8,7 +8,7 @@ import {
 import { users, workspaces } from '../db/schema'
 import { useDatabase } from './database'
 import { reserveInflightSlot, releaseInflightSlot } from './rateLimit'
-import { TIERS, LEGACY_KNOWLEDGE_SHIM, type PlanName } from '~~/shared/config/tiers'
+import { TIERS, KNOWLEDGE_PLATFORM_LIMITS, type PlanName } from '~~/shared/config/tiers'
 
 /**
  * Centralised cap enforcement for the workspace knowledge base.
@@ -102,21 +102,14 @@ async function getWorkspacePlan(workspaceId: string): Promise<PlanName> {
 /**
  * Resolve the full cap set for an upload. Per-workspace caps read the
  * workspace's effective plan (billing owner if `(+)`, else creator);
- * per-user caps read the uploader's own plan. `maxFileBytes` and the
- * chunk-ceiling stay global constants — they're not tier knobs.
+ * per-user caps read the uploader's own plan. `maxFileBytes` is a
+ * platform constant (markitdown conversion throughput + S3
+ * single-part upload ceiling), not a tier knob.
  */
 export async function resolveCaps(args: {
   workspaceId: string
   uploaderId: number
 }): Promise<KnowledgeCaps> {
-  // `maxFileBytes` is a platform constraint (markitdown conversion
-  // throughput + S3 single-part upload size), not a tier knob. Sourced
-  // from the shared shim constant rather than `useRuntimeConfig()` so
-  // `resolveCaps` works in the repo-test context (plain vitest, no
-  // Nitro runtime). In prod the env var NUXT_KNOWLEDGE_MAX_FILE_BYTES
-  // overrides via runtimeConfig → we'd need to re-read that here only
-  // if operators ever need to bump it at runtime; for phase 4 the
-  // shim constant is canonical.
   const [uploaderPlan, workspacePlan] = await Promise.all([
     getEffectivePlan(args.uploaderId),
     getWorkspacePlan(args.workspaceId)
@@ -124,7 +117,7 @@ export async function resolveCaps(args: {
   const wsTier = TIERS[workspacePlan]
   const userTier = TIERS[uploaderPlan]
   return {
-    maxFileBytes: LEGACY_KNOWLEDGE_SHIM.maxFileBytes,
+    maxFileBytes: KNOWLEDGE_PLATFORM_LIMITS.maxFileBytes,
     maxFilesPerWorkspace: wsTier.knowledgeFiles,
     maxTotalBytesPerWorkspace: wsTier.knowledgeBytesPerWorkspace,
     maxFilesPerUser: userTier.knowledgeFiles,

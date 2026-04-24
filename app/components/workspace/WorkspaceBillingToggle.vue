@@ -5,8 +5,8 @@
 // Free/Pro admins instead of showing a 403 on click.
 //
 // The component fetches the caller's plan via `/api/user/billing` at
-// mount. That endpoint already exists (phase 2) and is session-level
-// — no workspace context needed.
+// mount via `/api/user/billing` which is session-level (no workspace
+// context needed).
 
 interface UserBilling {
   plan: 'free' | 'pro' | 'max' | 'ultra'

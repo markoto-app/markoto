@@ -9,7 +9,7 @@ import {
 } from '../../server/utils/billing'
 import { TIERS } from '../../shared/config/tiers'
 
-// Atomic charge semantics — the core of phase-3 enforcement. These
+// Atomic charge semantics — the core of interaction enforcement. These
 // tests bypass the TEST_MODE=1 bypass (which skips DB writes entirely)
 // via vi.stubEnv so we can exercise the real INSERT ... ON CONFLICT
 // path against Postgres.

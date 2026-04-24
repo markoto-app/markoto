@@ -57,11 +57,10 @@ export interface RunLoopOptions {
    */
   toolDeclarations?: FunctionDeclaration[]
   /**
-   * Billing context for the session (who gets charged, what plan caps
-   * apply). Phase 2: log-only — we emit `[billing] would-charge ...`
-   * lines at every AI call site so we can watch attribution flow
-   * through a real agentic loop. Phase 3 threads this into the actual
-   * counter decrement.
+   * Billing context for the session (who gets charged, what plan
+   * caps apply). Drives per-turn and per-sub-call interaction
+   * charges. Absent only in exceptional test paths that bypass the
+   * billing resolver.
    */
   billingContext?: BillingContext
   /** Optional logger — defaults to `console.log` tagged with the session id. */
@@ -78,12 +77,12 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
   const toolDeclarations = opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS
   const billingContext = opts.billingContext
 
-  // Phase-3 enforcement. Every AI call site debits the counter before
-  // we incur cost. BudgetExhausted mid-loop terminates the run with a
-  // doc breadcrumb instead of a hard throw — users MUST see an
-  // explanation in the doc since there's no chat UI.
+  // Interaction charging. Every AI call site debits the counter
+  // before we incur cost. A mid-loop BudgetExhausted terminates
+  // the run with a doc breadcrumb instead of a hard throw — users
+  // MUST see an explanation in the doc since there's no chat UI.
   const charge = async (delta: number, reason: string): Promise<void> => {
-    if (!billingContext) return // Safety: phase-2 shim fallback; prompt.post always passes one in phase 3.
+    if (!billingContext) return // prompt.post always passes one; defensive guard.
     const { attributedTo, plan, periodStart } = billingContext
     const result = await chargeInteractions({ attributedTo, plan, delta, periodStart, reason })
     log(`[billing] charged ${attributedTo} plan=${plan} delta=${delta} (${reason}; used=${result.used}/${result.used + result.remaining})`)

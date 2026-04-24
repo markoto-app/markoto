@@ -73,7 +73,7 @@ describe('resolveCaps — per-workspace tier', () => {
 
   it('workspace with (+) + Max billing owner: per-workspace caps follow owner\'s plan, NOT creator\'s', async () => {
     // Ensure the `(+)` redirect actually changes the effective tier
-    // — not just for interactions (that's phase 3) but for the
+    // — not just for interactions but also for the
     // per-workspace storage cap too. A Free user's workspace with a
     // Max (+) sponsor should get Max storage.
     const creator = await createUser()

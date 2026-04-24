@@ -128,17 +128,17 @@ export async function handleCheckoutSessionCompleted(
   const item = sub.items.data[0]
   const priceId = item?.price?.id ?? null
   const plan = priceIdToPlan(priceId, opts.config)
-  // Stripe moved `current_period_start` / `current_period_end` from
-  // the subscription level down to the subscription-item level in
-  // their `2025-01-27.acacia` API version. Read from the item first,
-  // fall back to the subscription level for older API versions /
-  // older SDK releases. Either path gives us epoch seconds.
-  const subAny = sub as unknown as { current_period_start?: number, current_period_end?: number }
-  const itemAny = item as unknown as { current_period_start?: number, current_period_end?: number }
-  const periodStartSec = itemAny?.current_period_start ?? subAny.current_period_start ?? 0
-  const periodEndSec = itemAny?.current_period_end ?? subAny.current_period_end ?? 0
-  const periodStart = periodStartSec ? new Date(periodStartSec * 1000) : null
-  const periodEnd = periodEndSec ? new Date(periodEndSec * 1000) : null
+  // Stripe API version `2025-01-27.acacia` (pinned in the client)
+  // carries `current_period_start` / `current_period_end` on the
+  // subscription ITEM, not the subscription root. Cast because the
+  // SDK's root type still exposes them during the transition period.
+  const itemWithPeriod = item as unknown as { current_period_start?: number, current_period_end?: number }
+  const periodStart = itemWithPeriod?.current_period_start
+    ? new Date(itemWithPeriod.current_period_start * 1000)
+    : null
+  const periodEnd = itemWithPeriod?.current_period_end
+    ? new Date(itemWithPeriod.current_period_end * 1000)
+    : null
 
   // If the price maps to no known plan (e.g. price ID rotated but
   // config not updated), still stamp customer/sub ids so we can
@@ -186,19 +186,18 @@ export async function handleSubscriptionUpdated(
     console.warn(`[stripe/webhook] subscription.${event.type.split('.').pop()} unknown price: ${priceId} (sub=${sub.id})`)
     return { matched: 0, plan: null }
   }
-  // Stripe moved period fields to the item level in 2025-01. Read
-  // from item first, fall back to subscription level. Both paths
-  // carry epoch seconds.
-  const subAny = sub as unknown as { current_period_start?: number, current_period_end?: number }
-  const itemAny = item as unknown as { current_period_start?: number, current_period_end?: number }
-  const periodStartSec = itemAny?.current_period_start ?? subAny.current_period_start ?? 0
-  const periodEndSec = itemAny?.current_period_end ?? subAny.current_period_end ?? 0
+  // API version 2025-01-27.acacia: period fields on item root.
+  const itemWithPeriod = item as unknown as { current_period_start?: number, current_period_end?: number }
   const setFields: UpdateUserArgs['set'] = {
     plan,
     stripeSubscriptionId: sub.id
   }
-  if (periodStartSec) setFields.stripeCurrentPeriodStart = new Date(periodStartSec * 1000)
-  if (periodEndSec) setFields.planValidUntil = new Date(periodEndSec * 1000)
+  if (itemWithPeriod?.current_period_start) {
+    setFields.stripeCurrentPeriodStart = new Date(itemWithPeriod.current_period_start * 1000)
+  }
+  if (itemWithPeriod?.current_period_end) {
+    setFields.planValidUntil = new Date(itemWithPeriod.current_period_end * 1000)
+  }
   const matched = await updateUser({
     where: { stripeCustomerId: customerId },
     set: setFields

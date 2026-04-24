@@ -5,64 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1776184195784,
-      "tag": "0000_chemical_shinobi_shaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1776608788332,
-      "tag": "0001_solid_rhodey",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1776688151512,
-      "tag": "0002_organic_stellaris",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1776689821886,
-      "tag": "0003_chilly_shiver_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1776691449258,
-      "tag": "0004_jittery_scalphunter",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1776956697191,
-      "tag": "0005_lame_cassandra_nova",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1776958974462,
-      "tag": "0006_lively_donald_blake",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1777025542931,
-      "tag": "0007_flowery_dragon_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1777037088924,
-      "tag": "0008_amused_lake",
+      "when": 1777045651898,
+      "tag": "0000_cooing_miek",
       "breakpoints": true
     }
   ]

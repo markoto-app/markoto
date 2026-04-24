@@ -204,8 +204,7 @@ const statusIcon = computed(() => {
 })
 
 // Bottom bar animates whenever there's an active session for the
-// caller. Since phase 5 collapsed inline rewrite into the unified
-// agentic path, both the bottom bar and the selection popup point at
+// caller. The bottom bar and the selection popup both point at
 // the same session — having both surfaces animate in sync reinforces
 // "AI is working" rather than competing for attention.
 const isActive = computed(() => !!props.ai.mySession.value)

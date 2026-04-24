@@ -18,10 +18,9 @@ export const users = pgTable('users', {
   name: text('name').notNull(),
   email: text('email'),
   avatarUrl: text('avatar_url'),
-  // Subscription tier. `free` is the default for every existing row
-  // (phase-1 migration backfill). Paid tiers are set by the Stripe
-  // webhook in phase 7 — until then the column is read-only from the
-  // app's perspective. See AGENTS.md §15.
+  // Subscription tier. Defaults to `free`; paid tiers are set by
+  // the Stripe webhook when `invoice.paid` / `subscription.updated`
+  // lands. See AGENTS.md §15.
   plan: text('plan', { enum: ['free', 'pro', 'max', 'ultra'] }).notNull().default('free'),
   // Paid-tier expiry = Stripe's `current_period_end`. NULL for free
   // users (free never lapses). Set by the Stripe webhook; the
@@ -245,9 +244,10 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
 // primary key simple and the INSERT ... ON CONFLICT idempotent without
 // needing a partial unique index per branch.
 //
-// `periodStart` is the first day of the billing cycle (phase 1: calendar
-// month UTC). Revisit when Stripe comes online in phase 7 if we want to
-// anchor paid-tier periods to the subscription cycle instead.
+// `periodStart` is the first day of the billing cycle. Free users:
+// first-of-calendar-month UTC. Paid users: Stripe's
+// `current_period_start` (anniversary). Resolved by
+// `effectivePeriodStart` in `server/utils/billing.ts`.
 //
 // Writes are a single atomic `INSERT ... ON CONFLICT (attributed_to,
 // period_start) DO UPDATE SET interactions_used = interactions_used +

@@ -120,24 +120,6 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
       .toHaveBeenCalledWith('sub_abc')
   })
 
-  it('falls back to subscription-level period fields when item-level are absent (older API versions)', async () => {
-    const stripe = makeStripeMock({
-      id: 'sub_abc',
-      current_period_start: 1800000000,
-      current_period_end: 1802678400,
-      items: { data: [{ price: { id: 'price_pro_abc' } }] } // no current_period_* on item
-    })
-    const event = {
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs', client_reference_id: '42', customer: 'cus', subscription: 'sub_abc' } }
-    } as unknown as Parameters<typeof handleCheckoutSessionCompleted>[0]
-
-    const result = await handleCheckoutSessionCompleted(event, { stripe, config: PRICES })
-    // The handler should still succeed — fallback path read from
-    // sub.current_period_start instead of item.current_period_start.
-    expect(result.plan).toBe('pro')
-  })
-
   it('returns matched:0 when client_reference_id is missing (orphan checkout)', async () => {
     const stripe = makeStripeMock({ id: 'sub', items: { data: [] } })
     const event = {

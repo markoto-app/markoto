@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { TIERS, type PlanName } from '~~/shared/config/tiers'
 
-// Static pricing page. Read-only in phase 6 — Stripe checkout lands
-// in phase 7. The CTA buttons are scaffolded so the page looks
-// complete, but "Upgrade" opens the billing portal in prod (once wired)
-// and no-ops in dev.
+// Pricing page. Shows every tier with live caps read from the shared
+// config + the caller's current plan highlighted. Upgrade buttons
+// open a Stripe Checkout Session; downgrade / "Manage subscription"
+// opens the Customer Portal.
 //
-// Tier caps are imported directly from the shared config so changing
-// a number in `shared/config/tiers.ts` re-renders the page without
-// touching this file.
+// Tier caps are imported directly from `shared/config/tiers.ts` so
+// changing a number there re-renders the page without any copy edit.
 
 const { t } = useI18n()
 const { loggedIn } = useUserSession()

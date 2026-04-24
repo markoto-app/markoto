@@ -1,5 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { TIERS, LEGACY_KNOWLEDGE_SHIM, LEGACY_WORKSPACES_SHIM, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
+import { TIERS, KNOWLEDGE_PLATFORM_LIMITS, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
 
 export default defineNuxtConfig({
   // Dev proxy: mirror production Traefik routing through localhost:3000
@@ -115,26 +115,15 @@ export default defineNuxtConfig({
     // never auto-reaped. 0 disables sweeping entirely. Override via
     // NUXT_INACTIVE_DOC_TTL_DAYS.
     inactiveDocTtlDays: 180,
-    // Per-tier caps. Sourced from `shared/config/tiers.ts` so the unit
-    // tests and the eventual client-side pricing page read from the
-    // same typed definition. Numbers documented in AGENTS.md §15.
-    //
-    // Phase 1: enforcement sites still read `config.knowledge.*` and
-    // `config.workspaces.maxPerUser` (the shims below, pinned to the
-    // max-tier numbers so no user sees a regression). Phases 3+4 swap
-    // every call site to `config.tiers[userPlan].*`.
+    // Per-tier caps. Single source of truth in
+    // `shared/config/tiers.ts`; enforcement sites resolve via plan
+    // lookup (`TIERS[plan].*`). Numbers documented in AGENTS.md §15.
     tiers: TIERS,
-    // LEGACY SHIMS — existing enforcement sites read these. Values are
-    // defined in `shared/config/tiers.ts` alongside TIERS so unit tests
-    // can assert invariants (shim >= max tier, etc). Phase 3/4 removes
-    // both the shims and the tests that pin their relationships.
-    // Env vars (NUXT_KNOWLEDGE_*, NUXT_WORKSPACES_MAX_PER_USER) still
-    // override at runtime via Nitro's nested key resolution.
-    knowledge: LEGACY_KNOWLEDGE_SHIM,
-    workspaces: LEGACY_WORKSPACES_SHIM,
-    // Stripe keys + price IDs. All empty in dev; populated in prod via
-    // NUXT_STRIPE_* env vars. Phase-1 adds the config shape only — no
-    // code reads these yet.
+    // Knowledge-upload platform limits that don't vary by plan
+    // (single-file size, chunker ceiling, failed-row TTL). Tier-
+    // varying caps (file count, bytes, etc.) live inside TIERS.
+    knowledge: KNOWLEDGE_PLATFORM_LIMITS,
+    // Stripe config — all empty in dev, set via NUXT_STRIPE_* in prod.
     stripe: STRIPE_CONFIG_DEFAULTS,
     public: {
       syncUrl: '',
