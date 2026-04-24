@@ -5,6 +5,7 @@ import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
 import { useDatabase } from './database'
 import { chunkMarkdown } from './chunkMarkdown'
 import { embedDocuments, embeddingVersionTag, resolveEmbeddingsConfig } from './embeddings'
+import { tryAcquireSessionLock, releaseSessionLock } from './rateLimit'
 
 /**
  * End-to-end ingestion for one knowledge file:
@@ -28,7 +29,37 @@ import { embedDocuments, embeddingVersionTag, resolveEmbeddingsConfig } from './
 
 const MARKITDOWN_TIMEOUT_MS = 60_000
 
+// Cap the Valkey lock TTL well above any legitimate pipeline duration.
+// Worst case: 300-chunk document (ceiling), 60s markitdown timeout, ~5
+// chunks/sec embedding throughput = ~2 min. 10 min gives generous headroom
+// + self-healing if a worker crashes without releasing the lock.
+const PROCESS_LOCK_TTL_MS = 10 * 60 * 1000
+
 export async function processKnowledge(knowledgeId: string): Promise<void> {
+  // Claim-check lock: the `status !== 'processing'` guard below is a
+  // TOCTOU — two callers (e.g. the sweep plugin racing with the confirm
+  // endpoint's fire-and-forget kick) can both read processing before
+  // either writes. Without a claim, both proceed through the full
+  // pipeline: double embedding cost and a chunks DELETE-then-INSERT race
+  // that can clobber one run's output.
+  //
+  // We serialize with the Valkey session-lock primitive (same as
+  // dictation's one-per-user cap). Second call fails to acquire → no-op.
+  // TTL self-heals if a worker crashes mid-pipeline.
+  const lockAcquired = await tryAcquireSessionLock('knowledge-process', knowledgeId, PROCESS_LOCK_TTL_MS)
+  if (!lockAcquired) {
+    console.log(`[processKnowledge] ${knowledgeId} already being processed by another worker, skipping`)
+    return
+  }
+
+  try {
+    await runPipeline(knowledgeId)
+  } finally {
+    await releaseSessionLock('knowledge-process', knowledgeId)
+  }
+}
+
+async function runPipeline(knowledgeId: string): Promise<void> {
   const db = useDatabase()
 
   const rows = await db.select().from(workspaceKnowledge)
@@ -71,6 +102,17 @@ export async function processKnowledge(knowledgeId: string): Promise<void> {
       chunks.map(c => c.content),
       { config: embedCfg }
     )
+
+    // Embedding providers are supposed to return one vector per input,
+    // but retry layers can drop elements silently and a future SDK
+    // upgrade could change the contract. Fail loudly here rather than
+    // inserting an `undefined` vector (which would crash at the NOT NULL
+    // constraint in prod with a confusing drizzle-encoding error).
+    if (embeddings.length !== chunks.length) {
+      await markFailed(knowledgeId,
+        `embed returned ${embeddings.length} vectors for ${chunks.length} chunks`)
+      return
+    }
 
     // Final existence check before the write-heavy phase — embeddings
     // are the expensive step, but chunks insert + status flip still

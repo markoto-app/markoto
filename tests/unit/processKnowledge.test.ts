@@ -96,6 +96,13 @@ vi.mock('../../server/utils/embeddings', () => ({
 const sentryCaptureException = vi.fn()
 vi.mock('@sentry/nuxt', () => ({ captureException: sentryCaptureException }))
 
+const tryAcquireSessionLock = vi.fn<(namespace: string, key: string, ttlMs: number) => Promise<boolean>>()
+const releaseSessionLock = vi.fn<(namespace: string, key: string) => Promise<void>>()
+vi.mock('../../server/utils/rateLimit', () => ({
+  tryAcquireSessionLock,
+  releaseSessionLock
+}))
+
 const s3Send = vi.fn<(cmd: unknown) => Promise<unknown>>()
 vi.stubGlobal('useS3Client', () => ({ send: s3Send }))
 
@@ -156,6 +163,10 @@ beforeEach(() => {
   }))
   fetchMock.mockReset()
   fetchMock.mockImplementation(async () => okResponse('# default markdown'))
+  tryAcquireSessionLock.mockReset()
+  tryAcquireSessionLock.mockResolvedValue(true)  // Default: every test gets the lock.
+  releaseSessionLock.mockReset()
+  releaseSessionLock.mockResolvedValue(undefined)
 })
 
 // ─── Tests ────────────────────────────────────────────────────────────────
@@ -412,5 +423,230 @@ describe('processKnowledge — pipeline exceptions', () => {
     } finally {
       runtimeConfig.markitdownUrl = original
     }
+  })
+})
+
+// ─── Adversarial tests ────────────────────────────────────────────────────
+//
+// Senior-QA review of the original 14 tests noted they were specification-
+// style (re-verifying happy-path shapes). The tests below are hypothesis-
+// driven: each one names a plausible failure mode and tries to trigger it.
+// Where the SUT's current behaviour diverges from what we'd want, the test
+// documents the gap as a failing hypothesis (a TODO for the codebase, not
+// a test bug).
+
+describe('processKnowledge — adversarial: non-Error throwables', () => {
+  it('handles a thrown string (surfaces via String(e), no crash)', async () => {
+    // Catch blocks in JS receive anything — including `throw "boom"`
+    // from third-party code. The SUT does `e instanceof Error ? … : String(e)`.
+    // Pin that a string throwable reaches markFailed with the literal,
+    // not `[object Object]`.
+    selectQueue.push([row()])
+    // Make the markitdown fetch throw a string.
+    fetchMock.mockImplementationOnce(() => { throw 'markitdown exploded' })
+
+    await processKnowledge('k1')
+
+    expect(updateCalls).toHaveLength(1)
+    expect((updateCalls[0]!.set as { errorMessage: string }).errorMessage)
+      .toBe('markitdown exploded')
+  })
+
+  it('handles a thrown null (String(null) = "null", still reaches markFailed)', async () => {
+    // A library that does `throw null` or `throw undefined` would crash
+    // a `.message` access. Pin graceful handling.
+    selectQueue.push([row()])
+    fetchMock.mockImplementationOnce(() => { throw null })
+
+    await processKnowledge('k1')
+
+    expect(updateCalls).toHaveLength(1)
+    // Hypothesis: the SUT stringifies null as "null" and markFailed-s.
+    // Alternative: it crashes. Both are observable via the test.
+    expect((updateCalls[0]!.set as { status: string, errorMessage: string }))
+      .toMatchObject({ status: 'failed', errorMessage: 'null' })
+  })
+})
+
+describe('processKnowledge — embedding/chunk length mismatch (guarded)', () => {
+  it('markFailed cleanly when embed returns FEWER vectors than chunks', async () => {
+    // Adversarial test that originally documented a bug: `embeddings[i]!`
+    // with a non-null assertion passed `undefined` to the drizzle insert
+    // when Gemini dropped a vector. The SUT now has a length-check guard;
+    // the test now verifies the guard works.
+    selectQueue.push([row()])
+    selectQueue.push([{ id: 'k1' }])
+    fetchMock.mockResolvedValueOnce(okResponse('# a\n\n# b\n\n# c'))
+    chunkMarkdown.mockReturnValueOnce([
+      { index: 0, content: 'a', tokens: 1 },
+      { index: 1, content: 'b', tokens: 1 },
+      { index: 2, content: 'c', tokens: 1 }
+    ])
+    embedDocuments.mockResolvedValueOnce([[0.1], [0.2]]) // 2 vectors for 3 chunks
+
+    await processKnowledge('k1')
+
+    // No malformed insert issued.
+    expect(insertCalls).toHaveLength(0)
+    // Row flipped to failed with a descriptive message.
+    expect(updateCalls).toHaveLength(1)
+    expect(updateCalls[0]!.set).toMatchObject({
+      status: 'failed',
+      errorMessage: 'embed returned 2 vectors for 3 chunks'
+    })
+  })
+
+  it('markFailed when embed returns MORE vectors than chunks', async () => {
+    // Symmetric case: strict equality means extras also fail. If future
+    // embedding SDKs legitimately return extras (summary vectors?),
+    // THIS test should be updated — but silently dropping them hides
+    // a behaviour change.
+    selectQueue.push([row()])
+    selectQueue.push([{ id: 'k1' }])
+    fetchMock.mockResolvedValueOnce(okResponse('# a'))
+    chunkMarkdown.mockReturnValueOnce([{ index: 0, content: 'a', tokens: 1 }])
+    embedDocuments.mockResolvedValueOnce([[0.1], [0.2], [0.3]])
+
+    await processKnowledge('k1')
+
+    expect(insertCalls).toHaveLength(0)
+    expect(updateCalls[0]!.set).toMatchObject({
+      status: 'failed',
+      errorMessage: 'embed returned 3 vectors for 1 chunks'
+    })
+  })
+})
+
+describe('processKnowledge — adversarial: chunker returns unexpected indices', () => {
+  it('stores chunker-reported `index`, NOT array position (trusts chunker)', async () => {
+    // The code uses `c.index` for the stored chunkIndex. If the chunker
+    // emits gappy/non-monotonic indices (bug or intentional), they land
+    // in the DB as-is. This could collide with search/filter code that
+    // assumes chunkIndex is 0..N-1 contiguous.
+    //
+    // Pin the current contract: chunker's `index` wins. If the
+    // retrieval side starts assuming contiguity, it must also add a
+    // chunker invariant or post-process the indices here.
+    selectQueue.push([row()])
+    selectQueue.push([{ id: 'k1' }])
+    selectQueue.push([{ id: 'k1' }])
+    fetchMock.mockResolvedValueOnce(okResponse('body'))
+    chunkMarkdown.mockReturnValueOnce([
+      { index: 10, content: 'a', tokens: 1 },
+      { index: 20, content: 'b', tokens: 1 }
+    ])
+    embedDocuments.mockResolvedValueOnce([[0.1], [0.2]])
+
+    await processKnowledge('k1')
+
+    const values = insertCalls[0]!.values as Array<{ chunkIndex: number }>
+    expect(values.map(v => v.chunkIndex)).toEqual([10, 20])
+  })
+
+  it('stores duplicate chunkIndex values if the chunker produces them (no dedup)', async () => {
+    // If the chunker duplicates an index by mistake, we INSERT both rows.
+    // Search would return whichever Postgres orders first, or both. The
+    // SUT does NOT validate uniqueness. Pin that so a regression either
+    // (a) adds validation, (b) or explicitly flags the chunker bug.
+    selectQueue.push([row()])
+    selectQueue.push([{ id: 'k1' }])
+    selectQueue.push([{ id: 'k1' }])
+    fetchMock.mockResolvedValueOnce(okResponse('body'))
+    chunkMarkdown.mockReturnValueOnce([
+      { index: 5, content: 'a', tokens: 1 },
+      { index: 5, content: 'b', tokens: 1 }
+    ])
+    embedDocuments.mockResolvedValueOnce([[0.1], [0.2]])
+
+    await processKnowledge('k1')
+
+    const values = insertCalls[0]!.values as Array<{ chunkIndex: number }>
+    expect(values.map(v => v.chunkIndex)).toEqual([5, 5])
+  })
+})
+
+describe('processKnowledge — concurrency guarded by Valkey claim-check', () => {
+  it('second concurrent call no-ops (Valkey lock held by first)', async () => {
+    // Adversarial test that originally found a TOCTOU bug — the
+    // `status !== 'processing'` guard let two concurrent calls both
+    // proceed. The SUT now acquires a `knowledge-process:{id}` lock
+    // via `tryAcquireSessionLock` before starting the pipeline; the
+    // second caller can't acquire it and no-ops.
+    //
+    // We program the mock `tryAcquireSessionLock` (below) to return
+    // true once then false — simulating "first call wins, second loses".
+    // Under the old SUT this test would have failed with 2 embed
+    // calls + 2 inserts.
+    selectQueue.push([row()])
+    selectQueue.push([{ id: 'k1' }])
+    selectQueue.push([{ id: 'k1' }])
+    fetchMock.mockResolvedValue(okResponse('# body'))
+    chunkMarkdown.mockReturnValue([{ index: 0, content: 'body', tokens: 1 }])
+    embedDocuments.mockResolvedValue([[0.1]])
+    // Lock acquisition: first call succeeds, second call fails.
+    tryAcquireSessionLock.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+
+    await Promise.all([processKnowledge('k1'), processKnowledge('k1')])
+
+    // Only ONE pipeline ran.
+    expect(embedDocuments).toHaveBeenCalledTimes(1)
+    expect(insertCalls.length).toBe(1)
+    expect(updateCalls.length).toBe(1)
+    // Second caller's lock acquisition was attempted (and refused).
+    expect(tryAcquireSessionLock).toHaveBeenCalledTimes(2)
+  })
+
+  it('releases the lock in the finally block even on pipeline error', async () => {
+    // Invariant: a pipeline that throws must still release the lock.
+    // Otherwise a crashed worker would poison the knowledgeId for up
+    // to 10 min (the TTL). Verify the release happens regardless of
+    // success vs failure.
+    tryAcquireSessionLock.mockResolvedValueOnce(true)
+    selectQueue.push([row()])
+    fetchMock.mockRejectedValueOnce(new Error('markitdown down'))
+
+    await processKnowledge('k1')
+
+    expect(releaseSessionLock).toHaveBeenCalledWith('knowledge-process', 'k1')
+  })
+
+  it('still releases the lock on the happy path', async () => {
+    tryAcquireSessionLock.mockResolvedValueOnce(true)
+    selectQueue.push([row()])
+    selectQueue.push([{ id: 'k1' }])
+    selectQueue.push([{ id: 'k1' }])
+    fetchMock.mockResolvedValueOnce(okResponse('body'))
+    chunkMarkdown.mockReturnValueOnce([{ index: 0, content: 'body', tokens: 1 }])
+    embedDocuments.mockResolvedValueOnce([[0.1]])
+
+    await processKnowledge('k1')
+
+    expect(releaseSessionLock).toHaveBeenCalledWith('knowledge-process', 'k1')
+  })
+
+  it('sweep-triggered re-process AFTER earlier success does nothing (belt + braces)', async () => {
+    // Positive control: in the SERIAL case (T1 finishes, lock released,
+    // T2 starts, acquires lock, reads status='ready'), T2 no-ops at the
+    // `status !== 'processing'` check. Both guards are load-bearing:
+    // the lock prevents concurrent runs, the status check prevents
+    // re-running already-complete rows.
+    tryAcquireSessionLock.mockResolvedValue(true)
+    selectQueue.push([row()])
+    selectQueue.push([{ id: 'k1' }])
+    selectQueue.push([{ id: 'k1' }])
+    fetchMock.mockResolvedValueOnce(okResponse('body'))
+    chunkMarkdown.mockReturnValueOnce([{ index: 0, content: 'body', tokens: 1 }])
+    embedDocuments.mockResolvedValueOnce([[0.1]])
+
+    await processKnowledge('k1')
+    expect(updateCalls).toHaveLength(1)
+
+    // T2: lock available again, but status is now ready.
+    selectQueue.push([row({ status: 'ready' })])
+    await processKnowledge('k1')
+
+    expect(embedDocuments).toHaveBeenCalledTimes(1)
+    expect(insertCalls.length).toBe(1)
+    expect(updateCalls.length).toBe(1)
   })
 })
