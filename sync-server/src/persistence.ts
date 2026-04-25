@@ -17,15 +17,59 @@ if (!process.env.DATABASE_URL) {
 // can revisit if the upstream fixes it or if profiling demands an index.
 // flushSize: 200 — library default; merges accumulated updates into a single
 //   compacted update once the row count crosses the threshold per document.
-const pgdb = await PostgresqlPersistence.build(
-  { connectionString: process.env.DATABASE_URL },
-  { tableName: 'yjs_documents', useIndex: false, flushSize: 200 }
-)
+
+const PERSISTENCE_OPTS = {
+  tableName: 'yjs_documents',
+  useIndex: false,
+  flushSize: 200
+} as const
+
+async function buildPgdb() {
+  return PostgresqlPersistence.build(
+    { connectionString: process.env.DATABASE_URL },
+    PERSISTENCE_OPTS
+  )
+}
+
+let pgdb = await buildPgdb()
+
+// Self-heal: y-postgresql checks-and-creates yjs_documents ONCE at boot.
+// If the table later vanishes (manual `DROP`, `docker compose down -v` mid-
+// session, dev reset that wipes the data dir while the sync container keeps
+// running) every subsequent read/write fails with Postgres error 42P01
+// "relation does not exist" — and the in-memory pool keeps re-issuing the
+// same prepared statements forever. Detect it, rebuild the persistence (which
+// re-runs the table-existence check + CREATE), and retry the operation once.
+//
+// We only retry once: if the table is missing AND can't be recreated, the
+// underlying problem is fatal (DB unreachable, permissions, etc.) and a
+// retry loop would just spin.
+
+const RELATION_MISSING_CODE = '42P01'
+
+function isMissingRelation(e: unknown): boolean {
+  return typeof e === 'object' && e !== null && (e as { code?: string }).code === RELATION_MISSING_CODE
+}
+
+async function withSelfHeal<T>(op: string, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  } catch (e) {
+    if (!isMissingRelation(e)) throw e
+    console.warn(`[persistence] yjs_documents missing during ${op} — rebuilding pool to recreate it`)
+    captureException(e, { tags: { component: 'persistence', event: 'self_heal', op } })
+    // Drop the broken pool before rebuilding — y-postgresql's PgAdapter
+    // owns a Pool that won't release its prepared statements until destroy.
+    try { await pgdb.destroy() } catch { /* best-effort */ }
+    pgdb = await buildPgdb()
+    return await fn()
+  }
+}
 
 export const ypgPersistence = {
   async onLoadDocument({ documentName }: { documentName: string }) {
     try {
-      const doc = await pgdb.getYDoc(documentName)
+      const doc = await withSelfHeal(`load:${documentName}`, () => pgdb.getYDoc(documentName))
       console.log(`[persistence] Loaded document: ${documentName}`)
       return doc
     } catch (e) {
@@ -46,7 +90,7 @@ export const ypgPersistence = {
   async onStoreDocument({ documentName, document }: { documentName: string, document: Y.Doc }) {
     try {
       const update = Y.encodeStateAsUpdate(document)
-      await pgdb.storeUpdate(documentName, update)
+      await withSelfHeal(`store:${documentName}`, () => pgdb.storeUpdate(documentName, update))
     } catch (e) {
       // Log loudly. Hocuspocus will retry on the next debounce tick; in the
       // meantime the in-memory Y.Doc is still the source of truth for
@@ -57,7 +101,7 @@ export const ypgPersistence = {
   },
 
   async clearDocument(documentName: string): Promise<void> {
-    await pgdb.clearDocument(documentName)
+    await withSelfHeal(`clear:${documentName}`, () => pgdb.clearDocument(documentName))
   },
 
   async destroy(): Promise<void> {

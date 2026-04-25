@@ -9,6 +9,7 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui',
+    '@nuxt/content',
     'nuxt-auth-utils',
     '@nuxtjs/i18n',
     '@vueuse/nuxt',

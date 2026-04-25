@@ -33,3 +33,10 @@ logs
 
 # Vitest coverage reports — regenerated via `bun run test:coverage`
 /coverage/
+
+# Playwright per-run artifacts (traces, failure context, raw flow output).
+# Manifests + screenshots that the docs SHIP live in public/flows/ — those
+# are committed. Per-run artifacts are not.
+/test-results/
+/playwright-report/
+/tests/e2e/output/

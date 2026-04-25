@@ -134,7 +134,8 @@
     "move": "Move to workspace…",
     "confirm": "Confirm",
     "close": "Close",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "menu": "Menu"
   },
   "menu": {
     "lightMode": "Light mode",

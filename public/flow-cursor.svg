@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+  <!-- Classic mac-style arrow cursor. The hot-spot (the actual click point)
+       is the top-left corner of the SVG, so the consumer should position
+       this element with its top-left at (cursor.x, cursor.y) — no offset
+       needed. Drop-shadow makes it visible on bright backgrounds. -->
+  <filter id="cursor-shadow" x="-50%" y="-50%" width="200%" height="200%">
+    <feDropShadow dx="0.5" dy="1" stdDeviation="0.6" flood-opacity="0.4" />
+  </filter>
+  <path
+    d="M 1 1 L 1 14 L 4.5 11 L 7 16.5 L 9.5 15.5 L 7 10 L 11.5 10 Z"
+    fill="white"
+    stroke="black"
+    stroke-width="1"
+    stroke-linejoin="round"
+    filter="url(#cursor-shadow)"
+  />
+</svg>

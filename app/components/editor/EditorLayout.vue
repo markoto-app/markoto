@@ -686,6 +686,8 @@ const statusIcon = computed(() => {
             size="xs"
             :color="viewMode === 'edit' ? 'primary' : 'neutral'"
             :variant="viewMode === 'edit' ? 'solid' : 'ghost'"
+            :aria-label="t('editor.edit')"
+            :aria-pressed="viewMode === 'edit'"
             @click="viewMode = 'edit'"
           />
         </UTooltip>
@@ -695,6 +697,8 @@ const statusIcon = computed(() => {
             size="xs"
             :color="viewMode === 'split' ? 'primary' : 'neutral'"
             :variant="viewMode === 'split' ? 'solid' : 'ghost'"
+            :aria-label="t('editor.splitView')"
+            :aria-pressed="viewMode === 'split'"
             @click="viewMode = 'split'"
           />
         </UTooltip>
@@ -704,6 +708,8 @@ const statusIcon = computed(() => {
             size="xs"
             :color="viewMode === 'preview' ? 'primary' : 'neutral'"
             :variant="viewMode === 'preview' ? 'solid' : 'ghost'"
+            :aria-label="t('editor.preview')"
+            :aria-pressed="viewMode === 'preview'"
             @click="viewMode = 'preview'"
           />
         </UTooltip>
@@ -729,6 +735,7 @@ const statusIcon = computed(() => {
             color="neutral"
             variant="ghost"
             size="xs"
+            :aria-label="`${t('share.accessMode')}: ${t(accessLabelKey)}`"
             @click="showShareModal = true"
           />
         </UTooltip>
@@ -750,6 +757,7 @@ const statusIcon = computed(() => {
             color="neutral"
             variant="ghost"
             size="xs"
+            :aria-label="t('common.menu')"
           />
         </UDropdownMenu>
       </div>
@@ -818,6 +826,8 @@ const statusIcon = computed(() => {
               color="neutral"
               :variant="rightSidebar === 'activity' ? 'soft' : 'ghost'"
               size="xs"
+              :aria-label="t('activity.title')"
+              :aria-pressed="rightSidebar === 'activity'"
               @click="toggleSidebar('activity')"
             />
           </UTooltip>
@@ -830,6 +840,8 @@ const statusIcon = computed(() => {
               color="neutral"
               :variant="rightSidebar === 'theme' ? 'soft' : 'ghost'"
               size="xs"
+              :aria-label="t('theme.title')"
+              :aria-pressed="rightSidebar === 'theme'"
               @click="toggleSidebar('theme')"
             />
           </UTooltip>
@@ -842,6 +854,8 @@ const statusIcon = computed(() => {
               color="neutral"
               :variant="rightSidebar === 'knowledge' ? 'soft' : 'ghost'"
               size="xs"
+              :aria-label="t('knowledge.title')"
+              :aria-pressed="rightSidebar === 'knowledge'"
               @click="toggleSidebar('knowledge')"
             />
           </UTooltip>
@@ -960,6 +974,7 @@ const statusIcon = computed(() => {
                 color="neutral"
                 variant="ghost"
                 size="xs"
+                :aria-label="t('common.close')"
                 @click="closeSidebar"
               />
             </div>
@@ -1001,6 +1016,7 @@ const statusIcon = computed(() => {
                 color="neutral"
                 variant="ghost"
                 size="xs"
+                :aria-label="t('common.close')"
                 @click="closeSidebar"
               />
             </div>
@@ -1030,11 +1046,11 @@ const statusIcon = computed(() => {
       <!-- Status bar -->
       <footer class="border-t border-default px-4 py-1 flex items-center justify-between text-xs text-muted shrink-0">
         <div class="flex items-center gap-4">
-          <span>{{ wordCount }} words</span>
-          <span v-if="viewMode !== 'edit' && pageCount > 0">{{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }}</span>
-          <span>{{ charCount }} chars</span>
+          <span data-testid="word-count">{{ wordCount }} words</span>
+          <span v-if="viewMode !== 'edit' && pageCount > 0" data-testid="page-count">{{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }}</span>
+          <span data-testid="char-count">{{ charCount }} chars</span>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4" data-testid="sync-status">
           <span v-if="synced">
             <UIcon
               name="i-lucide-check-circle"
