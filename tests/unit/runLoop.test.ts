@@ -11,15 +11,22 @@ const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: Abor
 
 // Billing is a required arg now — stub `chargeInteractions` at the
 // module boundary so the loop's per-turn charge call is a no-op in
-// unit tests (no DB, deterministic). Budget-exhaust paths have their
-// own integration test; this unit suite focuses on the control flow.
+// unit tests (no DB, deterministic). Adversarial tests below program
+// per-call behaviour (throw BudgetExhausted, throw DB error, etc.).
+//
+// Wrapped in vi.hoisted so the mock factory (also hoisted) can close
+// over the same vi.fn instance — otherwise the factory would reference
+// the const before it exists.
+const { chargeInteractions } = vi.hoisted(() => ({
+  chargeInteractions: vi.fn<(opts: unknown) => Promise<{ used: number, remaining: number }>>()
+}))
 vi.mock('../../server/utils/billing', async () => {
   const actual = await vi.importActual<typeof import('../../server/utils/billing')>(
     '../../server/utils/billing'
   )
   return {
     ...actual,
-    chargeInteractions: vi.fn(async () => ({ used: 1, remaining: 999 }))
+    chargeInteractions
   }
 })
 
@@ -140,6 +147,9 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
 beforeEach(() => {
   executeFunctionByName.mockReset()
   webSearch.mockReset()
+  chargeInteractions.mockReset()
+  // Default: every charge succeeds. Adversarial tests override per-call.
+  chargeInteractions.mockResolvedValue({ used: 1, remaining: 999 })
 })
 
 describe('runAgenticLoop — single-turn happy path', () => {
@@ -471,5 +481,337 @@ describe('runAgenticLoop — conversation history', () => {
     expect(turn2Contents[0].role).toBe('user')
     expect(turn2Contents[1].role).toBe('model')
     expect(turn2Contents[2].role).toBe('user')
+  })
+})
+
+// ─── Adversarial: budget exhaustion paths ─────────────────────────────────
+//
+// The runLoop charges 1 interaction per turn upfront, +4 for each
+// grounded sub-call. Mid-loop BudgetExhausted means the user crossed
+// their cap during this run — must emit a doc breadcrumb (so the user
+// sees what happened — there's no chat UI) and exit cleanly via
+// setStatus('done', 'Budget exhausted'). Critical that exhaustion
+// NEVER throws to the caller — that would render as an unhandled
+// error, not the friendly "Upgrade your plan" UX.
+
+import { BudgetExhausted } from '../../server/utils/billing'
+
+/**
+ * Y.Doc-shaped session stub. The breadcrumb writer calls
+ * `ydoc.transact(fn, origin)` and `ytext.insert(end, msg)`. We only
+ * need the surface those two paths touch.
+ */
+function makeSessionStub() {
+  const inserted: Array<{ at: number, text: string }> = []
+  const transactCalls: Array<{ origin: unknown }> = []
+  let ytextLength = 0
+  const aiSession = {
+    ydoc: {
+      transact(fn: () => void, origin: unknown) {
+        transactCalls.push({ origin })
+        fn()
+      }
+    },
+    ytext: {
+      get length() { return ytextLength },
+      insert(at: number, text: string) {
+        inserted.push({ at, text })
+        ytextLength += text.length
+      }
+    }
+  } as unknown as Parameters<typeof runAgenticLoop>[0]['aiSession']
+  return { aiSession, inserted, transactCalls }
+}
+
+function makeBudgetExhaustedError(): BudgetExhausted {
+  return new BudgetExhausted({
+    attributedTo: 'user:1',
+    plan: 'pro',
+    requestedDelta: 1,
+    used: 1500,
+    cap: 1500
+  })
+}
+
+describe('runAgenticLoop — budget exhausted at turn-start', () => {
+  it('charge(1) throws BudgetExhausted on the FIRST turn → breadcrumb + done, no Gemini call', async () => {
+    const { aiSession, inserted, transactCalls } = makeSessionStub()
+    chargeInteractions.mockRejectedValueOnce(makeBudgetExhaustedError())
+    const setStatus = vi.fn()
+    const { ai, callsSeen } = makeFakeAi([])
+
+    await expect(runAgenticLoop(makeOpts({ ai, aiSession, setStatus })))
+      .resolves.toBeUndefined() // does NOT throw — graceful exit
+
+    // Gemini was never called (we bailed before the stream).
+    expect(callsSeen).toHaveLength(0)
+    // Breadcrumb written to the doc with the upgrade CTA.
+    expect(inserted).toHaveLength(1)
+    expect(inserted[0].text).toContain('budget exhausted')
+    expect(inserted[0].text).toContain('/pricing')
+    // Y.js transact tagged with the AI session origin so it
+    // participates in the awareness/undo flows.
+    expect(transactCalls[0]!.origin).toBe('ai:assistant:sess-test')
+    // Status terminal-done.
+    const lastStatus = setStatus.mock.calls.at(-1)
+    expect(lastStatus).toEqual(['done', 'Budget exhausted'])
+  })
+
+  it('charge(1) throws BudgetExhausted on TURN 2 (after turn 1 succeeded) → breadcrumb after partial work', async () => {
+    // Turn 1 completes a tool call; turn 2's charge(1) fails. The
+    // breadcrumb must still write to the doc so the user knows their
+    // run didn't finish naturally.
+    const { aiSession, inserted } = makeSessionStub()
+    chargeInteractions
+      .mockResolvedValueOnce({ used: 1, remaining: 999 })   // turn 1: ok
+      .mockRejectedValueOnce(makeBudgetExhaustedError())     // turn 2: exhausted
+    const setStatus = vi.fn()
+    const { ai, callsSeen } = makeFakeAi([
+      {
+        chunks: [{
+          functionCalls: [{ id: 'c1', name: 'view_document', args: {} }],
+          finishReason: FinishReason.STOP
+        }]
+      }
+      // No turn 2 scripted — we should bail before calling.
+    ])
+    executeFunctionByName.mockResolvedValueOnce({ content: 'doc content', isError: false })
+
+    await runAgenticLoop(makeOpts({ ai, aiSession, setStatus }))
+
+    // Only ONE Gemini call (turn 1). Turn 2 bailed at the charge.
+    expect(callsSeen).toHaveLength(1)
+    expect(inserted).toHaveLength(1)
+    const lastStatus = setStatus.mock.calls.at(-1)
+    expect(lastStatus).toEqual(['done', 'Budget exhausted'])
+  })
+
+  it('charge(1) throws a NON-BudgetExhausted error (DB connection) → propagates, no breadcrumb', async () => {
+    // Critical contract: the loop only swallows BudgetExhausted
+    // specifically. A DB error from the charge call would otherwise
+    // be silently treated as a "graceful end" and the user would see
+    // a fake "done" status while their session ate cost.
+    const { aiSession, inserted } = makeSessionStub()
+    chargeInteractions.mockRejectedValueOnce(new Error('connection refused'))
+
+    await expect(runAgenticLoop(makeOpts({ aiSession })))
+      .rejects.toThrow('connection refused')
+
+    // No breadcrumb — this isn't a budget situation.
+    expect(inserted).toHaveLength(0)
+  })
+})
+
+describe('runAgenticLoop — budget exhausted in grounded sub-call', () => {
+  it('web_search charge(4) throws BudgetExhausted → breadcrumb + done, web_search NOT called', async () => {
+    // Turn 1 charge(1) succeeds. The model emits a web_search call.
+    // The +4 grounded charge throws BudgetExhausted. Breadcrumb,
+    // exit. Critical: webSearch must NOT have been invoked (we said
+    // "charged BEFORE the Gemini sub-call so exhausted users don't
+    // incur cost").
+    const { aiSession, inserted } = makeSessionStub()
+    chargeInteractions
+      .mockResolvedValueOnce({ used: 1, remaining: 4 })       // turn 1 charge: ok
+      .mockRejectedValueOnce(makeBudgetExhaustedError())       // grounded +4: exhausted
+    const { ai } = makeFakeAi([
+      {
+        chunks: [{
+          functionCalls: [{ id: 'c1', name: 'web_search', args: { query: 'cats' } }],
+          finishReason: FinishReason.STOP
+        }]
+      }
+    ])
+
+    await runAgenticLoop(makeOpts({ ai, aiSession }))
+
+    // webSearch never invoked.
+    expect(webSearch).not.toHaveBeenCalled()
+    // Breadcrumb on the doc.
+    expect(inserted).toHaveLength(1)
+    expect(inserted[0].text).toContain('budget exhausted')
+  })
+
+  it('fetch_url charge(4) throws BudgetExhausted → breadcrumb + done, fetchUrl NOT called', async () => {
+    // We already mock the functionTools module; fetchUrl needs to be
+    // exposed alongside webSearch. Add a per-test wrapper that swaps
+    // the mock import.
+    const { aiSession, inserted } = makeSessionStub()
+    chargeInteractions
+      .mockResolvedValueOnce({ used: 1, remaining: 4 })
+      .mockRejectedValueOnce(makeBudgetExhaustedError())
+    const { ai } = makeFakeAi([
+      {
+        chunks: [{
+          functionCalls: [{ id: 'c1', name: 'fetch_url', args: { url: 'https://example.com' } }],
+          finishReason: FinishReason.STOP
+        }]
+      }
+    ])
+
+    await runAgenticLoop(makeOpts({ ai, aiSession }))
+
+    expect(inserted).toHaveLength(1)
+    expect(inserted[0].text).toContain('budget exhausted')
+  })
+
+  it('grounded sub-call charge throws a NON-BudgetExhausted error → propagates', async () => {
+    // Same DB-error guard for the +4 charge as for the +1 turn-start
+    // charge. Must propagate so the user sees an honest 500 instead
+    // of a fake "done".
+    chargeInteractions
+      .mockResolvedValueOnce({ used: 1, remaining: 4 })
+      .mockRejectedValueOnce(new Error('valkey timeout'))
+    const { ai } = makeFakeAi([
+      {
+        chunks: [{
+          functionCalls: [{ id: 'c1', name: 'web_search', args: { query: 'x' } }],
+          finishReason: FinishReason.STOP
+        }]
+      }
+    ])
+
+    await expect(runAgenticLoop(makeOpts({ ai })))
+      .rejects.toThrow('valkey timeout')
+  })
+})
+
+describe('runAgenticLoop — breadcrumb defensive paths', () => {
+  it('emitBudgetBreadcrumb does not crash if ydoc.transact throws (status still done)', async () => {
+    // The breadcrumb-writer's try/catch is the last line of defense:
+    // a Y.js failure (provider disconnected, doc destroyed mid-flight)
+    // must not propagate from the budget-exhausted path. The contract
+    // is "user sees the upgrade message OR sees nothing — never sees
+    // a stack trace".
+    const aiSession = {
+      ydoc: {
+        transact() { throw new Error('Y.Doc destroyed') }
+      },
+      ytext: { length: 0, insert() { /* unreached */ } }
+    } as unknown as Parameters<typeof runAgenticLoop>[0]['aiSession']
+    chargeInteractions.mockRejectedValueOnce(makeBudgetExhaustedError())
+    const setStatus = vi.fn()
+
+    await expect(runAgenticLoop(makeOpts({ aiSession, setStatus })))
+      .resolves.toBeUndefined()
+
+    // Status STILL flipped to done — the breadcrumb failure is
+    // logged but doesn't block the cleanup signal.
+    const lastStatus = setStatus.mock.calls.at(-1)
+    expect(lastStatus).toEqual(['done', 'Budget exhausted'])
+  })
+})
+
+describe('runAgenticLoop — degenerate function-call shapes', () => {
+  it('all calls in a turn have empty `name` → defensive "no responses" exit', async () => {
+    // The SUT does `if (!call.name) continue`, then if responseParts
+    // is empty after the loop, logs "no function responses to send"
+    // and exits. Pin this defensive path: a malformed Gemini response
+    // with empty-name calls must not deadlock the outer loop.
+    const { ai } = makeFakeAi([
+      {
+        chunks: [{
+          // Two calls, both with empty names — pathological.
+          functionCalls: [
+            { id: 'c1', name: '', args: {} },
+            { id: 'c2', name: '', args: {} }
+          ] as FunctionCall[],
+          finishReason: FinishReason.STOP
+        }]
+      }
+    ])
+    const setStatus = vi.fn()
+
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+
+    // Charged for the turn (already committed to the API call), but
+    // no tool dispatch happened.
+    expect(executeFunctionByName).not.toHaveBeenCalled()
+    expect(chargeInteractions).toHaveBeenCalledTimes(1)
+    const lastStatus = setStatus.mock.calls.at(-1)
+    expect(lastStatus).toEqual(['done', 'Done'])
+  })
+
+  it('multi-tool turn where ONE handler throws — others STILL execute (per-call try/catch)', async () => {
+    // Existing single-tool throw is tested. The multi-tool case
+    // matters more in practice: if a model emits 3 parallel tool
+    // calls and the SECOND throws, the 1st AND 3rd must still
+    // contribute their results so the model can react meaningfully
+    // on the next turn. A short-circuit here would break the
+    // multi-tool flow silently.
+    const { ai, callsSeen } = makeFakeAi([
+      {
+        chunks: [{
+          functionCalls: [
+            { id: 'c1', name: 'view_document', args: {} },
+            { id: 'c2', name: 'view_document', args: {} },
+            { id: 'c3', name: 'view_document', args: {} }
+          ],
+          finishReason: FinishReason.STOP
+        }]
+      },
+      { chunks: [{ text: 'final', finishReason: FinishReason.STOP }] }
+    ])
+    executeFunctionByName
+      .mockResolvedValueOnce({ content: 'first ok', isError: false })
+      .mockRejectedValueOnce(new Error('second exploded'))
+      .mockResolvedValueOnce({ content: 'third ok', isError: false })
+
+    await runAgenticLoop(makeOpts({ ai }))
+
+    // All three handlers were invoked.
+    expect(executeFunctionByName).toHaveBeenCalledTimes(3)
+    // The functionResponse user-block has all three entries.
+    const turn2 = callsSeen[1].contents as Array<{ role: string, parts: Array<{ functionResponse?: { name: string, response: { output: string, isError: boolean } } }> }>
+    const responseUserBlock = turn2[2]
+    expect(responseUserBlock.role).toBe('user')
+    expect(responseUserBlock.parts).toHaveLength(3)
+    expect(responseUserBlock.parts[0]?.functionResponse?.response.isError).toBe(false)
+    expect(responseUserBlock.parts[1]?.functionResponse?.response.isError).toBe(true)
+    expect(responseUserBlock.parts[1]?.functionResponse?.response.output).toContain('second exploded')
+    expect(responseUserBlock.parts[2]?.functionResponse?.response.isError).toBe(false)
+  })
+})
+
+describe('runAgenticLoop — turn-cost commitment', () => {
+  it('1 interaction is charged BEFORE the model call, even on safety-blocked turns', async () => {
+    // Documented contract: we charge upfront because we've committed
+    // to the API call. A SAFETY/PROHIBITED_CONTENT response still
+    // costs 1. The user shouldn't get a free turn just because the
+    // model refused to answer.
+    const { ai } = makeFakeAi([
+      {
+        chunks: [{
+          finishReason: FinishReason.SAFETY
+        }]
+      }
+    ])
+    const setStatus = vi.fn()
+
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+
+    expect(chargeInteractions).toHaveBeenCalledTimes(1)
+    expect(chargeInteractions.mock.calls[0]![0]).toMatchObject({ delta: 1 })
+    // Status reflects the SAFETY stop.
+    const lastStatus = setStatus.mock.calls.at(-1)
+    expect(lastStatus![0]).toBe('error')
+    expect(lastStatus![1]).toContain('SAFETY')
+  })
+
+  it('a turn with MALFORMED_FUNCTION_CALL also costs 1 (we paid Gemini)', async () => {
+    const { ai } = makeFakeAi([
+      {
+        chunks: [{
+          functionCalls: [{ id: 'c1', name: 'view_document', args: {} }],
+          finishReason: FinishReason.MALFORMED_FUNCTION_CALL
+        }]
+      }
+    ])
+
+    await runAgenticLoop(makeOpts({ ai }))
+
+    // No tool dispatch (we bail on MALFORMED), but the charge already
+    // happened.
+    expect(executeFunctionByName).not.toHaveBeenCalled()
+    expect(chargeInteractions).toHaveBeenCalledTimes(1)
   })
 })
