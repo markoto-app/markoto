@@ -97,17 +97,19 @@ function labelRight(h: Highlight): boolean {
               height: `${(h.h / viewport.h) * 100}%`
             }"
           >
-            <!-- The outline. inset-0 fills the parent (which is sized
-                 to the bounding box). ring uses a non-fixed offset so
-                 it sits flush with the element's edge rather than
-                 floating outside it. -->
-            <div class="absolute inset-0 rounded ring-2 ring-primary ring-dashed" />
+            <!-- Pulsating orange glow — no border. The animated
+                 shadow makes it unambiguous that this is an
+                 annotation overlay we added, not a UI element of
+                 the app itself. Color matches the cursor (orange-500)
+                 so the docs annotation language reads as one
+                 cohesive system. -->
+            <div class="absolute inset-0 rounded flow-highlight-pulse" />
             <!-- The label. Absolute-positioned to either above or
                  below the box, anchored to the box's left or right
                  edge depending on which side has more room. Truncates
-                 if too long. -->
+                 if too long. Same orange palette as the glow. -->
             <span
-              class="absolute px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary text-inverted whitespace-nowrap max-w-[200px] truncate"
+              class="absolute px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500 text-white whitespace-nowrap max-w-[200px] truncate shadow"
               :class="[
                 labelBelow(h) ? 'top-full mt-0.5' : 'bottom-full mb-0.5',
                 labelRight(h) ? 'right-0' : 'left-0'
@@ -136,7 +138,7 @@ function labelRight(h: Highlight): boolean {
           src="/flow-cursor.svg"
           alt=""
           aria-hidden="true"
-          class="absolute pointer-events-none w-6 h-6 -translate-x-[2px] -translate-y-[2px] transition-[left,top] duration-300 ease-out"
+          class="absolute pointer-events-none w-8 h-8 -translate-x-[2px] -translate-y-[2px] transition-[left,top] duration-300 ease-out"
           :style="{
             left: `${(cursor.x / viewport.w) * 100}%`,
             top: `${(cursor.y / viewport.h) * 100}%`,
@@ -150,3 +152,35 @@ function labelRight(h: Highlight): boolean {
     </figcaption>
   </figure>
 </template>
+
+<style scoped>
+/* Pulsating orange glow used by highlight callouts. Two stacked
+   shadows: a tight ring that defines the box edge + a softer outer
+   bloom that "breathes" outward. Using box-shadow rather than ring
+   so we can animate spread/blur — those are GPU-accelerated. */
+@keyframes flow-highlight-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgb(249 115 22 / 0.45),
+      0 0 6px 2px rgb(249 115 22 / 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgb(249 115 22 / 0.85),
+      0 0 18px 8px rgb(249 115 22 / 0.55);
+  }
+}
+.flow-highlight-pulse {
+  animation: flow-highlight-pulse 1.8s ease-in-out infinite;
+}
+/* Honor reduced-motion: hold the brighter end-state so the highlight
+   is still visible, just not animated. */
+@media (prefers-reduced-motion: reduce) {
+  .flow-highlight-pulse {
+    animation: none;
+    box-shadow:
+      0 0 0 2px rgb(249 115 22 / 0.85),
+      0 0 12px 4px rgb(249 115 22 / 0.55);
+  }
+}
+</style>
