@@ -605,6 +605,7 @@ const statusIcon = computed(() => {
           <input
             ref="titleInputEl"
             v-model="titleInput"
+            data-testid="doc-title-input"
             class="bg-transparent border border-default rounded px-2 py-0.5 text-sm w-48 outline-none focus:border-primary"
             @keydown.enter="saveTitle"
             @keydown.escape="editingTitle = false"
@@ -613,6 +614,7 @@ const statusIcon = computed(() => {
         </div>
         <button
           v-else
+          data-testid="doc-title-button"
           class="text-sm text-muted hover:text-default transition-colors truncate min-w-0 max-w-[180px] sm:max-w-56 md:max-w-80"
           @click="startEditTitle"
         >

@@ -64,9 +64,16 @@ const props = withDefaults(defineProps<{
   defaultLocale: 'en',
   showCursor: true,
   showChrome: true,
-  chromeDomain: 'ypad.app',
   showHighlights: true
 })
+
+// Chrome-domain default comes from runtime config (NUXT_PUBLIC_DOCS_CHROME_DOMAIN)
+// so deployments can override per-environment without rebuilding the
+// component. Per-instance override via the prop still wins.
+const runtimeConfig = useRuntimeConfig()
+const effectiveChromeDomain = computed(
+  () => props.chromeDomain ?? runtimeConfig.public.docs.chromeDomain
+)
 
 const { locale: i18nLocale } = useI18n()
 
@@ -166,7 +173,7 @@ useEventListener(slidesEl, 'keydown', (e: KeyboardEvent) => {
         :viewport="manifest.viewport"
         :show-cursor="showCursor"
         :show-chrome="showChrome"
-        :chrome-domain="chromeDomain"
+        :chrome-domain="effectiveChromeDomain"
         :show-highlights="showHighlights"
       />
       <div class="flex items-center gap-3 text-sm">
@@ -216,7 +223,7 @@ useEventListener(slidesEl, 'keydown', (e: KeyboardEvent) => {
           :viewport="manifest.viewport"
           :show-cursor="showCursor"
           :show-chrome="showChrome"
-          :chrome-domain="chromeDomain"
+          :chrome-domain="effectiveChromeDomain"
           :show-highlights="showHighlights"
         />
       </template>

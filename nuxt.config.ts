@@ -132,6 +132,15 @@ export default defineNuxtConfig({
         // GlitchTip / Sentry DSN for browser error reporting. Empty in dev;
         // set via NUXT_PUBLIC_SENTRY_DSN in prod .env.
         dsn: ''
+      },
+      docs: {
+        // Cosmetic domain shown in the fake browser-bar above embedded
+        // flow screenshots. Override per-environment via
+        // NUXT_PUBLIC_DOCS_CHROME_DOMAIN if the docs subdomain differs
+        // from the app subdomain. The <Flow> component reads this as
+        // its default; individual flow embeds can still pass their own
+        // chrome-domain prop.
+        chromeDomain: 'ypad.app'
       }
     }
   },

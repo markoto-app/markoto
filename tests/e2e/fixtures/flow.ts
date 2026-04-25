@@ -2,6 +2,7 @@ import { test as base, type Page } from '@playwright/test'
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { EditorPage } from '../page-objects/Editor'
 
 // One Playwright fixture that turns a normal e2e test into a "flow":
 // a sequence of screenshots + captions + narration that the docs site
@@ -72,6 +73,26 @@ export type Flow = {
   skipNext: () => void
 }
 
+export type EditorFixture = {
+  /** Page-object with stable selectors + composite actions. */
+  page: EditorPage
+  /**
+   * Run the canonical "homepage → New Document → wait for editor →
+   * switch to split view" preamble AND record each step in the
+   * manifest. Use this when doc creation IS the story (e.g. the
+   * "Create a new document" flow). Writes one heading + one narrate
+   * + four step entries.
+   */
+  recordPreamble: () => Promise<void>
+  /**
+   * Same preamble but writes nothing to the manifest. Use this when
+   * the editor is just setup, not the subject — e.g. flows about
+   * inserting tables, customizing themes. Faster for the reader who
+   * doesn't need to see the doc-creation story repeated per page.
+   */
+  silentSetup: () => Promise<void>
+}
+
 const CURSOR_INIT_SCRIPT = `
   (() => {
     if (window.__flowCursorInstalled) return
@@ -92,7 +113,7 @@ const CURSOR_INIT_SCRIPT = `
   })()
 `
 
-export const test = base.extend<{ flow: Flow }>({
+export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
   flow: async ({ page }, use, testInfo) => {
     const locale = (testInfo.project.metadata?.locale as string | undefined) ?? 'en'
     const slug = slugify(testInfo.title)
@@ -215,6 +236,78 @@ export const test = base.extend<{ flow: Flow }>({
       path.join(outDir, 'manifest.json'),
       JSON.stringify(manifest, null, 2)
     )
+  },
+
+  editor: async ({ page, flow }, use) => {
+    // The page-object is created lazily — flows that don't call
+    // recordPreamble() / silentSetup() can still query selectors via
+    // editor.page.titleButton etc. (Useful for tests that navigate to
+    // an existing doc rather than creating a new one.)
+    const editor = new EditorPage(page)
+
+    const fixture: EditorFixture = {
+      page: editor,
+
+      recordPreamble: async () => {
+        // Canonical creation story. Captions/narration are kept generic
+        // here because they're SHARED across every flow that records
+        // the preamble. If a specific flow wants different copy, it
+        // should call silentSetup() instead and write its own preamble.
+        await flow.heading('Creating your first document')
+        await flow.narrate(
+          'YPad lets you create a document anonymously — no signup needed. '
+          + 'You can claim it later by linking an account.'
+        )
+
+        await flow.step('Open the YPad homepage', async () => {
+          await page.goto('/')
+          // Wait for the hero CTA before continuing — guards against
+          // capturing a mid-FOUC homepage.
+          await page.getByRole('button', { name: /new document/i }).waitFor()
+        })
+
+        await flow.narrate(
+          'The hero pitch + "New Document" button is the funnel for anonymous '
+          + 'visitors. Logged-in users also see "New Workspace" alongside.'
+        )
+
+        await flow.step('Click "New Document" to spin up a fresh anonymous doc', async () => {
+          // Click + URL-wait in parallel so we don't race a fast
+          // navigation (which would complete before waitForURL armed).
+          await Promise.all([
+            page.waitForURL(/\/d\/[^/]+/),
+            page.getByRole('button', { name: /new document/i }).click()
+          ])
+        })
+
+        await flow.step('The editor mounts and Hocuspocus connects', async () => {
+          await editor.waitForReady()
+        })
+
+        await flow.heading('Switching to split view', 3)
+        await flow.narrate(
+          'New docs land in preview mode briefly while the read-only flag '
+          + 'resolves. Click the split-view icon (middle of the three view '
+          + 'toggles) to see editor + preview side by side.'
+        )
+
+        await flow.step('Click the split-view toggle (middle icon)', async () => {
+          await editor.switchToSplitView()
+        })
+      },
+
+      silentSetup: async () => {
+        await page.goto('/')
+        await Promise.all([
+          page.waitForURL(/\/d\/[^/]+/),
+          page.getByRole('button', { name: /new document/i }).click()
+        ])
+        await editor.waitForReady()
+        await editor.switchToSplitView()
+      }
+    }
+
+    await use(fixture)
   }
 })
 
