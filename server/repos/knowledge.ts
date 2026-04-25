@@ -247,6 +247,15 @@ export async function searchKnowledge(args: {
 
   // Pass 1 — vector. Candidate-pool sized so the HNSW index returns
   // enough spread for RRF to combine meaningfully.
+  //
+  // NaN guard: a chunk with a zero embedding (corruption, manual seed,
+  // future ingest bug) produces NaN cosineDistance against a non-zero
+  // query. Postgres breaks IEEE — `NaN > 0.5` returns TRUE and `ORDER
+  // BY DESC` puts NaN at the TOP — so a single corrupt row would
+  // dominate every workspace search. Filter NaN out explicitly. The
+  // ingest pipeline shouldn't produce zero vectors today, but the
+  // query-side guard is a one-liner defense in depth.
+  const notNan = sql`${similarity} != 'NaN'::float8`
   const vectorPromise = db.select({
     knowledgeId: workspaceKnowledgeChunks.knowledgeId,
     filename: workspaceKnowledge.filename,
@@ -257,7 +266,7 @@ export async function searchKnowledge(args: {
     .innerJoin(workspaceKnowledge, eq(workspaceKnowledgeChunks.knowledgeId, workspaceKnowledge.knowledgeId))
     .where(and(
       eq(workspaceKnowledgeChunks.workspaceId, args.workspaceId),
-      threshold > 0 ? sql`${similarity} > ${threshold}` : sql`true`
+      threshold > 0 ? sql`${notNan} AND ${similarity} > ${threshold}` : notNan
     ))
     .orderBy(desc(similarity))
     .limit(pool)
