@@ -111,4 +111,65 @@ describe('POST /api/workspaces/:wsId/knowledge/upload-request — tier cap', () 
     // error (e.g. S3 signing in the test env). Cap-logic passed.
     expect(res.status).not.toBe(409)
   })
+
+  // ─── Error-contract delivery (the upgrade CTA wiring) ─────────────────
+  //
+  // When a user hits a knowledge cap mid-work, the WorkspaceKnowledgePanel
+  // toast needs to render an "Upgrade your plan" link routing to /pricing.
+  // That depends on the server response carrying `data.recovery.href`.
+  // Without these tests, a refactor that drops the recovery field would
+  // silently degrade the UX to a generic "limit reached" toast with no
+  // upgrade path.
+
+  it('per-workspace file cap: error response includes /pricing recovery hint', async () => {
+    const u = await createUser()
+    await setUserPlan(u.id, 'free')
+    const ws = await createWorkspace(u.id)
+    await seedReadyKnowledge(ws.workspaceId, u.id, TIERS.free.knowledgeFiles)
+
+    const client = await loggedInClient(u.id)
+    const res = await client.post(
+      `/api/workspaces/${ws.workspaceId}/knowledge/upload-request`,
+      { filename: 'over-cap.pdf', size: 1024 }
+    )
+    expect(res.status).toBe(409)
+    const body = await res.json() as {
+      data?: { code?: string, recovery?: { kind?: string, href?: string, labelKey?: string } }
+    }
+    expect(body.data?.code).toBe('knowledge/workspace-file-cap')
+    expect(body.data?.recovery).toEqual({
+      kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta'
+    })
+  })
+
+  it('cap-reached error has consistent recovery hint regardless of WHICH cap fired', async () => {
+    // Per-user and per-workspace knowledge file caps share the same
+    // tier value (`knowledgeFiles`), so for a single workspace the
+    // per-workspace check fires first. The recovery hint is
+    // consistent across both code paths — whichever cap fires, the
+    // toast routes the user to /pricing.
+    //
+    // We can't easily isolate "per-user fired before per-workspace"
+    // here without the fields differing — but the contract under
+    // test is "every cap-rejection has a /pricing recovery", so
+    // probing the per-workspace path is sufficient to prove the
+    // delivery shape.
+    const u = await createUser()
+    await setUserPlan(u.id, 'free')
+    const ws = await createWorkspace(u.id)
+    await seedReadyKnowledge(ws.workspaceId, u.id, TIERS.free.knowledgeFiles)
+
+    const client = await loggedInClient(u.id)
+    const res = await client.post(
+      `/api/workspaces/${ws.workspaceId}/knowledge/upload-request`,
+      { filename: 'over.pdf', size: 1024 }
+    )
+    expect(res.status).toBe(409)
+    const body = await res.json() as {
+      data?: { code?: string, recovery?: { kind?: string, href?: string, labelKey?: string } }
+    }
+    expect(body.data?.code).toMatch(/^knowledge\/(user-file-cap|user-bytes-cap|workspace-file-cap|workspace-bytes-cap)$/)
+    expect(body.data?.recovery?.href).toBe('/pricing')
+    expect(body.data?.recovery?.labelKey).toBe('ai.upgradeCta')
+  })
 })

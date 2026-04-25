@@ -165,4 +165,123 @@ describe('POST /api/ai/transcribe', () => {
       }
     })
   })
+
+  // ─── Budget exhaustion (mid-work scenario) ─────────────────────────────
+  //
+  // Voice-input is a "tap mic, talk, get text" flow. The budget pre-check
+  // is the user's last opportunity to learn they're out of AI actions
+  // BEFORE Cloud STT runs (and we incur cost). The error contract must
+  // carry enough info for the AIPromptBar to render the upgrade-CTA toast.
+  //
+  // Pre-check threshold: requires interactionsRemaining >= 5 (a 60s clip
+  // costs 5). A user near their cap may see this fire even on a short
+  // clip — the alternative is "let them spend their last 4 interactions
+  // on a 1s clip", which is fine UX but more complex to implement.
+
+  describe('interaction budget pre-check', () => {
+    async function seedUsage(attributedTo: string, used: number) {
+      const { testDb } = await import('../setup/db')
+      const { currentPeriodStart } = await import('../../../server/utils/billing')
+      await testDb().query(
+        `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used) VALUES ($1, $2, $3)`,
+        [attributedTo, currentPeriodStart(), used]
+      )
+    }
+
+    it('402 when remaining < 5 (would cost more than the user has)', async () => {
+      const { TIERS } = await import('../../../shared/config/tiers')
+      const u = await createUser()
+      // Free cap is 100; seed 96 used → 4 remaining (< 5, fails pre-check).
+      await seedUsage(`user:${u.id}`, TIERS.free.interactionsPerMonth - 4)
+      const client = await loggedInClient(u.id)
+      const res = await client.post('/api/ai/transcribe', {
+        audio: MIN_VALID_AUDIO_B64,
+        mimeType: VALID_MIME
+      })
+      expect(res.status).toBe(402)
+    })
+
+    it('402 body carries the new error contract: code + messageKey + recovery (upgrade CTA wiring)', async () => {
+      // The unified error-handling work added a structured shape to
+      // server errors so the client toast can render an Upgrade button
+      // routing to /pricing without per-endpoint code. Pin that the
+      // wire format matches what useErrorHandler reads.
+      const { TIERS } = await import('../../../shared/config/tiers')
+      const u = await createUser()
+      await seedUsage(`user:${u.id}`, TIERS.free.interactionsPerMonth - 4)
+      const client = await loggedInClient(u.id)
+      const res = await client.post('/api/ai/transcribe', {
+        audio: MIN_VALID_AUDIO_B64,
+        mimeType: VALID_MIME
+      })
+      const body = await res.json() as {
+        data?: {
+          code?: string
+          messageKey?: string
+          recovery?: { kind?: string, href?: string, labelKey?: string }
+          plan?: string
+          remaining?: number
+        }
+      }
+      expect(body.data?.code).toBe('ai/budget-exhausted')
+      expect(body.data?.messageKey).toBe('ai.budgetExhaustedDescription')
+      expect(body.data?.recovery).toEqual({
+        kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta'
+      })
+      // Diagnostic fields useful for future analytics.
+      expect(body.data?.plan).toBe('free')
+      expect(body.data?.remaining).toBe(4)
+    })
+
+    it('STT is NOT called when pre-check fires — no cost incurred for exhausted users', async () => {
+      // Indirect proof: with a dummy API key, an exhausted-user
+      // request returns 402 (pre-check) — NOT 502 (Cloud STT
+      // upstream error). If the pre-check ever moved AFTER the STT
+      // call, an exhausted user's request would hit Google, return
+      // a real-cost response, and the over-cap path would fire.
+      // Pin the pre-check ordering by status code.
+      const { TIERS } = await import('../../../shared/config/tiers')
+      const u = await createUser()
+      await seedUsage(`user:${u.id}`, TIERS.free.interactionsPerMonth - 4)
+      const client = await loggedInClient(u.id)
+      const res = await client.post('/api/ai/transcribe', {
+        audio: MIN_VALID_AUDIO_B64,
+        mimeType: VALID_MIME
+      })
+      expect(res.status).toBe(402)
+      expect(res.status).not.toBe(502)
+    })
+
+    it('with EXACTLY 5 remaining, the pre-check passes (boundary is `< 5`, not `<=`)', async () => {
+      // Pin the boundary. A user with exactly 5 left should be allowed
+      // to start one last 60s clip. The actual STT call may fail (we
+      // use a dummy API key), but it should NOT 402.
+      const { TIERS } = await import('../../../shared/config/tiers')
+      const u = await createUser()
+      await seedUsage(`user:${u.id}`, TIERS.free.interactionsPerMonth - 5)
+      const client = await loggedInClient(u.id)
+      const res = await client.post('/api/ai/transcribe', {
+        audio: MIN_VALID_AUDIO_B64,
+        mimeType: VALID_MIME
+      })
+      expect(res.status).not.toBe(402)
+    })
+  })
+
+  // ─── Rate limiting (anti-abuse, 60/hour/user) ─────────────────────────
+
+  describe('rate limit (60 requests/hour/user)', () => {
+    it('does not fire for a single legitimate request', async () => {
+      // Sanity: the per-user 60/hour rate limit shouldn't even
+      // approach with one request. Ensure no 429 contamination from
+      // earlier tests by using a fresh user.
+      const u = await createUser()
+      const client = await loggedInClient(u.id)
+      const res = await client.post('/api/ai/transcribe', {
+        audio: MIN_VALID_AUDIO_B64,
+        mimeType: VALID_MIME
+      })
+      expect(res.status).not.toBe(429)
+    })
+  })
 })

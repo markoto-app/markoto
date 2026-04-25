@@ -126,4 +126,56 @@ describe('POST /api/ai/prompt — interaction budget gate', () => {
     expect(body.data?.attributedTo).toBe(`user:${u.id}`)
     expect(body.data?.periodStart).toMatch(/^\d{4}-\d{2}-01T00:00:00\.000Z$/)
   })
+
+  it('402 carries the structured error contract (code + messageKey + recovery)', async () => {
+    // Pinning the contract that AIPromptBar.vue reads to render the
+    // budget-exhausted toast with an Upgrade button. If any one of
+    // these three fields drops, the toast falls back to a generic
+    // error and the upgrade CTA disappears — silent UX regression
+    // that no other test would catch.
+    const u = await createUser()
+    const doc = await createDoc({ ownerId: u.id })
+    await seedUsage(`user:${u.id}`, currentPeriodStart(), TIERS.free.interactionsPerMonth)
+
+    const client = await loggedInClient(u.id)
+    const res = await client.post('/api/ai/prompt', {
+      docId: doc.docId,
+      prompt: 'hi'
+    })
+    const body = await res.json() as {
+      data?: {
+        code?: string
+        messageKey?: string
+        recovery?: { kind?: string, href?: string, labelKey?: string }
+      }
+    }
+    expect(body.data?.code).toBe('ai/budget-exhausted')
+    expect(body.data?.messageKey).toBe('ai.budgetExhaustedDescription')
+    expect(body.data?.recovery).toEqual({
+      kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta'
+    })
+  })
+
+  it('exhausted user does NOT spawn a Hocuspocus JWT or open an aiClient session', async () => {
+    // Indirect proof of "402 BEFORE we incur cost". If a regression
+    // moved the budget check after session-open, a 402 would still be
+    // returned but the side effect (ai_sessions row, JWT minting,
+    // Hocuspocus connection) would have already happened. We checked
+    // ai_sessions=0 in the earlier test; this complements by also
+    // verifying no per-user-per-doc session lock was acquired (the
+    // UNIQUE index would block the next legitimate prompt).
+    const u = await createUser()
+    const doc = await createDoc({ ownerId: u.id })
+    await seedUsage(`user:${u.id}`, currentPeriodStart(), TIERS.free.interactionsPerMonth)
+
+    const client = await loggedInClient(u.id)
+    await client.post('/api/ai/prompt', { docId: doc.docId, prompt: 'first' })
+
+    // Second exhausted call — must also 402, not 409 (409 would mean
+    // the first call leaked a session-row that's now blocking the
+    // second).
+    const res2 = await client.post('/api/ai/prompt', { docId: doc.docId, prompt: 'second' })
+    expect(res2.status).toBe(402)
+    expect(res2.status).not.toBe(409)
+  })
 })

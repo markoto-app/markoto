@@ -305,4 +305,125 @@ describe('WS /api/ai/dictate', () => {
       expect(res.status).toBe(401)
     })
   })
+
+  // ─── Budget exhaustion at WS open ──────────────────────────────────────
+  //
+  // The user's stated concern: "users running into limits while they work,
+  // especially while voice recording". The dictate handler does TWO budget
+  // checks at open:
+  //   (1) Daily audio-ms budget (Valkey) — has TEST_MODE bypass, can't
+  //       trigger from integration without disabling the bypass.
+  //   (2) Monthly interaction budget (Postgres) — read via
+  //       resolveBillingContext, NO bypass on the read path. We can seed
+  //       ai_usage_period to drive this case.
+  //
+  // (1) is covered by unit tests of the helpers; (2) is covered here.
+  // The contract: the user sees a structured close frame BEFORE STT spin-
+  // up so the client UI can render "you're out of AI actions, upgrade".
+
+  describe('budget exhaustion at WS open', () => {
+    async function seedUsage(attributedTo: string, used: number) {
+      const { testDb } = await import('../setup/db')
+      const { currentPeriodStart } = await import('../../../server/utils/billing')
+      await testDb().query(
+        `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used) VALUES ($1, $2, $3)`,
+        [attributedTo, currentPeriodStart(), used]
+      )
+    }
+
+    it('exhausted MONTHLY interactions → close 4002 with "interactions" reason BEFORE STT', async () => {
+      // Real scenario: a Free user has used all 100 interactions this
+      // month. They click the mic button. The token mints fine (the
+      // token endpoint doesn't pre-check budget — known UX gap), but
+      // the WS handshake immediately rejects them with a structured
+      // budget-exhausted frame.
+      //
+      // Critical: the frame includes `reason: 'interactions'` so the
+      // client UI can distinguish "monthly cap" from "daily audio cap"
+      // and show the right upgrade copy.
+      const { TIERS } = await import('../../../shared/config/tiers')
+      const { user, doc } = await setupUserAndDoc()
+      // Push past the Free monthly cap.
+      await seedUsage(`user:${user.id}`, TIERS.free.interactionsPerMonth)
+
+      const ws = await openWs('/api/ai/dictate')
+      await ws.nextMessageOfType('hello')
+      ws.sendJson({ type: 'auth', token: await mintDictateToken(user.id, doc.docId) })
+
+      const exhausted = await ws.nextMessageOfType('budget-exhausted')
+      expect(exhausted).toMatchObject({
+        type: 'budget-exhausted',
+        remaining: 0,
+        reason: 'interactions'
+      })
+      const close = await ws.closed()
+      expect(close.code).toBe(4002)
+      expect(close.reason).toMatch(/interactions exhausted/)
+    })
+
+    it('exhausted user gets the close BEFORE the "ready" frame (no audio-worklet spinup)', async () => {
+      // The whole point of the open-time gate is that the client
+      // shouldn't wire up its mic + worklet just to immediately tear
+      // it down. Pin: NO `ready` message ever arrives for an
+      // exhausted user. (If a refactor moved the budget check after
+      // the ready emit, real users would briefly see the recording
+      // indicator + then get an error — annoying, frustrating.)
+      const { TIERS } = await import('../../../shared/config/tiers')
+      const { user, doc } = await setupUserAndDoc()
+      await seedUsage(`user:${user.id}`, TIERS.free.interactionsPerMonth)
+
+      const ws = await openWs('/api/ai/dictate')
+      await ws.nextMessageOfType('hello')
+      ws.sendJson({ type: 'auth', token: await mintDictateToken(user.id, doc.docId) })
+
+      // Race: collect every message until close. Assert no 'ready'.
+      const seen: string[] = []
+      const close = await new Promise<{ code: number, reason: string }>((resolve) => {
+        ws.raw.on('message', (data: Buffer) => {
+          try {
+            const m = JSON.parse(data.toString()) as { type?: string }
+            if (m.type) seen.push(m.type)
+          } catch { /* binary */ }
+        })
+        ws.raw.on('close', (code: number, reason: Buffer) => {
+          resolve({ code, reason: reason.toString() })
+        })
+      })
+
+      expect(close.code).toBe(4002)
+      expect(seen).toContain('budget-exhausted')
+      expect(seen).not.toContain('ready')
+    })
+
+    it('a paid (Max) user with the same SAME usage count is NOT exhausted (cap is much higher)', async () => {
+      // Sanity: confirm the gate is plan-aware. A Max user with 100
+      // interactions used is still nowhere near their cap; should
+      // proceed to ready. If this test ever breaks because of a
+      // plan-resolution regression, exhausted-Free user behavior
+      // gets misapplied to paying customers — much worse than the
+      // inverse.
+      const { user, doc } = await setupUserAndDoc()
+      // Promote user to Max with valid stripe anchor.
+      const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      const past = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+      const { testDb } = await import('../setup/db')
+      await testDb().query(
+        `UPDATE users SET plan = 'max', plan_valid_until = $1, stripe_current_period_start = $2 WHERE id = $3`,
+        [future, past, user.id]
+      )
+      // Seed only 100 used — far below Max's monthly cap.
+      await testDb().query(
+        `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used) VALUES ($1, $2, $3)`,
+        [`user:${user.id}`, past, 100]
+      )
+
+      const ws = await openWs('/api/ai/dictate')
+      await ws.nextMessageOfType('hello')
+      ws.sendJson({ type: 'auth', token: await mintDictateToken(user.id, doc.docId) })
+
+      // Should reach ready, not budget-exhausted.
+      const ready = await ws.nextMessageOfType('ready')
+      expect(ready.type).toBe('ready')
+    })
+  })
 })
