@@ -1,4 +1,4 @@
-import { test as base, type Page } from '@playwright/test'
+import { test as base, expect as baseExpect, type Locator, type Page } from '@playwright/test'
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -69,6 +69,22 @@ export type Flow = {
   step: (caption: string, action: () => Promise<void>, opts?: ShotOpts) => Promise<void>
   /** Screenshot WITHOUT an action — for "look at this state" moments. */
   shot: (caption: string, opts?: ShotOpts) => Promise<void>
+  /**
+   * Hover a locator → screenshot (cursor visible on the target) → then
+   * click. The right primitive for click-then-navigate steps: the
+   * screenshot lands on the BEFORE-click state with the cursor properly
+   * on the button, making the click conceptually visible. After the
+   * click, callers typically follow up with a step / shot describing
+   * the after-state. Without this pattern, click+nav steps end up with
+   * a screenshot of the destination page and a meaningless cursor.
+   */
+  click: (caption: string, locator: Locator, opts?: ShotOpts) => Promise<void>
+  /**
+   * Hover-only variant of click. Useful for "hover X to reveal Y" demos
+   * or for placing the cursor on a region you want to point out without
+   * triggering its click handler.
+   */
+  hover: (caption: string, locator: Locator, opts?: ShotOpts) => Promise<void>
   /** Prose between images; rendered as a narration block in the docs. */
   narrate: (text: string) => Promise<void>
   /** Section break; rendered as ## / ### in the docs. */
@@ -97,16 +113,34 @@ export type EditorFixture = {
   silentSetup: () => Promise<void>
 }
 
+// Cursor injection. Tracks the LAST mouse position AND the URL pathname
+// at the time of that motion. The URL stamp is critical for SPAs: a
+// click that triggers a router.push() leaves the OS cursor exactly
+// where it was, so window.__flowCursor still holds the click target's
+// coordinates — but those coordinates were valid on page A's layout,
+// not page B's. Reading them on page B and rendering them on a page-B
+// screenshot floats the cursor in random space.
+//
+// readCursor() compares __flowCursorPath to the current pathname. If
+// they differ, the cursor is "stale" relative to whatever page we're
+// about to screenshot, and we report null. The visualizer then
+// renders no cursor — correct, since no meaningful cursor position
+// exists on a page the user just landed on.
 const CURSOR_INIT_SCRIPT = `
   (() => {
     if (window.__flowCursorInstalled) return
     window.__flowCursorInstalled = true
     window.__flowCursor = null
+    window.__flowCursorPath = null
     const update = (e) => {
       // PointerEvent on touch may not have clientX/Y for synthetic events —
       // skip those so we don't overwrite a real position with nothing.
       if (typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return
       window.__flowCursor = { x: e.clientX, y: e.clientY }
+      // Remember WHICH page the cursor was last positioned on. Compared
+      // against location.pathname at read time to detect SPA-navigation
+      // staleness.
+      window.__flowCursorPath = location.pathname
     }
     // capture phase so we win even if a stopPropagation handler is downstream.
     addEventListener('mousemove', update, true)
@@ -160,7 +194,17 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
     const readCursor = async (): Promise<{ x: number, y: number } | null> => {
       try {
-        return await page.evaluate(() => (window as any).__flowCursor ?? null)
+        // Only return the cursor if its last-known position was set on
+        // the SAME pathname we're about to screenshot. SPA navigations
+        // leave the cursor pinned to a coord that no longer maps to a
+        // meaningful location on the new page; in that case we return
+        // null so the visualizer skips the overlay.
+        return await page.evaluate(() => {
+          const w = window as unknown as { __flowCursor: { x: number, y: number } | null, __flowCursorPath: string | null }
+          if (!w.__flowCursor) return null
+          if (w.__flowCursorPath !== location.pathname) return null
+          return w.__flowCursor
+        })
       } catch {
         return null
       }
@@ -233,6 +277,24 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     const flow: Flow = {
       step: async (caption, action, opts) => { await action(); await capture(caption, opts) },
       shot: capture,
+      click: async (caption, locator, opts) => {
+        // scrollIntoViewIfNeeded is best-effort — some elements (e.g.
+        // overlays, fixed-position UI) don't need it and the call can
+        // throw. Swallow rather than fail the test for cosmetics.
+        await locator.scrollIntoViewIfNeeded().catch(() => {})
+        // hover() moves the OS cursor to the locator's center, which
+        // fires our injected mousemove tracker → window.__flowCursor.
+        await locator.hover()
+        // Screenshot WHILE the cursor is on the target, BEFORE the
+        // click side-effect (navigation, modal, etc).
+        await capture(caption, opts)
+        await locator.click()
+      },
+      hover: async (caption, locator, opts) => {
+        await locator.scrollIntoViewIfNeeded().catch(() => {})
+        await locator.hover()
+        await capture(caption, opts)
+      },
       narrate: async (text) => { entries.push({ kind: 'narrate', text }) },
       heading: async (text, level = 2) => { entries.push({ kind: 'heading', level, text }) },
       skipNext: () => { suppress = true }
@@ -288,14 +350,16 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           + 'visitors. Logged-in users also see "New Workspace" alongside.'
         )
 
-        await flow.step('Click "New Document" to spin up a fresh anonymous doc', async () => {
-          // Click + URL-wait in parallel so we don't race a fast
-          // navigation (which would complete before waitForURL armed).
-          await Promise.all([
-            page.waitForURL(/\/d\/[^/]+/),
-            page.getByRole('button', { name: /new document/i }).click()
-          ])
-        })
+        // flow.click hovers the button first → screenshots (cursor on
+        // target) → then clicks. So the "Click X" caption gets a shot
+        // of the BEFORE-click state with the cursor visibly on the
+        // button, matching the user's mental model. After the click
+        // we wait for the URL to change before continuing.
+        await flow.click(
+          'Click "New Document" to spin up a fresh anonymous doc',
+          page.getByRole('button', { name: /new document/i })
+        )
+        await page.waitForURL(/\/d\/[^/]+/)
 
         await flow.step('The editor mounts and Hocuspocus connects', async () => {
           await editor.waitForReady()
@@ -308,9 +372,17 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           + 'toggles) to see editor + preview side by side.'
         )
 
-        await flow.step('Click the split-view toggle (middle icon)', async () => {
-          await editor.switchToSplitView()
-        })
+        // Same pattern: hover the toggle → screenshot showing cursor on
+        // the icon → click. The "after" state (split view active) is
+        // visually obvious from the next shot's editor screenshot.
+        await flow.click(
+          'Click the split-view toggle (middle icon)',
+          editor.viewMode.split
+        )
+        // Defensive: wait until the toggle latched into the active
+        // state. Without this, a follow-up shot might capture the
+        // mid-transition layout.
+        await baseExpect(editor.viewMode.split).toHaveClass(/bg-primary/)
       },
 
       silentSetup: async () => {
@@ -328,7 +400,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
   }
 })
 
-export const expect = base.expect
+export const expect = baseExpect
 
 /**
  * Skip the current test if its project's variant is in the opt-out

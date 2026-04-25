@@ -119,16 +119,28 @@ function labelRight(h: Highlight): boolean {
         </template>
 
         <!-- Cursor overlay. Drawn last so it renders on top of any
-             highlight box that happens to overlap. -->
+             highlight box that happens to overlap.
+             - Sized 32px (w-8) so it reads clearly even when the docs
+               container is narrow.
+             - Orange drop-shadow filter (Tailwind orange-500 alpha
+               variants) makes the cursor pop against light AND dark
+               screenshots without depending on theme.
+             - CSS transition on left/top animates motion between
+               slides — Vue keeps the same <img> element across slide
+               changes (props update, not v-if churn), so the browser
+               interpolates from the previous coords to the new ones.
+               In scroll mode this is a no-op: each shot gets its own
+               FlowFrame, so the element doesn't persist across them. -->
         <img
           v-if="showCursor && cursor"
           src="/flow-cursor.svg"
           alt=""
           aria-hidden="true"
-          class="absolute pointer-events-none w-5 h-5 -translate-x-[2px] -translate-y-[2px]"
+          class="absolute pointer-events-none w-6 h-6 -translate-x-[2px] -translate-y-[2px] transition-[left,top] duration-300 ease-out"
           :style="{
             left: `${(cursor.x / viewport.w) * 100}%`,
-            top: `${(cursor.y / viewport.h) * 100}%`
+            top: `${(cursor.y / viewport.h) * 100}%`,
+            filter: 'drop-shadow(0 0 3px rgb(249 115 22 / 0.95)) drop-shadow(0 0 10px rgb(249 115 22 / 0.7))'
           }"
         >
       </div>
