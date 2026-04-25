@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import { resolveBillingContext } from '../../../utils/billing'
 
 // Mints a short-lived JWT for the live-dictation WebSocket. We go this
 // route (instead of reading the sealed session cookie inside the WS
@@ -32,6 +33,31 @@ export default defineEventHandler(async (event) => {
   // but rejecting here gives the user an immediate 403 before they
   // open a socket that would only fail on the auth message.
   await requireDocEditAccess(docId, userId)
+
+  // Budget pre-check — mirror the WS-side gate at session open. Without
+  // this, an exhausted user gets a token (200), opens the WS, sees the
+  // mic-permission browser dialog, clicks Allow, and ONLY then sees the
+  // WS close with budget-exhausted. The 402 here saves that whole
+  // mic-flash by failing at the click of the mic button. The WS-level
+  // gate stays as the safety net (token may go stale by the time the
+  // WS opens, or workspace/user state may change in the 60s window).
+  //
+  // Mirrors the resolveBillingContext call in dictate.ts (workspaceId
+  // = null because the dictate JWT doesn't carry workspace context).
+  const billing = await resolveBillingContext(userId, null)
+  if (billing.interactionsRemaining <= 0) {
+    throw createError({
+      statusCode: 402,
+      message: `You've used all AI actions for this billing period. Upgrade your plan at /pricing to continue.`,
+      data: {
+        code: 'ai/budget-exhausted',
+        messageKey: 'ai.budgetExhaustedDescription',
+        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' },
+        plan: billing.plan,
+        remaining: 0
+      }
+    })
+  }
 
   const token = jwt.sign(
     { userId, docId, kind: 'dictate' },

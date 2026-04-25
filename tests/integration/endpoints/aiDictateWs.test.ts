@@ -304,6 +304,101 @@ describe('WS /api/ai/dictate', () => {
       const res = await anonClient().post('/api/ai/dictate/token', { docId: 'x' })
       expect(res.status).toBe(401)
     })
+
+    // ─── Token-mint budget pre-check (UX-saving early reject) ───────────
+    //
+    // The WS-level interaction gate (covered below) is the safety net.
+    // The token endpoint runs the SAME check first so an exhausted user
+    // sees a 402 the instant they click the mic button — instead of:
+    //   click mic → token (200) → WS opens → browser asks for mic →
+    //   user clicks Allow → audio worklet spins up → WS closes with
+    //   budget-exhausted. (That whole sequence flashed the recording
+    //   indicator + asked for mic permission for nothing.)
+    //
+    // The WS-level gate stays in place because the 60s token TTL leaves
+    // a window for state to change before the WS actually opens.
+
+    it('returns 402 with the upgrade-CTA contract when interactions are exhausted', async () => {
+      const { TIERS } = await import('../../../shared/config/tiers')
+      const { testDb } = await import('../setup/db')
+      const { currentPeriodStart } = await import('../../../server/utils/billing')
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id })
+      await testDb().query(
+        `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used) VALUES ($1, $2, $3)`,
+        [`user:${owner.id}`, currentPeriodStart(), TIERS.free.interactionsPerMonth]
+      )
+
+      const client = await loggedInClient(owner.id)
+      const res = await client.post('/api/ai/dictate/token', { docId: doc.docId })
+
+      expect(res.status).toBe(402)
+      const body = await res.json() as {
+        data?: {
+          code?: string
+          messageKey?: string
+          recovery?: { kind?: string, href?: string, labelKey?: string }
+          plan?: string
+          remaining?: number
+        }
+      }
+      // Same contract shape useErrorHandler reads for the upgrade toast.
+      expect(body.data?.code).toBe('ai/budget-exhausted')
+      expect(body.data?.messageKey).toBe('ai.budgetExhaustedDescription')
+      expect(body.data?.recovery).toEqual({
+        kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta'
+      })
+      expect(body.data?.plan).toBe('free')
+      expect(body.data?.remaining).toBe(0)
+    })
+
+    it('exhausted user does NOT receive a token (regression guard for the early-reject)', async () => {
+      // If the budget check ever moves below the token mint, this
+      // test breaks: the response would carry a `token` field. The
+      // existing "exhausted close at WS open" test (further down)
+      // continues to cover the safety-net path.
+      const { TIERS } = await import('../../../shared/config/tiers')
+      const { testDb } = await import('../setup/db')
+      const { currentPeriodStart } = await import('../../../server/utils/billing')
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id })
+      await testDb().query(
+        `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used) VALUES ($1, $2, $3)`,
+        [`user:${owner.id}`, currentPeriodStart(), TIERS.free.interactionsPerMonth]
+      )
+
+      const client = await loggedInClient(owner.id)
+      const res = await client.post('/api/ai/dictate/token', { docId: doc.docId })
+      const body = await res.json() as { token?: string }
+      expect(body.token).toBeUndefined()
+    })
+
+    it('a Max user with the same usage count gets a token (plan-aware gate)', async () => {
+      // Sanity: gate uses ACTUAL plan, not a default-to-free
+      // assumption. A Max user past Free's cap is still well below
+      // their own cap and should pass.
+      const { testDb } = await import('../setup/db')
+      const { currentPeriodStart } = await import('../../../server/utils/billing')
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id })
+      const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      const past = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+      await testDb().query(
+        `UPDATE users SET plan='max', plan_valid_until=$1, stripe_current_period_start=$2 WHERE id=$3`,
+        [future, past, owner.id]
+      )
+      // Way past Free's cap (100), nowhere near Max's (8000).
+      await testDb().query(
+        `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used) VALUES ($1, $2, $3)`,
+        [`user:${owner.id}`, currentPeriodStart(), 500]
+      )
+
+      const client = await loggedInClient(owner.id)
+      const res = await client.post('/api/ai/dictate/token', { docId: doc.docId })
+      expect(res.status).toBe(200)
+      const body = await res.json() as { token?: string }
+      expect(typeof body.token).toBe('string')
+    })
   })
 
   // ─── Budget exhaustion at WS open ──────────────────────────────────────
@@ -332,11 +427,12 @@ describe('WS /api/ai/dictate', () => {
     }
 
     it('exhausted MONTHLY interactions → close 4002 with "interactions" reason BEFORE STT', async () => {
-      // Real scenario: a Free user has used all 100 interactions this
-      // month. They click the mic button. The token mints fine (the
-      // token endpoint doesn't pre-check budget — known UX gap), but
-      // the WS handshake immediately rejects them with a structured
-      // budget-exhausted frame.
+      // Defense-in-depth scenario: the user obtained a dictate token
+      // (e.g. minted before they hit their cap, or a token-mint race),
+      // but is now exhausted by the time the WS opens. The WS-level
+      // gate is the safety net — the token endpoint normally pre-checks
+      // budget and returns 402 directly (covered above), but the 60s
+      // token TTL leaves a window where state can drift.
       //
       // Critical: the frame includes `reason: 'interactions'` so the
       // client UI can distinguish "monthly cap" from "daily audio cap"
