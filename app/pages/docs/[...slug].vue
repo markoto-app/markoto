@@ -68,7 +68,10 @@ useSeoMeta({
    Capped on ultra-wide monitors so flows don't lose proportion. */
 .docs-content :deep(> .docs-wide) {
   grid-column: 1 / -1;
-  max-width: 1400px;
+  /* Wider than prose (~705px) but doesn't dominate the viewport on
+     ultra-wide screens. Stripe/GitHub-style docs sit around 1000–
+     1100px for media; we land on 1100px to match. */
+  max-width: 1100px;
   justify-self: center;
   width: 100%;
 }
