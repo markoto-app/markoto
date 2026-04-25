@@ -1,14 +1,29 @@
 # Test-only infrastructure. Mirrors docker-compose.dev.yml but on isolated
 # ports and a disposable volume so the dev database is never touched.
 #
-# Run:  docker compose -f docker-compose.test.yml up -d
-#       (then:  bun run test:integration)
-# Stop: docker compose -f docker-compose.test.yml down -v
+# Two use cases share this compose file via `profiles`:
 #
-# Ports shifted from dev (5432/6379/8333) to (5433/6380/8334) so both stacks
-# can run simultaneously. The test DB name is ypad_test — integration tests
-# refuse to run against any other DB name as a belt-and-braces guard against
-# running TRUNCATEs on a dev database.
+#   1) Integration tests (vitest) — postgres + valkey + seaweedfs + stripe-mock.
+#      These services have NO profile, so they start by default with `up -d`.
+#
+#   2) Flow tests (Playwright) — also need sync (Hocuspocus) + markitdown.
+#      These are gated behind `profiles: [flows]` so integration runs don't
+#      pay the extra build/startup cost. Pull them in with `--profile flows`.
+#
+# Integration:
+#   bun run test:integration:up      # postgres + valkey + seaweedfs + stripe-mock
+#   bun run test:integration         # vitest run --project=integration
+#   bun run test:integration:down
+#
+# Flows:
+#   bun run flows:up                 # adds sync + markitdown to the above
+#   bun run flows:test:ephemeral     # full lifecycle (up, dev server, run, down)
+#   bun run flows:down
+#
+# Ports shifted from dev (5432/6379/8333/4001/8080) to (5433/6380/8334/4002/8081)
+# so dev + test stacks can run simultaneously. Test DB name is ypad_test —
+# integration tests refuse to run against any other name as a belt-and-braces
+# guard against running TRUNCATEs on a dev database.
 
 services:
   postgres-test:
@@ -74,3 +89,52 @@ services:
       - "12111:12111"
     # No healthcheck available (image has no shell + no curl); port
     # 12111 is up as soon as the process binds, which is near-instant.
+
+  # ─── Flow-test extras (profile: flows) ─────────────────────────────
+  # Sync server + markitdown converter, only spun up when running
+  # Playwright flow tests. Integration tests don't need either:
+  # vitest doesn't open WS connections to Hocuspocus, and document
+  # imports are exercised at the API level with mocked responses.
+
+  sync-test:
+    build:
+      context: .
+      dockerfile: sync-server/Dockerfile
+    profiles: ["flows"]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      - PORT=4001
+      - DATABASE_URL=postgres://ypad:testpassword@postgres-test:5432/ypad_test
+      - JWT_SECRET=test-jwt-secret-isolated-from-dev-and-prod-stacks-64char
+      - INTERNAL_API_SECRET=test-internal-api-secret-isolated
+      # Sync server reaches the Nuxt app on host for activity logging.
+      # Flows run the app on host port 3001 (see flows-ephemeral.ts).
+      - APP_URL=http://host.docker.internal:3001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4002:4001"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    healthcheck:
+      # bun base image lacks curl; use bun's built-in fetch instead.
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:4001/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  markitdown-test:
+    build: ./markitdown-server
+    profiles: ["flows"]
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health').read()"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
