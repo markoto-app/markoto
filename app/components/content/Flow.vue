@@ -287,8 +287,17 @@ const progressPct = computed(() =>
            can still interact with anything behind it (none here,
            but defensive). The <Transition> gives a soft fade
            between slides instead of a hard cut, matching the
-           cursor's animated motion. -->
-      <div class="relative">
+           cursor's animated motion.
+           Click anywhere on the frame toggles play/pause —
+           YouTube-video pattern. role/tabindex make it keyboard-
+           accessible too (spacebar already handled at the slides
+           container level). -->
+      <div
+        class="relative cursor-pointer"
+        role="button"
+        :aria-label="isPlaying ? 'Pause autoplay' : 'Play autoplay'"
+        @click="togglePlay"
+      >
         <FlowFrame
           :src="`${baseUrl}/${shots[slideIdx].file}`"
           :caption="shots[slideIdx].caption"
