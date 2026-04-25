@@ -278,3 +278,84 @@ describe('resolveBillingContext — (+) workspace branches', () => {
     expect(ctx.interactionsRemaining).toBe(TIERS.max.interactionsPerMonth - 200)
   })
 })
+
+// ─── Adversarial: caller IS the (+) workspace's sponsor ──────────────────
+//
+// Edge case the existing matrix doesn't cover: what if the user
+// resolving billing IS the workspace's billing owner? The semantic of
+// (+) is "everyone in the workspace draws from the sponsor's pool" —
+// including the sponsor themselves. So a Max owner who toggles (+) on
+// their own workspace should bill the WORKSPACE pool, not their
+// personal user pool, when calling AI from inside that workspace.
+//
+// Why this matters: if the resolver short-circuited "caller == sponsor
+// → bill the user pool", the sponsor's personal use would NOT count
+// against the team budget — defeating the point of the team-billing
+// feature for solo Max users who occasionally invite collaborators.
+
+describe('resolveBillingContext — caller IS the (+) sponsor', () => {
+  beforeEach(async () => { await resetDb() })
+
+  it('Max sponsor calling AI in their own (+) workspace → bills the WORKSPACE pool', async () => {
+    const owner = await createUser()
+    const sponsorPeriodStart = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    const sponsorPeriodEnd = new Date(Date.now() + 27 * 24 * 60 * 60 * 1000)
+    await setUserPlan(owner.id, 'max', sponsorPeriodEnd, sponsorPeriodStart)
+    const ws = await createWorkspace(owner.id)
+    await setWorkspaceBilling(ws.workspaceId, true, owner.id)
+
+    const ctx = await resolveBillingContext(owner.id, ws.workspaceId)
+
+    // The sponsor calling in their own (+) workspace bills the
+    // workspace pool — not the personal one. Otherwise (+) wouldn't
+    // actually pool the owner's usage with the team's.
+    expect(ctx.attribution).toBe('workspace')
+    expect(ctx.attributedTo).toBe(`workspace:${ws.workspaceId}`)
+    expect(ctx.plan).toBe('max')
+    // Period anchored on sponsor's (i.e. their own) Stripe cycle.
+    expect(ctx.periodStart.toISOString()).toBe(sponsorPeriodStart.toISOString())
+  })
+
+  it('seeded usage on the user-key is IGNORED when resolving as the sponsor in (+)', async () => {
+    // Decoy: a stale usage row keyed on `user:owner.id` from before
+    // (+) was enabled. The resolver must NOT subtract that from the
+    // workspace remaining count.
+    const owner = await createUser()
+    const periodStart = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    const periodEnd = new Date(Date.now() + 27 * 24 * 60 * 60 * 1000)
+    await setUserPlan(owner.id, 'max', periodEnd, periodStart)
+    const ws = await createWorkspace(owner.id)
+    await setWorkspaceBilling(ws.workspaceId, true, owner.id)
+
+    // 1000 interactions on the user pool — should be invisible.
+    await seedUsage(`user:${owner.id}`, currentPeriodStart(), 1000)
+    // 50 on the workspace pool — should be the only usage that
+    // counts.
+    await seedUsage(`workspace:${ws.workspaceId}`, periodStart, 50)
+
+    const ctx = await resolveBillingContext(owner.id, ws.workspaceId)
+    expect(ctx.interactionsRemaining).toBe(TIERS.max.interactionsPerMonth - 50)
+  })
+
+  it('Max sponsor calling AI OUTSIDE the (+) workspace (no workspaceId) → bills the USER pool', async () => {
+    // Symmetric pin: the sponsor isn't always on the team pool — only
+    // when they're calling FROM that workspace's context. A doc-less
+    // call (workspaceId=null) bills personal.
+    const owner = await createUser()
+    const periodStart = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    const periodEnd = new Date(Date.now() + 27 * 24 * 60 * 60 * 1000)
+    await setUserPlan(owner.id, 'max', periodEnd, periodStart)
+    const ws = await createWorkspace(owner.id)
+    await setWorkspaceBilling(ws.workspaceId, true, owner.id)
+
+    await seedUsage(`user:${owner.id}`, periodStart, 75)
+    await seedUsage(`workspace:${ws.workspaceId}`, periodStart, 1000)
+
+    // No workspaceId → resolver doesn't even look at the workspace's
+    // (+) state; bills personal at the user's plan.
+    const ctx = await resolveBillingContext(owner.id, null)
+    expect(ctx.attribution).toBe('user')
+    expect(ctx.attributedTo).toBe(`user:${owner.id}`)
+    expect(ctx.interactionsRemaining).toBe(TIERS.max.interactionsPerMonth - 75)
+  })
+})

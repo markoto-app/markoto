@@ -157,6 +157,172 @@ describe('chargeInteractions — BudgetExhausted + rollback', () => {
   })
 })
 
+// ─── Adversarial: rollback's `used` field reflects on-disk state ──────────
+
+describe('chargeInteractions — BudgetExhausted.used reflects DISK state, not the would-be total', () => {
+  beforeEach(async () => {
+    await resetDb()
+    vi.stubEnv('TEST_MODE', '')
+  })
+  afterEach(() => { vi.unstubAllEnvs() })
+
+  it('after rollback, `used` is the pre-charge value (not pre-charge + delta)', async () => {
+    // The UPDATE returns `interactions_used = X + delta` BEFORE we
+    // compare to cap. If we naively used that value in the
+    // BudgetExhausted message, the user would see "used 105/100" —
+    // confusing and technically wrong, since the rollback means we
+    // didn't actually spend those 5.
+    //
+    // The SUT re-reads the row's on-disk value after rollback. Verify
+    // the BudgetExhausted's `used` field matches.
+    const period = currentPeriodStart()
+    const cap = TIERS.free.interactionsPerMonth
+    await seedUsage('user:42', period, cap - 2) // 2 left
+
+    let captured: BudgetExhausted | null = null
+    try {
+      await chargeInteractions({
+        attributedTo: 'user:42', plan: 'free', delta: 5, periodStart: period
+      })
+    } catch (e) {
+      captured = e as BudgetExhausted
+    }
+
+    expect(captured).toBeInstanceOf(BudgetExhausted)
+    // On-disk used = cap - 2 (unchanged). NOT cap - 2 + 5 = cap + 3.
+    expect(captured!.used).toBe(cap - 2)
+    expect(captured!.cap).toBe(cap)
+    expect(captured!.requestedDelta).toBe(5)
+
+    // Belt + braces: the row's on-disk value is unchanged.
+    const r = await testDb().query<{ used: number }>(
+      `SELECT interactions_used AS used FROM ai_usage_period WHERE attributed_to = 'user:42'`
+    )
+    expect(r.rows[0].used).toBe(cap - 2)
+  })
+
+  it('rollback on a NON-existent row leaves no row behind (not even with the failed delta)', async () => {
+    // First-ever charge that's already over cap → rollback. The
+    // INSERT's row should NOT persist. If it did, the next call's
+    // remaining-check would see a phantom usage that was never
+    // actually authorised.
+    const period = currentPeriodStart()
+    const cap = TIERS.free.interactionsPerMonth
+
+    await expect(
+      chargeInteractions({
+        attributedTo: 'user:fresh', plan: 'free', delta: cap + 1, periodStart: period
+      })
+    ).rejects.toThrow(BudgetExhausted)
+
+    const r = await testDb().query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM ai_usage_period WHERE attributed_to = 'user:fresh'`
+    )
+    expect(Number(r.rows[0].n)).toBe(0)
+
+    // And remaining still reads as full cap.
+    const remaining = await getInteractionsRemaining('user:fresh', 'free', period)
+    expect(remaining).toBe(cap)
+  })
+})
+
+// ─── Adversarial: concurrency on the same period row ──────────────────────
+
+describe('chargeInteractions — concurrent charges serialize via ON CONFLICT', () => {
+  beforeEach(async () => {
+    await resetDb()
+    vi.stubEnv('TEST_MODE', '')
+  })
+  afterEach(() => { vi.unstubAllEnvs() })
+
+  it('10 concurrent charges of +1 sum exactly to 10 (no lost updates)', async () => {
+    // The atomic INSERT...ON CONFLICT DO UPDATE is what makes the
+    // (+) workspace pool safe under multi-user concurrency. If row
+    // locking ever broke (driver change, drizzle refactor, missing
+    // PK), two parallel charges could both read the same prior value
+    // and overwrite, losing one of the increments.
+    const period = currentPeriodStart()
+
+    await Promise.all(
+      Array.from({ length: 10 }, () =>
+        chargeInteractions({
+          attributedTo: 'user:race', plan: 'pro', delta: 1, periodStart: period
+        })
+      )
+    )
+
+    const r = await testDb().query<{ used: number }>(
+      `SELECT interactions_used AS used FROM ai_usage_period WHERE attributed_to = 'user:race'`
+    )
+    expect(r.rows[0].used).toBe(10)
+  })
+
+  it('concurrent charges that EXCEED cap together: cap is never breached, exactly one rollback per excess', async () => {
+    // Cap=100, current used=99. Three concurrent +2 charges. Without
+    // serialization: all three could see used=99, all UPDATE to 101,
+    // all rollback. With serialization: the FIRST commits (sum=101 →
+    // rollback); SECOND sees 99 still, commits sum=101 → rollback; etc.
+    // Actually no: if the first rolls back, the row stays at 99, so
+    // ALL three would rollback and we'd reject 3× the usage. Hmm.
+    //
+    // The honest invariant: concurrent over-cap charges all rollback
+    // (correctly, because each individual charge would breach), and
+    // the disk value never exceeds cap. Test that.
+    const period = currentPeriodStart()
+    const cap = TIERS.free.interactionsPerMonth
+    await seedUsage('user:overrace', period, cap - 1) // 1 left
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 5 }, () =>
+        chargeInteractions({
+          attributedTo: 'user:overrace', plan: 'free', delta: 2, periodStart: period
+        })
+      )
+    )
+
+    // All 5 should reject (each individual charge of +2 lands at
+    // cap+1 → rollback).
+    expect(results.every(r => r.status === 'rejected')).toBe(true)
+    expect(results.every(r =>
+      r.status === 'rejected' && r.reason instanceof BudgetExhausted
+    )).toBe(true)
+
+    // Disk value never exceeded cap; rollbacks held the line.
+    const r = await testDb().query<{ used: number }>(
+      `SELECT interactions_used AS used FROM ai_usage_period WHERE attributed_to = 'user:overrace'`
+    )
+    expect(r.rows[0].used).toBeLessThanOrEqual(cap)
+    expect(r.rows[0].used).toBe(cap - 1) // Pinning: nothing committed.
+  })
+
+  it('mixed concurrent: some charges fit, others rollback — disk reflects only the fitting ones', async () => {
+    // Cap=100, used=98. Seven concurrent +1 charges. The first 2
+    // should commit (98 → 99 → 100), the last 5 should each see
+    // used=100 and rollback (101 > cap). Final disk = 100.
+    const period = currentPeriodStart()
+    const cap = TIERS.free.interactionsPerMonth
+    await seedUsage('user:mix', period, cap - 2)
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 7 }, () =>
+        chargeInteractions({
+          attributedTo: 'user:mix', plan: 'free', delta: 1, periodStart: period
+        })
+      )
+    )
+
+    const ok = results.filter(r => r.status === 'fulfilled').length
+    const rejected = results.filter(r => r.status === 'rejected').length
+    expect(ok).toBe(2)
+    expect(rejected).toBe(5)
+
+    const r = await testDb().query<{ used: number }>(
+      `SELECT interactions_used AS used FROM ai_usage_period WHERE attributed_to = 'user:mix'`
+    )
+    expect(r.rows[0].used).toBe(cap)
+  })
+})
+
 describe('chargeInteractions — test-mode bypass', () => {
   beforeEach(async () => {
     await resetDb()
