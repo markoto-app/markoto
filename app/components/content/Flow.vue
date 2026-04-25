@@ -171,7 +171,13 @@ const shots = computed(() =>
 // Slide mode state.
 const slideIdx = ref(0)
 const isPlaying = ref(false)
-watch(visibleEntries, () => { slideIdx.value = 0; stopPlay() })
+// Fraction (0..1) of the CURRENT slide's display window that has
+// elapsed. Combined with slideIdx to compute progress bar width:
+// bar = (slideIdx + playProgress) / total. Net effect — slide 1
+// starts at 0% (idx=0, prog=0), fills smoothly to 1/total during
+// its 2s display, slide 2 starts at 1/total (no jump because
+// prog resets to 0 as idx increments), final slide ends at 100%.
+const playProgress = ref(0)
 
 // Auto-play: each slide is shown for SLIDE_DURATION_MS, then we
 // advance. Stops when we hit the last slide. Manual prev/next
@@ -184,17 +190,29 @@ function clearPlayTimer() {
 }
 function stopPlay() {
   isPlaying.value = false
+  // Snap progress back to slide-start. Predictable: pause = "you're
+  // at the beginning of this slide". Resume replays the slide.
+  playProgress.value = 0
   clearPlayTimer()
 }
 function scheduleAdvance() {
   clearPlayTimer()
   if (!isPlaying.value) return
+  // Trigger the bar to fill to next-slide's static value over the
+  // slide-duration. CSS transition does the linear interpolation;
+  // when the timer fires we increment slideIdx + reset progress so
+  // (slideIdx + progress) stays continuous (no visual jump).
+  playProgress.value = 1
   playTimer = setTimeout(() => {
     if (slideIdx.value < shots.value.length - 1) {
       slideIdx.value += 1
+      playProgress.value = 0
       scheduleAdvance()
     } else {
-      stopPlay()
+      // Final slide — leave progress at 1 so the bar holds at 100%.
+      // Don't call stopPlay() (which would snap back to 0).
+      isPlaying.value = false
+      clearPlayTimer()
     }
   }, SLIDE_DURATION_MS)
 }
@@ -202,15 +220,19 @@ function togglePlay() {
   if (isPlaying.value) {
     stopPlay()
   } else {
-    // If we're at the end, restart from slide 1 — the user clearly
-    // wants to watch it again.
-    if (slideIdx.value === shots.value.length - 1) slideIdx.value = 0
+    // If we're at the end with the bar full, restart from slide 1.
+    if (slideIdx.value === shots.value.length - 1 && playProgress.value === 1) {
+      slideIdx.value = 0
+      playProgress.value = 0
+    }
     isPlaying.value = true
     scheduleAdvance()
   }
 }
 const goPrev = () => { stopPlay(); if (slideIdx.value > 0) slideIdx.value -= 1 }
 const goNext = () => { stopPlay(); if (slideIdx.value < shots.value.length - 1) slideIdx.value += 1 }
+
+watch(visibleEntries, () => { slideIdx.value = 0; stopPlay() })
 
 onUnmounted(clearPlayTimer)
 
@@ -222,11 +244,11 @@ useEventListener(slidesEl, 'keydown', (e: KeyboardEvent) => {
   if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev() } else if (e.key === 'ArrowRight') { e.preventDefault(); goNext() } else if (e.key === ' ') { e.preventDefault(); togglePlay() }
 })
 
-// Progress bar width as a fraction of slides done. Animates between
-// values; the transition speed depends on whether we're playing or
-// jumping manually (see :class binding on the bar).
+// Progress bar width. Combines completed slides + intra-slide
+// playProgress so the bar fills smoothly during autoplay AND lands
+// exactly on slide-boundary values when paused / manually navigated.
 const progressPct = computed(() =>
-  shots.value.length ? ((slideIdx.value + 1) / shots.value.length) * 100 : 0
+  shots.value.length ? ((slideIdx.value + playProgress.value) / shots.value.length) * 100 : 0
 )
 </script>
 
