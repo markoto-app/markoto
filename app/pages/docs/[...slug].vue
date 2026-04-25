@@ -10,8 +10,13 @@ const { data: page } = await useAsyncData(`docs:${route.path}`, () =>
   queryCollection('docs').path(route.path).first()
 )
 
+// Surface the frontmatter fields the sidebar component needs:
+// `order` for sort priority, `navHidden` to filter index pages out of
+// child lists. Without this second arg, queryCollectionNavigation
+// returns only title + path + children — our renderer ignores
+// undefined fields, but they have to be carried THROUGH the query.
 const { data: navigation } = await useAsyncData('docs:nav', () =>
-  queryCollectionNavigation('docs')
+  queryCollectionNavigation('docs', ['order', 'navHidden'])
 )
 
 if (!page.value) {

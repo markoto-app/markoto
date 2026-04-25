@@ -210,6 +210,14 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       }
     }
 
+    // Strict mode: a missing highlight selector fails the test rather
+    // than silently dropping the callout. CI defaults to strict (set
+    // FLOW_STRICT=1 in CI env); local runs default to soft warnings
+    // so flow authors can see drift without their work blocking on
+    // mid-development markup churn. Flip the default when the suite
+    // is mature enough that misses are always actionable.
+    const STRICT_HIGHLIGHTS = process.env.FLOW_STRICT === '1' || process.env.CI === 'true'
+
     const resolveHighlights = async (refs: HighlightRef[] | undefined) => {
       if (!refs?.length) return undefined
       const out: NonNullable<ShotEntry['highlights']> = []
@@ -219,9 +227,14 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         const loc = page.locator(ref.selector).first()
         const box = await loc.boundingBox().catch(() => null)
         if (!box) {
-          // Skip silently in the manifest; print a console line so the
-          // test output makes the miss visible to the author.
-          console.warn(`[flow] highlight "${ref.label}" — selector \`${ref.selector}\` resolved to no visible box; skipping`)
+          const msg = `[flow] highlight "${ref.label}" — selector \`${ref.selector}\` resolved to no visible box`
+          if (STRICT_HIGHLIGHTS) {
+            // Hard fail. Authors get a stack trace pointing at the
+            // step that called highlight, not a silent docs regression.
+            throw new Error(`${msg} (FLOW_STRICT/CI is set — failing)`)
+          }
+          // Soft mode: skip + log so it shows up in the test output.
+          console.warn(`${msg}; skipping (set FLOW_STRICT=1 to fail)`)
           continue
         }
         out.push({ label: ref.label, x: box.x, y: box.y, w: box.width, h: box.height })

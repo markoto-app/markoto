@@ -18,9 +18,26 @@ export default defineContentConfig({
       schema: z.object({
         title: z.string(),
         description: z.string().optional(),
-        // Manual sidebar ordering. Lower numbers sort first; pages without
-        // a number sort by title at the end of their group.
-        order: z.number().optional()
+        // Manual sidebar ordering. Lower numbers sort first within a
+        // folder; pages without a number sort by title at the end of
+        // their group. Folders themselves are ordered by their index
+        // page's `order` value.
+        order: z.number().optional(),
+        // Optional category override. Defaults to the parent folder
+        // name (e.g. "writing/tables.md" → category "writing"). Set
+        // explicitly only when grouping needs to deviate from the
+        // directory layout — e.g. cross-cutting "advanced" pages
+        // pulled out of their nominal folders for the landing page.
+        category: z.string().optional(),
+        // If true, this page is shown as a featured card on the
+        // /docs landing page. Use sparingly — only the 3-5 most
+        // load-bearing entry points belong here.
+        featured: z.boolean().optional(),
+        // Auto-generated nav (queryCollectionNavigation) doesn't filter
+        // out section indexes. `navHidden: true` keeps a page reachable
+        // by URL but skips it in the sidebar — useful for landing /
+        // index pages that are the parent group's clickable header.
+        navHidden: z.boolean().optional()
       })
     })
   }

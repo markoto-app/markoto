@@ -1,7 +1,9 @@
 ---
 title: Getting Started
 description: Your first ten minutes with YPad
+category: getting-started
 order: 1
+featured: true
 ---
 
 # Getting Started
