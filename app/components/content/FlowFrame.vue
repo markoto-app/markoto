@@ -160,14 +160,10 @@ function labelRight(h: Highlight): boolean {
    so we can animate spread/blur — those are GPU-accelerated. */
 @keyframes flow-highlight-pulse {
   0%, 100% {
-    box-shadow:
-      0 0 0 1px rgb(249 115 22 / 0.45),
-      0 0 6px 2px rgb(249 115 22 / 0.5);
+    box-shadow: 0 0 8px 3px rgb(249 115 22 / 0.55);
   }
   50% {
-    box-shadow:
-      0 0 0 2px rgb(249 115 22 / 0.85),
-      0 0 18px 8px rgb(249 115 22 / 0.55);
+    box-shadow: 0 0 22px 10px rgb(249 115 22 / 0.7);
   }
 }
 .flow-highlight-pulse {
@@ -178,9 +174,7 @@ function labelRight(h: Highlight): boolean {
 @media (prefers-reduced-motion: reduce) {
   .flow-highlight-pulse {
     animation: none;
-    box-shadow:
-      0 0 0 2px rgb(249 115 22 / 0.85),
-      0 0 12px 4px rgb(249 115 22 / 0.55);
+    box-shadow: 0 0 14px 6px rgb(249 115 22 / 0.65);
   }
 }
 </style>
