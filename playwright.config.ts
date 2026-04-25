@@ -42,7 +42,12 @@ export default defineConfig({
     video: 'off',
     // Trace on first retry only — debugging cursor/timing issues without
     // doubling CI cost on the happy path.
-    trace: 'on-first-retry'
+    trace: 'on-first-retry',
+    // Pre-grant clipboard so flows can assert the actual outcome of
+    // share/copy actions (e.g. "Quick share" reads navigator.clipboard
+    // to prove the URL landed). Without this, Chromium prompts and
+    // the test hangs.
+    permissions: ['clipboard-read', 'clipboard-write']
   },
   // Auto-spin the dev server if PLAYWRIGHT_BASE_URL isn't set externally.
   // Set `reuseExistingServer: true` so a dev server you already have

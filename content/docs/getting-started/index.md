@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Your first ten minutes with YPad
+description: Three short tutorials that take you from the homepage to a finished, shared document.
 category: getting-started
 order: 1
 featured: true
@@ -8,22 +8,26 @@ featured: true
 
 # Getting Started
 
-Welcome! YPad is a collaborative markdown editor built around CRDT sync,
-optional auth, and per-document themes that drive both the live preview
-and the PDF export.
+YPad is a collaborative markdown editor with optional accounts. You
+can write a document anonymously, share it by URL, customize how it
+looks, and export to PDF — all without signing up.
 
-This guide walks you through your first session — creating a doc,
-giving it a title, and sharing it with a collaborator.
+This section is three short walkthroughs. Each one starts at the
+homepage and ends with a tangible result you can hand to someone.
 
-## Create your first document
+## The starter tutorials
 
-Same flow, paginated:
+- [**Write & share your first document**](/docs/getting-started/quick-share) — Create a doc, name it, and send the link. ~3 minutes.
+- [**Turn your draft into a polished PDF**](/docs/getting-started/polished-pdf) — Pick a theme, hit print, get a polished file. *(coming soon)*
+- [**Bring an existing Word or PDF document in**](/docs/getting-started/import-existing) — Start from what you already have. *(coming soon)*
 
-::flow{id="create-a-new-document" mode="slides" hide-title}
-::
+## After that
 
-## What's next?
+When you're comfortable with the basics:
 
-- See [Sharing & Permissions](/docs/sharing) for the full access-mode reference.
-- See [Workspaces](/docs/workspaces) for team collaboration.
-- See [The AI assistant](/docs/ai) for prompts, voice input, and dictation.
+- See [**Writing**](/docs/writing) for the markdown extensions YPad
+  ships with — tables, alerts, math, diagrams, footnotes.
+- See [**Sharing & Permissions**](/docs/sharing) for the full
+  access-mode reference (open-edit, view-only, password-protected).
+- See [**Themes**](/docs/themes) to customize how your document
+  looks in both the live preview and the PDF.

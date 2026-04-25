@@ -100,7 +100,7 @@ async function setPassword() {
     :description="shareUrl"
   >
     <template #content>
-      <div class="p-6 space-y-5">
+      <div data-testid="share-modal" class="p-6 space-y-5">
         <div>
           <h3 class="text-lg font-semibold">
             {{ t('share.title') }}
@@ -117,6 +117,7 @@ async function setPassword() {
             <UInput
               :model-value="shareUrl"
               readonly
+              data-testid="share-link-input"
               class="flex-1"
               size="sm"
             />
@@ -125,6 +126,8 @@ async function setPassword() {
               :color="copied ? 'success' : 'neutral'"
               variant="solid"
               size="sm"
+              data-testid="share-copy-link-button"
+              :aria-label="copied ? t('share.linkCopied') : t('share.copyLink')"
               @click="copyLink"
             >
               {{ copied ? t('share.linkCopied') : t('share.copyLink') }}

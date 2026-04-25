@@ -341,61 +341,39 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       page: editor,
 
       recordPreamble: async () => {
-        // Canonical creation story. Captions/narration are kept generic
-        // here because they're SHARED across every flow that records
-        // the preamble. If a specific flow wants different copy, it
-        // should call silentSetup() instead and write its own preamble.
-        await flow.heading('Creating your first document')
-        await flow.narrate(
-          'YPad lets you create a document anonymously — no signup needed. '
-          + 'You can claim it later by linking an account.'
-        )
+        // Lean two-step preamble for flows where doc creation IS the
+        // story. Captions are user-voice — no implementation jargon
+        // (no "Hocuspocus", no "the editor mounts"), no waypoints
+        // that don't move the user toward their job.
+        //
+        // Switching to split view + waiting for sync are SETUP, not
+        // user-visible steps — they happen silently between the
+        // "Click New Document" shot and whatever the next captured
+        // moment is.
+        //
+        // Flows where the user is already-in-an-editor (formatting,
+        // theming, sharing an existing doc) should call silentSetup()
+        // instead and start their own narrative there.
 
-        await flow.step('Open the YPad homepage', async () => {
+        await flow.step('Open YPad', async () => {
           await page.goto('/')
           // Wait for the hero CTA before continuing — guards against
           // capturing a mid-FOUC homepage.
           await page.getByRole('button', { name: /new document/i }).waitFor()
         })
 
-        await flow.narrate(
-          'The hero pitch + "New Document" button is the funnel for anonymous '
-          + 'visitors. Logged-in users also see "New Workspace" alongside.'
-        )
-
-        // flow.click hovers the button first → screenshots (cursor on
-        // target) → then clicks. So the "Click X" caption gets a shot
-        // of the BEFORE-click state with the cursor visibly on the
-        // button, matching the user's mental model. After the click
-        // we wait for the URL to change before continuing.
         await flow.click(
-          'Click "New Document" to spin up a fresh anonymous doc',
+          'Click "New Document" to start writing',
           page.getByRole('button', { name: /new document/i })
         )
         await page.waitForURL(/\/d\/[^/]+/)
 
-        await flow.step('The editor mounts and Hocuspocus connects', async () => {
-          await editor.waitForReady()
-        })
-
-        await flow.heading('Switching to split view', 3)
-        await flow.narrate(
-          'New docs land in preview mode briefly while the read-only flag '
-          + 'resolves. Click the split-view icon (middle of the three view '
-          + 'toggles) to see editor + preview side by side.'
-        )
-
-        // Same pattern: hover the toggle → screenshot showing cursor on
-        // the icon → click. The "after" state (split view active) is
-        // visually obvious from the next shot's editor screenshot.
-        await flow.click(
-          'Click the split-view toggle (middle icon)',
-          editor.viewMode.split
-        )
-        // Defensive: wait until the toggle latched into the active
-        // state. Without this, a follow-up shot might capture the
-        // mid-transition layout.
-        await baseExpect(editor.viewMode.split).toHaveClass(/bg-primary/)
+        // Setup, not a step: wait for the editor + put it in split
+        // view (so the next captured shot shows source + preview
+        // side-by-side, which is the most useful editing layout).
+        // No screenshot — these aren't user-visible moments.
+        await editor.waitForReady()
+        await editor.switchToSplitView()
       },
 
       silentSetup: async () => {
