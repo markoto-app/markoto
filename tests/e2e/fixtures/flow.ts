@@ -1,4 +1,5 @@
 import { test as base, type Page } from '@playwright/test'
+import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
@@ -147,10 +148,16 @@ export const test = base.extend<{ flow: Flow }>({
       return out.length ? out : undefined
     }
 
+    // Hash → already-written filename. Lets us deduplicate identical
+    // screenshots: a flow that adds a highlight + caption on top of an
+    // unchanged frame should NOT write the same PNG twice. Two manifest
+    // entries pointing at the same file render correctly in Flow.vue
+    // (same image, different caption/cursor/highlights overlay) and
+    // ship N× less bytes.
+    const fileByHash = new Map<string, string>()
+
     const capture = async (caption: string, opts?: ShotOpts) => {
       if (suppress) { suppress = false; return }
-      counter += 1
-      const file = `${String(counter).padStart(2, '0')}.png`
       await settle()
       const cursor = await readCursor()
       // Capture URL path AFTER settle so any in-flight navigation has
@@ -163,7 +170,26 @@ export const test = base.extend<{ flow: Flow }>({
       // screenshot so we capture the layout exactly as photographed
       // (a slow async could let the page reflow between snap and probe).
       const highlights = await resolveHighlights(opts?.highlights)
-      await page.screenshot({ path: path.join(outDir, file), fullPage: false })
+      // Take the screenshot in-memory (no path) so we can hash it
+      // and decide whether to write a new file or reuse an existing one.
+      const buf = await page.screenshot({ fullPage: false })
+      const hash = crypto.createHash('sha256').update(buf).digest('hex')
+      let file = fileByHash.get(hash)
+      if (!file) {
+        // First time we've seen this frame — assign a fresh number,
+        // write the file, remember the hash. Counter only increments
+        // on actual writes so file numbering stays dense.
+        counter += 1
+        file = `${String(counter).padStart(2, '0')}.png`
+        await fs.writeFile(path.join(outDir, file), buf)
+        fileByHash.set(hash, file)
+      } else {
+        // Same pixels as a previous shot — point this entry at the
+        // existing file. Print a notice so the author can decide if
+        // the duplicate step is intentional (highlight-only update)
+        // or accidental (back-to-back shots with no real change).
+        console.log(`[flow] "${caption}" reuses ${file} (no visual change since last shot)`)
+      }
       entries.push({ kind: 'shot', file, caption, cursor, path: shotPath, highlights })
     }
 
