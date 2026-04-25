@@ -170,6 +170,29 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       try { localStorage.setItem('nuxt-color-mode', v) } catch {}
     }, variant)
 
+    // Hide Nuxt devtools chrome from every page so the floating
+    // "Nuxt" badge doesn't end up in screenshots. Cheaper than
+    // disabling devtools globally (devs still get it during normal
+    // `bun run dev`); only the flow-test browser context strips it.
+    await page.addInitScript(() => {
+      const css = `
+        #nuxt-devtools-container,
+        #nuxt-devtools-anchor,
+        iframe[src*="__nuxt_devtools__"],
+        [data-v-inspector-container] { display: none !important; }
+      `
+      const inject = () => {
+        const style = document.createElement('style')
+        style.textContent = css
+        ;(document.head || document.documentElement).appendChild(style)
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inject, { once: true })
+      } else {
+        inject()
+      }
+    })
+
     // Inject cursor tracking on every page in this context.
     await page.addInitScript(CURSOR_INIT_SCRIPT)
     page.on('framenavigated', () => {

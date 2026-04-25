@@ -19,6 +19,9 @@ const props = defineProps<{
   showChrome: boolean
   chromeDomain: string
   showHighlights: boolean
+  /** Hide the inline figcaption — slides mode renders its own
+   *  prominent caption outside the frame to avoid duplication. */
+  hideCaption?: boolean
 }>()
 
 // Auto-flip the floating label so it never gets clipped by the
@@ -147,7 +150,7 @@ function labelRight(h: Highlight): boolean {
         >
       </div>
     </div>
-    <figcaption class="text-sm text-toned">
+    <figcaption v-if="!hideCaption" class="text-sm text-toned">
       {{ caption }}
     </figcaption>
   </figure>

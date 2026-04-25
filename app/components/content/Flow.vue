@@ -170,17 +170,64 @@ const shots = computed(() =>
 
 // Slide mode state.
 const slideIdx = ref(0)
-watch(visibleEntries, () => { slideIdx.value = 0 })
-const goPrev = () => { if (slideIdx.value > 0) slideIdx.value -= 1 }
-const goNext = () => { if (slideIdx.value < shots.value.length - 1) slideIdx.value += 1 }
+const isPlaying = ref(false)
+watch(visibleEntries, () => { slideIdx.value = 0; stopPlay() })
+
+// Auto-play: each slide is shown for SLIDE_DURATION_MS, then we
+// advance. Stops when we hit the last slide. Manual prev/next
+// also stops play — clicking a control = "I want to drive this".
+const SLIDE_DURATION_MS = 2000
+let playTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearPlayTimer() {
+  if (playTimer) { clearTimeout(playTimer); playTimer = null }
+}
+function stopPlay() {
+  isPlaying.value = false
+  clearPlayTimer()
+}
+function scheduleAdvance() {
+  clearPlayTimer()
+  if (!isPlaying.value) return
+  playTimer = setTimeout(() => {
+    if (slideIdx.value < shots.value.length - 1) {
+      slideIdx.value += 1
+      scheduleAdvance()
+    } else {
+      stopPlay()
+    }
+  }, SLIDE_DURATION_MS)
+}
+function togglePlay() {
+  if (isPlaying.value) {
+    stopPlay()
+  } else {
+    // If we're at the end, restart from slide 1 — the user clearly
+    // wants to watch it again.
+    if (slideIdx.value === shots.value.length - 1) slideIdx.value = 0
+    isPlaying.value = true
+    scheduleAdvance()
+  }
+}
+const goPrev = () => { stopPlay(); if (slideIdx.value > 0) slideIdx.value -= 1 }
+const goNext = () => { stopPlay(); if (slideIdx.value < shots.value.length - 1) slideIdx.value += 1 }
+
+onUnmounted(clearPlayTimer)
 
 // Keyboard nav for slides — only active when the slides container has focus,
 // so embedding two on the same page doesn't have them fighting.
 const slidesEl = ref<HTMLElement | null>(null)
 useEventListener(slidesEl, 'keydown', (e: KeyboardEvent) => {
   if (props.mode !== 'slides') return
-  if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev() } else if (e.key === 'ArrowRight') { e.preventDefault(); goNext() }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev() } else if (e.key === 'ArrowRight') { e.preventDefault(); goNext() } else if (e.key === ' ') { e.preventDefault(); togglePlay() }
 })
+
+// Progress bar width as a fraction of slides done. Animates between
+// values; the transition speed depends on whether we're playing or
+// jumping manually (see :class binding on the bar).
+const progressPct = computed(() =>
+  shots.value.length ? ((slideIdx.value + 1) / shots.value.length) * 100 : 0
+)
 </script>
 
 <template>
@@ -200,44 +247,112 @@ useEventListener(slidesEl, 'keydown', (e: KeyboardEvent) => {
     </h3>
 
     <!-- ─── SLIDES MODE ─────────────────────────────────────────── -->
+    <!-- Layout (top-down): frame → progress bar (zero gap) →
+         YouTube-style control row → prominent caption. The
+         progress bar + control row read as one unit "attached"
+         to the player; the caption is the editorial content. -->
     <div
       v-if="mode === 'slides' && shots.length"
       ref="slidesEl"
       tabindex="0"
-      class="space-y-3 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+      class="outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
     >
-      <FlowFrame
-        :src="`${baseUrl}/${shots[slideIdx].file}`"
-        :caption="shots[slideIdx].caption"
-        :cursor="shots[slideIdx].cursor"
-        :path="shots[slideIdx].path"
-        :highlights="shots[slideIdx].highlights"
-        :viewport="manifest.viewport"
-        :show-cursor="showCursor"
-        :show-chrome="showChrome"
-        :chrome-domain="effectiveChromeDomain"
-        :show-highlights="showHighlights"
-      />
-      <div class="flex items-center gap-3 text-sm">
-        <button
-          class="px-3 py-1 rounded border border-default disabled:opacity-40 hover:bg-elevated"
-          :disabled="slideIdx === 0"
-          @click="goPrev"
+      <!-- Frame + subtitle overlay. Caption renders OVER the
+           screenshot like a movie subtitle: translucent dark
+           backdrop + white text + center-bottom of the frame.
+           Reads on both light and dark screenshots without depending
+           on the underlying theme. Pointer-events-none so users
+           can still interact with anything behind it (none here,
+           but defensive). The <Transition> gives a soft fade
+           between slides instead of a hard cut, matching the
+           cursor's animated motion. -->
+      <div class="relative">
+        <FlowFrame
+          :src="`${baseUrl}/${shots[slideIdx].file}`"
+          :caption="shots[slideIdx].caption"
+          :cursor="shots[slideIdx].cursor"
+          :path="shots[slideIdx].path"
+          :highlights="shots[slideIdx].highlights"
+          :viewport="manifest.viewport"
+          :show-cursor="showCursor"
+          :show-chrome="showChrome"
+          :chrome-domain="effectiveChromeDomain"
+          :show-highlights="showHighlights"
+          hide-caption
+        />
+        <Transition
+          enter-active-class="transition-opacity duration-200"
+          leave-active-class="transition-opacity duration-150"
+          enter-from-class="opacity-0"
+          leave-to-class="opacity-0"
+          mode="out-in"
         >
-          ←
-        </button>
-        <span class="font-mono text-xs text-toned">
+          <div
+            :key="slideIdx"
+            class="absolute left-0 right-0 bottom-4 px-6 pointer-events-none flex justify-center"
+          >
+            <p
+              class="bg-black/75 text-white px-4 py-2 rounded-md text-base md:text-lg font-medium text-center max-w-[80%] backdrop-blur-sm shadow-lg"
+            >
+              {{ shots[slideIdx].caption }}
+            </p>
+          </div>
+        </Transition>
+      </div>
+
+      <!-- Progress bar — flush against the bottom of the frame
+           (no gap). Width transitions linearly over the slide
+           duration when autoplay is running so the bar visibly
+           fills as the slide is shown; jumps quickly when the
+           user clicks prev / next. -->
+      <div class="h-1 bg-elevated overflow-hidden">
+        <div
+          class="h-full bg-primary"
+          :style="{
+            width: `${progressPct}%`,
+            transition: isPlaying ? `width ${SLIDE_DURATION_MS}ms linear` : 'width 0.25s ease-out'
+          }"
+        />
+      </div>
+
+      <!-- YouTube-style control row: borderless icon buttons grouped
+           on the left (prev / play / next), counter as a "time" on
+           the right. Hover gives a subtle wash so users know
+           something's clickable. -->
+      <div class="flex items-center justify-between px-2 py-1.5 bg-elevated/50">
+        <div class="flex items-center">
+          <button
+            class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
+            aria-label="Previous slide"
+            :disabled="slideIdx === 0"
+            @click="goPrev"
+          >
+            <UIcon name="i-lucide-skip-back" class="size-4" />
+          </button>
+          <button
+            class="size-8 inline-flex items-center justify-center rounded text-default hover:bg-elevated transition-colors"
+            :aria-label="isPlaying ? 'Pause autoplay' : 'Play autoplay'"
+            @click="togglePlay"
+          >
+            <UIcon
+              :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'"
+              class="size-4"
+            />
+          </button>
+          <button
+            class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
+            aria-label="Next slide"
+            :disabled="slideIdx === shots.length - 1"
+            @click="goNext"
+          >
+            <UIcon name="i-lucide-skip-forward" class="size-4" />
+          </button>
+        </div>
+        <span class="font-mono text-xs text-toned tabular-nums">
           {{ slideIdx + 1 }} / {{ shots.length }}
         </span>
-        <button
-          class="px-3 py-1 rounded border border-default disabled:opacity-40 hover:bg-elevated"
-          :disabled="slideIdx === shots.length - 1"
-          @click="goNext"
-        >
-          →
-        </button>
-        <span class="text-toned ml-2 truncate">{{ shots[slideIdx].caption }}</span>
       </div>
+
     </div>
 
     <!-- ─── SCROLL MODE (default) ───────────────────────────────── -->
