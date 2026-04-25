@@ -182,7 +182,7 @@ const playProgress = ref(0)
 // Auto-play: each slide is shown for SLIDE_DURATION_MS, then we
 // advance. Stops when we hit the last slide. Manual prev/next
 // also stops play — clicking a control = "I want to drive this".
-const SLIDE_DURATION_MS = 2000
+const SLIDE_DURATION_MS = 3000
 let playTimer: ReturnType<typeof setTimeout> | null = null
 
 function clearPlayTimer() {
