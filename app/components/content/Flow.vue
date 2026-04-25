@@ -27,11 +27,14 @@ type NarrateEntry = { kind: 'narrate', text: string }
 type HeadingEntry = { kind: 'heading', level: 2 | 3, text: string }
 type Entry = ShotEntry | NarrateEntry | HeadingEntry
 
+type Variant = 'light' | 'dark'
+
 type Manifest = {
   version: 1
   title: string
   slug: string
   locale: string
+  variant: Variant
   viewport: { w: number, h: number }
   entries: Entry[]
 }
@@ -76,6 +79,14 @@ const effectiveChromeDomain = computed(
 )
 
 const { locale: i18nLocale } = useI18n()
+const colorMode = useColorMode()
+// Resolve color-mode preference to a concrete variant. `value` is the
+// resolved value (light or dark, even when preference is 'system'),
+// which is what we want — we capture two variants, not three.
+const currentVariant = computed<Variant>(
+  () => (colorMode.value === 'dark' ? 'dark' : 'light')
+)
+const oppositeVariant = (v: Variant): Variant => (v === 'light' ? 'dark' : 'light')
 
 // Build a fully-qualified URL for the manifest fetch. On the server,
 // `$fetch('/flows/...')` with a bare path goes through Nitro's internal
@@ -86,15 +97,43 @@ const { locale: i18nLocale } = useI18n()
 // behaviour as a relative path. One code path, both contexts; SSR can
 // pre-render the manifest into the page (no client flash on hydration).
 const reqUrl = useRequestURL()
-const flowUrl = (id: string, locale: string) =>
-  `${reqUrl.origin}/flows/${id}/${locale}/manifest.json`
+const flowUrl = (id: string, locale: string, variant: Variant) =>
+  `${reqUrl.origin}/flows/${id}/${locale}/${variant}/manifest.json`
 
-// Try current locale first; on 404 fall back to defaultLocale. We do this
-// at the fetch level (not by trying both URLs in parallel) because the
-// docs site usually has full coverage for one or two locales and partial
-// coverage for the rest — the fast path costs one request.
+// Fallback chain on 404:
+//   1. requested locale + requested variant   (the happy path)
+//   2. requested locale + opposite variant    (variant not captured for this flow)
+//   3. defaultLocale + requested variant      (locale not translated yet)
+//   4. defaultLocale + opposite variant       (last resort)
+//   5. throw                                  (flow doesn't exist at all)
+//
+// We try them serially because the happy path is one request and the
+// fallbacks are exceptional — parallelising would burn 4× the requests
+// for the common case.
+async function fetchWithFallbacks(id: string): Promise<Manifest> {
+  const candidates: Array<{ locale: string, variant: Variant }> = [
+    { locale: i18nLocale.value, variant: currentVariant.value },
+    { locale: i18nLocale.value, variant: oppositeVariant(currentVariant.value) }
+  ]
+  if (i18nLocale.value !== props.defaultLocale) {
+    candidates.push(
+      { locale: props.defaultLocale, variant: currentVariant.value },
+      { locale: props.defaultLocale, variant: oppositeVariant(currentVariant.value) }
+    )
+  }
+  let lastErr: unknown = null
+  for (const c of candidates) {
+    try {
+      return await $fetch<Manifest>(flowUrl(id, c.locale, c.variant))
+    } catch (e) {
+      lastErr = e
+    }
+  }
+  throw lastErr ?? new Error(`flow ${id} not found`)
+}
+
 const { data: manifest, error } = await useAsyncData<Manifest | null>(
-  () => `flow:${props.id ?? props.path}:${i18nLocale.value}`,
+  () => `flow:${props.id ?? props.path}:${i18nLocale.value}:${currentVariant.value}`,
   async () => {
     if (props.path) {
       // `path` may be relative (in-app) or absolute (cross-app escape hatch).
@@ -103,23 +142,20 @@ const { data: manifest, error } = await useAsyncData<Manifest | null>(
       return await $fetch<Manifest>(url)
     }
     if (!props.id) throw new Error('<Flow> requires either `id` or `path`')
-
-    const primary = flowUrl(props.id, i18nLocale.value)
-    try {
-      return await $fetch<Manifest>(primary)
-    } catch (e) {
-      if (i18nLocale.value === props.defaultLocale) throw e
-      const fallback = flowUrl(props.id, props.defaultLocale)
-      return await $fetch<Manifest>(fallback)
-    }
+    return await fetchWithFallbacks(props.id)
   },
-  { watch: [i18nLocale] }
+  { watch: [i18nLocale, currentVariant] }
 )
 
 const baseUrl = computed(() => {
   if (!manifest.value) return ''
   if (props.path) return props.path.replace(/\/manifest\.json$/, '')
-  return `/flows/${props.id}/${manifest.value.locale}`
+  // Use the manifest's OWN locale + variant — not the request's. The
+  // fallback chain may have given us a different (locale, variant)
+  // pair than what the user asked for; image paths must point at the
+  // same triple as the manifest, otherwise we'd serve dark variant
+  // PNGs alongside light variant captions.
+  return `/flows/${props.id}/${manifest.value.locale}/${manifest.value.variant}`
 })
 
 const visibleEntries: ComputedRef<Entry[]> = computed(() => {

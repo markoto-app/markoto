@@ -46,6 +46,8 @@ type NarrateEntry = { kind: 'narrate', text: string }
 type HeadingEntry = { kind: 'heading', level: 2 | 3, text: string }
 export type FlowEntry = ShotEntry | NarrateEntry | HeadingEntry
 
+export type Variant = 'light' | 'dark'
+
 export type Manifest = {
   // Schema version so the Flow.vue component can guard against drift —
   // bump on any breaking change to entry shapes.
@@ -53,6 +55,8 @@ export type Manifest = {
   title: string
   slug: string
   locale: string
+  /** Color mode the app was rendering when this manifest was captured. */
+  variant: Variant
   // Source viewport size — the consumer scales cursor coordinates by
   // (display_w / viewport.w) so overlays land in the right spot at any
   // displayed size.
@@ -116,9 +120,21 @@ const CURSOR_INIT_SCRIPT = `
 export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
   flow: async ({ page }, use, testInfo) => {
     const locale = (testInfo.project.metadata?.locale as string | undefined) ?? 'en'
+    const variant: Variant = (testInfo.project.metadata?.variant as Variant | undefined) ?? 'light'
     const slug = slugify(testInfo.title)
-    const outDir = path.join('tests/e2e/output/flows', slug, locale)
+    const outDir = path.join('tests/e2e/output/flows', slug, locale, variant)
     await fs.mkdir(outDir, { recursive: true })
+
+    // Force the app's color mode BEFORE any page script runs. We belt-
+    // and-suspenders: project-level `colorScheme` sets the OS-level
+    // prefers-color-scheme media query, AND we pre-seed the
+    // nuxt-color-mode storage key so @nuxtjs/color-mode resolves to
+    // the explicit preference instead of falling back to "system".
+    // Either signal alone usually works; both together survive any
+    // resolution-order change in the underlying color-mode plugin.
+    await page.addInitScript((v: string) => {
+      try { localStorage.setItem('nuxt-color-mode', v) } catch {}
+    }, variant)
 
     // Inject cursor tracking on every page in this context.
     await page.addInitScript(CURSOR_INIT_SCRIPT)
@@ -229,6 +245,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       title: testInfo.title,
       slug,
       locale,
+      variant,
       viewport: { w: viewportSize.width, h: viewportSize.height },
       entries
     }
@@ -312,6 +329,31 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 })
 
 export const expect = base.expect
+
+/**
+ * Skip the current test if its project's variant is in the opt-out
+ * list. Use for flows where dual-mode capture is wasteful — e.g. a
+ * flow that demonstrates the theme toggle itself; recording it in
+ * "dark mode" is trivially the same content with reversed icon
+ * order.
+ *
+ * Place at the top of a test:
+ *
+ *   test('Demo', async ({ flow, editor }, info) => {
+ *     skipVariants(info, ['dark'], 'this flow demos light mode only')
+ *     // ...
+ *   })
+ */
+export function skipVariants(
+  info: { project: { metadata?: Record<string, unknown> } },
+  variants: Variant[],
+  reason: string
+): void {
+  const v = info.project.metadata?.variant as Variant | undefined
+  if (v && variants.includes(v)) {
+    base.skip(true, `${reason} (skipping variant=${v})`)
+  }
+}
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
