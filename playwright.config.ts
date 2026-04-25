@@ -16,12 +16,15 @@ import { defineConfig, devices } from '@playwright/test'
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
 
-// Pinned viewport. Full HD so screenshots embedded in docs look sharp on
-// retina displays and remain readable when the docs container narrows.
-// Same dimensions for every project so cursor coordinates stay comparable;
-// the manifest carries it explicitly so the consumer doesn't need to know.
-// Bump in lockstep across config + fixture default + FlowFrame fallback.
-const VIEWPORT = { width: 1920, height: 1080 }
+// Pinned viewport. The docs site caps embedded flows at ~1100px wide,
+// so capturing at 1920px wastes pixels AND makes the downscaled UI
+// tiny (16px text → ~9px on the page). 1280×800 is a "comfortable
+// laptop" reference: sits ~16% above the displayed width (sharp without
+// being microscopic), well above the 640px mobile breakpoint (no
+// responsive surprises in screenshots), and matches the size most
+// design reviews assume. Bump in lockstep across config + fixture
+// default + FlowFrame fallback if changed again.
+const VIEWPORT = { width: 1280, height: 800 }
 
 export default defineConfig({
   testDir: './tests/e2e/flows',

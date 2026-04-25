@@ -179,7 +179,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       page.evaluate(CURSOR_INIT_SCRIPT).catch(() => {})
     })
 
-    const viewportSize = page.viewportSize() ?? { width: 1920, height: 1080 }
+    const viewportSize = page.viewportSize() ?? { width: 1280, height: 800 }
     const entries: FlowEntry[] = []
     let counter = 0
     let suppress = false
