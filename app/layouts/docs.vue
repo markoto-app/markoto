@@ -35,13 +35,21 @@ const sidebarNav = computed(() => {
   <div class="grid md:grid-cols-[280px_1fr] min-h-screen">
     <aside class="hidden md:block border-r border-default bg-elevated/30">
       <div class="sticky top-0 max-h-screen overflow-y-auto p-5">
-        <NuxtLink
-          to="/docs"
-          class="flex items-center gap-2 mb-6 font-semibold hover:text-primary transition-colors"
-        >
-          <UIcon name="i-lucide-book-open" class="size-5 text-primary" />
-          Documentation
-        </NuxtLink>
+        <!-- Header row: brand on the left, color-mode toggle on the
+             right. The toggle lets readers preview the docs in
+             whichever theme they prefer; flow screenshots switch
+             to the matching variant in real time (see the
+             useColorMode subscription in Flow.vue). -->
+        <div class="flex items-center justify-between gap-2 mb-6">
+          <NuxtLink
+            to="/docs"
+            class="flex items-center gap-2 font-semibold hover:text-primary transition-colors"
+          >
+            <UIcon name="i-lucide-book-open" class="size-5 text-primary" />
+            Documentation
+          </NuxtLink>
+          <UColorModeButton />
+        </div>
         <DocsSidebar :nav="sidebarNav" />
       </div>
     </aside>
