@@ -188,7 +188,13 @@ useEventListener(slidesEl, 'keydown', (e: KeyboardEvent) => {
     Flow <code>{{ id ?? path }}</code> failed to load: {{ error.message }}
   </div>
 
-  <div v-else-if="manifest" class="my-8 not-prose">
+  <!-- docs-wide opts this component into the full-bleed grid column
+       in the docs article layout (see app/pages/docs/[...slug].vue's
+       `.docs-article > :deep(.docs-wide)` rule). Without it, the
+       Flow renders inside the narrow prose column and screenshots
+       are too small to read. The class is a no-op outside the docs
+       layout — Flow can still be embedded anywhere. -->
+  <div v-else-if="manifest" class="my-8 not-prose docs-wide">
     <h3 v-if="!hideTitle" class="text-lg font-semibold mb-4">
       {{ manifest.title }}
     </h3>

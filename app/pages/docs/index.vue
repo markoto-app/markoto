@@ -15,14 +15,12 @@ const { data: featured } = await useAsyncData('docs:featured', () =>
     .all()
 )
 
-const { data: navigation } = await useAsyncData('docs:nav', () =>
-  queryCollectionNavigation('docs', ['order', 'navHidden'])
-)
-
 useSeoMeta({
   title: 'Documentation — YPad',
   description: 'Guides, walkthroughs, and reference for the YPad collaborative markdown editor.'
 })
+
+definePageMeta({ layout: 'docs' })
 
 // Hand-curated categories with icon + tagline. Maps to top-level
 // folders under content/docs/. Edit here when adding a new section.
@@ -61,12 +59,8 @@ const categories = [
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8">
-    <aside class="hidden md:block">
-      <DocsSidebar :nav="navigation ?? []" />
-    </aside>
-
-    <main class="max-w-4xl">
+  <div class="max-w-4xl px-6 md:px-12 py-12">
+    <div>
       <header class="mb-10">
         <h1 class="text-4xl font-bold tracking-tight mb-3">
           Documentation
@@ -147,6 +141,6 @@ const categories = [
           </li>
         </ul>
       </section>
-    </main>
+    </div>
   </div>
 </template>

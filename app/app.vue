@@ -23,6 +23,13 @@ useSeoMeta({
 
 <template>
   <UApp :toaster="{ position: 'top-right' }">
-    <NuxtPage />
+    <!-- NuxtLayout wraps NuxtPage with whatever layout the page opts
+         into via definePageMeta({ layout: 'name' }). Pages without
+         a layout meta render bare (no default layout file exists),
+         so existing routes (/d/, /w/, /pricing, /) are unaffected.
+         The /docs/* tree opts into the `docs` layout. -->
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </UApp>
 </template>
