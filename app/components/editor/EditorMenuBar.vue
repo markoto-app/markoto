@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
 import {
-  toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode,
+  toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, toggleComment,
   insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram,
   insertToc, insertPageBreak, insertDefinitionList
 } from '~/utils/editorCommands'
@@ -242,6 +242,7 @@ const insertItems = computed(() => {
     { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => emit('open-table-picker') },
     { label: t('editor.horizontalRule'), icon: 'i-lucide-minus', onSelect: () => call(v => insertBlock(v, '\n---\n')) },
     { label: t('editor.pageBreak'), icon: 'i-lucide-scissors-line-dashed', onSelect: () => call(v => insertPageBreak(v)) },
+    { label: t('editor.comment'), icon: 'i-lucide-message-square-dashed', onSelect: () => call(v => toggleComment(v)) },
     { type: 'separator' as const },
     { label: t('menubar.insert.footnote'), icon: 'i-lucide-asterisk', onSelect: () => call(v => insertFootnote(v)) },
     {

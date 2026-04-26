@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, insertBlock, insertAlert, insertMath, insertDiagram, insertPageBreak, insertToc } from '~/utils/editorCommands'
+import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, toggleComment, insertBlock, insertAlert, insertMath, insertDiagram, insertPageBreak, insertToc } from '~/utils/editorCommands'
 
 const { t } = useI18n()
 
@@ -127,7 +127,11 @@ const actions = computed(() => [
   // with a size picker (rendered in the template after this list).
   { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) },
   { icon: 'i-lucide-scissors-line-dashed', label: t('editor.pageBreak'), action: withView(v => insertPageBreak(v)) },
-  { icon: 'i-lucide-list-tree', label: t('menubar.insert.toc'), action: withView(v => insertToc(v)) }
+  { icon: 'i-lucide-list-tree', label: t('menubar.insert.toc'), action: withView(v => insertToc(v)) },
+  // Comment — wraps selection in <!-- ... --> so it stays in the
+  // markdown source but is stripped from preview/PDF/share. Toggles
+  // off if the selection is already a comment.
+  { icon: 'i-lucide-message-square-dashed', label: t('editor.comment'), action: withView(v => toggleComment(v)) }
   // Math, alerts, diagrams, table need a kind/size picker — rendered as
   // dropdowns / popovers directly in the template after this list.
   // Putting them in `actions` would force a default on the toolbar

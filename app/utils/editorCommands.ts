@@ -654,6 +654,61 @@ export function insertPageBreak(view: EditorView): void {
 }
 
 /**
+ * Wrap (or unwrap) the current selection in `<!-- ... -->`. Comments
+ * stay in the markdown source but are stripped from preview/PDF/share
+ * by the comment plugin in `renderMarkdown.ts` — useful for private
+ * todos, alternative phrasings, and reminders to the writer.
+ *
+ * Behavior matches the bold-style `toggleWrap` ergonomics:
+ *   - Empty selection → inserts `<!--  -->` and lands the cursor
+ *     between the spaces, ready to type.
+ *   - Selection already starts with `<!--` and ends with `-->` →
+ *     unwraps (strips the delimiters), preserving the inner text.
+ *   - Otherwise → wraps the selection as `<!-- selected -->` (single
+ *     line or multi-line; the renderer handles both forms).
+ */
+export function toggleComment(view: EditorView): void {
+  const { from, to } = view.state.selection.main
+  const selected = view.state.sliceDoc(from, to)
+
+  if (selected.length === 0) {
+    const insert = '<!--  -->'
+    view.dispatch({
+      changes: { from, to, insert },
+      // Cursor between the two spaces inside the delimiters.
+      selection: { anchor: from + 5 }
+    })
+    view.focus()
+    return
+  }
+
+  const trimmed = selected.trim()
+  if (trimmed.startsWith('<!--') && trimmed.endsWith('-->') && trimmed.length >= 7) {
+    // Unwrap. Preserve original leading/trailing whitespace by only
+    // touching the trimmed core.
+    const lead = selected.match(/^\s*/)![0]
+    const trail = selected.match(/\s*$/)![0]
+    const inner = trimmed.slice(4, trimmed.length - 3).replace(/^\s+|\s+$/g, '')
+    const insert = lead + inner + trail
+    view.dispatch({
+      changes: { from, to, insert },
+      selection: { anchor: from, head: from + insert.length }
+    })
+    view.focus()
+    return
+  }
+
+  const insert = `<!-- ${selected} -->`
+  view.dispatch({
+    changes: { from, to, insert },
+    // Re-select the original text inside the new delimiters so a second
+    // click toggles cleanly.
+    selection: { anchor: from + 5, head: from + 5 + selected.length }
+  })
+  view.focus()
+}
+
+/**
  * Insert a `[[toc]]` placeholder. The renderer (markdown-it-toc-done-
  * right) rewrites it into a nested list of links to every heading in
  * the doc. Always lands on its own line so the placeholder parses as

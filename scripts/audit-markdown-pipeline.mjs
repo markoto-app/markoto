@@ -58,6 +58,48 @@ function pagebreakPlugin(md) {
   }, { alt: [] })
 }
 
+// Comment rule — copied verbatim from app/utils/renderMarkdown.ts.
+// Strips `<!-- ... -->` (block + inline) so writers can leave private
+// notes that don't surface in preview/PDF.
+function commentPlugin(md) {
+  md.block.ruler.before('paragraph', 'comment', (state, startLine, endLine, silent) => {
+    const start = state.bMarks[startLine] + state.tShift[startLine]
+    const max = state.eMarks[startLine]
+    const firstLine = state.src.slice(start, max)
+    if (!firstLine.startsWith('<!--')) return false
+    const inlineCloseIdx = firstLine.indexOf('-->', 4)
+    if (inlineCloseIdx !== -1) {
+      if (firstLine.slice(inlineCloseIdx + 3).trim() !== '') return false
+      if (silent) return true
+      state.line = startLine + 1
+      return true
+    }
+    let line = startLine + 1
+    while (line < endLine) {
+      const lineStart = state.bMarks[line] + state.tShift[line]
+      const lineEnd = state.eMarks[line]
+      const lineText = state.src.slice(lineStart, lineEnd)
+      const closeIdx = lineText.indexOf('-->')
+      if (closeIdx !== -1) {
+        if (lineText.slice(closeIdx + 3).trim() !== '') return false
+        if (silent) return true
+        state.line = line + 1
+        return true
+      }
+      line++
+    }
+    return false
+  })
+  md.inline.ruler.before('text', 'comment_inline', (state, silent) => {
+    if (state.src.charCodeAt(state.pos) !== 0x3C) return false
+    if (state.src.slice(state.pos, state.pos + 4) !== '<!--') return false
+    const end = state.src.indexOf('-->', state.pos + 4)
+    if (end === -1) return false
+    state.pos = end + 3
+    return true
+  })
+}
+
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true, breaks: true })
   .use(taskLists, { enabled: true })
   .use(emoji)
@@ -76,6 +118,7 @@ const md = new MarkdownIt({ html: false, linkify: true, typographer: true, break
   .use(anchor, { permalink: false })
   .use(toc, { listType: 'ul', level: [1, 2, 3, 4] })
   .use(pagebreakPlugin)
+  .use(commentPlugin)
 
 // SAME allow-list as app/utils/renderMarkdown.ts
 const SANITIZE_OPTS = {
@@ -170,4 +213,18 @@ run('inline HTML stripped', '<script>alert(1)</script><b>allowed?</b>and text')
 run('data URI image (should block)', '![x](data:image/png;base64,AAAA)')
 
 run('pagebreak rendered through DOMPurify?', '<!-- pagebreak -->')
+
+// ============ COMMENTS ============
+
+run('comment block single-line', 'Before\n\n<!-- TODO: rewrite -->\n\nAfter')
+run('comment block multi-line', 'Before\n\n<!--\nThis is a private note\nspanning lines\n-->\n\nAfter')
+run('comment inline mid-paragraph', 'This is text <!-- a private note --> with more text.')
+run('comment inline at start', '<!-- note --> Real content starts here.')
+run('comment inline at end', 'Content here. <!-- TODO -->')
+run('multiple inline comments', 'a <!-- one --> b <!-- two --> c')
+run('comment with markdown inside (NOT rendered)', '<!-- **bold** _italic_ [link](x) -->')
+run('comment does NOT swallow trailing text', '<!-- note --> Real content.')
+run('pagebreak still wins over comment', 'Before\n\n<!-- pagebreak -->\n\nAfter')
+run('unterminated comment falls back to literal', 'Before\n\n<!-- never closed\n\nmore prose')
+run('comment inside code fence stays literal', '```\n<!-- not a comment in code -->\n```')
 

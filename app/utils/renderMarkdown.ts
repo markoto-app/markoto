@@ -19,6 +19,7 @@ import type MarkdownIt from 'markdown-it'
 import type Token from 'markdown-it/lib/token.mjs'
 import type Renderer from 'markdown-it/lib/renderer.mjs'
 import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
+import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 
 // markdown-it exports Options as a nested type under the default class; we
 // pluck it from the instance shape so the type resolution doesn't depend on
@@ -57,6 +58,80 @@ function pagebreakPlugin(md: MarkdownIt): void {
     token.content = '<div class="page-break"></div>\n'
     token.map = [startLine, startLine + 1]
     state.line = startLine + 1
+    return true
+  })
+}
+
+/**
+ * Block + inline plugin: HTML-style comments `<!-- ... -->` are stripped
+ * from rendered output. Lets writers leave private notes for themselves
+ * — `<!-- TODO: rewrite this -->` — without those notes leaking into
+ * the preview, PDF, or shared view. The comment text stays in the
+ * markdown source so collaborators with editor access still see it.
+ *
+ * Two rules:
+ *   - block: a line (or multi-line range) whose only non-whitespace
+ *     content is a comment is consumed entirely, emitting nothing.
+ *   - inline: `<!-- ... -->` mid-paragraph is stripped in place so
+ *     surrounding prose flows around the gap.
+ *
+ * Pagebreak (`<!-- pagebreak -->`) is registered earlier in the chain
+ * via `.use(pagebreakPlugin)` first, then `.use(commentPlugin)`. Both
+ * insert `before('paragraph', ...)`, which positions the second
+ * insertion AFTER the first — so pagebreak runs first and short-circuits
+ * its exact pattern before the comment rule sees the line.
+ *
+ * Unterminated `<!--` (no matching `-->`) returns false from the block
+ * rule and falls through to paragraph parsing, where markdown-it
+ * escapes the literal `<` because `html: false`.
+ */
+function commentPlugin(md: MarkdownIt): void {
+  md.block.ruler.before('paragraph', 'comment', (state: StateBlock, startLine: number, endLine: number, silent: boolean) => {
+    const start = state.bMarks[startLine]! + state.tShift[startLine]!
+    const max = state.eMarks[startLine]!
+    const firstLine = state.src.slice(start, max)
+    if (!firstLine.startsWith('<!--')) return false
+
+    // Single-line case: open + close on the same line. Anything after
+    // `-->` other than whitespace means the user wrote an inline
+    // comment with surrounding content — let the inline rule handle
+    // it inside a paragraph.
+    const inlineCloseIdx = firstLine.indexOf('-->', 4)
+    if (inlineCloseIdx !== -1) {
+      if (firstLine.slice(inlineCloseIdx + 3).trim() !== '') return false
+      if (silent) return true
+      state.line = startLine + 1
+      return true
+    }
+
+    // Multi-line: scan ahead for the closing delimiter. The closing
+    // line must also end in whitespace (no trailing real content).
+    let line = startLine + 1
+    while (line < endLine) {
+      const lineStart = state.bMarks[line]! + state.tShift[line]!
+      const lineEnd = state.eMarks[line]!
+      const lineText = state.src.slice(lineStart, lineEnd)
+      const closeIdx = lineText.indexOf('-->')
+      if (closeIdx !== -1) {
+        if (lineText.slice(closeIdx + 3).trim() !== '') return false
+        if (silent) return true
+        state.line = line + 1
+        return true
+      }
+      line++
+    }
+    return false
+  })
+
+  md.inline.ruler.before('text', 'comment_inline', (state: StateInline, silent: boolean) => {
+    if (state.src.charCodeAt(state.pos) !== 0x3C /* < */) return false
+    if (state.src.slice(state.pos, state.pos + 4) !== '<!--') return false
+    const end = state.src.indexOf('-->', state.pos + 4)
+    if (end === -1) return false
+    if (!silent) {
+      // No token pushed — the comment is consumed silently.
+    }
+    state.pos = end + 3
     return true
   })
 }
@@ -232,6 +307,10 @@ async function init(): Promise<void> {
       // Inline plugin — `<!-- pagebreak -->` on its own line becomes
       // `<div class="page-break"></div>` for paged.js to break on.
       .use(pagebreakPlugin)
+      // Comment plugin — strips `<!-- ... -->` from preview/PDF.
+      // Registered AFTER pagebreak so the pagebreak rule wins on its
+      // exact pattern by registration order.
+      .use(commentPlugin)
 
     // Open all preview links in a new tab. `rel="noopener noreferrer"`
     // prevents the opened page from reaching back into our window.

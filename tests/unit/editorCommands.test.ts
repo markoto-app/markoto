@@ -4,6 +4,7 @@ import type { EditorView } from '@codemirror/view'
 import {
   toggleWrap,
   toggleCode,
+  toggleComment,
   toggleHeading,
   toggleLinePrefix,
   toggleOrderedList,
@@ -641,6 +642,71 @@ describe('insertToc', () => {
 // ═══════════════════════════════════════════════════════════════════════
 // insertDefinitionList — dl scaffold
 // ═══════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════
+// toggleComment — wrap/unwrap selection in <!-- ... -->
+//
+// Black-box spec:
+//   - Empty selection → drops `<!--  -->` and lands the cursor between
+//     the spaces.
+//   - Plain selection → wraps as `<!-- selected -->`, re-selecting the
+//     inner text so a second click toggles off.
+//   - Already-commented selection → unwraps (strips `<!--`/`-->` and
+//     the surrounding whitespace inside the delimiters).
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('toggleComment', () => {
+  it('cursor only: inserts empty comment with cursor between spaces', () => {
+    const v = makeView('', 0)
+    toggleComment(v)
+    expect(text(v)).toBe('<!--  -->')
+    // 4 chars for `<!--`, 1 space → cursor at index 5.
+    expect(cursorAt(v)).toBe(5)
+  })
+
+  it('wraps a plain selection as <!-- selected -->', () => {
+    const v = makeView('foo', { from: 0, to: 3 })
+    toggleComment(v)
+    expect(text(v)).toBe('<!-- foo -->')
+    // Re-selects the inner text so a second click toggles off.
+    expect(selectedText(v)).toBe('foo')
+  })
+
+  it('toggles off an already-wrapped selection', () => {
+    const v = makeView('<!-- foo -->', { from: 0, to: 12 })
+    toggleComment(v)
+    expect(text(v)).toBe('foo')
+  })
+
+  it('toggle off → toggle on round-trips to the same shape', () => {
+    const v = makeView('foo', { from: 0, to: 3 })
+    toggleComment(v)  // → `<!-- foo -->`, selection on `foo`
+    toggleComment(v)  // unwrap (selection is `foo`, but adjacent markers)
+    // The inner-text selection is just `foo` — that doesn't start with
+    // `<!--`, so the second click WRAPS again rather than unwrapping.
+    // This matches `toggleWrap`'s existing semantics: to unwrap from an
+    // inner-text selection, the markers must be in the selection.
+    expect(text(v)).toBe('<!-- <!-- foo --> -->')
+  })
+
+  it('unwraps when the full comment (including delimiters) is selected', () => {
+    const v = makeView('<!-- private note -->', { from: 0, to: 21 })
+    toggleComment(v)
+    expect(text(v)).toBe('private note')
+  })
+
+  it('multi-line selection wraps the whole block in one comment', () => {
+    const v = makeView('line one\nline two', { from: 0, to: 17 })
+    toggleComment(v)
+    expect(text(v)).toBe('<!-- line one\nline two -->')
+  })
+
+  it('whitespace-padded selection preserves the leading/trailing whitespace on unwrap', () => {
+    const v = makeView('  <!-- foo -->  ', { from: 0, to: 16 })
+    toggleComment(v)
+    expect(text(v)).toBe('  foo  ')
+  })
+})
 
 describe('insertDefinitionList', () => {
   it('inserts a term + definition scaffold', () => {

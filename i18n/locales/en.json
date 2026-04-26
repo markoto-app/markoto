@@ -46,7 +46,8 @@
     "superscript": "Superscript",
     "horizontalRule": "Horizontal Rule",
     "pageBreak": "Page break",
-    "table": "Table"
+    "table": "Table",
+    "comment": "Comment (hidden from preview)"
   },
   "status": {
     "connecting": "Connecting...",

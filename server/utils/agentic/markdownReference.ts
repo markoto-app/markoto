@@ -73,6 +73,15 @@ Auto table of contents: \`[[toc]]\` on its own line generates a nested list of e
 
 Page break: \`<!-- pagebreak -->\` on its own line forces a new page in the printed/exported doc.
 
+Private comments (NOT rendered in preview, PDF, or shared view — only visible in the markdown source):
+  <!-- TODO: rewrite this section -->          single-line, on its own line — entire line removed
+  <!-- a private note --> in a paragraph        inline within prose — comment stripped, surrounding text kept
+  <!--                                          multi-line block — every line consumed
+  notes that span
+  multiple lines
+  -->
+  Use comments to leave private notes for the writer (todos, reminders, alternative phrasings) without polluting the output. Markdown inside a comment is NOT processed (\`<!-- **bold** -->\` emits nothing, no bold). \`<!-- pagebreak -->\` keeps its special pagebreak meaning and is NOT treated as a comment.
+
 Lists:
   - unordered (also * or + work)
   1. ordered
