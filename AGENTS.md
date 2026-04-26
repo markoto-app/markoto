@@ -448,7 +448,155 @@ Required env: `DOMAIN`, `ACME_EMAIL`, `SESSION_PASSWORD` (≥32), `GITHUB/GOOGLE
 
 `drizzle/` — generated migrations + meta snapshots (committed). `i18n/locales/` — en/de/fr/es/ja/zh JSON. `docs/` — DEPLOY.md, LOCAL.md, S3-SETUP.md, OBSERVABILITY.md, SECRETS-ROTATION.md.
 
-`scripts/` — standalone Bun scripts for offline verification. `audit-markdown-pipeline.mjs` runs the full markdown-it + every plugin + DOMPurify chain (identical config to `app/utils/renderMarkdown.ts`) and prints raw + sanitized output per case. Run before adding a syntax claim to `server/utils/agentic/markdownReference.ts` — only document what the script confirms renders. See §19 for why this matters.
+`scripts/` — standalone Bun scripts for offline verification. `audit-markdown-pipeline.mjs` runs the full markdown-it + every plugin + DOMPurify chain (identical config to `app/utils/renderMarkdown.ts`) and prints raw + sanitized output per case. Run before adding a syntax claim to `server/utils/agentic/markdownReference.ts` — only document what the script confirms renders. See §19 for why this matters. `flows-ephemeral.ts` orchestrates the flow-test ephemeral stack (see §14b). `build-flows.ts` publishes Playwright flow output from `tests/e2e/output/flows/` to `public/flows/`.
+
+`tests/e2e/` — Playwright flow tests. `fixtures/flow.ts` is the central fixture (cursor injection, manifest writing, content-hash dedup, EditorPage nested fixture, color-mode pre-seed). `page-objects/Editor.ts` is the page-object that flow tests query through. `flows/` holds the actual `*.spec.ts` flow tests. See §14b.
+
+`content/docs/` + `app/layouts/docs.vue` + `app/pages/docs/` + `app/components/content/{Flow,FlowFrame}.vue` — the docs site that consumes the flows. See §14b for the full pipeline.
+
+---
+
+## 14b. Flow Docs System
+
+End-to-end pipeline that turns Playwright tests into a documentation site. Each flow IS a test (asserts real product behaviour) AND a tutorial (renders as a slideshow with subtitles, browser chrome, animated cursor, pulsating highlight callouts). The same artefacts power both.
+
+### Pipeline at a glance
+
+```
+tests/e2e/flows/<slug>.spec.ts           ← Playwright test using `flow` + `editor` fixtures
+        │
+        ▼  bun run flows:test  (or flows:test:ephemeral)
+        │
+tests/e2e/output/flows/<slug>/<locale>/<variant>/
+  ├─ manifest.json        ← entry list (heading/narrate/shot), per-shot cursor + path + highlights
+  └─ NN.png               ← screenshots, deduped by content hash
+        │
+        ▼  bun run flows:build
+        │
+public/flows/<slug>/<locale>/<variant>/  ← same shape, published statically
+        │
+        ▼  via $fetch in <Flow> at SSR time
+        │
+content/docs/.../page.md  ::flow{id="<slug>" mode="slides"}::
+        │
+        ▼  rendered by app/pages/docs/[...slug].vue
+        │
+docs site
+```
+
+### The fixture API (`tests/e2e/fixtures/flow.ts`)
+
+A flow test pulls in `flow` (the recorder) and `editor` (the page-object + setup helpers):
+
+```ts
+test('Quick share', async ({ flow, editor }) => {
+  await editor.recordPreamble()           // 2 captured shots: open homepage → click New Document
+  await flow.heading('Name your document', 3)
+  await flow.narrate('...')
+  await flow.click('Click the title to rename', editor.page.titleButton)
+  await flow.step('Type and Enter', () => editor.page.commitTitleEdit('My doc'))
+  await flow.shot('Highlights demo', { highlights: [{label: 'Word count', selector: '...'}] })
+})
+```
+
+- **`flow.step(caption, action, opts?)`** — runs `action`, then captures. Right when the action target IS the screenshot target (typing into a focused input).
+- **`flow.click(caption, locator, opts?)`** — `locator.hover()` → screenshot (cursor visibly on target) → `locator.click()`. Right for click-then-navigate steps where capturing AFTER the click would land on the destination page with a stale cursor (see §19 SPA-cursor gotcha).
+- **`flow.hover(caption, locator, opts?)`** — same as click but without the trailing click.
+- **`flow.shot(caption, opts?)`** — screenshot WITHOUT an action.
+- **`flow.narrate(text)`** — prose between shots.
+- **`flow.heading(text, level?)`** — section break (## or ###).
+- **`flow.skipNext()`** — suppress the next auto-screenshot (transient mid-fade states).
+- **`opts.highlights: [{ label, selector }, ...]`** — pulsating orange callouts on a shot. Selector is resolved to a bounding box AT screenshot time. Strict mode (`FLOW_STRICT=1` or `CI=true`) fails when a selector resolves to nothing; local dev keeps a soft warning.
+- **`editor.recordPreamble()`** — lean two-step preamble (open → click) for flows where doc creation IS the story. After capture, silently switches to split view.
+- **`editor.silentSetup()`** — same setup, but writes nothing to the manifest. For flows where the editor is just setup (rich content, sharing, etc.).
+- **`editor.page`** — `EditorPage` instance with stable selectors (`titleButton`, `viewMode.{edit,split,preview}`, `statusBar.{wordCount,syncStatus}`, `accessLockButton`, `sidebar.*`) and composite helpers (`waitForReady`, `switchToSplitView`, `startTitleEdit`, `commitTitleEdit`, `createNewDoc`).
+
+### Captioning rules (read these before writing a flow)
+
+Flows are documentation for end users, not implementation logs. Mistakes here erode trust faster than UI bugs.
+
+- **User voice only.** No "Hocuspocus", no "the editor mounts", no "the read-only flag resolves". The user doesn't know what those mean.
+- **Cut steps that don't move the user toward their job.** "Switch to split view" only matters if THIS flow is teaching split view. Otherwise it's setup, not a step.
+- **End every flow at a tangible outcome.** A copied link. A PDF on disk. A password-gated URL. Not "the editor is in split view".
+- **Each flow IS a test.** Every step has an assertion behind it (`commitTitleEdit` asserts the saved title is visible; clipboard reads are asserted against the actual URL). If a flow's assertions break, sharing/exporting/etc. is broken — even if the screenshots still look fine.
+
+### Manifest shape
+
+Per-locale + per-variant; one manifest per `(slug, locale, variant)` triple:
+
+```json
+{
+  "version": 1,
+  "title": "Quick share",
+  "slug": "quick-share",
+  "locale": "en",
+  "variant": "light",
+  "viewport": { "w": 1280, "h": 800 },
+  "entries": [
+    { "kind": "heading", "level": 2, "text": "Name your document" },
+    { "kind": "narrate", "text": "Documents start untitled..." },
+    {
+      "kind": "shot",
+      "file": "01.png",
+      "caption": "Click the placeholder title to rename it",
+      "cursor": { "x": 129, "y": 24 },
+      "path": "/d/abc",
+      "highlights": [{ "label": "Word count", "x": 16, "y": 760, "w": 80, "h": 18 }]
+    }
+  ]
+}
+```
+
+### Capture semantics
+
+- **Cursor injection** (`addInitScript`): tracks `mousemove`/`pointermove` AND the URL pathname at the time of motion. `readCursor` returns null when the path has changed since the last motion (SPA-nav staleness — see §19). Renders as a 32px orange-glowing SVG that smoothly transitions between slides via `transition: left, top` (Vue keeps the same element across slide changes).
+- **Path** captured via `new URL(page.url()).pathname` per shot. Powers the fake browser-chrome address bar in `<FlowFrame>` (`ypad.app /d/abc123`).
+- **Highlights**: each ref is resolved via `page.locator(sel).first().boundingBox()`. Renders as a pulsating orange box-shadow (no border) so it reads as "annotation" not "UI element".
+- **Variant** comes from `testInfo.project.metadata.variant`. The fixture pre-seeds `nuxt-color-mode` localStorage via `addInitScript` in addition to project-level `colorScheme`, so the app renders the correct theme regardless of @nuxtjs/color-mode's resolution order.
+- **Content-hash dedup**: each screenshot's bytes are SHA-256'd. If they match a previous shot in the same run, the new file isn't written and the manifest entry points at the existing PNG. Multiple manifest entries can share one PNG (e.g. highlight-only updates).
+- **Nuxt devtools chrome stripped** via fixture-side CSS injection (`#nuxt-devtools-container { display: none !important }`) so the floating "Nuxt" badge doesn't end up in screenshots.
+
+### Playwright projects (`playwright.config.ts`)
+
+One project per `(locale, variant)` pair. Currently `en-light` + `en-dark`. Each project sets `colorScheme`, viewport (1280×800 — see §19 viewport gotcha), and `metadata: { locale, variant }` for the fixture to read. Adding a locale = duplicate both blocks.
+
+Clipboard permissions are pre-granted globally in `use.permissions: ['clipboard-read', 'clipboard-write']` so flows can assert `navigator.clipboard.readText()` for share-link outcomes.
+
+### Build + serve
+
+`scripts/build-flows.ts` does a clean rebuild of `public/flows/` from `tests/e2e/output/flows/` (deletes everything first, then copies — stale flows whose tests no longer exist get reaped). Walks `<slug>/<locale>/<variant>/` recursively; only copies `manifest.json` + `*.png`.
+
+The `<Flow>` component (`app/components/content/Flow.vue`) fetches the manifest using `useRequestURL().origin`-prefixed URLs so SSR works — Nitro's dev SSR `$fetch('/flows/...')` does NOT route through Vite's static handler. Variant resolution: subscribes to `useColorMode().value`, picks the matching manifest with a 4-step fallback chain (current locale + variant → opposite variant → defaultLocale + variant → defaultLocale + opposite). `baseUrl` derives from the manifest's OWN locale + variant so image paths can never drift from caption paths.
+
+### Slides UI
+
+YouTube-video pattern. The `<Flow mode="slides">` rendering:
+
+- **Frame** with browser chrome + screenshot + cursor + highlight overlays + subtitle overlay (translucent dark backdrop + white text + center-bottom of the frame, fades between slides via `<Transition>`).
+- **Click anywhere on the frame** toggles play/pause.
+- **Progress bar** flush against the bottom of the frame (zero gap), 1px tall, blue fill. Width = `(slideIdx + playProgress) / total`. During autoplay `playProgress` animates 0→1 over 3s linear so the bar fills smoothly; on advance, `slideIdx++` and `playProgress` resets to 0 — no visual jump because the value is continuous.
+- **Control bar** below the progress: borderless icon buttons (skip-back, play/pause, skip-forward) on the left, monospaced "N / total" counter on the right.
+- **Autoplay**: 3s per slide (`SLIDE_DURATION_MS`). Stops at the last slide; restarts from slide 1 if user hits play again. Manual prev/next interrupts. Spacebar toggles when slides container has focus.
+- **Pause snaps `playProgress` back to 0** (predictable: paused at the start of the current slide).
+- **Article-level CSS grid** (`.docs-content > :deep(.docs-wide)`) lets flows break out left + right of the prose strip. Capped at 1100px on ultra-wide screens. Prose stays in the narrow center column (`min(72ch, 100%)`).
+
+### Layout (`app/layouts/docs.vue`)
+
+Sidebar pinned to the viewport's LEFT edge (no centered wrapper margin), border-right separator, sticky scroll, top-right color-mode toggle. Drops the auto-rendered "Docs" parent node from the nav tree (the layout's `/docs` brand link covers it) so top-level sections render directly. `SidebarItem.vue` renders folders as `<details>` for native collapsibility, auto-expand on the active branch, filters out `folder/index.md` self-children via path equality.
+
+### Ephemeral test stack
+
+Lives in `docker-compose.test.yml` under `profiles: [flows]` — adds `sync-test` + `markitdown-test` to the integration-test infra (postgres, valkey, seaweedfs, stripe-mock), all on isolated ports (5433/6380/8334/4002/8081). Integration runs (`docker compose up`) skip the flow-only services; flow runs (`--profile flows`) include them.
+
+Lifecycle: `bun run flows:test:ephemeral` (`scripts/flows-ephemeral.ts`) does docker-up → spawn `bun run dev` on PORT=3001 with env vars overridden to talk to the test infra → poll `/api/health` → run Playwright with `PLAYWRIGHT_BASE_URL=http://localhost:3001` → cleanup on every exit path. Cleanup deliberately does NOT use `--remove-orphans` because that flag treats other compose files in the same project namespace as orphans and would nuke dev infra.
+
+### When you add a new flow
+
+1. Add stable selectors to the relevant components (`data-testid` for non-text elements, `aria-label` for icon-only buttons — both are accessibility wins independent of testing).
+2. Write the test. Title becomes the slug (`'Quick share'` → `quick-share`). Use `editor.recordPreamble()` if the flow IS about doc creation, `editor.silentSetup()` otherwise.
+3. Add real assertions. The flow is a test; if there's no behaviour to assert beyond "the screenshots look right", reconsider the flow.
+4. Author the docs page under `content/docs/<section>/<slug>.md` with frontmatter (`title`, `description`, `category`, `order`, optional `featured`). Embed the flow with `::flow{id="<slug>" mode="slides" hide-title}::`.
+5. Run `bun run flows` (test + build) to verify. The dedup notice in stdout flags shots that didn't visually change since the previous one — confirm intentional or remove the redundant step.
 
 ---
 
@@ -670,6 +818,8 @@ Realistic scope: 5-7 days end-to-end including Stripe integration and UI polish.
 
 **Mobile:** Touch-optimized CM6 (16px font via Compartment), flex-wrap toolbar, hamburger menu, 640px breakpoint.
 
+**Flow docs system:** Playwright-driven tests that double as a documentation site at `/docs`. Each flow is one user-job (`quick-share`, `polished-pdf`, etc.) — the test asserts real product behaviour AND records a slideshow with browser-chrome address bar, animated orange-glowing cursor, pulsating highlight callouts, subtitle-style captions, and YouTube-style autoplay (3s/slide, click frame to toggle, progress bar fills smoothly). Per-locale + per-variant capture (`<slug>/<locale>/<variant>/manifest.json` + screenshots); Vue `<Flow>` component picks the matching variant from `useColorMode()` with a 4-step fallback chain. SSR works via `useRequestURL().origin`-prefixed fetches. Flow tests run against an ephemeral docker stack (`docker-compose.test.yml --profile flows`) so they never see stale dev state. Shipped flows: `quick-share` (write & share a doc, ends at "link in clipboard"). See §14b for the full pipeline.
+
 ---
 
 ## 17. TODOs
@@ -720,6 +870,16 @@ Realistic scope: 5-7 days end-to-end including Stripe integration and UI polish.
 **AI**
 - [ ] Semantic search across docs via `ai.models.embedContent()` — "find the section about X", "suggest related docs"
 - [ ] Safari support for voice input / dictation — Safari's `MediaRecorder` only emits `audio/mp4` (AAC) which Cloud STT sync doesn't accept. Options: server-side ffmpeg transcode on upload, or route Safari through Cloud STT's batch Files API which DOES accept MP4.
+
+**Flow docs system (see §14b)**
+- Tier 1 flows still to ship: `polished-pdf` (theme + PDF export), `import-existing` (DOCX/PDF → markdown), `rich-content` (tables/alerts/math/diagrams reel), `password-protect` (gated share — needs the second-context fixture).
+- [ ] Two-context fixture for the password-protect flow ("incognito" gate demonstration).
+- [ ] Selective re-runs: `flows:test:changed` script that diffs `tests/e2e/flows/` against last commit and only re-shoots changed tests. Defer until ≥6 flows × 2 variants makes CI cost noticeable.
+- [ ] CI: GH Actions PR job runs `flows:test:ephemeral` and fails on regression; main-merge job re-runs all flows + auto-commits updated PNGs with `[skip ci]`.
+- [ ] Search via `queryCollectionSearchSections` once we have ≥4 flow pages worth searching.
+- [ ] Doc-content i18n pattern: `content/<locale>/docs/...` wired to `useI18n().locale`. Establish + translate one Tier 1 flow as a proof.
+- [ ] `/docs/_internal/flows` gallery page listing every flow at once for QA + triage.
+- [ ] Mobile flow project (separate Playwright project, 375×667 viewport, dedicated `MobileEditorPage` page-object).
 
 **AI (explicitly out of scope for now):**
 - Multi-turn conversation history, streaming text to UI, activity attribution "AI for Alice", user-selectable model, grounded-search caching, cost telemetry, provider-swap adapter.
@@ -787,6 +947,14 @@ Realistic scope: 5-7 days end-to-end including Stripe integration and UI polish.
 | Failed-row TTL reap (7 days) | Failed rows still pin quota (their bytes count until deleted) and markdown_cache can be large. Keeping them around a week lets the user see + retry; reaping after prevents "deliberately failing uploads" from being a persistent quota-hoarding strategy |
 | Chunker emits sentinel on overflow, doesn't fail | A 25 MB TXT with no structure produces thousands of tiny chunks → thousands of embedding calls. `maxChunksPerFile = 300` caps the cost; the last chunk is a "[truncated]" marker so downstream search still sees something at the truncation point |
 | System prompt says "always end in insert_text or replace_text" | Early testing showed the model treating "summarize X" as a chat question and emitting plain text we have no UI to display. Explicit rule: EVERY turn ends in a doc edit; no clarifying questions (the user can't see them). Pairs with the editor-state routing to pick an insertion location |
+| Flow tests double as docs (each is one user-job) | A separate "tour the editor" docs system + e2e suite would drift apart. Sharing the same artefact forces both to stay honest: if sharing breaks, the screenshots in the docs go stale AND the test fails. The cost is captioning discipline (no "Hocuspocus", no implementation jargon — see §14b) |
+| Per-locale + per-variant manifest dirs | Captures the same flow in light + dark, en + de + …, so the docs site can match the reader's chosen theme without showing a jarring mismatch. Within-variant content-hash dedup means highlight-only updates don't double the disk cost. Cross-variant bytes always differ; no point in dedup there. |
+| `flow.click` (hover → screenshot → click) instead of just `flow.step` | Click-then-navigate steps captured AFTER the click land on the destination page with the cursor at coords that made sense on page A's layout — meaningless on page B. Hovering FIRST puts the cursor on the target, screenshots, then clicks. The "Click X" caption now shows the click conceptually about to happen on the page where it makes sense |
+| Subtitle overlay on the frame, not below it | Captions below the frame got skimmed past. Putting them OVER the screenshot — translucent dark backdrop, white text, center-bottom — gives them video-subtitle weight; readers absorb them as part of watching, not as supplementary text |
+| `(slideIdx + playProgress) / total` for the progress bar | Naive `(slideIdx + 1) / total` shows 1/N at slide 1 — the user has watched nothing but the bar is already partly full. Splitting into `slideIdx` (slides done) + `playProgress` (intra-slide elapsed, animated 0→1 over the slide duration) means slide 1 starts at 0%, the bar fills smoothly during autoplay, and slide N ends at exactly 100% |
+| Click anywhere on the frame toggles play/pause | YouTube pattern. Bigger target than the small play button in the control bar. Discoverable without instruction for anyone who's ever watched a video on a touchscreen |
+| Single shared test compose (`docker-compose.test.yml --profile flows`) | Started with a separate `docker-compose.flows.yml`, immediately discovered the `--remove-orphans` footgun (it removed dev containers because they shared the project namespace). Folded sync + markitdown into the test compose under a `flows` profile: integration tests skip them by default, flow tests pull them in via `--profile flows`. One compose file, two use cases, no orphan-killing |
+| 1280×800 capture viewport (not Full HD) | Docs cap embedded flows at ~1100px wide. Capturing at 1920 made everything downscale to ~57% — 16px UI text became ~9px on the page, hard to read. 1280×800 sits ~16% above the displayed width (sharp without being microscopic), well above the 640px mobile breakpoint, no responsive surprises |
 
 ---
 
@@ -867,3 +1035,16 @@ Realistic scope: 5-7 days end-to-end including Stripe integration and UI polish.
 - **AI must end every turn with `insert_text`/`replace_text`** — there's no chat surface for model prose. System prompt makes this explicit + bans clarifying questions. If you ever add a chat view, rewrite the "no chat UI" block in `server/api/ai/prompt.post.ts` or the model will still hide its work in edits.
 - **Knowledge tools are in a SEPARATE declaration array** — `KNOWLEDGE_TOOL_DECLARATIONS` is concatenated to `ALL_TOOL_DECLARATIONS` only when the session has workspace access AND ≥1 ready file. The `TOOL_SCHEMAS` drift guard test checks the UNION of both arrays — if you move a knowledge tool into `ALL_*`, update the test and the `hasKnowledgeAccess` gate in `prompt.post.ts`.
 - **`bun run test:coverage` undercounts.** `@vitest/coverage-v8` only measures code that executes inside the vitest process (unit + repos + nuxt projects). Integration tests spawn a separate `bun run dev` subprocess via `tests/integration/setup/server.ts`, and every `server/api/*`, `server/middleware/*`, `server/plugins/*`, `server/routes/*` runs inside THAT process — invisible to coverage. So a file reading 0% in the report doesn't mean it's untested; it means it's only exercised via the subprocess. Three dead ends worth documenting so we don't try again: (1) Bun doesn't honor `NODE_V8_COVERAGE` (oven-sh/bun#17867, open since March 2025) — verified empirically, Bun writes nothing. (2) Spawning the subprocess with `node` instead of `bun` + NODE_V8_COVERAGE DOES produce coverage files, but Nitro dev runs every server-side file through Vite's SSR transform and evaluates via `vm.Script`; Node records those as URL `evalmachine.<anonymous>`, which c8 can't map back to source paths. Only `shared/config/tiers.ts` shows up (it's imported by nuxt.config.ts at boot before Vite intercepts). (3) `@nuxt/test-utils/e2e` `setup()` spawns `node .output/server/index.mjs` which WOULD produce coverage with real source maps — but our `nitro.preset: 'bun'` build traces Bun-specific paths and Stripe's ESM entry doesn't resolve under Node's ESM resolver (`Cannot find module .output/server/node_modules/stripe/esm/stripe.esm.node.js`). Switching to `preset: 'node-server'` risks the lib0 conditional-exports breakage that forced us onto the Bun preset in the first place. **Net conclusion: the API-route coverage gap is architectural, not fixable with the current stack choices.** When reviewing `bun run test:coverage` output, mentally overlay: every `server/api/*`, `server/middleware/*`, `server/plugins/*`, `server/routes/*`, plus some orchestrators like `processKnowledge.ts` and `aiClient.ts`, is covered by the 300+ integration tests in `tests/integration/` — they just don't show up in the number.
+
+### Flow docs system gotchas
+
+- **`docker compose down --remove-orphans` is a footgun in this project.** All compose files share the same project namespace (`md-online`), so `--remove-orphans` treats services from OTHER compose files as orphans and removes them. `bun run flows:down` and `scripts/flows-ephemeral.ts` deliberately do NOT use `--remove-orphans`. Add it back and you'll wipe dev infra on every flow-test run.
+- **Caption inversion bug from SPA navigation.** A click that triggers `router.push()` keeps the OS cursor at the click coordinates AND keeps the same JS context (no full page reload), so `window.__flowCursor` still holds the click target's coordinates — but those coordinates were valid on page A's layout, not page B's. Without the URL-stamp guard in the cursor injection script (`__flowCursorPath`), the post-nav screenshot floats the cursor in random space on the destination page. The injection script now stamps `location.pathname` on every motion; `readCursor` returns null when the path has changed since.
+- **Use `flow.click(caption, locator)` for navigation clicks**, NOT `flow.step('Click X', () => locator.click())`. The latter captures AFTER the click — the screenshot lands on the destination page with no meaningful cursor (after the URL-stamp fix above). `flow.click` hovers FIRST, screenshots WITH the cursor on the target, THEN clicks. The "Click X" caption now actually shows the click happening on the page where it makes sense.
+- **`<ContentRenderer>` wraps its output in an unstyled `<div>`.** A `.docs-article > *` rule targets the wrapper, not the actual content children. The fix: pass `class="docs-content"` to `<ContentRenderer>` so the wrapper carries the grid styles directly. The Tailwind `:deep(> *)` selector then reaches the real children.
+- **SSR `$fetch('/flows/...')` doesn't route through Vite's static handler in dev.** Nitro's internal route resolver in dev only knows about API routes; static assets in `public/` are served by Vite's middleware which `$fetch` bypasses on the server. The fix: prefix all manifest URLs with `useRequestURL().origin` so the request becomes a real HTTP fetch (which DOES hit Vite). Same code works on the client (`useRequestURL().origin` resolves to `window.location.origin`).
+- **Nuxt color mode resolution order is fragile.** Setting `colorScheme` on the Playwright project (sets `prefers-color-scheme`) AND pre-seeding `nuxt-color-mode` localStorage via `addInitScript` together survive any change in @nuxtjs/color-mode's preference→value resolution. Using only one of the two has bitten us; belt + suspenders is the right call.
+- **Nuxt devtools chrome shows up in screenshots if you don't strip it.** The floating "Nuxt" badge is `#nuxt-devtools-container` (note: NOT `#nuxt-devtools-anchor` which docs sometimes mention). The fixture injects `display: none !important` via `addInitScript`. Cheaper than disabling devtools globally.
+- **Gemini JS SDK aside — `flow.click` opts must always pass a `Locator`, not a CSS selector string.** `page.locator(sel).first().hover()` works; `page.click(sel)` doesn't go through the same `Locator.hover()` path. Easy mistake to make.
+- **Test title becomes the slug.** `'Quick share'` → `quick-share`. Used as both the on-disk directory name and the `<Flow id="...">` reference. Renaming a test = changing the URL of every page that embeds it. Set the test title carefully.
+- **Stale test title = orphaned `public/flows/<old-slug>/`.** The build script does a clean rebuild so the old directory gets deleted next build — but until then, the old slug is still referenced by any docs page that hasn't been updated.
