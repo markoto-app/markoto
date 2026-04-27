@@ -21,30 +21,46 @@ interface ActivityEntry {
   createdAt: string | number
 }
 
-const entries = ref<ActivityEntry[]>([])
-const loading = ref(true)
-
-async function loadActivity() {
-  try {
-    entries.value = await $fetch<ActivityEntry[]>(`/api/docs/${props.docId}/activity`)
+const {
+  state: entries,
+  isLoading: loading,
+  execute: loadActivity
+} = useAsyncState<ActivityEntry[]>(
+  async () => {
+    const rows = await $fetch<ActivityEntry[]>(`/api/docs/${props.docId}/activity`)
     loadErrored.value = false
-  } catch (e) {
-    // Only surface the toast on the FIRST failure — the interval
-    // re-fetches every 30s and would otherwise spam the user.
-    if (!loadErrored.value) showContextualError(e, 'error.activityLoadFailed')
-    loadErrored.value = true
-    entries.value = []
-  } finally {
-    loading.value = false
+    return rows
+  },
+  [],
+  {
+    immediate: true,
+    resetOnExecute: false,
+    onError: (e) => {
+      // Only surface the toast on the FIRST failure — the interval
+      // re-fetches every 30s and would otherwise spam the user.
+      if (!loadErrored.value) showContextualError(e, 'error.activityLoadFailed')
+      loadErrored.value = true
+      entries.value = []
+    }
   }
-}
-
-onMounted(loadActivity)
+)
 
 // Safety-net poll — covers join/leave entries and recovers from missed updates.
 // The main trigger is the Y.js update listener below, which gives us near-live
 // refreshes whenever anyone (human or the AI assistant) edits the document.
-const { pause } = useIntervalFn(loadActivity, 30_000)
+// Pause when the tab is hidden (no point polling for a feed nobody's watching);
+// re-fire once on the visible→hidden→visible transition so the feed catches
+// up the moment the user comes back.
+const visibility = useDocumentVisibility()
+const { pause, resume } = useIntervalFn(loadActivity, 30_000)
+watch(visibility, (v) => {
+  if (v === 'visible') {
+    loadActivity()
+    resume()
+  } else {
+    pause()
+  }
+})
 
 // Sync-server debounces `onStoreDocument` (and therefore activity logging) at
 // 2-10 s after the last change. Refetch ~3 s after the doc stops changing so

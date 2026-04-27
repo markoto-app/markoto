@@ -81,11 +81,15 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     }
   )
 
-  // Assertions for thread + decoration.
+  // Assertions for thread + decoration. On mobile the comments sidebar
+  // overlays the editor full-screen so the .cm-comment-anchor span is
+  // hidden behind it — toBeAttached confirms the Y.js → decoration
+  // pipeline fired without depending on whether the editor is the
+  // currently-foregrounded pane.
   const newThread = editor.page.comments.thread.first()
   await expect(newThread).toBeVisible()
   await expect(newThread).toContainText('Should we mention the keyboard shortcuts')
-  await expect(page.locator('.cm-comment-anchor').first()).toBeVisible()
+  await expect(page.locator('.cm-comment-anchor').first()).toBeAttached()
 
   // ─── Reply to keep the discussion going ────────────────────────────
   await flow.heading('Reply to keep the discussion going', 3)

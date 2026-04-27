@@ -48,64 +48,50 @@ function reposition(view: EditorView) {
   popupY.value = coords.bottom + 6
 }
 
-let removeListener: (() => void) | null = null
+// `selectionchange` fires on the document while the editor view's
+// `blur` fires on the CM6 contentDOM. Both are tied via useEventListener
+// to refs that re-bind when the view changes — no manual attach/remove
+// dance.
+const blurTarget = computed(() => props.view?.contentDOM ?? null)
 
-function attachListener(view: EditorView) {
-  const handler = () => {
-    if (props.disabled) {
-      if (visible.value) hide()
-      return
-    }
-    const sel = view.state.selection.main
-    if (sel.empty) {
-      if (visible.value) hide()
-      return
-    }
-    const text = view.state.sliceDoc(sel.from, sel.to).trim()
-    if (!text) {
-      if (visible.value) hide()
-      return
-    }
-    visible.value = true
-    reposition(view)
+function onSelectionChange() {
+  const view = props.view
+  if (!view) return
+  if (props.disabled) {
+    if (visible.value) hide()
+    return
   }
-
-  const onSelChange = () => handler()
-  // Hide when focus leaves the editor (clicking elsewhere implicitly
-  // collapses or moves the selection most of the time, but blur is a
-  // belt-and-braces signal).
-  const onBlur = () => {
-    setTimeout(() => {
-      if (document.activeElement?.closest('.comment-selection-popup')) return
-      hide()
-    }, 120)
+  const sel = view.state.selection.main
+  if (sel.empty) {
+    if (visible.value) hide()
+    return
   }
-
-  document.addEventListener('selectionchange', onSelChange)
-  view.contentDOM.addEventListener('blur', onBlur)
-
-  removeListener = () => {
-    document.removeEventListener('selectionchange', onSelChange)
-    view.contentDOM.removeEventListener('blur', onBlur)
+  const text = view.state.sliceDoc(sel.from, sel.to).trim()
+  if (!text) {
+    if (visible.value) hide()
+    return
   }
+  visible.value = true
+  reposition(view)
 }
 
-watch(() => props.view, (view) => {
-  if (removeListener) {
-    removeListener()
-    removeListener = null
-  }
-  if (view) attachListener(view)
-}, { immediate: true })
+// Hide when focus leaves the editor (clicking elsewhere implicitly
+// collapses or moves the selection most of the time, but blur is a
+// belt-and-braces signal).
+function onBlur() {
+  setTimeout(() => {
+    if (document.activeElement?.closest('.comment-selection-popup')) return
+    hide()
+  }, 120)
+}
+
+useEventListener(document, 'selectionchange', onSelectionChange)
+useEventListener(blurTarget, 'blur', onBlur)
 
 // If `disabled` flips on mid-selection, hide immediately so the pill
 // doesn't survive a permission downgrade.
 watch(() => props.disabled, (d) => {
   if (d) hide()
-})
-
-onUnmounted(() => {
-  if (removeListener) removeListener()
 })
 
 function onClick() {

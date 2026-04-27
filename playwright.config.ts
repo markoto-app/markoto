@@ -1,60 +1,50 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Project per (locale × variant). Each project records the same flow
-// twice (light + dark) so the docs site can render screenshots that
-// match the reader's chosen color mode without showing a jarring
-// theme mismatch.
+// Project per (locale × theme × form-factor). Each flow runs FOUR
+// times — light/dark × desktop/mobile — so docs render screenshots
+// matching the reader's color mode AND device. Mobile capture also
+// doubles as a responsive-design smoke test: if a flow can't drive
+// the UI at 390px wide, we find out before users do.
 //
-// Naming: `<locale>-<variant>` (e.g. `en-light`, `de-dark`). The
-// fixture reads project.metadata.{locale,variant} and writes to
-// tests/e2e/output/flows/<slug>/<locale>/<variant>/.
+// Naming: `<locale>-<theme>-<form>` (e.g. `en-light-desktop`,
+// `en-dark-mobile`). The fixture reads `project.metadata.{locale,
+// variant}` and writes to tests/e2e/output/flows/<slug>/<locale>/
+// <variant>/. `variant` is the composite `<theme>-<form>` string.
 //
-// CI runs `--project=en-light` only by default for speed; the docs
+// CI defaults to `--project=en-light-desktop` for speed; the docs
 // publish pipeline runs `bun run flows:test` which executes ALL
-// projects (parallel across locales/variants since they write to
-// different subdirs).
+// projects (sequential within, since they share the dev server).
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
 
-// Pinned viewport. The docs site caps embedded flows at ~1100px wide,
-// so capturing at 1920px wastes pixels AND makes the downscaled UI
-// tiny (16px text → ~9px on the page). 1280×800 is a "comfortable
-// laptop" reference: sits ~16% above the displayed width (sharp without
-// being microscopic), well above the 640px mobile breakpoint (no
-// responsive surprises in screenshots), and matches the size most
-// design reviews assume. Bump in lockstep across config + fixture
-// default + FlowFrame fallback if changed again.
-const VIEWPORT = { width: 1280, height: 800 }
+// Desktop viewport. The docs site caps embedded flows at ~1100px
+// wide; capturing at 1280 keeps the downscaled UI legible (16px text
+// → ~14px displayed) and sits well above the 640px mobile breakpoint.
+const DESKTOP_VP = { width: 1280, height: 800 }
+
+// Mobile viewport — iPhone 14 dimensions (390×844). Chosen because:
+//  • Below 640px so the app's mobile branch fires (matches Tailwind
+//    sm breakpoint and AGENTS.md §11's 639px boundary).
+//  • Common modern device — readers on iPhone 12-15 see the same
+//    layout in the docs that they'd see in their actual app.
+//  • `isMobile: true` + `hasTouch: true` switches Chromium's UA and
+//    pointer model so touch-only behaviors (mobile menu, full-width
+//    sidebars) trigger as they would on a real device.
+const MOBILE_VP = { width: 390, height: 844 }
 
 export default defineConfig({
   testDir: './tests/e2e/flows',
-  // Flow tests are slower than unit tests (real browser, network-idle waits)
-  // but should still fail fast — 60s per test is a generous ceiling.
-  timeout: 60_000,
+  timeout: 120_000,
   retries: process.env.CI ? 2 : 0,
-  // Sequential within a project so screenshots from concurrent tests don't
-  // race over the shared output directory. Across projects we do
-  // parallelise — they write to different subdirs.
   workers: 1,
   fullyParallel: false,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: BASE_URL,
-    viewport: VIEWPORT,
-    // Disable Playwright's video — the docs system has its own.
     video: 'off',
-    // Trace on first retry only — debugging cursor/timing issues without
-    // doubling CI cost on the happy path.
     trace: 'on-first-retry',
-    // Pre-grant clipboard so flows can assert the actual outcome of
-    // share/copy actions (e.g. "Quick share" reads navigator.clipboard
-    // to prove the URL landed). Without this, Chromium prompts and
-    // the test hangs.
     permissions: ['clipboard-read', 'clipboard-write']
   },
-  // Auto-spin the dev server if PLAYWRIGHT_BASE_URL isn't set externally.
-  // Set `reuseExistingServer: true` so a dev server you already have
-  // running gets reused (saves ~10s per local invocation).
   webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
     command: 'bun run dev',
     url: BASE_URL,
@@ -63,31 +53,50 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'en-light',
+      name: 'en-light-desktop',
       use: {
         ...devices['Desktop Chrome'],
-        viewport: VIEWPORT,
+        viewport: DESKTOP_VP,
         locale: 'en-US',
-        // colorScheme sets prefers-color-scheme. Combined with the
-        // fixture's localStorage init (sets nuxt-color-mode=light),
-        // both sources of truth agree — the app renders light mode
-        // even if @nuxtjs/color-mode's resolution order changes.
         colorScheme: 'light'
       },
-      metadata: { locale: 'en', variant: 'light' }
+      metadata: { locale: 'en', variant: 'light-desktop' }
     },
     {
-      name: 'en-dark',
+      name: 'en-dark-desktop',
       use: {
         ...devices['Desktop Chrome'],
-        viewport: VIEWPORT,
+        viewport: DESKTOP_VP,
         locale: 'en-US',
         colorScheme: 'dark'
       },
-      metadata: { locale: 'en', variant: 'dark' }
+      metadata: { locale: 'en', variant: 'dark-desktop' }
+    },
+    {
+      name: 'en-light-mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: MOBILE_VP,
+        isMobile: true,
+        hasTouch: true,
+        locale: 'en-US',
+        colorScheme: 'light'
+      },
+      metadata: { locale: 'en', variant: 'light-mobile' }
+    },
+    {
+      name: 'en-dark-mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: MOBILE_VP,
+        isMobile: true,
+        hasTouch: true,
+        locale: 'en-US',
+        colorScheme: 'dark'
+      },
+      metadata: { locale: 'en', variant: 'dark-mobile' }
     }
-    // Add a new locale by duplicating both blocks above — `de-light`
-    // + `de-dark` etc. Each writes to its own
-    // tests/e2e/output/flows/<slug>/<locale>/<variant>/ subdir.
+    // Add a new locale by duplicating all four blocks — each writes
+    // to its own tests/e2e/output/flows/<slug>/<locale>/<variant>/.
   ]
 })

@@ -1,11 +1,12 @@
 ---
-title: Sharing & Permissions
+title: Share
 description: Access modes, password protection, and how anonymous links work
 category: sharing
 order: 3
+icon: i-lucide-share-2
 ---
 
-# Sharing & Permissions
+# Share
 
 YPad supports four access modes per document — private, open-edit,
 open-view, and password-protected — plus workspace-scoped roles

@@ -29,9 +29,10 @@ export class EditorPage {
     return this.page.locator('[data-testid="doc-title-input"]')
   }
 
-  /** "Connected" badge inside the header. Visible once the WS handshake completes. */
+  /** Connection status badge with status='connected'. Drives waitForReady
+   *  and works on both mobile (icon-only) and desktop (icon + label). */
   get connectedBadge(): Locator {
-    return this.page.locator('header').getByText('Connected')
+    return this.page.locator('[data-testid="connection-status"][data-status="connected"]')
   }
 
   /** The access-mode lock icon in the header (opens share dialog on click). */
@@ -174,17 +175,16 @@ export class EditorPage {
   }
 
   /**
-   * Wait for the preview iframe to finish pagination. paged.js mounts
-   * `.pagedjs_pages` once it's done laying out the doc — until then
-   * the preview pane is blank. Screenshots taken before that show a
-   * meaningless empty pane. Use after switchToSplitView() (or any
-   * mode change that exposes the preview) before capturing the first
-   * preview-bearing shot.
+   * Wait for the preview iframe to finish pagination. paged.js
+   * creates `.pagedjs_pages` early (empty, hidden) and only appends
+   * `.pagedjs_page` children when pagination actually completes —
+   * waiting on the inner `.pagedjs_page` is the reliable signal.
+   * Screenshots taken before that show a blank preview pane.
    */
   async waitForPreviewPaginated(timeout = 15_000): Promise<void> {
     await this.page
       .frameLocator('iframe')
-      .locator('.pagedjs_pages')
+      .locator('.pagedjs_page')
       .first()
       .waitFor({ state: 'visible', timeout })
   }

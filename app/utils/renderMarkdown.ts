@@ -20,6 +20,7 @@ import type Token from 'markdown-it/lib/token.mjs'
 import type Renderer from 'markdown-it/lib/renderer.mjs'
 import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
+import { createGlobalState } from '@vueuse/core'
 
 // markdown-it exports Options as a nested type under the default class; we
 // pluck it from the instance shape so the type resolution doesn't depend on
@@ -33,9 +34,10 @@ interface DOMPurifySanitizer {
   sanitize: (source: string, config?: Record<string, unknown>) => string
 }
 
-let md: MarkdownIt | null = null
-let purify: DOMPurifySanitizer | null = null
-let initPromise: Promise<void> | null = null
+interface MarkdownPipeline {
+  md: MarkdownIt
+  purify: DOMPurifySanitizer
+}
 
 /**
  * Inline markdown-it plugin: matches `<!-- pagebreak -->` on its own
@@ -152,11 +154,11 @@ function defaultSlugify(s: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-async function init(): Promise<void> {
-  if (md) return
-  if (initPromise) return initPromise
-
-  initPromise = (async () => {
+// Lazy singleton via createGlobalState: the factory runs once on first
+// call and returns the same Promise to every subsequent caller. The
+// async work (dynamic imports + plugin registration) is deduplicated
+// without manual `if (initPromise) return initPromise` guards.
+const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline> => {
     const [
       { default: MarkdownIt },
       hljsMod,
@@ -224,7 +226,7 @@ async function init(): Promise<void> {
     const anchor = unwrap(anchorMod)
     const toc = unwrap(tocMod)
 
-    md = new MarkdownIt({
+    const md: MarkdownIt = new MarkdownIt({
       html: false,
       linkify: true,
       typographer: true,
@@ -328,11 +330,8 @@ async function init(): Promise<void> {
       return defaultLinkOpen(tokens, idx, options, env, self)
     }
 
-    purify = DOMPurify
-  })()
-
-  return initPromise
-}
+    return { md, purify: DOMPurify }
+})
 
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
@@ -386,9 +385,8 @@ const SANITIZE_OPTS = {
  * first call. Browser-only — guard with `import.meta.client` in callers.
  */
 export async function renderMarkdown(source: string): Promise<string> {
-  await init()
-  // init() guarantees these are set before it resolves.
-  const html = purify!.sanitize(md!.render(source), SANITIZE_OPTS)
+  const { md, purify } = await useMarkdownPipeline()
+  const html = purify.sanitize(md.render(source), SANITIZE_OPTS)
   return transformFootnotesForPagedMedia(html)
 }
 

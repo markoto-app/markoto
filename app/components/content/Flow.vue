@@ -45,7 +45,9 @@ type OutcomeEntry = {
 }
 type Entry = ChapterEntry | NarrationEntry | ApproachEntry | OutcomeEntry
 
-type Variant = 'light' | 'dark'
+type Theme = 'light' | 'dark'
+type Form = 'desktop' | 'mobile'
+type Variant = `${Theme}-${Form}`
 
 type Manifest = {
   version: 2
@@ -89,38 +91,60 @@ const effectiveChromeDomain = computed(
 
 const { locale: i18nLocale } = useI18n()
 const colorMode = useColorMode()
-const currentVariant = computed<Variant>(
-  () => (colorMode.value === 'dark' ? 'dark' : 'light')
-)
-const oppositeVariant = (v: Variant): Variant => (v === 'light' ? 'dark' : 'light')
+const isMobile = useMediaQuery('(max-width: 639px)')
+
+const currentTheme = computed<Theme>(() => (colorMode.value === 'dark' ? 'dark' : 'light'))
+const currentForm = computed<Form>(() => (isMobile.value ? 'mobile' : 'desktop'))
+const currentVariant = computed<Variant>(() => `${currentTheme.value}-${currentForm.value}`)
 
 const reqUrl = useRequestURL()
 const flowUrl = (id: string, locale: string, variant: Variant) =>
   `${reqUrl.origin}/flows/${id}/${locale}/${variant}/manifest.json`
 
-async function fetchWithFallbacks(id: string): Promise<Manifest> {
-  const candidates: Array<{ locale: string, variant: Variant }> = [
-    { locale: i18nLocale.value, variant: currentVariant.value },
-    { locale: i18nLocale.value, variant: oppositeVariant(currentVariant.value) }
+// Variant fallback chain for a given locale: try the exact match
+// first, then degrade ONE axis at a time before degrading both.
+// "Same form, different theme" sits closer to the requested variant
+// than "different form, same theme" — readers tolerate a wrong
+// theme more than a wrong form factor (mobile users seeing desktop
+// chrome at 390px wide is jarring).
+function variantChain(): Variant[] {
+  const t = currentTheme.value
+  const otherT: Theme = t === 'light' ? 'dark' : 'light'
+  const f = currentForm.value
+  const otherF: Form = f === 'desktop' ? 'mobile' : 'desktop'
+  return [
+    `${t}-${f}`,
+    `${otherT}-${f}`,
+    `${t}-${otherF}`,
+    `${otherT}-${otherF}`
   ]
-  if (i18nLocale.value !== props.defaultLocale) {
-    candidates.push(
-      { locale: props.defaultLocale, variant: currentVariant.value },
-      { locale: props.defaultLocale, variant: oppositeVariant(currentVariant.value) }
-    )
-  }
+}
+
+async function fetchWithFallbacks(id: string): Promise<Manifest> {
+  const locales = i18nLocale.value === props.defaultLocale
+    ? [i18nLocale.value]
+    : [i18nLocale.value, props.defaultLocale]
   let lastErr: unknown = null
-  for (const c of candidates) {
-    try {
-      return await $fetch<Manifest>(flowUrl(id, c.locale, c.variant))
-    } catch (e) {
-      lastErr = e
+  for (const locale of locales) {
+    for (const variant of variantChain()) {
+      try {
+        return await $fetch<Manifest>(flowUrl(id, locale, variant))
+      } catch (e) {
+        lastErr = e
+      }
     }
   }
   throw lastErr ?? new Error(`flow ${id} not found`)
 }
 
-const { data: manifest, error } = await useAsyncData<Manifest | null>(
+// Client-only fetch. The resolved variant depends on the user's
+// color mode AND viewport, both of which can differ between SSR and
+// the client's first paint — committing the SSR payload would force
+// a refetch on the client (manifest briefly null), triggering a
+// hydration mismatch on the slideshow tree. `server: false` + `lazy:
+// true` defers the fetch until after hydration; the component starts
+// as an empty placeholder and populates client-side.
+const { data: manifest, error } = useAsyncData<Manifest | null>(
   () => `flow:${props.id ?? props.path}:${i18nLocale.value}:${currentVariant.value}`,
   async () => {
     if (props.path) {
@@ -130,7 +154,7 @@ const { data: manifest, error } = await useAsyncData<Manifest | null>(
     if (!props.id) throw new Error('<Flow> requires either `id` or `path`')
     return await fetchWithFallbacks(props.id)
   },
-  { watch: [i18nLocale, currentVariant] }
+  { watch: [i18nLocale, currentVariant], server: false, lazy: true }
 )
 
 const baseUrl = computed(() => {
@@ -268,10 +292,24 @@ watch(slideIdx, (idx) => {
 
 onUnmounted(() => { clearPlayTimer() })
 
-// Keyboard nav for slides.
+// Keyboard nav for slides — bound to the slides container so the
+// shortcuts only fire when it has focus (tabIndex on the wrapper).
 const slidesEl = ref<HTMLElement | null>(null)
-useEventListener(slidesEl, 'keydown', (e: KeyboardEvent) => {
-  if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev() } else if (e.key === 'ArrowRight') { e.preventDefault(); goNext() } else if (e.key === ' ') { e.preventDefault(); togglePlay() }
+onKeyStroke('ArrowLeft', (e) => { e.preventDefault(); goPrev() }, { target: slidesEl })
+onKeyStroke('ArrowRight', (e) => { e.preventDefault(); goNext() }, { target: slidesEl })
+onKeyStroke(' ', (e) => { e.preventDefault(); togglePlay() }, { target: slidesEl })
+
+// Touch + mouse-drag swipe nav — universal "next slide on swipe-left,
+// prev slide on swipe-right" pattern (Instagram stories / iOS Photos).
+// Uses Pointer Events so a desktop mouse drag also works for testing.
+// The 50px threshold filters out accidental drags during text selection
+// and lets short flicks register as swipes.
+usePointerSwipe(slidesEl, {
+  threshold: 50,
+  onSwipeEnd(_event, direction) {
+    if (direction === 'left') goNext()
+    else if (direction === 'right') goPrev()
+  }
 })
 
 const progressPct = computed(() =>
@@ -378,6 +416,7 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
           :show-chrome="showChrome"
           :chrome-domain="effectiveChromeDomain"
           :show-highlights="showHighlights"
+          :is-touch="manifest.variant.endsWith('mobile')"
           @click="togglePlay"
         />
         <Transition

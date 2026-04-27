@@ -25,27 +25,30 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const toast = useToast()
 
-const workspaces = ref<WorkspaceOption[]>([])
-const loadingWorkspaces = ref(false)
 const saving = ref(false)
 
 // Null represents "Personal" (no workspace). We use null explicitly
 // in the selection to distinguish "unpicked" from "pick Personal".
 const selected = ref<string | null>(null)
 
-async function loadWorkspaces() {
-  loadingWorkspaces.value = true
-  try {
+const {
+  state: workspaces,
+  isLoading: loadingWorkspaces,
+  execute: loadWorkspaces
+} = useAsyncState<WorkspaceOption[]>(
+  async () => {
     const rows = await $fetch<WorkspaceOption[]>('/api/user/workspaces')
     // Only admin/editor can receive a doc — filter viewer-only workspaces
     // out so the user can't pick something the server would reject.
-    workspaces.value = rows.filter(w => w.role === 'admin' || w.role === 'editor')
-  } catch {
-    workspaces.value = []
-  } finally {
-    loadingWorkspaces.value = false
+    return rows.filter(w => w.role === 'admin' || w.role === 'editor')
+  },
+  [],
+  {
+    immediate: false,
+    resetOnExecute: false,
+    onError: () => { workspaces.value = [] }
   }
-}
+)
 
 watch(open, (v) => {
   if (!v) return

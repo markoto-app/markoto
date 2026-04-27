@@ -23,6 +23,10 @@ useSeoMeta({
 
 <template>
   <UApp :toaster="{ position: 'top-right' }">
+    <!-- Browser-level offline banner — shown above all routes so the
+         user sees it everywhere (dashboard, editor, workspace, docs).
+         Auto-hides when the network comes back. -->
+    <CommonOfflineBanner />
     <!-- NuxtLayout wraps NuxtPage with whatever layout the page opts
          into via definePageMeta({ layout: 'name' }). Pages without
          a layout meta render bare (no default layout file exists),

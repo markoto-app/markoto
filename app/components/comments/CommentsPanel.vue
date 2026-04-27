@@ -167,6 +167,26 @@ defineExpose({ startDraft, focusComment })
 
 const scrollContainer = ref<HTMLDivElement | null>(null)
 
+// Chat-style snap-to-bottom: when a new comment or reply lands AND the
+// viewer is already pinned to the bottom of the panel, scroll the new
+// entry into view. If the viewer has scrolled UP to read older threads,
+// we leave their position alone so the new entry doesn't yank focus.
+const { arrivedState } = useScroll(scrollContainer)
+let pinnedBeforeUpdate = true
+watch(comments, () => {
+  // Capture pinned-state at the moment the count changes; do the
+  // scroll on the next tick once the new DOM is laid out.
+  pinnedBeforeUpdate = arrivedState.bottom
+  nextTick(() => {
+    if (pinnedBeforeUpdate && scrollContainer.value) {
+      scrollContainer.value.scrollTo({
+        top: scrollContainer.value.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
+  })
+}, { flush: 'post' })
+
 const totalCount = computed(() => comments.value.length)
 const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === null)
 </script>

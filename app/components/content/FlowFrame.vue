@@ -29,6 +29,11 @@ const props = defineProps<{
   showChrome: boolean
   chromeDomain: string
   showHighlights: boolean
+  /** When true, render the cursor as a grey tap circle (Chrome-DevTools-
+   *  style touch-emulation indicator) instead of the orange mouse SVG.
+   *  Mobile manifests don't have a real mouse cursor — a tap circle is
+   *  more honest about how the user actually interacts. */
+  isTouch?: boolean
 }>()
 
 // Emit a click only when the user clicks the IMAGE / CARD area —
@@ -146,12 +151,25 @@ function labelRight(h: Highlight): boolean {
             </div>
           </template>
 
-          <!-- Cursor. Opacity-controlled so it can fade out on
-               chapter / narration without unmounting (preserves the
-               element's identity across slides → CSS transition on
-               left/top animates motion smoothly). -->
+          <!-- Cursor / tap indicator. Opacity-controlled so it can
+               fade out on chapter / narration without unmounting
+               (preserves the element's identity across slides → CSS
+               transition on left/top animates motion smoothly).
+               Touch variant: a 32px translucent grey circle (Chrome
+               DevTools' touch-emulation indicator) — there's no real
+               mouse cursor on mobile. -->
+          <div
+            v-if="showCursor && cursor && isTouch"
+            class="absolute pointer-events-none size-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-400/55 ring-2 ring-neutral-700/60 transition-[left,top,opacity] duration-300 ease-out"
+            aria-hidden="true"
+            :style="{
+              left: `${(cursor.x / viewport.w) * 100}%`,
+              top: `${(cursor.y / viewport.h) * 100}%`,
+              opacity: cursorOpacity
+            }"
+          />
           <img
-            v-if="showCursor && cursor"
+            v-else-if="showCursor && cursor"
             src="/flow-cursor.svg"
             alt=""
             aria-hidden="true"

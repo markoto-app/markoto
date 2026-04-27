@@ -65,11 +65,13 @@ test('Quick share', async ({ page, flow, editor }) => {
       after: async () => {
         await page.waitForURL(/\/d\/[^/]+/)
         await editor.page.waitForReady()
-        await editor.page.switchToSplitView()
-        // paged.js paginates async after the preview mounts — without
-        // this wait, the outcome screenshot lands on an empty preview
-        // pane.
-        await editor.page.waitForPreviewPaginated()
+        // Desktop: split view + paged.js wait so the outcome shot
+        // lands on a populated preview. Mobile: edit-only by design
+        // (AGENTS.md §11), so we skip both.
+        if (!editor.isMobile) {
+          await editor.page.switchToSplitView()
+          await editor.page.waitForPreviewPaginated()
+        }
       }
     }
   )

@@ -10,6 +10,13 @@
 // (see §D in the defensive-coding audit) and prefers that over the raw
 // English server message — so non-English locales get localised errors
 // rather than a verbatim statusMessage.
+//
+// Wrapped in `createSharedComposable` so the toast + i18n lookups are
+// shared across the 6+ consumer components (modals, panels, pages) —
+// they all hit the same toast queue and share one i18n instance,
+// auto-cleaned via tryOnScopeDispose when no consumer remains.
+
+import { createSharedComposable } from '@vueuse/core'
 
 interface FetchErrorLike {
   statusCode?: number
@@ -47,7 +54,7 @@ export interface ToastAction {
   color?: 'primary' | 'neutral' | 'error' | 'warning' | 'success'
 }
 
-export function useErrorHandler() {
+function useErrorHandlerImpl() {
   const toast = useToast()
   const { t, te } = useI18n()
 
@@ -134,3 +141,5 @@ export function useErrorHandler() {
     showContextualError
   }
 }
+
+export const useErrorHandler = createSharedComposable(useErrorHandlerImpl)

@@ -14,6 +14,9 @@ type NavItem = {
   children?: NavItem[]
   navHidden?: boolean
   order?: number
+  // Lucide icon name. Sections (folder index pages) set this in their
+  // frontmatter; leaf pages typically don't.
+  icon?: string
 }
 
 const props = defineProps<{
@@ -42,11 +45,16 @@ const open = computed(() => props.isActiveBranch(props.item.path))
       class="group"
     >
       <summary
-        class="flex items-center gap-1 cursor-pointer list-none select-none py-1 px-2 rounded hover:bg-elevated"
+        class="flex items-center gap-2 cursor-pointer list-none select-none py-1.5 px-2 rounded hover:bg-elevated"
       >
         <UIcon
           name="i-lucide-chevron-right"
           class="size-3 transition-transform shrink-0 group-open:rotate-90"
+        />
+        <UIcon
+          v-if="item.icon"
+          :name="item.icon"
+          class="size-4 shrink-0 text-muted"
         />
         <NuxtLink
           :to="item.path"

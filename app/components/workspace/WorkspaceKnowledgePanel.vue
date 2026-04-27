@@ -47,12 +47,36 @@ const props = defineProps<{
 const { t } = useI18n()
 const toast = useToast()
 
-const items = ref<KnowledgeItem[]>([])
 const usage = ref<KnowledgeUsage | null>(null)
-const loading = ref(true)
-const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const uploadProgress = ref<{ filename: string, percent: number } | null>(null)
+
+const {
+  state: items,
+  isLoading: loading,
+  execute: load
+} = useAsyncState<KnowledgeItem[]>(
+  async () => {
+    const resp = await $fetch<{ items: KnowledgeItem[], usage: KnowledgeUsage }>(
+      `/api/workspaces/${props.workspaceId}/knowledge`
+    )
+    usage.value = resp.usage
+    return resp.items
+  },
+  [],
+  {
+    immediate: false,
+    resetOnExecute: false,
+    onError: (e: any) => {
+      toast.add({
+        title: t('knowledge.loadFailed'),
+        description: e?.data?.message || e?.message,
+        icon: 'i-lucide-alert-circle',
+        color: 'error'
+      })
+    }
+  }
+)
 
 const canEdit = computed(() => props.myRole === 'admin' || props.myRole === 'editor')
 
@@ -89,59 +113,42 @@ function canDelete(row: KnowledgeItem): boolean {
   return false
 }
 
-async function load() {
-  loading.value = true
-  try {
-    const resp = await $fetch<{ items: KnowledgeItem[], usage: KnowledgeUsage }>(
-      `/api/workspaces/${props.workspaceId}/knowledge`
-    )
-    items.value = resp.items
-    usage.value = resp.usage
-  } catch (e: any) {
-    toast.add({
-      title: t('knowledge.loadFailed'),
-      description: e?.data?.message || e?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
-  } finally {
-    loading.value = false
-  }
-}
-
-watch(() => props.workspaceId, load, { immediate: true })
+watch(() => props.workspaceId, () => load(), { immediate: true })
 
 // Poll for status transitions when processing items exist. Cheap enough
 // (one GET every 5s, only while items are in flight); stops automatically
-// once all items reach a terminal state.
-let pollTimer: ReturnType<typeof setInterval> | null = null
-function ensurePolling() {
-  const anyProcessing = items.value.some(it => it.status === 'processing')
-  if (anyProcessing && !pollTimer) {
-    pollTimer = setInterval(load, 5000)
-  } else if (!anyProcessing && pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
+// once all items reach a terminal state. Also pauses while the tab is
+// hidden — `useIntervalFn` cleans up on unmount, no manual onBeforeUnmount.
+const visibility = useDocumentVisibility()
+const anyProcessing = computed(() => items.value.some(it => it.status === 'processing'))
+const shouldPoll = computed(() => anyProcessing.value && visibility.value === 'visible')
+const { pause, resume } = useIntervalFn(() => load(), 5000, { immediate: false })
+watch(shouldPoll, (active) => {
+  if (active) {
+    // Catch up on the transition (any state-change that happened while
+    // we were paused) before resuming the cadence.
+    load()
+    resume()
+  } else {
+    pause()
   }
-}
-watch(items, ensurePolling, { deep: true })
-onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer)
 })
 
-function pickFile() {
-  fileInput.value?.click()
-}
+// `reset: true` so re-picking the same file after a failure re-fires
+// onChange (native input dedupes identical paths otherwise).
+const { open: pickFile, onChange: onFilesPicked } = useFileDialog({
+  accept: '.pdf,.docx,.pptx,.xlsx,.xls,.html,.htm,.epub,.md,.txt',
+  multiple: true,
+  reset: true
+})
 
-async function handleFiles(event: Event) {
-  const input = event.target as HTMLInputElement
-  const files = Array.from(input.files ?? [])
-  input.value = '' // reset so the same file can be picked again after an error
+onFilesPicked(async (fileList) => {
+  const files = Array.from(fileList ?? [])
   for (const file of files) {
     await uploadOne(file)
   }
   await load()
-}
+})
 
 async function uploadOne(file: File) {
   if (!canEdit.value) return
@@ -334,15 +341,6 @@ function iconFor(ext: string): string {
         {{ uploadCapReached ? t('knowledge.capReachedShort') : t('knowledge.upload') }}
       </UButton>
     </div>
-
-    <input
-      ref="fileInput"
-      type="file"
-      class="hidden"
-      accept=".pdf,.docx,.pptx,.xlsx,.xls,.html,.htm,.epub,.md,.txt"
-      multiple
-      @change="handleFiles"
-    >
 
     <div
       v-if="uploadProgress"

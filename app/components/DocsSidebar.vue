@@ -19,6 +19,7 @@ type NavItem = {
   // when the schema declares them.
   navHidden?: boolean
   order?: number
+  icon?: string
 }
 
 defineProps<{

@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
-import type { InjectionKey } from 'vue'
+import { createInjectionState } from '@vueuse/core'
 import { nanoid } from 'nanoid'
 import { resolveAnchor, type SerializedAnchor } from '~/utils/commentAnchors'
 import { COMMENT_BODY_MAX, REPLY_BODY_MAX } from '~/utils/commentBody'
@@ -273,19 +273,19 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
 
 export type CommentsApi = ReturnType<typeof useComments>
 
-// Single-instance pattern. EditorLayout instantiates once and provides
-// the result; CommentsPanel injects instead of calling useComments
-// again. Two instances would each attach observeDeep + ydoc.update
-// listeners and recompute the list independently — same answer, twice
-// the work, and a one-frame divergence on every change.
-const COMMENTS_KEY: InjectionKey<CommentsApi> = Symbol('comments')
+// Single-instance pattern. EditorLayout calls `useProvideComments` once
+// and descendants (CommentsPanel) read it via `useCommentsContext`.
+// Two instances would each attach observeDeep + ydoc.update listeners
+// and recompute the list independently — same answer, twice the work,
+// and a one-frame divergence on every change.
+const [useProvideCommentsState, useInjectComments] = createInjectionState(
+  (ydoc: Y.Doc, awareness: Awareness, docId?: string) => useComments(ydoc, awareness, docId)
+)
 
-export function provideComments(api: CommentsApi): void {
-  provide(COMMENTS_KEY, api)
-}
+export const useProvideComments = useProvideCommentsState
 
 export function useCommentsContext(): CommentsApi {
-  const api = inject(COMMENTS_KEY)
+  const api = useInjectComments()
   if (!api) {
     throw new Error('useCommentsContext() called outside a <CommentsPanel> ancestor that provides comments')
   }

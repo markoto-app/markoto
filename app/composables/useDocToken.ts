@@ -33,6 +33,12 @@ export function useDocToken(docId: string) {
   const tokenData = ref<DocTokenState | null>(null)
 
   const isReadOnly = ref(false)
+  // Distinguishes "server told us we're read-only" (workspace viewer,
+  // password-gated, etc. — `data.readOnly === true`) from "sync layer
+  // rejected our auth at handshake time". Both flip isReadOnly, but
+  // only the latter is a fault state worth surfacing in the UI —
+  // legit read-only docs don't need a banner.
+  const syncAuthFailed = ref(false)
   const isOwner = ref(false)
   // Whether the doc has *any* owner. Anonymous-created docs land with
   // `ownerId: null`; they default to open-edit and follow "anyone with
@@ -155,6 +161,12 @@ export function useDocToken(docId: string) {
   /** Called by the sync layer on `onAuthenticationFailed`. */
   function markReadOnly() {
     isReadOnly.value = true
+    // Sync handshake rejected (rate limit, JWT clock skew, sync container
+    // restart with a different secret, etc.). EditorLayout watches this
+    // and surfaces a banner — without it the editor silently flips to
+    // preview and users can't tell the difference between "you don't
+    // have edit access" and "the sync server bounced you".
+    syncAuthFailed.value = true
   }
 
   /** Called by ShareModal when the owner changes the access mode. */
@@ -166,6 +178,7 @@ export function useDocToken(docId: string) {
     // State
     tokenData,
     isReadOnly,
+    syncAuthFailed,
     isOwner,
     hasOwner,
     requiresPassword,

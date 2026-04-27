@@ -82,6 +82,15 @@ function formatDate(value: string | number | Date) {
     minute: '2-digit'
   })
 }
+
+// Long-press to open the row's actions menu — discoverable on touch
+// where the 3-dot button is a small target. Per-row open state keyed
+// on docId so only the long-pressed row's menu opens.
+const openMenuDocId = ref<string | null>(null)
+function onRowLongPress(doc: WorkspaceDoc) {
+  if (!hasAnyAction(doc)) return
+  openMenuDocId.value = doc.docId
+}
 </script>
 
 <template>
@@ -89,6 +98,7 @@ function formatDate(value: string | number | Date) {
     <div
       v-for="doc in documents"
       :key="doc.docId"
+      v-long-press="() => onRowLongPress(doc)"
       class="group flex items-center gap-3 p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
     >
       <NuxtLink
@@ -144,6 +154,8 @@ function formatDate(value: string | number | Date) {
         <UDropdownMenu
           v-if="hasAnyAction(doc)"
           :items="rowMenu(doc)"
+          :open="openMenuDocId === doc.docId"
+          @update:open="(v: boolean) => { if (!v && openMenuDocId === doc.docId) openMenuDocId = null }"
         >
           <UButton
             icon="i-lucide-more-vertical"

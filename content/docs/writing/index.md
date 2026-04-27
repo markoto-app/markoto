@@ -1,11 +1,12 @@
 ---
-title: Writing
+title: Write
 description: Markdown extensions, formatting, and editor features that make YPad more than a plain markdown editor
 category: writing
 order: 2
+icon: i-lucide-pen-line
 ---
 
-# Writing
+# Write
 
 YPad ships an opinionated markdown stack — alerts, tables, math,
 diagrams, footnotes — so most documents can stay in plain `.md`

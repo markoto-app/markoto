@@ -26,14 +26,15 @@ const canvas = ref<HTMLCanvasElement | null>(null)
 const wrapper = ref<HTMLDivElement | null>(null)
 
 // devicePixelRatio-aware sizing: the canvas backing store is DPR× the CSS
-// size so bars stay crisp on retina. Recomputed on resize via ResizeObserver.
+// size so bars stay crisp on retina. `useElementSize` tracks the wrapper
+// width via ResizeObserver and triggers the resize watcher below.
+const { width: wrapperWidth } = useElementSize(wrapper)
 let dpr = 1
-let cssWidth = 0
 
 function resize() {
   if (!canvas.value || !wrapper.value) return
   dpr = window.devicePixelRatio || 1
-  cssWidth = wrapper.value.clientWidth
+  const cssWidth = wrapperWidth.value
   canvas.value.width = Math.max(1, Math.floor(cssWidth * dpr))
   canvas.value.height = Math.max(1, Math.floor(props.height * dpr))
   canvas.value.style.width = `${cssWidth}px`
@@ -88,22 +89,10 @@ function draw() {
 // allocates a fresh array each tick so Vue reactivity fires naturally.
 watch(() => props.levels, () => draw(), { flush: 'post' })
 watch(() => props.height, resize)
-
-let ro: ResizeObserver | null = null
-onMounted(() => {
-  resize()
-  if (typeof ResizeObserver !== 'undefined' && wrapper.value) {
-    ro = new ResizeObserver(() => resize())
-    ro.observe(wrapper.value)
-  } else {
-    window.addEventListener('resize', resize)
-  }
-})
-
-onBeforeUnmount(() => {
-  if (ro) ro.disconnect()
-  else window.removeEventListener('resize', resize)
-})
+// Wrapper width changes (parent resize, layout shift) → reapply the
+// DPR-aware sizing. Fires post-mount on the first non-zero width too,
+// so we don't need an extra onMounted to seed the canvas.
+watch(wrapperWidth, resize)
 </script>
 
 <template>

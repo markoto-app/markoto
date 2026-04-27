@@ -1,12 +1,13 @@
 ---
-title: Getting Started
+title: Get started
 description: Three short tutorials that take you from the homepage to a finished, shared document.
 category: getting-started
 order: 1
 featured: true
+icon: i-lucide-rocket
 ---
 
-# Getting Started
+# Get started
 
 YPad is a collaborative markdown editor with optional accounts. You
 can write a document anonymously, share it by URL, customize how it

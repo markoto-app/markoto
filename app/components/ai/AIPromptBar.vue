@@ -18,6 +18,12 @@ const props = defineProps<{
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
 const toast = useToast()
+// Mobile haptic confirming the abort tap landed — slightly longer
+// pulse than a casual click because aborting an in-flight AI session
+// is a deliberate "stop this" action. Silent no-op on iOS. Pattern
+// passed at call time because UseVibrateOptions.interval is
+// non-optional in the upstream .d.ts.
+const { vibrate: vibrateAbort } = useVibrate()
 
 // Billing state — drives two things in the prompt bar:
 //   1. `refreshBilling` is called after a session ends so the topbar
@@ -29,7 +35,12 @@ const { refresh: refreshBilling, creditsExhausted } = useBilling()
 const router = useRouter()
 
 const input = ref('')
-const focused = ref(false)
+const inputEl = ref<HTMLInputElement | null>(null)
+// `useFocus` exposes a writable computed boolean; setting it would
+// trigger focus()/blur() on the element. We only read it here — the
+// focused state drives the `is-focused` shell class for the focus
+// ring + glow CSS.
+const { focused } = useFocus(inputEl)
 
 // Voice input state machine. On a successful transcription we land the
 // text in the input field briefly (so the user sees what we heard) and
@@ -115,13 +126,21 @@ const isRequestingPerm = computed(() => voice.state.value === 'requesting-permis
 const voiceActive = computed(() => isRecording.value || isTranscribing.value || isRequestingPerm.value)
 
 // The mic button is hidden during an active AI session (the stop button
-// takes its slot). It's also disabled when the user is mid-submit or when
-// they're not logged in — transcribe is a protected endpoint.
+// takes its slot). It's also disabled when the user is mid-submit, when
+// they're not logged in (transcribe is protected), or when the mic is
+// explicitly blocked at the browser-permission level (no point letting
+// the user click and hit a NotAllowedError).
+const micPermissionDenied = computed(() => voice.micPermission.value === 'denied')
 const micDisabled = computed(() => {
   return !loggedIn.value
     || !!props.ai.mySessionId.value
     || props.ai.submitting.value
     || creditsExhausted.value
+    || micPermissionDenied.value
+})
+const micTitle = computed(() => {
+  if (micPermissionDenied.value) return t('ai.micBlocked')
+  return t('ai.micStart')
 })
 
 // Timer display ticks with `durationSec` (updated by the composable's RAF
@@ -187,6 +206,7 @@ watch(() => props.ai.lastError.value, (err) => {
 })
 
 async function onStop() {
+  vibrateAbort(150)
   await props.ai.abort()
 }
 
@@ -273,14 +293,13 @@ const isActive = computed(() => !!props.ai.mySession.value)
       </div>
       <input
         v-else
+        ref="inputEl"
         v-model="input"
         type="text"
         :placeholder="placeholder"
         :disabled="disabled"
         class="flex-1 min-w-0 bg-transparent outline-none text-base placeholder:text-muted disabled:text-muted py-3 pr-0"
         :class="{ italic: disabled && isActive }"
-        @focus="focused = true"
-        @blur="focused = false"
         @keydown.enter="onSubmit"
       >
 
@@ -322,9 +341,10 @@ const isActive = computed(() => !!props.ai.mySession.value)
         v-else-if="!isActive"
         color="neutral"
         variant="ghost"
-        icon="i-lucide-mic"
+        :icon="micPermissionDenied ? 'i-lucide-mic-off' : 'i-lucide-mic'"
         :disabled="micDisabled"
-        :aria-label="t('ai.micStart')"
+        :aria-label="micTitle"
+        :title="micTitle"
         class="ai-prompt-bar__secondary"
         @click="voice.toggle()"
       />

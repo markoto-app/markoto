@@ -87,5 +87,12 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   checkBuildId()
   interval = setInterval(checkBuildId, POLL_INTERVAL_MS)
-  window.addEventListener('focus', checkBuildId)
+  // Re-check whenever the window regains focus — catches the common
+  // case of a user coming back to a long-open tab. `useWindowFocus`
+  // owns the listener + cleanup; previous code added a raw listener
+  // that never got removed (plugins outlive normal Vue scopes, but
+  // tying this through the composable still does the right thing in
+  // dev/HMR).
+  const focused = useWindowFocus()
+  watch(focused, (v) => { if (v) checkBuildId() })
 })

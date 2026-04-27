@@ -291,6 +291,7 @@ export function useDocument(docId: string) {
     synced: readonly(sync.synced),
     userCount: readonly(sync.userCount),
     isReadOnly: readonly(tokenState.isReadOnly),
+    syncAuthFailed: readonly(tokenState.syncAuthFailed),
     isOwner: readonly(tokenState.isOwner),
     isDeleted: readonly(isDeleted),
     requiresPassword: readonly(tokenState.requiresPassword),

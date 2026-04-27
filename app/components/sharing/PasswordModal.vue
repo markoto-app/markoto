@@ -13,30 +13,30 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const password = ref('')
 const error = ref('')
-const loading = ref(false)
+
+const { isLoading: loading, execute: runVerify } = useAsyncState(
+  () => $fetch<{ success: boolean, token: string, readOnly: boolean }>(
+    `/api/docs/${props.docId}/password`,
+    { method: 'POST', body: { action: 'verify', password: password.value } }
+  ),
+  null,
+  {
+    immediate: false,
+    onSuccess: (result) => {
+      if (result) emit('verified', result.token)
+    },
+    onError: (e) => {
+      const err = e as { data?: { message?: string } }
+      error.value = err.data?.message || t('share.invalidPassword')
+      password.value = ''
+    }
+  }
+)
 
 async function verify() {
   if (!password.value) return
-
-  loading.value = true
   error.value = ''
-
-  try {
-    const result = await $fetch<{ success: boolean, token: string, readOnly: boolean }>(
-      `/api/docs/${props.docId}/password`,
-      {
-        method: 'POST',
-        body: { action: 'verify', password: password.value }
-      }
-    )
-    emit('verified', result.token)
-  } catch (e) {
-    const err = e as { data?: { message?: string } }
-    error.value = err.data?.message || t('share.invalidPassword')
-    password.value = ''
-  } finally {
-    loading.value = false
-  }
+  await runVerify()
 }
 
 function handleClose() {

@@ -81,13 +81,9 @@ async function handlePaste(e: Event) {
   }
 }
 
-onMounted(() => {
-  containerRef.value?.addEventListener('paste', handlePaste)
-})
-
-onUnmounted(() => {
-  containerRef.value?.removeEventListener('paste', handlePaste)
-})
+// useEventListener accepts a ref target and rebinds when the ref
+// resolves — no need for the onMounted ceremony.
+useEventListener(containerRef, 'paste', handlePaste)
 </script>
 
 <template>

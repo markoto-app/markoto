@@ -19,7 +19,7 @@
 //     sockets per click. With both flags off we fully own the open
 //     lifecycle: set URL once, call `.open()` once.
 
-import { useUserMedia, useWebSocket } from '@vueuse/core'
+import { useUserMedia, useWebSocket, useVibrate } from '@vueuse/core'
 
 export type VoiceDictationState
   = | 'idle'
@@ -84,6 +84,12 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   // with our toggle; the composable will request permission the
   // first time we set it true and reuse the granted stream after.
   const media = useUserMedia({ constraints: { audio: true } })
+
+  // Mobile haptics — confirm mic start (single short tap) and stop
+  // (faster double-tap). Silent no-op on iOS / unsupported browsers.
+  // Patterns passed at call time because UseVibrateOptions.interval
+  // is non-optional in the upstream .d.ts.
+  const { vibrate } = useVibrate()
 
   // VueUse: WebSocket with buffered send, reactive status. Both
   // `immediate` and `autoConnect` are turned off so the lifecycle is
@@ -247,6 +253,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       // fire. Chrome + Firefox both pump the graph as long as there's
       // a MediaStreamSource feeding it, so source→worklet is enough.
       state.value = 'recording'
+      vibrate(50)
     } catch (e) {
       fail(e instanceof Error ? e.message : 'Could not start audio pipeline.')
     }
@@ -254,6 +261,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
 
   function stop() {
     if (state.value === 'idle') return
+    if (state.value === 'recording') vibrate([75, 20, 75])
     closing = true
 
     // Send `stop` so Gemini can emit any pending final before teardown.

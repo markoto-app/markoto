@@ -75,6 +75,10 @@ const emit = defineEmits<{
 
 const { t, locale, locales, setLocale } = useI18n()
 const colorMode = useColorMode()
+// Sharing → Copy link. `useClipboard` adds a legacy execCommand fallback
+// for iframe / older-browser contexts the bare Async Clipboard API
+// doesn't reach, and silently no-ops on `isSupported === false`.
+const { copy: copyToClipboard } = useClipboard()
 
 // ── Editor command helpers — delegate to shared utils so menu and
 // toolbar produce identical output (smart toggle, whitespace trim,
@@ -343,13 +347,7 @@ const sharingItems = computed(() => [[
   {
     label: t('menubar.sharing.copyLink'),
     icon: 'i-lucide-link',
-    onSelect: async () => {
-      try {
-        await navigator.clipboard.writeText(window.location.href)
-      } catch {
-        // older browsers / iframe contexts
-      }
-    }
+    onSelect: () => copyToClipboard(window.location.href)
   }
 ]])
 

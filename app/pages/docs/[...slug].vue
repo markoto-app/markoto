@@ -1,55 +1,153 @@
 <script setup lang="ts">
-// Catch-all docs page. Resolves /docs/<...> against the `docs` collection
-// and renders via <ContentRenderer>. The Flow component is auto-registered
-// because it lives in app/components/content/, so MDC blocks like
-// `::flow{id="create-document"}` Just Work inside any markdown page.
+// Catch-all docs page. Fetches the matching collection entry +
+// surrounding pages (prev/next) for the bottom pager.
 //
-// Layout: shared docs shell (sidebar pinned to viewport left).
-// Article grid: narrow center column for prose, opt-in full-bleed for
-// elements with the `docs-wide` class. The Flow component uses it so
-// screenshots render at full main-column width — comfortably readable —
-// while prose stays narrow + readable in the center.
+// Layout: shared docs shell. Article grid: narrow center column for
+// prose, opt-in full-bleed for elements with the `docs-wide` class
+// (Flow component uses it). Right rail (lg+): on-page TOC sticky.
+//
+// Index-page handling: Nuxt Content's path normalization for
+// folder/index.md is inconsistent across versions. Try both the
+// route path AND `<route>/index` so /docs/getting-started resolves
+// when the file is content/docs/getting-started/index.md.
 
 definePageMeta({ layout: 'docs' })
 
 const route = useRoute()
 
-const { data: page } = await useAsyncData(`docs:${route.path}`, () =>
-  queryCollection('docs').path(route.path).first()
-)
+const { data: page } = await useAsyncData(`docs:${route.path}`, async () => {
+  const direct = await queryCollection('docs').path(route.path).first()
+  if (direct) return direct
+  return await queryCollection('docs').path(`${route.path}/index`).first()
+})
 
 if (!page.value) {
   throw createError({ statusCode: 404, statusMessage: 'Doc not found' })
 }
 
+// Surrounding pages for the bottom pager. Returns [prev, next] —
+// either may be null at the boundaries.
+const { data: surround } = await useAsyncData(`docs:surround:${route.path}`, () =>
+  queryCollectionItemSurroundings('docs', route.path, {
+    fields: ['title', 'description']
+  })
+)
+
 useSeoMeta({
   title: page.value.title,
   description: page.value.description
 })
+
+// Breadcrumb items derived from the URL segments. Each segment maps
+// to its docs path so clicking a crumb navigates to that section's
+// index page. Display labels stay raw segments — the eye reads them
+// fine and i18n'ing every segment for a 2-3-deep crumb is overkill
+// for now.
+const crumbs = computed(() => {
+  const parts = route.path.split('/').filter(Boolean)
+  // First segment is always 'docs' — represent as "Docs" → /docs.
+  // Subsequent segments build their own paths cumulatively.
+  const items: Array<{ label: string, to: string }> = [{ label: 'Docs', to: '/docs' }]
+  for (let i = 1; i < parts.length; i++) {
+    const seg = parts[i]!
+    const to = '/' + parts.slice(0, i + 1).join('/')
+    // Title-case the slug: "getting-started" → "Getting started"
+    const label = seg.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())
+    items.push({ label, to })
+  }
+  // Last crumb is the current page — non-clickable.
+  if (items.length) items[items.length - 1]!.to = ''
+  return items
+})
+
+// Hide the on-page TOC on pages with fewer than 2 headings — it'd
+// just show the title and look thin.
+const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
 </script>
 
 <template>
-  <article
+  <div
     v-if="page"
-    class="prose dark:prose-invert px-6 md:px-12 py-12 max-w-none"
+    class="grid lg:grid-cols-[1fr_220px] lg:gap-8 px-6 md:px-12 py-10"
   >
-    <!-- ContentRenderer wraps its output in a <div> by default. We
-         pass `class` so that wrapper carries our grid styles —
-         otherwise our `> *` selectors target the wrapper and never
-         reach the actual content. -->
-    <ContentRenderer
-      :value="page"
-      class="docs-content"
-    />
-  </article>
+    <article class="min-w-0 prose dark:prose-invert max-w-none">
+      <UBreadcrumb
+        :items="crumbs"
+        class="not-prose mb-4 text-sm text-toned"
+      />
+      <ContentRenderer
+        :value="page"
+        class="docs-content"
+      />
+
+      <!-- Bottom pager: clickable cards for prev / next. Stripe / Vue
+           docs convention. Uses fields fetched via
+           queryCollectionItemSurroundings. -->
+      <nav
+        v-if="surround && (surround[0] || surround[1])"
+        class="not-prose mt-12 pt-8 border-t border-default grid grid-cols-1 sm:grid-cols-2 gap-4"
+        aria-label="Documentation pagination"
+      >
+        <NuxtLink
+          v-if="surround[0]"
+          :to="surround[0].path"
+          class="group block p-4 rounded-lg border border-default hover:border-primary/40 hover:bg-elevated/30 transition-colors"
+        >
+          <div class="flex items-center gap-1 text-xs uppercase tracking-wider text-muted mb-1">
+            <UIcon name="i-lucide-arrow-left" class="size-3" />
+            Previous
+          </div>
+          <div class="font-medium text-default group-hover:text-primary transition-colors">
+            {{ surround[0].title }}
+          </div>
+          <div v-if="surround[0].description" class="mt-1 text-sm text-toned line-clamp-2">
+            {{ surround[0].description }}
+          </div>
+        </NuxtLink>
+        <div v-else />
+        <NuxtLink
+          v-if="surround[1]"
+          :to="surround[1].path"
+          class="group block p-4 rounded-lg border border-default hover:border-primary/40 hover:bg-elevated/30 transition-colors sm:text-right"
+        >
+          <div class="flex items-center gap-1 sm:justify-end text-xs uppercase tracking-wider text-muted mb-1">
+            Next
+            <UIcon name="i-lucide-arrow-right" class="size-3" />
+          </div>
+          <div class="font-medium text-default group-hover:text-primary transition-colors">
+            {{ surround[1].title }}
+          </div>
+          <div v-if="surround[1].description" class="mt-1 text-sm text-toned line-clamp-2">
+            {{ surround[1].description }}
+          </div>
+        </NuxtLink>
+      </nav>
+    </article>
+
+    <!-- On-page TOC. Right rail on lg+, hidden below — narrower
+         viewports collapse the TOC into the article body would push
+         long pages too far down; readers can use the breadcrumb +
+         scroll instead. Auto-hidden on pages with <2 headings. -->
+    <aside
+      v-if="hasToc"
+      class="hidden lg:block min-w-0"
+    >
+      <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden break-words">
+        <UContentToc
+          :title="'On this page'"
+          :links="page.body.toc?.links ?? []"
+          highlight
+          class="text-sm"
+        />
+      </div>
+    </aside>
+  </div>
 </template>
 
 <style scoped>
-/* Three-column grid lets narrow prose sit in the center column while
-   opt-in full-bleed children (`.docs-wide`, used by the Flow
-   component) span all three so screenshots get the full main-column
-   width. The 1fr side columns shrink to nothing on narrow screens,
-   keeping prose at its target width without overflowing. */
+/* Prose article uses Nuxt UI's `prose` defaults; .docs-content drives
+   the opt-in full-bleed for elements like `<Flow>` so screenshots
+   span the full main column without disturbing prose width. */
 .docs-content {
   display: grid;
   grid-template-columns:
@@ -58,19 +156,11 @@ useSeoMeta({
     minmax(0, 1fr);
   column-gap: 0;
 }
-/* Default: every direct child sits in the narrow center column. */
 .docs-content :deep(> *) {
   grid-column: 2;
 }
-/* Opt-in full-bleed for components that need to be visually wider
-   than the prose. Currently the Flow component (screenshots), but
-   other embeds (large diagrams, video demos) can use this too.
-   Capped on ultra-wide monitors so flows don't lose proportion. */
 .docs-content :deep(> .docs-wide) {
   grid-column: 1 / -1;
-  /* Wider than prose (~705px) but doesn't dominate the viewport on
-     ultra-wide screens. Stripe/GitHub-style docs sit around 1000–
-     1100px for media; we land on 1100px to match. */
   max-width: 1100px;
   justify-self: center;
   width: 100%;

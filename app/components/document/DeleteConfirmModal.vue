@@ -12,6 +12,13 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+// Mobile haptic on delete-confirm tap. Double-pulse pattern reinforces
+// "intentional, irreversible" — distinct from a casual click. iOS has
+// no Web Vibration API, so isSupported is false there and vibrate()
+// silently no-ops; safe to call unconditionally. Pattern passed at
+// call time rather than via options because the upstream
+// `UseVibrateOptions.interval` field is non-optional in the .d.ts.
+const { vibrate } = useVibrate()
 
 const deleting = ref(false)
 const confirmText = ref('')
@@ -22,6 +29,7 @@ const canConfirm = computed(() => confirmText.value === props.title)
 
 async function handleDelete() {
   if (!canConfirm.value) return
+  vibrate([100, 30, 100])
   deleting.value = true
   try {
     await $fetch(`/api/docs/${props.docId}`, { method: 'DELETE' })

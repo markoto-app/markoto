@@ -2,7 +2,7 @@
 import type { EditorView } from '@codemirror/view'
 import { insertTable } from '~/utils/editorCommands'
 import TableSizePicker from './TableSizePicker.vue'
-import { useComments, provideComments } from '~/composables/useComments'
+import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
 
 const props = defineProps<{
@@ -20,6 +20,7 @@ const {
   synced,
   userCount,
   isReadOnly,
+  syncAuthFailed,
   isOwner,
   isDeleted,
   requiresPassword,
@@ -164,6 +165,22 @@ function closeSidebar() {
   rightSidebar.value = null
 }
 
+// Global Escape closes whichever sidebar panel is open. Skip while
+// any modal-like layer (delete/duplicate/move/import/share) is up —
+// Nuxt UI's modals own Escape inside their stack and we don't want a
+// tap on Escape to bubble through and reach for the sidebar AFTER
+// dismissing the modal.
+onKeyStroke('Escape', () => {
+  if (
+    showShareModal.value
+    || showDeleteModal.value
+    || showDuplicateModal.value
+    || showMoveModal.value
+    || showImportModal.value
+  ) return
+  if (rightSidebar.value) closeSidebar()
+})
+
 // — Comments ─────────────────────────────────────────────────────────
 //
 // Single useComments instance lives at this level so the same reactive
@@ -171,15 +188,27 @@ function closeSidebar() {
 // AND the editor decoration plugin (for the underlines on commented
 // ranges). Two separate instances would each observe Y.js → wasted
 // work and a brief inconsistency window between them.
-const commentsApi = useComments(ydoc, awareness, props.docId)
-// Provide the single instance so CommentsPanel reads from the same
-// reactive list + methods instead of attaching its own observers.
-provideComments(commentsApi)
+// Single-call pattern via createInjectionState: provides AND returns
+// the api so this layer can also read `comments` for the editor
+// decoration ranges below. CommentsPanel reads from the same instance
+// via useCommentsContext.
+const commentsApi = useProvideComments(ydoc, awareness, props.docId)
 const commentRanges = computed<CommentRange[]>(() =>
   commentsApi.comments.value
     .filter(c => c.anchor !== null && !c.resolved)
     .map(c => ({ id: c.id, from: c.anchor!.from, to: c.anchor!.to }))
 )
+
+// OS notifications when someone replies to a thread I authored — only
+// fires while the tab is hidden and the user has granted permission.
+// Permission is asked LAZILY at the first reply we'd notify on, not on
+// page open, so users don't see a surprise prompt.
+useCommentNotifications({
+  comments: commentsApi.comments,
+  awareness,
+  docTitle: title,
+  docId: props.docId
+})
 
 // Imperative panel reference — the parent calls `startDraft()` when the
 // toolbar / menu emit `create-comment`, and `focusComment(id)` when the
@@ -309,6 +338,11 @@ const isMacPlatform = (): boolean => {
   return /Mac|iPhone|iPad/.test(navigator.platform)
 }
 
+// `useEventListener` (not `onKeyStroke`) is used here because capture-
+// phase is required to win against any focused element (CodeMirror,
+// slideovers, modals) that might handle Cmd+P first. `onKeyStroke`'s
+// options surface doesn't expose `capture` — only `eventName`,
+// `target`, `passive`, `dedupe`.
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
   const isPrint = (isMacPlatform() ? e.metaKey : e.ctrlKey) && !e.shiftKey && !e.altKey
     && (e.key === 'p' || e.key === 'P')
@@ -317,10 +351,9 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
   exportPdf()
 }, { capture: true })
 
-// Hidden file input for image insert via menu (mirrors the same flow
-// EditorToolbar uses for its image button — keeps the upload pipeline
-// in one place behind useImageUpload).
-const menuImageInput = ref<HTMLInputElement | null>(null)
+// Image insert via the menu (mirrors the same flow EditorToolbar uses
+// for its image button — keeps the upload pipeline in one place behind
+// useImageUpload). useFileDialog handles the hidden input internally.
 
 // Table size modal — opened from both the menu bar's Insert → Table
 // entry and (still anchored, less jumpy) the toolbar's Table button.
@@ -346,16 +379,16 @@ watch(imageUploadError, (err) => {
     color: 'error'
   })
 })
-function openImagePicker() {
-  menuImageInput.value?.click()
-}
-async function onMenuImageSelected(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
+const { open: openImagePicker, onChange: onMenuImagePicked } = useFileDialog({
+  accept: 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml',
+  multiple: false,
+  reset: true
+})
+onMenuImagePicked(async (files) => {
+  const file = files?.[0]
   if (!file || !editorView.value) return
   await uploadImageAndInsert(file, editorView.value)
-  input.value = ''
-}
+})
 
 // Menu-driven file actions. New-document hits the same endpoint as the
 // landing-page "New" button; we navigate immediately so the user lands
@@ -404,6 +437,21 @@ watchEffect(() => {
   if (isMobile.value && viewMode.value === 'split') {
     viewMode.value = 'edit'
   }
+})
+
+// Surface sync auth-failure as a toast (one-shot) so the user knows
+// the read-only state isn't a permission problem — it's a sync layer
+// issue (typically: rate-limited per-IP, sync container restarted
+// with a different JWT secret, expired clock skew). Persistent banner
+// rendered in the template carries the explanation + reload action.
+watch(syncAuthFailed, (failed) => {
+  if (!failed) return
+  toast.add({
+    title: t('editor.syncAuthFailedTitle'),
+    description: t('editor.syncAuthFailedDescription'),
+    icon: 'i-lucide-shield-alert',
+    color: 'error'
+  })
 })
 
 // Track editor view for toolbar.
@@ -550,16 +598,19 @@ const wordCount = computed(() => {
 })
 const charCount = computed(() => textContent.value.length)
 
-// Editable title
+// Editable title — `useFocus` exposes a writable boolean we set to
+// true when entering edit mode. Pairs with a select-on-focus tick
+// because useFocus only handles focus, not text selection.
 const editingTitle = ref(false)
 const titleInput = ref('')
 const titleInputEl = ref<HTMLInputElement | null>(null)
+const { focused: titleFocused } = useFocus(titleInputEl)
 
 function startEditTitle() {
   titleInput.value = title.value
   editingTitle.value = true
   nextTick(() => {
-    titleInputEl.value?.focus()
+    titleFocused.value = true
     titleInputEl.value?.select()
   })
 }
@@ -580,6 +631,15 @@ async function saveTitle() {
   }
   editingTitle.value = false
 }
+
+// Browser tab title tracks the live doc title so a user with multiple
+// docs open can switch tabs by name. `useHead` with a function getter
+// is the SSR-safe Nuxt idiom — Y.js syncs `title` post-hydration and
+// the tab updates as soon as it lands. Falls back to "Untitled" while
+// the doc is still loading or the user clears the title.
+useHead({
+  title: () => `${title.value || t('editor.untitled')} — ${t('app.name')}`
+})
 
 const statusColor = computed(() => {
   switch (status.value) {
@@ -718,11 +778,16 @@ const statusIcon = computed(() => {
           :doc-id="docId"
         />
 
-        <!-- Connection status: icon-only on mobile to save space -->
+        <!-- Connection status: icon-only on mobile to save space.
+             data-status drives the e2e wait — the visible-text "Connected"
+             label is `hidden sm:inline` and won't satisfy toBeVisible
+             at mobile widths. -->
         <UBadge
           :color="statusColor"
           variant="subtle"
           size="sm"
+          data-testid="connection-status"
+          :data-status="status"
         >
           <UIcon
             :name="statusIcon"
@@ -869,6 +934,31 @@ const statusIcon = computed(() => {
         @create-comment="triggerCreateComment"
       />
 
+      <!-- Sync auth-failure banner. Distinct from the regular read-only
+           state (workspace viewer, password-gated) — this fires only
+           when the sync handshake itself was rejected. Spelled out so
+           users aren't left wondering why their edit access "vanished". -->
+      <div
+        v-if="syncAuthFailed"
+        class="border-b border-error bg-error/10 text-error px-4 py-2 flex items-center gap-3 text-sm"
+        role="alert"
+      >
+        <UIcon name="i-lucide-shield-alert" class="size-4 shrink-0" />
+        <div class="flex-1 min-w-0">
+          <span class="font-medium">{{ t('editor.syncAuthFailedTitle') }}</span>
+          <span class="ml-2 text-xs opacity-80">{{ t('editor.syncAuthFailedDescription') }}</span>
+        </div>
+        <UButton
+          size="xs"
+          color="error"
+          variant="solid"
+          icon="i-lucide-rotate-ccw"
+          @click="$router.go(0)"
+        >
+          {{ t('editor.syncAuthFailedReload') }}
+        </UButton>
+      </div>
+
       <!-- Toolbar row.
            Left:  formatting actions (bold / italic / headings / list / …).
                   High-frequency editing — kept as a visible icon row
@@ -956,15 +1046,6 @@ const statusIcon = computed(() => {
           </UTooltip>
         </div>
       </div>
-
-      <!-- Hidden file input owned by the menu's "Insert → Image" path. -->
-      <input
-        ref="menuImageInput"
-        type="file"
-        accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
-        class="hidden"
-        @change="onMenuImageSelected"
-      >
 
       <!-- Read-only banner -->
       <div

@@ -4,10 +4,22 @@ import { spawn, type Subprocess } from 'bun'
 // Orchestrator for `bun run flows:test:ephemeral`.
 //
 // 1. Bring up docker-compose.flows.yml (waits for healthchecks).
-// 2. Start `bun run dev` against the ephemeral infra on port 3001.
-// 3. Wait for the Nuxt server to respond.
-// 4. Run Playwright against http://localhost:3001.
-// 5. Clean up on every exit path (success, test failure, Ctrl-C, crash).
+// 2. Run `bun run build` (production Nitro output to .output/).
+// 3. Spawn `bun run .output/server/index.mjs` against the ephemeral
+//    infra on port 3001.
+// 4. Wait for /api/health to respond.
+// 5. Run Playwright against http://localhost:3001.
+// 6. Clean up on every exit path (success, test failure, Ctrl-C, crash).
+//
+// Why prod build over `bun run dev`:
+//   • No Vite transform-on-first-request → no slow first test.
+//   • No HMR cascade if the developer edits a file mid-test.
+//   • No runtime dep discovery → no "cache invalidated, restart"
+//     between tests (the bug that killed our mobile run twice).
+//   • Catches real prod bugs the dev SSR papers over (lib0 conditional
+//     exports, missing tracedeps, etc.).
+// Cost: a one-time ~30-60s build at the top of every run. Worth it
+// once we have more than a couple of flows.
 //
 // Why a script and not just package.json && chains: cleanup must run
 // whether tests pass, fail, or get interrupted. trap is not portable
@@ -37,7 +49,20 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_SYNC_INTERNAL_URL: 'http://localhost:4002',
   NUXT_JWT_SECRET: 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char',
   NUXT_INTERNAL_API_SECRET: 'test-internal-api-secret-isolated',
-  NUXT_SESSION_PASSWORD: 'test-session-password-at-least-32-chars-isolated-x'
+  NUXT_SESSION_PASSWORD: 'test-session-password-at-least-32-chars-isolated-x',
+  // Stripe: prod-build runtime validation requires these. Tests don't
+  // exercise billing UI, so dummy values that satisfy the shape are
+  // enough. Aligns with the integration-test setup (see
+  // tests/integration/setup/server.ts).
+  NUXT_STRIPE_SECRET_KEY: 'sk_test_flows123',
+  NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_flows',
+  NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
+  NUXT_STRIPE_PRICE_PRO: 'price_test_pro',
+  NUXT_STRIPE_PRICE_MAX: 'price_test_max',
+  NUXT_STRIPE_PRICE_ULTRA: 'price_test_ultra',
+  // Skip the inactive-doc sweep — short-lived test infra doesn't
+  // benefit and the TTL math complains on a fresh DB.
+  NUXT_INACTIVE_DOC_TTL_DAYS: '0'
 }
 
 let nuxtProc: Subprocess | null = null
@@ -97,21 +122,37 @@ async function main() {
     process.exit(upCode)
   }
 
-  // Step 2: Nuxt dev server, env-overridden to talk to ephemeral infra.
-  console.log(`[flows-ephemeral] starting Nuxt dev server on :${NUXT_PORT}`)
+  // Step 2: production build. Skip with FLOWS_SKIP_BUILD=1 if you've
+  // already got a fresh .output/ from a previous run AND haven't
+  // touched app code (rare — most edits invalidate the bundle).
+  if (process.env.FLOWS_SKIP_BUILD !== '1') {
+    console.log('[flows-ephemeral] building production bundle')
+    const buildCode = await shellOut(['bun', 'run', 'build'])
+    if (buildCode !== 0) {
+      console.error('[flows-ephemeral] bun run build failed')
+      process.exit(buildCode)
+    }
+  } else {
+    console.log('[flows-ephemeral] FLOWS_SKIP_BUILD=1 — reusing existing .output/')
+  }
+
+  // Step 3: spawn the production Nitro server (preset 'bun' →
+  // .output/server/index.mjs runs under Bun directly). Env-overridden
+  // to talk to the ephemeral infra.
+  console.log(`[flows-ephemeral] starting production server on :${NUXT_PORT}`)
   nuxtProc = spawn({
-    cmd: ['bun', 'run', 'dev'],
+    cmd: ['bun', 'run', '.output/server/index.mjs'],
     env: { ...process.env, ...FLOWS_ENV },
     stdout: 'inherit',
     stderr: 'inherit'
   })
 
-  // Step 3: wait for it to respond.
+  // Step 4: wait for it to respond.
   console.log(`[flows-ephemeral] waiting for ${NUXT_URL} to come up`)
-  await waitForHttp(`${NUXT_URL}/api/health`, 120_000)
+  await waitForHttp(`${NUXT_URL}/api/health`, 60_000)
 
-  // Step 4: Playwright. Pass through all argv so callers can scope to
-  // a single test (e.g. `bun run flows:test:ephemeral --project=en-light`).
+  // Step 5: Playwright. Pass through all argv so callers can scope to
+  // a single test (e.g. `bun run flows:test:ephemeral --project=en-light-desktop`).
   console.log('[flows-ephemeral] running Playwright')
   const playwrightCode = await shellOut([
     'bunx', 'playwright', 'test',

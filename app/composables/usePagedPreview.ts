@@ -125,9 +125,12 @@ export function usePagedPreview(opts: {
     }
   })
 
+  // useEventListener auto-cleans on scope dispose — no manual
+  // removeEventListener in onUnmounted needed.
+  useEventListener(window, 'message', handleMessage)
+
   onMounted(() => {
     if (!opts.container.value) return
-    window.addEventListener('message', handleMessage)
     iframe = document.createElement('iframe')
     iframe.title = 'Document preview'
     iframe.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: transparent;'
@@ -146,7 +149,6 @@ export function usePagedPreview(opts: {
   })
 
   onUnmounted(() => {
-    window.removeEventListener('message', handleMessage)
     if (iframe?.parentNode) iframe.remove()
     iframe = null
   })

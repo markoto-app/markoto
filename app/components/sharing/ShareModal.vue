@@ -14,6 +14,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { copy, copied } = useClipboard()
+// Web Share API: shows the OS share sheet on iOS/Android Safari +
+// Chrome and on Edge/Chrome on Windows. `isSupported` is false on
+// desktop Chrome on Linux and Firefox everywhere — we hide the button
+// in that case so the user only sees what works.
+const { share, isSupported: shareSupported } = useShare()
 const { showContextualError } = useErrorHandler()
 
 const accessMode = ref(props.currentAccessMode)
@@ -42,6 +47,18 @@ const shareUrl = computed(() => {
 
 function copyLink() {
   copy(shareUrl.value)
+}
+
+async function shareLink() {
+  try {
+    await share({
+      title: props.docTitle || t('share.title'),
+      url: shareUrl.value
+    })
+  } catch {
+    // User dismissed the sheet or browser denied — silent. The copy
+    // button is still right next to it as a fallback.
+  }
 }
 
 async function saveAccessMode(mode: string) {
@@ -132,6 +149,20 @@ async function setPassword() {
             >
               {{ copied ? t('share.linkCopied') : t('share.copyLink') }}
             </UButton>
+            <!-- Native OS share sheet — only shown when supported
+                 (mobile Safari/Chrome, Edge). On desktop Chrome (Linux)
+                 and Firefox everywhere it's hidden. -->
+            <UButton
+              v-if="shareSupported"
+              icon="i-lucide-share"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              data-testid="share-system-button"
+              :aria-label="t('share.systemShare')"
+              :title="t('share.systemShare')"
+              @click="shareLink"
+            />
           </div>
         </div>
 

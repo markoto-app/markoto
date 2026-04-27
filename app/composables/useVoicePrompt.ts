@@ -89,6 +89,13 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   // changes still propagate without a re-invocation.
   const { locale } = useI18n()
 
+  // Reactive mic permission. Lets the UI gray out the button + show
+  // "Mic blocked in browser settings" without the user having to click
+  // and hit a NotAllowedError. `'unsupported'` on Firefox + iOS Safari
+  // (no Permissions API for `microphone`); we treat those as "unknown,
+  // don't preemptively block".
+  const micPermission = usePermission('microphone', { controls: false })
+
   const state = ref<VoicePromptState>('idle')
   const errorMessage = ref<string | null>(null)
   const durationSec = ref(0)
@@ -371,6 +378,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     durationSec: readonly(durationSec),
     levels: readonly(levels),
     maxDurationSec,
+    micPermission,
     start,
     stop,
     cancel,

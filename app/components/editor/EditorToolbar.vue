@@ -39,7 +39,6 @@ const dictationBusy = computed(() =>
 )
 
 const { uploadAndInsert, uploading, error: uploadError } = useImageUpload(props.docId)
-const imageInput = ref<HTMLInputElement | null>(null)
 const toast = useToast()
 
 watch(uploadError, (err) => {
@@ -68,17 +67,19 @@ function withView(fn: (v: EditorView) => void) {
   }
 }
 
-function openImagePicker() {
-  imageInput.value?.click()
-}
+// `reset: true` so a failed upload + re-pick of the same file fires
+// the change event again.
+const { open: openImagePicker, onChange: onImagePicked } = useFileDialog({
+  accept: 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml',
+  multiple: false,
+  reset: true
+})
 
-async function onImageSelected(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
+onImagePicked(async (files) => {
+  const file = files?.[0]
   if (!file || !props.view) return
   await uploadAndInsert(file, props.view)
-  input.value = ''
-}
+})
 
 // Link is a special case — wrap as `[text](url)` and select the
 // placeholder URL so the user can type the destination immediately.
@@ -115,7 +116,9 @@ const actions = computed(() => [
   { icon: 'i-lucide-code', label: t('editor.code'), action: withView(v => toggleCode(v)) },
   { icon: 'i-lucide-quote', label: t('editor.quote'), action: withView(v => toggleLinePrefix(v, '> ')) },
   { icon: 'i-lucide-link', label: t('editor.link'), action: linkAction },
-  { icon: 'i-lucide-image', label: t('editor.image'), action: openImagePicker },
+  // Wrapped so the click MouseEvent isn't passed into useFileDialog's
+  // open(options?) and silently treated as an options override.
+  { icon: 'i-lucide-image', label: t('editor.image'), action: () => openImagePicker() },
   { icon: 'i-lucide-subscript', label: t('editor.subscript'), action: withView(v => toggleWrap(v, '~')) },
   { icon: 'i-lucide-superscript', label: t('editor.superscript'), action: withView(v => toggleWrap(v, '^')) },
   { divider: true },
@@ -302,13 +305,6 @@ const diagramItems = computed(() => [[
       />
     </UTooltip>
 
-    <input
-      ref="imageInput"
-      type="file"
-      accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
-      class="hidden"
-      @change="onImageSelected"
-    >
   </div>
 </template>
 

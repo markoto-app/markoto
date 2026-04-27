@@ -75,42 +75,39 @@ interface DocumentListItem {
   isOwner: boolean | number
 }
 
-const myDocs = ref<DocumentListItem[]>([])
-const myWorkspaces = ref<WorkspaceListItem[]>([])
-const loadingDocs = ref(false)
-const loadingWorkspaces = ref(false)
+const {
+  state: myDocs,
+  isLoading: loadingDocs,
+  execute: loadDocs
+} = useAsyncState<DocumentListItem[]>(
+  () => loggedIn.value ? $fetch<DocumentListItem[]>('/api/user/documents') : Promise.resolve([]),
+  [],
+  {
+    immediate: false,
+    resetOnExecute: false,
+    onError: (e) => {
+      myDocs.value = []
+      showContextualError(e, 'error.generic')
+    }
+  }
+)
 
-async function loadDocs() {
-  if (!loggedIn.value) {
-    myDocs.value = []
-    return
+const {
+  state: myWorkspaces,
+  isLoading: loadingWorkspaces,
+  execute: loadWorkspaces
+} = useAsyncState<WorkspaceListItem[]>(
+  () => loggedIn.value ? $fetch<WorkspaceListItem[]>('/api/user/workspaces') : Promise.resolve([]),
+  [],
+  {
+    immediate: false,
+    resetOnExecute: false,
+    onError: (e) => {
+      myWorkspaces.value = []
+      showContextualError(e, 'error.generic')
+    }
   }
-  loadingDocs.value = true
-  try {
-    myDocs.value = await $fetch<DocumentListItem[]>('/api/user/documents')
-  } catch (e) {
-    myDocs.value = []
-    showContextualError(e, 'error.generic')
-  } finally {
-    loadingDocs.value = false
-  }
-}
-
-async function loadWorkspaces() {
-  if (!loggedIn.value) {
-    myWorkspaces.value = []
-    return
-  }
-  loadingWorkspaces.value = true
-  try {
-    myWorkspaces.value = await $fetch<WorkspaceListItem[]>('/api/user/workspaces')
-  } catch (e) {
-    myWorkspaces.value = []
-    showContextualError(e, 'error.generic')
-  } finally {
-    loadingWorkspaces.value = false
-  }
-}
+)
 
 watch(loggedIn, () => {
   loadDocs()
@@ -178,6 +175,16 @@ function formatDate(value: string | number | Date) {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// Long-press a doc row to open its action menu — discoverable on
+// touch where the 3-dot button is a small target. Per-row keying so
+// only the long-pressed row's menu opens. Owner-only here, mirroring
+// the menu's existing visibility gate.
+const openMenuDocId = ref<string | null>(null)
+function onRowLongPress(doc: DocumentListItem) {
+  if (!doc.isOwner) return
+  openMenuDocId.value = doc.docId
 }
 </script>
 
@@ -263,6 +270,7 @@ function formatDate(value: string | number | Date) {
           <div
             v-for="doc in myDocs"
             :key="doc.docId"
+            v-long-press="() => onRowLongPress(doc)"
             class="group flex items-center gap-3 p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
           >
             <NuxtLink
@@ -323,6 +331,8 @@ function formatDate(value: string | number | Date) {
                     onSelect: () => openDeleteConfirm(doc)
                   }
                 ]]"
+                :open="openMenuDocId === doc.docId"
+                @update:open="(v: boolean) => { if (!v && openMenuDocId === doc.docId) openMenuDocId = null }"
               >
                 <UButton
                   icon="i-lucide-more-vertical"

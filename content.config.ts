@@ -23,6 +23,10 @@ export default defineContentConfig({
         // their group. Folders themselves are ordered by their index
         // page's `order` value.
         order: z.number().optional(),
+        // Lucide icon name. Sections (folder index pages) use this for
+        // the sidebar group header + the landing-page category card.
+        // Leaf pages can omit and inherit visual weight from their parent.
+        icon: z.string().optional(),
         // Optional category override. Defaults to the parent folder
         // name (e.g. "writing/tables.md" → category "writing"). Set
         // explicitly only when grouping needs to deviate from the

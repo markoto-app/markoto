@@ -10,26 +10,56 @@ const open = defineModel<boolean>('open', { required: true })
 
 const { t } = useI18n()
 
-const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<File | null>(null)
-const importing = ref(false)
 const error = ref('')
-const importedMarkdown = ref('')
 const showConflict = ref(false)
+
+const {
+  state: importedMarkdown,
+  isLoading: importing,
+  execute: runImport
+} = useAsyncState<string>(
+  async () => {
+    const formData = new FormData()
+    formData.append('file', selectedFile.value!)
+    const result = await $fetch<{ markdown: string, source: string, filename?: string }>(
+      '/api/import',
+      { method: 'POST', body: formData }
+    )
+    return result.markdown
+  },
+  '',
+  {
+    immediate: false,
+    resetOnExecute: false,
+    onSuccess: (markdown) => {
+      // If document already has content, show conflict dialog;
+      // otherwise replace immediately.
+      if (!markdown) return
+      if (props.ytext.length > 0) showConflict.value = true
+      else applyImport('replace')
+    },
+    onError: (e) => {
+      const err = e as { data?: { message?: string }, message?: string }
+      error.value = err.data?.message || err.message || t('import.error')
+    }
+  }
+)
 
 const ACCEPTED = '.docx,.pdf,.pptx,.xlsx,.xls,.html,.htm,.epub'
 
-function selectFile() {
-  fileInput.value?.click()
-}
+// `reset: true` per `open()` so re-selecting the same file fires
+// onChange again (native input dedupes identical paths otherwise).
+const { open: selectFile, onChange: onFileChange, reset: resetFileDialog } = useFileDialog({
+  accept: ACCEPTED,
+  multiple: false,
+  reset: true
+})
 
-function onFileChange(e: Event) {
-  const input = e.target as HTMLInputElement
-  selectedFile.value = input.files?.[0] || null
+onFileChange((files) => {
+  selectedFile.value = files?.[0] ?? null
   error.value = ''
-  // Reset the input so re-selecting the same file fires `change` again.
-  if (input) input.value = ''
-}
+})
 
 function clearSelection(e: Event) {
   // Stop propagation so the parent dropzone's click-to-pick doesn't fire
@@ -37,6 +67,7 @@ function clearSelection(e: Event) {
   e.stopPropagation()
   selectedFile.value = null
   error.value = ''
+  resetFileDialog()
 }
 
 // Reset transient state whenever the modal closes — by cancel button,
@@ -49,6 +80,7 @@ watch(open, (isOpen) => {
     error.value = ''
     importedMarkdown.value = ''
     showConflict.value = false
+    resetFileDialog()
   }
 })
 
@@ -60,33 +92,8 @@ function formatBytes(bytes: number): string {
 
 async function doImport() {
   if (!selectedFile.value) return
-
-  importing.value = true
   error.value = ''
-
-  try {
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-
-    const result = await $fetch<{ markdown: string, source: string, filename?: string }>(
-      '/api/import',
-      { method: 'POST', body: formData }
-    )
-
-    importedMarkdown.value = result.markdown
-
-    // If document already has content, show conflict dialog
-    if (props.ytext.length > 0) {
-      showConflict.value = true
-    } else {
-      applyImport('replace')
-    }
-  } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    error.value = err.data?.message || err.message || t('import.error')
-  } finally {
-    importing.value = false
-  }
+  await runImport()
 }
 
 function applyImport(mode: 'replace' | 'append') {
@@ -182,14 +189,6 @@ function cancelImport() {
             {{ t('import.description') }}
           </p>
 
-          <input
-            ref="fileInput"
-            type="file"
-            :accept="ACCEPTED"
-            class="hidden"
-            @change="onFileChange"
-          >
-
           <div
             :class="[
               'border-2 rounded-lg p-8 text-center cursor-pointer transition-colors',
@@ -197,7 +196,7 @@ function cancelImport() {
                 ? 'border-solid border-primary bg-primary/5 hover:bg-primary/10'
                 : 'border-dashed border-default hover:border-muted'
             ]"
-            @click="selectFile"
+            @click="selectFile()"
           >
             <template v-if="selectedFile">
               <UIcon
@@ -214,7 +213,7 @@ function cancelImport() {
                 <button
                   type="button"
                   class="text-primary hover:underline"
-                  @click.stop="selectFile"
+                  @click.stop="selectFile()"
                 >
                   {{ t('import.changeFile') }}
                 </button>

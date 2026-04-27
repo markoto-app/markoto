@@ -26,27 +26,44 @@ interface WorkspaceDetail {
   members: WorkspaceMember[]
 }
 
-const data = ref<WorkspaceDetail | null>(null)
-const loading = ref(true)
 const notFound = ref(false)
 const forbidden = ref(false)
 
-async function loadWorkspace() {
-  loading.value = true
-  notFound.value = false
-  forbidden.value = false
-  try {
-    data.value = await $fetch<WorkspaceDetail>(`/api/workspaces/${workspaceId.value}`)
-  } catch (e: any) {
-    if (e?.statusCode === 404) notFound.value = true
-    else if (e?.statusCode === 403 || e?.statusCode === 401) forbidden.value = true
-    else showError('workspace.notFound', e)
-  } finally {
-    loading.value = false
+const {
+  state: data,
+  isLoading: loading,
+  execute: loadWorkspace
+} = useAsyncState<WorkspaceDetail | null, [], false>(
+  async () => {
+    notFound.value = false
+    forbidden.value = false
+    return await $fetch<WorkspaceDetail>(`/api/workspaces/${workspaceId.value}`)
+  },
+  null,
+  {
+    immediate: false,
+    resetOnExecute: false,
+    // Deep-reactive: callers mutate `data.value.documents = …` and
+    // `data.value.workspace.name = …` post-load. shallowRef (the
+    // useAsyncState default) wouldn't notify on those nested writes.
+    shallow: false,
+    onError: (e: any) => {
+      if (e?.statusCode === 404) notFound.value = true
+      else if (e?.statusCode === 403 || e?.statusCode === 401) forbidden.value = true
+      else showError('workspace.notFound', e)
+    }
   }
-}
+)
 
-watch([workspaceId, loggedIn], loadWorkspace, { immediate: true })
+watch([workspaceId, loggedIn], () => loadWorkspace(), { immediate: true })
+
+// Tab title tracks the workspace name once it loads. Function getter
+// keeps it reactive without polling.
+useHead({
+  title: () => data.value
+    ? `${data.value.workspace.name} — ${t('app.name')}`
+    : t('app.name')
+})
 
 const myRole = computed(() => data.value?.workspace.myRole ?? null)
 const isAdmin = computed(() => myRole.value === 'admin')
@@ -395,7 +412,7 @@ async function leaveWorkspace() {
               :workspace-id="data.workspace.workspaceId"
               :ai-enabled="data.workspace.aiEnabled"
               :billing-owner-id="data.workspace.billingOwnerId"
-              @updated="loadWorkspace"
+              @updated="() => loadWorkspace()"
             />
             <div
               v-else

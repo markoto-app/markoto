@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "YPad",
-    "tagline": "Collaborative Markdown Editor"
+    "tagline": "Collaborative Markdown Editor",
+    "offline": "You're offline — edits stay local until you reconnect."
   },
   "landing": {
     "hero": "Write together, in real time",
@@ -23,6 +24,9 @@
   "editor": {
     "untitled": "Untitled",
     "placeholder": "Start writing...",
+    "syncAuthFailedTitle": "Sync server rejected the connection",
+    "syncAuthFailedDescription": "You normally have edit access here. The sync server bounced the handshake — likely a per-IP rate limit or a stale token. Reload to try again.",
+    "syncAuthFailedReload": "Reload",
     "aiWorkspaceBadge": "AI workspace",
     "aiWorkspaceBadgeTooltip": "This document is in an AI workspace — AI work here uses the sponsor's credit pool, not yours.",
     "aiWorkspaceSponsoredBy": "AI workspace sponsored by {name}",
@@ -62,6 +66,7 @@
     "share": "Share",
     "copyLink": "Copy Link",
     "linkCopied": "Link copied!",
+    "systemShare": "Share via system…",
     "accessMode": "Access Mode",
     "private": "Private — only you",
     "openEdit": "Anyone can edit",
@@ -344,6 +349,7 @@
     "rateLimited": "Too many AI requests. Try again in a minute.",
     "failed": "AI request failed",
     "micStart": "Start voice input",
+    "micBlocked": "Microphone blocked — enable it in your browser settings",
     "micStop": "Stop and send",
     "micCancel": "Cancel voice input",
     "micRequestingPermission": "Waiting for microphone…",

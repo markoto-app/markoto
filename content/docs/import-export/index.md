@@ -1,11 +1,12 @@
 ---
-title: Import & Export
+title: Import & export
 description: Bring documents in from DOCX/PDF/PPTX/XLSX/HTML/EPUB; export to Markdown or PDF
 category: import-export
 order: 5
+icon: i-lucide-arrow-right-left
 ---
 
-# Import & Export
+# Import & export
 
 Bring existing documents into YPad without losing structure: DOCX,
 PDF, PPTX, XLSX, HTML, EPUB all import via markitdown into clean

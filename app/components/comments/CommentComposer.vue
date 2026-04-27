@@ -41,6 +41,7 @@ const { t } = useI18n()
 
 const body = ref(props.initialBody)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const mentionPopoverRef = ref<HTMLElement | null>(null)
 
 // — @-mention typeahead state ────────────────────────────────────────
 //
@@ -138,6 +139,15 @@ function getCaretCoords(textarea: HTMLTextAreaElement, index: number): { top: nu
   document.body.removeChild(mirror)
   return { top, left, lineHeight }
 }
+
+// Tap outside the popover (on the textarea, on a sibling, on the page
+// background) dismisses the typeahead — complements the Escape key
+// for mouse-only / touch users. `ignore` keeps the textarea OUT of
+// "outside" so typing inside doesn't immediately re-close the popover
+// on the next click.
+onClickOutside(mentionPopoverRef, () => {
+  if (mentionContext.value) mentionContext.value = null
+}, { ignore: [textareaRef] })
 
 function refreshMentionContext() {
   const ta = textareaRef.value
@@ -279,6 +289,7 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
          symbol rather than spanning the composer's full width. -->
     <div
       v-if="mentionContext && filteredMentionUsers.length > 0 && caretCoords"
+      ref="mentionPopoverRef"
       class="absolute z-20 rounded border border-default bg-elevated shadow-lg overflow-hidden"
       :style="{
         top: caretCoords.top + 'px',

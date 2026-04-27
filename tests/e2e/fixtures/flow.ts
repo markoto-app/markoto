@@ -58,7 +58,19 @@ export type FlowEntry = ChapterEntry | NarrationEntry | ApproachEntry | OutcomeE
 
 export type HighlightRef = { label: string, selector: string }
 
-export type Variant = 'light' | 'dark'
+// Composite variant: `<theme>-<form>`. Theme is light/dark; form is
+// desktop/mobile (the form factor the screenshots were captured at).
+// Flow.vue's resolution chain picks the right pair based on the
+// reader's color mode + viewport width.
+export type Variant =
+  | 'light-desktop'
+  | 'dark-desktop'
+  | 'light-mobile'
+  | 'dark-mobile'
+
+export function isMobileVariant(v: Variant): boolean {
+  return v.endsWith('mobile')
+}
 
 export type Manifest = {
   // Schema version. v2 introduces approach/outcome/chapter/narration
@@ -142,6 +154,8 @@ export type Flow = {
 export type EditorFixture = {
   /** Page-object with stable selectors + composite actions. */
   page: EditorPage
+  /** True when this test is running in a mobile-form-factor project. */
+  isMobile: boolean
   /**
    * Run the canonical "homepage → New Document" preamble AND record
    * each step in the manifest. Use this when doc creation IS the
@@ -177,14 +191,22 @@ const CURSOR_INIT_SCRIPT = `
 export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
   flow: async ({ page }, use, testInfo) => {
     const locale = (testInfo.project.metadata?.locale as string | undefined) ?? 'en'
-    const variant: Variant = (testInfo.project.metadata?.variant as Variant | undefined) ?? 'light'
+    const variant: Variant = (testInfo.project.metadata?.variant as Variant | undefined) ?? 'light-desktop'
     const slug = slugify(testInfo.title)
     const outDir = path.join('tests/e2e/output/flows', slug, locale, variant)
     await fs.mkdir(outDir, { recursive: true })
 
+    // Pre-seed the color-mode preference. @nuxtjs/color-mode only
+    // understands 'light' / 'dark' / 'system' — write JUST the theme
+    // half of the composite variant (e.g. 'dark-desktop' → 'dark').
+    // Writing the full variant string was a silent no-op (falls back
+    // to 'system') and produced light-themed screenshots in the dark
+    // variant directories. Combined with project-level `colorScheme`,
+    // both signals agree.
+    const theme: 'light' | 'dark' = variant.startsWith('dark') ? 'dark' : 'light'
     await page.addInitScript((v: string) => {
       try { localStorage.setItem('nuxt-color-mode', v) } catch {}
-    }, variant)
+    }, theme)
 
     await page.addInitScript(() => {
       const css = `
@@ -422,11 +444,14 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     )
   },
 
-  editor: async ({ page, flow }, use) => {
+  editor: async ({ page, flow }, use, testInfo) => {
     const editor = new EditorPage(page)
+    const variant: Variant = (testInfo.project.metadata?.variant as Variant | undefined) ?? 'light-desktop'
+    const isMobile = isMobileVariant(variant)
 
     const fixture: EditorFixture = {
       page: editor,
+      isMobile,
 
       recordPreamble: async () => {
         // Lean preamble for flows where doc creation IS the story.
@@ -476,8 +501,13 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           editor.newDocDialog.submitBlank.click()
         ])
         await editor.waitForReady()
-        await editor.switchToSplitView()
-        await editor.waitForPreviewPaginated()
+        // Mobile forces edit-only view (preview pane is hidden) — see
+        // AGENTS.md §11. Skip the split-view setup; flow shots will
+        // capture the editor in its single-pane mobile layout.
+        if (!isMobile) {
+          await editor.switchToSplitView()
+          await editor.waitForPreviewPaginated()
+        }
       }
     }
 
