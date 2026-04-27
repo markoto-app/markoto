@@ -38,11 +38,14 @@ async function loadMermaid(theme: MermaidTheme): Promise<MermaidModule> {
   m.initialize({
     startOnLoad: false,
     theme,
-    securityLevel: 'strict',
-    // Match the live preview iframe (see usePagedPreview.ts) — see
-    // that file for the rationale on font size + htmlLabels.
+    // 'antiscript' (NOT 'strict') — see pagedPreviewIframe.html for the
+    // rationale: 'strict' runs DOMPurify over the SVG which strips
+    // mermaid's embedded <style>, breaking node fills + label widths.
+    securityLevel: 'antiscript',
+    // Match the live preview iframe (see pagedPreviewIframe.html) — see
+    // that file for the rationale on font size + htmlLabels: false.
     themeVariables: { fontSize: '12px' },
-    flowchart: { htmlLabels: true, padding: 25, wrappingWidth: 200 },
+    flowchart: { htmlLabels: false, padding: 25 },
     fontFamily: 'inherit'
   })
   return m
@@ -61,10 +64,29 @@ async function transformMermaid(html: string, theme: MermaidTheme): Promise<stri
     const source = code.textContent || ''
     const id = 'mmd-' + Math.random().toString(36).slice(2, 10)
     try {
-      const { svg } = await m.render(id, source)
+      let { svg } = await m.render(id, source)
+
+      // Parse viewBox to recover natural width + height for the <img>.
+      // viewBox="minX minY width height"
+      const vbNums = (svg.match(/viewBox="[^"]*"/) ?? [''])[0].match(/[\d.]+/g)
+      const natW = vbNums?.[2] ? Math.round(parseFloat(vbNums[2])) : null
+      const natH = vbNums?.[3] ? Math.round(parseFloat(vbNums[3])) : null
+      if (natH) {
+        svg = svg.replace(/<svg(\b)/, `<svg height="${natH}"$1`)
+      }
+
       const wrap = doc.createElement('div')
       wrap.className = 'mermaid'
-      wrap.innerHTML = svg
+      // Same <img> approach as pagedPreviewIframe.html — see that file
+      // for the rationale. paged.js fragments inline SVGs regardless of
+      // break-inside:avoid; an <img> is atomic.
+      const svgBase64 = btoa(unescape(encodeURIComponent(svg)))
+      const img = doc.createElement('img')
+      img.src = `data:image/svg+xml;base64,${svgBase64}`
+      img.style.cssText = 'max-width:100%;display:block;'
+      if (natW) img.setAttribute('width', String(natW))
+      if (natH) img.setAttribute('height', String(natH))
+      wrap.appendChild(img)
       pre.replaceWith(wrap)
     } catch (err: unknown) {
       const errEl = doc.createElement('div')

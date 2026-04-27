@@ -201,25 +201,35 @@
           m.initialize({
             startOnLoad: false,
             theme: theme,
-            // Strict blocks raw HTML in diagram labels — safe default
-            // for anything the user (or AI) types into a code fence.
-            securityLevel: 'strict',
+            // antiscript: blocks <script> and javascript: URLs but keeps
+            // mermaid's own inline <style> block + foreignObject inline
+            // styles intact. 'strict' runs the SVG through DOMPurify
+            // with default config which strips <style> from SVG → every
+            // shape falls back to default-black fill/stroke (the
+            // "rendered almost black" symptom) AND htmlLabels reflow
+            // wider than mermaid's pre-render measured, inflating the
+            // SVG's measured height enough that `break-inside: avoid`
+            // pushes the diagram to the next page even when there's
+            // room. The surrounding markdown HTML is already DOMPurified
+            // upstream, so the SVG isn't a new XSS surface.
+            securityLevel: 'antiscript',
             // 12px works across diagram types — the default 16px
             // crowds multi-line cells in tables/state diagrams and
             // pushes node bounds outside their column on flowcharts.
             // 12px reads cleanly at print resolution without feeling
             // cramped on single-word nodes.
             themeVariables: { fontSize: '12px' },
-            // htmlLabels=true uses <foreignObject> so node sizing comes
-            // from real HTML layout — which is accurate. The previous
-            // SVG-text path consistently undersized cylinders and stadiums
-            // because mermaid couldn't measure text width without fonts
-            // loaded, then clipped multi-word labels. Modern paged.js
-            // (0.4.x) handles foreignObject pagination correctly; the
-            // historical aversion to it was based on older versions.
-            // Extra padding + wider text-wrap give multi-word labels
-            // visual breathing room.
-            flowchart: { htmlLabels: true, padding: 25, wrappingWidth: 200 },
+            // htmlLabels: FALSE — uses plain SVG <text> instead of
+            // <foreignObject> for node labels. paged.js has HTML-aware
+            // pagination logic that recurses into <foreignObject> children
+            // and moves the SVG content to the next page regardless of
+            // break-inside:avoid on the container. Plain SVG elements are
+            // opaque to paged.js's HTML paginator, so break-inside:avoid
+            // on the .mermaid wrapper correctly keeps the diagram together.
+            // document.fonts.ready is awaited above before mermaid runs,
+            // so SVG text measurements use the loaded theme font — no
+            // node-undersizing regression.
+            flowchart: { htmlLabels: false, padding: 25 },
             fontFamily: 'inherit'
           });
           lastMermaidTheme = theme;
@@ -346,9 +356,38 @@
               var renderId = 'mmd-' + Math.random().toString(36).slice(2, 10);
               try {
                 var rendered = await mer.render(renderId, source);
+                var svgStr = rendered.svg;
+
+                // Parse viewBox to recover natural width + height.
+                // Mermaid emits width="100%" but no height; the <img>
+                // needs both to resolve its intrinsic aspect ratio.
+                // viewBox="minX minY width height"
+                var vbNums = (svgStr.match(/viewBox="[^"]*"/) || [''])[0].match(/[\d.]+/g);
+                var natW = vbNums && vbNums[2] ? Math.round(parseFloat(vbNums[2])) : null;
+                var natH = vbNums && vbNums[3] ? Math.round(parseFloat(vbNums[3])) : null;
+                if (natH) {
+                  // Inject explicit height so the browser knows the SVG's
+                  // aspect ratio when it's embedded as an <img> source.
+                  svgStr = svgStr.replace(/<svg(\b)/, '<svg height="' + natH + '"$1');
+                }
+
                 var wrap = document.createElement('div');
                 wrap.className = 'mermaid';
-                wrap.innerHTML = rendered.svg;
+                // Render as <img src="data:image/svg+xml;base64,..."> instead
+                // of an inline <svg>. paged.js has hardcoded SVG fragmentation
+                // logic that distributes SVG children across pages regardless
+                // of break-inside:avoid on the <svg> itself — producing an
+                // 18px ghost on page 1 and the real diagram on page 2. An
+                // <img> is a replaced element; paged.js treats it as atomic
+                // and moves it whole to the next page when it doesn't fit,
+                // respecting the break-inside:avoid on the .mermaid wrapper.
+                var svgBase64 = btoa(unescape(encodeURIComponent(svgStr)));
+                var img = document.createElement('img');
+                img.src = 'data:image/svg+xml;base64,' + svgBase64;
+                img.style.cssText = 'max-width:100%;display:block;';
+                if (natW) img.setAttribute('width', natW);
+                if (natH) img.setAttribute('height', natH);
+                wrap.appendChild(img);
                 preEl.replaceWith(wrap);
               } catch (err) {
                 var errEl = document.createElement('div');
