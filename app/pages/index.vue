@@ -5,7 +5,6 @@ const { t } = useI18n()
 const router = useRouter()
 const { loggedIn } = useUserSession()
 const { billing, workspaceCapReached } = useBilling()
-const creating = ref(false)
 
 const toast = useToast()
 const { showError, showContextualError } = useErrorHandler()
@@ -49,25 +48,25 @@ onMounted(() => {
   }
 })
 
-async function createDocument() {
-  creating.value = true
-  try {
-    const { docId } = await $fetch<{ docId: string }>('/api/docs', { method: 'POST' })
-    router.push(`/d/${docId}`)
-  } catch (e) {
-    // NO client-side fallback. If POST /api/docs fails we want to see it — a silent
-    // `Math.random()` fallback used to mask server errors and produce orphaned docIds
-    // with no `documents` row, which then broke activity logging / sharing / deletion.
-    showError('error.documentCreateFailed', e)
-  } finally {
-    creating.value = false
-  }
+// New-doc dialog. Replaces the old one-click POST so the user gets a
+// chance to seed title/description/audience/language/theme up-front —
+// the AI then has authoritative context from the very first prompt.
+// Skip path inside the dialog ("Just give me a blank doc") preserves
+// the legacy zero-config flow for muscle memory.
+const showNewDocDialog = ref(false)
+function createDocument() {
+  showNewDocDialog.value = true
+}
+function onDocCreated(docId: string) {
+  router.push(`/d/${docId}`)
 }
 
 // Fetch user's documents if logged in
 interface DocumentListItem {
   docId: string
   title: string
+  description: string
+  language: string
   accessMode: 'private' | 'open-edit' | 'open-view' | 'password-protected'
   wordCount: number
   lastActive: string | number | Date
@@ -212,7 +211,6 @@ function formatDate(value: string | number | Date) {
           <UButton
             size="xl"
             icon="i-lucide-plus"
-            :loading="creating"
             @click="createDocument"
           >
             {{ t('landing.newDocument') }}
@@ -277,6 +275,16 @@ function formatDate(value: string | number | Date) {
               />
               <div class="min-w-0">
                 <p class="text-sm font-medium truncate">{{ doc.title }}</p>
+                <!-- Description as a subtitle when set. Highest-info
+                     field for picking which doc to open; collapses
+                     entirely when empty so legacy/blank docs don't
+                     show "—" placeholders. -->
+                <p
+                  v-if="doc.description"
+                  class="text-xs text-toned truncate"
+                >
+                  {{ doc.description }}
+                </p>
                 <p class="text-xs text-muted">{{ formatDate(doc.lastActive) }}</p>
               </div>
             </NuxtLink>
@@ -328,6 +336,14 @@ function formatDate(value: string | number | Date) {
           </div>
         </div>
       </div>
+
+      <!-- New-document dialog. Standalone (no workspace) on the home
+           page; the workspace page passes its own workspaceId in. -->
+      <DocumentNewDocumentDialog
+        v-model:open="showNewDocDialog"
+        :workspace-id="null"
+        @created="onDocCreated"
+      />
 
       <!-- Delete confirmation (shared across all doc rows) -->
       <DocumentDeleteConfirmModal

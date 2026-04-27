@@ -55,7 +55,10 @@ export async function duplicateDocument(
     throw new Error(`Source document ${input.sourceDocId} not found`)
   }
 
-  // Phase 1: documents row.
+  // Phase 1: documents row. Description/audience/language/templateId
+  // copy through unchanged — a duplicate is the same document content
+  // by another name, so its writing register and audience guidance
+  // should match the source.
   await insertDuplicateDoc({
     newDocId: input.newDocId,
     ownerId: input.ownerId,
@@ -65,7 +68,11 @@ export async function duplicateDocument(
     passwordHash: source.passwordHash,
     theme: source.theme,
     wordCount: source.wordCount,
-    sizeBytes: source.sizeBytes
+    sizeBytes: source.sizeBytes,
+    description: source.description,
+    audience: source.audience,
+    language: source.language,
+    templateId: source.templateId
   })
 
   try {

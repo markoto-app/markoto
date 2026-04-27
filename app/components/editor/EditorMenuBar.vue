@@ -28,7 +28,7 @@ const props = defineProps<{
   canManage: boolean
   // Right-sidebar state — used to render check marks next to "Activity"
   // and "Theme" in the View menu so the user can see what's currently open.
-  rightSidebar: 'activity' | 'theme' | 'knowledge' | null
+  rightSidebar: 'document' | 'activity' | 'theme' | 'knowledge' | null
   // Whether the current doc belongs to a workspace the viewer is a
   // member of. Only then is the Knowledge panel meaningful — gate the
   // menu entry on this so non-workspace docs don't show a disabled item.
@@ -54,7 +54,7 @@ const emit = defineEmits<{
   'move-document': []
   'delete-document': []
   'set-view-mode': ['edit' | 'split' | 'preview']
-  'toggle-sidebar': ['activity' | 'theme' | 'knowledge']
+  'toggle-sidebar': ['document' | 'activity' | 'theme' | 'knowledge']
   'undo': []
   'redo': []
   'open-image-picker': []
@@ -161,6 +161,13 @@ const viewItems = computed(() => [
   // Right-sidebar toggles (independent — but mutually exclusive in the
   // parent; we only render the check on whichever is active)
   [
+    {
+      label: t('documentPanel.title'),
+      icon: 'i-lucide-info',
+      type: 'checkbox' as const,
+      checked: props.rightSidebar === 'document',
+      onSelect: () => emit('toggle-sidebar', 'document')
+    },
     {
       label: t('activity.title'),
       icon: 'i-lucide-activity',

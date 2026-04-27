@@ -127,6 +127,101 @@
     "pdf": "PDF (.pdf)",
     "exporting": "Exporting..."
   },
+  "newDoc": {
+    "title": "New document",
+    "subtitle": "A few quick choices help the AI write for you from the start. All optional — skip to a blank doc anytime.",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. Q3 launch plan",
+    "descriptionLabel": "Description",
+    "descriptionHelp": "One line about what you're writing. The AI sees this every turn.",
+    "descriptionPlaceholder": "What is this document about?",
+    "languageLabel": "Language",
+    "audienceLabel": "Audience",
+    "themeLabel": "Theme",
+    "themeHelp": "Sets the visual style. You can change it any time.",
+    "templateLabel": "Template",
+    "templateHelp": "Pre-fills the doc with a structural skeleton you can edit. Each section comes with a comment hint so the AI knows what belongs where.",
+    "create": "Create document",
+    "skip": "Just give me a blank doc"
+  },
+  "templates": {
+    "blank": {
+      "label": "Blank",
+      "description": "Just a title. You bring the structure."
+    },
+    "business-plan": {
+      "label": "Business plan",
+      "description": "Executive summary, market, model, roadmap, financials, risks."
+    },
+    "academic-paper": {
+      "label": "Academic paper",
+      "description": "Abstract, intro, related work, methods, results, discussion, references."
+    },
+    "recipe": {
+      "label": "Recipe",
+      "description": "At-a-glance card, ingredients, equipment, instructions, variations."
+    },
+    "meeting-notes": {
+      "label": "Meeting notes",
+      "description": "Agenda, discussion, decisions, action items, open questions."
+    },
+    "project-readme": {
+      "label": "Project README",
+      "description": "Tagline, why, quick start, features, docs, contributing, license."
+    }
+  },
+  "documentPanel": {
+    "title": "Document",
+    "description": {
+      "label": "Description",
+      "help": "One line about what this document is. The AI sees this every turn — it's how the model knows what you're working on without re-typing it.",
+      "placeholder": "e.g. Q3 launch plan for the new mobile app"
+    },
+    "language": {
+      "label": "Language",
+      "help": "Sets the language the AI writes in. Pick a preset or type any language name.",
+      "placeholder": "Pick or type a language (e.g. Romansh, Schwiizerdütsch)",
+      "customActive": "Using your typed language. Pick a preset to switch back."
+    },
+    "audience": {
+      "label": "Audience",
+      "help": "Tells the AI who this is written for. Affects tone, structure, and word choice."
+    }
+  },
+  "audiences": {
+    "technical": {
+      "label": "Technical",
+      "description": "Engineers, developers, technical users. Precise, concise, code-friendly."
+    },
+    "marketing": {
+      "label": "Marketing / SEO",
+      "description": "Customers, prospects, search engines. Scannable, benefit-led, keyword-aware."
+    },
+    "academic": {
+      "label": "Academic",
+      "description": "Researchers, peer reviewers. Formal, third-person, evidence-cited."
+    },
+    "casual": {
+      "label": "Casual / Blog",
+      "description": "General readers. Conversational, second-person, concrete examples."
+    },
+    "business": {
+      "label": "Business",
+      "description": "Executives, managers. Bottom-line first, quantified, action-oriented."
+    },
+    "creative": {
+      "label": "Creative writing",
+      "description": "Fiction, narrative non-fiction. Show-don't-tell, varied rhythm."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "ja": "日本語",
+    "zh": "中文"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

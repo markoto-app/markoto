@@ -31,6 +31,11 @@ interface TokenResponse {
   accessMode: string
   ownerId: number | null
   theme: unknown
+  description?: string
+  audience?: string
+  language?: string
+  templateId?: string
+  initialBody?: string | null
 }
 
 function decodeJwt(token: string): Record<string, unknown> {
@@ -289,6 +294,76 @@ describe('GET /api/docs/:docId/token', () => {
       const body = await res.json() as TokenResponse
       expect(body.forbidden).toBe(true)
       expect(body.token).toBeNull()
+    })
+  })
+
+  // Doc context fields + initialBody (template body) ride back on the
+  // token endpoint so the editor can hydrate the Document tab + seed
+  // the template content before Y.js sync settles.
+  describe('doc context + template body in response', () => {
+    it('default-shape doc returns context defaults and a null initialBody (blank template)', async () => {
+      const doc = await createDoc({ accessMode: 'open-edit' })
+      const res = await anonClient().get(`/api/docs/${doc.docId}/token`)
+      const body = await res.json() as TokenResponse
+      expect(body.description).toBe('')
+      expect(body.audience).toBe('casual')
+      expect(body.language).toBe('en')
+      expect(body.templateId).toBe('blank')
+      expect(body.initialBody).toBeNull()
+    })
+
+    it('non-blank templateId resolves to a rendered initialBody with placeholders substituted', async () => {
+      const doc = await createDoc({
+        accessMode: 'open-edit',
+        title: 'Apfelstrudel',
+        templateId: 'recipe',
+        language: 'en'
+      })
+      const res = await anonClient().get(`/api/docs/${doc.docId}/token`)
+      const body = await res.json() as TokenResponse
+      expect(body.initialBody).toContain('# Apfelstrudel')
+      expect(body.initialBody).toContain('At a glance')
+      expect(body.initialBody).toContain('Ingredients')
+      expect(body.initialBody).not.toContain('{{title}}')
+    })
+
+    it('initialBody locale matches the doc language (de)', async () => {
+      const doc = await createDoc({
+        accessMode: 'open-edit',
+        title: 'Apfelstrudel',
+        templateId: 'recipe',
+        language: 'de'
+      })
+      const res = await anonClient().get(`/api/docs/${doc.docId}/token`)
+      const body = await res.json() as TokenResponse
+      expect(body.initialBody).toContain('Auf einen Blick')
+      expect(body.initialBody).toContain('Zutaten')
+    })
+
+    it('free-text language falls back to English template body', async () => {
+      const doc = await createDoc({
+        accessMode: 'open-edit',
+        title: 'Apple Pie',
+        templateId: 'recipe',
+        language: 'Romansh'
+      })
+      const res = await anonClient().get(`/api/docs/${doc.docId}/token`)
+      const body = await res.json() as TokenResponse
+      expect(body.initialBody).toContain('At a glance')
+    })
+
+    it('description and audience round-trip on the token response', async () => {
+      const doc = await createDoc({
+        accessMode: 'open-edit',
+        description: 'A short test description',
+        audience: 'business',
+        language: 'fr'
+      })
+      const res = await anonClient().get(`/api/docs/${doc.docId}/token`)
+      const body = await res.json() as TokenResponse
+      expect(body.description).toBe('A short test description')
+      expect(body.audience).toBe('business')
+      expect(body.language).toBe('fr')
     })
   })
 })

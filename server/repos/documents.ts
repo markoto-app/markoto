@@ -1,5 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { AudienceKind } from '~~/shared/audiences'
 import { documents, workspaceMembers, workspaces, users } from '../db/schema'
 import { alias } from 'drizzle-orm/pg-core'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
@@ -30,6 +31,14 @@ export interface DocSnapshot {
   theme: DocTheme | null
   wordCount: number | null
   sizeBytes: number | null
+  /** One-line "what this doc is about" — empty string means not set. */
+  description: string
+  /** Closed enum of writing registers. Drives AI tone via `shared/audiences`. */
+  audience: AudienceKind
+  /** Free-form language string (ISO code or user-typed name). Drives AI output language. */
+  language: string
+  /** Provenance of the structural skeleton picked at creation time. */
+  templateId: string
   createdAt: Date
   lastActive: Date
 }
@@ -58,6 +67,17 @@ export interface DocAuthzRow {
     name: string
     avatarUrl: string | null
   } | null
+  /**
+   * Document context fields. Surfaced through the token endpoint so the
+   * editor can hydrate the Document tab + new-doc-derived UI before the
+   * Y.js sync completes. Source-of-truth lives in the documents row;
+   * ymeta.* mirrors are bridged for live updates.
+   */
+  title: string
+  description: string
+  audience: AudienceKind
+  language: string
+  templateId: string
 }
 
 export interface CreateDocInput {
@@ -65,6 +85,18 @@ export interface CreateDocInput {
   ownerId: number | null
   workspaceId: string | null
   accessMode: AccessMode
+  /**
+   * Optional context fields chosen at creation time via the new-doc
+   * dialog. Each falls back to the schema default if omitted, so the
+   * "Just give me a blank doc" path can pass nothing and get sensible
+   * values without the caller having to know the defaults.
+   */
+  title?: string
+  description?: string
+  audience?: AudienceKind
+  language?: string
+  templateId?: string
+  theme?: DocTheme | null
 }
 
 export interface MetaUpdate {
@@ -73,6 +105,9 @@ export interface MetaUpdate {
   wordCount?: number
   sizeBytes?: number
   theme?: DocTheme | null
+  description?: string
+  audience?: AudienceKind
+  language?: string
 }
 
 /**
@@ -98,6 +133,10 @@ export async function getDoc(docId: string): Promise<DocSnapshot | null> {
     theme: row.theme,
     wordCount: row.wordCount,
     sizeBytes: row.sizeBytes,
+    description: row.description,
+    audience: row.audience,
+    language: row.language,
+    templateId: row.templateId,
     createdAt: row.createdAt,
     lastActive: row.lastActive
   }
@@ -141,6 +180,11 @@ export async function getDocWithActorRole(
       workspaceId: documents.workspaceId,
       accessMode: documents.accessMode,
       theme: documents.theme,
+      title: documents.title,
+      description: documents.description,
+      audience: documents.audience,
+      language: documents.language,
+      templateId: documents.templateId,
       role: workspaceMembers.role,
       workspaceAiEnabled: workspaces.aiEnabled,
       sponsorId: sponsor.id,
@@ -185,7 +229,12 @@ export async function getDocWithActorRole(
     theme: row.theme,
     workspaceRole: (row.role ?? null) as WorkspaceRole | null,
     workspaceAiEnabled: row.workspaceAiEnabled,
-    workspaceBillingOwner: billingOwner
+    workspaceBillingOwner: billingOwner,
+    title: row.title,
+    description: row.description,
+    audience: row.audience,
+    language: row.language,
+    templateId: row.templateId
   }
 }
 
@@ -194,12 +243,21 @@ export async function getDocWithActorRole(
  */
 export async function createDoc(input: CreateDocInput): Promise<void> {
   const db = useDatabase()
-  await db.insert(documents).values({
+  // Build the values object dynamically so omitted fields fall back to
+  // the schema defaults rather than ending up as explicit nulls.
+  const values: Record<string, unknown> = {
     docId: input.docId,
     ownerId: input.ownerId,
     workspaceId: input.workspaceId,
     accessMode: input.accessMode
-  })
+  }
+  if (input.title !== undefined) values.title = input.title
+  if (input.description !== undefined) values.description = input.description
+  if (input.audience !== undefined) values.audience = input.audience
+  if (input.language !== undefined) values.language = input.language
+  if (input.templateId !== undefined) values.templateId = input.templateId
+  if (input.theme !== undefined) values.theme = input.theme
+  await db.insert(documents).values(values)
 }
 
 /**
@@ -257,6 +315,10 @@ export interface DuplicateDocInput {
   theme: DocTheme | null
   wordCount: number | null
   sizeBytes: number | null
+  description: string
+  audience: AudienceKind
+  language: string
+  templateId: string
 }
 
 export async function insertDuplicateDoc(input: DuplicateDocInput): Promise<void> {
@@ -270,7 +332,11 @@ export async function insertDuplicateDoc(input: DuplicateDocInput): Promise<void
     passwordHash: input.passwordHash,
     theme: input.theme,
     wordCount: input.wordCount ?? 0,
-    sizeBytes: input.sizeBytes ?? 0
+    sizeBytes: input.sizeBytes ?? 0,
+    description: input.description,
+    audience: input.audience,
+    language: input.language,
+    templateId: input.templateId
   })
 }
 
@@ -328,6 +394,8 @@ export async function deleteDocRow(docId: string): Promise<void> {
 export async function listOwnedByUser(userId: number): Promise<Array<{
   docId: string
   title: string
+  description: string
+  language: string
   accessMode: AccessMode
   wordCount: number | null
   sizeBytes: number | null
@@ -339,6 +407,8 @@ export async function listOwnedByUser(userId: number): Promise<Array<{
     .select({
       docId: documents.docId,
       title: documents.title,
+      description: documents.description,
+      language: documents.language,
       accessMode: documents.accessMode,
       wordCount: documents.wordCount,
       sizeBytes: documents.sizeBytes,
@@ -383,6 +453,8 @@ export async function listWorkspaceDocsWithOwnerFlag(
 ): Promise<Array<{
   docId: string
   title: string
+  description: string
+  language: string
   accessMode: AccessMode
   wordCount: number | null
   sizeBytes: number | null
@@ -395,6 +467,8 @@ export async function listWorkspaceDocsWithOwnerFlag(
     .select({
       docId: documents.docId,
       title: documents.title,
+      description: documents.description,
+      language: documents.language,
       accessMode: documents.accessMode,
       wordCount: documents.wordCount,
       sizeBytes: documents.sizeBytes,

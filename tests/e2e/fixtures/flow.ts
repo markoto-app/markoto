@@ -217,12 +217,53 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
     const readCursor = async (): Promise<{ x: number, y: number } | null> => {
       try {
-        // Only return the cursor if its last-known position was set on
-        // the SAME pathname we're about to screenshot. SPA navigations
-        // leave the cursor pinned to a coord that no longer maps to a
-        // meaningful location on the new page; in that case we return
-        // null so the visualizer skips the overlay.
+        // Two layers, in priority order:
+        //
+        //   1. Form-field snap. If the document has focus on an input /
+        //      textarea / contenteditable / combobox at screenshot time,
+        //      override the cursor to that element's left-edge midpoint.
+        //      Matches what the user would visually have done — click the
+        //      field, then type. Without the snap, the cursor floats at
+        //      its previous mouse-motion location (often the homepage
+        //      "New Document" button), which makes "type into the title"
+        //      frames feel disconnected from the action.
+        //
+        //   2. Fallback to the URL-stamped __flowCursor for everything
+        //      else (clicks, hovers). The pathname check still applies:
+        //      SPA navigations leave the cursor pinned to a coord that
+        //      no longer maps to a meaningful location on the new page;
+        //      in that case we return null so the visualizer skips the
+        //      overlay.
+        //
+        // The 14px left inset is "natural click position" for typing —
+        // dead-centering on a wide textarea looks robotic.
         return await page.evaluate(() => {
+          const ae = document.activeElement as HTMLElement | null
+          if (ae && ae !== document.body && ae !== document.documentElement) {
+            const tag = ae.tagName
+            const role = ae.getAttribute('role')
+            const isFormish = tag === 'INPUT' || tag === 'TEXTAREA'
+              || ae.isContentEditable
+              || role === 'combobox' || role === 'textbox'
+            if (isFormish) {
+              const r = ae.getBoundingClientRect()
+              // Only snap when the field is actually visible in the
+              // viewport. After scrolling down inside a long dialog,
+              // an autofocused field at the top has a NEGATIVE top and
+              // would place the cursor above the screenshot. In that
+              // case we fall through to the URL-stamped __flowCursor
+              // (typically the most-recent hover, which matches what
+              // the user just did).
+              const vw = window.innerWidth
+              const vh = window.innerHeight
+              const inViewport = r.width > 0 && r.height > 0
+                && r.top >= 0 && r.left >= 0
+                && r.bottom <= vh && r.right <= vw
+              if (inViewport) {
+                return { x: Math.round(r.left + 14), y: Math.round(r.top + r.height / 2) }
+              }
+            }
+          }
           const w = window as unknown as { __flowCursor: { x: number, y: number } | null, __flowCursorPath: string | null }
           if (!w.__flowCursor) return null
           if (w.__flowCursorPath !== location.pathname) return null
@@ -369,10 +410,13 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // (no "Hocuspocus", no "the editor mounts"), no waypoints
         // that don't move the user toward their job.
         //
-        // Switching to split view + waiting for sync are SETUP, not
-        // user-visible steps — they happen silently between the
-        // "Click New Document" shot and whatever the next captured
-        // moment is.
+        // The "+ New Document" click now opens the new-doc dialog
+        // (not an immediate doc create). The preamble stops at the
+        // dialog being visible — the test then walks the user through
+        // the form and submits, which is the meaningful UX surface.
+        // Post-submit setup (split view, waitForReady) is handled by
+        // `editor.silentEditorSetupAfterDialog()` once the test has
+        // navigated to the editor.
         //
         // Flows where the user is already-in-an-editor (formatting,
         // theming, sharing an existing doc) should call silentSetup()
@@ -389,21 +433,24 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           'Click "New Document" to start writing',
           page.getByRole('button', { name: /new document/i })
         )
-        await page.waitForURL(/\/d\/[^/]+/)
-
-        // Setup, not a step: wait for the editor + put it in split
-        // view (so the next captured shot shows source + preview
-        // side-by-side, which is the most useful editing layout).
-        // No screenshot — these aren't user-visible moments.
-        await editor.waitForReady()
-        await editor.switchToSplitView()
+        // Dialog opens — wait for the modal so the next captured shot
+        // is guaranteed to find the inputs. No screenshot here; the
+        // test takes its own first dialog shot once it's narrated.
+        await editor.waitForNewDocDialog()
       },
 
       silentSetup: async () => {
+        // Anonymous shortcut: skip the dialog by clicking "Just give
+        // me a blank doc". Same end-state as the legacy zero-config
+        // flow (empty doc, defaults applied), but reachable through
+        // the actual UI rather than a private POST. Used by flows
+        // where doc creation is plumbing, not the story.
         await page.goto('/')
+        await page.getByRole('button', { name: /new document/i }).click()
+        await editor.waitForNewDocDialog()
         await Promise.all([
           page.waitForURL(/\/d\/[^/]+/),
-          page.getByRole('button', { name: /new document/i }).click()
+          editor.newDocDialog.submitBlank.click()
         ])
         await editor.waitForReady()
         await editor.switchToSplitView()

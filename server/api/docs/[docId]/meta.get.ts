@@ -16,6 +16,10 @@ export default defineEventHandler(async (event) => {
       sizeBytes: documents.sizeBytes,
       wordCount: documents.wordCount,
       theme: documents.theme,
+      description: documents.description,
+      audience: documents.audience,
+      language: documents.language,
+      templateId: documents.templateId,
       createdAt: documents.createdAt,
       lastActive: documents.lastActive
     })

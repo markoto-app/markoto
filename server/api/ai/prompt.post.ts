@@ -14,6 +14,7 @@ import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
 
 import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
 import { validateEditorSelection, wrapPromptWithEditorState } from '../../utils/agentic/editorStatePrompt'
+import { buildDocumentContext } from '../../utils/agentic/documentContextPrompt'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 
@@ -189,7 +190,21 @@ export default defineEventHandler(async (event) => {
   const toolDeclarations = exposeKnowledgeTools
     ? [...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]
     : ALL_TOOL_DECLARATIONS
-  const systemPrompt = SYSTEM_PROMPT + knowledgeBlock
+  // Document context block — title + description + language + audience
+  // tone fragment. Always present (the schema enforces NOT NULL with
+  // sensible defaults), so `doc` being non-null is the only guard
+  // needed. `doc` can be null on a freshly-created doc whose row
+  // hasn't surfaced yet (race against the create+sync flow); skip the
+  // block in that case rather than fabricating defaults.
+  const documentContextBlock = doc
+    ? buildDocumentContext({
+      title: doc.title,
+      description: doc.description,
+      audience: doc.audience,
+      language: doc.language
+    })
+    : ''
+  const systemPrompt = documentContextBlock + SYSTEM_PROMPT + knowledgeBlock
 
   // Resolve billing context up-front so we can reject exhausted users
   // with 402 BEFORE registering a session slot or minting Hocuspocus

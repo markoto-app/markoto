@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { decideTokenAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { renderTemplate } from '../../../utils/templateRenderer'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 30 token requests per IP per minute
@@ -55,7 +56,26 @@ export default defineEventHandler(async (event) => {
     // can render their avatar + name inline.
     workspaceAiEnabled: row.workspaceAiEnabled,
     workspaceBillingOwner: row.workspaceBillingOwner,
-    theme: row.theme
+    theme: row.theme,
+    // Document context fields. The editor uses these to seed the
+    // Document tab + the AI prompt context surfaces; the server-side
+    // AI prompt path reads them straight from the documents row, so
+    // exposing them here is for UI hydration only.
+    description: row.description,
+    audience: row.audience,
+    language: row.language,
+    // Rendered template body (with {{title}} / {{description}}
+    // substituted, locale-matched on doc.language). Null for the
+    // `blank` template — the client falls through to welcomeDoc in
+    // that case. Always shipped — the client only inserts when ytext
+    // is empty (gates same as welcomeDoc), so re-fetching the token
+    // on a doc that already has content is harmless.
+    initialBody: renderTemplate(row.templateId, {
+      title: row.title,
+      description: row.description,
+      language: row.language
+    }),
+    templateId: row.templateId
   }
 
   if (decision.outcome === 'forbidden') {

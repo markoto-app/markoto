@@ -38,7 +38,11 @@ const hoisted = vi.hoisted(() => {
       forbidden: ref(false),
       accessMode: ref<string>('open-edit'),
       pendingPasswordUnlock: ref(false),
-      initialTheme: shallowRef<unknown>(null)
+      initialTheme: shallowRef<unknown>(null),
+      initialDescription: ref<string>(''),
+      initialAudience: ref<string>('casual'),
+      initialLanguage: ref<string>('en'),
+      initialBody: ref<string | null>(null)
     },
     tokenMocks: {
       fetchToken: vi.fn<() => Promise<void>>(() => Promise.resolve()),
@@ -110,6 +114,10 @@ mockNuxtImport('useDocToken', () => {
     accessMode: hoisted.tokenState.accessMode,
     pendingPasswordUnlock: hoisted.tokenState.pendingPasswordUnlock,
     initialTheme: hoisted.tokenState.initialTheme,
+    initialDescription: hoisted.tokenState.initialDescription,
+    initialAudience: hoisted.tokenState.initialAudience,
+    initialLanguage: hoisted.tokenState.initialLanguage,
+    initialBody: hoisted.tokenState.initialBody,
     fetchToken: hoisted.tokenMocks.fetchToken,
     onPasswordVerified: hoisted.tokenMocks.onPasswordVerified,
     clearPendingUnlock: hoisted.tokenMocks.clearPendingUnlock,

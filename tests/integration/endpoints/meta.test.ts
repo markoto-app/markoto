@@ -25,8 +25,12 @@ async function readDoc(docId: string) {
     access_mode: string
     word_count: number | null
     theme: unknown
+    description: string
+    audience: string
+    language: string
   }>(
-    'SELECT title, access_mode, word_count, theme FROM documents WHERE doc_id = $1',
+    `SELECT title, access_mode, word_count, theme, description, audience, language
+     FROM documents WHERE doc_id = $1`,
     [docId]
   )
   return r.rows[0]
@@ -251,6 +255,133 @@ describe('PUT /api/docs/:docId/meta', () => {
         theme: { random: 'garbage' }
       })
       expect(res.status).toBe(400)
+    })
+  })
+
+  // Doc context fields — same canEdit gate as title/wordCount/theme.
+  // Shipped as authoritative AI prompt context, so the validation
+  // contract matters: bad enums or oversized strings should never make
+  // it into a system prompt.
+  describe('doc context fields', () => {
+    it('owner can update description', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.put(`/api/docs/${doc.docId}/meta`, {
+        description: 'A test description'
+      })
+      expect(res.status).toBe(200)
+      expect((await readDoc(doc.docId)).description).toBe('A test description')
+    })
+
+    it('owner can update audience to any of the 6 enum values', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      for (const aud of ['technical', 'marketing', 'academic', 'casual', 'business', 'creative']) {
+        const res = await client.put(`/api/docs/${doc.docId}/meta`, { audience: aud })
+        expect(res.status).toBe(200)
+        expect((await readDoc(doc.docId)).audience).toBe(aud)
+      }
+    })
+
+    it('owner can update language to a preset OR a free-text value', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+
+      const r1 = await client.put(`/api/docs/${doc.docId}/meta`, { language: 'de' })
+      expect(r1.status).toBe(200)
+      expect((await readDoc(doc.docId)).language).toBe('de')
+
+      const r2 = await client.put(`/api/docs/${doc.docId}/meta`, { language: 'Schwiizerdütsch' })
+      expect(r2.status).toBe(200)
+      expect((await readDoc(doc.docId)).language).toBe('Schwiizerdütsch')
+    })
+
+    it('workspace editor can update doc context (same gate as content)', async () => {
+      const admin = await createUser()
+      const editor = await createUser()
+      const ws = await createWorkspace(admin.id)
+      await setMemberRole(ws.workspaceId, editor.id, 'editor')
+      const doc = await createDoc({
+        ownerId: admin.id,
+        workspaceId: ws.workspaceId,
+        accessMode: 'private'
+      })
+      const client = await loggedInClient(editor.id)
+      const res = await client.put(`/api/docs/${doc.docId}/meta`, {
+        description: 'Edited by workspace editor',
+        audience: 'business'
+      })
+      expect(res.status).toBe(200)
+      const row = await readDoc(doc.docId)
+      expect(row.description).toBe('Edited by workspace editor')
+      expect(row.audience).toBe('business')
+    })
+
+    it('workspace viewer cannot update doc context (403)', async () => {
+      const admin = await createUser()
+      const viewer = await createUser()
+      const ws = await createWorkspace(admin.id)
+      await setMemberRole(ws.workspaceId, viewer.id, 'viewer')
+      const doc = await createDoc({
+        ownerId: admin.id,
+        workspaceId: ws.workspaceId,
+        accessMode: 'open-view'
+      })
+      const client = await loggedInClient(viewer.id)
+      const res = await client.put(`/api/docs/${doc.docId}/meta`, {
+        description: 'should be rejected'
+      })
+      expect(res.status).toBe(403)
+    })
+
+    it('rejects unknown audience (400)', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.put(`/api/docs/${doc.docId}/meta`, { audience: 'nonsense' })
+      expect(res.status).toBe(400)
+    })
+
+    it('rejects oversized description (>500 chars, 400)', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.put(`/api/docs/${doc.docId}/meta`, {
+        description: 'x'.repeat(501)
+      })
+      expect(res.status).toBe(400)
+    })
+
+    it('rejects oversized language (>50 chars, 400)', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.put(`/api/docs/${doc.docId}/meta`, {
+        language: 'x'.repeat(51)
+      })
+      expect(res.status).toBe(400)
+    })
+
+    it('rejects empty/whitespace-only language (400)', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.put(`/api/docs/${doc.docId}/meta`, { language: '   ' })
+      expect(res.status).toBe(400)
+    })
+
+    it('trims whitespace from description', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.put(`/api/docs/${doc.docId}/meta`, {
+        description: '  surrounded by space  '
+      })
+      expect(res.status).toBe(200)
+      expect((await readDoc(doc.docId)).description).toBe('surrounded by space')
     })
   })
 })

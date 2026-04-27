@@ -65,7 +65,14 @@ export function useDocument(docId: string) {
 
   function insertWelcomeIfEmpty() {
     if (ytext.length === 0 && !tokenState.isReadOnly.value) {
-      ytext.insert(0, welcomeMarkdown)
+      // Template body wins when present (server pre-rendered with the
+      // doc's title/description, locale-matched on doc.language). The
+      // `blank` template renders to null and we fall through to the
+      // generic welcome doc — same behaviour as docs created before
+      // templates shipped, so legacy + blank-template docs stay
+      // consistent.
+      const seed = tokenState.initialBody.value ?? welcomeMarkdown
+      ytext.insert(0, seed)
     }
   }
 
@@ -101,10 +108,22 @@ export function useDocument(docId: string) {
   // hardcoded `defaultTheme` until either (a) the /token round-trip seeds
   // the DB-stored theme, or (b) sync delivers what's currently on the doc.
   const _themeRef = ref<DocTheme>(defaultTheme)
+  // Document context — same dual-source pattern as theme. Initial values
+  // come from /token; ymeta mirrors take over once sync is live so changes
+  // broadcast to every collaborator.
+  const _descriptionRef = ref<string>((ymeta.get('description') as string) ?? '')
+  const _audienceRef = ref<string>((ymeta.get('audience') as string) ?? 'casual')
+  const _languageRef = ref<string>((ymeta.get('language') as string) ?? 'en')
   ymeta.observe(() => {
     _titleRef.value = (ymeta.get('title') as string) || 'Untitled'
     if (ymeta.get('_deleted')) isDeleted.value = true
     _themeRef.value = readThemeFromYmeta(ymeta)
+    const d = ymeta.get('description')
+    if (typeof d === 'string') _descriptionRef.value = d
+    const a = ymeta.get('audience')
+    if (typeof a === 'string') _audienceRef.value = a
+    const l = ymeta.get('language')
+    if (typeof l === 'string') _languageRef.value = l
   })
 
   const title = computed({
@@ -152,6 +171,19 @@ export function useDocument(docId: string) {
     }).catch(() => {})
   }, 800)
 
+  // Same pattern as `persistTheme`: ymeta is the live source, the DB
+  // row is a seed for new sessions. Owner-only writes — non-owners on
+  // open-edit docs CAN touch ymeta (and broadcast to collaborators)
+  // but the /meta endpoint is owner-gated, so the DB persist is a
+  // no-op for them. Y.js sync becomes the only persistence surface in
+  // that case (same trade-off as theme on ownerless docs).
+  const persistDocContext = useDebounceFn((next: { description?: string, audience?: string, language?: string }) => {
+    $fetch(`/api/docs/${docId}/meta`, {
+      method: 'PUT',
+      body: next
+    }).catch(() => {})
+  }, 800)
+
   function setTheme(next: DocTheme) {
     if (!canEditTheme.value) return
     if (!isValidTheme(next)) return
@@ -176,6 +208,36 @@ export function useDocument(docId: string) {
 
   const theme = readonly(_themeRef)
 
+  /**
+   * Document context setters — same write semantics as theme. Owner +
+   * editors can change them; viewers cannot. Y.js broadcasts the
+   * change live; the owner-side debounced persist seeds the DB row.
+   */
+  const description = computed({
+    get: () => _descriptionRef.value,
+    set: (v: string) => {
+      if (tokenState.isReadOnly.value) return
+      ymeta.set('description', v)
+      if (tokenState.isOwner.value) persistDocContext({ description: v })
+    }
+  })
+  const audience = computed({
+    get: () => _audienceRef.value,
+    set: (v: string) => {
+      if (tokenState.isReadOnly.value) return
+      ymeta.set('audience', v)
+      if (tokenState.isOwner.value) persistDocContext({ audience: v })
+    }
+  })
+  const language = computed({
+    get: () => _languageRef.value,
+    set: (v: string) => {
+      if (tokenState.isReadOnly.value) return
+      ymeta.set('language', v)
+      if (tokenState.isOwner.value) persistDocContext({ language: v })
+    }
+  })
+
   const docSizeWarning = computed(() => computeDocSizeWarning(sync.docSizeBytes.value))
 
   // Initial connect. Password-protected / private docs must NOT connect until
@@ -188,6 +250,13 @@ export function useDocument(docId: string) {
     if (tokenState.initialTheme.value && isValidTheme(tokenState.initialTheme.value)) {
       _themeRef.value = tokenState.initialTheme.value
     }
+    // Seed the document context refs from the /token round-trip so the
+    // Document tab + AI prompt builder see real values before sync
+    // settles. Once Y.js sync delivers the ymeta values, the observer
+    // above takes over.
+    _descriptionRef.value = tokenState.initialDescription.value
+    _audienceRef.value = tokenState.initialAudience.value
+    _languageRef.value = tokenState.initialLanguage.value
     if (!tokenState.requiresPassword.value && !tokenState.forbidden.value) {
       sync.connect()
     }
@@ -236,6 +305,9 @@ export function useDocument(docId: string) {
     undoManager,
     title,
     theme,
+    description,
+    audience,
+    language,
     canEditTheme: readonly(canEditTheme),
     setTheme,
     resetTheme,

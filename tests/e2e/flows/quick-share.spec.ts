@@ -14,31 +14,90 @@ import { test, expect } from '../fixtures/flow'
 // editor mounts", no "the read-only flag resolves".
 
 test('Quick share', async ({ page, flow, editor }) => {
-  // Preamble (2 captured shots): Open YPad → Click "New Document".
-  // Setup steps that follow (waitForReady + switch to split view)
-  // are silent — they're not user-visible moments.
+  // Preamble (2 captured shots): Open YPad → Click "+ New Document".
+  // The click now opens a dialog (introduced when we made title /
+  // description / language / audience / theme / template first-class
+  // creation-time choices) — the preamble stops there and lets the
+  // narrative below walk through it.
   await editor.recordPreamble()
 
-  // ─── Name your document ────────────────────────────────────────
-  await flow.heading('Name your document', 3)
+  // ─── Set up your document ───────────────────────────────────────
+  await flow.heading('Set up your document', 3)
   await flow.narrate(
-    'Documents start untitled. Give yours a name so collaborators see '
-    + 'something meaningful when they open the link.'
+    'YPad asks a few quick questions up front: what you\'re writing, who '
+    + 'it\'s for, what language. The AI uses these every time it helps '
+    + 'you write — so a one-time minute here saves you re-typing context '
+    + 'on every prompt later. All optional; skip to a blank doc anytime.'
   )
 
-  // Click placeholder title → input swap. The hover-then-click in
-  // flow.click captures the BEFORE-click state with the cursor
-  // visibly on the title button.
-  await flow.click(
-    'Click the placeholder title to rename it',
-    editor.page.titleButton
-  )
-  // ASSERTION (built into commitTitleEdit): the input is focused
-  // after the click, and the title button shows the new text after
-  // Enter. So the rename is verified end-to-end.
+  // First captured frame of the dialog. Highlights the title input
+  // (most-impactful field) AND the skip button (so users know there's
+  // an escape hatch if they're in a hurry).
+  await flow.shot('The new-document dialog asks five quick questions', {
+    highlights: [
+      { label: 'Most-important field', selector: '[data-testid="newdoc-title-input"]' },
+      { label: 'Skip the form entirely', selector: '[data-testid="newdoc-submit-blank"]' }
+    ]
+  })
+
+  // Type the title. ASSERTION (built into the input): pressSequentially
+  // fires real keystroke events that drive the v-model bind, so the
+  // input value reflects the typed text.
   await flow.step(
-    'Type your title and press Enter to save',
-    () => editor.page.commitTitleEdit('Project kickoff notes')
+    'Give your document a name',
+    () => editor.page.newDocDialog.titleInput.pressSequentially('Project kickoff notes')
+  )
+  await expect(editor.page.newDocDialog.titleInput).toHaveValue('Project kickoff notes')
+
+  // Type the description. The AI sees this on every prompt, so it's
+  // worth taking the moment.
+  await flow.step(
+    'Add a one-line description so the AI knows what you\'re writing about',
+    () => editor.page.newDocDialog.descriptionInput.pressSequentially(
+      'Notes from our team\'s Q3 kickoff meeting'
+    )
+  )
+  await expect(editor.page.newDocDialog.descriptionInput).toHaveValue(
+    'Notes from our team\'s Q3 kickoff meeting'
+  )
+
+  // Pick a template. Meeting notes is the right shape for this flow's
+  // story — it'll seed an Agenda / Discussion / Decisions / Action items
+  // skeleton with comment hints the AI follows when filling in.
+  await flow.click(
+    'Pick a template — Meeting notes seeds the right structure',
+    editor.page.newDocDialog.templateCard('meeting-notes')
+  )
+
+  // Submit. Click-then-navigate, so flow.click hovers FIRST (cursor on
+  // the submit button) BEFORE the navigation away from the homepage —
+  // otherwise the screenshot would land on the editor with a stale
+  // cursor floating over irrelevant geometry. ASSERTION: URL changes
+  // to /d/{id} and the editor mounts.
+  await Promise.all([
+    page.waitForURL(/\/d\/[^/]+/),
+    flow.click(
+      'Click "Create document" to open the editor',
+      editor.page.newDocDialog.submitCreate
+    )
+  ])
+
+  // Setup, not a step: wait for sync + put the editor in split view
+  // so the next captured shot shows source + preview side-by-side.
+  await editor.page.waitForReady()
+  await editor.page.switchToSplitView()
+
+  // ─── See the seeded skeleton ────────────────────────────────────
+  await flow.heading('Your skeleton is ready', 3)
+  await flow.narrate(
+    'YPad pre-fills the doc with the template\'s structure — headings, '
+    + 'a table layout, and HTML comments hinting what to write in each '
+    + 'section. The comments are visible while you edit but hidden from '
+    + 'the preview, the PDF, and anyone you share the link with.'
+  )
+
+  await flow.shot(
+    'Headings, an Action items checklist, comment hints — all ready to fill in.'
   )
 
   // ─── Share the link ─────────────────────────────────────────────

@@ -69,6 +69,32 @@ export const documents = pgTable('documents', {
   // Y.Doc so changes broadcast live to every connected client; the DB row
   // is the source of truth for new connections that haven't synced yet.
   theme: jsonb('theme').$type<DocTheme>(),
+  // One-line "what this doc is about". Surfaced in the AI system prompt
+  // every turn so the model has durable context without the user
+  // re-typing it. Also shown as the subtitle on overview lists.
+  // Empty string means "not set" — UI collapses the subtitle and the
+  // prompt builder skips the `About:` line.
+  description: text('description').notNull().default(''),
+  // Closed enum of writing registers. Resolves to a curated tone prompt
+  // fragment in `shared/audiences/index.ts` and is appended to the AI
+  // system prompt. `casual` is the most-neutral default — picking
+  // `technical` would bias every blank-dialog doc into engineering
+  // tone. Text-enum (not pgEnum) so adding values is TS-only.
+  audience: text('audience', {
+    enum: ['technical', 'marketing', 'academic', 'casual', 'business', 'creative']
+  }).notNull().default('casual'),
+  // Free-form language string. Either an ISO 639-1 code from the
+  // 6 curated presets (en/de/fr/es/ja/zh) OR any user-typed name
+  // ("english", "Deutsch", "Romantsch"). The AI handles both —
+  // we just smuggle the string into the system prompt verbatim
+  // and let the model pick its output language. ≤50 chars.
+  language: text('language').notNull().default('en'),
+  // Provenance of the structural skeleton picked at creation time.
+  // Stored for analytics + a future "regenerate skeleton" feature
+  // but NEVER read by the AI prompt path (the title/description/
+  // audience/language fields carry all live AI context). Not
+  // editable post-creation. `blank` = no skeleton.
+  templateId: text('template_id').notNull().default('blank'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow()
 }, table => [

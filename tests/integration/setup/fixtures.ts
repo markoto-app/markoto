@@ -36,7 +36,17 @@ export interface TestDoc {
   accessMode: AccessMode
 }
 
-export async function createDoc(overrides: Partial<TestDoc> & { passwordHash?: string | null } = {}): Promise<TestDoc> {
+export interface CreateDocExtras {
+  passwordHash?: string | null
+  /** Doc context fields. Omitted ones inherit the schema defaults. */
+  title?: string
+  description?: string
+  audience?: 'technical' | 'marketing' | 'academic' | 'casual' | 'business' | 'creative'
+  language?: string
+  templateId?: string
+}
+
+export async function createDoc(overrides: Partial<TestDoc> & CreateDocExtras = {}): Promise<TestDoc> {
   const db = testDb()
   const docId = overrides.docId ?? `doc-${nanoid(10)}`
   const ownerId = overrides.ownerId ?? null
@@ -45,11 +55,21 @@ export async function createDoc(overrides: Partial<TestDoc> & { passwordHash?: s
   const accessMode: AccessMode = overrides.accessMode
     ?? (ownerId === null ? 'open-edit' : 'private')
   const passwordHash = overrides.passwordHash ?? null
+  const title = overrides.title ?? 'Test Doc'
 
+  // Build the column list dynamically so omitted context fields inherit
+  // the schema defaults (description='', audience='casual', language='en',
+  // template_id='blank') — same shape as the real POST handler.
+  const cols: string[] = ['doc_id', 'owner_id', 'workspace_id', 'access_mode', 'password_hash', 'title']
+  const vals: unknown[] = [docId, ownerId, workspaceId, accessMode, passwordHash, title]
+  if (overrides.description !== undefined) { cols.push('description'); vals.push(overrides.description) }
+  if (overrides.audience !== undefined) { cols.push('audience'); vals.push(overrides.audience) }
+  if (overrides.language !== undefined) { cols.push('language'); vals.push(overrides.language) }
+  if (overrides.templateId !== undefined) { cols.push('template_id'); vals.push(overrides.templateId) }
+  const placeholders = vals.map((_, i) => `$${i + 1}`).join(', ')
   await db.query(
-    `INSERT INTO documents (doc_id, owner_id, workspace_id, access_mode, password_hash, title)
-     VALUES ($1, $2, $3, $4, $5, 'Test Doc')`,
-    [docId, ownerId, workspaceId, accessMode, passwordHash]
+    `INSERT INTO documents (${cols.join(', ')}) VALUES (${placeholders})`,
+    vals
   )
   return { docId, ownerId, workspaceId, accessMode }
 }

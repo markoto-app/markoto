@@ -6,7 +6,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
-const { showError, showContextualError } = useErrorHandler()
+const { showError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 
 const workspaceId = computed(() => route.params.id as string)
@@ -63,20 +63,14 @@ const tabItems = computed(() => [
   { label: t('workspace.tabs.ai'), icon: 'i-lucide-sparkles', slot: 'ai' as const, value: 'ai' }
 ])
 
-const creating = ref(false)
-async function createDocument() {
-  creating.value = true
-  try {
-    const { docId } = await $fetch<{ docId: string }>('/api/docs', {
-      method: 'POST',
-      body: { workspaceId: workspaceId.value }
-    })
-    router.push(`/d/${docId}`)
-  } catch (e) {
-    showContextualError(e, 'error.documentCreateFailed')
-  } finally {
-    creating.value = false
-  }
+// Same dialog flow as the home page; just pass our workspaceId so the
+// new doc files into this workspace from the start.
+const showNewDocDialog = ref(false)
+function createDocument() {
+  showNewDocDialog.value = true
+}
+function onDocCreated(docId: string) {
+  router.push(`/d/${docId}`)
 }
 
 // Modals
@@ -312,7 +306,6 @@ async function leaveWorkspace() {
             <UButton
               v-if="canCreateDoc"
               icon="i-lucide-plus"
-              :loading="creating"
               @click="createDocument"
             >
               {{ t('workspace.newDocument') }}
@@ -378,7 +371,6 @@ async function leaveWorkspace() {
                 v-if="canCreateDoc"
                 class="mt-4"
                 icon="i-lucide-plus"
-                :loading="creating"
                 @click="createDocument"
               >
                 {{ t('workspace.newDocument') }}
@@ -449,6 +441,13 @@ async function leaveWorkspace() {
       :my-user-id="myUserId"
       @updated="onMembersUpdated"
       @leave="onLeftWorkspace"
+    />
+
+    <DocumentNewDocumentDialog
+      v-if="data"
+      v-model:open="showNewDocDialog"
+      :workspace-id="data.workspace.workspaceId"
+      @created="onDocCreated"
     />
 
     <DocumentDeleteConfirmModal

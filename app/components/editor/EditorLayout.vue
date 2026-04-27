@@ -30,6 +30,9 @@ const {
   undoManager,
   title,
   theme,
+  description,
+  audience,
+  language,
   canEditTheme,
   setTheme,
   resetTheme,
@@ -150,8 +153,8 @@ const showImportModal = ref(false)
 // knowledge. All three share the same column so the layout shift is
 // predictable regardless of which one is open. Knowledge only appears
 // for workspace docs (see `hasKnowledgeAccess`).
-const rightSidebar = ref<'activity' | 'theme' | 'knowledge' | null>(null)
-function toggleSidebar(panel: 'activity' | 'theme' | 'knowledge') {
+const rightSidebar = ref<'document' | 'activity' | 'theme' | 'knowledge' | null>(null)
+function toggleSidebar(panel: 'document' | 'activity' | 'theme' | 'knowledge') {
   rightSidebar.value = rightSidebar.value === panel ? null : panel
 }
 function closeSidebar() {
@@ -822,6 +825,17 @@ const statusIcon = computed(() => {
           />
         </div>
         <div class="flex items-center gap-0.5 px-2 py-1 shrink-0">
+          <UTooltip :text="t('documentPanel.title')">
+            <UButton
+              icon="i-lucide-info"
+              color="neutral"
+              :variant="rightSidebar === 'document' ? 'soft' : 'ghost'"
+              size="xs"
+              :aria-label="t('documentPanel.title')"
+              :aria-pressed="rightSidebar === 'document'"
+              @click="toggleSidebar('document')"
+            />
+          </UTooltip>
           <UTooltip :text="t('activity.title')">
             <UButton
               icon="i-lucide-activity"
@@ -957,8 +971,19 @@ const statusIcon = computed(() => {
           ]"
           class="border-l border-default h-full overflow-hidden"
         >
+          <DocumentEditorPanel
+            v-if="rightSidebar === 'document'"
+            :description="description"
+            :audience="audience"
+            :language="language"
+            :can-edit="!isReadOnly"
+            @update:description="(v: string) => description = v"
+            @update:audience="(v: string) => audience = v"
+            @update:language="(v: string) => language = v"
+            @close="closeSidebar"
+          />
           <div
-            v-if="rightSidebar === 'activity'"
+            v-else-if="rightSidebar === 'activity'"
             class="h-full flex flex-col"
           >
             <div class="p-3 border-b border-default flex items-center justify-between shrink-0">

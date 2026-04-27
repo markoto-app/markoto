@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { languageBadge, resolveLanguageDisplayName } from '~~/shared/languages'
+
 // Doc list for the workspace detail page. Action gates:
 //   - Duplicate: any editor or admin (anyone with edit access).
 //   - Move: admin OR doc owner (canManage equivalent).
@@ -9,6 +11,8 @@
 export interface WorkspaceDoc {
   docId: string
   title: string
+  description: string
+  language: string
   accessMode: 'private' | 'open-edit' | 'open-view' | 'password-protected'
   wordCount: number | null
   sizeBytes: number | null
@@ -96,7 +100,30 @@ function formatDate(value: string | number | Date) {
           class="size-5 text-muted shrink-0"
         />
         <div class="min-w-0">
-          <p class="text-sm font-medium truncate">{{ doc.title || t('workspace.untitledDoc') }}</p>
+          <div class="flex items-center gap-2 min-w-0">
+            <p class="text-sm font-medium truncate">{{ doc.title || t('workspace.untitledDoc') }}</p>
+            <!-- Language badge always shown so members spot the doc's
+                 language at a glance regardless of their UI locale.
+                 Tooltip carries the full display name for free-text
+                 languages where the 4-letter abbreviation is opaque
+                 ("SCHW" → "Schwiizerdütsch"). -->
+            <UTooltip :text="resolveLanguageDisplayName(doc.language)">
+              <UBadge
+                size="xs"
+                color="neutral"
+                variant="outline"
+                class="font-mono shrink-0"
+              >
+                {{ languageBadge(doc.language) }}
+              </UBadge>
+            </UTooltip>
+          </div>
+          <p
+            v-if="doc.description"
+            class="text-xs text-toned truncate"
+          >
+            {{ doc.description }}
+          </p>
           <p class="text-xs text-muted">{{ formatDate(doc.lastActive) }}</p>
         </div>
       </NuxtLink>

@@ -64,6 +64,19 @@ export function useDocToken(docId: string) {
   // before Y.js sync settles. Once synced, ymeta.theme takes over as the
   // live source — `useDocument` bridges the two.
   const initialTheme = ref<DocTheme | null>(null)
+  // Document context — description (what the doc is about), audience
+  // (writing register), language (output language). Same dual-source
+  // pattern as theme: the /token round-trip seeds an initial value so
+  // the Document tab can hydrate before sync, and ymeta.* mirrors are
+  // bridged in `useDocument` for live cross-client updates.
+  const initialDescription = ref<string>('')
+  const initialAudience = ref<string>('casual')
+  const initialLanguage = ref<string>('en')
+  // Pre-rendered template body (with title/description placeholders
+  // already substituted server-side, locale-matched). Null when the
+  // doc was created with the `blank` template — the editor falls back
+  // to welcomeDoc in that case. Only seeded when ytext is empty.
+  const initialBody = ref<string | null>(null)
 
   const { user: sessionUser } = useUserSession()
 
@@ -86,6 +99,11 @@ export function useDocToken(docId: string) {
         workspaceAiEnabled?: boolean | null
         workspaceBillingOwner?: BillingOwner | null
         theme?: DocTheme | null
+        description?: string
+        audience?: string
+        language?: string
+        initialBody?: string | null
+        templateId?: string
       }>(`/api/docs/${docId}/token`)
 
       tokenData.value = { token: data.token ?? '', readOnly: data.readOnly }
@@ -98,6 +116,10 @@ export function useDocToken(docId: string) {
       workspaceAiEnabled.value = data.workspaceAiEnabled ?? false
       workspaceBillingOwner.value = data.workspaceBillingOwner ?? null
       initialTheme.value = data.theme ?? null
+      if (typeof data.description === 'string') initialDescription.value = data.description
+      if (typeof data.audience === 'string') initialAudience.value = data.audience
+      if (typeof data.language === 'string') initialLanguage.value = data.language
+      initialBody.value = typeof data.initialBody === 'string' ? data.initialBody : null
 
       const userId = sessionUser.value?.id
       isOwner.value = data.ownerId != null
@@ -155,6 +177,10 @@ export function useDocToken(docId: string) {
     workspaceBillingOwner,
     pendingPasswordUnlock,
     initialTheme,
+    initialDescription,
+    initialAudience,
+    initialLanguage,
+    initialBody,
     // Actions
     fetchToken,
     onPasswordVerified,

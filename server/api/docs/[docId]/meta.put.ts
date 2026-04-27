@@ -1,4 +1,8 @@
 import { updateDocMeta, type MetaUpdate } from '../../../repos/documents'
+import { isAudienceKind } from '~~/shared/audiences'
+import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
+
+const DESCRIPTION_MAX_LENGTH = 500
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -53,6 +57,37 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Invalid theme payload' })
     }
     updates.theme = body.theme
+  }
+
+  if (body.description !== undefined) {
+    if (typeof body.description !== 'string') {
+      throw createError({ statusCode: 400, message: 'Description must be a string' })
+    }
+    if (body.description.length > DESCRIPTION_MAX_LENGTH) {
+      throw createError({ statusCode: 400, message: `Description too long (max ${DESCRIPTION_MAX_LENGTH})` })
+    }
+    updates.description = body.description.trim()
+  }
+
+  if (body.audience !== undefined) {
+    if (!isAudienceKind(body.audience)) {
+      throw createError({ statusCode: 400, message: 'Invalid audience' })
+    }
+    updates.audience = body.audience
+  }
+
+  if (body.language !== undefined) {
+    if (typeof body.language !== 'string') {
+      throw createError({ statusCode: 400, message: 'Language must be a string' })
+    }
+    const trimmed = body.language.trim()
+    if (trimmed.length === 0) {
+      throw createError({ statusCode: 400, message: 'Language cannot be empty' })
+    }
+    if (trimmed.length > LANGUAGE_MAX_LENGTH) {
+      throw createError({ statusCode: 400, message: `Language too long (max ${LANGUAGE_MAX_LENGTH})` })
+    }
+    updates.language = trimmed
   }
 
   await updateDocMeta(docId, updates)

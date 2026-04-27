@@ -71,6 +71,45 @@ export class EditorPage {
     }
   }
 
+  // ─── New-document dialog ──────────────────────────────────────────
+
+  /** Selectors inside the new-document dialog. The dialog opens when
+   *  the user clicks "+ New Document" anywhere — homepage, workspace,
+   *  or File menu. Five questions: title, description, language,
+   *  audience, theme, template. Two submit paths: `submitCreate` (full
+   *  form) and `submitBlank` ("Just give me a blank doc").
+   *
+   *  All selectors go through `data-testid` rather than IDs / role +
+   *  text, so they (a) survive i18n changes, (b) don't accidentally
+   *  match the homepage's "+ New Document" button, and (c) survive any
+   *  Nuxt UI markup change that doesn't alter the testid. */
+  get newDocDialog() {
+    return {
+      heading: this.page.getByRole('heading', { name: /^new document$/i }),
+      titleInput: this.page.locator('[data-testid="newdoc-title-input"]'),
+      descriptionInput: this.page.locator('[data-testid="newdoc-description-input"]'),
+      languageInput: this.page.locator('[data-testid="newdoc-language-input"]'),
+      audienceSelect: this.page.locator('[data-testid="newdoc-audience-select"]'),
+      // Each card has its own testid keyed by id (`newdoc-template-card-recipe`,
+      // `newdoc-theme-card-modern`, etc.). Cleaner + faster than text matching.
+      templateCard: (id: string) => this.page.locator(`[data-testid="newdoc-template-card-${id}"]`),
+      themeCard: (id: string) => this.page.locator(`[data-testid="newdoc-theme-card-${id}"]`),
+      submitCreate: this.page.locator('[data-testid="newdoc-submit-create"]'),
+      submitBlank: this.page.locator('[data-testid="newdoc-submit-blank"]'),
+      cancel: this.page.locator('[data-testid="newdoc-cancel"]')
+    }
+  }
+
+  /**
+   * Wait for the new-document dialog to be open + ready for input.
+   * Use after clicking a "+ New Document" button to gate subsequent
+   * dialog interactions on the modal's mount.
+   */
+  async waitForNewDocDialog(timeout = 5000): Promise<void> {
+    await expect(this.newDocDialog.heading).toBeVisible({ timeout })
+    await expect(this.newDocDialog.titleInput).toBeVisible()
+  }
+
   // ─── Composite actions ────────────────────────────────────────────
 
   /**
