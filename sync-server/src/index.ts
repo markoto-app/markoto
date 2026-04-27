@@ -15,6 +15,7 @@ import { rateLimiter } from './rate-limiter'
 const auth = authFromEnv()
 import { logActivity, mostRecentEditorFromAwareness, countWords, lineDiff } from './activity-logger'
 import { handleInternalRequest } from './internal-http'
+import { shipCommentsSnapshot, dropSnapshotCache } from './comments-snapshot'
 
 const port = parseInt(process.env.PORT || '4001')
 
@@ -124,6 +125,16 @@ const server = new Server({
     } catch (e) {
       console.warn('[hocuspocus] activity log failed:', e instanceof Error ? e.message : e)
     }
+
+    // Postgres mirror of the comments Y.Array — separate try/catch so a
+    // mirror failure can't take down activity logging or sync. Internal
+    // dedup ensures the round-trip is skipped when the comments array
+    // didn't change since the last store.
+    try {
+      shipCommentsSnapshot(data.documentName, data.document)
+    } catch (e) {
+      console.warn('[hocuspocus] comments-snapshot ship failed:', e instanceof Error ? e.message : e)
+    }
   },
 
   async onAuthenticate(data) {
@@ -143,6 +154,7 @@ const server = new Server({
     if (data.clientsCount === 0 && data.documentName) {
       lastEditorByDoc.delete(data.documentName)
       previousTextByDoc.delete(data.documentName)
+      dropSnapshotCache(data.documentName)
     }
   },
 

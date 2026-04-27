@@ -26,6 +26,9 @@ const emit = defineEmits<{
   // own the editor/ydoc/awareness wiring — the toolbar just renders
   // the button and emits clicks.
   'toggle-dictation': []
+  // "Add a comment on the selection" — parent serializes the anchor
+  // and opens the sidebar.
+  'create-comment': []
 }>()
 
 const dictationActive = computed(() =>
@@ -128,10 +131,11 @@ const actions = computed(() => [
   { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) },
   { icon: 'i-lucide-scissors-line-dashed', label: t('editor.pageBreak'), action: withView(v => insertPageBreak(v)) },
   { icon: 'i-lucide-list-tree', label: t('menubar.insert.toc'), action: withView(v => insertToc(v)) },
-  // Comment — wraps selection in <!-- ... --> so it stays in the
-  // markdown source but is stripped from preview/PDF/share. Toggles
-  // off if the selection is already a comment.
-  { icon: 'i-lucide-message-square-dashed', label: t('editor.comment'), action: withView(v => toggleComment(v)) }
+  // Make invisible — wraps selection in an HTML comment so it stays in
+  // the markdown source but is stripped from preview/PDF/share. The
+  // closed-eye icon reads as "hide this" to non-technical users; the
+  // underlying toggle still uses the generic comment-wrap helper.
+  { icon: 'i-lucide-eye-off', label: t('editor.hideFromPreview'), action: withView(v => toggleComment(v)) }
   // Math, alerts, diagrams, table need a kind/size picker — rendered as
   // dropdowns / popovers directly in the template after this list.
   // Putting them in `actions` would force a default on the toolbar
@@ -252,6 +256,27 @@ const diagramItems = computed(() => [[
         />
       </UTooltip>
     </UDropdownMenu>
+
+    <!-- Add discussion comment on selection. Distinct icon from the
+         "Make invisible" button (i-lucide-eye-off) so users learn the
+         two are different things: the eye-off button wraps the
+         selection in an HTML comment that stays in the markdown but
+         is invisible in preview; this discussion comment lives in the
+         sidebar with replies + resolve. -->
+    <USeparator
+      orientation="vertical"
+      class="h-5 mx-1"
+    />
+    <UTooltip :text="t('comments.addAria')">
+      <UButton
+        icon="i-lucide-message-circle"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        :aria-label="t('comments.addAria')"
+        @click="emit('create-comment')"
+      />
+    </UTooltip>
 
     <!-- Live voice dictation. Sits at the tail of the toolbar so it
          doesn't shift the position of the muscle-memory formatting

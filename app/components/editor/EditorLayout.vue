@@ -2,6 +2,8 @@
 import type { EditorView } from '@codemirror/view'
 import { insertTable } from '~/utils/editorCommands'
 import TableSizePicker from './TableSizePicker.vue'
+import { useComments, provideComments } from '~/composables/useComments'
+import type { CommentRange } from '~/utils/commentDecorations'
 
 const props = defineProps<{
   docId: string
@@ -149,16 +151,76 @@ const canManageDoc = computed(() =>
 )
 // Import modal state
 const showImportModal = ref(false)
-// Right-sidebar slot — mutually exclusive between activity, theme, and
-// knowledge. All three share the same column so the layout shift is
-// predictable regardless of which one is open. Knowledge only appears
-// for workspace docs (see `hasKnowledgeAccess`).
-const rightSidebar = ref<'document' | 'activity' | 'theme' | 'knowledge' | null>(null)
-function toggleSidebar(panel: 'document' | 'activity' | 'theme' | 'knowledge') {
+// Right-sidebar slot — mutually exclusive between activity, theme,
+// knowledge, document, and comments. All share the same column so the
+// layout shift is predictable regardless of which one is open.
+// Knowledge only appears for workspace docs (see `hasKnowledgeAccess`).
+type RightSidebarPanel = 'document' | 'activity' | 'theme' | 'knowledge' | 'comments'
+const rightSidebar = ref<RightSidebarPanel | null>(null)
+function toggleSidebar(panel: RightSidebarPanel) {
   rightSidebar.value = rightSidebar.value === panel ? null : panel
 }
 function closeSidebar() {
   rightSidebar.value = null
+}
+
+// — Comments ─────────────────────────────────────────────────────────
+//
+// Single useComments instance lives at this level so the same reactive
+// list feeds BOTH the sidebar panel (for the thread list + composer)
+// AND the editor decoration plugin (for the underlines on commented
+// ranges). Two separate instances would each observe Y.js → wasted
+// work and a brief inconsistency window between them.
+const commentsApi = useComments(ydoc, awareness, props.docId)
+// Provide the single instance so CommentsPanel reads from the same
+// reactive list + methods instead of attaching its own observers.
+provideComments(commentsApi)
+const commentRanges = computed<CommentRange[]>(() =>
+  commentsApi.comments.value
+    .filter(c => c.anchor !== null && !c.resolved)
+    .map(c => ({ id: c.id, from: c.anchor!.from, to: c.anchor!.to }))
+)
+
+// Imperative panel reference — the parent calls `startDraft()` when the
+// toolbar / menu emit `create-comment`, and `focusComment(id)` when the
+// editor emits a click on a comment underline.
+const commentsPanelRef = ref<{
+  startDraft: () => boolean
+  focusComment: (id: string) => void
+} | null>(null)
+
+// Click handler for comment underlines in the editor: open the panel
+// (if not already), scroll the matching thread into view, flash the
+// editor range so the eye picks up the connection.
+function onCommentClickInEditor(id: string) {
+  rightSidebar.value = 'comments'
+  // Wait one tick so the panel mounts before we ask it to scroll.
+  nextTick(() => {
+    commentsPanelRef.value?.focusComment(id)
+    flashEditorComment(id)
+  })
+}
+
+// Toolbar / menu "Comment" → start a new draft. The panel handles the
+// "no selection? toast a hint" path; we just delegate.
+function triggerCreateComment() {
+  if (isReadOnly.value) return
+  rightSidebar.value = 'comments'
+  nextTick(() => {
+    commentsPanelRef.value?.startDraft()
+  })
+}
+
+// Sidebar emitted `focus(id)` — the user clicked a thread, scroll the
+// editor and flash the anchor.
+function onCommentPanelFocus(id: string) {
+  flashEditorComment(id)
+}
+
+function flashEditorComment(id: string) {
+  const c = commentsApi.comments.value.find(x => x.id === id)
+  if (!c?.anchor) return
+  editorPaneRef.value?.flashCommentRange?.(c.anchor.from, c.anchor.to)
 }
 // Knowledge is a workspace-level concern — a standalone / anonymous doc
 // has no knowledge base attached, and non-members shouldn't see the tab
@@ -352,7 +414,10 @@ watchEffect(() => {
 // `EditorView` (missing `dispatchTransactions`, `_root`, `plugins`, …).
 // The cast inside the computed re-asserts the real runtime type; the
 // shallowRef on the child side keeps the instance unproxied so this is safe.
-const editorPaneRef = ref<{ view: EditorView | null } | null>(null)
+const editorPaneRef = ref<{
+  view: EditorView | null
+  flashCommentRange?: (from: number, to: number) => void
+} | null>(null)
 const editorView = computed<EditorView | null>(
   () => (editorPaneRef.value?.view ?? null) as EditorView | null
 )
@@ -801,6 +866,7 @@ const statusIcon = computed(() => {
         @open-image-picker="openImagePicker"
         @open-table-picker="tableModalOpen = true"
         @toggle-dictation="dictation.toggle()"
+        @create-comment="triggerCreateComment"
       />
 
       <!-- Toolbar row.
@@ -822,6 +888,7 @@ const statusIcon = computed(() => {
             :dictation-state="dictation.state.value"
             @open-table-picker="tableModalOpen = true"
             @toggle-dictation="dictation.toggle()"
+            @create-comment="triggerCreateComment"
           />
         </div>
         <div class="flex items-center gap-0.5 px-2 py-1 shrink-0">
@@ -834,6 +901,17 @@ const statusIcon = computed(() => {
               :aria-label="t('documentPanel.title')"
               :aria-pressed="rightSidebar === 'document'"
               @click="toggleSidebar('document')"
+            />
+          </UTooltip>
+          <UTooltip :text="t('comments.title')">
+            <UButton
+              icon="i-lucide-message-circle"
+              color="neutral"
+              :variant="rightSidebar === 'comments' ? 'soft' : 'ghost'"
+              size="xs"
+              :aria-label="t('comments.title')"
+              :aria-pressed="rightSidebar === 'comments'"
+              @click="toggleSidebar('comments')"
             />
           </UTooltip>
           <UTooltip :text="t('activity.title')">
@@ -932,6 +1010,8 @@ const statusIcon = computed(() => {
             :awareness="awareness"
             :undo-manager="undoManager"
             :read-only="isReadOnly"
+            :comment-ranges="commentRanges"
+            :on-comment-click="onCommentClickInEditor"
           />
         </EditorImageDropZone>
 
@@ -980,6 +1060,18 @@ const statusIcon = computed(() => {
             @update:description="(v: string) => description = v"
             @update:audience="(v: string) => audience = v"
             @update:language="(v: string) => language = v"
+            @close="closeSidebar"
+          />
+          <CommentsPanel
+            v-else-if="rightSidebar === 'comments'"
+            ref="commentsPanelRef"
+            :ytext="ytext"
+            :awareness="awareness"
+            :view="editorView"
+            :doc-id="docId"
+            :doc-workspace-id="docWorkspaceId"
+            :read-only="isReadOnly"
+            @focus="onCommentPanelFocus"
             @close="closeSidebar"
           />
           <div
@@ -1180,14 +1272,14 @@ const statusIcon = computed(() => {
       </template>
     </UModal>
 
-    <!-- AI selection popup — floats near the editor's current selection.
-         Uses the same /api/ai/prompt path as the bottom bar; it just
-         pre-captures the selection snapshot so the agentic loop targets
-         the highlighted range via replace_text. -->
-    <AISelectionPopup
-      v-if="!isReadOnly && !requiresPassword"
+    <!-- Floating "Comment" pill that appears on text selection — same
+         affordance as the old AI rewrite popup, redirected at the
+         comments flow. Click → toolbar's create-comment handler. -->
+    <CommentsCommentSelectionPopup
+      v-if="!requiresPassword"
       :view="editorView"
-      :on-prompt="(text, overrides) => ai.prompt(text, overrides)"
+      :disabled="isReadOnly"
+      @trigger="triggerCreateComment"
     />
   </div>
 </template>

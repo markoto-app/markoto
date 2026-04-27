@@ -28,7 +28,7 @@ const props = defineProps<{
   canManage: boolean
   // Right-sidebar state — used to render check marks next to "Activity"
   // and "Theme" in the View menu so the user can see what's currently open.
-  rightSidebar: 'document' | 'activity' | 'theme' | 'knowledge' | null
+  rightSidebar: 'document' | 'activity' | 'theme' | 'knowledge' | 'comments' | null
   // Whether the current doc belongs to a workspace the viewer is a
   // member of. Only then is the Knowledge panel meaningful — gate the
   // menu entry on this so non-workspace docs don't show a disabled item.
@@ -54,7 +54,7 @@ const emit = defineEmits<{
   'move-document': []
   'delete-document': []
   'set-view-mode': ['edit' | 'split' | 'preview']
-  'toggle-sidebar': ['document' | 'activity' | 'theme' | 'knowledge']
+  'toggle-sidebar': ['document' | 'activity' | 'theme' | 'knowledge' | 'comments']
   'undo': []
   'redo': []
   'open-image-picker': []
@@ -65,6 +65,9 @@ const emit = defineEmits<{
   // Dictation toggle — hoisted to the parent where the composable
   // owns the editor + ydoc + awareness wiring.
   'toggle-dictation': []
+  // Insert → Comment. Parent captures the current selection, opens the
+  // sidebar, focuses the composer.
+  'create-comment': []
   // Format / insert dispatch on the editor view directly via callbacks
   // rather than emits so we don't have to re-thread every command up
   // through EditorLayout. The view ref is sufficient.
@@ -169,6 +172,13 @@ const viewItems = computed(() => [
       onSelect: () => emit('toggle-sidebar', 'document')
     },
     {
+      label: t('comments.title'),
+      icon: 'i-lucide-message-circle',
+      type: 'checkbox' as const,
+      checked: props.rightSidebar === 'comments',
+      onSelect: () => emit('toggle-sidebar', 'comments')
+    },
+    {
       label: t('activity.title'),
       icon: 'i-lucide-activity',
       type: 'checkbox' as const,
@@ -249,7 +259,11 @@ const insertItems = computed(() => {
     { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => emit('open-table-picker') },
     { label: t('editor.horizontalRule'), icon: 'i-lucide-minus', onSelect: () => call(v => insertBlock(v, '\n---\n')) },
     { label: t('editor.pageBreak'), icon: 'i-lucide-scissors-line-dashed', onSelect: () => call(v => insertPageBreak(v)) },
-    { label: t('editor.comment'), icon: 'i-lucide-message-square-dashed', onSelect: () => call(v => toggleComment(v)) },
+    { label: t('editor.hideFromPreview'), icon: 'i-lucide-eye-off', onSelect: () => call(v => toggleComment(v)) },
+    // Discussion comment — separate from the markdown comment above.
+    // The markdown one stays in the source (hidden from preview);
+    // this one opens a thread in the sidebar with replies + resolve.
+    { label: t('comments.title'), icon: 'i-lucide-message-circle', onSelect: () => emit('create-comment') },
     { type: 'separator' as const },
     { label: t('menubar.insert.footnote'), icon: 'i-lucide-asterisk', onSelect: () => call(v => insertFootnote(v)) },
     {

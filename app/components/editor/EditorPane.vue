@@ -8,13 +8,26 @@ import { yCollab } from 'y-codemirror.next'
 import type { Text as YText, UndoManager } from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { dictationExtensions } from '~/utils/dictationExtensions'
+import { commentDecorationsExtension, setCommentRanges, setFlashRange, type CommentRange } from '~/utils/commentDecorations'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   ytext: YText
   awareness: Awareness
   undoManager: UndoManager
   readOnly: boolean
-}>()
+  /**
+   * Active comment anchors to underline. The host (EditorLayout) keeps
+   * this in sync with the Y.js comments array; we dispatch a
+   * `setCommentRanges` effect whenever it changes so the decoration
+   * field rebuilds.
+   */
+  commentRanges?: readonly CommentRange[]
+  /** Click on a comment underline → invoked with the id. */
+  onCommentClick?: (id: string) => void
+}>(), {
+  commentRanges: () => [],
+  onCommentClick: undefined
+})
 
 const editorRef = ref<HTMLElement | null>(null)
 // `shallowRef` (not `ref`) because EditorView is a class with private fields
@@ -76,6 +89,25 @@ function buildResponsiveTheme(mobile: boolean) {
       content: '"▍"',
       marginLeft: '2px',
       animation: 'cm-dictation-ghost-blink 1.1s steps(2, end) infinite'
+    },
+    // Comment-anchor underline. Subtle yellow background + dashed
+    // underline reads as "annotated" without competing with text
+    // semantics (highlights, links). Cursor is pointer so the click
+    // target is discoverable.
+    '.cm-comment-anchor': {
+      backgroundColor: 'rgba(234, 179, 8, 0.16)',
+      borderBottom: '1px dashed rgba(234, 179, 8, 0.7)',
+      cursor: 'pointer'
+    },
+    '.cm-comment-anchor:hover': {
+      backgroundColor: 'rgba(234, 179, 8, 0.28)'
+    },
+    // Flash applied for ~1.2s after the user clicks a thread in the
+    // sidebar — ringed amber highlight that pulses once so the eye
+    // catches the connection between the click and the doc location.
+    '.cm-comment-flash': {
+      backgroundColor: 'rgba(234, 179, 8, 0.55)',
+      animation: 'cm-comment-flash-pulse 1.2s ease-out 1'
     }
   })
 }
@@ -101,7 +133,11 @@ onMounted(() => {
     yCollab(props.ytext, props.awareness, { undoManager: props.undoManager }),
     // Dictation ghost-text decoration. No-op when dictation isn't
     // active (state field starts empty). See `dictationExtensions.ts`.
-    ...dictationExtensions
+    ...dictationExtensions,
+    // Comment-anchor underlines + flash + click → focus router. The
+    // decoration sets are driven by `setCommentRanges` effects
+    // dispatched in the watcher below.
+    commentDecorationsExtension({ onCommentClick: props.onCommentClick })
   ]
 
   view.value = new EditorView({
@@ -113,7 +149,22 @@ onMounted(() => {
     }),
     parent: editorRef.value
   })
+
+  // Seed the comment-anchor decorations from the initial prop so newly
+  // joined sessions immediately see existing comment underlines.
+  if (props.commentRanges.length > 0) {
+    view.value.dispatch({ effects: setCommentRanges.of([...props.commentRanges]) })
+  }
 })
+
+// Watcher for comment range updates. The host updates `commentRanges`
+// whenever the Y.js comments array changes; we forward via effect so
+// the decoration field rebuilds. `deep` because the items themselves
+// are POJOs that change in place.
+watch(() => props.commentRanges, (ranges) => {
+  if (!view.value) return
+  view.value.dispatch({ effects: setCommentRanges.of([...ranges]) })
+}, { deep: true })
 
 // Watch readOnly prop changes and reconfigure the editor dynamically
 watch(() => props.readOnly, (readOnly) => {
@@ -138,7 +189,30 @@ onUnmounted(() => {
   view.value?.destroy()
 })
 
-defineExpose({ view })
+// Briefly highlight a range and scroll it into view. Called by the
+// parent when the user clicks a comment thread in the sidebar — the
+// flash is what makes the click→jump connection legible.
+let flashTimer: ReturnType<typeof setTimeout> | null = null
+function flashCommentRange(from: number, to: number) {
+  if (!view.value) return
+  view.value.dispatch({
+    effects: [
+      setFlashRange.of({ from, to }),
+      EditorView.scrollIntoView(from, { y: 'center' })
+    ]
+  })
+  if (flashTimer) clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => {
+    if (view.value) view.value.dispatch({ effects: setFlashRange.of(null) })
+    flashTimer = null
+  }, 1200)
+}
+
+onUnmounted(() => {
+  if (flashTimer) clearTimeout(flashTimer)
+})
+
+defineExpose({ view, flashCommentRange })
 </script>
 
 <template>

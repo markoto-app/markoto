@@ -301,3 +301,53 @@ export const activityLog = pgTable('activity_log', {
 }, table => [
   index('idx_activity_doc').on(table.docId, table.createdAt)
 ])
+
+// Postgres mirror of the doc's comment threads. Y.js is the source of
+// truth (live sync, anchor positions, reactivity). This table is a
+// best-effort write-side index that lets us answer cross-doc questions
+// — "comments mentioning user X", "recent comment activity in this
+// workspace" — without iterating every Y.Doc on disk.
+//
+// Sync model: the sync server's `onStoreDocument` hook posts a full
+// snapshot of the doc's comments Y.Array to `/api/internal/comments-snapshot`,
+// which replaces the doc's rows. Eventually consistent — a few seconds
+// of lag after a comment edit is acceptable for the use cases this
+// table supports. There is no read path that anchors UX on it (the
+// editor's sidebar reads Y.js directly).
+//
+// Replies are stored in the same table with `parentCommentId` non-null;
+// thread roots have `parentCommentId = null`. Single-table simplifies
+// snapshot upserts at the cost of one nullable column.
+export const documentComments = pgTable('document_comments', {
+  // Composite PK is (docId, commentOrReplyId) — the snapshot endpoint
+  // delete-by-doc + bulk-insert pattern relies on knowing every row
+  // for a given docId.
+  docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  // Y.js entry id (nanoid(12)). For replies this is the reply's own id;
+  // we don't reuse comment ids across roots and replies.
+  entryId: text('entry_id').notNull(),
+  // NULL = thread root; set = this row is a reply, parent is the
+  // matching `entry_id` row in the same docId.
+  parentCommentId: text('parent_comment_id'),
+  // Author identity captured at write time. Author may have left the
+  // workspace since; we store the snapshot as the comment shows it.
+  authorId: integer('author_id').references(() => users.id, { onDelete: 'set null' }),
+  authorName: text('author_name').notNull(),
+  body: text('body').notNull(),
+  // Y.js epoch-ms timestamps mirrored verbatim — kept as the canonical
+  // ordering signal so cross-doc queries match what the user sees.
+  createdAtMs: timestamp('created_at_ms', { withTimezone: true, mode: 'date' }).notNull(),
+  updatedAtMs: timestamp('updated_at_ms', { withTimezone: true, mode: 'date' }).notNull(),
+  resolved: boolean('resolved').notNull().default(false),
+  // Set if the Y.js anchor returned null at snapshot time. The sync
+  // server doesn't compute this directly (relative-position resolution
+  // requires the live Y.Doc) — fixed false for now; future work could
+  // surface it for "find my orphaned threads".
+  orphaned: boolean('orphaned').notNull().default(false)
+}, table => [
+  primaryKey({ columns: [table.docId, table.entryId] }),
+  // Mention notifications: a future endpoint will scan recent rows
+  // whose body matches `@[...](user:N)` for a given N.
+  index('idx_document_comments_author').on(table.authorId),
+  index('idx_document_comments_updated').on(table.updatedAtMs)
+])

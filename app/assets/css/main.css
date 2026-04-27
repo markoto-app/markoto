@@ -37,3 +37,12 @@
 @keyframes cm-dictation-ghost-blink {
   to { opacity: 0; }
 }
+
+/* Pulse on a comment anchor when the user clicks the matching thread
+   in the sidebar — drives the eye to the doc location. Same reason as
+   the dictation keyframes above: CM6 theme rules can't declare keyframes. */
+@keyframes cm-comment-flash-pulse {
+  0%   { background-color: rgba(234, 179, 8, 0.65); }
+  50%  { background-color: rgba(234, 179, 8, 0.85); }
+  100% { background-color: rgba(234, 179, 8, 0.0); }
+}

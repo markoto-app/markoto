@@ -26,9 +26,9 @@ export interface AiSessionInfo {
  * awareness. Gemini joins the document as its own client, so every tab
  * naturally sees the AI "user" appear, change status, and leave.
  *
- * Selection-scoped requests (from `AISelectionPopup`) use the same prompt
- * path: they just supply an `editorSelection` override so the server-side
- * `<editor_state>` wrapper points the agentic loop at the highlighted range.
+ * The `editorSelection` override is consumed by the bottom prompt bar so
+ * cursor / selection state flows through to the server's `<editor_state>`
+ * wrapper, letting the agentic loop pick the right edit tool.
  */
 export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOptions = {}) {
   const { loggedIn, user: sessionUser } = useUserSession()

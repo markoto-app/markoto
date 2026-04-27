@@ -47,7 +47,7 @@
     "horizontalRule": "Horizontal Rule",
     "pageBreak": "Page break",
     "table": "Table",
-    "comment": "Comment (hidden from preview)"
+    "hideFromPreview": "Make invisible (hide from preview)"
   },
   "status": {
     "connecting": "Connecting...",
@@ -101,6 +101,34 @@
       "join": "joined",
       "leave": "left"
     }
+  },
+  "comments": {
+    "title": "Comments",
+    "addLabel": "Add comment",
+    "addAria": "Add a comment on the selection",
+    "empty": "No comments yet. Select text and press the comment button.",
+    "post": "Submit",
+    "cancel": "Cancel",
+    "reply": "Reply",
+    "replyPost": "Reply",
+    "resolve": "Resolve",
+    "unresolve": "Reopen",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteThreadConfirm": "Delete this comment thread?",
+    "deleteReplyConfirm": "Delete this reply?",
+    "showResolved": "Show resolved",
+    "activeSection": "Active",
+    "orphanedSection": "Removed from document",
+    "orphanedHint": "The text this comment was attached to was deleted.",
+    "resolvedSection": "Resolved",
+    "composerPlaceholder": "Add a comment…",
+    "replyPlaceholder": "Reply…",
+    "selectTextFirst": "Select text in the editor to start a comment.",
+    "draftHeading": "New comment",
+    "mentionTrigger": "Type {'@'} to mention a workspace member",
+    "submitHint": "{cmd}+Enter to post · Esc to cancel",
+    "anonymous": "Anonymous"
   },
   "image": {
     "loginToUpload": "Please log in to upload images.",
@@ -312,8 +340,6 @@
     "statusDone": "Done",
     "otherSessions": "{n} other session | {n} other sessions",
     "helpingTooltip": "AI is helping {name}",
-    "rewriteButton": "Rewrite with AI",
-    "rewritePlaceholder": "How should the AI rewrite this?",
     "alreadyRunning": "You already have an AI session running on this document.",
     "rateLimited": "Too many AI requests. Try again in a minute.",
     "failed": "AI request failed",
