@@ -22,15 +22,18 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
 // → ~14px displayed) and sits well above the 640px mobile breakpoint.
 const DESKTOP_VP = { width: 1280, height: 800 }
 
-// Mobile viewport — iPhone 14 dimensions (390×844). Chosen because:
-//  • Below 640px so the app's mobile branch fires (matches Tailwind
-//    sm breakpoint and AGENTS.md §11's 639px boundary).
-//  • Common modern device — readers on iPhone 12-15 see the same
-//    layout in the docs that they'd see in their actual app.
-//  • `isMobile: true` + `hasTouch: true` switches Chromium's UA and
-//    pointer model so touch-only behaviors (mobile menu, full-width
-//    sidebars) trigger as they would on a real device.
-const MOBILE_VP = { width: 390, height: 844 }
+// Mobile viewport — 390×720. Width matches iPhone 14 (so the app's
+// mobile branch fires below the 640px breakpoint), but the height
+// is intentionally shorter than iPhone 14's full 844 so the captured
+// frames fit on real phones when readers browse the docs from their
+// device. At 844 the slideshow's aspect ratio nearly matched the
+// reader's own viewport and they had to scroll to see the bottom of
+// each shot. 390×720 leaves enough headroom for the docs-page chrome
+// (topbar, breadcrumb) AND the slideshow controls below the frame.
+//   • `isMobile: true` + `hasTouch: true` switches Chromium's UA and
+//     pointer model so touch-only behaviors trigger as they would
+//     on a real device.
+const MOBILE_VP = { width: 390, height: 720 }
 
 export default defineConfig({
   testDir: './tests/e2e/flows',

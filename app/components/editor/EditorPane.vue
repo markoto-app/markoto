@@ -192,7 +192,11 @@ onUnmounted(() => {
 // Briefly highlight a range and scroll it into view. Called by the
 // parent when the user clicks a comment thread in the sidebar — the
 // flash is what makes the click→jump connection legible.
-let flashTimer: ReturnType<typeof setTimeout> | null = null
+// Comment-flash highlight: 1.2s post-scroll-into-view the highlight
+// clears so it doesn't linger. Restart cancels the in-flight timer.
+const flashClear = useTimeoutFn(() => {
+  if (view.value) view.value.dispatch({ effects: setFlashRange.of(null) })
+}, 1200, { immediate: false })
 function flashCommentRange(from: number, to: number) {
   if (!view.value) return
   view.value.dispatch({
@@ -201,16 +205,8 @@ function flashCommentRange(from: number, to: number) {
       EditorView.scrollIntoView(from, { y: 'center' })
     ]
   })
-  if (flashTimer) clearTimeout(flashTimer)
-  flashTimer = setTimeout(() => {
-    if (view.value) view.value.dispatch({ effects: setFlashRange.of(null) })
-    flashTimer = null
-  }, 1200)
+  flashClear.start()
 }
-
-onUnmounted(() => {
-  if (flashTimer) clearTimeout(flashTimer)
-})
 
 defineExpose({ view, flashCommentRange })
 </script>

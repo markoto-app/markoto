@@ -115,10 +115,10 @@ const { open: openSearch } = useContentSearch()
           v-for="p in featured"
           :key="p.path"
           :to="p.path"
-          class="group relative p-6 rounded-xl border border-default bg-elevated/40 hover:bg-elevated hover:border-primary/50 hover:shadow-md transition-all"
+          class="group relative p-6 rounded-xl border border-default/60 hover:border-primary/40 hover:bg-elevated/40 hover:shadow-sm transition-all"
         >
           <div class="flex items-start gap-4">
-            <div class="shrink-0 size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+            <div class="shrink-0 size-10 rounded-lg flex items-center justify-center text-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
               <UIcon name="i-lucide-arrow-right" class="size-5" />
             </div>
             <div class="min-w-0 flex-1">
@@ -148,9 +148,9 @@ const { open: openSearch } = useContentSearch()
           v-for="cat in sections ?? []"
           :key="cat.path"
           :to="cat.path"
-          class="group p-5 rounded-xl border border-default bg-elevated/30 hover:bg-elevated hover:border-primary/40 hover:shadow-md transition-all"
+          class="group p-5 rounded-xl border border-default/60 hover:border-primary/40 hover:bg-elevated/40 hover:shadow-sm transition-all"
         >
-          <div class="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors">
+          <div class="size-10 rounded-lg flex items-center justify-center mb-3 text-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
             <UIcon :name="cat.icon" class="size-5" />
           </div>
           <h3 class="font-semibold mb-1 group-hover:text-primary transition-colors">

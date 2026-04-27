@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import {
   parseCommentBody,
   formatMentionToken,
-  formatRelativeTime,
   COMMENT_BODY_MAX,
   REPLY_BODY_MAX
 } from '../../app/utils/commentBody'
@@ -136,49 +135,6 @@ describe('parseCommentBody', () => {
     const longName = 'A'.repeat(120)
     const token = formatMentionToken(longName, 1)
     expect(token).toBe(`@[${'A'.repeat(80)}](user:1)`)
-  })
-})
-
-describe('formatRelativeTime', () => {
-  // Pin `now` so tests are deterministic. Resolution is whole minutes —
-  // anything below 60s reads as "just now".
-  const t = (key: string, params?: Record<string, unknown>) => {
-    if (key === 'activity.justNow') return 'just now'
-    if (key === 'activity.minutesAgo') return `${params?.count}m ago`
-    if (key === 'activity.hoursAgo') return `${params?.count}h ago`
-    if (key === 'activity.daysAgo') return `${params?.count}d ago`
-    return key
-  }
-
-  it('returns "just now" when the difference is under 1 minute', () => {
-    const now = 1_700_000_000_000
-    expect(formatRelativeTime(now - 30_000, t, now)).toBe('just now')
-  })
-
-  it('returns "{n}m ago" between 1 and 59 minutes', () => {
-    const now = 1_700_000_000_000
-    expect(formatRelativeTime(now - 5 * 60_000, t, now)).toBe('5m ago')
-    expect(formatRelativeTime(now - 59 * 60_000, t, now)).toBe('59m ago')
-  })
-
-  it('switches to hours at the 60-minute boundary', () => {
-    const now = 1_700_000_000_000
-    expect(formatRelativeTime(now - 60 * 60_000, t, now)).toBe('1h ago')
-    expect(formatRelativeTime(now - 23 * 60 * 60_000, t, now)).toBe('23h ago')
-  })
-
-  it('switches to days at the 24-hour boundary', () => {
-    const now = 1_700_000_000_000
-    expect(formatRelativeTime(now - 24 * 60 * 60_000, t, now)).toBe('1d ago')
-    expect(formatRelativeTime(now - 7 * 24 * 60 * 60_000, t, now)).toBe('7d ago')
-  })
-
-  it('returns "just now" for a future timestamp (clock-skew defensive)', () => {
-    // `Math.floor` of a negative diff yields -1 (or worse), which
-    // would print "-1m ago" if not guarded by the `< 1` branch. Future
-    // timestamps shouldn't crash the panel — they read as "just now".
-    const now = 1_700_000_000_000
-    expect(formatRelativeTime(now + 30_000, t, now)).toBe('just now')
   })
 })
 

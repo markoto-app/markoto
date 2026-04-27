@@ -75,6 +75,39 @@ export async function resetDb(): Promise<void> {
 }
 
 /**
+ * Ensure the `yjs_documents` table exists. y-postgresql creates this
+ * table lazily at sync-server startup (see
+ * sync-server/node_modules/y-postgresql/src/pg-adapter.ts), but the
+ * integration test environment doesn't run the sync-server — so any
+ * code path that reads or writes `yjs_documents` (e.g. the document
+ * duplicate flow) hits a "relation does not exist" error and 500s.
+ *
+ * Mirroring the schema here is the smallest fix that lets server
+ * code exercise its real Y.js path under tests without spinning up
+ * a separate sync-server. Idempotent via IF NOT EXISTS.
+ */
+export async function ensureYjsTable(): Promise<void> {
+  const db = testDb()
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ypga_version') THEN
+        CREATE TYPE ypga_version AS ENUM ('v1', 'v1_sv');
+      END IF;
+    END
+    $$;
+  `)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS yjs_documents (
+      id SERIAL PRIMARY KEY,
+      docname TEXT NOT NULL,
+      value BYTEA NOT NULL,
+      version ypga_version NOT NULL
+    )
+  `)
+}
+
+/**
  * Block until the DB is reachable. Called by globalSetup before running
  * migrations — useful because docker-compose's healthcheck fires before
  * the first client connection is accepted (a few extra seconds of socket

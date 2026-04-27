@@ -34,30 +34,35 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 // Local drafts for two-way binding. Same pattern as ThemeEditorPanel —
-// drafts mirror props, deep watch fires updates upstream. Keeps the
+// drafts mirror props, watchers fire updates upstream. Keeps the
 // inputs from flickering on remote-collaborator edits.
+//
+// `watchIgnorable` exposes `ignoreUpdates(fn)` so we can write the
+// prop value back into the draft (when the prop changes externally)
+// without re-triggering the upstream-emit watcher. Replaces the
+// previous "if (next === propValue) return" equality guards inside
+// each emit watcher.
 const descriptionDraft = ref(props.description)
 const audienceDraft = ref(props.audience)
 
-watch(() => props.description, (next) => {
-  if (next !== descriptionDraft.value) descriptionDraft.value = next
-})
-watch(() => props.audience, (next) => {
-  if (next !== audienceDraft.value) audienceDraft.value = next
-})
-
-watch(descriptionDraft, (next) => {
-  if (next === props.description) return
+const { ignoreUpdates: ignoreDescriptionUpdates } = watchIgnorable(descriptionDraft, (next) => {
   if (next.length > 500) {
-    descriptionDraft.value = next.slice(0, 500)
+    ignoreDescriptionUpdates(() => { descriptionDraft.value = next.slice(0, 500) })
     return
   }
   emit('update:description', next)
 })
-
-watch(audienceDraft, (next) => {
-  if (next === props.audience) return
+const { ignoreUpdates: ignoreAudienceUpdates } = watchIgnorable(audienceDraft, (next) => {
   emit('update:audience', next)
+})
+
+watch(() => props.description, (next) => {
+  if (next === descriptionDraft.value) return
+  ignoreDescriptionUpdates(() => { descriptionDraft.value = next })
+})
+watch(() => props.audience, (next) => {
+  if (next === audienceDraft.value) return
+  ignoreAudienceUpdates(() => { audienceDraft.value = next })
 })
 
 // — Language combobox ────────────────────────────────────────────────
@@ -102,17 +107,16 @@ const languageItems = computed<LanguageItem[]>(() => {
   return presetItems.value
 })
 
-watch(() => props.language, (next) => {
-  if (next === languageModel.value.value) return
-  languageModel.value = languageToItem(next)
-})
-
-watch(languageModel, (next) => {
+const { ignoreUpdates: ignoreLanguageUpdates } = watchIgnorable(languageModel, (next) => {
   if (!next || typeof next !== 'object') return
   const value = (next.value ?? '').trim()
   if (value.length === 0) return
-  if (value === props.language) return
   emit('update:language', value)
+})
+
+watch(() => props.language, (next) => {
+  if (next === languageModel.value.value) return
+  ignoreLanguageUpdates(() => { languageModel.value = languageToItem(next) })
 })
 
 function onCreateLanguage(text: string): LanguageItem {

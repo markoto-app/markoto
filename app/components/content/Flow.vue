@@ -215,30 +215,35 @@ const slideQuery = useRouteQuery<string | null, number>(
   }
 )
 
-let playTimer: ReturnType<typeof setTimeout> | null = null
-function clearPlayTimer() {
-  if (playTimer) { clearTimeout(playTimer); playTimer = null }
-}
-function stopPlay() {
-  isPlaying.value = false
-  playProgress.value = 0
-  clearPlayTimer()
-}
-function scheduleAdvance() {
-  clearPlayTimer()
-  if (!isPlaying.value) return
-  const dur = entries.value[slideIdx.value] ? durationFor(entries.value[slideIdx.value]!) : 3000
-  playProgress.value = 1
-  playTimer = setTimeout(() => {
+// Slide auto-advance via `useTimeoutFn` — auto-cleans on scope dispose
+// and gives us a `stop()` we can call from `stopPlay`/`scheduleAdvance`
+// without tracking the timer id manually. The interval is a getter so
+// each slide can have its own duration. `immediate: false` so the
+// timer doesn't fire until we explicitly start it.
+const playTimeout = useTimeoutFn(
+  () => {
     if (slideIdx.value < entries.value.length - 1) {
       slideIdx.value += 1
       playProgress.value = 0
       scheduleAdvance()
     } else {
       isPlaying.value = false
-      clearPlayTimer()
     }
-  }, dur)
+  },
+  () => entries.value[slideIdx.value] ? durationFor(entries.value[slideIdx.value]!) : 3000,
+  { immediate: false }
+)
+
+function stopPlay() {
+  isPlaying.value = false
+  playProgress.value = 0
+  playTimeout.stop()
+}
+function scheduleAdvance() {
+  playTimeout.stop()
+  if (!isPlaying.value) return
+  playProgress.value = 1
+  playTimeout.start()
 }
 function togglePlay() {
   if (isPlaying.value) {
@@ -290,7 +295,7 @@ watch(slideIdx, (idx) => {
   if (slideQuery.value !== idx) slideQuery.value = idx
 })
 
-onUnmounted(() => { clearPlayTimer() })
+// useTimeoutFn auto-stops on scope dispose — no manual onUnmounted.
 
 // Keyboard nav for slides — bound to the slides container so the
 // shortcuts only fire when it has focus (tabIndex on the wrapper).

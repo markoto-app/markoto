@@ -56,24 +56,3 @@ export function formatMentionToken(name: string, userId: number): string {
   return `@[${safeName}](user:${userId})`
 }
 
-/**
- * Coarse "X minutes ago" formatter. Same vocabulary as the activity feed
- * (reuses `activity.*` i18n keys via the `t` callback) so the visual
- * weight stays consistent across surfaces. The `now` argument lets a
- * caller pin the reference time — pass a Vue ref that ticks on a
- * timer to get live-updating timestamps without remounting.
- */
-export function formatRelativeTime(
-  ts: number,
-  t: (key: string, params?: Record<string, unknown>) => string,
-  now: number = Date.now()
-): string {
-  const diffMs = now - ts
-  const mins = Math.floor(diffMs / 60_000)
-  if (mins < 1) return t('activity.justNow')
-  if (mins < 60) return t('activity.minutesAgo', { count: mins })
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return t('activity.hoursAgo', { count: hours })
-  const days = Math.floor(hours / 24)
-  return t('activity.daysAgo', { count: days })
-}

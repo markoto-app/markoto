@@ -59,12 +59,8 @@ refreshViewer()
 props.awareness.on('change', refreshViewer)
 onUnmounted(() => props.awareness.off('change', refreshViewer))
 
-// Live-tick reference for relative timestamps. 30s is the smallest
-// resolution our minute-grain formatter cares about; CommentItem reads
-// `now` so its computed re-fires on every tick.
-const now = ref(Date.now())
-const nowTimer = setInterval(() => { now.value = Date.now() }, 30_000)
-onUnmounted(() => clearInterval(nowTimer))
+// CommentItem owns its own live-time ticker via useTimeAgoIntl —
+// no need for a panel-level `now` ref piped down as props.
 
 // Active = has an anchor AND not resolved. Orphaned = no anchor.
 // Resolved = explicitly resolved (anchor irrelevant for grouping).
@@ -98,7 +94,12 @@ onMounted(async () => {
 // write happens until the composer's submit fires.
 const draftAnchor = ref<SerializedAnchor | null>(null)
 const focusedCommentId = ref<string | null>(null)
-let focusTimer: ReturnType<typeof setTimeout> | null = null
+// Highlight fade — clears `focusedCommentId` 1.2s after a thread is
+// focused so the visual highlight doesn't linger forever. Restarting
+// (calling `start()` again) cancels the in-flight timer.
+const focusFade = useTimeoutFn(() => {
+  focusedCommentId.value = null
+}, 1200, { immediate: false })
 
 function startDraft(): boolean {
   if (props.readOnly) return false
@@ -141,16 +142,10 @@ function onThreadFocus(id: string) {
 
 function highlight(id: string) {
   focusedCommentId.value = id
-  if (focusTimer) clearTimeout(focusTimer)
-  focusTimer = setTimeout(() => {
-    focusedCommentId.value = null
-    focusTimer = null
-  }, 1200)
+  // Restart the fade timer — calling start() while pending cancels
+  // the in-flight callback and reschedules.
+  focusFade.start()
 }
-
-onUnmounted(() => {
-  if (focusTimer) clearTimeout(focusTimer)
-})
 
 // Parent (EditorLayout) calls `focusComment(id)` when the editor emits
 // `comment:focus` — e.g. user clicked the underline in the doc and the
@@ -164,6 +159,16 @@ function focusComment(id: string) {
 }
 
 defineExpose({ startDraft, focusComment })
+
+// Thread row factored as a reusable in-template fragment — three
+// sections (active / orphaned / resolved) used to render the same
+// `<CommentThread>` block with near-identical bindings; the only
+// per-section differences are the data source and the `muted` flag.
+// The `comment` + `muted` slot props parameterise the reuse.
+const [DefineThreadRow, ReuseThreadRow] = createReusableTemplate<{
+  comment: import('~/composables/useComments').DerivedComment
+  muted?: boolean
+}>()
 
 const scrollContainer = ref<HTMLDivElement | null>(null)
 
@@ -265,6 +270,26 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
         {{ t('comments.empty') }}
       </p>
 
+      <!-- Reusable per-thread fragment — defined once, used by the
+           three sections below. -->
+      <DefineThreadRow v-slot="{ comment: c, muted }">
+        <CommentThread
+          :comment="c"
+          :read-only="readOnly"
+          :muted="muted ?? false"
+          :mentionable-users="mentionableUsers"
+          :focused="focusedCommentId === c.id"
+          :viewer-id="viewerId"
+          :viewer-name="viewerName"
+          @focus="onThreadFocus"
+          @delete-comment="deleteComment"
+          @resolve="(id) => setResolved(id, true)"
+          @unresolve="(id) => setResolved(id, false)"
+          @reply="postReply"
+          @delete-reply="deleteReply"
+        />
+      </DefineThreadRow>
+
       <!-- Active threads. Section header is suppressed when there are no
            orphans + resolved counts so the unsectioned list reads
            cleanly. -->
@@ -275,22 +300,10 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
         >
           {{ t('comments.activeSection') }}
         </p>
-        <CommentThread
+        <ReuseThreadRow
           v-for="c in activeComments"
           :key="c.id"
           :comment="c"
-          :read-only="readOnly"
-          :mentionable-users="mentionableUsers"
-          :focused="focusedCommentId === c.id"
-          :viewer-id="viewerId"
-          :viewer-name="viewerName"
-          :now="now"
-          @focus="onThreadFocus"
-          @delete-comment="deleteComment"
-          @resolve="(id) => setResolved(id, true)"
-          @unresolve="(id) => setResolved(id, false)"
-          @reply="postReply"
-          @delete-reply="deleteReply"
         />
       </template>
 
@@ -298,23 +311,11 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
         <p class="text-[11px] font-semibold uppercase tracking-wide text-muted px-1 pt-2">
           {{ t('comments.orphanedSection') }}
         </p>
-        <CommentThread
+        <ReuseThreadRow
           v-for="c in orphanedComments"
           :key="c.id"
           :comment="c"
-          :read-only="readOnly"
           :muted="true"
-          :mentionable-users="mentionableUsers"
-          :focused="focusedCommentId === c.id"
-          :viewer-id="viewerId"
-          :viewer-name="viewerName"
-          :now="now"
-          @focus="onThreadFocus"
-          @delete-comment="deleteComment"
-          @resolve="(id) => setResolved(id, true)"
-          @unresolve="(id) => setResolved(id, false)"
-          @reply="postReply"
-          @delete-reply="deleteReply"
         />
       </template>
 
@@ -325,23 +326,11 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
         >
           {{ t('comments.resolvedSection') }}
         </p>
-        <CommentThread
+        <ReuseThreadRow
           v-for="c in resolvedComments"
           :key="c.id"
           :comment="c"
-          :read-only="readOnly"
           :muted="true"
-          :mentionable-users="mentionableUsers"
-          :focused="focusedCommentId === c.id"
-          :viewer-id="viewerId"
-          :viewer-name="viewerName"
-          :now="now"
-          @focus="onThreadFocus"
-          @delete-comment="deleteComment"
-          @resolve="(id) => setResolved(id, true)"
-          @unresolve="(id) => setResolved(id, false)"
-          @reply="postReply"
-          @delete-reply="deleteReply"
         />
       </template>
     </div>

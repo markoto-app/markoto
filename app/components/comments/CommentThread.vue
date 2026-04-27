@@ -28,16 +28,13 @@ const props = withDefaults(defineProps<{
    */
   viewerId?: number | null
   viewerName?: string
-  /** Reactive ms-epoch tick passed through to children for live timestamps. */
-  now?: number
 }>(), {
   readOnly: false,
   muted: false,
   mentionableUsers: () => [],
   focused: false,
   viewerId: null,
-  viewerName: '',
-  now: () => Date.now()
+  viewerName: ''
 })
 
 const emit = defineEmits<{
@@ -111,7 +108,6 @@ function onClickThread(e: MouseEvent) {
       :resolved="comment.resolved"
       :read-only="readOnly"
       :can-delete="canDelete(comment.authorId, comment.authorName)"
-      :now="now"
       @delete="emit('delete-comment', comment.id)"
       @resolve="emit('resolve', comment.id)"
       @unresolve="emit('unresolve', comment.id)"
@@ -130,8 +126,7 @@ function onClickThread(e: MouseEvent) {
         :created-at="reply.createdAt"
         :read-only="readOnly"
         :can-delete="canDelete(reply.authorId, reply.authorName)"
-        :now="now"
-        @delete="emit('delete-reply', comment.id, reply.id)"
+          @delete="emit('delete-reply', comment.id, reply.id)"
       />
     </div>
 

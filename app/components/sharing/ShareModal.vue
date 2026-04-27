@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useQRCode } from '@vueuse/integrations/useQRCode'
+
 const props = defineProps<{
   docId: string
   docTitle: string
@@ -48,6 +50,15 @@ const shareUrl = computed(() => {
 function copyLink() {
   copy(shareUrl.value)
 }
+
+// QR code rendering of the share URL — toggled by the user so casual
+// shares (just copy a link) don't ship a 6KB image they didn't ask
+// for. Generated client-side only when shown; the QR is a 160px PNG
+// data-URL that scales crisply on retina without a separate hi-DPI
+// asset. Mobile-handoff use case: laptop owner shows screen, person
+// scans → opens the doc.
+const showQrCode = ref(false)
+const qrCodeDataUrl = useQRCode(shareUrl, { width: 320, margin: 1 })
 
 async function shareLink() {
   try {
@@ -163,6 +174,36 @@ async function setPassword() {
               :title="t('share.systemShare')"
               @click="shareLink"
             />
+            <!-- QR toggle — collapsed by default; opens a 160px square
+                 below the link row for mobile-handoff scanning. -->
+            <UButton
+              :icon="showQrCode ? 'i-lucide-x' : 'i-lucide-qr-code'"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              data-testid="share-qr-toggle"
+              :aria-label="t('share.qrCode')"
+              :aria-pressed="showQrCode"
+              :title="t('share.qrCode')"
+              @click="showQrCode = !showQrCode"
+            />
+          </div>
+          <!-- QR rendering — sits beneath the link row. The data-url
+               is reactive on `shareUrl`, so changing access mode (or
+               anything else that mutates the URL) re-renders the QR
+               automatically. -->
+          <div
+            v-if="showQrCode"
+            class="mt-3 flex justify-center"
+            data-testid="share-qr-image-wrapper"
+          >
+            <img
+              :src="qrCodeDataUrl"
+              :alt="t('share.qrCode')"
+              class="rounded-md border border-default bg-white p-2"
+              width="160"
+              height="160"
+            >
           </div>
         </div>
 

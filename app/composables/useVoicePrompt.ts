@@ -112,7 +112,13 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   let analyser: AnalyserNode | null = null
   let rafId: number | null = null
   let startedAt = 0
-  let stopTimer: ReturnType<typeof setTimeout> | null = null
+  // Hard-cap auto-stop timer — fires once `maxDurationSec` after start.
+  // useTimeoutFn auto-cleans on scope dispose; we still call .stop()
+  // from cleanupAudioResources for the cancel/error paths so a user
+  // who clicks stop early doesn't get an orphaned auto-stop.
+  const stopTimeout = useTimeoutFn(() => {
+    if (state.value === 'recording') stop()
+  }, maxDurationSec * 1000, { immediate: false })
   const chunks: Blob[] = []
 
   function cleanupAudioResources() {
@@ -120,10 +126,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       cancelAnimationFrame(rafId)
       rafId = null
     }
-    if (stopTimer !== null) {
-      clearTimeout(stopTimer)
-      stopTimer = null
-    }
+    stopTimeout.stop()
     try {
       analyser?.disconnect()
     } catch { /* best-effort */ }
@@ -269,9 +272,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     // Hard cap. Using `stop()` (not `cancel`) so the recorded audio still
     // gets transcribed — user hit the cap but presumably wanted what they
     // said to go through.
-    stopTimer = setTimeout(() => {
-      if (state.value === 'recording') stop()
-    }, maxDurationSec * 1000)
+    stopTimeout.start()
   }
 
   function stop() {

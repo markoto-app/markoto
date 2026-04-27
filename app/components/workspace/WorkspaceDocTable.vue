@@ -72,17 +72,6 @@ function rowMenu(doc: WorkspaceDoc) {
   return [items]
 }
 
-function formatDate(value: string | number | Date) {
-  const date = new Date(value)
-  if (isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
 // Long-press to open the row's actions menu — discoverable on touch
 // where the 3-dot button is a small target. Per-row open state keyed
 // on docId so only the long-pressed row's menu opens.
@@ -134,7 +123,9 @@ function onRowLongPress(doc: WorkspaceDoc) {
           >
             {{ doc.description }}
           </p>
-          <p class="text-xs text-muted">{{ formatDate(doc.lastActive) }}</p>
+          <p class="text-xs text-muted">
+            <CommonTimeAgo :ts="doc.lastActive" />
+          </p>
         </div>
       </NuxtLink>
       <div class="flex items-center gap-2 shrink-0">

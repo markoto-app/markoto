@@ -71,9 +71,16 @@ describe('verifyJwtWithRotation', () => {
     // An expired token is different from a wrong-secret token. We do NOT
     // want rotation to rescue an expired token — its expiry is the whole
     // point of issuing it short-lived.
+    //
+    // Assert by error.name rather than `instanceof TokenExpiredError`
+    // because Vitest can transiently load `jsonwebtoken` from two
+    // module paths (the SUT's resolution vs the test's resolution),
+    // making the constructors non-identical even when the error is
+    // the right type. The name field is set on the error object
+    // directly and survives the dual-package issue.
     const token = jwt.sign({ sub: 'alice' }, CURRENT, { expiresIn: '-1s' })
     expect(() => verifyJwtWithRotation(token, CURRENT, PREVIOUS))
-      .toThrow(jwt.TokenExpiredError)
+      .toThrow(expect.objectContaining({ name: 'TokenExpiredError' }))
   })
 
   it('throws on completely malformed token regardless of previous', () => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MentionPill from '~/components/comments/MentionPill.vue'
-import { parseCommentBody, formatRelativeTime } from '~/utils/commentBody'
+import { parseCommentBody } from '~/utils/commentBody'
 
 const props = withDefaults(defineProps<{
   body: string
@@ -14,18 +14,11 @@ const props = withDefaults(defineProps<{
   readOnly?: boolean
   /** Show the Delete action. Authors of the comment, plus admins, get this. */
   canDelete?: boolean
-  /**
-   * Reactive "now" reference (ms epoch) used to keep the relative
-   * timestamp ticking — the parent panel updates this on a 30s timer
-   * so "just now" → "1m ago" without a page refresh.
-   */
-  now?: number
 }>(), {
   isThreadRoot: false,
   resolved: false,
   readOnly: false,
-  canDelete: false,
-  now: () => Date.now()
+  canDelete: false
 })
 
 const emit = defineEmits<{
@@ -38,9 +31,10 @@ const { t } = useI18n()
 
 const segments = computed(() => parseCommentBody(props.body))
 
-// Recomputes whenever `props.now` ticks, so the panel's 30s timer
-// surfaces "1m ago" → "2m ago" automatically.
-const relativeTime = computed(() => formatRelativeTime(props.createdAt, t, props.now))
+// Live "X ago" string via `useTimeAgoIntl` — owns its own 30s ticker
+// and uses Intl.RelativeTimeFormat for locale-aware output ("5 minutes
+// ago" / "vor 5 Minuten" / etc.) without per-locale i18n keys.
+const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
 </script>
 
 <template>

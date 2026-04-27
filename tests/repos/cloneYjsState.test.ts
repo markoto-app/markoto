@@ -1,38 +1,15 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { resetDb, testDb } from '../integration/setup/db'
+import { ensureYjsTable, resetDb, testDb } from '../integration/setup/db'
 import { cloneYjsStateWithUrlRewrite } from '../../server/utils/cloneYjsState'
 
 // `cloneYjsStateWithUrlRewrite` reads the source doc's stored Y.js
 // updates, reconstructs a Y.Doc, rewrites `/api/files/{sourceDocId}/`
 // image URLs to the target's docId, and writes a single compacted
-// update under the target docname. The integration sync-server owns
-// the `yjs_documents` table at runtime, but the schema is stable —
-// we recreate the same schema here so the test can seed inputs
-// without booting Hocuspocus.
-
-async function ensureYjsDocumentsTable(): Promise<void> {
-  // Matches y-postgresql@1.0.1's PgAdapter.connect() table creation.
-  // Kept in lockstep so a schema drift upstream fails this test
-  // loudly instead of silently succeeding against a stale shape.
-  const db = testDb()
-  await db.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ypga_version') THEN
-        CREATE TYPE ypga_version AS ENUM ('v1', 'v1_sv');
-      END IF;
-    END $$;
-  `)
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS yjs_documents (
-      id SERIAL PRIMARY KEY,
-      docname TEXT NOT NULL,
-      value BYTEA NOT NULL,
-      version ypga_version NOT NULL
-    )
-  `)
-}
+// update under the target docname. The sync-server owns the
+// `yjs_documents` table at runtime, but the schema is stable — the
+// shared `ensureYjsTable` helper recreates the same schema so this
+// test can seed inputs without booting Hocuspocus.
 
 async function countRows(docname: string): Promise<number> {
   const db = testDb()
@@ -72,7 +49,7 @@ async function seedSource(docname: string, build: (doc: Y.Doc) => void): Promise
 
 describe('cloneYjsStateWithUrlRewrite', () => {
   beforeAll(async () => {
-    await ensureYjsDocumentsTable()
+    await ensureYjsTable()
   })
 
   beforeEach(async () => {

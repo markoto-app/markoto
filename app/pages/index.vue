@@ -166,17 +166,6 @@ function onWorkspaceCreated(workspaceId: string) {
   router.push(`/w/${workspaceId}`)
 }
 
-function formatDate(value: string | number | Date) {
-  const date = new Date(value)
-  if (isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
 // Long-press a doc row to open its action menu — discoverable on
 // touch where the 3-dot button is a small target. Per-row keying so
 // only the long-pressed row's menu opens. Owner-only here, mirroring
@@ -293,7 +282,9 @@ function onRowLongPress(doc: DocumentListItem) {
                 >
                   {{ doc.description }}
                 </p>
-                <p class="text-xs text-muted">{{ formatDate(doc.lastActive) }}</p>
+                <p class="text-xs text-muted">
+                  <CommonTimeAgo :ts="doc.lastActive" />
+                </p>
               </div>
             </NuxtLink>
             <div class="flex items-center gap-2 shrink-0">

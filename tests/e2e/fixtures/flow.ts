@@ -2,6 +2,7 @@ import { test as base, expect as baseExpect, type Locator, type Page } from '@pl
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import sharp from 'sharp'
 import { EditorPage } from '../page-objects/Editor'
 
 // One Playwright fixture that turns a normal e2e test into a "flow":
@@ -341,13 +342,25 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       })()
       const shotPath = url && url.protocol.startsWith('http') ? `${url.pathname}${url.search}` : '/'
       const highlights = mode === 'outcome' ? await resolveHighlights(opts.highlights) : undefined
-      const buf = await page.screenshot({ fullPage: false })
-      const hash = crypto.createHash('sha256').update(buf).digest('hex')
+      // Playwright's screenshot is PNG by default; we transcode to
+      // lossless WebP immediately so the manifest + on-disk format
+      // are .webp from the start. Build-flows then becomes a pure
+      // copy — no post-hoc PNG → WebP step, no manifest rewriting.
+      // Lossless preserves text/edges identically; the size win
+      // comes from WebP's better entropy coding on flat-color UI
+      // content (~50-60% smaller than PNG in practice).
+      const pngBuf = await page.screenshot({ fullPage: false })
+      const webpBuf = await sharp(pngBuf).webp({ lossless: true, effort: 4 }).toBuffer()
+      // Hash the WebP bytes (not the PNG) so dedup operates on what
+      // actually lands on disk. Two PNGs that encode to the same
+      // WebP — possible after sharp's internal canonicalization —
+      // would dedup correctly here; PNG-hashing would miss it.
+      const hash = crypto.createHash('sha256').update(webpBuf).digest('hex')
       let file = fileByHash.get(hash)
       if (!file) {
         counter += 1
-        file = `${String(counter).padStart(2, '0')}.png`
-        await fs.writeFile(path.join(outDir, file), buf)
+        file = `${String(counter).padStart(2, '0')}.webp`
+        await fs.writeFile(path.join(outDir, file), webpBuf)
         fileByHash.set(hash, file)
       } else {
         console.log(`[flow] "${caption}" reuses ${file} (no visual change since last shot)`)
@@ -427,7 +440,23 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       skipNext: () => { suppress = true }
     }
 
+    // Wall-clock timing for the test body. Useful for spotting which
+    // (slug, variant) is the slowest cell in the matrix — captured at
+    // fixture-teardown so it includes every screenshot + sharp encode
+    // for that test. Playwright's own `(Xs)` line is shown by the
+    // list reporter; this one prints in the structured `[flow]`
+    // format so it greps cleanly.
+    const startedAt = Date.now()
     await use(flow)
+    const durationMs = Date.now() - startedAt
+    const shotCount = entries.filter(
+      (e) => e.kind === 'approach' || e.kind === 'outcome' || e.kind === 'narration'
+    ).length
+    const perShotMs = shotCount > 0 ? Math.round(durationMs / shotCount) : 0
+    console.log(
+      `[flow:timing] ${slug} ${variant}: ${(durationMs / 1000).toFixed(1)}s `
+      + `(${shotCount} shots, ~${perShotMs}ms/shot)`
+    )
 
     const manifest: Manifest = {
       version: 2,

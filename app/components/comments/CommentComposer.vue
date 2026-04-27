@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFuse } from '@vueuse/integrations/useFuse'
 import { formatMentionToken, COMMENT_BODY_MAX } from '~/utils/commentBody'
 
 interface MentionableUser {
@@ -58,13 +59,30 @@ const highlighted = ref(0)
 const caretCoords = ref<{ top: number, left: number } | null>(null)
 const POPOVER_WIDTH = 240
 
+// Fuzzy match across name + email. Substring matching ("includes")
+// failed for common abbreviations — "jbar" wouldn't match "Joel
+// Barmettler". `useFuse` handles transposition + partial-token match
+// at threshold 0.4 (lower = stricter; tuned by feel for first-name +
+// email-prefix typeahead). `shouldSort: true` orders by relevance so
+// the closest match shows up first under the highlighter.
+const mentionQuery = computed(() => mentionContext.value?.query ?? '')
+const { results: fuseResults } = useFuse(
+  mentionQuery,
+  computed(() => [...props.mentionableUsers]),
+  {
+    fuseOptions: {
+      keys: ['name', 'email'],
+      threshold: 0.4,
+      ignoreLocation: true,
+      shouldSort: true
+    },
+    matchAllWhenSearchEmpty: true,
+    resultLimit: 8
+  }
+)
 const filteredMentionUsers = computed<MentionableUser[]>(() => {
   if (!mentionContext.value) return []
-  const q = mentionContext.value.query.toLowerCase()
-  if (q.length === 0) return props.mentionableUsers.slice(0, 8)
-  return props.mentionableUsers
-    .filter(u => u.name.toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q))
-    .slice(0, 8)
+  return fuseResults.value.map(r => r.item)
 })
 
 watch(filteredMentionUsers, (next) => {
