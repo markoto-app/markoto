@@ -1,4 +1,4 @@
-import { test, expect, skipVariants } from '../fixtures/flow'
+import { test, expect } from '../fixtures/flow'
 
 // Tier 1, Flow: "Have a discussion in your document".
 //
@@ -15,14 +15,14 @@ import { test, expect, skipVariants } from '../fixtures/flow'
 // Captioning rule: user-voice only. No "Y.js anchor", no "the
 // CM6 view dispatches", no "the trusted client mutates the array".
 
-test('Have a discussion', async ({ page, flow, editor }, info) => {
-  // Single-variant capture: light only. The flow exercises threaded
-  // discussion mechanics (selection → pill → composer → underline →
-  // reply → resolve) — the dual-mode capture would just re-take the
-  // same screenshots with reversed background colours. Skip the dark
-  // run to keep CI cheap and avoid a known cross-project hydration
-  // race when sequential silentSetup runs share a Nuxt subprocess.
-  skipVariants(info, ['dark'], 'comment threading flow demos in light only')
+test('Have a discussion', async ({ page, flow, editor }) => {
+  // Cold-start ceiling: the discuss flow runs ~12 captured shots and
+  // a full thread-lifecycle (post → reply → resolve), each with an
+  // assertion + a `settle()`-with-networkidle screenshot. Default 60s
+  // is enough on a warmed-up Nuxt but blows past on the first project
+  // run when SSR + hydration + first sync all serialize. Bump to
+  // 120s so en-light (first project) and en-dark (warm) both fit.
+  test.setTimeout(120_000)
 
   // Setup is plumbing — the user is already in their doc when the
   // story starts. silentSetup gives us a blank doc seeded with the
@@ -61,11 +61,12 @@ test('Have a discussion', async ({ page, flow, editor }, info) => {
   // isn't reaching the popup component.
   await expect(editor.page.comments.selectionPopupTrigger).toBeVisible()
 
-  await flow.shot('"Add comment" appears right under your selection', {
-    highlights: [
-      { label: 'Click here to start a thread', selector: '[data-testid="comment-selection-popup-trigger"]' }
-    ]
-  })
+  // No highlight here on purpose — the very next step is a flow.click
+  // that hovers + clicks this same trigger, which is a clearer
+  // demonstration than annotating it twice. Keep highlights for
+  // RESULTS that the user wouldn't otherwise notice (the new thread,
+  // the resolved section), not for buttons we're about to click.
+  await flow.shot('"Add comment" appears right under your selection')
 
   // Click-then-side-effect: the click opens the comments sidebar and
   // focuses the draft composer. flow.click hovers FIRST so the cursor

@@ -208,10 +208,20 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     let suppress = false
 
     const settle = async () => {
-      // Wait for the page to settle before snapping. networkidle covers
-      // most async content; the small explicit timeout lets CSS transitions
-      // (modal fades, dropdown slides) finish so we don't capture mid-frame.
-      await page.waitForLoadState('networkidle').catch(() => {})
+      // Pause briefly so CSS transitions (modal fades, dropdown slides)
+      // finish before the screenshot — without this we capture mid-
+      // frame and the artefacts shimmer. Tests already wait on real
+      // content via explicit `expect(...).toBeVisible()` assertions; we
+      // don't need a network-quiescence guard on top of that.
+      //
+      // We deliberately do NOT use `waitForLoadState('networkidle')`
+      // here. Editor pages run a long-lived Y.js WebSocket that
+      // sends awareness pings + ack frames continuously, so they
+      // never hit networkidle in practice. Earlier code awaited it
+      // with a 1.5s cap; on editor pages that was always 1.5s of
+      // wasted clock, on idle pages it added ~zero, and on neither
+      // did it matter for screenshot stability. 150ms transition
+      // pause is the only signal screenshots actually need.
       await page.waitForTimeout(150)
     }
 
@@ -446,8 +456,32 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // the actual UI rather than a private POST. Used by flows
         // where doc creation is plumbing, not the story.
         await page.goto('/')
-        await page.getByRole('button', { name: /new document/i }).click()
-        await editor.waitForNewDocDialog()
+
+        // Wait for Vue hydration before clicking. SSR makes the
+        // "+ New Document" button look interactive immediately —
+        // it's in the DOM, visible, enabled, hit-testable — so
+        // Playwright's actionability check passes and `.click()`
+        // dispatches a real DOM click. But the @click handler hasn't
+        // attached yet, so the click is a no-op and the dialog never
+        // opens. The race is resolved within a few hundred ms after
+        // first paint, but Playwright doesn't wait for it.
+        //
+        // The robust fix is a click-and-verify retry: dispatch the
+        // click, give Vue ~1s to render the dialog, retry if not.
+        // `expect.toPass` is the idiomatic Playwright primitive for
+        // this — converging on a stable post-condition rather than
+        // hoping a single click took.
+        const newDocBtn = page.getByRole('button', { name: /new document/i })
+        await newDocBtn.waitFor({ state: 'visible' })
+        await baseExpect(async () => {
+          await newDocBtn.click()
+          await baseExpect(editor.newDocDialog.heading).toBeVisible({ timeout: 1500 })
+        }).toPass({ timeout: 15_000 })
+        // Confirm the dialog is fully rendered (heading + first input)
+        // before continuing — same shape `waitForNewDocDialog` checks,
+        // but redundant after toPass guarantees the heading is visible.
+        await baseExpect(editor.newDocDialog.titleInput).toBeVisible()
+
         await Promise.all([
           page.waitForURL(/\/d\/[^/]+/),
           editor.newDocDialog.submitBlank.click()

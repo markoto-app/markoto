@@ -44,7 +44,13 @@ let nuxtProc: Subprocess | null = null
 let cleaningUp = false
 
 async function shellOut(cmd: string[]): Promise<number> {
-  const proc = spawn({ cmd, stdout: 'inherit', stderr: 'inherit' })
+  // Explicit env: Bun.spawn without `env` doesn't reliably propagate
+  // `process.env` mutations made AFTER orchestrator start (we set
+  // PLAYWRIGHT_BASE_URL just before invoking Playwright). Without this,
+  // Playwright's config falls through to BASE_URL='http://localhost:3000'
+  // AND auto-spins its own webServer there — tests then hit a second
+  // Nuxt on the wrong port and never reach the ephemeral stack.
+  const proc = spawn({ cmd, env: process.env as Record<string, string>, stdout: 'inherit', stderr: 'inherit' })
   return await proc.exited
 }
 

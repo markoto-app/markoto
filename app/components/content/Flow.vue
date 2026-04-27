@@ -179,6 +179,21 @@ const isPlaying = ref(false)
 // prog resets to 0 as idx increments), final slide ends at 100%.
 const playProgress = ref(0)
 
+// Cursor-arrival gating: `slideIdx` drives the caption + cursor
+// position (so the cursor begins moving the moment the user
+// advances). `displayedIdx` drives the image, path, and highlights
+// (the visible "state"). On every slideIdx change we delay
+// displayedIdx by CURSOR_TRANSITION_MS — matches the cursor's CSS
+// transition in FlowFrame — so the cursor visibly arrives at its
+// target BEFORE the screenshot swaps. Without this, "Click X"
+// captions read as "the action happened before the cursor arrived".
+const displayedIdx = ref(0)
+const CURSOR_TRANSITION_MS = 300
+let imageSwapTimer: ReturnType<typeof setTimeout> | null = null
+function clearImageSwapTimer() {
+  if (imageSwapTimer) { clearTimeout(imageSwapTimer); imageSwapTimer = null }
+}
+
 // Auto-play: each slide is shown for SLIDE_DURATION_MS, then we
 // advance. Stops when we hit the last slide. Manual prev/next
 // also stops play — clicking a control = "I want to drive this".
@@ -231,10 +246,27 @@ function togglePlay() {
 }
 const goPrev = () => { stopPlay(); if (slideIdx.value > 0) slideIdx.value -= 1 }
 const goNext = () => { stopPlay(); if (slideIdx.value < shots.value.length - 1) slideIdx.value += 1 }
+const goStart = () => { stopPlay(); slideIdx.value = 0 }
+const goEnd = () => { stopPlay(); if (shots.value.length) slideIdx.value = shots.value.length - 1 }
 
-watch(visibleEntries, () => { slideIdx.value = 0; stopPlay() })
+// Watch slideIdx and lag displayedIdx by the cursor's transition
+// duration. Skipped when the values are already in sync (e.g. the
+// initial mount or a no-op set), so we don't gratuitously delay
+// the first paint.
+watch(slideIdx, (newIdx) => {
+  clearImageSwapTimer()
+  if (newIdx === displayedIdx.value) return
+  imageSwapTimer = setTimeout(() => { displayedIdx.value = newIdx }, CURSOR_TRANSITION_MS)
+})
 
-onUnmounted(clearPlayTimer)
+watch(visibleEntries, () => {
+  slideIdx.value = 0
+  displayedIdx.value = 0
+  clearImageSwapTimer()
+  stopPlay()
+})
+
+onUnmounted(() => { clearPlayTimer(); clearImageSwapTimer() })
 
 // Keyboard nav for slides — only active when the slides container has focus,
 // so embedding two on the same page doesn't have them fighting.
@@ -250,6 +282,22 @@ useEventListener(slidesEl, 'keydown', (e: KeyboardEvent) => {
 const progressPct = computed(() =>
   shots.value.length ? ((slideIdx.value + playProgress.value) / shots.value.length) * 100 : 0
 )
+
+// Flip the subtitle to the TOP of the frame when the current slide's
+// cursor or any of its highlights sits in the bottom quarter of the
+// viewport — otherwise the subtitle hides exactly the thing the
+// caption is about. We read from `slideIdx` (not `displayedIdx`)
+// because the caption itself is bound to slideIdx, so position +
+// content always animate as one unit.
+const subtitleAtTop = computed(() => {
+  if (!manifest.value || !shots.value.length) return false
+  const shot = shots.value[slideIdx.value]
+  if (!shot) return false
+  const bottomQuarterStart = manifest.value.viewport.h * 0.75
+  if (shot.cursor && shot.cursor.y > bottomQuarterStart) return true
+  if (shot.highlights?.some((h) => h.y + h.h > bottomQuarterStart)) return true
+  return false
+})
 </script>
 
 <template>
@@ -299,11 +347,11 @@ const progressPct = computed(() =>
         @click="togglePlay"
       >
         <FlowFrame
-          :src="`${baseUrl}/${shots[slideIdx].file}`"
-          :caption="shots[slideIdx].caption"
+          :src="`${baseUrl}/${shots[displayedIdx].file}`"
+          :caption="shots[displayedIdx].caption"
           :cursor="shots[slideIdx].cursor"
-          :path="shots[slideIdx].path"
-          :highlights="shots[slideIdx].highlights"
+          :path="shots[displayedIdx].path"
+          :highlights="shots[displayedIdx].highlights"
           :viewport="manifest.viewport"
           :show-cursor="showCursor"
           :show-chrome="showChrome"
@@ -320,10 +368,11 @@ const progressPct = computed(() =>
         >
           <div
             :key="slideIdx"
-            class="absolute left-0 right-0 bottom-4 px-6 pointer-events-none flex justify-center"
+            class="absolute left-0 right-0 px-6 pointer-events-none flex justify-center"
+            :class="subtitleAtTop ? 'top-4' : 'bottom-4'"
           >
             <p
-              class="bg-black/75 text-white px-4 py-2 rounded-md text-base md:text-lg font-medium text-center max-w-[80%] backdrop-blur-sm shadow-lg"
+              class="bg-black/45 text-white px-4 py-2 rounded-md text-base md:text-lg font-medium text-center max-w-[80%] backdrop-blur-md shadow-lg"
             >
               {{ shots[slideIdx].caption }}
             </p>
@@ -347,37 +396,63 @@ const progressPct = computed(() =>
       </div>
 
       <!-- YouTube-style control row: borderless icon buttons grouped
-           on the left (prev / play / next), counter as a "time" on
-           the right. Hover gives a subtle wash so users know
-           something's clickable. -->
+           on the left (jump-start / prev / play / next / jump-end),
+           counter as a "time" on the right. Hover gives a subtle
+           wash so users know something's clickable. -->
       <div class="flex items-center justify-between px-2 py-1.5 bg-elevated/50">
         <div class="flex items-center">
-          <button
-            class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
-            aria-label="Previous slide"
-            :disabled="slideIdx === 0"
-            @click="goPrev"
-          >
-            <UIcon name="i-lucide-skip-back" class="size-4" />
-          </button>
-          <button
-            class="size-8 inline-flex items-center justify-center rounded text-default hover:bg-elevated transition-colors"
-            :aria-label="isPlaying ? 'Pause autoplay' : 'Play autoplay'"
-            @click="togglePlay"
-          >
-            <UIcon
-              :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'"
-              class="size-4"
-            />
-          </button>
-          <button
-            class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
-            aria-label="Next slide"
-            :disabled="slideIdx === shots.length - 1"
-            @click="goNext"
-          >
-            <UIcon name="i-lucide-skip-forward" class="size-4" />
-          </button>
+          <UTooltip text="Jump to first slide">
+            <button
+              class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
+              aria-label="Jump to first slide"
+              :disabled="slideIdx === 0"
+              @click="goStart"
+            >
+              <UIcon name="i-lucide-skip-back" class="size-4" />
+            </button>
+          </UTooltip>
+          <UTooltip text="Previous slide">
+            <button
+              class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
+              aria-label="Previous slide"
+              :disabled="slideIdx === 0"
+              @click="goPrev"
+            >
+              <UIcon name="i-lucide-step-back" class="size-4" />
+            </button>
+          </UTooltip>
+          <UTooltip :text="isPlaying ? 'Pause autoplay' : 'Play autoplay'">
+            <button
+              class="size-8 inline-flex items-center justify-center rounded text-default hover:bg-elevated transition-colors"
+              :aria-label="isPlaying ? 'Pause autoplay' : 'Play autoplay'"
+              @click="togglePlay"
+            >
+              <UIcon
+                :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'"
+                class="size-4"
+              />
+            </button>
+          </UTooltip>
+          <UTooltip text="Next slide">
+            <button
+              class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
+              aria-label="Next slide"
+              :disabled="slideIdx === shots.length - 1"
+              @click="goNext"
+            >
+              <UIcon name="i-lucide-step-forward" class="size-4" />
+            </button>
+          </UTooltip>
+          <UTooltip text="Jump to last slide">
+            <button
+              class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
+              aria-label="Jump to last slide"
+              :disabled="slideIdx === shots.length - 1"
+              @click="goEnd"
+            >
+              <UIcon name="i-lucide-skip-forward" class="size-4" />
+            </button>
+          </UTooltip>
         </div>
         <span class="font-mono text-xs text-toned tabular-nums">
           {{ slideIdx + 1 }} / {{ shots.length }}

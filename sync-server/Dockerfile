@@ -17,10 +17,24 @@ COPY --chown=bun:bun sync-server/package.json sync-server/bun.lock ./sync-server
 WORKDIR /app/sync-server
 RUN bun install --frozen-lockfile
 
-# Runtime source + shared utilities. Mirrors the repo layout so imports
-# like `../../shared/utils/secrets` from `src/*.ts` resolve the same way
-# inside the container as they do on a developer's machine.
-COPY --chown=bun:bun sync-server/src ./src
+# `shared/` is its own self-contained package — package.json declares its
+# direct npm deps (`jsonwebtoken`) so Bun's standard module resolution
+# from `shared/utils/secrets.ts` finds them in `shared/node_modules/`.
+# Without this, `bun run src/index.ts` fails at startup with
+# `Cannot find package 'jsonwebtoken' from /app/shared/utils/secrets.ts`
+# because the resolver walks up only ANCESTORS of the importing file,
+# and `/app/sync-server/node_modules/` is a sibling, not an ancestor.
+# Installed as a separate layer so a sync-server source edit doesn't
+# bust the shared/ install cache.
+WORKDIR /app
+COPY --chown=bun:bun shared/package.json shared/bun.lock ./shared/
+WORKDIR /app/shared
+RUN bun install --frozen-lockfile
+
+# Runtime source + the rest of shared/. The package.json + bun.lock are
+# already there from the install layer; the rest is the source the sync
+# server imports at runtime.
+COPY --chown=bun:bun sync-server/src /app/sync-server/src
 COPY --chown=bun:bun shared /app/shared
 
 EXPOSE 4001
