@@ -5,16 +5,17 @@ import path from 'node:path'
 import { EditorPage } from '../page-objects/Editor'
 
 // One Playwright fixture that turns a normal e2e test into a "flow":
-// a sequence of screenshots + captions + narration that the docs site
-// embeds via <Flow id="..."/>. The fixture writes one manifest per test
-// + the PNG frames; everything else (rendering, layout, video) is the
-// docs consumer's problem.
+// a sequence of slides — chapter, narration, approach, outcome — that
+// the docs site embeds via <Flow id="..."/>. Each click captures TWO
+// shots (approach: cursor-on-target/before; outcome: state-changed/
+// after) so every action has a visible consequence. Chains opt out of
+// the outcome shot via { chain: true }.
 //
 // Cursor tracking: we inject a mousemove/down listener on every page
-// that stashes the last-known {x, y} on window.__flowCursor. Before each
-// screenshot we read it back via page.evaluate. Coordinates are in CSS
-// pixels relative to the viewport (the manifest carries viewport size
-// at root, so the consumer can scale).
+// that stashes the last-known {x, y} on window.__flowCursor. Before
+// each screenshot we read it back via page.evaluate. Coordinates are
+// in CSS pixels relative to the viewport (the manifest carries
+// viewport size at root, so the consumer can scale).
 //
 // i18n: each Playwright project declares `metadata: { locale: '<code>' }`;
 // the fixture reads it via testInfo.project.metadata and writes to
@@ -22,74 +23,119 @@ import { EditorPage } from '../page-objects/Editor'
 // screenshots + captions. Translators edit each locale's manifest in
 // isolation.
 
-type ShotEntry = {
-  kind: 'shot'
+type ChapterEntry = {
+  kind: 'chapter'
+  text: string
+  level: 2 | 3
+}
+
+type NarrationEntry = {
+  kind: 'narration'
+  text: string
+  file: string
+  cursor: { x: number, y: number } | null
+  path: string
+}
+
+type ApproachEntry = {
+  kind: 'approach'
   file: string
   caption: string
   cursor: { x: number, y: number } | null
-  // URL pathname + search at screenshot time. Stored RELATIVE to the
-  // baseURL (so just the path, not the full URL) — the docs site can
-  // render its own base in the address bar and the manifest stays
-  // portable across environments.
   path: string
-  // Optional bounding-box callouts: dashed outlines + labels overlaid
-  // on the screenshot to draw attention to specific UI elements
-  // (e.g. "Word count", "Sync status"). Coordinates are CSS pixels
-  // relative to the viewport — same scheme as `cursor` — so the
-  // consumer can scale them by `displayed / viewport.w/h`.
+}
+
+type OutcomeEntry = {
+  kind: 'outcome'
+  file: string
+  caption: string
+  cursor: { x: number, y: number } | null
+  path: string
   highlights?: Array<{ label: string, x: number, y: number, w: number, h: number }>
 }
 
+export type FlowEntry = ChapterEntry | NarrationEntry | ApproachEntry | OutcomeEntry
+
 export type HighlightRef = { label: string, selector: string }
-export type ShotOpts = { highlights?: HighlightRef[] }
-type NarrateEntry = { kind: 'narrate', text: string }
-type HeadingEntry = { kind: 'heading', level: 2 | 3, text: string }
-export type FlowEntry = ShotEntry | NarrateEntry | HeadingEntry
 
 export type Variant = 'light' | 'dark'
 
 export type Manifest = {
-  // Schema version so the Flow.vue component can guard against drift —
-  // bump on any breaking change to entry shapes.
-  version: 1
+  // Schema version. v2 introduces approach/outcome/chapter/narration
+  // kinds. The Flow.vue component reads this and refuses unknown
+  // versions (defensive — keeps old artefacts from rendering wrong).
+  version: 2
   title: string
   slug: string
   locale: string
   /** Color mode the app was rendering when this manifest was captured. */
   variant: Variant
   // Source viewport size — the consumer scales cursor coordinates by
-  // (display_w / viewport.w) so overlays land in the right spot at any
-  // displayed size.
+  // (display_w / viewport.w) so overlays land in the right spot at
+  // any displayed size.
   viewport: { w: number, h: number }
   entries: FlowEntry[]
 }
 
+// `flow.click` opts: discriminated union forces authors to either
+// supply a `result` (becomes the outcome caption) or explicitly
+// opt into chaining (no outcome shot — the next step's approach
+// IS the after-state of this one). TS errors out on a bare click
+// without one of these — by design.
+export type ClickOpts =
+  | {
+    /** Caption for the outcome shot — declarative ("Editor opens"). */
+    result: string
+    /** Highlight callouts overlaid on the outcome shot only. */
+    highlights?: HighlightRef[]
+    /** Optional async to await between click and outcome screenshot
+     *  (e.g. waitForURL on a navigating click). */
+    after?: () => Promise<void>
+    chain?: false
+  }
+  | {
+    /** Skip the outcome shot — the next slide's approach is this
+     *  click's after-state. Use sparingly; the default is "show me
+     *  the consequence of every action". */
+    chain: true
+    after?: () => Promise<void>
+  }
+
+export type TypeOpts = {
+  result: string
+  highlights?: HighlightRef[]
+  after?: () => Promise<void>
+}
+
+export type ShotOpts = { highlights?: HighlightRef[] }
+export type HoverOpts = { highlights?: HighlightRef[] }
+
 export type Flow = {
-  /** Run an action then auto-screenshot with a caption. */
+  /** Run an action then auto-screenshot as an OUTCOME with caption. */
   step: (caption: string, action: () => Promise<void>, opts?: ShotOpts) => Promise<void>
-  /** Screenshot WITHOUT an action — for "look at this state" moments. */
+  /** Standalone OUTCOME screenshot (no action). Use for "look at this state". */
   shot: (caption: string, opts?: ShotOpts) => Promise<void>
   /**
-   * Hover a locator → screenshot (cursor visible on the target) → then
-   * click. The right primitive for click-then-navigate steps: the
-   * screenshot lands on the BEFORE-click state with the cursor properly
-   * on the button, making the click conceptually visible. After the
-   * click, callers typically follow up with a step / shot describing
-   * the after-state. Without this pattern, click+nav steps end up with
-   * a screenshot of the destination page and a meaningless cursor.
+   * Click-and-show: hover → screenshot APPROACH (cursor on target,
+   * imperative caption) → click → optional `after` await → screenshot
+   * OUTCOME (state changed, declarative `result` caption, same cursor
+   * coords). Pass `chain: true` to skip the outcome when the next
+   * step's approach already represents this click's consequence.
    */
-  click: (caption: string, locator: Locator, opts?: ShotOpts) => Promise<void>
+  click: (caption: string, locator: Locator, opts: ClickOpts) => Promise<void>
   /**
-   * Hover-only variant of click. Useful for "hover X to reveal Y" demos
-   * or for placing the cursor on a region you want to point out without
-   * triggering its click handler.
+   * Type-and-show: focus the input → screenshot APPROACH (cursor
+   * inside, imperative "Type X" caption) → press the text → screenshot
+   * OUTCOME (text in input, declarative `result` caption).
    */
-  hover: (caption: string, locator: Locator, opts?: ShotOpts) => Promise<void>
-  /** Prose between images; rendered as a narration block in the docs. */
+  type: (caption: string, locator: Locator, text: string, opts: TypeOpts) => Promise<void>
+  /** Hover (no click) → screenshot APPROACH. For "hover X to reveal Y". */
+  hover: (caption: string, locator: Locator, opts?: HoverOpts) => Promise<void>
+  /** Narration slide — text overlay on a captured screenshot, cursor hidden. */
   narrate: (text: string) => Promise<void>
-  /** Section break; rendered as ## / ### in the docs. */
+  /** Chapter card — text-only slide, no screenshot, no cursor. */
   heading: (text: string, level?: 2 | 3) => Promise<void>
-  /** Suppress the next auto-screenshot (transient states like mid-fade modals). */
+  /** Suppress the next auto-screenshot (transient mid-fade states). */
   skipNext: () => void
 }
 
@@ -97,35 +143,18 @@ export type EditorFixture = {
   /** Page-object with stable selectors + composite actions. */
   page: EditorPage
   /**
-   * Run the canonical "homepage → New Document → wait for editor →
-   * switch to split view" preamble AND record each step in the
-   * manifest. Use this when doc creation IS the story (e.g. the
-   * "Create a new document" flow). Writes one heading + one narrate
-   * + four step entries.
+   * Run the canonical "homepage → New Document" preamble AND record
+   * each step in the manifest. Use this when doc creation IS the
+   * story. Stops at the dialog being visible.
    */
   recordPreamble: () => Promise<void>
   /**
-   * Same preamble but writes nothing to the manifest. Use this when
-   * the editor is just setup, not the subject — e.g. flows about
-   * inserting tables, customizing themes. Faster for the reader who
-   * doesn't need to see the doc-creation story repeated per page.
+   * Same preamble but writes nothing to the manifest. Used when the
+   * editor is just setup, not the subject.
    */
   silentSetup: () => Promise<void>
 }
 
-// Cursor injection. Tracks the LAST mouse position AND the URL pathname
-// at the time of that motion. The URL stamp is critical for SPAs: a
-// click that triggers a router.push() leaves the OS cursor exactly
-// where it was, so window.__flowCursor still holds the click target's
-// coordinates — but those coordinates were valid on page A's layout,
-// not page B's. Reading them on page B and rendering them on a page-B
-// screenshot floats the cursor in random space.
-//
-// readCursor() compares __flowCursorPath to the current pathname. If
-// they differ, the cursor is "stale" relative to whatever page we're
-// about to screenshot, and we report null. The visualizer then
-// renders no cursor — correct, since no meaningful cursor position
-// exists on a page the user just landed on.
 const CURSOR_INIT_SCRIPT = `
   (() => {
     if (window.__flowCursorInstalled) return
@@ -133,16 +162,10 @@ const CURSOR_INIT_SCRIPT = `
     window.__flowCursor = null
     window.__flowCursorPath = null
     const update = (e) => {
-      // PointerEvent on touch may not have clientX/Y for synthetic events —
-      // skip those so we don't overwrite a real position with nothing.
       if (typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return
       window.__flowCursor = { x: e.clientX, y: e.clientY }
-      // Remember WHICH page the cursor was last positioned on. Compared
-      // against location.pathname at read time to detect SPA-navigation
-      // staleness.
       window.__flowCursorPath = location.pathname
     }
-    // capture phase so we win even if a stopPropagation handler is downstream.
     addEventListener('mousemove', update, true)
     addEventListener('mousedown', update, true)
     addEventListener('mouseup', update, true)
@@ -159,21 +182,10 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     const outDir = path.join('tests/e2e/output/flows', slug, locale, variant)
     await fs.mkdir(outDir, { recursive: true })
 
-    // Force the app's color mode BEFORE any page script runs. We belt-
-    // and-suspenders: project-level `colorScheme` sets the OS-level
-    // prefers-color-scheme media query, AND we pre-seed the
-    // nuxt-color-mode storage key so @nuxtjs/color-mode resolves to
-    // the explicit preference instead of falling back to "system".
-    // Either signal alone usually works; both together survive any
-    // resolution-order change in the underlying color-mode plugin.
     await page.addInitScript((v: string) => {
       try { localStorage.setItem('nuxt-color-mode', v) } catch {}
     }, variant)
 
-    // Hide Nuxt devtools chrome from every page so the floating
-    // "Nuxt" badge doesn't end up in screenshots. Cheaper than
-    // disabling devtools globally (devs still get it during normal
-    // `bun run dev`); only the flow-test browser context strips it.
     await page.addInitScript(() => {
       const css = `
         #nuxt-devtools-container,
@@ -193,12 +205,8 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       }
     })
 
-    // Inject cursor tracking on every page in this context.
     await page.addInitScript(CURSOR_INIT_SCRIPT)
     page.on('framenavigated', () => {
-      // After full page navigations the init script re-runs automatically,
-      // but cross-origin iframes etc. don't — re-add as a safety net. The
-      // script is idempotent (guarded by __flowCursorInstalled).
       page.evaluate(CURSOR_INIT_SCRIPT).catch(() => {})
     })
 
@@ -208,69 +216,43 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     let suppress = false
 
     const settle = async () => {
-      // Pause briefly so CSS transitions (modal fades, dropdown slides)
-      // finish before the screenshot — without this we capture mid-
-      // frame and the artefacts shimmer. Tests already wait on real
-      // content via explicit `expect(...).toBeVisible()` assertions; we
-      // don't need a network-quiescence guard on top of that.
-      //
-      // We deliberately do NOT use `waitForLoadState('networkidle')`
-      // here. Editor pages run a long-lived Y.js WebSocket that
-      // sends awareness pings + ack frames continuously, so they
-      // never hit networkidle in practice. Earlier code awaited it
-      // with a 1.5s cap; on editor pages that was always 1.5s of
-      // wasted clock, on idle pages it added ~zero, and on neither
-      // did it matter for screenshot stability. 150ms transition
-      // pause is the only signal screenshots actually need.
+      // Pause briefly so CSS transitions finish before the screenshot.
+      // We deliberately do NOT use waitForLoadState('networkidle') —
+      // editor pages run a long-lived Y.js WebSocket so they never
+      // hit networkidle in practice.
       await page.waitForTimeout(150)
     }
 
-    const readCursor = async (): Promise<{ x: number, y: number } | null> => {
+    const readCursor = async (
+      opts: { formSnap?: boolean } = {}
+    ): Promise<{ x: number, y: number } | null> => {
       try {
-        // Two layers, in priority order:
-        //
-        //   1. Form-field snap. If the document has focus on an input /
-        //      textarea / contenteditable / combobox at screenshot time,
-        //      override the cursor to that element's left-edge midpoint.
-        //      Matches what the user would visually have done — click the
-        //      field, then type. Without the snap, the cursor floats at
-        //      its previous mouse-motion location (often the homepage
-        //      "New Document" button), which makes "type into the title"
-        //      frames feel disconnected from the action.
-        //
-        //   2. Fallback to the URL-stamped __flowCursor for everything
-        //      else (clicks, hovers). The pathname check still applies:
-        //      SPA navigations leave the cursor pinned to a coord that
-        //      no longer maps to a meaningful location on the new page;
-        //      in that case we return null so the visualizer skips the
-        //      overlay.
-        //
-        // The 14px left inset is "natural click position" for typing —
-        // dead-centering on a wide textarea looks robotic.
-        return await page.evaluate(() => {
-          const ae = document.activeElement as HTMLElement | null
-          if (ae && ae !== document.body && ae !== document.documentElement) {
-            const tag = ae.tagName
-            const role = ae.getAttribute('role')
-            const isFormish = tag === 'INPUT' || tag === 'TEXTAREA'
-              || ae.isContentEditable
-              || role === 'combobox' || role === 'textbox'
-            if (isFormish) {
-              const r = ae.getBoundingClientRect()
-              // Only snap when the field is actually visible in the
-              // viewport. After scrolling down inside a long dialog,
-              // an autofocused field at the top has a NEGATIVE top and
-              // would place the cursor above the screenshot. In that
-              // case we fall through to the URL-stamped __flowCursor
-              // (typically the most-recent hover, which matches what
-              // the user just did).
-              const vw = window.innerWidth
-              const vh = window.innerHeight
-              const inViewport = r.width > 0 && r.height > 0
-                && r.top >= 0 && r.left >= 0
-                && r.bottom <= vh && r.right <= vw
-              if (inViewport) {
-                return { x: Math.round(r.left + 14), y: Math.round(r.top + r.height / 2) }
+        // Form-field snap: when enabled, if focus is on an input/
+        // textarea/contenteditable, override to the field's left-edge
+        // midpoint. Used by flow.type so typing screenshots place the
+        // cursor INSIDE the input. Disabled by flow.click + flow.hover —
+        // those want the cursor on the locator we just hovered, not on
+        // a stale focused field from a previous step.
+        const formSnap = opts.formSnap ?? false
+        return await page.evaluate((snap: boolean) => {
+          if (snap) {
+            const ae = document.activeElement as HTMLElement | null
+            if (ae && ae !== document.body && ae !== document.documentElement) {
+              const tag = ae.tagName
+              const role = ae.getAttribute('role')
+              const isFormish = tag === 'INPUT' || tag === 'TEXTAREA'
+                || ae.isContentEditable
+                || role === 'combobox' || role === 'textbox'
+              if (isFormish) {
+                const r = ae.getBoundingClientRect()
+                const vw = window.innerWidth
+                const vh = window.innerHeight
+                const inViewport = r.width > 0 && r.height > 0
+                  && r.top >= 0 && r.left >= 0
+                  && r.bottom <= vh && r.right <= vw
+                if (inViewport) {
+                  return { x: Math.round(r.left + 14), y: Math.round(r.top + r.height / 2) }
+                }
               }
             }
           }
@@ -278,36 +260,25 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           if (!w.__flowCursor) return null
           if (w.__flowCursorPath !== location.pathname) return null
           return w.__flowCursor
-        })
+        }, formSnap)
       } catch {
         return null
       }
     }
 
-    // Strict mode: a missing highlight selector fails the test rather
-    // than silently dropping the callout. CI defaults to strict (set
-    // FLOW_STRICT=1 in CI env); local runs default to soft warnings
-    // so flow authors can see drift without their work blocking on
-    // mid-development markup churn. Flip the default when the suite
-    // is mature enough that misses are always actionable.
     const STRICT_HIGHLIGHTS = process.env.FLOW_STRICT === '1' || process.env.CI === 'true'
 
     const resolveHighlights = async (refs: HighlightRef[] | undefined) => {
       if (!refs?.length) return undefined
-      const out: NonNullable<ShotEntry['highlights']> = []
+      const out: NonNullable<OutcomeEntry['highlights']> = []
       for (const ref of refs) {
-        // .first() guards against multi-match ambiguity — log it but
-        // proceed; flow authors usually mean the first occurrence.
         const loc = page.locator(ref.selector).first()
         const box = await loc.boundingBox().catch(() => null)
         if (!box) {
           const msg = `[flow] highlight "${ref.label}" — selector \`${ref.selector}\` resolved to no visible box`
           if (STRICT_HIGHLIGHTS) {
-            // Hard fail. Authors get a stack trace pointing at the
-            // step that called highlight, not a silent docs regression.
             throw new Error(`${msg} (FLOW_STRICT/CI is set — failing)`)
           }
-          // Soft mode: skip + log so it shows up in the test output.
           console.warn(`${msg}; skipping (set FLOW_STRICT=1 to fail)`)
           continue
         }
@@ -316,81 +287,128 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       return out.length ? out : undefined
     }
 
-    // Hash → already-written filename. Lets us deduplicate identical
-    // screenshots: a flow that adds a highlight + caption on top of an
-    // unchanged frame should NOT write the same PNG twice. Two manifest
-    // entries pointing at the same file render correctly in Flow.vue
-    // (same image, different caption/cursor/highlights overlay) and
-    // ship N× less bytes.
+    // Hash → already-written filename. Identical screenshots share a
+    // single PNG on disk; multiple manifest entries can reference one
+    // file (different captions/cursors over the same pixels).
     const fileByHash = new Map<string, string>()
 
-    const capture = async (caption: string, opts?: ShotOpts) => {
+    type CaptureMode = 'narration' | 'approach' | 'outcome'
+
+    const captureFrame = async (
+      mode: CaptureMode,
+      caption: string,
+      opts: {
+        highlights?: HighlightRef[]
+        cursor?: { x: number, y: number } | null
+        /** Apply readCursor's form-field snap. True for flow.type +
+         *  flow.shot/step (outcomes that may follow typing); false for
+         *  flow.click + flow.hover (cursor must follow the locator). */
+        formSnap?: boolean
+      } = {}
+    ) => {
       if (suppress) { suppress = false; return }
       await settle()
-      const cursor = await readCursor()
-      // Capture URL path AFTER settle so any in-flight navigation has
-      // committed. about:blank etc. (no real path) collapses to '/'.
+      // For approach/narration: read cursor live. For outcome: caller
+      // passes the approach's cursor coords explicitly so the cursor
+      // stays put across the click (Playwright's pointer doesn't move
+      // between hover and click, but SPA navigation invalidates the
+      // URL stamp — passing it through bypasses the staleness check).
+      const cursor = opts.cursor !== undefined ? opts.cursor : await readCursor({ formSnap: opts.formSnap })
       const url = (() => {
         try { return new URL(page.url()) } catch { return null }
       })()
       const shotPath = url && url.protocol.startsWith('http') ? `${url.pathname}${url.search}` : '/'
-      // Resolve highlight selectors → bounding boxes BEFORE the
-      // screenshot so we capture the layout exactly as photographed
-      // (a slow async could let the page reflow between snap and probe).
-      const highlights = await resolveHighlights(opts?.highlights)
-      // Take the screenshot in-memory (no path) so we can hash it
-      // and decide whether to write a new file or reuse an existing one.
+      const highlights = mode === 'outcome' ? await resolveHighlights(opts.highlights) : undefined
       const buf = await page.screenshot({ fullPage: false })
       const hash = crypto.createHash('sha256').update(buf).digest('hex')
       let file = fileByHash.get(hash)
       if (!file) {
-        // First time we've seen this frame — assign a fresh number,
-        // write the file, remember the hash. Counter only increments
-        // on actual writes so file numbering stays dense.
         counter += 1
         file = `${String(counter).padStart(2, '0')}.png`
         await fs.writeFile(path.join(outDir, file), buf)
         fileByHash.set(hash, file)
       } else {
-        // Same pixels as a previous shot — point this entry at the
-        // existing file. Print a notice so the author can decide if
-        // the duplicate step is intentional (highlight-only update)
-        // or accidental (back-to-back shots with no real change).
         console.log(`[flow] "${caption}" reuses ${file} (no visual change since last shot)`)
       }
-      entries.push({ kind: 'shot', file, caption, cursor, path: shotPath, highlights })
+      if (mode === 'narration') {
+        entries.push({ kind: 'narration', text: caption, file, cursor, path: shotPath })
+      } else if (mode === 'approach') {
+        entries.push({ kind: 'approach', file, caption, cursor, path: shotPath })
+      } else {
+        entries.push({ kind: 'outcome', file, caption, cursor, path: shotPath, highlights })
+      }
     }
 
     const flow: Flow = {
-      step: async (caption, action, opts) => { await action(); await capture(caption, opts) },
-      shot: capture,
+      step: async (caption, action, opts) => {
+        await action()
+        // formSnap=true: an action may have left focus on an input
+        // (e.g. typing) — render cursor inside the field rather than
+        // at a stale mousemove location.
+        await captureFrame('outcome', caption, { highlights: opts?.highlights, formSnap: true })
+      },
+      shot: async (caption, opts) => {
+        await captureFrame('outcome', caption, { highlights: opts?.highlights, formSnap: true })
+      },
       click: async (caption, locator, opts) => {
-        // scrollIntoViewIfNeeded is best-effort — some elements (e.g.
-        // overlays, fixed-position UI) don't need it and the call can
-        // throw. Swallow rather than fail the test for cosmetics.
         await locator.scrollIntoViewIfNeeded().catch(() => {})
-        // hover() moves the OS cursor to the locator's center, which
-        // fires our injected mousemove tracker → window.__flowCursor.
         await locator.hover()
-        // Screenshot WHILE the cursor is on the target, BEFORE the
-        // click side-effect (navigation, modal, etc).
-        await capture(caption, opts)
+        // Approach: cursor on the locator we just hovered. formSnap=false
+        // so a previously-focused input doesn't pull the cursor away
+        // from the click target (the textarea-vs-Submit gotcha).
+        const approachCursor = await readCursor({ formSnap: false })
+        await captureFrame('approach', caption, { cursor: approachCursor })
         await locator.click()
+        if (opts.after) await opts.after()
+        if ('chain' in opts && opts.chain) return
+        // Outcome uses the same cursor coords (the user's hand didn't
+        // teleport). After SPA nav, readCursor would return null due
+        // to the URL-stamp guard — passing the saved coords keeps the
+        // cursor visible across the click.
+        await captureFrame('outcome', (opts as { result: string }).result, {
+          highlights: (opts as { highlights?: HighlightRef[] }).highlights,
+          cursor: approachCursor
+        })
+      },
+      type: async (caption, locator, text, opts) => {
+        await locator.scrollIntoViewIfNeeded().catch(() => {})
+        // Click into the field so it's focused — cursor snaps to its
+        // left edge via readCursor's form-field rule.
+        await locator.click()
+        const approachCursor = await readCursor({ formSnap: true })
+        await captureFrame('approach', caption, { cursor: approachCursor })
+        await locator.pressSequentially(text)
+        if (opts.after) await opts.after()
+        await captureFrame('outcome', opts.result, {
+          highlights: opts.highlights,
+          cursor: approachCursor
+        })
       },
       hover: async (caption, locator, opts) => {
         await locator.scrollIntoViewIfNeeded().catch(() => {})
         await locator.hover()
-        await capture(caption, opts)
+        // formSnap=false — same reasoning as flow.click.
+        await captureFrame('approach', caption, {
+          highlights: opts?.highlights,
+          formSnap: false
+        })
       },
-      narrate: async (text) => { entries.push({ kind: 'narrate', text }) },
-      heading: async (text, level = 2) => { entries.push({ kind: 'heading', level, text }) },
+      narrate: async (text) => {
+        // Narration hides the cursor at render — formSnap doesn't
+        // matter visually, but using false keeps the recorded coords
+        // consistent with where the user's last motion actually was.
+        await captureFrame('narration', text, { formSnap: false })
+      },
+      heading: async (text, level = 2) => {
+        entries.push({ kind: 'chapter', level, text })
+      },
       skipNext: () => { suppress = true }
     }
 
     await use(flow)
 
     const manifest: Manifest = {
-      version: 1,
+      version: 2,
       title: testInfo.title,
       slug,
       locale,
@@ -405,81 +423,52 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
   },
 
   editor: async ({ page, flow }, use) => {
-    // The page-object is created lazily — flows that don't call
-    // recordPreamble() / silentSetup() can still query selectors via
-    // editor.page.titleButton etc. (Useful for tests that navigate to
-    // an existing doc rather than creating a new one.)
     const editor = new EditorPage(page)
 
     const fixture: EditorFixture = {
       page: editor,
 
       recordPreamble: async () => {
-        // Lean two-step preamble for flows where doc creation IS the
-        // story. Captions are user-voice — no implementation jargon
-        // (no "Hocuspocus", no "the editor mounts"), no waypoints
-        // that don't move the user toward their job.
-        //
-        // The "+ New Document" click now opens the new-doc dialog
-        // (not an immediate doc create). The preamble stops at the
-        // dialog being visible — the test then walks the user through
-        // the form and submits, which is the meaningful UX surface.
-        // Post-submit setup (split view, waitForReady) is handled by
-        // `editor.silentEditorSetupAfterDialog()` once the test has
-        // navigated to the editor.
-        //
-        // Flows where the user is already-in-an-editor (formatting,
-        // theming, sharing an existing doc) should call silentSetup()
-        // instead and start their own narrative there.
-
+        // Lean preamble for flows where doc creation IS the story.
+        // Captions are user-voice — no implementation jargon.
         await flow.step('Open YPad', async () => {
           await page.goto('/')
-          // Wait for the hero CTA before continuing — guards against
-          // capturing a mid-FOUC homepage.
           await page.getByRole('button', { name: /new document/i }).waitFor()
         })
 
-        await flow.click(
-          'Click "New Document" to start writing',
-          page.getByRole('button', { name: /new document/i })
-        )
-        // Dialog opens — wait for the modal so the next captured shot
-        // is guaranteed to find the inputs. No screenshot here; the
-        // test takes its own first dialog shot once it's narrated.
-        await editor.waitForNewDocDialog()
+        // Vue hydration race: SSR makes the "+ New Document" button look
+        // interactive immediately, but its @click handler may not have
+        // attached yet. A single click can be a no-op. We use the same
+        // toPass retry pattern as silentSetup — converge on "dialog
+        // visible" rather than hoping one click took.
+        //
+        // Split the action into hover (captures approach shot, cursor
+        // on target) → toPass retry (clicks until dialog opens, no
+        // captures) → flow.shot (captures outcome). flow.click would
+        // bake a single click into the action; we need retries.
+        const newDocBtn = page.getByRole('button', { name: /new document/i })
+        await flow.hover('Click "New Document" to start writing', newDocBtn)
+        await baseExpect(async () => {
+          await newDocBtn.click()
+          await baseExpect(editor.newDocDialog.heading).toBeVisible({ timeout: 1500 })
+        }).toPass({ timeout: 15_000 })
+        await baseExpect(editor.newDocDialog.titleInput).toBeVisible()
+        await flow.shot('The new-document dialog opens — five quick questions to set up your doc')
       },
 
       silentSetup: async () => {
-        // Anonymous shortcut: skip the dialog by clicking "Just give
-        // me a blank doc". Same end-state as the legacy zero-config
-        // flow (empty doc, defaults applied), but reachable through
-        // the actual UI rather than a private POST. Used by flows
-        // where doc creation is plumbing, not the story.
         await page.goto('/')
 
-        // Wait for Vue hydration before clicking. SSR makes the
-        // "+ New Document" button look interactive immediately —
-        // it's in the DOM, visible, enabled, hit-testable — so
-        // Playwright's actionability check passes and `.click()`
-        // dispatches a real DOM click. But the @click handler hasn't
-        // attached yet, so the click is a no-op and the dialog never
-        // opens. The race is resolved within a few hundred ms after
-        // first paint, but Playwright doesn't wait for it.
-        //
-        // The robust fix is a click-and-verify retry: dispatch the
-        // click, give Vue ~1s to render the dialog, retry if not.
-        // `expect.toPass` is the idiomatic Playwright primitive for
-        // this — converging on a stable post-condition rather than
-        // hoping a single click took.
+        // Wait for Vue hydration before clicking — SSR makes the
+        // button look interactive before its @click handler attaches.
+        // expect.toPass converges on a stable post-condition (dialog
+        // visible) rather than hoping a single click took.
         const newDocBtn = page.getByRole('button', { name: /new document/i })
         await newDocBtn.waitFor({ state: 'visible' })
         await baseExpect(async () => {
           await newDocBtn.click()
           await baseExpect(editor.newDocDialog.heading).toBeVisible({ timeout: 1500 })
         }).toPass({ timeout: 15_000 })
-        // Confirm the dialog is fully rendered (heading + first input)
-        // before continuing — same shape `waitForNewDocDialog` checks,
-        // but redundant after toPass guarantees the heading is visible.
         await baseExpect(editor.newDocDialog.titleInput).toBeVisible()
 
         await Promise.all([
@@ -488,6 +477,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         ])
         await editor.waitForReady()
         await editor.switchToSplitView()
+        await editor.waitForPreviewPaginated()
       }
     }
 
@@ -497,20 +487,6 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
 export const expect = baseExpect
 
-/**
- * Skip the current test if its project's variant is in the opt-out
- * list. Use for flows where dual-mode capture is wasteful — e.g. a
- * flow that demonstrates the theme toggle itself; recording it in
- * "dark mode" is trivially the same content with reversed icon
- * order.
- *
- * Place at the top of a test:
- *
- *   test('Demo', async ({ flow, editor }, info) => {
- *     skipVariants(info, ['dark'], 'this flow demos light mode only')
- *     // ...
- *   })
- */
 export function skipVariants(
   info: { project: { metadata?: Record<string, unknown> } },
   variants: Variant[],

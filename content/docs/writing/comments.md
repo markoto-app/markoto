@@ -13,7 +13,7 @@ you post — with a yellow underline marking what you commented on.
 Replies thread under the original; resolved threads tuck into a
 "Resolved" section so the active list stays focused.
 
-::flow{id="have-a-discussion" mode="slides" hide-title}
+::flow{id="have-a-discussion" hide-title}
 ::
 
 ## How it works

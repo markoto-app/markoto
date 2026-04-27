@@ -15,7 +15,7 @@ it to anyone — they'll see whatever you typed, in real time.
 This walkthrough takes about three minutes. By the end you'll have a
 named document and a shareable URL on your clipboard.
 
-::flow{id="quick-share" mode="slides" hide-title}
+::flow{id="quick-share" hide-title}
 ::
 
 ## What just happened

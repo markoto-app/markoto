@@ -174,6 +174,22 @@ export class EditorPage {
   }
 
   /**
+   * Wait for the preview iframe to finish pagination. paged.js mounts
+   * `.pagedjs_pages` once it's done laying out the doc — until then
+   * the preview pane is blank. Screenshots taken before that show a
+   * meaningless empty pane. Use after switchToSplitView() (or any
+   * mode change that exposes the preview) before capturing the first
+   * preview-bearing shot.
+   */
+  async waitForPreviewPaginated(timeout = 15_000): Promise<void> {
+    await this.page
+      .frameLocator('iframe')
+      .locator('.pagedjs_pages')
+      .first()
+      .waitFor({ state: 'visible', timeout })
+  }
+
+  /**
    * Click the title button to enter rename mode. Waits until the
    * input element is focused before returning, so the next keystroke
    * is guaranteed to land in the input (not the editor).
