@@ -56,7 +56,40 @@ export class EditorPage {
     return {
       activity: this.page.getByRole('button', { name: /activity/i, exact: true }),
       theme: this.page.getByRole('button', { name: /theme/i, exact: true }),
-      knowledge: this.page.getByRole('button', { name: /knowledge/i, exact: true })
+      knowledge: this.page.getByRole('button', { name: /knowledge/i, exact: true }),
+      comments: this.page.locator('[data-testid="comments-tab-toggle"]')
+    }
+  }
+
+  // ─── Comments panel + composer ────────────────────────────────────
+  //
+  // Surface area large enough that grouping it under a `comments` getter
+  // keeps the flow tests readable. All selectors go through testids so
+  // i18n changes don't drift.
+
+  get comments() {
+    return {
+      /** The floating "Add comment" pill that appears when text is selected. */
+      selectionPopupTrigger: this.page.locator('[data-testid="comment-selection-popup-trigger"]'),
+      /** The composer textarea (NEW COMMENT or any reply box). */
+      composerInput: this.page.locator('[data-testid="comment-composer-input"]'),
+      /** The submit button next to the composer. */
+      composerSubmit: this.page.locator('[data-testid="comment-composer-submit"]'),
+      /** Any comment thread card in the panel. Filter by hasText for a specific one. */
+      thread: this.page.locator('[data-testid="comment-thread"]'),
+      /** The "Show resolved" toggle in the panel header. */
+      showResolvedToggle: this.page.locator('[data-testid="comments-show-resolved-toggle"]'),
+      /** The "Resolved" section heading; visible iff showResolved is on AND there are resolved threads. */
+      resolvedSectionHeading: this.page.locator('[data-testid="comments-resolved-section-heading"]'),
+      /**
+       * Get the Delete button inside a specific thread (scoped by id or
+       * by visible text). Tests should prefer scoping by the thread's
+       * `data-comment-id` (stable) over body text (i18n-fragile, though
+       * comments aren't translated).
+       */
+      deleteIn: (thread: Locator): Locator => thread.locator('[data-testid="comment-action-delete"]').first(),
+      resolveIn: (thread: Locator): Locator => thread.locator('[data-testid="comment-action-resolve"]'),
+      unresolveIn: (thread: Locator): Locator => thread.locator('[data-testid="comment-action-unresolve"]')
     }
   }
 
@@ -105,7 +138,13 @@ export class EditorPage {
    * Use after clicking a "+ New Document" button to gate subsequent
    * dialog interactions on the modal's mount.
    */
-  async waitForNewDocDialog(timeout = 5000): Promise<void> {
+  async waitForNewDocDialog(timeout = 15_000): Promise<void> {
+    // 15s default: cross-project runs (e.g. en-dark right after
+    // en-light) can take longer to first-paint the dialog because the
+    // dev subprocess is shared but Playwright contexts are fresh, so
+    // the second project pays a hydration tax. Individual-project
+    // runs typically resolve in <1s; the wide timeout only kicks in
+    // on cold-context boots.
     await expect(this.newDocDialog.heading).toBeVisible({ timeout })
     await expect(this.newDocDialog.titleInput).toBeVisible()
   }

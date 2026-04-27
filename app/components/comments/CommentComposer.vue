@@ -330,6 +330,7 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
           variant="solid"
           size="xs"
           :disabled="submitDisabled"
+          data-testid="comment-composer-submit"
           @click="submit"
         >
           {{ submitLabel || t('comments.post') }}

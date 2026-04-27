@@ -92,6 +92,7 @@ function onClickThread(e: MouseEvent) {
       focused ? 'ring-2 ring-primary-500/50 shadow-md' : 'hover:shadow-md hover:border-primary/40'
     ]"
     :data-comment-id="comment.id"
+    data-testid="comment-thread"
     @click="onClickThread"
   >
     <p

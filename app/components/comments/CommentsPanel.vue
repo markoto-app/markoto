@@ -199,6 +199,7 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
             size="xs"
             :aria-label="t('comments.showResolved')"
             :aria-pressed="showResolved"
+            data-testid="comments-show-resolved-toggle"
             @click="showResolved = !showResolved"
           />
         </UTooltip>
@@ -298,7 +299,10 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
       </template>
 
       <template v-if="showResolved && resolvedComments.length > 0">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-muted px-1 pt-2">
+        <p
+          class="text-[11px] font-semibold uppercase tracking-wide text-muted px-1 pt-2"
+          data-testid="comments-resolved-section-heading"
+        >
           {{ t('comments.resolvedSection') }}
         </p>
         <CommentThread

@@ -911,6 +911,7 @@ const statusIcon = computed(() => {
               size="xs"
               :aria-label="t('comments.title')"
               :aria-pressed="rightSidebar === 'comments'"
+              data-testid="comments-tab-toggle"
               @click="toggleSidebar('comments')"
             />
           </UTooltip>

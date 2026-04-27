@@ -126,6 +126,7 @@ function onClick() {
     <button
       type="button"
       class="comment-selection-popup__pill inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all"
+      data-testid="comment-selection-popup-trigger"
       @click="onClick"
     >
       <UIcon

@@ -80,6 +80,7 @@ const relativeTime = computed(() => formatRelativeTime(props.createdAt, t, props
         <button
           v-if="canDelete"
           class="text-muted hover:text-error transition-colors"
+          data-testid="comment-action-delete"
           @click.stop="emit('delete')"
         >
           {{ t('comments.delete') }}
@@ -92,6 +93,7 @@ const relativeTime = computed(() => formatRelativeTime(props.createdAt, t, props
           <button
             v-if="!resolved"
             class="text-muted hover:text-default transition-colors"
+            data-testid="comment-action-resolve"
             @click.stop="emit('resolve')"
           >
             {{ t('comments.resolve') }}
@@ -99,6 +101,7 @@ const relativeTime = computed(() => formatRelativeTime(props.createdAt, t, props
           <button
             v-else
             class="text-muted hover:text-default transition-colors"
+            data-testid="comment-action-unresolve"
             @click.stop="emit('unresolve')"
           >
             {{ t('comments.unresolve') }}
