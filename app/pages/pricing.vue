@@ -239,8 +239,8 @@ useHead({
           </div>
 
           <ul class="mt-6 space-y-2 text-sm flex-1">
-            <li class="flex gap-2">
-              <UIcon name="i-lucide-sparkles" class="size-4 text-muted shrink-0 mt-0.5" />
+            <li class="flex items-baseline gap-2">
+              <CommonSeal :size="9" class="shrink-0 self-center mt-0.5" />
               <span>
                 <strong>{{ TIERS[tier.plan].interactionsPerMonth.toLocaleString() }}</strong>
                 {{ t('pricing.aiCreditsPerMonth') }}

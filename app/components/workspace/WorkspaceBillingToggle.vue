@@ -82,32 +82,28 @@ async function setEnabled(next: boolean) {
 </script>
 
 <template>
-  <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
+  <!-- The parent (workspace AI tab) provides the section header (icon
+       + title + description). This component renders just the toggle
+       row + per-state status lines, on the warm bone bg-default card
+       so it sits cleanly inside the page chrome. The original gray-blue
+       Tailwind palette read "third-party widget"; the new card uses
+       the brand sumi neutrals. -->
+  <div class="border border-default rounded-lg p-4 bg-default">
     <div class="flex items-start justify-between gap-4">
-      <div class="min-w-0">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-          <UIcon name="i-lucide-sparkles" class="text-orange-600 dark:text-orange-400" />
-          AI workspace
-        </h3>
-        <p class="mt-1 text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-          Turn this workspace into an AI workspace: every member's AI use in any
-          document here is billed to your plan's credit pool, so the whole team
-          can work with AI without each person needing their own paid plan.
-          Requires Max or Ultra.
+      <div class="min-w-0 space-y-2">
+        <p v-if="aiEnabled && iAmBillingOwner" class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase inline-flex items-center gap-1.5">
+          <span class="block size-1.5 rounded-full bg-shu-500 dark:bg-shu-400" aria-hidden="true" />
+          on your plan · members see the editor banner
         </p>
-
-        <!-- State indicators -->
-        <p v-if="aiEnabled && iAmBillingOwner" class="mt-2 text-xs text-orange-700 dark:text-orange-300">
-          <UIcon name="i-lucide-info" class="inline mr-1" />
-          This is an AI workspace on your plan. Members see a banner in the editor.
+        <p v-else-if="aiEnabled && !iAmBillingOwner" class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase">
+          sponsored by another admin (user #{{ billingOwnerId }}) · toggle off then on to take over
         </p>
-        <p v-else-if="aiEnabled && !iAmBillingOwner" class="mt-2 text-xs text-gray-600 dark:text-gray-400">
-          <UIcon name="i-lucide-user" class="inline mr-1" />
-          AI for this workspace is sponsored by another admin (user #{{ billingOwnerId }}). Turn this off and on again to sponsor it yourself.
+        <p v-else-if="!canEnable && !loadingBilling" class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase inline-flex items-center gap-1.5">
+          <UIcon name="i-lucide-lock" class="size-3" />
+          plan {{ billing?.plan ?? 'free' }} · upgrade to max or ultra to sponsor
         </p>
-        <p v-else-if="!canEnable && !loadingBilling" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          <UIcon name="i-lucide-lock" class="inline mr-1" />
-          Your current plan ({{ billing?.plan ?? 'free' }}) can't sponsor an AI workspace. Upgrade to Max or Ultra.
+        <p v-else class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase">
+          off · members use their own AI credits
         </p>
       </div>
 

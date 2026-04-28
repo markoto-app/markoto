@@ -971,7 +971,7 @@ async function handleCreateComment(
     map.set('anchorEnd', anchorEnd)
     map.set('body', safeBody)
     map.set('authorId', null)
-    map.set('authorName', 'AI Assistant')
+    map.set('authorName', 'markoto')
     map.set('authorAvatar', null)
     map.set('createdAt', now)
     map.set('updatedAt', now)
@@ -1019,7 +1019,7 @@ function handleReplyToComment(
     reply.set('id', id)
     reply.set('body', safeBody)
     reply.set('authorId', null)
-    reply.set('authorName', 'AI Assistant')
+    reply.set('authorName', 'markoto')
     reply.set('authorAvatar', null)
     reply.set('createdAt', now)
     reply.set('updatedAt', now)
@@ -1067,8 +1067,10 @@ async function handleDeleteComment(
   function canDeleteEntry(map: Y.Map<unknown>): boolean {
     const authorId = map.get('authorId')
     const authorName = map.get('authorName')
-    // AI's own comment: authorId=null and authorName='AI Assistant'
-    if (authorId === null && authorName === 'AI Assistant') return true
+    // markoto's own comment: authorId=null and authorName='markoto'
+    // (or legacy 'AI Assistant' from before the rename — keep for
+    // backwards compat on existing comment threads).
+    if (authorId === null && (authorName === 'markoto' || authorName === 'AI Assistant')) return true
     // Initiator's own comment
     if (authorId === session.initiatorUserId) return true
     return false

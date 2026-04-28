@@ -83,7 +83,12 @@ const activeTab = ref<'documents' | 'knowledge' | 'ai'>('documents')
 const tabItems = computed(() => [
   { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents' as const, value: 'documents' },
   { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge' as const, value: 'knowledge' },
-  { label: t('workspace.tabs.ai'), icon: 'i-lucide-sparkles', slot: 'ai' as const, value: 'ai' }
+  // No `icon` for the AI tab — UTabs would render it as a Lucide
+  // glyph, but the seal is a Vue component, not an Iconify name. The
+  // seal sits inside the Fraunces-titled section header within the
+  // tab content instead, where it carries equal weight without
+  // needing to squeeze into the icon slot.
+  { label: t('workspace.tabs.ai'), slot: 'ai' as const, value: 'ai' }
 ])
 
 // Same dialog flow as the home page; just pass our workspaceId so the
@@ -231,8 +236,24 @@ async function leaveWorkspace() {
 
 <template>
   <div class="min-h-screen flex flex-col">
+    <!-- Workspace header. Lockup → back → workspace name, divided by
+         hairline rules so the brand mark stays the leftmost anchor on
+         every screen. The folder icon (previously shu) is dropped —
+         workspace identity is carried by name + Back, and shu stays
+         reserved for AI presence. -->
     <header class="border-b border-default px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3 min-w-0">
+        <NuxtLink
+          to="/"
+          class="flex items-center"
+          aria-label="markoto home"
+        >
+          <CommonWordmark :size="20" />
+        </NuxtLink>
+        <span
+          class="block w-px h-5 bg-default/60 shrink-0"
+          aria-hidden="true"
+        />
         <UButton
           variant="ghost"
           color="neutral"
@@ -242,15 +263,13 @@ async function leaveWorkspace() {
         >
           {{ t('workspace.backToHome') }}
         </UButton>
-        <div class="flex items-center gap-2 min-w-0">
-          <UIcon
-            name="i-lucide-folder"
-            class="text-primary size-5 shrink-0"
-          />
-          <span class="text-base font-semibold truncate">
-            {{ data?.workspace.name || t('app.name') }}
-          </span>
-        </div>
+        <span
+          class="block w-px h-5 bg-default/60 shrink-0"
+          aria-hidden="true"
+        />
+        <span class="font-serif text-lg font-normal truncate">
+          {{ data?.workspace.name || t('app.name') }}
+        </span>
       </div>
       <div class="flex items-center gap-2">
         <AuthUserMenu />
@@ -277,7 +296,7 @@ async function leaveWorkspace() {
           name="i-lucide-folder-x"
           class="size-10 text-muted mx-auto"
         />
-        <h1 class="text-xl font-semibold">
+        <h1 class="font-serif text-2xl font-normal tracking-tight">
           {{ t('workspace.notFound') }}
         </h1>
         <p class="text-sm text-muted">
@@ -300,7 +319,12 @@ async function leaveWorkspace() {
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-3 flex-wrap">
-              <h1 class="text-2xl font-bold tracking-tight">
+              <!-- Workspace title in the editorial register — Fraunces
+                   serif, weight 400, tight tracking. Same display as
+                   the doc title in the editor toolbar; one consistent
+                   editorial voice for every "name of an object" in the
+                   product. -->
+              <h1 class="font-serif text-3xl font-normal tracking-tight">
                 {{ data.workspace.name }}
               </h1>
               <UBadge
@@ -318,21 +342,22 @@ async function leaveWorkspace() {
             >
               {{ data.workspace.description }}
             </p>
-            <div class="mt-3">
+            <!-- Gap between workspace description and the member
+                 roster — `mt-3` was too tight, the member rows
+                 visually merged with the description prose. -->
+            <div class="mt-6">
               <WorkspaceMemberAvatars
                 :members="data.members"
                 @click="membersOpen = true"
               />
             </div>
           </div>
+          <!-- Page-level actions. The "New document" button used to
+               sit here, but it belongs inside the Documents tab — a
+               page-level CTA implies "this is THE primary action" and
+               on Knowledge / AI tabs that's misleading. The dropdown
+               (rename / delete / members) stays — it's truly page-level. -->
           <div class="flex items-center gap-2 shrink-0">
-            <UButton
-              v-if="canCreateDoc"
-              icon="i-lucide-plus"
-              @click="createDocument"
-            >
-              {{ t('workspace.newDocument') }}
-            </UButton>
             <UDropdownMenu :items="workspaceMenuItems">
               <UButton
                 icon="i-lucide-more-vertical"
@@ -344,61 +369,99 @@ async function leaveWorkspace() {
         </div>
 
         <!-- AI workspace banner — visible to every member when the
-             admin has turned the toggle on. Muted palette; it's a
-             persistent status indicator, not a warning. -->
+             admin has turned the toggle on. The seal stands in for
+             the old sparkle icon; this banner is genuine AI presence
+             so it's the one place a small shu accent is correct. -->
         <div
           v-if="data.workspace.aiEnabled"
-          class="flex items-center gap-2 rounded-lg border border-default bg-default/60 px-3 py-2 text-sm text-muted"
+          class="flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-sm text-muted"
         >
-          <UIcon name="i-lucide-sparkles" class="shrink-0" />
+          <CommonSeal :size="10" class="shrink-0" />
           <span>
-            This is an <strong class="text-default">AI workspace</strong> — AI work here runs on the sponsor's credit pool.
+            This is a <strong class="text-default font-medium">markoto workspace</strong> — markoto's work here runs on the sponsor's credit pool.
           </span>
         </div>
 
-        <!-- Tabs split the workspace into Documents / Knowledge / AI.
-             Keeps the page focused on one concern at a time now that
-             there's enough to manage that cramming them vertically
-             would feel cluttered. -->
+        <!-- Tabs. `variant="link"` swaps the shu pill for a subtle
+             underlined-tab register that fits the editorial chrome.
+             `color="neutral"` makes the active underline sumi-950
+             instead of shu — shu stays reserved for AI presence.
+             The label slot upgrades the tab text to Fraunces serif so
+             tabs read as section titles, not chrome buttons. -->
         <UTabs
           v-model="activeTab"
           :items="tabItems"
-          :ui="{ content: 'mt-6' }"
+          variant="link"
+          color="neutral"
+          :ui="{
+            list: 'border-b border-default/60 gap-6',
+            trigger: 'data-[state=active]:text-default text-muted hover:text-default px-0 py-2.5',
+            label: 'font-serif text-base font-normal tracking-tight',
+            content: 'mt-8'
+          }"
         >
           <template #documents>
-            <div v-if="data.documents.length > 0">
-              <WorkspaceDocTable
-                :documents="data.documents"
-                :my-role="myRole || 'viewer'"
-                :workspace-id="data.workspace.workspaceId"
-                @duplicate-requested="openDocDuplicate"
-                @move-requested="openDocMove"
-                @delete-requested="openDocDelete"
-              />
-            </div>
-            <div
-              v-else
-              class="text-center py-16 border border-dashed border-default rounded-lg"
-            >
-              <UIcon
-                name="i-lucide-file-plus"
-                class="size-8 text-muted mx-auto mb-2"
-              />
-              <p class="text-base font-medium">
-                {{ t('workspace.empty') }}
-              </p>
-              <p class="text-sm text-muted mt-1">
+            <!-- Same header pattern as the Knowledge tab: icon +
+                 Fraunces serif title + JetBrains Mono micro-count,
+                 description below, primary action right-aligned. The
+                 page-level "New document" button moved here so the
+                 CTA only fires when the user is actually looking at
+                 the documents list. -->
+            <section class="space-y-3">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <UIcon
+                    name="i-lucide-file-text"
+                    class="text-toned size-5 shrink-0"
+                  />
+                  <h2 class="font-serif text-2xl font-normal tracking-tight">
+                    {{ t('workspace.tabs.documents') }}
+                  </h2>
+                  <span
+                    v-if="data.documents.length > 0"
+                    class="font-mono text-[10.5px] tracking-[0.04em] text-muted"
+                  >{{ data.documents.length }}</span>
+                </div>
+                <UButton
+                  v-if="canCreateDoc"
+                  icon="i-lucide-plus"
+                  size="sm"
+                  color="neutral"
+                  @click="createDocument"
+                >
+                  {{ t('workspace.newDocument') }}
+                </UButton>
+              </div>
+              <p class="text-xs text-muted">
                 {{ canCreateDoc ? t('workspace.emptyDescription') : t('workspace.emptyDescriptionViewer') }}
               </p>
-              <UButton
-                v-if="canCreateDoc"
-                class="mt-4"
-                icon="i-lucide-plus"
-                @click="createDocument"
+
+              <div
+                v-if="data.documents.length > 0"
+                class="pt-2"
               >
-                {{ t('workspace.newDocument') }}
-              </UButton>
-            </div>
+                <WorkspaceDocTable
+                  :documents="data.documents"
+                  :my-role="myRole || 'viewer'"
+                  :workspace-id="data.workspace.workspaceId"
+                  @duplicate-requested="openDocDuplicate"
+                  @move-requested="openDocMove"
+                  @delete-requested="openDocDelete"
+                />
+              </div>
+              <div
+                v-else
+                class="text-center py-12 border border-dashed border-default rounded-lg bg-default"
+              >
+                <UIcon
+                  name="i-lucide-file-plus"
+                  class="size-6 text-muted mx-auto mb-2"
+                />
+                <p class="font-serif text-lg font-normal tracking-tight">
+                  {{ t('workspace.empty') }}
+                </p>
+              </div>
+            </section>
           </template>
 
           <template #knowledge>
@@ -410,27 +473,47 @@ async function leaveWorkspace() {
           </template>
 
           <template #ai>
-            <!-- Admin-only toggle — non-admins see the read-only
-                 explanation so they understand the feature without
-                 being able to flip it. -->
-            <WorkspaceBillingToggle
-              v-if="isAdmin"
-              :workspace-id="data.workspace.workspaceId"
-              :ai-enabled="data.workspace.aiEnabled"
-              :billing-owner-id="data.workspace.billingOwnerId"
-              @updated="() => loadWorkspace()"
-            />
-            <div
-              v-else
-              class="border border-default rounded-lg p-4 bg-default/50 text-sm text-muted"
-            >
-              <p v-if="data.workspace.aiEnabled">
-                This workspace is an <strong>AI workspace</strong>. AI work here is sponsored by an admin.
+            <!-- AI workspace tab — same header pattern as Documents
+                 and Knowledge: seal anchor (this is the one place
+                 where shu is correct — genuine AI presence) + Fraunces
+                 title + description, then the toggle/state below. -->
+            <section class="space-y-3">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <CommonSeal :size="14" class="shrink-0" />
+                  <h2 class="font-serif text-2xl font-normal tracking-tight">
+                    markoto
+                  </h2>
+                </div>
+              </div>
+              <p class="text-xs text-muted">
+                Turn this workspace into a markoto workspace so every member's markoto use across its documents bills to your plan's credit pool. Requires Max or Ultra.
               </p>
-              <p v-else>
-                This is a regular workspace. Members use their own AI credits. An admin can turn it into an AI workspace to sponsor the pool.
-              </p>
-            </div>
+
+              <!-- Admin-only toggle — non-admins see the read-only
+                   explanation so they understand the feature without
+                   being able to flip it. -->
+              <div class="pt-2">
+                <WorkspaceBillingToggle
+                  v-if="isAdmin"
+                  :workspace-id="data.workspace.workspaceId"
+                  :ai-enabled="data.workspace.aiEnabled"
+                  :billing-owner-id="data.workspace.billingOwnerId"
+                  @updated="() => loadWorkspace()"
+                />
+                <div
+                  v-else
+                  class="border border-default rounded-lg p-4 bg-default text-sm text-muted"
+                >
+                  <p v-if="data.workspace.aiEnabled">
+                    This workspace is a <strong class="text-default font-medium">markoto workspace</strong>. markoto's work here is sponsored by an admin.
+                  </p>
+                  <p v-else>
+                    This is a regular workspace. Members use their own markoto credits. An admin can turn it into a markoto workspace to sponsor the pool.
+                  </p>
+                </div>
+              </div>
+            </section>
           </template>
         </UTabs>
       </div>

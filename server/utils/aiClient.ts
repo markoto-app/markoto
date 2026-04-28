@@ -99,9 +99,12 @@ export async function createAiSession(
     {
       docId,
       userId: `ai:assistant:${meta.sessionId}`,
-      // Activity log attribution picks this up via the onChange hook. Always
-      // "AI Assistant" — the initiator's name lives in awareness.aiSession for UI display.
-      userName: 'AI Assistant',
+      // Activity-log attribution picks this up via the onChange hook.
+      // Always "markoto" — the initiator's name lives in
+      // awareness.aiSession for UI display. Internal JWT principal
+      // (`ai:assistant:…`) stays unchanged so existing access checks
+      // still work.
+      userName: 'markoto',
       readOnly: false
     },
     config.jwtSecret,
@@ -113,7 +116,7 @@ export async function createAiSession(
 
   // Set identity BEFORE connecting so the first sync carries it.
   awareness.setLocalStateField('user', {
-    name: 'AI Assistant',
+    name: 'markoto',
     color: meta.initiatorColor,
     isAI: true
   })

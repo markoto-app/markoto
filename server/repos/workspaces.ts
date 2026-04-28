@@ -42,6 +42,10 @@ export interface UserWorkspaceSummary {
   role: WorkspaceRole
   docCount: number
   lastActive: Date | null
+  /** `(+)` AI sponsorship state. The dashboard card stamps the seal
+      on every sponsored workspace regardless of who's paying — the
+      seal is becoming the universal mark of "AI is here". */
+  aiEnabled: boolean
 }
 
 export async function getWorkspace(workspaceId: string): Promise<WorkspaceRow | null> {
@@ -162,7 +166,8 @@ export async function listWorkspacesForUser(userId: number): Promise<UserWorkspa
     createdAt: workspaces.createdAt,
     role: workspaceMembers.role,
     docCount: sql<number>`count(${documents.docId})::int`,
-    lastActive: sql<Date | null>`max(${documents.lastActive})`
+    lastActive: sql<Date | null>`max(${documents.lastActive})`,
+    aiEnabled: workspaces.aiEnabled
   })
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaces.workspaceId, workspaceMembers.workspaceId))
@@ -173,6 +178,7 @@ export async function listWorkspacesForUser(userId: number): Promise<UserWorkspa
       workspaces.name,
       workspaces.description,
       workspaces.createdAt,
+      workspaces.aiEnabled,
       workspaceMembers.role
     )
     .orderBy(sql`coalesce(max(${documents.lastActive}), ${workspaces.createdAt}) desc`) as Promise<UserWorkspaceSummary[]>

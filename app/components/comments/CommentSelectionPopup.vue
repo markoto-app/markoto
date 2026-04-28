@@ -117,7 +117,7 @@ function onClick() {
     >
       <UIcon
         name="i-lucide-message-circle"
-        class="size-3.5 text-amber-500 shrink-0"
+        class="size-3.5 text-shu-500 dark:text-shu-400 shrink-0"
       />
       <span>{{ t('comments.addLabel') }}</span>
     </button>
@@ -126,31 +126,33 @@ function onClick() {
 
 <style scoped>
 /*
- * Same visual family as the toolbar's comment button — amber accent
- * (matches the in-doc anchor underline) on a frosted backdrop. Drops
- * the rainbow / pulse animations the AI popup had: this is a
- * lightweight one-shot trigger, not a long-running operation.
+ * Selection-comment trigger pill. Same visual family as the AI prompt
+ * bar — frosted bone backdrop, hairline shu ring + soft shu glow. The
+ * brand reserves shu for AI presence, but a comment carries a strong
+ * loop affordance to summon markoto via `@markoto`, so the seal red
+ * is the right anchor here too. Earlier this popup wore amber, which
+ * read as a separate semantic and broke the editor's color discipline.
  */
 .comment-selection-popup__pill {
-  background: color-mix(in srgb, var(--ui-bg) 88%, transparent);
+  background: color-mix(in srgb, var(--ui-bg-muted) 88%, transparent);
   box-shadow:
-    0 0 0 1.5px color-mix(in srgb, var(--color-amber-500, #f59e0b) 45%, transparent),
-    0 8px 24px -10px color-mix(in srgb, var(--color-amber-500, #f59e0b) 30%, transparent),
-    0 4px 12px -4px rgb(0 0 0 / 0.15);
+    0 0 0 1px color-mix(in srgb, var(--color-shu-500) 40%, transparent),
+    0 8px 24px -10px color-mix(in srgb, var(--color-shu-500) 25%, transparent),
+    0 4px 12px -4px rgb(20 17 13 / 0.12);
 }
 
 :global(.dark) .comment-selection-popup__pill {
-  background: color-mix(in srgb, var(--ui-bg) 78%, transparent);
+  background: color-mix(in srgb, var(--ui-bg-muted) 78%, transparent);
   box-shadow:
-    0 0 0 1.5px color-mix(in srgb, var(--color-amber-500, #f59e0b) 55%, transparent),
-    0 8px 24px -10px color-mix(in srgb, var(--color-amber-500, #f59e0b) 40%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-shu-400) 50%, transparent),
+    0 8px 24px -10px color-mix(in srgb, var(--color-shu-400) 32%, transparent),
     0 4px 12px -4px rgb(0 0 0 / 0.45);
 }
 
 .comment-selection-popup__pill:hover {
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--color-amber-500, #f59e0b) 60%, transparent),
-    0 12px 32px -10px color-mix(in srgb, var(--color-amber-500, #f59e0b) 40%, transparent),
-    0 4px 12px -4px rgb(0 0 0 / 0.18);
+    0 0 0 1.5px color-mix(in srgb, var(--color-shu-500) 55%, transparent),
+    0 12px 32px -10px color-mix(in srgb, var(--color-shu-500) 35%, transparent),
+    0 4px 12px -4px rgb(20 17 13 / 0.16);
 }
 </style>

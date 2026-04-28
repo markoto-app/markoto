@@ -230,17 +230,21 @@ function offlineBg(userId: number) {
             size="xs"
             referrerpolicy="no-referrer"
           />
+          <!-- markoto presence: bone disc in light / sumi-900 in
+               dark (via `bg-default`) with the seal centered. Real
+               human collaborators still get their colored initial. -->
+          <div
+            v-if="e.isAI"
+            class="size-6 rounded-full flex items-center justify-center bg-default border border-default"
+          >
+            <CommonSeal :size="8" />
+          </div>
           <div
             v-else
             class="size-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
             :style="{ backgroundColor: e.user.color }"
           >
-            <UIcon
-              v-if="e.isAI"
-              name="i-lucide-sparkles"
-              class="size-3.5"
-            />
-            <span v-else>{{ e.user.name.charAt(0).toUpperCase() }}</span>
+            <span>{{ e.user.name.charAt(0).toUpperCase() }}</span>
           </div>
         </div>
 

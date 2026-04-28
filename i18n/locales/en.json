@@ -1,15 +1,15 @@
 {
   "app": {
-    "name": "YPad",
-    "tagline": "Collaborative Markdown Editor",
+    "name": "markoto",
+    "tagline": "Collaborative markdown editor",
     "offline": "You're offline — edits stay local until you reconnect."
   },
   "landing": {
-    "hero": "Write together, in real time",
+    "hero": "Rethinking the craft of writing.",
     "subtitle": "A collaborative markdown editor with live sync, AI assistance, and full document management.",
-    "newDocument": "New Document",
-    "openDocument": "Open Document",
-    "recentDocuments": "Recent Documents",
+    "newDocument": "New document",
+    "openDocument": "Open document",
+    "recentDocuments": "Recent documents",
     "noRecent": "No recent documents"
   },
   "auth": {
@@ -27,9 +27,9 @@
     "syncAuthFailedTitle": "Sync server rejected the connection",
     "syncAuthFailedDescription": "You normally have edit access here. The sync server bounced the handshake — likely a per-IP rate limit or a stale token. Reload to try again.",
     "syncAuthFailedReload": "Reload",
-    "aiWorkspaceBadge": "AI workspace",
-    "aiWorkspaceBadgeTooltip": "This document is in an AI workspace — AI work here uses the sponsor's credit pool, not yours.",
-    "aiWorkspaceSponsoredBy": "AI workspace sponsored by {name}",
+    "aiWorkspaceBadge": "markoto workspace",
+    "aiWorkspaceBadgeTooltip": "This document is in a markoto workspace — markoto's work here uses the sponsor's credit pool, not yours.",
+    "aiWorkspaceSponsoredBy": "markoto workspace sponsored by {name}",
     "bold": "Bold",
     "italic": "Italic",
     "heading": "Heading",
@@ -217,15 +217,15 @@
     "selectTextFirst": "Select text in the editor to start a comment.",
     "draftHeading": "New comment",
     "mentionTrigger": "Type {'@'} to mention a workspace member",
-    "submitHint": "{cmd}+Enter to post · Esc to cancel",
+    "submitHint": "{cmd}+Enter  to post  ·  Esc  to cancel",
     "anonymous": "Anonymous",
-    "aiEntryName": "AI Assistant",
-    "aiEntryDescription": "Summon AI to act on this thread",
-    "aiMentionTooltip": "Mentioning {'@'}ai summons the AI assistant to respond on this thread.",
-    "aiMentionHint": "Tip: include {'@'}ai in a comment to ask the AI to act on it.",
-    "aiResponding": "AI is responding…",
-    "aiTriggerFailed": "Couldn't summon the AI for this thread.",
-    "aiTriggerExhausted": "AI quota exhausted — upgrade your plan to summon AI from comments."
+    "aiEntryName": "markoto",
+    "aiEntryDescription": "Ask markoto to act on this thread",
+    "aiMentionTooltip": "Mentioning {'@'}markoto asks markoto to respond on this thread.",
+    "aiMentionHint": "Tip: include {'@'}markoto in a comment to ask markoto to act on it.",
+    "aiResponding": "markoto is responding…",
+    "aiTriggerFailed": "Couldn't reach markoto for this thread.",
+    "aiTriggerExhausted": "Quota exhausted — upgrade your plan to ask markoto from comments."
   },
   "image": {
     "loginToUpload": "Please log in to upload images.",
@@ -254,7 +254,7 @@
   },
   "newDoc": {
     "title": "New document",
-    "subtitle": "A few quick choices help the AI write for you from the start. All optional — skip to a blank doc anytime.",
+    "subtitle": "A few quick choices help markoto write for you from the start. All optional — skip to a blank doc anytime.",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g. Q3 launch plan",
     "descriptionLabel": "Description",
@@ -265,7 +265,7 @@
     "themeLabel": "Theme",
     "themeHelp": "Sets the visual style. You can change it any time.",
     "templateLabel": "Template",
-    "templateHelp": "Pre-fills the doc with a structural skeleton you can edit. Each section comes with a comment hint so the AI knows what belongs where.",
+    "templateHelp": "Pre-fills the doc with a structural skeleton you can edit. Each section comes with a comment hint so markoto knows what belongs where.",
     "create": "Create document",
     "skip": "Just give me a blank doc"
   },
@@ -304,13 +304,13 @@
     },
     "language": {
       "label": "Language",
-      "help": "Sets the language the AI writes in. Pick a preset or type any language name.",
+      "help": "Sets the language markoto writes in. Pick a preset or type any language name.",
       "placeholder": "Pick or type a language (e.g. Romansh, Schwiizerdütsch)",
       "customActive": "Using your typed language. Pick a preset to switch back."
     },
     "audience": {
       "label": "Audience",
-      "help": "Tells the AI who this is written for. Affects tone, structure, and word choice."
+      "help": "Tells markoto who this is written for. Affects tone, structure, and word choice."
     }
   },
   "audiences": {
@@ -426,20 +426,20 @@
     }
   },
   "ai": {
-    "placeholder": "Tell the AI what to do…",
+    "placeholder": "Ask markoto…",
     "send": "Send",
     "stop": "Stop",
-    "loginRequired": "Log in to use the AI assistant",
-    "statusThinking": "AI is thinking…",
-    "statusSearching": "AI is searching the web…",
-    "statusFetching": "AI is reading a page…",
-    "statusEditing": "AI is editing the document…",
+    "loginRequired": "Log in to ask markoto",
+    "statusThinking": "markoto is thinking…",
+    "statusSearching": "markoto is searching the web…",
+    "statusFetching": "markoto is reading a page…",
+    "statusEditing": "markoto is editing the document…",
     "statusDone": "Done",
     "otherSessions": "{n} other session | {n} other sessions",
-    "helpingTooltip": "AI is helping {name}",
-    "alreadyRunning": "You already have an AI session running on this document.",
-    "rateLimited": "Too many AI requests. Try again in a minute.",
-    "failed": "AI request failed",
+    "helpingTooltip": "markoto is helping {name}",
+    "alreadyRunning": "You already have a markoto session running on this document.",
+    "rateLimited": "Too many requests. Try again in a minute.",
+    "failed": "Could not reach markoto",
     "micStart": "Start voice input",
     "micBlocked": "Microphone blocked — enable it in your browser settings",
     "micStop": "Stop and send",
@@ -469,13 +469,13 @@
   "pricing": {
     "title": "Pricing",
     "subtitle": "Pick the plan that fits. Every tier runs on the same AI model — paying users just get more of it.",
-    "aiCreditsPerMonth": "AI credits/month",
+    "aiCreditsPerMonth": "markoto credits/month",
     "creditsHint": "A text prompt uses 1 credit; images and grounded searches use 5; voice minutes count 5 per minute.",
     "workspaces": "workspaces",
     "knowledgeFiles": "knowledge files",
     "knowledgeStorage": "total storage",
     "dictation": "voice dictation",
-    "teamBilling": "AI workspace: sponsor AI for everyone in a workspace",
+    "teamBilling": "markoto workspace: sponsor markoto for everyone in a workspace",
     "currentPlan": "Current plan",
     "manageSubscription": "Manage subscription",
     "freeForever": "Free forever",
@@ -487,7 +487,7 @@
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
-    "creditsTooltipTitle": "AI credits",
+    "creditsTooltipTitle": "markoto credits",
     "creditsRemaining": "{remaining} of {limit} credits left",
     "creditsPercent": "{pct}% remaining",
     "creditsResetOn": "Resets {date}",
@@ -697,7 +697,7 @@
     "tabs": {
       "documents": "Documents",
       "knowledge": "Knowledge",
-      "ai": "AI workspace"
+      "ai": "markoto"
     },
     "capReached": "{used} of {limit} workspaces used on the {plan} plan. Delete one or upgrade to add more.",
     "capReachedShort": "Workspace limit reached — upgrade",
@@ -741,6 +741,7 @@
     },
     "members": {
       "title": "Members of {name}",
+      "manage": "Manage",
       "manageTitle": "Manage members",
       "adminDescription": "Add collaborators by email, change roles, or remove members.",
       "memberDescription": "People who have access to this workspace.",
@@ -766,7 +767,7 @@
     "capBytesReached": "This workspace has reached its storage limit ({limit} MB). Delete a file or upgrade to add more.",
     "capReachedShort": "At limit — upgrade",
     "empty": "No knowledge files yet.",
-    "emptyDescription": "Upload a PDF or Word doc so the AI has context when you write.",
+    "emptyDescription": "Upload a PDF or Word doc so markoto has context when you write.",
     "emptyDescriptionViewer": "Nothing has been uploaded to this workspace yet.",
     "uploadQueued": "Upload queued",
     "uploadFailed": "Upload failed",

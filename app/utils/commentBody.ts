@@ -32,14 +32,12 @@ export const COMMENT_BODY_MAX = 4000
 export const REPLY_BODY_MAX = 2000
 
 const MENTION_RE = /@\[([^\]]+)\]\(user:(\d+)\)/g
-// `@ai` at a word boundary, case-insensitive. The leading lookbehind
-// ensures we don't match inside emails (`x@ai.example.com`) or URLs.
-// Word-boundary on the trailing side keeps `@ai-something` from
-// matching too. Both forms (bare `@ai` and the structured
-// `@[AI Assistant](ai:assistant)` future picker token) summon the AI;
-// for v1 we only render the bare form as a chip — the structured form
-// is reserved for when the typeahead picker ships.
-const AI_MENTION_RE = /(^|[^\w@])@ai(?=[^\w]|$)/gi
+// `@markoto` at a word boundary, case-insensitive. The leading
+// lookbehind ensures we don't match inside emails or URLs. Word-
+// boundary on the trailing side keeps `@markoto-something` from
+// matching too. Legacy `@ai` is still recognised so old comments
+// don't lose their chip — both forms render as the markoto pill.
+const AI_MENTION_RE = /(^|[^\w@])@(markoto|ai)(?=[^\w]|$)/gi
 
 interface SegmentMatch {
   index: number
@@ -65,10 +63,11 @@ export function parseCommentBody(body: string): CommentSegment[] {
   let am: RegExpExecArray | null
   while ((am = AI_MENTION_RE.exec(body)) !== null) {
     // The lookbehind char (group 1) is captured but isn't part of the
-    // chip — keep it as text. The chip itself is the `@ai` substring.
+    // chip — keep it as text. The chip is `@markoto` or legacy `@ai`.
     const lead = am[1] ?? ''
+    const tag = am[2] ?? 'markoto'
     const chipStart = am.index + lead.length
-    const chipEnd = chipStart + 3 // length of '@ai'
+    const chipEnd = chipStart + 1 + tag.length // '@' + tag
     matches.push({
       index: chipStart,
       end: chipEnd,

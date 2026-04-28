@@ -708,17 +708,24 @@ const statusIcon = computed(() => {
          picks how you look at it; centering matches the right-pane
          framing). Left/right sides own equal flex space and align their
          contents inward toward the center group. -->
-    <header class="border-b border-default px-4 py-2 flex items-center gap-3 shrink-0">
+    <!-- Toolbar uses `bg-muted` (= sumi-50 in light, flat sumi-950
+         in dark) so it shares the gentler chrome field with the
+         right sidebar AND the iframe preview surround. White cards
+         (`bg-default`) and the white paper sheets pop forward
+         against this softer halo. -->
+    <header class="border-b border-default/60 bg-muted px-4 py-2 flex items-center gap-3 shrink-0">
       <div class="flex-1 min-w-0 flex items-center gap-3">
+        <!-- Brand lockup. Wordmark + seal — same anchor as the
+             dashboard and workspace pages, so the brand mark is
+             always the leftmost item on every screen. The lucide
+             file-text icon previously here was generic chrome and
+             clashed with the seal-as-brand-mark rule. -->
         <NuxtLink
           to="/"
-          class="flex items-center gap-1.5 text-muted hover:text-default transition-colors shrink-0"
+          class="flex items-center shrink-0"
+          aria-label="markoto home"
         >
-          <UIcon
-            name="i-lucide-file-text"
-            class="text-primary size-5"
-          />
-          <span class="font-semibold text-sm hidden sm:inline">{{ t('app.name') }}</span>
+          <CommonWordmark :size="18" />
         </NuxtLink>
         <USeparator
           orientation="vertical"
@@ -740,10 +747,14 @@ const statusIcon = computed(() => {
             @blur="saveTitle"
           >
         </div>
+        <!-- Document title in the editorial register: Fraunces serif,
+             weight 400, tight tracking. The doc title is the central
+             editorial object — Inter would read "filename in
+             chrome", Fraunces reads "title of a published piece". -->
         <button
           v-else
           data-testid="doc-title-button"
-          class="text-sm text-muted hover:text-default transition-colors truncate min-w-0 max-w-[180px] sm:max-w-56 md:max-w-80"
+          class="font-serif text-[19px] font-normal tracking-tight leading-none text-default hover:text-muted transition-colors truncate min-w-0 max-w-[180px] sm:max-w-56 md:max-w-80"
           @click="startEditTitle"
         >
           {{ title }}
@@ -769,7 +780,7 @@ const statusIcon = computed(() => {
             size="3xs"
             referrerpolicy="no-referrer"
           />
-          <UIcon v-else name="i-lucide-sparkles" class="size-3" />
+          <CommonSeal v-else :size="8" />
           <span>{{ t('editor.aiWorkspaceBadge') }}</span>
         </NuxtLink>
 
@@ -779,37 +790,43 @@ const statusIcon = computed(() => {
           :doc-id="docId"
         />
 
-        <!-- Connection status: icon-only on mobile to save space.
-             data-status drives the e2e wait — the visible-text "Connected"
-             label is `hidden sm:inline` and won't satisfy toBeVisible
-             at mobile widths. -->
-        <UBadge
-          :color="statusColor"
-          variant="subtle"
-          size="sm"
+        <!-- Connection status. Calmed down to a paper-aesthetic
+             chip: sumi-200 hairline border on the bone bg, with a
+             small status-colored dot prefix doing the semantic
+             work. The previous solid `success` pill (saturated green)
+             clashed with the warm chrome — the dot lets the meaning
+             land without the chip becoming a kanban-app accent. -->
+        <span
+          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-default/70 bg-default font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase"
           data-testid="connection-status"
           :data-status="status"
         >
-          <UIcon
-            :name="statusIcon"
-            class="size-3 sm:mr-1"
+          <span
+            class="block size-1.5 rounded-full shrink-0"
+            :class="{
+              'bg-green-600/80 dark:bg-green-500/80': status === 'connected',
+              'bg-amber-500/80 dark:bg-amber-400/80 animate-pulse': status === 'connecting',
+              'bg-rose-500/80 dark:bg-rose-400/80': status === 'disconnected'
+            }"
+            aria-hidden="true"
           />
           <span class="hidden sm:inline">{{ t(`status.${status}`) }}</span>
-        </UBadge>
+        </span>
 
-        <!-- User count -->
-        <UBadge
+        <!-- User count. Same calm pastel chip as the status indicator
+             — sumi-200 hairline + mono caption, no saturated info-blue.
+             The user-count is supplementary information; the actual
+             presence is conveyed by the colored avatar rings. -->
+        <span
           v-if="userCount > 1"
-          color="info"
-          variant="subtle"
-          size="sm"
+          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-default/70 bg-default font-mono text-[10.5px] tracking-[0.04em] text-muted"
         >
           <UIcon
             name="i-lucide-users"
-            class="size-3 mr-1"
+            class="size-3"
           />
           {{ userCount }}
-        </UBadge>
+        </span>
       </div>
 
       <!-- Center group — view-mode toggle. Sits in its own zero-flex
@@ -1159,15 +1176,18 @@ const statusIcon = computed(() => {
           />
           <div
             v-else-if="rightSidebar === 'activity'"
-            class="h-full flex flex-col"
+            class="h-full flex flex-col bg-muted"
           >
-            <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
-              <div class="flex items-center gap-1.5">
+            <!-- Activity panel header — same Fraunces title register
+                 as the Comments panel so the right sidebar's four
+                 tabs read with one consistent voice. -->
+            <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
+              <div class="flex items-center gap-2">
                 <UIcon
                   name="i-lucide-activity"
                   class="size-4 text-muted"
                 />
-                <h3 class="text-sm font-semibold">
+                <h3 class="font-serif text-base font-normal tracking-tight">
                   {{ t('activity.title') }}
                 </h3>
               </div>
@@ -1180,12 +1200,9 @@ const statusIcon = computed(() => {
                 @click="closeSidebar"
               />
             </div>
-            <!-- Same scroll-container styling as the comments panel:
-                 `bg-muted` darker shade behind the cards, `p-3
-                 space-y-3` for breathing room. The activity feed
-                 itself owns the filter chips at the top — its own
-                 wrapper handles the chip vs cards spacing. -->
-            <div class="flex-1 overflow-y-auto p-2 min-h-0 bg-muted">
+            <!-- Scroll container — `bg-muted` is now applied at the
+                 panel root, so this just owns padding + scrolling. -->
+            <div class="flex-1 overflow-y-auto p-2 min-h-0">
               <CollabActivityFeed
                 :doc-id="docId"
                 :ydoc="ydoc"
@@ -1207,15 +1224,15 @@ const statusIcon = computed(() => {
                docWorkspaceRole are guaranteed non-null here. -->
           <div
             v-else-if="rightSidebar === 'knowledge' && docWorkspaceId && docWorkspaceRole"
-            class="h-full flex flex-col"
+            class="h-full flex flex-col bg-muted"
           >
-            <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
-              <div class="flex items-center gap-1.5">
+            <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
+              <div class="flex items-center gap-2">
                 <UIcon
                   name="i-lucide-library"
                   class="size-4 text-muted"
                 />
-                <h3 class="text-sm font-semibold">
+                <h3 class="font-serif text-base font-normal tracking-tight">
                   {{ t('knowledge.title') }}
                 </h3>
               </div>
@@ -1251,30 +1268,39 @@ const statusIcon = computed(() => {
         />
       </main>
 
-      <!-- Status bar -->
-      <footer class="border-t border-default px-4 py-1 flex items-center justify-between text-xs text-muted shrink-0">
-        <div class="flex items-center gap-4">
-          <span data-testid="word-count">{{ wordCount }} words</span>
-          <span v-if="viewMode !== 'edit' && pageCount > 0" data-testid="page-count">{{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }}</span>
-          <span data-testid="char-count">{{ charCount }} chars</span>
+      <!-- Status bar. Editorial micro-meta from the homepage mockup —
+           JetBrains Mono at 10.5px, lowercase + 0.04em tracking, with
+           hairline middot separators. The status side mirrors the
+           same register so the whole bar reads as one slate, like a
+           film/print colophon strip rather than an app footer. -->
+      <footer class="border-t border-default/60 bg-muted px-4 py-1.5 flex items-center justify-between font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0">
+        <div class="flex items-center gap-3">
+          <span data-testid="word-count">{{ wordCount }} <span class="opacity-70">words</span></span>
+          <span class="opacity-50" aria-hidden="true">·</span>
+          <span v-if="viewMode !== 'edit' && pageCount > 0" data-testid="page-count">{{ pageCount }} <span class="opacity-70">{{ pageCount === 1 ? 'page' : 'pages' }}</span></span>
+          <span v-if="viewMode !== 'edit' && pageCount > 0" class="opacity-50" aria-hidden="true">·</span>
+          <span data-testid="char-count">{{ charCount }} <span class="opacity-70">chars</span></span>
         </div>
-        <div class="flex items-center gap-4" data-testid="sync-status">
-          <span v-if="synced">
-            <UIcon
-              name="i-lucide-check-circle"
-              class="size-3 mr-0.5 text-green-500 align-text-bottom"
+        <div class="flex items-center gap-3" data-testid="sync-status">
+          <span
+            v-if="synced"
+            class="inline-flex items-center gap-1.5"
+          >
+            <span
+              class="block size-1.5 rounded-full bg-green-600 dark:bg-green-500"
+              aria-hidden="true"
             />
             {{ t('status.synced') }}
           </span>
           <span
             v-if="isReadOnly"
-            class="text-amber-500"
+            class="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400"
           >
             <UIcon
               name="i-lucide-lock"
-              class="size-3 mr-0.5 align-text-bottom"
+              class="size-3"
             />
-            Read only
+            read only
           </span>
         </div>
       </footer>

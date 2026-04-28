@@ -75,6 +75,17 @@ interface DocumentListItem {
   isOwner: boolean | number
 }
 
+// Track "has the first fetch resolved" explicitly. `useAsyncState` with
+// `immediate: false` reports `isLoading: false` until the first
+// `execute()` lands, which means the spinner gated on `loadingDocs`
+// alone is invisible during the SSR→hydration window — by the time
+// `tryOnMounted` fires `loadDocs`, the response often comes back
+// faster than a frame, so the user never sees a spinner. These flags
+// stay false until the first fetch resolves; the v-if uses them to
+// show the spinner consistently across SSR + the brief load window.
+const docsFetched = ref(false)
+const workspacesFetched = ref(false)
+
 const {
   state: myDocs,
   isLoading: loadingDocs,
@@ -87,8 +98,10 @@ const {
     resetOnExecute: false,
     onError: (e) => {
       myDocs.value = []
+      docsFetched.value = true
       showContextualError(e, 'error.generic')
-    }
+    },
+    onSuccess: () => { docsFetched.value = true }
   }
 )
 
@@ -104,8 +117,10 @@ const {
     resetOnExecute: false,
     onError: (e) => {
       myWorkspaces.value = []
+      workspacesFetched.value = true
       showContextualError(e, 'error.generic')
-    }
+    },
+    onSuccess: () => { workspacesFetched.value = true }
   }
 )
 
@@ -124,6 +139,8 @@ const {
 // next tick. See the equivalent guard in app/pages/w/[id].vue.
 tryOnMounted(() => {
   watch(loggedIn, () => {
+    docsFetched.value = false
+    workspacesFetched.value = false
     loadDocs()
     loadWorkspaces()
   }, { immediate: true })
@@ -194,33 +211,39 @@ function onRowLongPress(doc: DocumentListItem) {
 
 <template>
   <div class="min-h-screen flex flex-col">
-    <!-- Header -->
+    <!-- Header. The brand lockup is the wordmark + seal — the seal is
+         the in-product AI presence indicator AND the standalone brand
+         mark, so the dashboard shows the lockup rather than a generic
+         file icon. Sentence case throughout, no Title Case Headings. -->
     <header class="border-b border-default px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <UIcon
-          name="i-lucide-file-text"
-          class="text-primary size-6"
-        />
-        <span class="text-lg font-semibold">{{ t('app.name') }}</span>
-      </div>
+      <NuxtLink
+        to="/"
+        class="flex items-center"
+        aria-label="markoto home"
+      >
+        <CommonWordmark :size="20" />
+      </NuxtLink>
       <div class="flex items-center gap-2">
         <AuthUserMenu />
         <UColorModeButton />
       </div>
     </header>
 
-    <!-- Hero -->
-    <main class="flex-1 flex flex-col items-center px-6 py-12">
-      <div class="max-w-2xl text-center space-y-6">
-        <h1 class="text-4xl md:text-5xl font-bold tracking-tight">
-          {{ t('landing.hero') }}
+    <!-- Hero. Editorial register from the homepage mockup —
+         Fraunces weight 300 display, italic-400 emphasis on the
+         brand's loadbearing word ("craft"), Inter lede capped at
+         34ch. -->
+    <main class="flex-1 flex flex-col items-center px-6 py-20">
+      <div class="max-w-2xl text-center space-y-7">
+        <h1 class="font-serif text-5xl md:text-6xl font-light tracking-tight leading-[1.04]">
+          Rethinking the <em class="italic font-normal">craft</em> of writing.
         </h1>
-        <p class="text-lg text-muted">
+        <p class="text-[14px] leading-[1.65] text-muted max-w-[34ch] mx-auto">
           {{ t('landing.subtitle') }}
         </p>
-        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <UButton
-            size="xl"
+            size="lg"
             icon="i-lucide-plus"
             @click="createDocument"
           >
@@ -248,17 +271,21 @@ function onRowLongPress(doc: DocumentListItem) {
         </div>
       </div>
 
-      <!-- My workspaces -->
+      <!-- My workspaces. Mounts whenever logged-in so the loading
+           spinner is visible during the SSR→hydration window AND
+           during a manual refetch. After the first fetch resolves
+           and there are no workspaces, the section quietly empties
+           via `WorkspaceList`'s own empty fallback (`v-else`). -->
       <div
-        v-if="loggedIn && (myWorkspaces.length > 0 || loadingWorkspaces)"
+        v-if="loggedIn && (!workspacesFetched || myWorkspaces.length > 0)"
         class="mt-12 w-full max-w-4xl"
       >
-        <h2 class="text-lg font-semibold mb-4">
+        <h2 class="font-serif text-2xl font-normal mb-4">
           {{ t('workspace.sectionTitle') }}
         </h2>
         <WorkspaceList
           :workspaces="myWorkspaces"
-          :loading="loadingWorkspaces"
+          :loading="!workspacesFetched"
         />
       </div>
 
@@ -267,7 +294,7 @@ function onRowLongPress(doc: DocumentListItem) {
         v-if="loggedIn && myDocs.length > 0"
         class="mt-12 w-full max-w-2xl"
       >
-        <h2 class="text-lg font-semibold mb-4">
+        <h2 class="font-serif text-2xl font-normal mb-4">
           {{ t('landing.recentDocuments') }}
         </h2>
         <div class="space-y-2">
@@ -286,7 +313,7 @@ function onRowLongPress(doc: DocumentListItem) {
                 class="size-5 text-muted shrink-0"
               />
               <div class="min-w-0">
-                <p class="text-sm font-medium truncate">{{ doc.title }}</p>
+                <p class="font-serif text-base font-normal tracking-tight truncate">{{ doc.title }}</p>
                 <!-- Description as a subtitle when set. Highest-info
                      field for picking which doc to open; collapses
                      entirely when empty so legacy/blank docs don't
@@ -393,60 +420,21 @@ function onRowLongPress(doc: DocumentListItem) {
         @created="onWorkspaceCreated"
       />
 
+      <!-- Recent-docs spinner. Renders during the first fetch
+           regardless of cached state — `docsFetched` flips true
+           after `loadDocs` resolves (success or error), so the
+           indicator covers the SSR→hydration window where
+           `loadingDocs` alone reports false. -->
       <div
-        v-if="loggedIn && loadingDocs && myDocs.length === 0"
-        class="mt-12"
+        v-if="loggedIn && !docsFetched && myDocs.length === 0"
+        class="mt-12 flex justify-center"
       >
         <UIcon
           name="i-lucide-loader"
-          class="size-5 animate-spin text-muted"
+          class="size-6 animate-spin text-primary mx-auto"
         />
       </div>
 
-      <!-- Features -->
-      <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl w-full">
-        <div class="text-center space-y-2">
-          <UIcon
-            name="i-lucide-users"
-            class="text-primary size-8 mx-auto"
-          />
-          <h3 class="font-semibold">
-            Real-time Collaboration
-          </h3>
-          <p class="text-sm text-muted">
-            Edit together with live cursors and presence indicators
-          </p>
-        </div>
-        <div class="text-center space-y-2">
-          <UIcon
-            name="i-lucide-sparkles"
-            class="text-primary size-8 mx-auto"
-          />
-          <h3 class="font-semibold">
-            AI Writing Assistant
-          </h3>
-          <p class="text-sm text-muted">
-            Get intelligent suggestions and completions as you write
-          </p>
-        </div>
-        <div class="text-center space-y-2">
-          <UIcon
-            name="i-lucide-shield-check"
-            class="text-primary size-8 mx-auto"
-          />
-          <h3 class="font-semibold">
-            Flexible Sharing
-          </h3>
-          <p class="text-sm text-muted">
-            Public, view-only, or password-protected documents
-          </p>
-        </div>
-      </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="border-t border-default px-6 py-4 text-center text-sm text-muted">
-      YPad — Collaborative Markdown Editor
-    </footer>
   </div>
 </template>

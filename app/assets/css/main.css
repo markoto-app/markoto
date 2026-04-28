@@ -1,19 +1,222 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/* ─── Markoto design tokens ─────────────────────────────────────────────
+   Layer 1 of Nuxt UI v4's three-layer theming: raw values live here,
+   semantic mapping (primary/neutral/etc.) lives in app.config.ts.
+
+   `static` is required for Nuxt UI v3/v4 — without it the variables
+   aren't exposed to the component config. Both ramps must define all
+   11 stops (50–950); Nuxt UI references several. Custom ramps cannot
+   be named `primary` or `gray` — those names collide with semantic
+   slots. We use `shu` and `sumi`, which is also the brand vocabulary. */
 @theme static {
-  --font-sans: 'Public Sans', sans-serif;
+  /* Typography. Calibrated against the designer's homepage mockup
+     (`markoto_homepage_mockup.html`):
+     - Inter (sans): body, UI labels, buttons, status. 400 + 500 only.
+     - JetBrains Mono (mono): eyebrows, captions, meta labels, status
+       chrome metadata, line/column counts, timestamps, the "begin →"
+       CTA register. The mockup uses tight letter-spacing (0.04–0.06em)
+       and small sizes (10.5–11px) — the instrument voice.
+     - Fraunces (serif): the WORDMARK, display headlines, all editorial
+       headings, AND the AI's italic voice. Variable opsz scales the
+       drawing per size; weight 300 is the display register, 400 is
+       text register, italic 400 is the AI moment.
+     The wordmark moves from Inter → Fraunces per the mockup's lockup. */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: 'Fraunces', Georgia, serif;
+
+  /* Shu — primary (vermillion). The seal red. Reserved for AI presence
+     (cursor, tag, gutter mark, thinking-line seal) and a small set of
+     attention-critical states. Never the background of a primary CTA;
+     primary CTAs are sumi-950 (light) / sumi-50 (dark). */
+  --color-shu-50:  #FCEDE7;
+  --color-shu-100: #F8D5CA;
+  --color-shu-200: #F0AC97;
+  --color-shu-300: #E5826A;
+  --color-shu-400: #D14828;
+  --color-shu-500: #B5371F;
+  --color-shu-600: #952D18;
+  --color-shu-700: #762412;
+  --color-shu-800: #581A0D;
+  --color-shu-900: #3D1108;
+  --color-shu-950: #260A04;
+
+  /* Sumi — neutral (warm gray). Replaces the default zinc/slate/neutral
+     ramps. Warmth is the whole point — separates Markoto from the cold
+     blue-gray default of every developer tool. */
+  --color-sumi-50:  #FAF8F4;
+  --color-sumi-100: #F2EFE7;
+  --color-sumi-200: #EAE5D7;
+  --color-sumi-300: #D5CFC0;
+  --color-sumi-400: #A39A8A;
+  --color-sumi-500: #7A7468;
+  --color-sumi-600: #5F5C56;
+  --color-sumi-700: #3D3933;
+  --color-sumi-800: #2A251D;
+  --color-sumi-900: #1F1B14;
+  --color-sumi-950: #14110D;
 }
 
-/* Tailwind v4 removed the default `cursor: pointer` on buttons. Restore it
-   globally so every button/clickable element gets the right cursor without
-   per-component class="cursor-pointer" overrides. */
+/* Flatten all dark-mode surface elevations to sumi-950. The original
+   spec layered dark mode as page=sumi-950 / chrome=sumi-900 /
+   elevated=sumi-800, but the canonical SVG lockup
+   (`/markoto-logos/primary-lockup-dark.svg`) bakes a sumi-950 rect
+   into the asset for cream-on-dark legibility. Anywhere the lockup
+   lands on a non-950 surface, that rect would read as a visible
+   square. Dropping all dark-mode neutrals to 950 lets the asset
+   composite seamlessly on every surface — the elevation cue is
+   carried by hairline borders and card padding instead. Light mode
+   is unaffected; the asset there is transparent. */
+.dark {
+  /* In dark mode, the canonical lockup SVG bakes a sumi-950 rect for
+     cream-on-dark legibility — the chrome surfaces it lands on
+     (`bg-muted` = toolbar, sidebar wrappers, status bar, iframe
+     surround) need to resolve to sumi-950 so the rect composites
+     flat. The cards / page surface (`bg-default`) stays at Nuxt
+     UI's default sumi-900 so cards retain visible contrast against
+     the bg-muted wrapper — that contrast is what tells comments
+     apart from their sidebar background. Earlier this file flattened
+     `--ui-bg` to sumi-950 too, which collapsed the delta and made
+     dark-mode comment cards invisible against the panel. */
+  --ui-bg-muted: var(--color-sumi-950);
+  --ui-bg-elevated: var(--color-sumi-950);
+  --ui-bg-accented: var(--color-sumi-950);
+}
+
+/* Soften Nuxt UI input/dropdown focus rings. The default focus state
+   stamps a `ring-2 ring-primary` (= 2px shu) ring on inputs, comboboxes,
+   textareas, and selects — thick enough to read "alert" rather than
+   "instrument focus". The brand calls for thin, elegant lines, so we
+   keep the shu accent but drop the ring to a 1px hairline at slightly
+   reduced opacity. Scoped narrowly to text-entry / dropdown roles so
+   we don't accidentally weaken focus rings on other surfaces (modals,
+   custom focus visuals, etc.). */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="combobox"]:focus-visible,
+[role="textbox"]:focus-visible,
+[role="searchbox"]:focus-visible {
+  --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 1px var(--tw-ring-color) !important;
+  box-shadow: var(--tw-ring-inset,) 0 0 0 1px var(--tw-ring-color) !important;
+}
+
+/* Documentation prose. Nuxt UI's `prose` defaults wear a generic
+   sans + bold-stop ladder (font-weight 600/700) which broke the
+   editorial register everywhere else uses. Override headings to
+   Fraunces serif at the brand's restrained weights, links to a
+   sumi underline (no shu — links aren't AI), and inline code to
+   the same JetBrains Mono micro-meta voice that runs through the
+   rest of the chrome. Scoped to .prose so the editor's CodeMirror
+   stays untouched. */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--color-sumi-950);
+}
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4 {
+  color: var(--color-sumi-50);
+}
+.prose h1 { font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 0.6em; }
+.prose h2 { font-size: 1.6rem; line-height: 1.2; margin-top: 2.2em; margin-bottom: 0.5em; }
+.prose h3 { font-size: 1.25rem; line-height: 1.3; margin-top: 1.8em; margin-bottom: 0.4em; }
+.prose h4 { font-size: 1.05rem; line-height: 1.35; margin-top: 1.5em; }
+.prose p,
+.prose li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-sumi-700);
+}
+.dark .prose p,
+.dark .prose li {
+  color: var(--color-sumi-200);
+}
+.prose strong { font-weight: 500; color: inherit; }
+.prose a {
+  color: var(--color-sumi-950);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-sumi-950) 30%, transparent);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  font-weight: 400;
+  transition: text-decoration-color 120ms ease-out;
+}
+.prose a:hover {
+  text-decoration-color: var(--color-sumi-950);
+}
+.dark .prose a {
+  color: var(--color-sumi-50);
+  text-decoration-color: color-mix(in srgb, var(--color-sumi-50) 30%, transparent);
+}
+.dark .prose a:hover {
+  text-decoration-color: var(--color-sumi-50);
+}
+.prose code,
+.prose kbd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  font-weight: 400;
+  background: var(--color-sumi-100);
+  color: var(--color-sumi-950);
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0;
+}
+.dark .prose code,
+.dark .prose kbd {
+  background: var(--color-sumi-900);
+  color: var(--color-sumi-100);
+}
+.prose pre {
+  background: var(--color-sumi-100);
+  border: 0.5px solid color-mix(in srgb, var(--color-sumi-300) 60%, transparent);
+  border-radius: 6px;
+}
+.dark .prose pre {
+  background: var(--color-sumi-900);
+  border-color: color-mix(in srgb, var(--color-sumi-700) 60%, transparent);
+}
+.prose pre code {
+  background: transparent;
+  padding: 0;
+}
+.prose blockquote {
+  border-left: 2px solid var(--color-sumi-300);
+  padding-left: 1em;
+  font-style: italic;
+  font-family: var(--font-serif);
+  color: var(--color-sumi-600);
+}
+.dark .prose blockquote {
+  border-left-color: var(--color-sumi-700);
+  color: var(--color-sumi-300);
+}
+
+/* Tailwind v4 dropped the default `cursor: pointer` on buttons — restore
+   globally so we don't sprinkle `cursor-pointer` on every clickable. */
 @layer base {
   button:not(:disabled),
   [role="button"]:not(:disabled),
   summary,
   a[href] {
     cursor: pointer;
+  }
+
+  /* Tighten tracking globally so display sizes don't drift apart, per
+     the design system's typography rules. The default body weight is
+     400; we never use 600+. */
+  html {
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    letter-spacing: -0.01em;
   }
 }
 
@@ -39,10 +242,34 @@
 }
 
 /* Pulse on a comment anchor when the user clicks the matching thread
-   in the sidebar — drives the eye to the doc location. Same reason as
-   the dictation keyframes above: CM6 theme rules can't declare keyframes. */
+   in the sidebar. Switched from amber to shu — the comment-flash is an
+   AI-discoverable surface (where @ai mentions land) and the brand keeps
+   shu as the AI presence color. */
 @keyframes cm-comment-flash-pulse {
-  0%   { background-color: rgba(234, 179, 8, 0.65); }
-  50%  { background-color: rgba(234, 179, 8, 0.85); }
-  100% { background-color: rgba(234, 179, 8, 0.0); }
+  0%   { background-color: rgba(181, 55, 31, 0.55); }
+  50%  { background-color: rgba(181, 55, 31, 0.75); }
+  100% { background-color: rgba(181, 55, 31, 0.0); }
+}
+
+/* AI cursor blink — used by components/ai/Cursor.vue. Lives at document
+   scope for the same reason as the keyframes above. */
+@keyframes mk-ai-cursor-blink {
+  50% { opacity: 0; }
+}
+
+/* AI thinking-line entrance — fade + 8px upward translate, 240ms ease. */
+@keyframes mk-ai-thinking-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Gutter-mark fade-out used after a human accepts the AI's edit:
+   200ms color shift to sumi-300, 600ms hold, then 200ms opacity fade.
+   The component drives the timing; the keyframes only describe the
+   shapes. */
+@keyframes mk-gutter-mark-merge {
+  0%   { background: var(--color-shu-500); opacity: 1; }
+  20%  { background: var(--color-sumi-300); opacity: 1; }
+  80%  { background: var(--color-sumi-300); opacity: 1; }
+  100% { background: var(--color-sumi-300); opacity: 0; }
 }

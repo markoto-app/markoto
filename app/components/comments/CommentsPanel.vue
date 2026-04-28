@@ -22,7 +22,7 @@ interface MentionableUser {
 // `@ai` literal vs `@[Name](user:N)`.
 type MentionableEntry
   = | { kind: 'user', id: number, name: string, email: string | null, avatarUrl: string | null }
-    | { kind: 'ai', id: 'ai', name: string, email: null, avatarUrl: null, description: string }
+    | { kind: 'ai', id: 'ai', name: string, email: null, avatarUrl: null, description: string, aliases?: readonly string[] }
 
 const props = defineProps<{
   ytext: YText
@@ -127,7 +127,12 @@ const aiEntry = computed<MentionableEntry>(() => ({
   name: t('comments.aiEntryName'),
   email: null,
   avatarUrl: null,
-  description: t('comments.aiEntryDescription')
+  description: t('comments.aiEntryDescription'),
+  // Aliases let the typeahead surface markoto when the user types
+  // legacy `@ai` muscle-memory or just `@m` for "markoto". Fuse
+  // matches across all keys; including the literal `markoto` makes
+  // the prefix-match deterministic even at low fuzzy threshold.
+  aliases: ['ai', 'markoto', 'assistant']
 }))
 
 // Composer source — AI first (so it surfaces immediately on bare `@`),
@@ -298,20 +303,30 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
-    <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-1.5">
+  <!-- Whole sidebar panel sits on `bg-muted` (sumi-100, "Mist") so
+       the header AND the scrolling list share the same warmer tone.
+       Cards inside the list use `bg-default` (sumi-50) and contrast
+       against this surround for free. Same surround as the editor
+       toolbar and the iframe preview surround — the entire chrome
+       around the doc reads as one warm field. -->
+  <div class="h-full flex flex-col bg-muted">
+    <!-- Panel header: Fraunces title in editorial register, mono
+         count in slate caption style. The panel sits inside the
+         editor toolbar surface, so its background is the warmer
+         `bg-muted` already provided by the parent. -->
+    <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
         <UIcon
           name="i-lucide-message-circle"
           class="size-4 text-muted"
         />
-        <h3 class="text-sm font-semibold">
+        <h3 class="font-serif text-base font-normal tracking-tight">
           {{ t('comments.title') }}
         </h3>
         <span
           v-if="totalCount > 0"
-          class="text-xs text-muted"
-        >({{ totalCount }})</span>
+          class="font-mono text-[10.5px] tracking-[0.04em] text-muted"
+        >{{ totalCount }}</span>
       </div>
       <div class="flex items-center gap-1">
         <UTooltip
@@ -342,7 +357,7 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
 
     <div
       ref="scrollContainer"
-      class="flex-1 overflow-y-auto p-2 space-y-2 min-h-0 bg-muted"
+      class="flex-1 overflow-y-auto p-2 space-y-2 min-h-0"
     >
       <!-- Draft thread for an in-progress new comment. Stays at the top
            of the list so the focused composer is always above the fold. -->
@@ -351,7 +366,7 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
         class="rounded-md border border-default bg-default p-3 shadow-sm ring-1 ring-primary-500/30"
         data-testid="comment-draft"
       >
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-muted mb-2">
+        <p class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted mb-2">
           {{ t('comments.draftHeading') }}
         </p>
         <CommentComposer
@@ -398,7 +413,7 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
       <template v-if="activeComments.length > 0">
         <p
           v-if="orphanedComments.length > 0 || (showResolved && resolvedComments.length > 0)"
-          class="text-[11px] font-semibold uppercase tracking-wide text-muted px-1 pt-1"
+          class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted px-1 pt-1"
         >
           {{ t('comments.activeSection') }}
         </p>
@@ -410,7 +425,7 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
       </template>
 
       <template v-if="orphanedComments.length > 0">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-muted px-1 pt-2">
+        <p class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted px-1 pt-2">
           {{ t('comments.orphanedSection') }}
         </p>
         <ReuseThreadRow
@@ -423,7 +438,7 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
 
       <template v-if="showResolved && resolvedComments.length > 0">
         <p
-          class="text-[11px] font-semibold uppercase tracking-wide text-muted px-1 pt-2"
+          class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted px-1 pt-2"
           data-testid="comments-resolved-section-heading"
         >
           {{ t('comments.resolvedSection') }}

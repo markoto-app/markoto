@@ -219,7 +219,10 @@ const statusIcon = computed(() => {
     case 'editing': return 'i-lucide-pencil'
     case 'error': return 'i-lucide-alert-circle'
     case 'done': return 'i-lucide-check-circle'
-    default: return 'i-lucide-sparkles'
+    // Fallback: pulsing-circle for any unknown active phase. The
+    // brand reserves the seal for the brand mark itself; here we
+    // just need a "still working" glyph.
+    default: return 'i-lucide-loader'
   }
 })
 
@@ -231,11 +234,12 @@ const isActive = computed(() => !!props.ai.mySession.value)
 </script>
 
 <template>
-  <!-- Floating AI bar — positioned by parent (`<main>` should be
-       `relative`). Sits above the bottom edge of the editor + preview
-       area, centered and prominent. Pill shape, frosted backdrop, blue
-       accent ring + heavy soft glow so it reads as "AI surface" against
-       the doc body — analogous to Android's on-screen Google AI bar. -->
+  <!-- Floating AI bar. Sits above the bottom edge of the editor +
+       preview area, centered and prominent. Pill shape, frosted
+       backdrop, SHU accent ring + soft glow so it reads as "AI
+       surface" — shu means AI presence in this product, and the
+       prompt bar is the AI's primary entry point. The ring is the
+       brand's most prominent shu surface. -->
   <div
     class="ai-prompt-bar pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center px-4"
     :class="{ 'is-focused': focused, 'is-active': isActive }"
@@ -250,11 +254,21 @@ const isActive = computed(() => !!props.ai.mySession.value)
            a session is in flight. Stays the same through voice states —
            we want the prompt bar to feel the same regardless of whether
            the user is typing or speaking; only the middle slot changes. -->
+      <!-- Idle state: the brand seal stands in for the old sparkle —
+           the design system bans AI-sparkle iconography ("the seal is
+           the AI's mark; it does not need a sparkle"). Active states
+           keep their phase-specific lucide icons in shu. -->
+      <CommonSeal
+        v-if="!isActive"
+        :size="14"
+        class="shrink-0 mr-3"
+      />
       <UIcon
-        :name="isActive ? statusIcon : 'i-lucide-sparkles'"
+        v-else
+        :name="statusIcon"
         :class="[
-          'size-5 shrink-0 mr-3 transition-colors text-blue-500',
-          isActive ? 'animate-pulse' : ''
+          'size-5 shrink-0 mr-3 transition-colors text-primary',
+          'animate-pulse'
         ]"
       />
 
@@ -293,6 +307,13 @@ const isActive = computed(() => !!props.ai.mySession.value)
       >
         <span class="text-muted italic">{{ t('ai.micRequestingPermission') }}</span>
       </div>
+      <!-- AI prompt input wears the editorial italic-serif voice —
+           Fraunces italic 400, slightly larger than the rest of the
+           chrome. The brand reserves italic-serif for "the AI is
+           speaking" moments; treating the input itself as a voice
+           channel to the AI extends that moment to the user side
+           of the conversation. Both placeholder and typed text
+           inherit the family. -->
       <input
         v-else
         ref="inputEl"
@@ -300,8 +321,7 @@ const isActive = computed(() => !!props.ai.mySession.value)
         type="text"
         :placeholder="placeholder"
         :disabled="disabled"
-        class="flex-1 min-w-0 bg-transparent outline-none text-base placeholder:text-muted disabled:text-muted py-3 pr-0"
-        :class="{ italic: disabled && isActive }"
+        class="flex-1 min-w-0 bg-transparent outline-none font-serif italic text-[17px] tracking-tight placeholder:text-muted disabled:text-muted py-3 pr-0"
         data-testid="ai-prompt-bar-input"
         @keydown.enter="onSubmit"
       >
@@ -361,7 +381,7 @@ const isActive = computed(() => !!props.ai.mySession.value)
            secondary slot is the only escape. -->
       <UButton
         v-if="!isActive && isRecording"
-        color="info"
+        color="primary"
         icon="i-lucide-send"
         :aria-label="t('ai.micStop')"
         class="ai-prompt-bar__action"
@@ -369,7 +389,7 @@ const isActive = computed(() => !!props.ai.mySession.value)
       />
       <UButton
         v-else-if="!isActive && isTranscribing"
-        color="info"
+        color="primary"
         :loading="true"
         :disabled="true"
         :aria-label="t('ai.micTranscribing')"
@@ -377,10 +397,12 @@ const isActive = computed(() => !!props.ai.mySession.value)
       />
       <!-- Send button. When credits are exhausted we do NOT disable
            the button — the click routes to /pricing instead. Keeps
-           the "escape hatch" alive so the user can't get stuck. -->
+           the "escape hatch" alive so the user can't get stuck.
+           `color="primary"` here is shu — invoking the AI is the one
+           place where a CTA-shaped button SHOULD wear the seal red. -->
       <UButton
         v-else-if="!isActive"
-        :color="creditsExhausted ? 'neutral' : 'info'"
+        :color="creditsExhausted ? 'neutral' : 'primary'"
         :icon="creditsExhausted ? 'i-lucide-lock' : 'i-lucide-send'"
         :loading="ai.submitting.value"
         :disabled="!loggedIn || (!creditsExhausted && !input.trim())"
@@ -421,26 +443,38 @@ const isActive = computed(() => !!props.ai.mySession.value)
  * stacked shadows with color-mix become unreadable.
  */
 .ai-prompt-bar__shell {
-  background: color-mix(in srgb, var(--ui-bg) 88%, transparent);
+  /* Use `--ui-bg-muted` (sumi-50 in light, flat sumi-950 in dark) so
+     the prompt bar shares the same warm chrome tone as the toolbar,
+     status bar, and right sidebar — one continuous chrome field.
+     Ring + glow colors are full-strength shu (the brand red). Earlier
+     they sat at 38%/28% which drifted toward pink/coral. */
+  background: color-mix(in srgb, var(--ui-bg-muted) 88%, transparent);
   box-shadow:
-    0 0 0 1.5px color-mix(in srgb, var(--color-blue-500, #3b82f6) 45%, transparent),
-    0 16px 48px -12px color-mix(in srgb, var(--color-blue-500, #3b82f6) 35%, transparent),
-    0 8px 24px -8px rgb(0 0 0 / 0.15);
+    0 0 0 1px color-mix(in srgb, var(--color-shu-500) 70%, transparent),
+    0 14px 36px -12px color-mix(in srgb, var(--color-shu-500) 32%, transparent),
+    0 8px 24px -8px rgb(20 17 13 / 0.15);
 }
 
 .dark .ai-prompt-bar__shell {
-  background: color-mix(in srgb, var(--ui-bg) 78%, transparent);
+  background: color-mix(in srgb, var(--ui-bg-muted) 78%, transparent);
   box-shadow:
-    0 0 0 1.5px color-mix(in srgb, var(--color-blue-500, #3b82f6) 55%, transparent),
-    0 16px 48px -12px color-mix(in srgb, var(--color-blue-500, #3b82f6) 45%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-shu-400) 75%, transparent),
+    0 14px 36px -12px color-mix(in srgb, var(--color-shu-400) 38%, transparent),
     0 8px 24px -8px rgb(0 0 0 / 0.5);
 }
 
 .ai-prompt-bar.is-focused .ai-prompt-bar__shell {
   box-shadow:
-    0 0 0 2.5px color-mix(in srgb, var(--color-blue-500, #3b82f6) 70%, transparent),
-    0 20px 56px -12px color-mix(in srgb, var(--color-blue-500, #3b82f6) 50%, transparent),
-    0 8px 24px -8px rgb(0 0 0 / 0.18);
+    0 0 0 1.5px color-mix(in srgb, var(--color-shu-500) 90%, transparent),
+    0 18px 44px -12px color-mix(in srgb, var(--color-shu-500) 45%, transparent),
+    0 8px 24px -8px rgb(20 17 13 / 0.18);
+}
+
+:global(.dark) .ai-prompt-bar.is-focused .ai-prompt-bar__shell {
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--color-shu-400) 90%, transparent),
+    0 18px 44px -12px color-mix(in srgb, var(--color-shu-400) 50%, transparent),
+    0 8px 24px -8px rgb(0 0 0 / 0.45);
 }
 
 /*
@@ -464,38 +498,40 @@ const isActive = computed(() => !!props.ai.mySession.value)
   inherits: false;
   initial-value: 0;
 }
-@property --ai-rainbow-pulse {
+@property --mk-pulse {
   syntax: '<number>';
   inherits: false;
   initial-value: 0;
 }
 
-@keyframes ai-rainbow {
-  to { --ai-rainbow-hue: 360; }
-}
-@keyframes ai-pulse {
-  0%, 100% { --ai-rainbow-pulse: 0; }
-  50%      { --ai-rainbow-pulse: 1; }
+/* Active state breathing — single shu glow that fades in and out.
+   Earlier this rotated through the full hue spectrum (rainbow ring),
+   which contradicted the brand rule "shu means AI presence,
+   nothing else." A pulsing shu shadow is the same affordance ("the
+   bar is alive, working") in the brand's voice. */
+@keyframes mk-pulse {
+  0%, 100% { --mk-pulse: 0; }
+  50%      { --mk-pulse: 1; }
 }
 
 .ai-prompt-bar.is-active .ai-prompt-bar__shell {
-  animation:
-    ai-rainbow 8s linear infinite,
-    ai-pulse 2.8s ease-in-out infinite;
-  /* Compose values in derived custom props so the shadow rule below
-     stays readable. `_h` carries the deg-suffixed hue, `_p` is the
-     0..1 pulse for use in linear interpolations below. */
-  --_h: calc(var(--ai-rainbow-hue) * 1deg);
-  --_p: var(--ai-rainbow-pulse);
+  animation: mk-pulse 2.4s ease-in-out infinite;
+  --_p: var(--mk-pulse);
 
   box-shadow:
-    /* Border ring — thickness pulses 2 px → 4 px */
-    0 0 0 calc(2px + var(--_p) * 2px) hsl(var(--_h) 90% 60% / 0.85),
-    /* Outer glow — y-offset, blur, and opacity all breathe */
-    0 calc(18px + var(--_p) * 14px) calc(48px + var(--_p) * 28px) -12px hsl(var(--_h) 95% 60% / calc(0.45 + var(--_p) * 0.3)),
-    /* Static drop shadow — kept dark/neutral so the bar still has
-       depth against the page even at the dimmest pulse phase */
-    0 8px 24px -8px rgb(0 0 0 / 0.2);
+    /* Border ring — stays at the brand shu, thickness pulses 1.5 → 2.5 px */
+    0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-500) calc(60% + var(--_p) * 25%), transparent),
+    /* Outer glow — blur and opacity breathe; hue is locked to shu */
+    0 calc(16px + var(--_p) * 12px) calc(40px + var(--_p) * 28px) -12px color-mix(in srgb, var(--color-shu-500) calc(35% + var(--_p) * 30%), transparent),
+    /* Static warm-tinted drop shadow underneath */
+    0 8px 24px -8px rgb(20 17 13 / 0.18);
+}
+
+:global(.dark) .ai-prompt-bar.is-active .ai-prompt-bar__shell {
+  box-shadow:
+    0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-400) calc(60% + var(--_p) * 25%), transparent),
+    0 calc(16px + var(--_p) * 12px) calc(40px + var(--_p) * 28px) -12px color-mix(in srgb, var(--color-shu-400) calc(35% + var(--_p) * 30%), transparent),
+    0 8px 24px -8px rgb(0 0 0 / 0.45);
 }
 
 /* Respect users who've asked for reduced motion — drop the animations
@@ -505,9 +541,9 @@ const isActive = computed(() => !!props.ai.mySession.value)
   .ai-prompt-bar.is-active .ai-prompt-bar__shell {
     animation: none;
     box-shadow:
-      0 0 0 2.5px color-mix(in srgb, var(--color-violet-500, #8b5cf6) 70%, transparent),
-      0 20px 56px -12px color-mix(in srgb, var(--color-violet-500, #8b5cf6) 50%, transparent),
-      0 8px 24px -8px rgb(0 0 0 / 0.18);
+      0 0 0 2.5px color-mix(in srgb, var(--color-shu-500) 70%, transparent),
+      0 20px 56px -12px color-mix(in srgb, var(--color-shu-500) 50%, transparent),
+      0 8px 24px -8px rgb(20 17 13 / 0.18);
   }
 }
 
@@ -524,7 +560,7 @@ const isActive = computed(() => !!props.ai.mySession.value)
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--ui-text-muted) 60%, transparent) 0%,
-    var(--color-blue-500, #3b82f6) 50%,
+    var(--color-shu-500) 50%,
     color-mix(in srgb, var(--ui-text-muted) 60%, transparent) 100%
   );
   background-size: 200% 100%;

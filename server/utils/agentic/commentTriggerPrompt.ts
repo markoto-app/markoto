@@ -21,7 +21,10 @@ import { MARKDOWN_REFERENCE } from './markdownReference'
  * 400 — AI doesn't summon itself.
  */
 
-const AT_AI_RE = /(^|[^\w])@ai\b/gi
+// Match both `@markoto` (current) and legacy `@ai` so historical
+// comments still trigger; also use this regex to STRIP outgoing
+// markoto replies of either form so the loop can't re-summon itself.
+const AT_AI_RE = /(^|[^\w])@(markoto|ai)\b/gi
 
 /**
  * Replace `@ai` tokens with the literal `AI` (preserving the

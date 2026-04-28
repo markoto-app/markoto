@@ -10,7 +10,7 @@ import { formatMentionToken, COMMENT_BODY_MAX } from '~/utils/commentBody'
 //     summon the AI without remembering the bare `@ai` syntax.
 type MentionableEntry
   = | { kind: 'user', id: number, name: string, email: string | null, avatarUrl: string | null }
-    | { kind: 'ai', id: 'ai', name: string, email: null, avatarUrl: null, description: string }
+    | { kind: 'ai', id: 'ai', name: string, email: null, avatarUrl: null, description: string, aliases?: readonly string[] }
 
 const props = withDefaults(defineProps<{
   mentionableUsers: readonly MentionableEntry[]
@@ -74,7 +74,11 @@ const { results: fuseResults } = useFuse(
   computed(() => [...props.mentionableUsers]),
   {
     fuseOptions: {
-      keys: ['name', 'email'],
+      // `aliases` is the markoto-row's escape hatch: typing legacy
+      // `@ai` (or any future shortcut) still surfaces the markoto
+      // entry even though its display name is "markoto". Fuse treats
+      // arrays for a key as multi-value and matches against any.
+      keys: ['name', 'email', 'aliases'],
       threshold: 0.4,
       ignoreLocation: true,
       shouldSort: true
@@ -214,7 +218,7 @@ function pickMention(entry: MentionableEntry) {
   // string the server's hasAiMention regex matches; user tokens use
   // the structured `@[Name](user:N)` form so the renderer can resolve
   // user_id → avatar.
-  const token = (entry.kind === 'ai' ? '@ai' : formatMentionToken(entry.name, entry.id)) + ' '
+  const token = (entry.kind === 'ai' ? '@markoto' : formatMentionToken(entry.name, entry.id)) + ' '
   body.value = before + token + after
   mentionContext.value = null
   // Move caret to right after the inserted token + trailing space.
@@ -336,11 +340,10 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
         @mouseenter="highlighted = idx"
       >
         <template v-if="entry.kind === 'ai'">
-          <span class="ai-typeahead-icon flex items-center justify-center size-4 rounded-full shrink-0">
-            <UIcon
-              name="i-lucide-sparkles"
-              class="size-3"
-            />
+          <!-- markoto row in the @-mention typeahead. Seal directly
+               replaces the gradient sparkles icon. -->
+          <span class="flex items-center justify-center size-4 shrink-0">
+            <CommonSeal :size="8" />
           </span>
           <span class="truncate font-medium">{{ entry.name }}</span>
           <span class="text-xs text-muted truncate ml-auto">{{ entry.description }}</span>
@@ -361,9 +364,17 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
       </button>
     </div>
 
-    <div class="mt-1.5 flex items-center justify-between gap-2">
-      <span class="text-[11px] text-muted">
-        {{ t('comments.submitHint', { cmd: cmdLabel }) }}
+    <!-- Composer footer. Compact kbd-chip hint in JetBrains Mono — same
+         0.04em tracking register as the status bar and comment actions.
+         `whitespace-nowrap` on the hint prevents the chips and verbs
+         from line-breaking in the narrow comments panel. -->
+    <div class="mt-1.5 flex items-center justify-between gap-2 flex-wrap">
+      <span class="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-[0.04em] text-muted lowercase whitespace-nowrap">
+        <kbd class="font-mono text-[10px] tracking-normal px-1.5 py-px rounded border border-default/70 bg-default text-default normal-case">{{ cmdLabel }}↵</kbd>
+        <span>post</span>
+        <span class="opacity-50" aria-hidden="true">·</span>
+        <kbd class="font-mono text-[10px] tracking-normal px-1.5 py-px rounded border border-default/70 bg-default text-default normal-case">esc</kbd>
+        <span>cancel</span>
       </span>
       <div class="flex gap-1">
         <UButton
@@ -375,8 +386,11 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
         >
           {{ cancelLabel || t('comments.cancel') }}
         </UButton>
+        <!-- Submit button uses neutral (sumi-950 in light, sumi-50
+             in dark). Shu is reserved for AI presence — posting a
+             comment is a regular CTA, not an AI invocation. -->
         <UButton
-          color="primary"
+          color="neutral"
           variant="solid"
           size="xs"
           :disabled="submitDisabled"
@@ -391,18 +405,7 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
 </template>
 
 <style scoped>
-/*
- * AI typeahead row icon. Distinct from the user avatars (no <UAvatar>
- * because there's no real user) — a violet→blue gradient circle with
- * a sparkles glyph signals "this is the AI assistant, not a teammate".
- * Matches the AiMentionPill chip used in the rendered comment body.
- */
-.ai-typeahead-icon {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--color-violet-500, #8b5cf6) 70%, transparent),
-    color-mix(in srgb, var(--color-blue-500, #3b82f6) 70%, transparent)
-  );
-  color: white;
-}
+/* markoto typeahead row uses the brand seal directly — no separate
+ * gradient chip needed. The seal already carries the "this is the
+ * assistant, not a teammate" cue. */
 </style>

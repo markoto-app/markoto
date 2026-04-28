@@ -88,28 +88,41 @@ function labelRight(h: Highlight): boolean {
         @click="$emit('click')"
       >
         <!-- Text card. Two variants:
-             - chapter: big centered heading + "Chapter" eyebrow label
-             - narration: smaller centered prose, no label —
-               exposition between actions, not a section break. -->
+             - chapter: huge Fraunces serif headline (display register
+               with optional italic emphasis) + JetBrains Mono eyebrow
+               separator, centered on a warm bone field. The previous
+               `font-semibold` Inter at 5xl read "developer slide
+               deck"; the new register reads "field-guide chapter
+               title" — same display voice as the homepage hero.
+             - narration: smaller centered prose, exposition between
+               actions, not a section break. -->
         <div
           v-if="card"
-          class="absolute inset-0 flex flex-col items-center justify-center px-12 bg-elevated/30"
+          class="absolute inset-0 flex flex-col items-center justify-center px-12 bg-muted"
         >
           <div
             v-if="card.kind === 'chapter'"
-            class="text-xs uppercase tracking-widest text-muted mb-3"
+            class="flex items-center gap-2.5 mb-6 font-mono text-[11px] tracking-[0.06em] uppercase text-muted"
           >
-            Chapter
+            <span class="block w-[22px] h-px bg-current opacity-60" aria-hidden="true" />
+            <span>chapter</span>
           </div>
           <p
             v-if="card.kind === 'chapter'"
-            class="text-3xl md:text-5xl font-semibold text-default text-center leading-tight max-w-3xl"
+            class="font-serif font-light text-default text-center leading-[1.06] tracking-tight max-w-4xl"
+            style="font-size: clamp(36px, 5.5vw, 64px);"
           >
             {{ card.text }}
           </p>
+          <!-- Narration card. Sized up from `text-base/xl` to a
+               proper editorial body — readers used the previous size
+               only because chapter cards dwarfed it; on its own the
+               smaller text felt cramped on a full-frame slide. The
+               clamp() gives it responsive scaling without breakpoints. -->
           <p
             v-else
-            class="text-base md:text-xl text-default text-center leading-relaxed max-w-2xl"
+            class="text-default text-center leading-relaxed max-w-3xl"
+            style="font-size: clamp(18px, 2.4vw, 28px); line-height: 1.4;"
           >
             {{ card.text }}
           </p>

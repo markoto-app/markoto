@@ -82,15 +82,20 @@ function handleClose() {
   >
     <template #content>
       <div class="p-6">
+        <!-- Restore-confirm dialog. Restore is a chrome action, not
+             AI presence — palette stays sumi-neutral (`bg-elevated`
+             puck, `text-toned` icon, hairline-bordered info card).
+             The CTA is a neutral solid (sumi-950 light / sumi-50 dark)
+             rather than the previous `color="info"` blue. -->
         <div class="flex items-start gap-3 mb-4">
-          <div class="size-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+          <div class="size-10 rounded-full bg-elevated flex items-center justify-center shrink-0">
             <UIcon
               name="i-lucide-history"
-              class="size-5 text-blue-500"
+              class="size-5 text-toned"
             />
           </div>
           <div class="flex-1">
-            <h2 class="text-lg font-semibold">
+            <h2 class="font-serif text-xl font-normal tracking-tight">
               {{ t('activity.restore.confirm.title') }}
             </h2>
             <p class="text-sm text-muted mt-1">
@@ -99,10 +104,10 @@ function handleClose() {
           </div>
         </div>
 
-        <div class="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 mb-4 text-sm text-default">
+        <div class="bg-muted border border-default/60 rounded-lg p-3 mb-4 text-sm text-default">
           <UIcon
             name="i-lucide-info"
-            class="size-4 text-blue-500 inline-block align-text-bottom mr-1.5"
+            class="size-4 text-muted inline-block align-text-bottom mr-1.5"
           />
           {{ t('activity.restore.confirm.reversibleHint') }}
         </div>
@@ -116,7 +121,7 @@ function handleClose() {
             {{ t('common.cancel') }}
           </UButton>
           <UButton
-            color="info"
+            color="neutral"
             :loading="restoring"
             icon="i-lucide-history"
             @click="handleRestore"

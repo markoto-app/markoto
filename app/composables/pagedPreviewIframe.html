@@ -21,7 +21,14 @@
   html, body {
     margin: 0;
     padding: 0;
-    background: #f1f5f9;
+    /* Sumi-50 (`#FAF8F4`, "Bone") surround in light mode — matches
+       Nuxt UI's `--ui-bg-muted` (= the toolbar AND the right sidebar
+       wrapper), so the entire chrome around the doc and around the
+       panels reads as one calm field. White paper sheets and white
+       sidebar cards (`bg-default`) pop forward against this gentle
+       surround. Dark mode is overridden at runtime in
+       `syncDarkPreview` → sumi-950. */
+    background: #FAF8F4;
     scrollbar-gutter: stable;
   }
   body {
@@ -128,8 +135,18 @@
       // breaks the theme line. Mirroring the parent so the iframe
       // scrollbar always matches the app's.
       document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-      var bg = readParentChromeBg();
-      if (bg) document.body.style.background = bg;
+      // Only mirror the parent bg in DARK mode — there we want the
+      // iframe surround to match the app's flat sumi-950 chrome so
+      // the dark lockup composites flat. In LIGHT mode we keep the
+      // hardcoded sumi-200 surround declared in CSS, which is
+      // deliberately one shade warmer than the parent's sumi-50 so
+      // the white paper has a visible halo.
+      if (isDark) {
+        var bg = readParentChromeBg();
+        if (bg) document.body.style.background = bg;
+      } else {
+        document.body.style.background = '';
+      }
     } catch (e) { /* parent inaccessible — give up silently */ }
   }
   syncDarkPreview();

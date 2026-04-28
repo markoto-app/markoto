@@ -59,10 +59,15 @@ function draw() {
   const barWidth = Math.max(1, (w - totalGap) / count)
   const minBar = props.minHeight * h
 
-  // Theme-aware fill: pull the blue accent from CSS vars so dark/light
-  // mode and future theme changes propagate without a recompile here.
+  // Theme-aware fill: pull the brand shu (vermillion) from CSS vars
+  // so the bars match the prompt-bar's seal + ring + send button.
+  // Dark mode uses the brighter shu-400 stop for legibility on the
+  // darker chrome. Earlier this fill came from `--color-blue-500`
+  // — leftover from the pre-brand placeholder accent.
   const styles = getComputedStyle(el)
-  const base = styles.getPropertyValue('--color-blue-500').trim() || '#3b82f6'
+  const isDark = document.documentElement.classList.contains('dark')
+  const stop = isDark ? '--color-shu-400' : '--color-shu-500'
+  const base = styles.getPropertyValue(stop).trim() || (isDark ? '#D14828' : '#B5371F')
   ctx.fillStyle = base
 
   for (let i = 0; i < count; i++) {

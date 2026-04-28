@@ -132,14 +132,16 @@ const audienceItems = AUDIENCE_KINDS.map(kind => ({
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-1.5">
+  <div class="flex flex-col h-full bg-muted">
+    <!-- Document panel header — Fraunces title in the editorial
+         register, matching the Comments / Activity / Theme panels. -->
+    <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
         <UIcon
           name="i-lucide-info"
           class="size-4 text-muted"
         />
-        <h3 class="text-sm font-semibold">
+        <h3 class="font-serif text-base font-normal tracking-tight">
           {{ t('documentPanel.title') }}
         </h3>
       </div>
@@ -158,7 +160,7 @@ const audienceItems = AUDIENCE_KINDS.map(kind => ({
       <section>
         <label
           for="doc-description"
-          class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+          class="block font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted mb-1.5"
         >
           {{ t('documentPanel.description.label') }}
         </label>
@@ -175,8 +177,14 @@ const audienceItems = AUDIENCE_KINDS.map(kind => ({
           autoresize
           class="w-full"
         />
-        <div class="text-xs text-muted mt-1 text-right">
-          {{ descriptionDraft.length }} / 500
+        <!-- Character counter in the slate caption register —
+             JetBrains Mono with 0.04em tracking, matches the rest of
+             the editor's micro-meta voice. The format shifts from
+             "X / 500" to a thin-spaced "X · 500" for editorial polish;
+             the slash variant scans as "fraction" (= filling up),
+             middot scans as "of" (= you have headroom). -->
+        <div class="font-mono text-[10.5px] tracking-[0.04em] text-muted mt-1 text-right">
+          {{ descriptionDraft.length }} <span class="opacity-50">/</span> 500
         </div>
       </section>
 
@@ -184,7 +192,7 @@ const audienceItems = AUDIENCE_KINDS.map(kind => ({
       <section>
         <label
           for="doc-language"
-          class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+          class="block font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted mb-1.5"
         >
           {{ t('documentPanel.language.label') }}
         </label>
@@ -215,7 +223,7 @@ const audienceItems = AUDIENCE_KINDS.map(kind => ({
       <section>
         <label
           for="doc-audience"
-          class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
+          class="block font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted mb-1.5"
         >
           {{ t('documentPanel.audience.label') }}
         </label>

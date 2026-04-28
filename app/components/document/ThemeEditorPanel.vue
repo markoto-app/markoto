@@ -219,14 +219,16 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <div class="p-3 border-b border-default flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-1.5">
+  <div class="flex flex-col h-full bg-muted">
+    <!-- Theme panel header — Fraunces title in the editorial register,
+         matching Comments / Activity / Document panels. -->
+    <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
         <UIcon
           name="i-lucide-palette"
           class="size-4 text-muted"
         />
-        <h3 class="text-sm font-semibold">
+        <h3 class="font-serif text-base font-normal tracking-tight">
           {{ t('theme.title') }}
         </h3>
       </div>
@@ -250,17 +252,24 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
       <template v-else>
         <!-- Templates — clickable preset cards at the top of the panel. -->
         <section class="mb-4">
+          <!-- Section eyebrow — same JetBrains Mono micro-label
+               register as the Document panel's "Description / Language /
+               Audience" labels and the Comments panel's section heads. -->
           <div class="flex items-baseline justify-between mb-2 px-1">
-            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted">
+            <h4 class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted">
               {{ t('theme.presets.title') }}
             </h4>
           </div>
           <div class="grid grid-cols-1 gap-2">
+            <!-- Preset card. `bg-default` (= white in light, sumi-900
+                 in dark) so cards pop against the panel's `bg-muted`
+                 (sumi-50 in light, sumi-950 in dark) surround. Same
+                 contrast pattern as the comment + activity cards. -->
             <button
               v-for="preset in THEME_PRESETS"
               :key="preset.id"
               type="button"
-              class="text-left rounded-md border border-default p-3 hover:border-primary hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              class="text-left rounded-md border border-default bg-default p-3 hover:border-default/80 hover:bg-default/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               @click="applyPreset(preset)"
             >
               <div class="flex items-center gap-2 mb-1">

@@ -69,7 +69,7 @@ function formatTime(ms: number): string {
 // this narrow drawer view.
 function plainBody(body: string): string {
   return parseCommentBody(body)
-    .map(seg => seg.kind === 'mention' ? `@${seg.name}` : seg.kind === 'ai-mention' ? '@ai' : seg.text)
+    .map(seg => seg.kind === 'mention' ? `@${seg.name}` : seg.kind === 'ai-mention' ? '@markoto' : seg.text)
     .join('')
 }
 </script>

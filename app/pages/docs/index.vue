@@ -16,8 +16,8 @@ const { data: featured } = await useAsyncData('docs:featured', () =>
 )
 
 useSeoMeta({
-  title: 'Documentation — YPad',
-  description: 'Guides, walkthroughs, and reference for the YPad collaborative markdown editor.'
+  title: 'Documentation — markoto',
+  description: 'Guides, walkthroughs, and reference for the markoto collaborative markdown editor.'
 })
 
 definePageMeta({ layout: 'docs' })
@@ -62,51 +62,59 @@ const { open: openSearch } = useContentSearch()
          that's mostly cards underneath. CTA buttons set expectations
          for the two main reader paths: structured tutorial vs free
          search. -->
-    <header class="text-center mb-16">
-      <div class="inline-flex items-center gap-2 mb-5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium uppercase tracking-wider">
-        <UIcon name="i-lucide-book-open" class="size-3.5" />
-        Documentation
+    <!-- Hero in the editorial register. Mono eyebrow with a 22px
+         hairline rule (same pattern the homepage mockup uses), a
+         Fraunces 300/italic-emphasis display headline, a tight Inter
+         lede capped at 34ch, and an underline-mono CTA pair. The
+         previous version wore a lucide book + capitalized eyebrow
+         pill which read as "developer tool docs", not "studio
+         field guide". -->
+    <header class="mb-20 max-w-2xl">
+      <div class="flex items-center gap-2.5 mb-6 text-muted font-mono text-[11px] tracking-[0.06em] uppercase">
+        <span class="block w-[22px] h-px bg-current opacity-60" />
+        <span>field guide · vol. 01</span>
       </div>
-      <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-5 text-default">
-        Everything you can do in YPad
+      <h1 class="font-serif text-5xl md:text-6xl font-light tracking-tight leading-[1.04] mb-6 text-default">
+        Everything you can do<br>in <em class="italic font-normal">markoto</em>.
       </h1>
-      <p class="text-lg text-toned leading-relaxed max-w-2xl mx-auto">
+      <p class="text-[14px] leading-[1.65] text-muted max-w-[34ch]">
         A collaborative markdown editor with optional accounts. Write
-        anonymously, share by URL, theme it, export to PDF — these
-        guides walk through it. Every screenshot is captured live from
-        the running app.
+        anonymously, share by URL, theme it, export to PDF. Every
+        screenshot in here is captured live from the running app.
       </p>
-      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <UButton
+      <div class="mt-8 flex flex-wrap items-center gap-6">
+        <NuxtLink
           to="/docs/getting-started/quick-share"
-          icon="i-lucide-rocket"
-          color="primary"
-          size="md"
-          trailing-icon="i-lucide-arrow-right"
+          class="inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.06em] uppercase text-default border-b border-default pb-0.5 hover:text-muted hover:border-default/60 transition-colors"
         >
-          Start the first walkthrough
-        </UButton>
-        <UButton
-          color="neutral"
-          variant="subtle"
-          size="md"
-          icon="i-lucide-search"
+          <span>begin walkthrough</span>
+          <span aria-hidden="true">→</span>
+        </NuxtLink>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.06em] uppercase text-muted hover:text-default transition-colors"
           @click="openSearch = true"
         >
-          Search
-          <kbd class="ml-1 px-1.5 py-0.5 rounded border border-default bg-default/50 text-xs font-mono">⌘K</kbd>
-        </UButton>
+          <UIcon name="i-lucide-search" class="size-3.5" />
+          <span>search</span>
+          <kbd class="ml-1 px-1.5 py-0.5 rounded border border-default/70 bg-default text-[10px] font-mono tracking-normal text-default normal-case">⌘K</kbd>
+        </button>
       </div>
     </header>
 
     <!-- Featured pages — "Start here" — promoted to a denser two-up
          grid right under the hero. Newcomer's first action surface. -->
+    <!-- "Start here" — the entry-point flows. Cards drop the shu
+         hover (was `border-primary/40` + `bg-primary/10` arrow puck);
+         shu stays AI-only. Hover is now a calm sumi border + bone fill
+         lift. Section eyebrow uses the JetBrains Mono 0.06em register
+         that runs through the whole product. -->
     <section v-if="featured?.length" class="mb-16">
       <div class="flex items-baseline justify-between gap-4 mb-5">
-        <h2 class="text-2xl font-semibold tracking-tight">
+        <h2 class="font-serif text-3xl font-normal tracking-tight">
           Start here
         </h2>
-        <span class="text-xs uppercase tracking-wider text-muted">
+        <span class="font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted">
           Most-load-bearing flows
         </span>
       </div>
@@ -115,17 +123,17 @@ const { open: openSearch } = useContentSearch()
           v-for="p in featured"
           :key="p.path"
           :to="p.path"
-          class="group relative p-6 rounded-xl border border-default/60 hover:border-primary/40 hover:bg-elevated/40 hover:shadow-sm transition-all"
+          class="group relative p-6 rounded-xl border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
         >
           <div class="flex items-start gap-4">
-            <div class="shrink-0 size-10 rounded-lg flex items-center justify-center text-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+            <div class="shrink-0 size-10 rounded-lg flex items-center justify-center bg-muted text-toned group-hover:text-default transition-colors">
               <UIcon name="i-lucide-arrow-right" class="size-5" />
             </div>
             <div class="min-w-0 flex-1">
-              <h3 class="font-semibold text-base mb-1 group-hover:text-primary transition-colors">
+              <h3 class="font-serif text-lg font-normal mb-1">
                 {{ p.title }}
               </h3>
-              <p v-if="p.description" class="text-sm text-toned leading-relaxed">
+              <p v-if="p.description" class="text-sm text-muted leading-relaxed">
                 {{ p.description }}
               </p>
             </div>
@@ -139,7 +147,7 @@ const { open: openSearch } = useContentSearch()
          keeps the page from feeling tall + lets the eye scan. -->
     <section>
       <div class="flex items-baseline justify-between gap-4 mb-5">
-        <h2 class="text-2xl font-semibold tracking-tight">
+        <h2 class="font-serif text-3xl font-normal tracking-tight">
           Browse by topic
         </h2>
       </div>
@@ -148,15 +156,15 @@ const { open: openSearch } = useContentSearch()
           v-for="cat in sections ?? []"
           :key="cat.path"
           :to="cat.path"
-          class="group p-5 rounded-xl border border-default/60 hover:border-primary/40 hover:bg-elevated/40 hover:shadow-sm transition-all"
+          class="group p-5 rounded-xl border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
         >
-          <div class="size-10 rounded-lg flex items-center justify-center mb-3 text-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+          <div class="size-10 rounded-lg flex items-center justify-center mb-3 bg-muted text-toned group-hover:text-default transition-colors">
             <UIcon :name="cat.icon" class="size-5" />
           </div>
-          <h3 class="font-semibold mb-1 group-hover:text-primary transition-colors">
+          <h3 class="font-serif text-lg font-normal mb-1">
             {{ cat.title }}
           </h3>
-          <p class="text-sm text-toned leading-relaxed">
+          <p class="text-sm text-muted leading-relaxed">
             {{ cat.tagline }}
           </p>
         </NuxtLink>

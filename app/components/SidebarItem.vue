@@ -59,7 +59,7 @@ const open = computed(() => props.isActiveBranch(props.item.path))
         <NuxtLink
           :to="item.path"
           class="flex-1 truncate"
-          :class="$route.path === item.path ? 'text-primary font-medium' : ''"
+          :class="$route.path === item.path ? 'text-default font-medium' : ''"
           @click.stop
         >
           {{ item.title }}
@@ -79,7 +79,7 @@ const open = computed(() => props.isActiveBranch(props.item.path))
       v-else
       :to="item.path"
       class="block py-1 px-2 rounded hover:bg-elevated truncate"
-      :class="$route.path === item.path ? 'text-primary font-medium' : 'text-toned hover:text-default'"
+      :class="$route.path === item.path ? 'text-default font-medium' : 'text-toned hover:text-default'"
     >
       {{ item.title }}
     </NuxtLink>

@@ -38,7 +38,7 @@ const { loggedIn, user, clear } = useUserSession()
           size="xs"
           referrerpolicy="no-referrer"
         />
-        <span class="hidden sm:inline text-sm">{{ user?.name }}</span>
+        <span class="hidden sm:inline font-serif text-base font-normal tracking-tight">{{ user?.name }}</span>
       </UButton>
     </UDropdownMenu>
   </div>

@@ -431,6 +431,13 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
           leave-to-class="opacity-0"
           mode="out-in"
         >
+          <!-- Slide caption. Bone (sumi-50) chip on the bone field
+               of the slide rather than the previous black/45 wash —
+               the dark-on-dark-gray combo was unreadable in light
+               mode and read as "video player chrome". `bg-muted/95`
+               keeps just enough translucency for the chip to feel
+               layered without losing legibility, and `text-default`
+               + `font-medium` lands the brand body voice. -->
           <div
             v-if="subtitleText"
             :key="slideIdx"
@@ -438,7 +445,8 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
             :class="subtitleAtTop ? 'top-4' : 'bottom-4'"
           >
             <p
-              class="bg-black/45 text-white px-4 py-2 rounded-md text-base md:text-lg font-medium text-center max-w-[80%] backdrop-blur-md shadow-lg"
+              class="bg-muted/95 text-default px-4 py-2 rounded-md font-medium text-center max-w-[80%] backdrop-blur-md border border-default/60 shadow-sm"
+              style="font-size: clamp(15px, 1.5vw, 19px); line-height: 1.35;"
             >
               {{ subtitleText }}
             </p>

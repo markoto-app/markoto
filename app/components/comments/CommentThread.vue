@@ -139,15 +139,15 @@ function onClickThread(e: MouseEvent) {
       />
     </div>
 
+    <!-- "markoto is responding" indicator. Seal anchor instead of
+         the lucide sparkles icon — the seal is the brand's universal
+         AI presence mark. -->
     <div
       v-if="aiActive"
-      class="mt-2 flex items-center gap-1.5 text-xs ai-responding-row"
+      class="mt-2 flex items-center gap-2 text-xs ai-responding-row"
       data-testid="comment-ai-responding"
     >
-      <UIcon
-        name="i-lucide-sparkles"
-        class="size-3.5 ai-responding-icon"
-      />
+      <CommonSeal :size="8" />
       <span class="ai-responding-label">{{ t('comments.aiResponding') }}</span>
     </div>
 
@@ -170,69 +170,60 @@ function onClickThread(e: MouseEvent) {
 
 <style scoped>
 /*
- * "AI is responding" treatment — borrowed from AIPromptBar's active
- * state. Two simultaneous animations cycle the hue and pulse the
- * thickness/glow so the card reads as "AI surface, working" without
- * an extra spinner. See AIPromptBar.vue for the full design rationale.
+ * "markoto is responding" treatment — same single-color shu pulse
+ * that lives on the AI prompt bar's active state. Earlier this card
+ * cycled through the full rainbow which contradicted the brand rule
+ * "shu means AI presence, nothing else". One color, one breathing
+ * shadow — same vocabulary as every other AI surface in the product.
  */
-@property --ai-thread-hue {
-  syntax: '<number>';
-  inherits: false;
-  initial-value: 0;
-}
-@property --ai-thread-pulse {
+@property --mk-thread-pulse {
   syntax: '<number>';
   inherits: false;
   initial-value: 0;
 }
 
-@keyframes ai-thread-rainbow {
-  to { --ai-thread-hue: 360; }
-}
-@keyframes ai-thread-pulse {
-  0%, 100% { --ai-thread-pulse: 0; }
-  50%      { --ai-thread-pulse: 1; }
+@keyframes mk-thread-pulse {
+  0%, 100% { --mk-thread-pulse: 0; }
+  50%      { --mk-thread-pulse: 1; }
 }
 
 .comment-thread-card.is-ai-active {
-  animation:
-    ai-thread-rainbow 8s linear infinite,
-    ai-thread-pulse 2.8s ease-in-out infinite;
-  --_h: calc(var(--ai-thread-hue) * 1deg);
-  --_p: var(--ai-thread-pulse);
+  animation: mk-thread-pulse 2.4s ease-in-out infinite;
+  --_p: var(--mk-thread-pulse);
   border-color: transparent;
   box-shadow:
-    /* Border ring — thickness pulses 1.5px → 3px */
-    0 0 0 calc(1.5px + var(--_p) * 1.5px) hsl(var(--_h) 90% 60% / 0.85),
-    /* Outer glow — y-offset, blur, opacity all breathe */
-    0 calc(8px + var(--_p) * 8px) calc(28px + var(--_p) * 16px) -8px hsl(var(--_h) 95% 60% / calc(0.35 + var(--_p) * 0.25));
+    /* Border ring — thickness pulses 1.5px → 2.5px, color is locked shu */
+    0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-500) calc(60% + var(--_p) * 25%), transparent),
+    /* Outer glow — opacity + blur breathe */
+    0 calc(8px + var(--_p) * 8px) calc(20px + var(--_p) * 14px) -8px color-mix(in srgb, var(--color-shu-500) calc(28% + var(--_p) * 22%), transparent);
+}
+
+:global(.dark) .comment-thread-card.is-ai-active {
+  box-shadow:
+    0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-400) calc(65% + var(--_p) * 25%), transparent),
+    0 calc(8px + var(--_p) * 8px) calc(20px + var(--_p) * 14px) -8px color-mix(in srgb, var(--color-shu-400) calc(32% + var(--_p) * 24%), transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .comment-thread-card.is-ai-active {
     animation: none;
     box-shadow:
-      0 0 0 2px color-mix(in srgb, var(--color-violet-500, #8b5cf6) 70%, transparent),
-      0 8px 28px -8px color-mix(in srgb, var(--color-violet-500, #8b5cf6) 50%, transparent);
+      0 0 0 1.5px color-mix(in srgb, var(--color-shu-500) 75%, transparent),
+      0 8px 24px -8px color-mix(in srgb, var(--color-shu-500) 35%, transparent);
   }
 }
 
-/*
- * Footer "AI is responding…" — the icon mirrors the rainbow color of
- * the border (so the row visually anchors to the card treatment), and
- * the label pulses opacity gently so it reads as "still working" even
- * at a glance.
- */
-@keyframes ai-thread-label-pulse {
+/* Footer "markoto is responding…" label only — pulse opacity gently so
+   it reads as "still working" even at a glance. The icon next to it
+   is the brand seal (rendered via <CommonSeal>), which already carries
+   the shu cue without needing CSS color. */
+@keyframes mk-thread-label-pulse {
   0%, 100% { opacity: 0.65; }
   50%      { opacity: 1; }
 }
 
-.is-ai-active .ai-responding-icon {
-  color: hsl(var(--_h, 0deg) 90% 55%);
-}
 .is-ai-active .ai-responding-label {
-  animation: ai-thread-label-pulse 2.8s ease-in-out infinite;
+  animation: mk-thread-label-pulse 2.4s ease-in-out infinite;
   font-weight: 500;
 }
 </style>

@@ -1,12 +1,15 @@
 <script setup lang="ts">
-// `@ai` chip rendered inside comment bodies. Visually distinct from
-// the regular @user mention pill — uses a violet/blue gradient so the
-// reader can tell at a glance that the comment will summon the AI.
+// `@markoto` chip rendered inside comment bodies. The leading shu
+// seal is the universal mark of "intelligence is here" — same
+// visual the AI prompt bar, AI workspace card, AI gutter mark, and
+// AI authorship trace all use. The pill text is "markoto" (not "ai")
+// because the brand voice never says "AI" or "assistant" — there's
+// only one assistant in this product, and it's named markoto.
 //
 // Sibling to `MentionPill.vue`; kept separate so the user-mention
-// styles don't have to branch on a "kind" prop and so the AI badge
-// can carry its own affordances later (tooltip explaining the trigger,
-// etc.) without complicating the user-mention path.
+// styles don't have to branch on a "kind" prop and so the markoto
+// badge can carry its own affordances later (tooltip explaining the
+// trigger, etc.) without complicating the user-mention path.
 
 const { t } = useI18n()
 </script>
@@ -14,28 +17,25 @@ const { t } = useI18n()
 <template>
   <UTooltip :text="t('comments.aiMentionTooltip')">
     <span
-      class="ai-mention-pill inline-flex items-center gap-0.5 rounded px-1 py-px text-xs font-semibold align-baseline"
+      class="mk-mention-pill inline-flex items-center gap-1 rounded px-1.5 py-px text-xs font-medium align-baseline"
       data-testid="comment-ai-mention"
     >
-      <UIcon
-        name="i-lucide-sparkles"
-        class="size-3"
-      />
-      <span>ai</span>
+      <CommonSeal :size="8" />
+      <span>markoto</span>
     </span>
   </UTooltip>
 </template>
 
 <style scoped>
-.ai-mention-pill {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-violet-500, #8b5cf6) 20%, transparent),
-    color-mix(in srgb, var(--color-blue-500, #3b82f6) 20%, transparent)
-  );
-  color: var(--color-violet-700, #6d28d9);
+.mk-mention-pill {
+  /* Subtle shu wash — the seal carries the AI cue, the wash gives
+     the chip enough body to read as a pill rather than inline text.
+     Color stays sumi-default so the pill doesn't shout. */
+  background: color-mix(in srgb, var(--color-shu-500) 10%, transparent);
+  color: var(--color-sumi-950);
 }
-.dark .ai-mention-pill {
-  color: var(--color-violet-300, #c4b5fd);
+.dark .mk-mention-pill {
+  background: color-mix(in srgb, var(--color-shu-400) 12%, transparent);
+  color: var(--color-sumi-50);
 }
 </style>

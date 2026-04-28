@@ -25,7 +25,7 @@ export default defineNuxtConfig({
   },
 
   app: {
-    head: { title: 'YPad — Collaborative Markdown' }
+    head: { title: 'markoto — Collaborative Markdown' }
   },
 
   css: ['~/assets/css/main.css'],

@@ -51,12 +51,16 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
       referrerpolicy="no-referrer"
     />
     <div class="flex-1 min-w-0">
+      <!-- Author + timestamp register: author in Inter weight 500
+           (no bold — the brand stays at 400/500 max), timestamp in
+           JetBrains Mono with the mockup's 0.04em tracking, lower
+           opacity to feel like a slate caption beside the author. -->
       <div class="flex items-baseline gap-2 text-xs">
-        <span class="font-semibold text-default truncate">{{ authorName }}</span>
-        <span class="text-muted shrink-0">{{ relativeTime }}</span>
+        <span class="font-medium text-default truncate">{{ authorName }}</span>
+        <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0 lowercase">{{ relativeTime }}</span>
       </div>
 
-      <div class="mt-0.5 text-sm text-default whitespace-pre-wrap break-words">
+      <div class="mt-1 text-sm text-default whitespace-pre-wrap break-words">
         <template
           v-for="(seg, i) in segments"
           :key="i"
@@ -73,9 +77,13 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
         </template>
       </div>
 
+      <!-- Action row in the mockup's mono micro-label register. Same
+           10.5px / 0.04em pattern as the status bar so the whole UI
+           reads with one consistent "instrument" voice. The middot
+           sits at lowered opacity as a hairline divider. -->
       <div
         v-if="!readOnly && (canDelete || isThreadRoot)"
-        class="mt-1.5 flex items-center gap-2 text-xs"
+        class="mt-2 flex items-center gap-2 font-mono text-[10.5px] tracking-[0.04em] lowercase"
       >
         <button
           v-if="canDelete"
@@ -87,7 +95,8 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
         </button>
         <span
           v-if="canDelete && isThreadRoot"
-          class="text-muted"
+          class="text-muted opacity-50"
+          aria-hidden="true"
         >·</span>
         <template v-if="isThreadRoot">
           <button

@@ -276,22 +276,23 @@ function iconFor(ext: string): string {
       v-if="!compact"
       class="flex items-center justify-between gap-3 flex-wrap"
     >
-      <div class="flex items-center gap-2 min-w-0">
+      <!-- Knowledge-base title — Fraunces editorial register, matching
+           workspace name + sidebar panel titles. The lucide icon
+           drops to the toned neutral ramp (was shu, which clashed
+           with the seal-only rule). The usage chip shifts to the
+           editor's mono micro-meta voice for one consistent slate. -->
+      <div class="flex items-center gap-2.5 min-w-0">
         <UIcon
           name="i-lucide-library"
-          class="text-primary size-5 shrink-0"
+          class="text-toned size-5 shrink-0"
         />
-        <h2 class="text-lg font-semibold">
+        <h2 class="font-serif text-2xl font-normal tracking-tight">
           {{ t('knowledge.title') }}
         </h2>
-        <UBadge
+        <span
           v-if="usage"
-          size="xs"
-          color="neutral"
-          variant="subtle"
-        >
-          {{ usage.count }} / {{ usage.maxFiles }}
-        </UBadge>
+          class="font-mono text-[10.5px] tracking-[0.04em] text-muted"
+        >{{ usage.count }} <span class="opacity-50">/</span> {{ usage.maxFiles }}</span>
       </div>
       <UButton
         v-if="canEdit"
@@ -299,7 +300,7 @@ function iconFor(ext: string): string {
         size="sm"
         :loading="uploading"
         :variant="uploadCapReached ? 'ghost' : 'solid'"
-        :color="uploadCapReached ? 'neutral' : 'primary'"
+        color="neutral"
         :class="uploadCapReached ? 'opacity-60' : ''"
         :title="uploadCapReached ? uploadCapTooltip : undefined"
         @click="onUploadClick"
@@ -333,7 +334,7 @@ function iconFor(ext: string): string {
         size="xs"
         :loading="uploading"
         :variant="uploadCapReached ? 'ghost' : 'solid'"
-        :color="uploadCapReached ? 'neutral' : 'primary'"
+        color="neutral"
         :class="uploadCapReached ? 'opacity-60' : ''"
         :title="uploadCapReached ? uploadCapTooltip : undefined"
         @click="onUploadClick"
@@ -351,15 +352,20 @@ function iconFor(ext: string): string {
         class="size-4 text-muted"
       />
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-medium truncate">{{ uploadProgress.filename }}</p>
-        <div class="mt-1 h-1.5 rounded-full bg-default overflow-hidden">
+        <!-- Filename in the editorial register — Fraunces serif so a
+             knowledge file reads as a "named object" the same way a
+             doc title or workspace name does. -->
+        <p class="font-serif text-base font-normal tracking-tight truncate">{{ uploadProgress.filename }}</p>
+        <div class="mt-1 h-1 rounded-full bg-elevated overflow-hidden">
+          <!-- Progress fill stays neutral (sumi-700) — shu is reserved
+               for AI presence; uploads aren't AI work. -->
           <div
-            class="h-full bg-primary transition-all"
+            class="h-full bg-sumi-700 dark:bg-sumi-300 transition-all"
             :style="{ width: `${uploadProgress.percent}%` }"
           />
         </div>
       </div>
-      <span class="text-xs text-muted">{{ uploadProgress.percent }}%</span>
+      <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted">{{ uploadProgress.percent }}%</span>
     </div>
 
     <div
@@ -380,7 +386,7 @@ function iconFor(ext: string): string {
         name="i-lucide-upload-cloud"
         class="size-6 text-muted mx-auto mb-2"
       />
-      <p class="text-sm font-medium">
+      <p class="font-serif text-lg font-normal tracking-tight">
         {{ t('knowledge.empty') }}
       </p>
       <p class="text-xs text-muted mt-1">
@@ -392,24 +398,27 @@ function iconFor(ext: string): string {
       v-else
       class="space-y-2"
     >
+      <!-- Per-file row. Filename in Fraunces editorial register; size
+           and chunk count in JetBrains Mono micro-meta — same colophon
+           voice as the editor's status bar and comment timestamps. -->
       <div
         v-for="row in items"
         :key="row.knowledgeId"
-        class="group flex items-center gap-3 p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
+        class="group flex items-center gap-3 p-3 rounded-lg border border-default bg-default hover:bg-elevated/40 transition-colors"
       >
         <UIcon
           :name="iconFor(row.sourceExt)"
           class="size-5 text-muted shrink-0"
         />
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium truncate">{{ row.filename }}</p>
-          <p class="text-xs text-muted">
+          <p class="font-serif text-base font-normal tracking-tight truncate">{{ row.filename }}</p>
+          <p class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase mt-0.5">
             {{ fmtBytes(row.sizeBytes) }}
             <template v-if="row.status === 'ready'">
-              · {{ row.chunkCount }} {{ t('knowledge.chunks') }}
+              <span class="opacity-50 mx-1" aria-hidden="true">·</span> {{ row.chunkCount }} {{ t('knowledge.chunks') }}
             </template>
             <template v-if="row.status === 'failed' && row.errorMessage">
-              · {{ row.errorMessage }}
+              <span class="opacity-50 mx-1" aria-hidden="true">·</span> {{ row.errorMessage }}
             </template>
           </p>
         </div>

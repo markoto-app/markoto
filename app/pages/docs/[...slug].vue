@@ -68,12 +68,16 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
 <template>
   <div
     v-if="page"
-    class="grid lg:grid-cols-[1fr_220px] lg:gap-8 px-6 md:px-12 py-10"
+    class="grid lg:grid-cols-[1fr_220px] lg:gap-8 px-6 md:px-12 py-16"
   >
     <article class="min-w-0 prose dark:prose-invert max-w-none">
+      <!-- Breadcrumb sits at the very top of the article column.
+           A generous gap below it (`mb-10`) lets the page title
+           breathe — the previous `mb-4` had crumbs and h1 nearly
+           touching, which read as cramped chrome stacked on chrome. -->
       <UBreadcrumb
         :items="crumbs"
-        class="not-prose mb-4 text-sm text-toned"
+        class="not-prose mb-10 font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted"
       />
       <ContentRenderer
         :value="page"
@@ -83,24 +87,27 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
       <!-- Bottom pager: clickable cards for prev / next. Stripe / Vue
            docs convention. Uses fields fetched via
            queryCollectionItemSurroundings. -->
+      <!-- Prev / next pager. Editorial register: JetBrains Mono mini-
+           label ("previous" / "next") with the value below in Fraunces.
+           Hover swap stays sumi (was shu — shu means AI presence). -->
       <nav
         v-if="surround && (surround[0] || surround[1])"
-        class="not-prose mt-12 pt-8 border-t border-default grid grid-cols-1 sm:grid-cols-2 gap-4"
+        class="not-prose mt-12 pt-8 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-4"
         aria-label="Documentation pagination"
       >
         <NuxtLink
           v-if="surround[0]"
           :to="surround[0].path"
-          class="group block p-4 rounded-lg border border-default hover:border-primary/40 hover:bg-elevated/30 transition-colors"
+          class="group block p-4 rounded-lg border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
         >
-          <div class="flex items-center gap-1 text-xs uppercase tracking-wider text-muted mb-1">
+          <div class="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted mb-1.5">
             <UIcon name="i-lucide-arrow-left" class="size-3" />
-            Previous
+            previous
           </div>
-          <div class="font-medium text-default group-hover:text-primary transition-colors">
+          <div class="font-serif text-base font-normal tracking-tight text-default">
             {{ surround[0].title }}
           </div>
-          <div v-if="surround[0].description" class="mt-1 text-sm text-toned line-clamp-2">
+          <div v-if="surround[0].description" class="mt-1 text-sm text-muted line-clamp-2">
             {{ surround[0].description }}
           </div>
         </NuxtLink>
@@ -108,16 +115,16 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
         <NuxtLink
           v-if="surround[1]"
           :to="surround[1].path"
-          class="group block p-4 rounded-lg border border-default hover:border-primary/40 hover:bg-elevated/30 transition-colors sm:text-right"
+          class="group block p-4 rounded-lg border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors sm:text-right"
         >
-          <div class="flex items-center gap-1 sm:justify-end text-xs uppercase tracking-wider text-muted mb-1">
-            Next
+          <div class="flex items-center gap-1.5 sm:justify-end font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted mb-1.5">
+            next
             <UIcon name="i-lucide-arrow-right" class="size-3" />
           </div>
-          <div class="font-medium text-default group-hover:text-primary transition-colors">
+          <div class="font-serif text-base font-normal tracking-tight text-default">
             {{ surround[1].title }}
           </div>
-          <div v-if="surround[1].description" class="mt-1 text-sm text-toned line-clamp-2">
+          <div v-if="surround[1].description" class="mt-1 text-sm text-muted line-clamp-2">
             {{ surround[1].description }}
           </div>
         </NuxtLink>

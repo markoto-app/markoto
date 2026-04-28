@@ -258,11 +258,14 @@ const filteredEntries = computed(() => {
   return entries.value.filter(e => categoryOf(e) === activeFilter.value)
 })
 
-const FILTER_CHIPS: Array<{ key: FilterKey, icon: string }> = [
+// Filter chips. The `ai` chip's icon is the brand seal, not a Lucide
+// sparkles glyph — `icon: null` is the sentinel that tells the
+// template to render `<CommonSeal>` in that slot instead.
+const FILTER_CHIPS: Array<{ key: FilterKey, icon: string | null }> = [
   { key: 'all', icon: 'i-lucide-list' },
   { key: 'edits', icon: 'i-lucide-pencil' },
   { key: 'comments', icon: 'i-lucide-message-square' },
-  { key: 'ai', icon: 'i-lucide-sparkles' },
+  { key: 'ai', icon: null },
   { key: 'meta', icon: 'i-lucide-settings-2' }
 ]
 
@@ -396,23 +399,32 @@ function onRestored() {
       v-if="!loading && entries.length > 0"
       class="flex flex-wrap gap-1 pb-1.5 border-b border-default/60"
     >
+      <!-- Filter chips. Active state is a sumi-toned solid (sumi-200
+           in light, sumi-800 in dark) — NOT shu, since shu is reserved
+           for AI presence. The chip count moves to the editor's mono
+           micro-meta register so the row reads like a colophon. -->
       <button
         v-for="chip in FILTER_CHIPS"
         :key="chip.key"
         type="button"
         :disabled="counts[chip.key] === 0 && chip.key !== 'all'"
-        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
+        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
         :class="activeFilter === chip.key
-          ? 'bg-primary/10 text-primary'
-          : 'text-muted hover:bg-elevated disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed'"
+          ? 'bg-elevated text-default'
+          : 'text-muted hover:bg-elevated/60 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed'"
         @click="activeFilter = chip.key"
       >
         <UIcon
+          v-if="chip.icon"
           :name="chip.icon"
           class="size-3"
         />
+        <CommonSeal
+          v-else
+          :size="9"
+        />
         {{ t(`activity.filter.${chip.key}`) }}
-        <span class="text-muted/80 font-mono text-[10px]">{{ counts[chip.key] }}</span>
+        <span class="font-mono text-[10px] tracking-[0.04em] text-muted opacity-80">{{ counts[chip.key] }}</span>
       </button>
     </div>
 
@@ -457,15 +469,18 @@ function onRestored() {
       <!-- Avatar. AI gets the sparkles tile; humans get UAvatar (which
            falls back to initials/colored circle when no avatar URL).
            Anonymous rows fall through to UAvatar's generic placeholder. -->
+      <!-- markoto avatar — bone disc in light mode, dark disc in
+           dark mode (matches the surrounding cards), seal centered.
+           The seal stays shu in both modes; the ring around it is
+           the brand chrome's neutral. Earlier this used inverse
+           shading (sumi-950 in light, sumi-50 in dark) which made
+           the seal disappear in dark mode. -->
       <div
         v-if="isAi(entry)"
-        class="shrink-0 mt-0.5 size-7 rounded-full flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500 text-white"
-        :title="entry.userName ?? 'AI Assistant'"
+        class="shrink-0 mt-0.5 size-7 rounded-full flex items-center justify-center bg-default border border-default"
+        :title="entry.userName ?? 'markoto'"
       >
-        <UIcon
-          name="i-lucide-sparkles"
-          class="size-4"
-        />
+        <CommonSeal :size="9" />
       </div>
       <UAvatar
         v-else
