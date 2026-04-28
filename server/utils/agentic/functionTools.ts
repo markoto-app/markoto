@@ -92,6 +92,44 @@ const GetKnowledgeFileArgs = z.object({
     .describe('The exact knowledge_id from the <knowledge_files> block in the system prompt. Do NOT guess — only pass ids that are listed there.')
 }).describe('Retrieve the full parsed markdown of a single knowledge file. Use after `search_knowledge` when the returned chunks are insufficient and you need the whole document, or when the user asks to read / summarise a specific file by name (match it to the right knowledge_id from <knowledge_files>). Response may be truncated for very large files — an explicit marker is appended if so.')
 
+// --- Comment tools -----------------------------------------------------------
+//
+// Comments are the primary channel for AI ↔ user communication. Every comment
+// appears in the sidebar in real time (same as collaborator comments).
+
+const ReadCommentsArgs = z.object({})
+  .describe('Read all comment threads on this document: IDs, anchored line ranges, resolved status, bodies, and replies. Call this before creating, replying to, resolving, or deleting any comment.')
+
+const CreateCommentArgs = z.object({
+  start_line: z.number().int().min(1)
+    .describe('First line of the text range to anchor the comment to (1-indexed, inclusive).'),
+  end_line: z.number().int().min(1)
+    .describe('Last line of the text range (1-indexed, inclusive). Must be >= start_line.'),
+  body: z.string().trim().min(1).max(4000)
+    .describe('Comment body (max 4000 chars). May include @[Name](user:ID) mention tokens using IDs from <workspace_members>.')
+}).describe('Place a new comment anchored to a line range. Use for review notes, questions, to-dos, or to communicate with the user about a specific part of the document. Your comment appears as "AI Assistant".')
+
+const ReplyToCommentArgs = z.object({
+  comment_id: z.string().min(1).max(64)
+    .describe('The id of the comment thread to reply to (from read_comments).'),
+  body: z.string().trim().min(1).max(2000)
+    .describe('Reply body (max 2000 chars). May include @[Name](user:ID) mention tokens.')
+}).describe('Add a reply to an existing comment thread. Your reply appears as "AI Assistant" nested under the thread.')
+
+const ResolveCommentArgs = z.object({
+  comment_id: z.string().min(1).max(64)
+    .describe('The id of the comment thread to resolve or reopen (from read_comments).'),
+  resolved: z.boolean()
+    .describe('true to mark the thread resolved, false to reopen it.')
+}).describe('Resolve or reopen a comment thread. Resolved threads are hidden by default in the UI but not deleted.')
+
+const DeleteCommentArgs = z.object({
+  comment_id: z.string().min(1).max(64)
+    .describe('The id of the comment thread (from read_comments).'),
+  reply_id: z.string().min(1).max(64).optional()
+    .describe('If provided, delete only this specific reply. If omitted, delete the whole thread.')
+}).describe('Delete a comment thread or a single reply within a thread. Can only delete comments/replies authored by AI Assistant or by the user who triggered this session, unless that user has document management rights.')
+
 const SetTitleArgs = z.object({
   // `.trim()` must come BEFORE `.min(1)` in Zod 4 for the length check
   // to see the trimmed string — otherwise "   " passes min(1) and only
@@ -243,6 +281,11 @@ export type GenerateImageInput = z.infer<typeof GenerateImageArgs>
 export type FetchUrlInput = z.infer<typeof FetchUrlArgs>
 export type SearchKnowledgeInput = z.infer<typeof SearchKnowledgeArgs>
 export type GetKnowledgeFileInput = z.infer<typeof GetKnowledgeFileArgs>
+export type ReadCommentsInput = z.infer<typeof ReadCommentsArgs>
+export type CreateCommentInput = z.infer<typeof CreateCommentArgs>
+export type ReplyToCommentInput = z.infer<typeof ReplyToCommentArgs>
+export type ResolveCommentInput = z.infer<typeof ResolveCommentArgs>
+export type DeleteCommentInput = z.infer<typeof DeleteCommentArgs>
 
 // --- Name → schema registry used by runLoop for validate-before-dispatch --
 //
@@ -259,7 +302,12 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   generate_image: GenerateImageArgs,
   fetch_url: FetchUrlArgs,
   search_knowledge: SearchKnowledgeArgs,
-  get_knowledge_file: GetKnowledgeFileArgs
+  get_knowledge_file: GetKnowledgeFileArgs,
+  read_comments: ReadCommentsArgs,
+  create_comment: CreateCommentArgs,
+  reply_to_comment: ReplyToCommentArgs,
+  resolve_comment: ResolveCommentArgs,
+  delete_comment: DeleteCommentArgs
 }
 
 // --- FunctionDeclarations (what Gemini sees) ------------------------------
@@ -325,6 +373,31 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
     'fetch_url',
     'Fetch a specific URL and extract both its readable text content AND a list of image URLs visible on the page. Use when the user names or links a source to draw information from (e.g. "write about me based on myportfolio.com"). Differs from `web_search` — that one searches the web for a topic; this one reads a URL you already have. The returned image URLs can be passed to `view_image` to inspect them or embedded directly via `insert_text` as `![alt](https://...)`.',
     FetchUrlArgs
+  ),
+  decl(
+    'read_comments',
+    'Read all comment threads on the document: IDs, anchored line ranges, resolved status, full bodies, and replies. Always call this before creating, replying to, resolving, or deleting any comment so you have current IDs and context.',
+    ReadCommentsArgs
+  ),
+  decl(
+    'create_comment',
+    'Anchor a new comment to a line range (start_line, end_line). Use for review notes, to-dos, questions, or to communicate with the user about a specific part of the document. Your comment appears as "AI Assistant" in the sidebar. PREFER leaving a comment over writing nothing when you make an assumption or notice an issue — users see comments in real time.',
+    CreateCommentArgs
+  ),
+  decl(
+    'reply_to_comment',
+    'Add a reply to an existing comment thread (by comment_id from read_comments). Use to continue a discussion or respond to a user question left in a thread.',
+    ReplyToCommentArgs
+  ),
+  decl(
+    'resolve_comment',
+    'Resolve or reopen a comment thread. resolved=true hides it from the active list; resolved=false reopens it. Use after addressing a to-do or question from a thread.',
+    ResolveCommentArgs
+  ),
+  decl(
+    'delete_comment',
+    'Delete a whole comment thread or a single reply (pass reply_id to target one reply). Only allowed for AI-authored comments or comments by the user who triggered this session, unless that user has document management rights.',
+    DeleteCommentArgs
   )
 ]
 

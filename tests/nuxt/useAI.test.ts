@@ -113,6 +113,7 @@ interface AiClientState {
   prompt?: string
   phase?: string
   message?: string | null
+  commentThreadId?: string | null
 }
 
 function pushAiClient(target: Awareness, state: AiClientState): Awareness {
@@ -122,7 +123,8 @@ function pushAiClient(target: Awareness, state: AiClientState): Awareness {
     sessionId: state.sessionId,
     initiatorName: state.initiatorName,
     initiatorUserId: state.initiatorUserId,
-    prompt: state.prompt ?? ''
+    prompt: state.prompt ?? '',
+    ...(state.commentThreadId ? { commentThreadId: state.commentThreadId } : {})
   })
   if (state.phase !== undefined || state.message !== undefined) {
     peer.setLocalStateField('aiStatus', {
@@ -239,8 +241,26 @@ describe('useAI — activeSessions derivation', () => {
       initiatorUserId: 1,
       prompt: 'Draft a haiku',
       phase: 'tool',
-      message: 'Searching the web'
+      message: 'Searching the web',
+      // commentThreadId is null for non-comment-trigger sessions; the
+      // useAI composable surfaces it as null (not undefined) to keep
+      // the field always-present for downstream consumers.
+      commentThreadId: null
     })
+  })
+
+  it('passes commentThreadId through when the session was triggered from a comment', () => {
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, {
+      sessionId: 'sid-thread',
+      initiatorName: 'Joel',
+      initiatorUserId: 7,
+      prompt: '@ai please rewrite',
+      phase: 'thinking',
+      commentThreadId: 'cmt_abc123'
+    })
+    const ai = useAI(docId, awareness)
+    expect(ai.activeSessions.value[0]?.commentThreadId).toBe('cmt_abc123')
   })
 
   it('defaults phase to "thinking" when aiStatus is absent', () => {
@@ -544,7 +564,7 @@ describe('useAI — prompt()', () => {
   })
 
   it('calls getEditorSelection exactly once per prompt and forwards the snapshot', async () => {
-    const snapshot = { kind: 'selection', from: 3, to: 7, text: 'foo' } as const
+    const snapshot = { kind: 'selection', fromLine: 1, toLine: 1, text: 'foo', truncated: false } as const
     const getter = vi.fn(() => snapshot)
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness, { getEditorSelection: getter })

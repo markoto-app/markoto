@@ -66,6 +66,13 @@ export interface SessionMeta {
   plan: PlanName
   /** Billing-period start (Stripe anniversary for paid, calendar month for free). */
   periodStart: Date
+  /**
+   * When the session was triggered by an `@ai` mention in a comment
+   * thread, the thread's id rides on awareness so all clients can show
+   * a "AI is working on this thread" indicator on the matching comment
+   * card. Undefined for normal prompt-bar / selection-popup sessions.
+   */
+  commentThreadId?: string | null
 }
 
 /**
@@ -114,7 +121,10 @@ export async function createAiSession(
     sessionId: meta.sessionId,
     initiatorName: meta.initiatorName,
     initiatorUserId: meta.initiatorUserId,
-    prompt: meta.prompt
+    prompt: meta.prompt,
+    // Only included when present — keeps the awareness payload small
+    // for the common (non-comment-trigger) case.
+    ...(meta.commentThreadId ? { commentThreadId: meta.commentThreadId } : {})
   })
   awareness.setLocalStateField('aiStatus', { phase: 'thinking', message: null })
 

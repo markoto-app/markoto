@@ -2,15 +2,18 @@
 import { useFuse } from '@vueuse/integrations/useFuse'
 import { formatMentionToken, COMMENT_BODY_MAX } from '~/utils/commentBody'
 
-interface MentionableUser {
-  id: number
-  name: string
-  email: string | null
-  avatarUrl: string | null
-}
+// Mentionable items in the typeahead. Two kinds:
+//   - `user` — a workspace member; inserts `@[Name](user:N)`.
+//   - `ai`   — the AI assistant pseudo-user; inserts the literal `@ai`
+//     trigger token. Synthesized by `CommentsPanel` and prepended to
+//     the typeahead source so users can type "@" + arrow-down to
+//     summon the AI without remembering the bare `@ai` syntax.
+type MentionableEntry
+  = | { kind: 'user', id: number, name: string, email: string | null, avatarUrl: string | null }
+    | { kind: 'ai', id: 'ai', name: string, email: null, avatarUrl: null, description: string }
 
 const props = withDefaults(defineProps<{
-  mentionableUsers: readonly MentionableUser[]
+  mentionableUsers: readonly MentionableEntry[]
   initialBody?: string
   autoFocus?: boolean
   placeholder?: string
@@ -80,7 +83,7 @@ const { results: fuseResults } = useFuse(
     resultLimit: 8
   }
 )
-const filteredMentionUsers = computed<MentionableUser[]>(() => {
+const filteredMentionUsers = computed<MentionableEntry[]>(() => {
   if (!mentionContext.value) return []
   return fuseResults.value.map(r => r.item)
 })
@@ -200,14 +203,18 @@ function onSelectionChange() {
   refreshMentionContext()
 }
 
-function pickMention(user: MentionableUser) {
+function pickMention(entry: MentionableEntry) {
   const ctx = mentionContext.value
   const ta = textareaRef.value
   if (!ctx || !ta) return
   const caret = ta.selectionStart ?? body.value.length
   const before = body.value.slice(0, ctx.atIndex)
   const after = body.value.slice(caret)
-  const token = formatMentionToken(user.name, user.id) + ' '
+  // Token shape depends on entry kind. The AI token is the bare `@ai`
+  // string the server's hasAiMention regex matches; user tokens use
+  // the structured `@[Name](user:N)` form so the renderer can resolve
+  // user_id → avatar.
+  const token = (entry.kind === 'ai' ? '@ai' : formatMentionToken(entry.name, entry.id)) + ' '
   body.value = before + token + after
   mentionContext.value = null
   // Move caret to right after the inserted token + trailing space.
@@ -317,26 +324,39 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
       role="listbox"
     >
       <button
-        v-for="(user, idx) in filteredMentionUsers"
-        :key="user.id"
+        v-for="(entry, idx) in filteredMentionUsers"
+        :key="entry.kind === 'ai' ? 'ai' : entry.id"
         type="button"
         class="w-full flex items-center gap-2 px-2 py-1 text-left text-sm hover:bg-muted/40"
         :class="idx === highlighted ? 'bg-primary-500/15' : ''"
         role="option"
         :aria-selected="idx === highlighted"
-        @click="pickMention(user)"
+        @click="pickMention(entry)"
         @mouseenter="highlighted = idx"
       >
-        <UAvatar
-          :src="user.avatarUrl ?? undefined"
-          :alt="user.name"
-          size="2xs"
-        />
-        <span class="truncate">{{ user.name }}</span>
-        <span
-          v-if="user.email"
-          class="text-xs text-muted truncate ml-auto"
-        >{{ user.email }}</span>
+        <template v-if="entry.kind === 'ai'">
+          <span class="ai-typeahead-icon flex items-center justify-center size-4 rounded-full shrink-0">
+            <UIcon
+              name="i-lucide-sparkles"
+              class="size-3"
+            />
+          </span>
+          <span class="truncate font-medium">{{ entry.name }}</span>
+          <span class="text-xs text-muted truncate ml-auto">{{ entry.description }}</span>
+        </template>
+        <template v-else>
+          <UAvatar
+            :src="entry.avatarUrl ?? undefined"
+            :alt="entry.name"
+            size="2xs"
+            referrerpolicy="no-referrer"
+          />
+          <span class="truncate">{{ entry.name }}</span>
+          <span
+            v-if="entry.email"
+            class="text-xs text-muted truncate ml-auto"
+          >{{ entry.email }}</span>
+        </template>
       </button>
     </div>
 
@@ -368,3 +388,20 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
     </div>
   </div>
 </template>
+
+<style scoped>
+/*
+ * AI typeahead row icon. Distinct from the user avatars (no <UAvatar>
+ * because there's no real user) — a violet→blue gradient circle with
+ * a sparkles glyph signals "this is the AI assistant, not a teammate".
+ * Matches the AiMentionPill chip used in the rendered comment body.
+ */
+.ai-typeahead-icon {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-violet-500, #8b5cf6) 70%, transparent),
+    color-mix(in srgb, var(--color-blue-500, #3b82f6) 70%, transparent)
+  );
+  color: white;
+}
+</style>

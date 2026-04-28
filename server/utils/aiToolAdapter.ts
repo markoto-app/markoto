@@ -8,6 +8,7 @@ import type { Part } from '@google/genai'
 import { GoogleGenAI } from '@google/genai'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { nanoid } from 'nanoid'
+import * as Y from 'yjs'
 import * as Sentry from '@sentry/nuxt'
 import type { AiSession } from './aiClient'
 import type {
@@ -19,7 +20,12 @@ import type {
   ViewImageInput,
   GenerateImageInput,
   SearchKnowledgeInput,
-  GetKnowledgeFileInput
+  GetKnowledgeFileInput,
+  ReadCommentsInput,
+  CreateCommentInput,
+  ReplyToCommentInput,
+  ResolveCommentInput,
+  DeleteCommentInput
 } from './agentic/functionTools'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
@@ -29,8 +35,10 @@ import { getDoc, updateDocMeta } from '../repos/documents'
 import { recordPending, markConfirmed } from '../repos/uploads'
 import { getKnowledgeWithMarkdown, searchKnowledge } from '../repos/knowledge'
 import { getMemberRole } from '../repos/workspaceMembers'
+import { canManageDoc } from './workspaceAccess'
 import { embedQuery } from './embeddings'
 import { chargeInteractions, BudgetExhausted } from './billing'
+import { stripAiMention } from './agentic/commentTriggerPrompt'
 
 export interface ToolResult {
   content: string
@@ -673,8 +681,18 @@ export async function executeFunctionByName(
       return handleSearchKnowledge(session, args as SearchKnowledgeInput)
     case 'get_knowledge_file':
       return handleGetKnowledgeFile(session, args as GetKnowledgeFileInput)
+    case 'read_comments':
+      return handleReadComments(session, args as ReadCommentsInput)
+    case 'create_comment':
+      return handleCreateComment(session, args as CreateCommentInput)
+    case 'reply_to_comment':
+      return handleReplyToComment(session, args as ReplyToCommentInput)
+    case 'resolve_comment':
+      return handleResolveComment(session, args as ResolveCommentInput)
+    case 'delete_comment':
+      return handleDeleteComment(session, args as DeleteCommentInput)
     default:
-      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, set_title, view_image, generate_image, search_knowledge, get_knowledge_file.`)
+      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, set_title, view_image, generate_image, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment.`)
   }
 }
 
@@ -790,4 +808,308 @@ async function handleGetKnowledgeFile(session: AiSession, input: GetKnowledgeFil
   return ok(
     `# ${row.filename}\n\n${head}\n\n[… truncated at ${KNOWLEDGE_FILE_CHAR_CAP} characters of ${md.length}. Use search_knowledge with a targeted query to retrieve the remaining content. …]`
   )
+}
+
+// --- Comment tools -----------------------------------------------------------
+//
+// Comments live in a top-level `Y.Array<Y.Map>` named "comments" in the Y.Doc.
+// Each comment map has: id, anchorStart, anchorEnd (base64 Y.RelativePositions),
+// body, authorId (null for AI), authorName, authorAvatar, createdAt, updatedAt,
+// resolved, replies (nested Y.Array<Y.Map>).
+//
+// Anchors are encoded as base64 strings via Buffer (not btoa — server context).
+
+function _toBase64Comment(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString('base64')
+}
+
+function _fromBase64Comment(b64: string): Uint8Array {
+  return new Uint8Array(Buffer.from(b64, 'base64'))
+}
+
+/** Resolve a comment's anchor to { from, to } char offsets, or null (orphan). */
+function resolveCommentAnchor(
+  map: Y.Map<unknown>,
+  ydoc: Y.Doc
+): { from: number, to: number } | null {
+  const startB64 = map.get('anchorStart')
+  const endB64 = map.get('anchorEnd')
+  if (typeof startB64 !== 'string' || typeof endB64 !== 'string') return null
+  try {
+    const startRel = Y.decodeRelativePosition(_fromBase64Comment(startB64))
+    const endRel = Y.decodeRelativePosition(_fromBase64Comment(endB64))
+    const startAbs = Y.createAbsolutePositionFromRelativePosition(startRel, ydoc)
+    const endAbs = Y.createAbsolutePositionFromRelativePosition(endRel, ydoc)
+    if (!startAbs || !endAbs || startAbs.index >= endAbs.index) return null
+    return { from: startAbs.index, to: endAbs.index }
+  } catch {
+    return null
+  }
+}
+
+/** Strip mention tokens to bare @Name for model-readable display. */
+function stripMentions(body: string): string {
+  return body.replace(/@\[([^\]]+)\]\(user:\d+\)/g, '@$1')
+}
+
+/** Format epoch-ms as a human-readable date string. */
+function fmtDate(ms: number): string {
+  return new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
+}
+
+function handleReadComments(
+  session: AiSession,
+  _input: ReadCommentsInput
+): ToolResult {
+  const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
+  if (ycomments.length === 0) {
+    return ok('No comments on this document.')
+  }
+
+  const fullText = session.ytext.toString()
+  const ANCHOR_PREVIEW_MAX = 150
+
+  const lines: string[] = [`Found ${ycomments.length} comment thread(s):\n`]
+  for (let i = 0; i < ycomments.length; i++) {
+    const map = ycomments.get(i)
+    if (!(map instanceof Y.Map)) continue
+
+    const id = map.get('id') as string
+    const body = typeof map.get('body') === 'string' ? stripMentions(map.get('body') as string) : ''
+    const authorName = typeof map.get('authorName') === 'string' ? (map.get('authorName') as string) : 'Unknown'
+    const createdAt = typeof map.get('createdAt') === 'number' ? (map.get('createdAt') as number) : 0
+    const resolved = Boolean(map.get('resolved'))
+
+    const anchor = resolveCommentAnchor(map, session.ydoc)
+    let anchorLabel: string
+    if (anchor) {
+      const anchorText = fullText.slice(anchor.from, anchor.to)
+      const preview = anchorText.length > ANCHOR_PREVIEW_MAX
+        ? anchorText.slice(0, ANCHOR_PREVIEW_MAX) + '…'
+        : anchorText
+      // Convert char offsets to approximate line numbers for the model
+      const beforeStart = fullText.slice(0, anchor.from)
+      const beforeEnd = fullText.slice(0, anchor.to)
+      const startLine = beforeStart.split('\n').length
+      const endLine = beforeEnd.split('\n').length
+      anchorLabel = startLine === endLine
+        ? `line ${startLine}: "${preview}"`
+        : `lines ${startLine}–${endLine}: "${preview}"`
+    } else {
+      anchorLabel = '[orphaned — anchored text was deleted]'
+    }
+
+    lines.push(`--- Thread ${id}${resolved ? ' [RESOLVED]' : ''} ---`)
+    lines.push(`Anchor: ${anchorLabel}`)
+    lines.push(`By: ${authorName} at ${fmtDate(createdAt)}`)
+    lines.push(`Comment: ${body}`)
+
+    const repliesArr = map.get('replies')
+    if (repliesArr instanceof Y.Array && repliesArr.length > 0) {
+      lines.push(`Replies (${repliesArr.length}):`)
+      for (let j = 0; j < repliesArr.length; j++) {
+        const r = repliesArr.get(j)
+        if (!(r instanceof Y.Map)) continue
+        const rId = r.get('id') as string
+        const rBody = typeof r.get('body') === 'string' ? stripMentions(r.get('body') as string) : ''
+        const rAuthor = typeof r.get('authorName') === 'string' ? (r.get('authorName') as string) : 'Unknown'
+        const rCreatedAt = typeof r.get('createdAt') === 'number' ? (r.get('createdAt') as number) : 0
+        lines.push(`  [${rId}] ${rAuthor} at ${fmtDate(rCreatedAt)}: ${rBody}`)
+      }
+    }
+    lines.push('')
+  }
+
+  return ok(lines.join('\n'))
+}
+
+async function handleCreateComment(
+  session: AiSession,
+  input: CreateCommentInput
+): Promise<ToolResult> {
+  if (input.end_line < input.start_line) {
+    return err('Error: end_line must be >= start_line.')
+  }
+
+  const full = session.ytext.toString()
+  const startChar = lineToCharOffset(full, input.start_line - 1)
+  if (startChar === null) {
+    return err(`Error: start_line ${input.start_line} is beyond the end of the document.`)
+  }
+  // end_line offset: start of the line AFTER end_line. Clamped to full.length
+  // when end_line is the last line (lineToCharOffset returns null in that case).
+  const rawEnd = lineToCharOffset(full, input.end_line)
+  const endChar = rawEnd !== null ? rawEnd : full.length
+
+  if (startChar >= endChar) {
+    return err('Error: the specified line range resolves to an empty anchor. Use a range that covers at least one character.')
+  }
+
+  session.updateStatus('editing', 'Adding comment…')
+
+  const startRel = Y.createRelativePositionFromTypeIndex(session.ytext, startChar, 0)
+  const endRel = Y.createRelativePositionFromTypeIndex(session.ytext, endChar, -1)
+  const anchorStart = _toBase64Comment(Y.encodeRelativePosition(startRel))
+  const anchorEnd = _toBase64Comment(Y.encodeRelativePosition(endRel))
+
+  const id = nanoid(12)
+  const now = Date.now()
+  const origin = `ai:assistant:${session.sessionId}`
+
+  // Strip any `@ai` tokens the model may have written into its body —
+  // otherwise its own comment would re-trigger the @ai-mention path the
+  // next time the doc is loaded by a client. Belt-and-suspenders: the
+  // server-side trigger guard ALSO rejects AI-authored messages, but
+  // stripping here keeps the badge from rendering misleadingly in the UI.
+  const safeBody = stripAiMention(input.body)
+
+  session.ydoc.transact(() => {
+    const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
+    const map = new Y.Map<unknown>()
+    map.set('id', id)
+    map.set('anchorStart', anchorStart)
+    map.set('anchorEnd', anchorEnd)
+    map.set('body', safeBody)
+    map.set('authorId', null)
+    map.set('authorName', 'AI Assistant')
+    map.set('authorAvatar', null)
+    map.set('createdAt', now)
+    map.set('updatedAt', now)
+    map.set('resolved', false)
+    map.set('replies', new Y.Array())
+    ycomments.push([map])
+  }, origin)
+
+  return ok(`Comment ${id} created on lines ${input.start_line}–${input.end_line}.`)
+}
+
+function handleReplyToComment(
+  session: AiSession,
+  input: ReplyToCommentInput
+): ToolResult {
+  const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
+  let parentMap: Y.Map<unknown> | null = null
+  for (let i = 0; i < ycomments.length; i++) {
+    const m = ycomments.get(i)
+    if (m instanceof Y.Map && m.get('id') === input.comment_id) {
+      parentMap = m as Y.Map<unknown>
+      break
+    }
+  }
+  if (!parentMap) {
+    return err(`Error: comment "${input.comment_id}" not found. Call read_comments to get current IDs.`)
+  }
+
+  const repliesArr = parentMap.get('replies')
+  if (!(repliesArr instanceof Y.Array)) {
+    return err(`Error: comment "${input.comment_id}" has a malformed replies array.`)
+  }
+
+  session.updateStatus('editing', 'Adding reply…')
+
+  const id = nanoid(12)
+  const now = Date.now()
+  const origin = `ai:assistant:${session.sessionId}`
+
+  // Strip @ai from the reply body — same rationale as create_comment.
+  const safeBody = stripAiMention(input.body)
+
+  session.ydoc.transact(() => {
+    const reply = new Y.Map<unknown>()
+    reply.set('id', id)
+    reply.set('body', safeBody)
+    reply.set('authorId', null)
+    reply.set('authorName', 'AI Assistant')
+    reply.set('authorAvatar', null)
+    reply.set('createdAt', now)
+    reply.set('updatedAt', now)
+    ;(repliesArr as Y.Array<Y.Map<unknown>>).push([reply])
+    parentMap!.set('updatedAt', now)
+  }, origin)
+
+  return ok(`Reply ${id} added to thread ${input.comment_id}.`)
+}
+
+function handleResolveComment(
+  session: AiSession,
+  input: ResolveCommentInput
+): ToolResult {
+  const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
+  for (let i = 0; i < ycomments.length; i++) {
+    const m = ycomments.get(i)
+    if (m instanceof Y.Map && m.get('id') === input.comment_id) {
+      const origin = `ai:assistant:${session.sessionId}`
+      session.ydoc.transact(() => {
+        m.set('resolved', input.resolved)
+        m.set('updatedAt', Date.now())
+      }, origin)
+      return ok(`Thread ${input.comment_id} marked as ${input.resolved ? 'resolved' : 'open'}.`)
+    }
+  }
+  return err(`Error: comment "${input.comment_id}" not found. Call read_comments to get current IDs.`)
+}
+
+async function handleDeleteComment(
+  session: AiSession,
+  input: DeleteCommentInput
+): Promise<ToolResult> {
+  const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
+
+  // Determine if the initiator has doc management rights (cached once per call).
+  let _canManage: boolean | null = null
+  async function initiatorCanManage(): Promise<boolean> {
+    if (_canManage === null) {
+      _canManage = await canManageDoc(session.initiatorUserId, session.docId)
+    }
+    return _canManage
+  }
+
+  function canDeleteEntry(map: Y.Map<unknown>): boolean {
+    const authorId = map.get('authorId')
+    const authorName = map.get('authorName')
+    // AI's own comment: authorId=null and authorName='AI Assistant'
+    if (authorId === null && authorName === 'AI Assistant') return true
+    // Initiator's own comment
+    if (authorId === session.initiatorUserId) return true
+    return false
+  }
+
+  for (let i = 0; i < ycomments.length; i++) {
+    const m = ycomments.get(i)
+    if (!(m instanceof Y.Map) || m.get('id') !== input.comment_id) continue
+
+    if (input.reply_id) {
+      // Delete a specific reply
+      const repliesArr = m.get('replies')
+      if (!(repliesArr instanceof Y.Array)) {
+        return err(`Error: comment "${input.comment_id}" has no replies.`)
+      }
+      for (let j = 0; j < repliesArr.length; j++) {
+        const r = repliesArr.get(j)
+        if (!(r instanceof Y.Map) || r.get('id') !== input.reply_id) continue
+        if (!canDeleteEntry(r as Y.Map<unknown>) && !(await initiatorCanManage())) {
+          return err(`Error: cannot delete reply "${input.reply_id}" — it was not authored by AI Assistant or by you, and you do not have document management rights.`)
+        }
+        const origin = `ai:assistant:${session.sessionId}`
+        session.ydoc.transact(() => {
+          ;(repliesArr as Y.Array<Y.Map<unknown>>).delete(j, 1)
+          m.set('updatedAt', Date.now())
+        }, origin)
+        return ok(`Reply ${input.reply_id} deleted from thread ${input.comment_id}.`)
+      }
+      return err(`Error: reply "${input.reply_id}" not found in thread "${input.comment_id}".`)
+    } else {
+      // Delete the whole thread
+      if (!canDeleteEntry(m) && !(await initiatorCanManage())) {
+        return err(`Error: cannot delete thread "${input.comment_id}" — it was not authored by AI Assistant or by you, and you do not have document management rights.`)
+      }
+      const origin = `ai:assistant:${session.sessionId}`
+      session.ydoc.transact(() => {
+        ycomments.delete(i, 1)
+      }, origin)
+      return ok(`Thread ${input.comment_id} deleted.`)
+    }
+  }
+
+  return err(`Error: comment "${input.comment_id}" not found. Call read_comments to get current IDs.`)
 }

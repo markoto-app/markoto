@@ -134,7 +134,14 @@
     "draftHeading": "New comment",
     "mentionTrigger": "Type {'@'} to mention a workspace member",
     "submitHint": "{cmd}+Enter to post · Esc to cancel",
-    "anonymous": "Anonymous"
+    "anonymous": "Anonymous",
+    "aiEntryName": "AI Assistant",
+    "aiEntryDescription": "Summon AI to act on this thread",
+    "aiMentionTooltip": "Mentioning {'@'}ai summons the AI assistant to respond on this thread.",
+    "aiMentionHint": "Tip: include {'@'}ai in a comment to ask the AI to act on it.",
+    "aiResponding": "AI is responding…",
+    "aiTriggerFailed": "Couldn't summon the AI for this thread.",
+    "aiTriggerExhausted": "AI quota exhausted — upgrade your plan to summon AI from comments."
   },
   "image": {
     "loginToUpload": "Please log in to upload images.",

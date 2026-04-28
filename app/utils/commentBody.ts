@@ -12,6 +12,14 @@
 export type CommentSegment
   = | { kind: 'text', text: string }
     | { kind: 'mention', userId: number, name: string }
+    /**
+     * `@ai` mention — the special token that summons the AI assistant
+     * to act on the comment thread. Detected case-insensitively at
+     * word boundaries (so `email@ai.example.com` does NOT match).
+     * Rendered as a distinct rainbow badge so users can see at a
+     * glance "this comment will trigger AI".
+     */
+    | { kind: 'ai-mention', raw: string }
 
 /**
  * Hard caps on comment body length. Composer enforces visually via
@@ -24,27 +32,78 @@ export const COMMENT_BODY_MAX = 4000
 export const REPLY_BODY_MAX = 2000
 
 const MENTION_RE = /@\[([^\]]+)\]\(user:(\d+)\)/g
+// `@ai` at a word boundary, case-insensitive. The leading lookbehind
+// ensures we don't match inside emails (`x@ai.example.com`) or URLs.
+// Word-boundary on the trailing side keeps `@ai-something` from
+// matching too. Both forms (bare `@ai` and the structured
+// `@[AI Assistant](ai:assistant)` future picker token) summon the AI;
+// for v1 we only render the bare form as a chip — the structured form
+// is reserved for when the typeahead picker ships.
+const AI_MENTION_RE = /(^|[^\w@])@ai(?=[^\w]|$)/gi
+
+interface SegmentMatch {
+  index: number
+  end: number
+  segment: CommentSegment
+}
 
 export function parseCommentBody(body: string): CommentSegment[] {
+  // Two regexes (user mentions + AI mention). Run both, merge in order.
+  const matches: SegmentMatch[] = []
+
+  MENTION_RE.lastIndex = 0
+  let m: RegExpExecArray | null
+  while ((m = MENTION_RE.exec(body)) !== null) {
+    matches.push({
+      index: m.index,
+      end: m.index + m[0].length,
+      segment: { kind: 'mention', name: m[1] ?? '', userId: Number(m[2]) }
+    })
+  }
+
+  AI_MENTION_RE.lastIndex = 0
+  let am: RegExpExecArray | null
+  while ((am = AI_MENTION_RE.exec(body)) !== null) {
+    // The lookbehind char (group 1) is captured but isn't part of the
+    // chip — keep it as text. The chip itself is the `@ai` substring.
+    const lead = am[1] ?? ''
+    const chipStart = am.index + lead.length
+    const chipEnd = chipStart + 3 // length of '@ai'
+    matches.push({
+      index: chipStart,
+      end: chipEnd,
+      segment: { kind: 'ai-mention', raw: body.slice(chipStart, chipEnd) }
+    })
+  }
+
+  matches.sort((a, b) => a.index - b.index)
+
   const segments: CommentSegment[] = []
   let last = 0
-  MENTION_RE.lastIndex = 0
-  let match: RegExpExecArray | null
-  while ((match = MENTION_RE.exec(body)) !== null) {
+  for (const match of matches) {
+    if (match.index < last) continue // overlapping match — skip
     if (match.index > last) {
       segments.push({ kind: 'text', text: body.slice(last, match.index) })
     }
-    segments.push({
-      kind: 'mention',
-      name: match[1] ?? '',
-      userId: Number(match[2])
-    })
-    last = match.index + match[0].length
+    segments.push(match.segment)
+    last = match.end
   }
   if (last < body.length) {
     segments.push({ kind: 'text', text: body.slice(last) })
   }
   return segments
+}
+
+/**
+ * Detect whether a comment body contains an `@ai` trigger mention.
+ * Used by the client to decide whether to fire the trigger-ai endpoint
+ * after a successful Y.js commit.
+ */
+export function hasAiMention(body: string): boolean {
+  AI_MENTION_RE.lastIndex = 0
+  const has = AI_MENTION_RE.test(body)
+  AI_MENTION_RE.lastIndex = 0
+  return has
 }
 
 /**

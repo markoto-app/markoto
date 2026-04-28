@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MentionPill from '~/components/comments/MentionPill.vue'
+import AiMentionPill from '~/components/comments/AiMentionPill.vue'
 import { parseCommentBody } from '~/utils/commentBody'
 
 const props = withDefaults(defineProps<{
@@ -44,6 +45,7 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
       :alt="authorName"
       size="xs"
       class="shrink-0 mt-0.5"
+      referrerpolicy="no-referrer"
     />
     <div class="flex-1 min-w-0">
       <div class="flex items-baseline gap-2 text-xs">
@@ -61,6 +63,7 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
             :user-id="seg.userId"
             :name="seg.name"
           />
+          <AiMentionPill v-else-if="seg.kind === 'ai-mention'" />
           <template v-else>
             {{ seg.text }}
           </template>

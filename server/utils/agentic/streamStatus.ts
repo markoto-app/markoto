@@ -133,6 +133,20 @@ export function describeToolInput(name: string, args: Record<string, unknown>): 
       if (!id) return 'Opening a workspace knowledge file…'
       return `Opening workspace knowledge file ${id}`
     }
+    case 'read_comments':
+      return 'Reading document comments…'
+    case 'create_comment':
+      return 'Adding a comment…'
+    case 'reply_to_comment': {
+      const id = typeof args.comment_id === 'string' ? args.comment_id : ''
+      return id ? `Replying to comment ${id}…` : 'Replying to a comment…'
+    }
+    case 'resolve_comment': {
+      const resolved = args.resolved === true
+      return resolved ? 'Resolving a comment…' : 'Reopening a comment…'
+    }
+    case 'delete_comment':
+      return 'Deleting a comment…'
     default:
       // Unknown function — don't spam awareness; the loop will still fire
       // an "unsupported tool" error response back to the model.

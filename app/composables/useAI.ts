@@ -19,6 +19,13 @@ export interface AiSessionInfo {
   prompt: string
   phase: 'thinking' | 'tool' | 'editing' | 'done' | 'error' | string
   message: string | null
+  /**
+   * Set when the session was triggered by an `@ai` mention in a
+   * comment thread — carries the thread id so the comments panel can
+   * render a "AI is working on this thread" indicator on the matching
+   * card. Undefined for normal prompt-bar / selection-popup sessions.
+   */
+  commentThreadId?: string | null
 }
 
 /**
@@ -50,7 +57,10 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         initiatorUserId: ai.initiatorUserId,
         prompt: ai.prompt ?? '',
         phase: status?.phase ?? 'thinking',
-        message: status?.message ?? null
+        message: status?.message ?? null,
+        commentThreadId: typeof ai.commentThreadId === 'string' && ai.commentThreadId.length > 0
+          ? ai.commentThreadId
+          : null
       })
     }
     activeSessions.value = list

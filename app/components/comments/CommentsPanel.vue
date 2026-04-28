@@ -6,6 +6,7 @@ import CommentThread from '~/components/comments/CommentThread.vue'
 import CommentComposer from '~/components/comments/CommentComposer.vue'
 import { useCommentsContext } from '~/composables/useComments'
 import { serializeAnchor, type SerializedAnchor } from '~/utils/commentAnchors'
+import { hasAiMention } from '~/utils/commentBody'
 
 interface MentionableUser {
   id: number
@@ -13,6 +14,15 @@ interface MentionableUser {
   email: string | null
   avatarUrl: string | null
 }
+
+// Discriminated union shipped to CommentComposer. The AI entry is a
+// synthetic row injected here (not by the API) so users see "@ai" in
+// the typeahead even on standalone docs without workspace members. The
+// composer then decides at insertion time which token shape to write —
+// `@ai` literal vs `@[Name](user:N)`.
+type MentionableEntry
+  = | { kind: 'user', id: number, name: string, email: string | null, avatarUrl: string | null }
+    | { kind: 'ai', id: 'ai', name: string, email: null, avatarUrl: null, description: string }
 
 const props = defineProps<{
   ytext: YText
@@ -59,6 +69,25 @@ refreshViewer()
 props.awareness.on('change', refreshViewer)
 onUnmounted(() => props.awareness.off('change', refreshViewer))
 
+// Active AI sessions on this doc, keyed by commentThreadId. Set by an
+// awareness watcher: any peer (including the AI itself) advertising an
+// `aiSession` with a `commentThreadId` lights up the matching thread
+// card with the rainbow-glow border.
+const aiActiveThreads = ref<Set<string>>(new Set())
+function refreshAiThreads() {
+  const next = new Set<string>()
+  for (const state of props.awareness.getStates().values()) {
+    const ai = state?.aiSession as { commentThreadId?: unknown } | undefined
+    if (ai && typeof ai.commentThreadId === 'string' && ai.commentThreadId.length > 0) {
+      next.add(ai.commentThreadId)
+    }
+  }
+  aiActiveThreads.value = next
+}
+refreshAiThreads()
+props.awareness.on('change', refreshAiThreads)
+onUnmounted(() => props.awareness.off('change', refreshAiThreads))
+
 // CommentItem owns its own live-time ticker via useTimeAgoIntl —
 // no need for a panel-level `now` ref piped down as props.
 
@@ -75,17 +104,39 @@ const showResolved = ref(false)
 // Only fetch for workspace docs the viewer is a member of (matches the
 // server-side gate). Standalone or non-member docs get an empty list,
 // which the composer handles by simply not showing the popover.
-const mentionableUsers = ref<MentionableUser[]>([])
+const workspaceMembers = ref<MentionableUser[]>([])
 
 onMounted(async () => {
   if (!props.docWorkspaceId) return
   try {
     const data = await $fetch<{ users: MentionableUser[] }>(`/api/docs/${props.docId}/mentionable-users`)
-    mentionableUsers.value = data.users
+    workspaceMembers.value = data.users
   } catch {
     // Quietly degrade — the composer still works without typeahead.
   }
 })
+
+// AI typeahead entry. Available everywhere the composer is — including
+// standalone docs and docs without workspace members — because the
+// trigger endpoint authorizes by doc-edit access, not by workspace
+// membership. Localized label + description so the row feels like a
+// first-class citizen in the picker rather than a dev-only sentinel.
+const aiEntry = computed<MentionableEntry>(() => ({
+  kind: 'ai',
+  id: 'ai',
+  name: t('comments.aiEntryName'),
+  email: null,
+  avatarUrl: null,
+  description: t('comments.aiEntryDescription')
+}))
+
+// Composer source — AI first (so it surfaces immediately on bare `@`),
+// then the workspace members in their original order. Fuse will then
+// re-rank by relevance once the user starts typing.
+const mentionableUsers = computed<MentionableEntry[]>(() => [
+  aiEntry.value,
+  ...workspaceMembers.value.map<MentionableEntry>(u => ({ kind: 'user', ...u }))
+])
 
 // — Draft state ──────────────────────────────────────────────────────
 //
@@ -132,6 +183,56 @@ function submitDraft(body: string) {
   draftAnchor.value = null
   highlight(id)
   emit('focus', id)
+  // Fire the AI trigger if the body contains @ai — server validates
+  // doc-edit access and login state, so we only need to gate on the
+  // viewer being logged in (anonymous can write @ai but it's a no-op).
+  if (hasAiMention(body)) maybeTriggerAi(id, null)
+}
+
+async function onSubmitReply(commentId: string, body: string) {
+  postReply(commentId, body)
+  if (hasAiMention(body)) maybeTriggerAi(commentId, null)
+  // Note: replyId not threaded yet — postReply doesn't return it through
+  // the panel boundary. The server resolves "the most recent reply
+  // mentioning @ai" implicitly via the seed prompt; passing replyId would
+  // be a refinement once `postReply` returns the new reply id all the
+  // way up. For v1, the trigger fires with replyId=null and the prompt
+  // builder uses the parent body as the trigger — works because the
+  // rendered <comment_trigger> still includes the reply chain, and the
+  // model sees the latest reply in the list.
+}
+
+async function maybeTriggerAi(commentId: string, replyId: string | null) {
+  // Anonymous editors (no logged-in user) can write `@ai` in a comment
+  // but the server gates AI on login. Skipping the request avoids a
+  // guaranteed 401 toast for the common open-edit-doc-and-test case.
+  if (viewerId.value === null) return
+  try {
+    await $fetch(`/api/docs/${props.docId}/comments/${commentId}/trigger-ai`, {
+      method: 'POST',
+      body: { replyId: replyId ?? undefined }
+    })
+  } catch (e) {
+    const err = e as { statusCode?: number, data?: { code?: string } }
+    if (err?.statusCode === 402 || err?.data?.code === 'ai/budget-exhausted') {
+      toast.add({
+        title: t('comments.aiTriggerExhausted'),
+        icon: 'i-lucide-zap-off',
+        color: 'warning'
+      })
+      return
+    }
+    if (err?.statusCode === 409) {
+      // User already has an AI session running on this doc — silent ignore;
+      // the running session is more useful than a duplicate-error toast.
+      return
+    }
+    toast.add({
+      title: t('comments.aiTriggerFailed'),
+      icon: 'i-lucide-alert-triangle',
+      color: 'error'
+    })
+  }
 }
 
 // — Click-to-focus a thread ──────────────────────────────────────────
@@ -279,13 +380,14 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
           :muted="muted ?? false"
           :mentionable-users="mentionableUsers"
           :focused="focusedCommentId === c.id"
+          :ai-active="aiActiveThreads.has(c.id)"
           :viewer-id="viewerId"
           :viewer-name="viewerName"
           @focus="onThreadFocus"
           @delete-comment="deleteComment"
           @resolve="(id) => setResolved(id, true)"
           @unresolve="(id) => setResolved(id, false)"
-          @reply="postReply"
+          @reply="onSubmitReply"
           @delete-reply="deleteReply"
         />
       </DefineThreadRow>

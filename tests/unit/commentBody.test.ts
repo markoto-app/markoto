@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseCommentBody,
   formatMentionToken,
+  hasAiMention,
   COMMENT_BODY_MAX,
   REPLY_BODY_MAX
 } from '../../app/utils/commentBody'
@@ -135,6 +136,96 @@ describe('parseCommentBody', () => {
     const longName = 'A'.repeat(120)
     const token = formatMentionToken(longName, 1)
     expect(token).toBe(`@[${'A'.repeat(80)}](user:1)`)
+  })
+})
+
+describe('@ai mention parsing', () => {
+  it('extracts a bare @ai token as an ai-mention segment', () => {
+    const segments = parseCommentBody('@ai please rewrite this')
+    expect(segments).toEqual([
+      { kind: 'ai-mention', raw: '@ai' },
+      { kind: 'text', text: ' please rewrite this' }
+    ])
+  })
+
+  it('matches @AI case-insensitively', () => {
+    expect(parseCommentBody('@AI summarize')).toEqual([
+      { kind: 'ai-mention', raw: '@AI' },
+      { kind: 'text', text: ' summarize' }
+    ])
+    expect(parseCommentBody('@Ai pls')).toEqual([
+      { kind: 'ai-mention', raw: '@Ai' },
+      { kind: 'text', text: ' pls' }
+    ])
+  })
+
+  it('does NOT match inside emails', () => {
+    // `joel@ai.example.com` — the `@ai` is preceded by a word char,
+    // not a boundary. Should remain as a single text segment.
+    const out = parseCommentBody('contact joel@ai.example.com for help')
+    expect(out).toEqual([{ kind: 'text', text: 'contact joel@ai.example.com for help' }])
+  })
+
+  it('does NOT match when followed by alphanumerics (@aim)', () => {
+    expect(parseCommentBody('@aim higher')).toEqual([
+      { kind: 'text', text: '@aim higher' }
+    ])
+  })
+
+  it('parses @ai mid-sentence with leading text', () => {
+    const segments = parseCommentBody('hey @ai can you help?')
+    expect(segments).toEqual([
+      { kind: 'text', text: 'hey ' },
+      { kind: 'ai-mention', raw: '@ai' },
+      { kind: 'text', text: ' can you help?' }
+    ])
+  })
+
+  it('handles @ai followed by punctuation', () => {
+    const segments = parseCommentBody('@ai, please review')
+    expect(segments).toEqual([
+      { kind: 'ai-mention', raw: '@ai' },
+      { kind: 'text', text: ', please review' }
+    ])
+  })
+
+  it('keeps user mentions and @ai in order', () => {
+    const segments = parseCommentBody(`@ai and @[Joel](user:1) please look`)
+    expect(segments).toEqual([
+      { kind: 'ai-mention', raw: '@ai' },
+      { kind: 'text', text: ' and ' },
+      { kind: 'mention', userId: 1, name: 'Joel' },
+      { kind: 'text', text: ' please look' }
+    ])
+  })
+})
+
+describe('hasAiMention', () => {
+  it('detects @ai at the start', () => {
+    expect(hasAiMention('@ai please review')).toBe(true)
+  })
+  it('detects @ai mid-sentence', () => {
+    expect(hasAiMention('hi @ai there')).toBe(true)
+  })
+  it('matches case-insensitively', () => {
+    expect(hasAiMention('@AI go')).toBe(true)
+    expect(hasAiMention('@Ai please')).toBe(true)
+  })
+  it('returns false for plain prose', () => {
+    expect(hasAiMention('let me think about it')).toBe(false)
+  })
+  it('returns false for emails containing @ai', () => {
+    expect(hasAiMention('joel@ai.test.com')).toBe(false)
+  })
+  it('returns false for @aim / @aiding (not a word boundary)', () => {
+    expect(hasAiMention('@aim please')).toBe(false)
+    expect(hasAiMention('@aiding the cause')).toBe(false)
+  })
+  it('repeated calls are independent (regex lastIndex reset)', () => {
+    expect(hasAiMention('@ai go')).toBe(true)
+    expect(hasAiMention('@ai go')).toBe(true)
+    expect(hasAiMention('plain')).toBe(false)
+    expect(hasAiMention('@ai go')).toBe(true)
   })
 })
 

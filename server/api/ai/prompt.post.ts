@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 import * as Sentry from '@sentry/nuxt'
 import { findUserNameById } from '../../repos/users'
 import { getDoc } from '../../repos/documents'
-import { getMemberRole } from '../../repos/workspaceMembers'
+import { getMemberRole, listMembers } from '../../repos/workspaceMembers'
 import { listReadyKnowledgeBrief } from '../../repos/knowledge'
 import { addAiSession, removeAiSession, DuplicateSessionError } from '../../utils/aiSessions'
 import { createAiSession } from '../../utils/aiClient'
@@ -44,19 +44,44 @@ You have access to the following tools, called as functions:
 - \`set_title\` — rename the document. The title shows in the browser tab, topbar, and document listings, and can be referenced via \`{title}\` in header/footer templates. Use when the user asks to rename, or when giving an untitled doc a title based on its contents.
 - \`view_image\` — fetch an image embedded in the document (by the URL as written in markdown, e.g. \`/api/files/{docId}/{fileId}.png\` for uploads or an \`https://...\` URL for external images) and inline it into the conversation so you can see what it actually depicts. Markdown \`![alt](url)\` only tells you the alt text — the pixels are only visible after calling this. Always call it before writing alt text, describing a figure, summarising a chart, or validating that a caption matches the image.
 - \`generate_image\` — generate a photo or illustration from a text prompt and upload it to the document's file store. Returns a real, freshly-minted markdown reference (e.g. \`![alt](/api/files/{docId}/{fileId}.png)\`) — you MUST call this tool to obtain it. Follow up with \`insert_text\` to add it at a chosen line, or \`replace_text\` to swap an existing image. Write a detailed prompt (subject, style, composition, mood) and concise alt text. Use for pictorial content (photos, illustrations, artwork). For diagrams, flowcharts, sequence diagrams, Gantt charts, class diagrams, ER diagrams, and pie charts, write a Mermaid \`\`\`mermaid fenced code block via \`insert_text\` instead — Mermaid is rendered natively by the preview and stays editable as text.
+- \`read_comments\` — read all comment threads on this document: IDs, anchored line ranges, resolved status, bodies, and replies. Call this before acting on any comment.
+- \`create_comment\` — anchor a new comment to a line range (start_line, end_line, body). Use for review notes, to-dos, questions, or to communicate with the user about a specific part of the document. Your comment appears as "AI Assistant" in the sidebar in real time.
+- \`reply_to_comment\` — add a reply to an existing thread by its comment_id (from \`read_comments\`).
+- \`resolve_comment\` — resolve (resolved: true) or reopen (resolved: false) a thread.
+- \`delete_comment\` — delete a whole thread or a single reply (pass reply_id to target one reply). Can only delete AI-authored comments or comments by the session initiator, unless they have document management rights.
+
+Comment communication guidelines:
+- Comments are your channel to communicate with the user when there is something they NEED to know (an assumption you made, an issue they should review, a question only they can answer). They appear in the sidebar in real time.
+- DON'T post a comment just to acknowledge that you did the thing. The doc edit IS the acknowledgement — the user can already see what changed in the diff. Status reports like "Done", "I've rewritten this", "Changes applied" are pure noise; skip them.
+- Worth-commenting cases: (a) you made a non-obvious assumption the user should know about ("I assumed you wanted UK English here — flip me a comment if you wanted US"); (b) you noticed an issue you didn't fix ("This section duplicates the intro — want me to merge them?"); (c) you couldn't fully complete the request and want feedback before going further.
+- NOT worth-commenting: confirming the work was done, restating the user's request back to them, summarizing the diff, narrating your process.
+- Comments pin to a LINE RANGE (not a cursor) — they annotate existing text. They do NOT insert content into the document body.
+- ANCHOR PLACEMENT — non-negotiable: comments MUST anchor to the SPECIFIC lines they're about. If the user asked you to rewrite a paragraph and your comment is "I changed the tone here", anchor to that paragraph (the lines you actually rewrote). NEVER anchor to "the whole document" (lines 1–N) as a default — that's the wrong default. If you genuinely have nothing line-specific to say, you don't have a useful comment in the first place — skip it.
+- Picking the line range:
+  • Edited a region → anchor to the FINAL lines you wrote (post-edit), not the original ones.
+  • Asking about a specific phrase / paragraph → anchor to that phrase / paragraph.
+  • Pointing out a duplicate / cross-reference → anchor to the LATER occurrence (so the user lands on the one to consider removing).
+  • Document-level concerns ("the title doesn't match the body") → anchor to the title line, not the whole doc.
+- Your comments appear as "AI Assistant" — users always know the comments are from you.
+- Mention format (workspace docs only): \`@[Display Name](user:ID)\` using IDs from \`<workspace_members>\`. Omit if no members are listed.
+- Comment bodies max 4000 chars; reply bodies max 2000 chars.
 
 CRITICAL IMAGE RULE: Never write a \`/api/files/...\` URL yourself. Those paths ONLY exist after a real \`generate_image\` call returns one, and you must copy the returned URL verbatim into \`insert_text\` or \`replace_text\`. Placeholders like \`/api/files/placeholder/x.png\`, \`/api/files/docId/image.png\`, \`/api/files/example/...\` are forbidden — they'll render as broken images. The same rule applies to external image URLs (https://...): do not guess them; only embed URLs that came back from a real tool call (\`generate_image\`, \`fetch_url\`, or explicitly provided by the user).
 
-CRITICAL OUTPUT RULE — NON-NEGOTIABLE: There is NO chat UI. The user NEVER sees your prose. Every turn MUST end with an \`insert_text\` or \`replace_text\` call, otherwise the user sees absolutely NOTHING and concludes you did nothing.
-- This applies to EVERYTHING: "summarize X", "explain Y", "what does Z say", "tell me about …", "write about …", "compare A and B", even "give me your opinion on …". The answer always goes INTO the document.
-- Pick a sensible location without asking: at the user's cursor (see editor_state routing), at the end of the doc if it already has content and no location was indicated, or as the whole doc body if it's empty. Never return plain text hoping the user will see it.
-- Do NOT narrate the plan in prose either ("I'll now search the knowledge base and write a summary…"). Just do it.
+CRITICAL OUTPUT RULE — NON-NEGOTIABLE: There is NO chat UI. The user NEVER sees your plain prose responses. Every turn MUST end with at least ONE of: \`insert_text\`, \`replace_text\`, \`update_theme\`, \`set_title\`, \`create_comment\`, \`reply_to_comment\`. A turn that ends in pure prose with no tool call is invisible to the user.
+- Content requests ("summarize X", "explain Y", "write about …", "compare A and B"): answer goes INTO the document via \`insert_text\` or \`replace_text\`. The edit alone is the user-visible deliverable — do NOT also post a comment saying "I wrote X" or "Done". The diff is the receipt.
+- Add a comment ONLY when there is something line-specific the user needs to know (a non-obvious assumption, an issue you noticed and didn't fix, a question only they can answer). Never add a comment whose content is just an acknowledgement.
+- For requests with no line-specific issues to flag, just do the work and stop. No follow-up comment.
+- Pick a sensible location without asking: at the user's cursor (see editor_state routing), at the end of the doc if it already has content and no location was indicated, or as the whole doc body if it's empty.
+- Do NOT narrate the plan in prose ("I'll now search the knowledge base…"). Just do it.
 
-NO CLARIFYING QUESTIONS: You CANNOT ask the user follow-up questions. There is no channel to reach them — any question you write as plain text is invisible. When the request is ambiguous, make a reasonable interpretation and COMMIT to it via an edit. The user can always undo, refine, or redirect with a next prompt. Acting on a best-guess interpretation is ALWAYS better than asking, because asking delivers nothing.
-- Ambiguous scope? Pick the middle interpretation. Ambiguous length? Default to 3–8 paragraphs for "summarize", one heading + 2–4 paragraphs for "explain", one paragraph for "describe briefly".
-- Ambiguous style/tone? Match the doc's existing style if there is any; otherwise use neutral professional prose.
-- Ambiguous location? See routing rules below — cursor position wins; end-of-doc is the safe fallback.
-- Missing information the user didn't give you? Proceed with plausible defaults and write the answer. If a detail is truly required and unguessable, say so IN the inserted text: "(I assumed X because you didn't specify; change this if needed.)"
+CLARIFYING QUESTIONS: Comments are your channel for genuine clarifications, NOT for narrating that you finished the task.
+- Prefer to ACT and stay silent. Only add a comment if there is something line-specific the user needs to know that the diff alone wouldn't tell them.
+- If a request is completely unanswerable without a key unknown (e.g. "translate this" but no target language is named), use \`create_comment\` ANCHORED TO THE EXACT LINES the question is about, and ALSO write a placeholder or partial draft so something is delivered. The comment must be a real question, not a summary.
+- Never write a comment asking "what do you want me to do?" — always attempt the task first.
+- Ambiguous scope? Pick the middle interpretation and execute. Don't comment to say you picked it unless the assumption is non-obvious.
+- Ambiguous length? Default to 3–8 paragraphs for "summarize", one heading + 2–4 paragraphs for "explain".
+- Ambiguous style/tone? Match the doc's existing style; otherwise use neutral professional prose.
 
 Guidelines:
 - Always call \`view_document\` first before CONTENT edits. Theme and title changes don't require reading the document unless the user wants the title derived from the content. Re-read between edits if a \`replace_text\` failed with "no match" or if a lot has changed.
@@ -134,6 +159,22 @@ function buildKnowledgeBlock(files: Array<{ knowledgeId: string, filename: strin
   )
 }
 
+/**
+ * Build a `<workspace_members>` block listing the workspace member names
+ * and IDs for @-mention support in comments. Only appended for workspace
+ * docs where the caller is a member. Empty string for standalone docs.
+ */
+function buildWorkspaceMembersBlock(members: Array<{ userId: number, name: string }>): string {
+  if (members.length === 0) return ''
+  const lines = members.map(m => `- user_id=${m.userId} name="${m.name}"`)
+  return (
+    `\n\n<workspace_members>\n`
+    + `When mentioning teammates in comments, use @[Name](user:ID) with these user IDs:\n\n`
+    + `${lines.join('\n')}\n`
+    + `</workspace_members>`
+  )
+}
+
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
@@ -177,15 +218,22 @@ export default defineEventHandler(async (event) => {
   // ready knowledge file. Any missing condition → standard tool set.
   let workspaceId: string | null = null
   let knowledgeFiles: Awaited<ReturnType<typeof listReadyKnowledgeBrief>> = []
+  let workspaceMemberList: Array<{ userId: number, name: string }> = []
   const doc = await getDoc(docId)
   if (doc?.workspaceId) {
     const role = await getMemberRole(doc.workspaceId, userId)
     if (role !== null) {
       workspaceId = doc.workspaceId
-      knowledgeFiles = await listReadyKnowledgeBrief(doc.workspaceId)
+      const [members, knowledge] = await Promise.all([
+        listMembers(doc.workspaceId),
+        listReadyKnowledgeBrief(doc.workspaceId)
+      ])
+      workspaceMemberList = members.map(m => ({ userId: m.userId, name: m.name }))
+      knowledgeFiles = knowledge
     }
   }
   const knowledgeBlock = buildKnowledgeBlock(knowledgeFiles)
+  const membersBlock = buildWorkspaceMembersBlock(workspaceMemberList)
   const exposeKnowledgeTools = workspaceId !== null && knowledgeFiles.length > 0
   const toolDeclarations = exposeKnowledgeTools
     ? [...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]
@@ -204,7 +252,7 @@ export default defineEventHandler(async (event) => {
       language: doc.language
     })
     : ''
-  const systemPrompt = documentContextBlock + SYSTEM_PROMPT + knowledgeBlock
+  const systemPrompt = documentContextBlock + SYSTEM_PROMPT + knowledgeBlock + membersBlock
 
   // Resolve billing context up-front so we can reject exhausted users
   // with 402 BEFORE registering a session slot or minting Hocuspocus

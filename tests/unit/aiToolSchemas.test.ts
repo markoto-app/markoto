@@ -391,11 +391,16 @@ describe('generate_image schema', () => {
 describe('TOOL_SCHEMAS registry', () => {
   it('registers exactly the declared tools (drift guard against added/removed entries)', () => {
     expect(Object.keys(TOOL_SCHEMAS).sort()).toEqual([
+      'create_comment',
+      'delete_comment',
       'fetch_url',
       'generate_image',
       'get_knowledge_file',
       'insert_text',
+      'read_comments',
       'replace_text',
+      'reply_to_comment',
+      'resolve_comment',
       'search_knowledge',
       'set_title',
       'update_theme',
