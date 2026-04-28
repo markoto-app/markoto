@@ -97,6 +97,11 @@ services:
       # Sync server reaches the Nuxt app on host for activity logging.
       # host.docker.internal works on Mac/Windows; on Linux, use host-gateway extra_host.
       - APP_URL=http://host.docker.internal:3000
+      # Dev tabs + HMR reconnects from a single host machine blow
+      # past the prod default (20). Bump the cap aggressively so
+      # devs don't get rate-limited every reload. Override via
+      # SYNC_MAX_CONNECTIONS_PER_IP if you want to test the limit.
+      - SYNC_MAX_CONNECTIONS_PER_IP=${SYNC_MAX_CONNECTIONS_PER_IP:-500}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

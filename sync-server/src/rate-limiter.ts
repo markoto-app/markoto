@@ -128,4 +128,19 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
   }
 }
 
-export const rateLimiter = createRateLimiter()
+// Per-IP cap is configurable via `SYNC_MAX_CONNECTIONS_PER_IP`. In dev
+// you typically have many tabs / HMR reconnects from a single host
+// machine — the production default of 20 trips constantly. Default to
+// 200 in dev and 20 in prod via `NODE_ENV`. Override either way with
+// the env var.
+const envOverride = process.env.SYNC_MAX_CONNECTIONS_PER_IP
+const parsedOverride = envOverride ? parseInt(envOverride, 10) : NaN
+const isProd = process.env.NODE_ENV === 'production'
+const defaultCap = isProd ? 20 : 200
+const resolvedCap = Number.isFinite(parsedOverride) && parsedOverride > 0
+  ? parsedOverride
+  : defaultCap
+
+export const rateLimiter = createRateLimiter({
+  maxConnectionsPerIP: resolvedCap
+})
