@@ -46,11 +46,11 @@ const dictationState = StateField.define<string>({
 class DictationGhostWidget extends WidgetType {
   constructor(readonly text: string) { super() }
 
-  eq(other: DictationGhostWidget): boolean {
+  override eq(other: DictationGhostWidget): boolean {
     return other.text === this.text
   }
 
-  toDOM(): HTMLElement {
+  override toDOM(): HTMLElement {
     const wrap = document.createElement('span')
     wrap.className = 'cm-dictation-ghost'
     wrap.textContent = this.text
@@ -64,7 +64,7 @@ class DictationGhostWidget extends WidgetType {
   // Signal to CM6 that clicks, caret motion, etc. should treat this
   // widget as non-interactive. Without this, clicking the ghost
   // positions the caret "inside" it which is visually confusing.
-  ignoreEvent(): boolean { return true }
+  override ignoreEvent(): boolean { return true }
 }
 
 function buildDeco(view: EditorView): DecorationSet {

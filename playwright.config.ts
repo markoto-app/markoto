@@ -12,8 +12,9 @@ import { defineConfig, devices } from '@playwright/test'
 // <variant>/. `variant` is the composite `<theme>-<form>` string.
 //
 // CI defaults to `--project=en-light-desktop` for speed; the docs
-// publish pipeline runs `bun run flows:test` which executes ALL
-// projects (sequential within, since they share the dev server).
+// publish pipeline runs `bun run flows:test` (hermetic — brings up
+// infra + prod build via scripts/flows-ephemeral.ts) which executes
+// ALL projects (sequential within, since they share the dev server).
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
 
@@ -37,6 +38,10 @@ const MOBILE_VP = { width: 390, height: 720 }
 
 export default defineConfig({
   testDir: './tests/e2e/flows',
+  // Honour the leading-underscore convention for throwaway / scratch
+  // specs (e.g. `_inspect-mermaid.spec.ts` — diagnostics that are
+  // useful to keep around but shouldn't run on every flow build).
+  testIgnore: '**/_*.spec.ts',
   timeout: 120_000,
   retries: process.env.CI ? 2 : 0,
   workers: 1,

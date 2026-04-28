@@ -45,7 +45,12 @@ export default defineEventHandler(async (event) => {
 
   let stripeEvent
   try {
-    stripeEvent = stripe.webhooks.constructEvent(raw, sig, config.stripe.webhookSecret)
+    // `constructEventAsync` instead of `constructEvent` — under the
+    // Bun runtime the SDK detects SubtleCrypto and refuses the
+    // synchronous variant ("SubtleCryptoProvider cannot be used in a
+    // synchronous context"). The async path uses the same SubtleCrypto
+    // primitive correctly. Same signature semantics; just `await`-able.
+    stripeEvent = await stripe.webhooks.constructEventAsync(raw, sig, config.stripe.webhookSecret)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'verification failed'
     console.warn(`[stripe/webhook] signature verification failed: ${msg}`)

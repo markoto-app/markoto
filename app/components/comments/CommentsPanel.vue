@@ -342,7 +342,7 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
 
     <div
       ref="scrollContainer"
-      class="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 bg-muted"
+      class="flex-1 overflow-y-auto p-2 space-y-2 min-h-0 bg-muted"
     >
       <!-- Draft thread for an in-progress new comment. Stays at the top
            of the list so the focused composer is always above the fold. -->

@@ -39,7 +39,10 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
 </script>
 
 <template>
-  <div class="flex gap-2">
+  <div
+    class="flex gap-2"
+    data-testid="comment-item"
+  >
     <UAvatar
       :src="authorAvatar ?? undefined"
       :alt="authorName"

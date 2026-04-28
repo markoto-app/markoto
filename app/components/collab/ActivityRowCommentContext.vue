@@ -1,0 +1,152 @@
+<script setup lang="ts">
+import { parseCommentBody } from '~/utils/commentBody'
+
+// Lazy fetcher for an activity-row's comment-thread context. Renders
+// every comment in the thread, with the row's focus entry visually
+// highlighted. We deliberately don't reuse `<CommentItem>` because
+// (a) it ships action buttons (delete / resolve) that don't make
+// sense in a read-only history view, and (b) we want a tighter,
+// chat-bubble-style layout that fits the narrow sidebar width.
+
+interface CommentContextRow {
+  entryId: string
+  parentCommentId: string | null
+  authorId: number | null
+  authorName: string
+  body: string
+  createdAtMs: number
+  updatedAtMs: number
+  resolved: boolean
+}
+
+interface CommentContextResponse {
+  activityId: number
+  rows: CommentContextRow[]
+  focusEntryId: string
+}
+
+const props = defineProps<{
+  docId: string
+  activityId: number
+}>()
+
+const { t } = useI18n()
+
+const data = ref<CommentContextResponse | null>(null)
+const error = ref<{ kind: 'unavailable' | 'unknown', message?: string } | null>(null)
+const loading = ref(true)
+
+async function load() {
+  loading.value = true
+  error.value = null
+  data.value = null
+  try {
+    data.value = await $fetch<CommentContextResponse>(
+      `/api/docs/${props.docId}/activity/${props.activityId}/comment-context`
+    )
+  } catch (e: unknown) {
+    const status = (e as { statusCode?: number, status?: number })?.statusCode
+      ?? (e as { status?: number })?.status
+    if (status === 410) {
+      error.value = { kind: 'unavailable' }
+    } else {
+      error.value = { kind: 'unknown', message: e instanceof Error ? e.message : String(e) }
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(load)
+
+function formatTime(ms: number): string {
+  return new Date(ms).toLocaleString()
+}
+
+// Strip mention tokens (`@[Name](user:N)` and the bare `@ai` form)
+// to plain text for display. Matches `CommentItem` rendering in
+// spirit but inline-only — we don't have room for mention pills in
+// this narrow drawer view.
+function plainBody(body: string): string {
+  return parseCommentBody(body)
+    .map(seg => seg.kind === 'mention' ? `@${seg.name}` : seg.kind === 'ai-mention' ? '@ai' : seg.text)
+    .join('')
+}
+</script>
+
+<template>
+  <div class="activity-row-comment-context">
+    <div
+      v-if="loading"
+      class="flex items-center justify-center py-3"
+    >
+      <UIcon
+        name="i-lucide-loader"
+        class="size-4 animate-spin text-muted"
+      />
+    </div>
+
+    <div
+      v-else-if="error?.kind === 'unavailable'"
+      class="text-xs text-muted italic px-2 py-3"
+    >
+      {{ t('activity.commentContext.unavailable') }}
+    </div>
+
+    <div
+      v-else-if="error"
+      class="text-xs text-muted px-2 py-3 flex items-center gap-2"
+    >
+      <UIcon
+        name="i-lucide-alert-circle"
+        class="size-3.5 text-error"
+      />
+      <span class="flex-1">{{ t('activity.commentContext.error') }}</span>
+      <button
+        type="button"
+        class="text-primary hover:underline"
+        @click="load"
+      >
+        {{ t('activity.commentContext.retry') }}
+      </button>
+    </div>
+
+    <div
+      v-else-if="data"
+      class="space-y-1.5"
+    >
+      <div
+        v-for="row in data.rows"
+        :key="row.entryId"
+        class="rounded border px-2 py-1.5 text-xs"
+        :class="row.entryId === data.focusEntryId
+          ? 'border-primary/60 bg-primary/5'
+          : 'border-default/60 bg-default'"
+      >
+        <div class="flex items-baseline gap-1.5 text-[11px]">
+          <span class="font-semibold text-default truncate">{{ row.authorName }}</span>
+          <span
+            v-if="row.parentCommentId"
+            class="text-muted/70 italic"
+          >
+            {{ t('activity.commentContext.replyMarker') }}
+          </span>
+          <span class="text-muted shrink-0 ml-auto">{{ formatTime(row.createdAtMs) }}</span>
+        </div>
+        <div class="mt-0.5 whitespace-pre-wrap break-words text-default">
+          {{ plainBody(row.body) }}
+        </div>
+        <div
+          v-if="row.resolved"
+          class="mt-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
+        >
+          <UIcon
+            name="i-lucide-check-circle-2"
+            class="size-3"
+          />
+          {{ t('activity.commentContext.resolved') }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

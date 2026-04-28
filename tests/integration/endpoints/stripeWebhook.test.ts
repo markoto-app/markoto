@@ -231,8 +231,14 @@ describe('POST /api/webhooks/stripe — invoice.paid', () => {
       ['cus_test_alice', u.id]
     )
     // Strip the subscription pointer so this looks like a one-off charge.
+    // Stripe API 2025+ moved this onto `parent.subscription_details`, but
+    // the legacy `subscription` root field is still present for older
+    // accounts — null both so the handler treats this as a one-off
+    // regardless of which API version the row was minted under.
     const event = loadStripeFixture('invoice.paid') as Record<string, unknown>
-    ;(event.data as { object: Record<string, unknown> }).object.subscription = null
+    const obj = (event.data as { object: Record<string, unknown> }).object
+    obj.subscription = null
+    obj.parent = null
     const res = await postWebhook(event)
     expect(res.status).toBe(200)
     // User row unchanged — no period shift.

@@ -260,8 +260,11 @@ export async function handleInvoicePaid(
   event: Stripe.InvoicePaidEvent
 ): Promise<{ matched: number }> {
   const invoice = event.data.object
-  if (!invoice.subscription) {
-    // One-off invoice, not a subscription cycle. Nothing to update.
+  // Stripe API 2025+ moved subscription off the invoice root onto
+  // `parent.subscription_details.subscription`. Skip non-subscription
+  // invoices (manual one-offs, etc.) — `parent` is null for those.
+  const subscriptionRef = invoice.parent?.subscription_details?.subscription ?? null
+  if (!subscriptionRef) {
     return { matched: 0 }
   }
   const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null

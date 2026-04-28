@@ -38,7 +38,15 @@ export default defineNuxtConfig({
     // config shape and never read by the runtime.
     session: {
       password: '',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      cookie: {
+        // Default `Secure: true` blocks cookie acceptance over plain HTTP
+        // on non-localhost origins (e.g. LAN IP `192.168.x.x` for browser
+        // testing). In dev we accept HTTP-only cookies; in prod, Traefik
+        // terminates TLS and the upstream session cookie is set with
+        // Secure via the response anyway.
+        secure: process.env.NODE_ENV === 'production'
+      }
     },
     oauth: {
       github: {
@@ -129,7 +137,7 @@ export default defineNuxtConfig({
     public: {
       syncUrl: '',
       sentry: {
-        // GlitchTip / Sentry DSN for browser error reporting. Empty in dev;
+        // sentry.io DSN for browser error reporting. Empty in dev;
         // set via NUXT_PUBLIC_SENTRY_DSN in prod .env.
         dsn: ''
       },

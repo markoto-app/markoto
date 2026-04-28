@@ -3,21 +3,10 @@
 # Run: docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
 #
 # See docs/DEPLOY.md for DNS and TLS prerequisites.
-
-x-glitchtip-env: &glitchtip-env
-  DATABASE_URL: postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
-  # Separate Valkey logical DB so GlitchTip's Celery queue doesn't
-  # collide with our rate-limiter's keyspace on DB 0.
-  VALKEY_URL: redis://:${VALKEY_PASSWORD}@valkey:6379/1
-  SECRET_KEY: ${GLITCHTIP_SECRET_KEY}
-  GLITCHTIP_DOMAIN: https://telemetry.${DOMAIN}
-  CSRF_TRUSTED_ORIGINS: https://telemetry.${DOMAIN}
-  DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-errors@localhost}
-  EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
-  # After the first superuser is created via `./manage.py
-  # createsuperuser`, pull up the drawbridge.
-  ENABLE_USER_REGISTRATION: "False"
-  ENABLE_ORGANIZATION_CREATION: "False"
+#
+# Policy: every `${VAR}` substitution below uses `:?` so a missing .env
+# entry crashes `docker compose up` instead of silently booting with an
+# empty value or a hidden default. The single source of truth is .env.
 
 networks:
   web:
@@ -38,7 +27,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=web"
       - "--certificatesresolvers.le.acme.tlschallenge=true"
-      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL required}"
       - "--certificatesresolvers.le.acme.storage=/acme.json"
     ports:
       - "80:80"
@@ -56,17 +45,13 @@ services:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=ypad
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=ypad
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
     volumes:
       - pg_data:/var/lib/postgresql/data
-      # One-shot init scripts — sourced on first volume bring-up. Creates
-      # the glitchtip DB alongside ypad so GlitchTip gets its own database,
-      # not a schema inside ours.
-      - ./postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ypad -d ypad"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -80,12 +65,12 @@ services:
     image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
     restart: unless-stopped
     # Password-protected. AOF with fsync-every-second gives durability
-    # adequate for rate-limit + future GlitchTip broker use.
+    # adequate for rate-limit + session-lock keyspace.
     # maxmemory caps container RAM; allkeys-lru keeps hot keys under pressure.
     command:
       - "valkey-server"
       - "--requirepass"
-      - "${VALKEY_PASSWORD}"
+      - "${VALKEY_PASSWORD:?VALKEY_PASSWORD required}"
       - "--appendonly"
       - "yes"
       - "--appendfsync"
@@ -107,39 +92,51 @@ services:
       - internal
 
   app:
-    image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/md-online-app:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:?REGISTRY required}/md-online-app:${IMAGE_TAG:?IMAGE_TAG required}
     restart: unless-stopped
     # SIGTERM handler needs time to drain HTTP and close the pg pool.
     stop_grace_period: 30s
     environment:
-      - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
-      - NUXT_OAUTH_GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - NUXT_OAUTH_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - NUXT_S3_ENDPOINT=${S3_ENDPOINT}
-      - NUXT_S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - NUXT_S3_SECRET_KEY=${S3_SECRET_KEY}
-      - NUXT_S3_BUCKET=${S3_BUCKET:-ypad}
-      - NUXT_JWT_SECRET=${JWT_SECRET}
+      - NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD:?NUXT_SESSION_PASSWORD required}
+      - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID}
+      - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET}
+      - NUXT_OAUTH_GOOGLE_CLIENT_ID=${NUXT_OAUTH_GOOGLE_CLIENT_ID}
+      - NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${NUXT_OAUTH_GOOGLE_CLIENT_SECRET}
+      - NUXT_S3_ENDPOINT=${NUXT_S3_ENDPOINT:?NUXT_S3_ENDPOINT required}
+      - NUXT_S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
+      - NUXT_S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
+      - NUXT_S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
+      - NUXT_JWT_SECRET=${NUXT_JWT_SECRET:?NUXT_JWT_SECRET required}
       # Optional, only set during rotation — see docs/SECRETS-ROTATION.md.
-      # Nuxt runtimeConfig reads `jwtSecretPrevious` via NUXT_ prefix.
-      - NUXT_JWT_SECRET_PREVIOUS=${JWT_SECRET_PREVIOUS:-}
-      - NUXT_INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
-      - NUXT_INTERNAL_API_SECRET_PREVIOUS=${INTERNAL_API_SECRET_PREVIOUS:-}
-      # Sentry / GlitchTip. Browser uses the public host (front-end);
-      # server-side uses the internal service name so events don't
-      # round-trip through public DNS.
-      - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN:-}
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - NUXT_GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - NUXT_GOOGLE_MODEL=${GOOGLE_MODEL:-gemini-3.1-flash-lite-preview}
-      - NUXT_GOOGLE_REWRITE_MODEL=${GOOGLE_REWRITE_MODEL:-gemini-2.5-flash-lite}
-      - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN}
+      - NUXT_JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
+      - NUXT_INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
+      - NUXT_INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
+      # Sentry (sentry.io). Server pulls from SENTRY_DSN with fallback
+      # to NUXT_PUBLIC_SENTRY_DSN per sentry.server.config.ts.
+      - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN}
+      - SENTRY_DSN=${SENTRY_DSN}
+      # Two Google API keys: Gemini (text + images + embeddings) and
+      # Cloud STT (voice + dictation). Restricted independently in GCP.
+      - NUXT_GOOGLE_GEMINI_API_KEY=${NUXT_GOOGLE_GEMINI_API_KEY:?NUXT_GOOGLE_GEMINI_API_KEY required}
+      - NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY=${NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY:?NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY required}
+      # Distinct dictation-JWT secret. Falls back to NUXT_JWT_SECRET in
+      # the runtimeConfig when empty (see AGENTS.md §7).
+      - NUXT_GOOGLE_DICTATE_JWT_SECRET=${NUXT_GOOGLE_DICTATE_JWT_SECRET}
+      - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN:?DOMAIN required}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
-      - DATABASE_URL=postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/ypad
-      - VALKEY_URL=redis://:${VALKEY_PASSWORD}@valkey:6379/0
+      # Postgres + Valkey atomic parts. *_HOST overridden to the docker
+      # service name; .env owns user/password/db/port. The Nuxt app
+      # composes the URL via shared/utils/connectionStrings.ts.
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+      - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
     expose:
       - "3000"
     labels:
@@ -161,18 +158,21 @@ services:
       - internal
 
   sync:
-    image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/md-online-sync:${IMAGE_TAG:-latest}
+    image: ${REGISTRY}/md-online-sync:${IMAGE_TAG}
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
       - PORT=4001
-      - DATABASE_URL=postgres://ypad:${POSTGRES_PASSWORD}@postgres:5432/ypad
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_SECRET_PREVIOUS=${JWT_SECRET_PREVIOUS:-}
-      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
-      - INTERNAL_API_SECRET_PREVIOUS=${INTERNAL_API_SECRET_PREVIOUS:-}
-      # Sentry / GlitchTip — internal service URL, same as app container.
-      - SENTRY_DSN=${SENTRY_DSN:-}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${NUXT_JWT_SECRET}
+      - JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
+      - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET}
+      - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
+      - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
     expose:
       - "4001"
@@ -193,7 +193,7 @@ services:
       - internal
 
   markitdown:
-    image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/md-online-markitdown:${IMAGE_TAG:-latest}
+    image: ${REGISTRY}/md-online-markitdown:${IMAGE_TAG}
     restart: unless-stopped
     expose:
       - "8080"
@@ -201,99 +201,22 @@ services:
       - internal
 
   backup:
-    image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/md-online-backup:${IMAGE_TAG:-latest}
+    image: ${REGISTRY}/md-online-backup:${IMAGE_TAG}
     restart: unless-stopped
     environment:
       - POSTGRES_HOST=postgres
-      - POSTGRES_USER=ypad
-      - POSTGRES_DB=ypad
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
       - PGPASSWORD=${POSTGRES_PASSWORD}
-      - S3_ENDPOINT=${S3_ENDPOINT}
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - S3_BUCKET=${S3_BUCKET:-ypad}
-      - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:-86400}
-      - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:-30}
+      - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
+      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY}
+      - S3_BUCKET=${NUXT_S3_BUCKET}
+      - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:?BACKUP_INTERVAL_SECONDS required}
+      - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:?BACKUP_RETENTION_COUNT required}
     depends_on:
       postgres:
-        condition: service_healthy
-    networks:
-      - internal
-
-  # ──────────────────────────────────────────────────────────────────────
-  # Observability: self-hosted GlitchTip (Sentry-protocol-compatible).
-  # Admin access is via GlitchTip's own email/password login — registration
-  # is off (ENABLE_USER_REGISTRATION=False), the admin is seeded at boot
-  # by the glitchtip-init one-shot from DJANGO_SUPERUSER_* env vars.
-  #
-  # Web + worker split — the image dispatches on `SERVER_ROLE`
-  # (web | worker | beat). Without the worker, events queue in Valkey
-  # but never process. Shared env via the `x-glitchtip-env` anchor at
-  # the bottom of this file.
-  # ──────────────────────────────────────────────────────────────────────
-
-  glitchtip-init:
-    # One-shot: migrate + seed admin user. Idempotent on reruns —
-    # createsuperuser errors if the user already exists; we swallow.
-    # Change the admin password after first boot via the web UI or
-    # `./manage.py changepassword` inside the glitchtip container;
-    # the env var is a bootstrap, not a source of truth.
-    image: glitchtip/glitchtip:v6
-    restart: "no"
-    environment:
-      <<: *glitchtip-env
-      DJANGO_SUPERUSER_EMAIL: ${GLITCHTIP_ADMIN_EMAIL}
-      DJANGO_SUPERUSER_PASSWORD: ${GLITCHTIP_ADMIN_PASSWORD}
-    command: >
-      sh -c "
-        ./manage.py migrate --no-input &&
-        ./manage.py createsuperuser --no-input 2>/dev/null || true
-      "
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - internal
-
-  glitchtip:
-    # Pinning to the major. GlitchTip publishes no SHA digests; `:v6` is
-    # the stable channel.
-    image: glitchtip/glitchtip:v6
-    restart: unless-stopped
-    environment:
-      <<: *glitchtip-env
-      SERVER_ROLE: web
-    volumes:
-      - glitchtip_uploads:/code/uploads
-    depends_on:
-      glitchtip-init:
-        condition: service_completed_successfully
-      valkey:
-        condition: service_healthy
-    expose:
-      - "8000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.glitchtip.rule=Host(`telemetry.${DOMAIN}`)"
-      - "traefik.http.routers.glitchtip.entrypoints=websecure"
-      - "traefik.http.routers.glitchtip.tls.certresolver=le"
-      - "traefik.http.services.glitchtip.loadbalancer.server.port=8000"
-    networks:
-      - web
-      - internal
-
-  glitchtip-worker:
-    image: glitchtip/glitchtip:v6
-    restart: unless-stopped
-    environment:
-      <<: *glitchtip-env
-      SERVER_ROLE: worker
-    volumes:
-      - glitchtip_uploads:/code/uploads
-    depends_on:
-      glitchtip-init:
-        condition: service_completed_successfully
-      valkey:
         condition: service_healthy
     networks:
       - internal
@@ -301,4 +224,3 @@ services:
 volumes:
   pg_data:
   valkey_data:
-  glitchtip_uploads:

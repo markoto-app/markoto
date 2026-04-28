@@ -1,24 +1,20 @@
 import Redis from 'ioredis'
+import { valkeyUrlFromEnv } from '../../shared/utils/connectionStrings'
 
 // Singleton ioredis client for Valkey (Redis-compatible). Used today by
-// rate-limiting; future consumers (cache, GlitchTip broker) share the same
+// rate-limiting and session locks; future consumers share the same
 // instance via key prefixes.
 //
-// Fails fast at boot if `VALKEY_URL` isn't set — every prod endpoint that
-// matters calls `checkRateLimit`, so silently degrading to "no Valkey" is
-// worse than refusing to start.
+// Fails fast at boot if VALKEY_HOST/PORT aren't set — every prod endpoint
+// that matters calls `checkRateLimit`, so silently degrading to "no
+// Valkey" is worse than refusing to start.
 
 let client: Redis | null = null
 
 export function useValkey(): Redis {
   if (client) return client
 
-  const url = process.env.VALKEY_URL
-  if (!url) {
-    throw new Error('[valkey] VALKEY_URL environment variable is required')
-  }
-
-  client = new Redis(url, {
+  client = new Redis(valkeyUrlFromEnv(), {
     // Let ioredis queue commands while the initial connection establishes —
     // avoids dropping the very first checkRateLimit after boot.
     lazyConnect: false,

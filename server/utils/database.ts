@@ -1,17 +1,14 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import * as schema from '../db/schema'
+import { postgresUrlFromEnv } from '../../shared/utils/connectionStrings'
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null
 let pool: Pool | null = null
 
 export function useDatabase() {
   if (!db) {
-    const url = process.env.DATABASE_URL
-    if (!url) {
-      throw new Error('[database] DATABASE_URL environment variable is required')
-    }
-    pool = new Pool({ connectionString: url })
+    pool = new Pool({ connectionString: postgresUrlFromEnv() })
     db = drizzle(pool, { schema })
   }
   return db

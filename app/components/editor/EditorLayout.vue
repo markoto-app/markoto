@@ -767,6 +767,7 @@ const statusIcon = computed(() => {
             :src="docWorkspaceSponsor.avatarUrl ?? undefined"
             :alt="docWorkspaceSponsor.name"
             size="3xs"
+            referrerpolicy="no-referrer"
           />
           <UIcon v-else name="i-lucide-sparkles" class="size-3" />
           <span>{{ t('editor.aiWorkspaceBadge') }}</span>
@@ -1179,10 +1180,16 @@ const statusIcon = computed(() => {
                 @click="closeSidebar"
               />
             </div>
-            <div class="flex-1 overflow-y-auto p-2 min-h-0">
+            <!-- Same scroll-container styling as the comments panel:
+                 `bg-muted` darker shade behind the cards, `p-3
+                 space-y-3` for breathing room. The activity feed
+                 itself owns the filter chips at the top — its own
+                 wrapper handles the chip vs cards spacing. -->
+            <div class="flex-1 overflow-y-auto p-2 min-h-0 bg-muted">
               <CollabActivityFeed
                 :doc-id="docId"
                 :ydoc="ydoc"
+                :read-only="isReadOnly"
               />
             </div>
           </div>

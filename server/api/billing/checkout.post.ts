@@ -58,20 +58,23 @@ export default defineEventHandler(async (event) => {
     email: users.email,
     stripeCustomerId: users.stripeCustomerId
   }).from(users).where(eq(users.id, userId)).limit(1)
-  if (rows.length === 0) {
+  const userRow = rows[0]
+  if (!userRow) {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
-  const { email, stripeCustomerId } = rows[0]
+  const { email, stripeCustomerId } = userRow
 
   // `success_url` / `cancel_url` from runtime config. Supports
   // `{CHECKOUT_SESSION_ID}` — Stripe substitutes the real session id
   // after completion so our post-checkout page can fetch the order
   // state if we want. Don't URL-encode the placeholder; Stripe reads
   // it verbatim.
-  const origin = getRequestHeader(event, 'origin')
+  const origin = String(
+    getRequestHeader(event, 'origin')
     ?? getRequestHeader(event, 'host')
     ?? config.public?.siteUrl
     ?? ''
+  )
   const base = origin.startsWith('http') ? origin : `https://${origin}`
   const successUrl = base + (config.stripe.successUrl || '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}')
   const cancelUrl = base + (config.stripe.cancelUrl || '/pricing?checkout=cancelled')

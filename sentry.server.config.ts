@@ -2,15 +2,12 @@ import * as Sentry from '@sentry/nuxt'
 
 // Server-side Sentry init — picked up automatically by @sentry/nuxt.
 //
-// `NUXT_PUBLIC_SENTRY_DSN` is used for both client and server so we don't
-// run two DSNs; GlitchTip's envelope endpoint accepts both.
-//
 // Dev stays silent when DSN is empty, so local work doesn't need a
 // telemetry sink running.
-
-// Server prefers SENTRY_DSN (may point at an internal service URL like
-// http://glitchtip:8000/<projectId> to bypass Traefik TLS and public DNS),
-// falls back to the browser DSN so small setups can run with one value.
+//
+// Server prefers `SENTRY_DSN` (lets you point at a separate backend-only
+// Sentry project), falls back to the browser DSN so small setups can run
+// with one value.
 const dsn = process.env.SENTRY_DSN || process.env.NUXT_PUBLIC_SENTRY_DSN
 
 if (dsn) {

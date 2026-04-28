@@ -10,7 +10,12 @@
       "id": "in_test_alice_renewal",
       "object": "invoice",
       "customer": "cus_test_alice",
-      "subscription": "sub_test_alice_pro",
+      "parent": {
+        "type": "subscription_details",
+        "subscription_details": {
+          "subscription": "sub_test_alice_pro"
+        }
+      },
       "status": "paid",
       "paid": true,
       "billing_reason": "subscription_cycle",

@@ -239,6 +239,8 @@ const isActive = computed(() => !!props.ai.mySession.value)
   <div
     class="ai-prompt-bar pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center px-4"
     :class="{ 'is-focused': focused, 'is-active': isActive }"
+    data-testid="ai-prompt-bar"
+    :data-active="isActive ? 'true' : 'false'"
   >
     <div
       class="ai-prompt-bar__shell pointer-events-auto w-full max-w-3xl flex items-center gap-0 rounded-full pl-5 pr-0 py-0 backdrop-blur-md transition-all"
@@ -300,6 +302,7 @@ const isActive = computed(() => !!props.ai.mySession.value)
         :disabled="disabled"
         class="flex-1 min-w-0 bg-transparent outline-none text-base placeholder:text-muted disabled:text-muted py-3 pr-0"
         :class="{ italic: disabled && isActive }"
+        data-testid="ai-prompt-bar-input"
         @keydown.enter="onSubmit"
       >
 
@@ -384,6 +387,7 @@ const isActive = computed(() => !!props.ai.mySession.value)
         :class="creditsExhausted ? 'opacity-70' : ''"
         :aria-label="creditsExhausted ? t('ai.exhaustedPlaceholder') : t('ai.send')"
         :title="creditsExhausted ? t('ai.exhaustedPlaceholder') : undefined"
+        data-testid="ai-prompt-bar-send"
         class="ai-prompt-bar__action"
         @click="onSubmit"
       />

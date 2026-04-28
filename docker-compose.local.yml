@@ -10,19 +10,12 @@
 #   Traefik UI:    `docker compose -f docker-compose.local.yml exec traefik wget -qO- localhost:8080/api/rawdata`
 #                  (dashboard isn't bound to host to avoid port clashes with
 #                  other dev tools; run via exec when you need it)
-
-x-glitchtip-env: &glitchtip-env
-  DATABASE_URL: postgres://ypad:devpassword@postgres:5432/glitchtip
-  VALKEY_URL: redis://valkey:6379/1
-  SECRET_KEY: local-glitchtip-secret-not-for-prod-at-least-50-chars-xxxxx
-  GLITCHTIP_DOMAIN: https://telemetry.ypad.127.0.0.1.nip.io
-  CSRF_TRUSTED_ORIGINS: https://telemetry.ypad.127.0.0.1.nip.io
-  DEFAULT_FROM_EMAIL: errors@localhost
-  EMAIL_URL: consolemail://
-  # Registration off — we seed the initial admin via the glitchtip-init
-  # one-shot (DJANGO_SUPERUSER_* env). Keeps local ≈ prod.
-  ENABLE_USER_REGISTRATION: "False"
-  ENABLE_ORGANIZATION_CREATION: "False"
+#
+# Policy: secrets that are local-only (postgres pw, jwt, etc.) are
+# inlined here so this file boots without a .env. Anything that varies
+# per developer (Google API keys, OAuth client ids, Sentry DSN) reads
+# from .env via `${VAR:?required}` so a missing entry crashes
+# `docker compose up` instead of silently booting empty.
 
 networks:
   web:
@@ -60,13 +53,13 @@ services:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=ypad
-      - POSTGRES_PASSWORD=devpassword
-      - POSTGRES_DB=ypad
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ypad -d ypad"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -92,75 +85,6 @@ services:
     networks:
       - internal
 
-  # Local GlitchTip for Sentry-SDK smoke testing. No oauth2-proxy here
-  # (nothing is publicly exposed). Access directly at
-  # https://telemetry.ypad.127.0.0.1.nip.io/ — covered by the mkcert
-  # wildcard cert. Web + worker share config via the x-glitchtip-env
-  # anchor at the bottom of this file.
-  # One-shot: apply GlitchTip migrations, then seed the admin user from
-  # DJANGO_SUPERUSER_* env vars. Idempotent — `createsuperuser --no-input`
-  # errors on second run, we swallow that. To change the password later,
-  # use the web UI or `./manage.py changepassword` inside the glitchtip
-  # container; the env var is a bootstrap, not a source of truth.
-  glitchtip-init:
-    image: glitchtip/glitchtip:v6
-    restart: "no"
-    environment:
-      <<: *glitchtip-env
-      DJANGO_SUPERUSER_EMAIL: ${GLITCHTIP_ADMIN_EMAIL:-admin@localhost}
-      DJANGO_SUPERUSER_PASSWORD: ${GLITCHTIP_ADMIN_PASSWORD:-local-admin-password-change-me}
-    command: >
-      sh -c "
-        ./manage.py migrate --no-input &&
-        ./manage.py createsuperuser --no-input 2>/dev/null || true
-      "
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - internal
-
-  glitchtip:
-    image: glitchtip/glitchtip:v6
-    restart: unless-stopped
-    environment:
-      <<: *glitchtip-env
-      SERVER_ROLE: web
-    volumes:
-      - glitchtip_uploads:/code/uploads
-    depends_on:
-      glitchtip-init:
-        condition: service_completed_successfully
-      valkey:
-        condition: service_healthy
-    expose:
-      - "8000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.glitchtip.rule=Host(`telemetry.ypad.127.0.0.1.nip.io`)"
-      - "traefik.http.routers.glitchtip.entrypoints=websecure"
-      - "traefik.http.routers.glitchtip.tls=true"
-      - "traefik.http.services.glitchtip.loadbalancer.server.port=8000"
-    networks:
-      - web
-      - internal
-
-  glitchtip-worker:
-    image: glitchtip/glitchtip:v6
-    restart: unless-stopped
-    environment:
-      <<: *glitchtip-env
-      SERVER_ROLE: worker
-    volumes:
-      - glitchtip_uploads:/code/uploads
-    depends_on:
-      glitchtip-init:
-        condition: service_completed_successfully
-      valkey:
-        condition: service_healthy
-    networks:
-      - internal
-
   seaweedfs:
     image: chrislusf/seaweedfs@sha256:854479eebcbc0060d803edb27b3bd88a0552e23fde08a26a6482e59aff887a77
     restart: unless-stopped
@@ -182,29 +106,37 @@ services:
     stop_grace_period: 30s
     environment:
       - NUXT_SESSION_PASSWORD=local-session-password-at-least-32-characters-long
-      - NUXT_OAUTH_GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
-      - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
-      - NUXT_OAUTH_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID}
+      - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET}
+      - NUXT_OAUTH_GOOGLE_CLIENT_ID=${NUXT_OAUTH_GOOGLE_CLIENT_ID}
+      - NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${NUXT_OAUTH_GOOGLE_CLIENT_SECRET}
       - NUXT_S3_ENDPOINT=http://seaweedfs:8333
-      - NUXT_S3_ACCESS_KEY=ypad-access-key
-      - NUXT_S3_SECRET_KEY=ypad-secret-key
-      - NUXT_S3_BUCKET=ypad
+      - NUXT_S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
+      - NUXT_S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
+      - NUXT_S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
       - NUXT_JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
       - NUXT_INTERNAL_API_SECRET=local-internal-api-secret-change-me
-      - NUXT_GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-      - NUXT_GOOGLE_MODEL=${GOOGLE_MODEL:-gemini-3.1-flash-lite-preview}
-      - NUXT_GOOGLE_REWRITE_MODEL=${GOOGLE_REWRITE_MODEL:-gemini-2.5-flash-lite}
+      - NUXT_GOOGLE_GEMINI_API_KEY=${NUXT_GOOGLE_GEMINI_API_KEY:?NUXT_GOOGLE_GEMINI_API_KEY required}
+      - NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY=${NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY:?NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY required}
+      - NUXT_GOOGLE_DICTATE_JWT_SECRET=${NUXT_GOOGLE_DICTATE_JWT_SECRET}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.ypad.127.0.0.1.nip.io
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
-      - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
-      - VALKEY_URL=redis://valkey:6379/0
-      # Sentry / GlitchTip. Browser → public HTTPS host. Server →
-      # Docker internal DNS (skip Traefik + public round-trip). Same
-      # pattern as prod.
-      - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN:-}
-      - SENTRY_DSN=${SENTRY_DSN:-}
+      # Postgres + Valkey atomic parts. *_HOST overridden to the docker
+      # service name; .env owns user/password/db/port. The Nuxt app
+      # composes the URL via shared/utils/connectionStrings.ts.
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+      - VALKEY_DB=${VALKEY_DB}
+      # Sentry (sentry.io). Empty in local stays silent.
+      - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN}
+      - SENTRY_DSN=${SENTRY_DSN}
     expose:
       - "3000"
     labels:
@@ -230,10 +162,14 @@ services:
     stop_grace_period: 30s
     environment:
       - PORT=4001
-      - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
       - JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
       - INTERNAL_API_SECRET=local-internal-api-secret-change-me
-      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
     expose:
       - "4001"
@@ -263,13 +199,14 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_HOST=postgres
-      - POSTGRES_USER=ypad
-      - POSTGRES_DB=ypad
-      - PGPASSWORD=devpassword
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
       - S3_ENDPOINT=http://seaweedfs:8333
-      - S3_ACCESS_KEY=ypad-access-key
-      - S3_SECRET_KEY=ypad-secret-key
-      - S3_BUCKET=ypad
+      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY}
+      - S3_BUCKET=${NUXT_S3_BUCKET}
       - BACKUP_INTERVAL_SECONDS=3600
       - BACKUP_RETENTION_COUNT=5
     depends_on:
@@ -284,4 +221,3 @@ volumes:
   pg_data:
   seaweed_data:
   valkey_data:
-  glitchtip_uploads:

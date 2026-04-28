@@ -257,7 +257,7 @@ export async function createDoc(input: CreateDocInput): Promise<void> {
   if (input.language !== undefined) values.language = input.language
   if (input.templateId !== undefined) values.templateId = input.templateId
   if (input.theme !== undefined) values.theme = input.theme
-  await db.insert(documents).values(values)
+  await db.insert(documents).values(values as typeof documents.$inferInsert)
 }
 
 /**

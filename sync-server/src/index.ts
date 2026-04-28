@@ -45,6 +45,23 @@ const lastEditorByDoc = new Map<string, LastEditor>()
 // for the activity feed. Wiped when no one is connected (see onDisconnect cleanup).
 const previousTextByDoc = new Map<string, string>()
 
+// Previous title + theme JSON per doc — used to detect rename / theme
+// changes since the last store and emit specific activity events for
+// them (instead of letting them disappear into the generic 'edit' row).
+// Theme is stored as a stringified JSON for cheap equality.
+interface PreviousMeta { title: string | null, themeJson: string | null }
+const previousMetaByDoc = new Map<string, PreviousMeta>()
+
+function readMetaSnapshot(doc: { getMap: (k: string) => { get: (k: string) => unknown } }): PreviousMeta {
+  const ymeta = doc.getMap('meta')
+  const t = ymeta.get('title')
+  const theme = ymeta.get('theme')
+  return {
+    title: typeof t === 'string' ? t : null,
+    themeJson: theme && typeof theme === 'object' ? JSON.stringify(theme) : null
+  }
+}
+
 const server = new Server({
   port,
   debounce: 2000,
@@ -57,6 +74,10 @@ const server = new Server({
     // otherwise report a huge "+N lines" on the next store).
     const ytext = doc.getText('content')
     previousTextByDoc.set(data.documentName, ytext.toString())
+    // Same for title + theme: seed against current state so the first
+    // store after load doesn't emit a spurious "title changed" with a
+    // null `from` value.
+    previousMetaByDoc.set(data.documentName, readMetaSnapshot(doc))
     return doc
   },
 
@@ -74,7 +95,14 @@ const server = new Server({
   },
 
   async onStoreDocument(data) {
+    // Capture the y-postgresql row id BEFORE the store so the activity
+    // log can stamp boundary ids around this event. After the store,
+    // we'll capture the id again — together they bracket the operations
+    // that produced this debounce window's changes, so the diff
+    // endpoint can replay the doc on either side.
+    const yjsDocIdBefore = await ypgPersistence.getMaxYjsDocId(data.documentName)
     await ypgPersistence.onStoreDocument(data)
+    const yjsDocIdAfter = await ypgPersistence.getMaxYjsDocId(data.documentName)
 
     // Log an 'edit' activity entry per store event (debounced 2-10s by Hocuspocus).
     // Fire-and-forget so sync is never blocked by activity logging.
@@ -110,20 +138,83 @@ const server = new Server({
       const { added, removed } = lineDiff(prev, currentText)
       previousTextByDoc.set(data.documentName, currentText)
 
-      // Skip the entry entirely if nothing actually changed line-wise (this
-      // happens on join/leave-driven stores or no-op saves).
-      if (added === 0 && removed === 0) return
+      // Skip the edit entry if nothing changed line-wise (this happens
+      // on join/leave-driven stores or no-op saves) — but DO NOT bail
+      // from the whole hook. Title-only / theme-only / comment-only
+      // updates produce a store with zero text-line delta, and the
+      // diff blocks below need to run to log them.
+      // Resolve userId for avatar JOIN on the read endpoint.
+      // `lastEditorByDoc.userId` is the JWT's userId — string. Real
+      // users get a numeric id (parsed below); AI sessions use the
+      // synthetic `ai:assistant:{sessionId}` form which is non-numeric
+      // and resolves to null, exactly what we want (no users.id row).
+      const userIdFromTracked = tracked?.userId
+        ? (Number.isFinite(Number(tracked.userId)) ? Number(tracked.userId) : null)
+        : null
 
-      logActivity({
-        docId: data.documentName,
-        userName,
-        action: 'edit',
-        wordCount,
-        linesAdded: added,
-        linesRemoved: removed
-      })
+      if (added > 0 || removed > 0) {
+        logActivity({
+          docId: data.documentName,
+          userId: userIdFromTracked,
+          userName,
+          action: 'edit',
+          wordCount,
+          linesAdded: added,
+          linesRemoved: removed,
+          yjsDocIdBefore,
+          yjsDocIdAfter
+        })
+      }
     } catch (e) {
       console.warn('[hocuspocus] activity log failed:', e instanceof Error ? e.message : e)
+    }
+
+    // Title / theme diff — same debounce window as the edit row, but
+    // emitted as separate activity events so the UI can render them
+    // distinctly. We DON'T attribute these to a specific user yet
+    // (ymeta.observe doesn't carry transaction origin in this hook), so
+    // the activity row inherits whoever was tracked as the last editor —
+    // accurate in practice because rename / theme tweaks come from the
+    // same active session.
+    try {
+      const tracked = lastEditorByDoc.get(data.documentName)
+      const userName: string | null = tracked?.userName ?? null
+      const userId = tracked?.userId
+        ? (Number.isFinite(Number(tracked.userId)) ? Number(tracked.userId) : null)
+        : null
+      const prevMeta = previousMetaByDoc.get(data.documentName)
+      const currMeta = readMetaSnapshot(data.document)
+      previousMetaByDoc.set(data.documentName, currMeta)
+      if (prevMeta) {
+        if ((prevMeta.title ?? '') !== (currMeta.title ?? '')) {
+          logActivity({
+            docId: data.documentName,
+            userId,
+            userName,
+            action: 'title.changed',
+            metadata: {
+              kind: 'title.changed',
+              from: prevMeta.title ?? '',
+              to: currMeta.title ?? ''
+            },
+            yjsDocIdBefore,
+            yjsDocIdAfter
+          })
+        }
+        if (prevMeta.themeJson !== currMeta.themeJson) {
+          logActivity({
+            docId: data.documentName,
+            userId,
+            userName,
+            action: 'theme.changed',
+            metadata: { kind: 'theme.changed' },
+            yjsDocIdBefore,
+            yjsDocIdAfter
+          })
+        }
+      }
+    } catch (e) {
+      console.warn('[hocuspocus] meta diff failed:', e instanceof Error ? e.message : e)
     }
 
     // Postgres mirror of the comments Y.Array — separate try/catch so a
@@ -131,7 +222,7 @@ const server = new Server({
     // dedup ensures the round-trip is skipped when the comments array
     // didn't change since the last store.
     try {
-      shipCommentsSnapshot(data.documentName, data.document)
+      shipCommentsSnapshot(data.documentName, data.document, { yjsDocIdBefore, yjsDocIdAfter })
     } catch (e) {
       console.warn('[hocuspocus] comments-snapshot ship failed:', e instanceof Error ? e.message : e)
     }
@@ -154,6 +245,7 @@ const server = new Server({
     if (data.clientsCount === 0 && data.documentName) {
       lastEditorByDoc.delete(data.documentName)
       previousTextByDoc.delete(data.documentName)
+      previousMetaByDoc.delete(data.documentName)
       dropSnapshotCache(data.documentName)
     }
   },

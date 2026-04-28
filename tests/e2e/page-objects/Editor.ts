@@ -1,5 +1,6 @@
 import type { Page, Locator } from '@playwright/test'
 import { expect } from '@playwright/test'
+import { Pool } from 'pg'
 
 // Page-object for the YPad editor (`/d/<id>`). Stable selectors for
 // the parts of the UI that flow tests touch most often. ONE place to
@@ -92,6 +93,64 @@ export class EditorPage {
       resolveIn: (thread: Locator): Locator => thread.locator('[data-testid="comment-action-resolve"]'),
       unresolveIn: (thread: Locator): Locator => thread.locator('[data-testid="comment-action-unresolve"]')
     }
+  }
+
+  // ─── AI surfaces ──────────────────────────────────────────────────
+  //
+  // Two interaction surfaces for the AI assistant:
+  //   1. The floating prompt bar at the bottom of the editor — always
+  //      visible when the viewer is logged in. Send a prompt → AI
+  //      runs an agentic loop and edits the doc directly.
+  //   2. The @ai mention inside a comment thread — typing @ai in any
+  //      comment composer opens the typeahead with the synthetic AI
+  //      entry; posting the comment fires `/trigger-ai` and the AI
+  //      reply lands as a reply on the same thread.
+  //
+  // Both surfaces drive the SAME backend (one agentic loop, same
+  // tools), but the UI affordances are distinct so flow tests need
+  // both selector groups.
+
+  get ai() {
+    return {
+      /** The floating AI prompt bar root. `data-active` flips to "true"
+       *  while a session is in flight — gates "wait until AI started" /
+       *  "wait until AI finished" steps. */
+      promptBar: this.page.locator('[data-testid="ai-prompt-bar"]'),
+      /** The text input inside the prompt bar. */
+      promptBarInput: this.page.locator('[data-testid="ai-prompt-bar-input"]'),
+      /** The send button (paper-airplane icon when idle). Disabled
+       *  until the input has a non-empty trimmed value. */
+      promptBarSend: this.page.locator('[data-testid="ai-prompt-bar-send"]'),
+      /** The synthetic AI entry in the comment-composer mention typeahead. */
+      mentionTypeaheadAi: this.page.locator('[data-testid="mention-typeahead-ai"]'),
+      /** Any comment thread currently rendering its "AI is responding"
+       *  active state. Useful for waiting on the AI-trigger handshake. */
+      activeThread: this.page.locator('[data-testid="comment-thread"][data-ai-active="true"]')
+    }
+  }
+
+  /**
+   * Wait for the AI prompt bar to flip back to idle. Used after a
+   * prompt to gate "the AI is done" — checks `data-active=false`,
+   * which is set by the bottom-bar component when the
+   * useAI().mySession ref clears (status='done' or session aborted).
+   *
+   * Default 90s because real Gemini turns can take 5-30s and a
+   * multi-tool loop chains several. Override for fast prompts.
+   */
+  async waitForAiIdle(timeout = 90_000): Promise<void> {
+    await expect(this.ai.promptBar).toHaveAttribute('data-active', 'false', { timeout })
+  }
+
+  /**
+   * Wait for the AI prompt bar to enter the "session active" state —
+   * confirms the agentic loop actually started server-side and the
+   * client received the `/api/ai/prompt` response. Use this BEFORE
+   * `waitForAiIdle` so flaky network conditions are caught at the
+   * "didn't start" boundary, not the "didn't finish" one.
+   */
+  async waitForAiActive(timeout = 30_000): Promise<void> {
+    await expect(this.ai.promptBar).toHaveAttribute('data-active', 'true', { timeout })
   }
 
   // ─── Status bar (footer) ──────────────────────────────────────────
@@ -210,6 +269,86 @@ export class EditorPage {
     await this.titleInput.pressSequentially(newTitle)
     await this.page.keyboard.press('Enter')
     await expect(this.titleButton.filter({ hasText: newTitle })).toBeVisible()
+  }
+
+  // ─── Auth (TEST_MODE only) ────────────────────────────────────────
+
+  /**
+   * Seal a session cookie for a fresh test user. Uses the
+   * `/api/_test/login` shim that's only mounted when the Nuxt
+   * subprocess was started with TEST_MODE=1 — the flow-ephemeral
+   * orchestrator sets this for us.
+   *
+   * Two-step:
+   *   1. INSERT a `users` row via direct pg (the login shim takes a
+   *      userId and assumes the row exists; without this AI flows
+   *      404 when the prompt handler resolves the user).
+   *   2. POST to /api/_test/login → response sets a sealed session
+   *      cookie on the page context.
+   *
+   * Returns the user id so callers can use it (e.g. for billing
+   * resolution checks).
+   */
+  async loginAsTestUser(name: string): Promise<{ userId: number, name: string }> {
+    // Postgres lives at the ephemeral test stack's port (5433). The
+    // pool stays open per test for ~25ms total work; closing it after
+    // every login would force a fresh TCP handshake on every flow.
+    const pool = new Pool({
+      connectionString: 'postgres://ypad:testpassword@localhost:5433/ypad_test',
+      max: 1
+    })
+    try {
+      const githubId = `flow-test-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`
+      const result = await pool.query<{ id: number }>(
+        `INSERT INTO users (github_id, name, plan)
+         VALUES ($1, $2, 'free')
+         ON CONFLICT (github_id) DO UPDATE SET name = EXCLUDED.name
+         RETURNING id`,
+        [githubId, name]
+      )
+      const userId = result.rows[0].id
+
+      // Seal the session via the shim. We use Node's `fetch` rather
+      // than `page.request.post` because the latter goes through
+      // Playwright's CDP-bridged BrowserContext and tries to attach
+      // returned Set-Cookie headers to a context that hasn't loaded
+      // any origin yet — that path threw `TypeError: "/..." cannot
+      // be parsed as a URL` even when the actual POST succeeded.
+      // Going through `fetch` + `addCookies` avoids the BrowserContext
+      // round-trip entirely; we just parse the Set-Cookie header and
+      // tell Playwright "this cookie applies to this origin".
+      const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+      const res = await fetch(`${baseUrl}/api/_test/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ userId, name })
+      })
+      if (!res.ok) {
+        throw new Error(`[loginAsTestUser] /api/_test/login returned ${res.status}: ${await res.text()}`)
+      }
+      const setCookie = res.headers.get('set-cookie')
+      if (!setCookie) {
+        throw new Error(`[loginAsTestUser] /api/_test/login returned no Set-Cookie header`)
+      }
+      // Parse the cookie just enough to feed it to addCookies. The
+      // shim only emits `nuxt-session=<sealed-blob>; Path=/; ...`
+      // — name and value are everything before the first `;` and
+      // before/after the first `=`.
+      const firstChunk = setCookie.split(';')[0]
+      const eqIdx = firstChunk.indexOf('=')
+      const cookieName = firstChunk.slice(0, eqIdx)
+      const cookieValue = firstChunk.slice(eqIdx + 1)
+      await this.page.context().addCookies([{
+        name: cookieName,
+        value: cookieValue,
+        url: baseUrl,
+        httpOnly: true,
+        sameSite: 'Lax'
+      }])
+      return { userId, name }
+    } finally {
+      await pool.end()
+    }
   }
 
   // ─── Navigation ───────────────────────────────────────────────────

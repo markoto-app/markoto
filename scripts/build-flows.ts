@@ -33,7 +33,7 @@ async function main() {
   await fs.mkdir(FLOWS_OUT, { recursive: true })
 
   if (!(await isDir(FLOWS_SRC))) {
-    console.log(`[flows] no source at ${FLOWS_SRC} — run \`bun run flows:test\` first`)
+    console.log(`[flows] no source at ${FLOWS_SRC} — run \`bun run flows:test\` first (or \`flows:test:against-running\` if you have an app already running)`)
     return
   }
 

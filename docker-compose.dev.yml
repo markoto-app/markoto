@@ -7,11 +7,16 @@
 # Production uses external S3 (Infomaniak) and drops SeaweedFS entirely;
 # only this dev compose still ships it.
 #
-# Postgres:   localhost:5432  (postgres://ypad:devpassword@localhost:5432/ypad)
-# Valkey:     localhost:6379  (redis://localhost:6379/0 — rate limit + future cache)
-# SeaweedFS:  http://localhost:8333  (S3 API for image uploads + dev backups)
+# Postgres:    localhost:5432  (credentials from .env: POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB)
+# Valkey:      localhost:6379  (rate limit + session locks)
+# SeaweedFS:   http://localhost:8333  (S3 API for image uploads + dev backups)
 # Hocuspocus:  ws://localhost:4001    (WebSocket sync — connects directly to PG inside the container)
 # Markitdown:  http://localhost:8080  (file → markdown conversion API)
+#
+# Policy: every credential below comes from .env via `${X:?required}`.
+# No hardcoded passwords. No `${X:-default}` fallbacks. .env is the single
+# source of truth — `docker compose up` fails fast if a value is missing
+# rather than booting with a stale or default one.
 
 services:
   postgres:
@@ -22,25 +27,26 @@ services:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=ypad
-      - POSTGRES_PASSWORD=devpassword
-      - POSTGRES_DB=ypad
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ypad -d ypad"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:?POSTGRES_PORT required}:5432"
 
   valkey:
     image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
     restart: unless-stopped
     # AOF with fsync-every-second is a fine trade for rate-limit data: worst
     # case we lose ≤1s of hits on crash, sliding windows self-heal.
+    # In dev VALKEY_PASSWORD is empty, so the server runs without --requirepass.
     command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
@@ -48,7 +54,7 @@ services:
       timeout: 3s
       retries: 5
     ports:
-      - "6379:6379"
+      - "${VALKEY_PORT:?VALKEY_PORT required}:6379"
     volumes:
       - valkey_data:/data
 
@@ -76,9 +82,18 @@ services:
     stop_grace_period: 30s
     environment:
       - PORT=4001
-      - DATABASE_URL=postgres://ypad:devpassword@postgres:5432/ypad
-      - JWT_SECRET=development-jwt-secret-change-me-in-production-64chars
-      - INTERNAL_API_SECRET=development-internal-api-secret-change-me
+      # Postgres parts pulled from .env. POSTGRES_HOST overridden inline:
+      # the container reaches Postgres via the docker service name, not
+      # localhost.
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${NUXT_JWT_SECRET:?NUXT_JWT_SECRET required}
+      - JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
+      - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
+      - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
       # Sync server reaches the Nuxt app on host for activity logging.
       # host.docker.internal works on Mac/Windows; on Linux, use host-gateway extra_host.
       - APP_URL=http://host.docker.internal:3000
@@ -103,13 +118,14 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_HOST=postgres
-      - POSTGRES_USER=ypad
-      - POSTGRES_DB=ypad
-      - PGPASSWORD=devpassword
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
       - S3_ENDPOINT=http://seaweedfs:8333
-      - S3_ACCESS_KEY=ypad-access-key
-      - S3_SECRET_KEY=ypad-secret-key
-      - S3_BUCKET=ypad
+      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
+      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
+      - S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
       - BACKUP_INTERVAL_SECONDS=3600   # 1 h in dev (tight loop for testing)
       - BACKUP_RETENTION_COUNT=5
     depends_on:

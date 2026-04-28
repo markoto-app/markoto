@@ -63,8 +63,9 @@ describe('webSearch', () => {
   it('returns just the answer when groundingMetadata is empty', async () => {
     const { ai } = makeFakeAi(() => ({ text: 'Plain answer.' }))
     const result = await webSearch(ai, 'gemini-test', 'q', new AbortController().signal)
-    expect(result).toBe('Plain answer.')
-    expect(result).not.toContain('Sources:')
+    expect(result.text).toBe('Plain answer.')
+    expect(result.text).not.toContain('Sources:')
+    expect(result.sources).toEqual([])
   })
 
   it('appends a Sources: list when grounding chunks include URIs', async () => {
@@ -80,10 +81,15 @@ describe('webSearch', () => {
       }]
     }))
     const result = await webSearch(ai, 'gemini-test', 'q', new AbortController().signal)
-    expect(result).toContain('Answer body.')
-    expect(result).toContain('Sources:')
-    expect(result).toContain('Site A: https://a.com')
-    expect(result).toContain('Site B: https://b.com')
+    expect(result.text).toContain('Answer body.')
+    expect(result.text).toContain('Sources:')
+    expect(result.text).toContain('Site A: https://a.com')
+    expect(result.text).toContain('Site B: https://b.com')
+    // Structured shape mirrors the text — drives the activity drawer.
+    expect(result.sources).toEqual([
+      { title: 'Site A', uri: 'https://a.com' },
+      { title: 'Site B', uri: 'https://b.com' }
+    ])
   })
 
   it('deduplicates grounding chunks that repeat the same URI', async () => {
@@ -104,9 +110,11 @@ describe('webSearch', () => {
       }]
     }))
     const result = await webSearch(ai, 'gemini-test', 'q', new AbortController().signal)
-    const matches = result.match(/https:\/\/same\.com/g) || []
+    const matches = result.text.match(/https:\/\/same\.com/g) || []
     expect(matches.length).toBe(1)
-    expect(result).toContain('https://other.com')
+    expect(result.text).toContain('https://other.com')
+    // Sources array also deduplicated.
+    expect(result.sources.filter(s => s.uri === 'https://same.com')).toHaveLength(1)
   })
 
   it('falls back to URI when a source has no title', async () => {
@@ -121,7 +129,7 @@ describe('webSearch', () => {
       }]
     }))
     const result = await webSearch(ai, 'gemini-test', 'q', new AbortController().signal)
-    expect(result).toContain('https://notitled.com: https://notitled.com')
+    expect(result.text).toContain('https://notitled.com: https://notitled.com')
   })
 
   it('returns a "no answer" fallback when Gemini emits empty text', async () => {
@@ -131,13 +139,14 @@ describe('webSearch', () => {
     // happened. Give it a clear message.
     const { ai } = makeFakeAi(() => ({ text: '' }))
     const result = await webSearch(ai, 'gemini-test', 'q', new AbortController().signal)
-    expect(result).toContain('No answer returned')
+    expect(result.text).toContain('No answer returned')
+    expect(result.sources).toEqual([])
   })
 
   it('treats whitespace-only text as empty', async () => {
     const { ai } = makeFakeAi(() => ({ text: '   \n  ' }))
     const result = await webSearch(ai, 'gemini-test', 'q', new AbortController().signal)
-    expect(result).toContain('No answer returned')
+    expect(result.text).toContain('No answer returned')
   })
 
   it('throws "aborted" when called with an already-aborted signal', async () => {
@@ -234,11 +243,17 @@ describe('fetchUrl', () => {
       })
     }))
     const result = await fetchUrl(ai, 'gemini-test', 'https://example.com', new AbortController().signal)
-    expect(result).toContain('Summary:')
-    expect(result).toContain('A useful article about markdown.')
-    expect(result).toContain('Images observed on the page:')
-    expect(result).toContain('https://cdn.com/hero.png: Hero shot')
-    expect(result).toContain('https://cdn.com/fig1.png')
+    expect(result.text).toContain('Summary:')
+    expect(result.text).toContain('A useful article about markdown.')
+    expect(result.text).toContain('Images observed on the page:')
+    expect(result.text).toContain('https://cdn.com/hero.png: Hero shot')
+    expect(result.text).toContain('https://cdn.com/fig1.png')
+    // Structured shape feeds the activity drawer's image strip.
+    expect(result.summary).toBe('A useful article about markdown.')
+    expect(result.images).toEqual([
+      { url: 'https://cdn.com/hero.png', description: 'Hero shot' },
+      { url: 'https://cdn.com/fig1.png' }
+    ])
   })
 
   it('renders "(none found)" when images array is empty', async () => {
@@ -246,8 +261,9 @@ describe('fetchUrl', () => {
       text: JSON.stringify({ summary: 'Text only.', images: [] })
     }))
     const result = await fetchUrl(ai, 'gemini-test', 'https://example.com', new AbortController().signal)
-    expect(result).toContain('Images observed on the page:')
-    expect(result).toContain('- (none found)')
+    expect(result.text).toContain('Images observed on the page:')
+    expect(result.text).toContain('- (none found)')
+    expect(result.images).toEqual([])
   })
 
   it('renders "(empty)" when summary is missing or empty', async () => {
@@ -255,8 +271,9 @@ describe('fetchUrl', () => {
       text: JSON.stringify({ summary: '', images: [] })
     }))
     const result = await fetchUrl(ai, 'gemini-test', 'https://example.com', new AbortController().signal)
-    expect(result).toContain('Summary:')
-    expect(result).toContain('(empty)')
+    expect(result.text).toContain('Summary:')
+    expect(result.text).toContain('(empty)')
+    expect(result.summary).toBe('')
   })
 
   it('falls back to raw text when Gemini emits non-JSON prose despite the schema', async () => {
@@ -268,14 +285,18 @@ describe('fetchUrl', () => {
       text: 'This is definitely not JSON and has no braces at all.'
     }))
     const result = await fetchUrl(ai, 'gemini-test', 'https://example.com', new AbortController().signal)
-    expect(result).toBe('This is definitely not JSON and has no braces at all.')
+    expect(result.text).toBe('This is definitely not JSON and has no braces at all.')
+    // Structured fields empty when JSON parse fails.
+    expect(result.summary).toBe('')
+    expect(result.images).toEqual([])
   })
 
   it('returns an "unable to extract" message when the response is empty', async () => {
     const { ai } = makeFakeAi(() => ({ text: '' }))
     const result = await fetchUrl(ai, 'gemini-test', 'https://example.com', new AbortController().signal)
-    expect(result).toContain('Unable to extract content')
-    expect(result).toContain('https://example.com')
+    expect(result.text).toContain('Unable to extract content')
+    expect(result.text).toContain('https://example.com')
+    expect(result.images).toEqual([])
   })
 
   it('skips images with missing URL fields (defensive)', async () => {
@@ -290,9 +311,11 @@ describe('fetchUrl', () => {
       })
     }))
     const result = await fetchUrl(ai, 'gemini-test', 'https://example.com', new AbortController().signal)
-    expect(result).toContain('https://good.com/img.png')
-    expect(result).not.toContain('dangling description')
-    expect(result).not.toContain('empty url')
+    expect(result.text).toContain('https://good.com/img.png')
+    expect(result.text).not.toContain('dangling description')
+    expect(result.text).not.toContain('empty url')
+    // Structured images array also filters out missing URLs.
+    expect(result.images).toEqual([{ url: 'https://good.com/img.png' }])
   })
 
   it('throws "aborted" on a pre-aborted signal without calling Gemini', async () => {

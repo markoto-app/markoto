@@ -109,10 +109,25 @@ const {
   }
 )
 
-watch(loggedIn, () => {
-  loadDocs()
-  loadWorkspaces()
-}, { immediate: true })
+// Defer the load to AFTER hydration (VueUse `tryOnMounted` =
+// SSR-safe `onMounted`). Two SSR↔client mismatches collapse here:
+//   1) Bare `$fetch` on SSR doesn't forward the request's cookies, so
+//      the server sees an anonymous call and 401s → onError toast
+//      lands in the SSR HTML, but the client toast queue starts empty
+//      → `<ToastRoot>` hydration mismatch → app crash.
+//   2) Setup-time `immediate: true` flips `loadingWorkspaces` true
+//      before the first paint, but SSR rendered with loading=false →
+//      the workspace section's v-if differs SSR (false → comment) vs
+//      client (true → div) → "Hydration node mismatch at <Index>".
+// `tryOnMounted` runs only on the client, after the first paint, so
+// SSR HTML and client first render agree; the spinner appears on the
+// next tick. See the equivalent guard in app/pages/w/[id].vue.
+tryOnMounted(() => {
+  watch(loggedIn, () => {
+    loadDocs()
+    loadWorkspaces()
+  }, { immediate: true })
+})
 
 // Delete modal state
 const deleteTarget = ref<DocumentListItem | null>(null)

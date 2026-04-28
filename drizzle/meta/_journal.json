@@ -22,6 +22,27 @@
       "when": 1777281794065,
       "tag": "0002_lowly_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777369380908,
+      "tag": "0003_flowery_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777379537238,
+      "tag": "0004_lethal_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777381881229,
+      "tag": "0005_typical_garia",
+      "breakpoints": true
     }
   ]
 }

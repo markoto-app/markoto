@@ -65,6 +65,7 @@ function tooltipFor(m: WorkspaceMember) {
             :src="m.avatarUrl"
             :alt="m.name"
             size="xs"
+            referrerpolicy="no-referrer"
           />
           <div
             v-else

@@ -98,6 +98,7 @@
     "title": "Activity",
     "noActivity": "No activity yet",
     "anonymous": "Anonymous",
+    "untitled": "Untitled",
     "justNow": "just now",
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
@@ -105,7 +106,90 @@
     "action": {
       "edit": "edited the document",
       "join": "joined",
-      "leave": "left"
+      "leave": "left",
+      "comment": {
+        "added": "added a comment",
+        "replied": "replied to a comment",
+        "resolved": "resolved a comment",
+        "reopened": "reopened a comment",
+        "deleted": "deleted a comment",
+        "deletedReply": "deleted a reply"
+      },
+      "title": {
+        "changed": "renamed the document"
+      },
+      "theme": {
+        "changed": "changed the theme"
+      },
+      "ai": {
+        "tool": "used a tool"
+      },
+      "restore": "restored the document",
+      "aiTool": {
+        "web_search": "searched the web",
+        "fetch_url": "fetched a URL",
+        "generate_image": "generated an image",
+        "view_image": "looked at an image",
+        "search_knowledge": "searched the knowledge base",
+        "get_knowledge_file": "read a knowledge file"
+      }
+    },
+    "detail": {
+      "titleChanged": "{from} → {to}",
+      "restoredFrom": "From {ago}"
+    },
+    "restore": {
+      "button": {
+        "label": "Restore",
+        "tooltip": "Restore the document to this point. Reversible — you can come back via the activity log."
+      },
+      "confirm": {
+        "title": "Restore the document?",
+        "body": "The document will snap back to the state from {when}. Edits made since then will be removed (but stay recoverable from the activity log).",
+        "reversibleHint": "This restore is itself reversible — you can return to the current state any time.",
+        "cta": "Restore"
+      },
+      "success": "Document restored.",
+      "error": {
+        "unauthorized": "You don't have edit access to this document.",
+        "unavailable": "Can't restore from this row — it predates the restore feature.",
+        "notFound": "That activity row doesn't exist for this document.",
+        "generic": "Restore failed. The document is unchanged."
+      }
+    },
+    "filter": {
+      "all": "All",
+      "edits": "Edits",
+      "comments": "Comments",
+      "ai": "AI",
+      "meta": "Meta"
+    },
+    "noFilterMatches": "Nothing in this category yet",
+    "diff": {
+      "viewChange": "View change",
+      "hideChange": "Hide change",
+      "empty": "No textual change.",
+      "unavailable": "Diff unavailable for this row.",
+      "error": "Couldn't load the diff.",
+      "retry": "Retry",
+      "truncated": "Showing {shown} of {total} hunks — diff truncated."
+    },
+    "commentContext": {
+      "view": "View thread",
+      "hide": "Hide thread",
+      "replyMarker": "(reply)",
+      "resolved": "Resolved",
+      "unavailable": "This thread no longer exists.",
+      "error": "Couldn't load the thread.",
+      "retry": "Retry"
+    },
+    "aiTool": {
+      "view": "View details",
+      "hide": "Hide details",
+      "sourcesHeading": "Sources",
+      "noSources": "No sources surfaced.",
+      "imageInDoc": "The generated image was inserted into the document.",
+      "knowledgeNote": "Workspace knowledge feature."
     }
   },
   "comments": {

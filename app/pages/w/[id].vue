@@ -55,7 +55,13 @@ const {
   }
 )
 
-watch([workspaceId, loggedIn], () => loadWorkspace(), { immediate: true })
+// Defer to VueUse `tryOnMounted` — see app/pages/index.vue for the
+// full rationale (SSR cookie-less $fetch + setup-time loading-flag
+// flip both cause hydration mismatches; deferring to client mount
+// sidesteps both).
+tryOnMounted(() => {
+  watch([workspaceId, loggedIn], () => loadWorkspace(), { immediate: true })
+})
 
 // Tab title tracks the workspace name once it loads. Function getter
 // keeps it reactive without polling.

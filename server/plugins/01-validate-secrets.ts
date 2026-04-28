@@ -1,20 +1,21 @@
 import { validateSecrets } from '../../shared/utils/validateSecrets'
 
-// Fail-fast at boot if any critical secret is missing or too short. Runs
+// Fail-fast at boot if any critical config is missing or malformed. Runs
 // right after `00-db-migrate` so a misconfigured deploy crashes visibly
 // during startup instead of silently 500-ing later when a request actually
-// reaches the signing/encryption path.
+// reaches the signing/encryption/upload/AI path.
 //
-// Previous-secret variants (for dual-secret rotation per
-// docs/SECRETS-ROTATION.md) are optional but length-checked when present.
+// Policy: dev and prod enforce the same surface. We do NOT silently boot
+// with degraded features (no AI, no uploads, broken sync, half-wired OAuth).
+// The only escape is `TEST_MODE=1`, which the integration suite sets so the
+// stubbed fixtures don't need to wire up every third-party key.
 //
-// Prod-only checks: Gemini/STT API keys and Stripe secret are required in
-// prod where the corresponding features ship. In dev + tests we skip them
-// so contributors can boot without wiring up every third-party key.
+// `*_PREVIOUS` rotation variants stay optional but length-checked when set.
 
 export default defineNitroPlugin(() => {
+  if (process.env.TEST_MODE === '1') return
+
   const config = useRuntimeConfig()
-  const isProd = process.env.NODE_ENV === 'production'
   const errors = validateSecrets([
     { name: 'SESSION_PASSWORD', value: config.session?.password },
     { name: 'JWT_SECRET', value: config.jwtSecret },
@@ -23,17 +24,82 @@ export default defineNitroPlugin(() => {
     { name: 'INTERNAL_API_SECRET_PREVIOUS', value: config.internalApiSecretPrevious, required: false }
   ])
 
-  // Valkey URL is a hard dependency on every request path that matters
-  // (rate-limiting + session locks). Validate at boot rather than crashing
-  // on the first rate-limit call after a user arrives.
-  if (!process.env.VALKEY_URL) {
-    errors.push('VALKEY_URL is not set')
+  // Bare presence checks — third-party formats vary, we only verify that a
+  // human filled the slot. `process.env` for vars consumed outside the
+  // runtimeConfig graph (POSTGRES_*, VALKEY_*); `config.*` for the rest.
+  // Postgres + Valkey are atomic parts (user/password/host/port/db) so
+  // .env never has to carry a composed URL alongside the parts that
+  // built it; `shared/utils/connectionStrings.ts` owns the construction.
+  const presence: Array<{ name: string, value: unknown }> = [
+    { name: 'POSTGRES_USER', value: process.env.POSTGRES_USER },
+    { name: 'POSTGRES_PASSWORD', value: process.env.POSTGRES_PASSWORD },
+    { name: 'POSTGRES_HOST', value: process.env.POSTGRES_HOST },
+    { name: 'POSTGRES_PORT', value: process.env.POSTGRES_PORT },
+    { name: 'POSTGRES_DB', value: process.env.POSTGRES_DB },
+    { name: 'VALKEY_HOST', value: process.env.VALKEY_HOST },
+    { name: 'VALKEY_PORT', value: process.env.VALKEY_PORT },
+    { name: 'NUXT_S3_ENDPOINT', value: config.s3?.endpoint },
+    { name: 'NUXT_S3_ACCESS_KEY', value: config.s3?.accessKey },
+    { name: 'NUXT_S3_SECRET_KEY', value: config.s3?.secretKey },
+    { name: 'NUXT_S3_BUCKET', value: config.s3?.bucket },
+    { name: 'NUXT_MARKITDOWN_URL', value: config.markitdownUrl },
+    { name: 'NUXT_SYNC_INTERNAL_URL', value: config.syncInternalUrl },
+    { name: 'NUXT_PUBLIC_SYNC_URL', value: config.public?.syncUrl },
+    { name: 'NUXT_GOOGLE_GEMINI_API_KEY', value: config.google?.geminiApiKey },
+    { name: 'NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY', value: config.google?.speechToTextApiKey }
+  ]
+  for (const { name, value } of presence) {
+    if (typeof value !== 'string' || value.length === 0) {
+      errors.push(`${name} is not set`)
+    }
+  }
+
+  // OAuth: pair-validate per provider. Login is optional (anonymous editing
+  // is a first-class flow), so a fully-empty pair is allowed. But a partial
+  // pair — id without secret, or vice versa — silently bricks the OAuth
+  // callback later, which is exactly the degraded-feature failure mode we're
+  // closing. Force both-or-neither.
+  for (const provider of ['github', 'google'] as const) {
+    const id = config.oauth?.[provider]?.clientId
+    const secret = config.oauth?.[provider]?.clientSecret
+    const hasId = typeof id === 'string' && id.length > 0
+    const hasSecret = typeof secret === 'string' && secret.length > 0
+    if (hasId !== hasSecret) {
+      const upper = provider.toUpperCase()
+      errors.push(
+        `NUXT_OAUTH_${upper}_CLIENT_ID and NUXT_OAUTH_${upper}_CLIENT_SECRET must be set together (got: id=${hasId ? 'set' : 'empty'}, secret=${hasSecret ? 'set' : 'empty'})`
+      )
+    }
+  }
+
+  // URL fields must parse — typos that fall back to defaults are worse than
+  // a hard crash. `NUXT_PUBLIC_SYNC_URL` is a ws(s):// URL; everything else
+  // is http(s)://.
+  const urlChecks: Array<{ name: string, value: unknown, schemes: string[] }> = [
+    { name: 'NUXT_S3_ENDPOINT', value: config.s3?.endpoint, schemes: ['http:', 'https:'] },
+    { name: 'NUXT_MARKITDOWN_URL', value: config.markitdownUrl, schemes: ['http:', 'https:'] },
+    { name: 'NUXT_SYNC_INTERNAL_URL', value: config.syncInternalUrl, schemes: ['http:', 'https:'] },
+    { name: 'NUXT_PUBLIC_SYNC_URL', value: config.public?.syncUrl, schemes: ['ws:', 'wss:'] }
+  ]
+  for (const { name, value, schemes } of urlChecks) {
+    if (typeof value !== 'string' || value.length === 0) continue // already flagged above
+    let parsed: URL
+    try {
+      parsed = new URL(value)
+    } catch {
+      errors.push(`${name} is not a valid URL: "${value}"`)
+      continue
+    }
+    if (!schemes.includes(parsed.protocol)) {
+      errors.push(`${name} must use ${schemes.join(' or ')} (got "${parsed.protocol}")`)
+    }
   }
 
   // Stripe base override, when present, must be a parseable URL. Silently
   // falling back to api.stripe.com on a typo would be worse than refusing
   // to start — a dev pointing at stripe-mock with a broken URL would hit
-  // real Stripe.
+  // real Stripe. Stripe secrets themselves remain prod-only because
+  // monetization is unimplemented (AGENTS.md §15/§17).
   const apiBase = config.stripe?.apiBase
   if (typeof apiBase === 'string' && apiBase.length > 0) {
     try {
@@ -43,11 +109,7 @@ export default defineNitroPlugin(() => {
     }
   }
 
-  if (isProd) {
-    // Prod requires the external-API keys that the feature set depends on.
-    // We don't length-check these (provider-defined format) — just presence.
-    if (!config.google?.geminiApiKey) errors.push('NUXT_GOOGLE_GEMINI_API_KEY is not set')
-    if (!config.google?.speechToTextApiKey) errors.push('NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY is not set')
+  if (process.env.NODE_ENV === 'production') {
     if (!config.stripe?.secretKey) errors.push('NUXT_STRIPE_SECRET_KEY is not set')
     if (!config.stripe?.webhookSecret) errors.push('NUXT_STRIPE_WEBHOOK_SECRET is not set')
   }

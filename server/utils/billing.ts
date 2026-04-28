@@ -153,11 +153,12 @@ async function getUserPlan(userId: number): Promise<{
     planValidUntil: users.planValidUntil,
     stripeCurrentPeriodStart: users.stripeCurrentPeriodStart
   }).from(users).where(eq(users.id, userId)).limit(1)
-  if (rows.length === 0) return null
+  const row = rows[0]
+  if (!row) return null
   return {
-    plan: rows[0].plan as PlanName,
-    planValidUntil: rows[0].planValidUntil,
-    stripeCurrentPeriodStart: rows[0].stripeCurrentPeriodStart
+    plan: row.plan as PlanName,
+    planValidUntil: row.planValidUntil,
+    stripeCurrentPeriodStart: row.stripeCurrentPeriodStart
   }
 }
 
@@ -169,8 +170,7 @@ async function getWorkspaceBilling(workspaceId: string): Promise<
     aiEnabled: workspaces.aiEnabled,
     billingOwnerId: workspaces.billingOwnerId
   }).from(workspaces).where(eq(workspaces.workspaceId, workspaceId)).limit(1)
-  if (rows.length === 0) return null
-  return rows[0]
+  return rows[0] ?? null
 }
 
 /**
@@ -277,6 +277,7 @@ export async function chargeInteractions(opts: {
         RETURNING interactions_used
       `)
       const row = (rows as unknown as { rows: Array<{ interactions_used: number }> }).rows[0]
+      if (!row) throw new Error('billing upsert returned no row')
       newUsed = Number(row.interactions_used)
       if (newUsed > cap) {
         wasRollback = true
@@ -328,7 +329,7 @@ export async function getInteractionsRemaining(
     ))
     .limit(1)
 
-  const used = rows.length === 0 ? 0 : rows[0].used
+  const used = rows[0]?.used ?? 0
   return Math.max(0, cap - used)
 }
 

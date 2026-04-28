@@ -228,6 +228,7 @@ function offlineBg(userId: number) {
             :src="e.user.avatar"
             :alt="e.user.name"
             size="xs"
+            referrerpolicy="no-referrer"
           />
           <div
             v-else
@@ -253,6 +254,7 @@ function offlineBg(userId: number) {
             :alt="e.name"
             size="xs"
             class="grayscale"
+            referrerpolicy="no-referrer"
           />
           <div
             v-else

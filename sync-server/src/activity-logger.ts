@@ -4,13 +4,33 @@
 const APP_URL = process.env.APP_URL
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
 
+// Mirror of the app-side ActivityAction union. Kept in lockstep with
+// server/repos/activity.ts; the internal endpoint validates the action
+// against its own allowlist.
+export type ActivityAction
+  = | 'edit' | 'join' | 'leave'
+    | 'comment.added' | 'comment.replied'
+    | 'comment.resolved' | 'comment.reopened' | 'comment.deleted'
+    | 'theme.changed' | 'title.changed' | 'ai.tool'
+
 type ActivityEvent = {
   docId: string
+  /** Optional user id — drives avatar JOIN on the read endpoint. */
+  userId?: number | null
   userName: string | null
-  action: 'edit' | 'join' | 'leave'
+  action: ActivityAction
   wordCount?: number | null
   linesAdded?: number | null
   linesRemoved?: number | null
+  metadata?: Record<string, unknown> | null
+  /**
+   * Boundary y-postgresql row ids around the store event that produced
+   * this activity. Stamped on the row so the diff endpoint can replay
+   * the doc state on either side. Optional — comment-only events may
+   * not have meaningful boundaries to attach.
+   */
+  yjsDocIdBefore?: number | null
+  yjsDocIdAfter?: number | null
 }
 
 export async function logActivity(event: ActivityEvent): Promise<void> {

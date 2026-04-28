@@ -10,6 +10,8 @@ import type { BillingContext } from '../billing'
 import { chargeInteractions, BudgetExhausted } from '../billing'
 import { executeFunctionByName } from '../aiToolAdapter'
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch, fetchUrl } from './functionTools'
+import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
+import { docExists } from '../../repos/documents'
 import {
   newStreamState,
   processChunk,
@@ -31,6 +33,31 @@ import {
  */
 
 const MAX_TURNS = 20
+
+/**
+ * Emit an `ai.tool` activity row for a meta-tool the AI just used.
+ * Limited to tools that don't surface in the Y.Doc state and would
+ * otherwise be invisible to collaborators (web_search, fetch_url,
+ * generate_image). Doc-mutating tools (replace_text, insert_text,
+ * comment.*, theme/title updates) bubble through sync-server and emit
+ * their own activity events; emitting here would double-count them.
+ *
+ * Fire-and-forget — failures must never block the agentic loop.
+ */
+async function logAiTool(docId: string, metadata: Extract<ActivityMetadata, { kind: 'ai.tool' }>): Promise<void> {
+  try {
+    if (!(await docExists(docId))) return
+    await appendActivity({
+      docId,
+      userName: 'AI Assistant',
+      action: 'ai.tool',
+      metadata
+    })
+    await pruneActivity(docId)
+  } catch (e) {
+    console.warn('[runLoop] ai.tool activity log failed:', e instanceof Error ? e.message : e)
+  }
+}
 
 export interface RunLoopOptions {
   ai: GoogleGenAI
@@ -267,8 +294,21 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
           throw e
         }
         try {
-          const text = await webSearch(ai, model, query, abortController.signal)
-          result = { content: text, isError: false }
+          const out = await webSearch(ai, model, query, abortController.signal)
+          result = { content: out.text, isError: false }
+          // Persist sources on the activity row so the drawer can
+          // render a clickable list when the user expands. Cap at 10
+          // — most queries return 5-15 chunks and 10 sources is the
+          // reading-comfort ceiling for the narrow sidebar.
+          void logAiTool(aiSession.docId, {
+            kind: 'ai.tool',
+            tool: 'web_search',
+            query: query.slice(0, 200),
+            sources: out.sources.slice(0, 10).map(s => ({
+              title: s.title.slice(0, 200),
+              uri: s.uri.slice(0, 500)
+            }))
+          })
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Unknown error'
           if (abortController.signal.aborted) throw e
@@ -290,8 +330,20 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
           throw e
         }
         try {
-          const text = await fetchUrl(ai, model, url, abortController.signal)
-          result = { content: text, isError: false }
+          const out = await fetchUrl(ai, model, url, abortController.signal)
+          result = { content: out.text, isError: false }
+          // Persist the resolved url + summary + image strip so the
+          // drawer renders a real preview without a second fetch.
+          void logAiTool(aiSession.docId, {
+            kind: 'ai.tool',
+            tool: 'fetch_url',
+            url: out.url.slice(0, 500),
+            summary: out.summary.slice(0, 600),
+            images: out.images.slice(0, 6).map(i => ({
+              url: i.url.slice(0, 500),
+              description: i.description?.slice(0, 200)
+            }))
+          })
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Unknown error'
           if (abortController.signal.aborted) throw e
@@ -305,6 +357,30 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
           if (abortController.signal.aborted) throw e
           log(`function_call threw: ${call.name}: ${msg}`)
           result = { content: `Error: ${call.name} failed: ${msg}`, isError: true }
+        }
+        // Surface meta-tools as ai.tool rows so the activity feed shows
+        // every meaningful AI action — generate_image, plus the read-
+        // only tools that don't bubble through Y.js (view_image,
+        // search_knowledge, get_knowledge_file). Skipped: view_document
+        // and read_comments (pure noise — AI reads doc state every turn).
+        if (!result.isError) {
+          if (call.name === 'generate_image') {
+            const a = validatedArgs as { prompt?: string }
+            const prompt = typeof a.prompt === 'string' ? a.prompt.slice(0, 300) : ''
+            void logAiTool(aiSession.docId, { kind: 'ai.tool', tool: 'generate_image', prompt })
+          } else if (call.name === 'view_image') {
+            const a = validatedArgs as { src?: string }
+            const src = typeof a.src === 'string' ? a.src.slice(0, 500) : ''
+            void logAiTool(aiSession.docId, { kind: 'ai.tool', tool: 'view_image', src })
+          } else if (call.name === 'search_knowledge') {
+            const a = validatedArgs as { query?: string }
+            const query = typeof a.query === 'string' ? a.query.slice(0, 200) : ''
+            void logAiTool(aiSession.docId, { kind: 'ai.tool', tool: 'search_knowledge', query })
+          } else if (call.name === 'get_knowledge_file') {
+            const a = validatedArgs as { knowledge_id?: string }
+            const knowledgeId = typeof a.knowledge_id === 'string' ? a.knowledge_id.slice(0, 64) : ''
+            void logAiTool(aiSession.docId, { kind: 'ai.tool', tool: 'get_knowledge_file', knowledgeId })
+          }
         }
       }
 

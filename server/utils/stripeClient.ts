@@ -42,7 +42,7 @@ export function useStripeClient(): Stripe | null {
   const secret = config.stripe.secretKey
   if (!secret) return null
   client = new Stripe(secret, {
-    apiVersion: STRIPE_API_VERSION as Stripe.StripeConfig['apiVersion'],
+    apiVersion: STRIPE_API_VERSION as NonNullable<ConstructorParameters<typeof Stripe>[1]>['apiVersion'],
     // Override the API base URL when pointed at `stripe-mock`. Stripe's
     // SDK requires both `host` (hostname) and `port` + `protocol`
     // separately. Do the parsing here so callers only need one env var.
@@ -60,7 +60,7 @@ export function useStripeClient(): Stripe | null {
  * them at boot, so reaching this function with a malformed value means
  * someone bypassed the validator.
  */
-export function buildHostOverride(apiBase: string): Partial<Stripe.StripeConfig> {
+export function buildHostOverride(apiBase: string): Partial<NonNullable<ConstructorParameters<typeof Stripe>[1]>> {
   if (!apiBase) return {}
   const u = new URL(apiBase)
   return {

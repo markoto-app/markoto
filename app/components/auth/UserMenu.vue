@@ -36,6 +36,7 @@ const { loggedIn, user, clear } = useUserSession()
           :src="user?.avatar ?? undefined"
           :alt="user?.name"
           size="xs"
+          referrerpolicy="no-referrer"
         />
         <span class="hidden sm:inline text-sm">{{ user?.name }}</span>
       </UButton>

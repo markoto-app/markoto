@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, asc, eq, or } from 'drizzle-orm'
 import { documentComments } from '../db/schema'
 import { useDatabase } from '../utils/database'
 
@@ -43,4 +43,73 @@ export async function replaceCommentSnapshot(docId: string, rows: CommentSnapsho
       resolved: r.resolved
     })))
   })
+}
+
+/**
+ * Resolve a comment thread by any entry id (root OR reply). Returns
+ * the thread root + every reply, ordered chronologically. Returns
+ * null when the entry doesn't exist for this doc.
+ *
+ * Used by the activity-feed comment-context expansion: an activity
+ * row references a single `commentId` (possibly a reply) and we
+ * want to show "the whole conversation up to this point" without
+ * forcing the caller to walk the parent chain themselves.
+ */
+export interface CommentThreadRow {
+  entryId: string
+  parentCommentId: string | null
+  authorId: number | null
+  authorName: string
+  body: string
+  createdAt: Date
+  updatedAt: Date
+  resolved: boolean
+}
+
+export async function getCommentThreadByEntryId(
+  docId: string,
+  entryId: string
+): Promise<CommentThreadRow[] | null> {
+  const db = useDatabase()
+  // First find the row to determine the thread root id.
+  const [row] = await db
+    .select({
+      entryId: documentComments.entryId,
+      parentCommentId: documentComments.parentCommentId
+    })
+    .from(documentComments)
+    .where(and(eq(documentComments.docId, docId), eq(documentComments.entryId, entryId)))
+    .limit(1)
+  if (!row) return null
+
+  const rootId = row.parentCommentId ?? row.entryId
+
+  // Fetch the root + every row whose parentCommentId points at it.
+  // Single SELECT with `OR` rather than two — keeps the round-trip
+  // count down for the on-demand expansion.
+  const rows = await db
+    .select({
+      entryId: documentComments.entryId,
+      parentCommentId: documentComments.parentCommentId,
+      authorId: documentComments.authorId,
+      authorName: documentComments.authorName,
+      body: documentComments.body,
+      createdAt: documentComments.createdAtMs,
+      updatedAt: documentComments.updatedAtMs,
+      resolved: documentComments.resolved
+    })
+    .from(documentComments)
+    .where(and(
+      eq(documentComments.docId, docId),
+      or(eq(documentComments.entryId, rootId), eq(documentComments.parentCommentId, rootId))!
+    ))
+    .orderBy(asc(documentComments.createdAtMs))
+
+  // Sort: root first, then replies in createdAt order. The orderBy
+  // above gives us chronological — but the root may have been
+  // created AFTER a reply in some pathological case (clock skew /
+  // edited timestamps). Force-pin the root regardless.
+  const root = rows.find(r => r.entryId === rootId)
+  const replies = rows.filter(r => r.entryId !== rootId)
+  return root ? [root, ...replies] : rows
 }

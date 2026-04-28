@@ -437,12 +437,20 @@ export const KNOWLEDGE_TOOL_DECLARATIONS: FunctionDeclaration[] = [
  * 5,000 prompts/month free across the Gemini 3 family, then $14 per 1,000
  * searches — revisit query caching if this bill climbs.
  */
+export interface WebSearchResult {
+  /** The synthesised answer text the main loop hands back to Gemini. */
+  text: string
+  /** Deduplicated grounding sources (title + uri). Used by the activity
+   *  drawer to render a clickable list when the user expands the row. */
+  sources: Array<{ title: string, uri: string }>
+}
+
 export async function webSearch(
   ai: GoogleGenAI,
   model: string,
   query: string,
   signal: AbortSignal
-): Promise<string> {
+): Promise<WebSearchResult> {
   // Abort guard — if we're already past the deadline, don't even issue the call.
   if (signal.aborted) throw new Error('aborted')
 
@@ -484,12 +492,15 @@ export async function webSearch(
   }
 
   if (!answer) {
-    return 'No answer returned. The search may not have surfaced relevant results.'
+    return {
+      text: 'No answer returned. The search may not have surfaced relevant results.',
+      sources: []
+    }
   }
 
-  if (sources.length === 0) return answer
+  if (sources.length === 0) return { text: answer, sources: [] }
   const sourceList = sources.map(s => `  - ${s.title}: ${s.uri}`).join('\n')
-  return `${answer}\n\nSources:\n${sourceList}`
+  return { text: `${answer}\n\nSources:\n${sourceList}`, sources }
 }
 
 // --- URL context sub-call -------------------------------------------------
@@ -516,12 +527,25 @@ interface FetchUrlResponse {
   images: Array<{ url: string, description?: string }>
 }
 
+export interface FetchUrlResult {
+  /** The textual blob the main loop hands back to Gemini. */
+  text: string
+  /** Resolved absolute URL (with scheme prepended if needed). */
+  url: string
+  /** Page summary parsed from the structured response. May be empty
+   *  when Gemini fell back to raw text or the page was unreachable. */
+  summary: string
+  /** Image URLs the page exposes — exposed verbatim to the activity
+   *  drawer for an inline strip. */
+  images: Array<{ url: string, description?: string }>
+}
+
 export async function fetchUrl(
   ai: GoogleGenAI,
   model: string,
   rawUrl: string,
   signal: AbortSignal
-): Promise<string> {
+): Promise<FetchUrlResult> {
   if (signal.aborted) throw new Error('aborted')
 
   // Add an https:// scheme if the AI (or user) passed a bare hostname.
@@ -576,7 +600,12 @@ export async function fetchUrl(
 
   const raw = (response.text ?? '').trim()
   if (!raw) {
-    return `Unable to extract content from ${url}. The page may be unreachable, require authentication, or block crawlers.`
+    return {
+      text: `Unable to extract content from ${url}. The page may be unreachable, require authentication, or block crawlers.`,
+      url,
+      summary: '',
+      images: []
+    }
   }
 
   // Parse the JSON Gemini returned per the schema. If parsing fails (model
@@ -586,7 +615,7 @@ export async function fetchUrl(
   try {
     parsed = JSON.parse(raw) as FetchUrlResponse
   } catch {
-    return raw
+    return { text: raw, url, summary: '', images: [] }
   }
 
   const lines: string[] = []
@@ -601,5 +630,10 @@ export async function fetchUrl(
       lines.push(img.description ? `- ${img.url}: ${img.description}` : `- ${img.url}`)
     }
   }
-  return lines.join('\n')
+  return {
+    text: lines.join('\n'),
+    url,
+    summary: parsed.summary ?? '',
+    images: (parsed.images ?? []).filter(i => i?.url)
+  }
 }

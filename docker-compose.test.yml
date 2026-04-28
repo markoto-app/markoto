@@ -16,8 +16,9 @@
 #   bun run test:integration:down
 #
 # Flows:
-#   bun run flows:up                 # adds sync + markitdown to the above
-#   bun run flows:test:ephemeral     # full lifecycle (up, dev server, run, down)
+#   bun run flows:up                       # adds sync + markitdown to the above
+#   bun run flows:test                     # hermetic full lifecycle (up, prod build, run, down)
+#   bun run flows:test:against-running     # run against an already-running app at PLAYWRIGHT_BASE_URL
 #   bun run flows:down
 #
 # Ports shifted from dev (5432/6379/8333/4001/8080) to (5433/6380/8334/4002/8081)
@@ -105,6 +106,14 @@ services:
     stop_grace_period: 30s
     environment:
       - PORT=4001
+      # `shared/utils/connectionStrings.ts` reads atomic POSTGRES_*
+      # vars (not the composed URL); kept the URL here for any code
+      # that still consumes the legacy form.
+      - POSTGRES_USER=ypad
+      - POSTGRES_PASSWORD=testpassword
+      - POSTGRES_HOST=postgres-test
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=ypad_test
       - DATABASE_URL=postgres://ypad:testpassword@postgres-test:5432/ypad_test
       - JWT_SECRET=test-jwt-secret-isolated-from-dev-and-prod-stacks-64char
       - INTERNAL_API_SECRET=test-internal-api-secret-isolated

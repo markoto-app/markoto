@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { spawn, type Subprocess } from 'bun'
 
-// Orchestrator for `bun run flows:test:ephemeral`.
+// Orchestrator for `bun run flows:test`. Hermetic, end-to-end.
 //
 // 1. Bring up docker-compose.flows.yml (waits for healthchecks).
 // 2. Run `bun run build` (production Nitro output to .output/).
@@ -36,8 +36,36 @@ const NUXT_URL = `http://localhost:${NUXT_PORT}`
 // Env vars the Nuxt server needs to talk to the test infra. Mirrors
 // .env but with shifted ports (5433/6380/8334/4002/8081 — see compose
 // header) + isolated secrets that match what sync-test was built with.
+//
+// Real Gemini integration: AI flows (`tests/e2e/flows/ai-*.spec.ts`)
+// drive the prompt bar / @ai mention against the live Gemini API to
+// produce realistic screenshots. The orchestrator forwards the host's
+// NUXT_GOOGLE_GEMINI_API_KEY into the subprocess; if unset, AI flows
+// will skip themselves rather than crash. TEST_MODE=1 enables the
+// `/api/_test/login` shim AND skips the billing-counter write so flow
+// runs don't accumulate quota.
 const FLOWS_ENV: Record<string, string> = {
   PORT: String(NUXT_PORT),
+  // TEST_MODE flips on /api/_test/login (so the flow fixture can seal a
+  // session cookie without going through OAuth) AND short-circuits
+  // billing's INSERT to ai_usage_period (so repeated flow runs don't
+  // accumulate counter rows the cleanup volume reset would have to
+  // discard). It does NOT bypass Gemini — every AI call still hits
+  // the live API.
+  TEST_MODE: '1',
+  // Atomic Postgres parts — `postgresUrlFromEnv` reads these. Without
+  // them, the Nitro subprocess inherits the parent shell's .env-loaded
+  // dev vars and migrates the DEV database. (Same lesson as the
+  // integration server.ts setup.)
+  POSTGRES_USER: 'ypad',
+  POSTGRES_PASSWORD: 'testpassword',
+  POSTGRES_HOST: 'localhost',
+  POSTGRES_PORT: '5433',
+  POSTGRES_DB: 'ypad_test',
+  VALKEY_HOST: 'localhost',
+  VALKEY_PORT: '6380',
+  VALKEY_PASSWORD: '',
+  VALKEY_DB: '0',
   DATABASE_URL: 'postgres://ypad:testpassword@localhost:5433/ypad_test',
   VALKEY_URL: 'redis://localhost:6380/0',
   NUXT_S3_ENDPOINT: 'http://localhost:8334',
@@ -50,6 +78,12 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_JWT_SECRET: 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char',
   NUXT_INTERNAL_API_SECRET: 'test-internal-api-secret-isolated',
   NUXT_SESSION_PASSWORD: 'test-session-password-at-least-32-chars-isolated-x',
+  // Real Gemini key — REQUIRED for AI flows. Forwarded from the host
+  // at process start (see `main()` below). Empty string is fine for
+  // non-AI flows; the runtime config validator only complains if a
+  // request actually tries to use it.
+  NUXT_GOOGLE_GEMINI_API_KEY: process.env.NUXT_GOOGLE_GEMINI_API_KEY ?? '',
+  NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY: process.env.NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY ?? '',
   // Stripe: prod-build runtime validation requires these. Tests don't
   // exercise billing UI, so dummy values that satisfy the shape are
   // enough. Aligns with the integration-test setup (see
@@ -84,10 +118,12 @@ async function waitForHttp(url: string, timeoutMs: number): Promise<void> {
   while (Date.now() < deadline) {
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(2000) })
-      // 200 = ready; 500 = ready-but-erroring (e.g. SSR error on first hit).
-      // Both mean the server is accepting connections. 5xx will surface
-      // through Playwright; we just need to know the server is up.
-      if (r.status < 600) return
+      // STRICT: only 200 counts as ready. The previous "any 5xx is OK"
+      // logic raced migrations — /api/health queries the `users`
+      // table, which 500s while `00-db-migrate` is still running, and
+      // we'd start Playwright against a DB without schema. Now we
+      // wait until the health probe + DB query succeed end-to-end.
+      if (r.status === 200) return
     } catch { /* connection refused etc — keep polling */ }
     await Bun.sleep(500)
   }
@@ -152,7 +188,7 @@ async function main() {
   await waitForHttp(`${NUXT_URL}/api/health`, 60_000)
 
   // Step 5: Playwright. Pass through all argv so callers can scope to
-  // a single test (e.g. `bun run flows:test:ephemeral --project=en-light-desktop`).
+  // a single test (e.g. `bun run flows:test --project=en-light-desktop`).
   console.log('[flows-ephemeral] running Playwright')
   const playwrightCode = await shellOut([
     'bunx', 'playwright', 'test',

@@ -181,7 +181,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       const start = i * binsPerSample
       const end = start + binsPerSample
       for (let j = start; j < end; j++) {
-        if (buf[j] > peak) peak = buf[j]
+        const v = buf[j] ?? 0
+        if (v > peak) peak = v
       }
       // Scale 0..255 → 0..1 with a mild curve so quiet speech still shows.
       out[i] = Math.min(1, (peak / 255) ** 0.7)

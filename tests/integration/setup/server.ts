@@ -1,52 +1,79 @@
-import { spawn, type ChildProcess } from 'node:child_process'
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
-import {
-  TEST_BASE_URL,
-  TEST_DB_URL,
-  TEST_INTERNAL_SECRET,
-  TEST_JWT_SECRET,
-  TEST_PORT,
-  TEST_SESSION_PASSWORD,
-  TEST_SYNC_URL,
-  TEST_VALKEY_URL
-} from './env'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { TEST_BASE_URL, TEST_PORT } from './env'
+import { buildTestEnv } from './testEnv'
 
-// Nuxt dev-server subprocess lifecycle. Boot once for the whole test run
+// Production Nitro subprocess lifecycle. Boot once for the whole test run
 // from globalSetup, tear down at the end.
 //
-// We spawn `bun run dev` rather than building + booting the nitro output:
-// - dev is faster to reach the first request
-// - HMR is harmless here (no files change during a test run)
-// - runtime config picks up the `NUXT_*` env vars we set below exactly
-//   the same way production does
+// Why prod build (not `bun run dev`):
+//   - dev mode's WS upgrade handler doesn't reliably wire up under our
+//     Bun + Nuxt + crossws stack — the `/api/ai/dictate` route hangs on
+//     handshake instead of firing `open`. The prod preset binds the
+//     upgrade handler directly via `crossws/adapters/node` against the
+//     Node `http.Server`, which works.
+//   - Tests run against the SAME bundle that ships to prod; catches
+//     prod-only bugs that the dev SSR transform papers over (lib0
+//     conditional exports, missing `traceInclude` deps, etc.).
+//   - First-request latency vanishes — no Vite transform-on-first-hit.
 //
-// Downside: startup is ~8-15s depending on cold caches. One-off cost paid
-// once per `bun run test:integration` invocation.
+// Cost: a one-time `bun run build` (~30-60s) at the top of the run.
+// Skip with `INTEGRATION_SKIP_BUILD=1` if you've already got a fresh
+// .output/ from a previous run AND haven't touched app code (rare —
+// most edits invalidate the bundle).
 
 let proc: ChildProcess | null = null
 
 const BOOT_TIMEOUT_MS = 90_000
+const OUTPUT_ENTRY = '.output/server/index.mjs'
 
 export async function startNuxt(): Promise<void> {
   if (proc) return
 
-  // Every secret / URL the app reads via useRuntimeConfig() at request time.
+  // Step 1: production build, unless explicitly skipped. Done synchronously
+  // because there's no point streaming progress — vitest holds the test
+  // worker until globalSetup resolves anyway, and a 30-60s pause with no
+  // output is normal.
+  if (process.env.INTEGRATION_SKIP_BUILD !== '1' || !existsSync(OUTPUT_ENTRY)) {
+    if (process.env.INTEGRATION_SKIP_BUILD === '1' && !existsSync(OUTPUT_ENTRY)) {
+      console.log('[integration] INTEGRATION_SKIP_BUILD=1 set but no .output/ found — building anyway.')
+    } else {
+      console.log('[integration] building production bundle (~30-60s, set INTEGRATION_SKIP_BUILD=1 to reuse .output/ between runs)...')
+    }
+    const buildResult = spawnSync('bun', ['run', 'build'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: process.env
+    })
+    if (buildResult.status !== 0) {
+      const stderr = buildResult.stderr?.toString() ?? '(no stderr)'
+      throw new Error(`[integration] bun run build failed (status=${buildResult.status}):\n${stderr}`)
+    }
+  } else {
+    console.log('[integration] INTEGRATION_SKIP_BUILD=1 — reusing existing .output/')
+  }
+
+  // Step 2: env for the prod runtime. nuxt.config.ts pins
+  // `nitro.preset: 'bun'`, so the entry point is `.output/server/index.mjs`
+  // run under Bun. NODE_ENV must be 'production' so error pages render
+  // and runtime config picks up the prod values; TEST_MODE=1 still gates
+  // the in-process test fakes (Speech mock, etc.).
+  //
+  // The connection-string vars (DATABASE_URL + atomic POSTGRES_* /
+  // VALKEY_*) and test secrets come from `buildTestEnv()` — the same
+  // helper repo tests use, so a future env-wiring change has ONE place
+  // to update. Everything else (NUXT_* runtime config) is owned here
+  // because it's specific to the integration subprocess shape.
+  //
   // Keep this list aligned with nuxt.config.ts's runtimeConfig shape —
   // missing a var leaves a runtime default in place (usually '') which
   // shows up as a confusing 500 deep inside a handler.
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    NODE_ENV: 'development',
-    TEST_MODE: '1',
-    NITRO_PORT: String(TEST_PORT),
-    PORT: String(TEST_PORT),
+    ...buildTestEnv(),
+    NODE_ENV: 'production',
     HOST: '127.0.0.1',
-    DATABASE_URL: TEST_DB_URL,
-    VALKEY_URL: TEST_VALKEY_URL,
-    NUXT_SESSION_PASSWORD: TEST_SESSION_PASSWORD,
-    NUXT_JWT_SECRET: TEST_JWT_SECRET,
-    NUXT_INTERNAL_API_SECRET: TEST_INTERNAL_SECRET,
-    NUXT_SYNC_INTERNAL_URL: TEST_SYNC_URL,
     // S3 config points at the test SeaweedFS. Most tests don't upload
     // anything, but the presigner initialises its client lazily and
     // would throw on first use without these.
@@ -85,14 +112,32 @@ export async function startNuxt(): Promise<void> {
     NUXT_INACTIVE_DOC_TTL_DAYS: '0'
   }
 
-  proc = spawn('bun', ['run', 'dev', '--host', '127.0.0.1'], {
+  // Boot guard: validate the resolved env we're about to hand the
+  // subprocess. The `...process.env` spread above means a missed
+  // POSTGRES_* override would silently fall through to the dev value
+  // loaded from .env. If the resulting env points at the dev DB, refuse
+  // to spawn — fail loud at the boundary instead of letting migrations
+  // mutate dev data. (`postgresUrlFromEnv` enforces the same gate one
+  // layer deeper in case anything bypasses this setup path.)
+  if (env.POSTGRES_DB === 'ypad' || env.POSTGRES_PORT === '5432') {
+    throw new Error(
+      `[integration] refusing to spawn Nuxt with dev DB env: `
+      + `POSTGRES_DB=${env.POSTGRES_DB} POSTGRES_PORT=${env.POSTGRES_PORT}. `
+      + `Override these to point at ypad_test on :5433.`
+    )
+  }
+
+  // Step 3: spawn the prod server.
+  console.log(`[integration] starting production server on :${TEST_PORT}`)
+  proc = spawn('bun', ['run', join(process.cwd(), OUTPUT_ENTRY)], {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false
   })
 
-  // Forward stderr so boot failures surface in the test log. Dev-server
-  // stdout is chatty (HMR, nitro prep, etc.) — gate on DEBUG to see it.
+  // Forward stderr so boot failures surface in the test log. Prod
+  // stdout is much quieter than dev — gate it on DEBUG anyway in case
+  // a developer wants to see "listening on :3101" etc.
   proc.stderr?.on('data', (d) => {
     process.stderr.write(`[nuxt-test] ${d}`)
   })

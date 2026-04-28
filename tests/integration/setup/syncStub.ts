@@ -56,6 +56,14 @@ export async function startSyncStub(): Promise<void> {
 
 export async function stopSyncStub(): Promise<void> {
   if (!server) return
+  // `close()` only stops accepting new connections — it waits for ALL
+  // open ones to finish. The Nuxt fire-and-forget kicks (e.g.
+  // `notifySyncKickUser`) keep keep-alive sockets to the stub even
+  // after the response, and Node won't drop them by itself. Without
+  // `closeAllConnections` (Node 18.2+) this hangs the afterAll
+  // hook for the full 120s test-stack timeout. Belt and braces:
+  // call closeAllConnections then close().
+  server.closeAllConnections()
   await new Promise<void>((resolve) => server!.close(() => resolve()))
   server = null
 }

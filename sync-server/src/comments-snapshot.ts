@@ -88,8 +88,16 @@ const lastShipped = new Map<string, string>()
  * Best-effort. Errors are logged and swallowed; the mirror catches up
  * on the next store. Caller passes the Y.Doc directly so we don't have
  * to re-fetch it from y-postgresql.
+ *
+ * Optional `boundaries` carry the y-postgresql row ids around the
+ * triggering store event — passed through so the comment.* activity
+ * rows get the same diff-replay anchors as edit rows.
  */
-export async function shipCommentsSnapshot(docId: string, ydoc: Y.Doc): Promise<void> {
+export async function shipCommentsSnapshot(
+  docId: string,
+  ydoc: Y.Doc,
+  boundaries?: { yjsDocIdBefore: number | null, yjsDocIdAfter: number | null }
+): Promise<void> {
   if (!APP_URL || !INTERNAL_SECRET) return // dev setups can run without the mirror
 
   const entries = deriveSnapshot(ydoc)
@@ -105,7 +113,12 @@ export async function shipCommentsSnapshot(docId: string, ydoc: Y.Doc): Promise<
         'Content-Type': 'application/json',
         'X-Internal-Secret': INTERNAL_SECRET
       },
-      body: JSON.stringify({ docId, entries }),
+      body: JSON.stringify({
+        docId,
+        entries,
+        yjsDocIdBefore: boundaries?.yjsDocIdBefore ?? null,
+        yjsDocIdAfter: boundaries?.yjsDocIdAfter ?? null
+      }),
       signal: AbortSignal.timeout(8000)
     })
     if (res.ok) {

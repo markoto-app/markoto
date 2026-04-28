@@ -1,6 +1,6 @@
 import { matchesCurrentOrPrevious } from '../../../shared/utils/secrets'
 import { docExists, bumpLastActive } from '../../repos/documents'
-import { appendActivity, pruneActivity } from '../../repos/activity'
+import { appendActivity, pruneActivity, ACTIVITY_ACTIONS, type ActivityAction, type ActivityMetadata } from '../../repos/activity'
 
 // Internal endpoint called by the sync-server to log user activity.
 // Auth: shared secret header X-Internal-Secret (must match INTERNAL_API_SECRET env var).
@@ -23,17 +23,21 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event) as {
     docId?: string
+    userId?: number | null
     userName?: string | null
-    action?: 'edit' | 'join' | 'leave'
+    action?: ActivityAction
     wordCount?: number | null
     linesAdded?: number | null
     linesRemoved?: number | null
+    metadata?: ActivityMetadata | null
+    yjsDocIdBefore?: number | null
+    yjsDocIdAfter?: number | null
   }
 
   if (!body.docId || typeof body.docId !== 'string') {
     throw createError({ statusCode: 400, message: 'Missing docId' })
   }
-  if (!body.action || !['edit', 'join', 'leave'].includes(body.action)) {
+  if (!body.action || !ACTIVITY_ACTIONS.includes(body.action)) {
     throw createError({ statusCode: 400, message: 'Invalid action' })
   }
 
@@ -45,11 +49,15 @@ export default defineEventHandler(async (event) => {
 
   await appendActivity({
     docId: body.docId,
+    userId: typeof body.userId === 'number' ? body.userId : null,
     userName: body.userName || null,
     action: body.action,
     wordCount: body.wordCount ?? null,
     linesAdded: body.linesAdded ?? null,
-    linesRemoved: body.linesRemoved ?? null
+    linesRemoved: body.linesRemoved ?? null,
+    metadata: body.metadata ?? null,
+    yjsDocIdBefore: typeof body.yjsDocIdBefore === 'number' ? body.yjsDocIdBefore : null,
+    yjsDocIdAfter: typeof body.yjsDocIdAfter === 'number' ? body.yjsDocIdAfter : null
   })
 
   // Edit events bump `lastActive`, which the inactive-doc sweep reads.

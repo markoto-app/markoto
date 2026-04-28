@@ -37,6 +37,8 @@ RUN bun install --frozen-lockfile
 COPY --chown=bun:bun sync-server/src /app/sync-server/src
 COPY --chown=bun:bun shared /app/shared
 
+WORKDIR /app/sync-server
+
 EXPOSE 4001
 
 # Hits the public /health route we added to the Hocuspocus onRequest hook.

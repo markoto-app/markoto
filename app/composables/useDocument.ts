@@ -39,11 +39,34 @@ export function useDocument(docId: string) {
 
   // Provider lifecycle. Reads the token lazily via `getToken` so the
   // post-password-verify reconnect picks up the fresh JWT automatically.
+  //
+  // Sync URL resolution:
+  //   - In prod the runtime config carries `wss://sync.<domain>` from
+  //     `NUXT_PUBLIC_SYNC_URL`. Pass through.
+  //   - In dev the env default `ws://localhost:4001` only works when the
+  //     browser is loading from localhost itself; opening the page from
+  //     another device on the LAN (or via the host's LAN IP) would
+  //     leave the WS pointing at the *browser's* localhost, where no
+  //     sync server is listening, and the doc shows "Disconnected".
+  //     Derive the URL from `window.location.host` instead — same host
+  //     as the page, port 4001, matching scheme (ws/wss). Works for
+  //     localhost, LAN IPs, and any hostname dev mode happens to be
+  //     served on.
+  const syncUrl = (() => {
+    const configured = useRuntimeConfig().public.syncUrl
+    if (import.meta.server || !configured) return configured
+    if (configured.startsWith('ws://localhost:') || configured.startsWith('ws://127.0.0.1:')) {
+      const port = configured.split(':').pop() || '4001'
+      const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+      return `${scheme}://${window.location.hostname}:${port}`
+    }
+    return configured
+  })()
   const sync = useHocuspocusSync({
     docId,
     ydoc,
     awareness,
-    syncUrl: useRuntimeConfig().public.syncUrl,
+    syncUrl,
     getToken: () => tokenState.tokenData.value?.token || '',
     onSynced: () => {
       insertWelcomeIfEmpty()

@@ -39,10 +39,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = useRuntimeConfig()
-  const origin = getRequestHeader(event, 'origin')
+  const origin = String(
+    getRequestHeader(event, 'origin')
     ?? getRequestHeader(event, 'host')
     ?? config.public?.siteUrl
     ?? ''
+  )
   const base = origin.startsWith('http') ? origin : `https://${origin}`
   const returnUrl = base + '/pricing'
 

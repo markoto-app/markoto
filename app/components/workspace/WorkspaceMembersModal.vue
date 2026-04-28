@@ -167,6 +167,7 @@ function roleItems(currentRole: 'admin' | 'editor' | 'viewer', member: Workspace
               :src="m.avatarUrl"
               :alt="m.name"
               size="sm"
+              referrerpolicy="no-referrer"
             />
             <div
               v-else

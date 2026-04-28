@@ -289,14 +289,48 @@ export const aiUsagePeriod = pgTable('ai_usage_period', {
   primaryKey({ columns: [table.attributedTo, table.periodStart] })
 ])
 
+// `metadata` carries structured detail per action — comment id + body
+// preview for `comment.*`, before/after for `title.changed`, tool name +
+// args preview for `ai.tool`. The UI renders human-readable strings via
+// i18n at read time, so the row stays locale-agnostic. Action enum is a
+// text column (not pgEnum) so adding values is TS-only — no ALTER TYPE.
 export const activityLog = pgTable('activity_log', {
   id: serial('id').primaryKey(),
   docId: text('doc_id').notNull().references(() => documents.docId),
+  // Optional FK to the user who triggered this activity. Drives avatar
+  // lookup on the read endpoint (JOIN to users). Nullable because:
+  //   - AI rows have no user (synthetic principal "AI Assistant")
+  //   - Anonymous edits / pre-migration rows have no userId either
+  // `set null` on user deletion preserves the historical activity row.
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
   userName: text('user_name'),
-  action: text('action', { enum: ['edit', 'join', 'leave'] }).notNull(),
+  action: text('action', { enum: [
+    'edit',
+    'join',
+    'leave',
+    'comment.added',
+    'comment.replied',
+    'comment.resolved',
+    'comment.reopened',
+    'comment.deleted',
+    'theme.changed',
+    'title.changed',
+    'ai.tool',
+    'restore'
+  ] }).notNull(),
   wordCount: integer('word_count'),
   linesAdded: integer('lines_added'),
   linesRemoved: integer('lines_removed'),
+  metadata: jsonb('metadata'),
+  // Boundary y-postgresql row ids around the store event that produced
+  // this activity row. `before` = max yjs_documents.id captured BEFORE
+  // the store; `after` = max id captured AFTER. Used by the diff
+  // endpoint to reconstruct the doc state on either side and compute
+  // a textual diff. Both nullable: pre-feature rows have neither, and
+  // some action types (e.g. metadata-only events fired ahead of the
+  // store flush) may legitimately leave them empty.
+  yjsDocIdBefore: integer('yjs_doc_id_before'),
+  yjsDocIdAfter: integer('yjs_doc_id_after'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   index('idx_activity_doc').on(table.docId, table.createdAt)

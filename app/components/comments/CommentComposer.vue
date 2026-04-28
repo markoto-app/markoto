@@ -331,6 +331,7 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
         :class="idx === highlighted ? 'bg-primary-500/15' : ''"
         role="option"
         :aria-selected="idx === highlighted"
+        :data-testid="entry.kind === 'ai' ? 'mention-typeahead-ai' : `mention-typeahead-user-${entry.id}`"
         @click="pickMention(entry)"
         @mouseenter="highlighted = idx"
       >

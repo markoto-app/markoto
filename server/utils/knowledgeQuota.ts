@@ -59,9 +59,10 @@ async function getEffectivePlan(userId: number | null): Promise<PlanName> {
     plan: users.plan,
     planValidUntil: users.planValidUntil
   }).from(users).where(eq(users.id, userId)).limit(1)
-  if (rows.length === 0) return 'free'
-  const raw = rows[0].plan as PlanName
-  const validUntil = rows[0].planValidUntil
+  const row = rows[0]
+  if (!row) return 'free'
+  const raw = row.plan as PlanName
+  const validUntil = row.planValidUntil
   if (raw !== 'free' && validUntil !== null && validUntil.getTime() <= Date.now()) {
     return 'free'
   }
@@ -86,8 +87,8 @@ async function getWorkspacePlan(workspaceId: string): Promise<PlanName> {
     billingOwnerId: workspaces.billingOwnerId,
     aiEnabled: workspaces.aiEnabled
   }).from(workspaces).where(eq(workspaces.workspaceId, workspaceId)).limit(1)
-  if (rows.length === 0) return 'free'
   const ws = rows[0]
+  if (!ws) return 'free'
 
   if (ws.aiEnabled && ws.billingOwnerId !== null) {
     const ownerPlan = await getEffectivePlan(ws.billingOwnerId)

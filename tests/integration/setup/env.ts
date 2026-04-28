@@ -16,7 +16,17 @@ export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
 // connection string points at exactly this name. Belt and braces so a
 // misconfigured DATABASE_URL can't TRUNCATE the dev database.
 export const TEST_DB_NAME = 'ypad_test'
-export const TEST_DB_URL = `postgres://ypad:testpassword@127.0.0.1:5433/${TEST_DB_NAME}`
+export const TEST_DB_USER = 'ypad'
+export const TEST_DB_PASSWORD = 'testpassword'
+export const TEST_DB_HOST = '127.0.0.1'
+export const TEST_DB_PORT = '5433'
+export const TEST_DB_URL = `postgres://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TEST_DB_HOST}:${TEST_DB_PORT}/${TEST_DB_NAME}`
+
+// Valkey atomic parts — `postgresUrlFromEnv` / `valkeyUrlFromEnv` in
+// shared/utils/connectionStrings.ts now read these instead of the
+// composed URLs, so we have to set both for the Nuxt subprocess.
+export const TEST_VALKEY_HOST = '127.0.0.1'
+export const TEST_VALKEY_PORT = '6380'
 
 // Kick-user / notify-deleted target. The global setup boots a tiny Node
 // HTTP stub on this port and points Nuxt's runtime config at it. Stub

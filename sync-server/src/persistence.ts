@@ -1,10 +1,17 @@
 import * as Y from 'yjs'
+import { Pool } from 'pg'
 import { PostgresqlPersistence } from 'y-postgresql'
+import { postgresUrlFromEnv } from '../../shared/utils/connectionStrings'
 import { captureException } from './sentry'
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('[persistence] DATABASE_URL environment variable is required')
-}
+const DATABASE_URL = postgresUrlFromEnv()
+
+// Small dedicated pool for ad-hoc queries against the yjs_documents
+// table — separate from y-postgresql's internal pool because that
+// library doesn't expose its connection. Used by getMaxYjsDocId so
+// the activity log can stamp boundary ids around store events for the
+// diff-on-demand feature.
+const queryPool = new Pool({ connectionString: DATABASE_URL, max: 2 })
 
 // y-postgresql owns its own table (`yjs_documents`); it appends granular Y.js
 // updates and merges them after every `flushSize` writes. This is far more
@@ -26,7 +33,7 @@ const PERSISTENCE_OPTS = {
 
 async function buildPgdb() {
   return PostgresqlPersistence.build(
-    { connectionString: process.env.DATABASE_URL },
+    { connectionString: DATABASE_URL },
     PERSISTENCE_OPTS
   )
 }
@@ -104,7 +111,33 @@ export const ypgPersistence = {
     await withSelfHeal(`clear:${documentName}`, () => pgdb.clearDocument(documentName))
   },
 
+  /**
+   * Returns the highest `yjs_documents.id` for this docname, or null
+   * if the doc has no rows yet (fresh load before any store). Used by
+   * the activity log to stamp boundary ids around each store event so
+   * the diff endpoint can later replay the doc on either side of an
+   * edit. Best-effort: returns null on any DB error (fail-soft so
+   * activity logging never blocks sync).
+   */
+  async getMaxYjsDocId(documentName: string): Promise<number | null> {
+    try {
+      const r = await queryPool.query<{ max_id: number | null }>(
+        'SELECT MAX(id) AS max_id FROM yjs_documents WHERE docname = $1',
+        [documentName]
+      )
+      const v = r.rows[0]?.max_id
+      return typeof v === 'number' ? v : null
+    } catch (e) {
+      // Table missing during a self-heal moment is the most common
+      // case; we still return null and let activity logging skip the
+      // boundary stamp. Don't capture to Sentry — it'd flood.
+      console.warn(`[persistence] getMaxYjsDocId(${documentName}) failed:`, e instanceof Error ? e.message : e)
+      return null
+    }
+  },
+
   async destroy(): Promise<void> {
     await pgdb.destroy()
+    await queryPool.end()
   }
 }

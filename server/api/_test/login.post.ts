@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   // `v: SESSION_VERSION` mirrors what the OAuth handlers write so the
   // validatedSession check doesn't immediately clear the cookie.
   await setUserSession(event, {
-    user: { id: userId, name },
+    user: { id: userId, name, provider: 'github' },
     v: SESSION_VERSION
   })
   return { ok: true, user: { id: userId, name } }

@@ -49,9 +49,8 @@ export function createDictateSpeechClient(apiKey: string): SpeechClientLike {
     return new MockSpeechClient()
   }
   return new speech.SpeechClient({
-    // @ts-expect-error — apiKey is supported at runtime, not in types.
     apiKey
-  }) as unknown as SpeechClientLike
+  } as unknown as ConstructorParameters<typeof speech.SpeechClient>[0]) as unknown as SpeechClientLike
 }
 
 /**

@@ -30,6 +30,15 @@ export default defineConfig({
       '~': fileURLToPath(new URL('./app', import.meta.url))
     }
   },
+  // Force Vitest to use the compiled CJS build of zod via SSR's noExternal.
+  // Zod v4's `index.js` does `import * as z from "./v4/classic/external.js"; export { z }`.
+  // Vitest 4's SSR transform drops the re-exported namespace alias `z`, so
+  // `import { z } from 'zod'` resolves to undefined and every test file that
+  // loads `shared/types/theme.ts` crashes at module load with `z.string is
+  // undefined`. Bypassing the SSR transform fixes the namespace re-export.
+  ssr: {
+    noExternal: ['zod']
+  },
   test: {
     // Coverage config. V8 provider (no Istanbul transform — faster + no
     // source-map surprises).
