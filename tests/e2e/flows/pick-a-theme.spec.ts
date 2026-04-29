@@ -19,16 +19,18 @@ import { test, expect } from '../fixtures/flow'
 test('Pick a theme', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  // Mobile (<640px) hides the right sidebar entirely and the theme
-  // panel only opens via the hamburger menu — out-of-scope for this
-  // first pass; flag and skip rather than authoring a separate flow.
+  // Mobile skip — TEMPORARY. The theme picker is reachable on mobile
+  // (palette icon in the toolbar), but the panel takes the full
+  // viewport and the preview iframe is unreachable while the panel
+  // is open. Visible "live preview update" feedback is the whole
+  // point of this flow, so the story doesn't translate to a
+  // panel-covers-everything mobile layout. Tracked for a separate
+  // mobile-theme-picker UX pass: bottom-sheet panel that keeps the
+  // preview visible above.
   if (editor.isMobile) {
-    test.skip(true, 'Theme panel is desktop-only — see "pick-a-theme-mobile" flow when authored.')
+    test.skip(true, 'Mobile theme-picker UX needs bottom-sheet design — skipping until that lands.')
   }
 
-  // Silent setup opens a blank doc — markoto seeds a welcome body
-  // (headings, paragraphs, code, list, hr) which gives the preview
-  // plenty of surface to demonstrate theme changes against.
   await editor.silentSetup()
 
   // ─── Open the theme panel ──────────────────────────────────────────
