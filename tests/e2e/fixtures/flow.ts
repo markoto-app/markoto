@@ -196,6 +196,10 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     const slug = slugify(testInfo.title)
     const outDir = path.join('tests/e2e/output/flows', slug, locale, variant)
     await fs.mkdir(outDir, { recursive: true })
+    // Wipe any prior `.passed` sentinel so a previously-passing run
+    // can't bequeath its OK to a now-failing one. The sentinel only
+    // reappears at fixture teardown if THIS run's status is OK.
+    await fs.rm(path.join(outDir, '.passed'), { force: true })
 
     // Pre-seed the color-mode preference. @nuxtjs/color-mode only
     // understands 'light' / 'dark' / 'system' — write JUST the theme
@@ -471,6 +475,20 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       path.join(outDir, 'manifest.json'),
       JSON.stringify(manifest, null, 2)
     )
+
+    // Per-flow pass sentinel. `build-flows.ts` only publishes a
+    // (slug, locale, variant) directory if `.passed` is present, so
+    // a half-baked manifest from a timed-out or assertion-failed run
+    // can't ship to the docs site and pretend everything's fine. We
+    // write the sentinel ONLY when Playwright reports the test
+    // succeeded — `testInfo.status` is set during teardown after
+    // hooks + assertions ran. Stale sentinels from a prior pass
+    // don't survive a re-run that fails: each test's first action is
+    // to recreate the output dir (see `outDir` setup above), which
+    // wipes the previous .passed.
+    if (testInfo.status === testInfo.expectedStatus) {
+      await fs.writeFile(path.join(outDir, '.passed'), '')
+    }
   },
 
   editor: async ({ page, flow }, use, testInfo) => {

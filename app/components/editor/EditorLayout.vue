@@ -1427,10 +1427,15 @@ const statusIcon = computed(() => {
              the dropdown menu — too buried. This bottom-floating
              segment control keeps the toggle one tap away.
              Mobile drops `split` (no useful 50/50 at 390px width) and
-             only offers edit ⇄ preview. Sits above the AI prompt bar
-             via z-index. Hidden on `>=sm`. -->
+             only offers edit ⇄ preview. Hidden on `>=sm`.
+             Bottom offset lifts above the AI prompt bar when it's
+             rendered (edit / split view, not read-only) so the puck
+             doesn't sit ON TOP of the prompt bar's send button —
+             which previously stole pointer events on mobile and
+             timed out the write-with-ai flow test. -->
         <div
-          class="sm:hidden absolute right-3 bottom-3 z-30 inline-flex items-center gap-0.5 rounded-full border border-default bg-default shadow-md p-0.5"
+          class="sm:hidden absolute right-3 z-30 inline-flex items-center gap-0.5 rounded-full border border-default bg-default shadow-md p-0.5"
+          :class="!isReadOnly && viewMode !== 'preview' ? 'bottom-[88px]' : 'bottom-3'"
           data-testid="mobile-viewmode-bar"
         >
           <button
