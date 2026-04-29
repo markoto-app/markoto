@@ -173,6 +173,44 @@ function closeSidebar() {
   rightSidebar.value = null
 }
 
+// Mobile panel-picker dropdown items. Driven by the same gates the
+// desktop icon strip uses (canEditTheme for theme, hasKnowledgeAccess
+// for knowledge). One menu replaces 5 separate buttons on `<sm`.
+const panelMenuItems = computed(() => {
+  const items: Array<{ label: string, icon: string, onSelect: () => void }> = [
+    {
+      label: t('documentPanel.title'),
+      icon: 'i-lucide-info',
+      onSelect: () => toggleSidebar('document')
+    },
+    {
+      label: t('comments.title'),
+      icon: 'i-lucide-message-circle',
+      onSelect: () => toggleSidebar('comments')
+    },
+    {
+      label: t('activity.title'),
+      icon: 'i-lucide-activity',
+      onSelect: () => toggleSidebar('activity')
+    }
+  ]
+  if (canEditTheme.value) {
+    items.push({
+      label: t('theme.title'),
+      icon: 'i-lucide-palette',
+      onSelect: () => toggleSidebar('theme')
+    })
+  }
+  if (hasKnowledgeAccess.value) {
+    items.push({
+      label: t('knowledge.title'),
+      icon: 'i-lucide-library',
+      onSelect: () => toggleSidebar('knowledge')
+    })
+  }
+  return [items]
+})
+
 // Sheet title surfaced on mobile (`<BottomSheet :title>`). Empty
 // string for the desktop branch — RightPanelHost ignores it then.
 const rightSidebarTitle = computed<string>(() => {
@@ -1077,7 +1115,27 @@ const statusIcon = computed(() => {
             @create-comment="triggerCreateComment"
           />
         </div>
-        <div class="flex items-center gap-0.5 px-2 py-1 shrink-0">
+        <!-- Mobile: a single panel icon that opens a dropdown picker.
+             5 separate icons would crowd the 390px topbar. The dropdown
+             surfaces only the panels currently allowed (document /
+             comments / activity / theme[?canEditTheme] / knowledge[?
+             hasKnowledgeAccess]). -->
+        <div class="sm:hidden px-2 py-1 shrink-0">
+          <UDropdownMenu :items="panelMenuItems">
+            <UButton
+              icon="i-lucide-panel-right"
+              color="neutral"
+              :variant="rightSidebar ? 'soft' : 'ghost'"
+              size="xs"
+              :aria-label="t('common.openPanel')"
+              :aria-pressed="!!rightSidebar"
+            />
+          </UDropdownMenu>
+        </div>
+
+        <!-- Desktop: explicit 5-button strip. Hidden on mobile because
+             the strip + topbar title would overflow at 390px. -->
+        <div class="hidden sm:flex items-center gap-0.5 px-2 py-1 shrink-0">
           <UTooltip :text="t('documentPanel.title')">
             <UButton
               icon="i-lucide-info"
@@ -1351,7 +1409,9 @@ const statusIcon = computed(() => {
         <MobileFormatBar
           :view="editorView"
           :read-only="isReadOnly"
+          :dictation-state="dictation.state.value"
           @open-insert-sheet="insertSheetOpen = true"
+          @toggle-dictation="dictation.toggle()"
         />
         <InsertSheet
           v-model="insertSheetOpen"

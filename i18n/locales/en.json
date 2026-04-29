@@ -350,6 +350,8 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
+    "openPanel": "Open panel",
+    "back": "Back",
     "delete": "Delete",
     "duplicate": "Duplicate",
     "move": "Move to workspace…",

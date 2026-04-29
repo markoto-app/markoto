@@ -44,8 +44,33 @@ function reposition(view: EditorView) {
   // `position: fixed` consumes them directly.
   const coords = view.coordsAtPos(sel.to)
   if (!coords) return
-  popupX.value = Math.max(8, coords.left - 4)
-  popupY.value = coords.bottom + 6
+  // Pill measurements: hidden = height 0, so we measure when visible.
+  // Default to a conservative estimate when not yet rendered (first
+  // appearance). 120×32 covers the "Add comment" pill at most locales.
+  const pill = popupEl.value
+  const pillW = pill?.offsetWidth || 120
+  const pillH = pill?.offsetHeight || 32
+  // Use `visualViewport` when present so the pill sits inside the
+  // mobile keyboard's available area, not behind it. Falls back to
+  // `window.innerHeight` on platforms without VV.
+  const viewportH = window.visualViewport?.height ?? window.innerHeight
+  const viewportW = window.innerWidth
+  // Horizontal: prefer just below the selection-end; clamp to 8px
+  // margins so nothing overflows on narrow screens.
+  let x = coords.left - 4
+  x = Math.min(x, viewportW - pillW - 8)
+  x = Math.max(8, x)
+  popupX.value = x
+  // Vertical: prefer below the selection. If that puts the pill in or
+  // below the keyboard's intrusion zone, flip ABOVE the selection
+  // (`coords.top - pillH - 6`). The flip keeps the comment affordance
+  // discoverable on mobile when typing at the bottom of the doc.
+  const below = coords.bottom + 6
+  if (below + pillH <= viewportH - 8) {
+    popupY.value = below
+  } else {
+    popupY.value = Math.max(8, coords.top - pillH - 6)
+  }
 }
 
 // `selectionchange` fires on the document while the editor view's

@@ -33,11 +33,22 @@ const { t } = useI18n()
 const props = defineProps<{
   view: EditorView | null
   readOnly: boolean
+  /**
+   * Live dictation state, hoisted from `useVoiceDictation` in the
+   * parent. 'idle' → mic icon. Any other value → an active session;
+   * the button styles itself as "stop" for clarity.
+   */
+  dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
 }>()
 
 const emit = defineEmits<{
   'open-insert-sheet': []
+  'toggle-dictation': []
 }>()
+
+const dictationActive = computed(() =>
+  props.dictationState === 'recording' || props.dictationState === 'connecting'
+)
 
 // Viewport-tracking — the visual viewport differs from window when
 // the virtual keyboard is up. We position the bar with `bottom: <gap
@@ -156,6 +167,26 @@ function link() {
     data-testid="mobile-format-bar"
   >
     <div class="flex items-center gap-0.5">
+      <!-- Live dictation. Visually distinct from the AI prompt bar's
+           voice mic (that one transcribes a one-shot prompt; this one
+           streams into the editor in real time). When recording, the
+           icon flips to a stop affordance so it doesn't look like a
+           "tap to start again" button. -->
+      <button
+        type="button"
+        class="size-9 inline-flex items-center justify-center rounded-md transition-colors"
+        :class="dictationActive
+          ? 'bg-shu-500 text-white'
+          : 'text-muted hover:text-default active:bg-elevated'"
+        :aria-label="dictationActive ? 'Stop dictation' : 'Start dictation'"
+        @mousedown.prevent
+        @click="emit('toggle-dictation')"
+      >
+        <UIcon
+          :name="dictationActive ? 'i-lucide-square' : 'i-lucide-mic'"
+          class="size-4"
+        />
+      </button>
       <button
         type="button"
         class="size-9 inline-flex items-center justify-center rounded-md text-muted hover:text-default active:bg-elevated"
