@@ -5,16 +5,19 @@ import { test, expect } from '../fixtures/flow'
 // User-job: the writer has a question about a specific passage —
 // "what does this even mean?", "rewrite this clearer", "expand this
 // into a full paragraph". Instead of context-switching to the prompt
-// bar (which loses the anchor), they tag @ai in a comment on the
+// bar (which loses the anchor), they tag @markoto in a comment on the
 // passage itself. The AI joins the thread, can read/edit the
 // anchored span, and posts a reply when it's done.
 //
 // This flow runs against the LIVE Gemini API. NUXT_GOOGLE_GEMINI_API_KEY
 // must be set in the host shell.
 //
-// Coverage: this is also the canonical e2e for the @ai-mention
+// Coverage: this is also the canonical e2e for the @markoto-mention
 // trigger — typeahead → token → comment post → /trigger-ai → AI
-// reply on the same thread.
+// reply on the same thread. (`@ai` is still accepted by the server-
+// side trigger regex for back-compat, but the typeahead's user-
+// facing label and the inserted token are `@markoto` after the
+// rename.)
 
 test('Summon AI from a comment', async ({ page, flow, editor }) => {
   test.skip(
@@ -27,12 +30,12 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await editor.silentSetup()
 
   // ─── Set the scene ──────────────────────────────────────────────
-  await flow.heading('Mention @ai in a comment', 3)
+  await flow.heading('Mention @markoto in a comment', 3)
   await flow.narrate(
-    'Comments in YPad are threaded — leave one on a specific passage '
-    + 'and your collaborators see it the moment you post. The AI is '
-    + 'just another collaborator: type @ai inside any comment and '
-    + 'the AI joins the thread, reads the anchored text, and replies.'
+    'Comments in markoto are threaded — leave one on a specific passage '
+    + 'and your collaborators see it the moment you post. markoto is '
+    + 'just another collaborator: type @markoto inside any comment and '
+    + 'it joins the thread, reads the anchored text, and replies.'
   )
 
   // Pick a line from the seeded welcome doc. "Anyone with the link
@@ -59,11 +62,11 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   )
   await expect(editor.page.comments.composerInput).toBeFocused()
 
-  // ─── Type @ai → typeahead opens ──────────────────────────────────
-  await flow.heading('Pick the AI from the typeahead', 3)
+  // ─── Type @ → typeahead opens ────────────────────────────────────
+  await flow.heading('Pick markoto from the typeahead', 3)
   await flow.narrate(
-    'Type @ to mention any workspace member — the AI shows up in the '
-    + 'list with a sparkles icon, even on standalone docs without any '
+    'Type @ to mention any workspace member — markoto shows up in the '
+    + 'list with a seal, even on standalone docs without any '
     + 'workspace members. Pick it, finish your question, and submit.'
   )
 
@@ -77,57 +80,60 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     },
     {
       highlights: [
-        { label: 'AI Assistant — synthetic entry, always available', selector: '[data-testid="mention-typeahead-ai"]' }
+        { label: 'markoto — synthetic entry, always available', selector: '[data-testid="mention-typeahead-ai"]' }
       ]
     }
   )
   await expect(editor.page.ai.mentionTypeaheadAi).toBeVisible()
 
   await flow.click(
-    'Click the AI Assistant entry',
+    'Click the markoto entry',
     editor.page.ai.mentionTypeaheadAi,
     {
-      result: 'The composer now reads "@ai " — finish your question.',
+      result: 'The composer now reads "@markoto " — finish your question.',
       // Confirm the literal token landed in the input. The synthetic
-      // AI entry inserts the bare-word `@ai ` (with trailing space)
-      // rather than a structured @[Name](user:N) token.
-      after: () => expect(editor.page.comments.composerInput).toHaveValue(/@ai\s/)
+      // markoto entry inserts the bare-word `@markoto ` (with trailing
+      // space) rather than a structured @[Name](user:N) token. The
+      // server-side trigger regex still accepts the legacy `@ai`
+      // form for back-compat, but the typeahead-inserted token is
+      // `@markoto` after the rename.
+      after: () => expect(editor.page.comments.composerInput).toHaveValue(/@markoto\s/)
     }
   )
 
   // Finish typing the question. The composer caret is right after
-  // "@ai " thanks to the typeahead pick — pressSequentially appends.
+  // "@markoto " thanks to the typeahead pick — pressSequentially appends.
   const question = 'what does \'view-only\' actually mean here?'
   await flow.type(
     'Finish your question',
     editor.page.comments.composerInput,
     question,
-    { result: 'Your question is ready — submit to summon the AI.' }
+    { result: 'Your question is ready — submit to summon markoto.' }
   )
-  await expect(editor.page.comments.composerInput).toHaveValue(`@ai ${question}`)
+  await expect(editor.page.comments.composerInput).toHaveValue(`@markoto ${question}`)
 
-  // ─── Submit → AI joins the thread ────────────────────────────────
-  await flow.heading('The AI joins your thread', 3)
+  // ─── Submit → markoto joins the thread ───────────────────────────
+  await flow.heading('markoto joins your thread', 3)
   await flow.narrate(
     'Once you post, the comment lands like any other — but the '
-    + 'thread card lights up with a rainbow ring and an "AI is '
-    + 'responding…" badge. The AI is reading the anchored passage '
+    + 'thread card lights up with a rainbow ring and a "markoto is '
+    + 'responding…" badge. markoto is reading the anchored passage '
     + 'and the conversation so far, then replying in the same '
     + 'thread so the discussion stays in one place.'
   )
 
   await flow.click(
-    'Click Submit to post and trigger the AI',
+    'Click Submit to post and trigger markoto',
     editor.page.comments.composerSubmit,
     {
-      result: 'Your comment lands — the thread glows with a rainbow ring while the AI works.',
+      result: 'Your comment lands — the thread glows with a rainbow ring while markoto works.',
       // Wait for the AI-active visual state. The rainbow-ring class
       // (.is-ai-active) is keyed off awareness's commentThreadId, so
       // its presence confirms the trigger endpoint actually fired
       // AND the awareness round-trip completed.
       after: () => editor.page.ai.activeThread.waitFor({ state: 'visible' }),
       highlights: [
-        { label: 'AI is responding', selector: '[data-testid="comment-thread"][data-ai-active="true"]' }
+        { label: 'markoto is responding', selector: '[data-testid="comment-thread"][data-ai-active="true"]' }
       ]
     }
   )
@@ -137,10 +143,10 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await expect(editor.page.comments.thread.first()).toContainText(question)
   await expect(editor.page.ai.activeThread).toHaveCount(1)
 
-  // ─── Wait for AI's reply to land ─────────────────────────────────
-  await flow.heading('See the AI\'s reply', 3)
+  // ─── Wait for markoto's reply to land ────────────────────────────
+  await flow.heading('See markoto\'s reply', 3)
   await flow.narrate(
-    'The AI uses tools to inspect the document and craft a response. '
+    'markoto uses tools to inspect the document and craft a response. '
     + 'When it\'s done, it replies on this thread — same surface a '
     + 'human collaborator would use. The rainbow ring fades and the '
     + 'reply is just another message you can react to.'
@@ -149,9 +155,9 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   const thread = editor.page.comments.thread.first()
   // The trigger-flavour system prompt mandates a closing
   // `reply_to_comment` so we expect AT LEAST 2 messages in the
-  // thread (the user's @ai comment + the AI's reply) once the loop
-  // finishes. Use a polling expect because Gemini's wallclock varies
-  // run-to-run.
+  // thread (the user's @markoto comment + the AI's reply) once the
+  // loop finishes. Use a polling expect because Gemini's wallclock
+  // varies run-to-run.
   await expect(async () => {
     const messageCount = await thread.locator('[data-testid="comment-item"]').count()
     expect(messageCount).toBeGreaterThanOrEqual(2)
@@ -161,10 +167,10 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await expect(editor.page.ai.activeThread).toHaveCount(0, { timeout: 30_000 })
 
   await flow.shot(
-    'The AI replied on the thread — the conversation stays in one place.',
+    'markoto replied on the thread — the conversation stays in one place.',
     {
       highlights: [
-        { label: 'AI Assistant\'s reply', selector: '[data-testid="comment-thread"]' }
+        { label: 'markoto\'s reply', selector: '[data-testid="comment-thread"]' }
       ]
     }
   )
