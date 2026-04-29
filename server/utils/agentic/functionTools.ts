@@ -13,7 +13,9 @@ import {
   TableBordersSchema,
   BlockquoteStyleSchema,
   MermaidThemeSchema,
-  TocLeaderStyleSchema
+  TocLeaderStyleSchema,
+  HrStyleSchema,
+  CoverLayoutSchema
 } from '~~/shared/types/theme'
 
 /**
@@ -221,7 +223,15 @@ const UpdateThemeArgs = z.object({
     lineHeight: z.number().min(0.8).max(3).optional().describe('Unitless line-height multiplier (0.8–3).'),
     textAlign: TextAlignSchema.optional(),
     color: HexColorSchema.optional().describe('Body text color, hex.'),
-    background: HexColorSchema.optional().describe('Page background color, hex.')
+    background: HexColorSchema.optional().describe('Page background color, hex.'),
+    dropCap: z.boolean().optional()
+      .describe('Drop cap on the first paragraph (3.4× body size in heading font, floated left). Editorial signature — pairs naturally with novel/long-form themes.'),
+    firstLineIndent: z.boolean().optional()
+      .describe('Indent the first line of every paragraph except the first in a sequence. Novel typography — best paired with low paragraphSpacing (≤0.2em).'),
+    paragraphSpacing: z.number().min(0).max(2).optional()
+      .describe('Vertical margin between paragraphs in em (0–2). 0.6 print default, 0.2 novel-tight, 1.0 newsletter-airy.'),
+    hyphenate: z.boolean().optional()
+      .describe('Auto-hyphenate body text. Recommended for justified text to avoid word-spacing rivers; fine to disable for left-aligned prose.')
   }).optional(),
   headings: z.object({
     font: z.enum(FONT_NAMES).optional(),
@@ -230,10 +240,22 @@ const UpdateThemeArgs = z.object({
     weight: z.enum(['400', '500', '600', '700', '800', '900']).optional()
       .describe('Heading font weight; pass as a string numeric like "600".'),
     underline: z.boolean().optional().describe('Draw a brand-colored underline below headings.'),
-    color: HexColorSchema.optional()
+    color: HexColorSchema.optional(),
+    letterSpacing: z.number().min(-0.05).max(0.1).optional()
+      .describe('Heading letter-spacing in em (-0.05 to 0.1). Display serifs (Fraunces) want slight negative tracking (-0.01); geometric sans tolerate 0.'),
+    lineHeight: z.number().min(0.9).max(1.6).optional()
+      .describe('Heading line-height multiplier (0.9–1.6). 1.2 print default; 1.25 for larger display serifs.'),
+    spacingScale: z.number().min(0.5).max(2).optional()
+      .describe('Multiplier on heading top margins (0.5–2). 1.0 default; 1.2 editorial breathing; 0.7 tight reports.')
   }).optional(),
   color: z.object({
-    brand: HexColorSchema.optional().describe('Brand color used for links, accents, optional heading underline.')
+    brand: HexColorSchema.optional().describe('Brand color used for links, accents, optional heading underline.'),
+    secondary: HexColorSchema.optional()
+      .describe('Muted neutral hue for hairlines, dividers, table borders, figcaptions, TOC leader, footnote rule. Pick a desaturated tone in the same temperature family as the brand.')
+  }).optional(),
+  meta: z.object({
+    font: z.enum(FONT_NAMES).optional()
+      .describe('Eyebrow / meta voice font for header/footer text, figcaptions, footnotes. Often a mono or distinct face for "instrument" feel; can match body for unified themes.')
   }).optional(),
   layout: z.object({
     columns: z.enum(['1', '2', '3']).optional().describe('Column count; pass as string numeric like "2".'),
@@ -255,18 +277,51 @@ const UpdateThemeArgs = z.object({
   blocks: z.object({
     imageRadius: z.number().min(0).max(32).optional().describe('Image corner radius in px (0–32).'),
     imageMaxWidth: z.number().min(10).max(100).optional().describe('Image max width as % of column (10–100).'),
-    blockquoteStyle: BlockquoteStyleSchema.optional()
+    blockquoteStyle: BlockquoteStyleSchema.optional(),
+    hrStyle: HrStyleSchema.optional()
+      .describe('Horizontal-rule style. `rule`/`dashed`/`dotted` draw a line; `asterism` emits a centered ⁂ glyph (literary scene break); `none` is invisible.'),
+    hrThickness: z.number().int().min(1).max(6).optional()
+      .describe('HR stroke width in px (1–6). Ignored by asterism + none.')
   }).optional(),
   mermaid: z.object({
     theme: MermaidThemeSchema.optional()
   }).optional(),
+  alerts: z.object({
+    note: HexColorSchema.optional().describe('Color for [!NOTE] admonitions.'),
+    tip: HexColorSchema.optional().describe('Color for [!TIP] admonitions.'),
+    important: HexColorSchema.optional().describe('Color for [!IMPORTANT] admonitions.'),
+    warning: HexColorSchema.optional().describe('Color for [!WARNING] admonitions.'),
+    caution: HexColorSchema.optional().describe('Color for [!CAUTION] admonitions.')
+  }).optional()
+    .describe('GitHub-style admonition palette. Each color drives both the left border and the bg tint. Pick desaturated tones for warm-paper themes, traditional saturated hues for SaaS-doc themes. Caution is "stop, look here" — can borrow brand red since cover/print contexts have no AI seal to confuse.'),
   toc: z.object({
     maxDepth: z.enum(['2', '3', '4']).optional().describe('Max heading depth shown in TOC; pass as string numeric like "3".'),
     showTitle: z.boolean().optional(),
     showPageNumbers: z.boolean().optional(),
     leaderStyle: TocLeaderStyleSchema.optional()
+  }).optional(),
+  cover: z.object({
+    enabled: z.boolean().optional()
+      .describe('Toggle the title-sheet cover page (page 1 with title/subtitle/authors/date, no header/footer running text).'),
+    layout: CoverLayoutSchema.optional()
+      .describe('Cover composition: `centered` (vertical mid, classic), `top` (title block top, blank below), `split` (title top, meta bottom).'),
+    showTitle: z.boolean().optional(),
+    showSubtitle: z.boolean().optional(),
+    subtitle: z.string().max(200).optional().describe('Cover subtitle text (≤200 chars).'),
+    showDate: z.boolean().optional(),
+    showAuthors: z.boolean().optional(),
+    authors: z.array(z.string().max(100)).max(10).optional()
+      .describe('Author name list (up to 10). Each renders on its own line — for collaboration. Pass full name strings; ordering is preserved.'),
+    showLogo: z.boolean().optional()
+      .describe('Render `brand.logoUrl` above the title block on the cover. Requires brand.logoUrl to be set.')
+  }).optional(),
+  brand: z.object({
+    logoUrl: z.string().max(500).optional()
+      .describe('Logo image URL. Typically a `/api/files/{docId}/{fileId}` from the standard image upload flow. Empty string clears the logo.'),
+    logoHeight: z.number().int().min(8).max(80).optional()
+      .describe('Logo height in px (8–80). Width scales proportionally.')
   }).optional()
-}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database.')
+}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`).')
 
 // --- Inferred types the dispatcher consumes -------------------------------
 
