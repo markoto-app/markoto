@@ -63,6 +63,28 @@ export class EditorPage {
     }
   }
 
+  // ─── Theme panel ──────────────────────────────────────────────────
+  //
+  // Surface area for the right-sidebar theme editor. Preset cards have
+  // stable `theme-preset-{id}` testids; the cover-page accordion's
+  // master toggle has `theme-cover-enabled-switch`. Section headers
+  // (the `<UAccordion>` triggers) are matched by visible label —
+  // they're translated, but every locale tested today (en) shares the
+  // same English label set.
+  get theme() {
+    return {
+      /** Click a preset card to apply that preset wholesale. */
+      preset: (id: string): Locator =>
+        this.page.locator(`[data-testid="theme-preset-${id}"]`),
+      /** The cover-page accordion section header. Click to expand. */
+      coverSection: this.page.getByRole('button', { name: /cover page/i }).first(),
+      /** Toggle that turns the cover page on/off when the section is expanded. */
+      coverEnabledSwitch: this.page.locator(
+        '[data-testid="theme-cover-enabled-switch"]'
+      )
+    }
+  }
+
   // ─── Comments panel + composer ────────────────────────────────────
   //
   // Surface area large enough that grouping it under a `comments` getter

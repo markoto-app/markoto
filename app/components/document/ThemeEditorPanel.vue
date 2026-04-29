@@ -331,6 +331,7 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
             <button
               v-for="preset in THEME_PRESETS"
               :key="preset.id"
+              :data-testid="`theme-preset-${preset.id}`"
               type="button"
               class="text-left rounded-md border border-default bg-default p-3 hover:border-default/80 hover:bg-default/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               @click="applyPreset(preset)"
@@ -367,7 +368,10 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                 :label="t('theme.cover.enabled')"
                 :help="t('theme.cover.enabledHelp')"
               >
-                <USwitch v-model="draft.cover.enabled" />
+                <USwitch
+                  v-model="draft.cover.enabled"
+                  data-testid="theme-cover-enabled-switch"
+                />
               </UFormField>
               <template v-if="draft.cover.enabled">
                 <UFormField :label="t('theme.cover.layout')">
