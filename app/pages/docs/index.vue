@@ -56,7 +56,7 @@ const { open: openSearch } = useContentSearch()
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto px-6 md:px-12 py-16 md:py-20">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 md:px-12 py-8 sm:py-16 md:py-20">
     <!-- Hero. Centered, generous whitespace. The decorative gradient
          softens the otherwise-stark page header on a docs landing
          that's mostly cards underneath. CTA buttons set expectations
@@ -69,12 +69,12 @@ const { open: openSearch } = useContentSearch()
          previous version wore a lucide book + capitalized eyebrow
          pill which read as "developer tool docs", not "studio
          field guide". -->
-    <header class="mb-20 max-w-2xl">
-      <div class="flex items-center gap-2.5 mb-6 text-muted font-mono text-[11px] tracking-[0.06em] uppercase">
+    <header class="mb-10 sm:mb-20 max-w-2xl">
+      <div class="flex items-center gap-2.5 mb-4 sm:mb-6 text-muted font-mono text-[11px] tracking-[0.06em] uppercase">
         <span class="block w-[22px] h-px bg-current opacity-60" />
         <span>field guide · vol. 01</span>
       </div>
-      <h1 class="font-serif text-5xl md:text-6xl font-light tracking-tight leading-[1.04] mb-6 text-default">
+      <h1 class="font-serif text-[34px] sm:text-5xl md:text-6xl font-light tracking-tight leading-[1.06] sm:leading-[1.04] mb-4 sm:mb-6 text-default">
         Everything you can do<br>in <em class="italic font-normal">markoto</em>.
       </h1>
       <p class="text-[14px] leading-[1.65] text-muted max-w-[34ch]">
@@ -109,12 +109,12 @@ const { open: openSearch } = useContentSearch()
          shu stays AI-only. Hover is now a calm sumi border + bone fill
          lift. Section eyebrow uses the JetBrains Mono 0.06em register
          that runs through the whole product. -->
-    <section v-if="featured?.length" class="mb-16">
-      <div class="flex items-baseline justify-between gap-4 mb-5">
-        <h2 class="font-serif text-3xl font-normal tracking-tight">
+    <section v-if="featured?.length" class="mb-10 sm:mb-16">
+      <div class="flex items-baseline justify-between gap-4 mb-5 flex-wrap">
+        <h2 class="font-serif text-2xl sm:text-3xl font-normal tracking-tight">
           Start here
         </h2>
-        <span class="font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted">
+        <span class="hidden sm:inline font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted">
           Most-load-bearing flows
         </span>
       </div>
@@ -123,7 +123,7 @@ const { open: openSearch } = useContentSearch()
           v-for="p in featured"
           :key="p.path"
           :to="p.path"
-          class="group relative p-6 rounded-xl border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
+          class="group relative p-4 sm:p-6 rounded-xl border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
         >
           <div class="flex items-start gap-4">
             <div class="shrink-0 size-10 rounded-lg flex items-center justify-center bg-muted text-toned group-hover:text-default transition-colors">
@@ -147,7 +147,7 @@ const { open: openSearch } = useContentSearch()
          keeps the page from feeling tall + lets the eye scan. -->
     <section>
       <div class="flex items-baseline justify-between gap-4 mb-5">
-        <h2 class="font-serif text-3xl font-normal tracking-tight">
+        <h2 class="font-serif text-2xl sm:text-3xl font-normal tracking-tight">
           Browse by topic
         </h2>
       </div>
@@ -156,7 +156,7 @@ const { open: openSearch } = useContentSearch()
           v-for="cat in sections ?? []"
           :key="cat.path"
           :to="cat.path"
-          class="group p-5 rounded-xl border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
+          class="group p-4 sm:p-5 rounded-xl border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
         >
           <div class="size-10 rounded-lg flex items-center justify-center mb-3 bg-muted text-toned group-hover:text-default transition-colors">
             <UIcon :name="cat.icon" class="size-5" />

@@ -194,12 +194,12 @@ useHead({
       @click="onClose"
     />
 
-    <main class="max-w-6xl mx-auto px-4 py-12">
-      <div class="text-center mb-10">
-        <h1 class="text-3xl font-bold tracking-tight">
+    <main class="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
+      <div class="text-center mb-6 sm:mb-10">
+        <h1 class="font-serif text-3xl sm:text-4xl font-normal tracking-tight">
           {{ t('pricing.title') }}
         </h1>
-        <p class="mt-3 text-muted">
+        <p class="mt-3 text-sm sm:text-base text-muted">
           {{ t('pricing.subtitle') }}
         </p>
         <p class="mt-2 text-xs text-muted">
@@ -211,16 +211,16 @@ useHead({
         <article
           v-for="tier in TIER_COPY"
           :key="tier.plan"
-          class="relative border rounded-lg p-6 flex flex-col"
+          class="relative border rounded-lg p-4 sm:p-6 flex flex-col"
           :class="[
             isCurrent(tier.plan)
-              ? 'border-orange-500 ring-2 ring-orange-500/30 bg-orange-50 dark:bg-orange-950/20'
-              : 'border-gray-200 dark:border-gray-700'
+              ? 'border-shu-500 ring-2 ring-shu-500/30 bg-shu-500/5 dark:bg-shu-400/5'
+              : 'border-default'
           ]"
         >
           <div
             v-if="tier.badge"
-            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-shu-500 text-white font-mono text-[10.5px] tracking-[0.06em] uppercase font-medium px-2.5 py-0.5 rounded-full"
           >
             {{ tier.badge }}
           </div>
@@ -275,8 +275,8 @@ useHead({
               </span>
             </li>
             <li v-if="tier.plan === 'max' || tier.plan === 'ultra'" class="flex gap-2">
-              <UIcon name="i-lucide-circle-plus" class="size-4 text-orange-600 shrink-0 mt-0.5" />
-              <span class="text-orange-700 dark:text-orange-300">
+              <UIcon name="i-lucide-circle-plus" class="size-4 text-shu-500 dark:text-shu-400 shrink-0 mt-0.5" />
+              <span class="text-shu-500 dark:text-shu-400">
                 {{ t('pricing.teamBilling') }}
               </span>
             </li>
@@ -344,7 +344,7 @@ useHead({
         </article>
       </div>
 
-      <div class="mt-12 text-center text-sm text-muted">
+      <div class="mt-8 sm:mt-12 text-center text-sm text-muted">
         <p>{{ t('pricing.footnote') }}</p>
       </div>
     </main>

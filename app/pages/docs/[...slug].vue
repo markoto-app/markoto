@@ -68,7 +68,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
 <template>
   <div
     v-if="page"
-    class="grid lg:grid-cols-[1fr_220px] lg:gap-8 px-6 md:px-12 py-16"
+    class="grid lg:grid-cols-[1fr_220px] lg:gap-8 px-4 sm:px-6 md:px-12 py-8 sm:py-16"
   >
     <article class="min-w-0 prose dark:prose-invert max-w-none">
       <!-- Breadcrumb sits at the very top of the article column.
@@ -77,7 +77,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
            touching, which read as cramped chrome stacked on chrome. -->
       <UBreadcrumb
         :items="crumbs"
-        class="not-prose mb-10 font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted"
+        class="not-prose mb-6 sm:mb-10 font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted"
       />
       <ContentRenderer
         :value="page"
@@ -92,7 +92,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
            Hover swap stays sumi (was shu — shu means AI presence). -->
       <nav
         v-if="surround && (surround[0] || surround[1])"
-        class="not-prose mt-12 pt-8 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-4"
+        class="not-prose mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
         aria-label="Documentation pagination"
       >
         <NuxtLink
