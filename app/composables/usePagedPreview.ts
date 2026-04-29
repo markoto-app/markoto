@@ -1,6 +1,8 @@
 import type { Ref } from 'vue'
 import type { DocTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
+import { wrapFirstLetterAsDropCap } from '~/utils/dropcapWrap'
+import { buildCoverHtml } from '~/utils/coverHtml'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
@@ -85,85 +87,6 @@ export function usePagedPreview(opts: {
   // TOC heading text. Using a stub if i18n isn't installed (tests).
   const i18n = (typeof useI18n === 'function') ? useI18n() : null
   const tocTitle = computed(() => i18n?.t('table.tocTitle') ?? 'Table of Contents')
-
-  /**
-   * Build the cover-page HTML when `theme.cover.enabled`. We use
-   * `<h1>` + `<div>` (no `<p>`) so the dropcap-wrap doesn't grab a
-   * subtitle character; the wrap finds the first body paragraph
-   * AFTER the cover instead. The cover element gets `class=
-   * "markoto-cover"` which `themeToCss.coverBlock` styles + assigns
-   * to the named `cover-page` (suppresses running header/footer).
-   *
-   * Returns `''` when cover.enabled is false. Always escapes user
-   * input — title comes from runtime (already a JSON-encoded title
-   * elsewhere, but interpolated here as text) and authors / subtitle
-   * come from theme JSONB which is validated at intake.
-   */
-  function buildCoverHtml(theme: import('~~/shared/types/theme').DocTheme, title: string, dateIso: string): string {
-    if (!theme.cover.enabled) return ''
-    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    const parts: string[] = []
-    // Logo above title — only when both the cover toggle AND the
-    // upload have happened. Empty `brand.logoUrl` means "no logo
-    // uploaded yet" so we omit the img tag entirely (otherwise we'd
-    // render a broken image placeholder).
-    if (theme.cover.showLogo && theme.brand.logoUrl) {
-      parts.push(`<img class="markoto-cover-logo" src="${esc(theme.brand.logoUrl)}" alt="">`)
-    }
-    if (theme.cover.showTitle && title) {
-      parts.push(`<h1 class="markoto-cover-title">${esc(title)}</h1>`)
-    }
-    if (theme.cover.showSubtitle && theme.cover.subtitle) {
-      parts.push(`<div class="markoto-cover-subtitle">${esc(theme.cover.subtitle)}</div>`)
-    }
-    const metaParts: string[] = []
-    if (theme.cover.showAuthors) {
-      for (const author of theme.cover.authors) {
-        const trimmed = author.trim()
-        if (trimmed) metaParts.push(`<div class="markoto-cover-author">${esc(trimmed)}</div>`)
-      }
-    }
-    if (theme.cover.showDate && dateIso) {
-      metaParts.push(`<div class="markoto-cover-date">${esc(dateIso)}</div>`)
-    }
-    if (metaParts.length > 0) {
-      parts.push(`<div class="markoto-cover-meta">${metaParts.join('')}</div>`)
-    }
-    return `<section class="markoto-cover">${parts.join('')}</section>`
-  }
-
-  /**
-   * Wrap the first letter of the first `<p>` in the rendered HTML with
-   * `<span class="markoto-dropcap">…</span>` so CSS in themeToCss can
-   * style it. We move off `::first-letter` because paged.js's CSSTree
-   * preprocessor silently drops pseudo-element rules; a span-based
-   * approach renders identically and survives the polisher.
-   *
-   * Edge cases:
-   *   - HTML starts with non-`<p>` (heading, blockquote, image): we
-   *     find the FIRST `<p>` element regardless of position.
-   *   - First character is whitespace: skip leading whitespace before
-   *     the wrap so the cap is the first non-space glyph.
-   *   - Paragraph is empty (`<p></p>`): no wrap.
-   *   - First "letter" might be a multibyte character; we wrap one
-   *     code point (the surrogate pair fix matters for emoji/CJK).
-   */
-  function wrapFirstLetterAsDropCap(html: string): string {
-    const match = html.match(/<p(\s[^>]*)?>([\s\S]*?)<\/p>/i)
-    if (!match) return html
-    const [full, attrs = '', inner] = match
-    if (!inner) return html
-    const leading = inner.match(/^\s*/)?.[0] ?? ''
-    const rest = inner.slice(leading.length)
-    if (!rest) return html
-    // Use Array.from to grab one code point (handles surrogate pairs).
-    const chars = Array.from(rest)
-    if (chars.length === 0) return html
-    const first = chars[0]
-    const tail = rest.slice(first!.length)
-    const wrapped = `<p${attrs}>${leading}<span class="markoto-dropcap">${first}</span>${tail}</p>`
-    return html.replace(full, wrapped)
-  }
 
   function render() {
     if (!isReady.value || !iframe?.contentWindow) {
