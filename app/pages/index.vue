@@ -215,7 +215,7 @@ function onRowLongPress(doc: DocumentListItem) {
          the in-product AI presence indicator AND the standalone brand
          mark, so the dashboard shows the lockup rather than a generic
          file icon. Sentence case throughout, no Title Case Headings. -->
-    <header class="border-b border-default px-6 py-4 flex items-center justify-between">
+    <header class="border-b border-default px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
       <NuxtLink
         to="/"
         class="flex items-center"
@@ -233,9 +233,9 @@ function onRowLongPress(doc: DocumentListItem) {
          Fraunces weight 300 display, italic-400 emphasis on the
          brand's loadbearing word ("craft"), Inter lede capped at
          34ch. -->
-    <main class="flex-1 flex flex-col items-center px-6 py-20">
-      <div class="max-w-2xl text-center space-y-7">
-        <h1 class="font-serif text-5xl md:text-6xl font-light tracking-tight leading-[1.04]">
+    <main class="flex-1 flex flex-col items-center px-4 sm:px-6 py-10 sm:py-20">
+      <div class="max-w-2xl text-center space-y-5 sm:space-y-7">
+        <h1 class="font-serif text-[34px] sm:text-5xl md:text-6xl font-light tracking-tight leading-[1.06] sm:leading-[1.04]">
           Rethinking the <em class="italic font-normal">craft</em> of writing.
         </h1>
         <p class="text-[14px] leading-[1.65] text-muted max-w-[34ch] mx-auto">
@@ -342,7 +342,7 @@ function onRowLongPress(doc: DocumentListItem) {
                     : 'Protected'
                 }}
               </UBadge>
-              <span class="text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+              <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
               <UDropdownMenu
                 v-if="doc.isOwner"
                 :items="[[

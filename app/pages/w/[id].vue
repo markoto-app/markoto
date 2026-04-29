@@ -314,7 +314,7 @@ async function leaveWorkspace() {
 
       <div
         v-else-if="data"
-        class="max-w-3xl mx-auto space-y-6"
+        class="max-w-3xl mx-auto space-y-4 sm:space-y-6"
       >
         <!-- Header block with title + description + avatar row + actions -->
         <div class="flex items-start justify-between gap-4">
@@ -325,7 +325,7 @@ async function leaveWorkspace() {
                    the doc title in the editor toolbar; one consistent
                    editorial voice for every "name of an object" in the
                    product. -->
-              <h1 class="font-serif text-3xl font-normal tracking-tight">
+              <h1 class="font-serif text-2xl sm:text-3xl font-normal tracking-tight min-w-0 break-words">
                 {{ data.workspace.name }}
               </h1>
               <UBadge
@@ -395,10 +395,10 @@ async function leaveWorkspace() {
           variant="link"
           color="neutral"
           :ui="{
-            list: 'border-b border-default/60 gap-6',
-            trigger: 'data-[state=active]:text-default text-muted hover:text-default px-0 py-2.5',
+            list: 'border-b border-default/60 gap-4 sm:gap-6 overflow-x-auto',
+            trigger: 'data-[state=active]:text-default text-muted hover:text-default px-0 py-2.5 shrink-0',
             label: 'font-serif text-base font-normal tracking-tight',
-            content: 'mt-8'
+            content: 'mt-6 sm:mt-8'
           }"
         >
           <template #documents>

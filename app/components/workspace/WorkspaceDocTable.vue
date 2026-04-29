@@ -141,7 +141,7 @@ function onRowLongPress(doc: WorkspaceDoc) {
               : t('share.passwordProtected')
           }}
         </UBadge>
-        <span class="text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+        <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
         <UDropdownMenu
           v-if="hasAnyAction(doc)"
           :items="rowMenu(doc)"
