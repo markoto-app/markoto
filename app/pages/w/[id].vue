@@ -241,7 +241,7 @@ async function leaveWorkspace() {
          every screen. The folder icon (previously shu) is dropped —
          workspace identity is carried by name + Back, and shu stays
          reserved for AI presence. -->
-    <header class="border-b border-default px-6 py-4 flex items-center justify-between">
+    <header class="border-b border-default px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
       <div class="flex items-center gap-3 min-w-0">
         <NuxtLink
           to="/"
@@ -260,8 +260,9 @@ async function leaveWorkspace() {
           icon="i-lucide-arrow-left"
           size="sm"
           to="/"
+          :aria-label="t('workspace.backToHome')"
         >
-          {{ t('workspace.backToHome') }}
+          <span class="hidden sm:inline">{{ t('workspace.backToHome') }}</span>
         </UButton>
         <span
           class="block w-px h-5 bg-default/60 shrink-0"
@@ -277,7 +278,7 @@ async function leaveWorkspace() {
       </div>
     </header>
 
-    <main class="flex-1 px-6 py-8">
+    <main class="flex-1 px-3 sm:px-6 py-4 sm:py-8">
       <div
         v-if="loading"
         class="flex justify-center py-16"

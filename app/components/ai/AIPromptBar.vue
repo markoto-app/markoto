@@ -231,6 +231,39 @@ const statusIcon = computed(() => {
 // the same session — having both surfaces animate in sync reinforces
 // "AI is working" rather than competing for attention.
 const isActive = computed(() => !!props.ai.mySession.value)
+
+// Virtual-keyboard awareness — without this the bar gets shoved
+// off-screen on mobile when the keyboard pops up. We watch the
+// `visualViewport` API for keyboard intrusion and offset the bar's
+// `bottom: <px>` to sit just above it. Desktop fallback: 24px (the
+// existing `bottom-6` value).
+const keyboardOffset = ref(0)
+
+function updateKeyboardOffset() {
+  if (typeof window === 'undefined' || !window.visualViewport) return
+  const vv = window.visualViewport
+  const gap = window.innerHeight - vv.height - vv.offsetTop
+  keyboardOffset.value = gap > 80 ? gap : 0
+}
+
+const bottomOffset = computed(() =>
+  keyboardOffset.value > 0
+    ? `${keyboardOffset.value + 8}px`  // 8px breathing space above keyboard top
+    : '24px'                            // matches the prior `bottom-6`
+)
+
+onMounted(() => {
+  if (typeof window === 'undefined' || !window.visualViewport) return
+  window.visualViewport.addEventListener('resize', updateKeyboardOffset)
+  window.visualViewport.addEventListener('scroll', updateKeyboardOffset)
+  updateKeyboardOffset()
+})
+
+onUnmounted(() => {
+  if (typeof window === 'undefined' || !window.visualViewport) return
+  window.visualViewport.removeEventListener('resize', updateKeyboardOffset)
+  window.visualViewport.removeEventListener('scroll', updateKeyboardOffset)
+})
 </script>
 
 <template>
@@ -241,8 +274,9 @@ const isActive = computed(() => !!props.ai.mySession.value)
        prompt bar is the AI's primary entry point. The ring is the
        brand's most prominent shu surface. -->
   <div
-    class="ai-prompt-bar pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center px-4"
+    class="ai-prompt-bar pointer-events-none absolute inset-x-0 z-20 flex justify-center px-4"
     :class="{ 'is-focused': focused, 'is-active': isActive }"
+    :style="{ bottom: bottomOffset }"
     data-testid="ai-prompt-bar"
     :data-active="isActive ? 'true' : 'false'"
   >

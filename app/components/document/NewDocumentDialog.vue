@@ -256,7 +256,7 @@ async function submit(blank: boolean) {
             {{ t('newDoc.templateHelp') }}
           </p>
           <div
-            class="grid grid-cols-2 gap-2"
+            class="grid grid-cols-1 sm:grid-cols-2 gap-2"
             data-testid="newdoc-template-grid"
           >
             <button
@@ -297,7 +297,7 @@ async function submit(blank: boolean) {
             {{ t('newDoc.themeHelp') }}
           </p>
           <div
-            class="grid grid-cols-2 gap-2"
+            class="grid grid-cols-1 sm:grid-cols-2 gap-2"
             data-testid="newdoc-theme-grid"
           >
             <button

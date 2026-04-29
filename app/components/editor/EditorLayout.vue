@@ -2,6 +2,9 @@
 import type { EditorView } from '@codemirror/view'
 import { insertTable } from '~/utils/editorCommands'
 import TableSizePicker from './TableSizePicker.vue'
+import RightPanelHost from './RightPanelHost.vue'
+import MobileFormatBar from './MobileFormatBar.vue'
+import InsertSheet from './InsertSheet.vue'
 import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
 
@@ -158,12 +161,30 @@ const showImportModal = ref(false)
 // Knowledge only appears for workspace docs (see `hasKnowledgeAccess`).
 type RightSidebarPanel = 'document' | 'activity' | 'theme' | 'knowledge' | 'comments'
 const rightSidebar = ref<RightSidebarPanel | null>(null)
+// Mobile insert-sheet state — opened by the MobileFormatBar's `+`
+// button. Lives here so the sheet is mounted at the layout root,
+// outside the keyboard-anchored bar's flex container (which would
+// clip it).
+const insertSheetOpen = ref(false)
 function toggleSidebar(panel: RightSidebarPanel) {
   rightSidebar.value = rightSidebar.value === panel ? null : panel
 }
 function closeSidebar() {
   rightSidebar.value = null
 }
+
+// Sheet title surfaced on mobile (`<BottomSheet :title>`). Empty
+// string for the desktop branch — RightPanelHost ignores it then.
+const rightSidebarTitle = computed<string>(() => {
+  switch (rightSidebar.value) {
+    case 'document': return t('documentPanel.title')
+    case 'comments': return t('comments.title')
+    case 'activity': return t('activity.title')
+    case 'theme': return t('theme.title')
+    case 'knowledge': return t('knowledge.title')
+    default: return ''
+  }
+})
 
 // Global Escape closes whichever sidebar panel is open. Skip while
 // any modal-like layer (delete/duplicate/move/import/share) is up —
@@ -551,7 +572,54 @@ const mobileMenuItems = computed(() => {
         }
       ]
 
-  return [viewModeGroup, themeGroup, authGroup]
+  // File actions — replaces the desktop EditorMenuBar's File menu on
+  // mobile. Owner-only items (Move / Delete / Duplicate's destructive
+  // half) gate via the same canManageDoc check the menu bar does.
+  // Order mirrors what users expect: New on top, then import/export,
+  // then doc-level (duplicate/move/delete).
+  const fileGroup = [
+    {
+      label: t('menubar.file.new'),
+      icon: 'i-lucide-file-plus',
+      onSelect: () => newDocument()
+    },
+    {
+      label: t('menubar.file.import'),
+      icon: 'i-lucide-upload',
+      onSelect: () => { showImportModal.value = true }
+    },
+    {
+      label: t('menubar.file.export'),
+      icon: 'i-lucide-file-down',
+      onSelect: () => exportMarkdown()
+    },
+    {
+      label: t('menubar.file.print'),
+      icon: 'i-lucide-printer',
+      onSelect: () => exportPdf()
+    },
+    ...(canManageDoc.value
+      ? [
+          {
+            label: t('menubar.file.duplicate'),
+            icon: 'i-lucide-copy',
+            onSelect: () => { showDuplicateModal.value = true }
+          },
+          {
+            label: t('menubar.file.move'),
+            icon: 'i-lucide-folder-input',
+            onSelect: () => { showMoveModal.value = true }
+          },
+          {
+            label: t('menubar.file.delete'),
+            icon: 'i-lucide-trash-2',
+            onSelect: () => { showDeleteModal.value = true }
+          }
+        ]
+      : [])
+  ]
+
+  return [fileGroup, viewModeGroup, themeGroup, authGroup]
 })
 
 // Track Y.js text content as a reactive string for preview.
@@ -922,7 +990,12 @@ const statusIcon = computed(() => {
            Sharing / Help. Discoverable home for everything that's not
            high-frequency editing. Header icons above are quick
            shortcuts for the most common ones (view-mode, sidebars,
-           access lock); the menus duplicate them for findability. -->
+           access lock); the menus duplicate them for findability.
+           Hidden on mobile — the formatting actions move to the
+           keyboard-anchored format bar; the insert items move to the
+           `+` sheet; file/auth actions are covered by the mobile
+           hamburger dropdown in the topbar. -->
+      <div class="hidden sm:block">
       <EditorMenuBar
         :view="editorView"
         :doc-id="docId"
@@ -951,6 +1024,7 @@ const statusIcon = computed(() => {
         @toggle-dictation="dictation.toggle()"
         @create-comment="triggerCreateComment"
       />
+      </div>
 
       <!-- Sync auth-failure banner. Distinct from the regular read-only
            state (workspace viewer, password-gated) — this fires only
@@ -987,7 +1061,11 @@ const statusIcon = computed(() => {
                   visual weight, and right-aligned so they're directly
                   above the right-sidebar column they open. -->
       <div class="border-b border-default shrink-0 flex items-center justify-between">
-        <div class="flex-1 min-w-0">
+        <!-- Desktop formatting toolbar — hidden on mobile (`<sm`).
+             Mobile users get a thinner keyboard-anchored bar
+             instead, mounted below the main content (see
+             `<MobileFormatBar>` toward the bottom of this template). -->
+        <div class="hidden sm:block flex-1 min-w-0">
           <EditorToolbar
             v-if="viewMode !== 'preview'"
             :view="editorView"
@@ -1142,14 +1220,11 @@ const statusIcon = computed(() => {
              - split/preview, <xl:  takes the right half (flex-1); preview
                                     is hidden at that breakpoint
              - split/preview, xl+:  fixed 320px sidebar → triple-split -->
-        <aside
-          v-if="rightSidebar"
-          :class="[
-            viewMode === 'edit'
-              ? 'w-full sm:w-80 sm:shrink-0'
-              : 'flex-1 min-w-0 xl:flex-none xl:w-80 xl:shrink-0'
-          ]"
-          class="border-l border-default h-full overflow-hidden"
+        <RightPanelHost
+          :open="!!rightSidebar"
+          :title="rightSidebarTitle"
+          :view-mode="viewMode"
+          @close="closeSidebar"
         >
           <DocumentEditorPanel
             v-if="rightSidebar === 'document'"
@@ -1255,7 +1330,7 @@ const statusIcon = computed(() => {
               />
             </div>
           </div>
-        </aside>
+        </RightPanelHost>
 
         <!-- Floating AI prompt bar — overlay at the bottom of the
              content area so it spans the full editor + preview + sidebar
@@ -1267,6 +1342,58 @@ const statusIcon = computed(() => {
           v-if="!isReadOnly && viewMode !== 'preview'"
           :ai="ai"
         />
+
+        <!-- Mobile keyboard-anchored format bar. Visible only when
+             the virtual keyboard is up; sits above the keyboard via
+             `visualViewport` tracking. Mobile-only (`sm:hidden`).
+             The `+` button opens the InsertSheet for non-format-bar
+             actions (tables, alerts, math, etc). -->
+        <MobileFormatBar
+          :view="editorView"
+          :read-only="isReadOnly"
+          @open-insert-sheet="insertSheetOpen = true"
+        />
+        <InsertSheet
+          v-model="insertSheetOpen"
+          :view="editorView"
+          @open-table-picker="tableModalOpen = true"
+          @open-image-picker="openImagePicker"
+          @create-comment="triggerCreateComment"
+        />
+
+        <!-- Mobile view-mode toggle. The desktop toggle group lives in
+             the topbar (line ~849, `hidden sm:flex`). On mobile, that
+             topbar group disappears and the only path to preview was
+             the dropdown menu — too buried. This bottom-floating
+             segment control keeps the toggle one tap away.
+             Mobile drops `split` (no useful 50/50 at 390px width) and
+             only offers edit ⇄ preview. Sits above the AI prompt bar
+             via z-index. Hidden on `>=sm`. -->
+        <div
+          class="sm:hidden absolute right-3 bottom-3 z-30 inline-flex items-center gap-0.5 rounded-full border border-default bg-default shadow-md p-0.5"
+          data-testid="mobile-viewmode-bar"
+        >
+          <button
+            type="button"
+            class="inline-flex items-center justify-center size-8 rounded-full transition-colors"
+            :class="viewMode === 'edit' ? 'bg-muted text-default' : 'text-muted hover:text-default'"
+            :aria-label="t('editor.edit')"
+            :aria-pressed="viewMode === 'edit'"
+            @click="viewMode = 'edit'"
+          >
+            <UIcon name="i-lucide-pen" class="size-4" />
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center size-8 rounded-full transition-colors"
+            :class="viewMode === 'preview' ? 'bg-muted text-default' : 'text-muted hover:text-default'"
+            :aria-label="t('editor.preview')"
+            :aria-pressed="viewMode === 'preview'"
+            @click="viewMode = 'preview'"
+          >
+            <UIcon name="i-lucide-eye" class="size-4" />
+          </button>
+        </div>
       </main>
 
       <!-- Status bar. Editorial micro-meta from the homepage mockup —

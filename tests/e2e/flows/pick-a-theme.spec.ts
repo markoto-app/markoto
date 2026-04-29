@@ -19,19 +19,19 @@ import { test, expect } from '../fixtures/flow'
 test('Pick a theme', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  // Mobile skip — TEMPORARY. The theme picker is reachable on mobile
-  // (palette icon in the toolbar), but the panel takes the full
-  // viewport and the preview iframe is unreachable while the panel
-  // is open. Visible "live preview update" feedback is the whole
-  // point of this flow, so the story doesn't translate to a
-  // panel-covers-everything mobile layout. Tracked for a separate
-  // mobile-theme-picker UX pass: bottom-sheet panel that keeps the
-  // preview visible above.
-  if (editor.isMobile) {
-    test.skip(true, 'Mobile theme-picker UX needs bottom-sheet design — skipping until that lands.')
-  }
-
   await editor.silentSetup()
+
+  // On mobile, silentSetup leaves the doc in edit-only mode. The
+  // theme picker now mounts as a bottom sheet that doesn't cover
+  // the editor area, so we don't need to switch to preview — but
+  // for parity of "watch the preview update" outcomes, we toggle
+  // preview mode via the new bottom view-mode bar so the iframe
+  // exists and the assertions can read its CSS.
+  if (editor.isMobile) {
+    // Tap the eye icon on the mobile view-mode bar (2nd button).
+    await page.locator('[data-testid="mobile-viewmode-bar"] button').nth(1).click()
+    await editor.page.waitForPreviewPaginated()
+  }
 
   // ─── Open the theme panel ──────────────────────────────────────────
   await flow.heading('Open the theme panel', 3)
