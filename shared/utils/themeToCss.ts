@@ -30,12 +30,13 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     tableBlock(theme),
     blockBlock(theme),
     codeBlock(theme),
-    alertBlock(),
+    alertBlock(theme),
     katexBlock(),
     mermaidBlock(),
     tocBlock(theme, runtime),
     pageBreakBlock(),
     columnSpanBlock(),
+    coverBlock(theme),
     breakHints()
   ].join('\n\n')
 }
@@ -45,7 +46,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
  * so changing a color doesn't trigger a font refetch.
  */
 export function themeFontsImport(theme: DocTheme): string {
-  const unique = [...new Set([theme.body.font, theme.headings.font])]
+  const unique = [...new Set([theme.body.font, theme.headings.font, theme.meta.font])]
     .filter(f => f && f.trim())
   if (unique.length === 0) return ''
   const families = unique.map(googleFamilyParam).join('&')
@@ -57,15 +58,17 @@ export function themeFontsImport(theme: DocTheme): string {
 function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const { size, orientation, margin } = theme.page
   const textColor = theme.body.color
-  const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor)
-  const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor)
+  const metaFont = theme.meta.font
+  const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor, metaFont)
+  const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor, metaFont)
+  const secondaryColor = theme.color.secondary
   return `@page {
   size: ${size} ${orientation};
   margin: ${margin}mm;
 ${headerSlots}
 ${footerSlots}
   @footnote {
-    border-top: 0.5pt solid ${textColor};
+    border-top: 0.5pt solid ${secondaryColor};
     padding-top: 4pt;
     margin-top: 8pt;
     font-size: 8pt;
@@ -74,7 +77,7 @@ ${footerSlots}
 }`
 }
 
-function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string): string {
+function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string, metaFont: string): string {
   const boxes: { name: string, tpl: string }[] = [
     { name: `${edge}-left`, tpl: slots.left },
     { name: `${edge}-center`, tpl: slots.center },
@@ -84,6 +87,7 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
     .filter(b => b.tpl.trim())
     .map(b => `  @${b.name} {
     content: ${compileTemplate(b.tpl, runtime)};
+    font-family: ${cssFontStack(metaFont)};
     font-size: 9pt;
     color: ${textColor};
     opacity: 0.7;
@@ -122,11 +126,12 @@ function tokenToCss(token: string, runtime: ThemeRuntime): string {
 // — root block ————————————————————————————————————————————————————————
 
 function rootBlock(theme: DocTheme): string {
-  const { brand } = theme.color
+  const { brand, secondary } = theme.color
   const { color: text, background, font, size, lineHeight } = theme.body
   const { columns, columnGap } = theme.layout
   return `.paged-doc {
   --doc-brand: ${brand};
+  --doc-secondary: ${secondary};
   --doc-text: ${text};
   --doc-bg: ${background};
   --doc-heading-color: ${theme.headings.color};
@@ -136,6 +141,18 @@ function rootBlock(theme: DocTheme): string {
   color: var(--doc-text);
   background: var(--doc-bg);
 ${columns > 1 ? `  column-count: ${columns};\n  column-gap: ${columnGap}mm;\n  column-fill: auto;` : ''}
+}
+
+/* Paint the entire paged.js page surface in the theme's paper colour
+   (not just the inner content rectangle). Without this, cream/beige
+   themes only colour the content area while the page sheet underneath
+   stays white — visually breaks the "warm paper" effect. \`!important\`
+   because paged.js injects its own stylesheet AFTER ours and paints
+   a white sheet by default. Scoped to .pagedjs_page only — leaving
+   .pagedjs_pagebox alone — to avoid recursing into paged.js's
+   internal margin-box layout (which can hang the chunker). */
+.pagedjs_page {
+  background: ${background} !important;
 }`
 }
 
@@ -143,30 +160,63 @@ ${columns > 1 ? `  column-count: ${columns};\n  column-gap: ${columnGap}mm;\n  c
 
 function typographyBlock(theme: DocTheme): string {
   const bodySize = theme.body.size
-  const { font: headingFont, scale, weight, underline } = theme.headings
+  const { font: headingFont, scale, weight, underline, letterSpacing, lineHeight: hLineHeight, spacingScale } = theme.headings
   const headingFamily = cssFontStack(headingFont)
   const headingRules: string[] = []
-  // Modular scale: h6 at body, h1 at body * scale^5
+  // Modular scale: h6 at body, h1 at body * scale^5. Top-margin is
+  // base-em × user spacingScale (1.0 = traditional print rhythm).
   for (let level = 1; level <= 6; level++) {
     const exponent = 6 - level
     const sizePt = (bodySize * Math.pow(scale, exponent)).toFixed(2)
+    const baseTop = level <= 2 ? 1.4 : 1.0
+    const marginTop = (baseTop * spacingScale).toFixed(2)
     headingRules.push(`.paged-doc h${level} {
   font-family: ${headingFamily};
   font-size: ${sizePt}pt;
   font-weight: ${weight};
-  line-height: 1.2;
+  line-height: ${hLineHeight};
+  letter-spacing: ${letterSpacing}em;
   color: var(--doc-heading-color);
-  margin-top: ${(level <= 2 ? 1.4 : 1.0).toFixed(2)}em;
+  margin-top: ${marginTop}em;
   margin-bottom: 0.5em;${underline ? `\n  border-bottom: 1px solid var(--doc-brand);\n  padding-bottom: 0.2em;` : ''}
 }`)
   }
 
-  // Justified paragraphs need hyphenation (otherwise word-spacing
-  // rivers) and `text-align-last: left` so the final line of each
-  // paragraph isn't stretched.
+  // Hyphenation is now an explicit body knob (decoupled from textAlign).
+  // Justified text always needs `text-align-last: left` to prevent the
+  // final line stretching; that stays coupled to align.
   const align = theme.body.textAlign
-  const justifyExtras = align === 'justify'
-    ? `\n  hyphens: auto;\n  -webkit-hyphens: auto;\n  text-align-last: left;`
+  const hyphensCss = theme.body.hyphenate ? `\n  hyphens: auto;\n  -webkit-hyphens: auto;` : ''
+  const lastAlignCss = align === 'justify' ? `\n  text-align-last: left;` : ''
+  const justifyExtras = `${hyphensCss}${lastAlignCss}`
+  const paragraphMargin = theme.body.paragraphSpacing.toFixed(2)
+  // First-line indent: skip the first paragraph (no preceding paragraph
+  // visually breaks the flow), indent every paragraph that follows
+  // another paragraph. The indent is a typographic 1.2em — enough to
+  // see, not so much it reads as a tab.
+  const firstLineIndentCss = theme.body.firstLineIndent
+    ? `\n.paged-doc > p + p { text-indent: 1.2em; }`
+    : ''
+
+  // Drop cap — styled on a `<span class="markoto-dropcap">` injected
+  // around the first letter of the first paragraph by
+  // `usePagedPreview.wrapFirstLetterAsDropCap`. Lives on a real
+  // element rather than `::first-letter` because paged.js's CSSTree
+  // preprocessor silently drops pseudo-element rules. Pick the
+  // heading FONT but the heading COLOUR so the cap visually anchors
+  // the page without slamming the brand red into the body. Disabled
+  // entirely when dropCap=false (rule omitted, no CSS noise; the
+  // wrapping span isn't injected either).
+  const dropCapRule = theme.body.dropCap
+    ? `.paged-doc .markoto-dropcap {
+  float: left;
+  font-family: ${cssFontStack(theme.headings.font)};
+  font-size: 3.4em;
+  line-height: 0.85;
+  margin: 0.05em 0.1em 0 0;
+  color: var(--doc-heading-color);
+  font-weight: ${theme.headings.weight};
+}`
     : ''
 
   return [
@@ -174,7 +224,19 @@ function typographyBlock(theme: DocTheme): string {
     // Suppress top margin on the leading element so an opening h1
     // doesn't push whitespace at the top of page 1.
     `.paged-doc > :first-child { margin-top: 0; }`,
-    `.paged-doc p { margin: 0.6em 0; orphans: 3; widows: 3; text-align: ${align};${justifyExtras} }`,
+    `.paged-doc p { margin: ${paragraphMargin}em 0; orphans: 3; widows: 3; text-align: ${align};${justifyExtras} }${firstLineIndentCss}`,
+    // Per-block alignment overrides via `@mdit/plugin-attrs`. Source:
+    //   This paragraph is centered.
+    //   {.text-center}
+    // Higher specificity than the doc-level `.paged-doc p` rule because
+    // class beats element, so attribute-tagged blocks override the
+    // theme-wide alignment without `!important`. Targets paragraphs,
+    // headings, blockquotes, list items, and figcaptions — anywhere
+    // an attribute can land.
+    `.paged-doc .text-left { text-align: left; text-align-last: left; }`,
+    `.paged-doc .text-center { text-align: center; text-align-last: center; }`,
+    `.paged-doc .text-right { text-align: right; text-align-last: right; }`,
+    `.paged-doc .text-justify { text-align: justify; text-align-last: left; hyphens: auto; -webkit-hyphens: auto; }`,
     `.paged-doc strong { font-weight: 700; }`,
     `.paged-doc em { font-style: italic; }`,
     `.paged-doc ins { text-decoration: underline; }`,
@@ -193,14 +255,15 @@ function typographyBlock(theme: DocTheme): string {
     `.paged-doc dd { margin: 0.2em 0 0.4em 1.4em; }`,
     `.paged-doc abbr { text-decoration: underline dotted; cursor: help; }`,
     `.paged-doc figure { margin: 1em 0; text-align: center; }`,
-    `.paged-doc figcaption { font-size: 0.85em; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); margin-top: 0.4em; font-style: italic; }`,
-    `.paged-doc hr { border: none; border-top: 1px solid var(--doc-text); opacity: 0.2; margin: 1.5em 0; }`,
+    `.paged-doc figcaption { font-family: ${cssFontStack(theme.meta.font)}; font-size: 0.85em; color: var(--doc-secondary); margin-top: 0.4em; font-style: italic; }`,
+    hrCss(theme),
     // Footnote support — see `transformFootnotesForPagedMedia` in
     // app/utils/renderMarkdown.ts.
-    `.paged-doc .footnote { float: footnote; font-size: 0.85em; }`,
+    `.paged-doc .footnote { float: footnote; font-family: ${cssFontStack(theme.meta.font)}; font-size: 0.85em; }`,
     `.paged-doc ::footnote-call { content: counter(footnote); vertical-align: super; font-size: 0.7em; color: var(--doc-brand); line-height: 0; }`,
-    `.paged-doc ::footnote-marker { content: counter(footnote) ". "; font-weight: 600; color: var(--doc-brand); }`
-  ].join('\n')
+    `.paged-doc ::footnote-marker { content: counter(footnote) ". "; font-weight: 600; color: var(--doc-brand); }`,
+    dropCapRule
+  ].filter(Boolean).join('\n')
 }
 
 // — tables ————————————————————————————————————————————————————————————
@@ -219,7 +282,7 @@ function tableBlock(theme: DocTheme): string {
       borderRules = `.paged-doc th, .paged-doc td { border: 1px solid var(--doc-text); }`
       break
     case 'horizontal':
-      borderRules = `.paged-doc tr { border-bottom: 1px solid color-mix(in srgb, var(--doc-text) 30%, transparent); }
+      borderRules = `.paged-doc tr { border-bottom: 1px solid var(--doc-secondary); }
 .paged-doc tr:last-child { border-bottom: none; }`
       break
     case 'minimal':
@@ -297,6 +360,30 @@ function blockBlock(theme: DocTheme): string {
   ].join('\n')
 }
 
+function hrCss(theme: DocTheme): string {
+  const { hrStyle, hrThickness } = theme.blocks
+  switch (hrStyle) {
+    case 'none':
+      // No visible separator, but reserve a margin so the source
+      // `---` still creates a visual breath in the page.
+      return `.paged-doc hr { border: none; margin: 1.5em 0; height: 0; }`
+    case 'asterism':
+      // Editorial signature — the Unicode asterism (⁂) centered with
+      // generous breathing room. Reads like a Penguin Classics scene
+      // break. We sneak it in via ::before because <hr> is a void
+      // element and can't have text children directly.
+      return `.paged-doc hr { border: none; text-align: center; margin: 2em 0; height: 1em; line-height: 1; }
+.paged-doc hr::before { content: '⁂'; color: var(--doc-secondary); font-size: 1.4em; letter-spacing: 0.4em; }`
+    case 'dashed':
+      return `.paged-doc hr { border: none; border-top: ${hrThickness}px dashed var(--doc-secondary); margin: 1.5em 0; }`
+    case 'dotted':
+      return `.paged-doc hr { border: none; border-top: ${hrThickness}px dotted var(--doc-secondary); margin: 1.5em 0; }`
+    case 'rule':
+    default:
+      return `.paged-doc hr { border: none; border-top: ${hrThickness}px solid var(--doc-secondary); margin: 1.5em 0; }`
+  }
+}
+
 function blockquoteCss(variant: DocTheme['blocks']['blockquoteStyle']): string {
   if (variant === 'none') {
     return `.paged-doc blockquote { font-style: italic; margin: 1em 0; padding: 0; }`
@@ -371,11 +458,13 @@ function codeBlock(theme: DocTheme): string {
 
 /**
  * GitHub-style alert blocks emitted by `@mdit/plugin-alert`. Five kinds,
- * each in its own semantic color so the meaning reads at a glance even
- * when the doc theme picks an unrelated brand. Colors mirror GitHub's
- * own admonition palette (blue/green/purple/amber/red) — these are
- * intentionally NOT theme-driven because the alert kind itself carries
- * meaning that the brand color shouldn't override.
+ * each in its own semantic color so the meaning reads at a glance. The
+ * palette is now THEME-DRIVEN via `theme.alerts.{note|tip|important|
+ * warning|caution}` — every preset commits to its own admonition look.
+ * The Modern preset keeps the GitHub colours; markoto picks a desaturated
+ * warm-paper variant; the rest follow their own brand voice. This is
+ * what lets a vermillion-on-cream theme stop slamming a saturated
+ * blue/green/purple admonition into the page.
  *
  * HTML structure (from the plugin):
  *   <div class="markdown-alert markdown-alert-{kind}">
@@ -383,13 +472,14 @@ function codeBlock(theme: DocTheme): string {
  *     <p>...body...</p>
  *   </div>
  */
-function alertBlock(): string {
+function alertBlock(theme: DocTheme): string {
+  const { alerts } = theme
   const kinds: Array<{ name: string, color: string }> = [
-    { name: 'note', color: '#0969da' },
-    { name: 'tip', color: '#1a7f37' },
-    { name: 'important', color: '#8250df' },
-    { name: 'warning', color: '#9a6700' },
-    { name: 'caution', color: '#cf222e' }
+    { name: 'note', color: alerts.note },
+    { name: 'tip', color: alerts.tip },
+    { name: 'important', color: alerts.important },
+    { name: 'warning', color: alerts.warning },
+    { name: 'caution', color: alerts.caution }
   ]
   const variants = kinds.map(k => `.paged-doc .markdown-alert-${k.name} {
   border-left-color: ${k.color};
@@ -544,7 +634,7 @@ function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   content: '';
   flex: 1;
   order: 2;
-  border-bottom: 1px ${leaderStyle} color-mix(in srgb, var(--doc-text) 35%, transparent);
+  border-bottom: 1px ${leaderStyle} var(--doc-secondary);
   transform: translateY(-0.25em);
   margin: 0 0.3em;
 }`
@@ -559,7 +649,7 @@ function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   order: 3;
   margin-left: auto;
   font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg));
+  color: var(--doc-secondary);
 }`
     : ''
 
@@ -637,6 +727,104 @@ function columnSpanBlock(): string {
 }`,
     `.paged-doc .table-of-contents {
   column-span: all;
+}`
+  ].join('\n')
+}
+
+// — cover page ———————————————————————————————————————————————————————
+
+/**
+ * Cover-page CSS. Emitted ONLY when `theme.cover.enabled` is true so
+ * unused selectors don't clutter the stylesheet for cover-less themes.
+ *
+ * Strategy: assign the prepended `<section class="markoto-cover">`
+ * (injected by `usePagedPreview.buildCoverHtml`) to a named page
+ * (`cover-page`). paged.js then applies `@page cover-page` rules to
+ * just that one page — including empty margin boxes that suppress the
+ * running header/footer (no page number on a title page).
+ */
+function coverBlock(theme: DocTheme): string {
+  if (!theme.cover.enabled) return ''
+  const layout = theme.cover.layout
+  // justify-content varies by layout — centered (vertical mid),
+  // top (top-aligned), split (space-between for top + bottom blocks).
+  const justify = layout === 'centered'
+    ? 'center'
+    : layout === 'top'
+      ? 'flex-start'
+      : 'space-between'
+  // The page assignment + flex container that becomes the entire
+  // first sheet. Margin: 0 means content can go edge-to-edge if the
+  // theme wants; we still apply inner padding so text doesn't kiss
+  // the trim line.
+  return [
+    `.paged-doc .markoto-cover {
+  page: cover-page;
+  break-after: page;
+  page-break-after: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: ${justify};
+  align-items: center;
+  text-align: center;
+  min-height: 100%;
+  padding: 24mm 18mm;
+  box-sizing: border-box;
+}`,
+    `.paged-doc .markoto-cover-logo {
+  display: block;
+  height: ${theme.brand.logoHeight}px;
+  width: auto;
+  margin: 0 auto 1.2em auto;
+}`,
+    `.paged-doc .markoto-cover-title {
+  font-family: ${cssFontStack(theme.headings.font)};
+  font-size: 2.4em;
+  font-weight: ${theme.headings.weight};
+  line-height: 1.2;
+  letter-spacing: ${theme.headings.letterSpacing}em;
+  color: var(--doc-heading-color);
+  margin: 0 0 0.4em 0;
+}`,
+    `.paged-doc .markoto-cover-subtitle {
+  font-family: ${cssFontStack(theme.body.font)};
+  font-size: 1.15em;
+  font-style: italic;
+  color: var(--doc-secondary);
+  margin: 0 0 1em 0;
+}`,
+    `.paged-doc .markoto-cover-meta {
+  font-family: ${cssFontStack(theme.meta.font)};
+  font-size: 0.9em;
+  color: var(--doc-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  margin-top: 1.5em;
+}`,
+    `.paged-doc .markoto-cover-author {
+  font-family: ${cssFontStack(theme.meta.font)};
+  font-size: 0.95em;
+  color: var(--doc-text);
+}`,
+    `.paged-doc .markoto-cover-date {
+  font-family: ${cssFontStack(theme.meta.font)};
+  font-size: 0.85em;
+  color: var(--doc-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}`,
+    // The named-page rules suppress all running margin boxes on the
+    // cover sheet (no page number, no title bar). paged.js handles
+    // `@page <name>` for any element that opted in via `page: <name>`.
+    `@page cover-page {
+  margin: 0;
+  @top-left { content: ''; }
+  @top-center { content: ''; }
+  @top-right { content: ''; }
+  @bottom-left { content: ''; }
+  @bottom-center { content: ''; }
+  @bottom-right { content: ''; }
 }`
   ].join('\n')
 }

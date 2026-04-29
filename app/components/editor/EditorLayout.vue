@@ -1213,6 +1213,7 @@ const statusIcon = computed(() => {
           <DocumentThemeEditorPanel
             v-else-if="rightSidebar === 'theme'"
             :theme="theme"
+            :doc-id="docId"
             :can-edit="canEditTheme"
             @update:theme="setTheme"
             @reset="resetTheme"

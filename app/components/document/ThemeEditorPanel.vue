@@ -16,6 +16,7 @@ import { THEME_PRESETS } from '~~/shared/utils/themePresets'
  */
 const props = defineProps<{
   theme: DocTheme
+  docId: string
   canEdit: boolean
 }>()
 
@@ -63,9 +64,11 @@ if (import.meta.client) {
 // `#<slot>` (custom trigger) and `#<slot>-body` (custom body) for each
 // item. Without `slot`, the named templates below are silently ignored.
 const sectionItems = computed(() => [
+  { value: 'cover', slot: 'cover', label: t('theme.section.cover'), icon: 'i-lucide-book-open-text' },
   { value: 'page', slot: 'page', label: t('theme.section.page'), icon: 'i-lucide-file' },
   { value: 'body', slot: 'body', label: t('theme.section.body'), icon: 'i-lucide-text' },
   { value: 'headings', slot: 'headings', label: t('theme.section.headings'), icon: 'i-lucide-heading' },
+  { value: 'meta', slot: 'meta', label: t('theme.section.meta'), icon: 'i-lucide-quote' },
   { value: 'color', slot: 'color', label: t('theme.section.color'), icon: 'i-lucide-palette' },
   { value: 'layout', slot: 'layout', label: t('theme.section.layout'), icon: 'i-lucide-columns-3' },
   { value: 'header', slot: 'header', label: t('theme.section.header'), icon: 'i-lucide-panel-top' },
@@ -74,7 +77,8 @@ const sectionItems = computed(() => [
   { value: 'tables', slot: 'tables', label: t('theme.section.tables'), icon: 'i-lucide-table' },
   { value: 'blocks', slot: 'blocks', label: t('theme.section.blocks'), icon: 'i-lucide-image' },
   { value: 'toc', slot: 'toc', label: t('theme.section.toc'), icon: 'i-lucide-list-tree' },
-  { value: 'mermaid', slot: 'mermaid', label: t('theme.section.mermaid'), icon: 'i-lucide-workflow' }
+  { value: 'mermaid', slot: 'mermaid', label: t('theme.section.mermaid'), icon: 'i-lucide-workflow' },
+  { value: 'alerts', slot: 'alerts', label: t('theme.section.alerts'), icon: 'i-lucide-alert-circle' }
 ])
 
 // Static option lists
@@ -97,6 +101,65 @@ const blockquoteItems = computed(() => [
   { label: t('theme.blockquote.background'), value: 'background' },
   { label: t('theme.blockquote.none'), value: 'none' }
 ])
+const hrStyleItems = computed(() => [
+  { label: t('theme.hr.rule'), value: 'rule' },
+  { label: t('theme.hr.dashed'), value: 'dashed' },
+  { label: t('theme.hr.dotted'), value: 'dotted' },
+  { label: t('theme.hr.asterism'), value: 'asterism' },
+  { label: t('theme.hr.none'), value: 'none' }
+])
+const coverLayoutItems = computed(() => [
+  { label: t('theme.cover.layoutCentered'), value: 'centered' },
+  { label: t('theme.cover.layoutTop'), value: 'top' },
+  { label: t('theme.cover.layoutSplit'), value: 'split' }
+])
+
+function addAuthor() {
+  if (draft.value.cover.authors.length >= 10) return
+  draft.value.cover.authors = [...draft.value.cover.authors, '']
+}
+function removeAuthor(idx: number) {
+  draft.value.cover.authors = draft.value.cover.authors.filter((_, i) => i !== idx)
+}
+
+// Logo upload — reuses the existing presigned-PUT image flow keyed
+// on docId. Empty string means "no logo uploaded yet"; rendering
+// suppresses the <img> tag in that case (no broken image).
+const logoUploading = ref(false)
+const logoError = ref<string | null>(null)
+async function uploadLogo(file: File) {
+  if (!file) return
+  logoUploading.value = true
+  logoError.value = null
+  try {
+    const { uploadUrl, fileId, key } = await $fetch<{
+      uploadUrl: string
+      fileId: string
+      key: string
+    }>('/api/upload/request', {
+      method: 'POST',
+      body: { docId: props.docId, filename: file.name, contentType: file.type, size: file.size }
+    })
+    const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
+    if (!putRes.ok) throw new Error(`Upload failed: ${putRes.status}`)
+    await $fetch('/api/upload/confirm', { method: 'POST', body: { key } })
+    draft.value.brand.logoUrl = `/api/files/${props.docId}/${fileId}`
+  } catch (e) {
+    const err = e as { message?: string }
+    logoError.value = err.message || 'Upload failed'
+  } finally {
+    logoUploading.value = false
+  }
+}
+function onLogoFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  const f = input.files?.[0]
+  if (f) uploadLogo(f)
+  input.value = ''
+}
+function clearLogo() {
+  draft.value.brand.logoUrl = ''
+}
 const textAlignItems = computed(() => [
   { label: t('theme.align.left'), value: 'left' },
   { label: t('theme.align.justify'), value: 'justify' }
@@ -297,6 +360,137 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
           type="multiple"
           :unmount-on-hide="false"
         >
+          <!-- Cover page (title sheet) -->
+          <template #cover-body>
+            <div class="space-y-4 pt-2 pb-4">
+              <UFormField
+                :label="t('theme.cover.enabled')"
+                :help="t('theme.cover.enabledHelp')"
+              >
+                <USwitch v-model="draft.cover.enabled" />
+              </UFormField>
+              <template v-if="draft.cover.enabled">
+                <UFormField :label="t('theme.cover.layout')">
+                  <USelect v-model="draft.cover.layout" :items="coverLayoutItems" class="w-full" />
+                </UFormField>
+                <UFormField :label="t('theme.cover.showTitle')">
+                  <USwitch v-model="draft.cover.showTitle" />
+                </UFormField>
+                <UFormField :label="t('theme.cover.showSubtitle')">
+                  <USwitch v-model="draft.cover.showSubtitle" />
+                </UFormField>
+                <UFormField v-if="draft.cover.showSubtitle" :label="t('theme.cover.subtitle')">
+                  <UInput v-model="draft.cover.subtitle" maxlength="200" class="w-full" />
+                </UFormField>
+                <UFormField :label="t('theme.cover.showDate')">
+                  <USwitch v-model="draft.cover.showDate" />
+                </UFormField>
+                <UFormField :label="t('theme.cover.showAuthors')">
+                  <USwitch v-model="draft.cover.showAuthors" />
+                </UFormField>
+                <UFormField :label="t('theme.cover.showLogo')">
+                  <USwitch v-model="draft.cover.showLogo" />
+                </UFormField>
+                <UFormField
+                  v-if="draft.cover.showLogo"
+                  :label="t('theme.brand.logo')"
+                  :help="t('theme.brand.logoHelp')"
+                >
+                  <div class="space-y-2">
+                    <div
+                      v-if="draft.brand.logoUrl"
+                      class="flex items-center gap-3 p-2 border border-default rounded"
+                    >
+                      <img
+                        :src="draft.brand.logoUrl"
+                        alt="Logo preview"
+                        class="border border-default rounded bg-default"
+                        :style="{ height: `${draft.brand.logoHeight}px`, maxWidth: '120px', objectFit: 'contain' }"
+                      >
+                      <UButton
+                        color="neutral"
+                        variant="ghost"
+                        icon="i-lucide-x"
+                        size="xs"
+                        @click="clearLogo"
+                      >
+                        {{ t('theme.brand.clearLogo') }}
+                      </UButton>
+                    </div>
+                    <label class="flex">
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        class="hidden"
+                        @change="onLogoFile"
+                      >
+                      <UButton
+                        as="span"
+                        color="neutral"
+                        variant="outline"
+                        icon="i-lucide-upload"
+                        :loading="logoUploading"
+                        block
+                      >
+                        {{ draft.brand.logoUrl ? t('theme.brand.replaceLogo') : t('theme.brand.uploadLogo') }}
+                      </UButton>
+                    </label>
+                    <p v-if="logoError" class="text-xs text-error">{{ logoError }}</p>
+                  </div>
+                </UFormField>
+                <UFormField
+                  v-if="draft.cover.showLogo && draft.brand.logoUrl"
+                  :label="t('theme.brand.logoHeight')"
+                >
+                  <UInputNumber
+                    v-model="draft.brand.logoHeight"
+                    :min="8"
+                    :max="80"
+                    :step="2"
+                    class="w-full"
+                  />
+                </UFormField>
+                <UFormField
+                  v-if="draft.cover.showAuthors"
+                  :label="t('theme.cover.authors')"
+                  :help="t('theme.cover.authorsHelp')"
+                >
+                  <div class="space-y-2">
+                    <div
+                      v-for="(_, idx) in draft.cover.authors"
+                      :key="idx"
+                      class="flex gap-2"
+                    >
+                      <UInput
+                        v-model="draft.cover.authors[idx]"
+                        :placeholder="t('theme.cover.authorPlaceholder')"
+                        maxlength="100"
+                        class="flex-1"
+                      />
+                      <UButton
+                        color="neutral"
+                        variant="ghost"
+                        icon="i-lucide-x"
+                        :aria-label="t('theme.cover.removeAuthor')"
+                        @click="removeAuthor(idx)"
+                      />
+                    </div>
+                    <UButton
+                      v-if="draft.cover.authors.length < 10"
+                      color="neutral"
+                      variant="outline"
+                      icon="i-lucide-plus"
+                      block
+                      @click="addAuthor"
+                    >
+                      {{ t('theme.cover.addAuthor') }}
+                    </UButton>
+                  </div>
+                </UFormField>
+              </template>
+            </div>
+          </template>
+
           <!-- Page -->
           <template #page-body>
             <div class="space-y-4 pt-2 pb-4">
@@ -416,6 +610,33 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                   </template>
                 </UPopover>
               </UFormField>
+              <UFormField
+                :label="t('theme.body.dropCap')"
+                :help="t('theme.body.dropCapHelp')"
+              >
+                <USwitch v-model="draft.body.dropCap" />
+              </UFormField>
+              <UFormField
+                :label="t('theme.body.firstLineIndent')"
+                :help="t('theme.body.firstLineIndentHelp')"
+              >
+                <USwitch v-model="draft.body.firstLineIndent" />
+              </UFormField>
+              <UFormField :label="t('theme.body.paragraphSpacing')">
+                <UInputNumber
+                  v-model="draft.body.paragraphSpacing"
+                  :min="0"
+                  :max="2"
+                  :step="0.1"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                :label="t('theme.body.hyphenate')"
+                :help="t('theme.body.hyphenateHelp')"
+              >
+                <USwitch v-model="draft.body.hyphenate" />
+              </UFormField>
             </div>
           </template>
 
@@ -475,10 +696,61 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
               <UFormField :label="t('theme.headings.underline')">
                 <USwitch v-model="draft.headings.underline" />
               </UFormField>
+              <UFormField :label="t('theme.headings.letterSpacing')">
+                <UInputNumber
+                  v-model="draft.headings.letterSpacing"
+                  :min="-0.05"
+                  :max="0.1"
+                  :step="0.005"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField :label="t('theme.headings.lineHeight')">
+                <UInputNumber
+                  v-model="draft.headings.lineHeight"
+                  :min="0.9"
+                  :max="1.6"
+                  :step="0.05"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                :label="t('theme.headings.spacingScale')"
+                :help="t('theme.headings.spacingScaleHelp')"
+              >
+                <UInputNumber
+                  v-model="draft.headings.spacingScale"
+                  :min="0.5"
+                  :max="2"
+                  :step="0.1"
+                  class="w-full"
+                />
+              </UFormField>
             </div>
           </template>
 
-          <!-- Color (just brand now) -->
+          <!-- Meta (eyebrow font for header/footer/figcaption/footnotes) -->
+          <template #meta-body>
+            <div class="space-y-4 pt-2 pb-4">
+              <UFormField
+                :label="t('theme.meta.font')"
+                :help="t('theme.meta.fontHelp')"
+              >
+                <USelectMenu
+                  v-model="draft.meta.font"
+                  :items="fontPickerItems"
+                  value-key="value"
+                  class="w-full"
+                >
+                  <template #item-label="{ item }">
+                    <span :style="item.value ? { fontFamily: `'${item.value}', sans-serif` } : undefined">{{ item.label }}</span>
+                  </template>
+                </USelectMenu>
+              </UFormField>
+            </div>
+          </template>
+
+          <!-- Color: brand (links/marks) + secondary (hairlines/leaders) -->
           <template #color-body>
             <div class="space-y-4 pt-2 pb-4">
               <UFormField
@@ -500,6 +772,30 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                   <template #content>
                     <UColorPicker
                       v-model="draft.color.brand"
+                      class="p-2"
+                    />
+                  </template>
+                </UPopover>
+              </UFormField>
+              <UFormField
+                :label="t('theme.color.secondary')"
+                :help="t('theme.color.secondaryHelp')"
+              >
+                <UPopover>
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    class="w-full justify-start"
+                  >
+                    <span
+                      class="size-4 rounded border border-default"
+                      :style="{ backgroundColor: draft.color.secondary }"
+                    />
+                    <span class="font-mono text-xs">{{ draft.color.secondary }}</span>
+                  </UButton>
+                  <template #content>
+                    <UColorPicker
+                      v-model="draft.color.secondary"
                       class="p-2"
                     />
                   </template>
@@ -733,6 +1029,27 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                   class="w-full"
                 />
               </UFormField>
+              <UFormField
+                :label="t('theme.blocks.hrStyle')"
+                :help="t('theme.blocks.hrStyleHelp')"
+              >
+                <USelect
+                  v-model="draft.blocks.hrStyle"
+                  :items="hrStyleItems"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                v-if="draft.blocks.hrStyle === 'rule' || draft.blocks.hrStyle === 'dashed' || draft.blocks.hrStyle === 'dotted'"
+                :label="t('theme.blocks.hrThickness')"
+              >
+                <UInputNumber
+                  v-model="draft.blocks.hrThickness"
+                  :min="1"
+                  :max="6"
+                  class="w-full"
+                />
+              </UFormField>
             </div>
           </template>
 
@@ -783,6 +1100,40 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
                   :items="mermaidThemeItems"
                   class="w-full"
                 />
+              </UFormField>
+            </div>
+          </template>
+
+          <!-- Alerts -->
+          <template #alerts-body>
+            <div class="space-y-4 pt-2 pb-4">
+              <p class="text-xs text-muted">
+                {{ t('theme.alerts.help') }}
+              </p>
+              <UFormField
+                v-for="kind in (['note', 'tip', 'important', 'warning', 'caution'] as const)"
+                :key="kind"
+                :label="t(`theme.alerts.${kind}`)"
+              >
+                <UPopover>
+                  <UButton
+                    color="neutral"
+                    variant="outline"
+                    class="w-full justify-start"
+                  >
+                    <span
+                      class="size-4 rounded border border-default"
+                      :style="{ backgroundColor: draft.alerts[kind] }"
+                    />
+                    <span class="font-mono text-xs">{{ draft.alerts[kind] }}</span>
+                  </UButton>
+                  <template #content>
+                    <UColorPicker
+                      v-model="draft.alerts[kind]"
+                      class="p-2"
+                    />
+                  </template>
+                </UPopover>
               </UFormField>
             </div>
           </template>

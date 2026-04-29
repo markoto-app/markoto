@@ -135,15 +135,16 @@
       // breaks the theme line. Mirroring the parent so the iframe
       // scrollbar always matches the app's.
       document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-      // Only mirror the parent bg in DARK mode — there we want the
-      // iframe surround to match the app's flat sumi-950 chrome so
-      // the dark lockup composites flat. In LIGHT mode we keep the
-      // hardcoded sumi-200 surround declared in CSS, which is
-      // deliberately one shade warmer than the parent's sumi-50 so
-      // the white paper has a visible halo.
+      // Light mode: keep the hardcoded sumi-50 surround declared in
+      // CSS (matches the rest of the app's chrome).
+      // Dark mode: hardcode sumi-950 (NOT the parent's body bg —
+      // the parent body resolves to sumi-900 via `bg-default`,
+      // which would make the white paper sheets sit on a lighter
+      // halo than the surrounding chrome). sumi-950 keeps the
+      // iframe surround consistent with the toolbar / sidebar /
+      // status bar (`bg-muted` = sumi-950 in dark).
       if (isDark) {
-        var bg = readParentChromeBg();
-        if (bg) document.body.style.background = bg;
+        document.body.style.background = '#14110D';
       } else {
         document.body.style.background = '';
       }

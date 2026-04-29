@@ -72,6 +72,18 @@ export type TextAlign = z.infer<typeof TextAlignSchema>
 export const BlockquoteStyleSchema = z.enum(['border', 'background', 'none'])
 export type BlockquoteStyle = z.infer<typeof BlockquoteStyleSchema>
 
+/**
+ * `<hr>` rendering. Markdown source `---` produces an `<hr>`; what we
+ * draw between the surrounding paragraphs is the editorial voice.
+ *  - `rule`     — solid horizontal line (the default print look)
+ *  - `dashed`   — dashed line (drier, quieter)
+ *  - `dotted`   — dotted line
+ *  - `asterism` — Unicode `⁂` glyph centered (literary/editorial)
+ *  - `none`     — invisible separator (still consumes vertical space)
+ */
+export const HrStyleSchema = z.enum(['rule', 'dashed', 'dotted', 'asterism', 'none'])
+export type HrStyle = z.infer<typeof HrStyleSchema>
+
 export const HeadingWeightSchema = z.union([
   z.literal(400), z.literal(500), z.literal(600),
   z.literal(700), z.literal(800), z.literal(900)
@@ -116,6 +128,15 @@ export const TocMaxDepthSchema = z.union([z.literal(2), z.literal(3), z.literal(
 export type TocMaxDepth = z.infer<typeof TocMaxDepthSchema>
 
 /**
+ * Cover-page composition mode.
+ *  - `centered` — all content vertically + horizontally centered (book/novel)
+ *  - `top`      — title block top-aligned, rest of page blank (technical reports)
+ *  - `split`    — title block top, author/date bottom (academic / business)
+ */
+export const CoverLayoutSchema = z.enum(['centered', 'top', 'split'])
+export type CoverLayout = z.infer<typeof CoverLayoutSchema>
+
+/**
  * Header/footer slot. Templates support these tokens:
  *   {title}  → document title
  *   {page}   → current page number
@@ -140,24 +161,104 @@ export const DocThemeSchema = z.object({
     // e.g. `margin: 1e9` and crash paged.js.
     margin: z.number().min(0).max(60)
   }).strict(),
+  /**
+   * Optional third font slot — the "eyebrow / meta" voice. Used for
+   * header/footer text, figcaptions, footnotes and any other
+   * "metadata about the document" surface where Inter body or
+   * Fraunces editorial would feel out of place. Markoto's brand
+   * uses JetBrains Mono here. Falls back to body font when unset.
+   */
+  meta: z.object({
+    font: fontName
+  }).strict(),
   body: z.object({
     font: fontName,
     size: z.number().min(6).max(24),      // pt
     lineHeight: z.number().min(0.8).max(3), // unitless multiplier
     textAlign: TextAlignSchema,
     color: hexColor,
-    background: hexColor
+    background: hexColor,
+    /**
+     * Drop cap on the first paragraph of the document. Editorial
+     * signature — gives the page a "first chapter of a book" feel.
+     * Renders the leading character at ~3.4× body size, floated left
+     * over the first three lines. Uses the heading font + heading
+     * colour so it reads as a typographic flourish rather than a
+     * brand stamp.
+     */
+    dropCap: z.boolean(),
+    /**
+     * Indent the first line of every paragraph EXCEPT the first one in
+     * a sequence (typical novel typography). When true, prefer setting
+     * `paragraphSpacing` low (≤0.2em) so paragraphs read as continuous
+     * prose, not bulleted blocks.
+     */
+    firstLineIndent: z.boolean(),
+    /**
+     * Vertical margin between paragraphs in em. 0.6em is the print
+     * default; novels often go lower (0.2em) when first-line indent
+     * carries the visual break; reports/newsletters go higher (1.0em+).
+     */
+    paragraphSpacing: z.number().min(0).max(2),
+    /**
+     * Auto-hyphenation for body text. Decoupled from `textAlign` so
+     * left-ragged themes can still hyphenate (some prefer this) and
+     * justified themes can disable hyphenation if they don't mind
+     * word-spacing rivers.
+     */
+    hyphenate: z.boolean()
   }).strict(),
   headings: z.object({
     font: fontName,
     scale: z.number().min(1).max(2), // modular ratio (1.2 / 1.25 / 1.333)
     weight: HeadingWeightSchema,
     underline: z.boolean(), // border-bottom in brand color
-    color: hexColor
+    color: hexColor,
+    /**
+     * Heading letter-spacing in em. Fraunces and other display serifs
+     * read better with slight negative tracking (-0.01em); geometric
+     * sans (Inter, IBM Plex) tolerate 0; condensed display faces want
+     * positive tracking (+0.02em). Range -0.05 to 0.1.
+     */
+    letterSpacing: z.number().min(-0.05).max(0.1),
+    /**
+     * Heading line-height multiplier. Print-typical is 1.2 (current
+     * default); larger heading sizes (Fraunces at 32pt+) read better
+     * with 1.15-1.25.
+     */
+    lineHeight: z.number().min(0.9).max(1.6),
+    /**
+     * Multiplier on the heading top-margin. 1.0 = current behaviour
+     * (h1/h2 = 1.4em, h3+ = 1.0em). 1.2 = editorial breathing room;
+     * 0.7 = tight reports. Range 0.5–2.0.
+     */
+    spacingScale: z.number().min(0.5).max(2)
   }).strict(),
   color: z.object({
     // hex; used for links + accent borders + (optionally) heading underline
-    brand: hexColor
+    brand: hexColor,
+    /**
+     * Muted neutral hue used for hairlines, dividers, table borders,
+     * figcaptions, TOC leader/page-numbers, and footnote rules. Picking
+     * the right secondary makes every dim element on the page feel
+     * intentional rather than just "alpha-blended body text". Markoto
+     * uses sumi-400 (warm muted brown-grey); other presets use a
+     * tonally-appropriate mid-grey.
+     */
+    secondary: hexColor
+  }).strict(),
+  /**
+   * Brand assets — logo image used on the cover page and (eventually)
+   * margin-box `{logo}` token. `logoUrl` is empty string when no logo
+   * has been uploaded; otherwise it's a `/api/files/{docId}/{fileId}`
+   * URL produced by the standard image-upload pipeline (same as
+   * inline doc images). Validated as bounded length, not full URL —
+   * we accept relative paths since logos live in the doc's own S3
+   * namespace.
+   */
+  brand: z.object({
+    logoUrl: z.string().max(500),
+    logoHeight: z.number().int().min(8).max(80) // px, on cover
   }).strict(),
   layout: z.object({
     columns: ColumnCountSchema,
@@ -180,16 +281,68 @@ export const DocThemeSchema = z.object({
   blocks: z.object({
     imageRadius: z.number().min(0).max(32), // px
     imageMaxWidth: z.number().min(10).max(100), // % of column width
-    blockquoteStyle: BlockquoteStyleSchema
+    blockquoteStyle: BlockquoteStyleSchema,
+    hrStyle: HrStyleSchema,
+    // Stroke width for rule/dashed/dotted variants. Ignored by
+    // asterism + none (they don't draw a border). 1-6 px keeps it
+    // proportionate to typical body sizes.
+    hrThickness: z.number().int().min(1).max(6)
   }).strict(),
   mermaid: z.object({
     theme: MermaidThemeSchema
+  }).strict(),
+  /**
+   * GitHub-style admonition palette. One color per kind drives both the
+   * left-border and the (color-mixed-into-bg) tint. Required so themes
+   * can't fall back to a hardcoded palette that would clash with the
+   * brand — every theme commits to its own admonition look.
+   *
+   * Tradition reserves these hues for these meanings (blue/info,
+   * green/tip, purple/important, amber/warning, red/caution); themes
+   * are free to break tradition but should at least keep the kinds
+   * visually distinct from each other so the meaning reads at a glance.
+   */
+  alerts: z.object({
+    note: hexColor,
+    tip: hexColor,
+    important: hexColor,
+    warning: hexColor,
+    caution: hexColor
   }).strict(),
   toc: z.object({
     maxDepth: TocMaxDepthSchema,
     showTitle: z.boolean(),
     showPageNumbers: z.boolean(),
     leaderStyle: TocLeaderStyleSchema
+  }).strict(),
+  /**
+   * Cover page (title sheet). When enabled, a dedicated first page is
+   * prepended to the document with title / subtitle / authors / date.
+   * The cover suppresses the page header + footer (no page numbers
+   * on a title page) by being assigned to a named page (`cover-page`)
+   * with empty margin boxes.
+   */
+  cover: z.object({
+    enabled: z.boolean(),
+    layout: CoverLayoutSchema,
+    showTitle: z.boolean(),
+    showSubtitle: z.boolean(),
+    /** Free-form subtitle text rendered under the title. */
+    subtitle: z.string().max(200),
+    showDate: z.boolean(),
+    showAuthors: z.boolean(),
+    /**
+     * Multi-author list. We're a collaboration tool, so this is an
+     * array — each entry rendered on its own line. Cap of 10 authors
+     * keeps the cover from becoming a credit roll.
+     */
+    authors: z.array(z.string().max(100)).max(10),
+    /**
+     * Reserved for Step 10 (logo upload). When true, renders
+     * `theme.brand.logo` above the title block. Until Step 10 ships,
+     * this is a no-op (no logo source).
+     */
+    showLogo: z.boolean()
   }).strict()
 }).strict()
 

@@ -517,7 +517,10 @@
       "tables": "Tables",
       "blocks": "Images & quotes",
       "toc": "Table of contents",
-      "mermaid": "Diagrams"
+      "mermaid": "Diagrams",
+      "alerts": "Admonitions",
+      "meta": "Meta voice",
+      "cover": "Cover page"
     },
     "page": {
       "size": "Page size",
@@ -532,7 +535,14 @@
       "textAlign": "Paragraph alignment",
       "textAlignHelp": "Justify fills the line edge-to-edge with hyphenation.",
       "color": "Text color",
-      "background": "Page background"
+      "background": "Page background",
+      "dropCap": "Drop cap on first paragraph",
+      "dropCapHelp": "Renders the first letter at ~3.4× body size, in the heading font.",
+      "firstLineIndent": "First-line paragraph indent",
+      "firstLineIndentHelp": "Indents the first line of every paragraph except the first in a sequence (novel typography).",
+      "paragraphSpacing": "Paragraph spacing (em)",
+      "hyphenate": "Auto-hyphenate body text",
+      "hyphenateHelp": "Splits long words at line breaks. Recommended for justified text."
     },
     "headings": {
       "font": "Font",
@@ -540,7 +550,11 @@
       "weight": "Weight",
       "color": "Color",
       "colorHelp": "Often the brand color, but kept independent so you can pair them.",
-      "underline": "Underline (with brand color)"
+      "underline": "Underline (with brand color)",
+      "letterSpacing": "Letter spacing (em)",
+      "lineHeight": "Line height",
+      "spacingScale": "Top-margin scale",
+      "spacingScaleHelp": "Multiplier on heading top margins. 1.0 = print default, 1.5 = editorial breathing."
     },
     "align": {
       "left": "Left",
@@ -552,7 +566,9 @@
     },
     "color": {
       "brand": "Brand color",
-      "brandHelp": "Used for links, accents, table headers (when picked), and heading underlines."
+      "brandHelp": "Used for links, accents, table headers (when picked), and heading underlines.",
+      "secondary": "Secondary color",
+      "secondaryHelp": "Hairlines, dividers, table borders, figcaptions, and TOC leaders."
     },
     "layout": {
       "columns": "Columns",
@@ -591,12 +607,22 @@
     "blocks": {
       "imageRadius": "Image radius (px)",
       "imageMaxWidth": "Image max width (%)",
-      "blockquoteStyle": "Blockquote style"
+      "blockquoteStyle": "Blockquote style",
+      "hrStyle": "Horizontal rule style",
+      "hrStyleHelp": "How `---` (Markdown horizontal rule) renders.",
+      "hrThickness": "Rule thickness (px)"
     },
     "blockquote": {
       "border": "Left border",
       "background": "Tinted background",
       "none": "Plain"
+    },
+    "hr": {
+      "rule": "Solid line",
+      "dashed": "Dashed line",
+      "dotted": "Dotted line",
+      "asterism": "Asterism (⁂)",
+      "none": "Invisible"
     },
     "mermaid": {
       "theme": "Diagram theme",
@@ -606,6 +632,45 @@
       "themeForest": "Forest (green)",
       "themeNeutral": "Neutral (grayscale)",
       "themeBase": "Base (brand-tinted)"
+    },
+    "alerts": {
+      "help": "Colors for GitHub-style admonitions ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).",
+      "note": "Note",
+      "tip": "Tip",
+      "important": "Important",
+      "warning": "Warning",
+      "caution": "Caution"
+    },
+    "meta": {
+      "font": "Meta font",
+      "fontHelp": "Used for header / footer text, figcaptions, and footnotes — the \"about the document\" voice."
+    },
+    "cover": {
+      "enabled": "Show cover page",
+      "enabledHelp": "Prepends a title sheet as page 1 (suppresses page numbers + running header).",
+      "layout": "Layout",
+      "layoutCentered": "Centered",
+      "layoutTop": "Top-aligned",
+      "layoutSplit": "Split (title top, meta bottom)",
+      "showTitle": "Show document title",
+      "showSubtitle": "Show subtitle",
+      "subtitle": "Subtitle",
+      "showDate": "Show date",
+      "showAuthors": "Show authors",
+      "showLogo": "Show logo",
+      "authors": "Authors",
+      "authorsHelp": "Each author renders on its own line. Up to 10.",
+      "authorPlaceholder": "Author name",
+      "addAuthor": "Add author",
+      "removeAuthor": "Remove author"
+    },
+    "brand": {
+      "logo": "Brand logo",
+      "logoHelp": "PNG, JPEG, SVG, or WebP. Rendered above the title on the cover page.",
+      "uploadLogo": "Upload logo",
+      "replaceLogo": "Replace logo",
+      "clearLogo": "Remove",
+      "logoHeight": "Logo height (px)"
     },
     "toc": {
       "showTitle": "Show \"Table of Contents\" heading",
@@ -625,6 +690,10 @@
     "presets": {
       "title": "Templates",
       "applied": "Template applied to your document",
+      "markoto": {
+        "name": "markoto",
+        "description": "The signature look. Fraunces editorial headings, Inter body on warm cream paper, vermillion accent — calm field guide, not dashboard."
+      },
       "modern": {
         "name": "Modern",
         "description": "Clean Inter sans-serif with a blue accent. The neutral starting point."

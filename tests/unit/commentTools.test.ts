@@ -242,7 +242,7 @@ describe('create_comment', () => {
     expect(ycomments.length).toBe(1)
     const map = ycomments.get(0)
     expect(map.get('authorId')).toBeNull()
-    expect(map.get('authorName')).toBe('AI Assistant')
+    expect(map.get('authorName')).toBe('markoto')
     expect(map.get('body')).toBe('this line needs work')
     expect(map.get('resolved')).toBe(false)
     expect(typeof map.get('anchorStart')).toBe('string')
@@ -334,7 +334,7 @@ describe('reply_to_comment', () => {
 
     const reply = repliesArr.get(0)
     expect(reply.get('authorId')).toBeNull()
-    expect(reply.get('authorName')).toBe('AI Assistant')
+    expect(reply.get('authorName')).toBe('markoto')
     expect(reply.get('body')).toBe('this is a reply')
 
     expect((parentMap.get('updatedAt') as number)).toBeGreaterThanOrEqual(before)

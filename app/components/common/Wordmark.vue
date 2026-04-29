@@ -50,7 +50,18 @@ withDefaults(defineProps<{
   </span>
 </template>
 
-<style scoped>
+<!--
+  No `scoped` attribute on this style block. Vue's scoped CSS
+  compiles `:global(.dark) .mk-wordmark__img--dark` to a plain
+  `.dark .mk-wordmark__img--dark` selector (no `[data-v-*]`
+  attribute), but the default `.mk-wordmark__img--dark` rule keeps
+  the attribute and ends up tied on specificity — and the source
+  order tiebreaker isn't reliably winning, leaving the dark variant
+  hidden in dark mode. Plain (un-scoped) styles avoid the dance
+  entirely. The `mk-wordmark__*` class names are namespaced
+  enough that leaking them globally is safe.
+-->
+<style>
 .mk-wordmark {
   display: inline-flex;
   align-items: center;
@@ -61,17 +72,16 @@ withDefaults(defineProps<{
   width: auto;
   display: block;
 }
-/* Light by default, dark when `.dark` is on <html>. The dark variant
-   is hidden via display:none in light mode and shown in dark mode;
-   light variant the inverse. Server and client render the same DOM
-   regardless of color mode — no hydration mismatch. */
+/* Light by default; dark variant hidden until `.dark` lands on
+   `<html>`. Server and client render the same DOM regardless of
+   color mode — no hydration mismatch. */
 .mk-wordmark__img--dark {
   display: none;
 }
-:global(.dark) .mk-wordmark__img--light {
+html.dark .mk-wordmark__img--light {
   display: none;
 }
-:global(.dark) .mk-wordmark__img--dark {
+html.dark .mk-wordmark__img--dark {
   display: block;
 }
 </style>

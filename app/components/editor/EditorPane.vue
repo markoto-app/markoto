@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { EditorView, keymap, drawSelection } from '@codemirror/view'
 import { EditorState, Compartment } from '@codemirror/state'
-import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
+import { markdown, markdownLanguage, markdownKeymap, pasteURLAsLink } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { tags as t } from '@lezer/highlight'
 import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands'
 import { yCollab } from 'y-codemirror.next'
 import type { Text as YText, UndoManager } from 'yjs'
@@ -45,27 +47,99 @@ const responsiveThemeCompartment = new Compartment()
 // Matches Tailwind's sm: breakpoint (640px and up = not-mobile)
 const isMobile = useMediaQuery('(max-width: 639px)')
 
+// Markdown source highlighting. Headings step UP in size (1.5×/1.3×/…)
+// AND step through sumi shades — making the document visibly skimmable
+// while still reading as "source", not WYSIWYG. Punctuation (#, *, _,
+// >, `) dims to sumi-400 so the prose dominates. Links pick up shu so
+// the brand colour extends to "this is reference".
+//
+// Brand caveats:
+//   - Weight tops out at 500 (`fontWeight: '500'`); never 600+.
+//   - Italic on `t.emphasis` is a deliberate exception to the
+//     "italic = AI voice" rule: inside the editor the user is looking
+//     at SOURCE, and `*foo*` rendering as italic is the universal
+//     markdown convention. Outside the editor, italic stays AI-only.
+const markotoMarkdownHighlight = HighlightStyle.define([
+  // Headings — size + weight + colour. Line-height tightened so the
+  // larger glyphs don't blow out vertical rhythm. Colours come from
+  // `--mk-md-*` vars in main.css so they flip per mode (sumi-950 on
+  // cream bg light → sumi-50 on sumi-900 bg dark).
+  { tag: t.heading1, fontSize: '1.5em', fontWeight: '500', lineHeight: '1.3', color: 'var(--mk-md-h1)' },
+  { tag: t.heading2, fontSize: '1.3em', fontWeight: '500', lineHeight: '1.35', color: 'var(--mk-md-h2)' },
+  { tag: t.heading3, fontSize: '1.18em', fontWeight: '500', lineHeight: '1.4', color: 'var(--mk-md-h3)' },
+  { tag: t.heading4, fontSize: '1.08em', fontWeight: '500', color: 'var(--mk-md-h4)' },
+  { tag: [t.heading5, t.heading6], fontWeight: '500', color: 'var(--mk-md-h56)' },
+
+  // Inline emphasis
+  { tag: t.emphasis, fontStyle: 'italic' },
+  { tag: t.strong, fontWeight: '500', color: 'var(--mk-md-strong)' },
+  { tag: t.strikethrough, textDecoration: 'line-through', color: 'var(--mk-md-mark)' },
+
+  // Links + URLs — shu (brand) flipped 500→400 in dark for contrast
+  { tag: t.link, color: 'var(--mk-md-link)' },
+  { tag: t.url, color: 'var(--mk-md-link)', textDecoration: 'underline' },
+
+  // Inline `code` and fenced blocks. Background lifts ONE shade off
+  // the editor bg per mode (sumi-100 light, sumi-800 dark) so the
+  // chip reads as elevated rather than as a hole.
+  { tag: t.monospace, fontFamily: 'var(--font-mono)', color: 'var(--mk-md-code-fg)', background: 'var(--mk-md-code-bg)', padding: '0 3px', borderRadius: '3px' },
+
+  // Block-level structural marks
+  { tag: t.quote, color: 'var(--mk-md-quote)', fontStyle: 'italic' },
+  { tag: t.list, color: 'var(--mk-md-list)' },
+  { tag: t.contentSeparator, color: 'var(--mk-md-mark)' },
+
+  // Markdown punctuation (#, *, _, >, `) — dim so structure recedes
+  { tag: [t.processingInstruction, t.punctuation, t.meta], color: 'var(--mk-md-mark)' },
+
+  // Inside fenced code blocks: nested language tags from
+  // `codeLanguages: languages`. Muted sumi range so JS keywords don't
+  // shout at heading-level intensity.
+  { tag: t.keyword, color: 'var(--mk-md-syntax)', fontWeight: '500' },
+  { tag: t.string, color: 'var(--mk-md-syntax)' },
+  { tag: t.number, color: 'var(--mk-md-syntax)' },
+  { tag: t.comment, color: 'var(--mk-md-comment)', fontStyle: 'italic' },
+  { tag: t.variableName, color: 'var(--mk-md-syntax-strong)' },
+  { tag: t.typeName, color: 'var(--mk-md-syntax-strong)' },
+  { tag: t.function(t.variableName), color: 'var(--mk-md-syntax-strong)' }
+])
+
 // Mobile: 16px font prevents iOS auto-zoom on focus; wider line-height aids touch reading.
 function buildResponsiveTheme(mobile: boolean) {
   return EditorView.theme({
     '&': { height: '100%', fontSize: mobile ? '16px' : '15px' },
     '.cm-scroller': {
       overflow: 'auto',
-      fontFamily: 'ui-monospace, monospace',
-      lineHeight: mobile ? '1.7' : '1.5'
+      // Proportional Inter, not mono — markoto is a writing tool, not
+      // a code editor. Inline `code` and fenced blocks still render
+      // mono via the `t.monospace` rule in `markotoMarkdownHighlight`.
+      fontFamily: 'var(--font-sans)',
+      lineHeight: mobile ? '1.7' : '1.65'
     },
     '.cm-content': {
-      padding: mobile ? '12px 16px' : '16px 20px',
-      minHeight: '100%'
+      // Generous top padding so the doc title doesn't kiss the
+      // toolbar — gives the page a "sheet of paper" feel, like the
+      // first line is set down ~1.5cm from the top edge.
+      padding: mobile ? '32px 16px 16px' : '64px 20px 24px',
+      minHeight: '100%',
+      // Editorial reading width on desktop. Centers prose so 1500px
+      // monitors don't stretch lines past readability. Mobile keeps
+      // viewport-width.
+      maxWidth: mobile ? 'none' : '70ch',
+      marginLeft: 'auto',
+      marginRight: 'auto'
     },
     '.cm-gutters': { display: 'none' },
     '.cm-focused': { outline: 'none' },
+    // currentColor inherits the editor's prose colour — sumi-950 in
+    // light, sumi-100 in dark — so cursor + selection stay in brand
+    // automatically per mode without a CSS-var dance.
     '.cm-cursor, .cm-dropCursor': {
-      borderLeftColor: '#528bff',
+      borderLeftColor: 'currentColor',
       borderLeftWidth: '2px'
     },
-    '.cm-activeLine': { backgroundColor: 'rgba(255, 255, 255, 0.04)' },
-    '.cm-selectionBackground, ::selection': { backgroundColor: 'rgba(82, 139, 255, 0.2) !important' },
+    '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, currentColor 4%, transparent)' },
+    '.cm-selectionBackground, ::selection': { backgroundColor: 'color-mix(in srgb, currentColor 18%, transparent) !important' },
     '.cm-ySelectionInfo': {
       fontSize: '11px',
       padding: '2px 6px',
@@ -117,7 +191,13 @@ onMounted(() => {
 
   const extensions = [
     markdown({ base: markdownLanguage, codeLanguages: languages }),
-    keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+    syntaxHighlighting(markotoMarkdownHighlight),
+    // markdownKeymap continues `- `/`> `/`1. ` prefixes on Enter and
+    // strips them on Backspace at line start. Goes BEFORE defaultKeymap
+    // so it wins the Enter/Backspace bindings — defaultKeymap's plain
+    // newline would otherwise swallow the markdown-aware behaviour.
+    keymap.of([...markdownKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+    pasteURLAsLink,
     history(),
     drawSelection(),
     EditorView.lineWrapping,
