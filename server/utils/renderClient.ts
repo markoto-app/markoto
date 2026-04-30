@@ -1,6 +1,7 @@
 import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import { useDatabasePool } from './database'
 import { useS3Client } from './s3'
+import { useValkey } from './valkey'
 import * as Sentry from '@sentry/nuxt'
 
 // Render orchestrator. Nuxt-side counterpart to renderer/src/render.ts:
@@ -12,9 +13,14 @@ import * as Sentry from '@sentry/nuxt'
 //      via the internal print page (which boots its own Hocuspocus client),
 //      runs paged.js, captures PDF + per-page PNGs, uploads to S3, and
 //      writes the manifest LAST as the readiness sentinel.
-//   4. Singleflight: dedupe concurrent calls for the same (docId, snap,
-//      format) so a thundering herd of "Download PDF" clicks only triggers
-//      one render.
+//   4. Two-tier singleflight: in-process Map (same-instance dedup) +
+//      Valkey SET NX lock (cross-instance dedup). Without the Valkey lock
+//      a thundering herd across N app instances would trigger N renders;
+//      with it only one wins, the others poll for the manifest the winner
+//      writes. Valkey-down failure path: in-process Map still helps; the
+//      worst case is one duplicate render per instance, which is wasteful
+//      but not corrupt (renderer is idempotent, manifest writes are
+//      last-writer-wins on S3).
 //
 // Caching is keyed on snapshotId (latest yjs_documents.id), which changes
 // any time the Y.Doc is updated — including theme changes pushed via
@@ -41,10 +47,94 @@ interface RendererSuccess {
 }
 
 const RENDER_TIMEOUT_MS = 90_000
+// Lock TTL is set comfortably above RENDER_TIMEOUT_MS so the lock outlives
+// the maximum legal render — without that buffer a slow render risks
+// having its lock expire mid-flight, letting a second instance start a
+// duplicate. The buffer also covers the S3 manifest write that runs
+// after the renderer's HTTP response.
+const RENDER_LOCK_TTL_MS = RENDER_TIMEOUT_MS + 30_000
+// Loser-side polling cadence + ceiling. Poll until the winner's manifest
+// shows up in S3, or until we exceed the lock TTL (after which the lock
+// is gone and either the winner crashed or it's safe for us to render).
+const RENDER_POLL_INTERVAL_MS = 750
+const RENDER_POLL_CEILING_MS = RENDER_LOCK_TTL_MS
 
 // In-process singleflight map. Key: `${docId}:${snapshotId}:${format}`.
-// Concurrent calls for the same key share a single Promise.
+// Concurrent calls for the same key share a single Promise. Cheaper than
+// the Valkey lock — avoids one round-trip per duplicate same-process call
+// (e.g. an AI tool batching `view_pages([1,2,3])` may issue parallel
+// renderClient calls in the same Nitro worker).
 const inflight = new Map<string, Promise<RenderResult>>()
+
+/**
+ * Try to acquire the cross-instance render lock. Returns true if we got
+ * it (proceed to call the renderer); false if another instance holds it
+ * (caller should poll for the manifest).
+ *
+ * Fails OPEN on Valkey error: if Valkey is unreachable we fall back to
+ * single-instance dedup via the in-process Map. The cost is potential
+ * duplicate renders (one per instance) which is wasteful but correct —
+ * the renderer is idempotent and the manifest write is atomic. We'd
+ * rather render twice than refuse all renders during a Valkey blip.
+ */
+async function tryAcquireRenderLock(key: string): Promise<boolean> {
+  const lockKey = `lock:render:${key}`
+  try {
+    const valkey = useValkey()
+    const res = await valkey.set(lockKey, '1', 'PX', RENDER_LOCK_TTL_MS, 'NX')
+    return res === 'OK'
+  } catch (e) {
+    console.warn('[renderClient] valkey error on lock acquire, falling back to in-process dedup:', e instanceof Error ? e.message : e)
+    Sentry.captureException(e, {
+      tags: { component: 'renderClient', event: 'valkey_unavailable' }
+    })
+    // Fail open — see header comment.
+    return true
+  }
+}
+
+/**
+ * Release the render lock. Best-effort: if Valkey is unreachable, the
+ * lock self-expires via TTL.
+ *
+ * NOTE: no fencing token — if our render runs past `RENDER_LOCK_TTL_MS`
+ * and another instance acquires the lock, our DEL would step on theirs.
+ * The window is huge (≥120s, while typical renders are <15s) and the
+ * worst-case consequence is one extra duplicate render. Adding a Lua
+ * compare-and-delete isn't worth the friction at this scale; revisit
+ * if telemetry shows the race actually happening.
+ */
+async function releaseRenderLock(key: string): Promise<void> {
+  const lockKey = `lock:render:${key}`
+  try {
+    const valkey = useValkey()
+    await valkey.del(lockKey)
+  } catch { /* TTL will reclaim it */ }
+}
+
+/**
+ * Loser-side wait: poll S3 manifest until the winner's render lands.
+ * Returns the manifest if it shows up before the ceiling, null otherwise.
+ *
+ * Why poll instead of pub/sub: pub/sub would require the renderer (in a
+ * separate container) to publish on completion, doubling the failure
+ * surface — a missed publish would hang the loser forever. Polling
+ * costs one S3 HEAD per `RENDER_POLL_INTERVAL_MS` (~80 HEADs/min at 750ms),
+ * trivially cheap, and self-heals if the winner crashes silently.
+ */
+async function pollManifestUntilReady(
+  docId: string,
+  snapshotId: number,
+  wantFormat: 'pdf' | 'png' | 'both'
+): Promise<RenderManifest | null> {
+  const deadline = Date.now() + RENDER_POLL_CEILING_MS
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, RENDER_POLL_INTERVAL_MS))
+    const m = await readManifest(docId, snapshotId)
+    if (m && manifestSatisfies(m, wantFormat)) return m
+  }
+  return null
+}
 
 /**
  * Latest yjs_documents.id for the doc. Returns 0 when no rows exist —
@@ -150,7 +240,22 @@ export async function renderDocument(
   if (existing) return existing
 
   const promise = (async () => {
+    let acquired = false
     try {
+      // Cross-instance singleflight: try to claim the Valkey lock. Loser
+      // path waits for the winner's manifest; winner path proceeds to
+      // call the renderer.
+      acquired = await tryAcquireRenderLock(key)
+      if (!acquired) {
+        const polled = await pollManifestUntilReady(docId, snapshotId, opts.format)
+        if (polled) return { cached: true, manifest: polled }
+        // Polling timed out without a manifest. The lock has either
+        // expired (winner crashed) or is still held by a slow render
+        // we've stopped waiting on. Either way, attempting our own
+        // render here is the correct recovery — better one extra
+        // render than an opaque timeout to the user.
+        console.warn(`[renderClient] poll timeout for ${key}, attempting own render`)
+      }
       const out = await callRenderer(docId, snapshotId, opts.format)
       const manifest: RenderManifest = {
         snapshotId,
@@ -169,6 +274,7 @@ export async function renderDocument(
       })
       throw e
     } finally {
+      if (acquired) await releaseRenderLock(key)
       inflight.delete(key)
     }
   })()

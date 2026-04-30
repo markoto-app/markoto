@@ -22,6 +22,21 @@ import { renderDocument } from '../../../utils/renderClient'
 //   4. 302 redirect.
 
 export default defineEventHandler(async (event) => {
+  // Rate limit: 10 PDF downloads per IP per minute. Each cache miss
+  // spawns a Playwright render (~5-15s renderer compute), so a tight
+  // anonymous loop on an open-edit doc could saturate the renderer
+  // pool and starve real users. 10/min is generous for legitimate
+  // "view PDF" / "save PDF" traffic but caps the abuse surface.
+  // Cache-hit responses are sub-second and still rate-limited (the
+  // counter doesn't differentiate hit vs. miss), which is the right
+  // call: the limit is on REQUEST volume, not on renderer load.
+  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
+    || getRequestHeader(event, 'x-real-ip')
+    || 'unknown'
+  if (!(await checkRateLimit('pdf-download', ip, 10, 60_000))) {
+    throw createError({ statusCode: 429, message: 'Too many PDF requests. Try again in a minute.' })
+  }
+
   const docId = requireDocId(event)
 
   const session = await getValidatedUserSession(event)

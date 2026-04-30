@@ -1,4 +1,5 @@
 import type { DocTheme, RunningSlots } from '../types/theme'
+import { pageHeightMm } from './pageDimensions'
 
 /**
  * Runtime values interpolated into the theme CSS. Kept separate from
@@ -782,12 +783,10 @@ function coverBlock(theme: DocTheme): string {
   // so the cover element should occupy the full physical page rectangle.
   // We can't use `min-height: 100%` because paged.js's parent chain
   // doesn't expose a fixed height — `1fr` grid rows collapse to 0px.
-  // Hardcode the page dimensions by size + orientation. These match
-  // standard CSS @page values and let editorial / banner layouts spread
-  // their content to ⅓ / ⅔ positions correctly.
-  const pageHeightMm = theme.page.orientation === 'portrait'
-    ? (theme.page.size === 'A4' ? '297mm' : '279.4mm')
-    : (theme.page.size === 'A4' ? '210mm' : '215.9mm')
+  // Pull the page height from the central `pageDimensions` table so that
+  // adding Legal / A3 to PageSizeSchema fails compile rather than silently
+  // shifting cover layouts.
+  const coverHeightMm = `${pageHeightMm(theme.page.size, theme.page.orientation)}mm`
 
   // The cover root is a CSS Grid for `editorial` (rows pin logo to top,
   // title+subtitle at upper third, meta at lower third) and a flex
@@ -806,7 +805,7 @@ function coverBlock(theme: DocTheme): string {
   justify-items: ${justifyItems};
   align-items: start;
   text-align: ${align};
-  height: ${pageHeightMm};
+  height: ${coverHeightMm};
   padding: 24mm 18mm;
   box-sizing: border-box;
 }
@@ -826,7 +825,7 @@ function coverBlock(theme: DocTheme): string {
   grid-template-rows: auto 1fr auto;
   justify-items: ${justifyItems};
   text-align: ${align};
-  height: ${pageHeightMm};
+  height: ${coverHeightMm};
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -856,7 +855,7 @@ function coverBlock(theme: DocTheme): string {
   justify-content: center;
   align-items: ${justifyItems === 'start' ? 'flex-start' : justifyItems === 'end' ? 'flex-end' : 'center'};
   text-align: ${align};
-  height: ${pageHeightMm};
+  height: ${coverHeightMm};
   padding: 24mm 18mm;
   box-sizing: border-box;
 }
@@ -873,7 +872,7 @@ function coverBlock(theme: DocTheme): string {
   justify-content: center;
   align-items: ${justifyItems === 'start' ? 'flex-start' : justifyItems === 'end' ? 'flex-end' : 'center'};
   text-align: ${align};
-  height: ${pageHeightMm};
+  height: ${coverHeightMm};
   padding: 24mm 18mm;
   box-sizing: border-box;
 }`

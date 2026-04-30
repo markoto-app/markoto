@@ -103,7 +103,14 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
         // actually shows: open the same doc twice in two tabs as the
         // same logged-in user and you see one avatar, not two — the
         // count must match.
-        const seenUserIds = new Set<string>()
+        //
+        // Real `user.id` values are NUMERIC (DB-issued). The 'anonymous'
+        // sentinel is the only legitimate string. A numeric string
+        // (e.g. "42") would dedup correctly via Number coercion below,
+        // but its appearance signals a regression at a JWT mint site or
+        // session helper — log it so we can chase it down rather than
+        // letting it silently work-by-accident.
+        const seenUserIds = new Set<number>()
         let unique = 0
         for (const s of states) {
           const u = (s as { user?: { id?: number | string, isAI?: boolean } }).user
@@ -117,9 +124,24 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
             unique++
             continue
           }
-          const key = String(id)
-          if (seenUserIds.has(key)) continue
-          seenUserIds.add(key)
+          let numericId: number
+          if (typeof id === 'number') {
+            numericId = id
+          } else {
+            // Non-numeric string id should never happen — sound the alarm
+            // and treat the connection as anonymous (don't count toward
+            // dedup) rather than crashing the user-count chip.
+            const parsed = Number(id)
+            if (!Number.isFinite(parsed)) {
+              console.warn('[useHocuspocusSync] non-numeric user.id slipped into awareness:', id)
+              unique++
+              continue
+            }
+            console.warn('[useHocuspocusSync] string-numeric user.id slipped into awareness (expected number):', id)
+            numericId = parsed
+          }
+          if (seenUserIds.has(numericId)) continue
+          seenUserIds.add(numericId)
           unique++
         }
         userCount.value = unique

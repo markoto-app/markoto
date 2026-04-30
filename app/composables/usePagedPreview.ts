@@ -1,8 +1,7 @@
 import type { Ref } from 'vue'
 import type { DocTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
-import { wrapFirstLetterAsDropCap } from '~/utils/dropcapWrap'
-import { buildCoverHtml } from '~/utils/coverHtml'
+import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
@@ -111,16 +110,15 @@ export function usePagedPreview(opts: {
     const fontsImport = themeFontsImport(opts.theme.value)
     const hljsUrl = hljsThemeUrl(opts.theme.value.code.theme)
     const mermaidTheme = opts.theme.value.mermaid.theme
-    // Compose the final HTML: optional cover page first, then the
-    // body. We dropcap-wrap AFTER cover injection so the wrap finds
-    // the first body `<p>` (cover uses `<h1>`/`<div>`, not `<p>`,
-    // so it's invisible to the regex).
-    const dateIso = new Date().toISOString().slice(0, 10)
-    const coverHtml = buildCoverHtml(opts.theme.value, opts.title.value || '', dateIso)
-    let html = coverHtml + opts.html.value
-    if (opts.theme.value.body.dropCap) {
-      html = wrapFirstLetterAsDropCap(html)
-    }
+    // Compose the final HTML through the shared helper so live preview,
+    // browser print, and the server-rendered PDF stay byte-identical
+    // (one place to change cover/dropcap composition order).
+    const html = composeFinalHtml({
+      theme: opts.theme.value,
+      title: opts.title.value || '',
+      dateIso: new Date().toISOString().slice(0, 10),
+      bodyHtml: opts.html.value
+    })
     isPaginating.value = true
     ;(iframe.contentWindow as unknown as { __renderDoc: (o: unknown) => void }).__renderDoc({
       html,

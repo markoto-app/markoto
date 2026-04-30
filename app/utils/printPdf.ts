@@ -5,8 +5,7 @@ import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 import { renderMarkdown } from '~/utils/renderMarkdown'
-import { buildCoverHtml } from '~/utils/coverHtml'
-import { wrapFirstLetterAsDropCap } from '~/utils/dropcapWrap'
+import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
 
 /**
  * Mermaid singleton in the parent document context for the print path.
@@ -127,16 +126,14 @@ export async function printDocumentAsPdf(opts: {
   // Replace any mermaid code blocks with their rendered SVG BEFORE the
   // iframe builds — paged.js then paginates plain inline SVG.
   const bodyHtml = await transformMermaid(rawHtml, opts.theme.mermaid.theme)
-  // Cover page + drop-cap match the live preview's pipeline (see
-  // usePagedPreview.ts). Cover-first so dropCap's regex finds the
-  // first BODY paragraph (cover uses h1/divs, not <p>) — without it
-  // the drop-cap would land on the cover subtitle.
-  const dateIso = new Date().toISOString().slice(0, 10)
-  const coverHtml = buildCoverHtml(opts.theme, opts.title || '', dateIso)
-  let html = coverHtml + bodyHtml
-  if (opts.theme.body.dropCap) {
-    html = wrapFirstLetterAsDropCap(html)
-  }
+  // Cover + drop-cap composition matches the live preview pipeline via
+  // the shared helper. See `shared/utils/composeFinalHtml.ts`.
+  const html = composeFinalHtml({
+    theme: opts.theme,
+    title: opts.title || '',
+    dateIso: new Date().toISOString().slice(0, 10),
+    bodyHtml
+  })
   const themeCss = themeToCss(opts.theme, {
     title: opts.title || '',
     date: new Date().toISOString().slice(0, 10),

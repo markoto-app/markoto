@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { renderMarkdown } from '~/utils/renderMarkdown'
-import { buildCoverHtml } from '~/utils/coverHtml'
-import { wrapFirstLetterAsDropCap } from '~/utils/dropcapWrap'
+import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import type { DocTheme, MermaidTheme } from '~~/shared/types/theme'
@@ -80,16 +79,14 @@ onMounted(async () => {
 
   const rawHtml = await renderMarkdown(markdown)
   const bodyHtml = await transformMermaid(rawHtml, theme.mermaid.theme)
-  // Cover page + drop-cap mirror the live preview pipeline so the PDF /
-  // PNG output matches what users see in the editor. Cover-first so
-  // dropCap's regex finds the first BODY paragraph rather than landing
-  // on the cover subtitle.
-  const dateIso = new Date().toISOString().slice(0, 10)
-  const coverHtml = buildCoverHtml(theme, title, dateIso)
-  let html = coverHtml + bodyHtml
-  if (theme.body.dropCap) {
-    html = wrapFirstLetterAsDropCap(html)
-  }
+  // Cover + drop-cap composition through the shared helper so the
+  // server PDF matches the live preview byte-for-byte.
+  let html = composeFinalHtml({
+    theme,
+    title,
+    dateIso: new Date().toISOString().slice(0, 10),
+    bodyHtml
+  })
   // Append the file-access token to every /api/files/{docId}/... URL so
   // private / password-gated / workspace-only docs' images load. The
   // renderer's Chromium has no session cookie; without this every
@@ -223,11 +220,9 @@ onMounted(async () => {
   // screenshots but were absent from the produced PDF until this wait
   // landed.
   const paginatedImgs = Array.from(mount.querySelectorAll('img'))
-  console.log('[render-page] paginated imgs count:', paginatedImgs.length)
   if (paginatedImgs.length > 0) {
     await Promise.all(paginatedImgs.map(img => img.decode().catch(() => undefined)))
   }
-  console.log('[render-page] all paginated imgs decoded')
 
   ;(window as Window & {
     __pagedReady?: boolean

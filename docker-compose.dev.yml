@@ -124,6 +124,22 @@ services:
     build: ./renderer
     restart: unless-stopped
     stop_grace_period: 30s
+    # Cap memory: a doc with hundreds of inline images can OOM Chromium
+    # silently. 2 GB is comfortable for typical loads (≤50 pages, ≤30
+    # images) and lets multiple concurrent renders coexist with the host.
+    # Below ~1 GB Chromium becomes unstable; above 4 GB rarely buys you
+    # anything for paginated docs.
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:9000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      # Cold-start budget: Playwright launches Chromium lazily on the
+      # first /render request, but the HTTP server itself is up within a
+      # second. Give it 30 s anyway so a slow image fetch doesn't trip
+      # the healthcheck and trigger a restart loop.
+      start_period: 30s
+      retries: 3
     environment:
       - PORT=9000
       - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}

@@ -25,6 +25,17 @@ export interface DocJwtPayload {
   userId: string | number
   userName?: string | null
   readOnly?: boolean
+  /**
+   * Optional scope narrowing. Hocuspocus connection tokens omit this
+   * field (legacy / session-style JWTs from /api/docs/:id/token, the
+   * password-verify flow, etc). Tokens minted with explicit scope are
+   * REJECTED by the WS auth path — they were issued for a different
+   * purpose (`file-access` for /api/files, etc.) and must not be
+   * promotable to a Y.js connection. One-way escalation is the threat
+   * model: a leaked render token shouldn't enable joining the live
+   * collab session.
+   */
+  scope?: string
 }
 
 export interface AuthContext {
@@ -74,6 +85,17 @@ export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
     // Scope check — a JWT minted for doc-A must never grant access to
     // doc-B. This is the critical cross-doc replay guard.
     if (payload.docId !== documentName) {
+      throw new Error('Token scope mismatch')
+    }
+
+    // Reject scope-narrowed tokens. Hocuspocus connection requires a
+    // legacy/session-shaped token (no `scope` claim). A token minted
+    // with `scope: 'file-access'` (or any other future narrowing) was
+    // issued for an HTTP endpoint and must not be promotable to a Y.js
+    // connection. Without this check, a leaked render token could be
+    // replayed against the WS to read the live doc state.
+    if (typeof payload.scope === 'string' && payload.scope.length > 0) {
+      console.warn(`[auth] Rejected scope-narrowed token (scope=${payload.scope}) for ${documentName}`)
       throw new Error('Token scope mismatch')
     }
 

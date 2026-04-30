@@ -9,8 +9,12 @@ Whatever you set in `S3_BUCKET`. Region doesn't matter to the app.
 Object layout (app-managed, don't pre-create):
 
 ```
-docs/{docId}/{fileId}.{ext}          # image uploads
-backups/postgres/{ISO8601}.sql.gz    # daily pg_dump
+docs/{docId}/{fileId}.{ext}                            # image uploads
+workspaces/{wsId}/knowledge/{kId}.{ext}                # transient — deleted after processing
+renders/{docId}/{snapshotId}/document.pdf              # PDF renders (cached)
+renders/{docId}/{snapshotId}/page-{n}.png              # per-page screenshots (cached)
+renders/{docId}/{snapshotId}/manifest.json             # render readiness sentinel
+backups/postgres/{ISO8601}.sql.gz                      # daily pg_dump
 ```
 
 ## 2. Create an access key scoped to the bucket
@@ -66,7 +70,47 @@ fetch('https://<bucket-host>/<any-key>', { method: 'HEAD' })
 
 Should log your domain. If it logs `null` or CORS-errors, the policy didn't stick.
 
-## 5. What NOT to do
+## 5. Lifecycle policy — recommended
+
+Renders under `renders/` are CACHE artefacts. The app re-creates them on demand and `deleteDocument` cleans up per-doc renders eagerly, but bucket-side expiration is the safety net for orphaned snapshots (the snapshotId in the key changes on every Y.Doc update — old snapshots are unreachable but linger). Set up a 30-day expiration so the bucket doesn't grow unbounded.
+
+### Infomaniak
+
+The dashboard does NOT expose lifecycle rules. Use the S3 API directly (Infomaniak supports the standard `PutBucketLifecycleConfiguration` call).
+
+### AWS / R2 / MinIO / Infomaniak (S3 API)
+
+```bash
+cat > lifecycle.json <<'EOF'
+{
+  "Rules": [
+    {
+      "ID": "expire-renders-30d",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "renders/" },
+      "Expiration": { "Days": 30 }
+    }
+  ]
+}
+EOF
+
+aws s3api put-bucket-lifecycle-configuration \
+  --endpoint-url "${S3_ENDPOINT}" \
+  --bucket "${S3_BUCKET}" \
+  --lifecycle-configuration file://lifecycle.json
+```
+
+Verify:
+
+```bash
+aws s3api get-bucket-lifecycle-configuration \
+  --endpoint-url "${S3_ENDPOINT}" \
+  --bucket "${S3_BUCKET}"
+```
+
+A user re-downloading a 31-day-old PDF triggers a fresh render — wasteful but rare. Keep the rule scoped to `renders/` only; image uploads under `docs/` and pg backups under `backups/` are not cache, do NOT add them to the rule.
+
+## 6. What NOT to do
 
 - Don't proxy S3 through Traefik in prod — it doubles egress and defeats the point of presigned URLs. The dev setup uses `devProxy` in `nuxt.config.ts` only to work around SeaweedFS's stricter-than-AWS CORS behaviour locally.
 - Don't allow `*` as `AllowedOrigins`. Presigned URLs are short-lived but still credential-bearing; a leaked URL + permissive CORS = cross-origin exfil window.

@@ -66,7 +66,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'jwtSecret not configured' })
   }
   const fileAccessToken = jwt.sign(
-    { docId, userId: 'render', userName: null, readOnly: true },
+    {
+      docId,
+      userId: 'render',
+      userName: null,
+      readOnly: true,
+      // Scope-narrow the token so a leak can't be replayed against the
+      // Hocuspocus WS to read the live doc state. The sync-server's
+      // onAuthenticate hook explicitly rejects any JWT that carries a
+      // `scope` claim — only legacy/session shape tokens (no `scope`)
+      // are allowed to open Y.js connections. /api/files's
+      // `verifyDocJwt` accepts both shapes, so this token still works
+      // for the image-fetch path the print page actually needs.
+      scope: 'file-access'
+    },
     config.jwtSecret,
     { expiresIn: '5m' }
   )

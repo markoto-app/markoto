@@ -36,7 +36,17 @@ const EXT_TO_ALLOWED_MIMES: Record<string, string[]> = {
   // .xls (legacy Office) is a CFB file — sniffed as `application/x-cfb`
   // by file-type. We allow both Office and CFB to accommodate older files.
   xls: ['application/vnd.ms-excel', 'application/x-cfb'],
-  epub: ['application/epub+zip']
+  epub: ['application/epub+zip'],
+  // Image extensions for the doc-asset upload path (`/api/upload/*`).
+  // Without this, a presigned URL minted as `Content-Type: image/png`
+  // can be PUT with arbitrary bytes (SVG-with-script, an .exe renamed
+  // to .png). file-type's magic-byte detection cleanly differentiates
+  // each format — even animated WebP and GIF have stable signatures.
+  png: ['image/png'],
+  jpg: ['image/jpeg'],
+  jpeg: ['image/jpeg'],
+  gif: ['image/gif'],
+  webp: ['image/webp']
 }
 
 // Text formats with no reliable magic byte. We skip the library probe

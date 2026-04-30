@@ -202,6 +202,14 @@ services:
     build: ./renderer
     restart: unless-stopped
     stop_grace_period: 30s
+    # 2 GB cap (see docker-compose.dev.yml for rationale).
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:9000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     environment:
       - PORT=9000
       - INTERNAL_API_SECRET=local-internal-api-secret-change-me
