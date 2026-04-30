@@ -111,6 +111,19 @@ export function describeToolInput(name: string, args: Record<string, unknown>): 
       const preview = name.length > 40 ? name.slice(0, 40) + '…' : name
       return `Saving theme as "${preview}"`
     }
+    case 'list_workspace_documents':
+      return 'Browsing workspace documents…'
+    case 'view_other_document': {
+      const raw = typeof args.doc_id === 'string' ? args.doc_id.trim() : ''
+      if (!raw) return 'Reading another document…'
+      // Mirror the parser: extract `/d/<id>` shape if present, else
+      // treat as a bare id. We don't import the parser here to keep
+      // streamStatus dependency-free; the regex is simple enough.
+      const urlMatch = raw.match(/\/d\/([A-Za-z0-9_-]+)/)
+      const id = urlMatch?.[1] ?? raw
+      const preview = id.length > 24 ? id.slice(0, 24) + '…' : id
+      return `Reading document ${preview}`
+    }
     case 'set_title': {
       const title = typeof args.title === 'string' ? args.title.trim() : ''
       if (!title) return 'Updating title…'

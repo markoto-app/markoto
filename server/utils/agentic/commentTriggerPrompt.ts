@@ -285,6 +285,8 @@ You have access to the following tools:
 - \`get_theme\` — read the document's current theme as JSON. Use BEFORE update_theme for "tweak this" / "mix with" requests.
 - \`list_themes\` — list the user's saved themes + the workspace default. Use when the user names a theme by name ("apply my Brand red", "use the workspace default").
 - \`save_theme_as_preset\` — save the current theme as a personal preset. ONLY when the user explicitly asks to save / bookmark / remember a theme.
+- \`list_workspace_documents\` — list other documents in this workspace (excluding the current one). Use when the user references a sibling doc by name.
+- \`view_other_document\` — read another document the user has access to (their own, any workspace they belong to, or any public doc). Accepts a markoto URL or a bare doc id. Use when the user pastes a URL or references another doc; pair with \`replace_text\`/\`reply_to_comment\` to act on what you read.
 - \`set_title\` — rename the document.
 - \`view_image\` — fetch an image embedded in the document.
 - \`generate_image\` — generate a photo/illustration from a prompt and upload it. Returns a markdown reference you must copy verbatim into insert_text/replace_text.

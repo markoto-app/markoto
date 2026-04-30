@@ -28,13 +28,17 @@ import type {
   DeleteCommentInput,
   GetThemeInput,
   ListThemesInput,
-  SaveThemeAsPresetInput
+  SaveThemeAsPresetInput,
+  ListWorkspaceDocumentsInput,
+  ViewOtherDocumentInput
 } from './agentic/functionTools'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { getDoc, updateDocMeta } from '../repos/documents'
+import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag } from '../repos/documents'
+import { decideTokenAccess } from '~~/shared/utils/docPermissions'
+import { openTrustedCommentClient } from './commentsServerClient'
 import { recordPending, markConfirmed } from '../repos/uploads'
 import { getKnowledgeWithMarkdown, searchKnowledge } from '../repos/knowledge'
 import { getMemberRole } from '../repos/workspaceMembers'
@@ -467,6 +471,216 @@ async function handleSaveThemeAsPreset(
   return ok(`Saved current theme as "${name}" (theme_id: ${themeId}). It's now in the user's saved themes; reapply later via update_theme with theme_id.`)
 }
 
+// --- Cross-document reads -------------------------------------------------
+
+/**
+ * Strip a markoto URL down to a bare doc id. Accepts:
+ *   - `xyz123abc`
+ *   - `/d/xyz123abc`
+ *   - `https://markoto.app/d/xyz123abc`
+ *   - `markoto.app/d/xyz123abc?slide=2`
+ *   - any host (so users on `localhost:3000` or staging URLs work)
+ *
+ * Returns null when no recognisable id can be extracted. The id rule
+ * `[A-Za-z0-9_-]+` matches nanoid output and survives any future id
+ * shape change as long as the alphabet stays URL-safe.
+ *
+ * @internal exported for unit tests; not part of the public API.
+ */
+export function parseDocIdFromInput(raw: string): string | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  // Try URL-shape match first. Doesn't matter whether the input has a
+  // scheme — `/d/<id>` is the load-bearing piece.
+  const urlMatch = trimmed.match(/\/d\/([A-Za-z0-9_-]+)(?:[/?#]|$)/)
+  if (urlMatch) return urlMatch[1] ?? null
+  // Otherwise treat as a bare id only if the WHOLE string matches the
+  // id alphabet (not "https://example.com" with no `/d/` segment).
+  if (/^[A-Za-z0-9_-]+$/.test(trimmed)) return trimmed
+  return null
+}
+
+async function handleListWorkspaceDocuments(
+  session: AiSession,
+  _input: ListWorkspaceDocumentsInput
+): Promise<ToolResult> {
+  if (!session.workspaceId) {
+    return err('Error: list_workspace_documents requires the current document to be in a workspace.')
+  }
+
+  // Reuse the existing repo helper that powers /api/workspaces/:id —
+  // identical fields, identical ownership flag computation, and the
+  // same membership check happens before we get here (the AI session
+  // belongs to a workspace member or it would have been rejected at
+  // /api/ai/prompt time).
+  const rows = await listWorkspaceDocsWithOwnerFlag(session.workspaceId, session.initiatorUserId)
+  // Drop the current document from the list — the AI already has it
+  // open, including it would be confusing and tempt redundant calls
+  // to view_other_document on the same id it's editing.
+  const visible = rows.filter(r => r.docId !== session.docId)
+
+  if (visible.length === 0) {
+    return ok('This workspace has no other documents (only the current one). Nothing to summarise or cross-reference.')
+  }
+
+  const payload = {
+    workspace_id: session.workspaceId,
+    excluded_current_doc_id: session.docId,
+    documents: visible.map(r => ({
+      doc_id: r.docId,
+      title: r.title,
+      description: r.description,
+      language: r.language,
+      access_mode: r.accessMode,
+      last_active: r.lastActive instanceof Date ? r.lastActive.toISOString() : r.lastActive,
+      is_owner: r.isOwner
+    })),
+    notes: [
+      'Pass `doc_id` to view_other_document to read a specific entry.',
+      'is_owner=true means the initiator created the doc; both owned and shared workspace docs appear here.'
+    ]
+  }
+  return ok(JSON.stringify(payload, null, 2))
+}
+
+const VIEW_OTHER_DOC_CHAR_CAP = 50_000
+
+async function handleViewOtherDocument(
+  session: AiSession,
+  input: ViewOtherDocumentInput
+): Promise<ToolResult> {
+  const targetId = parseDocIdFromInput(input.doc_id)
+  if (!targetId) {
+    return err(`Error: could not extract a document id from "${input.doc_id.slice(0, 80)}". Pass either the bare id or a markoto URL like https://markoto.app/d/<id>.`)
+  }
+  if (targetId === session.docId) {
+    return err('Error: this is the current document — call `view_document` instead.')
+  }
+
+  // Access decision mirrors `/api/docs/:id/token` exactly. The
+  // initiator's permissions are the source of truth — never the AI's
+  // synthetic principal — so the AI sees what the human would see by
+  // pasting the URL into a browser, no more and no less.
+  const ctx = await getDocWithActorRole(targetId, session.initiatorUserId)
+  if (!ctx) {
+    // 404-shape rather than "forbidden" — same exfil-resistant shape
+    // the token endpoint uses. An attacker (or hallucinated id) can't
+    // distinguish "doc doesn't exist" from "doc exists but you can't
+    // see it".
+    return err(`Error: document "${targetId}" not found, or you don't have access to it.`)
+  }
+
+  const decision = decideTokenAccess(
+    {
+      ownerId: ctx.ownerId,
+      workspaceId: ctx.workspaceId,
+      accessMode: ctx.accessMode
+    },
+    {
+      userId: session.initiatorUserId,
+      workspaceRole: ctx.workspaceRole
+    }
+  )
+  if (decision.outcome !== 'allow') {
+    if (decision.outcome === 'password-required') {
+      // Workspace membership already bypassed the password gate in
+      // `decideTokenAccess`, so this branch only fires for non-member
+      // accessors of a password-protected doc. There's no way to ship
+      // the password through the AI tool surface, so we surface it
+      // distinctly (so the AI tells the user) rather than 404-masking.
+      return err(`Error: document "${targetId}" is password-protected and you're not a workspace member. Ask the user to lift the password or share the doc differently.`)
+    }
+    // outcome === 'forbidden' (or any future deny shape). Surface as
+    // 404-shape — an attacker who guesses a private doc's id shouldn't
+    // learn that it exists. (Same anti-enumeration shape used at
+    // /api/docs/:id/token's forbidden branch.)
+    return err(`Error: document "${targetId}" not found, or you don't have access to it.`)
+  }
+
+  // Live read via Hocuspocus. Same trusted-client pattern the
+  // comment-trigger endpoint uses for peek reads — opens just long
+  // enough to get a synced ydoc, reads ytext, disconnects. Catches
+  // mid-flight edits that haven't hit y-postgresql yet.
+  session.updateStatus('tool', `Reading ${ctx.title || 'document'}…`)
+
+  let body: string
+  let client: Awaited<ReturnType<typeof openTrustedCommentClient>> | null = null
+  try {
+    client = await openTrustedCommentClient(
+      targetId,
+      `ai-cross-doc-read:${session.initiatorUserId}:${session.sessionId}`
+    )
+    const ytext = client.ydoc.getText('content')
+    body = ytext.toString()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'unknown error'
+    return err(`Error: failed to read document "${targetId}" from sync server: ${msg}.`)
+  } finally {
+    if (client) {
+      try { await client.destroy() } catch { /* */ }
+    }
+  }
+
+  // Apply view_range if the caller paged through. Same line-indexing
+  // semantics as `view_document` — 1-indexed inclusive, end=-1 means
+  // EOF. Validation already happened at the Zod schema (start >= 1,
+  // end >= start || end === -1).
+  const allLines = body.split('\n')
+  let startLine = 1
+  let endLine = allLines.length
+  if (input.view_range) {
+    const [s, e] = input.view_range
+    startLine = s!
+    endLine = e === -1 ? allLines.length : e!
+  }
+  // Slice; Zod guards bounds reasonably but we still clamp so a
+  // huge end value doesn't crash anything downstream.
+  const sliceStart = Math.max(0, startLine - 1)
+  const sliceEnd = Math.min(allLines.length, endLine)
+  const sliced = allLines.slice(sliceStart, sliceEnd)
+  let formatted = sliced.map((line, i) => `${startLine + i}: ${line}`).join('\n')
+  let truncated = false
+  if (formatted.length > VIEW_OTHER_DOC_CHAR_CAP) {
+    formatted = formatted.slice(0, VIEW_OTHER_DOC_CHAR_CAP)
+    truncated = true
+  }
+
+  // Scope label tells the AI WHY it could read this — useful when
+  // composing a quote ("From your workspace doc 'Q3 plan': …").
+  const scope: string = ctx.ownerId === session.initiatorUserId
+    ? 'self'
+    : ctx.workspaceRole
+      ? `workspace:${ctx.workspaceRole}`
+      : ctx.accessMode === 'open-edit'
+        ? 'public-edit'
+        : ctx.accessMode === 'open-view'
+          ? 'public-view'
+          : 'shared'
+
+  const meta = {
+    doc_id: targetId,
+    title: ctx.title,
+    description: ctx.description,
+    language: ctx.language,
+    audience: ctx.audience,
+    access_mode: ctx.accessMode,
+    workspace_id: ctx.workspaceId,
+    scope,
+    line_count: allLines.length,
+    showed_lines: { start: startLine, end: Math.min(allLines.length, endLine) },
+    truncated_chars_at: truncated ? VIEW_OTHER_DOC_CHAR_CAP : null
+  }
+
+  // Body BEFORE meta in the formatted response so the model doesn't
+  // have to scroll past the header to find the content. The trailing
+  // metadata block is parseable JSON for fields the model wants to
+  // reuse (title, scope, etc).
+  const trailer = truncated
+    ? '\n\n[Truncated at 50 000 chars — call view_other_document again with view_range to read more.]'
+    : ''
+  return ok(`${formatted}${trailer}\n\n--- metadata ---\n${JSON.stringify(meta, null, 2)}`)
+}
+
 // --- Set title ------------------------------------------------------------
 
 async function handleSetTitle(
@@ -837,6 +1051,10 @@ export async function executeFunctionByName(
       return handleListThemes(session, args as ListThemesInput)
     case 'save_theme_as_preset':
       return handleSaveThemeAsPreset(session, args as SaveThemeAsPresetInput)
+    case 'list_workspace_documents':
+      return handleListWorkspaceDocuments(session, args as ListWorkspaceDocumentsInput)
+    case 'view_other_document':
+      return handleViewOtherDocument(session, args as ViewOtherDocumentInput)
     case 'set_title':
       return handleSetTitle(session, args as SetTitleInput)
     case 'view_image':
@@ -858,7 +1076,7 @@ export async function executeFunctionByName(
     case 'delete_comment':
       return handleDeleteComment(session, args as DeleteCommentInput)
     default:
-      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, get_theme, list_themes, save_theme_as_preset, set_title, view_image, generate_image, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment.`)
+      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, get_theme, list_themes, save_theme_as_preset, list_workspace_documents, view_other_document, set_title, view_image, generate_image, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment.`)
   }
 }
 

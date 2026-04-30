@@ -253,6 +253,54 @@ describe('save_theme_as_preset schema', () => {
   })
 })
 
+describe('list_workspace_documents schema', () => {
+  it('accepts an empty object (no args)', () => {
+    expect(parse('list_workspace_documents', {}).success).toBe(true)
+  })
+})
+
+describe('view_other_document schema', () => {
+  it('accepts a bare doc id', () => {
+    expect(parse('view_other_document', { doc_id: 'abc123xyz' }).success).toBe(true)
+  })
+
+  it('accepts a full markoto URL', () => {
+    expect(parse('view_other_document', { doc_id: 'https://markoto.app/d/abc123xyz' }).success).toBe(true)
+  })
+
+  it('rejects empty doc_id', () => {
+    expect(parse('view_other_document', { doc_id: '' }).success).toBe(false)
+    expect(parse('view_other_document', { doc_id: '   ' }).success).toBe(false)
+  })
+
+  it('rejects oversized doc_id (>2048 chars)', () => {
+    expect(parse('view_other_document', { doc_id: 'x'.repeat(2049) }).success).toBe(false)
+  })
+
+  it('rejects missing doc_id', () => {
+    expect(parse('view_other_document', {}).success).toBe(false)
+  })
+
+  it('accepts a valid view_range', () => {
+    expect(parse('view_other_document', { doc_id: 'a', view_range: [1, 50] }).success).toBe(true)
+    expect(parse('view_other_document', { doc_id: 'a', view_range: [1, -1] }).success).toBe(true)
+  })
+
+  it('rejects view_range with start < 1', () => {
+    expect(parse('view_other_document', { doc_id: 'a', view_range: [0, 10] }).success).toBe(false)
+    expect(parse('view_other_document', { doc_id: 'a', view_range: [-1, -1] }).success).toBe(false)
+  })
+
+  it('rejects view_range where end < start (and end !== -1)', () => {
+    expect(parse('view_other_document', { doc_id: 'a', view_range: [10, 5] }).success).toBe(false)
+  })
+
+  it('rejects view_range with wrong tuple length', () => {
+    expect(parse('view_other_document', { doc_id: 'a', view_range: [1] }).success).toBe(false)
+    expect(parse('view_other_document', { doc_id: 'a', view_range: [1, 2, 3] }).success).toBe(false)
+  })
+})
+
 describe('update_theme schema (shared-enum drift guards)', () => {
   describe('shared-enum-schema drift guards', () => {
     // These schemas are imported from `shared/types/theme.ts`. If anyone
@@ -449,6 +497,7 @@ describe('TOOL_SCHEMAS registry', () => {
       'get_theme',
       'insert_text',
       'list_themes',
+      'list_workspace_documents',
       'read_comments',
       'replace_text',
       'reply_to_comment',
@@ -459,6 +508,7 @@ describe('TOOL_SCHEMAS registry', () => {
       'update_theme',
       'view_document',
       'view_image',
+      'view_other_document',
       'web_search'
     ])
   })

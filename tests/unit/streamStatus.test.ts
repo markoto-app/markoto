@@ -142,6 +142,34 @@ describe('describeToolInput — get_theme / list_themes / save_theme_as_preset',
   })
 })
 
+describe('describeToolInput — list_workspace_documents / view_other_document', () => {
+  it('list_workspace_documents uses a fixed browse label', () => {
+    expect(describeToolInput('list_workspace_documents', {}))
+      .toBe('Browsing workspace documents…')
+  })
+
+  it('view_other_document extracts the id from a URL', () => {
+    expect(describeToolInput('view_other_document', { doc_id: 'https://markoto.app/d/xyz123abc' }))
+      .toBe('Reading document xyz123abc')
+  })
+
+  it('view_other_document falls through to the bare id when no URL', () => {
+    expect(describeToolInput('view_other_document', { doc_id: 'abc987' }))
+      .toBe('Reading document abc987')
+  })
+
+  it('view_other_document truncates very long ids', () => {
+    const long = 'x'.repeat(40)
+    expect(describeToolInput('view_other_document', { doc_id: long }))
+      .toBe(`Reading document ${'x'.repeat(24)}…`)
+  })
+
+  it('view_other_document falls back when doc_id is empty', () => {
+    expect(describeToolInput('view_other_document', { doc_id: '' }))
+      .toBe('Reading another document…')
+  })
+})
+
 describe('describeToolInput — set_title', () => {
   it('shows the trimmed title in quotes', () => {
     expect(describeToolInput('set_title', { title: 'Project Brief' }))

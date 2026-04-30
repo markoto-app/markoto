@@ -5,7 +5,8 @@ import {
   summarizePatch,
   parseInternalFileRef,
   lineToCharOffset,
-  sanitizeAltText
+  sanitizeAltText,
+  parseDocIdFromInput
 } from '../../server/utils/aiToolAdapter'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 import type { UpdateThemeInput } from '../../server/utils/agentic/functionTools'
@@ -261,5 +262,53 @@ describe('sanitizeAltText', () => {
   it('empty input stays empty', () => {
     expect(sanitizeAltText('')).toBe('')
     expect(sanitizeAltText('   ')).toBe('')
+  })
+})
+
+describe('parseDocIdFromInput', () => {
+  it('extracts the id from a full markoto URL', () => {
+    expect(parseDocIdFromInput('https://markoto.app/d/xyz123abc')).toBe('xyz123abc')
+  })
+
+  it('handles HTTP and any host', () => {
+    expect(parseDocIdFromInput('http://localhost:3000/d/abc-_xyz')).toBe('abc-_xyz')
+    expect(parseDocIdFromInput('https://staging.markoto.io/d/qrs99')).toBe('qrs99')
+  })
+
+  it('handles a root-relative path', () => {
+    expect(parseDocIdFromInput('/d/aBc123_-')).toBe('aBc123_-')
+  })
+
+  it('tolerates trailing slash, query string, fragment', () => {
+    expect(parseDocIdFromInput('https://markoto.app/d/xyz/')).toBe('xyz')
+    expect(parseDocIdFromInput('https://markoto.app/d/xyz?slide=2')).toBe('xyz')
+    expect(parseDocIdFromInput('https://markoto.app/d/xyz#top')).toBe('xyz')
+  })
+
+  it('accepts a bare id matching the URL-safe alphabet', () => {
+    expect(parseDocIdFromInput('xyz123_-abc')).toBe('xyz123_-abc')
+  })
+
+  it('rejects an unrelated URL with no /d/<id> segment', () => {
+    // Without the `/d/` segment we must NOT happily return some other
+    // path leaf — that would be an exfil vector if the AI ever pasted
+    // a stray URL.
+    expect(parseDocIdFromInput('https://markoto.app/auth/github')).toBeNull()
+    expect(parseDocIdFromInput('https://example.com/something')).toBeNull()
+  })
+
+  it('rejects whitespace-only input', () => {
+    expect(parseDocIdFromInput('')).toBeNull()
+    expect(parseDocIdFromInput('   ')).toBeNull()
+  })
+
+  it('rejects bare strings with disallowed characters', () => {
+    expect(parseDocIdFromInput('not a valid id with spaces')).toBeNull()
+    expect(parseDocIdFromInput('id.with.dots')).toBeNull()
+  })
+
+  it('trims surrounding whitespace before matching', () => {
+    expect(parseDocIdFromInput('  https://markoto.app/d/xyz  ')).toBe('xyz')
+    expect(parseDocIdFromInput('\txyz\n')).toBe('xyz')
   })
 })

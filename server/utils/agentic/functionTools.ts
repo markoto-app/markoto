@@ -350,6 +350,34 @@ const SaveThemeAsPresetArgs = z.object({
     .describe('User-visible name for the preset (1–80 chars). Should describe what the theme is for ("Brand red", "Quarterly report", "Academic mix"). Becomes the label in the user\'s saved-themes list.')
 }).describe('Save the document\'s CURRENT theme as a personal preset for the initiator. Available across all their documents from the theme picker afterwards. Capped at 20 saved themes per user — call returns an error if the cap is reached. Only call when the user explicitly asks to save / bookmark / remember a theme. Does NOT change the current document\'s theme; pair with `update_theme` if they also want it applied somewhere.')
 
+// --- Cross-document reads -------------------------------------------------
+//
+// Two tools that let the AI reach BEYOND the current document:
+//
+//   - list_workspace_documents — enumerate the OTHER docs in the
+//     current session's workspace (current doc excluded). Useful for
+//     "summarise everything in this workspace" or "find the doc
+//     about X that I wrote last week".
+//   - view_other_document — read the full body of any doc the user
+//     could open in their browser. Same access surface: own private
+//     docs, workspace member, public open-edit/open-view, password-
+//     protected (workspace-membership bypass only — there's no way
+//     to ship the password through the AI surface).
+//
+// Both tools share access semantics with the human session: the
+// initiator's permissions, never the AI's synthetic principal.
+
+const ListWorkspaceDocumentsArgs = z.object({}).describe('List all OTHER documents in the current document\'s workspace (the current document is excluded). Returns each doc\'s id, title, description, language, access_mode, last_active timestamp, and is_owner flag for the initiator. Errors if the document is not in a workspace. Use when the user asks to summarise the workspace, find a sibling doc by topic, or cross-reference content. After picking a candidate, call `view_other_document({ doc_id: ... })` to actually read it.')
+
+const ViewOtherDocumentArgs = z.object({
+  doc_id: z.string().trim().min(1).max(2048)
+    .describe('The target document id, OR a markoto URL containing it. Accepted shapes: bare id ("xyz123abc"), absolute URL ("https://markoto.app/d/xyz123abc" — works for any markoto host), root-relative path ("/d/xyz123abc"). The id is extracted server-side; trailing slashes and query strings are tolerated. Pass the URL the user paste-shared verbatim — no need to parse it yourself.'),
+  view_range: z.array(z.number().int()).min(2).max(2)
+    .refine(([s, e]) => s !== undefined && (s >= 1) && (e === -1 || (e !== undefined && e >= s)), { message: 'view_range must be [start, end] where start >= 1 and end is either -1 (read to EOF) or >= start' })
+    .optional()
+    .describe('Optional 1-indexed inclusive line range [start, end]. Use -1 for end to read through to the end of the document. Default: full document, capped at the first 50 000 characters. Page through long docs by repeating the call with non-overlapping ranges.')
+}).describe('Read another document\'s body + metadata. Permission check is the SAME as if the user opened the URL in their browser: their own docs, any doc in any workspace they belong to (any role — viewer is enough), and any anonymous open-edit / open-view doc. Private docs owned by other users return "not found." Password-protected docs are accessible only when the initiator is a member of that doc\'s workspace (workspace membership bypasses the password gate). Returns line-numbered body so you can quote / replace specific lines. The current document cannot be read this way — use `view_document` instead.')
+
 // --- Inferred types the dispatcher consumes -------------------------------
 
 export type ViewDocumentInput = z.infer<typeof ViewDocumentArgs>
@@ -371,6 +399,8 @@ export type DeleteCommentInput = z.infer<typeof DeleteCommentArgs>
 export type GetThemeInput = z.infer<typeof GetThemeArgs>
 export type ListThemesInput = z.infer<typeof ListThemesArgs>
 export type SaveThemeAsPresetInput = z.infer<typeof SaveThemeAsPresetArgs>
+export type ListWorkspaceDocumentsInput = z.infer<typeof ListWorkspaceDocumentsArgs>
+export type ViewOtherDocumentInput = z.infer<typeof ViewOtherDocumentArgs>
 
 // --- Name → schema registry used by runLoop for validate-before-dispatch --
 //
@@ -385,6 +415,8 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   get_theme: GetThemeArgs,
   list_themes: ListThemesArgs,
   save_theme_as_preset: SaveThemeAsPresetArgs,
+  list_workspace_documents: ListWorkspaceDocumentsArgs,
+  view_other_document: ViewOtherDocumentArgs,
   set_title: SetTitleArgs,
   view_image: ViewImageArgs,
   generate_image: GenerateImageArgs,
@@ -456,6 +488,16 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
     'save_theme_as_preset',
     'Save the CURRENT document theme as one of the user\'s personal presets, available across all their documents going forward. Per-user cap is 20 saved themes; over-cap calls error. Only call when the user explicitly asks to save / bookmark / remember a theme — never volunteer this. Does not modify the document.',
     SaveThemeAsPresetArgs
+  ),
+  decl(
+    'list_workspace_documents',
+    'List all OTHER documents in the current document\'s workspace (the current document itself is excluded). Returns id, title, description, language, access_mode, last_active, and is_owner per row. Errors if the current document is not in a workspace. Use to find sibling docs to summarise / cross-reference, or to discover what else lives in the workspace. Pair with `view_other_document` to read a specific one.',
+    ListWorkspaceDocumentsArgs
+  ),
+  decl(
+    'view_other_document',
+    'Read the body and metadata of ANOTHER document — anything the user could open by URL: their own private docs, any doc in any workspace they belong to (viewer role is enough), public open-edit / open-view docs, or workspace docs (membership bypasses password gates). Accepts the doc_id directly OR a full markoto URL like https://markoto.app/d/xyz. Use when the user references a specific doc by id, by name in the workspace, or by URL ("can you summarise https://markoto.app/d/abc into this doc?"). The current document cannot be read this way — call `view_document` instead. Returns line-numbered body and full metadata so you can quote, link, or summarise. Long docs are capped at 50 000 chars; use the optional `view_range` to page through.',
+    ViewOtherDocumentArgs
   ),
   decl(
     'set_title',
