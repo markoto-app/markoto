@@ -930,13 +930,13 @@ const _statusIcon = computed(() => {
           :doc-id="docId"
         />
 
-        <!-- Connection status. Calmed down to a paper-aesthetic
-             chip: sumi-200 hairline border on the bone bg, with a
-             small status-colored dot prefix doing the semantic
-             work. The previous solid `success` pill (saturated green)
-             clashed with the warm chrome — the dot lets the meaning
-             land without the chip becoming a kanban-app accent. -->
+        <!-- Connection status. Only rendered when something is WRONG —
+             connected is the assumed default, so showing a chip there
+             is just noise. The chip surfaces only on `connecting` (live
+             reconnect attempt) or `disconnected` (lost the WS), where
+             the user actually needs to know. -->
         <span
+          v-if="status !== 'connected'"
           class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-default/70 bg-default font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase"
           data-testid="connection-status"
           :data-status="status"
@@ -944,7 +944,6 @@ const _statusIcon = computed(() => {
           <span
             class="block size-1.5 rounded-full shrink-0"
             :class="{
-              'bg-green-600/80 dark:bg-green-500/80': status === 'connected',
               'bg-amber-500/80 dark:bg-amber-400/80 animate-pulse': status === 'connecting',
               'bg-rose-500/80 dark:bg-rose-400/80': status === 'disconnected'
             }"

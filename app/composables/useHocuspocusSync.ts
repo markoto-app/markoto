@@ -95,9 +95,34 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
       },
       onAuthenticationFailed: () => { opts.onAuthFailed?.() },
       onAwarenessChange: ({ states }) => {
-        // `states` is an array of `{ clientId, ...user fields }` — one per
-        // connected client including ourselves. Count is just `.length`.
-        userCount.value = states.length
+        // Dedup by `user.id` so multiple tabs of the SAME human don't
+        // inflate the count. Anonymous editors (no `user.id`) and AI
+        // sessions stay as one entry per socket — we can't tell anon
+        // tabs apart, and each AI session is genuinely distinct. This
+        // keeps the chip's number aligned with what PresenceBar
+        // actually shows: open the same doc twice in two tabs as the
+        // same logged-in user and you see one avatar, not two — the
+        // count must match.
+        const seenUserIds = new Set<string>()
+        let unique = 0
+        for (const s of states) {
+          const u = (s as { user?: { id?: number | string, isAI?: boolean } }).user
+          if (!u) continue
+          if (u.isAI) {
+            unique++
+            continue
+          }
+          const id = u.id
+          if (id === null || id === undefined || id === 'anonymous') {
+            unique++
+            continue
+          }
+          const key = String(id)
+          if (seenUserIds.has(key)) continue
+          seenUserIds.add(key)
+          unique++
+        }
+        userCount.value = unique
       }
     })
   }

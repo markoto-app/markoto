@@ -79,7 +79,20 @@ const roster = ref<RosterMember[]>([])
 function updateLive() {
   const states = props.awareness.getStates()
   const localId = props.awareness.clientID
+  const me = myUserId.value
   const result: LiveEntry[] = []
+  // Dedup by userId across the whole awareness set. The clientId-only
+  // filter we used before only dropped THIS tab's awareness — opening
+  // the same doc in a second tab as the same logged-in user produced
+  // a second presence entry for me-on-the-other-tab, which is just
+  // visual noise (the user expects one avatar per human, not one per
+  // socket). Anonymous entries have no userId so there's nothing to
+  // dedup; multiple anonymous tabs from the same machine still each
+  // get an "Anonymous editor" avatar, which is the right behaviour
+  // (we can't tell them apart). Same goes for AI sessions — each one
+  // is its own session, distinct from any human entry.
+  const seenUserIds = new Set<number>()
+  if (me !== null) seenUserIds.add(me)
 
   states.forEach((state, clientId) => {
     if (clientId === localId) return
@@ -93,6 +106,13 @@ function updateLive() {
       : typeof raw === 'string' && /^\d+$/.test(raw)
         ? Number(raw)
         : null
+    // Drop other tabs of the SAME human user. AI sessions skip this
+    // (each session is a distinct presence even if it's "the AI") and
+    // anonymous users with no userId fall through.
+    if (!user.isAI && userId !== null) {
+      if (seenUserIds.has(userId)) return
+      seenUserIds.add(userId)
+    }
     result.push({
       kind: 'live',
       clientId,
@@ -210,20 +230,29 @@ function offlineBg(userId: number) {
 </script>
 
 <template>
+  <!-- flex-row + flex-nowrap pinned explicitly: Nuxt UI's UTooltip in v4
+       wraps the trigger in a Reka Slot whose containing layout shifts
+       from version to version — leaving direction implicit ended up
+       stacking the avatars vertically in the topbar after a recent
+       update. Pinning row+nowrap here keeps the avatars side-by-side
+       independent of how the tooltip primitive renders its host. -->
   <div
     v-if="merged.length > 0"
-    class="flex items-center gap-1.5"
+    class="flex flex-row flex-nowrap items-center gap-1.5"
   >
-    <div class="flex -space-x-1.5">
+    <div class="flex flex-row flex-nowrap -space-x-1.5">
       <UTooltip
         v-for="e in merged.slice(0, 7)"
         :key="e.kind === 'live' ? `l-${e.clientId}` : `o-${e.userId}`"
         :text="tooltipFor(e)"
       >
-        <!-- Live: colored ring + full opacity. Offline: no ring, 50% opacity. -->
+        <!-- Live: colored ring + full opacity. Offline: no ring, 50% opacity.
+             `inline-flex` on each avatar wrapper guarantees they remain
+             inline siblings even if Nuxt UI's tooltip primitive renders
+             the slot host as a block-level element. -->
         <div
           v-if="e.kind === 'live'"
-          class="relative rounded-full ring-2 shrink-0 transition-opacity duration-200"
+          class="relative inline-flex rounded-full ring-2 shrink-0 transition-opacity duration-200"
           :class="{ 'ai-pulse': e.isAI && isActivePhase(e.aiStatus) }"
           :style="{ '--tw-ring-color': e.user.color }"
         >
@@ -254,7 +283,7 @@ function offlineBg(userId: number) {
 
         <div
           v-else
-          class="relative rounded-full ring-2 ring-default shrink-0 opacity-50 transition-opacity duration-200"
+          class="relative inline-flex rounded-full ring-2 ring-default shrink-0 opacity-50 transition-opacity duration-200"
         >
           <UAvatar
             v-if="e.avatarUrl"
