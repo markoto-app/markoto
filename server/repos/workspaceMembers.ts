@@ -89,13 +89,13 @@ export async function listMembersForDoc(
     .innerJoin(users, eq(users.id, workspaceMembers.userId))
     .where(eq(workspaceMembers.workspaceId, workspaceId))
     .orderBy(sql`case ${workspaceMembers.role} when 'admin' then 0 when 'editor' then 1 else 2 end, ${workspaceMembers.joinedAt} asc`) as Promise<Array<{
-      userId: number
-      name: string
-      avatarUrl: string | null
-      login: string | null
-      role: WorkspaceRole
-      isDocOwner: boolean
-    }>>
+    userId: number
+    name: string
+    avatarUrl: string | null
+    login: string | null
+    role: WorkspaceRole
+    isDocOwner: boolean
+  }>>
 }
 
 /**

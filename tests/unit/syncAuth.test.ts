@@ -108,7 +108,7 @@ describe('createAuth / onAuthenticate', () => {
         .rejects.toThrow('Invalid token')
     })
 
-    it("rejects 'alg: none' attack (unsigned tokens)", async () => {
+    it('rejects \'alg: none\' attack (unsigned tokens)', async () => {
       // Classic JWT attack: attacker takes a valid header/payload and
       // signs with alg:none + empty signature, hoping the verifier skips
       // signature validation. jsonwebtoken.verify with a string secret
@@ -126,7 +126,7 @@ describe('createAuth / onAuthenticate', () => {
         .rejects.toThrow('Invalid token')
     })
 
-    it("rejects RS256-signed token when configured with HMAC secret (algorithm confusion guard)", async () => {
+    it('rejects RS256-signed token when configured with HMAC secret (algorithm confusion guard)', async () => {
       // If the attacker controls the `alg` field, they might try signing
       // with a different algorithm. With a string (HMAC) secret,
       // jsonwebtoken should only accept HMAC algorithms and reject

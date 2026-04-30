@@ -74,9 +74,11 @@ export function computeTextDiff(beforeText: string, afterText: string): DiffResu
           ? `${text.slice(0, MAX_LINE_CHARS - 1)}…`
           : text
         const kind: DiffHunk['lines'][number]['kind']
-          = prefix === '+' ? 'add'
-          : prefix === '-' ? 'remove'
-          : 'context'
+          = prefix === '+'
+            ? 'add'
+            : prefix === '-'
+              ? 'remove'
+              : 'context'
         return { kind, text: truncatedText }
       })
   }))

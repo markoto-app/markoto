@@ -63,11 +63,11 @@ export type HighlightRef = { label: string, selector: string }
 // desktop/mobile (the form factor the screenshots were captured at).
 // Flow.vue's resolution chain picks the right pair based on the
 // reader's color mode + viewport width.
-export type Variant =
-  | 'light-desktop'
-  | 'dark-desktop'
-  | 'light-mobile'
-  | 'dark-mobile'
+export type Variant
+  = | 'light-desktop'
+    | 'dark-desktop'
+    | 'light-mobile'
+    | 'dark-mobile'
 
 export function isMobileVariant(v: Variant): boolean {
   return v.endsWith('mobile')
@@ -95,8 +95,8 @@ export type Manifest = {
 // opt into chaining (no outcome shot — the next step's approach
 // IS the after-state of this one). TS errors out on a bare click
 // without one of these — by design.
-export type ClickOpts =
-  | {
+export type ClickOpts
+  = | {
     /** Caption for the outcome shot — declarative ("Editor opens"). */
     result: string
     /** Highlight callouts overlaid on the outcome shot only. */
@@ -454,7 +454,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     await use(flow)
     const durationMs = Date.now() - startedAt
     const shotCount = entries.filter(
-      (e) => e.kind === 'approach' || e.kind === 'outcome' || e.kind === 'narration'
+      e => e.kind === 'approach' || e.kind === 'outcome' || e.kind === 'narration'
     ).length
     const perShotMs = shotCount > 0 ? Math.round(durationMs / shotCount) : 0
     console.log(

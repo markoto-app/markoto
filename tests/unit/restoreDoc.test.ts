@@ -12,7 +12,7 @@ import * as Y from 'yjs'
 // exposes manual triggers for sync / auth-fail / close. Tests drive
 // the lifecycle deterministically rather than waiting for real WS.
 const providerCalls: Array<{
-  url: string, name: string, token: string, document: Y.Doc,
+  url: string, name: string, token: string, document: Y.Doc
   options: Record<string, unknown>
 }> = []
 const providerInstances: MockProvider[] = []
@@ -68,6 +68,7 @@ class MockProvider {
       }
     }, MockProvider.syncDelayMs)
   }
+
   disconnect() { this.disconnectCalls += 1 }
   destroy() { this.destroyCalls += 1 }
 }

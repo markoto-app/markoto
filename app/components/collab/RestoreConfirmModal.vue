@@ -54,10 +54,13 @@ async function handleRestore() {
     // server/api/docs/[docId]/activity/[activityId]/restore.post.ts.
     const status = err.statusCode
     const titleKey
-      = status === 403 ? 'activity.restore.error.unauthorized'
-      : status === 410 ? 'activity.restore.error.unavailable'
-      : status === 404 ? 'activity.restore.error.notFound'
-      : 'activity.restore.error.generic'
+      = status === 403
+        ? 'activity.restore.error.unauthorized'
+        : status === 410
+          ? 'activity.restore.error.unavailable'
+          : status === 404
+            ? 'activity.restore.error.notFound'
+            : 'activity.restore.error.generic'
     toast.add({
       title: t(titleKey),
       description: err.data?.message || err.message,

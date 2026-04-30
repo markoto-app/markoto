@@ -78,7 +78,7 @@ describe('wrapFirstLetterAsDropCap', () => {
     const html = '<h1 id="title">Title</h1>\n<p>Once upon a time, there was a writer who used markoto.</p>\n<p>The end.</p>'
     const out = wrapFirstLetterAsDropCap(html)
     expect(out).toContain('<span class="markoto-dropcap">O</span>nce upon a time')
-    expect(out).toContain('<p>The end.</p>')  // second paragraph untouched
+    expect(out).toContain('<p>The end.</p>') // second paragraph untouched
   })
 
   test('idempotent when run on already-wrapped input (good defensive behaviour)', () => {

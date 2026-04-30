@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
+import { reconstructDocAtYjsId, reconstructTextAtYjsId } from '../../server/utils/historyReplay'
+
 // Mock useDatabasePool so we can drive reconstructDocAtYjsId without
 // a real Postgres. The implementation only ever calls pool.query —
 // we stub it to return canned y-postgresql-style rows.
@@ -8,8 +10,6 @@ const mockQuery = vi.fn()
 vi.mock('../../server/utils/database', () => ({
   useDatabasePool: () => ({ query: mockQuery })
 }))
-
-import { reconstructDocAtYjsId, reconstructTextAtYjsId } from '../../server/utils/historyReplay'
 
 // Helper: produce a `value` Buffer from an in-memory Y.Doc. y-
 // postgresql stores the full encoded state for v1 rows; we
@@ -76,7 +76,7 @@ describe('reconstructDocAtYjsId', () => {
     mockQuery.mockResolvedValue({ rows: [] })
     await reconstructDocAtYjsId('doc-x', 100)
     const callArgs = mockQuery.mock.calls[0]
-    expect(callArgs[0]).toContain("version = 'v1'")
+    expect(callArgs[0]).toContain('version = \'v1\'')
   })
 
   it('returns an empty doc when maxYjsId is negative (defensive)', async () => {

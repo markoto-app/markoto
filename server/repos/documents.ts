@@ -196,9 +196,9 @@ export async function getDocWithActorRole(
       workspaceMembers,
       actorUserId !== null
         ? and(
-          eq(workspaceMembers.workspaceId, documents.workspaceId),
-          eq(workspaceMembers.userId, actorUserId)
-        )
+            eq(workspaceMembers.workspaceId, documents.workspaceId),
+            eq(workspaceMembers.userId, actorUserId)
+          )
         // Anonymous caller: construct a join predicate that never matches
         // so the leftJoin still runs but workspaceRole always comes back
         // null. Simpler than branching on two query shapes.

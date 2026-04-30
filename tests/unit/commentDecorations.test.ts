@@ -76,8 +76,8 @@ describe('comment decorations field', () => {
   it('creates one mark per range when setCommentRanges fires', () => {
     let state = makeState('the dog ate the bone')
     const ranges: CommentRange[] = [
-      { id: 'c1', from: 4, to: 7 },   // "dog"
-      { id: 'c2', from: 16, to: 20 }  // "bone"
+      { id: 'c1', from: 4, to: 7 }, // "dog"
+      { id: 'c2', from: 16, to: 20 } // "bone"
     ]
     state = dispatch(state, setCommentRanges.of(ranges))
     const out = readDecorations(state).filter(d => d.classes.includes('cm-comment-anchor'))

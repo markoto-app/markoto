@@ -180,8 +180,8 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     'Click "Cover page" to expand the section',
     editor.page.theme.coverSection,
     {
-      result: 'Cover-page controls appear — toggle, layout picker, ' +
-        'subtitle/author/date switches.',
+      result: 'Cover-page controls appear — toggle, layout picker, '
+        + 'subtitle/author/date switches.',
       after: () => editor.page.theme.coverEnabledSwitch.waitFor({ state: 'visible' })
     }
   )
@@ -210,8 +210,8 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     'Toggle the cover back on',
     editor.page.theme.coverEnabledSwitch,
     {
-      result: 'Page 1 is now a dedicated title sheet — Fraunces title centered, ' +
-        'date underneath, no header / footer running text.',
+      result: 'Page 1 is now a dedicated title sheet — Fraunces title centered, '
+        + 'date underneath, no header / footer running text.',
       after: async () => {
         await page.waitForTimeout(1500)
         if (!editor.isMobile) {

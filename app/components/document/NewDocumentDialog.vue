@@ -63,10 +63,10 @@ const audience = ref<AudienceKind>('casual')
 // ('saved:abc123'), or a workspace default that doesn't match any
 // known preset ('inherit'). The submit handler unpacks this back into
 // `themePreset` or `themeId` for the API.
-type ThemeChoice =
-  | { kind: 'preset', id: string }
-  | { kind: 'saved', themeId: string }
-  | { kind: 'inherit' }
+type ThemeChoice
+  = | { kind: 'preset', id: string }
+    | { kind: 'saved', themeId: string }
+    | { kind: 'inherit' }
 const themeChoice = ref<ThemeChoice>({ kind: 'preset', id: 'markoto' })
 const templateId = ref<string>('blank')
 

@@ -64,7 +64,7 @@ describe('pagedPreviewIframe.html', () => {
     expect(BOOTSTRAP_HTML).toContain('window.__renderDoc')
     // The iframe must message `iframe-ready` back — otherwise the composable
     // queues the first render forever.
-    expect(BOOTSTRAP_HTML).toContain("type: 'iframe-ready'")
-    expect(BOOTSTRAP_HTML).toContain("type: 'paginated'")
+    expect(BOOTSTRAP_HTML).toContain('type: \'iframe-ready\'')
+    expect(BOOTSTRAP_HTML).toContain('type: \'paginated\'')
   })
 })

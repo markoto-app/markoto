@@ -31,7 +31,7 @@ const props = defineProps<{
 // section header would render its own link twice (once as the
 // expandable summary, once as the first child).
 const visibleChildren = computed(() =>
-  props.visible(props.item.children).filter((c) => c.path !== props.item.path)
+  props.visible(props.item.children).filter(c => c.path !== props.item.path)
 )
 const hasChildren = computed(() => visibleChildren.value.length > 0)
 const open = computed(() => props.isActiveBranch(props.item.path))

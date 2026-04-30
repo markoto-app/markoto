@@ -161,7 +161,7 @@ describe('updateDocMeta', () => {
     const after = (await getDoc(doc.docId))!
     expect(after.wordCount).toBe(123)
     expect(after.accessMode).toBe('private') // untouched
-    expect(after.title).toBe('Test Doc')     // untouched
+    expect(after.title).toBe('Test Doc') // untouched
   })
 
   it('is a no-op when the update object is empty', async () => {

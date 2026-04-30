@@ -91,18 +91,36 @@ async function setEnabled(next: boolean) {
   <div class="border border-default rounded-lg p-4 bg-default">
     <div class="flex items-start justify-between gap-4">
       <div class="min-w-0 space-y-2">
-        <p v-if="aiEnabled && iAmBillingOwner" class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase inline-flex items-center gap-1.5">
-          <span class="block size-1.5 rounded-full bg-shu-500 dark:bg-shu-400" aria-hidden="true" />
+        <p
+          v-if="aiEnabled && iAmBillingOwner"
+          class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase inline-flex items-center gap-1.5"
+        >
+          <span
+            class="block size-1.5 rounded-full bg-shu-500 dark:bg-shu-400"
+            aria-hidden="true"
+          />
           on your plan · members see the editor banner
         </p>
-        <p v-else-if="aiEnabled && !iAmBillingOwner" class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase">
+        <p
+          v-else-if="aiEnabled && !iAmBillingOwner"
+          class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase"
+        >
           sponsored by another admin (user #{{ billingOwnerId }}) · toggle off then on to take over
         </p>
-        <p v-else-if="!canEnable && !loadingBilling" class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase inline-flex items-center gap-1.5">
-          <UIcon name="i-lucide-lock" class="size-3" />
+        <p
+          v-else-if="!canEnable && !loadingBilling"
+          class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase inline-flex items-center gap-1.5"
+        >
+          <UIcon
+            name="i-lucide-lock"
+            class="size-3"
+          />
           plan {{ billing?.plan ?? 'free' }} · upgrade to max or ultra to sponsor
         </p>
-        <p v-else class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase">
+        <p
+          v-else
+          class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase"
+        >
           off · members use their own AI credits
         </p>
       </div>

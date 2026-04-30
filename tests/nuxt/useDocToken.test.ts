@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
 
+// Explicit import — the composable auto-imports `useUserSession` and `ref`,
+// both of which the nuxt environment resolves at transform time.
+import { useDocToken } from '~/composables/useDocToken'
+
 // Composable under test: owns the auth/access-mode side of a document.
 // See app/composables/useDocToken.ts for the contract we're pinning here.
 //
@@ -45,10 +49,6 @@ registerEndpoint('/api/docs/doc-123/token', () => {
   if (response.current instanceof Error) throw response.current
   return response.current
 })
-
-// Explicit import — the composable auto-imports `useUserSession` and `ref`,
-// both of which the nuxt environment resolves at transform time.
-import { useDocToken } from '~/composables/useDocToken'
 
 beforeEach(() => {
   sessionUser.value = null

@@ -234,48 +234,72 @@ useHead({
             </p>
             <div class="mt-4">
               <span class="text-3xl font-bold">{{ tier.priceMonthly }}</span>
-              <span v-if="tier.plan !== 'free'" class="text-sm text-muted ml-1">/mo</span>
+              <span
+                v-if="tier.plan !== 'free'"
+                class="text-sm text-muted ml-1"
+              >/mo</span>
             </div>
           </div>
 
           <ul class="mt-6 space-y-2 text-sm flex-1">
             <li class="flex items-baseline gap-2">
-              <CommonSeal :size="9" class="shrink-0 self-center mt-0.5" />
+              <CommonSeal
+                :size="9"
+                class="shrink-0 self-center mt-0.5"
+              />
               <span>
                 <strong>{{ TIERS[tier.plan].interactionsPerMonth.toLocaleString() }}</strong>
                 {{ t('pricing.aiCreditsPerMonth') }}
               </span>
             </li>
             <li class="flex gap-2">
-              <UIcon name="i-lucide-folder" class="size-4 text-muted shrink-0 mt-0.5" />
+              <UIcon
+                name="i-lucide-folder"
+                class="size-4 text-muted shrink-0 mt-0.5"
+              />
               <span>
                 <strong>{{ TIERS[tier.plan].workspacesOwned }}</strong>
                 {{ t('pricing.workspaces') }}
               </span>
             </li>
             <li class="flex gap-2">
-              <UIcon name="i-lucide-file-text" class="size-4 text-muted shrink-0 mt-0.5" />
+              <UIcon
+                name="i-lucide-file-text"
+                class="size-4 text-muted shrink-0 mt-0.5"
+              />
               <span>
                 <strong>{{ TIERS[tier.plan].knowledgeFiles }}</strong>
                 {{ t('pricing.knowledgeFiles') }}
               </span>
             </li>
             <li class="flex gap-2">
-              <UIcon name="i-lucide-hard-drive" class="size-4 text-muted shrink-0 mt-0.5" />
+              <UIcon
+                name="i-lucide-hard-drive"
+                class="size-4 text-muted shrink-0 mt-0.5"
+              />
               <span>
                 <strong>{{ fmtBytes(TIERS[tier.plan].knowledgeBytesPerUser) }}</strong>
                 {{ t('pricing.knowledgeStorage') }}
               </span>
             </li>
             <li class="flex gap-2">
-              <UIcon name="i-lucide-mic" class="size-4 text-muted shrink-0 mt-0.5" />
+              <UIcon
+                name="i-lucide-mic"
+                class="size-4 text-muted shrink-0 mt-0.5"
+              />
               <span>
                 <strong>{{ fmtMinutes(TIERS[tier.plan].dictationMsPerDay) }}</strong>
                 {{ t('pricing.dictation') }}
               </span>
             </li>
-            <li v-if="tier.plan === 'max' || tier.plan === 'ultra'" class="flex gap-2">
-              <UIcon name="i-lucide-circle-plus" class="size-4 text-shu-500 dark:text-shu-400 shrink-0 mt-0.5" />
+            <li
+              v-if="tier.plan === 'max' || tier.plan === 'ultra'"
+              class="flex gap-2"
+            >
+              <UIcon
+                name="i-lucide-circle-plus"
+                class="size-4 text-shu-500 dark:text-shu-400 shrink-0 mt-0.5"
+              />
               <span class="text-shu-500 dark:text-shu-400">
                 {{ t('pricing.teamBilling') }}
               </span>

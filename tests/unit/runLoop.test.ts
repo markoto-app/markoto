@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { FinishReason, type GenerateContentResponse, type FunctionCall } from '@google/genai'
 
+// ─── Adversarial: budget exhaustion paths ─────────────────────────────────
+//
+// The runLoop charges 1 interaction per turn upfront, +4 for each
+// grounded sub-call. Mid-loop BudgetExhausted means the user crossed
+// their cap during this run — must emit a doc breadcrumb (so the user
+// sees what happened — there's no chat UI) and exit cleanly via
+// setStatus('done', 'Budget exhausted'). Critical that exhaustion
+// NEVER throws to the caller — that would render as an unhandled
+// error, not the friendly "Upgrade your plan" UX.
+
+import { BudgetExhausted } from '../../server/utils/billing'
+
 // The runLoop imports `aiToolAdapter.executeFunctionByName` which
 // transitively pulls in the DB layer (repos/documents -> useDatabase).
 // Stub both adapter entry points at the module boundary so the loop
@@ -112,10 +124,12 @@ function shapeChunk(c: StreamChunk): GenerateContentResponse {
   return {
     functionCalls: c.functionCalls,
     text: c.text,
-    candidates: (c.finishReason !== undefined || c.parts) ? [{
-      content: c.parts ? { parts: c.parts } : { parts: [] },
-      finishReason: c.finishReason
-    }] : undefined
+    candidates: (c.finishReason !== undefined || c.parts)
+      ? [{
+          content: c.parts ? { parts: c.parts } : { parts: [] },
+          finishReason: c.finishReason
+        }]
+      : undefined
   } as unknown as GenerateContentResponse
 }
 
@@ -484,18 +498,6 @@ describe('runAgenticLoop — conversation history', () => {
   })
 })
 
-// ─── Adversarial: budget exhaustion paths ─────────────────────────────────
-//
-// The runLoop charges 1 interaction per turn upfront, +4 for each
-// grounded sub-call. Mid-loop BudgetExhausted means the user crossed
-// their cap during this run — must emit a doc breadcrumb (so the user
-// sees what happened — there's no chat UI) and exit cleanly via
-// setStatus('done', 'Budget exhausted'). Critical that exhaustion
-// NEVER throws to the caller — that would render as an unhandled
-// error, not the friendly "Upgrade your plan" UX.
-
-import { BudgetExhausted } from '../../server/utils/billing'
-
 /**
  * Y.Doc-shaped session stub. The breadcrumb writer calls
  * `ydoc.transact(fn, origin)` and `ytext.insert(end, msg)`. We only
@@ -563,8 +565,8 @@ describe('runAgenticLoop — budget exhausted at turn-start', () => {
     // run didn't finish naturally.
     const { aiSession, inserted } = makeSessionStub()
     chargeInteractions
-      .mockResolvedValueOnce({ used: 1, remaining: 999 })   // turn 1: ok
-      .mockRejectedValueOnce(makeBudgetExhaustedError())     // turn 2: exhausted
+      .mockResolvedValueOnce({ used: 1, remaining: 999 }) // turn 1: ok
+      .mockRejectedValueOnce(makeBudgetExhaustedError()) // turn 2: exhausted
     const setStatus = vi.fn()
     const { ai, callsSeen } = makeFakeAi([
       {
@@ -611,8 +613,8 @@ describe('runAgenticLoop — budget exhausted in grounded sub-call', () => {
     // incur cost").
     const { aiSession, inserted } = makeSessionStub()
     chargeInteractions
-      .mockResolvedValueOnce({ used: 1, remaining: 4 })       // turn 1 charge: ok
-      .mockRejectedValueOnce(makeBudgetExhaustedError())       // grounded +4: exhausted
+      .mockResolvedValueOnce({ used: 1, remaining: 4 }) // turn 1 charge: ok
+      .mockRejectedValueOnce(makeBudgetExhaustedError()) // grounded +4: exhausted
     const { ai } = makeFakeAi([
       {
         chunks: [{

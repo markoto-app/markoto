@@ -391,7 +391,10 @@ async function leaveWorkspace() {
           v-if="data.workspace.aiEnabled"
           class="flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-sm text-muted"
         >
-          <CommonSeal :size="10" class="shrink-0" />
+          <CommonSeal
+            :size="10"
+            class="shrink-0"
+          />
           <span>
             This is a <strong class="text-default font-medium">markoto workspace</strong> — markoto's work here runs on the sponsor's credit pool.
           </span>
@@ -495,7 +498,10 @@ async function leaveWorkspace() {
             <section class="space-y-3">
               <div class="flex items-center justify-between gap-3 flex-wrap">
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <CommonSeal :size="14" class="shrink-0" />
+                  <CommonSeal
+                    :size="14"
+                    class="shrink-0"
+                  />
                   <h2 class="font-serif text-2xl font-normal tracking-tight">
                     markoto
                   </h2>

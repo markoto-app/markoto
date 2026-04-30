@@ -227,4 +227,3 @@ run('comment does NOT swallow trailing text', '<!-- note --> Real content.')
 run('pagebreak still wins over comment', 'Before\n\n<!-- pagebreak -->\n\nAfter')
 run('unterminated comment falls back to literal', 'Before\n\n<!-- never closed\n\nmore prose')
 run('comment inside code fence stays literal', '```\n<!-- not a comment in code -->\n```')
-

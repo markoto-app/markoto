@@ -274,11 +274,11 @@ export default defineEventHandler(async (event) => {
   // block in that case rather than fabricating defaults.
   const documentContextBlock = doc
     ? buildDocumentContext({
-      title: doc.title,
-      description: doc.description,
-      audience: doc.audience,
-      language: doc.language
-    })
+        title: doc.title,
+        description: doc.description,
+        audience: doc.audience,
+        language: doc.language
+      })
     : ''
   const systemPrompt = documentContextBlock + SYSTEM_PROMPT + knowledgeBlock + membersBlock
 

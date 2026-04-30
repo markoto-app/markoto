@@ -30,6 +30,8 @@
 import * as Sentry from '@sentry/nuxt'
 import { mimeToEncoding, normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
 
+import { resolveBillingContext, chargeInteractions, interactionsForAudioMs, BudgetExhausted } from '../../utils/billing'
+
 const ALLOWED_MIME = [
   'audio/webm',
   'audio/webm;codecs=opus',
@@ -43,8 +45,6 @@ const ALLOWED_MIME = [
 // ≤400 KiB, so this is generous — but the ceiling exists so a malicious
 // client can't OOM the endpoint.
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024
-
-import { resolveBillingContext, chargeInteractions, interactionsForAudioMs, BudgetExhausted } from '../../utils/billing'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -221,4 +221,3 @@ export default defineEventHandler(async (event) => {
     clearTimeout(timer)
   }
 })
-

@@ -38,35 +38,35 @@ export const ACTIVITY_ACTIONS: readonly ActivityAction[] = [
 // the comments mirror (the row is gone by then).
 export type ActivityMetadata
   = | { kind: 'comment.added' | 'comment.resolved' | 'comment.reopened'
-        commentId: string
-        bodyPreview: string }
+    commentId: string
+    bodyPreview: string }
     | { kind: 'comment.replied'
-        commentId: string
-        parentCommentId: string
-        bodyPreview: string }
-    | { kind: 'comment.deleted'
+      commentId: string
+      parentCommentId: string
+      bodyPreview: string }
+      | { kind: 'comment.deleted'
         commentId: string
         bodyPreview: string
         isReply: boolean }
-    | { kind: 'title.changed', from: string, to: string }
-    | { kind: 'theme.changed' }
-    | { kind: 'ai.tool', tool: 'web_search', query: string, sources?: Array<{ title: string, uri: string }> }
-    | { kind: 'ai.tool', tool: 'fetch_url', url: string, summary?: string, images?: Array<{ url: string, description?: string }> }
-    | { kind: 'ai.tool', tool: 'generate_image', prompt: string }
-    | { kind: 'ai.tool', tool: 'view_image', src: string }
-    | { kind: 'ai.tool', tool: 'search_knowledge', query: string }
-    | { kind: 'ai.tool', tool: 'get_knowledge_file', knowledgeId: string }
-    | {
-        kind: 'restore'
-        /** Activity row id this restore was anchored at (the row whose
+        | { kind: 'title.changed', from: string, to: string }
+        | { kind: 'theme.changed' }
+        | { kind: 'ai.tool', tool: 'web_search', query: string, sources?: Array<{ title: string, uri: string }> }
+        | { kind: 'ai.tool', tool: 'fetch_url', url: string, summary?: string, images?: Array<{ url: string, description?: string }> }
+        | { kind: 'ai.tool', tool: 'generate_image', prompt: string }
+        | { kind: 'ai.tool', tool: 'view_image', src: string }
+        | { kind: 'ai.tool', tool: 'search_knowledge', query: string }
+        | { kind: 'ai.tool', tool: 'get_knowledge_file', knowledgeId: string }
+        | {
+          kind: 'restore'
+          /** Activity row id this restore was anchored at (the row whose
          *  yjsDocIdBefore the doc was reset to). */
-        restoredFromActivityId: number
-        /** ISO8601 timestamp of the row this restore was anchored at —
+          restoredFromActivityId: number
+          /** ISO8601 timestamp of the row this restore was anchored at —
          *  shown in the UI as "From {relative time}". Frozen at restore
          *  time so the label doesn't drift if the source row's
          *  created_at is somehow updated later. */
-        restoredFromTime: string
-      }
+          restoredFromTime: string
+        }
 
 export interface ActivityEntry {
   id: number

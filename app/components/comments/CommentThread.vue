@@ -135,7 +135,7 @@ function onClickThread(e: MouseEvent) {
         :created-at="reply.createdAt"
         :read-only="readOnly"
         :can-delete="canDelete(reply.authorId, reply.authorName)"
-          @delete="emit('delete-reply', comment.id, reply.id)"
+        @delete="emit('delete-reply', comment.id, reply.id)"
       />
     </div>
 

@@ -26,7 +26,7 @@ interface AwarenessUser {
   color: string
   avatar?: string
   isAI?: boolean
-  id?: number | string    // yCollab seeds this from the JWT userId
+  id?: number | string // yCollab seeds this from the JWT userId
 }
 
 interface AiSessionMeta {
@@ -88,8 +88,10 @@ function updateLive() {
     // yCollab passes the JWT userId into `user.id` — numeric for real users,
     // string 'anonymous' for unauthenticated, also numeric for AI.
     const raw = user.id
-    const userId = typeof raw === 'number' ? raw
-      : typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw)
+    const userId = typeof raw === 'number'
+      ? raw
+      : typeof raw === 'string' && /^\d+$/.test(raw)
+        ? Number(raw)
         : null
     result.push({
       kind: 'live',
@@ -157,8 +159,10 @@ const merged = computed<DisplayEntry[]>(() => {
 //   - AI helper: delegated to the existing ai.helpingTooltip i18n key
 //   - Offline: "Alice Test — Editor (offline)"
 function roleLabel(role: 'admin' | 'editor' | 'viewer') {
-  return role === 'admin' ? t('workspace.roles.admin')
-    : role === 'editor' ? t('workspace.roles.editor')
+  return role === 'admin'
+    ? t('workspace.roles.admin')
+    : role === 'editor'
+      ? t('workspace.roles.editor')
       : t('workspace.roles.viewer')
 }
 

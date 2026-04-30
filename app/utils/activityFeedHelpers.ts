@@ -4,12 +4,12 @@
 // touches both functions), and pulling them out lets unit tests
 // cover every action variant without mounting Vue.
 
-export type ActivityAction =
-  | 'edit' | 'join' | 'leave'
-  | 'comment.added' | 'comment.replied'
-  | 'comment.resolved' | 'comment.reopened' | 'comment.deleted'
-  | 'theme.changed' | 'title.changed' | 'ai.tool'
-  | 'restore'
+export type ActivityAction
+  = | 'edit' | 'join' | 'leave'
+    | 'comment.added' | 'comment.replied'
+    | 'comment.resolved' | 'comment.reopened' | 'comment.deleted'
+    | 'theme.changed' | 'title.changed' | 'ai.tool'
+    | 'restore'
 
 export interface ActivityLike {
   action: ActivityAction

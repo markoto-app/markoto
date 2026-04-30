@@ -48,11 +48,11 @@ export const THEME_PRESETS: ThemePreset[] = [
       // Caution borrows shu-500 — there's no AI seal in the printed
       // page so the brand red reads cleanly as "stop, look here".
       alerts: {
-        note: '#3D5A80',        // restrained slate blue
-        tip: '#4A6F4D',         // forest sage
-        important: '#6B4F7F',   // muted plum
-        warning: '#9C7A2C',     // warm ochre
-        caution: '#B5371F'      // shu-500
+        note: '#3D5A80', // restrained slate blue
+        tip: '#4A6F4D', // forest sage
+        important: '#6B4F7F', // muted plum
+        warning: '#9C7A2C', // warm ochre
+        caution: '#B5371F' // shu-500
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'centered', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], showLogo: false }

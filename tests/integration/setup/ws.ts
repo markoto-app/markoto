@@ -106,7 +106,7 @@ export async function openWs(pathAndQuery: string): Promise<WsClient> {
       })
     },
     nextMessageOfType(type, timeoutMs = 3000) {
-      return this.nextMessage((m) => m.type === type, timeoutMs)
+      return this.nextMessage(m => m.type === type, timeoutMs)
     },
     closed(timeoutMs = 3000) {
       if (closeEvent) return Promise.resolve(closeEvent)

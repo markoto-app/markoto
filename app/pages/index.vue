@@ -434,7 +434,6 @@ function onRowLongPress(doc: DocumentListItem) {
           class="size-6 animate-spin text-primary mx-auto"
         />
       </div>
-
     </main>
   </div>
 </template>

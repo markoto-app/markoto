@@ -197,8 +197,8 @@ describe('themeToCss — Step 9: cover page', () => {
     const css = themeToCss(markoto, runtime)
     expect(css).toMatch(/@page cover-page\s*\{/)
     // All 6 margin-box positions cleared
-    expect(css).toContain("@top-left { content: ''; }")
-    expect(css).toContain("@bottom-center { content: ''; }")
+    expect(css).toContain('@top-left { content: \'\'; }')
+    expect(css).toContain('@bottom-center { content: \'\'; }')
   })
   test('cover-disabled theme emits NO .markoto-cover rule', () => {
     const css = themeToCss(modern, runtime)

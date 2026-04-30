@@ -72,13 +72,13 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   let audioCtx: AudioContext | null = null
   let source: MediaStreamAudioSourceNode | null = null
   let worklet: AudioWorkletNode | null = null
-  let wsUrl = ref<string | undefined>(undefined)
+  const wsUrl = ref<string | undefined>(undefined)
   let closing = false
   // Connect watchdog. If we never receive `ready` from the server
   // within 10s (Gemini session slow to open, auth issue, upstream
   // outage), transition to `error` rather than spin forever. Cleared
   // in `startPumping` once we're actually recording.
-  let connectWatchdog: ReturnType<typeof setTimeout> | null = null
+  const connectWatchdog: ReturnType<typeof setTimeout> | null = null
 
   // VueUse: mediaStream lifecycle + track cleanup. `enabled` flips
   // with our toggle; the composable will request permission the

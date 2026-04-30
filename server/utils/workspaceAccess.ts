@@ -55,9 +55,9 @@ export interface DocAuthz {
   workspaceId: string | null
   workspaceRole: WorkspaceRole | null
   isDocOwner: boolean
-  canView: boolean    // membership view grant (ignores accessMode)
-  canEdit: boolean    // owner / admin / editor
-  canManage: boolean  // owner / admin
+  canView: boolean // membership view grant (ignores accessMode)
+  canEdit: boolean // owner / admin / editor
+  canManage: boolean // owner / admin
 }
 
 export async function getDocAuthz(userId: number, docId: string): Promise<DocAuthz> {

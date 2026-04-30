@@ -1,5 +1,4 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
-import { cosineDistance } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql, cosineDistance } from 'drizzle-orm'
 import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
 import { useDatabase } from '../utils/database'
 

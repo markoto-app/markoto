@@ -84,8 +84,8 @@ describe('cloneYjsStateWithUrlRewrite', () => {
     // source doesn't 404 the duplicate's images.
     await seedSource('source-doc-id', (doc) => {
       doc.getText('content').insert(0,
-        'Before ![a](/api/files/source-doc-id/a.png) and ' +
-        '![b](/api/files/source-doc-id/b.jpg) after'
+        'Before ![a](/api/files/source-doc-id/a.png) and '
+        + '![b](/api/files/source-doc-id/b.jpg) after'
       )
     })
 
@@ -105,8 +105,8 @@ describe('cloneYjsStateWithUrlRewrite', () => {
     // it, those should survive untouched.
     await seedSource('abc', (doc) => {
       doc.getText('content').insert(0,
-        'My docId is abc. Unrelated link: https://example.com/abc/xyz ' +
-        'But this one gets rewritten: /api/files/abc/pic.png'
+        'My docId is abc. Unrelated link: https://example.com/abc/xyz '
+        + 'But this one gets rewritten: /api/files/abc/pic.png'
       )
     })
 

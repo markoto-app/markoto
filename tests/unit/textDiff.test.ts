@@ -70,8 +70,8 @@ describe('computeTextDiff', () => {
     // patch consumers but pure noise in our drawer. The filter
     // should suppress these from the hunk lines so they never reach
     // the UI.
-    const before = 'line one'         // no trailing newline
-    const after = 'line two'           // also no trailing newline
+    const before = 'line one' // no trailing newline
+    const after = 'line two' // also no trailing newline
     const r = computeTextDiff(before, after)
     expect(r.hunks.length).toBeGreaterThan(0)
     for (const hunk of r.hunks) {

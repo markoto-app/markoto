@@ -304,7 +304,6 @@ const diagramItems = computed(() => [[
         @click="emit('toggle-dictation')"
       />
     </UTooltip>
-
   </div>
 </template>
 

@@ -51,8 +51,10 @@ function isSoleAdmin(m: WorkspaceMember) {
 }
 
 function roleLabel(role: WorkspaceMember['role']) {
-  return role === 'admin' ? t('workspace.roles.admin')
-    : role === 'editor' ? t('workspace.roles.editor')
+  return role === 'admin'
+    ? t('workspace.roles.admin')
+    : role === 'editor'
+      ? t('workspace.roles.editor')
       : t('workspace.roles.viewer')
 }
 
@@ -178,9 +180,14 @@ function roleItems(currentRole: 'admin' | 'editor' | 'viewer', member: Workspace
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium truncate">
                 {{ m.name }}
-                <span v-if="m.userId === myUserId" class="text-xs text-muted font-normal">{{ t('workspace.members.you') }}</span>
+                <span
+                  v-if="m.userId === myUserId"
+                  class="text-xs text-muted font-normal"
+                >{{ t('workspace.members.you') }}</span>
               </p>
-              <p class="text-xs text-muted truncate">{{ m.email || m.login || '' }}</p>
+              <p class="text-xs text-muted truncate">
+                {{ m.email || m.login || '' }}
+              </p>
             </div>
 
             <!-- Role chip: dropdown for admin, disabled badge otherwise -->
@@ -227,9 +234,16 @@ function roleItems(currentRole: 'admin' | 'editor' | 'viewer', member: Workspace
         </ul>
 
         <!-- Admin-only: add new member -->
-        <div v-if="isAdmin" class="space-y-2 pt-2 border-t border-default">
-          <p class="text-sm font-medium">{{ t('workspace.members.addTitle') }}</p>
-          <p class="text-xs text-muted">{{ t('workspace.members.addHint') }}</p>
+        <div
+          v-if="isAdmin"
+          class="space-y-2 pt-2 border-t border-default"
+        >
+          <p class="text-sm font-medium">
+            {{ t('workspace.members.addTitle') }}
+          </p>
+          <p class="text-xs text-muted">
+            {{ t('workspace.members.addHint') }}
+          </p>
           <div class="flex gap-2">
             <UInput
               v-model="newEmail"
@@ -263,7 +277,10 @@ function roleItems(currentRole: 'admin' | 'editor' | 'viewer', member: Workspace
     </template>
     <template #footer>
       <div class="flex justify-end gap-2 w-full">
-        <UButton variant="ghost" @click="open = false">
+        <UButton
+          variant="ghost"
+          @click="open = false"
+        >
           {{ t('common.close') }}
         </UButton>
       </div>

@@ -37,7 +37,7 @@ function isActiveBranch(path: string): boolean {
 function visible(items: NavItem[] | undefined): NavItem[] {
   if (!items) return []
   return items
-    .filter((it) => !it.navHidden)
+    .filter(it => !it.navHidden)
     .sort((a, b) => {
       // Order field wins; otherwise alphabetical by title.
       const ao = a.order ?? Number.MAX_SAFE_INTEGER

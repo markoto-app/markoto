@@ -124,8 +124,8 @@ async function main() {
   }
 }
 
-const isDir = async (p: string) => fs.stat(p).then((s) => s.isDirectory(), () => false)
-const fileExists = async (p: string) => fs.stat(p).then((s) => s.isFile(), () => false)
+const isDir = async (p: string) => fs.stat(p).then(s => s.isDirectory(), () => false)
+const fileExists = async (p: string) => fs.stat(p).then(s => s.isFile(), () => false)
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`

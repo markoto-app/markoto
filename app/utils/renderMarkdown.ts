@@ -159,178 +159,178 @@ function defaultSlugify(s: string): string {
 // async work (dynamic imports + plugin registration) is deduplicated
 // without manual `if (initPromise) return initPromise` guards.
 const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline> => {
-    const [
-      { default: MarkdownIt },
-      hljsMod,
-      { default: DOMPurify },
-      taskListsMod,
-      emojiMod,
-      footnoteMod,
-      // Batch 1 — typography & semantic markup. Each is a named export
-      // from `@mdit/plugin-*` and wires through the same `.use()` chain.
-      { attrs },
-      { mark },
-      { ins },
-      { sub },
-      { sup },
-      { dl },
-      { abbr },
-      { figure },
-      { imgSize },
-      // Batch 2 — math + GitHub-style alerts.
-      { alert },
-      { katex },
-      // Batch 3 — anchors + auto-TOC. anchor must load BEFORE toc so
-      // the toc plugin sees stable heading IDs to link against.
-      anchorMod,
-      tocMod
-    ] = await Promise.all([
-      import('markdown-it'),
-      import('highlight.js'),
-      import('dompurify'),
-      import('markdown-it-task-lists'),
-      import('markdown-it-emoji'),
-      import('markdown-it-footnote'),
-      import('@mdit/plugin-attrs'),
-      import('@mdit/plugin-mark'),
-      import('@mdit/plugin-ins'),
-      import('@mdit/plugin-sub'),
-      import('@mdit/plugin-sup'),
-      import('@mdit/plugin-dl'),
-      import('@mdit/plugin-abbr'),
-      import('@mdit/plugin-figure'),
-      import('@mdit/plugin-img-size'),
-      import('@mdit/plugin-alert'),
-      import('@mdit/plugin-katex'),
-      import('markdown-it-anchor'),
-      import('markdown-it-toc-done-right')
-    ])
+  const [
+    { default: MarkdownIt },
+    hljsMod,
+    { default: DOMPurify },
+    taskListsMod,
+    emojiMod,
+    footnoteMod,
+    // Batch 1 — typography & semantic markup. Each is a named export
+    // from `@mdit/plugin-*` and wires through the same `.use()` chain.
+    { attrs },
+    { mark },
+    { ins },
+    { sub },
+    { sup },
+    { dl },
+    { abbr },
+    { figure },
+    { imgSize },
+    // Batch 2 — math + GitHub-style alerts.
+    { alert },
+    { katex },
+    // Batch 3 — anchors + auto-TOC. anchor must load BEFORE toc so
+    // the toc plugin sees stable heading IDs to link against.
+    anchorMod,
+    tocMod
+  ] = await Promise.all([
+    import('markdown-it'),
+    import('highlight.js'),
+    import('dompurify'),
+    import('markdown-it-task-lists'),
+    import('markdown-it-emoji'),
+    import('markdown-it-footnote'),
+    import('@mdit/plugin-attrs'),
+    import('@mdit/plugin-mark'),
+    import('@mdit/plugin-ins'),
+    import('@mdit/plugin-sub'),
+    import('@mdit/plugin-sup'),
+    import('@mdit/plugin-dl'),
+    import('@mdit/plugin-abbr'),
+    import('@mdit/plugin-figure'),
+    import('@mdit/plugin-img-size'),
+    import('@mdit/plugin-alert'),
+    import('@mdit/plugin-katex'),
+    import('markdown-it-anchor'),
+    import('markdown-it-toc-done-right')
+  ])
 
-    // Syntax highlighting CSS — same theme on screen and in PDF.
-    await import('highlight.js/styles/github-dark.min.css')
+  // Syntax highlighting CSS — same theme on screen and in PDF.
+  await import('highlight.js/styles/github-dark.min.css')
 
-    // Dynamic-import unwrapping: the dependencies ship mixed CJS/ESM defaults
-    // whose shapes differ by build. Each module has `default`, `full`, or a
-    // direct function export depending on bundler + version — we probe the
-    // known shapes rather than pin to one.
-    type MaybeDefault<T> = T | { default?: T, full?: T }
-    function unwrap<T>(mod: MaybeDefault<T>): T {
-      const m = mod as { default?: T, full?: T }
-      return (m.full ?? m.default ?? mod) as T
-    }
+  // Dynamic-import unwrapping: the dependencies ship mixed CJS/ESM defaults
+  // whose shapes differ by build. Each module has `default`, `full`, or a
+  // direct function export depending on bundler + version — we probe the
+  // known shapes rather than pin to one.
+  type MaybeDefault<T> = T | { default?: T, full?: T }
+  function unwrap<T>(mod: MaybeDefault<T>): T {
+    const m = mod as { default?: T, full?: T }
+    return (m.full ?? m.default ?? mod) as T
+  }
 
-    const hljs = hljsMod.default
-    const taskLists = unwrap(taskListsMod)
-    const emoji = unwrap(emojiMod)
-    const footnote = unwrap(footnoteMod)
-    const anchor = unwrap(anchorMod)
-    const toc = unwrap(tocMod)
+  const hljs = hljsMod.default
+  const taskLists = unwrap(taskListsMod)
+  const emoji = unwrap(emojiMod)
+  const footnote = unwrap(footnoteMod)
+  const anchor = unwrap(anchorMod)
+  const toc = unwrap(tocMod)
 
-    const md: MarkdownIt = new MarkdownIt({
-      html: false,
-      linkify: true,
-      typographer: true,
-      // GFM-style hard-wrap: a single newline inside a paragraph
-      // becomes a <br>. Without this, `a\nb\nc` renders as `a b c`
-      // on one line (CommonMark default), which is consistently
-      // confusing for users who expect WYSIWYG behavior. Blank-line
-      // paragraph breaks still create new paragraphs.
-      breaks: true,
-      // Return the full `<pre><code class="hljs ...">` wrapper rather
-      // than just the inner highlighted spans, so the github-dark
-      // stylesheet's `.hljs { background; color; }` rules actually
-      // apply. If we returned only the spans (markdown-it's default
-      // contract), markdown-it would wrap them in `<pre><code class="
-      // language-X">` — without `.hljs`, the base background/color
-      // never lands and the result looks half-styled.
-      //
-      // Returning a string starting with `<pre` tells markdown-it to
-      // use it verbatim instead of wrapping again.
-      highlight: (str: string, lang: string) => {
-        const escaped = md?.utils?.escapeHtml?.(str) ?? str
-        if (lang && hljs.getLanguage(lang)) {
-          try {
-            const out = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value
-            return `<pre><code class="hljs language-${lang}">${out}</code></pre>`
-          } catch { /* fall through to the plain-class path below */ }
-        }
-        // Preserve language class even when hljs doesn't recognize the
-        // lang — needed for the iframe-side mermaid pre-processor to
-        // find `pre code.language-mermaid` blocks. Without this, mermaid
-        // (and any future unknown-lang detector) sees `class="hljs"`
-        // only and can't tell what kind of block this is.
-        const langClass = lang ? ` language-${lang.replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
-        return `<pre><code class="hljs${langClass}">${escaped}</code></pre>`
+  const md: MarkdownIt = new MarkdownIt({
+    html: false,
+    linkify: true,
+    typographer: true,
+    // GFM-style hard-wrap: a single newline inside a paragraph
+    // becomes a <br>. Without this, `a\nb\nc` renders as `a b c`
+    // on one line (CommonMark default), which is consistently
+    // confusing for users who expect WYSIWYG behavior. Blank-line
+    // paragraph breaks still create new paragraphs.
+    breaks: true,
+    // Return the full `<pre><code class="hljs ...">` wrapper rather
+    // than just the inner highlighted spans, so the github-dark
+    // stylesheet's `.hljs { background; color; }` rules actually
+    // apply. If we returned only the spans (markdown-it's default
+    // contract), markdown-it would wrap them in `<pre><code class="
+    // language-X">` — without `.hljs`, the base background/color
+    // never lands and the result looks half-styled.
+    //
+    // Returning a string starting with `<pre` tells markdown-it to
+    // use it verbatim instead of wrapping again.
+    highlight: (str: string, lang: string) => {
+      const escaped = md?.utils?.escapeHtml?.(str) ?? str
+      if (lang && hljs.getLanguage(lang)) {
+        try {
+          const out = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value
+          return `<pre><code class="hljs language-${lang}">${out}</code></pre>`
+        } catch { /* fall through to the plain-class path below */ }
       }
-    })
-      .use(taskLists, { enabled: true })
-      .use(emoji)
-      .use(footnote)
-      // Batch 1 — typography & semantic markup
-      .use(attrs)
-      .use(mark)
-      .use(ins)
-      .use(sub)
-      .use(sup)
-      .use(dl)
-      .use(abbr)
-      .use(figure, { copyAttrsOnFigure: true })
-      .use(imgSize)
-      // Batch 2 — math + GitHub-style alerts.
-      // Defaults already match the 5-kind GH set; setting it explicitly
-      // here keeps the contract visible at the call site.
-      .use(alert, { alertNames: ['note', 'tip', 'important', 'warning', 'caution'] })
-      // KaTeX with `htmlAndMathml` so screen readers / copy-paste get the
-      // semantic MathML alongside the visually-laid-out HTML. throwOnError
-      // off so a malformed `$\frac{`  doesn't 500 the whole render — bad
-      // expressions render in errorColor and the rest of the doc carries
-      // on. Ref: @mdit/plugin-katex docs.
-      .use(katex, {
-        output: 'htmlAndMathml',
-        throwOnError: false,
-        errorColor: '#cc0000',
-        strict: false
-      })
-      // Batch 3 — anchors + auto-TOC. Anchor adds stable `id` attrs to
-      // every heading so the TOC links resolve cleanly (and so deep
-      // links to specific sections work). Permalink off — the inserted
-      // `¶` glyphs would clutter the printed page. TOC plugin renders
-      // the `[[toc]]` placeholder into a nested `<nav class="table-of-
-      // contents"><ul>…</ul></nav>` from h2/h3 by default; we expose
-      // h1–h4 so a user putting a TOC in a structured doc gets useful
-      // depth.
-      .use(anchor, { permalink: false, slugify: defaultSlugify })
-      .use(toc, {
-        listType: 'ul',
-        level: [1, 2, 3, 4],
-        containerClass: 'table-of-contents',
-        slugify: defaultSlugify
-      })
-      // Inline plugin — `<!-- pagebreak -->` on its own line becomes
-      // `<div class="page-break"></div>` for paged.js to break on.
-      .use(pagebreakPlugin)
-      // Comment plugin — strips `<!-- ... -->` from preview/PDF.
-      // Registered AFTER pagebreak so the pagebreak rule wins on its
-      // exact pattern by registration order.
-      .use(commentPlugin)
-
-    // Open all preview links in a new tab. `rel="noopener noreferrer"`
-    // prevents the opened page from reaching back into our window.
-    type RenderRule = (tokens: Token[], idx: number, options: MarkdownItOptions, env: unknown, self: Renderer) => string
-    const defaultLinkOpen: RenderRule = md.renderer.rules.link_open
-      || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
-    md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
-      const token = tokens[idx]!
-      const targetIdx = token.attrIndex('target')
-      if (targetIdx < 0) token.attrPush(['target', '_blank'])
-      else token.attrs![targetIdx]![1] = '_blank'
-      const relIdx = token.attrIndex('rel')
-      if (relIdx < 0) token.attrPush(['rel', 'noopener noreferrer'])
-      else token.attrs![relIdx]![1] = 'noopener noreferrer'
-      return defaultLinkOpen(tokens, idx, options, env, self)
+      // Preserve language class even when hljs doesn't recognize the
+      // lang — needed for the iframe-side mermaid pre-processor to
+      // find `pre code.language-mermaid` blocks. Without this, mermaid
+      // (and any future unknown-lang detector) sees `class="hljs"`
+      // only and can't tell what kind of block this is.
+      const langClass = lang ? ` language-${lang.replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
+      return `<pre><code class="hljs${langClass}">${escaped}</code></pre>`
     }
+  })
+    .use(taskLists, { enabled: true })
+    .use(emoji)
+    .use(footnote)
+  // Batch 1 — typography & semantic markup
+    .use(attrs)
+    .use(mark)
+    .use(ins)
+    .use(sub)
+    .use(sup)
+    .use(dl)
+    .use(abbr)
+    .use(figure, { copyAttrsOnFigure: true })
+    .use(imgSize)
+  // Batch 2 — math + GitHub-style alerts.
+  // Defaults already match the 5-kind GH set; setting it explicitly
+  // here keeps the contract visible at the call site.
+    .use(alert, { alertNames: ['note', 'tip', 'important', 'warning', 'caution'] })
+  // KaTeX with `htmlAndMathml` so screen readers / copy-paste get the
+  // semantic MathML alongside the visually-laid-out HTML. throwOnError
+  // off so a malformed `$\frac{`  doesn't 500 the whole render — bad
+  // expressions render in errorColor and the rest of the doc carries
+  // on. Ref: @mdit/plugin-katex docs.
+    .use(katex, {
+      output: 'htmlAndMathml',
+      throwOnError: false,
+      errorColor: '#cc0000',
+      strict: false
+    })
+  // Batch 3 — anchors + auto-TOC. Anchor adds stable `id` attrs to
+  // every heading so the TOC links resolve cleanly (and so deep
+  // links to specific sections work). Permalink off — the inserted
+  // `¶` glyphs would clutter the printed page. TOC plugin renders
+  // the `[[toc]]` placeholder into a nested `<nav class="table-of-
+  // contents"><ul>…</ul></nav>` from h2/h3 by default; we expose
+  // h1–h4 so a user putting a TOC in a structured doc gets useful
+  // depth.
+    .use(anchor, { permalink: false, slugify: defaultSlugify })
+    .use(toc, {
+      listType: 'ul',
+      level: [1, 2, 3, 4],
+      containerClass: 'table-of-contents',
+      slugify: defaultSlugify
+    })
+  // Inline plugin — `<!-- pagebreak -->` on its own line becomes
+  // `<div class="page-break"></div>` for paged.js to break on.
+    .use(pagebreakPlugin)
+  // Comment plugin — strips `<!-- ... -->` from preview/PDF.
+  // Registered AFTER pagebreak so the pagebreak rule wins on its
+  // exact pattern by registration order.
+    .use(commentPlugin)
 
-    return { md, purify: DOMPurify }
+  // Open all preview links in a new tab. `rel="noopener noreferrer"`
+  // prevents the opened page from reaching back into our window.
+  type RenderRule = (tokens: Token[], idx: number, options: MarkdownItOptions, env: unknown, self: Renderer) => string
+  const defaultLinkOpen: RenderRule = md.renderer.rules.link_open
+    || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
+  md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+    const token = tokens[idx]!
+    const targetIdx = token.attrIndex('target')
+    if (targetIdx < 0) token.attrPush(['target', '_blank'])
+    else token.attrs![targetIdx]![1] = '_blank'
+    const relIdx = token.attrIndex('rel')
+    if (relIdx < 0) token.attrPush(['rel', 'noopener noreferrer'])
+    else token.attrs![relIdx]![1] = 'noopener noreferrer'
+    return defaultLinkOpen(tokens, idx, options, env, self)
+  }
+
+  return { md, purify: DOMPurify }
 })
 
 const SANITIZE_OPTS = {

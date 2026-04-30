@@ -9,13 +9,13 @@ import { Server } from '@hocuspocus/server'
 import { ypgPersistence } from './persistence'
 import { authFromEnv } from './auth'
 import { rateLimiter } from './rate-limiter'
+import { logActivity, mostRecentEditorFromAwareness, countWords, lineDiff } from './activity-logger'
+import { handleInternalRequest } from './internal-http'
+import { shipCommentsSnapshot, dropSnapshotCache } from './comments-snapshot'
 
 // Auth singleton — wired from env here (not inside auth.ts) so unit tests
 // can import `createAuth` without tripping a top-level env guard.
 const auth = authFromEnv()
-import { logActivity, mostRecentEditorFromAwareness, countWords, lineDiff } from './activity-logger'
-import { handleInternalRequest } from './internal-http'
-import { shipCommentsSnapshot, dropSnapshotCache } from './comments-snapshot'
 
 const port = parseInt(process.env.PORT || '4001')
 

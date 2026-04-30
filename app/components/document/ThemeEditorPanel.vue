@@ -569,7 +569,11 @@ async function deleteSaved(saved: SavedTheme) {
               </UFormField>
               <template v-if="draft.cover.enabled">
                 <UFormField :label="t('theme.cover.layout')">
-                  <USelect v-model="draft.cover.layout" :items="coverLayoutItems" class="w-full" />
+                  <USelect
+                    v-model="draft.cover.layout"
+                    :items="coverLayoutItems"
+                    class="w-full"
+                  />
                 </UFormField>
                 <UFormField :label="t('theme.cover.showTitle')">
                   <USwitch v-model="draft.cover.showTitle" />
@@ -577,8 +581,15 @@ async function deleteSaved(saved: SavedTheme) {
                 <UFormField :label="t('theme.cover.showSubtitle')">
                   <USwitch v-model="draft.cover.showSubtitle" />
                 </UFormField>
-                <UFormField v-if="draft.cover.showSubtitle" :label="t('theme.cover.subtitle')">
-                  <UInput v-model="draft.cover.subtitle" maxlength="200" class="w-full" />
+                <UFormField
+                  v-if="draft.cover.showSubtitle"
+                  :label="t('theme.cover.subtitle')"
+                >
+                  <UInput
+                    v-model="draft.cover.subtitle"
+                    maxlength="200"
+                    class="w-full"
+                  />
                 </UFormField>
                 <UFormField :label="t('theme.cover.showDate')">
                   <USwitch v-model="draft.cover.showDate" />
@@ -633,7 +644,12 @@ async function deleteSaved(saved: SavedTheme) {
                         {{ draft.brand.logoUrl ? t('theme.brand.replaceLogo') : t('theme.brand.uploadLogo') }}
                       </UButton>
                     </label>
-                    <p v-if="logoError" class="text-xs text-error">{{ logoError }}</p>
+                    <p
+                      v-if="logoError"
+                      class="text-xs text-error"
+                    >
+                      {{ logoError }}
+                    </p>
                   </div>
                 </UFormField>
                 <UFormField

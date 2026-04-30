@@ -173,7 +173,7 @@ export const DocThemeSchema = z.object({
   }).strict(),
   body: z.object({
     font: fontName,
-    size: z.number().min(6).max(24),      // pt
+    size: z.number().min(6).max(24), // pt
     lineHeight: z.number().min(0.8).max(3), // unitless multiplier
     textAlign: TextAlignSchema,
     color: hexColor,

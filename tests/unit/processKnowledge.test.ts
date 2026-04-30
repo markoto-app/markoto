@@ -164,7 +164,7 @@ beforeEach(() => {
   fetchMock.mockReset()
   fetchMock.mockImplementation(async () => okResponse('# default markdown'))
   tryAcquireSessionLock.mockReset()
-  tryAcquireSessionLock.mockResolvedValue(true)  // Default: every test gets the lock.
+  tryAcquireSessionLock.mockResolvedValue(true) // Default: every test gets the lock.
   releaseSessionLock.mockReset()
   releaseSessionLock.mockResolvedValue(undefined)
 })
@@ -201,8 +201,8 @@ describe('processKnowledge — row deletion during pipeline', () => {
     // rowStillExists check returns [] so we skip markFailed and everything
     // downstream. If we markFailed here we'd flip a DELETED row's ghost
     // shadow in a txn that'd FK-cascade-error anyway.
-    selectQueue.push([row()])           // initial select
-    selectQueue.push([])                // rowStillExists → gone
+    selectQueue.push([row()]) // initial select
+    selectQueue.push([]) // rowStillExists → gone
     fetchMock.mockResolvedValueOnce(okResponse('# body'))
 
     await processKnowledge('k1')
@@ -215,9 +215,9 @@ describe('processKnowledge — row deletion during pipeline', () => {
   it('aborts cleanly when the row is deleted during embedding (after embed cost)', async () => {
     // We paid the embedding cost but the user deleted the row — don't
     // try to INSERT chunks with a knowledgeId that no longer exists.
-    selectQueue.push([row()])           // initial select
-    selectQueue.push([{ id: 'k1' }])    // first rowStillExists → exists
-    selectQueue.push([])                // second rowStillExists → gone
+    selectQueue.push([row()]) // initial select
+    selectQueue.push([{ id: 'k1' }]) // first rowStillExists → exists
+    selectQueue.push([]) // second rowStillExists → gone
     fetchMock.mockResolvedValueOnce(okResponse('# body'))
     chunkMarkdown.mockReturnValueOnce([{ index: 0, content: 'body', tokens: 2 }])
     embedDocuments.mockResolvedValueOnce([[0.1, 0.2]])
@@ -266,8 +266,8 @@ describe('processKnowledge — content-quality failures', () => {
 describe('processKnowledge — happy path', () => {
   it('writes chunks + flips to ready + deletes S3 original', async () => {
     selectQueue.push([row()])
-    selectQueue.push([{ id: 'k1' }])   // first rowStillExists
-    selectQueue.push([{ id: 'k1' }])   // second rowStillExists
+    selectQueue.push([{ id: 'k1' }]) // first rowStillExists
+    selectQueue.push([{ id: 'k1' }]) // second rowStillExists
     fetchMock.mockResolvedValueOnce(okResponse('# Hello\n\nBody'))
     chunkMarkdown.mockReturnValueOnce([
       { index: 0, content: '# Hello', tokens: 3 },

@@ -62,17 +62,35 @@ function labelRight(h: Highlight): boolean {
         class="flex items-center gap-2 px-3 py-2 bg-elevated border-b border-default"
       >
         <div class="flex items-center gap-1.5 shrink-0">
-          <span class="size-3 rounded-full bg-red-400/80" aria-hidden="true" />
-          <span class="size-3 rounded-full bg-yellow-400/80" aria-hidden="true" />
-          <span class="size-3 rounded-full bg-green-400/80" aria-hidden="true" />
+          <span
+            class="size-3 rounded-full bg-red-400/80"
+            aria-hidden="true"
+          />
+          <span
+            class="size-3 rounded-full bg-yellow-400/80"
+            aria-hidden="true"
+          />
+          <span
+            class="size-3 rounded-full bg-green-400/80"
+            aria-hidden="true"
+          />
         </div>
         <div
           class="flex-1 min-w-0 px-3 py-1 rounded-md bg-default border border-default text-xs font-mono truncate flex items-center gap-1"
         >
-          <UIcon name="i-lucide-lock" class="size-3 text-muted shrink-0" />
+          <UIcon
+            name="i-lucide-lock"
+            class="size-3 text-muted shrink-0"
+          />
           <span class="text-muted">{{ chromeDomain }}</span>
-          <span v-if="path" class="text-default truncate">{{ path }}</span>
-          <span v-else class="text-muted">—</span>
+          <span
+            v-if="path"
+            class="text-default truncate"
+          >{{ path }}</span>
+          <span
+            v-else
+            class="text-muted"
+          >—</span>
         </div>
       </div>
 
@@ -104,7 +122,10 @@ function labelRight(h: Highlight): boolean {
             v-if="card.kind === 'chapter'"
             class="flex items-center gap-2.5 mb-6 font-mono text-[11px] tracking-[0.06em] uppercase text-muted"
           >
-            <span class="block w-[22px] h-px bg-current opacity-60" aria-hidden="true" />
+            <span
+              class="block w-[22px] h-px bg-current opacity-60"
+              aria-hidden="true"
+            />
             <span>chapter</span>
           </div>
           <p

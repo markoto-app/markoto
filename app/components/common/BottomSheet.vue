@@ -168,8 +168,13 @@ onUnmounted(() => {
                `<header>` pattern — drag-handle does the affordance, the
                title is just informational, the close button is a
                redundant tap-to-close for users who don't drag. -->
-          <header v-if="title" class="mk-sheet__header">
-            <h2 class="mk-sheet__title">{{ title }}</h2>
+          <header
+            v-if="title"
+            class="mk-sheet__header"
+          >
+            <h2 class="mk-sheet__title">
+              {{ title }}
+            </h2>
             <button
               type="button"
               class="mk-sheet__close"

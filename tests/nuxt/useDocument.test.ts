@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { nextTick } from 'vue'
 
+// — import AFTER mocks are in place ————————————————————————————————
+import { useDocument } from '~/composables/useDocument'
+import { defaultTheme } from '~~/shared/utils/defaultTheme'
+
 // Orchestrator tests for `useDocument`. The strategy:
 //
 //   - Mock `useDocToken` and `useHocuspocusSync` so we control their
@@ -165,10 +169,6 @@ function installFetchStub() {
   })
   vi.stubGlobal('$fetch', stub)
 }
-
-// — import AFTER mocks are in place ————————————————————————————————
-import { useDocument } from '~/composables/useDocument'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
 
 function resetHoisted() {
   hoisted.sessionUser.value = null
@@ -660,4 +660,3 @@ describe('useDocument — docSizeWarning', () => {
     doc.destroy()
   })
 })
-

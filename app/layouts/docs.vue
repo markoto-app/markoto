@@ -135,7 +135,10 @@ watch(() => route.path, () => { mobileNavOpen.value = false })
       :title="'Documentation'"
     >
       <template #body>
-        <DocsSidebar :nav="sidebarNav" class="p-2" />
+        <DocsSidebar
+          :nav="sidebarNav"
+          class="p-2"
+        />
       </template>
     </USlideover>
 

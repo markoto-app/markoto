@@ -128,7 +128,10 @@ async function setPassword() {
     :description="shareUrl"
   >
     <template #content>
-      <div data-testid="share-modal" class="p-6 space-y-5">
+      <div
+        data-testid="share-modal"
+        class="p-6 space-y-5"
+      >
         <div>
           <h3 class="text-lg font-semibold">
             {{ t('share.title') }}

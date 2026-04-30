@@ -73,7 +73,7 @@ function splitOversizedBlock(block: string, maxTokens: number, overlapTokens: nu
     if (bufTokens + t > maxTokens && buf.length > 0) {
       out.push(buf.join('\n\n'))
       // Retain a tail for overlap
-      let overlap: string[] = []
+      const overlap: string[] = []
       let overlapT = 0
       for (let i = buf.length - 1; i >= 0; i--) {
         const pt = estimateTokens(buf[i]!)

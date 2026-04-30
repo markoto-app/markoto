@@ -466,107 +466,107 @@ function onRestored() {
       @click="toggleExpanded(entry)"
     >
       <div class="p-3 flex gap-2.5">
-      <!-- Avatar. AI gets the sparkles tile; humans get UAvatar (which
+        <!-- Avatar. AI gets the sparkles tile; humans get UAvatar (which
            falls back to initials/colored circle when no avatar URL).
            Anonymous rows fall through to UAvatar's generic placeholder. -->
-      <!-- markoto avatar — bone disc in light mode, dark disc in
+        <!-- markoto avatar — bone disc in light mode, dark disc in
            dark mode (matches the surrounding cards), seal centered.
            The seal stays shu in both modes; the ring around it is
            the brand chrome's neutral. Earlier this used inverse
            shading (sumi-950 in light, sumi-50 in dark) which made
            the seal disappear in dark mode. -->
-      <div
-        v-if="isAi(entry)"
-        class="shrink-0 mt-0.5 size-7 rounded-full flex items-center justify-center bg-default border border-default"
-        :title="entry.userName ?? 'markoto'"
-      >
-        <CommonSeal :size="9" />
-      </div>
-      <UAvatar
-        v-else
-        :src="entry.avatarUrl ?? undefined"
-        :alt="entry.userName ?? t('activity.anonymous')"
-        size="sm"
-        class="shrink-0 mt-0.5"
-        referrerpolicy="no-referrer"
-      />
-
-      <div class="flex-1 min-w-0 leading-snug">
-        <div class="flex items-baseline gap-2 text-xs">
-          <span class="font-semibold text-default truncate">
-            {{ entry.userName || t('activity.anonymous') }}
-          </span>
-          <span class="text-muted shrink-0">{{ formatTime(entry.createdAt) }}</span>
+        <div
+          v-if="isAi(entry)"
+          class="shrink-0 mt-0.5 size-7 rounded-full flex items-center justify-center bg-default border border-default"
+          :title="entry.userName ?? 'markoto'"
+        >
+          <CommonSeal :size="9" />
         </div>
+        <UAvatar
+          v-else
+          :src="entry.avatarUrl ?? undefined"
+          :alt="entry.userName ?? t('activity.anonymous')"
+          size="sm"
+          class="shrink-0 mt-0.5"
+          referrerpolicy="no-referrer"
+        />
 
-        <div class="mt-0.5 text-sm text-muted flex items-center gap-1.5 flex-wrap">
-          <UIcon
-            :name="iconFor(entry)"
-            class="size-3.5 shrink-0"
-            :class="isAi(entry) ? 'text-amber-500' : 'text-muted'"
-          />
-          <span>{{ actionLabel(entry) }}</span>
-          <!-- Git-style diff badges (edits only). -->
-          <span
-            v-if="entry.action === 'edit' && (entry.linesAdded || entry.linesRemoved)"
-            class="inline-flex items-center gap-1 text-xs font-mono"
-          >
-            <span
-              v-if="entry.linesAdded"
-              class="text-green-500"
-            >+{{ entry.linesAdded }}</span>
-            <span
-              v-if="entry.linesRemoved"
-              class="text-red-500"
-            >-{{ entry.linesRemoved }}</span>
-          </span>
-        </div>
+        <div class="flex-1 min-w-0 leading-snug">
+          <div class="flex items-baseline gap-2 text-xs">
+            <span class="font-semibold text-default truncate">
+              {{ entry.userName || t('activity.anonymous') }}
+            </span>
+            <span class="text-muted shrink-0">{{ formatTime(entry.createdAt) }}</span>
+          </div>
 
-        <!-- Detail line: comment body preview, ai tool query/url/prompt,
+          <div class="mt-0.5 text-sm text-muted flex items-center gap-1.5 flex-wrap">
+            <UIcon
+              :name="iconFor(entry)"
+              class="size-3.5 shrink-0"
+              :class="isAi(entry) ? 'text-amber-500' : 'text-muted'"
+            />
+            <span>{{ actionLabel(entry) }}</span>
+            <!-- Git-style diff badges (edits only). -->
+            <span
+              v-if="entry.action === 'edit' && (entry.linesAdded || entry.linesRemoved)"
+              class="inline-flex items-center gap-1 text-xs font-mono"
+            >
+              <span
+                v-if="entry.linesAdded"
+                class="text-green-500"
+              >+{{ entry.linesAdded }}</span>
+              <span
+                v-if="entry.linesRemoved"
+                class="text-red-500"
+              >-{{ entry.linesRemoved }}</span>
+            </span>
+          </div>
+
+          <!-- Detail line: comment body preview, ai tool query/url/prompt,
              title from→to. Italic, indented slightly so it reads as a
              "quoted excerpt" rather than a continuation of the action. -->
-        <div
-          v-if="detailFor(entry)"
-          class="mt-1 text-xs text-default/80 italic break-words line-clamp-2"
-          :title="detailFor(entry) || undefined"
-        >
-          {{ detailFor(entry) }}
-        </div>
+          <div
+            v-if="detailFor(entry)"
+            class="mt-1 text-xs text-default/80 italic break-words line-clamp-2"
+            :title="detailFor(entry) || undefined"
+          >
+            {{ detailFor(entry) }}
+          </div>
 
-        <!-- Affordance row: expansion caret (left) + restore button
+          <!-- Affordance row: expansion caret (left) + restore button
              (right, when applicable). Both ride on text-[11px] for
              visual weight parity. The restore button has @click.stop
              so it doesn't also toggle expansion. -->
-        <div
-          v-if="isExpandable(entry) || isRestorable(entry)"
-          class="mt-1 flex items-center justify-between gap-2 text-[11px]"
-        >
           <div
-            v-if="isExpandable(entry)"
-            class="flex items-center gap-1 text-muted"
+            v-if="isExpandable(entry) || isRestorable(entry)"
+            class="mt-1 flex items-center justify-between gap-2 text-[11px]"
           >
-            <UIcon
-              name="i-lucide-chevron-down"
-              class="size-3 transition-transform"
-              :class="isExpanded(entry) ? 'rotate-180' : ''"
-            />
-            <span>{{ expansionToggleLabel(entry, isExpanded(entry)) }}</span>
+            <div
+              v-if="isExpandable(entry)"
+              class="flex items-center gap-1 text-muted"
+            >
+              <UIcon
+                name="i-lucide-chevron-down"
+                class="size-3 transition-transform"
+                :class="isExpanded(entry) ? 'rotate-180' : ''"
+              />
+              <span>{{ expansionToggleLabel(entry, isExpanded(entry)) }}</span>
+            </div>
+            <button
+              v-if="isRestorable(entry)"
+              type="button"
+              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-elevated text-muted hover:text-primary transition-colors"
+              :title="t('activity.restore.button.tooltip')"
+              @click.stop="openRestoreModal(entry)"
+            >
+              <UIcon
+                name="i-lucide-history"
+                class="size-3"
+              />
+              <span>{{ t('activity.restore.button.label') }}</span>
+            </button>
           </div>
-          <button
-            v-if="isRestorable(entry)"
-            type="button"
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-elevated text-muted hover:text-primary transition-colors"
-            :title="t('activity.restore.button.tooltip')"
-            @click.stop="openRestoreModal(entry)"
-          >
-            <UIcon
-              name="i-lucide-history"
-              class="size-3"
-            />
-            <span>{{ t('activity.restore.button.label') }}</span>
-          </button>
         </div>
-      </div>
       </div>
 
       <!-- Per-kind expansion drawer. Mounts only when expanded so each

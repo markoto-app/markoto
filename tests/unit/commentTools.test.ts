@@ -2,6 +2,9 @@ import { describe, it, expect, vi } from 'vitest'
 import * as Y from 'yjs'
 import { nanoid } from 'nanoid'
 
+import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
+import type { AiSession } from '../../server/utils/aiClient'
+
 // Stub workspaceAccess so canManageDoc returns false by default. The
 // delete-auth tests rely on the AI's own-author / initiator's-own-author
 // branches, not the doc-manager fallback. Hoisted to module top-level
@@ -13,9 +16,6 @@ vi.mock('../../server/utils/workspaceAccess', () => ({
   canManageWorkspace: vi.fn().mockResolvedValue(false),
   getDocAuthz: vi.fn().mockResolvedValue({ exists: true, ownerId: null, workspaceId: null, workspaceRole: null, accessMode: 'open-edit' })
 }))
-
-import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
-import type { AiSession } from '../../server/utils/aiClient'
 
 // Comment tool handlers — read_comments, create_comment, reply_to_comment,
 // resolve_comment, delete_comment. These mutate the Y.js 'comments' array

@@ -7,7 +7,11 @@ import { updateWorkspace, type WorkspaceUpdate } from '../../../repos/workspaces
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const wsId = requireWsId(event)
-  const body = await readBody<{ name?: unknown, description?: unknown }>(event)
+  const body = await readBody<{
+    name?: unknown
+    description?: unknown
+    defaultTheme?: unknown
+  }>(event)
 
   const role = await getWorkspaceRole(session.user.id, wsId)
   if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })

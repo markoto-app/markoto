@@ -53,12 +53,14 @@ export default defineConfig({
     trace: 'on-first-retry',
     permissions: ['clipboard-read', 'clipboard-write']
   },
-  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
-    command: 'bun run dev',
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000
-  },
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        command: 'bun run dev',
+        url: BASE_URL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000
+      },
   projects: [
     {
       name: 'en-light-desktop',

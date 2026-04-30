@@ -175,11 +175,11 @@ export default defineEventHandler(async (event) => {
   // context up front.
   const documentContextBlock = doc
     ? buildDocumentContext({
-      title: doc.title,
-      description: doc.description,
-      audience: doc.audience,
-      language: doc.language
-    })
+        title: doc.title,
+        description: doc.description,
+        audience: doc.audience,
+        language: doc.language
+      })
     : ''
   const knowledgeBlock = exposeKnowledgeTools
     ? buildKnowledgeBlockForTrigger(knowledgeFiles)

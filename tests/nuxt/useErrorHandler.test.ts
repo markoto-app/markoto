@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 
+import { useErrorHandler } from '~/composables/useErrorHandler'
+
 // useErrorHandler contract tests. Senior-QA review of the previous 25-
 // test suite noted ~20 were mechanical branch coverage (would catch a
 // typo, not a design error). This pared-down suite keeps only the ones
@@ -50,8 +52,6 @@ mockNuxtImport('useI18n', () => {
     te: (key: string) => !missingKeys.has(key) && key in translations
   })
 })
-
-import { useErrorHandler } from '~/composables/useErrorHandler'
 
 beforeEach(() => {
   toastAddMock.fn = vi.fn()

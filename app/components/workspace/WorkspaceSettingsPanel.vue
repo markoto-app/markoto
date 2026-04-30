@@ -139,7 +139,10 @@ async function persist(theme: DocTheme | null) {
         @click="persist(null)"
       >
         <div class="flex items-center gap-2 mb-1">
-          <UIcon name="i-lucide-circle-slash" class="size-3.5 text-muted" />
+          <UIcon
+            name="i-lucide-circle-slash"
+            class="size-3.5 text-muted"
+          />
           <span class="text-sm font-medium">
             {{ t('workspace.settings.defaultTheme.useGlobal') }}
           </span>
@@ -156,7 +159,10 @@ async function persist(theme: DocTheme | null) {
 
       <!-- User-saved themes (admin's own). Section hidden when empty
            so the panel doesn't render a stray empty heading. -->
-      <div v-if="savedThemes.length > 0" class="space-y-2">
+      <div
+        v-if="savedThemes.length > 0"
+        class="space-y-2"
+      >
         <h4 class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted px-1">
           {{ t('theme.saved.title') }}
         </h4>

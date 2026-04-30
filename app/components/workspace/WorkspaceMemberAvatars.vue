@@ -151,7 +151,10 @@ function roleLabel(role: WorkspaceMember['role']): string {
           </div>
         </UTooltip>
       </div>
-      <span v-if="overflow > 0" class="font-mono text-[10.5px] tracking-[0.04em] text-muted">+{{ overflow }}</span>
+      <span
+        v-if="overflow > 0"
+        class="font-mono text-[10.5px] tracking-[0.04em] text-muted"
+      >+{{ overflow }}</span>
     </button>
     <button
       type="button"

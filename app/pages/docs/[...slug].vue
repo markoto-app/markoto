@@ -52,7 +52,7 @@ const crumbs = computed(() => {
     const seg = parts[i]!
     const to = '/' + parts.slice(0, i + 1).join('/')
     // Title-case the slug: "getting-started" → "Getting started"
-    const label = seg.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())
+    const label = seg.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase())
     items.push({ label, to })
   }
   // Last crumb is the current page — non-clickable.
@@ -101,13 +101,19 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
           class="group block p-4 rounded-lg border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
         >
           <div class="flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted mb-1.5">
-            <UIcon name="i-lucide-arrow-left" class="size-3" />
+            <UIcon
+              name="i-lucide-arrow-left"
+              class="size-3"
+            />
             previous
           </div>
           <div class="font-serif text-base font-normal tracking-tight text-default">
             {{ surround[0].title }}
           </div>
-          <div v-if="surround[0].description" class="mt-1 text-sm text-muted line-clamp-2">
+          <div
+            v-if="surround[0].description"
+            class="mt-1 text-sm text-muted line-clamp-2"
+          >
             {{ surround[0].description }}
           </div>
         </NuxtLink>
@@ -119,12 +125,18 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
         >
           <div class="flex items-center gap-1.5 sm:justify-end font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted mb-1.5">
             next
-            <UIcon name="i-lucide-arrow-right" class="size-3" />
+            <UIcon
+              name="i-lucide-arrow-right"
+              class="size-3"
+            />
           </div>
           <div class="font-serif text-base font-normal tracking-tight text-default">
             {{ surround[1].title }}
           </div>
-          <div v-if="surround[1].description" class="mt-1 text-sm text-muted line-clamp-2">
+          <div
+            v-if="surround[1].description"
+            class="mt-1 text-sm text-muted line-clamp-2"
+          >
             {{ surround[1].description }}
           </div>
         </NuxtLink>

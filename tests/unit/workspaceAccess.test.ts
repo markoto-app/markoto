@@ -61,8 +61,8 @@ describe('workspaceAccess — non-obvious contracts', () => {
     // feature could accidentally leak edit rights to all viewers.
     getDocWithActorRole.mockResolvedValueOnce(ctx({ ownerId: 1, workspaceId: 'w1', workspaceRole: 'viewer' }))
     const r = await getDocAuthz(42, 'd1')
-    expect(r.canView).toBe(true)    // membership grant
-    expect(r.canEdit).toBe(false)   // role gate
+    expect(r.canView).toBe(true) // membership grant
+    expect(r.canEdit).toBe(false) // role gate
     expect(r.canManage).toBe(false)
   })
 

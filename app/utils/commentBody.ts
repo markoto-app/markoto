@@ -113,4 +113,3 @@ export function formatMentionToken(name: string, userId: number): string {
   const safeName = name.replace(/[\]\\]/g, '').slice(0, 80)
   return `@[${safeName}](user:${userId})`
 }
-

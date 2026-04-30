@@ -1,6 +1,6 @@
 import { matchesCurrentOrPrevious } from '../../../shared/utils/secrets'
 import { docExists } from '../../repos/documents'
-import { type CommentSnapshotRow } from '../../repos/comments'
+import type { CommentSnapshotRow } from '../../repos/comments'
 import { eq, sql } from 'drizzle-orm'
 import { documentComments } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
@@ -142,9 +142,9 @@ export default defineEventHandler(async (event) => {
     const metadata
       = e.kind === 'comment.replied'
         ? { kind: e.kind, commentId: e.commentId, parentCommentId: e.parentCommentId, bodyPreview: e.bodyPreview }
-      : e.kind === 'comment.deleted'
-        ? { kind: e.kind, commentId: e.commentId, bodyPreview: e.bodyPreview, isReply: e.isReply }
-      : { kind: e.kind, commentId: e.commentId, bodyPreview: e.bodyPreview }
+        : e.kind === 'comment.deleted'
+          ? { kind: e.kind, commentId: e.commentId, bodyPreview: e.bodyPreview, isReply: e.isReply }
+          : { kind: e.kind, commentId: e.commentId, bodyPreview: e.bodyPreview }
     await appendActivity({
       docId: body.docId,
       userId: e.userId,

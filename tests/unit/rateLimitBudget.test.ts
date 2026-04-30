@@ -24,6 +24,7 @@ class FakeValkey {
     if (this.throwOnNext) { const e = this.throwOnNext; this.throwOnNext = null; throw e }
     return this.store.get(key) ?? null
   }
+
   async set(key: string, value: string, mode?: string, ttl?: number, flag?: string): Promise<string | null> {
     if (this.throwOnNext) { const e = this.throwOnNext; this.throwOnNext = null; throw e }
     // Emulate the SET key val PX ttl NX syntax our code uses.
@@ -33,21 +34,25 @@ class FakeValkey {
     if (mode === 'PX' && typeof ttl === 'number') this.ttls.set(key, ttl)
     return 'OK'
   }
+
   async incrby(key: string, by: number): Promise<number> {
     const cur = Number(this.store.get(key) ?? '0')
     const next = cur + by
     this.store.set(key, String(next))
     return next
   }
+
   async pexpire(key: string, ttl: number): Promise<number> {
     this.ttls.set(key, ttl)
     return 1
   }
+
   async del(key: string): Promise<number> {
     const had = this.store.delete(key) ? 1 : 0
     this.ttls.delete(key)
     return had
   }
+
   multi() {
     // We don't exercise multi() in the paths under test (those live in
     // `checkRateLimit`, not the budget helpers), so a minimal stub is
@@ -75,7 +80,7 @@ vi.mock('../../server/utils/valkey', () => ({
 process.env.TEST_MODE = '0'
 
 // Import AFTER env + mock setup.
-// eslint-disable-next-line import/order
+
 const { consumeRateLimitBudget, tryAcquireSessionLock, releaseSessionLock } = await import('../../server/utils/rateLimit')
 
 describe('consumeRateLimitBudget', () => {

@@ -210,7 +210,7 @@ const slideQuery = useRouteQuery<string | null, number>(
       },
       // Slide 1 is the default — return null so the param drops out
       // of the URL when at the start.
-      set: (idx) => (idx <= 0 ? null : String(idx + 1))
+      set: idx => (idx <= 0 ? null : String(idx + 1))
     }
   }
 )
@@ -345,7 +345,7 @@ const subtitleAtTop = computed(() => {
   if (!s) return false
   const bottomQuarter = manifest.value.viewport.h * 0.75
   if ((s.kind === 'approach' || s.kind === 'outcome') && s.cursor && s.cursor.y > bottomQuarter) return true
-  if (s.kind === 'outcome' && s.highlights?.some((h) => h.y + h.h > bottomQuarter)) return true
+  if (s.kind === 'outcome' && s.highlights?.some(h => h.y + h.h > bottomQuarter)) return true
   return false
 })
 
@@ -387,15 +387,24 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
 </script>
 
 <template>
-  <div v-if="error" class="my-6 p-4 border border-red-500/40 bg-red-500/5 rounded text-sm">
+  <div
+    v-if="error"
+    class="my-6 p-4 border border-red-500/40 bg-red-500/5 rounded text-sm"
+  >
     Flow <code>{{ id ?? path }}</code> failed to load: {{ error.message }}
   </div>
 
   <!-- docs-wide opts this component into the full-bleed grid column
        in the docs article layout (see app/pages/docs/[...slug].vue's
        `.docs-article > :deep(.docs-wide)` rule). -->
-  <div v-else-if="manifest" class="my-8 not-prose docs-wide">
-    <h3 v-if="!hideTitle" class="text-lg font-semibold mb-4">
+  <div
+    v-else-if="manifest"
+    class="my-8 not-prose docs-wide"
+  >
+    <h3
+      v-if="!hideTitle"
+      class="text-lg font-semibold mb-4"
+    >
       {{ manifest.title }}
     </h3>
 
@@ -476,7 +485,10 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
               :disabled="slideIdx === 0"
               @click="goStart"
             >
-              <UIcon name="i-lucide-skip-back" class="size-4" />
+              <UIcon
+                name="i-lucide-skip-back"
+                class="size-4"
+              />
             </button>
           </UTooltip>
           <UTooltip text="Previous slide">
@@ -486,7 +498,10 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
               :disabled="slideIdx === 0"
               @click="goPrev"
             >
-              <UIcon name="i-lucide-step-back" class="size-4" />
+              <UIcon
+                name="i-lucide-step-back"
+                class="size-4"
+              />
             </button>
           </UTooltip>
           <UTooltip :text="isPlaying ? 'Pause autoplay' : 'Play autoplay'">
@@ -508,7 +523,10 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
               :disabled="slideIdx === entries.length - 1"
               @click="goNext"
             >
-              <UIcon name="i-lucide-step-forward" class="size-4" />
+              <UIcon
+                name="i-lucide-step-forward"
+                class="size-4"
+              />
             </button>
           </UTooltip>
           <UTooltip text="Jump to last slide">
@@ -518,7 +536,10 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
               :disabled="slideIdx === entries.length - 1"
               @click="goEnd"
             >
-              <UIcon name="i-lucide-skip-forward" class="size-4" />
+              <UIcon
+                name="i-lucide-skip-forward"
+                class="size-4"
+              />
             </button>
           </UTooltip>
         </div>

@@ -99,8 +99,7 @@ export function useCommentNotifications(opts: UseCommentNotificationsOptions) {
     // the first time we ask. If denied, future fires will short-circuit
     // at the `permission === 'denied'` check above.
     if (permission.value === 'prompt') {
-      try { await ensurePermissions() }
-      catch { /* user dismissed; treat as denied for this session */ }
+      try { await ensurePermissions() } catch { /* user dismissed; treat as denied for this session */ }
     }
     if (permission.value !== 'granted') return
 

@@ -135,12 +135,12 @@ describe('POST /api/internal/comments-snapshot — concurrency + isolation', () 
       const events = await listActivity(doc.docId)
       const kinds = events.map(e => e.action)
       expect(kinds).toEqual([
-        'comment.added',     // 1: root added
-        'comment.replied',   // 2: reply added
-        'comment.resolved',  // 3: root resolved
-        'comment.reopened',  // 4: root reopened
-        'comment.deleted',   // 5: reply deleted
-        'comment.deleted'    // 6: root deleted
+        'comment.added', // 1: root added
+        'comment.replied', // 2: reply added
+        'comment.resolved', // 3: root resolved
+        'comment.reopened', // 4: root reopened
+        'comment.deleted', // 5: reply deleted
+        'comment.deleted' // 6: root deleted
       ])
       // Mirror should be empty after the final delete.
       expect(await listMirror(doc.docId)).toEqual([])

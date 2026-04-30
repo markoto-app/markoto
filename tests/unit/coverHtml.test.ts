@@ -10,7 +10,7 @@ import type { DocTheme } from '../../shared/types/theme'
  * + content + edge-case skip conditions.
  */
 
-const baseTheme = defaultTheme  // markoto: cover.enabled=true, layout='centered', showTitle/Date true, others false
+const baseTheme = defaultTheme // markoto: cover.enabled=true, layout='centered', showTitle/Date true, others false
 
 describe('buildCoverHtml — when disabled', () => {
   test('returns empty string', () => {

@@ -680,8 +680,8 @@ describe('toggleComment', () => {
 
   it('toggle off → toggle on round-trips to the same shape', () => {
     const v = makeView('foo', { from: 0, to: 3 })
-    toggleComment(v)  // → `<!-- foo -->`, selection on `foo`
-    toggleComment(v)  // unwrap (selection is `foo`, but adjacent markers)
+    toggleComment(v) // → `<!-- foo -->`, selection on `foo`
+    toggleComment(v) // unwrap (selection is `foo`, but adjacent markers)
     // The inner-text selection is just `foo` — that doesn't start with
     // `<!--`, so the second click WRAPS again rather than unwrapping.
     // This matches `toggleWrap`'s existing semantics: to unwrap from an

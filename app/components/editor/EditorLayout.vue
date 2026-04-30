@@ -886,7 +886,10 @@ const statusIcon = computed(() => {
             size="3xs"
             referrerpolicy="no-referrer"
           />
-          <CommonSeal v-else :size="8" />
+          <CommonSeal
+            v-else
+            :size="8"
+          />
           <span>{{ t('editor.aiWorkspaceBadge') }}</span>
         </NuxtLink>
 
@@ -1034,34 +1037,34 @@ const statusIcon = computed(() => {
            `+` sheet; file/auth actions are covered by the mobile
            hamburger dropdown in the topbar. -->
       <div class="hidden sm:block">
-      <EditorMenuBar
-        :view="editorView"
-        :doc-id="docId"
-        :is-read-only="isReadOnly"
-        :logged-in="loggedIn"
-        :can-manage="canManageDoc"
-        :right-sidebar="rightSidebar"
-        :has-knowledge-access="hasKnowledgeAccess"
-        :view-mode="viewMode"
-        :dictation-state="dictation.state.value"
-        @open-import="showImportModal = true"
-        @open-share="showShareModal = true"
-        @open-share-password="openShareAtPassword"
-        @export-markdown="exportMarkdown"
-        @export-pdf="exportPdf"
-        @new-document="newDocument"
-        @duplicate-document="showDuplicateModal = true"
-        @move-document="showMoveModal = true"
-        @delete-document="showDeleteModal = true"
-        @set-view-mode="(m) => viewMode = m"
-        @toggle-sidebar="toggleSidebar"
-        @undo="undo"
-        @redo="redo"
-        @open-image-picker="openImagePicker"
-        @open-table-picker="tableModalOpen = true"
-        @toggle-dictation="dictation.toggle()"
-        @create-comment="triggerCreateComment"
-      />
+        <EditorMenuBar
+          :view="editorView"
+          :doc-id="docId"
+          :is-read-only="isReadOnly"
+          :logged-in="loggedIn"
+          :can-manage="canManageDoc"
+          :right-sidebar="rightSidebar"
+          :has-knowledge-access="hasKnowledgeAccess"
+          :view-mode="viewMode"
+          :dictation-state="dictation.state.value"
+          @open-import="showImportModal = true"
+          @open-share="showShareModal = true"
+          @open-share-password="openShareAtPassword"
+          @export-markdown="exportMarkdown"
+          @export-pdf="exportPdf"
+          @new-document="newDocument"
+          @duplicate-document="showDuplicateModal = true"
+          @move-document="showMoveModal = true"
+          @delete-document="showDeleteModal = true"
+          @set-view-mode="(m) => viewMode = m"
+          @toggle-sidebar="toggleSidebar"
+          @undo="undo"
+          @redo="redo"
+          @open-image-picker="openImagePicker"
+          @open-table-picker="tableModalOpen = true"
+          @toggle-dictation="dictation.toggle()"
+          @create-comment="triggerCreateComment"
+        />
       </div>
 
       <!-- Sync auth-failure banner. Distinct from the regular read-only
@@ -1073,7 +1076,10 @@ const statusIcon = computed(() => {
         class="border-b border-error bg-error/10 text-error px-4 py-2 flex items-center gap-3 text-sm"
         role="alert"
       >
-        <UIcon name="i-lucide-shield-alert" class="size-4 shrink-0" />
+        <UIcon
+          name="i-lucide-shield-alert"
+          class="size-4 shrink-0"
+        />
         <div class="flex-1 min-w-0">
           <span class="font-medium">{{ t('editor.syncAuthFailedTitle') }}</span>
           <span class="ml-2 text-xs opacity-80">{{ t('editor.syncAuthFailedDescription') }}</span>
@@ -1446,7 +1452,10 @@ const statusIcon = computed(() => {
             :aria-pressed="viewMode === 'edit'"
             @click="viewMode = 'edit'"
           >
-            <UIcon name="i-lucide-pen" class="size-4" />
+            <UIcon
+              name="i-lucide-pen"
+              class="size-4"
+            />
           </button>
           <button
             type="button"
@@ -1456,7 +1465,10 @@ const statusIcon = computed(() => {
             :aria-pressed="viewMode === 'preview'"
             @click="viewMode = 'preview'"
           >
-            <UIcon name="i-lucide-eye" class="size-4" />
+            <UIcon
+              name="i-lucide-eye"
+              class="size-4"
+            />
           </button>
         </div>
       </main>
@@ -1469,12 +1481,25 @@ const statusIcon = computed(() => {
       <footer class="border-t border-default/60 bg-muted px-4 py-1.5 flex items-center justify-between font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0">
         <div class="flex items-center gap-3">
           <span data-testid="word-count">{{ wordCount }} <span class="opacity-70">words</span></span>
-          <span class="opacity-50" aria-hidden="true">·</span>
-          <span v-if="viewMode !== 'edit' && pageCount > 0" data-testid="page-count">{{ pageCount }} <span class="opacity-70">{{ pageCount === 1 ? 'page' : 'pages' }}</span></span>
-          <span v-if="viewMode !== 'edit' && pageCount > 0" class="opacity-50" aria-hidden="true">·</span>
+          <span
+            class="opacity-50"
+            aria-hidden="true"
+          >·</span>
+          <span
+            v-if="viewMode !== 'edit' && pageCount > 0"
+            data-testid="page-count"
+          >{{ pageCount }} <span class="opacity-70">{{ pageCount === 1 ? 'page' : 'pages' }}</span></span>
+          <span
+            v-if="viewMode !== 'edit' && pageCount > 0"
+            class="opacity-50"
+            aria-hidden="true"
+          >·</span>
           <span data-testid="char-count">{{ charCount }} <span class="opacity-70">chars</span></span>
         </div>
-        <div class="flex items-center gap-3" data-testid="sync-status">
+        <div
+          class="flex items-center gap-3"
+          data-testid="sync-status"
+        >
           <span
             v-if="synced"
             class="inline-flex items-center gap-1.5"

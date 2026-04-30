@@ -248,8 +248,8 @@ function updateKeyboardOffset() {
 
 const bottomOffset = computed(() =>
   keyboardOffset.value > 0
-    ? `${keyboardOffset.value + 8}px`  // 8px breathing space above keyboard top
-    : '24px'                            // matches the prior `bottom-6`
+    ? `${keyboardOffset.value + 8}px` // 8px breathing space above keyboard top
+    : '24px' // matches the prior `bottom-6`
 )
 
 onMounted(() => {

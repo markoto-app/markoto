@@ -14,6 +14,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
+import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
+import {
+  getDocWithActorRole,
+  listWorkspaceDocsWithOwnerFlag
+} from '../../server/repos/documents'
+import { openTrustedCommentClient } from '../../server/utils/commentsServerClient'
+import type { AiSession } from '../../server/utils/aiClient'
+
 // Module-level mocks must come BEFORE importing the SUT.
 vi.mock('../../server/repos/documents', async (importOriginal) => {
   const actual = await importOriginal<object>()
@@ -46,14 +54,6 @@ vi.mock('../../server/repos/documents', async (importOriginal) => {
     updateDocMeta: vi.fn().mockResolvedValue(undefined)
   }
 })
-
-import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
-import {
-  getDocWithActorRole,
-  listWorkspaceDocsWithOwnerFlag
-} from '../../server/repos/documents'
-import { openTrustedCommentClient } from '../../server/utils/commentsServerClient'
-import type { AiSession } from '../../server/utils/aiClient'
 
 const mockedGetCtx = vi.mocked(getDocWithActorRole)
 const mockedListDocs = vi.mocked(listWorkspaceDocsWithOwnerFlag)

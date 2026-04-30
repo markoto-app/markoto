@@ -68,7 +68,7 @@ interface DiffResponse {
   before: string
   after: string
   hunks: Array<{
-    oldStart: number, oldLines: number, newStart: number, newLines: number,
+    oldStart: number, oldLines: number, newStart: number, newLines: number
     lines: Array<{ kind: 'context' | 'add' | 'remove', text: string }>
   }>
   truncated: boolean
@@ -242,9 +242,9 @@ describe('edit → activity row → diff endpoint round-trip', () => {
 
     const listRes = await anonClient().get(`/api/docs/${doc.docId}/activity`)
     const entries = await listRes.json() as Array<{
-      userName: string,
-      action: string,
-      yjsDocIdBefore: number | null,
+      userName: string
+      action: string
+      yjsDocIdBefore: number | null
       yjsDocIdAfter: number | null
     }>
     const row = entries.find(e => e.userName === 'Alice' && e.action === 'edit')

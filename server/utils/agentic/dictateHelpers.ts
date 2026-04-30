@@ -27,8 +27,10 @@ export function tryParseControl(message: { rawData: unknown, text(): string }): 
 } | null {
   const raw = message.rawData
   if (typeof raw !== 'string') {
-    const firstByte = Buffer.isBuffer(raw) ? raw[0]
-      : raw instanceof Uint8Array ? raw[0]
+    const firstByte = Buffer.isBuffer(raw)
+      ? raw[0]
+      : raw instanceof Uint8Array
+        ? raw[0]
         : undefined
     if (firstByte !== 0x7B /* '{' */) return null
   }

@@ -355,7 +355,9 @@ function iconFor(ext: string): string {
         <!-- Filename in the editorial register — Fraunces serif so a
              knowledge file reads as a "named object" the same way a
              doc title or workspace name does. -->
-        <p class="font-serif text-base font-normal tracking-tight truncate">{{ uploadProgress.filename }}</p>
+        <p class="font-serif text-base font-normal tracking-tight truncate">
+          {{ uploadProgress.filename }}
+        </p>
         <div class="mt-1 h-1 rounded-full bg-elevated overflow-hidden">
           <!-- Progress fill stays neutral (sumi-700) — shu is reserved
                for AI presence; uploads aren't AI work. -->
@@ -411,14 +413,22 @@ function iconFor(ext: string): string {
           class="size-5 text-muted shrink-0"
         />
         <div class="min-w-0 flex-1">
-          <p class="font-serif text-base font-normal tracking-tight truncate">{{ row.filename }}</p>
+          <p class="font-serif text-base font-normal tracking-tight truncate">
+            {{ row.filename }}
+          </p>
           <p class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase mt-0.5">
             {{ fmtBytes(row.sizeBytes) }}
             <template v-if="row.status === 'ready'">
-              <span class="opacity-50 mx-1" aria-hidden="true">·</span> {{ row.chunkCount }} {{ t('knowledge.chunks') }}
+              <span
+                class="opacity-50 mx-1"
+                aria-hidden="true"
+              >·</span> {{ row.chunkCount }} {{ t('knowledge.chunks') }}
             </template>
             <template v-if="row.status === 'failed' && row.errorMessage">
-              <span class="opacity-50 mx-1" aria-hidden="true">·</span> {{ row.errorMessage }}
+              <span
+                class="opacity-50 mx-1"
+                aria-hidden="true"
+              >·</span> {{ row.errorMessage }}
             </template>
           </p>
         </div>

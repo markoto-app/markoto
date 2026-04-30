@@ -26,8 +26,7 @@
 import * as Y from 'yjs'
 import { executeFunctionByName } from '../../utils/aiToolAdapter'
 import { getDoc } from '../../repos/documents'
-import type { AiSession } from '../../utils/aiClient'
-import type { AiStatusPhase } from '~~/shared/types/aiStatus'
+import type { AiSession, AiStatusPhase } from '../../utils/aiClient'
 
 export default defineEventHandler(async (event) => {
   if (process.env.TEST_MODE !== '1') {

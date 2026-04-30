@@ -5,6 +5,8 @@ import type { EditorView } from '@codemirror/view'
 import type { H3Event } from 'h3'
 import { setResponseStatus } from 'h3'
 
+import { useImageUpload } from '~/composables/useImageUpload'
+
 // Composable under test: 3-step presigned upload + placeholder-rewrite
 // helper for CodeMirror. Two surfaces:
 //
@@ -122,8 +124,6 @@ function gatedS3(): {
     resolve: (r: Response = new Response(null, { status: 200 })) => resolveGate(r)
   }
 }
-
-import { useImageUpload } from '~/composables/useImageUpload'
 
 // — CodeMirror view shim ————————————————————————————————————————
 // Real EditorState so `view.state.doc.toString()` + dispatch work;

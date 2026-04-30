@@ -6,6 +6,8 @@ import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protoc
 import type { H3Event } from 'h3'
 import { setResponseStatus } from 'h3'
 
+import { useAI } from '~/composables/useAI'
+
 // Signal to a registerEndpoint handler: respond with a non-2xx status
 // and the given body. We can't `throw createError({...})` from the
 // handler — h3's error path serializes the body as `{ statusCode,
@@ -95,8 +97,6 @@ registerEndpoint('/api/ai/abort', {
     return respond(event, out)
   }
 })
-
-import { useAI } from '~/composables/useAI'
 
 // — awareness helpers ——————————————————————————————————————————————
 //

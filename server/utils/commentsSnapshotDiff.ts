@@ -32,11 +32,11 @@ export interface SnapshotEntry {
   resolved: boolean
 }
 
-export type SnapshotEvent =
-  | { kind: 'comment.added', userId: number | null, userName: string, commentId: string, bodyPreview: string }
-  | { kind: 'comment.replied', userId: number | null, userName: string, commentId: string, parentCommentId: string, bodyPreview: string }
-  | { kind: 'comment.resolved' | 'comment.reopened', userId: number | null, userName: string, commentId: string, bodyPreview: string }
-  | { kind: 'comment.deleted', userId: number | null, userName: string, commentId: string, bodyPreview: string, isReply: boolean }
+export type SnapshotEvent
+  = | { kind: 'comment.added', userId: number | null, userName: string, commentId: string, bodyPreview: string }
+    | { kind: 'comment.replied', userId: number | null, userName: string, commentId: string, parentCommentId: string, bodyPreview: string }
+    | { kind: 'comment.resolved' | 'comment.reopened', userId: number | null, userName: string, commentId: string, bodyPreview: string }
+    | { kind: 'comment.deleted', userId: number | null, userName: string, commentId: string, bodyPreview: string, isReply: boolean }
 
 const BODY_PREVIEW_LIMIT = 200
 

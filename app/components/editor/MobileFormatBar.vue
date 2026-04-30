@@ -113,12 +113,12 @@ function cycleHeading() {
 const listCycleStep = ref(0)
 const listSteps: Array<{ apply: (v: EditorView) => void, label: string, icon: string }> = [
   {
-    apply: (v) => toggleLinePrefix(v, '- '),
+    apply: v => toggleLinePrefix(v, '- '),
     label: 'Bullet list',
     icon: 'i-lucide-list'
   },
   {
-    apply: (v) => toggleOrderedList(v),
+    apply: v => toggleOrderedList(v),
     label: 'Numbered list',
     icon: 'i-lucide-list-ordered'
   }
@@ -194,7 +194,10 @@ function link() {
         @mousedown.prevent
         @click="bold"
       >
-        <UIcon name="i-lucide-bold" class="size-4" />
+        <UIcon
+          name="i-lucide-bold"
+          class="size-4"
+        />
       </button>
       <button
         type="button"
@@ -203,7 +206,10 @@ function link() {
         @mousedown.prevent
         @click="italic"
       >
-        <UIcon name="i-lucide-italic" class="size-4" />
+        <UIcon
+          name="i-lucide-italic"
+          class="size-4"
+        />
       </button>
       <button
         type="button"
@@ -221,7 +227,10 @@ function link() {
         @mousedown.prevent
         @click="cycleList"
       >
-        <UIcon :name="currentListIcon" class="size-4" />
+        <UIcon
+          :name="currentListIcon"
+          class="size-4"
+        />
       </button>
       <button
         type="button"
@@ -230,7 +239,10 @@ function link() {
         @mousedown.prevent
         @click="link"
       >
-        <UIcon name="i-lucide-link" class="size-4" />
+        <UIcon
+          name="i-lucide-link"
+          class="size-4"
+        />
       </button>
     </div>
 
@@ -242,7 +254,10 @@ function link() {
       @mousedown.prevent
       @click="emit('open-insert-sheet')"
     >
-      <UIcon name="i-lucide-plus" class="size-5" />
+      <UIcon
+        name="i-lucide-plus"
+        class="size-5"
+      />
     </button>
   </div>
 </template>

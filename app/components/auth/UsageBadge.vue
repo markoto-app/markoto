@@ -83,7 +83,7 @@ async function onUpgrade(): Promise<void> {
     window.location.href = url
   } catch (e) {
     const err = e as { data?: { message?: string }, message?: string }
-    // eslint-disable-next-line no-alert
+
     console.warn('[usage-badge] checkout failed; routing to /pricing:', err)
     open.value = false
     router.push('/pricing')
@@ -131,7 +131,11 @@ function onManage(): void {
           <h3 class="text-sm font-semibold">
             {{ t('topbar.creditsTooltipTitle') }}
           </h3>
-          <UBadge size="xs" variant="subtle" color="neutral">
+          <UBadge
+            size="xs"
+            variant="subtle"
+            color="neutral"
+          >
             {{ planLabel }}
           </UBadge>
         </div>
@@ -156,7 +160,10 @@ function onManage(): void {
 
         <!-- Reset line -->
         <div class="flex items-center gap-2 text-xs text-muted">
-          <UIcon name="i-lucide-calendar" class="size-3.5 shrink-0" />
+          <UIcon
+            name="i-lucide-calendar"
+            class="size-3.5 shrink-0"
+          />
           <span>{{ t('topbar.creditsResetOn', { date: resetDate }) }}</span>
         </div>
 
@@ -177,7 +184,10 @@ function onManage(): void {
           >
             {{ t('topbar.upgradeToPlan', { plan: nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) }) }}
           </UButton>
-          <p v-else class="text-xs text-center text-muted italic">
+          <p
+            v-else
+            class="text-xs text-center text-muted italic"
+          >
             {{ t('topbar.topPlan') }}
           </p>
           <UButton

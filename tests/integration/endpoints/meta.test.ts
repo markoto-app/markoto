@@ -199,7 +199,6 @@ describe('PUT /api/docs/:docId/meta', () => {
       const res = await client.put(`/api/docs/${doc.docId}/meta`, { accessMode: 'super-open' })
       expect(res.status).toBe(400)
     })
-
   })
 
   describe('wordCount and sizeBytes', () => {

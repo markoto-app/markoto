@@ -369,8 +369,8 @@ export async function resolveBillingContext(
     if (ws && ws.aiEnabled && ws.billingOwnerId !== null) {
       const sponsor = await getUserPlan(ws.billingOwnerId)
       if (sponsor
-          && supportsTeamBilling(sponsor.plan)
-          && planActive(sponsor.plan, sponsor.planValidUntil, now)) {
+        && supportsTeamBilling(sponsor.plan)
+        && planActive(sponsor.plan, sponsor.planValidUntil, now)) {
         // Period follows the SPONSOR's cycle — every member of a
         // (+) workspace shares one counter row keyed on the
         // sponsor's period, resetting when their invoice renews.

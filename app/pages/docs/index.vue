@@ -95,7 +95,10 @@ const { open: openSearch } = useContentSearch()
           class="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.06em] uppercase text-muted hover:text-default transition-colors"
           @click="openSearch = true"
         >
-          <UIcon name="i-lucide-search" class="size-3.5" />
+          <UIcon
+            name="i-lucide-search"
+            class="size-3.5"
+          />
           <span>search</span>
           <kbd class="ml-1 px-1.5 py-0.5 rounded border border-default/70 bg-default text-[10px] font-mono tracking-normal text-default normal-case">⌘K</kbd>
         </button>
@@ -109,7 +112,10 @@ const { open: openSearch } = useContentSearch()
          shu stays AI-only. Hover is now a calm sumi border + bone fill
          lift. Section eyebrow uses the JetBrains Mono 0.06em register
          that runs through the whole product. -->
-    <section v-if="featured?.length" class="mb-10 sm:mb-16">
+    <section
+      v-if="featured?.length"
+      class="mb-10 sm:mb-16"
+    >
       <div class="flex items-baseline justify-between gap-4 mb-5 flex-wrap">
         <h2 class="font-serif text-2xl sm:text-3xl font-normal tracking-tight">
           Start here
@@ -127,13 +133,19 @@ const { open: openSearch } = useContentSearch()
         >
           <div class="flex items-start gap-4">
             <div class="shrink-0 size-10 rounded-lg flex items-center justify-center bg-muted text-toned group-hover:text-default transition-colors">
-              <UIcon name="i-lucide-arrow-right" class="size-5" />
+              <UIcon
+                name="i-lucide-arrow-right"
+                class="size-5"
+              />
             </div>
             <div class="min-w-0 flex-1">
               <h3 class="font-serif text-lg font-normal mb-1">
                 {{ p.title }}
               </h3>
-              <p v-if="p.description" class="text-sm text-muted leading-relaxed">
+              <p
+                v-if="p.description"
+                class="text-sm text-muted leading-relaxed"
+              >
                 {{ p.description }}
               </p>
             </div>
@@ -159,7 +171,10 @@ const { open: openSearch } = useContentSearch()
           class="group p-4 sm:p-5 rounded-xl border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors"
         >
           <div class="size-10 rounded-lg flex items-center justify-center mb-3 bg-muted text-toned group-hover:text-default transition-colors">
-            <UIcon :name="cat.icon" class="size-5" />
+            <UIcon
+              :name="cat.icon"
+              class="size-5"
+            />
           </div>
           <h3 class="font-serif text-lg font-normal mb-1">
             {{ cat.title }}
