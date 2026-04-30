@@ -42,6 +42,19 @@ describe('coerceThemePatch', () => {
     expect('preset' in out).toBe(false)
   })
 
+  it('strips theme_id and from_workspace_default directives too', () => {
+    // Both new base sources are directives, not theme fields. Same
+    // contract as `preset` — they must not land on the merged DocTheme.
+    const out = coerceThemePatch({
+      theme_id: 'abc123',
+      from_workspace_default: true,
+      body: { size: 14 }
+    } as UpdateThemeInput) as { body: { size: number } }
+    expect('theme_id' in out).toBe(false)
+    expect('from_workspace_default' in out).toBe(false)
+    expect(out.body.size).toBe(14)
+  })
+
   it('preserves unrelated fields as-is', () => {
     const out = coerceThemePatch({ body: { size: 13 } } as UpdateThemeInput) as { body: { size: number } }
     expect(out.body.size).toBe(13)
@@ -112,6 +125,18 @@ describe('summarizePatch', () => {
     const s = summarizePatch({ preset: 'modern', layout: { columns: '2' } } as UpdateThemeInput)
     expect(s).toContain('preset=modern')
     expect(s).toContain('layout')
+  })
+
+  it('surfaces theme_id base source when present', () => {
+    const s = summarizePatch({ theme_id: 'abc123', body: { size: 14 } } as UpdateThemeInput)
+    expect(s).toContain('saved=abc123')
+    expect(s).toContain('body')
+  })
+
+  it('surfaces from_workspace_default base source when present', () => {
+    const s = summarizePatch({ from_workspace_default: true, color: { brand: '#000' } } as UpdateThemeInput)
+    expect(s).toContain('workspace-default')
+    expect(s).toContain('color')
   })
 
   it('reports "(no changes)" for empty patch', () => {

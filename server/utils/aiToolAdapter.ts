@@ -25,7 +25,10 @@ import type {
   CreateCommentInput,
   ReplyToCommentInput,
   ResolveCommentInput,
-  DeleteCommentInput
+  DeleteCommentInput,
+  GetThemeInput,
+  ListThemesInput,
+  SaveThemeAsPresetInput
 } from './agentic/functionTools'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
@@ -35,6 +38,13 @@ import { getDoc, updateDocMeta } from '../repos/documents'
 import { recordPending, markConfirmed } from '../repos/uploads'
 import { getKnowledgeWithMarkdown, searchKnowledge } from '../repos/knowledge'
 import { getMemberRole } from '../repos/workspaceMembers'
+import {
+  countThemesByUser,
+  createTheme,
+  getThemeById,
+  listThemesByUser
+} from '../repos/themes'
+import { getWorkspace } from '../repos/workspaces'
 import { canManageDoc } from './workspaceAccess'
 import { embedQuery } from './embeddings'
 import { chargeInteractions, BudgetExhausted } from './billing'
@@ -192,9 +202,11 @@ function handleInsert(
 /** @internal exported for unit tests; not part of the public API. */
 export function coerceThemePatch(patch: UpdateThemeInput): Record<string, unknown> {
   const out: Record<string, unknown> = { ...patch }
-  // `preset` is a directive, not a theme field — strip it so it doesn't
-  // leak into mergeTheme and land on the final DocTheme.
+  // Directives (NOT theme fields) — strip so they don't leak into
+  // mergeTheme and land on the final DocTheme.
   delete out.preset
+  delete out.theme_id
+  delete out.from_workspace_default
   if (patch.headings?.weight !== undefined) {
     out.headings = { ...patch.headings, weight: Number(patch.headings.weight) }
   }
@@ -236,8 +248,15 @@ export function mergeTheme(current: DocTheme, patch: Record<string, unknown>): D
 export function summarizePatch(patch: UpdateThemeInput): string {
   const parts: string[] = []
   if (patch.preset) parts.push(`preset=${patch.preset}`)
+  if (patch.theme_id) parts.push(`saved=${patch.theme_id}`)
+  if (patch.from_workspace_default) parts.push('workspace-default')
+  // Directive keys are tracked above; everything else is a theme-field
+  // section. `from_workspace_default` is a boolean (not an object), so
+  // the `typeof === 'object'` filter excludes it naturally — listed
+  // here for the linter / readers.
+  const DIRECTIVE_KEYS = new Set(['preset', 'theme_id', 'from_workspace_default'])
   const touched = Object.entries(patch)
-    .filter(([k, v]) => k !== 'preset' && v && typeof v === 'object' && Object.keys(v).length > 0)
+    .filter(([k, v]) => !DIRECTIVE_KEYS.has(k) && v && typeof v === 'object' && Object.keys(v).length > 0)
     .map(([k]) => k)
   if (touched.length) parts.push(touched.join(', '))
   return parts.length ? parts.join(' + ') : '(no changes)'
@@ -247,13 +266,26 @@ async function handleUpdateTheme(
   session: AiSession,
   input: UpdateThemeInput
 ): Promise<ToolResult> {
-  // Base theme selection:
-  //   - If `preset` is set, use that preset's theme as the base (full
-  //     replacement — user said "change to X", so current values are
-  //     discarded). Any other fields in the same call are then merged on
-  //     top of the preset.
-  //   - Otherwise, resolve the current theme: ymeta.theme → DB
-  //     documents.theme JSONB → defaultTheme.
+  // Base theme selection. The four sources in priority order are
+  // mutually exclusive — passing more than one is a usage error and
+  // we surface that loudly so the model self-corrects rather than
+  // silently picks one.
+  //
+  //   - `preset`                 — built-in id (markoto, modern, …)
+  //   - `theme_id`               — initiator's own saved-theme id
+  //   - `from_workspace_default` — workspace default (snapshot)
+  //   - default                  — current ymeta.theme → DB → markoto
+  //
+  // Any other fields in the same call merge on top of whichever base
+  // is chosen, so "preset academic with my brand red" is one call.
+  const baseSources: string[] = []
+  if (input.preset) baseSources.push('preset')
+  if (input.theme_id) baseSources.push('theme_id')
+  if (input.from_workspace_default) baseSources.push('from_workspace_default')
+  if (baseSources.length > 1) {
+    return err(`Error: pass only ONE of preset/theme_id/from_workspace_default; received: ${baseSources.join(', ')}.`)
+  }
+
   let base: DocTheme
   if (input.preset) {
     const preset = THEME_PRESETS.find(p => p.id === input.preset)
@@ -262,6 +294,25 @@ async function handleUpdateTheme(
       return err(`Error: Unknown preset "${input.preset}".`)
     }
     base = preset.theme
+  } else if (input.theme_id) {
+    // Saved themes are per-user. We tie ownership to the SESSION
+    // INITIATOR (the human who triggered the loop), not the AI's
+    // synthetic principal — so an AI session can't access another
+    // user's saved themes even if the caller hallucinates an id.
+    const saved = await getThemeById(input.theme_id, session.initiatorUserId)
+    if (!saved) {
+      return err(`Error: saved theme "${input.theme_id}" not found. Call list_themes for valid ids.`)
+    }
+    base = saved.theme
+  } else if (input.from_workspace_default) {
+    if (!session.workspaceId) {
+      return err('Error: from_workspace_default requires the document to be in a workspace.')
+    }
+    const ws = await getWorkspace(session.workspaceId)
+    if (!ws?.defaultTheme) {
+      return err('Error: this workspace has no default theme set. Ask an admin to set one, or pick a preset / saved theme instead.')
+    }
+    base = ws.defaultTheme
   } else {
     const fromYmeta = session.ymeta.get('theme')
     if (isValidTheme(fromYmeta)) {
@@ -305,6 +356,115 @@ async function handleUpdateTheme(
   }
 
   return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.`)
+}
+
+// --- Theme inspection / preset management --------------------------------
+
+/**
+ * Resolve the document's current theme, in the same priority order
+ * `handleUpdateTheme` uses for its no-base-source path:
+ *   ymeta.theme → DB documents.theme JSONB → markoto default.
+ *
+ * Shared because both `get_theme` and `save_theme_as_preset` need
+ * "what theme is the doc using right NOW," and we want them in lockstep.
+ */
+async function resolveCurrentTheme(session: AiSession): Promise<DocTheme> {
+  const fromYmeta = session.ymeta.get('theme')
+  if (isValidTheme(fromYmeta)) return fromYmeta
+  const doc = await getDoc(session.docId)
+  return (doc?.theme && isValidTheme(doc.theme)) ? doc.theme : defaultTheme
+}
+
+async function handleGetTheme(
+  session: AiSession,
+  _input: GetThemeInput
+): Promise<ToolResult> {
+  const theme = await resolveCurrentTheme(session)
+  // Pretty-print so the model can read structure in the conversation
+  // log. Stringification is bounded — DocTheme is small and flat (a
+  // few hundred chars when minified).
+  return ok(JSON.stringify(theme, null, 2))
+}
+
+async function handleListThemes(
+  session: AiSession,
+  _input: ListThemesInput
+): Promise<ToolResult> {
+  // Saved themes are SCOPED TO THE SESSION INITIATOR — never the AI's
+  // synthetic principal. This is the same ownership boundary
+  // `handleUpdateTheme` enforces when accepting a `theme_id`.
+  const saved = await listThemesByUser(session.initiatorUserId)
+  let workspaceDefault: DocTheme | null = null
+  if (session.workspaceId) {
+    const ws = await getWorkspace(session.workspaceId)
+    workspaceDefault = ws?.defaultTheme ?? null
+  }
+
+  // Surface the model's two halves clearly: a structured list of
+  // saved themes (ids included for `theme_id` callbacks) plus the
+  // workspace default as a separate field. Dumping JSON is more
+  // useful than a prose summary because the next likely action is
+  // `update_theme` with field-level overrides — the model wants to
+  // diff the JSONs.
+  const payload = {
+    savedThemes: saved.map(s => ({
+      theme_id: s.themeId,
+      name: s.name,
+      theme: s.theme
+    })),
+    workspaceDefault: workspaceDefault
+      ? { theme: workspaceDefault, scope: 'workspace' as const }
+      : null,
+    notes: [
+      'Pass theme_id to update_theme to apply a saved theme as the base.',
+      'Pass from_workspace_default: true to apply the workspace default.',
+      'Both replace the base; sibling fields (body.*, headings.*, color.*) merge on top.'
+    ]
+  }
+  return ok(JSON.stringify(payload, null, 2))
+}
+
+const MAX_THEMES_PER_USER = 20
+const MAX_THEME_NAME_LENGTH = 80
+
+async function handleSaveThemeAsPreset(
+  session: AiSession,
+  input: SaveThemeAsPresetInput
+): Promise<ToolResult> {
+  const name = input.name.trim()
+  if (!name) return err('Error: name is required (1–80 chars).')
+  if (name.length > MAX_THEME_NAME_LENGTH) {
+    return err(`Error: name too long (max ${MAX_THEME_NAME_LENGTH}).`)
+  }
+
+  // Saved themes are personal — anonymous AI sessions (no logged-in
+  // initiator) can't have saved themes. The `/api/ai/prompt` route
+  // requires login, so this branch is defence-in-depth.
+  if (!session.initiatorUserId) {
+    return err('Error: saving a theme requires a logged-in user.')
+  }
+
+  // Cap check before write — same 20-per-user rule the REST endpoint
+  // enforces. The cap is correctness-critical (storage growth), not a
+  // rate limit, so we re-check rather than relying on a Valkey hint.
+  const owned = await countThemesByUser(session.initiatorUserId)
+  if (owned >= MAX_THEMES_PER_USER) {
+    return err(`Error: you've reached the saved-theme limit (${MAX_THEMES_PER_USER}). Ask the user to delete an unused saved theme first.`)
+  }
+
+  const theme = await resolveCurrentTheme(session)
+
+  session.updateStatus('tool', `Saving theme as "${name.slice(0, 40)}"…`)
+
+  const themeId = nanoid(10)
+  await createTheme({
+    themeId,
+    userId: session.initiatorUserId,
+    name,
+    theme
+  })
+
+  return ok(`Saved current theme as "${name}" (theme_id: ${themeId}). It's now in the user's saved themes; reapply later via update_theme with theme_id.`)
 }
 
 // --- Set title ------------------------------------------------------------
@@ -671,6 +831,12 @@ export async function executeFunctionByName(
       return handleInsert(session, args as InsertTextInput)
     case 'update_theme':
       return handleUpdateTheme(session, args as UpdateThemeInput)
+    case 'get_theme':
+      return handleGetTheme(session, args as GetThemeInput)
+    case 'list_themes':
+      return handleListThemes(session, args as ListThemesInput)
+    case 'save_theme_as_preset':
+      return handleSaveThemeAsPreset(session, args as SaveThemeAsPresetInput)
     case 'set_title':
       return handleSetTitle(session, args as SetTitleInput)
     case 'view_image':
@@ -692,7 +858,7 @@ export async function executeFunctionByName(
     case 'delete_comment':
       return handleDeleteComment(session, args as DeleteCommentInput)
     default:
-      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, set_title, view_image, generate_image, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment.`)
+      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, get_theme, list_themes, save_theme_as_preset, set_title, view_image, generate_image, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment.`)
   }
 }
 

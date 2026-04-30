@@ -235,7 +235,7 @@ export function buildCommentTriggerBlock(thread: ResolvedThread): string {
 
   lines.push('')
   lines.push('Your task:')
-  lines.push(`- Take the action the triggering message asks for. Use the document tools (replace_text, insert_text, generate_image, update_theme, set_title, etc.) when the user wants something changed in the document.`)
+  lines.push(`- Take the action the triggering message asks for. Use the document tools (replace_text, insert_text, generate_image, update_theme, get_theme, list_themes, save_theme_as_preset, set_title, etc.) when the user wants something changed in the document.`)
   lines.push(`- End your turn with reply_to_comment(comment_id="${thread.commentId}", body="...") summarising what you did, addressing the asker by name if helpful.`)
   lines.push(`- Do NOT call create_comment — you are responding inside an existing thread, not opening a new one.`)
   lines.push(`- Do NOT call resolve_comment unless the triggering message explicitly asks you to resolve it. Resolution is a human action.`)
@@ -281,7 +281,10 @@ You have access to the following tools:
 - \`insert_text\` — insert text after a specific line (1-indexed; 0 means start of file).
 - \`web_search\` — search the web for up-to-date info.
 - \`fetch_url\` — fetch a SPECIFIC URL the user named or linked.
-- \`update_theme\` — change document styling. Available presets: ${PRESET_LIST}.
+- \`update_theme\` — change document styling. Available presets: ${PRESET_LIST}. Optional base sources (mutually exclusive): \`preset\` (built-in id), \`theme_id\` (saved-theme id from list_themes), or \`from_workspace_default: true\`.
+- \`get_theme\` — read the document's current theme as JSON. Use BEFORE update_theme for "tweak this" / "mix with" requests.
+- \`list_themes\` — list the user's saved themes + the workspace default. Use when the user names a theme by name ("apply my Brand red", "use the workspace default").
+- \`save_theme_as_preset\` — save the current theme as a personal preset. ONLY when the user explicitly asks to save / bookmark / remember a theme.
 - \`set_title\` — rename the document.
 - \`view_image\` — fetch an image embedded in the document.
 - \`generate_image\` — generate a photo/illustration from a prompt and upload it. Returns a markdown reference you must copy verbatim into insert_text/replace_text.
@@ -314,6 +317,9 @@ What to do when:
 
 Theme + title:
 - For styling requests ("@ai change the font to a serif", "@ai use the academic preset"), call \`update_theme\` and then \`reply_to_comment\` confirming. Available serif fonts: ${SERIF_FONTS}. Available sans-serif fonts: ${SANS_FONTS}.
+- For named-theme requests ("@ai apply my Brand red", "@ai use the workspace default"): \`list_themes\` first to resolve the name, then \`update_theme\` with \`theme_id\` (saved) or \`from_workspace_default: true\`.
+- For "mix" / "tweak" requests ("@ai mix this with academic", "@ai make it warmer"): \`get_theme\` first, then \`update_theme\` with sibling field overrides.
+- For SAVE requests ("@ai save this as 'Quarterly look'"): call \`save_theme_as_preset\` with the requested name, then \`reply_to_comment\` confirming. Do NOT call this unprompted.
 - For rename requests, call \`set_title\` then reply.
 
 Mentions in YOUR replies:

@@ -204,6 +204,56 @@ describe('update_theme schema', () => {
     expect(parse('update_theme', { page: { margin: 200 } }).success).toBe(false)
   })
 
+  it('accepts theme_id as a base source', () => {
+    // theme_id is the saved-theme equivalent of `preset` — a string
+    // id resolved server-side. Mutual exclusivity with preset is
+    // enforced in the handler, not the schema.
+    expect(parse('update_theme', { theme_id: 'abc12345xy' }).success).toBe(true)
+  })
+
+  it('rejects empty / oversized theme_id', () => {
+    expect(parse('update_theme', { theme_id: '' }).success).toBe(false)
+    expect(parse('update_theme', { theme_id: 'x'.repeat(65) }).success).toBe(false)
+  })
+
+  it('accepts from_workspace_default as a base source', () => {
+    expect(parse('update_theme', { from_workspace_default: true }).success).toBe(true)
+    expect(parse('update_theme', { from_workspace_default: false }).success).toBe(true)
+  })
+})
+
+describe('get_theme schema', () => {
+  it('accepts an empty object (no args)', () => {
+    expect(parse('get_theme', {}).success).toBe(true)
+  })
+})
+
+describe('list_themes schema', () => {
+  it('accepts an empty object (no args)', () => {
+    expect(parse('list_themes', {}).success).toBe(true)
+  })
+})
+
+describe('save_theme_as_preset schema', () => {
+  it('accepts a non-empty trimmed name', () => {
+    expect(parse('save_theme_as_preset', { name: 'Brand red' }).success).toBe(true)
+  })
+
+  it('rejects empty / whitespace-only name', () => {
+    expect(parse('save_theme_as_preset', { name: '' }).success).toBe(false)
+    expect(parse('save_theme_as_preset', { name: '   ' }).success).toBe(false)
+  })
+
+  it('rejects oversized name (>80 chars)', () => {
+    expect(parse('save_theme_as_preset', { name: 'x'.repeat(81) }).success).toBe(false)
+  })
+
+  it('rejects missing name', () => {
+    expect(parse('save_theme_as_preset', {}).success).toBe(false)
+  })
+})
+
+describe('update_theme schema (shared-enum drift guards)', () => {
   describe('shared-enum-schema drift guards', () => {
     // These schemas are imported from `shared/types/theme.ts`. If anyone
     // edits the theme schemas they should cascade here automatically.
@@ -396,11 +446,14 @@ describe('TOOL_SCHEMAS registry', () => {
       'fetch_url',
       'generate_image',
       'get_knowledge_file',
+      'get_theme',
       'insert_text',
+      'list_themes',
       'read_comments',
       'replace_text',
       'reply_to_comment',
       'resolve_comment',
+      'save_theme_as_preset',
       'search_knowledge',
       'set_title',
       'update_theme',

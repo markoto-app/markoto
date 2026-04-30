@@ -88,12 +88,28 @@ export function describeToolInput(name: string, args: Record<string, unknown>): 
     case 'insert_text':
       return 'Inserting text…'
     case 'update_theme': {
+      // Prefer surfacing a NAMED base source over the field-section
+      // count — it's what the user typed ("apply my Brand red") and
+      // reads like a status not a diagnostic.
+      if (typeof args.preset === 'string') return `Applying preset "${args.preset}"…`
+      if (typeof args.theme_id === 'string') return 'Applying a saved theme…'
+      if (args.from_workspace_default === true) return 'Applying workspace default theme…'
       const sections = Object.entries(args)
         .filter(([, v]) => v && typeof v === 'object' && Object.keys(v as object).length > 0)
         .map(([k]) => k)
       if (sections.length === 0) return 'Updating theme…'
       if (sections.length <= 2) return `Updating theme (${sections.join(', ')})…`
       return `Updating theme (${sections.length} sections)…`
+    }
+    case 'get_theme':
+      return 'Reading current theme…'
+    case 'list_themes':
+      return 'Listing your saved themes…'
+    case 'save_theme_as_preset': {
+      const name = typeof args.name === 'string' ? args.name.trim() : ''
+      if (!name) return 'Saving theme as preset…'
+      const preview = name.length > 40 ? name.slice(0, 40) + '…' : name
+      return `Saving theme as "${preview}"`
     }
     case 'set_title': {
       const title = typeof args.title === 'string' ? args.title.trim() : ''

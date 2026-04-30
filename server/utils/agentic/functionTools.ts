@@ -210,7 +210,11 @@ const RunningSlotsPatch = z.object({
 // both lists.
 const UpdateThemeArgs = z.object({
   preset: z.enum(PRESET_IDS).optional()
-    .describe(`Apply a built-in preset as the base, replacing ALL current theme values. Other fields passed alongside are applied on top of the preset. Available presets: ${PRESET_IDS.join(', ')}.`),
+    .describe(`Apply a built-in preset as the base, replacing ALL current theme values. Other fields passed alongside are applied on top of the preset. Available presets: ${PRESET_IDS.join(', ')}. Mutually exclusive with theme_id and from_workspace_default — pass only one base source.`),
+  theme_id: z.string().min(1).max(64).optional()
+    .describe('Apply one of the user\'s SAVED themes as the base, replacing ALL current theme values. The id comes from `list_themes` — never fabricate it. Other fields in the same call are merged on top. Mutually exclusive with `preset` and `from_workspace_default`.'),
+  from_workspace_default: z.boolean().optional()
+    .describe('Apply the workspace\'s default theme as the base, replacing ALL current theme values. Errors if the document is not in a workspace OR the workspace has no default set. Mutually exclusive with `preset` and `theme_id`.'),
   page: z.object({
     size: PageSizeSchema.optional(),
     orientation: PageOrientationSchema.optional(),
@@ -323,6 +327,29 @@ const UpdateThemeArgs = z.object({
   }).optional()
 }).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`).')
 
+// --- Theme inspection / preset management --------------------------------
+//
+// Three thin tools so the AI can reason about styling beyond just
+// "apply a built-in preset":
+//   - get_theme: read the current ymeta.theme. No args.
+//   - list_themes: enumerate the initiator's saved themes + the
+//     workspace default (when applicable). Drives "mix Brand red with
+//     academic" requests by giving the model both halves to compare.
+//   - save_theme_as_preset: capture the current ymeta.theme as a new
+//     row in `themes` for the initiator. Per-user 20-cap.
+//
+// All three reuse the `initiatorUserId` already on the AI session;
+// they're light enough to be ALWAYS-ON (no workspace-gated split).
+
+const GetThemeArgs = z.object({}).describe('Read the document\'s current theme as JSON. Use BEFORE calling `update_theme` for "mix theme X with theme Y" or "tweak the current colors" — without it you don\'t know what the doc looks like right now. Pure read; no edits.')
+
+const ListThemesArgs = z.object({}).describe('List the user\'s saved theme presets AND the workspace default theme (if the document is in a workspace and a default is set). Each saved theme returns its theme_id, name, and full theme JSON; pass the theme_id to `update_theme` to apply one as the base. Use when the user mentions a theme by name ("apply my Brand red", "use the workspace default"). Pure read; no edits.')
+
+const SaveThemeAsPresetArgs = z.object({
+  name: z.string().trim().min(1).max(80)
+    .describe('User-visible name for the preset (1–80 chars). Should describe what the theme is for ("Brand red", "Quarterly report", "Academic mix"). Becomes the label in the user\'s saved-themes list.')
+}).describe('Save the document\'s CURRENT theme as a personal preset for the initiator. Available across all their documents from the theme picker afterwards. Capped at 20 saved themes per user — call returns an error if the cap is reached. Only call when the user explicitly asks to save / bookmark / remember a theme. Does NOT change the current document\'s theme; pair with `update_theme` if they also want it applied somewhere.')
+
 // --- Inferred types the dispatcher consumes -------------------------------
 
 export type ViewDocumentInput = z.infer<typeof ViewDocumentArgs>
@@ -341,6 +368,9 @@ export type CreateCommentInput = z.infer<typeof CreateCommentArgs>
 export type ReplyToCommentInput = z.infer<typeof ReplyToCommentArgs>
 export type ResolveCommentInput = z.infer<typeof ResolveCommentArgs>
 export type DeleteCommentInput = z.infer<typeof DeleteCommentArgs>
+export type GetThemeInput = z.infer<typeof GetThemeArgs>
+export type ListThemesInput = z.infer<typeof ListThemesArgs>
+export type SaveThemeAsPresetInput = z.infer<typeof SaveThemeAsPresetArgs>
 
 // --- Name → schema registry used by runLoop for validate-before-dispatch --
 //
@@ -352,6 +382,9 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   insert_text: InsertTextArgs,
   web_search: WebSearchArgs,
   update_theme: UpdateThemeArgs,
+  get_theme: GetThemeArgs,
+  list_themes: ListThemesArgs,
+  save_theme_as_preset: SaveThemeAsPresetArgs,
   set_title: SetTitleArgs,
   view_image: ViewImageArgs,
   generate_image: GenerateImageArgs,
@@ -406,8 +439,23 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   ),
   decl(
     'update_theme',
-    'Update the document theme (page size, fonts, colors, margins, columns, headers/footers, code styling, tables, TOC, etc.). Pass ONLY the fields you want to change — omitted keys keep their current value. Changes appear live in the preview and persist. Use this whenever the user asks for typographic, layout, or styling changes.',
+    'Update the document theme (page size, fonts, colors, margins, columns, headers/footers, code styling, tables, TOC, etc.). Pass ONLY the fields you want to change — omitted keys keep their current value. Changes appear live in the preview and persist. Use this whenever the user asks for typographic, layout, or styling changes. Three optional base sources (mutually exclusive): `preset` (built-in id), `theme_id` (one of the user\'s saved themes from list_themes), or `from_workspace_default: true` (the workspace\'s default theme). Without any base source, your patch merges over the CURRENT theme.',
     UpdateThemeArgs
+  ),
+  decl(
+    'get_theme',
+    'Read the document\'s current theme as JSON. Use this BEFORE update_theme when the user asks for a TWEAK to current styling ("make it warmer", "tighten the margins") or wants to MIX the current theme with another. Without this call you can only blindly replace the theme.',
+    GetThemeArgs
+  ),
+  decl(
+    'list_themes',
+    'List the user\'s saved theme presets and the workspace\'s default theme (when applicable). Use BEFORE update_theme when the user names a theme by NAME ("apply my Brand red", "use the workspace default") or asks to combine two named themes. Returns each saved theme with its theme_id and full JSON so you can compare side-by-side and merge specific fields.',
+    ListThemesArgs
+  ),
+  decl(
+    'save_theme_as_preset',
+    'Save the CURRENT document theme as one of the user\'s personal presets, available across all their documents going forward. Per-user cap is 20 saved themes; over-cap calls error. Only call when the user explicitly asks to save / bookmark / remember a theme — never volunteer this. Does not modify the document.',
+    SaveThemeAsPresetArgs
   ),
   decl(
     'set_title',

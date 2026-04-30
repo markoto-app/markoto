@@ -75,8 +75,18 @@ describe('describeToolInput — insert_text', () => {
 describe('describeToolInput — update_theme', () => {
   it('returns generic "Updating theme…" when args has no nested sections', () => {
     expect(describeToolInput('update_theme', {})).toBe('Updating theme…')
-    // `preset` is a string, not an object — filter drops it.
-    expect(describeToolInput('update_theme', { preset: 'modern' })).toBe('Updating theme…')
+  })
+
+  it('prefers a named base source over the section-count fallback', () => {
+    // preset / theme_id / from_workspace_default are user-meaningful
+    // base sources — surface them in the live status instead of
+    // generic "Updating theme…".
+    expect(describeToolInput('update_theme', { preset: 'modern' }))
+      .toBe('Applying preset "modern"…')
+    expect(describeToolInput('update_theme', { theme_id: 'abc12345' }))
+      .toBe('Applying a saved theme…')
+    expect(describeToolInput('update_theme', { from_workspace_default: true }))
+      .toBe('Applying workspace default theme…')
   })
 
   it('lists sections when 1–2 are changed', () => {
@@ -101,6 +111,34 @@ describe('describeToolInput — update_theme', () => {
     // An AI call that passes `{ body: {} }` isn't "changing body".
     // filter requires Object.keys(v).length > 0 — pin it.
     expect(describeToolInput('update_theme', { body: {} })).toBe('Updating theme…')
+  })
+})
+
+describe('describeToolInput — get_theme / list_themes / save_theme_as_preset', () => {
+  it('get_theme uses a fixed read label', () => {
+    expect(describeToolInput('get_theme', {})).toBe('Reading current theme…')
+  })
+
+  it('list_themes uses a fixed list label', () => {
+    expect(describeToolInput('list_themes', {})).toBe('Listing your saved themes…')
+  })
+
+  it('save_theme_as_preset shows the trimmed name', () => {
+    expect(describeToolInput('save_theme_as_preset', { name: 'Brand red' }))
+      .toBe('Saving theme as "Brand red"')
+  })
+
+  it('save_theme_as_preset truncates names >40 chars', () => {
+    const forty = 'x'.repeat(40)
+    expect(describeToolInput('save_theme_as_preset', { name: 'x'.repeat(80) }))
+      .toBe(`Saving theme as "${forty}…"`)
+  })
+
+  it('save_theme_as_preset falls back when name is empty', () => {
+    expect(describeToolInput('save_theme_as_preset', { name: '' }))
+      .toBe('Saving theme as preset…')
+    expect(describeToolInput('save_theme_as_preset', { name: '   ' }))
+      .toBe('Saving theme as preset…')
   })
 })
 
