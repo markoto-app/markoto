@@ -1,3 +1,10 @@
+// `EditorView`, `ViewPlugin`, `Decoration`, and `WidgetType` are RUNTIME
+// values (CodeMirror classes used as `extends WidgetType`,
+// `Decoration.widget(...)`, `ViewPlugin.fromClass(...)`). The
+// `consistent-type-imports` lint rule flips these to `import type {}`
+// which silently breaks the build at runtime. The disable is targeted
+// — `DecorationSet` IS a type-only and stays inline-tagged.
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import {
   EditorView,
   ViewPlugin,

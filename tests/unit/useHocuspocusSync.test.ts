@@ -10,11 +10,14 @@ import { Awareness } from 'y-protocols/awareness'
 // before loading the composable.
 import { ref, shallowRef } from 'vue'
 
+// Shim `ref` / `shallowRef` onto globalThis BEFORE loading the
+// composable. The leading semicolons protect against ASI hazards if
+// the import lines above ever end without `;`.
+;(globalThis as unknown as { ref: typeof ref }).ref = ref
+;(globalThis as unknown as { shallowRef: typeof shallowRef }).shallowRef = shallowRef
+
 import { useHocuspocusSync, type ProviderLike } from '~/composables/useHocuspocusSync'
 import type { HocuspocusProviderConfiguration } from '@hocuspocus/provider'
-
-;(globalThis as unknown as { ref: typeof ref, shallowRef: typeof shallowRef }).ref = ref
-;(globalThis as unknown as { shallowRef: typeof shallowRef }).shallowRef = shallowRef
 
 // ═══════════════════════════════════════════════════════════════════════
 // Fake provider harness

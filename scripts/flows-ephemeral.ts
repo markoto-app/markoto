@@ -135,9 +135,15 @@ async function cleanup() {
   cleaningUp = true
   if (nuxtProc) {
     console.log('[flows-ephemeral] stopping Nuxt server')
-    try { nuxtProc.kill('SIGTERM') } catch {}
+    try {
+      nuxtProc.kill('SIGTERM')
+    } catch { /* already dead */ }
     // Give Nuxt a moment to drain. SIGKILL after if it didn't exit.
-    const t = setTimeout(() => { try { nuxtProc?.kill('SIGKILL') } catch {} }, 5000)
+    const t = setTimeout(() => {
+      try {
+        nuxtProc?.kill('SIGKILL')
+      } catch { /* already dead */ }
+    }, 5000)
     await nuxtProc.exited.catch(() => {})
     clearTimeout(t)
   }
