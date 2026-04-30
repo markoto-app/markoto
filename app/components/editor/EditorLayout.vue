@@ -747,7 +747,7 @@ useHead({
   title: () => `${title.value || t('editor.untitled')} — ${t('app.name')}`
 })
 
-const statusColor = computed(() => {
+const _statusColor = computed(() => {
   switch (status.value) {
     case 'connected': return 'success' as const
     case 'connecting': return 'warning' as const
@@ -756,7 +756,7 @@ const statusColor = computed(() => {
   }
 })
 
-const statusIcon = computed(() => {
+const _statusIcon = computed(() => {
   switch (status.value) {
     case 'connected': return 'i-lucide-wifi'
     case 'connecting': return 'i-lucide-loader'

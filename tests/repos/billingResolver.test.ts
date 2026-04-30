@@ -58,7 +58,9 @@ async function seedUsage(
 }
 
 describe('getInteractionsRemaining', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns the full cap when no period row exists', async () => {
     const remaining = await getInteractionsRemaining('user:42', 'pro')
@@ -93,7 +95,9 @@ describe('getInteractionsRemaining', () => {
 })
 
 describe('resolveBillingContext — self-billing branches', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('no workspace → bills the caller at the caller\'s plan', async () => {
     const u = await createUser()
@@ -147,7 +151,9 @@ describe('resolveBillingContext — self-billing branches', () => {
 })
 
 describe('resolveBillingContext — (+) workspace branches', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('workspace with ai_enabled=false → self-bill even if billing_owner_id is set', async () => {
     // The toggle is BOOLEAN + owner. The plan-lapse sweep flips the boolean
@@ -294,7 +300,9 @@ describe('resolveBillingContext — (+) workspace branches', () => {
 // feature for solo Max users who occasionally invite collaborators.
 
 describe('resolveBillingContext — caller IS the (+) sponsor', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('Max sponsor calling AI in their own (+) workspace → bills the WORKSPACE pool', async () => {
     const owner = await createUser()

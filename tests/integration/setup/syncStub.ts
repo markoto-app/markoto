@@ -25,7 +25,9 @@ export async function startSyncStub(): Promise<void> {
 
   server = createServer((req, res) => {
     let raw = ''
-    req.on('data', (chunk) => { raw += chunk })
+    req.on('data', (chunk) => {
+      raw += chunk
+    })
     req.on('end', () => {
       const headers: Record<string, string> = {}
       for (const [k, v] of Object.entries(req.headers)) {

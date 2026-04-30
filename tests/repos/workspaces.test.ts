@@ -31,7 +31,9 @@ async function workspaceCount(): Promise<number> {
 }
 
 describe('createWorkspace', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('inserts the workspace row AND the creator-admin member row', async () => {
     const user = await createUser()
@@ -71,7 +73,9 @@ describe('createWorkspace', () => {
 })
 
 describe('updateWorkspace', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('applies a name update', async () => {
     const user = await createUser()
@@ -105,7 +109,9 @@ describe('updateWorkspace', () => {
 })
 
 describe('deleteWorkspaceRow', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('removes the workspace row', async () => {
     const user = await createUser()
@@ -141,7 +147,9 @@ describe('deleteWorkspaceRow', () => {
 })
 
 describe('listWorkspacesForUser', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns only workspaces the user is a member of, with their role', async () => {
     const alice = await createUser()
@@ -176,7 +184,9 @@ describe('listWorkspacesForUser', () => {
 })
 
 describe('createWorkspace — race', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('two concurrent creates with different ids both land cleanly', async () => {
     // Sanity for the base case — no shared state, so both should

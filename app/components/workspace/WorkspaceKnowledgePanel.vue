@@ -67,10 +67,11 @@ const {
   {
     immediate: false,
     resetOnExecute: false,
-    onError: (e: any) => {
+    onError: (e: { data?: { message?: string }, message?: string } | unknown) => {
+      const err = e as { data?: { message?: string }, message?: string }
       toast.add({
         title: t('knowledge.loadFailed'),
-        description: e?.data?.message || e?.message,
+        description: err?.data?.message || err?.message,
         icon: 'i-lucide-alert-circle',
         color: 'error'
       })
@@ -190,10 +191,11 @@ async function uploadOne(file: File) {
       icon: 'i-lucide-check',
       color: 'success'
     })
-  } catch (e: any) {
+  } catch (e) {
+    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('knowledge.uploadFailed'),
-      description: e?.data?.message || e?.message || String(e),
+      description: err?.data?.message || err?.message || String(e),
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

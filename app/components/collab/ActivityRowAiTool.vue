@@ -26,7 +26,7 @@ interface AiToolMetadata {
   images?: FetchImage[]
 }
 
-const props = defineProps<{
+const _props = defineProps<{
   metadata: AiToolMetadata
 }>()
 

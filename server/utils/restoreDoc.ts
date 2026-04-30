@@ -198,10 +198,26 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
       // perceptible (which kicks in ~300ms).
       await new Promise(r => setTimeout(r, 200))
     } finally {
-      try { awareness.setLocalState(null) } catch { /* best-effort */ }
-      try { provider.disconnect() } catch { /* best-effort */ }
-      try { provider.destroy() } catch { /* best-effort */ }
-      try { ydoc.destroy() } catch { /* best-effort */ }
+      try {
+        awareness.setLocalState(null)
+      } catch {
+        /* best-effort */
+      }
+      try {
+        provider.disconnect()
+      } catch {
+        /* best-effort */
+      }
+      try {
+        provider.destroy()
+      } catch {
+        /* best-effort */
+      }
+      try {
+        ydoc.destroy()
+      } catch {
+        /* best-effort */
+      }
     }
 
     // Step 4: capture the post-restore yjs row id so the activity

@@ -23,7 +23,9 @@ async function rowCount(docId: string): Promise<number> {
 }
 
 describe('listConfirmedUploadsForDoc', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns only confirmed uploads for the requested doc', async () => {
     const user = await createUser()
@@ -94,7 +96,9 @@ describe('listConfirmedUploadsForDoc', () => {
 })
 
 describe('insertConfirmedUploads', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('bulk-inserts rows with confirmedAt auto-populated', async () => {
     const user = await createUser()

@@ -28,7 +28,9 @@ async function enableAiBilling(workspaceId: string, billingOwnerId: number): Pro
 }
 
 describe('resolveCaps — per-uploader tier', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('free uploader sees free-tier per-user caps regardless of workspace', async () => {
     const owner = await createUser()
@@ -58,7 +60,9 @@ describe('resolveCaps — per-uploader tier', () => {
 })
 
 describe('resolveCaps — per-workspace tier', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('workspace without (+) uses the CREATOR\'s tier for per-workspace caps', async () => {
     const creator = await createUser()

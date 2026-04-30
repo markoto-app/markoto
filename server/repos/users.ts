@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { users } from '../db/schema'
 import { useDatabase } from '../utils/database'
 

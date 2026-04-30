@@ -12,7 +12,10 @@ import * as Y from 'yjs'
 // exposes manual triggers for sync / auth-fail / close. Tests drive
 // the lifecycle deterministically rather than waiting for real WS.
 const providerCalls: Array<{
-  url: string, name: string, token: string, document: Y.Doc
+  url: string
+  name: string
+  token: string
+  document: Y.Doc
   options: Record<string, unknown>
 }> = []
 const providerInstances: MockProvider[] = []
@@ -102,7 +105,7 @@ const dbMock = {
   transaction: vi.fn(async (fn: (tx: { execute: (q: unknown) => Promise<unknown> }) => Promise<unknown>) => {
     let callIndex = 0
     const tx = {
-      execute: vi.fn(async (q: unknown) => {
+      execute: vi.fn(async (_q: unknown) => {
         callIndex += 1
         // The helper issues the advisory lock first, then SELECT
         // MAX(id) BEFORE, then (much later) SELECT MAX(id) AFTER.

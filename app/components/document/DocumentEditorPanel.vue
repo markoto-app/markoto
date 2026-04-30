@@ -47,7 +47,9 @@ const audienceDraft = ref(props.audience)
 
 const { ignoreUpdates: ignoreDescriptionUpdates } = watchIgnorable(descriptionDraft, (next) => {
   if (next.length > 500) {
-    ignoreDescriptionUpdates(() => { descriptionDraft.value = next.slice(0, 500) })
+    ignoreDescriptionUpdates(() => {
+      descriptionDraft.value = next.slice(0, 500)
+    })
     return
   }
   emit('update:description', next)
@@ -58,11 +60,15 @@ const { ignoreUpdates: ignoreAudienceUpdates } = watchIgnorable(audienceDraft, (
 
 watch(() => props.description, (next) => {
   if (next === descriptionDraft.value) return
-  ignoreDescriptionUpdates(() => { descriptionDraft.value = next })
+  ignoreDescriptionUpdates(() => {
+    descriptionDraft.value = next
+  })
 })
 watch(() => props.audience, (next) => {
   if (next === audienceDraft.value) return
-  ignoreAudienceUpdates(() => { audienceDraft.value = next })
+  ignoreAudienceUpdates(() => {
+    audienceDraft.value = next
+  })
 })
 
 // — Language combobox ────────────────────────────────────────────────
@@ -116,7 +122,9 @@ const { ignoreUpdates: ignoreLanguageUpdates } = watchIgnorable(languageModel, (
 
 watch(() => props.language, (next) => {
   if (next === languageModel.value.value) return
-  ignoreLanguageUpdates(() => { languageModel.value = languageToItem(next) })
+  ignoreLanguageUpdates(() => {
+    languageModel.value = languageToItem(next)
+  })
 })
 
 function onCreateLanguage(text: string): LanguageItem {

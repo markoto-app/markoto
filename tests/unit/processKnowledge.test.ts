@@ -443,7 +443,9 @@ describe('processKnowledge — adversarial: non-Error throwables', () => {
     // not `[object Object]`.
     selectQueue.push([row()])
     // Make the markitdown fetch throw a string.
-    fetchMock.mockImplementationOnce(() => { throw 'markitdown exploded' })
+    fetchMock.mockImplementationOnce(() => {
+      throw 'markitdown exploded'
+    })
 
     await processKnowledge('k1')
 
@@ -456,7 +458,9 @@ describe('processKnowledge — adversarial: non-Error throwables', () => {
     // A library that does `throw null` or `throw undefined` would crash
     // a `.message` access. Pin graceful handling.
     selectQueue.push([row()])
-    fetchMock.mockImplementationOnce(() => { throw null })
+    fetchMock.mockImplementationOnce(() => {
+      throw null
+    })
 
     await processKnowledge('k1')
 

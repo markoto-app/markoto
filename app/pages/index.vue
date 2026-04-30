@@ -7,7 +7,7 @@ const { loggedIn } = useUserSession()
 const { billing, workspaceCapReached } = useBilling()
 
 const toast = useToast()
-const { showError, showContextualError } = useErrorHandler()
+const { showContextualError } = useErrorHandler()
 
 // Tooltip shown when the user tries to hover the disabled
 // "New workspace" button. Concrete numbers so the limit is visible;
@@ -88,7 +88,7 @@ const workspacesFetched = ref(false)
 
 const {
   state: myDocs,
-  isLoading: loadingDocs,
+  isLoading: _loadingDocs,
   execute: loadDocs
 } = useAsyncState<DocumentListItem[]>(
   () => loggedIn.value ? $fetch<DocumentListItem[]>('/api/user/documents') : Promise.resolve([]),
@@ -107,7 +107,7 @@ const {
 
 const {
   state: myWorkspaces,
-  isLoading: loadingWorkspaces,
+  isLoading: _loadingWorkspaces,
   execute: loadWorkspaces
 } = useAsyncState<WorkspaceListItem[]>(
   () => loggedIn.value ? $fetch<WorkspaceListItem[]>('/api/user/workspaces') : Promise.resolve([]),

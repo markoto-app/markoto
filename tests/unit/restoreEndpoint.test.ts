@@ -260,8 +260,12 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
     })
 
     const callOrder: string[] = []
-    appendActivity.mockImplementationOnce(async () => { callOrder.push('append') })
-    pruneActivity.mockImplementationOnce(async () => { callOrder.push('prune') })
+    appendActivity.mockImplementationOnce(async () => {
+      callOrder.push('append')
+    })
+    pruneActivity.mockImplementationOnce(async () => {
+      callOrder.push('prune')
+    })
 
     await capturedHandler!(fakeEvent('doc-1', '41'))
 

@@ -68,7 +68,9 @@ async function seedKnowledgeRow(args: { workspaceId: string, knowledgeId: string
 }
 
 describe('searchKnowledge (hybrid)', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns a pure-lexical match when no semantic match exists', async () => {
     const u = await createUser()
@@ -236,7 +238,9 @@ describe('searchKnowledge (hybrid)', () => {
 // review (with a comment explaining the cost-benefit).
 
 describe('searchKnowledge — adversarial: query degenerate cases', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('all-stopwords queryText (BM25 returns empty tsquery) — vector still works', async () => {
     // `websearch_to_tsquery('english', 'the and of')` → empty tsquery →
@@ -295,7 +299,9 @@ describe('searchKnowledge — adversarial: query degenerate cases', () => {
 })
 
 describe('searchKnowledge — adversarial: topK edges', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('topK = 0 returns an empty array (no SQL error)', async () => {
     // `Math.max(0, 0*4) = 0` → `LIMIT 0` on both queries. Postgres
@@ -340,7 +346,9 @@ describe('searchKnowledge — adversarial: topK edges', () => {
 })
 
 describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('FINDING: anti-parallel vectors (similarity = -1) ARE returned with default threshold=0', async () => {
     // The SQL guard is `threshold > 0 ? '${similarity} > ${threshold}' : true`.
@@ -412,7 +420,9 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
 })
 
 describe('searchKnowledge — zero-vector NaN guard', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('a zero-vector chunk does NOT pollute results (NaN filtered out)', async () => {
     // Empirical finding: in Postgres, `NaN > 0.5` returns TRUE and
@@ -484,7 +494,9 @@ describe('searchKnowledge — zero-vector NaN guard', () => {
 })
 
 describe('searchKnowledge — schema invariant: knowledgeId is globally unique', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('PINNED INVARIANT: knowledge_id_unique constraint blocks cross-workspace id collision', async () => {
     // Hypothesis-falsifying probe: I'd assumed knowledgeIds could

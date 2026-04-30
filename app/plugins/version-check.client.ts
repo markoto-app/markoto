@@ -94,5 +94,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   // tying this through the composable still does the right thing in
   // dev/HMR).
   const focused = useWindowFocus()
-  watch(focused, (v) => { if (v) checkBuildId() })
+  watch(focused, (v) => {
+    if (v) checkBuildId()
+  })
 })

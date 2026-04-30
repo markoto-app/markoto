@@ -204,7 +204,11 @@ export default defineEventHandler({
       if (parsedControl) {
         if (parsedControl.type === 'stop') {
           ctx.sttEnded = true
-          try { ctx.stt?.end() } catch { /* best-effort */ }
+          try {
+            ctx.stt?.end()
+          } catch {
+            /* best-effort */
+          }
         }
         return
       }
@@ -267,7 +271,11 @@ export default defineEventHandler({
       if (ctx.authTimer) clearTimeout(ctx.authTimer)
       if (ctx.idleTimer) clearTimeout(ctx.idleTimer)
       if (ctx.hardCapTimer) clearTimeout(ctx.hardCapTimer)
-      try { ctx.stt?.destroy() } catch { /* best-effort */ }
+      try {
+        ctx.stt?.destroy()
+      } catch {
+        /* best-effort */
+      }
       if (ctx.userId !== undefined) {
         void releaseSessionLock('ai-dictate-active', String(ctx.userId))
         void finaliseDictateBilling(ctx)
@@ -281,7 +289,11 @@ export default defineEventHandler({
       })
       const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
       ctx.closed = true
-      try { ctx.stt?.destroy() } catch { /* best-effort */ }
+      try {
+        ctx.stt?.destroy()
+      } catch {
+        /* best-effort */
+      }
       if (ctx.userId !== undefined) {
         void releaseSessionLock('ai-dictate-active', String(ctx.userId))
         void finaliseDictateBilling(ctx)

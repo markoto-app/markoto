@@ -45,7 +45,9 @@ async function seed(args: {
 }
 
 describe('disambiguateFilename', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns the original filename when not taken', async () => {
     const u = await createUser()
@@ -92,7 +94,9 @@ describe('disambiguateFilename', () => {
 })
 
 describe('aggregate counters', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('count + sum reflect only the given workspace', async () => {
     const u = await createUser()
@@ -116,7 +120,9 @@ describe('aggregate counters', () => {
 })
 
 describe('listReadyKnowledgeBrief', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('includes only ready rows', async () => {
     const u = await createUser()
@@ -137,7 +143,9 @@ describe('listReadyKnowledgeBrief', () => {
 })
 
 describe('deleteKnowledgeRow', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('deletes the row (chunks cascade via FK; verified separately)', async () => {
     const u = await createUser()

@@ -36,7 +36,9 @@ function makeEntry(overrides: Partial<Parameters<typeof addAiSession>[0]> = {}):
 }
 
 describe('addAiSession / getAiSession', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('round-trips a session through the registry', async () => {
     const user = await createUser()
@@ -72,7 +74,9 @@ describe('addAiSession / getAiSession', () => {
 })
 
 describe('per-user-per-doc UNIQUE cap', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('second addAiSession for the same (user, doc) throws DuplicateSessionError', async () => {
     const user = await createUser()
@@ -134,7 +138,9 @@ describe('per-user-per-doc UNIQUE cap', () => {
 })
 
 describe('removeAiSession', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('removes the DB row AND the local AbortController', async () => {
     const user = await createUser()
@@ -152,7 +158,9 @@ describe('removeAiSession', () => {
 })
 
 describe('abortController lifecycle', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('sessions added in this process have a local AbortController attached', async () => {
     const user = await createUser()
@@ -184,7 +192,9 @@ describe('abortController lifecycle', () => {
 })
 
 describe('snapshotAiSessions', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns every registered session', async () => {
     const alice = await createUser()
@@ -218,7 +228,9 @@ describe('snapshotAiSessions', () => {
 })
 
 describe('purgeStaleAiSessions', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   async function setStartedAt(sessionId: string, d: Date): Promise<void> {
     const db = testDb()

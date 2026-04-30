@@ -24,7 +24,9 @@ import { createUser, createDoc as seedDoc, createWorkspace, setMemberRole } from
 // side-effects.
 
 describe('getDoc / docExists', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns null for a nonexistent docId', async () => {
     expect(await getDoc('missing')).toBeNull()
@@ -53,7 +55,9 @@ describe('getDoc / docExists', () => {
 })
 
 describe('getDocWithActorRole', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns role=null for an anonymous caller', async () => {
     const owner = await createUser()
@@ -116,7 +120,9 @@ describe('getDocWithActorRole', () => {
 })
 
 describe('createDoc / deleteDocRow', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('creates a doc with the supplied fields', async () => {
     const user = await createUser()
@@ -141,7 +147,9 @@ describe('createDoc / deleteDocRow', () => {
 })
 
 describe('updateDocMeta', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('applies a partial title update and bumps lastActive', async () => {
     const user = await createUser()
@@ -188,7 +196,9 @@ describe('updateDocMeta', () => {
 })
 
 describe('setDocPassword / clearDocPassword', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('set flips accessMode to password-protected and stores the hash', async () => {
     const user = await createUser()
@@ -210,7 +220,9 @@ describe('setDocPassword / clearDocPassword', () => {
 })
 
 describe('bumpLastActive', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('moves lastActive forward without touching other fields', async () => {
     const user = await createUser()
@@ -227,7 +239,9 @@ describe('bumpLastActive', () => {
 })
 
 describe('list helpers', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('listOwnedByUser returns only that user\'s docs, ordered by lastActive desc', async () => {
     const alice = await createUser()

@@ -508,7 +508,9 @@ describe('view_other_document — trusted-client lifecycle', () => {
     const tc = makeTrustedClient('hi')
     // Simulate a corrupted ydoc by overriding ytext.toString.
     const ytext = tc.ydoc.getText('content')
-    ytext.toString = () => { throw new Error('synthetic-read-failure') }
+    ytext.toString = () => {
+      throw new Error('synthetic-read-failure')
+    }
     mockedOpenTrusted.mockResolvedValue(tc)
     const session = makeSession({ initiatorUserId: 100 })
     const res = await executeFunctionByName(session, 'view_other_document', { doc_id: 't' })

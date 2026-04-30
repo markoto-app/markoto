@@ -517,8 +517,13 @@ describe('useAI — prompt()', () => {
     // Gate the handler on a resolvable promise so the first call stays
     // pending while we fire the second.
     let resolveGate: () => void = () => {}
-    const gate = new Promise<void>((res) => { resolveGate = res })
-    promptEp.handler = async () => { await gate; return { sessionId: 'done' } }
+    const gate = new Promise<void>((res) => {
+      resolveGate = res
+    })
+    promptEp.handler = async () => {
+      await gate
+      return { sessionId: 'done' }
+    }
 
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
@@ -666,9 +671,10 @@ describe('useAI — clearLastError + submitting', () => {
     // test body — $fetch is async, so the handler hasn't run yet when
     // the test reaches `release()`. Instead, the handler awaits a
     // module-scoped gate that the test can resolve at any point.
-    let gate: Promise<void>
     let resolveGate: () => void = () => {}
-    gate = new Promise<void>((res) => { resolveGate = res })
+    const gate = new Promise<void>((res) => {
+      resolveGate = res
+    })
     promptEp.handler = async () => {
       await gate
       return { sessionId: 'ok' }

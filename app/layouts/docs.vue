@@ -45,7 +45,9 @@ const mobileNavOpen = ref(false)
 // Auto-close on route change so navigating from inside the drawer
 // doesn't leave it stranded over the new page.
 const route = useRoute()
-watch(() => route.path, () => { mobileNavOpen.value = false })
+watch(() => route.path, () => {
+  mobileNavOpen.value = false
+})
 </script>
 
 <template>

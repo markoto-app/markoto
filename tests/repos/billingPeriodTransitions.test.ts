@@ -56,7 +56,9 @@ describe('Model C — Free user uses calendar-month anchor', () => {
     await resetDb()
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('resolver returns calendar-month start for a free user', async () => {
     const u = await createUser()
@@ -86,7 +88,9 @@ describe('Model C — Free → Paid: new period anchor, counter starts fresh', (
     await resetDb()
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('pre-subscription free charges stay on the calendar row, post-subscription paid charges land on the Stripe row', async () => {
     const u = await createUser()
@@ -137,7 +141,9 @@ describe('Model C — Pro → Max mid-cycle upgrade', () => {
     await resetDb()
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('same period continues; counter carries; cap bumps', async () => {
     const u = await createUser()
@@ -181,7 +187,9 @@ describe('Model C — Max → Free via lapse: period reverts to calendar', () =>
     await resetDb()
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('resolver defensively uses calendar anchor when paid plan has lapsed', async () => {
     const u = await createUser()
@@ -229,7 +237,9 @@ describe('Model C — (+) workspace follows sponsor\'s period anchor', () => {
     await resetDb()
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('workspace counter is keyed on the sponsor\'s Stripe anniversary, not the caller\'s calendar', async () => {
     // This is the key test for a (+) workspace: if member A (Free,
@@ -240,7 +250,7 @@ describe('Model C — (+) workspace follows sponsor\'s period anchor', () => {
     // based on each member's personal calendar, and resolved
     // remaining would be nonsense.
     const memberA = await createUser()
-    const memberB = await createUser()
+    const _memberB = await createUser()
     const sponsor = await createUser()
     const sponsorStart = new Date('2026-04-10T00:00:00.000Z')
     const sponsorEnd = new Date('2026-05-10T00:00:00.000Z')

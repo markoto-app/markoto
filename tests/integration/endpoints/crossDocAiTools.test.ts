@@ -51,7 +51,9 @@ async function execTool(
 }
 
 describe('POST /api/_test/exec-ai-tool — gating', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('rejects anonymous callers with 401', async () => {
     // Spec: the test endpoint is gated by the same session check
@@ -92,7 +94,9 @@ describe('POST /api/_test/exec-ai-tool — gating', () => {
 // =====================================================================
 
 describe('list_workspace_documents — full-stack', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns sibling docs for a workspace admin', async () => {
     // Spec: the tool surfaces every other doc in the workspace,
@@ -198,7 +202,9 @@ describe('list_workspace_documents — full-stack', () => {
 // =====================================================================
 
 describe('view_other_document — anti-enumeration (404-shape)', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns 404-shape for a fully nonexistent target id', async () => {
     const user = await createUser()
@@ -265,7 +271,9 @@ describe('view_other_document — anti-enumeration (404-shape)', () => {
 })
 
 describe('view_other_document — password gate', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('non-member of password-protected doc gets the password message (NOT 404)', async () => {
     // Spec: when the user is recognised but the doc requires a
@@ -292,7 +300,9 @@ describe('view_other_document — password gate', () => {
 })
 
 describe('view_other_document — current-doc rejection', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('rejects when the target id matches the anchor doc', async () => {
     // Spec: must be rejected without leaking anything; model
@@ -321,7 +331,9 @@ describe('view_other_document — current-doc rejection', () => {
 })
 
 describe('view_other_document — URL parsing', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('rejects truly garbage input with a parse error (NOT 404-shape)', async () => {
     // Spec: garbage input must explain the parsing problem so the
@@ -359,7 +371,9 @@ describe('view_other_document — URL parsing', () => {
 // =====================================================================
 
 describe('view_other_document — membership drift', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('a former workspace member loses access after their membership row is deleted', async () => {
     // Spec: the access check is per-call. Even though we can't

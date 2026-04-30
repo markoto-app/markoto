@@ -55,7 +55,10 @@ mockNuxtImport('useI18n', () => {
 
 beforeEach(() => {
   toastAddMock.fn = vi.fn()
-  for (const k of Object.keys(translations)) delete translations[k]
+  for (const k of Object.keys(translations)) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete translations[k]
+  }
   missingKeys.clear()
   Object.assign(translations, {
     'error.generic': 'Something went wrong.',

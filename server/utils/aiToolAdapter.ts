@@ -617,7 +617,11 @@ async function handleViewOtherDocument(
     return err(`Error: failed to read document "${targetId}" from sync server: ${msg}.`)
   } finally {
     if (client) {
-      try { await client.destroy() } catch { /* */ }
+      try {
+        await client.destroy()
+      } catch {
+        /* best-effort cleanup */
+      }
     }
   }
 

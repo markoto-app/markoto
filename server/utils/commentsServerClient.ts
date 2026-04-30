@@ -101,19 +101,47 @@ export async function openTrustedCommentClient(
     await syncReady
   } catch (e) {
     // Best-effort cleanup before rethrowing.
-    try { provider.disconnect() } catch { /* */ }
-    try { provider.destroy() } catch { /* */ }
-    try { ydoc.destroy() } catch { /* */ }
+    try {
+      provider.disconnect()
+    } catch {
+      /* best-effort cleanup */
+    }
+    try {
+      provider.destroy()
+    } catch {
+      /* best-effort cleanup */
+    }
+    try {
+      ydoc.destroy()
+    } catch {
+      /* best-effort cleanup */
+    }
     throw e
   }
 
   const ycomments = ydoc.getArray<Y.Map<unknown>>('comments')
 
   const destroy = async () => {
-    try { awareness.setLocalState(null) } catch { /* */ }
-    try { provider.disconnect() } catch { /* */ }
-    try { provider.destroy() } catch { /* */ }
-    try { ydoc.destroy() } catch { /* */ }
+    try {
+      awareness.setLocalState(null)
+    } catch {
+      /* best-effort cleanup */
+    }
+    try {
+      provider.disconnect()
+    } catch {
+      /* best-effort cleanup */
+    }
+    try {
+      provider.destroy()
+    } catch {
+      /* best-effort cleanup */
+    }
+    try {
+      ydoc.destroy()
+    } catch {
+      /* best-effort cleanup */
+    }
   }
 
   return { ydoc, ycomments, destroy }

@@ -17,6 +17,8 @@ export default defineNitroPlugin((nitroApp) => {
     await runPlanLapseSweep()
   })()
 
-  const timer = setInterval(() => { void runPlanLapseSweep() }, SWEEP_INTERVAL_MS)
+  const timer = setInterval(() => {
+    void runPlanLapseSweep()
+  }, SWEEP_INTERVAL_MS)
   nitroApp.hooks.hook('close', () => clearInterval(timer))
 })

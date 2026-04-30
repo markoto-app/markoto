@@ -96,15 +96,24 @@ describe('duplicateDocument — happy path', () => {
   it('inserts the row, copies each upload to the new prefix, then clones Y.js state', async () => {
     const order: string[] = []
     getDoc.mockResolvedValueOnce(fakeSource())
-    insertDuplicateDoc.mockImplementationOnce(async () => { order.push('insertRow') })
+    insertDuplicateDoc.mockImplementationOnce(async () => {
+      order.push('insertRow')
+    })
     listConfirmedUploadsForDoc.mockResolvedValueOnce([
       { fileId: 'fa', s3Key: 'docs/SRC/fa', uploaderId: 1, contentType: 'image/png', sizeBytes: 100 },
       { fileId: 'fb', s3Key: 'docs/SRC/fb', uploaderId: 1, contentType: 'image/jpeg', sizeBytes: 200 }
     ])
     const s3 = makeS3()
-    s3.send.mockImplementation(async () => { order.push('s3copy'); return {} })
-    insertConfirmedUploads.mockImplementationOnce(async () => { order.push('insertUploads') })
-    cloneYjsStateWithUrlRewrite.mockImplementationOnce(async () => { order.push('cloneYjs') })
+    s3.send.mockImplementation(async () => {
+      order.push('s3copy')
+      return {}
+    })
+    insertConfirmedUploads.mockImplementationOnce(async () => {
+      order.push('insertUploads')
+    })
+    cloneYjsStateWithUrlRewrite.mockImplementationOnce(async () => {
+      order.push('cloneYjs')
+    })
 
     await duplicateDocument(baseInput(), { s3, bucket: 'my-bucket' })
 
@@ -255,8 +264,12 @@ describe('duplicateDocument — rollback', () => {
     const order: string[] = []
     getDoc.mockResolvedValueOnce(fakeSource())
     listConfirmedUploadsForDoc.mockResolvedValueOnce([])
-    deleteUploadsForDoc.mockImplementationOnce(async () => { order.push('uploads') })
-    deleteDocRow.mockImplementationOnce(async () => { order.push('row') })
+    deleteUploadsForDoc.mockImplementationOnce(async () => {
+      order.push('uploads')
+    })
+    deleteDocRow.mockImplementationOnce(async () => {
+      order.push('row')
+    })
     cloneYjsStateWithUrlRewrite.mockRejectedValueOnce(new Error('force rollback'))
 
     await expect(duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b' }))

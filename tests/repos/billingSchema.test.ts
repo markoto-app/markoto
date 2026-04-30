@@ -14,7 +14,9 @@ import { createUser, createWorkspace } from '../integration/setup/fixtures'
 // expectation.
 
 describe('users.plan — default behaviour', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('new users default to plan="free"', async () => {
     // Every new OAuth signup inherits Free. The Stripe webhook is
@@ -90,7 +92,9 @@ describe('users.plan — default behaviour', () => {
 })
 
 describe('workspaces — billing columns', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('new workspaces default to ai_enabled=false and billing_owner_id=NULL', async () => {
     // Safety default: `(+)` is opt-in. If this ever flipped to true
@@ -140,7 +144,9 @@ describe('workspaces — billing columns', () => {
 })
 
 describe('ai_usage_period — composite PK + atomic increment', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('allows same attributed_to across different periods', async () => {
     // A user's April row and May row must coexist — months don't

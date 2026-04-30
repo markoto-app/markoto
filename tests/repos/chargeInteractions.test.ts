@@ -29,7 +29,9 @@ describe('chargeInteractions — atomic increment', () => {
     // Unset TEST_MODE for this suite — we want real DB writes.
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('inserts a new period row when none exists', async () => {
     const result = await chargeInteractions({
@@ -90,7 +92,9 @@ describe('chargeInteractions — BudgetExhausted + rollback', () => {
     await resetDb()
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('throws BudgetExhausted when the charge would exceed cap', async () => {
     const period = currentPeriodStart()
@@ -164,7 +168,9 @@ describe('chargeInteractions — BudgetExhausted.used reflects DISK state, not t
     await resetDb()
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('after rollback, `used` is the pre-charge value (not pre-charge + delta)', async () => {
     // The UPDATE returns `interactions_used = X + delta` BEFORE we
@@ -233,7 +239,9 @@ describe('chargeInteractions — concurrent charges serialize via ON CONFLICT', 
     await resetDb()
     vi.stubEnv('TEST_MODE', '')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('10 concurrent charges of +1 sum exactly to 10 (no lost updates)', async () => {
     // The atomic INSERT...ON CONFLICT DO UPDATE is what makes the
@@ -328,7 +336,9 @@ describe('chargeInteractions — test-mode bypass', () => {
     await resetDb()
     vi.stubEnv('TEST_MODE', '1')
   })
-  afterEach(() => { vi.unstubAllEnvs() })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('TEST_MODE=1 returns full cap without touching the DB', async () => {
     const result = await chargeInteractions({

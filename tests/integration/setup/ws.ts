@@ -62,7 +62,11 @@ export async function openWs(pathAndQuery: string): Promise<WsClient> {
     // that need to assert on binary echoes can use `raw` directly.
     const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw)
     let parsed: WsJson
-    try { parsed = JSON.parse(text) } catch { return }
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      return
+    }
     // Match first matching waiter if any; otherwise queue.
     for (const predicate of waiters) {
       if (predicate(parsed)) {
@@ -83,7 +87,10 @@ export async function openWs(pathAndQuery: string): Promise<WsClient> {
 
   await new Promise<void>((resolve, reject) => {
     const fail = (err: Error) => reject(err)
-    ws.once('open', () => { ws.off('error', fail); resolve() })
+    ws.once('open', () => {
+      ws.off('error', fail)
+      resolve()
+    })
     ws.once('error', fail)
   })
 
@@ -102,7 +109,10 @@ export async function openWs(pathAndQuery: string): Promise<WsClient> {
           reject(new Error(`Timeout waiting for WS message after ${timeoutMs}ms`))
         }, timeoutMs)
         waiters.push(predicate)
-        waiterResolvers.set(predicate, (m) => { clearTimeout(timer); resolve(m) })
+        waiterResolvers.set(predicate, (m) => {
+          clearTimeout(timer)
+          resolve(m)
+        })
       })
     },
     nextMessageOfType(type, timeoutMs = 3000) {
@@ -112,7 +122,10 @@ export async function openWs(pathAndQuery: string): Promise<WsClient> {
       if (closeEvent) return Promise.resolve(closeEvent)
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error(`Timeout waiting for WS close after ${timeoutMs}ms`)), timeoutMs)
-        closeWaiters.push((e) => { clearTimeout(timer); resolve(e) })
+        closeWaiters.push((e) => {
+          clearTimeout(timer)
+          resolve(e)
+        })
       })
     },
     close() { ws.close() }
@@ -128,6 +141,10 @@ const openSockets: WsClient[] = []
 export function closeAllWs() {
   while (openSockets.length) {
     const c = openSockets.shift()!
-    try { c.raw.close() } catch { /* best-effort */ }
+    try {
+      c.raw.close()
+    } catch {
+      /* best-effort */
+    }
   }
 }

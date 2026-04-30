@@ -194,7 +194,7 @@ describe('requireContentMatchesExtension — text formats', () => {
 // EVERY other format's magic bytes — the rejection must be symmetric.
 // If any pair slips through, that's an upload-content-bypass hole.
 
-function docxBytes(): Uint8Array {
+function _docxBytes(): Uint8Array {
   // file-type detects DOCX/PPTX/XLSX by inspecting `[Content_Types].xml`
   // inside a PK-ZIP. A real DOCX is 10+ KB; for testing we need the
   // minimal container file-type will accept. We synthesize one below

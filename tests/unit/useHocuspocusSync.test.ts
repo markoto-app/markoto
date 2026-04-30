@@ -9,15 +9,15 @@ import { Awareness } from 'y-protocols/awareness'
 // step — NOT available here, so we shim `ref` / `readonly` globally
 // before loading the composable.
 import { ref, shallowRef } from 'vue'
-
-// Shim `ref` / `shallowRef` onto globalThis BEFORE loading the
-// composable. The leading semicolons protect against ASI hazards if
-// the import lines above ever end without `;`.
-;(globalThis as unknown as { ref: typeof ref }).ref = ref
-;(globalThis as unknown as { shallowRef: typeof shallowRef }).shallowRef = shallowRef
-
 import { useHocuspocusSync, type ProviderLike } from '~/composables/useHocuspocusSync'
 import type { HocuspocusProviderConfiguration } from '@hocuspocus/provider'
+
+// Shim `ref` / `shallowRef` onto globalThis so the composable can read
+// them without a Nuxt auto-import transform in this unit context. The
+// leading semicolons protect against ASI hazards.
+// eslint-disable-next-line import/newline-after-import
+;(globalThis as unknown as { ref: typeof ref }).ref = ref
+;(globalThis as unknown as { shallowRef: typeof shallowRef }).shallowRef = shallowRef
 
 // ═══════════════════════════════════════════════════════════════════════
 // Fake provider harness

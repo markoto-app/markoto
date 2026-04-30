@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from 'vitest'
-import type * as Y from 'yjs'
 import {
   performKickUser,
   type HocuspocusConnection,

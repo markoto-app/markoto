@@ -162,15 +162,21 @@ describe('deleteKnowledgeArtifact', () => {
     // logged + Sentry'd.
     const order: string[] = []
     getKnowledge.mockResolvedValueOnce({ s3Key: 'some/key' })
-    deleteKnowledgeRow.mockImplementationOnce(async () => { order.push('db') })
-    s3Send.mockImplementationOnce(async () => { order.push('s3') })
+    deleteKnowledgeRow.mockImplementationOnce(async () => {
+      order.push('db')
+    })
+    s3Send.mockImplementationOnce(async () => {
+      order.push('s3')
+    })
     await deleteKnowledgeArtifact('k1')
     expect(order).toEqual(['db', 's3'])
   })
 
   it('swallows S3 errors and routes to Sentry (DB delete already succeeded)', async () => {
     getKnowledge.mockResolvedValueOnce({ s3Key: 'some/key' })
-    s3Send.mockImplementationOnce(async () => { throw new Error('S3 down') })
+    s3Send.mockImplementationOnce(async () => {
+      throw new Error('S3 down')
+    })
     // Must NOT throw — the row is already gone, the user already saw success.
     await expect(deleteKnowledgeArtifact('k1')).resolves.toBeUndefined()
     expect(sentryCaptureException).toHaveBeenCalledOnce()

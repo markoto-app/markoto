@@ -75,10 +75,11 @@ async function addMember() {
     emit('updated', localMembers.value)
     newEmail.value = ''
     newRole.value = 'editor'
-  } catch (e: any) {
+  } catch (e) {
+    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('workspace.members.addFailed'),
-      description: e?.data?.message || e?.message,
+      description: err?.data?.message || err?.message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -97,10 +98,11 @@ async function changeRole(member: WorkspaceMember, role: 'admin' | 'editor' | 'v
     })
     localMembers.value = localMembers.value.map(m => m.userId === member.userId ? { ...m, role } : m)
     emit('updated', localMembers.value)
-  } catch (e: any) {
+  } catch (e) {
+    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('workspace.members.roleChangeFailed'),
-      description: e?.data?.message || e?.message,
+      description: err?.data?.message || err?.message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -123,10 +125,11 @@ async function removeMember(member: WorkspaceMember) {
       open.value = false
       emit('leave')
     }
-  } catch (e: any) {
+  } catch (e) {
+    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('workspace.members.removeFailed'),
-      description: e?.data?.message || e?.message,
+      description: err?.data?.message || err?.message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -135,11 +138,13 @@ async function removeMember(member: WorkspaceMember) {
   }
 }
 
-function roleItems(currentRole: 'admin' | 'editor' | 'viewer', member: WorkspaceMember) {
+type WorkspaceRole = 'admin' | 'editor' | 'viewer'
+
+function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
   return [
-    ['admin', 'editor', 'viewer'].map(role => ({
-      label: roleLabel(role as any) + (currentRole === role ? ' ✓' : ''),
-      onSelect: () => changeRole(member, role as any),
+    (['admin', 'editor', 'viewer'] as WorkspaceRole[]).map(role => ({
+      label: roleLabel(role) + (currentRole === role ? ' ✓' : ''),
+      onSelect: () => changeRole(member, role),
       disabled: currentRole === role
     }))
   ]

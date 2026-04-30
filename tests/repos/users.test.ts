@@ -24,7 +24,9 @@ async function upsert(input: Parameters<typeof upsertOAuthUser>[0]): Promise<num
 }
 
 describe('findUserById', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns null for a nonexistent id', async () => {
     expect(await findUserById(9999)).toBeNull()
@@ -44,7 +46,9 @@ describe('findUserById', () => {
 })
 
 describe('findUserNameById', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns just the name (lighter than findUserById)', async () => {
     const id = await upsert({
@@ -61,7 +65,9 @@ describe('findUserNameById', () => {
 })
 
 describe('findUserByEmail', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('finds a user by exact email', async () => {
     await upsert({
@@ -101,7 +107,9 @@ describe('findUserByEmail', () => {
 })
 
 describe('upsertOAuthUser — basic outcomes', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('insert path: creates a new user row', async () => {
     const r = await upsertOAuthUser({
@@ -192,7 +200,9 @@ describe('upsertOAuthUser — basic outcomes', () => {
 })
 
 describe('upsertOAuthUser — email-based merge', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('merges a second-provider signin into the existing row when email matches and is verified on BOTH sides', async () => {
     // Alice signs up with GitHub first.

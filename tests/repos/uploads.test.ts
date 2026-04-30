@@ -24,7 +24,9 @@ async function setCreatedAt(s3Key: string, d: Date): Promise<void> {
 }
 
 describe('recordPending / markConfirmed', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('inserts an unconfirmed row', async () => {
     const user = await createUser()
@@ -67,7 +69,9 @@ describe('recordPending / markConfirmed', () => {
 })
 
 describe('listStaleUnconfirmed / purgeStaleUnconfirmed', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns only unconfirmed AND older than the cutoff', async () => {
     const user = await createUser()
@@ -106,7 +110,9 @@ describe('listStaleUnconfirmed / purgeStaleUnconfirmed', () => {
 })
 
 describe('listAllS3Keys', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns every s3Key regardless of confirmed state', async () => {
     const user = await createUser()
@@ -120,7 +126,9 @@ describe('listAllS3Keys', () => {
 })
 
 describe('deleteUploadsForDoc', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('removes every upload row for that doc, leaves others alone', async () => {
     const user = await createUser()

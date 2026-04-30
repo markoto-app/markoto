@@ -45,7 +45,7 @@ async function insertActivityRow(
   return r.rows[0].id
 }
 
-async function insertYjsRow(docname: string, content: string): Promise<number> {
+async function insertYjsRow(docname: string, _content: string): Promise<number> {
   const db = testDb()
   // Minimal valid Y.js update encoded for the row. Doesn't need to
   // be replayable for these tests — the auth/validation gates fire

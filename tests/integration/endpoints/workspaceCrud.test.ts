@@ -133,7 +133,7 @@ describe('POST /api/workspaces/:wsId/members (invite)', () => {
 
   it('admin can invite with an explicit role', async () => {
     const admin = await createUser()
-    const invitee = await createUser({ email: 'viewer@test.local' })
+    const _invitee = await createUser({ email: 'viewer@test.local' })
     const ws = await createWorkspace(admin.id)
     const client = await loggedInClient(admin.id)
     const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {

@@ -10,7 +10,9 @@ import { TIERS } from '../../../shared/config/tiers'
 // workspace context).
 
 describe('GET /api/user/billing', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('401 for an unauthenticated caller', async () => {
     const res = await anonClient().get('/api/user/billing')

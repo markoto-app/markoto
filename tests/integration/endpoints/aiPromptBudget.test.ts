@@ -35,7 +35,9 @@ async function setUserPlan(userId: number, plan: 'free' | 'pro' | 'max' | 'ultra
 }
 
 describe('POST /api/ai/prompt — interaction budget gate', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('401 for an unauthenticated caller (sanity — pre-existing behaviour)', async () => {
     const res = await anonClient().post('/api/ai/prompt', { docId: 'x', prompt: 'hi' })

@@ -62,10 +62,22 @@ export async function createDoc(overrides: Partial<TestDoc> & CreateDocExtras = 
   // template_id='blank') — same shape as the real POST handler.
   const cols: string[] = ['doc_id', 'owner_id', 'workspace_id', 'access_mode', 'password_hash', 'title']
   const vals: unknown[] = [docId, ownerId, workspaceId, accessMode, passwordHash, title]
-  if (overrides.description !== undefined) { cols.push('description'); vals.push(overrides.description) }
-  if (overrides.audience !== undefined) { cols.push('audience'); vals.push(overrides.audience) }
-  if (overrides.language !== undefined) { cols.push('language'); vals.push(overrides.language) }
-  if (overrides.templateId !== undefined) { cols.push('template_id'); vals.push(overrides.templateId) }
+  if (overrides.description !== undefined) {
+    cols.push('description')
+    vals.push(overrides.description)
+  }
+  if (overrides.audience !== undefined) {
+    cols.push('audience')
+    vals.push(overrides.audience)
+  }
+  if (overrides.language !== undefined) {
+    cols.push('language')
+    vals.push(overrides.language)
+  }
+  if (overrides.templateId !== undefined) {
+    cols.push('template_id')
+    vals.push(overrides.templateId)
+  }
   const placeholders = vals.map((_, i) => `$${i + 1}`).join(', ')
   await db.query(
     `INSERT INTO documents (${cols.join(', ')}) VALUES (${placeholders})`,

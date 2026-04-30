@@ -257,10 +257,22 @@ function togglePlay() {
     scheduleAdvance()
   }
 }
-const goPrev = () => { stopPlay(); if (slideIdx.value > 0) slideIdx.value -= 1 }
-const goNext = () => { stopPlay(); if (slideIdx.value < entries.value.length - 1) slideIdx.value += 1 }
-const goStart = () => { stopPlay(); slideIdx.value = 0 }
-const goEnd = () => { stopPlay(); if (entries.value.length) slideIdx.value = entries.value.length - 1 }
+const goPrev = () => {
+  stopPlay()
+  if (slideIdx.value > 0) slideIdx.value -= 1
+}
+const goNext = () => {
+  stopPlay()
+  if (slideIdx.value < entries.value.length - 1) slideIdx.value += 1
+}
+const goStart = () => {
+  stopPlay()
+  slideIdx.value = 0
+}
+const goEnd = () => {
+  stopPlay()
+  if (entries.value.length) slideIdx.value = entries.value.length - 1
+}
 
 // Cursor coords for an entry — chapter has none; narration has
 // recorded coords but the renderer hides the cursor anyway.
@@ -300,9 +312,18 @@ watch(slideIdx, (idx) => {
 // Keyboard nav for slides — bound to the slides container so the
 // shortcuts only fire when it has focus (tabIndex on the wrapper).
 const slidesEl = ref<HTMLElement | null>(null)
-onKeyStroke('ArrowLeft', (e) => { e.preventDefault(); goPrev() }, { target: slidesEl })
-onKeyStroke('ArrowRight', (e) => { e.preventDefault(); goNext() }, { target: slidesEl })
-onKeyStroke(' ', (e) => { e.preventDefault(); togglePlay() }, { target: slidesEl })
+onKeyStroke('ArrowLeft', (e) => {
+  e.preventDefault()
+  goPrev()
+}, { target: slidesEl })
+onKeyStroke('ArrowRight', (e) => {
+  e.preventDefault()
+  goNext()
+}, { target: slidesEl })
+onKeyStroke(' ', (e) => {
+  e.preventDefault()
+  togglePlay()
+}, { target: slidesEl })
 
 // Touch + mouse-drag swipe nav — universal "next slide on swipe-left,
 // prev slide on swipe-right" pattern (Instagram stories / iOS Photos).

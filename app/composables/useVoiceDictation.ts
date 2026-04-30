@@ -78,7 +78,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   // within 10s (Gemini session slow to open, auth issue, upstream
   // outage), transition to `error` rather than spin forever. Cleared
   // in `startPumping` once we're actually recording.
-  const connectWatchdog: ReturnType<typeof setTimeout> | null = null
+  const _connectWatchdog: ReturnType<typeof setTimeout> | null = null
 
   // VueUse: mediaStream lifecycle + track cleanup. `enabled` flips
   // with our toggle; the composable will request permission the
@@ -273,7 +273,9 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     // Defer WS close slightly so the server's stop handler + any
     // trailing `final` message land before our onDisconnected fires.
     setTimeout(() => {
-      try { ws.close() } catch { /* best-effort */ }
+      try {
+        ws.close()
+      } catch { /* best-effort */ }
       wsUrl.value = undefined
     }, 300)
 
@@ -282,7 +284,9 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
 
   function fail(message: string) {
     cleanupAudioResources()
-    try { ws.close() } catch { /* best-effort */ }
+    try {
+      ws.close()
+    } catch { /* best-effort */ }
     wsUrl.value = undefined
     options.onError?.(message)
     errorMessage.value = message
@@ -305,9 +309,13 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   }
 
   function cleanupAudioResources() {
-    try { worklet?.disconnect() } catch { /* best-effort */ }
+    try {
+      worklet?.disconnect()
+    } catch { /* best-effort */ }
     worklet = null
-    try { source?.disconnect() } catch { /* best-effort */ }
+    try {
+      source?.disconnect()
+    } catch { /* best-effort */ }
     source = null
     if (audioCtx && audioCtx.state !== 'closed') {
       // close() returns a promise; fire-and-forget is fine, we're
@@ -323,7 +331,9 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   onUnmounted(() => {
     closing = true
     cleanupAudioResources()
-    try { ws.close() } catch { /* best-effort */ }
+    try {
+      ws.close()
+    } catch { /* best-effort */ }
   })
 
   return {

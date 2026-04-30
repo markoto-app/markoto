@@ -16,7 +16,9 @@ import type { DocTheme } from '../../shared/types/theme'
 // the newer invariants (lastActive bump, metadata fidelity, full-row copy).
 
 describe('moveDocToWorkspace', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('assigns the target workspaceId', async () => {
     const user = await createUser()
@@ -101,7 +103,9 @@ describe('moveDocToWorkspace', () => {
 })
 
 describe('insertDuplicateDoc', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('creates a new row mirroring the inherited fields', async () => {
     const user = await createUser()
@@ -203,7 +207,9 @@ describe('insertDuplicateDoc', () => {
 })
 
 describe('listOwnedByUser shape additions', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns workspaceId on each row so the dashboard can preselect the move modal', async () => {
     const user = await createUser()

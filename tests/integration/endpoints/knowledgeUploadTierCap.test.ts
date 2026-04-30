@@ -46,7 +46,9 @@ async function seedReadyKnowledge(
 }
 
 describe('POST /api/workspaces/:wsId/knowledge/upload-request — tier cap', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('free workspace: one more than the free per-workspace file cap returns 409', async () => {
     const u = await createUser()

@@ -46,9 +46,14 @@ describe('reconstructDocAtYjsId', () => {
 
   it('replays multiple rows in id order to compose state', async () => {
     // Three updates that, applied in order, build "abc".
-    const a = new Y.Doc(); a.getText('content').insert(0, 'a')
-    const ab = new Y.Doc(); Y.applyUpdate(ab, Y.encodeStateAsUpdate(a)); ab.getText('content').insert(1, 'b')
-    const abc = new Y.Doc(); Y.applyUpdate(abc, Y.encodeStateAsUpdate(ab)); abc.getText('content').insert(2, 'c')
+    const a = new Y.Doc()
+    a.getText('content').insert(0, 'a')
+    const ab = new Y.Doc()
+    Y.applyUpdate(ab, Y.encodeStateAsUpdate(a))
+    ab.getText('content').insert(1, 'b')
+    const abc = new Y.Doc()
+    Y.applyUpdate(abc, Y.encodeStateAsUpdate(ab))
+    abc.getText('content').insert(2, 'c')
 
     mockQuery.mockResolvedValue({ rows: [
       { value: bufferFromDoc(a) },

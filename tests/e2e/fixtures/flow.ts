@@ -210,7 +210,11 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // both signals agree.
     const theme: 'light' | 'dark' = variant.startsWith('dark') ? 'dark' : 'light'
     await page.addInitScript((v: string) => {
-      try { localStorage.setItem('nuxt-color-mode', v) } catch {}
+      try {
+        localStorage.setItem('nuxt-color-mode', v)
+      } catch {
+        // ignore storage failures
+      }
     }, theme)
 
     await page.addInitScript(() => {
@@ -333,7 +337,10 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         formSnap?: boolean
       } = {}
     ) => {
-      if (suppress) { suppress = false; return }
+      if (suppress) {
+        suppress = false
+        return
+      }
       await settle()
       // For approach/narration: read cursor live. For outcome: caller
       // passes the approach's cursor coords explicitly so the cursor
@@ -342,7 +349,11 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       // URL stamp — passing it through bypasses the staleness check).
       const cursor = opts.cursor !== undefined ? opts.cursor : await readCursor({ formSnap: opts.formSnap })
       const url = (() => {
-        try { return new URL(page.url()) } catch { return null }
+        try {
+          return new URL(page.url())
+        } catch {
+          return null
+        }
       })()
       const shotPath = url && url.protocol.startsWith('http') ? `${url.pathname}${url.search}` : '/'
       const highlights = mode === 'outcome' ? await resolveHighlights(opts.highlights) : undefined

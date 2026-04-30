@@ -90,7 +90,7 @@ function commentPlugin(md) {
     }
     return false
   })
-  md.inline.ruler.before('text', 'comment_inline', (state, silent) => {
+  md.inline.ruler.before('text', 'comment_inline', (state) => {
     if (state.src.charCodeAt(state.pos) !== 0x3C) return false
     if (state.src.slice(state.pos, state.pos + 4) !== '<!--') return false
     const end = state.src.indexOf('-->', state.pos + 4)

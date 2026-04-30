@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
+import { registerEndpoint } from '@nuxt/test-utils/runtime'
 import { EditorState, EditorSelection } from '@codemirror/state'
 import type { EditorView } from '@codemirror/view'
 import type { H3Event } from 'h3'
@@ -114,10 +114,14 @@ function gatedS3(): {
 } {
   let resolveGate: (r: Response) => void = () => {}
   let markCalled: () => void = () => {}
-  const called = new Promise<void>((res) => { markCalled = res })
+  const called = new Promise<void>((res) => {
+    markCalled = res
+  })
   s3Fetch.handler = () => {
     markCalled()
-    return new Promise<Response>((r) => { resolveGate = r })
+    return new Promise<Response>((r) => {
+      resolveGate = r
+    })
   }
   return {
     waitForCall: () => called,
@@ -459,7 +463,9 @@ describe('uploadAndInsert() — user-edit safety', () => {
     const resolvers: Array<(r: Response) => void> = []
     let notifyCalled: () => void = () => {}
     let callCount = 0
-    const bothCalled = new Promise<void>((res) => { notifyCalled = res })
+    const bothCalled = new Promise<void>((res) => {
+      notifyCalled = res
+    })
     s3Fetch.handler = () => {
       return new Promise<Response>((r) => {
         resolvers.push(r)

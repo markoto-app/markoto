@@ -38,7 +38,9 @@ async function readBilling(workspaceId: string): Promise<{
 }
 
 describe('PATCH /api/workspaces/:wsId/billing', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('401 for unauthenticated caller', async () => {
     const owner = await createUser()

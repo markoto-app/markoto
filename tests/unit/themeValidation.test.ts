@@ -372,6 +372,7 @@ describe('missing sections', () => {
     ]
     for (const section of sections) {
       const t = baseTheme() as unknown as Record<string, unknown>
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- test intentionally exercises missing-key detection across all theme sections
       delete t[section]
       expect(isValidTheme(t), `missing ${section}`).toBe(false)
     }

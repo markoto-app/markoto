@@ -67,7 +67,11 @@ async function withSelfHeal<T>(op: string, fn: () => Promise<T>): Promise<T> {
     captureException(e, { tags: { component: 'persistence', event: 'self_heal', op } })
     // Drop the broken pool before rebuilding — y-postgresql's PgAdapter
     // owns a Pool that won't release its prepared statements until destroy.
-    try { await pgdb.destroy() } catch { /* best-effort */ }
+    try {
+      await pgdb.destroy()
+    } catch {
+      /* best-effort */
+    }
     pgdb = await buildPgdb()
     return await fn()
   }

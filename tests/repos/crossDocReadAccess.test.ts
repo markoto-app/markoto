@@ -35,7 +35,9 @@ async function checkAccess(docId: string, actorUserId: number) {
 }
 
 describe('cross-doc read access — owner', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('owner can always read their private doc', async () => {
     const user = await createUser()
@@ -58,7 +60,9 @@ describe('cross-doc read access — owner', () => {
 })
 
 describe('cross-doc read access — non-owner, non-member', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('stranger CANNOT read someone\'s private doc (forbidden)', async () => {
     const owner = await createUser()
@@ -97,7 +101,9 @@ describe('cross-doc read access — non-owner, non-member', () => {
 })
 
 describe('cross-doc read access — workspace member', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('viewer CAN read a workspace doc (read-only access is enough)', async () => {
     const owner = await createUser()
@@ -178,7 +184,9 @@ describe('cross-doc read access — workspace member', () => {
 })
 
 describe('cross-doc read access — non-existent doc', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns not_found for a non-existent id', async () => {
     const user = await createUser()

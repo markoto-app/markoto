@@ -17,7 +17,9 @@ import {
 } from '../integration/setup/fixtures'
 
 describe('getMemberRole', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns the role for a member', async () => {
     const admin = await createUser()
@@ -41,7 +43,9 @@ describe('getMemberRole', () => {
 })
 
 describe('listMembers', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns every member, ordered admin → editor → viewer', async () => {
     const admin = await createUser({ name: 'Admin' })
@@ -64,7 +68,9 @@ describe('listMembers', () => {
 })
 
 describe('listMembersForDoc', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('flags the doc owner via isDocOwner', async () => {
     const creator = await createUser()
@@ -80,7 +86,9 @@ describe('listMembersForDoc', () => {
 })
 
 describe('countAdmins', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('counts only admins', async () => {
     const a1 = await createUser()
@@ -104,7 +112,9 @@ describe('countAdmins', () => {
 })
 
 describe('addMember', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('inserts a new member with the supplied role', async () => {
     const admin = await createUser()
@@ -124,7 +134,9 @@ describe('addMember', () => {
 })
 
 describe('setRole', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('promotes editor → admin', async () => {
     const admin = await createUser()
@@ -174,7 +186,9 @@ describe('setRole', () => {
 })
 
 describe('removeMember', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('removes a non-admin member', async () => {
     const admin = await createUser()
@@ -213,7 +227,9 @@ describe('removeMember', () => {
 })
 
 describe('last-admin invariant — concurrent races', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('two concurrent admin-demotions on a two-admin workspace: exactly one succeeds', async () => {
     // Without the setRole transaction, both calls could read adminCount=2,

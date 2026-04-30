@@ -16,7 +16,11 @@ import DiffView from './DiffView.vue'
 
 interface DiffLine { kind: 'context' | 'add' | 'remove', text: string }
 interface DiffHunk {
-  oldStart: number, oldLines: number, newStart: number, newLines: number, lines: DiffLine[]
+  oldStart: number
+  oldLines: number
+  newStart: number
+  newLines: number
+  lines: DiffLine[]
 }
 interface DiffResponse {
   activityId: number

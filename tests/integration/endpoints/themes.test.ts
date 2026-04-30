@@ -30,7 +30,9 @@ async function readDocTheme(docId: string) {
 }
 
 describe('GET /api/themes — list', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('rejects anonymous callers with 401', async () => {
     const res = await anonClient().get('/api/themes')
@@ -61,7 +63,9 @@ describe('GET /api/themes — list', () => {
 })
 
 describe('POST /api/themes — create', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('rejects anonymous callers with 401', async () => {
     const res = await anonClient().post('/api/themes', { name: 'X', theme: TINY_THEME })
@@ -108,7 +112,9 @@ describe('POST /api/themes — create', () => {
 })
 
 describe('PATCH /api/themes/:themeId — rename / replace', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('renames a theme owned by the caller', async () => {
     const user = await createUser()
@@ -140,7 +146,9 @@ describe('PATCH /api/themes/:themeId — rename / replace', () => {
 })
 
 describe('DELETE /api/themes/:themeId', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('deletes a theme owned by the caller', async () => {
     const user = await createUser()
@@ -164,7 +172,9 @@ describe('DELETE /api/themes/:themeId', () => {
 })
 
 describe('PUT /api/workspaces/:wsId — defaultTheme', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('admin can set the workspace default theme', async () => {
     const admin = await createUser()
@@ -216,7 +226,9 @@ describe('PUT /api/workspaces/:wsId — defaultTheme', () => {
 })
 
 describe('POST /api/docs — theme resolution order', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('seeds with the workspace default when no themePreset/themeId is supplied', async () => {
     const admin = await createUser()
@@ -310,7 +322,9 @@ describe('POST /api/docs — theme resolution order', () => {
 })
 
 describe('GET /api/workspaces/:wsId — defaultTheme surfaced', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns defaultTheme=null when not set', async () => {
     const admin = await createUser()

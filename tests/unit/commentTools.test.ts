@@ -253,7 +253,7 @@ describe('create_comment', () => {
     expect((replies as Y.Array<unknown>).length).toBe(0)
 
     // Verify the anchor resolves to the correct text
-    const { session: s2 } = makeSession('line one\nline two\nline three')
+    const { session: _s2 } = makeSession('line one\nline two\nline three')
     // Copy ycomments entry into s2's ydoc to test anchor resolution independently
     const anchorStart = map.get('anchorStart') as string
     const anchorEnd = map.get('anchorEnd') as string

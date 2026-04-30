@@ -204,7 +204,9 @@ describe('GET /api/workspaces/:wsId/knowledge', () => {
 })
 
 describe('POST /api/workspaces/:wsId/knowledge/confirm — input binding', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('400 when knowledgeId does not match s3Key tail', async () => {
     const owner = await createUser()
@@ -226,7 +228,9 @@ describe('POST /api/workspaces/:wsId/knowledge/confirm — input binding', () =>
 })
 
 describe('per-user knowledge caps', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('409 when the caller has hit their per-user file count across workspaces', async () => {
     const u = await createUser()
@@ -262,7 +266,9 @@ describe('per-user knowledge caps', () => {
 })
 
 describe('POST /api/workspaces — per-user workspace cap', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('409 once the user has hit maxPerUser owned workspaces', async () => {
     const u = await createUser()

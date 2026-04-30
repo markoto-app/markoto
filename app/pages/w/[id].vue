@@ -51,9 +51,10 @@ const {
     // `data.value.workspace.name = …` post-load. shallowRef (the
     // useAsyncState default) wouldn't notify on those nested writes.
     shallow: false,
-    onError: (e: any) => {
-      if (e?.statusCode === 404) notFound.value = true
-      else if (e?.statusCode === 403 || e?.statusCode === 401) forbidden.value = true
+    onError: (e: unknown) => {
+      const err = e as { statusCode?: number } | null
+      if (err?.statusCode === 404) notFound.value = true
+      else if (err?.statusCode === 403 || err?.statusCode === 401) forbidden.value = true
       else showError('workspace.notFound', e)
     }
   }
@@ -78,7 +79,7 @@ useHead({
 const myRole = computed(() => data.value?.workspace.myRole ?? null)
 const isAdmin = computed(() => myRole.value === 'admin')
 const canCreateDoc = computed(() => myRole.value === 'admin' || myRole.value === 'editor')
-const myUserId = computed(() => (user.value as any)?.id as number | undefined)
+const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
@@ -200,9 +201,16 @@ function onLeftWorkspace() {
 
 // Admin vs non-admin see different workspace-level actions. Computed so the
 // dropdown content swaps based on role without two separate templates.
+interface MenuItem {
+  label: string
+  icon: string
+  color?: string
+  onSelect: () => void
+}
+
 const workspaceMenuItems = computed(() => {
   if (!data.value) return []
-  const items: any[] = [
+  const items: MenuItem[] = [
     {
       label: t('workspace.members.manageTitle'),
       icon: 'i-lucide-users',
@@ -237,10 +245,11 @@ async function leaveWorkspace() {
   try {
     await $fetch(`/api/workspaces/${data.value.workspace.workspaceId}/members/${myUserId.value}`, { method: 'DELETE' })
     onLeftWorkspace()
-  } catch (e: any) {
+  } catch (e) {
+    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('workspace.members.leaveFailed'),
-      description: e?.data?.message || e?.message,
+      description: err?.data?.message || err?.message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

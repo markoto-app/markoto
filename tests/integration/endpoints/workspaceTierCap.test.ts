@@ -21,7 +21,9 @@ async function setUserPlan(
 }
 
 describe('POST /api/workspaces — tier-aware workspacesOwned cap', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   // Parameterised: one scenario per tier. Creating (cap-1) workspaces
   // via the repo fixture + one more via the endpoint asserts the cap

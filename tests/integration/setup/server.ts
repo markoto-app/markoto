@@ -163,10 +163,17 @@ export async function stopNuxt(): Promise<void> {
   p.kill('SIGTERM')
   // Nitro has a small graceful-shutdown window; give it ~3s before SIGKILL.
   const killTimer = setTimeout(() => {
-    try { p.kill('SIGKILL') } catch { /* already gone */ }
+    try {
+      p.kill('SIGKILL')
+    } catch {
+      /* already gone */
+    }
   }, 3000)
   await new Promise<void>((resolve) => {
-    if (p.exitCode !== null) { resolve(); return }
+    if (p.exitCode !== null) {
+      resolve()
+      return
+    }
     p.once('exit', () => resolve())
   })
   clearTimeout(killTimer)

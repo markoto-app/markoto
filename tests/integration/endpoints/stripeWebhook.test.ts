@@ -53,7 +53,9 @@ async function postWebhook(payload: unknown, opts?: { badSig?: boolean, skew?: n
 }
 
 describe('POST /api/webhooks/stripe — signature verification', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('400 on missing signature header', async () => {
     const res = await fetch(`${TEST_BASE_URL}/api/webhooks/stripe`, {
@@ -81,7 +83,9 @@ describe('POST /api/webhooks/stripe — signature verification', () => {
 })
 
 describe('POST /api/webhooks/stripe — checkout.session.completed', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('stamps customer_id + subscription_id AND fetches subscription from Stripe (race fix)', async () => {
     // Race-fix: checkout.session.completed handler fetches the
@@ -117,7 +121,9 @@ describe('POST /api/webhooks/stripe — checkout.session.completed', () => {
 })
 
 describe('POST /api/webhooks/stripe — customer.subscription.updated', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('sets plan + period anchors on a Pro subscription', async () => {
     const u = await createUser()
@@ -169,7 +175,9 @@ describe('POST /api/webhooks/stripe — customer.subscription.updated', () => {
 })
 
 describe('POST /api/webhooks/stripe — customer.subscription.deleted', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('reverts plan to free and nulls the stripe anchor', async () => {
     const u = await createUser()
@@ -196,7 +204,9 @@ describe('POST /api/webhooks/stripe — customer.subscription.deleted', () => {
 })
 
 describe('POST /api/webhooks/stripe — invoice.paid', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('advances period anchors on subscription renewal', async () => {
     const u = await createUser()
@@ -248,7 +258,9 @@ describe('POST /api/webhooks/stripe — invoice.paid', () => {
 })
 
 describe('POST /api/webhooks/stripe — invoice.payment_failed', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('does NOT downgrade on first payment failure (Stripe retries)', async () => {
     const u = await createUser()
@@ -272,7 +284,9 @@ describe('POST /api/webhooks/stripe — invoice.payment_failed', () => {
 })
 
 describe('POST /api/webhooks/stripe — idempotency', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('replaying the same event twice results in the same state (no double-application)', async () => {
     // Stripe retries webhooks on 5xx. Our handlers must be idempotent:
@@ -297,7 +311,9 @@ describe('POST /api/webhooks/stripe — idempotency', () => {
 })
 
 describe('POST /api/webhooks/stripe — unknown event types', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('200s (acknowledges, does nothing) on events we don\'t handle', async () => {
     // Stripe sends dozens of event types — we only subscribe to a few.
@@ -312,7 +328,9 @@ describe('POST /api/webhooks/stripe — unknown event types', () => {
 })
 
 describe('POST /api/webhooks/stripe — replay protection', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('rejects events with a stale timestamp (Stripe SDK tolerance)', async () => {
     // Stripe's signature format includes a timestamp (`t=N`). The SDK's
@@ -347,7 +365,9 @@ describe('POST /api/webhooks/stripe — replay protection', () => {
 })
 
 describe('POST /api/webhooks/stripe — concurrent delivery', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('two simultaneous subscription.updated events for the same user produce a consistent final row', async () => {
     // Stripe's webhook delivery is at-least-once and intentionally

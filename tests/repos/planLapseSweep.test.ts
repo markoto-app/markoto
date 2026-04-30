@@ -44,7 +44,9 @@ async function readBilling(workspaceId: string): Promise<{
 }
 
 describe('runPlanLapseSweep', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('disables (+) when billing_owner_id is NULL but ai_enabled is still true', async () => {
     // Case (a): the FK `ON DELETE SET NULL` nulled the owner when

@@ -11,7 +11,9 @@ import { createUser } from '../setup/fixtures'
 // against api.stripe.com.
 
 describe('POST /api/billing/checkout', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('401 for anonymous callers', async () => {
     const res = await anonClient().post('/api/billing/checkout', { plan: 'pro' })
@@ -89,7 +91,9 @@ describe('POST /api/billing/checkout', () => {
 })
 
 describe('POST /api/billing/portal', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('401 for anonymous callers', async () => {
     const res = await anonClient().post('/api/billing/portal')

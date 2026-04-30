@@ -133,4 +133,7 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024).toFixed(2)}MB`
 }
 
-main().catch((e) => { console.error(e); process.exit(1) })
+main().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})

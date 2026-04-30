@@ -17,7 +17,9 @@ import { defaultTheme } from '~~/shared/utils/defaultTheme'
 // A must be invisible (not 403) to user B even when they know the id.
 
 describe('createTheme + getThemeById', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('round-trips a saved theme for the owner', async () => {
     const user = await createUser()
@@ -50,7 +52,9 @@ describe('createTheme + getThemeById', () => {
 })
 
 describe('listThemesByUser', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns an empty list for a user with no saved themes', async () => {
     const user = await createUser()
@@ -72,7 +76,9 @@ describe('listThemesByUser', () => {
 })
 
 describe('countThemesByUser', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns 0 for a user with no saved themes', async () => {
     const user = await createUser()
@@ -91,7 +97,9 @@ describe('countThemesByUser', () => {
 })
 
 describe('updateTheme', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('renames a theme owned by the caller', async () => {
     const user = await createUser()
@@ -122,7 +130,9 @@ describe('updateTheme', () => {
 })
 
 describe('deleteTheme', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('removes a theme owned by the caller', async () => {
     const user = await createUser()

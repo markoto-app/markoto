@@ -17,7 +17,9 @@ async function activityCount(docId: string): Promise<number> {
 }
 
 describe('appendActivity', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('inserts a row with the provided fields', async () => {
     const u = await createUser()
@@ -68,7 +70,9 @@ describe('appendActivity', () => {
 })
 
 describe('pruneActivity', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('no-op when count is ≤ cap (500)', async () => {
     const u = await createUser()
@@ -121,7 +125,9 @@ describe('pruneActivity', () => {
 })
 
 describe('listRecentActivity', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('returns entries ordered by createdAt desc, capped at limit', async () => {
     const u = await createUser()
@@ -156,7 +162,9 @@ describe('listRecentActivity', () => {
 })
 
 describe('deleteActivityForDoc', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('drops every row for that doc, leaves others', async () => {
     const u = await createUser()

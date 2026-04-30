@@ -6,7 +6,6 @@ import {
   createDoc,
   createUser,
   createWorkspace,
-  setDocPasswordHash,
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'

@@ -35,10 +35,18 @@ export function tryParseControl(message: { rawData: unknown, text(): string }): 
     if (firstByte !== 0x7B /* '{' */) return null
   }
   let text: string
-  try { text = message.text() } catch { return null }
+  try {
+    text = message.text()
+  } catch {
+    return null
+  }
   if (!text.startsWith('{')) return null
   let parsed: unknown
-  try { parsed = JSON.parse(text) } catch { return null }
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return null
+  }
   if (!parsed || typeof parsed !== 'object') return null
   const obj = parsed as { type?: unknown, token?: unknown, languageCode?: unknown }
   if (obj.type === 'auth' || obj.type === 'stop') {

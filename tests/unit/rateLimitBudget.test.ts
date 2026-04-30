@@ -21,12 +21,20 @@ class FakeValkey {
   throwOnNext: Error | null = null
 
   async get(key: string): Promise<string | null> {
-    if (this.throwOnNext) { const e = this.throwOnNext; this.throwOnNext = null; throw e }
+    if (this.throwOnNext) {
+      const e = this.throwOnNext
+      this.throwOnNext = null
+      throw e
+    }
     return this.store.get(key) ?? null
   }
 
   async set(key: string, value: string, mode?: string, ttl?: number, flag?: string): Promise<string | null> {
-    if (this.throwOnNext) { const e = this.throwOnNext; this.throwOnNext = null; throw e }
+    if (this.throwOnNext) {
+      const e = this.throwOnNext
+      this.throwOnNext = null
+      throw e
+    }
     // Emulate the SET key val PX ttl NX syntax our code uses.
     const nx = flag === 'NX' || mode === 'NX'
     if (nx && this.store.has(key)) return null

@@ -32,7 +32,9 @@ async function seed(args: {
 }
 
 describe('countKnowledgeByUploader / sumKnowledgeBytesByUploader', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('counts and sums ONLY the uploader\'s rows, across workspaces', async () => {
     const u1 = await createUser()
@@ -72,7 +74,9 @@ describe('countKnowledgeByUploader / sumKnowledgeBytesByUploader', () => {
 })
 
 describe('countOwnedWorkspacesByUser', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('counts only workspaces the user created', async () => {
     const creator = await createUser()

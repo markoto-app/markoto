@@ -68,7 +68,10 @@ interface DiffResponse {
   before: string
   after: string
   hunks: Array<{
-    oldStart: number, oldLines: number, newStart: number, newLines: number
+    oldStart: number
+    oldLines: number
+    newStart: number
+    newLines: number
     lines: Array<{ kind: 'context' | 'add' | 'remove', text: string }>
   }>
   truncated: boolean

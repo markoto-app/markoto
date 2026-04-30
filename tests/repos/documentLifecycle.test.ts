@@ -63,7 +63,9 @@ function makeFakeS3(state: FakeS3State): Pick<S3Client, 'send'> {
 // --- deleteDocDbRows -------------------------------------------------------
 
 describe('deleteDocDbRows', () => {
-  beforeEach(async () => { await resetDb() })
+  beforeEach(async () => {
+    await resetDb()
+  })
 
   it('removes activity + uploads + documents rows for the target doc', async () => {
     const user = await createUser()
@@ -235,7 +237,9 @@ describe('notifySyncDeleted', () => {
     // delete endpoint would hang for `AbortSignal.timeout(3000)` instead
     // of returning 200 immediately. Simulate: fetch never resolves.
     let resolve: () => void = () => {}
-    const neverResolves = new Promise<Response>((r) => { resolve = () => r(new Response()) })
+    const neverResolves = new Promise<Response>((r) => {
+      resolve = () => r(new Response())
+    })
     const fetchMock = vi.fn().mockReturnValue(neverResolves)
     const t0 = Date.now()
     const dispatched = notifySyncDeleted('doc-1', {
