@@ -10,8 +10,13 @@
 declare module '#auth-utils' {
   interface User {
     id: number
+    // GitHub usernames only — google has no equivalent. The github
+    // OAuth handler always sets it; the test shim omits it.
     login?: string | null
     name: string
+    // Both OAuth providers set these but their APIs may genuinely
+    // return null (e.g. user with no public email). The test shim
+    // omits them entirely.
     email?: string | null
     avatar?: string | null
     provider: 'github' | 'google'

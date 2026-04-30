@@ -28,7 +28,10 @@ export interface CreateWorkspaceInput {
   workspaceId: string
   ownerId: number
   name: string
-  description?: string | null
+  // `null` for "no description provided" — the column is nullable. The
+  // POST handler validates + normalises empty strings to null before
+  // calling here.
+  description: string | null
 }
 
 export interface WorkspaceUpdate {
@@ -75,7 +78,7 @@ export async function createWorkspace(input: CreateWorkspaceInput): Promise<void
       workspaceId: input.workspaceId,
       ownerId: input.ownerId,
       name: input.name,
-      description: input.description ?? null
+      description: input.description
     })
     await tx.insert(workspaceMembers).values({
       workspaceId: input.workspaceId,

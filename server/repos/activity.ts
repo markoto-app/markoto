@@ -93,6 +93,10 @@ export interface ActivityEntry {
 
 export interface AppendInput {
   docId: string
+  // Caller may either omit (action doesn't apply) OR explicitly pass
+  // `null`. Both shapes are accepted because they both mean "no value
+  // for this column." The handler treats omission as null. Drift
+  // between callers is fine; the DB column is nullable either way.
   userId?: number | null
   userName: string | null
   action: ActivityAction

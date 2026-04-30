@@ -1389,7 +1389,7 @@ const _statusIcon = computed(() => {
               <WorkspaceKnowledgePanel
                 :workspace-id="docWorkspaceId"
                 :my-role="docWorkspaceRole"
-                :my-user-id="(sessionUser as any)?.id ?? null"
+                :my-user-id="(sessionUser.value as { id?: number } | null)?.id ?? null"
                 compact
               />
             </div>
