@@ -91,6 +91,42 @@ services:
     # No healthcheck available (image has no shell + no curl); port
     # 12111 is up as soon as the process binds, which is near-instant.
 
+  # Real renderer container — Playwright + headless Chromium that drives
+  # the actual print page through paged.js end-to-end. Tests that depend
+  # on the FULL render path (PDF + PNG capture, multi-page pagination,
+  # paged.js compatibility with the print Vue page) hit this container.
+  # Stub-based tests are gone — the stub couldn't have caught the
+  # zod/Vite-SSR or oklch/paged.js bugs surfaced in real-world use.
+  #
+  # APP_URL points at the test Nuxt subprocess running on host:3101.
+  # SECRETS are pinned to the same TEST_* values setup/env.ts uses, so
+  # render-token JWTs verify on both sides without env-passing.
+  renderer-test:
+    build: ./renderer
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      - PORT=9000
+      - INTERNAL_API_SECRET=test-internal-secret-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+      - APP_URL=http://host.docker.internal:3101
+      - S3_ENDPOINT=http://seaweedfs-test:8333
+      - S3_ACCESS_KEY=ypad-access-key
+      - S3_SECRET_KEY=ypad-secret-key
+      - S3_BUCKET=ypad
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9101:9000"
+    depends_on:
+      seaweedfs-test:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://localhost:9000/health || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
+
   # ─── Flow-test extras (profile: flows) ─────────────────────────────
   # Sync server + markitdown converter, only spun up when running
   # Playwright flow tests. Integration tests don't need either:

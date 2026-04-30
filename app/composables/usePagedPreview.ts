@@ -52,6 +52,14 @@ export function usePagedPreview(opts: {
   theme: Ref<DocTheme>
   title: Ref<string>
   container: Ref<HTMLElement | null>
+  /**
+   * Fired when the user presses Cmd/Ctrl+P while focus is INSIDE the
+   * preview iframe. The parent's document-level handler doesn't see
+   * keydowns inside an iframe — they bubble in the iframe's own
+   * document — so we forward the shortcut over postMessage. Caller
+   * should kick off the same export flow as the menu item.
+   */
+  onPrintShortcut?: () => void
 }) {
   const pageCount = ref(0)
   const isPaginating = ref(false)
@@ -80,6 +88,8 @@ export function usePagedPreview(opts: {
     } else if (data.type === 'iframe-error') {
       error.value = data.message ?? 'Preview failed to load.'
       isPaginating.value = false
+    } else if (data.type === 'print-shortcut') {
+      opts.onPrintShortcut?.()
     }
   }
 

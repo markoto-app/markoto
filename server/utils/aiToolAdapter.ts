@@ -30,8 +30,11 @@ import type {
   ListThemesInput,
   SaveThemeAsPresetInput,
   ListWorkspaceDocumentsInput,
-  ViewOtherDocumentInput
+  ViewOtherDocumentInput,
+  GetPageCountInput,
+  ViewPagesInput
 } from './agentic/functionTools'
+import { renderDocument } from './renderClient'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
@@ -1018,6 +1021,128 @@ async function handleGenerateImage(
   return ok(`Generated and uploaded ${gen.mimeType} image (${sizeKB}KB). Markdown reference (copy verbatim into insert_text or replace_text): ${md}`)
 }
 
+// --- view_pages / get_page_count -----------------------------------------
+//
+// Backend-rendered PNGs of paginated pages. The renderer container produces
+// these on demand and uploads to S3 keyed by yjs-doc snapshot id; subsequent
+// calls hit the cache. Costs interactions because Gemini's vision input is
+// charged per-image — we use 5 per page (same as image generation), leaving
+// room for the renderer compute itself.
+//
+// Cap: 5 pages per call (enforced by Zod). The model is instructed to call
+// these tools only when the user references a specific page — burning 25
+// interactions speculatively would chew through budget.
+
+const PAGE_VIEW_INTERACTIONS = 5
+
+async function handleGetPageCount(
+  session: AiSession,
+  _input: GetPageCountInput
+): Promise<ToolResult> {
+  // 1 interaction on cache hit, 5 on miss — but we don't know which until
+  // after the call. Charge 1 upfront (cheap floor) and let the heavy lifting
+  // ride on the existing per-turn billing. Avoids double-charging when
+  // get_page_count is called as a precursor to view_pages.
+  try {
+    await chargeInteractions({
+      attributedTo: session.attributedTo,
+      plan: session.plan,
+      delta: 1,
+      periodStart: session.periodStart,
+      reason: 'get_page_count tool'
+    })
+  } catch (e) {
+    if (e instanceof BudgetExhausted) {
+      return err(`Error: AI budget exhausted — cannot fetch page count. Ask the user to upgrade at /pricing.`)
+    }
+    throw e
+  }
+
+  session.updateStatus('tool', 'Counting pages…')
+
+  try {
+    const result = await renderDocument(session.docId, { format: 'png' })
+    return ok(`Document has ${result.manifest.pageCount} page(s) under the current theme. Use view_pages to inspect specific pages by 1-indexed number.`)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'unknown error'
+    return err(`Error: failed to render document for page count: ${msg}`)
+  }
+}
+
+async function handleViewPages(
+  session: AiSession,
+  input: ViewPagesInput
+): Promise<ToolResult> {
+  const requestedPages = Array.from(new Set(input.pages)).sort((a, b) => a - b)
+
+  // 5 interactions per page — charge UPFRONT before any S3/render cost so
+  // an exhausted user can't burn renderer compute.
+  try {
+    await chargeInteractions({
+      attributedTo: session.attributedTo,
+      plan: session.plan,
+      delta: PAGE_VIEW_INTERACTIONS * requestedPages.length,
+      periodStart: session.periodStart,
+      reason: `view_pages × ${requestedPages.length}`
+    })
+  } catch (e) {
+    if (e instanceof BudgetExhausted) {
+      return err(`Error: AI budget exhausted — cannot fetch page images. Ask the user to upgrade at /pricing.`)
+    }
+    throw e
+  }
+
+  session.updateStatus('tool', `Rendering ${requestedPages.length} page${requestedPages.length === 1 ? '' : 's'}…`)
+
+  let manifest
+  try {
+    const result = await renderDocument(session.docId, { format: 'png' })
+    manifest = result.manifest
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'unknown error'
+    return err(`Error: failed to render document: ${msg}`)
+  }
+
+  // Validate requested pages exist in the rendered output. A user asking
+  // "look at page 12" on a 3-page doc gets a clear rejection, not silent
+  // empty results.
+  const outOfRange = requestedPages.filter(n => n < 1 || n > manifest.pageCount)
+  if (outOfRange.length > 0) {
+    return err(`Error: requested page(s) ${outOfRange.join(', ')} are out of range. The document has ${manifest.pageCount} page(s).`)
+  }
+
+  const config = useRuntimeConfig()
+  const s3 = useS3Client()
+  const parts: { inlineData: { mimeType: string, data: string } }[] = []
+  const captions: string[] = []
+
+  for (const n of requestedPages) {
+    // Manifest's pageKeys is 1-indexed by `page-${n}.png` — derive the key
+    // from the convention rather than trusting array order.
+    const key = `renders/${session.docId}/${manifest.snapshotId}/page-${n}.png`
+    try {
+      const got = await s3.send(new GetObjectCommand({
+        Bucket: config.s3.bucket,
+        Key: key
+      }))
+      const bytes = await got.Body!.transformToByteArray()
+      const base64 = Buffer.from(bytes).toString('base64')
+      parts.push({ inlineData: { mimeType: 'image/png', data: base64 } })
+      const sizeKB = Math.round(bytes.byteLength / 1024)
+      captions.push(`page ${n} (${sizeKB}KB)`)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'unknown error'
+      return err(`Error: failed to fetch page ${n}: ${msg}`)
+    }
+  }
+
+  return {
+    content: `Fetched ${parts.length} page image(s): ${captions.join(', ')}. The PNGs follow as inline image parts — inspect them visually to answer the user's question.`,
+    isError: false,
+    extraParts: parts
+  }
+}
+
 /**
  * Gemini-shaped dispatcher. Args are expected pre-validated by Zod (see
  * `server/utils/agentic/functionTools.ts`); callers must not pass unvalidated
@@ -1065,6 +1190,10 @@ export async function executeFunctionByName(
       return handleViewImage(session, args as ViewImageInput)
     case 'generate_image':
       return handleGenerateImage(session, args as GenerateImageInput)
+    case 'get_page_count':
+      return handleGetPageCount(session, args as GetPageCountInput)
+    case 'view_pages':
+      return handleViewPages(session, args as ViewPagesInput)
     case 'search_knowledge':
       return handleSearchKnowledge(session, args as SearchKnowledgeInput)
     case 'get_knowledge_file':
@@ -1080,7 +1209,7 @@ export async function executeFunctionByName(
     case 'delete_comment':
       return handleDeleteComment(session, args as DeleteCommentInput)
     default:
-      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, get_theme, list_themes, save_theme_as_preset, list_workspace_documents, view_other_document, set_title, view_image, generate_image, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment.`)
+      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, get_theme, list_themes, save_theme_as_preset, list_workspace_documents, view_other_document, set_title, view_image, generate_image, get_page_count, view_pages, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment.`)
   }
 }
 

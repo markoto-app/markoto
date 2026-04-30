@@ -73,7 +73,12 @@ export async function startNuxt(): Promise<void> {
     ...process.env,
     ...buildTestEnv(),
     NODE_ENV: 'production',
-    HOST: '127.0.0.1',
+    // Bind to all interfaces so the renderer container can reach the
+    // test Nuxt subprocess via host.docker.internal:3101. Loopback-only
+    // (127.0.0.1) was fine when every test caller was in-process; the
+    // real renderer runs in docker and reaches us through the bridge
+    // gateway, which 127.0.0.1 refuses.
+    HOST: '0.0.0.0',
     // S3 config points at the test SeaweedFS. Most tests don't upload
     // anything, but the presigner initialises its client lazily and
     // would throw on first use without these.
@@ -109,7 +114,14 @@ export async function startNuxt(): Promise<void> {
     NUXT_STRIPE_PRICE_ULTRA: 'price_test_ultra',
     // Inactive-doc sweeper. Set TTL to 0 to disable for tests — no point
     // letting it fire during a short integration run.
-    NUXT_INACTIVE_DOC_TTL_DAYS: '0'
+    NUXT_INACTIVE_DOC_TTL_DAYS: '0',
+    // Real renderer container (docker-compose.test.yml renderer-test).
+    // Hosts on :9101, drives Playwright + headless Chromium through the
+    // actual print page. Tests that need the full render pipeline talk
+    // to this. The stub-based path is gone — it couldn't catch
+    // browser/SSR-layer bugs (oklch in Nuxt UI styles, zod imports
+    // wedging Vite SSR, etc.).
+    NUXT_RENDERER_INTERNAL_URL: 'http://127.0.0.1:9101'
   }
 
   // Boot guard: validate the resolved env we're about to hand the

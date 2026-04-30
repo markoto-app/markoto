@@ -381,6 +381,32 @@ function exportMarkdown() {
   downloadMarkdown(textContent.value, title.value)
 }
 
+// Server-rendered PDF — bytes produced by the Playwright renderer container,
+// served via /api/docs/:id/pdf as a 302 to a presigned S3 URL. Differs from
+// `exportPdf()` (which uses the browser's print dialog + paged.js
+// client-side): the bytes are produced server-side, so the recipient
+// doesn't need the editor open.
+//
+// Opens in a new tab with `?inline=1` — the endpoint flips
+// Content-Disposition to "inline" so the browser's PDF viewer renders
+// it directly instead of triggering a download dialog.
+//
+// We use a synthetic anchor click instead of `window.open()`: Nuxt UI's
+// dropdown closes the menu on `onSelect`, which defers the callback past
+// the immediate user-gesture window — Chrome's popup blocker then
+// silently swallows `window.open()`. An `<a target="_blank">` click is
+// the canonical "this came from a user click" signal browsers honour,
+// the same pattern `downloadFile()` uses for the markdown export.
+function openServerPdf() {
+  const a = document.createElement('a')
+  a.href = `/api/docs/${props.docId}/pdf?inline=1`
+  a.target = '_blank'
+  a.rel = 'noopener noreferrer'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 // Hijack Cmd/Ctrl+P so the shortcut shown in File → Print actually runs
 // our hidden-iframe PDF flow instead of the browser's default print
 // (which would render the entire app chrome — toolbars, sidebars, the
@@ -635,6 +661,11 @@ const mobileMenuItems = computed(() => {
       label: t('menubar.file.print'),
       icon: 'i-lucide-printer',
       onSelect: () => exportPdf()
+    },
+    {
+      label: t('export.pdf'),
+      icon: 'i-lucide-file-output',
+      onSelect: () => openServerPdf()
     },
     ...(canManageDoc.value
       ? [
@@ -1052,6 +1083,7 @@ const _statusIcon = computed(() => {
           @open-share-password="openShareAtPassword"
           @export-markdown="exportMarkdown"
           @export-pdf="exportPdf"
+          @open-server-pdf="openServerPdf"
           @new-document="newDocument"
           @duplicate-document="showDuplicateModal = true"
           @move-document="showMoveModal = true"
@@ -1274,6 +1306,7 @@ const _statusIcon = computed(() => {
             :source="textContent"
             :title="title"
             :theme="theme"
+            @print-shortcut="exportPdf"
           />
         </div>
 

@@ -494,6 +494,7 @@ describe('TOOL_SCHEMAS registry', () => {
       'fetch_url',
       'generate_image',
       'get_knowledge_file',
+      'get_page_count',
       'get_theme',
       'insert_text',
       'list_themes',
@@ -509,6 +510,7 @@ describe('TOOL_SCHEMAS registry', () => {
       'view_document',
       'view_image',
       'view_other_document',
+      'view_pages',
       'web_search'
     ])
   })

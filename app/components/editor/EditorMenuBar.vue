@@ -49,6 +49,10 @@ const emit = defineEmits<{
   'open-share-password': []
   'export-markdown': []
   'export-pdf': []
+  // Server-rendered PDF (Playwright + paged.js) — opens in a new tab
+  // via the /api/docs/:id/pdf endpoint. Distinct from `export-pdf`
+  // (which goes through the browser's in-tab print dialog).
+  'open-server-pdf': []
   'new-document': []
   'duplicate-document': []
   'move-document': []
@@ -109,7 +113,10 @@ const fileItems = computed(() => {
     icon: 'i-lucide-download',
     children: [
       { label: t('export.markdown'), icon: 'i-lucide-file-text', onSelect: () => emit('export-markdown') },
-      { label: t('export.pdf'), icon: 'i-lucide-file-output', onSelect: () => emit('export-pdf') }
+      // PDF export goes through the server renderer (Playwright + paged.js)
+      // and opens the result in a new tab inline — distinct from File →
+      // Print, which uses the in-browser print dialog.
+      { label: t('export.pdf'), icon: 'i-lucide-file-output', onSelect: () => emit('open-server-pdf') }
     ]
   })
   items.push({ type: 'separator' })

@@ -116,6 +116,29 @@ services:
     ports:
       - "8080:8080"
 
+  # Backend PDF + PNG renderer. Playwright + Chromium drives the existing
+  # paged.js preview pipeline against /_internal/render/:docId on the app.
+  # Internal-network-only in prod/local; dev publishes 9000 so the host
+  # `bun run dev` can call it directly.
+  renderer:
+    build: ./renderer
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      - PORT=9000
+      - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
+      # Renderer's Chromium navigates back to the Nuxt app's print page.
+      # Dev = host bun via host.docker.internal; prod = compose service name.
+      - APP_URL=http://host.docker.internal:3000
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
+      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
+      - S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9000:9000"
+
   # Same image / script as prod. Short interval so devs can verify the loop
   # without waiting a day; retention low so SeaweedFS doesn't grow unbounded.
   backup:

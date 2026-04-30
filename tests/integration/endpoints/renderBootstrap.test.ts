@@ -1,0 +1,166 @@
+// Integration tests for GET /api/_internal/render-bootstrap — the
+// endpoint the renderer container hits during the SSR pass of the
+// internal print page (`app/pages/_internal/render/[docId].vue`).
+// Validates the render-token, server-replays the doc's Y.js history,
+// returns the materialized markdown + theme + title + snapshotId.
+//
+// Auth contract under test:
+//   - Valid render-token + matching docId → 200 with markdown body +
+//     theme + title + snapshotId.
+//   - Missing query params → 400.
+//   - Garbage / wrong-secret token → 403.
+//   - Expired token → 403.
+//   - Token signed for doc-A but presented under doc-B → 403.
+//   - Wrong scope (the same internal secret could in principle be
+//     reused; explicit scope check guards this) → 403.
+//   - Doc deleted between snapshot capture and render → 404.
+
+import { describe, it, expect, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
+import { resetDb } from '../setup/db'
+import { anonClient } from '../setup/client'
+import { createUser, createDoc } from '../setup/fixtures'
+import { TEST_INTERNAL_SECRET } from '../setup/env'
+
+function mintRenderToken(docId: string, snapshotId: number, opts: {
+  scope?: string
+  ttl?: number
+  secret?: string
+} = {}): string {
+  return jwt.sign(
+    { docId, snapshotId, scope: opts.scope ?? 'render' },
+    opts.secret ?? TEST_INTERNAL_SECRET,
+    { expiresIn: opts.ttl ?? 60 }
+  )
+}
+
+beforeEach(async () => {
+  await resetDb()
+})
+
+describe('GET /api/_internal/render-bootstrap', () => {
+  it('returns server-replayed markdown + metadata for a valid render-token', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'private', title: 'My Doc' })
+    const token = mintRenderToken(doc.docId, 42)
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${doc.docId}&t=${token}`
+    )
+
+    expect(res.status).toBe(200)
+    const body = await res.json() as {
+      snapshotId: number
+      markdown: string
+      title: string
+      theme: unknown
+      description: string
+      audience: string
+      language: string
+    }
+    expect(body.snapshotId).toBe(42)
+    expect(body.title).toBe('My Doc')
+    // markdown is a string (empty when no yjs rows exist for this doc).
+    expect(typeof body.markdown).toBe('string')
+    // Doc-row metadata fields all present so the print page can paint
+    // before any client-side work.
+    expect(typeof body.description).toBe('string')
+    expect(typeof body.audience).toBe('string')
+    expect(typeof body.language).toBe('string')
+  })
+
+  it('returns 400 when docId or t is missing', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    const token = mintRenderToken(doc.docId, 1)
+
+    // Missing t.
+    const r1 = await anonClient().get(`/api/_internal/render-bootstrap?docId=${doc.docId}`)
+    expect(r1.status).toBe(400)
+
+    // Missing docId.
+    const r2 = await anonClient().get(`/api/_internal/render-bootstrap?t=${token}`)
+    expect(r2.status).toBe(400)
+  })
+
+  it('returns 403 on a token signed with the wrong secret', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    const token = mintRenderToken(doc.docId, 1, { secret: 'an-unrelated-secret' })
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${doc.docId}&t=${token}`
+    )
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 403 on an expired render-token', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    const token = mintRenderToken(doc.docId, 1, { ttl: -1 })
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${doc.docId}&t=${token}`
+    )
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 403 on a render-token signed for a different doc (cross-doc replay defence)', async () => {
+    const ownerA = await createUser()
+    const ownerB = await createUser()
+    const docA = await createDoc({ ownerId: ownerA.id })
+    const docB = await createDoc({ ownerId: ownerB.id })
+    const tokenForA = mintRenderToken(docA.docId, 1)
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${docB.docId}&t=${tokenForA}`
+    )
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 403 on a token with the wrong scope (defence-in-depth)', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    const token = mintRenderToken(doc.docId, 1, { scope: 'kick-user' })
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${doc.docId}&t=${token}`
+    )
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 404 when the doc was deleted between snapshot and render', async () => {
+    // Render token is signed; doc itself doesn't exist. The handler
+    // verifies the token first (so we know the secret + scope are
+    // legitimate), then looks up the doc and 404s when it's gone.
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    const token = mintRenderToken(doc.docId, 1)
+
+    // Delete the doc OUTSIDE the app — direct DB delete avoids the
+    // delete cascade's S3 + sync notify side effects which are
+    // irrelevant for this auth-flow test.
+    const { testDb } = await import('../setup/db')
+    await testDb().query('DELETE FROM documents WHERE doc_id = $1', [doc.docId])
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${doc.docId}&t=${token}`
+    )
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 403 on a malformed token without leaking which check failed', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${doc.docId}&t=not.a.jwt`
+    )
+    expect(res.status).toBe(403)
+    // Error message should be generic — not "scope mismatch" or
+    // "expired" or "wrong signature". The endpoint collapses every
+    // verify failure into the same 403 to avoid timing/shape oracles.
+    const body = await res.json() as { message?: string }
+    expect(body.message).toMatch(/invalid/i)
+  })
+})

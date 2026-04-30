@@ -152,6 +152,31 @@ const GenerateImageArgs = z.object({
     .describe('Concise alt text (1–200 chars) describing the image for screen readers and fallback display. This becomes the alt attribute in the returned markdown.')
 }).describe('Generate a photo or illustration from a text description and upload it. Returns the markdown reference (e.g. "![alt](/api/files/…/x.png)") — the caller decides how to place it (insert_text to add, replace_text to swap an existing image, etc.). Do NOT use for diagrams/flowcharts/charts — write a Mermaid code block via insert_text instead.')
 
+// --- view_pages / get_page_count -----------------------------------------
+//
+// Backend rendering pair. The user sees a paginated document (paged.js
+// breaks the content into A4/Letter pages with @page rules); the AI only
+// sees raw markdown which has no concept of "page". When the user says
+// "fix the table on page 3" or "is page 1 too dense?" the AI needs to
+// actually SEE the rendered output, not just read the markdown.
+//
+// `get_page_count` returns just the total. Cheap when the doc is already
+// rendered; triggers a fresh render otherwise (~5-15s).
+//
+// `view_pages([n, m, …])` returns up to 5 PNGs of specific pages as
+// `inlineData` parts on the next user turn (same smuggle-via-extraParts
+// pattern as `view_image`). Costs more interactions because Gemini's
+// vision model charges per-image input.
+
+const GetPageCountArgs = z.object({}).strict()
+  .describe('Return the total number of paginated pages in the current document (using the current theme\'s @page rules). Use when the user references a specific page number ("look at page 3") so you know if that page exists, before calling view_pages. Triggers a backend render if the doc hasn\'t been rendered yet.')
+
+const ViewPagesArgs = z.object({
+  pages: z.array(z.number().int().min(1).max(50)).min(1).max(5)
+    .describe('1-indexed list of page numbers to fetch. Maximum 5 pages per call. Page numbers must be within the doc\'s rendered page count (use get_page_count first if you don\'t know it).')
+}).strict()
+  .describe('Fetch rendered PNG images of specific pages from the current document and inline them into the conversation so you can VISUALLY inspect what those pages look like. Use when the user references a specific page ("issue on page 3", "is page 1 too dense?", "fix the table layout on page 5") — the markdown gives you the content but not the page boundaries paged.js produces. Each page costs interactions; never call this preemptively, only when the user names a specific page.')
+
 // --- update_theme ---------------------------------------------------------
 //
 // Partial theme patch. Every leaf is optional and every sub-object is
@@ -401,6 +426,8 @@ export type ListThemesInput = z.infer<typeof ListThemesArgs>
 export type SaveThemeAsPresetInput = z.infer<typeof SaveThemeAsPresetArgs>
 export type ListWorkspaceDocumentsInput = z.infer<typeof ListWorkspaceDocumentsArgs>
 export type ViewOtherDocumentInput = z.infer<typeof ViewOtherDocumentArgs>
+export type GetPageCountInput = z.infer<typeof GetPageCountArgs>
+export type ViewPagesInput = z.infer<typeof ViewPagesArgs>
 
 // --- Name → schema registry used by runLoop for validate-before-dispatch --
 //
@@ -420,6 +447,8 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   set_title: SetTitleArgs,
   view_image: ViewImageArgs,
   generate_image: GenerateImageArgs,
+  get_page_count: GetPageCountArgs,
+  view_pages: ViewPagesArgs,
   fetch_url: FetchUrlArgs,
   search_knowledge: SearchKnowledgeArgs,
   get_knowledge_file: GetKnowledgeFileArgs,
@@ -513,6 +542,16 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
     'generate_image',
     'Generate a photo or illustration from a text description and upload it (as if the user had attached it). Returns the markdown image reference — the caller decides where it goes by chaining `insert_text` (to add) or `replace_text` (to swap an existing image). Use when the user asks to add, insert, or replace a picture/photo/illustration/artwork. Do NOT use for diagrams, flowcharts, sequence diagrams, Gantt charts, ER diagrams, or pie charts — those should be Mermaid code blocks authored via `insert_text` instead.',
     GenerateImageArgs
+  ),
+  decl(
+    'get_page_count',
+    'Return how many paginated pages the document currently has under its theme\'s @page rules. The markdown source has no inherent page count — page boundaries only exist after paged.js paginates. Use this before view_pages when you don\'t already know the total, especially when the user references a page number ("look at page 3", "is page 5 the last one?"). Cheap on cache hit, ~5-15s on cache miss (full backend render).',
+    GetPageCountArgs
+  ),
+  decl(
+    'view_pages',
+    'Fetch rendered PNG screenshots of specific pages and add them to the conversation so you can SEE the typography, spacing, table layout, image placement, page-break decisions — anything that\'s visible after pagination but invisible in the markdown source. Use when the user names a specific page ("the table on page 3 is broken", "page 7 looks too sparse"). Pass a 1-indexed array of page numbers (1-5 pages per call). Each page is a real interaction-billed image input — don\'t call preemptively or "to check"; only when the user is asking about layout / visual issues on identified pages.',
+    ViewPagesArgs
   ),
   decl(
     'fetch_url',

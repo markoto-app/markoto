@@ -11,8 +11,7 @@
    be named `primary` or `gray` — those names collide with semantic
    slots. We use `shu` and `sumi`, which is also the brand vocabulary. */
 @theme static {
-  /* Typography. Calibrated against the designer's homepage mockup
-     (`markoto_homepage_mockup.html`):
+  /* Typography.
      - Inter (sans): body, UI labels, buttons, status. 400 + 500 only.
      - JetBrains Mono (mono): eyebrows, captions, meta labels, status
        chrome metadata, line/column counts, timestamps, the "begin →"

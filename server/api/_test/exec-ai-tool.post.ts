@@ -26,6 +26,7 @@
 import * as Y from 'yjs'
 import { executeFunctionByName } from '../../utils/aiToolAdapter'
 import { getDoc } from '../../repos/documents'
+import { currentPeriodStart } from '../../utils/billing'
 import type { AiSession, AiStatusPhase } from '../../utils/aiClient'
 
 export default defineEventHandler(async (event) => {
@@ -71,11 +72,20 @@ export default defineEventHandler(async (event) => {
     workspaceId: doc.workspaceId,
     attributedTo: `user:${session.user.id}`,
     plan: 'free',
-    periodStart: new Date(),
+    // Production-realistic period anchor so chargeInteractions writes
+    // to the same `(attributed_to, period_start)` row tests assert on.
+    periodStart: currentPeriodStart(),
     updateStatus: (_phase: AiStatusPhase, _message?: string) => { /* swallow */ },
     destroy: async () => { /* */ }
   } as AiSession
 
   const result = await executeFunctionByName(aiSession, name, args)
-  return { isError: result.isError, content: result.content }
+  // Surface extraParts when present (view_image, view_pages — anything
+  // that smuggles inlineData bytes back to the model). Tests assert on
+  // the part shape + base64; we don't decode here.
+  return {
+    isError: result.isError,
+    content: result.content,
+    extraParts: result.extraParts ?? null
+  }
 })

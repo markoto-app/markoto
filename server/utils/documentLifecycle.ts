@@ -1,4 +1,5 @@
 import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-sdk/client-s3'
+import { cleanupRendersForDoc } from './renderClient'
 import * as Sentry from '@sentry/nuxt'
 import { captureExceptionThrottled } from './throttledSentry'
 import { deleteActivityForDoc } from '../repos/activity'
@@ -133,6 +134,10 @@ export async function deleteDocument(docId: string): Promise<void> {
 
   const config = useRuntimeConfig()
   await cleanupDocS3(docId, { s3: useS3Client(), bucket: config.s3.bucket })
+  // Wipe any cached PDF / PNG renders for this doc. Same swallow-on-error
+  // semantics as cleanupDocS3 — orphaned render objects cost nothing
+  // material and the bucket lifecycle policy will reap them eventually.
+  await cleanupRendersForDoc(docId)
   notifySyncDeleted(docId, {
     syncInternalUrl: config.syncInternalUrl,
     internalApiSecret: config.internalApiSecret

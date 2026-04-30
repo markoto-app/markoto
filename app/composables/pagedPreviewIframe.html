@@ -189,6 +189,22 @@
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
+  // Forward Cmd/Ctrl+P to the parent. Without this, pressing Print while
+  // focus is inside the iframe (e.g. the user clicked on a page to read
+  // it) fires the BROWSER's native print dialog against the host page —
+  // which renders the entire app chrome (toolbars, sidebars, AI bar)
+  // instead of just the doc. The parent's document-level keydown
+  // listener never sees these events because keydowns bubble in the
+  // iframe's own document, not the host's.
+  document.addEventListener('keydown', function(e) {
+    var isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+    var modifier = isMac ? e.metaKey : e.ctrlKey;
+    if (modifier && !e.shiftKey && !e.altKey && (e.key === 'p' || e.key === 'P')) {
+      e.preventDefault();
+      window.parent.postMessage({ type: 'print-shortcut' }, '*');
+    }
+  }, true);
+
   whenPagedReady(function() {
     var Previewer = window.Paged.Previewer;
     var lastFontsImport = null;

@@ -118,6 +118,12 @@ export default defineNuxtConfig({
     // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
     // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
     syncInternalUrl: 'http://localhost:4001',
+    // Internal HTTP URL of the Playwright renderer container (PDF + per-page
+    // PNGs). Same network shape as syncInternalUrl: dev = host:9000, compose
+    // = http://renderer:9000. Empty disables the user-facing /api/docs/:id/pdf
+    // endpoint and the AI's view_pages tool — useful for tests that don't
+    // spin up the renderer container.
+    rendererInternalUrl: 'http://localhost:9000',
     // Anonymous-doc auto-cleanup threshold (in days). Only docs with no
     // owner AND no workspace are reaped once last_active is past this
     // many days — owned docs (any age) and workspace-attached docs are

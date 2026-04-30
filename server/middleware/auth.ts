@@ -14,6 +14,9 @@ export default defineEventHandler(async (event) => {
     { path: /^\/api\/docs$/, methods: ['POST'] }, // Anonymous doc creation allowed
     { path: /^\/api\/docs\/[^/]+$/, methods: ['DELETE'] }, // Anon doc owner-less deletion is endpoint-gated
     { path: /^\/api\/docs\/[^/]+\/meta$/, methods: ['GET'] }, // Public doc metadata
+    // PDF download — endpoint-gated via decideFileAccess, mirrors /api/files
+    // semantics. Anonymous on open-* docs; owner / workspace member on private.
+    { path: /^\/api\/docs\/[^/]+\/pdf$/, methods: ['GET'] },
     { path: /^\/api\/docs\/[^/]+\/token$/, methods: ['GET'] }, // Returns anonymous token if no session
     { path: /^\/api\/docs\/[^/]+\/password$/, methods: ['POST'] }, // Password verify is public; set/remove check ownership inside
     { path: /^\/api\/docs\/[^/]+\/activity$/, methods: ['GET'] }, // Endpoint-gated — public on open-edit/open-view, members-only on private/password-protected
@@ -28,6 +31,9 @@ export default defineEventHandler(async (event) => {
     // Falls through to the protected branch below.
     { path: /^\/api\/import$/, methods: ['POST'] }, // Import is public — user uploads their own file for conversion
     { path: /^\/api\/internal\//, methods: ['POST'] }, // Internal endpoints auth via shared secret header (not user session)
+    // Renderer-container bootstrap: GET-only, gated by a render-token JWT
+    // (verifyRenderToken) carried in the query string. No session expected.
+    { path: /^\/api\/_internal\/render-bootstrap$/, methods: ['GET'] },
     // Stripe webhooks: auth'd via `Stripe-Signature` header + our
     // webhook secret. No user session — Stripe's servers don't have
     // one. Handler does full cryptographic signature verification.

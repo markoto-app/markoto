@@ -8,6 +8,11 @@ const props = defineProps<{
   theme?: DocTheme
 }>()
 
+// Bubbled when the user presses Cmd/Ctrl+P inside the preview iframe.
+// Caller wires this to the same export-PDF flow the menu item triggers,
+// so the shortcut works whether focus is in the editor or the preview.
+const emit = defineEmits<{ printShortcut: [] }>()
+
 const pageCount = defineModel<number>('pageCount', { default: 0 })
 
 const sourceRef = computed(() => props.source)
@@ -22,7 +27,8 @@ const { pageCount: pgCount, isReady, error } = usePagedPreview({
   html: rendered,
   theme: themeRef,
   title: titleRef,
-  container: iframeHost
+  container: iframeHost,
+  onPrintShortcut: () => emit('printShortcut')
 })
 
 watch(pgCount, (n) => {
