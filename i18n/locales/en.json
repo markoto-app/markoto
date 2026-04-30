@@ -264,6 +264,8 @@
     "audienceLabel": "Audience",
     "themeLabel": "Theme",
     "themeHelp": "Sets the visual style. You can change it any time.",
+    "themeWorkspaceDefault": "Workspace default",
+    "themeWorkspaceDefaultHelp": "Use the theme set as default for this workspace.",
     "templateLabel": "Template",
     "templateHelp": "Pre-fills the doc with a structural skeleton you can edit. Each section comes with a comment hint so markoto knows what belongs where.",
     "create": "Create document",
@@ -689,6 +691,19 @@
       "leaderDashed": "Dashed",
       "leaderNone": "None"
     },
+    "saved": {
+      "title": "Your themes",
+      "saveCurrent": "Save current",
+      "namePrompt": "Name this theme",
+      "savedToast": "Saved as a personal preset",
+      "saveFailedTitle": "Could not save theme",
+      "rename": "Rename",
+      "renamePrompt": "New name",
+      "renameFailedTitle": "Could not rename",
+      "delete": "Delete",
+      "deleteConfirm": "Delete \"{name}\"? Documents already using it keep their copy.",
+      "deleteFailedTitle": "Could not delete"
+    },
     "presets": {
       "title": "Templates",
       "applied": "Template applied to your document",
@@ -768,7 +783,22 @@
     "tabs": {
       "documents": "Documents",
       "knowledge": "Knowledge",
-      "ai": "markoto"
+      "ai": "markoto",
+      "settings": "Settings"
+    },
+    "settings": {
+      "title": "Workspace settings",
+      "subtitle": "Defaults for new documents created in this workspace.",
+      "defaultTheme": {
+        "title": "Default theme",
+        "help": "Applied to new documents created here. Existing documents are unaffected — they keep whatever theme they have.",
+        "useGlobal": "No default — use markoto",
+        "useGlobalHelp": "New documents start with the markoto preset until someone picks a different one.",
+        "savedTitle": "Default theme updated",
+        "appliedToast": "New documents in this workspace will use this theme",
+        "clearedToast": "New documents in this workspace will use the markoto preset",
+        "failedTitle": "Could not save default theme"
+      }
     },
     "capReached": "{used} of {limit} workspaces used on the {plan} plan. Delete one or upgrade to add more.",
     "capReachedShort": "Workspace limit reached — upgrade",

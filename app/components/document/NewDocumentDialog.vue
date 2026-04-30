@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DocTheme } from '~~/shared/types/theme'
 import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
@@ -51,15 +52,80 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const toast = useToast()
 const { showError } = useErrorHandler()
 
 // Form state. Resets on open so reopening doesn't carry stale values.
 const title = ref('')
 const description = ref('')
 const audience = ref<AudienceKind>('casual')
-const themePreset = ref<string>('modern')
+// Theme selection: a single tagged-union ref so the dialog can pick a
+// built-in preset id ('preset:modern'), one of the user's saved themes
+// ('saved:abc123'), or a workspace default that doesn't match any
+// known preset ('inherit'). The submit handler unpacks this back into
+// `themePreset` or `themeId` for the API.
+type ThemeChoice =
+  | { kind: 'preset', id: string }
+  | { kind: 'saved', themeId: string }
+  | { kind: 'inherit' }
+const themeChoice = ref<ThemeChoice>({ kind: 'preset', id: 'markoto' })
 const templateId = ref<string>('blank')
+
+const { loggedIn } = useUserSession()
+
+// Caller's saved themes — only fetched for logged-in users. Used to
+// render personal preset cards alongside the built-ins below, and to
+// match a workspace default that points at one of them.
+interface SavedTheme {
+  themeId: string
+  name: string
+  theme: DocTheme
+  createdAt: string
+  updatedAt: string
+}
+const savedThemes = ref<SavedTheme[]>([])
+
+// Workspace default theme (when filing into a workspace). Drives the
+// "inherit" choice: pre-selected on open IF the workspace has set a
+// default. Compared by deep-equal to built-ins / saved themes so the
+// matching card lights up too.
+const workspaceDefaultTheme = ref<DocTheme | null>(null)
+
+async function loadThemeContext() {
+  // 1. The user's saved themes — only meaningful when logged in.
+  if (loggedIn.value) {
+    try {
+      const res = await $fetch<{ themes: SavedTheme[] }>('/api/themes')
+      savedThemes.value = res.themes
+    } catch { /* non-fatal — list stays empty */ }
+  } else {
+    savedThemes.value = []
+  }
+  // 2. The workspace default — only when filing into a workspace.
+  if (props.workspaceId) {
+    try {
+      const res = await $fetch<{ workspace: { defaultTheme: DocTheme | null } }>(
+        `/api/workspaces/${props.workspaceId}`
+      )
+      workspaceDefaultTheme.value = res.workspace.defaultTheme
+    } catch { workspaceDefaultTheme.value = null }
+  } else {
+    workspaceDefaultTheme.value = null
+  }
+}
+
+// Map a theme JSONB to a known choice (built-in preset / saved theme /
+// neither). Used when pre-selecting based on the workspace default so
+// the matching card lights up if there's one.
+function matchThemeChoice(theme: DocTheme): ThemeChoice {
+  const json = JSON.stringify(theme)
+  for (const preset of THEME_PRESETS) {
+    if (JSON.stringify(preset.theme) === json) return { kind: 'preset', id: preset.id }
+  }
+  for (const saved of savedThemes.value) {
+    if (JSON.stringify(saved.theme) === json) return { kind: 'saved', themeId: saved.themeId }
+  }
+  return { kind: 'inherit' }
+}
 // Language picker mirrors the Document tab: combobox + create-item.
 interface LanguageItem { label: string, value: string, custom?: boolean }
 const isPresetLanguage = (v: string) => (LANGUAGE_PRESETS as readonly string[]).includes(v)
@@ -89,14 +155,23 @@ function onCreateLanguage(text: string): LanguageItem {
   return { label: trimmed, value: trimmed, custom: !isPresetLanguage(trimmed) }
 }
 
-watch(() => props.open, (next) => {
+watch(() => props.open, async (next) => {
   if (!next) return
   title.value = ''
   description.value = ''
   audience.value = 'casual'
-  themePreset.value = 'modern'
   templateId.value = 'blank'
   languageModel.value = defaultLanguageItem()
+  // Pull saved themes + workspace default fresh on every open so a
+  // theme just-saved in the editor is immediately pickable here.
+  await loadThemeContext()
+  // Pre-select the workspace default if one is set. Otherwise default
+  // to the markoto preset (the brand default).
+  if (workspaceDefaultTheme.value) {
+    themeChoice.value = matchThemeChoice(workspaceDefaultTheme.value)
+  } else {
+    themeChoice.value = { kind: 'preset', id: 'markoto' }
+  }
 })
 
 const audienceItems = computed(() => AUDIENCE_KINDS.map(kind => ({
@@ -124,7 +199,15 @@ async function submit(blank: boolean) {
       body.audience = audience.value
       const lang = (languageModel.value?.value ?? '').trim()
       if (lang) body.language = lang
-      if (themePreset.value) body.themePreset = themePreset.value
+      // Theme choice → API id. `inherit` sends nothing so the server
+      // applies the workspace default (or the markoto schema default
+      // for non-workspace docs). The two id paths are mutually
+      // exclusive — server rejects passing both.
+      if (themeChoice.value.kind === 'preset') {
+        body.themePreset = themeChoice.value.id
+      } else if (themeChoice.value.kind === 'saved') {
+        body.themeId = themeChoice.value.themeId
+      }
       if (templateId.value) body.templateId = templateId.value
     }
     const { docId } = await $fetch<{ docId: string }>('/api/docs', {
@@ -300,16 +383,72 @@ async function submit(blank: boolean) {
             class="grid grid-cols-1 sm:grid-cols-2 gap-2"
             data-testid="newdoc-theme-grid"
           >
+            <!-- Workspace-default "inherit" card. Only shown when filing
+                 into a workspace AND the workspace has a default that
+                 doesn't match a built-in or one of the user's saved
+                 themes (i.e. an admin set a theme that the current
+                 user can't see by name). The "matched" case lights up
+                 the corresponding preset/saved card directly so we
+                 don't need a duplicate card. -->
+            <button
+              v-if="workspaceDefaultTheme && themeChoice.kind === 'inherit'"
+              type="button"
+              data-testid="newdoc-theme-card-inherit"
+              class="text-left rounded-md border p-2.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary border-primary bg-elevated/40"
+            >
+              <div class="flex items-center gap-2 mb-1">
+                <span
+                  class="size-3 rounded-full shrink-0"
+                  :style="{ backgroundColor: workspaceDefaultTheme.color.brand }"
+                />
+                <span class="text-sm font-semibold truncate">
+                  {{ t('newDoc.themeWorkspaceDefault') }}
+                </span>
+              </div>
+              <p class="text-xs text-muted leading-snug line-clamp-2">
+                {{ t('newDoc.themeWorkspaceDefaultHelp') }}
+              </p>
+            </button>
+
+            <!-- User-saved themes. Rendered only when the user is logged
+                 in AND has at least one saved preset. Cards have the
+                 same shape as built-ins but no description (they're
+                 named by the user, not described). -->
+            <button
+              v-for="saved in savedThemes"
+              :key="saved.themeId"
+              type="button"
+              :data-testid="`newdoc-theme-card-saved-${saved.themeId}`"
+              class="text-left rounded-md border p-2.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              :class="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId
+                ? 'border-primary bg-elevated/40'
+                : 'border-default'"
+              @click="themeChoice = { kind: 'saved', themeId: saved.themeId }"
+            >
+              <div class="flex items-center gap-2 mb-1">
+                <span
+                  class="size-3 rounded-full shrink-0"
+                  :style="{ backgroundColor: saved.theme.color.brand }"
+                />
+                <span
+                  class="text-sm font-semibold truncate"
+                  :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
+                >
+                  {{ saved.name }}
+                </span>
+              </div>
+            </button>
+
             <button
               v-for="preset in THEME_PRESETS"
               :key="preset.id"
               type="button"
               :data-testid="`newdoc-theme-card-${preset.id}`"
               class="text-left rounded-md border p-2.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              :class="themePreset === preset.id
+              :class="themeChoice.kind === 'preset' && themeChoice.id === preset.id
                 ? 'border-primary bg-elevated/40'
                 : 'border-default'"
-              @click="themePreset = preset.id"
+              @click="themeChoice = { kind: 'preset', id: preset.id }"
             >
               <div class="flex items-center gap-2 mb-1">
                 <span

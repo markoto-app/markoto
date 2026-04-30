@@ -42,7 +42,12 @@ export default defineEventHandler(async (event) => {
       // editors can see "AI usage billed to {owner}" banners; only
       // admins can TOGGLE via PATCH /billing.
       aiEnabled: ws.aiEnabled,
-      billingOwnerId: ws.billingOwnerId
+      billingOwnerId: ws.billingOwnerId,
+      // Default theme used by NewDocumentDialog when creating a doc in
+      // this workspace. NULL = use the global markoto preset. Surfaced
+      // to all members so the new-doc dialog seeds correctly even for
+      // editors/viewers (visibility ≠ ability to change it).
+      defaultTheme: ws.defaultTheme
     },
     documents,
     members

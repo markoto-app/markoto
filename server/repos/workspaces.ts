@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { workspaces, workspaceMembers, documents } from '../db/schema'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
+import type { DocTheme } from '~~/shared/types/theme'
 import { useDatabase } from '../utils/database'
 import { NotFoundError } from './errors'
 
@@ -19,6 +20,7 @@ export interface WorkspaceRow {
   description: string | null
   billingOwnerId: number | null
   aiEnabled: boolean
+  defaultTheme: DocTheme | null
   createdAt: Date
 }
 
@@ -32,6 +34,8 @@ export interface CreateWorkspaceInput {
 export interface WorkspaceUpdate {
   name?: string
   description?: string | null
+  // `null` clears the default; `undefined` leaves the field untouched.
+  defaultTheme?: DocTheme | null
 }
 
 export interface UserWorkspaceSummary {

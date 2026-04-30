@@ -21,6 +21,10 @@ interface WorkspaceDetail {
     ownerId: number
     aiEnabled: boolean
     billingOwnerId: number | null
+    // NEW: workspace default theme. NULL = use the markoto preset.
+    // Read by NewDocumentDialog when seeding the theme card grid for
+    // docs created in this workspace.
+    defaultTheme: import('~~/shared/types/theme').DocTheme | null
   }
   documents: WorkspaceDoc[]
   members: WorkspaceMember[]
@@ -79,17 +83,27 @@ const myUserId = computed(() => (user.value as any)?.id as number | undefined)
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
-const activeTab = ref<'documents' | 'knowledge' | 'ai'>('documents')
-const tabItems = computed(() => [
-  { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents' as const, value: 'documents' },
-  { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge' as const, value: 'knowledge' },
-  // No `icon` for the AI tab — UTabs would render it as a Lucide
-  // glyph, but the seal is a Vue component, not an Iconify name. The
-  // seal sits inside the Fraunces-titled section header within the
-  // tab content instead, where it carries equal weight without
-  // needing to squeeze into the icon slot.
-  { label: t('workspace.tabs.ai'), slot: 'ai' as const, value: 'ai' }
-])
+const activeTab = ref<'documents' | 'knowledge' | 'ai' | 'settings'>('documents')
+const tabItems = computed(() => {
+  const items: Array<{ label: string, icon?: string, slot: 'documents' | 'knowledge' | 'ai' | 'settings', value: string }> = [
+    { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
+    { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' },
+    // No `icon` for the AI tab — UTabs would render it as a Lucide
+    // glyph, but the seal is a Vue component, not an Iconify name. The
+    // seal sits inside the Fraunces-titled section header within the
+    // tab content instead, where it carries equal weight without
+    // needing to squeeze into the icon slot.
+    { label: t('workspace.tabs.ai'), slot: 'ai', value: 'ai' }
+  ]
+  // Admin-only Settings tab. Hidden for editors / viewers — there's
+  // nothing actionable for them there. Putting the gate at tab-list
+  // level (rather than inside the slot) means the tab strip is the
+  // same width for everyone but the order shifts.
+  if (isAdmin.value) {
+    items.push({ label: t('workspace.tabs.settings'), icon: 'i-lucide-settings', slot: 'settings', value: 'settings' })
+  }
+  return items
+})
 
 // Same dialog flow as the home page; just pass our workspaceId so the
 // new doc files into this workspace from the start.
@@ -515,6 +529,17 @@ async function leaveWorkspace() {
                 </div>
               </div>
             </section>
+          </template>
+
+          <template #settings>
+            <!-- Workspace settings — admin-only. Currently houses the
+                 default-theme picker; future workspace-wide settings
+                 (e.g. retention policy) sit here too. -->
+            <WorkspaceSettingsPanel
+              :workspace-id="data.workspace.workspaceId"
+              :default-theme="data.workspace.defaultTheme"
+              @updated="(theme) => { if (data) data.workspace.defaultTheme = theme }"
+            />
           </template>
         </UTabs>
       </div>

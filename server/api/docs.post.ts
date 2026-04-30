@@ -1,5 +1,7 @@
 import { nanoid } from 'nanoid'
 import { createDoc } from '../repos/documents'
+import { getWorkspace } from '../repos/workspaces'
+import { getThemeById } from '../repos/themes'
 import { isAudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
@@ -27,6 +29,11 @@ export default defineEventHandler(async (event) => {
     language?: unknown
     templateId?: unknown
     themePreset?: unknown
+    // NEW: id of a user-saved theme (one of the caller's own).
+    // Mutually exclusive with `themePreset`. Resolved to a full theme
+    // server-side after ownership check, so the client only ships an
+    // id (no surface for arbitrary CSS injection via the JSONB column).
+    themeId?: unknown
   } = await readBody(event).catch(() => ({}))
   let workspaceId: string | null = null
   if (typeof body?.workspaceId === 'string' && body.workspaceId.length > 0) {
@@ -85,15 +92,37 @@ export default defineEventHandler(async (event) => {
     create.templateId = body.templateId
   }
 
-  // Theme preset = the id of one of the built-in presets. Resolved to
-  // the full theme object server-side so the client only ships an id —
-  // no surface for an attacker to inject arbitrary CSS via the theme
-  // JSONB column at creation time.
-  if (body.themePreset !== undefined) {
+  // Theme resolution order (first match wins):
+  //   1. `themeId`     — caller's own saved-theme preset
+  //   2. `themePreset` — built-in preset id
+  //   3. Workspace default theme (when filing into a workspace)
+  //   4. Schema default (markoto preset, applied by createDoc)
+  //
+  // Client only ships ids; the full theme JSONB is resolved here so
+  // there's no surface for arbitrary CSS injection. (1) and (2) are
+  // mutually exclusive — passing both fails fast rather than silently
+  // letting (1) win, so callers can't smuggle a built-in id past a
+  // theme whitelist by also sending a saved id.
+  if (body.themeId !== undefined && body.themePreset !== undefined) {
+    throw createError({ statusCode: 400, message: 'Pass themeId OR themePreset, not both' })
+  }
+  if (body.themeId !== undefined) {
+    if (typeof body.themeId !== 'string') throw createError({ statusCode: 400, message: 'themeId must be a string' })
+    if (ownerId == null) throw createError({ statusCode: 401, message: 'Login required to use saved themes' })
+    const saved = await getThemeById(body.themeId, ownerId)
+    if (!saved) throw createError({ statusCode: 404, message: 'Saved theme not found' })
+    create.theme = saved.theme
+  } else if (body.themePreset !== undefined) {
     if (typeof body.themePreset !== 'string') throw createError({ statusCode: 400, message: 'themePreset must be a string' })
     const preset = THEME_PRESETS.find(p => p.id === body.themePreset)
     if (!preset) throw createError({ statusCode: 400, message: 'Unknown themePreset' })
     create.theme = preset.theme
+  } else if (workspaceId !== null) {
+    // No client-supplied theme — fall back to the workspace's default
+    // (snapshot at creation time, so future changes to the workspace
+    // default don't ripple into already-created docs).
+    const ws = await getWorkspace(workspaceId)
+    if (ws?.defaultTheme) create.theme = ws.defaultTheme
   }
 
   await createDoc(create)

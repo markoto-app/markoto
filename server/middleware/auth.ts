@@ -50,6 +50,7 @@ export default defineEventHandler(async (event) => {
   const protectedPrefixes = [
     '/api/docs/', // doc mutations (PUT, DELETE)
     '/api/workspaces',
+    '/api/themes', // user-saved theme presets (per-user, login required)
     '/api/user',
     '/api/upload',
     '/api/import',

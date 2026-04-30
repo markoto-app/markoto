@@ -1,3 +1,4 @@
+import { DocThemeSchema } from '~~/shared/types/theme'
 import { updateWorkspace, type WorkspaceUpdate } from '../../../repos/workspaces'
 
 // Rename / edit workspace. Admins only — editors and viewers can't change
@@ -36,6 +37,26 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, message: 'Description too long (max 1024)' })
       }
       updates.description = trimmed.length > 0 ? trimmed : null
+    }
+  }
+
+  // Workspace default theme — applied to NEW documents created in this
+  // workspace. `null` clears it (revert to global markoto default).
+  // Theme structure validated against the same schema that gates per-
+  // doc theme writes, so anything that's valid in a doc is valid here.
+  if (body?.defaultTheme !== undefined) {
+    if (body.defaultTheme === null) {
+      updates.defaultTheme = null
+    } else {
+      const parsed = DocThemeSchema.safeParse(body.defaultTheme)
+      if (!parsed.success) {
+        throw createError({
+          statusCode: 400,
+          message: 'Invalid defaultTheme payload',
+          data: { issues: parsed.error.issues }
+        })
+      }
+      updates.defaultTheme = parsed.data
     }
   }
 

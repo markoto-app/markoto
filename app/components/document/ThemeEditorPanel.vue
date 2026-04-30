@@ -279,6 +279,127 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
     color: 'success'
   })
 }
+
+// ─── User-saved themes ────────────────────────────────────────────
+//
+// Anonymous viewers see no saved-themes UI (server returns 401, list
+// stays empty). Logged-in users get a "Your themes" section ABOVE the
+// built-in presets and a "Save current theme" button beside the
+// section eyebrow. Same one-click apply, plus rename + delete.
+
+interface SavedTheme {
+  themeId: string
+  name: string
+  theme: DocTheme
+  createdAt: string
+  updatedAt: string
+}
+
+const { loggedIn } = useUserSession()
+const savedThemes = ref<SavedTheme[]>([])
+const savedLoading = ref(false)
+
+async function refreshSavedThemes() {
+  if (!loggedIn.value) {
+    savedThemes.value = []
+    return
+  }
+  savedLoading.value = true
+  try {
+    const res = await $fetch<{ themes: SavedTheme[] }>('/api/themes')
+    savedThemes.value = res.themes
+  } catch {
+    // Non-fatal — anonymous users hit 401 here, which we already
+    // handle via the loggedIn guard. Other errors silently keep the
+    // list empty so the rest of the panel still works.
+  } finally {
+    savedLoading.value = false
+  }
+}
+
+if (import.meta.client) refreshSavedThemes()
+
+// Save the CURRENT draft as a new preset. Prompts for a name; the API
+// caps name + total count and revalidates the theme via DocThemeSchema.
+async function saveCurrentAsPreset() {
+  if (!props.canEdit || !loggedIn.value) return
+  const name = (typeof window !== 'undefined'
+    ? window.prompt(t('theme.saved.namePrompt'), '')
+    : null
+  )?.trim()
+  if (!name) return
+  try {
+    await $fetch('/api/themes', {
+      method: 'POST',
+      body: { name, theme: toRaw(draft.value) }
+    })
+    await refreshSavedThemes()
+    toast.add({
+      title: name,
+      description: t('theme.saved.savedToast'),
+      icon: 'i-lucide-bookmark-check',
+      color: 'success'
+    })
+  } catch (e) {
+    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
+    toast.add({
+      title: t('theme.saved.saveFailedTitle'),
+      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
+      icon: 'i-lucide-alert-circle',
+      color: 'error'
+    })
+  }
+}
+
+function applySaved(saved: SavedTheme) {
+  if (!props.canEdit) return
+  draft.value = structuredClone(saved.theme)
+  emit('update:theme', structuredClone(saved.theme))
+  toast.add({
+    title: saved.name,
+    description: t('theme.presets.applied'),
+    icon: 'i-lucide-palette',
+    color: 'success'
+  })
+}
+
+async function renameSaved(saved: SavedTheme) {
+  if (typeof window === 'undefined') return
+  const next = window.prompt(t('theme.saved.renamePrompt'), saved.name)?.trim()
+  if (!next || next === saved.name) return
+  try {
+    await $fetch(`/api/themes/${saved.themeId}`, {
+      method: 'PATCH',
+      body: { name: next }
+    })
+    await refreshSavedThemes()
+  } catch (e) {
+    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
+    toast.add({
+      title: t('theme.saved.renameFailedTitle'),
+      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
+      icon: 'i-lucide-alert-circle',
+      color: 'error'
+    })
+  }
+}
+
+async function deleteSaved(saved: SavedTheme) {
+  if (typeof window === 'undefined') return
+  if (!window.confirm(t('theme.saved.deleteConfirm', { name: saved.name }))) return
+  try {
+    await $fetch(`/api/themes/${saved.themeId}`, { method: 'DELETE' })
+    await refreshSavedThemes()
+  } catch (e) {
+    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
+    toast.add({
+      title: t('theme.saved.deleteFailedTitle'),
+      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
+      icon: 'i-lucide-alert-circle',
+      color: 'error'
+    })
+  }
+}
 </script>
 
 <template>
@@ -313,6 +434,66 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
       </div>
 
       <template v-else>
+        <!-- User-saved themes. Only visible to logged-in users with at
+             least one saved preset. The "Save current theme" button
+             sits next to the built-in presets eyebrow below so users
+             always see the affordance, even when the list is empty. -->
+        <section
+          v-if="loggedIn && savedThemes.length > 0"
+          class="mb-4"
+        >
+          <div class="flex items-baseline justify-between mb-2 px-1">
+            <h4 class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted">
+              {{ t('theme.saved.title') }}
+            </h4>
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <div
+              v-for="saved in savedThemes"
+              :key="saved.themeId"
+              :data-testid="`theme-saved-${saved.themeId}`"
+              class="group relative flex items-stretch gap-1 rounded-md border border-default bg-default hover:border-default/80 transition-colors"
+            >
+              <button
+                type="button"
+                class="flex-1 text-left p-3 rounded-md focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                @click="applySaved(saved)"
+              >
+                <div class="flex items-center gap-2 mb-1">
+                  <span
+                    class="size-3 rounded-full shrink-0"
+                    :style="{ backgroundColor: saved.theme.color.brand }"
+                  />
+                  <span
+                    class="text-sm font-semibold truncate"
+                    :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
+                  >
+                    {{ saved.name }}
+                  </span>
+                </div>
+              </button>
+              <div class="flex flex-col justify-center pr-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                <UButton
+                  :aria-label="t('theme.saved.rename')"
+                  icon="i-lucide-pencil"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click.stop="renameSaved(saved)"
+                />
+                <UButton
+                  :aria-label="t('theme.saved.delete')"
+                  icon="i-lucide-trash-2"
+                  color="error"
+                  variant="ghost"
+                  size="xs"
+                  @click.stop="deleteSaved(saved)"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Templates — clickable preset cards at the top of the panel. -->
         <section class="mb-4">
           <!-- Section eyebrow — same JetBrains Mono micro-label
@@ -322,6 +503,19 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
             <h4 class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted">
               {{ t('theme.presets.title') }}
             </h4>
+            <UButton
+              v-if="loggedIn"
+              :aria-label="t('theme.saved.saveCurrent')"
+              icon="i-lucide-bookmark-plus"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              data-testid="theme-save-current"
+              :disabled="savedLoading"
+              @click="saveCurrentAsPreset"
+            >
+              {{ t('theme.saved.saveCurrent') }}
+            </UButton>
           </div>
           <div class="grid grid-cols-1 gap-2">
             <!-- Preset card. `bg-default` (= white in light, sumi-900

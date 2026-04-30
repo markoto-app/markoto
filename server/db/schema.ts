@@ -122,12 +122,37 @@ export const workspaces = pgTable('workspaces', {
   // the billing owner's subscription expires.
   billingOwnerId: integer('billing_owner_id').references(() => users.id, { onDelete: 'set null' }),
   aiEnabled: boolean('ai_enabled').notNull().default(false),
+  // Default theme applied to NEW documents created in this workspace.
+  // NULL = use the markoto built-in preset (the global default). Set by
+  // workspace admins via the workspace settings UI. Snapshotted at
+  // creation — changing this later does NOT retheme existing docs.
+  defaultTheme: jsonb('default_theme').$type<DocTheme>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   index('idx_workspaces_owner').on(table.ownerId),
   // Billing resolver reads `(+)` state by workspace id; sweep scans by
   // billing owner. Both benefit from an index on billingOwnerId.
   index('idx_workspaces_billing_owner').on(table.billingOwnerId)
+])
+
+// User-saved theme presets. Per-user, not shared across workspaces. A
+// user can save up to 20 themes (parity with the workspaces-owned cap)
+// and apply them to any document they own from the theme picker.
+//
+// Workspace admins can pick any theme they own (built-in OR user-saved)
+// as the workspace's `defaultTheme`. The default is snapshotted into
+// `documents.theme` at creation time, so re-renaming or deleting a saved
+// theme later doesn't ripple into already-created docs.
+export const themes = pgTable('themes', {
+  id: serial('id').primaryKey(),
+  themeId: text('theme_id').notNull().unique(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  theme: jsonb('theme').$type<DocTheme>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_themes_user').on(table.userId)
 ])
 
 // Membership + role table. Single source of truth for "who can do what" in
