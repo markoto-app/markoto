@@ -160,9 +160,15 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
 })
 
 describe('themeToCss — Step 10: brand logo on cover', () => {
-  test('every preset has a brand block with empty logoUrl + sensible logoHeight', () => {
+  test('every preset has a brand block with sane logoHeight', () => {
+    // markoto pre-fills logoUrl with the public wordmark asset; other
+    // presets ship with an empty string until users upload their own.
     for (const preset of THEME_PRESETS) {
-      expect(preset.theme.brand.logoUrl).toBe('')
+      if (preset.id === 'markoto') {
+        expect(preset.theme.brand.logoUrl).toBe('/markoto-logos/primary-lockup-light.svg')
+      } else {
+        expect(preset.theme.brand.logoUrl).toBe('')
+      }
       expect(preset.theme.brand.logoHeight).toBeGreaterThanOrEqual(8)
       expect(preset.theme.brand.logoHeight).toBeLessThanOrEqual(80)
     }
@@ -170,7 +176,9 @@ describe('themeToCss — Step 10: brand logo on cover', () => {
   test('cover-enabled themes emit .markoto-cover-logo CSS rule', () => {
     const css = themeToCss(markoto, runtime)
     expect(css).toContain('.markoto-cover-logo')
-    expect(css).toMatch(/\.markoto-cover-logo\s*\{[^}]*height:\s*48px/)
+    // markoto preset's logoHeight is 56 (was 48 before the cover-design
+    // refresh).
+    expect(css).toMatch(/\.markoto-cover-logo\s*\{[^}]*height:\s*56px/)
   })
   test('logoHeight from theme threads into the CSS', () => {
     const tall: DocTheme = { ...markoto, brand: { logoUrl: '', logoHeight: 72 } }
@@ -186,7 +194,10 @@ describe('themeToCss — Step 10: brand logo on cover', () => {
 describe('themeToCss — Step 9: cover page', () => {
   test('markoto preset has cover enabled by default', () => {
     expect(markoto.cover.enabled).toBe(true)
-    expect(markoto.cover.layout).toBe('centered')
+    // Editorial: logo top, title at ⅓, meta at ⅔ — matches the
+    // brand voice. Switched from `centered` when the layout enum
+    // expanded to (classic/editorial/banner/minimal).
+    expect(markoto.cover.layout).toBe('editorial')
   })
   test('cover-enabled theme emits .markoto-cover rule with named page', () => {
     const css = themeToCss(markoto, runtime)
@@ -213,17 +224,55 @@ describe('themeToCss — Step 9: cover page', () => {
     const css = themeToCss(markoto, runtime)
     expect(css).toMatch(/markoto-cover-author\s*\{[^}]*font-family:\s*"?JetBrains Mono"?/)
   })
-  test('layout=split changes justify-content to space-between (academic preset)', () => {
-    const split = THEME_PRESETS.find(p => p.id === 'academic')!.theme
-    expect(split.cover.enabled).toBe(true)
-    expect(split.cover.layout).toBe('split')
-    const css = themeToCss(split, runtime)
-    expect(css).toMatch(/\.markoto-cover\s*\{[^}]*justify-content:\s*space-between/)
+  test('layout=editorial uses CSS Grid with 6 rows for the ⅓ rhythm', () => {
+    // Editorial pins logo at top, title block at ~⅓, meta at ~⅔ via a
+    // 6-row grid (auto / 1fr / auto / 1fr / auto / 1fr). The three
+    // equal `1fr` spacers are what produce the ⅓ rhythm — without
+    // them the grid would collapse content to its natural sizes.
+    const editorial: DocTheme = { ...markoto, cover: { ...markoto.cover, layout: 'editorial' } }
+    const css = themeToCss(editorial, runtime)
+    expect(css).toMatch(/\.markoto-cover\s*\{[^}]*display:\s*grid/)
+    expect(css).toMatch(/\.markoto-cover\s*\{[^}]*grid-template-rows:\s*auto 1fr auto 1fr auto 1fr/)
+    expect(css).toMatch(/markoto-cover-title\s*\{\s*grid-row:\s*3/)
+    expect(css).toMatch(/markoto-cover-meta\s*\{\s*grid-row:\s*5/)
   })
-  test('layout=top changes justify-content to flex-start', () => {
-    const topTheme: DocTheme = { ...markoto, cover: { ...markoto.cover, layout: 'top' } }
-    const css = themeToCss(topTheme, runtime)
-    expect(css).toMatch(/\.markoto-cover\s*\{[^}]*justify-content:\s*flex-start/)
+  test('layout=classic uses flex-column centered (vertical mid)', () => {
+    const classic: DocTheme = { ...markoto, cover: { ...markoto.cover, layout: 'classic' } }
+    const css = themeToCss(classic, runtime)
+    expect(css).toMatch(/\.markoto-cover\s*\{[^}]*display:\s*flex/)
+    expect(css).toMatch(/\.markoto-cover\s*\{[^}]*justify-content:\s*center/)
+  })
+  test('layout=banner places logo + title in a brand-tinted top band', () => {
+    const banner: DocTheme = { ...markoto, cover: { ...markoto.cover, layout: 'banner' } }
+    const css = themeToCss(banner, runtime)
+    // Both logo and title share grid-row 1, on a color-mixed brand-tint background.
+    expect(css).toMatch(/markoto-cover-logo,\s*\.paged-doc \.markoto-cover-title\s*\{[^}]*background:\s*color-mix/)
+    expect(css).toMatch(/markoto-cover-meta\s*\{\s*grid-row:\s*3/)
+  })
+  test('layout=minimal hides logo + meta even when toggled on', () => {
+    const minimal: DocTheme = {
+      ...markoto,
+      cover: { ...markoto.cover, layout: 'minimal', showLogo: true, showAuthors: true, authors: ['Alice'] }
+    }
+    const css = themeToCss(minimal, runtime)
+    // The CSS forces display:none on .markoto-cover-logo and -meta
+    // regardless of toggles; "minimal" is a stronger statement than
+    // "what the user toggled".
+    expect(css).toMatch(/markoto-cover-logo,\s*\.paged-doc \.markoto-cover-meta\s*\{\s*display:\s*none/)
+  })
+  test('cover.titleSize drives the h1 font-size em multiplier', () => {
+    const big: DocTheme = { ...markoto, cover: { ...markoto.cover, titleSize: 3.6 } }
+    const css = themeToCss(big, runtime)
+    expect(css).toMatch(/markoto-cover-title\s*\{[^}]*font-size:\s*3\.6em/)
+  })
+  test('cover.subtitleSize drives the subtitle em multiplier', () => {
+    const small: DocTheme = { ...markoto, cover: { ...markoto.cover, subtitleSize: 0.8 } }
+    const css = themeToCss(small, runtime)
+    expect(css).toMatch(/markoto-cover-subtitle\s*\{[^}]*font-size:\s*0\.8em/)
+  })
+  test('cover.align flows through to text-align', () => {
+    const left: DocTheme = { ...markoto, cover: { ...markoto.cover, align: 'left' } }
+    expect(themeToCss(left, runtime)).toMatch(/\.markoto-cover\s*\{[^}]*text-align:\s*left/)
   })
   test('authors array supports multiple entries (collaboration tool)', () => {
     const multi: DocTheme = {
@@ -241,7 +290,12 @@ describe('themeToCss — Step 8: meta font (eyebrow voice)', () => {
   test('markoto preset: header/footer/figcaption/footnote all use JetBrains Mono', () => {
     const markotoWithFooter: DocTheme = {
       ...markoto,
-      footer: { left: '', center: '{page} · {pages}', right: '' }
+      footer: {
+        ...markoto.footer,
+        left: '',
+        center: '{page} · {pages}',
+        right: ''
+      }
     }
     const css = themeToCss(markotoWithFooter, runtime)
     // figcaption font-family

@@ -257,20 +257,45 @@ describe('useHocuspocusSync — lifecycle callbacks', () => {
     expect(sync.status.value).toBe('connecting')
   })
 
-  it('onAwarenessChange sets userCount to states.length', () => {
+  it('onAwarenessChange dedups by user.id (multi-tab same user collapses)', () => {
+    // userCount is now the count of UNIQUE collaborators, not raw
+    // socket count — a single human with two tabs is one entry, an
+    // anonymous editor and an AI session each get their own. The
+    // visual avatar bar uses the same dedup; the chip's number must
+    // match what's drawn.
     const h = makeHarness()
     const sync = useHocuspocusSync(baseOpts(h))
     sync.connect()
-    expect(sync.userCount.value).toBe(1)
 
+    // States with no `user` are skipped (pre-awareness clientIds).
     h.latest().fireAwarenessChange([{ clientId: 1 }, { clientId: 2 }, { clientId: 3 }])
+    expect(sync.userCount.value).toBe(0)
+
+    // Three distinct logged-in users → 3.
+    h.latest().fireAwarenessChange([
+      { clientId: 1, user: { id: 10 } },
+      { clientId: 2, user: { id: 11 } },
+      { clientId: 3, user: { id: 12 } }
+    ])
     expect(sync.userCount.value).toBe(3)
 
-    h.latest().fireAwarenessChange([{ clientId: 1 }])
-    expect(sync.userCount.value).toBe(1)
+    // Same logged-in user across two tabs → counted once.
+    h.latest().fireAwarenessChange([
+      { clientId: 1, user: { id: 10 } },
+      { clientId: 2, user: { id: 10 } },
+      { clientId: 3, user: { id: 11 } }
+    ])
+    expect(sync.userCount.value).toBe(2)
 
-    // Empty states — reflects "no clients" (including ourselves in
-    // degenerate disconnect conditions).
+    // Anonymous (no id) and AI sessions don't dedup — each counts.
+    h.latest().fireAwarenessChange([
+      { clientId: 1, user: { id: 10 } },
+      { clientId: 2, user: { id: 'anonymous' } },
+      { clientId: 3, user: { id: 'anonymous' } },
+      { clientId: 4, user: { isAI: true } }
+    ])
+    expect(sync.userCount.value).toBe(4)
+
     h.latest().fireAwarenessChange([])
     expect(sync.userCount.value).toBe(0)
   })

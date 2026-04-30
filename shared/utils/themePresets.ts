@@ -33,10 +33,10 @@ export const THEME_PRESETS: ThemePreset[] = [
       body: { font: 'Inter', size: 10.5, lineHeight: 1.55, textAlign: 'left', color: '#14110D', background: '#FAF8F4', dropCap: true, firstLineIndent: false, paragraphSpacing: 0.6, hyphenate: false },
       headings: { font: 'Fraunces', scale: 1.333, weight: 500, underline: false, color: '#1F1B14', letterSpacing: -0.01, lineHeight: 1.25, spacingScale: 1.2 },
       color: { brand: '#B5371F', secondary: '#A39A8A' },
-      brand: { logoUrl: '', logoHeight: 48 },
+      brand: { logoUrl: '/markoto-logos/primary-lockup-light.svg', logoHeight: 56 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '' },
-      footer: { left: '', center: '{page} · {pages}', right: '' },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
+      footer: { left: '', center: '{page} · {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
       code: { theme: 'github-light', fontSize: 9 },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 92, blockquoteStyle: 'border', hrStyle: 'asterism', hrThickness: 1 },
@@ -55,7 +55,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#B5371F' // shu-500
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'centered', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], showLogo: false }
+      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], showLogo: true, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 
@@ -71,8 +71,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       color: { brand: '#3B82F6', secondary: '#9ca3af' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '' },
-      footer: { left: '', center: '{page} / {pages}', right: '' },
+      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
+      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
       code: { theme: 'github-dark', fontSize: 9 },
       tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'all', zebra: false, cellPadding: 6 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
@@ -87,7 +87,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#cf222e'
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: false, layout: 'centered', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], showLogo: false }
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 
@@ -104,8 +104,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       color: { brand: '#1e3a8a', secondary: '#94a3b8' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 2, columnGap: 7 },
-      header: { left: '{title}', center: '', right: '{page}' },
-      footer: { left: '', center: '', right: '' },
+      header: { left: '{title}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
       code: { theme: 'github-light', fontSize: 10 },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 90, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
@@ -120,7 +120,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#9b1a25'
       },
       toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'split', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: true, authors: [], showLogo: false }
+      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: true, authors: [], showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 
@@ -137,8 +137,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       color: { brand: '#0891b2', secondary: '#94a3b8' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}' },
-      footer: { left: '', center: '{page} / {pages}', right: '' },
+      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
+      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
       code: { theme: 'github-dark', fontSize: 9 },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 2 },
@@ -153,7 +153,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#dc2626'
       },
       toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dashed' },
-      cover: { enabled: false, layout: 'top', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], showLogo: false }
+      cover: { enabled: false, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 
@@ -170,8 +170,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       color: { brand: '#b45309', secondary: '#a8a29e' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '{title}', right: '' },
-      footer: { left: '{date}', center: '', right: '{page} / {pages}' },
+      header: { left: '', center: '{title}', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
+      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
       code: { theme: 'github-light', fontSize: 9 },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8 },
       blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 1 },
@@ -186,7 +186,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#991b1b'
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'split', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], showLogo: false }
+      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 
@@ -203,8 +203,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       color: { brand: '#4c1d95', secondary: '#a8a29e' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '' },
-      footer: { left: '', center: '{page}', right: '' },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
       code: { theme: 'none', fontSize: 10 },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 80, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1 },
@@ -220,7 +220,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#7c1d1d'
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'centered', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], showLogo: false }
+      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 
@@ -237,8 +237,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       color: { brand: '#047857', secondary: '#a1a1aa' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}' },
-      footer: { left: '', center: '{page}', right: '' },
+      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
       code: { theme: 'github-light', fontSize: 8 },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1 },
@@ -253,7 +253,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#dc2626'
       },
       toc: { maxDepth: 3, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
-      cover: { enabled: false, layout: 'centered', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], showLogo: false }
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   }
 ]

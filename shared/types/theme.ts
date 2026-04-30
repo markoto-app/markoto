@@ -128,13 +128,33 @@ export const TocMaxDepthSchema = z.union([z.literal(2), z.literal(3), z.literal(
 export type TocMaxDepth = z.infer<typeof TocMaxDepthSchema>
 
 /**
- * Cover-page composition mode.
- *  - `centered` — all content vertically + horizontally centered (book/novel)
- *  - `top`      — title block top-aligned, rest of page blank (technical reports)
- *  - `split`    — title block top, author/date bottom (academic / business)
+ * Cover-page composition mode. Each layout is implemented via CSS Grid
+ * placement (NOT just `justify-content`) so the visual difference is
+ * obvious with even short cover content. See `coverBlock` in
+ * `themeToCss.ts`.
+ *
+ *  - `classic`   — everything stacked vertically + horizontally centered (book/novel feel)
+ *  - `editorial` — logo at top, title+subtitle at the upper third, author/date at the lower third (markoto default)
+ *  - `banner`    — logo + title in a top band on a brand-tinted stripe, meta at bottom
+ *  - `minimal`   — just title (and optional subtitle) centered, no logo/meta even when toggled on
  */
-export const CoverLayoutSchema = z.enum(['centered', 'top', 'split'])
+export const CoverLayoutSchema = z.enum(['classic', 'editorial', 'banner', 'minimal'])
 export type CoverLayout = z.infer<typeof CoverLayoutSchema>
+
+/**
+ * Cover text alignment. Drives `text-align` and the horizontal alignment
+ * inside the layout's grid track.
+ */
+export const CoverAlignSchema = z.enum(['left', 'center', 'right'])
+export type CoverAlign = z.infer<typeof CoverAlignSchema>
+
+/**
+ * Header image position. Renders into the corresponding `@top-X` margin
+ * box on every BODY page; the cover page's named `@page cover-page`
+ * already nulls these so it stays clean.
+ */
+export const HeaderImagePositionSchema = z.enum(['left', 'center', 'right'])
+export type HeaderImagePosition = z.infer<typeof HeaderImagePositionSchema>
 
 /**
  * Header/footer slot. Templates support these tokens:
@@ -147,7 +167,22 @@ export type CoverLayout = z.infer<typeof CoverLayoutSchema>
 export const RunningSlotsSchema = z.object({
   left: slotTemplate,
   center: slotTemplate,
-  right: slotTemplate
+  right: slotTemplate,
+  /**
+   * Optional image rendered in ONE of the three slots (driven by
+   * `imagePosition`). Empty string = no image. Mutually exclusive with
+   * the text in the same slot — image wins when both are set, since
+   * users typically pick one mental model. Cover page suppresses
+   * margin boxes entirely so this never appears on the cover.
+   */
+  imageUrl: z.string().max(500),
+  imagePosition: HeaderImagePositionSchema,
+  /**
+   * Image height in pt (running headers are sized in pt, not px, so
+   * they line up with the margin-box font sizes elsewhere). 6–24pt
+   * keeps it proportionate to typical 9–11pt header text.
+   */
+  imageHeight: z.number().int().min(6).max(24)
 }).strict()
 export type RunningSlots = z.infer<typeof RunningSlotsSchema>
 
@@ -325,6 +360,8 @@ export const DocThemeSchema = z.object({
   cover: z.object({
     enabled: z.boolean(),
     layout: CoverLayoutSchema,
+    /** Horizontal text alignment + content alignment within the layout. */
+    align: CoverAlignSchema,
     showTitle: z.boolean(),
     showSubtitle: z.boolean(),
     /** Free-form subtitle text rendered under the title. */
@@ -337,12 +374,17 @@ export const DocThemeSchema = z.object({
      * keeps the cover from becoming a credit roll.
      */
     authors: z.array(z.string().max(100)).max(10),
+    /** Whether to render `theme.brand.logoUrl` on the cover. */
+    showLogo: z.boolean(),
     /**
-     * Reserved for Step 10 (logo upload). When true, renders
-     * `theme.brand.logo` above the title block. Until Step 10 ships,
-     * this is a no-op (no logo source).
+     * Title font size as an em multiplier of the body font size. 0.6–4.0
+     * lets users go from quiet/minimal cover titles to oversized display
+     * lockups without leaving sensible bounds. The default 2.4 matches
+     * the original hardcoded value.
      */
-    showLogo: z.boolean()
+    titleSize: z.number().min(0.6).max(4),
+    /** Subtitle em multiplier — same intent as titleSize, smaller range. */
+    subtitleSize: z.number().min(0.5).max(2.5)
   }).strict()
 }).strict()
 

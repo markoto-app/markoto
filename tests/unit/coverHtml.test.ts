@@ -19,7 +19,7 @@ describe('buildCoverHtml — when disabled', () => {
   })
 })
 
-describe('buildCoverHtml — markoto default (centered, title + date only)', () => {
+describe('buildCoverHtml — markoto default (editorial, logo + title + date)', () => {
   test('emits <section class="markoto-cover">…</section>', () => {
     const out = buildCoverHtml(baseTheme, 'My Document', '2026-04-29')
     expect(out).toMatch(/^<section class="markoto-cover">/)
@@ -42,8 +42,22 @@ describe('buildCoverHtml — markoto default (centered, title + date only)', () 
     const out = buildCoverHtml(baseTheme, 'My Document', '2026-04-29')
     expect(out).not.toContain('markoto-cover-author')
   })
-  test('does NOT render logo (showLogo is false + brand.logoUrl empty)', () => {
+  test('renders the markoto wordmark logo by default', () => {
+    // Default markoto theme pre-fills `brand.logoUrl` with the public
+    // wordmark asset and `cover.showLogo = true` so every new doc
+    // opens with the brand mark on its cover.
     const out = buildCoverHtml(baseTheme, 'My Document', '2026-04-29')
+    expect(out).toContain('markoto-cover-logo')
+    expect(out).toContain('/markoto-logos/primary-lockup-light.svg')
+  })
+  test('omits logo when showLogo is toggled off', () => {
+    const t: DocTheme = { ...baseTheme, cover: { ...baseTheme.cover, showLogo: false } }
+    const out = buildCoverHtml(t, 'My Document', '2026-04-29')
+    expect(out).not.toContain('markoto-cover-logo')
+  })
+  test('omits logo when brand.logoUrl is empty', () => {
+    const t: DocTheme = { ...baseTheme, brand: { ...baseTheme.brand, logoUrl: '' } }
+    const out = buildCoverHtml(t, 'My Document', '2026-04-29')
     expect(out).not.toContain('markoto-cover-logo')
   })
 })

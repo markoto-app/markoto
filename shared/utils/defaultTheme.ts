@@ -54,8 +54,14 @@ export const defaultTheme: DocTheme = {
     secondary: '#A39A8A' // sumi-400 — warm muted brown-grey for hairlines
   },
   brand: {
-    logoUrl: '', // empty until user uploads via theme editor
-    logoHeight: 48
+    // The markoto wordmark lives in `public/markoto-logos/` (used by the
+    // app's topbar via `<CommonWordmark>`). Pre-filled here so every new
+    // doc opens with the brand mark on its cover; users replace it with
+    // their own via the theme editor's logo upload. Empty string would
+    // suppress the cover logo entirely, which is what users get when
+    // they explicitly clear it.
+    logoUrl: '/markoto-logos/primary-lockup-light.svg',
+    logoHeight: 56
   },
   layout: {
     columns: 1,
@@ -64,12 +70,18 @@ export const defaultTheme: DocTheme = {
   header: {
     left: '',
     center: '',
-    right: ''
+    right: '',
+    imageUrl: '',
+    imagePosition: 'left',
+    imageHeight: 12 // pt — proportionate to typical 9-11pt header text
   },
   footer: {
     left: '',
     center: '{page} · {pages}',
-    right: ''
+    right: '',
+    imageUrl: '',
+    imagePosition: 'center',
+    imageHeight: 10
   },
   code: {
     theme: 'github-light',
@@ -108,13 +120,23 @@ export const defaultTheme: DocTheme = {
   },
   cover: {
     enabled: true, // markoto opens with a title sheet
-    layout: 'centered',
+    // Editorial layout matches the brand voice: logo at top, title +
+    // subtitle around the upper third, author + date around the lower
+    // third. Other layouts (`classic`, `banner`, `minimal`) are
+    // alternative compositions users pick via the theme editor.
+    layout: 'editorial',
+    align: 'center',
     showTitle: true,
     showSubtitle: false,
     subtitle: '',
     showDate: true,
     showAuthors: false, // user fills in via theme editor when ready
     authors: [],
-    showLogo: false // reserved for Step 10
+    // Brand logo on by default — `theme.brand.logoUrl` is pre-filled
+    // with the markoto wordmark above, so a brand-new doc opens with
+    // the mark visible on the cover.
+    showLogo: true,
+    titleSize: 2.4, // em multiplier — matches the previous hardcoded value
+    subtitleSize: 1.15
   }
 }

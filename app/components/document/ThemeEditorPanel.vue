@@ -109,10 +109,61 @@ const hrStyleItems = computed(() => [
   { label: t('theme.hr.none'), value: 'none' }
 ])
 const coverLayoutItems = computed(() => [
-  { label: t('theme.cover.layoutCentered'), value: 'centered' },
-  { label: t('theme.cover.layoutTop'), value: 'top' },
-  { label: t('theme.cover.layoutSplit'), value: 'split' }
+  { label: t('theme.cover.layoutClassic'), value: 'classic' },
+  { label: t('theme.cover.layoutEditorial'), value: 'editorial' },
+  { label: t('theme.cover.layoutBanner'), value: 'banner' },
+  { label: t('theme.cover.layoutMinimal'), value: 'minimal' }
 ])
+const coverAlignItems = computed(() => [
+  { label: t('theme.align.left'), value: 'left' },
+  { label: t('theme.align.center'), value: 'center' },
+  { label: t('theme.align.right'), value: 'right' }
+])
+const headerImagePositionItems = computed(() => [
+  { label: t('theme.align.left'), value: 'left' },
+  { label: t('theme.align.center'), value: 'center' },
+  { label: t('theme.align.right'), value: 'right' }
+])
+
+// Header image upload — same presigned-PUT flow as the cover logo,
+// but writes into `draft.header.imageUrl`. Returns synchronously after
+// the upload + confirm round-trip; `headerImageUploading` drives the
+// button spinner.
+const headerImageUploading = ref(false)
+const headerImageError = ref<string | null>(null)
+async function uploadHeaderImage(file: File) {
+  if (!file) return
+  headerImageUploading.value = true
+  headerImageError.value = null
+  try {
+    const { uploadUrl, fileId, key } = await $fetch<{
+      uploadUrl: string
+      fileId: string
+      key: string
+    }>('/api/upload/request', {
+      method: 'POST',
+      body: { docId: props.docId, filename: file.name, contentType: file.type, size: file.size }
+    })
+    const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
+    if (!putRes.ok) throw new Error(`Upload failed: ${putRes.status}`)
+    await $fetch('/api/upload/confirm', { method: 'POST', body: { key } })
+    draft.value.header.imageUrl = `/api/files/${props.docId}/${fileId}`
+  } catch (e) {
+    const err = e as { message?: string }
+    headerImageError.value = err.message || 'Upload failed'
+  } finally {
+    headerImageUploading.value = false
+  }
+}
+function onHeaderImageFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  const f = input.files?.[0]
+  if (f) uploadHeaderImage(f)
+  input.value = ''
+}
+function clearHeaderImage() {
+  draft.value.header.imageUrl = ''
+}
 
 function addAuthor() {
   if (draft.value.cover.authors.length >= 10) return
@@ -573,6 +624,36 @@ async function deleteSaved(saved: SavedTheme) {
                     v-model="draft.cover.layout"
                     :items="coverLayoutItems"
                     class="w-full"
+                  />
+                </UFormField>
+                <UFormField :label="t('theme.cover.align')">
+                  <USelect
+                    v-model="draft.cover.align"
+                    :items="coverAlignItems"
+                    class="w-full"
+                  />
+                </UFormField>
+                <UFormField
+                  :label="t('theme.cover.titleSize')"
+                  :help="`${draft.cover.titleSize.toFixed(2)}em`"
+                >
+                  <USlider
+                    v-model="draft.cover.titleSize"
+                    :min="0.6"
+                    :max="4"
+                    :step="0.05"
+                  />
+                </UFormField>
+                <UFormField
+                  v-if="draft.cover.showSubtitle"
+                  :label="t('theme.cover.subtitleSize')"
+                  :help="`${draft.cover.subtitleSize.toFixed(2)}em`"
+                >
+                  <USlider
+                    v-model="draft.cover.subtitleSize"
+                    :min="0.5"
+                    :max="2.5"
+                    :step="0.05"
                   />
                 </UFormField>
                 <UFormField :label="t('theme.cover.showTitle')">
@@ -1090,6 +1171,85 @@ async function deleteSaved(saved: SavedTheme) {
                   {{ chip.token }}
                 </UButton>
               </div>
+
+              <!-- Header image — companies typically want their logo in
+                   the running header on every body page. The cover page's
+                   `@page cover-page { @top-X { content: '' } }` rules
+                   automatically suppress this on the cover. -->
+              <USeparator />
+              <UFormField
+                :label="t('theme.runningSlots.image')"
+                :help="t('theme.runningSlots.imageHelp')"
+              >
+                <div class="space-y-2">
+                  <div
+                    v-if="draft.header.imageUrl"
+                    class="flex items-center gap-3 p-2 border border-default rounded"
+                  >
+                    <img
+                      :src="draft.header.imageUrl"
+                      alt="Header image preview"
+                      class="border border-default rounded bg-default"
+                      :style="{ height: `${draft.header.imageHeight * 1.5}px`, maxWidth: '120px', objectFit: 'contain' }"
+                    >
+                    <UButton
+                      color="neutral"
+                      variant="ghost"
+                      icon="i-lucide-x"
+                      size="xs"
+                      @click="clearHeaderImage"
+                    >
+                      {{ t('theme.brand.clearLogo') }}
+                    </UButton>
+                  </div>
+                  <label class="flex">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      class="hidden"
+                      @change="onHeaderImageFile"
+                    >
+                    <UButton
+                      as="span"
+                      color="neutral"
+                      variant="outline"
+                      icon="i-lucide-upload"
+                      size="xs"
+                      :loading="headerImageUploading"
+                    >
+                      {{ draft.header.imageUrl ? t('theme.brand.replaceLogo') : t('theme.runningSlots.uploadImage') }}
+                    </UButton>
+                  </label>
+                  <p
+                    v-if="headerImageError"
+                    class="text-xs text-rose-600 dark:text-rose-400"
+                  >
+                    {{ headerImageError }}
+                  </p>
+                </div>
+              </UFormField>
+              <UFormField
+                v-if="draft.header.imageUrl"
+                :label="t('theme.runningSlots.imagePosition')"
+              >
+                <USelect
+                  v-model="draft.header.imagePosition"
+                  :items="headerImagePositionItems"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                v-if="draft.header.imageUrl"
+                :label="t('theme.runningSlots.imageHeight')"
+                :help="`${draft.header.imageHeight}pt`"
+              >
+                <USlider
+                  v-model="draft.header.imageHeight"
+                  :min="6"
+                  :max="24"
+                  :step="1"
+                />
+              </UFormField>
             </div>
           </template>
 

@@ -78,21 +78,44 @@ ${footerSlots}
 }
 
 function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string, metaFont: string): string {
-  const boxes: { name: string, tpl: string }[] = [
-    { name: `${edge}-left`, tpl: slots.left },
-    { name: `${edge}-center`, tpl: slots.center },
-    { name: `${edge}-right`, tpl: slots.right }
-  ]
-  return boxes
-    .filter(b => b.tpl.trim())
-    .map(b => `  @${b.name} {
-    content: ${compileTemplate(b.tpl, runtime)};
+  // The optional image (if `imageUrl` is set) wins over text in the slot
+  // it lands in — same slot can't show both. Users typically pick one
+  // mental model per slot anyway. paged.js margin boxes accept
+  // `content: url('...')` per CSS Paged Media; the image inherits the
+  // slot's vertical alignment from the @top-X box itself.
+  const imgSlot = slots.imageUrl.trim() ? slots.imagePosition : null
+  const text: Record<'left' | 'center' | 'right', string> = {
+    left: slots.left,
+    center: slots.center,
+    right: slots.right
+  }
+  const positions = ['left', 'center', 'right'] as const
+  const out: string[] = []
+  for (const pos of positions) {
+    const boxName = `${edge}-${pos}`
+    if (imgSlot === pos) {
+      // Image slot — escape single-quotes in URLs (none expected for
+      // /api/files, but defense in depth) and pin the image height in
+      // pt so it lines up with the running header's text-size scale.
+      const safeUrl = slots.imageUrl.replace(/'/g, '\\\'')
+      out.push(`  @${boxName} {
+    content: url('${safeUrl}');
+    height: ${slots.imageHeight}pt;
+    width: auto;
+  }`)
+      continue
+    }
+    const tpl = text[pos].trim()
+    if (!tpl) continue
+    out.push(`  @${boxName} {
+    content: ${compileTemplate(tpl, runtime)};
     font-family: ${cssFontStack(metaFont)};
     font-size: 9pt;
     color: ${textColor};
     opacity: 0.7;
   }`)
-    .join('\n')
+  }
+  return out.join('\n')
 }
 
 function compileTemplate(template: string, runtime: ThemeRuntime): string {
@@ -746,40 +769,126 @@ function columnSpanBlock(): string {
 function coverBlock(theme: DocTheme): string {
   if (!theme.cover.enabled) return ''
   const layout = theme.cover.layout
-  // justify-content varies by layout — centered (vertical mid),
-  // top (top-aligned), split (space-between for top + bottom blocks).
-  const justify = layout === 'centered'
-    ? 'center'
-    : layout === 'top'
-      ? 'flex-start'
-      : 'space-between'
-  // The page assignment + flex container that becomes the entire
-  // first sheet. Margin: 0 means content can go edge-to-edge if the
-  // theme wants; we still apply inner padding so text doesn't kiss
-  // the trim line.
-  return [
-    `.paged-doc .markoto-cover {
+  const align = theme.cover.align
+  // Horizontal alignment maps text + grid item alignment uniformly.
+  const justifyItems = align === 'left'
+    ? 'start'
+    : align === 'right'
+      ? 'end'
+      : 'center'
+  const titleSize = theme.cover.titleSize
+  const subtitleSize = theme.cover.subtitleSize
+  // The cover's `@page cover-page { margin: 0 }` zeros the page padding,
+  // so the cover element should occupy the full physical page rectangle.
+  // We can't use `min-height: 100%` because paged.js's parent chain
+  // doesn't expose a fixed height — `1fr` grid rows collapse to 0px.
+  // Hardcode the page dimensions by size + orientation. These match
+  // standard CSS @page values and let editorial / banner layouts spread
+  // their content to ⅓ / ⅔ positions correctly.
+  const pageHeightMm = theme.page.orientation === 'portrait'
+    ? (theme.page.size === 'A4' ? '297mm' : '279.4mm')
+    : (theme.page.size === 'A4' ? '210mm' : '215.9mm')
+
+  // The cover root is a CSS Grid for `editorial` (rows pin logo to top,
+  // title+subtitle at upper third, meta at lower third) and a flex
+  // column for the other layouts. The `display` declaration is layout-
+  // specific so each composition gets its own vertical rhythm.
+  const layoutCss = layout === 'editorial'
+    // 6-row grid: logo → spacer 1fr → title+subtitle → spacer 1fr → meta
+    // → spacer 1fr. Three equal spacers anchor logo at top, title block
+    // at ~1/3, meta at ~2/3, with the bottom third intentionally empty.
+    ? `.paged-doc .markoto-cover {
+  page: cover-page;
+  break-after: page;
+  page-break-after: always;
+  display: grid;
+  grid-template-rows: auto 1fr auto 1fr auto 1fr;
+  justify-items: ${justifyItems};
+  align-items: start;
+  text-align: ${align};
+  height: ${pageHeightMm};
+  padding: 24mm 18mm;
+  box-sizing: border-box;
+}
+.paged-doc .markoto-cover-logo { grid-row: 1; }
+.paged-doc .markoto-cover-title { grid-row: 3; }
+.paged-doc .markoto-cover-subtitle { grid-row: 3; align-self: end; margin-top: 0.4em; }
+.paged-doc .markoto-cover-meta { grid-row: 5; }`
+    : layout === 'banner'
+      // Banner: brand-tinted top band with logo + title, body color
+      // beneath holding subtitle and meta. Uses grid so the band can
+      // span full bleed inside the named page.
+      ? `.paged-doc .markoto-cover {
+  page: cover-page;
+  break-after: page;
+  page-break-after: always;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: ${justifyItems};
+  text-align: ${align};
+  height: ${pageHeightMm};
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.paged-doc .markoto-cover-logo,
+.paged-doc .markoto-cover-title {
+  width: 100%;
+  padding-left: 18mm;
+  padding-right: 18mm;
+  background: color-mix(in srgb, var(--doc-brand) 12%, var(--doc-bg));
+  box-sizing: border-box;
+}
+.paged-doc .markoto-cover-logo { grid-row: 1; padding-top: 24mm; padding-bottom: 0.6em; }
+.paged-doc .markoto-cover-title { grid-row: 1; align-self: end; padding-bottom: 24mm; }
+.paged-doc .markoto-cover-subtitle { grid-row: 2; padding: 18mm; }
+.paged-doc .markoto-cover-meta { grid-row: 3; padding: 0 18mm 24mm 18mm; }`
+      : layout === 'minimal'
+        // Minimal: title (and optional subtitle) centered. Logo + meta
+        // are HIDDEN in this layout regardless of their toggles —
+        // "minimal" is a stronger statement than "what you toggled on".
+        ? `.paged-doc .markoto-cover {
   page: cover-page;
   break-after: page;
   page-break-after: always;
   display: flex;
   flex-direction: column;
-  justify-content: ${justify};
-  align-items: center;
-  text-align: center;
-  min-height: 100%;
+  justify-content: center;
+  align-items: ${justifyItems === 'start' ? 'flex-start' : justifyItems === 'end' ? 'flex-end' : 'center'};
+  text-align: ${align};
+  height: ${pageHeightMm};
   padding: 24mm 18mm;
   box-sizing: border-box;
-}`,
+}
+.paged-doc .markoto-cover-logo,
+.paged-doc .markoto-cover-meta { display: none; }`
+        // Classic — flex-column, vertically centered, everything stacked.
+        // Default spacing between elements via per-element margins.
+        : `.paged-doc .markoto-cover {
+  page: cover-page;
+  break-after: page;
+  page-break-after: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: ${justifyItems === 'start' ? 'flex-start' : justifyItems === 'end' ? 'flex-end' : 'center'};
+  text-align: ${align};
+  height: ${pageHeightMm};
+  padding: 24mm 18mm;
+  box-sizing: border-box;
+}`
+
+  return [
+    layoutCss,
     `.paged-doc .markoto-cover-logo {
   display: block;
   height: ${theme.brand.logoHeight}px;
   width: auto;
-  margin: 0 auto 1.2em auto;
+  ${layout === 'editorial' || layout === 'banner' ? '' : 'margin: 0 auto 1.2em auto;'}
 }`,
     `.paged-doc .markoto-cover-title {
   font-family: ${cssFontStack(theme.headings.font)};
-  font-size: 2.4em;
+  font-size: ${titleSize}em;
   font-weight: ${theme.headings.weight};
   line-height: 1.2;
   letter-spacing: ${theme.headings.letterSpacing}em;
@@ -788,7 +897,7 @@ function coverBlock(theme: DocTheme): string {
 }`,
     `.paged-doc .markoto-cover-subtitle {
   font-family: ${cssFontStack(theme.body.font)};
-  font-size: 1.15em;
+  font-size: ${subtitleSize}em;
   font-style: italic;
   color: var(--doc-secondary);
   margin: 0 0 1em 0;
@@ -815,8 +924,9 @@ function coverBlock(theme: DocTheme): string {
   text-transform: uppercase;
 }`,
     // The named-page rules suppress all running margin boxes on the
-    // cover sheet (no page number, no title bar). paged.js handles
-    // `@page <name>` for any element that opted in via `page: <name>`.
+    // cover sheet (no page number, no title bar, no header image).
+    // paged.js handles `@page <name>` for any element that opted in
+    // via `page: <name>`.
     `@page cover-page {
   margin: 0;
   @top-left { content: ''; }

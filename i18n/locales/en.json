@@ -562,6 +562,8 @@
     },
     "align": {
       "left": "Left",
+      "center": "Center",
+      "right": "Right",
       "justify": "Justify (fill)"
     },
     "fonts": {
@@ -583,7 +585,12 @@
       "center": "Center",
       "right": "Right",
       "help": "Use the tokens below for dynamic values like the page number.",
-      "tokens": "Insert:"
+      "tokens": "Insert:",
+      "image": "Image",
+      "imageHelp": "Optional logo or mark rendered in the running header on every body page (the cover page suppresses headers automatically).",
+      "imagePosition": "Image position",
+      "imageHeight": "Image height",
+      "uploadImage": "Upload image"
     },
     "code": {
       "theme": "Color theme",
@@ -653,9 +660,13 @@
       "enabled": "Show cover page",
       "enabledHelp": "Prepends a title sheet as page 1 (suppresses page numbers + running header).",
       "layout": "Layout",
-      "layoutCentered": "Centered",
-      "layoutTop": "Top-aligned",
-      "layoutSplit": "Split (title top, meta bottom)",
+      "layoutClassic": "Classic — everything centered",
+      "layoutEditorial": "Editorial — logo top, title at ⅓, meta at ⅔",
+      "layoutBanner": "Banner — logo + title in a brand-tinted top band",
+      "layoutMinimal": "Minimal — title only, centered (logo & meta hidden)",
+      "align": "Text alignment",
+      "titleSize": "Title size",
+      "subtitleSize": "Subtitle size",
       "showTitle": "Show document title",
       "showSubtitle": "Show subtitle",
       "subtitle": "Subtitle",
