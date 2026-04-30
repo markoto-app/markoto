@@ -681,7 +681,7 @@
     },
     "brand": {
       "logo": "Brand logo",
-      "logoHelp": "PNG, JPEG, SVG, or WebP. Rendered above the title on the cover page.",
+      "logoHelp": "PNG, JPEG, WebP, or GIF (max 10 MB). Rendered above the title on the cover page.",
       "uploadLogo": "Upload logo",
       "replaceLogo": "Replace logo",
       "clearLogo": "Remove",

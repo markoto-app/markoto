@@ -710,7 +710,7 @@ async function deleteSaved(saved: SavedTheme) {
                     <label class="flex">
                       <input
                         type="file"
-                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
                         class="hidden"
                         @change="onLogoFile"
                       >
