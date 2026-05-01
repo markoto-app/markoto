@@ -6,6 +6,7 @@ import { useDatabase } from './database'
 import { chunkMarkdown } from './chunkMarkdown'
 import { embedDocuments, embeddingVersionTag, resolveEmbeddingsConfig } from './embeddings'
 import { tryAcquireSessionLock, releaseSessionLock } from './rateLimit'
+import { injectTraceHeaders } from './traceHeaders'
 
 /**
  * End-to-end ingestion for one knowledge file:
@@ -214,12 +215,17 @@ async function runConversion(s3Key: string, ext: string): Promise<string> {
   const bytes = await object.Body!.transformToByteArray()
 
   const url = `${config.markitdownUrl}/convert?ext=${encodeURIComponent(ext)}`
+  // Markitdown is a Python/FastAPI service that doesn't currently parse
+  // sentry-trace headers (would need sentry-sdk[fastapi]) — but we still
+  // emit them so the originating app-side transaction shows the
+  // markitdown call as an outbound HTTP span. Wiring up Python-side
+  // continuation is an OBSERVABILITY.md follow-up.
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
+    headers: injectTraceHeaders({
       'Content-Type': 'application/octet-stream',
       'Content-Length': String(bytes.byteLength)
-    },
+    }),
     body: bytes as BodyInit,
     signal: AbortSignal.timeout(MARKITDOWN_TIMEOUT_MS)
   })

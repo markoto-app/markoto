@@ -90,10 +90,25 @@ const effectiveChromeDomain = computed(
 )
 
 const { locale: i18nLocale } = useI18n()
+// Defer color-mode read to onMounted — useColorMode() returns 'light' on SSR
+// (no prefers-color-scheme + no localStorage), so reading at top-level causes
+// hydration mismatch when the user's actual mode is dark. Manifest fetch is
+// already client-only (server: false), so SSR templating doesn't see the
+// derived variant — but exposing the colorMode ref through `currentTheme`
+// would still trigger Vue's hydration tracking on any reactive consumer
+// added later. The brief light-mode flash on first paint is acceptable for
+// this component; see app/AGENTS.md "Common Vue conventions" section.
 const colorMode = useColorMode()
+const colorModeValue = ref<'light' | 'dark'>('light')
+onMounted(() => {
+  colorModeValue.value = colorMode.value === 'dark' ? 'dark' : 'light'
+})
+watch(() => colorMode.value, (v) => {
+  colorModeValue.value = v === 'dark' ? 'dark' : 'light'
+})
 const isMobile = useMediaQuery('(max-width: 639px)')
 
-const currentTheme = computed<Theme>(() => (colorMode.value === 'dark' ? 'dark' : 'light'))
+const currentTheme = computed<Theme>(() => (colorModeValue.value === 'dark' ? 'dark' : 'light'))
 const currentForm = computed<Form>(() => (isMobile.value ? 'mobile' : 'desktop'))
 const currentVariant = computed<Variant>(() => `${currentTheme.value}-${currentForm.value}`)
 

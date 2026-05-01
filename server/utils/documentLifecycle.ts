@@ -5,6 +5,7 @@ import { captureExceptionThrottled } from './throttledSentry'
 import { deleteActivityForDoc } from '../repos/activity'
 import { deleteUploadsForDoc } from '../repos/uploads'
 import { deleteDocRow } from '../repos/documents'
+import { injectTraceHeaders } from './traceHeaders'
 
 // Full-cascade deletion for a document. Used by:
 // - `server/api/docs/[docId]/index.delete.ts` (user-initiated delete)
@@ -110,10 +111,10 @@ export function notifySyncDeleted(
   const doFetch = deps.fetchFn ?? fetch
   doFetch(`${deps.syncInternalUrl}/internal/notify-deleted`, {
     method: 'POST',
-    headers: {
+    headers: injectTraceHeaders({
       'Content-Type': 'application/json',
       'X-Internal-Secret': deps.internalApiSecret
-    },
+    }),
     body: JSON.stringify({ docId }),
     signal: AbortSignal.timeout(3000)
   }).catch((e) => {

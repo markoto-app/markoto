@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const { loggedIn, user, clear } = useUserSession()
+const { loggedIn, user } = useUserSession()
+const { logout } = useLogout()
 </script>
 
 <template>
@@ -23,7 +24,7 @@ const { loggedIn, user, clear } = useUserSession()
         {
           label: t('auth.logout'),
           icon: 'i-lucide-log-out',
-          onSelect: () => clear()
+          onSelect: () => logout()
         }
       ]"
     >

@@ -45,7 +45,28 @@ export default defineNuxtConfig({
         // testing). In dev we accept HTTP-only cookies; in prod, Traefik
         // terminates TLS and the upstream session cookie is set with
         // Secure via the response anyway.
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
+        // Defaults are already these — make them explicit so they survive
+        // future h3 / nuxt-auth-utils default churn.
+        httpOnly: true,
+        path: '/',
+        // `strict` is what we want: the only same-site flow is the OAuth
+        // callback (GitHub/Google → /auth/<provider> on our own domain),
+        // which IS same-site, so strict allows the cookie to be set on
+        // the redirect. `strict` blocks cookie attachment on cross-site
+        // top-level navigations into the app, which means a deep-link
+        // shared from another origin won't carry the session — but the
+        // OAuth flow + normal app usage are unaffected. Tightening from
+        // the implicit `lax` default also prevents leakage into the
+        // `sync.${DOMAIN}` subdomain context: although we don't set
+        // `domain`, browsers gate `lax` cookies on top-level navigation
+        // schemes that `strict` rejects outright.
+        sameSite: 'strict'
+        // Intentionally NO `domain` — the cookie defaults to the exact
+        // host that set it, which means it will never be auto-included
+        // on requests to `sync.${DOMAIN}` (the Hocuspocus subdomain).
+        // Hocuspocus auth rides on a JWT, not the session cookie, so a
+        // host-only cookie is the right boundary here.
       }
     },
     oauth: {
@@ -285,6 +306,25 @@ export default defineNuxtConfig({
     devOptions: {
       enabled: false,
       type: 'module'
+    }
+  },
+
+  // @sentry/nuxt source-map upload integration. The module reads
+  // `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` from the BUILD-
+  // TIME environment (the `bun run build` step in the Docker builder
+  // stage). When missing, the build still succeeds but stack traces
+  // captured in prod stay minified — investigations have to map line
+  // numbers by hand. Set those three vars in CI / build env (NOT in
+  // the runtime `app` container — they're not needed at runtime).
+  // See docs/DEPLOY.md.
+  sentry: {
+    sourceMapsUploadOptions: {
+      // `org` + `project` come from env. Empty / undefined disables
+      // upload — dev / forks / contributors don't need a Sentry account
+      // to build. authToken is read directly from `SENTRY_AUTH_TOKEN`
+      // by the underlying @sentry/vite-plugin — no need to thread it.
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT
     }
   }
 })

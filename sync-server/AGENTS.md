@@ -39,6 +39,35 @@ Sticky sessions pin a client, **not a docId**. Two clients editing the same doc 
 
 **Detection:** grep prod logs for activity rows with identical `(docId, yjsDocIdAfter, linesAdded, linesRemoved)` tuples within a few seconds of each other. If frequency justifies it, add the dedup index later.
 
+## Y.js schema migration playbook
+
+When adding a new field to ymeta (or any Y.Map shared across clients), follow these
+steps in order. Skipping any of them risks data loss when an old client and a new
+client are concurrently connected to the same doc.
+
+1. **Ship the read path first.** New code reads `ymeta.get('newField')` and provides
+   a sensible default for `undefined`. Test that a doc that never had the field
+   renders correctly. Ship this through one full release cycle — wait until you're
+   confident no production clients are running pre-read-path code.
+
+2. **Then ship the write path.** New code writes the field. Old clients still don't
+   know about it; their writes don't touch the field, which Y.Map handles correctly
+   (sparse updates don't delete missing keys).
+
+3. **Never make a new field required-without-fallback in code.** If your handler
+   does `if (!ymeta.get('newField')) throw`, an old client connecting first
+   without the field will crash the new code. Always have a default.
+
+4. **Removing a field: invert the order.** Stop writing it (one release), then stop
+   reading it (next release), then optionally clean up the data (lazy on next write).
+
+5. **Renaming a field: do BOTH for one release.** Read both old + new, write both
+   old + new, in parallel. Then deprecate the old name in the next release.
+
+The Y.Doc binary state itself is forwards/backwards compatible — Y.js handles version
+mixing — but APPLICATION-LEVEL contracts (which keys exist, what their shapes are)
+need this discipline. Test mixed-version scenarios manually before each ymeta change.
+
 ## Gotchas
 
 - **Hocuspocus v3:** Use `Server` (not `Hocuspocus`) for standalone. Hook shapes vary between versions — don't mutate connection objects; use separate Maps keyed on socketId.

@@ -4,6 +4,7 @@
 // (see schema.ts comments on `document_comments`).
 
 import * as Y from 'yjs'
+import { injectTraceHeaders } from './sentry'
 
 const APP_URL = process.env.APP_URL
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
@@ -109,10 +110,10 @@ export async function shipCommentsSnapshot(
   try {
     const res = await fetch(`${APP_URL}/api/internal/comments-snapshot`, {
       method: 'POST',
-      headers: {
+      headers: injectTraceHeaders({
         'Content-Type': 'application/json',
         'X-Internal-Secret': INTERNAL_SECRET
-      },
+      }),
       body: JSON.stringify({
         docId,
         entries,

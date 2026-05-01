@@ -63,10 +63,10 @@ export default defineEventHandler(async (event) => {
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
+    headers: injectTraceHeaders({
       'Content-Type': 'application/octet-stream',
       'Content-Length': String(file.data.length)
-    },
+    }),
     // `file.data` is a Node Buffer. At runtime undici's fetch accepts Buffer
     // directly; there is no type-clean path across @types/node, lib.dom, and
     // Bun's type overrides because `Buffer<ArrayBufferLike>` is not assignable

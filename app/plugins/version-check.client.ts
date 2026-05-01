@@ -2,17 +2,38 @@
 //
 // 1. `$pwa.needRefresh` — set by the service worker when a new precache is
 //    ready. Fires on PWA-installed clients; primary path for users who
-//    added YPad to home screen.
+//    added markoto to home screen.
 // 2. `/api/version` poll — covers the non-PWA path (tabs without a SW, or
 //    dev where the SW is disabled). Mismatched `buildId` means the SPA
 //    shell is older than the server.
 //
-// We deliberately don't auto-reload: the user might be mid-edit. A sticky
-// toast with a manual action is the right balance. Whichever signal lands
-// first wins; we stop polling after showing the prompt to avoid duplicates.
+// On mismatch we show a sticky toast AND start a 30s grace-period auto-
+// reload. The user gets two manual escapes:
+//   - "Reload now" — reload immediately.
+//   - "Snooze 5 min" — defer the auto-reload by 5 minutes. The version
+//     mismatch isn't suppressed; if the build id keeps changing during
+//     the snooze, the next poll re-evaluates.
+//
+// Why unconditional auto-reload (no "mid-edit" suppression)?
+// The Y.Doc sync state and AI session state aren't trivially exposed at
+// plugin scope — they live inside the editor page's document
+// orchestrator. Wiring a global "is mid-edit" signal would force every
+// editor surface to publish into a shared store; for a tool that's
+// fundamentally about *not* losing user content, the simpler design
+// wins: explicit reload countdown the user can see, two clearly-labeled
+// escape hatches, no silent reload mid-keystroke. The 30s window plus
+// Hocuspocus's normal flush cadence (≤2s) means an in-flight Y.js
+// change is overwhelmingly likely to be persisted before reload.
+//
+// We also poll on `visibilitychange` — a tab returning from background
+// detects the mismatch immediately rather than waiting up to 5min.
 //
 // In dev (`buildId === 'dev'`) the poll is effectively a no-op — dev keeps
 // the same id across requests, so no mismatch is possible.
+//
+// All state-machine logic lives in `app/utils/versionCheckController.ts`
+// so it's unit-testable without booting Nuxt; this plugin is just the
+// glue (toast + $fetch + $pwa).
 
 // @vite-pwa/nuxt augments NuxtApp with `$pwa`, but that augmentation isn't
 // visible under `.nuxt/tsconfig.server.json`, so we re-assert the shape
@@ -21,72 +42,98 @@
 // type error here instead of a silent runtime miss.
 import type { UnwrapNestedRefs } from 'vue'
 import type { PwaInjection } from '@vite-pwa/nuxt/dist/runtime/plugins/types.js'
-
-const POLL_INTERVAL_MS = 5 * 60 * 1000
+import {
+  createVersionCheckController,
+  DEFAULT_VISIBILITY_THROTTLE_MS,
+  type VersionCheckPromptHandlers
+} from '../utils/versionCheckController'
 
 type Pwa = UnwrapNestedRefs<PwaInjection>
 
 export default defineNuxtPlugin((nuxtApp) => {
   const toast = useToast()
-  // `$pwa` is absent when the module is disabled (dev with
-  // devOptions.enabled: false) — hence the optional.
   const pwa = nuxtApp.$pwa as Pwa | undefined
-  let baseline: string | null = null
-  let shown = false
-  let interval: ReturnType<typeof setInterval> | null = null
 
-  function promptReload(action: () => void) {
-    if (shown) return
-    shown = true
-    if (interval) {
-      clearInterval(interval)
-      interval = null
-    }
+  function reloadNow() {
+    window.location.reload()
+  }
 
+  function renderPrompt(h: VersionCheckPromptHandlers) {
     toast.add({
       title: 'New version available',
-      description: 'Reload to get the latest update.',
+      description: 'Reloading in 30 seconds.',
       icon: 'i-lucide-refresh-cw',
       color: 'primary',
       duration: 0,
-      actions: [{
-        label: 'Reload',
-        onClick: action
-      }]
+      actions: [
+        { label: 'Reload now', onClick: h.onReloadNow },
+        {
+          label: 'Snooze 5 min',
+          color: 'neutral',
+          variant: 'subtle',
+          onClick: h.onSnooze
+        }
+      ]
     })
   }
 
-  // SW-driven path: watch $pwa.needRefresh and delegate the reload to the
-  // SW so the next navigation loads the new precache. `UnwrapNestedRefs`
-  // means `.needRefresh` is a plain boolean here (not a Ref), so we pass
-  // the field directly — Vue's watcher tracks the reactive source for us.
+  // Polling controller. Wraps fetch failures so the controller's
+  // typed deps see `null` (= "skip this round") rather than a thrown
+  // error — `$fetch` rejections are normal during transient outages.
+  const controller = createVersionCheckController({
+    fetchBuildId: async () => {
+      try {
+        const res = await $fetch<{ buildId: string }>('/api/version')
+        return res?.buildId ?? null
+      } catch {
+        return null
+      }
+    },
+    reload: reloadNow,
+    showPrompt: renderPrompt
+  })
+
+  // Kick off the first probe immediately — interval-only would mean a
+  // 5-minute blind spot at startup.
+  void controller.poll()
+
+  // SW-driven path: watch $pwa.needRefresh. The controller doesn't know
+  // about $pwa, so when the SW signals a new precache we drive the
+  // prompt + reload action directly via the same renderer.
+  let pwaPromptShown = false
   if (pwa) {
     watch(() => pwa.needRefresh, (needs) => {
-      if (needs) promptReload(() => pwa.updateServiceWorker(true))
+      if (!needs || pwaPromptShown) return
+      pwaPromptShown = true
+      // For the SW path the reload must go through `updateServiceWorker`
+      // so the next navigation loads the new precache.
+      const swReload = () => pwa.updateServiceWorker(true)
+      let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+        timer = null
+        swReload()
+      }, 30 * 1000)
+      renderPrompt({
+        onReloadNow: () => {
+          if (timer) {
+            clearTimeout(timer)
+            timer = null
+          }
+          swReload()
+        },
+        onSnooze: () => {
+          if (timer) clearTimeout(timer)
+          timer = setTimeout(() => {
+            timer = null
+            swReload()
+          }, 5 * 60 * 1000)
+        }
+      })
+      // Either path's toast invalidates the polling controller — no
+      // need for two simultaneous prompts.
+      controller.dispose()
     }, { immediate: true })
   }
 
-  // Polling path: server-id mismatch.
-  async function checkBuildId() {
-    if (shown) return
-    let buildId: string | null = null
-    try {
-      const res = await $fetch<{ buildId: string }>('/api/version')
-      buildId = res?.buildId ?? null
-    } catch {
-      return
-    }
-    if (!buildId) return
-    if (baseline === null) {
-      baseline = buildId
-      return
-    }
-    if (buildId === baseline) return
-    promptReload(() => window.location.reload())
-  }
-
-  checkBuildId()
-  interval = setInterval(checkBuildId, POLL_INTERVAL_MS)
   // Re-check whenever the window regains focus — catches the common
   // case of a user coming back to a long-open tab. `useWindowFocus`
   // owns the listener + cleanup; previous code added a raw listener
@@ -95,6 +142,22 @@ export default defineNuxtPlugin((nuxtApp) => {
   // dev/HMR).
   const focused = useWindowFocus()
   watch(focused, (v) => {
-    if (v) checkBuildId()
+    if (v) controller.onVisible()
   })
+
+  // Also listen for `visibilitychange` directly — `useWindowFocus`
+  // tracks `focus`/`blur`, which a tab in a background window may
+  // never receive even when it becomes hidden. `visibilitychange`
+  // fires reliably on tab-switch and on returning to a background
+  // tab, which is the exact case we want to catch (a stale tab
+  // surfaced after the user leaves it idle for hours).
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') controller.onVisible()
+    })
+  }
+
+  // Re-export for tests that want to assert the throttle window without
+  // duplicating the constant.
+  void DEFAULT_VISIBILITY_THROTTLE_MS
 })

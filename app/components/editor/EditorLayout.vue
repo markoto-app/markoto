@@ -577,8 +577,34 @@ watch(editorView, (view, prev) => {
 
 // Mobile dropdown menu — consolidates view mode, theme, and auth actions
 // to reduce top-bar clutter on small screens.
+// Defer color-mode read to onMounted — useColorMode() returns 'light' on SSR
+// (no prefers-color-scheme + no localStorage), so reading at top-level causes
+// hydration mismatch when the user's actual mode is dark. The brief
+// light-mode flash on first paint is acceptable for this component;
+// see app/AGENTS.md "Common Vue conventions" section.
 const colorMode = useColorMode()
-const { loggedIn, user: sessionUser, clear: clearSession } = useUserSession()
+const colorModeValue = ref<'light' | 'dark'>('light')
+onMounted(() => {
+  colorModeValue.value = colorMode.value === 'dark' ? 'dark' : 'light'
+})
+watch(() => colorMode.value, (v) => {
+  colorModeValue.value = v === 'dark' ? 'dark' : 'light'
+})
+const { loggedIn, user: sessionUser } = useUserSession()
+// Logout pipeline — clears localStorage/sessionStorage/IDB + broadcasts to
+// other tabs + tears down awareness BEFORE the session goes (so other
+// collaborators see the leaving frame on a still-open WS). See
+// `composables/useLogout.ts`.
+const { logout: performAuthLogout } = useLogout()
+function handleLogout() {
+  return performAuthLogout({
+    beforeClear: () => {
+      try {
+        awareness.setLocalStateField('user', null)
+      } catch { /* awareness may already be torn down */ }
+    }
+  })
+}
 
 const mobileMenuItems = computed(() => {
   const viewModeGroup = [
@@ -600,10 +626,10 @@ const mobileMenuItems = computed(() => {
 
   const themeGroup = [
     {
-      label: colorMode.value === 'dark' ? t('menu.lightMode') : t('menu.darkMode'),
-      icon: colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon',
+      label: colorModeValue.value === 'dark' ? t('menu.lightMode') : t('menu.darkMode'),
+      icon: colorModeValue.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon',
       onSelect: () => {
-        colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+        colorMode.preference = colorModeValue.value === 'dark' ? 'light' : 'dark'
       }
     }
   ]
@@ -618,7 +644,7 @@ const mobileMenuItems = computed(() => {
         {
           label: t('auth.logout'),
           icon: 'i-lucide-log-out',
-          onSelect: () => clearSession()
+          onSelect: () => handleLogout()
         }
       ]
     : [

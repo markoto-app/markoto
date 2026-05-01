@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ypgPersistence } from './persistence'
 import { matchesCurrentOrPrevious } from '../../shared/utils/secrets'
 import { performKickUser, type HocuspocusInstance } from './kickUser'
+import { Sentry } from './sentry'
 
 export type { HocuspocusConnection, HocuspocusDocument, HocuspocusInstance } from './kickUser'
 
@@ -29,6 +30,12 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
  * Handles internal HTTP requests from the Nuxt app.
  * Called by Hocuspocus's `onRequest` hook. Returns `true` if the request
  * was handled (caller should not fall through); `false` otherwise.
+ *
+ * Distributed tracing: the app injects sentry-trace + baggage on every
+ * outbound POST to the sync-server (server/utils/traceHeaders.ts). We
+ * pull those headers off and feed them into Sentry.continueTrace +
+ * startSpan so the sync-server's work shows up as a child of the app's
+ * transaction in Sentry's Trace Explorer.
  */
 export async function handleInternalRequest(
   request: IncomingMessage,
@@ -39,6 +46,28 @@ export async function handleInternalRequest(
 
   if (!url.startsWith('/internal/')) return false
 
+  // Extract upstream trace context. Both headers are case-insensitive on
+  // node:http's headers object, so we read via the lowercase form.
+  const sentryTrace = typeof request.headers['sentry-trace'] === 'string'
+    ? request.headers['sentry-trace'] as string
+    : undefined
+  const rawBaggage = request.headers['baggage']
+  const baggage = typeof rawBaggage === 'string' ? rawBaggage : undefined
+
+  return await Sentry.continueTrace({ sentryTrace, baggage }, () =>
+    Sentry.startSpan(
+      { name: `${request.method} ${url}`, op: 'http.server' },
+      () => handleInternalRequestInner(request, response, instance, url)
+    )
+  )
+}
+
+async function handleInternalRequestInner(
+  request: IncomingMessage,
+  response: ServerResponse,
+  instance: HocuspocusInstance,
+  url: string
+): Promise<boolean> {
   if (!INTERNAL_SECRET) {
     sendJson(response, 500, { error: 'Internal secret not configured' })
     return true

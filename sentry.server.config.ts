@@ -14,7 +14,12 @@ if (dsn) {
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV,
-    tracesSampleRate: 0.1,
+    // Dev: full sampling so distributed traces are visible end-to-end.
+    // Prod: 10% to keep the Sentry bill sane. Sentry's auto-instrumentation
+    // reads inbound `sentry-trace` + `baggage` headers via the default
+    // httpIntegration, so cross-service traces stitch together when the
+    // upstream parent kept the trace.
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     beforeSend(event) {
       if (event.request?.headers) {
         // Presigned-URL query strings carry SigV4 credentials — not headers,

@@ -1,4 +1,5 @@
 import { verifyJwtWithRotation } from '../../shared/utils/secrets'
+import { captureMessage } from './sentry'
 
 // Hocuspocus `onAuthenticate` hook — runs on every new WS connection and
 // MUST reject anything not carrying a valid, in-scope JWT. This is the
@@ -96,6 +97,20 @@ export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
     // replayed against the WS to read the live doc state.
     if (typeof payload.scope === 'string' && payload.scope.length > 0) {
       console.warn(`[auth] Rejected scope-narrowed token (scope=${payload.scope}) for ${documentName}`)
+      // Operationally interesting: this branch fires when something
+      // tries to escalate a narrow-scope token (e.g. a leaked render
+      // token) into a Y.js connection. A spike here = active replay
+      // attempt, alert-worthy.
+      try {
+        captureMessage('[auth] Rejected scope-narrowed token', {
+          level: 'warning',
+          tags: {
+            component: 'sync-auth',
+            event: 'scope_narrowed_rejected',
+            scope: payload.scope
+          }
+        })
+      } catch { /* telemetry must never throw */ }
       throw new Error('Token scope mismatch')
     }
 

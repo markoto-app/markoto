@@ -14,8 +14,10 @@ if (dsn) {
     environment: process.env.NODE_ENV,
     // Sample a small slice of transactions — enough to spot hot paths
     // without burning the Sentry quota. Bump to 1.0 briefly if
-    // investigating an incident.
-    tracesSampleRate: 0.1,
+    // investigating an incident. Dev gets full sampling so distributed
+    // traces (browser → app → renderer / sync-server) are always
+    // visible while debugging.
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     // Scrub bearer tokens from captured request data before they leave the
     // browser. `sendDefaultPii: false` is already the SDK default.
     beforeSend(event) {

@@ -133,3 +133,4 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 - **Literal `@` in i18n locale JSON** — `@:key` is parsed as a linked message. Escape with `{'@'}` or reword to avoid `@` in string literals.
 - **`@nuxtjs/i18n` v10:** `lazy` removed — lazy is default when `locales[].file` is set. `langDir: 'locales/'` resolves relative to `i18n/`, not `app/`.
 - **i18n new top-level keys require a dev-server restart**, not just HMR. HMR for existing keys works; adding a new namespace shows literal-key strings until restart.
+- **`useColorMode()` is SSR-mismatch-prone** — at component top level, it returns 'light' on SSR (no localStorage) and the actual mode on client, causing hydration warnings (and at scale, Suspense hangs). Either: (a) defer to `onMounted` with a neutral default ref; (b) wrap the dependent template chunk in `<ClientOnly>`; (c) render both variants and CSS-toggle (the Wordmark pattern). Prefer (c) > (a) > (b).

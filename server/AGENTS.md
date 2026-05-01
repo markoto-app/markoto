@@ -66,6 +66,7 @@ Workspace membership overrides: admin/editor bypasses `private` and `password-pr
 - **`drizzle/` MUST be COPYed into the runtime image** in the Dockerfile or migrations fail to apply on boot.
 - **Drizzle doesn't emit `CREATE EXTENSION`** — for `vector(...)` columns, hand-prepend `CREATE EXTENSION IF NOT EXISTS vector;` + `statement-breakpoint` to the generated SQL.
 - **Drizzle node-postgres returns Promises**, not `.get()`/`.all()`. Use `(await db.select()...limit(1))[0]`.
+- **Slow-query log.** `useDatabase()` wraps `pool.query` with a timing probe; queries past `NUXT_DB_SLOW_QUERY_MS` (default 200) fire a warning-level Sentry event tagged `component=db, event=slow_query`. SQL is truncated to 500 chars; param VALUES are never logged (PII / secrets risk) — only `paramsCount`. Override the threshold per-environment for noisier dev or tighter prod alerting.
 - **Indexes on populated tables need hand-edited `CONCURRENTLY`.** Drizzle's generated migrations always emit `CREATE INDEX` (locks the table). For empty tables (post-migration backfill, dev data) this is fine. When we add an index to `activity_log`, `workspace_knowledge_chunks`, `yjs_documents`, or any other table that's been populated in prod, hand-edit the generated SQL to `CREATE INDEX CONCURRENTLY` BEFORE applying. `CONCURRENTLY` can't run inside a transaction, so the migration has to drop its `BEGIN`/`COMMIT` wrapping too. Document the operation in the migration file's leading comment so the next reviewer knows why the file deviates from drizzle's default shape.
 
 ---

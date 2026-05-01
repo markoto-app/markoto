@@ -1,6 +1,8 @@
 // Posts activity events to the Nuxt app's internal endpoint.
 // Fire-and-forget — failures are logged but never block Y.js sync.
 
+import { injectTraceHeaders, captureException } from './sentry'
+
 const APP_URL = process.env.APP_URL
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
 
@@ -42,15 +44,28 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
   try {
     await fetch(`${APP_URL}/api/internal/activity`, {
       method: 'POST',
-      headers: {
+      headers: injectTraceHeaders({
         'Content-Type': 'application/json',
         'X-Internal-Secret': INTERNAL_SECRET
-      },
+      }),
       body: JSON.stringify(event),
       signal: AbortSignal.timeout(5000)
     })
   } catch (e) {
     console.warn(`[activity-logger] Failed to log ${event.action} for ${event.docId}:`, e instanceof Error ? e.message : e)
+    // App-side activity loss is operationally interesting — a steady
+    // trickle means the internal endpoint or its auth path is broken.
+    // Defensive try/catch so a Sentry transport hiccup never blocks
+    // the next event flow.
+    try {
+      captureException(e, {
+        tags: {
+          component: 'activity-logger',
+          event: 'post_failed',
+          action: event.action
+        }
+      })
+    } catch { /* swallow — telemetry must never throw */ }
   }
 }
 

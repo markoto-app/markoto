@@ -1,3 +1,8 @@
+// Sentry must be imported first so its Bun instrumentation patches stdlib
+// targets (fetch / http / s3) before renderDocument grabs references to
+// them. Side-effect import + named import; `Sentry` is the namespace we
+// use for continueTrace / startSpan inside the request handler.
+import { Sentry } from './sentry'
 import { renderDocument, type RenderInput } from './render'
 
 const PORT = parseInt(process.env.PORT || '9000', 10)
@@ -45,18 +50,39 @@ const server = Bun.serve({
         return jsonResponse({ error: 'invalid format' }, 400)
       }
 
-      const t0 = Date.now()
-      try {
-        const out = await renderDocument({ docId, snapshotId, format })
-        console.log(`[renderer] docId=${docId} snap=${snapshotId} format=${format} `
-          + `pages=${out.pageCount} ms=${Date.now() - t0}`)
-        return jsonResponse(out, 200)
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'render failed'
-        const status = (e as { statusCode?: number }).statusCode ?? 500
-        console.warn(`[renderer] docId=${docId} snap=${snapshotId} ms=${Date.now() - t0} failed:`, msg)
-        return jsonResponse({ error: msg }, status)
-      }
+      // Distributed-tracing continuation. The app calls this endpoint from
+      // inside its own transaction (server/utils/renderClient.ts injects
+      // sentry-trace + baggage). continueTrace re-creates that propagation
+      // context here so startSpan opens a CHILD of the upstream root, not
+      // a sibling. End result: one trace covers browser → app → renderer
+      // (and the renderer's Playwright `page.goto` to the print page is a
+      // sibling trace — that hop can't carry headers via Playwright; see
+      // OBSERVABILITY.md §4 for the limitation).
+      const sentryTrace = req.headers.get('sentry-trace') ?? undefined
+      const baggage = req.headers.get('baggage') ?? undefined
+      return await Sentry.continueTrace({ sentryTrace, baggage }, () => {
+        return Sentry.startSpan(
+          { name: 'POST /render', op: 'http.server', attributes: { docId, snapshotId, format } },
+          async () => {
+            const t0 = Date.now()
+            try {
+              const out = await renderDocument({ docId, snapshotId, format })
+              console.log(`[renderer] docId=${docId} snap=${snapshotId} format=${format} `
+                + `pages=${out.pageCount} ms=${Date.now() - t0}`)
+              return jsonResponse(out, 200)
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : 'render failed'
+              const status = (e as { statusCode?: number }).statusCode ?? 500
+              console.warn(`[renderer] docId=${docId} snap=${snapshotId} ms=${Date.now() - t0} failed:`, msg)
+              Sentry.captureException(e, {
+                tags: { component: 'renderer', event: 'render_failed', docId },
+                extra: { snapshotId, format }
+              })
+              return jsonResponse({ error: msg }, status)
+            }
+          }
+        )
+      })
     }
 
     return new Response('not found', { status: 404 })

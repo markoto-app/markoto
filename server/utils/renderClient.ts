@@ -2,6 +2,7 @@ import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObject
 import { useDatabasePool } from './database'
 import { useS3Client } from './s3'
 import { useValkey } from './valkey'
+import { injectTraceHeaders } from './traceHeaders'
 import * as Sentry from '@sentry/nuxt'
 
 // Render orchestrator. Nuxt-side counterpart to renderer/src/render.ts:
@@ -196,10 +197,10 @@ async function callRenderer(
 
   const res = await fetch(`${config.rendererInternalUrl}/render`, {
     method: 'POST',
-    headers: {
+    headers: injectTraceHeaders({
       'Content-Type': 'application/json',
       'X-Internal-Secret': config.internalApiSecret
-    },
+    }),
     body: JSON.stringify({ docId, snapshotId, format }),
     signal: AbortSignal.timeout(RENDER_TIMEOUT_MS)
   })

@@ -1,10 +1,96 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { Pool } from 'pg'
+import { Pool, type QueryConfig, type QueryArrayConfig } from 'pg'
+import * as Sentry from '@sentry/nuxt'
 import * as schema from '../db/schema'
 import { postgresUrlFromEnv } from '../../shared/utils/connectionStrings'
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null
 let pool: Pool | null = null
+
+/**
+ * Slow-query threshold in ms. Queries that take longer than this trigger
+ * a warning-level Sentry event so dashboards can spot N+1 patterns +
+ * accidental sequential scans in prod before they cascade into request
+ * timeouts. Override via `NUXT_DB_SLOW_QUERY_MS`. 200 ms is a generous
+ * default for our workload — typical Drizzle reads land at <20 ms; 200
+ * is roughly the threshold where a user starts noticing latency.
+ *
+ * Read once at module load. Changing this requires a process restart;
+ * acceptable for a tuning knob.
+ */
+const SLOW_QUERY_THRESHOLD_MS = (() => {
+  const raw = process.env.NUXT_DB_SLOW_QUERY_MS
+  const n = raw ? Number(raw) : NaN
+  return Number.isFinite(n) && n > 0 ? n : 200
+})()
+
+/**
+ * Wrap `pool.query` with a timing probe. Slow queries are reported via
+ * Sentry with the SQL truncated to 500 chars and the param COUNT only —
+ * never the param values, which often carry PII (emails on auth lookup,
+ * doc bodies on activity inserts) or secrets (password hashes, JWTs in
+ * audit rows). Truncation also keeps a single Sentry payload small.
+ *
+ * Synchronous returns (rare — pg.Pool.query is overwhelmingly Promise-
+ * returning) fall through unwrapped; we only thread timing through the
+ * Promise branch so an exotic caller that pulls events off the returned
+ * Submittable still works.
+ */
+function instrumentPoolForSlowQueries(p: Pool): void {
+  const orig = p.query.bind(p)
+  // Cast through `unknown` because `pg.Pool.query` is a heavily-overloaded
+  // signature (text, config, array-mode, callbacks). We don't change
+  // semantics — the wrapper just times the Promise branch — so the cast
+  // is sound at runtime.
+  ;(p as unknown as { query: (...args: unknown[]) => unknown }).query = (...args: unknown[]) => {
+    const start = performance.now()
+    const result = (orig as unknown as (...a: unknown[]) => unknown)(...args)
+    if (result && typeof (result as { then?: unknown }).then === 'function') {
+      return (result as Promise<unknown>).then((r) => {
+        const ms = performance.now() - start
+        if (ms > SLOW_QUERY_THRESHOLD_MS) {
+          // Extract the SQL string from whatever overload the caller used.
+          // Drizzle goes through the QueryConfig-object form; raw `pool.query('SELECT ...')`
+          // hits the string form.
+          let sql = '<unknown>'
+          const first = args[0]
+          if (typeof first === 'string') {
+            sql = first
+          } else if (first && typeof first === 'object') {
+            const cfg = first as Partial<QueryConfig | QueryArrayConfig>
+            if (typeof cfg.text === 'string') sql = cfg.text
+          }
+          // Param count comes from either the second positional arg
+          // (when query was called as `query(text, values)`) or from
+          // `config.values`.
+          let paramsCount: number | undefined
+          const second = args[1]
+          if (Array.isArray(second)) {
+            paramsCount = second.length
+          } else if (first && typeof first === 'object' && Array.isArray((first as { values?: unknown[] }).values)) {
+            paramsCount = (first as { values: unknown[] }).values.length
+          }
+          try {
+            Sentry.captureMessage('slow-query', {
+              level: 'warning',
+              tags: { component: 'db', event: 'slow_query' },
+              extra: {
+                sql: String(sql).slice(0, 500),
+                paramsCount,
+                durationMs: Math.round(ms),
+                thresholdMs: SLOW_QUERY_THRESHOLD_MS
+              }
+            })
+          } catch {
+            // Telemetry must never propagate into the query path.
+          }
+        }
+        return r
+      })
+    }
+    return result
+  }
+}
 
 export function useDatabase() {
   if (!db) {
@@ -29,6 +115,7 @@ export function useDatabase() {
       // logs + Sentry when load actually exceeds capacity.
       connectionTimeoutMillis: 5_000
     })
+    instrumentPoolForSlowQueries(pool)
     db = drizzle(pool, { schema })
   }
   return db

@@ -199,7 +199,12 @@ async function waitForHealth(): Promise<void> {
       throw new Error(`[nuxt-test] subprocess exited before becoming healthy (code=${proc?.exitCode})`)
     }
     try {
-      const res = await fetch(`${TEST_BASE_URL}/api/health`, {
+      // `/api/version` is a tiny handler that returns 200 once Nitro is
+      // up, with no dependency probes. The deep `/api/health` would 503
+      // here because the test env points markitdown at a black-hole port
+      // and may not have the sync container running — that's a
+      // configuration-aware decision, not a "boot failed" signal.
+      const res = await fetch(`${TEST_BASE_URL}/api/version`, {
         signal: AbortSignal.timeout(1500)
       })
       if (res.ok) return

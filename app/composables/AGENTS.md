@@ -14,6 +14,16 @@ Three-file split for the editor's document lifecycle:
 - **`requiresPassword` flips false only on `onSynced`** to prevent the empty-doc-prepend bug.
 - **First-sync-or-disconnect-without-sync** seeds `initialBody` (template) when present, falling back to `welcomeMarkdown`, gated on `ytext.length === 0` so existing content is never overwritten.
 
+## Adding fields to `ymeta`
+
+When you add, rename, or remove a key on the shared `ymeta` Y.Map (title, theme,
+description, audience, language, templateId, the deletion sentinel, etc.) follow
+the **Y.js schema migration playbook** in `sync-server/AGENTS.md`. The TL;DR: ship
+the read path one release ahead of the write path, never make a new key
+required-without-fallback, and invert the order when removing. Mixed-version
+clients will be live in the same doc — Y.Doc binary state handles it, but the
+application-level contract on which keys exist is your responsibility.
+
 ## Edit-access mirroring
 
 `canEditTheme` mirrors content edit access: read-only = false, owner = true, anonymous on ownerless doc = true. Description/audience/language follow the same gate (read-only = no writes; non-owner editors can change ymeta but the DB persist is owner-only — Y.js becomes the durable record on ownerless docs).

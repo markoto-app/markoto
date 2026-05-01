@@ -83,6 +83,11 @@ export default defineNitroPlugin((nitroApp) => {
         await deleteKnowledgeArtifact(row.knowledgeId)
       } catch (e) {
         console.warn(`[knowledge-sweep] reap failed for ${row.knowledgeId}:`, e instanceof Error ? e.message : e)
+        // Surface to Sentry — repeated reap failures keep failed rows
+        // hoarding per-user quota; on-call wants the signal.
+        Sentry.captureException(e, {
+          tags: { component: 'knowledge-sweep', event: 'reap_failed', knowledgeId: row.knowledgeId }
+        })
       }
     }
   }

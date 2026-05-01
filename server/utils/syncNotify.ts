@@ -8,6 +8,7 @@
 // kicks go through this file.
 
 import { captureExceptionThrottled } from './throttledSentry'
+import { injectTraceHeaders } from './traceHeaders'
 
 /**
  * Force-close all live Y.js connections for `userId` on the given docs.
@@ -29,10 +30,10 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
   // No await — fire-and-forget. 3 s timeout matches notify-deleted.
   fetch(`${config.syncInternalUrl}/internal/kick-user`, {
     method: 'POST',
-    headers: {
+    headers: injectTraceHeaders({
       'Content-Type': 'application/json',
       'X-Internal-Secret': config.internalApiSecret
-    },
+    }),
     body: JSON.stringify({ userId, docIds }),
     signal: AbortSignal.timeout(3000)
   }).catch((e) => {

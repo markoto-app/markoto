@@ -78,7 +78,19 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale, locales, setLocale } = useI18n()
+// Defer color-mode read to onMounted — useColorMode() returns 'light' on SSR
+// (no prefers-color-scheme + no localStorage), so reading at top-level causes
+// hydration mismatch when the user's actual mode is dark. The brief
+// light-mode flash on first paint is acceptable for this component;
+// see app/AGENTS.md "Common Vue conventions" section.
 const colorMode = useColorMode()
+const colorModeValue = ref<'light' | 'dark'>('light')
+onMounted(() => {
+  colorModeValue.value = colorMode.value === 'dark' ? 'dark' : 'light'
+})
+watch(() => colorMode.value, (v) => {
+  colorModeValue.value = v === 'dark' ? 'dark' : 'light'
+})
 // Sharing → Copy link. `useClipboard` adds a legacy execCommand fallback
 // for iframe / older-browser contexts the bare Async Clipboard API
 // doesn't reach, and silently no-ops on `isSupported === false`.
@@ -218,9 +230,9 @@ const viewItems = computed(() => [
   // Display preferences
   [
     {
-      label: colorMode.value === 'dark' ? t('menu.lightMode') : t('menu.darkMode'),
-      icon: colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon',
-      onSelect: () => { colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark' }
+      label: colorModeValue.value === 'dark' ? t('menu.lightMode') : t('menu.darkMode'),
+      icon: colorModeValue.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon',
+      onSelect: () => { colorMode.preference = colorModeValue.value === 'dark' ? 'light' : 'dark' }
     },
     {
       label: t('menubar.view.language'),
