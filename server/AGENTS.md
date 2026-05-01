@@ -66,6 +66,7 @@ Workspace membership overrides: admin/editor bypasses `private` and `password-pr
 - **`drizzle/` MUST be COPYed into the runtime image** in the Dockerfile or migrations fail to apply on boot.
 - **Drizzle doesn't emit `CREATE EXTENSION`** — for `vector(...)` columns, hand-prepend `CREATE EXTENSION IF NOT EXISTS vector;` + `statement-breakpoint` to the generated SQL.
 - **Drizzle node-postgres returns Promises**, not `.get()`/`.all()`. Use `(await db.select()...limit(1))[0]`.
+- **Indexes on populated tables need hand-edited `CONCURRENTLY`.** Drizzle's generated migrations always emit `CREATE INDEX` (locks the table). For empty tables (post-migration backfill, dev data) this is fine. When we add an index to `activity_log`, `workspace_knowledge_chunks`, `yjs_documents`, or any other table that's been populated in prod, hand-edit the generated SQL to `CREATE INDEX CONCURRENTLY` BEFORE applying. `CONCURRENTLY` can't run inside a transaction, so the migration has to drop its `BEGIN`/`COMMIT` wrapping too. Document the operation in the migration file's leading comment so the next reviewer knows why the file deviates from drizzle's default shape.
 
 ---
 

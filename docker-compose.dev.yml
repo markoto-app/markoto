@@ -47,7 +47,11 @@ services:
     # AOF with fsync-every-second is a fine trade for rate-limit data: worst
     # case we lose ≤1s of hits on crash, sliding windows self-heal.
     # In dev VALKEY_PASSWORD is empty, so the server runs without --requirepass.
-    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    # 1gb headroom for rate-limit + presence + render-singleflight + sweep-lock
+    # keyspaces under sustained load. allkeys-lru is correct for our shape
+    # (cache-with-some-locks); locks have short TTLs and the rate-limit
+    # fail-open path is documented.
+    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
@@ -94,6 +98,12 @@ services:
       - JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
       - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
       - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
+      # Valkey — backs per-doc attribution + diff baselines (was three
+      # process-local Maps). Empty password in dev.
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+      - VALKEY_DB=${VALKEY_DB:-0}
       # Sync server reaches the Nuxt app on host for activity logging.
       # host.docker.internal works on Mac/Windows; on Linux, use host-gateway extra_host.
       - APP_URL=http://host.docker.internal:3000
@@ -108,6 +118,8 @@ services:
       - "4001:4001"
     depends_on:
       postgres:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
 
   markitdown:

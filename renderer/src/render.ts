@@ -6,7 +6,14 @@ import { putBytes } from './s3'
 // render isolates cookies / storage between docs. The pool is a simple
 // semaphore — counter goes down when a context is acquired, back up on
 // release. POOL_WAIT_MS bounds how long we'll queue before 503-ing.
-const POOL_SIZE = 3
+//
+// Sizing: ~80MB/context × 5 = 400MB peak + ~250MB Chromium baseline =
+// ~650MB worst case, well under the renderer service's mem_limit: 2g
+// (set in docker-compose.prod.yml). 5 was chosen over 3 because at 50
+// concurrent PDF requests, a 3-slot pool puts 47 requests in the queue —
+// many time-out at POOL_WAIT_MS (30s). 5 raises throughput linearly
+// without approaching the memory cap.
+const POOL_SIZE = 5
 const POOL_WAIT_MS = 30_000
 const RENDER_TIMEOUT_MS = 60_000
 const NAV_TIMEOUT_MS = 30_000

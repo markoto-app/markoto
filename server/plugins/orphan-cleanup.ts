@@ -2,6 +2,7 @@ import { ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
 import { listAllDocIds } from '../repos/documents'
 import { listStaleUnconfirmed, purgeStaleUnconfirmed, listAllS3Keys } from '../repos/uploads'
+import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 
 const ONE_HOUR_MS = 60 * 60 * 1000
 const ONE_DAY_MS = 24 * ONE_HOUR_MS
@@ -32,6 +33,13 @@ export default defineNitroPlugin((nitroApp) => {
   async function reconcile() {
     if (running) return
     running = true
+    // The per-process `running` flag prevents tick-overlap WITHIN this
+    // process; the advisory lock prevents tick-overlap ACROSS processes.
+    // Both are useful — keep both.
+    if (!await acquireSweepLock('orphan-cleanup')) {
+      running = false
+      return
+    }
     try {
       const s3 = useS3Client()
       const config = useRuntimeConfig()
@@ -154,6 +162,7 @@ export default defineNitroPlugin((nitroApp) => {
       console.error('[orphan-cleanup] Reconciliation failed:', e instanceof Error ? e.message : e)
       Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
     } finally {
+      await releaseSweepLock('orphan-cleanup')
       running = false
     }
   }

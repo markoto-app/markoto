@@ -5,6 +5,7 @@ import { useDatabase } from '../utils/database'
 import { migrationsComplete } from '../utils/migrations'
 import { processKnowledge } from '../utils/processKnowledge'
 import { deleteKnowledgeArtifact } from '../utils/knowledgeAccess'
+import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 
 // Re-kicks knowledge-base uploads that got stuck in `status='processing'`
 // past the deadline. Normal ingestion runs fire-and-forget from the
@@ -87,8 +88,16 @@ export default defineNitroPlugin((nitroApp) => {
   }
 
   async function sweep() {
-    await sweepStuck()
-    await sweepFailed()
+    // Cross-instance gate: a single app instance runs both sub-sweeps
+    // per tick. processKnowledge is idempotent if it does double-fire,
+    // so this is purely a wastefulness guard, not a correctness one.
+    if (!await acquireSweepLock('knowledge-sweep')) return
+    try {
+      await sweepStuck()
+      await sweepFailed()
+    } finally {
+      await releaseSweepLock('knowledge-sweep')
+    }
   }
 
   // Kick first sweep after migrations complete so we don't race 00-db-migrate

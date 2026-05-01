@@ -129,31 +129,29 @@ export async function appendActivity(input: AppendInput): Promise<void> {
 /**
  * Cap the activity log at MAX_ENTRIES_PER_DOC per document. Called
  * after every append — deletes everything older than the top N rows.
- * Cheap because `idx_activity_doc` covers (docId, createdAt).
+ *
+ * The DELETE uses a single subquery that returns ONE value (the lowest
+ * id among the most-recent N rows), which Postgres's planner handles
+ * efficiently against the (docId, createdAt) / (docId, id) index path.
+ * Earlier shapes used OFFSET 500 (scans 500+N rows) or a NOT IN with a
+ * 500-row materialised id list per call — both got slow at 100 writes/s
+ * on a hot doc. The current shape is O(log N) index lookup + bounded
+ * sorted scan limited to N rows.
  */
 export async function pruneActivity(docId: string): Promise<void> {
   const db = useDatabase()
-  const count = (await db
-    .select({ c: sql<number>`count(*)::int` })
-    .from(activityLog)
-    .where(eq(activityLog.docId, docId)))[0]
-
-  if (!count || Number(count.c) <= MAX_ENTRIES_PER_DOC) return
-
-  // Row id cutoff = the Nth most recent. Everything with a smaller id
-  // for this doc gets dropped.
-  const cutoff = (await db
-    .select({ id: activityLog.id })
-    .from(activityLog)
-    .where(eq(activityLog.docId, docId))
-    .orderBy(desc(activityLog.id))
-    .limit(1)
-    .offset(MAX_ENTRIES_PER_DOC - 1))[0]
-  if (!cutoff) return
-
-  await db
-    .delete(activityLog)
-    .where(sql`${activityLog.docId} = ${docId} AND ${activityLog.id} < ${cutoff.id}`)
+  await db.execute(sql`
+    DELETE FROM ${activityLog}
+    WHERE ${activityLog.docId} = ${docId}
+      AND ${activityLog.id} < (
+        SELECT MIN(id) FROM (
+          SELECT ${activityLog.id} AS id FROM ${activityLog}
+          WHERE ${activityLog.docId} = ${docId}
+          ORDER BY ${activityLog.id} DESC
+          LIMIT ${MAX_ENTRIES_PER_DOC}
+        ) keep
+      )
+  `)
 }
 
 export async function listRecentActivity(docId: string, limit = 50): Promise<ActivityEntry[]> {

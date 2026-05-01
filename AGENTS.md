@@ -412,6 +412,7 @@ For the per-feature deep-dive, follow the sub-AGENTS.md links.
 | Text-enum columns, not `pgEnum` | Adding values is TS-only — no `ALTER TYPE` friction |
 | `nitro.preset: 'bun'` | lib0 and other packages use Bun-specific conditional exports; `node-server` preset traces wrong condition |
 | Hocuspocus as separate container | Long-lived WS + in-memory Y.Doc state shouldn't share Nitro event loop |
+| Sync-server per-doc state in Valkey, not in-process Maps | Lets multiple sync-server instances share attribution + diff baselines. Sticky sessions at Traefik pin a client to one container; residual cross-container race on `prev-text` produces at most one duplicate activity row per concurrency event (documented in `sync-server/AGENTS.md`). 24 h TTL caps memory growth |
 | `SESSION_VERSION` invalidation | Simpler than backwards-compat shims pre-launch |
 | paged.js in srcdoc iframe | paged.js mutates global state; host-page approach caused unrecoverable layout jitter |
 | Single `themeToCss()` for preview AND print | One function, two consumers — genuine WYSIWYG |

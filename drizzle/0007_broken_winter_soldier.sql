@@ -1,3 +1,11 @@
+-- audit_log: new table + two btree indexes. Plain CREATE INDEX is fine
+-- here because the table starts empty — there's nothing to scan.
+--
+-- For FUTURE indexes on populated tables (e.g. activity_log, yjs_documents,
+-- workspace_knowledge_chunks once they have prod rows), hand-edit the
+-- generated SQL to CREATE INDEX CONCURRENTLY. CONCURRENTLY can't run
+-- inside a transaction, so the migration must also drop its implicit
+-- transaction wrapping. See server/AGENTS.md "Drizzle conventions".
 CREATE TABLE "audit_log" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"ts" timestamp with time zone DEFAULT now() NOT NULL,

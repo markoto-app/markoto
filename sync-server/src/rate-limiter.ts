@@ -36,6 +36,14 @@ export interface RateLimiterOptions {
 }
 
 function extractIp(data: HookData): string {
+  // VERIFIED: read XFF from the upgrade request, not the WS socket. In prod
+  // every connection lands here via Traefik; the raw socket address is
+  // Traefik's container IP, NOT the client's. If we keyed on socket.remoteAddress
+  // the per-IP cap would behave as a single global cap of 20 connections
+  // (since every client looks identical). Always-on XFF in Traefik makes this
+  // correct in prod. The "unknown" bucket only applies in dev / direct
+  // (non-proxied) connections — accepted tradeoff documented at the top of
+  // this file.
   const request = data.request || { headers: data.requestHeaders }
   const headers = request?.headers || {}
   const xff = headers['x-forwarded-for']

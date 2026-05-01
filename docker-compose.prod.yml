@@ -67,6 +67,11 @@ services:
     # Password-protected. AOF with fsync-every-second gives durability
     # adequate for rate-limit + session-lock keyspace.
     # maxmemory caps container RAM; allkeys-lru keeps hot keys under pressure.
+    #
+    # Alert if evicted_keys > 0 sustained or used_memory > 800mb. With the
+    # rate-limit + presence + render-singleflight + sweep-lock keyspace
+    # we expect well under 100MB at typical traffic; eviction means the
+    # limits are silently bypassing.
     command:
       - "valkey-server"
       - "--requirepass"
@@ -76,7 +81,7 @@ services:
       - "--appendfsync"
       - "everysec"
       - "--maxmemory"
-      - "256mb"
+      - "1gb"
       - "--maxmemory-policy"
       - "allkeys-lru"
     healthcheck:
@@ -173,12 +178,33 @@ services:
       - JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
       - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET}
       - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
+      # Valkey — backs per-doc attribution + diff baselines (was three
+      # process-local Maps). Same instance the app uses; sync-server
+      # has its own connection pool.
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+      - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
       - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
     expose:
       - "4001"
     labels:
       - "traefik.enable=true"
+      # Sticky sessions: route all WS connections for a given client
+      # cookie to the same sync-server instance. This keeps a single
+      # client's awareness/edit stream pinned, but doesn't fully
+      # serialize cross-instance flushes for the same docId (two
+      # different clients on the same doc CAN land on different
+      # instances). The residual cross-instance race on
+      # `sync:prev-text:{docId}` is documented in
+      # `sync-server/AGENTS.md`; worst case is one duplicate activity
+      # row per cross-container concurrency event — not corrupting,
+      # just noisy.
+      - "traefik.http.services.sync.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.sync.loadbalancer.sticky.cookie.name=sync_sticky"
+      - "traefik.http.services.sync.loadbalancer.sticky.cookie.httpOnly=true"
+      - "traefik.http.services.sync.loadbalancer.sticky.cookie.secure=true"
       - "traefik.http.routers.sync.rule=Host(`sync.${DOMAIN}`)"
       - "traefik.http.routers.sync.entrypoints=websecure"
       - "traefik.http.routers.sync.tls.certresolver=le"
@@ -188,6 +214,8 @@ services:
       - "traefik.http.services.sync.loadbalancer.healthcheck.timeout=3s"
     depends_on:
       postgres:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     networks:
       - web

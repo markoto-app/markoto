@@ -107,6 +107,47 @@ describe('pruneActivity', () => {
     expect(Number(min.rows[0].w)).toBe(1)
   })
 
+  it('after 600 inserts, only the most-recent 500 remain', async () => {
+    // Verifies the rewritten subquery shape (MIN over top-N) keeps the
+    // newest 500 rows. word_count is used as a monotonic insertion-order
+    // marker so we can assert the boundary.
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const db = testDb()
+    const values = Array.from({ length: 600 }, (_, i) => `('${doc.docId}', 'edit', 'u', ${i})`).join(',')
+    await db.query(
+      `INSERT INTO activity_log (doc_id, action, user_name, word_count) VALUES ${values}`
+    )
+    expect(await activityCount(doc.docId)).toBe(600)
+    await pruneActivity(doc.docId)
+    expect(await activityCount(doc.docId)).toBe(500)
+    // Oldest 100 rows (word_count 0..99) gone; newest (word_count 100..599) kept.
+    const range = await db.query<{ mn: number, mx: number }>(
+      'SELECT MIN(word_count) AS mn, MAX(word_count) AS mx FROM activity_log WHERE doc_id = $1',
+      [doc.docId]
+    )
+    expect(Number(range.rows[0].mn)).toBe(100)
+    expect(Number(range.rows[0].mx)).toBe(599)
+  })
+
+  it('pruning doc A does not touch doc B (isolation)', async () => {
+    // Explicit isolation cover: a 600-row doc A prune leaves a 600-row
+    // doc B completely untouched. Mirrors the original isolation test
+    // but exercises the new subquery shape with both docs over-cap.
+    const u = await createUser()
+    const docA = await seedDoc({ ownerId: u.id })
+    const docB = await seedDoc({ ownerId: u.id })
+    const db = testDb()
+    const valsA = Array.from({ length: 600 }, (_, i) => `('${docA.docId}', 'edit', 'u', ${i})`).join(',')
+    const valsB = Array.from({ length: 600 }, (_, i) => `('${docB.docId}', 'edit', 'u', ${i})`).join(',')
+    await db.query(
+      `INSERT INTO activity_log (doc_id, action, user_name, word_count) VALUES ${valsA}, ${valsB}`
+    )
+    await pruneActivity(docA.docId)
+    expect(await activityCount(docA.docId)).toBe(500)
+    expect(await activityCount(docB.docId)).toBe(600)
+  })
+
   it('only prunes rows for the target doc', async () => {
     const u = await createUser()
     const docA = await seedDoc({ ownerId: u.id })

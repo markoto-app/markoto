@@ -1,0 +1,129 @@
+// Per-doc state that used to live in process-local Maps in index.ts:
+//   - last-editor:   primary attribution source for activity-log rows.
+//   - prev-text:     diff baseline for line-add/-remove counts.
+//   - prev-meta:     title/theme baseline for "title.changed"/"theme.changed".
+//
+// Migrated to Valkey so multiple sync-server containers can share the
+// view. Each call returns the previous value (read-modify-write
+// callsites in index.ts handle their own logic).
+//
+// Failure mode: every helper catches errors and reports them via the
+// `cause` channel back to the caller, which:
+//   - logs the warn line for ops visibility,
+//   - feeds the `cause` into the Sentry tag so we can distinguish
+//     'valkey-miss' (cold doc / restart — normal) from 'valkey-error'
+//     (Valkey down — operationally interesting).
+// On error we behave the same as a miss (attribution falls back to the
+// awareness heuristic; diff baseline reseeds without emitting a row).
+//
+// TTL: 24 h. A doc untouched for 24 h is "cold"; the next edit can
+// rebuild attribution from awareness without harm. Saves Valkey memory.
+
+import { useValkey } from './valkey'
+
+const TTL_SECONDS = 24 * 60 * 60
+
+export interface LastEditor {
+  userName: string | null
+  userId: string | null
+  at: number
+}
+
+export interface PreviousMeta {
+  title: string | null
+  themeJson: string | null
+}
+
+export type FetchCause = 'hit' | 'miss' | 'error'
+
+export interface FetchResult<T> {
+  value: T | null
+  cause: FetchCause
+  /** Populated only when cause === 'error'. */
+  error?: Error
+}
+
+const KEY_LAST_EDITOR = (docId: string) => `sync:last-editor:${docId}`
+const KEY_PREV_TEXT = (docId: string) => `sync:prev-text:${docId}`
+const KEY_PREV_META = (docId: string) => `sync:prev-meta:${docId}`
+
+async function safeGet(key: string): Promise<FetchResult<string>> {
+  try {
+    const v = await useValkey().get(key)
+    return v == null ? { value: null, cause: 'miss' } : { value: v, cause: 'hit' }
+  } catch (e) {
+    return { value: null, cause: 'error', error: e instanceof Error ? e : new Error(String(e)) }
+  }
+}
+
+async function safeSetEx(key: string, value: string): Promise<Error | null> {
+  try {
+    await useValkey().set(key, value, 'EX', TTL_SECONDS)
+    return null
+  } catch (e) {
+    return e instanceof Error ? e : new Error(String(e))
+  }
+}
+
+async function safeDel(key: string): Promise<void> {
+  try {
+    await useValkey().del(key)
+  } catch (e) {
+    // Cleanup-only path; logging is the right thing here.
+    console.warn(`[sync-state] del failed for ${key}:`, e instanceof Error ? e.message : e)
+  }
+}
+
+// ───────── last-editor ─────────
+
+export async function getLastEditor(docId: string): Promise<FetchResult<LastEditor>> {
+  const raw = await safeGet(KEY_LAST_EDITOR(docId))
+  if (raw.cause !== 'hit' || !raw.value) return { value: null, cause: raw.cause, error: raw.error }
+  try {
+    return { value: JSON.parse(raw.value) as LastEditor, cause: 'hit' }
+  } catch {
+    // Treat malformed JSON as a miss — better to fall through to
+    // awareness than to crash on a bad payload.
+    return { value: null, cause: 'miss' }
+  }
+}
+
+export async function setLastEditor(docId: string, value: LastEditor): Promise<void> {
+  await safeSetEx(KEY_LAST_EDITOR(docId), JSON.stringify(value))
+}
+
+// ───────── prev-text ─────────
+
+export async function getPrevText(docId: string): Promise<FetchResult<string>> {
+  return safeGet(KEY_PREV_TEXT(docId))
+}
+
+export async function setPrevText(docId: string, value: string): Promise<void> {
+  await safeSetEx(KEY_PREV_TEXT(docId), value)
+}
+
+// ───────── prev-meta ─────────
+
+export async function getPrevMeta(docId: string): Promise<FetchResult<PreviousMeta>> {
+  const raw = await safeGet(KEY_PREV_META(docId))
+  if (raw.cause !== 'hit' || !raw.value) return { value: null, cause: raw.cause, error: raw.error }
+  try {
+    return { value: JSON.parse(raw.value) as PreviousMeta, cause: 'hit' }
+  } catch {
+    return { value: null, cause: 'miss' }
+  }
+}
+
+export async function setPrevMeta(docId: string, value: PreviousMeta): Promise<void> {
+  await safeSetEx(KEY_PREV_META(docId), JSON.stringify(value))
+}
+
+// ───────── cleanup (called on last-disconnect) ─────────
+
+export async function dropDocState(docId: string): Promise<void> {
+  await Promise.all([
+    safeDel(KEY_LAST_EDITOR(docId)),
+    safeDel(KEY_PREV_TEXT(docId)),
+    safeDel(KEY_PREV_META(docId))
+  ])
+}

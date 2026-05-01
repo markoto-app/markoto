@@ -5,6 +5,7 @@ import { deleteDocument } from '../utils/documentLifecycle'
 import { migrationsComplete } from '../utils/migrations'
 import { getDoc } from '../repos/documents'
 import { appendAuditEvent } from '../repos/audit'
+import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 
 // Periodic cleanup of abandoned documents.
 //
@@ -37,6 +38,11 @@ export default defineNitroPlugin((nitroApp) => {
   async function sweep() {
     if (running) return
     running = true
+    // Cross-instance gate: only one app instance runs the sweep per tick.
+    if (!await acquireSweepLock('inactive-doc-sweep')) {
+      running = false
+      return
+    }
     try {
       await migrationsComplete
 
@@ -108,6 +114,7 @@ export default defineNitroPlugin((nitroApp) => {
         tags: { component: 'inactive-doc-sweep', event: 'sweep_failed' }
       })
     } finally {
+      await releaseSweepLock('inactive-doc-sweep')
       running = false
     }
   }

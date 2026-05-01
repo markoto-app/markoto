@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../utils/aiSessions'
 import { migrationsComplete } from '../utils/migrations'
+import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 
 // Every 60s, abort any AI session older than the stale threshold. Protects
 // against crashes that leave awareness entries orphaned on Hocuspocus docs.
@@ -36,34 +37,46 @@ export default defineNitroPlugin((nitroApp) => {
   })()
 
   async function sweep() {
-    const now = Date.now()
-    let sessions: Awaited<ReturnType<typeof snapshotAiSessions>>
+    // Cross-instance gate. Note: `snapshotAiSessions` returns rows from
+    // every instance's sessions, but `abortController` is per-process —
+    // the winner instance can only abort its own loops; for orphan rows
+    // (sessions running elsewhere), the loop falls through to
+    // `removeAiSession` which just drops the DB entry to unblock the
+    // per-user cap. That matches the pre-lock behaviour for sessions
+    // from a prior crashed process.
+    if (!await acquireSweepLock('ai-session-sweep')) return
     try {
-      sessions = await snapshotAiSessions()
-    } catch (e) {
-      console.warn('[ai-sweep] snapshot failed:', e instanceof Error ? e.message : e)
-      Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'snapshot_failed' } })
-      return
-    }
-    for (const s of sessions) {
-      const ageMs = now - s.startedAt.getTime()
-      if (ageMs <= STALE_THRESHOLD_MS) continue
-      console.warn(
-        `[ai-sweep] Aborting stuck session ${s.sessionId} for doc ${s.docId} (age ${Math.round(ageMs / 1000)}s)`
-      )
-      if (s.abortController) {
-        // Local to this process — signal the loop to unwind cleanly. The loop's
-        // finally block will remove the session row itself.
-        try {
-          s.abortController.abort()
-        } catch { /* ignore */ }
-      } else {
-        // Orphan row (e.g. from a prior process). Just drop the DB entry so the
-        // per-user cap unblocks.
-        try {
-          await removeAiSession(s.sessionId)
-        } catch { /* ignore */ }
+      const now = Date.now()
+      let sessions: Awaited<ReturnType<typeof snapshotAiSessions>>
+      try {
+        sessions = await snapshotAiSessions()
+      } catch (e) {
+        console.warn('[ai-sweep] snapshot failed:', e instanceof Error ? e.message : e)
+        Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'snapshot_failed' } })
+        return
       }
+      for (const s of sessions) {
+        const ageMs = now - s.startedAt.getTime()
+        if (ageMs <= STALE_THRESHOLD_MS) continue
+        console.warn(
+          `[ai-sweep] Aborting stuck session ${s.sessionId} for doc ${s.docId} (age ${Math.round(ageMs / 1000)}s)`
+        )
+        if (s.abortController) {
+          // Local to this process — signal the loop to unwind cleanly. The loop's
+          // finally block will remove the session row itself.
+          try {
+            s.abortController.abort()
+          } catch { /* ignore */ }
+        } else {
+          // Orphan row (e.g. from a prior process). Just drop the DB entry so the
+          // per-user cap unblocks.
+          try {
+            await removeAiSession(s.sessionId)
+          } catch { /* ignore */ }
+        }
+      }
+    } finally {
+      await releaseSweepLock('ai-session-sweep')
     }
   }
 

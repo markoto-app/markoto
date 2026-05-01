@@ -340,4 +340,89 @@ describe('POST /api/docs/:docId/duplicate', () => {
       expect(after).toEqual(before)
     })
   })
+
+  describe('Idempotency-Key', () => {
+    // Stripe-style replay: same client-supplied key + same user +
+    // same source doc within the TTL window must return the SAME
+    // { docId } without creating a second copy. Header absent →
+    // unchanged behaviour.
+
+    it('without the header, two rapid calls each create a fresh duplicate', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+
+      const r1 = await client.post(`/api/docs/${doc.docId}/duplicate`)
+      const r2 = await client.post(`/api/docs/${doc.docId}/duplicate`)
+      expect(r1.status).toBe(200)
+      expect(r2.status).toBe(200)
+      const b1 = await r1.json() as { docId: string }
+      const b2 = await r2.json() as { docId: string }
+      expect(b1.docId).not.toBe(b2.docId)
+    })
+
+    it('same key twice rapidly returns the same docId without a second duplicate', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const key = 'idem-' + Math.random().toString(36).slice(2).padEnd(20, 'a')
+
+      const r1 = await client.post(`/api/docs/${doc.docId}/duplicate`, undefined, {
+        headers: { 'idempotency-key': key }
+      })
+      const r2 = await client.post(`/api/docs/${doc.docId}/duplicate`, undefined, {
+        headers: { 'idempotency-key': key }
+      })
+      expect(r1.status).toBe(200)
+      expect(r2.status).toBe(200)
+      const b1 = await r1.json() as { docId: string }
+      const b2 = await r2.json() as { docId: string }
+      // The cached response is replayed verbatim — same docId.
+      expect(b1.docId).toBe(b2.docId)
+
+      // Verify exactly ONE row in the DB (i.e., the second call did
+      // NOT create a second duplicate).
+      const db = testDb()
+      const r = await db.query<{ c: string }>(
+        `SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1 OR title = $2`,
+        [b1.docId, 'Copy of Test Doc']
+      )
+      // Source has title "Test Doc"; duplicate has "Copy of Test Doc".
+      // Exactly ONE doc with that title means idempotency held.
+      expect(Number(r.rows[0].c)).toBe(1)
+    })
+
+    it('same key for two different users → independent (no scope leak)', async () => {
+      const u1 = await createUser()
+      const u2 = await createUser()
+      const doc = await createDoc({ accessMode: 'open-edit' })
+      // Both users get edit access via accessMode=open-edit. (Note:
+      // canEditDoc currently rejects open-edit for a stranger; use a
+      // setup where both users own/edit the doc independently. Move
+      // each into a workspace they both belong to.)
+      const ws = await createWorkspace(u1.id)
+      await setMemberRole(ws.workspaceId, u2.id, 'editor')
+      const sharedDoc = await createDoc({ ownerId: u1.id, workspaceId: ws.workspaceId, accessMode: 'private' })
+
+      const c1 = await loggedInClient(u1.id)
+      const c2 = await loggedInClient(u2.id)
+      const key = 'sharedkey-' + Math.random().toString(36).slice(2).padEnd(16, 'a')
+
+      const r1 = await c1.post(`/api/docs/${sharedDoc.docId}/duplicate`, undefined, {
+        headers: { 'idempotency-key': key }
+      })
+      const r2 = await c2.post(`/api/docs/${sharedDoc.docId}/duplicate`, undefined, {
+        headers: { 'idempotency-key': key }
+      })
+      expect(r1.status).toBe(200)
+      expect(r2.status).toBe(200)
+      const b1 = await r1.json() as { docId: string }
+      const b2 = await r2.json() as { docId: string }
+      // Per-user scope means each user got a fresh duplicate even
+      // though they used the same key string.
+      expect(b1.docId).not.toBe(b2.docId)
+      // Suppress unused warnings.
+      void doc
+    })
+  })
 })

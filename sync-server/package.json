@@ -7,16 +7,19 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
-    "start": "bun run dist/index.js"
+    "start": "bun run dist/index.js",
+    "test": "bun x vitest run"
   },
   "dependencies": {
     "@hocuspocus/server": "^3.4.4",
     "@sentry/bun": "^10.48.0",
+    "ioredis": "^5.10.1",
     "pg": "^8.20.0",
     "y-postgresql": "^1.0.1",
     "yjs": "^13.6.30"
   },
   "devDependencies": {
-    "@types/pg": "^8.20.0"
+    "@types/pg": "^8.20.0",
+    "vitest": "^4.0.5"
   }
 }

@@ -75,7 +75,9 @@ services:
   valkey:
     image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
     restart: unless-stopped
-    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    # 1gb headroom for rate-limit + presence + render-singleflight + sweep-lock
+    # keyspaces under sustained load. Matches prod sizing.
+    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
@@ -173,6 +175,13 @@ services:
       - POSTGRES_PORT=5432
       - JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
       - INTERNAL_API_SECRET=local-internal-api-secret-change-me
+      # Valkey — backs per-doc attribution + diff baselines (was three
+      # process-local Maps). Same instance the app uses; sync-server
+      # has its own client.
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+      - VALKEY_DB=${VALKEY_DB}
       - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
     expose:
@@ -185,6 +194,8 @@ services:
       - "traefik.http.services.sync.loadbalancer.server.port=4001"
     depends_on:
       postgres:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     networks:
       - web

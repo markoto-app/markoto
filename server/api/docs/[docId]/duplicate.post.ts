@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
 import { getDoc } from '../../../repos/documents'
 import { duplicateDocument } from '../../../utils/duplicateDocument'
+import { withIdempotency } from '../../../utils/idempotency'
 
 // Duplicate a document into a new docId. The duplicator becomes the
 // new owner — duplicates are "my copy of their template". Same
@@ -86,18 +87,27 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const newDocId = nanoid(10)
+  // Idempotency: when the client supplies an `Idempotency-Key` header,
+  // a rapid second call (double-click, retry on flaky network) returns
+  // the SAME { docId } without creating a second copy. Without the
+  // header, behaviour is unchanged. Scope is per-user so a key reused
+  // across users does not collide; the `duplicate:{sourceDocId}` scope
+  // segment also keeps a key from short-circuiting a different doc's
+  // duplicate. See `server/utils/idempotency.ts` for the contract.
   const config = useRuntimeConfig()
-  await duplicateDocument(
-    {
-      sourceDocId,
-      newDocId,
-      ownerId: session.user.id,
-      workspaceId: targetWorkspaceId,
-      title
-    },
-    { s3: useS3Client(), bucket: config.s3.bucket }
-  )
+  return withIdempotency(event, `duplicate:${sourceDocId}`, session.user.id, async () => {
+    const newDocId = nanoid(10)
+    await duplicateDocument(
+      {
+        sourceDocId,
+        newDocId,
+        ownerId: session.user.id,
+        workspaceId: targetWorkspaceId,
+        title
+      },
+      { s3: useS3Client(), bucket: config.s3.bucket }
+    )
 
-  return { docId: newDocId }
+    return { docId: newDocId }
+  })
 })
