@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { nanoid } from 'nanoid'
 import { resetDb, testDb } from '../setup/db'
 import { TEST_BASE_URL } from '../setup/env'
 import { createUser } from '../setup/fixtures'
@@ -440,5 +441,372 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
       `SELECT COUNT(*) AS c FROM users WHERE stripe_customer_id = 'cus_test_alice'`
     )
     expect(Number(c.rows[0].c)).toBe(1)
+  })
+})
+
+// -----------------------------------------------------------------------------
+// Replay protection — event.id idempotency
+// -----------------------------------------------------------------------------
+//
+// Stripe redelivers webhooks on 5xx with exponential backoff. The retry
+// payload carries the SAME `event.id` as the original delivery. A robust
+// handler should either (a) record processed event ids in a dedup table
+// and short-circuit on replay, or (b) be naïvely idempotent — re-running
+// the same UPDATE produces the same row state.
+//
+// The handlers in `server/utils/stripeWebhook.ts` use option (b): each
+// event maps to a single UPDATE with the event's own values. There is
+// NO `processed_webhook_events` table. Naïve idempotency is fine for
+// replays of the EXACT SAME event — same values land on the same row,
+// same final state. It is NOT defensive against:
+//
+//   1. Replays after concurrent state mutation (e.g. user pauses then
+//      cancels — a delayed redelivery of the original "active" event
+//      could re-activate a cancelled subscription).
+//   2. Replays after a manual ops correction (we set plan='free' for a
+//      refund; a stale subscription.updated redelivery flips it back).
+//
+// 🔴 Finding: no event.id-based dedup. Documented by the test below
+// that demonstrates the second-application IS applied (i.e. the handler
+// re-runs the UPDATE rather than recognising a replay). See report.
+describe('POST /api/webhooks/stripe — event.id replay protection', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('🔴 GAP: replays re-apply the UPDATE (no event.id dedup table)', async () => {
+    // EXPECTED behaviour with a `processed_webhook_events` table:
+    //   1. First call → event.id inserted, UPDATE applied, plan='pro'.
+    //   2. Manual override → plan='free' (simulating ops correction).
+    //   3. Replay → handler INSERTs (event.id) ON CONFLICT DO NOTHING,
+    //      sees the conflict, short-circuits — plan REMAINS 'free'.
+    //
+    // ACTUAL behaviour (current handler, no dedup table):
+    //   1. First call → UPDATE applied, plan='pro'.
+    //   2. Manual override → plan='free'.
+    //   3. Replay → UPDATE re-applied, plan FLIPS BACK TO 'pro'.
+    //
+    // This test asserts the ACTUAL behaviour and adds a comment marking
+    // the gap. The user can decide whether to ship a dedup table; if
+    // shipped, flip the `expect` below from 'pro' to 'free'.
+    const u = await createUser()
+    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    const event = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
+    // Pin a stable event.id so the dedup test is deterministic.
+    event.id = 'evt_replay_test_001'
+
+    const res1 = await postWebhook(event)
+    expect(res1.status).toBe(200)
+    let row = await readUser(u.id)
+    expect(row.plan).toBe('pro')
+
+    // Simulate an out-of-band correction (ops manually flipped plan
+    // back). A handler with event.id dedup MUST NOT undo this on
+    // replay; a naïvely-idempotent handler WILL.
+    await testDb().query('UPDATE users SET plan = $1 WHERE id = $2', ['free', u.id])
+
+    const res2 = await postWebhook(event)
+    expect(res2.status).toBe(200)
+    row = await readUser(u.id)
+    // 🔴 GAP: ACTUAL behaviour — re-applied. If a dedup table is
+    // added, this should become `expect(row.plan).toBe('free')`.
+    expect(row.plan).toBe('pro')
+  })
+
+  it('replays of the SAME event with no concurrent mutation are state-stable', async () => {
+    // Sanity check the naïve-idempotency property: re-applying the
+    // same event with no intervening writes yields identical state.
+    // This is the "good" case the current handler IS robust to —
+    // exactly what Stripe-retry-on-5xx normally looks like.
+    const u = await createUser()
+    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    const event = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
+    event.id = 'evt_replay_sanity_001'
+
+    await postWebhook(event)
+    const first = await readUser(u.id)
+    await postWebhook(event)
+    const second = await readUser(u.id)
+
+    expect(second.plan).toBe(first.plan)
+    expect(second.stripe_subscription_id).toBe(first.stripe_subscription_id)
+    expect(second.stripe_current_period_start!.getTime())
+      .toBe(first.stripe_current_period_start!.getTime())
+    expect(second.plan_valid_until!.getTime())
+      .toBe(first.plan_valid_until!.getTime())
+  })
+})
+
+// -----------------------------------------------------------------------------
+// Out-of-order delivery — subscription.updated arriving before checkout
+// -----------------------------------------------------------------------------
+//
+// Stripe's webhook delivery is at-least-once and intentionally NOT
+// ordered. A common hazard at signup: `customer.subscription.created`
+// or `customer.subscription.updated` can arrive BEFORE
+// `checkout.session.completed`, while `users.stripe_customer_id` is
+// still null. The subscription handler keys on `stripe_customer_id`,
+// so its UPDATE matches zero rows and silently drops.
+//
+// The handler comment in `stripeWebhook.ts` calls this race out
+// explicitly: `handleCheckoutSessionCompleted` synchronously fetches
+// the subscription from Stripe and writes everything in ONE row update,
+// so the SUBSEQUENT subscription.updated event becomes idempotent.
+// But a subscription.updated arriving FIRST has nothing to update.
+// Tests below verify the system converges to the correct state once
+// the checkout event eventually lands.
+describe('POST /api/webhooks/stripe — out-of-order delivery', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('subscription.updated arriving BEFORE checkout: 200 + no-op until checkout binds', async () => {
+    // 1. Bare user — no stripe_customer_id yet.
+    const u = await createUser()
+    let row = await readUser(u.id)
+    expect(row.stripe_customer_id).toBeNull()
+    expect(row.plan).toBe('free')
+
+    // 2. Stripe delivers subscription.updated FIRST. The handler looks
+    //    up by stripe_customer_id, finds nothing, logs, returns 200.
+    //    Critically NOT 5xx — Stripe would retry forever, blowing up
+    //    the delivery queue.
+    const subEvent = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
+    subEvent.id = 'evt_outoforder_sub_001'
+    const res1 = await postWebhook(subEvent)
+    expect(res1.status).toBe(200)
+
+    // No DB mutation — user row is still bare.
+    row = await readUser(u.id)
+    expect(row.stripe_customer_id).toBeNull()
+    expect(row.plan).toBe('free')
+
+    // 3. checkout.session.completed arrives second. It carries the
+    //    customer id binding via `client_reference_id` → user.id, and
+    //    the handler synchronously fetches the subscription from
+    //    stripe-mock to apply customer + subscription ids in one shot.
+    //    (Note: stripe-mock returns a canned price id — see existing
+    //    test "stamps customer_id + subscription_id..." for the
+    //    rationale; plan stays 'free' here, but customer/sub ids land.)
+    const checkoutEvent = loadStripeFixture('checkout.session.completed') as Record<string, unknown>
+    ;(checkoutEvent.data as { object: Record<string, unknown> }).object.client_reference_id = String(u.id)
+    checkoutEvent.id = 'evt_outoforder_checkout_001'
+    const res2 = await postWebhook(checkoutEvent)
+    expect(res2.status).toBe(200)
+
+    row = await readUser(u.id)
+    expect(row.stripe_customer_id).toBe('cus_test_alice')
+    expect(row.stripe_subscription_id).toBe('sub_test_alice_pro')
+  })
+
+  it('🔴 GAP: subscription.updated dropped on out-of-order is NOT replayed once binding lands', async () => {
+    // Documents the gap: when subscription.updated arrives first and
+    // misses (no customer_id binding), there is NO event-stash to replay
+    // when checkout.session.completed eventually binds the customer.
+    //
+    // EXPECTED behaviour with an event-stash queue:
+    //   - Initial subscription.updated lands in `pending_webhook_events`.
+    //   - checkout.session.completed binds customer + drains queue.
+    //   - Plan correctly maps to whichever price the queued event carries.
+    //
+    // ACTUAL behaviour (current handler, no stash):
+    //   - First subscription.updated logs + drops. The handler in
+    //     `handleCheckoutSessionCompleted` synchronously fetches the
+    //     subscription, so the canonical state is applied via that path
+    //     instead. (stripe-mock returns its canned price → plan stays free.)
+    //   - In prod, this works because `handleCheckoutSessionCompleted`
+    //     reads the subscription LIVE — it doesn't depend on the
+    //     missed event. The dropped event is genuinely redundant.
+    //
+    // Net: no actual data loss in prod, but the test documents the
+    // architectural assumption. If the checkout handler stops reading
+    // the subscription live, this gap becomes a real bug.
+    const u = await createUser()
+    const subEvent = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
+    subEvent.id = 'evt_dropped_sub_001'
+    const r1 = await postWebhook(subEvent)
+    expect(r1.status).toBe(200)
+
+    // No event-stash table exists; the dropped event is gone.
+    // (Test passes trivially — there's nothing to assert beyond
+    // documenting the gap. The 200 above is the load-bearing claim.)
+    let row = await readUser(u.id)
+    expect(row.plan).toBe('free')
+
+    const checkoutEvent = loadStripeFixture('checkout.session.completed') as Record<string, unknown>
+    ;(checkoutEvent.data as { object: Record<string, unknown> }).object.client_reference_id = String(u.id)
+    checkoutEvent.id = 'evt_dropped_checkout_001'
+    await postWebhook(checkoutEvent)
+
+    // Customer/sub ids land via the live subscription fetch — the
+    // dropped event was redundant in this delivery shape.
+    row = await readUser(u.id)
+    expect(row.stripe_customer_id).toBe('cus_test_alice')
+    expect(row.stripe_subscription_id).toBe('sub_test_alice_pro')
+  })
+
+  it('subscription.deleted arriving BEFORE customer is known: 200 + no-op (no row matches)', async () => {
+    // Edge case: cancellation event for a customer we've never bound.
+    // This shouldn't happen in practice (we'd have to MISS the
+    // checkout.session AND every subscription.created/updated, then
+    // observe the deletion) — but the handler must still 200 so Stripe
+    // stops retrying.
+    const u = await createUser()
+    const event = loadStripeFixture('customer.subscription.deleted') as Record<string, unknown>
+    event.id = 'evt_outoforder_delete_001'
+    const res = await postWebhook(event)
+    expect(res.status).toBe(200) // critical — never 500 on no-row-match
+    const row = await readUser(u.id)
+    expect(row.plan).toBe('free') // unchanged
+    expect(row.stripe_customer_id).toBeNull()
+  })
+})
+
+// -----------------------------------------------------------------------------
+// Body tampering — signature mismatch detection
+// -----------------------------------------------------------------------------
+//
+// Stripe's signature is computed over the EXACT raw body. Any byte
+// modification post-signing — even reordering whitespace — breaks
+// verification. Stripe's SDK rejects with "No signatures found matching
+// the expected signature for payload" and the handler returns 400.
+describe('POST /api/webhooks/stripe — body tampering', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('400 when body is modified post-signature (signature mismatch)', async () => {
+    // Sign the original, then ship a tampered body with the original
+    // signature. Mirrors a MITM rewriting `customer` to point at a
+    // different user's id mid-flight.
+    const original = JSON.stringify(loadStripeFixture('customer.subscription.updated-pro'))
+    const sig = computeStripeSig(original, TEST_WEBHOOK_SECRET)
+
+    // Swap the customer id mid-flight — signature was computed over
+    // 'cus_test_alice', body now claims 'cus_test_attacker'.
+    const tampered = original.replace('cus_test_alice', 'cus_test_attacker')
+    expect(tampered).not.toBe(original) // sanity — replacement actually happened
+
+    const res = await fetch(`${TEST_BASE_URL}/api/webhooks/stripe`, {
+      method: 'POST',
+      headers: { 'stripe-signature': sig, 'content-type': 'application/json' },
+      body: tampered
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('400 when only whitespace differs from the signed body', async () => {
+    // Stricter variant: same JSON semantics, different bytes. Stripe's
+    // verifier is byte-exact. This catches accidental re-stringification
+    // somewhere in our middleware (we use readRawBody — but a future
+    // refactor that re-emits JSON would silently break verification on
+    // a small fraction of requests).
+    const original = JSON.stringify(loadStripeFixture('customer.subscription.updated-pro'))
+    const sig = computeStripeSig(original, TEST_WEBHOOK_SECRET)
+    // Add a single trailing newline.
+    const tampered = original + '\n'
+    const res = await fetch(`${TEST_BASE_URL}/api/webhooks/stripe`, {
+      method: 'POST',
+      headers: { 'stripe-signature': sig, 'content-type': 'application/json' },
+      body: tampered
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('no DB writes occur when signature verification fails', async () => {
+    // Belt and braces: the handler must abort before the dispatch
+    // call, so a tampered body NEVER touches the user row even if
+    // the contents would otherwise be applied.
+    const u = await createUser()
+    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+
+    const original = JSON.stringify(loadStripeFixture('customer.subscription.updated-pro'))
+    const sig = computeStripeSig(original, TEST_WEBHOOK_SECRET)
+    const tampered = original.replace('"plan":"pro"', '"plan":"ultra"')
+    // (The replace may be a no-op if the fixture doesn't include the
+    // string — that's fine, the test still asserts: bad sig → no write.)
+    await fetch(`${TEST_BASE_URL}/api/webhooks/stripe`, {
+      method: 'POST',
+      headers: { 'stripe-signature': sig, 'content-type': 'application/json' },
+      body: tampered.length === original.length ? original + ' ' : tampered
+    })
+    const row = await readUser(u.id)
+    expect(row.plan).toBe('free') // unchanged — handler aborted on sig
+  })
+})
+
+// -----------------------------------------------------------------------------
+// Hand-built events — additional edge cases the fixtures don't cover
+// -----------------------------------------------------------------------------
+describe('POST /api/webhooks/stripe — hand-built event edge cases', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('200 on subscription.updated for a customer we have NEVER bound (no row matches)', async () => {
+    // Customer id that doesn't exist on any user row. Handler logs +
+    // returns 200; never 500 (Stripe would retry forever).
+    const event = makeStripeEvent('customer.subscription.updated', {
+      id: 'sub_unbound_test',
+      object: 'subscription',
+      customer: `cus_unbound_${nanoid(8)}`,
+      status: 'active',
+      cancel_at_period_end: false,
+      items: {
+        object: 'list',
+        data: [{
+          id: 'si_unbound',
+          object: 'subscription_item',
+          current_period_start: 1776000000,
+          current_period_end: 1778678400,
+          price: { id: 'price_test_pro', object: 'price' }
+        }]
+      }
+    })
+    const res = await postWebhook(event)
+    expect(res.status).toBe(200)
+  })
+
+  it('200 on event types we explicitly do NOT handle (unhandled type)', async () => {
+    // Existing test covers `customer.updated`. This one stresses a
+    // distinctly different namespace (`charge.refunded`) to make sure
+    // the dispatch switch's `default` arm is genuinely unconditional.
+    const event = makeStripeEvent('charge.refunded', {
+      id: 'ch_refund_test',
+      object: 'charge',
+      amount: 1000,
+      refunded: true
+    })
+    const res = await postWebhook(event)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual({ received: true, handled: false })
+  })
+
+  it('200 on checkout.session.completed with non-numeric client_reference_id (NaN guard)', async () => {
+    // The handler does `Number(client_reference_id)` and explicit
+    // `Number.isNaN` check. A non-numeric string (e.g. a UUID-like
+    // identifier from a buggy frontend) must NOT crash + must NOT
+    // accidentally land on user.id=NaN.
+    const event = loadStripeFixture('checkout.session.completed') as Record<string, unknown>
+    ;(event.data as { object: Record<string, unknown> }).object.client_reference_id = 'not-a-number'
+    event.id = 'evt_nan_clientref_001'
+    const res = await postWebhook(event)
+    expect(res.status).toBe(200) // graceful — orphan-checkout log path
+  })
+
+  it('200 + handled=false on hand-built event with unknown api_version (still dispatches by type)', async () => {
+    // The dispatcher keys on `event.type` — `api_version` mismatch is
+    // not a hard fail. Stripe rolls api versions periodically; older
+    // events from before our pin should still flow through.
+    const event = makeStripeEvent('customer.created', {
+      id: 'cus_created_test',
+      object: 'customer'
+    }, { id: 'evt_apiver_drift_001' })
+    event.api_version = '2020-08-27' // ancient
+    const res = await postWebhook(event)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual({ received: true, handled: false }) // we don't handle customer.created
   })
 })
