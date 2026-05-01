@@ -24,7 +24,9 @@
     - name: Tag rollback in deploys.log
       ansible.builtin.lineinfile:
         path: "{{ markoto_root }}/deploys.log"
-        line: "{{ ansible_date_time.iso8601 }} ROLLBACK to image_tag={{ image_tag }}"
+        line: >-
+          {{ ansible_date_time.iso8601 }}
+          ROLLBACK to image_tag={{ image_tag }}
         create: true
         owner: "{{ markoto_user }}"
         group: "{{ markoto_user }}"

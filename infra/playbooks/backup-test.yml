@@ -17,26 +17,35 @@
         set -euo pipefail
         cd {{ markoto_root }}
         docker compose -f docker-compose.prod.yml exec -T backup sh -c '
-          aws --endpoint-url "$S3_ENDPOINT" s3 ls "s3://$S3_BUCKET/backups/postgres/" | sort | tail -1 | awk "{print \$4}"
+          aws --endpoint-url "$S3_ENDPOINT" \
+            s3 ls "s3://$S3_BUCKET/backups/postgres/" \
+            | sort | tail -1 | awk "{print \$4}"
         '
       register: latest_backup
       changed_when: false
 
     - name: Fail if no backup yet exists
       ansible.builtin.fail:
-        msg: "No backup found at s3://{{ nuxt_s3_bucket }}/backups/postgres/. Run the in-stack backup once before testing."
+        msg: >-
+          No backup found at s3://{{ nuxt_s3_bucket }}/backups/postgres/.
+          Run the in-stack backup once before testing.
       when: latest_backup.stdout | trim | length == 0
 
     - name: Decrypt + sniff first 200 lines (does NOT apply to db)
       ansible.builtin.shell: |
         set -euo pipefail
         cd {{ markoto_root }}
-        docker compose -f docker-compose.prod.yml exec -T backup sh -c '
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp "s3://$S3_BUCKET/backups/postgres/{{ latest_backup.stdout | trim }}" /tmp/restore-test.gpg &&
-          gpg --batch --quiet --pinentry-mode loopback --passphrase "$BACKUP_GPG_PASSPHRASE" --decrypt /tmp/restore-test.gpg \
+        BACKUP_KEY="{{ latest_backup.stdout | trim }}"
+        docker compose -f docker-compose.prod.yml exec -T backup sh -c "
+          aws --endpoint-url \"\$S3_ENDPOINT\" \
+            s3 cp \"s3://\$S3_BUCKET/backups/postgres/${BACKUP_KEY}\" \
+            /tmp/restore-test.gpg \
+          && gpg --batch --quiet --pinentry-mode loopback \
+                 --passphrase \"\$BACKUP_GPG_PASSPHRASE\" \
+                 --decrypt /tmp/restore-test.gpg \
             | gunzip | head -200 \
-            && rm -f /tmp/restore-test.gpg
-        '
+          && rm -f /tmp/restore-test.gpg
+        "
       register: restore_probe
       changed_when: false
 

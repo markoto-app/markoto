@@ -3,7 +3,7 @@
 #   - re-renders .env (atomic via template module)
 #   - re-syncs compose files
 #   - pulls images per IMAGE_TAG
-#   - `up -d` will be a no-op if nothing changed, otherwise rolls services
+#   - `up -d` is a no-op if nothing changed, otherwise rolls services
 #   - polls /api/health
 #   - appends to deploys.log
 
@@ -15,9 +15,9 @@
     group: "{{ markoto_user }}"
     mode: "{{ item.mode }}"
   loop:
-    - { path: "{{ markoto_root }}", mode: "0750" }
-    - { path: "{{ markoto_root }}/secrets", mode: "0700" }
-    - { path: "{{ markoto_root }}/traefik", mode: "0750" }
+    - {path: "{{ markoto_root }}", mode: "0750"}
+    - {path: "{{ markoto_root }}/secrets", mode: "0700"}
+    - {path: "{{ markoto_root }}/traefik", mode: "0750"}
 
 # Traefik refuses to start if acme.json is world-readable.
 - name: Ensure traefik/acme.json exists with mode 0600
@@ -37,7 +37,7 @@
     recurse: false
   delegate_to: localhost
   become: false
-  register: compose_files
+  register: markoto_compose_files
 
 - name: Sync the production compose file(s) to the VPS
   ansible.builtin.copy:
@@ -46,10 +46,13 @@
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
     mode: "0640"
-  loop: "{{ compose_files.files }}"
+  loop: "{{ markoto_compose_files.files }}"
   loop_control:
     label: "{{ item.path | basename }}"
 
+# CA copy is best-effort: many OVH plans don't pin a CA, but if you DO drop
+# the .pem at infra/files/ovh-pg-ca.pem we honour it. `failed_when: false`
+# replaces the noisier `ignore_errors: true` so ansible-lint stays happy.
 - name: Sync OVH managed-PG CA cert (if present in infra/files/)
   ansible.builtin.copy:
     src: "{{ ovh_pg_ca_local_path }}"
@@ -58,7 +61,7 @@
     group: "{{ markoto_user }}"
     mode: "0600"
   when: ovh_pg_host | length > 0
-  ignore_errors: true  # File optional; some plans don't pin the CA.
+  failed_when: false
 
 - name: Render .env from template
   ansible.builtin.template:
@@ -67,7 +70,7 @@
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
     mode: "0600"
-  register: env_render
+  register: markoto_env_render
 
 - name: Compose pull (refresh images per IMAGE_TAG)
   community.docker.docker_compose_v2_pull:
@@ -93,38 +96,43 @@
     status_code: 200
     timeout: 10
     validate_certs: true
-  register: health_probe
+  register: markoto_health_probe
   retries: "{{ (health_timeout_seconds / 5) | int }}"
   delay: 5
-  until: health_probe.status == 200
-  failed_when: false  # Soft-fail: print diagnostics on miss, don't crash whole play.
+  until: markoto_health_probe.status == 200
+  # Soft-fail: print diagnostics on miss, don't crash whole play.
+  failed_when: false
 
 - name: Surface health-probe diagnostics on miss
   ansible.builtin.debug:
-    msg: |
+    msg: >-
       /api/health did not return 200 within {{ health_timeout_seconds }}s.
       Check `make logs` and `docker compose ps`. The probe is non-fatal so
       that re-runs against a partially-deployed stack still succeed.
-  when: health_probe.status != 200
+  when: markoto_health_probe.status != 200
 
 - name: Append deploy marker to deploys.log
   ansible.builtin.lineinfile:
     path: "{{ markoto_root }}/deploys.log"
-    line: "{{ ansible_date_time.iso8601 }} image_tag={{ image_tag }} health={{ health_probe.status | default('?') }}"
+    line: >-
+      {{ ansible_date_time.iso8601 }}
+      image_tag={{ image_tag }}
+      health={{ markoto_health_probe.status | default('?') }}
     create: true
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
     mode: "0640"
 
-# Opportunistic: docs/SECURITY-HARDENING.md mentions an audit log on app
-# boot. We don't fail the play if it isn't present yet.
-- name: Opportunistic check — app container started cleanly (last 50 log lines, grep for "ready")
-  ansible.builtin.command: docker compose -f {{ markoto_root }}/docker-compose.prod.yml logs --tail=50 app
-  register: app_logs
+# Opportunistic boot diagnostic — read-only, soft-fail.
+- name: Tail last 50 app log lines (boot-cleanly check)
+  ansible.builtin.command: >-
+    docker compose -f {{ markoto_root }}/docker-compose.prod.yml
+    logs --tail=50 app
+  register: markoto_app_logs
   changed_when: false
   failed_when: false
 
 - name: Surface app-log tail (truncated)
   ansible.builtin.debug:
-    msg: "{{ app_logs.stdout_lines[-15:] | default([]) }}"
-  when: app_logs.stdout_lines is defined
+    msg: "{{ markoto_app_logs.stdout_lines[-15:] | default([]) }}"
+  when: markoto_app_logs.stdout_lines is defined

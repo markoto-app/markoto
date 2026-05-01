@@ -23,7 +23,7 @@ postgres_password: "REPLACE_ME"            # ≥24 chars
 valkey_password: "REPLACE_ME"              # ≥32 chars; openssl rand -hex 32
 
 # ─── External S3 (OVH Object Storage / Infomaniak / R2 / etc.) ───
-nuxt_s3_endpoint: "REPLACE_ME"             # e.g. https://s3.gra.io.cloud.ovh.net
+nuxt_s3_endpoint: "REPLACE_ME"             # e.g. https://s3.gra.io.cloud.ovh.net  # noqa: yaml[line-length]
 nuxt_s3_access_key: "REPLACE_ME"
 nuxt_s3_secret_key: "REPLACE_ME"
 nuxt_s3_bucket: "REPLACE_ME"

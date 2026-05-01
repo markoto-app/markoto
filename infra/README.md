@@ -20,25 +20,29 @@ For the manual runbook (no Ansible) see [`../docs/DEPLOY.md`](../docs/DEPLOY.md)
 
 ```
 infra/
-├── Makefile                # convenience targets (provision/deploy/rollback/logs/ssh/status)
+├── Makefile                # convenience targets (provision/deploy/rollback/logs/ssh/status/lint)
 ├── README.md               # this file
 ├── ansible.cfg             # roles_path, ssh args, stdout callback
-├── requirements.yml        # community.general, community.docker, ansible.posix
+├── .ansible-lint           # production profile, offline by default
+├── .yamllint               # 120-col, octal-strict (matches ansible-lint reqs)
+├── requirements.yml        # Galaxy collections + roles (see §Galaxy deps)
 ├── inventory.example.ini   # template — fill in VPS IP
 ├── group_vars/
 │   ├── all.yml             # non-secret defaults (domain, image tag, paths)
 │   └── all.vault.example.yml  # secret template — encrypt before commit
 ├── playbooks/
-│   ├── provision.yml       # one-time: base + ssh_hardening + docker
+│   ├── provision.yml       # one-time: base + os_hardening + docker + ssh_hardening
 │   ├── deploy.yml          # idempotent: markoto + backup_cron
 │   ├── rollback.yml        # set target_image_tag, re-deploy
 │   └── backup-test.yml     # decrypt + sniff most-recent gpg backup
-├── roles/
-│   ├── base/               # apt, ufw, fail2ban, journald, timezone, LUKS check, markoto user
+├── roles/                  # roles WE wrote — see §What's hand-rolled below
+│   ├── base/               # ufw, fail2ban, journald, timezone, markoto user, LUKS check
 │   ├── ssh_hardening/      # PasswordAuth no, root login no, validate before reload
-│   ├── docker/             # docker-ce + compose plugin via apt repo, daemon.json
 │   ├── markoto/            # compose+env sync, pull, up -d, /api/health probe, deploys.log
 │   └── backup_cron/        # 03:00 UTC daily belt-and-braces backup with failure log
+├── collections/            # Galaxy-installed deps (gitignored)
+│   ├── ansible_collections/
+│   └── ansible_roles/
 ├── files/                  # ovh-pg-ca.pem (drop here if pinning OVH managed PG)
 └── templates/
     └── env.j2              # renders /opt/markoto/.env from group_vars + vault
@@ -48,7 +52,7 @@ infra/
 
 ```bash
 cd infra/
-make requirements                            # install collections (once)
+make requirements                            # install Galaxy collections + roles (once)
 cp inventory.example.ini inventory.ini       # set ansible_host=<VPS_IP>
 cp group_vars/all.vault.example.yml group_vars/all.vault.yml
 # edit group_vars/all.vault.yml — fill in every REPLACE_ME
@@ -60,6 +64,71 @@ make provision                               # ~5–10 min
 make deploy                                  # ~5 min
 make status                                  # curl /api/health
 ```
+
+## Galaxy dependencies (and why)
+
+`requirements.yml` pins each dep to an exact version. Surprise upgrades on
+Docker apt-key handling or CIS sysctl baselines are exactly what we want
+to NOT absorb silently — bumps land via PR after manual review.
+
+| Dep | Version | Why |
+|---|---|---|
+| `community.general` | `>=8.0.0` | `ufw`, `timezone` modules. |
+| `community.docker` | `>=3.10.0` | `docker_compose_v2*` modules used by `markoto/`. |
+| `ansible.posix` | `>=1.5.4` | `authorized_key` module. |
+| `devsec.hardening` | `10.5.2` | CIS-aligned `os_hardening` role — replaces ~50 lines of hand-rolled sysctl/PAM/perm tuning we'd have to chase as CIS evolves. |
+| `geerlingguy.docker` | `8.0.0` | Docker apt-repo handling is the single most fragile piece of any Ansible role — Geerling's gets patched within days when a distro changes things. |
+
+## Lint workflow
+
+`make lint` runs ansible-lint (production profile, strict) and yamllint.
+
+```bash
+# One-time install (no system pip on Ubuntu — use --user or pipx):
+pip install --user ansible-lint yamllint
+# Or:
+pipx install ansible-lint && pipx install yamllint
+
+cd infra/
+make lint
+```
+
+`.ansible-lint` is set to `offline: true` so the linter doesn't try to
+re-fetch Galaxy deps on every run; CI is expected to run `make requirements`
+first. `.yamllint` ships an `ignore:` list for `.ansible/` and `collections/`
+so we're not linting Geerling's role files.
+
+## What's hand-rolled and why
+
+We deliberately did NOT replace these with Galaxy roles:
+
+- **`roles/base/`** — application-specific OS bits (ufw rules tuned for our
+  ports, fail2ban jail tuned to our maxretry/findtime, journald sized for our
+  log volume, the markoto service account, OVH-specific LUKS warning). No
+  Galaxy role covers this collection cleanly.
+- **`roles/ssh_hardening/`** — `devsec.hardening.ssh_hardening` exists, but
+  ours has a load-bearing safety check: it refuses to disable password auth
+  if the markoto user has no `authorized_keys` yet, and it forces a handler
+  flush + `meta: reset_connection` between sshd reload and the next play.
+  Port-testing devsec's flow against our "fresh OVH VPS, no user keys" path
+  is a follow-up Phase. Until then we keep our safer wrapper.
+- **`roles/markoto/`** — entirely app-specific (compose file sync from the
+  same git repo, `.env` render from our jinja template, `/api/health`
+  retry-loop, `deploys.log` audit trail). Nothing to outsource.
+- **`roles/backup_cron/`** — 30-line cron wrapper. `ansible.builtin.cron`
+  IS the Galaxy answer; the role's just a tiny consumer.
+
+## Deviations from `devsec.hardening.os_hardening` defaults
+
+Documented in `playbooks/provision.yml`; reproduced here for visibility:
+
+| Var | Default | Override | Why |
+|---|---|---|---|
+| `sysctl_overwrite.net.ipv4.ip_forward` | (CIS sets 0) | `1` | Docker bridge networking REQUIRES forwarding. CIS's "non-router default" silently breaks compose networking. |
+| `os_auditd_enabled` | `true` | `false` | auditd is heavy (own log volume, separate forwarding pipeline). Audit signal already covered via Sentry (app) + journald/OVH (host). Reconsider when we have a SIEM that ingests auditd events. |
+| `os_security_init_single` | `false` | `false` (pinned) | Single-user mode is part of the OVH rescue path. Keep available. Pinned explicitly so a future `os_hardening` bump can't flip it. |
+| `os_security_init_prompt` | `true` | `false` | `/etc/issue` banner is cosmetic; SSH gates already cover us. |
+| `os_ignore_users` | `[vagrant, kitchen]` | `+ markoto` | Otherwise password-ageing checks could lock out the daemon service account. |
 
 ## Idempotency
 
@@ -100,6 +169,8 @@ new VPS picks up the existing dataset on first boot.
 | `acme.json permission denied` | mode drifted | `chmod 600 /opt/markoto/traefik/acme.json` (the role enforces this on every run) |
 | `IMAGE_TAG required` | image_tag missing from `group_vars/all.yml` | re-edit, re-deploy |
 | Backup cron FAIL log growing | in-stack `backup` container down | `docker compose ps backup`, `docker compose logs backup`, restart |
+| `the role 'devsec.hardening.os_hardening' was not found` | `make requirements` not run yet | `make requirements` |
+| `docker bridge networking broken after provision` | os_hardening sysctl overrode `ip_forward` | confirm `sysctl_overwrite.net.ipv4.ip_forward: 1` is set in `provision.yml` |
 
 ## Secrets-in-vault (what's encrypted)
 

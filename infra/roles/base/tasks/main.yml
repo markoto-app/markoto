@@ -1,4 +1,10 @@
 ---
+# App-specific OS bits NOT covered by devsec.hardening.os_hardening.
+# os_hardening already does: sysctl tuning, PAM/login restrictions, file perm
+# audits, kernel module bans, suid/sgid review, package cleanup.
+# We keep here: ufw rules, fail2ban jail config, journald sizing, timezone,
+# the markoto service account, and the LUKS sanity check.
+
 - name: Update apt cache
   ansible.builtin.apt:
     update_cache: true
@@ -37,7 +43,7 @@
       SystemMaxUse=2G
       SystemMaxFileSize=200M
       Compress=yes
-  notify: restart journald
+  notify: Restart journald
 
 - name: Allow SSH through ufw
   community.general.ufw:
@@ -57,13 +63,16 @@
     port: "443"
     proto: tcp
 
+# ansible-lint can't statically validate `policy:` when it comes from a loop var,
+# but `direction`/`policy` is a tiny enum and the loop is intentional (one task,
+# two rules). Spelling each out as two tasks would be needless duplication.
 - name: Set ufw default policies (deny incoming, allow outgoing)
   community.general.ufw:
-    direction: "{{ item.dir }}"
-    policy: "{{ item.pol }}"
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
   loop:
-    - { dir: incoming, pol: deny }
-    - { dir: outgoing, pol: allow }
+    - {direction: incoming, policy: deny}
+    - {direction: outgoing, policy: allow}
 
 - name: Enable ufw
   community.general.ufw:
@@ -84,7 +93,7 @@
       maxretry = 5
       findtime = 600
       bantime = 3600
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Ensure fail2ban running
   ansible.builtin.systemd:
@@ -97,7 +106,7 @@
     name: "{{ markoto_user }}"
     state: present
 
-- name: Create markoto user (sudoer, docker group added later by the docker role)
+- name: Create markoto user (sudoer; docker group added later by geerlingguy.docker)
   ansible.builtin.user:
     name: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
@@ -117,37 +126,46 @@
     content: "{{ markoto_user }} ALL=(ALL) NOPASSWD:ALL\n"
     validate: /usr/sbin/visudo -cf %s
 
-- name: Install root's authorized_keys for the markoto user
+# `ignore_errors` is replaced by `failed_when: false` so we keep the
+# "missing-pubkey is non-fatal here, ssh_hardening's preflight will catch it"
+# ergonomics, but ansible-lint stops complaining and the task properly
+# surfaces the failure status to subsequent registers/diagnostics.
+- name: Install controller user's authorized_keys for the markoto account
   ansible.posix.authorized_key:
     user: "{{ markoto_user }}"
     state: present
     key: "{{ lookup('file', lookup('env', 'HOME') ~ '/.ssh/id_ed25519.pub') }}"
-  ignore_errors: true  # If id_ed25519.pub missing, document the override and proceed.
+  failed_when: false
 
-- name: LUKS root-volume verification (warn-only)
+# Two shells, both with `set -o pipefail` (ansible-lint risky-shell-pipe).
+# Both are read-only probes (changed_when: false). The second is failed_when:
+# false because absent `lsblk` types aren't an error — we just print a warning.
+- name: Detect root device for the LUKS check
   ansible.builtin.shell: |
     set -o pipefail
     awk '$2 == "/" {print $1}' /proc/mounts | head -1
   args:
     executable: /bin/bash
-  register: root_device
+  register: base_root_device
   changed_when: false
 
 - name: Inspect root device for LUKS crypt mapping
   ansible.builtin.shell: |
     set -o pipefail
-    lsblk -no TYPE "{{ root_device.stdout }}" 2>/dev/null | grep -q crypt && echo "encrypted" || echo "plain"
+    lsblk -no TYPE "{{ base_root_device.stdout }}" 2>/dev/null \
+      | grep -q crypt && echo "encrypted" || echo "plain"
   args:
     executable: /bin/bash
-  register: luks_status
+  register: base_luks_status
   changed_when: false
   failed_when: false
 
 - name: Warn if root volume is not LUKS-encrypted
   ansible.builtin.debug:
     msg: |
-      WARNING: root volume {{ root_device.stdout }} is NOT LUKS-encrypted (status={{ luks_status.stdout }}).
-      Some OVH plans do not expose volume-level LUKS. See docs/DEPLOY-OVH.md §1.5.
-      Local disk holds .env, valkey AOF, traefik acme.json. Decide whether
-      provider-side encryption-at-rest is sufficient for your threat model.
-  when: luks_status.stdout != 'encrypted'
+      WARNING: root volume {{ base_root_device.stdout }} is NOT LUKS-encrypted
+      (status={{ base_luks_status.stdout }}). Some OVH plans don't expose
+      volume-level LUKS. See docs/DEPLOY-OVH.md §1.5. Local disk holds .env,
+      valkey AOF, traefik acme.json. Decide whether provider-side
+      encryption-at-rest is sufficient for your threat model.
+  when: base_luks_status.stdout != 'encrypted'

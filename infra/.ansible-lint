@@ -1,0 +1,30 @@
+---
+# ansible-lint config for the markoto Ansible tree.
+# Profile 'production' is the strictest tier — we hold ourselves to it.
+profile: production
+
+# Tell ansible-lint where to look. Without this it scans from the git root
+# (the whole monorepo) and finds zero playbooks.
+exclude_paths:
+  - .git/
+  - .github/
+  - collections/
+
+# We use yamllint for whitespace; let it own the YAML rules.
+skip_list: []
+
+# Treat warnings as failures — no silent regressions.
+strict: true
+
+# Run offline by default; CI fetches Galaxy deps explicitly via `make requirements`.
+offline: true
+
+# Files we want lint to evaluate (paths are relative to this config).
+kinds:
+  - playbook: "playbooks/*.yml"
+  - tasks: "roles/*/tasks/*.yml"
+  - handlers: "roles/*/handlers/*.yml"
+  - vars: "group_vars/*.yml"
+  - vars: "roles/*/defaults/*.yml"
+  - vars: "roles/*/vars/*.yml"
+  - requirements: "requirements.yml"

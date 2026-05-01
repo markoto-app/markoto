@@ -7,15 +7,17 @@
 - name: Sanity-check that the markoto user has at least one authorized_key
   ansible.builtin.stat:
     path: "/home/{{ markoto_user }}/.ssh/authorized_keys"
-  register: markoto_authkeys
+  register: ssh_hardening_authkeys_stat
 
 - name: Refuse to harden sshd if no pubkey is installed for markoto
   ansible.builtin.fail:
-    msg: |
+    msg: >-
       No authorized_keys for {{ markoto_user }} found. Hardening sshd now would
-      lock you out. Add a key via the base role (which reads ~/.ssh/id_ed25519.pub)
-      or pass `-e markoto_pubkey=...` and re-run.
-  when: not markoto_authkeys.stat.exists or markoto_authkeys.stat.size == 0
+      lock you out. Add a key via the base role (which reads
+      ~/.ssh/id_ed25519.pub) or pass `-e markoto_pubkey=...` and re-run.
+  when: >
+    not ssh_hardening_authkeys_stat.stat.exists
+    or ssh_hardening_authkeys_stat.stat.size == 0
 
 - name: Disable password authentication
   ansible.builtin.lineinfile:
@@ -23,7 +25,7 @@
     regexp: '^#?\s*PasswordAuthentication\s+'
     line: 'PasswordAuthentication no'
     validate: 'sshd -t -f %s'
-  notify: reload sshd
+  notify: Reload sshd
 
 - name: Disable root login
   ansible.builtin.lineinfile:
@@ -31,7 +33,7 @@
     regexp: '^#?\s*PermitRootLogin\s+'
     line: 'PermitRootLogin no'
     validate: 'sshd -t -f %s'
-  notify: reload sshd
+  notify: Reload sshd
 
 - name: Ensure pubkey auth is on (default, but make it explicit)
   ansible.builtin.lineinfile:
@@ -39,7 +41,7 @@
     regexp: '^#?\s*PubkeyAuthentication\s+'
     line: 'PubkeyAuthentication yes'
     validate: 'sshd -t -f %s'
-  notify: reload sshd
+  notify: Reload sshd
 
 - name: Disable challenge-response auth
   ansible.builtin.lineinfile:
@@ -47,7 +49,7 @@
     regexp: '^#?\s*ChallengeResponseAuthentication\s+'
     line: 'ChallengeResponseAuthentication no'
     validate: 'sshd -t -f %s'
-  notify: reload sshd
+  notify: Reload sshd
 
 # Force handlers now so sshd reload happens BEFORE we try to reconnect.
 - name: Flush handlers (reload sshd before continuing)

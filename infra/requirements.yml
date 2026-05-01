@@ -1,4 +1,7 @@
 ---
+# Galaxy collections + roles needed by the markoto deploy.
+# `make requirements` installs both via `ansible-galaxy install -r requirements.yml`.
+
 collections:
   - name: community.general
     version: ">=8.0.0"
@@ -6,3 +9,16 @@ collections:
     version: ">=3.10.0"
   - name: ansible.posix
     version: ">=1.5.4"
+  # CIS-aligned OS hardening (sysctl, file perms, login restrictions, kernel
+  # module bans). Pinned exact — every minor bump can shift the sysctl baseline,
+  # which we'd rather audit than absorb silently.
+  - name: devsec.hardening
+    version: "10.5.2"
+
+roles:
+  # Geerling's Docker role handles every apt-key / repo edge case across
+  # Debian/Ubuntu releases. Pinned exact — Docker apt repo handling is the
+  # single most fragile piece of any "install Docker" role and we want
+  # surprise-upgrades blocked.
+  - name: geerlingguy.docker
+    version: "8.0.0"

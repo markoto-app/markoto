@@ -15,3 +15,7 @@ files/managed-pg-ca.pem
 # Ansible runtime artefacts.
 *.retry
 .ansible/
+
+# Galaxy-installed dependencies (fetched by `make requirements`, never committed).
+collections/ansible_collections/
+collections/ansible_roles/

@@ -14,8 +14,9 @@
     job: >-
       cd {{ markoto_root }} &&
       docker compose -f docker-compose.prod.yml exec -T backup /backup.sh
-      >> {{ markoto_root }}/backup-cron.log 2>&1 ||
-      echo "$(date -Is) backup-cron FAIL exit=$?" >> {{ markoto_root }}/backup-cron-failures.log
+      >> {{ markoto_root }}/backup-cron.log 2>&1
+      || echo "$(date -Is) backup-cron FAIL exit=$?"
+      >> {{ markoto_root }}/backup-cron-failures.log
 
 - name: Ensure backup-cron log file exists with sane permissions
   ansible.builtin.file:

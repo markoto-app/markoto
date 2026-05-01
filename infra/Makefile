@@ -10,8 +10,9 @@ ANSIBLE_OPTS = -i $(INVENTORY) --vault-password-file=$(VAULT_PASSWORD_FILE)
 help: ## Show available targets
 	@awk 'BEGIN {FS=":.*##"; printf "Usage: make <target>\n\nTargets:\n"} /^[a-zA-Z_-]+:.*##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-requirements: ## Install required Ansible collections (run once)
-	ansible-galaxy collection install -r requirements.yml
+requirements: ## Install Galaxy collections + roles into ./collections (run once)
+	ansible-galaxy collection install -r requirements.yml -p collections
+	ansible-galaxy role install -r requirements.yml -p collections/ansible_roles
 
 provision: ## One-time setup of a fresh VPS (~5–10 min)
 	ansible-playbook $(ANSIBLE_OPTS) playbooks/provision.yml
@@ -40,9 +41,12 @@ backup-test: ## Verify the latest gpg dump is restorable
 
 syntax-check: ## Validate playbook syntax (no execution)
 	ansible-playbook -i inventory.example.ini --syntax-check playbooks/provision.yml
-	ansible-playbook -i inventory.example.ini --syntax-check playbooks/deploy.yml --vault-password-file=/dev/null --skip-tags vault || true
-	ansible-playbook -i inventory.example.ini --syntax-check playbooks/rollback.yml --vault-password-file=/dev/null --skip-tags vault || true
-	ansible-playbook -i inventory.example.ini --syntax-check playbooks/backup-test.yml --vault-password-file=/dev/null --skip-tags vault || true
+	ansible-playbook -i inventory.example.ini --syntax-check playbooks/deploy.yml
+	ansible-playbook -i inventory.example.ini --syntax-check playbooks/rollback.yml
+	ansible-playbook -i inventory.example.ini --syntax-check playbooks/backup-test.yml
 
-lint: ## Run ansible-lint if installed
-	@command -v ansible-lint >/dev/null 2>&1 && ansible-lint || echo "ansible-lint not installed; skipping"
+lint: ## Run ansible-lint and yamllint
+	@command -v ansible-lint >/dev/null 2>&1 || (echo "ansible-lint not installed: pip install --user ansible-lint"; exit 1)
+	@command -v yamllint >/dev/null 2>&1 || (echo "yamllint not installed: pip install --user yamllint"; exit 1)
+	ansible-lint
+	yamllint .
