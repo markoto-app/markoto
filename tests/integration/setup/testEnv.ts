@@ -13,7 +13,8 @@ import {
   TEST_SYNC_URL,
   TEST_VALKEY_URL,
   TEST_VALKEY_HOST,
-  TEST_VALKEY_PORT
+  TEST_VALKEY_PORT,
+  TEST_VALKEY_PASSWORD
 } from './env'
 
 // Single source of truth for the env vars every test surface (repo
@@ -56,10 +57,11 @@ export function buildTestEnv(): Record<string, string> {
     POSTGRES_HOST: TEST_DB_HOST,
     POSTGRES_PORT: TEST_DB_PORT,
     POSTGRES_DB: TEST_DB_NAME,
-    // Atomic Valkey parts — `valkeyUrlFromEnv` reads these.
+    // Atomic Valkey parts — `valkeyUrlFromEnv` reads these. Password
+    // mirrors `--requirepass testpassword` in docker-compose.test.yml.
     VALKEY_HOST: TEST_VALKEY_HOST,
     VALKEY_PORT: TEST_VALKEY_PORT,
-    VALKEY_PASSWORD: '',
+    VALKEY_PASSWORD: TEST_VALKEY_PASSWORD,
     VALKEY_DB: '0',
     // Test-deterministic secrets.
     NUXT_SESSION_PASSWORD: TEST_SESSION_PASSWORD,

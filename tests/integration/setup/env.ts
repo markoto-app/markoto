@@ -27,6 +27,11 @@ export const TEST_DB_URL = `postgres://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TES
 // composed URLs, so we have to set both for the Nuxt subprocess.
 export const TEST_VALKEY_HOST = '127.0.0.1'
 export const TEST_VALKEY_PORT = '6380'
+// Hardcoded weak password mirroring `--requirepass testpassword` in
+// docker-compose.test.yml. Test infra is throwaway / tmpfs and the
+// container only listens on localhost; the password exists to exercise
+// the same auth code path prod uses.
+export const TEST_VALKEY_PASSWORD = 'testpassword'
 
 // Kick-user / notify-deleted target. The global setup boots a tiny Node
 // HTTP stub on this port and points Nuxt's runtime config at it. Stub
@@ -45,5 +50,6 @@ export const TEST_INTERNAL_SECRET = 'test-internal-secret-' + 'z'.repeat(32)
 // Valkey-compatible endpoint for the test stack. Rate limits and session
 // locks fall open/closed per `server/utils/rateLimit.ts` semantics when
 // Valkey is unreachable — tests that exercise those paths need a live
-// Valkey. The docker-compose.test.yml stack maps Valkey to localhost:6380.
-export const TEST_VALKEY_URL = 'redis://127.0.0.1:6380/0'
+// Valkey. The docker-compose.test.yml stack maps Valkey to localhost:6380
+// with `--requirepass testpassword`.
+export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/0`

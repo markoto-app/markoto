@@ -3,6 +3,7 @@ import { Pool, type QueryConfig, type QueryArrayConfig } from 'pg'
 import * as Sentry from '@sentry/nuxt'
 import * as schema from '../db/schema'
 import { postgresUrlFromEnv } from '../../shared/utils/connectionStrings'
+import { resolvePostgresSsl } from '../../shared/utils/postgresSsl'
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null
 let pool: Pool | null = null
@@ -96,6 +97,12 @@ export function useDatabase() {
   if (!db) {
     pool = new Pool({
       connectionString: postgresUrlFromEnv(),
+      // TLS-in-transit posture. In prod we verify the server cert
+      // (rejectUnauthorized: true) against either a pinned CA from
+      // PGSSLROOTCERT or the system bundle. Dev keeps TLS off so the
+      // local postgres-in-docker (no TLS) keeps working. See
+      // shared/utils/postgresSsl.ts for the full rationale.
+      ssl: resolvePostgresSsl(),
       // Default `max` is 10. On a single VPS that's tight: many of our
       // handlers hold a connection across S3 / Gemini / markitdown calls,
       // so the pool can exhaust at ~50–100 RPS even when Postgres itself

@@ -2,16 +2,23 @@ import * as Y from 'yjs'
 import { Pool } from 'pg'
 import { PostgresqlPersistence } from 'y-postgresql'
 import { postgresUrlFromEnv } from '../../shared/utils/connectionStrings'
+import { resolvePostgresSsl } from '../../shared/utils/postgresSsl'
 import { captureException } from './sentry'
 
 const DATABASE_URL = postgresUrlFromEnv()
+// Same TLS posture as the Nuxt app's pool (server/utils/database.ts).
+// Both pools land on the same managed Postgres in prod; both must
+// verify the server cert. y-postgresql's internal pool inherits this
+// because we pass the resolved config object straight through to
+// PostgresqlPersistence.build below.
+const PG_SSL = resolvePostgresSsl()
 
 // Small dedicated pool for ad-hoc queries against the yjs_documents
 // table — separate from y-postgresql's internal pool because that
 // library doesn't expose its connection. Used by getMaxYjsDocId so
 // the activity log can stamp boundary ids around store events for the
 // diff-on-demand feature.
-const queryPool = new Pool({ connectionString: DATABASE_URL, max: 2 })
+const queryPool = new Pool({ connectionString: DATABASE_URL, max: 2, ssl: PG_SSL })
 
 // y-postgresql owns its own table (`yjs_documents`); it appends granular Y.js
 // updates and merges them after every `flushSize` writes. This is far more
@@ -33,7 +40,11 @@ const PERSISTENCE_OPTS = {
 
 async function buildPgdb() {
   return PostgresqlPersistence.build(
-    { connectionString: DATABASE_URL },
+    // PostgresqlPersistence forwards this object straight to `new
+    // pg.Pool(...)`, so the ssl key on PoolConfig propagates into the
+    // library's internal pool. Verified: y-postgresql 1.0.1 takes
+    // `pg.PoolConfig` and never overrides ssl.
+    { connectionString: DATABASE_URL, ssl: PG_SSL },
     PERSISTENCE_OPTS
   )
 }

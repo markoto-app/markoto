@@ -154,6 +154,16 @@ export function usePagedPreview(opts: {
     iframe = document.createElement('iframe')
     iframe.title = 'Document preview'
     iframe.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: transparent;'
+    // Sandbox the preview iframe to the bare minimum it actually needs:
+    //   allow-scripts:        paged.js + the bootstrap script must run.
+    //   allow-same-origin:    the bootstrap reads parent's color-mode +
+    //                         dispatches scrolls/anchors against parent
+    //                         document; same-origin is also required for
+    //                         loaded font CSS (CORS) to apply.
+    // Deliberately omitted: allow-forms, allow-popups, allow-modals,
+    // allow-top-navigation, allow-pointer-lock. The preview should never
+    // navigate the host or open new windows. See docs/SECURITY-HARDENING.md.
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin')
     // hljs theme is set per-render (depends on `theme.blocks.codeBlockTheme`).
     // Bootstrap leaves the link href empty; renderDoc fills it.
     // replaceAll (not replace): the HTML file's header comment names each

@@ -84,11 +84,20 @@ services:
       - "1gb"
       - "--maxmemory-policy"
       - "allkeys-lru"
+    # `--no-auth-warning` suppresses valkey-cli's stderr nag about passing
+    # the password on the command line. The env var is already visible via
+    # `docker inspect` so the warning adds noise without buying anything.
     healthcheck:
-      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD}", "ping"]
+      test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${VALKEY_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+    # `expose:` keeps Valkey on the docker `internal` network only — no
+    # host port. The threat model in docs/SECURITY-HARDENING.md explicitly
+    # treats the docker bridge as the trust boundary; publishing 6379 to
+    # the VPS host would let any process on the box hit Valkey even if
+    # firewalled at the network edge. Verify post-deploy:
+    #   ss -ltnp | grep :6379  # expect: nothing on the host
     expose:
       - "6379"
     volumes:
@@ -143,6 +152,13 @@ services:
       - VALKEY_PORT=6379
       - VALKEY_PASSWORD=${VALKEY_PASSWORD}
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
+      # Postgres TLS posture — see docs/DEPLOY.md and shared/utils/postgresSsl.ts.
+      # Empty PGSSLROOTCERT is fine: prod default is rejectUnauthorized
+      # against the system CA bundle. Set it to a bind-mounted PEM path
+      # (e.g. /run/secrets/managed_pg_ca.pem) for cert-pin verification.
+      - NODE_ENV=production
+      - PGSSLROOTCERT=${PGSSLROOTCERT:-}
+      - PGSSL=${PGSSL:-}
     expose:
       - "3000"
     labels:
@@ -157,6 +173,33 @@ services:
       # Cache hits return in microseconds; cache misses fan out 5 parallel
       # 1-second probes, so worst case is ~1s. 10s is generous headroom.
       - "traefik.http.services.app.loadbalancer.healthcheck.timeout=10s"
+      # ─── Security headers + CSP (see docs/SECURITY-HARDENING.md) ───
+      # Applied to every response from the app router. Traefik's
+      # `headers` middleware has named fields for HSTS / CSP / referrer /
+      # frame-deny / nosniff; everything else lands in
+      # `customResponseHeaders`. Strings with commas / parens / spaces
+      # are quoted to survive Compose's CSV-style label parsing.
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+      # CSP rationale per directive in docs/SECURITY-HARDENING.md.
+      # 'unsafe-inline' on script-src/style-src is unfortunate but
+      # required for Vite/Nuxt SSR hydration scripts and Nuxt UI's
+      # injected style block. 'unsafe-eval' is needed by Vue runtime
+      # compilation paths and mermaid. cdn.jsdelivr.net carries paged.js,
+      # KaTeX, hljs themes, and mermaid ESM. fonts.* serves the 20-font
+      # Google Fonts picker. wss://sync.${DOMAIN} is Hocuspocus.
+      # connect-src includes *.ingest.sentry.io for browser error
+      # reporting; api.stripe.com + js.stripe.com are listed pre-emptively
+      # for the not-yet-shipped checkout integration (AGENTS.md §7).
+      - "traefik.http.middlewares.security-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https://${DOMAIN} https://*.${DOMAIN}; connect-src 'self' https://${DOMAIN} wss://sync.${DOMAIN} https://api.stripe.com https://*.ingest.sentry.io; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Resource-Policy=same-site"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=(self)"
+      - "traefik.http.routers.app.middlewares=security-headers"
     depends_on:
       postgres:
         condition: service_healthy
@@ -190,6 +233,11 @@ services:
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
       - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
+      # Postgres TLS posture — same as the app container. y-postgresql's
+      # internal pool inherits the ssl config we pass via PoolConfig.
+      - NODE_ENV=production
+      - PGSSLROOTCERT=${PGSSLROOTCERT:-}
+      - PGSSL=${PGSSL:-}
     expose:
       - "4001"
     labels:
@@ -215,6 +263,20 @@ services:
       - "traefik.http.services.sync.loadbalancer.healthcheck.path=/health"
       - "traefik.http.services.sync.loadbalancer.healthcheck.interval=10s"
       - "traefik.http.services.sync.loadbalancer.healthcheck.timeout=3s"
+      # Security headers for the sync subdomain. CSP is intentionally
+      # omitted: this endpoint serves the Hocuspocus WebSocket upgrade
+      # handshake + a /health JSON probe, never HTML, so a CSP policy
+      # has nothing to constrain. HSTS / nosniff / frame-deny / referrer
+      # still apply — keep parity with the app domain.
+      - "traefik.http.middlewares.sync-security-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.sync-security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.sync-security-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.sync-security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.sync-security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.sync-security-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.sync-security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
+      - "traefik.http.middlewares.sync-security-headers.headers.customResponseHeaders.Cross-Origin-Resource-Policy=same-site"
+      - "traefik.http.routers.sync.middlewares=sync-security-headers"
     depends_on:
       postgres:
         condition: service_healthy
@@ -278,6 +340,11 @@ services:
       - S3_BUCKET=${NUXT_S3_BUCKET}
       - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:?BACKUP_INTERVAL_SECONDS required}
       - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:?BACKUP_RETENTION_COUNT required}
+      # Symmetric AES-256 passphrase for client-side backup encryption.
+      # Without this the sidecar refuses to start. Rotation invalidates
+      # older backups for restore — schedule rotations against the
+      # retention window. See docs/DEPLOY.md §6.
+      - BACKUP_GPG_PASSPHRASE=${BACKUP_GPG_PASSPHRASE:?BACKUP_GPG_PASSPHRASE required}
     depends_on:
       postgres:
         condition: service_healthy

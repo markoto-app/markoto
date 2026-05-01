@@ -149,6 +149,14 @@ export async function printDocumentAsPdf(opts: {
   return new Promise<void>((resolve, reject) => {
     const iframe = document.createElement('iframe')
     iframe.setAttribute('aria-hidden', 'true')
+    // Sandbox: paged.js + the polyfill need to run (allow-scripts) and
+    // the iframe writes through `iframe.contentDocument` from the parent
+    // (allow-same-origin). allow-modals lets `window.print()` open the
+    // browser's print dialog — without it the print() call no-ops in
+    // Chromium under sandbox. NO allow-top-navigation / allow-popups —
+    // the print path should never navigate the host. See
+    // docs/SECURITY-HARDENING.md.
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-modals')
     iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;'
     document.body.appendChild(iframe)
 

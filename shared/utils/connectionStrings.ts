@@ -15,10 +15,35 @@ export interface PostgresParts {
 export interface ValkeyParts {
   host: string
   port: string | number
-  /** Empty / unset = no auth (fine in dev). */
+  /** Empty / unset = no auth (fine in dev/test). Required in prod/local. */
   password?: string
   /** Logical DB index (0–15 by default in Redis/Valkey). Defaults to 0. */
   db?: string | number
+  /**
+   * TLS opt-in. Default false for self-hosted single-VPS deploys where the
+   * docker network is the trust boundary. Flip true if Valkey is on a
+   * different host or behind a managed-Redis provider (Infomaniak managed
+   * Valkey, AWS ElastiCache, OVH Redis-as-a-service, etc.).
+   */
+  tlsEnabled?: boolean
+  /**
+   * Optional path to a provider-supplied CA PEM. When unset, ioredis uses
+   * the system CA store (sufficient for any provider that issues certs
+   * from a public CA — most of them).
+   */
+  tlsCaPath?: string
+}
+
+/**
+ * Shape compatible with `new Redis(url, options)`. Splitting the URL from
+ * the options means the callers that need to pass `tls: { ca }` (rare —
+ * only managed-Redis deployments) can do so without us encoding TLS hints
+ * into the URL string. Common case (no TLS) returns options=undefined and
+ * callers can pass it through unchanged.
+ */
+export interface ValkeyClientConfig {
+  url: string
+  options?: { tls?: { ca?: Buffer } }
 }
 
 export function buildPostgresUrl(p: PostgresParts): string {
@@ -30,7 +55,11 @@ export function buildPostgresUrl(p: PostgresParts): string {
 export function buildValkeyUrl(p: ValkeyParts): string {
   const auth = p.password ? `:${encodeURIComponent(p.password)}@` : ''
   const db = p.db ?? '0'
-  return `redis://${auth}${p.host}:${p.port}/${db}`
+  // `rediss://` (double-s) is the standard scheme for TLS-wrapped Redis;
+  // ioredis recognises it and starts a TLS connection. The `tls` options
+  // bag still has to be passed alongside if a custom CA is required.
+  const scheme = p.tlsEnabled ? 'rediss' : 'redis'
+  return `${scheme}://${auth}${p.host}:${p.port}/${db}`
 }
 
 export const POSTGRES_REQUIRED_VARS = [
@@ -73,6 +102,42 @@ export function valkeyUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
     host: env.VALKEY_HOST!,
     port: env.VALKEY_PORT!,
     password: env.VALKEY_PASSWORD,
-    db: env.VALKEY_DB
+    db: env.VALKEY_DB,
+    tlsEnabled: env.VALKEY_TLS_ENABLED === 'true'
   })
+}
+
+/**
+ * Returns the URL plus an optional ioredis options bag carrying TLS config
+ * (custom CA, etc.) — pass both to `new Redis(url, options)`. For deploys
+ * without TLS this returns `{ url, options: undefined }` so callers can use
+ * a single shape regardless of TLS state.
+ *
+ * The CA file is loaded synchronously at first call. We do this in the
+ * shared helper rather than at each call site because the file IO is
+ * one-shot at boot and the throw-on-missing surface should match the
+ * existing fail-fast posture for env vars.
+ */
+export function valkeyClientConfigFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+  fs: { readFileSync: (path: string) => Buffer } | null = null
+): ValkeyClientConfig {
+  const url = valkeyUrlFromEnv(env)
+  const tlsEnabled = env.VALKEY_TLS_ENABLED === 'true'
+  if (!tlsEnabled) return { url }
+
+  const caPath = env.VALKEY_TLS_CA_PATH
+  if (!caPath) {
+    // Default cert validation against the system CA store. ioredis sees
+    // `rediss://` in the URL and starts TLS; an empty `tls: {}` is the
+    // documented way to opt into TLS without overriding defaults.
+    return { url, options: { tls: {} } }
+  }
+
+  // Lazy-require to avoid pulling node:fs into client bundles. Tests can
+  // inject a fake; runtime callers pass null and we resolve via require.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const reader = fs ?? (require('node:fs') as { readFileSync: (path: string) => Buffer })
+  const ca = reader.readFileSync(caPath)
+  return { url, options: { tls: { ca } } }
 }

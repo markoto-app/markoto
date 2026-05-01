@@ -82,6 +82,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // SSE NOTE: presigned PUTs deliberately omit `ServerSideEncryption` —
+  // SigV4 binds every signed header into the URL, which would force the
+  // browser to echo `x-amz-server-side-encryption: AES256` exactly or
+  // get a SignatureDoesNotMatch. Encryption is enforced at the bucket
+  // level via the default-encryption policy (docs/S3-SETUP.md §6) so
+  // every PUT — presigned or not — gets AES256-at-rest regardless.
+  // Server-side direct PUTs (renderer, AI image gen, backup sidecar)
+  // set the header explicitly as defense-in-depth.
   const uploadUrl = await getSignedUrl(
     s3,
     new PutObjectCommand({

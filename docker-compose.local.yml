@@ -77,12 +77,33 @@ services:
     restart: unless-stopped
     # 1gb headroom for rate-limit + presence + render-singleflight + sweep-lock
     # keyspaces under sustained load. Matches prod sizing.
-    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru"]
+    #
+    # `--requirepass` enforced even in local — the local stack mirrors prod
+    # posture (Traefik + TLS + container network) and full-stack verification
+    # has to catch missing-password regressions before they ship. The
+    # `VALKEY_PASSWORD` env var is required (no `:-default`) so the stack
+    # refuses to start without one. Pick any string in .env; it's never
+    # internet-reachable. See docs/SECURITY-HARDENING.md.
+    command:
+      - "valkey-server"
+      - "--requirepass"
+      - "${VALKEY_PASSWORD:?VALKEY_PASSWORD required}"
+      - "--appendonly"
+      - "yes"
+      - "--appendfsync"
+      - "everysec"
+      - "--maxmemory"
+      - "1gb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${VALKEY_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+    # `expose:` only — Valkey stays on the docker `internal` network. In
+    # local mode the app runs IN the `app` container and reaches valkey via
+    # the docker service name; no host port is needed.
     expose:
       - "6379"
     volumes:

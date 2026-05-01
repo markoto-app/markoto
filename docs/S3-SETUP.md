@@ -110,7 +110,64 @@ aws s3api get-bucket-lifecycle-configuration \
 
 A user re-downloading a 31-day-old PDF triggers a fresh render — wasteful but rare. Keep the rule scoped to `renders/` only; image uploads under `docs/` and pg backups under `backups/` are not cache, do NOT add them to the rule.
 
-## 6. What NOT to do
+## 6. Default encryption — required
+
+Every PUT into the bucket must land server-side-encrypted (SSE-S3, AES-256, provider-managed key). Browser-uploaded images flow through presigned PUTs that intentionally do **not** carry an explicit `x-amz-server-side-encryption` header (signing the header into the URL would force the browser to echo it exactly or get `SignatureDoesNotMatch`). The bucket-level default-encryption policy is what guarantees encryption for those.
+
+Server-side direct PUTs (renderer artefacts, AI-generated images, the backup sidecar) **also** set the header per-object as defense-in-depth. The two layers stack: even if the bucket policy is later misconfigured, the renderer + AI + backup paths still encrypt; even if a future code change forgets the header, the bucket default still encrypts presigned uploads.
+
+### Threat boundary
+
+- SSE-S3 means the storage **provider** holds the at-rest key. It encrypts your bytes against physical-disk theft and rogue tenant access. It does **not** protect against:
+  - A leaked S3 access key (the provider decrypts on any signed GET).
+  - An accidentally-public bucket (CORS misconfig + public-read = readable plaintext).
+  - A malicious provider employee.
+- For the backup sidecar, we add a **client-side** layer with `gpg --symmetric --cipher-algo AES256` — the passphrase (`BACKUP_GPG_PASSPHRASE`) is never seen by S3. A leaked S3 bucket alone is not enough to read backups; you also need the passphrase. See `docs/DEPLOY.md` §6.
+- Image uploads / knowledge originals / render artefacts rely on SSE-S3 alone — adding a client-side layer per object would break the presigned-PUT pattern (browser PUTs would have to handle ciphertext) and the renderer's idempotent re-render-on-cache-miss flow. The accepted residual risk: a leaked S3 key exposes those objects in plaintext.
+
+### Infomaniak
+
+Dashboard → Public Cloud → Object Storage → your bucket → Settings → Default encryption → enable AES-256 (SSE-S3). Save.
+
+### AWS / R2 / MinIO
+
+```bash
+cat > encryption.json <<'EOF'
+{
+  "Rules": [
+    {
+      "ApplyServerSideEncryptionByDefault": { "SSEAlgorithm": "AES256" },
+      "BucketKeyEnabled": true
+    }
+  ]
+}
+EOF
+
+aws s3api put-bucket-encryption \
+  --endpoint-url "${S3_ENDPOINT}" \
+  --bucket "${S3_BUCKET}" \
+  --server-side-encryption-configuration file://encryption.json
+```
+
+### Verify
+
+```bash
+aws s3api get-bucket-encryption \
+  --endpoint-url "${S3_ENDPOINT}" \
+  --bucket "${S3_BUCKET}"
+# Expect: SSEAlgorithm = AES256
+```
+
+Also pull a recently-PUT object's metadata and confirm it has `ServerSideEncryption: AES256`:
+
+```bash
+aws s3api head-object \
+  --endpoint-url "${S3_ENDPOINT}" \
+  --bucket "${S3_BUCKET}" \
+  --key "backups/postgres/$(aws --endpoint-url=${S3_ENDPOINT} s3 ls s3://${S3_BUCKET}/backups/postgres/ | tail -1 | awk '{print $4}')"
+```
+
+## 7. What NOT to do
 
 - Don't proxy S3 through Traefik in prod — it doubles egress and defeats the point of presigned URLs. The dev setup uses `devProxy` in `nuxt.config.ts` only to work around SeaweedFS's stricter-than-AWS CORS behaviour locally.
 - Don't allow `*` as `AllowedOrigins`. Presigned URLs are short-lived but still credential-bearing; a leaked URL + permissive CORS = cross-origin exfil window.

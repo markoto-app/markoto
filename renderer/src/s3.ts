@@ -30,6 +30,12 @@ export async function putBytes(
     Bucket: BUCKET,
     Key: key,
     Body: bytes,
-    ContentType: contentType
+    ContentType: contentType,
+    // Defense-in-depth: explicit SSE-S3 on every render artefact (PDF,
+    // page PNGs, manifest). Belt-and-braces alongside the bucket-level
+    // default — see docs/S3-SETUP.md §6. Direct server-side PUTs set
+    // the header per-object so a misconfigured bucket can't silently
+    // drop encryption.
+    ServerSideEncryption: 'AES256'
   }))
 }

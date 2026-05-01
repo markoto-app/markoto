@@ -1,5 +1,5 @@
 import Redis from 'ioredis'
-import { valkeyUrlFromEnv } from '../../shared/utils/connectionStrings'
+import { valkeyClientConfigFromEnv } from '../../shared/utils/connectionStrings'
 
 // Singleton ioredis client for the sync-server. Mirrors the pattern in
 // `server/utils/valkey.ts` (the Nuxt app's client) — the sync-server is
@@ -17,10 +17,14 @@ let client: Redis | null = null
 export function useValkey(): Redis {
   if (client) return client
 
-  client = new Redis(valkeyUrlFromEnv(), {
+  // TLS opt-in mirrors the app's client — see server/utils/valkey.ts and
+  // docs/SECURITY-HARDENING.md.
+  const { url, options: tlsOptions } = valkeyClientConfigFromEnv()
+  client = new Redis(url, {
     lazyConnect: false,
     maxRetriesPerRequest: 3,
-    enableReadyCheck: true
+    enableReadyCheck: true,
+    ...tlsOptions
   })
 
   client.on('error', (e: Error) => {

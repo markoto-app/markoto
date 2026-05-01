@@ -991,7 +991,16 @@ async function handleGenerateImage(
       Key: key,
       Body: gen.bytes,
       ContentType: gen.mimeType,
-      ContentLength: gen.bytes.byteLength
+      ContentLength: gen.bytes.byteLength,
+      // Defense-in-depth: explicit SSE-S3 alongside the bucket-level
+      // default (see docs/S3-SETUP.md §6). For direct server-side PUTs
+      // we set the header per-object so a misconfigured bucket can't
+      // silently drop encryption. Browser presigned PUTs (image upload
+      // request endpoint) intentionally rely on the bucket default —
+      // signing the SSE header into the URL would force every browser
+      // client to echo `x-amz-server-side-encryption` exactly or get
+      // SignatureDoesNotMatch.
+      ServerSideEncryption: 'AES256'
     }))
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
