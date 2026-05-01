@@ -133,16 +133,18 @@ jobs:
           echo "$TAG" > .last-deploy
           REMOTE
           ec=$?
-          echo "remote_exit=$ec" >> $GITHUB_OUTPUT
-          if [ "$ec" -eq 0 ]; then
-            echo "status=succeeded" >> $GITHUB_OUTPUT
-          elif [ "$ec" -eq 64 ]; then
-            echo "status=rolled_back" >> $GITHUB_OUTPUT
-          elif [ "$ec" -eq 65 ]; then
-            echo "status=rollback_failed" >> $GITHUB_OUTPUT
-          else
-            echo "status=failed" >> $GITHUB_OUTPUT
-          fi
+          {
+            echo "remote_exit=$ec"
+            if [ "$ec" -eq 0 ]; then
+              echo "status=succeeded"
+            elif [ "$ec" -eq 64 ]; then
+              echo "status=rolled_back"
+            elif [ "$ec" -eq 65 ]; then
+              echo "status=rollback_failed"
+            else
+              echo "status=failed"
+            fi
+          } >> "$GITHUB_OUTPUT"
           # Don't fail the step yet — let the notify step run, then exit.
           exit 0
 
@@ -153,7 +155,7 @@ jobs:
           set -euo pipefail
           PREV=$(ssh -o BatchMode=yes "markoto@${DEPLOY_HOST}" \
             'cat /opt/markoto/.last-deploy.prev 2>/dev/null || echo unknown')
-          echo "tag=$PREV" >> $GITHUB_OUTPUT
+          echo "tag=$PREV" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
         uses: actions/setup-python@v5

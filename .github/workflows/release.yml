@@ -135,9 +135,11 @@ jobs:
             else if (bump === 'minor') console.log(\`\${maj}.\${min+1}.0\`);
             else console.log(\`\${maj}.\${min}.\${pat+1}\`);
           " "$CURRENT" "$BUMP")
-          echo "current_version=$CURRENT" >> "$GITHUB_OUTPUT"
-          echo "new_version=$NEW" >> "$GITHUB_OUTPUT"
-          echo "previous_tag=v$CURRENT" >> "$GITHUB_OUTPUT"
+          {
+            echo "current_version=$CURRENT"
+            echo "new_version=$NEW"
+            echo "previous_tag=v$CURRENT"
+          } >> "$GITHUB_OUTPUT"
           echo "Bump: $BUMP  $CURRENT → $NEW"
 
   bump-version:
@@ -176,7 +178,8 @@ jobs:
           PR_BODY_RAW: ${{ needs.resolve-pr.outputs.pr_body }}
         run: |
           set -euo pipefail
-          export DATE=$(date -u +%Y-%m-%d)
+          DATE=$(date -u +%Y-%m-%d)
+          export DATE
           python3 - <<'PY'
           import os
           from pathlib import Path

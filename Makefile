@@ -1,7 +1,8 @@
 .PHONY: help certs mkcert-install \
         local-up local-down local-logs local-clean local-build \
         dev-up dev-down dev-logs dev-clean \
-        prod-up prod-down prod-logs prod-pull
+        prod-up prod-down prod-logs prod-pull \
+        lint-actions lint-all
 
 # Each env file pulls in docker-compose.base.yml via Compose's `include:`
 # directive (Compose v2.20+). Single -f flag is enough; the merge is
@@ -89,3 +90,17 @@ prod-down:
 
 prod-logs:
 	$(PROD) logs -f --tail=200
+
+# Lint .github/workflows/*.yml — schema, expressions, shellcheck inside run:
+# blocks. Install: https://github.com/rhysd/actionlint/blob/main/docs/install.md
+# (or run the snippet in `.github/workflows/README.md`).
+lint-actions:
+	@which actionlint > /dev/null || (echo "actionlint not installed. Install: https://github.com/rhysd/actionlint/blob/main/docs/install.md"; exit 1)
+	actionlint
+
+# Run every linter in the repo: TS/JS via eslint, Ansible + YAML via the infra
+# toolchain, GitHub Actions via actionlint. Mirror of what CI runs across jobs.
+lint-all:
+	bun run lint
+	$(MAKE) -C infra lint
+	$(MAKE) lint-actions
