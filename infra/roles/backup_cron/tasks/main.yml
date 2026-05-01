@@ -11,12 +11,23 @@
     user: root
     minute: "0"
     hour: "3"
+    # On failure: append to failures log AND fire a markoto-notify ping.
+    # `markoto-notify` is installed by roles/base; if Apprise isn't
+    # configured the wrapper silently no-ops.
     job: >-
       cd {{ markoto_root }} &&
       docker compose -f docker-compose.prod.yml exec -T backup /backup.sh
       >> {{ markoto_root }}/backup-cron.log 2>&1
-      || echo "$(date -Is) backup-cron FAIL exit=$?"
-      >> {{ markoto_root }}/backup-cron-failures.log
+      || (
+      ec=$?;
+      ts=$(date -Is);
+      echo "${ts} backup-cron FAIL exit=${ec}"
+      >> {{ markoto_root }}/backup-cron-failures.log;
+      /usr/local/bin/markoto-notify
+      "Backup failed on $(hostname)"
+      "backup-cron exited ${ec} at ${ts}. Tail of backup-cron.log:
+      $(tail -n 20 {{ markoto_root }}/backup-cron.log)" || true
+      )
 
 - name: Ensure backup-cron log file exists with sane permissions
   ansible.builtin.file:

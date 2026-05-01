@@ -169,3 +169,110 @@
       valkey AOF, traefik acme.json. Decide whether provider-side
       encryption-at-rest is sufficient for your threat model.
   when: base_luks_status.stdout != 'encrypted'
+
+# ──────────────────────────────────────────────────────────────────────────
+# Apprise unified-notification wrapper. Single entry point used by:
+#   - geerlingguy.security's unattended-upgrade post-Invoke hook
+#   - roles/backup_cron failure path
+#   - any future "this is probably interesting" path on the VPS
+#
+# Configuration lives in /etc/markoto/apprise.env (mode 0600) — it sources
+# APPRISE_URLS from the vault. Same value as the GitHub Actions secret of
+# the same name.
+# ──────────────────────────────────────────────────────────────────────────
+
+- name: Install python3-pip (host-side, for apprise)
+  ansible.builtin.apt:
+    name:
+      - python3-pip
+      - python3-venv
+    state: present
+
+# Debian 12 enforces PEP 668 (system-wide pip refuses without
+# --break-system-packages or a venv). A tiny venv is the cleanest path.
+- name: Create /opt/markoto-tools venv for apprise
+  ansible.builtin.command:
+    cmd: python3 -m venv /opt/markoto-tools
+    creates: /opt/markoto-tools/bin/python
+
+- name: Install apprise into the venv
+  ansible.builtin.pip:
+    name: apprise
+    state: present
+    virtualenv: /opt/markoto-tools
+
+- name: Ensure /etc/markoto config dir exists
+  ansible.builtin.file:
+    path: /etc/markoto
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Render Apprise env file (sourced by markoto-notify)
+  ansible.builtin.copy:
+    dest: /etc/markoto/apprise.env
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      # Managed by Ansible (markoto/base role).
+      # Semicolon-separated Apprise URLs (e.g. tgram://bot/chat;mailto://...).
+      APPRISE_URLS={{ apprise_urls | default('') }}
+  no_log: true
+
+- name: Drop /usr/local/bin/markoto-notify wrapper
+  ansible.builtin.copy:
+    dest: /usr/local/bin/markoto-notify
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/usr/bin/env bash
+      # Managed by Ansible (markoto/base role).
+      # Usage: markoto-notify "<title>" "<body>"
+      set -euo pipefail
+      if [ "$#" -lt 2 ]; then
+        echo "usage: markoto-notify <title> <body>" >&2
+        exit 2
+      fi
+      # shellcheck disable=SC1091
+      [ -r /etc/markoto/apprise.env ] && . /etc/markoto/apprise.env
+      if [ -z "${APPRISE_URLS:-}" ]; then
+        # No URLs configured — silently no-op so callers (cron, apt hooks)
+        # don't fail.
+        exit 0
+      fi
+      /opt/markoto-tools/bin/apprise -t "$1" -b "$2" -i markdown "${APPRISE_URLS}"
+
+- name: Drop apt post-Invoke hook for unattended-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99-markoto-notify
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      // Managed by Ansible (markoto/base role).
+      // Fires after every apt invocation that touched packages, including
+      // unattended-upgrades. The script tails the most recent
+      // unattended-upgrades log and notifies via Apprise. Best-effort —
+      // exits 0 even on internal failure so apt isn't disrupted.
+      DPkg::Post-Invoke {
+        "if [ -x /usr/local/bin/markoto-notify ] && [ -f /var/log/unattended-upgrades/unattended-upgrades.log ]; then \
+           tail=$(tail -n 30 /var/log/unattended-upgrades/unattended-upgrades.log 2>/dev/null || true); \
+           hostname=$(hostname); \
+           [ -n \"$tail\" ] && /usr/local/bin/markoto-notify \"OS update on ${hostname}\" \"Unattended-upgrades log tail:\n\n${tail}\" || true; \
+         fi; true";
+      };
+
+# Disable the security role's mail path (we set _mail_to: "" in vars but
+# also drop a config snippet to make sure no MTA install gets triggered).
+- name: Pin Unattended-Upgrade::DevRelease=false
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/52-markoto-no-devrelease
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      // Managed by Ansible (markoto/base role).
+      Unattended-Upgrade::DevRelease "false";

@@ -1,0 +1,208 @@
+name: deploy
+
+# Phase 12 — fires on release.published. SSHes to the VPS, pulls the new
+# images (private GHCR via PAT mounted on the VPS at provision time), runs
+# compose up, polls /api/health, auto-rollbacks on failure, sends Apprise
+# notifications either way.
+#
+# Required GitHub secrets (see docs/GITHUB-CONFIG.md):
+#   DEPLOY_SSH_KEY    — private OpenSSH key for the markoto user on the VPS
+#   DEPLOY_HOST       — IP or DNS of the VPS
+#   APPRISE_URLS      — semicolon-separated Apprise URLs
+#
+# The VPS must already have run `docker login ghcr.io` via the Ansible
+# `markoto` role (uses the `ghcr_pat` vault entry — see infra/group_vars/
+# all.vault.example.yml).
+
+on:
+  release:
+    types: [published]
+  # Manual trigger for emergency deploys (CI broken, etc.). Caller picks
+  # the tag they want; same auto-rollback behaviour.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy (e.g. v1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Serialize deploys — never two deploys to the same VPS at once.
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+    steps:
+      - name: Validate tag
+        run: |
+          set -euo pipefail
+          if [ -z "${TAG:-}" ]; then
+            echo "No tag provided." >&2
+            exit 1
+          fi
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag $TAG is not a strict vX.Y.Z" >&2
+            exit 1
+          fi
+          echo "Deploying $TAG to $DEPLOY_HOST"
+
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Roll forward + health check
+        id: roll
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes "markoto@${DEPLOY_HOST}" \
+            TAG="${TAG}" \
+            'bash -se' <<'REMOTE'
+          set -euo pipefail
+          : "${TAG:?TAG must be set}"
+
+          cd /opt/markoto
+
+          # Capture the version we are leaving so auto-rollback knows
+          # what to roll back to. .last-deploy may not exist on the very
+          # first deploy — fall back to "latest" which is harmless.
+          PREV=$(cat .last-deploy 2>/dev/null || echo "latest")
+          echo "$PREV" > .last-deploy.prev
+          echo "Previous tag was: $PREV"
+          echo "Deploying tag: $TAG"
+
+          # Pull + roll. IMAGE_TAG is consumed by .env via compose.
+          export IMAGE_TAG="$TAG"
+          # Login is already established at provision time via the
+          # ghcr_pat vault entry — no additional `docker login` here.
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml up -d
+
+          # Health-check loop: 30 attempts × 3 s = 90 s.
+          DOMAIN=$(awk -F= '/^DOMAIN=/{print $2}' .env | tr -d '"')
+          if [ -z "$DOMAIN" ]; then
+            echo "DOMAIN not in .env — cannot probe health" >&2
+            exit 1
+          fi
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 5 "https://${DOMAIN}/api/health" > /dev/null 2>&1; then
+              echo "Health check passed on attempt $i"
+              ok=1
+              break
+            fi
+            sleep 3
+          done
+
+          if [ "$ok" -ne 1 ]; then
+            echo "Health check failed after 90s — rolling back to $PREV" >&2
+            export IMAGE_TAG="$PREV"
+            docker compose -f docker-compose.prod.yml pull || true
+            docker compose -f docker-compose.prod.yml up -d
+            # Try to confirm rollback health. If even rollback fails,
+            # the workflow will surface that too.
+            for i in $(seq 1 20); do
+              if curl -fsS --max-time 5 "https://${DOMAIN}/api/health" > /dev/null 2>&1; then
+                echo "Rollback health check passed on attempt $i"
+                # Mark the file as the rollback target so a human can
+                # see the gap.
+                echo "$PREV" > .last-deploy
+                exit 64   # signal "rolled back" to the runner
+              fi
+              sleep 3
+            done
+            echo "Rollback ALSO failed — manual intervention required" >&2
+            exit 65       # signal "rollback failed"
+          fi
+
+          # Success. Update marker.
+          echo "$TAG" > .last-deploy
+          REMOTE
+          ec=$?
+          echo "remote_exit=$ec" >> $GITHUB_OUTPUT
+          if [ "$ec" -eq 0 ]; then
+            echo "status=succeeded" >> $GITHUB_OUTPUT
+          elif [ "$ec" -eq 64 ]; then
+            echo "status=rolled_back" >> $GITHUB_OUTPUT
+          elif [ "$ec" -eq 65 ]; then
+            echo "status=rollback_failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+          fi
+          # Don't fail the step yet — let the notify step run, then exit.
+          exit 0
+
+      - name: Read previous tag (for notification)
+        if: steps.roll.outputs.status == 'rolled_back' || steps.roll.outputs.status == 'rollback_failed'
+        id: prev
+        run: |
+          set -euo pipefail
+          PREV=$(ssh -o BatchMode=yes "markoto@${DEPLOY_HOST}" \
+            'cat /opt/markoto/.last-deploy.prev 2>/dev/null || echo unknown')
+          echo "tag=$PREV" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Apprise
+        run: pip install apprise
+
+      - name: Notify (success)
+        if: steps.roll.outputs.status == 'succeeded'
+        env:
+          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
+        run: |
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "no APPRISE_URLS"; exit 0; fi
+          apprise -t "Deploy ${TAG} succeeded" \
+                  -b "Deployed to ${DEPLOY_HOST}.
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                  -i markdown \
+                  "${APPRISE_URLS}"
+
+      - name: Notify (rolled back)
+        if: steps.roll.outputs.status == 'rolled_back'
+        env:
+          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
+          PREV_TAG: ${{ steps.prev.outputs.tag }}
+        run: |
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "no APPRISE_URLS"; exit 0; fi
+          apprise -t "Deploy ${TAG} FAILED — rolled back to ${PREV_TAG}" \
+                  -b "Auto-rollback restored ${PREV_TAG} on ${DEPLOY_HOST}. Health check now passing under previous version. Investigate the failed release.
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                  -i markdown \
+                  "${APPRISE_URLS}"
+
+      - name: Notify (rollback failed)
+        if: steps.roll.outputs.status == 'rollback_failed'
+        env:
+          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
+          PREV_TAG: ${{ steps.prev.outputs.tag }}
+        run: |
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "no APPRISE_URLS"; exit 0; fi
+          apprise -t "Deploy ${TAG} FAILED — ROLLBACK ALSO FAILED" \
+                  -b "Both ${TAG} and rollback to ${PREV_TAG} failed health on ${DEPLOY_HOST}. MANUAL INTERVENTION REQUIRED.
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                  -i markdown \
+                  "${APPRISE_URLS}"
+
+      - name: Fail the job if deploy didn't succeed
+        if: steps.roll.outputs.status != 'succeeded'
+        run: |
+          echo "Deploy status: ${{ steps.roll.outputs.status }}"
+          exit 1

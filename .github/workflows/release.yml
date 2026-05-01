@@ -1,0 +1,469 @@
+name: release
+
+# Phase 12 — squash-merge to main fires this. Pipeline:
+#
+#   1. resolve-pr           — find the PR for this commit, read its title +
+#                             body + release:* label. release:none short-
+#                             circuits the rest. We use the PR title as the
+#                             release name and the PR body as the release
+#                             notes — no aggregation, no release-drafter.
+#   2. bump-version         — write package.json files + CHANGELOG, commit
+#                             back to main with [skip ci], tag vX.Y.Z
+#   3. build-images         — matrix [app, sync-server, renderer], push to GHCR
+#   4. run-flows            — regenerate flow output against the freshly-built
+#                             tag (uses docker-compose.test.yml --profile flows)
+#   5. commit-flow-manifests — commit ONLY manifest.json files; PNGs/WebPs go
+#                              to the GitHub Release as assets
+#   6. create-release       — softprops/action-gh-release using the PR title
+#                             as the release name, the PR body as the body
+#                             (with an auto-appended footer), and flow image
+#                             assets attached
+#   7. notify-release       — single Apprise message
+#
+# Branch-protection bypass: bump-version + commit-flow-manifests push directly
+# to main using RELEASE_BOT_TOKEN (a fine-scoped PAT with `contents:write`,
+# explicitly whitelisted in the branch-protection rule's "allow specified
+# actors to bypass required pull requests"). See docs/GITHUB-CONFIG.md.
+#
+# Why "PR-title + PR-body" over release-drafter aggregation:
+#
+# Our model is one-PR-equals-one-release. Every merge to main bumps the
+# version and ships. Aggregation across multiple PRs is unnecessary, and
+# release-drafter's category buckets bury what authors actually wrote in
+# their PR descriptions. Authors get rewarded for writing meaningful titles
+# + descriptions (PR template hints at "What changed" / "Why" / "How to
+# verify"); those flow directly to the release page with zero indirection.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: read
+
+concurrency:
+  # Serialize releases — never two release runs in flight against main.
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  resolve-pr:
+    name: resolve-pr
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.pr.outputs.should_release }}
+      bump: ${{ steps.pr.outputs.bump }}
+      pr_number: ${{ steps.pr.outputs.number }}
+      pr_title: ${{ steps.pr.outputs.title }}
+      pr_body: ${{ steps.pr.outputs.body }}
+      pr_author: ${{ steps.pr.outputs.author }}
+      current_version: ${{ steps.compute.outputs.current_version }}
+      new_version: ${{ steps.compute.outputs.new_version }}
+      previous_tag: ${{ steps.compute.outputs.previous_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get merged PR details
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            // With squash-merge there's exactly one. Direct pushes to main
+            // are blocked by branch protection except for the release bot's
+            // [skip ci] commits, which never re-enter this workflow.
+            const pr = (prs.data.find(p => p.merged_at) || prs.data[0]);
+            if (!pr) {
+              core.setFailed('No merged PR found for commit ' + context.sha);
+              return;
+            }
+
+            // Validate release labels.
+            const releaseLabels = (pr.labels || []).filter(l => l.name.startsWith('release:'));
+            if (releaseLabels.length > 1) {
+              core.setFailed(
+                'Multiple release: labels found on PR #' + pr.number + ': ' +
+                releaseLabels.map(l => l.name).join(', ')
+              );
+              return;
+            }
+            const allowed = ['release:major', 'release:minor', 'release:patch', 'release:none'];
+            if (releaseLabels.length === 1 && !allowed.includes(releaseLabels[0].name)) {
+              core.setFailed(
+                'Unknown release label: ' + releaseLabels[0].name +
+                '. Allowed: ' + allowed.join(', ')
+              );
+              return;
+            }
+            const bump = releaseLabels[0]?.name.replace('release:', '') || 'patch';
+            const skip = bump === 'none';
+
+            core.setOutput('number', String(pr.number));
+            core.setOutput('title', pr.title);
+            // Empty bodies are common; render a placeholder so the release
+            // page isn't blank — a PR with no body is a smell, but better to
+            // surface it than crash the release.
+            core.setOutput('body', pr.body || '_(No description provided.)_');
+            core.setOutput('author', pr.user.login);
+            core.setOutput('bump', bump);
+            core.setOutput('should_release', skip ? 'false' : 'true');
+            if (skip) {
+              core.info('PR #' + pr.number + ' labelled release:none — skipping release.');
+            } else {
+              core.info('PR #' + pr.number + ' "' + pr.title + '" → ' + bump);
+            }
+
+      - name: Compute new version
+        id: compute
+        if: steps.pr.outputs.should_release == 'true'
+        run: |
+          set -euo pipefail
+          CURRENT=$(jq -r .version package.json)
+          BUMP="${{ steps.pr.outputs.bump }}"
+          NEW=$(node -e "
+            const [maj, min, pat] = process.argv[1].split('.').map(Number);
+            const bump = process.argv[2];
+            if (bump === 'major') console.log(\`\${maj+1}.0.0\`);
+            else if (bump === 'minor') console.log(\`\${maj}.\${min+1}.0\`);
+            else console.log(\`\${maj}.\${min}.\${pat+1}\`);
+          " "$CURRENT" "$BUMP")
+          echo "current_version=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "new_version=$NEW" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=v$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "Bump: $BUMP  $CURRENT → $NEW"
+
+  bump-version:
+    name: bump-version
+    needs: resolve-pr
+    if: needs.resolve-pr.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: v${{ needs.resolve-pr.outputs.new_version }}
+    steps:
+      # We push back to main, so check out using the release-bot token from
+      # the start. RELEASE_BOT_TOKEN is the fine-scoped PAT whitelisted in
+      # branch-protection's "allow specified actors to bypass required PRs".
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_BOT_TOKEN }}
+
+      - name: Bump versions in all package.json
+        run: |
+          set -euo pipefail
+          NEW="${{ needs.resolve-pr.outputs.new_version }}"
+          for f in package.json sync-server/package.json renderer/package.json; do
+            tmp=$(mktemp)
+            jq --arg v "$NEW" '.version = $v' "$f" > "$tmp"
+            mv "$tmp" "$f"
+            echo "Updated $f → $NEW"
+          done
+
+      - name: Update CHANGELOG.md
+        env:
+          NEW: ${{ needs.resolve-pr.outputs.new_version }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr_number }}
+          TITLE: ${{ needs.resolve-pr.outputs.pr_title }}
+          AUTHOR: ${{ needs.resolve-pr.outputs.pr_author }}
+          PR_BODY_RAW: ${{ needs.resolve-pr.outputs.pr_body }}
+        run: |
+          set -euo pipefail
+          export DATE=$(date -u +%Y-%m-%d)
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          new = os.environ["NEW"]
+          date = os.environ["DATE"]
+          pr_n = os.environ["PR_NUMBER"]
+          title = os.environ["TITLE"]
+          author = os.environ["AUTHOR"]
+          body = os.environ.get("PR_BODY_RAW", "").strip() or "_(No description provided.)_"
+
+          p = Path("CHANGELOG.md")
+          if p.exists():
+              src = p.read_text()
+          else:
+              src = (
+                  "# Changelog\n\n"
+                  "All notable changes are documented here. Each entry is sourced verbatim "
+                  "from the merged PR's title + description.\n\n"
+                  "## [Unreleased]\n\n(Populated on next release.)\n"
+              )
+
+          marker = "## [Unreleased]"
+          if marker not in src:
+              src = src.rstrip() + "\n\n## [Unreleased]\n\n(Populated on next release.)\n"
+
+          section = (
+              f"## [{new}] — {date}\n\n"
+              f"**{title}** (#{pr_n} by @{author})\n\n"
+              f"{body}\n"
+          )
+
+          import re
+          new_src = re.sub(
+              r"## \[Unreleased\][\s\S]*?(?=\n## \[|\Z)",
+              "## [Unreleased]\n\n(Populated on next release.)\n\n" + section + "\n",
+              src,
+              count=1,
+          )
+          p.write_text(new_src)
+          PY
+
+      - name: Commit + tag
+        run: |
+          set -euo pipefail
+          NEW="${{ needs.resolve-pr.outputs.new_version }}"
+          git config user.name "markoto-release-bot"
+          git config user.email "release-bot@users.noreply.github.com"
+          git add package.json sync-server/package.json renderer/package.json CHANGELOG.md
+          git commit -m "chore(release): v${NEW} [skip ci]"
+          git tag -a "v${NEW}" -m "Release v${NEW}"
+          git push origin HEAD:main
+          git push origin "v${NEW}"
+
+  build-images:
+    name: build-images (${{ matrix.service }})
+    needs: [resolve-pr, bump-version]
+    if: needs.resolve-pr.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - service: app
+            context: .
+            dockerfile: Dockerfile
+          - service: sync-server
+            context: ./sync-server
+            dockerfile: ./sync-server/Dockerfile
+          - service: renderer
+            context: ./renderer
+            dockerfile: ./renderer/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.resolve-pr.outputs.new_version }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PUSH_TOKEN }}
+
+      - name: Build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/joelbarmettleruzh/markoto-${{ matrix.service }}:v${{ needs.resolve-pr.outputs.new_version }}
+            ghcr.io/joelbarmettleruzh/markoto-${{ matrix.service }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  run-flows-and-collect-outputs:
+    name: run-flows-and-collect-outputs
+    needs: [resolve-pr, build-images]
+    if: needs.resolve-pr.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      IMAGE_TAG: v${{ needs.resolve-pr.outputs.new_version }}
+      TEST_MODE: "1"
+      NUXT_GOOGLE_SPEECH_MOCK: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.resolve-pr.outputs.new_version }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Bring up test stack against built images
+        run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
+
+      - name: Run flow tests
+        run: bun run flows:test
+
+      - name: Tear down test stack
+        if: always()
+        run: docker compose -f docker-compose.test.yml --profile flows down -v
+
+      - name: Upload flow output (manifests + images)
+        uses: actions/upload-artifact@v4
+        with:
+          name: flow-output
+          path: tests/e2e/output/flows
+          retention-days: 30
+
+  commit-flow-manifests:
+    name: commit-flow-manifests
+    needs: [resolve-pr, run-flows-and-collect-outputs]
+    if: needs.resolve-pr.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Pull latest main (bump-version pushed a commit there).
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_BOT_TOKEN }}
+
+      - name: Download flow output artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: flow-output
+          path: tests/e2e/output/flows
+
+      - name: Stage manifest.json files only
+        run: |
+          set -euo pipefail
+          # Add ONLY manifest.json files. Image bytes go to the Release
+          # assets in the next job, NOT to git.
+          find tests/e2e/output/flows -name 'manifest.json' -print0 \
+            | xargs -0 git add -f
+          git diff --cached --stat || true
+
+      - name: Commit + push if changed
+        run: |
+          set -euo pipefail
+          git config user.name "markoto-release-bot"
+          git config user.email "release-bot@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit."
+            exit 0
+          fi
+          NEW="${{ needs.resolve-pr.outputs.new_version }}"
+          git commit -m "chore(flows): refresh manifests for v${NEW} [skip ci]"
+          git push origin HEAD:main
+
+  create-release:
+    name: create-release
+    needs:
+      - resolve-pr
+      - bump-version
+      - build-images
+      - run-flows-and-collect-outputs
+      - commit-flow-manifests
+    if: needs.resolve-pr.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      release_url: ${{ steps.release.outputs.url }}
+    steps:
+      - name: Download flow output artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: flow-output
+          path: flow-output
+
+      - name: Collect flow image assets
+        id: collect
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          # Per-flow tarball — friendlier than uploading thousands of
+          # individual .webp files. Empty flow-output is fine; tar over an
+          # empty loop body is a no-op.
+          if [ -d flow-output ]; then
+            for flow_dir in flow-output/*/; do
+              [ -d "$flow_dir" ] || continue
+              flow=$(basename "$flow_dir")
+              tar -C "$flow_dir" -czf "release-assets/${flow}.tar.gz" .
+              echo "Packed $flow"
+            done
+          fi
+          ls -la release-assets/ || true
+
+      - name: Compose release body
+        id: body
+        env:
+          PR_BODY: ${{ needs.resolve-pr.outputs.pr_body }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr_number }}
+          PR_AUTHOR: ${{ needs.resolve-pr.outputs.pr_author }}
+          NEW: ${{ needs.resolve-pr.outputs.new_version }}
+          PREVIOUS: ${{ needs.resolve-pr.outputs.previous_tag }}
+          REPO: ${{ github.repository }}
+          SERVER: ${{ github.server_url }}
+        run: |
+          set -euo pipefail
+          {
+            printf '%s\n\n' "$PR_BODY"
+            printf -- '---\n\n'
+            printf '**PR:** [#%s](%s/%s/pull/%s) by @%s\n\n' \
+              "$PR_NUMBER" "$SERVER" "$REPO" "$PR_NUMBER" "$PR_AUTHOR"
+            printf '**Diff:** [%s → v%s](%s/%s/compare/%s...v%s)\n' \
+              "$PREVIOUS" "$NEW" "$SERVER" "$REPO" "$PREVIOUS" "$NEW"
+          } > release-body.md
+          echo "Wrote release-body.md ($(wc -c < release-body.md) bytes)"
+
+      - name: Create GitHub Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.resolve-pr.outputs.new_version }}
+          name: ${{ needs.resolve-pr.outputs.pr_title }}
+          body_path: release-body.md
+          files: release-assets/*.tar.gz
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-release:
+    name: notify-release
+    needs: [resolve-pr, create-release]
+    if: needs.resolve-pr.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Apprise
+        run: pip install apprise
+
+      - name: Send Apprise notification
+        env:
+          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
+          NEW: ${{ needs.resolve-pr.outputs.new_version }}
+          TITLE: ${{ needs.resolve-pr.outputs.pr_title }}
+          URL: ${{ needs.create-release.outputs.release_url }}
+        run: |
+          if [ -z "${APPRISE_URLS:-}" ]; then
+            echo "APPRISE_URLS not set — skipping notification."
+            exit 0
+          fi
+          apprise -t "markoto v${NEW} released" \
+                  -b "${TITLE}
+
+          Release notes: ${URL}
+          Deploy will fire automatically (deploy.yml on release.published)." \
+                  -i markdown \
+                  "${APPRISE_URLS}"

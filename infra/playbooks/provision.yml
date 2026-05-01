@@ -63,4 +63,30 @@
             max-size: "50m"
             max-file: "5"
           live-restore: true
+    # ─── geerlingguy.security ───
+    # Drives unattended-upgrades + reboot scheduling. We DISABLE its SSH +
+    # fail2ban knobs because devsec.hardening + our ssh_hardening role +
+    # base/fail2ban already cover those, and double-configuration would
+    # fight on the file watch. The reboot window is 04:30 UTC — after the
+    # 03:00 UTC backup-cron tick, before any reasonable peak-traffic
+    # window.
+    - role: geerlingguy.security
+      vars:
+        security_ssh_password_authentication: "no"
+        security_ssh_permit_root_login: "no"
+        security_ssh_usedns: "no"
+        security_ssh_permit_empty_password: "no"
+        security_ssh_challenge_response_auth: "no"
+        security_ssh_gss_api_authentication: "no"
+        security_ssh_x11_forwarding: "no"
+        security_autoupdate_enabled: true
+        security_autoupdate_reboot: "true"
+        security_autoupdate_reboot_time: "04:30"
+        # Mail is OFF — we use Apprise via the post-Invoke hook
+        # (roles/base/templates/markoto-apt-hook.j2 calls markoto-notify).
+        security_autoupdate_mail_to: ""
+        security_autoupdate_mail_on_error: false
+        # We already configure fail2ban in roles/base. Keep the security
+        # role from re-templating it.
+        security_fail2ban_enabled: false
     - role: ssh_hardening

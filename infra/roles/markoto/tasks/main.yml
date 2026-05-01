@@ -29,6 +29,30 @@
     group: "{{ markoto_user }}"
     mode: "0600"
 
+# Login to GitHub Container Registry so `docker compose pull` against
+# private images works. The PAT is scoped read:packages only — we never
+# push from the VPS. Login is run as the markoto user (whose
+# ~/.docker/config.json then carries the credential) to match the user
+# compose pull runs under.
+#
+# Rotation: see docs/SECRETS-ROTATION.md §19. Re-running this play
+# silently re-logs-in with the new value; old PAT can be revoked at the
+# provider after.
+- name: Login to GHCR (private image pull on the VPS)
+  become: true
+  become_user: "{{ markoto_user }}"
+  ansible.builtin.command:
+    cmd: docker login ghcr.io -u {{ ghcr_username }} --password-stdin
+    stdin: "{{ ghcr_pat }}"
+  register: markoto_ghcr_login
+  changed_when: "'Login Succeeded' in markoto_ghcr_login.stdout"
+  no_log: true
+  when:
+    - ghcr_pat is defined
+    - ghcr_pat | length > 0
+    - ghcr_username is defined
+    - ghcr_username | length > 0
+
 - name: Discover compose files in repo
   ansible.builtin.find:
     paths: "{{ playbook_dir }}/.."

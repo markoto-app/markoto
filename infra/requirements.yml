@@ -22,3 +22,10 @@ roles:
   # surprise-upgrades blocked.
   - name: geerlingguy.docker
     version: "8.0.0"
+  # Geerling's security role wires unattended-upgrades + reboot windows on
+  # Debian/Ubuntu. We disable its SSH bits (devsec.hardening + our
+  # ssh_hardening role already cover those) and its fail2ban bits (we
+  # template our own jail). Pinned exact for the same reason as the
+  # docker role — apt-touching roles drift.
+  - name: geerlingguy.security
+    version: "3.0.0"

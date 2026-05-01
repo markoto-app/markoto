@@ -1,18 +1,107 @@
 name: ci
 
+# Phase 12 — PR-only checks. Push-to-main flow lives in release.yml.
+#
+# Jobs run in this order semantically (GH runs the independent ones in
+# parallel as the runner pool allows):
+#
+#   label-check         — exactly one (or zero) `release:*` label
+#   semantic-pr-title   — conventional-commit subject
+#   lint-typecheck      — fast (~30s) gate
+#   test-unit-dom       — fast unit + happy-dom suite
+#   test-repos-integration-flows
+#                       — heavy stack (~10–15 min); skipped on draft PRs
+#   notify-on-failure   — single Apprise ping if any of the above failed
+#
+# Branch protection on `main` should require `label-check`,
+# `semantic-pr-title`, `lint-typecheck`, `test-unit-dom`, and (for
+# ready-for-review PRs) `test-repos-integration-flows`. See
+# docs/GITHUB-CONFIG.md.
+
 on:
-  push:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  ci:
+  label-check:
+    name: label-check
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Validate exactly one (or zero) release:* label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const releaseLabels = labels.filter(n => n.startsWith('release:'));
+            const allowed = ['release:major', 'release:minor', 'release:patch', 'release:none'];
+            const invalid = releaseLabels.filter(n => !allowed.includes(n));
+            if (invalid.length > 0) {
+              core.setFailed(
+                `Unknown release label(s): ${invalid.join(', ')}.\n` +
+                `Allowed: ${allowed.join(', ')}. ` +
+                `Omit the label entirely to default to release:patch.`
+              );
+              return;
+            }
+            if (releaseLabels.length > 1) {
+              core.setFailed(
+                `Multiple release:* labels found: ${releaseLabels.join(', ')}.\n` +
+                `Apply EXACTLY ONE of: release:major, release:minor, release:patch, release:none. ` +
+                `Or omit entirely to default to release:patch.`
+              );
+              return;
+            }
+            const effective = releaseLabels[0] || 'release:patch (implicit default)';
+            core.info(`Effective release label: ${effective}`);
 
-      - name: Install Bun
+  semantic-pr-title:
+    name: semantic-pr-title
+    runs-on: ubuntu-latest
+    steps:
+      # Enforces feat:/fix:/docs:/chore:/refactor:/test:/build:/ci: prefix +
+      # lower-cased subject. The PR title is ALSO the release name (see
+      # release.yml) — this gate is what stops a sloppy title from shipping
+      # straight to the public release page.
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            chore
+            refactor
+            test
+            build
+            ci
+            perf
+            revert
+          requireScope: false
+          subjectPattern: '^[a-z].*'
+          subjectPatternError: |
+            The subject "{subject}" must start with a lowercase letter.
+            Examples:
+              feat: add per-doc theme presets
+              fix(sync): close valkey on SIGTERM
+              docs: clarify rotation cadence
+
+  lint-typecheck:
+    name: lint-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.12
@@ -25,3 +114,107 @@ jobs:
 
       - name: Typecheck
         run: bun run typecheck
+
+  test-unit-dom:
+    name: test-unit-dom
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Unit tests
+        run: bun run test:unit
+
+      - name: DOM tests
+        run: bun run test:dom
+
+  test-repos-integration-flows:
+    name: test-repos-integration-flows
+    runs-on: ubuntu-latest
+    # Heavy stack — only on ready-for-review PRs to keep draft loops snappy.
+    if: github.event.pull_request.draft == false
+    timeout-minutes: 25
+    env:
+      # Test stack defaults — match docker-compose.test.yml.
+      TEST_MODE: "1"
+      NUXT_GOOGLE_SPEECH_MOCK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Bring up test stack
+        run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
+
+      - name: Repos tests
+        run: bun run test:repos
+
+      - name: Integration tests
+        run: bun run test:integration
+
+      - name: Flow tests (Playwright e2e)
+        run: bun run flows:test
+
+      - name: Tear down test stack
+        if: always()
+        run: docker compose -f docker-compose.test.yml --profile flows down -v
+
+      - name: Upload Playwright artefacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-output-${{ github.event.pull_request.number }}
+          path: |
+            tests/e2e/output
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+  notify-on-failure:
+    name: notify-on-failure
+    needs:
+      - label-check
+      - semantic-pr-title
+      - lint-typecheck
+      - test-unit-dom
+      - test-repos-integration-flows
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Apprise
+        run: pip install apprise
+
+      - name: Send Apprise notification
+        env:
+          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
+        run: |
+          if [ -z "${APPRISE_URLS:-}" ]; then
+            echo "APPRISE_URLS secret not configured — skipping notification."
+            exit 0
+          fi
+          apprise -t "CI failed on PR #${{ github.event.pull_request.number }}" \
+                  -b "Branch \`${{ github.head_ref }}\` — ${{ github.event.pull_request.title }}
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                  -i markdown \
+                  "${APPRISE_URLS}"
