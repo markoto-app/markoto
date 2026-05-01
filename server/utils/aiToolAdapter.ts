@@ -56,6 +56,7 @@ import { canManageDoc } from './workspaceAccess'
 import { embedQuery } from './embeddings'
 import { chargeInteractions, BudgetExhausted } from './billing'
 import { stripAiMention } from './agentic/commentTriggerPrompt'
+import { assertSafeUrl } from './agentic/urlGuard'
 
 export interface ToolResult {
   content: string
@@ -778,6 +779,18 @@ async function fetchFromS3(docId: string, fileId: string): Promise<{ bytes: Uint
 }
 
 async function fetchExternalImage(url: string): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
+  // SSRF guard before any network IO. Rejects private CIDRs, metadata
+  // IPs, link-local, non-HTTP schemes, and hostnames whose DNS records
+  // resolve into private space. Critical here because `view_image`
+  // takes ARBITRARY user-supplied URLs and we DO follow redirects —
+  // the guard runs before the fetch so a malicious src is refused
+  // upfront, and we don't pin the resolved IP onto the actual fetch
+  // (limitation called out in urlGuard.ts).
+  try {
+    await assertSafeUrl(url)
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'URL refused' }
+  }
   // 10s hard cap — an AI session that's already racing the 5-minute
   // deadline shouldn't spend a whole minute on one image fetch.
   const ctrl = new AbortController()

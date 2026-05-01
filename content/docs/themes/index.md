@@ -8,7 +8,7 @@ icon: i-lucide-palette
 
 # Style
 
-Every YPad document carries its own theme — fonts, page size, colors,
+Every markoto document carries its own theme — fonts, page size, colors,
 margin boxes, table-of-contents style. The same theme renders the
 live preview AND the PDF export, so what you see is what you ship.
 

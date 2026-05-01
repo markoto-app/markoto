@@ -858,7 +858,7 @@
       "adminDescription": "Add collaborators by email, change roles, or remove members.",
       "memberDescription": "People who have access to this workspace.",
       "addTitle": "Add a member",
-      "addHint": "Enter the email address of someone with a YPad account. They'll get instant access at the role you pick.",
+      "addHint": "Enter the email address of someone with a markoto account. They'll get instant access at the role you pick.",
       "emailPlaceholder": "Enter an email address",
       "add": "Add",
       "addFailed": "Could not add member",

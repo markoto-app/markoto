@@ -36,7 +36,7 @@ test('Write with AI', async ({ page, flow, editor }) => {
   // ─── Open the AI prompt bar ──────────────────────────────────────
   await flow.heading('Ask the AI to write for you', 3)
   await flow.narrate(
-    'The AI prompt bar floats at the bottom of every YPad document. '
+    'The AI prompt bar floats at the bottom of every markoto document. '
     + 'Type what you want, hit send, and the AI joins the doc as '
     + 'another collaborator — you watch it type. It can draft new '
     + 'sections, rewrite passages, restructure outlines, even fetch '

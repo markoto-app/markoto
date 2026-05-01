@@ -320,7 +320,7 @@ async function handleAuth(
     peer.close(4001, 'missing token')
     return
   }
-  let payload: { userId?: number, docId?: string, kind?: string }
+  let payload: { userId?: number, docId?: string, kind?: string, scope?: string }
   try {
     payload = jwt.verify(token, secret) as typeof payload
   } catch {
@@ -331,6 +331,18 @@ async function handleAuth(
   if (payload.kind !== 'dictate' || typeof payload.userId !== 'number' || typeof payload.docId !== 'string') {
     peer.send(JSON.stringify({ type: 'error', message: 'Malformed token' }))
     peer.close(4001, 'malformed payload')
+    return
+  }
+  // Require explicit `scope: 'dictate'`. Pairs with the
+  // sync-server's "any non-empty scope is rejected for WS auth" rule
+  // (sync-server/src/auth.ts) — together they ensure dictate tokens
+  // are usable HERE and only here. A token minted for any other
+  // scope (`render`, `file-access`, future) cannot be replayed
+  // against this WS, and a dictate token cannot be replayed against
+  // Hocuspocus.
+  if (payload.scope !== 'dictate') {
+    peer.send(JSON.stringify({ type: 'error', message: 'Token scope mismatch' }))
+    peer.close(4001, 'scope mismatch')
     return
   }
 

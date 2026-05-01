@@ -9,7 +9,7 @@ icon: i-lucide-rocket
 
 # Get started
 
-YPad is a collaborative markdown editor with optional accounts. You
+markoto is a collaborative markdown editor with optional accounts. You
 can write a document anonymously, share it by URL, customize how it
 looks, and export to PDF — all without signing up.
 
@@ -26,7 +26,7 @@ homepage and ends with a tangible result you can hand to someone.
 
 When you're comfortable with the basics:
 
-- See [**Writing**](/docs/writing) for the markdown extensions YPad
+- See [**Writing**](/docs/writing) for the markdown extensions markoto
   ships with — tables, alerts, math, diagrams, footnotes.
 - See [**Sharing & Permissions**](/docs/sharing) for the full
   access-mode reference (open-edit, view-only, password-protected).

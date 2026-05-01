@@ -1,4 +1,5 @@
 import { moveDocToWorkspace } from '../../../repos/documents'
+import { appendAuditEvent } from '../../../repos/audit'
 
 // Move a document into, between, or out of a workspace.
 //
@@ -59,5 +60,19 @@ export default defineEventHandler(async (event) => {
   }
 
   await moveDocToWorkspace(docId, target)
+
+  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
+    || getRequestHeader(event, 'x-real-ip')
+    || null
+  await appendAuditEvent({
+    actorUserId: session.user.id,
+    actorIp: ip,
+    scope: 'doc',
+    scopeId: docId,
+    action: 'doc.workspace_moved',
+    before: { workspaceId: authz.workspaceId },
+    after: { workspaceId: target }
+  })
+
   return { success: true, workspaceId: target }
 })

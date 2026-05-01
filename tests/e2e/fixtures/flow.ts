@@ -514,7 +514,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       recordPreamble: async () => {
         // Lean preamble for flows where doc creation IS the story.
         // Captions are user-voice — no implementation jargon.
-        await flow.step('Open YPad', async () => {
+        await flow.step('Open markoto', async () => {
           await page.goto('/')
           await page.getByRole('button', { name: /new document/i }).waitFor()
         })

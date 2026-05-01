@@ -23,7 +23,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   // ─── Discuss in your doc ────────────────────────────────────────
   await flow.heading('Have a discussion', 3)
   await flow.narrate(
-    'YPad documents have threaded comments built in. Highlight a passage, '
+    'markoto documents have threaded comments built in. Highlight a passage, '
     + 'leave a note, and your collaborators see it the moment you post — '
     + 'reply, resolve, or @-mention a workspace member without leaving '
     + 'the doc.'

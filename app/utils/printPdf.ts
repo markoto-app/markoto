@@ -1,8 +1,8 @@
 import type { DocTheme, MermaidTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
-import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
+import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
-import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
+import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 import { renderMarkdown } from '~/utils/renderMarkdown'
 import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
@@ -28,6 +28,11 @@ interface MermaidModule {
 let mermaidPromise: Promise<MermaidModule> | null = null
 async function loadMermaid(theme: MermaidTheme): Promise<MermaidModule> {
   if (!mermaidPromise) {
+    // NOTE: dynamic import() does not currently support SRI in any
+    // browser. MERMAID_ESM_SRI is exported from shared/utils/mermaidCdn.ts
+    // for documentation + future use (import-maps-with-integrity proposal)
+    // but cannot be enforced here. Mermaid is the only CDN load in the
+    // app where SRI is best-effort; paged.js + KaTeX are SRI-enforced.
     mermaidPromise = import(/* @vite-ignore */ MERMAID_ESM_URL)
       .then(mod => mod.default)
       .catch((err) => {
@@ -193,13 +198,21 @@ export async function printDocumentAsPdf(opts: {
         const hljsLink = idoc.createElement('link')
         hljsLink.rel = 'stylesheet'
         hljsLink.href = hljsUrl
+        // No SRI on hljs theme stylesheets — see shared/utils/hljsCdn.ts
+        // for the rationale (~30+ themes, low blast radius inside the
+        // iframe, intentional tradeoff documented there).
         idoc.head.appendChild(hljsLink)
       }
 
-      // KaTeX stylesheet — static across themes. Same CDN pattern as hljs.
+      // KaTeX stylesheet — static across themes. Same CDN pattern as hljs,
+      // but SRI-locked: the URL is fixed and the bytes are byte-stable so
+      // we can attach an integrity hash. crossorigin="anonymous" is required
+      // for SRI on cross-origin (jsdelivr) responses.
       const katexLink = idoc.createElement('link')
       katexLink.rel = 'stylesheet'
       katexLink.href = KATEX_CSS_URL
+      katexLink.integrity = KATEX_CSS_SRI
+      katexLink.crossOrigin = 'anonymous'
       idoc.head.appendChild(katexLink)
 
       const root = idoc.createElement('div')
@@ -238,8 +251,12 @@ export async function printDocumentAsPdf(opts: {
       // cdn.jsdelivr.net so subsequent prints work offline. The iframe
       // needs its own paged.js instance: passing the parent's Previewer
       // cross-window mixes document references and breaks layout.
+      // SRI-locked + crossorigin="anonymous" so a poisoned jsdelivr
+      // response cannot inject JS into the print path.
       const script = idoc.createElement('script')
       script.src = PAGEDJS_POLYFILL_URL
+      script.integrity = PAGEDJS_POLYFILL_SRI
+      script.crossOrigin = 'anonymous'
       script.onerror = () => {
         window.clearTimeout(timeoutId)
         cleanup()

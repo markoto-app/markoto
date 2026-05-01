@@ -154,7 +154,7 @@ export default defineNuxtConfig({
         // from the app subdomain. The <Flow> component reads this as
         // its default; individual flow embeds can still pass their own
         // chrome-domain prop.
-        chromeDomain: 'ypad.app'
+        chromeDomain: 'markoto.app'
       }
     }
   },
@@ -241,8 +241,8 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
-      name: 'YPad',
-      short_name: 'YPad',
+      name: 'markoto',
+      short_name: 'markoto',
       description: 'Collaborative Markdown Editor',
       theme_color: '#0f172a',
       background_color: '#0f172a',

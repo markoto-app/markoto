@@ -27,3 +27,17 @@
  */
 export const PAGEDJS_VERSION = '0.4.3'
 export const PAGEDJS_POLYFILL_URL = `https://cdn.jsdelivr.net/npm/pagedjs@${PAGEDJS_VERSION}/dist/paged.polyfill.min.js`
+
+/**
+ * Subresource Integrity hash for the paged.js polyfill. Pinned to the
+ * exact bytes of the URL above. Without this, a jsdelivr compromise
+ * (or MITM on first load before Workbox caches the response) would
+ * silently execute attacker-supplied JavaScript in every preview/print
+ * iframe — and Workbox would persist the poisoned bytes for 30 days.
+ *
+ * To bump the version: change PAGEDJS_VERSION above, then run:
+ *   curl -sSL <NEW_URL> | openssl dgst -sha384 -binary | openssl base64 -A
+ * Replace PAGEDJS_POLYFILL_SRI with `sha384-<new>`. Both MUST update
+ * together or the script will be blocked by the browser.
+ */
+export const PAGEDJS_POLYFILL_SRI = 'sha384-y6+mefdjvGUaOPOrIMXHgP6Wwpza9G0N1QW1YUteLiwb50olbeI7H909UwZTMuVX'

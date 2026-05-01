@@ -284,7 +284,7 @@ describe('useDocument — sync lifecycle wiring', () => {
     hoisted.capturedSyncOpts!.onSynced!()
     expect(doc.ytext.length).toBeGreaterThan(0)
     // Welcome content contains the header.
-    expect(doc.ytext.toString()).toContain('Welcome to YPad')
+    expect(doc.ytext.toString()).toContain('Welcome to markoto')
     doc.destroy()
   })
 
@@ -323,7 +323,7 @@ describe('useDocument — sync lifecycle wiring', () => {
     expect(doc.ytext.length).toBe(0)
 
     hoisted.capturedSyncOpts!.onDisconnect!(false)
-    expect(doc.ytext.toString()).toContain('Welcome to YPad')
+    expect(doc.ytext.toString()).toContain('Welcome to markoto')
     doc.destroy()
   })
 

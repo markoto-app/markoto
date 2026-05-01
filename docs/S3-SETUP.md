@@ -1,6 +1,6 @@
 # S3 Bucket Setup
 
-YPad uses external S3 in production (Infomaniak by default; any S3-compatible endpoint works via `NUXT_S3_ENDPOINT`). Browsers talk to the bucket **directly** for image uploads (presigned PUT) and image reads (302-redirect to presigned GET from `/api/files/:docId/:fileId`). Traefik never proxies S3 traffic in prod — so CORS must be configured on the bucket itself.
+markoto uses external S3 in production (Infomaniak by default; any S3-compatible endpoint works via `NUXT_S3_ENDPOINT`). Browsers talk to the bucket **directly** for image uploads (presigned PUT) and image reads (302-redirect to presigned GET from `/api/files/:docId/:fileId`). Traefik never proxies S3 traffic in prod — so CORS must be configured on the bucket itself.
 
 ## 1. Create the bucket
 
@@ -42,7 +42,7 @@ Browsers PUT images directly to presigned URLs on the bucket host. Without CORS,
 ]
 ```
 
-Replace `${DOMAIN}` literally (e.g. `https://ypad.example.com`). No trailing slash. No wildcards — presigned URLs carry SigV4 auth in the querystring so broad CORS isn't needed.
+Replace `${DOMAIN}` literally (e.g. `https://markoto.example.com`). No trailing slash. No wildcards — presigned URLs carry SigV4 auth in the querystring so broad CORS isn't needed.
 
 ### Infomaniak
 

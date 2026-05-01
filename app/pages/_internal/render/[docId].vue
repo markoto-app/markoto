@@ -4,9 +4,9 @@ import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import type { DocTheme, MermaidTheme } from '~~/shared/types/theme'
-import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
+import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
-import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
+import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 
 // Cheap structural sanity check — the bootstrap endpoint already returns
@@ -144,14 +144,18 @@ onMounted(async () => {
   // reads them naturally as a regular browser stylesheet during render.
   const hljsUrl = hljsThemeUrl(theme.code.theme)
   if (hljsUrl) {
+    // No SRI on hljs theme stylesheets — see shared/utils/hljsCdn.ts.
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.href = hljsUrl
     document.head.appendChild(link)
   }
+  // KaTeX is SRI-locked — same rationale as the live preview iframe.
   const katexLink = document.createElement('link')
   katexLink.rel = 'stylesheet'
   katexLink.href = KATEX_CSS_URL
+  katexLink.integrity = KATEX_CSS_SRI
+  katexLink.crossOrigin = 'anonymous'
   document.head.appendChild(katexLink)
 
   // Decode every image BEFORE paged.js paginates. Without this paged.js
@@ -191,6 +195,10 @@ onMounted(async () => {
   await new Promise<void>((resolve, reject) => {
     const polyfill = document.createElement('script')
     polyfill.src = PAGEDJS_POLYFILL_URL
+    // SRI-locked + crossorigin="anonymous" to defend against a poisoned
+    // jsdelivr response in the server-render path.
+    polyfill.integrity = PAGEDJS_POLYFILL_SRI
+    polyfill.crossOrigin = 'anonymous'
     polyfill.onload = () => resolve()
     polyfill.onerror = () => reject(new Error('Failed to load paged.js polyfill'))
     document.head.appendChild(polyfill)
@@ -238,6 +246,8 @@ interface MermaidModule {
 let mermaidPromise: Promise<MermaidModule> | null = null
 async function loadMermaid(theme: MermaidTheme): Promise<MermaidModule> {
   if (!mermaidPromise) {
+    // Dynamic import() does not support SRI — mermaid is best-effort
+    // (see shared/utils/mermaidCdn.ts).
     mermaidPromise = import(/* @vite-ignore */ MERMAID_ESM_URL)
       .then(mod => mod.default)
       .catch((err) => {

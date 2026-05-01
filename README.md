@@ -62,3 +62,9 @@ Check out the [deployment documentation](https://nuxt.com/docs/getting-started/d
 ## Renovate integration
 
 Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+
+## License
+
+markoto is licensed under the Functional Source License, Version 1.1 with Apache 2.0 future grant. You can use, modify, and self-host markoto for any purpose EXCEPT competing with markoto as a commercial offering. Two years after each release, that release converts to Apache 2.0.
+
+See [LICENSE](./LICENSE) for full terms. Learn more at https://fsl.software.

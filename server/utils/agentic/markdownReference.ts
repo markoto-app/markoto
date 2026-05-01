@@ -1,6 +1,6 @@
 /**
  * Markdown vocabulary reference injected into the AI system prompts so
- * the model knows the FULL set of features available in YPad documents
+ * the model knows the FULL set of features available in markoto documents
  * — not just the markdown-it core. Without this, the model defaults to
  * its pre-training notion of "GitHub-flavored markdown" and never reaches
  * for the extensions we've shipped (alerts, math, definition lists,
@@ -26,7 +26,7 @@
  * Do NOT add "should work" syntaxes — the AI will emit them and ship
  * broken output silently.
  */
-export const MARKDOWN_REFERENCE = `MARKDOWN VOCABULARY (features verified to render correctly in YPad):
+export const MARKDOWN_REFERENCE = `MARKDOWN VOCABULARY (features verified to render correctly in markoto):
 
 Inline:
   **bold**  *italic*  ~~strike~~  ==highlight==  ++inserted++  \`code\`

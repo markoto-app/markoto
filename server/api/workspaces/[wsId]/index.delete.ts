@@ -1,8 +1,9 @@
 import { deleteWorkspaceRow } from '../../../repos/workspaces'
-import { listDocIdsInWorkspace } from '../../../repos/documents'
+import { getDoc, listDocIdsInWorkspace } from '../../../repos/documents'
 import { listKnowledge } from '../../../repos/knowledge'
 import { deleteDocument } from '../../../utils/documentLifecycle'
 import { deleteKnowledgeArtifact } from '../../../utils/knowledgeAccess'
+import { appendAuditEvent } from '../../../repos/audit'
 
 // Cascade delete: wipe every doc in this workspace (S3 + Y.js + activity
 // etc via `deleteDocument`), then drop the workspace row itself. Deletes
@@ -27,9 +28,32 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only admins can delete the workspace' })
   }
 
+  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
+    || getRequestHeader(event, 'x-real-ip')
+    || null
+
   const childDocIds = await listDocIdsInWorkspace(wsId)
   for (const docId of childDocIds) {
+    // Snapshot per-doc before the cascade for audit forensics.
+    const snapshot = await getDoc(docId)
     await deleteDocument(docId)
+    await appendAuditEvent({
+      actorUserId: session.user.id,
+      actorIp: ip,
+      scope: 'doc',
+      scopeId: docId,
+      action: 'doc.deleted',
+      before: snapshot
+        ? {
+            title: snapshot.title,
+            accessMode: snapshot.accessMode,
+            ownerId: snapshot.ownerId,
+            workspaceId: snapshot.workspaceId
+          }
+        : null,
+      after: null,
+      metadata: { reason: 'workspace_cascade', workspaceId: wsId }
+    })
   }
 
   // Knowledge S3 cleanup is per-object (one key per row) — the FK on
@@ -43,6 +67,17 @@ export default defineEventHandler(async (event) => {
   // workspace_members rows are removed automatically by the ON DELETE
   // CASCADE foreign key.
   await deleteWorkspaceRow(wsId)
+
+  await appendAuditEvent({
+    actorUserId: session.user.id,
+    actorIp: ip,
+    scope: 'workspace',
+    scopeId: wsId,
+    action: 'workspace.deleted',
+    before: null,
+    after: null,
+    metadata: { deletedDocs: childDocIds.length, deletedKnowledge: knowledgeRows.length }
+  })
 
   return { success: true, deletedDocs: childDocIds.length, deletedKnowledge: knowledgeRows.length }
 })

@@ -1,5 +1,6 @@
-import { getDocWithActorRole } from '../../../repos/documents'
+import { getDoc, getDocWithActorRole } from '../../../repos/documents'
 import { deleteDocument } from '../../../utils/documentLifecycle'
+import { appendAuditEvent } from '../../../repos/audit'
 import { decideDocDelete, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 
 // Delete a document. Authorisation is decided by `decideDocDelete`:
@@ -51,6 +52,33 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Not authorized to delete this document' })
   }
 
+  // Snapshot the row BEFORE the delete — once `deleteDocument` runs the
+  // row is gone and we can't reconstruct title/accessMode for the audit
+  // trail. Cheap re-read; cross-checked against `row` already loaded
+  // above (we use this one because `getDoc` returns the title field).
+  const snapshot = await getDoc(docId)
+
   await deleteDocument(docId)
+
+  // Audit AFTER the primary action commits. `appendAuditEvent` swallows
+  // its own failures so a wedged audit table never flips a successful
+  // delete into a 500.
+  await appendAuditEvent({
+    actorUserId: session?.user?.id ?? null,
+    actorIp: ip === 'unknown' ? null : ip,
+    scope: 'doc',
+    scopeId: docId,
+    action: 'doc.deleted',
+    before: snapshot
+      ? {
+          title: snapshot.title,
+          accessMode: snapshot.accessMode,
+          ownerId: snapshot.ownerId,
+          workspaceId: snapshot.workspaceId
+        }
+      : null,
+    after: null,
+    metadata: { reason: 'user_initiated' }
+  })
   return { success: true }
 })

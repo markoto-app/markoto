@@ -24,6 +24,8 @@ This adds mkcert's root CA to your OS/browser trust store. Browsers on this mach
 
 ## 2. Generate the cert
 
+> The `ypad.127.0.0.1.nip.io` hostname is a leftover from the old project codename. It's purely a local-dev hostname for nip.io — not the brand. Renaming would force every dev to regenerate certs, so we keep it.
+
 ```bash
 cd traefik/local
 mkcert -cert-file ypad.127.0.0.1.nip.io.pem \

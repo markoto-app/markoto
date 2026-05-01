@@ -46,6 +46,7 @@ export async function resetDb(): Promise<void> {
   const db = testDb()
   await db.query(`
     TRUNCATE TABLE
+      audit_log,
       activity_log,
       uploads,
       ai_sessions,

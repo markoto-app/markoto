@@ -8,7 +8,7 @@ icon: i-lucide-share-2
 
 # Share
 
-YPad supports four access modes per document — private, open-edit,
+markoto supports four access modes per document — private, open-edit,
 open-view, and password-protected — plus workspace-scoped roles
 (admin / editor / viewer) for team collaboration.
 

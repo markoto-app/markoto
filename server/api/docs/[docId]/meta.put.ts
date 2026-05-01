@@ -1,4 +1,5 @@
-import { updateDocMeta, type MetaUpdate } from '../../../repos/documents'
+import { getDoc, updateDocMeta, type MetaUpdate } from '../../../repos/documents'
+import { appendAuditEvent } from '../../../repos/audit'
 import { isAudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 
@@ -90,6 +91,32 @@ export default defineEventHandler(async (event) => {
     updates.language = trimmed
   }
 
+  // Snapshot the prior access mode BEFORE the write so we can record
+  // the before/after for the audit row. Only fetched when accessMode
+  // is changing — title / description / theme / etc. are user-facing
+  // edits captured by the activity log, not security events.
+  let beforeAccessMode: string | null = null
+  if (updates.accessMode !== undefined) {
+    const snap = await getDoc(docId)
+    beforeAccessMode = snap?.accessMode ?? null
+  }
+
   await updateDocMeta(docId, updates)
+
+  if (updates.accessMode !== undefined && beforeAccessMode !== updates.accessMode) {
+    const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
+      || getRequestHeader(event, 'x-real-ip')
+      || null
+    await appendAuditEvent({
+      actorUserId: session.user.id,
+      actorIp: ip,
+      scope: 'doc',
+      scopeId: docId,
+      action: 'doc.access_mode_changed',
+      before: { accessMode: beforeAccessMode },
+      after: { accessMode: updates.accessMode }
+    })
+  }
+
   return { success: true }
 })

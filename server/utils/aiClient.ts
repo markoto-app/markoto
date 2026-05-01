@@ -108,7 +108,12 @@ export async function createAiSession(
       readOnly: false
     },
     config.jwtSecret,
-    { expiresIn: '1h' }
+    // 10m TTL — sessions are sub-minute in practice (5 min hard
+    // deadline; sweeper kills at 7 min). 1h was an overhang that
+    // gave a leaked AI-session token a usable replay window long
+    // after the session ended; 10m keeps it tight while still
+    // covering pathological loops near the prompt deadline.
+    { expiresIn: '10m' }
   )
 
   const ydoc = new Y.Doc()

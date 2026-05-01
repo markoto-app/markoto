@@ -1,7 +1,9 @@
 {
-  "name": "ypad",
+  "name": "markoto",
   "private": true,
   "type": "module",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Joel Barmettler",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",

@@ -10,6 +10,7 @@ import type { BillingContext } from '../billing'
 import { chargeInteractions, BudgetExhausted } from '../billing'
 import { executeFunctionByName } from '../aiToolAdapter'
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch, fetchUrl } from './functionTools'
+import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from './limits'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
 import { docExists } from '../../repos/documents'
 import {
@@ -33,6 +34,20 @@ import {
  */
 
 const MAX_TURNS = 20
+
+/**
+ * Thrown when a single session crosses `SESSION_INTERACTION_CAP`. The
+ * outer turn-loop catches this and exits via `setStatus('error', …)`
+ * — surfaces to the UI as a "stopped" state rather than a hard throw.
+ * Distinct from `BudgetExhausted` (the per-user monthly cap) so the
+ * billing breadcrumb path doesn't also fire here.
+ */
+class SessionCapExhausted extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SessionCapExhausted'
+  }
+}
 
 /**
  * Emit an `ai.tool` activity row for a meta-tool the AI just used.
@@ -102,14 +117,35 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
   const thinkingBudget = opts.thinkingBudget ?? 0
   const toolDeclarations = opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS
 
+  // Per-session safety counters. Independent of the per-user monthly
+  // budget — these are runaway-loop guards that gate a SINGLE session
+  // from cost-amplifying outliers (50+ interactions, or N+ calls to
+  // image gen / search / etc.). See `limits.ts` for the rationale on
+  // each ceiling. `SessionCapExhausted` propagates out of `charge()`
+  // so the existing turn-loop catch path treats it the same as a
+  // mid-loop billing error: emit setStatus('error', …) and exit.
+  let interactionsThisSession = 0
+  const toolCallCounts = new Map<string, number>()
+
   // Interaction charging. Every AI call site debits the counter
   // before we incur cost. A mid-loop BudgetExhausted terminates
   // the run with a doc breadcrumb instead of a hard throw — users
   // MUST see an explanation in the doc since there's no chat UI.
   const charge = async (delta: number, reason: string): Promise<void> => {
+    // Per-session cap: refuse to charge if THIS run would push
+    // total interactions past the safety ceiling. We check BEFORE
+    // hitting the DB so an exhausted session doesn't bump the
+    // monthly counter further — the run is already off-rails.
+    if (interactionsThisSession + delta > SESSION_INTERACTION_CAP) {
+      log(`[limits] session interaction cap reached (${interactionsThisSession}+${delta} > ${SESSION_INTERACTION_CAP}); aborting`)
+      throw new SessionCapExhausted(
+        `Session interaction cap reached (${SESSION_INTERACTION_CAP}). The agentic loop ran too long; please try a more focused prompt.`
+      )
+    }
     const { attributedTo, plan, periodStart } = billingContext
     const result = await chargeInteractions({ attributedTo, plan, delta, periodStart, reason })
-    log(`[billing] charged ${attributedTo} plan=${plan} delta=${delta} (${reason}; used=${result.used}/${result.used + result.remaining})`)
+    interactionsThisSession += delta
+    log(`[billing] charged ${attributedTo} plan=${plan} delta=${delta} (${reason}; used=${result.used}/${result.used + result.remaining}; session=${interactionsThisSession})`)
   }
   log(`[billing] session resolved: ${billingContext.attributedTo} plan=${billingContext.plan} remaining=${billingContext.interactionsRemaining}`)
 
@@ -160,6 +196,10 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     } catch (e) {
       if (e instanceof BudgetExhausted) {
         emitBudgetBreadcrumb(e)
+        return
+      }
+      if (e instanceof SessionCapExhausted) {
+        setStatus('error', e.message)
         return
       }
       throw e
@@ -277,6 +317,33 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         validatedArgs = call.args ?? {}
       }
 
+      // Per-tool call-count cap. Independent of the per-user budget
+      // — protects a SINGLE session from runaway loops on cost-
+      // amplifying tools (image gen, web search, page render). On
+      // hit, we return a TOOL ERROR (not abort) so the model can
+      // wrap up its response gracefully without further tool use.
+      // Counter is incremented only AFTER passing the cap check, so
+      // a capped tool's "rejection" doesn't itself bump the count.
+      const cap = SESSION_TOOL_CALL_CAPS[call.name]
+      if (typeof cap === 'number') {
+        const used = toolCallCounts.get(call.name) ?? 0
+        if (used >= cap) {
+          log(`[limits] tool call cap reached: ${call.name} (${used}/${cap})`)
+          responseParts.push({
+            functionResponse: {
+              id: call.id,
+              name: call.name,
+              response: {
+                output: `Tool call limit reached for ${call.name} (${cap}). Wrap up your response.`,
+                isError: true
+              }
+            }
+          })
+          continue
+        }
+        toolCallCounts.set(call.name, used + 1)
+      }
+
       let result: { content: string, isError: boolean, extraParts?: NonNullable<Content['parts']> }
       if (call.name === 'web_search') {
         // Safe cast — schema guarantees `{ query: string }`.
@@ -289,6 +356,10 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         } catch (e) {
           if (e instanceof BudgetExhausted) {
             emitBudgetBreadcrumb(e)
+            return
+          }
+          if (e instanceof SessionCapExhausted) {
+            setStatus('error', e.message)
             return
           }
           throw e
@@ -325,6 +396,10 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         } catch (e) {
           if (e instanceof BudgetExhausted) {
             emitBudgetBreadcrumb(e)
+            return
+          }
+          if (e instanceof SessionCapExhausted) {
+            setStatus('error', e.message)
             return
           }
           throw e

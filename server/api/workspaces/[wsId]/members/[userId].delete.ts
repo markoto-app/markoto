@@ -1,7 +1,8 @@
-import { removeMember } from '../../../../repos/workspaceMembers'
+import { getMemberRole, removeMember } from '../../../../repos/workspaceMembers'
 import { listDocIdsInWorkspace } from '../../../../repos/documents'
 import { LastAdminError, NotFoundError, isRepoError } from '../../../../repos/errors'
 import { notifySyncKickUser } from '../../../../utils/syncNotify'
+import { appendAuditEvent } from '../../../../repos/audit'
 
 // Remove a member OR leave the workspace. Same endpoint because "remove"
 // and "leave" are the same underlying row deletion — only the
@@ -27,6 +28,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only admins can remove other members' })
   }
 
+  // Capture the removed member's role BEFORE the delete so the audit
+  // row can record what they had. Cheap extra query — this endpoint
+  // isn't hot-path.
+  const targetRoleBefore = await getMemberRole(wsId, targetUserId)
+
   try {
     await removeMember(wsId, targetUserId)
   } catch (e) {
@@ -43,6 +49,20 @@ export default defineEventHandler(async (event) => {
   // reconnect.
   const wsDocIds = await listDocIdsInWorkspace(wsId)
   notifySyncKickUser(targetUserId, wsDocIds)
+
+  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
+    || getRequestHeader(event, 'x-real-ip')
+    || null
+  await appendAuditEvent({
+    actorUserId: session.user.id,
+    actorIp: ip,
+    scope: 'workspace',
+    scopeId: wsId,
+    action: 'workspace.member_removed',
+    before: { role: targetRoleBefore },
+    after: null,
+    metadata: { affectedUserId: targetUserId, workspaceId: wsId, isSelf }
+  })
 
   return { success: true }
 })

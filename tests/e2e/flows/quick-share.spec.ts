@@ -18,13 +18,13 @@ import { test, expect } from '../fixtures/flow'
 test('Quick share', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  // Preamble: open YPad → click "+ New Document" → dialog opens.
+  // Preamble: open markoto → click "+ New Document" → dialog opens.
   await editor.recordPreamble()
 
   // ─── Set up your document ───────────────────────────────────────
   await flow.heading('Set up your document', 3)
   await flow.narrate(
-    'YPad asks a few quick questions up front: what you\'re writing, who '
+    'markoto asks a few quick questions up front: what you\'re writing, who '
     + 'it\'s for, what language. The AI uses these every time it helps '
     + 'you write — so a one-time minute here saves you re-typing context '
     + 'on every prompt later. All optional; skip to a blank doc anytime.'
@@ -79,7 +79,7 @@ test('Quick share', async ({ page, flow, editor }) => {
   // ─── See the seeded skeleton ────────────────────────────────────
   await flow.heading('Your skeleton is ready', 3)
   await flow.narrate(
-    'YPad pre-fills the doc with the template\'s structure — headings, '
+    'markoto pre-fills the doc with the template\'s structure — headings, '
     + 'a table layout, and HTML comments hinting what to write in each '
     + 'section. The comments are visible while you edit but hidden from '
     + 'the preview, the PDF, and anyone you share the link with.'
@@ -92,7 +92,7 @@ test('Quick share', async ({ page, flow, editor }) => {
   // ─── Share the link ─────────────────────────────────────────────
   await flow.heading('Share the link', 3)
   await flow.narrate(
-    'YPad documents share by URL. Anyone with the link can read or edit, '
+    'markoto documents share by URL. Anyone with the link can read or edit, '
     + 'depending on the access mode you choose. The default for anonymous '
     + 'documents is "open edit" — anyone with the link can edit.'
   )

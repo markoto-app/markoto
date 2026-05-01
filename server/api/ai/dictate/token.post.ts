@@ -59,8 +59,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // `scope: 'dictate'` is critical defense-in-depth. The Hocuspocus
+  // auth path in sync-server/src/auth.ts rejects ANY token that
+  // carries a non-empty `scope` claim, which means a leaked dictate
+  // token can never be replayed against the WS to join the live doc
+  // collab session. The WS handler in routes/api/ai/dictate.ts
+  // additionally verifies `scope === 'dictate'` to reject tokens
+  // minted for any future scope (`render`, `file-access`, …).
   const token = jwt.sign(
-    { userId, docId, kind: 'dictate' },
+    { userId, docId, kind: 'dictate', scope: 'dictate' },
     secret,
     { expiresIn: '60s' }
   )

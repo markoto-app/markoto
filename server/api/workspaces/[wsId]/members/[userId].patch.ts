@@ -2,6 +2,7 @@ import { setRole } from '../../../../repos/workspaceMembers'
 import { listDocIdsInWorkspace } from '../../../../repos/documents'
 import { LastAdminError, NotFoundError, isRepoError } from '../../../../repos/errors'
 import { notifySyncKickUser } from '../../../../utils/syncNotify'
+import { appendAuditEvent } from '../../../../repos/audit'
 
 // Change a member's role. Admin-only.
 //
@@ -51,6 +52,20 @@ export default defineEventHandler(async (event) => {
   // security bug. Reconnect cost is a UI flicker; wrong call is a hole.
   const wsDocIds = await listDocIdsInWorkspace(wsId)
   notifySyncKickUser(targetUserId, wsDocIds)
+
+  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
+    || getRequestHeader(event, 'x-real-ip')
+    || null
+  await appendAuditEvent({
+    actorUserId: session.user.id,
+    actorIp: ip,
+    scope: 'workspace',
+    scopeId: wsId,
+    action: 'workspace.member_role_changed',
+    before: { role: previousRole },
+    after: { role: nextRole },
+    metadata: { affectedUserId: targetUserId, workspaceId: wsId }
+  })
 
   return { success: true }
 })

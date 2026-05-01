@@ -8,7 +8,7 @@ icon: i-lucide-arrow-right-left
 
 # Import & export
 
-Bring existing documents into YPad without losing structure: DOCX,
+Bring existing documents into markoto without losing structure: DOCX,
 PDF, PPTX, XLSX, HTML, EPUB all import via markitdown into clean
 markdown. Export goes the other way — `.md` download or print-to-PDF
 using the document's theme.

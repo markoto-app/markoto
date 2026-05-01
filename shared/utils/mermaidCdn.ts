@@ -14,10 +14,26 @@
  * `mermaid.min.js` exists but doesn't tree-shake; ESM is what the v11
  * docs steer integrations toward.
  *
- * Pinned to a major version. Mermaid follows semver loosely; staying on
- * the v11 channel lets us pick up security fixes without compatibility
- * surprises. Bump the major intentionally and verify diagrams render.
+ * Pinned to a CONCRETE patch version (not the `@11` major channel) so
+ * the bytes-on-the-wire are stable enough to attach an SRI hash to.
+ * The `@11` channel is a moving target — every minor/patch release
+ * silently changes the bytes at the same URL, which would break SRI
+ * on every upgrade. Bump intentionally; verify diagrams render; then
+ * recompute the SRI alongside.
+ *
+ * To bump the version: change MERMAID_VERSION, then run:
+ *   curl -sSL <NEW_URL> | openssl dgst -sha384 -binary | openssl base64 -A
+ * Replace MERMAID_ESM_SRI with `sha384-<new>`. Both must update together.
+ *
+ * NOTE on enforcement: browsers do NOT yet enforce SRI on bare dynamic
+ * `import(...)` calls. The constant below is computed and exported for
+ * future use (import-maps-with-integrity proposal) and for documentation
+ * of the expected bytes, but the actual `import(MERMAID_ESM_URL)` call
+ * sites will not validate it today. Treat mermaid as best-effort SRI
+ * until the spec lands.
  */
-export const MERMAID_VERSION = '11'
+export const MERMAID_VERSION = '11.14.0'
 
 export const MERMAID_ESM_URL = `https://cdn.jsdelivr.net/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.esm.min.mjs`
+
+export const MERMAID_ESM_SRI = 'sha384-QKnqrMjp4QCSqR5R2H+rXW8780iTNp7Y3mwQOMdlAZhMePrlb/UxZJYF+Mqf+kUw'

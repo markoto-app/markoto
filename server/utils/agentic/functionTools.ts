@@ -1,5 +1,6 @@
 import type { GoogleGenAI, FunctionDeclaration } from '@google/genai'
 import { z, type ZodType } from 'zod'
+import { assertSafeUrl } from './urlGuard'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import {
@@ -737,6 +738,13 @@ export async function fetchUrl(
   const url = /^https?:\/\//i.test(rawUrl.trim())
     ? rawUrl.trim()
     : `https://${rawUrl.trim()}`
+
+  // SSRF guard. Reject before forwarding to Gemini's urlContext —
+  // private CIDRs, metadata IPs, link-local, non-HTTP schemes, and
+  // hostnames whose DNS records resolve into private space all throw
+  // here. The error message is descriptive so the model gets a clear
+  // signal to course-correct with a public URL on the next turn.
+  await assertSafeUrl(url)
 
   const response = await ai.models.generateContent({
     model,

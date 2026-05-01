@@ -16,3 +16,18 @@
 export const KATEX_VERSION = '0.16.45'
 
 export const KATEX_CSS_URL = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/katex.min.css`
+
+/**
+ * Subresource Integrity hash for the KaTeX stylesheet. Pinned to the
+ * exact bytes of the URL above. CSS-only attacks are narrower than JS
+ * (no script execution) but a poisoned stylesheet can still exfiltrate
+ * via attribute selectors + url() requests, hide content, or replace
+ * glyphs to alter math rendering — and Workbox would persist the
+ * poisoned bytes for 30 days. Lock it down anyway.
+ *
+ * To bump the version: change KATEX_VERSION above, then run:
+ *   curl -sSL <NEW_URL> | openssl dgst -sha384 -binary | openssl base64 -A
+ * Replace KATEX_CSS_SRI with `sha384-<new>`. Both MUST update together
+ * or the stylesheet will be blocked by the browser.
+ */
+export const KATEX_CSS_SRI = 'sha384-UA8juhPf75SzzAMA/4fo3yOU7sBJ0om7SCD2GHq0fZqZco6tr1UCV7nUbk9J90JM'

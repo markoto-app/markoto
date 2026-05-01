@@ -8,7 +8,7 @@ featured: true
 
 # Write & share your first document
 
-You don't need an account to write something quickly in YPad. Open
+You don't need an account to write something quickly in markoto. Open
 the homepage, start writing, copy the link, and you're ready to send
 it to anyone — they'll see whatever you typed, in real time.
 

@@ -1,6 +1,6 @@
-export const welcomeMarkdown = `# Welcome to YPad
+export const welcomeMarkdown = `# Welcome to markoto
 
-YPad is a collaborative markdown editor. Open this document on a second device or share the URL — anyone you invite sees your edits arrive in real time, and you'll see theirs.
+markoto is a collaborative markdown editor. Open this document on a second device or share the URL — anyone you invite sees your edits arrive in real time, and you'll see theirs.
 
 > [!TIP]
 > Press **Cmd / Ctrl + B** for bold, **Cmd / Ctrl + I** for italic, or open the **File** menu for everything else.
@@ -11,7 +11,7 @@ Anyone with the link can edit by default. Use **File → Sharing** to lock the d
 
 \`\`\`mermaid
 flowchart LR
-  You[You] -- share link --> Doc[YPad document]
+  You[You] -- share link --> Doc[markoto document]
   Doc -- live edits --> Friends[Collaborators]
   Friends -- live edits --> Doc
 \`\`\`

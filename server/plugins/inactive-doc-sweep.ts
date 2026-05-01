@@ -3,6 +3,8 @@ import * as Sentry from '@sentry/nuxt'
 import { documents } from '../db/schema'
 import { deleteDocument } from '../utils/documentLifecycle'
 import { migrationsComplete } from '../utils/migrations'
+import { getDoc } from '../repos/documents'
+import { appendAuditEvent } from '../repos/audit'
 
 // Periodic cleanup of abandoned documents.
 //
@@ -65,7 +67,26 @@ export default defineNitroPlugin((nitroApp) => {
       let reaped = 0
       for (const { docId } of candidates) {
         try {
+          // Snapshot for audit forensics — system-actor row, no IP.
+          const snapshot = await getDoc(docId)
           await deleteDocument(docId)
+          await appendAuditEvent({
+            actorUserId: null,
+            actorIp: null,
+            scope: 'doc',
+            scopeId: docId,
+            action: 'doc.deleted',
+            before: snapshot
+              ? {
+                  title: snapshot.title,
+                  accessMode: snapshot.accessMode,
+                  ownerId: snapshot.ownerId,
+                  workspaceId: snapshot.workspaceId
+                }
+              : null,
+            after: null,
+            metadata: { reason: 'inactive_sweep' }
+          })
           reaped++
         } catch (e) {
           console.warn(`[inactive-doc-sweep] Failed to delete ${docId}:`, e instanceof Error ? e.message : e)

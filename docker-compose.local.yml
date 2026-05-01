@@ -1,5 +1,8 @@
 # Full-stack local run — Traefik with mkcert TLS, all images built from source.
 # Domain: ypad.127.0.0.1.nip.io (nip.io wildcards resolve *.127.0.0.1.nip.io → 127.0.0.1).
+# (The `ypad.` prefix is a leftover from the old project codename — purely a
+#  local-dev hostname, not the brand. Renaming would force every dev to
+#  regenerate certs, so we keep it.)
 # Run: docker compose -f docker-compose.local.yml up -d --build
 #
 # First-time setup: see docs/LOCAL.md.

@@ -1,6 +1,6 @@
 ---
 title: Write
-description: Markdown extensions, formatting, and editor features that make YPad more than a plain markdown editor
+description: Markdown extensions, formatting, and editor features that make markoto more than a plain markdown editor
 category: writing
 order: 2
 icon: i-lucide-pen-line
@@ -8,7 +8,7 @@ icon: i-lucide-pen-line
 
 # Write
 
-YPad ships an opinionated markdown stack — alerts, tables, math,
+markoto ships an opinionated markdown stack — alerts, tables, math,
 diagrams, footnotes — so most documents can stay in plain `.md`
 without losing their visual structure.
 

@@ -361,6 +361,67 @@ export const activityLog = pgTable('activity_log', {
   index('idx_activity_doc').on(table.docId, table.createdAt)
 ])
 
+// Append-only audit log for security-sensitive operations. Distinct
+// from `activity_log` (per-doc user-facing feed of edits/comments/restores)
+// — `audit_log` records WHO changed access controls, deleted content, or
+// touched workspace membership / billing. Different retention policy
+// (no auto-prune; trail must persist), different access surface (admin /
+// internal forensic tools — never user-facing).
+//
+// Append-only by convention: the repo exports no update or delete; the
+// only legitimate way for a row to disappear is the `set null` FK on
+// actor_user_id (when a user account is purged) or a manual DBA action.
+//
+// `actor_ip` is truncated to /24 (IPv4) or /48 (IPv6) before storage to
+// honour pseudonymisation under GDPR — full IPs are never persisted.
+//
+// Failures to write here MUST NOT propagate into the caller. The user's
+// primary action (delete, role change, etc.) has already committed by
+// the time the audit row is appended; failing the request because audit
+// logging is wedged would be worse than a missing audit row. The repo
+// swallows + Sentry-captures.
+export const auditLog = pgTable('audit_log', {
+  id: serial('id').primaryKey(),
+  ts: timestamp('ts', { withTimezone: true }).notNull().defaultNow(),
+  // Who did the thing. Null for system actions (sweepers, internal).
+  // `set null` so user-account deletion preserves the historical row
+  // (the audit trail is more valuable than the FK).
+  actorUserId: integer('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  // Captured at action time, truncated to /24 (IPv4) / /48 (IPv6).
+  // Null for server-internal actions.
+  actorIp: text('actor_ip'),
+  // What kind of thing was acted on. The (scope, scope_id) pair is the
+  // primary cross-axis filter for the audit query UI. Text-enum (not
+  // pgEnum) so adding values is TS-only.
+  scope: text('scope', { enum: ['doc', 'workspace', 'user', 'billing', 'system'] }).notNull(),
+  // The id of the scoped entity. Doc id (text), workspace id (text),
+  // user id (number-as-text). Stored as text for uniformity across
+  // scopes; the consumer interprets it per-scope.
+  scopeId: text('scope_id'),
+  // The action namespace + verb. Examples:
+  //   'doc.deleted', 'doc.access_mode_changed', 'doc.password_set',
+  //   'doc.password_removed', 'doc.workspace_moved',
+  //   'workspace.member_removed', 'workspace.member_role_changed',
+  //   'workspace.deleted', 'workspace.billing_owner_changed',
+  //   'user.session_invalidated', 'billing.plan_changed'.
+  // Always lowercase, dot-separated, namespace-first.
+  action: text('action').notNull(),
+  // State before the action. JSONB so we can shape per-action.
+  // Example for 'doc.access_mode_changed': { accessMode: 'open-edit' }.
+  // Never stores secrets — passwords are recorded as { hasPassword: bool }.
+  before: jsonb('before'),
+  // State after.
+  after: jsonb('after'),
+  // Free-form context. Examples: { reason: 'workspace_cascade' },
+  // { affectedUserId: 42 }, { stripeEventId: 'evt_xxx' }.
+  metadata: jsonb('metadata')
+}, t => [
+  // Most queries are "show me audit events for this scoped entity".
+  index('idx_audit_scope').on(t.scope, t.scopeId, t.ts.desc()),
+  // "Show me everything actor X did" — for investigating compromised accounts.
+  index('idx_audit_actor').on(t.actorUserId, t.ts.desc())
+])
+
 // Postgres mirror of the doc's comment threads. Y.js is the source of
 // truth (live sync, anchor positions, reactivity). This table is a
 // best-effort write-side index that lets us answer cross-doc questions

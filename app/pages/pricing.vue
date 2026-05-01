@@ -175,7 +175,7 @@ function onClose(): void {
 }
 
 useHead({
-  title: t('pricing.title') + ' · YPad'
+  title: t('pricing.title') + ' · markoto'
 })
 </script>
 

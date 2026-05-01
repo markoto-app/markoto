@@ -1,7 +1,9 @@
 {
-  "name": "ypad-sync-server",
+  "name": "markoto-sync-server",
   "private": true,
   "type": "module",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Joel Barmettler",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",

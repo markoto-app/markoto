@@ -2,9 +2,9 @@ import type { Ref } from 'vue'
 import type { DocTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
-import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
+import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
-import { KATEX_CSS_URL } from '~~/shared/utils/katexCdn'
+import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 // Iframe bootstrap document — lives in its own .html file so backticks
 // don't need escaping and the HTML/CSS/JS gets proper syntax highlighting.
@@ -163,7 +163,9 @@ export function usePagedPreview(opts: {
     // unreplaced and paged.js would never load.
     iframe.srcdoc = IFRAME_BOOTSTRAP
       .replaceAll('__PAGEDJS_POLYFILL_URL__', PAGEDJS_POLYFILL_URL)
+      .replaceAll('__PAGEDJS_POLYFILL_SRI__', PAGEDJS_POLYFILL_SRI)
       .replaceAll('__KATEX_CSS_URL__', KATEX_CSS_URL)
+      .replaceAll('__KATEX_CSS_SRI__', KATEX_CSS_SRI)
       .replaceAll('__MERMAID_ESM_URL__', MERMAID_ESM_URL)
     opts.container.value.appendChild(iframe)
   })

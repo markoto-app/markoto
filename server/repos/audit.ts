@@ -1,0 +1,168 @@
+import { and, desc, eq, lt } from 'drizzle-orm'
+import * as Sentry from '@sentry/nuxt'
+import { auditLog } from '../db/schema'
+import { useDatabase } from '../utils/database'
+
+// Audit-log repository. Append-only: there is no `updateAuditEvent` and
+// no `deleteAuditEvent` on purpose — once written, a row is immutable.
+// The only legitimate way for a row to disappear is the `set null` FK
+// on actor_user_id (when a user account is purged) or a manual DBA
+// action.
+//
+// See `schema.ts` for the data-model rationale and §4 in AGENTS.md for
+// where audit fits in the security model.
+
+export type AuditScope = 'doc' | 'workspace' | 'user' | 'billing' | 'system'
+
+export interface AppendAuditEventArgs {
+  actorUserId: number | null
+  actorIp: string | null
+  scope: AuditScope
+  scopeId: string | null
+  action: string
+  before?: unknown
+  after?: unknown
+  metadata?: Record<string, unknown>
+}
+
+export interface AuditEventRow {
+  id: number
+  ts: Date
+  actorUserId: number | null
+  actorIp: string | null
+  scope: AuditScope
+  scopeId: string | null
+  action: string
+  before: unknown
+  after: unknown
+  metadata: Record<string, unknown> | null
+}
+
+/**
+ * Truncate an IP for GDPR pseudonymisation.
+ *
+ *   IPv4: drop the last octet  (192.168.1.42  → 192.168.1.0)
+ *   IPv6: keep first 3 hextets (2001:db8:85a3:…  → 2001:db8:85a3::)
+ *
+ * Returns null for null / empty / unparseable input. Conservative on
+ * malformed strings — if we can't reason about the format, drop the
+ * whole field rather than store something half-truncated.
+ */
+export function truncateIp(ip: string | null): string | null {
+  if (!ip) return null
+  const trimmed = ip.trim()
+  if (!trimmed) return null
+
+  // IPv4 (and IPv4-mapped IPv6 like ::ffff:192.0.2.1 — we don't bother
+  // unwrapping; treat them as IPv6 and let the hextet truncation drop
+  // the embedded address).
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(trimmed)) {
+    const parts = trimmed.split('.')
+    if (parts.some(p => Number(p) > 255)) return null
+    return `${parts[0]}.${parts[1]}.${parts[2]}.0`
+  }
+
+  // IPv6: keep first 3 hextets, append `::` to mark the rest masked.
+  // Accept compressed (`::`) and full forms.
+  if (trimmed.includes(':')) {
+    // Expand the `::` shortcut into explicit zero hextets so we can
+    // reliably take the first 3.
+    let parts: string[]
+    if (trimmed.includes('::')) {
+      const [left, right] = trimmed.split('::')
+      const leftParts = left ? left.split(':') : []
+      const rightParts = right ? right.split(':') : []
+      const fillCount = 8 - leftParts.length - rightParts.length
+      if (fillCount < 0) return null
+      parts = [...leftParts, ...Array(fillCount).fill('0'), ...rightParts]
+    } else {
+      parts = trimmed.split(':')
+    }
+    if (parts.length < 3) return null
+    if (parts.some(p => !/^[0-9a-fA-F]{0,4}$/.test(p))) return null
+    // Strip leading zeros per RFC 5952 so the stored form is canonical.
+    const head = parts.slice(0, 3).map(p => p.replace(/^0+(?=.)/, '').toLowerCase())
+    return `${head.join(':')}::`
+  }
+
+  return null
+}
+
+/**
+ * Append an audit event. Swallows write failures: the user's primary
+ * action has already committed by the time we get here, and a wedged
+ * audit table must not flip a successful action into an error response.
+ * Failures are reported to Sentry + logged so they're observable
+ * without affecting the request path.
+ */
+export async function appendAuditEvent(args: AppendAuditEventArgs): Promise<void> {
+  try {
+    const db = useDatabase()
+    await db.insert(auditLog).values({
+      actorUserId: args.actorUserId,
+      actorIp: truncateIp(args.actorIp),
+      scope: args.scope,
+      scopeId: args.scopeId,
+      action: args.action,
+      before: args.before === undefined ? null : args.before,
+      after: args.after === undefined ? null : args.after,
+      metadata: args.metadata ?? null
+    })
+  } catch (e) {
+    console.error('[audit] append failed:', e instanceof Error ? e.message : e)
+    Sentry.captureException(e, {
+      tags: { component: 'audit', event: 'append_failed', auditAction: args.action }
+    })
+    // Deliberately do NOT rethrow.
+  }
+}
+
+/**
+ * List audit events for a (scope, scopeId) tuple. Tuple-keyed so a
+ * caller asking for `('doc', 'A')` cannot leak rows from `('doc', 'B')`
+ * — same isolation pattern as `getActivityById` / `/diff` / `/comment-context`.
+ *
+ * Pagination via `beforeId` (cursor — most-recent-first); pass the
+ * smallest `id` from the previous page to fetch older rows.
+ */
+export async function getAuditEventsByScope(
+  scope: AuditScope,
+  scopeId: string,
+  opts: { limit?: number, beforeId?: number } = {}
+): Promise<AuditEventRow[]> {
+  const db = useDatabase()
+  const limit = Math.min(Math.max(opts.limit ?? 50, 1), 500)
+  const where = opts.beforeId !== undefined
+    ? and(eq(auditLog.scope, scope), eq(auditLog.scopeId, scopeId), lt(auditLog.id, opts.beforeId))
+    : and(eq(auditLog.scope, scope), eq(auditLog.scopeId, scopeId))
+  const rows = await db
+    .select()
+    .from(auditLog)
+    .where(where)
+    .orderBy(desc(auditLog.ts), desc(auditLog.id))
+    .limit(limit)
+  return rows as AuditEventRow[]
+}
+
+/**
+ * List audit events triggered by a specific actor. Used for
+ * "investigate compromised account" workflows — admin enters a user id,
+ * sees every security-sensitive action that user has performed.
+ */
+export async function getAuditEventsByActor(
+  actorUserId: number,
+  opts: { limit?: number, beforeId?: number } = {}
+): Promise<AuditEventRow[]> {
+  const db = useDatabase()
+  const limit = Math.min(Math.max(opts.limit ?? 50, 1), 500)
+  const where = opts.beforeId !== undefined
+    ? and(eq(auditLog.actorUserId, actorUserId), lt(auditLog.id, opts.beforeId))
+    : eq(auditLog.actorUserId, actorUserId)
+  const rows = await db
+    .select()
+    .from(auditLog)
+    .where(where)
+    .orderBy(desc(auditLog.ts), desc(auditLog.id))
+    .limit(limit)
+  return rows as AuditEventRow[]
+}

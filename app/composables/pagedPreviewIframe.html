@@ -3,7 +3,16 @@
 
   Loaded as a raw string via `?raw` import in usePagedPreview.ts, with the
   URL placeholders (__PAGEDJS_POLYFILL_URL__, __KATEX_CSS_URL__,
-  __MERMAID_ESM_URL__) replaced at mount time. Holds the preview's CSS
+  __MERMAID_ESM_URL__) AND the matching SRI placeholders
+  (__PAGEDJS_POLYFILL_SRI__, __KATEX_CSS_SRI__) replaced at mount time.
+  The `<script>` for paged.js and the `<link>` for KaTeX both carry
+  `integrity=` + `crossorigin="anonymous"` — required because
+  cdn.jsdelivr.net is a different origin and SRI on cross-origin
+  resources only fires when the request is made in CORS mode.
+  Mermaid's SRI is computed too (see shared/utils/mermaidCdn.ts) but
+  cannot currently be applied: it loads via dynamic `import()` which
+  browsers do not yet validate against an integrity attribute.
+  Holds the preview's CSS
   chrome (page card background, drop shadow, scroll behavior); the theme
   CSS that defines `@page` rules, body styles, and headers/footers is
   pushed in dynamically per render via `window.__renderDoc`.
@@ -82,7 +91,7 @@
 <!-- KaTeX stylesheet — static, doesn't change with theme. Loaded
      statically in head so the math glyph fonts start fetching as soon
      as the iframe initializes. -->
-<link rel="stylesheet" href="__KATEX_CSS_URL__">
+<link rel="stylesheet" href="__KATEX_CSS_URL__" integrity="__KATEX_CSS_SRI__" crossorigin="anonymous">
 <style id="theme-fonts"></style>
 <style id="theme-css"></style>
 </head>
@@ -90,7 +99,7 @@
 <div id="mount" class="paged-mount"></div>
 <div id="pending" class="paged-mount"></div>
 <script>window.PagedConfig = { auto: false };</script>
-<script src="__PAGEDJS_POLYFILL_URL__" onerror="window.parent.postMessage({type:'iframe-error',message:'Could not load paged.js polyfill from CDN. Check your network connection.'}, '*')"></script>
+<script src="__PAGEDJS_POLYFILL_URL__" integrity="__PAGEDJS_POLYFILL_SRI__" crossorigin="anonymous" onerror="window.parent.postMessage({type:'iframe-error',message:'Could not load paged.js polyfill from CDN. Check your network connection.'}, '*')"></script>
 <script>
 (function() {
   // 'targetOrigin' is intentionally '*' for srcdoc iframes — they have an
@@ -221,6 +230,13 @@
     var lastMermaidTheme = null;
     function ensureMermaid(theme) {
       if (!mermaidPromise) {
+        // NOTE: dynamic import() does not currently support SRI in any
+        // browser. MERMAID_ESM_SRI is computed and exported from
+        // shared/utils/mermaidCdn.ts for documentation + future use
+        // (import-maps-with-integrity proposal) but cannot be enforced
+        // here. This is the one CDN load in the app where SRI is
+        // best-effort rather than enforced — accept the residual risk
+        // until browsers ship integrity validation for `import()`.
         mermaidPromise = import('__MERMAID_ESM_URL__').then(function (mod) {
           return mod.default;
         }).catch(function (err) {
