@@ -1,0 +1,31 @@
+---
+# Roll back to a specific IMAGE_TAG.
+# Usage: ansible-playbook playbooks/rollback.yml -e target_image_tag=v1.2.3
+- name: Roll back markoto to a previous image tag
+  hosts: markoto
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/all.vault.yml
+  pre_tasks:
+    - name: Validate target_image_tag is set
+      ansible.builtin.fail:
+        msg: "Pass the rollback target with `-e target_image_tag=<tag>`."
+      when: target_image_tag is not defined or target_image_tag | length == 0
+
+    - name: Override image_tag for this run
+      ansible.builtin.set_fact:
+        image_tag: "{{ target_image_tag }}"
+  roles:
+    - role: markoto
+
+  post_tasks:
+    - name: Tag rollback in deploys.log
+      ansible.builtin.lineinfile:
+        path: "{{ markoto_root }}/deploys.log"
+        line: "{{ ansible_date_time.iso8601 }} ROLLBACK to image_tag={{ image_tag }}"
+        create: true
+        owner: "{{ markoto_user }}"
+        group: "{{ markoto_user }}"
+        mode: "0640"

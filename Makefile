@@ -3,6 +3,9 @@
         dev-up dev-down dev-logs dev-clean \
         prod-up prod-down prod-logs prod-pull
 
+# Each env file pulls in docker-compose.base.yml via Compose's `include:`
+# directive (Compose v2.20+). Single -f flag is enough; the merge is
+# transparent. See AGENTS.md §5.
 LOCAL := docker compose -f docker-compose.local.yml
 DEV   := docker compose -f docker-compose.dev.yml
 PROD  := docker compose -f docker-compose.prod.yml

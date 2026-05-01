@@ -1,0 +1,161 @@
+# Shared service definitions consumed by dev / local / prod via Compose's
+# `include:` directive (Docker Compose v2.20+).
+#
+# Why this exists: dev/local/prod previously duplicated ~80 % of every
+# service block. Drift was real — pool sizing, mem_limit, healthcheck
+# shapes, Valkey password + TLS opt-in, security headers had to be
+# touched in 2-3 places per change. This file is the single source of
+# truth for the common shape; each env file overrides only what's
+# genuinely environment-specific.
+#
+# Semantics reminder (Compose merge):
+#   - environment: map-merged (per-key override) — good
+#   - command:     REPLACED wholesale by override (gotcha)
+#   - volumes:     REPLACED wholesale by override (gotcha)
+#   - depends_on:  REPLACED wholesale by override (gotcha)
+#   - networks:    REPLACED wholesale by override (gotcha)
+#   - ports/expose: REPLACED per-key, but they're different keys so
+#                   defining `expose` in base + `ports` in override
+#                   leaves both in the merged result. Harmless.
+#
+# This file is NOT directly runnable — it has no top-level networks
+# and intentionally leaves env-specific knobs unset. Pair it with one
+# of docker-compose.{dev,local,prod}.yml.
+#
+# `docker-compose.test.yml` does NOT include this base: test infra
+# uses suffixed service names (postgres-test, valkey-test, etc.) on
+# different ports with tmpfs storage — almost no shared shape.
+
+services:
+  postgres:
+    # pgvector/pgvector is Postgres 16 with the `vector` extension
+    # pre-built. Drop-in for postgres:16-alpine — data directory +
+    # client protocol identical. CREATE EXTENSION vector runs in the
+    # first migration.
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  valkey:
+    image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
+    restart: unless-stopped
+    # AOF with fsync-every-second is a fine trade for rate-limit data:
+    # worst case we lose ≤1s of hits on crash, sliding windows self-heal.
+    # 1gb headroom for rate-limit + presence + render-singleflight +
+    # sweep-lock keyspaces under sustained load. allkeys-lru is correct
+    # for our shape (cache-with-some-locks); locks have short TTLs and
+    # the rate-limit fail-open path is documented.
+    #
+    # Strict `${VALKEY_PASSWORD:?required}` here. dev/test use a soft
+    # fallback (`:-devpassword`) by overriding `command:` wholesale —
+    # `command:` is REPLACED on merge, not concatenated.
+    command:
+      - "valkey-server"
+      - "--requirepass"
+      - "${VALKEY_PASSWORD:?VALKEY_PASSWORD required}"
+      - "--appendonly"
+      - "yes"
+      - "--appendfsync"
+      - "everysec"
+      - "--maxmemory"
+      - "1gb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${VALKEY_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - valkey_data:/data
+
+  # NOTE: `seaweedfs` is defined per-env in dev/local (not in base).
+  # Compose's `include:` always merges every service from the included
+  # file — there's no way to "drop" a service downstream. Prod uses
+  # external S3 and would otherwise inherit a phantom seaweedfs +
+  # seaweed_data volume. Two-line duplication in dev/local is the
+  # cheaper trade.
+
+  sync:
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      - PORT=4001
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+      - VALKEY_DB=${VALKEY_DB:-0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  markitdown:
+    restart: unless-stopped
+
+  # Backend PDF + PNG renderer. Playwright + Chromium drives the
+  # paged.js preview pipeline against /_internal/render/:docId on the
+  # app. Internal-network-only in prod/local; dev publishes 9000 so the
+  # host `bun run dev` can call it directly.
+  renderer:
+    restart: unless-stopped
+    stop_grace_period: 30s
+    # Cap memory: a doc with hundreds of inline images can OOM Chromium
+    # silently. 2 GB is comfortable for typical loads (≤50 pages, ≤30
+    # images) and lets multiple concurrent renders coexist with the
+    # host. Below ~1 GB Chromium becomes unstable; above 4 GB rarely
+    # buys anything for paginated docs.
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:9000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      # Cold-start budget: Playwright launches Chromium lazily on the
+      # first /render request, but the HTTP server itself is up within
+      # a second. Give it 30s anyway so a slow image fetch doesn't trip
+      # the healthcheck and trigger a restart loop.
+      start_period: 30s
+      retries: 3
+    environment:
+      - PORT=9000
+      - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
+      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
+      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
+      - S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
+
+  backup:
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY}
+      - S3_BUCKET=${NUXT_S3_BUCKET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  valkey_data:
+  # `seaweed_data` is declared per-env in dev/local (see seaweedfs note above).

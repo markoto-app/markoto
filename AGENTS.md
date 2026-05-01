@@ -172,12 +172,23 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 
 | File | Scope | TLS | Use |
 |---|---|---|---|
-| `docker-compose.dev.yml` | Infra only (postgres, valkey, seaweedfs, sync, markitdown, backup) — Nuxt on host | — | Daily dev with HMR |
-| `docker-compose.local.yml` | Full stack incl. Traefik | mkcert on `ypad.127.0.0.1.nip.io` | Pre-push full-stack verification |
-| `docker-compose.prod.yml` | Full stack incl. Traefik | Let's Encrypt | VPS deploy |
-| `docker-compose.test.yml` | Integration test infra (+ `--profile flows` for the e2e stack) | — | `bun run test:integration` / `bun run flows:test` |
+| `docker-compose.base.yml` | Shared service shape (postgres, valkey, sync, markitdown, renderer, backup) — pulled in by dev/local/prod via `include:` | — | Not run directly |
+| `docker-compose.dev.yml` | Infra only (base + seaweedfs; ports published to host, valkey password fallback) — Nuxt on host | — | Daily dev with HMR |
+| `docker-compose.local.yml` | Full stack — base + Traefik + `app` + seaweedfs on the `internal` network | mkcert on `ypad.127.0.0.1.nip.io` | Pre-push full-stack verification |
+| `docker-compose.prod.yml` | Full stack — base + Traefik + ACME + security headers + GHCR images | Let's Encrypt | VPS deploy |
+| `docker-compose.test.yml` | Standalone test infra (+ `--profile flows` for the e2e stack). Does NOT include base — uses `-test`-suffixed services with tmpfs storage | — | `bun run test:integration` / `bun run flows:test` |
 
-Three standalone files — no shared base. Dev: `bun run dev --host 0.0.0.0` (0.0.0.0 so sync container can reach via `host.docker.internal`). Ports: Postgres 5432, Valkey 6379, SeaweedFS 8333, Hocuspocus 4001, markitdown 8080. **Postgres image** is `pgvector/pgvector:pg16` everywhere.
+Dev/local/prod use Compose's `include:` directive (Compose v2.20+, July 2023) to pull in `docker-compose.base.yml`. Each env file then overrides only what's truly env-specific: image vs build, ports vs expose, mem_limit, security headers labels, env-key passthrough. **User commands stay one-flag** — `docker compose -f docker-compose.dev.yml up -d` works as before; the include is transparent. Verified by running `docker compose -f X config` before/after the refactor and getting byte-identical output for all four envs.
+
+**Why this overrode the previous "no shared base" decision:** the original three-standalone-files rule was a clarity bet — every env was self-contained, no merge ordering to reason about. After phases 4 and 9 added pool sizing, mem_limit, healthcheck shapes, valkey password + TLS opt-in, Postgres TLS env vars, and security-headers labels, every change had to be replicated in 2-3 places by hand. The duplication cost grew enough to outweigh the simplicity-of-standalone trade. `include:` (vs the `-f base.yml -f override.yml` two-file form) preserves the single-file invocation that everyone in the team has memorised.
+
+**Compose merge gotchas baked into the split:**
+- `environment:` map-merges per key — base provides the shared keys, overrides add per-env ones.
+- `command:`, `volumes:`, `depends_on:`, `networks:` are REPLACED wholesale on merge, not concatenated. `command:` for valkey is redefined in dev to swap `${VALKEY_PASSWORD:?required}` for `${VALKEY_PASSWORD:-devpassword}`.
+- `seaweedfs` is defined inline in dev/local (NOT in base) because `include:` has no "drop service" mechanic — putting it in base would leak a phantom seaweedfs + seaweed_data volume into prod, which uses external S3.
+- `ports:` and `expose:` are different keys and don't replace each other; the merged result can list both. Harmless.
+
+Dev: `bun run dev --host 0.0.0.0` (0.0.0.0 so sync container can reach via `host.docker.internal`). Ports: Postgres 5432, Valkey 6379, SeaweedFS 8333, Hocuspocus 4001, markitdown 8080. **Postgres image** is `pgvector/pgvector:pg16` everywhere.
 
 Prod key points: postgres healthcheck gates `app` + `sync` startup; `stop_grace_period: 30s`; Traefik healthcheck labels on `/api/health` + `/health`; backup sidecar pipes `pg_dump | gzip | aws s3 cp`; Dockerfile **must `COPY drizzle/`** into runtime image.
 
@@ -430,6 +441,8 @@ For the per-feature deep-dive, follow the sub-AGENTS.md links.
 | Implicit Gemini prefix cache, no explicit `ai.caches.create` | Automatic prefix cache handles within-loop + cross-user system-prompt sharing for free; explicit caching has minimum-size + TTL-refresh overhead that doesn't pay off on our traffic |
 | Flow tests double as docs | A separate "tour the editor" docs system + e2e suite would drift apart. Sharing the same artefact forces both honest |
 | Single shared test compose with profiles | A separate `docker-compose.flows.yml` hit the `--remove-orphans` footgun (compose project namespace shared with dev infra). One compose file under `--profile flows` |
+| Compose `include:` over `-f base.yml -f override.yml` | Preserves single-file user invocation (`docker compose -f docker-compose.dev.yml up -d`). Two-file form would force every team-member muscle-memory rewrite + every doc + every script. `include:` is Compose v2.20+ (mid-2023); we already require newer compose features (`profiles`, `--wait`) |
+| `seaweedfs` defined per-env (not in base) | Compose's `include:` always merges every service from the included file — there's no "drop service" mechanic. Putting seaweedfs in base would leak a phantom service + volume into prod (which uses external S3). Two-line duplication in dev+local is the cheaper trade |
 
 For feature-specific decisions (restore reversibility, AI tool design, knowledge pipeline, etc.) see the sub-AGENTS.md for that area.
 

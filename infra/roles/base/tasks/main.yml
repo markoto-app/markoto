@@ -1,0 +1,153 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install operational packages
+  ansible.builtin.apt:
+    name:
+      - ufw
+      - fail2ban
+      - gnupg
+      - curl
+      - htop
+      - ncdu
+      - jq
+      - python3-docker
+      - python3-requests
+      - ca-certificates
+      - unattended-upgrades
+    state: present
+
+- name: Set timezone to UTC
+  community.general.timezone:
+    name: "{{ host_timezone }}"
+
+- name: Configure journald for persistent storage
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/markoto.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (markoto/base role).
+      [Journal]
+      Storage=persistent
+      SystemMaxUse=2G
+      SystemMaxFileSize=200M
+      Compress=yes
+  notify: restart journald
+
+- name: Allow SSH through ufw
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow HTTP through ufw
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+- name: Allow HTTPS through ufw
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+
+- name: Set ufw default policies (deny incoming, allow outgoing)
+  community.general.ufw:
+    direction: "{{ item.dir }}"
+    policy: "{{ item.pol }}"
+  loop:
+    - { dir: incoming, pol: deny }
+    - { dir: outgoing, pol: allow }
+
+- name: Enable ufw
+  community.general.ufw:
+    state: enabled
+    logging: low
+
+- name: Configure fail2ban sshd jail
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/sshd-markoto.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (markoto/base role).
+      [sshd]
+      enabled = true
+      port    = 22
+      maxretry = 5
+      findtime = 600
+      bantime = 3600
+  notify: restart fail2ban
+
+- name: Ensure fail2ban running
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Create markoto group
+  ansible.builtin.group:
+    name: "{{ markoto_user }}"
+    state: present
+
+- name: Create markoto user (sudoer, docker group added later by the docker role)
+  ansible.builtin.user:
+    name: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    groups:
+      - sudo
+    append: true
+    shell: /bin/bash
+    create_home: true
+    state: present
+
+- name: Allow markoto user passwordless sudo
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/markoto
+    owner: root
+    group: root
+    mode: "0440"
+    content: "{{ markoto_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    validate: /usr/sbin/visudo -cf %s
+
+- name: Install root's authorized_keys for the markoto user
+  ansible.posix.authorized_key:
+    user: "{{ markoto_user }}"
+    state: present
+    key: "{{ lookup('file', lookup('env', 'HOME') ~ '/.ssh/id_ed25519.pub') }}"
+  ignore_errors: true  # If id_ed25519.pub missing, document the override and proceed.
+
+- name: LUKS root-volume verification (warn-only)
+  ansible.builtin.shell: |
+    set -o pipefail
+    awk '$2 == "/" {print $1}' /proc/mounts | head -1
+  args:
+    executable: /bin/bash
+  register: root_device
+  changed_when: false
+
+- name: Inspect root device for LUKS crypt mapping
+  ansible.builtin.shell: |
+    set -o pipefail
+    lsblk -no TYPE "{{ root_device.stdout }}" 2>/dev/null | grep -q crypt && echo "encrypted" || echo "plain"
+  args:
+    executable: /bin/bash
+  register: luks_status
+  changed_when: false
+  failed_when: false
+
+- name: Warn if root volume is not LUKS-encrypted
+  ansible.builtin.debug:
+    msg: |
+      WARNING: root volume {{ root_device.stdout }} is NOT LUKS-encrypted (status={{ luks_status.stdout }}).
+      Some OVH plans do not expose volume-level LUKS. See docs/DEPLOY-OVH.md §1.5.
+      Local disk holds .env, valkey AOF, traefik acme.json. Decide whether
+      provider-side encryption-at-rest is sufficient for your threat model.
+  when: luks_status.stdout != 'encrypted'

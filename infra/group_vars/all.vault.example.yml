@@ -1,0 +1,51 @@
+---
+# Vault template — copy to all.vault.yml, fill in, then:
+#   ansible-vault encrypt group_vars/all.vault.yml
+#
+# Every value below is referenced in templates/env.j2 (which renders the
+# .env file the compose stack reads). Missing values cause the playbook
+# to fail loudly at template-render time, not at compose-up time.
+#
+# Generation hints inline. Re-read docs/SECRETS-ROTATION.md before rotating
+# anything tagged "never-rotate" (the backup gpg passphrase in particular).
+
+# ─── App secrets (≥32 chars; openssl rand -hex 32) ───
+nuxt_session_password: "REPLACE_ME"        # openssl rand -base64 48
+nuxt_jwt_secret: "REPLACE_ME"              # openssl rand -hex 64
+nuxt_internal_api_secret: "REPLACE_ME"     # openssl rand -hex 32
+
+# Optional rotation slots — leave empty unless mid-rollover.
+nuxt_jwt_secret_previous: ""
+nuxt_internal_api_secret_previous: ""
+
+# ─── Postgres / Valkey credentials ───
+postgres_password: "REPLACE_ME"            # ≥24 chars
+valkey_password: "REPLACE_ME"              # ≥32 chars; openssl rand -hex 32
+
+# ─── External S3 (OVH Object Storage / Infomaniak / R2 / etc.) ───
+nuxt_s3_endpoint: "REPLACE_ME"             # e.g. https://s3.gra.io.cloud.ovh.net
+nuxt_s3_access_key: "REPLACE_ME"
+nuxt_s3_secret_key: "REPLACE_ME"
+nuxt_s3_bucket: "REPLACE_ME"
+
+# ─── Google AI keys (split — see AGENTS.md §7) ───
+nuxt_google_gemini_api_key: "REPLACE_ME"
+nuxt_google_speech_to_text_api_key: "REPLACE_ME"
+# Optional dedicated dictation-JWT secret. Empty falls back to nuxt_jwt_secret.
+nuxt_google_dictate_jwt_secret: ""
+
+# ─── OAuth (optional pairs — both-or-neither per provider) ───
+nuxt_oauth_github_client_id: ""
+nuxt_oauth_github_client_secret: ""
+nuxt_oauth_google_client_id: ""
+nuxt_oauth_google_client_secret: ""
+
+# ─── Sentry (optional) ───
+nuxt_public_sentry_dsn: ""
+sentry_dsn: ""
+
+# ─── Backup encryption (NEVER-ROTATE — see SECRETS-ROTATION.md) ───
+# openssl rand -base64 48
+# Copy this value into your password manager BEFORE any rotation:
+# rotating invalidates every backup taken under the old passphrase.
+backup_gpg_passphrase: "REPLACE_ME"

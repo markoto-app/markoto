@@ -1,0 +1,13 @@
+---
+# Idempotent app deploy. Pulls images per IMAGE_TAG, syncs compose files,
+# renders .env, runs compose up -d, polls /api/health.
+- name: Deploy markoto stack
+  hosts: markoto
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/all.vault.yml
+  roles:
+    - role: markoto
+    - role: backup_cron

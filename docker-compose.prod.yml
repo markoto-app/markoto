@@ -7,6 +7,15 @@
 # Policy: every `${VAR}` substitution below uses `:?` so a missing .env
 # entry crashes `docker compose up` instead of silently booting with an
 # empty value or a hidden default. The single source of truth is .env.
+#
+# Common service shape lives in docker-compose.base.yml (see header).
+# This file overrides image tags (build → registry), hardens posture
+# (expose-only, mem_limit), wires the `web`/`internal` networks, adds
+# Traefik with Let's Encrypt + the security-headers middleware, and
+# attaches Postgres TLS env vars + the SENTRY/OAuth secret pass-through.
+
+include:
+  - docker-compose.base.yml
 
 networks:
   web:
@@ -39,69 +48,21 @@ services:
       - web
 
   postgres:
-    # pgvector/pgvector is Postgres 16 with the `vector` extension
-    # pre-built. Required for the workspace knowledge base's
-    # embedding-column + HNSW index. See docker-compose.dev.yml.
-    image: pgvector/pgvector:pg16
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER required}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
-      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     expose:
       - "5432"
     networks:
       - internal
 
   valkey:
-    image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
-    restart: unless-stopped
-    # Password-protected. AOF with fsync-every-second gives durability
-    # adequate for rate-limit + session-lock keyspace.
-    # maxmemory caps container RAM; allkeys-lru keeps hot keys under pressure.
-    #
-    # Alert if evicted_keys > 0 sustained or used_memory > 800mb. With the
-    # rate-limit + presence + render-singleflight + sweep-lock keyspace
-    # we expect well under 100MB at typical traffic; eviction means the
-    # limits are silently bypassing.
-    command:
-      - "valkey-server"
-      - "--requirepass"
-      - "${VALKEY_PASSWORD:?VALKEY_PASSWORD required}"
-      - "--appendonly"
-      - "yes"
-      - "--appendfsync"
-      - "everysec"
-      - "--maxmemory"
-      - "1gb"
-      - "--maxmemory-policy"
-      - "allkeys-lru"
-    # `--no-auth-warning` suppresses valkey-cli's stderr nag about passing
-    # the password on the command line. The env var is already visible via
-    # `docker inspect` so the warning adds noise without buying anything.
-    healthcheck:
-      test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${VALKEY_PASSWORD}", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
     # `expose:` keeps Valkey on the docker `internal` network only — no
-    # host port. The threat model in docs/SECURITY-HARDENING.md explicitly
-    # treats the docker bridge as the trust boundary; publishing 6379 to
-    # the VPS host would let any process on the box hit Valkey even if
-    # firewalled at the network edge. Verify post-deploy:
+    # host port. The threat model in docs/SECURITY-HARDENING.md
+    # explicitly treats the docker bridge as the trust boundary;
+    # publishing 6379 to the VPS host would let any process on the box
+    # hit Valkey even if firewalled at the network edge. Verify
+    # post-deploy:
     #   ss -ltnp | grep :6379  # expect: nothing on the host
     expose:
       - "6379"
-    volumes:
-      - valkey_data:/data
     networks:
       - internal
 
@@ -170,8 +131,9 @@ services:
       - "traefik.http.services.app.loadbalancer.healthcheck.path=/api/health"
       - "traefik.http.services.app.loadbalancer.healthcheck.interval=10s"
       # Bumped from 3s → 10s when /api/health became a deep probe.
-      # Cache hits return in microseconds; cache misses fan out 5 parallel
-      # 1-second probes, so worst case is ~1s. 10s is generous headroom.
+      # Cache hits return in microseconds; cache misses fan out 5
+      # parallel 1-second probes, so worst case is ~1s. 10s is generous
+      # headroom.
       - "traefik.http.services.app.loadbalancer.healthcheck.timeout=10s"
       # ─── Security headers + CSP (see docs/SECURITY-HARDENING.md) ───
       # Applied to every response from the app router. Traefik's
@@ -211,25 +173,11 @@ services:
 
   sync:
     image: ${REGISTRY}/md-online-sync:${IMAGE_TAG}
-    restart: unless-stopped
-    stop_grace_period: 30s
     environment:
-      - PORT=4001
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
       - JWT_SECRET=${NUXT_JWT_SECRET}
       - JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
       - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET}
       - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
-      # Valkey — backs per-doc attribution + diff baselines (was three
-      # process-local Maps). Same instance the app uses; sync-server
-      # has its own connection pool.
-      - VALKEY_HOST=valkey
-      - VALKEY_PORT=6379
-      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
       - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
@@ -277,18 +225,12 @@ services:
       - "traefik.http.middlewares.sync-security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
       - "traefik.http.middlewares.sync-security-headers.headers.customResponseHeaders.Cross-Origin-Resource-Policy=same-site"
       - "traefik.http.routers.sync.middlewares=sync-security-headers"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      valkey:
-        condition: service_healthy
     networks:
       - web
       - internal
 
   markitdown:
     image: ${REGISTRY}/md-online-markitdown:${IMAGE_TAG}
-    restart: unless-stopped
     expose:
       - "8080"
     networks:
@@ -299,27 +241,9 @@ services:
   # render tokens). Internal-network-only; never reachable from outside.
   renderer:
     image: ${REGISTRY}/md-online-renderer:${IMAGE_TAG}
-    restart: unless-stopped
-    stop_grace_period: 30s
-    # 2 GB cap to keep a misbehaving doc (e.g. hundreds of inline
-    # images, runaway Mermaid loop) from OOM-ing the whole container
-    # tree. Below ~1 GB Chromium becomes unstable; above 4 GB rarely
-    # buys anything for paginated docs.
-    mem_limit: 2g
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:9000/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      start_period: 30s
-      retries: 3
     environment:
-      - PORT=9000
-      - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET}
       - APP_URL=http://app:3000
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
-      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY}
-      - S3_BUCKET=${NUXT_S3_BUCKET}
     expose:
       - "9000"
     networks:
@@ -327,17 +251,8 @@ services:
 
   backup:
     image: ${REGISTRY}/md-online-backup:${IMAGE_TAG}
-    restart: unless-stopped
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - PGPASSWORD=${POSTGRES_PASSWORD}
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
-      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY}
-      - S3_BUCKET=${NUXT_S3_BUCKET}
       - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:?BACKUP_INTERVAL_SECONDS required}
       - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:?BACKUP_RETENTION_COUNT required}
       # Symmetric AES-256 passphrase for client-side backup encryption.
@@ -345,12 +260,5 @@ services:
       # older backups for restore — schedule rotations against the
       # retention window. See docs/DEPLOY.md §6.
       - BACKUP_GPG_PASSPHRASE=${BACKUP_GPG_PASSPHRASE:?BACKUP_GPG_PASSPHRASE required}
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - internal
-
-volumes:
-  pg_data:
-  valkey_data:

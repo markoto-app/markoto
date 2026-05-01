@@ -1,0 +1,31 @@
+---
+# Belt-and-braces cron. The in-stack `backup` sidecar is the primary path;
+# this is the safety net for "the sidecar silently stopped working".
+# Triggers a one-shot backup via the same container's /backup.sh entry-point
+# at 03:00 UTC daily and writes a stdout/stderr log. Failures append to
+# /opt/markoto/backup-cron-failures.log so a daily `tail` shows alerts.
+
+- name: Install daily backup-trigger cron
+  ansible.builtin.cron:
+    name: "markoto belt-and-braces backup trigger"
+    user: root
+    minute: "0"
+    hour: "3"
+    job: >-
+      cd {{ markoto_root }} &&
+      docker compose -f docker-compose.prod.yml exec -T backup /backup.sh
+      >> {{ markoto_root }}/backup-cron.log 2>&1 ||
+      echo "$(date -Is) backup-cron FAIL exit=$?" >> {{ markoto_root }}/backup-cron-failures.log
+
+- name: Ensure backup-cron log file exists with sane permissions
+  ansible.builtin.file:
+    path: "{{ markoto_root }}/{{ item }}"
+    state: touch
+    owner: root
+    group: "{{ markoto_user }}"
+    mode: "0640"
+    modification_time: preserve
+    access_time: preserve
+  loop:
+    - backup-cron.log
+    - backup-cron-failures.log

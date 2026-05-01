@@ -1,0 +1,17 @@
+# Ansible vault password — never commit.
+.vault-password
+
+# Filled-in inventory — only the example template is committed.
+inventory.ini
+
+# Plaintext vault — only the .example.yml is committed. The encrypted
+# all.vault.yml CAN be committed once `ansible-vault encrypt`'d.
+group_vars/all.vault.yml.unencrypted
+
+# Provider CA bundles — site-specific, distributed out of band.
+files/ovh-pg-ca.pem
+files/managed-pg-ca.pem
+
+# Ansible runtime artefacts.
+*.retry
+.ansible/

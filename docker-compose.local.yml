@@ -19,6 +19,13 @@
 # per developer (Google API keys, OAuth client ids, Sentry DSN) reads
 # from .env via `${VAR:?required}` so a missing entry crashes
 # `docker compose up` instead of silently booting empty.
+#
+# Common service shape lives in docker-compose.base.yml (see header).
+# This file adds Traefik (mkcert TLS), the Nuxt `app` service, and
+# wires every backend service onto the `internal` docker network.
+
+include:
+  - docker-compose.base.yml
 
 networks:
   web:
@@ -51,66 +58,22 @@ services:
       - web
 
   postgres:
-    # pgvector/pgvector is Postgres 16 with the `vector` extension
-    # pre-built — see docker-compose.dev.yml for the swap rationale.
-    image: pgvector/pgvector:pg16
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER required}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
-      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     expose:
       - "5432"
     networks:
       - internal
 
   valkey:
-    image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
-    restart: unless-stopped
-    # 1gb headroom for rate-limit + presence + render-singleflight + sweep-lock
-    # keyspaces under sustained load. Matches prod sizing.
-    #
-    # `--requirepass` enforced even in local — the local stack mirrors prod
-    # posture (Traefik + TLS + container network) and full-stack verification
-    # has to catch missing-password regressions before they ship. The
-    # `VALKEY_PASSWORD` env var is required (no `:-default`) so the stack
-    # refuses to start without one. Pick any string in .env; it's never
-    # internet-reachable. See docs/SECURITY-HARDENING.md.
-    command:
-      - "valkey-server"
-      - "--requirepass"
-      - "${VALKEY_PASSWORD:?VALKEY_PASSWORD required}"
-      - "--appendonly"
-      - "yes"
-      - "--appendfsync"
-      - "everysec"
-      - "--maxmemory"
-      - "1gb"
-      - "--maxmemory-policy"
-      - "allkeys-lru"
-    healthcheck:
-      test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${VALKEY_PASSWORD}", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    # `expose:` only — Valkey stays on the docker `internal` network. In
-    # local mode the app runs IN the `app` container and reaches valkey via
-    # the docker service name; no host port is needed.
+    # `expose:` only — Valkey stays on the docker `internal` network.
+    # In local mode the app runs IN the `app` container and reaches
+    # valkey via the docker service name; no host port is needed.
     expose:
       - "6379"
-    volumes:
-      - valkey_data:/data
     networks:
       - internal
 
+  # Defined inline (not in base) — prod uses external S3 and `include:`
+  # has no "drop service" mechanic. See header in docker-compose.base.yml.
   seaweedfs:
     image: chrislusf/seaweedfs@sha256:854479eebcbc0060d803edb27b3bd88a0552e23fde08a26a6482e59aff887a77
     restart: unless-stopped
@@ -185,24 +148,9 @@ services:
     build:
       context: .
       dockerfile: sync-server/Dockerfile
-    restart: unless-stopped
-    stop_grace_period: 30s
     environment:
-      - PORT=4001
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
       - JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
       - INTERNAL_API_SECRET=local-internal-api-secret-change-me
-      # Valkey — backs per-doc attribution + diff baselines (was three
-      # process-local Maps). Same instance the app uses; sync-server
-      # has its own client.
-      - VALKEY_HOST=valkey
-      - VALKEY_PORT=6379
-      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
-      - VALKEY_DB=${VALKEY_DB}
       - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
     expose:
@@ -213,46 +161,28 @@ services:
       - "traefik.http.routers.sync.entrypoints=websecure"
       - "traefik.http.routers.sync.tls=true"
       - "traefik.http.services.sync.loadbalancer.server.port=4001"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      valkey:
-        condition: service_healthy
     networks:
       - web
       - internal
 
   markitdown:
     build: ./markitdown-server
-    restart: unless-stopped
     expose:
       - "8080"
     networks:
       - internal
 
-  # Backend PDF + PNG renderer — see docker-compose.dev.yml for the rationale.
-  # In local mode it sits on the internal network only; the app reaches it
-  # via http://renderer:9000.
+  # Backend PDF + PNG renderer — see docker-compose.base.yml for the
+  # rationale. In local mode it sits on the internal network only; the
+  # app reaches it via http://renderer:9000.
   renderer:
     build: ./renderer
-    restart: unless-stopped
-    stop_grace_period: 30s
-    # 2 GB cap (see docker-compose.dev.yml for rationale).
-    mem_limit: 2g
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:9000/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      start_period: 30s
-      retries: 3
     environment:
-      - PORT=9000
+      # Hardcoded literal to mirror the app+sync hardcoded secrets in
+      # this file — local boots without a populated .env.
       - INTERNAL_API_SECRET=local-internal-api-secret-change-me
       - APP_URL=http://app:3000
       - S3_ENDPOINT=http://seaweedfs:8333
-      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
-      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
-      - S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
     expose:
       - "9000"
     networks:
@@ -260,17 +190,8 @@ services:
 
   backup:
     build: ./backup-server
-    restart: unless-stopped
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - PGPASSWORD=${POSTGRES_PASSWORD}
       - S3_ENDPOINT=http://seaweedfs:8333
-      - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY}
-      - S3_BUCKET=${NUXT_S3_BUCKET}
       - BACKUP_INTERVAL_SECONDS=3600
       - BACKUP_RETENTION_COUNT=5
     depends_on:
@@ -282,6 +203,6 @@ services:
       - internal
 
 volumes:
-  pg_data:
+  # Declared here (not in base) because seaweedfs is defined per-env —
+  # see header in docker-compose.base.yml.
   seaweed_data:
-  valkey_data:

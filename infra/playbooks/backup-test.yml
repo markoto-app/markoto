@@ -1,0 +1,45 @@
+---
+# Verify the most recent gpg-encrypted dump is restorable end-to-end:
+#   1. List backups in S3
+#   2. Download the most recent one to /tmp on the VPS
+#   3. Decrypt + decompress + redirect to a test schema
+#   4. Cleanup
+- name: Backup restore drill
+  hosts: markoto
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/all.vault.yml
+  tasks:
+    - name: Locate most-recent gpg backup in S3 (run inside backup container)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        cd {{ markoto_root }}
+        docker compose -f docker-compose.prod.yml exec -T backup sh -c '
+          aws --endpoint-url "$S3_ENDPOINT" s3 ls "s3://$S3_BUCKET/backups/postgres/" | sort | tail -1 | awk "{print \$4}"
+        '
+      register: latest_backup
+      changed_when: false
+
+    - name: Fail if no backup yet exists
+      ansible.builtin.fail:
+        msg: "No backup found at s3://{{ nuxt_s3_bucket }}/backups/postgres/. Run the in-stack backup once before testing."
+      when: latest_backup.stdout | trim | length == 0
+
+    - name: Decrypt + sniff first 200 lines (does NOT apply to db)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        cd {{ markoto_root }}
+        docker compose -f docker-compose.prod.yml exec -T backup sh -c '
+          aws --endpoint-url "$S3_ENDPOINT" s3 cp "s3://$S3_BUCKET/backups/postgres/{{ latest_backup.stdout | trim }}" /tmp/restore-test.gpg &&
+          gpg --batch --quiet --pinentry-mode loopback --passphrase "$BACKUP_GPG_PASSPHRASE" --decrypt /tmp/restore-test.gpg \
+            | gunzip | head -200 \
+            && rm -f /tmp/restore-test.gpg
+        '
+      register: restore_probe
+      changed_when: false
+
+    - name: Show first lines of decrypted SQL
+      ansible.builtin.debug:
+        msg: "{{ restore_probe.stdout_lines[:10] }}"

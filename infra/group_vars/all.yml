@@ -1,0 +1,49 @@
+---
+# Non-secret defaults for the markoto stack. Override per-host in inventory or
+# group_vars/<group>.yml. Every secret lives in group_vars/all.vault.yml
+# (ansible-vault encrypted).
+
+# ─── Domain + ACME ───
+domain: example.com
+acme_email: you@example.com
+
+# ─── Image registry (GHCR) ───
+registry: ghcr.io/joelbarmettleruzh/markoto
+image_tag: latest
+
+# ─── Backup sidecar tunables ───
+backup_interval_seconds: 86400
+backup_retention_count: 30
+
+# ─── Postgres / S3 / OAuth knobs (non-secret) ───
+postgres_user: markoto
+postgres_db: markoto
+postgres_host: "{{ ovh_pg_host | default('postgres') }}"
+postgres_port: "{{ ovh_pg_port | default(5432) }}"
+
+valkey_db: 0
+valkey_tls_enabled: false
+
+s3_endpoint: "{{ ovh_s3_endpoint | default('') }}"
+s3_bucket: "{{ ovh_s3_bucket | default('') }}"
+
+# Set to a managed-PG hostname when using OVH/Aiven/etc. Empty string keeps
+# the bundled in-stack postgres service active.
+ovh_pg_host: ""
+ovh_pg_port: 5432
+
+# OVH managed PG CA — drop the .pem at infra/files/ovh-pg-ca.pem and the
+# markoto role will copy it in + bind-mount it. Empty string disables.
+ovh_pg_ca_local_path: "files/ovh-pg-ca.pem"
+ovh_pg_ca_remote_path: /opt/markoto/secrets/ovh-pg-ca.pem
+
+# Path on the VPS where the stack lives.
+markoto_root: /opt/markoto
+markoto_user: markoto
+
+# Healthcheck poll knobs.
+health_endpoint: "https://{{ domain }}/api/health"
+health_timeout_seconds: 90
+
+# Timezone — UTC across the fleet keeps log correlation sane.
+host_timezone: UTC

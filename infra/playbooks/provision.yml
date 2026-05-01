@@ -1,0 +1,13 @@
+---
+# One-time setup of a fresh OVH VPS. Run as root (default OVH image user).
+# Brings the host from "blank Debian 12" to "ready to accept deploys".
+- name: Provision markoto VPS (one-time)
+  hosts: markoto
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all.yml
+  roles:
+    - role: base
+    - role: docker
+    - role: ssh_hardening
