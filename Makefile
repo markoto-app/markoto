@@ -102,6 +102,11 @@ lint-actions: ## Lint .github/workflows/*.yml via actionlint
 lint-all: ## Alias for `make lint` (kept for backward compat)
 	$(MAKE) lint
 
+.PHONY: secrets-scan
+secrets-scan: ## Scan git history for leaked secrets via gitleaks
+	@which gitleaks > /dev/null || (echo "gitleaks not installed: https://github.com/gitleaks/gitleaks#installing"; exit 1)
+	gitleaks detect --redact --no-banner --log-level error
+
 # === Compose stacks ===
 .PHONY: local-up
 local-up: $(CERT) $(KEY) ## Bring up the LOCAL stack (Traefik + mkcert TLS)

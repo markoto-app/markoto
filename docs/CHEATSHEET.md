@@ -109,6 +109,7 @@ See `docs/DEPLOY-OVH.md` for the OVH walkthrough and `docs/DEPLOY.md` for the ge
 | Edit the Ansible vault | `cd infra && ansible-vault edit group_vars/all.vault.yml` |
 | Generate a strong hex secret (JWT-style) | `openssl rand -hex 64` |
 | Generate a strong base64 secret (session/passphrase-style) | `openssl rand -base64 48` |
+| Scan full git history for leaked secrets (gitleaks) | `make secrets-scan` |
 
 ## I want to read documentation
 
