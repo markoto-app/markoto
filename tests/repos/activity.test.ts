@@ -202,6 +202,165 @@ describe('listRecentActivity', () => {
   })
 })
 
+describe('appendActivity dedup (cross-instance flush race)', () => {
+  // Closes the residual race documented in `sync-server/AGENTS.md`:
+  // two sync-server containers flushing the same doc concurrently
+  // both compute identical `edit` rows. The partial unique index
+  // `uq_activity_doc_yjsafter` makes the second INSERT a no-op via
+  // ON CONFLICT DO NOTHING. The index is scoped to the three actions
+  // produced by the sync-server flush (edit / title.changed /
+  // theme.changed) so comment-snapshot rows that legitimately share a
+  // boundary id are not affected.
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('inserts the first edit row with a given (docId, yjsDocIdAfter)', async () => {
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const r = await appendActivity({
+      docId: doc.docId, userName: 'Alice', action: 'edit',
+      linesAdded: 1, linesRemoved: 0, yjsDocIdAfter: 100
+    })
+    expect(r.inserted).toBe(true)
+    expect(r.rowId).not.toBeNull()
+    expect(await activityCount(doc.docId)).toBe(1)
+  })
+
+  it('silently dedups a second edit row with the same (docId, yjsDocIdAfter)', async () => {
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const r1 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'edit',
+      linesAdded: 1, linesRemoved: 0, yjsDocIdAfter: 200
+    })
+    expect(r1.inserted).toBe(true)
+    const r2 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'edit',
+      linesAdded: 1, linesRemoved: 0, yjsDocIdAfter: 200
+    })
+    expect(r2.inserted).toBe(false)
+    expect(r2.rowId).toBeNull()
+    // Only the first row landed.
+    expect(await activityCount(doc.docId)).toBe(1)
+  })
+
+  it('dedups title.changed and theme.changed at the same yjs boundary', async () => {
+    // The other two sync-server-originated actions are also covered
+    // by the partial index. Two title.changed rows at the same
+    // yjsDocIdAfter on the same doc collapse to one.
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const t1 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'title.changed',
+      yjsDocIdAfter: 300, metadata: { kind: 'title.changed', from: 'A', to: 'B' }
+    })
+    const t2 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'title.changed',
+      yjsDocIdAfter: 300, metadata: { kind: 'title.changed', from: 'A', to: 'B' }
+    })
+    expect(t1.inserted).toBe(true)
+    expect(t2.inserted).toBe(false)
+    const th1 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'theme.changed',
+      yjsDocIdAfter: 301, metadata: { kind: 'theme.changed' }
+    })
+    const th2 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'theme.changed',
+      yjsDocIdAfter: 301, metadata: { kind: 'theme.changed' }
+    })
+    expect(th1.inserted).toBe(true)
+    expect(th2.inserted).toBe(false)
+    expect(await activityCount(doc.docId)).toBe(2)
+  })
+
+  it('allows different docs to share a yjsDocIdAfter', async () => {
+    // The dedup arbiter is (docId, yjsDocIdAfter). Two different docs
+    // that happen to land on the same y-postgresql row id sequence
+    // must both insert.
+    const u = await createUser()
+    const docA = await seedDoc({ ownerId: u.id })
+    const docB = await seedDoc({ ownerId: u.id })
+    const rA = await appendActivity({
+      docId: docA.docId, userName: 'A', action: 'edit',
+      yjsDocIdAfter: 100
+    })
+    const rB = await appendActivity({
+      docId: docB.docId, userName: 'A', action: 'edit',
+      yjsDocIdAfter: 100
+    })
+    expect(rA.inserted).toBe(true)
+    expect(rB.inserted).toBe(true)
+    expect(await activityCount(docA.docId)).toBe(1)
+    expect(await activityCount(docB.docId)).toBe(1)
+  })
+
+  it('does NOT dedup rows with null yjsDocIdAfter (join, leave, ai.tool)', async () => {
+    // Action types that don't carry boundary ids (join/leave/ai.tool)
+    // sit outside the partial index and must always insert. Two
+    // identical join rows should both land.
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const r1 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'join',
+      yjsDocIdAfter: null
+    })
+    const r2 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'join',
+      yjsDocIdAfter: null
+    })
+    expect(r1.inserted).toBe(true)
+    expect(r2.inserted).toBe(true)
+    expect(await activityCount(doc.docId)).toBe(2)
+  })
+
+  it('does NOT dedup comment.* rows that legitimately share a yjsDocIdAfter', async () => {
+    // The comments-snapshot endpoint emits multiple comment.* events
+    // from a single store flush; they all carry the same
+    // yjsDocIdAfter. The partial-index action filter excludes
+    // comment.* so they continue to insert unconditionally.
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const c1 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'comment.added',
+      yjsDocIdAfter: 400,
+      metadata: { kind: 'comment.added', commentId: 'c1', bodyPreview: 'hi' }
+    })
+    const c2 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'comment.added',
+      yjsDocIdAfter: 400,
+      metadata: { kind: 'comment.added', commentId: 'c2', bodyPreview: 'there' }
+    })
+    expect(c1.inserted).toBe(true)
+    expect(c2.inserted).toBe(true)
+    expect(await activityCount(doc.docId)).toBe(2)
+  })
+
+  it('does NOT dedup restore rows that share a yjsDocIdAfter', async () => {
+    // Restore rows are user-originated and don't race the way the
+    // sync-server flush does. The partial-index action filter
+    // excludes 'restore' so two restores landing on the same boundary
+    // both insert. (Realistic on the second restore: the user undoes
+    // their own restore and lands on the original yjs id.)
+    const u = await createUser()
+    const doc = await seedDoc({ ownerId: u.id })
+    const r1 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'restore',
+      yjsDocIdAfter: 500,
+      metadata: { kind: 'restore', restoredFromActivityId: 1, restoredFromTime: new Date().toISOString() }
+    })
+    const r2 = await appendActivity({
+      docId: doc.docId, userName: 'A', action: 'restore',
+      yjsDocIdAfter: 500,
+      metadata: { kind: 'restore', restoredFromActivityId: 2, restoredFromTime: new Date().toISOString() }
+    })
+    expect(r1.inserted).toBe(true)
+    expect(r2.inserted).toBe(true)
+    expect(await activityCount(doc.docId)).toBe(2)
+  })
+})
+
 describe('deleteActivityForDoc', () => {
   beforeEach(async () => {
     await resetDb()

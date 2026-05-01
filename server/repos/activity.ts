@@ -110,9 +110,26 @@ export interface AppendInput {
 
 const MAX_ENTRIES_PER_DOC = 500
 
-export async function appendActivity(input: AppendInput): Promise<void> {
+/**
+ * Result of `appendActivity`. `inserted=false` means the partial unique
+ * index `uq_activity_doc_yjsafter` matched and the row was a no-op —
+ * the documented cross-instance sync-server flush race landing softly.
+ * Callers that don't care (most do not) can ignore the return value.
+ */
+export interface AppendActivityResult {
+  inserted: boolean
+  rowId: number | null
+}
+
+export async function appendActivity(input: AppendInput): Promise<AppendActivityResult> {
   const db = useDatabase()
-  await db.insert(activityLog).values({
+  // `onConflictDoNothing` with `target=[docId, yjsDocIdAfter]` matches
+  // the partial unique index. For rows that don't sit in the partial
+  // index — null `yjsDocIdAfter`, or actions outside ('edit',
+  // 'title.changed', 'theme.changed') — Postgres can't find a matching
+  // unique constraint and the conflict target simply doesn't fire,
+  // so those rows insert unconditionally.
+  const result = await db.insert(activityLog).values({
     docId: input.docId,
     userId: input.userId ?? null,
     userName: input.userName,
@@ -124,6 +141,19 @@ export async function appendActivity(input: AppendInput): Promise<void> {
     yjsDocIdBefore: typeof input.yjsDocIdBefore === 'number' ? input.yjsDocIdBefore : null,
     yjsDocIdAfter: typeof input.yjsDocIdAfter === 'number' ? input.yjsDocIdAfter : null
   })
+    // `where` here is Postgres's `index_predicate` — required so the
+    // planner can infer the partial unique index `uq_activity_doc_yjsafter`
+    // as the conflict arbiter. Without it, Postgres errors with `there
+    // is no unique or exclusion constraint matching the ON CONFLICT
+    // specification` because no full unique index on (doc_id,
+    // yjs_doc_id_after) exists.
+    .onConflictDoNothing({
+      target: [activityLog.docId, activityLog.yjsDocIdAfter],
+      where: sql`yjs_doc_id_after IS NOT NULL AND action IN ('edit', 'title.changed', 'theme.changed')`
+    })
+    .returning({ id: activityLog.id })
+
+  return { inserted: result.length > 0, rowId: result[0]?.id ?? null }
 }
 
 /**

@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     return { success: true, logged: false }
   }
 
-  await appendActivity({
+  const { inserted } = await appendActivity({
     docId: body.docId,
     userId: typeof body.userId === 'number' ? body.userId : null,
     userName: body.userName || null,
@@ -59,6 +59,15 @@ export default defineEventHandler(async (event) => {
     yjsDocIdBefore: typeof body.yjsDocIdBefore === 'number' ? body.yjsDocIdBefore : null,
     yjsDocIdAfter: typeof body.yjsDocIdAfter === 'number' ? body.yjsDocIdAfter : null
   })
+
+  if (!inserted) {
+    // Cross-instance dup or replay — expected with the multi-sync-server
+    // rollout. The partial unique index `uq_activity_doc_yjsafter` made
+    // the second INSERT a no-op. Debug-level only; this is the documented
+    // residual race landing softly, not a Sentry-worthy event.
+    console.debug(`[activity] dedup skipped insert for doc=${body.docId} action=${body.action} yjsAfter=${body.yjsDocIdAfter}`)
+    return { success: true, logged: false, deduped: true }
+  }
 
   // Edit events bump `lastActive`, which the inactive-doc sweep reads.
   // Without this, a document actively being edited but never hitting

@@ -57,6 +57,13 @@
       "when": 1777617186519,
       "tag": "0007_broken_winter_soldier",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777624127233,
+      "tag": "0008_stiff_wrecking_crew",
+      "breakpoints": true
     }
   ]
 }

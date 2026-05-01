@@ -56,6 +56,8 @@ export async function resetDb(): Promise<void> {
       workspace_members,
       workspaces,
       documents,
+      processed_webhook_events,
+      pending_stripe_events,
       users
     RESTART IDENTITY CASCADE
   `)

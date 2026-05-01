@@ -358,7 +358,26 @@ export const activityLog = pgTable('activity_log', {
   yjsDocIdAfter: integer('yjs_doc_id_after'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
-  index('idx_activity_doc').on(table.docId, table.createdAt)
+  index('idx_activity_doc').on(table.docId, table.createdAt),
+  // Partial unique index that closes the cross-instance flush race
+  // documented in `sync-server/AGENTS.md`. Two sync-server containers
+  // can flush the same doc concurrently, both compute the same edit
+  // delta against the same `sync:prev-text:{docId}` baseline, and
+  // both POST identical `edit` activity rows with the same boundary
+  // ids. The index makes the second INSERT a no-op via
+  // `ON CONFLICT DO NOTHING` in `appendActivity`.
+  //
+  // Scope narrowed to the three sync-server-originated actions
+  // (`edit`, `title.changed`, `theme.changed`) because those are the
+  // ones whose race is real AND whose `(docId, yjsDocIdAfter)` tuple
+  // is naturally unique-per-flush. Comment events legitimately share
+  // a `yjsDocIdAfter` across rows in one snapshot batch (multiple
+  // comment.* rows fan out from one store event), and restore rows
+  // are user-originated. Both are excluded by the action filter and
+  // continue to insert unconditionally.
+  uniqueIndex('uq_activity_doc_yjsafter')
+    .on(table.docId, table.yjsDocIdAfter)
+    .where(sql`yjs_doc_id_after IS NOT NULL AND action IN ('edit', 'title.changed', 'theme.changed')`)
 ])
 
 // Append-only audit log for security-sensitive operations. Distinct
@@ -420,6 +439,85 @@ export const auditLog = pgTable('audit_log', {
   index('idx_audit_scope').on(t.scope, t.scopeId, t.ts.desc()),
   // "Show me everything actor X did" — for investigating compromised accounts.
   index('idx_audit_actor').on(t.actorUserId, t.ts.desc())
+])
+
+// Stripe webhook event-id dedup table. Stripe redelivers webhooks on
+// 5xx with exponential backoff (and at-least-once even on 2xx); the
+// retry payload carries the SAME `event.id` as the original delivery.
+// Naive UPSERT idempotency is fine for true replays of identical
+// values, but it loses defence against:
+//
+//   1. Replays after concurrent state mutation (e.g. ops manually
+//      flipped a row to plan='free' for a refund — a stale
+//      subscription.updated redelivery clobbers the correction).
+//   2. Replays after a customer cancels-then-resubscribes (an old
+//      "active" event redelivered late could re-activate a cancelled
+//      subscription).
+//
+// We INSERT into this table inside the same transaction as the user
+// row update; on conflict we short-circuit with a 200 + `replayed:true`.
+// Stripe replays only within ~3 days, but we keep 90 days for forensic
+// "did we see this event in the suspect window?" investigations. A
+// daily sweeper prunes rows older than 90d.
+export const processedWebhookEvents = pgTable('processed_webhook_events', {
+  // Stripe's event.id is the PK. Replays land on the same id and the
+  // INSERT ... ON CONFLICT DO NOTHING short-circuits.
+  eventId: text('event_id').primaryKey(),
+  // What kind of event we processed — useful for ops grep without
+  // joining back to Stripe's API.
+  type: text('type').notNull(),
+  // When we first processed it. Indexed for the aged-out cleanup
+  // sweep + forensic queries.
+  processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow()
+}, t => [
+  index('idx_pwe_processed_at').on(t.processedAt)
+])
+
+// Out-of-order webhook stash. Stripe's webhook delivery is at-least-
+// once and intentionally NOT ordered: subscription.* events can arrive
+// BEFORE checkout.session.completed, while `users.stripe_customer_id`
+// is still null. A subscription handler keying on `stripe_customer_id`
+// matches zero rows and silently drops.
+//
+// Today this is masked because `handleCheckoutSessionCompleted` runs a
+// synchronous `stripe.subscriptions.retrieve` and applies canonical
+// state from the live API. If anyone removes that fetch for perf, the
+// dropped event becomes a real bug. We stash unmatched subscription
+// events here keyed by `customerId`; on `checkout.session.completed`
+// (after the customer id is bound to the user row) we drain matching
+// rows in `received_at` order and replay them, then mark
+// `processed=true`.
+//
+// A daily sweeper prunes processed=true rows older than 7 days AND
+// drops never-replayed rows older than 30 days (dead customers — the
+// checkout never landed, so we'd be holding the stash forever).
+export const pendingStripeEvents = pgTable('pending_stripe_events', {
+  // Stripe's event.id — keeps INSERT idempotent against retries of
+  // the same orphan event. PK so a redelivery of an already-stashed
+  // event is a no-op.
+  eventId: text('event_id').primaryKey(),
+  // Customer this event belongs to. Indexed because the drain query
+  // is "fetch all unprocessed rows for this customer ordered by
+  // received_at".
+  customerId: text('customer_id').notNull(),
+  // Event type for ops grep ("how many subscription.created sit in
+  // stash right now?").
+  type: text('type').notNull(),
+  // Full JSON payload — replayed verbatim through the dispatcher when
+  // the customer binding lands.
+  payload: jsonb('payload').notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  // Flipped to true once the event has been replayed against a bound
+  // user row. Kept (not deleted) for a week so ops can audit what was
+  // late-applied; sweeper prunes after that.
+  processed: boolean('processed').notNull().default(false),
+  processedAt: timestamp('processed_at', { withTimezone: true })
+}, t => [
+  // Drain query is "WHERE customer_id = $1 AND processed = false
+  // ORDER BY received_at ASC".
+  index('idx_pse_customer_unprocessed').on(t.customerId, t.processed, t.receivedAt),
+  // Sweeper queries scan by received_at across all rows.
+  index('idx_pse_received_at').on(t.receivedAt)
 ])
 
 // Postgres mirror of the doc's comment threads. Y.js is the source of

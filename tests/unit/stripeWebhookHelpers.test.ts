@@ -18,8 +18,14 @@ import {
 // The DB-mutating handlers are stubbed via `vi.mock` so the tests
 // stay fast and isolated from Postgres.
 
-vi.mock('../../server/utils/database', () => ({
-  useDatabase: vi.fn(() => ({
+// Tx-shape stub: covers all the chained drizzle calls the dispatcher +
+// handlers issue against either the top-level db OR a transaction handle.
+// The dispatcher wraps the whole event in db.transaction(async (tx) => …);
+// the dedup INSERT returns a row (so the dispatch proceeds), the
+// customer-bound probe returns one user (so the stash branch is skipped),
+// and the per-event UPDATE returns 1 matched row.
+function buildDbStub() {
+  return {
     update: vi.fn(() => ({
       set: vi.fn(() => ({
         where: vi.fn(() => ({
@@ -30,11 +36,40 @@ vi.mock('../../server/utils/database', () => ({
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
-          limit: vi.fn().mockResolvedValue([])
+          limit: vi.fn().mockResolvedValue([{ id: 42 }]),
+          orderBy: vi.fn().mockResolvedValue([])
+        })),
+        orderBy: vi.fn().mockResolvedValue([])
+      }))
+    })),
+    // Dedup INSERT: return a non-empty array so dispatcher continues
+    // past the replay short-circuit. Tests that want to assert the
+    // short-circuit override the mock per-test.
+    insert: vi.fn(() => ({
+      values: vi.fn(() => ({
+        onConflictDoNothing: vi.fn(() => ({
+          returning: vi.fn().mockResolvedValue([{ eventId: 'evt_test' }])
         }))
       }))
+    })),
+    delete: vi.fn(() => ({
+      where: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([])
+      }))
     }))
-  }))
+  }
+}
+
+vi.mock('../../server/utils/database', () => ({
+  useDatabase: vi.fn(() => {
+    const stub = buildDbStub()
+    // db.transaction(cb) just runs the callback with the same stub
+    // shape — fine for unit tests since we don't model isolation.
+    return {
+      ...stub,
+      transaction: vi.fn(async (cb: (tx: unknown) => unknown) => cb(stub))
+    }
+  })
 }))
 
 const PRICES = {

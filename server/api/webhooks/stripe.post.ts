@@ -70,8 +70,16 @@ export default defineEventHandler(async (event) => {
         priceUltra: config.stripe.priceUltra
       }
     })
-    console.log(`[stripe/webhook] ${stripeEvent.type} id=${stripeEvent.id} handled=${result.handled}`)
-    return { received: true, handled: result.handled }
+    console.log(`[stripe/webhook] ${stripeEvent.type} id=${stripeEvent.id} handled=${result.handled}${result.replayed ? ' replayed=true' : ''}${result.stashed ? ' stashed=true' : ''}`)
+    return {
+      received: true,
+      handled: result.handled,
+      // Surface replay short-circuit + stash signals so monitoring +
+      // tests can verify the dedup path engaged. Omitted when false to
+      // keep the happy-path response shape compact.
+      ...(result.replayed ? { replayed: true } : {}),
+      ...(result.stashed ? { stashed: true } : {})
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'handler failed'
     console.error(`[stripe/webhook] ${stripeEvent.type} failed: ${msg}`, e)

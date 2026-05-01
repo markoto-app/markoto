@@ -24,20 +24,11 @@ Standalone WS sync container. Config at `src/index.ts`. Hooks: `onLoadDocument`,
 
 Hocuspocus's in-memory `Y.Doc` tracking is per-process — one container holds the canonical doc state for any given `documentName` while clients are connected. To scale horizontally we use **sticky sessions** at Traefik (`loadbalancer.sticky.cookie=true` in `docker-compose.prod.yml`): all WS connections from a given client cookie route to the same container, so a single client's awareness/edit stream stays pinned. Per-doc attribution + diff state lives in Valkey and is shared across containers.
 
-### Residual cross-instance race
+### Cross-instance dedup (closed)
 
-Sticky sessions pin a client, **not a docId**. Two clients editing the same doc CAN land on different containers, in which case:
+Two containers flushing the same doc concurrently used to produce duplicate activity rows: each read the same `sync:prev-text:{docId}` baseline, computed the same delta, and POSTed identical `edit` rows. Closed via a partial unique index `uq_activity_doc_yjsafter ON (doc_id, yjs_doc_id_after) WHERE yjs_doc_id_after IS NOT NULL AND action IN ('edit', 'title.changed', 'theme.changed')` on `activity_log`, with `INSERT ... ON CONFLICT DO NOTHING` in `appendActivity`. The second container's INSERT silently no-ops; the doc state itself is durable in Postgres via `y-postgresql` (always was). Comment-snapshot rows that legitimately share a `yjsDocIdAfter` across one batch — and user-originated `restore` rows — are excluded by the action filter and continue to insert unconditionally.
 
-1. Container A flushes — reads `sync:prev-text:{docId}`, computes delta, writes new baseline.
-2. Container B flushes concurrently — reads the SAME `prev-text` (if A hasn't written yet), computes the SAME delta against the SAME prior, writes the same baseline.
-3. Both containers POST an `edit` activity row with the same `linesAdded/Removed`.
-
-**Worst case: one duplicate activity row per cross-container concurrency event.** Not corrupting (the Y.Doc state itself is durable in Postgres via `y-postgresql`), just noisy. We don't solve this with WATCH/MULTI or a Lua read-then-write because:
-- Sticky sessions make it rare (both clients would need to connect through different cookies, e.g. anonymous + authenticated on the same doc).
-- The Hocuspocus debounce window (2-10 s) further reduces the overlap window.
-- A clean fix needs a `(docId, yjsDocIdAfter)` dedup index on the activity table — a schema change deliberately deferred from this migration.
-
-**Detection:** grep prod logs for activity rows with identical `(docId, yjsDocIdAfter, linesAdded, linesRemoved)` tuples within a few seconds of each other. If frequency justifies it, add the dedup index later.
+**Detection:** look for `[activity] dedup skipped insert` in app logs to confirm the race is firing and being absorbed; absence means the residual race isn't actually firing in your traffic. Sticky sessions make it rare (both clients would need different cookies, e.g. anonymous + authenticated on the same doc) and the Hocuspocus debounce window (2-10 s) further shrinks the overlap window.
 
 ## Y.js schema migration playbook
 

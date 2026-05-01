@@ -1,9 +1,16 @@
 import type Stripe from 'stripe'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
-import { users } from '../db/schema'
+import { users, processedWebhookEvents, pendingStripeEvents } from '../db/schema'
 import { useDatabase } from './database'
 import type { PlanName } from '~~/shared/config/tiers'
+
+// Drizzle's node-postgres transaction handle — same shape as the
+// top-level `db` for our usage but typed distinctly. We accept either
+// for handler reuse: the dispatcher wraps the whole event in a single
+// transaction so the dedup INSERT and the user UPDATE commit together.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DbOrTx = any
 
 // Stripe webhook handlers — pure functions of `(event, config) → DB
 // mutation`. Kept separate from the HTTP endpoint so tests can call
@@ -63,13 +70,17 @@ interface UpdateUserArgs {
  * by every webhook handler. Returns the number of rows matched (0
  * when the customer id doesn't map to a user — logged but not
  * fatal: old customers from prior test runs, deleted accounts, etc.).
+ *
+ * Accepts an optional `db` so the dispatcher can pass a transaction
+ * handle. When omitted, falls back to the global pool — used by direct
+ * unit-test callers that don't go through `dispatchStripeEvent`.
  */
-async function updateUser(opts: UpdateUserArgs): Promise<number> {
-  const db = useDatabase()
+async function updateUser(opts: UpdateUserArgs, db?: DbOrTx): Promise<number> {
+  const handle = db ?? useDatabase()
   const where = opts.where.id !== undefined
     ? eq(users.id, opts.where.id)
     : eq(users.stripeCustomerId, opts.where.stripeCustomerId!)
-  const result = await db.update(users).set(opts.set).where(where).returning({ id: users.id })
+  const result = await handle.update(users).set(opts.set).where(where).returning({ id: users.id })
   return result.length
 }
 
@@ -95,6 +106,7 @@ export async function handleCheckoutSessionCompleted(
   opts: {
     stripe: Stripe
     config: { pricePro: string, priceMax: string, priceUltra: string }
+    db?: DbOrTx
   }
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const session = event.data.object
@@ -127,7 +139,7 @@ export async function handleCheckoutSessionCompleted(
     const matched = await updateUser({
       where: { id: userId },
       set: { stripeCustomerId: customerId }
-    })
+    }, opts.db)
     return { matched, plan: null }
   }
 
@@ -165,7 +177,7 @@ export async function handleCheckoutSessionCompleted(
   const matched = await updateUser({
     where: { id: userId },
     set: setFields
-  })
+  }, opts.db)
   return { matched, plan }
 }
 
@@ -186,7 +198,8 @@ export async function handleCheckoutSessionCompleted(
  */
 export async function handleSubscriptionUpdated(
   event: Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionCreatedEvent,
-  config: { pricePro: string, priceMax: string, priceUltra: string }
+  config: { pricePro: string, priceMax: string, priceUltra: string },
+  db?: DbOrTx
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
@@ -217,7 +230,7 @@ export async function handleSubscriptionUpdated(
   const matched = await updateUser({
     where: { stripeCustomerId: customerId },
     set: setFields
-  })
+  }, db)
   return { matched, plan }
 }
 
@@ -231,7 +244,8 @@ export async function handleSubscriptionUpdated(
  * the subscription no longer exists.
  */
 export async function handleSubscriptionDeleted(
-  event: Stripe.CustomerSubscriptionDeletedEvent
+  event: Stripe.CustomerSubscriptionDeletedEvent,
+  db?: DbOrTx
 ): Promise<{ matched: number }> {
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
@@ -243,7 +257,7 @@ export async function handleSubscriptionDeleted(
       stripeCurrentPeriodStart: null,
       planValidUntil: null
     }
-  })
+  }, db)
   return { matched }
 }
 
@@ -257,7 +271,8 @@ export async function handleSubscriptionDeleted(
  * Skip non-subscription invoices (one-off charges etc.).
  */
 export async function handleInvoicePaid(
-  event: Stripe.InvoicePaidEvent
+  event: Stripe.InvoicePaidEvent,
+  db?: DbOrTx
 ): Promise<{ matched: number }> {
   const invoice = event.data.object
   // Stripe API 2025+ moved subscription off the invoice root onto
@@ -280,7 +295,7 @@ export async function handleInvoicePaid(
       stripeCurrentPeriodStart: periodStart,
       planValidUntil: periodEnd
     }
-  })
+  }, db)
   return { matched }
 }
 
@@ -306,20 +321,19 @@ export async function handleInvoicePaymentFailed(
 }
 
 /**
- * Dispatch a verified event to the matching handler. Returns the
- * handler's result so the HTTP endpoint can log it (for ops telemetry)
- * and respond 200 to Stripe (any non-200 triggers a Stripe retry).
- *
- * `stripe` is the SDK client — only `handleCheckoutSessionCompleted`
- * uses it (to fetch the subscription synchronously, avoiding the
- * ordering race against subscription.updated). Passed explicitly
- * rather than imported so unit tests can inject a mock.
+ * Internal dispatcher — runs an event's handler against the given
+ * `db` (top-level pool OR a transaction handle) without doing the
+ * dedup INSERT or the out-of-order stash. Used both by the public
+ * `dispatchStripeEvent` (which wraps this in a transaction + dedup)
+ * AND by the drain logic in `handleCheckoutSessionCompleted` when
+ * replaying stashed events for a now-bound customer.
  */
-export async function dispatchStripeEvent(
+async function runHandler(
   event: Stripe.Event,
   opts: {
     stripe: Stripe
     config: { pricePro: string, priceMax: string, priceUltra: string }
+    db: DbOrTx
   }
 ): Promise<{ handled: boolean, detail?: unknown }> {
   switch (event.type) {
@@ -327,11 +341,11 @@ export async function dispatchStripeEvent(
       return { handled: true, detail: await handleCheckoutSessionCompleted(event, opts) }
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
-      return { handled: true, detail: await handleSubscriptionUpdated(event, opts.config) }
+      return { handled: true, detail: await handleSubscriptionUpdated(event, opts.config, opts.db) }
     case 'customer.subscription.deleted':
-      return { handled: true, detail: await handleSubscriptionDeleted(event) }
+      return { handled: true, detail: await handleSubscriptionDeleted(event, opts.db) }
     case 'invoice.paid':
-      return { handled: true, detail: await handleInvoicePaid(event) }
+      return { handled: true, detail: await handleInvoicePaid(event, opts.db) }
     case 'invoice.payment_failed':
       return { handled: true, detail: await handleInvoicePaymentFailed(event) }
     default:
@@ -339,4 +353,172 @@ export async function dispatchStripeEvent(
       // don't care about. Log + acknowledge so Stripe stops retrying.
       return { handled: false }
   }
+}
+
+/**
+ * Pull the customer id off any of the event types that key on it.
+ * Returns null for event shapes that don't carry one (e.g. unknown
+ * event types). Used to (a) detect out-of-order subscription events
+ * and (b) drain the pending-events stash on checkout binding.
+ */
+function extractCustomerId(event: Stripe.Event): string | null {
+  // Cast through `unknown` because Stripe.Event.data.object is a giant
+  // discriminated union (every Stripe object type) — we only care about
+  // the ones that carry a `customer` field, and we already gate this
+  // function behind a type-name check at the call site.
+  const obj = (event.data as unknown as { object?: Record<string, unknown> })?.object
+  if (!obj) return null
+  const cust = (obj as { customer?: string | { id?: string } | null }).customer
+  if (typeof cust === 'string') return cust
+  if (cust && typeof cust === 'object' && typeof cust.id === 'string') return cust.id
+  return null
+}
+
+/**
+ * Drain stashed orphan events for a customer that's now bound to a
+ * user row. Called from inside `dispatchStripeEvent` after a
+ * `checkout.session.completed` finishes. Each stashed payload is
+ * replayed through `runHandler` against the same transaction; rows
+ * are then flipped to `processed=true` (kept for a week so ops can
+ * audit what was late-applied).
+ */
+async function drainPendingEvents(
+  customerId: string,
+  opts: {
+    stripe: Stripe
+    config: { pricePro: string, priceMax: string, priceUltra: string }
+    db: DbOrTx
+  }
+): Promise<number> {
+  const rows = await opts.db.select({
+    eventId: pendingStripeEvents.eventId,
+    payload: pendingStripeEvents.payload
+  })
+    .from(pendingStripeEvents)
+    .where(and(
+      eq(pendingStripeEvents.customerId, customerId),
+      eq(pendingStripeEvents.processed, false)
+    ))
+    .orderBy(pendingStripeEvents.receivedAt)
+
+  for (const row of rows) {
+    try {
+      await runHandler(row.payload as Stripe.Event, opts)
+      await opts.db.update(pendingStripeEvents)
+        .set({ processed: true, processedAt: new Date() })
+        .where(eq(pendingStripeEvents.eventId, row.eventId))
+      console.log(`[stripe/webhook] drained stashed event ${row.eventId} for customer ${customerId}`)
+    } catch (e) {
+      // Don't propagate — one bad stashed event shouldn't block the
+      // rest from replaying. Sentry capture so ops sees it; the row
+      // stays processed=false and the daily sweep eventually reaps it.
+      console.warn(`[stripe/webhook] drain failed for stashed event ${row.eventId}:`, e instanceof Error ? e.message : e)
+      Sentry.captureException(e, {
+        tags: { component: 'stripeWebhook', event: 'stash_drain_failed', stripeEventId: row.eventId }
+      })
+    }
+  }
+  return rows.length
+}
+
+/**
+ * Dispatch a verified event to the matching handler. Returns the
+ * handler's result so the HTTP endpoint can log it (for ops telemetry)
+ * and respond 200 to Stripe (any non-200 triggers a Stripe retry).
+ *
+ * Replay protection: BEFORE running the handler we INSERT into
+ * `processed_webhook_events`. On conflict (event.id already present)
+ * we short-circuit — Stripe is satisfied by 200 and stops retrying,
+ * but we don't re-apply the event's UPDATEs. This preserves manual
+ * ops corrections that landed between the original delivery and a
+ * retried redelivery.
+ *
+ * Out-of-order stash: subscription.* / invoice.* events that arrive
+ * BEFORE checkout.session.completed (i.e. before
+ * `users.stripe_customer_id` is set) match zero rows. We stash the
+ * full payload in `pending_stripe_events` and drain on the eventual
+ * checkout. Defensive belt-and-braces around the live-fetch in
+ * `handleCheckoutSessionCompleted` — if anyone removes that
+ * subscriptions.retrieve, the stash keeps state convergent.
+ *
+ * Everything runs in ONE transaction so a crash mid-handler rolls
+ * back BOTH the user UPDATE and the dedup INSERT — Stripe's retry
+ * then succeeds.
+ *
+ * `stripe` is the SDK client — only `handleCheckoutSessionCompleted`
+ * uses it. Passed explicitly so unit tests can inject a mock.
+ */
+export async function dispatchStripeEvent(
+  event: Stripe.Event,
+  opts: {
+    stripe: Stripe
+    config: { pricePro: string, priceMax: string, priceUltra: string }
+  }
+): Promise<{ handled: boolean, detail?: unknown, replayed?: boolean, stashed?: boolean }> {
+  const db = useDatabase()
+  return await db.transaction(async (tx: DbOrTx) => {
+    // Step 1: dedup. Atomic INSERT with ON CONFLICT DO NOTHING; if
+    // the returning array is empty, this event.id has been processed
+    // before. Short-circuit so the row stays at whatever state it's
+    // in (including any out-of-band ops correction).
+    const inserted = await tx.insert(processedWebhookEvents)
+      .values({ eventId: event.id, type: event.type })
+      .onConflictDoNothing({ target: processedWebhookEvents.eventId })
+      .returning({ eventId: processedWebhookEvents.eventId })
+
+    if (inserted.length === 0) {
+      console.log(`[stripe/webhook] replay short-circuited for event ${event.id}`)
+      return { handled: true, replayed: true }
+    }
+
+    // Step 2: out-of-order stash. For subscription.* / invoice.*
+    // events that arrive BEFORE the user is bound to a Stripe
+    // customer, store the full payload and bail. The eventual
+    // checkout.session.completed drains the stash.
+    const isOrderableType = event.type === 'customer.subscription.created'
+      || event.type === 'customer.subscription.updated'
+      || event.type === 'customer.subscription.deleted'
+      || event.type === 'invoice.paid'
+      || event.type === 'invoice.payment_failed'
+
+    if (isOrderableType) {
+      const customerId = extractCustomerId(event)
+      if (customerId) {
+        // Probe: does any user own this customer id? If not, stash.
+        const owner = await tx.select({ id: users.id })
+          .from(users)
+          .where(eq(users.stripeCustomerId, customerId))
+          .limit(1)
+        if (owner.length === 0) {
+          await tx.insert(pendingStripeEvents)
+            .values({
+              eventId: event.id,
+              customerId,
+              type: event.type,
+              payload: event as unknown as Record<string, unknown>
+            })
+            .onConflictDoNothing({ target: pendingStripeEvents.eventId })
+          console.log(`[stripe/webhook] stashed out-of-order ${event.type} for unbound customer ${customerId} (event ${event.id})`)
+          return { handled: true, stashed: true }
+        }
+      }
+    }
+
+    // Step 3: dispatch the event normally.
+    const result = await runHandler(event, { ...opts, db: tx })
+
+    // Step 4: if this was a checkout, drain any stashed events that
+    // were waiting for this customer to be bound.
+    if (event.type === 'checkout.session.completed') {
+      const customerId = extractCustomerId(event)
+      if (customerId) {
+        const drained = await drainPendingEvents(customerId, { ...opts, db: tx })
+        if (drained > 0) {
+          return { ...result, detail: { ...(result.detail ?? {}), drained } }
+        }
+      }
+    }
+
+    return result
+  })
 }
