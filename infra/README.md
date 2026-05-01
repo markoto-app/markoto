@@ -79,6 +79,26 @@ to NOT absorb silently — bumps land via PR after manual review.
 | `devsec.hardening` | `10.5.2` | CIS-aligned `os_hardening` role — replaces ~50 lines of hand-rolled sysctl/PAM/perm tuning we'd have to chase as CIS evolves. |
 | `geerlingguy.docker` | `8.0.0` | Docker apt-repo handling is the single most fragile piece of any Ansible role — Geerling's gets patched within days when a distro changes things. |
 
+## Apprise notification wrapper (`/usr/local/bin/markoto-notify`)
+
+A single entry point for "something noteworthy happened on the box, ping me." Dropped onto the VPS by `roles/base/`; reads its config from `/etc/markoto/apprise.env` (mode `0600`, owned by root) which contains semicolon-separated Apprise URLs (`apprise_urls` from the vault). Supports any of Apprise's 100+ services — Telegram is the working default, but the env variable is the only thing that pins it to one provider.
+
+**Call sites:**
+
+- **APT post-Invoke hook** (`roles/base/templates/markoto-apt-hook.j2`) — fires on every `apt-get install/upgrade` so unattended-upgrades surface in the operator's notifications without the legacy `mail` setup.
+- **Backup cron failure path** (`roles/backup_cron/tasks/main.yml`) — appends to `/var/log/markoto/backup-failures.log` AND fires `markoto-notify "[markoto] backup FAILED at $(date -u)"`. Soft-fails if Apprise isn't configured (the wrapper exits 0 with no URLs set), so the cron doesn't go red on a misconfigured host.
+- **`playbooks/deploy.yml` post-deploy step** — fires success / failure summary including the new `IMAGE_TAG` and `/api/health` outcome.
+
+The wrapper is intentionally tiny (just a shell exec into `apprise --config /etc/markoto/apprise.env`). Adding a new call site = `markoto-notify "<message>"`. Don't shell out to `apprise` directly anywhere else; the wrapper centralises the env lookup + soft-fail behaviour.
+
+## `group_vars` / vault structure
+
+- **`group_vars/all.yml`** — non-secret defaults. Domain, image tag, paths, OS-hardening overrides, anything safe to commit in plaintext. Source of truth for "what version of markoto is deployed."
+- **`group_vars/all.vault.example.yml`** — the secret template. Every `*_password` / `*_secret` / `*_key` from `.env.example` lives here, plus Apprise URLs and the GHCR pull token. The example file has REPLACE_ME placeholders and IS committed.
+- **`group_vars/all.vault.yml`** — the encrypted secret bundle. NOT committed in plaintext; encrypted with `ansible-vault encrypt` (the encrypted form may be committed if you want — we keep it in `.gitignore` for now). The vault password lives in `.vault-password` (mode `0600`, gitignored) so the Makefile + CI can run unattended.
+
+Editing the vault: `ansible-vault edit group_vars/all.vault.yml` opens `$EDITOR` against the decrypted contents and re-encrypts on save. Don't `cat` it then re-encrypt — that loses the per-line encryption that vault uses for diffability.
+
 ## Lint workflow
 
 `make lint` runs ansible-lint (production profile, strict) and yamllint.

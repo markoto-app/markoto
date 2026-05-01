@@ -30,6 +30,16 @@ Two containers flushing the same doc concurrently used to produce duplicate acti
 
 **Detection:** look for `[activity] dedup skipped insert` in app logs to confirm the race is firing and being absorbed; absence means the residual race isn't actually firing in your traffic. Sticky sessions make it rare (both clients would need different cookies, e.g. anonymous + authenticated on the same doc) and the Hocuspocus debounce window (2-10 s) further shrinks the overlap window.
 
+### Residual `prev-text` race (accepted)
+
+The dedup index closes the *duplicate-row* outcome but not the underlying baseline race. Two containers reading `sync:prev-text:{docId}` between writes still both diff against the same baseline, so the activity row that survives reflects a **partial diff** when the writes interleave at the line level (one container's "+3 lines" was actually -1/+4 if it had observed the other's flush first). We accept this:
+
+- The doc text itself is durable — `y-postgresql` is the source of truth and never sees the race.
+- Activity-row `linesAdded`/`linesRemoved` are user-facing summary stats, not audit-grade. A line-count off by a few in a high-concurrency edit window is preferable to introducing a Valkey lock around every flush (which would couple every doc-write to Valkey availability — a worse failure mode than imprecise stats).
+- Sticky sessions plus the 2-10 s Hocuspocus debounce make the actual overlap window vanishingly small in practice.
+
+Don't try to fix this with a Valkey `WATCH` / `MULTI` around the baseline read; the cure is worse than the disease.
+
 ## Y.js schema migration playbook
 
 When adding a new field to ymeta (or any Y.Map shared across clients), follow these

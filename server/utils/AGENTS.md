@@ -4,18 +4,58 @@ Orchestration helpers + cross-cutting domain logic. Most files here are thin wra
 
 For the AI agentic loop in `agentic/` see its own AGENTS.md.
 
-## Knowledge & history helpers worth knowing about
+## Helpers worth knowing about
 
-- `historyReplay.ts` — replays `yjs_documents` rows up to a target id to reconstruct a past Y.Doc. Powers the `/diff` endpoint AND the `restoreDoc` execution helper.
-- `textDiff.ts` — wraps the `diff` library's `structuredPatch` for the diff endpoint. 200-hunk truncation guard.
+Format below: **what / when to use it / what NOT to do.**
+
+### History, restore, diff
+- `historyReplay.ts` — replays `yjs_documents` rows up to a target id to reconstruct a past Y.Doc. Powers `/diff` AND the `restoreDoc` helper. Don't try to compute a textual diff against the LATEST y-postgresql row — replay TO the boundary id captured on the activity row.
+- `textDiff.ts` — wraps the `diff` library's `structuredPatch` for the diff endpoint. 200-hunk truncation guard. Don't drop the cap — pathological diffs can render the entire diff drawer unusable.
 - `commentsSnapshotDiff.ts` — resolves a comment thread's state at a specific activity id (used by `/comment-context`).
-- `restoreDoc.ts` — the four-step Tier 2 helper (advisory-locked txn + replay + synthetic Hocuspocus client + capture-then-construct ordering). See `app/components/collab/AGENTS.md` for the consumer/UI side.
-- `templateRenderer.ts` — server-only template body renderer, fs.readFileSync of `shared/templates/content/<id>/<locale>.md`. See `shared/templates/AGENTS.md`.
+- `restoreDoc.ts` — four-step Tier 2 helper (advisory-locked txn + replay + synthetic Hocuspocus client + capture-then-construct ordering). See `app/components/collab/AGENTS.md` for the UI side. Don't bypass the advisory lock — concurrent restores against the same doc race horribly.
+
+### Access + identity
 - `documentAccess.ts` — `requireDocEditAccess` / `requireDocViewAccess` / `decideActivityAccess`.
 - `workspaceAccess.ts` — workspace-membership helpers (see `server/AGENTS.md`).
 - `validatedSession.ts` — sealed-cookie + DB-validated session. Drives `requireValidatedUserSession` everywhere.
-- `rateLimit.ts` — Valkey-backed counters. `checkRateLimit` (request count), `consumeRateLimitBudget` (signed counter for ms / bytes / etc.), `tryAcquireSessionLock` / `releaseSessionLock` (concurrent-session caps).
+- `docTokenVerify.ts` — verifies the doc-scoped JWTs minted by `/api/docs/:id/token` for endpoints that don't have a Nitro session (rare, but used by some public/whitelisted activity endpoints).
+- `renderTokens.ts` — mints + verifies the 60s `scope: 'render'` JWT used by the renderer sidecar to fetch `_internal/render-bootstrap`. Don't reuse `JWT_SECRET`-signed tokens of other shapes — `verifyRenderToken` rejects anything missing `scope === 'render'`.
+
+### Rate limits & singleflights
+- `rateLimit.ts` — Valkey-backed counters. `checkRateLimit` (request count), `consumeRateLimitBudget` (signed counter for ms / bytes / etc.), `tryAcquireSessionLock` / `releaseSessionLock` (concurrent-session caps). **Polarity is intentional:** `checkRateLimit` / `consumeRateLimitBudget` fail OPEN on Valkey error (DoS protection, not a cost cap — better to serve than to brick); `tryAcquireSessionLock` fails CLOSED (correctness — failing open would double-bill GCP). Don't accidentally flip either.
+- `idempotency.ts` — `withIdempotency(event, scope, userId, fn)`. Stripe-style request dedup keyed on the `Idempotency-Key` header scoped to `(scope, userId, key)` — same UUID from two users doesn't collide. First request claims a Valkey `SET NX EX` placeholder; on success the result is cached for 5 min; on failure the placeholder is deleted so retries can re-attempt. Concurrent retry while a request is still in flight returns 409 with a Retry-After hint (fail-fast over poll-and-wait). Used by `POST /api/docs/:id/duplicate`. Don't use for billing-correctness paths — those live at the DB level via the Stripe `processed_webhook_events` table + atomic counter UPSERT.
+- `sweepLock.ts` — `acquireSweepLock(name)` / `releaseSweepLock(name)`. Coarse cross-instance lock for periodic sweepers. Postgres advisory locks **session-scoped**, NOT transaction-scoped — sweep work spans many transactions (or none), so `pg_try_advisory_xact_lock` would auto-release the moment the acquire query commits, defeating the purpose. To keep the lock alive across the whole sweep, `acquire` checks out a `PoolClient`, runs `pg_try_advisory_lock(hashtext(name))` on it, and **pins** the same client in a per-process Map so `release` reuses it. Adding a new sweeper plugin? **It MUST acquire the lock before doing work; a `finally`-released lock by `name`.** All current sweepers do this (`orphan-cleanup`, `ai-session-sweep`, `inactive-doc-sweep`, `knowledge-sweep`, `webhook-event-sweep`, `plan-lapse-sweep`).
+
+### Outbound HTTP plumbing
+- `traceHeaders.ts` — `injectTraceHeaders(headers)` adds `sentry-trace` + `baggage` from the active span so a Sentry transaction continues across the renderer / sync / markitdown call. Returns headers unchanged when there's no active span (e.g. a sweeper firing outside an HTTP request) or when the SDK errors — failed propagation never propagates into the caller. Threading sites: `renderClient.ts` → renderer; `processKnowledge.ts` → markitdown (downstream ignores today, but the outbound span is still emitted); `syncNotify.ts` + `documentLifecycle.ts` → sync-server `/internal/*`.
+- `renderClient.ts` — Nuxt-side counterpart to the renderer sidecar. `renderDocument(docId, {format})` returns `{cached, manifest}`:
+  1. Compute the doc's current `snapshotId` (latest `yjs_documents.id`).
+  2. HEAD `s3://renders/{docId}/{snapshotId}/manifest.json` — cache hit short-circuits.
+  3. Two-tier singleflight: an in-process Map (`docId:snapshot:format`) dedups same-instance callers; a Valkey lock dedups cross-instance. Loser path polls for the winner's manifest at 750 ms cadence until lock TTL (90 s render + 30 s buffer); on poll timeout the loser attempts its own render (better one extra render than an opaque timeout).
+  4. Calls the renderer container with `INTERNAL_API_SECRET` auth. Renderer materialises the doc via the internal print page → paged.js → PDF + per-page PNGs → S3 manifest LAST as the readiness sentinel.
+  - **Failure mode:** the PDF endpoint surfaces a real error to the user — there is NO automatic fallback to client-side paged.js. Client-side print is still wired into the editor's `Cmd+P` hijack but is not used as a server-side fallback.
+  - **Cleanup:** `cleanupRendersForDoc(docId)` is called by `documentLifecycle.deleteDocument` so deleted docs don't leave stale renders in S3.
+- `healthProbes.ts` — per-component liveness for `/api/health` + `/api/health/deep`. Probes `postgres` + `valkey` + `sync` + `renderer` + `markitdown` in parallel via `Promise.allSettled`, each bounded at a 1s timeout. Postgres / Valkey / sync are required (URLs hard-fail at boot via `${VAR:?required}`). Renderer / markitdown URLs are optional — unconfigured returns `'skipped'`, NOT `'down'`, so a self-hosted opt-out doesn't flag the instance degraded. The `/api/health` aggregator caches healthy results for 5s and degraded results for 2s; `/api/health/deep` skips the cache (auth-gated, low-frequency).
+
+### Billing
+- `billing.ts` — single source of truth for the Model C anchor logic. Exports `resolveBillingContext(userId, workspaceId)` returning `{plan, attributedTo, periodStart, periodEnd, interactionsRemaining, attribution}`. The `(+)` workspace mechanic at the code level: when a workspace has `aiEnabled=true` AND `billingOwnerId` set AND that owner is on `max`/`ultra` AND not lapsed, ANY member's AI calls bill against `workspace:{wsId}` instead of `user:{userId}`. Lapsed / downgraded owners collapse back to self-bill — the resolver re-checks the owner's `(plan, planValidUntil, stripeCurrentPeriodStart)` on every call so a Stripe state change is reflected immediately, with `planLapseSweep.ts` as a belt-and-braces correction of the workspace row state. Period anchoring: paid-and-active users use Stripe's `current_period_start` / `current_period_end`; everyone else uses calendar-month UTC. `chargeInteractions(args)` is the atomic `INSERT ... ON CONFLICT DO UPDATE SET interactions_used = interactions_used + EXCLUDED.interactions_used` against `ai_usage_period` — the returned `interactions_used` is compared to the cap and the txn rolls back with `BudgetExhausted` if it overshoots. Don't read-modify-write; let the UPSERT race-correct.
+- `planLapseSweep.ts` — runs in `server/plugins/plan-lapse-sweep.ts`. Disables `(+)` on workspaces whose billing owner deleted their account (FK `ON DELETE SET NULL` nulled `billing_owner_id` but `ai_enabled` stayed true), lapsed (`planValidUntil < now()`), or downgraded below max/ultra. Sets `aiEnabled=false` AND `billingOwnerId=null`. Belt-and-braces — the resolver already self-bills these users at runtime; the sweeper exists so the admin UI's `(+)` badge reflects DB truth.
+- `stripeClient.ts` — singleton Stripe SDK client. Lazy-initialised; reads the secret key from runtime config.
+- `stripeWebhook.ts` — pure dispatcher (separated from the HTTP endpoint so unit tests can call handlers without going through signature verification per case). `dispatchStripeEvent(event, opts)` runs everything in ONE transaction:
+  1. **Replay protection** — INSERT into `processed_webhook_events` with `ON CONFLICT DO NOTHING`. If the returning array is empty, the event was already processed; short-circuit with `{handled: true, replayed: true}`. Stripe gets a 200 and stops retrying, but no UPDATEs re-apply (preserves manual ops corrections).
+  2. **Out-of-order stash** — for `subscription.*` and `invoice.*` events, probe whether any user owns this `customerId`. If not, stash the full payload in `pending_stripe_events` and bail with `{handled: true, stashed: true}`.
+  3. **Dispatch** to the matching handler (`handleCheckoutSessionCompleted`, `handleSubscriptionUpdated`, `handleSubscriptionDeleted`, `handleInvoicePaid`, `handleInvoicePaymentFailed`).
+  4. **Drain** — if the event was `checkout.session.completed`, replay any stashed events for this customer in `received_at` order, marking each `processed=true`.
+
+  **Why the stash is needed when `customer.subscription.created` arrives before `checkout.session.completed`:** Stripe fires both events on a successful checkout, and delivery order is NOT guaranteed. Today the stash is masked because `handleCheckoutSessionCompleted` runs a synchronous `stripe.subscriptions.retrieve` and applies canonical state from the live API. If anyone removes that fetch for perf, dropped subscription events become a real bug — the stash is the safety net.
+
+  **Don't add a handler that throws on unknown customer.** Use the stash path; the sweeper retains unprocessed rows for 30 days so Ops can reconcile.
+- `webhookEventSweep.ts` — runs in `server/plugins/webhook-event-sweep.ts`. Prunes `processed_webhook_events` (>90d — Stripe replays only ~3d, but the long retention serves forensic queries) and `pending_stripe_events` (processed ≥7d audit window or unprocessed ≥30d).
+
+### Other helpers
+- `templateRenderer.ts` — server-only template body renderer, fs.readFileSync of `shared/templates/content/<id>/<locale>.md`. See `shared/templates/AGENTS.md`.
 - `fileTypeGuard.ts` — magic-byte sniff via `file-type` for upload validation.
+- `throttledSentry.ts` — caps Sentry capture frequency for repetitive events (Valkey reconnect loops, sync notify retries) so a degraded dependency doesn't blow our event budget.
 
 ---
 

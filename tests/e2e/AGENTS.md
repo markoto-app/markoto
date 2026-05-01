@@ -117,6 +117,19 @@ Lives in `docker-compose.test.yml` under `profiles: [flows]` — adds `sync-test
 
 Lifecycle: `bun run flows:test` (`scripts/flows-ephemeral.ts`) does docker-up → `bun run build` (production Nitro output to `.output/`) → spawn the prod server on PORT=3001 → poll `/api/health` → run Playwright → cleanup on every exit path. Cleanup deliberately does NOT use `--remove-orphans` because that flag treats other compose files in the same project namespace as orphans and would nuke dev infra. The lower-level `flows:test:against-running` skips the build + serve.
 
+## CI integration
+
+The `test-repos-integration-flows` job in `.github/workflows/ci.yml` runs the same `bun run flows:test` against the PR commit on every PR. It brings up `docker-compose.test.yml --profile flows` with `--wait` (compose-level health-gating, not just docker-level), runs the integration repos test suites in the same job, then runs the Playwright flow tests. PR merge is blocked on this check passing — flows are first-class regression tests, not optional eye-candy. See `docs/GITHUB-CONFIG.md` for branch-protection wiring.
+
+## Tier-1 flows TODO
+
+Five flows shipped today: `quick-share`, `pick-a-theme`, `discuss-with-comments`, `ai-prompt-bar`, `ai-comment-mention`. Four Tier-1 flows still pending; pick these up before adding Tier-2 (advanced) flows:
+
+- **`polished-pdf`** — open a doc → choose a preset theme → tweak a heading style → click Print/Download PDF → verify the PDF lands on disk. Surfaces the PDF download path that's currently invisible to new users.
+- **`import-existing`** — drag a `.docx` into the dashboard → choose a workspace → land in the editor with imported content. Covers the "I already have a doc; can I move it here?" first impression.
+- **`rich-content`** — insert a table, alert callout, math block, mermaid diagram, code fence with a real language → see them all render correctly in preview. The "look at all the markdown extensions" demo.
+- **`password-protect`** — set a password → copy share link → open in incognito (second context) → enter password → land in the doc. Two-context fixture work needed first; track the playwright `browser.newContext()` plumbing as a fixture-level addition.
+
 ## When you add a new flow
 
 1. Add stable selectors to the relevant components (`data-testid` for non-text elements, `aria-label` for icon-only buttons).

@@ -2,10 +2,13 @@
 
 Nuxt 4 frontend. Substantive sub-domains have their own AGENTS.md:
 
-- `app/composables/AGENTS.md` — document composables (token, sync, document orchestrator).
-- `app/utils/AGENTS.md` — preview rendering pipeline + markdown comments + editor commands.
+- `app/composables/AGENTS.md` — document composables (token, sync, document orchestrator, version-skew, cross-tab logout).
+- `app/utils/AGENTS.md` — preview rendering pipeline (paged.js iframe + server-side render path) + markdown comments + editor commands + CDN SRI conventions.
+- `app/components/ai/AGENTS.md` — AI presence primitives (Cursor / Tag / GutterMark / Thinking / AIPromptBar / Waveform).
 - `app/components/collab/AGENTS.md` — Activity Log (Tier 1 diffs, Tier 2 restore).
 - `app/components/document/AGENTS.md` — document context fields + new-doc dialog.
+
+**Where to find things fast:** `make help` (root Makefile) lists every dev/test/deploy target with one-line descriptions. `docs/CHEATSHEET.md` is the human-facing crib sheet for "I forgot which command does X" — keep it in sync when you add a script. For agent-facing structure, the table above + the root `AGENTS.md` index are canonical.
 
 ## Design System
 
@@ -123,6 +126,7 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 - `autocapitalize: 'sentences'`, `autocorrect: 'on'`, `spellcheck: 'true'` always on.
 - Toolbar `flex-wrap`, collapsed hamburger menu, icon-only connection badge, responsive title.
 - Right sidebar: `< xl` (≤1279px) — opening panel hides preview; `xl+` — fixed `w-80` sidebar, genuine triple-pane. Preview uses `hidden xl:block` (CSS), not `v-if`, so resize past xl restores it without remounting.
+- Mobile sprint additions: bottom-sheet pattern for sidebar panels on `< sm`, mobile format bar (subset of toolbar) docked above the keyboard via `position: sticky`, view-mode bar (Edit / Preview) replacing the desktop split toggle. Don't reach for `visualViewport` API yet — Safari iOS behaviour is inconsistent and tracked under "Mobile MMP" in the root TODO list.
 
 ## Common Vue conventions
 
