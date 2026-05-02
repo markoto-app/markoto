@@ -121,6 +121,19 @@ export interface RunLoopOptions {
   billingContext: BillingContext
   /** Optional logger — defaults to `console.log` tagged with the session id. */
   logger?: (msg: string) => void
+  /**
+   * Optional callback fired ONCE per validated tool call (after Zod
+   * validation, before per-tool cap checks). Used by the prompt
+   * endpoint to record an `ai_session_messages` row so the next
+   * prompt's `<conversation_history>` block reflects what this session
+   * did. Fire-and-forget: the loop awaits the callback but swallows
+   * errors so a memory hiccup never aborts an in-flight loop.
+   *
+   * `message_to_user` is recorded SEPARATELY by its handler (it has
+   * the verbatim body the prompt block needs); other tools are
+   * recorded here in compacted form via `summarizeToolCall`.
+   */
+  onToolCall?: (name: string, validatedArgs: unknown) => Promise<void>
 }
 
 export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
@@ -393,6 +406,22 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         // Unknown tool — let executeFunctionByName / webSearch branch handle
         // the "unsupported" error. Pass raw args through.
           validatedArgs = call.args ?? {}
+        }
+
+        // Memory event — record the validated call (compacted) before
+        // we run it. Fire-and-forget; errors swallowed so a memory
+        // hiccup can't abort the loop. We record BEFORE the cap check
+        // so the memory reflects what the model attempted, even if the
+        // cap rejected this particular invocation. `message_to_user`
+        // is special-cased upstream by the handler so it lands as a
+        // verbatim row, not a compacted tool_call row — so we skip it
+        // here to avoid a duplicate.
+        if (opts.onToolCall && call.name !== 'message_to_user') {
+          try {
+            await opts.onToolCall(call.name, validatedArgs)
+          } catch (e) {
+            log(`onToolCall callback failed: ${e instanceof Error ? e.message : e}`)
+          }
         }
 
         // Per-tool call-count cap. Independent of the per-user budget

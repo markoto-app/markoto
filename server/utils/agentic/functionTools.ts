@@ -178,6 +178,87 @@ const ViewPagesArgs = z.object({
 }).strict()
   .describe('Fetch rendered PNG images of specific pages from the current document and inline them into the conversation so you can VISUALLY inspect what those pages look like. Use when the user references a specific page ("issue on page 3", "is page 1 too dense?", "fix the table layout on page 5") — the markdown gives you the content but not the page boundaries paged.js produces. Each page costs interactions; never call this preemptively, only when the user names a specific page.')
 
+// --- message_to_user ------------------------------------------------------
+//
+// The AI's only direct response surface OUTSIDE the document. Renders in
+// a thin panel above the prompt bar, auto-collapsed after 2s for plain
+// messages, sticky for questions. The doc itself remains the artefact;
+// this is just where the AI says one short thing back to the user.
+//
+// Contract:
+//   - `message` — at most 600 chars. Anything longer belongs in the doc.
+//   - `is_question` — true means the message stays on screen until the
+//     user dismisses it or replies. Default false (auto-collapse).
+//
+// Use cases the system prompt teaches: answer a user question that
+// doesn't belong in the doc; report a finding; ask for clarification
+// when the task is genuinely ambiguous. NOT for "Done" / status reports
+// — those stay silent.
+
+// --- search_activity_log --------------------------------------------------
+//
+// Long-term memory tier. The agentic loop's in-prompt
+// `<conversation_history>` block holds the last 60 minutes (capped at
+// 40 rows) of *this user's* prompts + AI tool calls + AI replies. Past
+// that window, the AI must opt in to recall. `search_activity_log`
+// gives it filtered access to the doc's activity log: every edit,
+// comment, theme/title change, AI tool call, and restore — all users
+// of the doc, not just this initiator.
+//
+// Use cases (from the user-facing prompt):
+//   - "what did you base that table on?" → search for ai.tool rows
+//     with web_search / fetch_url / search_knowledge / generate_image
+//     near the time of the table edit.
+//   - "revert what we did yesterday" → search for `edit` rows with
+//     since=yesterday-start, before=yesterday-end.
+//   - "did anyone change the title last week?" → action='title.changed'.
+//
+// Doc-scoped: the AI only sees activity for the current `aiSession.docId`.
+// No cross-doc surface — for that, the model uses `view_other_document`
+// + the destination doc's own activity.
+
+const ACTIVITY_ACTION_NAMES = [
+  'edit',
+  'join',
+  'leave',
+  'comment.added',
+  'comment.replied',
+  'comment.resolved',
+  'comment.reopened',
+  'comment.deleted',
+  'theme.changed',
+  'title.changed',
+  'ai.tool',
+  'restore'
+] as const
+
+const SearchActivityLogArgs = z.object({
+  query: z.string().trim().max(200).optional()
+    .describe('Substring match against row metadata + author name (case-insensitive). Use this when the user references a specific topic ("the pricing table", "the intro") and you want to find when it was edited or commented on. Omit to search by action / time only.'),
+  actions: z.array(z.enum(ACTIVITY_ACTION_NAMES)).max(12).optional()
+    .describe('Restrict to specific action types. Common picks: ["edit"] (content changes), ["ai.tool"] (your own past tool calls — useful for "what did you base that on?"), ["title.changed", "theme.changed"] (metadata changes), ["restore"] (rollbacks), ["comment.added","comment.replied","comment.resolved","comment.reopened","comment.deleted"] (any comment activity). Omit for all action types.'),
+  // Plain `z.string()` instead of `.datetime()` — Zod's draft-7 emit
+  // for `.datetime()` includes a 600-char leap-year-aware regex that
+  // some Gemini model versions reject as an invalid schema. The handler
+  // re-validates with `new Date(s)` + `isFinite` so a malformed string
+  // round-trips back to the model as a clean tool error.
+  since: z.string().min(1).max(40).optional()
+    .describe('ISO-8601 timestamp lower bound (inclusive), UTC. Example: "2026-04-30T00:00:00Z" for "yesterday onwards" relative to a 2026-05-01 query date.'),
+  before: z.string().min(1).max(40).optional()
+    .describe('ISO-8601 timestamp upper bound (inclusive), UTC. Pair with `since` to window a specific day or range.'),
+  limit: z.number().int().min(1).max(50).optional()
+    .describe('Maximum rows to return. Default 20. Bump to 50 for survey-style queries; drop to 5–10 for "find the most recent X" lookups.')
+}).strict()
+  .describe('Search the document\'s long-term activity log: every edit, comment, theme/title change, AI tool call, and restore from this and prior sessions. Use when the user references something OUTSIDE the loaded `<conversation_history>` block — yesterday, last week, "what did you base X on", "find when the intro was last rewritten". Doc-scoped (current document only). Returns most-recent-first; each row carries action, author, ISO timestamp, and a brief summary. Cheap (DB query, no Gemini sub-call). Don\'t use for current-state lookups — call view_document / read_comments for that.')
+
+const MessageToUserArgs = z.object({
+  message: z.string().trim().min(1).max(600)
+    .describe('Short user-facing message, max 600 characters. Plain text or lightweight markdown. Use complete sentences. NOT for status reports ("Done", "Changes applied") — silence is the correct answer there. The doc edit IS the deliverable; this is for things the user needs to read OUTSIDE the doc.'),
+  is_question: z.boolean().optional()
+    .describe('Set true ONLY when you are asking the user something AND cannot proceed without their answer. Sticky on screen until the user dismisses or replies. Default false: the message auto-collapses after 2s and the user can re-expand it on demand.')
+}).strict()
+  .describe('Send a short ephemeral message back to the user, rendered above the AI prompt bar. Use when the user asked a question whose answer does NOT belong in the document (a status report on what you found, a brief explanation, a clarifying question), OR when the task is genuinely ambiguous and you need the user to choose. Prefer SILENCE for "Done" / "Changes applied" — the diff is the receipt. Each session shows only the latest message; no history.')
+
 // --- update_theme ---------------------------------------------------------
 //
 // Partial theme patch. Every leaf is optional and every sub-object is
@@ -429,6 +510,8 @@ export type ListWorkspaceDocumentsInput = z.infer<typeof ListWorkspaceDocumentsA
 export type ViewOtherDocumentInput = z.infer<typeof ViewOtherDocumentArgs>
 export type GetPageCountInput = z.infer<typeof GetPageCountArgs>
 export type ViewPagesInput = z.infer<typeof ViewPagesArgs>
+export type MessageToUserInput = z.infer<typeof MessageToUserArgs>
+export type SearchActivityLogInput = z.infer<typeof SearchActivityLogArgs>
 
 // --- Name → schema registry used by runLoop for validate-before-dispatch --
 //
@@ -457,7 +540,9 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   create_comment: CreateCommentArgs,
   reply_to_comment: ReplyToCommentArgs,
   resolve_comment: ResolveCommentArgs,
-  delete_comment: DeleteCommentArgs
+  delete_comment: DeleteCommentArgs,
+  message_to_user: MessageToUserArgs,
+  search_activity_log: SearchActivityLogArgs
 }
 
 // --- FunctionDeclarations (what Gemini sees) ------------------------------
@@ -583,6 +668,16 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
     'delete_comment',
     'Delete a whole comment thread or a single reply (pass reply_id to target one reply). Only allowed for AI-authored comments or comments by the user who triggered this session, unless that user has document management rights.',
     DeleteCommentArgs
+  ),
+  decl(
+    'message_to_user',
+    'Send a short ephemeral message to the user above the AI prompt bar. Use when the user asked something whose answer does NOT belong in the document (a quick finding, a brief explanation, a clarifying question), OR when the task is genuinely ambiguous and you need the user to choose before proceeding. Set `is_question: true` ONLY when you cannot proceed without an answer — that keeps the message on screen until they reply or dismiss. Plain messages auto-collapse after 2 seconds. Prefer SILENCE for "Done" / "Changes applied" — the doc edit is already the receipt. Counts as a valid terminal tool call: a turn that ends with `message_to_user` (and optionally edits) is fine.',
+    MessageToUserArgs
+  ),
+  decl(
+    'search_activity_log',
+    'Search the document\'s activity log — every edit, comment, theme/title change, AI tool call, and restore across ALL users and ALL prior sessions, not just the current conversation. Use when the user references something OUTSIDE the in-prompt `<conversation_history>` window: "what did you base that table on yesterday", "revert the changes from last week", "when did we last rewrite the intro", "did anyone change the title". Doc-scoped to the current document. Returns most-recent-first with author, ISO timestamp, and a one-line summary per row. Pure read; no Gemini sub-call.',
+    SearchActivityLogArgs
   )
 ]
 

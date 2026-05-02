@@ -32,7 +32,9 @@ import type {
   ListWorkspaceDocumentsInput,
   ViewOtherDocumentInput,
   GetPageCountInput,
-  ViewPagesInput
+  ViewPagesInput,
+  MessageToUserInput,
+  SearchActivityLogInput
 } from './agentic/functionTools'
 import { renderDocument } from './renderClient'
 import type { DocTheme } from '~~/shared/types/theme'
@@ -55,6 +57,8 @@ import { getWorkspace } from '../repos/workspaces'
 import { canManageDoc } from './workspaceAccess'
 import { embedQuery } from './embeddings'
 import { chargeInteractions, BudgetExhausted } from './billing'
+import { appendAiMessage } from '../repos/aiSessionMessages'
+import { searchActivity, type ActivityAction, type ActivityEntry } from '../repos/activity'
 import { stripAiMention } from './agentic/commentTriggerPrompt'
 import { assertSafeUrl } from './agentic/urlGuard'
 
@@ -1175,6 +1179,185 @@ async function handleViewPages(
  * `webSearch` sub-call helper in `functionTools.ts` because it needs the
  * `GoogleGenAI` client and is async.
  */
+/**
+ * `message_to_user` — push a short ephemeral message into the AI's
+ * awareness so the frontend's response panel renders it above the prompt
+ * bar. Awareness already carries `user`, `aiSession`, `aiStatus`; we add
+ * an `aiResponse` slot keyed by `ts` so clients can dedupe and trigger
+ * the auto-collapse timer on appearance.
+ *
+ * Why awareness, not a DB row: this is ephemeral by design (one response
+ * per session, replaced not appended). Awareness gives us multi-tab
+ * delivery for free and dies with the session — no cleanup, no privacy
+ * surface, no migrations. Phase 2 will add a DB-backed conversation
+ * substrate for the AI's MEMORY of past turns; this surface stays
+ * ephemeral.
+ *
+ * The model's `output` is intentionally short — it just confirms the
+ * message landed so the model doesn't try to repeat it.
+ */
+async function handleMessageToUser(
+  session: AiSession,
+  input: MessageToUserInput
+): Promise<ToolResult> {
+  const isQuestion = input.is_question === true
+  // ts uniquely identifies each response so clients can detect a fresh
+  // message even when the body is identical to the previous one. Date.now()
+  // resolution (ms) is plenty — the model is not racing itself.
+  session.awareness.setLocalStateField('aiResponse', {
+    message: input.message,
+    isQuestion,
+    ts: Date.now()
+  })
+
+  // Persist a verbatim memory row so a follow-up prompt's
+  // `<conversation_history>` block can show what the AI told the user.
+  // Fire-and-forget — a memory hiccup never aborts the user-visible
+  // message. Swallow errors at the boundary the same way activity
+  // logging does.
+  try {
+    await appendAiMessage({
+      docId: session.docId,
+      userId: session.initiatorUserId,
+      sessionId: session.sessionId,
+      kind: 'message_to_user',
+      body: { message: input.message, isQuestion }
+    })
+  } catch (e) {
+    console.warn('[aiToolAdapter] message_to_user memory append failed:', e instanceof Error ? e.message : e)
+  }
+
+  return ok(
+    isQuestion
+      ? 'Question shown to user (sticky). Wait for their reply in a follow-up turn — do not send another question.'
+      : 'Message shown to user (auto-collapses after 2s). Do not repeat it in a comment or in the document.'
+  )
+}
+
+/**
+ * Render an `ActivityEntry` row into a single human-/model-readable line.
+ * Format: `[#id YYYY-MM-DDTHH:MM:SSZ action by Author] summary`. The
+ * `id` is exposed so the model can chain into `replay`/`/restore`/diff
+ * endpoints downstream if it needs to (those still go through their
+ * own auth-checked HTTP routes — the AI doesn't get a direct restore
+ * tool yet).
+ *
+ * Compaction rules per action:
+ *   - edit: lines ±, word count
+ *   - comment.*: short body preview
+ *   - title.changed: from → to
+ *   - ai.tool: the per-tool key (query / url / prompt / src / id)
+ *   - restore: anchor activity id + frozen timestamp
+ *   - join / leave / theme.changed: just the action label
+ */
+function formatActivityRow(row: ActivityEntry): string {
+  const ts = row.createdAt.toISOString()
+  const who = row.userName ?? '(anonymous)'
+  const head = `[#${row.id} ${ts} ${row.action} by ${who}]`
+  const m = row.metadata as Record<string, unknown> | null
+  const trim = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) : '')
+
+  switch (row.action) {
+    case 'edit': {
+      const parts: string[] = []
+      if (typeof row.linesAdded === 'number' || typeof row.linesRemoved === 'number') {
+        parts.push(`+${row.linesAdded ?? 0}/-${row.linesRemoved ?? 0} lines`)
+      }
+      if (typeof row.wordCount === 'number') parts.push(`${row.wordCount} words`)
+      return `${head} ${parts.join(', ') || 'edit'}`
+    }
+    case 'comment.added':
+    case 'comment.replied':
+    case 'comment.resolved':
+    case 'comment.reopened':
+    case 'comment.deleted': {
+      const preview = trim(m?.bodyPreview, 120)
+      const id = trim(m?.commentId, 32)
+      return `${head} ${id ? `comment_id=${id} ` : ''}body≈"${preview}"`
+    }
+    case 'title.changed':
+      return `${head} from "${trim(m?.from, 80)}" → "${trim(m?.to, 80)}"`
+    case 'theme.changed':
+      return `${head} theme updated`
+    case 'ai.tool': {
+      const tool = trim(m?.tool, 40)
+      switch (tool) {
+        case 'web_search':
+          return `${head} web_search query="${trim(m?.query, 120)}"`
+        case 'fetch_url':
+          return `${head} fetch_url url="${trim(m?.url, 200)}"`
+        case 'generate_image':
+          return `${head} generate_image prompt="${trim(m?.prompt, 120)}"`
+        case 'view_image':
+          return `${head} view_image src="${trim(m?.src, 200)}"`
+        case 'search_knowledge':
+          return `${head} search_knowledge query="${trim(m?.query, 120)}"`
+        case 'get_knowledge_file':
+          return `${head} get_knowledge_file knowledge_id=${trim(m?.knowledgeId, 64)}`
+        default:
+          return `${head} ai.tool ${tool || ''}`
+      }
+    }
+    case 'restore': {
+      const fromId = m && typeof m.restoredFromActivityId === 'number' ? m.restoredFromActivityId : null
+      const fromTime = trim(m?.restoredFromTime, 32)
+      return `${head} restored to row #${fromId ?? '?'}${fromTime ? ` (${fromTime})` : ''}`
+    }
+    case 'join':
+    case 'leave':
+      return `${head} ${row.action}`
+    default:
+      return head
+  }
+}
+
+async function handleSearchActivityLog(
+  session: AiSession,
+  input: SearchActivityLogInput
+): Promise<ToolResult> {
+  // Parse + validate the optional ISO timestamps. Zod's `.datetime()`
+  // already accepts only RFC 3339 / ISO 8601 — we still wrap in `new
+  // Date` and check `isFinite` to reject anything pathological that
+  // sneaks past the schema (e.g. year 0000).
+  const parseTime = (s: string | undefined): Date | undefined => {
+    if (!s) return undefined
+    const d = new Date(s)
+    if (!Number.isFinite(d.getTime())) return undefined
+    return d
+  }
+  const since = parseTime(input.since)
+  const before = parseTime(input.before)
+
+  let rows: ActivityEntry[]
+  try {
+    rows = await searchActivity(session.docId, {
+      query: input.query,
+      actions: input.actions as ActivityAction[] | undefined,
+      since,
+      before,
+      limit: input.limit ?? 20
+    })
+  } catch (e) {
+    return err(`Error: search_activity_log failed: ${e instanceof Error ? e.message : 'unknown'}`)
+  }
+
+  if (rows.length === 0) {
+    const filterDesc: string[] = []
+    if (input.query) filterDesc.push(`query="${input.query}"`)
+    if (input.actions?.length) filterDesc.push(`actions=[${input.actions.join(',')}]`)
+    if (since) filterDesc.push(`since=${since.toISOString()}`)
+    if (before) filterDesc.push(`before=${before.toISOString()}`)
+    return ok(`No activity rows matched. Filters: ${filterDesc.join(', ') || '(none)'}.`)
+  }
+
+  // Returned in DESC-by-time order from the repo. Render preserves that
+  // order so the model reads newest first — usually what it wants when
+  // answering "the most recent / last X" style questions. The model can
+  // re-issue with a tighter window if the first hit isn't the right one.
+  const lines = rows.map(formatActivityRow)
+  return ok(`Found ${rows.length} activity row${rows.length === 1 ? '' : 's'} (most recent first):\n${lines.join('\n')}`)
+}
+
 export async function executeFunctionByName(
   session: AiSession,
   name: string,
@@ -1230,8 +1413,12 @@ export async function executeFunctionByName(
       return handleResolveComment(session, args as ResolveCommentInput)
     case 'delete_comment':
       return handleDeleteComment(session, args as DeleteCommentInput)
+    case 'message_to_user':
+      return handleMessageToUser(session, args as MessageToUserInput)
+    case 'search_activity_log':
+      return handleSearchActivityLog(session, args as SearchActivityLogInput)
     default:
-      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, get_theme, list_themes, save_theme_as_preset, list_workspace_documents, view_other_document, set_title, view_image, generate_image, get_page_count, view_pages, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment.`)
+      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, get_theme, list_themes, save_theme_as_preset, list_workspace_documents, view_other_document, set_title, view_image, generate_image, get_page_count, view_pages, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment, message_to_user, search_activity_log.`)
   }
 }
 

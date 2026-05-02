@@ -64,6 +64,13 @@
       "when": 1777624127233,
       "tag": "0008_stiff_wrecking_crew",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777709765666,
+      "tag": "0009_dark_sentinel",
+      "breakpoints": true
     }
   ]
 }

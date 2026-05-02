@@ -52,5 +52,11 @@ export const SESSION_TOOL_CALL_CAPS: Record<string, number> = {
   generate_image: 5,
   web_search: 10,
   fetch_url: 10,
-  search_knowledge: 20
+  search_knowledge: 20,
+  // Pure-DB tool, but bounded so the model can't loop on
+  // "search again with slightly different filters" forever. 8 is
+  // plenty for the user-facing patterns this tool exists to serve
+  // (recall a specific past edit, audit a recent restore, find
+  // recent ai.tool rows that backed a claim).
+  search_activity_log: 8
 }

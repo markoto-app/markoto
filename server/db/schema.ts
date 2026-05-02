@@ -187,6 +187,47 @@ export const aiSessions = pgTable('ai_sessions', {
   index('idx_ai_sessions_started_at').on(table.startedAt)
 ])
 
+// Per-(doc, user) conversation memory feeding the AI agentic loop's
+// short-term context. Records the FACT of past prompts + tool calls
+// + AI messages so a follow-up prompt can resolve "it" / "that table"
+// without losing context across separate /api/ai/prompt requests.
+//
+// Compaction policy lives in `server/utils/agentic/conversationMemory.ts`:
+//   - kind='user_prompt' → body verbatim (small, conversational glue)
+//   - kind='message_to_user' → body verbatim (the AI's user-visible reply)
+//   - kind='tool_call' → body holds the tool NAME + a short arg summary
+//     ONLY. Tool RESULTS are never recorded — if the model needs the
+//     payload again it re-issues the call. This is the bloat-prevention
+//     bet: the fact "I called search_knowledge for 'pricing model'" is
+//     load-bearing, the chunks themselves are reproducible.
+//
+// Cascade-on-doc-delete: memory is doc-bound. Cascade-on-user-delete:
+// privacy — we don't keep a user's AI conversation history past account
+// deletion. Same posture as the activity log on user-delete (anonymise)
+// would not apply here because the entries are PII-rich (their literal
+// prompts).
+export const aiSessionMessages = pgTable('ai_session_messages', {
+  id: serial('id').primaryKey(),
+  docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // The AI session that produced this row. Lets debugging correlate
+  // memory entries to a specific prompt's loop. Not a FK because
+  // ai_sessions rows are pruned on session-end while memory persists.
+  sessionId: text('session_id').notNull(),
+  kind: text('kind', { enum: ['user_prompt', 'tool_call', 'message_to_user'] }).notNull(),
+  // Shape varies by kind:
+  //   user_prompt:      { text }
+  //   tool_call:        { name, summary }
+  //   message_to_user:  { message, isQuestion }
+  body: jsonb('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  // The hot read path is "load this user's recent memory for this doc",
+  // ordered by recency. Composite index covers it in one seek + a
+  // small backwards scan.
+  index('idx_ai_msg_doc_user_time').on(table.docId, table.userId, table.createdAt)
+])
+
 // Image / file uploads. Inserted (unconfirmed) when the client requests a
 // presigned URL; flipped to confirmed when the client posts back after the
 // PUT. The orphan-cleanup plugin uses this table as the source of truth:

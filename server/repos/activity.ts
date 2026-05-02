@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm'
 import { activityLog, users } from '../db/schema'
 import { useDatabase } from '../utils/database'
 
@@ -242,6 +242,87 @@ export async function getActivityById(activityId: number, docId: string): Promis
     .where(and(eq(activityLog.id, activityId), eq(activityLog.docId, docId)))
     .limit(1)
   return (rows[0] as ActivityEntry | undefined) ?? null
+}
+
+/**
+ * Filtered activity-log search. The AI's `search_activity_log` tool
+ * is the primary caller — long-term memory tier for "revert X from
+ * yesterday" or "what info did you base that table on" queries that
+ * fall outside the in-prompt `<conversation_history>` window.
+ *
+ * Filters layer multiplicatively:
+ *   - actions: restrict to specific action types (e.g. ['restore', 'edit'])
+ *   - query:   substring match against the row's metadata::text +
+ *              user_name, case-insensitive. Cheap and adequate — the
+ *              metadata column is small jsonb.
+ *   - since/before: time window in UTC.
+ *   - limit:   hard ceiling, default 20, max 50.
+ *
+ * Results are ordered most-recent-first so the model sees newest
+ * matches first; the tool handler caps `limit` and renders into the
+ * compact line format expected by the agentic loop.
+ *
+ * Doc-scoped by docId — never accepts a workspaceId or cross-doc
+ * lookup, mirroring the rest of the activity-repo's tuple-key isolation.
+ */
+export interface SearchActivityOpts {
+  actions?: ActivityAction[]
+  query?: string
+  since?: Date
+  before?: Date
+  limit?: number
+}
+
+export async function searchActivity(
+  docId: string,
+  opts: SearchActivityOpts = {}
+): Promise<ActivityEntry[]> {
+  const db = useDatabase()
+  const limit = Math.max(1, Math.min(opts.limit ?? 20, 50))
+
+  const filters = [eq(activityLog.docId, docId)]
+  if (opts.actions && opts.actions.length > 0) {
+    filters.push(inArray(activityLog.action, opts.actions))
+  }
+  if (opts.since) filters.push(gte(activityLog.createdAt, opts.since))
+  if (opts.before) filters.push(lte(activityLog.createdAt, opts.before))
+  if (opts.query && opts.query.trim().length > 0) {
+    // ILIKE on metadata::text covers every embedded field (commentId,
+    // bodyPreview, query, prompt, summary, url, tool name, …) without a
+    // dedicated index — the per-doc filter above keeps the scan small
+    // (≤500 rows by the prune cap). Also matches `user_name` for
+    // who-did-what queries. Pass-through %escaping: trust the model's
+    // input as a literal — escapes for `%` / `_` are intentionally NOT
+    // applied so a query like "comment.added" still matches; pathological
+    // inputs only hurt recall, never correctness.
+    const q = `%${opts.query.trim()}%`
+    filters.push(
+      sql`(${activityLog.metadata}::text ILIKE ${q} OR coalesce(${activityLog.userName}, '') ILIKE ${q})`
+    )
+  }
+
+  const rows = await db
+    .select({
+      id: activityLog.id,
+      docId: activityLog.docId,
+      userId: activityLog.userId,
+      userName: activityLog.userName,
+      avatarUrl: users.avatarUrl,
+      action: activityLog.action,
+      wordCount: activityLog.wordCount,
+      linesAdded: activityLog.linesAdded,
+      linesRemoved: activityLog.linesRemoved,
+      metadata: activityLog.metadata,
+      yjsDocIdBefore: activityLog.yjsDocIdBefore,
+      yjsDocIdAfter: activityLog.yjsDocIdAfter,
+      createdAt: activityLog.createdAt
+    })
+    .from(activityLog)
+    .leftJoin(users, eq(activityLog.userId, users.id))
+    .where(and(...filters))
+    .orderBy(desc(activityLog.createdAt))
+    .limit(limit)
+  return rows as ActivityEntry[]
 }
 
 /**

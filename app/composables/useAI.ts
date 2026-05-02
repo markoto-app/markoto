@@ -26,6 +26,27 @@ export interface AiSessionInfo {
    * card. Undefined for normal prompt-bar / selection-popup sessions.
    */
   commentThreadId?: string | null
+  /**
+   * Latest non-document response from the AI for this session, set by
+   * the `message_to_user` tool. The frontend's response panel renders
+   * this above the prompt bar — auto-collapsed after 2s when
+   * `isQuestion` is false, sticky when true. Replaced (not appended) on
+   * every new call. Null when the AI hasn't sent a message_to_user
+   * this session.
+   */
+  aiResponse?: { message: string, isQuestion: boolean, ts: number } | null
+}
+
+/** Response surface for the AI prompt bar's response panel. */
+export interface AiResponseEntry {
+  /** Identifier of the session that produced this response. */
+  sessionId: string
+  /** Body — short text or lightweight markdown, max 600 chars from the server. */
+  message: string
+  /** Sticky-on-screen when true; auto-collapses when false. */
+  isQuestion: boolean
+  /** Server-stamped wall-clock ms; drives dedup + the 2s collapse timer. */
+  ts: number
 }
 
 /**
@@ -51,6 +72,16 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       const ai = state?.aiSession
       const status = state?.aiStatus
       if (!user?.isAI || !ai?.sessionId) continue
+      const rawResp = state?.aiResponse
+      const aiResponse = rawResp
+        && typeof rawResp.message === 'string'
+        && typeof rawResp.ts === 'number'
+        ? {
+            message: rawResp.message,
+            isQuestion: rawResp.isQuestion === true,
+            ts: rawResp.ts
+          }
+        : null
       list.push({
         sessionId: ai.sessionId,
         initiatorName: ai.initiatorName,
@@ -60,7 +91,8 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         message: status?.message ?? null,
         commentThreadId: typeof ai.commentThreadId === 'string' && ai.commentThreadId.length > 0
           ? ai.commentThreadId
-          : null
+          : null,
+        aiResponse
       })
     }
     activeSessions.value = list
@@ -110,6 +142,37 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       // Session just cleaned up after an error — keep lastError around for the toast.
     }
   })
+
+  // Latched copy of the most recent `message_to_user` response. Awareness
+  // disappears with the AI session (~2.5s after `done`), so without this
+  // latch the response panel would unmount the moment the loop ends —
+  // exactly when the user is reading it. We watch the live awareness
+  // entry, snapshot any fresh `aiResponse` into `lastResponse`, and let
+  // it persist until either the next response replaces it or the user
+  // dismisses it manually. New responses are detected by `(sessionId, ts)`
+  // so identical bodies in different sessions don't collide and re-emits
+  // within the same session bump the timestamp.
+  const lastResponse = ref<AiResponseEntry | null>(null)
+  watch(mySession, (session) => {
+    const r = session?.aiResponse
+    if (!r) return
+    const cur = lastResponse.value
+    if (cur && cur.sessionId === session!.sessionId && cur.ts === r.ts) return
+    lastResponse.value = {
+      sessionId: session!.sessionId,
+      message: r.message,
+      isQuestion: r.isQuestion,
+      ts: r.ts
+    }
+  }, { deep: true })
+
+  // No public eviction handler today: the response panel's × collapses
+  // to the pill (`expanded=false` inside the panel) without clearing
+  // `lastResponse`, so the user can re-open the most recent reply via
+  // the pill at any time. The latched value is only replaced when a
+  // fresh `message_to_user` arrives. If we ever need explicit "forget
+  // this response" semantics (e.g. long-press, settings toggle), wire
+  // a new handler here.
 
   async function prompt(
     text: string,
@@ -186,6 +249,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     submitting,
     lastError: readonly(lastError),
     budgetExhausted: readonly(budgetExhausted),
+    lastResponse: readonly(lastResponse),
     prompt,
     abort,
     clearLastError
