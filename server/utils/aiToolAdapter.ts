@@ -1249,8 +1249,12 @@ async function handleMessageToUser(
  *   - ai.tool: the per-tool key (query / url / prompt / src / id)
  *   - restore: anchor activity id + frozen timestamp
  *   - join / leave / theme.changed: just the action label
+ *
+ * Exported for unit testing — every action branch + metadata shape
+ * has rendering quirks and is the kind of code that silently
+ * regresses without per-branch coverage.
  */
-function formatActivityRow(row: ActivityEntry): string {
+export function formatActivityRow(row: ActivityEntry): string {
   const ts = row.createdAt.toISOString()
   const who = row.userName ?? '(anonymous)'
   const head = `[#${row.id} ${ts} ${row.action} by ${who}]`

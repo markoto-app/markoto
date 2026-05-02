@@ -245,7 +245,12 @@ describe('useAI — activeSessions derivation', () => {
       // commentThreadId is null for non-comment-trigger sessions; the
       // useAI composable surfaces it as null (not undefined) to keep
       // the field always-present for downstream consumers.
-      commentThreadId: null
+      commentThreadId: null,
+      // aiResponse defaults to null until the AI calls
+      // `message_to_user`, which writes the response shape to
+      // awareness. Same always-present-as-null contract as
+      // commentThreadId.
+      aiResponse: null
     })
   })
 

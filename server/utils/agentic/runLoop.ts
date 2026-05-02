@@ -10,6 +10,8 @@ import type { AiSession } from '../aiClient'
 import type { BillingContext } from '../billing'
 import { chargeInteractions, BudgetExhausted } from '../billing'
 import { executeFunctionByName } from '../aiToolAdapter'
+// (executeFunctionByName already covers `message_to_user` in its
+//  dispatcher — used by the no-tool-call salvage path below.)
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch, fetchUrl } from './functionTools'
 import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from './limits'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
@@ -331,8 +333,42 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       // corresponding functionResponse user block.
       contents.push({ role: 'model', parts: modelParts })
 
-      // No function calls → natural end of conversation (plain text response).
+      // No function calls → the model emitted pure prose. The system
+      // prompt forbids this (every turn MUST end with a tool call) but
+      // models drift — informational questions like "what is markoto?"
+      // are the typical triggers. Without a salvage path the user sees
+      // NOTHING: the model's text is on the server side only, never
+      // reaches the document or the response panel. Fix: synthesise a
+      // `message_to_user(is_question=false)` call from the prose so the
+      // panel renders it. The schema caps at 600 chars; longer prose
+      // truncates with an ellipsis. Memory recording happens inside
+      // `handleMessageToUser` itself (DB row written), so this stays in
+      // lockstep with explicit `message_to_user` calls.
       if (functionCalls.length === 0) {
+        const proseText = modelParts
+          .map((p) => {
+            const text = (p as { text?: unknown }).text
+            return typeof text === 'string' ? text : ''
+          })
+          .join('')
+          .trim()
+
+        if (proseText.length > 0) {
+          log(`turn ${turns}: salvaging pure-prose response (${proseText.length} chars) via message_to_user fallback`)
+          const SCHEMA_MAX = 600
+          const message = proseText.length > SCHEMA_MAX
+            ? proseText.slice(0, SCHEMA_MAX - 1) + '…'
+            : proseText
+          try {
+            await executeFunctionByName(aiSession, 'message_to_user', {
+              message,
+              is_question: false
+            })
+          } catch (e) {
+            log(`message_to_user fallback failed: ${e instanceof Error ? e.message : e}`)
+          }
+        }
+
         if (finishReason && finishReason !== FinishReason.STOP && finishReason !== FinishReason.MAX_TOKENS) {
         // Safety / recitation / malformed — surface as error.
           outcome = 'error'

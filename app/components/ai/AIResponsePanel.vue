@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { toRef, watch } from 'vue'
 import type { AiResponseEntry } from '~/composables/useAI'
+import { useResponsePanelState } from './useResponsePanelState'
 
 // The AI's ephemeral response surface — sits directly above the prompt
 // bar. Driven by `lastResponse` from `useAI`, which latches the most
@@ -9,12 +11,18 @@ import type { AiResponseEntry } from '~/composables/useAI'
 // is deliberately avoided (the doc IS the artefact).
 //
 // Two modes:
-//   - Plain message (`isQuestion: false`) — auto-collapses 2s after the
-//     timestamp; the user can re-expand via the "last response" pill.
+//   - Plain message (`isQuestion: false`) — auto-collapses 10s after
+//     arrival; the user can re-expand via the "last response" pill.
 //   - Question (`isQuestion: true`) — sticky until the user dismisses
 //     or sends a follow-up prompt.
 //
 // All copy is i18n-keyed under `ai.response*`.
+//
+// The timer + manual-expand state machine lives in
+// `useResponsePanelState.ts` so it can be unit-tested without
+// mounting the SFC (the test infra's `dom` project doesn't ship
+// `@vitejs/plugin-vue`, and the `nuxt` project trips a transform-time
+// SVG block at boot). The component just wires props → state → DOM.
 
 const props = defineProps<{
   response: AiResponseEntry | null
@@ -24,112 +32,22 @@ const props = defineProps<{
 // pause/resume, manual expand from the pill). The parent uses this to
 // mirror the wrapper-class state (`.has-response`) so the merged shell
 // styling stays in lockstep with what the panel is actually showing.
-// Without this, a separate wrapper-side timer would unmerge the shell
-// while the panel is still hovered and visible.
 const emit = defineEmits<{
   (e: 'update:expanded', value: boolean): void
 }>()
 
 const { t } = useI18n()
 
-const COLLAPSE_AFTER_MS = 10_000
+// `useResponsePanelState` consumes the response as a Ref<...> so the
+// `watch(() => source.value?.ts ...)` sees prop updates reactively.
+const responseRef = toRef(props, 'response')
+const { expanded, expand, dismiss, onPointerEnter, onPointerLeave } = useResponsePanelState({
+  source: responseRef,
+  isQuestion: r => r.isQuestion === true
+})
 
-// Local UI state — `expanded` flips to false `COLLAPSE_AFTER_MS` after
-// the response APPEARS to the user (not after the server stamped it).
-// The previous implementation measured from the server-stamped `ts`,
-// which silently shortened the window any time the awareness round-trip
-// + Vue reactivity took non-trivial time and could collapse the panel
-// almost instantly on a busy AI loop. Now: every fresh `ts` resets to
-// the full window from this moment, regardless of how old the server
-// timestamp is. Hovering pauses the timer so longer messages can be
-// read at the user's pace.
-//
-// `manuallyExpanded`: distinguishes the auto-show path (fresh response
-// arrives) from the user-triggered path (clicking the "Last response"
-// pill to re-open a previously collapsed message). Auto-show schedules
-// the collapse timer; manual re-open does NOT — the user has explicitly
-// asked to read it, so we wait for them to click × to collapse again.
-// Reset to false on every fresh `ts` (a new response is considered an
-// auto-show even if it arrives while the user has the pill open).
-const expanded = ref(true)
-const isHovered = ref(false)
-const manuallyExpanded = ref(false)
-// Mirror every expanded change to the parent so the wrapper class
-// (`.has-response` on AIPromptBar) tracks the panel's actual state.
 watch(expanded, v => emit('update:expanded', v), { immediate: true })
-let collapseTimer: ReturnType<typeof setTimeout> | null = null
-
-function clearCollapseTimer() {
-  if (collapseTimer) {
-    clearTimeout(collapseTimer)
-    collapseTimer = null
-  }
-}
-
-function scheduleCollapse() {
-  clearCollapseTimer()
-  if (!props.response || props.response.isQuestion || isHovered.value) return
-  // Manual re-opens (user clicked the pill) opt out of auto-collapse —
-  // they've made the deliberate choice to read it; we don't want to
-  // hide it again 10s later.
-  if (manuallyExpanded.value) return
-  collapseTimer = setTimeout(() => { expanded.value = false }, COLLAPSE_AFTER_MS)
-}
-
-watch(
-  () => props.response?.ts ?? null,
-  () => {
-    clearCollapseTimer()
-    if (!props.response) {
-      expanded.value = false
-      manuallyExpanded.value = false
-      return
-    }
-    // Fresh response arrival is an auto-show — clear any previous
-    // manual-open state so the timer fires for the new message.
-    manuallyExpanded.value = false
-    expanded.value = true
-    scheduleCollapse()
-  },
-  { immediate: true }
-)
-
-onBeforeUnmount(clearCollapseTimer)
-
-function expand() {
-  // Pill click → manual re-open. Stays open until × is clicked;
-  // scheduleCollapse() short-circuits when manuallyExpanded is true.
-  manuallyExpanded.value = true
-  expanded.value = true
-}
-
-// Closing the expanded card collapses to the "Last response" pill —
-// it does NOT evict the latched response. The user can re-expand by
-// clicking the pill. The latched response is only cleared when a
-// fresh `message_to_user` arrives in the same / a new session.
-// The pre-fix behaviour (× = evict) hid the response forever with no
-// way to bring it back, which broke the spec.
-function dismiss() {
-  clearCollapseTimer()
-  // Reset manual flag so the next expand goes through the manual
-  // path cleanly (otherwise a stale `true` here would prevent the
-  // auto-collapse timer from running on a hypothetical future
-  // re-arming path).
-  manuallyExpanded.value = false
-  expanded.value = false
-}
-
-function onPointerEnter() {
-  isHovered.value = true
-  clearCollapseTimer()
-}
-
-function onPointerLeave() {
-  isHovered.value = false
-  // Resume the timer from this moment so the user gets the full
-  // window after they move away. No-ops in question / manual modes.
-  scheduleCollapse()
-}
+// (timer / state-machine logic lives in useResponsePanelState.ts)
 </script>
 
 <template>

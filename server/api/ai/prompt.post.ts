@@ -118,6 +118,7 @@ Conversation memory:
 CRITICAL OUTPUT RULE — NON-NEGOTIABLE: There is NO chat history surface for the user. The user NEVER sees your plain prose responses. Every turn MUST end with at least ONE of: \`insert_text\`, \`replace_text\`, \`update_theme\`, \`set_title\`, \`create_comment\`, \`reply_to_comment\`, \`message_to_user\`. A turn that ends in pure prose with no tool call is invisible to the user.
 - Content requests ("summarize X", "explain Y", "write about …", "compare A and B"): answer goes INTO the document via \`insert_text\` or \`replace_text\`. The edit alone is the user-visible deliverable — do NOT also post a comment or \`message_to_user\` saying "I wrote X" or "Done". The diff is the receipt.
 - Conversational questions that DON'T belong in the document ("what does this section actually argue?", "is page 1 too dense?", "why did you choose those colors?"): answer with \`message_to_user\` (\`is_question: false\`) — short, max 600 chars. The user reads it, it auto-collapses, the doc stays clean.
+- Direct questions about you, markoto, or the app itself ("what is markoto?", "what can you do?", "how does this work?", "are you Claude/GPT/Gemini?"): answer with \`message_to_user\` (\`is_question: false\`). These are conversational; they do NOT go into the document. Keep it under 3 sentences — the user wants a quick orienting answer, not an essay.
 - Genuine clarification needed ("translate this" but no target language; "make it shorter" but the doc is already 200 words): emit \`message_to_user({ is_question: true })\` with a SPECIFIC question and stop. Don't combine sticky questions with edits in the same turn — wait for the answer.
 - Add a comment ONLY when the thing you need to say is anchored to a specific LINE RANGE in the doc (an assumption tied to a paragraph you rewrote, an issue you noticed at line 42 and didn't fix). For doc-wide / non-anchored feedback, prefer \`message_to_user\` over commenting on "the whole document".
 - For requests with no line-specific issues to flag and no question to ask, just do the work and stop. No follow-up comment, no follow-up message.
@@ -400,6 +401,31 @@ export default defineEventHandler(async (event) => {
       aiSession?.updateStatus(phase, message)
     }
 
+    // Record the user's verbatim prompt FIRST — before the AI
+    // Hocuspocus client opens. Memory captures the user's INTENT, and
+    // their intent is "I asked X" regardless of whether the
+    // downstream sync / model spin-up succeeds. Recording inside the
+    // `createAiSession` try-block (the previous placement) meant a
+    // sync-server hiccup or a Gemini outage would silently lose the
+    // memory row, breaking the next prompt's `<conversation_history>`
+    // block for users who hit transient infra failures.
+    //
+    // Storing the BARE prompt (not the editor-state-wrapped one) —
+    // the model doesn't need to re-see its own scaffolding, just the
+    // human-typed words. Failures are swallowed; memory is never
+    // load-bearing on the request itself.
+    try {
+      await appendAiMessage({
+        docId,
+        userId,
+        sessionId,
+        kind: 'user_prompt',
+        body: { text: prompt }
+      })
+    } catch (e) {
+      console.warn(`[ai/prompt] user_prompt memory append failed: ${e instanceof Error ? e.message : e}`)
+    }
+
     try {
       aiSession = await createAiSession(docId, {
         sessionId,
@@ -412,24 +438,6 @@ export default defineEventHandler(async (event) => {
         plan: billingContext.plan,
         periodStart: billingContext.periodStart
       }, abortController.signal)
-
-      // Record the user's verbatim prompt so the next call's
-      // `<conversation_history>` block can show what they asked. We
-      // store the BARE prompt (not the editor-state-wrapped one) — the
-      // model doesn't need to re-see its own scaffolding, just the
-      // human-typed words. Failures are swallowed; memory is never
-      // load-bearing on the loop running.
-      try {
-        await appendAiMessage({
-          docId,
-          userId,
-          sessionId,
-          kind: 'user_prompt',
-          body: { text: prompt }
-        })
-      } catch (e) {
-        console.warn(`[ai/prompt] user_prompt memory append failed: ${e instanceof Error ? e.message : e}`)
-      }
 
       await runAgenticLoop({
         ai: new GoogleGenAI({ apiKey: config.google.geminiApiKey }),

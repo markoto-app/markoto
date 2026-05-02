@@ -133,6 +133,29 @@ export default defineConfig({
           sequence: { groupOrder: 0 },
           testTimeout: 15_000,
           hookTimeout: 60_000
+        },
+        // Disable Vite's FS-allow gate ONLY for the nuxt-env test
+        // project. Vite 7.3 added a per-ID security check on every
+        // transformed `.svg` URL — including virtual IDs the FS gate
+        // can't resolve to a real path. Nuxt's
+        // `nuxt-public-asset-vite-plugin` emits `virtual:public?…svg`
+        // IDs for `<img src="/foo.svg">` references (the brand
+        // Wordmark + the lockup files), and those IDs cleanUrl down
+        // to `virtual:public` — not a filesystem path → not in
+        // `fs.allow` → denied at transform. The denial bubbles up
+        // through `mountSuspended`'s app boot and breaks every nuxt
+        // SFC test (the existing `ActivityFeed.test.ts` + `DiffView
+        // .test.ts` have been silently red since Vite 7.3 landed,
+        // even though the test code itself is fine).
+        //
+        // `fs.strict: false` short-circuits `isFileLoadingAllowed` to
+        // always return true, which makes `checkLoadingAccess`
+        // return `"allowed"` and the SVG transform proceeds. The
+        // production build is unaffected — the gate only ever ran
+        // in dev / test mode anyway, and prod uses the bundler's
+        // baked-output path that never sees `virtual:public?...`.
+        server: {
+          fs: { strict: false }
         }
       }),
       {

@@ -50,6 +50,7 @@ export async function resetDb(): Promise<void> {
       activity_log,
       uploads,
       ai_sessions,
+      ai_session_messages,
       ai_usage_period,
       workspace_knowledge_chunks,
       workspace_knowledge,
