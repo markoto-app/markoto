@@ -44,6 +44,12 @@ type ApproachEntry = {
   caption: string
   cursor: { x: number, y: number } | null
   path: string
+  // Direction-anchoring callouts on click TARGETS (the thing the user
+  // is about to act on). Distinct from outcome `highlights`, which
+  // anchor consequences ("look at this thing that just appeared").
+  // Approach annotations help readers find the click target before
+  // the cursor reaches it.
+  annotations?: Annotation[]
 }
 
 type OutcomeEntry = {
@@ -53,11 +59,48 @@ type OutcomeEntry = {
   cursor: { x: number, y: number } | null
   path: string
   highlights?: Array<{ label: string, x: number, y: number, w: number, h: number }>
+  // Approach-style annotations are normally bound to approach frames,
+  // but flow.shot/step produce a single outcome frame — and authors
+  // sometimes need to direction-anchor on those (e.g. "scan for the
+  // X icon in this state"). Allow them on outcomes too; the renderer
+  // treats them additively to highlights.
+  annotations?: Annotation[]
+  // Hero-frame marker. Exactly one outcome per flow may set this; the
+  // first one wins. <Flow> renders the hero at large size above the
+  // slideshow as a "what success looks like" preview. The frame still
+  // appears in the slideshow itself — hero rendering is additive.
+  hero?: true
 }
 
 export type FlowEntry = ChapterEntry | NarrationEntry | ApproachEntry | OutcomeEntry
 
 export type HighlightRef = { label: string, selector: string }
+
+/** Annotation kinds (direction-anchoring callouts on click targets):
+ *  - 'arrow': a labelled SVG arrow pointing at the bounding box (default).
+ *  - 'box':   a static dashed outline of the bounding box + a label.
+ *  - 'pin':   a small numbered circle pinned to the top-left of the box. */
+export type AnnotationKind = 'arrow' | 'box' | 'pin'
+
+export type AnnotationRef = {
+  label: string
+  selector: string
+  kind?: AnnotationKind
+}
+
+export type Annotation = {
+  label: string
+  kind: AnnotationKind
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/** Forward link rendered as a "Try next" card after the last slide.
+ *  `slug` resolves to the same URL pattern other flows use; `why` is
+ *  one short sentence on the user-facing reason to follow it. */
+export type NextLink = { slug: string, why: string }
 
 // Composite variant: `<theme>-<form>`. Theme is light/dark; form is
 // desktop/mobile (the form factor the screenshots were captured at).
@@ -88,6 +131,10 @@ export type Manifest = {
   // any displayed size.
   viewport: { w: number, h: number }
   entries: FlowEntry[]
+  /** Forward link to the next flow a reader should try after this one.
+   *  Hand-curated per-flow rather than auto-generated — the docs gallery
+   *  uses this to keep readers in the docs after they finish. */
+  next?: NextLink
 }
 
 // `flow.click` opts: discriminated union forces authors to either
@@ -101,6 +148,14 @@ export type ClickOpts
     result: string
     /** Highlight callouts overlaid on the outcome shot only. */
     highlights?: HighlightRef[]
+    /** Direction-anchoring callouts overlaid on the APPROACH shot
+     *  (the click target — helps the reader locate it before the
+     *  cursor reaches it). */
+    annotations?: AnnotationRef[]
+    /** Mark the outcome shot as the flow's hero frame (rendered
+     *  large above the slideshow). At most one hero per flow; the
+     *  first marked frame wins. */
+    hero?: boolean
     /** Optional async to await between click and outcome screenshot
      *  (e.g. waitForURL on a navigating click). */
     after?: () => Promise<void>
@@ -111,17 +166,37 @@ export type ClickOpts
      *  click's after-state. Use sparingly; the default is "show me
      *  the consequence of every action". */
     chain: true
+    /** Approach-shot annotations still apply on chained clicks. */
+    annotations?: AnnotationRef[]
     after?: () => Promise<void>
   }
 
 export type TypeOpts = {
   result: string
   highlights?: HighlightRef[]
+  /** Annotations rendered on the APPROACH shot (the input the user
+   *  is about to type into). */
+  annotations?: AnnotationRef[]
+  /** Mark the outcome (post-typing) shot as the flow's hero. */
+  hero?: boolean
   after?: () => Promise<void>
 }
 
-export type ShotOpts = { highlights?: HighlightRef[] }
-export type HoverOpts = { highlights?: HighlightRef[] }
+export type ShotOpts = {
+  highlights?: HighlightRef[]
+  /** Mark this shot as the flow's hero frame. */
+  hero?: boolean
+  /** Direction-anchoring annotations on this shot. Useful when the
+   *  shot itself IS the approach frame (e.g. flow.shot showing a
+   *  state the reader needs to scan for a specific element). */
+  annotations?: AnnotationRef[]
+}
+
+export type HoverOpts = {
+  highlights?: HighlightRef[]
+  /** Direction-anchoring annotations on the hover (approach) shot. */
+  annotations?: AnnotationRef[]
+}
 
 export type Flow = {
   /** Run an action then auto-screenshot as an OUTCOME with caption. */
@@ -150,6 +225,9 @@ export type Flow = {
   heading: (text: string, level?: 2 | 3) => Promise<void>
   /** Suppress the next auto-screenshot (transient mid-fade states). */
   skipNext: () => void
+  /** Set the flow's "Try next" link. Rendered as a card after the
+   *  last slide. Call once per flow; later calls overwrite. */
+  next: (link: NextLink) => void
 }
 
 export type EditorFixture = {
@@ -318,6 +396,37 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       return out.length ? out : undefined
     }
 
+    // Sibling of resolveHighlights for annotation refs. Annotations
+    // attach to APPROACH frames (click targets) and carry a render
+    // `kind` (arrow / box / pin) — distinct visual treatment from
+    // the pulsating outcome highlights. Same strict-mode behaviour:
+    // CI fails on a missing selector; local dev warns.
+    const resolveAnnotations = async (refs: AnnotationRef[] | undefined) => {
+      if (!refs?.length) return undefined
+      const out: Annotation[] = []
+      for (const ref of refs) {
+        const loc = page.locator(ref.selector).first()
+        const box = await loc.boundingBox().catch(() => null)
+        if (!box) {
+          const msg = `[flow] annotation "${ref.label}" — selector \`${ref.selector}\` resolved to no visible box`
+          if (STRICT_HIGHLIGHTS) {
+            throw new Error(`${msg} (FLOW_STRICT/CI is set — failing)`)
+          }
+          console.warn(`${msg}; skipping (set FLOW_STRICT=1 to fail)`)
+          continue
+        }
+        out.push({
+          label: ref.label,
+          kind: ref.kind ?? 'arrow',
+          x: box.x,
+          y: box.y,
+          w: box.width,
+          h: box.height
+        })
+      }
+      return out.length ? out : undefined
+    }
+
     // Hash → already-written filename. Identical screenshots share a
     // single PNG on disk; multiple manifest entries can reference one
     // file (different captions/cursors over the same pixels).
@@ -325,16 +434,27 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
     type CaptureMode = 'narration' | 'approach' | 'outcome'
 
+    // Hero state: latched on the first outcome that asks for it.
+    // Stored as the final filename — the consumer reads
+    // `manifest.hero` to find the hero entry. Latch-once, never
+    // overwrites: a flow author who marks two frames as hero gets
+    // the first.
+    let heroFile: string | null = null
+
     const captureFrame = async (
       mode: CaptureMode,
       caption: string,
       opts: {
         highlights?: HighlightRef[]
+        annotations?: AnnotationRef[]
         cursor?: { x: number, y: number } | null
         /** Apply readCursor's form-field snap. True for flow.type +
          *  flow.shot/step (outcomes that may follow typing); false for
          *  flow.click + flow.hover (cursor must follow the locator). */
         formSnap?: boolean
+        /** Mark this OUTCOME frame as the hero. Ignored for approach
+         *  + narration. Latch-once across the flow. */
+        hero?: boolean
       } = {}
     ) => {
       if (suppress) {
@@ -357,6 +477,15 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       })()
       const shotPath = url && url.protocol.startsWith('http') ? `${url.pathname}${url.search}` : '/'
       const highlights = mode === 'outcome' ? await resolveHighlights(opts.highlights) : undefined
+      // Annotations are direction-anchoring (click targets), so they
+      // attach to APPROACH frames. flow.shot is a single-frame helper
+      // that captures an outcome — but its semantic intent often IS
+      // an approach (showing a state to scan), so we also resolve
+      // annotations on outcome frames passed via shot/step. The
+      // consumer just renders the array if present.
+      const annotations = (mode === 'approach' || mode === 'outcome')
+        ? await resolveAnnotations(opts.annotations)
+        : undefined
       // Playwright's screenshot is PNG by default; we transcode to
       // lossless WebP immediately so the manifest + on-disk format
       // are .webp from the start. Build-flows then becomes a pure
@@ -383,11 +512,31 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       if (mode === 'narration') {
         entries.push({ kind: 'narration', text: caption, file, cursor, path: shotPath })
       } else if (mode === 'approach') {
-        entries.push({ kind: 'approach', file, caption, cursor, path: shotPath })
+        entries.push({ kind: 'approach', file, caption, cursor, path: shotPath, annotations })
       } else {
-        entries.push({ kind: 'outcome', file, caption, cursor, path: shotPath, highlights })
+        // Latch the hero file on first request. Outcome-only — approach
+        // frames never become heroes (they show "before", not "after").
+        const isHero = opts.hero === true && heroFile === null
+        if (isHero) heroFile = file
+        // Approach-style annotations on a single-frame shot (when an
+        // author uses flow.shot to draw attention to a target rather
+        // than to celebrate an outcome) ride along on the outcome
+        // entry. Renderer treats `annotations` as additive to
+        // `highlights` regardless of kind.
+        entries.push({
+          kind: 'outcome',
+          file,
+          caption,
+          cursor,
+          path: shotPath,
+          highlights,
+          ...(annotations ? { annotations } : {}),
+          ...(isHero ? { hero: true as const } : {})
+        })
       }
     }
+
+    let nextLink: NextLink | null = null
 
     const flow: Flow = {
       step: async (caption, action, opts) => {
@@ -395,10 +544,20 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // formSnap=true: an action may have left focus on an input
         // (e.g. typing) — render cursor inside the field rather than
         // at a stale mousemove location.
-        await captureFrame('outcome', caption, { highlights: opts?.highlights, formSnap: true })
+        await captureFrame('outcome', caption, {
+          highlights: opts?.highlights,
+          annotations: opts?.annotations,
+          hero: opts?.hero,
+          formSnap: true
+        })
       },
       shot: async (caption, opts) => {
-        await captureFrame('outcome', caption, { highlights: opts?.highlights, formSnap: true })
+        await captureFrame('outcome', caption, {
+          highlights: opts?.highlights,
+          annotations: opts?.annotations,
+          hero: opts?.hero,
+          formSnap: true
+        })
       },
       click: async (caption, locator, opts) => {
         await locator.scrollIntoViewIfNeeded().catch(() => {})
@@ -407,7 +566,14 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // so a previously-focused input doesn't pull the cursor away
         // from the click target (the textarea-vs-Submit gotcha).
         const approachCursor = await readCursor({ formSnap: false })
-        await captureFrame('approach', caption, { cursor: approachCursor })
+        await captureFrame('approach', caption, {
+          cursor: approachCursor,
+          // Approach-shot annotations: the click target itself might
+          // need direction-anchoring even though the cursor is on it,
+          // because peripheral elements (sibling buttons, the panel
+          // it lives in) may compete for attention.
+          annotations: opts.annotations
+        })
         await locator.click()
         if (opts.after) await opts.after()
         if ('chain' in opts && opts.chain) return
@@ -415,8 +581,14 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // teleport). After SPA nav, readCursor would return null due
         // to the URL-stamp guard — passing the saved coords keeps the
         // cursor visible across the click.
-        await captureFrame('outcome', (opts as { result: string }).result, {
-          highlights: (opts as { highlights?: HighlightRef[] }).highlights,
+        const resultOpts = opts as {
+          result: string
+          highlights?: HighlightRef[]
+          hero?: boolean
+        }
+        await captureFrame('outcome', resultOpts.result, {
+          highlights: resultOpts.highlights,
+          hero: resultOpts.hero,
           cursor: approachCursor
         })
       },
@@ -426,11 +598,15 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // left edge via readCursor's form-field rule.
         await locator.click()
         const approachCursor = await readCursor({ formSnap: true })
-        await captureFrame('approach', caption, { cursor: approachCursor })
+        await captureFrame('approach', caption, {
+          cursor: approachCursor,
+          annotations: opts.annotations
+        })
         await locator.pressSequentially(text)
         if (opts.after) await opts.after()
         await captureFrame('outcome', opts.result, {
           highlights: opts.highlights,
+          hero: opts.hero,
           cursor: approachCursor
         })
       },
@@ -440,6 +616,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // formSnap=false — same reasoning as flow.click.
         await captureFrame('approach', caption, {
           highlights: opts?.highlights,
+          annotations: opts?.annotations,
           formSnap: false
         })
       },
@@ -452,7 +629,8 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       heading: async (text, level = 2) => {
         entries.push({ kind: 'chapter', level, text })
       },
-      skipNext: () => { suppress = true }
+      skipNext: () => { suppress = true },
+      next: (link) => { nextLink = link }
     }
 
     // Wall-clock timing for the test body. Useful for spotting which
@@ -480,7 +658,8 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
       locale,
       variant,
       viewport: { w: viewportSize.width, h: viewportSize.height },
-      entries
+      entries,
+      ...(nextLink ? { next: nextLink } : {})
     }
     await fs.writeFile(
       path.join(outDir, 'manifest.json'),

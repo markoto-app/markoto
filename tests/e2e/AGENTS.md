@@ -49,7 +49,14 @@ test('Quick share', async ({ flow, editor }) => {
 - **`flow.narrate(text)`** — prose between shots.
 - **`flow.heading(text, level?)`** — section break (## or ###).
 - **`flow.skipNext()`** — suppress the next auto-screenshot (transient mid-fade states).
-- **`opts.highlights: [{ label, selector }, ...]`** — pulsating orange callouts on a shot. Selector is resolved to a bounding box AT screenshot time. Strict mode (`FLOW_STRICT=1` or `CI=true`) fails when a selector resolves to nothing; local dev keeps a soft warning.
+- **`flow.next({ slug, why })`** — set the "Try next" link rendered after the last slide. Hand-curated forward-route to keep readers in the docs. `why` is one short user-voice sentence ("post a comment on a passage your collaborator just wrote"). Call once per flow; later calls overwrite.
+- **`opts.highlights: [{ label, selector }, ...]`** — pulsating orange callouts on a shot. Used for OUTCOME-anchoring ("look at this thing that just appeared"). Selector is resolved to a bounding box AT screenshot time. Strict mode (`FLOW_STRICT=1` or `CI=true`) fails when a selector resolves to nothing; local dev keeps a soft warning.
+- **`opts.annotations: [{ label, selector, kind? }, ...]`** — DIRECTION-anchoring callouts on the APPROACH frame (the click target). Use this when the target is non-obvious — a small lock icon, a panel-picker dropdown, a typeahead entry. Three render kinds:
+  - `'arrow'` (default) — labelled SVG arrow from a slide corner pointing AT the target. Best when the target is small or peripheral.
+  - `'box'` — static dashed shu outline around the target with an adjacent label. Best when the target is a clearly-bounded UI region (a card, a panel section).
+  - `'pin'` — small numbered shu disc at the top-left of the target. Best when chaining numbered annotations across multiple targets in one shot.
+  Pass on `flow.click(...)` opts to anchor the APPROACH frame; pass on `flow.shot/step/type/hover` opts to anchor that frame directly.
+- **`opts.hero: true`** — mark this OUTCOME frame as the flow's hero. Rendered above the slideshow as a "what success looks like" preview. At most one hero per flow; the first marked frame wins. Set on the most decisive outcome (a copied link, an AI's reply landed, a finished cover page).
 - **`editor.recordPreamble()`** — lean two-step preamble (open → click) for flows where doc creation IS the story. After capture, silently switches to split view.
 - **`editor.silentSetup()`** — same setup, but writes nothing to the manifest. For flows where the editor is just setup.
 - **`editor.page`** — `EditorPage` instance with stable selectors and composite helpers.
@@ -69,24 +76,34 @@ Per-locale + per-variant; one manifest per `(slug, locale, variant)` triple:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "title": "Quick share",
   "slug": "quick-share",
   "locale": "en",
-  "variant": "light",
+  "variant": "light-desktop",
   "viewport": { "w": 1280, "h": 800 },
   "entries": [
-    { "kind": "heading", "level": 2, "text": "Name your document" },
-    { "kind": "narrate", "text": "Documents start untitled..." },
+    { "kind": "chapter", "level": 3, "text": "Name your document" },
+    { "kind": "narration", "text": "Documents start untitled...", "file": "01.webp", "cursor": null, "path": "/" },
     {
-      "kind": "shot",
-      "file": "01.png",
+      "kind": "approach",
+      "file": "02.webp",
       "caption": "Click the placeholder title to rename it",
       "cursor": { "x": 129, "y": 24 },
       "path": "/d/abc",
-      "highlights": [{ "label": "Word count", "x": 16, "y": 760, "w": 80, "h": 18 }]
+      "annotations": [{ "label": "title", "kind": "arrow", "x": 100, "y": 16, "w": 200, "h": 28 }]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The title is set",
+      "cursor": { "x": 129, "y": 24 },
+      "path": "/d/abc",
+      "highlights": [{ "label": "Word count", "x": 16, "y": 760, "w": 80, "h": 18 }],
+      "hero": true
     }
-  ]
+  ],
+  "next": { "slug": "discuss-with-comments", "why": "Now invite a teammate to react inline" }
 }
 ```
 
@@ -121,14 +138,30 @@ Lifecycle: `bun run flows:test` (`scripts/flows-ephemeral.ts`) does docker-up �
 
 The `test-repos-integration-flows` job in `.github/workflows/ci.yml` runs the same `bun run flows:test` against the PR commit on every PR. It brings up `docker-compose.test.yml --profile flows` with `--wait` (compose-level health-gating, not just docker-level), runs the integration repos test suites in the same job, then runs the Playwright flow tests. PR merge is blocked on this check passing — flows are first-class regression tests, not optional eye-candy. See `docs/GITHUB-CONFIG.md` for branch-protection wiring.
 
-## Tier-1 flows TODO
+## Tier-1 flows
 
-Five flows shipped today: `quick-share`, `pick-a-theme`, `discuss-with-comments`, `ai-prompt-bar`, `ai-comment-mention`. Four Tier-1 flows still pending; pick these up before adding Tier-2 (advanced) flows:
+All nine Tier-1 flows shipped:
 
-- **`polished-pdf`** — open a doc → choose a preset theme → tweak a heading style → click Print/Download PDF → verify the PDF lands on disk. Surfaces the PDF download path that's currently invisible to new users.
-- **`import-existing`** — drag a `.docx` into the dashboard → choose a workspace → land in the editor with imported content. Covers the "I already have a doc; can I move it here?" first impression.
-- **`rich-content`** — insert a table, alert callout, math block, mermaid diagram, code fence with a real language → see them all render correctly in preview. The "look at all the markdown extensions" demo.
-- **`password-protect`** — set a password → copy share link → open in incognito (second context) → enter password → land in the doc. Two-context fixture work needed first; track the playwright `browser.newContext()` plumbing as a fixture-level addition.
+- **`quick-share`** — anon doc creation → name + describe → pick template → share by URL.
+- **`discuss-with-comments`** (slug: `have-a-discussion`) — highlight, comment, reply, resolve.
+- **`pick-a-theme`** — open theme panel → switch presets → toggle cover (desktop only — mobile skipped because half the visual story is the live preview iframe, which mobile hides).
+- **`ai-prompt-bar`** (slug: `write-with-ai`) — focus prompt bar → ask AI to extend the doc → AI's edits stream into the editor.
+- **`ai-comment-mention`** (slug: `summon-ai-from-a-comment`) — `@markoto` typeahead → post comment → AI replies on the same thread.
+- **`polished-pdf`** — pick the academic preset → File → Save as PDF (desktop only — menubar hidden on mobile).
+- **`import-existing`** (slug: `import-existing-document`) — File → Import → drop HTML/DOCX/PDF/PPTX → markitdown converts → Replace welcome content (desktop only).
+- **`rich-content`** — Insert menu → code block + alert + KaTeX math + Mermaid pie (desktop only).
+- **`password-protect`** — switch access mode → set passphrase → clear cookies → fresh visitor hits PasswordModal → unlock.
+
+All carry hero strips (the most decisive outcome rendered above the slideshow), direction-anchoring annotations on key click targets, and a curated `flow.next({ slug, why })` forward link rendered as a "Try next" card after the controls.
+
+Future tier-1 work:
+
+- **Two-context fixture for password-protect.** Currently the flow simulates a fresh visitor by clearing cookies + reloading in the same context (honest because the narrative says "to simulate a visitor in this single browser, we drop the doc-scoped cookie and reload"). A real second `browser.newContext()` would let the screenshots come from a genuinely different browser identity AND from a visitor whose JWT expires independently of the owner's session.
+- **Selective re-runs**: `flows:test:changed` for incremental dev.
+- **CI integration.**
+- **Doc-content i18n pattern** (currently captions are en-only).
+- **`/docs/_internal/flows` gallery.**
+- **Dedicated `MobileEditorPage`** so the desktop-only skips on `polished-pdf` / `import-existing` / `rich-content` / `pick-a-theme` can be replaced with mobile-shaped equivalents (Editor drawer + bottom-sheet variants).
 
 ## When you add a new flow
 

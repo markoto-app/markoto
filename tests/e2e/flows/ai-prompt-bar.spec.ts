@@ -47,6 +47,13 @@ test('Write with AI', async ({ page, flow, editor }) => {
     'Click into the AI prompt bar to focus it',
     editor.page.ai.promptBarInput,
     {
+      // The prompt bar lives at the bottom of the editor — small
+      // surface against a busy doc body. Direction-anchor it so a
+      // first-time reader doesn't scan the toolbar / sidebar
+      // looking for an "AI" tab.
+      annotations: [
+        { label: 'prompt bar', selector: '[data-testid="ai-prompt-bar"]', kind: 'arrow' }
+      ],
       result: 'The bar lifts and glows blue — ready for your prompt.',
       after: () => editor.page.ai.promptBarInput.waitFor({ state: 'visible' })
     }
@@ -112,6 +119,11 @@ test('Write with AI', async ({ page, flow, editor }) => {
   await flow.shot(
     'The AI added a "Keyboard shortcuts" section — exactly where it makes sense in the doc.',
     {
+      // Hero outcome: doc content extended by the AI. This IS the
+      // payoff of "ask the AI to write for you" — a reader who
+      // hasn't seen markoto before should clock the difference at
+      // the hero strip without reading a step.
+      hero: true,
       highlights: [
         // Highlights the editor body — the "outcome" of an AI run is
         // always doc content changing, so the editor pane is the
@@ -130,4 +142,12 @@ test('Write with AI', async ({ page, flow, editor }) => {
   const doc = page.locator('.cm-content')
   const wordCount = await doc.evaluate(el => (el.textContent ?? '').split(/\s+/).filter(Boolean).length)
   expect(wordCount).toBeGreaterThan(50)
+
+  // Forward route: same surface (the AI joining as a collaborator)
+  // but anchored on a SPECIFIC passage rather than the whole doc.
+  // Natural escalation in capability + scope.
+  flow.next({
+    slug: 'ai-comment-mention',
+    why: 'Ask the AI about a specific passage — tag @markoto in a comment'
+  })
 })

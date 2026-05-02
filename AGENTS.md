@@ -319,8 +319,8 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 - [ ] Safari support for voice input / dictation — Safari's `MediaRecorder` only emits `audio/mp4` (AAC) which Cloud STT sync doesn't accept.
 
 **Flow docs system** (see `tests/e2e/AGENTS.md`)
-- [ ] Tier 1 flows: `polished-pdf`, `import-existing`, `rich-content`, `password-protect`.
-- [ ] Two-context fixture for password-protect flow.
+- [x] Tier 1 flows: `polished-pdf`, `import-existing`, `rich-content`, `password-protect` — shipped with hero strips, direction-anchoring annotations, and curated "Try next" forward links.
+- [ ] Two-context fixture for password-protect flow (currently uses single-context cookie-clear simulation; honest narrative but not a true second context).
 - [ ] Selective re-runs: `flows:test:changed`.
 - [ ] CI integration.
 - [ ] Doc-content i18n pattern.

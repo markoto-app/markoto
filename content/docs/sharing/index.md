@@ -12,5 +12,5 @@ markoto supports four access modes per document — private, open-edit,
 open-view, and password-protected — plus workspace-scoped roles
 (admin / editor / viewer) for team collaboration.
 
-This section is in progress. The full access-mode walkthrough is
-queued as a Tier 1 flow.
+- [Lock a document behind a password](/docs/sharing/password-protect) — set a passphrase, gate the share link.
+- [Write & share your first doc](/docs/getting-started/quick-share) — anon doc, share by URL, copy to clipboard.

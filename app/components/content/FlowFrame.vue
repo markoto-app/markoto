@@ -6,6 +6,15 @@
 // geometrically correct at any displayed width.
 
 type Highlight = { label: string, x: number, y: number, w: number, h: number }
+type AnnotationKind = 'arrow' | 'box' | 'pin'
+type Annotation = {
+  label: string
+  kind: AnnotationKind
+  x: number
+  y: number
+  w: number
+  h: number
+}
 type Card = { kind: 'chapter' | 'narration', text: string } | null
 
 const props = defineProps<{
@@ -21,8 +30,12 @@ const props = defineProps<{
   cursorOpacity: number
   /** URL pathname rendered in the fake address bar. Empty on chapter. */
   path: string
-  /** Outcome-only callouts. Approach/narration ignore these. */
+  /** Outcome-only callouts (pulsing orange ring + label). */
   highlights?: Highlight[]
+  /** Direction-anchoring callouts on click targets (approach frames).
+   *  Distinct from `highlights`: these point AT something the reader
+   *  needs to act on next, not at something that just happened. */
+  annotations?: Annotation[]
   /** Source viewport size — drives aspect ratio + overlay scaling. */
   viewport: { w: number, h: number }
   showCursor: boolean
@@ -48,6 +61,79 @@ function labelBelow(h: Highlight): boolean {
 }
 function labelRight(h: Highlight): boolean {
   return h.x > props.viewport.w / 2
+}
+
+// Annotation positioning — same flip logic as highlights but stricter
+// because annotation labels live OFF-target (with a leader line) rather
+// than hugging the box edge. Decide which corner the label sits in.
+function annotationLabelLeft(a: Annotation): boolean {
+  return a.x + a.w / 2 > props.viewport.w / 2
+}
+function annotationLabelTop(a: Annotation): boolean {
+  return a.y + a.h / 2 > props.viewport.h / 2
+}
+
+// Leader-line endpoints for arrow-kind annotations. The label sits
+// in a corner of the slide; the arrow's tail is anchored at the
+// label's near-edge, the head lands on the closest edge of the
+// target box. Working in viewport CSS coordinates (the SVG is
+// painted at `viewBox="0 0 W H"` so coords pass through directly).
+function arrowGeometry(a: Annotation) {
+  const cx = a.x + a.w / 2
+  const cy = a.y + a.h / 2
+  const labelLeft = annotationLabelLeft(a)
+  const labelTop = annotationLabelTop(a)
+  // Tail anchor: a fixed inset from whichever corner the label's in.
+  const inset = 18
+  const tailX = labelLeft ? inset : props.viewport.w - inset
+  const tailY = labelTop ? inset : props.viewport.h - inset
+  // Arrowhead lands on the box edge closest to the tail anchor —
+  // computed via line-rect intersection. Keeps the arrow short and
+  // clean instead of cutting through the target.
+  const head = lineToRectEdge(tailX, tailY, cx, cy, a)
+  return { tailX, tailY, headX: head.x, headY: head.y, labelLeft, labelTop }
+}
+
+// Intersect line (x1, y1) → (x2, y2) with the bounding rect of the
+// annotation. Returns the point where the line first touches the
+// rect's perimeter (so the arrowhead lands on the edge, not in the
+// box's interior).
+function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annotation) {
+  const left = a.x
+  const right = a.x + a.w
+  const top = a.y
+  const bottom = a.y + a.h
+  const dx = x2 - x1
+  const dy = y2 - y1
+  // Param t in [0, 1] where line first crosses the rect. Compute
+  // candidate t for each edge; pick the smallest valid one.
+  const candidates: number[] = []
+  if (dx !== 0) {
+    const tLeft = (left - x1) / dx
+    if (tLeft >= 0 && tLeft <= 1) {
+      const y = y1 + tLeft * dy
+      if (y >= top && y <= bottom) candidates.push(tLeft)
+    }
+    const tRight = (right - x1) / dx
+    if (tRight >= 0 && tRight <= 1) {
+      const y = y1 + tRight * dy
+      if (y >= top && y <= bottom) candidates.push(tRight)
+    }
+  }
+  if (dy !== 0) {
+    const tTop = (top - y1) / dy
+    if (tTop >= 0 && tTop <= 1) {
+      const x = x1 + tTop * dx
+      if (x >= left && x <= right) candidates.push(tTop)
+    }
+    const tBottom = (bottom - y1) / dy
+    if (tBottom >= 0 && tBottom <= 1) {
+      const x = x1 + tBottom * dx
+      if (x >= left && x <= right) candidates.push(tBottom)
+    }
+  }
+  const t = candidates.length ? Math.min(...candidates) : 1
+  return { x: x1 + t * dx, y: y1 + t * dy }
 }
 </script>
 
@@ -183,6 +269,130 @@ function labelRight(h: Highlight): boolean {
                 {{ h.label }}
               </span>
             </div>
+          </template>
+
+          <!-- Annotation callouts (direction-anchoring on click
+               targets). Rendered as either:
+                 • arrow — labelled SVG arrow from a slide corner
+                 • box   — static dashed outline + adjacent label
+                 • pin   — small numbered shu disc at top-left
+               Distinct visual treatment from highlights (no pulse,
+               no orange — these are "find this", not "celebrate
+               this"). The shu palette anchors them to the markoto
+               brand (the seal IS direction). -->
+          <template v-if="annotations?.length">
+            <!-- Single SVG layer for all arrow-kind annotations.
+                 viewBox matches the source viewport so coordinates
+                 pass through unscaled; the SVG itself stretches to
+                 the frame body via 100%/100%. -->
+            <svg
+              v-if="annotations.some(a => a.kind === 'arrow')"
+              class="absolute inset-0 w-full h-full pointer-events-none"
+              :viewBox="`0 0 ${viewport.w} ${viewport.h}`"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <defs>
+                <marker
+                  id="annot-arrowhead"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto-start-reverse"
+                >
+                  <path
+                    d="M 0 0 L 10 5 L 0 10 z"
+                    fill="var(--color-shu-500, #B5371F)"
+                  />
+                </marker>
+              </defs>
+              <template
+                v-for="(a, i) in annotations"
+                :key="`arrow-${i}`"
+              >
+                <line
+                  v-if="a.kind === 'arrow'"
+                  :x1="arrowGeometry(a).tailX"
+                  :y1="arrowGeometry(a).tailY"
+                  :x2="arrowGeometry(a).headX"
+                  :y2="arrowGeometry(a).headY"
+                  stroke="var(--color-shu-500, #B5371F)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  marker-end="url(#annot-arrowhead)"
+                />
+              </template>
+            </svg>
+
+            <!-- Per-annotation HTML overlay: label tag for arrows
+                 (positioned at the tail), dashed box for box-kind,
+                 pin disc for pin-kind. -->
+            <template
+              v-for="(a, i) in annotations"
+              :key="`annot-${i}`"
+            >
+              <!-- arrow: label at tail -->
+              <span
+                v-if="a.kind === 'arrow'"
+                class="absolute pointer-events-none px-1.5 py-0.5 rounded font-mono text-[10.5px] tracking-[0.04em] uppercase bg-shu-500 text-white whitespace-nowrap max-w-[200px] truncate shadow-sm"
+                :style="{
+                  left: annotationLabelLeft(a)
+                    ? '8px'
+                    : 'auto',
+                  right: annotationLabelLeft(a)
+                    ? 'auto'
+                    : '8px',
+                  top: annotationLabelTop(a)
+                    ? '4px'
+                    : 'auto',
+                  bottom: annotationLabelTop(a)
+                    ? 'auto'
+                    : '4px'
+                }"
+              >
+                {{ a.label }}
+              </span>
+
+              <!-- box: dashed outline + adjacent label -->
+              <div
+                v-else-if="a.kind === 'box'"
+                class="absolute pointer-events-none border-2 border-dashed rounded"
+                :style="{
+                  left: `${(a.x / viewport.w) * 100}%`,
+                  top: `${(a.y / viewport.h) * 100}%`,
+                  width: `${(a.w / viewport.w) * 100}%`,
+                  height: `${(a.h / viewport.h) * 100}%`,
+                  borderColor: 'var(--color-shu-500, #B5371F)'
+                }"
+              >
+                <span
+                  class="absolute px-1.5 py-0.5 rounded font-mono text-[10.5px] tracking-[0.04em] uppercase bg-shu-500 text-white whitespace-nowrap max-w-[200px] truncate shadow-sm"
+                  :class="[
+                    a.y < LABEL_FLIP_VERTICAL_PX ? 'top-full mt-0.5' : 'bottom-full mb-0.5',
+                    a.x > viewport.w / 2 ? 'right-0' : 'left-0'
+                  ]"
+                >
+                  {{ a.label }}
+                </span>
+              </div>
+
+              <!-- pin: small disc at top-left of target -->
+              <span
+                v-else-if="a.kind === 'pin'"
+                class="absolute pointer-events-none size-5 rounded-full flex items-center justify-center text-white text-[10px] font-mono shadow"
+                :style="{
+                  left: `${(a.x / viewport.w) * 100}%`,
+                  top: `${(a.y / viewport.h) * 100}%`,
+                  transform: 'translate(-50%, -50%)',
+                  background: 'var(--color-shu-500, #B5371F)'
+                }"
+                :title="a.label"
+              >
+                {{ i + 1 }}
+              </span>
+            </template>
           </template>
 
           <!-- Cursor / tap indicator. Opacity-controlled so it can

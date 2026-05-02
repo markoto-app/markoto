@@ -30,10 +30,15 @@ export class EditorPage {
     return this.page.locator('[data-testid="doc-title-input"]')
   }
 
-  /** Connection status badge with status='connected'. Drives waitForReady
-   *  and works on both mobile (icon-only) and desktop (icon + label). */
-  get connectedBadge(): Locator {
-    return this.page.locator('[data-testid="connection-status"][data-status="connected"]')
+  /** Connection status chip — ONLY rendered when status is `connecting`
+   *  or `disconnected`. Connected is the assumed default and the chip
+   *  is hidden (see EditorLayout.vue's `v-if="status !== 'connected'"`).
+   *  Tests should wait for this locator to be DETACHED (= connected),
+   *  not visible. The historical `connectedBadge` was based on the
+   *  always-rendered chip; that surface was removed in the topbar
+   *  polish pass. */
+  get nonConnectedBadge(): Locator {
+    return this.page.locator('[data-testid="connection-status"]')
   }
 
   /** The access-mode lock icon in the header (opens share dialog on click). */
@@ -235,14 +240,25 @@ export class EditorPage {
 
   /**
    * Wait until the editor has fully mounted AND the Hocuspocus WS
-   * handshake completed. The "Connected" badge is the cheapest signal
-   * we have for both. Title button being visible is a secondary
-   * mount-completed signal — guards against the badge appearing
-   * before the editor markup hydrated.
+   * handshake completed.
+   *
+   * The connection-status chip is now hidden when status === 'connected'
+   * (topbar polish pass), so we can't wait for it to APPEAR. Instead:
+   *   1. Wait for the title button to render (markup hydrated +
+   *      ymeta has produced an initial title — implies the doc Y.Doc
+   *      is bound).
+   *   2. Wait for any non-connected chip (`connecting` / `disconnected`)
+   *      to be detached. If the chip is gone, we're connected. The
+   *      detached check tolerates the chip never appearing (a fast
+   *      handshake can skip the `connecting` state entirely).
    */
   async waitForReady(timeout = 15_000): Promise<void> {
-    await expect(this.connectedBadge).toBeVisible({ timeout })
-    await expect(this.titleButton).toBeVisible()
+    await expect(this.titleButton).toBeVisible({ timeout })
+    // toHaveCount(0) is the "no non-connected chip exists" check —
+    // succeeds either if the chip rendered then vanished (connect
+    // resolved) or if it never rendered at all (handshake was fast
+    // enough to skip `connecting`).
+    await expect(this.nonConnectedBadge).toHaveCount(0, { timeout })
   }
 
   /**

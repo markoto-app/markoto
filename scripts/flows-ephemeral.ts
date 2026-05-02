@@ -64,10 +64,19 @@ const FLOWS_ENV: Record<string, string> = {
   POSTGRES_DB: 'ypad_test',
   VALKEY_HOST: 'localhost',
   VALKEY_PORT: '6380',
-  VALKEY_PASSWORD: '',
+  // valkey-test boots with `--requirepass testpassword` (see
+  // docker-compose.test.yml). The hardcoded literal must match —
+  // an empty string here makes the prod-build subprocess fail every
+  // Valkey op with NOAUTH, which Nitro turns into a stuck health
+  // probe and the orchestrator times out before any spec runs.
+  VALKEY_PASSWORD: 'testpassword',
   VALKEY_DB: '0',
   DATABASE_URL: 'postgres://ypad:testpassword@localhost:5433/ypad_test',
-  VALKEY_URL: 'redis://localhost:6380/0',
+  // VALKEY_URL needs the password embedded. ioredis honours the
+  // userinfo segment of the URL; without it, the Redis client
+  // skips AUTH and the server rejects every command. Same literal
+  // as VALKEY_PASSWORD above.
+  VALKEY_URL: 'redis://:testpassword@localhost:6380/0',
   NUXT_S3_ENDPOINT: 'http://localhost:8334',
   NUXT_S3_ACCESS_KEY: 'ypad-access-key',
   NUXT_S3_SECRET_KEY: 'ypad-secret-key',

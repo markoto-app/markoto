@@ -90,6 +90,13 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     'Click the markoto entry',
     editor.page.ai.mentionTypeaheadAi,
     {
+      // Direction-anchor the typeahead row on the approach frame —
+      // even with the typeahead open, the markoto row sits among
+      // workspace members and a first-time reader needs the arrow
+      // to know which one summons the AI.
+      annotations: [
+        { label: 'markoto entry', selector: '[data-testid="mention-typeahead-ai"]', kind: 'arrow' }
+      ],
       result: 'The composer now reads "@markoto " — finish your question.',
       // Confirm the literal token landed in the input. The synthetic
       // markoto entry inserts the bare-word `@markoto ` (with trailing
@@ -169,9 +176,22 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await flow.shot(
     'markoto replied on the thread — the conversation stays in one place.',
     {
+      // Hero outcome: markoto's reply landed in the same thread
+      // (not a side panel, not a popover) — the "AI is just
+      // another collaborator" promise made literal.
+      hero: true,
       highlights: [
         { label: 'markoto\'s reply', selector: '[data-testid="comment-thread"]' }
       ]
     }
   )
+
+  // Forward route: now that the reader has used the AI in two
+  // surfaces (prompt bar + comments), the natural next move is
+  // making the doc look right. Loops the user back into the
+  // craft track from the AI track.
+  flow.next({
+    slug: 'pick-a-theme',
+    why: 'Make the doc look the part — pick a theme + add a cover page'
+  })
 })
