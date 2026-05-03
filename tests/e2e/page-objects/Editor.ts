@@ -1,6 +1,7 @@
 import type { Page, Locator } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { Pool } from 'pg'
+import { TESTID, sel } from '../../../shared/testids'
 
 // Page-object for the YPad editor (`/d/<id>`). Stable selectors for
 // the parts of the UI that flow tests touch most often. ONE place to
@@ -43,7 +44,7 @@ export class EditorPage {
 
   /** The access-mode lock icon in the header (opens share dialog on click). */
   get accessLockButton(): Locator {
-    return this.page.locator('[data-testid="access-lock-button"]')
+    return this.page.locator(sel(TESTID.ACCESS_LOCK_BUTTON))
   }
 
   // ─── View-mode toggle group ───────────────────────────────────────
@@ -54,9 +55,9 @@ export class EditorPage {
    *  menubar's "Edit" menu (same accessible name). */
   get viewMode() {
     return {
-      edit: this.page.locator('[data-testid="view-mode-edit"]'),
-      split: this.page.locator('[data-testid="view-mode-split"]'),
-      preview: this.page.locator('[data-testid="view-mode-preview"]')
+      edit: this.page.locator(sel(TESTID.VIEW_MODE_EDIT)),
+      split: this.page.locator(sel(TESTID.VIEW_MODE_SPLIT)),
+      preview: this.page.locator(sel(TESTID.VIEW_MODE_PREVIEW))
     }
   }
 
@@ -64,11 +65,11 @@ export class EditorPage {
 
   get sidebar() {
     return {
-      document: this.page.locator('[data-testid="sidebar-tab-document"]'),
-      comments: this.page.locator('[data-testid="sidebar-tab-comments"]'),
-      activity: this.page.locator('[data-testid="sidebar-tab-activity"]'),
-      theme: this.page.locator('[data-testid="sidebar-tab-theme"]'),
-      knowledge: this.page.locator('[data-testid="sidebar-tab-knowledge"]')
+      document: this.page.locator(sel(TESTID.SIDEBAR_TAB_DOCUMENT)),
+      comments: this.page.locator(sel(TESTID.SIDEBAR_TAB_COMMENTS)),
+      activity: this.page.locator(sel(TESTID.SIDEBAR_TAB_ACTIVITY)),
+      theme: this.page.locator(sel(TESTID.SIDEBAR_TAB_THEME)),
+      knowledge: this.page.locator(sel(TESTID.SIDEBAR_TAB_KNOWLEDGE))
     }
   }
 
@@ -474,48 +475,56 @@ export class EditorPage {
         [githubId, name]
       )
       const userId = result.rows[0].id
-
-      // Seal the session via the shim. We use Node's `fetch` rather
-      // than `page.request.post` because the latter goes through
-      // Playwright's CDP-bridged BrowserContext and tries to attach
-      // returned Set-Cookie headers to a context that hasn't loaded
-      // any origin yet — that path threw `TypeError: "/..." cannot
-      // be parsed as a URL` even when the actual POST succeeded.
-      // Going through `fetch` + `addCookies` avoids the BrowserContext
-      // round-trip entirely; we just parse the Set-Cookie header and
-      // tell Playwright "this cookie applies to this origin".
-      const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
-      const res = await fetch(`${baseUrl}/api/_test/login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ userId, name })
-      })
-      if (!res.ok) {
-        throw new Error(`[loginAsTestUser] /api/_test/login returned ${res.status}: ${await res.text()}`)
-      }
-      const setCookie = res.headers.get('set-cookie')
-      if (!setCookie) {
-        throw new Error(`[loginAsTestUser] /api/_test/login returned no Set-Cookie header`)
-      }
-      // Parse the cookie just enough to feed it to addCookies. The
-      // shim only emits `nuxt-session=<sealed-blob>; Path=/; ...`
-      // — name and value are everything before the first `;` and
-      // before/after the first `=`.
-      const firstChunk = setCookie.split(';')[0]
-      const eqIdx = firstChunk.indexOf('=')
-      const cookieName = firstChunk.slice(0, eqIdx)
-      const cookieValue = firstChunk.slice(eqIdx + 1)
-      await this.page.context().addCookies([{
-        name: cookieName,
-        value: cookieValue,
-        url: baseUrl,
-        httpOnly: true,
-        sameSite: 'Lax'
-      }])
+      await this.loginAsExistingUser(userId, name)
       return { userId, name }
     } finally {
       await pool.end()
     }
+  }
+
+  /**
+   * Seal a session for an ALREADY-EXISTING user row. The sibling of
+   * `loginAsTestUser`, but for cases where the user row was created
+   * by other means — typically a direct DB INSERT in the spec to set
+   * fields the login shim doesn't expose (email, plan='max', custom
+   * github_id matching a pre-stored invitation, etc.).
+   *
+   * Why split: `loginAsTestUser` always upserts a fresh user keyed on
+   * a name+timestamp `github_id`. Two-context flows where one context
+   * needs to log in as a SPECIFIC pre-created user (e.g. the invited
+   * teammate in `invite-a-teammate`) couldn't reuse it without the
+   * `Date.now()`-suffixed id forcing a different row. Extracting the
+   * cookie-sealing portion lets the spec INSERT the user with the
+   * exact shape it needs, then call this helper to seal a session
+   * against that id.
+   *
+   * Same fetch + addCookies dance as `loginAsTestUser` (see that
+   * method for the rationale on why we go through Node fetch instead
+   * of Playwright's `page.request.post`).
+   */
+  async loginAsExistingUser(userId: number, name: string): Promise<void> {
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/api/_test/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId, name })
+    })
+    if (!res.ok) {
+      throw new Error(`[loginAsExistingUser] /api/_test/login returned ${res.status}: ${await res.text()}`)
+    }
+    const setCookie = res.headers.get('set-cookie')
+    if (!setCookie) {
+      throw new Error(`[loginAsExistingUser] /api/_test/login returned no Set-Cookie header`)
+    }
+    const firstChunk = setCookie.split(';')[0]
+    const eqIdx = firstChunk.indexOf('=')
+    await this.page.context().addCookies([{
+      name: firstChunk.slice(0, eqIdx),
+      value: firstChunk.slice(eqIdx + 1),
+      url: baseUrl,
+      httpOnly: true,
+      sameSite: 'Lax'
+    }])
   }
 
   // ─── Navigation ───────────────────────────────────────────────────

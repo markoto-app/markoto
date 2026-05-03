@@ -176,7 +176,17 @@ export default defineNuxtConfig({
         // its default; individual flow embeds can still pass their own
         // chrome-domain prop.
         chromeDomain: 'markoto.app'
-      }
+      },
+      // Test-only: when true, useDocument.ts exposes the active
+      // ydoc + ytext on `window.__DEBUG_*` so e2e specs can assert
+      // against authoritative Y.Doc state instead of CM6's
+      // viewport-virtualised .cm-content. ALWAYS false in prod
+      // builds; flipped to true via NUXT_PUBLIC_EXPOSE_TEST_HANDLES=
+      // 1 in the flow-test stack (see scripts/flows-ephemeral.ts +
+      // tests/integration/setup/server.ts). Without this gate the
+      // handles ship in production bundles too — minor surface-area
+      // leak but a leak nonetheless.
+      exposeTestHandles: false
     }
   },
 

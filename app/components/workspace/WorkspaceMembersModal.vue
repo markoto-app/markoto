@@ -256,6 +256,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
               :placeholder="t('workspace.members.emailPlaceholder')"
               class="flex-1"
               :ui="{ base: 'w-full' }"
+              data-testid="workspace-invite-email"
               @keydown.enter="addMember"
             />
             <USelectMenu
@@ -272,6 +273,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
               :loading="adding"
               :disabled="!newEmail.trim()"
               icon="i-lucide-plus"
+              data-testid="workspace-invite-submit"
               @click="addMember"
             >
               {{ t('workspace.members.add') }}

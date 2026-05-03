@@ -111,7 +111,13 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_STRIPE_PRICE_ULTRA: 'price_test_ultra',
   // Skip the inactive-doc sweep — short-lived test infra doesn't
   // benefit and the TTL math complains on a fresh DB.
-  NUXT_INACTIVE_DOC_TTL_DAYS: '0'
+  NUXT_INACTIVE_DOC_TTL_DAYS: '0',
+  // Expose `window.__DEBUG_ydoc` / `__DEBUG_ytext` from useDocument.
+  // Read by `read-only-share.spec.ts` to assert Y.Doc state directly
+  // (CM6 viewport virtualisation makes .cm-content unreliable for
+  // long docs). Production builds default to false; only this test
+  // stack flips it on.
+  NUXT_PUBLIC_EXPOSE_TEST_HANDLES: '1'
 }
 
 let nuxtProc: Subprocess | null = null
