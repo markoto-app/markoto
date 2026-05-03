@@ -454,6 +454,7 @@ async function leaveWorkspace() {
                   icon="i-lucide-plus"
                   size="sm"
                   color="neutral"
+                  data-testid="workspace-new-document"
                   @click="createDocument"
                 >
                   {{ t('workspace.newDocument') }}

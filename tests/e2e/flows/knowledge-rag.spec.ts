@@ -94,7 +94,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
         { label: 'knowledge tab', selector: '[role="tab"][aria-selected="false"]', kind: 'arrow' }
       ],
       result: 'The Knowledge panel opens — empty until you upload your first file.',
-      after: () => page.getByRole('button', { name: /upload/i }).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="knowledge-upload-button"]').first().waitFor({ state: 'visible' })
     }
   )
 
@@ -106,7 +106,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
 
   await flow.click(
     'Click Upload to pick a file',
-    page.getByRole('button', { name: /upload/i }).first(),
+    page.locator('[data-testid="knowledge-upload-button"]').first(),
     {
       annotations: [
         { label: 'upload', selector: 'button:has-text("Upload")', kind: 'arrow' }
@@ -116,7 +116,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
         const chooser = await chooserPromise
         await chooser.setFiles(fixture)
         // Wait for the file row to appear in the list.
-        await page.getByText(/q3-launch-postmortem\.html/i).first().waitFor({ state: 'visible', timeout: 10_000 })
+        await page.locator('[data-testid^="knowledge-file-row-"][data-filename="q3-launch-postmortem.html"]').first().waitFor({ state: 'visible', timeout: 10_000 })
       }
     }
   )
@@ -140,7 +140,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // `knowledge.statusReady` ("Ready"). 60s budget — small HTML
   // should finish in <15s; the budget is for cold markitdown
   // / cold embedding.
-  await expect(page.getByText(/^ready$/i).first()).toBeVisible({ timeout: 60_000 })
+  await expect(page.locator('[data-testid^="knowledge-file-row-"][data-status="ready"]').first()).toBeVisible({ timeout: 60_000 })
 
   await flow.shot(
     'The file is processed — markdown cached, chunks embedded, ready for retrieval.'
@@ -162,7 +162,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     page.getByRole('tab', { name: /documents/i }),
     {
       result: 'The Documents tab opens — no docs yet, but a "New document" button is right there.',
-      after: () => page.getByRole('button', { name: /new document/i }).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="workspace-new-document"]').first().waitFor({ state: 'visible' })
     }
   )
 
@@ -170,7 +170,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // to /api/docs with the workspaceId, then routes to the new doc.
   await flow.click(
     'Click "New document"',
-    page.getByRole('button', { name: /new document/i }).first(),
+    page.locator('[data-testid="workspace-new-document"]').first(),
     {
       result: 'A blank doc opens, scoped to this workspace. The AI now has '
         + 'access to the postmortem you uploaded.',

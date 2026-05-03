@@ -65,7 +65,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
         { label: 'import', selector: '[role="menuitem"]:has-text("Import")', kind: 'arrow' }
       ],
       result: 'The import dialog opens — drop a file, or click to pick one.',
-      after: () => page.getByText(/click to select a file/i).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="import-dropzone"]').waitFor({ state: 'visible' })
     }
   )
 
@@ -84,7 +84,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
   // the dialog. The chooser fires synchronously inside the click;
   // an `after` hook on flow.click registers the listener too late.
   const fixture = path.resolve('tests/e2e/fixtures/import-files/q3-launch-postmortem.html')
-  const dropzone = page.locator('div').filter({ hasText: /click to select a file/i }).first()
+  const dropzone = page.locator('[data-testid="import-dropzone"]')
   const chooserPromise = page.waitForEvent('filechooser', { timeout: 10_000 })
 
   await flow.click(
@@ -120,7 +120,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
   // Click the Import action button — it sits in the modal footer
   // next to Cancel. Scope to the dialog so we don't accidentally
   // re-match the now-closed File menu's "Import…" item.
-  const importBtn = page.locator('[role="dialog"]').getByRole('button', { name: /^import$/i })
+  const importBtn = page.locator('[data-testid="import-submit"]')
   await flow.click(
     'Click "Import" to convert and load',
     importBtn,
@@ -130,14 +130,14 @@ test('Import existing document', async ({ page, flow, editor }) => {
       // replacing automatically. The Replace button is in the
       // conflict pane that takes over the modal.
       result: 'markoto asks how to merge — your existing content vs the imported markdown.',
-      after: () => page.getByRole('button', { name: /replace all/i }).waitFor({ state: 'visible', timeout: 60_000 })
+      after: () => page.locator('[data-testid="import-replace-all"]').waitFor({ state: 'visible', timeout: 60_000 })
     }
   )
 
   // Click Replace to drop the welcome content and use the imported file.
   await flow.click(
     'Click "Replace" — drop the welcome content, use the import',
-    page.getByRole('button', { name: /replace all/i }),
+    page.locator('[data-testid="import-replace-all"]'),
     {
       // Hero outcome: the imported text appearing in the editor IS
       // the payoff. Readers who hit this flow are evaluating "can

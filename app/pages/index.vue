@@ -245,6 +245,7 @@ function onRowLongPress(doc: DocumentListItem) {
           <UButton
             size="lg"
             icon="i-lucide-plus"
+            data-testid="landing-new-document"
             @click="createDocument"
           >
             {{ t('landing.newDocument') }}

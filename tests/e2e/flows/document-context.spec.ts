@@ -51,10 +51,10 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
 
   await flow.click(
     'Click the Document tab in the right sidebar',
-    page.getByRole('button', { name: /^document$/i }).first(),
+    editor.page.sidebar.document,
     {
       annotations: [
-        { label: 'document tab', selector: 'button[aria-label="Document"]', kind: 'arrow' }
+        { label: 'document tab', selector: '[data-testid="sidebar-tab-document"]', kind: 'arrow' }
       ],
       result: 'The Document panel opens — Description, Language, Audience, '
         + 'Template, all editable in place.',

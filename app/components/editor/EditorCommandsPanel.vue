@@ -329,6 +329,7 @@ function applyDiagram(kind: MermaidKind) {
             </button>
             <button
               class="ecp__btn"
+              data-testid="ecp-insert-code-block"
               @click="withDone(codeBlock)()"
             >
               <UIcon
@@ -339,6 +340,7 @@ function applyDiagram(kind: MermaidKind) {
             </button>
             <button
               class="ecp__btn"
+              data-testid="ecp-insert-alert"
               @click="step = 'alert'"
             >
               <UIcon
@@ -349,6 +351,7 @@ function applyDiagram(kind: MermaidKind) {
             </button>
             <button
               class="ecp__btn"
+              data-testid="ecp-insert-math"
               @click="withDone(math)()"
             >
               <UIcon
@@ -359,6 +362,7 @@ function applyDiagram(kind: MermaidKind) {
             </button>
             <button
               class="ecp__btn"
+              data-testid="ecp-insert-diagram"
               @click="step = 'diagram'"
             >
               <UIcon
@@ -478,6 +482,7 @@ function applyDiagram(kind: MermaidKind) {
             v-for="kind in (['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'] as const)"
             :key="kind"
             class="ecp__btn ecp__btn--alert"
+            :data-testid="`ecp-alert-${kind.toLowerCase()}`"
             @click="applyAlert(kind)"
           >
             <span class="ecp__alert-tag">[!{{ kind }}]</span>
@@ -504,6 +509,7 @@ function applyDiagram(kind: MermaidKind) {
             v-for="kind in (['flowchart', 'sequence', 'class', 'er', 'gantt', 'pie'] as const)"
             :key="kind"
             class="ecp__btn ecp__btn--alert"
+            :data-testid="`ecp-diagram-${kind}`"
             @click="applyDiagram(kind)"
           >
             <span class="ecp__alert-tag">{{ kind }}</span>

@@ -25,6 +25,22 @@ export function useDocument(docId: string) {
   const ytext = ydoc.getText('content')
   const ymeta = ydoc.getMap('meta')
 
+  // Test-only handle: expose ydoc + ytext on `window` so e2e flow tests
+  // can assert against the authoritative Y.Doc state instead of CM6's
+  // .cm-content surface. CM6 virtualises long content — .textContent
+  // on the editor returns only the lines currently rendered in the
+  // viewport, so assertions about "did Maya's appended line make it
+  // here?" via cm-content fail spuriously when the line sits past line
+  // ~50. The Y.Doc is the source of truth for "what content does this
+  // client have"; this handle is the cheapest way to query it from a
+  // test. Used by `read-only-share.spec.ts`. No-op on the server.
+  if (import.meta.client) {
+    type Win = { __DEBUG_ydoc?: Y.Doc, __DEBUG_ytext?: Y.Text }
+    const w = window as unknown as Win
+    w.__DEBUG_ydoc = ydoc
+    w.__DEBUG_ytext = ytext
+  }
+
   // Single stable Awareness instance — passed to HocuspocusProvider so both
   // local and remote clients share the same object. Components (PresenceBar,
   // yCollab) bind to this once at mount and never need to re-subscribe.

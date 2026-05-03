@@ -43,17 +43,24 @@ export class EditorPage {
 
   /** The access-mode lock icon in the header (opens share dialog on click). */
   get accessLockButton(): Locator {
-    return this.page.getByRole('button', { name: /access mode/i })
+    return this.page.locator('[data-testid="access-lock-button"]')
   }
 
   // ─── View-mode toggle group ───────────────────────────────────────
 
-  /** The three view-mode buttons in the header center. */
+  /** The three view-mode buttons in the header center.
+   *
+   * Selected via stable data-testids so they don't collide with the
+   * menubar's "Edit" menu (same accessible name). Earlier
+   * `getByRole('button', { name: /^edit$/i }).first()` resolved to
+   * the menubar Edit dropdown trigger and clicking it opened a menu
+   * instead of toggling the view mode — see `data-testid="view-mode-*"`
+   * in EditorLayout.vue. */
   get viewMode() {
     return {
-      edit: this.page.getByRole('button', { name: /^edit$/i }),
-      split: this.page.getByRole('button', { name: /split view/i }),
-      preview: this.page.getByRole('button', { name: /^preview$/i })
+      edit: this.page.locator('[data-testid="view-mode-edit"]'),
+      split: this.page.locator('[data-testid="view-mode-split"]'),
+      preview: this.page.locator('[data-testid="view-mode-preview"]')
     }
   }
 
@@ -61,10 +68,11 @@ export class EditorPage {
 
   get sidebar() {
     return {
-      activity: this.page.getByRole('button', { name: /activity/i, exact: true }),
-      theme: this.page.getByRole('button', { name: /theme/i, exact: true }),
-      knowledge: this.page.getByRole('button', { name: /knowledge/i, exact: true }),
-      comments: this.page.locator('[data-testid="comments-tab-toggle"]')
+      document: this.page.locator('[data-testid="sidebar-tab-document"]'),
+      comments: this.page.locator('[data-testid="sidebar-tab-comments"]'),
+      activity: this.page.locator('[data-testid="sidebar-tab-activity"]'),
+      theme: this.page.locator('[data-testid="sidebar-tab-theme"]'),
+      knowledge: this.page.locator('[data-testid="sidebar-tab-knowledge"]')
     }
   }
 
@@ -270,6 +278,30 @@ export class EditorPage {
       throw new Error(`[disableCoverPage] PUT /meta returned ${putRes.status()}: ${await putRes.text()}`)
     }
     await this.page.waitForTimeout(800)
+  }
+
+  /**
+   * Switch the current doc's access mode via PUT /meta. Useful for
+   * collab + read-only-share flows where a logged-in owner creates
+   * a private doc by default and a spawned visitor needs reach in.
+   *
+   * Modes: `private` | `open-edit` | `open-view` | `password-protected`.
+   * (`password-protected` here only flips the mode; setting the
+   * actual passphrase still goes through the share modal so the
+   * password-protect flow's narration stays honest.)
+   */
+  async setAccessMode(mode: 'private' | 'open-edit' | 'open-view' | 'password-protected'): Promise<void> {
+    const url = new URL(this.page.url())
+    const m = url.pathname.match(/\/d\/([^/?]+)/)
+    if (!m) throw new Error(`[setAccessMode] not on a /d/{id} route, got ${url.pathname}`)
+    const docId = m[1]
+    const putRes = await this.page.request.put(`/api/docs/${docId}/meta`, {
+      data: { accessMode: mode }
+    })
+    if (!putRes.ok()) {
+      throw new Error(`[setAccessMode] PUT /meta returned ${putRes.status()}: ${await putRes.text()}`)
+    }
+    await this.page.waitForTimeout(300)
   }
 
   /** EditorCommandsPanel buttons (mobile drawer content). */
@@ -500,10 +532,10 @@ export class EditorPage {
    */
   async createNewDoc(): Promise<void> {
     await this.page.goto('/')
-    await expect(this.page.getByRole('button', { name: /new document/i })).toBeVisible()
+    await expect(this.page.locator('[data-testid="landing-new-document"]')).toBeVisible()
     await Promise.all([
       this.page.waitForURL(/\/d\/[^/]+/),
-      this.page.getByRole('button', { name: /new document/i }).click()
+      this.page.locator('[data-testid="landing-new-document"]').click()
     ])
   }
 }

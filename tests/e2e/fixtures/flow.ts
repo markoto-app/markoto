@@ -767,7 +767,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // Captions are user-voice — no implementation jargon.
         await flow.step('Open markoto', async () => {
           await page.goto('/')
-          await page.getByRole('button', { name: /new document/i }).waitFor()
+          await page.locator('[data-testid="landing-new-document"]').waitFor()
         })
 
         // Vue hydration race: SSR makes the "+ New Document" button look
@@ -780,7 +780,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // on target) → toPass retry (clicks until dialog opens, no
         // captures) → flow.shot (captures outcome). flow.click would
         // bake a single click into the action; we need retries.
-        const newDocBtn = page.getByRole('button', { name: /new document/i })
+        const newDocBtn = page.locator('[data-testid="landing-new-document"]')
         await flow.hover('Click "New Document" to start writing', newDocBtn)
         await baseExpect(async () => {
           await newDocBtn.click()
@@ -797,7 +797,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         // button look interactive before its @click handler attaches.
         // expect.toPass converges on a stable post-condition (dialog
         // visible) rather than hoping a single click took.
-        const newDocBtn = page.getByRole('button', { name: /new document/i })
+        const newDocBtn = page.locator('[data-testid="landing-new-document"]')
         await newDocBtn.waitFor({ state: 'visible' })
         await baseExpect(async () => {
           await newDocBtn.click()

@@ -53,6 +53,12 @@ const FLOWS_ENV: Record<string, string> = {
   // discard). It does NOT bypass Gemini — every AI call still hits
   // the live API.
   TEST_MODE: '1',
+  // Swap Cloud STT for the canned-fake SpeechClient
+  // (`server/utils/agentic/dictateSpeechClient.ts`). voice-dictate.spec.ts
+  // depends on this — without it, the live STT API receives the synthetic
+  // 16 kHz tone and returns nothing recognisable, the dictation
+  // session times out, and the flow fails.
+  NUXT_GOOGLE_SPEECH_MOCK: '1',
   // Atomic Postgres parts — `postgresUrlFromEnv` reads these. Without
   // them, the Nitro subprocess inherits the parent shell's .env-loaded
   // dev vars and migrates the DEV database. (Same lesson as the

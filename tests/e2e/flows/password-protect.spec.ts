@@ -71,22 +71,22 @@ test('Password protect', async ({ page, flow, editor }) => {
   // The four access mode options render as buttons inside the share
   // modal. Match by the i18n label text (en) — the button isn't
   // a role=radio because the markup uses plain <button> elements.
-  const passwordOption = page.locator('[data-testid="share-modal"]').getByRole('button', { name: /password protected/i })
+  const passwordOption = page.locator('[data-testid="share-access-password-protected"]')
   await flow.click(
     'Pick "Password protected"',
     passwordOption,
     {
       annotations: [
-        { label: 'password mode', selector: '[data-testid="share-modal"] button:has-text("Password protected")', kind: 'arrow' }
+        { label: 'password mode', selector: '[data-testid="share-access-password-protected"]', kind: 'arrow' }
       ],
       result: 'The password input appears — type a passphrase to lock the doc.',
-      after: () => page.locator('input[type="password"]').first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="share-password-input"]').waitFor({ state: 'visible' })
     }
   )
 
   // Type the password + click Save. Reuse the same value at unlock.
   const sharedPassword = 'open-sesame'
-  const passwordInput = page.locator('input[type="password"]').first()
+  const passwordInput = page.locator('[data-testid="share-password-input"]')
   await flow.type(
     'Type a passphrase',
     passwordInput,
@@ -99,7 +99,7 @@ test('Password protect', async ({ page, flow, editor }) => {
   // The Save button is in the password input row. Filter to the one
   // adjacent to the password input (the share modal also has other
   // buttons that COULD match /save/i in some i18n locales).
-  const saveBtn = page.locator('[data-testid="share-modal"]').getByRole('button', { name: /^save$/i })
+  const saveBtn = page.locator('[data-testid="share-password-save"]')
   await flow.click(
     'Click Save to commit the password',
     saveBtn,
@@ -143,7 +143,7 @@ test('Password protect', async ({ page, flow, editor }) => {
   const visitor = await flow.spawn('visitor')
   await visitor.page.goto(docUrl)
 
-  const visitorPasswordInput = visitor.page.locator('input[type="password"]').first()
+  const visitorPasswordInput = visitor.page.locator('[data-testid="password-modal-input"]')
   await visitorPasswordInput.waitFor({ state: 'visible', timeout: 15_000 })
 
   await visitor.flow.shot(
@@ -177,7 +177,7 @@ test('Password protect', async ({ page, flow, editor }) => {
   // Click Unlock. The button is type="submit" inside the form;
   // pressing Enter would also work, but a deliberate click reads
   // more clearly in the slideshow.
-  const unlockBtn = visitor.page.getByRole('button', { name: /unlock/i })
+  const unlockBtn = visitor.page.locator('[data-testid="password-modal-unlock"]')
   await visitor.flow.click(
     'Click "Unlock" to enter the doc',
     unlockBtn,
@@ -196,7 +196,7 @@ test('Password protect', async ({ page, flow, editor }) => {
         // most reliable "doc loaded" proxy across desktop AND
         // mobile. We also wait for the password modal to detach.
         await visitor.page.locator('.cm-content').waitFor({ state: 'attached', timeout: 15_000 })
-        await expect(visitor.page.locator('input[type="password"]')).toHaveCount(0, { timeout: 10_000 })
+        await expect(visitor.page.locator('[data-testid="password-modal-input"]')).toHaveCount(0, { timeout: 10_000 })
       }
     }
   )
@@ -208,7 +208,7 @@ test('Password protect', async ({ page, flow, editor }) => {
   // mobile narrow layouts hide the title button visually but the
   // `.cm-content` element is the unambiguous "editor mounted"
   // signal.
-  await expect(visitor.page.locator('input[type="password"]')).toHaveCount(0)
+  await expect(visitor.page.locator('[data-testid="password-modal-input"]')).toHaveCount(0)
   await expect(visitor.page.locator('.cm-content')).toBeAttached()
 
   // Forward route: the natural next step after locking down a

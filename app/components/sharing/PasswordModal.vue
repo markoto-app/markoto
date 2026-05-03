@@ -76,6 +76,7 @@ function handleClose() {
             size="lg"
             autofocus
             class="mb-3"
+            data-testid="password-modal-input"
           />
 
           <p
@@ -89,6 +90,7 @@ function handleClose() {
             <UButton
               variant="ghost"
               class="flex-1"
+              data-testid="password-modal-cancel"
               @click="handleClose"
             >
               {{ t('common.cancel') }}
@@ -98,6 +100,7 @@ function handleClose() {
               class="flex-1"
               :loading="loading"
               :disabled="!password"
+              data-testid="password-modal-unlock"
             >
               {{ t('share.unlock') }}
             </UButton>

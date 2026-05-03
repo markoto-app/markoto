@@ -52,14 +52,14 @@ test('Import existing document on mobile', async ({ page, flow, editor }) => {
     editor.page.mobileEditorCommands.import,
     {
       result: 'The import dialog opens — drop a file, or tap the dropzone.',
-      after: () => page.getByText(/click to select a file/i).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="import-dropzone"]').waitFor({ state: 'visible' })
     }
   )
 
   // Same chooser dance as the desktop spec — register BEFORE the
   // click that opens it.
   const fixture = path.resolve('tests/e2e/fixtures/import-files/q3-launch-postmortem.html')
-  const dropzone = page.locator('div').filter({ hasText: /click to select a file/i }).first()
+  const dropzone = page.locator('[data-testid="import-dropzone"]')
   const chooserPromise = page.waitForEvent('filechooser', { timeout: 10_000 })
 
   await flow.click(
@@ -85,19 +85,19 @@ test('Import existing document on mobile', async ({ page, flow, editor }) => {
     + 'tap Replace all to drop the welcome and use the imported file.'
   )
 
-  const importBtn = page.locator('[role="dialog"]').getByRole('button', { name: /^import$/i })
+  const importBtn = page.locator('[data-testid="import-submit"]')
   await flow.click(
     'Tap Import to convert + load',
     importBtn,
     {
       result: 'markoto asks how to merge — your existing content vs the imported markdown.',
-      after: () => page.getByRole('button', { name: /replace all/i }).waitFor({ state: 'visible', timeout: 60_000 })
+      after: () => page.locator('[data-testid="import-replace-all"]').waitFor({ state: 'visible', timeout: 60_000 })
     }
   )
 
   await flow.click(
     'Tap "Replace all" — drop the welcome content',
-    page.getByRole('button', { name: /replace all/i }),
+    page.locator('[data-testid="import-replace-all"]'),
     {
       hero: true,
       result: 'Your headings, lists, and prose land in the editor — same as desktop.',

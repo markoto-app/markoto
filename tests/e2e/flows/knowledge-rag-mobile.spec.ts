@@ -71,7 +71,7 @@ test('Knowledge grounded AI on mobile', async ({ page, flow, editor }) => {
     editor.page.mobileTabs.knowledge,
     {
       result: 'The Knowledge drawer slides up — empty until you upload your first file.',
-      after: () => page.getByRole('button', { name: /upload/i }).first().waitFor({ state: 'visible', timeout: 10_000 })
+      after: () => page.locator('[data-testid="knowledge-upload-button"]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }
   )
 
@@ -82,13 +82,13 @@ test('Knowledge grounded AI on mobile', async ({ page, flow, editor }) => {
 
   await flow.click(
     'Tap Upload',
-    page.getByRole('button', { name: /upload/i }).first(),
+    page.locator('[data-testid="knowledge-upload-button"]').first(),
     {
       result: 'The file picker opens — pick the postmortem HTML.',
       after: async () => {
         const chooser = await chooserPromise
         await chooser.setFiles(fixture)
-        await page.getByText(/q3-launch-postmortem\.html/i).first().waitFor({ state: 'visible', timeout: 10_000 })
+        await page.locator('[data-testid^="knowledge-file-row-"][data-filename="q3-launch-postmortem.html"]').first().waitFor({ state: 'visible', timeout: 10_000 })
       }
     }
   )
@@ -105,7 +105,7 @@ test('Knowledge grounded AI on mobile', async ({ page, flow, editor }) => {
     + 'AI a grounded retrieval surface.'
   )
 
-  await expect(page.getByText(/^ready$/i).first()).toBeVisible({ timeout: 60_000 })
+  await expect(page.locator('[data-testid^="knowledge-file-row-"][data-status="ready"]').first()).toBeVisible({ timeout: 60_000 })
 
   // Close the Knowledge drawer so the AI prompt bar is reachable.
   // The drawer covers the bottom tab bar — tapping Knowledge again

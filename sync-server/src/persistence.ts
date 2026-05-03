@@ -109,16 +109,27 @@ export const ypgPersistence = {
     }
   },
 
-  async onStoreDocument({ documentName, document }: { documentName: string, document: Y.Doc }) {
+  /**
+   * Stores the doc's current state and returns the y-postgresql row id
+   * that was just inserted. The id is what the activity-log uses as the
+   * `yjsDocIdAfter` boundary stamp — using `storeUpdate`'s returned id
+   * (rather than a follow-up `MAX(id)` query) is BOTH simpler AND
+   * race-resistant: a concurrent store from another instance can land
+   * between our INSERT and a follow-up MAX query and bump the answer
+   * to a row that isn't ours. Returns null only on a store failure.
+   */
+  async onStoreDocument({ documentName, document }: { documentName: string, document: Y.Doc }): Promise<number | null> {
     try {
       const update = Y.encodeStateAsUpdate(document)
-      await withSelfHeal(`store:${documentName}`, () => pgdb.storeUpdate(documentName, update))
+      const id = await withSelfHeal(`store:${documentName}`, () => pgdb.storeUpdate(documentName, update))
+      return typeof id === 'number' ? id : null
     } catch (e) {
       // Log loudly. Hocuspocus will retry on the next debounce tick; in the
       // meantime the in-memory Y.Doc is still the source of truth for
       // connected clients.
       console.error(`[persistence] Error storing ${documentName}:`, e instanceof Error ? e.message : e)
       captureException(e, { tags: { component: 'persistence', event: 'store_failed', docId: documentName } })
+      return null
     }
   },
 

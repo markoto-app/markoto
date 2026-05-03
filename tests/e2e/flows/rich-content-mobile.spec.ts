@@ -58,13 +58,13 @@ test('Rich content on mobile', async ({ page, flow, editor }) => {
     editor.page.mobileTabs.editor,
     {
       result: 'The Editor drawer slides up — Formatting / Headings / Lists / Insert / File.',
-      after: () => page.getByRole('button', { name: /code block/i }).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="ecp-insert-code-block"]').waitFor({ state: 'visible' })
     }
   )
 
   await flow.click(
     'Tap Code block',
-    page.getByRole('button', { name: /code block/i }).first(),
+    page.locator('[data-testid="ecp-insert-code-block"]'),
     {
       result: 'A fenced code block lands at the cursor — drawer closes, editor regains focus.',
       after: () => cmContent.click()
@@ -94,22 +94,22 @@ test('Rich content on mobile', async ({ page, flow, editor }) => {
     editor.page.mobileTabs.editor,
     {
       result: 'The Editor drawer slides up again.',
-      after: () => page.getByRole('button', { name: /^alert$/i }).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="ecp-insert-alert"]').waitFor({ state: 'visible' })
     }
   )
 
   await flow.click(
     'Tap Alert',
-    page.getByRole('button', { name: /^alert$/i }).first(),
+    page.locator('[data-testid="ecp-insert-alert"]'),
     {
       result: 'The drawer steps to a 2-column grid of alert flavours.',
-      after: () => page.getByRole('button', { name: /\[!TIP\]/i }).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="ecp-alert-tip"]').waitFor({ state: 'visible' })
     }
   )
 
   await flow.click(
     'Tap Tip',
-    page.getByRole('button', { name: /\[!TIP\]/i }).first(),
+    page.locator('[data-testid="ecp-alert-tip"]'),
     {
       result: 'A Tip alert lands at the cursor — type the body inside the blockquote.',
       after: () => cmContent.click()
@@ -135,13 +135,13 @@ test('Rich content on mobile', async ({ page, flow, editor }) => {
     editor.page.mobileTabs.editor,
     {
       result: 'The Editor drawer slides up.',
-      after: () => page.getByRole('button', { name: /^math$/i }).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="ecp-insert-math"]').waitFor({ state: 'visible' })
     }
   )
 
   await flow.click(
     'Tap Math',
-    page.getByRole('button', { name: /^math$/i }).first(),
+    page.locator('[data-testid="ecp-insert-math"]'),
     {
       result: 'A block-equation placeholder lands at the cursor.',
       after: () => cmContent.click()
@@ -167,22 +167,22 @@ test('Rich content on mobile', async ({ page, flow, editor }) => {
     editor.page.mobileTabs.editor,
     {
       result: 'The Editor drawer slides up.',
-      after: () => page.getByRole('button', { name: /^diagram$/i }).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="ecp-insert-diagram"]').waitFor({ state: 'visible' })
     }
   )
 
   await flow.click(
     'Tap Diagram',
-    page.getByRole('button', { name: /^diagram$/i }).first(),
+    page.locator('[data-testid="ecp-insert-diagram"]'),
     {
       result: 'The drawer steps to a 2-column grid of diagram kinds.',
-      after: () => page.getByRole('button', { name: /^pie$/i }).first().waitFor({ state: 'visible' })
+      after: () => page.locator('[data-testid="ecp-diagram-pie"]').waitFor({ state: 'visible' })
     }
   )
 
   await flow.click(
     'Tap pie',
-    page.getByRole('button', { name: /^pie$/i }).first(),
+    page.locator('[data-testid="ecp-diagram-pie"]'),
     {
       hero: true,
       result: 'A working pie-chart Mermaid snippet lands at the cursor — edit the slices to your data.',

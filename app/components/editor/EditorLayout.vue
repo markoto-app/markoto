@@ -968,6 +968,7 @@ const _statusIcon = computed(() => {
             :variant="viewMode === 'edit' ? 'solid' : 'ghost'"
             :aria-label="t('editor.edit')"
             :aria-pressed="viewMode === 'edit'"
+            data-testid="view-mode-edit"
             @click="viewMode = 'edit'"
           />
         </UTooltip>
@@ -979,6 +980,7 @@ const _statusIcon = computed(() => {
             :variant="viewMode === 'split' ? 'solid' : 'ghost'"
             :aria-label="t('editor.splitView')"
             :aria-pressed="viewMode === 'split'"
+            data-testid="view-mode-split"
             @click="viewMode = 'split'"
           />
         </UTooltip>
@@ -990,6 +992,7 @@ const _statusIcon = computed(() => {
             :variant="viewMode === 'preview' ? 'solid' : 'ghost'"
             :aria-label="t('editor.preview')"
             :aria-pressed="viewMode === 'preview'"
+            data-testid="view-mode-preview"
             @click="viewMode = 'preview'"
           />
         </UTooltip>
@@ -1016,6 +1019,7 @@ const _statusIcon = computed(() => {
             variant="ghost"
             size="xs"
             :aria-label="`${t('share.accessMode')}: ${t(accessLabelKey)}`"
+            data-testid="access-lock-button"
             @click="showShareModal = true"
           />
         </UTooltip>
@@ -1159,6 +1163,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('documentPanel.title')"
               :aria-pressed="rightSidebar === 'document'"
+              data-testid="sidebar-tab-document"
               @click="toggleSidebar('document')"
             />
           </UTooltip>
@@ -1170,7 +1175,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('comments.title')"
               :aria-pressed="rightSidebar === 'comments'"
-              data-testid="comments-tab-toggle"
+              data-testid="sidebar-tab-comments"
               @click="toggleSidebar('comments')"
             />
           </UTooltip>
@@ -1182,6 +1187,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('activity.title')"
               :aria-pressed="rightSidebar === 'activity'"
+              data-testid="sidebar-tab-activity"
               @click="toggleSidebar('activity')"
             />
           </UTooltip>
@@ -1196,6 +1202,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('theme.title')"
               :aria-pressed="rightSidebar === 'theme'"
+              data-testid="sidebar-tab-theme"
               @click="toggleSidebar('theme')"
             />
           </UTooltip>
@@ -1210,6 +1217,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('knowledge.title')"
               :aria-pressed="rightSidebar === 'knowledge'"
+              data-testid="sidebar-tab-knowledge"
               @click="toggleSidebar('knowledge')"
             />
           </UTooltip>
