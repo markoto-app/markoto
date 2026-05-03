@@ -28,6 +28,11 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
 
   await editor.page.loginAsTestUser('Sam Reeves')
   await editor.silentSetup()
+  // Disable the cover sheet so the comment-anchored passage IS
+  // visible on page 1 of the preview iframe (the markoto theme
+  // ships cover.enabled=true; "Anyone with the link can edit" sits
+  // on page 2+ behind it otherwise).
+  await editor.page.disableCoverPage()
 
   // ─── Set the scene ──────────────────────────────────────────────
   await flow.heading('Mention @markoto in a comment', 3)

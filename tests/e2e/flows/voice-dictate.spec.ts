@@ -38,6 +38,11 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   // the same path the AI flows use.
   await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup()
+  // Markoto theme ships with cover.enabled=true; the preview iframe
+  // shows the cover sheet, hiding the dictated text that lands at
+  // the cursor (page 4+ of the welcome doc). Disable cover so the
+  // preview shows actual content.
+  await editor.page.disableCoverPage()
 
   // Move the caret to the end of the welcome doc so dictation
   // appends rather than overwriting. The CM6 keyboard shortcut works

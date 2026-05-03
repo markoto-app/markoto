@@ -25,7 +25,12 @@ test('Import existing document', async ({ page, flow, editor }) => {
   )
   test.setTimeout(120_000)
 
+  // Login + disable cover so the imported content is the FIRST
+  // thing on page 1 of the preview iframe (anon users get 401 from
+  // the PUT /meta endpoint that toggles cover.enabled).
+  await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup()
+  await editor.page.disableCoverPage()
 
   // ─── Open the import dialog ──────────────────────────────────────
   await flow.heading('Bring your existing document in', 3)

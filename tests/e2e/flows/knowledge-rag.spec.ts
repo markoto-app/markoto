@@ -196,6 +196,10 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       after: async () => {
         await page.waitForURL(/\/d\/[^/]+/)
         await editor.page.waitForReady()
+        // Disable cover so the AI's grounded answer (lands at end-
+        // of-doc which is page 1 of a blank doc) is visible in the
+        // preview pane.
+        await editor.page.disableCoverPage()
         await editor.page.switchToSplitView()
         await editor.page.waitForPreviewPaginated()
       }

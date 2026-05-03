@@ -16,7 +16,10 @@ test('Import existing document on mobile', async ({ page, flow, editor }) => {
   )
   test.setTimeout(120_000)
 
+  // Login + disable cover (see desktop sibling for reasoning).
+  await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup()
+  await editor.page.disableCoverPage()
 
   await flow.heading('Bring your existing document in on mobile', 3)
   await flow.narrate(

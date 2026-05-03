@@ -22,6 +22,8 @@ test('Tell the AI who you\'re writing for on mobile', async ({ page, flow, edito
 
   await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup()
+  // Cover sheet hides the AI-added intro in the preview; disable.
+  await editor.page.disableCoverPage()
 
   await flow.heading('Tell the AI who you\'re writing for on mobile', 3)
   await flow.narrate(

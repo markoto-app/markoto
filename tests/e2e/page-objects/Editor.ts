@@ -220,6 +220,58 @@ export class EditorPage {
     }
   }
 
+  /**
+   * Disable the cover page on the current document so the preview
+   * iframe shows page 1 = inserted/dictated/AI-generated content,
+   * not the cover sheet. The markoto theme ships with
+   * `cover.enabled: true` by default — every new doc has a title
+   * page that hides the actual body in the preview pane until the
+   * reader scrolls or pages forward.
+   *
+   * Requires the current actor to be logged in: PUT /api/docs/:id/meta
+   * is gated on `canEdit` which goes through `requireValidatedUserSession`.
+   * Anonymous flows that need preview visibility should call
+   * `loginAsTestUser()` before `silentSetup()` AND this helper after.
+   *
+   * Implementation: PUT /meta with the FULL `defaultTheme` schema
+   * with `cover.enabled` flipped to false. We can't merge a partial
+   * over the GET-returned `theme` JSONB because the column may hold
+   * a partial (or null) and `isValidTheme` requires every field
+   * present. The default theme IS the markoto preset's full shape —
+   * sending it back unchanged-except-cover gives the same visual
+   * result the user gets when they toggle the cover switch in the
+   * theme panel. paged.js repaginates ~500 ms after Y.js broadcasts
+   * the new theme; we wait 800 ms so the next captured screenshot
+   * lands on a settled preview.
+   */
+  async disableCoverPage(): Promise<void> {
+    const url = new URL(this.page.url())
+    const m = url.pathname.match(/\/d\/([^/?]+)/)
+    if (!m) throw new Error(`[disableCoverPage] not on a /d/{id} route, got ${url.pathname}`)
+    const docId = m[1]
+
+    // Import the default theme via dynamic import to avoid pulling
+    // shared/utils into the page-object module graph at top level.
+    // Use a relative path — Playwright's TS resolver doesn't honour
+    // the `~~` alias from the Nuxt tsconfig.
+    const { defaultTheme } = await import('../../../shared/utils/defaultTheme')
+    // Spread on `cover` keeps every other cover sub-field
+    // (showSubtitle / layout / dateFormat etc.) at its default while
+    // flipping `enabled` off.
+    const newTheme = {
+      ...defaultTheme,
+      cover: { ...defaultTheme.cover, enabled: false }
+    }
+
+    const putRes = await this.page.request.put(`/api/docs/${docId}/meta`, {
+      data: { theme: newTheme }
+    })
+    if (!putRes.ok()) {
+      throw new Error(`[disableCoverPage] PUT /meta returned ${putRes.status()}: ${await putRes.text()}`)
+    }
+    await this.page.waitForTimeout(800)
+  }
+
   /** EditorCommandsPanel buttons (mobile drawer content). */
   get mobileEditorCommands() {
     return {

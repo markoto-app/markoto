@@ -51,6 +51,8 @@ test('Knowledge grounded AI on mobile', async ({ page, flow, editor }) => {
   // Land in the editor.
   await page.goto(`/d/${doc.docId}`)
   await editor.page.waitForReady()
+  // Cover sheet hides any inserted content in the preview; disable.
+  await editor.page.disableCoverPage()
 
   await flow.heading('Ask the AI about a file you uploaded on mobile', 3)
   await flow.narrate(

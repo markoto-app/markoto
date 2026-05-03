@@ -23,7 +23,16 @@ test('Rich content', async ({ page, flow, editor }) => {
   )
   test.setTimeout(120_000)
 
+  // Log in so we can disable the cover page via PUT /api/docs/:id/meta
+  // (anon users get 401 from that endpoint). Without disabling the
+  // cover, the preview iframe shows page 1 = the cover sheet, and
+  // every inserted code block / alert / math / diagram lands on a
+  // later page that the iframe doesn't auto-scroll to. Reader of
+  // the slideshow needs to see the rendered output to understand
+  // the demo.
+  await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup()
+  await editor.page.disableCoverPage()
 
   // Wipe the seeded welcome content so the inserted rich-content
   // samples are the FIRST thing on page 1 of the preview. Inserting

@@ -32,6 +32,10 @@ test('Write with AI', async ({ page, flow, editor }) => {
   // the moment the editor mounts.
   await editor.page.loginAsTestUser('Alice Liu')
   await editor.silentSetup()
+  // The AI's edits land at end-of-doc by default — page 4+ behind
+  // the cover sheet that the markoto theme ships with. Disable
+  // cover so the reader sees the AI-added section in the preview.
+  await editor.page.disableCoverPage()
 
   // Title + intro before any captured shots.
   await flow.heading('Write with AI', 3)

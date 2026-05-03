@@ -36,6 +36,8 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   // flows use.
   await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup()
+  // Cover sheet would hide the AI-added intro in the preview; disable.
+  await editor.page.disableCoverPage()
 
   // ─── Open the Document panel ────────────────────────────────────
   await flow.heading('Tell markoto who you\'re writing for', 3)

@@ -17,7 +17,11 @@ test('Rich content on mobile', async ({ page, flow, editor }) => {
   )
   test.setTimeout(120_000)
 
+  // Login + disable cover so the inserted content is visible in the
+  // preview iframe (see desktop sibling for the full reasoning).
+  await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup()
+  await editor.page.disableCoverPage()
 
   // Clear the welcome content so the inserts land on page 1 of the
   // mobile preview surface (when the user toggles preview later).
