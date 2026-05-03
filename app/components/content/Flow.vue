@@ -448,7 +448,7 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
 // at the top of the embed as a "what you're about to learn"
 // preview. Falls back to null when no outcome is marked, in which
 // case the hero strip is omitted entirely.
-const heroEntry = computed<OutcomeEntry | null>(() => {
+const _heroEntry = computed<OutcomeEntry | null>(() => {
   for (const e of entries.value) {
     if (e.kind === 'outcome' && e.hero) return e
   }
@@ -488,47 +488,30 @@ const nextHref = computed(() => nextLink.value ? `/docs/flows/${nextLink.value.s
       {{ manifest.title }}
     </h3>
 
-    <!-- Hero frame: a static preview of the flow's payoff outcome,
-         rendered above the slideshow. Sets the expectation ("here's
-         what you're going to build") before the reader commits to
-         clicking through the steps. The same frame still appears in
-         the slideshow itself so this isn't duplicative work for the
-         author — it's just additive surface. Click jumps the
-         slideshow to the hero. -->
+    <!-- Hero frame: rendered preview of the flow's payoff outcome.
+         Currently DISABLED in the public docs slideshow (the field
+         is still present in the manifest, and `heroEntry` resolves
+         in script, so this can be re-enabled by uncommenting the
+         <button> block below if/when product wants it back). The
+         payoff frame still appears in the slideshow proper as a
+         normal outcome shot, so nothing is lost — only the
+         redundant top-strip surface. -->
+    <!-- eslint-disable-next-line vue/comment-directive -->
+    <!--
     <button
       v-if="heroEntry"
       type="button"
       class="block w-full mb-6 text-left rounded-lg overflow-hidden border border-default bg-elevated cursor-zoom-in group"
-      @click="(() => {
-        const idx = entries.findIndex(e => e === heroEntry)
-        if (idx >= 0) { stopPlay(); slideIdx = idx }
-      })()"
+      @click="jumpToHero"
     >
       <div class="px-3 py-1.5 bg-elevated border-b border-default flex items-center gap-2">
         <span class="font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted">the outcome</span>
         <span class="flex-1" />
         <span class="font-mono text-[10.5px] text-muted opacity-0 group-hover:opacity-100 transition-opacity">click to jump there</span>
       </div>
-      <FlowFrame
-        :src="`${baseUrl}/${heroEntry.file}`"
-        :card="null"
-        :cursor="heroEntry.cursor"
-        :cursor-opacity="0"
-        :path="heroEntry.path"
-        :highlights="heroEntry.highlights ?? []"
-        :annotations="[]"
-        :viewport="manifest.viewport"
-        :show-cursor="false"
-        :show-chrome="showChrome"
-        :chrome-domain="effectiveChromeDomain"
-        :show-highlights="showHighlights"
-        :is-touch="manifest.variant.endsWith('mobile')"
-        @click="(() => {
-          const idx = entries.findIndex(e => e === heroEntry)
-          if (idx >= 0) { stopPlay(); slideIdx = idx }
-        })()"
-      />
+      <FlowFrame ... />
     </button>
+    -->
 
     <div
       v-if="entries.length"

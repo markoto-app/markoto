@@ -73,12 +73,13 @@ function annotationLabelTop(a: Annotation): boolean {
   return a.y + a.h / 2 > props.viewport.h / 2
 }
 
-// Leader-line endpoints for arrow-kind annotations. The label sits
-// in a corner of the slide; the arrow's tail is anchored at the
-// label's near-edge, the head lands on the closest edge of the
-// target box. Working in viewport CSS coordinates (the SVG is
-// painted at `viewBox="0 0 W H"` so coords pass through directly).
-function arrowGeometry(a: Annotation) {
+// Leader-line endpoints for arrow-kind annotations. Currently
+// unused — annotation rendering is disabled in the public docs
+// slideshow (the SVG block is gated on `v-if="false"`). Kept here
+// alongside lineToRectEdge so the rendering can be re-enabled
+// without re-deriving the geometry. The leading underscore is
+// what the lint rule expects for "intentionally unused".
+function _arrowGeometry(a: Annotation) {
   const cx = a.x + a.w / 2
   const cy = a.y + a.h / 2
   const labelLeft = annotationLabelLeft(a)
@@ -245,7 +246,9 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
           >
 
           <!-- Highlight callouts (outcome only — Flow.vue passes []
-               for any other kind). -->
+               for any other kind). Color: shu (the markoto seal) so
+               the callouts read as part of the brand surface, not
+               like a generic warning chip. -->
           <template v-if="showHighlights && highlights?.length">
             <div
               v-for="(h, i) in highlights"
@@ -260,139 +263,29 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
             >
               <div class="absolute inset-0 rounded flow-highlight-pulse" />
               <span
-                class="absolute px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500 text-white whitespace-nowrap max-w-[200px] truncate shadow"
+                class="absolute px-1.5 py-0.5 rounded text-[10px] font-medium text-white whitespace-nowrap max-w-[200px] truncate shadow"
                 :class="[
                   labelBelow(h) ? 'top-full mt-0.5' : 'bottom-full mb-0.5',
                   labelRight(h) ? 'right-0' : 'left-0'
                 ]"
+                :style="{ background: 'var(--color-shu-500, #B5371F)' }"
               >
                 {{ h.label }}
               </span>
             </div>
           </template>
 
-          <!-- Annotation callouts (direction-anchoring on click
-               targets). Rendered as either:
-                 • arrow — labelled SVG arrow from a slide corner
-                 • box   — static dashed outline + adjacent label
-                 • pin   — small numbered shu disc at top-left
-               Distinct visual treatment from highlights (no pulse,
-               no orange — these are "find this", not "celebrate
-               this"). The shu palette anchors them to the markoto
-               brand (the seal IS direction). -->
-          <template v-if="annotations?.length">
-            <!-- Single SVG layer for all arrow-kind annotations.
-                 viewBox matches the source viewport so coordinates
-                 pass through unscaled; the SVG itself stretches to
-                 the frame body via 100%/100%. -->
-            <svg
-              v-if="annotations.some(a => a.kind === 'arrow')"
-              class="absolute inset-0 w-full h-full pointer-events-none"
-              :viewBox="`0 0 ${viewport.w} ${viewport.h}`"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <defs>
-                <marker
-                  id="annot-arrowhead"
-                  viewBox="0 0 10 10"
-                  refX="9"
-                  refY="5"
-                  markerWidth="7"
-                  markerHeight="7"
-                  orient="auto-start-reverse"
-                >
-                  <path
-                    d="M 0 0 L 10 5 L 0 10 z"
-                    fill="var(--color-shu-500, #B5371F)"
-                  />
-                </marker>
-              </defs>
-              <template
-                v-for="(a, i) in annotations"
-                :key="`arrow-${i}`"
-              >
-                <line
-                  v-if="a.kind === 'arrow'"
-                  :x1="arrowGeometry(a).tailX"
-                  :y1="arrowGeometry(a).tailY"
-                  :x2="arrowGeometry(a).headX"
-                  :y2="arrowGeometry(a).headY"
-                  stroke="var(--color-shu-500, #B5371F)"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  marker-end="url(#annot-arrowhead)"
-                />
-              </template>
-            </svg>
-
-            <!-- Per-annotation HTML overlay: label tag for arrows
-                 (positioned at the tail), dashed box for box-kind,
-                 pin disc for pin-kind. -->
-            <template
-              v-for="(a, i) in annotations"
-              :key="`annot-${i}`"
-            >
-              <!-- arrow: label at tail -->
-              <span
-                v-if="a.kind === 'arrow'"
-                class="absolute pointer-events-none px-1.5 py-0.5 rounded font-mono text-[10.5px] tracking-[0.04em] uppercase bg-shu-500 text-white whitespace-nowrap max-w-[200px] truncate shadow-sm"
-                :style="{
-                  left: annotationLabelLeft(a)
-                    ? '8px'
-                    : 'auto',
-                  right: annotationLabelLeft(a)
-                    ? 'auto'
-                    : '8px',
-                  top: annotationLabelTop(a)
-                    ? '4px'
-                    : 'auto',
-                  bottom: annotationLabelTop(a)
-                    ? 'auto'
-                    : '4px'
-                }"
-              >
-                {{ a.label }}
-              </span>
-
-              <!-- box: dashed outline + adjacent label -->
-              <div
-                v-else-if="a.kind === 'box'"
-                class="absolute pointer-events-none border-2 border-dashed rounded"
-                :style="{
-                  left: `${(a.x / viewport.w) * 100}%`,
-                  top: `${(a.y / viewport.h) * 100}%`,
-                  width: `${(a.w / viewport.w) * 100}%`,
-                  height: `${(a.h / viewport.h) * 100}%`,
-                  borderColor: 'var(--color-shu-500, #B5371F)'
-                }"
-              >
-                <span
-                  class="absolute px-1.5 py-0.5 rounded font-mono text-[10.5px] tracking-[0.04em] uppercase bg-shu-500 text-white whitespace-nowrap max-w-[200px] truncate shadow-sm"
-                  :class="[
-                    a.y < LABEL_FLIP_VERTICAL_PX ? 'top-full mt-0.5' : 'bottom-full mb-0.5',
-                    a.x > viewport.w / 2 ? 'right-0' : 'left-0'
-                  ]"
-                >
-                  {{ a.label }}
-                </span>
-              </div>
-
-              <!-- pin: small disc at top-left of target -->
-              <span
-                v-else-if="a.kind === 'pin'"
-                class="absolute pointer-events-none size-5 rounded-full flex items-center justify-center text-white text-[10px] font-mono shadow"
-                :style="{
-                  left: `${(a.x / viewport.w) * 100}%`,
-                  top: `${(a.y / viewport.h) * 100}%`,
-                  transform: 'translate(-50%, -50%)',
-                  background: 'var(--color-shu-500, #B5371F)'
-                }"
-                :title="a.label"
-              >
-                {{ i + 1 }}
-              </span>
-            </template>
+          <!-- Annotation rendering DISABLED in the public docs slideshow.
+               The fixture + manifest still ship `annotations` (so future
+               work can re-enable arrow/box/pin overlays without churning
+               every spec), but feedback was that arrows spanning the
+               whole slide read as visual noise — the cursor + highlight
+               boxes carry enough direction. To re-enable, uncomment the
+               original block in git history (commit c22b7e3) and ensure
+               the props pipeline still passes the array through. -->
+          <template v-if="false && annotations?.length">
+            <!-- intentionally empty — annotations live in manifests but
+                 are not rendered in the slideshow today -->
           </template>
 
           <!-- Cursor / tap indicator. Opacity-controlled so it can
@@ -422,7 +315,10 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
               left: `${(cursor.x / viewport.w) * 100}%`,
               top: `${(cursor.y / viewport.h) * 100}%`,
               opacity: cursorOpacity,
-              filter: 'drop-shadow(0 0 3px rgb(249 115 22 / 0.95)) drop-shadow(0 0 10px rgb(249 115 22 / 0.7))'
+              // shu-500 (#B5371F = rgb(181 55 31)) — the markoto seal
+              // color. Was generic orange-500 before; switched so the
+              // cursor's glow reads as brand surface, not as a warning.
+              filter: 'drop-shadow(0 0 3px rgb(181 55 31 / 0.95)) drop-shadow(0 0 10px rgb(181 55 31 / 0.7))'
             }"
           >
         </template>
@@ -432,12 +328,16 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
 </template>
 
 <style scoped>
+/* shu-500 (#B5371F = rgb(181 55 31)) — the markoto seal color. The
+   pulse glow was generic orange-500; switched to shu so highlights
+   match the brand palette. The chip background (set inline above)
+   uses the same value. */
 @keyframes flow-highlight-pulse {
   0%, 100% {
-    box-shadow: 0 0 4px 1px rgb(249 115 22 / 0.6);
+    box-shadow: 0 0 4px 1px rgb(181 55 31 / 0.6);
   }
   50% {
-    box-shadow: 0 0 11px 4px rgb(249 115 22 / 0.75);
+    box-shadow: 0 0 11px 4px rgb(181 55 31 / 0.75);
   }
 }
 .flow-highlight-pulse {
@@ -446,7 +346,7 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
 @media (prefers-reduced-motion: reduce) {
   .flow-highlight-pulse {
     animation: none;
-    box-shadow: 0 0 7px 2px rgb(249 115 22 / 0.7);
+    box-shadow: 0 0 7px 2px rgb(181 55 31 / 0.7);
   }
 }
 </style>

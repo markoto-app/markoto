@@ -31,12 +31,19 @@ test('Password protect', async ({ page, flow, editor }) => {
   await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup()
 
-  // ─── Open the share dialog ───────────────────────────────────────
-  await flow.heading('Lock the doc with a password', 3)
+  // Title + intro before the captures begin.
+  await flow.heading('Lock a document with a password', 3)
   await flow.narrate(
-    'Anonymous documents start in open-edit mode — anyone with the '
-    + 'link can read AND write. To gate access behind a passphrase, '
-    + 'open the share dialog from the lock icon in the topbar.'
+    'Anonymous documents share by URL — anyone with the link can read '
+    + 'AND write by default. To gate access, switch the doc\'s access '
+    + 'mode to password-protected and choose a passphrase. Visitors hit '
+    + 'a blocking dialog before the editor mounts; only the right '
+    + 'passphrase gets them past it.'
+  )
+
+  // ─── Open the share dialog ───────────────────────────────────────
+  await flow.narrate(
+    'Open the share dialog from the lock icon in the topbar.'
   )
 
   await flow.click(

@@ -33,8 +33,8 @@ test('Import existing document', async ({ page, flow, editor }) => {
     'Already have a draft in Word, a PDF, an HTML export from a CMS? '
     + 'markoto converts it to markdown on the way in. The conversion '
     + 'preserves headings, lists, tables, and inline emphasis — what '
-    + "you can’t carry over (custom fonts, page chrome) is dropped, "
-    + "since you’re going to re-style with a markoto theme anyway."
+    + 'you can’t carry over (custom fonts, page chrome) is dropped, '
+    + 'since you’re going to re-style with a markoto theme anyway.'
   )
 
   // Open File menu — same plain-button trigger pattern as polished-pdf.

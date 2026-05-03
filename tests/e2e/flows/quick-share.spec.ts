@@ -18,6 +18,19 @@ import { test, expect } from '../fixtures/flow'
 test('Quick share', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
+  // Title + intro before the preamble captures anything. Every flow
+  // opens with a chapter card and a one-paragraph narration so the
+  // reader knows what they're about to see before the screenshots
+  // start rolling.
+  await flow.heading('Write & share your first document', 3)
+  await flow.narrate(
+    'You don\'t need an account to write something quickly in markoto. '
+    + 'Open the homepage, type, copy the link — anyone you send it to '
+    + 'sees what you wrote, in real time. About three minutes; by the '
+    + 'end you have a named document and a shareable URL on your '
+    + 'clipboard.'
+  )
+
   // Preamble: open markoto → click "+ New Document" → dialog opens.
   await editor.recordPreamble()
 

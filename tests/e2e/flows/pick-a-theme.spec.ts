@@ -34,6 +34,14 @@ test('Pick a theme', async ({ page, flow, editor }) => {
 
   await editor.silentSetup()
 
+  // Title + intro before any captured shots.
+  await flow.heading('Pick a theme that fits your document', 3)
+  await flow.narrate(
+    'Every markoto document carries its own theme — fonts, colors, '
+    + 'page margins, table styling, even cover-page layout. The same '
+    + 'theme drives the live preview AND the PDF export, so what you '
+    + 'see in the right pane is what you ship.'
+  )
 
   // ─── Open the theme panel ──────────────────────────────────────────
   await flow.heading('Open the theme panel', 3)

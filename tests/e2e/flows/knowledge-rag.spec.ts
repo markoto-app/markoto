@@ -68,16 +68,19 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // 404 "Workspace not found" page).
   await page.getByRole('tab', { name: /documents/i }).waitFor({ state: 'visible', timeout: 10_000 })
 
-  // ─── Upload a knowledge file ────────────────────────────────────
-  await flow.heading('Upload a file the AI should know about', 3)
+  // Title + intro before the first capture.
+  await flow.heading('Ask the AI about a file you uploaded', 3)
   await flow.narrate(
     'Workspaces have a Knowledge tab — drop in PDFs, Word docs, '
-    + "HTML exports, the team's RFCs, customer FAQs. markoto "
-    + 'converts them to markdown via markitdown, splits them into '
-    + 'heading-aware chunks, embeds each chunk with Gemini, and '
-    + 'indexes both the vector AND a tsvector for hybrid retrieval. '
-    + 'The AI gets a `search_knowledge` tool that hits this index.'
+    + 'HTML exports, the team\'s RFCs, customer FAQs. markoto converts '
+    + 'them to markdown via markitdown, splits them into heading-aware '
+    + 'chunks, embeds each chunk with Gemini, and indexes both the '
+    + 'vector AND a tsvector for hybrid retrieval. The AI gets a '
+    + '`search_knowledge` tool that hits this index.'
   )
+
+  // ─── Upload a knowledge file ────────────────────────────────────
+  await flow.heading('Upload the file', 3)
 
   // Switch to the Knowledge tab on the workspace landing page.
   // The tabs use `role="tab"` from Reka — the Knowledge tab's

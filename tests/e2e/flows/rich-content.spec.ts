@@ -25,14 +25,33 @@ test('Rich content', async ({ page, flow, editor }) => {
 
   await editor.silentSetup()
 
-  // Move the caret to the end of the welcome doc so each insert
-  // appends rather than overwriting the seeded body. CodeMirror's
-  // Cmd+End jumps to doc end. The .cm-content focus is required
-  // for keyboard shortcuts to land on the editor not the page.
+  // Wipe the seeded welcome content so the inserted rich-content
+  // samples are the FIRST thing on page 1 of the preview. Inserting
+  // at end-of-doc pushes the new content onto page 2+; the preview
+  // iframe doesn't auto-scroll to the cursor, so the reader of the
+  // slideshow only ever sees the doc title page in the preview pane
+  // even though we're actively inserting code blocks + diagrams. By
+  // starting from a blank doc, every insert lands on visible page 1.
   await page.locator('.cm-content').click()
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+End' : 'Control+End')
-  await page.keyboard.press('Enter')
-  await page.keyboard.press('Enter')
+  const accel = process.platform === 'darwin' ? 'Meta' : 'Control'
+  await page.keyboard.press(`${accel}+a`)
+  await page.keyboard.press('Delete')
+  // After delete, the caret is at line 1, col 0 — every subsequent
+  // insertBlock / insertAlert / insertMath / insertDiagram lands at
+  // the top of the doc. The Y.js delete + paged.js repaginate
+  // settles in <500 ms; brief pause so the preview is in a clean
+  // state before the first chapter card.
+  await page.waitForTimeout(500)
+
+  // Title + intro.
+  await flow.heading('Tables, alerts, math, and diagrams', 3)
+  await flow.narrate(
+    'Plain markdown gets you headings, lists, and links. markoto '
+    + 'extends that with the things people actually need to publish '
+    + 'real documents — syntax-highlighted code, KaTeX math, GitHub-'
+    + 'style alert callouts, and eight kinds of Mermaid diagram. '
+    + 'Everything renders in the live preview and survives PDF export.'
+  )
 
   // Helper: open Insert menu, hover a submenu trigger if needed,
   // click the leaf item. Each insert function lives behind a
@@ -44,8 +63,8 @@ test('Rich content', async ({ page, flow, editor }) => {
   await flow.heading('Insert a code block', 3)
   await flow.narrate(
     'Code blocks pick up syntax highlighting from the language hint. '
-    + "markoto loads highlight.js styles from the same CDN every "
-    + "Markdown editor uses, so a Python fence renders the keywords "
+    + 'markoto loads highlight.js styles from the same CDN every '
+    + 'Markdown editor uses, so a Python fence renders the keywords '
     + 'and strings the way readers expect.'
   )
 
@@ -65,16 +84,24 @@ test('Rich content', async ({ page, flow, editor }) => {
     'Pick "Code block"',
     page.getByRole('menuitem', { name: /code block/i }).first(),
     {
-      result: 'A fenced code block lands at the cursor — type a language hint after the opening backticks.'
+      result: 'A fenced code block lands at the cursor — type a language hint after the opening backticks.',
+      // After the Reka menu closes, focus moves to the menu's trigger
+      // button (the menubar's "Insert"), NOT back to the editor.
+      // Subsequent `page.keyboard.press/type` would land in the
+      // wrong target. Refocus the editor before any keystrokes.
+      after: () => page.locator('.cm-content').click()
     }
   )
 
   // Type a language hint + a real Python snippet so the highlight
   // is meaningful (not just monospaced text on a grey background).
-  await page.keyboard.press('ArrowUp')
-  await page.keyboard.type('python')
-  await page.keyboard.press('ArrowDown')
-  await page.keyboard.type('def fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        yield a\n        a, b = b, a + b')
+  // Use the editor locator's pressSequentially so the target is
+  // explicit even if some other element steals focus mid-test.
+  const cmContent = page.locator('.cm-content')
+  await cmContent.press('ArrowUp')
+  await cmContent.pressSequentially('python')
+  await cmContent.press('ArrowDown')
+  await cmContent.pressSequentially('def fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        yield a\n        a, b = b, a + b')
 
   // ─── An alert callout ───────────────────────────────────────────
   await flow.heading('Add an alert callout', 3)
@@ -82,13 +109,13 @@ test('Rich content', async ({ page, flow, editor }) => {
     'Alerts are GitHub-style callouts — five flavours (Note, Tip, '
     + 'Important, Warning, Caution) each with a coloured stripe and '
     + 'icon in the preview. Useful for marking a callout that should '
-    + "stand out from the surrounding prose."
+    + 'stand out from the surrounding prose.'
   )
 
   // Move below the code fence so the alert lands cleanly.
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+End' : 'Control+End')
-  await page.keyboard.press('Enter')
-  await page.keyboard.press('Enter')
+  await cmContent.press(`${accel}+End`)
+  await cmContent.press('Enter')
+  await cmContent.press('Enter')
 
   await flow.click(
     'Open the Insert menu again',
@@ -113,23 +140,24 @@ test('Rich content', async ({ page, flow, editor }) => {
     'Pick "Tip"',
     page.getByRole('menuitem', { name: /^tip$/i }).first(),
     {
-      result: 'A Tip alert lands — type the body inside the blockquote.'
+      result: 'A Tip alert lands — type the body inside the blockquote.',
+      after: () => cmContent.click()
     }
   )
 
-  await page.keyboard.type('Try Cmd / Ctrl + P to save this doc as a polished PDF.')
+  await cmContent.pressSequentially('Try Cmd / Ctrl + P to save this doc as a polished PDF.')
 
   // ─── A math equation ────────────────────────────────────────────
   await flow.heading('Drop in a math equation', 3)
   await flow.narrate(
     'Math is rendered with KaTeX — inline with $...$, block with '
     + '$$...$$. The Insert menu seeds the right delimiters so you '
-    + "don't have to remember which goes where."
+    + 'don\'t have to remember which goes where.'
   )
 
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+End' : 'Control+End')
-  await page.keyboard.press('Enter')
-  await page.keyboard.press('Enter')
+  await cmContent.press(`${accel}+End`)
+  await cmContent.press('Enter')
+  await cmContent.press('Enter')
 
   await flow.click(
     'Open the Insert menu',
@@ -149,11 +177,12 @@ test('Rich content', async ({ page, flow, editor }) => {
     'Pick "Block equation"',
     page.getByRole('menuitem', { name: /block equation/i }).first(),
     {
-      result: 'A block equation placeholder lands — type the LaTeX inside the $$ fence.'
+      result: 'A block equation placeholder lands — type the LaTeX inside the $$ fence.',
+      after: () => cmContent.click()
     }
   )
 
-  await page.keyboard.type('\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}')
+  await cmContent.pressSequentially('\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}')
 
   // ─── A Mermaid diagram ──────────────────────────────────────────
   await flow.heading('Render a diagram', 3)
@@ -161,12 +190,12 @@ test('Rich content', async ({ page, flow, editor }) => {
     'Diagrams use Mermaid — eight diagram kinds (flowchart, sequence, '
     + 'class, ER, Gantt, pie, mind-map, state). The Insert menu seeds '
     + 'a working starter snippet for each so you can edit the labels '
-    + "and see your data render without learning Mermaid's syntax."
+    + 'and see your data render without learning Mermaid\'s syntax.'
   )
 
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+End' : 'Control+End')
-  await page.keyboard.press('Enter')
-  await page.keyboard.press('Enter')
+  await cmContent.press(`${accel}+End`)
+  await cmContent.press('Enter')
+  await cmContent.press('Enter')
 
   await flow.click(
     'Open the Insert menu',

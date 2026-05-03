@@ -33,6 +33,15 @@ test('Write with AI', async ({ page, flow, editor }) => {
   await editor.page.loginAsTestUser('Alice Liu')
   await editor.silentSetup()
 
+  // Title + intro before any captured shots.
+  await flow.heading('Write with AI', 3)
+  await flow.narrate(
+    'The AI prompt bar floats at the bottom of every markoto document. '
+    + 'Type what you want, hit send, and the AI joins the doc as another '
+    + 'collaborator — you watch it type. It can draft new sections, '
+    + 'rewrite passages, even fetch sources from the web before it writes.'
+  )
+
   // ─── Open the AI prompt bar ──────────────────────────────────────
   await flow.heading('Ask the AI to write for you', 3)
   await flow.narrate(

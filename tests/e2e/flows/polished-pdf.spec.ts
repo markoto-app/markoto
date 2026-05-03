@@ -29,54 +29,17 @@ test('Polished PDF', async ({ page, flow, editor }) => {
 
   await editor.silentSetup()
 
-  // ─── Pick a polished theme ───────────────────────────────────────
-  await flow.heading('Pick a theme that fits your audience', 3)
+  // Title + intro.
+  await flow.heading('Download a polished PDF', 3)
   await flow.narrate(
-    'Every markoto document opens with the brand theme — Fraunces '
-    + 'editorial headings, warm cream paper, a centered cover sheet. '
-    + 'For a paper or report you might prefer something more academic. '
-    + 'The theme panel ships six presets that change typography, '
-    + 'colors, page proportions, and the cover-page layout in one click.'
+    'When the doc looks right in the live preview, the PDF on disk '
+    + 'will look exactly the same — paged.js renders both. The File → '
+    + 'Save as PDF item triggers a server-side render in the renderer '
+    + 'sidecar; the byte-perfect PDF travels via S3 instead of through '
+    + 'the user\'s browser print dialog. Theme picking + tweaking is '
+    + 'a separate flow (see the next link below); this one focuses on '
+    + 'the export path.'
   )
-
-  await flow.click(
-    'Click the Theme tab in the right sidebar',
-    editor.page.sidebar.theme,
-    {
-      annotations: [
-        { label: 'theme tab', selector: 'button[aria-label*="theme" i]', kind: 'arrow' }
-      ],
-      result: 'The theme panel opens — six built-in presets at the top.',
-      after: () => editor.page.theme.preset('academic').waitFor({ state: 'visible' })
-    }
-  )
-
-  await flow.click(
-    'Switch to "Academic Paper" for a journal look',
-    editor.page.theme.preset('academic'),
-    {
-      result: 'Body text becomes a serif (Source Serif 4), the cover sheet '
-        + 'switches to academic-paper proportions, brand color shifts to navy.',
-      after: async () => {
-        // paged.js needs a beat to repaginate after a wholesale CSS swap.
-        await page.waitForTimeout(1500)
-        await editor.page.waitForPreviewPaginated()
-      }
-    }
-  )
-
-  // ASSERTION: the academic preset's brand color (#1e3a8a navy) is now
-  // injected into the preview iframe — proves the swap actually applied
-  // before we trigger the PDF render (otherwise the PDF would render
-  // the markoto theme that was active at navigation time).
-  const academicBrand = await page.evaluate(() => {
-    const iframe = document.querySelector('iframe') as HTMLIFrameElement | null
-    const doc = iframe?.contentDocument
-    const style = Array.from(doc?.querySelectorAll('style') ?? [])
-      .find(s => (s.textContent ?? '').includes('--doc-brand'))
-    return style?.textContent?.match(/--doc-brand:\s*(#[0-9a-fA-F]+)/)?.[1] ?? null
-  })
-  expect(academicBrand?.toLowerCase()).toBe('#1e3a8a')
 
   // ─── Save it as a PDF ───────────────────────────────────────────
   await flow.heading('Save it as a polished PDF', 3)
