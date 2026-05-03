@@ -265,6 +265,7 @@ function onRowLongPress(doc: DocumentListItem) {
             :icon="workspaceCapReached ? 'i-lucide-lock' : 'i-lucide-folder-plus'"
             :class="workspaceCapReached ? 'opacity-60' : ''"
             :title="workspaceCapReached ? workspaceCapTooltip : undefined"
+            data-testid="landing-new-workspace"
             @click="workspaceCapReached ? onCapReachedClick() : (showCreateWorkspace = true)"
           >
             {{ workspaceCapReached ? t('workspace.capReachedShort') : t('workspace.newWorkspace') }}

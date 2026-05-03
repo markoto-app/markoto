@@ -48,14 +48,10 @@ export class EditorPage {
 
   // ─── View-mode toggle group ───────────────────────────────────────
 
-  /** The three view-mode buttons in the header center.
-   *
-   * Selected via stable data-testids so they don't collide with the
-   * menubar's "Edit" menu (same accessible name). Earlier
-   * `getByRole('button', { name: /^edit$/i }).first()` resolved to
-   * the menubar Edit dropdown trigger and clicking it opened a menu
-   * instead of toggling the view mode — see `data-testid="view-mode-*"`
-   * in EditorLayout.vue. */
+  /** The three view-mode buttons in the header center. Selected by
+   *  `data-testid="view-mode-{edit,split,preview}"` from
+   *  EditorLayout.vue — text-based lookups would clash with the
+   *  menubar's "Edit" menu (same accessible name). */
   get viewMode() {
     return {
       edit: this.page.locator('[data-testid="view-mode-edit"]'),

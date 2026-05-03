@@ -80,6 +80,7 @@ async function handleSubmit() {
             class="w-full"
             :ui="{ base: 'w-full' }"
             autofocus
+            data-testid="workspace-form-name"
             @keydown.enter="handleSubmit"
           />
         </div>
@@ -91,6 +92,7 @@ async function handleSubmit() {
             :rows="3"
             class="w-full"
             :ui="{ base: 'w-full' }"
+            data-testid="workspace-form-description"
           />
         </div>
       </div>
@@ -109,6 +111,7 @@ async function handleSubmit() {
           :loading="saving"
           :disabled="!canSubmit"
           :icon="isEdit ? 'i-lucide-check' : 'i-lucide-plus'"
+          data-testid="workspace-form-submit"
           @click="handleSubmit"
         >
           {{ isEdit ? t('common.save') : t('workspace.create') }}

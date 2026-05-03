@@ -34,6 +34,10 @@ export default defineEventHandler(async (event) => {
     // Renderer-container bootstrap: GET-only, gated by a render-token JWT
     // (verifyRenderToken) carried in the query string. No session expected.
     { path: /^\/api\/_internal\/render-bootstrap$/, methods: ['GET'] },
+    // Flow gallery index — read-only enumeration of public/flows/. The
+    // contents are derived from already-public assets, no session
+    // needed; the docs site fetches it during SSR.
+    { path: /^\/api\/_internal\/flows-index$/, methods: ['GET'] },
     // Stripe webhooks: auth'd via `Stripe-Signature` header + our
     // webhook secret. No user session — Stripe's servers don't have
     // one. Handler does full cryptographic signature verification.

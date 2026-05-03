@@ -106,6 +106,7 @@ watch(open, (v) => {
             size="md"
             class="w-full"
             :ui="{ base: 'w-full' }"
+            data-testid="delete-confirm-input"
             @keydown.enter="handleDelete"
           />
         </div>
@@ -114,6 +115,7 @@ watch(open, (v) => {
           <UButton
             variant="ghost"
             :disabled="deleting"
+            data-testid="delete-cancel"
             @click="handleClose"
           >
             {{ t('common.cancel') }}
@@ -123,6 +125,7 @@ watch(open, (v) => {
             :loading="deleting"
             :disabled="!canConfirm"
             icon="i-lucide-trash-2"
+            data-testid="delete-confirm"
             @click="handleDelete"
           >
             {{ t('delete.confirm') }}

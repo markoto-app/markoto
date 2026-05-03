@@ -29,6 +29,7 @@
     "flows:test:against-running": "PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL:-http://localhost:3000} playwright test",
     "flows:test:against-running:en": "PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL:-http://localhost:3000} playwright test --project=en-light --project=en-dark",
     "flows:test": "bun scripts/flows-ephemeral.ts",
+    "flows:test:changed": "bun scripts/flows-test-changed.ts",
     "flows:build": "bun scripts/build-flows.ts",
     "flows": "bun run flows:test && bun run flows:build",
     "flows:up": "docker compose -f docker-compose.test.yml --profile flows up -d --wait",

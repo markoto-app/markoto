@@ -119,7 +119,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   // "bad" edit we want the state right BEFORE bad = good. So we
   // click Restore on the BAD row, which is the most recent in
   // reverse-chrono order — `restoreButtons.first()`.
-  const restoreButtons = page.getByRole('button', { name: /^restore$/i })
+  const restoreButtons = page.locator('[data-testid^="activity-row-restore-"]')
   await restoreButtons.first().waitFor({ state: 'visible', timeout: 15_000 })
   await flow.click(
     'Click Restore on the "bad" edit row (top of the feed)',
