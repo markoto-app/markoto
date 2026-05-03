@@ -202,6 +202,33 @@ export class EditorPage {
     return this.page.locator('[data-testid="mobile-tab-dictate"]')
   }
 
+  /** Mobile bottom-bar tabs. The aria-labels come from the
+   *  `mobileTabBar.*Short` i18n keys (en):
+   *    Editor / Dictate / Info / Comments / Activity / Theme / Knowledge
+   *  Note "Info" is the label for the Document panel — the short
+   *  i18n key is `documentShort` but the rendered text is "Info".
+   *  The Knowledge tab only renders when `hasKnowledgeAccess` is
+   *  true (workspace doc with ≥1 ready file). */
+  get mobileTabs() {
+    return {
+      editor: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Editor"]'),
+      document: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Info"]'),
+      comments: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Comments"]'),
+      activity: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Activity"]'),
+      theme: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Theme"]'),
+      knowledge: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Knowledge"]')
+    }
+  }
+
+  /** EditorCommandsPanel buttons (mobile drawer content). */
+  get mobileEditorCommands() {
+    return {
+      import: this.page.locator('[data-testid="ecp-file-import"]'),
+      exportPdf: this.page.locator('[data-testid="ecp-file-export-pdf"]'),
+      exportMd: this.page.locator('[data-testid="ecp-file-export-md"]')
+    }
+  }
+
   // ─── Status bar (footer) ──────────────────────────────────────────
 
   get statusBar() {

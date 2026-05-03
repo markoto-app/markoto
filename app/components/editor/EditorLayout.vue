@@ -1425,6 +1425,9 @@ const _statusIcon = computed(() => {
             @close="closeSidebar"
             @open-table-picker="tableModalOpen = true"
             @open-image-picker="openImagePicker"
+            @open-import="showImportModal = true"
+            @open-server-pdf="openServerPdf"
+            @export-markdown="exportMarkdown"
           />
         </RightPanelHost>
 

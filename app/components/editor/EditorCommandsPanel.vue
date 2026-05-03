@@ -60,15 +60,24 @@ const emit = defineEmits<{
   /** Emitted after any successful action so the host can close the
    *  drawer. The host returns focus to the editor; the keyboard is
    *  already up because we don't blur on emit. */
-  done: []
+  'done': []
   /** Emitted when the user explicitly dismisses (× button) without
    *  running an action. The host closes the drawer. */
-  close: []
+  'close': []
   /** Forward to the layout-level table-size picker modal — full-grid
    *  picker doesn't fit comfortably in a mobile drawer. */
   'open-table-picker': []
   /** Forward to the layout-level image picker (presigned upload flow). */
   'open-image-picker': []
+  /** Open the import dialog (markitdown round-trip) — File menu
+   *  equivalent for mobile users who don't have the desktop menubar. */
+  'open-import': []
+  /** Trigger server-rendered PDF download (Playwright sidecar render
+   *  → S3 presigned download). Mirrors File → Save as PDF on desktop. */
+  'open-server-pdf': []
+  /** Trigger client-side `.md` download. Mirrors File → Save as
+   *  Markdown on desktop. */
+  'export-markdown': []
 }>()
 
 const { t } = useI18n()
@@ -132,7 +141,10 @@ function applyDiagram(kind: MermaidKind) {
          its own; this is the single title surface the user sees. -->
     <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2">
-        <UIcon name="i-lucide-pencil" class="size-4 text-muted" />
+        <UIcon
+          name="i-lucide-pencil"
+          class="size-4 text-muted"
+        />
         <h3 class="font-serif text-base font-normal tracking-tight">
           {{ t('mobileTabBar.editor') }}
         </h3>
@@ -148,169 +160,356 @@ function applyDiagram(kind: MermaidKind) {
     </div>
 
     <div class="ecp__body">
-    <!-- ── MAIN ─────────────────────────────────────────────────── -->
-    <template v-if="step === 'main'">
-      <!-- Formatting -->
-      <section class="ecp__section">
-        <h3 class="ecp__heading">
-          {{ t('editorCommands.formatting') }}
-        </h3>
-        <div class="ecp__grid">
-          <button class="ecp__btn" :aria-label="t('editorCommands.bold')" @click="withDone(bold)()">
-            <UIcon name="i-lucide-bold" class="size-5" />
-            <span>{{ t('editorCommands.bold') }}</span>
-          </button>
-          <button class="ecp__btn" :aria-label="t('editorCommands.italic')" @click="withDone(italic)()">
-            <UIcon name="i-lucide-italic" class="size-5" />
-            <span>{{ t('editorCommands.italic') }}</span>
-          </button>
-          <button class="ecp__btn" :aria-label="t('editorCommands.strike')" @click="withDone(strike)()">
-            <UIcon name="i-lucide-strikethrough" class="size-5" />
-            <span>{{ t('editorCommands.strike') }}</span>
-          </button>
-          <button class="ecp__btn" :aria-label="t('editorCommands.code')" @click="withDone(code)()">
-            <UIcon name="i-lucide-code" class="size-5" />
-            <span>{{ t('editorCommands.code') }}</span>
-          </button>
-        </div>
-      </section>
+      <!-- ── MAIN ─────────────────────────────────────────────────── -->
+      <template v-if="step === 'main'">
+        <!-- Formatting -->
+        <section class="ecp__section">
+          <h3 class="ecp__heading">
+            {{ t('editorCommands.formatting') }}
+          </h3>
+          <div class="ecp__grid">
+            <button
+              class="ecp__btn"
+              :aria-label="t('editorCommands.bold')"
+              @click="withDone(bold)()"
+            >
+              <UIcon
+                name="i-lucide-bold"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.bold') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              :aria-label="t('editorCommands.italic')"
+              @click="withDone(italic)()"
+            >
+              <UIcon
+                name="i-lucide-italic"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.italic') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              :aria-label="t('editorCommands.strike')"
+              @click="withDone(strike)()"
+            >
+              <UIcon
+                name="i-lucide-strikethrough"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.strike') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              :aria-label="t('editorCommands.code')"
+              @click="withDone(code)()"
+            >
+              <UIcon
+                name="i-lucide-code"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.code') }}</span>
+            </button>
+          </div>
+        </section>
 
-      <!-- Headings -->
-      <section class="ecp__section">
-        <h3 class="ecp__heading">
-          {{ t('editorCommands.headings') }}
-        </h3>
-        <div class="ecp__grid">
-          <button class="ecp__btn ecp__btn--text" @click="withDone(() => heading(1))()">
-            <span class="ecp__heading-mark">H1</span>
-            <span>{{ t('editorCommands.heading1') }}</span>
-          </button>
-          <button class="ecp__btn ecp__btn--text" @click="withDone(() => heading(2))()">
-            <span class="ecp__heading-mark">H2</span>
-            <span>{{ t('editorCommands.heading2') }}</span>
-          </button>
-          <button class="ecp__btn ecp__btn--text" @click="withDone(() => heading(3))()">
-            <span class="ecp__heading-mark">H3</span>
-            <span>{{ t('editorCommands.heading3') }}</span>
-          </button>
-          <button class="ecp__btn ecp__btn--text" @click="withDone(() => heading(0))()">
-            <span class="ecp__heading-mark">¶</span>
-            <span>{{ t('editorCommands.body') }}</span>
-          </button>
-        </div>
-      </section>
+        <!-- Headings -->
+        <section class="ecp__section">
+          <h3 class="ecp__heading">
+            {{ t('editorCommands.headings') }}
+          </h3>
+          <div class="ecp__grid">
+            <button
+              class="ecp__btn ecp__btn--text"
+              @click="withDone(() => heading(1))()"
+            >
+              <span class="ecp__heading-mark">H1</span>
+              <span>{{ t('editorCommands.heading1') }}</span>
+            </button>
+            <button
+              class="ecp__btn ecp__btn--text"
+              @click="withDone(() => heading(2))()"
+            >
+              <span class="ecp__heading-mark">H2</span>
+              <span>{{ t('editorCommands.heading2') }}</span>
+            </button>
+            <button
+              class="ecp__btn ecp__btn--text"
+              @click="withDone(() => heading(3))()"
+            >
+              <span class="ecp__heading-mark">H3</span>
+              <span>{{ t('editorCommands.heading3') }}</span>
+            </button>
+            <button
+              class="ecp__btn ecp__btn--text"
+              @click="withDone(() => heading(0))()"
+            >
+              <span class="ecp__heading-mark">¶</span>
+              <span>{{ t('editorCommands.body') }}</span>
+            </button>
+          </div>
+        </section>
 
-      <!-- Lists -->
-      <section class="ecp__section">
-        <h3 class="ecp__heading">
-          {{ t('editorCommands.lists') }}
-        </h3>
-        <div class="ecp__grid">
-          <button class="ecp__btn" @click="withDone(bulletList)()">
-            <UIcon name="i-lucide-list" class="size-5" />
-            <span>{{ t('editorCommands.bulletList') }}</span>
-          </button>
-          <button class="ecp__btn" @click="withDone(numberedList)()">
-            <UIcon name="i-lucide-list-ordered" class="size-5" />
-            <span>{{ t('editorCommands.numberedList') }}</span>
-          </button>
-          <button class="ecp__btn" @click="withDone(taskList)()">
-            <UIcon name="i-lucide-list-checks" class="size-5" />
-            <span>{{ t('editorCommands.taskList') }}</span>
-          </button>
-        </div>
-      </section>
+        <!-- Lists -->
+        <section class="ecp__section">
+          <h3 class="ecp__heading">
+            {{ t('editorCommands.lists') }}
+          </h3>
+          <div class="ecp__grid">
+            <button
+              class="ecp__btn"
+              @click="withDone(bulletList)()"
+            >
+              <UIcon
+                name="i-lucide-list"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.bulletList') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="withDone(numberedList)()"
+            >
+              <UIcon
+                name="i-lucide-list-ordered"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.numberedList') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="withDone(taskList)()"
+            >
+              <UIcon
+                name="i-lucide-list-checks"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.taskList') }}</span>
+            </button>
+          </div>
+        </section>
 
-      <!-- Insert -->
-      <section class="ecp__section">
-        <h3 class="ecp__heading">
-          {{ t('editorCommands.insert') }}
-        </h3>
-        <div class="ecp__grid">
-          <button class="ecp__btn" @click="withDone(link)()">
-            <UIcon name="i-lucide-link" class="size-5" />
-            <span>{{ t('editorCommands.link') }}</span>
-          </button>
-          <button class="ecp__btn" @click="emit('open-image-picker'); emit('done')">
-            <UIcon name="i-lucide-image" class="size-5" />
-            <span>{{ t('image.title') }}</span>
-          </button>
-          <button class="ecp__btn" @click="emit('open-table-picker'); emit('done')">
-            <UIcon name="i-lucide-table" class="size-5" />
-            <span>{{ t('table.title') }}</span>
-          </button>
-          <button class="ecp__btn" @click="withDone(codeBlock)()">
-            <UIcon name="i-lucide-code-2" class="size-5" />
-            <span>{{ t('menubar.insert.codeBlock') }}</span>
-          </button>
-          <button class="ecp__btn" @click="step = 'alert'">
-            <UIcon name="i-lucide-alert-circle" class="size-5" />
-            <span>{{ t('menubar.insert.alert') }}</span>
-          </button>
-          <button class="ecp__btn" @click="withDone(math)()">
-            <UIcon name="i-lucide-sigma" class="size-5" />
-            <span>{{ t('menubar.insert.math') }}</span>
-          </button>
-          <button class="ecp__btn" @click="step = 'diagram'">
-            <UIcon name="i-lucide-workflow" class="size-5" />
-            <span>{{ t('menubar.insert.diagram') }}</span>
-          </button>
-          <button class="ecp__btn" @click="withDone(pageBreak)()">
-            <UIcon name="i-lucide-corner-down-left" class="size-5" />
-            <span>{{ t('menubar.insert.pageBreak') }}</span>
-          </button>
-          <button class="ecp__btn" @click="withDone(footnote)()">
-            <UIcon name="i-lucide-asterisk" class="size-5" />
-            <span>{{ t('editorCommands.footnote') }}</span>
-          </button>
-          <button class="ecp__btn" @click="withDone(toc)()">
-            <UIcon name="i-lucide-list-tree" class="size-5" />
-            <span>{{ t('editorCommands.toc') }}</span>
-          </button>
-          <button v-if="canComment" class="ecp__btn" @click="withDone(commentInline)()">
-            <UIcon name="i-lucide-message-square-dashed" class="size-5" />
-            <span>{{ t('editorCommands.hiddenComment') }}</span>
-          </button>
-        </div>
-      </section>
-    </template>
+        <!-- Insert -->
+        <section class="ecp__section">
+          <h3 class="ecp__heading">
+            {{ t('editorCommands.insert') }}
+          </h3>
+          <div class="ecp__grid">
+            <button
+              class="ecp__btn"
+              @click="withDone(link)()"
+            >
+              <UIcon
+                name="i-lucide-link"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.link') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="emit('open-image-picker'); emit('done')"
+            >
+              <UIcon
+                name="i-lucide-image"
+                class="size-5"
+              />
+              <span>{{ t('image.title') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="emit('open-table-picker'); emit('done')"
+            >
+              <UIcon
+                name="i-lucide-table"
+                class="size-5"
+              />
+              <span>{{ t('table.title') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="withDone(codeBlock)()"
+            >
+              <UIcon
+                name="i-lucide-code-2"
+                class="size-5"
+              />
+              <span>{{ t('menubar.insert.codeBlock') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="step = 'alert'"
+            >
+              <UIcon
+                name="i-lucide-alert-circle"
+                class="size-5"
+              />
+              <span>{{ t('menubar.insert.alert') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="withDone(math)()"
+            >
+              <UIcon
+                name="i-lucide-sigma"
+                class="size-5"
+              />
+              <span>{{ t('menubar.insert.math') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="step = 'diagram'"
+            >
+              <UIcon
+                name="i-lucide-workflow"
+                class="size-5"
+              />
+              <span>{{ t('menubar.insert.diagram') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="withDone(pageBreak)()"
+            >
+              <UIcon
+                name="i-lucide-corner-down-left"
+                class="size-5"
+              />
+              <span>{{ t('menubar.insert.pageBreak') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="withDone(footnote)()"
+            >
+              <UIcon
+                name="i-lucide-asterisk"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.footnote') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              @click="withDone(toc)()"
+            >
+              <UIcon
+                name="i-lucide-list-tree"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.toc') }}</span>
+            </button>
+            <button
+              v-if="canComment"
+              class="ecp__btn"
+              @click="withDone(commentInline)()"
+            >
+              <UIcon
+                name="i-lucide-message-square-dashed"
+                class="size-5"
+              />
+              <span>{{ t('editorCommands.hiddenComment') }}</span>
+            </button>
+          </div>
+        </section>
 
-    <!-- ── ALERT KIND PICKER ──────────────────────────────────────── -->
-    <template v-else-if="step === 'alert'">
-      <button class="ecp__back" type="button" @click="backToMain">
-        <UIcon name="i-lucide-arrow-left" class="size-4" />
-        {{ t('common.back') }}
-      </button>
-      <div class="ecp__grid ecp__grid--2col">
+        <!-- File. Mobile equivalent of the desktop File menu — Import,
+           Save as PDF, Save as Markdown. Without these, mobile users
+           lose feature parity with desktop on the import/export
+           surface. The Print item is desktop-only because mobile
+           browsers' print dialog is not interactively useful, but
+           "Save as PDF" gives the same end result via the renderer
+           sidecar. -->
+        <section class="ecp__section">
+          <h3 class="ecp__heading">
+            {{ t('menubar.file.title') }}
+          </h3>
+          <div class="ecp__grid">
+            <button
+              class="ecp__btn"
+              data-testid="ecp-file-import"
+              @click="emit('open-import'); emit('done')"
+            >
+              <UIcon
+                name="i-lucide-file-up"
+                class="size-5"
+              />
+              <span>{{ t('menubar.file.import') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              data-testid="ecp-file-export-pdf"
+              @click="emit('open-server-pdf'); emit('done')"
+            >
+              <UIcon
+                name="i-lucide-file-output"
+                class="size-5"
+              />
+              <span>{{ t('export.pdf') }}</span>
+            </button>
+            <button
+              class="ecp__btn"
+              data-testid="ecp-file-export-md"
+              @click="emit('export-markdown'); emit('done')"
+            >
+              <UIcon
+                name="i-lucide-file-text"
+                class="size-5"
+              />
+              <span>{{ t('export.markdown') }}</span>
+            </button>
+          </div>
+        </section>
+      </template>
+
+      <!-- ── ALERT KIND PICKER ──────────────────────────────────────── -->
+      <template v-else-if="step === 'alert'">
         <button
-          v-for="kind in (['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'] as const)"
-          :key="kind"
-          class="ecp__btn ecp__btn--alert"
-          @click="applyAlert(kind)"
+          class="ecp__back"
+          type="button"
+          @click="backToMain"
         >
-          <span class="ecp__alert-tag">[!{{ kind }}]</span>
-          <span>{{ t(`menubar.insert.alert${kind.charAt(0) + kind.slice(1).toLowerCase()}`) }}</span>
+          <UIcon
+            name="i-lucide-arrow-left"
+            class="size-4"
+          />
+          {{ t('common.back') }}
         </button>
-      </div>
-    </template>
+        <div class="ecp__grid ecp__grid--2col">
+          <button
+            v-for="kind in (['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'] as const)"
+            :key="kind"
+            class="ecp__btn ecp__btn--alert"
+            @click="applyAlert(kind)"
+          >
+            <span class="ecp__alert-tag">[!{{ kind }}]</span>
+            <span>{{ t(`menubar.insert.alert${kind.charAt(0) + kind.slice(1).toLowerCase()}`) }}</span>
+          </button>
+        </div>
+      </template>
 
-    <!-- ── DIAGRAM KIND PICKER ────────────────────────────────────── -->
-    <template v-else-if="step === 'diagram'">
-      <button class="ecp__back" type="button" @click="backToMain">
-        <UIcon name="i-lucide-arrow-left" class="size-4" />
-        {{ t('common.back') }}
-      </button>
-      <div class="ecp__grid ecp__grid--2col">
+      <!-- ── DIAGRAM KIND PICKER ────────────────────────────────────── -->
+      <template v-else-if="step === 'diagram'">
         <button
-          v-for="kind in (['flowchart', 'sequence', 'class', 'er', 'gantt', 'pie'] as const)"
-          :key="kind"
-          class="ecp__btn ecp__btn--alert"
-          @click="applyDiagram(kind)"
+          class="ecp__back"
+          type="button"
+          @click="backToMain"
         >
-          <span class="ecp__alert-tag">{{ kind }}</span>
+          <UIcon
+            name="i-lucide-arrow-left"
+            class="size-4"
+          />
+          {{ t('common.back') }}
         </button>
-      </div>
-    </template>
+        <div class="ecp__grid ecp__grid--2col">
+          <button
+            v-for="kind in (['flowchart', 'sequence', 'class', 'er', 'gantt', 'pie'] as const)"
+            :key="kind"
+            class="ecp__btn ecp__btn--alert"
+            @click="applyDiagram(kind)"
+          >
+            <span class="ecp__alert-tag">{{ kind }}</span>
+          </button>
+        </div>
+      </template>
     </div>
   </div>
 </template>
