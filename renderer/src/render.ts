@@ -115,6 +115,14 @@ export interface RenderOutput {
  * Mint the render-JWT the app's middleware accepts on /_internal/render/*.
  * Signed with INTERNAL_API_SECRET, scope='render', 60 s TTL. The app's
  * verifyRenderToken double-checks docId matches the route param.
+ *
+ * CONTRACT: this payload shape MUST match `RenderJwtPayload` +
+ * `RENDER_JWT_FIXED_CLAIMS` in `shared/contracts/jwt.ts`. The renderer
+ * runs in its own Docker build context (./renderer) so we can't import
+ * the shared module here — the contract is enforced by the app-side
+ * `verifyRenderToken` rejecting any drift with a 403, and by the
+ * integration tests in `tests/integration/endpoints/printPage.test.ts`.
+ * If you change this shape, update the shared contract AND the verifier.
  */
 function mintRenderToken(docId: string, snapshotId: number): string {
   return jwt.sign(

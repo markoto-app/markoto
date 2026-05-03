@@ -21,12 +21,22 @@ import { resetDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
+import { mintRenderJwt } from '~~/shared/test-helpers/jwt'
 
 function mintRenderToken(docId: string, snapshotId: number, opts: {
   scope?: string
   ttl?: number
   secret?: string
 } = {}): string {
+  // Happy path goes through the shared `mintRenderJwt` so the wire
+  // shape (`scope: 'render'` + 60s TTL) is pinned by the contract.
+  // Adversarial cases (scope override, secret rotation, expired
+  // tokens) take the raw `jwt.sign` branch — those are testing the
+  // verifier's reject paths so they MUST be free to mint malformed
+  // shapes.
+  if (opts.scope === undefined && opts.secret === undefined && opts.ttl === undefined) {
+    return mintRenderJwt({ docId, snapshotId }, { secret: TEST_INTERNAL_SECRET })
+  }
   return jwt.sign(
     { docId, snapshotId, scope: opts.scope ?? 'render' },
     opts.secret ?? TEST_INTERNAL_SECRET,

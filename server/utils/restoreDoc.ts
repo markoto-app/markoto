@@ -5,6 +5,7 @@ import { Awareness } from 'y-protocols/awareness'
 import { sql } from 'drizzle-orm'
 import { useDatabase } from './database'
 import { reconstructDocAtYjsId } from './historyReplay'
+import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 
 // "Snap the live Y.Doc to a past state" — the execution side of
 // the Tier 2 restore feature.
@@ -105,19 +106,16 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     past.destroy()
 
     // Step 2: open a synthetic Hocuspocus client as the acting user.
-    const token = jwt.sign(
-      {
-        docId: opts.docId,
-        // Distinct synthetic principal so attribution can tell a
-        // restore apart from a regular edit by the same user.
-        // Format mirrors the AI session's `ai:assistant:*`.
-        userId: `restore:${opts.actorUserId}:${opts.sessionId}`,
-        userName: opts.actorName,
-        readOnly: false
-      },
-      config.jwtSecret,
-      { expiresIn: '5m' }
-    )
+    const payload = {
+      docId: opts.docId,
+      // Distinct synthetic principal so attribution can tell a
+      // restore apart from a regular edit by the same user.
+      // Format mirrors the AI session's `ai:assistant:*`.
+      userId: restoreClientUserId(opts.actorUserId, opts.sessionId),
+      userName: opts.actorName,
+      readOnly: false
+    } satisfies SessionJwtPayload
+    const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '5m' })
 
     const ydoc = new Y.Doc()
     const awareness = new Awareness(ydoc)

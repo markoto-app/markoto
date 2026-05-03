@@ -1,4 +1,5 @@
 import { verifyJwtWithRotation } from '../../shared/utils/secrets'
+import type { SessionJwtPayload } from '../../shared/contracts/jwt'
 import { captureMessage } from './sentry'
 
 // Hocuspocus `onAuthenticate` hook — runs on every new WS connection and
@@ -16,28 +17,17 @@ import { captureMessage } from './sentry'
 //     both current + previous during the rotation window. See
 //     docs/SECRETS-ROTATION.md and shared/utils/secrets.ts.
 
-// What the token endpoint actually signs. `userId` may be either a number
-// (logged-in user) or the literal 'anonymous' string (unauthenticated but
-// with a doc-scoped JWT, e.g. password-verified). readOnly is optional in
-// the TS shape so we can assert the safe-default behaviour explicitly in
-// the body — a JWT that omits the claim falls through to read-only.
-export interface DocJwtPayload {
-  docId: string
-  userId: string | number
-  userName?: string | null
-  readOnly?: boolean
-  /**
-   * Optional scope narrowing. Hocuspocus connection tokens omit this
-   * field (legacy / session-style JWTs from /api/docs/:id/token, the
-   * password-verify flow, etc). Tokens minted with explicit scope are
-   * REJECTED by the WS auth path — they were issued for a different
-   * purpose (`file-access` for /api/files, etc.) and must not be
-   * promotable to a Y.js connection. One-way escalation is the threat
-   * model: a leaked render token shouldn't enable joining the live
-   * collab session.
-   */
-  scope?: string
-}
+// The verifier extends the shared `SessionJwtPayload` with an OPTIONAL
+// `scope` claim — the SessionJwtPayload contract intentionally omits
+// `scope` (mint sites must never set it on session tokens), but we
+// have to be able to OBSERVE it on incoming tokens to reject
+// scope-narrowed JWTs replayed at the WS path. Defense in depth: even
+// if a future mint site bug accidentally sets scope, this verifier
+// rejects with 'Token scope mismatch' rather than letting it through.
+//
+// Re-exported under the legacy name so existing test fixtures keep
+// compiling; new code should import `SessionJwtPayload` directly.
+export type DocJwtPayload = SessionJwtPayload & { scope?: string }
 
 export interface AuthContext {
   readOnly: boolean

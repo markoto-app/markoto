@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { resolveBillingContext } from '../../../utils/billing'
+import { DICTATE_JWT_FIXED_CLAIMS, type DictateJwtPayload } from '../../../../shared/contracts/jwt'
 
 // Mints a short-lived JWT for the live-dictation WebSocket. We go this
 // route (instead of reading the sealed session cookie inside the WS
@@ -66,10 +67,13 @@ export default defineEventHandler(async (event) => {
   // collab session. The WS handler in routes/api/ai/dictate.ts
   // additionally verifies `scope === 'dictate'` to reject tokens
   // minted for any future scope (`render`, `file-access`, …).
-  const token = jwt.sign(
-    { userId, docId, kind: 'dictate', scope: 'dictate' },
-    secret,
-    { expiresIn: '60s' }
-  )
+  // `kind` and `scope` come from DICTATE_JWT_FIXED_CLAIMS so the
+  // literal values can never drift between mint and verify.
+  const payload = {
+    userId,
+    docId,
+    ...DICTATE_JWT_FIXED_CLAIMS
+  } satisfies DictateJwtPayload
+  const token = jwt.sign(payload, secret, { expiresIn: '60s' })
   return { token }
 })

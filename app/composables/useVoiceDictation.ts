@@ -20,6 +20,10 @@
 //     lifecycle: set URL once, call `.open()` once.
 
 import { useUserMedia, useWebSocket, useVibrate } from '@vueuse/core'
+import {
+  encodeClientFrame,
+  type DictateServerFrame
+} from '~~/shared/contracts/dictateWs'
 
 export type VoiceDictationState
   = | 'idle'
@@ -110,13 +114,16 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       // 5s for this and closes otherwise — so we ship it immediately
       // on connect, not lazily.
       if (pendingAuth) {
-        socket.send(JSON.stringify({ type: 'auth', ...pendingAuth }))
+        socket.send(encodeClientFrame({ type: 'auth', ...pendingAuth }))
       }
     },
     onMessage(_, ev) {
       if (typeof ev.data !== 'string') return
       try {
-        const msg = JSON.parse(ev.data) as { type: string, text?: string, remaining?: number }
+        // Narrow against the shared discriminated union so a typo in
+        // any case branch becomes a TS error and so adding a new
+        // server-frame type forces this switch to handle it.
+        const msg = JSON.parse(ev.data) as DictateServerFrame
         switch (msg.type) {
           case 'hello':
             // Server acknowledged open and is waiting for auth. We
@@ -136,7 +143,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
             if (msg.text) options.onFinal(msg.text)
             break
           case 'budget-exhausted':
-            options.onBudgetExhausted?.(msg.remaining ?? 0)
+            options.onBudgetExhausted?.(msg.remaining)
             fail('Daily dictation budget reached.')
             break
           case 'session-cap':
@@ -266,7 +273,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
 
     // Send `stop` so Gemini can emit any pending final before teardown.
     try {
-      if (ws.status.value === 'OPEN') ws.send(JSON.stringify({ type: 'stop' }))
+      if (ws.status.value === 'OPEN') ws.send(encodeClientFrame({ type: 'stop' }))
     } catch { /* best-effort */ }
 
     cleanupAudioResources()

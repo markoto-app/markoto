@@ -9,12 +9,12 @@
 // request, so a 60 s window is enough for navigation + Hocuspocus sync.
 
 import jwt from 'jsonwebtoken'
+import { RENDER_JWT_FIXED_CLAIMS, type RenderJwtPayload } from '~~/shared/contracts/jwt'
 
-export interface RenderTokenPayload {
-  docId: string
-  snapshotId: number
-  scope: 'render'
-}
+// Re-export for back-compat with existing call sites that import
+// `RenderTokenPayload` from this module. New code should import
+// `RenderJwtPayload` directly from shared/contracts/jwt.
+export type RenderTokenPayload = RenderJwtPayload
 
 const TOKEN_TTL_SECONDS = 60
 
@@ -23,11 +23,12 @@ export function mintRenderToken(docId: string, snapshotId: number): string {
   if (!config.internalApiSecret) {
     throw new Error('mintRenderToken: internalApiSecret not configured')
   }
-  return jwt.sign(
-    { docId, snapshotId, scope: 'render' } satisfies RenderTokenPayload,
-    config.internalApiSecret,
-    { expiresIn: TOKEN_TTL_SECONDS }
-  )
+  const payload = {
+    docId,
+    snapshotId,
+    ...RENDER_JWT_FIXED_CLAIMS
+  } satisfies RenderJwtPayload
+  return jwt.sign(payload, config.internalApiSecret, { expiresIn: TOKEN_TTL_SECONDS })
 }
 
 /**
@@ -40,13 +41,13 @@ export function mintRenderToken(docId: string, snapshotId: number): string {
 export function verifyRenderToken(
   token: string,
   expectedDocId: string
-): RenderTokenPayload | null {
+): RenderJwtPayload | null {
   const config = useRuntimeConfig()
   if (!config.internalApiSecret) return null
   const secrets = [config.internalApiSecret, config.internalApiSecretPrevious].filter(Boolean)
   for (const secret of secrets) {
     try {
-      const payload = jwt.verify(token, secret as string) as RenderTokenPayload
+      const payload = jwt.verify(token, secret as string) as RenderJwtPayload
       if (payload.scope !== 'render') return null
       if (payload.docId !== expectedDocId) return null
       return payload

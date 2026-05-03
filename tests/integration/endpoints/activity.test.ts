@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import jwt from 'jsonwebtoken'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
@@ -9,6 +8,7 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
+import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
 
 // GET /api/docs/:docId/activity — returns up to 50 edit/join/leave entries.
 // Bug-fix regression target: pre-fix the endpoint had NO auth check.
@@ -26,10 +26,9 @@ async function seedActivity(docId: string): Promise<void> {
 }
 
 function mintDocJwt(docId: string): string {
-  return jwt.sign(
+  return mintSessionJwt(
     { docId, userId: 'anonymous', readOnly: false },
-    TEST_JWT_SECRET,
-    { expiresIn: '2h' }
+    { secret: TEST_JWT_SECRET }
   )
 }
 
