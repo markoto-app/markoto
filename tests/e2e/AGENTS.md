@@ -138,6 +138,31 @@ Lifecycle: `bun run flows:test` (`scripts/flows-ephemeral.ts`) does docker-up �
 
 The `test-repos-integration-flows` job in `.github/workflows/ci.yml` runs the same `bun run flows:test` against the PR commit on every PR. It brings up `docker-compose.test.yml --profile flows` with `--wait` (compose-level health-gating, not just docker-level), runs the integration repos test suites in the same job, then runs the Playwright flow tests. PR merge is blocked on this check passing — flows are first-class regression tests, not optional eye-candy. See `docs/GITHUB-CONFIG.md` for branch-protection wiring.
 
+## Two-context flows (`flow.spawn`)
+
+`flow.spawn(actorLabel: string)` opens a fresh `BrowserContext` (clean cookies + storage = independent identity), wires the same init scripts the primary page got (cursor tracking, devtools-chrome strip, color-mode preseed), and returns `{ flow, page, editor }` for the new actor. Frames captured from the spawned actor's flow are **interleaved into the same manifest** as the primary's, with an `actor: <label>` field stamped per entry. The renderer ignores the field today; future visual treatment (e.g. a "AS: visitor" chip in the browser chrome) can read it without a schema bump.
+
+Cleanup is automatic — every spawned context is closed at fixture teardown. Hero state and the next-link are shared across all actors (first hero wins; last `next()` call wins).
+
+Use it for two-context stories where one actor's actions visibly affect another's view: owner sets a password → visitor (separate identity) hits the doc URL and sees the password modal. The single-context cookie-clear pattern that preceded `flow.spawn` is honest but loses the narrative beat ("now switch to a fresh browser") — `spawn` makes the switch literal AND lets each actor's JWT lifecycle behave independently.
+
+```ts
+test('Password protect', async ({ page, flow, editor }) => {
+  await editor.silentSetup()
+  // ... owner sets passphrase via Share modal ...
+
+  const visitor = await flow.spawn('visitor')
+  await visitor.page.goto(docUrl)
+  await visitor.flow.type('Type the passphrase', visitor.page.locator('input[type="password"]'), 'open-sesame', {
+    result: '...'
+  })
+  await visitor.flow.click('Click "Unlock"', visitor.page.getByRole('button', { name: /unlock/i }), {
+    hero: true,
+    result: '...'
+  })
+})
+```
+
 ## Tier-1 flows
 
 All nine Tier-1 flows shipped:
@@ -150,9 +175,17 @@ All nine Tier-1 flows shipped:
 - **`polished-pdf`** — pick the academic preset → File → Save as PDF (desktop only — menubar hidden on mobile).
 - **`import-existing`** (slug: `import-existing-document`) — File → Import → drop HTML/DOCX/PDF/PPTX → markitdown converts → Replace welcome content (desktop only).
 - **`rich-content`** — Insert menu → code block + alert + KaTeX math + Mermaid pie (desktop only).
-- **`password-protect`** — switch access mode → set passphrase → clear cookies → fresh visitor hits PasswordModal → unlock.
+- **`password-protect`** — switch access mode → set passphrase → spawn a visitor (`flow.spawn('visitor')`) in a fresh `BrowserContext` → visitor hits PasswordModal → unlock. Hero is the visitor's unlocked outcome, latched across actors.
 
 All carry hero strips (the most decisive outcome rendered above the slideshow), direction-anchoring annotations on key click targets, and a curated `flow.next({ slug, why })` forward link rendered as a "Try next" card after the controls.
+
+## Tier-2 flows
+
+Three Tier-2 flows shipped, demonstrating features that score high on "users would love but never discover on their own":
+
+- **`voice-dictate`** (slug: `speak-instead-of-typing`) — toolbar mic → live dictation streams text into the editor as it's spoken. Pipeline: `MediaRecorder` + audio worklet → WebSocket `/api/ai/dictate` → Cloud STT `streamingRecognize` → CM6 ghost-text widget → Y.js commit with `dictation:{userId}` origin. Test uses the canned-fake STT mock (`NUXT_GOOGLE_SPEECH_MOCK=1`) plus Chromium's `--use-fake-device-for-media-stream` so the synthetic 16 kHz tone produces the chunk count the mock counts to fire its predetermined "how are you" final transcript. Works on desktop and mobile.
+- **`document-context`** (slug: `tell-the-ai-who-you-re-writing-for`) — open the Document tab → set Description + Audience=Marketing + Language=Deutsch → ask the AI for an intro. The AI returns marketing-tone Deutsch without the prompt mentioning audience or language. Live Gemini call. Desktop only — the form scrolls below the fold on mobile.
+- **`knowledge-rag`** (slug: `knowledge-grounded-ai`) — workspace setup → upload Q3 postmortem HTML → wait for ready → create new doc in workspace → ask the AI a question only the file knows the answer to. The AI calls `search_knowledge`, gets back the relevant chunks via hybrid RRF retrieval (cosine + BM25), folds them into its reply. Live Gemini call. Desktop only (workspace landing page packs the layout awkwardly on `<sm`).
 
 Future tier-1 work:
 

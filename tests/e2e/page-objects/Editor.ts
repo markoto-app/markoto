@@ -180,6 +180,28 @@ export class EditorPage {
     await expect(this.ai.promptBar).toHaveAttribute('data-active', 'true', { timeout })
   }
 
+  // ─── Live dictation ───────────────────────────────────────────────
+  //
+  // The toolbar mic toggles streaming dictation (`/api/ai/dictate` WS).
+  // Mobile surfaces the same control as the second tab on the bottom
+  // MobileTabBar (`data-testid="mobile-tab-dictate"`). The toolbar
+  // mic doesn't currently have a stable testid; match by aria-label
+  // ("Start dictation" / "Stop dictation" — both states resolve so a
+  // tooltip-text regex catches either).
+
+  /** The toolbar dictation mic. `data-testid` is stable; `aria-label`
+   *  flips between "Start dictation" and "Stop dictation"; the
+   *  `data-active` attribute is `'true'` when the dictation state is
+   *  busy or recording — useful for waiting on state transitions. */
+  get dictateMicButton(): Locator {
+    return this.page.locator('[data-testid="toolbar-dictate-mic"]')
+  }
+
+  /** Mobile tab-bar dictation tab — only visible at <sm width. */
+  get dictateMobileTab(): Locator {
+    return this.page.locator('[data-testid="mobile-tab-dictate"]')
+  }
+
   // ─── Status bar (footer) ──────────────────────────────────────────
 
   get statusBar() {

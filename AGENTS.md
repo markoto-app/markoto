@@ -320,7 +320,8 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 
 **Flow docs system** (see `tests/e2e/AGENTS.md`)
 - [x] Tier 1 flows: `polished-pdf`, `import-existing`, `rich-content`, `password-protect` — shipped with hero strips, direction-anchoring annotations, and curated "Try next" forward links.
-- [ ] Two-context fixture for password-protect flow (currently uses single-context cookie-clear simulation; honest narrative but not a true second context).
+- [x] Two-context fixture (`flow.spawn(actorLabel)`) — spawns a sibling `BrowserContext` with its own cookies + identity; both actors push into the same manifest with `actor` field stamped per frame; `password-protect` rewritten to use it (visitor frames now come from a genuinely separate browser, not a cookie-clear simulation).
+- [x] Tier 2 flows: `voice-dictate`, `document-context`, `knowledge-rag` — voice via the canned-fake STT mock (`NUXT_GOOGLE_SPEECH_MOCK=1`), document-context demonstrates audience+language steering on a single Gemini call, knowledge-rag uploads a postmortem fixture and asks the AI a question grounded in it.
 - [ ] Selective re-runs: `flows:test:changed`.
 - [ ] CI integration.
 - [ ] Doc-content i18n pattern.

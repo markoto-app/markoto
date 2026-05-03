@@ -51,7 +51,25 @@ export default defineConfig({
     baseURL: BASE_URL,
     video: 'off',
     trace: 'on-first-retry',
-    permissions: ['clipboard-read', 'clipboard-write']
+    // Pre-grant clipboard + microphone. Microphone is what unblocks
+    // the voice-dictate flow's `getUserMedia` call without a system
+    // dialog. The fake media stream below provides synthetic audio
+    // so the prod server's mock STT (NUXT_GOOGLE_SPEECH_MOCK=1)
+    // sees real chunks land and emits its canned transcript.
+    permissions: ['clipboard-read', 'clipboard-write', 'microphone'],
+    launchOptions: {
+      // `--use-fake-ui-for-media-stream` skips the per-origin permission
+      // dialog; `--use-fake-device-for-media-stream` substitutes a
+      // synthetic 16 kHz beep tone for the real microphone. Combined,
+      // `getUserMedia({ audio: true })` resolves without UI interaction
+      // and the audio worklet sees actual samples (not silence) so the
+      // dictation WS pipeline produces the chunk count the mock STT
+      // counts to fire its canned interim/final events.
+      args: [
+        '--use-fake-ui-for-media-stream',
+        '--use-fake-device-for-media-stream'
+      ]
+    }
   },
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined

@@ -5,16 +5,16 @@ import { test, expect } from '../fixtures/flow'
 // User-job: a writer wants to share a doc by URL but only with
 // people who know a passphrase. Job done when the access mode is
 // switched to password-protected, the password is set, and a
-// fresh visitor (no JWT cookie) is gated behind the password
-// modal until they enter the correct passphrase.
+// fresh visitor (separate browser identity, no JWT cookie) is
+// gated behind the password modal until they enter the correct
+// passphrase.
 //
-// Single-context simulation: instead of opening a separate
-// browser context (which would require fixture changes to capture
-// screenshots from both), we set the password as the OWNER, then
-// clear the doc-scoped JWT cookie + reload — same effective state
-// as a fresh visitor (no `doc-{docId}-jwt` cookie). The narrative
-// frames this as "what your visitor sees" so the simulation is
-// honest with the reader.
+// Two-context flow: the OWNER sets the passphrase via the share
+// dialog; a VISITOR — a genuinely separate `BrowserContext` spawned
+// via `flow.spawn('visitor')` — opens the share link with no
+// cookies and hits the PasswordModal. Both actors' frames land in
+// the same manifest in call order, so the slideshow reads as one
+// linear story.
 //
 // Desktop AND mobile: the access lock icon is in the topbar on
 // both, the share modal is responsive, the password modal is a
@@ -56,8 +56,8 @@ test('Password protect', async ({ page, flow, editor }) => {
   await flow.narrate(
     'Tap "Password protected" to gate the doc. The password input '
     + 'appears below — choose something at least 4 characters, '
-    + "memorable enough to share verbally with whoever needs in. "
-    + "markoto stores only a scrypt hash; the plaintext is never "
+    + 'memorable enough to share verbally with whoever needs in. '
+    + 'markoto stores only a scrypt hash; the plaintext is never '
     + 'persisted server-side.'
   )
 
@@ -113,35 +113,33 @@ test('Password protect', async ({ page, flow, editor }) => {
   // current mode (`Access Mode: Password protected`).
   await expect(editor.page.accessLockButton).toHaveAttribute('aria-label', /password protected/i)
 
+  // Capture the doc URL — the visitor will navigate to this same
+  // link from a fresh BrowserContext (no cookies, no session, no
+  // doc-scoped JWT).
+  const docUrl = page.url()
+
   // ─── What your visitor sees ──────────────────────────────────────
   await flow.heading('What your visitor sees', 3)
   await flow.narrate(
-    'A first-time visitor — no JWT cookie for this doc — hits the '
-    + 'password modal before the editor mounts. The modal blocks '
-    + 'every layer: the JWT issued by the token endpoint is '
-    + '`null`, the Y.js handshake is rejected, and the editor '
-    + 'markup is hidden until verification succeeds. To simulate '
-    + 'a visitor in this single browser, we drop the doc-scoped '
-    + 'cookie and reload.'
+    'A first-time visitor — separate browser, no JWT cookie for '
+    + 'this doc — hits the password modal before the editor mounts. '
+    + 'The modal blocks every layer: the JWT issued by the token '
+    + 'endpoint is `null`, the Y.js handshake is rejected, and the '
+    + 'editor markup is hidden until verification succeeds.'
   )
 
-  // Capture the doc URL before clearing cookies (the URL itself
-  // doesn't change, but we want to be explicit about what we
-  // navigate back to).
-  const docUrl = page.url()
+  // Spawn the visitor — a genuinely separate BrowserContext (clean
+  // cookies + storage, independent identity). All visitor-side
+  // captures push into the same manifest with `actor: 'visitor'`
+  // stamped per frame; the spawned context is auto-closed at
+  // fixture teardown.
+  const visitor = await flow.spawn('visitor')
+  await visitor.page.goto(docUrl)
 
-  // Clear ALL cookies on this page's context — that includes the
-  // doc-scoped JWT. The page reloads as if a brand-new visitor
-  // landed on the share link.
-  await page.context().clearCookies()
-  await page.goto(docUrl)
+  const visitorPasswordInput = visitor.page.locator('input[type="password"]').first()
+  await visitorPasswordInput.waitFor({ state: 'visible', timeout: 15_000 })
 
-  // Heads-up: from this point the page is "the visitor", not "the
-  // owner". The PasswordModal renders before the editor.
-  const visitorPasswordInput = page.locator('input[type="password"]').first()
-  await visitorPasswordInput.waitFor({ state: 'visible', timeout: 10_000 })
-
-  await flow.shot(
+  await visitor.flow.shot(
     'A blocking dialog asks for the password — the editor is hidden until you enter it.',
     {
       annotations: [
@@ -151,16 +149,16 @@ test('Password protect', async ({ page, flow, editor }) => {
   )
 
   // ─── Unlock the doc ──────────────────────────────────────────────
-  await flow.heading('Unlock with the passphrase', 3)
-  await flow.narrate(
+  await visitor.flow.heading('Unlock with the passphrase', 3)
+  await visitor.flow.narrate(
     'Type the passphrase and the gate lifts. markoto sets a '
     + 'short-lived doc-scoped cookie so future page loads in this '
     + 'browser skip the modal until the cookie expires. The '
     + 'passphrase travels over HTTPS only; the server compares '
-    + "scrypt hashes, not the plaintext."
+    + 'scrypt hashes, not the plaintext.'
   )
 
-  await flow.type(
+  await visitor.flow.type(
     'Type the passphrase',
     visitorPasswordInput,
     sharedPassword,
@@ -169,31 +167,42 @@ test('Password protect', async ({ page, flow, editor }) => {
     }
   )
 
-  // Click Unlock. The button is "type=submit" inside the form;
+  // Click Unlock. The button is type="submit" inside the form;
   // pressing Enter would also work, but a deliberate click reads
   // more clearly in the slideshow.
-  const unlockBtn = page.getByRole('button', { name: /unlock/i })
-  await flow.click(
+  const unlockBtn = visitor.page.getByRole('button', { name: /unlock/i })
+  await visitor.flow.click(
     'Click "Unlock" to enter the doc',
     unlockBtn,
     {
       // Hero outcome: the doc is unlocked + the editor materialises.
-      // This IS the "your gated link works" payoff.
+      // This IS the "your gated link works" payoff. Hero is latched
+      // ACROSS actors — the visitor's unlocked frame is the first
+      // outcome marked hero in this flow, so it wins.
       hero: true,
       result: 'The password modal closes — the editor mounts and the doc loads.',
       after: async () => {
-        // The modal closes once the cookie is set + the password
-        // verifies. Wait for the editor's title button (proxy for
-        // "the doc loaded") rather than racing the modal-close
-        // animation.
-        await editor.page.titleButton.waitFor({ state: 'visible', timeout: 15_000 })
+        // Wait for the CodeMirror content surface to be ATTACHED on
+        // the visitor's page — the title button is mobile-hidden in
+        // some narrow layouts (it sits inside a topbar that gets
+        // visually clipped), so a `.cm-content` attach check is the
+        // most reliable "doc loaded" proxy across desktop AND
+        // mobile. We also wait for the password modal to detach.
+        await visitor.page.locator('.cm-content').waitFor({ state: 'attached', timeout: 15_000 })
+        await expect(visitor.page.locator('input[type="password"]')).toHaveCount(0, { timeout: 10_000 })
       }
     }
   )
 
-  // ASSERTION: the password modal is gone AND the editor is shown.
-  await expect(page.locator('input[type="password"]')).toHaveCount(0)
-  await expect(editor.page.titleButton).toBeVisible()
+  // ASSERTION: the password modal is gone AND the editor surface
+  // is in the DOM on the VISITOR's page (not the owner's, which
+  // still has the editor visible from before the share dialog
+  // ever opened). Use `toBeAttached` rather than `toBeVisible` —
+  // mobile narrow layouts hide the title button visually but the
+  // `.cm-content` element is the unambiguous "editor mounted"
+  // signal.
+  await expect(visitor.page.locator('input[type="password"]')).toHaveCount(0)
+  await expect(visitor.page.locator('.cm-content')).toBeAttached()
 
   // Forward route: the natural next step after locking down a
   // doc is sending a polished version to the password-holder.
