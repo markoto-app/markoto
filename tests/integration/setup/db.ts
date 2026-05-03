@@ -76,6 +76,51 @@ export async function resetDb(): Promise<void> {
   if (yjsExists.rows[0].exists) {
     await db.query('TRUNCATE TABLE yjs_documents RESTART IDENTITY')
   }
+
+  // Wipe the test Valkey DB too. Without this, keys from the previous
+  // test bleed across the boundary — the immediate symptom this fixed
+  // was aiDictateWs tests failing with `expected 4002, got 4001`.
+  // Mechanism: `resetDb` runs `TRUNCATE ... RESTART IDENTITY`, so
+  // user IDs reset to 1 between tests. The dictate WS lock key
+  // `lock:ai-dictate-active:{userId}` from a previous test's user-1
+  // was still alive when the next test's user-1 opened a session →
+  // `tryAcquireSessionLock` returned false → server closed the WS
+  // with 4001 ('session already active') BEFORE the budget check that
+  // would have produced 4002. Other Valkey-backed surfaces (rate-
+  // limit counters, single-flight locks, sweep locks, processed-event
+  // dedup) are subject to the same bleed; flushing the whole DB is
+  // the cheapest correct answer in a test setting.
+  await resetValkey()
+}
+
+/**
+ * Singleton ioredis client for test cleanup. Lazy + reused — opening
+ * + closing per `resetDb()` call would slow the suite noticeably for
+ * no benefit (the server is local).
+ */
+let _valkey: import('ioredis').default | null = null
+async function getValkey() {
+  if (_valkey) return _valkey
+  const { default: Redis } = await import('ioredis')
+  _valkey = new Redis('redis://:testpassword@127.0.0.1:6380/0', {
+    // Tests run sequentially via vitest's worker — no need for the
+    // default queueing behaviour. lazyConnect=false means the first
+    // command implicitly connects.
+    maxRetriesPerRequest: 1
+  })
+  return _valkey
+}
+
+export async function resetValkey(): Promise<void> {
+  const client = await getValkey()
+  await client.flushdb()
+}
+
+export async function closeTestValkey(): Promise<void> {
+  if (_valkey) {
+    await _valkey.quit().catch(() => {})
+    _valkey = null
+  }
 }
 
 /**

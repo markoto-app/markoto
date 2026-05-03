@@ -23,8 +23,17 @@ import { TEST_JWT_SECRET } from '../setup/env'
 //   7. graceful stop path (no "write after end" error)
 
 async function mintDictateToken(userId: number, docId: string): Promise<string> {
+  // Match the prod mint shape exactly (server/api/ai/dictate/token.post.ts).
+  // Both `kind` and `scope` are required: the server's auth path checks
+  // `payload.kind === 'dictate'` AND `payload.scope === 'dictate'`. The
+  // `scope` claim is defense-in-depth — it lets the Hocuspocus auth path
+  // reject any token carrying a non-empty `scope` (so a leaked dictate
+  // token can't be replayed against the WS sync server). Earlier this
+  // helper omitted `scope`, which made the dictate WS reject every test
+  // token with 4001 'scope mismatch' BEFORE any of the actual logic
+  // under test (budget checks, session locks) could fire.
   return jwt.sign(
-    { userId, docId, kind: 'dictate' },
+    { userId, docId, kind: 'dictate', scope: 'dictate' },
     TEST_JWT_SECRET,
     { expiresIn: '60s' }
   )
