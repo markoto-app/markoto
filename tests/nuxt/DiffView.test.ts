@@ -1,7 +1,7 @@
 // @vitest-environment nuxt
 import { describe, it, expect } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import DiffView from '~/components/collab/DiffView.vue'
+import { CollabDiffView as DiffView } from '#components'
 
 // Component test for the unified-diff renderer. Drives the
 // drawer-side rendering — kind classes, hunk headers, line numbering,
