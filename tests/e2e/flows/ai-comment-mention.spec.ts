@@ -1,5 +1,16 @@
 import { test, expect } from '../fixtures/flow'
 
+// One retry at spec level. The full flow runs FOUR times (en-light/dark
+// × desktop/mobile) in suite order; by the 4th sequential live-Gemini
+// comment-trigger call the model occasionally hits its agentic
+// MAX_TURNS without producing a `reply_to_comment` (the trigger DOES
+// fire and the AI session DOES start — verified by the trigger-response
+// probe — but the loop terminates without the closing reply). One
+// retry covers the Gemini variance without hiding structural failures.
+// CI already runs with retries=2; this matches local behaviour for
+// just this live-AI spec.
+test.describe.configure({ retries: 1 })
+
 // Tier 1, AI Flow: "Summon the AI inside a comment thread".
 //
 // User-job: the writer has a question about a specific passage —
