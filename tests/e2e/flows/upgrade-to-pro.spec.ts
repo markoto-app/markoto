@@ -1,5 +1,13 @@
 import { test, expect } from '../fixtures/flow'
-import { computeStripeSig, loadStripeFixture, TEST_WEBHOOK_SECRET } from '../../integration/setup/stripeHelpers'
+import { computeStripeSig, loadStripeFixture } from '../../integration/setup/stripeHelpers'
+
+// The flow-test stack uses its own webhook secret (set in
+// `scripts/flows-ephemeral.ts` as `whsec_test_flows`). The integration
+// stack's secret (`whsec_test_integration`) is different — using the
+// helper's exported constant here would make the server reject the
+// signature with 400. Hardcode the literal that matches the env the
+// orchestrator wires in.
+const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
 
 // Tier 2: "Upgrade to Pro and watch your plan flip".
 //
@@ -35,14 +43,29 @@ test('Upgrade to Pro', async ({ page, flow, editor }) => {
   await page.goto('/pricing')
   await page.locator('[data-testid="pricing-tier-free"]').waitFor({ state: 'visible', timeout: 10_000 })
 
-  // Block the redirect to Stripe Checkout so the test stays on the
-  // pricing page after the click. We're showing what the click
-  // FEELS like (loading state), not driving Stripe's hosted form.
-  // The redirect's target host is whatever stripe-mock returned;
-  // we route ANY off-pricing navigation to a no-op so the click
-  // captures cleanly without the page navigating away.
-  await page.route('https://checkout.stripe.com/**', route => route.abort())
-  await page.route('http://stripe-mock:**/checkout/**', route => route.abort())
+  // The pricing page sets `window.location.href = <stripe url>` on
+  // Upgrade click — we don't want to actually navigate to Stripe's
+  // hosted form (separate origin, can't iframe, shouldn't drive
+  // from a flow). Stub the href setter on the live page so the
+  // click visibly fires (button shows loading spinner via the SDK
+  // round-trip) but the page stays on /pricing.
+  await page.evaluate(() => {
+    const proto = Object.getPrototypeOf(window.location)
+    const desc = Object.getOwnPropertyDescriptor(proto, 'href')
+    if (desc?.set) {
+      Object.defineProperty(window.location, 'href', {
+        configurable: true,
+        get: desc.get,
+        set: (v: string) => {
+          if (typeof v === 'string' && (v.includes('checkout.stripe.com') || v.includes('stripe-mock'))) {
+            console.log('[test-stub] Stripe redirect intercepted:', v)
+            return
+          }
+          desc.set!.call(window.location, v)
+        }
+      })
+    }
+  })
 
   await flow.heading('Upgrade to Pro', 3)
   await flow.narrate(
@@ -81,13 +104,22 @@ test('Upgrade to Pro', async ({ page, flow, editor }) => {
   )
 
   // Simulate the webhook the way it would arrive from Stripe in
-  // production: load the same fixture the integration tests use,
-  // stamp Maya's user id as the client_reference_id, sign with the
-  // test webhook secret, POST to /api/webhooks/stripe.
+  // production. The fixture ships with stable identifiers that
+  // dedup on the second project run via `processed_webhook_events`
+  // AND collide on `users_stripe_customer_id_unique` if the same
+  // `customer` is already bound to a previous test user. Mint
+  // unique ids per invocation so each project's run lands cleanly.
+  const eventSuffix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  const customerId = `cus_test_${eventSuffix}`
+  const subscriptionId = `sub_test_${eventSuffix}`
   const event = loadStripeFixture('checkout.session.completed') as Record<string, unknown>
-  ;(event.data as { object: Record<string, unknown> }).object.client_reference_id = String(userId)
+  event.id = `evt_test_checkout_completed_${eventSuffix}`
+  const eventObj = (event.data as { object: Record<string, unknown> }).object
+  eventObj.client_reference_id = String(userId)
+  eventObj.customer = customerId
+  eventObj.subscription = subscriptionId
   const body = JSON.stringify(event)
-  const sig = computeStripeSig(body, TEST_WEBHOOK_SECRET)
+  const sig = computeStripeSig(body, FLOWS_WEBHOOK_SECRET)
   const webhookRes = await page.request.post('/api/webhooks/stripe', {
     headers: { 'stripe-signature': sig, 'content-type': 'application/json' },
     data: body
@@ -103,14 +135,16 @@ test('Upgrade to Pro', async ({ page, flow, editor }) => {
   // mapping. (Same pattern the stripeWebhook integration tests
   // use to exercise the price-mapping branch.)
   const subEvent = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
+  subEvent.id = `evt_test_sub_updated_pro_${eventSuffix}`
   const subObj = (subEvent.data as { object: Record<string, unknown> }).object
-  subObj.customer = 'cus_test_alice'
+  subObj.id = subscriptionId
+  subObj.customer = customerId
   // The price id in the fixture should match `NUXT_STRIPE_PRICE_PRO`.
   // The integration tests rely on the same env-var-driven mapping;
   // the fixture's price id is `price_test_pro` which is the value
   // wired into the test stack (see docker-compose.test.yml).
   const subBody = JSON.stringify(subEvent)
-  const subSig = computeStripeSig(subBody, TEST_WEBHOOK_SECRET)
+  const subSig = computeStripeSig(subBody, FLOWS_WEBHOOK_SECRET)
   await page.request.post('/api/webhooks/stripe', {
     headers: { 'stripe-signature': subSig, 'content-type': 'application/json' },
     data: subBody

@@ -110,12 +110,19 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   await visitor.page.goto(docUrl)
   await visitor.page.locator('.cm-content').waitFor({ state: 'attached', timeout: 15_000 })
   // Switch the visitor to Edit view (read-only-mounted CodeMirror)
-  // instead of Preview (paged.js iframe). The iframe's render
-  // pipeline can hang screenshot calls in the test stack. Use the
-  // topbar-scoped helper to dodge the menubar's "Edit" menu item
-  // with the same accessible name.
-  await visitor.editor.viewMode.edit.click()
-  await visitor.page.waitForTimeout(800)
+  // instead of Preview (paged.js iframe) on DESKTOP. The iframe's
+  // render pipeline can hang screenshot calls in the test stack.
+  //
+  // Mobile is preview-only for read-only viewers — the EditorLayout
+  // hides the MobileTabBar via `v-if="!isReadOnly && viewMode !== 'preview'"`,
+  // so there's no bottom-bar Editor tab AND no topbar view-mode
+  // toggle. The visitor stays on the preview iframe; the screenshot
+  // captures the read-only chrome (no toolbar, no caret, "View only"
+  // banner) which is the user-facing assertion the flow is making.
+  if (!editor.isMobile) {
+    await visitor.editor.viewMode.edit.click()
+    await visitor.page.waitForTimeout(800)
+  }
 
   await visitor.flow.shot(
     'The visitor lands in the doc — but the editor is read-only. '
@@ -123,8 +130,13 @@ test('Share as read-only', async ({ page, flow, editor }) => {
     + 'lock icon in the topbar reflects the view-only mode.',
     {
       hero: true,
+      // Highlight the editor surface that's actually visible: CM6
+      // content on desktop (Edit view), preview iframe on mobile
+      // (preview is the only view a read-only visitor can see).
       highlights: [
-        { label: 'Read-only editor', selector: '.cm-content' }
+        editor.isMobile
+          ? { label: 'Read-only preview', selector: 'iframe' }
+          : { label: 'Read-only editor', selector: '.cm-content' }
       ]
     }
   )
@@ -146,17 +158,27 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   })
   expect(visitorYjsText).toMatch(/read-only copy for the wider team/i)
   await expect(visitor.page.locator('[data-testid="ai-prompt-bar"]')).toHaveCount(0)
-  // CodeMirror's read-only Compartments set `contenteditable="false"`
-  // on the .cm-content root. Verify directly — this is the canonical
-  // "you cannot edit" signal.
-  const editable = await visitor.page.locator('.cm-content').getAttribute('contenteditable')
-  expect(editable).toBe('false')
-  // Also assert the menubar's edit-only commands are disabled (Insert
-  // / Format require write access). These are independent of the
-  // CodeMirror compartment and prove the read-only enforcement is
-  // wired into the chrome too.
-  await expect(visitor.page.locator('[data-testid="menubar-insert"]')).toBeDisabled()
-  await expect(visitor.page.locator('[data-testid="menubar-format"]')).toBeDisabled()
+
+  if (editor.isMobile) {
+    // Mobile read-only viewers stay in preview mode — there's no
+    // CodeMirror surface to query, and the menubar is hidden behind
+    // the hamburger menu (no testid'd "Insert" / "Format" buttons
+    // either). The "View only" banner is the user-facing assertion;
+    // verify it's there.
+    await expect(visitor.page.getByText(/view only/i).first()).toBeVisible()
+  } else {
+    // Desktop: CodeMirror's read-only Compartments set
+    // `contenteditable="false"` on the .cm-content root. Verify
+    // directly — this is the canonical "you cannot edit" signal.
+    const editable = await visitor.page.locator('.cm-content').getAttribute('contenteditable')
+    expect(editable).toBe('false')
+    // Also assert the menubar's edit-only commands are disabled
+    // (Insert / Format require write access). These are independent
+    // of the CodeMirror compartment and prove the read-only
+    // enforcement is wired into the chrome too.
+    await expect(visitor.page.locator('[data-testid="menubar-insert"]')).toBeDisabled()
+    await expect(visitor.page.locator('[data-testid="menubar-format"]')).toBeDisabled()
+  }
 
   flow.next({
     slug: 'password-protect',

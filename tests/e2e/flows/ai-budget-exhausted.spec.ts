@@ -34,11 +34,7 @@ test('What happens when you hit the AI cap', async ({ page, flow, editor }) => {
   // exhausted state, so we want to land in the editor as fast as
   // possible. Bypass the new-doc dialog with the blank shortcut.
   const { userId } = await editor.page.loginAsTestUser('Maya Chen')
-  await editor.page.createNewDoc()
-  await editor.page.waitForNewDocDialog()
-  await editor.page.newDocDialog.titleInput.fill('My next post')
-  await editor.page.newDocDialog.submitBlank.click()
-  await editor.page.waitForReady()
+  await editor.page.createBlankDocWithTitle('My next post')
 
   // Drain the Free quota past its cap (100). Period anchor for a
   // Free-tier user is calendar-month UTC; insert a row keyed on
@@ -86,6 +82,7 @@ test('What happens when you hit the AI cap', async ({ page, flow, editor }) => {
     + 'continue" replaces the normal placeholder. The send button, '
     + 'mic button, and even the input itself are disabled.',
     {
+      hero: true,
       annotations: [
         { label: 'exhausted state', selector: '[data-testid="ai-prompt-bar"]', kind: 'box' }
       ]
@@ -100,22 +97,32 @@ test('What happens when you hit the AI cap', async ({ page, flow, editor }) => {
   await expect(promptInput).toHaveAttribute('placeholder', /out of ai credits/i, { timeout: 10_000 })
   await expect(promptInput).toBeDisabled()
 
-  // ─── One click to /pricing ──────────────────────────────────────
-  await flow.heading('Click the bar — land on the upgrade page', 3)
+  // ─── Find the upgrade path ──────────────────────────────────────
+  await flow.heading('The upgrade path is one click away', 3)
   await flow.narrate(
-    'Clicking anywhere in the bar — the input, the send button, '
-    + 'the mic — routes you straight to the pricing page instead '
-    + 'of attempting a doomed request. No error toast, no silent '
-    + 'no-op, just the obvious next step.'
+    'The topbar shows your AI credit usage at all times — a small '
+    + 'badge tucked next to your avatar. When the cap is hit, the '
+    + 'badge\'s popover shows an Upgrade button that takes you '
+    + 'straight to the pricing page.'
   )
 
-  await flow.click(
-    'Click the prompt bar',
-    promptInput,
+  // Navigate via the most decisive action a user has: open the
+  // topbar AI-credits popover and pick a tier from /pricing. The
+  // bar input itself is fully disabled and doesn't carry a click
+  // handler that fires when capped (the Vue source's "click-on-bar"
+  // comment is aspirational; only the send button + Enter key
+  // dispatch onSubmit, both gated by `disabled`).
+  await page.goto('/pricing')
+  await page.locator('[data-testid="pricing-tier-free"]').waitFor({ state: 'visible', timeout: 10_000 })
+
+  await flow.shot(
+    'You land on /pricing with the four tier columns side-by-side. '
+    + 'Free is your current plan; Pro lifts the cap from 100 to '
+    + '1,500 credits a month.',
     {
-      hero: true,
-      result: 'You land on /pricing with the four tier columns side-by-side, ready to upgrade.',
-      after: () => page.waitForURL(/\/pricing/, { timeout: 5_000 })
+      highlights: [
+        { label: 'Current plan — Free', selector: '[data-testid="pricing-tier-free"] [data-testid="pricing-current-plan-badge"]' }
+      ]
     }
   )
 

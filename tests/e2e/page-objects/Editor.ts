@@ -534,6 +534,12 @@ export class EditorPage {
    * Does NOT wait for the WS handshake — call waitForReady() after.
    * Split lifecycle from waitForReady so callers can record the
    * redirect as a separate step in the manifest if they want.
+   *
+   * **ANONYMOUS USERS ONLY.** A logged-in user clicking "+ New Document"
+   * opens the new-doc dialog instead of navigating directly — call
+   * `openNewDocDialog()` for that path and submit the dialog yourself.
+   * Calling this from a logged-in test wedges Playwright on the
+   * `waitForURL` race for 120 s before the test timeout fires.
    */
   async createNewDoc(): Promise<void> {
     await this.page.goto('/')
@@ -542,5 +548,58 @@ export class EditorPage {
       this.page.waitForURL(/\/d\/[^/]+/),
       this.page.locator('[data-testid="landing-new-document"]').click()
     ])
+  }
+
+  /**
+   * LOGGED-IN equivalent of `createNewDoc`. Opens the homepage, clicks
+   * "+ New Document", waits for the new-doc dialog to render. Returns
+   * with the dialog open and the title input visible — callers fill
+   * the form and submit themselves.
+   *
+   * Uses the same Vue-hydration retry pattern as `silentSetup`/
+   * `recordPreamble` (an `expect.toPass` loop) — the SSR'd button
+   * looks interactive before its `@click` handler attaches, so a
+   * single click can be a no-op. Retries until the dialog heading
+   * is visible.
+   */
+  async openNewDocDialog(): Promise<void> {
+    await this.page.goto('/')
+    const btn = this.page.locator('[data-testid="landing-new-document"]')
+    await btn.waitFor({ state: 'visible' })
+    await expect(async () => {
+      await btn.click()
+      await expect(this.newDocDialog.heading).toBeVisible({ timeout: 1500 })
+    }).toPass({ timeout: 15_000 })
+    await expect(this.newDocDialog.titleInput).toBeVisible()
+  }
+
+  /**
+   * One-shot for logged-in flows that want a doc with a title: open
+   * the dialog, type the title, submit via the `Create` button
+   * (NOT `Skip` / `submitBlank` — the blank-submit path skips the
+   * form fields and produces an "Untitled" doc).
+   *
+   * **Why pressSequentially instead of fill():** Nuxt UI's UInput is
+   * a wrapper component; the `data-testid` lives on its outer shell.
+   * Playwright's `.fill()` works against it (the locator auto-finds
+   * the inner input) but doesn't always trigger Vue's v-model sync
+   * before the next click — the form submits with an empty `title`
+   * and the doc is "Untitled". Per-keystroke events from
+   * `pressSequentially()` mirror real user input and reliably commit
+   * to the v-model before submit.
+   */
+  async createBlankDocWithTitle(title: string): Promise<void> {
+    await this.openNewDocDialog()
+    await this.newDocDialog.titleInput.click()
+    await this.newDocDialog.titleInput.pressSequentially(title)
+    // Belt-and-braces: wait until the input ECHOES the typed value
+    // before clicking submit. Guards against v-model-not-yet-synced
+    // races that produced "Untitled" docs.
+    await expect(this.newDocDialog.titleInput).toHaveValue(title)
+    await Promise.all([
+      this.page.waitForURL(/\/d\/[^/]+/),
+      this.newDocDialog.submitCreate.click()
+    ])
+    await this.waitForReady()
   }
 }
