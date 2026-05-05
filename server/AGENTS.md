@@ -120,6 +120,9 @@ A leak of one minted token cannot pivot to another scope: `verifyRenderToken` re
 - `knowledge-sweep` — retries stuck-processing rows (10 min TTL) + reaps `failed` rows (7 day TTL).
 - `webhook-event-sweep` — prunes `processed_webhook_events` (>90d) and `pending_stripe_events` (processed >7d, unprocessed >30d). See `server/utils/AGENTS.md`.
 - `plan-lapse-sweep` — disables `(+)` team-billing on workspaces whose billing owner deleted their account, lapsed, or downgraded below Max/Ultra. See `server/utils/AGENTS.md`.
+- `account-deletion-sweep` — claims users whose `deletion_requested_at` deadline (default 30 days) has passed and runs the full purge via `accountDeletionExecute.ts`. See `server/utils/AGENTS.md`.
+- `data-export-worker` — drains `data_export_jobs` rows in `queued` state, builds the ZIP (13 standardised entries) via `dataExport.ts`, uploads to S3, marks `ready`. Failures flip the row to `failed` with a truncated message.
+- `data-export-expiry-sweep` — flips `ready` rows to `expired` past their 7-day TTL and best-effort deletes the S3 object.
 
 **EVERY new sweeper MUST acquire `acquireSweepLock(name)` before doing work and call `releaseSweepLock(name)` in a `finally`.** Without the lock, every Nuxt instance fires the same timer and runs duplicate work (correctness-OK for our sweepers since they're idempotent, but wasteful and noisy). The lock is a session-scoped Postgres advisory lock pinned to a `PoolClient` — see `server/utils/AGENTS.md` for why it's not `pg_try_advisory_xact_lock`.
 
@@ -135,6 +138,20 @@ Two tables under `server/db/schema.ts` back Stripe webhook reliability:
 Implementation lives in `server/utils/stripeWebhook.ts` (dispatcher) + `server/utils/webhookEventSweep.ts` (pruner). See `server/utils/AGENTS.md` for the dispatch flow.
 
 ---
+
+## Privacy & compliance plumbing
+
+The legal/privacy registries (`server/legal/`) and the Vue privacy components (`app/components/legal/`) each have their own AGENTS.md. Server-side wiring summary for what's between them:
+
+- **Account-status endpoint** (`/api/user/account-status`) is the single fetch behind `useAccountStatus()` — returns `{ageConfirmedAt, *_version_accepted, deletion_requested_at, isAdmin, workspaceFates: [...]}`. The `workspaceFates` come from `planAccountDeletion(userId)` and drive the deletion-consequences modal.
+- **Account-deletion request** (`/api/user/delete`) flips `deletion_requested_at`, audits, and fires the "deletion scheduled" email. **Cancel** (`/api/user/delete-cancel` — one segment, NOT `/delete/cancel`) nulls the column and audits `account.delete_cancelled`. The actual cascade runs from `accountDeletionSweep.ts` once the deadline passes; never run it inline from the request endpoint.
+- **Onboarding acceptance** (`/api/user/onboarding/accept`) writes `*_version_accepted` + `*_locale` + `age_confirmed_at` in one update via `applyOnboardingAcceptance`. Bumping a `_VERSION` constant in `shared/legal/versions.ts` invalidates prior acceptance for everyone with stale rows — no migration needed.
+- **DPA acceptance** is a separate endpoint because it's workspace-owner-gated. `applyDpaAcceptance(userId, ...)` writes the row; the UI only surfaces it when the user is about to own a workspace.
+- **Consent** (`/api/consent` GET + POST) is keyed on the `markoto-anon-id` cookie, NOT the user. Append-only — every save writes a new `consent_log` row. The same anon-id can have a `userId` after sign-in (post-login bridge); we never overwrite the original anonymous record.
+- **Abuse-report submit** (`/api/abuse-reports`) — login-required (DSA Art.16 doesn't require the public form to be anonymous; the abuse contact email IS that public channel). Rate-limited 10/user/hour. Free-form `docId` text field, NOT FK. Snapshots reporter email + truncated IP + UA hash; reporter user FK is `ON DELETE SET NULL` so deletion preserves moderator follow-up via the email snapshot. Best-effort operator email via Resend on every submit.
+- **Admin endpoints** (`/admin/*`, `/api/admin/*`) — guarded by `requireAdminUser(event)` from `server/utils/adminAccess.ts`. Source of truth is `users.is_admin` column; `NUXT_ADMIN_USER_EMAILS` env-list is a bootstrap path applied on every OAuth callback by `adminBootstrap.ts` (so a fresh deploy + a listed email = instant admin without manual `UPDATE`). Both grant and revoke audit-log via `admin.granted` / `admin.revoked`.
+- **Audit-log writes are best-effort.** `appendAuditEvent` in `server/repos/audit.ts` swallows + Sentry-captures failures. The user's primary action has already committed; failing the request because audit write failed would be confusing. **Always pass an IP through `truncateIp(rawIp)`** at the call site; the repo trusts the input.
+- **Error sanitisation is framework-level.** `nuxt.config.ts` wires `nitro.errorHandler: '~~/server/error.ts'`. The handler exports `buildSanitizedErrorPayload` (pure, exported for testing — see `tests/unit/errorSanitizer.test.ts`): 4xx pass through (preserves `message` + `data` so `code: 'abuse/rate-limited'`-style hints reach the client); 5xx stripped to a generic message + `data: { code: 'internal' }`. Stack traces never appear. Don't add per-endpoint try/catch to "scrub" errors — the framework-level handler is canonical.
 
 ## Other server-side gotchas
 

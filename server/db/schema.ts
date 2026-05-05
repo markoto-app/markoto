@@ -34,11 +34,60 @@ export const users = pgTable('users', {
   stripeCurrentPeriodStart: timestamp('stripe_current_period_start', { withTimezone: true }),
   stripeCustomerId: text('stripe_customer_id').unique(),
   stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  // Platform-admin flag. Source of truth for `/admin/*` access.
+  // Bootstrap: a user whose email is in `NUXT_ADMIN_USER_EMAILS` is
+  // auto-promoted to is_admin=true on next OAuth login (see
+  // `users` repo `upsertOAuthUser`). After that, the column is the
+  // durable record — env-list changes only matter for new
+  // bootstrapping users, not steady-state. Never set this for a
+  // user without their explicit consent + an audit trail
+  // (`admin.granted` action).
+  isAdmin: boolean('is_admin').notNull().default(false),
+  // User's preferred locale. Drives all transactional emails (delete
+  // confirmation, export-ready, breach notification, consent-version
+  // bump) and the legal-document fallback when a per-locale translation
+  // is missing. Nullable on purpose: NULL means "user never explicitly
+  // chose, fall back to Accept-Language at send time". Don't default to
+  // 'en' — that erases the distinction between "user picked English"
+  // and "we never asked".
+  locale: text('locale'),
+  // GDPR Article 8: minors require parental consent. We require an age
+  // confirmation at signup (and re-confirmation at next login for
+  // grandfathered accounts). NULL means "not yet confirmed" — login
+  // interstitial forces the user through the gate. NEVER backfill this
+  // to a non-null value retroactively for existing users; we never
+  // asked them at signup so any default would be a legal lie.
+  ageConfirmedAt: timestamp('age_confirmed_at', { withTimezone: true }),
+  // GDPR Article 17: deletion requested by the user. We mark the row,
+  // notify the user by email, then run a 30-day grace period during
+  // which a re-login can cancel. The `accountDeletionSweep` cron picks
+  // up rows past `deletionGraceUntil` and hard-deletes the user + all
+  // owned content. NULL on both = account is active.
+  deletionRequestedAt: timestamp('deletion_requested_at', { withTimezone: true }),
+  deletionGraceUntil: timestamp('deletion_grace_until', { withTimezone: true }),
+  // Acceptance state for our three customer-facing legal documents.
+  // The integer is the version that was acceptable AT acceptance time
+  // (matched against `shared/legal/versions.ts`); on bump, the app
+  // re-prompts. The `_locale` companion records which locale the user
+  // actually saw at acceptance — important if a translation later turns
+  // out to have drifted from the authoritative English text. Nullable
+  // because (a) existing users will be re-prompted on next login, and
+  // (b) DPA only applies to workspace owners.
+  tosVersionAccepted: integer('tos_version_accepted'),
+  tosVersionAcceptedLocale: text('tos_version_accepted_locale'),
+  privacyVersionAccepted: integer('privacy_version_accepted'),
+  privacyVersionAcceptedLocale: text('privacy_version_accepted_locale'),
+  dpaVersionAccepted: integer('dpa_version_accepted'),
+  dpaVersionAcceptedLocale: text('dpa_version_accepted_locale'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   // Plan-lapse sweep scans for `planValidUntil < now()` among non-free
   // users. Partial index keeps it cheap as the user table grows.
-  index('idx_users_plan_valid_until').on(table.planValidUntil).where(sql`${table.planValidUntil} is not null`)
+  index('idx_users_plan_valid_until').on(table.planValidUntil).where(sql`${table.planValidUntil} is not null`),
+  // Account-deletion sweep scans for `deletionGraceUntil < now()`. Same
+  // partial-index pattern: the column is null for the vast majority of
+  // rows, so the index stays small.
+  index('idx_users_deletion_grace_until').on(table.deletionGraceUntil).where(sql`${table.deletionGraceUntil} is not null`)
 ])
 
 export const documents = pgTable('documents', {
@@ -609,4 +658,174 @@ export const documentComments = pgTable('document_comments', {
   // whose body matches `@[...](user:N)` for a given N.
   index('idx_document_comments_author').on(table.authorId),
   index('idx_document_comments_updated').on(table.updatedAtMs)
+])
+
+// Append-only consent ledger. GDPR Article 7(1) requires the controller
+// to be able to "demonstrate that the data subject has consented" — this
+// table is that proof. Each row is a single consent decision (granted
+// or refused) for a single processing purpose at a point in time.
+//
+// Anonymous consent is supported: a logged-out visitor still needs to
+// answer the cookie banner before any non-essential storage happens.
+// `userId` is nullable; `anonId` is the first-party cookie that anchors
+// pre-login decisions and is later linked once the user logs in (a new
+// row records the link, the old anonymous rows are kept for audit).
+//
+// Privacy posture: full IP is never stored. `ipTruncated` follows the
+// `audit_log.actor_ip` convention — /24 for IPv4, /48 for IPv6. The
+// user-agent string is fingerprinting-grade so we keep only a SHA-256
+// hash. Both columns are evidence that "someone with this network +
+// device fingerprint consented" without storing values that could
+// re-identify the subject if the table leaked.
+//
+// Append-only: the repo exposes no UPDATE or DELETE. Withdrawing consent
+// is recorded as a NEW row with `granted=false`. The latest row per
+// (subject, purpose) wins at read time.
+export const consentLog = pgTable('consent_log', {
+  id: serial('id').primaryKey(),
+  // Logged-in subject. Nullable for anonymous (cookie-only) consent.
+  // `set null` so account deletion doesn't strip the proof — the row
+  // survives anonymized.
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  // First-party cookie id for anonymous tracking of consent state.
+  // ALWAYS populated, even for logged-in users, so a re-prompt after
+  // consent-version bump can be served before the session resolves.
+  anonId: text('anon_id').notNull(),
+  // The processing purpose this row decides. Text-enum (not pgEnum) so
+  // we can add purposes (e.g. `marketing_email`) without a migration.
+  // `essential` decisions are still recorded for completeness even
+  // though they aren't togglable in the banner.
+  purpose: text('purpose', {
+    enum: ['essential', 'analytics', 'session_replay']
+  }).notNull(),
+  granted: boolean('granted').notNull(),
+  // Banner version the user actually saw. Bumping `consentVersion` in
+  // `shared/legal/versions.ts` invalidates prior consent: the app
+  // re-prompts and a new row lands at the new version.
+  version: integer('version').notNull(),
+  // Locale the banner was rendered in. Important for "did the user
+  // actually understand what they consented to" forensic queries if a
+  // translation drifts from the authoritative English text.
+  locale: text('locale').notNull(),
+  // /24 (IPv4) or /48 (IPv6) — same convention as audit_log.actorIp.
+  // NEVER store full IPs.
+  ipTruncated: text('ip_truncated'),
+  // SHA-256 of the User-Agent header. Hashed so the raw fingerprint is
+  // not retained, but two consents from the same browser still match
+  // for fraud / "did the same client toggle this back and forth"
+  // forensic queries.
+  userAgentHash: text('user_agent_hash'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  // Hot read: "what's the latest consent state for this user, across
+  // purposes". Composite (user, purpose, time) covers it.
+  index('idx_consent_log_user').on(table.userId, table.purpose, table.createdAt.desc()),
+  // Anonymous read path mirrors the user one.
+  index('idx_consent_log_anon').on(table.anonId, table.purpose, table.createdAt.desc())
+])
+
+// DSA Article 16 notice-and-action mechanism. Anyone — logged-in or
+// anonymous — can flag a public document as illegal content via
+// `/legal/abuse` or the in-product "Report this document" menu item.
+// We acknowledge promptly, triage, and act (or dismiss with reason).
+//
+// Reporter email is optional: anonymous reports are accepted (DSA does
+// not require reporter identity), but acknowledgement only flows if an
+// email is provided. The reporter's IP is truncated to /24 / /48 for
+// the same reason as audit_log + consent_log.
+//
+// `docId` is nullable so platform-wide reports (e.g. "this user is
+// abusing markoto across multiple docs") still have a home; the doc-
+// scoped link is the common case.
+export const abuseReports = pgTable('abuse_reports', {
+  id: serial('id').primaryKey(),
+  reportId: text('report_id').notNull().unique(),
+  // Subject of the report — pure free-text. Reporters paste URLs,
+  // bare doc ids, typos, "platform-wide", or whatever the moderator
+  // can interpret. Deliberately NOT FK'd to documents.doc_id —
+  // the report is independently meaningful (and useful as evidence)
+  // even if the referenced doc never existed or has since been
+  // deleted in response to the report itself.
+  docId: text('doc_id'),
+  // Logged-in reporter — populated when the form-submission path
+  // is used. NULL for email-channel reports + for legacy rows.
+  // Set null on user delete (we anonymise, don't cascade-delete
+  // — the report itself is still actionable evidence even after
+  // the reporter deletes their account).
+  reporterUserId: integer('reporter_user_id').references(() => users.id, { onDelete: 'set null' }),
+  // Optional reporter contact. Anonymous reports allowed.
+  reporterEmail: text('reporter_email'),
+  // Truncated reporter IP for forensic correlation only — paired with
+  // user_agent_hash so we can detect a single actor flooding reports
+  // without storing identifying detail.
+  reporterIpTruncated: text('reporter_ip_truncated'),
+  reporterUserAgentHash: text('reporter_user_agent_hash'),
+  // Closed enum of report categories. Text-enum so we can add (e.g.
+  // `terrorism`, `hate_speech`) without a migration. `other` is the
+  // catch-all and forces a body.
+  category: text('category', {
+    enum: ['illegal_content', 'copyright', 'csam', 'harassment', 'spam', 'other']
+  }).notNull(),
+  body: text('body').notNull(),
+  status: text('status', {
+    enum: ['open', 'acknowledged', 'actioned', 'dismissed']
+  }).notNull().default('open'),
+  // Internal moderator who handled the report. `set null` to preserve
+  // the audit trail when staff accounts are deactivated.
+  actionedBy: integer('actioned_by').references(() => users.id, { onDelete: 'set null' }),
+  // Free-form internal notes (resolution rationale, communications log).
+  // Never surfaced to the reporter.
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  acknowledgedAt: timestamp('acknowledged_at', { withTimezone: true }),
+  actionedAt: timestamp('actioned_at', { withTimezone: true })
+}, table => [
+  // Triage queue: open reports oldest-first.
+  index('idx_abuse_reports_status').on(table.status, table.createdAt),
+  // Per-doc lookup for "any open reports against this doc?".
+  index('idx_abuse_reports_doc').on(table.docId)
+])
+
+// GDPR Article 20 data-portability export jobs. The user requests an
+// export from `/settings/account/export`; we enqueue a row here, an
+// async worker streams a ZIP to S3, the user gets an email with a
+// presigned URL valid until `expiresAt`. Past expiry the sweeper
+// purges both the row and the S3 blob.
+//
+// Hard cap: 1 active job per user (the worker checks `status IN
+// ('queued', 'running')` before enqueueing). Prevents cost-amplifying
+// retry loops if a malicious script POSTs `/export` repeatedly.
+//
+// Cascade-delete on user removal — once the account is gone, no
+// remaining party has lawful basis to hold export blobs. The sweeper
+// removes the S3 object as part of the user-deletion cascade in
+// `accountDeletionSweep`.
+export const dataExportJobs = pgTable('data_export_jobs', {
+  id: serial('id').primaryKey(),
+  jobId: text('job_id').notNull().unique(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: text('status', {
+    enum: ['queued', 'running', 'ready', 'expired', 'failed']
+  }).notNull().default('queued'),
+  // S3 key once the worker uploads the ZIP. Null while queued/running
+  // and on failure.
+  s3Key: text('s3_key'),
+  // Worker-emitted error message on failure. Free-form text; surfaced
+  // to the user in the export-history list ("Export failed — try again
+  // or contact support").
+  errorMessage: text('error_message'),
+  // Bytes of the produced ZIP, captured at upload time. Null until ready.
+  sizeBytes: integer('size_bytes'),
+  // 7d after `ready`. The sweeper expires past this point and purges
+  // the S3 object. Renewal is a fresh export job — we don't extend
+  // existing exports because the underlying data may have changed.
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true })
+}, table => [
+  // History list: most-recent-first per user.
+  index('idx_data_export_jobs_user').on(table.userId, table.createdAt.desc()),
+  // Worker queue scan: oldest queued row first.
+  index('idx_data_export_jobs_status').on(table.status, table.createdAt)
 ])

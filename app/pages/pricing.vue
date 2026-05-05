@@ -181,6 +181,7 @@ useHead({
 
 <template>
   <div class="min-h-[100dvh] bg-default text-default relative">
+    <CommonHomeLink />
     <!-- Modal-style close. Returns to the prior page so the pricing
          page feels like an overlay on the user's context rather than
          a destination they've navigated away into. -->
@@ -386,5 +387,7 @@ useHead({
         <p>{{ t('pricing.footnote') }}</p>
       </div>
     </main>
+
+    <CommonLegalFooter />
   </div>
 </template>

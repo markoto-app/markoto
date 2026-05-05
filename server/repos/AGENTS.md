@@ -1,6 +1,6 @@
 # server/repos
 
-Drizzle-backed repositories. One file per table family — `documents.ts`, `users.ts`, `workspaces.ts`, `workspaceMembers.ts`, `uploads.ts`, `comments.ts`, `activity.ts`, `audit.ts`, `themes.ts`, `knowledge.ts`, `health.ts`. Anything cross-table (e.g. cascading delete logic) lives in `server/utils/` and calls into multiple repos.
+Drizzle-backed repositories. One file per table family — `documents.ts`, `users.ts`, `workspaces.ts`, `workspaceMembers.ts`, `uploads.ts`, `comments.ts`, `activity.ts`, `audit.ts`, `themes.ts`, `knowledge.ts`, `health.ts`, `accountDeletionRepo.ts`, `dataExportJobs.ts`, `consentLog.ts`, `abuseReports.ts`. Anything cross-table (e.g. cascading delete logic) lives in `server/utils/` and calls into multiple repos.
 
 ## Conventions
 
@@ -38,6 +38,18 @@ Drizzle's node-postgres adapter returns Promises, not `.get()` / `.all()`. Use `
 `audit.ts` and `stripeWebhook.ts` set the precedent: when a repo function is called from within a `db.transaction(async tx => …)`, accept an optional `db?: DbOrTx` parameter and pass `tx` through so reads / writes commit atomically with the caller's other work. The dispatcher in `stripeWebhook.ts` wraps the whole event in one transaction so the dedup INSERT, user UPDATE, and stash-drain all commit together — without the optional parameter the helpers would auto-acquire a separate connection and break atomicity.
 
 When NOT to pass `tx`: bulk operations that are intentionally separate from the caller's txn (e.g. fire-and-forget audit appends from a sweeper). Default arg = global pool; pass `tx` only when atomicity is load-bearing.
+
+### Privacy / lifecycle repos
+
+`accountDeletionRepo.ts` exports the deletion-cascade primitives that `accountDeletionExecute.ts` orchestrates: `anonymiseCommentsByAuthor(userId)`, `promoteWorkspaceAdmin(workspaceId, fromUserId)` (picks the longest-tenured other admin deterministically), `nullActivityAttribution(userId)`, etc. Each one is a single-purpose write keyed on `userId` — the orchestrator composes them.
+
+`users.ts` adds the lifecycle helpers: `requestAccountDeletion`, `cancelAccountDeletion`, `getAccountStatus` (powers `useAccountStatus()`), `setAdminFlag` (paired with audit), `applyOnboardingAcceptance`, `applyDpaAcceptance`. The acceptance helpers write the `*_version_accepted` + `*_locale` pair in one update — don't split into two queries.
+
+`dataExportJobs.ts` exports the queue primitives: `enqueueExportJob`, `claimQueuedJob` (atomic `UPDATE … RETURNING` flipping `queued` → `processing`), `markJobReady` (writes `s3_key` + `expires_at`), `markJobFailed`, `markJobExpired`. **`claimQueuedJob` uses `tx.execute(sql\`...\`)`** for the atomic claim, which returns timestamps as strings — coerce with `toDate` / `toDateOrNull` on read. Drizzle's typed `select()` would coerce automatically; raw `execute` does not.
+
+`consentLog.ts` is append-only by convention (no `update`). Read paths return the latest row by `received_at` for a given `anon_id`.
+
+`abuseReports.ts` separates the public-write path (`createAbuseReport` — used by `/api/abuse-reports`) from the admin-read path (`listAbuseReports`, `getAbuseReportById` — both use `aliasedTable` to join the same `users` table twice for reporter + actioner). Status transitions go through `updateAbuseReportStatus` which also writes the audit row in the same transaction (atomicity matters: the status change is the audit-evidence).
 
 ### Adding a new repo
 

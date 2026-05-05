@@ -1,5 +1,6 @@
 import { upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/validatedSession'
+import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
 
 export default defineOAuthGoogleEventHandler({
   config: { scope: ['openid', 'email', 'profile'] },
@@ -18,6 +19,10 @@ export default defineOAuthGoogleEventHandler({
       avatarUrl: googleUser.picture,
       emailVerified
     })
+
+    // One-shot env-allowlist admin bootstrap. Idempotent (no-ops
+    // if the user is already admin OR not on the allowlist).
+    await bootstrapAdminFromEnv({ userId, email: googleUser.email ?? null })
 
     await setUserSession(event, {
       user: {

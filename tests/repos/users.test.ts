@@ -1,11 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import {
+  cancelAccountDeletion,
   findUserById,
   findUserNameById,
   findUserByEmail,
+  getAccountDeletionStatus,
+  getAccountStatus,
+  requestAccountDeletion,
+  setAdminFlag,
   upsertOAuthUser
 } from '../../server/repos/users'
+import { ConflictError } from '../../server/repos/errors'
 
 // Users repository. Write-side hot spot is `upsertOAuthUser`, which
 // now has THREE outcomes:
@@ -355,5 +361,232 @@ describe('upsertOAuthUser — email-based merge', () => {
       `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'race@test.local' AND google_id = 'g-race-same'`
     )
     expect(Number(rows.rows[0].c)).toBe(1)
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────
+// Account-deletion request lifecycle (Workstream B-1)
+// ────────────────────────────────────────────────────────────────────
+
+async function newUser(): Promise<number> {
+  const r = await upsertOAuthUser({
+    provider: 'github',
+    providerUserId: `gh-${Math.random().toString(36).slice(2, 10)}`,
+    login: 'test',
+    name: 'Test',
+    email: `${Math.random().toString(36).slice(2, 10)}@test.local`,
+    avatarUrl: null,
+    emailVerified: true
+  })
+  return r.userId
+}
+
+describe('requestAccountDeletion', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('marks the row with both timestamp columns and returns the new state', async () => {
+    const userId = await newUser()
+    const before = Date.now()
+    const status = await requestAccountDeletion(userId, 30)
+    const after = Date.now()
+
+    expect(status.deletionRequestedAt).toBeInstanceOf(Date)
+    expect(status.deletionGraceUntil).toBeInstanceOf(Date)
+
+    const requestedMs = status.deletionRequestedAt!.getTime()
+    expect(requestedMs).toBeGreaterThanOrEqual(before - 1000)
+    expect(requestedMs).toBeLessThanOrEqual(after + 1000)
+
+    // Grace = requested + 30 days. Allow 5 minutes of clock drift
+    // between application time and DB time.
+    const graceMs = status.deletionGraceUntil!.getTime()
+    const expectedGrace = requestedMs + 30 * 24 * 60 * 60 * 1000
+    expect(Math.abs(graceMs - expectedGrace)).toBeLessThan(5 * 60 * 1000)
+  })
+
+  it('throws ConflictError if a deletion is already scheduled', async () => {
+    const userId = await newUser()
+    await requestAccountDeletion(userId, 30)
+    await expect(requestAccountDeletion(userId, 30)).rejects.toBeInstanceOf(ConflictError)
+  })
+
+  it('does NOT reset the grace clock on a redundant request', async () => {
+    const userId = await newUser()
+    const first = await requestAccountDeletion(userId, 30)
+    // Tiny sleep so any reset would produce a measurable diff.
+    await new Promise(r => setTimeout(r, 50))
+    await expect(requestAccountDeletion(userId, 30)).rejects.toBeInstanceOf(ConflictError)
+    // Re-read — grace still equals the original.
+    const status = await getAccountDeletionStatus(userId)
+    expect(status?.deletionGraceUntil?.getTime()).toBe(first.deletionGraceUntil!.getTime())
+  })
+
+  it('throws on out-of-range graceDays', async () => {
+    const userId = await newUser()
+    await expect(requestAccountDeletion(userId, 0)).rejects.toThrow(/out of range/)
+    await expect(requestAccountDeletion(userId, 366)).rejects.toThrow(/out of range/)
+    await expect(requestAccountDeletion(userId, -1)).rejects.toThrow(/out of range/)
+  })
+
+  it('throws if the user does not exist', async () => {
+    await expect(requestAccountDeletion(99_999_999, 30)).rejects.toThrow(/not found/)
+  })
+
+  it('honours a custom graceDays value', async () => {
+    const userId = await newUser()
+    const status = await requestAccountDeletion(userId, 7)
+    const requestedMs = status.deletionRequestedAt!.getTime()
+    const graceMs = status.deletionGraceUntil!.getTime()
+    expect(Math.abs(graceMs - (requestedMs + 7 * 24 * 60 * 60 * 1000))).toBeLessThan(5 * 60 * 1000)
+  })
+})
+
+describe('cancelAccountDeletion', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('clears both timestamp columns', async () => {
+    const userId = await newUser()
+    await requestAccountDeletion(userId, 30)
+    await cancelAccountDeletion(userId)
+    const status = await getAccountDeletionStatus(userId)
+    expect(status?.deletionRequestedAt).toBeNull()
+    expect(status?.deletionGraceUntil).toBeNull()
+  })
+
+  it('throws ConflictError when no deletion is scheduled', async () => {
+    const userId = await newUser()
+    await expect(cancelAccountDeletion(userId)).rejects.toBeInstanceOf(ConflictError)
+  })
+
+  it('throws if the user does not exist', async () => {
+    await expect(cancelAccountDeletion(99_999_999)).rejects.toThrow(/not found/)
+  })
+
+  it('allows re-requesting after a cancel (idempotent across cycle)', async () => {
+    const userId = await newUser()
+    await requestAccountDeletion(userId, 30)
+    await cancelAccountDeletion(userId)
+    // Second request should succeed (no longer "already scheduled").
+    const status = await requestAccountDeletion(userId, 30)
+    expect(status.deletionRequestedAt).toBeInstanceOf(Date)
+  })
+})
+
+describe('getAccountDeletionStatus', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('returns nulls for a fresh user', async () => {
+    const userId = await newUser()
+    const status = await getAccountDeletionStatus(userId)
+    expect(status).toEqual({ deletionRequestedAt: null, deletionGraceUntil: null })
+  })
+
+  it('returns the marks after a request', async () => {
+    const userId = await newUser()
+    await requestAccountDeletion(userId, 30)
+    const status = await getAccountDeletionStatus(userId)
+    expect(status?.deletionRequestedAt).toBeInstanceOf(Date)
+    expect(status?.deletionGraceUntil).toBeInstanceOf(Date)
+  })
+
+  it('returns null for a nonexistent user', async () => {
+    const status = await getAccountDeletionStatus(99_999_999)
+    expect(status).toBeNull()
+  })
+})
+
+describe('getAccountStatus', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('returns the privacy projection for a fresh user', async () => {
+    const userId = await newUser()
+    const status = await getAccountStatus(userId)
+    expect(status).not.toBeNull()
+    expect(status!.email).toMatch(/@test\.local$/)
+    expect(status!.locale).toBeNull()
+    expect(status!.ageConfirmedAt).toBeNull()
+    expect(status!.deletionRequestedAt).toBeNull()
+    expect(status!.privacyVersionAccepted).toBeNull()
+    expect(status!.tosVersionAccepted).toBeNull()
+    expect(status!.dpaVersionAccepted).toBeNull()
+  })
+
+  it('reflects a scheduled deletion', async () => {
+    const userId = await newUser()
+    await requestAccountDeletion(userId, 30)
+    const status = await getAccountStatus(userId)
+    expect(status!.deletionRequestedAt).toBeInstanceOf(Date)
+    expect(status!.deletionGraceUntil).toBeInstanceOf(Date)
+  })
+
+  it('returns null for a nonexistent user', async () => {
+    expect(await getAccountStatus(99_999_999)).toBeNull()
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────
+// Admin flag (B-13.x)
+// ────────────────────────────────────────────────────────────────────
+
+describe('setAdminFlag', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('promotes a user from non-admin to admin and returns the previous value', async () => {
+    const userId = await newUser()
+    const result = await setAdminFlag(userId, true)
+    expect(result).toEqual({ previous: false })
+
+    // Verify the column actually flipped via findUserById.
+    const reread = await findUserById(userId)
+    expect(reread?.isAdmin).toBe(true)
+  })
+
+  it('is a no-op when the flag is already at the requested value', async () => {
+    const userId = await newUser()
+    await setAdminFlag(userId, true)
+    // Second call should report previous=true and write nothing.
+    const result = await setAdminFlag(userId, true)
+    expect(result).toEqual({ previous: true })
+    const reread = await findUserById(userId)
+    expect(reread?.isAdmin).toBe(true)
+  })
+
+  it('demotes from admin to non-admin', async () => {
+    const userId = await newUser()
+    await setAdminFlag(userId, true)
+    const result = await setAdminFlag(userId, false)
+    expect(result).toEqual({ previous: true })
+    const reread = await findUserById(userId)
+    expect(reread?.isAdmin).toBe(false)
+  })
+
+  it('returns null for a nonexistent user', async () => {
+    expect(await setAdminFlag(99_999_999, true)).toBeNull()
+  })
+})
+
+describe('findUserById — isAdmin projection', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('exposes the isAdmin column on every read', async () => {
+    const userId = await newUser()
+    const fresh = await findUserById(userId)
+    expect(fresh?.isAdmin).toBe(false)
+
+    await setAdminFlag(userId, true)
+    const promoted = await findUserById(userId)
+    expect(promoted?.isAdmin).toBe(true)
   })
 })

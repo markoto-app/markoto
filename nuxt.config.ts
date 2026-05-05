@@ -161,6 +161,23 @@ export default defineNuxtConfig({
     knowledge: KNOWLEDGE_PLATFORM_LIMITS,
     // Stripe config — all empty in dev, set via NUXT_STRIPE_* in prod.
     stripe: STRIPE_CONFIG_DEFAULTS,
+    // Transactional email. All empty in dev (the helper falls back
+    // to a console log via `[email-stub]`); set via NUXT_EMAIL_* in
+    // prod to enable real delivery. See `server/utils/email/sendEmail.ts`
+    // for the dispatch shape. Today supports `provider: 'resend'`;
+    // adding a second provider is one branch in that file.
+    email: {
+      // Empty = stub mode. Set to 'resend' to enable real delivery
+      // (requires apiKey + fromAddress to also be set).
+      provider: '',
+      // Provider API key. Resend keys start `re_…`.
+      apiKey: '',
+      // Verified sending address — must be on a domain whose SPF +
+      // DKIM DNS records are set in the provider. Format: `Name
+      // <address@domain>`. NEVER set this to an unverified domain;
+      // the provider will silently bounce.
+      fromAddress: ''
+    },
     public: {
       syncUrl: '',
       sentry: {
@@ -192,6 +209,16 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
   nitro: {
+    // Global error sanitiser. Every uncaught error from any /api/*
+    // endpoint flows through `server/error.ts` before the response
+    // is sent. 5xx errors are stripped of their original message +
+    // stack (only `{ statusCode, statusMessage, message:'Something
+    // went wrong on our side', data:{code:'internal'} }` reaches
+    // the client); 4xx errors keep their author-controlled message
+    // (toast copy). The full error is Sentry-captured + console-
+    // logged server-side regardless. Belt-and-braces against pg
+    // errors / drizzle queries leaking to the wire.
+    errorHandler: '~~/server/error.ts',
     // Native WebSocket route support for `/api/ai/dictate` (voice
     // dictation relay to Google Cloud Speech-to-Text). Other WS traffic
     // (Hocuspocus Y.js sync) flows through its own standalone container,

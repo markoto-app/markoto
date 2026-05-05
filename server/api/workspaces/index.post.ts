@@ -4,6 +4,7 @@ import { createWorkspace, countOwnedWorkspacesByUser } from '../../repos/workspa
 import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { TIERS, type PlanName } from '~~/shared/config/tiers'
+import { DPA_VERSION } from '~~/shared/legal/versions'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -19,13 +20,34 @@ export default defineEventHandler(async (event) => {
   const db = useDatabase()
   const planRows = await db.select({
     plan: users.plan,
-    planValidUntil: users.planValidUntil
+    planValidUntil: users.planValidUntil,
+    dpaVersionAccepted: users.dpaVersionAccepted
   }).from(users).where(eq(users.id, userId)).limit(1)
   const rawPlan = (planRows[0]?.plan ?? 'free') as PlanName
   const validUntil = planRows[0]?.planValidUntil ?? null
   const lapsed = validUntil !== null && validUntil.getTime() <= Date.now()
   const effectivePlan: PlanName = lapsed ? 'free' : rawPlan
   const cap = TIERS[effectivePlan].workspacesOwned
+
+  // GDPR Article 28 gate: the user is about to become a controller
+  // for personal data their workspace members place inside this
+  // workspace, and we become their processor. The DPA is the
+  // contract that governs that relationship. Refuse workspace
+  // creation until they've accepted at the current version. The
+  // client-side flow surfaces a `DpaAcceptanceModal` before this
+  // POST fires; the server-side check is defence-in-depth so a
+  // direct curl can't slip past the consent.
+  const acceptedDpa = planRows[0]?.dpaVersionAccepted ?? null
+  if (acceptedDpa === null || acceptedDpa < DPA_VERSION) {
+    throw createError({
+      statusCode: 409,
+      message: 'You must accept the Data Processing Addendum (DPA) before creating a workspace.',
+      data: {
+        code: 'workspace/dpa-required',
+        currentDpaVersion: DPA_VERSION
+      }
+    })
+  }
 
   const owned = await countOwnedWorkspacesByUser(userId)
   if (owned >= cap) {

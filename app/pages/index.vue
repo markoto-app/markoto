@@ -437,5 +437,7 @@ function onRowLongPress(doc: DocumentListItem) {
         />
       </div>
     </main>
+
+    <CommonLegalFooter />
   </div>
 </template>

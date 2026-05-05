@@ -78,6 +78,19 @@ Three dead ends so we don't try again:
 
 **Net: the API-route coverage gap is architectural.** When reviewing coverage numbers, mentally overlay every `server/{api,middleware,plugins,routes}/*` plus orchestrators like `processKnowledge.ts` and `aiClient.ts` as covered by the 300+ integration tests but not visible in the percentage.
 
+## Privacy / abuse / admin tests
+
+Privacy-surface tests (Workstream B) live alongside the rest of the integration suite. Notable shapes:
+
+- `tests/integration/endpoints/abuseReports.test.ts` — 14 HTTP-level tests covering the full lifecycle: rate-limit, missing-body validation, oversized body, free-form `docId` (NOT FK), reporter-IP truncation, audit-row presence, admin-only `GET /api/admin/abuse-reports`, status-PATCH transitions with audit-and-update atomicity. Pin the doc-id-as-text invariant — the original FK exploded on first invalid input.
+- `tests/repos/abuseReports.test.ts` — DB-level shape + the `aliasedTable` join shape that the admin endpoint depends on (reporter + actioner are both FKs into `users`; misnaming the alias produces silent column collision in Drizzle's row mapper).
+- `tests/unit/legal/registries.test.ts` — uniqueness + cross-registry referential integrity (every `PROCESSING_PURPOSES.subProcessors` ref resolves; no audit-action collisions). Cheap and load-bearing — adds zero runtime overhead and catches every "I added a row but didn't wire the cross-ref" mistake.
+- `tests/unit/legal/i18nKeys.test.ts` — pins the 110 i18n keys consumed by privacy + profile-page surfaces. A typo in `t('legal.consent.banner.title')` would otherwise render the literal key string in the UI; this test fails at unit-time instead of waiting for QA.
+- `tests/unit/errorSanitizer.test.ts` — 14 tests on the framework-level error policy: 4xx pass through (preserve `message` + `data`), 5xx strip to generic + `code: 'internal'`, stack never appears. Wired against the pure `buildSanitizedErrorPayload(error, url)` export — hits the function directly, not through the Nitro runtime.
+- `tests/unit/adminAccess.test.ts` — 14 tests on `isAdminEmail` (env-list parser): case-insensitive on both sides, comma-separated with whitespace + empty-segment tolerance, no module-scope cache (env reads on every call). Drift here silently locks ops out of `/admin/*`.
+
+When you add a privacy / lifecycle endpoint, default to the integration tier — middleware + repo + audit + email-out are exactly what unit-with-mocks misses.
+
 ## Gotchas
 
 - **`vi.mock` paths resolve relative to the test file, not the source file.** Use `vi.mock('../../server/utils/database', ...)` from a test in `tests/integration/`. Symptom is opaque: tests "passing" but with phantom assertions because the mock never engaged.

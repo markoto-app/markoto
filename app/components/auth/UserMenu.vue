@@ -2,6 +2,39 @@
 const { t } = useI18n()
 const { loggedIn, user } = useUserSession()
 const { logout } = useLogout()
+const { status: accountStatus } = useAccountStatus()
+
+// Build the menu items reactively — the Admin item only surfaces
+// when the current user is on the admin allowlist (env-driven via
+// NUXT_ADMIN_USER_EMAILS, exposed through /api/user/account-status).
+type MenuItem = { label: string, icon: string, to?: string, onSelect?: () => unknown }
+const menuItems = computed<MenuItem[]>(() => {
+  const items: MenuItem[] = [
+    {
+      label: t('pricing.title'),
+      icon: 'i-lucide-credit-card',
+      to: '/pricing'
+    },
+    {
+      label: t('settings.profile.title'),
+      icon: 'i-lucide-user',
+      to: '/settings/profile'
+    }
+  ]
+  if (accountStatus.value?.isAdmin) {
+    items.push({
+      label: 'Admin',
+      icon: 'i-lucide-shield-check',
+      to: '/admin/abuse-reports'
+    })
+  }
+  items.push({
+    label: t('auth.logout'),
+    icon: 'i-lucide-log-out',
+    onSelect: () => logout()
+  })
+  return items
+})
 </script>
 
 <template>
@@ -14,24 +47,12 @@ const { logout } = useLogout()
          the bar ticks down live as the user consumes credits. -->
     <AuthUsageBadge />
 
-    <UDropdownMenu
-      :items="[
-        {
-          label: t('pricing.title'),
-          icon: 'i-lucide-credit-card',
-          to: '/pricing'
-        },
-        {
-          label: t('auth.logout'),
-          icon: 'i-lucide-log-out',
-          onSelect: () => logout()
-        }
-      ]"
-    >
+    <UDropdownMenu :items="menuItems">
       <UButton
         color="neutral"
         variant="ghost"
         class="gap-2"
+        data-testid="user-menu-trigger"
       >
         <UAvatar
           :src="user?.avatar ?? undefined"

@@ -10,7 +10,19 @@
 
 **Internal (sync→app, `X-Internal-Secret`):** `POST /api/internal/activity` (sync→app activity logging; the sync-server stamps `yjsDocIdBefore`/`yjsDocIdAfter` boundary ids per row so Tier 1 diffs + Tier 2 restores can replay; returns `{ success: true, logged: false, deduped: true }` when the cross-instance partial-unique-index race fires and the second insert is a no-op), `POST /api/internal/comments-snapshot` (per-thread state snapshot triggered on every comment.* mutation; serialised by `pg_advisory_xact_lock(hashtext(docId))` so concurrent writes don't both read the same `latest_id` and produce identical phantom snapshots), `GET /api/_internal/render-bootstrap` (renderer-token-gated; serves the doc's initial Y.js state + theme to the renderer's headless print page).
 
-**User:** `GET /api/user/documents`, `GET /api/user/workspaces`, `GET /api/user/recent`
+**User:** `GET /api/user/documents`, `GET /api/user/workspaces`, `GET /api/user/recent`, `GET /api/user/account-status` (single fetch behind `useAccountStatus()` — returns ageConfirmedAt + per-document `*_version_accepted` + `deletion_requested_at` + `isAdmin` + workspace fates from `planAccountDeletion`).
+
+**Privacy / account lifecycle (login required):** `POST /api/user/onboarding/accept` (writes Privacy + ToS + age via `applyOnboardingAcceptance` in one update), `POST /api/user/dpa/accept` (workspace-owner-only DPA acceptance), `POST /api/user/delete` (flips `deletion_requested_at`, audits, fires "deletion scheduled" email), `POST /api/user/delete-cancel` (one path segment — NOT `/delete/cancel`; nulls the column + audits `account.delete_cancelled`). Hard purge is async via `accountDeletionSweep.ts`, NOT inline.
+
+**Data export (login required):** `POST /api/user/data-export` (enqueues a `data_export_jobs` row, audits `account.export_requested`; rate-limited), `GET /api/user/data-export/history` (lists user's recent jobs with status + S3 download URL when `ready`). The worker (`dataExportWorker.ts` plugin) drains queued rows; expiry sweeper flips `ready` → `expired` past 7-day TTL.
+
+**Consent / cookies (no session — anon-id-keyed):** `GET /api/consent?anonId=…` (returns latest row for the anon-id), `POST /api/consent` (append-only insert; carries optional `userId` for post-login bridge). The `markoto-anon-id` cookie is the consent identity, NOT the user.
+
+**Abuse reporting:** `POST /api/abuse-reports` (login required, 10/user/hour; DSA Art.16 notice-and-action submission; `docId` is free-form text not FK; reporter email + truncated IP + UA hash captured; best-effort operator email via Resend on every submit).
+
+**Admin (admin-only via `requireAdminUser`):** `GET /api/admin/abuse-reports` (triage queue with reporter + actioner joins via `aliasedTable`), `PATCH /api/admin/abuse-reports/:reportId` (status change → audit `abuse.actioned` / `.dismissed`).
+
+**Legal documents (no session):** `GET /api/_internal/legal/:slug` (renders markdown from `content/legal/:slug/<locale>.md` with `{{controllerName}}` / `{{controllerAddress}}` / `{{privacyContactEmail}}` / `{{abuseContactEmail}}` / `{{governingLaw}}` substitution against `resolveLegalEntity()`), `GET /api/_internal/sub-processors` (renders `SUB_PROCESSORS` registry as JSON for the `/legal/sub-processors` page).
 
 **Files:** `POST /api/upload/request` (presigned PUT), `POST /api/upload/confirm` (HEADs the S3 object then runs `file-type` magic-byte sniff against the declared MIME — bypass attempts get 415 + orphan delete), `GET /api/files/:docId/:fileId` (302 → presigned GET, access-controlled)
 
@@ -32,4 +44,4 @@
 
 Auth guard: see `server/AGENTS.md` for whitelist conventions.
 
-**Audit-log readers:** none yet. `appendAuditEvent` is currently fire-and-forget from privileged endpoints (workspace delete, member role change, member removal) and the `inactive-doc-sweep` plugin. A forensic admin UI is future work — when added, it MUST be auth-gated on a dedicated admin role (we don't have one today; design before exposing).
+**Audit-log readers:** none in user-facing UI. `appendAuditEvent` is fire-and-forget from privileged endpoints (workspace delete, member role change, member removal, account-deletion lifecycle, abuse-report lifecycle, admin grant/revoke, consent recorded, policy accepted) and several sweepers. The `/api/admin/abuse-reports` endpoints DO read audit indirectly (the actioner column is FK'd to `users` so the join surfaces who triaged); a broader forensic admin UI is future work — when added, gate on `requireAdminUser` from `server/utils/adminAccess.ts`.

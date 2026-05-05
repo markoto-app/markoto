@@ -109,6 +109,22 @@ Don't TRUNCATE in migrations unless you genuinely need to — almost always a fr
 
 `useDatabase()` in `server/utils/database.ts` wraps `pool.query` with a timing probe. Queries past `NUXT_DB_SLOW_QUERY_MS` (default 200ms) fire a warning-level Sentry event tagged `component=db, event=slow_query`. SQL is truncated to 500 chars; **param VALUES are NEVER logged** (PII / secrets risk) — only `paramsCount`. Override the threshold per-environment for noisier dev or tighter prod alerting.
 
+## Privacy / compliance tables
+
+Three tables back the privacy infrastructure (Workstream B). All follow the existing conventions but have load-bearing FK + retention shapes worth noting:
+
+- **`consent_log`** — append-only ePrivacy/GDPR-Art.7 record. Keyed on `anonId` (the `markoto-anon-id` cookie, persists past login) plus optional `userId` for the post-login bridge. There is NO unique constraint — every save writes a new row; "current consent" is whatever the latest row by `received_at` says. Don't add an UPDATE path.
+- **`abuse_reports`** — DSA Art.16 queue. `reporter_user_id` is `ON DELETE SET NULL` so reporter deletion doesn't drop the record (snapshotted `reporter_email` survives for moderator follow-up). `doc_id` is plain `text`, NOT an FK to `documents.doc_id` — moderators triage by URL, malformed/missing ids are informational. Migration `0013_*.sql` dropped the original FK after a "test" input pasted by a real reporter exploded with FK violation.
+- **`data_export_jobs`** — GDPR Art.15/20 worker queue. Status lifecycle `queued` → `processing` → `ready` (+ `s3_key` + `expires_at`) / `failed` (+ `error_message`) / `expired`. Drained by the `data-export-worker` plugin; expired rows reaped by `data-export-expiry-sweep`.
+
+**Account-deletion columns on `users`** (`deletion_requested_at`, `deletion_confirmed_at`, `deletion_reason`) are nullable — null is the steady state. Cancellation = `UPDATE … SET deletion_requested_at = NULL` plus the same nulling of the other two. Hard purge in `accountDeletionExecute.ts` deletes the row entirely, taking owned docs + sole-member workspaces with it.
+
+**Policy-acceptance columns on `users`** are paired: `*_version_accepted` (integer) + `*_locale` (text) for privacy / tos / dpa, plus `age_confirmed_at` (timestamp). Bumping a `_VERSION` constant in `shared/legal/versions.ts` makes every user with a stale `_version_accepted` re-prompt — no migration touches the table.
+
+**`audit_log.actor_ip` is /24 (IPv4) or /48 (IPv6) truncated** at write time via `truncateIp` from `server/repos/audit.ts`. The repo trusts what it gets — call sites ALWAYS pass through the helper. Same pattern in `abuse_reports.reporter_ip_truncated`.
+
+**`actor_user_id` / `reporter_user_id` are `ON DELETE SET NULL`** — purging a user nulls the FK on their audit + abuse-report attribution but the row survives so historical queries make sense ("user [now-deleted] reported X on date Y").
+
 ## SSL
 
 Production uses OVH-managed Postgres which requires TLS. `server/utils/database.ts` calls `resolvePostgresSsl()` which **fails loudly** on misconfigured `PGSSLMODE` / `PGSSLROOTCERT` — silent fallback to no-TLS would expose credentials over the public network. Don't catch the throw; let it propagate so a misconfigured deploy fails at boot.

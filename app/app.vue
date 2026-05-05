@@ -38,6 +38,19 @@ useSeoMeta({
          user sees it everywhere (dashboard, editor, workspace, docs).
          Auto-hides when the network comes back. -->
     <CommonOfflineBanner />
+    <!-- Visible across every authenticated route while a deletion is
+         scheduled. Hidden silently for anonymous users / users with
+         no pending deletion. -->
+    <LegalAccountDeletionGraceBanner />
+    <!-- Onboarding gate — blocks the app on first login until the
+         user confirms age + accepts current Privacy Policy + ToS.
+         Hidden for anonymous users (no row to attach acceptance
+         to) and for users who already accepted the current versions. -->
+    <LegalOnboardingGate />
+    <!-- Cookie / consent banner — first-visit prompt + persistent
+         re-open via the footer "Privacy choices" link. Renders for
+         anonymous + logged-in alike (ePrivacy is identity-agnostic). -->
+    <LegalConsentBanner />
     <!-- NuxtLayout wraps NuxtPage with whatever layout the page opts
          into via definePageMeta({ layout: 'name' }). Pages without
          a layout meta render bare (no default layout file exists),
