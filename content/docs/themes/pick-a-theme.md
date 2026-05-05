@@ -50,11 +50,21 @@ sections — Body, Headings, Color, Cover page — and any field you
 change applies on top of the picked preset. Save a doc with a
 custom feel and the next document still starts at markoto.
 
+## On mobile
+
+Mobile editors get the Theme picker through the right-sidebar bottom
+sheet (`< sm` breakpoint). Same presets, same live-preview repaint.
+
+::flow{id="pick-a-theme-on-mobile" hide-title}
+::
+
 ## What's next
 
 - [Configure your cover page](/docs/themes/cover-page) — multi-author
   list, subtitle, brand logo placement.
-- [Tune typography for long-form](/docs/themes/typography) — drop
-  caps, first-line indent, paragraph spacing.
-- [Export your themed document](/docs/import-export/) — the
+- [Tune typography and colors](/docs/themes/customize) — drop
+  caps, first-line indent, paragraph spacing, font swaps.
+- [Save your tuning as a preset](/docs/themes/save-preset) — re-use on
+  the next doc.
+- [Export your themed document](/docs/import-export/polished-pdf) — the
   preview-CSS pipeline produces the same PDF.

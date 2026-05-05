@@ -19,16 +19,24 @@ homepage and ends with a tangible result you can hand to someone.
 ## The starter tutorials
 
 - [**Write & share your first document**](/docs/getting-started/quick-share) — Create a doc, name it, and send the link. ~3 minutes.
-- [**Turn your draft into a polished PDF**](/docs/getting-started/polished-pdf) — Pick a theme, hit print, get a polished file. *(coming soon)*
-- [**Bring an existing Word or PDF document in**](/docs/getting-started/import-existing) — Start from what you already have. *(coming soon)*
+- [**Turn your draft into a polished PDF**](/docs/import-export/polished-pdf) — Pick a theme, hit Save as PDF, get a polished file.
+- [**Bring an existing Word or PDF document in**](/docs/import-export/import-existing) — Start from what you already have.
+- [**Start from a template**](/docs/getting-started/templates) — Skip the blank page; pick a shape that matches your project.
 
 ## After that
 
 When you're comfortable with the basics:
 
-- See [**Writing**](/docs/writing) for the markdown extensions markoto
-  ships with — tables, alerts, math, diagrams, footnotes.
-- See [**Sharing & Permissions**](/docs/sharing) for the full
-  access-mode reference (open-edit, view-only, password-protected).
-- See [**Themes**](/docs/themes) to customize how your document
-  looks in both the live preview and the PDF.
+- [**Write**](/docs/writing) — markdown extensions, AI prompt, voice
+  dictation, comments, knowledge-grounded answers.
+- [**Share**](/docs/sharing) — access modes (open-edit, view-only,
+  password-protected, QR code).
+- [**Style**](/docs/themes) — themes, presets, cover pages.
+- [**Import & export**](/docs/import-export) — DOCX/PDF/PPTX/XLSX/HTML/EPUB
+  in; Markdown + PDF out.
+- [**Workspaces**](/docs/workspaces) — team-shared docs with three roles
+  and optional AI sponsoring.
+- [**History & restore**](/docs/history) — see every change, replay
+  comments in context, restore any past version.
+- [**Account & billing**](/docs/account) — plans, upgrades, GDPR data
+  export, account deletion.

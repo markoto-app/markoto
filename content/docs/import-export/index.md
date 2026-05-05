@@ -15,3 +15,4 @@ using the document's theme.
 
 - [Polish a document and download as PDF](/docs/import-export/polished-pdf) — pick a theme, export the rendered PDF.
 - [Bring an existing document in](/docs/import-export/import-existing) — Word, PDF, HTML, more — converted to clean markdown.
+- [Save as Markdown](/docs/import-export/save-markdown) — `.md` download for git, Obsidian, anywhere.

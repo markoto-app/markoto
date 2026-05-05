@@ -44,6 +44,14 @@ prepends a `<document_context>` block to the system prompt every turn.
 That's why the AI shifted languages without you mentioning the language
 in your prompt.
 
+## On mobile
+
+The Document tab is in the same right-sidebar bottom sheet as the
+theme + activity tabs. The form is dense; expect to scroll.
+
+::flow{id="tell-the-ai-who-you-re-writing-for-on-mobile" hide-title}
+::
+
 ## What's next
 
 - [Pick a theme that matches the audience](/docs/themes/pick-a-theme).

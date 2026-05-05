@@ -70,6 +70,14 @@ tool handlers re-check `getMemberRole(workspaceId, userId)` on every
 invocation. An admin demoting you mid-session immediately revokes
 further knowledge access at the next tool call.
 
+## On mobile
+
+The Knowledge tab is in the right-sidebar bottom sheet — same upload,
+same processing, same search behind the scenes.
+
+::flow{id="knowledge-grounded-ai-on-mobile" hide-title}
+::
+
 ## What's next
 
 - [Polish the AI's grounded answer as a PDF](/docs/import-export/polished-pdf).
