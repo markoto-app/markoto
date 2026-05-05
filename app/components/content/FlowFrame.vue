@@ -6,6 +6,15 @@
 // geometrically correct at any displayed width.
 
 type Highlight = { label: string, x: number, y: number, w: number, h: number }
+type AnnotationKind = 'arrow' | 'box' | 'pin'
+type Annotation = {
+  label: string
+  kind: AnnotationKind
+  x: number
+  y: number
+  w: number
+  h: number
+}
 type Card = { kind: 'chapter' | 'narration', text: string } | null
 
 const props = defineProps<{
@@ -21,8 +30,12 @@ const props = defineProps<{
   cursorOpacity: number
   /** URL pathname rendered in the fake address bar. Empty on chapter. */
   path: string
-  /** Outcome-only callouts. Approach/narration ignore these. */
+  /** Outcome-only callouts (pulsing orange ring + label). */
   highlights?: Highlight[]
+  /** Direction-anchoring callouts on click targets (approach frames).
+   *  Distinct from `highlights`: these point AT something the reader
+   *  needs to act on next, not at something that just happened. */
+  annotations?: Annotation[]
   /** Source viewport size — drives aspect ratio + overlay scaling. */
   viewport: { w: number, h: number }
   showCursor: boolean
@@ -48,6 +61,80 @@ function labelBelow(h: Highlight): boolean {
 }
 function labelRight(h: Highlight): boolean {
   return h.x > props.viewport.w / 2
+}
+
+// Annotation positioning — same flip logic as highlights but stricter
+// because annotation labels live OFF-target (with a leader line) rather
+// than hugging the box edge. Decide which corner the label sits in.
+function annotationLabelLeft(a: Annotation): boolean {
+  return a.x + a.w / 2 > props.viewport.w / 2
+}
+function annotationLabelTop(a: Annotation): boolean {
+  return a.y + a.h / 2 > props.viewport.h / 2
+}
+
+// Leader-line endpoints for arrow-kind annotations. Currently
+// unused — annotation rendering is disabled in the public docs
+// slideshow (the SVG block is gated on `v-if="false"`). Kept here
+// alongside lineToRectEdge so the rendering can be re-enabled
+// without re-deriving the geometry. The leading underscore is
+// what the lint rule expects for "intentionally unused".
+function _arrowGeometry(a: Annotation) {
+  const cx = a.x + a.w / 2
+  const cy = a.y + a.h / 2
+  const labelLeft = annotationLabelLeft(a)
+  const labelTop = annotationLabelTop(a)
+  // Tail anchor: a fixed inset from whichever corner the label's in.
+  const inset = 18
+  const tailX = labelLeft ? inset : props.viewport.w - inset
+  const tailY = labelTop ? inset : props.viewport.h - inset
+  // Arrowhead lands on the box edge closest to the tail anchor —
+  // computed via line-rect intersection. Keeps the arrow short and
+  // clean instead of cutting through the target.
+  const head = lineToRectEdge(tailX, tailY, cx, cy, a)
+  return { tailX, tailY, headX: head.x, headY: head.y, labelLeft, labelTop }
+}
+
+// Intersect line (x1, y1) → (x2, y2) with the bounding rect of the
+// annotation. Returns the point where the line first touches the
+// rect's perimeter (so the arrowhead lands on the edge, not in the
+// box's interior).
+function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annotation) {
+  const left = a.x
+  const right = a.x + a.w
+  const top = a.y
+  const bottom = a.y + a.h
+  const dx = x2 - x1
+  const dy = y2 - y1
+  // Param t in [0, 1] where line first crosses the rect. Compute
+  // candidate t for each edge; pick the smallest valid one.
+  const candidates: number[] = []
+  if (dx !== 0) {
+    const tLeft = (left - x1) / dx
+    if (tLeft >= 0 && tLeft <= 1) {
+      const y = y1 + tLeft * dy
+      if (y >= top && y <= bottom) candidates.push(tLeft)
+    }
+    const tRight = (right - x1) / dx
+    if (tRight >= 0 && tRight <= 1) {
+      const y = y1 + tRight * dy
+      if (y >= top && y <= bottom) candidates.push(tRight)
+    }
+  }
+  if (dy !== 0) {
+    const tTop = (top - y1) / dy
+    if (tTop >= 0 && tTop <= 1) {
+      const x = x1 + tTop * dx
+      if (x >= left && x <= right) candidates.push(tTop)
+    }
+    const tBottom = (bottom - y1) / dy
+    if (tBottom >= 0 && tBottom <= 1) {
+      const x = x1 + tBottom * dx
+      if (x >= left && x <= right) candidates.push(tBottom)
+    }
+  }
+  const t = candidates.length ? Math.min(...candidates) : 1
+  return { x: x1 + t * dx, y: y1 + t * dy }
 }
 </script>
 
@@ -159,7 +246,9 @@ function labelRight(h: Highlight): boolean {
           >
 
           <!-- Highlight callouts (outcome only — Flow.vue passes []
-               for any other kind). -->
+               for any other kind). Color: shu (the markoto seal) so
+               the callouts read as part of the brand surface, not
+               like a generic warning chip. -->
           <template v-if="showHighlights && highlights?.length">
             <div
               v-for="(h, i) in highlights"
@@ -174,15 +263,29 @@ function labelRight(h: Highlight): boolean {
             >
               <div class="absolute inset-0 rounded flow-highlight-pulse" />
               <span
-                class="absolute px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500 text-white whitespace-nowrap max-w-[200px] truncate shadow"
+                class="absolute px-1.5 py-0.5 rounded text-[10px] font-medium text-white whitespace-nowrap max-w-[200px] truncate shadow"
                 :class="[
                   labelBelow(h) ? 'top-full mt-0.5' : 'bottom-full mb-0.5',
                   labelRight(h) ? 'right-0' : 'left-0'
                 ]"
+                :style="{ background: 'var(--color-shu-500, #B5371F)' }"
               >
                 {{ h.label }}
               </span>
             </div>
+          </template>
+
+          <!-- Annotation rendering DISABLED in the public docs slideshow.
+               The fixture + manifest still ship `annotations` (so future
+               work can re-enable arrow/box/pin overlays without churning
+               every spec), but feedback was that arrows spanning the
+               whole slide read as visual noise — the cursor + highlight
+               boxes carry enough direction. To re-enable, uncomment the
+               original block in git history (commit c22b7e3) and ensure
+               the props pipeline still passes the array through. -->
+          <template v-if="false && annotations?.length">
+            <!-- intentionally empty — annotations live in manifests but
+                 are not rendered in the slideshow today -->
           </template>
 
           <!-- Cursor / tap indicator. Opacity-controlled so it can
@@ -212,7 +315,10 @@ function labelRight(h: Highlight): boolean {
               left: `${(cursor.x / viewport.w) * 100}%`,
               top: `${(cursor.y / viewport.h) * 100}%`,
               opacity: cursorOpacity,
-              filter: 'drop-shadow(0 0 3px rgb(249 115 22 / 0.95)) drop-shadow(0 0 10px rgb(249 115 22 / 0.7))'
+              // shu-500 (#B5371F = rgb(181 55 31)) — the markoto seal
+              // color. Was generic orange-500 before; switched so the
+              // cursor's glow reads as brand surface, not as a warning.
+              filter: 'drop-shadow(0 0 3px rgb(181 55 31 / 0.95)) drop-shadow(0 0 10px rgb(181 55 31 / 0.7))'
             }"
           >
         </template>
@@ -222,12 +328,16 @@ function labelRight(h: Highlight): boolean {
 </template>
 
 <style scoped>
+/* shu-500 (#B5371F = rgb(181 55 31)) — the markoto seal color. The
+   pulse glow was generic orange-500; switched to shu so highlights
+   match the brand palette. The chip background (set inline above)
+   uses the same value. */
 @keyframes flow-highlight-pulse {
   0%, 100% {
-    box-shadow: 0 0 4px 1px rgb(249 115 22 / 0.6);
+    box-shadow: 0 0 4px 1px rgb(181 55 31 / 0.6);
   }
   50% {
-    box-shadow: 0 0 11px 4px rgb(249 115 22 / 0.75);
+    box-shadow: 0 0 11px 4px rgb(181 55 31 / 0.75);
   }
 }
 .flow-highlight-pulse {
@@ -236,7 +346,7 @@ function labelRight(h: Highlight): boolean {
 @media (prefers-reduced-motion: reduce) {
   .flow-highlight-pulse {
     animation: none;
-    box-shadow: 0 0 7px 2px rgb(249 115 22 / 0.7);
+    box-shadow: 0 0 7px 2px rgb(181 55 31 / 0.7);
   }
 }
 </style>

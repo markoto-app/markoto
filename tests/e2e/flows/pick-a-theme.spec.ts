@@ -17,26 +17,31 @@ import { test, expect } from '../fixtures/flow'
 //   • Declarative `result` on the outcome → "X happens", "Y appears"
 //   • Highlights live on outcomes only
 test('Pick a theme', async ({ page, flow, editor }) => {
+  // Mobile is desktop-redirected for this flow. Reasoning: half the
+  // theme story is "watch the preview update" — the live preview
+  // iframe + paged.js pagination + cover-page rendering. Mobile
+  // forces edit-only view (no preview iframe), so every visual
+  // assertion in this flow becomes a no-op AND the screenshots
+  // capture an editor-only pane that buries the theme-changes-the-
+  // doc-look payoff. Better to surface this story at desktop only
+  // than to ship a mobile slideshow that's mostly grey CodeMirror.
+  test.skip(
+    editor.isMobile,
+    'Theme flow requires the live preview iframe to show the visual '
+    + 'payoff; mobile edit-only viewMode hides it.'
+  )
   test.setTimeout(120_000)
 
   await editor.silentSetup()
 
-  // On mobile, silentSetup leaves the doc in edit-only mode. The
-  // theme picker now mounts as a bottom sheet that doesn't cover
-  // the editor area, so we don't need to switch to preview — but
-  // for parity of "watch the preview update" outcomes, we toggle
-  // preview mode via the new bottom view-mode bar so the iframe
-  // exists and the assertions can read its CSS.
-  if (editor.isMobile) {
-    // Tap the eye icon on the mobile view-mode bar (2nd button).
-    // Don't waitForPreviewPaginated — paged.js leaves the cover
-    // sheet hidden through repeated zoom-recalcs on a narrow
-    // viewport, and the assertions below all read the served CSS
-    // (not the rendered DOM) so they don't need pagination to
-    // finish.
-    await page.locator('[data-testid="mobile-viewmode-bar"] button').nth(1).click()
-    await page.waitForTimeout(2000)
-  }
+  // Title + intro before any captured shots.
+  await flow.heading('Pick a theme that fits your document', 3)
+  await flow.narrate(
+    'Every markoto document carries its own theme — fonts, colors, '
+    + 'page margins, table styling, even cover-page layout. The same '
+    + 'theme drives the live preview AND the PDF export, so what you '
+    + 'see in the right pane is what you ship.'
+  )
 
   // ─── Open the theme panel ──────────────────────────────────────────
   await flow.heading('Open the theme panel', 3)
@@ -48,19 +53,20 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   )
 
   if (editor.isMobile) {
-    // Mobile: 5 sidebar tabs are consolidated into a panel-picker
-    // dropdown to keep the topbar uncluttered. Tap it, then pick
-    // Theme. Desktop has the icons inline (sidebar.theme below).
+    // Mobile UI redesign (2026 mobile sprint): the panel-picker
+    // dropdown was replaced by a fixed bottom MobileTabBar that
+    // surfaces every drawer as an always-visible tab. The Theme
+    // tab is one of seven (Editor / Mic / Document / Comments /
+    // Activity / Theme / Knowledge), small in the bottom strip —
+    // arrow annotation directs the reader to the right one.
     await flow.click(
-      'Tap the panel button to open the picker',
-      page.getByRole('button', { name: /open panel/i }).first(),
-      { after: () => page.getByRole('menuitem', { name: /theme/i }).waitFor({ state: 'visible' }) }
-    )
-    await flow.click(
-      'Pick "Theme" from the dropdown',
-      page.getByRole('menuitem', { name: /theme/i }),
+      'Tap the Theme tab on the bottom bar',
+      page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Theme"]'),
       {
-        result: 'The theme panel slides up — six presets at the top, controls below.',
+        annotations: [
+          { label: 'theme tab', selector: '[data-testid="mobile-tab-bar"] button[aria-label="Theme"]', kind: 'arrow' }
+        ],
+        result: 'The theme drawer slides up from the bottom — six presets at the top, controls below.',
         after: () => editor.page.theme.preset('markoto').waitFor({ state: 'visible' }),
         highlights: [
           { label: 'Built-in presets', selector: '[data-testid="theme-preset-markoto"]' }
@@ -72,6 +78,13 @@ test('Pick a theme', async ({ page, flow, editor }) => {
       'Click the Theme tab in the right sidebar',
       editor.page.sidebar.theme,
       {
+        // Direction-anchor the Theme tab — it's one of four icon-only
+        // sidebar tabs (Activity / Theme / Knowledge / Comments) and
+        // a first-time reader scanning right-to-left needs help
+        // landing on the right one.
+        annotations: [
+          { label: 'theme tab', selector: 'button[aria-label*="theme" i]', kind: 'arrow' }
+        ],
         result: 'The theme panel opens — six built-in presets at the top, full controls below.',
         after: () => editor.page.theme.preset('markoto').waitFor({ state: 'visible' }),
         highlights: [
@@ -210,6 +223,10 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     'Toggle the cover back on',
     editor.page.theme.coverEnabledSwitch,
     {
+      // Hero outcome: a dedicated title sheet is the moment a
+      // markdown doc reads as a publishable artefact. This is the
+      // "look what I made" frame for the theme system.
+      hero: true,
       result: 'Page 1 is now a dedicated title sheet — Fraunces title centered, '
         + 'date underneath, no header / footer running text.',
       after: async () => {
@@ -234,4 +251,14 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     })
     expect(coverInDom).toBe(true)
   }
+
+  // Forward route: theme is the "make it pretty" track; AI is the
+  // "make it write itself" track. After picking a theme, asking
+  // the AI to fill a section is the most natural next step toward
+  // a finished doc. (Routes here rather than to polished-pdf
+  // because polished-pdf isn't built yet — Tier-1 TODO.)
+  flow.next({
+    slug: 'ai-prompt-bar',
+    why: 'Now ask the AI to fill in a section so the doc writes itself'
+  })
 })

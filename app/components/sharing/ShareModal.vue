@@ -222,6 +222,7 @@ async function setPassword() {
                 ? 'border-primary bg-primary/5'
                 : 'border-default hover:border-muted'"
               :disabled="saving"
+              :data-testid="`share-access-${opt.value}`"
               @click="saveAccessMode(opt.value)"
             >
               <UIcon
@@ -247,19 +248,23 @@ async function setPassword() {
             class="mt-3 p-3 rounded-lg border border-default bg-[var(--ui-bg-muted)]"
           >
             <label class="block text-sm font-medium mb-2">{{ t('share.setPassword') }}</label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-stretch">
               <UInput
                 v-model="password"
                 type="password"
                 :placeholder="t('share.passwordPlaceholder')"
                 size="sm"
                 class="flex-1"
+                :ui="{ root: 'flex-1', base: 'w-full' }"
+                data-testid="share-password-input"
                 @keydown.enter="setPassword"
               />
               <UButton
                 size="sm"
+                class="shrink-0"
                 :loading="saving"
                 :disabled="!password || password.length < 4"
+                data-testid="share-password-save"
                 @click="setPassword"
               >
                 {{ t('common.save') }}

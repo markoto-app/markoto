@@ -1,5 +1,6 @@
 import { upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/validatedSession'
+import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
 
 export default defineOAuthGitHubEventHandler({
   config: { emailRequired: true },
@@ -19,6 +20,10 @@ export default defineOAuthGitHubEventHandler({
       avatarUrl: user.avatar_url,
       emailVerified
     })
+
+    // One-shot env-allowlist admin bootstrap. Idempotent (no-ops
+    // if the user is already admin OR not on the allowlist).
+    await bootstrapAdminFromEnv({ userId, email: user.email ?? null })
 
     await setUserSession(event, {
       user: {

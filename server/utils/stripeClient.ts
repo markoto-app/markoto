@@ -1,4 +1,5 @@
 import Stripe from 'stripe'
+import { STRIPE_API_VERSION } from '~~/shared/contracts/stripe'
 
 // Stripe SDK singleton. One client per process; constructed lazily so
 // tests that never touch Stripe don't pay for it, and so a test-mode
@@ -28,13 +29,9 @@ let client: Stripe | null = null
  * first-use so misconfiguration surfaces immediately (not hours later
  * when a user tries to check out).
  */
-/**
- * Stripe API version this client speaks. Pinning it decouples our
- * code from Stripe's rolling defaults — subscription period fields
- * and other objects change shape across versions, and we want our
- * webhook handlers to see a stable schema.
- */
-const STRIPE_API_VERSION = '2025-01-27.acacia'
+// Stripe API version is now centralised in `shared/contracts/stripe.ts`
+// so every consumer (this client, the dispatcher, test fixtures) pins
+// to the same wire shape. See that file for upgrade-guide notes.
 
 export function useStripeClient(): Stripe | null {
   if (client) return client
@@ -42,6 +39,12 @@ export function useStripeClient(): Stripe | null {
   const secret = config.stripe.secretKey
   if (!secret) return null
   client = new Stripe(secret, {
+    // Cast required because the SDK constructor types `apiVersion` as
+    // a literal-union of the SDK's "preferred" version, but we
+    // INTENTIONALLY pin an older version (`STRIPE_API_VERSION` in
+    // `shared/contracts/stripe.ts`) — see that file for the upgrade
+    // playbook. The cast routes around the SDK's narrower type to
+    // honor our explicit pin.
     apiVersion: STRIPE_API_VERSION as NonNullable<ConstructorParameters<typeof Stripe>[1]>['apiVersion'],
     // Override the API base URL when pointed at `stripe-mock`. Stripe's
     // SDK requires both `host` (hostname) and `port` + `protocol`

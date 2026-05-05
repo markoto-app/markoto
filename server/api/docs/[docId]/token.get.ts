@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { decideTokenAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import type { SessionJwtPayload } from '../../../../shared/contracts/jwt'
 import { renderTemplate } from '../../../utils/templateRenderer'
 
 export default defineEventHandler(async (event) => {
@@ -85,20 +86,17 @@ export default defineEventHandler(async (event) => {
     return { token: null, requiresPassword: true, forbidden: false, ...responseBase }
   }
 
-  const token = jwt.sign(
-    {
-      docId,
-      userId: session?.user?.id || 'anonymous',
-      // Carried so the sync-server can attribute edits reliably without
-      // guessing from awareness (a cursor move by User A can otherwise
-      // steal attribution from a real edit by User B). Anonymous users
-      // end up with null here; the sync-server falls back to awareness.
-      userName: session?.user?.name ?? null,
-      readOnly: decision.readOnly
-    },
-    config.jwtSecret,
-    { expiresIn: '2h' }
-  )
+  const payload = {
+    docId,
+    userId: session?.user?.id || 'anonymous',
+    // Carried so the sync-server can attribute edits reliably without
+    // guessing from awareness (a cursor move by User A can otherwise
+    // steal attribution from a real edit by User B). Anonymous users
+    // end up with null here; the sync-server falls back to awareness.
+    userName: session?.user?.name ?? null,
+    readOnly: decision.readOnly
+  } satisfies SessionJwtPayload
+  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '2h' })
 
   return { token, requiresPassword: false, forbidden: false, ...responseBase }
 })

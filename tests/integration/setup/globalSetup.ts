@@ -1,4 +1,4 @@
-import { closeTestDb, ensureYjsTable, waitForDb } from './db'
+import { closeTestDb, closeTestValkey, ensureYjsTable, waitForDb } from './db'
 import { startNuxt, stopNuxt } from './server'
 
 // vitest globalSetup: runs once for the whole integration test run in a
@@ -37,5 +37,6 @@ export default async function globalSetup() {
     console.log('[integration] tearing down...')
     await stopNuxt()
     await closeTestDb()
+    await closeTestValkey()
   }
 }

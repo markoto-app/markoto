@@ -7,8 +7,10 @@ ANSIBLE_OPTS = -i $(INVENTORY) --vault-password-file=$(VAULT_PASSWORD_FILE)
 
 .PHONY: help provision deploy rollback logs ssh status backup-test syntax-check lint requirements
 
-help: ## Show available targets
-	@awk 'BEGIN {FS=":.*##"; printf "Usage: make <target>\n\nTargets:\n"} /^[a-zA-Z_-]+:.*##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+help: ## Show this help
+	@printf "markoto/infra — Ansible deploy commands. Root task runner: \033[1mcd .. && make help\033[0m\n\n"
+	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 requirements: ## Install Galaxy collections + roles into ./collections (run once)
 	ansible-galaxy collection install -r requirements.yml -p collections

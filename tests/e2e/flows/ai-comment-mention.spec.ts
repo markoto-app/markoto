@@ -1,5 +1,16 @@
 import { test, expect } from '../fixtures/flow'
 
+// One retry at spec level. The full flow runs FOUR times (en-light/dark
+// × desktop/mobile) in suite order; by the 4th sequential live-Gemini
+// comment-trigger call the model occasionally hits its agentic
+// MAX_TURNS without producing a `reply_to_comment` (the trigger DOES
+// fire and the AI session DOES start — verified by the trigger-response
+// probe — but the loop terminates without the closing reply). One
+// retry covers the Gemini variance without hiding structural failures.
+// CI already runs with retries=2; this matches local behaviour for
+// just this live-AI spec.
+test.describe.configure({ retries: 1 })
+
 // Tier 1, AI Flow: "Summon the AI inside a comment thread".
 //
 // User-job: the writer has a question about a specific passage —
@@ -24,10 +35,20 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
     'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows — set it in the host shell before `bun run flows:test`.'
   )
-  test.setTimeout(360_000)
+  // Mobile takes longer than desktop because the bottom-sheet
+  // comments panel + the smaller viewport mean Gemini's view_document
+  // returns a slightly different scroll context that nudges its
+  // tool-use cadence. Bump from 6 min to 10 min on all variants;
+  // the live API call dominates wall-clock time anyway.
+  test.setTimeout(600_000)
 
   await editor.page.loginAsTestUser('Sam Reeves')
   await editor.silentSetup()
+  // Disable the cover sheet so the comment-anchored passage IS
+  // visible on page 1 of the preview iframe (the markoto theme
+  // ships cover.enabled=true; "Anyone with the link can edit" sits
+  // on page 2+ behind it otherwise).
+  await editor.page.disableCoverPage()
 
   // ─── Set the scene ──────────────────────────────────────────────
   await flow.heading('Mention @markoto in a comment', 3)
@@ -90,6 +111,13 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     'Click the markoto entry',
     editor.page.ai.mentionTypeaheadAi,
     {
+      // Direction-anchor the typeahead row on the approach frame —
+      // even with the typeahead open, the markoto row sits among
+      // workspace members and a first-time reader needs the arrow
+      // to know which one summons the AI.
+      annotations: [
+        { label: 'markoto entry', selector: '[data-testid="mention-typeahead-ai"]', kind: 'arrow' }
+      ],
       result: 'The composer now reads "@markoto " — finish your question.',
       // Confirm the literal token landed in the input. The synthetic
       // markoto entry inserts the bare-word `@markoto ` (with trailing
@@ -112,6 +140,28 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   )
   await expect(editor.page.comments.composerInput).toHaveValue(`@markoto ${question}`)
 
+  // GUARD against the awareness-not-yet-populated race that surfaced
+  // on mobile re-runs: maybeTriggerAi() in CommentsPanel.vue early-
+  // returns when `viewerId.value === null`, and viewerId is read off
+  // `awareness.user.id`. If the session-aware bootstrap hasn't fired
+  // by the time the test clicks Submit (mobile is slower to hydrate
+  // because the bottom-sheet pattern adds a beat), the trigger
+  // silently no-ops, the AI session never starts, and the
+  // `data-ai-active="true"` wait runs out the test wall clock.
+  //
+  // `__DEBUG_awareness` is the in-page handle exposed by useDocument
+  // when `NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1` (the flow-test stack
+  // sets it; prod doesn't). Wait until our local awareness state
+  // carries a numeric user.id before submitting.
+  await editor.page.page.waitForFunction(
+    () => {
+      const w = window as unknown as { __DEBUG_awareness?: { getLocalState: () => { user?: { id?: number } } | null } }
+      const state = w.__DEBUG_awareness?.getLocalState?.()
+      return typeof state?.user?.id === 'number'
+    },
+    { timeout: 10_000 }
+  )
+
   // ─── Submit → markoto joins the thread ───────────────────────────
   await flow.heading('markoto joins your thread', 3)
   await flow.narrate(
@@ -120,6 +170,15 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     + 'responding…" badge. markoto is reading the anchored passage '
     + 'and the conversation so far, then replying in the same '
     + 'thread so the discussion stays in one place.'
+  )
+
+  // Listen for the trigger-ai POST and CAPTURE its response status —
+  // if the trigger fires but returns 401/403/5xx, maybeTriggerAi
+  // silently swallows it, the AI never starts, and we'd time out
+  // on the activeThread ring. Surface the failure here.
+  const triggerResponsePromise = page.waitForResponse(
+    res => res.url().includes('/trigger-ai') && res.request().method() === 'POST',
+    { timeout: 15_000 }
   )
 
   await flow.click(
@@ -131,7 +190,21 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
       // (.is-ai-active) is keyed off awareness's commentThreadId, so
       // its presence confirms the trigger endpoint actually fired
       // AND the awareness round-trip completed.
-      after: () => editor.page.ai.activeThread.waitFor({ state: 'visible' }),
+      after: async () => {
+        // First confirm the trigger HTTP fired AND returned 200.
+        // The Vue side swallows 401/403/5xx silently — without this
+        // assertion, a non-200 surfaces only as the activeThread
+        // ring never appearing (a 10-min test timeout downstream).
+        const triggerRes = await triggerResponsePromise.catch(() => null)
+        if (!triggerRes) {
+          throw new Error('CommentsPanel.maybeTriggerAi never fired POST /trigger-ai — likely viewerId is null when @markoto-comment submits.')
+        }
+        if (triggerRes.status() !== 200) {
+          const body = await triggerRes.text().catch(() => '<no body>')
+          throw new Error(`POST /trigger-ai returned ${triggerRes.status()}: ${body.slice(0, 500)}`)
+        }
+        await editor.page.ai.activeThread.waitFor({ state: 'visible' })
+      },
       highlights: [
         { label: 'markoto is responding', selector: '[data-testid="comment-thread"][data-ai-active="true"]' }
       ]
@@ -161,7 +234,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await expect(async () => {
     const messageCount = await thread.locator('[data-testid="comment-item"]').count()
     expect(messageCount).toBeGreaterThanOrEqual(2)
-  }).toPass({ timeout: 240_000 })
+  }).toPass({ timeout: 360_000 })
 
   // Wait for the active ring to fade — the loop has terminated.
   await expect(editor.page.ai.activeThread).toHaveCount(0, { timeout: 30_000 })
@@ -169,9 +242,22 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await flow.shot(
     'markoto replied on the thread — the conversation stays in one place.',
     {
+      // Hero outcome: markoto's reply landed in the same thread
+      // (not a side panel, not a popover) — the "AI is just
+      // another collaborator" promise made literal.
+      hero: true,
       highlights: [
         { label: 'markoto\'s reply', selector: '[data-testid="comment-thread"]' }
       ]
     }
   )
+
+  // Forward route: now that the reader has used the AI in two
+  // surfaces (prompt bar + comments), the natural next move is
+  // making the doc look right. Loops the user back into the
+  // craft track from the AI track.
+  flow.next({
+    slug: 'pick-a-theme',
+    why: 'Make the doc look the part — pick a theme + add a cover page'
+  })
 })

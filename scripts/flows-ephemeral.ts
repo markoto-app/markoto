@@ -53,6 +53,12 @@ const FLOWS_ENV: Record<string, string> = {
   // discard). It does NOT bypass Gemini — every AI call still hits
   // the live API.
   TEST_MODE: '1',
+  // Swap Cloud STT for the canned-fake SpeechClient
+  // (`server/utils/agentic/dictateSpeechClient.ts`). voice-dictate.spec.ts
+  // depends on this — without it, the live STT API receives the synthetic
+  // 16 kHz tone and returns nothing recognisable, the dictation
+  // session times out, and the flow fails.
+  NUXT_GOOGLE_SPEECH_MOCK: '1',
   // Atomic Postgres parts — `postgresUrlFromEnv` reads these. Without
   // them, the Nitro subprocess inherits the parent shell's .env-loaded
   // dev vars and migrates the DEV database. (Same lesson as the
@@ -64,10 +70,19 @@ const FLOWS_ENV: Record<string, string> = {
   POSTGRES_DB: 'ypad_test',
   VALKEY_HOST: 'localhost',
   VALKEY_PORT: '6380',
-  VALKEY_PASSWORD: '',
+  // valkey-test boots with `--requirepass testpassword` (see
+  // docker-compose.test.yml). The hardcoded literal must match —
+  // an empty string here makes the prod-build subprocess fail every
+  // Valkey op with NOAUTH, which Nitro turns into a stuck health
+  // probe and the orchestrator times out before any spec runs.
+  VALKEY_PASSWORD: 'testpassword',
   VALKEY_DB: '0',
   DATABASE_URL: 'postgres://ypad:testpassword@localhost:5433/ypad_test',
-  VALKEY_URL: 'redis://localhost:6380/0',
+  // VALKEY_URL needs the password embedded. ioredis honours the
+  // userinfo segment of the URL; without it, the Redis client
+  // skips AUTH and the server rejects every command. Same literal
+  // as VALKEY_PASSWORD above.
+  VALKEY_URL: 'redis://:testpassword@localhost:6380/0',
   NUXT_S3_ENDPOINT: 'http://localhost:8334',
   NUXT_S3_ACCESS_KEY: 'ypad-access-key',
   NUXT_S3_SECRET_KEY: 'ypad-secret-key',
@@ -96,7 +111,13 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_STRIPE_PRICE_ULTRA: 'price_test_ultra',
   // Skip the inactive-doc sweep — short-lived test infra doesn't
   // benefit and the TTL math complains on a fresh DB.
-  NUXT_INACTIVE_DOC_TTL_DAYS: '0'
+  NUXT_INACTIVE_DOC_TTL_DAYS: '0',
+  // Expose `window.__DEBUG_ydoc` / `__DEBUG_ytext` from useDocument.
+  // Read by `read-only-share.spec.ts` to assert Y.Doc state directly
+  // (CM6 viewport virtualisation makes .cm-content unreliable for
+  // long docs). Production builds default to false; only this test
+  // stack flips it on.
+  NUXT_PUBLIC_EXPOSE_TEST_HANDLES: '1'
 }
 
 let nuxtProc: Subprocess | null = null

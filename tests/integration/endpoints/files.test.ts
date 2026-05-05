@@ -9,6 +9,7 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
+import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
 
 // GET /api/files/:docId/:fileId — returns 302 → presigned S3 URL when
 // allowed, 403 when denied. Critical bug-fix regression target: pre-fix,
@@ -18,10 +19,9 @@ import { TEST_JWT_SECRET } from '../setup/env'
 const FILE_ID = 'abc12345XYZ0.png'
 
 function mintDocJwt(docId: string, userId: string | number = 'anonymous'): string {
-  return jwt.sign(
+  return mintSessionJwt(
     { docId, userId, userName: null, readOnly: false },
-    TEST_JWT_SECRET,
-    { expiresIn: '2h' }
+    { secret: TEST_JWT_SECRET }
   )
 }
 

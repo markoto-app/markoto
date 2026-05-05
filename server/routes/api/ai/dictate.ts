@@ -14,6 +14,8 @@ import {
   BudgetExhausted
 } from '../../../utils/billing'
 import { TIERS } from '~~/shared/config/tiers'
+import type { DictateJwtPayload } from '~~/shared/contracts/jwt'
+import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 
 // WebSocket relay for live voice dictation. Bridges the browser's PCM
 // audio stream to Google Cloud Speech-to-Text v1 `streamingRecognize`
@@ -157,10 +159,10 @@ export default defineEventHandler({
     open(peer) {
       const p = peer as unknown as PeerLike
       const ctx = p.context as DictatePeerContext
-      p.send(JSON.stringify({ type: 'hello' }))
+      p.send(encodeServerFrame({ type: 'hello' }))
       ctx.authTimer = setTimeout(() => {
         if (!ctx.authed) {
-          p.send(JSON.stringify({ type: 'error', message: 'Auth timeout' }))
+          p.send(encodeServerFrame({ type: 'error', message: 'Auth timeout' }))
           p.close(4000, 'auth timeout')
         }
       }, AUTH_DEADLINE_MS)
@@ -186,12 +188,12 @@ export default defineEventHandler({
       // ship audio bytes before auth.
       if (!ctx.authed) {
         if (!parsedControl) {
-          p.send(JSON.stringify({ type: 'error', message: 'Auth required before audio' }))
+          p.send(encodeServerFrame({ type: 'error', message: 'Auth required before audio' }))
           p.close(4000, 'pre-auth binary')
           return
         }
         if (parsedControl.type !== 'auth') {
-          p.send(JSON.stringify({ type: 'error', message: 'First message must be auth' }))
+          p.send(encodeServerFrame({ type: 'error', message: 'First message must be auth' }))
           p.close(4000, 'auth first')
           return
         }
@@ -236,7 +238,7 @@ export default defineEventHandler({
         DAILY_WINDOW_MS
       )
       if (!allowed) {
-        p.send(JSON.stringify({ type: 'budget-exhausted', remaining }))
+        p.send(encodeServerFrame({ type: 'budget-exhausted', remaining }))
         p.close(4002, 'budget exhausted')
         return
       }
@@ -252,7 +254,7 @@ export default defineEventHandler({
         Sentry.captureException(e, {
           tags: { component: 'dictate', event: 'stt_write_failed' }
         })
-        p.send(JSON.stringify({ type: 'error', message: 'upstream send failed' }))
+        p.send(encodeServerFrame({ type: 'error', message: 'upstream send failed' }))
         p.close(1011, 'stt write failed')
         return
       }
@@ -311,25 +313,30 @@ async function handleAuth(
   const config = useRuntimeConfig()
   const secret = config.google.dictateJwtSecret || config.jwtSecret
   if (!secret) {
-    peer.send(JSON.stringify({ type: 'error', message: 'Server misconfigured' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Server misconfigured' }))
     peer.close(1011, 'no jwt secret')
     return
   }
   if (typeof token !== 'string' || !token) {
-    peer.send(JSON.stringify({ type: 'error', message: 'Missing token' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Missing token' }))
     peer.close(4001, 'missing token')
     return
   }
-  let payload: { userId?: number, docId?: string, kind?: string, scope?: string }
+  // Type as Partial<DictateJwtPayload> — the verifier can't trust any
+  // field is present until it's narrowed below. Using the shared
+  // contract here pins the verify-shape to the mint-shape; a drift
+  // (e.g. mint forgetting `scope`) becomes a compile error rather
+  // than a runtime test failure with a misleading close-code.
+  let payload: Partial<DictateJwtPayload>
   try {
-    payload = jwt.verify(token, secret) as typeof payload
+    payload = jwt.verify(token, secret) as Partial<DictateJwtPayload>
   } catch {
-    peer.send(JSON.stringify({ type: 'error', message: 'Invalid or expired token' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Invalid or expired token' }))
     peer.close(4001, 'invalid token')
     return
   }
   if (payload.kind !== 'dictate' || typeof payload.userId !== 'number' || typeof payload.docId !== 'string') {
-    peer.send(JSON.stringify({ type: 'error', message: 'Malformed token' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Malformed token' }))
     peer.close(4001, 'malformed payload')
     return
   }
@@ -341,7 +348,7 @@ async function handleAuth(
   // against this WS, and a dictate token cannot be replayed against
   // Hocuspocus.
   if (payload.scope !== 'dictate') {
-    peer.send(JSON.stringify({ type: 'error', message: 'Token scope mismatch' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Token scope mismatch' }))
     peer.close(4001, 'scope mismatch')
     return
   }
@@ -358,7 +365,7 @@ async function handleAuth(
     SESSION_HARD_CAP_MS
   )
   if (!lockAcquired) {
-    peer.send(JSON.stringify({ type: 'error', message: 'Another dictation session is already active' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Another dictation session is already active' }))
     peer.close(4001, 'session already active')
     return
   }
@@ -384,7 +391,7 @@ async function handleAuth(
     Sentry.captureException(e, {
       tags: { component: 'dictate', event: 'billing_resolve_failed', userId: String(payload.userId) }
     })
-    peer.send(JSON.stringify({ type: 'error', message: 'Could not resolve billing; please retry.' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Could not resolve billing; please retry.' }))
     peer.close(1011, 'billing resolve failed')
     return
   }
@@ -396,7 +403,7 @@ async function handleAuth(
     'ai-dictate-ms', String(payload.userId), 0, dailyBudgetMs, DAILY_WINDOW_MS
   )
   if (!budget.allowed || budget.remaining < CHUNK_AUDIO_MS) {
-    peer.send(JSON.stringify({ type: 'budget-exhausted', remaining: budget.remaining }))
+    peer.send(encodeServerFrame({ type: 'budget-exhausted', remaining: budget.remaining }))
     peer.close(4002, 'budget exhausted')
     return
   }
@@ -405,7 +412,7 @@ async function handleAuth(
   // Reject at open when remaining < 1 so exhausted users don't get
   // audio-worklet spin-up + mic permission prompt before being cut off.
   if (billing.interactionsRemaining <= 0) {
-    peer.send(JSON.stringify({
+    peer.send(encodeServerFrame({
       type: 'budget-exhausted',
       remaining: 0,
       reason: 'interactions'
@@ -415,7 +422,7 @@ async function handleAuth(
   }
 
   if (!config.google.speechToTextApiKey) {
-    peer.send(JSON.stringify({ type: 'error', message: 'Server misconfigured: missing Speech-to-Text API key' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Server misconfigured: missing Speech-to-Text API key' }))
     peer.close(1011, 'no api key')
     return
   }
@@ -444,7 +451,7 @@ async function handleAuth(
     Sentry.captureException(e, {
       tags: { component: 'dictate', event: 'stt_init_failed' }
     })
-    peer.send(JSON.stringify({ type: 'error', message: 'Could not start Speech-to-Text session' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Could not start Speech-to-Text session' }))
     peer.close(1011, 'stt init failed')
     return
   }
@@ -459,7 +466,7 @@ async function handleAuth(
     const r = data.results?.[0]
     const text = r?.alternatives?.[0]?.transcript
     if (!text) return
-    peer.send(JSON.stringify({ type: r?.isFinal ? 'final' : 'partial', text }))
+    peer.send(encodeServerFrame({ type: r?.isFinal ? 'final' : 'partial', text }))
   })
 
   sttStream.on('error', (err) => {
@@ -474,7 +481,7 @@ async function handleAuth(
       tags: { component: 'dictate', event: 'stt_stream_error' }
     })
     if (!ctx.closed) {
-      peer.send(JSON.stringify({ type: 'error', message: msg }))
+      peer.send(encodeServerFrame({ type: 'error', message: msg }))
       peer.close(1011, 'stt error')
     }
   })
@@ -483,10 +490,10 @@ async function handleAuth(
   })
 
   ctx.stt = sttStream
-  peer.send(JSON.stringify({ type: 'ready' }))
+  peer.send(encodeServerFrame({ type: 'ready' }))
 
   ctx.hardCapTimer = setTimeout(() => {
-    peer.send(JSON.stringify({ type: 'session-cap' }))
+    peer.send(encodeServerFrame({ type: 'session-cap' }))
     peer.close(4003, 'session cap')
   }, SESSION_HARD_CAP_MS)
   resetIdleTimer(peer, ctx)
@@ -495,7 +502,7 @@ async function handleAuth(
 function resetIdleTimer(peer: PeerLike, ctx: DictatePeerContext) {
   if (ctx.idleTimer) clearTimeout(ctx.idleTimer)
   ctx.idleTimer = setTimeout(() => {
-    peer.send(JSON.stringify({ type: 'idle-timeout' }))
+    peer.send(encodeServerFrame({ type: 'idle-timeout' }))
     peer.close(4001, 'idle timeout')
   }, IDLE_TIMEOUT_MS)
 }

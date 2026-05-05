@@ -7,6 +7,8 @@ name: ci
 #
 #   label-check         — exactly one (or zero) `release:*` label
 #   semantic-pr-title   — conventional-commit subject
+#   secret-scan         — gitleaks against full history; blocks any PR
+#                         that introduces a leaked secret
 #   lint-typecheck      — fast (~30s) gate
 #   test-unit-dom       — fast unit + happy-dom suite
 #   test-repos-integration-flows
@@ -14,9 +16,9 @@ name: ci
 #   notify-on-failure   — single Apprise ping if any of the above failed
 #
 # Branch protection on `main` should require `label-check`,
-# `semantic-pr-title`, `actions-lint`, `lint-typecheck`, `test-unit-dom`,
-# and (for ready-for-review PRs) `test-repos-integration-flows`. See
-# docs/GITHUB-CONFIG.md.
+# `semantic-pr-title`, `actions-lint`, `secret-scan`, `lint-typecheck`,
+# `test-unit-dom`, and (for ready-for-review PRs)
+# `test-repos-integration-flows`. See docs/GITHUB-CONFIG.md.
 
 on:
   pull_request:
@@ -117,6 +119,21 @@ jobs:
         run: ${{ steps.get_actionlint.outputs.executable }} -color
         shell: bash
 
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    # Scans the full git history for leaked credentials. fetch-depth: 0
+    # is required so gitleaks sees every commit, not just the PR head.
+    # The default action config matches our local `make secrets-scan`.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   lint-typecheck:
     name: lint-typecheck
     runs-on: ubuntu-latest
@@ -214,6 +231,7 @@ jobs:
       - label-check
       - semantic-pr-title
       - actions-lint
+      - secret-scan
       - lint-typecheck
       - test-unit-dom
       - test-repos-integration-flows

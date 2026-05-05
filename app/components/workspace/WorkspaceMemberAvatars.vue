@@ -76,6 +76,7 @@ function roleLabel(role: WorkspaceMember['role']): string {
       type="button"
       class="group w-full text-left flex items-center justify-between gap-3 rounded-md p-1.5 -m-1.5 hover:bg-default transition-colors"
       :title="t('workspace.members.manage')"
+      data-testid="workspace-members-trigger"
       @click="emit('click')"
     >
       <div class="flex flex-col gap-1.5 min-w-0">

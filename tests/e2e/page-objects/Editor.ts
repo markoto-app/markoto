@@ -1,6 +1,7 @@
 import type { Page, Locator } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { Pool } from 'pg'
+import { TESTID, sel } from '../../../shared/testids'
 
 // Page-object for the YPad editor (`/d/<id>`). Stable selectors for
 // the parts of the UI that flow tests touch most often. ONE place to
@@ -30,25 +31,33 @@ export class EditorPage {
     return this.page.locator('[data-testid="doc-title-input"]')
   }
 
-  /** Connection status badge with status='connected'. Drives waitForReady
-   *  and works on both mobile (icon-only) and desktop (icon + label). */
-  get connectedBadge(): Locator {
-    return this.page.locator('[data-testid="connection-status"][data-status="connected"]')
+  /** Connection status chip — ONLY rendered when status is `connecting`
+   *  or `disconnected`. Connected is the assumed default and the chip
+   *  is hidden (see EditorLayout.vue's `v-if="status !== 'connected'"`).
+   *  Tests should wait for this locator to be DETACHED (= connected),
+   *  not visible. The historical `connectedBadge` was based on the
+   *  always-rendered chip; that surface was removed in the topbar
+   *  polish pass. */
+  get nonConnectedBadge(): Locator {
+    return this.page.locator('[data-testid="connection-status"]')
   }
 
   /** The access-mode lock icon in the header (opens share dialog on click). */
   get accessLockButton(): Locator {
-    return this.page.getByRole('button', { name: /access mode/i })
+    return this.page.locator(sel(TESTID.ACCESS_LOCK_BUTTON))
   }
 
   // ─── View-mode toggle group ───────────────────────────────────────
 
-  /** The three view-mode buttons in the header center. */
+  /** The three view-mode buttons in the header center. Selected by
+   *  `data-testid="view-mode-{edit,split,preview}"` from
+   *  EditorLayout.vue — text-based lookups would clash with the
+   *  menubar's "Edit" menu (same accessible name). */
   get viewMode() {
     return {
-      edit: this.page.getByRole('button', { name: /^edit$/i }),
-      split: this.page.getByRole('button', { name: /split view/i }),
-      preview: this.page.getByRole('button', { name: /^preview$/i })
+      edit: this.page.locator(sel(TESTID.VIEW_MODE_EDIT)),
+      split: this.page.locator(sel(TESTID.VIEW_MODE_SPLIT)),
+      preview: this.page.locator(sel(TESTID.VIEW_MODE_PREVIEW))
     }
   }
 
@@ -56,10 +65,11 @@ export class EditorPage {
 
   get sidebar() {
     return {
-      activity: this.page.getByRole('button', { name: /activity/i, exact: true }),
-      theme: this.page.getByRole('button', { name: /theme/i, exact: true }),
-      knowledge: this.page.getByRole('button', { name: /knowledge/i, exact: true }),
-      comments: this.page.locator('[data-testid="comments-tab-toggle"]')
+      document: this.page.locator(sel(TESTID.SIDEBAR_TAB_DOCUMENT)),
+      comments: this.page.locator(sel(TESTID.SIDEBAR_TAB_COMMENTS)),
+      activity: this.page.locator(sel(TESTID.SIDEBAR_TAB_ACTIVITY)),
+      theme: this.page.locator(sel(TESTID.SIDEBAR_TAB_THEME)),
+      knowledge: this.page.locator(sel(TESTID.SIDEBAR_TAB_KNOWLEDGE))
     }
   }
 
@@ -175,6 +185,131 @@ export class EditorPage {
     await expect(this.ai.promptBar).toHaveAttribute('data-active', 'true', { timeout })
   }
 
+  // ─── Live dictation ───────────────────────────────────────────────
+  //
+  // The toolbar mic toggles streaming dictation (`/api/ai/dictate` WS).
+  // Mobile surfaces the same control as the second tab on the bottom
+  // MobileTabBar (`data-testid="mobile-tab-dictate"`). The toolbar
+  // mic doesn't currently have a stable testid; match by aria-label
+  // ("Start dictation" / "Stop dictation" — both states resolve so a
+  // tooltip-text regex catches either).
+
+  /** The toolbar dictation mic. `data-testid` is stable; `aria-label`
+   *  flips between "Start dictation" and "Stop dictation"; the
+   *  `data-active` attribute is `'true'` when the dictation state is
+   *  busy or recording — useful for waiting on state transitions. */
+  get dictateMicButton(): Locator {
+    return this.page.locator('[data-testid="toolbar-dictate-mic"]')
+  }
+
+  /** Mobile tab-bar dictation tab — only visible at <sm width. */
+  get dictateMobileTab(): Locator {
+    return this.page.locator('[data-testid="mobile-tab-dictate"]')
+  }
+
+  /** Mobile bottom-bar tabs. The aria-labels come from the
+   *  `mobileTabBar.*Short` i18n keys (en):
+   *    Editor / Dictate / Info / Comments / Activity / Theme / Knowledge
+   *  Note "Info" is the label for the Document panel — the short
+   *  i18n key is `documentShort` but the rendered text is "Info".
+   *  The Knowledge tab only renders when `hasKnowledgeAccess` is
+   *  true (workspace doc with ≥1 ready file). */
+  get mobileTabs() {
+    return {
+      editor: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Editor"]'),
+      document: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Info"]'),
+      comments: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Comments"]'),
+      activity: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Activity"]'),
+      theme: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Theme"]'),
+      knowledge: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Knowledge"]')
+    }
+  }
+
+  /**
+   * Disable the cover page on the current document so the preview
+   * iframe shows page 1 = inserted/dictated/AI-generated content,
+   * not the cover sheet. The markoto theme ships with
+   * `cover.enabled: true` by default — every new doc has a title
+   * page that hides the actual body in the preview pane until the
+   * reader scrolls or pages forward.
+   *
+   * Requires the current actor to be logged in: PUT /api/docs/:id/meta
+   * is gated on `canEdit` which goes through `requireValidatedUserSession`.
+   * Anonymous flows that need preview visibility should call
+   * `loginAsTestUser()` before `silentSetup()` AND this helper after.
+   *
+   * Implementation: PUT /meta with the FULL `defaultTheme` schema
+   * with `cover.enabled` flipped to false. We can't merge a partial
+   * over the GET-returned `theme` JSONB because the column may hold
+   * a partial (or null) and `isValidTheme` requires every field
+   * present. The default theme IS the markoto preset's full shape —
+   * sending it back unchanged-except-cover gives the same visual
+   * result the user gets when they toggle the cover switch in the
+   * theme panel. paged.js repaginates ~500 ms after Y.js broadcasts
+   * the new theme; we wait 800 ms so the next captured screenshot
+   * lands on a settled preview.
+   */
+  async disableCoverPage(): Promise<void> {
+    const url = new URL(this.page.url())
+    const m = url.pathname.match(/\/d\/([^/?]+)/)
+    if (!m) throw new Error(`[disableCoverPage] not on a /d/{id} route, got ${url.pathname}`)
+    const docId = m[1]
+
+    // Import the default theme via dynamic import to avoid pulling
+    // shared/utils into the page-object module graph at top level.
+    // Use a relative path — Playwright's TS resolver doesn't honour
+    // the `~~` alias from the Nuxt tsconfig.
+    const { defaultTheme } = await import('../../../shared/utils/defaultTheme')
+    // Spread on `cover` keeps every other cover sub-field
+    // (showSubtitle / layout / dateFormat etc.) at its default while
+    // flipping `enabled` off.
+    const newTheme = {
+      ...defaultTheme,
+      cover: { ...defaultTheme.cover, enabled: false }
+    }
+
+    const putRes = await this.page.request.put(`/api/docs/${docId}/meta`, {
+      data: { theme: newTheme }
+    })
+    if (!putRes.ok()) {
+      throw new Error(`[disableCoverPage] PUT /meta returned ${putRes.status()}: ${await putRes.text()}`)
+    }
+    await this.page.waitForTimeout(800)
+  }
+
+  /**
+   * Switch the current doc's access mode via PUT /meta. Useful for
+   * collab + read-only-share flows where a logged-in owner creates
+   * a private doc by default and a spawned visitor needs reach in.
+   *
+   * Modes: `private` | `open-edit` | `open-view` | `password-protected`.
+   * (`password-protected` here only flips the mode; setting the
+   * actual passphrase still goes through the share modal so the
+   * password-protect flow's narration stays honest.)
+   */
+  async setAccessMode(mode: 'private' | 'open-edit' | 'open-view' | 'password-protected'): Promise<void> {
+    const url = new URL(this.page.url())
+    const m = url.pathname.match(/\/d\/([^/?]+)/)
+    if (!m) throw new Error(`[setAccessMode] not on a /d/{id} route, got ${url.pathname}`)
+    const docId = m[1]
+    const putRes = await this.page.request.put(`/api/docs/${docId}/meta`, {
+      data: { accessMode: mode }
+    })
+    if (!putRes.ok()) {
+      throw new Error(`[setAccessMode] PUT /meta returned ${putRes.status()}: ${await putRes.text()}`)
+    }
+    await this.page.waitForTimeout(300)
+  }
+
+  /** EditorCommandsPanel buttons (mobile drawer content). */
+  get mobileEditorCommands() {
+    return {
+      import: this.page.locator('[data-testid="ecp-file-import"]'),
+      exportPdf: this.page.locator('[data-testid="ecp-file-export-pdf"]'),
+      exportMd: this.page.locator('[data-testid="ecp-file-export-md"]')
+    }
+  }
+
   // ─── Status bar (footer) ──────────────────────────────────────────
 
   get statusBar() {
@@ -235,14 +370,25 @@ export class EditorPage {
 
   /**
    * Wait until the editor has fully mounted AND the Hocuspocus WS
-   * handshake completed. The "Connected" badge is the cheapest signal
-   * we have for both. Title button being visible is a secondary
-   * mount-completed signal — guards against the badge appearing
-   * before the editor markup hydrated.
+   * handshake completed.
+   *
+   * The connection-status chip is now hidden when status === 'connected'
+   * (topbar polish pass), so we can't wait for it to APPEAR. Instead:
+   *   1. Wait for the title button to render (markup hydrated +
+   *      ymeta has produced an initial title — implies the doc Y.Doc
+   *      is bound).
+   *   2. Wait for any non-connected chip (`connecting` / `disconnected`)
+   *      to be detached. If the chip is gone, we're connected. The
+   *      detached check tolerates the chip never appearing (a fast
+   *      handshake can skip the `connecting` state entirely).
    */
   async waitForReady(timeout = 15_000): Promise<void> {
-    await expect(this.connectedBadge).toBeVisible({ timeout })
-    await expect(this.titleButton).toBeVisible()
+    await expect(this.titleButton).toBeVisible({ timeout })
+    // toHaveCount(0) is the "no non-connected chip exists" check —
+    // succeeds either if the chip rendered then vanished (connect
+    // resolved) or if it never rendered at all (handshake was fast
+    // enough to skip `connecting`).
+    await expect(this.nonConnectedBadge).toHaveCount(0, { timeout })
   }
 
   /**
@@ -329,48 +475,56 @@ export class EditorPage {
         [githubId, name]
       )
       const userId = result.rows[0].id
-
-      // Seal the session via the shim. We use Node's `fetch` rather
-      // than `page.request.post` because the latter goes through
-      // Playwright's CDP-bridged BrowserContext and tries to attach
-      // returned Set-Cookie headers to a context that hasn't loaded
-      // any origin yet — that path threw `TypeError: "/..." cannot
-      // be parsed as a URL` even when the actual POST succeeded.
-      // Going through `fetch` + `addCookies` avoids the BrowserContext
-      // round-trip entirely; we just parse the Set-Cookie header and
-      // tell Playwright "this cookie applies to this origin".
-      const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
-      const res = await fetch(`${baseUrl}/api/_test/login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ userId, name })
-      })
-      if (!res.ok) {
-        throw new Error(`[loginAsTestUser] /api/_test/login returned ${res.status}: ${await res.text()}`)
-      }
-      const setCookie = res.headers.get('set-cookie')
-      if (!setCookie) {
-        throw new Error(`[loginAsTestUser] /api/_test/login returned no Set-Cookie header`)
-      }
-      // Parse the cookie just enough to feed it to addCookies. The
-      // shim only emits `nuxt-session=<sealed-blob>; Path=/; ...`
-      // — name and value are everything before the first `;` and
-      // before/after the first `=`.
-      const firstChunk = setCookie.split(';')[0]
-      const eqIdx = firstChunk.indexOf('=')
-      const cookieName = firstChunk.slice(0, eqIdx)
-      const cookieValue = firstChunk.slice(eqIdx + 1)
-      await this.page.context().addCookies([{
-        name: cookieName,
-        value: cookieValue,
-        url: baseUrl,
-        httpOnly: true,
-        sameSite: 'Lax'
-      }])
+      await this.loginAsExistingUser(userId, name)
       return { userId, name }
     } finally {
       await pool.end()
     }
+  }
+
+  /**
+   * Seal a session for an ALREADY-EXISTING user row. The sibling of
+   * `loginAsTestUser`, but for cases where the user row was created
+   * by other means — typically a direct DB INSERT in the spec to set
+   * fields the login shim doesn't expose (email, plan='max', custom
+   * github_id matching a pre-stored invitation, etc.).
+   *
+   * Why split: `loginAsTestUser` always upserts a fresh user keyed on
+   * a name+timestamp `github_id`. Two-context flows where one context
+   * needs to log in as a SPECIFIC pre-created user (e.g. the invited
+   * teammate in `invite-a-teammate`) couldn't reuse it without the
+   * `Date.now()`-suffixed id forcing a different row. Extracting the
+   * cookie-sealing portion lets the spec INSERT the user with the
+   * exact shape it needs, then call this helper to seal a session
+   * against that id.
+   *
+   * Same fetch + addCookies dance as `loginAsTestUser` (see that
+   * method for the rationale on why we go through Node fetch instead
+   * of Playwright's `page.request.post`).
+   */
+  async loginAsExistingUser(userId: number, name: string): Promise<void> {
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/api/_test/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId, name })
+    })
+    if (!res.ok) {
+      throw new Error(`[loginAsExistingUser] /api/_test/login returned ${res.status}: ${await res.text()}`)
+    }
+    const setCookie = res.headers.get('set-cookie')
+    if (!setCookie) {
+      throw new Error(`[loginAsExistingUser] /api/_test/login returned no Set-Cookie header`)
+    }
+    const firstChunk = setCookie.split(';')[0]
+    const eqIdx = firstChunk.indexOf('=')
+    await this.page.context().addCookies([{
+      name: firstChunk.slice(0, eqIdx),
+      value: firstChunk.slice(eqIdx + 1),
+      url: baseUrl,
+      httpOnly: true,
+      sameSite: 'Lax'
+    }])
   }
 
   // ─── Navigation ───────────────────────────────────────────────────
@@ -380,13 +534,72 @@ export class EditorPage {
    * Does NOT wait for the WS handshake — call waitForReady() after.
    * Split lifecycle from waitForReady so callers can record the
    * redirect as a separate step in the manifest if they want.
+   *
+   * **ANONYMOUS USERS ONLY.** A logged-in user clicking "+ New Document"
+   * opens the new-doc dialog instead of navigating directly — call
+   * `openNewDocDialog()` for that path and submit the dialog yourself.
+   * Calling this from a logged-in test wedges Playwright on the
+   * `waitForURL` race for 120 s before the test timeout fires.
    */
   async createNewDoc(): Promise<void> {
     await this.page.goto('/')
-    await expect(this.page.getByRole('button', { name: /new document/i })).toBeVisible()
+    await expect(this.page.locator('[data-testid="landing-new-document"]')).toBeVisible()
     await Promise.all([
       this.page.waitForURL(/\/d\/[^/]+/),
-      this.page.getByRole('button', { name: /new document/i }).click()
+      this.page.locator('[data-testid="landing-new-document"]').click()
     ])
+  }
+
+  /**
+   * LOGGED-IN equivalent of `createNewDoc`. Opens the homepage, clicks
+   * "+ New Document", waits for the new-doc dialog to render. Returns
+   * with the dialog open and the title input visible — callers fill
+   * the form and submit themselves.
+   *
+   * Uses the same Vue-hydration retry pattern as `silentSetup`/
+   * `recordPreamble` (an `expect.toPass` loop) — the SSR'd button
+   * looks interactive before its `@click` handler attaches, so a
+   * single click can be a no-op. Retries until the dialog heading
+   * is visible.
+   */
+  async openNewDocDialog(): Promise<void> {
+    await this.page.goto('/')
+    const btn = this.page.locator('[data-testid="landing-new-document"]')
+    await btn.waitFor({ state: 'visible' })
+    await expect(async () => {
+      await btn.click()
+      await expect(this.newDocDialog.heading).toBeVisible({ timeout: 1500 })
+    }).toPass({ timeout: 15_000 })
+    await expect(this.newDocDialog.titleInput).toBeVisible()
+  }
+
+  /**
+   * One-shot for logged-in flows that want a doc with a title: open
+   * the dialog, type the title, submit via the `Create` button
+   * (NOT `Skip` / `submitBlank` — the blank-submit path skips the
+   * form fields and produces an "Untitled" doc).
+   *
+   * **Why pressSequentially instead of fill():** Nuxt UI's UInput is
+   * a wrapper component; the `data-testid` lives on its outer shell.
+   * Playwright's `.fill()` works against it (the locator auto-finds
+   * the inner input) but doesn't always trigger Vue's v-model sync
+   * before the next click — the form submits with an empty `title`
+   * and the doc is "Untitled". Per-keystroke events from
+   * `pressSequentially()` mirror real user input and reliably commit
+   * to the v-model before submit.
+   */
+  async createBlankDocWithTitle(title: string): Promise<void> {
+    await this.openNewDocDialog()
+    await this.newDocDialog.titleInput.click()
+    await this.newDocDialog.titleInput.pressSequentially(title)
+    // Belt-and-braces: wait until the input ECHOES the typed value
+    // before clicking submit. Guards against v-model-not-yet-synced
+    // races that produced "Untitled" docs.
+    await expect(this.newDocDialog.titleInput).toHaveValue(title)
+    await Promise.all([
+      this.page.waitForURL(/\/d\/[^/]+/),
+      this.newDocDialog.submitCreate.click()
+    ])
+    await this.waitForReady()
   }
 }

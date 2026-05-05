@@ -73,6 +73,13 @@ export async function startNuxt(): Promise<void> {
     ...process.env,
     ...buildTestEnv(),
     NODE_ENV: 'production',
+    // The Phase-9 hardening enables Postgres TLS by default in
+    // production (resolvePostgresSsl in shared/utils/postgresSsl.ts
+    // returns `{rejectUnauthorized: true}` whenever NODE_ENV=production).
+    // The local test Postgres container speaks plaintext only, so the
+    // prod-build subprocess would fail boot with "The server does not
+    // support SSL connections" without an explicit opt-out here.
+    PGSSL: 'disable',
     // Bind to all interfaces so the renderer container can reach the
     // test Nuxt subprocess via host.docker.internal:3101. Loopback-only
     // (127.0.0.1) was fine when every test caller was in-process; the

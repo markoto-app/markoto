@@ -91,9 +91,22 @@ const server = new Server({
     // we'll capture the id again — together they bracket the operations
     // that produced this debounce window's changes, so the diff
     // endpoint can replay the doc on either side.
+    // BEFORE: capture the latest persisted row for this doc prior to
+    // our store. Null on a brand-new doc with no rows yet — the first
+    // edit is intentionally not restorable (no prior state to roll
+    // back to).
     const yjsDocIdBefore = await ypgPersistence.getMaxYjsDocId(data.documentName)
-    await ypgPersistence.onStoreDocument(data)
-    const yjsDocIdAfter = await ypgPersistence.getMaxYjsDocId(data.documentName)
+    // AFTER: use the row id returned BY the store itself rather than a
+    // follow-up MAX query. The follow-up query was the source of the
+    // earlier NULL-boundary bug — between INSERT and the second
+    // MAX(id) call, the queryPool's connection occasionally returned
+    // null (suspected MVCC/snapshot timing across separate pg pools,
+    // exact cause not pinned). Using the returned id is structurally
+    // correct anyway: it's the id WE wrote, not whatever the latest
+    // row happens to be by the time we re-query (which under
+    // multi-instance concurrency could be a row a different instance
+    // wrote).
+    const yjsDocIdAfter = await ypgPersistence.onStoreDocument(data)
 
     // Read the tracked editor ONCE for the whole hook so the edit-row and
     // meta-diff blocks below see consistent attribution. Valkey miss vs

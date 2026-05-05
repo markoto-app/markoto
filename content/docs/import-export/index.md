@@ -13,5 +13,6 @@ PDF, PPTX, XLSX, HTML, EPUB all import via markitdown into clean
 markdown. Export goes the other way — `.md` download or print-to-PDF
 using the document's theme.
 
-This section is in progress. The DOCX-import walkthrough is queued
-as a Tier 1 flow.
+- [Polish a document and download as PDF](/docs/import-export/polished-pdf) — pick a theme, export the rendered PDF.
+- [Bring an existing document in](/docs/import-export/import-existing) — Word, PDF, HTML, more — converted to clean markdown.
+- [Save as Markdown](/docs/import-export/save-markdown) — `.md` download for git, Obsidian, anywhere.

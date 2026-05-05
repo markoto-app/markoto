@@ -212,7 +212,16 @@ onUnmounted(() => {
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  background: var(--ui-bg-default);
+  /* Use `--ui-bg-muted` (the "chrome" token — sumi-50 in light,
+     sumi-800 in dark) so the sheet matches the chrome field every
+     panel inside uses for its own root (`.bg-muted` on the Activity,
+     Knowledge, EditorCommands wrappers). With `--ui-bg` (the
+     bg-default token, lighter / pure-white in light mode), the sheet
+     showed a visible step where the drag-handle area met the panel
+     body — different shades of warm bg. The design system's "ONE
+     chrome field" rule applies: toolbar / status bar / sidebar /
+     this drawer all share `--ui-bg-muted`. */
+  background: var(--ui-bg-muted);
   border-top: 1px solid var(--ui-border);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
@@ -257,7 +266,7 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 400;
   letter-spacing: -0.01em;
-  color: var(--ui-text-default);
+  color: var(--ui-text);
   margin: 0;
 }
 .mk-sheet__close {

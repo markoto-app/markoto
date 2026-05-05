@@ -305,6 +305,7 @@ function iconFor(ext: string): string {
         color="neutral"
         :class="uploadCapReached ? 'opacity-60' : ''"
         :title="uploadCapReached ? uploadCapTooltip : undefined"
+        data-testid="knowledge-upload-button"
         @click="onUploadClick"
       >
         {{ uploadCapReached ? t('knowledge.capReachedShort') : t('knowledge.upload') }}
@@ -339,6 +340,7 @@ function iconFor(ext: string): string {
         color="neutral"
         :class="uploadCapReached ? 'opacity-60' : ''"
         :title="uploadCapReached ? uploadCapTooltip : undefined"
+        data-testid="knowledge-upload-button"
         @click="onUploadClick"
       >
         {{ uploadCapReached ? t('knowledge.capReachedShort') : t('knowledge.upload') }}
@@ -409,6 +411,9 @@ function iconFor(ext: string): string {
         v-for="row in items"
         :key="row.knowledgeId"
         class="group flex items-center gap-3 p-3 rounded-lg border border-default bg-default hover:bg-elevated/40 transition-colors"
+        :data-testid="`knowledge-file-row-${row.knowledgeId}`"
+        :data-status="row.status"
+        :data-filename="row.filename"
       >
         <UIcon
           :name="iconFor(row.sourceExt)"

@@ -181,6 +181,7 @@ useHead({
 
 <template>
   <div class="min-h-[100dvh] bg-default text-default relative">
+    <CommonHomeLink />
     <!-- Modal-style close. Returns to the prior page so the pricing
          page feels like an overlay on the user's context rather than
          a destination they've navigated away into. -->
@@ -211,6 +212,8 @@ useHead({
         <article
           v-for="tier in TIER_COPY"
           :key="tier.plan"
+          :data-testid="`pricing-tier-${tier.plan}`"
+          :data-current="isCurrent(tier.plan)"
           class="relative border rounded-lg p-4 sm:p-6 flex flex-col"
           :class="[
             isCurrent(tier.plan)
@@ -218,8 +221,20 @@ useHead({
               : 'border-default'
           ]"
         >
+          <!-- Card badge. The "current plan" pill takes precedence
+               over the static "Most popular" / "Best value" badge
+               because what matters most is "where am I right now"
+               — knowing the recommended tier is secondary once the
+               user can locate themselves on the grid. -->
           <div
-            v-if="tier.badge"
+            v-if="isCurrent(tier.plan)"
+            data-testid="pricing-current-plan-badge"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-shu-500 text-white font-mono text-[10.5px] tracking-[0.06em] uppercase font-medium px-2.5 py-0.5 rounded-full"
+          >
+            {{ t('pricing.currentPlan') }}
+          </div>
+          <div
+            v-else-if="tier.badge"
             class="absolute -top-3 left-1/2 -translate-x-1/2 bg-shu-500 text-white font-mono text-[10.5px] tracking-[0.06em] uppercase font-medium px-2.5 py-0.5 rounded-full"
           >
             {{ tier.badge }}
@@ -372,5 +387,7 @@ useHead({
         <p>{{ t('pricing.footnote') }}</p>
       </div>
     </main>
+
+    <CommonLegalFooter />
   </div>
 </template>

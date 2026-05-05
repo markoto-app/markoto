@@ -1,6 +1,7 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import { users } from '../db/schema'
 import { useDatabase } from '../utils/database'
+import { ConflictError } from './errors'
 
 // Users repository. The OAuth handlers do an "upsert by provider id",
 // so the write path is a single `upsertOAuthUser` that replaces the
@@ -17,6 +18,8 @@ export interface UserRow {
   name: string
   email: string | null
   avatarUrl: string | null
+  stripeCustomerId: string | null
+  isAdmin: boolean
   createdAt: Date
 }
 
@@ -202,4 +205,255 @@ export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUps
     }).returning({ id: users.id })
     return { userId: inserted[0]!.id, outcome: 'inserted' }
   })
+}
+
+// ────────────────────────────────────────────────────────────────────
+// GDPR Article 17: account-deletion request lifecycle
+// ────────────────────────────────────────────────────────────────────
+//
+// Three repo functions:
+//   - `requestAccountDeletion` marks the user with a 30-day grace
+//     window. Idempotent at the contract level: calling it on an
+//     already-scheduled account throws `ConflictError` (the orchestrator
+//     translates this to a 409). The reason it's not silently
+//     idempotent: re-requesting would reset the grace clock, which is
+//     a user-hostile behaviour (an attacker who phished session tokens
+//     could keep extending the window).
+//   - `cancelAccountDeletion` clears the marks. Throws `ConflictError`
+//     if no deletion is scheduled (so the orchestrator knows to
+//     surface a clear "nothing to cancel" error).
+//   - `getAccountDeletionStatus` reads the current state for the
+//     user; null fields mean no deletion is scheduled.
+//
+// **No actual purge happens here.** The cascading delete lives in
+// `accountDeletionSweep.ts` (Workstream B-2). These functions only
+// touch the two timestamp columns on `users`.
+
+export interface AccountDeletionStatus {
+  deletionRequestedAt: Date | null
+  deletionGraceUntil: Date | null
+}
+
+/**
+ * Schedule the user's account for deletion. Sets
+ * `deletion_requested_at = now()` + `deletion_grace_until = now() +
+ * graceDays`. Throws `ConflictError` if the row already has a
+ * scheduled deletion; the caller (orchestrator → endpoint) translates
+ * to 409 so the client can surface "already scheduled" without a
+ * duplicated audit trail.
+ */
+export async function requestAccountDeletion(userId: number, graceDays: number): Promise<AccountDeletionStatus> {
+  if (!Number.isInteger(graceDays) || graceDays < 1 || graceDays > 365) {
+    // Repo-level shape rejection — should never trip from a controlled
+    // caller (orchestrator passes the constant), but guard anyway so a
+    // misconfigured config can't put a 1000-year grace into the DB.
+    throw new Error(`requestAccountDeletion: graceDays out of range: ${graceDays}`)
+  }
+
+  const db = useDatabase()
+  // Single UPDATE with a WHERE that excludes already-scheduled rows.
+  // Using `RETURNING` lets us distinguish "row updated" (success) from
+  // "row not updated" (already scheduled OR user gone). We follow up
+  // with a status-read on the no-rows-updated branch to disambiguate.
+  const updated = await db.update(users)
+    .set({
+      deletionRequestedAt: sql`now()`,
+      deletionGraceUntil: sql`now() + (${graceDays}::int * interval '1 day')`
+    })
+    .where(and(
+      eq(users.id, userId),
+      // ONLY update if not already scheduled. This is the race-free
+      // "first request wins" guard — concurrent duplicate requests
+      // serialise via row-locking and the second one sees the
+      // already-set column and matches zero rows.
+      sql`${users.deletionRequestedAt} IS NULL`
+    ))
+    .returning({
+      deletionRequestedAt: users.deletionRequestedAt,
+      deletionGraceUntil: users.deletionGraceUntil
+    })
+
+  if (updated.length === 1) {
+    return {
+      deletionRequestedAt: updated[0]!.deletionRequestedAt,
+      deletionGraceUntil: updated[0]!.deletionGraceUntil
+    }
+  }
+
+  // No row updated. Distinguish "already scheduled" (409) from "user
+  // doesn't exist" (404 — but `requireValidatedUserSession` should
+  // have ruled this out before we get here).
+  const status = await getAccountDeletionStatus(userId)
+  if (status === null) {
+    throw new Error(`requestAccountDeletion: user ${userId} not found`)
+  }
+  if (status.deletionRequestedAt !== null) {
+    throw new ConflictError('account deletion already scheduled')
+  }
+  // Should be unreachable — same row both unscheduled AND not updated
+  // means a bug. Surface loudly.
+  throw new Error('requestAccountDeletion: unexpected row state')
+}
+
+/**
+ * Cancel a scheduled deletion. Clears both timestamp columns. Throws
+ * `ConflictError` if no deletion is scheduled.
+ */
+export async function cancelAccountDeletion(userId: number): Promise<void> {
+  const db = useDatabase()
+  const updated = await db.update(users)
+    .set({
+      deletionRequestedAt: null,
+      deletionGraceUntil: null
+    })
+    .where(and(
+      eq(users.id, userId),
+      isNotNull(users.deletionRequestedAt)
+    ))
+    .returning({ id: users.id })
+
+  if (updated.length === 1) return
+
+  // No row updated — disambiguate.
+  const status = await getAccountDeletionStatus(userId)
+  if (status === null) {
+    throw new Error(`cancelAccountDeletion: user ${userId} not found`)
+  }
+  throw new ConflictError('no account deletion to cancel')
+}
+
+/**
+ * Read the deletion-request state for a user. Returns null if the
+ * user does not exist; the two timestamp columns are null when no
+ * deletion is scheduled.
+ */
+export async function getAccountDeletionStatus(userId: number): Promise<AccountDeletionStatus | null> {
+  const db = useDatabase()
+  const row = (await db
+    .select({
+      deletionRequestedAt: users.deletionRequestedAt,
+      deletionGraceUntil: users.deletionGraceUntil
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1))[0]
+  if (!row) return null
+  return {
+    deletionRequestedAt: row.deletionRequestedAt,
+    deletionGraceUntil: row.deletionGraceUntil
+  }
+}
+
+/**
+ * Convenience read for the account-status endpoint. Returns the
+ * minimum the UI needs to render the privacy / settings surface
+ * without a second round-trip per row.
+ */
+export interface AccountStatus {
+  email: string | null
+  locale: string | null
+  ageConfirmedAt: Date | null
+  deletionRequestedAt: Date | null
+  deletionGraceUntil: Date | null
+  privacyVersionAccepted: number | null
+  privacyVersionAcceptedLocale: string | null
+  tosVersionAccepted: number | null
+  tosVersionAcceptedLocale: string | null
+  dpaVersionAccepted: number | null
+  dpaVersionAcceptedLocale: string | null
+}
+
+/**
+ * One-shot onboarding mutation: confirms the user's age (if not
+ * already), records acceptance of the Privacy Policy + Terms of
+ * Service at the given versions, and stamps the locale the user
+ * read each in. Idempotent: re-running on an already-accepted
+ * row no-ops the relevant column. Used by the onboarding gate
+ * modal (`/api/user/onboarding-accept`).
+ *
+ * DPA acceptance is NOT in this call — DPA is workspace-owner
+ * only and gets prompted at workspace-creation time. A separate
+ * `acceptDpa(userId, version, locale)` will handle that flow.
+ */
+export async function applyOnboardingAcceptance(args: {
+  userId: number
+  privacyVersion: number
+  tosVersion: number
+  locale: string
+}): Promise<void> {
+  const db = useDatabase()
+  await db.update(users)
+    .set({
+      ageConfirmedAt: sql`COALESCE(${users.ageConfirmedAt}, now())`,
+      privacyVersionAccepted: args.privacyVersion,
+      privacyVersionAcceptedLocale: args.locale,
+      tosVersionAccepted: args.tosVersion,
+      tosVersionAcceptedLocale: args.locale
+    })
+    .where(eq(users.id, args.userId))
+}
+
+/**
+ * Record a user's acceptance of the DPA at the given version + locale.
+ * Used by the workspace-creation flow (forthcoming) when a user
+ * who hasn't accepted yet creates their first workspace.
+ */
+/**
+ * Set the `is_admin` flag on a user. Called by:
+ *   - The OAuth-upsert path (env-allowlist bootstrap on login).
+ *   - A future admin-management UI (forthcoming).
+ *
+ * Repo-level mutation only — the caller is responsible for the
+ * audit-log entry. Returns the previous value so the caller can
+ * decide whether to audit (no-op flips don't need an audit row).
+ */
+export async function setAdminFlag(userId: number, value: boolean): Promise<{ previous: boolean } | null> {
+  const db = useDatabase()
+  const before = (await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1))[0]
+  if (!before) return null
+  if (before.isAdmin === value) return { previous: before.isAdmin }
+  await db.update(users)
+    .set({ isAdmin: value })
+    .where(eq(users.id, userId))
+  return { previous: before.isAdmin }
+}
+
+export async function applyDpaAcceptance(args: {
+  userId: number
+  dpaVersion: number
+  locale: string
+}): Promise<void> {
+  const db = useDatabase()
+  await db.update(users)
+    .set({
+      dpaVersionAccepted: args.dpaVersion,
+      dpaVersionAcceptedLocale: args.locale
+    })
+    .where(eq(users.id, args.userId))
+}
+
+export async function getAccountStatus(userId: number): Promise<AccountStatus | null> {
+  const db = useDatabase()
+  const row = (await db
+    .select({
+      email: users.email,
+      locale: users.locale,
+      ageConfirmedAt: users.ageConfirmedAt,
+      deletionRequestedAt: users.deletionRequestedAt,
+      deletionGraceUntil: users.deletionGraceUntil,
+      privacyVersionAccepted: users.privacyVersionAccepted,
+      privacyVersionAcceptedLocale: users.privacyVersionAcceptedLocale,
+      tosVersionAccepted: users.tosVersionAccepted,
+      tosVersionAcceptedLocale: users.tosVersionAcceptedLocale,
+      dpaVersionAccepted: users.dpaVersionAccepted,
+      dpaVersionAcceptedLocale: users.dpaVersionAcceptedLocale
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1))[0]
+  return row ?? null
 }

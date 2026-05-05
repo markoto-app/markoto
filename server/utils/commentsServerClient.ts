@@ -2,6 +2,7 @@ import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 import { Awareness } from 'y-protocols/awareness'
+import type { SessionJwtPayload } from '~~/shared/contracts/jwt'
 
 // Minimal trusted-client helper for server-side comment mutations.
 //
@@ -40,16 +41,13 @@ export async function openTrustedCommentClient(
   if (!config.jwtSecret) throw new Error('jwtSecret not configured')
   if (!config.syncInternalUrl) throw new Error('syncInternalUrl not configured')
 
-  const token = jwt.sign(
-    {
-      docId,
-      userId: actorPrincipal,
-      userName: 'Comments Service',
-      readOnly: false
-    },
-    config.jwtSecret,
-    { expiresIn: '5m' }
-  )
+  const payload = {
+    docId,
+    userId: actorPrincipal,
+    userName: 'Comments Service',
+    readOnly: false
+  } satisfies SessionJwtPayload
+  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '5m' })
 
   const ydoc = new Y.Doc()
   const awareness = new Awareness(ydoc)

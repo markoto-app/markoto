@@ -43,13 +43,17 @@ test('Have a discussion', async ({ page, flow, editor }) => {
 
   await expect(editor.page.comments.selectionPopupTrigger).toBeVisible()
 
-  // Click the "Add comment" pill. Outcome is the sidebar opening with
-  // the composer focused. No highlight on the trigger — the cursor
-  // already points at it.
+  // Click the "Add comment" pill. The pill appears as a floating
+  // popup ABOVE the selection — not adjacent to the obvious "Comments"
+  // sidebar tab — so first-time readers often don't notice it. An
+  // arrow annotation on the approach frame fixes that.
   await flow.click(
     'Click "Add comment" to start a thread',
     editor.page.comments.selectionPopupTrigger,
     {
+      annotations: [
+        { label: 'add-comment pill', selector: '[data-testid="comment-selection-popup-trigger"]', kind: 'arrow' }
+      ],
       result: 'The comments sidebar opens — the composer is focused, ready for your note.',
       after: () => editor.page.comments.composerInput.waitFor({ state: 'visible' })
     }
@@ -141,6 +145,11 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     'Reveal the Resolved section to confirm it\'s archived',
     editor.page.comments.showResolvedToggle,
     {
+      // Hero outcome: the discussion is closed but the history is
+      // preserved. The "out of the way, but recoverable" frame is
+      // what makes resolve-as-archive (vs delete) the trustworthy
+      // primitive readers need to see.
+      hero: true,
       result: 'Resolved threads tuck into their own section — out of the way, but recoverable.',
       highlights: [
         { label: 'Resolved section', selector: '[data-testid="comments-resolved-section-heading"]' }
@@ -150,4 +159,12 @@ test('Have a discussion', async ({ page, flow, editor }) => {
 
   await expect(editor.page.comments.resolvedSectionHeading).toBeVisible()
   await expect(editor.page.comments.thread).toHaveCount(1)
+
+  // Forward route: comments + AI is the next composability the
+  // reader hasn't seen — same threaded surface, the AI joins as a
+  // collaborator on a passage.
+  flow.next({
+    slug: 'ai-comment-mention',
+    why: 'Tag @markoto in a comment to summon the AI on a specific passage'
+  })
 })

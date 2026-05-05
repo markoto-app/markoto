@@ -90,8 +90,23 @@ export async function performLogout(opts: LogoutOptions = {}): Promise<void> {
   // 5. Server-side session cookie cleared via nuxt-auth-utils.
   await useUserSession().clear()
 
-  // 6. Land on the public home page. The middleware will see the
-  //    cleared cookie and treat the user as anonymous from here.
+  // 6. HARD reload to the public home page. We use `window.location`
+  //    rather than `navigateTo()` for the same reason the cross-tab
+  //    receiver in `auth-broadcast.client.ts` does: in-place teardown
+  //    of the editor / AI / awareness / billing / account-status
+  //    state machines isn't trustworthy. Pre-2025-05 this used a soft
+  //    SPA navigation, which left the topbar showing a stale avatar
+  //    + triggered 401 toasts from auto-fetching composables that
+  //    raced ahead of the `loggedIn` ref reactively flipping. The
+  //    full reload throws ALL Vue state away and re-bootstraps
+  //    cleanly anonymous. Cost: one extra page load on logout — a
+  //    rare action where correctness > perf.
+  if (typeof window !== 'undefined') {
+    window.location.href = '/'
+    return
+  }
+  // SSR fallback (logout from a non-browser context — shouldn't
+  // happen in practice but keeps the contract well-defined).
   await navigateTo('/')
 }
 

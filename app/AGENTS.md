@@ -2,10 +2,14 @@
 
 Nuxt 4 frontend. Substantive sub-domains have their own AGENTS.md:
 
-- `app/composables/AGENTS.md` — document composables (token, sync, document orchestrator).
-- `app/utils/AGENTS.md` — preview rendering pipeline + markdown comments + editor commands.
+- `app/composables/AGENTS.md` — document composables (token, sync, document orchestrator, version-skew, cross-tab logout).
+- `app/utils/AGENTS.md` — preview rendering pipeline (paged.js iframe + server-side render path) + markdown comments + editor commands + CDN SRI conventions.
+- `app/components/ai/AGENTS.md` — AI presence primitives (Cursor / Tag / GutterMark / Thinking / AIPromptBar / Waveform).
 - `app/components/collab/AGENTS.md` — Activity Log (Tier 1 diffs, Tier 2 restore).
 - `app/components/document/AGENTS.md` — document context fields + new-doc dialog.
+- `app/components/legal/AGENTS.md` — privacy surfaces (onboarding gate, consent banner, deletion modal + grace banner).
+
+**Where to find things fast:** `make help` (root Makefile) lists every dev/test/deploy target with one-line descriptions. `docs/CHEATSHEET.md` is the human-facing crib sheet for "I forgot which command does X" — keep it in sync when you add a script. For agent-facing structure, the table above + the root `AGENTS.md` index are canonical.
 
 ## Design System
 
@@ -123,6 +127,7 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 - `autocapitalize: 'sentences'`, `autocorrect: 'on'`, `spellcheck: 'true'` always on.
 - Toolbar `flex-wrap`, collapsed hamburger menu, icon-only connection badge, responsive title.
 - Right sidebar: `< xl` (≤1279px) — opening panel hides preview; `xl+` — fixed `w-80` sidebar, genuine triple-pane. Preview uses `hidden xl:block` (CSS), not `v-if`, so resize past xl restores it without remounting.
+- Mobile sprint additions: bottom-sheet pattern for sidebar panels on `< sm`, mobile format bar (subset of toolbar) docked above the keyboard via `position: sticky`, view-mode bar (Edit / Preview) replacing the desktop split toggle. Don't reach for `visualViewport` API yet — Safari iOS behaviour is inconsistent and tracked under "Mobile MMP" in the root TODO list.
 
 ## Common Vue conventions
 
@@ -134,3 +139,6 @@ Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Do
 - **`@nuxtjs/i18n` v10:** `lazy` removed — lazy is default when `locales[].file` is set. `langDir: 'locales/'` resolves relative to `i18n/`, not `app/`.
 - **i18n new top-level keys require a dev-server restart**, not just HMR. HMR for existing keys works; adding a new namespace shows literal-key strings until restart.
 - **`useColorMode()` is SSR-mismatch-prone** — at component top level, it returns 'light' on SSR (no localStorage) and the actual mode on client, causing hydration warnings (and at scale, Suspense hangs). Either: (a) defer to `onMounted` with a neutral default ref; (b) wrap the dependent template chunk in `<ClientOnly>`; (c) render both variants and CSS-toggle (the Wordmark pattern). Prefer (c) > (a) > (b).
+- **Cross-component events for legal surfaces.** `markoto:reopen-consent` (footer link or profile-page button → re-opens `ConsentBanner.vue`) and `markoto:consent-updated` (banner → analytics modules listen and (un)mount accordingly). Don't read the consent cookie directly from anywhere except the banner — go through the event so the listeners see the same state transitions in order.
+- **`useAccountStatus()` is `useState`-backed** so the four `app/components/legal/*` surfaces (gate, banner, deletion modal, grace banner) see the same reactive snapshot. `refresh()` re-fetches `/api/user/account-status`. Don't add `useFetch` of the same endpoint inside individual components — they'll race.
+- **Logout uses `window.location.href = '/'`, not `navigateTo()`.** Soft-navigate leaves stale `useState` keys (avatar + account status) and 401-toast spam from SSR-cached fetches; the cross-tab BroadcastChannel logout receiver also expects a hard refresh. The `useLogout` composable already does the right thing — don't replace it with a soft navigate.

@@ -19,8 +19,6 @@ import BottomSheet from '~/components/common/BottomSheet.vue'
 const props = defineProps<{
   /** Truthy when ANY right-panel is selected. */
   open: boolean
-  /** Sheet title on mobile (e.g. "Theme", "Comments"). Empty for none. */
-  title?: string
   /** Drives the desktop sidebar's width class:
    *   edit         → `w-full sm:w-80 sm:shrink-0`
    *   split/preview → `flex-1 min-w-0 xl:flex-none xl:w-80 xl:shrink-0` */
@@ -41,11 +39,16 @@ function onSheetUpdate(v: boolean) {
 <template>
   <!-- Mobile: bottom-sheet wrapper. Open state binds to `open`; the
        sheet emits update:modelValue=false on dismiss → we forward
-       to `close`. -->
+       to `close`. We deliberately DO NOT pass a `title` prop — every
+       panel rendered inside this slot brings its own header (icon +
+       title + × close button) so the user can both read the panel
+       name and dismiss it. Letting BottomSheet render a second
+       header on top duplicated the title and wasted ~48px of mobile
+       viewport. The drag handle still ships from BottomSheet
+       independently of the header. -->
   <BottomSheet
     v-if="isMobile"
     :model-value="open"
-    :title="title ?? ''"
     @update:model-value="onSheetUpdate"
   >
     <slot />

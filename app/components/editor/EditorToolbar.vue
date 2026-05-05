@@ -301,6 +301,9 @@ const diagramItems = computed(() => [[
         :variant="dictationActive || dictationBusy ? 'solid' : 'ghost'"
         :class="{ 'dictation-icon-busy': dictationBusy, 'animate-pulse': dictationActive }"
         size="xs"
+        :aria-label="dictationActive || dictationBusy ? t('ai.dictateStop') : t('ai.dictateStart')"
+        :data-active="dictationActive || dictationBusy ? 'true' : 'false'"
+        data-testid="toolbar-dictate-mic"
         @click="emit('toggle-dictation')"
       />
     </UTooltip>

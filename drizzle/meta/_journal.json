@@ -64,6 +64,41 @@
       "when": 1777624127233,
       "tag": "0008_stiff_wrecking_crew",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777709765666,
+      "tag": "0009_dark_sentinel",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777903737762,
+      "tag": "0010_illegal_vargas",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1777970095340,
+      "tag": "0011_pink_ezekiel",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1777970834753,
+      "tag": "0012_damp_kingpin",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1777971310120,
+      "tag": "0013_perfect_pyro",
+      "breakpoints": true
     }
   ]
 }

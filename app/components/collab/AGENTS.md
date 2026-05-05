@@ -2,6 +2,8 @@
 
 Right-sidebar feed showing every meaningful change to the doc. Three tiers of depth. Source of truth: `activity_log` table in Postgres, written from the sync-server's `onStoreDocument` hook (edits) and the Nitro endpoints (comments, theme, title, ai.tool, restore). Mirrors the Comments panel visually — same rounded-md card aesthetic, same right-sidebar slot.
 
+**Activity Log vs Audit Log — two different surfaces.** This file documents the *user-facing* Activity Log: per-doc, shown to collaborators, restoreable. The separate `audit_log` table (Phase 2) is *admin-facing*: tracks billing-relevant + security-relevant events (subscription transitions, role changes, knowledge uploads, plan-lapse sweep effects) and is consumed by `server/repos/audit.ts` for admin tooling — not surfaced in any user UI. Don't confuse the two when adding events: a comment edit goes to `activity_log` (collaborators care); a Stripe webhook goes to `audit_log` (only operators care). The two tables share no rows.
+
 ## Tier 0 — the feed itself (`ActivityFeed.vue`)
 
 - One card per activity row. Avatar + actor + relative timestamp + action verb + optional detail line.

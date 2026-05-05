@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nuxt'
 import { users, processedWebhookEvents, pendingStripeEvents } from '../db/schema'
 import { useDatabase } from './database'
 import type { PlanName } from '~~/shared/config/tiers'
+import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 
 // Drizzle's node-postgres transaction handle — same shape as the
 // top-level `db` for our usage but typed distinctly. We accept either
@@ -474,14 +475,10 @@ export async function dispatchStripeEvent(
     // Step 2: out-of-order stash. For subscription.* / invoice.*
     // events that arrive BEFORE the user is bound to a Stripe
     // customer, store the full payload and bail. The eventual
-    // checkout.session.completed drains the stash.
-    const isOrderableType = event.type === 'customer.subscription.created'
-      || event.type === 'customer.subscription.updated'
-      || event.type === 'customer.subscription.deleted'
-      || event.type === 'invoice.paid'
-      || event.type === 'invoice.payment_failed'
-
-    if (isOrderableType) {
+    // checkout.session.completed drains the stash. The set of
+    // order-sensitive types is owned by `shared/contracts/stripe.ts`
+    // so the stash matches the dispatcher's switch table.
+    if (isOrderSensitiveStripeEvent(event)) {
       const customerId = extractCustomerId(event)
       if (customerId) {
         // Probe: does any user own this customer id? If not, stash.

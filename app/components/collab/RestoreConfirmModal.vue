@@ -119,6 +119,7 @@ function handleClose() {
           <UButton
             variant="ghost"
             :disabled="restoring"
+            data-testid="restore-cancel"
             @click="handleClose"
           >
             {{ t('common.cancel') }}
@@ -127,6 +128,7 @@ function handleClose() {
             color="neutral"
             :loading="restoring"
             icon="i-lucide-history"
+            data-testid="restore-confirm"
             @click="handleRestore"
           >
             {{ t('activity.restore.confirm.cta') }}

@@ -19,6 +19,16 @@ import type { ComputedRef } from 'vue'
 import { useRouteQuery } from '@vueuse/router'
 
 type Highlight = { label: string, x: number, y: number, w: number, h: number }
+type AnnotationKind = 'arrow' | 'box' | 'pin'
+type Annotation = {
+  label: string
+  kind: AnnotationKind
+  x: number
+  y: number
+  w: number
+  h: number
+}
+type NextLink = { slug: string, why: string }
 
 type ChapterEntry = { kind: 'chapter', text: string, level: 2 | 3 }
 type NarrationEntry = {
@@ -34,6 +44,7 @@ type ApproachEntry = {
   caption: string
   cursor: { x: number, y: number } | null
   path: string
+  annotations?: Annotation[]
 }
 type OutcomeEntry = {
   kind: 'outcome'
@@ -42,6 +53,8 @@ type OutcomeEntry = {
   cursor: { x: number, y: number } | null
   path: string
   highlights?: Highlight[]
+  annotations?: Annotation[]
+  hero?: true
 }
 type Entry = ChapterEntry | NarrationEntry | ApproachEntry | OutcomeEntry
 
@@ -57,6 +70,7 @@ type Manifest = {
   variant: Variant
   viewport: { w: number, h: number }
   entries: Entry[]
+  next?: NextLink
 }
 
 const props = withDefaults(defineProps<{
@@ -419,7 +433,37 @@ const imageHighlights = computed(() => {
   if (s?.kind === 'outcome') return s.highlights ?? []
   return []
 })
+// Direction-anchoring annotations for the current slide. Approach
+// frames carry these on click targets; outcome frames may carry
+// them when an author used flow.shot for a "scan this" moment
+// rather than a celebration.
+const imageAnnotations = computed<Annotation[]>(() => {
+  const s = currentSlide.value
+  if (s?.kind === 'approach' || s?.kind === 'outcome') return s.annotations ?? []
+  return []
+})
 const liveCursor = computed(() => visualCursor(currentSlide.value))
+
+// Hero frame: the first outcome marked with `hero: true`. Rendered
+// at the top of the embed as a "what you're about to learn"
+// preview. Falls back to null when no outcome is marked, in which
+// case the hero strip is omitted entirely.
+const _heroEntry = computed<OutcomeEntry | null>(() => {
+  for (const e of entries.value) {
+    if (e.kind === 'outcome' && e.hero) return e
+  }
+  return null
+})
+
+// Hand-curated forward link the flow author set via `flow.next(...)`.
+// We resolve to a docs URL by looking it up in the Nuxt Content
+// collection — but for the v1 ship we just route to
+// `/docs/<category>/<slug>` is too brittle without the lookup, so
+// we fall back to a simple slug-based href the docs gallery can
+// override later. The card always shows `why`; the href is best-
+// effort.
+const nextLink = computed<NextLink | null>(() => manifest.value?.next ?? null)
+const nextHref = computed(() => nextLink.value ? `/docs/flows/${nextLink.value.slug}` : '')
 </script>
 
 <template>
@@ -444,6 +488,31 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
       {{ manifest.title }}
     </h3>
 
+    <!-- Hero frame: rendered preview of the flow's payoff outcome.
+         Currently DISABLED in the public docs slideshow (the field
+         is still present in the manifest, and `heroEntry` resolves
+         in script, so this can be re-enabled by uncommenting the
+         <button> block below if/when product wants it back). The
+         payoff frame still appears in the slideshow proper as a
+         normal outcome shot, so nothing is lost — only the
+         redundant top-strip surface. -->
+    <!-- eslint-disable-next-line vue/comment-directive -->
+    <!--
+    <button
+      v-if="heroEntry"
+      type="button"
+      class="block w-full mb-6 text-left rounded-lg overflow-hidden border border-default bg-elevated cursor-zoom-in group"
+      @click="jumpToHero"
+    >
+      <div class="px-3 py-1.5 bg-elevated border-b border-default flex items-center gap-2">
+        <span class="font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted">the outcome</span>
+        <span class="flex-1" />
+        <span class="font-mono text-[10.5px] text-muted opacity-0 group-hover:opacity-100 transition-opacity">click to jump there</span>
+      </div>
+      <FlowFrame ... />
+    </button>
+    -->
+
     <div
       v-if="entries.length"
       ref="slidesEl"
@@ -461,6 +530,7 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
           :cursor-opacity="cursorOpacity"
           :path="imagePath"
           :highlights="imageHighlights"
+          :annotations="imageAnnotations"
           :viewport="manifest.viewport"
           :show-cursor="showCursor"
           :show-chrome="showChrome"
@@ -583,6 +653,25 @@ const liveCursor = computed(() => visualCursor(currentSlide.value))
           {{ slideIdx + 1 }} / {{ entries.length }}
         </span>
       </div>
+
+      <!-- "Try next" card. Hand-curated forward link the flow author
+           set via flow.next(...). Routes the reader to the next
+           recommended flow rather than dumping them at the end of
+           the slideshow with nowhere to go. The href pattern is
+           best-effort — the docs gallery is free to override the
+           lookup once it lands. -->
+      <NuxtLink
+        v-if="nextLink"
+        :to="nextHref"
+        class="mt-4 flex items-center gap-3 px-4 py-3 rounded-lg border border-default bg-elevated/50 hover:bg-elevated transition-colors group"
+      >
+        <span class="font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted shrink-0">try next</span>
+        <span class="flex-1 min-w-0 text-default text-sm">{{ nextLink.why }}</span>
+        <UIcon
+          name="i-lucide-arrow-right"
+          class="size-4 text-muted group-hover:translate-x-0.5 transition-transform shrink-0"
+        />
+      </NuxtLink>
     </div>
   </div>
 </template>

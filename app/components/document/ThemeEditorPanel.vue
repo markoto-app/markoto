@@ -624,6 +624,7 @@ async function deleteSaved(saved: SavedTheme) {
                     v-model="draft.cover.layout"
                     :items="coverLayoutItems"
                     class="w-full"
+                    data-testid="theme-cover-layout-select"
                   />
                 </UFormField>
                 <UFormField :label="t('theme.cover.align')">
@@ -631,6 +632,7 @@ async function deleteSaved(saved: SavedTheme) {
                     v-model="draft.cover.align"
                     :items="coverAlignItems"
                     class="w-full"
+                    data-testid="theme-cover-align-select"
                   />
                 </UFormField>
                 <UFormField
@@ -660,7 +662,10 @@ async function deleteSaved(saved: SavedTheme) {
                   <USwitch v-model="draft.cover.showTitle" />
                 </UFormField>
                 <UFormField :label="t('theme.cover.showSubtitle')">
-                  <USwitch v-model="draft.cover.showSubtitle" />
+                  <USwitch
+                    v-model="draft.cover.showSubtitle"
+                    data-testid="theme-cover-show-subtitle-switch"
+                  />
                 </UFormField>
                 <UFormField
                   v-if="draft.cover.showSubtitle"
@@ -670,13 +675,17 @@ async function deleteSaved(saved: SavedTheme) {
                     v-model="draft.cover.subtitle"
                     maxlength="200"
                     class="w-full"
+                    data-testid="theme-cover-subtitle-input"
                   />
                 </UFormField>
                 <UFormField :label="t('theme.cover.showDate')">
                   <USwitch v-model="draft.cover.showDate" />
                 </UFormField>
                 <UFormField :label="t('theme.cover.showAuthors')">
-                  <USwitch v-model="draft.cover.showAuthors" />
+                  <USwitch
+                    v-model="draft.cover.showAuthors"
+                    data-testid="theme-cover-show-authors-switch"
+                  />
                 </UFormField>
                 <UFormField :label="t('theme.cover.showLogo')">
                   <USwitch v-model="draft.cover.showLogo" />
@@ -827,6 +836,7 @@ async function deleteSaved(saved: SavedTheme) {
                   :items="fontPickerItems"
                   value-key="value"
                   class="w-full"
+                  data-testid="theme-body-font-select"
                 >
                   <template #item-label="{ item }">
                     <span :style="item.value ? { fontFamily: `'${item.value}', sans-serif` } : undefined">{{ item.label }}</span>
@@ -909,7 +919,10 @@ async function deleteSaved(saved: SavedTheme) {
                 :label="t('theme.body.dropCap')"
                 :help="t('theme.body.dropCapHelp')"
               >
-                <USwitch v-model="draft.body.dropCap" />
+                <USwitch
+                  v-model="draft.body.dropCap"
+                  data-testid="theme-body-drop-cap-switch"
+                />
               </UFormField>
               <UFormField
                 :label="t('theme.body.firstLineIndent')"
@@ -1057,6 +1070,7 @@ async function deleteSaved(saved: SavedTheme) {
                     color="neutral"
                     variant="outline"
                     class="w-full justify-start"
+                    data-testid="theme-color-brand-trigger"
                   >
                     <span
                       class="size-4 rounded border border-default"

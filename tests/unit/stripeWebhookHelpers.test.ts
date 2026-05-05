@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type Stripe from 'stripe'
 import {
   priceIdToPlan,
   handleCheckoutSessionCompleted,
@@ -8,6 +9,13 @@ import {
   handleInvoicePaymentFailed,
   dispatchStripeEvent
 } from '../../server/utils/stripeWebhook'
+import {
+  makeCheckoutSessionCompletedEvent,
+  makeSubscriptionEvent,
+  makeSubscriptionDeletedEvent,
+  makeInvoicePaidEvent,
+  makeInvoicePaymentFailedEvent
+} from '~~/shared/test-helpers/stripe'
 
 // Pure-function unit tests for the Stripe webhook helpers. These
 // complement the integration tests (which send signed HTTP payloads
@@ -134,15 +142,12 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
         price: { id: 'price_pro_abc' }
       }] }
     })
-    const event = {
-      type: 'checkout.session.completed',
-      data: { object: {
-        id: 'cs_test',
-        client_reference_id: '42',
-        customer: 'cus_test',
-        subscription: 'sub_abc'
-      } }
-    } as unknown as Parameters<typeof handleCheckoutSessionCompleted>[0]
+    const event = makeCheckoutSessionCompletedEvent({
+      sessionId: 'cs_test',
+      clientReferenceId: '42',
+      customer: 'cus_test',
+      subscription: 'sub_abc'
+    })
 
     const result = await handleCheckoutSessionCompleted(event, {
       stripe: stripe as Parameters<typeof handleCheckoutSessionCompleted>[1]['stripe'],
@@ -157,10 +162,18 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
 
   it('returns matched:0 when client_reference_id is missing (orphan checkout)', async () => {
     const stripe = makeStripeMock({ id: 'sub', items: { data: [] } })
+    // Construct typed but stamp client_reference_id null inline — the
+    // factory requires it (handlers usually depend on it), this branch
+    // is the corner case where it's missing.
     const event = {
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs', customer: 'cus', subscription: 'sub' } }
-    } as unknown as Parameters<typeof handleCheckoutSessionCompleted>[0]
+      ...makeCheckoutSessionCompletedEvent({
+        sessionId: 'cs',
+        clientReferenceId: '',
+        customer: 'cus',
+        subscription: 'sub'
+      }),
+      data: { object: { id: 'cs', object: 'checkout.session', customer: 'cus', subscription: 'sub', client_reference_id: null } as unknown as Stripe.Checkout.Session }
+    } as Stripe.CheckoutSessionCompletedEvent
     const result = await handleCheckoutSessionCompleted(event, { stripe, config: PRICES })
     expect(result.matched).toBe(0)
     // SDK not called — we bail before fetching.
@@ -170,10 +183,12 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
 
   it('stamps customer id only when there\'s no subscription (non-subscription checkout)', async () => {
     const stripe = makeStripeMock({ id: 'sub', items: { data: [] } })
-    const event = {
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs', client_reference_id: '42', customer: 'cus_test', subscription: null } }
-    } as unknown as Parameters<typeof handleCheckoutSessionCompleted>[0]
+    const event = makeCheckoutSessionCompletedEvent({
+      sessionId: 'cs',
+      clientReferenceId: '42',
+      customer: 'cus_test',
+      subscription: null
+    })
     const result = await handleCheckoutSessionCompleted(event, { stripe, config: PRICES })
     // matched comes from the mock (returns 1 row)
     expect(result.plan).toBeNull()
@@ -194,10 +209,12 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
         price: { id: 'price_unknown_rotated' }
       }] }
     })
-    const event = {
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs', client_reference_id: '42', customer: 'cus', subscription: 'sub_abc' } }
-    } as unknown as Parameters<typeof handleCheckoutSessionCompleted>[0]
+    const event = makeCheckoutSessionCompletedEvent({
+      sessionId: 'cs',
+      clientReferenceId: '42',
+      customer: 'cus',
+      subscription: 'sub_abc'
+    })
     const result = await handleCheckoutSessionCompleted(event, { stripe, config: PRICES })
     expect(result.plan).toBeNull()
   })
@@ -208,10 +225,12 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
         retrieve: vi.fn().mockRejectedValue(new Error('Network error'))
       }
     } as unknown as Parameters<typeof handleCheckoutSessionCompleted>[1]['stripe']
-    const event = {
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs', client_reference_id: '42', customer: 'cus', subscription: 'sub' } }
-    } as unknown as Parameters<typeof handleCheckoutSessionCompleted>[0]
+    const event = makeCheckoutSessionCompletedEvent({
+      sessionId: 'cs',
+      clientReferenceId: '42',
+      customer: 'cus',
+      subscription: 'sub'
+    })
     await expect(handleCheckoutSessionCompleted(event, { stripe, config: PRICES }))
       .rejects.toThrow(/Network error/)
   })
@@ -222,47 +241,51 @@ describe('dispatchStripeEvent — routing + unknown events', () => {
   const opts = { stripe: mockStripe, config: PRICES }
 
   it('routes checkout.session.completed to its handler', async () => {
-    const event = {
-      type: 'checkout.session.completed',
-      data: { object: { id: 'cs', client_reference_id: '42', customer: 'cus', subscription: 'sub' } }
-    } as unknown as Parameters<typeof dispatchStripeEvent>[0]
+    const event = makeCheckoutSessionCompletedEvent({
+      sessionId: 'cs',
+      clientReferenceId: '42',
+      customer: 'cus',
+      subscription: 'sub'
+    })
     const r = await dispatchStripeEvent(event, opts)
     expect(r.handled).toBe(true)
   })
 
   it('routes subscription.created and subscription.updated to the same handler', async () => {
-    for (const type of ['customer.subscription.created', 'customer.subscription.updated']) {
-      const event = {
+    for (const type of ['customer.subscription.created', 'customer.subscription.updated'] as const) {
+      const event = makeSubscriptionEvent({
         type,
-        data: { object: {
-          id: 'sub', customer: 'cus',
-          items: { data: [{
-            current_period_start: 1800000000,
-            current_period_end: 1802678400,
-            price: { id: 'price_pro_abc' }
-          }] }
-        } }
-      } as unknown as Parameters<typeof dispatchStripeEvent>[0]
+        subscriptionId: 'sub',
+        customer: 'cus',
+        priceId: 'price_pro_abc'
+      })
       const r = await dispatchStripeEvent(event, opts)
       expect(r.handled).toBe(true)
     }
   })
 
   it('routes invoice.paid / invoice.payment_failed to their handlers', async () => {
-    const paid = {
-      type: 'invoice.paid',
-      data: { object: { id: 'in', customer: 'cus', subscription: 'sub', period_start: 1800000000, period_end: 1802678400 } }
-    } as unknown as Parameters<typeof dispatchStripeEvent>[0]
+    const paid = makeInvoicePaidEvent({
+      invoiceId: 'in',
+      customer: 'cus',
+      subscription: 'sub'
+    })
     expect((await dispatchStripeEvent(paid, opts)).handled).toBe(true)
 
-    const failed = {
-      type: 'invoice.payment_failed',
-      data: { object: { id: 'in', customer: 'cus', subscription: 'sub', attempt_count: 1 } }
-    } as unknown as Parameters<typeof dispatchStripeEvent>[0]
+    const failed = makeInvoicePaymentFailedEvent({
+      invoiceId: 'in',
+      customer: 'cus',
+      subscription: 'sub',
+      attemptCount: 1
+    })
     expect((await dispatchStripeEvent(failed, opts)).handled).toBe(true)
   })
 
   it('returns handled:false for unknown event types', async () => {
+    // Adversarial: a Stripe event type our dispatcher does NOT handle.
+    // Cast inline since the factories only build event types we DO
+    // handle (by design — adding a new factory to this module should
+    // be a coordinated decision with the dispatcher's switch).
     const event = { type: 'charge.refunded', data: { object: {} } } as unknown as Parameters<typeof dispatchStripeEvent>[0]
     const r = await dispatchStripeEvent(event, opts)
     expect(r.handled).toBe(false)
@@ -273,10 +296,12 @@ describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage',
   it('invoice.payment_failed is logged-only, never updates the DB', async () => {
     // Stub console.warn to suppress noise + verify we log.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const event = {
-      type: 'invoice.payment_failed',
-      data: { object: { id: 'in_xxx', customer: 'cus_xxx', attempt_count: 2 } }
-    } as unknown as Parameters<typeof handleInvoicePaymentFailed>[0]
+    const event = makeInvoicePaymentFailedEvent({
+      invoiceId: 'in_xxx',
+      customer: 'cus_xxx',
+      subscription: 'sub_xxx',
+      attemptCount: 2
+    })
     const result = await handleInvoicePaymentFailed(event)
     expect(result.matched).toBe(0)
     expect(warn).toHaveBeenCalled()
@@ -284,10 +309,10 @@ describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage',
   })
 
   it('subscription.deleted without customer id no-ops (belt-and-braces)', async () => {
-    const event = {
-      type: 'customer.subscription.deleted',
-      data: { object: { id: 'sub', customer: '' } }
-    } as unknown as Parameters<typeof handleSubscriptionDeleted>[0]
+    const event = makeSubscriptionDeletedEvent({
+      subscriptionId: 'sub',
+      customer: ''
+    })
     // Should resolve, not throw. Matched = 0 because updateUser's
     // where-clause is `stripe_customer_id = ''` which matches nothing.
     const result = await handleSubscriptionDeleted(event)
@@ -295,10 +320,18 @@ describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage',
   })
 
   it('invoice.paid skips non-subscription invoices', async () => {
+    // Adversarial: handler-tested null subscription. Build base via
+    // factory then override subscription inline so the typed shape
+    // is only nudged where the test cares about a corner case.
+    const base = makeInvoicePaidEvent({
+      invoiceId: 'in',
+      customer: 'cus',
+      subscription: 'sub_placeholder'
+    })
     const event = {
-      type: 'invoice.paid',
-      data: { object: { id: 'in', customer: 'cus', subscription: null } }
-    } as unknown as Parameters<typeof handleInvoicePaid>[0]
+      ...base,
+      data: { object: { ...base.data.object, subscription: null } as unknown as Stripe.Invoice }
+    } as Stripe.InvoicePaidEvent
     const result = await handleInvoicePaid(event)
     expect(result.matched).toBe(0)
   })
@@ -307,17 +340,12 @@ describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage',
 describe('handleSubscriptionUpdated — unknown price graceful', () => {
   it('logs + no-ops when the price id is unrecognised', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const event = {
+    const event = makeSubscriptionEvent({
       type: 'customer.subscription.updated',
-      data: { object: {
-        id: 'sub', customer: 'cus',
-        items: { data: [{
-          current_period_start: 1800000000,
-          current_period_end: 1802678400,
-          price: { id: 'price_unrecognised' }
-        }] }
-      } }
-    } as unknown as Parameters<typeof handleSubscriptionUpdated>[0]
+      subscriptionId: 'sub',
+      customer: 'cus',
+      priceId: 'price_unrecognised'
+    })
     const result = await handleSubscriptionUpdated(event, PRICES)
     expect(result.plan).toBeNull()
     expect(result.matched).toBe(0)

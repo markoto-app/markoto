@@ -402,7 +402,10 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
       :items="fileItems"
       :content="{ align: 'start' }"
     >
-      <button :class="triggerClass">
+      <button
+        :class="triggerClass"
+        data-testid="menubar-file"
+      >
         {{ t('menubar.file.title') }}
       </button>
     </UDropdownMenu>
@@ -410,7 +413,10 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
       :items="editItems"
       :content="{ align: 'start' }"
     >
-      <button :class="triggerClass">
+      <button
+        :class="triggerClass"
+        data-testid="menubar-edit"
+      >
         {{ t('menubar.edit.title') }}
       </button>
     </UDropdownMenu>
@@ -418,7 +424,10 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
       :items="viewItems"
       :content="{ align: 'start' }"
     >
-      <button :class="triggerClass">
+      <button
+        :class="triggerClass"
+        data-testid="menubar-view"
+      >
         {{ t('menubar.view.title') }}
       </button>
     </UDropdownMenu>
@@ -429,6 +438,7 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
       <button
         :class="triggerClass"
         :disabled="isReadOnly"
+        data-testid="menubar-insert"
       >
         {{ t('menubar.insert.title') }}
       </button>
@@ -440,6 +450,7 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
       <button
         :class="triggerClass"
         :disabled="isReadOnly"
+        data-testid="menubar-format"
       >
         {{ t('menubar.format.title') }}
       </button>
@@ -448,7 +459,10 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
       :items="sharingItems"
       :content="{ align: 'start' }"
     >
-      <button :class="triggerClass">
+      <button
+        :class="triggerClass"
+        data-testid="menubar-sharing"
+      >
         {{ t('menubar.sharing.title') }}
       </button>
     </UDropdownMenu>
@@ -456,7 +470,10 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
       :items="helpItems"
       :content="{ align: 'start' }"
     >
-      <button :class="triggerClass">
+      <button
+        :class="triggerClass"
+        data-testid="menubar-help"
+      >
         {{ t('menubar.help.title') }}
       </button>
     </UDropdownMenu>

@@ -9,6 +9,7 @@ const props = defineProps<{
     submitting: ReturnType<typeof useAI>['submitting']
     lastError: ReturnType<typeof useAI>['lastError']
     budgetExhausted: ReturnType<typeof useAI>['budgetExhausted']
+    lastResponse: ReturnType<typeof useAI>['lastResponse']
     prompt: ReturnType<typeof useAI>['prompt']
     abort: ReturnType<typeof useAI>['abort']
     clearLastError: ReturnType<typeof useAI>['clearLastError']
@@ -232,6 +233,19 @@ const statusIcon = computed(() => {
 // "AI is working" rather than competing for attention.
 const isActive = computed(() => !!props.ai.mySession.value)
 
+// True when the response panel is showing in its expanded card form
+// (not the small "last response" pill). Drives the wrapper's
+// `.has-response` class so CSS can collapse the gap between the panel
+// and the bar shell, and round only the touching corners. Mirrored
+// from the panel's own `update:expanded` emit so the wrapper class
+// stays in lockstep with what the panel is actually showing
+// (including hover-pause). A previous version ran a duplicate timer
+// here which fell out of sync as soon as the panel paused on hover.
+const hasResponseExpanded = ref(false)
+function onPanelExpandedChange(v: boolean) {
+  hasResponseExpanded.value = v
+}
+
 // Virtual-keyboard awareness — without this the bar gets shoved
 // off-screen on mobile when the keyboard pops up. We watch the
 // `visualViewport` API for keyboard intrusion and offset the bar's
@@ -246,11 +260,27 @@ function updateKeyboardOffset() {
   keyboardOffset.value = gap > 80 ? gap : 0
 }
 
-const bottomOffset = computed(() =>
-  keyboardOffset.value > 0
-    ? `${keyboardOffset.value + 8}px` // 8px breathing space above keyboard top
-    : '24px' // matches the prior `bottom-6`
-)
+// On mobile (<sm) the bottom MobileTabBar sits at the very bottom of
+// the viewport. ~56px tall (24px icon + 12px label + ~12px vertical
+// padding + safe-area-inset-bottom). We add that to the AI-prompt-
+// bar's bottom offset so the two never overlap. Recomputed reactively
+// from the same media query the tab bar uses. Desktop returns 0 —
+// the tab bar isn't mounted there.
+const isMobile = useMediaQuery('(max-width: 639px)')
+const FORMAT_BAR_HEIGHT_PX = 56
+
+const bottomOffset = computed(() => {
+  const formatBarOffset = isMobile.value ? FORMAT_BAR_HEIGHT_PX : 0
+  if (keyboardOffset.value > 0) {
+    // Keyboard is up → sit just above the keyboard. The MobileFormatBar
+    // is also re-anchored above the keyboard (via the same offset), so
+    // we still need to clear it.
+    return `${keyboardOffset.value + formatBarOffset + 8}px`
+  }
+  // Keyboard down → sit above the format bar (mobile) or the
+  // standard 24px gap (desktop).
+  return formatBarOffset > 0 ? `${formatBarOffset + 8}px` : '24px'
+})
 
 onMounted(() => {
   if (typeof window === 'undefined' || !window.visualViewport) return
@@ -274,12 +304,21 @@ onUnmounted(() => {
        prompt bar is the AI's primary entry point. The ring is the
        brand's most prominent shu surface. -->
   <div
-    class="ai-prompt-bar pointer-events-none absolute inset-x-0 z-20 flex justify-center px-4"
-    :class="{ 'is-focused': focused, 'is-active': isActive }"
+    class="ai-prompt-bar pointer-events-none absolute inset-x-0 z-20 flex flex-col items-center px-4"
+    :class="{ 'is-focused': focused, 'is-active': isActive, 'has-response': hasResponseExpanded }"
     :style="{ bottom: bottomOffset }"
     data-testid="ai-prompt-bar"
     :data-active="isActive ? 'true' : 'false'"
   >
+    <!-- Ephemeral response panel — driven by `useAI`'s latched
+         `lastResponse`. When expanded, it visually merges into the
+         prompt bar shell below (single floating section). When
+         collapsed it floats as a separate pill above the bar. -->
+    <AIResponsePanel
+      :response="props.ai.lastResponse.value"
+      class="ai-prompt-bar__response"
+      @update:expanded="onPanelExpandedChange"
+    />
     <div
       class="ai-prompt-bar__shell pointer-events-auto w-full max-w-3xl flex items-center gap-0 rounded-full pl-5 pr-0 py-0 backdrop-blur-md transition-all"
     >
@@ -487,6 +526,29 @@ onUnmounted(() => {
     0 0 0 1px color-mix(in srgb, var(--color-shu-500) 70%, transparent),
     0 14px 36px -12px color-mix(in srgb, var(--color-shu-500) 32%, transparent),
     0 8px 24px -8px rgb(20 17 13 / 0.15);
+  /* Replace Tailwind's `rounded-full` (which emits
+     `border-radius: calc(infinity * 1px)` in v4) with a FINITE value.
+     The bar is ~48px tall, so 1.5rem (24px) === half-height ===
+     visually identical to a pill, but transitions from 1.5rem → 0px
+     are interpolatable in CSS. Transitioning from `infinity` to 0 is
+     not — the browser can't draw an intermediate radius for a
+     non-finite value, so the corner snaps at the very end of the
+     transition window instead of morphing smoothly. Scoped CSS
+     specificity (auto-added [data-v-…] selector) wins over the
+     inline `rounded-full` utility class. */
+  border-radius: 1.5rem;
+  /* Override Tailwind's `transition-all` (150ms) with a longer curve
+     specifically for `border-radius`. The radius shape-shift between
+     all-pill (standalone) and flat-top-pill-bottom (merged with the
+     response panel) needs more time than the default to feel
+     intentional rather than snappy. Other animated properties
+     (background, box-shadow color/blur for focus + active states) keep
+     the original 150ms snap. The explicit `border-radius` entry comes
+     LAST so it wins for that property; CSS's transition list resolves
+     each property to its last definition. */
+  transition:
+    all 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark .ai-prompt-bar__shell {
@@ -658,5 +720,122 @@ onUnmounted(() => {
 .ai-prompt-bar__shell :deep(.ai-prompt-bar__secondary .iconify) {
   width: 1.125rem !important;       /* 18 px */
   height: 1.125rem !important;
+}
+
+/*
+ * Response panel ↔ shell merge.
+ *
+ * When the response panel is in its expanded card form (not the
+ * collapsed pill), we want it to read as ONE floating section with the
+ * prompt-bar shell below it: shared shu border ring, shared glow, no
+ * visual gap. The pill (collapsed) keeps a small gap so it floats as a
+ * separate chip.
+ *
+ * Mechanism: in `.has-response` the wrapper's gap is dropped, the panel
+ * loses its bottom border + bottom radius, and the shell loses its top
+ * radius. The shu ring is applied to the WRAPPER instead of each child
+ * via a single box-shadow inset on the merged surface — paged.js style
+ * (own-stylesheet rule) — so the ring wraps the whole stack as one.
+ */
+/*
+ * Merged mode — panel + shell read as ONE floating section.
+ *
+ * Two prior bugs the rules below correct:
+ *
+ *   1. WIDTH MISMATCH. The shell wears its shu ring as an OUTSET 1px
+ *      box-shadow that paints OUTSIDE its layout box; the panel had a
+ *      `border` (1px inside the box-sizing box). Net visual extent:
+ *      shell was 2px wider than panel, the merged section misaligned by
+ *      a hairline on each side. Fix: drop panel's `border`, give it the
+ *      SAME outset 1px shu shadow ring as the shell. Both surfaces now
+ *      paint to the same outer extent and the seam is pixel-perfect.
+ *
+ *   2. CORNER MISMATCH. The shell was `rounded-full` (≈26px effective
+ *      at this 52px height), I overrode only its TOP corners to 1.5rem
+ *      (24px). Bottom corners stayed at the larger rounded-full clamp,
+ *      so the bar's bottom curves looked subtly off vs. the panel's
+ *      top. Fix: in merged mode, square ALL four shell corners to
+ *      1.5rem too. The merged section becomes one consistently rounded
+ *      rectangle. Outside merged mode, the shell stays pill.
+ */
+
+/* Light-mode panel ring + background in merged mode. Outset 1px shu
+   ring matches the shell's exactly; soft top-glow gives the merged
+   section depth without a doubled shadow at the seam. The bottom
+   shadow is suppressed so the seam between panel and shell is clean. */
+.ai-prompt-bar.has-response :deep(.ai-response-panel) {
+  margin-bottom: 0;
+  border: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  background: color-mix(in srgb, var(--ui-bg-muted) 88%, transparent);
+  box-shadow:
+    /* Outset 1px shu ring — same recipe as the shell's static ring */
+    0 0 0 1px color-mix(in srgb, var(--color-shu-500) 70%, transparent),
+    /* Soft top glow — pulled UP so it doesn't bleed into the seam */
+    0 -10px 22px -10px color-mix(in srgb, var(--color-shu-500) 28%, transparent);
+  /* Trim padding-bottom so the merged section reads as one card with
+     consistent vertical rhythm rather than panel-feels-tall + bar. */
+  padding-bottom: 0.625rem;
+}
+.dark .ai-prompt-bar.has-response :deep(.ai-response-panel) {
+  background: color-mix(in srgb, var(--ui-bg-muted) 78%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-shu-400) 75%, transparent),
+    0 -10px 22px -10px color-mix(in srgb, var(--color-shu-400) 32%, transparent);
+}
+
+/* Merged mode — shell flattens its TOP corners (seam with the panel)
+   and pins its BOTTOM corners to 1.5rem.
+ *
+ * Why a FIXED bottom-corner value instead of leaving the inline
+ * `rounded-full` to inherit:
+ *
+ *   `border-radius: 9999px` only clamps to half-height when adjacent
+ *   corners on the same edge are also large — CSS's per-corner clamp
+ *   shares the edge length between the two corners on it. In the
+ *   standalone pill (all four corners 9999px), the left edge's height
+ *   is split evenly: top-left + bottom-left = height, so each becomes
+ *   ~half-height (~24px at 48px tall). When we zero the top corners,
+ *   the bottom-left has the WHOLE left edge to itself — its radius
+ *   grows to a full quarter-circle of height-radius (≈48px), curving
+ *   the bar's bottom-left from the bottom corner all the way up to
+ *   where the top-left should be. Visually, the curve sweeps around
+ *   the right-side send button too, clipping it.
+ *
+ *   Fixing both bottom corners at 1.5rem (24px — the same value the
+ *   original pill clamped to at this height) preserves the bar's
+ *   familiar "fully rounded ends" look while keeping the send button
+ *   geometry intact. The merged section reads as one rounded
+ *   rectangle: panel-top 1.5rem, bar-bottom 1.5rem, seam dead
+ *   straight. */
+.ai-prompt-bar.has-response .ai-prompt-bar__shell {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 1.5rem;
+  border-bottom-right-radius: 1.5rem;
+}
+
+/* Sticky-question variant: a thicker (2px) shu ring on the panel so the
+   "we need your answer" cue carries through the merged surface. */
+.ai-prompt-bar.has-response :deep(.ai-response-panel.is-question) {
+  box-shadow:
+    0 0 0 2px var(--color-shu-500),
+    0 -12px 26px -10px color-mix(in srgb, var(--color-shu-500) 38%, transparent);
+}
+.dark .ai-prompt-bar.has-response :deep(.ai-response-panel.is-question) {
+  box-shadow:
+    0 0 0 2px var(--color-shu-400),
+    0 -12px 26px -10px color-mix(in srgb, var(--color-shu-400) 45%, transparent);
+}
+
+/* Pill mode (collapsed) — float separately with a small gap so it
+   reads as a distinct chip. The gap was dropped on the wrapper to
+   support the merged case; restore it just for pill children via
+   margin. */
+.ai-prompt-bar:not(.has-response) :deep(.ai-response-pill) {
+  margin-bottom: 0.5rem;
 }
 </style>

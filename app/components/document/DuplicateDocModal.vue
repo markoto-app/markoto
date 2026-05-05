@@ -110,6 +110,7 @@ async function handleDuplicate() {
           <UButton
             variant="ghost"
             :disabled="duplicating"
+            data-testid="duplicate-cancel"
             @click="open = false"
           >
             {{ t('common.cancel') }}
@@ -119,6 +120,7 @@ async function handleDuplicate() {
             :loading="duplicating"
             :disabled="newTitle.trim().length === 0"
             icon="i-lucide-copy"
+            data-testid="duplicate-confirm"
             @click="handleDuplicate"
           >
             {{ t('duplicate.confirm') }}

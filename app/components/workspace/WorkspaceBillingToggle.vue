@@ -101,12 +101,26 @@ async function setEnabled(next: boolean) {
           />
           on your plan · members see the editor banner
         </p>
-        <p
+        <div
           v-else-if="aiEnabled && !iAmBillingOwner"
-          class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase"
+          class="space-y-1.5"
         >
-          sponsored by another admin (user #{{ billingOwnerId }}) · toggle off then on to take over
-        </p>
+          <p class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase">
+            sponsored by another admin (user #{{ billingOwnerId }})
+          </p>
+          <UButton
+            v-if="canEnable"
+            size="xs"
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-arrow-left-right"
+            :loading="saving"
+            data-testid="workspace-ai-takeover"
+            @click="setEnabled(true)"
+          >
+            Take over sponsorship
+          </UButton>
+        </div>
         <p
           v-else-if="!canEnable && !loadingBilling"
           class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase inline-flex items-center gap-1.5"
@@ -128,6 +142,7 @@ async function setEnabled(next: boolean) {
       <USwitch
         :model-value="aiEnabled"
         :disabled="saving || loadingBilling || (!aiEnabled && !canEnable)"
+        data-testid="workspace-ai-sponsoring-toggle"
         @update:model-value="(v: boolean) => setEnabled(v)"
       />
     </div>

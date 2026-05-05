@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { nextTick } from 'vue'
-import ActivityFeed from '~/components/collab/ActivityFeed.vue'
+import { CollabActivityFeed as ActivityFeed } from '#components'
 
 // Component-level test for the Activity feed's per-row affordances.
 //

@@ -245,6 +245,7 @@ function onRowLongPress(doc: DocumentListItem) {
           <UButton
             size="lg"
             icon="i-lucide-plus"
+            data-testid="landing-new-document"
             @click="createDocument"
           >
             {{ t('landing.newDocument') }}
@@ -264,6 +265,7 @@ function onRowLongPress(doc: DocumentListItem) {
             :icon="workspaceCapReached ? 'i-lucide-lock' : 'i-lucide-folder-plus'"
             :class="workspaceCapReached ? 'opacity-60' : ''"
             :title="workspaceCapReached ? workspaceCapTooltip : undefined"
+            data-testid="landing-new-workspace"
             @click="workspaceCapReached ? onCapReachedClick() : (showCreateWorkspace = true)"
           >
             {{ workspaceCapReached ? t('workspace.capReachedShort') : t('workspace.newWorkspace') }}
@@ -435,5 +437,7 @@ function onRowLongPress(doc: DocumentListItem) {
         />
       </div>
     </main>
+
+    <CommonLegalFooter />
   </div>
 </template>

@@ -53,6 +53,8 @@ function formatDate(value: string | number | Date | null) {
       v-for="ws in workspaces"
       :key="ws.workspaceId"
       :to="`/w/${ws.workspaceId}`"
+      :data-testid="`workspace-list-item-${ws.workspaceId}`"
+      :data-role="ws.role"
       class="group flex flex-col gap-2 p-4 rounded-lg border border-default hover:border-default hover:bg-muted/40 transition-colors min-w-0"
     >
       <div class="flex items-start gap-3 min-w-0">

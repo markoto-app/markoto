@@ -5,6 +5,7 @@ import { Awareness } from 'y-protocols/awareness'
 import { sql } from 'drizzle-orm'
 import { useDatabase } from './database'
 import { reconstructDocAtYjsId } from './historyReplay'
+import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 
 // "Snap the live Y.Doc to a past state" — the execution side of
 // the Tier 2 restore feature.
@@ -94,25 +95,27 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     )
     const yjsDocIdBeforeRestore = (beforeRow.rows?.[0] as { id: number | null } | undefined)?.id ?? null
 
-    // Step 1: replay to get the past state's full Y.Doc.
+    // Step 1: replay to get the past state's full Y.Doc, then EXTRACT
+    // the values we want to restore (text, comments, meta) as plain
+    // JS values. We deliberately do NOT use the past doc's encoded
+    // update — see the rationale at the apply site below.
     const past = await reconstructDocAtYjsId(opts.docId, opts.targetYjsId)
-    const pastUpdate = Y.encodeStateAsUpdate(past)
+    const pastText = past.getText('content').toString()
+    const pastComments = past.getArray('comments').toJSON() as unknown[]
+    const pastMeta = past.getMap('meta').toJSON() as Record<string, unknown>
     past.destroy()
 
     // Step 2: open a synthetic Hocuspocus client as the acting user.
-    const token = jwt.sign(
-      {
-        docId: opts.docId,
-        // Distinct synthetic principal so attribution can tell a
-        // restore apart from a regular edit by the same user.
-        // Format mirrors the AI session's `ai:assistant:*`.
-        userId: `restore:${opts.actorUserId}:${opts.sessionId}`,
-        userName: opts.actorName,
-        readOnly: false
-      },
-      config.jwtSecret,
-      { expiresIn: '5m' }
-    )
+    const payload = {
+      docId: opts.docId,
+      // Distinct synthetic principal so attribution can tell a
+      // restore apart from a regular edit by the same user.
+      // Format mirrors the AI session's `ai:assistant:*`.
+      userId: restoreClientUserId(opts.actorUserId, opts.sessionId),
+      userName: opts.actorName,
+      readOnly: false
+    } satisfies SessionJwtPayload
+    const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '5m' })
 
     const ydoc = new Y.Doc()
     const awareness = new Awareness(ydoc)
@@ -163,32 +166,57 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     try {
       await syncReady
 
-      // Step 3: replace state inside one transaction. Y.js applyUpdate
-      // is itself a single op, but we wrap it in `transact()` with our
-      // origin so the sync-server's onChange + onStoreDocument hooks
-      // can recognize it as a restore (e.g. to skip the "edit" activity
-      // row if we ever decide that's noise — currently we keep it for
-      // diff visibility).
+      // Step 3: replace state inside one transaction. Why not just
+      // `Y.applyUpdate(ydoc, pastUpdate)`? Because Y.js merges by item
+      // id (clientID, clock). The past doc and the live doc share item
+      // ids — they're the SAME items the same authors typed. If we
+      // delete the live items first, then re-apply the past update,
+      // Y.js sees those item ids in the past update as ALREADY DELETED
+      // (we just tombstoned them in this same transaction) and the
+      // deletion wins in CRDT merge order. The doc ends up empty —
+      // which is exactly the bug that surfaced once boundary stamping
+      // started rendering the Restore button.
       //
-      // The "right" way to converge on the past state is to delete
-      // current content + insert past content. encodeStateAsUpdate
-      // produces a single update that, when applied to a doc with
-      // newer state, ADDS items but doesn't delete the divergence.
-      // So we explicitly empty ytext + ycomments + ymeta first, then
-      // apply the past update. ymeta keys outside title/theme are
-      // preserved (transient flags like _deleted shouldn't be touched).
+      // The fix: don't try to resurrect old items. Empty the shared
+      // collections, then INSERT fresh items carrying the past
+      // VALUES. This loses character-level CRDT history (the new
+      // text is a single freshly-typed run, not the original keystroke
+      // chain), but the user-visible outcome — "the doc reads exactly
+      // like it did at row N" — is preserved. The new restore row's
+      // boundary ids let a reverse-restore bring back the pre-restore
+      // state in the same way (also as fresh items).
       ydoc.transact(() => {
         const ytext = ydoc.getText('content')
         ytext.delete(0, ytext.length)
+        if (pastText.length > 0) ytext.insert(0, pastText)
 
         const ycomments = ydoc.getArray('comments')
         if (ycomments.length > 0) ycomments.delete(0, ycomments.length)
+        // Comment threads are Y.Map instances inside the array; we
+        // re-insert them as plain Y.Maps populated from the past JSON
+        // so anchors / replies survive. RelativePosition base64s land
+        // verbatim — they reference the OLD ytext item ids and become
+        // orphaned anchors in the read endpoint, which is the same
+        // behaviour the user sees if a passage is deleted manually.
+        for (const c of pastComments) {
+          if (c && typeof c === 'object') {
+            const m = new Y.Map<unknown>()
+            for (const [k, v] of Object.entries(c as Record<string, unknown>)) {
+              m.set(k, v)
+            }
+            ycomments.push([m])
+          }
+        }
 
-        // Apply the past state. This re-creates ytext/ycomments/ymeta
-        // content from the encoded update — Y.js merges by item id so
-        // the "delete then re-insert" sequence inside this transaction
-        // resolves cleanly.
-        Y.applyUpdate(ydoc, pastUpdate, `restore:${opts.actorUserId}:${opts.sessionId}`)
+        // ymeta: copy past values for title/theme/description/audience/
+        // language/templateId. Transient keys (_deleted, presence flags)
+        // are deliberately NOT touched — restoring a deleted-marker
+        // would re-delete the doc.
+        const ymeta = ydoc.getMap('meta')
+        const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
+        for (const k of RESTORABLE_META_KEYS) {
+          if (k in pastMeta) ymeta.set(k, pastMeta[k])
+        }
       }, `restore:${opts.actorUserId}:${opts.sessionId}`)
 
       // Give Hocuspocus a tick to broadcast + persist. Without this

@@ -5,6 +5,7 @@ import { loggedInClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { openWs, closeAllWs } from '../setup/ws'
 import { TEST_JWT_SECRET } from '../setup/env'
+import { mintDictateJwt } from '~~/shared/test-helpers/jwt'
 
 // WS integration tests for /api/ai/dictate. The Cloud STT call is
 // stubbed by a mock SpeechClient (see dictateSpeechClient.ts) so
@@ -23,11 +24,14 @@ import { TEST_JWT_SECRET } from '../setup/env'
 //   7. graceful stop path (no "write after end" error)
 
 async function mintDictateToken(userId: number, docId: string): Promise<string> {
-  return jwt.sign(
-    { userId, docId, kind: 'dictate' },
-    TEST_JWT_SECRET,
-    { expiresIn: '60s' }
-  )
+  // Routed through the shared test helper so `kind` + `scope` are
+  // spread from `DICTATE_JWT_FIXED_CLAIMS` — same constant the prod
+  // mint at `server/api/ai/dictate/token.post.ts` uses. Earlier this
+  // helper hand-set `{ kind: 'dictate' }` and forgot `scope`, which
+  // made the dictate WS reject every test token with 4001 'scope
+  // mismatch' BEFORE any logic under test could fire. The shared
+  // helper makes that drift impossible.
+  return mintDictateJwt({ userId, docId }, { secret: TEST_JWT_SECRET })
 }
 
 async function setupUserAndDoc() {

@@ -23,6 +23,13 @@ interface SessionStub {
 
 let sessionStub: SessionStub
 let navigateToStub: ReturnType<typeof vi.fn>
+// `useLogout` does a hard reload (`window.location.href = '/'`) on
+// the client to throw away ALL Vue state on logout — the soft
+// `navigateTo` path only runs in SSR. We stub both: the location
+// setter is what the tests primarily assert against; navigateTo
+// is kept as a fallback for the SSR contract test.
+let locationHrefSetter: ReturnType<typeof vi.fn>
+let originalLocation: Location
 
 beforeEach(() => {
   sessionStub = {
@@ -35,12 +42,32 @@ beforeEach(() => {
   ;(globalThis as unknown as { useUserSession: () => SessionStub }).useUserSession = () => sessionStub
   ;(globalThis as unknown as { navigateTo: typeof navigateToStub }).navigateTo = navigateToStub
 
+  // Stub window.location.href so we can observe the hard-reload
+  // assignment without triggering a real navigation in happy-dom.
+  originalLocation = window.location
+  locationHrefSetter = vi.fn()
+  Object.defineProperty(window, 'location', {
+    value: {
+      get href() { return '/' },
+      set href(v: string) { locationHrefSetter(v) }
+    },
+    writable: true,
+    configurable: true
+  })
+
   // Seed storage so we can observe the clear.
   localStorage.setItem('foo', 'bar')
   sessionStorage.setItem('baz', 'qux')
 })
 
 afterEach(() => {
+  // Restore window.location so other tests in the same file aren't
+  // running with the stubbed setter.
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+    configurable: true
+  })
   localStorage.clear()
   sessionStorage.clear()
   vi.restoreAllMocks()
@@ -71,10 +98,10 @@ describe('performLogout — storage scrub', () => {
       throw new Error('disabled')
     })
     // Must not throw. We can still observe that session.clear() and
-    // navigateTo ran — meaning the pipeline didn't bail.
+    // the hard reload ran — meaning the pipeline didn't bail.
     await expect(performLogout()).resolves.toBeUndefined()
     expect(sessionStub.clear).toHaveBeenCalledTimes(1)
-    expect(navigateToStub).toHaveBeenCalledWith('/')
+    expect(locationHrefSetter).toHaveBeenCalledWith('/')
     Storage.prototype.clear = orig
   })
 })
@@ -137,7 +164,7 @@ describe('performLogout — beforeClear hook', () => {
       beforeClear: () => { throw new Error('awareness already gone') }
     })).resolves.toBeUndefined()
     expect(sessionStub.clear).toHaveBeenCalledTimes(1)
-    expect(navigateToStub).toHaveBeenCalledWith('/')
+    expect(locationHrefSetter).toHaveBeenCalledWith('/')
   })
 
   it('awaits async beforeClear hooks before clearing the session', async () => {
@@ -203,21 +230,30 @@ describe('performLogout — IndexedDB', () => {
 // ─────────────────────────────────────────────────────────────────────
 
 describe('performLogout — session + redirect', () => {
-  it('clears the session and navigates to /', async () => {
+  // The current-tab redirect uses `window.location.href = '/'` (a
+  // hard reload) rather than `navigateTo('/')` (a soft SPA route).
+  // The hard reload throws away ALL Vue state — `loggedIn` ref,
+  // billing/account-status `useState` snapshots, the editor's
+  // awareness handle, etc. — so the page bootstraps cleanly
+  // anonymous. The soft path was leaving the topbar showing a
+  // stale avatar + triggering 401 toasts.
+  it('clears the session and reloads the page to /', async () => {
     await performLogout()
     expect(sessionStub.clear).toHaveBeenCalledTimes(1)
-    expect(navigateToStub).toHaveBeenCalledWith('/')
+    expect(locationHrefSetter).toHaveBeenCalledWith('/')
+    // navigateTo is the SSR fallback path; never reached on the
+    // client since `typeof window !== 'undefined'`.
+    expect(navigateToStub).not.toHaveBeenCalled()
   })
 
-  it('navigates AFTER clearing the session (so middleware sees anon)', async () => {
+  it('reloads AFTER clearing the session (so the next request is anon)', async () => {
     const order: string[] = []
     sessionStub.clear = vi.fn(async () => {
       order.push('clear')
     })
-    navigateToStub = vi.fn(async () => {
+    locationHrefSetter.mockImplementation(() => {
       order.push('nav')
     })
-    ;(globalThis as unknown as { navigateTo: typeof navigateToStub }).navigateTo = navigateToStub
     await performLogout()
     expect(order).toEqual(['clear', 'nav'])
   })

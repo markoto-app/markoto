@@ -18,6 +18,19 @@ import { test, expect } from '../fixtures/flow'
 test('Quick share', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
+  // Title + intro before the preamble captures anything. Every flow
+  // opens with a chapter card and a one-paragraph narration so the
+  // reader knows what they're about to see before the screenshots
+  // start rolling.
+  await flow.heading('Write & share your first document', 3)
+  await flow.narrate(
+    'You don\'t need an account to write something quickly in markoto. '
+    + 'Open the homepage, type, copy the link — anyone you send it to '
+    + 'sees what you wrote, in real time. About three minutes; by the '
+    + 'end you have a named document and a shareable URL on your '
+    + 'clipboard.'
+  )
+
   // Preamble: open markoto → click "+ New Document" → dialog opens.
   await editor.recordPreamble()
 
@@ -98,12 +111,18 @@ test('Quick share', async ({ page, flow, editor }) => {
   )
 
   // The lock icon in the header doubles as the share trigger.
+  // The icon is small + sits in the topbar — direction-anchor it on
+  // the approach frame so a reader can find it even on the first
+  // pass (without scanning the whole header).
   const linkInput = page.locator('[data-testid="share-link-input"]')
   await flow.click(
     'Open the share dialog from the lock icon',
     editor.page.accessLockButton,
     {
       result: 'The share dialog opens — your shareable link is right at the top.',
+      annotations: [
+        { label: 'lock icon', selector: '[aria-label*="access mode" i]', kind: 'arrow' }
+      ],
       highlights: [
         { label: 'The link to share', selector: '[data-testid="share-link-input"]' },
         { label: 'One-click copy', selector: '[data-testid="share-copy-link-button"]' }
@@ -121,7 +140,14 @@ test('Quick share', async ({ page, flow, editor }) => {
   await flow.click(
     'Click "Copy link" to copy it to your clipboard',
     page.locator('[data-testid="share-copy-link-button"]'),
-    { result: 'Done — your link is on your clipboard. Paste it anywhere to share.' }
+    {
+      // Hero outcome: the moment the user has done the job. A
+      // shareable link sitting in the clipboard with the "copied"
+      // confirmation visible is the canonical "I built something
+      // someone else can read" payoff.
+      hero: true,
+      result: 'Done — your link is on your clipboard. Paste it anywhere to share.'
+    }
   )
 
   // ASSERTION: the click registered + the clipboard actually has the URL.
@@ -129,4 +155,12 @@ test('Quick share', async ({ page, flow, editor }) => {
   await expect(copyBtn).toContainText(/copied|kopiert|copié|copiado|コピー|已复制/i)
   const clipboardText = await page.evaluate(() => navigator.clipboard.readText())
   expect(clipboardText).toContain(`/d/${docId}`)
+
+  // Forward route: the natural next step after sharing a link is to
+  // collaborate on the doc — the comments-thread flow picks up where
+  // this one ends (someone joins via the link, leaves a thought).
+  flow.next({
+    slug: 'discuss-with-comments',
+    why: 'Now invite a teammate — leave a comment on a passage they wrote'
+  })
 })

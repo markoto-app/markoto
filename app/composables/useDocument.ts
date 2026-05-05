@@ -25,10 +25,39 @@ export function useDocument(docId: string) {
   const ytext = ydoc.getText('content')
   const ymeta = ydoc.getMap('meta')
 
+  // Test-only handle: when `public.exposeTestHandles` is true,
+  // expose ydoc + ytext on `window.__DEBUG_*` so e2e flow tests can
+  // assert against authoritative Y.Doc state instead of CM6's
+  // viewport-virtualised .cm-content. The runtime config flag is
+  // false by default — only the flow-test stack flips it to true via
+  // NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1 (see scripts/flows-ephemeral.
+  // ts). Production bundles never carry the handles.
+  if (import.meta.client && useRuntimeConfig().public.exposeTestHandles) {
+    type Win = {
+      __DEBUG_ydoc?: Y.Doc
+      __DEBUG_ytext?: Y.Text
+      __DEBUG_awareness?: Awareness
+    }
+    const w = window as unknown as Win
+    w.__DEBUG_ydoc = ydoc
+    w.__DEBUG_ytext = ytext
+    // awareness is initialised below; stamp the handle there too
+    // (search for `__DEBUG_awareness` to find the second write).
+  }
+
   // Single stable Awareness instance — passed to HocuspocusProvider so both
   // local and remote clients share the same object. Components (PresenceBar,
   // yCollab) bind to this once at mount and never need to re-subscribe.
   const awareness = new Awareness(ydoc)
+
+  // Expose awareness alongside the ydoc test handle (gated on the
+  // same exposeTestHandles flag). Flow tests use it to assert
+  // peer-state propagation (e.g. waiting for the local user.id to
+  // be stamped before submitting an @markoto comment).
+  if (import.meta.client && useRuntimeConfig().public.exposeTestHandles) {
+    type Win = { __DEBUG_awareness?: Awareness }
+    ;(window as unknown as Win).__DEBUG_awareness = awareness
+  }
 
   const undoManager = new Y.UndoManager(ytext)
 

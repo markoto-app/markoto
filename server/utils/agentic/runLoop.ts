@@ -10,6 +10,8 @@ import type { AiSession } from '../aiClient'
 import type { BillingContext } from '../billing'
 import { chargeInteractions, BudgetExhausted } from '../billing'
 import { executeFunctionByName } from '../aiToolAdapter'
+// (executeFunctionByName already covers `message_to_user` in its
+//  dispatcher — used by the no-tool-call salvage path below.)
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch, fetchUrl } from './functionTools'
 import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from './limits'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
@@ -121,6 +123,19 @@ export interface RunLoopOptions {
   billingContext: BillingContext
   /** Optional logger — defaults to `console.log` tagged with the session id. */
   logger?: (msg: string) => void
+  /**
+   * Optional callback fired ONCE per validated tool call (after Zod
+   * validation, before per-tool cap checks). Used by the prompt
+   * endpoint to record an `ai_session_messages` row so the next
+   * prompt's `<conversation_history>` block reflects what this session
+   * did. Fire-and-forget: the loop awaits the callback but swallows
+   * errors so a memory hiccup never aborts an in-flight loop.
+   *
+   * `message_to_user` is recorded SEPARATELY by its handler (it has
+   * the verbatim body the prompt block needs); other tools are
+   * recorded here in compacted form via `summarizeToolCall`.
+   */
+  onToolCall?: (name: string, validatedArgs: unknown) => Promise<void>
 }
 
 export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
@@ -318,8 +333,42 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       // corresponding functionResponse user block.
       contents.push({ role: 'model', parts: modelParts })
 
-      // No function calls → natural end of conversation (plain text response).
+      // No function calls → the model emitted pure prose. The system
+      // prompt forbids this (every turn MUST end with a tool call) but
+      // models drift — informational questions like "what is markoto?"
+      // are the typical triggers. Without a salvage path the user sees
+      // NOTHING: the model's text is on the server side only, never
+      // reaches the document or the response panel. Fix: synthesise a
+      // `message_to_user(is_question=false)` call from the prose so the
+      // panel renders it. The schema caps at 600 chars; longer prose
+      // truncates with an ellipsis. Memory recording happens inside
+      // `handleMessageToUser` itself (DB row written), so this stays in
+      // lockstep with explicit `message_to_user` calls.
       if (functionCalls.length === 0) {
+        const proseText = modelParts
+          .map((p) => {
+            const text = (p as { text?: unknown }).text
+            return typeof text === 'string' ? text : ''
+          })
+          .join('')
+          .trim()
+
+        if (proseText.length > 0) {
+          log(`turn ${turns}: salvaging pure-prose response (${proseText.length} chars) via message_to_user fallback`)
+          const SCHEMA_MAX = 600
+          const message = proseText.length > SCHEMA_MAX
+            ? proseText.slice(0, SCHEMA_MAX - 1) + '…'
+            : proseText
+          try {
+            await executeFunctionByName(aiSession, 'message_to_user', {
+              message,
+              is_question: false
+            })
+          } catch (e) {
+            log(`message_to_user fallback failed: ${e instanceof Error ? e.message : e}`)
+          }
+        }
+
         if (finishReason && finishReason !== FinishReason.STOP && finishReason !== FinishReason.MAX_TOKENS) {
         // Safety / recitation / malformed — surface as error.
           outcome = 'error'
@@ -393,6 +442,22 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         // Unknown tool — let executeFunctionByName / webSearch branch handle
         // the "unsupported" error. Pass raw args through.
           validatedArgs = call.args ?? {}
+        }
+
+        // Memory event — record the validated call (compacted) before
+        // we run it. Fire-and-forget; errors swallowed so a memory
+        // hiccup can't abort the loop. We record BEFORE the cap check
+        // so the memory reflects what the model attempted, even if the
+        // cap rejected this particular invocation. `message_to_user`
+        // is special-cased upstream by the handler so it lands as a
+        // verbatim row, not a compacted tool_call row — so we skip it
+        // here to avoid a duplicate.
+        if (opts.onToolCall && call.name !== 'message_to_user') {
+          try {
+            await opts.onToolCall(call.name, validatedArgs)
+          } catch (e) {
+            log(`onToolCall callback failed: ${e instanceof Error ? e.message : e}`)
+          }
         }
 
         // Per-tool call-count cap. Independent of the per-user budget

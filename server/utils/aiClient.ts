@@ -4,6 +4,7 @@ import { HocuspocusProvider } from '@hocuspocus/provider'
 import { Awareness } from 'y-protocols/awareness'
 import type { AttributedTo } from './billing'
 import type { PlanName } from '~~/shared/config/tiers'
+import { aiClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 // Node environment needs a WebSocket implementation; 'ws' is a transitive dep of hocuspocus provider
 // but may not be auto-picked on Bun/Nitro. We import it explicitly at runtime if needed.
 
@@ -95,18 +96,19 @@ export async function createAiSession(
     throw new Error('syncInternalUrl not configured')
   }
 
+  const payload = {
+    docId,
+    userId: aiClientUserId(meta.sessionId),
+    // Activity-log attribution picks this up via the onChange hook.
+    // Always "markoto" — the initiator's name lives in
+    // awareness.aiSession for UI display. Internal JWT principal
+    // (`ai:assistant:…`) stays unchanged so existing access checks
+    // still work.
+    userName: 'markoto',
+    readOnly: false
+  } satisfies SessionJwtPayload
   const token = jwt.sign(
-    {
-      docId,
-      userId: `ai:assistant:${meta.sessionId}`,
-      // Activity-log attribution picks this up via the onChange hook.
-      // Always "markoto" — the initiator's name lives in
-      // awareness.aiSession for UI display. Internal JWT principal
-      // (`ai:assistant:…`) stays unchanged so existing access checks
-      // still work.
-      userName: 'markoto',
-      readOnly: false
-    },
+    payload,
     config.jwtSecret,
     // 10m TTL — sessions are sub-minute in practice (5 min hard
     // deadline; sweeper kills at 7 min). 1h was an overhang that

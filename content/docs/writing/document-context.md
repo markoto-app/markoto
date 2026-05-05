@@ -1,0 +1,58 @@
+---
+title: Tell the AI who you're writing for
+description: Set audience, language, and a one-line description once — every AI prompt picks them up automatically.
+category: writing
+order: 5
+featured: true
+---
+
+# Tell the AI who you're writing for
+
+Every doc carries four context fields beyond the title: a description,
+a target audience, a language, and the template it was created from.
+The AI sees them on every prompt — so a one-time minute setting them
+up saves you re-typing context on every "rewrite this" / "extend
+this" / "draft a section" prompt.
+
+This walkthrough sets the audience to **Marketing**, the language to
+**Deutsch**, and a one-line description, then asks the AI to write a
+welcome intro. The AI returns marketing-tone Deutsch — without the
+prompt mentioning audience or language.
+
+::flow{id="tell-the-ai-who-you-re-writing-for" hide-title}
+::
+
+## What just happened
+
+The Document tab in the right sidebar exposes three editable fields
+that the AI's system prompt picks up on every turn:
+
+- **Description** — one line that tells the AI what this document IS.
+  Free text, ≤500 chars.
+- **Audience** — a closed enum of six writing registers (technical,
+  marketing, academic, casual, business, creative). Each maps to a
+  tuned tone fragment in `shared/audiences/index.ts`. Closed enum,
+  not free text — free-form audience steering belongs in the user's
+  prompt; audience is for DURABLE tone.
+- **Language** — free text with six curated presets. The AI gets the
+  self-language name resolved via `Intl.DisplayNames` (`de` →
+  "Deutsch", not "German") and the prompt ends with "Write all prose
+  in Deutsch."
+
+The AI prompt builder (`server/utils/agentic/documentContextPrompt.ts`)
+prepends a `<document_context>` block to the system prompt every turn.
+That's why the AI shifted languages without you mentioning the language
+in your prompt.
+
+## On mobile
+
+The Document tab is in the same right-sidebar bottom sheet as the
+theme + activity tabs. The form is dense; expect to scroll.
+
+::flow{id="tell-the-ai-who-you-re-writing-for-on-mobile" hide-title}
+::
+
+## What's next
+
+- [Pick a theme that matches the audience](/docs/themes/pick-a-theme).
+- [Ask the AI about a file you uploaded](/docs/writing/knowledge-rag).

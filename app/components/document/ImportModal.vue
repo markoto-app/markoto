@@ -155,6 +155,7 @@ function cancelImport() {
               class="flex-1"
               variant="solid"
               color="primary"
+              data-testid="import-replace-all"
               @click="applyImport('replace')"
             >
               <UIcon
@@ -166,6 +167,7 @@ function cancelImport() {
             <UButton
               class="flex-1"
               variant="outline"
+              data-testid="import-append"
               @click="applyImport('append')"
             >
               <UIcon
@@ -176,6 +178,7 @@ function cancelImport() {
             </UButton>
             <UButton
               variant="ghost"
+              data-testid="import-conflict-cancel"
               @click="cancelImport"
             >
               {{ t('common.cancel') }}
@@ -196,6 +199,7 @@ function cancelImport() {
                 ? 'border-solid border-primary bg-primary/5 hover:bg-primary/10'
                 : 'border-dashed border-default hover:border-muted'
             ]"
+            data-testid="import-dropzone"
             @click="selectFile()"
           >
             <template v-if="selectedFile">
@@ -258,6 +262,7 @@ function cancelImport() {
             <UButton
               :loading="importing"
               :disabled="!selectedFile"
+              data-testid="import-submit"
               @click="doImport"
             >
               <UIcon

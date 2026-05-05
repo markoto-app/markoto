@@ -3,8 +3,9 @@ import type { EditorView } from '@codemirror/view'
 import { insertTable } from '~/utils/editorCommands'
 import TableSizePicker from './TableSizePicker.vue'
 import RightPanelHost from './RightPanelHost.vue'
-import MobileFormatBar from './MobileFormatBar.vue'
-import InsertSheet from './InsertSheet.vue'
+import MobileTabBar from './MobileTabBar.vue'
+import EditorCommandsPanel from './EditorCommandsPanel.vue'
+import type { TabName } from './tabBarTypes'
 import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
 
@@ -156,73 +157,34 @@ const canManageDoc = computed(() =>
 // Import modal state
 const showImportModal = ref(false)
 // Right-sidebar slot — mutually exclusive between activity, theme,
-// knowledge, document, and comments. All share the same column so the
-// layout shift is predictable regardless of which one is open.
+// knowledge, document, comments, and the new mobile-only "editor"
+// drawer (categorized command palette). All share the same column so
+// the layout shift is predictable regardless of which one is open.
 // Knowledge only appears for workspace docs (see `hasKnowledgeAccess`).
-type RightSidebarPanel = 'document' | 'activity' | 'theme' | 'knowledge' | 'comments'
+type RightSidebarPanel = TabName
 const rightSidebar = ref<RightSidebarPanel | null>(null)
-// Mobile insert-sheet state — opened by the MobileFormatBar's `+`
-// button. Lives here so the sheet is mounted at the layout root,
-// outside the keyboard-anchored bar's flex container (which would
-// clip it).
-const insertSheetOpen = ref(false)
+// Insert flows the EditorCommandsPanel still hands off to the layout
+// (table-size picker, image picker) — same modal/file-dialog flows
+// that used to be triggered from the dropped MobileFormatBar.
 function toggleSidebar(panel: RightSidebarPanel) {
   rightSidebar.value = rightSidebar.value === panel ? null : panel
 }
 function closeSidebar() {
   rightSidebar.value = null
 }
+// Mobile tab-bar handler — receives the tapped tab name from
+// MobileTabBar and toggles the corresponding drawer. The mic tab is
+// handled separately (toggle-dictation event), so this only deals
+// with panel-selecting taps.
+function onMobileTabSelect(name: TabName) {
+  toggleSidebar(name)
+}
 
-// Mobile panel-picker dropdown items. Driven by the same gates the
-// desktop icon strip uses (canEditTheme for theme, hasKnowledgeAccess
-// for knowledge). One menu replaces 5 separate buttons on `<sm`.
-const panelMenuItems = computed(() => {
-  const items: Array<{ label: string, icon: string, onSelect: () => void }> = [
-    {
-      label: t('documentPanel.title'),
-      icon: 'i-lucide-info',
-      onSelect: () => toggleSidebar('document')
-    },
-    {
-      label: t('comments.title'),
-      icon: 'i-lucide-message-circle',
-      onSelect: () => toggleSidebar('comments')
-    },
-    {
-      label: t('activity.title'),
-      icon: 'i-lucide-activity',
-      onSelect: () => toggleSidebar('activity')
-    }
-  ]
-  if (canEditTheme.value) {
-    items.push({
-      label: t('theme.title'),
-      icon: 'i-lucide-palette',
-      onSelect: () => toggleSidebar('theme')
-    })
-  }
-  if (hasKnowledgeAccess.value) {
-    items.push({
-      label: t('knowledge.title'),
-      icon: 'i-lucide-library',
-      onSelect: () => toggleSidebar('knowledge')
-    })
-  }
-  return [items]
-})
-
-// Sheet title surfaced on mobile (`<BottomSheet :title>`). Empty
-// string for the desktop branch — RightPanelHost ignores it then.
-const rightSidebarTitle = computed<string>(() => {
-  switch (rightSidebar.value) {
-    case 'document': return t('documentPanel.title')
-    case 'comments': return t('comments.title')
-    case 'activity': return t('activity.title')
-    case 'theme': return t('theme.title')
-    case 'knowledge': return t('knowledge.title')
-    default: return ''
-  }
-})
+// Mobile drawer titles are now rendered by each panel's own header
+// (icon + title + × close button) — the BottomSheet host no longer
+// duplicates them. The previously-computed `rightSidebarTitle` is
+// removed; if a future caller needs the localized panel name it can
+// be reconstructed inline from `rightSidebar.value`.
 
 // Global Escape closes whichever sidebar panel is open. Skip while
 // any modal-like layer (delete/duplicate/move/import/share) is up —
@@ -1006,6 +968,7 @@ const _statusIcon = computed(() => {
             :variant="viewMode === 'edit' ? 'solid' : 'ghost'"
             :aria-label="t('editor.edit')"
             :aria-pressed="viewMode === 'edit'"
+            data-testid="view-mode-edit"
             @click="viewMode = 'edit'"
           />
         </UTooltip>
@@ -1017,6 +980,7 @@ const _statusIcon = computed(() => {
             :variant="viewMode === 'split' ? 'solid' : 'ghost'"
             :aria-label="t('editor.splitView')"
             :aria-pressed="viewMode === 'split'"
+            data-testid="view-mode-split"
             @click="viewMode = 'split'"
           />
         </UTooltip>
@@ -1028,6 +992,7 @@ const _statusIcon = computed(() => {
             :variant="viewMode === 'preview' ? 'solid' : 'ghost'"
             :aria-label="t('editor.preview')"
             :aria-pressed="viewMode === 'preview'"
+            data-testid="view-mode-preview"
             @click="viewMode = 'preview'"
           />
         </UTooltip>
@@ -1054,6 +1019,7 @@ const _statusIcon = computed(() => {
             variant="ghost"
             size="xs"
             :aria-label="`${t('share.accessMode')}: ${t(accessLabelKey)}`"
+            data-testid="access-lock-button"
             @click="showShareModal = true"
           />
         </UTooltip>
@@ -1163,9 +1129,11 @@ const _statusIcon = computed(() => {
                   above the right-sidebar column they open. -->
       <div class="border-b border-default shrink-0 flex items-center justify-between">
         <!-- Desktop formatting toolbar — hidden on mobile (`<sm`).
-             Mobile users get a thinner keyboard-anchored bar
-             instead, mounted below the main content (see
-             `<MobileFormatBar>` toward the bottom of this template). -->
+             Mobile users access the same commands through the "Editor"
+             tab in the bottom MobileTabBar (rendered toward the end of
+             this template), which opens the EditorCommandsPanel
+             drawer with categorized formatting / heading / list /
+             insert actions. -->
         <div class="hidden sm:block flex-1 min-w-0">
           <EditorToolbar
             v-if="viewMode !== 'preview'"
@@ -1178,23 +1146,11 @@ const _statusIcon = computed(() => {
             @create-comment="triggerCreateComment"
           />
         </div>
-        <!-- Mobile: a single panel icon that opens a dropdown picker.
-             5 separate icons would crowd the 390px topbar. The dropdown
-             surfaces only the panels currently allowed (document /
-             comments / activity / theme[?canEditTheme] / knowledge[?
-             hasKnowledgeAccess]). -->
-        <div class="sm:hidden px-2 py-1 shrink-0">
-          <UDropdownMenu :items="panelMenuItems">
-            <UButton
-              icon="i-lucide-panel-right"
-              color="neutral"
-              :variant="rightSidebar ? 'soft' : 'ghost'"
-              size="xs"
-              :aria-label="t('common.openPanel')"
-              :aria-pressed="!!rightSidebar"
-            />
-          </UDropdownMenu>
-        </div>
+        <!-- Mobile: panel-picker is now the bottom MobileTabBar (rendered
+             outside this header, anchored to the viewport bottom). The
+             previous in-header dropdown was removed in favour of an
+             always-visible tab strip — frees this space for connection
+             status / presence chips that live to the LEFT of this row. -->
 
         <!-- Desktop: explicit 5-button strip. Hidden on mobile because
              the strip + topbar title would overflow at 390px. -->
@@ -1207,6 +1163,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('documentPanel.title')"
               :aria-pressed="rightSidebar === 'document'"
+              data-testid="sidebar-tab-document"
               @click="toggleSidebar('document')"
             />
           </UTooltip>
@@ -1218,7 +1175,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('comments.title')"
               :aria-pressed="rightSidebar === 'comments'"
-              data-testid="comments-tab-toggle"
+              data-testid="sidebar-tab-comments"
               @click="toggleSidebar('comments')"
             />
           </UTooltip>
@@ -1230,6 +1187,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('activity.title')"
               :aria-pressed="rightSidebar === 'activity'"
+              data-testid="sidebar-tab-activity"
               @click="toggleSidebar('activity')"
             />
           </UTooltip>
@@ -1244,6 +1202,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('theme.title')"
               :aria-pressed="rightSidebar === 'theme'"
+              data-testid="sidebar-tab-theme"
               @click="toggleSidebar('theme')"
             />
           </UTooltip>
@@ -1258,6 +1217,7 @@ const _statusIcon = computed(() => {
               size="xs"
               :aria-label="t('knowledge.title')"
               :aria-pressed="rightSidebar === 'knowledge'"
+              data-testid="sidebar-tab-knowledge"
               @click="toggleSidebar('knowledge')"
             />
           </UTooltip>
@@ -1296,10 +1256,16 @@ const _statusIcon = computed(() => {
             // `min-w-0` lets the pane shrink past its intrinsic content width.
             'flex-1 min-w-0',
             // Right border only when something visible sits to its right.
-            (viewMode === 'split' || rightSidebar) ? 'border-r border-default' : '',
-            // On xs, when the right sidebar is open it covers the whole
-            // viewport — hide the editor so it doesn't compete for layout.
-            rightSidebar ? 'hidden sm:block' : ''
+            (viewMode === 'split' || rightSidebar) ? 'border-r border-default' : ''
+            // NOTE: previously had `rightSidebar ? 'hidden sm:block' : ''`
+            // here, written before the BottomSheet pattern existed when
+            // the mobile panel was a full-viewport overlay. With the
+            // BottomSheet (snapHeight 60vh, teleported), the panel
+            // intentionally covers only the bottom of the viewport and
+            // the editor MUST stay visible above it — that's the whole
+            // point of the bottom-sheet design. Hiding the editor here
+            // left mobile users staring at a blank background behind
+            // the sheet.
           ]"
           class="h-full"
         >
@@ -1344,7 +1310,6 @@ const _statusIcon = computed(() => {
              - split/preview, xl+:  fixed 320px sidebar → triple-split -->
         <RightPanelHost
           :open="!!rightSidebar"
-          :title="rightSidebarTitle"
           :view-mode="viewMode"
           @close="closeSidebar"
         >
@@ -1452,6 +1417,26 @@ const _statusIcon = computed(() => {
               />
             </div>
           </div>
+          <!-- Editor commands drawer (mobile only — the desktop top
+               toolbar covers these on `>=sm`). Categorized grid of
+               formatting / heading / list / insert commands; tapping
+               any action runs through the existing editorCommands.ts
+               helpers and emits `done` so we close the sheet and
+               return focus to the editor. Layout-level handoffs
+               (table-size picker, image picker) are forwarded
+               unchanged. -->
+          <EditorCommandsPanel
+            v-else-if="rightSidebar === 'editor'"
+            :view="editorView"
+            :can-comment="!isReadOnly"
+            @done="closeSidebar"
+            @close="closeSidebar"
+            @open-table-picker="tableModalOpen = true"
+            @open-image-picker="openImagePicker"
+            @open-import="showImportModal = true"
+            @open-server-pdf="openServerPdf"
+            @export-markdown="exportMarkdown"
+          />
         </RightPanelHost>
 
         <!-- Floating AI prompt bar — overlay at the bottom of the
@@ -1465,41 +1450,35 @@ const _statusIcon = computed(() => {
           :ai="ai"
         />
 
-        <!-- Mobile keyboard-anchored format bar. Visible only when
-             the virtual keyboard is up; sits above the keyboard via
-             `visualViewport` tracking. Mobile-only (`sm:hidden`).
-             The `+` button opens the InsertSheet for non-format-bar
-             actions (tables, alerts, math, etc). -->
-        <MobileFormatBar
-          :view="editorView"
-          :read-only="isReadOnly"
+        <!-- Mobile bottom tab bar — the single navigation surface for
+             panels on `<sm`. Replaces the previous keyboard-anchored
+             MobileFormatBar AND the in-header panel-picker dropdown.
+             Tabs: Document, Comments, Activity, Theme, Knowledge,
+             Editor (commands drawer), Mic (toggles dictation directly
+             — no drawer). Hidden in read-only or preview mode where
+             editing tools are irrelevant. -->
+        <MobileTabBar
+          v-if="!isReadOnly && viewMode !== 'preview'"
+          :active-panel="rightSidebar"
+          :can-edit-theme="canEditTheme"
+          :has-knowledge-access="hasKnowledgeAccess"
           :dictation-state="dictation.state.value"
-          @open-insert-sheet="insertSheetOpen = true"
+          @select="onMobileTabSelect"
           @toggle-dictation="dictation.toggle()"
-        />
-        <InsertSheet
-          v-model="insertSheetOpen"
-          :view="editorView"
-          @open-table-picker="tableModalOpen = true"
-          @open-image-picker="openImagePicker"
-          @create-comment="triggerCreateComment"
         />
 
         <!-- Mobile view-mode toggle. The desktop toggle group lives in
              the topbar (line ~849, `hidden sm:flex`). On mobile, that
-             topbar group disappears and the only path to preview was
-             the dropdown menu — too buried. This bottom-floating
-             segment control keeps the toggle one tap away.
-             Mobile drops `split` (no useful 50/50 at 390px width) and
-             only offers edit ⇄ preview. Hidden on `>=sm`.
-             Bottom offset lifts above the AI prompt bar when it's
-             rendered (edit / split view, not read-only) so the puck
-             doesn't sit ON TOP of the prompt bar's send button —
-             which previously stole pointer events on mobile and
-             timed out the write-with-ai flow test. -->
+             topbar group disappears and the toggle floats over the
+             editor content — anchored at the TOP-right corner of the
+             content area now that the bottom is occupied by the
+             AIResponsePanel + AIPromptBar + MobileTabBar stack. The
+             puck still floats (kept the rounded-full pill + shadow);
+             only the anchor moved. Mobile drops `split` (no useful
+             50/50 at 390px width) — only offers edit ⇄ preview.
+             Hidden on `>=sm`. -->
         <div
-          class="sm:hidden absolute right-3 z-30 inline-flex items-center gap-0.5 rounded-full border border-default bg-default shadow-md p-0.5"
-          :class="!isReadOnly && viewMode !== 'preview' ? 'bottom-[88px]' : 'bottom-3'"
+          class="sm:hidden absolute top-3 right-3 z-30 inline-flex items-center gap-0.5 rounded-full border border-default bg-default shadow-md p-0.5"
           data-testid="mobile-viewmode-bar"
         >
           <button

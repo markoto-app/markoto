@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Q3 launch postmortem</title>
+</head>
+<body>
+  <h1>Q3 launch postmortem</h1>
+
+  <p><strong>Date:</strong> 2026-04-12<br>
+     <strong>Attendees:</strong> Maya Chen (PM), Jordan Lee (Eng), Sam Reeves (Design)<br>
+     <strong>Purpose:</strong> Capture what went well + what we'll do differently for Q4.</p>
+
+  <h2>What worked</h2>
+  <ul>
+    <li>Staged rollout caught the avatar-loading regression at 5% before user reports landed.</li>
+    <li>The on-call rotation handed off cleanly; no incidents required escalation past tier-1.</li>
+    <li>Customer-success ran the launch FAQ on a separate doc, freed the engineering channel for actual work.</li>
+  </ul>
+
+  <h2>What we'll change</h2>
+  <ul>
+    <li>Cut the staged-rollout interval from 24h to 12h — the avatar bug spent half its window invisible behind a metric we don't watch.</li>
+    <li>Add a "blast radius" line to every PR description. Two of the three near-misses were features we underestimated.</li>
+    <li>Move the launch retro to T+5 days, not T+10. Memories rot.</li>
+  </ul>
+
+  <h2>Open questions</h2>
+  <ol>
+    <li>Should the on-call rotation include a designer? Two of our incidents this quarter were UI regressions.</li>
+    <li>Who owns the canary metric dashboard now that Mira's team moved off it?</li>
+  </ol>
+</body>
+</html>

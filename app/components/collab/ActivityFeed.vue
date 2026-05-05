@@ -557,6 +557,7 @@ function onRestored() {
               type="button"
               class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-elevated text-muted hover:text-primary transition-colors"
               :title="t('activity.restore.button.tooltip')"
+              :data-testid="`activity-row-restore-${entry.id}`"
               @click.stop="openRestoreModal(entry)"
             >
               <UIcon
