@@ -2,6 +2,7 @@ import type { Page, Locator } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { Pool } from 'pg'
 import { TESTID, sel } from '../../../shared/testids'
+import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal/versions'
 
 // Page-object for the YPad editor (`/d/<id>`). Stable selectors for
 // the parts of the UI that flow tests touch most often. ONE place to
@@ -167,7 +168,7 @@ export class EditorPage {
    * which is set by the bottom-bar component when the
    * useAI().mySession ref clears (status='done' or session aborted).
    *
-   * Default 90s because real Gemini turns can take 5-30s and a
+   * Default 90s because real Mistral turns can take 5-30s and a
    * multi-tool loop chains several. Override for fast prompts.
    */
   async waitForAiIdle(timeout = 90_000): Promise<void> {
@@ -407,11 +408,23 @@ export class EditorPage {
    * `.pagedjs_page` children when pagination actually completes —
    * waiting on the inner `.pagedjs_page` is the reliable signal.
    * Screenshots taken before that show a blank preview pane.
+   *
+   * **Scope to `#mount` deliberately.** The iframe has two paged-mount
+   * divs in DOM order: `#mount` (visible target) and `#pending`
+   * (offscreen scratch — `position:fixed; left:-10000px; visibility:hidden`).
+   * paged.js renders into `#pending` first, then `replaceChildren`-swaps
+   * the pages into `#mount`. On the *first* render after the iframe
+   * is created (e.g. after a route navigation that re-mounts
+   * PreviewPane — happens on duplicate-doc), `#mount` is empty while
+   * paged.js is mid-fill of `#pending`. An unscoped `.pagedjs_page`
+   * `.first()` would then match a `#pending` element and report it
+   * hidden for the entire wait window. Scoping to `#mount` ensures
+   * we only match the swapped-in (visible) pages.
    */
   async waitForPreviewPaginated(timeout = 15_000): Promise<void> {
     await this.page
       .frameLocator('iframe')
-      .locator('.pagedjs_page')
+      .locator('#mount .pagedjs_page')
       .first()
       .waitFor({ state: 'visible', timeout })
   }
@@ -467,12 +480,36 @@ export class EditorPage {
     })
     try {
       const githubId = `flow-test-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`
+      // Seed the onboarding columns directly so the user row matches a
+      // post-Welcome-modal state. Mirrors `tests/integration/setup/
+      // fixtures.ts:createUser()` non-fresh path. Without this, every
+      // `POST /api/workspaces` returns 409 `workspace/dpa-required`
+      // (the DPA gate added in Workstream B), and every flow that
+      // touches workspaces fails at setup. Versions read from
+      // `shared/legal/versions.ts` so a future PRIVACY_VERSION bump
+      // can't desync the OnboardingGate's "needs re-acceptance"
+      // check from the test seed (which previously hard-coded 2/1/1
+      // and broke every flow on the next bump).
       const result = await pool.query<{ id: number }>(
-        `INSERT INTO users (github_id, name, plan)
-         VALUES ($1, $2, 'free')
-         ON CONFLICT (github_id) DO UPDATE SET name = EXCLUDED.name
+        `INSERT INTO users (
+           github_id, name, plan,
+           age_confirmed_at,
+           privacy_version_accepted, privacy_version_accepted_locale,
+           tos_version_accepted, tos_version_accepted_locale,
+           dpa_version_accepted, dpa_version_accepted_locale
+         )
+         VALUES ($1, $2, 'free', NOW(), $3, 'en', $4, 'en', $5, 'en')
+         ON CONFLICT (github_id) DO UPDATE SET
+           name = EXCLUDED.name,
+           age_confirmed_at = EXCLUDED.age_confirmed_at,
+           privacy_version_accepted = EXCLUDED.privacy_version_accepted,
+           privacy_version_accepted_locale = EXCLUDED.privacy_version_accepted_locale,
+           tos_version_accepted = EXCLUDED.tos_version_accepted,
+           tos_version_accepted_locale = EXCLUDED.tos_version_accepted_locale,
+           dpa_version_accepted = EXCLUDED.dpa_version_accepted,
+           dpa_version_accepted_locale = EXCLUDED.dpa_version_accepted_locale
          RETURNING id`,
-        [githubId, name]
+        [githubId, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION]
       )
       const userId = result.rows[0].id
       await this.loginAsExistingUser(userId, name)

@@ -27,8 +27,8 @@ describe('mimeToEncoding', () => {
   })
 
   it('returns null for MP4 / AAC (Safari)', () => {
-    // Cloud STT sync recognize doesn't accept MP4. We reject at the
-    // MIME gate upstream — this test pins that contract so a future
+    // The transcription upstream doesn't accept MP4. We reject at
+    // the MIME gate upstream — this test pins that contract so a future
     // "let's add Safari support" change has to touch BOTH the
     // allowlist AND this mapper AND the transcoding strategy
     // together.

@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   // Prefer the dictation-specific secret; fall back to the Hocuspocus
   // jwtSecret so this still works in dev without setting a second var.
   // Prod should set both independently.
-  const secret = config.google.dictateJwtSecret || config.jwtSecret
+  const secret = config.aiDictateJwtSecret || config.jwtSecret
   if (!secret) {
     throw createError({ statusCode: 500, message: 'JWT secret not configured' })
   }
@@ -35,30 +35,14 @@ export default defineEventHandler(async (event) => {
   // open a socket that would only fail on the auth message.
   await requireDocEditAccess(docId, userId)
 
-  // Budget pre-check — mirror the WS-side gate at session open. Without
-  // this, an exhausted user gets a token (200), opens the WS, sees the
-  // mic-permission browser dialog, clicks Allow, and ONLY then sees the
-  // WS close with budget-exhausted. The 402 here saves that whole
-  // mic-flash by failing at the click of the mic button. The WS-level
-  // gate stays as the safety net (token may go stale by the time the
-  // WS opens, or workspace/user state may change in the 60s window).
-  //
-  // Mirrors the resolveBillingContext call in dictate.ts (workspaceId
-  // = null because the dictate JWT doesn't carry workspace context).
-  const billing = await resolveBillingContext(userId, null)
-  if (billing.interactionsRemaining <= 0) {
-    throw createError({
-      statusCode: 402,
-      message: `You've used all AI actions for this billing period. Upgrade your plan at /pricing to continue.`,
-      data: {
-        code: 'ai/budget-exhausted',
-        messageKey: 'ai.budgetExhaustedDescription',
-        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' },
-        plan: billing.plan,
-        remaining: 0
-      }
-    })
-  }
+  // Phase 6: budget pre-check removed. Budget enforcement is delegated
+  // to the LiteLLM virtual key's `max_budget`; an exhausted user's first
+  // voice-tick post hits the proxy and surfaces a 429 → close-frame.
+  // The pre-Phase-6 mic-flash UX is no longer guarded here because we
+  // have no app-side counter to read; lazy-creating the LiteLLM key
+  // happens inside `resolveBillingContext` so the key is provisioned
+  // before the WS opens (and dictate routes through it).
+  await resolveBillingContext(userId, null)
 
   // `scope: 'dictate'` is critical defense-in-depth. The Hocuspocus
   // auth path in sync-server/src/auth.ts rejects ANY token that

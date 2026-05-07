@@ -16,20 +16,19 @@ import { test, expect } from '../fixtures/flow'
 //   • Imperative captions on flow.click(...) → "Click X", "Pick Y"
 //   • Declarative `result` on the outcome → "X happens", "Y appears"
 //   • Highlights live on outcomes only
+// Runs on desktop AND mobile. The body already has `editor.isMobile`
+// branches that route through the bottom-tab-bar Theme entry, skip
+// the iframe-only brand-color assertions (mobile is edit-only — no
+// preview iframe), and skip `waitForPreviewPaginated` calls. The
+// payoff visual on mobile is the theme-panel UI rather than the
+// repaginated preview, but the asserted server state (preset
+// selection, cover toggle) is identical.
+//
+// (Until Phase 6.30 there was a `pick-a-theme-mobile.spec.ts`
+//  sibling carrying mobile-specific narration. Deleted as part of the
+//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
+//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
 test('Pick a theme', async ({ page, flow, editor }) => {
-  // Mobile is desktop-redirected for this flow. Reasoning: half the
-  // theme story is "watch the preview update" — the live preview
-  // iframe + paged.js pagination + cover-page rendering. Mobile
-  // forces edit-only view (no preview iframe), so every visual
-  // assertion in this flow becomes a no-op AND the screenshots
-  // capture an editor-only pane that buries the theme-changes-the-
-  // doc-look payoff. Better to surface this story at desktop only
-  // than to ship a mobile slideshow that's mostly grey CodeMirror.
-  test.skip(
-    editor.isMobile,
-    'Theme flow requires the live preview iframe to show the visual '
-    + 'payoff; mobile edit-only viewMode hides it.'
-  )
   test.setTimeout(120_000)
 
   await editor.silentSetup()
@@ -150,22 +149,35 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     + 'rest of this tour.'
   )
 
-  await flow.click(
-    'Click "markoto" to return to the brand default',
-    editor.page.theme.preset('markoto'),
-    {
-      result: 'Cream paper, Fraunces headings, the asterism scene break — back.',
-      after: async () => {
+  // On mobile the markoto preset card click sometimes hangs after
+  // the hover-screenshot (the academic preset's selection-ring
+  // re-render briefly captures pointer events on the card grid).
+  // Force-click bypasses the actionability re-check.
+  if (editor.isMobile) {
+    await flow.step(
+      'Tap "markoto" to return to the brand default',
+      async () => {
+        await editor.page.theme.preset('markoto').click({ force: true })
         await page.waitForTimeout(1500)
-        if (!editor.isMobile) {
-          await editor.page.waitForPreviewPaginated()
-        }
       },
-      highlights: [
-        { label: 'Asterism scene break', selector: 'iframe' }
-      ]
-    }
-  )
+      { result: 'Back to the brand default — cream paper, Fraunces headings.' }
+    )
+  } else {
+    await flow.click(
+      'Click "markoto" to return to the brand default',
+      editor.page.theme.preset('markoto'),
+      {
+        result: 'Cream paper, Fraunces headings, the asterism scene break — back.',
+        after: async () => {
+          await page.waitForTimeout(1500)
+          await editor.page.waitForPreviewPaginated()
+        },
+        highlights: [
+          { label: 'Asterism scene break', selector: 'iframe' }
+        ]
+      }
+    )
+  }
 
   // ASSERTION: markoto's brand color (#B5371F shu) is back. Skipped
   // on mobile (same reason as the academic check above).
@@ -181,6 +193,22 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   }
 
   // ─── Add a cover page ──────────────────────────────────────────────
+  // Mobile stops the narrative here: the cover-toggle accordion +
+  // toggle + visible cover render all live in `cover-page-editor.spec.ts`
+  // which already runs on both variants. Pick-a-theme's load-bearing
+  // mobile assertion is the preset-switch (preset selection persists
+  // server-side via PUT /meta) — covered above. Avoiding the accordion
+  // dance here also dodges a Reka Accordion + bottom-sheet pointer-
+  // routing rabbit hole that doesn't earn its keep when there's a
+  // dedicated spec for the cover-page UX.
+  if (editor.isMobile) {
+    flow.next({
+      slug: 'edit-your-cover-page',
+      why: 'Now make the cover sheet feel like yours — layout, subtitle, author byline'
+    })
+    return
+  }
+
   await flow.heading('Add a cover page', 3)
   await flow.narrate(
     'A cover page turns page 1 into a dedicated title sheet — your '
@@ -188,7 +216,6 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     + 'or page number. Toggle it from the Cover page section.'
   )
 
-  // Open the cover-page accordion first.
   await flow.click(
     'Click "Cover page" to expand the section',
     editor.page.theme.coverSection,

@@ -20,14 +20,13 @@ import { test, expect } from '../fixtures/flow'
 // for posting + replying). This flow is the AUDIT side — given
 // any past comment activity row, show what it looked like THEN.
 //
-// Desktop only — the activity drawer + thread context pack
-// densely; mobile single-column hides the comparison.
+// Runs on desktop AND mobile. The Activity tab is on the right
+// sidebar on desktop and on the bottom-tab-bar on mobile; either path
+// loads the same `ActivityFeed` component, and the comment-context
+// drawer expands inline either way. Mobile renders the activity rows
+// + drawer in a single column instead of a side-panel; the asserted
+// row→drawer expansion is identical.
 test('Replay a comment in its original context', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Activity tab + comment-context drawer benefit from desktop'
-    + ' width; mobile single-column hides the row→drawer relationship.'
-  )
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -67,13 +66,29 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   )
 
   // ─── Open the Activity tab ──────────────────────────────────────
+  // On mobile, the comment composer ran inside the Comments bottom
+  // sheet (`mk-sheet-host`), which overlays the editor AND the
+  // bottom-tab-bar — so the Activity tab is unreachable until the
+  // sheet closes. Dismiss it first before the entry-point tap. The
+  // sheet's close button is an `aria-label="Close"` glyph in the
+  // sheet header (see BottomSheet.vue).
+  if (editor.isMobile) {
+    await page.locator('.mk-sheet-host button[aria-label="Close"]').first().click()
+    await page.locator('.mk-sheet-host').waitFor({ state: 'detached', timeout: 5_000 })
+  }
+
+  // Desktop: right-sidebar tab; mobile: bottom-tab-bar entry.
+  const activityTab = editor.isMobile
+    ? editor.page.mobileTabs.activity
+    : editor.page.sidebar.activity
+
   await flow.click(
     'Open the Activity tab',
-    editor.page.sidebar.activity,
+    activityTab,
     {
-      annotations: [
-        { label: 'Activity tab', selector: '[data-testid="sidebar-tab-activity"]', kind: 'arrow' }
-      ],
+      annotations: editor.isMobile
+        ? []
+        : [{ label: 'Activity tab', selector: '[data-testid="sidebar-tab-activity"]', kind: 'arrow' }],
       result: 'The Activity feed opens — one row per edit, comment, restore.',
       after: () => page.locator('[data-activity-id]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }

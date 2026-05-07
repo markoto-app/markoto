@@ -30,9 +30,9 @@ export interface UseVoicePromptOptions {
    */
   onTranscript: (text: string) => void | Promise<void>
   /**
-   * Called when the user speaks but Gemini couldn't make out anything
-   * intelligible. Lets the consumer surface a "didn't catch that" toast
-   * without the composable owning toast UI.
+   * Called when the user speaks but the transcription model couldn't
+   * make out anything intelligible. Lets the consumer surface a
+   * "didn't catch that" toast without the composable owning toast UI.
    */
   onInaudible?: () => void
   /**
@@ -47,14 +47,15 @@ const LEVEL_SAMPLE_COUNT = 64 // visualizer bar count — thin bars read as a sm
 
 // MediaRecorder's MIME preference order.
 //
-// We only return opus-based containers because Cloud Speech-to-Text's
-// sync `recognize` endpoint supports WEBM_OPUS / OGG_OPUS / LINEAR16
-// but NOT MP4/AAC. Safari's MediaRecorder currently only emits
-// `audio/mp4` (AAC) — so voice input is effectively Chrome/Firefox-
-// only until we add a server-side transcoder or switch to the Cloud
-// STT batch Files API (which does accept MP4). Returning `undefined`
-// on Safari lets `start()` fail with a friendly "unsupported browser"
-// error rather than shipping bytes that Cloud STT will reject.
+// We only return opus-based containers because Mistral Voxtral Mini
+// Transcribe's `/v1/audio/transcriptions` endpoint accepts the same
+// container set as the historical Cloud STT path (WEBM_OPUS / OGG_OPUS
+// / LINEAR16) and rejects MP4/AAC. Safari's MediaRecorder currently
+// only emits `audio/mp4` (AAC) — so voice input is effectively
+// Chrome/Firefox-only until we add a server-side transcoder.
+// Returning `undefined` on Safari lets `start()` fail with a friendly
+// "unsupported browser" error rather than shipping bytes that Voxtral
+// will reject.
 function pickMimeType(): string | undefined {
   const candidates = [
     'audio/webm;codecs=opus',
@@ -335,10 +336,10 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
 
     try {
       // `languageCode` piggybacks the UI locale so a German speaker
-      // doesn't get English transcription. Cloud STT accepts either a
-      // BCP-47 tag (`de-DE`) or, via our server-side normalizer, the
-      // short ISO 639-1 code (`de`) we store for the UI. `locale` was
-      // captured at setup-time (see top of composable).
+      // doesn't get English transcription. The transcription pipeline
+      // accepts either a BCP-47 tag (`de-DE`) or, via our server-side
+      // normalizer, the short ISO 639-1 code (`de`) we store for the
+      // UI. `locale` was captured at setup-time (see top of composable).
       const res = await $fetch<{ text: string, inaudible: boolean }>('/api/ai/transcribe', {
         method: 'POST',
         body: { audio: audioB64, mimeType, languageCode: locale.value }

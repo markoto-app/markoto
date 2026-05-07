@@ -44,7 +44,17 @@ The 13 current purposes (truncated): `account_authentication`, `document_storage
 3. Wire the new processor into the `subProcessors` field of every `PROCESSING_PURPOSES` row that touches it (often more than one).
 4. Update `content/legal/privacy/en.md` AND `content/legal/sub-processors.md` if the prose names them.
 
-Current set (truncated): `ovh_postgres`, `ovh_object_storage`, `google_gemini`, `google_speech_to_text`, `google_oauth`, `github_oauth`, `stripe`, `resend`. **Markitdown was deliberately removed** from the list — it's a self-hosted FastAPI sidecar processing uploads in-process; it's not a third-party data flow.
+Current set (truncated): `ovh_postgres`, `ovh_object_storage`, `mistral_ai`, `jina_ai`, `bfl`, `google_oauth`, `github_oauth`, `stripe`, `resend`. **Markitdown was deliberately removed** from the list — it's a self-hosted FastAPI sidecar processing uploads in-process; it's not a third-party data flow.
+
+**Phase 6 sub-processor swap.** `google_gemini` + `google_speech_to_text` were removed when Phase 6 collapsed every AI surface onto LiteLLM. Their replacements:
+
+| Sub-processor | Role | Region | Transfer mechanism |
+|---|---|---|---|
+| `mistral_ai` (Mistral AI SAS, Paris) | Text generation (Mistral Small) + voice transcription (Voxtral Mini Transcribe + Voxtral Realtime live dictation) | EU | `intra_eu` — no DPF/SCC needed |
+| `jina_ai` (Jina AI GmbH, Berlin) | Embeddings (jina-embeddings-v5-text-nano, 768-d native) + web-search content extraction (Jina Reader) | EU | `intra_eu` |
+| `bfl` (Black Forest Labs GmbH) | Image generation via FLUX.2 [pro], EU-pinned at `api.eu2.bfl.ai` | EU | `intra_eu` |
+
+`PROCESSING_PURPOSES` updated in lockstep: `ai_assistance` → `subProcessors: ['mistral_ai', 'jina_ai', 'bfl']`; `workspace_knowledge_rag` → `subProcessors: ['jina_ai', 'ovh_postgres', 'ovh_object_storage']`. This was a material change under GDPR Art.28(2), so `PRIVACY_VERSION` bumped 2 → 3 (`PRIVACY_EFFECTIVE_DATE = '2026-05-06'`); every prior privacy-policy acceptance was invalidated and existing users see the re-acceptance modal on next visit.
 
 ### Adding an audit action
 
@@ -78,6 +88,10 @@ Tests in `tests/unit/legal/registries.test.ts` enforce the cross-registry invari
 - `AUDIT_*` constants don't collide.
 
 Add to that test file when you add a new invariant.
+
+## Gotchas
+
+- **Bumping a `_VERSION` constant cascades to test fixtures.** Phase 6 lesson: bumping `PRIVACY_VERSION` 2 → 3 mid-phase silently broke 32 flow tests (~15 s each) because `tests/e2e/page-objects/Editor.ts` (`Editor.loginAsTestUser`) AND the `delete-account-with-consequences` spec hard-coded `2/1/1` for the `privacy/tos/dpa _version_accepted` columns when seeding test users. The OnboardingGate then flagged every seeded user as "needs re-acceptance" and overlay-blocked clicks. **Both files now `import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from 'shared/legal/versions'` and parametrize the SQL** so future bumps stay in sync automatically. If you add another fixture that seeds policy-acceptance columns, follow the same pattern — never hardcode the integers.
 
 ## Related
 

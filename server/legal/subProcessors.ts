@@ -58,24 +58,34 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     dpaUrl: 'https://storage.gra.cloud.ovh.net/v1/AUTH_325716a587c64897acbef9a4a4726e38/contracts/9eb5c3d-DPA-9.0-2024-09-30.pdf'
   },
   {
-    id: 'google_gemini',
-    name: 'Google LLC (Gemini API)',
-    purpose: 'AI text generation for the writing assistant; embedding generation for knowledge-base RAG',
-    location: 'us',
-    transferMechanism: 'dpf_with_sccs_fallback',
-    dpfCertified: true,
-    privacyPolicyUrl: 'https://policies.google.com/privacy',
-    dpaUrl: 'https://cloud.google.com/terms/data-processing-addendum'
+    id: 'mistral_ai',
+    name: 'Mistral AI SAS',
+    purpose: 'AI text generation for the writing assistant (Mistral Small) and voice transcription (Voxtral)',
+    location: 'eu',
+    transferMechanism: 'intra_eu',
+    dpfCertified: false,
+    privacyPolicyUrl: 'https://mistral.ai/terms/#privacy-policy',
+    dpaUrl: 'https://mistral.ai/terms/#data-processing-agreement'
   },
   {
-    id: 'google_speech_to_text',
-    name: 'Google LLC (Cloud Speech-to-Text)',
-    purpose: 'Voice dictation transcription',
-    location: 'us',
-    transferMechanism: 'dpf_with_sccs_fallback',
-    dpfCertified: true,
-    privacyPolicyUrl: 'https://policies.google.com/privacy',
-    dpaUrl: 'https://cloud.google.com/terms/data-processing-addendum'
+    id: 'jina_ai',
+    name: 'Jina AI GmbH',
+    purpose: 'Embedding generation for knowledge-base RAG; web-search content extraction (Jina Reader)',
+    location: 'eu',
+    transferMechanism: 'intra_eu',
+    dpfCertified: false,
+    privacyPolicyUrl: 'https://jina.ai/legal/#privacy-policy',
+    dpaUrl: 'https://jina.ai/legal/#data-processing-agreement'
+  },
+  {
+    id: 'bfl',
+    name: 'Black Forest Labs GmbH',
+    purpose: 'Image generation via FLUX.2 (EU-pinned data plane)',
+    location: 'eu',
+    transferMechanism: 'intra_eu',
+    dpfCertified: false,
+    privacyPolicyUrl: 'https://blackforestlabs.ai/privacy-policy/',
+    dpaUrl: 'https://blackforestlabs.ai/data-processing-agreement/'
   },
   {
     id: 'google_oauth',

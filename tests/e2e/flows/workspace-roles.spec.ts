@@ -22,14 +22,13 @@ import { Pool } from 'pg'
 // stay on the workspace settings + members panel where the role
 // chips live.
 //
-// Desktop only: members modal + workspace settings pack densely;
-// mobile single-column hides the role contrast.
+// Runs on desktop AND mobile. The members modal renders identically
+// at both viewport widths (Reka UI dialog reflows under `<sm`); the
+// flow drives role flips via the API rather than the role-chip
+// dropdown, so the platform-specific dropdown chrome doesn't gate
+// the assertion. Mobile shows the role-chip column stacked instead
+// of side-by-side, but the asserted server state is the same.
 test('Roles inside a workspace', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Members modal + workspace settings pack densely; mobile'
-    + ' single-column hides the role contrast.'
-  )
   test.setTimeout(120_000)
 
   // Pre-create the teammate user row (so the membership row has a

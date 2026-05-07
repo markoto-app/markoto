@@ -15,14 +15,18 @@ import { test, expect } from '../fixtures/flow'
 // when your team has a "house style" doc and starts every weekly
 // post from a copy of it.
 //
-// Desktop only — File menu lives in the menubar (hidden on mobile).
-// Mobile users can duplicate via the dashboard's per-doc menu (a
-// separate flow worth doing).
+// Runs on desktop AND mobile. Same UX shape, different entry point:
+//   - Desktop: File menu in the menubar → "Duplicate…".
+//   - Mobile: hamburger ("more") button in the topbar → "Duplicate…".
+// `mobileMenuItems` in `EditorLayout.vue` mirrors the File menu's
+// duplicate/move/delete cluster, so the asserted UX (confirm modal +
+// /api/docs/:id/duplicate + navigate to /d/{newId}) is identical.
+//
+// On mobile the spec skips the post-clone split-view + paged.js
+// pagination assertion (mobile is edit-only, the preview iframe isn't
+// mounted under the `sm` breakpoint). The Y.Doc handle that exposes
+// the clone's text is the same on both variants.
 test('Duplicate a document', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'File → Duplicate is in the desktop menubar; mobile sibling not yet built.'
-  )
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -47,12 +51,22 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
     + 'independent — editing one does not touch the other.'
   )
 
-  // ─── File menu → Duplicate ──────────────────────────────────────
+  // ─── Open the menu containing Duplicate ─────────────────────────
+  // Desktop has a top-level menubar (hidden on mobile via `hidden sm:block`).
+  // Mobile collapses File / Edit / View / etc. into a single hamburger
+  // ("more") UDropdownMenu in the topbar — the duplicate/move/delete
+  // cluster is mirrored under `mobileMenuItems` in EditorLayout.vue.
+  const openMenuTrigger = editor.isMobile
+    ? page.getByRole('button', { name: /^menu$/i }).first()
+    : page.locator('nav[aria-label="Menu bar"] > button').first()
+
   await flow.click(
-    'Click the File menu',
-    page.locator('nav[aria-label="Menu bar"] > button').first(),
+    editor.isMobile ? 'Open the topbar menu' : 'Click the File menu',
+    openMenuTrigger,
     {
-      result: 'The File menu opens — Duplicate sits below Print.',
+      result: editor.isMobile
+        ? 'The topbar menu opens — Duplicate is one of the doc actions.'
+        : 'The File menu opens — Duplicate sits below Print.',
       after: () => page.getByRole('menuitem', { name: /^duplicate/i }).first().waitFor({ state: 'visible' })
     }
   )
@@ -98,8 +112,20 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
   )
 
   // ASSERTION: the cloned doc has the original line (Y.js state copied).
-  const editorText = await cmContent.textContent()
-  expect(editorText).toMatch(/Q3 launch postmortem template/i)
+  // Read off the in-page Y.Doc handle (`window.__DEBUG_ytext`,
+  // exposed by `useDocument.ts` when `NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1`,
+  // which the flow-test stack sets) instead of `cm-content`'s
+  // textContent — CM6 doesn't render lines outside the viewport into
+  // the DOM, so the appended Q3 line at the very END of the welcome
+  // doc may not be in the rendered span on mobile (smaller viewport,
+  // edit-only). The Y.Doc is the authoritative content view.
+  await expect.poll(
+    () => page.evaluate(() => {
+      const w = window as unknown as { __DEBUG_ytext?: { toString: () => string } }
+      return w.__DEBUG_ytext?.toString?.() ?? ''
+    }),
+    { timeout: 10_000 }
+  ).toMatch(/Q3 launch postmortem template/i)
 
   flow.next({
     slug: 'pick-a-theme',

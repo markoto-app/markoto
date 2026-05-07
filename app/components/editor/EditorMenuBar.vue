@@ -325,10 +325,11 @@ const insertItems = computed(() => {
     { label: t('menubar.insert.toc'), icon: 'i-lucide-list-tree', onSelect: () => call(v => insertToc(v)) },
     { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) },
     { type: 'separator' as const },
-    // Live voice dictation — toggles a Gemini Live session that
-    // streams transcribed speech into the doc at the caret. Label
-    // flips so "Stop dictation" is reachable even when the toolbar
-    // mic button isn't visible (e.g. a user who lives in the menu).
+    // Live voice dictation — toggles a Mistral Voxtral Realtime
+    // session that streams transcribed speech into the doc at the
+    // caret. Label flips so "Stop dictation" is reachable even when
+    // the toolbar mic button isn't visible (e.g. a user who lives in
+    // the menu).
     {
       label: props.dictationState === 'recording' || props.dictationState === 'connecting'
         ? t('ai.dictateStop')

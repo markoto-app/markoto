@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
   const cached = await getCachedHealth({
     syncUrl: config.syncInternalUrl,
     rendererUrl: config.rendererInternalUrl,
-    markitdownUrl: config.markitdownUrl
+    markitdownUrl: config.markitdownUrl,
+    litellmUrl: config.litellm?.url
   })
   setResponseStatus(event, cached.status)
   return cached.body

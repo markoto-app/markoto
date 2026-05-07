@@ -1,19 +1,28 @@
 import {
-  FinishReason,
-  type Content,
-  type FunctionCall,
-  type FunctionDeclaration,
-  type GoogleGenAI
-} from '@google/genai'
+  AgenticFinishReason as FinishReason,
+  type AgenticContent as Content,
+  type AgenticFunctionCall as FunctionCall,
+  type AgenticFunctionDeclaration as FunctionDeclaration,
+  type AgenticAIClient as AiClient
+} from './aiTypes'
 import * as Sentry from '@sentry/nuxt'
+import { litellmStream } from '../litellm/createCompletion'
 import type { AiSession } from '../aiClient'
 import type { BillingContext } from '../billing'
-import { chargeInteractions, BudgetExhausted } from '../billing'
+import { LitellmBudgetExhausted, isBudgetExceededError } from '../litellmKeys'
 import { executeFunctionByName } from '../aiToolAdapter'
 // (executeFunctionByName already covers `message_to_user` in its
 //  dispatcher — used by the no-tool-call salvage path below.)
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch, fetchUrl } from './functionTools'
 import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from './limits'
+import {
+  internalToOpenAIMessages,
+  internalToOpenAITools,
+  openAIStreamToInternalChunks,
+  type StreamChunk
+} from './messageTranslation'
+import { useLitellmForUser } from '../litellmClient'
+import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
 import { docExists } from '../../repos/documents'
 import {
@@ -37,9 +46,10 @@ type SessionOutcome
     | 'turn-limit'
 
 /**
- * The agentic loop: call Gemini with streaming + function calling, dispatch
- * any client-side tool invocations, loop until the model emits a plain text
- * response (no function calls) or we hit a stop condition.
+ * The agentic loop: call the LLM (Mistral via LiteLLM) with streaming +
+ * function calling, dispatch any client-side tool invocations, loop
+ * until the model emits a plain text response (no function calls) or
+ * we hit a stop condition.
  *
  * Contract:
  *   - Returns normally on `finishReason === STOP` with no function calls.
@@ -56,8 +66,15 @@ const MAX_TURNS = 20
  * Thrown when a single session crosses `SESSION_INTERACTION_CAP`. The
  * outer turn-loop catches this and exits via `setStatus('error', …)`
  * — surfaces to the UI as a "stopped" state rather than a hard throw.
- * Distinct from `BudgetExhausted` (the per-user monthly cap) so the
- * billing breadcrumb path doesn't also fire here.
+ * Distinct from `LitellmBudgetExhausted` (the per-user monthly $ cap
+ * enforced by LiteLLM) so the billing breadcrumb path doesn't also
+ * fire here.
+ *
+ * Phase 6 note: this is a runaway-loop SAFETY cap (orthogonal to cost).
+ * It prevents pathological prompt-injection ping-pong where a single
+ * session burns through 50+ tool calls. The per-user MONTHLY $ cap is
+ * LiteLLM's job — it 4xx's the chat completion the moment the user's
+ * `max_budget` is crossed.
  */
 class SessionCapExhausted extends Error {
   constructor(message: string) {
@@ -92,7 +109,14 @@ async function logAiTool(docId: string, metadata: Extract<ActivityMetadata, { ki
 }
 
 export interface RunLoopOptions {
-  ai: GoogleGenAI
+  /**
+   * Production callers OMIT this. The runLoop routes 100% through
+   * LiteLLM → Mistral; the only remaining use of `ai` is the
+   * unit-test seam, where tests inject a fake `AgenticAIClient` to
+   * drive the loop without LiteLLM. When omitted, the seam path is
+   * unreachable.
+   */
+  ai?: AiClient
   model: string
   systemPrompt: string
   initialPrompt: string
@@ -101,17 +125,17 @@ export interface RunLoopOptions {
   abortController: AbortController
   setStatus: (phase: StreamStatusPhase, message?: string) => void
   /**
-   * Tokens the model may spend on internal reasoning per turn. 0 = thinking
-   * disabled (cheapest + fastest). Only passed through when > 0 — Gemini
-   * models that don't support thinkingConfig (e.g. older flash-lite) error
-   * when they see an empty thinkingConfig, so we omit the key entirely for
-   * the disabled case.
+   * Pre-Phase-5 (Gemini-era) reasoning-token knob. 0 = thinking
+   * disabled (cheapest + fastest). Mistral has no equivalent so this
+   * is effectively a no-op on the production path; kept on the
+   * options surface for the test seam (which still drives the historic
+   * `AgenticAIClient` shape).
    */
   thinkingBudget?: number
   /**
-   * Override the function declarations handed to Gemini. Defaults to
-   * `ALL_TOOL_DECLARATIONS`. Callers that want additional tools (e.g.
-   * knowledge-base access for workspace docs) pass
+   * Override the function declarations handed to the model. Defaults
+   * to `ALL_TOOL_DECLARATIONS`. Callers that want additional tools
+   * (e.g. knowledge-base access for workspace docs) pass
    * `[...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]`.
    */
   toolDeclarations?: FunctionDeclaration[]
@@ -136,6 +160,19 @@ export interface RunLoopOptions {
    * recorded here in compacted form via `summarizeToolCall`.
    */
   onToolCall?: (name: string, validatedArgs: unknown) => Promise<void>
+  /**
+   * When this session was triggered by an `@markoto` mention in a
+   * comment thread, the thread id rides on opts so the salvage path
+   * (model emits prose instead of a tool call) calls
+   * `reply_to_comment` against this thread instead of the default
+   * `message_to_user`. Without this, comment-trigger sessions where
+   * Mistral picks free-text over a tool call (which it does — the
+   * "MUST end with reply_to_comment" mandate, originally tuned
+   * pre-Phase-5 for Gemini, doesn't reliably bind on Mistral) silently
+   * land in the prompt-bar response panel rather than the comment
+   * thread, and the thread looks ignored.
+   */
+  commentThreadId?: string | null
 }
 
 export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
@@ -149,11 +186,16 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
 
   // Per-session safety counters. Independent of the per-user monthly
   // budget — these are runaway-loop guards that gate a SINGLE session
-  // from cost-amplifying outliers (50+ interactions, or N+ calls to
+  // from cost-amplifying outliers (50+ tool calls, or N+ calls to
   // image gen / search / etc.). See `limits.ts` for the rationale on
-  // each ceiling. `SessionCapExhausted` propagates out of `charge()`
+  // each ceiling. `SessionCapExhausted` propagates out of `noteInteraction()`
   // so the existing turn-loop catch path treats it the same as a
-  // mid-loop billing error: emit setStatus('error', …) and exit.
+  // mid-loop runaway: emit setStatus('error', …) and exit.
+  //
+  // Phase 6: the per-user monthly $ budget is LiteLLM's job — see
+  // `LitellmBudgetExhausted` catches around the streaming call. The
+  // session counter is purely about safety (preventing a single
+  // pathological loop from bumping itself out of context).
   let interactionsThisSession = 0
   const toolCallCounts = new Map<string, number>()
   // Separate from the cap counter above. The cap counter only ticks
@@ -167,7 +209,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
   // Stamped into a single `ai-session-completed` Sentry event from the
   // try/finally below. Every exit path (success / abort / error / cap)
   // funnels through the same emission so ops can answer "which sessions
-  // cost the most?" without correlating Gemini billing logs by hand.
+  // cost the most?" without correlating LiteLLM spend logs by hand.
   const startedAt = Date.now()
   let turnCount = 0
   let totalInputTokens = 0
@@ -178,27 +220,22 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
   let abortReason: string | undefined
   let errorMessage: string | undefined
 
-  // Interaction charging. Every AI call site debits the counter
-  // before we incur cost. A mid-loop BudgetExhausted terminates
-  // the run with a doc breadcrumb instead of a hard throw — users
-  // MUST see an explanation in the doc since there's no chat UI.
-  const charge = async (delta: number, reason: string): Promise<void> => {
-    // Per-session cap: refuse to charge if THIS run would push
-    // total interactions past the safety ceiling. We check BEFORE
-    // hitting the DB so an exhausted session doesn't bump the
-    // monthly counter further — the run is already off-rails.
+  // Phase 6: per-user $ budget enforcement is LiteLLM's job. App-side
+  // we only track the session-level safety counter to abort runaway
+  // loops (50+ interactions in one session = something went off-rails).
+  // No DB writes from here; LiteLLM bills each underlying chat / image
+  // / tick call automatically.
+  const noteInteraction = (delta: number, reason: string): void => {
     if (interactionsThisSession + delta > SESSION_INTERACTION_CAP) {
       log(`[limits] session interaction cap reached (${interactionsThisSession}+${delta} > ${SESSION_INTERACTION_CAP}); aborting`)
       throw new SessionCapExhausted(
         `Session interaction cap reached (${SESSION_INTERACTION_CAP}). The agentic loop ran too long; please try a more focused prompt.`
       )
     }
-    const { attributedTo, plan, periodStart } = billingContext
-    const result = await chargeInteractions({ attributedTo, plan, delta, periodStart, reason })
     interactionsThisSession += delta
-    log(`[billing] charged ${attributedTo} plan=${plan} delta=${delta} (${reason}; used=${result.used}/${result.used + result.remaining}; session=${interactionsThisSession})`)
+    log(`[runLoop] noted +${delta} (${reason}; session=${interactionsThisSession})`)
   }
-  log(`[billing] session resolved: ${billingContext.attributedTo} plan=${billingContext.plan} remaining=${billingContext.interactionsRemaining}`)
+  log(`[billing] session resolved: ${billingContext.attributedTo} plan=${billingContext.plan} virtualKey=…${billingContext.virtualKey.slice(-6)}`)
 
   /**
    * Graceful mid-loop exhaustion handler. Writes an upgrade breadcrumb
@@ -207,9 +244,12 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
    * Returning vs throwing: we RETURN so the outer try/finally in
    * prompt.post runs cleanup, tears down the AI session, and logs
    * "aborted" rather than an unhandled error.
+   *
+   * Phase 6: triggered by LiteLLM's HTTP 400 `budget_exceeded` (or our
+   * `LitellmBudgetExhausted` wrapper) — the per-user $ cap.
    */
-  const emitBudgetBreadcrumb = (err: BudgetExhausted): void => {
-    const msg = `\n\n_AI budget exhausted for this billing period (plan: ${err.plan}). [Upgrade your plan](/pricing) to continue._\n`
+  const emitBudgetBreadcrumb = (plan: string): void => {
+    const msg = `\n\n_AI Points exhausted for this billing period (plan: ${plan}). [Upgrade your plan](/pricing) to continue._\n`
     try {
       aiSession.ydoc.transact(() => {
         aiSession.ytext.insert(aiSession.ytext.length, msg)
@@ -217,7 +257,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     } catch (e) {
       log(`failed to write budget-exhausted breadcrumb: ${e instanceof Error ? e.message : e}`)
     }
-    setStatus('done', 'Budget exhausted')
+    setStatus('done', 'AI Points exhausted')
   }
 
   // Manual `contents` history. Each turn:
@@ -240,23 +280,13 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       turnCount = turns
 
       setStatus('thinking', 'Thinking…')
-      log(`turn ${turns}: calling Gemini (${contents.length} messages)`)
-      // Charge 1 interaction per turn, upfront. Grounded turns that
-      // call web_search/fetch_url later pay an ADDITIONAL 4 (net=5);
-      // we can't know until after the model response whether this turn
-      // will be grounded, and charging upfront keeps the accounting
-      // monotonic (you never owe more than you've already paid). If
-      // the turn ends up grounded, the sub-call adds 4 to reach the
-      // documented 5 total.
+      log(`turn ${turns}: calling LLM (${contents.length} messages)`)
+      // Per-session safety check (no DB write — Phase 6 retired the
+      // app-side counter). LiteLLM enforces the per-user $ budget
+      // natively on the chat-completion call below.
       try {
-        await charge(1, `turn ${turns}`)
+        noteInteraction(1, `turn ${turns}`)
       } catch (e) {
-        if (e instanceof BudgetExhausted) {
-          outcome = 'budget-exhausted'
-          errorMessage = e.message
-          emitBudgetBreadcrumb(e)
-          return
-        }
         if (e instanceof SessionCapExhausted) {
           outcome = 'session-cap-exceeded'
           errorMessage = e.message
@@ -266,20 +296,33 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         throw e
       }
 
-      const stream = await ai.models.generateContentStream({
-        model,
-        contents,
-        config: {
-          systemInstruction: systemPrompt,
-          tools: [{ functionDeclarations: toolDeclarations }],
+      let stream: AsyncIterable<StreamChunk>
+      try {
+        stream = await streamFromProvider({
+          ai,
+          model,
+          contents,
+          systemPrompt,
+          toolDeclarations,
           abortSignal: abortController.signal,
-          // Only pass thinkingConfig when the operator actually opted in.
-          // Models without thinking support (e.g. some flash-lite variants)
-          // reject `thinkingConfig: { thinkingBudget: 0 }` with a schema
-          // error, so we omit the key entirely for the disabled case.
-          ...(thinkingBudget > 0 ? { thinkingConfig: { thinkingBudget } } : {})
+          thinkingBudget,
+          virtualKey: billingContext.virtualKey,
+          workspaceId: aiSession.workspaceId ?? null,
+          initiatorUserId: aiSession.initiatorUserId ?? null,
+          docId: aiSession.docId ?? null
+        })
+      } catch (e) {
+        // LiteLLM 4xx with `budget_exceeded` → emit upgrade breadcrumb,
+        // bail cleanly. Distinct from a generic upstream error so the
+        // user sees a useful explanation rather than a stack trace.
+        if (e instanceof LitellmBudgetExhausted || isBudgetExceededError(e)) {
+          outcome = 'budget-exhausted'
+          errorMessage = e instanceof Error ? e.message : String(e)
+          emitBudgetBreadcrumb(billingContext.plan)
+          return
         }
-      })
+        throw e
+      }
 
       // Per-turn state: status dedupe + accumulation of the model's own reply so
       // we can append it to `contents` on continuation.
@@ -299,22 +342,33 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         processChunk(chunk, streamState, { setStatus, logger: log })
 
         // Accumulate model output so we can append it to `contents` verbatim
-        // if the turn continues. Gemini splits one logical response across
-        // multiple chunks; each chunk contributes parts for the same candidate.
+        // if the turn continues. The provider splits one logical response
+        // across multiple chunks; each chunk contributes parts for the
+        // same candidate.
         const parts = chunk.candidates?.[0]?.content?.parts
         if (parts) modelParts.push(...parts)
 
         const calls = chunk.functionCalls
         if (calls?.length) functionCalls.push(...calls)
 
+        // `finishReason` is typed `AgenticFinishReason | string` on the
+        // chunk so the LiteLLM stream wrapper can pass through unmapped
+        // OpenAI values (e.g. provider-specific extensions). At the
+        // loop's bookkeeping site we only care about the recognised
+        // enum values; anything else is treated as `OTHER` so the
+        // existing exit-path code recognises it as terminal.
         const reason = chunk.candidates?.[0]?.finishReason
-        if (reason) finishReason = reason
+        if (reason) {
+          finishReason = (Object.values(FinishReason) as string[]).includes(reason)
+            ? reason as FinishReason
+            : FinishReason.OTHER
+        }
 
         // Token usage rolls up in `usageMetadata` on the final chunk. The
         // SDK exposes promptTokenCount / candidatesTokenCount /
         // thoughtsTokenCount as optional ints (undefined when the model
-        // doesn't surface them — older flash-lite preview revisions). We
-        // sum across turns and surface -1 in the final telemetry payload
+        // doesn't surface them — historically older models). We sum
+        // across turns and surface -1 in the final telemetry payload
         // when no chunk ever carried usage data so dashboards can tell
         // "model didn't report" apart from "actually 0 tokens".
         const usage = chunk.usageMetadata
@@ -329,21 +383,32 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       log(`turn ${turns}: finishReason=${finishReason}, parts=${modelParts.length}, calls=${functionCalls.length}`)
 
       // Record the model's response so the next turn (if any) has full history.
-      // Gemini requires the model's Content block to be present before the
-      // corresponding functionResponse user block.
+      // The model's continuation contract requires the model's Content block
+      // to be present before the corresponding functionResponse user block.
       contents.push({ role: 'model', parts: modelParts })
 
       // No function calls → the model emitted pure prose. The system
       // prompt forbids this (every turn MUST end with a tool call) but
       // models drift — informational questions like "what is markoto?"
-      // are the typical triggers. Without a salvage path the user sees
-      // NOTHING: the model's text is on the server side only, never
-      // reaches the document or the response panel. Fix: synthesise a
-      // `message_to_user(is_question=false)` call from the prose so the
-      // panel renders it. The schema caps at 600 chars; longer prose
-      // truncates with an ellipsis. Memory recording happens inside
-      // `handleMessageToUser` itself (DB row written), so this stays in
-      // lockstep with explicit `message_to_user` calls.
+      // are the typical triggers, and Mistral in particular picks
+      // free-text over a tool call more often than the historic
+      // Gemini path did.
+      //
+      // Without a salvage path the user sees NOTHING: the model's text
+      // is on the server side only, never reaches the document or the
+      // response panel.
+      //
+      // Fork by session shape:
+      //   - Comment-trigger session (`commentThreadId` set) → synthesise
+      //     a `reply_to_comment(comment_id, body)` call so the prose
+      //     lands as a reply on the right thread.
+      //   - Otherwise (prompt-bar / selection-popup) → synthesise
+      //     `message_to_user(is_question=false)`.
+      //
+      // The 600-char schema cap applies to both fallbacks; longer
+      // prose truncates with an ellipsis. Memory recording happens
+      // inside the respective handlers, so this stays in lockstep
+      // with explicit calls.
       if (functionCalls.length === 0) {
         const proseText = modelParts
           .map((p) => {
@@ -354,18 +419,20 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
           .trim()
 
         if (proseText.length > 0) {
-          log(`turn ${turns}: salvaging pure-prose response (${proseText.length} chars) via message_to_user fallback`)
           const SCHEMA_MAX = 600
           const message = proseText.length > SCHEMA_MAX
             ? proseText.slice(0, SCHEMA_MAX - 1) + '…'
             : proseText
+          const isCommentTrigger = typeof opts.commentThreadId === 'string' && opts.commentThreadId.length > 0
+          const fallbackTool = isCommentTrigger ? 'reply_to_comment' : 'message_to_user'
+          const fallbackArgs: Record<string, unknown> = isCommentTrigger
+            ? { comment_id: opts.commentThreadId, body: message }
+            : { message, is_question: false }
+          log(`turn ${turns}: salvaging pure-prose response (${proseText.length} chars) via ${fallbackTool} fallback`)
           try {
-            await executeFunctionByName(aiSession, 'message_to_user', {
-              message,
-              is_question: false
-            })
+            await executeFunctionByName(aiSession, fallbackTool, fallbackArgs)
           } catch (e) {
-            log(`message_to_user fallback failed: ${e instanceof Error ? e.message : e}`)
+            log(`${fallbackTool} fallback failed: ${e instanceof Error ? e.message : e}`)
           }
         }
 
@@ -396,8 +463,19 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       }
 
       // Execute each function call in order; build a single user message whose
-      // parts are the functionResponse entries (Gemini's continuation contract).
+      // parts are the functionResponse entries (the model's continuation contract).
       const responseParts: NonNullable<Content['parts']> = []
+      // For comment-trigger sessions the system prompt mandates ending
+      // with `reply_to_comment`. Mistral occasionally honours that AND
+      // then keeps emitting tool calls anyway (e.g. a follow-up
+      // `replace_text` editing the doc). Treat a successful
+      // `reply_to_comment` against THIS thread as a hard terminator —
+      // otherwise the rainbow-ring "AI is responding…" indicator stays
+      // up while the model burns turns on bogus tool calls until it
+      // hits SESSION_INTERACTION_CAP or MAX_TURNS, and the comment
+      // thread looks stuck server-side.
+      const isCommentTriggerTurn = typeof opts.commentThreadId === 'string' && opts.commentThreadId.length > 0
+      let repliedToTriggerComment = false
       for (const call of functionCalls) {
         if (abortController.signal.aborted) {
           outcome = 'aborted'
@@ -412,10 +490,11 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
 
         log(`function_call: ${call.name} args=${JSON.stringify(call.args).slice(0, 200)}`)
 
-        // Validate args with the Zod schema registered for this tool. Gemini
-        // *usually* returns args that match the declared schema, but not
-        // guaranteed — surface schema failures cleanly to the model so it
-        // can retry with the correct shape rather than silently coercing.
+        // Validate args with the Zod schema registered for this tool. The
+        // model *usually* returns args that match the declared schema,
+        // but not guaranteed — surface schema failures cleanly to the
+        // model so it can retry with the correct shape rather than
+        // silently coercing.
         const schema = TOOL_SCHEMAS[call.name]
         let validatedArgs: unknown
         if (schema) {
@@ -491,18 +570,12 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         if (call.name === 'web_search') {
         // Safe cast — schema guarantees `{ query: string }`.
           const { query } = validatedArgs as { query: string }
-          // Grounded sub-call → +4 to reach net=5 for this turn (1
-          // already paid at turn start + 4 here = 5). Charged BEFORE
-          // the Gemini sub-call so exhausted users don't incur cost.
+          // Per-session safety bookkeeping (no DB write). LiteLLM
+          // bills the underlying Mistral synthesis call automatically
+          // via the user's virtual key on the 2-call pattern.
           try {
-            await charge(4, `web_search grounded sub-call (+4 to reach turn total of 5)`)
+            noteInteraction(4, `web_search sub-call`)
           } catch (e) {
-            if (e instanceof BudgetExhausted) {
-              outcome = 'budget-exhausted'
-              errorMessage = e.message
-              emitBudgetBreadcrumb(e)
-              return
-            }
             if (e instanceof SessionCapExhausted) {
               outcome = 'session-cap-exceeded'
               errorMessage = e.message
@@ -512,7 +585,11 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
             throw e
           }
           try {
-            const out = await webSearch(ai, model, query, abortController.signal)
+            const out = await webSearch(ai, model, query, abortController.signal, {
+              workspaceId: aiSession.workspaceId ?? null,
+              userId: aiSession.initiatorUserId ?? null,
+              docId: aiSession.docId ?? null
+            })
             result = { content: out.text, isError: false }
             // Persist sources on the activity row so the drawer can
             // render a clickable list when the user expands. Cap at 10
@@ -535,18 +612,12 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         } else if (call.name === 'fetch_url') {
         // Schema guarantees `{ url: string }`. Routed here (not through
         // the adapter) because — like web_search — it's an async sub-call
-        // that needs the GoogleGenAI client and runs `urlContext` in
-        // isolation from our `functionDeclarations`.
+        // that runs structured-output extraction in isolation from our
+        // `functionDeclarations`.
           const { url } = validatedArgs as { url: string }
           try {
-            await charge(4, `fetch_url grounded sub-call (+4 to reach turn total of 5)`)
+            noteInteraction(4, `fetch_url sub-call`)
           } catch (e) {
-            if (e instanceof BudgetExhausted) {
-              outcome = 'budget-exhausted'
-              errorMessage = e.message
-              emitBudgetBreadcrumb(e)
-              return
-            }
             if (e instanceof SessionCapExhausted) {
               outcome = 'session-cap-exceeded'
               errorMessage = e.message
@@ -556,7 +627,11 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
             throw e
           }
           try {
-            const out = await fetchUrl(ai, model, url, abortController.signal)
+            const out = await fetchUrl(ai, model, url, abortController.signal, {
+              workspaceId: aiSession.workspaceId ?? null,
+              userId: aiSession.initiatorUserId ?? null,
+              docId: aiSession.docId ?? null
+            })
             result = { content: out.text, isError: false }
             // Persist the resolved url + summary + image strip so the
             // drawer renders a real preview without a second fetch.
@@ -614,9 +689,11 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
           functionResponse: {
             id: call.id,
             name: call.name,
-            // Gemini's SDK expects a Record here. We wrap into `{ output, ... }`
-            // so the model sees a consistent shape; include isError so it can
-            // react (e.g. try a different old_str if replace_text failed).
+            // The internal continuation contract expects a Record here
+            // (pre-migration: Gemini's SDK shape). We wrap into
+            // `{ output, ... }` so the model sees a consistent shape;
+            // include isError so it can react (e.g. try a different
+            // old_str if replace_text failed).
             response: { output: result.content, isError: result.isError }
           }
         })
@@ -624,6 +701,27 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
         // them out as sibling parts on the same user message. Must come AFTER
         // the functionResponse so the model links them to the right call.
         if (result.extraParts?.length) responseParts.push(...result.extraParts)
+
+        // Comment-trigger terminator: if this call was a successful
+        // reply_to_comment against the trigger thread, mark for break
+        // after this turn's responseParts are flushed.
+        if (
+          isCommentTriggerTurn
+          && call.name === 'reply_to_comment'
+          && !result.isError
+        ) {
+          const a = validatedArgs as { comment_id?: unknown }
+          if (typeof a.comment_id === 'string' && a.comment_id === opts.commentThreadId) {
+            repliedToTriggerComment = true
+          }
+        }
+      }
+
+      if (repliedToTriggerComment) {
+        log(`turn ${turns}: reply_to_comment landed on trigger thread — terminating comment-trigger loop`)
+        outcome = 'success'
+        setStatus('done', 'Done')
+        return
       }
 
       if (responseParts.length === 0) {
@@ -693,4 +791,113 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
       console.warn(`[runLoop telemetry] capture failed: ${e instanceof Error ? e.message : e}`)
     }
   }
+}
+
+// ─── Streaming dispatcher: production LiteLLM vs in-process test seam ───
+//
+// Two paths:
+//
+//   (1) LITELLM (production). Hit when `opts.ai` is undefined —
+//       production callers omit it. Routes through `streamFromLiteLLM`
+//       → OpenAI SDK → LiteLLM proxy → Mistral.
+//
+//   (2) TEST SEAM. Hit when `opts.ai` is explicitly injected. Tests
+//       hand the loop a fake `AgenticAIClient` whose
+//       `models.generateContentStream` yields scripted internal-shape
+//       chunks. This skips the OpenAI-shape translation in
+//       `messageTranslation.ts` — that translation is pinned
+//       independently by `messageTranslation.test.ts`, so unit tests
+//       drive the loop's chunk-handling / tool-dispatch / finish-reason
+//       logic without rebuilding OpenAI streaming fixtures for every
+//       test.
+
+interface StreamFromProviderOpts {
+  ai?: AiClient
+  model: string
+  contents: Content[]
+  systemPrompt: string
+  toolDeclarations: FunctionDeclaration[]
+  abortSignal: AbortSignal
+  thinkingBudget: number
+  /** Per-user LiteLLM virtual-key bearer token. */
+  virtualKey: string
+  /** Workspace context for spend-tagging. Null when the doc isn't in a workspace. */
+  workspaceId?: string | null
+  /** User who initiated the agentic loop — drives the user-axis spend tag. */
+  initiatorUserId?: number | null
+  /** Document the loop is attached to — drives the doc-axis spend tag. */
+  docId?: string | null
+}
+
+async function streamFromProvider(
+  opts: StreamFromProviderOpts
+): Promise<AsyncIterable<StreamChunk>> {
+  if (!opts.ai) {
+    return await streamFromLiteLLM(opts)
+  }
+  return await opts.ai.models.generateContentStream({
+    model: opts.model,
+    contents: opts.contents,
+    config: {
+      systemInstruction: opts.systemPrompt,
+      tools: [{ functionDeclarations: opts.toolDeclarations }],
+      abortSignal: opts.abortSignal
+    }
+  })
+}
+
+async function streamFromLiteLLM(
+  opts: StreamFromProviderOpts
+): Promise<AsyncIterable<StreamChunk>> {
+  // useRuntimeConfig is auto-imported in the Nitro runtime; defensively
+  // gate so unit tests that don't run inside Nitro don't trip on the
+  // missing global.
+  const config = (typeof useRuntimeConfig === 'function' ? useRuntimeConfig() : {}) as { litellm?: { textModel?: string } }
+  // Phase 6: per-user virtual-key auth. The LiteLLM proxy debits the
+  // user's $ budget on every chat completion, and 4xx's with
+  // `budget_exceeded` when crossed.
+  const litellm = useLitellmForUser(opts.virtualKey)
+  // The text model id is a separate config knob from the embeddings /
+  // image / transcribe models; defaults to mistral-small-2603 (Phase 4
+  // pick — see nuxt.config.ts comments + spike findings §22).
+  const textModel = config.litellm?.textModel || 'mistral-small-2603'
+
+  const messages = internalToOpenAIMessages(opts.systemPrompt, opts.contents)
+  const tools = internalToOpenAITools(opts.toolDeclarations)
+
+  // `stream_options.include_usage: true` makes Mistral emit token usage
+  // on the final chunk so our existing `usageMetadata` accumulator
+  // catches it.
+  const oaiStream = await litellmStream(litellm, {
+    model: textModel,
+    messages,
+    tools: tools.length > 0 ? tools : undefined,
+    tool_choice: tools.length > 0 ? 'auto' : undefined,
+    stream: true,
+    stream_options: { include_usage: true },
+    // Temperature 0 — the agentic loop is a deterministic-tool-
+    // selection process (read the doc, pick the right tool, edit,
+    // wrap up). Default sampling (~0.7 on Mistral) made tool choice
+    // vary run-to-run: the SAME prompt sometimes triggered
+    // `web_search`, sometimes `fetch_url`, sometimes a plain
+    // `message_to_user` with no doc edit. This thrashed flow tests
+    // (ai-web-search, ai-fetch-url, ai-cross-doc, etc.) and made
+    // production behaviour feel "moody" — the user expects "summarise
+    // the page" to consistently fetch + summarise, not occasionally
+    // refuse without explanation. Synthesis sub-calls
+    // (web_search → Mistral, fetch_url → Mistral) already run at 0;
+    // pinning the outer loop matches that.
+    temperature: 0,
+    // LiteLLM spend-tags. Three axes: feature, workspace (when the
+    // doc is in one), and the initiating user. Sub-tool synthesis
+    // calls (web_search/fetch_url) inside this loop carry the same
+    // tag set so the workspace breakdown stays consistent.
+    ...featureMetadata(FEATURE_TAGS.textLoop, {
+      workspaceId: opts.workspaceId,
+      userId: opts.initiatorUserId,
+      docId: opts.docId
+    })
+  }, { signal: opts.abortSignal })
+
+  return openAIStreamToInternalChunks(oaiStream)
 }

@@ -21,15 +21,14 @@ import { Pool } from 'pg'
 // surrounding plumbing. Driving workspace creation through the UI
 // is its own flow (`workspace-tour`).
 //
-// Desktop only: members modal + dashboard side-by-side reads
-// better at desktop widths; mobile collapses both into a single
-// column and the "now visible in your dashboard" before/after
-// loses the visual punch.
+// Runs on desktop AND mobile. Same workspace landing page →
+// `WorkspaceMemberAvatars` (no responsive hide) → members modal
+// (Reka UI, mobile-friendly width) → invite-by-email form. Mobile
+// stacks the dashboard's "My Workspaces" section vertically rather
+// than side-by-side, so the before/after lands one card below the
+// fold instead of next to its neighbour, but the assertion + screenshot
+// still capture the invited workspace card directly.
 test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Members modal + dashboard before/after reads better side-by-side; mobile single-column hides the payoff.'
-  )
   test.setTimeout(120_000)
 
   // Pre-create the teammate's user row with a known email. Direct

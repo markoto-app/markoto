@@ -23,12 +23,11 @@ describe('tier config — completeness', () => {
 
   it('every tier has every cap field populated with a positive finite number', () => {
     const requiredFields: (keyof TierCaps)[] = [
-      'interactionsPerMonth',
+      'litellmBudgetUsd',
       'workspacesOwned',
       'knowledgeFiles',
       'knowledgeBytesPerWorkspace',
-      'knowledgeBytesPerUser',
-      'dictationMsPerDay'
+      'knowledgeBytesPerUser'
     ]
     for (const plan of PLAN_NAMES) {
       const caps = TIERS[plan]
@@ -61,16 +60,16 @@ describe('tier config — monotonicity (paid tiers grant strictly more)', () => 
 })
 
 describe('tier config — Free must be usable AND bounded', () => {
-  it('free gives non-zero interactions', () => {
-    // A zero-interaction Free tier shows "no AI for you" on first
-    // click — anti-funnel, never ship it.
-    expect(TIERS.free.interactionsPerMonth).toBeGreaterThan(0)
+  it('free gives non-zero AI Points budget', () => {
+    // A zero-budget Free tier shows "no AI for you" on first click —
+    // anti-funnel, never ship it.
+    expect(TIERS.free.litellmBudgetUsd).toBeGreaterThan(0)
   })
 
   it('free does not cannibalise Pro', () => {
-    // Pro must be a meaningful upgrade. Floor at 5x Free credits
+    // Pro must be a meaningful upgrade. Floor at 5x Free budget
     // so neither can creep toward the other unnoticed.
-    expect(TIERS.pro.interactionsPerMonth).toBeGreaterThanOrEqual(TIERS.free.interactionsPerMonth * 5)
+    expect(TIERS.pro.litellmBudgetUsd).toBeGreaterThanOrEqual(TIERS.free.litellmBudgetUsd * 5)
   })
 })
 

@@ -105,9 +105,7 @@ services:
       - NUXT_S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
       - NUXT_JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
       - NUXT_INTERNAL_API_SECRET=local-internal-api-secret-change-me
-      - NUXT_GOOGLE_GEMINI_API_KEY=${NUXT_GOOGLE_GEMINI_API_KEY:?NUXT_GOOGLE_GEMINI_API_KEY required}
-      - NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY=${NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY:?NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY required}
-      - NUXT_GOOGLE_DICTATE_JWT_SECRET=${NUXT_GOOGLE_DICTATE_JWT_SECRET}
+      - NUXT_AI_DICTATE_JWT_SECRET=${NUXT_AI_DICTATE_JWT_SECRET}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.ypad.127.0.0.1.nip.io
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080

@@ -25,7 +25,7 @@ without losing their visual structure.
 - [Rewrite a selection with the AI](/docs/writing/ai-rewrite-selection) — highlight, prompt, replace.
 - [Ask the AI about another doc](/docs/writing/ai-cross-doc) — cross-doc retrieval.
 - [Ask the AI to read a URL](/docs/writing/ai-fetch-url) — pull in any external page.
-- [Ask the AI for current information](/docs/writing/ai-web-search) — Google-grounded answers.
+- [Ask the AI for current information](/docs/writing/ai-web-search) — grounded answers from live web results.
 - [Ask the AI to draw an image](/docs/writing/ai-generate-image) — generate, upload, insert.
 - [Hit the AI cap?](/docs/writing/ai-budget) — what happens, what your options are.
 

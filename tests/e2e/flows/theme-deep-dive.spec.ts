@@ -16,14 +16,13 @@ import { test, expect } from '../fixtures/flow'
 // picker, sliders, switches) is where markoto's typography
 // philosophy actually lives.
 //
-// Desktop only: every change is visually validated by the preview
-// iframe re-paginating. The iframe is hidden below `sm`.
+// Runs on desktop AND mobile. The theme accordions + switches +
+// pickers render identically on both surfaces (inside the right
+// sidebar on desktop, inside a bottom sheet on mobile). Mobile is
+// edit-only so the live-preview repainting beat is invisible there
+// — the assertion (server-persisted `theme.body.dropCap === true`)
+// still proves the dial took effect.
 test('Tune your typography and colors', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Theme editing pairs the form with the live preview iframe;'
-    + ' the preview is hidden on mobile so half the demo is invisible.'
-  )
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -48,8 +47,12 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
     + 'but not right. Reach in, change three things, watch the '
     + 'page repaint.'
   )
-  await editor.page.switchToSplitView()
-  await editor.page.waitForPreviewPaginated()
+  // Mobile is edit-only (no preview iframe under `<sm`), so the
+  // split-view + preview-paginated wait only runs on desktop.
+  if (!editor.isMobile) {
+    await editor.page.switchToSplitView()
+    await editor.page.waitForPreviewPaginated()
+  }
 
   await flow.heading('Tune your typography and colors', 3)
   await flow.narrate(
@@ -63,13 +66,18 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
   )
 
   // ─── Open the theme panel + the Body accordion ──────────────────
+  // Desktop: right-sidebar Theme tab; mobile: bottom-tab-bar Theme.
+  const themeTab = editor.isMobile
+    ? editor.page.mobileTabs.theme
+    : editor.page.sidebar.theme
+
   await flow.click(
-    'Open the theme panel',
-    editor.page.sidebar.theme,
+    editor.isMobile ? 'Tap the Theme tab on the bottom bar' : 'Open the theme panel',
+    themeTab,
     {
-      annotations: [
-        { label: 'theme tab', selector: '[data-testid="sidebar-tab-theme"]', kind: 'arrow' }
-      ],
+      annotations: editor.isMobile
+        ? []
+        : [{ label: 'theme tab', selector: '[data-testid="sidebar-tab-theme"]', kind: 'arrow' }],
       result: 'The theme panel opens — preset cards on top, the per-section accordion below.'
     }
   )

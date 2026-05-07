@@ -2,7 +2,6 @@ import { and, eq, sql } from 'drizzle-orm'
 import {
   aiSessions,
   aiSessionMessages,
-  aiUsagePeriod,
   dataExportJobs,
   documentComments,
   documents,
@@ -50,7 +49,6 @@ export interface AccountDeletionPlan {
   // Counts only — these go away wholesale, no per-row decisions.
   aiSessionsToDelete: number
   aiSessionMessagesToDelete: number
-  aiUsagePeriodRowsToDelete: number
   // Data-export jobs hold S3 blobs we need to clean up.
   dataExportJobsToDelete: { jobId: string, s3Key: string | null }[]
   // Stripe customer to delete (if billing was set up). Not personal
@@ -193,10 +191,7 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
     .select({ count: sql<number>`count(*)::int` })
     .from(aiSessionMessages)
     .where(eq(aiSessionMessages.userId, userId))
-  const aiUsageRows = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(aiUsagePeriod)
-    .where(eq(aiUsagePeriod.attributedTo, `user:${userId}`))
+  // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
 
   // ── Data export jobs (CASCADE on user delete, but the S3 blobs
   //    don't go away with the row — collect keys for cleanup) ──────
@@ -228,7 +223,6 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
     workspaces: workspacesPlan,
     aiSessionsToDelete: Number(aiSessionsRows[0]?.count ?? 0),
     aiSessionMessagesToDelete: Number(aiSessionMessagesRows[0]?.count ?? 0),
-    aiUsagePeriodRowsToDelete: Number(aiUsageRows[0]?.count ?? 0),
     dataExportJobsToDelete: exportJobs.map(j => ({ jobId: j.jobId, s3Key: j.s3Key })),
     stripeCustomerToDelete: userRow.stripeCustomerId,
     rowsRetainedAnonymised: {
@@ -249,7 +243,6 @@ export interface AccountDeletionSummary {
   commentsAnonymised: number
   aiSessionsDeleted: number
   aiSessionMessagesDeleted: number
-  aiUsageRowsDeleted: number
   dataExportJobsDeleted: number
   stripeCustomerDeleted: boolean
   themesDeleted: number

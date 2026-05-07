@@ -1,16 +1,19 @@
-// Translates Gemini tool calls to Y.Doc operations on a document shared via
-// Hocuspocus. Edits appear live on every connected client.
+// Translates the model's tool calls (Mistral via LiteLLM) into Y.Doc
+// operations on a document shared via Hocuspocus. Edits appear live on
+// every connected client.
 //
 // Entry point: `executeFunctionByName(session, name, args)` — dispatches a
 // validated tool call to the right handler.
 
-import type { Part } from '@google/genai'
-import { GoogleGenAI } from '@google/genai'
+import type { AgenticPart as Part } from './agentic/aiTypes'
+import { litellmCompletion } from './litellm/createCompletion'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { nanoid } from 'nanoid'
 import * as Y from 'yjs'
 import * as Sentry from '@sentry/nuxt'
 import type { AiSession } from './aiClient'
+import { useLitellmForUser } from './litellmClient'
+import { FEATURE_TAGS, featureMetadata } from './litellm/featureTags'
 import type {
   ViewDocumentInput,
   ReplaceTextInput,
@@ -56,7 +59,6 @@ import {
 import { getWorkspace } from '../repos/workspaces'
 import { canManageDoc } from './workspaceAccess'
 import { embedQuery } from './embeddings'
-import { chargeInteractions, BudgetExhausted } from './billing'
 import { appendAiMessage } from '../repos/aiSessionMessages'
 import { searchActivity, type ActivityAction, type ActivityEntry } from '../repos/activity'
 import { stripAiMention } from './agentic/commentTriggerPrompt'
@@ -68,8 +70,11 @@ export interface ToolResult {
   /**
    * Extra content parts (e.g. image inlineData) appended to the user
    * message AFTER the functionResponse so the model can see them on the
-   * next turn. Gemini's functionResponse is JSON-only — binary data has
-   * to ride as a sibling `inlineData` part.
+   * next turn. The internal `functionResponse` shape (pre-migration:
+   * Gemini-derived) is JSON-only — binary data has to ride as a
+   * sibling `inlineData` part, which the OpenAI-shape translator in
+   * `messageTranslation.ts` then re-emits as a follow-up user message
+   * with `image_url` parts.
    */
   extraParts?: Part[]
 }
@@ -208,8 +213,10 @@ function handleInsert(
 
 /**
  * Numeric fields are declared as string enums in the Zod schema for
- * Gemini-schema stability: weight (headings), columns (layout), maxDepth
- * (toc). Coerce them back to numbers before deep-merge + isValidTheme.
+ * function-call schema stability (carried over from pre-Phase-5
+ * Gemini-era constraints): weight (headings), columns (layout),
+ * maxDepth (toc). Coerce them back to numbers before deep-merge +
+ * isValidTheme.
  */
 /** @internal exported for unit tests; not part of the public API. */
 export function coerceThemePatch(patch: UpdateThemeInput): Record<string, unknown> {
@@ -729,9 +736,10 @@ async function handleSetTitle(
 
 // --- View image -----------------------------------------------------------
 
-// Gemini accepts a handful of image MIME types inline. Keep the allowlist
-// aligned with what our upload pipeline emits plus what Gemini actually
-// renders — reject anything else rather than gamble on model behavior.
+// The model accepts a handful of image MIME types inline. Keep the
+// allowlist aligned with what our upload pipeline emits plus what
+// Mistral's vision model actually renders — reject anything else
+// rather than gamble on model behavior.
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/png',
   'image/jpeg',
@@ -742,8 +750,9 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ])
 
 // 5 MiB cap: matches the upload flow's practical ceiling, keeps one turn's
-// context footprint sane. Gemini inlines up to ~20MB per part but a 20MB
-// image on every turn quickly blows up prompt-caching economics.
+// context footprint sane. Modern multimodal models inline up to ~20MB per
+// part but a 20MB image on every turn quickly blows up prompt-caching
+// economics.
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 // Extracts `{ docId, fileId }` from either a relative path
@@ -864,73 +873,109 @@ async function handleViewImage(
 
 // --- Generate image -------------------------------------------------------
 
-// Map Gemini's image MIME to the extension the upload pipeline uses.
-// (Keep the set narrow — the file-id regex in /api/files only accepts
-// these extensions; anything else would be unreachable via /api/files.)
+// Map the image-gen output MIME (BFL FLUX.2 / pre-Phase-5 Gemini) to
+// the extension the upload pipeline uses. (Keep the set narrow — the
+// file-id regex in /api/files only accepts these extensions; anything
+// else would be unreachable via /api/files.)
 const IMAGE_MIME_EXT: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'image/webp': 'webp'
 }
 
+interface ImageGenOpts {
+  /** Output width in pixels. Default from runtimeConfig (1024 for BFL path). */
+  width?: number
+  /** Output height in pixels. Default from runtimeConfig (1024 for BFL path). */
+  height?: number
+  /** Per-user LiteLLM virtual-key bearer token (BFL path only). */
+  virtualKey?: string
+  /** Workspace context for spend-tagging (BFL path only). */
+  workspaceId?: string | null
+  /** Initiating user id for spend-tagging (BFL path only). */
+  userId?: number | null
+  /** Doc the image is being inserted into — drives doc-axis spend tag (BFL path only). */
+  docId?: string | null
+}
+
+type ImageGenResult = { bytes: Uint8Array, mimeType: string } | { error: string }
+
 /**
- * Call Gemini's image-gen model with the prompt and pull the first
- * inlineData part out of the response. Returns the raw bytes plus
- * MIME type, or an error string.
+ * Generate an image from a text prompt. Routes through LiteLLM →
+ * BFL FLUX.2 [pro] EU-pinned. 1024² default ($0.030/image). Honors
+ * width/height (BFL meters by megapixel — non-square prices linearly).
+ *
+ * Returns raw bytes + MIME type, or an error string. The S3 upload + Y.js
+ * insertion happens in `handleGenerateImage` and is shape-agnostic.
  */
 async function generateImageBytes(
   prompt: string,
-  signal: AbortSignal
-): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
+  _signal: AbortSignal,
+  opts: ImageGenOpts = {}
+): Promise<ImageGenResult> {
+  return generateImageBytesBfl(prompt, opts)
+}
+
+// ─── BFL FLUX.2 [pro] path ──────────────────────────────────────────────
+
+async function generateImageBytesBfl(
+  prompt: string,
+  opts: ImageGenOpts
+): Promise<ImageGenResult> {
+  if (!opts.virtualKey) {
+    return { error: 'BFL image gen requires a per-user LiteLLM virtual key (Phase 6).' }
+  }
   const config = useRuntimeConfig()
-  if (!config.google.geminiApiKey) return { error: 'Gemini API key not configured on the server.' }
-  if (!config.google.imageModel) return { error: 'Image model not configured on the server.' }
+  const litellm = useLitellmForUser(opts.virtualKey)
+  const model = config.litellm?.imageModel || 'flux-2-pro'
+  const width = opts.width ?? config.litellm?.imageDefaultWidth ?? 1024
+  const height = opts.height ?? config.litellm?.imageDefaultHeight ?? 1024
 
-  const ai = new GoogleGenAI({ apiKey: config.google.geminiApiKey })
-
+  // Custom provider convention (see infra/litellm/custom_handlers.py:
+  // BFLFluxProvider). Single user message with JSON-encoded body.
+  // Response's content is JSON with {b64_json, url, cost_credits, cost_usd}.
+  // prompt_upsampling is intentionally false — the prompt is AI-written
+  // and re-LLM-ing it adds latency without benefit.
   try {
-    console.log(`[generate_image] calling model=${config.google.imageModel} prompt="${prompt.slice(0, 100)}…"`)
-    const response = await ai.models.generateContent({
-      model: config.google.imageModel,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        // The flash-image models return an image part by default; asking
-        // for both modalities lets the model narrate alongside the image
-        // if it wants to (we ignore the text in favor of the caller's alt).
-        responseModalities: ['IMAGE', 'TEXT'],
-        abortSignal: signal
-      }
+    console.log(`[generate_image] [bfl] calling model=${model} ${width}×${height} prompt="${prompt.slice(0, 100)}…"`)
+    const resp = await litellmCompletion(litellm, {
+      model,
+      messages: [{
+        role: 'user',
+        content: JSON.stringify({ prompt, width, height, prompt_upsampling: false })
+      }],
+      ...featureMetadata(FEATURE_TAGS.imageGen, {
+        workspaceId: opts.workspaceId,
+        userId: opts.userId,
+        docId: opts.docId
+      })
     })
-    const cand = response.candidates?.[0]
-    const parts = cand?.content?.parts ?? []
-    const finishReason = cand?.finishReason
-    const partKinds = parts.map(p => Object.keys(p).find(k => k !== 'thought' && p[k as keyof typeof p] !== undefined)).filter(Boolean)
-    console.log(`[generate_image] finishReason=${finishReason} parts=[${partKinds.join(',')}]`)
-
-    const imgPart = parts.find(p => p.inlineData?.data)
-    if (!imgPart?.inlineData?.data) {
-      // Surface the finish reason + any text the model returned — flash-image
-      // sometimes returns only text with an explanation (safety block,
-      // model refusal, prompt misinterpretation).
-      const text = parts.map(p => p.text).filter(Boolean).join(' ').slice(0, 300)
-      return {
-        error: `Image model returned no image part (finishReason=${finishReason ?? 'unknown'}).`
-          + (text ? ` Model text: ${text}` : ' The prompt may have been blocked by safety filters — try rephrasing.')
-      }
+    const content = resp.choices?.[0]?.message?.content ?? ''
+    let body: { b64_json?: string, url?: string, cost_usd?: number }
+    try {
+      body = JSON.parse(content)
+    } catch {
+      return { error: 'BFL provider returned non-JSON content (proxy misconfig).' }
     }
-    const mimeType = imgPart.inlineData.mimeType ?? 'image/png'
-    if (!IMAGE_MIME_EXT[mimeType]) {
-      return { error: `Image model returned unsupported MIME type "${mimeType}".` }
+    if (!body.b64_json) {
+      return { error: 'BFL returned no image bytes (provider error or content-moderated).' }
     }
-    const bytes = Buffer.from(imgPart.inlineData.data, 'base64')
-    console.log(`[generate_image] got ${mimeType} image, ${bytes.byteLength} bytes`)
+    const bytes = Buffer.from(body.b64_json, 'base64')
+    // BFL returns image/jpeg by default for FLUX.2 [pro]. Map MIME →
+    // extension via IMAGE_MIME_EXT; if the response ever changes, the
+    // upload pipeline will reject unknown MIMEs at /api/files.
+    const mimeType = 'image/jpeg'
+    console.log(`[generate_image] [bfl] got ${mimeType} image, ${bytes.byteLength} bytes, cost=$${body.cost_usd ?? 'unknown'}`)
     return { bytes, mimeType }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
-    console.error('[generate_image] SDK threw:', msg)
+    console.error('[generate_image] [bfl] threw:', msg)
     Sentry.captureException(e, {
-      tags: { component: 'aiToolAdapter', event: 'image_generate_failed' }
+      tags: { component: 'aiToolAdapter', event: 'image_generate_failed', provider: 'bfl' }
     })
+    if (msg.includes('budget_exceeded') || msg.includes('Budget has been exceeded')) {
+      return { error: 'AI Points exhausted. Upgrade your plan at /pricing to continue.' }
+    }
     return { error: `Image generation failed: ${msg}` }
   }
 }
@@ -949,34 +994,24 @@ async function handleGenerateImage(
   session: AiSession,
   input: GenerateImageInput
 ): Promise<ToolResult> {
-  // 1. Charge 5 interactions BEFORE the sub-call — otherwise an
-  //    exhausted user can still trigger an image-gen cost we've
-  //    already incurred. If charging fails we surface the error
-  //    through the tool-result channel so the model sees it and can
-  //    respond to the user (the runLoop also converts BudgetExhausted
-  //    at the turn-charge site into a doc breadcrumb; this is the
-  //    tool-level fallback for when the cap lands mid-tool-call).
-  try {
-    await chargeInteractions({
-      attributedTo: session.attributedTo,
-      plan: session.plan,
-      delta: 5,
-      periodStart: session.periodStart,
-      reason: 'generate_image tool'
-    })
-  } catch (e) {
-    if (e instanceof BudgetExhausted) {
-      return err(`Error: AI budget exhausted — cannot generate the image. Ask the user to upgrade at /pricing.`)
-    }
-    throw e
-  }
-
+  // Phase 6: no app-side interaction-charging. The BFL custom provider
+  // bills the user's LiteLLM virtual key directly via the chat-completion
+  // shape; budget_exceeded surfaces as a `LitellmBudgetExhausted` thrown
+  // from `generateImageBytesBfl` (caught + translated to a tool-result
+  // error string).
   session.updateStatus('tool', 'Generating image…')
 
   // 2. Generate. The 5-minute loop deadline is the effective cap — we
   //    don't thread a finer-grained signal here.
   const controller = new AbortController()
-  const gen = await generateImageBytes(input.prompt, controller.signal)
+  const gen = await generateImageBytes(input.prompt, controller.signal, {
+    width: input.width,
+    height: input.height,
+    virtualKey: session.virtualKey,
+    workspaceId: session.workspaceId,
+    userId: session.initiatorUserId,
+    docId: session.docId
+  })
   if ('error' in gen) return err(`Error: ${gen.error}`)
 
   // 2. Upload to S3 using the same key shape as user uploads so the
@@ -1051,9 +1086,9 @@ async function handleGenerateImage(
 //
 // Backend-rendered PNGs of paginated pages. The renderer container produces
 // these on demand and uploads to S3 keyed by yjs-doc snapshot id; subsequent
-// calls hit the cache. Costs interactions because Gemini's vision input is
-// charged per-image — we use 5 per page (same as image generation), leaving
-// room for the renderer compute itself.
+// calls hit the cache. Costs interactions because the model's vision
+// input is charged per-image — we use 5 per page (same as image
+// generation), leaving room for the renderer compute itself.
 //
 // Cap: 5 pages per call (enforced by Zod). The model is instructed to call
 // these tools only when the user references a specific page — burning 25
@@ -1065,25 +1100,9 @@ async function handleGetPageCount(
   session: AiSession,
   _input: GetPageCountInput
 ): Promise<ToolResult> {
-  // 1 interaction on cache hit, 5 on miss — but we don't know which until
-  // after the call. Charge 1 upfront (cheap floor) and let the heavy lifting
-  // ride on the existing per-turn billing. Avoids double-charging when
-  // get_page_count is called as a precursor to view_pages.
-  try {
-    await chargeInteractions({
-      attributedTo: session.attributedTo,
-      plan: session.plan,
-      delta: 1,
-      periodStart: session.periodStart,
-      reason: 'get_page_count tool'
-    })
-  } catch (e) {
-    if (e instanceof BudgetExhausted) {
-      return err(`Error: AI budget exhausted — cannot fetch page count. Ask the user to upgrade at /pricing.`)
-    }
-    throw e
-  }
-
+  // Phase 6: no app-side interaction-charging. The renderer call below
+  // is server-internal — the user only "pays" for the chat-completion
+  // turn that issued this tool call (via LiteLLM).
   session.updateStatus('tool', 'Counting pages…')
 
   try {
@@ -1101,23 +1120,10 @@ async function handleViewPages(
 ): Promise<ToolResult> {
   const requestedPages = Array.from(new Set(input.pages)).sort((a, b) => a - b)
 
-  // 5 interactions per page — charge UPFRONT before any S3/render cost so
-  // an exhausted user can't burn renderer compute.
-  try {
-    await chargeInteractions({
-      attributedTo: session.attributedTo,
-      plan: session.plan,
-      delta: PAGE_VIEW_INTERACTIONS * requestedPages.length,
-      periodStart: session.periodStart,
-      reason: `view_pages × ${requestedPages.length}`
-    })
-  } catch (e) {
-    if (e instanceof BudgetExhausted) {
-      return err(`Error: AI budget exhausted — cannot fetch page images. Ask the user to upgrade at /pricing.`)
-    }
-    throw e
-  }
-
+  // Phase 6: no app-side interaction-charging. The page images are
+  // injected into the next user turn as `image_url` parts; the
+  // per-image input-token cost is billed by LiteLLM on that turn's
+  // chat completion (Mistral Small 4.0 vision input).
   session.updateStatus('tool', `Rendering ${requestedPages.length} page${requestedPages.length === 1 ? '' : 's'}…`)
 
   let manifest
@@ -1170,14 +1176,14 @@ async function handleViewPages(
 }
 
 /**
- * Gemini-shaped dispatcher. Args are expected pre-validated by Zod (see
- * `server/utils/agentic/functionTools.ts`); callers must not pass unvalidated
- * input. If args fail the Zod schema, the loop emits a
+ * Tool-call dispatcher. Args are expected pre-validated by Zod (see
+ * `server/utils/agentic/functionTools.ts`); callers must not pass
+ * unvalidated input. If args fail the Zod schema, the loop emits a
  * `functionResponse.isError` and this function is never called.
  *
  * `web_search` is NOT routed here — the main loop handles it via the
  * `webSearch` sub-call helper in `functionTools.ts` because it needs the
- * `GoogleGenAI` client and is async.
+ * `AiClient` client and is async.
  */
 /**
  * `message_to_user` — push a short ephemeral message into the AI's

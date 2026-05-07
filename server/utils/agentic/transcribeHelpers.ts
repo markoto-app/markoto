@@ -10,15 +10,18 @@
 export { normalizeLanguageCode } from './dictateHelpers'
 
 /**
- * Map a client-reported MIME type to Cloud STT's encoding enum. We
+ * Map a client-reported MIME type to the upstream's encoding enum. We
  * default to WEBM_OPUS for unspecified opus containers because that's
- * what modern Chrome/Firefox MediaRecorder outputs natively.
+ * what modern Chrome/Firefox MediaRecorder outputs natively. (Enum
+ * names are pre-Phase-5 Cloud STT shapes carried into the Voxtral
+ * path — `mimeToEncoding` runs before the provider router so a single
+ * mapping survives both sides.)
  *
- * Cloud STT v1 sync `recognize` doesn't accept MP4/AAC — Safari's
+ * The transcription upstream doesn't accept MP4/AAC — Safari's
  * MediaRecorder default — so we return `null` for that surface and
  * the caller rejects at the MIME gate with a 400. Transcoding server-
- * side (via ffmpeg or the Files API) is a TODO before we support
- * Safari voice input.
+ * side (via ffmpeg or a batch upload path) is a TODO before we
+ * support Safari voice input.
  *
  * Must stay in lockstep with the caller's ALLOWED_MIME allowlist: if
  * a MIME passes the allowlist but we return null here, the caller

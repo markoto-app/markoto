@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 
 // Tier 2: "Select text and ask the AI to rewrite it".
 //
@@ -15,12 +15,9 @@ import { test, expect } from '../fixtures/flow'
 // `replace_text` over `insert_text` — same prompt-bar surface as
 // the bottom-bar tour, but the user's selection routes the model.
 //
-// Live Gemini call. Skipped if no key.
+// Live LiteLLM round-trip → Mistral. Skipped if no key.
 test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows.'
-  )
+  requireLiveAi()
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')

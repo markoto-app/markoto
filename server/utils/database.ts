@@ -104,7 +104,7 @@ export function useDatabase() {
       // shared/utils/postgresSsl.ts for the full rationale.
       ssl: resolvePostgresSsl(),
       // Default `max` is 10. On a single VPS that's tight: many of our
-      // handlers hold a connection across S3 / Gemini / markitdown calls,
+      // handlers hold a connection across S3 / LiteLLM / markitdown calls,
       // so the pool can exhaust at ~50–100 RPS even when Postgres itself
       // is idle. 30 covers our expected steady-state without overrunning
       // Postgres `max_connections` (sync container also pulls from the

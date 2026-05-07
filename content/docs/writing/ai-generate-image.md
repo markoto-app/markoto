@@ -8,10 +8,10 @@ order: 11
 # Ask the AI to draw an image
 
 Need a hero image, a diagram, a quick illustration? Ask the AI. The
-`generate_image` tool routes the prompt through Gemini's image model,
-uploads the result to S3 under your doc's prefix, and inserts the
-markdown image at the cursor — same flow as if you'd drag-dropped a
-file in.
+`generate_image` tool routes the prompt through BFL FLUX.2 (EU-pinned,
+via the LiteLLM proxy), uploads the result to S3 under your doc's
+prefix, and inserts the markdown image at the cursor — same flow as
+if you'd drag-dropped a file in.
 
 ::flow{id="ask-the-ai-to-draw-an-image" hide-title}
 ::

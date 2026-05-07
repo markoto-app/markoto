@@ -5,7 +5,6 @@ import {
   activityLog,
   aiSessionMessages,
   aiSessions,
-  aiUsagePeriod,
   auditLog,
   consentLog,
   documentComments,
@@ -93,7 +92,6 @@ export interface BuildExportZipResult {
     themes: number
     aiSessions: number
     aiSessionMessages: number
-    aiUsagePeriods: number
     activityLogRows: number
     auditLogRows: number
     consentLogRows: number
@@ -300,17 +298,10 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     createdAt: m.createdAt.toISOString()
   }))))
 
-  const usageRows = await db
-    .select()
-    .from(aiUsagePeriod)
-    .where(eq(aiUsagePeriod.attributedTo, `user:${userId}`))
-    .orderBy(asc(aiUsagePeriod.periodStart))
-  entries['ai/usage.ndjson'] = strToU8(toNdjson(usageRows.map(u => ({
-    attributedTo: u.attributedTo,
-    periodStart: u.periodStart.toISOString(),
-    interactionsUsed: u.interactionsUsed,
-    updatedAt: u.updatedAt.toISOString()
-  }))))
+  // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
+  // No usage history to export — LiteLLM's spend logs are operator-
+  // facing only. If a user requests historical AI usage in the future,
+  // re-add via a separate `/spend/logs` proxy.
 
   // ── Activity log rows attributed to the user ────────────────────
   const activityRows = await db
@@ -417,7 +408,6 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
       themes: themesRows.length,
       aiSessions: sessionsRows.length,
       aiSessionMessages: aiMessagesRows.length,
-      aiUsagePeriods: usageRows.length,
       activityLogRows: activityRows.length,
       auditLogRows: auditRows.length,
       consentLogRows: consentRows.length,

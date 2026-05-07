@@ -45,8 +45,8 @@ export default defineNitroPlugin(() => {
     { name: 'NUXT_MARKITDOWN_URL', value: config.markitdownUrl },
     { name: 'NUXT_SYNC_INTERNAL_URL', value: config.syncInternalUrl },
     { name: 'NUXT_PUBLIC_SYNC_URL', value: config.public?.syncUrl },
-    { name: 'NUXT_GOOGLE_GEMINI_API_KEY', value: config.google?.geminiApiKey },
-    { name: 'NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY', value: config.google?.speechToTextApiKey }
+    { name: 'NUXT_LITELLM_URL', value: config.litellm?.url },
+    { name: 'NUXT_LITELLM_MASTER_KEY', value: config.litellm?.masterKey }
   ]
   for (const { name, value } of presence) {
     if (typeof value !== 'string' || value.length === 0) {
@@ -79,8 +79,15 @@ export default defineNitroPlugin(() => {
     { name: 'NUXT_S3_ENDPOINT', value: config.s3?.endpoint, schemes: ['http:', 'https:'] },
     { name: 'NUXT_MARKITDOWN_URL', value: config.markitdownUrl, schemes: ['http:', 'https:'] },
     { name: 'NUXT_SYNC_INTERNAL_URL', value: config.syncInternalUrl, schemes: ['http:', 'https:'] },
-    { name: 'NUXT_PUBLIC_SYNC_URL', value: config.public?.syncUrl, schemes: ['ws:', 'wss:'] }
+    { name: 'NUXT_PUBLIC_SYNC_URL', value: config.public?.syncUrl, schemes: ['ws:', 'wss:'] },
+    { name: 'NUXT_LITELLM_URL', value: config.litellm?.url, schemes: ['http:', 'https:'] }
   ]
+
+  // Phase 5: every dual-mode provider flag is gone. LiteLLM is the
+  // only AI gateway — embeddings, text, image, transcribe, dictate
+  // all route through it. Provider validation happens at the LiteLLM
+  // config layer (model id present in `infra/litellm/config.yaml`),
+  // not here.
   for (const { name, value, schemes } of urlChecks) {
     if (typeof value !== 'string' || value.length === 0) continue // already flagged above
     let parsed: URL

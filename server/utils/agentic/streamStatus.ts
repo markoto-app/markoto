@@ -1,15 +1,17 @@
-import type { FunctionCall } from '@google/genai'
+import type { AgenticFunctionCall as FunctionCall } from './aiTypes'
 
 /**
- * Turns Gemini stream chunks + emitted function calls into live status strings
- * shown to clients via Y.js awareness. Kept separate from the loop so
- * `describeToolInput` is a pure function — easy to test with fixtures, and
- * the main loop can focus on SDK mechanics.
+ * Turns provider stream chunks + emitted function calls into live status
+ * strings shown to clients via Y.js awareness. Kept separate from the
+ * loop so `describeToolInput` is a pure function — easy to test with
+ * fixtures, and the main loop can focus on SDK mechanics.
  *
- * Granularity note: Gemini's streaming typically surfaces a function call as a
- * complete unit (args arrive as one chunk, not progressively like Gemini's
- * `input_json_delta`). We get one status announcement per tool call rather
- * than per-character streaming — acceptable: users perceive tool-call-level
+ * Granularity note: Mistral's streaming surfaces a function call's args
+ * progressively across `tool_calls[].function.arguments` chunks; the
+ * translator in `messageTranslation.ts` accumulates them and yields one
+ * synthesised internal-shape chunk with the complete call on stream
+ * end. So we still announce one status per tool call rather than
+ * per-character streaming — acceptable: users perceive tool-call-level
  * granularity, not token-level.
  */
 
@@ -23,8 +25,8 @@ export interface StreamStatusOptions {
 
 /**
  * Stateful accumulator. One per agentic turn. Dedupes repeated status strings
- * across chunks (Gemini can re-emit a function_call in multiple chunks as the
- * args fill in); we only announce on *new* call identities.
+ * across chunks (the provider can re-emit a function_call in multiple chunks
+ * as the args fill in); we only announce on *new* call identities.
  */
 export interface StreamState {
   /** Set of `${name}:${stringified-args}` we've already announced this turn. */
@@ -40,7 +42,7 @@ export function newStreamState(): StreamState {
  * decide whether to update the awareness status.
  *
  * Text parts are ignored for status — they land in the final response but
- * we don't announce "speaking" for them (matches Gemini behaviour).
+ * we don't announce "speaking" for them.
  */
 export function processChunk(
   chunk: { functionCalls?: FunctionCall[], text?: string },
@@ -54,11 +56,15 @@ export function processChunk(
     if (!call.name) continue
     // Identity = name + args fingerprint. Prevents re-announcing on chunks
     // that simply repeat the same complete call.
-    const key = `${call.name}:${JSON.stringify(call.args ?? {})}`
+    // `call.args` is typed `unknown` upstream; coerce once to the
+    // `Record` shape `describeToolInput` expects + the JSON.stringify
+    // call accepts.
+    const args = (call.args ?? {}) as Record<string, unknown>
+    const key = `${call.name}:${JSON.stringify(args)}`
     if (state.announced.has(key)) continue
     state.announced.add(key)
 
-    const msg = describeToolInput(call.name, call.args ?? {})
+    const msg = describeToolInput(call.name, args)
     if (msg) opts.setStatus('tool', msg)
   }
 }
@@ -69,7 +75,7 @@ export function processChunk(
  *
  * Returns null if the inputs don't carry a field we can speak to — callers
  * should leave the previous status in place rather than flash something
- * generic (same philosophy as the Gemini implementation).
+ * generic (philosophy carried over from pre-Phase-5: Gemini-era).
  */
 export function describeToolInput(name: string, args: Record<string, unknown>): string | null {
   switch (name) {

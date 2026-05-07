@@ -3,11 +3,11 @@ import * as Y from 'yjs'
 import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
 import type { AiSession } from '../../server/utils/aiClient'
 
-// AI tool handlers — the functions Gemini uses to mutate user docs
-// (view_document, replace_text, insert_text). Wrong semantics here =
-// silent data corruption in the user's document, so every branch gets
-// pinned: match-count rules, line-to-char mapping, transaction origin
-// tags, unicode alignment.
+// AI tool handlers — the functions the model uses to mutate user
+// docs (view_document, replace_text, insert_text). Wrong semantics
+// here = silent data corruption in the user's document, so every
+// branch gets pinned: match-count rules, line-to-char mapping,
+// transaction origin tags, unicode alignment.
 
 // Minimal AiSession stub. Handlers only touch ydoc, ytext, sessionId,
 // and updateStatus — everything else is awareness/provider plumbing the
@@ -350,7 +350,7 @@ describe('executeFunctionByName — dispatch', () => {
 
   it('web_search is NOT routed here (handled by runLoop)', async () => {
     // Documented in the handler comment — web_search needs the
-    // GoogleGenAI client and is async, so the loop calls the
+    // AiClient client and is async, so the loop calls the
     // `webSearch` helper directly. If the dispatcher started handling
     // it, that'd invoke a nonsense `handleWebSearch` we never wrote.
     const { session } = makeSession('')

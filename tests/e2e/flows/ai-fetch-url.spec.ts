@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 
 // Tier 2: "Drop a URL into the prompt and the AI reads it for you".
 //
@@ -8,17 +8,15 @@ import { test, expect } from '../fixtures/flow'
 // Job done when the AI calls `fetch_url`, fetches the page through
 // the SSRF-guarded URL fetcher, and inserts a summary paragraph.
 //
-// Pipeline: AI calls `fetch_url(url)` → server-side `urlContext`
-// sub-call to Gemini with structured-output schema (summary +
-// images[]) → AI weaves the result back into the doc, often with
-// a citation note about the source.
+// Pipeline: AI calls `fetch_url(url)` → 2-call sub-pipeline (Jina
+// Reader fetches the page, then Mistral synthesises a structured
+// `{summary, images[]}` extraction with `json_schema strict:true`)
+// → AI weaves the result back into the doc, often with a citation
+// note about the source.
 //
-// Live Gemini call. Skipped if no key.
+// Live LiteLLM round-trip → Mistral. Skipped if no key.
 test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows.'
-  )
+  requireLiveAi()
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -30,8 +28,8 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
     'Paste any URL into the AI prompt bar with a question and the '
     + 'AI calls `fetch_url`: a guarded server-side fetcher (no '
     + 'private CIDRs, no `file://`, no internal hostnames) feeds '
-    + 'the page through Gemini with `urlContext` and structured '
-    + 'output, then the AI summarises into your doc with a '
+    + 'the page through Jina Reader, hands the result to Mistral '
+    + 'for structured output, and the AI summarises into your doc with a '
     + 'citation. Useful for articles, docs, RFC drafts, anything '
     + 'public on the open web.'
   )
@@ -44,9 +42,9 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   )
 
   // Vue.js docs landing page: stable, public, returns a clear short
-  // page Gemini's `urlContext` summarises predictably. Avoid news
-  // sites (paywalls / cookies banners change the fetched body and
-  // produce flaky summaries).
+  // page that Jina Reader → Mistral summarises predictably. Avoid
+  // news sites (paywalls / cookies banners change the fetched body
+  // and produce flaky summaries).
   const prompt = 'Read https://vuejs.org/guide/introduction.html and add a one-paragraph summary at the end of this doc.'
   await flow.type(
     'Paste the URL with a question',
@@ -80,10 +78,10 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   )
 
   // ASSERTION: the doc grew with a Vue-related summary. We can't
-  // assert exact wording (Gemini is non-deterministic) but the
+  // assert exact wording (Mistral is non-deterministic) but the
   // model receives the URL in its prompt + sees the page contents
-  // through urlContext, so SOME mention of Vue / framework / JS
-  // should make it through.
+  // through the Jina Reader sub-call, so SOME mention of Vue /
+  // framework / JS should make it through.
   const docId = page.url().match(/\/d\/([^/?]+)/)?.[1]
   expect(docId).toBeTruthy()
   const ytext = await page.evaluate(() => {

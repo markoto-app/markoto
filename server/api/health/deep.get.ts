@@ -31,7 +31,8 @@ export default defineEventHandler(async (event) => {
   const results = await runAllProbes({
     syncUrl: config.syncInternalUrl,
     rendererUrl: config.rendererInternalUrl,
-    markitdownUrl: config.markitdownUrl
+    markitdownUrl: config.markitdownUrl,
+    litellmUrl: config.litellm?.url
   })
 
   const healthy = isOverallHealthy(results)
@@ -44,7 +45,8 @@ export default defineEventHandler(async (event) => {
       valkey: pick(results.valkey),
       sync: pick(results.sync),
       renderer: pick(results.renderer),
-      markitdown: pick(results.markitdown)
+      markitdown: pick(results.markitdown),
+      litellm: pick(results.litellm)
     }
   }
 })

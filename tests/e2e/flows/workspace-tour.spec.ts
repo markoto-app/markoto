@@ -22,18 +22,14 @@ import { test, expect } from '../fixtures/flow'
 // + the WorkspaceFormModal on their own. With it, the entry point
 // is a click on the docs site.
 //
-// Desktop-focused: the dashboard's two-column layout (workspaces +
-// recent docs) is wider than mobile single-column, and the
-// before/after of "the workspace appears in the list" reads more
-// clearly with both columns visible.
+// Runs on desktop AND mobile. The "+ New workspace" button on the
+// dashboard renders unconditionally (no responsive hide), and the
+// WorkspaceFormModal's name + description form is mobile-friendly
+// out of the box. Mobile stacks the dashboard's workspace list +
+// recent docs columns vertically rather than side-by-side, so the
+// before/after lands below the fold instead of next-column-over —
+// captured-frame layout differs but the asserted UX path is identical.
 test('Start a workspace', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Workspace tour reads better at desktop where the dashboard\'s'
-    + ' workspace list + recent docs columns sit side-by-side; mobile'
-    + ' stacks them and the "your workspace appears in the list"'
-    + ' before/after is below the fold.'
-  )
   test.setTimeout(120_000)
 
   // Login first — the dashboard's "+ New workspace" button only

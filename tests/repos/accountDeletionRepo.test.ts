@@ -3,7 +3,6 @@ import { resetDb, testDb } from '../integration/setup/db'
 import {
   anonymiseCommentsByAuthor,
   deleteAiSessionsByUser,
-  deleteAiUsagePeriodByUser,
   deleteThemesByUser,
   deleteUserRow,
   listMembershipsForUser,
@@ -211,37 +210,6 @@ describe('deleteAiSessionsByUser', () => {
 
     const remaining = await testDb().query<{ count: string }>(`SELECT COUNT(*) AS count FROM ai_sessions`)
     expect(Number(remaining.rows[0].count)).toBe(1)
-  })
-})
-
-describe('deleteAiUsagePeriodByUser', () => {
-  beforeEach(async () => {
-    await resetDb()
-  })
-
-  it('removes user-keyed rows but keeps workspace-keyed rows', async () => {
-    const u = await createUser()
-    const ws = await createWorkspace(u.id)
-    const periodStart = '2025-01-01T00:00:00Z'
-    await testDb().query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, $2, 5)`,
-      [`user:${u.id}`, periodStart]
-    )
-    await testDb().query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, $2, 7)`,
-      [`workspace:${ws.workspaceId}`, periodStart]
-    )
-
-    const removed = await deleteAiUsagePeriodByUser(u.id)
-    expect(removed).toBe(1)
-
-    const remaining = await testDb().query<{ attributed_to: string }>(
-      `SELECT attributed_to FROM ai_usage_period`
-    )
-    expect(remaining.rows.length).toBe(1)
-    expect(remaining.rows[0].attributed_to).toContain('workspace:')
   })
 })
 

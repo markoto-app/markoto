@@ -1,6 +1,6 @@
 # markoto
 
-Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google), PostgreSQL (with pgvector), external S3, multi-lingual UI, Gemini-powered AI writing assistance with workspace knowledge-base retrieval. Single Linux VPS, Docker Compose. Login is optional — public docs work anonymously.
+Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google), PostgreSQL (with pgvector), external S3, multi-lingual UI, Mistral-powered AI writing assistance (via LiteLLM proxy) with workspace knowledge-base retrieval. Single Linux VPS, Docker Compose. Login is optional — public docs work anonymously.
 
 ## Quick start
 

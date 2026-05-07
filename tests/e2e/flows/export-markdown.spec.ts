@@ -14,14 +14,13 @@ import { test, expect } from '../fixtures/flow'
 // No server round-trip, no S3, no auth — works on anonymous docs
 // too.
 //
-// Desktop only — File menu lives in the menubar (hidden `<sm`).
-// Mobile users get the same action via the Editor drawer's
-// File section, covered by the mobile sibling flows.
+// Runs on desktop AND mobile. Same client-side download path; entry
+// point differs:
+//   - Desktop: File → Export → "Markdown (.md)" submenu pick.
+//   - Mobile: hamburger ("more") → "Export" (the mobile menu flattens
+//     Export's submenu down to its markdown action — Print + Save as
+//     PDF live as separate items in the same hamburger).
 test('Save as Markdown', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'File menu is desktop-only; the mobile equivalent surface is in the Editor drawer (covered by polished-pdf-mobile and friends).'
-  )
   test.setTimeout(120_000)
 
   await editor.silentSetup()
@@ -35,24 +34,39 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
     + 'pasting into another tool, or archiving the source.'
   )
 
-  // ─── File menu → Save as Markdown ───────────────────────────────
+  // ─── Open the menu containing Export ────────────────────────────
+  const openMenuTrigger = editor.isMobile
+    ? page.getByRole('button', { name: /^menu$/i }).first()
+    : page.locator('nav[aria-label="Menu bar"] > button').first()
+
   await flow.click(
-    'Click the File menu',
-    page.locator('nav[aria-label="Menu bar"] > button').first(),
+    editor.isMobile ? 'Open the topbar menu' : 'Click the File menu',
+    openMenuTrigger,
     {
-      result: 'The File menu opens — Export sits between Import and Print.',
-      after: () => page.getByRole('menuitem', { name: /export/i }).first().waitFor({ state: 'visible' })
+      result: editor.isMobile
+        ? 'The topbar menu opens — Export sits in the file actions.'
+        : 'The File menu opens — Export sits between Import and Print.',
+      after: () => page.getByRole('menuitem', { name: /^export$/i }).first().waitFor({ state: 'visible' })
     }
   )
 
-  // Hover Export to reveal the format submenu (Markdown + PDF).
-  await flow.hover(
-    'Hover "Export" for the format submenu',
-    page.getByRole('menuitem', { name: /^export$/i }).first()
-  )
-
-  const mdItem = page.getByRole('menuitem', { name: /markdown \(\.md\)/i }).first()
-  await mdItem.waitFor({ state: 'visible' })
+  // Desktop opens a format submenu (Markdown / PDF); mobile collapses
+  // Export to mean "markdown" directly, so the click below triggers
+  // the download.
+  let triggerLocator: import('@playwright/test').Locator
+  let triggerCaption: string
+  if (editor.isMobile) {
+    triggerLocator = page.getByRole('menuitem', { name: /^export$/i }).first()
+    triggerCaption = 'Tap "Export" to download the .md'
+  } else {
+    await flow.hover(
+      'Hover "Export" for the format submenu',
+      page.getByRole('menuitem', { name: /^export$/i }).first()
+    )
+    triggerLocator = page.getByRole('menuitem', { name: /markdown \(\.md\)/i }).first()
+    await triggerLocator.waitFor({ state: 'visible' })
+    triggerCaption = 'Click "Markdown (.md)" to download'
+  }
 
   // ─── Trigger the download ───────────────────────────────────────
   // The export-markdown handler creates an object URL and triggers
@@ -61,8 +75,8 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
   const downloadPromise = page.waitForEvent('download', { timeout: 10_000 })
 
   await flow.click(
-    'Click "Markdown (.md)" to download',
-    mdItem,
+    triggerCaption,
+    triggerLocator,
     {
       hero: true,
       result: 'The .md file downloads to your disk — same content as what '

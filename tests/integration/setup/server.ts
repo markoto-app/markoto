@@ -100,12 +100,27 @@ export async function startNuxt(): Promise<void> {
     NUXT_OAUTH_GOOGLE_CLIENT_ID: 'test',
     NUXT_OAUTH_GOOGLE_CLIENT_SECRET: 'test',
     NUXT_GOOGLE_API_KEY: 'test',
-    NUXT_GOOGLE_GEMINI_API_KEY: 'test',
-    NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY: 'test',
+    // LiteLLM proxy. Phase 7: integration tests hit a real `litellm-test`
+    // container (docker-compose.test.yml) on port 4100 so the per-user
+    // virtual-key CRUD round-trips through the actual /key/* admin
+    // surface. Knowledge embeddings retain the legacy provider tag
+    // (pre-Phase-5 Gemini-era) for tests that exercise the dual-mode
+    // resolver branch — no model upstream is wired in the test proxy.
+    NUXT_LITELLM_URL: 'http://127.0.0.1:4100',
+    NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
+    // Test stack uses `litellm_test` (alongside `ypad_test`) on the
+    // shared `postgres-test` container; `axis-spend` and `spend-logs-sweep`
+    // both connect directly to query/maintain LiteLLM_SpendLogs.
+    NUXT_LITELLM_DB_NAME: 'litellm_test',
+    // Phase 6 collapsed `NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER` to a single
+    // value (`jina`) when the Gemini path was retired. Left at the
+    // default in tests; the env var still exists but no longer toggles
+    // a runtime branch.
     // Substitutes a fake SpeechClient for the dictation WS route so
     // integration tests can drive the full handshake and message
-    // flow without hitting Google or paying per-minute. See
-    // `server/utils/agentic/dictateSpeechClient.ts`.
+    // flow without hitting Voxtral Realtime or paying per-minute.
+    // (Env var name carried over from pre-Phase-5 Cloud STT mock.)
+    // See `server/utils/agentic/dictateSpeechClient.ts`.
     NUXT_GOOGLE_SPEECH_MOCK: '1',
     NUXT_MARKITDOWN_URL: 'http://127.0.0.1:1',
     // Stripe: tests talk to the `stripe-mock` container for SDK calls

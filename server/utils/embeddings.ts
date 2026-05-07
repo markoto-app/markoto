@@ -1,32 +1,35 @@
-import { GoogleGenAI } from '@google/genai'
+import type OpenAI from 'openai'
+import { useLitellmAdmin } from './litellmClient'
+import { FEATURE_TAGS, featureMetadata } from './litellm/featureTags'
 
 /**
- * Gemini embeddings wrapper for the workspace knowledge base. Thin layer
- * over `ai.models.embedContent` that:
+ * Embeddings wrapper for the workspace knowledge base.
  *
- *   - Pins the model + output dimensionality from runtimeConfig so every
- *     call in the codebase produces vectors that share one space. Writing
- *     `embed_documents` and `embed_query` in different places would drift.
- *   - Batches document embedding so a 200-chunk PDF doesn't do 200 round
- *     trips. Gemini accepts arrays in `contents`.
- *   - Picks the right `taskType` per call site. `RETRIEVAL_DOCUMENT` for
- *     corpus chunks, `RETRIEVAL_QUERY` for incoming search strings.
- *     Gemini's task-type hints measurably improve recall over treating
- *     both identically (docs + queries live on slightly different
- *     sub-manifolds of the embedding space).
- *   - Stamps results with an `embeddingVersion` string the caller persists
- *     next to the vector, so we can re-embed lazily if we ever bump model
- *     or dims without a destructive migration.
+ * Phase 5: routes through the LiteLLM proxy → `jina-embeddings-v5-text-nano`
+ * at 768-d. Pre-Phase-5 (Gemini-era) the path was direct `@google/genai`
+ * `embedContent`; that path was removed once every shipped chunk migrated
+ * to Jina vectors via `scripts/re-embed-knowledge.ts`. The script itself
+ * stays for any future re-embed (model bump, dim change, vendor swap).
  *
- * Note on dimensions: Gemini supports MRL truncation via
- * `outputDimensionality`. We default to 768 — pgvector HNSW caps at 2000
- * dims (3072 forces IVFFlat), and 768 is Gemini's lowest "recommended"
- * tier with marginal recall loss for the doc-retrieval use case. Bumping
- * requires: (1) recreate the HNSW index with the new dim, (2) bump
- * `embeddingVersion` so stale chunks are detected, (3) either mass
- * re-embed or accept mixed-era vectors (the `1 - cosineDistance`
- * ordering stays roughly monotonic across tiers but isn't strictly
- * comparable).
+ * Public API is provider-agnostic: callsites in `processKnowledge.ts`,
+ * `repos/knowledge.ts`, and `scripts/re-embed-knowledge.ts` use the same
+ * `embedDocuments` / `embedQuery` signature.
+ *
+ * Behaviour:
+ *   - Pin model + dimensionality from runtimeConfig so all calls produce
+ *     vectors in one space (per-call drift breaks `1 - cosineDistance`).
+ *   - Apply the same per-input character cap (defends against pre-chunked
+ *     input that exceeds the model's token window).
+ *   - Use bounded concurrency (5) for batch document embedding. We don't
+ *     exploit Jina's true batch endpoint — the per-call shape is uniform
+ *     enough that the extra pool plumbing isn't worth it at our scale.
+ *   - Stamp results with an `embeddingVersion` string the caller persists
+ *     so we can re-embed lazily if model or dims ever change without a
+ *     destructive migration.
+ *
+ * On dimensions: pgvector HNSW caps at 2000 dims. We pin 768 because Jina
+ * v5-text-nano's native dimensionality is 768 — no MRL truncation, no
+ * loss vs the model's full output.
  */
 
 export type EmbeddingTaskType
@@ -36,41 +39,51 @@ export type EmbeddingTaskType
     | 'CLASSIFICATION'
     | 'CLUSTERING'
 
-// The JS `@google/genai` SDK treats `contents: [text1, text2, …]` as a
-// SINGLE multi-part Content and returns ONE aggregate embedding — not
-// one embedding per input string (that's the Python SDK's behaviour).
-// To get per-chunk vectors we have to call `embedContent` once per text.
-// Small concurrency (5) keeps throughput reasonable for large PDFs
-// without provoking 429s on shared keys.
+/** Type alias retained for callers (notably `re-embed-knowledge.ts`).
+ *  Single-valued post-Phase-5 — kept as a type alias rather than a string
+ *  literal in case we add a second backend (e.g. local Ollama) later. */
+export type EmbeddingsProvider = 'jina'
+
 const CONCURRENCY = 5
 
-// Per-input token cap. gemini-embedding-001/2-preview both cap at 2048.
-// Our chunker targets 800 with hard-cap at 1500 — this is belt-and-braces
-// for any caller that hands us pre-chunked text we didn't produce.
-const MAX_INPUT_CHARS = 8000 // ~2000 tokens in English worst case
+// Per-input character cap. Jina v5-text-nano has a large token window
+// (≥2k); our chunker targets 800 with a 1500 ceiling — this is
+// belt-and-braces for any caller that hands us pre-chunked text we
+// didn't produce.
+const MAX_INPUT_CHARS = 8000 // ~2000 tokens worst case in English
 
 export interface EmbeddingsConfig {
+  /** Backend selection. Single-valued today; kept on the shape so the
+   *  re-embed script signals intent at the boundary. */
+  provider: EmbeddingsProvider
+  /** Provider-specific model id (e.g. `jina-embeddings-v5-text-nano`). */
   model: string
+  /** Output vector dimension. */
   dimensions: number
+  /** LiteLLM master key (used as the OpenAI SDK's apiKey). */
   apiKey: string
 }
 
 export function resolveEmbeddingsConfig(): EmbeddingsConfig {
   const config = useRuntimeConfig()
-  const apiKey = config.google.geminiApiKey
+  const apiKey = config.litellm?.masterKey
   if (!apiKey) {
-    throw new Error('[embeddings] NUXT_GOOGLE_GEMINI_API_KEY not configured')
+    throw new Error('[embeddings] NUXT_LITELLM_MASTER_KEY required')
   }
   return {
-    model: config.google.embeddingModel,
-    dimensions: config.google.embeddingDims,
+    provider: 'jina',
+    model: config.litellm?.embeddingsModel || 'jina-embeddings-v5-text-nano',
+    dimensions: config.litellm?.embeddingsDims || 768,
     apiKey
   }
 }
 
-/** Stable identifier persisted with each row so we can detect stale vectors. */
+/**
+ * Stable identifier persisted with each row so re-embed jobs can detect
+ * stale vectors. Format: `{provider}/{model}:{dims}`.
+ */
 export function embeddingVersionTag(cfg: EmbeddingsConfig): string {
-  return `${cfg.model}:${cfg.dimensions}`
+  return `${cfg.provider}/${cfg.model}:${cfg.dimensions}`
 }
 
 function truncate(text: string): string {
@@ -78,48 +91,93 @@ function truncate(text: string): string {
   return text.slice(0, MAX_INPUT_CHARS)
 }
 
-/** Embed one text. The JS SDK returns exactly one vector per call. */
+/**
+ * Map our internal task-type enum to Jina's. Jina's `task` parameter is
+ * a top-level field on `/v1/embeddings` (NOT `extra_body` as the LiteLLM
+ * docs imply for the OpenAI shim); spike confirmed it propagates.
+ *
+ * RETRIEVAL_DOCUMENT → retrieval.passage (corpus chunks)
+ * RETRIEVAL_QUERY    → retrieval.query   (search-time query)
+ * Other task types fall back to text-matching, Jina's symmetric default.
+ */
+function mapTaskToJina(task: EmbeddingTaskType): string {
+  switch (task) {
+    case 'RETRIEVAL_DOCUMENT': return 'retrieval.passage'
+    case 'RETRIEVAL_QUERY': return 'retrieval.query'
+    default: return 'text-matching'
+  }
+}
+
 async function embedOne(
-  ai: GoogleGenAI,
+  client: OpenAI,
   cfg: EmbeddingsConfig,
   text: string,
   taskType: EmbeddingTaskType
 ): Promise<number[]> {
-  const response = await ai.models.embedContent({
+  // The OpenAI SDK's `embeddings.create` doesn't have a typed `task`
+  // field, but LiteLLM forwards unknown body params to the upstream
+  // provider verbatim. We pass it via the SDK's untyped extras path so
+  // the call stays type-safe at the boundary. `dimensions` IS typed in
+  // the OpenAI SDK (it's now an OpenAI feature too).
+  const response = await client.embeddings.create({
     model: cfg.model,
-    contents: truncate(text),
-    config: {
-      outputDimensionality: cfg.dimensions,
-      taskType
-    }
+    input: truncate(text),
+    dimensions: cfg.dimensions,
+    // OpenAI SDK auto-injects `encoding_format: 'base64'` for
+    // embeddings. With Jina via LiteLLM, that path returns a 192-d
+    // truncated vector instead of the requested 768-d (silent
+    // failure: code reads `data[0].embedding.length === 192`,
+    // pgvector insert fails with "vector has wrong shape"). Force
+    // `'float'` so Jina returns the number array directly.
+    encoding_format: 'float',
+    // Jina-specific: task hint propagates through LiteLLM. Without this
+    // hint v4's recall measurably degrades on retrieval workloads
+    // (verified in Phase 0 spike — vectors differ across task values).
+    // LiteLLM spend-tag for /admin/ai-spend aggregation rides on the
+    // same untyped-extras path.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...({ task: mapTaskToJina(taskType), ...featureMetadata(FEATURE_TAGS.embeddings) } as any)
   })
-  const values = response.embeddings?.[0]?.values
+  const values = response.data?.[0]?.embedding
   if (!values || values.length !== cfg.dimensions) {
-    throw new Error(`[embeddings] vector has wrong shape: ${values?.length ?? 0} != ${cfg.dimensions}`)
+    throw new Error(`[embeddings] jina vector has wrong shape: ${values?.length ?? 0} != ${cfg.dimensions}`)
   }
-  return values
+  return values as number[]
+}
+
+// ─── Public API (unchanged shape) ─────────────────────────────────────────
+
+export interface EmbedOptions {
+  /** Override provider config (tests, scripts). */
+  config?: EmbeddingsConfig
+  /** Per-batch concurrency. Default 5. */
+  concurrency?: number
+  /** Pre-built LiteLLM client (tests). */
+  litellm?: OpenAI
+}
+
+function resolveClient(opts: EmbedOptions): OpenAI {
+  return opts.litellm ?? useLitellmAdmin()
 }
 
 /**
- * Embed a list of document chunks for the corpus. Runs a bounded
- * concurrency pool of per-chunk calls — the JS SDK does NOT expose a
- * true batch mode that returns one vector per input (unlike the Python
- * SDK). Order of the returned vectors matches the input order.
+ * Embed a list of document chunks. Concurrent pool of per-chunk calls;
+ * order of returned vectors matches input order.
  */
 export async function embedDocuments(
   texts: string[],
-  opts: { ai?: GoogleGenAI, config?: EmbeddingsConfig, concurrency?: number } = {}
+  opts: EmbedOptions = {}
 ): Promise<number[][]> {
   const cfg = opts.config ?? resolveEmbeddingsConfig()
-  const ai = opts.ai ?? new GoogleGenAI({ apiKey: cfg.apiKey })
+  const client = resolveClient(opts)
   const concurrency = Math.max(1, opts.concurrency ?? CONCURRENCY)
   const out: number[][] = new Array(texts.length)
   let next = 0
-  async function worker() {
+  async function worker(): Promise<void> {
     while (true) {
       const i = next++
       if (i >= texts.length) return
-      out[i] = await embedOne(ai, cfg, texts[i]!, 'RETRIEVAL_DOCUMENT')
+      out[i] = await embedOne(client, cfg, texts[i]!, 'RETRIEVAL_DOCUMENT')
     }
   }
   const workers = Array.from({ length: Math.min(concurrency, texts.length) }, worker)
@@ -128,14 +186,14 @@ export async function embedDocuments(
 }
 
 /**
- * Embed a single query string. Always a 1-item call — query latency is
- * user-facing and batching is pointless here.
+ * Embed a single query string. Always 1-call — query latency is
+ * user-facing, batching has no payoff here.
  */
 export async function embedQuery(
   text: string,
-  opts: { ai?: GoogleGenAI, config?: EmbeddingsConfig } = {}
+  opts: EmbedOptions = {}
 ): Promise<number[]> {
   const cfg = opts.config ?? resolveEmbeddingsConfig()
-  const ai = opts.ai ?? new GoogleGenAI({ apiKey: cfg.apiKey })
-  return embedOne(ai, cfg, text, 'RETRIEVAL_QUERY')
+  const client = resolveClient(opts)
+  return embedOne(client, cfg, text, 'RETRIEVAL_QUERY')
 }

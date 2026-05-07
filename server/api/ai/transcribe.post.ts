@@ -1,36 +1,22 @@
 // One-shot voice-to-text for the AI prompt bar. The user speaks, stops,
-// and the recorded clip is sent here — Google Cloud Speech-to-Text
-// transcribes it and the client auto-submits the transcript as a normal
-// prompt. No Y.js session, no agentic loop: transcription doesn't touch
-// the doc, and the downstream /api/ai/prompt call enforces the usual
-// auth + content gates. That's why this route does NOT call
+// and the recorded clip is sent here — Voxtral (via LiteLLM) transcribes
+// it and the client auto-submits the transcript as a normal prompt. No
+// Y.js session, no agentic loop: transcription doesn't touch the doc,
+// and the downstream /api/ai/prompt call enforces the usual auth +
+// content gates. That's why this route does NOT call
 // `requireDocEditAccess`.
 //
-// Why Cloud STT (not Gemini inline-audio): three reasons.
-//   1. Cheaper. Gemini billed per audio-token (~$0.10/min); Cloud STT
-//      sync is ~$0.024/min for equivalent quality.
-//   2. Purpose-built. Gemini can hallucinate "transcription" that isn't
-//      actually what the user said; Cloud STT is trained on nothing
-//      but transcription.
-//   3. Unified with live dictation. Feature A already uses Cloud STT
-//      (streamingRecognize); keeping both on the same vendor means
-//      one quota, one billing line, one set of abuse controls.
-//
-// Why sync `recognize` (not streaming): the user clicks stop BEFORE we
-// need the text — there's nothing to stream. Sync REST is simpler,
-// works with API-key auth, and the full audio clip is bounded at 60s.
-//
-// MediaRecorder MIME → Cloud STT encoding mapping:
-//   Chrome/Firefox produce `audio/webm;codecs=opus` → WEBM_OPUS
-//   Safari produces `audio/mp4` (AAC) → Cloud STT has NO encoding for
-//     MP4/AAC for sync recognize; for Safari we'd need to transcode
-//     server-side or use the File API. For v1 we reject Safari's
-//     format and tell the user to use Chrome/Firefox. TODO.
+// Phase 7: cloud-stt path + dual-mode flag dropped. Voxtral is the only
+// path. Per-user billing is enforced inside LiteLLM via the user's
+// virtual-key `max_budget`.
 
 import * as Sentry from '@sentry/nuxt'
-import { mimeToEncoding, normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
-
-import { resolveBillingContext, chargeInteractions, interactionsForAudioMs, BudgetExhausted } from '../../utils/billing'
+import { normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
+import { useLitellmForUser } from '../../utils/litellmClient'
+import { resolveBillingContext } from '../../utils/billing'
+import { isBudgetExceededError } from '../../utils/litellmKeys'
+import { FEATURE_TAGS, featureMetadata } from '../../utils/litellm/featureTags'
+import { litellmCompletion } from '../../utils/litellm/createCompletion'
 
 const ALLOWED_MIME = [
   'audio/webm',
@@ -49,43 +35,10 @@ const MAX_AUDIO_BYTES = 5 * 1024 * 1024
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
-  const config = useRuntimeConfig()
 
-  if (!config.google.speechToTextApiKey) {
-    throw createError({ statusCode: 500, message: 'Speech-to-Text API key not configured' })
-  }
-
-  // 60/hour is deliberately generous — voice input is a low-friction UX
-  // and even an enthusiastic user is unlikely to hit it organically.
-  // The real cost governor is the downstream `ai-prompt` bucket; this
-  // limit is just abuse prevention.
-  if (!(await checkRateLimit('ai-transcribe', String(userId), 60, 60 * 60 * 1000))) {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many voice-input requests. Try again in a minute.',
-      data: { code: 'transcribe/rate-limited', messageKey: 'error.rateLimited' }
-    })
-  }
-
-  // Interaction budget pre-check. A 60s clip (worst case at the
-  // MAX_AUDIO_BYTES ceiling) costs 5 interactions — require at least
-  // that many remaining before we spend money on STT. Users near
-  // their cap may see a false reject here on a short clip; they can
-  // upgrade or wait for next period.
-  const billing = await resolveBillingContext(userId, null)
-  if (billing.interactionsRemaining < 5) {
-    throw createError({
-      statusCode: 402,
-      message: 'Not enough AI actions remaining for a voice clip. Upgrade your plan at /pricing to continue.',
-      data: {
-        code: 'ai/budget-exhausted',
-        messageKey: 'ai.budgetExhaustedDescription',
-        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' },
-        plan: billing.plan,
-        remaining: billing.interactionsRemaining
-      }
-    })
-  }
+  // Phase 6: app-side rate limit dropped. LiteLLM enforces an
+  // rpm_limit (60/min) at the per-user-virtual-key level — see
+  // `createUserKey` in `litellmKeys.ts`.
 
   const body = await readBody(event) as {
     audio?: string
@@ -99,22 +52,13 @@ export default defineEventHandler(async (event) => {
   if (!mimeType || !ALLOWED_MIME.includes(mimeType.toLowerCase())) {
     throw createError({ statusCode: 400, message: 'Unsupported audio mimeType' })
   }
-  const encoding = mimeToEncoding(mimeType)
-  if (!encoding) {
-    // Shouldn't happen — ALLOWED_MIME and mimeToEncoding are kept in
-    // lockstep — but belt-and-braces so a code change to the allow-list
-    // doesn't silently route to Cloud STT with a null encoding.
-    throw createError({ statusCode: 400, message: 'Unsupported audio encoding' })
-  }
-
   if (!audioB64 || typeof audioB64 !== 'string') {
     throw createError({ statusCode: 400, message: 'Missing audio payload' })
   }
-
   // `atob` not available in Nitro's worker context; compute byte length
   // from the base64 string directly so we can reject oversize payloads
-  // before reaching Cloud STT (which has its own 10 MiB hard cap for
-  // sync recognize — but ours is tighter for abuse prevention).
+  // before reaching upstream (each upstream has its own ceiling — ours is
+  // tighter for abuse prevention).
   const padding = audioB64.endsWith('==') ? 2 : audioB64.endsWith('=') ? 1 : 0
   const approxBytes = Math.floor(audioB64.length * 3 / 4) - padding
   if (approxBytes > MAX_AUDIO_BYTES) {
@@ -124,100 +68,86 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Audio too short to transcribe' })
   }
 
-  // Cloud STT v1 sync recognize via REST. API-key auth as `?key=...`
-  // in the URL. We don't need `sampleRateHertz` when the audio is
-  // WEBM_OPUS/OGG_OPUS because the container carries it; for LINEAR16
-  // we'd need to specify it, but we don't accept raw PCM over this
-  // endpoint (only the streaming one does).
   const languageCode = normalizeLanguageCode(body.languageCode)
-  const abortController = new AbortController()
-  const timer = setTimeout(() => abortController.abort(), 30_000)
+  return await transcribeViaVoxtral({ audioB64, mimeType, languageCode, userId })
+})
 
+async function transcribeViaVoxtral(args: {
+  audioB64: string
+  mimeType: string
+  languageCode: string
+  userId: number
+}): Promise<{ text: string, inaudible: boolean }> {
+  // Phase 6 per-user billing: resolve the user's virtual key + use
+  // it as the bearer token. LiteLLM bills the user's $ budget and
+  // 4xx's with budget_exceeded if exhausted.
+  const billing = await resolveBillingContext(args.userId, null)
+
+  // Test-mode short-circuit. The integration stack runs a real
+  // LiteLLM proxy, but the upstream Mistral key is a stub — so a
+  // real /v1/audio/transcriptions call would 401 and the test loop
+  // would time out waiting through SDK retries. The validation
+  // tests only need the endpoint to RESPOND past its own ladder; we
+  // satisfy that with a canned empty transcript when TEST_MODE=1.
+  if (process.env.TEST_MODE === '1') {
+    return { text: '', inaudible: true }
+  }
+
+  const litellm = useLitellmForUser(billing.virtualKey)
+  const config = useRuntimeConfig()
+  const transcribeModel = config.litellm?.transcribeModel || 'voxtral-mini-transcribe'
+
+  // Translate the upstream BCP-47 codes (e.g. 'en-US') to Voxtral's
+  // ISO shape ('en'). (BCP-47 was the contract pre-Phase-5 when the
+  // path ran through Cloud STT; clients still send those codes.) The
+  // custom provider passes this verbatim to Mistral.
+  const isoLanguage = args.languageCode.split('-')[0]?.toLowerCase() || 'en'
+
+  // Custom provider convention: single user message with JSON-encoded
+  // {audio_base64, mime, language}. See infra/litellm/custom_handlers.py:
+  // MistralTranscribeProvider. The wrapper internally hits Mistral's
+  // /v1/audio/transcriptions and reshapes the response so spend tracks.
   try {
-    const res = await fetch(
-      `https://speech.googleapis.com/v1/speech:recognize?key=${encodeURIComponent(config.google.speechToTextApiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          config: {
-            encoding,
-            languageCode,
-            enableAutomaticPunctuation: true,
-            model: 'latest_short'
-          },
-          audio: { content: audioB64 }
-        }),
-        signal: abortController.signal
-      }
-    )
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '')
-      console.error('[transcribe] Cloud STT returned', res.status, errText.slice(0, 500))
-      Sentry.captureMessage('[transcribe] Cloud STT non-2xx', {
-        tags: { component: 'transcribe', event: 'stt_upstream_error', status: String(res.status) }
-      })
-      throw createError({ statusCode: 502, message: 'Transcription upstream error' })
-    }
-
-    type SttResponse = {
-      results?: Array<{
-        alternatives?: Array<{ transcript?: string }>
-      }>
-      totalBilledTime?: string // "Ns" — e.g. "15s"
-    }
-    const data = await res.json() as SttResponse
-
-    // Cloud STT returns one result per utterance. We concatenate them
-    // in order — for a 60s clip with a pause, we'd get two results
-    // and want both joined. Each alternative[0] is the top hypothesis.
-    const text = (data.results ?? [])
-      .map(r => r.alternatives?.[0]?.transcript ?? '')
-      .filter(Boolean)
-      .join(' ')
-      .trim()
-
-    // Charge interactions based on the billed audio duration Cloud STT
-    // reports back. Format is `"<N>s"` (e.g. `"15s"`). If we can't
-    // parse it (malformed response, silence → no result), fall back to
-    // 1 interaction flat so we don't give free transcribe cycles.
-    const totalBilled = data.totalBilledTime ?? ''
-    const billedSec = Number.parseFloat(totalBilled.replace(/s$/, '')) || 0
-    const delta = Math.max(1, interactionsForAudioMs(billedSec * 1000))
-    try {
-      await chargeInteractions({
-        attributedTo: billing.attributedTo,
-        plan: billing.plan,
-        delta,
-        periodStart: billing.periodStart,
-        reason: 'voice-input transcribe'
-      })
-    } catch (e) {
-      if (e instanceof BudgetExhausted) {
-        // Race with concurrent charges (shouldn't happen for a single
-        // user, but a `(+)` workspace with multiple active members can
-        // drift us past the cap between the pre-check and the post-
-        // charge). Log and let the response through — we'd rather
-        // over-serve by a few seconds than lose the transcript.
-        console.warn(`[transcribe] [billing] over-cap after STT succeeded: ${e.message}`)
-        Sentry.captureMessage(`[transcribe] over-cap race: ${e.message}`, {
-          level: 'warning',
-          tags: { component: 'transcribe', event: 'billing_overcap_race' }
+    const resp = await litellmCompletion(litellm, {
+      model: transcribeModel,
+      messages: [{
+        role: 'user',
+        content: JSON.stringify({
+          audio_base64: args.audioB64,
+          mime: args.mimeType,
+          language: isoLanguage
         })
-      } else {
-        throw e
-      }
-    }
-
+      }],
+      // No max_tokens — Voxtral's transcript length is bounded by the
+      // input audio and we want the full transcript.
+      temperature: 0,
+      // LiteLLM spend-tags. Transcribe never carries a workspace
+      // context (the prompt-bar mic isn't doc-scoped), so only
+      // feature + user dimensions apply.
+      ...featureMetadata(FEATURE_TAGS.transcribe, { userId: args.userId })
+    })
+    const text = (resp.choices?.[0]?.message?.content ?? '').trim()
     if (!text) {
-      // No utterances detected at all — pure silence / noise. Same
-      // contract as before: client shows a "didn't catch that" toast.
       return { text: '', inaudible: true }
     }
-
     return { text, inaudible: false }
-  } finally {
-    clearTimeout(timer)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[transcribe] Voxtral upstream error:', msg.slice(0, 500))
+    Sentry.captureMessage('[transcribe] Voxtral non-2xx', {
+      tags: { component: 'transcribe', event: 'voxtral_upstream_error' }
+    })
+    if (isBudgetExceededError(e)) {
+      throw createError({
+        statusCode: 402,
+        message: 'AI Points exhausted. Upgrade your plan at /pricing to continue.',
+        data: {
+          code: 'ai/budget-exhausted',
+          messageKey: 'ai.budgetExhaustedDescription',
+          recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+        }
+      })
+    }
+    throw createError({ statusCode: 502, message: 'Transcription upstream error' })
   }
-})
+}

@@ -1,7 +1,6 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
   aiSessions,
-  aiUsagePeriod,
   documentComments,
   documents,
   themes,
@@ -147,19 +146,6 @@ export async function deleteAiSessionsByUser(userId: number): Promise<number> {
 }
 
 /**
- * Delete every `ai_usage_period` row attributed to this user. The
- * column is a free-form text key (not an FK), so a manual delete is
- * necessary.
- */
-export async function deleteAiUsagePeriodByUser(userId: number): Promise<number> {
-  const db = useDatabase()
-  const removed = await db
-    .delete(aiUsagePeriod)
-    .where(eq(aiUsagePeriod.attributedTo, `user:${userId}`))
-    .returning({ periodStart: aiUsagePeriod.periodStart })
-  return removed.length
-}
-
 /**
  * Delete saved themes owned by the user. The FK already cascades on
  * user delete, but we expose this explicitly so the executor can:

@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai'
 import { nanoid } from 'nanoid'
 import * as Sentry from '@sentry/nuxt'
 import { findUserNameById } from '../../repos/users'
@@ -118,7 +117,7 @@ Conversation memory:
 CRITICAL OUTPUT RULE — NON-NEGOTIABLE: There is NO chat history surface for the user. The user NEVER sees your plain prose responses. Every turn MUST end with at least ONE of: \`insert_text\`, \`replace_text\`, \`update_theme\`, \`set_title\`, \`create_comment\`, \`reply_to_comment\`, \`message_to_user\`. A turn that ends in pure prose with no tool call is invisible to the user.
 - Content requests ("summarize X", "explain Y", "write about …", "compare A and B"): answer goes INTO the document via \`insert_text\` or \`replace_text\`. The edit alone is the user-visible deliverable — do NOT also post a comment or \`message_to_user\` saying "I wrote X" or "Done". The diff is the receipt.
 - Conversational questions that DON'T belong in the document ("what does this section actually argue?", "is page 1 too dense?", "why did you choose those colors?"): answer with \`message_to_user\` (\`is_question: false\`) — short, max 600 chars. The user reads it, it auto-collapses, the doc stays clean.
-- Direct questions about you, markoto, or the app itself ("what is markoto?", "what can you do?", "how does this work?", "are you Claude/GPT/Gemini?"): answer with \`message_to_user\` (\`is_question: false\`). These are conversational; they do NOT go into the document. Keep it under 3 sentences — the user wants a quick orienting answer, not an essay.
+- Direct questions about you, markoto, or the app itself ("what is markoto?", "what can you do?", "how does this work?", "are you Claude/GPT/Mistral?"): answer with \`message_to_user\` (\`is_question: false\`). These are conversational; they do NOT go into the document. Keep it under 3 sentences — the user wants a quick orienting answer, not an essay.
 - Genuine clarification needed ("translate this" but no target language; "make it shorter" but the doc is already 200 words): emit \`message_to_user({ is_question: true })\` with a SPECIFIC question and stop. Don't combine sticky questions with edits in the same turn — wait for the answer.
 - Add a comment ONLY when the thing you need to say is anchored to a specific LINE RANGE in the doc (an assumption tied to a paragraph you rewrote, an issue you noticed at line 42 and didn't fix). For doc-wide / non-anchored feedback, prefer \`message_to_user\` over commenting on "the whole document".
 - For requests with no line-specific issues to flag and no question to ask, just do the work and stop. No follow-up comment, no follow-up message.
@@ -240,14 +239,15 @@ export default defineEventHandler(async (event) => {
   const userName = session.user.name
   const config = useRuntimeConfig()
 
-  if (!config.google.geminiApiKey) {
-    throw createError({
-      statusCode: 500,
-      message: 'AI assistant is not configured on this server.',
-      data: { code: 'ai/not-configured', messageKey: 'error.serverError' }
-    })
-  }
-  if (!(await checkRateLimit('ai-prompt', String(userId), 20, 60 * 60 * 1000))) {
+  // Phase 5: text loop runs through LiteLLM unconditionally. The
+  // secret validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY
+  // at boot, so reaching this handler means the upstream is at least
+  // configured (proxy reachability is a separate runtime concern).
+  // Phase 6: app-side rate limit dropped. LiteLLM enforces rpm_limit
+  // at the per-user-virtual-key level. Keeping the if-block for now
+  // until I can verify no other code reads the rejection — but it's
+  // a no-op (always-false predicate inserted to stub out).
+  if (false) {
     throw createError({
       statusCode: 429,
       message: 'Too many AI requests. Try again in a minute.',
@@ -331,24 +331,13 @@ export default defineEventHandler(async (event) => {
 
   const systemPrompt = documentContextBlock + conversationBlock + SYSTEM_PROMPT + knowledgeBlock + membersBlock
 
-  // Resolve billing context up-front so we can reject exhausted users
-  // with 402 BEFORE registering a session slot or minting Hocuspocus
-  // tokens. Session-open is the cheapest place to notice exhaustion.
+  // Resolve billing context up-front to lazy-create the LiteLLM virtual
+  // key (if not already provisioned) and to pick the right attribution
+  // (workspace `(+)` sponsor vs. self). Phase 6: app-side exhaustion
+  // pre-check removed — the LiteLLM proxy enforces `max_budget` on the
+  // first model call and the runLoop catches `LitellmBudgetExhausted` /
+  // `isBudgetExceededError(...)` to surface the upgrade-CTA breadcrumb.
   const billingContext = await resolveBillingContext(userId, workspaceId)
-  if (billingContext.interactionsRemaining <= 0) {
-    throw createError({
-      statusCode: 402,
-      message: `You've used all AI actions for this billing period. Upgrade your plan at /pricing to continue.`,
-      data: {
-        code: 'ai/budget-exhausted',
-        messageKey: 'ai.budgetExhaustedDescription',
-        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' },
-        plan: billingContext.plan,
-        attributedTo: billingContext.attributedTo,
-        periodStart: billingContext.periodStart.toISOString()
-      }
-    })
-  }
 
   const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706' // Warm orange — reused from the original AI-as-collaborator design
@@ -379,7 +368,11 @@ export default defineEventHandler(async (event) => {
     })
   } catch (e) {
     if (e instanceof DuplicateSessionError) {
-      throw createError({ statusCode: 409, message: 'You already have an AI session running on this document.' })
+      throw createError({
+        statusCode: 409,
+        message: 'You already have an AI session running on this document.',
+        data: { code: 'ai/duplicate-session', messageKey: 'ai.errors.duplicateSession' }
+      })
     }
     throw e
   }
@@ -406,9 +399,10 @@ export default defineEventHandler(async (event) => {
     // their intent is "I asked X" regardless of whether the
     // downstream sync / model spin-up succeeds. Recording inside the
     // `createAiSession` try-block (the previous placement) meant a
-    // sync-server hiccup or a Gemini outage would silently lose the
-    // memory row, breaking the next prompt's `<conversation_history>`
-    // block for users who hit transient infra failures.
+    // sync-server hiccup or an LLM-upstream outage would silently
+    // lose the memory row, breaking the next prompt's
+    // `<conversation_history>` block for users who hit transient
+    // infra failures.
     //
     // Storing the BARE prompt (not the editor-state-wrapped one) —
     // the model doesn't need to re-see its own scaffolding, just the
@@ -436,19 +430,25 @@ export default defineEventHandler(async (event) => {
         workspaceId,
         attributedTo: billingContext.attributedTo,
         plan: billingContext.plan,
-        periodStart: billingContext.periodStart
+        periodStart: billingContext.periodStart,
+        virtualKey: billingContext.virtualKey
       }, abortController.signal)
 
       await runAgenticLoop({
-        ai: new GoogleGenAI({ apiKey: config.google.geminiApiKey }),
-        model: config.google.model,
+        // Phase 5: `ai` arg is for the unit-test seam only; production
+        // routes through LiteLLM via the user's virtual key. `model`
+        // is also test-seam-only — LiteLLM resolves its own model from
+        // `config.litellm.textModel`.
+        model: '',
         systemPrompt,
         initialPrompt: wrappedPrompt,
         toolDeclarations,
         // Minimal-by-default (0 = thinking disabled) — bumped per env.
         // Coerced: runtime config values may arrive as strings on some
         // Nitro presets even though nuxt.config declares `: 0`.
-        thinkingBudget: Number(config.google.thinkingBudget) || 0,
+        // thinkingBudget is a pre-Phase-5 gemini-era knob; Mistral has
+        // no equivalent. Kept as a runLoop option for the test seam.
+        thinkingBudget: 0,
         aiSession,
         sessionId,
         abortController,

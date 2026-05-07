@@ -10,10 +10,12 @@ import { test, expect } from '../fixtures/flow'
 // We do ONE preset switch to show "themes are real" then commit to
 // the export path — the surface most users don't know exists.
 //
-// Desktop-only: the menubar (File → Save as PDF) is hidden on mobile
-// (`hidden sm:block`), and the mobile editor commands drawer doesn't
-// surface PDF export. Mobile users who want a PDF currently use the
-// browser's print menu, which a flow can't capture cleanly.
+// Runs on desktop AND mobile. Same server-rendered PDF endpoint
+// (`/api/docs/:id/pdf`); entry point differs:
+//   - Desktop: File → Export → "PDF (.pdf)" submenu pick.
+//   - Mobile: hamburger ("more") → "PDF (.pdf)" (the mobile menu
+//     surfaces the server-PDF item at top level — Print is a separate
+//     item for the browser dialog).
 //
 // Captioning rules under the v2 (approach + outcome) model:
 //   • Imperative captions on flow.click(...) → "Click X", "Pick Y"
@@ -21,10 +23,6 @@ import { test, expect } from '../fixtures/flow'
 //   • Annotations on approach frames anchor click targets
 //   • One hero on the most decisive outcome
 test('Polished PDF', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Polished PDF is desktop-only — the File menu (containing Save as PDF) is hidden on `<sm`. Mobile users currently use the browser print dialog, which the flow harness cannot capture.'
-  )
   test.setTimeout(120_000)
 
   await editor.silentSetup()
@@ -51,37 +49,49 @@ test('Polished PDF', async ({ page, flow, editor }) => {
     + 'instead of through the user\'s print dialog.'
   )
 
-  // Open the File menu. The menubar is below the topbar — readers
-  // who skipped the menubar tour need an arrow to find "File" among
-  // seven sibling triggers (File / Edit / View / Insert / Format /
-  // Sharing / Help). The triggers are plain `<button>`s rendered by
-  // UDropdownMenu, NOT role=menuitem (those are the items INSIDE the
-  // dropdown when it opens).
-  const fileMenuTrigger = page.locator('nav[aria-label="Menu bar"] > button').first()
+  // Open the menu containing PDF export.
+  // Desktop has a top-level menubar (hidden on mobile via `hidden sm:block`).
+  // Mobile collapses File / Edit / View / etc. into a single hamburger
+  // ("more") UDropdownMenu. The "PDF (.pdf)" item is nested under
+  // Export on desktop but lifted to top level on mobile so the
+  // pick-server-PDF action stays one tap away.
+  const openMenuTrigger = editor.isMobile
+    ? page.getByRole('button', { name: /^menu$/i }).first()
+    : page.locator('nav[aria-label="Menu bar"] > button').first()
+
   await flow.click(
-    'Click the File menu',
-    fileMenuTrigger,
-    {
-      annotations: [
-        { label: 'file menu', selector: 'nav[aria-label="Menu bar"] > button:first-child', kind: 'arrow' }
-      ],
-      result: 'The File menu opens — New, Import, Export, Print, Duplicate, Delete.',
-      after: () => page.getByRole('menuitem', { name: /export/i }).first().waitFor({ state: 'visible' })
-    }
+    editor.isMobile ? 'Open the topbar menu' : 'Click the File menu',
+    openMenuTrigger,
+    editor.isMobile
+      ? {
+          result: 'The topbar menu opens — "PDF (.pdf)" is one of the file actions.',
+          after: () => page.getByRole('menuitem', { name: /pdf \(\.pdf\)/i }).first().waitFor({ state: 'visible' })
+        }
+      : {
+          annotations: [
+            { label: 'file menu', selector: 'nav[aria-label="Menu bar"] > button:first-child', kind: 'arrow' }
+          ],
+          result: 'The File menu opens — New, Import, Export, Print, Duplicate, Delete.',
+          after: () => page.getByRole('menuitem', { name: /export/i }).first().waitFor({ state: 'visible' })
+        }
   )
 
-  // Hover the Export submenu to expose Markdown / PDF.
-  await flow.hover(
-    'Hover "Export" to reveal the format submenu',
-    page.getByRole('menuitem', { name: /^export$/i }).first(),
-    {
-      annotations: [
-        { label: 'export submenu', selector: '[role="menuitem"]:has-text("Export")', kind: 'arrow' }
-      ]
-    }
-  )
+  // Desktop: hover Export to reveal the format submenu, then wait for
+  // PDF (.pdf). Mobile: PDF is already a top-level item, no submenu.
+  if (!editor.isMobile) {
+    await flow.hover(
+      'Hover "Export" to reveal the format submenu',
+      page.getByRole('menuitem', { name: /^export$/i }).first(),
+      {
+        annotations: [
+          { label: 'export submenu', selector: '[role="menuitem"]:has-text("Export")', kind: 'arrow' }
+        ]
+      }
+    )
+  }
 
-  // Wait for the PDF item to be visible inside the submenu.
+  // Wait for the PDF item to be visible (submenu on desktop; top-level
+  // on mobile — same locator either way).
   const pdfItem = page.getByRole('menuitem', { name: /pdf \(\.pdf\)/i }).first()
   await pdfItem.waitFor({ state: 'visible' })
 

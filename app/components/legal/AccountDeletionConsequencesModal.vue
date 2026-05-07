@@ -26,7 +26,7 @@ interface DeletionPreview {
   ownedDocs: { total: number, sample: OwnedDoc[] }
   commentsToAnonymise: number
   workspaces: WorkspaceFate[]
-  aiUsage: { sessions: number, sessionMessages: number, usagePeriodRows: number }
+  aiUsage: { sessions: number, sessionMessages: number }
   dataExportJobs: number
   stripeCustomerWillBeDeleted: boolean
   retainedAnonymised: { activityLog: number, auditLog: number, consentLog: number }

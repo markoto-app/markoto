@@ -14,7 +14,7 @@ speak — interim partials render as ghost text, finals commit as real
 document content the moment the speech recognizer is confident.
 
 This walkthrough uses a synthetic microphone fed into the test stack's
-mock STT — the real flow uses Google Cloud Speech-to-Text streaming.
+mock STT — the real flow uses Mistral Voxtral Realtime streaming.
 Works on desktop and mobile.
 
 ::flow{id="speak-instead-of-typing" hide-title}
@@ -30,9 +30,9 @@ You clicked the toolbar mic. markoto:
    JWT minted by `POST /api/ai/dictate/token`.
 3. Started a `MediaRecorder` + audio worklet pipeline that captures
    128 ms PCM chunks at 16 kHz and posts them straight to the WS.
-4. Cloud STT streamed back interim transcripts (rendered as ghost text
-   at your caret) and finals (committed into the Y.js document with
-   origin `dictation:{userId}`).
+4. Voxtral Realtime streamed back interim transcripts (rendered as
+   ghost text at your caret) and finals (committed into the Y.js
+   document with origin `dictation:{userId}`).
 
 The `dictation:{userId}` origin matters: undo / collaborator awareness
 treats those edits the same as keyboard input. Your text is your text,

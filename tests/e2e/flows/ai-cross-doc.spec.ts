@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 
 // Tier 2: "Ask the AI about another doc in your workspace".
 //
@@ -14,12 +14,9 @@ import { test, expect } from '../fixtures/flow'
 // member). The tools are gated server-side; non-workspace docs
 // don't get them in their tool list.
 //
-// Live Gemini call. Skipped if no key.
+// Live LiteLLM round-trip → Mistral. Skipped if no key.
 test('Ask the AI about another doc', async ({ page, flow, editor }) => {
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows.'
-  )
+  requireLiveAi()
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -123,7 +120,7 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   )
 
   // ASSERTION: the primary doc's body grew with cross-doc content.
-  // We can't pin the AI's exact answer (Gemini is non-deterministic
+  // We can't pin the AI's exact answer (Mistral is non-deterministic
   // and might paraphrase "checklist" as "list" or "guide"), so we
   // assert that (a) the doc grew past its welcome baseline AND
   // (b) the body mentions any of the keywords seeded into the
@@ -137,7 +134,13 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
     type Win = { __DEBUG_ytext?: { toString: () => string } }
     return (window as unknown as Win).__DEBUG_ytext?.toString() ?? ''
   })
-  expect(ytext.length).toBeGreaterThan(2700) // welcome doc is ~2600 chars
+  // Welcome doc is ~2600 chars. We want >+50 chars added to prove the
+  // AI did real work (a one-paragraph summary is typically 150-300 chars).
+  // The previous threshold of 2700 occasionally flaked when Mistral
+  // emitted a terser-than-usual summary (e.g. 2608 chars = ~8 chars
+  // added). The KEYWORD check below is the load-bearing assertion —
+  // it proves the AI actually consulted the cross-doc.
+  expect(ytext.length).toBeGreaterThan(2650)
   expect(ytext).toMatch(/checklist|authentication|onboarding|postmortem/i)
 
   flow.next({

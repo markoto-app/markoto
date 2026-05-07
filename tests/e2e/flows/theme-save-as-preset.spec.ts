@@ -19,16 +19,14 @@ import { test, expect } from '../fixtures/flow'
 // screenshots show the BEFORE state (no saved preset) + the AFTER
 // state (preset card visible in the saved list).
 //
-// Desktop only: the Theme panel mounts in the right sidebar at
-// desktop widths. Mobile surfaces the same panel via a bottom sheet
-// but the deep-dive shots get cramped at 375px wide.
+// Runs on desktop AND mobile. The Theme panel mounts in the right
+// sidebar on desktop and in a bottom sheet on mobile; the testids
+// (`theme-preset-*`, `theme-save-current`, `theme-saved-*`) are the
+// same on both. Mobile is edit-only (`v-if="viewMode !== 'edit'"`
+// keeps the preview iframe unmounted under `<sm`), so the
+// preview-paginated waits skip on mobile — the asserted state is the
+// saved-themes list, which doesn't depend on the preview iframe.
 test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Theme panel deep-dive reads better at desktop where the sidebar'
-    + ' panel + live preview iframe sit side-by-side; mobile bottom'
-    + ' sheet covers the preview while editing.'
-  )
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -47,14 +45,18 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     + 'they\'re yours.'
   )
 
-  // ─── Open the Theme panel ───────────────────────────────────────
+  // Desktop: right-sidebar Theme tab; mobile: bottom-tab-bar Theme.
+  const themeTab = editor.isMobile
+    ? editor.page.mobileTabs.theme
+    : editor.page.sidebar.theme
+
   await flow.click(
-    'Click the Theme tab in the right sidebar',
-    editor.page.sidebar.theme,
+    editor.isMobile ? 'Tap the Theme tab on the bottom bar' : 'Click the Theme tab in the right sidebar',
+    themeTab,
     {
-      annotations: [
-        { label: 'theme tab', selector: '[data-testid="sidebar-tab-theme"]', kind: 'arrow' }
-      ],
+      annotations: editor.isMobile
+        ? []
+        : [{ label: 'theme tab', selector: '[data-testid="sidebar-tab-theme"]', kind: 'arrow' }],
       result: 'The Theme panel slides in — presets grid + section list '
         + '(Page, Body, Headings, Layout, Colors, Cover, Code, '
         + 'Mermaid, TOC).',
@@ -74,9 +76,16 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     'Click "Academic"',
     editor.page.theme.preset('academic'),
     {
-      result: 'The preview repaginates — Fraunces body, refined '
-        + 'spacing, the academic preset\'s signature look.',
-      after: () => editor.page.waitForPreviewPaginated()
+      result: editor.isMobile
+        ? 'The academic preset is selected — preview iframe is hidden in mobile edit-only mode.'
+        : 'The preview repaginates — Fraunces body, refined '
+          + 'spacing, the academic preset\'s signature look.',
+      after: async () => {
+        // Mobile is edit-only — no preview iframe to wait on.
+        if (!editor.isMobile) {
+          await editor.page.waitForPreviewPaginated()
+        }
+      }
     }
   )
 
@@ -103,11 +112,15 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     'Toggle cover OFF',
     editor.page.theme.coverEnabledSwitch,
     {
-      result: 'The preview repaginates — page 1 is now the document body, '
-        + 'no title sheet.',
+      result: editor.isMobile
+        ? 'The cover toggle flips off — preview iframe hidden in mobile edit-only mode.'
+        : 'The preview repaginates — page 1 is now the document body, '
+          + 'no title sheet.',
       after: async () => {
         await page.waitForTimeout(800)
-        await editor.page.waitForPreviewPaginated()
+        if (!editor.isMobile) {
+          await editor.page.waitForPreviewPaginated()
+        }
       }
     }
   )

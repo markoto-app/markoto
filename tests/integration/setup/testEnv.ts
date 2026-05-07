@@ -72,6 +72,13 @@ export function buildTestEnv(): Record<string, string> {
     // /_test/login bypass) — repo tests don't usually need these but
     // setting it here keeps the env shape uniform.
     TEST_MODE: '1',
+    // Phase 7: repo-tier tests don't bring up the LiteLLM proxy (no
+    // Nuxt subprocess, no useRuntimeConfig). Stub the per-user key
+    // path so `resolveBillingContext` can run without hitting the
+    // network. Integration tests do NOT set this — they exercise the
+    // real proxy.
+    LITELLM_TEST_STUB: '1',
+    LITELLM_SALT_KEY: 'sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
     TEST_BASE_URL,
     NITRO_PORT: String(TEST_PORT),
     PORT: String(TEST_PORT)

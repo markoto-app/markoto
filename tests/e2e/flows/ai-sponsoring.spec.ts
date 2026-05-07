@@ -27,15 +27,13 @@ import { Pool } from 'pg'
 // `(plan='max', plan_valid_until=<future>, stripe_current_period_start=
 // <past>)` is enough to satisfy the runtime resolver.
 //
-// Desktop only: the AI tab content is denser than the mobile bottom-
-// sheet pattern accommodates without scrolling past the toggle.
+// Runs on desktop AND mobile. The workspace AI tab uses the same
+// Reka UTabs surface as Documents / Knowledge / Settings — it reflows
+// under `<sm` like every other tab. Mobile shows the explanation
+// copy stacked above the toggle (instead of a desktop two-column
+// shape), but the asserted server state — `aiEnabled === true`,
+// `billingOwnerId` set — is identical.
 test('Let your team use the AI on your dime', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Workspace AI tab is desktop-only — the toggle + read-only state'
-    + ' description need a wider canvas than mobile gives without'
-    + ' awkward scroll.'
-  )
   test.setTimeout(120_000)
 
   // Login + promote to Max. The promotion is direct DB UPDATE because

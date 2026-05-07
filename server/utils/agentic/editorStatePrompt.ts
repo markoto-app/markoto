@@ -95,12 +95,12 @@ export function validateEditorSelection(raw: unknown): EditorSelectionSnapshot {
  * Wrap the user's prompt with an `<editor_state>` block describing their
  * cursor or selection at submit time. Returned verbatim for `kind: none`
  * — no wrapper, no tokens wasted — so a default-state request is
- * indistinguishable (to Gemini) from the pre-feature behavior.
+ * indistinguishable (to the model) from the pre-feature behavior.
  *
- * The XML-ish tags are a readability convention for the model; Gemini
- * is trained well on structured user messages wrapped this way. Keep
- * the format stable — the system prompt tells the model exactly what
- * keys to look for inside.
+ * The XML-ish tags are a readability convention for the model; modern
+ * LLMs are trained well on structured user messages wrapped this way.
+ * Keep the format stable — the system prompt tells the model exactly
+ * what keys to look for inside.
  */
 export function wrapPromptWithEditorState(
   prompt: string,

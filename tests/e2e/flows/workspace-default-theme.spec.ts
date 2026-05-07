@@ -16,16 +16,13 @@ import { test, expect } from '../fixtures/flow'
 // `theme-deep-dive`). This flow zooms in on the workspace-level
 // inheritance — set once, every new doc starts there.
 //
-// Desktop only: the workspace settings tab + the new-doc dialog
-// before/after both pack densely, and the visual "the chosen card
-// is highlighted in blue" reads more clearly with a wider canvas.
+// Runs on desktop AND mobile. The Settings tab is added to the
+// workspace UTabs unconditionally; the preset grid + the new-doc
+// dialog's theme question both reflow gracefully under `<sm`. Mobile
+// shows one preset card per row instead of three; the highlight on
+// the selected card + the assertion against the persisted
+// defaultTheme are identical to desktop.
 test('Set a default theme for your workspace', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Workspace settings + new-doc dialog before/after pack better'
-    + ' at desktop widths; mobile single-column hides the visual'
-    + ' inheritance link.'
-  )
   test.setTimeout(120_000)
 
   // Login + create a workspace through the API. The story is the

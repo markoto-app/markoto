@@ -20,14 +20,13 @@ import { test, expect } from '../fixtures/flow'
 // diff drawer too but ends on the Restore button. This one ends
 // on the diff itself.
 //
-// Desktop only — the activity drawer reads better with the editor
-// pane visible alongside.
+// Runs on desktop AND mobile. The Activity feed renders identically
+// on both surfaces (right-sidebar tab on desktop, bottom-tab-bar on
+// mobile). Mobile stacks the diff drawer below the activity row
+// rather than alongside the editor; the asserted state — the
+// `[data-activity-id]` rows + the diff drawer's hunk markers — is
+// the same.
 test('See what changed in past edits', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Activity drawer + diff renderer pack densely; mobile single-'
-    + 'column hides the side-by-side editor + diff comparison.'
-  )
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -44,15 +43,32 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
   await editorContent.press('Enter')
   await editorContent.press('Enter')
   await editorContent.pressSequentially('Q3 launch checklist — first pass.')
-  // Hocuspocus debounces ~5s before flushing the activity row, so
-  // a single wait between edits keeps them as one logical edit
-  // event. Use a longer wait + a follow-up edit to force a SECOND
-  // distinct activity row.
-  await page.waitForTimeout(7_000)
+
+  // Wait for the sync-server to flush the FIRST `edit` activity row.
+  // Hocuspocus debounces ~5s before flushing; previously this used
+  // `waitForTimeout(7_000)` which dead-waited the full 7s on every
+  // run. Poll the activity API instead — exits as soon as the row
+  // exists, typically 5-6s but as fast as 1s on cold runs.
+  const docId = page.url().match(/\/d\/([^/?]+)/)?.[1]
+  if (!docId) throw new Error('expected /d/{docId} URL')
+
+  async function activityEditRowCount(): Promise<number> {
+    const res = await page.request.get(`/api/docs/${docId}/activity`)
+    if (!res.ok()) return 0
+    // Endpoint returns the array directly (`listRecentActivity(...)`),
+    // not wrapped in `{ rows: [...] }`.
+    const rows = await res.json() as Array<{ action: string }>
+    return Array.isArray(rows) ? rows.filter(r => r.action === 'edit').length : 0
+  }
+
+  await expect.poll(activityEditRowCount, { timeout: 15_000 }).toBeGreaterThanOrEqual(1)
+
   await editorContent.press('Enter')
   await editorContent.press('Enter')
   await editorContent.pressSequentially('Pinned for the team to review.')
-  await page.waitForTimeout(7_000)
+
+  // Same poll for the SECOND distinct edit row.
+  await expect.poll(activityEditRowCount, { timeout: 15_000 }).toBeGreaterThanOrEqual(2)
 
   await flow.heading('See what changed in past edits', 3)
   await flow.narrate(
@@ -65,13 +81,18 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
   )
 
   // ─── Open the Activity tab ──────────────────────────────────────
+  // Desktop: right-sidebar Activity tab; mobile: bottom-tab-bar entry.
+  const activityTab = editor.isMobile
+    ? editor.page.mobileTabs.activity
+    : editor.page.sidebar.activity
+
   await flow.click(
     'Open the Activity tab',
-    editor.page.sidebar.activity,
+    activityTab,
     {
-      annotations: [
-        { label: 'Activity tab', selector: '[data-testid="sidebar-tab-activity"]', kind: 'arrow' }
-      ],
+      annotations: editor.isMobile
+        ? []
+        : [{ label: 'Activity tab', selector: '[data-testid="sidebar-tab-activity"]', kind: 'arrow' }],
       result: 'The Activity feed opens — one row per edit, comment, restore, theme/title change.',
       after: () => page.locator('[data-activity-id]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }

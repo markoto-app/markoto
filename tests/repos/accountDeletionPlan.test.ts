@@ -127,16 +127,10 @@ describe('planAccountDeletion', () => {
        VALUES ($1, $2, 's1', 'user_prompt', '{}'::jsonb)`,
       [doc.docId, alice.id]
     )
-    await testDb().query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, '2025-01-01T00:00:00Z', 5)`,
-      [`user:${alice.id}`]
-    )
 
     const plan = await planAccountDeletion(alice.id)
     expect(plan!.aiSessionsToDelete).toBe(1)
     expect(plan!.aiSessionMessagesToDelete).toBe(1)
-    expect(plan!.aiUsagePeriodRowsToDelete).toBe(1)
   })
 
   it('preserves promote ordering: existing admin first, then editor, then viewer', async () => {

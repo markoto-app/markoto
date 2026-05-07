@@ -2,9 +2,6 @@ import type { PlanName } from '~~/shared/config/tiers'
 
 export interface UserBilling {
   plan: PlanName
-  // Credits (AI interactions)
-  interactionsRemaining: number
-  interactionsLimit: number
   periodStart: string
   periodEnd: string
   // Structural caps — echoed alongside the counted values so the UI
@@ -93,21 +90,17 @@ export function useBilling() {
     if (!b) return false
     return b.knowledgeBytesUsed >= b.knowledgeBytesPerUserLimit
   })
-  const creditsExhausted = computed(() => {
-    const b = state.value
-    if (!b) return false
-    return b.interactionsRemaining <= 0
-  })
+  // Phase 6: AI-credit exhaustion is now read from /api/ai/credits via
+  // `useAiCredits`. This composable only owns structural caps (workspaces,
+  // knowledge files, knowledge bytes).
 
   return {
     billing: state,
     loading,
     error,
     refresh,
-    // Derived flags
     workspaceCapReached,
     knowledgeFilesCapReached,
-    knowledgeBytesCapReached,
-    creditsExhausted
+    knowledgeBytesCapReached
   }
 }

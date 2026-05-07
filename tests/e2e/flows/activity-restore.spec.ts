@@ -17,11 +17,12 @@ import { test, expect } from '../fixtures/flow'
 // reverting carries the LIVE pre-restore boundary, so clicking
 // restore on THAT row brings the doc back to the state right
 // before the restore. No data is ever lost.
+// Runs on desktop AND mobile. Activity feed renders identically on
+// both surfaces (right-sidebar tab on desktop, bottom-tab-bar entry
+// on mobile); the restore confirm modal is Reka UI and reflows
+// gracefully under `<sm`. Mobile shows the activity rows + the
+// restored doc in a single column instead of side-by-side.
 test('Restore an earlier version', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Activity drawer + restore confirm modal is desktop-only for now; mobile sibling is a separate flow.'
-  )
   test.setTimeout(120_000)
 
   // Login + private doc + cover off so the preview shows the body.
@@ -59,11 +60,18 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     + 'preserve — call this the "good" version.'
   )
 
-  // Wait for the activity row to land server-side. The sync server's
-  // onStoreDocument hook + the 3s reactive debounce in ActivityFeed
-  // mean the row takes ~5-8s to appear in the drawer (sync-server
-  // batches edits before flushing).
-  await page.waitForTimeout(8000)
+  // Hocuspocus's onStoreDocument is debounced 2 s in `sync-server/
+  // src/index.ts`. To get TWO distinct activity rows (one per typing
+  // burst) we have to let the first batch FLUSH before the second
+  // typing starts — otherwise both typings collapse into one row,
+  // and `restoreButtons.first()` ends up rolling back to the welcome
+  // state instead of the desired "good" state. 3 s = 2 s debounce +
+  // 1 s safety. (Tried polling /api/docs/:id/activity for >=1 edit
+  // row and proceeding immediately — that exited at flush time but
+  // a freshly-typed character hit Hocuspocus while it was still
+  // inside the same batch window, so the typings merged. The fixed
+  // wait is the right tool here.)
+  await page.waitForTimeout(3_000)
 
   // Now make the "bad" edit on top.
   await cmContent.press(`${accel}+End`)
@@ -77,10 +85,9 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     + 'and lost that history.'
   )
 
-  // Wait for the second activity row to land too. ActivityFeed
-  // polls every 30s + debounces Y.Doc updates by 3s; 8s is a safe
-  // upper bound for the row to surface.
-  await page.waitForTimeout(8000)
+  // Wait for the second row to flush. Same 3 s ceiling — anything
+  // after this is wasted; the test is now ready to open Activity.
+  await page.waitForTimeout(3_000)
 
   // ─── Open the Activity drawer ──────────────────────────────────
   await flow.heading('Open the Activity drawer', 3)
@@ -90,12 +97,22 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     + '"View change" affordance + a Restore button (history icon).'
   )
 
+  // Desktop: right-sidebar Activity tab; mobile: bottom-tab-bar entry.
+  const activityTab = editor.isMobile
+    ? editor.page.mobileTabs.activity
+    : editor.page.sidebar.activity
+
   await flow.click(
     'Click the Activity tab',
-    editor.page.sidebar.activity,
+    activityTab,
     {
       result: 'The Activity drawer opens — your two edits sit at the top of the feed.',
-      after: () => page.getByText(/edit/i).first().waitFor({ state: 'visible', timeout: 10_000 })
+      // Wait on a real activity row attribute, not `getByText(/edit/i)`.
+      // The bare regex matches the (hidden-on-mobile) menubar Edit
+      // button at `data-testid="menubar-edit"`, which exists in DOM
+      // under `<sm` but is `hidden sm:block`-clipped — Playwright's
+      // visible-state polling stalls forever on it.
+      after: () => page.locator('[data-activity-id]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }
   )
 
@@ -131,21 +148,52 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   )
 
   // ─── Confirm + verify ──────────────────────────────────────────
-  await flow.click(
-    'Click Restore in the confirm modal',
-    page.locator('[data-testid="restore-confirm"]'),
-    {
-      hero: true,
-      result: 'The doc snaps back to the "good" version — the destructive '
-        + 'edit is gone, your earlier sentence is intact.',
-      after: async () => {
-        // The restore endpoint runs a Y.js transaction that replaces
-        // ytext + commits. Wait for the editor body to NO LONGER
-        // contain the bad edit's distinctive text.
+  // On mobile the Activity bottom-sheet stays open while the
+  // restore confirm modal renders above it; the sheet's
+  // `mk-sheet-host` (aria-hidden) intercepts pointer events on
+  // the modal's button. Same workaround as cover-page-editor —
+  // dispatch the full pointerdown→pointerup→click sequence so
+  // Reka's pointer-capture chain fires and the modal commits.
+  if (editor.isMobile) {
+    await flow.step(
+      'Click Restore in the confirm modal',
+      async () => {
+        await page.locator('[data-testid="restore-confirm"]').evaluate((el: HTMLElement) => {
+          const fire = (type: string) => el.dispatchEvent(new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            pointerType: 'mouse',
+            isPrimary: true
+          }))
+          fire('pointerdown')
+          fire('pointerup')
+          el.click()
+        })
         await expect(cmContent).not.toContainText(/accidental destructive edit/i, { timeout: 10_000 })
+      },
+      {
+        hero: true,
+        result: 'The doc snaps back to the "good" version — the destructive '
+          + 'edit is gone, your earlier sentence is intact.'
       }
-    }
-  )
+    )
+  } else {
+    await flow.click(
+      'Click Restore in the confirm modal',
+      page.locator('[data-testid="restore-confirm"]'),
+      {
+        hero: true,
+        result: 'The doc snaps back to the "good" version — the destructive '
+          + 'edit is gone, your earlier sentence is intact.',
+        after: async () => {
+          // The restore endpoint runs a Y.js transaction that replaces
+          // ytext + commits. Wait for the editor body to NO LONGER
+          // contain the bad edit's distinctive text.
+          await expect(cmContent).not.toContainText(/accidental destructive edit/i, { timeout: 10_000 })
+        }
+      }
+    )
+  }
 
   // ASSERTION: the doc is in the "good" state — has the kept text,
   // has lost the bad text. Y.js convergence is the load-bearing

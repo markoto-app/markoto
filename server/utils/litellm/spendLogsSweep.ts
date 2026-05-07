@@ -1,0 +1,97 @@
+import * as Sentry from '@sentry/nuxt'
+import { Pool } from 'pg'
+
+// LiteLLM `LiteLLM_SpendLogs` retention sweeper. Phase 5 risk-register
+// item: every billable AI call writes a row, so the table grows
+// linearly with traffic. /spend/tags aggregation reads it on every
+// admin-dashboard refresh, so unbounded growth eventually impacts
+// dashboard responsiveness.
+//
+// 90-day retention matches the window we keep `processed_webhook_events`
+// — long enough for forensic queries, short enough that the table
+// stays bounded.
+//
+// Why direct DB access (not the proxy admin API): LiteLLM v1.83.14
+// exposes `/spend/logs` (read), `/spend/logs/v2` (paginated read), and
+// `/global/spend/reset` (resets balances but EXPLICITLY preserves the
+// spend log rows). There's no admin-API endpoint that deletes rows.
+// We connect to the proxy's own Postgres database (the `litellm` DB
+// on the same instance as the app DB) and DELETE directly. The proxy
+// has no write coordination on this table beyond its own connection
+// pool, so a sweep window deletion is safe.
+//
+// Connection: a dedicated pool on the litellm DB. Re-uses the app's
+// POSTGRES_HOST/PORT/USER/PASSWORD env vars (same Postgres instance,
+// different DB name). Falls back to NUXT_LITELLM_DB_URL if set, for
+// the rare deployment where LiteLLM has its own Postgres.
+//
+// Failure-tolerant: a hiccup just leaves stale rows around for one
+// more cycle. The sweep doesn't gate any user-facing behaviour.
+
+const RETENTION_DAYS = 90
+const TABLE_NAME = '"LiteLLM_SpendLogs"' // PascalCase + quoted (Prisma convention)
+const TIMESTAMP_COL = '"startTime"'
+
+let cachedPool: Pool | null = null
+
+function buildLitellmDbUrl(): string {
+  if (process.env.NUXT_LITELLM_DB_URL) return process.env.NUXT_LITELLM_DB_URL
+  // Re-use the app's Postgres connection details, swap database name to
+  // `litellm` (the proxy's own DB, created by `litellm-db-init` in
+  // docker-compose.base.yml). The integration-test stack uses
+  // `litellm_test` — `NUXT_LITELLM_DB_URL` overrides the swap when set.
+  const user = process.env.POSTGRES_USER ?? 'ypad'
+  const password = process.env.POSTGRES_PASSWORD ?? ''
+  const host = process.env.POSTGRES_HOST ?? 'localhost'
+  const port = process.env.POSTGRES_PORT ?? '5432'
+  const db = process.env.NUXT_LITELLM_DB_NAME ?? 'litellm'
+  return `postgres://${user}:${encodeURIComponent(password)}@${host}:${port}/${db}`
+}
+
+function pool(): Pool {
+  if (cachedPool) return cachedPool
+  cachedPool = new Pool({
+    connectionString: buildLitellmDbUrl(),
+    // Single-connection pool — the sweep is one query per day.
+    max: 1,
+    // Tighter timeouts than the app pool: we'd rather fail fast and
+    // retry next cycle than hold a connection while the proxy DB is
+    // sluggish.
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 1000
+  })
+  return cachedPool
+}
+
+/** Test-only: drop the cached pool so a fresh connection is made next call. */
+export function _resetSpendLogsSweepPool(): void {
+  if (cachedPool) {
+    void cachedPool.end()
+    cachedPool = null
+  }
+}
+
+export async function runSpendLogsSweep(): Promise<{ deleted: number } | null> {
+  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000)
+  const cutoffIso = cutoff.toISOString()
+
+  let result: { deleted: number }
+  try {
+    const r = await pool().query<{ count: string }>(
+      `DELETE FROM ${TABLE_NAME} WHERE ${TIMESTAMP_COL} < $1`,
+      [cutoffIso]
+    )
+    result = { deleted: r.rowCount ?? 0 }
+  } catch (e) {
+    const msg = `[spend-logs-sweep] DELETE failed: ${e instanceof Error ? e.message : e}`
+    console.warn(msg)
+    Sentry.captureMessage(msg, {
+      level: 'warning',
+      tags: { component: 'spend-logs-sweep', event: 'delete_failed' }
+    })
+    return null
+  }
+
+  console.log(`[spend-logs-sweep] deleted ${result.deleted} rows older than ${cutoffIso.slice(0, 10)}`)
+  return result
+}

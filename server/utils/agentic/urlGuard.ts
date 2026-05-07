@@ -11,19 +11,21 @@
 //   - In-cluster service banners (Postgres, Valkey, Hocuspocus, the
 //     Nuxt app's own internal endpoints) reachable only via the
 //     compose / k8s service network.
-//   - `file://`, `gopher://`, `dict://`, `ftp://` — schemes Gemini's
-//     URL fetcher might dereference depending on backend.
+//   - `file://`, `gopher://`, `dict://`, `ftp://` — schemes the
+//     downstream URL fetcher (Jina Reader, or a future provider) might
+//     dereference depending on backend.
 //   - DNS-resolved hostnames that map to private space — the public-DNS
 //     answer is fine but the resolved IP is not (DNS rebinding-shaped).
 //
 // We can't fully prevent rebinding without piping the resolved IP into
-// the actual fetch (Gemini's urlContext re-resolves server-side). For
-// our threat model — the AI is the requester, not a userland fetch
-// pinned to one IP — single-resolve before forwarding the URL is the
-// practical mitigation. A determined attacker with a controlled DNS
-// authority that returns 1s-TTL records flipping public→private mid-
-// resolution is out of scope here; the secondary defenses are the
-// downstream rate limits + interaction caps + audit log.
+// the actual fetch (Jina Reader re-resolves server-side, just as the
+// pre-Phase-5 Gemini `urlContext` did). For our threat model — the AI
+// is the requester, not a userland fetch pinned to one IP — single-
+// resolve before forwarding the URL is the practical mitigation. A
+// determined attacker with a controlled DNS authority that returns
+// 1s-TTL records flipping public→private mid-resolution is out of
+// scope here; the secondary defenses are the downstream rate limits +
+// interaction caps + audit log.
 
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
@@ -144,7 +146,7 @@ export async function assertSafeUrl(rawUrl: string): Promise<void> {
     throw new Error('URL refused: empty URL.')
   }
 
-  // Add an https:// scheme if the AI passed a bare hostname — mirrors
+  // Add an https:// scheme if the model passed a bare hostname — mirrors
   // the existing scheme-prepend in `fetchUrl`. Without this, `new URL()`
   // throws on bare hostnames and we'd reject benign inputs.
   const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)

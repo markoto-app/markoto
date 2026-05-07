@@ -4,10 +4,11 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 import { TIERS } from '../../../shared/config/tiers'
 
-// GET /api/user/billing — session-level plan summary for the topbar /
-// AI prompt bar. Workspace-scoped (+) attribution is NOT surfaced here
-// (see prompt.post.ts where the resolver runs per-request with a
-// workspace context).
+// GET /api/user/billing — session-level plan summary for the topbar +
+// pre-disabling new-workspace / knowledge-upload affordances. Phase 6
+// moved AI quota to LiteLLM virtual keys, so this endpoint no longer
+// surfaces interactions/points — that's `/api/ai/credits`. The shape
+// here is plan + period + structural caps (workspaces / knowledge).
 
 describe('GET /api/user/billing', () => {
   beforeEach(async () => {
@@ -26,13 +27,15 @@ describe('GET /api/user/billing', () => {
     expect(res.status).toBe(200)
     const body = await res.json() as {
       plan: string
-      interactionsRemaining: number
-      interactionsLimit: number
+      workspacesOwnedLimit: number
+      knowledgeFilesLimit: number
+      knowledgeBytesPerUserLimit: number
       periodStart: string
     }
     expect(body.plan).toBe('free')
-    expect(body.interactionsLimit).toBe(TIERS.free.interactionsPerMonth)
-    expect(body.interactionsRemaining).toBe(TIERS.free.interactionsPerMonth)
+    expect(body.workspacesOwnedLimit).toBe(TIERS.free.workspacesOwned)
+    expect(body.knowledgeFilesLimit).toBe(TIERS.free.knowledgeFiles)
+    expect(body.knowledgeBytesPerUserLimit).toBe(TIERS.free.knowledgeBytesPerUser)
     // ISO string on the first of some month at midnight UTC.
     expect(body.periodStart).toMatch(/^\d{4}-\d{2}-01T00:00:00\.000Z$/)
   })
@@ -48,29 +51,9 @@ describe('GET /api/user/billing', () => {
     const client = await loggedInClient(u.id)
     const res = await client.get('/api/user/billing')
     expect(res.status).toBe(200)
-    const body = await res.json() as { plan: string, interactionsLimit: number }
+    const body = await res.json() as { plan: string, workspacesOwnedLimit: number }
     expect(body.plan).toBe('max')
-    expect(body.interactionsLimit).toBe(TIERS.max.interactionsPerMonth)
-  })
-
-  it('subtracts recorded usage from the returned remaining', async () => {
-    const u = await createUser()
-    const db = testDb()
-    // Seed this-month usage for the user attribution key.
-    const periodStart = new Date(Date.UTC(
-      new Date().getUTCFullYear(),
-      new Date().getUTCMonth(),
-      1, 0, 0, 0
-    ))
-    await db.query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, $2, $3)`,
-      [`user:${u.id}`, periodStart, 17]
-    )
-    const client = await loggedInClient(u.id)
-    const res = await client.get('/api/user/billing')
-    const body = await res.json() as { interactionsRemaining: number }
-    expect(body.interactionsRemaining).toBe(TIERS.free.interactionsPerMonth - 17)
+    expect(body.workspacesOwnedLimit).toBe(TIERS.max.workspacesOwned)
   })
 
   it('reports a lapsed paid plan as free (defensive downgrade)', async () => {
@@ -86,8 +69,8 @@ describe('GET /api/user/billing', () => {
     )
     const client = await loggedInClient(u.id)
     const res = await client.get('/api/user/billing')
-    const body = await res.json() as { plan: string, interactionsLimit: number }
+    const body = await res.json() as { plan: string, workspacesOwnedLimit: number }
     expect(body.plan).toBe('free')
-    expect(body.interactionsLimit).toBe(TIERS.free.interactionsPerMonth)
+    expect(body.workspacesOwnedLimit).toBe(TIERS.free.workspacesOwned)
   })
 })

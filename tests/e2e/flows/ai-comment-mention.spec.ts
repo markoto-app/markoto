@@ -1,12 +1,12 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 
 // One retry at spec level. The full flow runs FOUR times (en-light/dark
-// × desktop/mobile) in suite order; by the 4th sequential live-Gemini
+// × desktop/mobile) in suite order; by the 4th sequential live-Mistral
 // comment-trigger call the model occasionally hits its agentic
 // MAX_TURNS without producing a `reply_to_comment` (the trigger DOES
 // fire and the AI session DOES start — verified by the trigger-response
 // probe — but the loop terminates without the closing reply). One
-// retry covers the Gemini variance without hiding structural failures.
+// retry covers the model variance without hiding structural failures.
 // CI already runs with retries=2; this matches local behaviour for
 // just this live-AI spec.
 test.describe.configure({ retries: 1 })
@@ -20,8 +20,8 @@ test.describe.configure({ retries: 1 })
 // passage itself. The AI joins the thread, can read/edit the
 // anchored span, and posts a reply when it's done.
 //
-// This flow runs against the LIVE Gemini API. NUXT_GOOGLE_GEMINI_API_KEY
-// must be set in the host shell.
+// This flow runs against live Mistral via LiteLLM. The proxy needs
+// MISTRAL_API_KEY in its container env (forwarded by flows-ephemeral.ts).
 //
 // Coverage: this is also the canonical e2e for the @markoto-mention
 // trigger — typeahead → token → comment post → /trigger-ai → AI
@@ -31,12 +31,9 @@ test.describe.configure({ retries: 1 })
 // rename.)
 
 test('Summon AI from a comment', async ({ page, flow, editor }) => {
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows — set it in the host shell before `bun run flows:test`.'
-  )
+  requireLiveAi()
   // Mobile takes longer than desktop because the bottom-sheet
-  // comments panel + the smaller viewport mean Gemini's view_document
+  // comments panel + the smaller viewport mean the AI's view_document
   // returns a slightly different scroll context that nudges its
   // tool-use cadence. Bump from 6 min to 10 min on all variants;
   // the live API call dominates wall-clock time anyway.
@@ -229,7 +226,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   // The trigger-flavour system prompt mandates a closing
   // `reply_to_comment` so we expect AT LEAST 2 messages in the
   // thread (the user's @markoto comment + the AI's reply) once the
-  // loop finishes. Use a polling expect because Gemini's wallclock
+  // loop finishes. Use a polling expect because the LLM's wallclock
   // varies run-to-run.
   await expect(async () => {
     const messageCount = await thread.locator('[data-testid="comment-item"]').count()

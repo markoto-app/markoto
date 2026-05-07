@@ -4,7 +4,7 @@ import { searchKnowledge } from '../../server/repos/knowledge'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
 
 // Hybrid-search fusion test. We stub embeddings directly at the SQL
-// layer (so we're not coupled to the Gemini API) and check that:
+// layer (so we're not coupled to the embeddings provider) and check that:
 //   - pure lexical matches surface via the BM25 path
 //   - pure semantic matches surface via the vector path
 //   - chunks matching both merge (not duplicate)

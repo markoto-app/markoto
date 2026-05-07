@@ -12,15 +12,17 @@ import { test, expect } from '../fixtures/flow'
 // they answer "yes, this is a real publishing tool, not a notes
 // app".
 //
-// Desktop-only: every action goes through the Insert menubar item,
-// hidden on mobile. The mobile commands drawer surfaces a subset
-// of these inserts but not the same affordance — that flow would
-// be a different shape.
+// Runs on desktop AND mobile. Same client-side insert helpers
+// (`insertBlock`, `insertAlert`, `insertMath`, `insertDiagram`);
+// entry point differs:
+//   - Desktop: menubar Insert → submenu pick.
+//   - Mobile: Editor tab on the bottom-tab-bar → Insert grid in the
+//     `EditorCommandsPanel` drawer.
+// (Until Phase 6.30 there was a `rich-content-mobile.spec.ts`
+//  sibling carrying mobile-specific narration. Deleted as part of the
+//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
+//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
 test('Rich content', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Rich-content insert menu is desktop-only — the menubar is hidden on `<sm`.'
-  )
   test.setTimeout(120_000)
 
   // Log in so we can disable the cover page via PUT /api/docs/:id/meta
@@ -62,11 +64,29 @@ test('Rich content', async ({ page, flow, editor }) => {
     + 'Everything renders in the live preview and survives PDF export.'
   )
 
-  // Helper: open Insert menu, hover a submenu trigger if needed,
-  // click the leaf item. Each insert function lives behind a
-  // submenu (`Code block` is a leaf, `Alert/Math/Diagram` are
-  // submenu groups), so the helper signature varies per call.
+  // Insert UI shape differs per surface:
+  //   Desktop — menubar Insert → submenu (hover for Alert/Math/Diagram).
+  //   Mobile — Editor tab on the bottom-tab-bar → drawer Insert grid;
+  //            Alert/Diagram open a kind picker inside the drawer;
+  //            drawer auto-closes after each insert.
   const insertMenuTrigger = page.locator('nav[aria-label="Menu bar"] > button').nth(3) // Insert is 4th
+  const cmContentLocator = page.locator('.cm-content')
+
+  // Helper: open the Insert surface for a single insert.
+  async function openInsertSurface() {
+    if (editor.isMobile) {
+      await editor.page.mobileTabs.editor.click()
+      await page.locator('[data-testid="ecp-insert-code-block"]').first().waitFor({ state: 'visible', timeout: 5_000 })
+    } else {
+      await insertMenuTrigger.click()
+    }
+  }
+
+  // After mobile insert: drawer closes itself, but make sure
+  // .cm-content has focus before keyboard input lands.
+  async function refocusEditor() {
+    await cmContentLocator.click()
+  }
 
   // ─── A real code block ──────────────────────────────────────────
   await flow.heading('Insert a code block', 3)
@@ -77,30 +97,49 @@ test('Rich content', async ({ page, flow, editor }) => {
     + 'and strings the way readers expect.'
   )
 
-  await flow.click(
-    'Open the Insert menu',
-    insertMenuTrigger,
-    {
-      annotations: [
-        { label: 'insert menu', selector: 'nav[aria-label="Menu bar"] > button:nth-child(4)', kind: 'arrow' }
-      ],
-      result: 'The Insert menu opens — code, alerts, math, diagrams, and more.',
-      after: () => page.getByRole('menuitem', { name: /code block/i }).first().waitFor({ state: 'visible' })
-    }
-  )
+  if (editor.isMobile) {
+    await flow.click(
+      'Tap the Editor tab',
+      editor.page.mobileTabs.editor,
+      {
+        result: 'The Editor drawer slides up — Formatting / Headings / Lists / Insert / File.',
+        after: () => page.locator('[data-testid="ecp-insert-code-block"]').first().waitFor({ state: 'visible' })
+      }
+    )
+    await flow.click(
+      'Tap "Code block"',
+      page.locator('[data-testid="ecp-insert-code-block"]').first(),
+      {
+        result: 'A fenced code block lands at the cursor — drawer closes, editor regains focus.',
+        after: refocusEditor
+      }
+    )
+  } else {
+    await flow.click(
+      'Open the Insert menu',
+      insertMenuTrigger,
+      {
+        annotations: [
+          { label: 'insert menu', selector: 'nav[aria-label="Menu bar"] > button:nth-child(4)', kind: 'arrow' }
+        ],
+        result: 'The Insert menu opens — code, alerts, math, diagrams, and more.',
+        after: () => page.getByRole('menuitem', { name: /code block/i }).first().waitFor({ state: 'visible' })
+      }
+    )
 
-  await flow.click(
-    'Pick "Code block"',
-    page.getByRole('menuitem', { name: /code block/i }).first(),
-    {
-      result: 'A fenced code block lands at the cursor — type a language hint after the opening backticks.',
-      // After the Reka menu closes, focus moves to the menu's trigger
-      // button (the menubar's "Insert"), NOT back to the editor.
-      // Subsequent `page.keyboard.press/type` would land in the
-      // wrong target. Refocus the editor before any keystrokes.
-      after: () => page.locator('.cm-content').click()
-    }
-  )
+    await flow.click(
+      'Pick "Code block"',
+      page.getByRole('menuitem', { name: /code block/i }).first(),
+      {
+        result: 'A fenced code block lands at the cursor — type a language hint after the opening backticks.',
+        // After the Reka menu closes, focus moves to the menu's trigger
+        // button (the menubar's "Insert"), NOT back to the editor.
+        // Subsequent `page.keyboard.press/type` would land in the
+        // wrong target. Refocus the editor before any keystrokes.
+        after: refocusEditor
+      }
+    )
+  }
 
   // Type a language hint + a real Python snippet so the highlight
   // is meaningful (not just monospaced text on a grey background).
@@ -126,33 +165,60 @@ test('Rich content', async ({ page, flow, editor }) => {
   await cmContent.press('Enter')
   await cmContent.press('Enter')
 
-  await flow.click(
-    'Open the Insert menu again',
-    insertMenuTrigger,
-    {
-      result: 'The Insert menu re-opens.',
-      after: () => page.getByRole('menuitem', { name: /^alert$/i }).first().waitFor({ state: 'visible' })
-    }
-  )
+  if (editor.isMobile) {
+    await flow.click(
+      'Tap the Editor tab',
+      editor.page.mobileTabs.editor,
+      {
+        result: 'The Editor drawer slides back up.',
+        after: () => page.locator('[data-testid="ecp-insert-alert"]').first().waitFor({ state: 'visible' })
+      }
+    )
+    await flow.click(
+      'Tap "Alert"',
+      page.locator('[data-testid="ecp-insert-alert"]').first(),
+      {
+        result: 'The flavour grid opens — Note / Tip / Important / Warning / Caution.',
+        after: () => page.locator('[data-testid="ecp-alert-tip"]').first().waitFor({ state: 'visible' })
+      }
+    )
+    await flow.click(
+      'Tap "Tip"',
+      page.locator('[data-testid="ecp-alert-tip"]').first(),
+      {
+        result: 'A Tip alert lands — drawer closes, editor regains focus.',
+        after: refocusEditor
+      }
+    )
+  } else {
+    await flow.click(
+      'Open the Insert menu again',
+      insertMenuTrigger,
+      {
+        result: 'The Insert menu re-opens.',
+        after: () => page.getByRole('menuitem', { name: /^alert$/i }).first().waitFor({ state: 'visible' })
+      }
+    )
 
-  await flow.hover(
-    'Hover "Alert" for the flavour submenu',
-    page.getByRole('menuitem', { name: /^alert$/i }).first(),
-    {
-      annotations: [
-        { label: 'alert flavours', selector: '[role="menuitem"]:has-text("Alert")', kind: 'arrow' }
-      ]
-    }
-  )
+    await flow.hover(
+      'Hover "Alert" for the flavour submenu',
+      page.getByRole('menuitem', { name: /^alert$/i }).first(),
+      {
+        annotations: [
+          { label: 'alert flavours', selector: '[role="menuitem"]:has-text("Alert")', kind: 'arrow' }
+        ]
+      }
+    )
 
-  await flow.click(
-    'Pick "Tip"',
-    page.getByRole('menuitem', { name: /^tip$/i }).first(),
-    {
-      result: 'A Tip alert lands — type the body inside the blockquote.',
-      after: () => cmContent.click()
-    }
-  )
+    await flow.click(
+      'Pick "Tip"',
+      page.getByRole('menuitem', { name: /^tip$/i }).first(),
+      {
+        result: 'A Tip alert lands — type the body inside the blockquote.',
+        after: refocusEditor
+      }
+    )
+  }
 
   await cmContent.pressSequentially('Try Cmd / Ctrl + P to save this doc as a polished PDF.')
 
@@ -168,28 +234,47 @@ test('Rich content', async ({ page, flow, editor }) => {
   await cmContent.press('Enter')
   await cmContent.press('Enter')
 
-  await flow.click(
-    'Open the Insert menu',
-    insertMenuTrigger,
-    {
-      result: 'The Insert menu re-opens.',
-      after: () => page.getByRole('menuitem', { name: /^math$/i }).first().waitFor({ state: 'visible' })
-    }
-  )
+  if (editor.isMobile) {
+    await flow.click(
+      'Tap the Editor tab',
+      editor.page.mobileTabs.editor,
+      {
+        result: 'The Editor drawer slides back up.',
+        after: () => page.locator('[data-testid="ecp-insert-math"]').first().waitFor({ state: 'visible' })
+      }
+    )
+    await flow.click(
+      'Tap "Math"',
+      page.locator('[data-testid="ecp-insert-math"]').first(),
+      {
+        result: 'A block equation placeholder lands — drawer closes, editor regains focus.',
+        after: refocusEditor
+      }
+    )
+  } else {
+    await flow.click(
+      'Open the Insert menu',
+      insertMenuTrigger,
+      {
+        result: 'The Insert menu re-opens.',
+        after: () => page.getByRole('menuitem', { name: /^math$/i }).first().waitFor({ state: 'visible' })
+      }
+    )
 
-  await flow.hover(
-    'Hover "Math" for the inline / block options',
-    page.getByRole('menuitem', { name: /^math$/i }).first()
-  )
+    await flow.hover(
+      'Hover "Math" for the inline / block options',
+      page.getByRole('menuitem', { name: /^math$/i }).first()
+    )
 
-  await flow.click(
-    'Pick "Block equation"',
-    page.getByRole('menuitem', { name: /block equation/i }).first(),
-    {
-      result: 'A block equation placeholder lands — type the LaTeX inside the $$ fence.',
-      after: () => cmContent.click()
-    }
-  )
+    await flow.click(
+      'Pick "Block equation"',
+      page.getByRole('menuitem', { name: /block equation/i }).first(),
+      {
+        result: 'A block equation placeholder lands — type the LaTeX inside the $$ fence.',
+        after: refocusEditor
+      }
+    )
+  }
 
   await cmContent.pressSequentially('\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}')
 
@@ -206,33 +291,66 @@ test('Rich content', async ({ page, flow, editor }) => {
   await cmContent.press('Enter')
   await cmContent.press('Enter')
 
-  await flow.click(
-    'Open the Insert menu',
-    insertMenuTrigger,
-    {
-      result: 'The Insert menu re-opens.',
-      after: () => page.getByRole('menuitem', { name: /^diagram$/i }).first().waitFor({ state: 'visible' })
-    }
-  )
-
-  await flow.hover(
-    'Hover "Diagram" for the kind submenu',
-    page.getByRole('menuitem', { name: /^diagram$/i }).first()
-  )
-
-  await flow.click(
-    'Pick "Pie chart"',
-    page.getByRole('menuitem', { name: /pie chart/i }).first(),
-    {
-      result: 'A working pie-chart Mermaid snippet lands — edit the slices to your data.',
-      after: async () => {
-        // Mermaid loads + renders in the preview iframe. Give paged.js
-        // a beat to repaginate around the new diagram.
-        await page.waitForTimeout(2_000)
-        await editor.page.waitForPreviewPaginated()
+  if (editor.isMobile) {
+    await flow.click(
+      'Tap the Editor tab',
+      editor.page.mobileTabs.editor,
+      {
+        result: 'The Editor drawer slides back up.',
+        after: () => page.locator('[data-testid="ecp-insert-diagram"]').first().waitFor({ state: 'visible' })
       }
-    }
-  )
+    )
+    await flow.click(
+      'Tap "Diagram"',
+      page.locator('[data-testid="ecp-insert-diagram"]').first(),
+      {
+        result: 'The diagram-kind grid opens.',
+        after: () => page.locator('[data-testid="ecp-diagram-pie"]').first().waitFor({ state: 'visible' })
+      }
+    )
+    await flow.click(
+      'Tap "Pie chart"',
+      page.locator('[data-testid="ecp-diagram-pie"]').first(),
+      {
+        result: 'A working pie-chart Mermaid snippet lands — drawer closes, editor regains focus.',
+        after: refocusEditor
+      }
+    )
+    // Mobile is edit-only; no preview iframe to repaginate.
+  } else {
+    await flow.click(
+      'Open the Insert menu',
+      insertMenuTrigger,
+      {
+        result: 'The Insert menu re-opens.',
+        after: () => page.getByRole('menuitem', { name: /^diagram$/i }).first().waitFor({ state: 'visible' })
+      }
+    )
+
+    await flow.hover(
+      'Hover "Diagram" for the kind submenu',
+      page.getByRole('menuitem', { name: /^diagram$/i }).first()
+    )
+
+    await flow.click(
+      'Pick "Pie chart"',
+      page.getByRole('menuitem', { name: /pie chart/i }).first(),
+      {
+        result: 'A working pie-chart Mermaid snippet lands — edit the slices to your data.',
+        after: async () => {
+          // Mermaid loads + renders in the preview iframe. Give paged.js
+          // a beat to repaginate around the new diagram. (Tried polling
+          // for `div.mermaid img` — paged.js's iframe-mount + base64
+          // <img> wrapping makes the rendered node hard to detect from
+          // outside the iframe; the catch-on-timeout pattern just
+          // burned the full polling window. 2 s buffers the debounce
+          // and the mermaid CDN load on cold runs.)
+          await page.waitForTimeout(2_000)
+          await editor.page.waitForPreviewPaginated()
+        }
+      }
+    )
+  }
 
   // ─── See it all rendered ────────────────────────────────────────
   await flow.heading('Live preview shows the render', 3)

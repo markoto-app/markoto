@@ -8,16 +8,16 @@ import { test, expect } from '../fixtures/flow'
 // commits the latest finalized transcript.
 //
 // Pipeline: toolbar mic → `useVoiceDictation` → MediaRecorder + audio
-// worklet → WebSocket `/api/ai/dictate` → Cloud STT
+// worklet → WebSocket `/api/ai/dictate` → Mistral Voxtral Realtime
 // `streamingRecognize` → interim partials render as ghost text at the
 // caret, finals commit to Y.js with origin `dictation:{userId}`.
 //
 // Mock-driven test: the prod test stack runs with TEST_MODE=1 +
-// NUXT_GOOGLE_SPEECH_MOCK=1 (set in scripts/flows-ephemeral.ts). The
-// fake SpeechClient (`server/utils/agentic/dictateSpeechClient.ts`)
-// counts incoming audio chunks and emits canned interim/final
-// responses at fixed thresholds — the real Cloud STT API is never
-// called. The audio chunks come from Chromium's
+// NUXT_GOOGLE_SPEECH_MOCK=1 (set in scripts/flows-ephemeral.ts; env
+// var name carried over from pre-Phase-5 Cloud STT mock). The fake
+// SpeechClient (`server/utils/agentic/dictateSpeechClient.ts`) counts
+// incoming audio chunks and emits canned interim/final responses at
+// fixed thresholds — the real Voxtral Realtime API is never called. The audio chunks come from Chromium's
 // `--use-fake-device-for-media-stream` (synthetic 16 kHz tone),
 // armed in playwright.config.ts. Combined: the test exercises every
 // real layer (mic → worklet → WS → STT abstraction → CM6 ghost text
@@ -95,7 +95,7 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   await flow.heading('The words land in the doc', 3)
   await flow.narrate(
     'The audio worklet captures 128 ms chunks at 16 kHz and posts '
-    + 'them straight to Cloud STT. Interim transcripts appear as '
+    + 'them straight to Mistral Voxtral Realtime. Interim transcripts appear as '
     + 'ghost text at the caret; once the recognizer is confident, '
     + 'they commit into the Y.js document with a `dictation:{userId}` '
     + 'origin so undo / collaborator awareness recognises them.'
@@ -150,8 +150,9 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
 
   // Forward route: voice in is the entry-level "let me write
   // hands-free" feature; voice INTO the AI prompt bar is the next
-  // step (different surface, same Cloud STT key but the one-shot
-  // /api/ai/transcribe path instead of the streaming one).
+  // step (different surface, same Mistral upstream but the one-shot
+  // /api/ai/transcribe path → Voxtral Mini Transcribe instead of the
+  // streaming Voxtral Realtime one).
   flow.next({
     slug: 'write-with-ai',
     why: 'Now ask the AI to extend what you dictated — voice in, AI out'

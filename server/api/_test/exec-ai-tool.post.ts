@@ -1,6 +1,6 @@
 // Test-only endpoint that drives `executeFunctionByName` through the
 // FULL server stack — auth middleware, repo/sync access via real
-// Postgres + Hocuspocus — without the agentic loop or Gemini.
+// Postgres + Hocuspocus — without the agentic loop or LLM upstream.
 //
 // Mirrors the design of `_test/login.post.ts`: 404 in any environment
 // where TEST_MODE !== '1', so an accidentally-set env var on a prod
@@ -20,13 +20,12 @@
 //      can assert on the structured shape.
 //
 // Anything that requires the real agentic loop (multi-turn tool
-// chains, Gemini orchestration, streaming status) lives in a
+// chains, Mistral orchestration, streaming status) lives in a
 // dedicated harness — out of scope here.
 
 import * as Y from 'yjs'
 import { executeFunctionByName } from '../../utils/aiToolAdapter'
 import { getDoc } from '../../repos/documents'
-import { currentPeriodStart } from '../../utils/billing'
 import type { AiSession, AiStatusPhase } from '../../utils/aiClient'
 
 export default defineEventHandler(async (event) => {
@@ -59,6 +58,12 @@ export default defineEventHandler(async (event) => {
   // The session's ydoc/ymeta is only read by tools that mutate the
   // CURRENT doc (set_title, update_theme), which aren't exercised by
   // these tests.
+  // Synthetic virtual key — integration tests don't bring up LiteLLM
+  // (the test stack pins NUXT_LITELLM_URL to an unreachable port). Tools
+  // exercised here either don't touch the proxy or are mocked at the
+  // upstream level. The field still has to exist to satisfy `AiSession`.
+  const virtualKey = 'sk-fake-test-virtual-key'
+
   const ydoc = new Y.Doc()
   const aiSession: AiSession = {
     ydoc,
@@ -72,9 +77,12 @@ export default defineEventHandler(async (event) => {
     workspaceId: doc.workspaceId,
     attributedTo: `user:${session.user.id}`,
     plan: 'free',
-    // Production-realistic period anchor so chargeInteractions writes
-    // to the same `(attributed_to, period_start)` row tests assert on.
-    periodStart: currentPeriodStart(),
+    periodStart: new Date(Date.UTC(
+      new Date().getUTCFullYear(),
+      new Date().getUTCMonth(),
+      1, 0, 0, 0
+    )),
+    virtualKey,
     updateStatus: (_phase: AiStatusPhase, _message?: string) => { /* swallow */ },
     destroy: async () => { /* */ }
   } as AiSession

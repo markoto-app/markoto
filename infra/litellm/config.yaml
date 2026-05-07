@@ -1,0 +1,139 @@
+# LiteLLM proxy config — production shape.
+#
+# Phase 1A only needs Jina embeddings. Mistral chat models, Voxtral, and
+# BFL FLUX entries are commented-stubs ready for Phases 4 / 5 / 3 — the
+# custom_provider_map is loaded eagerly so when those models go live it's
+# a config-only change, not a custom-handler import surprise.
+#
+# Provider keys come from the container environment (compose passes them
+# in from .env). Master + salt key authenticate admin / virtual-key APIs
+# and encrypt at-rest verification tokens respectively.
+
+model_list:
+  # ---- Embeddings: jina-embeddings-v5-text-nano (custom provider) ----
+  # Phase 1A workhorse. Used by server/utils/embeddings.ts behind the
+  # NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER=jina feature flag.
+  #
+  # Why -nano: native 768-d output (perfect fit for the existing
+  # pgvector(768) HNSW index — zero DDL), smallest model in Jina's v5
+  # family = fastest + cheapest. For writing-doc retrieval (no math,
+  # no code, no science) the quality vs -text-small (1024-d native) is
+  # negligible — our hybrid vector+BM25 RRF retrieval absorbs the diff.
+  # If quality ever becomes the bottleneck, swapping to -text-small via
+  # MRL truncation to 768 is a config-only change.
+  #
+  # Why custom provider (jina-embed/) instead of native (jina_ai/):
+  # LiteLLM's native Jina path computes spend as `input_cost_per_token ×
+  # prompt_tokens` but Jina populates `total_tokens` only — result is
+  # $0.00 on every call. The custom provider in custom_handlers.py
+  # reshapes usage so spend tracks correctly.
+  - model_name: jina-embeddings-v5-text-nano
+    litellm_params:
+      model: jina-embed/jina-embeddings-v5-text-nano
+      api_key: os.environ/JINA_AI_API_KEY
+    model_info:
+      mode: embedding
+      input_cost_per_token: 0.00000002  # ~$0.02/M tokens
+
+  # Reranker intentionally NOT registered. Hybrid vector + BM25 RRF
+  # gives sufficient retrieval quality for writing-doc workloads; adding
+  # a reranker stage would burn 100-200ms latency + extra Jina-token cost
+  # per knowledge search without a justified quality win. Revisit only
+  # if recall becomes the bottleneck under real usage.
+
+  # ---- Phase 2: Voxtral Mini Transcribe 2 (custom provider) ----
+  # Wraps Mistral's /v1/audio/transcriptions endpoint as a fake chat-
+  # completion so LiteLLM's spend tracker bills correctly. The native
+  # transcription path ignores Mistral's `usage.prompt_audio_seconds`
+  # (it expects OpenAI Whisper's `duration` field). custom_handlers.py
+  # reshapes the response — transcript in choices[].message.content,
+  # duration_seconds in usage.completion_tokens.
+  #
+  # Cost math: $0.003/min = $0.00005/sec. With completion_tokens =
+  # duration_seconds, output_cost_per_token = 0.00005 produces the
+  # exact per-second price.
+  #
+  # Caller wraps the audio in a chat message: see custom_handlers.py
+  # for the convention. server/api/ai/transcribe.post.ts is the only
+  # consumer.
+  - model_name: voxtral-mini-transcribe
+    litellm_params:
+      model: mistral-transcribe/voxtral-mini-2507
+      api_key: os.environ/MISTRAL_API_KEY
+    model_info:
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.00005   # × seconds reported = $0.003/min
+
+  # ---- Phase 4: Mistral Small 4.0 (text agentic loop + vision) ----
+  # Native mistral/ provider — no custom wrapper needed; Mistral's
+  # chat-completions is OpenAI-compatible end-to-end and LiteLLM's cost
+  # calc maps to Mistral's `prompt_tokens` / `completion_tokens` natively.
+  # Verified in Phase 0 spike: streaming tool-calling, structured output
+  # (json_schema strict:true), vision (described a real JPEG), and a
+  # 2-turn agentic loop all work cleanly.
+  - model_name: mistral-small-2603
+    litellm_params:
+      model: mistral/mistral-small-2603
+      api_key: os.environ/MISTRAL_API_KEY
+    model_info:
+      input_cost_per_token: 0.00000015   # $0.15 / M tokens
+      output_cost_per_token: 0.00000060  # $0.60 / M tokens
+      max_tokens: 256000
+
+  # ---- Phase 3: BFL FLUX.2 [pro] image generation (custom provider) ----
+  # Wraps BFL's submission+poll API. EU-pinned to api.eu2.bfl.ai (no
+  # round-robin to api.us2.bfl.ai). Exposed via chat-completions because
+  # OSS LiteLLM's /v1/images/generations cost path doesn't fire the
+  # spend-logger callback for custom providers (verified live in Phase 0).
+  #
+  # Pricing: $0.030 per 1024² image (3 BFL credits × $0.01/credit). The
+  # provider reports completion_tokens = round(cost_usd / 0.0001) = 300
+  # for a 1024² image; output_cost_per_token: 0.0001 × 300 = $0.030.
+  - model_name: flux-2-pro
+    litellm_params:
+      model: bfl-flux/flux-2-pro
+      api_key: os.environ/BFL_API_KEY
+    model_info:
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0001        # × completion_tokens (= cost_usd / 0.0001)
+
+  # ---- Phase 5: voice-tick metering for live dictation ----
+  # Billing-only stub via custom_handlers.py:VoxtralTickProvider. Hit
+  # once per 60s of audio in server/routes/api/ai/dictate.ts. Reports 60
+  # completion_tokens × output_cost_per_token: 0.0001 = $0.006/tick =
+  # 1 minute of Voxtral Realtime audio. The actual transcription WS
+  # stays direct from our backend (Mistral SDK) — this stub exists only
+  # so spend appears in the same per-key budget as chat / image / etc.
+  # Verified end-to-end in Phase 0 spike (8 ticks billed correctly,
+  # 9th hit budget_exceeded at $0.054).
+  - model_name: voxtral-realtime-tick
+    litellm_params:
+      model: voxtral-tick/voxtral-realtime-tick
+    model_info:
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0001        # × 60 reported tokens = $0.006/tick
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+  json_logs: true
+  # Custom provider map kept loaded eagerly. Phase 1A doesn't use either
+  # custom provider (no model_list entries reference them), but the import
+  # path is exercised on every boot so a regression in custom_handlers.py
+  # surfaces immediately rather than at Phase 3 / 5 cutover.
+  custom_provider_map:
+    - {"provider": "jina-embed", "custom_handler": "custom_handlers.jina_embeddings_provider"}
+    - {"provider": "mistral-transcribe", "custom_handler": "custom_handlers.mistral_transcribe_provider"}
+    - {"provider": "bfl-flux", "custom_handler": "custom_handlers.bfl_flux_provider"}
+    - {"provider": "voxtral-tick", "custom_handler": "custom_handlers.voxtral_tick_provider"}
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  # Admin UI on for now (operator convenience). Disable via env when we
+  # move to a fully config-driven prod deploy.
+  disable_admin_ui: false
+
+router_settings:
+  num_retries: 1
+  timeout: 60

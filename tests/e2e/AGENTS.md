@@ -183,9 +183,9 @@ All carry hero strips (the most decisive outcome rendered above the slideshow), 
 
 Three Tier-2 flows shipped, demonstrating features that score high on "users would love but never discover on their own":
 
-- **`voice-dictate`** (slug: `speak-instead-of-typing`) — toolbar mic → live dictation streams text into the editor as it's spoken. Pipeline: `MediaRecorder` + audio worklet → WebSocket `/api/ai/dictate` → Cloud STT `streamingRecognize` → CM6 ghost-text widget → Y.js commit with `dictation:{userId}` origin. Test uses the canned-fake STT mock (`NUXT_GOOGLE_SPEECH_MOCK=1`) plus Chromium's `--use-fake-device-for-media-stream` so the synthetic 16 kHz tone produces the chunk count the mock counts to fire its predetermined "how are you" final transcript. Works on desktop and mobile.
-- **`document-context`** (slug: `tell-the-ai-who-you-re-writing-for`) — open the Document tab → set Description + Audience=Marketing + Language=Deutsch → ask the AI for an intro. The AI returns marketing-tone Deutsch without the prompt mentioning audience or language. Live Gemini call. Desktop only — the form scrolls below the fold on mobile.
-- **`knowledge-rag`** (slug: `knowledge-grounded-ai`) — workspace setup → upload Q3 postmortem HTML → wait for ready → create new doc in workspace → ask the AI a question only the file knows the answer to. The AI calls `search_knowledge`, gets back the relevant chunks via hybrid RRF retrieval (cosine + BM25), folds them into its reply. Live Gemini call. Desktop only (workspace landing page packs the layout awkwardly on `<sm`).
+- **`voice-dictate`** (slug: `speak-instead-of-typing`) — toolbar mic → live dictation streams text into the editor as it's spoken. Pipeline: `MediaRecorder` + audio worklet → WebSocket `/api/ai/dictate` → Mistral Voxtral Realtime → CM6 ghost-text widget → Y.js commit with `dictation:{userId}` origin. Test uses the canned-fake STT mock (`NUXT_GOOGLE_SPEECH_MOCK=1` — env-name retained for compat) plus Chromium's `--use-fake-device-for-media-stream` so the synthetic 16 kHz tone produces the chunk count the mock counts to fire its predetermined "how are you" final transcript. Works on desktop and mobile.
+- **`document-context`** (slug: `tell-the-ai-who-you-re-writing-for`) — open the Document tab → set Description + Audience=Marketing + Language=Deutsch → ask the AI for an intro. The AI returns marketing-tone Deutsch without the prompt mentioning audience or language. Live Mistral call via LiteLLM. Works on desktop and mobile (Phase 6.5+).
+- **`knowledge-rag`** (slug: `knowledge-grounded-ai`) — workspace setup → upload Q3 postmortem HTML → wait for ready → create new doc in workspace → ask the AI a question only the file knows the answer to. The AI calls `search_knowledge`, gets back the relevant chunks via hybrid RRF retrieval (cosine + BM25), folds them into its reply. Live Mistral + Jina call via LiteLLM. Works on desktop and mobile (Phase 6.5+).
 - **`delete-account-with-consequences`** (Workstream B) — profile page → click "Delete account" → consequences modal enumerates owned-doc deletion + comment anonymisation + workspace fates (sole-member cascade vs. promote-admin) → type-to-confirm email → grace banner appears → cancel button restores state. 8 variants (light/dark × desktop/mobile × single-member-workspace/multi-member-workspace). The flow asserts the consequence list MATCHES the planned fates, not just "the modal opened" — the consequences modal is the load-bearing UI for GDPR Art.17 informed consent and a stale text would be a real legal failure.
 - **`data-export`** (Workstream B) — profile → "Your data" section → request export → wait for the worker to flip the row to `ready` → download link appears with 7-day-expiry copy → second request shows in history above the first. 8 variants. The flow does NOT crack the ZIP open (that'd duplicate `tests/integration/dataExport.test.ts`); it asserts the user-facing surface only.
 
@@ -197,6 +197,79 @@ Future tier-1 work:
 - **Doc-content i18n pattern** (currently captions are en-only).
 - **`/docs/_internal/flows` gallery.**
 - **Dedicated `MobileEditorPage`** so the desktop-only skips on `polished-pdf` / `import-existing` / `rich-content` / `pick-a-theme` can be replaced with mobile-shaped equivalents (Editor drawer + bottom-sheet variants).
+
+## Mobile flow patterns
+
+Phase 6.5–6.30 un-skipped 19 flows on mobile. The patterns below are the toolbox; use them when authoring or fixing a mobile spec.
+
+### One spec per feature, branch by viewport
+
+There is **one canonical spec per flow**, no `*-mobile.spec.ts` siblings. The 6 redundant mobile sibling specs (`polished-pdf-mobile`, `import-existing-mobile`, `knowledge-rag-mobile`, `pick-a-theme-mobile`, `document-context-mobile`, `rich-content-mobile`) were deleted. Branch on `editor.isMobile` inside the canonical spec. **`Flow.vue` auto-routes the rendered manifest variant by viewport** via `useMediaQuery('(max-width: 639px)')` + `useColorMode().value`, so docs pages don't need a separate `## On mobile` markdown section. Those sections were removed from `content/docs/**.md`; if the variant exists in `public/flows/<slug>/<locale>/<variant>/`, the embedded `<Flow>` will pick it up.
+
+### Mobile entry points
+
+- **Tab bar instead of right-sidebar tabs.** Desktop opens `editor.page.sidebar.{document, comments, activity, theme, knowledge}`; mobile opens `editor.page.mobileTabs.{...}`. Branch via `editor.isMobile`.
+- **Hamburger menu instead of menubar.** Desktop's `nav[aria-label="Menu bar"] > button:has-text("File")` becomes `page.getByRole('button', { name: /^menu$/i }).first()` on mobile. The hamburger's `mobileMenuItems` in `EditorLayout.vue` mirrors the desktop File menu (New / Import / Export / Print / Save as PDF / Duplicate / Move / Delete) — the action is the same; only the entry point differs.
+
+### Bottom-sheet portal interception
+
+`mk-sheet-host` (the bottom-sheet container) intercepts pointer events on portaled popovers + modals rendered inside its stacking context. Reka USelect popovers + Reka Dialog modals refuse standard Playwright `click()` because the sheet's `aria-hidden="true"` overlay routes pointer events even when accessibility says it's hidden. **This is not a product bug** — real touch dispatches the same event chain; Playwright's coordinate-based clicks land at the wrong stacking layer. Three workarounds, in increasing aggressiveness:
+
+1. **`click({ force: true })`** — works for many cases. Use first (`audience` / `language` USelect in `document-context`).
+2. **DOM-level `el.click()` via `evaluate`** — bypasses coordinate routing entirely.
+3. **Synthetic pointer-event sequence** for Reka primitives that listen on `pointerdown` / `pointerup`, not `click`:
+   ```ts
+   await el.evaluate((node) => {
+     const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
+     node.dispatchEvent(new PointerEvent('pointerdown', opts))
+     node.dispatchEvent(new PointerEvent('pointerup', opts))
+     node.click()
+   })
+   ```
+   Right tool for cover-page-editor's layout USelect, activity-restore's restore-confirm modal, and similar Reka cases.
+
+### Sheet vs. tab-bar interaction
+
+The bottom sheet blocks the mobile tab bar — tapping a different tab while a sheet is open is intercepted. **Close the sheet first**: `await editor.page.locator('.mk-sheet-host button[aria-label="Close"]').click()` then `await editor.page.locator('.mk-sheet-host').waitFor({ state: 'detached' })`, OR press Escape (`BottomSheet.vue` listens on `document` keydown). Pattern used in `comment-context-expand`, `document-context`.
+
+### Mobile is edit-only under `<sm`
+
+`<PreviewPane v-if="viewMode !== 'edit'">` keeps the preview iframe **unmounted** on mobile when in edit mode. Specs that depend on iframe state (live preview, paged.js pagination, mermaid render) MUST guard those waits behind `if (!editor.isMobile)`:
+
+```ts
+if (!editor.isMobile) {
+  await editor.waitForPreviewPaginated()
+  await editor.page.locator('iframe').contentFrame()...evaluate(...)
+}
+```
+
+`rich-content` and `polished-pdf` use this branch to skip the preview-iframe asserts on mobile while still asserting the document state via the editor (CM6) buffer.
+
+### Selector hierarchy (and `getByText` is for ASSERTIONS)
+
+Selector order of preference inside flow specs:
+
+1. **`data-testid`** — first choice. Survives copy edits, locale changes, color-mode swaps.
+2. **`getByRole('...', { name: /.../ })`** — when no testid exists.
+3. **Structural CSS** — `[data-activity-id]`, `[data-comment-id]`, etc.
+4. **`getByText(/.../)`** — content-assertion only.
+
+**Never use `getByText(/.../)` as a wait gate.** The `activity-restore` mobile failure that taught the lesson: a wait for "the activity feed loaded" used `getByText(/edit/i).first()`, which on mobile matched the (hidden-but-rendered) menubar's `<button>Edit</button>` instead of an activity row. The wait passed instantly against the wrong element; the real activity row hadn't streamed in yet. Use the structural / testid hierarchy for waits.
+
+### `waitForTimeout` vs API polling
+
+Two different wait kinds, two different tools:
+
+- **"Wait for ROW to appear in DB / state to flip"** → `expect.poll(() => fetch(...).count, { timeout, intervals })`. Right for activity-row appearance, AI-session ending, knowledge-file ready, export-job ready.
+- **"Wait for HOCUSPOCUS BATCH WINDOW to close"** → fixed `waitForTimeout(3000)`. Hocuspocus debounces 2 s before flushing edits to `yjs_documents` (per `sync-server/src/index.ts:58`). When a flow needs N **distinct** activity rows, you have to wait out the batch window between typings — polling isn't enough, the row doesn't exist yet AND the next typing would land in the same already-open batch. 3 s = 2 s debounce + 1 s safety. The `activity-restore` flow tried polling here and exited at flush time, but the next typing landed in the same batch; only the fixed sleep separates them.
+
+### Imperative AI prompts
+
+When a flow asserts that the document body changed, phrase the prompt **imperatively**: "Insert a paragraph at the end of this document summarising X" — NOT "Summarise X" (reads as a chat question; Mistral may answer via `message_to_user` and land in the prompt-bar response panel instead of the doc). Pattern used in `knowledge-rag`. The prompt-engineering lever is "tool routing", not "model quality".
+
+### AI flow-test timeouts
+
+Live Mistral / Jina / BFL round-trips run **5–30 s** depending on tool count. `editor.waitForAiIdle()` defaults to 90 s (covers the worst case + safety). `rich-content` needs an extra 2 s buffer for mermaid render — polling `iframe div.mermaid img` doesn't beat the underlying CDN script-load + render delay.
 
 ## When you add a new flow
 

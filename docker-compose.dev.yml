@@ -39,6 +39,12 @@ services:
     ports:
       - "${POSTGRES_PORT:?POSTGRES_PORT required}:5432"
 
+  litellm:
+    # Publish 4000 on the host so the host-side `bun run dev` can reach
+    # the proxy at http://localhost:4000.
+    ports:
+      - "4000:4000"
+
   valkey:
     # `--requirepass` is enforced even in dev so the auth code path runs
     # against the same shape it will in prod (and so "tests pass locally

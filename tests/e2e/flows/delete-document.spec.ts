@@ -16,15 +16,13 @@ import { test, expect } from '../fixtures/flow'
 // in bad faith. Standard pattern (GitHub repo deletion, Stripe
 // account close).
 //
-// Desktop only: the desktop menubar has the File menu inline; mobile
-// surfaces deletion via the user's profile menu, which is a
-// different shape and a separate flow.
+// Runs on desktop AND mobile. Same UX shape, different entry point:
+//   - Desktop: File menu in the menubar → "Delete document".
+//   - Mobile: hamburger ("more") button in the topbar → "Delete".
+// `mobileMenuItems` in `EditorLayout.vue` mirrors the File menu's
+// duplicate/move/delete cluster, so the type-to-confirm modal + the
+// asserted server roundtrip are identical.
 test('Delete a document', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'File menu is desktop-only; mobile delete lives in the user'
-    + ' profile menu and is a separate flow candidate.'
-  )
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -49,12 +47,22 @@ test('Delete a document', async ({ page, flow, editor }) => {
     + 'redirected to their dashboard.'
   )
 
-  // ─── Open File → Delete ─────────────────────────────────────────
+  // ─── Open the menu containing Delete ────────────────────────────
+  // Desktop has a top-level menubar (hidden on mobile via `hidden sm:block`).
+  // Mobile collapses File / Edit / View / etc. into a single hamburger
+  // ("more") UDropdownMenu in the topbar — the duplicate/move/delete
+  // cluster is mirrored under `mobileMenuItems` in EditorLayout.vue.
+  const openMenuTrigger = editor.isMobile
+    ? page.getByRole('button', { name: /^menu$/i }).first()
+    : page.locator('[data-testid="menubar-file"]')
+
   await flow.click(
-    'Click the File menu',
-    page.locator('[data-testid="menubar-file"]'),
+    editor.isMobile ? 'Open the topbar menu' : 'Click the File menu',
+    openMenuTrigger,
     {
-      result: 'The File menu opens — Delete sits at the bottom under its own separator.',
+      result: editor.isMobile
+        ? 'The topbar menu opens — Delete is one of the doc actions.'
+        : 'The File menu opens — Delete sits at the bottom under its own separator.',
       after: () => page.getByRole('menuitem', { name: /^delete/i }).first().waitFor({ state: 'visible' })
     }
   )

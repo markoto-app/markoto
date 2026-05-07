@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { FinishReason, type GenerateContentResponse, type FunctionCall } from '@google/genai'
+import {
+  AgenticFinishReason as FinishReason,
+  type AgenticGenerateContentResponse as GenerateContentResponse,
+  type AgenticFunctionCall as FunctionCall
+} from '../../server/utils/agentic/aiTypes'
 
 // Tests for the per-session safety caps in runLoop.ts:
 //   - SESSION_INTERACTION_CAP (50): runaway-loop guard. Aborts the
@@ -15,16 +19,6 @@ import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from '../../server/ut
 const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
 const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<{ text: string, sources: Array<{ title: string, uri: string }> }>>()
 const fetchUrl = vi.fn<(ai: unknown, model: string, url: string, signal: AbortSignal) => Promise<{ text: string, url: string, summary: string, images: Array<{ url: string, description?: string }> }>>()
-
-const { chargeInteractions } = vi.hoisted(() => ({
-  chargeInteractions: vi.fn<(opts: unknown) => Promise<{ used: number, remaining: number }>>()
-}))
-vi.mock('../../server/utils/billing', async () => {
-  const actual = await vi.importActual<typeof import('../../server/utils/billing')>(
-    '../../server/utils/billing'
-  )
-  return { ...actual, chargeInteractions }
-})
 
 vi.mock('../../server/utils/aiToolAdapter', () => ({ executeFunctionByName }))
 vi.mock('../../server/utils/agentic/functionTools', async () => {
@@ -73,7 +67,7 @@ function shapeChunk(c: StreamChunk): GenerateContentResponse {
 function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {}): Parameters<typeof runAgenticLoop>[0] {
   return {
     ai: overrides.ai ?? makeFakeAi([]),
-    model: 'gemini-test',
+    model: 'fake-test-model',
     systemPrompt: 'system',
     initialPrompt: 'user prompt',
     aiSession: {} as Parameters<typeof runAgenticLoop>[0]['aiSession'],
@@ -85,7 +79,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
       plan: 'pro',
       periodStart: new Date('2026-04-01T00:00:00.000Z'),
       periodEnd: new Date('2026-05-01T00:00:00.000Z'),
-      interactionsRemaining: 999,
+      virtualKey: 'sk-fake-test-virtual-key',
       attribution: 'user'
     },
     logger: () => {},
@@ -97,8 +91,6 @@ beforeEach(() => {
   executeFunctionByName.mockReset()
   webSearch.mockReset()
   fetchUrl.mockReset()
-  chargeInteractions.mockReset()
-  chargeInteractions.mockResolvedValue({ used: 1, remaining: 999 })
 })
 
 describe('limits.ts module exports', () => {

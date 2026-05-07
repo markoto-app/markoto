@@ -19,7 +19,8 @@ export default defineEventHandler(async (event) => {
   if (aiSession.initiatorUserId !== userId) {
     throw createError({
       statusCode: 403,
-      message: 'Only the initiator can cancel their Gemini session'
+      message: 'Only the initiator can cancel their AI session',
+      data: { code: 'ai/abort-not-initiator', messageKey: 'ai.errors.abortNotInitiator' }
     })
   }
 

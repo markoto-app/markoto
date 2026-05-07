@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { TOOL_SCHEMAS, ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../server/utils/agentic/functionTools'
 
-// Contract between our code and Gemini. The Zod schemas in functionTools.ts
-// are the single source of truth:
-//   - Gemini receives the JSON Schema derived from them (validates what it
-//     sends us).
+// Contract between our code and the model (Mistral via LiteLLM). The
+// Zod schemas in functionTools.ts are the single source of truth:
+//   - The model receives the JSON Schema derived from them (validates
+//     what it sends us).
 //   - runLoop.ts runs safeParse() before dispatching (second line of defence
 //     against malformed args slipping through).
 //
@@ -113,7 +113,7 @@ describe('insert_text schema', () => {
 
 describe('web_search schema', () => {
   it('accepts a non-empty query', () => {
-    expect(parse('web_search', { query: 'latest Gemini pricing' }).success).toBe(true)
+    expect(parse('web_search', { query: 'latest Mistral pricing' }).success).toBe(true)
   })
 
   it('rejects empty query', () => {
@@ -140,7 +140,7 @@ describe('update_theme schema', () => {
 
   it('rejects body.size out of range', () => {
     // isValidTheme caps body.size at 6–24; the Zod schema mirrors that
-    // so Gemini gets a schema-level rejection instead of the loop
+    // so the model gets a schema-level rejection instead of the loop
     // returning a runtime "merged theme failed validation" error.
     expect(parse('update_theme', { body: { size: 100 } }).success).toBe(false)
     expect(parse('update_theme', { body: { size: 2 } }).success).toBe(false)
@@ -184,9 +184,10 @@ describe('update_theme schema', () => {
     expect(parse('update_theme', { preset: 'modern', layout: { columns: '2' } }).success).toBe(true)
   })
 
-  it('accepts numeric-ish fields as string enums (Gemini schema quirk)', () => {
+  it('accepts numeric-ish fields as string enums (function-call schema quirk)', () => {
     // headings.weight, layout.columns, toc.maxDepth are declared as
-    // string enums for Gemini-schema stability; the handler coerces.
+    // string enums for function-call schema stability (carried over
+    // from pre-Phase-5 Gemini-era constraints); the handler coerces.
     expect(parse('update_theme', { headings: { weight: '600' } }).success).toBe(true)
     expect(parse('update_theme', { layout: { columns: '2' } }).success).toBe(true)
     expect(parse('update_theme', { toc: { maxDepth: '3' } }).success).toBe(true)
@@ -533,23 +534,25 @@ describe('TOOL_SCHEMAS registry', () => {
   })
 })
 
-describe('ALL_TOOL_DECLARATIONS — Gemini-facing shape', () => {
-  it('every declaration has name + description + parametersJsonSchema', () => {
+describe('ALL_TOOL_DECLARATIONS — model-facing shape', () => {
+  it('every declaration has name + description + parameters', () => {
     for (const d of ALL_TOOL_DECLARATIONS) {
       expect(typeof d.name).toBe('string')
       expect(d.name!.length).toBeGreaterThan(0)
       expect(typeof d.description).toBe('string')
       expect(d.description!.length).toBeGreaterThan(0)
-      expect(d.parametersJsonSchema).toBeTruthy()
+      expect(d.parameters).toBeTruthy()
     }
   })
 
   it('view_document JSON schema exposes view_range as an array, not a tuple', () => {
-    // Gemini's validator rejects draft-7 tuple form (`items: [...]`) and
-    // draft 2020-12 prefixItems. The schema must flatten to a single
-    // items schema. Regression guard per the comment in functionTools.ts.
+    // Pre-Phase-5 (Gemini-era) the function-declaration validator
+    // rejected draft-7 tuple form (`items: [...]`) and draft 2020-12
+    // prefixItems. We've kept the flattened schema post-migration to
+    // Mistral so the shape doesn't churn. Regression guard per the
+    // comment in functionTools.ts.
     const decl = ALL_TOOL_DECLARATIONS.find(d => d.name === 'view_document')
-    const props = (decl?.parametersJsonSchema as { properties?: Record<string, unknown> })?.properties
+    const props = (decl?.parameters as { properties?: Record<string, unknown> })?.properties
     const vr = props?.view_range as { type?: string, items?: unknown, prefixItems?: unknown }
     expect(vr?.type).toBe('array')
     // Must NOT be an array-of-schemas (tuple form) or 2020-12 prefixItems.
@@ -559,14 +562,14 @@ describe('ALL_TOOL_DECLARATIONS — Gemini-facing shape', () => {
 
   it('replace_text marks old_str and new_str as required', () => {
     const decl = ALL_TOOL_DECLARATIONS.find(d => d.name === 'replace_text')
-    const required = (decl?.parametersJsonSchema as { required?: string[] })?.required ?? []
+    const required = (decl?.parameters as { required?: string[] })?.required ?? []
     expect(required).toContain('old_str')
     expect(required).toContain('new_str')
   })
 
   it('insert_text marks insert_line and insert_text as required', () => {
     const decl = ALL_TOOL_DECLARATIONS.find(d => d.name === 'insert_text')
-    const required = (decl?.parametersJsonSchema as { required?: string[] })?.required ?? []
+    const required = (decl?.parameters as { required?: string[] })?.required ?? []
     expect(required).toContain('insert_line')
     expect(required).toContain('insert_text')
   })

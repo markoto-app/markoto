@@ -1,6 +1,9 @@
-import type { GoogleGenAI, FunctionDeclaration } from '@google/genai'
+import type { AgenticAIClient as AiClient, AgenticFunctionDeclaration as FunctionDeclaration } from './aiTypes'
+import { litellmCompletion } from '../litellm/createCompletion'
 import { z, type ZodType } from 'zod'
 import { assertSafeUrl } from './urlGuard'
+import { useLitellmAdmin } from '../litellmClient'
+import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import {
@@ -21,8 +24,9 @@ import {
 
 /**
  * Function declarations + runtime arg schemas. Single source of truth — the
- * JSON Schema handed to Gemini and the runtime validator the loop uses to
- * parse `FunctionCall.args` come from the same Zod definition.
+ * JSON Schema handed to the model (Mistral via LiteLLM) and the runtime
+ * validator the loop uses to parse `FunctionCall.args` come from the same
+ * Zod definition.
  *
  * Why Zod:
  *   - `safeParse` catches malformed args (wrong type, missing required field,
@@ -38,14 +42,15 @@ import {
 
 // NOTE on `view_range`: we want semantically a [start, end] tuple, but Zod's
 // `z.tuple(...)` emits JSON Schema in draft-7 tuple form (`items: [...]`) or
-// 2020-12 (`prefixItems: [...]`) — Gemini's function-declaration validator
-// rejects both with "schema at properties.view_range.items must be a boolean
-// or an object." A length-bounded array of integers flattens to the
-// single-schema `items` shape Gemini accepts. The [start, end] ordering is
-// enforced by description + runtime bounds check in `handleView`.
+// 2020-12 (`prefixItems: [...]`) — pre-Phase-5 (Gemini-era) the function-
+// declaration validator rejected both with "schema at properties.view_range
+// .items must be a boolean or an object." A length-bounded array of integers
+// flattens to the single-schema `items` shape that survived the migration to
+// Mistral. The [start, end] ordering is enforced by description + runtime
+// bounds check in `handleView`.
 const ViewDocumentArgs = z.object({
   view_range: z.array(z.number().int()).min(2).max(2)
-    // Enforce at the schema level so Gemini self-corrects with a clean
+    // Enforce at the schema level so the model self-corrects with a clean
     // error instead of hitting the runtime check in `handleView` (which
     // produces a less model-friendly message and burns a loop turn).
     .refine(([start, end]) => start !== undefined && end !== undefined && start >= 1 && (end === -1 || end >= start), {
@@ -150,7 +155,16 @@ const GenerateImageArgs = z.object({
   prompt: z.string().trim().min(1).max(2000)
     .describe('Detailed description of the image to generate. Be specific about subject, style, composition, mood. Good: "A warm handshake between two business professionals, shallow depth of field, office lighting, photorealistic". Weak: "handshake".'),
   alt: z.string().trim().min(1).max(200)
-    .describe('Concise alt text (1–200 chars) describing the image for screen readers and fallback display. This becomes the alt attribute in the returned markdown.')
+    .describe('Concise alt text (1–200 chars) describing the image for screen readers and fallback display. This becomes the alt attribute in the returned markdown.'),
+  // Aspect ratio. BFL meters by megapixel — non-square output is the
+  // SAME price as 1024×1024 only when w*h ≈ 1MP. The model picks the
+  // closest supported combo; deviations beyond ~1.05× MP price linearly.
+  // The agentic loop should choose dimensions deliberately based on
+  // intended use (logo = square, banner = wide, portrait = tall).
+  width: z.number().int().min(512).max(1536).optional()
+    .describe('Output image width in pixels (multiple of 32, range 512-1536). Default 1024. Use a wider value (e.g. 1408) for landscape banners; pair with smaller height. Skip both for the default 1:1 1024×1024.'),
+  height: z.number().int().min(512).max(1536).optional()
+    .describe('Output image height in pixels (multiple of 32, range 512-1536). Default 1024. Use a taller value (e.g. 1408) for portrait illustrations; pair with smaller width. Skip both for the default 1:1 1024×1024.')
 }).describe('Generate a photo or illustration from a text description and upload it. Returns the markdown reference (e.g. "![alt](/api/files/…/x.png)") — the caller decides how to place it (insert_text to add, replace_text to swap an existing image, etc.). Do NOT use for diagrams/flowcharts/charts — write a Mermaid code block via insert_text instead.')
 
 // --- view_pages / get_page_count -----------------------------------------
@@ -166,7 +180,7 @@ const GenerateImageArgs = z.object({
 //
 // `view_pages([n, m, …])` returns up to 5 PNGs of specific pages as
 // `inlineData` parts on the next user turn (same smuggle-via-extraParts
-// pattern as `view_image`). Costs more interactions because Gemini's
+// pattern as `view_image`). Costs more interactions because the
 // vision model charges per-image input.
 
 const GetPageCountArgs = z.object({}).strict()
@@ -239,9 +253,10 @@ const SearchActivityLogArgs = z.object({
     .describe('Restrict to specific action types. Common picks: ["edit"] (content changes), ["ai.tool"] (your own past tool calls — useful for "what did you base that on?"), ["title.changed", "theme.changed"] (metadata changes), ["restore"] (rollbacks), ["comment.added","comment.replied","comment.resolved","comment.reopened","comment.deleted"] (any comment activity). Omit for all action types.'),
   // Plain `z.string()` instead of `.datetime()` — Zod's draft-7 emit
   // for `.datetime()` includes a 600-char leap-year-aware regex that
-  // some Gemini model versions reject as an invalid schema. The handler
-  // re-validates with `new Date(s)` + `isFinite` so a malformed string
-  // round-trips back to the model as a clean tool error.
+  // some model versions reject as an invalid schema (carried over from
+  // pre-Phase-5 Gemini compatibility). The handler re-validates with
+  // `new Date(s)` + `isFinite` so a malformed string round-trips back
+  // to the model as a clean tool error.
   since: z.string().min(1).max(40).optional()
     .describe('ISO-8601 timestamp lower bound (inclusive), UTC. Example: "2026-04-30T00:00:00Z" for "yesterday onwards" relative to a 2026-05-01 query date.'),
   before: z.string().min(1).max(40).optional()
@@ -249,7 +264,7 @@ const SearchActivityLogArgs = z.object({
   limit: z.number().int().min(1).max(50).optional()
     .describe('Maximum rows to return. Default 20. Bump to 50 for survey-style queries; drop to 5–10 for "find the most recent X" lookups.')
 }).strict()
-  .describe('Search the document\'s long-term activity log: every edit, comment, theme/title change, AI tool call, and restore from this and prior sessions. Use when the user references something OUTSIDE the loaded `<conversation_history>` block — yesterday, last week, "what did you base X on", "find when the intro was last rewritten". Doc-scoped (current document only). Returns most-recent-first; each row carries action, author, ISO timestamp, and a brief summary. Cheap (DB query, no Gemini sub-call). Don\'t use for current-state lookups — call view_document / read_comments for that.')
+  .describe('Search the document\'s long-term activity log: every edit, comment, theme/title change, AI tool call, and restore from this and prior sessions. Use when the user references something OUTSIDE the loaded `<conversation_history>` block — yesterday, last week, "what did you base X on", "find when the intro was last rewritten". Doc-scoped (current document only). Returns most-recent-first; each row carries action, author, ISO timestamp, and a brief summary. Cheap (DB query, no LLM sub-call). Don\'t use for current-state lookups — call view_document / read_comments for that.')
 
 const MessageToUserArgs = z.object({
   message: z.string().trim().min(1).max(600)
@@ -264,7 +279,7 @@ const MessageToUserArgs = z.object({
 // Partial theme patch. Every leaf is optional and every sub-object is
 // optional — the AI only sends what it wants to change, the handler
 // deep-merges over the current theme. Enums + ranges mirror
-// `isValidTheme` exactly so Gemini's schema advertises the same
+// `isValidTheme` exactly so the AI's schema advertises the same
 // valid-value surface the validator enforces at runtime.
 //
 // Fonts are pinned to the curated Google Fonts list in `themeFonts.ts`:
@@ -279,7 +294,7 @@ const MessageToUserArgs = z.object({
 // Why fonts differ from the other enums in this file: `DocThemeSchema`
 // (shared/types/theme.ts) accepts any string matching FONT_NAME_REGEX —
 // that's "any CSS-safe font name". This tool intentionally restricts
-// Gemini to the CURATED list of fonts we actually fetch from Google
+// the model to the CURATED list of fonts we actually fetch from Google
 // Fonts (via `themeFonts.ts`). If the AI picked "Times New Roman", the
 // preview would silently fall back to a system font rather than render
 // the serif the user asked for.
@@ -290,7 +305,7 @@ const PRESET_IDS = THEME_PRESETS.map(p => p.id) as [string, ...string[]]
 // inline below rather than imported from `DocThemeSchema`, because this
 // is a PATCH schema — every field is `.optional()` — and the base
 // DocThemeSchema's fields are all required. Flipping them via
-// `.partial()` on a deeply nested schema would lose the Gemini-friendly
+// `.partial()` on a deeply nested schema would lose the model-friendly
 // `.describe()` annotations.
 //
 // Enum schemas that match 1:1 with DocTheme (page size, orientation,
@@ -306,15 +321,17 @@ const RunningSlotsPatch = z.object({
   right: z.string().max(200).optional().describe('Right slot template; same tokens as left.')
 })
 
-// Gemini-compatibility quirk: numeric theme fields (`headings.weight`,
+// Function-call compatibility quirk (carried over from pre-Phase-5
+// Gemini era): numeric theme fields (`headings.weight`,
 // `layout.columns`, `toc.maxDepth`) are declared here as STRING enums
-// even though DocThemeSchema has them as numeric unions. Gemini's
-// function-declaration validator rejects `oneOf` with numeric literals
-// (only strings), so we accept the string form here and coerce back to
-// a number in `aiToolAdapter.coerceThemePatch` before the merged theme
-// goes through `isValidTheme`. The canonical numeric surface lives in
-// theme.ts; don't add a new weight/column/depth value without updating
-// both lists.
+// even though DocThemeSchema has them as numeric unions. The original
+// function-declaration validator rejected `oneOf` with numeric
+// literals (only strings); the string form has been kept stable
+// post-migration to Mistral so the schema doesn't churn. We coerce
+// back to a number in `aiToolAdapter.coerceThemePatch` before the
+// merged theme goes through `isValidTheme`. The canonical numeric
+// surface lives in theme.ts; don't add a new weight/column/depth
+// value without updating both lists.
 const UpdateThemeArgs = z.object({
   preset: z.enum(PRESET_IDS).optional()
     .describe(`Apply a built-in preset as the base, replacing ALL current theme values. Other fields passed alongside are applied on top of the preset. Available presets: ${PRESET_IDS.join(', ')}. Mutually exclusive with theme_id and from_workspace_default — pass only one base source.`),
@@ -329,7 +346,7 @@ const UpdateThemeArgs = z.object({
   }).optional(),
   body: z.object({
     font: z.enum(FONT_NAMES).optional()
-      .describe('Body text font. Pick the closest curated Google Font to what the user asked for.'),
+      .describe('Body text font. Pick the closest curated Google Font to what the user asked for. Falls back to a system serif/sans if the user names something off-list.'),
     size: z.number().min(6).max(24).optional().describe('Body font size in pt (6–24).'),
     lineHeight: z.number().min(0.8).max(3).optional().describe('Unitless line-height multiplier (0.8–3).'),
     textAlign: TextAlignSchema.optional(),
@@ -545,9 +562,9 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   search_activity_log: SearchActivityLogArgs
 }
 
-// --- FunctionDeclarations (what Gemini sees) ------------------------------
+// --- FunctionDeclarations (what the model sees) --------------------------
 //
-// `parametersJsonSchema` accepts any JSON-Schema-shaped object (the SDK types
+// `parameters` accepts any JSON-Schema-shaped object (the SDK types
 // it as `unknown`), so we feed it the output of `zodToJsonSchema` directly.
 // Descriptions live on the Zod schema and propagate through conversion, so
 // we don't duplicate them on the declaration.
@@ -559,7 +576,15 @@ function decl(name: string, description: string, schema: ZodType<unknown>): Func
     // Zod 4 ships `toJSONSchema` natively (the external `zod-to-json-schema`
     // package is typed against Zod 3 and doesn't play nice with v4 internals).
     // `target: 'draft-7'` is the safe default for JSON-Schema-accepting SDKs.
-    parametersJsonSchema: z.toJSONSchema(schema, { target: 'draft-7' })
+    // Field name MUST be `parameters` (matches both `AgenticFunctionDeclaration`
+    // and the OpenAI SDK's `ChatCompletionTool['function'].parameters`).
+    // `internalToOpenAITools` reads `d.parameters` and falls back to an
+    // EMPTY schema when missing — which is exactly what happened during
+    // the Gemini→LiteLLM migration when this was named
+    // `parametersJsonSchema`. Mistral then saw no required fields on
+    // any tool and emitted empty `{}` arg objects, blowing up Zod
+    // validation in `runLoop.ts` for every tool call.
+    parameters: z.toJSONSchema(schema, { target: 'draft-7' })
   }
 }
 
@@ -676,7 +701,7 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   ),
   decl(
     'search_activity_log',
-    'Search the document\'s activity log — every edit, comment, theme/title change, AI tool call, and restore across ALL users and ALL prior sessions, not just the current conversation. Use when the user references something OUTSIDE the in-prompt `<conversation_history>` window: "what did you base that table on yesterday", "revert the changes from last week", "when did we last rewrite the intro", "did anyone change the title". Doc-scoped to the current document. Returns most-recent-first with author, ISO timestamp, and a one-line summary per row. Pure read; no Gemini sub-call.',
+    'Search the document\'s activity log — every edit, comment, theme/title change, AI tool call, and restore across ALL users and ALL prior sessions, not just the current conversation. Use when the user references something OUTSIDE the in-prompt `<conversation_history>` window: "what did you base that table on yesterday", "revert the changes from last week", "when did we last rewrite the intro", "did anyone change the title". Doc-scoped to the current document. Returns most-recent-first with author, ISO timestamp, and a one-line summary per row. Pure read; no LLM sub-call.',
     SearchActivityLogArgs
   )
 ]
@@ -704,21 +729,19 @@ export const KNOWLEDGE_TOOL_DECLARATIONS: FunctionDeclaration[] = [
 // --- Web search sub-call --------------------------------------------------
 
 /**
- * Executes a grounded Gemini sub-call using the built-in `googleSearch` tool.
- * Isolated here because:
- *   - It keeps our main agentic loop free of the `googleSearch + functionDeclarations`
- *     coexistence question — this sub-call has `googleSearch` alone.
+ * Executes a 2-call web-search sub-call: Jina Reader hands back a corpus
+ * of snippets, then Mistral synthesises a grounded answer with cited
+ * sources. Isolated here because:
+ *   - It keeps our main agentic loop free of the
+ *     "search-grounding + functionDeclarations" coexistence question
+ *     that pre-Phase-5 (Gemini-era `googleSearch`) used to force.
  *   - Per-call status ("Searching the web for …") is emitted by the outer loop
  *     from the validated `FunctionCall.args` before this runs.
  *   - Output format (top answer + bulleted sources) is controlled by us, not
- *     whatever shape grounding returns.
- *
- * The sub-call reuses `GOOGLE_MODEL` so pricing stays predictable. Grounding is
- * 5,000 prompts/month free across the Gemini 3 family, then $14 per 1,000
- * searches — revisit query caching if this bill climbs.
+ *     whatever shape the upstream grounding returns.
  */
 export interface WebSearchResult {
-  /** The synthesised answer text the main loop hands back to Gemini. */
+  /** The synthesised answer text the main loop hands back to the model. */
   text: string
   /** Deduplicated grounding sources (title + uri). Used by the activity
    *  drawer to render a clickable list when the user expands the row. */
@@ -726,81 +749,38 @@ export interface WebSearchResult {
 }
 
 export async function webSearch(
-  ai: GoogleGenAI,
-  model: string,
+  _ai: AiClient | undefined,
+  _model: string,
   query: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
 ): Promise<WebSearchResult> {
   // Abort guard — if we're already past the deadline, don't even issue the call.
   if (signal.aborted) throw new Error('aborted')
-
-  // Grounding tools (`googleSearch`) and structured output (`responseSchema`)
-  // don't coexist cleanly across model versions — Gemini will 400 if you
-  // pass both. Stay with freeform-text + groundingMetadata: the sources
-  // come back already-structured from grounding metadata, and the answer
-  // text is the one field where losing strict formatting is harmless (we
-  // pass it straight through to the main model, which reads prose fine).
-  const response = await ai.models.generateContent({
-    model,
-    contents: [
-      {
-        role: 'user',
-        parts: [{
-          text:
-            `Answer this question using up-to-date web sources. Be concise (3–6 sentences). `
-            + `Return ONLY the answer — do NOT list sources in the text; the caller pulls them from grounding metadata.\n\nQuery: ${query}`
-        }]
-      }
-    ],
-    config: {
-      tools: [{ googleSearch: {} }],
-      abortSignal: signal
-    }
-  })
-
-  const answer = (response.text ?? '').trim()
-  const md = response.candidates?.[0]?.groundingMetadata
-  // Deduplicate by URI — grounding metadata frequently repeats the same
-  // source multiple times (one chunk per quoted span).
-  const seen = new Set<string>()
-  const sources: Array<{ title: string, uri: string }> = []
-  for (const c of md?.groundingChunks ?? []) {
-    const uri = c.web?.uri
-    if (!uri || seen.has(uri)) continue
-    seen.add(uri)
-    sources.push({ title: c.web?.title ?? uri, uri })
-  }
-
-  if (!answer) {
-    return {
-      text: 'No answer returned. The search may not have surfaced relevant results.',
-      sources: []
-    }
-  }
-
-  if (sources.length === 0) return { text: answer, sources: [] }
-  const sourceList = sources.map(s => `  - ${s.title}: ${s.uri}`).join('\n')
-  return { text: `${answer}\n\nSources:\n${sourceList}`, sources }
+  // Phase 5: Jina Search → Mistral synthesis is the only path. The
+  // legacy `googleSearch` grounding helper (pre-Phase-5, Gemini-era)
+  // has been removed; the `ai` + `model` args are retained on the
+  // signature so the existing unit-test harness keeps working until
+  // P5.4 retypes the loop.
+  return await webSearchViaJina(query, signal, spendCtx)
 }
 
 // --- URL context sub-call -------------------------------------------------
 
 /**
- * Executes a Gemini sub-call with the built-in `urlContext` tool enabled.
- * Same isolation rationale as `webSearch`: keeps urlContext separate from
- * our `functionDeclarations` so their coexistence behaviour across model
- * versions doesn't affect the main loop.
- *
- * The sub-call asks Gemini to both summarise the page AND list the image
- * URLs it saw — we format the result back as text with a clear `Images:`
- * section the main model can parse. We do NOT request structured output
- * because JSON mode + urlContext coexistence is not documented as stable,
- * and the main model parses the informal format fine.
+ * Executes a 2-call URL-fetch sub-call: Jina Reader returns the page as
+ * markdown, then Mistral synthesises a structured `{summary, images[]}`
+ * extraction with `json_schema strict:true`. Same isolation rationale
+ * as `webSearch`: keeps the URL-context behaviour separate from our
+ * `functionDeclarations` so coexistence quirks don't affect the main
+ * loop. (Pre-Phase-5: this used Gemini's built-in `urlContext` tool
+ * with informal text output.)
  */
 /**
- * Structured shape Gemini returns for `fetch_url`. Mirrors the
- * `responseSchema` below — kept as a TS interface so the parser/narrower
- * can type-check the response without an extra schema wrapper.
+ * Structured shape returned by `fetch_url`. Mirrors the JSON schema
+ * passed to Mistral on the synthesis call — kept as a TS interface so
+ * the parser/narrower can type-check the response without an extra
+ * schema wrapper.
  */
 interface FetchUrlResponse {
   summary: string
@@ -808,12 +788,12 @@ interface FetchUrlResponse {
 }
 
 export interface FetchUrlResult {
-  /** The textual blob the main loop hands back to Gemini. */
+  /** The textual blob the main loop hands back to the model. */
   text: string
   /** Resolved absolute URL (with scheme prepended if needed). */
   url: string
   /** Page summary parsed from the structured response. May be empty
-   *  when Gemini fell back to raw text or the page was unreachable. */
+   *  when the synthesis fell back to raw text or the page was unreachable. */
   summary: string
   /** Image URLs the page exposes — exposed verbatim to the activity
    *  drawer for an inline strip. */
@@ -821,83 +801,261 @@ export interface FetchUrlResult {
 }
 
 export async function fetchUrl(
-  ai: GoogleGenAI,
-  model: string,
+  _ai: AiClient | undefined,
+  _model: string,
   rawUrl: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
 ): Promise<FetchUrlResult> {
   if (signal.aborted) throw new Error('aborted')
 
   // Add an https:// scheme if the AI (or user) passed a bare hostname.
-  // urlContext won't resolve scheme-less strings.
   const url = /^https?:\/\//i.test(rawUrl.trim())
     ? rawUrl.trim()
     : `https://${rawUrl.trim()}`
 
-  // SSRF guard. Reject before forwarding to Gemini's urlContext —
-  // private CIDRs, metadata IPs, link-local, non-HTTP schemes, and
-  // hostnames whose DNS records resolve into private space all throw
-  // here. The error message is descriptive so the model gets a clear
-  // signal to course-correct with a public URL on the next turn.
+  // SSRF guard. Reject before forwarding to upstream — private CIDRs,
+  // metadata IPs, link-local, non-HTTP schemes, and hostnames whose DNS
+  // records resolve into private space all throw here.
   await assertSafeUrl(url)
 
-  const response = await ai.models.generateContent({
-    model,
-    contents: [
-      {
-        role: 'user',
-        parts: [{
-          text:
-            `Fetch this URL and read its content: ${url}\n\n`
-            + `Produce a JSON object matching the schema. Fields:\n`
-            + `- "summary": 4–8 sentences synthesising the factual content of the page (who, what, when, where, why). If the page is unreachable or empty, say so plainly here.\n`
-            + `- "images": up to 6 direct image URLs visible on the page, prioritising og:image, hero images, and figure images (NOT site-chrome icons/logos). Each entry is {"url": absolute URL, "description": what it depicts}. Return an empty array if none.\n\n`
-            + `Do NOT include anything outside the JSON.`
-        }]
-      }
-    ],
-    config: {
-      tools: [{ urlContext: {} }],
-      // Structured output hardens the shape — the main loop never has to
-      // parse free-form "Images observed:" prose. If Gemini rejects
-      // urlContext+JSON coexistence on a given model version, we catch
-      // and fall back to raw text below.
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'object',
-        properties: {
-          summary: { type: 'string' },
-          images: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                url: { type: 'string' },
-                description: { type: 'string' }
-              },
-              required: ['url']
-            }
-          }
-        },
-        required: ['summary', 'images']
-      },
-      abortSignal: signal
-    }
-  })
+  // Phase 5: Jina Reader → Mistral structured output is the only path.
+  // The `ai` + `model` args are retained on the signature for harness
+  // compat until P5.4 retypes the loop.
+  return await fetchUrlViaJina(url, signal, spendCtx)
+}
 
-  const raw = (response.text ?? '').trim()
-  if (!raw) {
+// ─── Phase 4: Mistral path (Jina Search/Reader → Mistral synthesis) ─────
+//
+// Replaces the pre-Phase-5 Gemini-era `googleSearch` grounding + `urlContext`
+// pair, neither of which has a Mistral equivalent. Both paths use a
+// 2-call pattern:
+//
+//   web_search → fetch s.jina.ai/?q=… (raw markdown of top results) →
+//                Mistral chat completion synthesises a 3-6 sentence answer
+//   fetch_url  → fetch r.jina.ai/{url} (page-as-markdown) →
+//                Mistral chat completion with json_schema strict:true
+//                extracts {summary, images[]}
+//
+// Spike findings §5.2: Jina returns raw scraped markdown, not synthesised
+// answers. We need the second call to compress the dump into a useful
+// answer that's behaviorally close to the historical grounded turn.
+// Cost still −82% vs the legacy grounded path (spike findings §6).
+//
+// Token-budget hint: Jina caps at ~5 results × ~2k tokens per result =
+// ~10k input tokens to Mistral synthesis. With Mistral Small 4.0 input
+// at $0.15/M, that's $0.0015 per synthesis call + ~$0.003 Jina fee =
+// ~$0.005/grounded turn — exactly the spike's projection.
+
+const _WEB_SEARCH_SYSTEM_PROMPT
+  = 'You are a web-search synthesiser. Given a dump of search results '
+    + 'as raw markdown, produce a single concise factual answer (3-6 '
+    + 'sentences). Cite sources inline using [n] markers that index into '
+    + 'the source list. Do not editorialise. Do not invent facts that '
+    + 'aren\'t in the dump. If the dump doesn\'t answer the query, say '
+    + 'so in one sentence.'
+
+interface JinaSearchSource {
+  title: string
+  url: string
+  description?: string
+  content?: string
+}
+
+async function webSearchViaJina(
+  query: string,
+  signal: AbortSignal,
+  spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
+): Promise<WebSearchResult> {
+  const config = useRuntimeConfig()
+  const jinaKey = process.env.JINA_AI_API_KEY
+  if (!jinaKey) {
+    throw new Error('JINA_AI_API_KEY not configured (required for web_search via mistral path)')
+  }
+
+  // 1) Jina Search — returns up to 10 result pages as JSON envelope
+  //    with title/url/description/content (markdown).
+  const jinaUrl = `https://s.jina.ai/?q=${encodeURIComponent(query)}`
+  const jinaRes = await fetch(jinaUrl, {
+    headers: {
+      'Authorization': `Bearer ${jinaKey}`,
+      'Accept': 'application/json',
+      // Cap content size to keep the synthesis-call input bounded.
+      'X-Token-Budget': '8000'
+    },
+    signal
+  })
+  if (!jinaRes.ok) {
+    throw new Error(`Jina Search returned ${jinaRes.status}`)
+  }
+  const jinaPayload = await jinaRes.json() as {
+    data?: JinaSearchSource[]
+  }
+  const results = jinaPayload.data ?? []
+
+  if (results.length === 0) {
     return {
-      text: `Unable to extract content from ${url}. The page may be unreachable, require authentication, or block crawlers.`,
+      text: 'No search results returned. The query may be too specific or filtered.',
+      sources: []
+    }
+  }
+
+  // 2) Mistral synthesis — pass results as a numbered list, ask for a
+  //    concise answer with [n] citations.
+  const dump = results.slice(0, 8).map((r, i) =>
+    `[${i + 1}] ${r.title}\nURL: ${r.url}\n${(r.content || r.description || '').slice(0, 1500)}`
+  ).join('\n\n---\n\n')
+
+  const litellm = useLitellmAdmin()
+  const textModel = config.litellm?.textModel || 'mistral-small-2603'
+
+  const synth = await litellmCompletion(litellm, {
+    model: textModel,
+    messages: [
+      { role: 'system', content: _WEB_SEARCH_SYSTEM_PROMPT },
+      { role: 'user', content: `Query: ${query}\n\nSearch results:\n${dump}` }
+    ],
+    max_tokens: 400,
+    // Modest temperature for the prose synthesis. Pure-prose paragraph
+    // over search results — no structured-output contract, no tool
+    // selection — so the temp=0 robotic-tone tradeoff doesn't earn
+    // anything here. 0.3 is a deliberate floor that keeps citations
+    // faithful while letting sentences vary turn to turn.
+    // (`fetch_url` synthesis below stays at 0 because it has a strict
+    // JSON schema; the outer agentic loop stays at 0 because tool
+    // selection wants determinism.)
+    temperature: 0.3,
+    // Synthesis calls are sub-steps of the text agentic loop; bill
+    // them under the same tag set as the surrounding loop call so
+    // /admin/ai-spend's "text-loop" total includes web_search /
+    // fetch_url synthesis cost AND the workspace + user breakdowns
+    // attribute correctly.
+    ...featureMetadata(FEATURE_TAGS.textLoop, spendCtx)
+  }, { signal })
+
+  const answer = (synth.choices?.[0]?.message?.content ?? '').trim()
+
+  const sources = results.slice(0, 8).map(r => ({
+    title: (r.title ?? r.url ?? '').slice(0, 200),
+    uri: r.url ?? ''
+  })).filter(s => s.uri)
+
+  if (!answer) {
+    return {
+      text: 'No answer returned by the synthesiser.',
+      sources
+    }
+  }
+  if (sources.length === 0) return { text: answer, sources: [] }
+  const sourceList = sources.map(s => `  - ${s.title}: ${s.uri}`).join('\n')
+  return { text: `${answer}\n\nSources:\n${sourceList}`, sources }
+}
+
+// fetch_url 2-call: Jina Reader produces clean markdown of the page; a
+// follow-up Mistral chat-completion with json_schema strict:true returns
+// the existing {summary, images[]} contract.
+
+const _FETCH_URL_SYSTEM_PROMPT
+  = 'You are a page-content extractor. The user gives you a markdown '
+    + 'rendering of a web page produced by Jina Reader. Return JSON '
+    + 'matching the provided schema. The summary is 4-8 sentences of '
+    + 'factual page content (who/what/when/where/why). The images array '
+    + 'is up to 6 hero/figure image URLs from the page (NOT site-chrome '
+    + 'icons or logos). Do not editorialise.'
+
+const _FETCH_URL_JSON_SCHEMA = {
+  name: 'page_extract',
+  strict: true,
+  schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['summary', 'images'],
+    properties: {
+      summary: { type: 'string' },
+      images: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['url', 'description'],
+          properties: {
+            url: { type: 'string' },
+            description: { type: 'string' }
+          }
+        }
+      }
+    }
+  }
+}
+
+async function fetchUrlViaJina(
+  url: string,
+  signal: AbortSignal,
+  spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
+): Promise<FetchUrlResult> {
+  const config = useRuntimeConfig()
+  const jinaKey = process.env.JINA_AI_API_KEY
+  if (!jinaKey) {
+    throw new Error('JINA_AI_API_KEY not configured (required for fetch_url via mistral path)')
+  }
+
+  // 1) Jina Reader — returns the page as clean markdown.
+  const readerUrl = `https://r.jina.ai/${url}`
+  const readerRes = await fetch(readerUrl, {
+    headers: {
+      'Authorization': `Bearer ${jinaKey}`,
+      'Accept': 'application/json',
+      // Cap output so we don't pass 40k tokens to the synthesiser.
+      'X-Token-Budget': '8000',
+      // Keep image references verbatim so the extractor can list them.
+      'X-Retain-Images': 'all'
+    },
+    signal
+  })
+  if (!readerRes.ok) {
+    return {
+      text: `Unable to extract content from ${url}. Reader returned ${readerRes.status}.`,
+      url,
+      summary: '',
+      images: []
+    }
+  }
+  const readerPayload = await readerRes.json() as { data?: { content?: string, title?: string } }
+  const pageMarkdown = readerPayload.data?.content ?? ''
+  const pageTitle = readerPayload.data?.title ?? ''
+
+  if (!pageMarkdown) {
+    return {
+      text: `Unable to extract content from ${url}. The page may be empty or block crawlers.`,
       url,
       summary: '',
       images: []
     }
   }
 
-  // Parse the JSON Gemini returned per the schema. If parsing fails (model
-  // emitted prose or malformed JSON despite the schema hint), hand the raw
-  // text back — the main model can still make sense of it.
+  // 2) Mistral structured-output synthesis — extract {summary, images[]}.
+  const litellm = useLitellmAdmin()
+  const textModel = config.litellm?.textModel || 'mistral-small-2603'
+
+  const synth = await litellmCompletion(litellm, {
+    model: textModel,
+    messages: [
+      { role: 'system', content: _FETCH_URL_SYSTEM_PROMPT },
+      { role: 'user', content: `URL: ${url}\nTitle: ${pageTitle}\n\nPage content:\n${pageMarkdown.slice(0, 30000)}` }
+    ],
+    response_format: {
+      type: 'json_schema',
+      json_schema: _FETCH_URL_JSON_SCHEMA
+    },
+    max_tokens: 800,
+    temperature: 0,
+    // Sub-tool of the text agentic loop — same tag set as the
+    // surrounding loop call so workspace + user + doc breakdowns
+    // attribute correctly.
+    ...featureMetadata(FEATURE_TAGS.textLoop, spendCtx)
+  }, { signal })
+
+  const raw = synth.choices?.[0]?.message?.content ?? ''
   let parsed: FetchUrlResponse
   try {
     parsed = JSON.parse(raw) as FetchUrlResponse

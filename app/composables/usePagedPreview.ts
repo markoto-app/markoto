@@ -66,8 +66,20 @@ export function usePagedPreview(opts: {
   const error = ref<string | null>(null)
 
   let iframe: HTMLIFrameElement | null = null
-  // If a render is requested before the iframe is ready, queue it. Only
-  // the latest pending render matters — earlier ones are coalesced.
+  // If a render is requested before the iframe is ready OR while a
+  // previous render is still in flight, queue it. Only the latest
+  // pending render matters — earlier ones are coalesced.
+  //
+  // Why we serialize despite the iframe-side `mount` ⇆ `pending` swap:
+  // paged.js's `previewer.preview(...)` is async and renders INTO
+  // `#pending`. If a second __renderDoc fires before the first's
+  // `replaceChildren` swap completes, the second clears pending mid-
+  // render-of-the-first AND begins its own preview. Whichever swap
+  // runs last races against an empty pending, leaving `#mount` empty
+  // even though both renders "succeeded". The user sees an empty
+  // preview pane (and screenshots / `.pagedjs_page` waits time out).
+  // Tracking this with `isPaginating` + a pendingRender flag confines
+  // any one in-flight render to one and only one swap.
   let pendingRender = false
 
   function handleMessage(e: MessageEvent) {
@@ -84,9 +96,18 @@ export function usePagedPreview(opts: {
     } else if (data.type === 'paginated') {
       pageCount.value = data.pageCount ?? 0
       isPaginating.value = false
+      // Drain any render request that arrived while we were busy.
+      if (pendingRender) {
+        pendingRender = false
+        render()
+      }
     } else if (data.type === 'iframe-error') {
       error.value = data.message ?? 'Preview failed to load.'
       isPaginating.value = false
+      if (pendingRender) {
+        pendingRender = false
+        render()
+      }
     } else if (data.type === 'print-shortcut') {
       opts.onPrintShortcut?.()
     }
@@ -99,6 +120,14 @@ export function usePagedPreview(opts: {
 
   function render() {
     if (!isReady.value || !iframe?.contentWindow) {
+      pendingRender = true
+      return
+    }
+    // Serialize against in-flight pagination — concurrent __renderDoc
+    // calls race the `#pending` ⇆ `#mount` swap and can land an empty
+    // `#mount`. The 'paginated' / 'iframe-error' handlers drain
+    // `pendingRender` once the current run terminates.
+    if (isPaginating.value) {
       pendingRender = true
       return
     }

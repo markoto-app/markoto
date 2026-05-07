@@ -85,8 +85,8 @@ const chunkMarkdown = vi.fn<(md: string, opts: { maxChunks: number }) => Array<{
 vi.mock('../../server/utils/chunkMarkdown', () => ({ chunkMarkdown }))
 
 const embedDocuments = vi.fn<(chunks: string[], opts: unknown) => Promise<number[][]>>()
-const resolveEmbeddingsConfig = vi.fn(() => ({ model: 'gemini-embedding-2-preview', dims: 768, apiKey: 'x' }))
-const embeddingVersionTag = vi.fn(() => 'gemini-embedding-2-preview:768')
+const resolveEmbeddingsConfig = vi.fn(() => ({ model: 'jina-embeddings-v5-text-nano', dims: 768, apiKey: 'x' }))
+const embeddingVersionTag = vi.fn(() => 'jina/jina-embeddings-v5-text-nano:768')
 vi.mock('../../server/utils/embeddings', () => ({
   embedDocuments,
   resolveEmbeddingsConfig,
@@ -302,7 +302,7 @@ describe('processKnowledge — happy path', () => {
       chunkCount: 2,
       tokenCount: 4,
       markdownCache: '# Hello\n\nBody',
-      embeddingVersion: 'gemini-embedding-2-preview:768',
+      embeddingVersion: 'jina/jina-embeddings-v5-text-nano:768',
       errorMessage: null
     })
 
@@ -381,18 +381,18 @@ describe('processKnowledge — pipeline exceptions', () => {
     })
   })
 
-  it('markFailed when embedDocuments throws (e.g. Gemini API error)', async () => {
+  it('markFailed when embedDocuments throws (e.g. Jina API error)', async () => {
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }])
     fetchMock.mockResolvedValueOnce(okResponse('# body'))
     chunkMarkdown.mockReturnValueOnce([{ index: 0, content: 'body', tokens: 1 }])
-    embedDocuments.mockRejectedValueOnce(new Error('Gemini rate limit: 429'))
+    embedDocuments.mockRejectedValueOnce(new Error('Jina rate limit: 429'))
 
     await processKnowledge('k1')
 
     expect(updateCalls).toHaveLength(1)
     expect((updateCalls[0]!.set as { status: string }).status).toBe('failed')
-    expect((updateCalls[0]!.set as { errorMessage: string }).errorMessage).toContain('Gemini rate limit')
+    expect((updateCalls[0]!.set as { errorMessage: string }).errorMessage).toContain('Jina rate limit')
   })
 
   it('truncates error messages longer than 500 chars (DB column sanity)', async () => {
@@ -476,8 +476,8 @@ describe('processKnowledge — embedding/chunk length mismatch (guarded)', () =>
   it('markFailed cleanly when embed returns FEWER vectors than chunks', async () => {
     // Adversarial test that originally documented a bug: `embeddings[i]!`
     // with a non-null assertion passed `undefined` to the drizzle insert
-    // when Gemini dropped a vector. The SUT now has a length-check guard;
-    // the test now verifies the guard works.
+    // when the upstream embedding provider dropped a vector. The SUT now
+    // has a length-check guard; the test now verifies the guard works.
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }])
     fetchMock.mockResolvedValueOnce(okResponse('# a\n\n# b\n\n# c'))

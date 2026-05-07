@@ -18,7 +18,8 @@ import type { UpdateThemeInput } from '../../server/utils/agentic/functionTools'
 
 describe('coerceThemePatch', () => {
   it('coerces headings.weight string enum to number', () => {
-    // Gemini-schema stability forces weight to be '600' not 600;
+    // Function-call schema stability (carried over from pre-Phase-5
+    // Gemini-era constraints) forces weight to be '600' not 600;
     // handler must un-stringify before isValidTheme (which expects a
     // number literal).
     const out = coerceThemePatch({ headings: { weight: '600' } } as UpdateThemeInput) as { headings: { weight: number } }

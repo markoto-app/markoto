@@ -7,14 +7,14 @@ import {
 } from '../../server/utils/agentic/streamStatus'
 
 // Status-string derivation + per-turn dedupe for the agentic loop.
-// Pure — no yjs, no network, no Gemini. Each tool branch gets pinned so
+// Pure — no yjs, no network, no LLM. Each tool branch gets pinned so
 // changes to the user-facing "Reading the document…" / "Editing …" etc.
 // phrasing are explicit edits rather than accidents.
 
 describe('describeToolInput — web_search', () => {
   it('includes the trimmed query in quotes', () => {
-    expect(describeToolInput('web_search', { query: 'gemini pricing' }))
-      .toBe('Searching the web for "gemini pricing"')
+    expect(describeToolInput('web_search', { query: 'mistral pricing' }))
+      .toBe('Searching the web for "mistral pricing"')
   })
 
   it('falls back to a generic message when query is empty / whitespace', () => {
@@ -271,8 +271,8 @@ describe('describeToolInput — fetch_url', () => {
 describe('describeToolInput — unknown names', () => {
   it('returns null so the loop leaves the previous status in place', () => {
     // Critical: unknown tool names must NOT yield a generic "Running
-    // …" message — that would flash a confusing status when Gemini
-    // emits a tool name we don't recognize. The loop fires an
+    // …" message — that would flash a confusing status when the
+    // model emits a tool name we don't recognize. The loop fires an
     // "unsupported tool" error response back to the model; status
     // stays as whatever it was.
     expect(describeToolInput('not_a_tool', {})).toBeNull()
@@ -289,9 +289,9 @@ describe('processChunk — dedupe + state machine', () => {
   })
 
   it('dedupes repeated chunks for the same (name, args) pair', () => {
-    // Gemini can re-emit a functionCall across multiple chunks as args
-    // fill in. Once we've announced it, further repetitions of the
-    // same (name + fingerprint) must be silent.
+    // The provider can re-emit a functionCall across multiple chunks
+    // as args fill in. Once we've announced it, further repetitions
+    // of the same (name + fingerprint) must be silent.
     const setStatus = vi.fn<(phase: StreamStatusPhase, msg?: string) => void>()
     const state = newStreamState()
     const call = { name: 'view_document', args: {} }

@@ -37,8 +37,7 @@ export default defineEventHandler(async (event) => {
     workspaces: plan.workspaces,
     aiUsage: {
       sessions: plan.aiSessionsToDelete,
-      sessionMessages: plan.aiSessionMessagesToDelete,
-      usagePeriodRows: plan.aiUsagePeriodRowsToDelete
+      sessionMessages: plan.aiSessionMessagesToDelete
     },
     dataExportJobs: plan.dataExportJobsToDelete.length,
     stripeCustomerWillBeDeleted: plan.stripeCustomerToDelete !== null,

@@ -38,7 +38,7 @@ We may suspend or terminate accounts that violate these terms.
 
 You own the documents and content you create on markoto. You grant us the limited licence required to host, sync, render, and back up your content for the purpose of operating the service.
 
-We do not use your content to train AI models. Our AI sub-processor (Google Gemini, paid API) does not use API content to train models on the tier we use.
+We do not use your content to train AI models. Our AI sub-processors (Mistral AI, Jina AI, Black Forest Labs — see `/legal/sub-processors` for the full list) do not use API content to train models on the tiers we use.
 
 ## 6. AI features
 

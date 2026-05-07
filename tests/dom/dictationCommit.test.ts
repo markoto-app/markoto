@@ -6,8 +6,9 @@ import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { commitDictationFinal } from '../../app/utils/dictationExtensions'
 
-// commitDictationFinal is the bridge between Cloud STT's finalized
-// transcript and the Y.js document. The logic is small but carries a
+// commitDictationFinal is the bridge between Voxtral Realtime's
+// finalized transcript and the Y.js document. The logic is small
+// but carries a
 // non-obvious UX choice: if the cursor lands inside a word, we inject
 // a leading space so "fo|o" + dictated "bar" yields "fo bar o", not
 // "fobaro". Same for the trailing edge. Regressions here would be
@@ -91,8 +92,9 @@ describe('commitDictationFinal', () => {
   })
 
   it('trims whitespace from the transcript before inserting', () => {
-    // Cloud STT sometimes returns a leading/trailing space that would
-    // double up with our own spacing logic. Trim first, then pad.
+    // The transcription upstream sometimes returns a leading/trailing
+    // space that would double up with our own spacing logic. Trim
+    // first, then pad.
     const view = makeViewWithY(ydoc, ytext, '', 0)
     commitDictationFinal(view, ydoc, ytext, 1, '   hello   ')
     expect(ytext.toString()).toBe('hello ')

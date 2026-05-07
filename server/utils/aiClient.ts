@@ -44,11 +44,19 @@ export interface AiSession {
   /** Plan that applies to the session. Same freeze-at-open rule as attributedTo. */
   plan: PlanName
   /**
-   * Billing-period start frozen at session-open. Every charge for
-   * this session lands on the same `ai_usage_period` row via this
-   * anchor. Paid users: Stripe anniversary. Free: calendar-month UTC.
+   * Billing-period start frozen at session-open. Used for periodEnd
+   * display in the AI Points UI. Paid users: Stripe anniversary;
+   * Free: calendar-month UTC.
    */
   periodStart: Date
+  /**
+   * Per-user (or per-(+)-workspace-owner) LiteLLM virtual-key bearer
+   * token. Frozen at session open so a mid-session plan lapse doesn't
+   * mid-rug the active session. Tool handlers pass this to
+   * `useLitellmForUser(virtualKey)` for any sub-call (BFL image gen,
+   * future Mistral synthesis, etc.).
+   */
+  virtualKey: string
   updateStatus(phase: AiStatusPhase, message?: string): void
   destroy(): Promise<void>
 }
@@ -67,6 +75,8 @@ export interface SessionMeta {
   plan: PlanName
   /** Billing-period start (Stripe anniversary for paid, calendar month for free). */
   periodStart: Date
+  /** LiteLLM virtual-key bearer token resolved at session open. */
+  virtualKey: string
   /**
    * When the session was triggered by an `@ai` mention in a comment
    * thread, the thread's id rides on awareness so all clients can show
@@ -238,6 +248,7 @@ export async function createAiSession(
     attributedTo: meta.attributedTo,
     plan: meta.plan,
     periodStart: meta.periodStart,
+    virtualKey: meta.virtualKey,
     updateStatus,
     destroy
   }

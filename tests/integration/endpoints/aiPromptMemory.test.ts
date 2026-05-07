@@ -16,13 +16,14 @@ import { createUser, createDoc } from '../setup/fixtures'
 // it on the first page" stops resolving "it" because the first
 // prompt's text isn't being loaded into the system prompt anymore).
 //
-// We DON'T run the agentic loop end-to-end (that needs Gemini, which
-// the integration suite doesn't talk to). The user_prompt append
-// happens BEFORE `runAgenticLoop` in `prompt.post.ts`, so even when
-// the downstream loop fails (no Gemini), the memory row is still
-// written. We poll for it because the append fires inside the
-// background `void async () => { ... }` block — the HTTP response
-// returns before the row is committed.
+// We DON'T run the agentic loop end-to-end (that needs the LLM
+// upstream, which the integration suite doesn't talk to). The
+// user_prompt append happens BEFORE `runAgenticLoop` in
+// `prompt.post.ts`, so even when the downstream loop fails (no
+// upstream), the memory row is still written. We poll for it
+// because the append fires inside the background `void async () =>
+// { ... }` block — the HTTP response returns before the row is
+// committed.
 
 async function pollForMessageRow(
   docId: string,
@@ -99,42 +100,12 @@ describe('POST /api/ai/prompt — conversation memory wiring', () => {
     expect(Number(r.rows[0].c)).toBe(0)
   })
 
-  it('does NOT append a memory row when the budget gate fires (402 is pre-loop)', async () => {
-    // The user_prompt append lives inside the background block AFTER
-    // session-open. A 402 on session-open returns before any
-    // background work runs — no row should land. Pin this so that
-    // budget-exhausted users don't silently grow their memory table
-    // with prompts that never ran.
-    const u = await createUser()
-    const doc = await createDoc({ ownerId: u.id })
-    // Seed exhaustion at the free-tier cap.
-    const db = testDb()
-    const periodStart = new Date()
-    periodStart.setUTCDate(1)
-    periodStart.setUTCHours(0, 0, 0, 0)
-    await db.query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, $2, $3)`,
-      [`user:${u.id}`, periodStart, 100]
-    )
-
-    const client = await loggedInClient(u.id)
-    const res = await client.post('/api/ai/prompt', {
-      docId: doc.docId,
-      prompt: 'this will be rejected'
-    })
-    expect(res.status).toBe(402)
-
-    // Brief delay so any (incorrectly-fired) background append has a
-    // chance to land before we assert "still empty". 500ms is plenty
-    // for an in-process append; in practice the work simply doesn't
-    // run on the 402 path.
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    const r = await db.query<{ c: string }>(
-      `SELECT COUNT(*) AS c FROM ai_session_messages WHERE doc_id = $1 AND user_id = $2`,
-      [doc.docId, u.id]
-    )
-    expect(Number(r.rows[0].c)).toBe(0)
-  })
+  // Phase 6: budget enforcement moved to LiteLLM virtual keys; the
+  // app-side 402-pre-check on /api/ai/prompt is gone (no app-side
+  // counter to read). The runLoop catches the proxy's 429-translation
+  // (`LitellmBudgetExhausted` / `isBudgetExceededError`) and emits a
+  // breadcrumb instead. The pre-Phase-6 "no orphan memory row on a
+  // budget-rejected prompt" guarantee no longer holds at the
+  // session-open boundary because the open succeeds — the rejection
+  // happens once the first stream call hits the proxy.
 })

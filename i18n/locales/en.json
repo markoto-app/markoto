@@ -467,12 +467,19 @@
     "budgetExhaustedTitle": "Out of AI credits",
     "budgetExhaustedDescription": "You've used all your AI credits for this billing period. Upgrade your plan to keep going.",
     "exhaustedPlaceholder": "Out of AI credits — upgrade to continue",
+    "workspaceBudgetExhaustedTitle": "Workspace AI budget used up",
+    "workspaceBudgetExhaustedDescription": "This workspace's shared AI budget is exhausted for the current billing period. Contact the workspace owner to refill or upgrade.",
+    "workspaceExhaustedPlaceholder": "Workspace AI budget used up — contact owner",
     "upgradeCta": "Upgrade",
     "remainingLabel": "{remaining} of {limit} AI credits left this month",
     "responseLabel": "markoto says",
     "responseQuestionLabel": "markoto is asking",
     "responseDismiss": "Dismiss",
-    "responseShowLast": "Last response from markoto"
+    "responseShowLast": "Last response from markoto",
+    "errors": {
+      "duplicateSession": "You already have a markoto session running on this document.",
+      "abortNotInitiator": "Only the person who started this markoto session can stop it."
+    }
   },
   "mobileTabBar": {
     "label": "Document panels",

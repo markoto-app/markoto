@@ -11,9 +11,10 @@ featured: true
 Workspaces have a Knowledge tab — drop in PDFs, Word docs, HTML
 exports, the team's RFCs, customer FAQs. markoto converts them to
 markdown via markitdown, splits them into heading-aware chunks, embeds
-each chunk with Gemini, and indexes both the vector AND a tsvector for
-hybrid retrieval. The AI gets a `search_knowledge` tool that hits this
-index automatically when your prompt smells like a knowledge question.
+each chunk via Jina v5-text-nano (through the LiteLLM proxy), and
+indexes both the vector AND a tsvector for hybrid retrieval. The AI
+gets a `search_knowledge` tool that hits this index automatically when
+your prompt smells like a knowledge question.
 
 This walkthrough uploads a Q3 launch postmortem and asks the AI to
 summarise what it said about staged rollouts. The AI returns specific
@@ -36,9 +37,9 @@ that only the file knows the answer to. The pipeline:
    open-source library) converts the file to markdown.
 4. **Chunk** — heading-aware splitter, capped at 300 chunks per file
    with sentinel truncation.
-5. **Embed** — Gemini's `gemini-embedding-2-preview` model, 768-d
-   via output-dimensionality MRL truncation. One vector per chunk,
-   bounded concurrency of 5 in-flight embedding requests.
+5. **Embed** — Jina `jina-embeddings-v5-text-nano`, natively 768-d
+   (no MRL truncation). One vector per chunk, bounded concurrency
+   of 5 in-flight embedding requests.
 6. **Index** — pgvector HNSW for cosine search + GIN on tsvector
    for BM25-style lexical match.
 
@@ -69,14 +70,6 @@ Mid-session membership drift is handled defensively: the AI session's
 tool handlers re-check `getMemberRole(workspaceId, userId)` on every
 invocation. An admin demoting you mid-session immediately revokes
 further knowledge access at the next tool call.
-
-## On mobile
-
-The Knowledge tab is in the right-sidebar bottom sheet — same upload,
-same processing, same search behind the scenes.
-
-::flow{id="knowledge-grounded-ai-on-mobile" hide-title}
-::
 
 ## What's next
 

@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 
 // Tier 1, AI Flow: "Ask the AI to draft something for you".
 //
@@ -6,20 +6,17 @@ import { test, expect } from '../fixtures/flow'
 // restructure it without leaving the doc. Job done when the AI's
 // edits land in the document body and the bar returns to idle.
 //
-// This flow runs against the LIVE Gemini API — there's no fixture or
-// mock. The output is therefore non-deterministic between runs (the
-// model picks fresh wording each time), but the assertions check
-// behaviour, not exact text. NUXT_GOOGLE_GEMINI_API_KEY must be
-// forwarded into the ephemeral subprocess (see scripts/flows-
-// ephemeral.ts); without it we skip rather than fail loudly so a
-// developer running the suite without an API key gets a clean signal.
+// This flow runs against the LIVE LiteLLM proxy → Mistral — there's
+// no fixture or mock. The output is therefore non-deterministic
+// between runs (the model picks fresh wording each time), but the
+// assertions check behaviour, not exact text. MISTRAL_API_KEY +
+// JINA_AI_API_KEY + BFL_API_KEY must be forwarded into the LiteLLM
+// proxy via scripts/flows-ephemeral.ts; `requireLiveAi()` enforces
+// that up-front rather than failing mid-stream.
 
 test('Write with AI', async ({ page, flow, editor }) => {
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows — set it in the host shell before `bun run flows:test`.'
-  )
-  // 6 minutes: the agentic loop can take 5-30s per Gemini turn, and
+  requireLiveAi()
+  // 6 minutes: the agentic loop can take 5-30s per Mistral turn, and
   // multi-tool runs chain several. A simple "extend this" prompt
   // typically resolves in ~15-30s but worst-case (web_search +
   // multiple turns) can hit 2-3 min. 6 min is the budget; failures
@@ -123,7 +120,7 @@ test('Write with AI', async ({ page, flow, editor }) => {
 
   // Idle = the agentic loop terminated. Could be `done` (success),
   // `aborted` (user cancelled), or `error`. We don't gate on the
-  // status string because Gemini is non-deterministic — sometimes
+  // status string because the model is non-deterministic — sometimes
   // the model emits a doc edit and a status='done', sometimes it
   // surfaces a status='error' on safety / context issues. The
   // user-visible signal is "bar is idle again" either way.

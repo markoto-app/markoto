@@ -28,11 +28,9 @@ nuxt_s3_access_key: "REPLACE_ME"
 nuxt_s3_secret_key: "REPLACE_ME"
 nuxt_s3_bucket: "REPLACE_ME"
 
-# ─── Google AI keys (split — see AGENTS.md §7) ───
-nuxt_google_gemini_api_key: "REPLACE_ME"
-nuxt_google_speech_to_text_api_key: "REPLACE_ME"
+# ─── AI dictate JWT (Phase 5: every AI surface routes through LiteLLM) ───
 # Optional dedicated dictation-JWT secret. Empty falls back to nuxt_jwt_secret.
-nuxt_google_dictate_jwt_secret: ""
+nuxt_ai_dictate_jwt_secret: ""
 
 # ─── OAuth (optional pairs — both-or-neither per provider) ───
 nuxt_oauth_github_client_id: ""

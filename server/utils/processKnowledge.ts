@@ -14,7 +14,7 @@ import { injectTraceHeaders } from './traceHeaders'
  *   2. POST to the markitdown service — same endpoint the user-facing
  *      /api/import uses, so we share all format support for free.
  *   3. Chunk the returned markdown.
- *   4. Embed each chunk (batched) with Gemini.
+ *   4. Embed each chunk (batched) via LiteLLM → Jina v5-text-nano.
  *   5. Persist chunks + flip the parent row to status='ready'.
  *
  * This runs fire-and-forget from the confirm endpoint. A sweep plugin

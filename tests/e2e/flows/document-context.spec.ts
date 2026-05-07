@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 
 // Tier 2: "Tell the AI who you're writing for".
 //
@@ -13,23 +13,21 @@ import { test, expect } from '../fixtures/flow'
 // + Deutsch language + a real description — and demonstrate that one
 // AI call produces output shaped by the context.
 //
-// Live Gemini call. NUXT_GOOGLE_GEMINI_API_KEY required (forwarded
-// from the host into the prod test stack via flows-ephemeral.ts).
+// Live LiteLLM round-trip → Mistral. MISTRAL_API_KEY required (forwarded
+// from the host into the LiteLLM proxy via flows-ephemeral.ts).
 //
-// Desktop only: the Document panel mounts in the right sidebar
-// (`< xl` overlays it; `xl+` keeps it as the third pane). Mobile
-// surfaces the same panel via the bottom tab bar but at narrow
-// widths the form scrolls below the fold; the desktop layout shows
-// every field in one screen.
+// Runs on desktop AND mobile. Same Document panel + AI prompt
+// pipeline; entry point differs:
+//   - Desktop: right-sidebar Document tab.
+//   - Mobile: bottom-tab-bar Info/Document tab (opens the same panel
+//     in a bottom sheet). Form fields scroll below the fold at narrow
+//     widths but the asserted server state + AI output are identical.
+// (Until Phase 6.30 there was a `document-context-mobile.spec.ts`
+//  sibling carrying mobile-specific narration. Deleted as part of the
+//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
+//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
 test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Document context tour is desktop-only — the form fits in the right sidebar at desktop widths but scrolls below the fold on mobile narrow.'
-  )
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows — set it in the host shell before `bun run flows:test`.'
-  )
+  requireLiveAi()
   test.setTimeout(360_000)
 
   // AI requires a session; same TEST_MODE login shim the other AI
@@ -49,13 +47,19 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     + 'on every "rewrite this" / "extend this" / "draft a section".'
   )
 
+  // Desktop: right-sidebar Document tab; mobile: bottom-tab-bar
+  // Info entry that opens the same panel in a sheet.
+  const documentTab = editor.isMobile
+    ? editor.page.mobileTabs.document
+    : editor.page.sidebar.document
+
   await flow.click(
-    'Click the Document tab in the right sidebar',
-    editor.page.sidebar.document,
+    editor.isMobile ? 'Tap the Info tab on the bottom bar' : 'Click the Document tab in the right sidebar',
+    documentTab,
     {
-      annotations: [
-        { label: 'document tab', selector: '[data-testid="sidebar-tab-document"]', kind: 'arrow' }
-      ],
+      annotations: editor.isMobile
+        ? []
+        : [{ label: 'document tab', selector: '[data-testid="sidebar-tab-document"]', kind: 'arrow' }],
       result: 'The Document panel opens — Description, Language, Audience, '
         + 'Template, all editable in place.',
       after: () => page.locator('#doc-description').waitFor({ state: 'visible' })
@@ -81,49 +85,92 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     }
   )
 
-  // Audience: USelect (Reka button + popover). Click the trigger,
-  // then click the option by its visible label.
-  await flow.click(
-    'Open the Audience dropdown',
-    page.locator('#doc-audience'),
-    {
-      result: 'The audience options appear — six writing registers.',
-      after: () => page.getByRole('option', { name: /marketing/i }).first().waitFor({ state: 'visible' })
-    }
-  )
-  await flow.click(
-    'Pick "Marketing / SEO"',
-    page.getByRole('option', { name: /marketing/i }).first(),
-    {
-      result: 'The audience switches to Marketing — the AI now knows to '
-        + 'write benefit-led, scannable, customer-facing prose.',
-      after: () => page.locator('#doc-audience').waitFor({ state: 'visible' })
-    }
-  )
+  // Audience: USelect (Reka button + popover). On mobile the
+  // Document panel renders inside a `mk-sheet-host` bottom sheet that
+  // keeps intercepting pointer events on the option list (Reka
+  // portals the popover but the sheet overlay's `aria-hidden="true"`
+  // doesn't prevent pointer routing). Force-click to bypass the
+  // actionability check there. Desktop has no overlay so the
+  // standard click works.
+  if (editor.isMobile) {
+    await flow.step(
+      'Open the Audience dropdown',
+      async () => {
+        await page.locator('#doc-audience').click({ force: true })
+        await page.getByRole('option', { name: /marketing/i }).first().waitFor({ state: 'visible' })
+      },
+      { result: 'The audience options appear.' }
+    )
+    await flow.step(
+      'Pick "Marketing / SEO"',
+      async () => {
+        await page.getByRole('option', { name: /marketing/i }).first().click({ force: true })
+        await page.locator('#doc-audience').waitFor({ state: 'visible' })
+      },
+      { result: 'The audience switches to Marketing.' }
+    )
+  } else {
+    await flow.click(
+      'Open the Audience dropdown',
+      page.locator('#doc-audience'),
+      {
+        result: 'The audience options appear — six writing registers.',
+        after: () => page.getByRole('option', { name: /marketing/i }).first().waitFor({ state: 'visible' })
+      }
+    )
+    await flow.click(
+      'Pick "Marketing / SEO"',
+      page.getByRole('option', { name: /marketing/i }).first(),
+      {
+        result: 'The audience switches to Marketing — the AI now knows to '
+          + 'write benefit-led, scannable, customer-facing prose.',
+        after: () => page.locator('#doc-audience').waitFor({ state: 'visible' })
+      }
+    )
+  }
 
-  // Language: UInputMenu (Reka combobox). Type to filter, press
-  // Enter to commit. Typing "Deutsch" matches the `de` preset's
-  // label, so Enter picks the preset (NOT the create-item branch).
-  await flow.type(
-    'Type "Deutsch" in the Language field',
-    page.locator('#doc-language'),
-    'Deutsch',
-    {
-      result: 'The Deutsch preset surfaces in the suggestions — Enter to commit.',
-      after: () => page.getByRole('option', { name: /deutsch/i }).first().waitFor({ state: 'visible', timeout: 5_000 })
-    }
-  )
-  await flow.click(
-    'Pick "Deutsch"',
-    page.getByRole('option', { name: /deutsch/i }).first(),
-    {
-      result: 'The language switches to Deutsch — every AI prompt now ends '
-        + 'with "Write all prose in Deutsch."',
-      // The combobox closes its popover on selection; wait a beat for
-      // the input value to reflect the chosen item.
-      after: () => page.waitForTimeout(500)
-    }
-  )
+  // Language: UInputMenu (Reka combobox). Same bottom-sheet
+  // intercept on mobile → force-click pattern.
+  if (editor.isMobile) {
+    await flow.step(
+      'Type "Deutsch" in Language',
+      async () => {
+        await page.locator('#doc-language').click({ force: true })
+        await page.locator('#doc-language').pressSequentially('Deutsch')
+        await page.getByRole('option', { name: /deutsch/i }).first().waitFor({ state: 'visible', timeout: 5_000 })
+      },
+      { result: 'The Deutsch preset surfaces in the suggestions.' }
+    )
+    await flow.step(
+      'Tap "Deutsch"',
+      async () => {
+        await page.getByRole('option', { name: /deutsch/i }).first().click({ force: true })
+        await page.waitForTimeout(500)
+      },
+      { result: 'The language switches to Deutsch.' }
+    )
+  } else {
+    await flow.type(
+      'Type "Deutsch" in the Language field',
+      page.locator('#doc-language'),
+      'Deutsch',
+      {
+        result: 'The Deutsch preset surfaces in the suggestions — Enter to commit.',
+        after: () => page.getByRole('option', { name: /deutsch/i }).first().waitFor({ state: 'visible', timeout: 5_000 })
+      }
+    )
+    await flow.click(
+      'Pick "Deutsch"',
+      page.getByRole('option', { name: /deutsch/i }).first(),
+      {
+        result: 'The language switches to Deutsch — every AI prompt now ends '
+          + 'with "Write all prose in Deutsch."',
+        // The combobox closes its popover on selection; wait a beat for
+        // the input value to reflect the chosen item.
+        after: () => page.waitForTimeout(500)
+      }
+    )
+  }
 
   // ─── Ask the AI ─────────────────────────────────────────────────
   await flow.heading('Ask the AI for an intro', 3)
@@ -134,13 +181,21 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     + 'plain English; the AI returns marketing-tone Deutsch.'
   )
 
+  // On mobile the Document panel still owns a `mk-sheet-host` overlay
+  // that intercepts taps on the AI prompt bar. Close it first via
+  // Escape (BottomSheet's host listens on `document` for keydown).
+  if (editor.isMobile) {
+    await page.keyboard.press('Escape')
+    await page.locator('.mk-sheet-host').waitFor({ state: 'detached', timeout: 5_000 })
+  }
+
   await flow.click(
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,
     {
-      annotations: [
-        { label: 'prompt bar', selector: '[data-testid="ai-prompt-bar"]', kind: 'arrow' }
-      ],
+      annotations: editor.isMobile
+        ? []
+        : [{ label: 'prompt bar', selector: '[data-testid="ai-prompt-bar"]', kind: 'arrow' }],
       result: 'The prompt bar lifts and glows — ready for your prompt.'
     }
   )
@@ -186,7 +241,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   // ASSERTION: the doc grew (silentSetup leaves the welcome doc
   // ~30 lines; a successful AI run should land at least one new
   // line of body text). We don't assert on language detection or
-  // exact wording — Gemini's output varies — but a non-trivial
+  // exact wording — the model's output varies — but a non-trivial
   // word count means the AI did something.
   const doc = page.locator('.cm-content')
   const wordCount = await doc.evaluate(el => (el.textContent ?? '').split(/\s+/).filter(Boolean).length)

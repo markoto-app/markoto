@@ -36,6 +36,7 @@ const {
   probeSync,
   probeRenderer,
   probeMarkitdown,
+  probeLitellm,
   runAllProbes,
   isOverallHealthy,
   getCachedHealth,
@@ -144,7 +145,8 @@ describe('runAllProbes + isOverallHealthy', () => {
     const r = await runAllProbes({
       syncUrl: 'http://sync:4001',
       rendererUrl: 'http://renderer:9000',
-      markitdownUrl: 'http://markitdown:8080'
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000'
     })
     expect(isOverallHealthy(r)).toBe(true)
     expect(r.postgres.status).toBe('ok')
@@ -152,6 +154,7 @@ describe('runAllProbes + isOverallHealthy', () => {
     expect(r.sync.status).toBe('ok')
     expect(r.renderer.status).toBe('ok')
     expect(r.markitdown.status).toBe('ok')
+    expect(r.litellm.status).toBe('ok')
   })
 
   it('postgres down → degraded', async () => {
@@ -162,7 +165,8 @@ describe('runAllProbes + isOverallHealthy', () => {
     const r = await runAllProbes({
       syncUrl: 'http://sync:4001',
       rendererUrl: 'http://renderer:9000',
-      markitdownUrl: 'http://markitdown:8080'
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000'
     })
     expect(isOverallHealthy(r)).toBe(false)
     expect(r.postgres.status).toBe('down')
@@ -176,7 +180,8 @@ describe('runAllProbes + isOverallHealthy', () => {
     const r = await runAllProbes({
       syncUrl: 'http://sync:4001',
       rendererUrl: 'http://renderer:9000',
-      markitdownUrl: 'http://markitdown:8080'
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000'
     })
     expect(isOverallHealthy(r)).toBe(false)
     expect(r.valkey.status).toBe('down')
@@ -185,17 +190,20 @@ describe('runAllProbes + isOverallHealthy', () => {
 
   it('sync 500 → degraded', async () => {
     let callCount = 0
-    vi.spyOn(globalThis, 'fetch').mockImplementation(((_u: string) => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(((url: string) => {
       callCount++
-      // First HTTP probe (sync) returns 500, others 200.
-      const status = callCount === 1 ? 500 : 200
+      // sync URL returns 500, others 200. Match by URL since probe order
+      // is non-deterministic across Promise.allSettled.
+      const status = url.includes('sync:4001') ? 500 : 200
       return Promise.resolve(new Response('', { status }))
     }) as typeof fetch)
     const r = await runAllProbes({
       syncUrl: 'http://sync:4001',
       rendererUrl: 'http://renderer:9000',
-      markitdownUrl: 'http://markitdown:8080'
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000'
     })
+    expect(callCount).toBeGreaterThan(0)
     expect(isOverallHealthy(r)).toBe(false)
     expect(r.sync.status).toBe('down')
   })
@@ -205,12 +213,46 @@ describe('runAllProbes + isOverallHealthy', () => {
     const r = await runAllProbes({
       syncUrl: 'http://sync:4001',
       rendererUrl: '', // unconfigured
-      markitdownUrl: 'http://markitdown:8080'
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000'
     })
     expect(r.renderer.status).toBe('skipped')
     // Skipped probes don't flag overall-down — the instance still serves
     // its primary path. Documented in healthProbes.ts.
     expect(isOverallHealthy(r)).toBe(true)
+  })
+
+  it('LiteLLM probe hits /health/liveliness specifically (not /health)', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(fakeFetch(200))
+    await probeLitellm('http://litellm:4000')
+    expect(spy).toHaveBeenCalledWith('http://litellm:4000/health/liveliness', expect.any(Object))
+  })
+
+  it('unconfigured LiteLLM URL is skipped (not down)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(fakeFetch(200))
+    const r = await runAllProbes({
+      syncUrl: 'http://sync:4001',
+      rendererUrl: 'http://renderer:9000',
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: ''
+    })
+    expect(r.litellm.status).toBe('skipped')
+    expect(isOverallHealthy(r)).toBe(true)
+  })
+
+  it('LiteLLM down → degraded', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(((url: string) => {
+      const status = url.includes('litellm') ? 503 : 200
+      return Promise.resolve(new Response('', { status }))
+    }) as typeof fetch)
+    const r = await runAllProbes({
+      syncUrl: 'http://sync:4001',
+      rendererUrl: 'http://renderer:9000',
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000'
+    })
+    expect(r.litellm.status).toBe('down')
+    expect(isOverallHealthy(r)).toBe(false)
   })
 
   it('two calls within healthy TTL → one probe round', async () => {
@@ -224,20 +266,22 @@ describe('runAllProbes + isOverallHealthy', () => {
     const r1 = await getCachedHealth({
       syncUrl: 'http://sync',
       rendererUrl: 'http://renderer',
-      markitdownUrl: 'http://md'
+      markitdownUrl: 'http://md',
+      litellmUrl: 'http://litellm:4000'
     })
     const r2 = await getCachedHealth({
       syncUrl: 'http://sync',
       rendererUrl: 'http://renderer',
-      markitdownUrl: 'http://md'
+      markitdownUrl: 'http://md',
+      litellmUrl: 'http://litellm:4000'
     })
 
     expect(r1).toBe(r2) // same cached object
     expect(r1.status).toBe(200)
     expect(dbSpy).toHaveBeenCalledTimes(1)
     expect(valkeySpy).toHaveBeenCalledTimes(1)
-    // 3 HTTP probes per probe round, only one round.
-    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    // 4 HTTP probes per round (sync, renderer, markitdown, litellm).
+    expect(fetchSpy).toHaveBeenCalledTimes(4)
   })
 
   it('degraded result is cached + reports per-component checks', async () => {
@@ -249,7 +293,8 @@ describe('runAllProbes + isOverallHealthy', () => {
     const cached = await getCachedHealth({
       syncUrl: 'http://sync',
       rendererUrl: 'http://renderer',
-      markitdownUrl: 'http://md'
+      markitdownUrl: 'http://md',
+      litellmUrl: 'http://litellm:4000'
     })
     expect(cached.status).toBe(503)
     expect(cached.body.status).toBe('degraded')
@@ -266,7 +311,8 @@ describe('runAllProbes + isOverallHealthy', () => {
     await runAllProbes({
       syncUrl: 'http://sync:4001',
       rendererUrl: 'http://renderer:9000',
-      markitdownUrl: 'http://markitdown:8080'
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000'
     })
     const elapsed = performance.now() - t0
     expect(elapsed).toBeLessThan(250)

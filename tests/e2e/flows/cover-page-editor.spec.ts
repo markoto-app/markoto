@@ -13,24 +13,22 @@ import { test, expect } from '../fixtures/flow'
 // editing surface is the longest accordion in the theme panel AND
 // the one that's most often "I didn't know markoto could do that".
 //
-// Desktop only: half the visual story is the live-preview iframe
-// re-rendering after every theme change; the iframe is hidden below
-// the `sm` breakpoint by the same logic that hides it from the
-// editor's split view.
+// Runs on desktop AND mobile. The Cover accordion + its fields
+// (layout select, subtitle switch + input) live inside the same
+// theme panel either way. Mobile is edit-only (`v-if="viewMode !==
+// 'edit'"` keeps the preview iframe unmounted under `<sm`), so the
+// "watch the cover repaint live" beat is invisible there. The
+// asserted server state (`theme.cover.{enabled, layout, showSubtitle,
+// subtitle}` persisted via PUT /meta) is identical.
 test('Edit your cover page', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Cover-page editing pairs the form fields with the live preview'
-    + ' iframe re-rendering on every change. The preview is hidden'
-    + ' below the `sm` breakpoint, so half the demo is invisible on'
-    + ' mobile.'
-  )
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
   await editor.page.createBlankDocWithTitle('Q3 product launch playbook')
-  await editor.page.switchToSplitView()
-  await editor.page.waitForPreviewPaginated()
+  if (!editor.isMobile) {
+    await editor.page.switchToSplitView()
+    await editor.page.waitForPreviewPaginated()
+  }
 
   await flow.heading('Edit your cover page', 3)
   await flow.narrate(
@@ -43,13 +41,18 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
   )
 
   // ─── Open the theme panel + the cover accordion ─────────────────
+  // Desktop: right-sidebar Theme tab; mobile: bottom-tab-bar Theme.
+  const themeTab = editor.isMobile
+    ? editor.page.mobileTabs.theme
+    : editor.page.sidebar.theme
+
   await flow.click(
-    'Open the theme panel',
-    editor.page.sidebar.theme,
+    editor.isMobile ? 'Tap the Theme tab on the bottom bar' : 'Open the theme panel',
+    themeTab,
     {
-      annotations: [
-        { label: 'theme tab', selector: '[data-testid="sidebar-tab-theme"]', kind: 'arrow' }
-      ],
+      annotations: editor.isMobile
+        ? []
+        : [{ label: 'theme tab', selector: '[data-testid="sidebar-tab-theme"]', kind: 'arrow' }],
       result: 'The theme panel opens to the preset cards + section accordions.',
       after: () => editor.page.theme.coverSection.waitFor({ state: 'visible', timeout: 5_000 })
     }
@@ -75,24 +78,67 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     + 'page 1. The preview repaginates after each pick.'
   )
 
-  // USelect renders as a button-trigger combobox. Click to open.
+  // USelect renders as a button-trigger combobox. On mobile the
+  // theme panel runs inside a `mk-sheet-host` bottom sheet, and the
+  // sheet's `aria-hidden="true"` doesn't stop pointer events from
+  // routing to its children — Reka portals the popover but the
+  // sheet's labels still intercept. Force-click to bypass the
+  // actionability check (matches the pattern in the document-context
+  // mobile branch).
   const layoutSelect = page.locator('[data-testid="theme-cover-layout-select"]')
-  await flow.click(
-    'Open the layout dropdown',
-    layoutSelect,
-    {
-      result: 'The four cover layouts list — pick one to preview it.',
-      after: () => page.getByRole('option', { name: /banner/i }).first().waitFor({ state: 'visible', timeout: 3_000 })
-    }
-  )
-  await flow.click(
-    'Choose "Banner — logo + title in a brand-tinted top band"',
-    page.getByRole('option', { name: /banner/i }).first(),
-    {
-      result: 'The cover repaints — Banner layout drops a brand-tinted band across the top of page 1.',
-      after: () => page.waitForTimeout(900)
-    }
-  )
+  if (editor.isMobile) {
+    await flow.step(
+      'Open the layout dropdown',
+      async () => {
+        await layoutSelect.click({ force: true })
+        await page.getByRole('option', { name: /banner/i }).first().waitFor({ state: 'visible', timeout: 3_000 })
+      },
+      { result: 'The four cover layouts list.' }
+    )
+    await flow.step(
+      'Pick "Banner"',
+      async () => {
+        // Reka USelect listens on pointerdown/pointerup (Radix-style),
+        // NOT plain click events. Force-click + DOM `el.click()` both
+        // produced just a MouseEvent — neither fires the selection
+        // handler when the popover is rendered inside a `mk-sheet-host`
+        // bottom sheet (the sheet's portal stacking + aria-hidden
+        // shenanigans confuse Reka's pointer-capture). Dispatch the
+        // proper pointerdown→pointerup→click sequence on the option
+        // so Reka's listener actually fires the value change.
+        await page.getByRole('option', { name: /banner/i }).first().evaluate((el: HTMLElement) => {
+          const fire = (type: string) => el.dispatchEvent(new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            pointerType: 'mouse',
+            isPrimary: true
+          }))
+          fire('pointerdown')
+          fire('pointerup')
+          el.click()
+        })
+        await page.waitForTimeout(900)
+      },
+      { result: 'The Banner layout takes effect.' }
+    )
+  } else {
+    await flow.click(
+      'Open the layout dropdown',
+      layoutSelect,
+      {
+        result: 'The four cover layouts list — pick one to preview it.',
+        after: () => page.getByRole('option', { name: /banner/i }).first().waitFor({ state: 'visible', timeout: 3_000 })
+      }
+    )
+    await flow.click(
+      'Choose "Banner — logo + title in a brand-tinted top band"',
+      page.getByRole('option', { name: /banner/i }).first(),
+      {
+        result: 'The cover repaints — Banner layout drops a brand-tinted band across the top of page 1.',
+        after: () => page.waitForTimeout(900)
+      }
+    )
+  }
 
   // ─── Add a subtitle ─────────────────────────────────────────────
   await flow.heading('Add a subtitle line', 3)
@@ -119,8 +165,12 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
       hero: true,
       result: 'The subtitle lands on the cover. The PDF will open on this page.',
       after: () => page.waitForTimeout(900),
+      // Highlight the subtitle input on mobile (no preview iframe to
+      // point at); on desktop the iframe IS the payoff visual.
       highlights: [
-        { label: 'Live preview — page 1 is your cover', selector: 'iframe' }
+        editor.isMobile
+          ? { label: 'Subtitle persisted — verifies via PUT /meta', selector: '[data-testid="theme-cover-subtitle-input"]' }
+          : { label: 'Live preview — page 1 is your cover', selector: 'iframe' }
       ]
     }
   )

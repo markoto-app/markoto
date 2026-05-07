@@ -16,13 +16,13 @@ import path from 'node:path'
 //   3. .docx fixtures need binary tooling to generate; HTML is
 //      check-in-friendly as plain text.
 //
-// Desktop-only: the menubar (File → Import) is hidden on mobile,
-// and the mobile editor commands drawer doesn't surface Import.
+// Runs on desktop AND mobile. Same import dialog + markitdown
+// conversion pipeline; entry point differs:
+//   - Desktop: File → Import…
+//   - Mobile: hamburger ("more") → Import…
+// (`mobileMenuItems` in EditorLayout.vue surfaces Import alongside
+// New / Export / Print at the top of the file group.)
 test('Import existing document', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Import is desktop-only — File menu is hidden on `<sm` and the mobile commands drawer omits Import.'
-  )
   test.setTimeout(120_000)
 
   // Login + disable cover so the imported content is the FIRST
@@ -42,18 +42,28 @@ test('Import existing document', async ({ page, flow, editor }) => {
     + 'since you’re going to re-style with a markoto theme anyway.'
   )
 
-  // Open File menu — same plain-button trigger pattern as polished-pdf.
-  const fileMenuTrigger = page.locator('nav[aria-label="Menu bar"] > button').first()
+  // Open the menu containing Import.
+  // Desktop: top-level File menu (hidden on mobile via `hidden sm:block`).
+  // Mobile: hamburger ("more") in the topbar.
+  const openMenuTrigger = editor.isMobile
+    ? page.getByRole('button', { name: /^menu$/i }).first()
+    : page.locator('nav[aria-label="Menu bar"] > button').first()
+
   await flow.click(
-    'Click the File menu',
-    fileMenuTrigger,
-    {
-      annotations: [
-        { label: 'file menu', selector: 'nav[aria-label="Menu bar"] > button:first-child', kind: 'arrow' }
-      ],
-      result: 'The File menu opens — Import sits above Export.',
-      after: () => page.getByRole('menuitem', { name: /^import/i }).first().waitFor({ state: 'visible' })
-    }
+    editor.isMobile ? 'Open the topbar menu' : 'Click the File menu',
+    openMenuTrigger,
+    editor.isMobile
+      ? {
+          result: 'The topbar menu opens — Import sits in the file actions.',
+          after: () => page.getByRole('menuitem', { name: /^import/i }).first().waitFor({ state: 'visible' })
+        }
+      : {
+          annotations: [
+            { label: 'file menu', selector: 'nav[aria-label="Menu bar"] > button:first-child', kind: 'arrow' }
+          ],
+          result: 'The File menu opens — Import sits above Export.',
+          after: () => page.getByRole('menuitem', { name: /^import/i }).first().waitFor({ state: 'visible' })
+        }
   )
 
   // Click Import — opens the modal.
@@ -149,8 +159,13 @@ test('Import existing document', async ({ page, flow, editor }) => {
       after: async () => {
         await expect(page.locator('.cm-content')).toContainText(/Q3 launch postmortem/i, { timeout: 30_000 })
         // Re-paginate the preview so the outcome shot lands on a
-        // populated page, not a transitional blank one.
-        await editor.page.waitForPreviewPaginated()
+        // populated page, not a transitional blank one. Mobile is
+        // edit-only (`v-if="viewMode !== 'edit'"` keeps the preview
+        // iframe unmounted under `<sm`), so there's no iframe to
+        // wait on — `cm-content` text is the only useful signal.
+        if (!editor.isMobile) {
+          await editor.page.waitForPreviewPaginated()
+        }
       }
     }
   )

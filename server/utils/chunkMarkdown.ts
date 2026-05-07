@@ -21,8 +21,9 @@
  *     this function we're working with clean markdown.
  *
  * Tokens are estimated as chars/4 — good enough for budgeting and avoids
- * pulling tokenizer deps in. The consuming Gemini call has its own hard
- * cap and will truncate if we under-estimate on edge cases (CJK text).
+ * pulling tokenizer deps in. The consuming embedding call (Jina via
+ * LiteLLM) has its own hard cap and will truncate if we under-estimate
+ * on edge cases (CJK text).
  */
 
 export interface ChunkMarkdownOptions {
@@ -35,7 +36,7 @@ export interface ChunkMarkdownOptions {
   /**
    * Hard ceiling on number of chunks the splitter will emit. Caps the
    * blast radius on pathological inputs (e.g. 25 MB of single-word
-   * lines) — each chunk becomes one Gemini embedding call, so without
+   * lines) — each chunk becomes one embedding API call, so without
    * a ceiling a single upload can issue tens of thousands of API calls.
    *
    * When hit, the chunker keeps the first `maxChunks - 1` chunks and

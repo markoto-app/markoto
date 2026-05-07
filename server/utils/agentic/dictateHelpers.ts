@@ -1,7 +1,8 @@
 // Pure helpers for the dictation WebSocket route. Lifted out of the
 // main handler file so unit tests can import them without pulling in
-// the `@google-cloud/speech` gRPC stack (and the ~15 MB protobuf
-// baggage that implies). The handler re-exports from here.
+// the streaming-client setup. Phase 7 retired the cloud-stt path so
+// the heavy-import concern that motivated this split is gone, but
+// the separation is still useful for testability.
 
 /**
  * Parse a crossws Message as one of our known control frames. Returns
@@ -57,16 +58,30 @@ export function tryParseControl(message: { rawData: unknown, text(): string }): 
 
 /**
  * Normalize a UI locale / user-supplied language hint to a BCP-47 tag
- * Cloud STT will accept. We store short ISO 639-1 codes (`en`, `de`,
- * …) for the UI; Cloud STT wants the regional form (`en-US`,
- * `de-DE`). Unknown codes fall back to `en-US` rather than erroring
- * so a typo in the cookie can't block transcription.
+ * the upstream transcription provider will accept. We store short
+ * ISO 639-1 codes (`en`, `de`, …) for the UI; the upstream wants the
+ * regional form (`en-US`, `de-DE`). Unknown codes fall back to
+ * `en-US` rather than erroring so a typo in the cookie can't block
+ * transcription.
  *
  * BCP-47-shaped strings (contains a dash) pass through — a power
  * user who sets `de-CH` or `en-GB` gets the locale they asked for.
+ *
+ * Phase 7: callers also gate on `isVoxtralSupportedLanguage` to drop
+ * unsupported leading codes back to en-US. The build-time test in
+ * `tests/unit/voxtralSupport.test.ts` keeps shipped i18n locales
+ * inside the support set, but a power-user-supplied `tr-TR` (Turkish)
+ * still shouldn't reach the upstream.
  */
+import { isVoxtralSupportedLanguage } from '~~/shared/languages/voxtralSupport'
+
 export function normalizeLanguageCode(input: unknown): string {
   const s = typeof input === 'string' ? input.trim() : ''
+  const candidate = bcp47CandidateFor(s)
+  return isVoxtralSupportedLanguage(candidate) ? candidate : 'en-US'
+}
+
+function bcp47CandidateFor(s: string): string {
   if (/^[a-z]{2,3}-[A-Z]{2,3}$/i.test(s)) return s
   switch (s.toLowerCase()) {
     case 'en': return 'en-US'
@@ -75,6 +90,13 @@ export function normalizeLanguageCode(input: unknown): string {
     case 'es': return 'es-ES'
     case 'ja': return 'ja-JP'
     case 'zh': return 'zh-CN'
+    case 'hi': return 'hi-IN'
+    case 'ar': return 'ar-SA'
+    case 'pt': return 'pt-PT'
+    case 'ru': return 'ru-RU'
+    case 'ko': return 'ko-KR'
+    case 'it': return 'it-IT'
+    case 'nl': return 'nl-NL'
     default: return 'en-US'
   }
 }

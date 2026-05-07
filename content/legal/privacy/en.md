@@ -1,14 +1,14 @@
 ---
 slug: privacy
 locale: en
-version: 2
-effectiveDate: 2026-05-05
+version: 3
+effectiveDate: 2026-05-06
 translationStatus: authoritative
 ---
 
 # Privacy Policy
 
-> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to bill you. We use Google Gemini for AI features and Stripe for payments — both certified under the EU-US Data Privacy Framework. We don't sell your data, we don't run ads, and we don't train AI on your content. You can export everything we hold about you and delete your account at any time from your settings.
+> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to bill you. AI features run on EU-resident providers (Mistral AI for text and voice, Jina AI for embeddings and web search, Black Forest Labs for image generation); payments go through Stripe. We don't sell your data, we don't run ads, and we don't train AI on your content. You can export everything we hold about you and delete your account at any time from your settings.
 
 ---
 
@@ -125,7 +125,7 @@ markoto does not make decisions producing legal or similarly significant effects
 
 ## 8. AI features and transparency
 
-markoto includes an AI writing assistant powered by Google Gemini and a knowledge-base retrieval system. We disclose this to you in the user interface — every AI-assisted message carries a visible "AI" badge, and any AI-generated content placed in a public document is footed with a transparency notice. Google does not use API content to train its models on the paid tier we use.
+markoto includes an AI writing assistant and a knowledge-base retrieval system. AI requests are routed through our self-hosted LiteLLM proxy to EU-resident providers: Mistral AI (text generation, voice transcription via Voxtral), Jina AI (embeddings for the knowledge base, web-search content extraction), and Black Forest Labs (image generation, EU-pinned region). We disclose this to you in the user interface — every AI-assisted message carries a visible "AI" badge, and any AI-generated content placed in a public document is footed with a transparency notice. None of these providers use API content to train their models on the tiers we use.
 
 If you would prefer a workspace where AI features are disabled entirely, your workspace administrator can toggle this in workspace settings. Anonymous and standalone documents may still use AI features unless you opt out at the account level (forthcoming).
 

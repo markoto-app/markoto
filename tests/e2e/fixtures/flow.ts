@@ -344,6 +344,40 @@ async function wireActorPage(page: Page, theme: 'light' | 'dark'): Promise<void>
   page.on('framenavigated', () => {
     page.evaluate(CURSOR_INIT_SCRIPT).catch(() => {})
   })
+
+  // Suppress the GDPR consent banner. Workstream B mounts a
+  // CNIL-grade dialog over every fresh page load when /api/consent
+  // says `promptRequired: true`. Flow tests run with a clean browser
+  // context every time → the banner intercepts every click → 15s
+  // timeout on the first locator wait. We short-circuit by returning
+  // "already accepted" — real consent enforcement is tested at the
+  // integration-test tier.
+  //
+  // We do NOT mock /api/user/account-status: the onboarding gate is
+  // gated by columns on the `users` row, and `loginAsTestUser` seeds
+  // those columns to "post-onboarding" values (PRIVACY/TOS/DPA
+  // accepted, age confirmed). Mocking the endpoint would break tests
+  // that NEED the real shape — notably the deletion-grace banner,
+  // which mounts when the API reports `deletion.pending: true`.
+  await page.context().route('**/api/consent**', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          promptRequired: false,
+          decisions: {
+            essential: true,
+            analytics: false,
+            session_replay: false
+          },
+          currentVersion: 1
+        })
+      })
+      return
+    }
+    await route.continue()
+  })
 }
 
 export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
@@ -834,6 +868,32 @@ export function skipVariants(
   const v = info.project.metadata?.variant as Variant | undefined
   if (v && variants.includes(v)) {
     base.skip(true, `${reason} (skipping variant=${v})`)
+  }
+}
+
+/**
+ * Require the live AI upstream to be wired. Phase 5 retired Gemini —
+ * AI flows now drive Mistral / Jina / BFL through the LiteLLM proxy.
+ * The proxy reads `MISTRAL_API_KEY`, `JINA_AI_API_KEY`, `BFL_API_KEY`
+ * inside its container; for the host-spawned flow test stack they're
+ * passed in via `flows-ephemeral.ts`. Either every upstream is wired
+ * or the flow can't make a real call — there's no useful "partial"
+ * state.
+ *
+ * Call from inside an AI flow's `test('...', async ({ ... }) => { ... })`
+ * body BEFORE any other setup. Throws (via test.skip → fail-loud in
+ * CI) if any required key is missing.
+ */
+export function requireLiveAi(): void {
+  const required = ['MISTRAL_API_KEY', 'JINA_AI_API_KEY', 'BFL_API_KEY'] as const
+  const missing = required.filter(k => !process.env[k])
+  if (missing.length > 0) {
+    throw new Error(
+      `[flows] Live AI flows require [${missing.join(', ')}] in the host shell. `
+      + 'These keys are forwarded into the LiteLLM proxy via flows-ephemeral.ts. '
+      + 'Set them and re-run, OR use `bun run flows:test:against-running` against a stack '
+      + 'that already has them wired.'
+    )
   }
 }
 

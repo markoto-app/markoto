@@ -90,13 +90,9 @@ services:
       # to NUXT_PUBLIC_SENTRY_DSN per sentry.server.config.ts.
       - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN}
       - SENTRY_DSN=${SENTRY_DSN}
-      # Two Google API keys: Gemini (text + images + embeddings) and
-      # Cloud STT (voice + dictation). Restricted independently in GCP.
-      - NUXT_GOOGLE_GEMINI_API_KEY=${NUXT_GOOGLE_GEMINI_API_KEY:?NUXT_GOOGLE_GEMINI_API_KEY required}
-      - NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY=${NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY:?NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY required}
-      # Distinct dictation-JWT secret. Falls back to NUXT_JWT_SECRET in
-      # the runtimeConfig when empty (see AGENTS.md §7).
-      - NUXT_GOOGLE_DICTATE_JWT_SECRET=${NUXT_GOOGLE_DICTATE_JWT_SECRET}
+      # Phase 5: every AI surface routes through LiteLLM. Distinct
+      # dictation-JWT secret falls back to NUXT_JWT_SECRET when empty.
+      - NUXT_AI_DICTATE_JWT_SECRET=${NUXT_AI_DICTATE_JWT_SECRET}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN:?DOMAIN required}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
@@ -166,6 +162,11 @@ services:
       postgres:
         condition: service_healthy
       valkey:
+        condition: service_healthy
+      # Phase 5: every AI surface routes through LiteLLM. Gate app
+      # startup on the proxy being healthy so a cold deploy doesn't
+      # 502 user AI calls in the window between app-up and proxy-up.
+      litellm:
         condition: service_healthy
     networks:
       - web

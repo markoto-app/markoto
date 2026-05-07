@@ -20,8 +20,8 @@
 // Authoritative locale is always English. Translations render with a
 // "for convenience; English is authoritative" banner on non-EN locales.
 
-export const PRIVACY_VERSION = 2
-export const PRIVACY_EFFECTIVE_DATE = '2026-05-05'
+export const PRIVACY_VERSION = 3
+export const PRIVACY_EFFECTIVE_DATE = '2026-05-06'
 
 export const TOS_VERSION = 1
 export const TOS_EFFECTIVE_DATE = '2026-05-04'

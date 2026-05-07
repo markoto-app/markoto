@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid'
 import { testDb } from './db'
+import { DPA_VERSION, PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
 
 // Factory helpers. Each one writes a minimal row and returns enough shape
 // for the test to use in assertions. Intended to be cheap — no validation
@@ -12,17 +13,49 @@ export interface TestUser {
   email: string
 }
 
-export async function createUser(overrides: Partial<TestUser> = {}): Promise<TestUser> {
+export interface CreateUserOpts {
+  name?: string
+  email?: string
+  /**
+   * Whether to seed the privacy / ToS / DPA acceptance + age confirmation
+   * to current versions. Default `true` because most integration tests
+   * exercise post-onboarding behaviour and the workspace endpoint (and
+   * other endpoints to come) refuse to operate on an un-accepted user.
+   *
+   * Pass `freshOnboarding: true` for tests that explicitly cover the
+   * onboarding gate (e.g. asserting a 409 before DPA acceptance).
+   */
+  freshOnboarding?: boolean
+}
+
+export async function createUser(overrides: CreateUserOpts = {}): Promise<TestUser> {
   const db = testDb()
   const name = overrides.name ?? `User ${nanoid(6)}`
   const email = overrides.email ?? `${nanoid(8)}@test.local`
+  const fresh = overrides.freshOnboarding === true
   // github_id is optional per schema, but we set a unique one anyway so
   // tests that log in via OAuth-style paths have a plausible shape.
+  // Default behaviour mirrors a post-onboarding user: privacy + ToS + DPA
+  // accepted at current versions, age confirmed. The DPA gate on
+  // `POST /api/workspaces` (added in commit 53e6b3e — Workstream B,
+  // GDPR/DSA infra) refuses workspace creation otherwise; tests that
+  // care about that gate opt out via `freshOnboarding: true`.
   const result = await db.query<{ id: number }>(
-    `INSERT INTO users (name, email, github_id)
-     VALUES ($1, $2, $3)
-     RETURNING id`,
-    [name, email, `gh-${nanoid(10)}`]
+    fresh
+      ? `INSERT INTO users (name, email, github_id)
+         VALUES ($1, $2, $3)
+         RETURNING id`
+      : `INSERT INTO users (
+           name, email, github_id,
+           age_confirmed_at,
+           privacy_version_accepted, privacy_version_accepted_locale,
+           tos_version_accepted, tos_version_accepted_locale,
+           dpa_version_accepted, dpa_version_accepted_locale
+         ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $5, $7, $5)
+         RETURNING id`,
+    fresh
+      ? [name, email, `gh-${nanoid(10)}`]
+      : [name, email, `gh-${nanoid(10)}`, PRIVACY_VERSION, 'en', TOS_VERSION, DPA_VERSION]
   )
   return { id: result.rows[0].id, name, email }
 }

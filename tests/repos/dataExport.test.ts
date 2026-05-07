@@ -60,7 +60,6 @@ describe('buildExportZip', () => {
       'activity.ndjson',
       'ai/messages.ndjson',
       'ai/sessions.ndjson',
-      'ai/usage.ndjson',
       'audit.ndjson',
       'billing/customer.json',
       'billing/invoices.ndjson',
@@ -150,30 +149,6 @@ describe('buildExportZip', () => {
       workspaceName: 'Library',
       role: 'editor'
     })
-  })
-
-  it('writes AI usage rows scoped to user:{id}, not workspace:{id}', async () => {
-    const u = await createUser()
-    const ws = await createWorkspace(u.id)
-
-    await testDb().query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, '2025-01-01T00:00:00Z', 5)`,
-      [`user:${u.id}`]
-    )
-    await testDb().query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, '2025-01-01T00:00:00Z', 7)`,
-      [`workspace:${ws.workspaceId}`]
-    )
-
-    const result = await buildExportZip(u.id)
-    const ndjson = readEntry(result.bytes, 'ai/usage.ndjson')
-    const lines = ndjson.trim().split('\n').filter(Boolean)
-    expect(lines).toHaveLength(1)
-    const row = JSON.parse(lines[0]!)
-    expect(row.attributedTo).toBe(`user:${u.id}`)
-    expect(row.interactionsUsed).toBe(5)
   })
 
   it('includes audit rows where the user is actor OR scope target', async () => {

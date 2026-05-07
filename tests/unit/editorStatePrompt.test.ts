@@ -7,7 +7,7 @@ import { EDITOR_SELECTION_TEXT_MAX } from '../../shared/types/editorSelection'
 
 // Editor-state snapshot validation + prompt wrapping. These two helpers
 // are the contract between the client's selection-reading code and the
-// system prompt that tells Gemini how to interpret `<editor_state>`.
+// system prompt that tells the model how to interpret `<editor_state>`.
 // Drift in either direction silently misinforms the model, so pin every
 // branch.
 
@@ -158,9 +158,9 @@ describe('validateEditorSelection', () => {
 describe('wrapPromptWithEditorState', () => {
   it('returns prompt verbatim for kind: none', () => {
     // Cost / cache consideration: a default-state prompt must be byte-
-    // identical to pre-feature behavior, or we'd invalidate Gemini's
-    // implicit prefix cache on every single-user request and never
-    // benefit.
+    // identical to pre-feature behavior, or we'd invalidate the
+    // upstream's implicit prefix cache on every single-user request
+    // and never benefit.
     const out = wrapPromptWithEditorState('hello world', { kind: 'none' })
     expect(out).toBe('hello world')
   })

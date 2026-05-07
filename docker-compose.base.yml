@@ -40,12 +40,74 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
     volumes:
       - pg_data:/var/lib/postgresql/data
+      # `/docker-entrypoint-initdb.d/` runs once on a fresh data dir —
+      # used to create the `litellm` DB alongside the app DB. For
+      # already-initialised volumes, the litellm-db-init one-shot service
+      # below ensures the DB exists.
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # Idempotent one-shot that ensures the `litellm` database exists. Runs
+  # before the litellm service starts. Necessary because the postgres
+  # image's /docker-entrypoint-initdb.d/ only fires on a *fresh* volume —
+  # existing deployments wouldn't have the DB after a base-compose update.
+  litellm-db-init:
+    image: pgvector/pgvector:pg16
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        psql -h postgres -U "$$POSTGRES_USER" -d postgres -tAc \
+          "SELECT 1 FROM pg_database WHERE datname='litellm'" \
+          | grep -q 1 || \
+          psql -h postgres -U "$$POSTGRES_USER" -d postgres -c "CREATE DATABASE litellm;"
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-v1.83.14-stable
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
+      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:?JINA_AI_API_KEY required}
+      # Stubbed for Phase 4 / 5 — declared now so the env wiring is in
+      # place when those phases land. `${VAR:-}` fallbacks let the stack
+      # boot before the user provisions the keys.
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - BFL_API_KEY=${BFL_API_KEY:-}
+      - STORE_MODEL_IN_DB=false
+      - LITELLM_LOG=INFO
+    volumes:
+      - ./infra/litellm/config.yaml:/app/config.yaml:ro
+      # custom_handlers.py is loaded by litellm_settings.custom_provider_map
+      # in config.yaml. Ready for Phase 3 (BFL) + Phase 5 (Voxtral tick) —
+      # imported eagerly on every boot so any regression in the file
+      # surfaces immediately, not at cutover.
+      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro
+    working_dir: /app
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      litellm-db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=2).status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 60s   # cold start runs 118 prisma migrations on a fresh DB
 
   valkey:
     image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75

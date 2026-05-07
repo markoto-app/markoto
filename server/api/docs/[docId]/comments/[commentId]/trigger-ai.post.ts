@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai'
 import { nanoid } from 'nanoid'
 import * as Sentry from '@sentry/nuxt'
 import { findUserNameById } from '../../../../../repos/users'
@@ -51,14 +50,11 @@ export default defineEventHandler(async (event) => {
   const userName = session.user.name
   const config = useRuntimeConfig()
 
-  if (!config.google.geminiApiKey) {
-    throw createError({
-      statusCode: 500,
-      message: 'AI assistant is not configured on this server.',
-      data: { code: 'ai/not-configured', messageKey: 'error.serverError' }
-    })
-  }
-  if (!(await checkRateLimit('ai-prompt', String(userId), 20, 60 * 60 * 1000))) {
+  // Phase 5: text loop runs through LiteLLM unconditionally. Secret
+  // validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY at boot.
+  // Phase 6: app-side rate limit dropped (LiteLLM enforces rpm_limit
+  // at the per-user-virtual-key level).
+  if (false) {
     throw createError({
       statusCode: 429,
       message: 'Too many AI requests. Try again in a minute.',
@@ -189,23 +185,11 @@ export default defineEventHandler(async (event) => {
     : ''
   const systemPrompt = documentContextBlock + block + COMMENT_TRIGGER_SYSTEM_PROMPT + knowledgeBlock + membersBlock
 
-  // Billing — same gate as /api/ai/prompt: reject 402 BEFORE registering
-  // the session so an exhausted user doesn't burn a session slot.
+  // Phase 6: budget enforcement is delegated to the LiteLLM proxy via the
+  // virtual key. We still resolve the billing context here to pick the
+  // right attribution and lazy-create the key if needed. Exhaustion
+  // surfaces inside the runLoop's catch block (LitellmBudgetExhausted).
   const billingContext = await resolveBillingContext(userId, workspaceId)
-  if (billingContext.interactionsRemaining <= 0) {
-    throw createError({
-      statusCode: 402,
-      message: `You've used all AI actions for this billing period. Upgrade your plan at /pricing to continue.`,
-      data: {
-        code: 'ai/budget-exhausted',
-        messageKey: 'ai.budgetExhaustedDescription',
-        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' },
-        plan: billingContext.plan,
-        attributedTo: billingContext.attributedTo,
-        periodStart: billingContext.periodStart.toISOString()
-      }
-    })
-  }
 
   const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706'
@@ -232,7 +216,11 @@ export default defineEventHandler(async (event) => {
     })
   } catch (e) {
     if (e instanceof DuplicateSessionError) {
-      throw createError({ statusCode: 409, message: 'You already have an AI session running on this document.' })
+      throw createError({
+        statusCode: 409,
+        message: 'You already have an AI session running on this document.',
+        data: { code: 'ai/duplicate-session', messageKey: 'ai.errors.duplicateSession' }
+      })
     }
     throw e
   }
@@ -262,21 +250,28 @@ export default defineEventHandler(async (event) => {
         attributedTo: billingContext.attributedTo,
         plan: billingContext.plan,
         periodStart: billingContext.periodStart,
+        virtualKey: billingContext.virtualKey,
         commentThreadId: commentId
       }, abortController.signal)
 
       await runAgenticLoop({
-        ai: new GoogleGenAI({ apiKey: config.google.geminiApiKey }),
-        model: config.google.model,
+        // Production omits `ai` so runLoop routes through LiteLLM →
+        // Mistral. `model` is also test-seam-only — LiteLLM resolves
+        // its own model from `config.litellm.textModel`.
+        model: '',
         systemPrompt,
         initialPrompt: wrappedSeedPrompt,
         toolDeclarations,
-        thinkingBudget: Number(config.google.thinkingBudget) || 0,
+        thinkingBudget: 0,
         aiSession,
         sessionId,
         abortController,
         setStatus,
-        billingContext
+        billingContext,
+        // Tells runLoop's salvage path to call `reply_to_comment`
+        // instead of `message_to_user` when Mistral emits prose with
+        // no tool call. Without this the comment thread looks ignored.
+        commentThreadId: commentId
       })
     } catch (e: unknown) {
       const err = e as { name?: string, message?: string }

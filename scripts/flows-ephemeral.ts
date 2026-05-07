@@ -37,27 +37,26 @@ const NUXT_URL = `http://localhost:${NUXT_PORT}`
 // .env but with shifted ports (5433/6380/8334/4002/8081 — see compose
 // header) + isolated secrets that match what sync-test was built with.
 //
-// Real Gemini integration: AI flows (`tests/e2e/flows/ai-*.spec.ts`)
-// drive the prompt bar / @ai mention against the live Gemini API to
-// produce realistic screenshots. The orchestrator forwards the host's
-// NUXT_GOOGLE_GEMINI_API_KEY into the subprocess; if unset, AI flows
-// will skip themselves rather than crash. TEST_MODE=1 enables the
-// `/api/_test/login` shim AND skips the billing-counter write so flow
-// runs don't accumulate quota.
+// Phase 5 AI integration: AI flows (`tests/e2e/flows/ai-*.spec.ts`)
+// drive the prompt bar / @ai mention against LiteLLM → Mistral to
+// produce realistic screenshots. TEST_MODE=1 enables the
+// `/api/_test/login` shim. LiteLLM master key + URL come from
+// docker-compose.test.yml's litellm-test container.
 const FLOWS_ENV: Record<string, string> = {
   PORT: String(NUXT_PORT),
   // TEST_MODE flips on /api/_test/login (so the flow fixture can seal a
   // session cookie without going through OAuth) AND short-circuits
   // billing's INSERT to ai_usage_period (so repeated flow runs don't
   // accumulate counter rows the cleanup volume reset would have to
-  // discard). It does NOT bypass Gemini — every AI call still hits
-  // the live API.
+  // discard). It does NOT bypass the LLM upstream — every AI call
+  // still hits the live LiteLLM proxy.
   TEST_MODE: '1',
-  // Swap Cloud STT for the canned-fake SpeechClient
-  // (`server/utils/agentic/dictateSpeechClient.ts`). voice-dictate.spec.ts
-  // depends on this — without it, the live STT API receives the synthetic
-  // 16 kHz tone and returns nothing recognisable, the dictation
-  // session times out, and the flow fails.
+  // Swap Voxtral Realtime (the live STT path) for the canned-fake
+  // SpeechClient (`server/utils/agentic/dictateSpeechClient.ts`).
+  // voice-dictate.spec.ts depends on this — without it, the live STT
+  // API receives the synthetic 16 kHz tone and returns nothing
+  // recognisable, the dictation session times out, and the flow fails.
+  // Env-var name retained from pre-Phase-5 (Gemini-era Cloud STT mock).
   NUXT_GOOGLE_SPEECH_MOCK: '1',
   // Atomic Postgres parts — `postgresUrlFromEnv` reads these. Without
   // them, the Nitro subprocess inherits the parent shell's .env-loaded
@@ -93,12 +92,18 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_JWT_SECRET: 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char',
   NUXT_INTERNAL_API_SECRET: 'test-internal-api-secret-isolated',
   NUXT_SESSION_PASSWORD: 'test-session-password-at-least-32-chars-isolated-x',
-  // Real Gemini key — REQUIRED for AI flows. Forwarded from the host
-  // at process start (see `main()` below). Empty string is fine for
-  // non-AI flows; the runtime config validator only complains if a
-  // request actually tries to use it.
-  NUXT_GOOGLE_GEMINI_API_KEY: process.env.NUXT_GOOGLE_GEMINI_API_KEY ?? '',
-  NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY: process.env.NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY ?? '',
+  // LiteLLM proxy — the test stack's `litellm-test` container (added
+  // alongside the integration suite). Required for AI flows; forwarded
+  // upstream provider keys (Mistral / Jina / BFL) come from the host
+  // at process start (see `main()` below). Phase 7: the
+  // budget-exhausted flow drives the real /key/* admin surface to
+  // drain a user's virtual key. Other flows don't currently exercise
+  // model calls but the wire-up is required so resolveBillingContext
+  // can lazy-create the user key without 500-ing.
+  NUXT_LITELLM_URL: 'http://127.0.0.1:4100',
+  NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
+  LITELLM_SALT_KEY: 'sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
+  TEST_MODE: '1',
   // Stripe: prod-build runtime validation requires these. Tests don't
   // exercise billing UI, so dummy values that satisfy the shape are
   // enough. Aligns with the integration-test setup (see

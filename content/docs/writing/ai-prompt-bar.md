@@ -20,10 +20,11 @@ land in real time, just like a human collaborator.
 ## How it works
 
 When you send a prompt, the server opens an agentic loop with
-Gemini and authenticates the AI as a Y.js client on your document.
-Every edit broadcasts through the same sync layer humans use, so
-the AI's changes appear live alongside any concurrent edits from
-your collaborators — no batch updates, no "wait for it to finish".
+Mistral (via the LiteLLM proxy) and authenticates the AI as a Y.js
+client on your document. Every edit broadcasts through the same
+sync layer humans use, so the AI's changes appear live alongside
+any concurrent edits from your collaborators — no batch updates,
+no "wait for it to finish".
 
 The AI has tools for reading the document, finding the right place
 to insert text, replacing existing passages, generating images,

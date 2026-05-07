@@ -6,7 +6,6 @@ import { deleteWorkspaceRow } from '../repos/workspaces'
 import {
   anonymiseCommentsByAuthor,
   deleteAiSessionsByUser,
-  deleteAiUsagePeriodByUser,
   deleteThemesByUser,
   deleteUserRow,
   listDocIdsInWorkspaces,
@@ -182,7 +181,9 @@ export async function executeAccountDeletion(
   // ai_session_messages CASCADE on user delete — count + then let FK
   // do the work at Step 9.
 
-  summary.aiUsageRowsDeleted = await deleteAiUsagePeriodByUser(userId)
+  // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
+  // Per-user budget data is wiped via the LiteLLM /key/{key}/delete
+  // call below in the Stripe-customer-cleanup step.
 
   // ── Step 7: themes ───────────────────────────────────────────────
   summary.themesDeleted = await deleteThemesByUser(userId)
@@ -278,7 +279,6 @@ function emptySummary(): AccountDeletionSummary {
     commentsAnonymised: 0,
     aiSessionsDeleted: 0,
     aiSessionMessagesDeleted: 0,
-    aiUsageRowsDeleted: 0,
     dataExportJobsDeleted: 0,
     stripeCustomerDeleted: false,
     themesDeleted: 0

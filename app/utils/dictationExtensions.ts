@@ -17,7 +17,7 @@ import type * as Y from 'yjs'
 
 // CodeMirror 6 ghost-text decoration for live dictation. An inline
 // widget sits at the caret showing the interim transcript; when
-// Gemini finalises a phrase we commit it to Y.js and clear the
+// Voxtral finalises a phrase we commit it to Y.js and clear the
 // ghost.
 //
 // Why a StateField → ViewPlugin pipeline (not just a ViewPlugin):

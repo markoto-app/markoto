@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 
 // Tier 2: "Ask the AI a question that needs current information."
 //
@@ -8,17 +8,14 @@ import { test, expect } from '../fixtures/flow'
 // a web search, gets sources, folds them into its reply, and inserts
 // a paragraph into the doc with the grounded answer.
 //
-// Pipeline: AI calls `web_search` → grounded sub-call to Gemini with
-// `googleSearch` tool → returns freeform answer + source URLs from
-// `groundingMetadata` → AI inserts the paragraph (often with a
-// citation-style note about the source).
+// Pipeline: AI calls `web_search` → 2-call sub-pipeline (Jina Reader
+// fetches live web results, then Mistral synthesises a 3–6 sentence
+// answer with cited sources) → AI inserts the paragraph (often with
+// a citation-style note about the source).
 //
-// Live Gemini call. Skipped if no key.
+// Live LiteLLM round-trip → Mistral. Skipped if no key.
 test('Ask the AI for current information', async ({ page, flow, editor }) => {
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows.'
-  )
+  requireLiveAi()
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -29,10 +26,10 @@ test('Ask the AI for current information', async ({ page, flow, editor }) => {
   await flow.narrate(
     'The AI\'s training data has a cutoff. For anything more recent — '
     + 'current library versions, latest news, who shipped what last '
-    + 'week — it can call `web_search`, run a grounded sub-call to '
-    + 'Gemini with the `googleSearch` tool, and weave the result back '
-    + 'into your doc. The answer cites the sources it found, so you '
-    + 'can verify before publishing.'
+    + 'week — it can call `web_search`, which fetches live web results '
+    + 'via Jina Reader and hands them to Mistral for synthesis, and '
+    + 'weaves the result back into your doc. The answer cites the '
+    + 'sources it found, so you can verify before publishing.'
   )
 
   // ─── Prompt + send ──────────────────────────────────────────────

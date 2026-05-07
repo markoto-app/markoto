@@ -144,6 +144,70 @@ services:
       retries: 15
       start_period: 5s
 
+  # ─── LiteLLM proxy (test) ─────────────────────────────────────────
+  # Phase 7: integration tests now exercise the real proxy round-trip
+  # (key generate / update / info / reset_spend) instead of the
+  # TEST_MODE stub. Same image as prod, isolated DB, isolated port.
+  #
+  # Master key is hard-pinned to a non-secret literal that the test
+  # harness reads via NUXT_LITELLM_MASTER_KEY in setup/server.ts. No
+  # provisioned upstream model keys — Phase 7 tests don't actually
+  # invoke models, only the admin surface (/key/*).
+
+  litellm-test-db-init:
+    image: pgvector/pgvector:pg16
+    restart: "no"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      - PGPASSWORD=testpassword
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        psql -h postgres-test -U ypad -d postgres -tAc \
+          "SELECT 1 FROM pg_database WHERE datname='litellm_test'" \
+          | grep -q 1 || \
+          psql -h postgres-test -U ypad -d postgres -c "CREATE DATABASE litellm_test;"
+
+  litellm-test:
+    image: ghcr.io/berriai/litellm:main-v1.83.14-stable
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://ypad:testpassword@postgres-test:5432/litellm_test
+      - LITELLM_MASTER_KEY=sk-test-litellm-master
+      - LITELLM_SALT_KEY=sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+      # Upstream provider keys. Integration tests (vitest) only hit
+      # /key/* admin endpoints and don't actually invoke models, so
+      # `stub` is fine — but flow tests (Playwright) drive REAL
+      # round-trips and need actual keys. Resolve from the host shell's
+      # env at compose-up time: defaults to `stub` so the integration
+      # suite still boots without real keys, overrides when the
+      # operator runs `bun run flows:test` with .env loaded.
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-stub}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-stub}
+      - BFL_API_KEY=${BFL_API_KEY:-stub}
+      - STORE_MODEL_IN_DB=false
+      - LITELLM_LOG=ERROR
+    volumes:
+      - ./infra/litellm/config.yaml:/app/config.yaml:ro
+      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro
+    working_dir: /app
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
+    ports:
+      - "4100:4000"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      litellm-test-db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=2).status == 200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 60s
+
   # ─── Flow-test extras (profile: flows) ─────────────────────────────
   # Sync server + markitdown converter, only spun up when running
   # Playwright flow tests. Integration tests don't need either:

@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 
 // Tier 2: "Ask the AI to draw an image."
 //
@@ -8,18 +8,15 @@ import { test, expect } from '../fixtures/flow'
 // and inserts it into the doc, where it renders inline in the
 // preview just like any markdown image.
 //
-// Pipeline: prompt → AI calls `generate_image` → Gemini image-gen
-// API returns base64 PNG → markoto uploads to S3 → registers an
-// `uploads` row → returns markdown reference → AI's next turn
-// inserts the reference. The image is owned by the doc; deletion
-// cascades clean up.
+// Pipeline: prompt → AI calls `generate_image` → BFL FLUX.2 [pro]
+// (EU-pinned, via the LiteLLM proxy) returns the rendered image →
+// markoto uploads to S3 → registers an `uploads` row → returns
+// markdown reference → AI's next turn inserts the reference. The
+// image is owned by the doc; deletion cascades clean up.
 //
-// Live Gemini call. Cost: ~$0.045 per image gen. Skipped if no key.
+// Live LiteLLM round-trip → BFL. Cost: ~$0.030 per 1024² image. Skipped if no key.
 test('Ask the AI to draw an image', async ({ page, flow, editor }) => {
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows.'
-  )
+  requireLiveAi()
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
@@ -29,7 +26,7 @@ test('Ask the AI to draw an image', async ({ page, flow, editor }) => {
   await flow.heading('Ask the AI to draw an image', 3)
   await flow.narrate(
     'The AI prompt bar can do more than write. Ask it to generate '
-    + 'an image and it calls Gemini\'s image-gen model, uploads the '
+    + 'an image and it calls BFL FLUX.2 (EU-pinned via the LiteLLM proxy), uploads the '
     + 'result to your doc\'s S3 prefix, and inserts the markdown '
     + 'reference at the cursor. The image renders inline in the '
     + 'preview just like any other; deleting the doc cascades the '

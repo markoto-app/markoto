@@ -51,8 +51,8 @@ export interface AiResponseEntry {
 
 /**
  * Exposes AI prompt / abort actions and reactive state derived from Y.js
- * awareness. Gemini joins the document as its own client, so every tab
- * naturally sees the AI "user" appear, change status, and leave.
+ * awareness. The AI joins the document as its own Y.js client, so every
+ * tab naturally sees the AI "user" appear, change status, and leave.
  *
  * The `editorSelection` override is consumed by the bottom prompt bar so
  * cursor / selection state flows through to the server's `<editor_state>`

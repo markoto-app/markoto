@@ -34,14 +34,6 @@ The accepted formats: `.docx`, `.pdf`, `.pptx`, `.xlsx`, `.html`,
 custom fonts and page chrome are dropped (you're going to re-style
 with a markoto theme anyway).
 
-## On mobile
-
-Same import dialog, opened from the bottom Editor drawer (the
-top-bar File menu is hidden on `<sm`).
-
-::flow{id="import-existing-document-on-mobile" hide-title}
-::
-
 ## What's next
 
 - [Pick a theme](/docs/themes/pick-a-theme) — make the imported doc look the part.

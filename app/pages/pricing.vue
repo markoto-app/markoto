@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { TIERS, type PlanName } from '~~/shared/config/tiers'
+import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 
 // Pricing page. Shows every tier with live caps read from the shared
 // config + the caller's current plan highlighted. Upgrade buttons
@@ -14,8 +15,6 @@ const { loggedIn } = useUserSession()
 
 interface UserBilling {
   plan: PlanName
-  interactionsRemaining: number
-  interactionsLimit: number
 }
 const billing = ref<UserBilling | null>(null)
 onMounted(async () => {
@@ -263,7 +262,7 @@ useHead({
                 class="shrink-0 self-center mt-0.5"
               />
               <span>
-                <strong>{{ TIERS[tier.plan].interactionsPerMonth.toLocaleString() }}</strong>
+                <strong>{{ planToPointsTotal(tier.plan).toLocaleString() }}</strong>
                 {{ t('pricing.aiCreditsPerMonth') }}
               </span>
             </li>
@@ -297,16 +296,8 @@ useHead({
                 {{ t('pricing.knowledgeStorage') }}
               </span>
             </li>
-            <li class="flex gap-2">
-              <UIcon
-                name="i-lucide-mic"
-                class="size-4 text-muted shrink-0 mt-0.5"
-              />
-              <span>
-                <strong>{{ fmtMinutes(TIERS[tier.plan].dictationMsPerDay) }}</strong>
-                {{ t('pricing.dictation') }}
-              </span>
-            </li>
+            <!-- Phase 6: dictation cap retired. Voice dictation runs against the same AI Points budget as everything else. -->
+
             <li
               v-if="tier.plan === 'max' || tier.plan === 'ultra'"
               class="flex gap-2"

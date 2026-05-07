@@ -36,7 +36,7 @@ const localControllers = new Map<string, AbortController>()
 
 export class DuplicateSessionError extends Error {
   constructor() {
-    super('User already has Gemini running on this document')
+    super('User already has an AI session running on this document')
   }
 }
 

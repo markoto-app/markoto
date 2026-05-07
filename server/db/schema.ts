@@ -34,6 +34,21 @@ export const users = pgTable('users', {
   stripeCurrentPeriodStart: timestamp('stripe_current_period_start', { withTimezone: true }),
   stripeCustomerId: text('stripe_customer_id').unique(),
   stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  // Phase 6 LiteLLM virtual-key handle. ONE source of truth for the
+  // user's AI budget — every billable AI call routes through
+  // `useLitellmForUser(litellmKeyToken)` and LiteLLM enforces the
+  // `max_budget` set at the user's plan tier. Lazy-created on first
+  // AI use via `ensureUserKey(userId, plan)`; updated by Stripe
+  // webhooks on plan changes.
+  //
+  // Token storage: encrypted at rest with `LITELLM_SALT_KEY` (already
+  // provisioned for LiteLLM's internal token-table encryption). The
+  // raw token only exists in memory long enough to construct the
+  // OpenAI SDK client. `litellmKeyId` is the bookkeeping handle
+  // (LiteLLM's internal token id) — useful for `/key/info` calls that
+  // accept either the token or the id.
+  litellmKeyId: text('litellm_key_id').unique(),
+  litellmKeyToken: text('litellm_key_token'),
   // Platform-admin flag. Source of truth for `/admin/*` access.
   // Bootstrap: a user whose email is in `NUXT_ADMIN_USER_EMAILS` is
   // auto-promoted to is_admin=true on next OAuth login (see
@@ -303,10 +318,10 @@ export const uploads = pgTable('uploads', {
 // Workspace-level knowledge base. Files (PDFs, DOCX, PPTX, etc.) that
 // workspace members upload so the AI assistant can retrieve grounded
 // content when writing in any doc under that workspace. Ingest pipeline:
-// S3 → markitdown (→ markdown) → chunker → gemini-embedding-2-preview
-// (768-dim via MRL) → chunks table. Vector search + full-text retrieval
-// is exposed to the AI via `search_knowledge` and `get_knowledge_file`
-// tools.
+// S3 → markitdown (→ markdown) → chunker → LiteLLM →
+// jina-embeddings-v5-text-nano (768-dim native) → chunks table. Vector
+// search + full-text retrieval is exposed to the AI via
+// `search_knowledge` and `get_knowledge_file` tools.
 //
 // Cascades: workspace delete drops rows via FK; per-row delete also
 // tears down chunks via chunks' FK cascade AND the original S3 object.
@@ -331,8 +346,10 @@ export const workspaceKnowledge = pgTable('workspace_knowledge', {
   errorMessage: text('error_message'),
   chunkCount: integer('chunk_count').notNull().default(0),
   tokenCount: integer('token_count').notNull().default(0),
-  // String key like `gemini-embedding-2-preview:768` so we can detect
-  // chunks produced with an old model/dim and re-embed lazily.
+  // String key like `jina/jina-embeddings-v5-text-nano:768` (or the
+  // legacy pre-Phase-5 `gemini-embedding-2-preview:768` shape on rows
+  // produced before the migration) so we can detect chunks produced
+  // with an old model/dim and re-embed lazily.
   embeddingVersion: text('embedding_version').notNull(),
   uploaderId: integer('uploader_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -357,9 +374,10 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
   chunkIndex: integer('chunk_index').notNull(),
   content: text('content').notNull(),
   tokens: integer('tokens').notNull(),
-  // 768 dims = Gemini MRL lower tier. HNSW-compatible (pgvector caps
-  // HNSW at 2000 dims, so 3072 would require IVFFlat — slower + worse
-  // recall at typical corpus sizes). Plenty for doc-retrieval.
+  // 768 dims = Jina v5-text-nano native (no MRL truncation). HNSW-
+  // compatible (pgvector caps HNSW at 2000 dims, so larger embedding
+  // models would require IVFFlat — slower + worse recall at typical
+  // corpus sizes). Plenty for doc-retrieval.
   embedding: vector('embedding', { dimensions: 768 }),
   // Generated tsvector for BM25-style full-text search. Combined with
   // the vector similarity via Reciprocal Rank Fusion in `searchKnowledge`.
@@ -376,33 +394,12 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
   index('idx_wkc_content_tsv').using('gin', table.contentTsv)
 ])
 
-// Per-period AI interaction counter. One row per attribution target per
-// billing period.
-//
-// `attributedTo` encodes the billing target as either `user:{userId}` or
-// `workspace:{wsId}` — returned by `resolveBillingContext`. Using a
-// prefixed string here (rather than two nullable FK columns) keeps the
-// primary key simple and the INSERT ... ON CONFLICT idempotent without
-// needing a partial unique index per branch.
-//
-// `periodStart` is the first day of the billing cycle. Free users:
-// first-of-calendar-month UTC. Paid users: Stripe's
-// `current_period_start` (anniversary). Resolved by
-// `effectivePeriodStart` in `server/utils/billing.ts`.
-//
-// Writes are a single atomic `INSERT ... ON CONFLICT (attributed_to,
-// period_start) DO UPDATE SET interactions_used = interactions_used +
-// EXCLUDED.interactions_used` inside the agentic loop — no read-modify-
-// write races. Enforcement compares the returned `interactions_used`
-// against the tier cap; overshoot → rollback + BudgetExhausted error.
-export const aiUsagePeriod = pgTable('ai_usage_period', {
-  attributedTo: text('attributed_to').notNull(),
-  periodStart: timestamp('period_start', { withTimezone: true, mode: 'date' }).notNull(),
-  interactionsUsed: integer('interactions_used').notNull().default(0),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-}, table => [
-  primaryKey({ columns: [table.attributedTo, table.periodStart] })
-])
+// Phase 6 retired the per-period interaction counter. AI usage is now
+// gated solely by per-user LiteLLM virtual-key budgets — see
+// `users.litellmKeyToken` + `server/utils/litellmKeys.ts`. The single
+// source of truth for "how much AI budget does this user have left" is
+// LiteLLM's `/key/info` endpoint, surfaced to the UI as AI Points via
+// `/api/ai/credits`.
 
 // `metadata` carries structured detail per action — comment id + body
 // preview for `comment.*`, before/after for `title.changed`, tool name +

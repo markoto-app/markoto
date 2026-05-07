@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures/flow'
-import { Pool } from 'pg'
 
 // Tier 2: "What happens when you hit the AI cap".
 //
@@ -18,16 +17,22 @@ import { Pool } from 'pg'
 //      `budget-exhausted` toast with an Upgrade action if a request
 //      somehow reaches the server (out-of-band billing changes).
 //
-// Setup shortcut: instead of running 100 real Gemini prompts to
-// drain the Free quota, we INSERT directly into `ai_usage_period`
-// with `interactions_used` past the cap. Same row the runtime
-// resolver reads (`server/utils/billing.ts:resolveBillingContext`),
-// so the next /api/user/billing fetch reflects "exhausted".
+// Setup shortcut: instead of running real prompts to drain the Free
+// quota, we hit a TEST_MODE-only admin endpoint that calls LiteLLM's
+// `/key/update` to slam the user's virtual-key budget against itself
+// — the same trip-condition the proxy uses in production. The next
+// /api/ai/credits fetch reflects "exhausted" via LiteLLM's
+// `/key/info` round-trip.
 //
 // Works on desktop AND mobile — the prompt bar's exhausted
 // placeholder is identical across breakpoints and the click-through
 // to /pricing follows the same router.push call on both.
 test('What happens when you hit the AI cap', async ({ page, flow, editor }) => {
+  // Phase 7: budget exhaustion drives LiteLLM virtual-key `max_budget`
+  // through the real proxy. The flow stack brings up `litellm-test`
+  // alongside the rest of the test infra; the TEST_MODE-only endpoint
+  // /api/_test/exhaust-litellm-budget slams the user's key budget to 0
+  // so the next call trips the proxy gate.
   test.setTimeout(120_000)
 
   // Login + create a doc. The flow is about the prompt bar's
@@ -36,35 +41,18 @@ test('What happens when you hit the AI cap', async ({ page, flow, editor }) => {
   const { userId } = await editor.page.loginAsTestUser('Maya Chen')
   await editor.page.createBlankDocWithTitle('My next post')
 
-  // Drain the Free quota past its cap (100). Period anchor for a
-  // Free-tier user is calendar-month UTC; insert a row keyed on
-  // (`user:{id}`, start-of-month) with `interactions_used` past the
-  // cap so the runtime resolver reports zero remaining.
-  const periodStart = new Date(Date.UTC(
-    new Date().getUTCFullYear(),
-    new Date().getUTCMonth(),
-    1
-  ))
-  const pool = new Pool({
-    connectionString: 'postgres://ypad:testpassword@localhost:5433/ypad_test',
-    max: 1
+  // Drain the Free user's LiteLLM virtual-key budget. Hits the
+  // TEST_MODE-only admin endpoint that POSTs `/key/update` with
+  // `max_budget = current_spend` so the next call trips the proxy's
+  // budget enforcement. The /api/ai/credits endpoint round-trips
+  // through `/key/info` so the next fetch reflects zero remaining.
+  await page.request.post('/api/_test/exhaust-litellm-budget', {
+    data: { userId }
   })
-  try {
-    await pool.query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, $2, 100)
-       ON CONFLICT (attributed_to, period_start)
-       DO UPDATE SET interactions_used = 100`,
-      [`user:${userId}`, periodStart]
-    )
-  } finally {
-    await pool.end()
-  }
 
-  // The prompt bar reads its budget state from `useBilling()` which
-  // refreshes on visibilitychange + on session-end. Force a fresh
-  // /api/user/billing read by reloading the page so the bar picks
-  // up the drained quota.
+  // The prompt bar reads its budget state from `useAiCredits()`. Force
+  // a fresh /api/ai/credits read by reloading the page so the bar
+  // picks up the exhausted state.
   await page.reload()
   await editor.page.waitForReady()
 

@@ -64,14 +64,14 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     basis: 'contract',
     dataCategories: ['user_prompt', 'document_context', 'ai_generated_content'],
     retention: 90,
-    subProcessors: ['google_gemini', 'google_speech_to_text']
+    subProcessors: ['mistral_ai', 'jina_ai', 'bfl']
   },
   {
     id: 'workspace_knowledge_rag',
     basis: 'contract',
     dataCategories: ['uploaded_files', 'extracted_text', 'embeddings'],
     retention: 'until_deletion',
-    subProcessors: ['google_gemini', 'ovh_postgres', 'ovh_object_storage']
+    subProcessors: ['jina_ai', 'ovh_postgres', 'ovh_object_storage']
   },
   {
     id: 'billing',

@@ -38,15 +38,6 @@ You used the Insert menu to add four non-trivial markdown extensions:
   working starter snippet for each so you don't need to learn
   Mermaid's syntax cold.
 
-## On mobile
-
-The mobile path uses the bottom Editor drawer's Insert section — a
-trimmed subset of the desktop menu (no Mermaid diagram dropdown;
-otherwise the same).
-
-::flow{id="rich-content-on-mobile" hide-title}
-::
-
 ## What's next
 
 - [Have a discussion in your document](/docs/writing/comments) — comment on a passage you just wrote.

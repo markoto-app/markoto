@@ -10,23 +10,22 @@
 // is actually clickable without the tooltip disappearing.
 
 import type { PlanName } from '~~/shared/config/tiers'
+import { useAiCredits } from '~/composables/useAiCredits'
 
 const { t, locale } = useI18n()
 const router = useRouter()
 const { billing } = useBilling()
+const { pointsRemaining, pointsTotal, fillRatio } = useAiCredits()
 
 const planLabel = computed(() => {
   const plan = billing.value?.plan ?? 'free'
   return plan.charAt(0).toUpperCase() + plan.slice(1)
 })
 
-// Pct-remaining drives both the bar width and the colour bucket.
-// Guard against divide-by-zero: if limit is 0 (shouldn't happen but
-// possible on a malformed response), show 0% so the user notices.
+// Pct-remaining = AI Points remaining ÷ total. Drives both the bar
+// width and the colour bucket.
 const pctRemaining = computed(() => {
-  const b = billing.value
-  if (!b || b.interactionsLimit <= 0) return 0
-  return Math.max(0, Math.min(100, Math.round((b.interactionsRemaining / b.interactionsLimit) * 100)))
+  return Math.max(0, Math.min(100, Math.round(fillRatio.value * 100)))
 })
 
 const barColor = computed(() => {
@@ -144,8 +143,8 @@ function onManage(): void {
         <div>
           <div class="flex items-baseline justify-between text-xs text-muted mb-1">
             <span class="tabular-nums text-default font-medium">
-              {{ billing.interactionsRemaining.toLocaleString() }}
-              <span class="text-muted font-normal">/ {{ billing.interactionsLimit.toLocaleString() }}</span>
+              {{ pointsRemaining.toLocaleString() }}
+              <span class="text-muted font-normal">/ {{ pointsTotal.toLocaleString() }}</span>
             </span>
             <span class="tabular-nums">{{ pctRemaining }}%</span>
           </div>

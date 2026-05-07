@@ -85,48 +85,56 @@ export default defineNuxtConfig({
       secretKey: '',
       bucket: 'ypad'
     },
-    google: {
-      // Two keys because Gemini and Cloud Speech-to-Text bill separately
-      // and we restrict each key to a single API in GCP for blast-radius
-      // containment.
-      geminiApiKey: '', // NUXT_GOOGLE_GEMINI_API_KEY
-      speechToTextApiKey: '', // NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY
-      // Separate JWT secret for the dictation WS token. Falls back to
-      // the top-level `jwtSecret` (Hocuspocus) if unset, but you want
-      // this set in prod so a compromised Hocuspocus secret doesn't
-      // also forge dictation tokens (and vice versa).
-      dictateJwtSecret: '', // NUXT_GOOGLE_DICTATE_JWT_SECRET
-      model: 'gemini-3.1-flash-lite-preview', // NUXT_GOOGLE_MODEL — agentic prompt loop (tool use, grounding via sub-call). Also handles selection-scoped rewrites through the unified agentic flow.
-      imageModel: 'gemini-3.1-flash-image-preview', // NUXT_GOOGLE_IMAGE_MODEL — image generation for the `generate_image` tool. Alternatives: `gemini-2.5-flash-image` (stable, older), `gemini-3-pro-image-preview` (higher quality, slower, more expensive).
-      // 0.5K is the cheapest tier ($0.045/image vs $0.067 at 1K).
-      // Sharp enough for inline paged.js render + PDF export at normal
-      // zoom. Don't expose as a user option — every bump up the ladder
-      // is a direct cost hit. See §15 in AGENTS.md.
-      imageResolution: '0.5K', // NUXT_GOOGLE_IMAGE_RESOLUTION — values: '0.5K', '1K', '2K', '4K'
-      // Embedding model for workspace knowledge. `gemini-embedding-2-preview`
-      // is the latest multimodal embedding model (text/image/video/audio/
-      // documents into a unified space). We use it text-only today.
-      // `outputDimensionality: 768` via MRL — fits pgvector HNSW (2000-dim
-      // cap) and is measurably cheaper than 1536/3072 with little recall
-      // cost at typical corpus sizes. Bump via NUXT_GOOGLE_EMBEDDING_MODEL;
-      // if you change dimensions you must also bump `embeddingVersion`
-      // in the processing pipeline to trigger a re-embed.
-      embeddingModel: 'gemini-embedding-2-preview', // NUXT_GOOGLE_EMBEDDING_MODEL
-      embeddingDims: 768, // NUXT_GOOGLE_EMBEDDING_DIMS
-      // Google Cloud Speech-to-Text model for live dictation. v1 accepts
-      // API-key auth without needing a project id in the path (unlike v2),
-      // which keeps the server code simple. `latest_long` is the default
-      // streaming model tuned for dictation-length audio; `chirp_2` is
-      // v2-only so we can't use it via API-key auth here.
-      speechModel: 'latest_long', // NUXT_GOOGLE_SPEECH_MODEL
-      // NUXT_GOOGLE_THINKING_BUDGET — tokens the model may spend on internal
-      // reasoning before producing its response. 0 disables thinking entirely
-      // (cheapest + fastest, recommended default). Typical "minimal" budgets
-      // are 128–512 for noticeable-but-bounded gains on multi-step edits.
-      // Applied only to the main agentic loop — rewrites and sub-calls stay
-      // thinking-free. Nitro parses env-var strings with `destr`, so bare
-      // numbers come through as numbers.
-      thinkingBudget: 0
+    // Phase 5: every Google API surface (Gemini text/image/embeddings,
+    // Cloud STT) is gone. Only the dictation-WS JWT secret survives,
+    // moved from `config.google.dictateJwtSecret` → `config.aiDictateJwtSecret`.
+    // The env var renamed accordingly: NUXT_GOOGLE_DICTATE_JWT_SECRET
+    // → NUXT_AI_DICTATE_JWT_SECRET.
+    aiDictateJwtSecret: '', // NUXT_AI_DICTATE_JWT_SECRET — falls back to `jwtSecret` if unset
+    // LiteLLM proxy — vendor-agnostic gateway for Phase-1+ migration.
+    // Phase 1A only routes embeddings; Phase 4 adds chat, Phase 3 image
+    // gen, Phase 5 voice metering. The proxy enforces per-key budgets
+    // and unifies cost tracking across providers (Mistral / Jina / BFL).
+    litellm: {
+      url: '', // NUXT_LITELLM_URL — internal HTTP URL, e.g. http://litellm:4000 (prod) / http://localhost:4000 (dev with host bun)
+      masterKey: '', // NUXT_LITELLM_MASTER_KEY — admin key; per-user virtual keys arrive in Phase 6
+      // Embedding model + dims used when the knowledge pipeline routes
+      // through LiteLLM. jina-embeddings-v5-text-nano is natively 768-d
+      // (perfect fit for the existing pgvector(768) HNSW index — zero
+      // DDL needed). Smallest in Jina's v5 family = fastest + cheapest;
+      // quality is sufficient for writing-doc retrieval. Bumping to
+      // jina-embeddings-v5-text-small (1024-d native, MRL-truncate to
+      // 768) is a config-only change if quality becomes the bottleneck.
+      embeddingsModel: 'jina-embeddings-v5-text-nano', // NUXT_LITELLM_EMBEDDINGS_MODEL
+      embeddingsDims: 768, // NUXT_LITELLM_EMBEDDINGS_DIMS
+      // Phase 2 transcribe model (Voxtral Mini Transcribe 2, $0.003/min).
+      // Wrapped as a fake chat completion via custom_handlers.py to fix
+      // LiteLLM's transcription cost-tracking gap with Mistral's response
+      // shape. The voice-prompt button hits this when
+      // NUXT_AI_TRANSCRIBE_PROVIDER=voxtral.
+      transcribeModel: 'voxtral-mini-transcribe', // NUXT_LITELLM_TRANSCRIBE_MODEL
+      // Phase 3 image model (BFL FLUX.2 [pro], $0.030/1024² image,
+      // EU-pinned). Wrapped as a fake chat completion via
+      // custom_handlers.py so OSS LiteLLM tracks spend properly (the
+      // /v1/images/generations cost path doesn't fire spend-logger
+      // callbacks for custom providers). Caller sends prompt + width +
+      // height in the message content.
+      imageModel: 'flux-2-pro', // NUXT_LITELLM_IMAGE_MODEL
+      imageDefaultWidth: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_WIDTH
+      imageDefaultHeight: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_HEIGHT
+      // Phase 4 text + vision model (Mistral Small 4.0). Cheaper than
+      // the pre-Phase-5 Gemini Flash-Lite path (-45%), 256k context,
+      // native vision input, OpenAI-compatible streaming tool calls.
+      // Same model handles view_image / view_pages — no two-model split.
+      textModel: 'mistral-small-2603', // NUXT_LITELLM_TEXT_MODEL
+      // Phase 5 voice-tick metering stub. Each "call" against this fake
+      // chat model bills $0.006 (1 minute of Voxtral Realtime audio) —
+      // see infra/litellm/custom_handlers.py:VoxtralTickProvider. The
+      // dictate WS orchestrator hits this once per minute of audio.
+      // Real Voxtral Realtime transcription stays direct from our backend
+      // via @mistralai/mistralai/extra/realtime SDK — this stub exists
+      // only so spend lands in the same per-key budget as everything else.
+      realtimeTickModel: 'voxtral-realtime-tick' // NUXT_LITELLM_REALTIME_TICK_MODEL
     },
     jwtSecret: '',
     // Optional: previous JWT_SECRET, accepted by verifiers during rotation.
@@ -220,7 +228,7 @@ export default defineNuxtConfig({
     // errors / drizzle queries leaking to the wire.
     errorHandler: '~~/server/error.ts',
     // Native WebSocket route support for `/api/ai/dictate` (voice
-    // dictation relay to Google Cloud Speech-to-Text). Other WS traffic
+    // dictation relay to Mistral Voxtral Realtime). Other WS traffic
     // (Hocuspocus Y.js sync) flows through its own standalone container,
     // not Nitro.
     experimental: {
@@ -242,11 +250,13 @@ export default defineNuxtConfig({
         changeOrigin: true
       }
     },
-    // `ws` is a transitive dep of `@google/genai` that Nitro's NFT tracer
-    // doesn't follow through the SDK's dist bundle — the output emits
-    // `import 'ws'` but omits the package. `traceInclude` takes glob
-    // patterns (not bare package names); `ws` itself has no deps so one
-    // glob is enough. Tracked upstream in nitrojs/nitro#2923.
+    // `ws` is a transitive dep (originally pulled in by `@google/genai`
+    // pre-Phase-5; now by `@mistralai/mistralai`'s realtime sub-export
+    // for live dictation) that Nitro's NFT tracer doesn't follow
+    // through the SDK's dist bundle — the output emits `import 'ws'`
+    // but omits the package. `traceInclude` takes glob patterns (not
+    // bare package names); `ws` itself has no deps so one glob is
+    // enough. Tracked upstream in nitrojs/nitro#2923.
     externals: {
       // Point the tracer at ws's real entry — NFT then follows its imports
       // and copies the whole package (lib/*.js, browser.js, etc.). Pointing

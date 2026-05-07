@@ -5,6 +5,7 @@ import { users, processedWebhookEvents, pendingStripeEvents } from '../db/schema
 import { useDatabase } from './database'
 import type { PlanName } from '~~/shared/config/tiers'
 import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
+import { updateUserKeyBudget, resetUserKeySpend } from './litellmKeys'
 
 // Drizzle's node-postgres transaction handle — same shape as the
 // top-level `db` for our usage but typed distinctly. We accept either
@@ -12,6 +13,15 @@ import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 // transaction so the dedup INSERT and the user UPDATE commit together.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DbOrTx = any
+
+// Phase 7: handlers queue side-effects that must run AFTER the
+// surrounding transaction commits — primarily LiteLLM virtual-key
+// budget syncs. Calling `updateUserKeyBudget` inline acquires its own
+// pool connection while the surrounding TX still holds an exclusive
+// lock on the same `users` row, deadlocking until `statement_timeout`
+// fires. The dispatcher walks this queue after the TX commits and
+// runs each closure best-effort.
+type DeferredAfterCommit = (() => Promise<void>)[]
 
 // Stripe webhook handlers — pure functions of `(event, config) → DB
 // mutation`. Kept separate from the HTTP endpoint so tests can call
@@ -108,6 +118,7 @@ export async function handleCheckoutSessionCompleted(
     stripe: Stripe
     config: { pricePro: string, priceMax: string, priceUltra: string }
     db?: DbOrTx
+    deferAfterCommit?: DeferredAfterCommit
   }
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const session = event.data.object
@@ -179,6 +190,25 @@ export async function handleCheckoutSessionCompleted(
     where: { id: userId },
     set: setFields
   }, opts.db)
+
+  // Phase 6: sync LiteLLM virtual-key budget to the new plan. Lazy-
+  // creates the key if the user hasn't done their first AI call yet.
+  // **Deferred until after the surrounding TX commits** — calling
+  // `updateUserKeyBudget` inline would self-deadlock against the row
+  // lock held by the user UPDATE above (Phase 7 fix).
+  if (plan && opts.deferAfterCommit) {
+    opts.deferAfterCommit.push(async () => {
+      try {
+        await updateUserKeyBudget(userId, plan)
+      } catch (e) {
+        console.warn(`[stripe/webhook] LiteLLM key budget sync failed (user=${userId} plan=${plan}):`, e instanceof Error ? e.message : e)
+        Sentry.captureException(e, {
+          tags: { component: 'stripeWebhook', event: 'litellm_key_sync_failed', userId: String(userId) }
+        })
+      }
+    })
+  }
+
   return { matched, plan }
 }
 
@@ -200,7 +230,8 @@ export async function handleCheckoutSessionCompleted(
 export async function handleSubscriptionUpdated(
   event: Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionCreatedEvent,
   config: { pricePro: string, priceMax: string, priceUltra: string },
-  db?: DbOrTx
+  db?: DbOrTx,
+  deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
@@ -232,6 +263,26 @@ export async function handleSubscriptionUpdated(
     where: { stripeCustomerId: customerId },
     set: setFields
   }, db)
+
+  // Phase 6: sync LiteLLM virtual-key budget to the new plan. Deferred
+  // until after the surrounding TX commits to avoid the self-deadlock
+  // against the user-row lock held by the UPDATE above (Phase 7 fix).
+  if (deferAfterCommit) {
+    deferAfterCommit.push(async () => {
+      try {
+        const userId = await getUserIdByCustomer(customerId)
+        if (userId !== null) {
+          await updateUserKeyBudget(userId, plan)
+        }
+      } catch (e) {
+        console.warn(`[stripe/webhook] LiteLLM key budget sync failed (customer=${customerId} plan=${plan}):`, e instanceof Error ? e.message : e)
+        Sentry.captureException(e, {
+          tags: { component: 'stripeWebhook', event: 'litellm_key_sync_failed', customerId }
+        })
+      }
+    })
+  }
+
   return { matched, plan }
 }
 
@@ -246,7 +297,8 @@ export async function handleSubscriptionUpdated(
  */
 export async function handleSubscriptionDeleted(
   event: Stripe.CustomerSubscriptionDeletedEvent,
-  db?: DbOrTx
+  db?: DbOrTx,
+  deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
@@ -259,21 +311,55 @@ export async function handleSubscriptionDeleted(
       planValidUntil: null
     }
   }, db)
+
+  // Phase 6: drop LiteLLM key budget to free-tier value. Deferred to
+  // post-commit (Phase 7 fix — see handleCheckoutSessionCompleted).
+  if (deferAfterCommit) {
+    deferAfterCommit.push(async () => {
+      try {
+        const userId = await getUserIdByCustomer(customerId)
+        if (userId !== null) {
+          await updateUserKeyBudget(userId, 'free')
+        }
+      } catch (e) {
+        console.warn(`[stripe/webhook] LiteLLM key drop-to-free failed (customer=${customerId}):`, e instanceof Error ? e.message : e)
+        Sentry.captureException(e, {
+          tags: { component: 'stripeWebhook', event: 'litellm_key_sync_failed', customerId }
+        })
+      }
+    })
+  }
+
   return { matched }
 }
 
 /**
+ * Helper: resolve `users.id` from a Stripe customer id. Used by the
+ * LiteLLM key sync paths above. Returns null if no matching row.
+ */
+async function getUserIdByCustomer(customerId: string, db?: DbOrTx): Promise<number | null> {
+  const conn = db ?? useDatabase()
+  const rows = await conn.select({ id: users.id })
+    .from(users)
+    .where(eq(users.stripeCustomerId, customerId))
+    .limit(1)
+  return rows[0]?.id ?? null
+}
+
+/**
  * `invoice.paid` handler. Fires on subscription renewal. Update the
- * period anchors so Model C's period key advances to the new cycle —
- * the next `ai_usage_period` read/write lands on a fresh row at
- * `used=0`, matching the user's mental model of "I just paid → my
- * quota reset."
+ * period anchors so the billing-period key advances to the new cycle.
+ *
+ * Phase 6: also resets the user's LiteLLM virtual-key spend to 0 so
+ * the next AI call starts the fresh cycle at full AI Points. Idempotent
+ * — replays land at the same end state.
  *
  * Skip non-subscription invoices (one-off charges etc.).
  */
 export async function handleInvoicePaid(
   event: Stripe.InvoicePaidEvent,
-  db?: DbOrTx
+  db?: DbOrTx,
+  deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
   const invoice = event.data.object
   // Stripe API 2025+ moved subscription off the invoice root onto
@@ -297,6 +383,26 @@ export async function handleInvoicePaid(
       planValidUntil: periodEnd
     }
   }, db)
+
+  // Phase 6: reset LiteLLM cumulative spend to 0 so the user starts
+  // the new cycle with their full AI Points balance restored. Deferred
+  // to post-commit (Phase 7 fix — see handleCheckoutSessionCompleted).
+  if (deferAfterCommit) {
+    deferAfterCommit.push(async () => {
+      try {
+        const userId = await getUserIdByCustomer(customerId)
+        if (userId !== null) {
+          await resetUserKeySpend(userId)
+        }
+      } catch (e) {
+        console.warn(`[stripe/webhook] LiteLLM spend reset failed (customer=${customerId}):`, e instanceof Error ? e.message : e)
+        Sentry.captureException(e, {
+          tags: { component: 'stripeWebhook', event: 'litellm_spend_reset_failed', customerId }
+        })
+      }
+    })
+  }
+
   return { matched }
 }
 
@@ -335,6 +441,7 @@ async function runHandler(
     stripe: Stripe
     config: { pricePro: string, priceMax: string, priceUltra: string }
     db: DbOrTx
+    deferAfterCommit?: DeferredAfterCommit
   }
 ): Promise<{ handled: boolean, detail?: unknown }> {
   switch (event.type) {
@@ -342,11 +449,11 @@ async function runHandler(
       return { handled: true, detail: await handleCheckoutSessionCompleted(event, opts) }
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
-      return { handled: true, detail: await handleSubscriptionUpdated(event, opts.config, opts.db) }
+      return { handled: true, detail: await handleSubscriptionUpdated(event, opts.config, opts.db, opts.deferAfterCommit) }
     case 'customer.subscription.deleted':
-      return { handled: true, detail: await handleSubscriptionDeleted(event, opts.db) }
+      return { handled: true, detail: await handleSubscriptionDeleted(event, opts.db, opts.deferAfterCommit) }
     case 'invoice.paid':
-      return { handled: true, detail: await handleInvoicePaid(event, opts.db) }
+      return { handled: true, detail: await handleInvoicePaid(event, opts.db, opts.deferAfterCommit) }
     case 'invoice.payment_failed':
       return { handled: true, detail: await handleInvoicePaymentFailed(event) }
     default:
@@ -389,6 +496,7 @@ async function drainPendingEvents(
     stripe: Stripe
     config: { pricePro: string, priceMax: string, priceUltra: string }
     db: DbOrTx
+    deferAfterCommit?: DeferredAfterCommit
   }
 ): Promise<number> {
   const rows = await opts.db.select({
@@ -457,7 +565,13 @@ export async function dispatchStripeEvent(
   }
 ): Promise<{ handled: boolean, detail?: unknown, replayed?: boolean, stashed?: boolean }> {
   const db = useDatabase()
-  return await db.transaction(async (tx: DbOrTx) => {
+  // Phase 7: handlers push LiteLLM key-sync closures here (instead of
+  // running them inline) — the surrounding TX holds an exclusive lock
+  // on the user row, and `updateUserKeyBudget` opens its own pool
+  // connection to UPDATE the same row. We flush these AFTER the TX
+  // commits so the lock has been released.
+  const deferAfterCommit: DeferredAfterCommit = []
+  const result = await db.transaction(async (tx: DbOrTx) => {
     // Step 1: dedup. Atomic INSERT with ON CONFLICT DO NOTHING; if
     // the returning array is empty, this event.id has been processed
     // before. Short-circuit so the row stays at whatever state it's
@@ -502,14 +616,14 @@ export async function dispatchStripeEvent(
     }
 
     // Step 3: dispatch the event normally.
-    const result = await runHandler(event, { ...opts, db: tx })
+    const result = await runHandler(event, { ...opts, db: tx, deferAfterCommit })
 
     // Step 4: if this was a checkout, drain any stashed events that
     // were waiting for this customer to be bound.
     if (event.type === 'checkout.session.completed') {
       const customerId = extractCustomerId(event)
       if (customerId) {
-        const drained = await drainPendingEvents(customerId, { ...opts, db: tx })
+        const drained = await drainPendingEvents(customerId, { ...opts, db: tx, deferAfterCommit })
         if (drained > 0) {
           return { ...result, detail: { ...(result.detail ?? {}), drained } }
         }
@@ -518,4 +632,13 @@ export async function dispatchStripeEvent(
 
     return result
   })
+
+  // Flush deferred LiteLLM key syncs. Each closure already swallows its
+  // own errors + reports to Sentry — running them sequentially keeps
+  // the side-effect ordering predictable for tests and ops.
+  for (const fn of deferAfterCommit) {
+    await fn()
+  }
+
+  return result
 }

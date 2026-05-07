@@ -82,11 +82,11 @@ export async function probeValkey(): Promise<ProbeResult> {
   }
 }
 
-async function probeHttp(url: string | undefined | null, name: string): Promise<ProbeResult> {
+async function probeHttp(url: string | undefined | null, name: string, path = '/health'): Promise<ProbeResult> {
   if (!url) return skipped()
   const started = performance.now()
   try {
-    const target = `${url.replace(/\/+$/, '')}/health`
+    const target = `${url.replace(/\/+$/, '')}${path}`
     const res = await fetch(target, {
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
       // GET — every sidecar's /health is a plain text 200.
@@ -114,10 +114,19 @@ export function probeMarkitdown(url: string | undefined | null): Promise<ProbeRe
   return probeHttp(url, 'markitdown')
 }
 
+// LiteLLM exposes /health/liveliness (NOT /health) — keep it on the
+// liveliness probe rather than the deeper /health/readiness, which
+// also checks DB+cache connectivity and would couple our health to
+// LiteLLM's own dependency graph.
+export function probeLitellm(url: string | undefined | null): Promise<ProbeResult> {
+  return probeHttp(url, 'litellm', '/health/liveliness')
+}
+
 export interface HealthProbeUrls {
   syncUrl?: string | null
   rendererUrl?: string | null
   markitdownUrl?: string | null
+  litellmUrl?: string | null
 }
 
 export interface AllProbeResults {
@@ -126,6 +135,7 @@ export interface AllProbeResults {
   sync: ProbeResult
   renderer: ProbeResult
   markitdown: ProbeResult
+  litellm: ProbeResult
 }
 
 // Run every probe in parallel via Promise.allSettled. Any thrown error
@@ -138,7 +148,8 @@ export async function runAllProbes(urls: HealthProbeUrls): Promise<AllProbeResul
     probeValkey(),
     probeSync(urls.syncUrl),
     probeRenderer(urls.rendererUrl),
-    probeMarkitdown(urls.markitdownUrl)
+    probeMarkitdown(urls.markitdownUrl),
+    probeLitellm(urls.litellmUrl)
   ])
   const unwrap = (s: PromiseSettledResult<ProbeResult>): ProbeResult => {
     if (s.status === 'fulfilled') return s.value
@@ -149,7 +160,8 @@ export async function runAllProbes(urls: HealthProbeUrls): Promise<AllProbeResul
     valkey: unwrap(settled[1]),
     sync: unwrap(settled[2]),
     renderer: unwrap(settled[3]),
-    markitdown: unwrap(settled[4])
+    markitdown: unwrap(settled[4]),
+    litellm: unwrap(settled[5])
   }
 }
 
@@ -188,7 +200,8 @@ function projectChecks(results: AllProbeResults): Record<string, ProbeStatus> {
     valkey: results.valkey.status,
     sync: results.sync.status,
     renderer: results.renderer.status,
-    markitdown: results.markitdown.status
+    markitdown: results.markitdown.status,
+    litellm: results.litellm.status
   }
 }
 

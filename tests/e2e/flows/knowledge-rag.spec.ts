@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/flow'
+import { test, expect, requireLiveAi } from '../fixtures/flow'
 import path from 'node:path'
 
 // Tier 2: "Ask the AI about a file you uploaded".
@@ -15,7 +15,8 @@ import path from 'node:path'
 // AI: `search_knowledge` tool returns top-K snippets; the model
 // folds them into its reply.
 //
-// Live Gemini call. NUXT_GOOGLE_GEMINI_API_KEY required.
+// Live LiteLLM round-trip. Drives Jina embeddings (search) + Mistral
+// (synthesis). MISTRAL_API_KEY + JINA_AI_API_KEY required.
 //
 // Setup shortcut: the workspace is created via the API, not the UI
 // (UI workspace creation is a `WorkspaceFormModal` dance that's
@@ -24,19 +25,21 @@ import path from 'node:path'
 // landing page so readers see the upload + AI grounding from the
 // first frame.
 //
-// Desktop only: the workspace landing page packs the documents
-// list + members + knowledge tabs into a layout that scrolls
-// awkwardly on `<sm` widths. Mobile users get the same Knowledge
-// drawer inside a doc; that's a separate tier-2 candidate.
+// Runs on desktop AND mobile. Same workspace + knowledge pipeline;
+// the upload entry point differs:
+//   - Desktop: workspace landing page → Knowledge tab → Upload.
+//   - Mobile: skip the workspace landing page (it stacks awkwardly
+//     on `<sm`); land directly in a workspace doc and use the
+//     editor's Knowledge bottom-tab drawer to upload. The drawer's
+//     upload UI is the same `[data-testid="knowledge-upload-button"]`
+//     used by the workspace page — same backend pipeline either way.
+//
+// (Until Phase 6.30 there was a `knowledge-rag-mobile.spec.ts`
+//  sibling carrying mobile-specific narration. Deleted as part of the
+//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
+//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
 test('Knowledge grounded AI', async ({ page, flow, editor }) => {
-  test.skip(
-    editor.isMobile,
-    'Knowledge-RAG flow uses the workspace landing page upload UI; mobile workspace layout is a different shape and warrants its own tier-2 flow.'
-  )
-  test.skip(
-    !process.env.NUXT_GOOGLE_GEMINI_API_KEY,
-    'NUXT_GOOGLE_GEMINI_API_KEY is required for live AI flows — set it in the host shell before `bun run flows:test`.'
-  )
+  requireLiveAi()
   test.setTimeout(360_000)
 
   // Login + create the workspace via the API. The UI flow for
@@ -63,10 +66,28 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // the route uses, NOT the integer DB id. Navigating to /w/<int>
   // would 404 even though the workspace exists.
   const ws = await wsRes.json() as { workspaceId: string }
-  await page.goto(`/w/${ws.workspaceId}`)
-  // Wait for the workspace landing page to render the tabs (vs the
-  // 404 "Workspace not found" page).
-  await page.getByRole('tab', { name: /documents/i }).waitFor({ state: 'visible', timeout: 10_000 })
+
+  // On mobile, skip the workspace landing page (UX is awkward at
+  // `<sm`) and create the workspace doc via API, then land in the
+  // editor where the Knowledge bottom-tab drawer surfaces the same
+  // upload UI as the desktop landing page's Knowledge tab.
+  if (editor.isMobile) {
+    const docRes = await page.request.post('/api/docs', {
+      data: { workspaceId: ws.workspaceId }
+    })
+    if (!docRes.ok()) {
+      throw new Error(`[knowledge-rag] doc create failed: ${docRes.status()} ${await docRes.text()}`)
+    }
+    const doc = await docRes.json() as { docId: string }
+    await page.goto(`/d/${doc.docId}`)
+    await editor.page.waitForReady()
+    await editor.page.disableCoverPage()
+  } else {
+    await page.goto(`/w/${ws.workspaceId}`)
+    // Wait for the workspace landing page to render the tabs (vs the
+    // 404 "Workspace not found" page).
+    await page.getByRole('tab', { name: /documents/i }).waitFor({ state: 'visible', timeout: 10_000 })
+  }
 
   // Title + intro before the first capture.
   await flow.heading('Ask the AI about a file you uploaded', 3)
@@ -74,7 +95,8 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     'Workspaces have a Knowledge tab — drop in PDFs, Word docs, '
     + 'HTML exports, the team\'s RFCs, customer FAQs. markoto converts '
     + 'them to markdown via markitdown, splits them into heading-aware '
-    + 'chunks, embeds each chunk with Gemini, and indexes both the '
+    + 'chunks, embeds each chunk via Jina v5-text-nano (through the '
+    + 'LiteLLM proxy), and indexes both the '
     + 'vector AND a tsvector for hybrid retrieval. The AI gets a '
     + '`search_knowledge` tool that hits this index.'
   )
@@ -82,21 +104,32 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // ─── Upload a knowledge file ────────────────────────────────────
   await flow.heading('Upload the file', 3)
 
-  // Switch to the Knowledge tab on the workspace landing page.
-  // The tabs use `role="tab"` from Reka — the Knowledge tab's
-  // accessible name comes from the i18n string `workspace.tabs.knowledge`
-  // (en: "Knowledge").
-  await flow.click(
-    'Open the Knowledge tab',
-    page.getByRole('tab', { name: /knowledge/i }),
-    {
-      annotations: [
-        { label: 'knowledge tab', selector: '[role="tab"][aria-selected="false"]', kind: 'arrow' }
-      ],
-      result: 'The Knowledge panel opens — empty until you upload your first file.',
-      after: () => page.locator('[data-testid="knowledge-upload-button"]').first().waitFor({ state: 'visible' })
-    }
-  )
+  // Open the Knowledge surface. Desktop = workspace-landing-page
+  // tab. Mobile = bottom-tab-bar drawer in the editor.
+  if (editor.isMobile) {
+    await flow.click(
+      'Tap the Knowledge tab on the bottom bar',
+      editor.page.mobileTabs.knowledge,
+      {
+        result: 'The Knowledge drawer slides up — empty until you upload your first file.',
+        after: () => page.locator('[data-testid="knowledge-upload-button"]').first().waitFor({ state: 'visible', timeout: 10_000 })
+      }
+    )
+  } else {
+    // Tabs use `role="tab"` from Reka — the Knowledge tab's
+    // accessible name comes from `workspace.tabs.knowledge` (en: "Knowledge").
+    await flow.click(
+      'Open the Knowledge tab',
+      page.getByRole('tab', { name: /knowledge/i }),
+      {
+        annotations: [
+          { label: 'knowledge tab', selector: '[role="tab"][aria-selected="false"]', kind: 'arrow' }
+        ],
+        result: 'The Knowledge panel opens — empty until you upload your first file.',
+        after: () => page.locator('[data-testid="knowledge-upload-button"]').first().waitFor({ state: 'visible' })
+      }
+    )
+  }
 
   // The Upload button opens a native file chooser via VueUse's
   // useFileDialog. Same pattern as import-existing — register the
@@ -130,7 +163,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   await flow.narrate(
     'The file streams to the markitdown sidecar for HTML → markdown '
     + 'conversion, gets split into heading-aware chunks, each chunk '
-    + 'is embedded via Gemini\'s 768-d embedding model, and the '
+    + 'is embedded via Jina v5-text-nano (768-d native), and the '
     + 'resulting vectors land in pgvector with a parallel tsvector '
     + 'for lexical search. Hybrid RRF (Reciprocal Rank Fusion) over '
     + 'the two indices gives the AI a grounded retrieval surface.'
@@ -149,62 +182,82 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // ─── Create a doc inside the workspace ───────────────────────────
   await flow.heading('Now ask the AI about it', 3)
   await flow.narrate(
-    'Create a new doc in this workspace and the AI gets two extra '
-    + 'tools: `search_knowledge` (hybrid retrieval over the chunk '
-    + 'index) and `get_knowledge_file` (full markdown of one file). '
-    + 'It picks them automatically when your prompt smells like a '
-    + 'knowledge question.'
+    editor.isMobile
+      ? 'You\'re already inside a workspace doc — the AI has two extra tools wired up: '
+        + '`search_knowledge` (hybrid retrieval over the chunk index) and '
+        + '`get_knowledge_file` (full markdown of one file). It picks them automatically '
+        + 'when your prompt smells like a knowledge question. Close the Knowledge drawer '
+        + 'so the AI prompt bar is reachable.'
+      : 'Create a new doc in this workspace and the AI gets two extra '
+        + 'tools: `search_knowledge` (hybrid retrieval over the chunk '
+        + 'index) and `get_knowledge_file` (full markdown of one file). '
+        + 'It picks them automatically when your prompt smells like a '
+        + 'knowledge question.'
   )
 
-  // Switch back to the Documents tab and click "New document".
-  await flow.click(
-    'Switch to the Documents tab',
-    page.getByRole('tab', { name: /documents/i }),
-    {
-      result: 'The Documents tab opens — no docs yet, but a "New document" button is right there.',
-      after: () => page.locator('[data-testid="workspace-new-document"]').first().waitFor({ state: 'visible' })
-    }
-  )
-
-  // Create a workspace doc. The button calls a method that POSTs
-  // to /api/docs with the workspaceId, then routes to the new doc.
-  await flow.click(
-    'Click "New document"',
-    page.locator('[data-testid="workspace-new-document"]').first(),
-    {
-      result: 'A blank doc opens, scoped to this workspace. The AI now has '
-        + 'access to the postmortem you uploaded.',
-      after: async () => {
-        // Wait for the new-doc dialog. The data-testid is on UModal
-        // (Reka renders it in a portal which doesn't always
-        // surface attributes on the visible dialog content), so
-        // probe the title input which IS reliably inside the open
-        // dialog body.
-        await page.locator('[data-testid="newdoc-title-input"]').waitFor({ state: 'visible', timeout: 10_000 })
+  if (editor.isMobile) {
+    // Already in a workspace doc — close the Knowledge drawer so the
+    // AI prompt bar is reachable. Same Escape pattern the mobile
+    // sibling uses (BottomSheet listens on document keydown).
+    await flow.step(
+      'Close the Knowledge drawer (Escape)',
+      async () => {
+        await page.keyboard.press('Escape')
+        await page.locator('.mk-sheet-host').waitFor({ state: 'detached', timeout: 5_000 }).catch(() => {})
+      },
+      { result: 'The drawer slides down — the editor + AI prompt bar are visible again.' }
+    )
+  } else {
+    // Switch back to the Documents tab and click "New document".
+    await flow.click(
+      'Switch to the Documents tab',
+      page.getByRole('tab', { name: /documents/i }),
+      {
+        result: 'The Documents tab opens — no docs yet, but a "New document" button is right there.',
+        after: () => page.locator('[data-testid="workspace-new-document"]').first().waitFor({ state: 'visible' })
       }
-    }
-  )
+    )
 
-  // Submit the dialog with default settings (blank doc, just give
-  // me the editor). The submit-blank path skips the form fields.
-  await flow.click(
-    'Pick "Just give me a blank doc" to skip the form',
-    page.locator('[data-testid="newdoc-submit-blank"]'),
-    {
-      result: 'The editor opens. The AI prompt bar is at the bottom and the '
-        + 'workspace knowledge tools are wired up server-side.',
-      after: async () => {
-        await page.waitForURL(/\/d\/[^/]+/)
-        await editor.page.waitForReady()
-        // Disable cover so the AI's grounded answer (lands at end-
-        // of-doc which is page 1 of a blank doc) is visible in the
-        // preview pane.
-        await editor.page.disableCoverPage()
-        await editor.page.switchToSplitView()
-        await editor.page.waitForPreviewPaginated()
+    // Create a workspace doc. The button calls a method that POSTs
+    // to /api/docs with the workspaceId, then routes to the new doc.
+    await flow.click(
+      'Click "New document"',
+      page.locator('[data-testid="workspace-new-document"]').first(),
+      {
+        result: 'A blank doc opens, scoped to this workspace. The AI now has '
+          + 'access to the postmortem you uploaded.',
+        after: async () => {
+          // Wait for the new-doc dialog. The data-testid is on UModal
+          // (Reka renders it in a portal which doesn't always
+          // surface attributes on the visible dialog content), so
+          // probe the title input which IS reliably inside the open
+          // dialog body.
+          await page.locator('[data-testid="newdoc-title-input"]').waitFor({ state: 'visible', timeout: 10_000 })
+        }
       }
-    }
-  )
+    )
+
+    // Submit the dialog with default settings (blank doc, just give
+    // me the editor). The submit-blank path skips the form fields.
+    await flow.click(
+      'Pick "Just give me a blank doc" to skip the form',
+      page.locator('[data-testid="newdoc-submit-blank"]'),
+      {
+        result: 'The editor opens. The AI prompt bar is at the bottom and the '
+          + 'workspace knowledge tools are wired up server-side.',
+        after: async () => {
+          await page.waitForURL(/\/d\/[^/]+/)
+          await editor.page.waitForReady()
+          // Disable cover so the AI's grounded answer (lands at end-
+          // of-doc which is page 1 of a blank doc) is visible in the
+          // preview pane.
+          await editor.page.disableCoverPage()
+          await editor.page.switchToSplitView()
+          await editor.page.waitForPreviewPaginated()
+        }
+      }
+    )
+  }
 
   // ─── Ask a question grounded in the file ────────────────────────
   await flow.heading('A question grounded in the postmortem', 3)
@@ -224,7 +277,13 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     }
   )
 
-  const prompt = 'Summarise what the Q3 postmortem said about staged rollouts.'
+  // Imperative phrasing pinning the AI to a doc edit. A pure
+  // "Summarise…" reads as a chat question and Mistral may answer via
+  // `message_to_user` (lands in the prompt-bar response panel, not
+  // the doc). The "Insert a short paragraph" lead-in routes the
+  // answer through `insert_text` so the assertion below — which reads
+  // off `.cm-content` — actually sees it.
+  const prompt = 'Insert a short paragraph at the end of this document summarising what the Q3 postmortem said about staged rollouts.'
   await flow.type(
     'Type a question only the file knows the answer to',
     editor.page.ai.promptBarInput,
@@ -266,7 +325,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
 
   // ASSERTION: the doc grew AND the body mentions specific facts
   // from the postmortem fixture. We don't assert exact phrasing —
-  // Gemini's wording varies — but the staged-rollout reference is
+  // the model's wording varies — but the staged-rollout reference is
   // the key claim, and "5%" or "24" should land verbatim because
   // they're concrete numbers the model has nothing to substitute
   // them with.

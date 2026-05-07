@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/flow'
 import { Pool } from 'pg'
+import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal/versions'
 
 // Tier 1 (Privacy): "Delete your account, with the consequences spelled out".
 //
@@ -63,12 +64,32 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
 
   try {
     async function insertUser(name: string): Promise<number> {
+      // Seed onboarding columns so the OnboardingGate modal doesn't
+      // block the app shell (it's overlay-rendered above the topbar
+      // and intercepts every avatar/menu click). Same shape as
+      // `Editor.loginAsTestUser`. Versions read from
+      // `shared/legal/versions.ts` so a future bump can't desync the
+      // gate's "needs re-acceptance" check from this seed.
       const r = await pool.query<{ id: number }>(
-        `INSERT INTO users (github_id, name, plan)
-         VALUES ($1, $2, 'free')
-         ON CONFLICT (github_id) DO UPDATE SET name = EXCLUDED.name
+        `INSERT INTO users (
+           github_id, name, plan,
+           age_confirmed_at,
+           privacy_version_accepted, privacy_version_accepted_locale,
+           tos_version_accepted, tos_version_accepted_locale,
+           dpa_version_accepted, dpa_version_accepted_locale
+         )
+         VALUES ($1, $2, 'free', NOW(), $3, 'en', $4, 'en', $5, 'en')
+         ON CONFLICT (github_id) DO UPDATE SET
+           name = EXCLUDED.name,
+           age_confirmed_at = EXCLUDED.age_confirmed_at,
+           privacy_version_accepted = EXCLUDED.privacy_version_accepted,
+           privacy_version_accepted_locale = EXCLUDED.privacy_version_accepted_locale,
+           tos_version_accepted = EXCLUDED.tos_version_accepted,
+           tos_version_accepted_locale = EXCLUDED.tos_version_accepted_locale,
+           dpa_version_accepted = EXCLUDED.dpa_version_accepted,
+           dpa_version_accepted_locale = EXCLUDED.dpa_version_accepted_locale
          RETURNING id`,
-        [`flow-priv-${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name]
+        [`flow-priv-${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION]
       )
       return r.rows[0].id
     }

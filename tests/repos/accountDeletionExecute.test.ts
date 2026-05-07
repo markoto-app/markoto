@@ -119,11 +119,6 @@ describe('executeAccountDeletion: full graph', () => {
        VALUES ($1, $2, 's-alice', 'user_prompt', $3::jsonb)`,
       [aiDoc.docId, alice.id, JSON.stringify({ text: 'hi' })]
     )
-    await testDb().query(
-      `INSERT INTO ai_usage_period (attributed_to, period_start, interactions_used)
-       VALUES ($1, '2025-01-01T00:00:00Z', 5)`,
-      [`user:${alice.id}`]
-    )
 
     // (8) Saved theme.
     await testDb().query(
@@ -199,14 +194,11 @@ describe('executeAccountDeletion: full graph', () => {
       entry_id: 'c2', author_id: carol.id, author_name: carol.name, body: 'Carol replied'
     })
 
-    // AI usage cleared.
+    // AI sessions cleared. (Phase 6: ai_usage_period dropped — LiteLLM
+    // owns spend state. Virtual-key revocation is exercised in the unit
+    // tests for `executeAccountDeletion`.)
     const aiSessions = await testDb().query(`SELECT session_id FROM ai_sessions`)
     expect(aiSessions.rows.length).toBe(0)
-    const aiUsage = await testDb().query(
-      `SELECT attributed_to FROM ai_usage_period WHERE attributed_to = $1`,
-      [`user:${alice.id}`]
-    )
-    expect(aiUsage.rows.length).toBe(0)
 
     // Theme gone.
     const themesLeft = await testDb().query(`SELECT theme_id FROM themes WHERE user_id = $1`, [alice.id])
@@ -239,7 +231,6 @@ describe('executeAccountDeletion: full graph', () => {
     expect(summary!.workspacesPromoted).toBe(2) // co-admin + admin-only
     expect(summary!.themesDeleted).toBe(1)
     expect(summary!.aiSessionsDeleted).toBe(1)
-    expect(summary!.aiUsageRowsDeleted).toBe(1)
     expect(summary!.stripeCustomerDeleted).toBe(true)
 
     // Stripe del was called with alice's customer id.
@@ -253,7 +244,7 @@ describe('executeAccountDeletion: full graph', () => {
   it('is idempotent — running on an already-deleted user is a no-op', async () => {
     const alice = await createUser()
     const result1 = await executeAccountDeletion({ userId: alice.id })
-    expect(result1.summary.aiUsageRowsDeleted).toBe(0)
+    expect(result1.summary.aiSessionsDeleted).toBe(0)
     // Second run on a now-missing user
     const result2 = await executeAccountDeletion({ userId: alice.id })
     expect(result2.summary).toMatchObject({

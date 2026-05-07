@@ -10,8 +10,6 @@
 
 interface UserBilling {
   plan: 'free' | 'pro' | 'max' | 'ultra'
-  interactionsRemaining: number
-  interactionsLimit: number
   periodStart: string
 }
 

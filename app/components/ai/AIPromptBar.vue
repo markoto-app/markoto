@@ -32,7 +32,11 @@ const { vibrate: vibrateAbort } = useVibrate()
 //   2. `creditsExhausted` gates the input + send + mic buttons so the
 //      user can't even type a prompt that the server would reject.
 //      The bar stays visible so the user sees the path forward.
-const { refresh: refreshBilling, creditsExhausted } = useBilling()
+const { refresh: refreshBilling } = useBilling()
+// Phase 6: AI exhaustion comes from /api/ai/credits (LiteLLM /key/info).
+// `refreshAiCredits` runs after a session ends so the AI Points badge
+// ticks down live without the user navigating away.
+const { isExhausted: creditsExhausted, isWorkspaceShared: creditsAreShared, refresh: refreshAiCredits } = useAiCredits()
 const router = useRouter()
 
 const input = ref('')
@@ -84,9 +88,14 @@ watch(() => voice.errorMessage.value, (err) => {
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
   // Out of credits → swap the placeholder so the user reads the
-  // reason the bar is disabled + the path forward (click routes to
-  // /pricing).
-  if (creditsExhausted.value) return t('ai.exhaustedPlaceholder')
+  // reason the bar is disabled + the path forward. Workspace-shared
+  // pool exhaustion gets its own copy because the path forward is
+  // "contact the workspace owner", not /pricing.
+  if (creditsExhausted.value) {
+    return creditsAreShared.value
+      ? t('ai.workspaceExhaustedPlaceholder')
+      : t('ai.exhaustedPlaceholder')
+  }
   // Active session → mirror the session's status message. Bar doubles
   // as a status indicator so the user knows the AI isn't stuck.
   const s = props.ai.mySession.value
@@ -100,7 +109,11 @@ const placeholder = computed(() => {
 // At-cap click → /pricing instead of a doomed request. Used by the
 // send button's click handler and by click-on-input (for users who
 // click the grayed-out bar and expect *something* to happen).
+// Skip the redirect when the exhausted pool is workspace-shared —
+// the member has nothing to upgrade; the toast already told them
+// to contact the owner.
 function onCapReached() {
+  if (creditsAreShared.value) return
   router.push('/pricing')
 }
 
@@ -109,6 +122,42 @@ function onCapReached() {
 watch(() => props.ai.mySessionId.value, (now, prev) => {
   if (prev && !now) {
     void refreshBilling()
+    void refreshAiCredits()
+  }
+})
+
+// Phase 7: when the runLoop's mid-loop catch path fires (a
+// LitellmBudgetExhausted from the proxy), the prompt request itself
+// returned 200 — there's no `budgetExhausted` flip on `useAI`. The
+// session-end refresh above pulls the new credit numbers; this watch
+// reacts to the false→true transition and surfaces the upgrade toast
+// the user would otherwise miss.
+watch(creditsExhausted, (now, prev) => {
+  if (now && !prev) {
+    // Workspace-shared (+) pool exhausted — the member CAN'T fix this
+    // by upgrading themselves; only the workspace owner's plan / spend
+    // matters. Swap copy + drop the upgrade CTA so we don't push them
+    // onto a self-pricing page that won't help.
+    if (creditsAreShared.value) {
+      toast.add({
+        title: t('ai.workspaceBudgetExhaustedTitle'),
+        description: t('ai.workspaceBudgetExhaustedDescription'),
+        icon: 'i-lucide-credit-card',
+        color: 'warning'
+      })
+      return
+    }
+    toast.add({
+      title: t('ai.budgetExhaustedTitle'),
+      description: t('ai.budgetExhaustedDescription'),
+      icon: 'i-lucide-credit-card',
+      color: 'warning',
+      actions: [{
+        label: t('ai.upgradeCta'),
+        color: 'primary',
+        onClick: () => { window.location.href = '/pricing' }
+      }]
+    })
   }
 })
 
@@ -184,6 +233,15 @@ watch(() => props.ai.lastError.value, (err) => {
     // Dedicated budget-exhausted toast with an Upgrade action. Users
     // need an obvious path forward — a generic "AI request failed"
     // toast doesn't tell them what to do.
+    if (creditsAreShared.value) {
+      toast.add({
+        title: t('ai.workspaceBudgetExhaustedTitle'),
+        description: t('ai.workspaceBudgetExhaustedDescription'),
+        icon: 'i-lucide-credit-card',
+        color: 'warning'
+      })
+      return
+    }
     toast.add({
       title: t('ai.budgetExhaustedTitle'),
       description: t('ai.budgetExhaustedDescription'),

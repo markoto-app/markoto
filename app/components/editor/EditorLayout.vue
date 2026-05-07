@@ -66,8 +66,8 @@ const toast = useToast()
 const { showError } = useErrorHandler()
 
 // Live voice dictation. Mic button in the toolbar opens a WebSocket
-// relay to Gemini's Live API; interim transcripts show as ghost text
-// at the caret (see `dictationExtensions.ts`) and finalized phrases
+// relay to Mistral Voxtral Realtime; interim transcripts show as ghost
+// text at the caret (see `dictationExtensions.ts`) and finalized phrases
 // commit to Y.js at the current caret. Awareness field `dictation`
 // advertises the "🎙 listening" state to collaborators.
 const dictation = useVoiceDictation({

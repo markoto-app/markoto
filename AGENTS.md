@@ -1,12 +1,12 @@
 # markoto — Project Guide
 
-Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google) via `nuxt-auth-utils`, PostgreSQL (app data + Y.js state via `y-postgresql` + pgvector embeddings), external S3 for image uploads & pg backups, multi-lingual UI via `@nuxtjs/i18n`, AI writing assistance via Google Gemini with workspace knowledge-base retrieval, Stripe billing for tiered AI quotas. Single Linux VPS today, multi-instance-capable since Phase 3. Docker Compose + Ansible.
+Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google) via `nuxt-auth-utils`, PostgreSQL (app data + Y.js state via `y-postgresql` + pgvector embeddings), external S3 for image uploads & pg backups, multi-lingual UI via `@nuxtjs/i18n`, AI writing assistance via a self-hosted LiteLLM proxy fronting Mistral (text + voice) / Jina (embeddings + web search) / BFL (image gen) — all EU-resident — with workspace knowledge-base retrieval, Stripe billing for tiered AI budgets enforced as per-user LiteLLM virtual-key `max_budget`. Single Linux VPS today, multi-instance-capable since Phase 3. Docker Compose + Ansible.
 
 Login is **optional** — public docs work anonymously. Login is required to own, manage permissions, use workspaces, delete, or use AI.
 
 License: **FSL-1.1-ALv2** (source-available, converts to Apache-2.0 after two years).
 
-Pricing & monetisation strategy is internal and tracked outside this repo. AI agents do not need it for engineering work; reach for the implementation directly (`server/utils/billing.ts`, `users.plan`, `ai_usage_period`, `server/utils/stripeWebhook.ts`).
+Pricing & monetisation strategy is internal and tracked outside this repo. AI agents do not need it for engineering work; reach for the implementation directly (`server/utils/billing.ts`, `users.plan`, `server/utils/litellmKeys.ts`, `server/utils/stripeWebhook.ts`).
 
 ---
 
@@ -100,8 +100,8 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 | `dompurify` | 3.2.4 | XSS sanitization |
 | `pagedjs` (CDN) | 0.4.3 | CSS Paged Media polyfill; pinned in `shared/utils/pagedjsCdn.ts` |
 | `nanoid` | 5.1.5 | ID generation |
-| `@google/genai` | ^1.50 | Gemini SDK |
-| `@google-cloud/speech` | ^7.3 | Cloud Speech-to-Text SDK (API-key auth, NOT a service account) |
+| `openai` | ^6.36 | OpenAI SDK pointed at LiteLLM (used for embeddings + text agentic loop + image gen + voice transcribe) |
+| `@mistralai/mistralai` | ^2.2 | Mistral SDK — used only for Voxtral Realtime WS streaming (`extra/realtime` sub-export). All other Mistral calls go via LiteLLM. |
 | `file-type` | ^22 | Magic-byte sniffer for knowledge-upload content-type validation |
 
 ### Sync server (`sync-server/`)
@@ -125,6 +125,16 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 | `jsonwebtoken` | 9.0.2 | Hocuspocus token minting |
 | `stripe` | ^17 | Subscription + webhook |
 | `zod` | ^4 | Validates Gemini function-call args; `z.toJSONSchema` generates tool schemas |
+
+### LiteLLM proxy (`infra/litellm/`)
+
+Vendor-agnostic gateway between the app and external AI providers. Self-hosted (`ghcr.io/berriai/litellm:main-v1.83.14-stable`) — runs as a Compose service on the project's `internal` network, backed by a separate `litellm` database on the existing Postgres instance.
+
+Phase 1A wires only embeddings + reranker through LiteLLM (`jina-embeddings-v5-text-nano` for the workspace knowledge base). Phases 3 / 4 / 5 add image gen (BFL via custom provider, EU-pinned), text agentic loop (Mistral Small 4.0), and voice metering (Voxtral Realtime via custom-provider tick). See `litellm.md` + `litellm-spike-findings.md` for the full migration plan.
+
+Four custom Python providers in `infra/litellm/custom_handlers.py`: `JinaEmbeddingsProvider` (active Phase 1A — reshapes Jina's `usage.total_tokens` → `prompt_tokens`), `MistralTranscribeProvider` (active Phase 2 — wraps Mistral's `/v1/audio/transcriptions` as a chat completion so LiteLLM extracts `usage.prompt_audio_seconds` correctly), `BFLFluxProvider` (active Phase 3 — BFL FLUX.2 [pro] EU-pinned to `api.eu2.bfl.ai`; default 1024² @ $0.030, optional width/height for non-square; submission+poll wrapped as chat-completion to fix the OSS image-gen spend-logger gap), `VoxtralTickProvider` (voice-tick billing stub, Phase 5). All use the OSS `litellm_settings.custom_provider_map` mechanism — no Enterprise license needed. Pattern when LiteLLM's native cost path doesn't fit a provider's response shape: wrap as chat completions with usage in `completion_tokens`, set `output_cost_per_token` to the unit price.
+
+Health probe at `http://litellm:4000/health/liveliness` is wired into `/api/health` + `/api/health/deep`.
 
 ### Renderer sidecar (`renderer/`)
 
@@ -266,7 +276,7 @@ Dev: `bun run dev --host 0.0.0.0` (0.0.0.0 so sync container can reach via `host
 
 Prod key points: postgres healthcheck gates `app` + `sync` startup; `stop_grace_period: 30s`; Traefik healthcheck labels on `/api/health` + `/health`; sticky sessions on the `sync` service via `traefik.http.services.sync.loadbalancer.sticky.cookie=true`; backup sidecar pipes `pg_dump | gzip | aws s3 cp`; Dockerfile **must `COPY drizzle/`** into runtime image.
 
-Required env (canonical names — see `.env.example`): `DOMAIN`, `ACME_EMAIL`, `REGISTRY`, `IMAGE_TAG`, `POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD` (≥32), `NUXT_JWT_SECRET` (≥32), `NUXT_INTERNAL_API_SECRET` (≥32), `NUXT_S3_{ENDPOINT,ACCESS_KEY,SECRET_KEY,BUCKET}`, `NUXT_MARKITDOWN_URL`, `NUXT_SYNC_INTERNAL_URL`, `NUXT_PUBLIC_SYNC_URL`, `NUXT_GOOGLE_GEMINI_API_KEY`, `NUXT_GOOGLE_SPEECH_TO_TEXT_API_KEY`, `NUXT_STRIPE_SECRET_KEY`, `NUXT_STRIPE_WEBHOOK_SECRET`, `BACKUP_INTERVAL_SECONDS`, `BACKUP_RETENTION_COUNT`. Optional pair: `NUXT_OAUTH_GITHUB_CLIENT_*` and/or `NUXT_OAUTH_GOOGLE_CLIENT_*`. Optional Sentry: `NUXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`. Optional Postgres TLS: `PGSSLMODE`, `PGSSLROOTCERT`. Optional AI tuning: `NUXT_GOOGLE_{MODEL,IMAGE_MODEL,IMAGE_RESOLUTION,EMBEDDING_MODEL,EMBEDDING_DIMS,SPEECH_MODEL,THINKING_BUDGET,DICTATE_JWT_SECRET}` (the last falls back to `NUXT_JWT_SECRET`). Compose substitutions use `${VAR:?required}`. Testing: `NUXT_GOOGLE_SPEECH_MOCK=1` (requires `TEST_MODE=1`) swaps the Cloud STT client for a canned fake; `TEST_MODE=1` also bypasses the boot-time secret validator entirely.
+Required env (canonical names — see `.env.example`): `DOMAIN`, `ACME_EMAIL`, `REGISTRY`, `IMAGE_TAG`, `POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD` (≥32), `NUXT_JWT_SECRET` (≥32), `NUXT_INTERNAL_API_SECRET` (≥32), `NUXT_S3_{ENDPOINT,ACCESS_KEY,SECRET_KEY,BUCKET}`, `NUXT_MARKITDOWN_URL`, `NUXT_SYNC_INTERNAL_URL`, `NUXT_PUBLIC_SYNC_URL`, `NUXT_LITELLM_URL`, `NUXT_LITELLM_MASTER_KEY`, `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY`, `JINA_AI_API_KEY`, `MISTRAL_API_KEY`, `BFL_API_KEY`, `NUXT_STRIPE_SECRET_KEY`, `NUXT_STRIPE_WEBHOOK_SECRET`, `BACKUP_INTERVAL_SECONDS`, `BACKUP_RETENTION_COUNT`. Optional pair: `NUXT_OAUTH_GITHUB_CLIENT_*` and/or `NUXT_OAUTH_GOOGLE_CLIENT_*`. Optional Sentry: `NUXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`. Optional Postgres TLS: `PGSSLMODE`, `PGSSLROOTCERT`. Optional: `NUXT_AI_DICTATE_JWT_SECRET` (falls back to `NUXT_JWT_SECRET`). Optional LiteLLM model overrides: `NUXT_LITELLM_{TEXT_MODEL,EMBEDDINGS_MODEL,EMBEDDINGS_DIMS,TRANSCRIBE_MODEL,REALTIME_TICK_MODEL}`. Compose substitutions use `${VAR:?required}`. Testing: `TEST_MODE=1` enables the in-process fakes (canned-fake STT, `/_test/login` shim) and bypasses the boot-time secret validator; `LITELLM_TEST_STUB=1` short-circuits per-user key creation for the unit/repos test tier (integration tests run against a real `litellm-test` container).
 
 ---
 
@@ -317,10 +327,10 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 - **Document context + new-doc dialog + templates:** description / audience / language / templateId fields injected into every AI prompt; multi-language template skeletons. See `app/components/document/AGENTS.md` and `shared/templates/AGENTS.md`.
 - **Document duplication:** `POST /api/docs/:id/duplicate` clones row + Y.js state with URL rewrite + S3 assets. See `server/utils/duplicateDocument.ts`.
 - **Workspace knowledge base:** PDF/DOCX/PPTX/XLSX/HTML/EPUB/MD/TXT upload → markitdown → chunked → embedded → pgvector + tsvector hybrid search. See `server/utils/AGENTS.md`.
-- **AI:** 16 tools (always-on + workspace-gated knowledge tools + cross-doc tools + theme-inspection/preset tools), `@ai` comment trigger, voice input, live dictation. **Per-tool call-count caps + per-session interaction cap (50)** in `runLoop.ts` (Phase 2 — protects against cost-amplifying outliers). See `server/utils/agentic/AGENTS.md`.
-- **Billing (Stripe):** `users.plan` + `plan_valid_until` + `stripe_*` cols; `workspaces.billing_owner_id` + `ai_enabled`; `ai_usage_period` table; webhook signature verification + event-id dedup (`processed_webhook_events`) + out-of-order event stash (`pending_stripe_events`); plan-lapse sweep job. See `server/utils/AGENTS.md`.
+- **AI:** 16 tools (always-on + workspace-gated knowledge tools + cross-doc tools + theme-inspection/preset tools), `@ai` comment trigger, voice input, live dictation. Providers: **Mistral Small 4.0** (text + vision), **Voxtral Mini Transcribe + Voxtral Realtime** (one-shot + live dictation), **Jina v5-text-nano** (embeddings + web-search content extraction), **BFL FLUX.2 [pro] EU-pinned** (image generation) — all routed via the self-hosted **LiteLLM proxy**. **Per-tool call-count caps + per-session interaction cap (50)** in `runLoop.ts` (Phase 2 — protects against cost-amplifying outliers). See `server/utils/agentic/AGENTS.md`.
+- **Billing (Stripe + LiteLLM):** `users.plan` + `plan_valid_until` + `stripe_*` cols; `workspaces.billing_owner_id` + `ai_enabled`; per-user LiteLLM virtual keys (`users.litellm_key_id` + AES-256-GCM-encrypted `litellm_key_token`) with `max_budget` enforced by the proxy; AI Points UI (1000 pts = $1.00) backed by `/api/ai/credits` reading `/key/info`; webhook signature verification + event-id dedup (`processed_webhook_events`) + out-of-order event stash (`pending_stripe_events`) + plan-lapse sweep + Stripe-driven `updateUserKeyBudget` / `resetUserKeySpend` on plan/period changes. See `server/utils/AGENTS.md`.
 - **Audit log (Phase 2):** `audit_log` table records security-relevant + billing-relevant operations. Distinct from user-facing `activity_log`. See `server/repos/audit.ts`.
-- **Privacy / GDPR / DSA infrastructure (Workstream B):** EU-only data path with adequacy-recognised + DPF sub-processors; lawful-basis registry rendered into the privacy page; truncated-IP audit log; account-deletion request → 30-day grace → full cascading purge with comment anonymisation + workspace promote/cascade rules; data-export ZIP queue (GDPR Art.15/20); cookie consent banner (CNIL-grade equal-prominence, three purposes, append-only `consent_log`, anon-id cookie persists across login); onboarding gate (Privacy + ToS + age ≥16); DPA acceptance gated to workspace owners; DSA Article 16 abuse reporter with admin triage queue + email-out to operator; admin RBAC via `users.is_admin` column + env-list bootstrap; framework-level error sanitisation; transactional email via Resend with sandbox-sender fallback. See `server/legal/AGENTS.md` + `app/components/legal/AGENTS.md`.
+- **Privacy / GDPR / DSA infrastructure (Workstream B):** EU-only data path — every sub-processor is `intra_eu` (Mistral / Jina / BFL / OVH / Stripe / Plausible / Sentry-EU); lawful-basis registry rendered into the privacy page; truncated-IP audit log; account-deletion request → 30-day grace → full cascading purge with comment anonymisation + workspace promote/cascade rules; data-export ZIP queue (GDPR Art.15/20); cookie consent banner (CNIL-grade equal-prominence, three purposes, append-only `consent_log`, anon-id cookie persists across login); onboarding gate (Privacy + ToS + age ≥16); DPA acceptance gated to workspace owners; DSA Article 16 abuse reporter with admin triage queue + email-out to operator; admin RBAC via `users.is_admin` column + env-list bootstrap; framework-level error sanitisation; transactional email via Resend with sandbox-sender fallback. See `server/legal/AGENTS.md` + `app/components/legal/AGENTS.md`.
 - **Mobile:** Touch-optimized CM6, flex-wrap toolbar, hamburger menu, 640px breakpoint, mobile bottom sheets + format bar (Phase 14). See `app/AGENTS.md`.
 - **Flow docs system:** Playwright tests = documentation. See `tests/e2e/AGENTS.md`.
 
@@ -393,13 +403,11 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 | Markitdown over pandoc | 1.1 GB → 615 MB image; import-only use case doesn't need pandoc's output formats |
 | CDN for paged.js / hljs / KaTeX / Mermaid | Vite can't inject into srcdoc iframes; versioned CDN URL = automatic cache-bust |
 | `pgvector/pgvector:pg16` over stock `postgres:16-alpine` (dev/local/test) | Data-dir-compatible drop-in; avoids "install pgvector at runtime" ceremony. Prod uses OVH managed Postgres with the extension preinstalled |
-| Gemini over Claude | Materially cheaper; display name vendor-neutral ("AI Assistant") |
-| Cloud Speech-to-Text over Gemini Live / inline audio | Gemini Live is conversational duplex (server-side VAD buffers until end-of-turn — wrong for dictation). Inline audio costs ~4× per minute. Cloud STT is purpose-built for streaming STT |
-| Cloud STT v1 (not v2) | v2 streamingRecognize requires project id in recognizer path; v1 keeps the server code to a single SDK call. `latest_long` in v1 is plenty for dictation |
-| Split Google API keys (Gemini + Cloud STT) | Two separately-restricted keys in GCP so a leak of one doesn't pivot to the other. Separate billing lines |
+| Single LiteLLM gateway for every AI surface | Phase 5–6 collapsed every provider onto one self-hosted EU-resident proxy with a vendor-agnostic OpenAI-shape API. Per-user virtual keys gate budget; spend tags surface 4-axis breakdowns to the admin dashboard. The interaction-counter table (`ai_usage_period`) was retired — LiteLLM's per-key `max_budget` is the only enforcement gate now |
+| Mistral / Jina / BFL all EU-resident, no DPF transfers | Phase 6 swap. Mistral (Paris, text + voice), Jina (Berlin, embeddings + web-search reader), BFL (EU-pinned `api.eu2.bfl.ai`, image gen). All `intra_eu` transfer mechanism — no DPF / SCC paperwork. Replaced `google_gemini` + `google_speech_to_text` from the prior stack |
+| Mistral `temperature: 0` on the agentic loop | Default ~0.7 caused tool-selection drift on a deterministic-ish task ("read doc, pick tool, edit, wrap up"). Pinning to 0 stabilises tool choice and stops flow tests from flaking on "model decided to chat instead of editing" |
 | Separate `dictateJwtSecret` | Rotate independently of the Hocuspocus secret. Falls back to `jwtSecret` for dev |
-| Zod as AI-tool source-of-truth | `z.toJSONSchema` generates Gemini schema + runtime validator; malformed args self-correct |
-| Implicit Gemini prefix cache, no explicit `ai.caches.create` | Automatic prefix cache handles within-loop + cross-user system-prompt sharing for free; explicit caching has minimum-size + TTL-refresh overhead that doesn't pay off on our traffic |
+| Zod as AI-tool source-of-truth | `z.toJSONSchema` generates the OpenAI/Mistral param schema + runtime validator from the same source; malformed args self-correct |
 | Flow tests double as docs | A separate "tour the editor" docs system + e2e suite would drift apart. Sharing the same artefact forces both honest |
 | Single shared test compose with profiles | A separate `docker-compose.flows.yml` hit the `--remove-orphans` footgun (compose project namespace shared with dev infra). One compose file under `--profile flows` |
 | Compose `include:` over `-f base.yml -f override.yml` | Preserves single-file user invocation. Two-file form would force every team-member muscle-memory rewrite + every doc + every script |
@@ -434,7 +442,6 @@ For feature-specific gotchas see the sub-AGENTS.md for that area.
 - **`server/auth/` is not a Nitro route dir.** OAuth handlers live in `server/routes/auth/`.
 - **`@nuxtjs/i18n` v10:** `lazy` removed — lazy is default when `locales[].file` is set. `langDir: 'locales/'` resolves relative to `i18n/`, not `app/`.
 - **`nitro.preset` must match runtime** — default `node-server` breaks packages with Bun conditional exports (lib0).
-- **Nitro NFT tracer misses `@google/genai`'s transitive `ws`** — fix with `nitro.externals.traceInclude: ['node_modules/ws/index.js']`.
 - **Dev sync networking** — `host.docker.internal` + `host-gateway` on Linux; Nuxt dev must bind `0.0.0.0`.
 - **Drizzle `node-postgres`** — Promise-returning, no `.get()`/`.all()`. Use `(await db.select()...limit(1))[0]`.
 - **Drizzle doesn't emit `CREATE EXTENSION`** — for `vector(...)` columns, hand-prepend `CREATE EXTENSION IF NOT EXISTS vector;` + `statement-breakpoint` to the generated SQL.
@@ -470,6 +477,8 @@ For feature-specific gotchas see the sub-AGENTS.md for that area.
 - **The cancel-deletion endpoint is `/api/user/delete-cancel` (one path segment), NOT `/api/user/delete/cancel`** — the file is `delete-cancel.post.ts` at the user route root. A typo'd path returns 404 silently because the auth-middleware whitelist matches the parent prefix. Both the banner button and the profile page must call the right URL.
 - **Sandbox-sender fallback in Resend uses `markoto <onboarding@resend.dev>`** — required when no verified domain is configured. `NUXT_EMAIL_PROVIDER=stub` skips entirely (test mode). Don't hardcode a custom From; let `sendEmail.ts` resolve it.
 - **`isAdminEmail` is case-insensitive on BOTH the env value and the input** — the env-list `'Joel@LatentLabs.CH'` matches `'joel@latentlabs.ch'` and vice versa. Skip empty segments (`a,,b` is valid). Read the env var on every call; do not cache module-scope.
+- **The AI tool `decl()` field MUST be `parameters`, not `parametersJsonSchema`.** Single most load-bearing field name in the AI loop — `internalToOpenAITools` reads `parameters`. Phase 6 caught a refactor that wrote `parametersJsonSchema` while readers stayed on `parameters`; TS missed the mismatch (excess-property checks on `return {literal}` from typed functions are unreliable), and every tool went out with an empty schema. Pinned by `tests/unit/aiToolSchemas.test.ts`. See `server/utils/agentic/AGENTS.md`.
+- **Hocuspocus debounces 2 s before flushing edits to `yjs_documents`.** When a flow test (or any integration test) needs N **distinct** activity rows from N successive edits, fixed `waitForTimeout(3000)` between typings is required — API polling can't separate the batches because the debounce window is what creates new rows, not the flush itself. See `tests/e2e/AGENTS.md` for the wait-for-batch-window pattern.
 - **`bun run test:coverage` undercounts.** `@vitest/coverage-v8` only measures code that runs in the vitest process; integration tests spawn a separate `bun run dev` subprocess via `tests/integration/setup/server.ts`, so every `server/api/*`, `server/middleware/*`, `server/plugins/*`, `server/routes/*` runs there — invisible to coverage. Three dead ends so we don't try again: (1) Bun doesn't honor `NODE_V8_COVERAGE` (oven-sh/bun#17867). (2) Spawning with `node` + NODE_V8_COVERAGE produces files but Nitro's Vite SSR transform records URLs as `evalmachine.<anonymous>` which c8 can't map. (3) `@nuxt/test-utils/e2e` `setup()` would work but our `nitro.preset: 'bun'` build traces Bun-specific paths and Stripe's ESM entry doesn't resolve under Node's ESM resolver. **Net: the API-route coverage gap is architectural.** When reviewing coverage, mentally overlay: every `server/{api,middleware,plugins,routes}/*` plus orchestrators like `processKnowledge.ts` and `aiClient.ts` is covered by the 300+ integration tests but doesn't show up in the number.
 
 ---

@@ -1,40 +1,37 @@
 import jwt from 'jsonwebtoken'
 import * as Sentry from '@sentry/nuxt'
 import {
-  consumeRateLimitBudget,
   tryAcquireSessionLock,
   releaseSessionLock
 } from '../../../utils/rateLimit'
 import { tryParseControl, normalizeLanguageCode } from '../../../utils/agentic/dictateHelpers'
-import { createDictateSpeechClient, type SpeechStream } from '../../../utils/agentic/dictateSpeechClient'
 import {
-  resolveBillingContext,
-  chargeInteractions,
-  interactionsForAudioMs,
-  BudgetExhausted
-} from '../../../utils/billing'
-import { TIERS } from '~~/shared/config/tiers'
+  createDictateRealtimeClient,
+  type SpeechStream
+} from '../../../utils/agentic/dictateSpeechClient'
+import { useLitellmForUser } from '../../../utils/litellmClient'
+import { resolveBillingContext } from '../../../utils/billing'
+import { isBudgetExceededError } from '../../../utils/litellmKeys'
+import { FEATURE_TAGS, featureMetadata } from '../../../utils/litellm/featureTags'
+import { litellmCompletion } from '../../../utils/litellm/createCompletion'
+import { getDoc } from '../../../repos/documents'
 import type { DictateJwtPayload } from '~~/shared/contracts/jwt'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 
 // WebSocket relay for live voice dictation. Bridges the browser's PCM
-// audio stream to Google Cloud Speech-to-Text v1 `streamingRecognize`
-// and forwards transcript events back to the client.
+// audio stream to Mistral Voxtral Realtime via the official
+// `@mistralai/mistralai/extra/realtime` SDK and forwards transcript
+// events back to the client.
 //
-// Why Cloud STT (not Gemini Live): Gemini Live is a CONVERSATIONAL
-// duplex model — its server-side VAD buffers audio until end-of-turn
-// and emits transcripts in a burst, so "I spoke 30 s without a pause"
-// showed nothing on screen until I stopped. Cloud STT is purpose-built
-// for dictation: true interim-result streaming the moment a phoneme
-// is confident, and `is_final: true` when the recognizer commits.
-// Also ~5× cheaper per minute.
-//
-// Why v1 (not v2): v2's `streamingRecognize` requires a project id in
-// the recognizer resource path (`projects/{project}/locations/...`).
-// API-key auth gives us the project implicitly, so v1 — which doesn't
-// need the path — keeps the server code to a minimum. `chirp_2` is
-// v2-only, but `latest_long` in v1 is more than good enough for
-// dictation.
+// Why Voxtral Realtime (post-Phase-5): purpose-built streaming
+// transcription with true interim-result streaming the moment a
+// phoneme is confident, and `is_final: true` when the recognizer
+// commits. The SDK opens a direct WS to Mistral (NOT through LiteLLM
+// — LiteLLM doesn't proxy stateful WS streams); LiteLLM still sees the
+// per-minute billing tick (`voxtral-realtime-tick`) so spend lands on
+// the right per-user virtual key. Pre-Phase-5 (Gemini-era) this path
+// ran against Google Cloud Speech-to-Text v1; some helper names
+// (`stt`, `SpeechStream`) survive from that era.
 //
 // Wire format:
 //   Client → server (JSON, before auth):
@@ -64,7 +61,6 @@ import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 // The daily cap backstops the interaction counter — a user can't bypass
 // the monthly interaction budget by dictating continuously for a month.
 
-const DAILY_WINDOW_MS = 24 * 60 * 60 * 1000
 const SESSION_HARD_CAP_MS = 10 * 60 * 1000
 const IDLE_TIMEOUT_MS = 30_000
 // Deadline for the client's first `auth` message. Long enough to cover
@@ -80,39 +76,45 @@ const CHUNK_AUDIO_MS = Math.round((2048 / 16000) * 1000) // 128 ms per chunk
 // Valkey lock's TTL is set to `SESSION_HARD_CAP_MS` below so a
 // crashed process self-heals its lock.
 
-// Minimal surface of the Cloud STT streaming API we actually use.
-// Defined in dictateSpeechClient.ts so the real SpeechClient and the
-// test-mode mock satisfy the same contract — imported here as SttStream
-// (alias) for backwards compat with the names in this file.
+// Minimal surface of the realtime streaming transcription API we
+// actually use. Defined in dictateSpeechClient.ts so the real Voxtral
+// Realtime client and the test-mode mock satisfy the same contract —
+// imported here as SttStream (alias) for backwards compat with the
+// names in this file (legacy from the Cloud STT era).
 type SttStream = SpeechStream
 
 interface DictatePeerContext {
   userId?: number
   docId?: string
+  /** Workspace this doc belongs to, if any — drives the workspace-axis
+   *  spend tag on voice-tick LiteLLM calls. Resolved at auth time. */
+  workspaceId?: string | null
+  /** User's virtual-key bearer token, resolved at auth time. */
+  virtualKey?: string
   /**
-   * Per-tier daily audio-ms budget, resolved at auth and pinned for
-   * the lifetime of the connection. We don't re-read the user's plan
-   * per chunk — a mid-session plan lapse keeps the current session on
-   * whatever cap was in effect at auth; the NEXT session starts with
-   * the updated cap. Prevents a weird mid-dictation cutoff when a
-   * Stripe webhook lands during an active stream.
+   * Phase 5 voice-tick orchestrator state. Each tick fires a fake chat
+   * completion against the `voxtral-realtime-tick` LiteLLM model →
+   * $0.006 billed per tick = 1 minute of Voxtral Realtime audio.
+   * Real transcription stays on the direct WS to Mistral; the tick
+   * exists only so spend lands in the same per-key budget as everything
+   * else (LiteLLM is the only gate post-Phase-6). Round-up policy: on
+   * close, fire ONE final tick if any audio flowed in the partial
+   * minute since the last tick. Documented overrun: ≤1 extra minute.
    */
-  dailyBudgetMs?: number
+  voiceTickInterval?: ReturnType<typeof setInterval>
+  voiceTickActive?: boolean
+  voiceLastTickAt?: number   // ms epoch of the last tick fired
+  voiceAudioSinceTick?: boolean  // any audio since last tick? drives round-up
+  // Phase 6: dropped per-tier daily audio budget + accumulated-audio-ms
+  // ledger. The voice-tick orchestrator (voxtral path) bills against
+  // the user's LiteLLM virtual key once per minute; LiteLLM enforces
+  // the $ cap. Single-session lock + idle timeout + session hard-cap
+  // remain as orthogonal safety/UX guards.
   /**
-   * Accumulated audio duration (ms) forwarded to Cloud STT. Charged as
-   * interactions on `close` — 5 per minute (per AGENTS.md §15),
-   * realised as `interactionsForAudioMs(ms)` (ceil(ms/12000)).
-   *
-   * Why on-close rather than per-chunk: chunks are 128 ms each, and 5
-   * interactions/minute is 1/12 of a second — 94 out of every 95
-   * chunks would round to 0. Accumulating + charging once at the end
-   * keeps the atomic increment well-defined and matches the "session
-   * cost" mental model better than a per-chunk drip.
-   */
-  accumulatedAudioMs?: number
-  /**
-   * Cloud STT stream. Populated in `handleAuth` after the JWT checks
-   * out; every code path that reaches for it also checks `authed`.
+   * Voxtral Realtime stream. Populated in `handleAuth` after the JWT
+   * checks out; every code path that reaches for it also checks
+   * `authed`. (Field name `stt` survives from the pre-Phase-5
+   * Cloud STT era.)
    */
   stt?: SttStream
   authed?: boolean
@@ -225,23 +227,11 @@ export default defineEventHandler({
 
       if (!ctx.stt) return
 
-      // Debit budget BEFORE forwarding so a burst past the cap can't
-      // land free. `remaining` returns in ms (matching the budget's
-      // units) so the client can surface a meaningful "minutes left".
-      // Budget size comes from the caller's tier, resolved at auth.
-      const dailyBudgetMs = ctx.dailyBudgetMs ?? (5 * 60 * 1000)
-      const { allowed, remaining } = await consumeRateLimitBudget(
-        'ai-dictate-ms',
-        String(ctx.userId),
-        CHUNK_AUDIO_MS,
-        dailyBudgetMs,
-        DAILY_WINDOW_MS
-      )
-      if (!allowed) {
-        p.send(encodeServerFrame({ type: 'budget-exhausted', remaining }))
-        p.close(4002, 'budget exhausted')
-        return
-      }
+      // Phase 6: dropped the daily-audio-ms cap. The voice-tick
+      // orchestrator (voxtral path) bills against the user's LiteLLM
+      // virtual key once per minute; LiteLLM enforces the $ cap. The
+      // single-session Valkey lock + idle timeout + session hard-cap
+      // remain as orthogonal safety/UX guards.
 
       const raw = message.rawData
       const buf = raw instanceof ArrayBuffer
@@ -262,7 +252,14 @@ export default defineEventHandler({
       // Accumulate audio-ms for the interaction charge on close.
       // Done AFTER the write succeeds so a failed chunk doesn't
       // contribute to the bill.
-      ctx.accumulatedAudioMs = (ctx.accumulatedAudioMs ?? 0) + CHUNK_AUDIO_MS
+      ctx.voiceAudioSinceTick = true
+
+      // Phase 5 voice-tick: start the 60s billing heartbeat on the
+      // first audio chunk. Idempotent (only the first call arms the
+      // interval). Phase 7: voxtral is the only path now.
+      if (!ctx.voiceTickActive) {
+        startVoiceTickOrchestrator(p as PeerLike, ctx)
+      }
 
       resetIdleTimer(p, ctx)
     },
@@ -273,6 +270,7 @@ export default defineEventHandler({
       if (ctx.authTimer) clearTimeout(ctx.authTimer)
       if (ctx.idleTimer) clearTimeout(ctx.idleTimer)
       if (ctx.hardCapTimer) clearTimeout(ctx.hardCapTimer)
+      stopVoiceTickOrchestrator(ctx)
       try {
         ctx.stt?.destroy()
       } catch {
@@ -280,7 +278,6 @@ export default defineEventHandler({
       }
       if (ctx.userId !== undefined) {
         void releaseSessionLock('ai-dictate-active', String(ctx.userId))
-        void finaliseDictateBilling(ctx)
       }
     },
 
@@ -291,6 +288,7 @@ export default defineEventHandler({
       })
       const ctx = (peer as unknown as PeerLike).context as DictatePeerContext
       ctx.closed = true
+      stopVoiceTickOrchestrator(ctx)
       try {
         ctx.stt?.destroy()
       } catch {
@@ -298,11 +296,131 @@ export default defineEventHandler({
       }
       if (ctx.userId !== undefined) {
         void releaseSessionLock('ai-dictate-active', String(ctx.userId))
-        void finaliseDictateBilling(ctx)
       }
     }
   }
 })
+
+// ─── Phase 5 voice-tick orchestrator ───────────────────────────────────
+//
+// Bills $0.006 per minute of Voxtral Realtime audio against the user's
+// LiteLLM budget. Implementation:
+//   - Started on the first audio chunk (not on auth) so a connection
+//     that opens but never sends audio doesn't get billed.
+//   - 60s `setInterval` fires `voxtral-realtime-tick` chat completion;
+//     LiteLLM's spend logger bills the calling key for $0.006.
+//   - On `budget_exceeded` (HTTP 400 from LiteLLM) → close WS with
+//     code 1011 reason `budget_exhausted`. Frontend already handles
+//     WS close with a generic "session ended" toast.
+//   - On transient failure (network blip, LiteLLM timeout) → silently
+//     continue; the next tick will retry. A genuinely-down proxy
+//     means the next tick also fails, the WS stays open, and the
+//     user keeps dictating "for free" until close — accepted small
+//     overrun under degraded infra.
+//   - Round-up: on close, fire ONE final tick if any audio flowed in
+//     the partial minute since the last tick. Documented overrun:
+//     ≤1 extra minute charged per session.
+//
+// Phase 6 will swap the master-key tick for a per-user virtual key.
+
+const VOICE_TICK_INTERVAL_MS = 60_000
+
+function startVoiceTickOrchestrator(peer: PeerLike, ctx: DictatePeerContext): void {
+  if (ctx.voiceTickActive) return
+  ctx.voiceTickActive = true
+  ctx.voiceLastTickAt = Date.now()
+  ctx.voiceAudioSinceTick = false
+
+  // Fire the first tick immediately so the first minute of audio is
+  // charged up-front (not retroactively when the next tick fires).
+  void fireVoiceTick(peer, ctx)
+
+  ctx.voiceTickInterval = setInterval(() => {
+    if (ctx.closed || !ctx.voiceTickActive) {
+      stopVoiceTickOrchestrator(ctx)
+      return
+    }
+    void fireVoiceTick(peer, ctx)
+  }, VOICE_TICK_INTERVAL_MS)
+}
+
+function stopVoiceTickOrchestrator(ctx: DictatePeerContext): void {
+  if (ctx.voiceTickInterval) {
+    clearInterval(ctx.voiceTickInterval)
+    ctx.voiceTickInterval = undefined
+  }
+  if (!ctx.voiceTickActive) return
+  ctx.voiceTickActive = false
+  // Round-up: if any audio flowed since the last tick, fire one final
+  // tick. Fire-and-forget because the WS is closing anyway — we can't
+  // signal failures back to the user at this point.
+  if (ctx.voiceAudioSinceTick) {
+    ctx.voiceAudioSinceTick = false
+    void fireRoundUpTick(ctx)
+  }
+}
+
+async function fireVoiceTick(peer: PeerLike, ctx: DictatePeerContext): Promise<void> {
+  if (!ctx.virtualKey) return
+  try {
+    const litellm = useLitellmForUser(ctx.virtualKey)
+    const config = useRuntimeConfig()
+    const model = config.litellm?.realtimeTickModel || 'voxtral-realtime-tick'
+    await litellmCompletion(litellm, {
+      model,
+      messages: [{ role: 'user', content: 'tick' }],
+      ...featureMetadata(FEATURE_TAGS.dictateTick, {
+        workspaceId: ctx.workspaceId,
+        userId: ctx.userId,
+        docId: ctx.docId
+      })
+    })
+    ctx.voiceLastTickAt = Date.now()
+    ctx.voiceAudioSinceTick = false
+  } catch (e) {
+    if (isBudgetExceededError(e)) {
+      // Hard exhaustion → close the WS so the user gets the standard
+      // close-event flow (frontend already handles WS close with a
+      // toast). Keep the message short — code:1011 is "internal error"
+      // in WS spec, the most appropriate close code for "we ended your
+      // session for an internal reason".
+      try {
+        peer.send(encodeServerFrame({ type: 'budget-exhausted', remaining: 0 }))
+      } catch { /* peer may already be gone */ }
+      try {
+        peer.close(1011, 'budget_exhausted')
+      } catch { /* peer may already be closing */ }
+      ctx.closed = true
+      return
+    }
+    // Transient failure (network, LiteLLM hiccup) — log + continue.
+    // The next tick (60s later) will retry.
+    console.warn(`[dictate] voice-tick failed (continuing): ${e instanceof Error ? e.message : e}`)
+  }
+}
+
+async function fireRoundUpTick(ctx: DictatePeerContext): Promise<void> {
+  if (!ctx.virtualKey) return
+  try {
+    const litellm = useLitellmForUser(ctx.virtualKey)
+    const config = useRuntimeConfig()
+    const model = config.litellm?.realtimeTickModel || 'voxtral-realtime-tick'
+    await litellmCompletion(litellm, {
+      model,
+      messages: [{ role: 'user', content: 'round-up' }],
+      ...featureMetadata(FEATURE_TAGS.dictateTick, {
+        workspaceId: ctx.workspaceId,
+        userId: ctx.userId,
+        docId: ctx.docId
+      })
+    })
+  } catch (e) {
+    // Fire-and-forget — by the time we round-up the WS is gone and
+    // there's no one to surface the error to. Telemetry would just be
+    // noise.
+    console.warn(`[dictate] round-up tick failed: ${e instanceof Error ? e.message : e}`)
+  }
+}
 
 async function handleAuth(
   peer: PeerLike,
@@ -311,7 +429,7 @@ async function handleAuth(
   languageCode: unknown
 ) {
   const config = useRuntimeConfig()
-  const secret = config.google.dictateJwtSecret || config.jwtSecret
+  const secret = config.aiDictateJwtSecret || config.jwtSecret
   if (!secret) {
     peer.send(encodeServerFrame({ type: 'error', message: 'Server misconfigured' }))
     peer.close(1011, 'no jwt secret')
@@ -378,11 +496,13 @@ async function handleAuth(
     ctx.authTimer = undefined
   }
 
-  // Resolve the per-tier daily audio budget. If resolution fails (DB
-  // blip, missing user row) we close the session rather than silently
-  // downgrade to free — billing is a correctness surface, not a rate
-  // limit, and mis-reporting caps to the user is worse than refusing
-  // to start the session.
+  // Phase 6: resolve billing context to get the user's virtual-key
+  // token. If resolution fails (DB blip, missing user row) close the
+  // session rather than silently fall through — billing is a
+  // correctness surface, not a rate limit. The voice-tick orchestrator
+  // hits LiteLLM with this key; if the user's $ budget is already 0,
+  // the FIRST tick (fired on first audio chunk) returns 4xx and the
+  // WS closes cleanly with `budget_exhausted` code 1011.
   let billing: Awaited<ReturnType<typeof resolveBillingContext>>
   try {
     billing = await resolveBillingContext(payload.userId, null)
@@ -395,43 +515,26 @@ async function handleAuth(
     peer.close(1011, 'billing resolve failed')
     return
   }
-  const dailyBudgetMs = TIERS[billing.plan].dictationMsPerDay
-  ctx.dailyBudgetMs = dailyBudgetMs
+  ctx.virtualKey = billing.virtualKey
 
-  // Peek the daily budget (cost: 0 debits nothing, returns remaining).
-  const budget = await consumeRateLimitBudget(
-    'ai-dictate-ms', String(payload.userId), 0, dailyBudgetMs, DAILY_WINDOW_MS
-  )
-  if (!budget.allowed || budget.remaining < CHUNK_AUDIO_MS) {
-    peer.send(encodeServerFrame({ type: 'budget-exhausted', remaining: budget.remaining }))
-    peer.close(4002, 'budget exhausted')
-    return
+  // Resolve workspaceId for spend tagging. Best-effort — a doc that
+  // disappeared mid-handshake just means we tag with no workspace
+  // dimension, which is harmless (the call still bills correctly).
+  try {
+    const doc = await getDoc(payload.docId)
+    ctx.workspaceId = doc?.workspaceId ?? null
+  } catch {
+    ctx.workspaceId = null
   }
 
-  // Interaction pre-check (re-using the billing resolution above).
-  // Reject at open when remaining < 1 so exhausted users don't get
-  // audio-worklet spin-up + mic permission prompt before being cut off.
-  if (billing.interactionsRemaining <= 0) {
-    peer.send(encodeServerFrame({
-      type: 'budget-exhausted',
-      remaining: 0,
-      reason: 'interactions'
-    }))
-    peer.close(4002, 'interactions exhausted')
-    return
-  }
-
-  if (!config.google.speechToTextApiKey) {
-    peer.send(encodeServerFrame({ type: 'error', message: 'Server misconfigured: missing Speech-to-Text API key' }))
-    peer.close(1011, 'no api key')
-    return
-  }
-
-  const client = createDictateSpeechClient(config.google.speechToTextApiKey)
+  // Phase 7: voxtral is the only dictate path. Mistral key already
+  // validated at boot.
+  const client = createDictateRealtimeClient(process.env.MISTRAL_API_KEY ?? '')
 
   // Normalize language: accept either BCP-47 (`de-DE`) or the short
   // ISO 639-1 UI locale (`de`). Defaults to en-US if nothing usable
-  // arrived — Cloud STT requires a valid language code or rejects.
+  // arrived — the upstream transcription API requires a valid
+  // language code or rejects.
   const lang = normalizeLanguageCode(languageCode)
 
   let sttStream: SttStream
@@ -451,7 +554,7 @@ async function handleAuth(
     Sentry.captureException(e, {
       tags: { component: 'dictate', event: 'stt_init_failed' }
     })
-    peer.send(encodeServerFrame({ type: 'error', message: 'Could not start Speech-to-Text session' }))
+    peer.send(encodeServerFrame({ type: 'error', message: 'Could not start transcription session' }))
     peer.close(1011, 'stt init failed')
     return
   }
@@ -512,39 +615,4 @@ function resetIdleTimer(peer: PeerLike, ctx: DictatePeerContext) {
  * Runs via `void` — we don't want to block the close hook on a DB
  * round-trip. Errors are logged but not propagated: a dead DB
  * shouldn't prevent the WS from tearing down cleanly.
- *
- * Resolves billing context fresh at close time (no session state
- * for dictation, unlike the prompt loop). Over-cap charges are
- * absorbed — we'd rather over-serve by a few seconds than lose the
- * accounting entirely on a late-stage race.
  */
-async function finaliseDictateBilling(ctx: DictatePeerContext): Promise<void> {
-  const userId = ctx.userId
-  const audioMs = ctx.accumulatedAudioMs ?? 0
-  if (userId === undefined || audioMs <= 0) return
-  const delta = interactionsForAudioMs(audioMs)
-  if (delta <= 0) return
-  try {
-    const billing = await resolveBillingContext(userId, null)
-    await chargeInteractions({
-      attributedTo: billing.attributedTo,
-      plan: billing.plan,
-      delta,
-      periodStart: billing.periodStart,
-      reason: `dictation ${audioMs}ms`
-    })
-  } catch (e) {
-    if (e instanceof BudgetExhausted) {
-      console.warn(`[dictate] [billing] over-cap at session close: ${e.message}`)
-      Sentry.captureMessage(`[dictate] over-cap at close: ${e.message}`, {
-        level: 'warning',
-        tags: { component: 'dictate', event: 'billing_overcap_race', userId: String(userId) }
-      })
-    } else {
-      console.warn('[dictate] [billing] charge failed:', e)
-      Sentry.captureException(e, {
-        tags: { component: 'dictate', event: 'billing_charge_failed', userId: String(userId) }
-      })
-    }
-  }
-}

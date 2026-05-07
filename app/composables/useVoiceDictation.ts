@@ -1,6 +1,6 @@
-// Live voice dictation: mic → AudioWorklet → WebSocket → Gemini Live
-// → interim/final transcripts → consumer inserts finals into the
-// editor at the current caret.
+// Live voice dictation: mic → AudioWorklet → WebSocket → Mistral
+// Voxtral Realtime → interim/final transcripts → consumer inserts
+// finals into the editor at the current caret.
 //
 // Deliberately thin: the consumer (`EditorLayout`) owns the editor
 // view + Y.js integration, this composable just streams bytes and
@@ -34,10 +34,10 @@ export type VoiceDictationState
 
 export interface UseVoiceDictationOptions {
   docId: MaybeRefOrGetter<string>
-  /** Called each time Gemini emits an interim transcript chunk. */
+  /** Called each time Voxtral emits an interim transcript chunk. */
   onPartial: (text: string) => void
   /**
-   * Called when Gemini finalizes a phrase. The consumer is
+   * Called when Voxtral finalizes a phrase. The consumer is
    * responsible for committing the text into the doc (typically via
    * a Y.js transact at the current caret).
    */
@@ -79,7 +79,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   const wsUrl = ref<string | undefined>(undefined)
   let closing = false
   // Connect watchdog. If we never receive `ready` from the server
-  // within 10s (Gemini session slow to open, auth issue, upstream
+  // within 10s (Voxtral session slow to open, auth issue, upstream
   // outage), transition to `error` rather than spin forever. Cleared
   // in `startPumping` once we're actually recording.
   const _connectWatchdog: ReturnType<typeof setTimeout> | null = null
@@ -215,7 +215,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     }
 
     // Stash auth for onConnected to send as the first WS frame. We
-    // also piggyback the UI locale so Cloud STT transcribes in the
+    // also piggyback the UI locale so Voxtral transcribes in the
     // user's language — same pattern as Feature B. `locale` was
     // captured at setup-time above (Vue I18n rule: useI18n must run
     // during setup, not lazily).
@@ -271,7 +271,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     if (state.value === 'recording') vibrate([75, 20, 75])
     closing = true
 
-    // Send `stop` so Gemini can emit any pending final before teardown.
+    // Send `stop` so Voxtral can emit any pending final before teardown.
     try {
       if (ws.status.value === 'OPEN') ws.send(encodeClientFrame({ type: 'stop' }))
     } catch { /* best-effort */ }
