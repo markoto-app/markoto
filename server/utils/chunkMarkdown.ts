@@ -174,34 +174,47 @@ export function chunkMarkdown(markdown: string, options: ChunkMarkdownOptions = 
   if (!markdown?.trim()) return []
 
   const sections = segmentByHeadings(markdown)
+  const chunks = chunksFromSections(sections, maxTokens, overlapTokens)
+  const packed = packAdjacentChunks(chunks, targetTokens)
+  return applyMaxChunksCeiling(packed, options.maxChunks)
+}
+
+/**
+ * First pass: walk every heading-bounded section and emit either one
+ * chunk (small) or many (large — split via `splitOversizedBlock`,
+ * keeping the heading line attached to each piece so downstream
+ * retrieval still knows the section this chunk came from). Combining
+ * adjacent small sections is explicitly NOT done here — we'd lose
+ * heading-aware retrieval boundaries for a marginal size gain.
+ */
+function chunksFromSections(sections: string[], maxTokens: number, overlapTokens: number): Chunk[] {
   const chunks: Chunk[] = []
   let index = 0
-
   for (const section of sections) {
     const sectionTokens = estimateTokens(section)
     if (sectionTokens <= maxTokens) {
-      // Small section: emit as a single chunk. Combining sections under
-      // targetTokens is explicitly NOT done — we'd lose heading-aware
-      // retrieval boundaries for a marginal size gain.
       index += 1
       chunks.push({ index, content: section, tokens: sectionTokens })
       continue
     }
-    // Large section: keep the heading line attached to each piece so
-    // downstream retrieval still knows the section this chunk came from.
     const firstLine = section.split('\n', 1)[0]!
     const heading = /^#{2,3}\s/.test(firstLine) ? firstLine : null
     const body = heading ? section.slice(firstLine.length).trimStart() : section
-    const pieces = splitOversizedBlock(body, maxTokens, overlapTokens)
-    for (const piece of pieces) {
+    for (const piece of splitOversizedBlock(body, maxTokens, overlapTokens)) {
       const content = heading ? `${heading}\n\n${piece}` : piece
       index += 1
       chunks.push({ index, content, tokens: estimateTokens(content) })
     }
   }
+  return chunks
+}
 
-  // Second pass: pack adjacent small chunks up to targetTokens. Doesn't
-  // cross heading sections because `chunks` already respects them.
+/**
+ * Second pass: pack adjacent small chunks up to `targetTokens`.
+ * Doesn't cross heading sections because the input `chunks` already
+ * respects them. Re-indexes from 1 in the packed output.
+ */
+function packAdjacentChunks(chunks: Chunk[], targetTokens: number): Chunk[] {
   const packed: Chunk[] = []
   let buf: Chunk[] = []
   let bufTokens = 0
@@ -216,27 +229,28 @@ export function chunkMarkdown(markdown: string, options: ChunkMarkdownOptions = 
     bufTokens = 0
   }
   for (const c of chunks) {
-    if (bufTokens + c.tokens > targetTokens && buf.length > 0) {
-      flush()
-    }
+    if (bufTokens + c.tokens > targetTokens && buf.length > 0) flush()
     buf.push(c)
     bufTokens += c.tokens
   }
   flush()
-
-  // Hard ceiling. Keep the first (maxChunks-1) chunks, replace the
-  // rest with one sentinel so downstream search sees something at the
-  // truncation point rather than silently losing the tail.
-  if (options.maxChunks && packed.length > options.maxChunks) {
-    const kept = packed.slice(0, options.maxChunks - 1)
-    const droppedCount = packed.length - kept.length
-    const sentinel: Chunk = {
-      index: kept.length + 1,
-      content: `[Document truncated: the remaining ${droppedCount} chunks were omitted because the file exceeded the per-file chunk limit. Upload a shorter or pre-summarised version for full coverage.]`,
-      tokens: estimateTokens(`[Document truncated: …]`)
-    }
-    return [...kept, sentinel]
-  }
-
   return packed
+}
+
+/**
+ * Hard ceiling. Keep the first `(maxChunks - 1)` chunks, replace the
+ * rest with one sentinel so downstream search sees something at the
+ * truncation point rather than silently losing the tail. Pass-through
+ * when `maxChunks` is undefined or under the threshold.
+ */
+function applyMaxChunksCeiling(packed: Chunk[], maxChunks: number | undefined): Chunk[] {
+  if (!maxChunks || packed.length <= maxChunks) return packed
+  const kept = packed.slice(0, maxChunks - 1)
+  const droppedCount = packed.length - kept.length
+  const sentinel: Chunk = {
+    index: kept.length + 1,
+    content: `[Document truncated: the remaining ${droppedCount} chunks were omitted because the file exceeded the per-file chunk limit. Upload a shorter or pre-summarised version for full coverage.]`,
+    tokens: estimateTokens(`[Document truncated: …]`)
+  }
+  return [...kept, sentinel]
 }
