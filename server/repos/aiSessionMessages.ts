@@ -91,7 +91,7 @@ export async function loadRecentMessages(
 
   // Reverse to chronological order — the prompt builder concatenates
   // forward in time so the model reads turn N before turn N+1.
-  return rows.reverse() as AiMessageRow[]
+  return rows.reverse()
 }
 
 /**

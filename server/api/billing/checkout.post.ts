@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   if (requestedPlan !== 'pro' && requestedPlan !== 'max' && requestedPlan !== 'ultra') {
     throw createError({ statusCode: 400, message: 'Invalid plan. Must be pro/max/ultra.' })
   }
-  const plan = requestedPlan as 'pro' | 'max' | 'ultra'
+  const plan = requestedPlan
 
   const stripe = useStripeClient()
   if (!stripe) {

@@ -142,7 +142,7 @@ async function embedOne(
   if (!values || values.length !== cfg.dimensions) {
     throw new Error(`[embeddings] jina vector has wrong shape: ${values?.length ?? 0} != ${cfg.dimensions}`)
   }
-  return values as number[]
+  return values
 }
 
 // ─── Public API (unchanged shape) ─────────────────────────────────────────

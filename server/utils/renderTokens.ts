@@ -47,7 +47,7 @@ export function verifyRenderToken(
   const secrets = [config.internalApiSecret, config.internalApiSecretPrevious].filter(Boolean)
   for (const secret of secrets) {
     try {
-      const payload = jwt.verify(token, secret as string) as RenderJwtPayload
+      const payload = jwt.verify(token, secret) as RenderJwtPayload
       if (payload.scope !== 'render') return null
       if (payload.docId !== expectedDocId) return null
       return payload

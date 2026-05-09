@@ -262,7 +262,7 @@ export async function executeAccountDeletion(
     before: null,
     after: null,
     metadata: {
-      summary: { ...summary } as Record<string, unknown>,
+      summary: { ...summary },
       stripeCustomerId: stripeCustomerId ?? null
     }
   })

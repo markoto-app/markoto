@@ -35,7 +35,7 @@ export async function getMemberRole(
       eq(workspaceMembers.userId, userId)
     ))
     .limit(1))[0]
-  return (row?.role ?? null) as WorkspaceRole | null
+  return (row?.role ?? null)
 }
 
 /**
@@ -163,7 +163,7 @@ export async function setRole(
       .limit(1))[0]
     if (!existing) throw new NotFoundError('Member')
 
-    const prev = existing.role as WorkspaceRole
+    const prev = existing.role
     if (prev === 'admin' && nextRole !== 'admin') {
       // Lock every admin row in this workspace — concurrent demotions
       // on DIFFERENT admin users would otherwise both see count=2 and
@@ -214,7 +214,7 @@ export async function removeMember(
       .limit(1))[0]
     if (!existing) throw new NotFoundError('Member')
 
-    const role = existing.role as WorkspaceRole
+    const role = existing.role
     if (role === 'admin') {
       const admins = await tx
         .select({ userId: workspaceMembers.userId })

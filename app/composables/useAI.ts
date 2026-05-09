@@ -105,7 +105,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   // The current user's session on this doc — used to show Stop button + disable input.
   const mySessionId = computed<string | null>(() => {
     if (!loggedIn.value) return null
-    const myId = sessionUser.value?.id as number | undefined
+    const myId = sessionUser.value?.id
     if (typeof myId !== 'number') return null
     const mine = activeSessions.value.find(s => s.initiatorUserId === myId)
     return mine?.sessionId ?? null

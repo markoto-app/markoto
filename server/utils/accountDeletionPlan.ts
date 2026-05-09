@@ -168,7 +168,7 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
         name: m.wsName,
         newAdminUserId: promote.userId,
         newAdminName: promote.name,
-        newAdminPreviousRole: promote.role as 'admin' | 'editor' | 'viewer'
+        newAdminPreviousRole: promote.role
       })
     } else {
       // User is editor or viewer — nothing structural to do beyond
@@ -177,7 +177,7 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
         kind: 'remove_member',
         workspaceId: m.workspaceId,
         name: m.wsName,
-        currentRole: m.role as 'editor' | 'viewer'
+        currentRole: m.role
       })
     }
   }

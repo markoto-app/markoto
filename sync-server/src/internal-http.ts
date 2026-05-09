@@ -49,7 +49,7 @@ export async function handleInternalRequest(
   // Extract upstream trace context. Both headers are case-insensitive on
   // node:http's headers object, so we read via the lowercase form.
   const sentryTrace = typeof request.headers['sentry-trace'] === 'string'
-    ? request.headers['sentry-trace'] as string
+    ? request.headers['sentry-trace']
     : undefined
   const rawBaggage = request.headers['baggage']
   const baggage = typeof rawBaggage === 'string' ? rawBaggage : undefined

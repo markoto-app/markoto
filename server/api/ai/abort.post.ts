@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  const body = await readBody(event) as { sessionId?: string }
+  const body = await readBody(event)
   const sessionId = body.sessionId
   if (!sessionId || typeof sessionId !== 'string') {
     throw createError({ statusCode: 400, message: 'Missing sessionId' })

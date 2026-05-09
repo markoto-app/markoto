@@ -227,7 +227,7 @@ export async function getDocWithActorRole(
     workspaceId: row.workspaceId,
     accessMode: row.accessMode,
     theme: row.theme,
-    workspaceRole: (row.role ?? null) as WorkspaceRole | null,
+    workspaceRole: (row.role ?? null),
     workspaceAiEnabled: row.workspaceAiEnabled,
     workspaceBillingOwner: billingOwner,
     title: row.title,

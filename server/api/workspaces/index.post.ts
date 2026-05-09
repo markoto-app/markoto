@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
     planValidUntil: users.planValidUntil,
     dpaVersionAccepted: users.dpaVersionAccepted
   }).from(users).where(eq(users.id, userId)).limit(1)
-  const rawPlan = (planRows[0]?.plan ?? 'free') as PlanName
+  const rawPlan = (planRows[0]?.plan ?? 'free')
   const validUntil = planRows[0]?.planValidUntil ?? null
   const lapsed = validUntil !== null && validUntil.getTime() <= Date.now()
   const effectivePlan: PlanName = lapsed ? 'free' : rawPlan

@@ -93,7 +93,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     const beforeRow = await tx.execute<{ id: number | null }>(
       sql`SELECT MAX(id) AS id FROM yjs_documents WHERE docname = ${opts.docId}`
     )
-    const yjsDocIdBeforeRestore = (beforeRow.rows?.[0] as { id: number | null } | undefined)?.id ?? null
+    const yjsDocIdBeforeRestore = (beforeRow.rows?.[0])?.id ?? null
 
     // Step 1: replay to get the past state's full Y.Doc, then EXTRACT
     // the values we want to restore (text, comments, meta) as plain
@@ -256,7 +256,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     const r = await tx.execute<{ id: number | null }>(
       sql`SELECT MAX(id) AS id FROM yjs_documents WHERE docname = ${opts.docId}`
     )
-    const yjsDocIdAfterRestore = (r.rows?.[0] as { id: number | null } | undefined)?.id ?? null
+    const yjsDocIdAfterRestore = (r.rows?.[0])?.id ?? null
 
     return { yjsDocIdBeforeRestore, yjsDocIdAfterRestore }
   })

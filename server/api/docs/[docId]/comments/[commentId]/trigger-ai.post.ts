@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid commentId' })
   }
 
-  const body = await readBody(event) as { replyId?: unknown }
+  const body = await readBody(event)
   let replyId: string | null = null
   if (body && typeof body.replyId === 'string') {
     if (body.replyId.length === 0 || body.replyId.length > 64) {

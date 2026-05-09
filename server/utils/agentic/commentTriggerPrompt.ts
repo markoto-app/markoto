@@ -90,7 +90,7 @@ export function resolveCommentTrigger(
   for (let i = 0; i < ycomments.length; i++) {
     const m = ycomments.get(i)
     if (m instanceof Y.Map && m.get('id') === commentId) {
-      parentMap = m as Y.Map<unknown>
+      parentMap = m
       break
     }
   }

@@ -129,7 +129,7 @@ function makeEmbedder(opts: CliOpts): Embedder {
       if (!v || v.length !== opts.dimensions) {
         throw new Error(`vector shape ${v?.length ?? 0} != ${opts.dimensions}`)
       }
-      return v as number[]
+      return v
     }
   }
 }

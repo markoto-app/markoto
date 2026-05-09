@@ -61,7 +61,7 @@ async function getEffectivePlan(userId: number | null): Promise<PlanName> {
   }).from(users).where(eq(users.id, userId)).limit(1)
   const row = rows[0]
   if (!row) return 'free'
-  const raw = row.plan as PlanName
+  const raw = row.plan
   const validUntil = row.planValidUntil
   if (raw !== 'free' && validUntil !== null && validUntil.getTime() <= Date.now()) {
     return 'free'

@@ -146,7 +146,7 @@ export default defineEventHandler(async (event) => {
   // Phase 6: app-side rate limit dropped — LiteLLM's per-user-virtual-key
   // rpm_limit is the single enforcement point now.
 
-  const body = await readBody(event) as { docId?: string, prompt?: string, editorSelection?: unknown }
+  const body = await readBody(event)
   const docId = body.docId
   const prompt = body.prompt?.trim()
 

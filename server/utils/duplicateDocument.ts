@@ -3,8 +3,7 @@ import * as Sentry from '@sentry/nuxt'
 import {
   getDoc,
   insertDuplicateDoc,
-  deleteDocRow,
-  type AccessMode
+  deleteDocRow
 } from '../repos/documents'
 import {
   listConfirmedUploadsForDoc,
@@ -64,7 +63,7 @@ export async function duplicateDocument(
     ownerId: input.ownerId,
     workspaceId: input.workspaceId,
     title: input.title,
-    accessMode: source.accessMode as AccessMode,
+    accessMode: source.accessMode,
     passwordHash: source.passwordHash,
     theme: source.theme,
     wordCount: source.wordCount,

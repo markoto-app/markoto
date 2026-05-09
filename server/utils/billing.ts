@@ -174,7 +174,7 @@ async function getUserPlan(userId: number): Promise<{
   const row = rows[0]
   if (!row) return null
   return {
-    plan: row.plan as PlanName,
+    plan: row.plan,
     planValidUntil: row.planValidUntil,
     stripeCurrentPeriodStart: row.stripeCurrentPeriodStart
   }

@@ -60,7 +60,7 @@ import { getWorkspace } from '../repos/workspaces'
 import { canManageDoc } from './workspaceAccess'
 import { embedQuery } from './embeddings'
 import { appendAiMessage } from '../repos/aiSessionMessages'
-import { searchActivity, type ActivityAction, type ActivityEntry } from '../repos/activity'
+import { searchActivity, type ActivityEntry } from '../repos/activity'
 import { stripAiMention } from './agentic/commentTriggerPrompt'
 import { assertSafeUrl } from './agentic/urlGuard'
 
@@ -1340,7 +1340,7 @@ async function handleSearchActivityLog(
   try {
     rows = await searchActivity(session.docId, {
       query: input.query,
-      actions: input.actions as ActivityAction[] | undefined,
+      actions: input.actions,
       since,
       before,
       limit: input.limit ?? 20
@@ -1726,7 +1726,7 @@ function handleReplyToComment(
   for (let i = 0; i < ycomments.length; i++) {
     const m = ycomments.get(i)
     if (m instanceof Y.Map && m.get('id') === input.comment_id) {
-      parentMap = m as Y.Map<unknown>
+      parentMap = m
       break
     }
   }

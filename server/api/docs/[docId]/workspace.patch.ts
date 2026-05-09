@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   // After the guard: rawTarget is `string | null`. `workspaceId: undefined`
   // — which hits the `in` check if someone serialized it explicitly —
   // fails the typeof string branch and is rejected as 400.
-  const target: string | null = rawTarget as string | null
+  const target: string | null = rawTarget
 
   const authz = await getDocAuthz(session.user.id, docId)
   if (!authz.exists) {

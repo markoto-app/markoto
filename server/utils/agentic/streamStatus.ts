@@ -101,7 +101,7 @@ export function describeToolInput(name: string, args: Record<string, unknown>): 
       if (typeof args.theme_id === 'string') return 'Applying a saved theme…'
       if (args.from_workspace_default === true) return 'Applying workspace default theme…'
       const sections = Object.entries(args)
-        .filter(([, v]) => v && typeof v === 'object' && Object.keys(v as object).length > 0)
+        .filter(([, v]) => v && typeof v === 'object' && Object.keys(v).length > 0)
         .map(([k]) => k)
       if (sections.length === 0) return 'Updating theme…'
       if (sections.length <= 2) return `Updating theme (${sections.join(', ')})…`

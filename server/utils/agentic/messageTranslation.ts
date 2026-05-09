@@ -73,7 +73,7 @@ export function internalToOpenAIMessages(
 
   for (const block of contents) {
     const role = block.role
-    const parts = (block.parts ?? []) as Part[]
+    const parts = (block.parts ?? [])
 
     if (role === 'user') {
       // Split into (a) tool-response parts (each becomes a `tool` message)
@@ -197,7 +197,7 @@ export function internalToOpenAITools(
       description: d.description ?? '',
       // The parameters object is already a JSON-Schema-shaped record;
       // the OpenAI SDK accepts `Record<string, unknown>` here.
-      parameters: (d.parameters ?? { type: 'object', properties: {} }) as Record<string, unknown>
+      parameters: (d.parameters ?? { type: 'object', properties: {} })
     }
   }))
 }

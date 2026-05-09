@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm'
 import { users } from '../../../db/schema'
 import { useDatabase } from '../../../utils/database'
 import { getWorkspace, setWorkspaceBilling } from '../../../repos/workspaces'
-import type { PlanName } from '~~/shared/config/tiers'
 
 // PATCH /api/workspaces/:wsId/billing — toggle (+) team-billing on a
 // workspace.
@@ -46,7 +45,7 @@ export default defineEventHandler(async (event) => {
       plan: users.plan,
       planValidUntil: users.planValidUntil
     }).from(users).where(eq(users.id, session.user.id)).limit(1)
-    const callerPlan = (rows[0]?.plan ?? 'free') as PlanName
+    const callerPlan = (rows[0]?.plan ?? 'free')
     const validUntil = rows[0]?.planValidUntil ?? null
 
     if (callerPlan !== 'max' && callerPlan !== 'ultra') {

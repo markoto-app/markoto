@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'JWT secret not configured' })
   }
 
-  const body = await readBody(event) as { docId?: string }
+  const body = await readBody(event)
   const docId = body.docId
   if (!docId || typeof docId !== 'string') {
     throw createError({ statusCode: 400, message: 'Missing docId' })

@@ -155,7 +155,7 @@ export function findComment(
   for (let i = 0; i < ycomments.length; i++) {
     const m = ycomments.get(i)
     if (m instanceof Y.Map && m.get('id') === commentId) {
-      return { index: i, map: m as Y.Map<unknown> }
+      return { index: i, map: m }
     }
   }
   return null

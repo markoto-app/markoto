@@ -226,7 +226,7 @@ export async function listMembershipsForUser(userId: number): Promise<UserMember
     .where(eq(workspaceMembers.userId, userId))
   return rows.map(r => ({
     workspaceId: r.workspaceId,
-    role: r.role as 'admin' | 'editor' | 'viewer',
+    role: r.role,
     ownerId: r.ownerId,
     name: r.name
   }))
@@ -256,7 +256,7 @@ export async function listOtherMembers(
     .orderBy(workspaceMembers.joinedAt)
   return rows.map(r => ({
     userId: r.userId,
-    role: r.role as 'admin' | 'editor' | 'viewer',
+    role: r.role,
     joinedAt: r.joinedAt
   }))
 }

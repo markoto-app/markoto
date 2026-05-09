@@ -257,7 +257,7 @@ export default defineEventHandler({
       // first audio chunk. Idempotent (only the first call arms the
       // interval). Phase 7: voxtral is the only path now.
       if (!ctx.voiceTickActive) {
-        startVoiceTickOrchestrator(p as PeerLike, ctx)
+        startVoiceTickOrchestrator(p, ctx)
       }
 
       resetIdleTimer(p, ctx)

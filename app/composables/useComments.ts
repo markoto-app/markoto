@@ -76,7 +76,7 @@ function deriveComment(map: Y.Map<unknown>, ydoc: Y.Doc): DerivedComment | null 
   const endB64 = map.get('anchorEnd')
   let anchor: { from: number, to: number } | null = null
   if (typeof startB64 === 'string' && typeof endB64 === 'string') {
-    anchor = resolveAnchor({ start: startB64, end: endB64 } as SerializedAnchor, ydoc)
+    anchor = resolveAnchor({ start: startB64, end: endB64 }, ydoc)
   }
   const repliesArr = map.get('replies')
   const replies: DerivedReply[] = []
@@ -113,7 +113,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
     for (let i = 0; i < ycomments.length; i++) {
       const map = ycomments.get(i)
       if (map instanceof Y.Map) {
-        const d = deriveComment(map as Y.Map<unknown>, ydoc)
+        const d = deriveComment(map, ydoc)
         if (d) out.push(d)
       }
     }
@@ -151,7 +151,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
     for (let i = 0; i < ycomments.length; i++) {
       const m = ycomments.get(i)
       if (m instanceof Y.Map && m.get('id') === id) {
-        return { index: i, map: m as Y.Map<unknown> }
+        return { index: i, map: m }
       }
     }
     return null
