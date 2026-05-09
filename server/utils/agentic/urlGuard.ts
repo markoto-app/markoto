@@ -47,6 +47,27 @@ const ALLOWED_SCHEMES = new Set(['http:', 'https:'])
  *   - 224.0.0.0/4      — multicast
  *   - 240.0.0.0/4      — reserved (incl. broadcast 255.255.255.255)
  */
+/** Predicate matching `(a, b)` against one private/special-use IPv4 range. */
+type Ipv4RangeCheck = (a: number, b: number) => boolean
+
+/**
+ * Table of private + special-use IPv4 ranges. Order is irrelevant; we
+ * short-circuit on the first match. Comment carries the range name so
+ * the table reads as documentation.
+ */
+const PRIVATE_IPV4_RANGES: Ipv4RangeCheck[] = [
+  a => a === 0, //                        0.0.0.0/8        "this network"
+  a => a === 10, //                       10.0.0.0/8       RFC 1918
+  a => a === 127, //                      127.0.0.0/8      loopback
+  (a, b) => a === 169 && b === 254, //    169.254.0.0/16   link-local + AWS/GCP metadata
+  (a, b) => a === 172 && b >= 16 && b <= 31, // 172.16.0.0/12  RFC 1918
+  (a, b) => a === 192 && b === 0, //      192.0.0.0/24     IETF protocol assignments
+  (a, b) => a === 192 && b === 168, //    192.168.0.0/16   RFC 1918
+  (a, b) => a === 198 && (b === 18 || b === 19), // 198.18.0.0/15  benchmarking
+  (a, b) => a === 100 && b >= 64 && b <= 127, //   100.64.0.0/10  CGNAT
+  a => a >= 224 //                        224.0.0.0/4 multicast + 240.0.0.0/4 reserved
+]
+
 function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split('.').map(Number)
   if (parts.length !== 4 || parts.some(p => Number.isNaN(p) || p < 0 || p > 255)) {
@@ -55,17 +76,7 @@ function isPrivateIPv4(ip: string): boolean {
     return true
   }
   const [a, b] = parts as [number, number, number, number]
-  if (a === 0) return true
-  if (a === 10) return true
-  if (a === 127) return true
-  if (a === 169 && b === 254) return true
-  if (a === 172 && b >= 16 && b <= 31) return true
-  if (a === 192 && b === 0) return true
-  if (a === 192 && b === 168) return true
-  if (a === 198 && (b === 18 || b === 19)) return true
-  if (a === 100 && b >= 64 && b <= 127) return true
-  if (a >= 224) return true // multicast + reserved
-  return false
+  return PRIVATE_IPV4_RANGES.some(check => check(a, b))
 }
 
 /**
@@ -141,53 +152,62 @@ export function isPrivateIp(ip: string): boolean {
  * back to the model and the model can self-correct with a different URL.
  */
 export async function assertSafeUrl(rawUrl: string): Promise<void> {
-  const trimmed = (rawUrl ?? '').trim()
-  if (!trimmed) {
-    throw new Error('URL refused: empty URL.')
+  const parsed = parseUrlOrThrow(rawUrl)
+  assertAllowedScheme(parsed)
+  const host = extractHostname(parsed)
+  if (isIP(host) !== 0) {
+    assertPublicLiteral(host)
+    return
   }
+  await assertPublicResolution(host)
+}
 
-  // Add an https:// scheme if the model passed a bare hostname — mirrors
-  // the existing scheme-prepend in `fetchUrl`. Without this, `new URL()`
-  // throws on bare hostnames and we'd reject benign inputs.
-  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
-    ? trimmed
-    : `https://${trimmed}`
-
-  let parsed: URL
+/**
+ * Trim, prepend `https://` to bare hostnames (mirrors the scheme-prepend
+ * in `fetchUrl` so we don't reject benign inputs), and parse. Throws a
+ * descriptive Error so the agentic loop can surface it back to the
+ * model and the model can self-correct with a different URL.
+ */
+function parseUrlOrThrow(rawUrl: string): URL {
+  const trimmed = (rawUrl ?? '').trim()
+  if (!trimmed) throw new Error('URL refused: empty URL.')
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
   try {
-    parsed = new URL(withScheme)
+    return new URL(withScheme)
   } catch {
     throw new Error(`URL refused: malformed URL "${trimmed.slice(0, 80)}".`)
   }
+}
 
+function assertAllowedScheme(parsed: URL): void {
   if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
     throw new Error(`URL refused: scheme "${parsed.protocol}" not allowed. Use http:// or https://.`)
   }
+}
 
-  // hostname for IPv6 literals retains brackets in `URL.hostname`
-  // ("http://[::1]/" → "[::1]"). Strip them for IP classification.
-  // Empty hostnames (file:///etc/passwd would have one anyway, but
-  // guard for completeness).
-  let host = parsed.hostname
-  if (!host) {
-    throw new Error('URL refused: missing hostname.')
-  }
-  if (host.startsWith('[') && host.endsWith(']')) {
-    host = host.slice(1, -1)
-  }
+/**
+ * `URL.hostname` keeps brackets around IPv6 literals
+ * (`http://[::1]/` → `[::1]`). Strip them for IP classification, and
+ * fail loudly on the (rare but possible) empty-hostname case.
+ */
+function extractHostname(parsed: URL): string {
+  const host = parsed.hostname
+  if (!host) throw new Error('URL refused: missing hostname.')
+  return host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host
+}
 
-  // If hostname is itself an IP literal, classify directly without DNS.
-  const family = isIP(host)
-  if (family !== 0) {
-    if (isPrivateIp(host)) {
-      throw new Error('URL refused: hostname resolves to a private IP. Use a public URL.')
-    }
-    return
+function assertPublicLiteral(host: string): void {
+  if (isPrivateIp(host)) {
+    throw new Error('URL refused: hostname resolves to a private IP. Use a public URL.')
   }
+}
 
-  // DNS resolution. `lookup({ all: true })` returns every A + AAAA.
-  // ANY private resolved IP fails the check — covers rebinding-shaped
-  // setups where one record is public and another private.
+/**
+ * DNS resolution. `lookup({ all: true })` returns every A + AAAA. ANY
+ * private resolved IP fails — covers rebinding-shaped setups where
+ * one record is public and another private.
+ */
+async function assertPublicResolution(host: string): Promise<void> {
   let addresses: Array<{ address: string, family: number }>
   try {
     addresses = await lookup(host, { all: true })
@@ -195,11 +215,9 @@ export async function assertSafeUrl(rawUrl: string): Promise<void> {
     const msg = e instanceof Error ? e.message : 'DNS lookup failed'
     throw new Error(`URL refused: hostname "${host}" could not be resolved (${msg}).`)
   }
-
   if (!addresses.length) {
     throw new Error(`URL refused: hostname "${host}" returned no DNS records.`)
   }
-
   for (const a of addresses) {
     if (isPrivateIp(a.address)) {
       throw new Error('URL refused: hostname resolves to a private IP. Use a public URL.')
