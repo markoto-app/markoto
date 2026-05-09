@@ -12,6 +12,8 @@ import { validateSecrets } from '../../shared/utils/validateSecrets'
 //
 // `*_PREVIOUS` rotation variants stay optional but length-checked when set.
 
+type RuntimeCfg = ReturnType<typeof useRuntimeConfig>
+
 export default defineNitroPlugin(() => {
   if (process.env.TEST_MODE === '1') return
   // `bun run build` boots Nitro in prerender mode (PWA workbox needs `/`
@@ -21,21 +23,35 @@ export default defineNitroPlugin(() => {
   if (import.meta.prerender) return
 
   const config = useRuntimeConfig()
-  const errors = validateSecrets([
+  const errors: string[] = []
+
+  errors.push(...validateSecrets([
     { name: 'SESSION_PASSWORD', value: config.session?.password },
     { name: 'JWT_SECRET', value: config.jwtSecret },
     { name: 'INTERNAL_API_SECRET', value: config.internalApiSecret },
     { name: 'JWT_SECRET_PREVIOUS', value: config.jwtSecretPrevious, required: false },
     { name: 'INTERNAL_API_SECRET_PREVIOUS', value: config.internalApiSecretPrevious, required: false }
-  ])
+  ]))
+  checkPresenceFields(config, errors)
+  checkOAuthPairs(config, errors)
+  checkUrlFields(config, errors)
+  checkStripe(config, errors)
 
-  // Bare presence checks — third-party formats vary, we only verify that a
-  // human filled the slot. `process.env` for vars consumed outside the
-  // runtimeConfig graph (POSTGRES_*, VALKEY_*); `config.*` for the rest.
-  // Postgres + Valkey are atomic parts (user/password/host/port/db) so
-  // .env never has to carry a composed URL alongside the parts that
-  // built it; `shared/utils/connectionStrings.ts` owns the construction.
-  const presence: Array<{ name: string, value: unknown }> = [
+  if (errors.length > 0) {
+    throw new Error(`[secrets] Startup validation failed:\n  - ${errors.join('\n  - ')}`)
+  }
+})
+
+/**
+ * Bare presence checks — third-party formats vary, we only verify that
+ * a human filled the slot. `process.env` for vars consumed outside the
+ * runtimeConfig graph (POSTGRES_*, VALKEY_*); `config.*` for the rest.
+ * Postgres + Valkey are atomic parts (user/password/host/port/db) so
+ * `.env` never has to carry a composed URL alongside the parts that
+ * built it; `shared/utils/connectionStrings.ts` owns the construction.
+ */
+function checkPresenceFields(config: RuntimeCfg, errors: string[]): void {
+  const fields: Array<{ name: string, value: unknown }> = [
     { name: 'POSTGRES_USER', value: process.env.POSTGRES_USER },
     { name: 'POSTGRES_PASSWORD', value: process.env.POSTGRES_PASSWORD },
     { name: 'POSTGRES_HOST', value: process.env.POSTGRES_HOST },
@@ -53,33 +69,42 @@ export default defineNitroPlugin(() => {
     { name: 'NUXT_LITELLM_URL', value: config.litellm?.url },
     { name: 'NUXT_LITELLM_MASTER_KEY', value: config.litellm?.masterKey }
   ]
-  for (const { name, value } of presence) {
+  for (const { name, value } of fields) {
     if (typeof value !== 'string' || value.length === 0) {
       errors.push(`${name} is not set`)
     }
   }
+}
 
-  // OAuth: pair-validate per provider. Login is optional (anonymous editing
-  // is a first-class flow), so a fully-empty pair is allowed. But a partial
-  // pair — id without secret, or vice versa — silently bricks the OAuth
-  // callback later, which is exactly the degraded-feature failure mode we're
-  // closing. Force both-or-neither.
+/**
+ * OAuth: pair-validate per provider. Login is optional (anonymous
+ * editing is a first-class flow), so a fully-empty pair is allowed.
+ * But a partial pair — id without secret, or vice versa — silently
+ * bricks the OAuth callback later, which is exactly the degraded-
+ * feature failure mode we're closing. Force both-or-neither.
+ */
+function checkOAuthPairs(config: RuntimeCfg, errors: string[]): void {
   for (const provider of ['github', 'google'] as const) {
     const id = config.oauth?.[provider]?.clientId
     const secret = config.oauth?.[provider]?.clientSecret
     const hasId = typeof id === 'string' && id.length > 0
     const hasSecret = typeof secret === 'string' && secret.length > 0
-    if (hasId !== hasSecret) {
-      const upper = provider.toUpperCase()
-      errors.push(
-        `NUXT_OAUTH_${upper}_CLIENT_ID and NUXT_OAUTH_${upper}_CLIENT_SECRET must be set together (got: id=${hasId ? 'set' : 'empty'}, secret=${hasSecret ? 'set' : 'empty'})`
-      )
-    }
+    if (hasId === hasSecret) continue
+    const upper = provider.toUpperCase()
+    errors.push(
+      `NUXT_OAUTH_${upper}_CLIENT_ID and NUXT_OAUTH_${upper}_CLIENT_SECRET must be set together (got: id=${hasId ? 'set' : 'empty'}, secret=${hasSecret ? 'set' : 'empty'})`
+    )
   }
+}
 
-  // URL fields must parse — typos that fall back to defaults are worse than
-  // a hard crash. `NUXT_PUBLIC_SYNC_URL` is a ws(s):// URL; everything else
-  // is http(s)://.
+/**
+ * URL fields must parse — typos that fall back to defaults are worse
+ * than a hard crash. `NUXT_PUBLIC_SYNC_URL` is a ws(s):// URL;
+ * everything else is http(s)://.
+ *
+ * Empty strings are skipped (already flagged by checkPresenceFields).
+ */
+function checkUrlFields(config: RuntimeCfg, errors: string[]): void {
   const urlChecks: Array<{ name: string, value: unknown, schemes: string[] }> = [
     { name: 'NUXT_S3_ENDPOINT', value: config.s3?.endpoint, schemes: ['http:', 'https:'] },
     { name: 'NUXT_MARKITDOWN_URL', value: config.markitdownUrl, schemes: ['http:', 'https:'] },
@@ -87,14 +112,8 @@ export default defineNitroPlugin(() => {
     { name: 'NUXT_PUBLIC_SYNC_URL', value: config.public?.syncUrl, schemes: ['ws:', 'wss:'] },
     { name: 'NUXT_LITELLM_URL', value: config.litellm?.url, schemes: ['http:', 'https:'] }
   ]
-
-  // Phase 5: every dual-mode provider flag is gone. LiteLLM is the
-  // only AI gateway — embeddings, text, image, transcribe, dictate
-  // all route through it. Provider validation happens at the LiteLLM
-  // config layer (model id present in `infra/litellm/config.yaml`),
-  // not here.
   for (const { name, value, schemes } of urlChecks) {
-    if (typeof value !== 'string' || value.length === 0) continue // already flagged above
+    if (typeof value !== 'string' || value.length === 0) continue
     let parsed: URL
     try {
       parsed = new URL(value)
@@ -106,12 +125,15 @@ export default defineNitroPlugin(() => {
       errors.push(`${name} must use ${schemes.join(' or ')} (got "${parsed.protocol}")`)
     }
   }
+}
 
-  // Stripe base override, when present, must be a parseable URL. Silently
-  // falling back to api.stripe.com on a typo would be worse than refusing
-  // to start — a dev pointing at stripe-mock with a broken URL would hit
-  // real Stripe. Stripe secrets themselves remain prod-only because
-  // monetization is unimplemented (AGENTS.md §15/§17).
+/**
+ * Stripe base override, when present, must be a parseable URL. Silently
+ * falling back to api.stripe.com on a typo would be worse than refusing
+ * to start — a dev pointing at stripe-mock with a broken URL would hit
+ * real Stripe. Stripe secrets themselves are prod-only.
+ */
+function checkStripe(config: RuntimeCfg, errors: string[]): void {
   const apiBase = config.stripe?.apiBase
   if (typeof apiBase === 'string' && apiBase.length > 0) {
     try {
@@ -120,13 +142,8 @@ export default defineNitroPlugin(() => {
       errors.push(`NUXT_STRIPE_API_BASE is not a valid URL: "${apiBase}"`)
     }
   }
-
   if (process.env.NODE_ENV === 'production') {
     if (!config.stripe?.secretKey) errors.push('NUXT_STRIPE_SECRET_KEY is not set')
     if (!config.stripe?.webhookSecret) errors.push('NUXT_STRIPE_WEBHOOK_SECRET is not set')
   }
-
-  if (errors.length > 0) {
-    throw new Error(`[secrets] Startup validation failed:\n  - ${errors.join('\n  - ')}`)
-  }
-})
+}
