@@ -79,6 +79,116 @@ interface ResolvedThread {
  * prompt needs. Returns null when the comment can't be found OR when
  * the triggering message was authored by the AI itself (loop guard).
  */
+/** Coerce a Y.Map field to a string with a fallback. */
+function strField(map: Y.Map<unknown>, key: string, fallback: string): string {
+  const v = map.get(key)
+  return typeof v === 'string' ? v : fallback
+}
+
+/** Coerce a Y.Map field to a number, returning null on miss. */
+function numFieldOrNull(map: Y.Map<unknown>, key: string): number | null {
+  const v = map.get(key)
+  return typeof v === 'number' ? v : null
+}
+
+/** Coerce a Y.Map field to a number with a numeric fallback. */
+function numFieldOrZero(map: Y.Map<unknown>, key: string): number {
+  const v = map.get(key)
+  return typeof v === 'number' ? v : 0
+}
+
+interface ParentFields {
+  body: string
+  authorId: number | null
+  authorName: string
+  createdAt: number
+  resolved: boolean
+}
+
+function parseParentFields(map: Y.Map<unknown>): ParentFields {
+  return {
+    body: strField(map, 'body', ''),
+    authorId: numFieldOrNull(map, 'authorId'),
+    authorName: strField(map, 'authorName', 'Unknown'),
+    createdAt: numFieldOrZero(map, 'createdAt'),
+    resolved: Boolean(map.get('resolved'))
+  }
+}
+
+interface AnchorResolution {
+  anchorText: string | null
+  startLine: number | null
+  endLine: number | null
+}
+
+/**
+ * Resolve anchor → char offsets → line numbers (1-indexed) + the
+ * anchored text. Capped at 400 chars in the rendered block. Returns
+ * all-nulls when the anchor is orphaned (decode failure or zero-width
+ * range).
+ */
+function resolveAnchor(parentMap: Y.Map<unknown>, ydoc: Y.Doc, ytext: Y.Text): AnchorResolution {
+  const empty: AnchorResolution = { anchorText: null, startLine: null, endLine: null }
+  const startB64 = parentMap.get('anchorStart')
+  const endB64 = parentMap.get('anchorEnd')
+  if (typeof startB64 !== 'string' || typeof endB64 !== 'string') return empty
+  try {
+    const startRel = Y.decodeRelativePosition(new Uint8Array(Buffer.from(startB64, 'base64')))
+    const endRel = Y.decodeRelativePosition(new Uint8Array(Buffer.from(endB64, 'base64')))
+    const startAbs = Y.createAbsolutePositionFromRelativePosition(startRel, ydoc)
+    const endAbs = Y.createAbsolutePositionFromRelativePosition(endRel, ydoc)
+    if (!startAbs || !endAbs || startAbs.index >= endAbs.index) return empty
+    const full = ytext.toString()
+    return {
+      anchorText: full.slice(startAbs.index, endAbs.index),
+      startLine: full.slice(0, startAbs.index).split('\n').length,
+      endLine: full.slice(0, endAbs.index).split('\n').length
+    }
+  } catch {
+    // Orphan — anchor decode failed.
+    return empty
+  }
+}
+
+/**
+ * Walk reply rows under a parent comment. Each reply Y.Map is parsed
+ * via shared field-coercion helpers; the optional `replyId` flags
+ * exactly one row as the trigger.
+ */
+function walkReplies(parentMap: Y.Map<unknown>, replyId: string | null): { replies: ResolvedReply[], triggerReply: ResolvedReply | null } {
+  const replies: ResolvedReply[] = []
+  let triggerReply: ResolvedReply | null = null
+  const repliesArr = parentMap.get('replies')
+  if (!(repliesArr instanceof Y.Array)) return { replies, triggerReply }
+
+  for (let i = 0; i < repliesArr.length; i++) {
+    const r = repliesArr.get(i)
+    if (!(r instanceof Y.Map)) continue
+    const rId = strField(r, 'id', '')
+    const isTrigger = replyId !== null && rId === replyId
+    const entry: ResolvedReply = {
+      id: rId,
+      body: strField(r, 'body', ''),
+      authorId: numFieldOrNull(r, 'authorId'),
+      authorName: strField(r, 'authorName', 'Unknown'),
+      createdAt: numFieldOrZero(r, 'createdAt'),
+      isTrigger
+    }
+    replies.push(entry)
+    if (isTrigger) triggerReply = entry
+  }
+  return { replies, triggerReply }
+}
+
+/** Find the comment Y.Map matching `commentId`, or null. */
+function findParentMap(ycomments: Y.Array<Y.Map<unknown>>, commentId: string): Y.Map<unknown> | null {
+  for (let i = 0; i < ycomments.length; i++) {
+    const m = ycomments.get(i)
+    if (m instanceof Y.Map && m.get('id') === commentId) return m
+  }
+  return null
+}
+
 export function resolveCommentTrigger(
   ydoc: Y.Doc,
   ytext: Y.Text,
@@ -86,98 +196,36 @@ export function resolveCommentTrigger(
   replyId: string | null
 ): ResolvedThread | null {
   const ycomments = ydoc.getArray<Y.Map<unknown>>('comments')
-  let parentMap: Y.Map<unknown> | null = null
-  for (let i = 0; i < ycomments.length; i++) {
-    const m = ycomments.get(i)
-    if (m instanceof Y.Map && m.get('id') === commentId) {
-      parentMap = m
-      break
-    }
-  }
+  const parentMap = findParentMap(ycomments, commentId)
   if (!parentMap) return null
 
-  const parentBody = typeof parentMap.get('body') === 'string' ? (parentMap.get('body') as string) : ''
-  const parentAuthorId = typeof parentMap.get('authorId') === 'number' ? (parentMap.get('authorId') as number) : null
-  const parentAuthorName = typeof parentMap.get('authorName') === 'string' ? (parentMap.get('authorName') as string) : 'Unknown'
-  const parentCreatedAt = typeof parentMap.get('createdAt') === 'number' ? (parentMap.get('createdAt') as number) : 0
-  const resolved = Boolean(parentMap.get('resolved'))
+  const parent = parseParentFields(parentMap)
+  const anchor = resolveAnchor(parentMap, ydoc, ytext)
+  const { replies, triggerReply } = walkReplies(parentMap, replyId)
 
-  // Resolve anchor → char offsets → line numbers (1-indexed) and the
-  // anchored text itself. Capped at 400 chars in the rendered block.
-  let anchorText: string | null = null
-  let startLine: number | null = null
-  let endLine: number | null = null
-  const startB64 = parentMap.get('anchorStart')
-  const endB64 = parentMap.get('anchorEnd')
-  if (typeof startB64 === 'string' && typeof endB64 === 'string') {
-    try {
-      const startRel = Y.decodeRelativePosition(new Uint8Array(Buffer.from(startB64, 'base64')))
-      const endRel = Y.decodeRelativePosition(new Uint8Array(Buffer.from(endB64, 'base64')))
-      const startAbs = Y.createAbsolutePositionFromRelativePosition(startRel, ydoc)
-      const endAbs = Y.createAbsolutePositionFromRelativePosition(endRel, ydoc)
-      if (startAbs && endAbs && startAbs.index < endAbs.index) {
-        const full = ytext.toString()
-        anchorText = full.slice(startAbs.index, endAbs.index)
-        startLine = full.slice(0, startAbs.index).split('\n').length
-        endLine = full.slice(0, endAbs.index).split('\n').length
-      }
-    } catch {
-      // Orphan — anchor decode failed. Anchor stays null.
-    }
-  }
-
-  // Walk replies; capture each + flag the trigger reply.
-  const replies: ResolvedReply[] = []
-  let triggerReply: ResolvedReply | null = null
-  const repliesArr = parentMap.get('replies')
-  if (repliesArr instanceof Y.Array) {
-    for (let i = 0; i < repliesArr.length; i++) {
-      const r = repliesArr.get(i)
-      if (!(r instanceof Y.Map)) continue
-      const rId = typeof r.get('id') === 'string' ? (r.get('id') as string) : ''
-      const rBody = typeof r.get('body') === 'string' ? (r.get('body') as string) : ''
-      const rAuthorId = typeof r.get('authorId') === 'number' ? (r.get('authorId') as number) : null
-      const rAuthorName = typeof r.get('authorName') === 'string' ? (r.get('authorName') as string) : 'Unknown'
-      const rCreatedAt = typeof r.get('createdAt') === 'number' ? (r.get('createdAt') as number) : 0
-      const isTrigger = replyId !== null && rId === replyId
-      const entry: ResolvedReply = {
-        id: rId,
-        body: rBody,
-        authorId: rAuthorId,
-        authorName: rAuthorName,
-        createdAt: rCreatedAt,
-        isTrigger
-      }
-      replies.push(entry)
-      if (isTrigger) triggerReply = entry
-    }
-  }
-
-  // The triggering message: a specific reply if replyId resolved to one,
-  // otherwise the parent comment.
+  // The triggering message: a specific reply if replyId resolved to
+  // one, otherwise the parent comment.
   const triggerIsParent = triggerReply === null
-  const triggerBody = triggerIsParent ? parentBody : triggerReply!.body
-  const triggerAuthorId = triggerIsParent ? parentAuthorId : triggerReply!.authorId
-  const triggerAuthorName = triggerIsParent ? parentAuthorName : triggerReply!.authorName
+  const trigger = triggerIsParent
+    ? { body: parent.body, authorId: parent.authorId, authorName: parent.authorName }
+    : { body: triggerReply.body, authorId: triggerReply.authorId, authorName: triggerReply.authorName }
 
   // Loop guard: AI doesn't respond to its own messages.
-  if (triggerAuthorId === null && triggerAuthorName === 'AI Assistant') return null
+  if (trigger.authorId === null && trigger.authorName === 'AI Assistant') return null
 
   return {
     commentId,
-    anchorText,
-    startLine,
-    endLine,
-    parentBody,
-    parentAuthorId,
-    parentAuthorName,
-    parentCreatedAt,
-    resolved,
+    ...anchor,
+    parentBody: parent.body,
+    parentAuthorId: parent.authorId,
+    parentAuthorName: parent.authorName,
+    parentCreatedAt: parent.createdAt,
+    resolved: parent.resolved,
     triggerIsParent,
     replies,
-    triggerBody: stripAiMention(triggerBody).trim(),
-    triggerAuthorId,
-    triggerAuthorName
+    triggerBody: stripAiMention(trigger.body).trim(),
+    triggerAuthorId: trigger.authorId,
+    triggerAuthorName: trigger.authorName
   }
 }
 
