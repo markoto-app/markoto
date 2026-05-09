@@ -12,6 +12,11 @@ import { signalMigrationsComplete } from '../utils/migrations'
 // Fires `signalMigrationsComplete()` on success so plugins that kick off
 // DB-touching startup work can await it instead of racing us.
 export default defineNitroPlugin(async () => {
+  // `bun run build` boots Nitro in prerender mode (PWA workbox needs `/`
+  // pre-rendered), which fires every plugin. We have no DB at build time —
+  // skip. The plugin still runs at every real container start.
+  if (import.meta.prerender) return
+
   const migrationsFolder = process.env.DRIZZLE_MIGRATIONS_DIR || './drizzle'
   try {
     const db = useDatabase()

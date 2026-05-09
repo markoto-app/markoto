@@ -8,10 +8,8 @@ For reproducing the production stack on your dev machine — all containers, Tra
 # macOS
 brew install mkcert nss
 
-# Linux (Debian/Ubuntu)
-sudo apt install libnss3-tools
-curl -L https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-v1.4.4-linux-amd64 -o /usr/local/bin/mkcert
-chmod +x /usr/local/bin/mkcert
+# Linux (Debian/Ubuntu) — mkcert ships in the standard repos
+sudo apt install -y mkcert libnss3-tools
 ```
 
 Then install the local CA:

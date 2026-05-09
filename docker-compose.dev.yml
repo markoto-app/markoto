@@ -147,6 +147,10 @@ services:
       - S3_ENDPOINT=http://seaweedfs:8333
       - BACKUP_INTERVAL_SECONDS=3600   # 1 h in dev (tight loop for testing)
       - BACKUP_RETENTION_COUNT=5
+      # Stub passphrase so the sidecar doesn't restart-loop. Dev
+      # backups encrypt against a throwaway key — never used for restore.
+      # Prod compose requires a real value via `:?required`.
+      - BACKUP_GPG_PASSPHRASE=dev-backup-not-a-real-passphrase
     depends_on:
       postgres:
         condition: service_healthy

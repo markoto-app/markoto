@@ -72,6 +72,19 @@ services:
     networks:
       - internal
 
+  # litellm + litellm-db-init are declared in docker-compose.base.yml
+  # without `networks:`. Compose's `include:` merges the service block
+  # verbatim, so without an override they'd land on the auto-created
+  # `default` network and lose access to Postgres (which is `internal`-
+  # only). Pin them onto `internal` here. Same fix is needed in prod.
+  litellm:
+    networks:
+      - internal
+
+  litellm-db-init:
+    networks:
+      - internal
+
   # Defined inline (not in base) — prod uses external S3 and `include:`
   # has no "drop service" mechanic. See header in docker-compose.base.yml.
   seaweedfs:
@@ -94,6 +107,13 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
+      # The bundled validator hardcodes the prod-only Stripe check
+      # (process.env.NODE_ENV === 'production' is dead-code-eliminated at
+      # build time, so flipping NODE_ENV at runtime is a no-op). Stub the
+      # values so the check passes — local doesn't hit any Stripe code
+      # path. Prod compose populates the real keys via .env.
+      - NUXT_STRIPE_SECRET_KEY=sk_test_local_stub
+      - NUXT_STRIPE_WEBHOOK_SECRET=whsec_local_stub
       - NUXT_SESSION_PASSWORD=local-session-password-at-least-32-characters-long
       - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID}
       - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET}
@@ -110,6 +130,12 @@ services:
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
+      # LiteLLM proxy. Required by server/plugins/01-validate-secrets.ts —
+      # the app fails fast at boot without these. URL hits the in-network
+      # service; master key matches the one mounted into the litellm
+      # container (which reads LITELLM_MASTER_KEY from .env via base.yml).
+      - NUXT_LITELLM_URL=http://litellm:4000
+      - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       # Postgres + Valkey atomic parts. *_HOST overridden to the docker
       # service name; .env owns user/password/db/port. The Nuxt app
       # composes the URL via shared/utils/connectionStrings.ts.
@@ -192,6 +218,10 @@ services:
       - S3_ENDPOINT=http://seaweedfs:8333
       - BACKUP_INTERVAL_SECONDS=3600
       - BACKUP_RETENTION_COUNT=5
+      # Stub passphrase so the sidecar doesn't restart-loop. Local
+      # backups encrypt against a throwaway key — never used for restore.
+      # Prod compose requires a real value via `:?required`.
+      - BACKUP_GPG_PASSPHRASE=local-backup-not-a-real-passphrase
     depends_on:
       postgres:
         condition: service_healthy

@@ -14,6 +14,11 @@ import { validateSecrets } from '../../shared/utils/validateSecrets'
 
 export default defineNitroPlugin(() => {
   if (process.env.TEST_MODE === '1') return
+  // `bun run build` boots Nitro in prerender mode (PWA workbox needs `/`
+  // pre-rendered), which fires every plugin against runtimeConfig defaults
+  // (empty strings). The validator runs at every real container start; the
+  // build-time pass has nothing to validate.
+  if (import.meta.prerender) return
 
   const config = useRuntimeConfig()
   const errors = validateSecrets([
