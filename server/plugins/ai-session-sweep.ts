@@ -46,38 +46,51 @@ export default defineNitroPlugin((nitroApp) => {
     // from a prior crashed process.
     if (!await acquireSweepLock('ai-session-sweep')) return
     try {
+      const sessions = await loadSessionsOrLog()
+      if (!sessions) return
       const now = Date.now()
-      let sessions: Awaited<ReturnType<typeof snapshotAiSessions>>
-      try {
-        sessions = await snapshotAiSessions()
-      } catch (e) {
-        console.warn('[ai-sweep] snapshot failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'snapshot_failed' } })
-        return
-      }
       for (const s of sessions) {
         const ageMs = now - s.startedAt.getTime()
         if (ageMs <= STALE_THRESHOLD_MS) continue
-        console.warn(
-          `[ai-sweep] Aborting stuck session ${s.sessionId} for doc ${s.docId} (age ${Math.round(ageMs / 1000)}s)`
-        )
-        if (s.abortController) {
-          // Local to this process — signal the loop to unwind cleanly. The loop's
-          // finally block will remove the session row itself.
-          try {
-            s.abortController.abort()
-          } catch { /* ignore */ }
-        } else {
-          // Orphan row (e.g. from a prior process). Just drop the DB entry so the
-          // per-user cap unblocks.
-          try {
-            await removeAiSession(s.sessionId)
-          } catch { /* ignore */ }
-        }
+        await abortStaleSession(s, ageMs)
       }
     } finally {
       await releaseSweepLock('ai-session-sweep')
     }
+  }
+
+  /** Snapshot DB sessions; returns null on failure (already logged + Sentry-captured). */
+  async function loadSessionsOrLog(): Promise<Awaited<ReturnType<typeof snapshotAiSessions>> | null> {
+    try {
+      return await snapshotAiSessions()
+    } catch (e) {
+      console.warn('[ai-sweep] snapshot failed:', e instanceof Error ? e.message : e)
+      Sentry.captureException(e, { tags: { component: 'ai-sweep', event: 'snapshot_failed' } })
+      return null
+    }
+  }
+
+  /**
+   * Abort a stale session. Local rows: abort the controller (the
+   * loop's finally clears the DB row itself). Orphan rows from a
+   * prior process: drop directly so the per-user cap unblocks.
+   */
+  async function abortStaleSession(
+    s: Awaited<ReturnType<typeof snapshotAiSessions>>[number],
+    ageMs: number
+  ): Promise<void> {
+    console.warn(
+      `[ai-sweep] Aborting stuck session ${s.sessionId} for doc ${s.docId} (age ${Math.round(ageMs / 1000)}s)`
+    )
+    if (s.abortController) {
+      try {
+        s.abortController.abort()
+      } catch { /* ignore */ }
+      return
+    }
+    try {
+      await removeAiSession(s.sessionId)
+    } catch { /* ignore */ }
   }
 
   const timer = setInterval(() => {
