@@ -70,114 +70,128 @@ export function internalToOpenAIMessages(
   const messages: OAIMessage[] = [
     { role: 'system', content: systemPrompt }
   ]
-
   for (const block of contents) {
-    const role = block.role
-    const parts = (block.parts ?? [])
-
-    if (role === 'user') {
-      // Split into (a) tool-response parts (each becomes a `tool` message)
-      // (b) text + inlineData parts (combined into one user message).
-      const toolResponses: Part[] = []
-      const userParts: Part[] = []
-      for (const p of parts) {
-        if (p.functionResponse) toolResponses.push(p)
-        else userParts.push(p)
-      }
-
-      // Tool messages first — OpenAI requires `tool` messages reference
-      // a prior assistant tool_call id, which is satisfied because
-      // contents.push(model) ran before contents.push(user{functionResponse}).
-      for (const p of toolResponses) {
-        const fr = p.functionResponse!
-        const out = fr.response as { output?: unknown, isError?: boolean } | undefined
-        const text = out !== undefined && typeof out === 'object'
-          ? (typeof (out as { output?: unknown }).output === 'string'
-              ? (out as { output: string }).output
-              : JSON.stringify(out))
-          : String(out ?? '')
-        const toolMsg: OAIToolMessage = {
-          role: 'tool',
-          tool_call_id: fr.id ?? '',
-          content: text
-        }
-        messages.push(toolMsg)
-      }
-
-      // Then the carrier user message (text + any image parts). When the
-      // user block contained ONLY tool-responses + inlineData (the
-      // common `view_image` smuggle), we emit a small synthetic preamble
-      // so the model knows the images are the result of the prior tool.
-      const hasImages = userParts.some(p => p.inlineData?.data)
-      const hasText = userParts.some(p => p.text && p.text.length > 0)
-
-      if (hasImages || hasText) {
-        if (hasImages) {
-          const contentParts: OAIUserContentPart[] = []
-          // Prepend a brief text frame so the model has context for
-          // why the images are present (especially when the user
-          // block carries no other text — i.e. it was wholly the
-          // smuggle pattern).
-          const textBlobs = userParts
-            .map(p => p.text ?? '')
-            .filter(Boolean)
-            .join(' ')
-            .trim()
-          contentParts.push({
-            type: 'text',
-            text: textBlobs.length > 0
-              ? textBlobs
-              : 'Here is the image you requested.'
-          })
-          for (const p of userParts) {
-            if (p.inlineData?.data) {
-              const mime = p.inlineData.mimeType ?? 'image/png'
-              contentParts.push({
-                type: 'image_url',
-                image_url: { url: `data:${mime};base64,${p.inlineData.data}` }
-              })
-            }
-          }
-          messages.push({ role: 'user', content: contentParts })
-        } else {
-          // Pure-text user message
-          const text = userParts.map(p => p.text ?? '').filter(Boolean).join('').trim()
-          if (text.length > 0) {
-            messages.push({ role: 'user', content: text })
-          }
-        }
-      }
-    } else if (role === 'model') {
-      const textBuf: string[] = []
-      const toolCalls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[] = []
-      for (const p of parts) {
-        if (p.text && p.text.length > 0) textBuf.push(p.text)
-        if (p.functionCall) {
-          toolCalls.push({
-            id: p.functionCall.id ?? '',
-            type: 'function',
-            function: {
-              name: p.functionCall.name ?? '',
-              arguments: JSON.stringify(p.functionCall.args ?? {})
-            }
-          })
-        }
-      }
-      const text = textBuf.join('')
-      const assistantMsg: OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam = {
-        role: 'assistant',
-        // OpenAI expects content to be either string or null when tool_calls
-        // are present.
-        content: text.length > 0 ? text : null
-      }
-      if (toolCalls.length > 0) {
-        assistantMsg.tool_calls = toolCalls
-      }
-      messages.push(assistantMsg)
+    const parts = block.parts ?? []
+    if (block.role === 'user') {
+      messages.push(...buildUserMessages(parts))
+    } else if (block.role === 'model') {
+      messages.push(buildAssistantMessage(parts))
     }
   }
-
   return messages
+}
+
+/**
+ * Build the OpenAI messages for one internal `role: 'user'` block. Yields
+ * one or more messages: each `functionResponse` part becomes its own
+ * `role: 'tool'` message; remaining text + `inlineData` parts collapse
+ * into one carrier `role: 'user'` message (or are dropped if empty).
+ */
+function buildUserMessages(parts: Part[]): OAIMessage[] {
+  const out: OAIMessage[] = []
+  // Split into (a) tool-response parts (each becomes a `tool` message)
+  // and (b) text + inlineData parts (combined into one user message).
+  const toolResponses: Part[] = []
+  const userParts: Part[] = []
+  for (const p of parts) {
+    if (p.functionResponse) toolResponses.push(p)
+    else userParts.push(p)
+  }
+
+  // Tool messages first — OpenAI requires `tool` messages reference a
+  // prior assistant tool_call id, which is satisfied because
+  // contents.push(model) ran before contents.push(user{functionResponse}).
+  for (const p of toolResponses) out.push(buildToolMessage(p.functionResponse!))
+
+  const carrier = buildCarrierUserMessage(userParts)
+  if (carrier) out.push(carrier)
+  return out
+}
+
+/** Render a single internal `functionResponse` part as a `role: 'tool'` message. */
+function buildToolMessage(fr: NonNullable<Part['functionResponse']>): OAIToolMessage {
+  const out = fr.response as { output?: unknown, isError?: boolean } | undefined
+  const text = out !== undefined && typeof out === 'object'
+    ? (typeof (out as { output?: unknown }).output === 'string'
+        ? (out as { output: string }).output
+        : JSON.stringify(out))
+    : String(out ?? '')
+  return {
+    role: 'tool',
+    tool_call_id: fr.id ?? '',
+    content: text
+  }
+}
+
+/**
+ * The carrier user message is the text + image-parts message that
+ * follows tool responses. Returns null when the user block carried no
+ * text and no images (text-only function-response blocks have no
+ * carrier).
+ *
+ * When there ARE images, we prepend a synthetic text frame so the model
+ * has context for why the images are present (especially when the user
+ * block carries no other text — i.e. wholly the `view_image` smuggle
+ * pattern).
+ */
+function buildCarrierUserMessage(userParts: Part[]): OAIMessage | null {
+  const hasImages = userParts.some(p => p.inlineData?.data)
+  const hasText = userParts.some(p => p.text && p.text.length > 0)
+  if (!hasImages && !hasText) return null
+
+  if (!hasImages) {
+    const text = userParts.map(p => p.text ?? '').filter(Boolean).join('').trim()
+    return text.length > 0 ? { role: 'user', content: text } : null
+  }
+
+  const contentParts: OAIUserContentPart[] = []
+  const textBlobs = userParts
+    .map(p => p.text ?? '')
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+  contentParts.push({
+    type: 'text',
+    text: textBlobs.length > 0 ? textBlobs : 'Here is the image you requested.'
+  })
+  for (const p of userParts) {
+    if (p.inlineData?.data) {
+      const mime = p.inlineData.mimeType ?? 'image/png'
+      contentParts.push({
+        type: 'image_url',
+        image_url: { url: `data:${mime};base64,${p.inlineData.data}` }
+      })
+    }
+  }
+  return { role: 'user', content: contentParts }
+}
+
+/** Render an internal `role: 'model'` block as an OpenAI assistant message. */
+function buildAssistantMessage(parts: Part[]): OAIMessage {
+  const textBuf: string[] = []
+  const toolCalls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[] = []
+  for (const p of parts) {
+    if (p.text && p.text.length > 0) textBuf.push(p.text)
+    if (p.functionCall) {
+      toolCalls.push({
+        id: p.functionCall.id ?? '',
+        type: 'function',
+        function: {
+          name: p.functionCall.name ?? '',
+          arguments: JSON.stringify(p.functionCall.args ?? {})
+        }
+      })
+    }
+  }
+  const text = textBuf.join('')
+  const assistantMsg: OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam = {
+    role: 'assistant',
+    // OpenAI expects content to be either string or null when tool_calls
+    // are present.
+    content: text.length > 0 ? text : null
+  }
+  if (toolCalls.length > 0) assistantMsg.tool_calls = toolCalls
+  return assistantMsg
 }
 
 // ─── Tool declarations: internal → OpenAI ───────────────────────────────
@@ -258,37 +272,11 @@ export async function* openAIStreamToInternalChunks(
 
     // Text content delta → internal-shape text chunk (drives status, prose-salvage)
     if (typeof delta?.content === 'string' && delta.content.length > 0) {
-      yield {
-        candidates: [{
-          content: { role: 'model', parts: [{ text: delta.content }] }
-        }]
-      }
+      yield textDeltaChunk(delta.content)
     }
-
-    // Tool-call deltas. Each delta entry has an `index` we accumulate by.
-    // First chunk for an index typically carries id + name; subsequent
-    // chunks append fragments to function.arguments.
-    if (delta?.tool_calls) {
-      for (const tc of delta.tool_calls) {
-        const idx = tc.index ?? 0
-        const existing = accum.get(idx)
-        if (!existing) {
-          accum.set(idx, {
-            id: tc.id ?? '',
-            name: tc.function?.name ?? '',
-            argsBuffer: tc.function?.arguments ?? ''
-          })
-        } else {
-          if (tc.id) existing.id = tc.id
-          if (tc.function?.name) existing.name = tc.function.name
-          if (tc.function?.arguments) existing.argsBuffer += tc.function.arguments
-        }
-      }
-    }
-
+    if (delta?.tool_calls) accumulateToolCallDeltas(delta.tool_calls, accum)
     if (choice.finish_reason) finishReason = choice.finish_reason
-
-    // Usage often arrives on the FINAL chunk (or via `stream_options:
+    // Usage arrives on the FINAL chunk (via `stream_options:
     // {include_usage: true}`). Mistral provides it in the last chunk.
     if (chunk.usage) {
       promptTokens = chunk.usage.prompt_tokens
@@ -296,27 +284,64 @@ export async function* openAIStreamToInternalChunks(
     }
   }
 
-  // Terminal: synthesize final chunk with parts + functionCalls + usage.
+  yield buildTerminalChunk(accum, finishReason, promptTokens, completionTokens)
+}
+
+/** Wrap a streamed text delta in the internal chunk shape. */
+function textDeltaChunk(text: string): StreamChunk {
+  return {
+    candidates: [{
+      content: { role: 'model', parts: [{ text }] }
+    }]
+  }
+}
+
+/**
+ * Tool-call deltas are fragmented across chunks indexed by
+ * `tool_calls[].index`. The first delta for an index typically carries
+ * `id` + `function.name`; subsequent deltas append fragments to
+ * `function.arguments`. We accumulate per index here, finalised by
+ * `buildTerminalChunk` once the stream ends.
+ */
+function accumulateToolCallDeltas(
+  deltas: NonNullable<OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta['tool_calls']>,
+  accum: Map<number, AccumulatingToolCall>
+): void {
+  for (const tc of deltas) {
+    const idx = tc.index ?? 0
+    const existing = accum.get(idx)
+    if (!existing) {
+      accum.set(idx, {
+        id: tc.id ?? '',
+        name: tc.function?.name ?? '',
+        argsBuffer: tc.function?.arguments ?? ''
+      })
+      continue
+    }
+    if (tc.id) existing.id = tc.id
+    if (tc.function?.name) existing.name = tc.function.name
+    if (tc.function?.arguments) existing.argsBuffer += tc.function.arguments
+  }
+}
+
+/**
+ * Terminal chunk: emits accumulated `functionCalls` + `finishReason` +
+ * `usageMetadata`. Triggered on stream end.
+ */
+function buildTerminalChunk(
+  accum: Map<number, AccumulatingToolCall>,
+  finishReason: string | undefined,
+  promptTokens: number | undefined,
+  completionTokens: number | undefined
+): StreamChunk {
   const calls: NonNullable<StreamChunk['functionCalls']> = []
   const modelParts: Part[] = []
   for (const [, t] of accum) {
-    let parsedArgs: Record<string, unknown> = {}
-    if (t.argsBuffer && t.argsBuffer.trim().length > 0) {
-      try {
-        parsedArgs = JSON.parse(t.argsBuffer)
-      } catch {
-        // Corrupt args — surface as empty so the loop's Zod validation
-        // catches it as a malformed call. The model can retry.
-        parsedArgs = {}
-      }
-    }
+    const parsedArgs = parseToolCallArgs(t.argsBuffer)
     calls.push({ id: t.id, name: t.name, args: parsedArgs })
-    modelParts.push({
-      functionCall: { id: t.id, name: t.name, args: parsedArgs }
-    })
+    modelParts.push({ functionCall: { id: t.id, name: t.name, args: parsedArgs } })
   }
-
-  yield {
+  return {
     candidates: [{
       content: { role: 'model', parts: modelParts },
       finishReason: mapFinishReason(finishReason)
@@ -327,6 +352,20 @@ export async function* openAIStreamToInternalChunks(
       candidatesTokenCount: completionTokens,
       thoughtsTokenCount: undefined
     }
+  }
+}
+
+/**
+ * Parse the accumulated `function.arguments` JSON buffer. Empty / whitespace
+ * buffers and JSON-parse failures surface as empty `{}` — the loop's Zod
+ * validation then catches the malformed call and lets the model retry.
+ */
+function parseToolCallArgs(buf: string): Record<string, unknown> {
+  if (!buf || buf.trim().length === 0) return {}
+  try {
+    return JSON.parse(buf) as Record<string, unknown>
+  } catch {
+    return {}
   }
 }
 
