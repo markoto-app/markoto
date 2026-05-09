@@ -126,7 +126,7 @@ function makeEmbedder(opts: CliOpts): Embedder {
         ...({ task: 'retrieval.passage' } as any)
       })
       const v = r.data?.[0]?.embedding
-      if (!v || v.length !== opts.dimensions) {
+      if (v?.length !== opts.dimensions) {
         throw new Error(`vector shape ${v?.length ?? 0} != ${opts.dimensions}`)
       }
       return v

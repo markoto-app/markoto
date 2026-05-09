@@ -77,7 +77,7 @@ export async function performLogout(opts: LogoutOptions = {}): Promise<void> {
     try {
       const dbs = await indexedDB.databases()
       for (const db of dbs) {
-        if (db.name && db.name.startsWith(LOGOUT_IDB_PREFIX)) {
+        if (db.name?.startsWith(LOGOUT_IDB_PREFIX)) {
           indexedDB.deleteDatabase(db.name)
         }
       }

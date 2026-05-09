@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const row = await getKnowledge(knowledgeId)
   // Resolve workspace scope BEFORE running the authz check so callers
   // can't probe for knowledge in another workspace via this endpoint.
-  if (!row || row.workspaceId !== wsId) {
+  if (row?.workspaceId !== wsId) {
     throw createError({ statusCode: 404, message: 'Knowledge file not found' })
   }
 

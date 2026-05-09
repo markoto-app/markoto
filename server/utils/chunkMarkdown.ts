@@ -150,7 +150,7 @@ export function chunkMarkdown(markdown: string, options: ChunkMarkdownOptions = 
   const maxTokens = options.maxTokens ?? 1500
   const overlapTokens = options.overlapTokens ?? 100
 
-  if (!markdown || !markdown.trim()) return []
+  if (!markdown?.trim()) return []
 
   const sections = segmentByHeadings(markdown)
   const chunks: Chunk[] = []

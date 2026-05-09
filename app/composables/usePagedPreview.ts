@@ -83,7 +83,7 @@ export function usePagedPreview(opts: {
   let pendingRender = false
 
   function handleMessage(e: MessageEvent) {
-    if (!iframe || e.source !== iframe.contentWindow) return
+    if (e.source !== iframe?.contentWindow) return
     const data = e.data as { type?: string, pageCount?: number, message?: string } | undefined
     if (!data?.type) return
     if (data.type === 'iframe-ready') {

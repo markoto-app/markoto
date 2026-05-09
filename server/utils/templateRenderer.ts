@@ -66,7 +66,7 @@ export interface TemplateContext {
  */
 export function renderTemplate(templateId: string, ctx: TemplateContext): string | null {
   const meta = getTemplate(templateId)
-  if (!meta || !meta.hasContent) return null
+  if (!meta?.hasContent) return null
 
   const locale = resolveTemplateLocale(ctx.language) as TemplateLocale
   const body = readBody(templateId, locale) ?? readBody(templateId, 'en')

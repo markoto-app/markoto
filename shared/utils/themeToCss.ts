@@ -48,7 +48,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
  */
 export function themeFontsImport(theme: DocTheme): string {
   const unique = [...new Set([theme.body.font, theme.headings.font, theme.meta.font])]
-    .filter(f => f && f.trim())
+    .filter(f => f?.trim())
   if (unique.length === 0) return ''
   const families = unique.map(googleFamilyParam).join('&')
   return `@import url('https://fonts.googleapis.com/css2?${families}&display=swap');`

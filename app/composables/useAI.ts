@@ -157,7 +157,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     const r = session?.aiResponse
     if (!r) return
     const cur = lastResponse.value
-    if (cur && cur.sessionId === session!.sessionId && cur.ts === r.ts) return
+    if (cur?.sessionId === session!.sessionId && cur.ts === r.ts) return
     lastResponse.value = {
       sessionId: session!.sessionId,
       message: r.message,

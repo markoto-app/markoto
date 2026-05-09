@@ -30,7 +30,7 @@ export function extractToken(event: H3Event): string | null {
   const auth = getRequestHeader(event, 'authorization')
   if (typeof auth === 'string' && auth.length > 0) {
     const match = /^Bearer\s+(.+)$/i.exec(auth)
-    if (match && match[1]) return match[1].trim()
+    if (match?.[1]) return match[1].trim()
   }
   const q = getQuery(event).token
   if (typeof q === 'string' && q.length > 0) return q

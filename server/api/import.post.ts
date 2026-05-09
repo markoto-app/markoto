@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const formData = await readMultipartFormData(event)
   const file = formData?.find(f => f.name === 'file')
 
-  if (!file || !file.data.length) {
+  if (!file?.data.length) {
     throw createError({ statusCode: 400, message: 'No file provided', data: { code: 'import/no-file' } })
   }
   if (file.data.length > MAX_SIZE) {

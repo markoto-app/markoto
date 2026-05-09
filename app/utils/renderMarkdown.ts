@@ -439,7 +439,7 @@ function transformFootnotesForPagedMedia(html: string): string {
   root.querySelectorAll('sup.footnote-ref').forEach((sup) => {
     const link = sup.querySelector('a')
     const href = link?.getAttribute('href')
-    if (!href || href.charAt(0) !== '#') return
+    if (href?.charAt(0) !== '#') return
     const targetId = href.slice(1)
     const content = contents.get(targetId)
     if (!content) return

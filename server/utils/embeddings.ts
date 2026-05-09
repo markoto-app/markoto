@@ -139,7 +139,7 @@ async function embedOne(
     ...({ task: mapTaskToJina(taskType), ...featureMetadata(FEATURE_TAGS.embeddings) } as any)
   })
   const values = response.data?.[0]?.embedding
-  if (!values || values.length !== cfg.dimensions) {
+  if (values?.length !== cfg.dimensions) {
     throw new Error(`[embeddings] jina vector has wrong shape: ${values?.length ?? 0} != ${cfg.dimensions}`)
   }
   return values

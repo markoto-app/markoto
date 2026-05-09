@@ -96,7 +96,7 @@ export async function withIdempotency<T>(
     // JSON envelope — decode and replay.
     try {
       const parsed = JSON.parse(existing) as CachedEnvelope<T>
-      if (parsed && parsed.kind === 'result') {
+      if (parsed?.kind === 'result') {
         return parsed.value
       }
       // Corrupt envelope: drop and re-run rather than serve garbage.
