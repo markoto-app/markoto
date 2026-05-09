@@ -134,12 +134,11 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="mk-sheet">
-      <div
+      <dialog
         v-if="modelValue"
+        open
         class="mk-sheet-host"
-        role="dialog"
         :aria-label="title || 'Panel'"
-        aria-modal="false"
       >
         <div
           ref="sheetRef"
@@ -191,7 +190,7 @@ onUnmounted(() => {
             <slot />
           </div>
         </div>
-      </div>
+      </dialog>
     </Transition>
   </Teleport>
 </template>

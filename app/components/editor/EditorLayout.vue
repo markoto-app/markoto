@@ -366,7 +366,7 @@ function openServerPdf() {
   a.rel = 'noopener noreferrer'
   document.body.appendChild(a)
   a.click()
-  document.body.removeChild(a)
+  a.remove()
 }
 
 // Hijack Cmd/Ctrl+P so the shortcut shown in File → Print actually runs

@@ -24,8 +24,8 @@ WORKDIR /app
 # `--chown=root:root --chmod=755` makes server.py immutable to the
 # runtime `app` user (docker:S6504).
 RUN pip install --no-cache-dir --only-binary=:all: \
-    'markitdown[all]==0.1.5' \
     'fastapi==0.136.0' \
+    'markitdown[all]==0.1.5' \
     'uvicorn[standard]==0.44.0'
 
 COPY --chown=root:root --chmod=755 server.py /app/server.py

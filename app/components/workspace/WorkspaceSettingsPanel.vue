@@ -48,7 +48,9 @@ async function loadSavedThemes() {
   }
 }
 
-if (import.meta.client) loadSavedThemes()
+onMounted(() => {
+  loadSavedThemes().catch(() => { /* swallowed inside loadSavedThemes */ })
+})
 
 // Eagerly preload the heading-font face for every preset so each card
 // renders in its own typography. Same approach the new-doc dialog

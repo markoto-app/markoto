@@ -488,30 +488,12 @@ const nextHref = computed(() => nextLink.value ? `/docs/flows/${nextLink.value.s
       {{ manifest.title }}
     </h3>
 
-    <!-- Hero frame: rendered preview of the flow's payoff outcome.
-         Currently DISABLED in the public docs slideshow (the field
-         is still present in the manifest, and `heroEntry` resolves
-         in script, so this can be re-enabled by uncommenting the
-         <button> block below if/when product wants it back). The
-         payoff frame still appears in the slideshow proper as a
-         normal outcome shot, so nothing is lost — only the
-         redundant top-strip surface. -->
-    <!-- eslint-disable-next-line vue/comment-directive -->
-    <!--
-    <button
-      v-if="heroEntry"
-      type="button"
-      class="block w-full mb-6 text-left rounded-lg overflow-hidden border border-default bg-elevated cursor-zoom-in group"
-      @click="jumpToHero"
-    >
-      <div class="px-3 py-1.5 bg-elevated border-b border-default flex items-center gap-2">
-        <span class="font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted">the outcome</span>
-        <span class="flex-1" />
-        <span class="font-mono text-[10.5px] text-muted opacity-0 group-hover:opacity-100 transition-opacity">click to jump there</span>
-      </div>
-      <FlowFrame ... />
-    </button>
-    -->
+    <!-- Hero frame intentionally NOT rendered. Manifest still carries
+         `heroEntry` and the script resolver is live, so re-enabling
+         is one git revert away (search for "jumpToHero" + "heroEntry"
+         in history). The payoff frame still appears in the slideshow
+         proper as a normal outcome shot — only the redundant top-
+         strip surface is suppressed. -->
 
     <div
       v-if="entries.length"

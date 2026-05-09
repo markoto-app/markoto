@@ -159,11 +159,10 @@ function startCustomize(): void {
 
 <template>
   <Teleport to="body">
-    <div
+    <dialog
       v-if="open"
+      open
       class="consent-overlay fixed inset-x-0 bottom-0 z-[60] p-4 sm:p-6"
-      role="dialog"
-      aria-modal="false"
       :aria-label="t('legal.consent.banner.title')"
       data-testid="consent-banner"
     >
@@ -286,7 +285,7 @@ function startCustomize(): void {
           </UButton>
         </div>
       </div>
-    </div>
+    </dialog>
   </Teleport>
 </template>
 

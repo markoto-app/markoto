@@ -118,16 +118,24 @@ function formatUsd(usd: number): string {
 
     <div class="flex items-end gap-3 mb-8">
       <div>
-        <label class="block text-xs font-mono uppercase tracking-wide text-muted mb-1">From</label>
+        <label
+          for="ai-spend-from"
+          class="block text-xs font-mono uppercase tracking-wide text-muted mb-1"
+        >From</label>
         <input
+          id="ai-spend-from"
           v-model="fromDate"
           type="date"
           class="px-3 py-1.5 border border-default bg-default rounded text-sm font-mono"
         >
       </div>
       <div>
-        <label class="block text-xs font-mono uppercase tracking-wide text-muted mb-1">To</label>
+        <label
+          for="ai-spend-to"
+          class="block text-xs font-mono uppercase tracking-wide text-muted mb-1"
+        >To</label>
         <input
+          id="ai-spend-to"
           v-model="toDate"
           type="date"
           class="px-3 py-1.5 border border-default bg-default rounded text-sm font-mono"

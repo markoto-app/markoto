@@ -305,10 +305,14 @@ async function onConfirm(): Promise<void> {
              is — without this the row would collapse off-screen on
              mobile (the modal flex-column caps at 85vh). -->
         <div class="mt-6 pt-4 border-t border-default shrink-0">
-          <label class="block text-sm mb-2">
+          <label
+            for="deletion-confirm-input"
+            class="block text-sm mb-2"
+          >
             {{ t('legal.delete.confirmTypeIn', { phrase: CONFIRM_PHRASE }) }}
           </label>
           <UInput
+            id="deletion-confirm-input"
             v-model="confirmInput"
             :placeholder="CONFIRM_PHRASE"
             class="w-full font-mono"

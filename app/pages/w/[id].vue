@@ -409,12 +409,14 @@ async function leaveWorkspace() {
           </span>
         </div>
 
-        <!-- Tabs. `variant="link"` swaps the shu pill for a subtle
-             underlined-tab register that fits the editorial chrome.
-             `color="neutral"` makes the active underline sumi-950
-             instead of shu — shu stays reserved for AI presence.
-             The label slot upgrades the tab text to Fraunces serif so
-             tabs read as section titles, not chrome buttons. -->
+        <!--
+          Tabs. variant=link swaps the shu pill for a subtle
+          underlined-tab register that fits the editorial chrome.
+          color=neutral makes the active underline sumi-950 instead
+          of shu — shu stays reserved for AI presence. The label slot
+          upgrades the tab text to Fraunces serif so tabs read as
+          section titles, not chrome buttons.
+        -->
         <UTabs
           v-model="activeTab"
           :items="tabItems"

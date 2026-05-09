@@ -85,11 +85,13 @@ function handleClose() {
   >
     <template #content>
       <div class="p-6">
-        <!-- Restore-confirm dialog. Restore is a chrome action, not
-             AI presence — palette stays sumi-neutral (`bg-elevated`
-             puck, `text-toned` icon, hairline-bordered info card).
-             The CTA is a neutral solid (sumi-950 light / sumi-50 dark)
-             rather than the previous `color="info"` blue. -->
+        <!--
+          Restore-confirm dialog. Restore is a chrome action, not AI
+          presence — palette stays sumi-neutral (bg-elevated puck,
+          text-toned icon, hairline-bordered info card). CTA is a
+          neutral solid (sumi-950 light / sumi-50 dark) rather than
+          the previous color=info blue.
+        -->
         <div class="flex items-start gap-3 mb-4">
           <div class="size-10 rounded-full bg-elevated flex items-center justify-center shrink-0">
             <UIcon

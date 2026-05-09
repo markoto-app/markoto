@@ -82,6 +82,27 @@
   --ui-bg-muted: var(--color-sumi-950);
   --ui-bg-elevated: var(--color-sumi-950);
   --ui-bg-accented: var(--color-sumi-950);
+
+  /* CodeMirror markdown highlight tokens — dark-mode overrides. See
+     the :root block below for the light-mode definitions and the
+     rationale for the per-mode split. Editor bg-default is sumi-900
+     in dark; code bg goes one stop LIGHTER (sumi-800) so the chip
+     lifts off the page rather than punching a hole into it. */
+  --mk-md-h1: var(--color-sumi-50);
+  --mk-md-h2: var(--color-sumi-100);
+  --mk-md-h3: var(--color-sumi-200);
+  --mk-md-h4: var(--color-sumi-300);
+  --mk-md-h56: var(--color-sumi-400);
+  --mk-md-strong: var(--color-sumi-50);
+  --mk-md-code-fg: var(--color-sumi-200);
+  --mk-md-code-bg: var(--color-sumi-800);
+  --mk-md-quote: var(--color-sumi-400);
+  --mk-md-list: var(--color-sumi-500);
+  --mk-md-mark: var(--color-sumi-500);
+  --mk-md-link: var(--color-shu-400);
+  --mk-md-syntax: var(--color-sumi-300);
+  --mk-md-syntax-strong: var(--color-sumi-200);
+  --mk-md-comment: var(--color-sumi-500);
 }
 
 /* CodeMirror markdown highlight tokens. Defined as CSS variables so the
@@ -105,26 +126,6 @@
   --mk-md-syntax: var(--color-sumi-700);
   --mk-md-syntax-strong: var(--color-sumi-800);
   --mk-md-comment: var(--color-sumi-400);
-}
-.dark {
-  --mk-md-h1: var(--color-sumi-50);
-  --mk-md-h2: var(--color-sumi-100);
-  --mk-md-h3: var(--color-sumi-200);
-  --mk-md-h4: var(--color-sumi-300);
-  --mk-md-h56: var(--color-sumi-400);
-  --mk-md-strong: var(--color-sumi-50);
-  --mk-md-code-fg: var(--color-sumi-200);
-  /* Editor bg-default is sumi-900 in dark; code bg goes one stop
-     LIGHTER (sumi-800) so the chip lifts off the page rather than
-     punching a hole into it. */
-  --mk-md-code-bg: var(--color-sumi-800);
-  --mk-md-quote: var(--color-sumi-400);
-  --mk-md-list: var(--color-sumi-500);
-  --mk-md-mark: var(--color-sumi-500);
-  --mk-md-link: var(--color-shu-400);
-  --mk-md-syntax: var(--color-sumi-300);
-  --mk-md-syntax-strong: var(--color-sumi-200);
-  --mk-md-comment: var(--color-sumi-500);
 }
 
 /* Soften Nuxt UI input/dropdown focus rings. The default focus state

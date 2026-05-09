@@ -368,7 +368,11 @@ async function refreshSavedThemes() {
   }
 }
 
-if (import.meta.client) refreshSavedThemes()
+onMounted(() => {
+  // onMounted only fires client-side, so the previous
+  // `import.meta.client` guard is implicit here.
+  refreshSavedThemes().catch(() => { /* swallowed inside refreshSavedThemes */ })
+})
 
 // Save the CURRENT draft as a new preset. Prompts for a name; the API
 // caps name + total count and revalidates the theme via DocThemeSchema.
@@ -1202,7 +1206,7 @@ async function deleteSaved(saved: SavedTheme) {
                   >
                     <img
                       :src="draft.header.imageUrl"
-                      alt="Header image preview"
+                      alt="Header preview"
                       class="border border-default rounded bg-default"
                       :style="{ height: `${draft.header.imageHeight * 1.5}px`, maxWidth: '120px', objectFit: 'contain' }"
                     >

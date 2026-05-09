@@ -84,7 +84,7 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
 </script>
 
 <template>
-  <nav
+  <div
     class="sm:hidden fixed left-0 right-0 bottom-0 z-30 flex items-stretch border-t border-default"
     style="background: var(--ui-bg-muted);"
     role="tablist"
@@ -150,7 +150,7 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
       />
       <span class="mk-tab__label">{{ tab.label }}</span>
     </button>
-  </nav>
+  </div>
 </template>
 
 <style scoped>
