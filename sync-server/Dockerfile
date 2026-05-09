@@ -13,9 +13,14 @@ WORKDIR /app
 USER bun
 
 # Layered COPYs so source edits don't bust the install cache.
-COPY --chown=bun:bun sync-server/package.json sync-server/bun.lock ./sync-server/
+# `--chown=root:root --chmod=755` makes the source files immutable to the
+# runtime `bun` user (defense in depth — see docker:S6504); `bun install
+# --ignore-scripts` blocks postinstall script execution from compromised
+# packages even when they're on bun's built-in trustedDependencies list
+# (docker:S6505).
+COPY --chown=root:root --chmod=755 sync-server/package.json sync-server/bun.lock ./sync-server/
 WORKDIR /app/sync-server
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # `shared/` is its own self-contained package — package.json declares its
 # direct npm deps (`jsonwebtoken`) so Bun's standard module resolution
@@ -27,15 +32,15 @@ RUN bun install --frozen-lockfile
 # Installed as a separate layer so a sync-server source edit doesn't
 # bust the shared/ install cache.
 WORKDIR /app
-COPY --chown=bun:bun shared/package.json shared/bun.lock ./shared/
+COPY --chown=root:root --chmod=755 shared/package.json shared/bun.lock ./shared/
 WORKDIR /app/shared
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Runtime source + the rest of shared/. The package.json + bun.lock are
 # already there from the install layer; the rest is the source the sync
 # server imports at runtime.
-COPY --chown=bun:bun sync-server/src /app/sync-server/src
-COPY --chown=bun:bun shared /app/shared
+COPY --chown=root:root --chmod=755 sync-server/src /app/sync-server/src
+COPY --chown=root:root --chmod=755 shared /app/shared
 
 WORKDIR /app/sync-server
 

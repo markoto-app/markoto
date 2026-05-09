@@ -381,12 +381,12 @@ const helpItems = computed(() => [[
   {
     label: t('menubar.help.feedback'),
     icon: 'i-lucide-message-circle',
-    onSelect: () => window.open('https://github.com/joelbarmettleruzh/md-online/issues/new', '_blank')
+    onSelect: () => window.open('https://github.com/joelbarmettleruzh/md-online/issues/new', '_blank', 'noopener,noreferrer')
   },
   {
     label: t('menubar.help.github'),
     icon: 'i-simple-icons-github',
-    onSelect: () => window.open('https://github.com/joelbarmettleruzh/md-online', '_blank')
+    onSelect: () => window.open('https://github.com/joelbarmettleruzh/md-online', '_blank', 'noopener,noreferrer')
   }
 ]])
 

@@ -18,12 +18,17 @@ WORKDIR /app
 # Pinned versions for reproducibility. markitdown's API stabilized around
 # 0.1 — `convert_stream(stream, stream_info=...)` and `result.markdown`
 # both date from there. Bump together with a smoke test.
-RUN pip install --no-cache-dir \
+# `--only-binary=:all:` forces wheels — blocks setup.py / pyproject build
+# script execution from a compromised sdist (docker:S8541). markitdown's
+# transitive deps all ship manylinux wheels for python:3.13.
+# `--chown=root:root --chmod=755` makes server.py immutable to the
+# runtime `app` user (docker:S6504).
+RUN pip install --no-cache-dir --only-binary=:all: \
     'markitdown[all]==0.1.5' \
     'fastapi==0.136.0' \
     'uvicorn[standard]==0.44.0'
 
-COPY --chown=app:app server.py /app/server.py
+COPY --chown=root:root --chmod=755 server.py /app/server.py
 
 USER app
 EXPOSE 8080
