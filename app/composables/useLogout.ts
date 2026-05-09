@@ -40,74 +40,84 @@ export interface LogoutOptions {
  * has been issued. Other tabs receive a `logged-out` broadcast and reload.
  */
 export async function performLogout(opts: LogoutOptions = {}): Promise<void> {
-  // 1. Awareness teardown FIRST — before we tear down the session, so
-  //    other clients see the user-leaving frame on a still-open WS.
+  await runBeforeClear(opts.beforeClear)
+  broadcastLoggedOut()
+  clearWebStorage()
+  await purgeMarkotoIdb()
+  // Server-side session cookie cleared via nuxt-auth-utils.
+  await useUserSession().clear()
+  redirectHome()
+}
+
+/** Awareness teardown FIRST — runs while the WS is still open so other clients see the user-leaving frame. Failures are swallowed — never block logout on cleanup. */
+async function runBeforeClear(hook: LogoutOptions['beforeClear']): Promise<void> {
+  if (!hook) return
   try {
-    await opts.beforeClear?.()
+    await hook()
+  } catch { /* never block logout on awareness teardown */ }
+}
+
+/**
+ * Cross-tab notification — every other tab on this origin reloads so
+ * they don't continue acting as the previous user. Posted BEFORE
+ * clearing storage so other tabs can pull anything they need from the
+ * message payload (today: just the type discriminator).
+ */
+function broadcastLoggedOut(): void {
+  if (typeof BroadcastChannel === 'undefined') return
+  try {
+    const channel = new BroadcastChannel(LOGOUT_CHANNEL_NAME)
+    channel.postMessage({ type: 'logged-out' })
+    channel.close()
   } catch {
-    // never block logout on awareness teardown
+    // Some embedded webviews don't support BroadcastChannel; fall through.
   }
+}
 
-  // 2. Cross-tab notification — every other tab on this origin reloads
-  //    so they don't continue acting as the previous user. We post BEFORE
-  //    clearing storage so other tabs can pull anything they need from
-  //    the message payload (today: just the type discriminator).
-  if (typeof BroadcastChannel !== 'undefined') {
-    try {
-      const channel = new BroadcastChannel(LOGOUT_CHANNEL_NAME)
-      channel.postMessage({ type: 'logged-out' })
-      channel.close()
-    } catch {
-      // Some embedded webviews don't support BroadcastChannel; fall through.
-    }
-  }
-
-  // 3. Persistent client-state purge.
+function clearWebStorage(): void {
   try {
     localStorage.clear()
   } catch { /* user might have storage disabled */ }
   try {
     sessionStorage.clear()
   } catch { /* same */ }
+}
 
-  // 4. IndexedDB purge — only relevant if a future change wires up
-  //    @y-indexeddb. `indexedDB.databases()` is Chromium-stable + Firefox
-  //    126+; we soft-fail for Safari/older browsers.
-  if (typeof indexedDB !== 'undefined' && 'databases' in indexedDB) {
-    try {
-      const dbs = await indexedDB.databases()
-      for (const db of dbs) {
-        if (db.name?.startsWith(LOGOUT_IDB_PREFIX)) {
-          indexedDB.deleteDatabase(db.name)
-        }
+/**
+ * IDB purge — only relevant if a future change wires up @y-indexeddb.
+ * `indexedDB.databases()` is Chromium-stable + Firefox 126+; we
+ * soft-fail for Safari/older browsers. A failed delete leaves stale
+ * data, but the next login on the same browser overwrites or ignores it.
+ */
+async function purgeMarkotoIdb(): Promise<void> {
+  if (typeof indexedDB === 'undefined' || !('databases' in indexedDB)) return
+  try {
+    const dbs = await indexedDB.databases()
+    for (const db of dbs) {
+      if (db.name?.startsWith(LOGOUT_IDB_PREFIX)) {
+        indexedDB.deleteDatabase(db.name)
       }
-    } catch {
-      // Best-effort. A failed delete leaves stale data, but the next
-      // login on the same browser overwrites or ignores it.
     }
-  }
+  } catch { /* best-effort */ }
+}
 
-  // 5. Server-side session cookie cleared via nuxt-auth-utils.
-  await useUserSession().clear()
-
-  // 6. HARD reload to the public home page. We use `window.location`
-  //    rather than `navigateTo()` for the same reason the cross-tab
-  //    receiver in `auth-broadcast.client.ts` does: in-place teardown
-  //    of the editor / AI / awareness / billing / account-status
-  //    state machines isn't trustworthy. Pre-2025-05 this used a soft
-  //    SPA navigation, which left the topbar showing a stale avatar
-  //    + triggered 401 toasts from auto-fetching composables that
-  //    raced ahead of the `loggedIn` ref reactively flipping. The
-  //    full reload throws ALL Vue state away and re-bootstraps
-  //    cleanly anonymous. Cost: one extra page load on logout — a
-  //    rare action where correctness > perf.
+/**
+ * HARD reload to the public home page. `window.location` rather than
+ * `navigateTo()` because in-place teardown of the editor / AI /
+ * awareness / billing / account-status state machines isn't
+ * trustworthy. Pre-2025-05 this used a soft SPA navigation, which left
+ * the topbar showing a stale avatar + triggered 401 toasts from
+ * auto-fetching composables that raced ahead of the `loggedIn` ref
+ * reactively flipping. The full reload throws ALL Vue state away and
+ * re-bootstraps cleanly anonymous. Cost: one extra page load on
+ * logout — a rare action where correctness > perf.
+ */
+function redirectHome(): Promise<void> | void {
   if (typeof globalThis.window !== 'undefined') {
     globalThis.location.href = '/'
     return
   }
-  // SSR fallback (logout from a non-browser context — shouldn't
-  // happen in practice but keeps the contract well-defined).
-  await navigateTo('/')
+  return navigateTo('/').then(() => undefined)
 }
 
 /**
