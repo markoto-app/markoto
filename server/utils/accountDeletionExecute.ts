@@ -73,184 +73,40 @@ export async function executeAccountDeletion(
   const userRow = await findUserById(userId)
   if (!userRow) {
     // Already gone — treat as no-op success (idempotency).
-    return {
-      summary: emptySummary()
-    }
+    return { summary: emptySummary() }
   }
   const stripeCustomerId = userRow.stripeCustomerId
+  const summary = emptySummary()
 
-  const summary: AccountDeletionSummary = emptySummary()
-
-  // ── Step 1: anonymise comments ───────────────────────────────────
-  // Done first because we want the comment bodies to survive even if
-  // the doc is later cascade-deleted (the per-doc cascade purges
-  // documentComments rows for that doc — this UPDATE just makes sure
-  // any comment that survives the deletion has an anonymised author).
   summary.commentsAnonymised = await anonymiseCommentsByAuthor(userId)
+  const cascadeWorkspaceIds = await processWorkspaceMemberships(userId, summary)
+  await cascadeDeleteWorkspaces(cascadeWorkspaceIds, summary)
+  await deleteOwnedDocs(userId, summary)
 
-  // ── Step 2: process each workspace per the policy ────────────────
-  const memberships = await listMembershipsForUser(userId)
-  const cascadeWorkspaceIds: string[] = []
+  const removed = await removeAllMemberships(userId)
+  summary.workspaceMembershipsRemoved = removed.length
 
-  for (const m of memberships) {
-    const others = await listOtherMembers(m.workspaceId, userId)
-
-    if (others.length === 0) {
-      // Sole member — cascade-delete the entire workspace.
-      cascadeWorkspaceIds.push(m.workspaceId)
-      summary.workspacesCascadeDeleted += 1
-    } else if (m.role === 'admin') {
-      // Promote the longest-tenured non-user member. Existing admin
-      // first → editor → viewer.
-      const promote = others.find(o => o.role === 'admin')
-        ?? others.find(o => o.role === 'editor')
-        ?? others[0]!
-      await promoteWorkspaceAdmin(m.workspaceId, userId, promote.userId)
-      summary.workspacesPromoted += 1
-    } else {
-      // Plain editor/viewer — nothing structural; the membership row
-      // gets dropped in Step 5. Counted there.
-    }
-  }
-
-  // ── Step 3: cascade-delete workspaces with no surviving members ──
-  // Per-doc cascade rather than relying on FK because each doc needs
-  // S3 + sync notify. Mirror the workspace-delete endpoint pattern.
-  if (cascadeWorkspaceIds.length > 0) {
-    const docIdsInCascadedWs = await listDocIdsInWorkspaces(cascadeWorkspaceIds)
-    for (const docId of docIdsInCascadedWs) {
-      try {
-        await deleteDocument(docId)
-        summary.ownedDocsDeleted += 1
-      } catch (e) {
-        // Don't propagate — cascade is best-effort. Sentry reports
-        // the failure; the orphan-cleanup sweep + render-cleanup
-        // catches missed S3 keys later. The next deletion-sweep run
-        // will retry the user.
-        console.error(`[accountDeletion] cascade-delete doc ${docId} failed:`, e instanceof Error ? e.message : e)
-        Sentry.captureException(e, {
-          tags: { component: 'accountDeletion', event: 'cascade_doc_failed', docId }
-        })
-        throw e // bail user — next sweep retries
-      }
-    }
-    // Knowledge cleanup — per-row S3 delete; the workspace_knowledge
-    // FK cascades the DB rows when the workspace row is dropped, but
-    // the original S3 objects are usually already gone (deleted post-
-    // processing). `deleteKnowledgeArtifact` tolerates 404.
-    for (const wsId of cascadeWorkspaceIds) {
-      const knowledgeRows = await listKnowledge(wsId)
-      for (const row of knowledgeRows) {
-        await deleteKnowledgeArtifact(row.knowledgeId)
-      }
-    }
-    // Drop the workspace rows themselves — workspace_members cascade
-    // via FK.
-    for (const wsId of cascadeWorkspaceIds) {
-      await deleteWorkspaceRow(wsId)
-    }
-  }
-
-  // ── Step 4: hard-delete docs the user owns (outside cascaded ws) ─
-  // After Step 3 the workspace cascade has already taken care of docs
-  // that were inside cascaded workspaces. The remaining `listOwnedDocIds`
-  // returns standalone or co-member-workspace docs the user owns.
-  const remainingOwnedDocs = await listOwnedDocIds(userId)
-  for (const docId of remainingOwnedDocs) {
-    try {
-      await deleteDocument(docId)
-      summary.ownedDocsDeleted += 1
-    } catch (e) {
-      console.error(`[accountDeletion] owned-doc delete ${docId} failed:`, e instanceof Error ? e.message : e)
-      Sentry.captureException(e, {
-        tags: { component: 'accountDeletion', event: 'owned_doc_failed', docId }
-      })
-      throw e
-    }
-  }
-
-  // ── Step 5: remove all remaining workspace memberships ────────────
-  // Both the editor/viewer rows AND the ones we just promoted for
-  // (the user is admin in the row but the workspace now has another
-  // admin too).
-  const removedWorkspaceIds = await removeAllMemberships(userId)
-  summary.workspaceMembershipsRemoved = removedWorkspaceIds.length
-
-  // ── Step 6: AI usage purge ───────────────────────────────────────
   summary.aiSessionsDeleted = await deleteAiSessionsByUser(userId)
-  // ai_session_messages CASCADE on user delete — count + then let FK
-  // do the work at Step 9.
-
-  // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
-  // Per-user budget data is wiped via the LiteLLM /key/{key}/delete
-  // call below in the Stripe-customer-cleanup step.
-
-  // ── Step 7: themes ───────────────────────────────────────────────
   summary.themesDeleted = await deleteThemesByUser(userId)
 
-  // ── Step 7b: collect data-export S3 blobs for post-commit delete ─
-  // The `data_export_jobs` rows themselves CASCADE on user delete via
-  // FK — we don't touch them here. But the S3 blobs they point at
-  // outlive the FK cascade and must be deleted separately. Snapshot
-  // the keys NOW (while the rows still exist), then delete after
-  // commit.
-  const exportJobsForCleanup = await listAllJobsForUser(userId)
-  const exportS3KeysToDelete = exportJobsForCleanup
-    .map(j => j.s3Key)
-    .filter((k): k is string => k !== null)
-  summary.dataExportJobsDeleted = exportJobsForCleanup.length
+  const exportS3KeysToDelete = await collectExportS3Keys(userId, summary)
 
-  // ── Step 8: drop the user row ────────────────────────────────────
+  // ── Drop the user row ────────────────────────────────────────────
   // `data_export_jobs`, `ai_session_messages`, `consent_log`,
   // `activity_log`, `audit_log`, `abuse_reports`, `uploads.uploader_id`,
   // and `workspace_knowledge.uploader_id` all CASCADE / SET NULL via
   // FK and are handled by this row delete.
   await deleteUserRow(userId)
 
-  // ── Step 9: side effects after the local commit ──────────────────
-  // Stripe deletion — best-effort. A wedged Stripe API must not
-  // roll back the local deletion (which has already committed). The
-  // Stripe customer record contains billing / tax data Stripe is
-  // legally required to retain regardless; calling customers.del
-  // here marks the customer deleted on their side and stops further
-  // charges / emails / portal access.
-  if (stripeCustomerId) {
-    try {
-      const stripe = useStripeClient()
-      if (stripe) {
-        await stripe.customers.del(stripeCustomerId)
-        summary.stripeCustomerDeleted = true
-      }
-    } catch (e) {
-      console.error(`[accountDeletion] stripe customers.del failed for ${stripeCustomerId}:`, e instanceof Error ? e.message : e)
-      Sentry.captureException(e, {
-        tags: { component: 'accountDeletion', event: 'stripe_del_failed', userId: String(userId) }
-      })
-      // Don't throw — local state has already committed.
-    }
-  }
+  // Side effects after the local commit. Stripe + S3 failures must not
+  // roll back the local deletion (which has already committed).
+  await deleteStripeCustomer(stripeCustomerId, userId, summary)
+  await cleanupExportS3Blobs(exportS3KeysToDelete)
 
-  // Best-effort export-blob cleanup. If S3 is wedged the bucket
-  // lifecycle policy reaps the orphans eventually.
-  if (exportS3KeysToDelete.length > 0) {
-    const config = useRuntimeConfig()
-    const s3 = useS3Client()
-    for (const key of exportS3KeysToDelete) {
-      try {
-        await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: key }))
-      } catch (e) {
-        console.warn(`[accountDeletion] export blob delete failed for ${key}:`, e instanceof Error ? e.message : e)
-        Sentry.captureException(e, {
-          tags: { component: 'accountDeletion', event: 'export_blob_delete_failed' }
-        })
-      }
-    }
-  }
-
-  // ── Step 10: final audit row, AFTER the user is gone ─────────────
-  // `actorUserId` is null because the user row no longer exists (the
-  // FK would reject anything else). The historical link is preserved
-  // via `scopeId = String(userId)`. Writing the row last lets
+  // Final audit row, AFTER the user is gone. `actorUserId` is null
+  // because the user row no longer exists (the FK would reject
+  // anything else). The historical link is preserved via
+  // `scopeId = String(userId)`. Writing the row last lets
   // `metadata.summary` carry the FINAL state — including the
   // post-Stripe `stripeCustomerDeleted` flag.
   await appendAuditEvent({
@@ -268,6 +124,162 @@ export async function executeAccountDeletion(
   })
 
   return { summary }
+}
+
+/**
+ * Walk every workspace the user is in. For sole-member workspaces,
+ * collect the id for cascade delete. For co-member workspaces where
+ * the user is admin, promote the longest-tenured non-user member
+ * (existing admin → editor → viewer). Plain editor/viewer rows are
+ * left for the bulk membership-drop in `removeAllMemberships`.
+ */
+async function processWorkspaceMemberships(
+  userId: number,
+  summary: AccountDeletionSummary
+): Promise<string[]> {
+  const memberships = await listMembershipsForUser(userId)
+  const cascadeWorkspaceIds: string[] = []
+
+  for (const m of memberships) {
+    const others = await listOtherMembers(m.workspaceId, userId)
+    if (others.length === 0) {
+      // Sole member — cascade-delete the entire workspace.
+      cascadeWorkspaceIds.push(m.workspaceId)
+      summary.workspacesCascadeDeleted += 1
+      continue
+    }
+    if (m.role !== 'admin') continue
+
+    // Promote the longest-tenured non-user member. Existing admin
+    // first → editor → viewer.
+    const promote = others.find(o => o.role === 'admin')
+      ?? others.find(o => o.role === 'editor')
+      ?? others[0]!
+    await promoteWorkspaceAdmin(m.workspaceId, userId, promote.userId)
+    summary.workspacesPromoted += 1
+  }
+  return cascadeWorkspaceIds
+}
+
+/**
+ * Cascade-delete every doc + knowledge file in the given workspaces,
+ * then drop the workspace rows. Per-doc cascade rather than relying on
+ * FK because each doc needs S3 + sync notify; mirrors the workspace-
+ * delete endpoint pattern.
+ */
+async function cascadeDeleteWorkspaces(
+  cascadeWorkspaceIds: string[],
+  summary: AccountDeletionSummary
+): Promise<void> {
+  if (cascadeWorkspaceIds.length === 0) return
+  const docIds = await listDocIdsInWorkspaces(cascadeWorkspaceIds)
+  for (const docId of docIds) {
+    await deleteOneDoc(docId, 'cascade_doc_failed', summary)
+  }
+  // Knowledge cleanup — per-row S3 delete; the workspace_knowledge
+  // FK cascades the DB rows when the workspace row is dropped, but
+  // the original S3 objects are usually already gone (deleted post-
+  // processing). `deleteKnowledgeArtifact` tolerates 404.
+  for (const wsId of cascadeWorkspaceIds) {
+    const knowledgeRows = await listKnowledge(wsId)
+    for (const row of knowledgeRows) {
+      await deleteKnowledgeArtifact(row.knowledgeId)
+    }
+  }
+  // Drop the workspace rows themselves — workspace_members cascade via FK.
+  for (const wsId of cascadeWorkspaceIds) {
+    await deleteWorkspaceRow(wsId)
+  }
+}
+
+/**
+ * Hard-delete remaining docs the user owns (outside cascaded
+ * workspaces). After cascadeDeleteWorkspaces these are standalone or
+ * co-member-workspace docs.
+ */
+async function deleteOwnedDocs(userId: number, summary: AccountDeletionSummary): Promise<void> {
+  const remaining = await listOwnedDocIds(userId)
+  for (const docId of remaining) {
+    await deleteOneDoc(docId, 'owned_doc_failed', summary)
+  }
+}
+
+/**
+ * Per-doc delete with shared error handling. Throws to bail the user
+ * — the next deletion-sweep run will retry. Sentry captures the
+ * specific event so dashboards distinguish cascade-cause from
+ * owned-doc-cause failures.
+ */
+async function deleteOneDoc(docId: string, sentryEvent: string, summary: AccountDeletionSummary): Promise<void> {
+  try {
+    await deleteDocument(docId)
+    summary.ownedDocsDeleted += 1
+  } catch (e) {
+    console.error(`[accountDeletion] ${sentryEvent} ${docId}:`, e instanceof Error ? e.message : e)
+    Sentry.captureException(e, {
+      tags: { component: 'accountDeletion', event: sentryEvent, docId }
+    })
+    throw e
+  }
+}
+
+/**
+ * Snapshot data-export S3 keys BEFORE the user row drops (the
+ * data_export_jobs rows CASCADE via FK on user delete; we capture the
+ * keys now so the post-commit S3 cleanup has somewhere to look).
+ */
+async function collectExportS3Keys(userId: number, summary: AccountDeletionSummary): Promise<string[]> {
+  const jobs = await listAllJobsForUser(userId)
+  summary.dataExportJobsDeleted = jobs.length
+  return jobs
+    .map(j => j.s3Key)
+    .filter((k): k is string => k !== null)
+}
+
+/**
+ * Best-effort Stripe customer delete. The customer record contains
+ * billing / tax data Stripe is legally required to retain regardless;
+ * calling customers.del marks the customer deleted on their side and
+ * stops further charges / emails / portal access. A wedged Stripe API
+ * doesn't roll back the local commit.
+ */
+async function deleteStripeCustomer(
+  stripeCustomerId: string | null,
+  userId: number,
+  summary: AccountDeletionSummary
+): Promise<void> {
+  if (!stripeCustomerId) return
+  try {
+    const stripe = useStripeClient()
+    if (!stripe) return
+    await stripe.customers.del(stripeCustomerId)
+    summary.stripeCustomerDeleted = true
+  } catch (e) {
+    console.error(`[accountDeletion] stripe customers.del failed for ${stripeCustomerId}:`, e instanceof Error ? e.message : e)
+    Sentry.captureException(e, {
+      tags: { component: 'accountDeletion', event: 'stripe_del_failed', userId: String(userId) }
+    })
+  }
+}
+
+/**
+ * Best-effort export-blob cleanup. If S3 is wedged the bucket
+ * lifecycle policy reaps the orphans eventually.
+ */
+async function cleanupExportS3Blobs(keys: string[]): Promise<void> {
+  if (keys.length === 0) return
+  const bucket = useRuntimeConfig().s3.bucket as string
+  const s3 = useS3Client()
+  for (const key of keys) {
+    try {
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+    } catch (e) {
+      console.warn(`[accountDeletion] export blob delete failed for ${key}:`, e instanceof Error ? e.message : e)
+      Sentry.captureException(e, {
+        tags: { component: 'accountDeletion', event: 'export_blob_delete_failed' }
+      })
+    }
+  }
 }
 
 function emptySummary(): AccountDeletionSummary {
