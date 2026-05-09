@@ -155,11 +155,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # `--bun` forces eslint + nuxt to run under Bun (Node 20 on the
+      # runner lacks Object.groupBy that eslint-flat-config-utils 0.4+
+      # depends on; would crash before reading a single rule).
       - name: Lint
-        run: bun run lint
+        run: bun --bun run lint
 
       - name: Typecheck
-        run: bun run typecheck
+        run: bun --bun run typecheck
 
   test-unit-dom:
     name: test-unit-dom
