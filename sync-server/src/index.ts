@@ -237,15 +237,16 @@ const server = new Server({
       console.warn('[hocuspocus] meta diff failed:', e instanceof Error ? e.message : e)
     }
 
-    // Postgres mirror of the comments Y.Array — separate try/catch so a
+    // Postgres mirror of the comments Y.Array — fire-and-forget so a
     // mirror failure can't take down activity logging or sync. Internal
     // dedup ensures the round-trip is skipped when the comments array
-    // didn't change since the last store.
-    try {
-      shipCommentsSnapshot(data.documentName, data.document, { yjsDocIdBefore, yjsDocIdAfter })
-    } catch (e) {
-      console.warn('[hocuspocus] comments-snapshot ship failed:', e instanceof Error ? e.message : e)
-    }
+    // didn't change since the last store. Async errors land on the
+    // explicit `.catch()` — a bare try/catch wouldn't catch them since
+    // `shipCommentsSnapshot` returns a Promise (typescript:S4822).
+    shipCommentsSnapshot(data.documentName, data.document, { yjsDocIdBefore, yjsDocIdAfter })
+      .catch((e) => {
+        console.warn('[hocuspocus] comments-snapshot ship failed:', e instanceof Error ? e.message : e)
+      })
   },
 
   async onAuthenticate(data) {

@@ -89,7 +89,7 @@ function splitOversizedBlock(block: string, maxTokens: number, overlapTokens: nu
     bufTokens += t
     // Paragraph itself larger than maxTokens: sentence-split as last resort.
     if (bufTokens > maxTokens && buf.length === 1) {
-      const sentences = p.match(/[^.!?\n]+[.!?]+[\])'"`’”]*|[^.!?\n]+$/g) ?? [p]
+      const sentences = p.match(/(?:[^.!?\n]+[.!?]+[\])'"`’”]*)|(?:[^.!?\n]+$)/g) ?? [p]
       let sBuf: string[] = []
       let sT = 0
       for (const s of sentences) {

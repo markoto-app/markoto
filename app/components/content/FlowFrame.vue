@@ -186,11 +186,14 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
            pointer + click handler scoped to this region so the
            chrome above stays decorative. -->
       <div
-        class="relative bg-default cursor-pointer"
+        class="relative bg-default cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-shu-500"
         :style="{ aspectRatio: `${viewport.w} / ${viewport.h}` }"
         role="button"
+        tabindex="0"
         :aria-label="card ? card.text : 'Toggle slideshow playback'"
         @click="$emit('click')"
+        @keydown.enter.prevent="$emit('click')"
+        @keydown.space.prevent="$emit('click')"
       >
         <!-- Text card. Two variants:
              - chapter: huge Fraunces serif headline (display register
