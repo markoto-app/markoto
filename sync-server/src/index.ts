@@ -243,7 +243,7 @@ async function logEditActivity(
 ): Promise<void> {
   try {
     const ytext = data.document.getText('content')
-    const currentText = ytext.toString()
+    const currentText = ytext.toJSON()
     const wordCount = countWords(currentText)
     const { userName, userId } = resolveAttribution(data, trackedFetch)
 

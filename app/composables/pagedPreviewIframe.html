@@ -93,8 +93,8 @@
      statically in head so the math glyph fonts start fetching as soon
      as the iframe initializes. -->
 <link rel="stylesheet" href="__KATEX_CSS_URL__" integrity="__KATEX_CSS_SRI__" crossorigin="anonymous">
-<style id="theme-fonts"></style>
-<style id="theme-css"></style>
+<style id="theme-fonts">/* populated at runtime by __renderDoc */</style>
+<style id="theme-css">/* populated at runtime by __renderDoc */</style>
 </head>
 <body>
 <div id="mount" class="paged-mount"></div>
@@ -118,21 +118,6 @@
   // srcdoc iframes share the parent origin, so we can read parent
   // styles directly and observe class-list changes — no postMessage
   // round-trip needed.
-  function readParentChromeBg() {
-    try {
-      // Walk up from body to html, returning the first non-transparent
-      // background. Nuxt UI tends to put the canvas color on body, but
-      // some layouts move it to html.
-      var candidates = [window.parent.document.body, window.parent.document.documentElement];
-      for (var i = 0; i < candidates.length; i++) {
-        var el = candidates[i];
-        if (!el) continue;
-        var bg = window.parent.getComputedStyle(el).backgroundColor;
-        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
-      }
-    } catch (e) { /* parent inaccessible */ }
-    return null;
-  }
 
   function syncDarkPreview() {
     try {
@@ -158,7 +143,7 @@
       } else {
         document.body.style.background = '';
       }
-    } catch (e) { /* parent inaccessible — give up silently */ }
+    } catch { /* parent inaccessible — give up silently */ }
   }
   syncDarkPreview();
   try {
@@ -167,7 +152,28 @@
       attributes: true,
       attributeFilter: ['class']
     });
-  } catch (e) { /* MutationObserver setup failed — initial sync is still in place */ }
+  } catch { /* MutationObserver setup failed — initial sync is still in place */ }
+
+  // Recompute the page-fit zoom after pagination and on viewport resize.
+  // Page widths are absolute (A4 = 794px @ 96dpi); the available width
+  // is the body's content area minus its padding. Capped at 1 — we
+  // never enlarge pages, only shrink to fit narrow viewports.
+  function applyPageZoom() {
+    var mount = document.getElementById('mount');
+    if (!mount) return;
+    var pages = mount.querySelector('.pagedjs_pages');
+    var firstPage = mount.querySelector('.pagedjs_page');
+    if (!pages || !firstPage) return;
+    // Reset zoom temporarily to measure the natural page width — without
+    // this we'd read the already-scaled width and the zoom would drift
+    // smaller on every recompute.
+    pages.style.setProperty('--page-zoom', '1');
+    var pageWidth = firstPage.offsetWidth;
+    var available = mount.clientWidth;
+    if (!pageWidth || !available) return;
+    var zoom = Math.min(1, available / pageWidth);
+    pages.style.setProperty('--page-zoom', String(zoom));
+  }
 
   function whenPagedReady(cb) {
     if (globalThis.Paged && globalThis.Paged.Previewer) { cb(); return; }
@@ -289,27 +295,6 @@
       });
     }
 
-    // Recompute the page-fit zoom after pagination and on viewport resize.
-    // Page widths are absolute (A4 = 794px @ 96dpi); the available width
-    // is the body's content area minus its padding. Capped at 1 — we
-    // never enlarge pages, only shrink to fit narrow viewports.
-    function applyPageZoom() {
-      var mount = document.getElementById('mount');
-      if (!mount) return;
-      var pages = mount.querySelector('.pagedjs_pages');
-      var firstPage = mount.querySelector('.pagedjs_page');
-      if (!pages || !firstPage) return;
-      // Reset zoom temporarily to measure the natural page width — without
-      // this we'd read the already-scaled width and the zoom would drift
-      // smaller on every recompute.
-      pages.style.setProperty('--page-zoom', '1');
-      var pageWidth = firstPage.offsetWidth;
-      var available = mount.clientWidth;
-      if (!pageWidth || !available) return;
-      var zoom = Math.min(1, available / pageWidth);
-      pages.style.setProperty('--page-zoom', String(zoom));
-    }
-
     window.addEventListener('resize', applyPageZoom);
 
     globalThis.__renderDoc = async function(opts) {
@@ -400,8 +385,7 @@
           );
           if (mermaidBlocks.length > 0) {
             var mer = await ensureMermaid(opts.mermaidTheme);
-            for (var mi = 0; mi < mermaidBlocks.length; mi++) {
-              var codeEl = mermaidBlocks[mi];
+            for (var codeEl of mermaidBlocks) {
               var preEl = codeEl.parentElement;
               var source = codeEl.textContent || '';
               var renderId = 'mmd-' + crypto.randomUUID();
@@ -480,13 +464,13 @@
         var hadScrollableContent = prevScrollHeight > window.innerHeight + 100;
         var wasNearBottom = hadScrollableContent
           && (scrollY + window.innerHeight >= prevScrollHeight - 50);
-        mount.replaceChildren.apply(mount, Array.prototype.slice.call(pending.children));
+        mount.replaceChildren(...pending.children);
 
         // Remove the previous render's paged.js stylesheets only AFTER
         // the new pages are in place — pulling them earlier would briefly
         // unstyle the new content as paged.js classes lose their rules.
-        for (var i = 0; i < stylesFromLastRender.length; i++) {
-          stylesFromLastRender[i].remove();
+        for (var oldStyle of stylesFromLastRender) {
+          oldStyle.remove();
         }
         stylesFromLastRender = newStyles;
 

@@ -138,7 +138,7 @@ function resolveAnchor(parentMap: Y.Map<unknown>, ydoc: Y.Doc, ytext: Y.Text): A
     const startAbs = Y.createAbsolutePositionFromRelativePosition(startRel, ydoc)
     const endAbs = Y.createAbsolutePositionFromRelativePosition(endRel, ydoc)
     if (!startAbs || !endAbs || startAbs.index >= endAbs.index) return empty
-    const full = ytext.toString()
+    const full = ytext.toJSON()
     return {
       anchorText: full.slice(startAbs.index, endAbs.index),
       startLine: full.slice(0, startAbs.index).split('\n').length,

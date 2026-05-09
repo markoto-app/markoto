@@ -5,7 +5,8 @@
 # Build context is the repo root (not sync-server/) so we can COPY in
 # shared/utils/ alongside the sync-server sources. Compose files wire
 # this up via `build: { context: ., dockerfile: sync-server/Dockerfile }`.
-FROM oven/bun:1.3-alpine@sha256:26d8996560ca94eab9ce48afc0c7443825553c9a851f40ae574d47d20906826d
+# Pinned digest corresponds to oven/bun:1.3-alpine at the time of bump.
+FROM oven/bun@sha256:26d8996560ca94eab9ce48afc0c7443825553c9a851f40ae574d47d20906826d
 
 USER root
 RUN mkdir -p /app && chown bun:bun /app

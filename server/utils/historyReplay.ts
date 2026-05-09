@@ -84,7 +84,7 @@ export async function reconstructTextAtYjsId(
 ): Promise<string> {
   const doc = await reconstructDocAtYjsId(docId, maxYjsId)
   try {
-    return doc.getText('content').toString()
+    return doc.getText('content').toJSON()
   } finally {
     doc.destroy()
   }

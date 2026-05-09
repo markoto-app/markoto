@@ -7,7 +7,8 @@
 # Pin to a python:3.13 digest so the base layer is reproducible. To bump:
 # `docker pull python:3.13-slim`, read the digest, update below, rebuild,
 # verify a docx + pdf import smoke-converts end-to-end via /api/import.
-FROM python:3.13-slim@sha256:d168b8d9eb761f4d3fe305ebd04aeb7e7f2de0297cec5fb2f8f6403244621664
+# Pinned digest corresponds to python:3.13-slim at the time of bump.
+FROM python@sha256:d168b8d9eb761f4d3fe305ebd04aeb7e7f2de0297cec5fb2f8f6403244621664
 
 # Unprivileged user — markitdown only ever reads from a BytesIO so it
 # doesn't need filesystem write, but defense in depth is cheap.

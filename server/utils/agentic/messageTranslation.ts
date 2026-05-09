@@ -124,7 +124,9 @@ function buildToolMessage(fr: NonNullable<Part['functionResponse']>): OAIToolMes
  * that's not an object falls through to a generic String coercion.
  */
 function stringifyFunctionResponse(response: unknown): string {
-  if (!response || typeof response !== 'object') return String(response ?? '')
+  if (response === null || response === undefined) return ''
+  if (typeof response === 'string') return response
+  if (typeof response !== 'object') return String(response)
   const out = response as { output?: unknown }
   if (typeof out.output === 'string') return out.output
   return JSON.stringify(response)

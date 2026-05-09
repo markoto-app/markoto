@@ -69,12 +69,10 @@ export default defineEventHandler(async (event) => {
   // after completion so our post-checkout page can fetch the order
   // state if we want. Don't URL-encode the placeholder; Stripe reads
   // it verbatim.
-  const origin = String(
-    getRequestHeader(event, 'origin')
-    ?? getRequestHeader(event, 'host')
-    ?? config.public?.siteUrl
-    ?? ''
-  )
+  const originHeader: string | undefined = getRequestHeader(event, 'origin')
+  const hostHeader: string | undefined = getRequestHeader(event, 'host')
+  const siteUrl = typeof config.public?.siteUrl === 'string' ? config.public.siteUrl : ''
+  const origin = originHeader ?? hostHeader ?? siteUrl ?? ''
   const base = origin.startsWith('http') ? origin : `https://${origin}`
   const successUrl = base + (config.stripe.successUrl || '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}')
   const cancelUrl = base + (config.stripe.cancelUrl || '/pricing?checkout=cancelled')

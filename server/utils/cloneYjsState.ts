@@ -59,7 +59,7 @@ export async function cloneYjsStateWithUrlRewrite(
     Y.applyUpdate(sourceDoc, new Uint8Array(row.value.buffer, row.value.byteOffset, row.value.byteLength))
   }
 
-  const sourceText = sourceDoc.getText('content').toString()
+  const sourceText = sourceDoc.getText('content').toJSON()
   const rewritten = sourceText.replaceAll(
     `/api/files/${sourceDocId}/`,
     `/api/files/${targetDocId}/`
