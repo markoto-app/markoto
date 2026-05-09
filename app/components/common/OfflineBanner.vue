@@ -15,17 +15,16 @@ const online = useOnline()
 </script>
 
 <template>
-  <div
+  <output
     v-if="!online"
     class="offline-banner flex items-center justify-center gap-2 text-xs text-amber-900 dark:text-amber-100 px-3 py-1.5"
-    role="status"
   >
     <UIcon
       name="i-lucide-wifi-off"
       class="size-4 shrink-0"
     />
     <span>{{ t('app.offline') }}</span>
-  </div>
+  </output>
 </template>
 
 <style scoped>
