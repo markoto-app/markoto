@@ -426,6 +426,120 @@ type DispatchOutcome
  * NOT responsible for: top-level abort detection (caller checks before
  * entering), turn-level setStatus transitions (caller drives those).
  */
+/**
+ * Validate args against the registered Zod schema. Returns the
+ * validated args on success; on failure returns a `continue` outcome
+ * with a tool-error response part so the model sees the schema failure
+ * cleanly and can retry. Tools without a registered schema get raw
+ * args passed through (executeFunctionByName surfaces "unsupported").
+ */
+function validateToolArgs(
+  ctx: LoopContext,
+  call: FunctionCall
+): { ok: true, args: unknown } | { ok: false, outcome: DispatchOutcome } {
+  const schema = TOOL_SCHEMAS[call.name!]
+  if (!schema) return { ok: true, args: call.args ?? {} }
+  const parsed = schema.safeParse(call.args ?? {})
+  if (parsed.success) return { ok: true, args: parsed.data }
+  const zodMsg = parsed.error.issues
+    .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
+    .join('; ')
+  ctx.log(`function_call validation failed: ${call.name}: ${zodMsg}`)
+  return {
+    ok: false,
+    outcome: {
+      kind: 'continue',
+      responseParts: [toolErrorResponse(call, `Error: invalid arguments for ${call.name}: ${zodMsg}`)]
+    }
+  }
+}
+
+/**
+ * Memory event: record the validated call (compacted) before running
+ * it. We record BEFORE the cap check so memory reflects what the
+ * model attempted, even if the cap rejects this invocation.
+ * `message_to_user` is special-cased upstream by its handler so it
+ * lands as a verbatim row, not a compacted tool_call row — skip here
+ * to avoid a duplicate.
+ */
+async function recordToolCallMemory(
+  ctx: LoopContext,
+  name: string,
+  validatedArgs: unknown
+): Promise<void> {
+  if (!ctx.opts.onToolCall || name === 'message_to_user') return
+  try {
+    await ctx.opts.onToolCall(name, validatedArgs)
+  } catch (e) {
+    ctx.log(`onToolCall callback failed: ${e instanceof Error ? e.message : e}`)
+  }
+}
+
+/**
+ * Per-tool call-count cap. Independent of the per-user budget —
+ * protects a single session from runaway loops on cost-amplifying
+ * tools. Returns `null` when the slot is claimed; otherwise a
+ * `continue` outcome with a tool-error response so the model wraps
+ * up gracefully without further tool use.
+ */
+function checkToolSlotCap(ctx: LoopContext, call: FunctionCall): DispatchOutcome | null {
+  if (ctx.budget.claimToolSlot(call.name!)) return null
+  const cap = ctx.budget.toolCap(call.name!) ?? 0
+  ctx.log(`[limits] tool call cap reached: ${call.name} (${cap}/${cap})`)
+  return {
+    kind: 'continue',
+    responseParts: [toolErrorResponse(call, `Tool call limit reached for ${call.name} (${cap}). Wrap up your response.`)]
+  }
+}
+
+interface ToolResult {
+  content: string
+  isError: boolean
+  extraParts?: NonNullable<Content['parts']>
+}
+
+/**
+ * Run the right backend for the call name. Returns `session-cap-exceeded`
+ * when the safety counter trips on a sub-call charge; otherwise returns
+ * the tool's result wrapped as `{ kind: 'ok', result }`.
+ *
+ * web_search / fetch_url charge an extra 4 interactions on the session
+ * safety counter; everything else dispatches through the regular tool
+ * adapter.
+ */
+async function runOneTool(
+  ctx: LoopContext,
+  name: string,
+  validatedArgs: unknown
+): Promise<{ kind: 'ok', result: ToolResult } | Extract<DispatchOutcome, { kind: 'session-cap-exceeded' }>> {
+  if (name === 'web_search' || name === 'fetch_url') {
+    const consumed = ctx.budget.consumeInteractions(4, `${name} sub-call`, ctx.log)
+    if (!consumed.ok) return { kind: 'session-cap-exceeded', message: consumed.message }
+    return { kind: 'ok', result: await runSubCall(ctx, name, validatedArgs) }
+  }
+  try {
+    const result = await executeFunctionByName(ctx.opts.aiSession, name, validatedArgs)
+    if (!result.isError) logMetaTool(ctx, name, validatedArgs)
+    return { kind: 'ok', result }
+  } catch (e: unknown) {
+    if (ctx.opts.abortController.signal.aborted) throw e
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    ctx.log(`function_call threw: ${name}: ${msg}`)
+    return { kind: 'ok', result: { content: `Error: ${name} failed: ${msg}`, isError: true } }
+  }
+}
+
+/** Build a tool-error functionResponse part for the given call. */
+function toolErrorResponse(call: FunctionCall, output: string): NonNullable<Content['parts']>[number] {
+  return {
+    functionResponse: {
+      id: call.id,
+      name: call.name,
+      response: { output, isError: true }
+    }
+  }
+}
+
 async function dispatchToolCall(
   ctx: LoopContext,
   call: FunctionCall
@@ -437,97 +551,18 @@ async function dispatchToolCall(
   ctx.telemetry.noteToolAttempt(call.name)
   ctx.log(`function_call: ${call.name} args=${JSON.stringify(call.args).slice(0, 200)}`)
 
-  // Validate args against the registered Zod schema. The model usually
-  // returns shape-correct args, but not guaranteed — surface schema
-  // failures cleanly so it can retry.
-  const schema = TOOL_SCHEMAS[call.name]
-  let validatedArgs: unknown
-  if (schema) {
-    const parsed = schema.safeParse(call.args ?? {})
-    if (!parsed.success) {
-      const zodMsg = parsed.error.issues
-        .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
-        .join('; ')
-      ctx.log(`function_call validation failed: ${call.name}: ${zodMsg}`)
-      return {
-        kind: 'continue',
-        responseParts: [{
-          functionResponse: {
-            id: call.id,
-            name: call.name,
-            response: {
-              output: `Error: invalid arguments for ${call.name}: ${zodMsg}`,
-              isError: true
-            }
-          }
-        }]
-      }
-    }
-    validatedArgs = parsed.data
-  } else {
-    // Unknown tool — let executeFunctionByName / sub-call branches
-    // surface the "unsupported" error. Pass raw args through.
-    validatedArgs = call.args ?? {}
-  }
+  const validation = validateToolArgs(ctx, call)
+  if (!validation.ok) return validation.outcome
+  const validatedArgs = validation.args
 
-  // Memory event — record the validated call (compacted) before
-  // running it. We record BEFORE the cap check so memory reflects what
-  // the model attempted, even if the cap rejected this invocation.
-  // `message_to_user` is special-cased upstream by its handler so it
-  // lands as a verbatim row, not a compacted tool_call row — skip here
-  // to avoid a duplicate.
-  if (ctx.opts.onToolCall && call.name !== 'message_to_user') {
-    try {
-      await ctx.opts.onToolCall(call.name, validatedArgs)
-    } catch (e) {
-      ctx.log(`onToolCall callback failed: ${e instanceof Error ? e.message : e}`)
-    }
-  }
+  await recordToolCallMemory(ctx, call.name, validatedArgs)
 
-  // Per-tool call-count cap. Independent of the per-user budget —
-  // protects a single session from runaway loops on cost-amplifying
-  // tools. On hit we return a TOOL ERROR (not a session abort) so the
-  // model can wrap up gracefully without further tool use.
-  if (!ctx.budget.claimToolSlot(call.name)) {
-    const cap = ctx.budget.toolCap(call.name) ?? 0
-    ctx.log(`[limits] tool call cap reached: ${call.name} (${cap}/${cap})`)
-    return {
-      kind: 'continue',
-      responseParts: [{
-        functionResponse: {
-          id: call.id,
-          name: call.name,
-          response: {
-            output: `Tool call limit reached for ${call.name} (${cap}). Wrap up your response.`,
-            isError: true
-          }
-        }
-      }]
-    }
-  }
+  const capExceeded = checkToolSlotCap(ctx, call)
+  if (capExceeded) return capExceeded
 
-  let result: { content: string, isError: boolean, extraParts?: NonNullable<Content['parts']> }
-
-  if (call.name === 'web_search' || call.name === 'fetch_url') {
-    // Sub-call sites (web_search / fetch_url) charge an extra 4
-    // interactions on the session safety counter — Jina + Mistral
-    // synthesis are real round trips that we want gated by the runaway
-    // cap. LiteLLM bills the actual upstream automatically via the
-    // user's virtual key.
-    const consumed = ctx.budget.consumeInteractions(4, `${call.name} sub-call`, ctx.log)
-    if (!consumed.ok) return { kind: 'session-cap-exceeded', message: consumed.message }
-    result = await runSubCall(ctx, call.name, validatedArgs)
-  } else {
-    try {
-      result = await executeFunctionByName(ctx.opts.aiSession, call.name, validatedArgs)
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Unknown error'
-      if (ctx.opts.abortController.signal.aborted) throw e
-      ctx.log(`function_call threw: ${call.name}: ${msg}`)
-      result = { content: `Error: ${call.name} failed: ${msg}`, isError: true }
-    }
-    if (!result.isError) logMetaTool(ctx, call.name, validatedArgs)
-  }
+  const runResult = await runOneTool(ctx, call.name, validatedArgs)
+  if (runResult.kind === 'session-cap-exceeded') return runResult
+  const result = runResult.result
 
   const responseParts: NonNullable<Content['parts']> = [{
     functionResponse: {
