@@ -147,7 +147,7 @@ export function commitDictationFinal(
   // of this one.
   const needsLeadSpace = /\w/.test(charBefore)
   const needsTailSpace = /\w/.test(charAfter)
-  const insert = (needsLeadSpace ? ' ' : '') + trimmed + (needsTailSpace ? ' ' : ' ')
+  const insert = (needsLeadSpace ? ' ' : '') + trimmed + (needsTailSpace ? ' ' : '')
 
   const origin = userId !== null ? `dictation:${userId}` : 'dictation:anon'
   ydoc.transact(() => {
