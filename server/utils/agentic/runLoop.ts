@@ -374,31 +374,46 @@ async function salvageProseTurn(
   finishReason: FinishReason | undefined,
   turnCount: number
 ): Promise<void> {
-  const proseText = modelParts
+  const proseText = collectProseText(modelParts)
+  if (proseText.length > 0) {
+    await dispatchSalvageFallback(ctx, proseText, turnCount)
+  }
+  finalizeSalvageStatus(ctx, finishReason)
+}
+
+function collectProseText(modelParts: NonNullable<Content['parts']>): string {
+  return modelParts
     .map((p) => {
       const text = (p as { text?: unknown }).text
       return typeof text === 'string' ? text : ''
     })
     .join('')
     .trim()
+}
 
-  if (proseText.length > 0) {
-    const message = proseText.length > SALVAGE_MESSAGE_MAX
-      ? proseText.slice(0, SALVAGE_MESSAGE_MAX - 1) + '…'
-      : proseText
-    const isCommentTrigger = typeof ctx.opts.commentThreadId === 'string' && ctx.opts.commentThreadId.length > 0
-    const fallbackTool = isCommentTrigger ? 'reply_to_comment' : 'message_to_user'
-    const fallbackArgs: Record<string, unknown> = isCommentTrigger
-      ? { comment_id: ctx.opts.commentThreadId, body: message }
-      : { message, is_question: false }
-    ctx.log(`turn ${turnCount}: salvaging pure-prose response (${proseText.length} chars) via ${fallbackTool} fallback`)
-    try {
-      await executeFunctionByName(ctx.opts.aiSession, fallbackTool, fallbackArgs)
-    } catch (e) {
-      ctx.log(`${fallbackTool} fallback failed: ${e instanceof Error ? e.message : e}`)
-    }
+/**
+ * Pick the salvage tool by session shape: comment-trigger sessions
+ * synthesise a `reply_to_comment` against the originating thread;
+ * everyone else synthesises `message_to_user(is_question=false)`.
+ */
+async function dispatchSalvageFallback(ctx: LoopContext, proseText: string, turnCount: number): Promise<void> {
+  const message = proseText.length > SALVAGE_MESSAGE_MAX
+    ? proseText.slice(0, SALVAGE_MESSAGE_MAX - 1) + '…'
+    : proseText
+  const isCommentTrigger = typeof ctx.opts.commentThreadId === 'string' && ctx.opts.commentThreadId.length > 0
+  const fallbackTool = isCommentTrigger ? 'reply_to_comment' : 'message_to_user'
+  const fallbackArgs: Record<string, unknown> = isCommentTrigger
+    ? { comment_id: ctx.opts.commentThreadId, body: message }
+    : { message, is_question: false }
+  ctx.log(`turn ${turnCount}: salvaging pure-prose response (${proseText.length} chars) via ${fallbackTool} fallback`)
+  try {
+    await executeFunctionByName(ctx.opts.aiSession, fallbackTool, fallbackArgs)
+  } catch (e) {
+    ctx.log(`${fallbackTool} fallback failed: ${e instanceof Error ? e.message : e}`)
   }
+}
 
+function finalizeSalvageStatus(ctx: LoopContext, finishReason: FinishReason | undefined): void {
   if (finishReason && finishReason !== FinishReason.STOP && finishReason !== FinishReason.MAX_TOKENS) {
     ctx.telemetry.outcome = 'error'
     ctx.telemetry.errorMessage = `finish=${finishReason}`
@@ -649,25 +664,26 @@ async function runSubCall(
  * stream. Skipped: view_document and read_comments (pure noise — AI
  * reads doc state every turn).
  */
+type AiToolMeta = Extract<ActivityMetadata, { kind: 'ai.tool' }>
+
+const META_TOOL_BUILDERS: Record<string, (args: unknown) => AiToolMeta> = {
+  generate_image: args => ({ kind: 'ai.tool', tool: 'generate_image', prompt: pickStr(args, 'prompt', 300) }),
+  view_image: args => ({ kind: 'ai.tool', tool: 'view_image', src: pickStr(args, 'src', 500) }),
+  search_knowledge: args => ({ kind: 'ai.tool', tool: 'search_knowledge', query: pickStr(args, 'query', 200) }),
+  get_knowledge_file: args => ({ kind: 'ai.tool', tool: 'get_knowledge_file', knowledgeId: pickStr(args, 'knowledge_id', 64) })
+}
+
+/** Read a string field from an unknown args bag, trimming to `max`. Returns '' on miss / non-string / non-object. */
+function pickStr(args: unknown, key: string, max: number): string {
+  if (!args || typeof args !== 'object') return ''
+  const v = (args as Record<string, unknown>)[key]
+  return typeof v === 'string' ? v.slice(0, max) : ''
+}
+
 function logMetaTool(ctx: LoopContext, name: string, validatedArgs: unknown): void {
-  const docId = ctx.opts.aiSession.docId
-  if (name === 'generate_image') {
-    const a = validatedArgs as { prompt?: string }
-    const prompt = typeof a.prompt === 'string' ? a.prompt.slice(0, 300) : ''
-    void logAiTool(docId, { kind: 'ai.tool', tool: 'generate_image', prompt })
-  } else if (name === 'view_image') {
-    const a = validatedArgs as { src?: string }
-    const src = typeof a.src === 'string' ? a.src.slice(0, 500) : ''
-    void logAiTool(docId, { kind: 'ai.tool', tool: 'view_image', src })
-  } else if (name === 'search_knowledge') {
-    const a = validatedArgs as { query?: string }
-    const query = typeof a.query === 'string' ? a.query.slice(0, 200) : ''
-    void logAiTool(docId, { kind: 'ai.tool', tool: 'search_knowledge', query })
-  } else if (name === 'get_knowledge_file') {
-    const a = validatedArgs as { knowledge_id?: string }
-    const knowledgeId = typeof a.knowledge_id === 'string' ? a.knowledge_id.slice(0, 64) : ''
-    void logAiTool(docId, { kind: 'ai.tool', tool: 'get_knowledge_file', knowledgeId })
-  }
+  const builder = META_TOOL_BUILDERS[name]
+  if (!builder) return
+  void logAiTool(ctx.opts.aiSession.docId, builder(validatedArgs))
 }
 
 /**

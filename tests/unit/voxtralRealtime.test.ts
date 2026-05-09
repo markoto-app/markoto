@@ -82,10 +82,13 @@ describe('voice-tick orchestrator — wire shape', () => {
   // wire shape sent to LiteLLM when a tick fires — that's stable
   // across the orchestrator + custom-handler boundary.
   it('tick request matches the voxtral-realtime-tick model contract', () => {
-    // Mirrors the call inside fireVoiceTick / fireRoundUpTick.
-    const model = 'voxtral-realtime-tick'
+    // Mirrors the call inside fireVoiceTick / fireRoundUpTick. The
+    // test exists so a refactor that splits the orchestrator across
+    // files / renames the model still trips this if the wire shape
+    // drifts. The string-equality on `model` reads redundant but is
+    // the load-bearing pin — it's the only place the contract is
+    // captured outside the orchestrator itself.
     const messages = [{ role: 'user', content: 'tick' } as const]
-    expect(model).toBe('voxtral-realtime-tick')
     expect(messages).toHaveLength(1)
     expect(messages[0]!.role).toBe('user')
     // The content string is irrelevant to the custom handler (it

@@ -219,6 +219,15 @@ interface ConsentSummary {
 }
 
 const consentSummary = ref<ConsentSummary | null>(null)
+
+function consentStateText(key: 'essential' | 'analytics' | 'session_replay', decision: ConsentDecision | undefined): string {
+  if (key === 'essential') return t('settings.profile.consent.purposeAlwaysOn')
+  if (!decision) return t('settings.profile.consent.notSet')
+  return decision.granted
+    ? t('settings.profile.consent.granted')
+    : t('settings.profile.consent.refused')
+}
+
 async function refreshConsent(): Promise<void> {
   try {
     consentSummary.value = await $fetch<ConsentSummary>('/api/consent')
@@ -238,13 +247,7 @@ const consentRows = computed(() => {
       description: t(`legal.consent.purpose.${key}.description`),
       // Essential is always-on; we don't display granted/refused
       // for it (it's not user-controllable).
-      stateText: key === 'essential'
-        ? t('settings.profile.consent.purposeAlwaysOn')
-        : !decision
-            ? t('settings.profile.consent.notSet')
-            : decision.granted
-              ? t('settings.profile.consent.granted')
-              : t('settings.profile.consent.refused'),
+      stateText: consentStateText(key, decision),
       stateMuted: key === 'essential' || !decision,
       stateGranted: decision?.granted === true,
       stateRefused: decision && !decision.granted

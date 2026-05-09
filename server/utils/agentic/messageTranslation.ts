@@ -110,17 +110,24 @@ function buildUserMessages(parts: Part[]): OAIMessage[] {
 
 /** Render a single internal `functionResponse` part as a `role: 'tool'` message. */
 function buildToolMessage(fr: NonNullable<Part['functionResponse']>): OAIToolMessage {
-  const out = fr.response as { output?: unknown, isError?: boolean } | undefined
-  const text = out !== undefined && typeof out === 'object'
-    ? (typeof (out as { output?: unknown }).output === 'string'
-        ? (out as { output: string }).output
-        : JSON.stringify(out))
-    : String(out ?? '')
   return {
     role: 'tool',
     tool_call_id: fr.id ?? '',
-    content: text
+    content: stringifyFunctionResponse(fr.response)
   }
+}
+
+/**
+ * Pull the string content out of an internal `functionResponse`. Tools
+ * that return a plain string set `response.output` to a string; tools
+ * that need structured payloads stringify the whole object. Anything
+ * that's not an object falls through to a generic String coercion.
+ */
+function stringifyFunctionResponse(response: unknown): string {
+  if (!response || typeof response !== 'object') return String(response ?? '')
+  const out = response as { output?: unknown }
+  if (typeof out.output === 'string') return out.output
+  return JSON.stringify(response)
 }
 
 /**

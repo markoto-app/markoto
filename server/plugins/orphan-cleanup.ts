@@ -139,28 +139,47 @@ async function sweepDefensiveStaleS3(
   const stale: string[] = []
 
   for (const id of liveDocIds) {
-    const prefix = `docs/${id}/`
-    let token: string | undefined
-    do {
-      const list = await s3.send(new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: prefix,
-        ContinuationToken: token
-      }))
-      for (const obj of list.Contents ?? []) {
-        if (!obj.Key) continue
-        if (knownKeys.has(obj.Key)) continue
-        const lastMod = obj.LastModified ? obj.LastModified.getTime() : now
-        if (lastMod < ageCutoff) stale.push(obj.Key)
-      }
-      token = list.IsTruncated ? list.NextContinuationToken : undefined
-    } while (token)
+    stale.push(...await findStaleKeysInDocPrefix(s3, bucket, id, knownKeys, ageCutoff, now))
   }
 
   if (stale.length > 0) {
     await deleteObjectsBatched(s3, bucket, stale, 'defensive', { silent: true })
     console.log(`[orphan-cleanup] Defensive sweep removed ${stale.length} untracked S3 object(s) older than 24h`)
   }
+}
+
+/**
+ * Walk one `docs/{id}/` prefix paginated and return keys that are
+ * BOTH absent from `uploads` (the known-keys set) AND older than the
+ * 24h race window. The age guard exists so an upload that's
+ * mid-flight (PUT in S3 but row not committed yet) doesn't get
+ * reaped — see `sweepUnconfirmedUploads` for the inverse pass.
+ */
+async function findStaleKeysInDocPrefix(
+  s3: S3Client,
+  bucket: string,
+  docId: string,
+  knownKeys: Set<string>,
+  ageCutoff: number,
+  fallbackNow: number
+): Promise<string[]> {
+  const stale: string[] = []
+  const prefix = `docs/${docId}/`
+  let token: string | undefined
+  do {
+    const list = await s3.send(new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+      ContinuationToken: token
+    }))
+    for (const obj of list.Contents ?? []) {
+      if (!obj.Key || knownKeys.has(obj.Key)) continue
+      const lastMod = obj.LastModified ? obj.LastModified.getTime() : fallbackNow
+      if (lastMod < ageCutoff) stale.push(obj.Key)
+    }
+    token = list.IsTruncated ? list.NextContinuationToken : undefined
+  } while (token)
+  return stale
 }
 
 // ─── Paginated-S3 helpers ───────────────────────────────────────────────

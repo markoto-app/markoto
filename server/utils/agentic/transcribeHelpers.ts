@@ -19,9 +19,10 @@ export { normalizeLanguageCode } from './dictateHelpers'
  *
  * The transcription upstream doesn't accept MP4/AAC — Safari's
  * MediaRecorder default — so we return `null` for that surface and
- * the caller rejects at the MIME gate with a 400. Transcoding server-
- * side (via ffmpeg or a batch upload path) is a TODO before we
- * support Safari voice input.
+ * the caller rejects at the MIME gate with a 400. Future Safari
+ * voice support will need server-side transcoding (ffmpeg / batch
+ * upload path); tracked under "Mobile MMP" in the root TODO list,
+ * not actionable from this helper.
  *
  * Must stay in lockstep with the caller's ALLOWED_MIME allowlist: if
  * a MIME passes the allowlist but we return null here, the caller

@@ -33,25 +33,15 @@ export default defineEventHandler(async (event) => {
   const states: Record<string, PurposeState> = {}
 
   for (const purpose of purposes) {
-    const row = (userId !== null
-      ? await db
-          .select({ granted: consentLog.granted, version: consentLog.version })
-          .from(consentLog)
-          .where(and(
-            eq(consentLog.userId, userId),
-            eq(consentLog.purpose, purpose)
-          ))
-          .orderBy(desc(consentLog.createdAt))
-          .limit(1)
-      : await db
-          .select({ granted: consentLog.granted, version: consentLog.version })
-          .from(consentLog)
-          .where(and(
-            eq(consentLog.anonId, anonId),
-            eq(consentLog.purpose, purpose)
-          ))
-          .orderBy(desc(consentLog.createdAt))
-          .limit(1)
+    const matchUser = userId === null
+      ? eq(consentLog.anonId, anonId)
+      : eq(consentLog.userId, userId)
+    const row = (await db
+      .select({ granted: consentLog.granted, version: consentLog.version })
+      .from(consentLog)
+      .where(and(matchUser, eq(consentLog.purpose, purpose)))
+      .orderBy(desc(consentLog.createdAt))
+      .limit(1)
     )[0]
     if (row) {
       states[purpose] = {
