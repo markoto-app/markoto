@@ -285,66 +285,13 @@ async function handleUpdateTheme(
   session: AiSession,
   input: UpdateThemeInput
 ): Promise<ToolResult> {
-  // Base theme selection. The four sources in priority order are
-  // mutually exclusive — passing more than one is a usage error and
-  // we surface that loudly so the model self-corrects rather than
-  // silently picks one.
-  //
-  //   - `preset`                 — built-in id (markoto, modern, …)
-  //   - `theme_id`               — initiator's own saved-theme id
-  //   - `from_workspace_default` — workspace default (snapshot)
-  //   - default                  — current ymeta.theme → DB → markoto
-  //
-  // Any other fields in the same call merge on top of whichever base
-  // is chosen, so "preset academic with my brand red" is one call.
-  const baseSources: string[] = []
-  if (input.preset) baseSources.push('preset')
-  if (input.theme_id) baseSources.push('theme_id')
-  if (input.from_workspace_default) baseSources.push('from_workspace_default')
-  if (baseSources.length > 1) {
-    return err(`Error: pass only ONE of preset/theme_id/from_workspace_default; received: ${baseSources.join(', ')}.`)
-  }
+  const conflictErr = checkBaseSourceConflict(input)
+  if (conflictErr) return conflictErr
 
-  let base: DocTheme
-  if (input.preset) {
-    const preset = THEME_PRESETS.find(p => p.id === input.preset)
-    if (!preset) {
-      // Should be unreachable — Zod enum restricts `preset` to known ids.
-      return err(`Error: Unknown preset "${input.preset}".`)
-    }
-    base = preset.theme
-  } else if (input.theme_id) {
-    // Saved themes are per-user. We tie ownership to the SESSION
-    // INITIATOR (the human who triggered the loop), not the AI's
-    // synthetic principal — so an AI session can't access another
-    // user's saved themes even if the caller hallucinates an id.
-    const saved = await getThemeById(input.theme_id, session.initiatorUserId)
-    if (!saved) {
-      return err(`Error: saved theme "${input.theme_id}" not found. Call list_themes for valid ids.`)
-    }
-    base = saved.theme
-  } else if (input.from_workspace_default) {
-    if (!session.workspaceId) {
-      return err('Error: from_workspace_default requires the document to be in a workspace.')
-    }
-    const ws = await getWorkspace(session.workspaceId)
-    if (!ws?.defaultTheme) {
-      return err('Error: this workspace has no default theme set. Ask an admin to set one, or pick a preset / saved theme instead.')
-    }
-    base = ws.defaultTheme
-  } else {
-    const fromYmeta = session.ymeta.get('theme')
-    if (isValidTheme(fromYmeta)) {
-      base = fromYmeta
-    } else {
-      const doc = await getDoc(session.docId)
-      base = (doc?.theme && isValidTheme(doc.theme)) ? doc.theme : defaultTheme
-    }
-  }
+  const baseResult = await resolveBaseTheme(session, input)
+  if (!baseResult.ok) return baseResult.error
 
-  const coerced = coerceThemePatch(input)
-  const merged = mergeTheme(base, coerced)
-
+  const merged = mergeTheme(baseResult.theme, coerceThemePatch(input))
   if (!isValidTheme(merged)) {
     // Should never happen — the Zod schema's enums/ranges mirror
     // isValidTheme — but this is defence-in-depth so we never write
@@ -353,28 +300,108 @@ async function handleUpdateTheme(
   }
 
   session.updateStatus('editing', 'Updating theme…')
+  applyThemeToYDoc(session, merged)
+  await persistThemeBestEffort(session, merged)
 
+  return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.`)
+}
+
+type BaseResolution = { ok: true, theme: DocTheme } | { ok: false, error: ToolResult }
+
+/**
+ * Base theme sources are mutually exclusive in priority order:
+ *   - `preset`                 — built-in id (markoto, modern, …)
+ *   - `theme_id`               — initiator's own saved-theme id
+ *   - `from_workspace_default` — workspace default (snapshot)
+ *   - default                  — current ymeta.theme → DB → markoto
+ *
+ * Passing more than one is a usage error; surface it loudly so the
+ * model self-corrects rather than silently picking one. Other fields
+ * in the same call merge on top of whichever base is chosen, so
+ * "preset academic with my brand red" is one call.
+ */
+function checkBaseSourceConflict(input: UpdateThemeInput): ToolResult | null {
+  const baseSources: string[] = []
+  if (input.preset) baseSources.push('preset')
+  if (input.theme_id) baseSources.push('theme_id')
+  if (input.from_workspace_default) baseSources.push('from_workspace_default')
+  if (baseSources.length > 1) {
+    return err(`Error: pass only ONE of preset/theme_id/from_workspace_default; received: ${baseSources.join(', ')}.`)
+  }
+  return null
+}
+
+/**
+ * Resolve the base theme by source. Saved themes are per-user; we tie
+ * ownership to the SESSION INITIATOR (the human who triggered the
+ * loop), not the AI's synthetic principal — so an AI session can't
+ * access another user's saved themes even if the caller hallucinates
+ * an id. Returns a `ToolResult` with `error:true` on resolution
+ * failure (preset id unknown, saved theme missing, workspace default
+ * unset).
+ */
+async function resolveBaseTheme(session: AiSession, input: UpdateThemeInput): Promise<BaseResolution> {
+  if (input.preset) {
+    const preset = THEME_PRESETS.find(p => p.id === input.preset)
+    if (!preset) {
+      // Should be unreachable — Zod enum restricts `preset` to known ids.
+      return { ok: false, error: err(`Error: Unknown preset "${input.preset}".`) }
+    }
+    return { ok: true, theme: preset.theme }
+  }
+  if (input.theme_id) {
+    const saved = await getThemeById(input.theme_id, session.initiatorUserId)
+    if (!saved) {
+      return { ok: false, error: err(`Error: saved theme "${input.theme_id}" not found. Call list_themes for valid ids.`) }
+    }
+    return { ok: true, theme: saved.theme }
+  }
+  if (input.from_workspace_default) {
+    if (!session.workspaceId) {
+      return { ok: false, error: err('Error: from_workspace_default requires the document to be in a workspace.') }
+    }
+    const ws = await getWorkspace(session.workspaceId)
+    if (!ws?.defaultTheme) {
+      return { ok: false, error: err('Error: this workspace has no default theme set. Ask an admin to set one, or pick a preset / saved theme instead.') }
+    }
+    return { ok: true, theme: ws.defaultTheme }
+  }
+  return { ok: true, theme: await resolveDefaultBaseTheme(session) }
+}
+
+/** Default base: ymeta.theme → docs.theme → markoto fallback. */
+async function resolveDefaultBaseTheme(session: AiSession): Promise<DocTheme> {
+  const fromYmeta = session.ymeta.get('theme')
+  if (isValidTheme(fromYmeta)) return fromYmeta
+  const doc = await getDoc(session.docId)
+  return (doc?.theme && isValidTheme(doc.theme)) ? doc.theme : defaultTheme
+}
+
+function applyThemeToYDoc(session: AiSession, merged: DocTheme): void {
   const origin = `ai:assistant:${session.sessionId}`
   session.ydoc.transact(() => {
     session.ymeta.set('theme', merged)
   }, origin)
+}
 
-  // Persist to DB so fresh visitors on a new socket see the new theme
-  // during the window before y-postgresql replays Y.js state. Mirrors
-  // the client-side `persistTheme` debounce in `useDocument.ts`.
+/**
+ * Persist to DB so fresh visitors on a new socket see the new theme
+ * during the window before y-postgresql replays Y.js state. Mirrors
+ * the client-side `persistTheme` debounce in `useDocument.ts`.
+ *
+ * Best-effort: Y.js broadcast already landed the change live to
+ * everyone. Worst case on a DB hiccup: a new visitor sees stale
+ * theme for the few hundred ms between connect and first Y.js sync.
+ */
+async function persistThemeBestEffort(session: AiSession, merged: DocTheme): Promise<void> {
   try {
     await updateDocMeta(session.docId, { theme: merged })
   } catch (e) {
-    // DB write is best-effort — Y.js broadcast already landed the change
-    // live to everyone. Worst case: a new visitor sees stale theme for
-    // the few hundred ms between connect and first Y.js sync.
     console.warn(`[aiToolAdapter] theme DB persist failed for ${session.docId}:`, e)
     Sentry.captureException(e, {
       tags: { component: 'aiToolAdapter', event: 'theme_persist_failed', docId: session.docId }
     })
   }
-
-  return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.`)
 }
 
 // --- Theme inspection / preset management --------------------------------
@@ -572,19 +599,63 @@ async function handleViewOtherDocument(
     return err('Error: this is the current document — call `view_document` instead.')
   }
 
-  // Access decision mirrors `/api/docs/:id/token` exactly. The
-  // initiator's permissions are the source of truth — never the AI's
-  // synthetic principal — so the AI sees what the human would see by
-  // pasting the URL into a browser, no more and no less.
-  const ctx = await getDocWithActorRole(targetId, session.initiatorUserId)
-  if (!ctx) {
-    // 404-shape rather than "forbidden" — same exfil-resistant shape
-    // the token endpoint uses. An attacker (or hallucinated id) can't
-    // distinguish "doc doesn't exist" from "doc exists but you can't
-    // see it".
-    return err(`Error: document "${targetId}" not found, or you don't have access to it.`)
+  const accessResult = await resolveCrossDocAccess(session, targetId)
+  if (!accessResult.ok) return accessResult.error
+  const ctx = accessResult.ctx
+
+  // Live read via Hocuspocus. Same trusted-client pattern the
+  // comment-trigger endpoint uses for peek reads — opens just long
+  // enough to get a synced ydoc, reads ytext, disconnects. Catches
+  // mid-flight edits that haven't hit y-postgresql yet.
+  session.updateStatus('tool', `Reading ${ctx.title || 'document'}…`)
+  const bodyResult = await readOtherDocBody(session, targetId)
+  if (!bodyResult.ok) return bodyResult.error
+
+  const view = applyViewRange(bodyResult.body, input.view_range)
+  const meta = {
+    doc_id: targetId,
+    title: ctx.title,
+    description: ctx.description,
+    language: ctx.language,
+    audience: ctx.audience,
+    access_mode: ctx.accessMode,
+    workspace_id: ctx.workspaceId,
+    scope: scopeLabelFor(ctx, session.initiatorUserId),
+    line_count: view.totalLines,
+    showed_lines: { start: view.startLine, end: view.endLineClamped },
+    truncated_chars_at: view.truncated ? VIEW_OTHER_DOC_CHAR_CAP : null
   }
 
+  // Body BEFORE meta in the formatted response so the model doesn't
+  // have to scroll past the header to find the content. The trailing
+  // metadata block is parseable JSON for fields the model wants to
+  // reuse (title, scope, etc).
+  const trailer = view.truncated
+    ? '\n\n[Truncated at 50 000 chars — call view_other_document again with view_range to read more.]'
+    : ''
+  return ok(`${view.formatted}${trailer}\n\n--- metadata ---\n${JSON.stringify(meta, null, 2)}`)
+}
+
+type CrossDocCtx = NonNullable<Awaited<ReturnType<typeof getDocWithActorRole>>>
+type CrossDocAccess = { ok: true, ctx: CrossDocCtx } | { ok: false, error: ToolResult }
+
+/**
+ * Mirror `/api/docs/:id/token` exactly. The initiator's permissions
+ * are the source of truth — never the AI's synthetic principal — so
+ * the AI sees what the human would see by pasting the URL into a
+ * browser, no more and no less. 404-shapes mask "doc exists but
+ * you can't see it" so a hallucinated id can't enumerate.
+ *
+ * Password-protected non-member access is surfaced distinctly (the
+ * AI can tell the user) rather than 404-masking — there's no way to
+ * ship the password through the AI tool surface, so the user has to
+ * intervene.
+ */
+async function resolveCrossDocAccess(session: AiSession, targetId: string): Promise<CrossDocAccess> {
+  const ctx = await getDocWithActorRole(targetId, session.initiatorUserId)
+  if (!ctx) {
+    return { ok: false, error: err(`Error: document "${targetId}" not found, or you don't have access to it.`) }
+  }
   const decision = decideTokenAccess(
     {
       ownerId: ctx.ownerId,
@@ -596,29 +667,21 @@ async function handleViewOtherDocument(
       workspaceRole: ctx.workspaceRole
     }
   )
-  if (decision.outcome !== 'allow') {
-    if (decision.outcome === 'password-required') {
-      // Workspace membership already bypassed the password gate in
-      // `decideTokenAccess`, so this branch only fires for non-member
-      // accessors of a password-protected doc. There's no way to ship
-      // the password through the AI tool surface, so we surface it
-      // distinctly (so the AI tells the user) rather than 404-masking.
-      return err(`Error: document "${targetId}" is password-protected and you're not a workspace member. Ask the user to lift the password or share the doc differently.`)
-    }
-    // outcome === 'forbidden' (or any future deny shape). Surface as
-    // 404-shape — an attacker who guesses a private doc's id shouldn't
-    // learn that it exists. (Same anti-enumeration shape used at
-    // /api/docs/:id/token's forbidden branch.)
-    return err(`Error: document "${targetId}" not found, or you don't have access to it.`)
+  if (decision.outcome === 'allow') return { ok: true, ctx }
+  if (decision.outcome === 'password-required') {
+    // Workspace membership already bypassed the password gate in
+    // `decideTokenAccess`, so this branch only fires for non-member
+    // accessors of a password-protected doc.
+    return { ok: false, error: err(`Error: document "${targetId}" is password-protected and you're not a workspace member. Ask the user to lift the password or share the doc differently.`) }
   }
+  // outcome === 'forbidden' (or any future deny shape). Same
+  // anti-enumeration shape used at /api/docs/:id/token's forbidden branch.
+  return { ok: false, error: err(`Error: document "${targetId}" not found, or you don't have access to it.`) }
+}
 
-  // Live read via Hocuspocus. Same trusted-client pattern the
-  // comment-trigger endpoint uses for peek reads — opens just long
-  // enough to get a synced ydoc, reads ytext, disconnects. Catches
-  // mid-flight edits that haven't hit y-postgresql yet.
-  session.updateStatus('tool', `Reading ${ctx.title || 'document'}…`)
+type DocBodyResult = { ok: true, body: string } | { ok: false, error: ToolResult }
 
-  let body: string
+async function readOtherDocBody(session: AiSession, targetId: string): Promise<DocBodyResult> {
   let client: Awaited<ReturnType<typeof openTrustedCommentClient>> | null = null
   try {
     client = await openTrustedCommentClient(
@@ -626,34 +689,44 @@ async function handleViewOtherDocument(
       `ai-cross-doc-read:${session.initiatorUserId}:${session.sessionId}`
     )
     const ytext = client.ydoc.getText('content')
-    body = ytext.toString()
+    return { ok: true, body: ytext.toString() }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'unknown error'
-    return err(`Error: failed to read document "${targetId}" from sync server: ${msg}.`)
+    return { ok: false, error: err(`Error: failed to read document "${targetId}" from sync server: ${msg}.`) }
   } finally {
     if (client) {
       try {
         await client.destroy()
-      } catch {
-        /* best-effort cleanup */
-      }
+      } catch { /* best-effort cleanup */ }
     }
   }
+}
 
-  // Apply view_range if the caller paged through. Same line-indexing
-  // semantics as `view_document` — 1-indexed inclusive, end=-1 means
-  // EOF. Validation already happened at the Zod schema (start >= 1,
-  // end >= start || end === -1).
+interface ViewSlice {
+  formatted: string
+  truncated: boolean
+  totalLines: number
+  startLine: number
+  endLineClamped: number
+}
+
+/**
+ * Apply view_range. Same line-indexing semantics as `view_document` —
+ * 1-indexed inclusive, end=-1 means EOF. Validation already happened
+ * at the Zod schema (start >= 1, end >= start || end === -1). We
+ * still clamp here so a huge end value doesn't crash anything
+ * downstream, and we cap the formatted string at
+ * `VIEW_OTHER_DOC_CHAR_CAP` chars.
+ */
+function applyViewRange(body: string, range: ViewOtherDocumentInput['view_range']): ViewSlice {
   const allLines = body.split('\n')
   let startLine = 1
   let endLine = allLines.length
-  if (input.view_range) {
-    const [s, e] = input.view_range
+  if (range) {
+    const [s, e] = range
     startLine = s!
     endLine = e === -1 ? allLines.length : e!
   }
-  // Slice; Zod guards bounds reasonably but we still clamp so a
-  // huge end value doesn't crash anything downstream.
   const sliceStart = Math.max(0, startLine - 1)
   const sliceEnd = Math.min(allLines.length, endLine)
   const sliced = allLines.slice(sliceStart, sliceEnd)
@@ -663,41 +736,19 @@ async function handleViewOtherDocument(
     formatted = formatted.slice(0, VIEW_OTHER_DOC_CHAR_CAP)
     truncated = true
   }
+  return { formatted, truncated, totalLines: allLines.length, startLine, endLineClamped: Math.min(allLines.length, endLine) }
+}
 
-  // Scope label tells the AI WHY it could read this — useful when
-  // composing a quote ("From your workspace doc 'Q3 plan': …").
-  const scope: string = ctx.ownerId === session.initiatorUserId
-    ? 'self'
-    : ctx.workspaceRole
-      ? `workspace:${ctx.workspaceRole}`
-      : ctx.accessMode === 'open-edit'
-        ? 'public-edit'
-        : ctx.accessMode === 'open-view'
-          ? 'public-view'
-          : 'shared'
-
-  const meta = {
-    doc_id: targetId,
-    title: ctx.title,
-    description: ctx.description,
-    language: ctx.language,
-    audience: ctx.audience,
-    access_mode: ctx.accessMode,
-    workspace_id: ctx.workspaceId,
-    scope,
-    line_count: allLines.length,
-    showed_lines: { start: startLine, end: Math.min(allLines.length, endLine) },
-    truncated_chars_at: truncated ? VIEW_OTHER_DOC_CHAR_CAP : null
-  }
-
-  // Body BEFORE meta in the formatted response so the model doesn't
-  // have to scroll past the header to find the content. The trailing
-  // metadata block is parseable JSON for fields the model wants to
-  // reuse (title, scope, etc).
-  const trailer = truncated
-    ? '\n\n[Truncated at 50 000 chars — call view_other_document again with view_range to read more.]'
-    : ''
-  return ok(`${formatted}${trailer}\n\n--- metadata ---\n${JSON.stringify(meta, null, 2)}`)
+/**
+ * Tells the AI WHY it could read the doc — useful when composing a
+ * quote ("From your workspace doc 'Q3 plan': …").
+ */
+function scopeLabelFor(ctx: CrossDocCtx, initiatorUserId: number): string {
+  if (ctx.ownerId === initiatorUserId) return 'self'
+  if (ctx.workspaceRole) return `workspace:${ctx.workspaceRole}`
+  if (ctx.accessMode === 'open-edit') return 'public-edit'
+  if (ctx.accessMode === 'open-view') return 'public-view'
+  return 'shared'
 }
 
 // --- Set title ------------------------------------------------------------
