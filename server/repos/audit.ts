@@ -52,40 +52,46 @@ export function truncateIp(ip: string | null): string | null {
   if (!ip) return null
   const trimmed = ip.trim()
   if (!trimmed) return null
-
-  // IPv4 (and IPv4-mapped IPv6 like ::ffff:192.0.2.1 — we don't bother
-  // unwrapping; treat them as IPv6 and let the hextet truncation drop
-  // the embedded address).
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(trimmed)) {
-    const parts = trimmed.split('.')
-    if (parts.some(p => Number(p) > 255)) return null
-    return `${parts[0]}.${parts[1]}.${parts[2]}.0`
-  }
-
-  // IPv6: keep first 3 hextets, append `::` to mark the rest masked.
-  // Accept compressed (`::`) and full forms.
-  if (trimmed.includes(':')) {
-    // Expand the `::` shortcut into explicit zero hextets so we can
-    // reliably take the first 3.
-    let parts: string[]
-    if (trimmed.includes('::')) {
-      const [left, right] = trimmed.split('::')
-      const leftParts = left ? left.split(':') : []
-      const rightParts = right ? right.split(':') : []
-      const fillCount = 8 - leftParts.length - rightParts.length
-      if (fillCount < 0) return null
-      parts = [...leftParts, ...Array(fillCount).fill('0'), ...rightParts]
-    } else {
-      parts = trimmed.split(':')
-    }
-    if (parts.length < 3) return null
-    if (parts.some(p => !/^[0-9a-fA-F]{0,4}$/.test(p))) return null
-    // Strip leading zeros per RFC 5952 so the stored form is canonical.
-    const head = parts.slice(0, 3).map(p => p.replace(/^0+(?=.)/, '').toLowerCase())
-    return `${head.join(':')}::`
-  }
-
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(trimmed)) return truncateIpv4(trimmed)
+  if (trimmed.includes(':')) return truncateIpv6(trimmed)
   return null
+}
+
+/** IPv4 — drop the last octet. Returns null if any octet is out of range. */
+function truncateIpv4(trimmed: string): string | null {
+  const parts = trimmed.split('.')
+  if (parts.some(p => Number(p) > 255)) return null
+  return `${parts[0]}.${parts[1]}.${parts[2]}.0`
+}
+
+/**
+ * IPv6 — keep the first 3 hextets; append `::` to mark the rest masked.
+ * Accept both compressed (`::`) and full forms. Strip leading zeros per
+ * RFC 5952 so the stored form is canonical. IPv4-mapped IPv6 (e.g.
+ * `::ffff:192.0.2.1`) is treated as IPv6 — the hextet truncation drops
+ * the embedded address.
+ */
+function truncateIpv6(trimmed: string): string | null {
+  const parts = expandIpv6(trimmed)
+  if (!parts || parts.length < 3) return null
+  if (parts.some(p => !/^[0-9a-fA-F]{0,4}$/.test(p))) return null
+  const head = parts.slice(0, 3).map(p => p.replace(/^0+(?=.)/, '').toLowerCase())
+  return `${head.join(':')}::`
+}
+
+/**
+ * Expand the `::` shortcut into explicit zero hextets so callers can
+ * reliably take the first N. Returns null if the shortcut is over-wide
+ * (more than 8 hextets after expansion).
+ */
+function expandIpv6(trimmed: string): string[] | null {
+  if (!trimmed.includes('::')) return trimmed.split(':')
+  const [left, right] = trimmed.split('::')
+  const leftParts = left ? left.split(':') : []
+  const rightParts = right ? right.split(':') : []
+  const fillCount = 8 - leftParts.length - rightParts.length
+  if (fillCount < 0) return null
+  return [...leftParts, ...Array(fillCount).fill('0'), ...rightParts]
 }
 
 /**
