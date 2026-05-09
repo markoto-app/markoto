@@ -22,73 +22,83 @@ const CURSOR_LINE_TEXT_MAX = EDITOR_CURSOR_LINE_CONTEXT_EACH_SIDE * 2 + CURSOR_M
 export function validateEditorSelection(raw: unknown): EditorSelectionSnapshot {
   if (!raw || typeof raw !== 'object') return { kind: 'none' }
   const r = raw as Record<string, unknown>
-
-  if (r.kind === 'none') return { kind: 'none' }
-
-  if (r.kind === 'cursor') {
-    if (!Number.isInteger(r.line) || (r.line as number) < 1) return { kind: 'none' }
-    if (!Number.isInteger(r.column) || (r.column as number) < 1) return { kind: 'none' }
-    if (typeof r.lineText !== 'string') return { kind: 'none' }
-    // The marker must be present — the AI's split-on-marker rule is
-    // the whole point of shipping line_content. Reject ambiguous
-    // snapshots rather than shipping them to the model.
-    const markerIdx = r.lineText.indexOf(CURSOR_MARKER)
-    if (markerIdx < 0) return { kind: 'none' }
-    // Defense-in-depth cap: a compromised client shouldn't be able to
-    // stuff the prompt with an arbitrarily long "line_content". If
-    // we have to cut, window AROUND the marker so it survives the
-    // slice — naive head-slicing would strip it and invalidate the
-    // whole snapshot.
-    let lineText = r.lineText
-    let lineTruncated = r.lineTruncated === true
-    if (lineText.length > CURSOR_LINE_TEXT_MAX) {
-      const each = EDITOR_CURSOR_LINE_CONTEXT_EACH_SIDE
-      const before = lineText.slice(0, markerIdx)
-      const after = lineText.slice(markerIdx + CURSOR_MARKER.length)
-      const beforeTrim = before.length > each
-      const afterTrim = after.length > each
-      const b = beforeTrim ? '…' + before.slice(before.length - each) : before
-      const a = afterTrim ? after.slice(0, each) + '…' : after
-      lineText = b + CURSOR_MARKER + a
-      lineTruncated = true
-    }
-    return {
-      kind: 'cursor',
-      line: r.line as number,
-      column: r.column as number,
-      lineText,
-      lineTruncated
-    }
-  }
-
-  if (r.kind === 'selection') {
-    const fromLine = r.fromLine
-    const toLine = r.toLine
-    const text = r.text
-    const truncated = r.truncated
-    if (
-      !Number.isInteger(fromLine)
-      || !Number.isInteger(toLine)
-      || (fromLine as number) < 1
-      || (toLine as number) < (fromLine as number)
-      || typeof text !== 'string'
-    ) return { kind: 'none' }
-    // Server-side clamp in addition to the client-side cap — defense in
-    // depth. A malicious client could try to stuff the prompt with a
-    // multi-megabyte "selection_text".
-    const cappedText = text.length > EDITOR_SELECTION_TEXT_MAX + 1
-      ? text.slice(0, EDITOR_SELECTION_TEXT_MAX) + '…'
-      : text
-    return {
-      kind: 'selection',
-      fromLine: fromLine as number,
-      toLine: toLine as number,
-      text: cappedText,
-      truncated: truncated === true || cappedText !== text
-    }
-  }
-
+  if (r.kind === 'cursor') return validateCursorSelection(r)
+  if (r.kind === 'selection') return validateRangeSelection(r)
   return { kind: 'none' }
+}
+
+/**
+ * Validate a `kind: cursor` snapshot. Required: line ≥ 1, column ≥ 1,
+ * lineText containing the literal `<CURSOR_IS_HERE>` marker. Returns
+ * `kind: 'none'` on any failure — the loop's editor-state-routing
+ * rules must not act on an ambiguous snapshot.
+ *
+ * Defense-in-depth: clamp `lineText` to `CURSOR_LINE_TEXT_MAX` by
+ * windowing AROUND the marker so it survives the slice. Naive head-
+ * slicing would strip it and invalidate the snapshot.
+ */
+function validateCursorSelection(r: Record<string, unknown>): EditorSelectionSnapshot {
+  if (!Number.isInteger(r.line) || (r.line as number) < 1) return { kind: 'none' }
+  if (!Number.isInteger(r.column) || (r.column as number) < 1) return { kind: 'none' }
+  if (typeof r.lineText !== 'string') return { kind: 'none' }
+  const markerIdx = r.lineText.indexOf(CURSOR_MARKER)
+  if (markerIdx < 0) return { kind: 'none' }
+
+  const { lineText, lineTruncated } = clampCursorLineText(r.lineText, markerIdx, r.lineTruncated === true)
+  return {
+    kind: 'cursor',
+    line: r.line as number,
+    column: r.column as number,
+    lineText,
+    lineTruncated
+  }
+}
+
+/**
+ * Window an over-long `lineText` around the marker so the marker
+ * survives the slice. Adds `…` sentinels on the trimmed sides so the
+ * model can tell the line was windowed.
+ */
+function clampCursorLineText(lineText: string, markerIdx: number, alreadyTruncated: boolean): { lineText: string, lineTruncated: boolean } {
+  if (lineText.length <= CURSOR_LINE_TEXT_MAX) {
+    return { lineText, lineTruncated: alreadyTruncated }
+  }
+  const each = EDITOR_CURSOR_LINE_CONTEXT_EACH_SIDE
+  const before = lineText.slice(0, markerIdx)
+  const after = lineText.slice(markerIdx + CURSOR_MARKER.length)
+  const b = before.length > each ? '…' + before.slice(before.length - each) : before
+  const a = after.length > each ? after.slice(0, each) + '…' : after
+  return { lineText: b + CURSOR_MARKER + a, lineTruncated: true }
+}
+
+/**
+ * Validate a `kind: selection` snapshot. Required: integer fromLine
+ * ≥ 1, integer toLine ≥ fromLine, string text. Server-side clamp on
+ * `text` length is defense in depth — a malicious client could
+ * otherwise stuff the prompt with multi-megabyte content.
+ */
+function validateRangeSelection(r: Record<string, unknown>): EditorSelectionSnapshot {
+  const fromLine = r.fromLine
+  const toLine = r.toLine
+  const text = r.text
+  if (
+    !Number.isInteger(fromLine)
+    || !Number.isInteger(toLine)
+    || (fromLine as number) < 1
+    || (toLine as number) < (fromLine as number)
+    || typeof text !== 'string'
+  ) return { kind: 'none' }
+
+  const cappedText = text.length > EDITOR_SELECTION_TEXT_MAX + 1
+    ? text.slice(0, EDITOR_SELECTION_TEXT_MAX) + '…'
+    : text
+  return {
+    kind: 'selection',
+    fromLine: fromLine as number,
+    toLine: toLine as number,
+    text: cappedText,
+    truncated: r.truncated === true || cappedText !== text
+  }
 }
 
 /**
