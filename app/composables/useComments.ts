@@ -55,51 +55,80 @@ function readAuthor(awareness: Awareness): AuthorIdentity {
   }
 }
 
+/** Read a string field with default — drops everything that isn't a string at the Y.Map boundary. */
+function strField(map: Y.Map<unknown>, key: string, fallback = ''): string {
+  const v = map.get(key)
+  return typeof v === 'string' ? v : fallback
+}
+
+/** Read a number field with default — drops everything that isn't a number at the Y.Map boundary. */
+function numField(map: Y.Map<unknown>, key: string, fallback = 0): number {
+  const v = map.get(key)
+  return typeof v === 'number' ? v : fallback
+}
+
+/** Read a string field as `string | null` — null when missing or non-string. */
+function strOrNullField(map: Y.Map<unknown>, key: string): string | null {
+  const v = map.get(key)
+  return typeof v === 'string' ? v : null
+}
+
+/** Read a number field as `number | null` — null when missing or non-number. */
+function numOrNullField(map: Y.Map<unknown>, key: string): number | null {
+  const v = map.get(key)
+  return typeof v === 'number' ? v : null
+}
+
+/** Common author + timestamp fields shared by comments and replies. */
+function deriveAuthorAndTimestamps(map: Y.Map<unknown>) {
+  return {
+    body: strField(map, 'body'),
+    authorId: numOrNullField(map, 'authorId'),
+    authorName: strField(map, 'authorName', 'Anonymous'),
+    authorAvatar: strOrNullField(map, 'authorAvatar'),
+    createdAt: numField(map, 'createdAt'),
+    updatedAt: numField(map, 'updatedAt')
+  }
+}
+
 function deriveReply(map: Y.Map<unknown>): DerivedReply | null {
   const id = map.get('id')
   if (typeof id !== 'string') return null
-  return {
-    id,
-    body: typeof map.get('body') === 'string' ? (map.get('body') as string) : '',
-    authorId: typeof map.get('authorId') === 'number' ? (map.get('authorId') as number) : null,
-    authorName: typeof map.get('authorName') === 'string' ? (map.get('authorName') as string) : 'Anonymous',
-    authorAvatar: typeof map.get('authorAvatar') === 'string' ? (map.get('authorAvatar') as string) : null,
-    createdAt: typeof map.get('createdAt') === 'number' ? (map.get('createdAt') as number) : 0,
-    updatedAt: typeof map.get('updatedAt') === 'number' ? (map.get('updatedAt') as number) : 0
+  return { id, ...deriveAuthorAndTimestamps(map) }
+}
+
+/** Resolve the (anchorStart, anchorEnd) base64 pair into a doc-position range; returns null if either field is missing. */
+function resolveCommentAnchor(map: Y.Map<unknown>, ydoc: Y.Doc): { from: number, to: number } | null {
+  const startB64 = map.get('anchorStart')
+  const endB64 = map.get('anchorEnd')
+  if (typeof startB64 !== 'string' || typeof endB64 !== 'string') return null
+  return resolveAnchor({ start: startB64, end: endB64 }, ydoc)
+}
+
+/** Walk a `Y.Array<Y.Map>` of replies and return the derived rows; skips entries that are missing required fields. */
+function deriveReplies(map: Y.Map<unknown>): DerivedReply[] {
+  const repliesArr = map.get('replies')
+  if (!(repliesArr instanceof Y.Array)) return []
+  const replies: DerivedReply[] = []
+  for (let i = 0; i < repliesArr.length; i++) {
+    const r = repliesArr.get(i)
+    if (r instanceof Y.Map) {
+      const d = deriveReply(r as Y.Map<unknown>)
+      if (d) replies.push(d)
+    }
   }
+  return replies
 }
 
 function deriveComment(map: Y.Map<unknown>, ydoc: Y.Doc): DerivedComment | null {
   const id = map.get('id')
   if (typeof id !== 'string') return null
-  const startB64 = map.get('anchorStart')
-  const endB64 = map.get('anchorEnd')
-  let anchor: { from: number, to: number } | null = null
-  if (typeof startB64 === 'string' && typeof endB64 === 'string') {
-    anchor = resolveAnchor({ start: startB64, end: endB64 }, ydoc)
-  }
-  const repliesArr = map.get('replies')
-  const replies: DerivedReply[] = []
-  if (repliesArr instanceof Y.Array) {
-    for (let i = 0; i < repliesArr.length; i++) {
-      const r = repliesArr.get(i)
-      if (r instanceof Y.Map) {
-        const d = deriveReply(r as Y.Map<unknown>)
-        if (d) replies.push(d)
-      }
-    }
-  }
   return {
     id,
-    anchor,
-    body: typeof map.get('body') === 'string' ? (map.get('body') as string) : '',
-    authorId: typeof map.get('authorId') === 'number' ? (map.get('authorId') as number) : null,
-    authorName: typeof map.get('authorName') === 'string' ? (map.get('authorName') as string) : 'Anonymous',
-    authorAvatar: typeof map.get('authorAvatar') === 'string' ? (map.get('authorAvatar') as string) : null,
-    createdAt: typeof map.get('createdAt') === 'number' ? (map.get('createdAt') as number) : 0,
-    updatedAt: typeof map.get('updatedAt') === 'number' ? (map.get('updatedAt') as number) : 0,
+    anchor: resolveCommentAnchor(map, ydoc),
+    ...deriveAuthorAndTimestamps(map),
     resolved: Boolean(map.get('resolved')),
-    replies
+    replies: deriveReplies(map)
   }
 }
 
