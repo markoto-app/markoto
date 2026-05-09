@@ -495,11 +495,10 @@ const nextHref = computed(() => nextLink.value ? `/docs/flows/${nextLink.value.s
          proper as a normal outcome shot — only the redundant top-
          strip surface is suppressed. -->
 
-    <div
+    <section
       v-if="entries.length"
       ref="slidesEl"
       tabindex="0"
-      role="region"
       :aria-label="manifest.title"
       class="outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
     >
@@ -656,6 +655,6 @@ const nextHref = computed(() => nextLink.value ? `/docs/flows/${nextLink.value.s
           class="size-4 text-muted group-hover:translate-x-0.5 transition-transform shrink-0"
         />
       </NuxtLink>
-    </div>
+    </section>
   </div>
 </template>

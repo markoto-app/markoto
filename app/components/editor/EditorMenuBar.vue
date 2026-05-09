@@ -120,18 +120,18 @@ const fileItems = computed(() => {
   if (!props.isReadOnly) {
     items.push({ label: t('menubar.file.import'), icon: 'i-lucide-file-up', onSelect: () => emit('open-import') })
   }
-  items.push({
-    label: t('menubar.file.export'),
-    icon: 'i-lucide-download',
-    children: [
-      { label: t('export.markdown'), icon: 'i-lucide-file-text', onSelect: () => emit('export-markdown') },
-      // PDF export goes through the server renderer (Playwright + paged.js)
-      // and opens the result in a new tab inline — distinct from File →
-      // Print, which uses the in-browser print dialog.
-      { label: t('export.pdf'), icon: 'i-lucide-file-output', onSelect: () => emit('open-server-pdf') }
-    ]
-  })
   items.push(
+    {
+      label: t('menubar.file.export'),
+      icon: 'i-lucide-download',
+      children: [
+        { label: t('export.markdown'), icon: 'i-lucide-file-text', onSelect: () => emit('export-markdown') },
+        // PDF export goes through the server renderer (Playwright + paged.js)
+        // and opens the result in a new tab inline — distinct from File →
+        // Print, which uses the in-browser print dialog.
+        { label: t('export.pdf'), icon: 'i-lucide-file-output', onSelect: () => emit('open-server-pdf') }
+      ]
+    },
     { type: 'separator' },
     { label: t('menubar.file.print'), icon: 'i-lucide-printer', kbds: ['cmd', 'p'], onSelect: () => emit('export-pdf') }
   )

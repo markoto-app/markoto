@@ -181,13 +181,12 @@ function openMove(doc: DocumentListItem) {
 function onDocDuplicated(newDocId: string) {
   router.push(`/d/${newDocId}`)
 }
-function onDocMoved(newWorkspaceId: string | null) {
+function onDocMoved(_newWorkspaceId: string | null) {
   // The "Recent Documents" list on the dashboard shows all owned docs
   // regardless of workspace, so a move doesn't need to drop the row.
   // If the target is a workspace, the user probably wants to see the
   // doc in the workspace view — but re-fetching here is enough for
   // updated metadata. Noop for now; visible state already accurate.
-  void newWorkspaceId
   moveTarget.value = null
 }
 

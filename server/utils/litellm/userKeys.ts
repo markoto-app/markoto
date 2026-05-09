@@ -51,10 +51,14 @@ export class LitellmBudgetExhausted extends Error {
 /** Predicate: is this error a budget_exceeded from LiteLLM? */
 export function isBudgetExceededError(err: unknown): boolean {
   if (!err) return false
-  const msg = err instanceof Error
-    ? err.message
-    : typeof err === 'string' ? err : JSON.stringify(err)
+  const msg = errorAsString(err)
   return /budget_exceeded|Budget has been exceeded/i.test(msg)
+}
+
+function errorAsString(err: unknown): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'string') return err
+  return JSON.stringify(err)
 }
 
 // ─── Public API ────────────────────────────────────────────────────────

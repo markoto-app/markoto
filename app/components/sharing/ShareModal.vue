@@ -215,17 +215,13 @@ async function setPassword() {
         </div>
 
         <!-- Access mode (owner only) -->
-        <div
+        <fieldset
           v-if="isOwner"
-          role="group"
-          aria-labelledby="share-access-mode-label"
+          class="border-0 p-0 m-0"
         >
-          <p
-            id="share-access-mode-label"
-            class="block text-sm font-medium mb-2"
-          >
+          <legend class="block text-sm font-medium mb-2">
             {{ t('share.accessMode') }}
-          </p>
+          </legend>
           <div class="space-y-2">
             <button
               v-for="opt in accessOptions"
@@ -291,7 +287,7 @@ async function setPassword() {
               {{ t('share.passwordMinLength') }}
             </p>
           </div>
-        </div>
+        </fieldset>
 
         <!-- Non-owner: just show current mode -->
         <div v-else>

@@ -107,11 +107,27 @@ function extractMermaidNaturalSize(svg: string): { natW: number | null, natH: nu
   }
 }
 
+/**
+ * Encode UTF-8 text to base64. The naive `btoa(unescape(encodeURIComponent(s)))`
+ * pattern uses the deprecated `unescape`. Iterate the encoded bytes in
+ * 0x8000-byte chunks so very large inputs don't blow the call-stack
+ * (the same pattern the audio helpers use).
+ */
+function utf8ToBase64(s: string): string {
+  const bytes = new TextEncoder().encode(s)
+  let binary = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  return btoa(binary)
+}
+
 /** Wrap a rendered mermaid SVG into the data-URI `<img>` shell paged.js can paginate atomically. */
 function buildMermaidImg(doc: Document, svg: string, natW: number | null, natH: number | null): HTMLElement {
   const wrap = doc.createElement('div')
   wrap.className = 'mermaid'
-  const svgBase64 = btoa(unescape(encodeURIComponent(svg)))
+  const svgBase64 = utf8ToBase64(svg)
   const img = doc.createElement('img')
   img.src = `data:image/svg+xml;base64,${svgBase64}`
   img.style.cssText = 'max-width:100%;display:block;'
@@ -138,6 +154,35 @@ function buildMermaidImg(doc: Document, svg: string, natW: number | null, natH: 
  * live container right when the user wants to look at it. The "extra"
  * paginate is the cost of correctness.
  */
+type IwinWithPaged = Window & { PagedConfig?: { auto: boolean, after: () => void } }
+
+/**
+ * Open the browser's print dialog and wire afterprint → cleanup +
+ * resolve. Extracted so the call site doesn't nest 4+ arrow
+ * functions inside `PagedConfig.after`.
+ */
+function triggerPrint(
+  iwin: IwinWithPaged,
+  timeoutId: ReturnType<typeof setTimeout>,
+  cleanup: () => void,
+  resolve: () => void,
+  reject: (e: unknown) => void
+): void {
+  iwin.addEventListener('afterprint', () => {
+    globalThis.clearTimeout(timeoutId)
+    cleanup()
+    resolve()
+  }, { once: true })
+  try {
+    iwin.focus()
+    iwin.print()
+  } catch (e) {
+    globalThis.clearTimeout(timeoutId)
+    cleanup()
+    reject(e)
+  }
+}
+
 export async function printDocumentAsPdf(opts: {
   source: string
   theme: DocTheme
@@ -198,17 +243,22 @@ export async function printDocumentAsPdf(opts: {
       // The iframe window gets a `PagedConfig` property attached before the
       // paged.js polyfill script runs — the polyfill picks it up to drive
       // the print flow. Typed inline rather than polluting a d.ts.
-      const iwin: (Window & { PagedConfig?: { auto: boolean, after: () => void } }) | null = iframe.contentWindow
+      const iwin: IwinWithPaged | null = iframe.contentWindow
       if (!idoc || !iwin) {
         throw new Error('Could not access iframe document')
       }
 
       // Initialize the iframe document. About:blank inherits the parent
       // origin so /api/* fetches (e.g. resolved image URLs) don't trip CORS.
-      idoc.open()
-      idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'
-        + escapeHtml(opts.title) + '</title></head><body></body></html>')
-      idoc.close()
+      // Setting fields on the existing about:blank document avoids the
+      // deprecated `document.write` API.
+      idoc.documentElement.lang = 'en'
+      if (!idoc.head.querySelector('meta[charset]')) {
+        const charsetMeta = idoc.createElement('meta')
+        charsetMeta.setAttribute('charset', 'UTF-8')
+        idoc.head.prepend(charsetMeta)
+      }
+      idoc.title = opts.title
 
       const style = idoc.createElement('style')
       style.textContent = `${fontsImport}\n${themeCss}`
@@ -248,28 +298,12 @@ export async function printDocumentAsPdf(opts: {
       // PagedConfig must be set BEFORE the polyfill script runs. The polyfill
       // reads `window.PagedConfig` on DOMContentLoaded; if `auto` is true it
       // paginates the body and calls `after()` when done.
-      iwin.PagedConfig = {
-        auto: true,
-        after: () => {
-          // Wait one rAF for layout to settle, then print. afterprint fires
-          // whether the user saved or cancelled — cleanup either way.
-          iwin.requestAnimationFrame(() => {
-            iwin.addEventListener('afterprint', () => {
-              globalThis.clearTimeout(timeoutId)
-              cleanup()
-              resolve()
-            }, { once: true })
-            try {
-              iwin.focus()
-              iwin.print()
-            } catch (e) {
-              globalThis.clearTimeout(timeoutId)
-              cleanup()
-              reject(e)
-            }
-          })
-        }
+      const onPaginated = () => {
+        // Wait one rAF for layout to settle, then print. afterprint fires
+        // whether the user saved or cancelled — cleanup either way.
+        iwin.requestAnimationFrame(() => triggerPrint(iwin, timeoutId, cleanup, resolve, reject))
       }
+      iwin.PagedConfig = { auto: true, after: onPaginated }
 
       // Polyfill loaded from jsdelivr CDN — versioned URL handles cache
       // busting on upgrade, and the PWA service worker caches
@@ -294,8 +328,4 @@ export async function printDocumentAsPdf(opts: {
       reject(e)
     }
   })
-}
-
-function escapeHtml(text: string): string {
-  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
 }

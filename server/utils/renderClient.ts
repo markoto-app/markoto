@@ -128,7 +128,7 @@ async function releaseRenderLock(key: string): Promise<void> {
 async function pollManifestUntilReady(
   docId: string,
   snapshotId: number,
-  wantFormat: 'pdf' | 'png' | 'both'
+  wantFormat: RenderFormat
 ): Promise<RenderManifest | null> {
   const deadline = Date.now() + RENDER_POLL_CEILING_MS
   while (Date.now() < deadline) {

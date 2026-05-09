@@ -610,7 +610,7 @@ export async function dispatchStripeEvent(
               eventId: event.id,
               customerId,
               type: event.type,
-              payload: event as unknown as Record<string, unknown>
+              payload: event
             })
             .onConflictDoNothing({ target: pendingStripeEvents.eventId })
           console.log(`[stripe/webhook] stashed out-of-order ${event.type} for unbound customer ${customerId} (event ${event.id})`)

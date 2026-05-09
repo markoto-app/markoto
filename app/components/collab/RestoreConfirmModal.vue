@@ -34,15 +34,15 @@ interface RestoreResponse {
   restoredFromTime: string
 }
 
+function restoreErrorTitleKey(status: number | undefined): string {
+  if (status === 403) return 'activity.restore.error.unauthorized'
+  if (status === 410) return 'activity.restore.error.unavailable'
+  if (status === 404) return 'activity.restore.error.notFound'
+  return 'activity.restore.error.generic'
+}
+
 async function handleRestore() {
   restoring.value = true
-
-  function restoreErrorTitleKey(status: number | undefined): string {
-    if (status === 403) return 'activity.restore.error.unauthorized'
-    if (status === 410) return 'activity.restore.error.unavailable'
-    if (status === 404) return 'activity.restore.error.notFound'
-    return 'activity.restore.error.generic'
-  }
 
   try {
     await $fetch<RestoreResponse>(

@@ -329,16 +329,10 @@ async function submit(blank: boolean) {
         </div>
 
         <!-- Template ──────────────────────────────────────────── -->
-        <div
-          role="group"
-          aria-labelledby="newdoc-template-label"
-        >
-          <p
-            id="newdoc-template-label"
-            class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
-          >
+        <fieldset class="border-0 p-0 m-0">
+          <legend class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
             {{ t('newDoc.templateLabel') }}
-          </p>
+          </legend>
           <p class="text-xs text-toned mb-2">
             {{ t('newDoc.templateHelp') }}
           </p>
@@ -371,19 +365,13 @@ async function submit(blank: boolean) {
               </p>
             </button>
           </div>
-        </div>
+        </fieldset>
 
         <!-- Theme preset ──────────────────────────────────────── -->
-        <div
-          role="group"
-          aria-labelledby="newdoc-theme-label"
-        >
-          <p
-            id="newdoc-theme-label"
-            class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
-          >
+        <fieldset class="border-0 p-0 m-0">
+          <legend class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
             {{ t('newDoc.themeLabel') }}
-          </p>
+          </legend>
           <p class="text-xs text-toned mb-2">
             {{ t('newDoc.themeHelp') }}
           </p>
@@ -475,7 +463,7 @@ async function submit(blank: boolean) {
               </p>
             </button>
           </div>
-        </div>
+        </fieldset>
       </form>
     </template>
 

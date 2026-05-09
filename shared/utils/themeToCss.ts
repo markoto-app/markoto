@@ -1009,7 +1009,8 @@ function cssString(s: string): string {
 }
 
 function cssFontStack(name: string): string {
-  const safe = name.includes(' ') ? `"${name.replaceAll('"', String.raw`\"`)}"` : name
+  const escaped = name.replaceAll('"', String.raw`\"`)
+  const safe = name.includes(' ') ? `"${escaped}"` : name
   return `${safe}, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`
 }
 

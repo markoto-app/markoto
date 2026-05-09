@@ -468,6 +468,10 @@ export function insertBlock(view: EditorView, text: string): void {
  * next integer. So adding three footnotes in a row produces 1, 2, 3
  * regardless of where they're inserted in the doc body.
  */
+function footnoteSeparator(lastChar: string): string {
+  return lastChar === '\n' ? '\n' : '\n\n'
+}
+
 export function insertFootnote(view: EditorView): void {
   const docText = view.state.doc.toString()
   const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => Number.parseInt(m[1]!, 10))
@@ -481,7 +485,7 @@ export function insertFootnote(view: EditorView): void {
   // or already ends with a newline, just append; otherwise prefix with
   // `\n\n` so it sits in its own paragraph at the bottom.
   const lastChar = docLen > 0 ? view.state.sliceDoc(docLen - 1, docLen) : ''
-  const sep = docLen === 0 ? '' : (lastChar === '\n' ? '\n' : '\n\n')
+  const sep = docLen === 0 ? '' : footnoteSeparator(lastChar)
   const def = `${sep}[^${next}]: `
 
   view.dispatch({

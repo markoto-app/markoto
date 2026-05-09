@@ -44,33 +44,36 @@ const labelText = computed(() => {
     <div class="text-xs text-center mb-2 font-medium text-default tabular-nums">
       {{ labelText }}
     </div>
-    <div
-      class="flex flex-col gap-0.5"
-      role="grid"
+    <table
+      class="border-separate"
+      style="border-spacing: 2px;"
       :aria-label="`Table size picker, up to ${MAX_ROWS} by ${MAX_COLS}`"
       @mouseleave="hoverRow = -1; hoverCol = -1"
     >
-      <div
-        v-for="row in MAX_ROWS"
-        :key="row"
-        class="flex gap-0.5"
-        role="row"
-      >
-        <button
-          v-for="col in MAX_COLS"
-          :key="col"
-          type="button"
-          role="gridcell"
-          :aria-selected="isHighlighted(row - 1, col - 1)"
-          :aria-label="`${col} columns by ${row} rows`"
-          class="size-[18px] rounded-sm border transition-colors"
-          :class="isHighlighted(row - 1, col - 1)
-            ? 'bg-primary border-primary'
-            : 'bg-elevated border-default'"
-          @mouseenter="hoverRow = row - 1; hoverCol = col - 1"
-          @click="onSelect(row - 1, col - 1)"
-        />
-      </div>
-    </div>
+      <tbody>
+        <tr
+          v-for="row in MAX_ROWS"
+          :key="row"
+        >
+          <td
+            v-for="col in MAX_COLS"
+            :key="col"
+            class="p-0"
+          >
+            <button
+              type="button"
+              :aria-pressed="isHighlighted(row - 1, col - 1)"
+              :aria-label="`${col} columns by ${row} rows`"
+              class="size-[18px] rounded-sm border transition-colors"
+              :class="isHighlighted(row - 1, col - 1)
+                ? 'bg-primary border-primary'
+                : 'bg-elevated border-default'"
+              @mouseenter="hoverRow = row - 1; hoverCol = col - 1"
+              @click="onSelect(row - 1, col - 1)"
+            />
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
