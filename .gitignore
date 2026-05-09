@@ -44,3 +44,5 @@ logs
 # act local-testing secrets (`act --secret-file .secrets`). Never commit.
 .secrets
 *.secrets
+
+.mcp.json
