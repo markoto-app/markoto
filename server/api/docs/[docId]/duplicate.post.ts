@@ -27,65 +27,18 @@ import { withIdempotency } from '../../../utils/idempotency'
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const sourceDocId = requireDocId(event)
-  // `readBody` returns undefined for an empty/missing body — the `.catch`
-  // only covers parse errors, so a naked POST falls through without
-  // entering the catch branch. Coerce to `{}` so the `in` / property
-  // reads below don't trip on undefined.
-  const body = ((await readBody(event).catch(() => null)) ?? {}) as {
-    title?: unknown
-    workspaceId?: unknown
-  }
+  const body = ((await readBody(event).catch(() => null)) ?? {}) as DuplicateBody
 
-  const authz = await getDocAuthz(session.user.id, sourceDocId)
-  if (!authz.exists) {
-    throw createError({ statusCode: 404, message: 'Document not found' })
-  }
-  if (!authz.canEdit) {
-    throw createError({ statusCode: 403, message: 'Not authorized to duplicate this document' })
-  }
-
+  await assertCanDuplicate(session.user.id, sourceDocId)
   const source = await getDoc(sourceDocId)
   if (!source) {
-    // Shouldn't happen after authz.exists, but guards against a TOCTOU delete.
+    // Shouldn't happen after the authz check, but guards against a TOCTOU delete.
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  // Title: user-provided > "Copy of {source.title}" > "Copy of Untitled".
-  let title: string
-  if (typeof body.title === 'string' && body.title.trim().length > 0) {
-    title = body.title.trim()
-  } else {
-    title = `Copy of ${source.title || 'Untitled'}`
-  }
-  if (title.length > 255) title = title.slice(0, 255)
-
-  // Target workspace:
-  //   undefined  → same as source (default)
-  //   null       → remove from workspace (personal doc)
-  //   string     → move into the given workspace
-  let targetWorkspaceId: string | null
-  if (!('workspaceId' in body)) {
-    targetWorkspaceId = source.workspaceId
-  } else if (body.workspaceId === null) {
-    targetWorkspaceId = null
-  } else if (typeof body.workspaceId === 'string' && body.workspaceId.length > 0) {
-    targetWorkspaceId = body.workspaceId
-  } else {
-    throw createError({ statusCode: 400, message: 'workspaceId must be a string, null, or omitted' })
-  }
-
-  // Membership check when targeting a workspace different from source's.
-  // (Same-workspace is implied — the actor already passed canEditDoc
-  // which covers membership there.)
-  if (targetWorkspaceId !== null && targetWorkspaceId !== source.workspaceId) {
-    const targetRole = await getWorkspaceRole(session.user.id, targetWorkspaceId)
-    if (targetRole === null) {
-      throw createError({ statusCode: 403, message: 'Not a member of the target workspace' })
-    }
-    if (targetRole === 'viewer') {
-      throw createError({ statusCode: 403, message: 'Viewers cannot create documents in a workspace' })
-    }
-  }
+  const title = resolveTitle(body.title, source.title)
+  const targetWorkspaceId = parseTargetWorkspaceId(body, source.workspaceId)
+  await assertCanCreateInTarget(session.user.id, targetWorkspaceId, source.workspaceId)
 
   // Idempotency: when the client supplies an `Idempotency-Key` header,
   // a rapid second call (double-click, retry on flaky network) returns
@@ -98,16 +51,70 @@ export default defineEventHandler(async (event) => {
   return withIdempotency(event, `duplicate:${sourceDocId}`, session.user.id, async () => {
     const newDocId = nanoid(10)
     await duplicateDocument(
-      {
-        sourceDocId,
-        newDocId,
-        ownerId: session.user.id,
-        workspaceId: targetWorkspaceId,
-        title
-      },
+      { sourceDocId, newDocId, ownerId: session.user.id, workspaceId: targetWorkspaceId, title },
       { s3: useS3Client(), bucket: config.s3.bucket }
     )
-
     return { docId: newDocId }
   })
 })
+
+interface DuplicateBody {
+  title?: unknown
+  workspaceId?: unknown
+}
+
+/**
+ * canEditDoc on the source. Anyone who could edit the source's
+ * content can create a copy of it; that's weaker than "manage", but
+ * stealing edit access is not a thing — the duplicate goes into the
+ * actor's ownership, not the source owner's.
+ */
+async function assertCanDuplicate(userId: number, sourceDocId: string): Promise<void> {
+  const authz = await getDocAuthz(userId, sourceDocId)
+  if (!authz.exists) {
+    throw createError({ statusCode: 404, message: 'Document not found' })
+  }
+  if (!authz.canEdit) {
+    throw createError({ statusCode: 403, message: 'Not authorized to duplicate this document' })
+  }
+}
+
+/** Title: user-provided > "Copy of {source.title}" > "Copy of Untitled". Caps at 255 chars. */
+function resolveTitle(rawTitle: unknown, sourceTitle: string | null | undefined): string {
+  let title: string
+  if (typeof rawTitle === 'string' && rawTitle.trim().length > 0) {
+    title = rawTitle.trim()
+  } else {
+    title = `Copy of ${sourceTitle || 'Untitled'}`
+  }
+  return title.length > 255 ? title.slice(0, 255) : title
+}
+
+/**
+ * Target workspace resolution:
+ *   undefined  → same as source (default)
+ *   null       → remove from workspace (personal doc)
+ *   string     → move into the given workspace
+ */
+function parseTargetWorkspaceId(body: DuplicateBody, sourceWorkspaceId: string | null): string | null {
+  if (!('workspaceId' in body)) return sourceWorkspaceId
+  if (body.workspaceId === null) return null
+  if (typeof body.workspaceId === 'string' && body.workspaceId.length > 0) return body.workspaceId
+  throw createError({ statusCode: 400, message: 'workspaceId must be a string, null, or omitted' })
+}
+
+/**
+ * Membership check when targeting a workspace different from source's.
+ * Same-workspace is implied — the actor already passed canEditDoc
+ * which covers membership there.
+ */
+async function assertCanCreateInTarget(userId: number, targetWorkspaceId: string | null, sourceWorkspaceId: string | null): Promise<void> {
+  if (targetWorkspaceId === null || targetWorkspaceId === sourceWorkspaceId) return
+  const targetRole = await getWorkspaceRole(userId, targetWorkspaceId)
+  if (targetRole === null) {
+    throw createError({ statusCode: 403, message: 'Not a member of the target workspace' })
+  }
+  if (targetRole === 'viewer') {
+    throw createError({ statusCode: 403, message: 'Viewers cannot create documents in a workspace' })
+  }
+}
