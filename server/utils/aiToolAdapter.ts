@@ -96,7 +96,7 @@ function handleView(
   session: AiSession,
   input: { view_range?: [number, number], max_characters?: number }
 ): ToolResult {
-  const fullText = session.ytext.toString()
+  const fullText = session.ytext.toJSON()
   const lines = fullText.split('\n')
   let startLine = 1
   let endLine = lines.length
@@ -141,7 +141,7 @@ function handleStrReplace(
     return err('Error: old_str cannot be empty (use `insert_text` for empty insertion)')
   }
 
-  const full = session.ytext.toString()
+  const full = session.ytext.toJSON()
   const { found, count } = findIndexOfOnlyMatch(full, input.old_str)
 
   if (count === 0) {
@@ -190,7 +190,7 @@ function handleInsert(
   session: AiSession,
   input: { insert_line: number, insert_text: string }
 ): ToolResult {
-  const full = session.ytext.toString()
+  const full = session.ytext.toJSON()
   const idx = lineToCharOffset(full, input.insert_line)
   if (idx === null) {
     const lineCount = full.split('\n').length
@@ -681,7 +681,7 @@ async function readOtherDocBody(session: AiSession, targetId: string): Promise<D
       `ai-cross-doc-read:${session.initiatorUserId}:${session.sessionId}`
     )
     const ytext = client.ydoc.getText('content')
-    return { ok: true, body: ytext.toString() }
+    return { ok: true, body: ytext.toJSON() }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'unknown error'
     return { ok: false, error: err(`Error: failed to read document "${targetId}" from sync server: ${msg}.`) }
@@ -1697,7 +1697,7 @@ function handleReadComments(
   const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
   if (ycomments.length === 0) return ok('No comments on this document.')
 
-  const fullText = session.ytext.toString()
+  const fullText = session.ytext.toJSON()
   const lines: string[] = [`Found ${ycomments.length} comment thread(s):\n`]
   for (let i = 0; i < ycomments.length; i++) {
     const map = ycomments.get(i)
@@ -1719,7 +1719,7 @@ async function handleCreateComment(
     return err('Error: end_line must be >= start_line.')
   }
 
-  const full = session.ytext.toString()
+  const full = session.ytext.toJSON()
   const startChar = lineToCharOffset(full, input.start_line - 1)
   if (startChar === null) {
     return err(`Error: start_line ${input.start_line} is beyond the end of the document.`)
