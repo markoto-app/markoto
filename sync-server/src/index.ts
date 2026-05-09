@@ -28,7 +28,7 @@ import { closeValkey } from './valkey'
 // can import `createAuth` without tripping a top-level env guard.
 const auth = authFromEnv()
 
-const port = parseInt(process.env.PORT || '4001')
+const port = Number.parseInt(process.env.PORT || '4001')
 
 // Per-doc attribution + diff baseline state lives in Valkey (`sync-state.ts`).
 //   - last-editor: populated in onChange (authoritative — JWT payload from

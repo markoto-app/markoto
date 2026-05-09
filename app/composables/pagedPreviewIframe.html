@@ -413,8 +413,8 @@
                 // needs both to resolve its intrinsic aspect ratio.
                 // viewBox="minX minY width height"
                 var vbNums = (svgStr.match(/viewBox="[^"]*"/) || [''])[0].match(/[\d.]+/g);
-                var natW = vbNums && vbNums[2] ? Math.round(parseFloat(vbNums[2])) : null;
-                var natH = vbNums && vbNums[3] ? Math.round(parseFloat(vbNums[3])) : null;
+                var natW = vbNums && vbNums[2] ? Math.round(Number.parseFloat(vbNums[2])) : null;
+                var natH = vbNums && vbNums[3] ? Math.round(Number.parseFloat(vbNums[3])) : null;
                 if (natH) {
                   // Inject explicit height so the browser knows the SVG's
                   // aspect ratio when it's embedded as an <img> source.

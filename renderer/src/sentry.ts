@@ -20,7 +20,7 @@ if (dsn) {
     environment: process.env.NODE_ENV ?? 'development',
     // Same prod/dev split as the app — keeps the bill sane in prod,
     // makes every distributed trace visible while debugging locally.
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1
   })
 }
 

@@ -234,7 +234,7 @@ const slideQuery = useRouteQuery<string | null, number>(
     transform: {
       get: (raw) => {
         if (typeof raw !== 'string') return 0
-        const n = parseInt(raw, 10) - 1
+        const n = Number.parseInt(raw, 10) - 1
         return Number.isInteger(n) && n >= 0 ? n : 0
       },
       // Slide 1 is the default — return null so the param drops out

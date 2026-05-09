@@ -75,8 +75,8 @@ async function transformMermaid(html: string, theme: MermaidTheme): Promise<stri
       // Parse viewBox to recover natural width + height for the <img>.
       // viewBox="minX minY width height"
       const vbNums = (svg.match(/viewBox="[^"]*"/) ?? [''])[0].match(/[\d.]+/g)
-      const natW = vbNums?.[2] ? Math.round(parseFloat(vbNums[2])) : null
-      const natH = vbNums?.[3] ? Math.round(parseFloat(vbNums[3])) : null
+      const natW = vbNums?.[2] ? Math.round(Number.parseFloat(vbNums[2])) : null
+      const natH = vbNums?.[3] ? Math.round(Number.parseFloat(vbNums[3])) : null
       if (natH) {
         svg = svg.replace(/<svg(\b)/, `<svg height="${natH}"$1`)
       }

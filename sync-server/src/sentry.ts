@@ -14,7 +14,7 @@ if (dsn) {
     // Dev: full sampling so distributed traces (browser → app → sync-server
     // for activity logs / comments mirror) are visible while debugging.
     // Prod: 10% to keep the Sentry bill sane.
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1
   })
 }
 

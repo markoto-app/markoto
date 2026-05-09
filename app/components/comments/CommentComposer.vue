@@ -160,7 +160,7 @@ function getCaretCoords(textarea: HTMLTextAreaElement, index: number): { top: nu
   document.body.appendChild(mirror)
   const top = span.offsetTop - textarea.scrollTop
   const left = span.offsetLeft - textarea.scrollLeft
-  const lineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2
+  const lineHeight = Number.parseFloat(cs.lineHeight) || Number.parseFloat(cs.fontSize) * 1.2
   document.body.removeChild(mirror)
   return { top, left, lineHeight }
 }

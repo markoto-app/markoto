@@ -470,7 +470,7 @@ export function insertBlock(view: EditorView, text: string): void {
  */
 export function insertFootnote(view: EditorView): void {
   const docText = view.state.doc.toString()
-  const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => parseInt(m[1]!, 10))
+  const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => Number.parseInt(m[1]!, 10))
   const next = refs.length > 0 ? Math.max(...refs) + 1 : 1
   const ref = `[^${next}]`
 

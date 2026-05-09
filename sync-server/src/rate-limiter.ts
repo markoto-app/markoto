@@ -142,7 +142,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
 // 200 in dev and 20 in prod via `NODE_ENV`. Override either way with
 // the env var.
 const envOverride = process.env.SYNC_MAX_CONNECTIONS_PER_IP
-const parsedOverride = envOverride ? parseInt(envOverride, 10) : NaN
+const parsedOverride = envOverride ? Number.parseInt(envOverride, 10) : Number.NaN
 const isProd = process.env.NODE_ENV === 'production'
 const defaultCap = isProd ? 20 : 200
 const resolvedCap = Number.isFinite(parsedOverride) && parsedOverride > 0

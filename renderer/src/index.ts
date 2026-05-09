@@ -5,7 +5,7 @@
 import { Sentry } from './sentry'
 import { renderDocument, type RenderInput } from './render'
 
-const PORT = parseInt(process.env.PORT || '9000', 10)
+const PORT = Number.parseInt(process.env.PORT || '9000', 10)
 const INTERNAL_SECRET = (() => {
   const v = process.env.INTERNAL_API_SECRET
   if (!v) throw new Error('[renderer] INTERNAL_API_SECRET environment variable is required')

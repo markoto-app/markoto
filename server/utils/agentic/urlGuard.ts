@@ -85,7 +85,7 @@ function ipv6FirstHextet(ip: string): number {
   const segs = noZone.split(':')
   const first = segs[0]
   if (first === undefined || first === '') return 0
-  const n = parseInt(first, 16)
+  const n = Number.parseInt(first, 16)
   return Number.isFinite(n) ? n : -1
 }
 

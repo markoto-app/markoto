@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   // endpoint that targets `users.id` of the sponsor.
   const billing = await resolveBillingContext(userId, null)
 
-  await setUserKeyMaxBudget(userId, billing.plan, 0.0)
+  await setUserKeyMaxBudget(userId, billing.plan, 0)
 
-  return { ok: true, userId, plan: billing.plan, maxBudget: 0.0 }
+  return { ok: true, userId, plan: billing.plan, maxBudget: 0 }
 })

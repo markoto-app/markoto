@@ -21,7 +21,7 @@ let pool: Pool | null = null
  */
 const SLOW_QUERY_THRESHOLD_MS = (() => {
   const raw = process.env.NUXT_DB_SLOW_QUERY_MS
-  const n = raw ? Number(raw) : NaN
+  const n = raw ? Number(raw) : Number.NaN
   return Number.isFinite(n) && n > 0 ? n : 200
 })()
 

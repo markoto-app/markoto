@@ -26,7 +26,7 @@ const { t } = useI18n()
 function formatDate(value: string | number | Date | null) {
   if (!value) return ''
   const date = new Date(value)
-  if (isNaN(date.getTime())) return ''
+  if (Number.isNaN(date.getTime())) return ''
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 </script>

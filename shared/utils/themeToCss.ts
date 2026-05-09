@@ -192,7 +192,7 @@ function typographyBlock(theme: DocTheme): string {
   for (let level = 1; level <= 6; level++) {
     const exponent = 6 - level
     const sizePt = (bodySize * Math.pow(scale, exponent)).toFixed(2)
-    const baseTop = level <= 2 ? 1.4 : 1.0
+    const baseTop = level <= 2 ? 1.4 : 1
     const marginTop = (baseTop * spacingScale).toFixed(2)
     headingRules.push(`.paged-doc h${level} {
   font-family: ${headingFamily};
