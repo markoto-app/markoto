@@ -139,15 +139,22 @@ export function commitDictationFinal(
 
   const caret = view.state.selection.main.head
   const charBefore = caret > 0 ? view.state.doc.sliceString(caret - 1, caret) : ' '
-  const charAfter = caret < view.state.doc.length ? view.state.doc.sliceString(caret, caret + 1) : ' '
 
   // Leading space if we're mid-word (previous char is word-like and
-  // not already whitespace). Trailing space if next char is word-like
-  // too — otherwise the next spoken phrase starts glued to the tail
-  // of this one.
+  // not already whitespace). Trailing space ALWAYS — the next spoken
+  // phrase needs a separator regardless of what's downstream, and at
+  // EOF there's nothing to collide with.
+  //
+  // The trailing-space invariant has its own test pin (see
+  // tests/dom/dictationCommit.test.ts:appends with trailing space at
+  // end of empty doc + the four others). A previous Sonar S3923 "fix"
+  // narrowed this to `(needsTailSpace ? ' ' : '')` and broke them —
+  // S3923 fired on the original `' ' : ' '` because both branches
+  // were the literal space, but the right resolution was to drop the
+  // ternary entirely (no condition = no S3923), not to invent a
+  // condition.
   const needsLeadSpace = /\w/.test(charBefore)
-  const needsTailSpace = /\w/.test(charAfter)
-  const insert = (needsLeadSpace ? ' ' : '') + trimmed + (needsTailSpace ? ' ' : '')
+  const insert = (needsLeadSpace ? ' ' : '') + trimmed + ' '
 
   const origin = userId !== null ? `dictation:${userId}` : 'dictation:anon'
   ydoc.transact(() => {
