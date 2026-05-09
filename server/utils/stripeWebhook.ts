@@ -11,8 +11,12 @@ import { updateUserKeyBudget, resetUserKeySpend } from './litellmKeys'
 // top-level `db` for our usage but typed distinctly. We accept either
 // for handler reuse: the dispatcher wraps the whole event in a single
 // transaction so the dedup INSERT and the user UPDATE commit together.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DbOrTx = any
+//
+// `DbOrTx` is whatever drizzle accepts for chained query builders: the
+// pool-backed result of `useDatabase()` OR a `tx` argument inside
+// `db.transaction(async tx => ...)`. They share the chained-builder
+// surface we need; we don't actually narrow further.
+type DbOrTx = ReturnType<typeof useDatabase> | Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
 
 // Phase 7: handlers queue side-effects that must run AFTER the
 // surrounding transaction commits — primarily LiteLLM virtual-key
@@ -625,7 +629,8 @@ export async function dispatchStripeEvent(
       if (customerId) {
         const drained = await drainPendingEvents(customerId, { ...opts, db: tx, deferAfterCommit })
         if (drained > 0) {
-          return { ...result, detail: { ...(result.detail ?? {}), drained } }
+          const detail = result.detail ?? {}
+          return { ...result, detail: { ...detail, drained } }
         }
       }
     }

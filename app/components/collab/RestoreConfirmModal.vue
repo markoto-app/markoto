@@ -36,6 +36,14 @@ interface RestoreResponse {
 
 async function handleRestore() {
   restoring.value = true
+
+  function restoreErrorTitleKey(status: number | undefined): string {
+    if (status === 403) return 'activity.restore.error.unauthorized'
+    if (status === 410) return 'activity.restore.error.unavailable'
+    if (status === 404) return 'activity.restore.error.notFound'
+    return 'activity.restore.error.generic'
+  }
+
   try {
     await $fetch<RestoreResponse>(
       `/api/docs/${props.docId}/activity/${props.activityId}/restore`,
@@ -52,15 +60,7 @@ async function handleRestore() {
     const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
     // Per-status messaging — match the endpoint's contract from
     // server/api/docs/[docId]/activity/[activityId]/restore.post.ts.
-    const status = err.statusCode
-    const titleKey
-      = status === 403
-        ? 'activity.restore.error.unauthorized'
-        : status === 410
-          ? 'activity.restore.error.unavailable'
-          : status === 404
-            ? 'activity.restore.error.notFound'
-            : 'activity.restore.error.generic'
+    const titleKey = restoreErrorTitleKey(err.statusCode)
     toast.add({
       title: t(titleKey),
       description: err.data?.message || err.message,

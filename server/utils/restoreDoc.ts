@@ -100,7 +100,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     // JS values. We deliberately do NOT use the past doc's encoded
     // update — see the rationale at the apply site below.
     const past = await reconstructDocAtYjsId(opts.docId, opts.targetYjsId)
-    const pastText = past.getText('content').toString()
+    const pastText = past.getText('content').toJSON()
     const pastComments = past.getArray('comments').toJSON() as unknown[]
     const pastMeta = past.getMap('meta').toJSON() as Record<string, unknown>
     past.destroy()

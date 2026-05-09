@@ -27,10 +27,12 @@ import * as Sentry from '@sentry/nuxt'
 // any time the Y.Doc is updated — including theme changes pushed via
 // ymeta. So no separate themeHash is needed.
 
+export type RenderFormat = 'pdf' | 'png' | 'both'
+
 export interface RenderManifest {
   snapshotId: number
   pageCount: number
-  format: 'pdf' | 'png' | 'both'
+  format: RenderFormat
   renderedAt: string
   pdfKey: string | null
   pageKeys: string[]
@@ -211,7 +213,8 @@ async function callRenderer(
       const body = await res.json() as { error?: string }
       detail = body.error || ''
     } catch { /* non-JSON body */ }
-    throw new Error(`Renderer ${res.status}${detail ? `: ${detail}` : ''}`)
+    const tail = detail ? `: ${detail}` : ''
+    throw new Error(`Renderer ${res.status}${tail}`)
   }
 
   return await res.json() as RendererSuccess

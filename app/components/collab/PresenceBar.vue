@@ -100,12 +100,7 @@ function updateLive() {
     const user = state.user as AwarenessUser
     // yCollab passes the JWT userId into `user.id` — numeric for real users,
     // string 'anonymous' for unauthenticated, also numeric for AI.
-    const raw = user.id
-    const userId = typeof raw === 'number'
-      ? raw
-      : typeof raw === 'string' && /^\d+$/.test(raw)
-        ? Number(raw)
-        : null
+    const userId = parseUserIdFromAwareness(user.id)
     // Drop other tabs of the SAME human user. AI sessions skip this
     // (each session is a distinct presence even if it's "the AI") and
     // anonymous users with no userId fall through.
@@ -179,11 +174,15 @@ const merged = computed<DisplayEntry[]>(() => {
 //   - AI helper: delegated to the existing ai.helpingTooltip i18n key
 //   - Offline: "Alice Test — Editor (offline)"
 function roleLabel(role: 'admin' | 'editor' | 'viewer') {
-  return role === 'admin'
-    ? t('workspace.roles.admin')
-    : role === 'editor'
-      ? t('workspace.roles.editor')
-      : t('workspace.roles.viewer')
+  if (role === 'admin') return t('workspace.roles.admin')
+  if (role === 'editor') return t('workspace.roles.editor')
+  return t('workspace.roles.viewer')
+}
+
+function parseUserIdFromAwareness(raw: unknown): number | null {
+  if (typeof raw === 'number') return raw
+  if (typeof raw === 'string' && /^\d+$/.test(raw)) return Number(raw)
+  return null
 }
 
 function tooltipFor(e: DisplayEntry): string {

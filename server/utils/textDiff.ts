@@ -49,6 +49,12 @@ export function computeTextDiff(beforeText: string, afterText: string): DiffResu
   // of the format. We supply placeholders since we don't render them.
   const patch = structuredPatch('before', 'after', beforeText, afterText, '', '', { context: CONTEXT_LINES })
 
+  function lineKindFromPrefix(prefix: string | undefined): DiffHunk['lines'][number]['kind'] {
+    if (prefix === '+') return 'add'
+    if (prefix === '-') return 'remove'
+    return 'context'
+  }
+
   const totalHunks = patch.hunks.length
   const truncated = totalHunks > MAX_HUNKS
   const hunksToTake = patch.hunks.slice(0, MAX_HUNKS)
@@ -73,12 +79,7 @@ export function computeTextDiff(beforeText: string, afterText: string): DiffResu
         const truncatedText = text.length > MAX_LINE_CHARS
           ? `${text.slice(0, MAX_LINE_CHARS - 1)}…`
           : text
-        const kind: DiffHunk['lines'][number]['kind']
-          = prefix === '+'
-            ? 'add'
-            : prefix === '-'
-              ? 'remove'
-              : 'context'
+        const kind = lineKindFromPrefix(prefix)
         return { kind, text: truncatedText }
       })
   }))

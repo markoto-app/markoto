@@ -51,11 +51,9 @@ function isSoleAdmin(m: WorkspaceMember) {
 }
 
 function roleLabel(role: WorkspaceMember['role']) {
-  return role === 'admin'
-    ? t('workspace.roles.admin')
-    : role === 'editor'
-      ? t('workspace.roles.editor')
-      : t('workspace.roles.viewer')
+  if (role === 'admin') return t('workspace.roles.admin')
+  if (role === 'editor') return t('workspace.roles.editor')
+  return t('workspace.roles.viewer')
 }
 
 function initials(name: string) {

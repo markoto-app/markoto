@@ -63,8 +63,11 @@ const server = new Server({
     // Seed the previous-text cache so the FIRST diff after load is measured
     // against what was on disk, not against an empty string (which would
     // otherwise report a huge "+N lines" on the next store).
+    // Y.Text exposes the doc body via toString(); prefer the equivalent
+    // toJSON() which TS can verify returns string (Sonar can't see Y.Text's
+    // toString override otherwise — S6551).
     const ytext = doc.getText('content')
-    await setPrevText(data.documentName, ytext.toString())
+    await setPrevText(data.documentName, ytext.toJSON())
     // Same for title + theme: seed against current state so the first
     // store after load doesn't emit a spurious "title changed" with a
     // null `from` value.
@@ -214,10 +217,13 @@ function resolveAttribution(
   // numeric id; AI sessions use the synthetic `ai:assistant:{sessionId}`
   // form which is non-numeric and resolves to null, exactly what we
   // want (no users.id row to JOIN against).
-  const userId = tracked?.userId
-    ? (Number.isFinite(Number(tracked.userId)) ? Number(tracked.userId) : null)
-    : null
-  return { userName, userId }
+  return { userName, userId: parseTrackedUserId(tracked?.userId) }
+}
+
+function parseTrackedUserId(rawUserId: string | undefined): number | null {
+  if (!rawUserId) return null
+  const n = Number(rawUserId)
+  return Number.isFinite(n) ? n : null
 }
 
 /**
@@ -286,9 +292,7 @@ async function logMetaDiffActivity(
 ): Promise<void> {
   try {
     const userName: string | null = tracked?.userName ?? null
-    const userId = tracked?.userId
-      ? (Number.isFinite(Number(tracked.userId)) ? Number(tracked.userId) : null)
-      : null
+    const userId = parseTrackedUserId(tracked?.userId)
     const prevMetaFetch = await getPrevMeta(data.documentName)
     const prevMeta = prevMetaFetch.value
     const currMeta = readMetaSnapshot(data.document)

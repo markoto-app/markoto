@@ -526,7 +526,7 @@ export function parseDocIdFromInput(raw: string): string | null {
   if (!trimmed) return null
   // Try URL-shape match first. Doesn't matter whether the input has a
   // scheme — `/d/<id>` is the load-bearing piece.
-  const urlMatch = trimmed.match(/\/d\/([A-Za-z0-9_-]+)(?:[/?#]|$)/)
+  const urlMatch = /\/d\/([A-Za-z0-9_-]+)(?:[/?#]|$)/.exec(trimmed)
   if (urlMatch) return urlMatch[1] ?? null
   // Otherwise treat as a bare id only if the WHOLE string matches the
   // id alphabet (not "https://example.com" with no `/d/` segment).
@@ -1352,7 +1352,8 @@ export function formatActivityRow(row: ActivityEntry): string {
     case 'restore': {
       const fromId = m && typeof m.restoredFromActivityId === 'number' ? m.restoredFromActivityId : null
       const fromTime = trim(m?.restoredFromTime, 32)
-      return `${head} restored to row #${fromId ?? '?'}${fromTime ? ` (${fromTime})` : ''}`
+      const tail = fromTime ? ` (${fromTime})` : ''
+      return `${head} restored to row #${fromId ?? '?'}${tail}`
     }
     case 'join':
     case 'leave':

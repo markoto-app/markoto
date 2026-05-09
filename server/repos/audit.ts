@@ -138,9 +138,9 @@ export async function getAuditEventsByScope(
 ): Promise<AuditEventRow[]> {
   const db = useDatabase()
   const limit = Math.min(Math.max(opts.limit ?? 50, 1), 500)
-  const where = opts.beforeId !== undefined
-    ? and(eq(auditLog.scope, scope), eq(auditLog.scopeId, scopeId), lt(auditLog.id, opts.beforeId))
-    : and(eq(auditLog.scope, scope), eq(auditLog.scopeId, scopeId))
+  const where = opts.beforeId === undefined
+    ? and(eq(auditLog.scope, scope), eq(auditLog.scopeId, scopeId))
+    : and(eq(auditLog.scope, scope), eq(auditLog.scopeId, scopeId), lt(auditLog.id, opts.beforeId))
   const rows = await db
     .select()
     .from(auditLog)
@@ -161,9 +161,9 @@ export async function getAuditEventsByActor(
 ): Promise<AuditEventRow[]> {
   const db = useDatabase()
   const limit = Math.min(Math.max(opts.limit ?? 50, 1), 500)
-  const where = opts.beforeId !== undefined
-    ? and(eq(auditLog.actorUserId, actorUserId), lt(auditLog.id, opts.beforeId))
-    : eq(auditLog.actorUserId, actorUserId)
+  const where = opts.beforeId === undefined
+    ? eq(auditLog.actorUserId, actorUserId)
+    : and(eq(auditLog.actorUserId, actorUserId), lt(auditLog.id, opts.beforeId))
   const rows = await db
     .select()
     .from(auditLog)

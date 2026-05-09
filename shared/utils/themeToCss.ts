@@ -78,6 +78,8 @@ ${footerSlots}
 }`
 }
 
+type RunningSlotPosition = 'left' | 'center' | 'right'
+
 function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string, metaFont: string): string {
   // The optional image (if `imageUrl` is set) wins over text in the slot
   // it lands in — same slot can't show both. Users typically pick one
@@ -85,7 +87,7 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
   // `content: url('...')` per CSS Paged Media; the image inherits the
   // slot's vertical alignment from the @top-X box itself.
   const imgSlot = slots.imageUrl.trim() ? slots.imagePosition : null
-  const text: Record<'left' | 'center' | 'right', string> = {
+  const text: Record<RunningSlotPosition, string> = {
     left: slots.left,
     center: slots.center,
     right: slots.right
@@ -98,7 +100,7 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
       // Image slot — escape single-quotes in URLs (none expected for
       // /api/files, but defense in depth) and pin the image height in
       // pt so it lines up with the running header's text-size scale.
-      const safeUrl = slots.imageUrl.replaceAll('\'', '\\\'')
+      const safeUrl = slots.imageUrl.replaceAll('\'', String.raw`\'`)
       out.push(`  @${boxName} {
     content: url('${safeUrl}');
     height: ${slots.imageHeight}pt;
@@ -789,13 +791,7 @@ function coverBlock(theme: DocTheme): string {
   // column for the other layouts. The `display` declaration is layout-
   // specific so each composition gets its own vertical rhythm.
   const ctx = { justifyItems, align, coverHeightMm }
-  const layoutCss = layout === 'editorial'
-    ? editorialCoverCss(ctx)
-    : layout === 'banner'
-      ? bannerCoverCss(ctx)
-      : layout === 'minimal'
-        ? minimalCoverCss(ctx)
-        : classicCoverCss(ctx)
+  const layoutCss = renderCoverLayoutCss(layout, ctx)
 
   return [
     layoutCss,
@@ -882,6 +878,13 @@ function justifyItemsToFlexAlign(j: string): string {
   if (j === 'start') return 'flex-start'
   if (j === 'end') return 'flex-end'
   return 'center'
+}
+
+function renderCoverLayoutCss(layout: string, ctx: CoverCtx): string {
+  if (layout === 'editorial') return editorialCoverCss(ctx)
+  if (layout === 'banner') return bannerCoverCss(ctx)
+  if (layout === 'minimal') return minimalCoverCss(ctx)
+  return classicCoverCss(ctx)
 }
 
 /**

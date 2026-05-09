@@ -40,6 +40,12 @@
  */
 import { isVoxtralSupportedLanguage } from '~~/shared/languages/voxtralSupport'
 
+function firstByteOf(raw: unknown): number | undefined {
+  if (Buffer.isBuffer(raw)) return raw[0]
+  if (raw instanceof Uint8Array) return raw[0]
+  return undefined
+}
+
 export function tryParseControl(message: { rawData: unknown, text(): string }): {
   type: 'auth' | 'stop'
   token?: unknown
@@ -47,11 +53,7 @@ export function tryParseControl(message: { rawData: unknown, text(): string }): 
 } | null {
   const raw = message.rawData
   if (typeof raw !== 'string') {
-    const firstByte = Buffer.isBuffer(raw)
-      ? raw[0]
-      : raw instanceof Uint8Array
-        ? raw[0]
-        : undefined
+    const firstByte = firstByteOf(raw)
     if (firstByte !== 0x7B /* '{' */) return null
   }
   let text: string

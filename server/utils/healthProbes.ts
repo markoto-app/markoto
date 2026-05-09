@@ -82,6 +82,11 @@ export async function probeValkey(): Promise<ProbeResult> {
   }
 }
 
+function errorMessage(e: unknown): string {
+  if (!(e instanceof Error)) return String(e)
+  return e.name === 'TimeoutError' ? 'timeout' : e.message
+}
+
 async function probeHttp(url: string | undefined | null, name: string, path = '/health'): Promise<ProbeResult> {
   if (!url) return skipped()
   const started = performance.now()
@@ -97,7 +102,7 @@ async function probeHttp(url: string | undefined | null, name: string, path = '/
     return down(latency, `HTTP ${res.status}`)
   } catch (e) {
     const latency = Math.round(performance.now() - started)
-    const msg = e instanceof Error ? (e.name === 'TimeoutError' ? 'timeout' : e.message) : String(e)
+    const msg = errorMessage(e)
     return down(latency, `${name}: ${msg}`)
   }
 }

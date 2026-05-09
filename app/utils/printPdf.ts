@@ -56,7 +56,7 @@ async function loadMermaid(theme: MermaidTheme): Promise<MermaidModule> {
 }
 
 async function transformMermaid(html: string, theme: MermaidTheme): Promise<string> {
-  if (html.indexOf('language-mermaid') === -1) return html
+  if (!html.includes('language-mermaid')) return html
   const parser = new DOMParser()
   const doc = parser.parseFromString(`<body>${html}</body>`, 'text/html')
   const blocks = Array.from(doc.querySelectorAll('pre code.language-mermaid'))

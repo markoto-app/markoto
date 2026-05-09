@@ -56,8 +56,10 @@ const LOREM = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do e
 function buildMarkdown() {
   const parts = ['# Render comparison fixture\n\n']
   for (const s of SECTIONS) {
-    parts.push(`## ${s}\n\n${LOREM}\n\n`)
-    parts.push(`${LOREM}\n\n- bullet one\n- bullet two\n- bullet three\n\n`)
+    parts.push(
+      `## ${s}\n\n${LOREM}\n\n`,
+      `${LOREM}\n\n- bullet one\n- bullet two\n- bullet three\n\n`
+    )
   }
   return parts.join('')
 }
@@ -233,7 +235,9 @@ async function main() {
   console.log(`\n[compare] artefacts in ${OUT_DIR}/`)
 }
 
-main().catch((e) => {
+try {
+  await main()
+} catch (e) {
   console.error('[compare] FAILED:', e)
   process.exit(1)
-})
+}
