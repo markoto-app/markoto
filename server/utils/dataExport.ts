@@ -120,15 +120,50 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   if (!userRow) throw new Error(`buildExportZip: user ${userId} not found`)
 
   const entries: Record<string, Uint8Array> = {}
-
-  // ── README ──────────────────────────────────────────────────────
   entries['README.txt'] = strToU8(ZIP_README)
+  entries['profile.json'] = strToU8(JSON.stringify(buildProfileEntry(userRow), null, 2))
 
-  // ── profile.json ────────────────────────────────────────────────
-  // Strip nothing here — `users` doesn't store password hashes (we
-  // use OAuth) — but defensively project to the columns we want to
-  // surface, so a future column addition doesn't accidentally leak.
-  const profile = {
+  const documentsCount = await addOwnedDocumentsEntries(entries, db, userId)
+  const commentsCount = await addCommentsEntry(entries, db, userId)
+  const membershipsCount = await addWorkspaceMembershipsEntry(entries, db, userId)
+  const themesCount = await addThemesEntry(entries, db, userId)
+  const { sessionsCount, messagesCount } = await addAiEntries(entries, db, userId)
+  // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
+  // No usage history to export — LiteLLM's spend logs are operator-
+  // facing only. If a user requests historical AI usage in the future,
+  // re-add via a separate `/spend/logs` proxy.
+  const activityCount = await addActivityLogEntry(entries, db, userId)
+  const auditCount = await addAuditLogEntry(entries, db, userId)
+  const consentCount = await addConsentLogEntry(entries, db, userId)
+  const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
+
+  return {
+    bytes: zipSync(entries, { level: 6 }),
+    counts: {
+      documents: documentsCount,
+      comments: commentsCount,
+      workspaceMemberships: membershipsCount,
+      themes: themesCount,
+      aiSessions: sessionsCount,
+      aiSessionMessages: messagesCount,
+      activityLogRows: activityCount,
+      auditLogRows: auditCount,
+      consentLogRows: consentCount,
+      invoices: invoicesCount
+    }
+  }
+}
+
+type Db = ReturnType<typeof useDatabase>
+type Entries = Record<string, Uint8Array>
+
+/**
+ * Profile projection. `users` doesn't store password hashes (we use
+ * OAuth) but we still defensively project to the columns we want
+ * surfaced, so a future column addition doesn't accidentally leak.
+ */
+function buildProfileEntry(userRow: typeof users.$inferSelect) {
+  return {
     id: userRow.id,
     name: userRow.name,
     email: userRow.email,
@@ -150,54 +185,52 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     dpaVersionAcceptedLocale: userRow.dpaVersionAcceptedLocale,
     createdAt: userRow.createdAt.toISOString()
   }
-  entries['profile.json'] = strToU8(JSON.stringify(profile, null, 2))
+}
 
-  // ── Owned documents — markdown + meta ───────────────────────────
-  // y-postgresql creates `yjs_documents` lazily on the first write
-  // from the sync server. In environments where the sync server
-  // hasn't run (CI repos tests, fresh dev DB) the table doesn't
-  // exist yet — probe pg_class so we degrade gracefully to "no
-  // history available; emit empty markdown" instead of crashing the
-  // whole export.
-  const yjsTableExistsRow = await db.execute<{ exists: boolean }>(sql`
+/**
+ * y-postgresql creates `yjs_documents` lazily on the first write from
+ * the sync server. In environments where the sync server hasn't run
+ * (CI repos tests, fresh dev DB) the table doesn't exist yet — probe
+ * `pg_class` so the export degrades gracefully to "no history; empty
+ * markdown" instead of crashing.
+ */
+async function checkYjsTableExists(db: Db): Promise<boolean> {
+  const row = await db.execute<{ exists: boolean }>(sql`
     SELECT EXISTS (
       SELECT 1 FROM pg_class WHERE relname = 'yjs_documents' AND relkind = 'r'
     ) AS exists
   `)
-  const yjsTableExists = yjsTableExistsRow.rows?.[0]?.exists === true
+  return row.rows?.[0]?.exists === true
+}
 
+/** Reconstruct a single doc's markdown via y-postgresql, with Sentry-reported error fallback so one failed doc doesn't sink the whole export. */
+async function reconstructDocMarkdown(db: Db, docId: string, yjsTableExists: boolean): Promise<string> {
+  let maxId: number | null = null
+  if (yjsTableExists) {
+    const latestYjs = await db.execute<{ max_id: number | null }>(sql`
+      SELECT MAX(id)::int AS max_id FROM yjs_documents
+      WHERE docname = ${docId} AND version = 'v1'
+    `)
+    maxId = latestYjs.rows?.[0]?.max_id ?? null
+  }
+  try {
+    return await reconstructTextAtYjsId(docId, maxId)
+  } catch (e) {
+    Sentry.captureException(e, {
+      tags: { component: 'dataExport', event: 'reconstruct_failed', docId }
+    })
+    return `[markoto] Document content could not be reconstructed at export time. Error: ${e instanceof Error ? e.message : String(e)}`
+  }
+}
+
+async function addOwnedDocumentsEntries(entries: Entries, db: Db, userId: number): Promise<number> {
+  const yjsTableExists = await checkYjsTableExists(db)
   const ownedDocs = await db
     .select()
     .from(documents)
     .where(eq(documents.ownerId, userId))
-  let documentsCount = 0
   for (const doc of ownedDocs) {
-    documentsCount += 1
-    // Reconstruct the doc's text from y-postgresql. Caps at 'now' —
-    // we don't have a notion of a "boundary" for export; just want
-    // the latest state. `null` for max id triggers the empty-doc
-    // path; we want the full history so query the latest yjs id.
-    let maxId: number | null = null
-    if (yjsTableExists) {
-      const latestYjs = await db.execute<{ max_id: number | null }>(sql`
-        SELECT MAX(id)::int AS max_id FROM yjs_documents
-        WHERE docname = ${doc.docId} AND version = 'v1'
-      `)
-      maxId = latestYjs.rows?.[0]?.max_id ?? null
-    }
-    let markdown = ''
-    try {
-      markdown = await reconstructTextAtYjsId(doc.docId, maxId)
-    } catch (e) {
-      // Don't fail the whole export on a doc reconstruction failure —
-      // emit an explanatory marker file. Sentry-tagged so ops sees
-      // it; orphaned y-postgresql state usually just means the
-      // sync-server hasn't run for this doc.
-      Sentry.captureException(e, {
-        tags: { component: 'dataExport', event: 'reconstruct_failed', docId: doc.docId }
-      })
-      markdown = `[markoto] Document content could not be reconstructed at export time. Error: ${e instanceof Error ? e.message : String(e)}`
-    }
+    const markdown = await reconstructDocMarkdown(db, doc.docId, yjsTableExists)
     entries[`documents/${doc.docId}.md`] = strToU8(markdown)
     entries[`documents/${doc.docId}.meta.json`] = strToU8(JSON.stringify({
       docId: doc.docId,
@@ -215,8 +248,10 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
       lastActive: doc.lastActive.toISOString()
     }, null, 2))
   }
+  return ownedDocs.length
+}
 
-  // ── Comments authored by the user ───────────────────────────────
+async function addCommentsEntry(entries: Entries, db: Db, userId: number): Promise<number> {
   const comments = await db
     .select()
     .from(documentComments)
@@ -231,8 +266,10 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     updatedAtMs: c.updatedAtMs.toISOString(),
     resolved: c.resolved
   }))))
+  return comments.length
+}
 
-  // ── Workspace memberships ───────────────────────────────────────
+async function addWorkspaceMembershipsEntry(entries: Entries, db: Db, userId: number): Promise<number> {
   const memberships = await db
     .select({
       workspaceId: workspaceMembers.workspaceId,
@@ -253,8 +290,10 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     })),
     null, 2
   ))
+  return memberships.length
+}
 
-  // ── Saved themes ────────────────────────────────────────────────
+async function addThemesEntry(entries: Entries, db: Db, userId: number): Promise<number> {
   const themesRows = await db
     .select()
     .from(themes)
@@ -270,8 +309,10 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     })),
     null, 2
   ))
+  return themesRows.length
+}
 
-  // ── AI sessions, messages, usage ────────────────────────────────
+async function addAiEntries(entries: Entries, db: Db, userId: number): Promise<{ sessionsCount: number, messagesCount: number }> {
   const sessionsRows = await db
     .select()
     .from(aiSessions)
@@ -298,12 +339,10 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     createdAt: m.createdAt.toISOString()
   }))))
 
-  // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
-  // No usage history to export — LiteLLM's spend logs are operator-
-  // facing only. If a user requests historical AI usage in the future,
-  // re-add via a separate `/spend/logs` proxy.
+  return { sessionsCount: sessionsRows.length, messagesCount: aiMessagesRows.length }
+}
 
-  // ── Activity log rows attributed to the user ────────────────────
+async function addActivityLogEntry(entries: Entries, db: Db, userId: number): Promise<number> {
   const activityRows = await db
     .select()
     .from(activityLog)
@@ -319,12 +358,17 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     metadata: a.metadata,
     createdAt: a.createdAt.toISOString()
   }))))
+  return activityRows.length
+}
 
-  // ── Audit log rows actioned BY the user OR scoped to them ───────
-  // The user has a right of access to data ABOUT them — that
-  // includes audit entries our system wrote where they were the
-  // actor or where the audited entity was them (e.g.
-  // account.delete_requested with scope_id = String(userId)).
+/**
+ * Audit-log rows actioned BY the user OR scoped to them. The user
+ * has a right of access to data ABOUT them — that includes audit
+ * entries our system wrote where they were the actor or where the
+ * audited entity was them (e.g. `account.delete_requested` with
+ * `scope_id = String(userId)`).
+ */
+async function addAuditLogEntry(entries: Entries, db: Db, userId: number): Promise<number> {
   const auditRows = await db
     .select()
     .from(auditLog)
@@ -341,8 +385,10 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     after: r.after,
     metadata: r.metadata
   }))))
+  return auditRows.length
+}
 
-  // ── Consent log ─────────────────────────────────────────────────
+async function addConsentLogEntry(entries: Entries, db: Db, userId: number): Promise<number> {
   const consentRows = await db
     .select()
     .from(consentLog)
@@ -357,62 +403,42 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
     userAgentHash: c.userAgentHash,
     createdAt: c.createdAt.toISOString()
   }))))
+  return consentRows.length
+}
 
-  // ── Stripe billing (best-effort) ────────────────────────────────
-  let invoicesCount = 0
-  if (userRow.stripeCustomerId) {
-    try {
-      const stripe = useStripeClient()
-      if (stripe) {
-        const customer = await stripe.customers.retrieve(userRow.stripeCustomerId)
-        entries['billing/customer.json'] = strToU8(JSON.stringify(customer, null, 2))
-
-        // Paginate invoices. For a single user this is small; cap
-        // at 100 so a malicious / weird state can't blow the export.
-        const invoices: Record<string, unknown>[] = []
-        const list = await stripe.invoices.list({ customer: userRow.stripeCustomerId, limit: 100 })
-        invoices.push(...(list.data as unknown as Record<string, unknown>[]))
-        invoicesCount = invoices.length
-        entries['billing/invoices.ndjson'] = strToU8(toNdjson(invoices))
-      } else {
-        entries['billing/customer.json'] = strToU8('{"error":"stripe client unavailable; export was built without billing data"}')
-        entries['billing/invoices.ndjson'] = strToU8('')
-      }
-    } catch (e) {
-      // Don't fail the whole export on Stripe being down — emit
-      // an error marker so the user knows billing is missing,
-      // and let them re-request later.
-      Sentry.captureException(e, {
-        tags: { component: 'dataExport', event: 'stripe_fetch_failed' }
-      })
-      const msg = e instanceof Error ? e.message : String(e)
-      entries['billing/customer.json'] = strToU8(JSON.stringify({ error: `stripe fetch failed: ${msg}` }, null, 2))
-      entries['billing/invoices.ndjson'] = strToU8('')
-    }
-  } else {
-    // No Stripe customer — emit empty placeholder files for
-    // layout-stability.
+/**
+ * Stripe billing — best-effort. Failures land an error marker so the
+ * user can re-request later; no Stripe customer at all emits empty
+ * placeholders for layout stability. Invoices capped at 100 to
+ * survive malicious / weird state without blowing the export.
+ */
+async function addBillingEntries(entries: Entries, stripeCustomerId: string | null): Promise<number> {
+  if (!stripeCustomerId) {
     entries['billing/customer.json'] = strToU8('{}')
     entries['billing/invoices.ndjson'] = strToU8('')
+    return 0
   }
-
-  // ── Build the ZIP ───────────────────────────────────────────────
-  const bytes = zipSync(entries, { level: 6 })
-
-  return {
-    bytes,
-    counts: {
-      documents: documentsCount,
-      comments: comments.length,
-      workspaceMemberships: memberships.length,
-      themes: themesRows.length,
-      aiSessions: sessionsRows.length,
-      aiSessionMessages: aiMessagesRows.length,
-      activityLogRows: activityRows.length,
-      auditLogRows: auditRows.length,
-      consentLogRows: consentRows.length,
-      invoices: invoicesCount
+  try {
+    const stripe = useStripeClient()
+    if (!stripe) {
+      entries['billing/customer.json'] = strToU8('{"error":"stripe client unavailable; export was built without billing data"}')
+      entries['billing/invoices.ndjson'] = strToU8('')
+      return 0
     }
+    const customer = await stripe.customers.retrieve(stripeCustomerId)
+    entries['billing/customer.json'] = strToU8(JSON.stringify(customer, null, 2))
+    const list = await stripe.invoices.list({ customer: stripeCustomerId, limit: 100 })
+    const invoices = list.data as unknown as Record<string, unknown>[]
+    entries['billing/invoices.ndjson'] = strToU8(toNdjson(invoices))
+    return invoices.length
+  } catch (e) {
+    Sentry.captureException(e, {
+      tags: { component: 'dataExport', event: 'stripe_fetch_failed' }
+    })
+    const msg = e instanceof Error ? e.message : String(e)
+    entries['billing/customer.json'] = strToU8(JSON.stringify({ error: `stripe fetch failed: ${msg}` }, null, 2))
+    entries['billing/invoices.ndjson'] = strToU8('')
+    return 0
   }
 }
 
