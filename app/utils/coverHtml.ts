@@ -30,16 +30,32 @@ import type { DocTheme } from '~~/shared/types/theme'
  */
 export function buildCoverHtml(theme: DocTheme, title: string, dateIso: string): string {
   if (!theme.cover.enabled) return ''
-  const parts: string[] = []
-  if (theme.cover.showLogo && theme.brand.logoUrl) {
-    parts.push(`<img class="markoto-cover-logo" src="${esc(theme.brand.logoUrl)}" alt="">`)
-  }
-  if (theme.cover.showTitle && title) {
-    parts.push(`<h1 class="markoto-cover-title">${esc(title)}</h1>`)
-  }
-  if (theme.cover.showSubtitle && theme.cover.subtitle) {
-    parts.push(`<div class="markoto-cover-subtitle">${esc(theme.cover.subtitle)}</div>`)
-  }
+  const parts = [
+    buildLogoHtml(theme),
+    buildTitleHtml(theme, title),
+    buildSubtitleHtml(theme),
+    buildMetaHtml(theme, dateIso)
+  ].filter(Boolean)
+  return `<section class="markoto-cover">${parts.join('')}</section>`
+}
+
+function buildLogoHtml(theme: DocTheme): string {
+  if (!theme.cover.showLogo || !theme.brand.logoUrl) return ''
+  return `<img class="markoto-cover-logo" src="${esc(theme.brand.logoUrl)}" alt="">`
+}
+
+function buildTitleHtml(theme: DocTheme, title: string): string {
+  if (!theme.cover.showTitle || !title) return ''
+  return `<h1 class="markoto-cover-title">${esc(title)}</h1>`
+}
+
+function buildSubtitleHtml(theme: DocTheme): string {
+  if (!theme.cover.showSubtitle || !theme.cover.subtitle) return ''
+  return `<div class="markoto-cover-subtitle">${esc(theme.cover.subtitle)}</div>`
+}
+
+/** Author + date block. Empty when neither toggle is on AND neither produces text. */
+function buildMetaHtml(theme: DocTheme, dateIso: string): string {
   const metaParts: string[] = []
   if (theme.cover.showAuthors) {
     for (const author of theme.cover.authors) {
@@ -50,10 +66,8 @@ export function buildCoverHtml(theme: DocTheme, title: string, dateIso: string):
   if (theme.cover.showDate && dateIso) {
     metaParts.push(`<div class="markoto-cover-date">${esc(dateIso)}</div>`)
   }
-  if (metaParts.length > 0) {
-    parts.push(`<div class="markoto-cover-meta">${metaParts.join('')}</div>`)
-  }
-  return `<section class="markoto-cover">${parts.join('')}</section>`
+  if (metaParts.length === 0) return ''
+  return `<div class="markoto-cover-meta">${metaParts.join('')}</div>`
 }
 
 /** Minimal HTML escape for text interpolated into element bodies. */
