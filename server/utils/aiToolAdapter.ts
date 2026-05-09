@@ -1506,9 +1506,11 @@ async function handleSearchKnowledge(session: AiSession, input: SearchKnowledgeI
   for (const h of hits) {
     const sim = h.similarity > 0 ? h.similarity.toFixed(3) : '—'
     const bm25 = h.textScore > 0 ? h.textScore.toFixed(3) : '—'
-    lines.push(`--- ${h.filename} (chunk ${h.chunkIndex}, semantic=${sim} lexical=${bm25}) ---`)
-    lines.push(h.content)
-    lines.push('')
+    lines.push(
+      `--- ${h.filename} (chunk ${h.chunkIndex}, semantic=${sim} lexical=${bm25}) ---`,
+      h.content,
+      ''
+    )
   }
   return ok(lines.join('\n'))
 }
@@ -1633,10 +1635,12 @@ function handleReadComments(
       anchorLabel = '[orphaned — anchored text was deleted]'
     }
 
-    lines.push(`--- Thread ${id}${resolved ? ' [RESOLVED]' : ''} ---`)
-    lines.push(`Anchor: ${anchorLabel}`)
-    lines.push(`By: ${authorName} at ${fmtDate(createdAt)}`)
-    lines.push(`Comment: ${body}`)
+    lines.push(
+      `--- Thread ${id}${resolved ? ' [RESOLVED]' : ''} ---`,
+      `Anchor: ${anchorLabel}`,
+      `By: ${authorName} at ${fmtDate(createdAt)}`,
+      `Comment: ${body}`
+    )
 
     const repliesArr = map.get('replies')
     if (repliesArr instanceof Y.Array && repliesArr.length > 0) {

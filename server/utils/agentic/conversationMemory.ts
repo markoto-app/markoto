@@ -185,9 +185,11 @@ export function buildConversationHistoryBlock(rows: AiMessageRow[]): string {
   }
 
   const lines: string[] = []
-  lines.push('<conversation_history>')
-  lines.push('Prior turns from your conversation with THIS user on THIS document, oldest first. Use this for context resolution ("now put it on the first page" → "it" = whatever you just built). DO NOT repeat their content back in your reply — just refer to it. If the user asks about something you did but you cannot find it here, say so plainly via message_to_user; do not fabricate a memory.')
-  lines.push('')
+  lines.push(
+    '<conversation_history>',
+    'Prior turns from your conversation with THIS user on THIS document, oldest first. Use this for context resolution ("now put it on the first page" → "it" = whatever you just built). DO NOT repeat their content back in your reply — just refer to it. If the user asks about something you did but you cannot find it here, say so plainly via message_to_user; do not fabricate a memory.',
+    ''
+  )
 
   if (omittedCount > 0) {
     lines.push(`(${omittedCount} earlier turn${omittedCount === 1 ? '' : 's'} omitted — older context is in the document activity log; ask the user if they need you to recall further back than what is shown here)`)
@@ -198,8 +200,7 @@ export function buildConversationHistoryBlock(rows: AiMessageRow[]): string {
     if (line) lines.push(line)
   }
 
-  lines.push('</conversation_history>')
-  lines.push('')
+  lines.push('</conversation_history>', '')
   return lines.join('\n')
 }
 

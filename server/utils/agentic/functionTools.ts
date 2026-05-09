@@ -1064,9 +1064,11 @@ async function fetchUrlViaJina(
   }
 
   const lines: string[] = []
-  lines.push('Summary:', parsed.summary || '(empty)')
-  lines.push('')
-  lines.push('Images observed on the page:')
+  lines.push(
+    'Summary:', parsed.summary || '(empty)',
+    '',
+    'Images observed on the page:'
+  )
   if (!parsed.images?.length) {
     lines.push('- (none found)')
   } else {
