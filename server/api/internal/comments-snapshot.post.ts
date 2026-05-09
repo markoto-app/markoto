@@ -35,13 +35,38 @@ interface IncomingEntry {
 const MAX_ENTRIES_PER_DOC = 5000
 const MAX_BODY_LENGTH = 8000 // matches the loosest comment cap with headroom
 
-export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  const providedSecret = getRequestHeader(event, 'x-internal-secret')
+interface ParsedBody {
+  docId: string
+  entries: IncomingEntry[]
+  yjsDocIdBefore: number | null
+  yjsDocIdAfter: number | null
+}
 
+export default defineEventHandler(async (event) => {
+  verifyInternalSecret(event)
+  const body = parseSnapshotBody(await readBody(event))
+
+  // Anonymous / direct-URL docs without a DB row are skipped — same
+  // posture as the activity endpoint. The mirror only makes sense
+  // alongside a real document row.
+  if (!(await docExists(body.docId))) return { ok: true, mirrored: false }
+
+  const rows = body.entries
+    .map(buildSnapshotRow)
+    .filter((r): r is CommentSnapshotRow => r !== null)
+
+  const events = await replaceSnapshotInTx(body.docId, rows)
+  await recordSnapshotEvents(body, events)
+
+  return { ok: true, mirrored: true, rowCount: rows.length, activityEvents: events.length }
+})
+
+function verifyInternalSecret(event: Parameters<Parameters<typeof defineEventHandler>[0]>[0]): void {
+  const config = useRuntimeConfig()
   if (!config.internalApiSecret) {
     throw createError({ statusCode: 500, message: 'Internal API secret not configured' })
   }
+  const providedSecret = getRequestHeader(event, 'x-internal-secret')
   if (!providedSecret || !matchesCurrentOrPrevious(
     providedSecret,
     config.internalApiSecret,
@@ -49,64 +74,69 @@ export default defineEventHandler(async (event) => {
   )) {
     throw createError({ statusCode: 401, message: 'Invalid internal secret' })
   }
+}
 
-  const body = await readBody(event) as {
-    docId?: string
-    entries?: IncomingEntry[]
-    /** Boundary y-postgresql row ids around the triggering store. */
-    yjsDocIdBefore?: number | null
-    yjsDocIdAfter?: number | null
-  }
-
-  if (!body.docId || typeof body.docId !== 'string') {
+function parseSnapshotBody(body: unknown): ParsedBody {
+  const b = body as { docId?: unknown, entries?: unknown, yjsDocIdBefore?: unknown, yjsDocIdAfter?: unknown }
+  if (!b.docId || typeof b.docId !== 'string') {
     throw createError({ statusCode: 400, message: 'Missing docId' })
   }
-  if (!Array.isArray(body.entries)) {
+  if (!Array.isArray(b.entries)) {
     throw createError({ statusCode: 400, message: 'entries must be an array' })
   }
-  if (body.entries.length > MAX_ENTRIES_PER_DOC) {
+  if (b.entries.length > MAX_ENTRIES_PER_DOC) {
     throw createError({ statusCode: 413, message: 'Too many entries in snapshot' })
   }
-
-  // Anonymous / direct-URL docs without a DB row are skipped — same
-  // posture as the activity endpoint. The mirror only makes sense
-  // alongside a real document row.
-  if (!(await docExists(body.docId))) {
-    return { ok: true, mirrored: false }
+  return {
+    docId: b.docId,
+    entries: b.entries as IncomingEntry[],
+    yjsDocIdBefore: typeof b.yjsDocIdBefore === 'number' ? b.yjsDocIdBefore : null,
+    yjsDocIdAfter: typeof b.yjsDocIdAfter === 'number' ? b.yjsDocIdAfter : null
   }
+}
 
-  const rows: CommentSnapshotRow[] = []
-  for (const e of body.entries) {
-    if (typeof e.entryId !== 'string' || e.entryId.length === 0 || e.entryId.length > 64) continue
-    if (typeof e.authorName !== 'string') continue
-    if (typeof e.body !== 'string') continue
-    if (typeof e.createdAt !== 'number' || typeof e.updatedAt !== 'number') continue
-    rows.push({
-      entryId: e.entryId,
-      parentCommentId: typeof e.parentCommentId === 'string' && e.parentCommentId.length > 0 && e.parentCommentId.length <= 64
-        ? e.parentCommentId
-        : null,
-      authorId: typeof e.authorId === 'number' ? e.authorId : null,
-      authorName: e.authorName.slice(0, 200),
-      body: e.body.slice(0, MAX_BODY_LENGTH),
-      createdAt: new Date(e.createdAt),
-      updatedAt: new Date(e.updatedAt),
-      resolved: Boolean(e.resolved)
-    })
+/**
+ * Validate one incoming entry and shape it into a `CommentSnapshotRow`.
+ * Returns null when the entry fails any required-field check (missing
+ * id, non-string author/body, non-number timestamps) — caller filters
+ * those out so a single corrupt row doesn't block the whole snapshot.
+ */
+function buildSnapshotRow(e: IncomingEntry): CommentSnapshotRow | null {
+  if (typeof e.entryId !== 'string' || e.entryId.length === 0 || e.entryId.length > 64) return null
+  if (typeof e.authorName !== 'string') return null
+  if (typeof e.body !== 'string') return null
+  if (typeof e.createdAt !== 'number' || typeof e.updatedAt !== 'number') return null
+  return {
+    entryId: e.entryId,
+    parentCommentId: typeof e.parentCommentId === 'string' && e.parentCommentId.length > 0 && e.parentCommentId.length <= 64
+      ? e.parentCommentId
+      : null,
+    authorId: typeof e.authorId === 'number' ? e.authorId : null,
+    authorName: e.authorName.slice(0, 200),
+    body: e.body.slice(0, MAX_BODY_LENGTH),
+    createdAt: new Date(e.createdAt),
+    updatedAt: new Date(e.updatedAt),
+    resolved: Boolean(e.resolved)
   }
+}
 
-  // Read prev → diff → replace → write events, ALL inside a single
-  // transaction protected by a per-doc advisory lock. Without the
-  // lock, two concurrent pushes for the same doc can both observe
-  // the prev rows, both DELETE+INSERT inside `replaceCommentSnapshot`,
-  // and the second one hits the (doc_id, entry_id) unique constraint
-  // (yielding 500s) — caught by the integration concurrency suite.
-  // The advisory-xact lock auto-releases when the transaction
-  // commits or rolls back, so the lock can never leak.
+/**
+ * Read prev → diff → replace → return events, ALL inside a single
+ * transaction protected by a per-doc advisory lock. Without the
+ * lock, two concurrent pushes for the same doc can both observe
+ * the prev rows, both DELETE+INSERT inside `replaceCommentSnapshot`,
+ * and the second one hits the (doc_id, entry_id) unique constraint
+ * (yielding 500s) — caught by the integration concurrency suite.
+ * The advisory-xact lock auto-releases when the transaction commits
+ * or rolls back, so the lock can never leak.
+ */
+async function replaceSnapshotInTx(
+  docId: string,
+  rows: CommentSnapshotRow[]
+): Promise<ReturnType<typeof diffCommentsSnapshot>> {
   const db = useDatabase()
-  const events = await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${body.docId}))`)
-
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${docId}))`)
     const previous = await tx
       .select({
         entryId: documentComments.entryId,
@@ -117,14 +147,13 @@ export default defineEventHandler(async (event) => {
         resolved: documentComments.resolved
       })
       .from(documentComments)
-      .where(eq(documentComments.docId, body.docId!))
+      .where(eq(documentComments.docId, docId))
 
-    const computed = diffCommentsSnapshot(previous, rows)
-
-    await tx.delete(documentComments).where(eq(documentComments.docId, body.docId!))
+    const events = diffCommentsSnapshot(previous, rows)
+    await tx.delete(documentComments).where(eq(documentComments.docId, docId))
     if (rows.length > 0) {
       await tx.insert(documentComments).values(rows.map(r => ({
-        docId: body.docId!,
+        docId,
         entryId: r.entryId,
         parentCommentId: r.parentCommentId,
         authorId: r.authorId,
@@ -135,9 +164,15 @@ export default defineEventHandler(async (event) => {
         resolved: r.resolved
       })))
     }
-    return computed
+    return events
   })
+}
 
+/** Append one activity row per snapshot event, then prune. */
+async function recordSnapshotEvents(
+  body: ParsedBody,
+  events: ReturnType<typeof diffCommentsSnapshot>
+): Promise<void> {
   for (const e of events) {
     const metadata
       = e.kind === 'comment.replied'
@@ -151,11 +186,9 @@ export default defineEventHandler(async (event) => {
       userName: e.userName,
       action: e.kind,
       metadata,
-      yjsDocIdBefore: typeof body.yjsDocIdBefore === 'number' ? body.yjsDocIdBefore : null,
-      yjsDocIdAfter: typeof body.yjsDocIdAfter === 'number' ? body.yjsDocIdAfter : null
+      yjsDocIdBefore: body.yjsDocIdBefore,
+      yjsDocIdAfter: body.yjsDocIdAfter
     })
   }
   if (events.length > 0) await pruneActivity(body.docId)
-
-  return { ok: true, mirrored: true, rowCount: rows.length, activityEvents: events.length }
-})
+}
