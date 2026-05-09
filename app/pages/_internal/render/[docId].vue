@@ -187,7 +187,7 @@ onMounted(async () => {
   // PagedConfig must be set BEFORE the polyfill loads. auto:false stops
   // the polyfill from auto-scanning the document — we drive the render
   // manually below via Previewer.preview().
-  ;(window as unknown as { PagedConfig: { auto: boolean } }).PagedConfig = { auto: false }
+  ;(globalThis as unknown as { PagedConfig: { auto: boolean } }).PagedConfig = { auto: false }
 
   // Load the polyfill, then drive the render explicitly with our theme
   // CSS as a named stylesheet — paged.js's Polisher only processes
@@ -208,7 +208,7 @@ onMounted(async () => {
     preview: (html: string, stylesheets: Array<Record<string, string>>, mount: HTMLElement)
     => Promise<{ total: number }>
   }
-  const Paged = (window as unknown as { Paged: { Previewer: Previewer } }).Paged
+  const Paged = (globalThis as unknown as { Paged: { Previewer: Previewer } }).Paged
   const previewer = new Paged.Previewer()
   const result = await previewer.preview(
     `<div class="paged-doc">${html}</div>`,
@@ -232,11 +232,11 @@ onMounted(async () => {
     await Promise.all(paginatedImgs.map(img => img.decode().catch(() => undefined)))
   }
 
-  ;(window as Window & {
+  ;(globalThis as Window & {
     __pagedReady?: boolean
     __pagedPageCount?: number
   }).__pagedPageCount = result?.total ?? document.querySelectorAll('.pagedjs_page').length
-  ;(window as Window & { __pagedReady?: boolean }).__pagedReady = true
+  ;(globalThis as Window & { __pagedReady?: boolean }).__pagedReady = true
 })
 
 interface MermaidModule {

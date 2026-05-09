@@ -78,7 +78,7 @@ async function blobToBase64(blob: Blob): Promise<string> {
   let binary = ''
   const CHUNK = 0x8000
   for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+    binary += String.fromCodePoint(...bytes.subarray(i, i + CHUNK))
   }
   return btoa(binary)
 }
@@ -255,7 +255,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     // Analyser for the visualizer — shares the MediaStream, doesn't duplicate
     // the audio path. fftSize 256 = 128 frequency bins, plenty for 32 bars.
     try {
-      audioCtx = new (globalThis.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      audioCtx = new (globalThis.AudioContext || (globalThis as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaStreamSource(stream)
       analyser = audioCtx.createAnalyser()
       analyser.fftSize = 256

@@ -374,7 +374,7 @@ if (import.meta.client) refreshSavedThemes()
 // caps name + total count and revalidates the theme via DocThemeSchema.
 async function saveCurrentAsPreset() {
   if (!props.canEdit || !loggedIn.value) return
-  const name = (typeof window !== 'undefined'
+  const name = (typeof globalThis.window !== 'undefined'
     ? globalThis.prompt(t('theme.saved.namePrompt'), '')
     : null
   )?.trim()
@@ -415,7 +415,7 @@ function applySaved(saved: SavedTheme) {
 }
 
 async function renameSaved(saved: SavedTheme) {
-  if (typeof window === 'undefined') return
+  if (typeof globalThis.window === 'undefined') return
   const next = globalThis.prompt(t('theme.saved.renamePrompt'), saved.name)?.trim()
   if (!next || next === saved.name) return
   try {
@@ -436,7 +436,7 @@ async function renameSaved(saved: SavedTheme) {
 }
 
 async function deleteSaved(saved: SavedTheme) {
-  if (typeof window === 'undefined') return
+  if (typeof globalThis.window === 'undefined') return
   if (!globalThis.confirm(t('theme.saved.deleteConfirm', { name: saved.name }))) return
   try {
     await $fetch(`/api/themes/${saved.themeId}`, { method: 'DELETE' })

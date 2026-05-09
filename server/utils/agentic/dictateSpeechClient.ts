@@ -136,8 +136,8 @@ class VoxtralRealtimeClient implements SpeechClientLike {
  * task that emits `data` / `error` / `end` events on this stream.
  */
 class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
-  private chunkQueue: Array<Uint8Array | null> = []
-  private waiters: Array<(value: Uint8Array | null) => void> = []
+  private readonly chunkQueue: Array<Uint8Array | null> = []
+  private readonly waiters: Array<(value: Uint8Array | null) => void> = []
   private ended = false
   private aborted = false
   private finalText = ''

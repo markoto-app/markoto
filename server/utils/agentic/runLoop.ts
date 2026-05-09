@@ -82,7 +82,7 @@ const SALVAGE_MESSAGE_MAX = 600
  */
 class SessionBudget {
   private interactions = 0
-  private toolCallCounts = new Map<string, number>()
+  private readonly toolCallCounts = new Map<string, number>()
 
   /**
    * Try to charge `delta` interactions. Returns `{ ok: false, message }`

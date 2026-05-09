@@ -126,7 +126,7 @@ function commentPlugin(md: MarkdownIt): void {
   })
 
   md.inline.ruler.before('text', 'comment_inline', (state: StateInline, silent: boolean) => {
-    if (state.src.charCodeAt(state.pos) !== 0x3C /* < */) return false
+    if (state.src.codePointAt(state.pos) !== 0x3C /* < */) return false
     if (state.src.slice(state.pos, state.pos + 4) !== '<!--') return false
     const end = state.src.indexOf('-->', state.pos + 4)
     if (end === -1) return false

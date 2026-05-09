@@ -38,7 +38,7 @@ export function useDocument(docId: string) {
       __DEBUG_ytext?: Y.Text
       __DEBUG_awareness?: Awareness
     }
-    const w = window as unknown as Win
+    const w = globalThis as unknown as Win
     w.__DEBUG_ydoc = ydoc
     w.__DEBUG_ytext = ytext
     // awareness is initialised below; stamp the handle there too
@@ -56,7 +56,7 @@ export function useDocument(docId: string) {
   // be stamped before submitting an @markoto comment).
   if (import.meta.client && useRuntimeConfig().public.exposeTestHandles) {
     type Win = { __DEBUG_awareness?: Awareness }
-    ;(window as unknown as Win).__DEBUG_awareness = awareness
+    ;(globalThis as unknown as Win).__DEBUG_awareness = awareness
   }
 
   const undoManager = new Y.UndoManager(ytext)

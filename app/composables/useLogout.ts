@@ -101,7 +101,7 @@ export async function performLogout(opts: LogoutOptions = {}): Promise<void> {
   //    full reload throws ALL Vue state away and re-bootstraps
   //    cleanly anonymous. Cost: one extra page load on logout — a
   //    rare action where correctness > perf.
-  if (typeof window !== 'undefined') {
+  if (typeof globalThis.window !== 'undefined') {
     globalThis.location.href = '/'
     return
   }

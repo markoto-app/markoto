@@ -66,7 +66,7 @@ function getBrowser(): Promise<Browser> {
 // a slot to the oldest waiter or bumps the counter.
 class Semaphore {
   private permits: number
-  private waiters: Array<() => void> = []
+  private readonly waiters: Array<() => void> = []
   constructor(initial: number) {
     this.permits = initial
   }
@@ -181,13 +181,13 @@ async function doRender(
   // target the paginated DOM directly. The page sets these globals after
   // paged.js fires its `after` hook.
   await page.waitForFunction(
-    () => (window as { __pagedReady?: boolean }).__pagedReady === true,
+    () => (globalThis as { __pagedReady?: boolean }).__pagedReady === true,
     null,
     { timeout: PAGED_READY_TIMEOUT_MS }
   )
 
   const pageCount = await page.evaluate(() =>
-    (window as { __pagedPageCount?: number }).__pagedPageCount ?? 0
+    (globalThis as { __pagedPageCount?: number }).__pagedPageCount ?? 0
   )
   if (pageCount === 0) throw new Error('Paginated to zero pages — empty doc?')
   if (pageCount > MAX_PAGES) {

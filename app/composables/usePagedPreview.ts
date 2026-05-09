@@ -176,7 +176,7 @@ export function usePagedPreview(opts: {
 
   // useEventListener auto-cleans on scope dispose — no manual
   // removeEventListener in onUnmounted needed.
-  useEventListener(window, 'message', handleMessage)
+  useEventListener(globalThis, 'message', handleMessage)
 
   onMounted(() => {
     if (!opts.container.value) return
