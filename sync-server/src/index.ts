@@ -115,127 +115,8 @@ const server = new Server({
     const trackedFetch = await getLastEditor(data.documentName)
     const tracked = trackedFetch.value
 
-    // Log an 'edit' activity entry per store event (debounced 2-10s by Hocuspocus).
-    // Fire-and-forget so sync is never blocked by activity logging.
-    try {
-      const ytext = data.document.getText('content')
-      const currentText = ytext.toString()
-      const wordCount = countWords(currentText)
-
-      // Attribution: prefer the onChange-tracked authenticated user. Fall back
-      // to the awareness heuristic only if nothing has been tracked yet
-      // (e.g. an anonymous client whose JWT had no userName, or — rarely —
-      // a store firing before any onChange after a sync-server restart, or
-      // Valkey-down).
-      let userName: string | null = tracked?.userName ?? null
-      if (!tracked) {
-        const cause = trackedFetch.cause === 'error' ? 'valkey-error' : 'valkey-miss'
-        // Log so we can see in prod logs whether the fallback path is hit
-        // often. If it is, the bootstrap-on-demand design needs revisiting.
-        // Also surfaced to Sentry — drift canary for prod attribution. The
-        // `cause` tag distinguishes "cold doc / restart" (normal) from
-        // "Valkey down" (operationally interesting).
-        const errMsg = trackedFetch.error ? ` (${trackedFetch.error.message})` : ''
-        console.warn(`[hocuspocus] Attribution fallback for doc ${data.documentName}: cause=${cause}${errMsg}, using awareness heuristic`)
-        captureMessage(`[hocuspocus] Attribution fallback for doc ${data.documentName}`, {
-          level: 'warning',
-          tags: { component: 'hocuspocus', event: 'attribution_fallback', cause }
-        })
-      }
-      if (!userName) {
-        const awareness = (data.document as unknown as { awareness?: Parameters<typeof mostRecentEditorFromAwareness>[0] }).awareness
-        userName = mostRecentEditorFromAwareness(awareness)
-      }
-
-      // Line-level diff against the previous snapshot — what changed during
-      // this debounce window. On a Valkey miss (cold doc / restart) or
-      // Valkey error, we skip emitting an edit row but DO write the new
-      // baseline so the next store has something to diff against — better
-      // than emitting a spurious "+N lines whole doc" row.
-      const prevFetch = await getPrevText(data.documentName)
-      await setPrevText(data.documentName, currentText)
-
-      // Resolve userId for avatar JOIN on the read endpoint.
-      // The tracked.userId is the JWT's userId — string. Real users get a
-      // numeric id (parsed below); AI sessions use the synthetic
-      // `ai:assistant:{sessionId}` form which is non-numeric and resolves
-      // to null, exactly what we want (no users.id row).
-      const userIdFromTracked = tracked?.userId
-        ? (Number.isFinite(Number(tracked.userId)) ? Number(tracked.userId) : null)
-        : null
-
-      if (prevFetch.value != null) {
-        const { added, removed } = lineDiff(prevFetch.value, currentText)
-        // Skip the edit entry if nothing changed line-wise (this happens
-        // on join/leave-driven stores or no-op saves) — but DO NOT bail
-        // from the whole hook. Title-only / theme-only / comment-only
-        // updates produce a store with zero text-line delta, and the
-        // diff blocks below need to run to log them.
-        if (added > 0 || removed > 0) {
-          logActivity({
-            docId: data.documentName,
-            userId: userIdFromTracked,
-            userName,
-            action: 'edit',
-            wordCount,
-            linesAdded: added,
-            linesRemoved: removed,
-            yjsDocIdBefore,
-            yjsDocIdAfter
-          })
-        }
-      }
-    } catch (e) {
-      console.warn('[hocuspocus] activity log failed:', e instanceof Error ? e.message : e)
-    }
-
-    // Title / theme diff — same debounce window as the edit row, but
-    // emitted as separate activity events so the UI can render them
-    // distinctly. We DON'T attribute these to a specific user yet
-    // (ymeta.observe doesn't carry transaction origin in this hook), so
-    // the activity row inherits whoever was tracked as the last editor —
-    // accurate in practice because rename / theme tweaks come from the
-    // same active session.
-    try {
-      const userName: string | null = tracked?.userName ?? null
-      const userId = tracked?.userId
-        ? (Number.isFinite(Number(tracked.userId)) ? Number(tracked.userId) : null)
-        : null
-      const prevMetaFetch = await getPrevMeta(data.documentName)
-      const prevMeta = prevMetaFetch.value
-      const currMeta = readMetaSnapshot(data.document)
-      await setPrevMeta(data.documentName, currMeta)
-      if (prevMeta) {
-        if ((prevMeta.title ?? '') !== (currMeta.title ?? '')) {
-          logActivity({
-            docId: data.documentName,
-            userId,
-            userName,
-            action: 'title.changed',
-            metadata: {
-              kind: 'title.changed',
-              from: prevMeta.title ?? '',
-              to: currMeta.title ?? ''
-            },
-            yjsDocIdBefore,
-            yjsDocIdAfter
-          })
-        }
-        if (prevMeta.themeJson !== currMeta.themeJson) {
-          logActivity({
-            docId: data.documentName,
-            userId,
-            userName,
-            action: 'theme.changed',
-            metadata: { kind: 'theme.changed' },
-            yjsDocIdBefore,
-            yjsDocIdAfter
-          })
-        }
-      }
-    } catch (e) {
-      console.warn('[hocuspocus] meta diff failed:', e instanceof Error ? e.message : e)
-    }
+    await logEditActivity(data, trackedFetch, yjsDocIdBefore, yjsDocIdAfter)
+    await logMetaDiffActivity(data, tracked, yjsDocIdBefore, yjsDocIdAfter)
 
     // Postgres mirror of the comments Y.Array — fire-and-forget so a
     // mirror failure can't take down activity logging or sync. Internal
@@ -298,6 +179,150 @@ const server = new Server({
 server.listen(port, () => {
   console.log(`[hocuspocus] Sync server listening on port ${port}`)
 })
+
+// ─── onStoreDocument helpers ─────────────────────────────────────────
+
+/**
+ * Resolve the user attribution for an activity row. Prefers the
+ * onChange-tracked authenticated user (JWT payload). Falls back to the
+ * awareness heuristic when nothing has been tracked (cold doc /
+ * restart, or Valkey down). Logs a Sentry warning on the fallback path
+ * so prod drift is visible.
+ */
+function resolveAttribution(
+  data: Parameters<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument'] & {}>[0],
+  trackedFetch: Awaited<ReturnType<typeof getLastEditor>>
+): { userName: string | null, userId: number | null } {
+  const tracked = trackedFetch.value
+  let userName: string | null = tracked?.userName ?? null
+  if (!tracked) {
+    const cause = trackedFetch.cause === 'error' ? 'valkey-error' : 'valkey-miss'
+    const errMsg = trackedFetch.error ? ` (${trackedFetch.error.message})` : ''
+    console.warn(`[hocuspocus] Attribution fallback for doc ${data.documentName}: cause=${cause}${errMsg}, using awareness heuristic`)
+    captureMessage(`[hocuspocus] Attribution fallback for doc ${data.documentName}`, {
+      level: 'warning',
+      tags: { component: 'hocuspocus', event: 'attribution_fallback', cause }
+    })
+  }
+  if (!userName) {
+    const awareness = (data.document as unknown as { awareness?: Parameters<typeof mostRecentEditorFromAwareness>[0] }).awareness
+    userName = mostRecentEditorFromAwareness(awareness)
+  }
+  // The tracked.userId is the JWT's userId — string. Real users get a
+  // numeric id; AI sessions use the synthetic `ai:assistant:{sessionId}`
+  // form which is non-numeric and resolves to null, exactly what we
+  // want (no users.id row to JOIN against).
+  const userId = tracked?.userId
+    ? (Number.isFinite(Number(tracked.userId)) ? Number(tracked.userId) : null)
+    : null
+  return { userName, userId }
+}
+
+/**
+ * Log an `edit` activity entry per store event (debounced 2-10s by
+ * Hocuspocus). On a Valkey miss (cold doc / restart) or Valkey error,
+ * we skip emitting an edit row but DO write the new baseline so the
+ * next store has something to diff against — better than emitting a
+ * spurious "+N lines whole doc" row.
+ *
+ * Fire-and-forget: errors are logged so sync is never blocked.
+ */
+async function logEditActivity(
+  data: Parameters<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument'] & {}>[0],
+  trackedFetch: Awaited<ReturnType<typeof getLastEditor>>,
+  yjsDocIdBefore: number | null,
+  yjsDocIdAfter: number | null
+): Promise<void> {
+  try {
+    const ytext = data.document.getText('content')
+    const currentText = ytext.toString()
+    const wordCount = countWords(currentText)
+    const { userName, userId } = resolveAttribution(data, trackedFetch)
+
+    const prevFetch = await getPrevText(data.documentName)
+    await setPrevText(data.documentName, currentText)
+
+    if (prevFetch.value == null) return
+    const { added, removed } = lineDiff(prevFetch.value, currentText)
+    // Skip the edit entry if nothing changed line-wise (this happens
+    // on join/leave-driven stores or no-op saves) — but DO NOT bail
+    // from the whole hook. Title-only / theme-only / comment-only
+    // updates produce a store with zero text-line delta, and the
+    // diff blocks below need to run to log them.
+    if (added === 0 && removed === 0) return
+
+    logActivity({
+      docId: data.documentName,
+      userId,
+      userName,
+      action: 'edit',
+      wordCount,
+      linesAdded: added,
+      linesRemoved: removed,
+      yjsDocIdBefore,
+      yjsDocIdAfter
+    })
+  } catch (e) {
+    console.warn('[hocuspocus] activity log failed:', e instanceof Error ? e.message : e)
+  }
+}
+
+/**
+ * Title / theme diff — same debounce window as the edit row, but
+ * emitted as separate activity events so the UI can render them
+ * distinctly. We DON'T attribute these to a specific user via
+ * ymeta.observe (which doesn't carry transaction origin in this hook),
+ * so the activity row inherits whoever was tracked as the last editor —
+ * accurate in practice because rename / theme tweaks come from the
+ * same active session.
+ */
+async function logMetaDiffActivity(
+  data: Parameters<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument'] & {}>[0],
+  tracked: Awaited<ReturnType<typeof getLastEditor>>['value'],
+  yjsDocIdBefore: number | null,
+  yjsDocIdAfter: number | null
+): Promise<void> {
+  try {
+    const userName: string | null = tracked?.userName ?? null
+    const userId = tracked?.userId
+      ? (Number.isFinite(Number(tracked.userId)) ? Number(tracked.userId) : null)
+      : null
+    const prevMetaFetch = await getPrevMeta(data.documentName)
+    const prevMeta = prevMetaFetch.value
+    const currMeta = readMetaSnapshot(data.document)
+    await setPrevMeta(data.documentName, currMeta)
+    if (!prevMeta) return
+
+    if ((prevMeta.title ?? '') !== (currMeta.title ?? '')) {
+      logActivity({
+        docId: data.documentName,
+        userId,
+        userName,
+        action: 'title.changed',
+        metadata: {
+          kind: 'title.changed',
+          from: prevMeta.title ?? '',
+          to: currMeta.title ?? ''
+        },
+        yjsDocIdBefore,
+        yjsDocIdAfter
+      })
+    }
+    if (prevMeta.themeJson !== currMeta.themeJson) {
+      logActivity({
+        docId: data.documentName,
+        userId,
+        userName,
+        action: 'theme.changed',
+        metadata: { kind: 'theme.changed' },
+        yjsDocIdBefore,
+        yjsDocIdAfter
+      })
+    }
+  } catch (e) {
+    console.warn('[hocuspocus] meta diff failed:', e instanceof Error ? e.message : e)
+  }
+}
 
 // Graceful shutdown — drains WS connections, awaits pending Y.js stores via
 // Hocuspocus's own destroy(), then closes the persistence pool. Without this
