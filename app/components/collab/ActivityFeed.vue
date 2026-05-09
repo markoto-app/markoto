@@ -178,15 +178,12 @@ function detailFor(entry: ActivityEntry): string | null {
     case 'comment.deleted':
       return m.bodyPreview ? truncate(m.bodyPreview, 200) : null
     case 'title.changed':
-      return t('activity.detail.titleChanged', { from: truncate(m.from || t('activity.untitled'), 40), to: truncate(m.to || t('activity.untitled'), 40) })
+      return t('activity.detail.titleChanged', {
+        from: truncate(m.from || t('activity.untitled'), 40),
+        to: truncate(m.to || t('activity.untitled'), 40)
+      })
     case 'ai.tool':
-      if (m.tool === 'web_search') return m.query ? `"${truncate(m.query, 120)}"` : null
-      if (m.tool === 'fetch_url') return m.url ? truncate(m.url, 120) : null
-      if (m.tool === 'generate_image') return m.prompt ? `"${truncate(m.prompt, 120)}"` : null
-      if (m.tool === 'view_image') return m.src ? truncate(m.src, 120) : null
-      if (m.tool === 'search_knowledge') return m.query ? `"${truncate(m.query, 120)}"` : null
-      if (m.tool === 'get_knowledge_file') return m.knowledgeId ? truncate(m.knowledgeId, 64) : null
-      return null
+      return detailForAiTool(m)
     case 'restore':
       // "From {N minutes ago}" relative to the source activity row's
       // captured timestamp. Going through formatTime gives the same
@@ -196,6 +193,23 @@ function detailFor(entry: ActivityEntry): string | null {
     default:
       return null
   }
+}
+
+/**
+ * Per-AI-tool detail formatter. Each tool has its own salient field
+ * (web_search → query, fetch_url → url, etc.). Routed through a small
+ * registry to keep the parent switch flat.
+ */
+function detailForAiTool(m: ActivityMetadataAiTool): string | null {
+  const formatters: Record<ActivityMetadataAiTool['tool'], (m: ActivityMetadataAiTool) => string | null> = {
+    web_search: m => m.query ? `"${truncate(m.query, 120)}"` : null,
+    fetch_url: m => m.url ? truncate(m.url, 120) : null,
+    generate_image: m => m.prompt ? `"${truncate(m.prompt, 120)}"` : null,
+    view_image: m => m.src ? truncate(m.src, 120) : null,
+    search_knowledge: m => m.query ? `"${truncate(m.query, 120)}"` : null,
+    get_knowledge_file: m => m.knowledgeId ? truncate(m.knowledgeId, 64) : null
+  }
+  return formatters[m.tool]?.(m) ?? null
 }
 
 function actionLabel(entry: ActivityEntry): string {
