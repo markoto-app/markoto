@@ -57,56 +57,74 @@ export function diffCommentsSnapshot(
   // come out in roughly the order the user sees them in the panel.
   for (const [entryId, c] of nowById) {
     const p = prevById.get(entryId)
-    const isReply = c.parentCommentId !== null
     if (!p) {
-      // New entry. Reply if it has a parent, otherwise root.
-      if (isReply && c.parentCommentId) {
-        events.push({
-          kind: 'comment.replied',
-          userId: c.authorId,
-          userName: c.authorName,
-          commentId: entryId,
-          parentCommentId: c.parentCommentId,
-          bodyPreview: c.body.slice(0, BODY_PREVIEW_LIMIT)
-        })
-      } else {
-        events.push({
-          kind: 'comment.added',
-          userId: c.authorId,
-          userName: c.authorName,
-          commentId: entryId,
-          bodyPreview: c.body.slice(0, BODY_PREVIEW_LIMIT)
-        })
-      }
+      events.push(eventForNewEntry(entryId, c))
       continue
     }
-    if (c.resolved !== p.resolved) {
-      events.push({
-        kind: c.resolved ? 'comment.resolved' : 'comment.reopened',
-        userId: c.authorId,
-        userName: c.authorName,
-        commentId: entryId,
-        bodyPreview: c.body.slice(0, BODY_PREVIEW_LIMIT)
-      })
-    }
+    const flip = eventForResolvedFlip(entryId, p, c)
+    if (flip) events.push(flip)
     // Body edits, parentCommentId mutations, and other field changes
     // are intentionally NOT tracked — see header comment.
   }
 
-  // Deletions. Use the prev row's parentCommentId to set isReply so
-  // the UI can render "deleted a reply" vs "deleted a comment"
-  // without re-querying (the row is gone by now).
+  // Deletions. Iterate prev and skip rows still in curr.
   for (const [entryId, p] of prevById) {
     if (nowById.has(entryId)) continue
-    events.push({
-      kind: 'comment.deleted',
-      userId: p.authorId,
-      userName: p.authorName,
-      commentId: entryId,
-      bodyPreview: p.body.slice(0, BODY_PREVIEW_LIMIT),
-      isReply: p.parentCommentId !== null
-    })
+    events.push(eventForDeletion(entryId, p))
   }
 
   return events
+}
+
+function preview(body: string): string {
+  return body.slice(0, BODY_PREVIEW_LIMIT)
+}
+
+/** New row: `comment.replied` if it has a parent, `comment.added` otherwise. */
+function eventForNewEntry(entryId: string, c: SnapshotEntry): SnapshotEvent {
+  if (c.parentCommentId) {
+    return {
+      kind: 'comment.replied',
+      userId: c.authorId,
+      userName: c.authorName,
+      commentId: entryId,
+      parentCommentId: c.parentCommentId,
+      bodyPreview: preview(c.body)
+    }
+  }
+  return {
+    kind: 'comment.added',
+    userId: c.authorId,
+    userName: c.authorName,
+    commentId: entryId,
+    bodyPreview: preview(c.body)
+  }
+}
+
+/** Resolved flag flipped between prev and curr. Returns null when nothing changed. */
+function eventForResolvedFlip(entryId: string, p: SnapshotEntry, c: SnapshotEntry): SnapshotEvent | null {
+  if (c.resolved === p.resolved) return null
+  return {
+    kind: c.resolved ? 'comment.resolved' : 'comment.reopened',
+    userId: c.authorId,
+    userName: c.authorName,
+    commentId: entryId,
+    bodyPreview: preview(c.body)
+  }
+}
+
+/**
+ * Use the prev row's `parentCommentId` to set `isReply` so the UI
+ * can render "deleted a reply" vs "deleted a comment" without
+ * re-querying (the row is gone by now).
+ */
+function eventForDeletion(entryId: string, p: SnapshotEntry): SnapshotEvent {
+  return {
+    kind: 'comment.deleted',
+    userId: p.authorId,
+    userName: p.authorName,
+    commentId: entryId,
+    bodyPreview: preview(p.body),
+    isReply: p.parentCommentId !== null
+  }
 }
