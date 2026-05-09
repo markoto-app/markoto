@@ -1,6 +1,6 @@
 // One-shot comparison: do Playwright's direct per-page screenshots match
 // rasterizing the page.pdf() output via poppler? Run against the dev stack
-// (postgres + sync + nuxt all up). Drops artefacts in /tmp/render-compare/.
+// (postgres + sync + nuxt all up). Drops artefacts in a per-run mkdtemp.
 //
 // Flow:
 //   1. Insert/update a fixture doc with multi-page markdown via the
@@ -11,7 +11,13 @@
 //   5. Report dimensions + per-pixel diff (mean abs delta + worst-channel
 //      max delta, in 0-255 space) per page.
 //
-// Run: bun scripts/compare-pdf-vs-png.mjs
+// Run: source .env && bun scripts/compare-pdf-vs-png.mjs
+//
+// Required env: JWT_SECRET (or NUXT_JWT_SECRET), INTERNAL_API_SECRET
+// (or NUXT_INTERNAL_API_SECRET), DATABASE_URL. Optional: APP_URL,
+// SYNC_URL. The script fails loudly if any required var is missing —
+// it must not embed dev secrets as literals (sonar javascript:S6437,
+// typescript:S2068, javascript:S5443).
 
 import { chromium } from 'playwright'
 import { HocuspocusProvider } from '@hocuspocus/provider'
@@ -19,14 +25,24 @@ import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import { spawnSync } from 'node:child_process'
-import { promises as fs, existsSync } from 'node:fs'
+import { promises as fs, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'
 const SYNC_URL = process.env.SYNC_URL || 'ws://localhost:4001'
-const JWT_SECRET = 'development-jwt-secret-change-me-in-production-64chars'
-const INTERNAL_SECRET = 'development-internal-api-secret-change-me'
-const OUT_DIR = '/tmp/render-compare'
+const JWT_SECRET = process.env.JWT_SECRET || process.env.NUXT_JWT_SECRET
+const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || process.env.NUXT_INTERNAL_API_SECRET
+const DATABASE_URL = process.env.DATABASE_URL
+if (!JWT_SECRET || !INTERNAL_SECRET || !DATABASE_URL) {
+  console.error('[compare] missing required env vars.')
+  console.error('  Required: JWT_SECRET (or NUXT_JWT_SECRET), INTERNAL_API_SECRET (or NUXT_INTERNAL_API_SECRET), DATABASE_URL.')
+  console.error('  Tip: `set -a && source .env && set +a && bun scripts/compare-pdf-vs-png.mjs`')
+  process.exit(1)
+}
+// mkdtempSync creates a 0700-mode directory with a unique random suffix —
+// safe against /tmp squatting attacks that a fixed path is vulnerable to.
+const OUT_DIR = mkdtempSync(path.join(tmpdir(), 'render-compare-'))
 const DOC_ID = 'render-compare-fixture'
 
 // 7 H2 sections × ~120 words each → reliably paginates to 3-4 pages on
@@ -50,9 +66,7 @@ async function ensureDoc() {
   // Insert the row directly so we don't depend on user auth. Anonymous,
   // open-edit — the print page only needs the doc to exist.
   const { Client } = await import('pg')
-  const c = new Client({
-    host: 'localhost', port: 5432, user: 'ypad', password: 'devpassword', database: 'ypad'
-  })
+  const c = new Client({ connectionString: DATABASE_URL })
   await c.connect()
   await c.query(`
     INSERT INTO documents (doc_id, title, access_mode)
@@ -174,8 +188,8 @@ import sys, os
 from PIL import Image
 out = []
 for i in range(1, ${pageCount} + 1):
-    a = Image.open(f'/tmp/render-compare/direct-page-{i}.png').convert('RGB')
-    b = Image.open(f'/tmp/render-compare/pdf-page-{i:01d}.png').convert('RGB')
+    a = Image.open(f'${OUT_DIR}/direct-page-{i}.png').convert('RGB')
+    b = Image.open(f'${OUT_DIR}/pdf-page-{i:01d}.png').convert('RGB')
     aw, ah = a.size
     bw, bh = b.size
     # Resize the smaller one's frame to compare like-for-like — page.pdf()
@@ -204,7 +218,8 @@ for i in range(1, ${pageCount} + 1):
 }
 
 async function main() {
-  if (!existsSync(OUT_DIR)) await fs.mkdir(OUT_DIR, { recursive: true })
+  // OUT_DIR was created at module load via mkdtempSync.
+  console.log(`[compare] artefacts will land in ${OUT_DIR}`)
   console.log('[compare] ensuring fixture doc exists…')
   await ensureDoc()
   console.log('[compare] seeding multi-page markdown via Hocuspocus…')

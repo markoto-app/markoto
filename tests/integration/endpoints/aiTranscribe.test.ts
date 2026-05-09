@@ -80,9 +80,7 @@ describe('POST /api/ai/transcribe', () => {
         })
         if (res.status === 400) {
           const body = await res.json() as { message?: string }
-          if (body.message && /mimeType/i.test(body.message)) {
-            throw new Error(`${mimeType} rejected at our gate: ${body.message}`)
-          }
+          expect(body.message ?? '', `${mimeType} must not be rejected at our mimeType gate`).not.toMatch(/mimeType/i)
         }
       }
     })
