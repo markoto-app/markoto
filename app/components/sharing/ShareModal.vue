@@ -42,7 +42,7 @@ const accessOptions = [
 
 const shareUrl = computed(() => {
   if (import.meta.client) {
-    return `${window.location.origin}/d/${props.docId}`
+    return `${globalThis.location.origin}/d/${props.docId}`
   }
   return `/d/${props.docId}`
 })

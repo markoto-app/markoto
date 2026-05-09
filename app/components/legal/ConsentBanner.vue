@@ -98,10 +98,10 @@ function syncTogglesFromSummary(): void {
 }
 
 onMounted(() => {
-  window.addEventListener(REOPEN_EVENT, reopenFromFooter)
+  globalThis.addEventListener(REOPEN_EVENT, reopenFromFooter)
 })
 onBeforeUnmount(() => {
-  window.removeEventListener(REOPEN_EVENT, reopenFromFooter)
+  globalThis.removeEventListener(REOPEN_EVENT, reopenFromFooter)
 })
 
 async function submit(decisions: Array<{ purpose: 'essential' | 'analytics' | 'session_replay', granted: boolean }>): Promise<void> {
@@ -116,7 +116,7 @@ async function submit(decisions: Array<{ purpose: 'essential' | 'analytics' | 's
     await refreshConsent()
     // Tell other surfaces (the Profile page in particular) so they
     // can refresh their displayed consent state without a manual reload.
-    window.dispatchEvent(new CustomEvent('markoto:consent-updated'))
+    globalThis.dispatchEvent(new CustomEvent('markoto:consent-updated'))
   } catch (e) {
     const err = e as { message?: string, data?: { message?: string } }
     toast.add({

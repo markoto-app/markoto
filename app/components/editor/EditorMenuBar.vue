@@ -367,7 +367,7 @@ const sharingItems = computed(() => [[
   {
     label: t('menubar.sharing.copyLink'),
     icon: 'i-lucide-link',
-    onSelect: () => copyToClipboard(window.location.href)
+    onSelect: () => copyToClipboard(globalThis.location.href)
   }
 ]])
 

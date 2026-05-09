@@ -98,7 +98,7 @@
 <body>
 <div id="mount" class="paged-mount"></div>
 <div id="pending" class="paged-mount"></div>
-<script>window.PagedConfig = { auto: false };</script>
+<script>globalThis.PagedConfig = { auto: false };</script>
 <script src="__PAGEDJS_POLYFILL_URL__" integrity="__PAGEDJS_POLYFILL_SRI__" crossorigin="anonymous" onerror="window.parent.postMessage({type:'iframe-error',message:'Could not load paged.js polyfill from CDN. Check your network connection.'}, '*')"></script>
 <script>
 (function() {
@@ -169,7 +169,7 @@
   } catch (e) { /* MutationObserver setup failed — initial sync is still in place */ }
 
   function whenPagedReady(cb) {
-    if (window.Paged && window.Paged.Previewer) { cb(); return; }
+    if (globalThis.Paged && globalThis.Paged.Previewer) { cb(); return; }
     if (Date.now() - pollStart > POLL_TIMEOUT) {
       window.parent.postMessage({
         type: 'iframe-error',
@@ -215,7 +215,7 @@
   }, true);
 
   whenPagedReady(function() {
-    var Previewer = window.Paged.Previewer;
+    var Previewer = globalThis.Paged.Previewer;
     var lastFontsImport = null;
     var lastHljsUrl = null;
     // Track paged.js's accumulated <style> elements so they don't pile up
@@ -311,7 +311,7 @@
 
     window.addEventListener('resize', applyPageZoom);
 
-    window.__renderDoc = async function(opts) {
+    globalThis.__renderDoc = async function(opts) {
       try {
         var fontsEl = document.getElementById('theme-fonts');
         if (opts.fontsImport !== lastFontsImport) {

@@ -155,7 +155,7 @@ watch(creditsExhausted, (now, prev) => {
       actions: [{
         label: t('ai.upgradeCta'),
         color: 'primary',
-        onClick: () => { window.location.href = '/pricing' }
+        onClick: () => { globalThis.location.href = '/pricing' }
       }]
     })
   }
@@ -250,7 +250,7 @@ watch(() => props.ai.lastError.value, (err) => {
       actions: [{
         label: t('ai.upgradeCta'),
         color: 'primary',
-        onClick: () => { window.location.href = '/pricing' }
+        onClick: () => { globalThis.location.href = '/pricing' }
       }]
     })
   } else {
@@ -312,7 +312,7 @@ function onPanelExpandedChange(v: boolean) {
 const keyboardOffset = ref(0)
 
 function updateKeyboardOffset() {
-  if (typeof window === 'undefined' || !window.visualViewport) return
+  if (typeof window === 'undefined' || !globalThis.visualViewport) return
   const vv = window.visualViewport
   const gap = window.innerHeight - vv.height - vv.offsetTop
   keyboardOffset.value = gap > 80 ? gap : 0
@@ -341,14 +341,14 @@ const bottomOffset = computed(() => {
 })
 
 onMounted(() => {
-  if (typeof window === 'undefined' || !window.visualViewport) return
+  if (typeof window === 'undefined' || !globalThis.visualViewport) return
   window.visualViewport.addEventListener('resize', updateKeyboardOffset)
   window.visualViewport.addEventListener('scroll', updateKeyboardOffset)
   updateKeyboardOffset()
 })
 
 onUnmounted(() => {
-  if (typeof window === 'undefined' || !window.visualViewport) return
+  if (typeof window === 'undefined' || !globalThis.visualViewport) return
   window.visualViewport.removeEventListener('resize', updateKeyboardOffset)
   window.visualViewport.removeEventListener('scroll', updateKeyboardOffset)
 })

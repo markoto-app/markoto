@@ -27,7 +27,7 @@ const { data: subProcessors, pending } = await useFetch<SubProcessor[]>(
 useHead({ title: 'Sub-processors · markoto' })
 
 function onClose(): void {
-  if (window.history.length > 1 && document.referrer) {
+  if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
     router.push('/')

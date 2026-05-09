@@ -46,7 +46,7 @@ useHead({ title: 'Abuse reports · Admin · markoto' })
 if (import.meta.client) {
   watchEffect(() => {
     if (!loggedIn.value) {
-      window.location.href = '/auth/github'
+      globalThis.location.href = '/auth/github'
     } else if (accountStatus.value && !accountStatus.value.isAdmin) {
       router.push('/')
     }

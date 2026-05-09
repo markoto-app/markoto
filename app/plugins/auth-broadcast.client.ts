@@ -38,7 +38,7 @@ export default defineNuxtPlugin(() => {
       // the session has already gone — if it has, skip.
       const session = useUserSession()
       if (!session.loggedIn.value) return
-      window.location.reload()
+      globalThis.location.reload()
     }
   })
 })

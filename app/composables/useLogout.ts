@@ -102,7 +102,7 @@ export async function performLogout(opts: LogoutOptions = {}): Promise<void> {
   //    cleanly anonymous. Cost: one extra page load on logout — a
   //    rare action where correctness > perf.
   if (typeof window !== 'undefined') {
-    window.location.href = '/'
+    globalThis.location.href = '/'
     return
   }
   // SSR fallback (logout from a non-browser context — shouldn't

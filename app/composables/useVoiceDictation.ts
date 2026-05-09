@@ -358,6 +358,6 @@ function buildWsUrl(): string {
   // plain HTTP. Port is inherited from location.host. The auth token
   // is NOT appended here; it's sent as the first WS message instead,
   // so it can't leak into access logs or the browser history stack.
-  const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${scheme}//${window.location.host}/api/ai/dictate`
+  const scheme = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${scheme}//${globalThis.location.host}/api/ai/dictate`
 }

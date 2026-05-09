@@ -79,7 +79,7 @@ async function onUpgrade(): Promise<void> {
       method: 'POST',
       body: { plan: nextPlan.value }
     })
-    window.location.href = url
+    globalThis.location.href = url
   } catch (e) {
     const err = e as { data?: { message?: string }, message?: string }
 

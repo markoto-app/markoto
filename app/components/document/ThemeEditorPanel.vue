@@ -375,7 +375,7 @@ if (import.meta.client) refreshSavedThemes()
 async function saveCurrentAsPreset() {
   if (!props.canEdit || !loggedIn.value) return
   const name = (typeof window !== 'undefined'
-    ? window.prompt(t('theme.saved.namePrompt'), '')
+    ? globalThis.prompt(t('theme.saved.namePrompt'), '')
     : null
   )?.trim()
   if (!name) return
@@ -416,7 +416,7 @@ function applySaved(saved: SavedTheme) {
 
 async function renameSaved(saved: SavedTheme) {
   if (typeof window === 'undefined') return
-  const next = window.prompt(t('theme.saved.renamePrompt'), saved.name)?.trim()
+  const next = globalThis.prompt(t('theme.saved.renamePrompt'), saved.name)?.trim()
   if (!next || next === saved.name) return
   try {
     await $fetch(`/api/themes/${saved.themeId}`, {
@@ -437,7 +437,7 @@ async function renameSaved(saved: SavedTheme) {
 
 async function deleteSaved(saved: SavedTheme) {
   if (typeof window === 'undefined') return
-  if (!window.confirm(t('theme.saved.deleteConfirm', { name: saved.name }))) return
+  if (!globalThis.confirm(t('theme.saved.deleteConfirm', { name: saved.name }))) return
   try {
     await $fetch(`/api/themes/${saved.themeId}`, { method: 'DELETE' })
     await refreshSavedThemes()

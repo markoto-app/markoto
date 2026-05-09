@@ -55,7 +55,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   const pwa = nuxtApp.$pwa as Pwa | undefined
 
   function reloadNow() {
-    window.location.reload()
+    globalThis.location.reload()
   }
 
   function renderPrompt(h: VersionCheckPromptHandlers) {

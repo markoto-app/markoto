@@ -255,7 +255,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     // Analyser for the visualizer — shares the MediaStream, doesn't duplicate
     // the audio path. fftSize 256 = 128 frequency bins, plenty for 32 bars.
     try {
-      audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      audioCtx = new (globalThis.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaStreamSource(stream)
       analyser = audioCtx.createAnalyser()
       analyser.fftSize = 256

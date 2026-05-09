@@ -95,7 +95,7 @@ const checkoutLoading = ref<PlanName | null>(null)
 
 async function onChangePlan(plan: PlanName): Promise<void> {
   if (!loggedIn.value) {
-    window.location.href = '/auth/github'
+    globalThis.location.href = '/auth/github'
     return
   }
   if (plan === 'free' || checkoutLoading.value) return
@@ -118,7 +118,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     })
     // Full-page redirect — Stripe's hosted Checkout is a separate
     // origin, can't be iframed.
-    window.location.href = url
+    globalThis.location.href = url
   } catch (e) {
     const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
     toast.add({
@@ -139,7 +139,7 @@ async function openPortal(): Promise<void> {
     const { url } = await $fetch<{ url: string }>('/api/billing/portal', {
       method: 'POST'
     })
-    window.location.href = url
+    globalThis.location.href = url
   } catch (e) {
     const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
     toast.add({
@@ -162,7 +162,7 @@ const router = useRouter()
 function onClose(): void {
   // `history.state.back` is Nuxt's accessor for the prior route; if we
   // got here via a direct navigation (no back stack), route to home.
-  if (window.history.length > 1 && document.referrer) {
+  if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
     router.push('/')

@@ -171,7 +171,7 @@ export async function printDocumentAsPdf(opts: {
 
     // Safety timeout — if pagination hangs (unloadable font, runaway
     // layout) we don't want a stale iframe stuck off-screen forever.
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = globalThis.setTimeout(() => {
       cleanup()
       reject(new Error('PDF generation timed out after 30s'))
     }, 30000)
@@ -238,7 +238,7 @@ export async function printDocumentAsPdf(opts: {
           // whether the user saved or cancelled — cleanup either way.
           iwin.requestAnimationFrame(() => {
             iwin.addEventListener('afterprint', () => {
-              window.clearTimeout(timeoutId)
+              globalThis.clearTimeout(timeoutId)
               cleanup()
               resolve()
             }, { once: true })
@@ -246,7 +246,7 @@ export async function printDocumentAsPdf(opts: {
               iwin.focus()
               iwin.print()
             } catch (e) {
-              window.clearTimeout(timeoutId)
+              globalThis.clearTimeout(timeoutId)
               cleanup()
               reject(e)
             }
@@ -266,13 +266,13 @@ export async function printDocumentAsPdf(opts: {
       script.integrity = PAGEDJS_POLYFILL_SRI
       script.crossOrigin = 'anonymous'
       script.onerror = () => {
-        window.clearTimeout(timeoutId)
+        globalThis.clearTimeout(timeoutId)
         cleanup()
         reject(new Error('Failed to load paged.js polyfill from CDN.'))
       }
       idoc.body.appendChild(script)
     } catch (e) {
-      window.clearTimeout(timeoutId)
+      globalThis.clearTimeout(timeoutId)
       cleanup()
       reject(e)
     }

@@ -127,7 +127,7 @@ function detectMentionContext(text: string, caret: number): { atIndex: number, q
  * can use them directly.
  */
 function getCaretCoords(textarea: HTMLTextAreaElement, index: number): { top: number, left: number, lineHeight: number } {
-  const cs = window.getComputedStyle(textarea)
+  const cs = globalThis.getComputedStyle(textarea)
   const mirror = document.createElement('div')
   // Copy properties that affect text layout. `white-space: pre-wrap`
   // matches the textarea's wrapping. `overflow: hidden` so the mirror

@@ -33,7 +33,7 @@ const links: FooterLink[] = [
 // Implemented via CustomEvent on `window` so the link itself stays
 // a plain button without coupling to the banner component's refs.
 function reopenConsent(): void {
-  window.dispatchEvent(new CustomEvent('markoto:reopen-consent'))
+  globalThis.dispatchEvent(new CustomEvent('markoto:reopen-consent'))
 }
 </script>
 

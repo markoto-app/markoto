@@ -86,8 +86,8 @@ export function useDocument(docId: string) {
     if (import.meta.server || !configured) return configured
     if (configured.startsWith('ws://localhost:') || configured.startsWith('ws://127.0.0.1:')) {
       const port = configured.split(':').pop() || '4001'
-      const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
-      return `${scheme}://${window.location.hostname}:${port}`
+      const scheme = globalThis.location.protocol === 'https:' ? 'wss' : 'ws'
+      return `${scheme}://${globalThis.location.hostname}:${port}`
     }
     return configured
   })()

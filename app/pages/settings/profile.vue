@@ -31,11 +31,11 @@ const { status, refresh: refreshAccountStatus } = useAccountStatus()
 useHead({ title: `${t('settings.profile.title')} · markoto` })
 
 if (import.meta.client && !loggedIn.value) {
-  window.location.href = '/auth/github'
+  globalThis.location.href = '/auth/github'
 }
 
 function onClose(): void {
-  if (window.history.length > 1 && document.referrer) {
+  if (globalThis.history.length > 1 && document.referrer) {
     router.back()
   } else {
     router.push('/')
@@ -258,7 +258,7 @@ function reopenConsentBanner(): void {
   // dispatches. The banner component listens on `window` and
   // re-opens with the customize panel pre-populated from the
   // user's current decisions.
-  window.dispatchEvent(new CustomEvent('markoto:reopen-consent'))
+  globalThis.dispatchEvent(new CustomEvent('markoto:reopen-consent'))
 }
 
 // Listen for the banner's "I just saved new choices" event so
@@ -268,10 +268,10 @@ function handleConsentUpdated(): void {
 }
 onMounted(() => {
   void refreshConsent()
-  window.addEventListener('markoto:consent-updated', handleConsentUpdated)
+  globalThis.addEventListener('markoto:consent-updated', handleConsentUpdated)
 })
 onBeforeUnmount(() => {
-  window.removeEventListener('markoto:consent-updated', handleConsentUpdated)
+  globalThis.removeEventListener('markoto:consent-updated', handleConsentUpdated)
 })
 </script>
 
