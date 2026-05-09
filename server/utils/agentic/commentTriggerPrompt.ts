@@ -188,12 +188,9 @@ const ANCHOR_PREVIEW_MAX = 400
  * newlines included so callers can concatenate raw.
  */
 export function buildCommentTriggerBlock(thread: ResolvedThread): string {
-  const lines: string[] = []
-  lines.push('<comment_trigger>')
-  lines.push('You were summoned into a comment thread by an @ai mention. Your job is to read the thread, take the action the user asked for, and reply on the SAME thread to explain what you did.')
-  lines.push('')
-  lines.push(`Thread id: ${thread.commentId}`)
-
+  // Anchor preview block — indented anchor text (so the model can
+  // distinguish doc text from scaffolding) or the orphaned-anchor sentinel.
+  let anchorBlock: string
   if (thread.anchorText !== null && thread.startLine !== null && thread.endLine !== null) {
     const preview = thread.anchorText.length > ANCHOR_PREVIEW_MAX
       ? thread.anchorText.slice(0, ANCHOR_PREVIEW_MAX) + '…'
@@ -201,50 +198,53 @@ export function buildCommentTriggerBlock(thread: ResolvedThread): string {
     const lineLabel = thread.startLine === thread.endLine
       ? `line ${thread.startLine}`
       : `lines ${thread.startLine}–${thread.endLine}`
-    lines.push(`Anchored to ${lineLabel}:`)
-    // Indent the anchor preview so the model can clearly distinguish doc
-    // text from prompt scaffolding even if the preview itself contains
-    // line breaks.
     const indented = preview.split('\n').map(l => `  > ${l}`).join('\n')
-    lines.push(indented)
+    anchorBlock = `Anchored to ${lineLabel}:\n${indented}`
   } else {
-    lines.push('Anchor: [orphaned — the originally anchored text was deleted from the document]')
+    anchorBlock = 'Anchor: [orphaned — the originally anchored text was deleted from the document]'
   }
 
-  if (thread.resolved) {
-    lines.push('Status: thread is currently RESOLVED. The user is asking you to act on it anyway.')
-  }
-
-  lines.push('')
-  lines.push('Original comment:')
   const parentMarker = thread.triggerIsParent ? ' ← THIS is the @ai trigger' : ''
   const parentByline = `  by ${thread.parentAuthorName}${thread.parentAuthorId !== null ? ` (user_id=${thread.parentAuthorId})` : ''}${parentMarker}:`
-  lines.push(parentByline)
-  lines.push(`  ${stripAiMention(thread.parentBody)}`)
+  const repliesBlock = thread.replies.length > 0
+    ? '\n\n' + [
+      `Replies (${thread.replies.length}):`,
+      ...thread.replies.flatMap((r) => {
+        const marker = r.isTrigger ? ' ← THIS is the @ai trigger' : ''
+        const byline = `  - by ${r.authorName}${r.authorId !== null ? ` (user_id=${r.authorId})` : ''}${marker}:`
+        return [byline, `    ${stripAiMention(r.body)}`]
+      })
+    ].join('\n')
+    : ''
 
-  if (thread.replies.length > 0) {
-    lines.push('')
-    lines.push(`Replies (${thread.replies.length}):`)
-    for (const r of thread.replies) {
-      const marker = r.isTrigger ? ' ← THIS is the @ai trigger' : ''
-      const byline = `  - by ${r.authorName}${r.authorId !== null ? ` (user_id=${r.authorId})` : ''}${marker}:`
-      lines.push(byline)
-      lines.push(`    ${stripAiMention(r.body)}`)
-    }
+  const sections = [
+    '<comment_trigger>',
+    'You were summoned into a comment thread by an @ai mention. Your job is to read the thread, take the action the user asked for, and reply on the SAME thread to explain what you did.',
+    '',
+    `Thread id: ${thread.commentId}`,
+    anchorBlock
+  ]
+  if (thread.resolved) {
+    sections.push('Status: thread is currently RESOLVED. The user is asking you to act on it anyway.')
   }
-
-  lines.push('')
-  lines.push('Your task:')
-  lines.push(`- Take the action the triggering message asks for. Use the document tools (replace_text, insert_text, generate_image, update_theme, get_theme, list_themes, save_theme_as_preset, set_title, etc.) when the user wants something changed in the document.`)
-  lines.push(`- End your turn with reply_to_comment(comment_id="${thread.commentId}", body="...") summarising what you did, addressing the asker by name if helpful.`)
-  lines.push(`- Do NOT call create_comment — you are responding inside an existing thread, not opening a new one.`)
-  lines.push(`- Do NOT call resolve_comment unless the triggering message explicitly asks you to resolve it. Resolution is a human action.`)
-  lines.push(`- The triggering message has already had its @ai mentions stripped — don't re-add @ai in your reply or you'll re-trigger yourself.`)
-  lines.push('')
-  lines.push('If the request is purely conversational ("what do you think of this paragraph?"), just reply — no doc edit needed. If it asks for a doc change ("rewrite this", "add a TLDR"), do the change AND reply.')
-  lines.push('</comment_trigger>')
-  lines.push('')
-  return lines.join('\n')
+  sections.push(
+    '',
+    'Original comment:',
+    parentByline,
+    `  ${stripAiMention(thread.parentBody)}${repliesBlock}`,
+    '',
+    'Your task:',
+    `- Take the action the triggering message asks for. Use the document tools (replace_text, insert_text, generate_image, update_theme, get_theme, list_themes, save_theme_as_preset, set_title, etc.) when the user wants something changed in the document.`,
+    `- End your turn with reply_to_comment(comment_id="${thread.commentId}", body="...") summarising what you did, addressing the asker by name if helpful.`,
+    `- Do NOT call create_comment — you are responding inside an existing thread, not opening a new one.`,
+    `- Do NOT call resolve_comment unless the triggering message explicitly asks you to resolve it. Resolution is a human action.`,
+    `- The triggering message has already had its @ai mentions stripped — don't re-add @ai in your reply or you'll re-trigger yourself.`,
+    '',
+    'If the request is purely conversational ("what do you think of this paragraph?"), just reply — no doc edit needed. If it asks for a doc change ("rewrite this", "add a TLDR"), do the change AND reply.',
+    '</comment_trigger>',
+    ''
+  )
+  return sections.join('\n')
 }
 
 // ---------------------------------------------------------------------------
