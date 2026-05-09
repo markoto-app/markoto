@@ -60,7 +60,7 @@ export default defineConfig({
     // nothing more.
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'text-summary', 'html', 'json-summary'],
+      reporter: ['text', 'text-summary', 'html', 'json-summary', 'lcov'],
       reportsDirectory: './coverage',
       all: true,
       include: [
