@@ -12,13 +12,20 @@ name: ci
 #   lint-typecheck      — fast (~30s) gate
 #   test-unit-dom       — fast unit + happy-dom suite
 #   test-repos-integration-flows
-#                       — heavy stack (~10–15 min); skipped on draft PRs
+#                       — heavy stack (~10–15 min); skipped on draft PRs.
+#                         Also produces ./coverage/lcov.info (consumed
+#                         by the sonar job below) — `bun run test:repos`
+#                         was replaced by `test:coverage:fast` so we
+#                         don't run unit/dom/nuxt/repos twice on a PR.
+#   sonar               — SonarQube Cloud scan; downloads the coverage
+#                         artifact from test-repos-integration-flows.
+#                         Same draft-PR gate as that job.
 #   notify-on-failure   — single Apprise ping if any of the above failed
 #
 # Branch protection on `main` should require `label-check`,
 # `semantic-pr-title`, `actions-lint`, `secret-scan`, `lint-typecheck`,
 # `test-unit-dom`, and (for ready-for-review PRs)
-# `test-repos-integration-flows`. See docs/GITHUB-CONFIG.md.
+# `test-repos-integration-flows` + `sonar`. See docs/GITHUB-CONFIG.md.
 
 on:
   pull_request:
@@ -195,14 +202,29 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # sync-server/ has its own package.json (it ships as a separate
+      # container — `@sentry/bun` etc. don't belong at the root). The
+      # root install doesn't reach it, but vitest's `coverage.all: true`
+      # instruments every file in `include:` — including
+      # `sync-server/src/**/*.ts` — at coverage-suite time. Without
+      # these deps installed, `import '@sentry/bun'` ERR_MODULE_NOT_FOUND
+      # crashes the coverage run.
+      - name: Install sync-server dependencies
+        run: bun install --frozen-lockfile
+        working-directory: sync-server
+
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
       - name: Bring up test stack
         run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
 
-      - name: Repos tests
-        run: bun run test:repos
+      # Replaces `bun run test:repos` — covers the same project plus
+      # unit + dom + nuxt under one vitest invocation with --coverage.
+      # The lcov is uploaded below for the sonar job to consume; running
+      # the same test set in a separate workflow would double the cost.
+      - name: Coverage suite (unit + dom + nuxt + repos)
+        run: bun run test:coverage:fast
 
       - name: Integration tests
         run: bun run test:integration
@@ -213,6 +235,17 @@ jobs:
       - name: Tear down test stack
         if: always()
         run: docker compose -f docker-compose.test.yml --profile flows down -v
+
+      - name: Upload coverage for sonar
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          # Only the lcov file — the html / json-summary reports add
+          # MBs of artefact weight that sonar doesn't read.
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Upload Playwright artefacts on failure
         if: failure()
@@ -225,6 +258,32 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  sonar:
+    name: sonar
+    needs: test-repos-integration-flows
+    # Inherits the heavy-job's draft gate — sonar isn't useful without
+    # the coverage artifact this job produces. Mirror the gate so a
+    # draft PR doesn't surface a failed (artifact-missing) sonar check.
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history → accurate blame + new-code period detection.
+          fetch-depth: 0
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   notify-on-failure:
     name: notify-on-failure
     needs:
@@ -235,6 +294,7 @@ jobs:
       - lint-typecheck
       - test-unit-dom
       - test-repos-integration-flows
+      - sonar
     if: failure()
     runs-on: ubuntu-latest
     steps:

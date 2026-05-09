@@ -1,34 +1,23 @@
-name: sonar
+name: sonar-baseline
 
-# SonarQube Cloud (formerly SonarCloud) static analysis.
+# Main-branch SonarQube Cloud baseline. PR analysis lives inside
+# ci.yml's `sonar` job (which reuses coverage from the existing test
+# pipeline). This workflow only fires on push to main, where ci.yml
+# does NOT run — without a main-branch scan, Sonar's "new code" period
+# detection regresses to "everything is new" on every PR.
 #
-# Runs on:
-#   - pull_request   → branch + PR decoration. Sonar comments the PR.
-#   - push to main   → updates the long-lived baseline used to compute
-#                      "new code" deltas on subsequent PRs.
-#
-# Coverage source: `bun run test:coverage:fast` — unit + dom + nuxt +
-# repos projects. Integration coverage is architecturally unrecoverable
-# (subprocess invisible to c8 — see AGENTS.md §10), so we don't try.
-# The repos project needs the test Postgres; we bring up the lean test
-# stack (no flows profile) to keep this job under ~5 min.
-#
-# Project key + scan parameters live in sonar-project.properties.
 # Required GH secret: SONAR_TOKEN (see docs/GITHUB-CONFIG.md).
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches:
       - main
 
 permissions:
   contents: read
-  pull-requests: read
 
 concurrency:
-  group: sonar-${{ github.event.pull_request.number || github.ref }}
+  group: sonar-baseline-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -41,8 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history → accurate blame + new-code period detection.
-          # Sonar warns and falls back to "everything is new" without it.
           fetch-depth: 0
 
       - name: Setup Bun
@@ -52,6 +39,12 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      # See ci.yml for the rationale — sync-server has its own deps that
+      # vitest's coverage.all instruments at runtime.
+      - name: Install sync-server dependencies
+        run: bun install --frozen-lockfile
+        working-directory: sync-server
 
       - name: Bring up test Postgres + Valkey
         run: bun run test:integration:up
@@ -67,3 +60,33 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  notify-on-failure:
+    name: notify-on-failure
+    needs: [sonar]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Apprise
+        run: pip install apprise
+
+      - name: Send Apprise notification
+        env:
+          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "${APPRISE_URLS:-}" ]; then
+            echo "APPRISE_URLS secret not configured — skipping notification."
+            exit 0
+          fi
+          apprise -t "Sonar baseline failed on main" \
+                  -b "Commit \`${COMMIT_SHA}\`
+          Run: ${RUN_URL}" \
+                  -i markdown \
+                  "${APPRISE_URLS}"
