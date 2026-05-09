@@ -56,9 +56,6 @@ export function processChunk(
     if (!call.name) continue
     // Identity = name + args fingerprint. Prevents re-announcing on chunks
     // that simply repeat the same complete call.
-    // `call.args` is typed `unknown` upstream; coerce once to the
-    // `Record` shape `describeToolInput` expects + the JSON.stringify
-    // call accepts.
     const args = (call.args ?? {}) as Record<string, unknown>
     const key = `${call.name}:${JSON.stringify(args)}`
     if (state.announced.has(key)) continue
@@ -69,122 +66,146 @@ export function processChunk(
   }
 }
 
+// ─── Per-tool formatter helpers ────────────────────────────────────────
+//
+// Each formatter takes the validated args (typed `Record<string, unknown>`
+// so unknown shapes are handled defensively) and returns a status string
+// or null. Splitting one-per-tool keeps `describeToolInput` flat (a map
+// lookup) and pushes per-shape extraction logic into 1-3 line helpers.
+
+/** Coerce + trim a possibly-missing string field. Returns '' on miss. */
+function strField(args: Record<string, unknown>, key: string): string {
+  return typeof args[key] === 'string' ? (args[key] as string).trim() : ''
+}
+
+/** Truncate a label with an ellipsis when it exceeds `max` chars. */
+function truncate(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max) + '…' : s
+}
+
+/**
+ * Common shape: extract a string field, fall back to a generic message
+ * when absent, otherwise render the template with a truncated preview.
+ */
+function fieldStatus(
+  args: Record<string, unknown>,
+  field: string,
+  fallback: string,
+  template: (preview: string) => string,
+  max: number
+): string {
+  const value = strField(args, field)
+  if (!value) return fallback
+  return template(truncate(value, max))
+}
+
+function describeWebSearch(args: Record<string, unknown>): string {
+  const q = strField(args, 'query')
+  return q ? `Searching the web for "${q}"` : 'Searching the web…'
+}
+
+function describeReplaceText(args: Record<string, unknown>): string {
+  const oldStr = typeof args.old_str === 'string' ? args.old_str : ''
+  if (!oldStr) return 'Editing the document…'
+  const preview = oldStr.slice(0, 40).replace(/\s+/g, ' ').trim()
+  // Ellipsis is keyed on the ORIGINAL length — `preview` is always
+  // ≤40 after the slice, so checking its length post-slice would never
+  // signal truncation.
+  return `Editing "${preview}${oldStr.length > 40 ? '…' : ''}"`
+}
+
+function describeUpdateTheme(args: Record<string, unknown>): string {
+  // Prefer surfacing a NAMED base source over the field-section count —
+  // it's what the user typed ("apply my Brand red") and reads like a
+  // status not a diagnostic.
+  if (typeof args.preset === 'string') return `Applying preset "${args.preset}"…`
+  if (typeof args.theme_id === 'string') return 'Applying a saved theme…'
+  if (args.from_workspace_default === true) return 'Applying workspace default theme…'
+  const sections = Object.entries(args)
+    .filter(([, v]) => v && typeof v === 'object' && Object.keys(v).length > 0)
+    .map(([k]) => k)
+  if (sections.length === 0) return 'Updating theme…'
+  if (sections.length <= 2) return `Updating theme (${sections.join(', ')})…`
+  return `Updating theme (${sections.length} sections)…`
+}
+
+function describeViewOtherDocument(args: Record<string, unknown>): string {
+  const raw = strField(args, 'doc_id')
+  if (!raw) return 'Reading another document…'
+  // Mirror the parser: extract `/d/<id>` shape if present, else treat
+  // as a bare id. We don't import the parser here to keep streamStatus
+  // dependency-free; the regex is simple enough.
+  const urlMatch = /\/d\/([A-Za-z0-9_-]+)/.exec(raw)
+  const id = urlMatch?.[1] ?? raw
+  return `Reading document ${truncate(id, 24)}`
+}
+
+function describeViewImage(args: Record<string, unknown>): string {
+  const src = typeof args.src === 'string' ? args.src : ''
+  if (!src) return 'Looking at an image…'
+  const leaf = src.split('/').pop() || src
+  return `Looking at "${truncate(leaf, 40)}"`
+}
+
+function describeFetchUrl(args: Record<string, unknown>): string {
+  const url = strField(args, 'url')
+  if (!url) return 'Fetching URL…'
+  // Strip scheme + trailing slash for a tidier display.
+  const display = url.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+  return `Fetching ${truncate(display, 50)}`
+}
+
+function describeReplyToComment(args: Record<string, unknown>): string {
+  const id = typeof args.comment_id === 'string' ? args.comment_id : ''
+  return id ? `Replying to comment ${id}…` : 'Replying to a comment…'
+}
+
+function describeResolveComment(args: Record<string, unknown>): string {
+  return args.resolved === true ? 'Resolving a comment…' : 'Reopening a comment…'
+}
+
+/**
+ * Tool-name → formatter registry. The few cases that don't fit the
+ * shared `fieldStatus` shape (update_theme, replace_text, view_other_document,
+ * view_image, fetch_url, reply_to_comment, resolve_comment) get bespoke
+ * helpers above; everything else is one line of registry data.
+ *
+ * Static-string tools without args go straight in via a returns-constant
+ * arrow.
+ */
+const FORMATTERS: Record<string, (args: Record<string, unknown>) => string | null> = {
+  web_search: describeWebSearch,
+  view_document: () => 'Reading the document…',
+  replace_text: describeReplaceText,
+  insert_text: () => 'Inserting text…',
+  update_theme: describeUpdateTheme,
+  get_theme: () => 'Reading current theme…',
+  list_themes: () => 'Listing your saved themes…',
+  save_theme_as_preset: a => fieldStatus(a, 'name', 'Saving theme as preset…', p => `Saving theme as "${p}"`, 40),
+  list_workspace_documents: () => 'Browsing workspace documents…',
+  view_other_document: describeViewOtherDocument,
+  set_title: a => fieldStatus(a, 'title', 'Updating title…', p => `Setting title to "${p}"`, 40),
+  view_image: describeViewImage,
+  generate_image: a => fieldStatus(a, 'prompt', 'Generating image…', p => `Generating image: "${p}"`, 50),
+  fetch_url: describeFetchUrl,
+  search_knowledge: a => fieldStatus(a, 'query', 'Searching workspace knowledge…', p => `Searching workspace knowledge for "${p}"`, 60),
+  get_knowledge_file: a => fieldStatus(a, 'knowledge_id', 'Opening a workspace knowledge file…', p => `Opening workspace knowledge file ${p}`, 64),
+  read_comments: () => 'Reading document comments…',
+  create_comment: () => 'Adding a comment…',
+  reply_to_comment: describeReplyToComment,
+  resolve_comment: describeResolveComment,
+  delete_comment: () => 'Deleting a comment…'
+}
+
 /**
  * Pure derivation: tool name + args → user-facing status string.
  * Exported so it can be unit-tested.
  *
- * Returns null if the inputs don't carry a field we can speak to — callers
- * should leave the previous status in place rather than flash something
- * generic (philosophy carried over from pre-Phase-5: Gemini-era).
+ * Returns null if the tool isn't recognised — callers should leave the
+ * previous status in place rather than flash something generic
+ * (philosophy carried over from pre-Phase-5: Gemini-era).
  */
 export function describeToolInput(name: string, args: Record<string, unknown>): string | null {
-  switch (name) {
-    case 'web_search': {
-      const q = typeof args.query === 'string' ? args.query.trim() : ''
-      return q ? `Searching the web for "${q}"` : 'Searching the web…'
-    }
-    case 'view_document':
-      return 'Reading the document…'
-    case 'replace_text': {
-      const oldStr = typeof args.old_str === 'string' ? args.old_str : ''
-      if (!oldStr) return 'Editing the document…'
-      const preview = oldStr.slice(0, 40).replace(/\s+/g, ' ').trim()
-      return `Editing "${preview}${oldStr.length > 40 ? '…' : ''}"`
-    }
-    case 'insert_text':
-      return 'Inserting text…'
-    case 'update_theme': {
-      // Prefer surfacing a NAMED base source over the field-section
-      // count — it's what the user typed ("apply my Brand red") and
-      // reads like a status not a diagnostic.
-      if (typeof args.preset === 'string') return `Applying preset "${args.preset}"…`
-      if (typeof args.theme_id === 'string') return 'Applying a saved theme…'
-      if (args.from_workspace_default === true) return 'Applying workspace default theme…'
-      const sections = Object.entries(args)
-        .filter(([, v]) => v && typeof v === 'object' && Object.keys(v).length > 0)
-        .map(([k]) => k)
-      if (sections.length === 0) return 'Updating theme…'
-      if (sections.length <= 2) return `Updating theme (${sections.join(', ')})…`
-      return `Updating theme (${sections.length} sections)…`
-    }
-    case 'get_theme':
-      return 'Reading current theme…'
-    case 'list_themes':
-      return 'Listing your saved themes…'
-    case 'save_theme_as_preset': {
-      const name = typeof args.name === 'string' ? args.name.trim() : ''
-      if (!name) return 'Saving theme as preset…'
-      const preview = name.length > 40 ? name.slice(0, 40) + '…' : name
-      return `Saving theme as "${preview}"`
-    }
-    case 'list_workspace_documents':
-      return 'Browsing workspace documents…'
-    case 'view_other_document': {
-      const raw = typeof args.doc_id === 'string' ? args.doc_id.trim() : ''
-      if (!raw) return 'Reading another document…'
-      // Mirror the parser: extract `/d/<id>` shape if present, else
-      // treat as a bare id. We don't import the parser here to keep
-      // streamStatus dependency-free; the regex is simple enough.
-      const urlMatch = raw.match(/\/d\/([A-Za-z0-9_-]+)/)
-      const id = urlMatch?.[1] ?? raw
-      const preview = id.length > 24 ? id.slice(0, 24) + '…' : id
-      return `Reading document ${preview}`
-    }
-    case 'set_title': {
-      const title = typeof args.title === 'string' ? args.title.trim() : ''
-      if (!title) return 'Updating title…'
-      const preview = title.length > 40 ? title.slice(0, 40) + '…' : title
-      return `Setting title to "${preview}"`
-    }
-    case 'view_image': {
-      const src = typeof args.src === 'string' ? args.src : ''
-      if (!src) return 'Looking at an image…'
-      const leaf = src.split('/').pop() || src
-      const preview = leaf.length > 40 ? leaf.slice(0, 40) + '…' : leaf
-      return `Looking at "${preview}"`
-    }
-    case 'generate_image': {
-      const prompt = typeof args.prompt === 'string' ? args.prompt.trim() : ''
-      if (!prompt) return 'Generating image…'
-      const preview = prompt.length > 50 ? prompt.slice(0, 50) + '…' : prompt
-      return `Generating image: "${preview}"`
-    }
-    case 'fetch_url': {
-      const url = typeof args.url === 'string' ? args.url.trim() : ''
-      if (!url) return 'Fetching URL…'
-      // Strip scheme + trailing slash for a tidier display.
-      const display = url.replace(/^https?:\/\//i, '').replace(/\/$/, '')
-      const preview = display.length > 50 ? display.slice(0, 50) + '…' : display
-      return `Fetching ${preview}`
-    }
-    case 'search_knowledge': {
-      const q = typeof args.query === 'string' ? args.query.trim() : ''
-      if (!q) return 'Searching workspace knowledge…'
-      const preview = q.length > 60 ? q.slice(0, 60) + '…' : q
-      return `Searching workspace knowledge for "${preview}"`
-    }
-    case 'get_knowledge_file': {
-      const id = typeof args.knowledge_id === 'string' ? args.knowledge_id : ''
-      if (!id) return 'Opening a workspace knowledge file…'
-      return `Opening workspace knowledge file ${id}`
-    }
-    case 'read_comments':
-      return 'Reading document comments…'
-    case 'create_comment':
-      return 'Adding a comment…'
-    case 'reply_to_comment': {
-      const id = typeof args.comment_id === 'string' ? args.comment_id : ''
-      return id ? `Replying to comment ${id}…` : 'Replying to a comment…'
-    }
-    case 'resolve_comment': {
-      const resolved = args.resolved === true
-      return resolved ? 'Resolving a comment…' : 'Reopening a comment…'
-    }
-    case 'delete_comment':
-      return 'Deleting a comment…'
-    default:
-      // Unknown function — don't spam awareness; the loop will still fire
-      // an "unsupported tool" error response back to the model.
-      return null
-  }
+  const formatter = FORMATTERS[name]
+  return formatter ? formatter(args) : null
 }
