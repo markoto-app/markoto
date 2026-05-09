@@ -113,7 +113,7 @@ async function purgeMarkotoIdb(): Promise<void> {
  * logout — a rare action where correctness > perf.
  */
 async function redirectHome(): Promise<void> {
-  if (typeof globalThis.window !== 'undefined') {
+  if (globalThis.window !== undefined) {
     globalThis.location.href = '/'
     return
   }

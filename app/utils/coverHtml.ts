@@ -72,5 +72,5 @@ function buildMetaHtml(theme: DocTheme, dateIso: string): string {
 
 /** Minimal HTML escape for text interpolated into element bodies. */
 function esc(s: string): string {
-  return s.replaceAll(/&/g, '&amp;').replaceAll(/</g, '&lt;').replaceAll(/>/g, '&gt;')
+  return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
