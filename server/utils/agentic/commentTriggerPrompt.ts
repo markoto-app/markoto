@@ -253,13 +253,15 @@ export function buildCommentTriggerBlock(thread: ResolvedThread): string {
   }
 
   const parentMarker = thread.triggerIsParent ? ' ← THIS is the @ai trigger' : ''
-  const parentByline = `  by ${thread.parentAuthorName}${thread.parentAuthorId !== null ? ` (user_id=${thread.parentAuthorId})` : ''}${parentMarker}:`
+  const parentUserPart = thread.parentAuthorId !== null ? ` (user_id=${thread.parentAuthorId})` : ''
+  const parentByline = `  by ${thread.parentAuthorName}${parentUserPart}${parentMarker}:`
   const repliesBlock = thread.replies.length > 0
     ? '\n\n' + [
       `Replies (${thread.replies.length}):`,
       ...thread.replies.flatMap((r) => {
         const marker = r.isTrigger ? ' ← THIS is the @ai trigger' : ''
-        const byline = `  - by ${r.authorName}${r.authorId !== null ? ` (user_id=${r.authorId})` : ''}${marker}:`
+        const userPart = r.authorId !== null ? ` (user_id=${r.authorId})` : ''
+        const byline = `  - by ${r.authorName}${userPart}${marker}:`
         return [byline, `    ${stripAiMention(r.body)}`]
       })
     ].join('\n')

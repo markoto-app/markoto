@@ -151,6 +151,11 @@ function tokenToCss(token: string, runtime: ThemeRuntime): string {
 
 // — root block ————————————————————————————————————————————————————————
 
+function columnRules(columns: number, columnGap: number): string {
+  if (columns <= 1) return ''
+  return `  column-count: ${columns};\n  column-gap: ${columnGap}mm;\n  column-fill: auto;`
+}
+
 function rootBlock(theme: DocTheme): string {
   const { brand, secondary } = theme.color
   const { color: text, background, font, size, lineHeight } = theme.body
@@ -166,7 +171,7 @@ function rootBlock(theme: DocTheme): string {
   line-height: ${lineHeight};
   color: var(--doc-text);
   background: var(--doc-bg);
-${columns > 1 ? `  column-count: ${columns};\n  column-gap: ${columnGap}mm;\n  column-fill: auto;` : ''}
+${columnRules(columns, columnGap)}
 }
 
 /* Paint the entire paged.js page surface in the theme's paper colour

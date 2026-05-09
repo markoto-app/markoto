@@ -1324,7 +1324,8 @@ export function formatActivityRow(row: ActivityEntry): string {
     case 'comment.deleted': {
       const preview = trim(m?.bodyPreview, 120)
       const id = trim(m?.commentId, 32)
-      return `${head} ${id ? `comment_id=${id} ` : ''}body≈"${preview}"`
+      const idPart = id ? `comment_id=${id} ` : ''
+      return `${head} ${idPart}body≈"${preview}"`
     }
     case 'title.changed':
       return `${head} from "${trim(m?.from, 80)}" → "${trim(m?.to, 80)}"`
@@ -1574,7 +1575,8 @@ async function handleGetKnowledgeFile(session: AiSession, input: GetKnowledgeFil
     return err(`Error: knowledge_id "${input.knowledge_id}" belongs to a different workspace.`)
   }
   if (row.status !== 'ready') {
-    return err(`Error: knowledge file "${row.filename}" is currently in status "${row.status}"${row.errorMessage ? `: ${row.errorMessage}` : ''}.`)
+    const errTail = row.errorMessage ? `: ${row.errorMessage}` : ''
+    return err(`Error: knowledge file "${row.filename}" is currently in status "${row.status}"${errTail}.`)
   }
   if (!row.markdownCache) {
     return err(`Error: knowledge file "${row.filename}" has no cached content. Try search_knowledge instead.`)
