@@ -95,6 +95,28 @@ function _arrowGeometry(a: Annotation) {
   return { tailX, tailY, headX: head.x, headY: head.y, labelLeft, labelTop }
 }
 
+/**
+ * If the parametric line `(origin + t*delta)` crosses `axisValue` at
+ * t ∈ [0, 1] AND the perpendicular coordinate at that t falls inside
+ * `[perpMin, perpMax]`, return t; else null. Used to test whether a
+ * directed line segment touches one edge of an axis-aligned rect.
+ */
+function intersectAxis(
+  origin: number,
+  delta: number,
+  axisValue: number,
+  perpOrigin: number,
+  perpDelta: number,
+  perpMin: number,
+  perpMax: number
+): number | null {
+  if (delta === 0) return null
+  const t = (axisValue - origin) / delta
+  if (t < 0 || t > 1) return null
+  const perp = perpOrigin + t * perpDelta
+  return (perp >= perpMin && perp <= perpMax) ? t : null
+}
+
 // Intersect line (x1, y1) → (x2, y2) with the bounding rect of the
 // annotation. Returns the point where the line first touches the
 // rect's perimeter (so the arrowhead lands on the edge, not in the
@@ -108,31 +130,12 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
   const dy = y2 - y1
   // Param t in [0, 1] where line first crosses the rect. Compute
   // candidate t for each edge; pick the smallest valid one.
-  const candidates: number[] = []
-  if (dx !== 0) {
-    const tLeft = (left - x1) / dx
-    if (tLeft >= 0 && tLeft <= 1) {
-      const y = y1 + tLeft * dy
-      if (y >= top && y <= bottom) candidates.push(tLeft)
-    }
-    const tRight = (right - x1) / dx
-    if (tRight >= 0 && tRight <= 1) {
-      const y = y1 + tRight * dy
-      if (y >= top && y <= bottom) candidates.push(tRight)
-    }
-  }
-  if (dy !== 0) {
-    const tTop = (top - y1) / dy
-    if (tTop >= 0 && tTop <= 1) {
-      const x = x1 + tTop * dx
-      if (x >= left && x <= right) candidates.push(tTop)
-    }
-    const tBottom = (bottom - y1) / dy
-    if (tBottom >= 0 && tBottom <= 1) {
-      const x = x1 + tBottom * dx
-      if (x >= left && x <= right) candidates.push(tBottom)
-    }
-  }
+  const candidates = [
+    intersectAxis(x1, dx, left, y1, dy, top, bottom),
+    intersectAxis(x1, dx, right, y1, dy, top, bottom),
+    intersectAxis(y1, dy, top, x1, dx, left, right),
+    intersectAxis(y1, dy, bottom, x1, dx, left, right)
+  ].filter((v): v is number => v !== null)
   const t = candidates.length ? Math.min(...candidates) : 1
   return { x: x1 + t * dx, y: y1 + t * dy }
 }
