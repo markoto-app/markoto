@@ -33,41 +33,69 @@ type SpendByTag = Record<string, { spend: number, requests: number, totalTokens:
  * into a single internal map.
  */
 function collapseSpendResponse(payload: unknown): SpendByTag {
-  const out: SpendByTag = {}
-  // Unwrap envelope variants.
-  let body: unknown = payload
+  const body = unwrapEnvelope(payload)
+  if (Array.isArray(body)) return collapseArrayShape(body)
+  if (body && typeof body === 'object') return collapseMapShape(body as Record<string, unknown>)
+  return {}
+}
+
+/** Strip the `{ spend_per_tag: [...] }` envelope variant if present. */
+function unwrapEnvelope(payload: unknown): unknown {
   if (payload && typeof payload === 'object' && 'spend_per_tag' in payload) {
-    body = (payload as { spend_per_tag?: unknown }).spend_per_tag
+    return (payload as { spend_per_tag?: unknown }).spend_per_tag
   }
-  // Array shape (current).
-  if (Array.isArray(body)) {
-    for (const row of body as SpendTagRow[]) {
-      if (typeof row?.individual_request_tag !== 'string') continue
-      const tag = row.individual_request_tag
-      const existing = out[tag] ?? { spend: 0, requests: 0, totalTokens: 0 }
-      existing.spend += typeof row.total_spend === 'number' ? row.total_spend : 0
-      existing.requests += typeof row.log_count === 'number' ? row.log_count : 0
-      existing.totalTokens += typeof row.total_tokens === 'number' ? row.total_tokens : 0
-      out[tag] = existing
-    }
-    return out
+  return payload
+}
+
+/** Coerce a possibly-missing field to a number, defaulting to 0. */
+function num(row: unknown, key: string): number {
+  if (!row || typeof row !== 'object') return 0
+  const v = (row as Record<string, unknown>)[key]
+  return typeof v === 'number' ? v : 0
+}
+
+/** Pick the first numeric field from a list of candidate keys; 0 if none match. */
+function firstNum(row: unknown, keys: string[]): number {
+  if (!row || typeof row !== 'object') return 0
+  const r = row as Record<string, unknown>
+  for (const k of keys) {
+    if (typeof r[k] === 'number') return r[k] as number
   }
-  // Map shape (legacy / some versions).
-  if (body && typeof body === 'object') {
-    for (const [tag, row] of Object.entries(body as Record<string, SpendTagRow>)) {
-      out[tag] = {
-        spend: typeof row?.total_spend === 'number'
-          ? row.total_spend
-          : typeof (row as unknown as { spend?: number })?.spend === 'number'
-            ? (row as unknown as { spend: number }).spend
-            : 0,
-        requests: typeof row?.log_count === 'number'
-          ? row.log_count
-          : typeof (row as unknown as { api_requests?: number })?.api_requests === 'number'
-            ? (row as unknown as { api_requests: number }).api_requests
-            : 0,
-        totalTokens: typeof row?.total_tokens === 'number' ? row.total_tokens : 0
-      }
+  return 0
+}
+
+/**
+ * Array shape (current LiteLLM): `[{individual_request_tag, total_spend,
+ * log_count, total_tokens, ...}, ...]`. Multiple rows for the same tag
+ * sum.
+ */
+function collapseArrayShape(rows: unknown[]): SpendByTag {
+  const out: SpendByTag = {}
+  for (const row of rows as SpendTagRow[]) {
+    if (typeof row?.individual_request_tag !== 'string') continue
+    const tag = row.individual_request_tag
+    const existing = out[tag] ?? { spend: 0, requests: 0, totalTokens: 0 }
+    existing.spend += num(row, 'total_spend')
+    existing.requests += num(row, 'log_count')
+    existing.totalTokens += num(row, 'total_tokens')
+    out[tag] = existing
+  }
+  return out
+}
+
+/**
+ * Map shape (legacy / some versions): `{ tag: { total_spend?, spend?,
+ * log_count?, api_requests?, total_tokens?, ... } }`. Two field-name
+ * fallbacks per stat — `total_spend`/`spend` and `log_count`/`api_requests`
+ * — pick the first defined.
+ */
+function collapseMapShape(rows: Record<string, unknown>): SpendByTag {
+  const out: SpendByTag = {}
+  for (const [tag, row] of Object.entries(rows)) {
+    out[tag] = {
+      spend: firstNum(row, ['total_spend', 'spend']),
+      requests: firstNum(row, ['log_count', 'api_requests']),
+      totalTokens: num(row, 'total_tokens')
     }
   }
   return out
