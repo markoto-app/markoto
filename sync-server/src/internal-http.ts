@@ -68,83 +68,14 @@ async function handleInternalRequestInner(
   instance: HocuspocusInstance,
   url: string
 ): Promise<boolean> {
-  if (!INTERNAL_SECRET) {
-    sendJson(response, 500, { error: 'Internal secret not configured' })
-    return true
-  }
-  const providedSecret = request.headers['x-internal-secret']
-  if (typeof providedSecret !== 'string' || !matchesCurrentOrPrevious(
-    providedSecret,
-    INTERNAL_SECRET,
-    INTERNAL_SECRET_PREVIOUS
-  )) {
-    sendJson(response, 401, { error: 'Invalid internal secret' })
-    return true
-  }
-
+  if (!authenticateInternalRequest(request, response)) return true
   try {
     if (url === '/internal/notify-deleted' && request.method === 'POST') {
-      const body = await readJsonBody(request) as { docId?: unknown }
-      const docId = body?.docId
-      if (typeof docId !== 'string') {
-        sendJson(response, 400, { error: 'Missing docId' })
-        return true
-      }
-
-      // Flag the in-memory Y.Doc as deleted — connected clients observe this
-      // via ymeta and handle redirect/toast on their end.
-      const doc = instance.documents?.get(docId)
-      if (doc) {
-        const ymeta = doc.getMap('meta')
-        ymeta.set('_deleted', Date.now())
-        // Let Hocuspocus broadcast the update, then unload after a short
-        // delay so clients receive the message before the room closes.
-        setTimeout(() => {
-          try {
-            instance.unloadDocument?.(doc)
-          } catch { /* ignore */ }
-        }, 2000)
-      }
-
-      // Clear the persisted Y.js rows so the doc can't be revived from disk.
-      // Wait briefly so any in-flight broadcast persists `_deleted` first.
-      setTimeout(() => {
-        ypgPersistence.clearDocument(docId).catch((e) => {
-          console.warn(`[internal-http] clearDocument(${docId}) failed:`, e instanceof Error ? e.message : e)
-        })
-      }, 3000)
-
-      sendJson(response, 200, { success: true, notified: !!doc })
-      return true
+      return await handleNotifyDeleted(request, response, instance)
     }
-
     if (url === '/internal/kick-user' && request.method === 'POST') {
-      // Force-close every live WS connection for a given user across a
-      // given set of docs. Called by the app when a workspace membership
-      // changes (role reduced, member removed, workspace deleted). The
-      // client's Hocuspocus provider auto-reconnects, re-hits the token
-      // endpoint, and picks up the new access level — so "kick" here
-      // really means "refresh". Fire-and-forget from the app; we never
-      // fail the caller's mutation on a kick failure.
-      const body = await readJsonBody(request) as { userId?: unknown, docIds?: unknown }
-      const rawUserId = body?.userId
-      const rawDocIds = body?.docIds
-      if ((typeof rawUserId !== 'string' && typeof rawUserId !== 'number')
-        || !Array.isArray(rawDocIds)) {
-        sendJson(response, 400, { error: 'userId (string|number) and docIds (string[]) required' })
-        return true
-      }
-      // JWT payloads may carry userId as number (logged-in) or string
-      // ('anonymous'). Compare as strings to cover both shapes without
-      // a silent skip on number/string mismatch.
-      const targetUserId = String(rawUserId)
-      const targetDocIds = rawDocIds.filter((d): d is string => typeof d === 'string')
-
-      const { kicked, missing } = performKickUser(instance, targetUserId, targetDocIds)
-      sendJson(response, 200, { success: true, kicked, docsNotLoaded: missing })
-      return true
+      return await handleKickUser(request, response, instance)
     }
-
     sendJson(response, 404, { error: 'Not found' })
     return true
   } catch (e) {
@@ -153,4 +84,94 @@ async function handleInternalRequestInner(
     sendJson(response, 500, { error: msg })
     return true
   }
+}
+
+/** Verify the `X-Internal-Secret` header against current + previous secret (rotation grace). Returns false (and writes the error response) on failure. */
+function authenticateInternalRequest(request: IncomingMessage, response: ServerResponse): boolean {
+  if (!INTERNAL_SECRET) {
+    sendJson(response, 500, { error: 'Internal secret not configured' })
+    return false
+  }
+  const providedSecret = request.headers['x-internal-secret']
+  if (typeof providedSecret !== 'string' || !matchesCurrentOrPrevious(
+    providedSecret,
+    INTERNAL_SECRET,
+    INTERNAL_SECRET_PREVIOUS
+  )) {
+    sendJson(response, 401, { error: 'Invalid internal secret' })
+    return false
+  }
+  return true
+}
+
+/**
+ * Flag the in-memory Y.Doc as deleted — connected clients observe via
+ * ymeta and handle redirect/toast on their end. After a short delay
+ * we unload the doc + clear its persisted Y.js rows so it can't be
+ * revived from disk.
+ */
+async function handleNotifyDeleted(
+  request: IncomingMessage,
+  response: ServerResponse,
+  instance: HocuspocusInstance
+): Promise<boolean> {
+  const body = await readJsonBody(request) as { docId?: unknown }
+  const docId = body?.docId
+  if (typeof docId !== 'string') {
+    sendJson(response, 400, { error: 'Missing docId' })
+    return true
+  }
+  const doc = instance.documents?.get(docId)
+  if (doc) {
+    doc.getMap('meta').set('_deleted', Date.now())
+    // Let Hocuspocus broadcast the update, then unload after a short
+    // delay so clients receive the message before the room closes.
+    setTimeout(() => {
+      try {
+        instance.unloadDocument?.(doc)
+      } catch { /* ignore */ }
+    }, 2000)
+  }
+  // Wait briefly so any in-flight broadcast persists `_deleted` first.
+  setTimeout(() => {
+    ypgPersistence.clearDocument(docId).catch((e) => {
+      console.warn(`[internal-http] clearDocument(${docId}) failed:`, e instanceof Error ? e.message : e)
+    })
+  }, 3000)
+
+  sendJson(response, 200, { success: true, notified: !!doc })
+  return true
+}
+
+/**
+ * Force-close every live WS connection for a given user across a
+ * given set of docs. Called by the app when a workspace membership
+ * changes (role reduced, member removed, workspace deleted). The
+ * client's Hocuspocus provider auto-reconnects, re-hits the token
+ * endpoint, and picks up the new access level — so "kick" here
+ * really means "refresh". Fire-and-forget from the app; we never
+ * fail the caller's mutation on a kick failure.
+ */
+async function handleKickUser(
+  request: IncomingMessage,
+  response: ServerResponse,
+  instance: HocuspocusInstance
+): Promise<boolean> {
+  const body = await readJsonBody(request) as { userId?: unknown, docIds?: unknown }
+  const rawUserId = body?.userId
+  const rawDocIds = body?.docIds
+  if ((typeof rawUserId !== 'string' && typeof rawUserId !== 'number')
+    || !Array.isArray(rawDocIds)) {
+    sendJson(response, 400, { error: 'userId (string|number) and docIds (string[]) required' })
+    return true
+  }
+  // JWT payloads may carry userId as number (logged-in) or string
+  // ('anonymous'). Compare as strings to cover both shapes without
+  // a silent skip on number/string mismatch.
+  const targetUserId = String(rawUserId)
+  const targetDocIds = rawDocIds.filter((d): d is string => typeof d === 'string')
+
+  const { kicked, missing } = performKickUser(instance, targetUserId, targetDocIds)
+  sendJson(response, 200, { success: true, kicked, docsNotLoaded: missing })
+  return true
 }
