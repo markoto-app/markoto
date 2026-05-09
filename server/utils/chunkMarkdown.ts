@@ -73,41 +73,62 @@ function splitOversizedBlock(block: string, maxTokens: number, overlapTokens: nu
     const t = estimateTokens(p)
     if (bufTokens + t > maxTokens && buf.length > 0) {
       out.push(buf.join('\n\n'))
-      // Retain a tail for overlap
-      const overlap: string[] = []
-      let overlapT = 0
-      for (let i = buf.length - 1; i >= 0; i--) {
-        const pt = estimateTokens(buf[i]!)
-        if (overlapT + pt > overlapTokens) break
-        overlap.unshift(buf[i]!)
-        overlapT += pt
-      }
-      buf = overlap
-      bufTokens = overlapT
+      const tail = retainOverlapTail(buf, overlapTokens)
+      buf = tail.paragraphs
+      bufTokens = tail.tokens
     }
     buf.push(p)
     bufTokens += t
     // Paragraph itself larger than maxTokens: sentence-split as last resort.
     if (bufTokens > maxTokens && buf.length === 1) {
-      const sentences = p.match(/(?:[^.!?\n]+[.!?]+[\])'"`’”]*)|(?:[^.!?\n]+$)/g) ?? [p]
-      let sBuf: string[] = []
-      let sT = 0
-      for (const s of sentences) {
-        const st = estimateTokens(s)
-        if (sT + st > maxTokens && sBuf.length > 0) {
-          out.push(sBuf.join(' ').trim())
-          sBuf = []
-          sT = 0
-        }
-        sBuf.push(s)
-        sT += st
-      }
-      if (sBuf.length > 0) out.push(sBuf.join(' ').trim())
+      out.push(...splitParagraphBySentences(p, maxTokens))
       buf = []
       bufTokens = 0
     }
   }
   if (buf.length > 0) out.push(buf.join('\n\n'))
+  return out
+}
+
+/**
+ * Walk `buf` from the tail forward, accumulating paragraphs while the
+ * token total stays within `overlapTokens`. Returns the tail in source
+ * order along with its token count, suitable for seeding the next
+ * chunk's buffer (so chunks share context at boundaries).
+ */
+function retainOverlapTail(buf: string[], overlapTokens: number): { paragraphs: string[], tokens: number } {
+  const paragraphs: string[] = []
+  let tokens = 0
+  for (let i = buf.length - 1; i >= 0; i--) {
+    const pt = estimateTokens(buf[i]!)
+    if (tokens + pt > overlapTokens) break
+    paragraphs.unshift(buf[i]!)
+    tokens += pt
+  }
+  return { paragraphs, tokens }
+}
+
+/**
+ * Last-resort sentence-split for a single paragraph that's larger than
+ * `maxTokens`. Sentences are joined with spaces (no paragraph breaks)
+ * because they came from one paragraph; trim each emitted chunk.
+ */
+function splitParagraphBySentences(p: string, maxTokens: number): string[] {
+  const sentences = p.match(/(?:[^.!?\n]+[.!?]+[\])'"`’”]*)|(?:[^.!?\n]+$)/g) ?? [p]
+  const out: string[] = []
+  let sBuf: string[] = []
+  let sT = 0
+  for (const s of sentences) {
+    const st = estimateTokens(s)
+    if (sT + st > maxTokens && sBuf.length > 0) {
+      out.push(sBuf.join(' ').trim())
+      sBuf = []
+      sT = 0
+    }
+    sBuf.push(s)
+    sT += st
+  }
+  if (sBuf.length > 0) out.push(sBuf.join(' ').trim())
   return out
 }
 
