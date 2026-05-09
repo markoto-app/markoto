@@ -91,10 +91,14 @@ async function handleDuplicate() {
         </div>
 
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">
+          <label
+            for="duplicate-title-input"
+            class="block text-sm font-medium mb-2"
+          >
             {{ t('duplicate.titleLabel') }}
           </label>
           <UInput
+            id="duplicate-title-input"
             v-model="newTitle"
             :placeholder="t('duplicate.titlePlaceholder')"
             size="md"

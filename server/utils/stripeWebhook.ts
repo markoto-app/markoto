@@ -92,9 +92,9 @@ interface UpdateUserArgs {
  */
 async function updateUser(opts: UpdateUserArgs, db?: DbOrTx): Promise<number> {
   const handle = db ?? useDatabase()
-  const where = opts.where.id !== undefined
-    ? eq(users.id, opts.where.id)
-    : eq(users.stripeCustomerId, opts.where.stripeCustomerId!)
+  const where = opts.where.id === undefined
+    ? eq(users.stripeCustomerId, opts.where.stripeCustomerId!)
+    : eq(users.id, opts.where.id)
   const result = await handle.update(users).set(opts.set).where(where).returning({ id: users.id })
   return result.length
 }

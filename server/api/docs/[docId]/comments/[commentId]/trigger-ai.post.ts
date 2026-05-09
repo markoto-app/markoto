@@ -359,13 +359,13 @@ function handleTriggerLoopError(
   if (aiSession) {
     setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
   }
-  if (!isAbort) {
+  if (isAbort) {
+    console.log(`[ai/trigger ${args.sessionId}] aborted by user`)
+  } else {
     console.error(`[ai/trigger ${args.sessionId}] loop failed:`, e)
     Sentry.captureException(e, {
       tags: { component: 'aiCommentTrigger', event: 'loop_failed', sessionId: args.sessionId, docId: args.docId, commentId: args.commentId }
     })
-  } else {
-    console.log(`[ai/trigger ${args.sessionId}] aborted by user`)
   }
 }
 

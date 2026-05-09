@@ -378,9 +378,9 @@ onMounted(() => {
 // caps name + total count and revalidates the theme via DocThemeSchema.
 async function saveCurrentAsPreset() {
   if (!props.canEdit || !loggedIn.value) return
-  const name = (globalThis.window !== undefined
-    ? globalThis.prompt(t('theme.saved.namePrompt'), '')
-    : null
+  const name = (globalThis.window === undefined
+    ? null
+    : globalThis.prompt(t('theme.saved.namePrompt'), '')
   )?.trim()
   if (!name) return
   try {

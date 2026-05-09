@@ -143,9 +143,13 @@ async function setPassword() {
 
         <!-- Copy link -->
         <div>
-          <label class="block text-sm font-medium mb-2">{{ t('share.copyLink') }}</label>
+          <label
+            for="share-link-input"
+            class="block text-sm font-medium mb-2"
+          >{{ t('share.copyLink') }}</label>
           <div class="flex gap-2">
             <UInput
+              id="share-link-input"
               :model-value="shareUrl"
               readonly
               data-testid="share-link-input"
@@ -211,8 +215,17 @@ async function setPassword() {
         </div>
 
         <!-- Access mode (owner only) -->
-        <div v-if="isOwner">
-          <label class="block text-sm font-medium mb-2">{{ t('share.accessMode') }}</label>
+        <div
+          v-if="isOwner"
+          role="group"
+          aria-labelledby="share-access-mode-label"
+        >
+          <p
+            id="share-access-mode-label"
+            class="block text-sm font-medium mb-2"
+          >
+            {{ t('share.accessMode') }}
+          </p>
           <div class="space-y-2">
             <button
               v-for="opt in accessOptions"
@@ -247,9 +260,13 @@ async function setPassword() {
             v-if="settingPassword"
             class="mt-3 p-3 rounded-lg border border-default bg-[var(--ui-bg-muted)]"
           >
-            <label class="block text-sm font-medium mb-2">{{ t('share.setPassword') }}</label>
+            <label
+              for="share-password-input"
+              class="block text-sm font-medium mb-2"
+            >{{ t('share.setPassword') }}</label>
             <div class="flex gap-2 items-stretch">
               <UInput
+                id="share-password-input"
                 v-model="password"
                 type="password"
                 :placeholder="t('share.passwordPlaceholder')"
@@ -278,7 +295,9 @@ async function setPassword() {
 
         <!-- Non-owner: just show current mode -->
         <div v-else>
-          <label class="block text-sm font-medium mb-2">{{ t('share.accessMode') }}</label>
+          <p class="block text-sm font-medium mb-2">
+            {{ t('share.accessMode') }}
+          </p>
           <UBadge
             variant="subtle"
             size="md"

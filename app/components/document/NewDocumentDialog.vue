@@ -329,12 +329,16 @@ async function submit(blank: boolean) {
         </div>
 
         <!-- Template ──────────────────────────────────────────── -->
-        <div>
-          <label
+        <div
+          role="group"
+          aria-labelledby="newdoc-template-label"
+        >
+          <p
+            id="newdoc-template-label"
             class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
           >
             {{ t('newDoc.templateLabel') }}
-          </label>
+          </p>
           <p class="text-xs text-toned mb-2">
             {{ t('newDoc.templateHelp') }}
           </p>
@@ -370,12 +374,16 @@ async function submit(blank: boolean) {
         </div>
 
         <!-- Theme preset ──────────────────────────────────────── -->
-        <div>
-          <label
+        <div
+          role="group"
+          aria-labelledby="newdoc-theme-label"
+        >
+          <p
+            id="newdoc-theme-label"
             class="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5"
           >
             {{ t('newDoc.themeLabel') }}
-          </label>
+          </p>
           <p class="text-xs text-toned mb-2">
             {{ t('newDoc.themeHelp') }}
           </p>

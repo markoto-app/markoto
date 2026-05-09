@@ -168,18 +168,24 @@ async function replaceSnapshotInTx(
   })
 }
 
+/** Build the activity-row metadata for a snapshot event by kind. */
+function metadataForEvent(e: ReturnType<typeof diffCommentsSnapshot>[number]) {
+  if (e.kind === 'comment.replied') {
+    return { kind: e.kind, commentId: e.commentId, parentCommentId: e.parentCommentId, bodyPreview: e.bodyPreview }
+  }
+  if (e.kind === 'comment.deleted') {
+    return { kind: e.kind, commentId: e.commentId, bodyPreview: e.bodyPreview, isReply: e.isReply }
+  }
+  return { kind: e.kind, commentId: e.commentId, bodyPreview: e.bodyPreview }
+}
+
 /** Append one activity row per snapshot event, then prune. */
 async function recordSnapshotEvents(
   body: ParsedBody,
   events: ReturnType<typeof diffCommentsSnapshot>
 ): Promise<void> {
   for (const e of events) {
-    const metadata
-      = e.kind === 'comment.replied'
-        ? { kind: e.kind, commentId: e.commentId, parentCommentId: e.parentCommentId, bodyPreview: e.bodyPreview }
-        : e.kind === 'comment.deleted'
-          ? { kind: e.kind, commentId: e.commentId, bodyPreview: e.bodyPreview, isReply: e.isReply }
-          : { kind: e.kind, commentId: e.commentId, bodyPreview: e.bodyPreview }
+    const metadata = metadataForEvent(e)
     await appendActivity({
       docId: body.docId,
       userId: e.userId,

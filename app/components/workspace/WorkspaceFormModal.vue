@@ -126,8 +126,12 @@ async function handleSubmit() {
     <template #body>
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium mb-2">{{ t('workspace.nameLabel') }}</label>
+          <label
+            for="workspace-form-name"
+            class="block text-sm font-medium mb-2"
+          >{{ t('workspace.nameLabel') }}</label>
           <UInput
+            id="workspace-form-name"
             v-model="name"
             :placeholder="t('workspace.namePlaceholder')"
             size="md"
@@ -139,8 +143,12 @@ async function handleSubmit() {
           />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-2">{{ t('workspace.descriptionOptional') }}</label>
+          <label
+            for="workspace-form-description"
+            class="block text-sm font-medium mb-2"
+          >{{ t('workspace.descriptionOptional') }}</label>
           <UTextarea
+            id="workspace-form-description"
             v-model="description"
             :placeholder="t('workspace.descriptionPlaceholder')"
             :rows="3"

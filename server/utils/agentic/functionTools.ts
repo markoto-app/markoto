@@ -1069,13 +1069,13 @@ async function fetchUrlViaJina(
     '',
     'Images observed on the page:'
   )
-  if (!parsed.images?.length) {
-    lines.push('- (none found)')
-  } else {
+  if (parsed.images?.length) {
     for (const img of parsed.images) {
       if (!img?.url) continue
       lines.push(img.description ? `- ${img.url}: ${img.description}` : `- ${img.url}`)
     }
+  } else {
+    lines.push('- (none found)')
   }
   return {
     text: lines.join('\n'),

@@ -28,6 +28,12 @@ const PLAN_TO_PRICE_KEY: Record<Exclude<PlanName, 'free'>, 'pricePro' | 'priceMa
   ultra: 'priceUltra'
 }
 
+function customerOrEmailFields(stripeCustomerId: string | null, email: string | null): { customer: string } | { customer_email: string } | Record<string, never> {
+  if (stripeCustomerId) return { customer: stripeCustomerId }
+  if (email) return { customer_email: email }
+  return {}
+}
+
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
@@ -86,9 +92,7 @@ export default defineEventHandler(async (event) => {
       cancel_url: cancelUrl,
       // Pass the customer if we have one; else pass email so Stripe
       // creates a new Customer linked to that address.
-      ...(stripeCustomerId
-        ? { customer: stripeCustomerId }
-        : email ? { customer_email: email } : {})
+      ...customerOrEmailFields(stripeCustomerId, email)
     })
     if (!checkoutSession.url) {
       throw createError({ statusCode: 502, message: 'Stripe did not return a Checkout URL' })

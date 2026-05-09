@@ -97,10 +97,14 @@ watch(open, (v) => {
         </div>
 
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">
+          <label
+            for="delete-confirm-input"
+            class="block text-sm font-medium mb-2"
+          >
             {{ t('delete.confirmPrompt', { title }) }}
           </label>
           <UInput
+            id="delete-confirm-input"
             v-model="confirmText"
             :placeholder="title"
             size="md"

@@ -156,7 +156,7 @@ export function commitDictationFinal(
   const needsLeadSpace = /\w/.test(charBefore)
   const insert = (needsLeadSpace ? ' ' : '') + trimmed + ' '
 
-  const origin = userId !== null ? `dictation:${userId}` : 'dictation:anon'
+  const origin = userId === null ? 'dictation:anon' : `dictation:${userId}`
   ydoc.transact(() => {
     ytext.insert(caret, insert)
   }, origin)

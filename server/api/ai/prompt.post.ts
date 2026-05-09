@@ -442,12 +442,12 @@ function handlePromptLoopError(
   if (aiSession) {
     setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
   }
-  if (!isAbort) {
+  if (isAbort) {
+    console.log(`[ai/prompt ${args.sessionId}] aborted by user`)
+  } else {
     console.error(`[ai/prompt ${args.sessionId}] loop failed:`, e)
     Sentry.captureException(e, {
       tags: { component: 'aiPrompt', event: 'loop_failed', sessionId: args.sessionId, docId: args.docId }
     })
-  } else {
-    console.log(`[ai/prompt ${args.sessionId}] aborted by user`)
   }
 }

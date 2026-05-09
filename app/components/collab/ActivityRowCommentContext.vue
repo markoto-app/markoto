@@ -68,9 +68,13 @@ function formatTime(ms: number): string {
 // spirit but inline-only — we don't have room for mention pills in
 // this narrow drawer view.
 function plainBody(body: string): string {
-  return parseCommentBody(body)
-    .map(seg => seg.kind === 'mention' ? `@${seg.name}` : seg.kind === 'ai-mention' ? '@markoto' : seg.text)
-    .join('')
+  return parseCommentBody(body).map(segText).join('')
+}
+
+function segText(seg: ReturnType<typeof parseCommentBody>[number]): string {
+  if (seg.kind === 'mention') return `@${seg.name}`
+  if (seg.kind === 'ai-mention') return '@markoto'
+  return seg.text
 }
 </script>
 

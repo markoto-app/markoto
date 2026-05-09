@@ -194,15 +194,15 @@ export async function getDocWithActorRole(
     .from(documents)
     .leftJoin(
       workspaceMembers,
-      actorUserId !== null
-        ? and(
-            eq(workspaceMembers.workspaceId, documents.workspaceId),
-            eq(workspaceMembers.userId, actorUserId)
-          )
+      actorUserId === null
         // Anonymous caller: construct a join predicate that never matches
         // so the leftJoin still runs but workspaceRole always comes back
         // null. Simpler than branching on two query shapes.
-        : sql`false`
+        ? sql`false`
+        : and(
+            eq(workspaceMembers.workspaceId, documents.workspaceId),
+            eq(workspaceMembers.userId, actorUserId)
+          )
     )
     // Second leftJoin to pull `(+)` state for the doc's parent workspace
     // (if any). Standalone docs get NULL here — the editor-side check

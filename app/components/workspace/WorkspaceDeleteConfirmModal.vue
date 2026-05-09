@@ -83,10 +83,14 @@ watch(open, (v) => {
         </div>
 
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">
+          <label
+            for="workspace-delete-confirm"
+            class="block text-sm font-medium mb-2"
+          >
             {{ t('workspace.deleteConfirmPrompt', { name }) }}
           </label>
           <UInput
+            id="workspace-delete-confirm"
             v-model="confirmText"
             :placeholder="name"
             size="md"

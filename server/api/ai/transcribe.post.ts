@@ -32,6 +32,12 @@ const ALLOWED_MIME = new Set([
 // client can't OOM the endpoint.
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024
 
+function base64Padding(b64: string): 0 | 1 | 2 {
+  if (b64.endsWith('==')) return 2
+  if (b64.endsWith('=')) return 1
+  return 0
+}
+
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
@@ -59,7 +65,7 @@ export default defineEventHandler(async (event) => {
   // from the base64 string directly so we can reject oversize payloads
   // before reaching upstream (each upstream has its own ceiling — ours is
   // tighter for abuse prevention).
-  const padding = audioB64.endsWith('==') ? 2 : audioB64.endsWith('=') ? 1 : 0
+  const padding = base64Padding(audioB64)
   const approxBytes = Math.floor(audioB64.length * 3 / 4) - padding
   if (approxBytes > MAX_AUDIO_BYTES) {
     throw createError({ statusCode: 413, message: 'Audio too long (max ~5 MiB)' })

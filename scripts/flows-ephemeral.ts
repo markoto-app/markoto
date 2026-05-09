@@ -193,15 +193,15 @@ async function main() {
   // Step 2: production build. Skip with FLOWS_SKIP_BUILD=1 if you've
   // already got a fresh .output/ from a previous run AND haven't
   // touched app code (rare — most edits invalidate the bundle).
-  if (process.env.FLOWS_SKIP_BUILD !== '1') {
+  if (process.env.FLOWS_SKIP_BUILD === '1') {
+    console.log('[flows-ephemeral] FLOWS_SKIP_BUILD=1 — reusing existing .output/')
+  } else {
     console.log('[flows-ephemeral] building production bundle')
     const buildCode = await shellOut(['bun', 'run', 'build'])
     if (buildCode !== 0) {
       console.error('[flows-ephemeral] bun run build failed')
       process.exit(buildCode)
     }
-  } else {
-    console.log('[flows-ephemeral] FLOWS_SKIP_BUILD=1 — reusing existing .output/')
   }
 
   // Step 3: spawn the production Nitro server (preset 'bun' →

@@ -321,7 +321,7 @@ function tableBlock(theme: DocTheme): string {
 .paged-doc thead { border-bottom: 1px solid var(--doc-text); }`
       break
     case 'none':
-      borderRules = ''
+      // initial `let borderRules = ''` already covers this branch
       break
   }
 
@@ -338,7 +338,7 @@ function tableBlock(theme: DocTheme): string {
       headerBg = `background: color-mix(in srgb, var(--doc-text) 6%, transparent);`
       break
     case 'none':
-      headerBg = ''
+      // initial `let headerBg = ''` already covers this branch
       break
   }
 
