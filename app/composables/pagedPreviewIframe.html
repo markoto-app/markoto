@@ -299,48 +299,134 @@
 
     window.addEventListener('resize', applyPageZoom);
 
+    /**
+     * Swap the theme-fonts <style> body when the imported URL set
+     * changes. Idempotent on identical input.
+     */
+    function applyFontsImport(opts) {
+      if (opts.fontsImport === lastFontsImport) return;
+      var fontsEl = document.getElementById('theme-fonts');
+      fontsEl.textContent = opts.fontsImport || '';
+      lastFontsImport = opts.fontsImport;
+    }
+
+    /**
+     * Swap the highlight.js theme stylesheet when codeBlockTheme
+     * changes. Lazy-injected: a link without an href (or empty) used
+     * to confuse paged.js's Polisher and wedge pagination silently.
+     */
+    function applyHljsTheme(opts) {
+      if (opts.hljsUrl === lastHljsUrl) return;
+      var hljsEl = document.getElementById('hljs-theme');
+      if (opts.hljsUrl) {
+        if (!hljsEl) {
+          hljsEl = document.createElement('link');
+          hljsEl.id = 'hljs-theme';
+          hljsEl.rel = 'stylesheet';
+          document.head.appendChild(hljsEl);
+        }
+        hljsEl.setAttribute('href', opts.hljsUrl);
+      } else if (hljsEl) {
+        hljsEl.remove();
+      }
+      lastHljsUrl = opts.hljsUrl;
+    }
+
+    /**
+     * Cap font wait at 1s — if Google Fonts is slow or a font name is
+     * unresolvable, document.fonts.ready can stall forever and wedge
+     * pagination. Falls back to whatever fonts are ready by then; the
+     * next render picks up late arrivals.
+     */
+    function awaitFontsReady() {
+      return Promise.race([
+        document.fonts.ready,
+        new Promise(function (r) { setTimeout(r, 1000); })
+      ]);
+    }
+
+    /**
+     * Decode every <img> in the scratch DOM so paged.js measures real
+     * dimensions, not placeholder sizes. Without this, an image that
+     * loads after pagination triggers a second re-paginate as the doc
+     * reflows around the now-known-size image. img.decode() rejects
+     * for broken images; swallow per-image errors so one bad img
+     * doesn't kill the whole render.
+     */
+    function decodeImagesIn(scratch) {
+      var imgs = scratch.querySelectorAll('img');
+      if (imgs.length === 0) return Promise.resolve();
+      return Promise.all(Array.prototype.map.call(imgs, function(img) {
+        return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
+      }));
+    }
+
+    /**
+     * Render one mermaid source string and replace its <pre> with an
+     * <img data-uri> wrapper (success) or an inline error placeholder
+     * (mermaid threw). See `app/utils/printPdf.ts` for the same
+     * pattern in the print path.
+     */
+    async function renderMermaidBlock(mer, codeEl) {
+      var preEl = codeEl.parentElement;
+      var source = codeEl.textContent || '';
+      var renderId = 'mmd-' + crypto.randomUUID();
+      try {
+        var rendered = await mer.render(renderId, source);
+        var svgStr = rendered.svg;
+        // viewBox="minX minY width height" — recover natural dims so
+        // the <img> resolves its intrinsic aspect ratio.
+        var vbNums = (svgStr.match(/viewBox="[^"]*"/) || [''])[0].match(/[\d.]+/g);
+        var natW = vbNums && vbNums[2] ? Math.round(Number.parseFloat(vbNums[2])) : null;
+        var natH = vbNums && vbNums[3] ? Math.round(Number.parseFloat(vbNums[3])) : null;
+        if (natH) svgStr = svgStr.replace(/<svg(\b)/, '<svg height="' + natH + '"$1');
+
+        var wrap = document.createElement('div');
+        wrap.className = 'mermaid';
+        // Render as data-URI <img> — paged.js fragments inline SVGs
+        // across page breaks regardless of break-inside:avoid on the
+        // <svg> itself; an <img> is replaced/atomic and moves whole
+        // when it doesn't fit, respecting break-inside on the wrapper.
+        var svgBase64 = btoa(unescape(encodeURIComponent(svgStr)));
+        var img = document.createElement('img');
+        img.src = 'data:image/svg+xml;base64,' + svgBase64;
+        img.style.cssText = 'max-width:100%;display:block;';
+        if (natW) img.setAttribute('width', natW);
+        if (natH) img.setAttribute('height', natH);
+        wrap.appendChild(img);
+        preEl.replaceWith(wrap);
+      } catch (err) {
+        var errEl = document.createElement('div');
+        errEl.className = 'mermaid-error';
+        errEl.textContent = 'Mermaid error: ' + (err && err.message ? err.message : 'invalid diagram');
+        preEl.replaceWith(errEl);
+      }
+    }
+
+    /**
+     * Pre-process every mermaid code block in the scratch DOM: render
+     * each in turn, in place. Done sequentially so mermaid's internal
+     * id counter + DOM scratch usage stays predictable. Returns the
+     * post-process innerHTML if any blocks were processed (for the
+     * caller to swap into opts.html), or null otherwise.
+     */
+    async function preprocessMermaid(scratch, mermaidTheme) {
+      var mermaidBlocks = Array.prototype.slice.call(
+        scratch.querySelectorAll('pre code.language-mermaid')
+      );
+      if (mermaidBlocks.length === 0) return null;
+      var mer = await ensureMermaid(mermaidTheme);
+      for (var codeEl of mermaidBlocks) {
+        await renderMermaidBlock(mer, codeEl);
+      }
+      return scratch.innerHTML;
+    }
+
     globalThis.__renderDoc = async function(opts) {
       try {
-        var fontsEl = document.getElementById('theme-fonts');
-        if (opts.fontsImport !== lastFontsImport) {
-          fontsEl.textContent = opts.fontsImport || '';
-          lastFontsImport = opts.fontsImport;
-        }
-
-        // Swap the highlight.js theme stylesheet when the user switches
-        // codeBlockTheme. Idempotent: only update href when it changes,
-        // so we don't trigger an unnecessary network round-trip per
-        // re-render. An empty url ('none' theme) clears the link so
-        // theme CSS's plain-monospace rules take over.
-        // Highlight.js theme stylesheet — created lazily and only when
-        // a non-empty URL is requested. We intentionally do NOT keep a
-        // pre-injected link element around: a link without an href (or
-        // with an empty one) confused paged.js's Polisher and wedged
-        // pagination silently.
-        if (opts.hljsUrl !== lastHljsUrl) {
-          var hljsEl = document.getElementById('hljs-theme');
-          if (opts.hljsUrl) {
-            if (!hljsEl) {
-              hljsEl = document.createElement('link');
-              hljsEl.id = 'hljs-theme';
-              hljsEl.rel = 'stylesheet';
-              document.head.appendChild(hljsEl);
-            }
-            hljsEl.setAttribute('href', opts.hljsUrl);
-          } else if (hljsEl) {
-            hljsEl.remove();
-          }
-          lastHljsUrl = opts.hljsUrl;
-        }
-
-        // Cap font wait at 1s — if Google Fonts is slow or a font name
-        // is unresolvable, document.fonts.ready can stall forever and
-        // wedge the entire pagination. Falls back to whatever fonts are
-        // ready by then; the next render will pick up any late arrivals.
-        await Promise.race([
-          document.fonts.ready,
-          new Promise(function (r) { setTimeout(r, 1000); })
-        ]);
+        applyFontsImport(opts);
+        applyHljsTheme(opts);
+        await awaitFontsReady();
 
         var mount = document.getElementById('mount');
         var pending = document.getElementById('pending');
@@ -351,92 +437,17 @@
         pending.style.width = mount.clientWidth + 'px';
         pending.innerHTML = '';
 
-        // Wait for images to decode so paged.js measures real dimensions,
-        // not placeholder sizes. Without this, an image that loads after
-        // pagination triggers a second re-paginate as the doc reflows
-        // around the now-known-size image — visible jitter on every edit
-        // that touches a paragraph above an image. We decode against an
-        // off-screen scratch container (not pending — paged.js needs
-        // pending empty so it can append its own pages there).
-        // img.decode() rejects for broken images; swallow per-image
-        // errors so one bad img doesn't kill the whole render.
+        // Decode images + mermaid pre-process against an off-screen
+        // scratch container (not pending — paged.js needs pending
+        // empty so it can append its own pages there).
         var scratch = document.createElement('div');
         scratch.style.cssText = 'position:fixed;left:-20000px;top:0;visibility:hidden;';
         scratch.innerHTML = opts.html;
         document.body.appendChild(scratch);
         try {
-          var imgs = scratch.querySelectorAll('img');
-          if (imgs.length > 0) {
-            await Promise.all(Array.prototype.map.call(imgs, function(img) {
-              return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
-            }));
-          }
-
-          // Mermaid pre-process — replace each `pre code.language-mermaid`
-          // with the rendered SVG IN PLACE in the scratch DOM, then pick
-          // up the modified innerHTML below. paged.js never sees the
-          // original code blocks; from its perspective the content is
-          // just inline SVG it can paginate normally.
-          //
-          // Done sequentially (not Promise.all) to keep mermaid's internal
-          // id counter and DOM scratch usage predictable. Failures fall
-          // back to an inline error message rather than killing the whole
-          // render — one bad diagram shouldn't blank the preview.
-          var mermaidBlocks = Array.prototype.slice.call(
-            scratch.querySelectorAll('pre code.language-mermaid')
-          );
-          if (mermaidBlocks.length > 0) {
-            var mer = await ensureMermaid(opts.mermaidTheme);
-            for (var codeEl of mermaidBlocks) {
-              var preEl = codeEl.parentElement;
-              var source = codeEl.textContent || '';
-              var renderId = 'mmd-' + crypto.randomUUID();
-              try {
-                var rendered = await mer.render(renderId, source);
-                var svgStr = rendered.svg;
-
-                // Parse viewBox to recover natural width + height.
-                // Mermaid emits width="100%" but no height; the <img>
-                // needs both to resolve its intrinsic aspect ratio.
-                // viewBox="minX minY width height"
-                var vbNums = (svgStr.match(/viewBox="[^"]*"/) || [''])[0].match(/[\d.]+/g);
-                var natW = vbNums && vbNums[2] ? Math.round(Number.parseFloat(vbNums[2])) : null;
-                var natH = vbNums && vbNums[3] ? Math.round(Number.parseFloat(vbNums[3])) : null;
-                if (natH) {
-                  // Inject explicit height so the browser knows the SVG's
-                  // aspect ratio when it's embedded as an <img> source.
-                  svgStr = svgStr.replace(/<svg(\b)/, '<svg height="' + natH + '"$1');
-                }
-
-                var wrap = document.createElement('div');
-                wrap.className = 'mermaid';
-                // Render as <img src="data:image/svg+xml;base64,..."> instead
-                // of an inline <svg>. paged.js has hardcoded SVG fragmentation
-                // logic that distributes SVG children across pages regardless
-                // of break-inside:avoid on the <svg> itself — producing an
-                // 18px ghost on page 1 and the real diagram on page 2. An
-                // <img> is a replaced element; paged.js treats it as atomic
-                // and moves it whole to the next page when it doesn't fit,
-                // respecting the break-inside:avoid on the .mermaid wrapper.
-                var svgBase64 = btoa(unescape(encodeURIComponent(svgStr)));
-                var img = document.createElement('img');
-                img.src = 'data:image/svg+xml;base64,' + svgBase64;
-                img.style.cssText = 'max-width:100%;display:block;';
-                if (natW) img.setAttribute('width', natW);
-                if (natH) img.setAttribute('height', natH);
-                wrap.appendChild(img);
-                preEl.replaceWith(wrap);
-              } catch (err) {
-                var errEl = document.createElement('div');
-                errEl.className = 'mermaid-error';
-                errEl.textContent = 'Mermaid error: ' + (err && err.message ? err.message : 'invalid diagram');
-                preEl.replaceWith(errEl);
-              }
-            }
-            // Hand the post-mermaid HTML to paged.js so it paginates the
-            // SVGs, not the original `<pre>` source.
-            opts.html = scratch.innerHTML;
-          }
+          await decodeImagesIn(scratch);
+          var processedHtml = await preprocessMermaid(scratch, opts.mermaidTheme);
+          if (processedHtml !== null) opts.html = processedHtml;
         } finally {
           scratch.remove();
         }
