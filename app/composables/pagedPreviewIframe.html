@@ -1,26 +1,28 @@
 <!--
   Iframe bootstrap document for the paged.js preview.
 
-  Loaded as a raw string via `?raw` import in usePagedPreview.ts, with the
-  URL placeholders (__PAGEDJS_POLYFILL_URL__, __KATEX_CSS_URL__,
+  Loaded as a raw string via the ?raw import in usePagedPreview.ts,
+  with the URL placeholders (__PAGEDJS_POLYFILL_URL__, __KATEX_CSS_URL__,
   __MERMAID_ESM_URL__) AND the matching SRI placeholders
   (__PAGEDJS_POLYFILL_SRI__, __KATEX_CSS_SRI__) replaced at mount time.
-  The `<script>` for paged.js and the `<link>` for KaTeX both carry
-  `integrity=` + `crossorigin="anonymous"` — required because
-  cdn.jsdelivr.net is a different origin and SRI on cross-origin
+  The paged.js script tag and the KaTeX stylesheet link both carry
+  integrity= plus crossorigin=anonymous — required because
+  cdn.jsdelivr.net is a different origin, and SRI on cross-origin
   resources only fires when the request is made in CORS mode.
   Mermaid's SRI is computed too (see shared/utils/mermaidCdn.ts) but
-  cannot currently be applied: it loads via dynamic `import()` which
+  cannot currently be applied: it loads via dynamic import() which
   browsers do not yet validate against an integrity attribute.
-  Holds the preview's CSS
-  chrome (page card background, drop shadow, scroll behavior); the theme
-  CSS that defines `@page` rules, body styles, and headers/footers is
-  pushed in dynamically per render via `window.__renderDoc`.
 
-  Scroll handling: capture `window.scrollY` before the swap, restore after.
-  Snap to bottom if the user was within 50px of the end — common case
-  where small edits at the doc bottom would otherwise jump back to the
-  previous valid scrollTop after a re-pagination shrinks the doc.
+  Holds the preview's CSS chrome (page card background, drop shadow,
+  scroll behavior); the theme CSS that defines @page rules, body
+  styles, and headers/footers is pushed in dynamically per render
+  via window.__renderDoc.
+
+  Scroll handling: capture window.scrollY before the swap, restore
+  after. Snap to bottom if the user was within 50px of the end —
+  common case where small edits at the doc bottom would otherwise
+  jump back to the previous valid scrollTop after a re-pagination
+  shrinks the doc.
 -->
 <!DOCTYPE html>
 <html lang="en">

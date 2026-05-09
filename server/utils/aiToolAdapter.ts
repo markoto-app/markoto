@@ -1854,54 +1854,72 @@ async function handleDeleteComment(
     return _canManage
   }
 
-  function canDeleteEntry(map: Y.Map<unknown>): boolean {
-    const authorId = map.get('authorId')
-    const authorName = map.get('authorName')
-    // markoto's own comment: authorId=null and authorName='markoto'
-    // (or legacy 'AI Assistant' from before the rename — keep for
-    // backwards compat on existing comment threads).
-    if (authorId === null && (authorName === 'markoto' || authorName === 'AI Assistant')) return true
-    // Initiator's own comment
-    if (authorId === session.initiatorUserId) return true
-    return false
-  }
-
   for (let i = 0; i < ycomments.length; i++) {
     const m = ycomments.get(i)
     if (!(m instanceof Y.Map) || m.get('id') !== input.comment_id) continue
-
-    if (input.reply_id) {
-      // Delete a specific reply
-      const repliesArr = m.get('replies')
-      if (!(repliesArr instanceof Y.Array)) {
-        return err(`Error: comment "${input.comment_id}" has no replies.`)
-      }
-      for (let j = 0; j < repliesArr.length; j++) {
-        const r = repliesArr.get(j)
-        if (!(r instanceof Y.Map) || r.get('id') !== input.reply_id) continue
-        if (!canDeleteEntry(r as Y.Map<unknown>) && !(await initiatorCanManage())) {
-          return err(`Error: cannot delete reply "${input.reply_id}" — it was not authored by AI Assistant or by you, and you do not have document management rights.`)
-        }
-        const origin = `ai:assistant:${session.sessionId}`
-        session.ydoc.transact(() => {
-          ;(repliesArr as Y.Array<Y.Map<unknown>>).delete(j, 1)
-          m.set('updatedAt', Date.now())
-        }, origin)
-        return ok(`Reply ${input.reply_id} deleted from thread ${input.comment_id}.`)
-      }
-      return err(`Error: reply "${input.reply_id}" not found in thread "${input.comment_id}".`)
-    } else {
-      // Delete the whole thread
-      if (!canDeleteEntry(m) && !(await initiatorCanManage())) {
-        return err(`Error: cannot delete thread "${input.comment_id}" — it was not authored by AI Assistant or by you, and you do not have document management rights.`)
-      }
-      const origin = `ai:assistant:${session.sessionId}`
-      session.ydoc.transact(() => {
-        ycomments.delete(i, 1)
-      }, origin)
-      return ok(`Thread ${input.comment_id} deleted.`)
-    }
+    return input.reply_id
+      ? deleteReplyFromThread(session, m, input.comment_id, input.reply_id, initiatorCanManage)
+      : deleteWholeThread(session, ycomments, i, m, input.comment_id, initiatorCanManage)
   }
-
   return err(`Error: comment "${input.comment_id}" not found. Call read_comments to get current IDs.`)
+}
+
+/**
+ * Authorship gate for comment/reply deletion. markoto's own posts
+ * (authorId=null + authorName='markoto', plus legacy 'AI Assistant'
+ * from before the rename) and the initiator's own posts are always
+ * deletable. Anything else falls through to the doc-manage right.
+ */
+function canDeleteEntry(map: Y.Map<unknown>, initiatorUserId: number): boolean {
+  const authorId = map.get('authorId')
+  const authorName = map.get('authorName')
+  if (authorId === null && (authorName === 'markoto' || authorName === 'AI Assistant')) return true
+  if (authorId === initiatorUserId) return true
+  return false
+}
+
+async function deleteReplyFromThread(
+  session: AiSession,
+  parentMap: Y.Map<unknown>,
+  commentId: string,
+  replyId: string,
+  initiatorCanManage: () => Promise<boolean>
+): Promise<ToolResult> {
+  const repliesArrRaw = parentMap.get('replies')
+  if (!(repliesArrRaw instanceof Y.Array)) {
+    return err(`Error: comment "${commentId}" has no replies.`)
+  }
+  const repliesArr: Y.Array<Y.Map<unknown>> = repliesArrRaw
+  for (let j = 0; j < repliesArr.length; j++) {
+    const r = repliesArr.get(j)
+    if (!(r instanceof Y.Map) || r.get('id') !== replyId) continue
+    if (!canDeleteEntry(r, session.initiatorUserId) && !(await initiatorCanManage())) {
+      return err(`Error: cannot delete reply "${replyId}" — it was not authored by AI Assistant or by you, and you do not have document management rights.`)
+    }
+    const origin = `ai:assistant:${session.sessionId}`
+    session.ydoc.transact(() => {
+      repliesArr.delete(j, 1)
+      parentMap.set('updatedAt', Date.now())
+    }, origin)
+    return ok(`Reply ${replyId} deleted from thread ${commentId}.`)
+  }
+  return err(`Error: reply "${replyId}" not found in thread "${commentId}".`)
+}
+
+async function deleteWholeThread(
+  session: AiSession,
+  ycomments: Y.Array<Y.Map<unknown>>,
+  index: number,
+  parentMap: Y.Map<unknown>,
+  commentId: string,
+  initiatorCanManage: () => Promise<boolean>
+): Promise<ToolResult> {
+  if (!canDeleteEntry(parentMap, session.initiatorUserId) && !(await initiatorCanManage())) {
+    return err(`Error: cannot delete thread "${commentId}" — it was not authored by AI Assistant or by you, and you do not have document management rights.`)
+  }
+  const origin = `ai:assistant:${session.sessionId}`
+  session.ydoc.transact(() => {
+    ycomments.delete(index, 1)
+  }, origin)
+  return ok(`Thread ${commentId} deleted.`)
 }

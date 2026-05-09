@@ -526,11 +526,13 @@ onUnmounted(() => {
         :aria-label="t('ai.micTranscribing')"
         class="ai-prompt-bar__action"
       />
-      <!-- Send button. When credits are exhausted we do NOT disable
-           the button — the click routes to /pricing instead. Keeps
-           the "escape hatch" alive so the user can't get stuck.
-           `color="primary"` here is shu — invoking the AI is the one
-           place where a CTA-shaped button SHOULD wear the seal red. -->
+      <!--
+        Send button. When credits are exhausted we do NOT disable it
+        — the click routes to /pricing instead, keeping the escape
+        hatch alive so the user can't get stuck. The primary color
+        here is shu (red); invoking the AI is the one place where a
+        call-to-action SHOULD wear the seal.
+      -->
       <UButton
         v-else-if="!isActive"
         :color="creditsExhausted ? 'neutral' : 'primary'"

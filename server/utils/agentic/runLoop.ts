@@ -697,50 +697,17 @@ type TurnResult
     | { kind: 'budget-exhausted' }
 
 async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResult> {
-  if (ctx.opts.abortController.signal.aborted) {
-    ctx.telemetry.outcome = 'aborted'
-    ctx.telemetry.abortReason = 'signal'
-    throw new Error('aborted')
-  }
-
+  throwIfAborted(ctx)
   ctx.opts.setStatus('thinking', 'Thinking…')
   ctx.log(`turn ${turnCount}: calling LLM (${ctx.contents.length} messages)`)
 
-  const charged = ctx.budget.consumeInteractions(1, `turn ${turnCount}`, ctx.log)
-  if (!charged.ok) {
-    ctx.telemetry.outcome = 'session-cap-exceeded'
-    ctx.telemetry.errorMessage = charged.message
-    ctx.opts.setStatus('error', charged.message)
-    return { kind: 'done', outcome: 'session-cap-exceeded' }
-  }
+  const capResult = chargeTurnBudget(ctx, turnCount)
+  if (capResult) return capResult
 
-  let stream: AsyncIterable<StreamChunk>
-  try {
-    stream = await streamFromProvider({
-      ai: ctx.opts.ai,
-      model: ctx.opts.model,
-      contents: ctx.contents,
-      systemPrompt: ctx.opts.systemPrompt,
-      toolDeclarations: ctx.toolDeclarations,
-      abortSignal: ctx.opts.abortController.signal,
-      thinkingBudget: ctx.thinkingBudget,
-      virtualKey: ctx.opts.billingContext.virtualKey,
-      workspaceId: ctx.opts.aiSession.workspaceId ?? null,
-      initiatorUserId: ctx.opts.aiSession.initiatorUserId ?? null,
-      docId: ctx.opts.aiSession.docId ?? null
-    })
-  } catch (e) {
-    if (e instanceof LitellmBudgetExhausted || isBudgetExceededError(e)) {
-      ctx.telemetry.outcome = 'budget-exhausted'
-      ctx.telemetry.errorMessage = e instanceof Error ? e.message : String(e)
-      emitBudgetBreadcrumb(ctx, ctx.opts.billingContext.plan)
-      return { kind: 'budget-exhausted' }
-    }
-    throw e
-  }
+  const streamResult = await openProviderStream(ctx)
+  if (streamResult.kind === 'budget-exhausted') return { kind: 'budget-exhausted' }
 
-  const { modelParts, functionCalls, finishReason } = await consumeStreamTurn(stream, ctx)
-
+  const { modelParts, functionCalls, finishReason } = await consumeStreamTurn(streamResult.stream, ctx)
   ctx.log(`turn ${turnCount}: finishReason=${finishReason}, parts=${modelParts.length}, calls=${functionCalls.length}`)
 
   // Record the model's response so the next turn (if any) has full
@@ -764,17 +731,72 @@ async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResu
     return { kind: 'done', outcome: 'error' }
   }
 
-  // Dispatch each tool call in order; build a single user message
-  // whose parts are the functionResponse entries (continuation contract).
+  return dispatchToolCallsForTurn(ctx, functionCalls, turnCount)
+}
+
+function throwIfAborted(ctx: LoopContext): void {
+  if (!ctx.opts.abortController.signal.aborted) return
+  ctx.telemetry.outcome = 'aborted'
+  ctx.telemetry.abortReason = 'signal'
+  throw new Error('aborted')
+}
+
+/** Charge one interaction against the per-session cap. Returns a `done` TurnResult on cap-exceeded; null otherwise so the caller continues. */
+function chargeTurnBudget(ctx: LoopContext, turnCount: number): TurnResult | null {
+  const charged = ctx.budget.consumeInteractions(1, `turn ${turnCount}`, ctx.log)
+  if (charged.ok) return null
+  ctx.telemetry.outcome = 'session-cap-exceeded'
+  ctx.telemetry.errorMessage = charged.message
+  ctx.opts.setStatus('error', charged.message)
+  return { kind: 'done', outcome: 'session-cap-exceeded' }
+}
+
+/** Open the LLM stream. Returns a tagged result so the caller can short-circuit on budget exhaustion without losing the throw vs typed-result distinction. */
+async function openProviderStream(ctx: LoopContext): Promise<{ kind: 'stream', stream: AsyncIterable<StreamChunk> } | { kind: 'budget-exhausted' }> {
+  try {
+    const stream = await streamFromProvider({
+      ai: ctx.opts.ai,
+      model: ctx.opts.model,
+      contents: ctx.contents,
+      systemPrompt: ctx.opts.systemPrompt,
+      toolDeclarations: ctx.toolDeclarations,
+      abortSignal: ctx.opts.abortController.signal,
+      thinkingBudget: ctx.thinkingBudget,
+      virtualKey: ctx.opts.billingContext.virtualKey,
+      workspaceId: ctx.opts.aiSession.workspaceId ?? null,
+      initiatorUserId: ctx.opts.aiSession.initiatorUserId ?? null,
+      docId: ctx.opts.aiSession.docId ?? null
+    })
+    return { kind: 'stream', stream }
+  } catch (e) {
+    if (e instanceof LitellmBudgetExhausted || isBudgetExceededError(e)) {
+      ctx.telemetry.outcome = 'budget-exhausted'
+      ctx.telemetry.errorMessage = e instanceof Error ? e.message : String(e)
+      emitBudgetBreadcrumb(ctx, ctx.opts.billingContext.plan)
+      return { kind: 'budget-exhausted' }
+    }
+    throw e
+  }
+}
+
+/**
+ * Walk the model's tool calls, dispatch each, and build the single
+ * user message whose parts are the functionResponse entries (the
+ * continuation contract). Comment-trigger sessions terminate after
+ * the trigger thread reply lands but still process all calls in the
+ * current turn — a follow-up `replace_text` after `reply_to_comment`
+ * should still execute its doc edit even though the loop will end.
+ */
+async function dispatchToolCallsForTurn(
+  ctx: LoopContext,
+  functionCalls: FunctionCall[],
+  turnCount: number
+): Promise<TurnResult> {
   const responseParts: NonNullable<Content['parts']> = []
   let commentTriggerDone = false
 
   for (const call of functionCalls) {
-    if (ctx.opts.abortController.signal.aborted) {
-      ctx.telemetry.outcome = 'aborted'
-      ctx.telemetry.abortReason = 'signal'
-      throw new Error('aborted')
-    }
+    throwIfAborted(ctx)
     const outcome = await dispatchToolCall(ctx, call)
     if (outcome.kind === 'session-cap-exceeded') {
       ctx.telemetry.outcome = 'session-cap-exceeded'
@@ -783,14 +805,7 @@ async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResu
       return { kind: 'done', outcome: 'session-cap-exceeded' }
     }
     responseParts.push(...outcome.responseParts)
-    if (outcome.kind === 'comment-trigger-done') {
-      // Mark for termination AFTER this turn's calls are all dispatched.
-      // We deliberately don't `break` — the original loop processed every
-      // call in the same turn before exiting, and a follow-up
-      // `replace_text` after `reply_to_comment` should still execute its
-      // doc edit even though the loop will end.
-      commentTriggerDone = true
-    }
+    if (outcome.kind === 'comment-trigger-done') commentTriggerDone = true
   }
 
   if (commentTriggerDone) {
