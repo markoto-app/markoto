@@ -772,11 +772,7 @@ function coverBlock(theme: DocTheme): string {
   const layout = theme.cover.layout
   const align = theme.cover.align
   // Horizontal alignment maps text + grid item alignment uniformly.
-  const justifyItems = align === 'left'
-    ? 'start'
-    : align === 'right'
-      ? 'end'
-      : 'center'
+  const justifyItems = textAlignToJustifyItems(align)
   const titleSize = theme.cover.titleSize
   const subtitleSize = theme.cover.subtitleSize
   // The cover's `@page cover-page { margin: 0 }` zeros the page padding,
@@ -792,90 +788,14 @@ function coverBlock(theme: DocTheme): string {
   // title+subtitle at upper third, meta at lower third) and a flex
   // column for the other layouts. The `display` declaration is layout-
   // specific so each composition gets its own vertical rhythm.
+  const ctx = { justifyItems, align, coverHeightMm }
   const layoutCss = layout === 'editorial'
-    // 6-row grid: logo → spacer 1fr → title+subtitle → spacer 1fr → meta
-    // → spacer 1fr. Three equal spacers anchor logo at top, title block
-    // at ~1/3, meta at ~2/3, with the bottom third intentionally empty.
-    ? `.paged-doc .markoto-cover {
-  page: cover-page;
-  break-after: page;
-  page-break-after: always;
-  display: grid;
-  grid-template-rows: auto 1fr auto 1fr auto 1fr;
-  justify-items: ${justifyItems};
-  align-items: start;
-  text-align: ${align};
-  height: ${coverHeightMm};
-  padding: 24mm 18mm;
-  box-sizing: border-box;
-}
-.paged-doc .markoto-cover-logo { grid-row: 1; }
-.paged-doc .markoto-cover-title { grid-row: 3; }
-.paged-doc .markoto-cover-subtitle { grid-row: 3; align-self: end; margin-top: 0.4em; }
-.paged-doc .markoto-cover-meta { grid-row: 5; }`
+    ? editorialCoverCss(ctx)
     : layout === 'banner'
-      // Banner: brand-tinted top band with logo + title, body color
-      // beneath holding subtitle and meta. Uses grid so the band can
-      // span full bleed inside the named page.
-      ? `.paged-doc .markoto-cover {
-  page: cover-page;
-  break-after: page;
-  page-break-after: always;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  justify-items: ${justifyItems};
-  text-align: ${align};
-  height: ${coverHeightMm};
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-.paged-doc .markoto-cover-logo,
-.paged-doc .markoto-cover-title {
-  width: 100%;
-  padding-left: 18mm;
-  padding-right: 18mm;
-  background: color-mix(in srgb, var(--doc-brand) 12%, var(--doc-bg));
-  box-sizing: border-box;
-}
-.paged-doc .markoto-cover-logo { grid-row: 1; padding-top: 24mm; padding-bottom: 0.6em; }
-.paged-doc .markoto-cover-title { grid-row: 1; align-self: end; padding-bottom: 24mm; }
-.paged-doc .markoto-cover-subtitle { grid-row: 2; padding: 18mm; }
-.paged-doc .markoto-cover-meta { grid-row: 3; padding: 0 18mm 24mm 18mm; }`
+      ? bannerCoverCss(ctx)
       : layout === 'minimal'
-        // Minimal: title (and optional subtitle) centered. Logo + meta
-        // are HIDDEN in this layout regardless of their toggles —
-        // "minimal" is a stronger statement than "what you toggled on".
-        ? `.paged-doc .markoto-cover {
-  page: cover-page;
-  break-after: page;
-  page-break-after: always;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: ${justifyItems === 'start' ? 'flex-start' : justifyItems === 'end' ? 'flex-end' : 'center'};
-  text-align: ${align};
-  height: ${coverHeightMm};
-  padding: 24mm 18mm;
-  box-sizing: border-box;
-}
-.paged-doc .markoto-cover-logo,
-.paged-doc .markoto-cover-meta { display: none; }`
-        // Classic — flex-column, vertically centered, everything stacked.
-        // Default spacing between elements via per-element margins.
-        : `.paged-doc .markoto-cover {
-  page: cover-page;
-  break-after: page;
-  page-break-after: always;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: ${justifyItems === 'start' ? 'flex-start' : justifyItems === 'end' ? 'flex-end' : 'center'};
-  text-align: ${align};
-  height: ${coverHeightMm};
-  padding: 24mm 18mm;
-  box-sizing: border-box;
-}`
+        ? minimalCoverCss(ctx)
+        : classicCoverCss(ctx)
 
   return [
     layoutCss,
@@ -936,6 +856,133 @@ function coverBlock(theme: DocTheme): string {
   @bottom-right { content: ''; }
 }`
   ].join('\n')
+}
+
+// — cover-layout helpers (per-layout CSS) —————————————————————————————
+
+interface CoverCtx {
+  justifyItems: string
+  align: 'left' | 'center' | 'right'
+  coverHeightMm: string
+}
+
+/**
+ * Map the cover-page text-align value to the CSS Grid `justify-items`
+ * keyword. Used uniformly across all cover layouts so a `text-align: right`
+ * cover also right-aligns the logo / title block.
+ */
+function textAlignToJustifyItems(align: 'left' | 'center' | 'right'): string {
+  if (align === 'left') return 'start'
+  if (align === 'right') return 'end'
+  return 'center'
+}
+
+/** flexbox equivalent of `justify-items` (for non-grid layouts). */
+function justifyItemsToFlexAlign(j: string): string {
+  if (j === 'start') return 'flex-start'
+  if (j === 'end') return 'flex-end'
+  return 'center'
+}
+
+/**
+ * Editorial: 6-row grid (logo → spacer 1fr → title+subtitle → spacer 1fr
+ * → meta → spacer 1fr). Three equal spacers anchor logo at top, title
+ * block at ~1/3, meta at ~2/3, with the bottom third intentionally empty.
+ */
+function editorialCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): string {
+  return `.paged-doc .markoto-cover {
+  page: cover-page;
+  break-after: page;
+  page-break-after: always;
+  display: grid;
+  grid-template-rows: auto 1fr auto 1fr auto 1fr;
+  justify-items: ${justifyItems};
+  align-items: start;
+  text-align: ${align};
+  height: ${coverHeightMm};
+  padding: 24mm 18mm;
+  box-sizing: border-box;
+}
+.paged-doc .markoto-cover-logo { grid-row: 1; }
+.paged-doc .markoto-cover-title { grid-row: 3; }
+.paged-doc .markoto-cover-subtitle { grid-row: 3; align-self: end; margin-top: 0.4em; }
+.paged-doc .markoto-cover-meta { grid-row: 5; }`
+}
+
+/**
+ * Banner: brand-tinted top band with logo + title, body color beneath
+ * holding subtitle and meta. Uses grid so the band can span full bleed
+ * inside the named page.
+ */
+function bannerCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): string {
+  return `.paged-doc .markoto-cover {
+  page: cover-page;
+  break-after: page;
+  page-break-after: always;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: ${justifyItems};
+  text-align: ${align};
+  height: ${coverHeightMm};
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.paged-doc .markoto-cover-logo,
+.paged-doc .markoto-cover-title {
+  width: 100%;
+  padding-left: 18mm;
+  padding-right: 18mm;
+  background: color-mix(in srgb, var(--doc-brand) 12%, var(--doc-bg));
+  box-sizing: border-box;
+}
+.paged-doc .markoto-cover-logo { grid-row: 1; padding-top: 24mm; padding-bottom: 0.6em; }
+.paged-doc .markoto-cover-title { grid-row: 1; align-self: end; padding-bottom: 24mm; }
+.paged-doc .markoto-cover-subtitle { grid-row: 2; padding: 18mm; }
+.paged-doc .markoto-cover-meta { grid-row: 3; padding: 0 18mm 24mm 18mm; }`
+}
+
+/**
+ * Minimal: title (and optional subtitle) centered. Logo + meta are
+ * HIDDEN in this layout regardless of their toggles — "minimal" is a
+ * stronger statement than "what you toggled on".
+ */
+function minimalCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): string {
+  return `.paged-doc .markoto-cover {
+  page: cover-page;
+  break-after: page;
+  page-break-after: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: ${justifyItemsToFlexAlign(justifyItems)};
+  text-align: ${align};
+  height: ${coverHeightMm};
+  padding: 24mm 18mm;
+  box-sizing: border-box;
+}
+.paged-doc .markoto-cover-logo,
+.paged-doc .markoto-cover-meta { display: none; }`
+}
+
+/**
+ * Classic — flex-column, vertically centered, everything stacked.
+ * Default spacing between elements via per-element margins.
+ */
+function classicCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): string {
+  return `.paged-doc .markoto-cover {
+  page: cover-page;
+  break-after: page;
+  page-break-after: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: ${justifyItemsToFlexAlign(justifyItems)};
+  text-align: ${align};
+  height: ${coverHeightMm};
+  padding: 24mm 18mm;
+  box-sizing: border-box;
+}`
 }
 
 // — page-break hints (typography hygiene) —————————————————————————————
