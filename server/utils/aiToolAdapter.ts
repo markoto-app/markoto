@@ -1673,7 +1673,7 @@ async function handleCreateComment(
   // end_line offset: start of the line AFTER end_line. Clamped to full.length
   // when end_line is the last line (lineToCharOffset returns null in that case).
   const rawEnd = lineToCharOffset(full, input.end_line)
-  const endChar = rawEnd !== null ? rawEnd : full.length
+  const endChar = rawEnd ?? full.length
 
   if (startChar >= endChar) {
     return err('Error: the specified line range resolves to an empty anchor. Use a range that covers at least one character.')
@@ -1792,9 +1792,7 @@ async function handleDeleteComment(
   // Determine if the initiator has doc management rights (cached once per call).
   let _canManage: boolean | null = null
   async function initiatorCanManage(): Promise<boolean> {
-    if (_canManage === null) {
-      _canManage = await canManageDoc(session.initiatorUserId, session.docId)
-    }
+    _canManage ??= await canManageDoc(session.initiatorUserId, session.docId)
     return _canManage
   }
 

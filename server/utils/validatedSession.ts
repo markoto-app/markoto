@@ -37,7 +37,7 @@ type SessionCache = {
 
 function getCache(event: H3Event): SessionCache {
   const ctx = event.context as { _sessionCache?: SessionCache }
-  if (!ctx._sessionCache) ctx._sessionCache = { validatedUser: undefined }
+  ctx._sessionCache ??= { validatedUser: undefined }
   return ctx._sessionCache
 }
 

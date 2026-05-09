@@ -27,19 +27,17 @@ interface MermaidModule {
 
 let mermaidPromise: Promise<MermaidModule> | null = null
 async function loadMermaid(theme: MermaidTheme): Promise<MermaidModule> {
-  if (!mermaidPromise) {
-    // NOTE: dynamic import() does not currently support SRI in any
-    // browser. MERMAID_ESM_SRI is exported from shared/utils/mermaidCdn.ts
-    // for documentation + future use (import-maps-with-integrity proposal)
-    // but cannot be enforced here. Mermaid is the only CDN load in the
-    // app where SRI is best-effort; paged.js + KaTeX are SRI-enforced.
-    mermaidPromise = import(/* @vite-ignore */ MERMAID_ESM_URL)
-      .then(mod => mod.default)
-      .catch((err) => {
-        mermaidPromise = null
-        throw err
-      })
-  }
+  // NOTE: dynamic import() does not currently support SRI in any browser.
+  // MERMAID_ESM_SRI is exported from shared/utils/mermaidCdn.ts for
+  // documentation + future use (import-maps-with-integrity proposal) but
+  // cannot be enforced here. Mermaid is the only CDN load in the app
+  // where SRI is best-effort; paged.js + KaTeX are SRI-enforced.
+  mermaidPromise ??= import(/* @vite-ignore */ MERMAID_ESM_URL)
+    .then(mod => mod.default)
+    .catch((err) => {
+      mermaidPromise = null
+      throw err
+    })
   const m = await mermaidPromise
   m.initialize({
     startOnLoad: false,
