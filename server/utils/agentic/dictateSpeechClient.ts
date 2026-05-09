@@ -176,49 +176,14 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
         encoding: AudioEncoding.PcmS16le,
         sampleRate: req.config.sampleRateHertz
       }
-
-      for await (const event of client.transcribeStream(
-        this.audioGenerator(),
-        model,
-        { audioFormat }
-      )) {
+      for await (const event of client.transcribeStream(this.audioGenerator(), model, { audioFormat })) {
         if (this.aborted) return
         if (event.type === 'transcription.text.delta') {
-          // Append delta and emit a partial frame. The `text` field
-          // here is just the delta — accumulate locally to expose the
-          // full running partial (matching the contract pre-Phase-5
-          // Cloud STT clients expected).
-          // The Mistral SDK's stream union (`TranscriptionStreamTextDelta
-          // | UnknownRealtimeEvent`) doesn't narrow to the delta type
-          // off `event.type` alone; cast at the access point.
-          this.partialText += (event as { text?: string }).text ?? ''
-          this.emit('data', {
-            results: [{
-              alternatives: [{ transcript: this.partialText }],
-              isFinal: false
-            }]
-          })
+          this.handleDelta(event)
         } else if (event.type === 'transcription.done') {
-          // Emit a final frame with whatever we accumulated, then
-          // reset the partial buffer so the next utterance starts
-          // fresh. Voxtral's per-utterance done event is what
-          // `commitDictationFinal` listens to.
-          this.finalText = this.partialText.trim()
-          if (this.finalText.length > 0) {
-            this.emit('data', {
-              results: [{
-                alternatives: [{ transcript: this.finalText }],
-                isFinal: true
-              }]
-            })
-          }
-          this.partialText = ''
-          this.finalText = ''
+          this.handleDone()
         } else if (event.type === 'error') {
-          const errMessage = typeof event.error?.message === 'string'
-            ? event.error.message
-            : JSON.stringify(event.error?.message ?? 'transcription error')
-          this.emit('error', new Error(errMessage))
+          this.handleErrorEvent(event)
           return
         }
       }
@@ -227,6 +192,49 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
     } catch (e) {
       if (!this.aborted) this.emit('error', e)
     }
+  }
+
+  /**
+   * Append delta and emit a partial frame. Voxtral's `text` field is
+   * just the delta; accumulate locally to expose the full running
+   * partial (matching the contract pre-Phase-5 Cloud STT clients
+   * expected). The Mistral SDK's stream union doesn't narrow to the
+   * delta type off `event.type` alone; cast at the access point.
+   */
+  private handleDelta(event: unknown): void {
+    this.partialText += (event as { text?: string }).text ?? ''
+    this.emit('data', {
+      results: [{
+        alternatives: [{ transcript: this.partialText }],
+        isFinal: false
+      }]
+    })
+  }
+
+  /**
+   * Emit a final frame with whatever we accumulated, then reset the
+   * partial buffer so the next utterance starts fresh. Voxtral's
+   * per-utterance done event is what `commitDictationFinal` listens to.
+   */
+  private handleDone(): void {
+    this.finalText = this.partialText.trim()
+    if (this.finalText.length > 0) {
+      this.emit('data', {
+        results: [{
+          alternatives: [{ transcript: this.finalText }],
+          isFinal: true
+        }]
+      })
+    }
+    this.partialText = ''
+    this.finalText = ''
+  }
+
+  private handleErrorEvent(event: { error?: { message?: unknown } }): void {
+    const errMessage = typeof event.error?.message === 'string'
+      ? event.error.message
+      : JSON.stringify(event.error?.message ?? 'transcription error')
+    this.emit('error', new Error(errMessage))
   }
 
   write(chunk: Buffer): boolean {
