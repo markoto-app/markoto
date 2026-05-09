@@ -43,18 +43,27 @@ export function performKickUser(
       missing++
       continue
     }
-    const connections = doc.getConnections?.() ?? []
-    for (const conn of connections) {
-      const connUserId = conn.context?.userId
-      if (connUserId != null && String(connUserId) === targetUserId) {
-        try {
-          conn.close?.()
-          kicked++
-        } catch (e) {
-          console.warn(`[internal-http] kick-user close failed:`, e instanceof Error ? e.message : e)
-        }
-      }
-    }
+    kicked += closeUserConnections(doc, targetUserId)
   }
   return { kicked, missing }
+}
+
+/** Close every connection on `doc` whose context userId matches; swallows individual close failures so one bad socket can't abort the sweep. Returns the number actually closed. */
+function closeUserConnections(doc: HocuspocusDocument, targetUserId: string): number {
+  let kicked = 0
+  for (const conn of doc.getConnections?.() ?? []) {
+    if (!isOwnedBy(conn, targetUserId)) continue
+    try {
+      conn.close?.()
+      kicked++
+    } catch (e) {
+      console.warn(`[internal-http] kick-user close failed:`, e instanceof Error ? e.message : e)
+    }
+  }
+  return kicked
+}
+
+function isOwnedBy(conn: HocuspocusConnection, targetUserId: string): boolean {
+  const id = conn.context?.userId
+  return id != null && String(id) === targetUserId
 }
