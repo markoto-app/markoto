@@ -68,7 +68,7 @@ async function transformMermaid(html: string, theme: MermaidTheme): Promise<stri
     const pre = code.parentElement
     if (!pre) continue
     const source = code.textContent || ''
-    const id = 'mmd-' + Math.random().toString(36).slice(2, 10)
+    const id = 'mmd-' + crypto.randomUUID()
     try {
       let { svg } = await m.render(id, source)
 

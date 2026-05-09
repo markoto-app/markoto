@@ -192,7 +192,7 @@ describe('sync-state — Valkey-backed per-doc state', () => {
       await dropDocState('doc1')
 
       expect(store.size).toBe(0)
-      const delKeys = calls.filter(c => c.op === 'del').map(c => c.key).sort()
+      const delKeys = calls.filter(c => c.op === 'del').map(c => c.key).sort((a, b) => a.localeCompare(b))
       expect(delKeys).toEqual([
         'sync:last-editor:doc1',
         'sync:prev-meta:doc1',

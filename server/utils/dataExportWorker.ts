@@ -120,7 +120,9 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
       void safeSendTransactionalEmail({
         kind: 'data_export.ready',
         to: user.email,
-        locale: user.email ? null : null, // user.locale not on the projection
+        // user.locale isn't on findUserById's projection, so default to
+        // null and let the email template fall back to its default locale.
+        locale: null,
         subject: 'Your markoto data export is ready',
         body: 'Your data export is ready to download. Sign in to /settings/profile and click "Download" — the link expires in 7 days.',
         metadata: { userId: job.userId, jobId: job.jobId, sizeBytes: bytes.byteLength }

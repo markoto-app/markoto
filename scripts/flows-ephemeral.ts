@@ -103,7 +103,7 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_LITELLM_URL: 'http://127.0.0.1:4100',
   NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
   LITELLM_SALT_KEY: 'sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
-  TEST_MODE: '1',
+  // (TEST_MODE is set above, near the top of this object.)
   // Stripe: prod-build runtime validation requires these. Tests don't
   // exercise billing UI, so dummy values that satisfy the shape are
   // enough. Aligns with the integration-test setup (see
