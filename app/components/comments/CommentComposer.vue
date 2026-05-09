@@ -230,40 +230,44 @@ function pickMention(entry: MentionableEntry) {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  // Typeahead-level keys take priority when the popover is open.
-  if (mentionContext.value && filteredMentionUsers.value.length > 0) {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      highlighted.value = (highlighted.value + 1) % filteredMentionUsers.value.length
-      return
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      highlighted.value = (highlighted.value - 1 + filteredMentionUsers.value.length) % filteredMentionUsers.value.length
-      return
-    }
-    if (e.key === 'Enter' && !(e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      const pick = filteredMentionUsers.value[highlighted.value]
-      if (pick) pickMention(pick)
-      return
-    }
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      mentionContext.value = null
-      return
-    }
-  }
+  if (mentionContext.value && filteredMentionUsers.value.length > 0 && handleMentionKey(e)) return
+  handleComposerKey(e)
+}
 
-  // Composer-level keys.
+/** Typeahead-level keys take priority when the popover is open. Returns true if the key was consumed. */
+function handleMentionKey(e: KeyboardEvent): boolean {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    highlighted.value = (highlighted.value + 1) % filteredMentionUsers.value.length
+    return true
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    highlighted.value = (highlighted.value - 1 + filteredMentionUsers.value.length) % filteredMentionUsers.value.length
+    return true
+  }
+  if (e.key === 'Enter' && !(e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    const pick = filteredMentionUsers.value[highlighted.value]
+    if (pick) pickMention(pick)
+    return true
+  }
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    mentionContext.value = null
+    return true
+  }
+  return false
+}
+
+/** Composer-level keys: Cmd/Ctrl+Enter submits; Escape discards the local draft (e.preventDefault keeps the modal/sidebar from closing too). */
+function handleComposerKey(e: KeyboardEvent): void {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault()
     submit()
     return
   }
   if (e.key === 'Escape') {
-    // Don't bubble to the modal/sidebar close handler — we just want
-    // to discard our local draft.
     e.preventDefault()
     emit('cancel')
   }
