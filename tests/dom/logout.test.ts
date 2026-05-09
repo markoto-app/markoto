@@ -112,17 +112,20 @@ describe('performLogout — storage scrub', () => {
 
 describe('performLogout — BroadcastChannel', () => {
   it('posts a logged-out message on the markoto-auth channel', async () => {
-    const messages: unknown[] = []
+    // Subscribe BEFORE performLogout so the listener is wired by the time
+    // the post fires. We resolve on the actual message event instead of
+    // waiting a fixed `setTimeout(0)` — under coverage instrumentation in
+    // CI the event-loop pressure pushes the BroadcastChannel async
+    // dispatch past a single macro-tick, and the old version flaked.
     const listener = new BroadcastChannel(LOGOUT_CHANNEL_NAME)
-    listener.addEventListener('message', (e: MessageEvent) => {
-      messages.push(e.data)
+    const received = new Promise<unknown>((resolve, reject) => {
+      listener.addEventListener('message', (e: MessageEvent) => resolve(e.data))
+      setTimeout(() => reject(new Error('logged-out broadcast not received within 1000ms')), 1000)
     })
 
     await performLogout()
-    // Allow the BroadcastChannel async dispatch to run.
-    await new Promise<void>(resolve => setTimeout(resolve, 0))
 
-    expect(messages).toContainEqual({ type: 'logged-out' })
+    await expect(received).resolves.toEqual({ type: 'logged-out' })
     listener.close()
   })
 
