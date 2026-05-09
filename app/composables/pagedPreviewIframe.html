@@ -403,7 +403,7 @@
               var codeEl = mermaidBlocks[mi];
               var preEl = codeEl.parentElement;
               var source = codeEl.textContent || '';
-              var renderId = 'mmd-' + Math.random().toString(36).slice(2, 10);
+              var renderId = 'mmd-' + crypto.randomUUID();
               try {
                 var rendered = await mer.render(renderId, source);
                 var svgStr = rendered.svg;
