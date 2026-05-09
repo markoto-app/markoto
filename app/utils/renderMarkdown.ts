@@ -410,7 +410,7 @@ export async function renderMarkdown(source: string): Promise<string> {
  * untouched.
  */
 function transformFootnotesForPagedMedia(html: string): string {
-  if (html.indexOf('footnote-ref') === -1) return html
+  if (!html.includes('footnote-ref')) return html
 
   const parser = new DOMParser()
   const doc = parser.parseFromString(`<body><div id="root">${html}</div></body>`, 'text/html')

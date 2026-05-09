@@ -131,22 +131,28 @@ const fileItems = computed(() => {
       { label: t('export.pdf'), icon: 'i-lucide-file-output', onSelect: () => emit('open-server-pdf') }
     ]
   })
-  items.push({ type: 'separator' })
-  items.push({ label: t('menubar.file.print'), icon: 'i-lucide-printer', kbds: ['cmd', 'p'], onSelect: () => emit('export-pdf') })
+  items.push(
+    { type: 'separator' },
+    { label: t('menubar.file.print'), icon: 'i-lucide-printer', kbds: ['cmd', 'p'], onSelect: () => emit('export-pdf') }
+  )
   // Duplicate is available to anyone who can edit the doc (server
   // re-checks); Move requires manage rights. Both need login — the
   // server rejects anonymous on both paths because they need an owner.
   if (props.loggedIn) {
-    items.push({ type: 'separator' })
-    items.push({ label: t('menubar.file.duplicate'), icon: 'i-lucide-copy', onSelect: () => emit('duplicate-document') })
+    items.push(
+      { type: 'separator' },
+      { label: t('menubar.file.duplicate'), icon: 'i-lucide-copy', onSelect: () => emit('duplicate-document') }
+    )
     if (props.canManage) {
       items.push({ label: t('menubar.file.move'), icon: 'i-lucide-folder-input', onSelect: () => emit('move-document') })
     }
     // Delete sits at the bottom of File — destructive, kept under its
     // own separator so it's not a one-click slip from the copy/move
     // entries.
-    items.push({ type: 'separator' })
-    items.push({ label: t('menubar.file.delete'), icon: 'i-lucide-trash-2', onSelect: () => emit('delete-document') })
+    items.push(
+      { type: 'separator' },
+      { label: t('menubar.file.delete'), icon: 'i-lucide-trash-2', onSelect: () => emit('delete-document') }
+    )
   }
   return [items]
 })

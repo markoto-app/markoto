@@ -246,7 +246,7 @@ const audienceItems = AUDIENCE_KINDS.map(kind => ({
           class="w-full"
         />
         <p
-          v-if="audienceItems.find(i => i.value === audienceDraft)"
+          v-if="audienceItems.some(i => i.value === audienceDraft)"
           class="text-xs text-toned mt-1.5"
         >
           {{ audienceItems.find(i => i.value === audienceDraft)?.description }}

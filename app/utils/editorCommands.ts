@@ -264,8 +264,8 @@ export function toggleCode(view: EditorView): void {
   if (fenceBefore && fenceAfter) {
     view.dispatch({
       changes: [
-        { from: lineBefore!.from, to: startLine.from, insert: '' },
-        { from: endLine.to, to: lineAfter!.to, insert: '' }
+        { from: lineBefore.from, to: startLine.from, insert: '' },
+        { from: endLine.to, to: lineAfter.to, insert: '' }
       ]
     })
     view.focus()
@@ -303,14 +303,14 @@ export function toggleHeading(view: EditorView, level: number): void {
   if (nonBlank.length === 0) return
 
   const atLevel = (text: string) => {
-    const m = text.match(HEADING_PREFIX_RE)
+    const m = HEADING_PREFIX_RE.exec(text)
     return !!m && m[1]!.length === level
   }
   const allAtLevel = nonBlank.every(l => atLevel(l.text))
 
   const changes: ChangeSpec[] = []
   for (const line of nonBlank) {
-    const m = line.text.match(HEADING_PREFIX_RE)
+    const m = HEADING_PREFIX_RE.exec(line.text)
     const oldPrefixLen = m ? m[0].length : 0
     const newPrefix = allAtLevel ? '' : '#'.repeat(level) + ' '
     changes.push({ from: line.from, to: line.from + oldPrefixLen, insert: newPrefix })
@@ -350,7 +350,7 @@ export function toggleLinePrefix(view: EditorView, prefix: string): void {
   // the whole task off, not normalize the check state.
   const isTaskPrefix = (s: string) => /^[-*]\s+\[[ xX]\]\s+/.test(s)
   const hasPrefix = (text: string) => {
-    const m = text.match(BLOCK_PREFIX_RE)
+    const m = BLOCK_PREFIX_RE.exec(text)
     if (!m) return false
     if (m[2] === wanted) return true
     if (isTaskPrefix(m[2]!) && isTaskPrefix(wanted)) return true
@@ -360,7 +360,7 @@ export function toggleLinePrefix(view: EditorView, prefix: string): void {
 
   const changes: ChangeSpec[] = []
   for (const line of nonBlank) {
-    const m = line.text.match(BLOCK_PREFIX_RE)
+    const m = BLOCK_PREFIX_RE.exec(line.text)
     const indent = m ? m[1] : ''
     const oldPrefixLen = (m ? m[0].length : 0)
     const newPrefix = allHavePrefix ? '' : prefix
@@ -398,7 +398,7 @@ export function toggleOrderedList(view: EditorView): void {
   const changes: ChangeSpec[] = []
   let counter = 1
   for (const line of nonBlank) {
-    const m = line.text.match(BLOCK_PREFIX_RE)
+    const m = BLOCK_PREFIX_RE.exec(line.text)
     const indent = m ? m[1] : ''
     const oldPrefixLen = (m ? m[0].length : 0)
     const newPrefix = allNumbered ? '' : `${counter}. `
@@ -688,7 +688,7 @@ export function toggleComment(view: EditorView): void {
     // touching the trimmed core.
     const lead = /^\s*/.exec(selected)![0]
     const trail = /\s*$/.exec(selected)![0]
-    const inner = trimmed.slice(4, trimmed.length - 3).replace(/^\s+|\s+$/g, '')
+    const inner = trimmed.slice(4, -3).replace(/^\s+|\s+$/g, '')
     const insert = lead + inner + trail
     view.dispatch({
       changes: { from, to, insert },

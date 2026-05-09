@@ -176,9 +176,9 @@ run('multiple footnotes', 'Text[^1] with [^note2] multiple.\n\n[^1]: First.\n[^n
 run('abbr defined BEFORE use', '*[SGML]: Standard Generalized Markup Language\n\nThe SGML lineage…')
 run('abbr case sensitivity', '*[HTML]: HyperText Markup Language\n\nhtml vs HTML — only uppercase abbr matches.')
 
-run('KaTeX matrix', '$$\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$$')
-run('KaTeX multi-equation (aligned)', '$$\\begin{aligned} x &= y + 1 \\\\ y &= z - 2 \\end{aligned}$$')
-run('KaTeX with dollar in prose', 'He paid \\$5, not $5 (which would be math).')
+run('KaTeX matrix', String.raw`$$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$`)
+run('KaTeX multi-equation (aligned)', String.raw`$$\begin{aligned} x &= y + 1 \\ y &= z - 2 \end{aligned}$$`)
+run('KaTeX with dollar in prose', String.raw`He paid \$5, not $5 (which would be math).`)
 
 run('alert with list inside', '> [!NOTE]\n> Items:\n> - one\n> - two')
 run('alert with nested bold', '> [!WARNING]\n> This is **strong** warning.')

@@ -17,7 +17,10 @@ export interface AiSessionInfo {
   initiatorName: string
   initiatorUserId: number
   prompt: string
-  phase: 'thinking' | 'tool' | 'editing' | 'done' | 'error' | string
+  // Known phases: 'thinking' | 'tool' | 'editing' | 'done' | 'error'.
+  // The wider `string` accepts upstream phase additions (e.g. provider-
+  // specific stages from the runLoop) without forcing this union to drift.
+  phase: string
   message: string | null
   /**
    * Set when the session was triggered by an `@ai` mention in a

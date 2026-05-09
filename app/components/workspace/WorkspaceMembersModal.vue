@@ -10,11 +10,13 @@ import type { WorkspaceMember } from './WorkspaceMemberAvatars.vue'
 // to avoid enumerating the user base. Caller types the full email; server
 // returns 404 if no account matches, 409 if already a member.
 
+type MemberRole = 'admin' | 'editor' | 'viewer'
+
 const props = defineProps<{
   workspaceId: string
   workspaceName: string
   members: WorkspaceMember[]
-  myRole: 'admin' | 'editor' | 'viewer'
+  myRole: MemberRole
   myUserId: number
 }>()
 

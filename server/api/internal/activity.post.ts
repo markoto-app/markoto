@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Invalid internal secret' })
   }
 
-  const body = await readBody(event) as {
+  const body = await readBody<{
     docId?: string
     userId?: number | null
     userName?: string | null
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     metadata?: ActivityMetadata | null
     yjsDocIdBefore?: number | null
     yjsDocIdAfter?: number | null
-  }
+  }>(event)
 
   if (!body.docId || typeof body.docId !== 'string') {
     throw createError({ statusCode: 400, message: 'Missing docId' })

@@ -803,7 +803,7 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 // /api/files endpoint. Returns null for anything else.
 /** @internal exported for unit tests; not part of the public API. */
 export function parseInternalFileRef(src: string): { docId: string, fileId: string } | null {
-  const match = src.match(/\/api\/files\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+\.[A-Za-z0-9]+)(?:$|[?#])/)
+  const match = /\/api\/files\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+\.[A-Za-z0-9]+)(?:$|[?#])/.exec(src)
   if (!match) return null
   return { docId: match[1]!, fileId: match[2]! }
 }
@@ -1790,10 +1790,12 @@ function handleReplyToComment(
     return err(`Error: comment "${input.comment_id}" not found. Call read_comments to get current IDs.`)
   }
 
-  const repliesArr = parentMap.get('replies')
-  if (!(repliesArr instanceof Y.Array)) {
+  const repliesArrRaw = parentMap.get('replies')
+  if (!(repliesArrRaw instanceof Y.Array)) {
     return err(`Error: comment "${input.comment_id}" has a malformed replies array.`)
   }
+  const repliesArr: Y.Array<Y.Map<unknown>> = repliesArrRaw
+  const parent = parentMap
 
   session.updateStatus('editing', 'Adding reply…')
 
@@ -1813,8 +1815,8 @@ function handleReplyToComment(
     reply.set('authorAvatar', null)
     reply.set('createdAt', now)
     reply.set('updatedAt', now)
-    ;(repliesArr as Y.Array<Y.Map<unknown>>).push([reply])
-    parentMap!.set('updatedAt', now)
+    repliesArr.push([reply])
+    parent.set('updatedAt', now)
   }, origin)
 
   return ok(`Reply ${id} added to thread ${input.comment_id}.`)

@@ -223,7 +223,7 @@ const playProgress = ref(0)
 // transform pair (parseInt → string) shapes the typed value.
 // Multiple flows on one page get distinct param keys via the id.
 const slideParamKey = computed(() => {
-  const base = props.id ?? props.path?.split('/').filter(Boolean).pop() ?? 'flow'
+  const base = props.id ?? props.path?.split('/').findLast(Boolean) ?? 'flow'
   return `slide-${base}`
 })
 const slideQuery = useRouteQuery<string | null, number>(

@@ -218,17 +218,19 @@ const workspaceMenuItems = computed(() => {
     }
   ]
   if (isAdmin.value) {
-    items.push({
-      label: t('workspace.edit'),
-      icon: 'i-lucide-pencil',
-      onSelect: () => { editOpen.value = true }
-    })
-    items.push({
-      label: t('workspace.delete'),
-      icon: 'i-lucide-trash-2',
-      color: 'error',
-      onSelect: () => { deleteOpen.value = true }
-    })
+    items.push(
+      {
+        label: t('workspace.edit'),
+        icon: 'i-lucide-pencil',
+        onSelect: () => { editOpen.value = true }
+      },
+      {
+        label: t('workspace.delete'),
+        icon: 'i-lucide-trash-2',
+        color: 'error',
+        onSelect: () => { deleteOpen.value = true }
+      }
+    )
   } else {
     items.push({
       label: t('workspace.members.leave'),

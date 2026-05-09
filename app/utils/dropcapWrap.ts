@@ -24,7 +24,7 @@
  *     attributes are preserved in the wrapped output.
  */
 export function wrapFirstLetterAsDropCap(html: string): string {
-  const match = html.match(/<p(\s[^>]*)?>([\s\S]*?)<\/p>/i)
+  const match = /<p(\s[^>]*)?>([\s\S]*?)<\/p>/i.exec(html)
   if (!match) return html
   const [full, attrs = '', inner] = match
   if (!inner) return html

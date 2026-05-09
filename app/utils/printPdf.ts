@@ -198,7 +198,7 @@ export async function printDocumentAsPdf(opts: {
       // The iframe window gets a `PagedConfig` property attached before the
       // paged.js polyfill script runs — the polyfill picks it up to drive
       // the print flow. Typed inline rather than polluting a d.ts.
-      const iwin = iframe.contentWindow as (Window & { PagedConfig?: { auto: boolean, after: () => void } }) | null
+      const iwin: (Window & { PagedConfig?: { auto: boolean, after: () => void } }) | null = iframe.contentWindow
       if (!idoc || !iwin) {
         throw new Error('Could not access iframe document')
       }

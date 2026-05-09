@@ -57,17 +57,19 @@ function rowMenu(doc: WorkspaceDoc) {
     })
   }
   if (canManage(doc)) {
-    items.push({
-      label: t('common.move'),
-      icon: 'i-lucide-folder-input',
-      onSelect: () => emit('moveRequested', doc)
-    })
-    items.push({
-      label: t('common.delete'),
-      icon: 'i-lucide-trash-2',
-      color: 'error',
-      onSelect: () => emit('deleteRequested', doc)
-    })
+    items.push(
+      {
+        label: t('common.move'),
+        icon: 'i-lucide-folder-input',
+        onSelect: () => emit('moveRequested', doc)
+      },
+      {
+        label: t('common.delete'),
+        icon: 'i-lucide-trash-2',
+        color: 'error',
+        onSelect: () => emit('deleteRequested', doc)
+      }
+    )
   }
   return [items]
 }

@@ -108,7 +108,7 @@ export function useCommentNotifications(opts: UseCommentNotificationsOptions) {
     // Collapse same-thread bursts: tag by thread so the OS replaces
     // the previous notification rather than stacking. Body shows the
     // most recent reply — good enough for "you have new activity".
-    const last = fresh[fresh.length - 1]
+    const last = fresh.at(-1)
     if (!last) return
     const preview = last.body.length > 120 ? `${last.body.slice(0, 117)}…` : last.body
     show({

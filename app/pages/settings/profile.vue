@@ -207,8 +207,9 @@ const policies = computed(() => {
 })
 
 // ─────────── Privacy choices (consent) ───────────
+type ConsentPurpose = 'essential' | 'analytics' | 'session_replay'
 interface ConsentDecision {
-  purpose: 'essential' | 'analytics' | 'session_replay'
+  purpose: ConsentPurpose
   granted: boolean
   version: number
 }
@@ -220,7 +221,7 @@ interface ConsentSummary {
 
 const consentSummary = ref<ConsentSummary | null>(null)
 
-function consentStateText(key: 'essential' | 'analytics' | 'session_replay', decision: ConsentDecision | undefined): string {
+function consentStateText(key: ConsentPurpose, decision: ConsentDecision | undefined): string {
   if (key === 'essential') return t('settings.profile.consent.purposeAlwaysOn')
   if (!decision) return t('settings.profile.consent.notSet')
   return decision.granted
@@ -239,7 +240,7 @@ async function refreshConsent(): Promise<void> {
 
 const consentRows = computed(() => {
   const d = consentSummary.value?.decisions ?? {}
-  const purposeOf = (key: 'essential' | 'analytics' | 'session_replay') => {
+  const purposeOf = (key: ConsentPurpose) => {
     const decision = d[key]
     return {
       key,

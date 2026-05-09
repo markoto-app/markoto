@@ -188,5 +188,5 @@ export async function listWorkspacesForUser(userId: number): Promise<UserWorkspa
       workspaces.aiEnabled,
       workspaceMembers.role
     )
-    .orderBy(sql`coalesce(max(${documents.lastActive}), ${workspaces.createdAt}) desc`) as Promise<UserWorkspaceSummary[]>
+    .orderBy(sql`coalesce(max(${documents.lastActive}), ${workspaces.createdAt}) desc`)
 }

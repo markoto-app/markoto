@@ -1005,11 +1005,11 @@ function breakHints(): string {
 // — helpers ———————————————————————————————————————————————————————————
 
 function cssString(s: string): string {
-  return '"' + s.replaceAll('\\', '\\\\').replaceAll('"', '\\"') + '"'
+  return '"' + s.replaceAll('\\', String.raw`\\`).replaceAll('"', String.raw`\"`) + '"'
 }
 
 function cssFontStack(name: string): string {
-  const safe = name.includes(' ') ? `"${name.replaceAll('"', '\\"')}"` : name
+  const safe = name.includes(' ') ? `"${name.replaceAll('"', String.raw`\"`)}"` : name
   return `${safe}, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`
 }
 

@@ -321,7 +321,7 @@ async function submit(blank: boolean) {
             class="w-full"
           />
           <p
-            v-if="audienceItems.find(i => i.value === audience)"
+            v-if="audienceItems.some(i => i.value === audience)"
             class="text-xs text-toned mt-1.5"
           >
             {{ audienceItems.find(i => i.value === audience)?.description }}

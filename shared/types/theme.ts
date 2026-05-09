@@ -52,7 +52,7 @@ const fontName = z.string().regex(FONT_NAME_REGEX, 'must be a valid font name (l
 
 const slotTemplate = z.string().max(200).refine(
   (s: string) => TEMPLATE_SAFE_TEXT_REGEX.test(s.replace(TEMPLATE_TOKEN_REGEX, '')),
-  { message: 'contains forbidden characters (", \\, <, >, newline)' }
+  { message: String.raw`contains forbidden characters (", \, <, >, newline)` }
 )
 
 // ── Enum types (exported so consumers that import them still work) ──────

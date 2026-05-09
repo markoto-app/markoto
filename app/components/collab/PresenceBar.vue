@@ -37,7 +37,9 @@ interface AiSessionMeta {
 }
 
 interface AiStatus {
-  phase: 'thinking' | 'tool' | 'editing' | 'done' | 'error' | string
+  // Known: 'thinking' | 'tool' | 'editing' | 'done' | 'error'. Wider
+  // string accepts upstream additions without the union drifting.
+  phase: string
   message: string | null
 }
 
@@ -51,11 +53,13 @@ interface LiveEntry {
   aiStatus?: AiStatus
 }
 
+type WorkspaceRole = 'admin' | 'editor' | 'viewer'
+
 interface RosterMember {
   userId: number
   name: string
   avatarUrl: string | null
-  role: 'admin' | 'editor' | 'viewer'
+  role: WorkspaceRole
   isDocOwner: boolean
 }
 
@@ -64,7 +68,7 @@ interface OfflineEntry {
   userId: number
   name: string
   avatarUrl: string | null
-  role: 'admin' | 'editor' | 'viewer'
+  role: WorkspaceRole
   isDocOwner: boolean
 }
 
@@ -173,7 +177,7 @@ const merged = computed<DisplayEntry[]>(() => {
 //   - Live + not in roster: "Bob — Guest" (or "Anonymous" if unauthenticated)
 //   - AI helper: delegated to the existing ai.helpingTooltip i18n key
 //   - Offline: "Alice Test — Editor (offline)"
-function roleLabel(role: 'admin' | 'editor' | 'viewer') {
+function roleLabel(role: WorkspaceRole) {
   if (role === 'admin') return t('workspace.roles.admin')
   if (role === 'editor') return t('workspace.roles.editor')
   return t('workspace.roles.viewer')

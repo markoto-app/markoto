@@ -18,14 +18,14 @@ import { isBudgetExceededError } from '../../utils/litellmKeys'
 import { FEATURE_TAGS, featureMetadata } from '../../utils/litellm/featureTags'
 import { litellmCompletion } from '../../utils/litellm/createCompletion'
 
-const ALLOWED_MIME = [
+const ALLOWED_MIME = new Set([
   'audio/webm',
   'audio/webm;codecs=opus',
   'audio/ogg',
   'audio/ogg;codecs=opus',
   'audio/wav',
   'audio/x-wav'
-]
+])
 
 // Cap at ~5 MiB of raw audio. A 60-second opus/webm clip is typically
 // ≤400 KiB, so this is generous — but the ceiling exists so a malicious
@@ -40,16 +40,16 @@ export default defineEventHandler(async (event) => {
   // rpm_limit (60/min) at the per-user-virtual-key level — see
   // `createUserKey` in `litellmKeys.ts`.
 
-  const body = await readBody(event) as {
+  const body = await readBody<{
     audio?: string
     mimeType?: string
     languageCode?: string
-  }
+  }>(event)
 
   const mimeType = body.mimeType
   const audioB64 = body.audio
 
-  if (!mimeType || !ALLOWED_MIME.includes(mimeType.toLowerCase())) {
+  if (!mimeType || !ALLOWED_MIME.has(mimeType.toLowerCase())) {
     throw createError({ statusCode: 400, message: 'Unsupported audio mimeType' })
   }
   if (!audioB64 || typeof audioB64 !== 'string') {

@@ -69,7 +69,7 @@ export function computeTextDiff(beforeText: string, afterText: string): DiffResu
       // as metadata about the previous line — useful in patch files
       // but pure noise in our drawer (the user doesn't care about
       // trailing-newline pedantry). Filter it out.
-      .filter(rawLine => rawLine[0] !== '\\')
+      .filter(rawLine => !rawLine.startsWith('\\'))
       .map((rawLine) => {
         // The library prefixes each line with one of `+ - ` (space
         // for context). We split off the prefix and map to our own
