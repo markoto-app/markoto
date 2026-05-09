@@ -183,84 +183,18 @@ export default defineEventHandler({
       // our audio path is raw int16 PCM (never valid JSON).
       const parsedControl = tryParseControl(message)
 
-      // Pre-auth branch: must receive a valid `{type:'auth'}` message
-      // before we'll accept anything else. Anything non-control (i.e.
-      // binary audio) pre-auth is rejected so a malicious client can't
-      // ship audio bytes before auth.
       if (!ctx.authed) {
-        if (!parsedControl) {
-          p.send(encodeServerFrame({ type: 'error', message: 'Auth required before audio' }))
-          p.close(4000, 'pre-auth binary')
-          return
-        }
-        if (parsedControl.type !== 'auth') {
-          p.send(encodeServerFrame({ type: 'error', message: 'First message must be auth' }))
-          p.close(4000, 'auth first')
-          return
-        }
-        await handleAuth(p, ctx, parsedControl.token, parsedControl.languageCode)
+        await handlePreAuthMessage(p, ctx, parsedControl)
         return
       }
 
       // Post-auth branch. Control frames (`{type:'stop'}`) and audio
       // (raw binary) both land here; the type-parse above routes us.
       if (parsedControl) {
-        if (parsedControl.type === 'stop') {
-          ctx.sttEnded = true
-          try {
-            ctx.stt?.end()
-          } catch {
-            /* best-effort */
-          }
-        }
+        handlePostAuthControl(ctx, parsedControl)
         return
       }
-
-      // Drop audio chunks that arrive after `stop`. The browser's
-      // AudioWorklet posts to the main thread via postMessage; up to
-      // ~128 ms of chunks can be in-flight between "user clicked
-      // stop" and "composable disconnected the worklet". Without this
-      // guard, each straggler would hit `stt.write(...)` on an ended
-      // stream and surface as an "error" frame on the wire.
-      if (ctx.sttEnded) return
-
-      if (!ctx.stt) return
-
-      // Phase 6: dropped the daily-audio-ms cap. The voice-tick
-      // orchestrator (voxtral path) bills against the user's LiteLLM
-      // virtual key once per minute; LiteLLM enforces the $ cap. The
-      // single-session Valkey lock + idle timeout + session hard-cap
-      // remain as orthogonal safety/UX guards.
-
-      const raw = message.rawData
-      const buf = raw instanceof ArrayBuffer
-        ? Buffer.from(raw)
-        : Buffer.from(raw as Uint8Array)
-      try {
-        ctx.stt.write(buf)
-      } catch (e) {
-        console.error('[dictate] stt write failed:', e)
-        Sentry.captureException(e, {
-          tags: { component: 'dictate', event: 'stt_write_failed' }
-        })
-        p.send(encodeServerFrame({ type: 'error', message: 'upstream send failed' }))
-        p.close(1011, 'stt write failed')
-        return
-      }
-
-      // Accumulate audio-ms for the interaction charge on close.
-      // Done AFTER the write succeeds so a failed chunk doesn't
-      // contribute to the bill.
-      ctx.voiceAudioSinceTick = true
-
-      // Phase 5 voice-tick: start the 60s billing heartbeat on the
-      // first audio chunk. Idempotent (only the first call arms the
-      // interval). Phase 7: voxtral is the only path now.
-      if (!ctx.voiceTickActive) {
-        startVoiceTickOrchestrator(p, ctx)
-      }
-
-      resetIdleTimer(p, ctx)
+      await handleAudioChunk(p, ctx, message.rawData)
     },
 
     close(peer) {
@@ -299,6 +233,86 @@ export default defineEventHandler({
     }
   }
 })
+
+// ─── Per-message routing helpers ───────────────────────────────────────
+
+type ParsedControl = NonNullable<ReturnType<typeof tryParseControl>>
+
+/**
+ * Pre-auth branch. Anything non-control (i.e. binary audio) is rejected
+ * so a malicious client can't ship audio bytes before auth. The first
+ * accepted message must be `{type:'auth'}`.
+ */
+async function handlePreAuthMessage(p: PeerLike, ctx: DictatePeerContext, parsedControl: ParsedControl | null): Promise<void> {
+  if (!parsedControl) {
+    p.send(encodeServerFrame({ type: 'error', message: 'Auth required before audio' }))
+    p.close(4000, 'pre-auth binary')
+    return
+  }
+  if (parsedControl.type !== 'auth') {
+    p.send(encodeServerFrame({ type: 'error', message: 'First message must be auth' }))
+    p.close(4000, 'auth first')
+    return
+  }
+  await handleAuth(p, ctx, parsedControl.token, parsedControl.languageCode)
+}
+
+/** Coerce a crossws-typed `rawData` (declared `unknown`) to a Buffer. Returns null if the runtime payload doesn't match either expected shape — chunk silently dropped, same effect as the pre-refactor `Buffer.from(raw as Uint8Array)` on a hypothetical mismatch. */
+function toBuffer(raw: unknown): Buffer | null {
+  if (raw instanceof ArrayBuffer) return Buffer.from(raw)
+  if (raw instanceof Uint8Array) return Buffer.from(raw)
+  return null
+}
+
+/** Post-auth control frame handler. Today only `stop` is meaningful; other frames are ignored (forward-compat). */
+function handlePostAuthControl(ctx: DictatePeerContext, parsedControl: ParsedControl): void {
+  if (parsedControl.type !== 'stop') return
+  ctx.sttEnded = true
+  try {
+    ctx.stt?.end()
+  } catch { /* best-effort */ }
+}
+
+/**
+ * Forward one binary audio chunk to the upstream STT stream and drive
+ * the per-minute billing tick. Drops chunks that arrive after `stop`
+ * (the browser's AudioWorklet → main-thread postMessage queue can be
+ * up to ~128 ms in-flight when the user clicks stop), so each
+ * straggler doesn't surface as an "error" frame on the wire.
+ *
+ * Phase 6: dropped the daily-audio-ms cap. The voice-tick orchestrator
+ * (voxtral path) bills against the user's LiteLLM virtual key once
+ * per minute; LiteLLM enforces the $ cap. The single-session Valkey
+ * lock + idle timeout + session hard-cap remain as orthogonal
+ * safety/UX guards.
+ */
+async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw: unknown): Promise<void> {
+  if (ctx.sttEnded) return
+  if (!ctx.stt) return
+  const buf = toBuffer(raw)
+  if (!buf) return
+  try {
+    ctx.stt.write(buf)
+  } catch (e) {
+    console.error('[dictate] stt write failed:', e)
+    Sentry.captureException(e, { tags: { component: 'dictate', event: 'stt_write_failed' } })
+    p.send(encodeServerFrame({ type: 'error', message: 'upstream send failed' }))
+    p.close(1011, 'stt write failed')
+    return
+  }
+
+  // Done AFTER the write succeeds so a failed chunk doesn't contribute
+  // to the bill.
+  ctx.voiceAudioSinceTick = true
+
+  // Phase 5 voice-tick: start the 60s billing heartbeat on the first
+  // audio chunk. Idempotent (only the first call arms the interval).
+  // Phase 7: voxtral is the only path now.
+  if (!ctx.voiceTickActive) {
+    startVoiceTickOrchestrator(p, ctx)
+  }
+  resetIdleTimer(p, ctx)
+}
 
 // ─── Phase 5 voice-tick orchestrator ───────────────────────────────────
 //
