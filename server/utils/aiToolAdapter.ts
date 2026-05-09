@@ -1593,71 +1593,75 @@ function fmtDate(ms: number): string {
   return new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
 }
 
+const COMMENT_ANCHOR_PREVIEW_MAX = 150
+
+/** Build a human-readable anchor label from a resolved Y.js anchor. */
+function formatAnchorLabel(
+  anchor: { from: number, to: number } | null,
+  fullText: string
+): string {
+  if (!anchor) return '[orphaned — anchored text was deleted]'
+  const anchorText = fullText.slice(anchor.from, anchor.to)
+  const preview = anchorText.length > COMMENT_ANCHOR_PREVIEW_MAX
+    ? anchorText.slice(0, COMMENT_ANCHOR_PREVIEW_MAX) + '…'
+    : anchorText
+  // Convert char offsets to approximate line numbers for the model.
+  const startLine = fullText.slice(0, anchor.from).split('\n').length
+  const endLine = fullText.slice(0, anchor.to).split('\n').length
+  return startLine === endLine
+    ? `line ${startLine}: "${preview}"`
+    : `lines ${startLine}–${endLine}: "${preview}"`
+}
+
+/** Format the four header lines (---, anchor, by, comment) for one thread. */
+function formatThreadHeader(map: Y.Map<unknown>, fullText: string, ydoc: Y.Doc): string[] {
+  const id = map.get('id') as string
+  const body = typeof map.get('body') === 'string' ? stripMentions(map.get('body') as string) : ''
+  const authorName = typeof map.get('authorName') === 'string' ? (map.get('authorName') as string) : 'Unknown'
+  const createdAt = typeof map.get('createdAt') === 'number' ? (map.get('createdAt') as number) : 0
+  const resolved = Boolean(map.get('resolved'))
+  const anchorLabel = formatAnchorLabel(resolveCommentAnchor(map, ydoc), fullText)
+  return [
+    `--- Thread ${id}${resolved ? ' [RESOLVED]' : ''} ---`,
+    `Anchor: ${anchorLabel}`,
+    `By: ${authorName} at ${fmtDate(createdAt)}`,
+    `Comment: ${body}`
+  ]
+}
+
+/** Format the optional replies block (header + indented per-reply lines). */
+function formatThreadReplies(map: Y.Map<unknown>): string[] {
+  const repliesArr = map.get('replies')
+  if (!(repliesArr instanceof Y.Array) || repliesArr.length === 0) return []
+  const lines = [`Replies (${repliesArr.length}):`]
+  for (let j = 0; j < repliesArr.length; j++) {
+    const r = repliesArr.get(j)
+    if (!(r instanceof Y.Map)) continue
+    const rId = r.get('id') as string
+    const rBody = typeof r.get('body') === 'string' ? stripMentions(r.get('body') as string) : ''
+    const rAuthor = typeof r.get('authorName') === 'string' ? (r.get('authorName') as string) : 'Unknown'
+    const rCreatedAt = typeof r.get('createdAt') === 'number' ? (r.get('createdAt') as number) : 0
+    lines.push(`  [${rId}] ${rAuthor} at ${fmtDate(rCreatedAt)}: ${rBody}`)
+  }
+  return lines
+}
+
 function handleReadComments(
   session: AiSession,
   _input: ReadCommentsInput
 ): ToolResult {
   const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
-  if (ycomments.length === 0) {
-    return ok('No comments on this document.')
-  }
+  if (ycomments.length === 0) return ok('No comments on this document.')
 
   const fullText = session.ytext.toString()
-  const ANCHOR_PREVIEW_MAX = 150
-
   const lines: string[] = [`Found ${ycomments.length} comment thread(s):\n`]
   for (let i = 0; i < ycomments.length; i++) {
     const map = ycomments.get(i)
     if (!(map instanceof Y.Map)) continue
-
-    const id = map.get('id') as string
-    const body = typeof map.get('body') === 'string' ? stripMentions(map.get('body') as string) : ''
-    const authorName = typeof map.get('authorName') === 'string' ? (map.get('authorName') as string) : 'Unknown'
-    const createdAt = typeof map.get('createdAt') === 'number' ? (map.get('createdAt') as number) : 0
-    const resolved = Boolean(map.get('resolved'))
-
-    const anchor = resolveCommentAnchor(map, session.ydoc)
-    let anchorLabel: string
-    if (anchor) {
-      const anchorText = fullText.slice(anchor.from, anchor.to)
-      const preview = anchorText.length > ANCHOR_PREVIEW_MAX
-        ? anchorText.slice(0, ANCHOR_PREVIEW_MAX) + '…'
-        : anchorText
-      // Convert char offsets to approximate line numbers for the model
-      const beforeStart = fullText.slice(0, anchor.from)
-      const beforeEnd = fullText.slice(0, anchor.to)
-      const startLine = beforeStart.split('\n').length
-      const endLine = beforeEnd.split('\n').length
-      anchorLabel = startLine === endLine
-        ? `line ${startLine}: "${preview}"`
-        : `lines ${startLine}–${endLine}: "${preview}"`
-    } else {
-      anchorLabel = '[orphaned — anchored text was deleted]'
-    }
-
-    lines.push(
-      `--- Thread ${id}${resolved ? ' [RESOLVED]' : ''} ---`,
-      `Anchor: ${anchorLabel}`,
-      `By: ${authorName} at ${fmtDate(createdAt)}`,
-      `Comment: ${body}`
-    )
-
-    const repliesArr = map.get('replies')
-    if (repliesArr instanceof Y.Array && repliesArr.length > 0) {
-      lines.push(`Replies (${repliesArr.length}):`)
-      for (let j = 0; j < repliesArr.length; j++) {
-        const r = repliesArr.get(j)
-        if (!(r instanceof Y.Map)) continue
-        const rId = r.get('id') as string
-        const rBody = typeof r.get('body') === 'string' ? stripMentions(r.get('body') as string) : ''
-        const rAuthor = typeof r.get('authorName') === 'string' ? (r.get('authorName') as string) : 'Unknown'
-        const rCreatedAt = typeof r.get('createdAt') === 'number' ? (r.get('createdAt') as number) : 0
-        lines.push(`  [${rId}] ${rAuthor} at ${fmtDate(rCreatedAt)}: ${rBody}`)
-      }
-    }
+    lines.push(...formatThreadHeader(map, fullText, session.ydoc))
+    lines.push(...formatThreadReplies(map))
     lines.push('')
   }
-
   return ok(lines.join('\n'))
 }
 
