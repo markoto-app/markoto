@@ -37,7 +37,9 @@ export interface AgenticPart {
  * AI's emitted text/function-calls.
  */
 export interface AgenticContent {
-  role?: 'user' | 'model' | string
+  // Forward-compat: known values are 'user' / 'model'; the wider
+  // `string` accepts upstream additions without forcing a type bump.
+  role?: string
   parts?: AgenticPart[]
 }
 
@@ -101,7 +103,10 @@ export interface AgenticGenerateContentResponse {
     // bare `{candidates:[{content:{parts:[...]}}]}` shapes) keeps
     // typechecking without per-test fix-up.
     content?: { role?: string, parts?: AgenticPart[] }
-    finishReason?: AgenticFinishReason | string
+    // Known values come from `AgenticFinishReason`; the wider `string`
+    // accepts upstream additions like 'tool_calls' / 'eos' without
+    // forcing this union to drift.
+    finishReason?: string
   }>
   usageMetadata?: {
     promptTokenCount?: number

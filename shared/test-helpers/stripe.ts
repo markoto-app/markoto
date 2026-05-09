@@ -69,7 +69,7 @@ export function makeCheckoutSessionCompletedEvent(opts: {
         subscription: opts.subscription ?? null
       } as unknown as Stripe.Checkout.Session
     }
-  } as Stripe.CheckoutSessionCompletedEvent
+  }
 }
 
 /**
@@ -117,7 +117,7 @@ export function makeSubscriptionEvent(opts: {
         }
       } as unknown as Stripe.Subscription
     }
-  } as Stripe.CustomerSubscriptionCreatedEvent | Stripe.CustomerSubscriptionUpdatedEvent
+  }
 }
 
 /**
@@ -147,7 +147,7 @@ export function makeSubscriptionDeletedEvent(opts: {
         customer: opts.customer
       } as unknown as Stripe.Subscription
     }
-  } as Stripe.CustomerSubscriptionDeletedEvent
+  }
 }
 
 /**
@@ -185,7 +185,7 @@ export function makeInvoicePaidEvent(opts: {
         period_end: opts.periodEnd ?? DEFAULT_PERIOD_END_S
       } as unknown as Stripe.Invoice
     }
-  } as Stripe.InvoicePaidEvent
+  }
 }
 
 /**
@@ -220,5 +220,5 @@ export function makeInvoicePaymentFailedEvent(opts: {
         attempt_count: opts.attemptCount ?? 1
       } as unknown as Stripe.Invoice
     }
-  } as Stripe.InvoicePaymentFailedEvent
+  }
 }

@@ -366,15 +366,7 @@ async function resolveBaseTheme(session: AiSession, input: UpdateThemeInput): Pr
     }
     return { ok: true, theme: ws.defaultTheme }
   }
-  return { ok: true, theme: await resolveDefaultBaseTheme(session) }
-}
-
-/** Default base: ymeta.theme → docs.theme → markoto fallback. */
-async function resolveDefaultBaseTheme(session: AiSession): Promise<DocTheme> {
-  const fromYmeta = session.ymeta.get('theme')
-  if (isValidTheme(fromYmeta)) return fromYmeta
-  const doc = await getDoc(session.docId)
-  return (doc?.theme && isValidTheme(doc.theme)) ? doc.theme : defaultTheme
+  return { ok: true, theme: await resolveCurrentTheme(session) }
 }
 
 function applyThemeToYDoc(session: AiSession, merged: DocTheme): void {
@@ -1709,9 +1701,11 @@ function handleReadComments(
   for (let i = 0; i < ycomments.length; i++) {
     const map = ycomments.get(i)
     if (!(map instanceof Y.Map)) continue
-    lines.push(...formatThreadHeader(map, fullText, session.ydoc))
-    lines.push(...formatThreadReplies(map))
-    lines.push('')
+    lines.push(
+      ...formatThreadHeader(map, fullText, session.ydoc),
+      ...formatThreadReplies(map),
+      ''
+    )
   }
   return ok(lines.join('\n'))
 }

@@ -80,14 +80,13 @@ watch(() => route.path, (path) => {
 // CustomEvent route keeps the link a pure NuxtLink without
 // importing component refs.
 const REOPEN_EVENT = 'markoto:reopen-consent'
-function reopenFromFooter(): void {
+async function reopenFromFooter(): Promise<void> {
   // Re-fetch in case the user already accepted and we need to
   // pre-fill the toggles from the latest decisions.
-  void refreshConsent().then(() => {
-    customizing.value = true
-    open.value = true
-    syncTogglesFromSummary()
-  })
+  await refreshConsent()
+  customizing.value = true
+  open.value = true
+  syncTogglesFromSummary()
 }
 
 function syncTogglesFromSummary(): void {

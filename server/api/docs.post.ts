@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   const session = await getValidatedUserSession(event)
   const docId = nanoid(10)
   const ownerId = session?.user?.id ?? null
-  const body = await readBody<RawBody>(event).catch(() => ({} as RawBody))
+  const body = await readBody<RawBody>(event).catch((): RawBody => ({}))
 
   const workspaceId = await resolveWorkspace(body.workspaceId, ownerId)
 

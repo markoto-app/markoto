@@ -44,19 +44,18 @@ import type { UnwrapNestedRefs } from 'vue'
 import type { PwaInjection } from '@vite-pwa/nuxt/dist/runtime/plugins/types.js'
 import {
   createVersionCheckController,
-  DEFAULT_VISIBILITY_THROTTLE_MS,
   type VersionCheckPromptHandlers
 } from '../utils/versionCheckController'
 
 type Pwa = UnwrapNestedRefs<PwaInjection>
 
+function reloadNow() {
+  globalThis.location.reload()
+}
+
 export default defineNuxtPlugin((nuxtApp) => {
   const toast = useToast()
   const pwa = nuxtApp.$pwa as Pwa | undefined
-
-  function reloadNow() {
-    globalThis.location.reload()
-  }
 
   function renderPrompt(h: VersionCheckPromptHandlers) {
     toast.add({
@@ -156,8 +155,4 @@ export default defineNuxtPlugin((nuxtApp) => {
       if (document.visibilityState === 'visible') controller.onVisible()
     })
   }
-
-  // Re-export for tests that want to assert the throttle window without
-  // duplicating the constant.
-  void DEFAULT_VISIBILITY_THROTTLE_MS
 })

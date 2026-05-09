@@ -83,12 +83,13 @@ export function summarizeToolCall(name: string, args: unknown): string {
   if (typeof args !== 'object' || args === null) return ''
   const a = args as Record<string, unknown>
   const trim = (s: unknown, n = 80) => (typeof s === 'string' ? s.slice(0, n) : '')
+  const numOrQ = (v: unknown): string => typeof v === 'number' ? String(v) : '?'
 
   switch (name) {
     case 'replace_text':
       return `old≈"${trim(a.old_str, 60)}"`
     case 'insert_text':
-      return `at_line=${a.insert_line ?? '?'} text≈"${trim(a.insert_text, 60)}"`
+      return `at_line=${numOrQ(a.insert_line)} text≈"${trim(a.insert_text, 60)}"`
     case 'set_title':
       return `title="${trim(a.title, 80)}"`
     case 'web_search':
@@ -118,13 +119,15 @@ export function summarizeToolCall(name: string, args: unknown): string {
     case 'save_theme_as_preset':
       return `name="${trim(a.name, 60)}"`
     case 'create_comment':
-      return `lines=${a.start_line ?? '?'}-${a.end_line ?? '?'} body≈"${trim(a.body, 60)}"`
+      return `lines=${numOrQ(a.start_line)}-${numOrQ(a.end_line)} body≈"${trim(a.body, 60)}"`
     case 'reply_to_comment':
       return `comment_id=${trim(a.comment_id, 32)} body≈"${trim(a.body, 60)}"`
     case 'resolve_comment':
       return `comment_id=${trim(a.comment_id, 32)} resolved=${a.resolved}`
-    case 'delete_comment':
-      return `comment_id=${trim(a.comment_id, 32)}${a.reply_id ? ` reply_id=${trim(a.reply_id, 32)}` : ''}`
+    case 'delete_comment': {
+      const replyPart = a.reply_id ? ` reply_id=${trim(a.reply_id, 32)}` : ''
+      return `comment_id=${trim(a.comment_id, 32)}${replyPart}`
+    }
     default:
       return `args=${Object.keys(a).slice(0, 5).join(',')}`
   }

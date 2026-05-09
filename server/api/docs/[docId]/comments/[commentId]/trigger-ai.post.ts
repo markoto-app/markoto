@@ -73,8 +73,9 @@ export default defineEventHandler(async (event) => {
   const sessionId = nanoid(12)
   const abortController = new AbortController()
 
-  event.node?.req?.once?.('close', () => {
-    if (!event.node!.req!.readableEnded) abortController.abort()
+  const req = event.node?.req
+  req?.once?.('close', () => {
+    if (!req.readableEnded) abortController.abort()
   })
 
   await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })

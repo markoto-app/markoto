@@ -19,13 +19,10 @@ function adminConfig(): LitellmAdminConfig {
 
 export async function litellmAdminFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const cfg = adminConfig()
-  const res = await fetch(`${cfg.url}${path}`, {
-    ...init,
-    headers: {
-      'Authorization': `Bearer ${cfg.masterKey}`,
-      'Content-Type': 'application/json',
-      ...(init.headers ?? {})
-    }
-  })
-  return res
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${cfg.masterKey}`,
+    'Content-Type': 'application/json'
+  }
+  if (init.headers) Object.assign(headers, init.headers)
+  return fetch(`${cfg.url}${path}`, { ...init, headers })
 }

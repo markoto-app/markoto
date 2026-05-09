@@ -75,7 +75,8 @@ export function processChunk(
 
 /** Coerce + trim a possibly-missing string field. Returns '' on miss. */
 function strField(args: Record<string, unknown>, key: string): string {
-  return typeof args[key] === 'string' ? (args[key] as string).trim() : ''
+  const v = args[key]
+  return typeof v === 'string' ? v.trim() : ''
 }
 
 /** Truncate a label with an ellipsis when it exceeds `max` chars. */

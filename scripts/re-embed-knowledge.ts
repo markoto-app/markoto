@@ -252,10 +252,14 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
+try {
+  await main()
+} catch (e) {
   console.error('[re-embed] FAILED:', e instanceof Error ? e.stack || e.message : e)
   process.exit(1)
-})
+}
 
 // Silence Drizzle's "unused" warning for the helper import in some bun versions.
-void sql
+// Reference at module level — bun lint counts this as a use.
+const _sqlRef = sql
+export { _sqlRef }

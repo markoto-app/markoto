@@ -95,11 +95,12 @@ export async function requestAccountDeletionByUser(args: RequestAccountDeletionA
   // either is missing we still scheduled the deletion (the in-product
   // banner is the primary surface).
   const user = await findUserById(args.userId)
-  const emailAttempted = !!user?.email
-  if (emailAttempted) {
+  const userEmail = user?.email
+  const emailAttempted = !!userEmail
+  if (userEmail) {
     void safeSendTransactionalEmail({
       kind: 'account.delete_requested',
-      to: user!.email,
+      to: userEmail,
       locale: null, // user.locale not on the projection — read separately if needed
       subject: 'Your markoto account is scheduled for deletion',
       body: 'Your account will be permanently deleted on '
@@ -155,11 +156,12 @@ export async function cancelAccountDeletionByUser(args: CancelAccountDeletionArg
   })
 
   const user = await findUserById(args.userId)
-  const emailAttempted = !!user?.email
-  if (emailAttempted) {
+  const userEmail = user?.email
+  const emailAttempted = !!userEmail
+  if (userEmail) {
     void safeSendTransactionalEmail({
       kind: 'account.delete_cancelled',
-      to: user!.email,
+      to: userEmail,
       locale: null,
       subject: 'Your markoto account deletion was cancelled',
       body: 'Your scheduled account deletion has been cancelled. Your account is active again.',

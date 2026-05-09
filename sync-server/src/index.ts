@@ -182,6 +182,8 @@ server.listen(port, () => {
 
 // ─── onStoreDocument helpers ─────────────────────────────────────────
 
+type StoreDocumentData = Parameters<NonNullable<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument']>>[0]
+
 /**
  * Resolve the user attribution for an activity row. Prefers the
  * onChange-tracked authenticated user (JWT payload). Falls back to the
@@ -190,7 +192,7 @@ server.listen(port, () => {
  * so prod drift is visible.
  */
 function resolveAttribution(
-  data: Parameters<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument'] & {}>[0],
+  data: StoreDocumentData,
   trackedFetch: Awaited<ReturnType<typeof getLastEditor>>
 ): { userName: string | null, userId: number | null } {
   const tracked = trackedFetch.value
@@ -228,7 +230,7 @@ function resolveAttribution(
  * Fire-and-forget: errors are logged so sync is never blocked.
  */
 async function logEditActivity(
-  data: Parameters<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument'] & {}>[0],
+  data: StoreDocumentData,
   trackedFetch: Awaited<ReturnType<typeof getLastEditor>>,
   yjsDocIdBefore: number | null,
   yjsDocIdAfter: number | null
@@ -277,7 +279,7 @@ async function logEditActivity(
  * same active session.
  */
 async function logMetaDiffActivity(
-  data: Parameters<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument'] & {}>[0],
+  data: StoreDocumentData,
   tracked: Awaited<ReturnType<typeof getLastEditor>>['value'],
   yjsDocIdBefore: number | null,
   yjsDocIdAfter: number | null

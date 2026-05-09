@@ -36,10 +36,11 @@ export async function litellmCompletion(
   body: LitellmCreateNonStreamParams,
   opts?: { signal?: AbortSignal }
 ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-  return (await client.chat.completions.create(
+  const res = await client.chat.completions.create(
     body as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
     opts
-  )) as OpenAI.Chat.Completions.ChatCompletion
+  )
+  return res
 }
 
 /**
@@ -54,8 +55,9 @@ export async function litellmStream(
   body: LitellmCreateStreamParams,
   opts?: { signal?: AbortSignal }
 ): Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>> {
-  return (await client.chat.completions.create(
+  const res = await client.chat.completions.create(
     body as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
     opts
-  )) as unknown as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
+  )
+  return res as unknown as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
 }

@@ -59,7 +59,8 @@ function firstNum(row: unknown, keys: string[]): number {
   if (!row || typeof row !== 'object') return 0
   const r = row as Record<string, unknown>
   for (const k of keys) {
-    if (typeof r[k] === 'number') return r[k] as number
+    const v = r[k]
+    if (typeof v === 'number') return v
   }
   return 0
 }

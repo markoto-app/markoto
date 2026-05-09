@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
     virtualKey,
     updateStatus: (_phase: AiStatusPhase, _message?: string) => { /* swallow */ },
     destroy: async () => { /* */ }
-  } as AiSession
+  }
 
   const result = await executeFunctionByName(aiSession, name, args)
   // Surface extraParts when present (view_image, view_pages — anything

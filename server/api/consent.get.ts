@@ -67,9 +67,10 @@ export default defineEventHandler(async (event) => {
   //   - the recorded version is below the current consent version
   //     (we bumped — re-prompt to ensure they accept the updated
   //     scope of what each purpose covers).
-  const hasAllAtCurrentVersion = purposes.every(p =>
-    states[p] && states[p]!.version >= CONSENT_VERSION
-  )
+  const hasAllAtCurrentVersion = purposes.every((p) => {
+    const state = states[p]
+    return state !== undefined && state.version >= CONSENT_VERSION
+  })
 
   return {
     currentVersion: CONSENT_VERSION,

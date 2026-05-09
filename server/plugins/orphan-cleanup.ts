@@ -42,7 +42,7 @@ export default defineNitroPlugin((nitroApp) => {
     }
     try {
       const s3 = useS3Client()
-      const bucket = useRuntimeConfig().s3.bucket as string
+      const bucket = useRuntimeConfig().s3.bucket
       const now = Date.now()
 
       await sweepUnconfirmedUploads(s3, bucket)

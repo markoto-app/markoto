@@ -117,10 +117,12 @@ export function createDictateRealtimeClient(apiKey: string): SpeechClientLike {
 }
 
 class VoxtralRealtimeClient implements SpeechClientLike {
-  constructor(private apiKey: string) {}
+  constructor(private readonly apiKey: string) {}
 
   streamingRecognize(req: StreamingRecognizeRequest): SpeechStream {
-    return new VoxtralRealtimeStream(this.apiKey, req)
+    const stream = new VoxtralRealtimeStream(this.apiKey, req)
+    stream.start()
+    return stream
   }
 }
 
@@ -138,6 +140,8 @@ class VoxtralRealtimeClient implements SpeechClientLike {
 class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   private readonly chunkQueue: Array<Uint8Array | null> = []
   private readonly waiters: Array<(value: Uint8Array | null) => void> = []
+  private readonly apiKey: string
+  private readonly req: StreamingRecognizeRequest
   private ended = false
   private aborted = false
   private finalText = ''
@@ -145,7 +149,13 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
 
   constructor(apiKey: string, req: StreamingRecognizeRequest) {
     super()
-    void this.run(apiKey, req)
+    this.apiKey = apiKey
+    this.req = req
+  }
+
+  /** Spawn the upstream-pump task. Called by the factory immediately after construction so the constructor itself stays synchronous (S7059). */
+  start(): void {
+    void this.run(this.apiKey, this.req)
   }
 
   private nextChunk(): Promise<Uint8Array | null> {

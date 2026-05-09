@@ -7,7 +7,7 @@ const DESCRIPTION_MAX_LENGTH = 500
 const TITLE_MAX_LENGTH = 255
 const WORD_COUNT_MAX = 10_000_000
 const SIZE_BYTES_MAX = 100_000_000
-const ACCESS_MODES = new Set(['private', 'open-edit', 'open-view', 'password-protected'])
+const ACCESS_MODES = ['private', 'open-edit', 'open-view', 'password-protected'] as const
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -87,10 +87,12 @@ function parseTitle(raw: unknown): string | null {
 
 function parseAccessMode(raw: unknown): MetaUpdate['accessMode'] | null {
   if (raw === undefined) return null
-  if (typeof raw !== 'string' || !ACCESS_MODES.has(raw)) {
-    throw createError({ statusCode: 400, message: 'Invalid access mode' })
+  if (typeof raw === 'string') {
+    for (const mode of ACCESS_MODES) {
+      if (raw === mode) return mode
+    }
   }
-  return raw as MetaUpdate['accessMode']
+  throw createError({ statusCode: 400, message: 'Invalid access mode' })
 }
 
 /**
@@ -113,10 +115,11 @@ function parseBoundedInt(raw: unknown, max: number, fieldName: string): number |
  */
 function parseTheme(raw: unknown): MetaUpdate['theme'] | undefined {
   if (raw === undefined) return undefined
-  if (raw !== null && !isValidTheme(raw)) {
+  if (raw === null) return null
+  if (!isValidTheme(raw)) {
     throw createError({ statusCode: 400, message: 'Invalid theme payload' })
   }
-  return raw as MetaUpdate['theme']
+  return raw
 }
 
 function parseDescription(raw: unknown): string | null {

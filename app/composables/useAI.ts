@@ -154,12 +154,13 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   // within the same session bump the timestamp.
   const lastResponse = ref<AiResponseEntry | null>(null)
   watch(mySession, (session) => {
-    const r = session?.aiResponse
+    if (!session) return
+    const r = session.aiResponse
     if (!r) return
     const cur = lastResponse.value
-    if (cur?.sessionId === session!.sessionId && cur.ts === r.ts) return
+    if (cur?.sessionId === session.sessionId && cur.ts === r.ts) return
     lastResponse.value = {
-      sessionId: session!.sessionId,
+      sessionId: session.sessionId,
       message: r.message,
       isQuestion: r.isQuestion,
       ts: r.ts

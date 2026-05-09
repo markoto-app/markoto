@@ -91,7 +91,7 @@ function expandIpv6(trimmed: string): string[] | null {
   const rightParts = right ? right.split(':') : []
   const fillCount = 8 - leftParts.length - rightParts.length
   if (fillCount < 0) return null
-  return [...leftParts, ...Array(fillCount).fill('0'), ...rightParts]
+  return [...leftParts, ...new Array<string>(fillCount).fill('0'), ...rightParts]
 }
 
 /**

@@ -141,10 +141,9 @@ export default defineEventHandler(async (event) => {
     abuseContactEmail: entity.abuseContactEmail,
     governingLaw: entity.governingLaw
   }
-  const substituted = body.replace(/\{\{(\w+)\}\}/g, (full, key) => {
-    return Object.prototype.hasOwnProperty.call(substitutions, key)
-      ? substitutions[key]!
-      : full
+  const substituted = body.replace(/\{\{(\w+)\}\}/g, (full, key: string) => {
+    if (!Object.hasOwn(substitutions, key)) return full
+    return substitutions[key] ?? full
   })
 
   const html = md.render(substituted)

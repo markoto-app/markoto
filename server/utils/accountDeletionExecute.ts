@@ -268,7 +268,7 @@ async function deleteStripeCustomer(
  */
 async function cleanupExportS3Blobs(keys: string[]): Promise<void> {
   if (keys.length === 0) return
-  const bucket = useRuntimeConfig().s3.bucket as string
+  const bucket = useRuntimeConfig().s3.bucket
   const s3 = useS3Client()
   for (const key of keys) {
     try {
