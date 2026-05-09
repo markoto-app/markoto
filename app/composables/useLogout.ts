@@ -46,7 +46,7 @@ export async function performLogout(opts: LogoutOptions = {}): Promise<void> {
   await purgeMarkotoIdb()
   // Server-side session cookie cleared via nuxt-auth-utils.
   await useUserSession().clear()
-  redirectHome()
+  await redirectHome()
 }
 
 /** Awareness teardown FIRST — runs while the WS is still open so other clients see the user-leaving frame. Failures are swallowed — never block logout on cleanup. */
@@ -112,12 +112,12 @@ async function purgeMarkotoIdb(): Promise<void> {
  * re-bootstraps cleanly anonymous. Cost: one extra page load on
  * logout — a rare action where correctness > perf.
  */
-function redirectHome(): Promise<void> | void {
+async function redirectHome(): Promise<void> {
   if (typeof globalThis.window !== 'undefined') {
     globalThis.location.href = '/'
     return
   }
-  return navigateTo('/').then(() => undefined)
+  await navigateTo('/')
 }
 
 /**
