@@ -9,7 +9,8 @@
 // Built on VueUse primitives:
 //   - `useUserMedia` handles MediaStream lifecycle + explicit
 //     track.stop() on unmount / stop — one of the bug-prone bits we
-//     hand-rolled in `useVoicePrompt.ts` (pre-audit, see TODO).
+//     hand-rolled in `useVoicePrompt.ts` (carrying that legacy hand-
+//     wired path until a future audit consolidates onto VueUse there).
 //   - `useWebSocket` handles close-on-unmount, reactive status, and
 //     the buffered-send contract. Key config: `autoConnect: false`
 //     AND `immediate: false`. Both options default to `true`;

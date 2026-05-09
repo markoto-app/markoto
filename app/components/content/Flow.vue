@@ -499,6 +499,8 @@ const nextHref = computed(() => nextLink.value ? `/docs/flows/${nextLink.value.s
       v-if="entries.length"
       ref="slidesEl"
       tabindex="0"
+      role="region"
+      :aria-label="manifest.title"
       class="outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
     >
       <!-- Frame + subtitle overlay. Click on the IMAGE region (not

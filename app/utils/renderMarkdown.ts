@@ -67,7 +67,7 @@ function pagebreakPlugin(md: MarkdownIt): void {
 /**
  * Block + inline plugin: HTML-style comments `<!-- ... -->` are stripped
  * from rendered output. Lets writers leave private notes for themselves
- * — `<!-- TODO: rewrite this -->` — without those notes leaking into
+ * — `<!-- note: rewrite this -->` — without those notes leaking into
  * the preview, PDF, or shared view. The comment text stays in the
  * markdown source so collaborators with editor access still see it.
  *

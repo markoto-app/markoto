@@ -158,10 +158,10 @@ describe('POST /api/ai/transcribe', () => {
           mimeType: VALID_MIME,
           languageCode
         })
-        if (res.status === 400) {
-          const body = await res.json() as { message?: string }
-          throw new Error(`languageCode=${languageCode} rejected: ${body.message}`)
-        }
+        // Asserting NOT-400 — the test is about the validation gate,
+        // not the upstream transcribe-service result (502 from a dummy
+        // key is fine; what's wrong is a 400 from our own gate).
+        expect(res.status, `languageCode=${languageCode} unexpectedly 400'd`).not.toBe(400)
       }
     })
   })

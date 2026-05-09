@@ -49,7 +49,16 @@ def health() -> PlainTextResponse:
     return PlainTextResponse("ok")
 
 
-@app.post("/convert")
+@app.post(
+    "/convert",
+    responses={
+        400: {"description": "Empty body or missing 'ext' query param"},
+        413: {"description": "Request body exceeds the size cap"},
+        415: {"description": "Markitdown does not support the requested format"},
+        422: {"description": "Conversion failed (corrupt file, malformed input, etc.)"},
+        501: {"description": "Format requires an optional dependency that isn't installed"},
+    },
+)
 async def convert(request: Request) -> PlainTextResponse:
     body = await request.body()
     if not body:
