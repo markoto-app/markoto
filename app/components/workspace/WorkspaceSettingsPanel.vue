@@ -58,7 +58,7 @@ useHead({
     key: 'workspace-settings-theme-fonts',
     rel: 'stylesheet',
     href: `https://fonts.googleapis.com/css2?${THEME_PRESETS
-      .map(p => `family=${p.theme.headings.font.replace(/ /g, '+')}:wght@400;500;600;700`)
+      .map(p => `family=${p.theme.headings.font.replaceAll(/ /g, '+')}:wght@400;500;600;700`)
       .join('&')}&display=swap`
   }]
 })

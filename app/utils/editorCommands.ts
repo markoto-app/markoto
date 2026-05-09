@@ -78,8 +78,8 @@ function wrapRangeChanges(
 ): { changes: ChangeSpec[], finalFrom: number, finalTo: number } | null {
   const docLen = view.state.doc.length
   const selected = view.state.sliceDoc(from, to)
-  const leading = selected.match(/^\s*/)![0]
-  const trailing = selected.match(/\s*$/)![0]
+  const leading = /^\s*/.exec(selected)![0]
+  const trailing = /\s*$/.exec(selected)![0]
   const trimmed = selected.slice(leading.length, selected.length - trailing.length)
 
   // Empty / whitespace-only — caller decides if it makes sense to act.
@@ -192,8 +192,8 @@ export function toggleWrap(view: EditorView, marker: string): void {
 
   for (const line of nonBlank) {
     const text = line.text
-    const leading = text.match(/^\s*/)![0]
-    const trailing = text.match(/\s*$/)![0]
+    const leading = /^\s*/.exec(text)![0]
+    const trailing = /\s*$/.exec(text)![0]
     const trimmed = text.slice(leading.length, text.length - trailing.length)
 
     if (allWrapped) {
@@ -686,8 +686,8 @@ export function toggleComment(view: EditorView): void {
   if (trimmed.startsWith('<!--') && trimmed.endsWith('-->') && trimmed.length >= 7) {
     // Unwrap. Preserve original leading/trailing whitespace by only
     // touching the trimmed core.
-    const lead = selected.match(/^\s*/)![0]
-    const trail = selected.match(/\s*$/)![0]
+    const lead = /^\s*/.exec(selected)![0]
+    const trail = /\s*$/.exec(selected)![0]
     const inner = trimmed.slice(4, trimmed.length - 3).replace(/^\s+|\s+$/g, '')
     const insert = lead + inner + trail
     view.dispatch({

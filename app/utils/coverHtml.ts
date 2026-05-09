@@ -58,5 +58,5 @@ export function buildCoverHtml(theme: DocTheme, title: string, dateIso: string):
 
 /** Minimal HTML escape for text interpolated into element bodies. */
 function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return s.replaceAll(/&/g, '&amp;').replaceAll(/</g, '&lt;').replaceAll(/>/g, '&gt;')
 }

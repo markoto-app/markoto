@@ -29,7 +29,7 @@ import { verifyJwtWithRotation } from '../../shared/utils/secrets'
 export function extractToken(event: H3Event): string | null {
   const auth = getRequestHeader(event, 'authorization')
   if (typeof auth === 'string' && auth.length > 0) {
-    const match = auth.match(/^Bearer\s+(.+)$/i)
+    const match = /^Bearer\s+(.+)$/i.exec(auth)
     if (match && match[1]) return match[1].trim()
   }
   const q = getQuery(event).token

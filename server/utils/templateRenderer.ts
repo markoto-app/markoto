@@ -74,6 +74,6 @@ export function renderTemplate(templateId: string, ctx: TemplateContext): string
 
   const safeTitle = ctx.title.trim() || (locale === 'de' ? 'Unbenannt' : 'Untitled')
   return body
-    .replace(/\{\{title\}\}/g, safeTitle)
-    .replace(/\{\{description\}\}/g, ctx.description)
+    .replaceAll(/\{\{title\}\}/g, safeTitle)
+    .replaceAll(/\{\{description\}\}/g, ctx.description)
 }

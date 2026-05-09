@@ -49,7 +49,7 @@ watch(draft, (next) => {
 // item in the font dropdowns can be rendered in its own face.
 if (import.meta.client) {
   const families = THEME_FONTS
-    .map(f => `family=${f.name.replace(/ /g, '+')}:wght@400;500;600;700`)
+    .map(f => `family=${f.name.replaceAll(/ /g, '+')}:wght@400;500;600;700`)
     .join('&')
   useHead({
     link: [{

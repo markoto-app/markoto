@@ -103,7 +103,7 @@ function isPrivateIPv6(ip: string): boolean {
   const lower = ip.toLowerCase().split('%')[0]!
   if (lower === '::1' || lower === '::') return true
   // IPv4-mapped IPv6 ("::ffff:127.0.0.1") — strip prefix, re-check v4.
-  const mapped = lower.match(/^::ffff:([0-9.]+)$/)
+  const mapped = /^::ffff:([0-9.]+)$/.exec(lower)
   if (mapped) {
     const v4 = mapped[1]!
     if (isIP(v4) === 4) return isPrivateIPv4(v4)

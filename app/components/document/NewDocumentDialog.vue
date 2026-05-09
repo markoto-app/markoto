@@ -12,7 +12,7 @@ import { TEMPLATES } from '~~/shared/templates'
 // / etc. all in the system fallback and lose the visual signal.
 if (import.meta.client) {
   const families = THEME_FONTS
-    .map(f => `family=${f.name.replace(/ /g, '+')}:wght@400;500;600;700`)
+    .map(f => `family=${f.name.replaceAll(/ /g, '+')}:wght@400;500;600;700`)
     .join('&')
   useHead({
     link: [{

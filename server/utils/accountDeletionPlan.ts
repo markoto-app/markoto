@@ -102,7 +102,7 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
         .from(documentComments)
         .where(and(
           eq(documentComments.authorId, userId),
-          sql`${documentComments.docId} <> ALL (${sql.raw(`ARRAY[${ownedDocIds.map(id => `'${id.replace(/'/g, '\'\'')}'`).join(',')}]::text[]`)})`
+          sql`${documentComments.docId} <> ALL (${sql.raw(`ARRAY[${ownedDocIds.map(id => `'${id.replaceAll(/'/g, '\'\'')}'`).join(',')}]::text[]`)})`
         ))
   const commentsToAnonymise = Number(commentsCountRows[0]?.count ?? 0)
 

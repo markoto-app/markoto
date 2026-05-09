@@ -74,7 +74,7 @@ async function transformMermaid(html: string, theme: MermaidTheme): Promise<stri
 
       // Parse viewBox to recover natural width + height for the <img>.
       // viewBox="minX minY width height"
-      const vbNums = (svg.match(/viewBox="[^"]*"/) ?? [''])[0].match(/[\d.]+/g)
+      const vbNums = (/viewBox="[^"]*"/.exec(svg) ?? [''])[0].match(/[\d.]+/g)
       const natW = vbNums?.[2] ? Math.round(Number.parseFloat(vbNums[2])) : null
       const natH = vbNums?.[3] ? Math.round(Number.parseFloat(vbNums[3])) : null
       if (natH) {
@@ -280,5 +280,5 @@ export async function printDocumentAsPdf(opts: {
 }
 
 function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  return text.replaceAll(/&/g, '&amp;').replaceAll(/</g, '&lt;').replaceAll(/>/g, '&gt;').replaceAll(/"/g, '&quot;')
 }

@@ -52,7 +52,7 @@ const crumbs = computed(() => {
     const seg = parts[i]!
     const to = '/' + parts.slice(0, i + 1).join('/')
     // Title-case the slug: "getting-started" → "Getting started"
-    const label = seg.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase())
+    const label = seg.replaceAll(/-/g, ' ').replace(/^./, c => c.toUpperCase())
     items.push({ label, to })
   }
   // Last crumb is the current page — non-clickable.

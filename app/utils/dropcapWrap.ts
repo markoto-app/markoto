@@ -28,7 +28,7 @@ export function wrapFirstLetterAsDropCap(html: string): string {
   if (!match) return html
   const [full, attrs = '', inner] = match
   if (!inner) return html
-  const leading = inner.match(/^\s*/)?.[0] ?? ''
+  const leading = /^\s*/.exec(inner)?.[0] ?? ''
   const rest = inner.slice(leading.length)
   if (!rest) return html
   // `Array.from` iterates by code point so surrogate pairs (emoji, some

@@ -98,7 +98,7 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
       // Image slot — escape single-quotes in URLs (none expected for
       // /api/files, but defense in depth) and pin the image height in
       // pt so it lines up with the running header's text-size scale.
-      const safeUrl = slots.imageUrl.replace(/'/g, '\\\'')
+      const safeUrl = slots.imageUrl.replaceAll(/'/g, '\\\'')
       out.push(`  @${boxName} {
     content: url('${safeUrl}');
     height: ${slots.imageHeight}pt;
@@ -950,14 +950,14 @@ function breakHints(): string {
 // — helpers ———————————————————————————————————————————————————————————
 
 function cssString(s: string): string {
-  return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"'
+  return '"' + s.replaceAll(/\\/g, '\\\\').replaceAll(/"/g, '\\"') + '"'
 }
 
 function cssFontStack(name: string): string {
-  const safe = name.includes(' ') ? `"${name.replace(/"/g, '\\"')}"` : name
+  const safe = name.includes(' ') ? `"${name.replaceAll(/"/g, '\\"')}"` : name
   return `${safe}, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`
 }
 
 function googleFamilyParam(name: string): string {
-  return `family=${name.trim().replace(/ /g, '+')}:wght@400;500;600;700;800`
+  return `family=${name.trim().replaceAll(/ /g, '+')}:wght@400;500;600;700;800`
 }

@@ -165,6 +165,6 @@ export default defineEventHandler(async (event) => {
 function stripFrontmatter(raw: string): string {
   // Match a leading `---\n...\n---\n?` block. If the file has no
   // frontmatter we return it unchanged.
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(raw)
   return match ? raw.slice(match[0].length) : raw
 }
