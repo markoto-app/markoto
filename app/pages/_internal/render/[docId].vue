@@ -277,32 +277,46 @@ async function transformMermaid(html: string, theme: MermaidTheme): Promise<stri
   for (const code of blocks) {
     const pre = code.parentElement
     if (!pre) continue
-    const source = code.textContent || ''
-    const id = 'mmd-' + crypto.randomUUID()
-    try {
-      let { svg } = await m.render(id, source)
-      const vbNums = (svg.match(/viewBox="[^"]*"/) ?? [''])[0].match(/[\d.]+/g)
-      const natH = vbNums?.[3] ? Math.round(Number.parseFloat(vbNums[3])) : null
-      const natW = vbNums?.[2] ? Math.round(Number.parseFloat(vbNums[2])) : null
-      if (natH) svg = svg.replace(/<svg(\b)/, `<svg height="${natH}"$1`)
-      const wrap = doc.createElement('div')
-      wrap.className = 'mermaid'
-      const svgBase64 = btoa(unescape(encodeURIComponent(svg)))
-      const img = doc.createElement('img')
-      img.src = `data:image/svg+xml;base64,${svgBase64}`
-      img.style.cssText = 'max-width:100%;display:block;'
-      if (natW) img.setAttribute('width', String(natW))
-      if (natH) img.setAttribute('height', String(natH))
-      wrap.appendChild(img)
-      pre.replaceWith(wrap)
-    } catch (err: unknown) {
-      const errEl = doc.createElement('div')
-      errEl.className = 'mermaid-error'
-      errEl.textContent = `Mermaid error: ${err instanceof Error ? err.message : 'invalid diagram'}`
-      pre.replaceWith(errEl)
-    }
+    await replaceMermaidBlock(doc, pre, code.textContent || '', m)
   }
   return doc.body.innerHTML
+}
+
+/** Render one mermaid source string and swap the originating `<pre>` for an `<img>` wrapper or error placeholder. Mirrors `app/utils/printPdf.ts`. */
+async function replaceMermaidBlock(doc: Document, pre: Element, source: string, m: MermaidModule): Promise<void> {
+  const id = 'mmd-' + crypto.randomUUID()
+  try {
+    const { svg } = await m.render(id, source)
+    const { natW, natH } = extractMermaidNaturalSize(svg)
+    const finalSvg = natH ? svg.replace(/<svg(\b)/, `<svg height="${natH}"$1`) : svg
+    pre.replaceWith(buildMermaidImg(doc, finalSvg, natW, natH))
+  } catch (err: unknown) {
+    const errEl = doc.createElement('div')
+    errEl.className = 'mermaid-error'
+    errEl.textContent = `Mermaid error: ${err instanceof Error ? err.message : 'invalid diagram'}`
+    pre.replaceWith(errEl)
+  }
+}
+
+function extractMermaidNaturalSize(svg: string): { natW: number | null, natH: number | null } {
+  const vbNums = (svg.match(/viewBox="[^"]*"/) ?? [''])[0].match(/[\d.]+/g)
+  return {
+    natW: vbNums?.[2] ? Math.round(Number.parseFloat(vbNums[2])) : null,
+    natH: vbNums?.[3] ? Math.round(Number.parseFloat(vbNums[3])) : null
+  }
+}
+
+function buildMermaidImg(doc: Document, svg: string, natW: number | null, natH: number | null): HTMLElement {
+  const wrap = doc.createElement('div')
+  wrap.className = 'mermaid'
+  const svgBase64 = btoa(unescape(encodeURIComponent(svg)))
+  const img = doc.createElement('img')
+  img.src = `data:image/svg+xml;base64,${svgBase64}`
+  img.style.cssText = 'max-width:100%;display:block;'
+  if (natW) img.setAttribute('width', String(natW))
+  if (natH) img.setAttribute('height', String(natH))
+  wrap.appendChild(img)
+  return wrap
 }
 </script>
 
