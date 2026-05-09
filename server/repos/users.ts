@@ -137,74 +137,98 @@ export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUps
     : eq(users.googleId, input.providerUserId)
 
   return db.transaction(async (tx): Promise<OAuthUpsertResult> => {
-    // Branch 1: provider id already on file.
-    const existing = (await tx
-      .select({ id: users.id })
-      .from(users)
-      .where(whereByProviderId)
-      .limit(1))[0]
+    const updated = await tryUpdateExistingByProvider(tx, input, whereByProviderId)
+    if (updated) return updated
+    const merged = await tryMergeByVerifiedEmail(tx, input)
+    if (merged) return merged
+    return insertNewUser(tx, input)
+  })
+}
 
-    if (existing) {
-      await tx.update(users)
-        .set({
-          name: input.name,
-          email: input.email,
-          avatarUrl: input.avatarUrl,
-          ...(input.provider === 'github' ? { login: input.login } : {})
-        })
-        .where(and(whereByProviderId))
-      return { userId: existing.id, outcome: 'updated' }
-    }
+type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
 
-    // Branch 2: email-based merge. Locked with `FOR UPDATE` so a
-    // concurrent second-provider login for the same email serialises
-    // (second tx sees either our merged row or — if we haven't
-    // committed — waits + then sees the merged state).
-    if (input.emailVerified && input.email) {
-      const mergeCandidate = (await tx.execute<{ id: number, github_id: string | null, google_id: string | null }>(sql`
-        SELECT id, github_id, google_id FROM ${users}
-        WHERE lower(email) = lower(${input.email})
-        LIMIT 1
-        FOR UPDATE
-      `)).rows?.[0]
-
-      if (mergeCandidate) {
-        const candidateHasOurProvider = input.provider === 'github'
-          ? mergeCandidate.github_id !== null
-          : mergeCandidate.google_id !== null
-        if (!candidateHasOurProvider) {
-          // Merge: add our provider id to the existing row. Email
-          // casing normalises to the second provider's. Login only
-          // updates on GitHub (Google has no equivalent).
-          const setClause: Record<string, unknown> = {
-            [input.provider === 'github' ? 'githubId' : 'googleId']: input.providerUserId,
-            email: input.email,
-            avatarUrl: input.avatarUrl
-          }
-          if (input.provider === 'github') setClause.login = input.login ?? null
-          await tx.update(users)
-            .set(setClause)
-            .where(eq(users.id, mergeCandidate.id))
-          return { userId: mergeCandidate.id, outcome: 'merged' }
-        }
-        // Else: candidate already has our provider id bound to a
-        // DIFFERENT value (otherwise branch 1 would have matched).
-        // Overwriting would clobber the existing binding — fall
-        // through to insert instead.
-      }
-    }
-
-    // Branch 3: genuinely new user.
-    const inserted = await tx.insert(users).values({
-      githubId: input.provider === 'github' ? input.providerUserId : null,
-      googleId: input.provider === 'google' ? input.providerUserId : null,
-      login: input.login ?? null,
+/**
+ * Branch 1: provider id is already on file. Update the mutable fields
+ * (name, email, avatar, plus login on GitHub) and return.
+ */
+async function tryUpdateExistingByProvider(
+  tx: Tx,
+  input: OAuthUpsertInput,
+  whereByProviderId: ReturnType<typeof eq>
+): Promise<OAuthUpsertResult | null> {
+  const existing = (await tx
+    .select({ id: users.id })
+    .from(users)
+    .where(whereByProviderId)
+    .limit(1))[0]
+  if (!existing) return null
+  await tx.update(users)
+    .set({
       name: input.name,
       email: input.email,
-      avatarUrl: input.avatarUrl
-    }).returning({ id: users.id })
-    return { userId: inserted[0]!.id, outcome: 'inserted' }
-  })
+      avatarUrl: input.avatarUrl,
+      ...(input.provider === 'github' ? { login: input.login } : {})
+    })
+    .where(and(whereByProviderId))
+  return { userId: existing.id, outcome: 'updated' }
+}
+
+/**
+ * Branch 2: email-based merge. Locked with `FOR UPDATE` so a
+ * concurrent second-provider login for the same email serialises
+ * (second tx sees either our merged row or — if we haven't
+ * committed — waits + then sees the merged state). Returns null when
+ * the verified-email gate doesn't apply, no candidate exists, or the
+ * candidate already has OUR provider bound to a different value
+ * (caller falls through to insert).
+ */
+async function tryMergeByVerifiedEmail(
+  tx: Tx,
+  input: OAuthUpsertInput
+): Promise<OAuthUpsertResult | null> {
+  if (!input.emailVerified || !input.email) return null
+  const mergeCandidate = (await tx.execute<{ id: number, github_id: string | null, google_id: string | null }>(sql`
+    SELECT id, github_id, google_id FROM ${users}
+    WHERE lower(email) = lower(${input.email})
+    LIMIT 1
+    FOR UPDATE
+  `)).rows?.[0]
+  if (!mergeCandidate) return null
+
+  const candidateHasOurProvider = input.provider === 'github'
+    ? mergeCandidate.github_id !== null
+    : mergeCandidate.google_id !== null
+  // Candidate already has our provider id bound to a DIFFERENT value
+  // (otherwise branch 1 would have matched). Overwriting would
+  // clobber the existing binding — caller falls through to insert.
+  if (candidateHasOurProvider) return null
+
+  // Merge: add our provider id to the existing row. Email casing
+  // normalises to the second provider's. Login only updates on
+  // GitHub (Google has no equivalent).
+  const setClause: Record<string, unknown> = {
+    [input.provider === 'github' ? 'githubId' : 'googleId']: input.providerUserId,
+    email: input.email,
+    avatarUrl: input.avatarUrl
+  }
+  if (input.provider === 'github') setClause.login = input.login ?? null
+  await tx.update(users)
+    .set(setClause)
+    .where(eq(users.id, mergeCandidate.id))
+  return { userId: mergeCandidate.id, outcome: 'merged' }
+}
+
+/** Branch 3: genuinely new user. */
+async function insertNewUser(tx: Tx, input: OAuthUpsertInput): Promise<OAuthUpsertResult> {
+  const inserted = await tx.insert(users).values({
+    githubId: input.provider === 'github' ? input.providerUserId : null,
+    googleId: input.provider === 'google' ? input.providerUserId : null,
+    login: input.login ?? null,
+    name: input.name,
+    email: input.email,
+    avatarUrl: input.avatarUrl
+  }).returning({ id: users.id })
+  return { userId: inserted[0]!.id, outcome: 'inserted' }
 }
 
 // ────────────────────────────────────────────────────────────────────
