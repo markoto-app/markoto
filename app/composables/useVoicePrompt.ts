@@ -206,9 +206,35 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       return
     }
 
-    let stream: MediaStream
+    const stream = await acquireUserMedia()
+    if (!stream) return
+    mediaStream = stream
+
+    const mimeType = pickMimeType()
+    if (!mimeType) {
+      fail('Audio recording is not supported in this browser.')
+      return
+    }
+
+    const recorder = instantiateRecorder(stream, mimeType)
+    if (!recorder) return
+
+    setupAnalyser(stream)
+    recorder.start()
+    startedAt = Date.now()
+    state.value = 'recording'
+    rafId = requestAnimationFrame(tickLevels)
+
+    // Hard cap. Using `stop()` (not `cancel`) so the recorded audio still
+    // gets transcribed — user hit the cap but presumably wanted what they
+    // said to go through.
+    stopTimeout.start()
+  }
+
+  /** Request the user's microphone. Returns null on permission denial / hardware miss / generic error (already routed to fail()). */
+  async function acquireUserMedia(): Promise<MediaStream | null> {
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      return await navigator.mediaDevices.getUserMedia({ audio: true })
     } catch (e) {
       // Chrome throws NotAllowedError on dismiss-or-block, NotFoundError on
       // missing hardware. Both messages are user-intelligible so surface them.
@@ -220,40 +246,47 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       } else {
         fail(e instanceof Error ? e.message : 'Could not access microphone.')
       }
-      return
+      return null
     }
-    mediaStream = stream
+  }
 
-    const mimeType = pickMimeType()
-    if (!mimeType) {
-      fail('Audio recording is not supported in this browser.')
-      return
-    }
-
+  /**
+   * Build the MediaRecorder and wire its event hooks. `onstop` fires
+   * after `stop()` drains the final chunk, which is the point at which
+   * we know the full Blob is ready — we trigger transcription there
+   * (not from the caller) so both "user clicked stop" and "hit max
+   * duration" paths share one code path. Returns false on construction
+   * failure (already routed to fail()).
+   */
+  function instantiateRecorder(stream: MediaStream, mimeType: string): MediaRecorder | null {
+    let recorder: MediaRecorder
     try {
-      mediaRecorder = new MediaRecorder(stream, { mimeType })
+      recorder = new MediaRecorder(stream, { mimeType })
     } catch (e) {
       fail(e instanceof Error ? e.message : 'Could not start recorder.')
-      return
+      return null
     }
-
-    mediaRecorder.ondataavailable = (ev) => {
+    recorder.ondataavailable = (ev) => {
       if (ev.data && ev.data.size > 0) chunks.push(ev.data)
     }
-    // onstop fires after stop() drains the final chunk, which is the point
-    // at which we know the full Blob is ready. Trigger transcription here
-    // rather than from the caller so both "user clicked stop" and "hit max
-    // duration" paths share one code path.
-    mediaRecorder.onstop = () => {
+    recorder.onstop = () => {
       void finalizeAndTranscribe(mimeType)
     }
-    mediaRecorder.onerror = (ev) => {
+    recorder.onerror = (ev) => {
       const err = (ev as unknown as { error?: Error }).error
       fail(err?.message || 'Recording failed.')
     }
+    mediaRecorder = recorder
+    return recorder
+  }
 
-    // Analyser for the visualizer — shares the MediaStream, doesn't duplicate
-    // the audio path. fftSize 256 = 128 frequency bins, plenty for 32 bars.
+  /**
+   * Analyser for the visualizer — shares the MediaStream, doesn't
+   * duplicate the audio path. fftSize 256 = 128 frequency bins, plenty
+   * for 32 bars. Visualiser failure is non-fatal — recording still
+   * works without bars.
+   */
+  function setupAnalyser(stream: MediaStream): void {
     try {
       audioCtx = new (globalThis.AudioContext || (globalThis as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       const source = audioCtx.createMediaStreamSource(stream)
@@ -262,19 +295,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       analyser.smoothingTimeConstant = 0.6
       source.connect(analyser)
     } catch {
-      // Visualiser failure is non-fatal — recording still works without bars.
       analyser = null
     }
-
-    mediaRecorder.start()
-    startedAt = Date.now()
-    state.value = 'recording'
-    rafId = requestAnimationFrame(tickLevels)
-
-    // Hard cap. Using `stop()` (not `cancel`) so the recorded audio still
-    // gets transcribed — user hit the cap but presumably wanted what they
-    // said to go through.
-    stopTimeout.start()
   }
 
   function stop() {
