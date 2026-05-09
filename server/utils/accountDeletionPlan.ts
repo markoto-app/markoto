@@ -29,13 +29,13 @@ import { useDatabase } from './database'
 // cases like workspace promotion) names the receiving party so the
 // confirm modal can show "Bob will become admin of Engineering".
 
-export type WorkspaceFate =
+export type WorkspaceFate
   /** User is sole member; cascade-delete the workspace + all its docs + knowledge. */
-  | { kind: 'cascade_delete', workspaceId: string, name: string, docCount: number, knowledgeCount: number }
+  = | { kind: 'cascade_delete', workspaceId: string, name: string, docCount: number, knowledgeCount: number }
   /** User is admin/owner with co-members; promote the longest-tenured non-user member. */
-  | { kind: 'promote_admin', workspaceId: string, name: string, newAdminUserId: number, newAdminName: string, newAdminPreviousRole: 'admin' | 'editor' | 'viewer' }
+    | { kind: 'promote_admin', workspaceId: string, name: string, newAdminUserId: number, newAdminName: string, newAdminPreviousRole: 'admin' | 'editor' | 'viewer' }
   /** User is a non-admin member; just remove their membership row. */
-  | { kind: 'remove_member', workspaceId: string, name: string, currentRole: 'admin' | 'editor' | 'viewer' }
+    | { kind: 'remove_member', workspaceId: string, name: string, currentRole: 'admin' | 'editor' | 'viewer' }
 
 export interface AccountDeletionPlan {
   userId: number
@@ -102,7 +102,7 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
         .from(documentComments)
         .where(and(
           eq(documentComments.authorId, userId),
-          sql`${documentComments.docId} <> ALL (${sql.raw(`ARRAY[${ownedDocIds.map(id => `'${id.replace(/'/g, "''")}'`).join(',')}]::text[]`)})`
+          sql`${documentComments.docId} <> ALL (${sql.raw(`ARRAY[${ownedDocIds.map(id => `'${id.replace(/'/g, '\'\'')}'`).join(',')}]::text[]`)})`
         ))
   const commentsToAnonymise = Number(commentsCountRows[0]?.count ?? 0)
 

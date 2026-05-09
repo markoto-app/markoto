@@ -106,15 +106,15 @@ export interface SessionCapFrame { type: 'session-cap' }
  */
 export interface IdleTimeoutFrame { type: 'idle-timeout' }
 
-export type DictateServerFrame =
-  | HelloFrame
-  | ReadyFrame
-  | PartialFrame
-  | FinalFrame
-  | ErrorFrame
-  | BudgetExhaustedFrame
-  | SessionCapFrame
-  | IdleTimeoutFrame
+export type DictateServerFrame
+  = | HelloFrame
+    | ReadyFrame
+    | PartialFrame
+    | FinalFrame
+    | ErrorFrame
+    | BudgetExhaustedFrame
+    | SessionCapFrame
+    | IdleTimeoutFrame
 
 /** Literal-union of every server-frame type. Used by tests + log
  *  consumers that need a runtime list (the type-only union isn't

@@ -16,10 +16,10 @@ interface OwnedDoc {
   workspaceId: string | null
 }
 
-type WorkspaceFate =
-  | { kind: 'cascade_delete', workspaceId: string, name: string, docCount: number, knowledgeCount: number }
-  | { kind: 'promote_admin', workspaceId: string, name: string, newAdminUserId: number, newAdminName: string, newAdminPreviousRole: 'admin' | 'editor' | 'viewer' }
-  | { kind: 'remove_member', workspaceId: string, name: string, currentRole: 'admin' | 'editor' | 'viewer' }
+type WorkspaceFate
+  = | { kind: 'cascade_delete', workspaceId: string, name: string, docCount: number, knowledgeCount: number }
+    | { kind: 'promote_admin', workspaceId: string, name: string, newAdminUserId: number, newAdminName: string, newAdminPreviousRole: 'admin' | 'editor' | 'viewer' }
+    | { kind: 'remove_member', workspaceId: string, name: string, currentRole: 'admin' | 'editor' | 'viewer' }
 
 interface DeletionPreview {
   userId: number

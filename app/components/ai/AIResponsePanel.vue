@@ -63,7 +63,10 @@ watch(expanded, v => emit('update:expanded', v), { immediate: true })
       @pointerleave="onPointerLeave"
     >
       <div class="flex items-start gap-3">
-        <CommonSeal :size="10" class="mt-1 shrink-0" />
+        <CommonSeal
+          :size="10"
+          class="mt-1 shrink-0"
+        />
         <div class="flex-1 min-w-0">
           <div class="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted mb-1">
             {{ response.isQuestion ? t('ai.responseQuestionLabel') : t('ai.responseLabel') }}
@@ -79,7 +82,10 @@ watch(expanded, v => emit('update:expanded', v), { immediate: true })
           :title="t('ai.responseDismiss')"
           @click="dismiss"
         >
-          <UIcon name="i-lucide-x" class="size-4" />
+          <UIcon
+            name="i-lucide-x"
+            class="size-4"
+          />
         </button>
       </div>
     </div>

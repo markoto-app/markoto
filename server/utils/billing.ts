@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { users, workspaces } from '../db/schema'
 import { useDatabase } from './database'
-import { TIERS, type PlanName } from '~~/shared/config/tiers'
+import type { PlanName } from '~~/shared/config/tiers'
 import { ensureUserKey } from './litellmKeys'
 
 /**

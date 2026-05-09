@@ -1094,8 +1094,6 @@ async function handleGenerateImage(
 // these tools only when the user references a specific page — burning 25
 // interactions speculatively would chew through budget.
 
-const PAGE_VIEW_INTERACTIONS = 5
-
 async function handleGetPageCount(
   session: AiSession,
   _input: GetPageCountInput

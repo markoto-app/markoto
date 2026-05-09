@@ -82,8 +82,12 @@ async function refresh(): Promise<void> {
   }
 }
 
-watch(filter, () => { void refresh() })
-onMounted(() => { void refresh() })
+watch(filter, () => {
+  void refresh()
+})
+onMounted(() => {
+  void refresh()
+})
 watchEffect(() => {
   if (accountStatus.value?.isAdmin && reports.value.length === 0 && !loading.value) {
     void refresh()
@@ -107,7 +111,7 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
       icon: 'i-lucide-check',
       color: 'neutral'
     })
-    delete noteDrafts.value[reportId]
+    noteDrafts.value[reportId] = ''
     await refresh()
   } catch (e) {
     const err = e as { message?: string, data?: { message?: string } }
@@ -315,7 +319,9 @@ const FILTER_OPTIONS = [
               v-if="report.notes"
               class="text-xs border-t border-default pt-2 mt-2"
             >
-              <p class="font-mono uppercase tracking-wider text-muted mb-1">Notes</p>
+              <p class="font-mono uppercase tracking-wider text-muted mb-1">
+                Notes
+              </p>
               <p class="text-muted whitespace-pre-wrap">
                 {{ report.notes }}
               </p>

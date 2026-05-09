@@ -182,7 +182,10 @@ describe('executeAccountDeletion: full graph', () => {
 
     // Comments on carol's doc: alice anonymised; carol's intact.
     const carolComments = await testDb().query<{
-      entry_id: string, author_id: number | null, author_name: string, body: string
+      entry_id: string
+      author_id: number | null
+      author_name: string
+      body: string
     }>(
       `SELECT entry_id, author_id, author_name, body FROM document_comments WHERE doc_id = $1 ORDER BY entry_id`,
       [carolDoc.docId]
@@ -216,7 +219,11 @@ describe('executeAccountDeletion: full graph', () => {
     // row was dropped, so the FK SET NULL has fired and actor_user_id
     // is also null but the metadata + scope_id remain.
     const finalRow = await testDb().query<{
-      actor_user_id: number | null, scope: string, scope_id: string, action: string, metadata: { summary?: Record<string, number | boolean> } | null
+      actor_user_id: number | null
+      scope: string
+      scope_id: string
+      action: string
+      metadata: { summary?: Record<string, number | boolean> } | null
     }>(
       `SELECT actor_user_id, scope, scope_id, action, metadata FROM audit_log WHERE action = 'account.delete_executed' AND scope_id = $1`,
       [String(alice.id)]

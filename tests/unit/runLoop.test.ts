@@ -20,8 +20,6 @@ import {
 // (or the underlying ai client) can throw a synthetic LitellmBudgetExhausted
 // to exercise the budget-exhausted code path.
 
-import { LitellmBudgetExhausted } from '../../server/utils/litellmKeys'
-
 // The runLoop imports `aiToolAdapter.executeFunctionByName` which
 // transitively pulls in the DB layer (repos/documents -> useDatabase).
 // Stub both adapter entry points at the module boundary so the loop
@@ -492,33 +490,6 @@ describe('runAgenticLoop — conversation history', () => {
     expect(turn2Contents[2].role).toBe('user')
   })
 })
-
-/**
- * Y.Doc-shaped session stub. The breadcrumb writer calls
- * `ydoc.transact(fn, origin)` and `ytext.insert(end, msg)`. We only
- * need the surface those two paths touch.
- */
-function makeSessionStub() {
-  const inserted: Array<{ at: number, text: string }> = []
-  const transactCalls: Array<{ origin: unknown }> = []
-  let ytextLength = 0
-  const aiSession = {
-    ydoc: {
-      transact(fn: () => void, origin: unknown) {
-        transactCalls.push({ origin })
-        fn()
-      }
-    },
-    ytext: {
-      get length() { return ytextLength },
-      insert(at: number, text: string) {
-        inserted.push({ at, text })
-        ytextLength += text.length
-      }
-    }
-  } as unknown as Parameters<typeof runAgenticLoop>[0]['aiSession']
-  return { aiSession, inserted, transactCalls }
-}
 
 // Phase 6: budget-exhausted tests deleted. The previous suite tested
 // the app-side `chargeInteractions` exception path which doesn't exist

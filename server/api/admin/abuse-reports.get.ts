@@ -88,16 +88,20 @@ export default defineEventHandler(async (event) => {
     // user has since deleted their account (FK auto-nulled). Email
     // channel reports (no reporterUserId) won't surface here —
     // those go to the abuse@ inbox separately.
-    reporter: r.reporterUserId === null && r.reporterEmailSnapshot === null ? null : {
-      userId: r.reporterUserId,
-      name: r.reporterName,
-      email: r.reporterEmail ?? r.reporterEmailSnapshot,
-      stillExists: r.reporterUserId !== null && r.reporterName !== null
-    },
-    actionedBy: r.actionedBy === null ? null : {
-      userId: r.actionedBy,
-      name: r.actionedByName,
-      email: r.actionedByEmail
-    }
+    reporter: r.reporterUserId === null && r.reporterEmailSnapshot === null
+      ? null
+      : {
+          userId: r.reporterUserId,
+          name: r.reporterName,
+          email: r.reporterEmail ?? r.reporterEmailSnapshot,
+          stillExists: r.reporterUserId !== null && r.reporterName !== null
+        },
+    actionedBy: r.actionedBy === null
+      ? null
+      : {
+          userId: r.actionedBy,
+          name: r.actionedByName,
+          email: r.actionedByEmail
+        }
   }))
 })

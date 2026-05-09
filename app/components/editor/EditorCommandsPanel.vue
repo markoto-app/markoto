@@ -85,7 +85,9 @@ const { t } = useI18n()
 // Sub-step state for kind-pickers. Same shape the InsertSheet used.
 type Step = 'main' | 'alert' | 'diagram'
 const step = ref<Step>('main')
-function backToMain() { step.value = 'main' }
+function backToMain() {
+  step.value = 'main'
+}
 
 function withDone(fn: () => void) {
   return () => {
@@ -94,14 +96,30 @@ function withDone(fn: () => void) {
   }
 }
 
-function bold() { if (props.view) toggleWrap(props.view, '**') }
-function italic() { if (props.view) toggleWrap(props.view, '_') }
-function strike() { if (props.view) toggleWrap(props.view, '~~') }
-function code() { if (props.view) toggleCode(props.view) }
-function heading(level: number) { if (props.view) toggleHeading(props.view, level) }
-function bulletList() { if (props.view) toggleLinePrefix(props.view, '- ') }
-function numberedList() { if (props.view) toggleOrderedList(props.view) }
-function taskList() { if (props.view) toggleLinePrefix(props.view, '- [ ] ') }
+function bold() {
+  if (props.view) toggleWrap(props.view, '**')
+}
+function italic() {
+  if (props.view) toggleWrap(props.view, '_')
+}
+function strike() {
+  if (props.view) toggleWrap(props.view, '~~')
+}
+function code() {
+  if (props.view) toggleCode(props.view)
+}
+function heading(level: number) {
+  if (props.view) toggleHeading(props.view, level)
+}
+function bulletList() {
+  if (props.view) toggleLinePrefix(props.view, '- ')
+}
+function numberedList() {
+  if (props.view) toggleOrderedList(props.view)
+}
+function taskList() {
+  if (props.view) toggleLinePrefix(props.view, '- [ ] ')
+}
 function link() {
   if (!props.view) return
   const sel = props.view.state.selection.main
@@ -112,12 +130,24 @@ function link() {
   })
   props.view.focus()
 }
-function codeBlock() { if (props.view) insertBlock(props.view, '```\n\n```') }
-function math() { if (props.view) insertMath(props.view, 'block') }
-function pageBreak() { if (props.view) insertPageBreak(props.view) }
-function footnote() { if (props.view) insertFootnote(props.view) }
-function toc() { if (props.view) insertToc(props.view) }
-function commentInline() { if (props.view) toggleComment(props.view) }
+function codeBlock() {
+  if (props.view) insertBlock(props.view, '```\n\n```')
+}
+function math() {
+  if (props.view) insertMath(props.view, 'block')
+}
+function pageBreak() {
+  if (props.view) insertPageBreak(props.view)
+}
+function footnote() {
+  if (props.view) insertFootnote(props.view)
+}
+function toc() {
+  if (props.view) insertToc(props.view)
+}
+function commentInline() {
+  if (props.view) toggleComment(props.view)
+}
 
 function applyAlert(kind: AlertKind) {
   if (!props.view) return

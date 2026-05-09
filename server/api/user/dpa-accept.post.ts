@@ -39,7 +39,9 @@ export default defineEventHandler(async (event) => {
 
   const locale = LEGAL_DOCUMENT_LOCALES.includes(
     body.locale as (typeof LEGAL_DOCUMENT_LOCALES)[number]
-  ) ? body.locale : AUTHORITATIVE_LOCALE
+  )
+    ? body.locale
+    : AUTHORITATIVE_LOCALE
 
   await applyDpaAcceptance({
     userId: session.user.id,

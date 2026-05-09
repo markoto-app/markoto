@@ -56,12 +56,16 @@ function collapseSpendResponse(payload: unknown): SpendByTag {
   if (body && typeof body === 'object') {
     for (const [tag, row] of Object.entries(body as Record<string, SpendTagRow>)) {
       out[tag] = {
-        spend: typeof row?.total_spend === 'number' ? row.total_spend
+        spend: typeof row?.total_spend === 'number'
+          ? row.total_spend
           : typeof (row as unknown as { spend?: number })?.spend === 'number'
-            ? (row as unknown as { spend: number }).spend : 0,
-        requests: typeof row?.log_count === 'number' ? row.log_count
+            ? (row as unknown as { spend: number }).spend
+            : 0,
+        requests: typeof row?.log_count === 'number'
+          ? row.log_count
           : typeof (row as unknown as { api_requests?: number })?.api_requests === 'number'
-            ? (row as unknown as { api_requests: number }).api_requests : 0,
+            ? (row as unknown as { api_requests: number }).api_requests
+            : 0,
         totalTokens: typeof row?.total_tokens === 'number' ? row.total_tokens : 0
       }
     }

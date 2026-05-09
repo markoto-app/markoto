@@ -39,7 +39,9 @@ describe('createDictateRealtimeClient — provider selection', () => {
     const events: DataEvent[] = []
     stream.on('data', (raw: unknown) => events.push(raw as DataEvent))
     let ended = false
-    stream.on('end', () => { ended = true })
+    stream.on('end', () => {
+      ended = true
+    })
 
     // Pump 3 chunks → mock fires partial, partial, final.
     for (let i = 0; i < 3; i++) stream.write(Buffer.from([0, 0, 0, 0]))
@@ -63,7 +65,9 @@ describe('createDictateRealtimeClient — provider selection', () => {
       interimResults: true
     })
     let lastErr: Error | undefined
-    stream.on('error', (e: unknown) => { lastErr = e as Error })
+    stream.on('error', (e: unknown) => {
+      lastErr = e as Error
+    })
     stream.end()
     await new Promise(r => setImmediate(r))
     stream.write(Buffer.from([0, 0]))

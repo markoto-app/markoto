@@ -25,8 +25,8 @@ export async function bootstrapAdminFromEnv(args: {
   if (!isAdminEmail(args.email)) return
 
   const result = await setAdminFlag(args.userId, true)
-  if (!result) return  // user not found — should be unreachable here
-  if (result.previous === true) return  // already admin; no-op
+  if (!result) return // user not found — should be unreachable here
+  if (result.previous === true) return // already admin; no-op
 
   // Newly promoted — audit.
   await appendAuditEvent({

@@ -67,7 +67,6 @@ const IDLE_TIMEOUT_MS = 30_000
 // a slow first paint but short enough that an unauthenticated socket
 // can't sit open consuming resources indefinitely.
 const AUTH_DEADLINE_MS = 5_000
-const CHUNK_AUDIO_MS = Math.round((2048 / 16000) * 1000) // 128 ms per chunk
 
 // Concurrent-session cap is enforced via a Valkey lock (see
 // `tryAcquireSessionLock`) rather than an in-memory Set. An in-memory
@@ -103,8 +102,8 @@ interface DictatePeerContext {
    */
   voiceTickInterval?: ReturnType<typeof setInterval>
   voiceTickActive?: boolean
-  voiceLastTickAt?: number   // ms epoch of the last tick fired
-  voiceAudioSinceTick?: boolean  // any audio since last tick? drives round-up
+  voiceLastTickAt?: number // ms epoch of the last tick fired
+  voiceAudioSinceTick?: boolean // any audio since last tick? drives round-up
   // Phase 6: dropped per-tier daily audio budget + accumulated-audio-ms
   // ledger. The voice-tick orchestrator (voxtral path) bills against
   // the user's LiteLLM virtual key once per minute; LiteLLM enforces

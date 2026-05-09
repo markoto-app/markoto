@@ -29,13 +29,13 @@ import { Resend } from 'resend'
 // underlying `sendTransactionalEmail` ARE thrown so tests can
 // assert error paths; the wrapper is what call sites should use.
 
-export type TransactionalEmailKind =
-  | 'account.delete_requested'
-  | 'account.delete_cancelled'
-  | 'account.delete_executed'
-  | 'data_export.ready'
-  | 'consent.version_bump'
-  | 'breach.notification'
+export type TransactionalEmailKind
+  = | 'account.delete_requested'
+    | 'account.delete_cancelled'
+    | 'account.delete_executed'
+    | 'data_export.ready'
+    | 'consent.version_bump'
+    | 'breach.notification'
 
 export interface SendEmailArgs {
   // What kind of email this is. Used for logging and per-kind

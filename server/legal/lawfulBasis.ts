@@ -7,11 +7,11 @@
 // is bundled into (b) contract for billing because Stripe handles the
 // tax-record retention. (d) vital-interests and (e) public-task do
 // not apply to a SaaS.
-export type LawfulBasis =
-  | 'contract'           // Art. 6(1)(b)
-  | 'legal_obligation'   // Art. 6(1)(c)
-  | 'legitimate_interest' // Art. 6(1)(f)
-  | 'consent'            // Art. 6(1)(a)
+export type LawfulBasis
+  = | 'contract' // Art. 6(1)(b)
+    | 'legal_obligation' // Art. 6(1)(c)
+    | 'legitimate_interest' // Art. 6(1)(f)
+    | 'consent' // Art. 6(1)(a)
 
 export type ProcessingPurpose = {
   // Stable id, used as the i18n key suffix and in audit-log metadata

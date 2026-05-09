@@ -71,10 +71,6 @@ function fmtBytes(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`
 }
 
-function fmtMinutes(ms: number): string {
-  return `${Math.round(ms / 60_000)} min/day`
-}
-
 function isCurrent(plan: PlanName): boolean {
   return billing.value?.plan === plan
 }

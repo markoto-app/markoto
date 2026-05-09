@@ -53,7 +53,9 @@ export default defineEventHandler(async (event) => {
   // ("did they understand what they consented to?").
   const locale = LEGAL_DOCUMENT_LOCALES.includes(
     body.locale as (typeof LEGAL_DOCUMENT_LOCALES)[number]
-  ) ? body.locale! : AUTHORITATIVE_LOCALE
+  )
+    ? body.locale!
+    : AUTHORITATIVE_LOCALE
 
   const session = await getValidatedUserSession(event)
   const userId = session?.user?.id ?? null

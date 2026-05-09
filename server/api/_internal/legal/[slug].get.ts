@@ -1,4 +1,4 @@
-import { readFile, access } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import MarkdownIt from 'markdown-it'
 import { resolveLegalEntity } from '~~/shared/legal/entity'
@@ -78,8 +78,8 @@ const SLUG_META: Record<LegalSlug, SlugMetadata> = {
 }
 
 const md = new MarkdownIt({
-  html: false,    // markdown source is trusted but defence-in-depth — any future external author can't smuggle raw HTML
-  linkify: true,  // bare URLs in the body auto-link
+  html: false, // markdown source is trusted but defence-in-depth — any future external author can't smuggle raw HTML
+  linkify: true, // bare URLs in the body auto-link
   typographer: true
 })
 
@@ -96,7 +96,9 @@ export default defineEventHandler(async (event) => {
   // straight to English without a 404.
   const locale = LEGAL_DOCUMENT_LOCALES.includes(
     requestedLocale as (typeof LEGAL_DOCUMENT_LOCALES)[number]
-  ) ? requestedLocale : AUTHORITATIVE_LOCALE
+  )
+    ? requestedLocale
+    : AUTHORITATIVE_LOCALE
 
   const meta = SLUG_META[slug]
   const entity = resolveLegalEntity()

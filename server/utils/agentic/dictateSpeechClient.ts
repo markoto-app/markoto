@@ -156,7 +156,7 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
     return new Promise(resolve => this.waiters.push(resolve))
   }
 
-  private async * audioGenerator(): AsyncGenerator<Uint8Array, void, unknown> {
+  private async* audioGenerator(): AsyncGenerator<Uint8Array, void, unknown> {
     while (!this.aborted) {
       const chunk = await this.nextChunk()
       if (chunk === null) return

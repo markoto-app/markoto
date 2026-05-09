@@ -83,7 +83,9 @@ const hasActiveExport = computed(() =>
 let pollHandle: ReturnType<typeof setInterval> | null = null
 function startPolling(): void {
   if (pollHandle !== null) return
-  pollHandle = setInterval(() => { void refreshExports() }, 5000)
+  pollHandle = setInterval(() => {
+    void refreshExports()
+  }, 5000)
 }
 function stopPolling(): void {
   if (pollHandle === null) return
@@ -239,10 +241,10 @@ const consentRows = computed(() => {
       stateText: key === 'essential'
         ? t('settings.profile.consent.purposeAlwaysOn')
         : !decision
-          ? t('settings.profile.consent.notSet')
-          : decision.granted
-            ? t('settings.profile.consent.granted')
-            : t('settings.profile.consent.refused'),
+            ? t('settings.profile.consent.notSet')
+            : decision.granted
+              ? t('settings.profile.consent.granted')
+              : t('settings.profile.consent.refused'),
       stateMuted: key === 'essential' || !decision,
       stateGranted: decision?.granted === true,
       stateRefused: decision && !decision.granted

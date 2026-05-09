@@ -21,8 +21,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ci.yml's `lint-typecheck` job only runs on `pull_request` events — a
+  # direct push to main (or a force-merge that bypasses PR review) lands
+  # without ever exercising eslint or the typechecker. This main-branch
+  # baseline workflow plugs that gap: we re-run the same gates here so a
+  # push that introduces lint or type errors fails the workflow + fires
+  # an Apprise notify, even if it never went through a PR.
+  lint-typecheck:
+    name: lint-typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Lint
+        run: bun run lint
+      - name: Typecheck
+        run: bun run typecheck
+
   sonar:
     name: sonar
+    needs: lint-typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -63,7 +87,7 @@ jobs:
 
   notify-on-failure:
     name: notify-on-failure
-    needs: [sonar]
+    needs: [lint-typecheck, sonar]
     if: failure()
     runs-on: ubuntu-latest
     steps:

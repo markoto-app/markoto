@@ -142,28 +142,47 @@ function formatUsd(usd: number): string {
       </UButton>
     </div>
 
-    <div v-if="data" class="rounded border border-default bg-default p-6">
+    <div
+      v-if="data"
+      class="rounded border border-default bg-default p-6"
+    >
       <div class="flex items-baseline justify-between mb-6">
         <div>
-          <div class="text-xs font-mono uppercase tracking-wide text-muted">Total spend</div>
+          <div class="text-xs font-mono uppercase tracking-wide text-muted">
+            Total spend
+          </div>
           <div class="font-serif text-2xl font-normal tracking-tight text-default">
             {{ formatUsd(data.totalSpendUsd) }}
           </div>
         </div>
         <div class="text-right">
-          <div class="text-xs font-mono uppercase tracking-wide text-muted">Requests</div>
-          <div class="font-mono text-sm">{{ data.totalRequests.toLocaleString() }}</div>
+          <div class="text-xs font-mono uppercase tracking-wide text-muted">
+            Requests
+          </div>
+          <div class="font-mono text-sm">
+            {{ data.totalRequests.toLocaleString() }}
+          </div>
         </div>
       </div>
 
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-xs font-mono uppercase tracking-wide text-muted border-b border-default">
-            <th class="py-2 pr-3">Feature</th>
-            <th class="py-2 px-3 text-right">Spend</th>
-            <th class="py-2 px-3 text-right">Share</th>
-            <th class="py-2 px-3 text-right">Requests</th>
-            <th class="py-2 pl-3 text-right">Tokens</th>
+            <th class="py-2 pr-3">
+              Feature
+            </th>
+            <th class="py-2 px-3 text-right">
+              Spend
+            </th>
+            <th class="py-2 px-3 text-right">
+              Share
+            </th>
+            <th class="py-2 px-3 text-right">
+              Requests
+            </th>
+            <th class="py-2 pl-3 text-right">
+              Tokens
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -172,17 +191,37 @@ function formatUsd(usd: number): string {
             :key="row.tag"
             class="border-b border-default last:border-0"
           >
-            <td class="py-3 pr-3 text-default">{{ labelFor(row.tag) }}</td>
-            <td class="py-3 px-3 text-right font-mono">{{ formatUsd(row.spendUsd) }}</td>
-            <td class="py-3 px-3 text-right font-mono text-muted">{{ row.sharePct.toFixed(1) }}%</td>
-            <td class="py-3 px-3 text-right font-mono text-muted">{{ row.requests.toLocaleString() }}</td>
-            <td class="py-3 pl-3 text-right font-mono text-muted">{{ row.totalTokens.toLocaleString() }}</td>
+            <td class="py-3 pr-3 text-default">
+              {{ labelFor(row.tag) }}
+            </td>
+            <td class="py-3 px-3 text-right font-mono">
+              {{ formatUsd(row.spendUsd) }}
+            </td>
+            <td class="py-3 px-3 text-right font-mono text-muted">
+              {{ row.sharePct.toFixed(1) }}%
+            </td>
+            <td class="py-3 px-3 text-right font-mono text-muted">
+              {{ row.requests.toLocaleString() }}
+            </td>
+            <td class="py-3 pl-3 text-right font-mono text-muted">
+              {{ row.totalTokens.toLocaleString() }}
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div v-else-if="loading" class="text-sm text-muted">Loading…</div>
-    <div v-else class="text-sm text-muted">No data.</div>
+    <div
+      v-else-if="loading"
+      class="text-sm text-muted"
+    >
+      Loading…
+    </div>
+    <div
+      v-else
+      class="text-sm text-muted"
+    >
+      No data.
+    </div>
   </div>
 </template>

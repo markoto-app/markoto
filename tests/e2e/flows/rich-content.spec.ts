@@ -72,16 +72,6 @@ test('Rich content', async ({ page, flow, editor }) => {
   const insertMenuTrigger = page.locator('nav[aria-label="Menu bar"] > button').nth(3) // Insert is 4th
   const cmContentLocator = page.locator('.cm-content')
 
-  // Helper: open the Insert surface for a single insert.
-  async function openInsertSurface() {
-    if (editor.isMobile) {
-      await editor.page.mobileTabs.editor.click()
-      await page.locator('[data-testid="ecp-insert-code-block"]').first().waitFor({ state: 'visible', timeout: 5_000 })
-    } else {
-      await insertMenuTrigger.click()
-    }
-  }
-
   // After mobile insert: drawer closes itself, but make sure
   // .cm-content has focus before keyboard input lands.
   async function refocusEditor() {

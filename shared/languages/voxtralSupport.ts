@@ -26,7 +26,7 @@ export const VOXTRAL_SUPPORTED_LANGUAGES = [
   'ja', // Japanese
   'ko', // Korean
   'it', // Italian
-  'nl'  // Dutch
+  'nl' // Dutch
 ] as const
 
 export type VoxtralLanguage = typeof VOXTRAL_SUPPORTED_LANGUAGES[number]

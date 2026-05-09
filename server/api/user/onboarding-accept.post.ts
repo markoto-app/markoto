@@ -69,7 +69,9 @@ export default defineEventHandler(async (event) => {
   // English so the audit trail stays readable.
   const locale = LEGAL_DOCUMENT_LOCALES.includes(
     body.locale as (typeof LEGAL_DOCUMENT_LOCALES)[number]
-  ) ? body.locale : AUTHORITATIVE_LOCALE
+  )
+    ? body.locale
+    : AUTHORITATIVE_LOCALE
 
   await applyOnboardingAcceptance({
     userId: session.user.id,

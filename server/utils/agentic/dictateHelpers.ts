@@ -21,6 +21,25 @@
  * coincidentally start with `{` AND parses as JSON (unlikely but
  * possible with small buffers) won't be routed as a control frame.
  */
+/**
+ * Normalize a UI locale / user-supplied language hint to a BCP-47 tag
+ * the upstream transcription provider will accept. We store short
+ * ISO 639-1 codes (`en`, `de`, …) for the UI; the upstream wants the
+ * regional form (`en-US`, `de-DE`). Unknown codes fall back to
+ * `en-US` rather than erroring so a typo in the cookie can't block
+ * transcription.
+ *
+ * BCP-47-shaped strings (contains a dash) pass through — a power
+ * user who sets `de-CH` or `en-GB` gets the locale they asked for.
+ *
+ * Phase 7: callers also gate on `isVoxtralSupportedLanguage` to drop
+ * unsupported leading codes back to en-US. The build-time test in
+ * `tests/unit/voxtralSupport.test.ts` keeps shipped i18n locales
+ * inside the support set, but a power-user-supplied `tr-TR` (Turkish)
+ * still shouldn't reach the upstream.
+ */
+import { isVoxtralSupportedLanguage } from '~~/shared/languages/voxtralSupport'
+
 export function tryParseControl(message: { rawData: unknown, text(): string }): {
   type: 'auth' | 'stop'
   token?: unknown
@@ -55,25 +74,6 @@ export function tryParseControl(message: { rawData: unknown, text(): string }): 
   }
   return null
 }
-
-/**
- * Normalize a UI locale / user-supplied language hint to a BCP-47 tag
- * the upstream transcription provider will accept. We store short
- * ISO 639-1 codes (`en`, `de`, …) for the UI; the upstream wants the
- * regional form (`en-US`, `de-DE`). Unknown codes fall back to
- * `en-US` rather than erroring so a typo in the cookie can't block
- * transcription.
- *
- * BCP-47-shaped strings (contains a dash) pass through — a power
- * user who sets `de-CH` or `en-GB` gets the locale they asked for.
- *
- * Phase 7: callers also gate on `isVoxtralSupportedLanguage` to drop
- * unsupported leading codes back to en-US. The build-time test in
- * `tests/unit/voxtralSupport.test.ts` keeps shipped i18n locales
- * inside the support set, but a power-user-supplied `tr-TR` (Turkish)
- * still shouldn't reach the upstream.
- */
-import { isVoxtralSupportedLanguage } from '~~/shared/languages/voxtralSupport'
 
 export function normalizeLanguageCode(input: unknown): string {
   const s = typeof input === 'string' ? input.trim() : ''

@@ -184,10 +184,10 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   await flow.narrate(
     editor.isMobile
       ? 'You\'re already inside a workspace doc — the AI has two extra tools wired up: '
-        + '`search_knowledge` (hybrid retrieval over the chunk index) and '
-        + '`get_knowledge_file` (full markdown of one file). It picks them automatically '
-        + 'when your prompt smells like a knowledge question. Close the Knowledge drawer '
-        + 'so the AI prompt bar is reachable.'
+      + '`search_knowledge` (hybrid retrieval over the chunk index) and '
+      + '`get_knowledge_file` (full markdown of one file). It picks them automatically '
+      + 'when your prompt smells like a knowledge question. Close the Knowledge drawer '
+      + 'so the AI prompt bar is reachable.'
       : 'Create a new doc in this workspace and the AI gets two extra '
         + 'tools: `search_knowledge` (hybrid retrieval over the chunk '
         + 'index) and `get_knowledge_file` (full markdown of one file). '

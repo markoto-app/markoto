@@ -110,4 +110,3 @@ export async function lastActivityAt(docId: string, userId: number): Promise<Dat
     .limit(1)
   return row[0]?.createdAt ?? null
 }
-

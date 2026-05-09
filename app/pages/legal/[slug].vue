@@ -168,10 +168,15 @@ function fmtDate(iso: string): string {
              plugin (already pulled in elsewhere via @nuxt/ui's
              prose styles, but those are tuned for /docs and would
              be over-styled here). -->
+        <!-- Server-side rendered + DOMPurify-sanitised in
+             /api/_internal/legal/:slug. The endpoint is the only
+             producer; the v-html sink is intentional. -->
+        <!-- eslint-disable vue/no-v-html -->
         <div
           class="legal-doc-prose"
           v-html="data.html"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </article>
     </main>
 

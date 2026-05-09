@@ -252,7 +252,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('[re-embed] FAILED:', e instanceof Error ? e.stack || e.message : e)
   process.exit(1)
 })

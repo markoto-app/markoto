@@ -30,7 +30,9 @@ interface MockResponse {
 function withScope<T>(fn: () => T): { value: T, stop: () => void } {
   const scope = effectScope()
   let v!: T
-  scope.run(() => { v = fn() })
+  scope.run(() => {
+    v = fn()
+  })
   return {
     value: v,
     stop: () => scope.stop()

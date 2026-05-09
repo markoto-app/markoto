@@ -53,7 +53,9 @@ const reportBody = ref('')
 const submitting = ref(false)
 const submittedReportId = ref<string | null>(null)
 
-watch(docIdFromQuery, (v) => { docId.value = v }, { immediate: false })
+watch(docIdFromQuery, (v) => {
+  docId.value = v
+}, { immediate: false })
 
 const canSubmit = computed(() =>
   reportBody.value.trim().length >= 10 && !submitting.value

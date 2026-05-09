@@ -51,9 +51,9 @@ describe('Voxtral language support — invariant guard', () => {
   })
 
   it('predicate rejects unsupported languages cleanly', () => {
-    expect(isVoxtralSupportedLanguage('pl')).toBe(false)   // Polish
+    expect(isVoxtralSupportedLanguage('pl')).toBe(false) // Polish
     expect(isVoxtralSupportedLanguage('tr-TR')).toBe(false) // Turkish
-    expect(isVoxtralSupportedLanguage('vi')).toBe(false)   // Vietnamese
+    expect(isVoxtralSupportedLanguage('vi')).toBe(false) // Vietnamese
   })
 
   it('predicate handles malformed input without throwing', () => {

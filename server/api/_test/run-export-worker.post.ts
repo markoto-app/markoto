@@ -9,7 +9,7 @@ import { runDataExportWorker } from '../../utils/dataExportWorker'
 // set TEST_MODE in prod still produces no worker re-runs (which would
 // at worst rebuild an export ZIP — not catastrophic, but the
 // principle is "no test surface in prod").
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (_event) => {
   if (process.env.TEST_MODE !== '1') {
     throw createError({ statusCode: 404, message: 'Not found' })
   }

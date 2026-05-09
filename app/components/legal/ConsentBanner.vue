@@ -139,7 +139,7 @@ function acceptAll(): void {
 }
 function rejectAll(): void {
   void submit([
-    { purpose: 'essential', granted: true },  // essential is always on
+    { purpose: 'essential', granted: true }, // essential is always on
     { purpose: 'analytics', granted: false },
     { purpose: 'session_replay', granted: false }
   ])

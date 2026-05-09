@@ -35,19 +35,19 @@ export const AUDIT_ADMIN_REVOKED = 'admin.revoked'
 
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
-export type ComplianceAuditAction =
-  | typeof AUDIT_ACCOUNT_DELETE_REQUESTED
-  | typeof AUDIT_ACCOUNT_DELETE_CANCELLED
-  | typeof AUDIT_ACCOUNT_DELETE_EXECUTED
-  | typeof AUDIT_ACCOUNT_EXPORT_REQUESTED
-  | typeof AUDIT_ACCOUNT_EXPORT_COMPLETED
-  | typeof AUDIT_ACCOUNT_EXPORT_FAILED
-  | typeof AUDIT_ACCOUNT_AGE_CONFIRMED
-  | typeof AUDIT_CONSENT_RECORDED
-  | typeof AUDIT_POLICY_ACCEPTED
-  | typeof AUDIT_ABUSE_REPORTED
-  | typeof AUDIT_ABUSE_ACKNOWLEDGED
-  | typeof AUDIT_ABUSE_ACTIONED
-  | typeof AUDIT_ABUSE_DISMISSED
-  | typeof AUDIT_ADMIN_GRANTED
-  | typeof AUDIT_ADMIN_REVOKED
+export type ComplianceAuditAction
+  = | typeof AUDIT_ACCOUNT_DELETE_REQUESTED
+    | typeof AUDIT_ACCOUNT_DELETE_CANCELLED
+    | typeof AUDIT_ACCOUNT_DELETE_EXECUTED
+    | typeof AUDIT_ACCOUNT_EXPORT_REQUESTED
+    | typeof AUDIT_ACCOUNT_EXPORT_COMPLETED
+    | typeof AUDIT_ACCOUNT_EXPORT_FAILED
+    | typeof AUDIT_ACCOUNT_AGE_CONFIRMED
+    | typeof AUDIT_CONSENT_RECORDED
+    | typeof AUDIT_POLICY_ACCEPTED
+    | typeof AUDIT_ABUSE_REPORTED
+    | typeof AUDIT_ABUSE_ACKNOWLEDGED
+    | typeof AUDIT_ABUSE_ACTIONED
+    | typeof AUDIT_ABUSE_DISMISSED
+    | typeof AUDIT_ADMIN_GRANTED
+    | typeof AUDIT_ADMIN_REVOKED

@@ -36,21 +36,21 @@ export interface TierCaps {
 
 export const TIERS = {
   free: {
-    litellmBudgetUsd: 1.0,    // 500 AI Points
+    litellmBudgetUsd: 1.0, // 500 AI Points
     workspacesOwned: 1,
     knowledgeFiles: 5,
     knowledgeBytesPerWorkspace: 50 * 1024 * 1024,
     knowledgeBytesPerUser: 50 * 1024 * 1024
   },
   pro: {
-    litellmBudgetUsd: 5.0,    // 5000 AI Points
+    litellmBudgetUsd: 5.0, // 5000 AI Points
     workspacesOwned: 10,
     knowledgeFiles: 50,
     knowledgeBytesPerWorkspace: 2 * 1024 * 1024 * 1024,
     knowledgeBytesPerUser: 2 * 1024 * 1024 * 1024
   },
   max: {
-    litellmBudgetUsd: 15.0,   // 15000 AI Points
+    litellmBudgetUsd: 15.0, // 15000 AI Points
     workspacesOwned: 30,
     knowledgeFiles: 500,
     // Per-workspace cap stays at 1 GB — the cap measures one workspace
@@ -60,7 +60,7 @@ export const TIERS = {
     knowledgeBytesPerUser: 10 * 1024 * 1024 * 1024
   },
   ultra: {
-    litellmBudgetUsd: 35.0,   // 35000 AI Points
+    litellmBudgetUsd: 35.0, // 35000 AI Points
     workspacesOwned: 100,
     knowledgeFiles: 2000,
     knowledgeBytesPerWorkspace: 1024 * 1024 * 1024,

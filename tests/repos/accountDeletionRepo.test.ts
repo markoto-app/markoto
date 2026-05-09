@@ -114,7 +114,7 @@ describe('promoteWorkspaceAdmin', () => {
 
   it('does not touch owner_id when the outgoing user is not the owner', async () => {
     const alice = await createUser() // owner
-    const bob = await createUser()   // co-admin
+    const bob = await createUser() // co-admin
     const carol = await createUser() // editor we'll promote when bob leaves
     const ws = await createWorkspace(alice.id)
     await setMemberRole(ws.workspaceId, bob.id, 'admin')

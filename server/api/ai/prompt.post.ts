@@ -237,23 +237,11 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
   const userName = session.user.name
-  const config = useRuntimeConfig()
 
-  // Phase 5: text loop runs through LiteLLM unconditionally. The
-  // secret validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY
-  // at boot, so reaching this handler means the upstream is at least
-  // configured (proxy reachability is a separate runtime concern).
-  // Phase 6: app-side rate limit dropped. LiteLLM enforces rpm_limit
-  // at the per-user-virtual-key level. Keeping the if-block for now
-  // until I can verify no other code reads the rejection — but it's
-  // a no-op (always-false predicate inserted to stub out).
-  if (false) {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many AI requests. Try again in a minute.',
-      data: { code: 'ai/rate-limited', messageKey: 'error.rateLimited' }
-    })
-  }
+  // Phase 5: text loop runs through LiteLLM unconditionally. The secret
+  // validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY at boot.
+  // Phase 6: app-side rate limit dropped — LiteLLM's per-user-virtual-key
+  // rpm_limit is the single enforcement point now.
 
   const body = await readBody(event) as { docId?: string, prompt?: string, editorSelection?: unknown }
   const docId = body.docId

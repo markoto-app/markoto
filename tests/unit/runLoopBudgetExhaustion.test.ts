@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import type { AgenticGenerateContentResponse as GenerateContentResponse } from '../../server/utils/agentic/aiTypes'
 import { LitellmBudgetExhausted } from '../../server/utils/litellmKeys'
 
 // Phase 7: pin the runLoop's mid-loop budget-exhaustion catch path

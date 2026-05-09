@@ -72,12 +72,12 @@ interface TabDef {
 // under `mobileTabBar.*Short` so they fit in a 50-60px column without
 // truncation.
 const tabs = computed<TabDef[]>(() => [
-  { name: 'editor',    icon: 'i-lucide-pencil',         label: t('mobileTabBar.editor'),         visible: true,                      isPanel: true },
-  { name: 'document',  icon: 'i-lucide-info',           label: t('mobileTabBar.documentShort'),  visible: true,                      isPanel: true },
-  { name: 'comments',  icon: 'i-lucide-message-circle', label: t('mobileTabBar.commentsShort'),  visible: true,                      isPanel: true },
-  { name: 'activity',  icon: 'i-lucide-activity',       label: t('mobileTabBar.activityShort'),  visible: true,                      isPanel: true },
-  { name: 'theme',     icon: 'i-lucide-palette',        label: t('mobileTabBar.themeShort'),     visible: props.canEditTheme,        isPanel: true },
-  { name: 'knowledge', icon: 'i-lucide-library',        label: t('mobileTabBar.knowledgeShort'), visible: props.hasKnowledgeAccess,  isPanel: true }
+  { name: 'editor', icon: 'i-lucide-pencil', label: t('mobileTabBar.editor'), visible: true, isPanel: true },
+  { name: 'document', icon: 'i-lucide-info', label: t('mobileTabBar.documentShort'), visible: true, isPanel: true },
+  { name: 'comments', icon: 'i-lucide-message-circle', label: t('mobileTabBar.commentsShort'), visible: true, isPanel: true },
+  { name: 'activity', icon: 'i-lucide-activity', label: t('mobileTabBar.activityShort'), visible: true, isPanel: true },
+  { name: 'theme', icon: 'i-lucide-palette', label: t('mobileTabBar.themeShort'), visible: props.canEditTheme, isPanel: true },
+  { name: 'knowledge', icon: 'i-lucide-library', label: t('mobileTabBar.knowledgeShort'), visible: props.hasKnowledgeAccess, isPanel: true }
 ])
 
 const visibleTabs = computed(() => tabs.value.filter(t => t.visible))

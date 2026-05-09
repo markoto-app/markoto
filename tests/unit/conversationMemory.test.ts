@@ -325,7 +325,10 @@ describe('buildConversationContextForPrompt', () => {
     const now = new Date('2026-05-01T12:00:00Z')
     let receivedSince: Date | undefined
     await buildConversationContextForPrompt(
-      async (since) => { receivedSince = since; return [] },
+      async (since) => {
+        receivedSince = since
+        return []
+      },
       new Date(now.getTime() - 1000),
       now
     )
