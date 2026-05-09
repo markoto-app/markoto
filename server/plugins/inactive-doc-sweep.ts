@@ -45,66 +45,12 @@ export default defineNitroPlugin((nitroApp) => {
     }
     try {
       await migrationsComplete
-
-      const config = useRuntimeConfig()
-      const anonTtlDays = Number(config.inactiveDocTtlDays ?? 0)
+      const anonTtlDays = Number(useRuntimeConfig().inactiveDocTtlDays ?? 0)
       if (anonTtlDays <= 0) return
-
-      const db = useDatabase()
-      const now = Date.now()
-      const anonCutoff = new Date(now - anonTtlDays * DAY_MS)
-
-      // Candidate query mirrors shouldReapDoc(): anonymous (no owner),
-      // not in a workspace, and last_active before the cutoff. Index hit
-      // via idx_documents_last_active.
-      const candidates = await db
-        .select({ docId: documents.docId })
-        .from(documents)
-        .where(and(
-          isNull(documents.ownerId),
-          isNull(documents.workspaceId),
-          lt(documents.lastActive, anonCutoff)
-        ))
-
+      const candidates = await loadInactiveAnonymousDocs(anonTtlDays)
       if (candidates.length === 0) return
-
       console.log(`[inactive-doc-sweep] Reaping ${candidates.length} inactive anonymous doc(s)`)
-
-      let reaped = 0
-      for (const { docId } of candidates) {
-        try {
-          // Snapshot for audit forensics — system-actor row, no IP.
-          const snapshot = await getDoc(docId)
-          await deleteDocument(docId)
-          await appendAuditEvent({
-            actorUserId: null,
-            actorIp: null,
-            scope: 'doc',
-            scopeId: docId,
-            action: 'doc.deleted',
-            before: snapshot
-              ? {
-                  title: snapshot.title,
-                  accessMode: snapshot.accessMode,
-                  ownerId: snapshot.ownerId,
-                  workspaceId: snapshot.workspaceId
-                }
-              : null,
-            after: null,
-            metadata: { reason: 'inactive_sweep' }
-          })
-          reaped++
-        } catch (e) {
-          console.warn(`[inactive-doc-sweep] Failed to delete ${docId}:`, e instanceof Error ? e.message : e)
-          Sentry.captureException(e, {
-            tags: { component: 'inactive-doc-sweep', event: 'delete_failed', docId }
-          })
-        }
-        // Throttle between deletions. 10/s cap keeps the S3 + pg load
-        // sane if a backlog has accumulated (e.g. first post-deploy sweep).
-        await new Promise(r => setTimeout(r, THROTTLE_MS))
-      }
-
+      const reaped = await reapDocs(candidates)
       if (reaped > 0) {
         console.log(`[inactive-doc-sweep] Reaped ${reaped}/${candidates.length} inactive doc(s)`)
       }
@@ -116,6 +62,70 @@ export default defineNitroPlugin((nitroApp) => {
     } finally {
       await releaseSweepLock('inactive-doc-sweep')
       running = false
+    }
+  }
+
+  /**
+   * Candidate query mirrors `shouldReapDoc()`: anonymous (no owner),
+   * not in a workspace, and `last_active` before the cutoff. Index hit
+   * via `idx_documents_last_active`.
+   */
+  async function loadInactiveAnonymousDocs(anonTtlDays: number): Promise<Array<{ docId: string }>> {
+    const db = useDatabase()
+    const anonCutoff = new Date(Date.now() - anonTtlDays * DAY_MS)
+    return db
+      .select({ docId: documents.docId })
+      .from(documents)
+      .where(and(
+        isNull(documents.ownerId),
+        isNull(documents.workspaceId),
+        lt(documents.lastActive, anonCutoff)
+      ))
+  }
+
+  /**
+   * Throttled delete loop. 10/s cap keeps S3 + Postgres load sane if a
+   * backlog has accumulated (e.g. first post-deploy sweep). One bad
+   * doc never aborts the rest.
+   */
+  async function reapDocs(candidates: Array<{ docId: string }>): Promise<number> {
+    let reaped = 0
+    for (const { docId } of candidates) {
+      if (await reapOneDoc(docId)) reaped++
+      await new Promise(r => setTimeout(r, THROTTLE_MS))
+    }
+    return reaped
+  }
+
+  /** Snapshot → delete → audit. Returns false if anything threw (Sentry already captured). */
+  async function reapOneDoc(docId: string): Promise<boolean> {
+    try {
+      const snapshot = await getDoc(docId)
+      await deleteDocument(docId)
+      await appendAuditEvent({
+        actorUserId: null,
+        actorIp: null,
+        scope: 'doc',
+        scopeId: docId,
+        action: 'doc.deleted',
+        before: snapshot
+          ? {
+              title: snapshot.title,
+              accessMode: snapshot.accessMode,
+              ownerId: snapshot.ownerId,
+              workspaceId: snapshot.workspaceId
+            }
+          : null,
+        after: null,
+        metadata: { reason: 'inactive_sweep' }
+      })
+      return true
+    } catch (e) {
+      console.warn(`[inactive-doc-sweep] Failed to delete ${docId}:`, e instanceof Error ? e.message : e)
+      Sentry.captureException(e, {
+        tags: { component: 'inactive-doc-sweep', event: 'delete_failed', docId }
+      })
+      return false
     }
   }
 
