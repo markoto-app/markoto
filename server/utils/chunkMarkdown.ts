@@ -114,7 +114,19 @@ function retainOverlapTail(buf: string[], overlapTokens: number): { paragraphs: 
  * because they came from one paragraph; trim each emitted chunk.
  */
 function splitParagraphBySentences(p: string, maxTokens: number): string[] {
-  const sentences = p.match(/(?:[^.!?\n]+[.!?]+[\])'"`’”]*)|(?:[^.!?\n]+$)/g) ?? [p]
+  // Linear-time sentence split: split on the terminator-plus-closing-bracket
+  // group as a capturing delimiter, then re-glue each terminator onto the
+  // preceding text. Avoids the catastrophic-backtracking risk of an
+  // alternation across two overlapping greedy character classes.
+  const parts = p.split(/([.!?]+[\])'"`’”]*)/)
+  const sentences: string[] = []
+  for (let i = 0; i < parts.length; i += 2) {
+    const text = parts[i] ?? ''
+    const term = parts[i + 1] ?? ''
+    const s = text + term
+    if (s.length > 0) sentences.push(s)
+  }
+  if (sentences.length === 0) sentences.push(p)
   const out: string[] = []
   let sBuf: string[] = []
   let sT = 0

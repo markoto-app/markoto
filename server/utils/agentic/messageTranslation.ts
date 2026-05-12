@@ -126,10 +126,12 @@ function buildToolMessage(fr: NonNullable<Part['functionResponse']>): OAIToolMes
 function stringifyFunctionResponse(response: unknown): string {
   if (response === null || response === undefined) return ''
   if (typeof response === 'string') return response
-  if (typeof response !== 'object') return String(response)
-  const out = response as { output?: unknown }
-  if (typeof out.output === 'string') return out.output
-  return JSON.stringify(response)
+  if (typeof response === 'object') {
+    const out = response as { output?: unknown }
+    if (typeof out.output === 'string') return out.output
+    return JSON.stringify(response)
+  }
+  return String(response)
 }
 
 /**
