@@ -21,7 +21,7 @@ export { normalizeLanguageCode } from './dictateHelpers'
  * MediaRecorder default — so we return `null` for that surface and
  * the caller rejects at the MIME gate with a 400. Future Safari
  * voice support will need server-side transcoding (ffmpeg / batch
- * upload path); tracked under "Mobile MMP" in the root TODO list,
+ * upload path); tracked under "Mobile MMP" in the root roadmap,
  * not actionable from this helper.
  *
  * Must stay in lockstep with the caller's ALLOWED_MIME allowlist: if

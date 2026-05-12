@@ -187,7 +187,7 @@ async function readManifest(docId: string, snapshotId: number): Promise<RenderMa
 async function callRenderer(
   docId: string,
   snapshotId: number,
-  format: 'pdf' | 'png' | 'both'
+  format: RenderFormat
 ): Promise<RendererSuccess> {
   const config = useRuntimeConfig()
   if (!config.rendererInternalUrl) {

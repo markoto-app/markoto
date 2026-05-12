@@ -52,7 +52,7 @@ export function canEditTheme(state: {
 
 /**
  * Translate Y.js-encoded state size into a UI banner severity. The
- * thresholds match the doc-compaction roadmap item in the root TODO
+ * thresholds match the doc-compaction roadmap item in the root
  * list — above 8 MB is a hard "do something" signal; 5–8 MB is a
  * soft warning. Below 5 MB, no banner.
  */

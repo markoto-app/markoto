@@ -50,6 +50,20 @@ const labelText = computed(() => {
       :aria-label="`Table size picker, up to ${MAX_ROWS} by ${MAX_COLS}`"
       @mouseleave="hoverRow = -1; hoverCol = -1"
     >
+      <!-- Visually-hidden column headers (column index 1..N). The
+           picker is a 2D button grid; the headers exist so screen
+           readers + Sonar can both confirm the table has scope. -->
+      <thead class="sr-only">
+        <tr>
+          <th
+            v-for="col in MAX_COLS"
+            :key="col"
+            scope="col"
+          >
+            {{ col }}
+          </th>
+        </tr>
+      </thead>
       <tbody>
         <tr
           v-for="row in MAX_ROWS"
