@@ -115,7 +115,7 @@ You have the right to:
 - **Object** to processing based on legitimate interest (Article 21) — write to us.
 - **Data portability** (Article 20) — the export tool returns your data in machine-readable JSON, NDJSON, and Markdown.
 - **Withdraw consent** (Article 7(3)) where processing is consent-based — toggle the relevant purpose in the cookie banner (footer privacy badge).
-- **Lodge a complaint** with a supervisory authority (Article 77) — see §10.
+- **Lodge a complaint** with a supervisory authority (Article 77) — see §11.
 
 We respond to all requests within 30 days. We do not charge for these requests except in the case of manifestly unfounded or excessive requests.
 
@@ -141,11 +141,16 @@ markoto is not directed at children under the digital age of consent in your cou
 
 ## 11. Right to lodge a complaint
 
-If you believe we have failed to honour your rights, you have the right to lodge a complaint with the supervisory authority of your habitual residence, place of work, or place of the alleged infringement. Our lead supervisory authority is the **Commission Nationale de l'Informatique et des Libertés (CNIL)** in France. A list of all EU/EEA supervisory authorities is published by the European Data Protection Board.
+If you believe we have failed to honour your rights, you have the right to lodge a complaint with a data protection supervisory authority.
+
+- **In the EU/EEA:** you may complain to the supervisory authority of your country of habitual residence, your place of work, or the place of the alleged infringement. A list of EU/EEA supervisory authorities is published by the European Data Protection Board. Because we are established in Switzerland (outside the EU/EEA), we are not covered by the GDPR "one-stop-shop" mechanism, so there is no single lead authority — you may approach your local authority directly.
+- **In Switzerland:** the competent authority is the Federal Data Protection and Information Commissioner (FDPIC).
+
+We would also welcome the opportunity to resolve your concern directly first — please write to us at **{{privacyContactEmail}}**.
 
 ## 12. Security
 
-We protect data using transport encryption (TLS), at-rest encryption at the OVHcloud platform layer, scrypt password hashing, IP truncation in audit logs, and a documented breach-response runbook with a 72-hour notification commitment under GDPR Article 33.
+We protect data using transport encryption (TLS), at-rest encryption at the OVHcloud platform layer, scrypt password hashing, and IP truncation in audit logs. In the event of a personal data breach, we commit to notifying the competent supervisory authority within 72 hours as required by GDPR Article 33.
 
 If we become aware of a personal data breach affecting you, we will notify the supervisory authority within 72 hours and notify you without undue delay if the breach poses a high risk to your rights.
 
