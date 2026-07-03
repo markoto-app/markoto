@@ -1,0 +1,138 @@
+name: staging-gate
+
+# After a release builds images, deploy them to STAGING and run the PUBLIC
+# smoke suite (tests/smoke) against the real deployment. This catches the
+# class of prod-only drift the ephemeral flow gate structurally can't — Docker
+# COPY gaps, insecure-context APIs, CSP, the mobile <dialog> collapse — every
+# bug that shipped broken and was only found on staging.
+#
+# Flow:  merge → release.yml builds vX.Y.Z + latest images
+#              → THIS workflow deploys `latest` to staging (health-gated)
+#              → smoke suite runs against https://staging.markoto.app
+#              → red gate ⇒ nothing should be promoted to prod
+#
+# Prod promotion is intended to be AUTOMATIC off a green smoke run (retag the
+# staging-verified image to prod + deploy + re-run smoke against prod with
+# auto-rollback) — NOT a manual approval. That leg is left dormant until the
+# prod VPS + a `prod` GitHub Environment exist; see the commented promote-prod
+# job at the bottom. main stays strictly PR-only; this never pushes to main.
+
+on:
+  workflow_run:
+    workflows: [release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to deploy to staging'
+        required: true
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-gate
+  cancel-in-progress: false
+
+jobs:
+  deploy-and-smoke:
+    name: deploy-and-smoke (staging)
+    # Manual dispatch always runs; the auto path only runs when the release
+    # actually succeeded (a failed/incomplete release built no good images).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Binds the staging DEPLOY_HOST / DEPLOY_SSH_KEY secrets + DEPLOY_USER var.
+    environment: staging
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER || 'debian' }}
+      TAG: ${{ inputs.tag || 'latest' }}
+      STAGING_URL: https://staging.markoto.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy tag to staging + health-check
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" TAG="$TAG" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          : "${TAG:?TAG must be set}"
+          cd /opt/markoto
+          export IMAGE_TAG="$TAG"
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml up -d
+          DOMAIN=$(awk -F= '/^DOMAIN=/{print $2}' .env | tr -d '"')
+          [ -n "$DOMAIN" ] || { echo "DOMAIN not in .env"; exit 1; }
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 5 "https://${DOMAIN}/api/health" > /dev/null 2>&1; then
+              echo "staging healthy on attempt $i"; ok=1; break
+            fi
+            sleep 3
+          done
+          [ "$ok" = 1 ] || { echo "staging health check failed after 90s"; exit 1; }
+          REMOTE
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Smoke suite against staging
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
+          CI: 'true'
+        run: bun run smoke
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "no APPRISE_URLS configured"; exit 0; fi
+          pip install apprise >/dev/null 2>&1 || true
+          apprise -t "Staging gate FAILED (tag ${TAG})" \
+                  -b "Deploy or smoke failed on staging — prod promotion is blocked. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                  "${APPRISE_URLS}" || true
+
+  # ── promote-prod (DORMANT) ────────────────────────────────────────────────
+  # Enable once the prod VPS + a `prod` GitHub Environment exist. Intended to
+  # run AUTOMATICALLY on a green deploy-and-smoke — no manual approval:
+  #
+  #   promote-prod:
+  #     name: promote-prod
+  #     needs: deploy-and-smoke
+  #     if: needs.deploy-and-smoke.result == 'success'
+  #     runs-on: ubuntu-latest
+  #     environment: prod          # DEPLOY_HOST/KEY + DEPLOY_USER for prod
+  #     steps:
+  #       - retag the staging-verified image → prod (or reuse the same tag)
+  #       - ssh prod: IMAGE_TAG=<tag> compose pull && up  (health-gated,
+  #         auto-rollback to previous tag on failure — same loop as deploy.yml)
+  #       - re-run `bun run smoke` with PLAYWRIGHT_BASE_URL=https://<prod>
+  #         → on failure, roll prod back and alert
+  #
+  # Rollback is CODE-only (flip the image tag); the DB is never restored. That
+  # is safe because every migration is backward-compatible — enforced by the
+  # migration-guard CI job (scripts/check-destructive-migrations.ts).

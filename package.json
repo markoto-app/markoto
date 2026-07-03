@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check-migrations": "bun scripts/check-destructive-migrations.ts",
+    "smoke": "playwright test --config=playwright.smoke.config.ts",
     "test": "vitest run --project=unit --project=dom --project=nuxt",
     "test:unit": "vitest run --project=unit",
     "test:dom": "vitest run --project=dom",
