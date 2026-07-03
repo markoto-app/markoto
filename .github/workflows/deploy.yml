@@ -15,14 +15,21 @@ name: deploy
 # all.vault.example.yml).
 
 on:
-  release:
-    types: [published]
-  # Manual trigger for emergency deploys (CI broken, etc.). Caller picks
-  # the tag they want; same auto-rollback behaviour.
+  # MANUAL ONLY. A merge/release never auto-deploys — you pick the environment
+  # and tag, and `prod` can require an approval via the GitHub Environment
+  # protection rules (Settings → Environments → prod → Required reviewers).
+  # Flow: merge → release.yml builds+pushes images → you dispatch this to
+  # `staging`, verify, then dispatch to `prod`. (Previously it auto-fired on
+  # release:published, which would push straight to prod on every merge.)
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options: [staging, prod]
       tag:
-        description: 'Tag to deploy (e.g. v1.2.3)'
+        description: 'Image tag to deploy (vX.Y.Z, or staging/latest)'
         required: true
         type: string
 
@@ -30,18 +37,21 @@ permissions:
   contents: read
 
 concurrency:
-  # Serialize deploys — never two deploys to the same VPS at once.
-  group: deploy-prod
+  # Serialize deploys per environment — never two deploys to the same host at once.
+  group: deploy-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
   deploy:
-    name: deploy
+    name: deploy (${{ inputs.environment }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Binds environment-scoped secrets (DEPLOY_HOST, DEPLOY_SSH_KEY) + any
+    # required-reviewer protection rule for prod.
+    environment: ${{ inputs.environment }}
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      TAG: ${{ inputs.tag }}
     steps:
       - name: Validate tag
         run: |
@@ -50,8 +60,8 @@ jobs:
             echo "No tag provided." >&2
             exit 1
           fi
-          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag $TAG is not a strict vX.Y.Z" >&2
+          if ! [[ "$TAG" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+|staging|latest)$ ]]; then
+            echo "Tag $TAG must be a strict vX.Y.Z, or 'staging'/'latest'" >&2
             exit 1
           fi
           echo "Deploying $TAG to $DEPLOY_HOST"
