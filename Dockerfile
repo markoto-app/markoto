@@ -33,6 +33,14 @@ COPY --from=builder --chown=bun:bun /app/.output .output
 # Drizzle migration files — applied at boot by server/plugins/db-migrate.ts.
 # Path resolution uses process.cwd() (= /app), so the plugin reads ./drizzle.
 COPY --from=builder --chown=bun:bun /app/drizzle ./drizzle
+# Runtime-read source files that are NOT part of the Nitro .output bundle
+# (fs reads aren't traced by Nitro's NFT, so they must be COPYed explicitly
+# — same rationale as drizzle/). Both are read via process.cwd():
+#   - content/legal/*.md    → server/api/_internal/legal/[slug].get.ts
+#   - shared/templates/...  → server/utils/templateRenderer.ts
+# Missing them 500s every /legal/* page and drops every template body.
+COPY --from=builder --chown=bun:bun /app/content ./content
+COPY --from=builder --chown=bun:bun /app/shared/templates/content ./shared/templates/content
 
 USER bun
 EXPOSE 3000
