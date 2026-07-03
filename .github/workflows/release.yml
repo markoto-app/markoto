@@ -9,7 +9,7 @@ name: release
 #                             notes — no aggregation, no release-drafter.
 #   2. bump-version         — write package.json files + CHANGELOG, commit
 #                             back to main with [skip ci], tag vX.Y.Z
-#   3. build-images         — matrix [app, sync-server, renderer], push to GHCR
+#   3. build-images         — matrix [app, sync-server, renderer, markitdown, backup], push to GHCR
 #   4. run-flows            — regenerate flow output against the freshly-built
 #                             tag (uses docker-compose.test.yml --profile flows)
 #   5. commit-flow-manifests — commit ONLY manifest.json files; PNGs/WebPs go
@@ -242,16 +242,32 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        # `image` is the GHCR repo name the prod compose pulls
+        # (${REGISTRY}/md-online-<x>); `service` is just the display label
+        # + build cache scope. All five runtime images are built here — the
+        # markitdown + backup images were previously omitted, so the prod
+        # stack could never pull a complete set.
         include:
           - service: app
             context: .
             dockerfile: Dockerfile
+            image: md-online-app
           - service: sync-server
             context: ./sync-server
             dockerfile: ./sync-server/Dockerfile
+            image: md-online-sync
           - service: renderer
             context: ./renderer
             dockerfile: ./renderer/Dockerfile
+            image: md-online-renderer
+          - service: markitdown
+            context: ./markitdown-server
+            dockerfile: ./markitdown-server/Dockerfile
+            image: md-online-markitdown
+          - service: backup
+            context: ./backup-server
+            dockerfile: ./backup-server/Dockerfile
+            image: md-online-backup
     steps:
       - uses: actions/checkout@v4
         with:
@@ -277,8 +293,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ghcr.io/joelbarmettleruzh/markoto-${{ matrix.service }}:v${{ needs.resolve-pr.outputs.new_version }}
-            ghcr.io/joelbarmettleruzh/markoto-${{ matrix.service }}:latest
+            ghcr.io/joelbarmettleruzh/${{ matrix.image }}:v${{ needs.resolve-pr.outputs.new_version }}
+            ghcr.io/joelbarmettleruzh/${{ matrix.image }}:latest
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 

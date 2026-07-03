@@ -8,7 +8,7 @@ domain: example.com
 acme_email: you@example.com
 
 # ─── Image registry (GHCR) ───
-registry: ghcr.io/joelbarmettleruzh/markoto
+registry: ghcr.io/joelbarmettleruzh
 image_tag: latest
 
 # ─── Backup sidecar tunables ───
