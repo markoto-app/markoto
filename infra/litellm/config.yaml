@@ -75,6 +75,15 @@ model_list:
     litellm_params:
       model: mistral/mistral-small-2603
       api_key: os.environ/MISTRAL_API_KEY
+      # Prompt caching: Mistral AUTOMATICALLY caches a stable prompt prefix
+      # (system + tools) and bills cached tokens at 10%. We rely on that — the
+      # app orders the system prompt static-first (server/api/ai/prompt.post.ts)
+      # so the prefix stays byte-identical across turns/prompts. Verified
+      # through this proxy: cached_tokens climbs to ~98% of prompt_tokens by
+      # the 4th repeat request. NOTE: an explicit `prompt_cache_key` would warm
+      # the cache a request sooner, but LiteLLM 1.83.14 drops it on the mistral
+      # provider even with `allowed_openai_params`, so we don't set it here.
+      # Revisit on a LiteLLM upgrade that forwards it.
     model_info:
       input_cost_per_token: 0.00000015   # $0.15 / M tokens
       output_cost_per_token: 0.00000060  # $0.60 / M tokens
