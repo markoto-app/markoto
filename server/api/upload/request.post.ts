@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
 import { getDoc } from '../../repos/documents'
 import { recordPending } from '../../repos/uploads'
+import { canEditDoc } from '../../utils/workspaceAccess'
 
 // SVG deliberately excluded — SVG can embed <script> and event handlers
 // that execute when the file is opened directly (right-click → open,
@@ -51,11 +52,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Verify user has write access to this document
+  // Verify the user has write access to this document. `open-edit` docs are
+  // editable by anyone (that's the feature — upload still requires a logged-in
+  // session, gated above). For every other access mode — `open-view`,
+  // `private`, `password-protected` — only the owner or a workspace
+  // admin/editor may upload. The previous check only covered `open-view`
+  // non-owners, so any authenticated user who knew a private/password doc id
+  // could presign a PUT into that doc's S3 prefix (and it wrongly blocked
+  // workspace editors on open-view docs). `canEditDoc` is the same content-edit
+  // gate every other write endpoint uses.
   const doc = await getDoc(docId)
   if (doc) {
-    // If doc exists and is view-only, only the owner can upload
-    if (doc.accessMode === 'open-view' && doc.ownerId !== session.user.id) {
+    if (doc.accessMode !== 'open-edit' && !(await canEditDoc(session.user.id, docId))) {
       throw createError({ statusCode: 403, message: 'No write access to this document' })
     }
   }

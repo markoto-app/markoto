@@ -1,0 +1,156 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { resetDb } from '../setup/db'
+import { anonClient, loggedInClient } from '../setup/client'
+import {
+  createDoc,
+  createUser,
+  createWorkspace,
+  setMemberRole
+} from '../setup/fixtures'
+
+// POST /api/upload/request — mints a presigned S3 PUT for a doc image.
+// Regression target: pre-fix the write-authz check only covered `open-view`
+// non-owners, so any authenticated user who knew a `private` or
+// `password-protected` doc id could presign a PUT into that doc's S3 prefix
+// (and it wrongly blocked workspace editors on `open-view` docs). The write
+// gate is now `canEditDoc`, the same helper every other write endpoint uses,
+// with `open-edit` staying open to anyone (that's the feature).
+
+const BODY = {
+  filename: 'shot.png',
+  contentType: 'image/png',
+  size: 1024
+}
+
+function reqBody(docId: string) {
+  return { docId, ...BODY }
+}
+
+describe('POST /api/upload/request', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('rejects anonymous (no session) with 401', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+    const res = await anonClient().post('/api/upload/request', reqBody(doc.docId))
+    expect(res.status).toBe(401)
+  })
+
+  describe('open-edit — anyone authenticated may upload', () => {
+    it('logged-in non-owner gets a presigned URL', async () => {
+      const owner = await createUser()
+      const other = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const client = await loggedInClient(other.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.uploadUrl).toBeTruthy()
+      expect(body.key).toContain(`docs/${doc.docId}/`)
+    })
+  })
+
+  describe('open-view — owner/members only', () => {
+    it('owner is allowed', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-view' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(200)
+    })
+
+    it('logged-in non-owner is denied (403)', async () => {
+      const owner = await createUser()
+      const other = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-view' })
+      const client = await loggedInClient(other.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(403)
+    })
+
+    it('workspace editor is allowed (previously wrongly blocked)', async () => {
+      const creator = await createUser()
+      const member = await createUser()
+      const ws = await createWorkspace(creator.id)
+      await setMemberRole(ws.workspaceId, member.id, 'editor')
+      const doc = await createDoc({
+        ownerId: creator.id,
+        workspaceId: ws.workspaceId,
+        accessMode: 'open-view'
+      })
+      const client = await loggedInClient(member.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(200)
+    })
+  })
+
+  describe('private — the regression (pre-fix: any authed user could upload)', () => {
+    it('logged-in non-owner is denied (403)', async () => {
+      const owner = await createUser()
+      const other = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(other.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(403)
+    })
+
+    it('owner is allowed', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(200)
+    })
+
+    it.each(['admin', 'editor'] as const)('workspace %s is allowed', async (role) => {
+      const creator = await createUser()
+      const member = await createUser()
+      const ws = await createWorkspace(creator.id)
+      await setMemberRole(ws.workspaceId, member.id, role)
+      const doc = await createDoc({
+        ownerId: creator.id,
+        workspaceId: ws.workspaceId,
+        accessMode: 'private'
+      })
+      const client = await loggedInClient(member.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(200)
+    })
+
+    it('workspace viewer is denied (403)', async () => {
+      const creator = await createUser()
+      const member = await createUser()
+      const ws = await createWorkspace(creator.id)
+      await setMemberRole(ws.workspaceId, member.id, 'viewer')
+      const doc = await createDoc({
+        ownerId: creator.id,
+        workspaceId: ws.workspaceId,
+        accessMode: 'private'
+      })
+      const client = await loggedInClient(member.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(403)
+    })
+  })
+
+  describe('password-protected — owner/members only (upload cannot prove password)', () => {
+    it('logged-in non-owner is denied (403)', async () => {
+      const owner = await createUser()
+      const other = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'password-protected' })
+      const client = await loggedInClient(other.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(403)
+    })
+
+    it('owner is allowed', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'password-protected' })
+      const client = await loggedInClient(owner.id)
+      const res = await client.post('/api/upload/request', reqBody(doc.docId))
+      expect(res.status).toBe(200)
+    })
+  })
+})
