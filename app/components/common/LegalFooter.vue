@@ -46,7 +46,7 @@ function reopenConsent(): void {
   >
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-3 flex flex-col sm:flex-row items-center sm:items-center justify-between gap-2 sm:gap-4">
       <div class="text-xs text-muted font-mono">
-        © {{ new Date().getFullYear() }} Latent Labs GmbH
+        © {{ new Date().getFullYear() }} LatentSpace Labs GmbH
       </div>
       <nav
         class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2"

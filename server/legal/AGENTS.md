@@ -24,7 +24,7 @@ Adjacent: `shared/legal/` holds the version + entity registries (client-and-serv
 | `AUTHORITATIVE_LOCALE` | `'en'` — never bump unless the operating entity moves jurisdictions. |
 | `LEGAL_DOCUMENT_LOCALES` | The set of translated locales a given doc is rendered for. |
 
-`shared/legal/entity.ts` exposes `resolveLegalEntity()` — request-time resolver that overlays env vars (`NUXT_LEGAL_*`) over the in-source defaults (Latent Labs GmbH, Zurich). The legal markdown sources (`content/legal/*/{locale}.md`) reference `{{controllerName}}` / `{{controllerAddress}}` / `{{privacyContactEmail}}` / `{{abuseContactEmail}}` / `{{governingLaw}}`; the server renderer substitutes per request.
+`shared/legal/entity.ts` exposes `resolveLegalEntity()` — request-time resolver that overlays env vars (`NUXT_LEGAL_*`) over the in-source defaults (LatentSpace Labs GmbH, Zurich). The legal markdown sources (`content/legal/*/{locale}.md`) reference `{{controllerName}}` / `{{controllerAddress}}` / `{{privacyContactEmail}}` / `{{abuseContactEmail}}` / `{{governingLaw}}`; the server renderer substitutes per request.
 
 ## Rules of engagement
 

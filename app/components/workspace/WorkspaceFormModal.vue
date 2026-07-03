@@ -173,7 +173,7 @@ async function handleSubmit() {
           </p>
           <p class="text-sm text-muted mb-3">
             By creating a workspace you become a controller for personal
-            data your members place inside it, and Latent Labs GmbH
+            data your members place inside it, and LatentSpace Labs GmbH
             becomes your processor. Our Data Processing Addendum is the
             contract that governs that.
           </p>
