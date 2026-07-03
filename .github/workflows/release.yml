@@ -220,19 +220,18 @@ jobs:
       # above the 7 GB of a private-repo runner and the OOM-killer SIGKILLs
       # `bun run build` inside the Docker build ("cannot allocate memory").
       # bun uses JSC (no V8 heap flag), so the fix is more virtual memory.
-      # Put swap on ROOT (/) — /mnt is Docker's data-root, and a swapfile
-      # there starves the image layers. Free some preinstalled bulk from /
-      # first so the swapfile + build layers both fit. Cheap no-op for the
-      # small images.
-      - name: Free disk + add swap (memory-heavy app build)
+      # Add a SECOND swapfile (the runner already has an active /swapfile —
+      # fallocate'ing that one fails "Text file busy") on the large 72 GB
+      # root disk. NOT /mnt: that's the small disk Docker layers spill onto.
+      # Only the app image build is heavy enough to need it.
+      - name: Add swap (memory-heavy app build)
+        if: matrix.image == 'md-online-app'
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-            /opt/hostedtoolcache/CodeQL /usr/local/share/boost 2>/dev/null || true
-          df -h /
-          sudo fallocate -l 10G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
+          sudo fallocate -l 10G /swapfile-ci
+          sudo chmod 600 /swapfile-ci
+          sudo mkswap /swapfile-ci
+          sudo swapon /swapfile-ci
+          swapon --show
           free -h
 
       - name: Set up QEMU
