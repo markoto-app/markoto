@@ -164,6 +164,32 @@ jobs:
       - name: Typecheck
         run: bun --bun run typecheck
 
+  migration-guard:
+    name: migration-guard
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 so the guard can diff the PR's new migrations against
+      # the base branch (it only scans CHANGED drizzle/*.sql — historical
+      # migrations legitimately contain DROP/TRUNCATE).
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      # No `bun install` — the script uses only node builtins, so this stays
+      # fast. Flags backward-incompatible DDL (DROP/RENAME/TYPE/SET NOT NULL/
+      # TRUNCATE) that would break code-only rollback in the deploy pipeline.
+      # Acknowledge a reviewed exception with `-- allow-destructive: <reason>`
+      # in the migration .sql. See scripts/check-destructive-migrations.ts.
+      - name: Guard against backward-incompatible migrations
+        env:
+          BASE_REF: origin/${{ github.base_ref || 'main' }}
+        run: bun scripts/check-destructive-migrations.ts
+
   test-unit-dom:
     name: test-unit-dom
     runs-on: ubuntu-latest
