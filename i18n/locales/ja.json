@@ -1,1 +1,1171 @@
-{}
+{
+  "app": {
+    "name": "markoto",
+    "tagline": "共同編集できるMarkdownエディター",
+    "offline": "オフラインです — 再接続するまで編集内容はローカルに保存されます。"
+  },
+  "landing": {
+    "hero": "文章づくりを、あらためて。",
+    "subtitle": "リアルタイム同期、AIアシスト、充実したドキュメント管理を備えた共同編集Markdownエディター。",
+    "newDocument": "新しいドキュメント",
+    "openDocument": "ドキュメントを開く",
+    "recentDocuments": "最近のドキュメント",
+    "noRecent": "最近のドキュメントはありません"
+  },
+  "auth": {
+    "login": "ログイン",
+    "logout": "ログアウト",
+    "loginGithub": "GitHubで続ける",
+    "loginGoogle": "Googleで続ける",
+    "loginRequired": "ログインが必要です",
+    "linkedTitle": "アカウントを連携しました",
+    "linkedDescription": "{provider}ログインが既存のアカウントに連携されました。今後はどちらのプロバイダーでもサインインできます。"
+  },
+  "editor": {
+    "untitled": "無題",
+    "placeholder": "書き始めましょう...",
+    "syncAuthFailedTitle": "同期サーバーが接続を拒否しました",
+    "syncAuthFailedDescription": "通常はここで編集アクセスがあります。同期サーバーがハンドシェイクを拒否しました — IPごとのレート制限か、古いトークンが原因の可能性があります。再読み込みして再試行してください。",
+    "syncAuthFailedReload": "再読み込み",
+    "aiWorkspaceBadge": "markotoワークスペース",
+    "aiWorkspaceBadgeTooltip": "このドキュメントはmarkotoワークスペース内にあります — ここでのmarkotoの作業はあなたではなくスポンサーのクレジットプールを使用します。",
+    "aiWorkspaceSponsoredBy": "{name}がスポンサーするmarkotoワークスペース",
+    "bold": "太字",
+    "italic": "斜体",
+    "heading": "見出し",
+    "link": "リンク",
+    "code": "コード",
+    "quote": "引用",
+    "list": "箇条書き",
+    "orderedList": "番号付きリスト",
+    "taskList": "タスクリスト",
+    "image": "画像",
+    "preview": "プレビュー",
+    "edit": "編集",
+    "splitView": "分割表示",
+    "strikethrough": "取り消し線",
+    "highlight": "ハイライト",
+    "insert": "挿入（下線）",
+    "subscript": "下付き文字",
+    "superscript": "上付き文字",
+    "horizontalRule": "水平線",
+    "pageBreak": "改ページ",
+    "table": "表",
+    "hideFromPreview": "非表示にする（プレビューから隠す）"
+  },
+  "status": {
+    "connecting": "接続中...",
+    "connected": "接続済み",
+    "disconnected": "切断されました",
+    "synced": "同期済み",
+    "users": "{count}人のユーザー | {count}人のユーザー"
+  },
+  "share": {
+    "title": "ドキュメントへのアクセス",
+    "subtitle": "すべての訪問者が同じリンクを使用します。以下のアクセスモードで、そのリンクでできることを制御します。",
+    "share": "共有",
+    "copyLink": "リンクをコピー",
+    "linkCopied": "リンクをコピーしました！",
+    "systemShare": "システムで共有…",
+    "qrCode": "QRコードを表示",
+    "accessMode": "アクセスモード",
+    "private": "非公開 — 自分のみ",
+    "openEdit": "誰でも編集可能",
+    "openView": "誰でも閲覧可能",
+    "passwordProtected": "パスワード保護",
+    "setPassword": "ドキュメントのパスワードを設定",
+    "passwordPlaceholder": "パスワードを入力...",
+    "passwordMinLength": "4文字以上",
+    "passwordRequired": "パスワードが必要です",
+    "passwordRequiredDesc": "このドキュメントは保護されています。続けるにはパスワードを入力してください。",
+    "enterPassword": "パスワード",
+    "invalidPassword": "パスワードが正しくありません。もう一度お試しください。",
+    "unlock": "ロック解除",
+    "viewOnly": "閲覧のみ"
+  },
+  "access": {
+    "privateTitle": "このドキュメントは非公開です",
+    "privateDescLoggedIn": "このドキュメントを開けるのは所有者のみです。アクセス権があるはずだと思う場合は、共有設定の変更を所有者に依頼してください。",
+    "privateDescAnon": "このドキュメントを開けるのは所有者のみです。アクセス権がある場合は、ログインして続けてください。",
+    "backHome": "ホームに戻る"
+  },
+  "presence": {
+    "offline": "オフライン",
+    "anonymousEditor": "匿名の編集者",
+    "guest": "ゲスト"
+  },
+  "activity": {
+    "title": "アクティビティ",
+    "noActivity": "まだアクティビティはありません",
+    "anonymous": "匿名",
+    "untitled": "無題",
+    "justNow": "たった今",
+    "minutesAgo": "{count}分前",
+    "hoursAgo": "{count}時間前",
+    "daysAgo": "{count}日前",
+    "action": {
+      "edit": "ドキュメントを編集しました",
+      "join": "参加しました",
+      "leave": "退出しました",
+      "comment": {
+        "added": "コメントを追加しました",
+        "replied": "コメントに返信しました",
+        "resolved": "コメントを解決しました",
+        "reopened": "コメントを再開しました",
+        "deleted": "コメントを削除しました",
+        "deletedReply": "返信を削除しました"
+      },
+      "title": {
+        "changed": "ドキュメント名を変更しました"
+      },
+      "theme": {
+        "changed": "テーマを変更しました"
+      },
+      "ai": {
+        "tool": "ツールを使用しました"
+      },
+      "restore": "ドキュメントを復元しました",
+      "aiTool": {
+        "web_search": "ウェブを検索しました",
+        "fetch_url": "URLを取得しました",
+        "generate_image": "画像を生成しました",
+        "view_image": "画像を確認しました",
+        "search_knowledge": "ナレッジベースを検索しました",
+        "get_knowledge_file": "ナレッジファイルを読み込みました"
+      }
+    },
+    "detail": {
+      "titleChanged": "{from} → {to}",
+      "restoredFrom": "{ago}の状態から"
+    },
+    "restore": {
+      "button": {
+        "label": "復元",
+        "tooltip": "ドキュメントをこの時点に復元します。元に戻せます — アクティビティログからいつでも戻せます。"
+      },
+      "confirm": {
+        "title": "ドキュメントを復元しますか？",
+        "body": "ドキュメントは{when}の状態に戻ります。それ以降に行った編集は削除されます（ただしアクティビティログから復元可能です）。",
+        "reversibleHint": "この復元自体も元に戻せます — いつでも現在の状態に戻せます。",
+        "cta": "復元"
+      },
+      "success": "ドキュメントを復元しました。",
+      "error": {
+        "unauthorized": "このドキュメントへの編集アクセス権がありません。",
+        "unavailable": "この行からは復元できません — 復元機能の導入前のものです。",
+        "notFound": "このドキュメントにそのアクティビティ行は存在しません。",
+        "generic": "復元に失敗しました。ドキュメントは変更されていません。"
+      }
+    },
+    "filter": {
+      "all": "すべて",
+      "edits": "編集",
+      "comments": "コメント",
+      "ai": "AI",
+      "meta": "メタ"
+    },
+    "noFilterMatches": "このカテゴリにはまだ何もありません",
+    "diff": {
+      "viewChange": "変更を表示",
+      "hideChange": "変更を隠す",
+      "empty": "テキストの変更はありません。",
+      "unavailable": "この行の差分は利用できません。",
+      "error": "差分を読み込めませんでした。",
+      "retry": "再試行",
+      "truncated": "{total}件中{shown}件のハンクを表示 — 差分は省略されています。"
+    },
+    "commentContext": {
+      "view": "スレッドを表示",
+      "hide": "スレッドを隠す",
+      "replyMarker": "（返信）",
+      "resolved": "解決済み",
+      "unavailable": "このスレッドはもう存在しません。",
+      "error": "スレッドを読み込めませんでした。",
+      "retry": "再試行"
+    },
+    "aiTool": {
+      "view": "詳細を表示",
+      "hide": "詳細を隠す",
+      "sourcesHeading": "ソース",
+      "noSources": "ソースは見つかりませんでした。",
+      "imageInDoc": "生成された画像はドキュメントに挿入されました。",
+      "knowledgeNote": "ワークスペースナレッジ機能。"
+    }
+  },
+  "comments": {
+    "title": "コメント",
+    "addLabel": "コメントを追加",
+    "addAria": "選択範囲にコメントを追加",
+    "empty": "まだコメントはありません。テキストを選択してコメントボタンを押してください。",
+    "post": "送信",
+    "cancel": "キャンセル",
+    "reply": "返信",
+    "replyPost": "返信",
+    "resolve": "解決",
+    "unresolve": "再開",
+    "edit": "編集",
+    "delete": "削除",
+    "deleteThreadConfirm": "このコメントスレッドを削除しますか？",
+    "deleteReplyConfirm": "この返信を削除しますか？",
+    "showResolved": "解決済みを表示",
+    "activeSection": "アクティブ",
+    "orphanedSection": "ドキュメントから削除されました",
+    "orphanedHint": "このコメントが付いていたテキストは削除されました。",
+    "resolvedSection": "解決済み",
+    "composerPlaceholder": "コメントを追加…",
+    "replyPlaceholder": "返信…",
+    "selectTextFirst": "エディターでテキストを選択してコメントを始めてください。",
+    "draftHeading": "新しいコメント",
+    "mentionTrigger": "{'@'}を入力してワークスペースメンバーをメンションできます",
+    "submitHint": "{cmd}+Enter で送信  ·  Esc でキャンセル",
+    "anonymous": "匿名",
+    "aiEntryName": "markoto",
+    "aiEntryDescription": "このスレッドでの対応をmarkotoに依頼",
+    "aiMentionTooltip": "{'@'}markotoをメンションすると、markotoにこのスレッドでの返信を依頼します。",
+    "aiMentionHint": "ヒント：コメントに{'@'}markotoを含めると、markotoに対応を依頼できます。",
+    "aiResponding": "markotoが応答しています…",
+    "aiTriggerFailed": "このスレッドでmarkotoに接続できませんでした。",
+    "aiTriggerExhausted": "クレジットを使い切りました — プランをアップグレードすると、コメントからmarkotoに依頼できます。"
+  },
+  "image": {
+    "loginToUpload": "画像をアップロードするにはログインしてください。",
+    "uploadFailed": "画像のアップロードに失敗しました",
+    "dropToUpload": "画像をドロップしてアップロード",
+    "uploading": "アップロード中..."
+  },
+  "import": {
+    "title": "ドキュメントをインポート",
+    "description": "ファイルをMarkdownに変換してエディターに読み込みます。",
+    "selectFile": "クリックしてファイルを選択",
+    "changeFile": "別のファイルを選択",
+    "formats": "対応形式：DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
+    "import": "インポート",
+    "error": "インポートに失敗しました。別のファイルをお試しください。",
+    "conflictTitle": "ドキュメントに既存の内容があります",
+    "conflictDesc": "インポートした内容をどのように扱いますか？",
+    "replace": "すべて置き換える",
+    "append": "追記する"
+  },
+  "export": {
+    "title": "エクスポート",
+    "markdown": "Markdown（.md）",
+    "pdf": "PDF（.pdf）",
+    "exporting": "エクスポート中..."
+  },
+  "newDoc": {
+    "title": "新しいドキュメント",
+    "subtitle": "いくつかの簡単な選択で、markotoが最初からあなたに合わせて執筆できます。すべて任意です — いつでも空白のドキュメントに進めます。",
+    "titleLabel": "タイトル",
+    "titlePlaceholder": "例：第3四半期のローンチ計画",
+    "descriptionLabel": "説明",
+    "descriptionHelp": "書いている内容を1行で。AIは毎ターンこれを参照します。",
+    "descriptionPlaceholder": "このドキュメントは何についてのものですか？",
+    "languageLabel": "言語",
+    "audienceLabel": "対象読者",
+    "themeLabel": "テーマ",
+    "themeHelp": "見た目のスタイルを設定します。いつでも変更できます。",
+    "themeWorkspaceDefault": "ワークスペースの既定",
+    "themeWorkspaceDefaultHelp": "このワークスペースの既定として設定されたテーマを使用します。",
+    "templateLabel": "テンプレート",
+    "templateHelp": "編集可能な構造の骨組みでドキュメントを事前入力します。各セクションにはコメントヒントが付いており、markotoがどこに何が入るかを把握できます。",
+    "create": "ドキュメントを作成",
+    "skip": "空白のドキュメントでいい"
+  },
+  "templates": {
+    "blank": {
+      "label": "空白",
+      "description": "タイトルだけ。構成はあなたが作ります。"
+    },
+    "business-plan": {
+      "label": "事業計画",
+      "description": "エグゼクティブサマリー、市場、ビジネスモデル、ロードマップ、財務、リスク。"
+    },
+    "academic-paper": {
+      "label": "学術論文",
+      "description": "要旨、序論、関連研究、手法、結果、考察、参考文献。"
+    },
+    "recipe": {
+      "label": "レシピ",
+      "description": "一目でわかるカード、材料、器具、手順、アレンジ。"
+    },
+    "meeting-notes": {
+      "label": "議事録",
+      "description": "議題、議論、決定事項、アクションアイテム、未解決の課題。"
+    },
+    "project-readme": {
+      "label": "プロジェクトREADME",
+      "description": "キャッチコピー、目的、クイックスタート、機能、ドキュメント、コントリビュート、ライセンス。"
+    }
+  },
+  "documentPanel": {
+    "title": "ドキュメント",
+    "description": {
+      "label": "説明",
+      "help": "このドキュメントが何であるかを1行で。AIは毎ターンこれを参照します — 再入力せずに、モデルがあなたの作業内容を把握できる仕組みです。",
+      "placeholder": "例：新しいモバイルアプリの第3四半期ローンチ計画"
+    },
+    "language": {
+      "label": "言語",
+      "help": "markotoが執筆する言語を設定します。プリセットを選ぶか、任意の言語名を入力してください。",
+      "placeholder": "言語を選ぶか入力（例：ロマンシュ語、スイスドイツ語）",
+      "customActive": "入力した言語を使用中です。プリセットを選ぶと元に戻せます。"
+    },
+    "audience": {
+      "label": "対象読者",
+      "help": "このドキュメントが誰向けに書かれているかをmarkotoに伝えます。トーン、構成、言葉選びに影響します。"
+    }
+  },
+  "audiences": {
+    "technical": {
+      "label": "技術者向け",
+      "description": "エンジニア、開発者、技術系ユーザー。正確、簡潔、コードに適した表現。"
+    },
+    "marketing": {
+      "label": "マーケティング / SEO",
+      "description": "顧客、見込み客、検索エンジン。読み飛ばしやすく、メリット重視、キーワードを意識。"
+    },
+    "academic": {
+      "label": "学術向け",
+      "description": "研究者、査読者。形式的、三人称、根拠を明示。"
+    },
+    "casual": {
+      "label": "カジュアル / ブログ",
+      "description": "一般読者。会話調、二人称、具体的な例。"
+    },
+    "business": {
+      "label": "ビジネス向け",
+      "description": "経営層、管理職。結論優先、数値化、行動志向。"
+    },
+    "creative": {
+      "label": "創作",
+      "description": "フィクション、ナラティブノンフィクション。描写重視、変化のあるリズム。"
+    }
+  },
+  "languages": {
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "ja": "日本語",
+    "zh": "中文"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "openPanel": "パネルを開く",
+    "back": "戻る",
+    "delete": "削除",
+    "duplicate": "複製",
+    "move": "ワークスペースに移動…",
+    "confirm": "確認",
+    "close": "閉じる",
+    "loading": "読み込み中...",
+    "menu": "メニュー"
+  },
+  "menu": {
+    "lightMode": "ライトモード",
+    "darkMode": "ダークモード",
+    "account": "アカウント"
+  },
+  "menubar": {
+    "file": {
+      "title": "ファイル",
+      "new": "新しいドキュメント",
+      "import": "インポート…",
+      "export": "エクスポート",
+      "print": "印刷",
+      "duplicate": "複製…",
+      "move": "ワークスペースに移動…",
+      "delete": "ドキュメントを削除…"
+    },
+    "edit": {
+      "title": "編集",
+      "undo": "元に戻す",
+      "redo": "やり直す"
+    },
+    "view": {
+      "title": "表示",
+      "language": "言語"
+    },
+    "insert": {
+      "title": "挿入",
+      "codeBlock": "コードブロック",
+      "footnote": "脚注",
+      "alert": "アラート",
+      "alertNote": "ノート",
+      "alertTip": "ヒント",
+      "alertImportant": "重要",
+      "alertWarning": "警告",
+      "alertCaution": "注意",
+      "math": "数式",
+      "mathInline": "インライン数式",
+      "mathBlock": "ブロック数式",
+      "diagram": "図",
+      "diagramFlowchart": "フローチャート",
+      "diagramSequence": "シーケンス図",
+      "diagramClass": "クラス図",
+      "diagramState": "状態遷移図",
+      "diagramEr": "ER図",
+      "diagramGantt": "ガントチャート",
+      "diagramPie": "円グラフ",
+      "diagramMindmap": "マインドマップ",
+      "toc": "目次",
+      "definitionList": "定義リスト"
+    },
+    "format": {
+      "title": "書式",
+      "inlineCode": "インラインコード"
+    },
+    "sharing": {
+      "title": "共有",
+      "access": "共有設定…",
+      "password": "パスワードの設定・変更…",
+      "copyLink": "リンクをコピー"
+    },
+    "help": {
+      "title": "ヘルプ",
+      "shortcuts": "キーボードショートカット",
+      "feedback": "問題を報告",
+      "github": "GitHubで見る"
+    }
+  },
+  "ai": {
+    "placeholder": "markotoに質問…",
+    "send": "送信",
+    "stop": "停止",
+    "loginRequired": "markotoに質問するにはログイン",
+    "statusThinking": "markotoが考えています…",
+    "statusSearching": "markotoがウェブを検索しています…",
+    "statusFetching": "markotoがページを読んでいます…",
+    "statusEditing": "markotoがドキュメントを編集しています…",
+    "statusDone": "完了",
+    "otherSessions": "他に{n}件のセッション | 他に{n}件のセッション",
+    "helpingTooltip": "markotoが{name}を手伝っています",
+    "alreadyRunning": "このドキュメントではすでにmarkotoセッションが実行中です。",
+    "rateLimited": "リクエストが多すぎます。1分後に再試行してください。",
+    "failed": "markotoに接続できませんでした",
+    "micStart": "音声入力を開始",
+    "micBlocked": "マイクがブロックされています — ブラウザの設定で有効にしてください",
+    "micStop": "停止して送信",
+    "micCancel": "音声入力をキャンセル",
+    "micRequestingPermission": "マイクを待機しています…",
+    "micTranscribing": "文字起こし中…",
+    "micInaudibleTitle": "聞き取れませんでした",
+    "micInaudibleDescription": "録音が無音か聞き取れませんでした。もう一度お試しください。",
+    "micErrorTitle": "音声入力に失敗しました",
+    "dictateStart": "ディクテーションを開始",
+    "dictateStop": "ディクテーションを停止",
+    "dictateConnecting": "接続中…",
+    "dictateListening": "聞き取り中…",
+    "dictateBudgetExhaustedTitle": "本日のディクテーション上限に達しました",
+    "dictateBudgetExhaustedDescription": "本日分のディクテーション時間を使い切りました。明日また試してください。",
+    "dictateSessionCapTitle": "ディクテーションセッションが終了しました",
+    "dictateSessionCapDescription": "セッションは10分が上限です。続けるには新しいセッションを開始してください。",
+    "dictateIdleTitle": "ディクテーションを一時停止しました",
+    "dictateIdleDescription": "30秒間音声がなかったため、ディクテーションを停止しました。",
+    "dictateErrorTitle": "ディクテーションに失敗しました",
+    "budgetExhaustedTitle": "AIクレジットがありません",
+    "budgetExhaustedDescription": "この請求期間のAIクレジットをすべて使い切りました。続けるにはプランをアップグレードしてください。",
+    "exhaustedPlaceholder": "AIクレジットがありません — 続けるにはアップグレード",
+    "workspaceBudgetExhaustedTitle": "ワークスペースのAI予算を使い切りました",
+    "workspaceBudgetExhaustedDescription": "このワークスペースの共有AI予算は現在の請求期間分を使い切りました。補充またはアップグレードについてワークスペース所有者にご連絡ください。",
+    "workspaceExhaustedPlaceholder": "ワークスペースのAI予算を使い切りました — 所有者にご連絡ください",
+    "upgradeCta": "アップグレード",
+    "remainingLabel": "今月のAIクレジットは残り{limit}件中{remaining}件",
+    "responseLabel": "markotoからの返答",
+    "responseQuestionLabel": "markotoが質問しています",
+    "responseDismiss": "閉じる",
+    "responseShowLast": "markotoからの最新の返答",
+    "errors": {
+      "duplicateSession": "このドキュメントではすでにmarkotoセッションが実行中です。",
+      "abortNotInitiator": "このmarkotoセッションを停止できるのは、開始した本人だけです。"
+    }
+  },
+  "mobileTabBar": {
+    "label": "ドキュメントパネル",
+    "editor": "エディター",
+    "dictateStart": "音声入力",
+    "dictateStop": "停止",
+    "documentShort": "情報",
+    "commentsShort": "コメント",
+    "activityShort": "アクティビティ",
+    "themeShort": "テーマ",
+    "knowledgeShort": "ナレッジ"
+  },
+  "editorCommands": {
+    "formatting": "書式設定",
+    "headings": "見出し",
+    "lists": "リスト",
+    "insert": "挿入",
+    "bold": "太字",
+    "italic": "斜体",
+    "strike": "取り消し線",
+    "code": "コード",
+    "heading1": "見出し1",
+    "heading2": "見出し2",
+    "heading3": "見出し3",
+    "body": "本文",
+    "bulletList": "箇条書き",
+    "numberedList": "番号付きリスト",
+    "taskList": "タスクリスト",
+    "link": "リンク",
+    "footnote": "脚注",
+    "toc": "目次",
+    "hiddenComment": "非表示メモ"
+  },
+  "pricing": {
+    "title": "料金",
+    "subtitle": "自分に合ったプランを選びましょう。すべてのプランで同じAIモデルを使用します — 有料ユーザーはより多く利用できるだけです。",
+    "aiCreditsPerMonth": "markotoクレジット/月",
+    "creditsHint": "テキストプロンプトは1クレジット、画像とグラウンド検索は5クレジット、音声は1分あたり5クレジット消費します。",
+    "workspaces": "ワークスペース",
+    "knowledgeFiles": "ナレッジファイル",
+    "knowledgeStorage": "合計ストレージ",
+    "dictation": "音声ディクテーション",
+    "teamBilling": "markotoワークスペース：ワークスペース内の全員のmarkotoをスポンサー",
+    "currentPlan": "現在のプラン",
+    "manageSubscription": "サブスクリプションを管理",
+    "freeForever": "ずっと無料",
+    "upgrade": "アップグレード",
+    "downgrade": "ダウングレード",
+    "signUp": "サインアップ",
+    "close": "閉じる",
+    "footnote": "すべてのプランにリアルタイム共同編集、バージョン履歴、無制限のドキュメントが含まれます。AIクレジットは毎月リセットされます。"
+  },
+  "topbar": {
+    "planBadge": "プラン：{plan}",
+    "creditsTooltipTitle": "markotoクレジット",
+    "creditsRemaining": "残り{limit}クレジット中{remaining}クレジット",
+    "creditsPercent": "残り{pct}%",
+    "creditsResetOn": "{date}にリセット",
+    "creditsHint": "テキストプロンプトは1クレジット、画像とグラウンド検索は5クレジット、音声は1分あたり5クレジット消費します。",
+    "upgradeToPlan": "{plan}にアップグレード",
+    "topPlan": "最上位プランをご利用中です。",
+    "viewAllPlans": "すべてのプランを見る"
+  },
+  "theme": {
+    "title": "ドキュメントテーマ",
+    "description": "このドキュメントの見た目をカスタマイズします。変更はアクセス権を持つ全員にリアルタイムで反映されます。",
+    "readOnly": "このドキュメントのテーマを編集する権限がありません。",
+    "reset": "既定に戻す",
+    "portrait": "縦向き",
+    "landscape": "横向き",
+    "column": "段",
+    "columns": "段",
+    "section": {
+      "page": "ページ",
+      "body": "本文テキスト",
+      "headings": "見出し",
+      "color": "色",
+      "layout": "レイアウト",
+      "header": "ページヘッダー",
+      "footer": "ページフッター",
+      "code": "コードブロック",
+      "tables": "表",
+      "blocks": "画像と引用",
+      "toc": "目次",
+      "mermaid": "図",
+      "alerts": "注意書き",
+      "meta": "メタ表現",
+      "cover": "表紙"
+    },
+    "page": {
+      "size": "ページサイズ",
+      "orientation": "向き",
+      "margin": "余白（mm）",
+      "marginHelp": "四辺すべてに均一の余白を設定します。"
+    },
+    "body": {
+      "font": "フォント",
+      "size": "サイズ（pt）",
+      "lineHeight": "行の高さ",
+      "textAlign": "段落の揃え",
+      "textAlignHelp": "両端揃えは、ハイフネーションを使って行を端から端まで埋めます。",
+      "color": "文字色",
+      "background": "ページ背景",
+      "dropCap": "最初の段落にドロップキャップ",
+      "dropCapHelp": "最初の文字を本文の約3.4倍サイズで、見出しフォントで表示します。",
+      "firstLineIndent": "段落の1行目インデント",
+      "firstLineIndentHelp": "連続する段落のうち最初のものを除き、各段落の1行目をインデントします（小説の組版）。",
+      "paragraphSpacing": "段落の間隔（em）",
+      "hyphenate": "本文を自動ハイフネーション",
+      "hyphenateHelp": "長い単語を行末で分割します。両端揃えのテキストに推奨されます。"
+    },
+    "headings": {
+      "font": "フォント",
+      "scale": "スケール比",
+      "weight": "太さ",
+      "color": "色",
+      "colorHelp": "多くの場合ブランドカラーですが、組み合わせられるように独立して設定できます。",
+      "underline": "下線（ブランドカラー付き）",
+      "letterSpacing": "字間（em）",
+      "lineHeight": "行の高さ",
+      "spacingScale": "上余白スケール",
+      "spacingScaleHelp": "見出しの上余白の倍率です。1.0＝印刷既定、1.5＝編集向けのゆとり。"
+    },
+    "align": {
+      "left": "左揃え",
+      "center": "中央揃え",
+      "right": "右揃え",
+      "justify": "両端揃え（埋める）"
+    },
+    "fonts": {
+      "sans": "サンセリフ",
+      "serif": "セリフ"
+    },
+    "color": {
+      "brand": "ブランドカラー",
+      "brandHelp": "リンク、アクセント、表のヘッダー（選択時）、見出しの下線に使用されます。",
+      "secondary": "セカンダリカラー",
+      "secondaryHelp": "細線、区切り線、表の罫線、図キャプション、目次のリーダーに使用されます。"
+    },
+    "layout": {
+      "columns": "段組み",
+      "columnGap": "段間隔（mm）"
+    },
+    "runningSlots": {
+      "left": "左",
+      "center": "中央",
+      "right": "右",
+      "help": "ページ番号などの動的な値には、下のトークンを使用してください。",
+      "tokens": "挿入：",
+      "image": "画像",
+      "imageHelp": "各本文ページのランニングヘッダーに表示する任意のロゴやマーク（表紙ではヘッダーが自動的に抑制されます）。",
+      "imagePosition": "画像の位置",
+      "imageHeight": "画像の高さ",
+      "uploadImage": "画像をアップロード"
+    },
+    "code": {
+      "theme": "カラーテーマ",
+      "fontSize": "フォントサイズ（pt）",
+      "none": "プレーン（構文ハイライトなし）"
+    },
+    "tables": {
+      "headerBackground": "ヘッダー背景",
+      "headerBgBrand": "ブランドカラー",
+      "headerBgMuted": "控えめな色合い",
+      "headerBgNone": "なし",
+      "headerTextColor": "ヘッダー文字色",
+      "headerTextColorHelp": "ヘッダーがブランドカラーの場合は自動的に白を選びます。",
+      "headerColorAuto": "自動",
+      "headerColorInherit": "継承（本文色）",
+      "borders": "罫線スタイル",
+      "bordersAll": "すべてのセルの周囲",
+      "bordersHorizontal": "行の間のみ",
+      "bordersMinimal": "上部＋下部＋ヘッダーの下",
+      "bordersNone": "罫線なし",
+      "zebra": "行の交互色",
+      "zebraHelp": "1行おきに控えめな縞模様を付けます。",
+      "cellPadding": "セルの余白（px）"
+    },
+    "blocks": {
+      "imageRadius": "画像の角丸（px）",
+      "imageMaxWidth": "画像の最大幅（%）",
+      "blockquoteStyle": "引用ブロックのスタイル",
+      "hrStyle": "水平線のスタイル",
+      "hrStyleHelp": "`---`（Markdownの水平線）の表示方法です。",
+      "hrThickness": "線の太さ（px）"
+    },
+    "blockquote": {
+      "border": "左の縦線",
+      "background": "色付き背景",
+      "none": "プレーン"
+    },
+    "hr": {
+      "rule": "実線",
+      "dashed": "破線",
+      "dotted": "点線",
+      "asterism": "アスタリズム（⁂）",
+      "none": "非表示"
+    },
+    "mermaid": {
+      "theme": "図のテーマ",
+      "themeHelp": "このドキュメント内のすべてのMermaid図に適用されます。",
+      "themeDefault": "既定",
+      "themeDark": "ダーク",
+      "themeForest": "フォレスト（緑）",
+      "themeNeutral": "ニュートラル（グレースケール）",
+      "themeBase": "ベース（ブランドカラー基調）"
+    },
+    "alerts": {
+      "help": "GitHubスタイルの注意書き（[!NOTE]、[!TIP]、[!IMPORTANT]、[!WARNING]、[!CAUTION]）の色。",
+      "note": "ノート",
+      "tip": "ヒント",
+      "important": "重要",
+      "warning": "警告",
+      "caution": "注意"
+    },
+    "meta": {
+      "font": "メタフォント",
+      "fontHelp": "ヘッダー／フッターのテキスト、図キャプション、脚注に使用されます — 「ドキュメントについて」を表す表現です。"
+    },
+    "cover": {
+      "enabled": "表紙を表示",
+      "enabledHelp": "1ページ目としてタイトルページを追加します（ページ番号とランニングヘッダーを抑制）。",
+      "layout": "レイアウト",
+      "layoutClassic": "クラシック — すべて中央揃え",
+      "layoutEditorial": "エディトリアル — ロゴを上、タイトルを⅓、メタを⅔に",
+      "layoutBanner": "バナー — ブランドカラーの上部帯にロゴ＋タイトル",
+      "layoutMinimal": "ミニマル — タイトルのみ中央揃え（ロゴとメタは非表示）",
+      "align": "テキストの揃え",
+      "titleSize": "タイトルサイズ",
+      "subtitleSize": "サブタイトルサイズ",
+      "showTitle": "ドキュメントタイトルを表示",
+      "showSubtitle": "サブタイトルを表示",
+      "subtitle": "サブタイトル",
+      "showDate": "日付を表示",
+      "showAuthors": "著者を表示",
+      "showLogo": "ロゴを表示",
+      "authors": "著者",
+      "authorsHelp": "各著者はそれぞれ別の行に表示されます。最大10名。",
+      "authorPlaceholder": "著者名",
+      "addAuthor": "著者を追加",
+      "removeAuthor": "著者を削除"
+    },
+    "brand": {
+      "logo": "ブランドロゴ",
+      "logoHelp": "PNG、JPEG、WebP、GIF（最大10MB）。表紙のタイトルの上に表示されます。",
+      "uploadLogo": "ロゴをアップロード",
+      "replaceLogo": "ロゴを置き換える",
+      "clearLogo": "削除",
+      "logoHeight": "ロゴの高さ（px）"
+    },
+    "toc": {
+      "showTitle": "「目次」の見出しを表示",
+      "showTitleHelp": "リストの上にスタイル付きの見出しを追加します。",
+      "maxDepth": "最大見出しレベル",
+      "maxDepthHelp": "自動生成される目次の深さです。",
+      "depth2": "H1〜H2（セクションのみ）",
+      "depth3": "H1〜H3",
+      "depth4": "H1〜H4（すべて）",
+      "showPageNumbers": "ページ番号を表示",
+      "showPageNumbersHelp": "各項目の横に印刷用のページ番号を表示します。",
+      "leaderStyle": "タイトルと番号の間のリーダー",
+      "leaderDotted": "点線",
+      "leaderDashed": "破線",
+      "leaderNone": "なし"
+    },
+    "saved": {
+      "title": "マイテーマ",
+      "saveCurrent": "現在の設定を保存",
+      "namePrompt": "このテーマに名前を付ける",
+      "savedToast": "個人プリセットとして保存しました",
+      "saveFailedTitle": "テーマを保存できませんでした",
+      "rename": "名前を変更",
+      "renamePrompt": "新しい名前",
+      "renameFailedTitle": "名前を変更できませんでした",
+      "delete": "削除",
+      "deleteConfirm": "「{name}」を削除しますか？すでに使用中のドキュメントはそのコピーを保持します。",
+      "deleteFailedTitle": "削除できませんでした"
+    },
+    "presets": {
+      "title": "テンプレート",
+      "applied": "テンプレートをドキュメントに適用しました",
+      "markoto": {
+        "name": "markoto",
+        "description": "シグネチャーの見た目。Fraunchesの編集向け見出し、温かみのあるクリーム色の紙にInter本文、朱色のアクセント — ダッシュボードではなく、落ち着いたフィールドガイド。"
+      },
+      "modern": {
+        "name": "モダン",
+        "description": "青いアクセントのクリーンなInterサンセリフ。ニュートラルな出発点。"
+      },
+      "academic": {
+        "name": "学術論文",
+        "description": "2段組みのSource Serif本文、ランニングヘッドにページ番号、最小限の表罫線 — ジャーナルスタイル。"
+      },
+      "tech": {
+        "name": "技術レポート",
+        "description": "コンパクトなIBM Plex Sans、シアンのブランドカラー、暗いコードブロック、縞模様のブランドカラー表ヘッダー。"
+      },
+      "business": {
+        "name": "ビジネスレポート",
+        "description": "Source Sans本文の上にPlayfair見出し、温かみのある琥珀色のアクセント、ブランドカラーの表ヘッダー、中央揃えのタイトル。"
+      },
+      "novel": {
+        "name": "小説",
+        "description": "長文読書向けのCrimson Textセリフ。コードブロックなし、プレーンな引用、フッターにはページ番号のみ。"
+      },
+      "newsletter": {
+        "name": "ニュースレター",
+        "description": "PT Serif見出しの下にKarla本文、緑のアクセント、ブランドカラーの表ヘッダー — 週刊ダイジェストの雰囲気。"
+      }
+    }
+  },
+  "table": {
+    "title": "表を挿入",
+    "description": "ホバーしてサイズを選び、クリックして挿入します。",
+    "tocTitle": "目次"
+  },
+  "duplicate": {
+    "title": "ドキュメントを複製",
+    "description": "同じ内容、テーマ、アクセス設定を持つ独立したコピーを作成します。画像もコピーされます。",
+    "titleLabel": "新しいドキュメントのタイトル",
+    "titlePlaceholder": "…のコピー",
+    "confirm": "複製",
+    "success": "ドキュメントを複製しました",
+    "successDesc": "「{title}」の準備ができました。",
+    "failed": "複製できませんでした"
+  },
+  "move": {
+    "title": "ドキュメントを移動",
+    "description": "このドキュメントを配置する場所を選んでください。移動先のワークスペースのメンバーは、各自の役割に応じてアクセスできます。",
+    "document": "ドキュメント",
+    "personal": "個人（ワークスペースなし）",
+    "noWorkspaces": "ドキュメントを配置できるワークスペースがありません。",
+    "confirm": "移動",
+    "success": "ドキュメントを移動しました",
+    "successToPersonal": "「{title}」は個人ドキュメントになりました。",
+    "successToWorkspace": "「{title}」は{workspace}に移動しました。",
+    "failed": "ドキュメントを移動できませんでした"
+  },
+  "delete": {
+    "title": "ドキュメントを削除",
+    "warning": "ドキュメントとそのすべての内容を完全に削除します。この操作は元に戻せません。",
+    "document": "ドキュメント",
+    "confirmPrompt": "確認のため「{title}」と入力してください：",
+    "confirm": "ドキュメントを削除",
+    "dangerZone": "危険な操作",
+    "dangerZoneDesc": "ドキュメントの削除は取り消せません。すべての共同編集者がアクセスできなくなります。",
+    "deleteButton": "このドキュメントを削除",
+    "success": "ドキュメントを削除しました",
+    "successDesc": "「{title}」を完全に削除しました。",
+    "failed": "削除に失敗しました",
+    "remoteTitle": "ドキュメントが削除されました",
+    "remoteDesc": "このドキュメントは所有者によって削除されました。"
+  },
+  "workspace": {
+    "tabs": {
+      "documents": "ドキュメント",
+      "knowledge": "ナレッジ",
+      "ai": "markoto",
+      "settings": "設定"
+    },
+    "settings": {
+      "title": "ワークスペース設定",
+      "subtitle": "このワークスペースで作成する新しいドキュメントの既定値。",
+      "defaultTheme": {
+        "title": "既定のテーマ",
+        "help": "ここで作成される新しいドキュメントに適用されます。既存のドキュメントには影響しません — 現在のテーマがそのまま保持されます。",
+        "useGlobal": "既定なし — markotoを使用",
+        "useGlobalHelp": "誰かが別のテーマを選ぶまで、新しいドキュメントはmarkotoプリセットで始まります。",
+        "savedTitle": "既定のテーマを更新しました",
+        "appliedToast": "このワークスペースの新しいドキュメントはこのテーマを使用します",
+        "clearedToast": "このワークスペースの新しいドキュメントはmarkotoプリセットを使用します",
+        "failedTitle": "既定のテーマを保存できませんでした"
+      }
+    },
+    "capReached": "{plan}プランで{limit}件中{used}件のワークスペースを使用中です。追加するには1つ削除するかアップグレードしてください。",
+    "capReachedShort": "ワークスペースの上限に達しました — アップグレード",
+    "sectionTitle": "マイワークスペース",
+    "newWorkspace": "新しいワークスペース",
+    "createTitle": "ワークスペースを作成",
+    "createDescription": "ワークスペースはドキュメントのフォルダーです。名前を付け、必要なら用途の簡単な説明を追加してください。",
+    "nameLabel": "名前",
+    "namePlaceholder": "例：マーケティング、リサーチ、第4四半期計画",
+    "descriptionLabel": "説明",
+    "descriptionOptional": "説明（任意）",
+    "descriptionPlaceholder": "このワークスペースは何のためのものですか？",
+    "create": "ワークスペースを作成",
+    "docCount": "ドキュメントなし | {count}件のドキュメント | {count}件のドキュメント",
+    "empty": "まだドキュメントはありません",
+    "emptyDescription": "このワークスペースで最初のドキュメントを作成してみましょう。",
+    "emptyDescriptionViewer": "ここで作成されたドキュメントがこのリストに表示されます。",
+    "newDocument": "新しいドキュメント",
+    "backToHome": "戻る",
+    "rename": "ワークスペースの名前を変更",
+    "edit": "ワークスペースを編集",
+    "editTitle": "ワークスペースを編集",
+    "delete": "ワークスペースを削除",
+    "deleteTitle": "ワークスペースを削除",
+    "deleteWarning": "このワークスペースと、その中の{count}件のドキュメントを完全に削除します。この操作は元に戻せません。 | このワークスペースと、その中の{count}件のドキュメントを完全に削除します。この操作は元に戻せません。",
+    "deleteWarningEmpty": "このワークスペースを完全に削除します。この操作は元に戻せません。",
+    "deleteConfirmPrompt": "確認のため「{name}」と入力してください：",
+    "deleteConfirm": "ワークスペースを削除",
+    "deleteSuccess": "ワークスペースを削除しました",
+    "deleteFailed": "ワークスペースを削除できませんでした",
+    "createFailed": "ワークスペースを作成できませんでした",
+    "saveFailed": "ワークスペースを保存できませんでした",
+    "notFound": "ワークスペースが見つかりません",
+    "notFoundDesc": "このワークスペースは存在しないか、アクセス権がありません。",
+    "noWorkspaces": "まだワークスペースがありません。",
+    "untitledDoc": "無題",
+    "roles": {
+      "admin": "管理者",
+      "editor": "編集者",
+      "viewer": "閲覧者"
+    },
+    "members": {
+      "title": "{name}のメンバー",
+      "manage": "管理",
+      "manageTitle": "メンバーを管理",
+      "adminDescription": "メールで共同編集者を追加したり、役割を変更したり、メンバーを削除したりできます。",
+      "memberDescription": "このワークスペースにアクセスできる人。",
+      "addTitle": "メンバーを追加",
+      "addHint": "markotoアカウントを持つ人のメールアドレスを入力してください。選んだ役割で即座にアクセスできるようになります。",
+      "emailPlaceholder": "メールアドレスを入力",
+      "add": "追加",
+      "addFailed": "メンバーを追加できませんでした",
+      "remove": "ワークスペースから削除",
+      "removeFailed": "メンバーを削除できませんでした",
+      "roleChangeFailed": "役割を変更できませんでした",
+      "you": "（あなた）",
+      "leave": "ワークスペースを退出",
+      "leaveFailed": "ワークスペースを退出できませんでした",
+      "leftToast": "ワークスペースを退出しました"
+    }
+  },
+  "knowledge": {
+    "title": "ナレッジベース",
+    "description": "PDF、Word文書、スライド、スプレッドシートをアップロードします。AIアシスタントは、このワークスペースのどのドキュメントで執筆する際にもそれらを検索できます。",
+    "upload": "ファイルをアップロード",
+    "capFilesReached": "このワークスペースはファイル数の上限（{limit}）に達しました。追加するにはファイルを削除するかアップグレードしてください。",
+    "capBytesReached": "このワークスペースはストレージの上限（{limit}MB）に達しました。追加するにはファイルを削除するかアップグレードしてください。",
+    "capReachedShort": "上限に達しました — アップグレード",
+    "empty": "まだナレッジファイルはありません。",
+    "emptyDescription": "PDFやWord文書をアップロードすると、執筆時にmarkotoが文脈を把握できます。",
+    "emptyDescriptionViewer": "このワークスペースにはまだ何もアップロードされていません。",
+    "uploadQueued": "アップロードを待機列に追加しました",
+    "uploadFailed": "アップロードに失敗しました",
+    "deleted": "ファイルを削除しました",
+    "deleteFailed": "ファイルを削除できませんでした",
+    "loadFailed": "ナレッジベースを読み込めませんでした",
+    "deleteTitle": "ナレッジベースから削除",
+    "deleteWarning": "AIは執筆時にこのファイルを参照できなくなります。これを使ってすでに書かれた内容はドキュメントに残ります。",
+    "deleteConfirm": "ファイルを削除",
+    "chunks": "チャンク",
+    "status": {
+      "processing": "処理中",
+      "ready": "準備完了",
+      "failed": "失敗"
+    }
+  },
+  "error": {
+    "generic": "問題が発生しました。もう一度お試しください。",
+    "network": "ネットワークエラーです。接続を確認して再試行してください。",
+    "unauthorized": "続けるにはサインインしてください。",
+    "forbidden": "その操作を行う権限がありません。",
+    "notFound": "見つかりませんでした。",
+    "rateLimited": "リクエストが多すぎます — 少し待ってから再試行してください。",
+    "serverError": "こちら側で問題が発生しました。通知を受け取りました。",
+    "documentCreateFailed": "ドキュメントを作成できませんでした",
+    "documentCreateFailedDescription": "サーバーがリクエストを拒否しました。",
+    "pdfExportFailedTitle": "PDFエクスポートに失敗しました",
+    "pdfExportFailedDescription": "不明なエラー",
+    "shareAccessModeFailed": "共有設定を更新できませんでした",
+    "sharePasswordFailed": "ドキュメントのパスワードを設定できませんでした",
+    "activityLoadFailed": "アクティビティを読み込めませんでした",
+    "retry": "再試行"
+  },
+  "legal": {
+    "consent": {
+      "banner": {
+        "title": "プライバシーの選択",
+        "intro": "markotoを稼働させるため、また同意いただいた場合は利用状況を把握するために、Cookieや類似の技術を使用します。同意はフッターのプライバシーバッジからいつでも変更・撤回できます。",
+        "essentialNotice": "必須ストレージは常に有効です — これがないと、markotoはログイン状態や設定を保持できません。",
+        "acceptAll": "すべて同意",
+        "rejectAll": "すべて拒否",
+        "customize": "カスタマイズ",
+        "save": "選択を保存",
+        "learnMore": "プライバシーポリシーを読む",
+        "footerLink": "プライバシーの選択"
+      },
+      "purpose": {
+        "essential": {
+          "label": "必須",
+          "description": "ログインセッション、言語設定、同意の決定そのもの。サービスの動作に必要です。"
+        },
+        "analytics": {
+          "label": "プロダクト分析",
+          "description": "markotoを改善するため、ページビューや機能利用状況を集計します。サイトをまたいだトラッキングや広告プロファイルはありません。"
+        },
+        "session_replay": {
+          "label": "セッションリプレイ",
+          "description": "問題のデバッグに役立てるため、UI操作を匿名化して記録します。フォーム項目とドキュメント内容はマスクされます。"
+        }
+      },
+      "withdraw": {
+        "title": "同意を撤回",
+        "intro": "すでに同意プロンプトにお答えいただいています。以下でいつでもお考えを変えられます。",
+        "currentState": "現在の状態",
+        "granted": "許可済み",
+        "refused": "拒否済み"
+      }
+    },
+    "ageGate": {
+      "title": "年齢を確認してください",
+      "body": "EU法に基づき、16歳以上であることの簡単な確認が必要です。お住まいの国でより低いデジタル同意年齢が適用される場合は、お問い合わせください。",
+      "checkbox": "16歳以上であることを確認します",
+      "continue": "続ける",
+      "underage": "16歳未満です",
+      "underageNotice": "申し訳ありません — markotoのご利用には、お住まいの国のデジタル同意年齢を満たしている必要があります。あなたに関するデータは一切保存しません。"
+    },
+    "policyAcceptance": {
+      "newVersionTitle": "プライバシー条項が変更されました",
+      "newVersionBody": "{document}を更新しました。markotoを引き続き利用するには、新しいバージョンを確認して同意してください。",
+      "review": "変更点を確認",
+      "accept": "読んで同意します",
+      "documents": {
+        "privacy": "プライバシーポリシー",
+        "tos": "利用規約",
+        "dpa": "データ処理契約書"
+      }
+    },
+    "delete": {
+      "confirmTitle": "アカウントを削除しますか？",
+      "confirmBody": "お考えが変わった場合に備えて、データは30日間保持します。その後、すべてが完全に削除されます。猶予期間の終了後は、この操作を取り消せません。",
+      "confirmTypeIn": "確認のため{phrase}と入力してください",
+      "confirmCta": "削除を予約",
+      "confirmCancel": "キャンセル",
+      "graceBannerTitle": "アカウントの削除が予約されています",
+      "graceBannerBody": "アカウントは{date}に完全に削除されます。それまでいつでもキャンセルできます。",
+      "graceBannerCancel": "削除をキャンセル",
+      "emailConfirmSubject": "markotoアカウントの削除が予約されました",
+      "emailExecutedSubject": "markotoアカウントが削除されました",
+      "consequences": {
+        "title": "実際に何が起こるかは以下のとおりです",
+        "intro": "確認する前に全体像を把握していただきたいと考えています。以下のすべては、30日間の猶予期間が終了すると自動的に実行されます。",
+        "deleted": {
+          "heading": "完全に削除されるもの",
+          "ownedDocs": "あなたが所有する{count}件のドキュメント — 編集モードで共同編集者と共有したものを含みます。共同編集者も同時にアクセスできなくなります。",
+          "themes": "保存したテーマと個人設定。",
+          "ai": "AIセッション、プロンプト履歴、利用カウンター。",
+          "exports": "過去の{count}件のデータエクスポートと、ダウンロード可能なZIPファイル。",
+          "stripe": "Stripeの顧客記録（Stripeは税法上必要な期間、基となる請求書を保持します）。"
+        },
+        "anonymised": {
+          "heading": "名前を削除してプラットフォームに残るもの",
+          "comments": "あなたが所有していないドキュメントに書いた{count}件のコメント — 「[削除されたユーザー]」に置き換えられます。他の参加者が会話を追えるよう、本文は残ります。",
+          "activity": "あなたが所有していないドキュメントの{count}件のアクティビティログ項目 — 今後は「匿名」と表示されます。",
+          "audit": "社内セキュリティログの{count}件の項目 — あなたのユーザーIDは削除されます。",
+          "consent": "{count}件の同意の決定 — 匿名化されますが、GDPR第7条(1)に基づく法的証拠として保持されます。"
+        },
+        "workspaces": {
+          "heading": "ワークスペース",
+          "cascadeDelete": {
+            "title": "連鎖削除されます（あなたが唯一のメンバー）",
+            "body": "これらのワークスペースは、中のすべてのドキュメントとナレッジファイルとともに完全に削除されます。内容を残したい場合は、先に管理者役割の共同メンバーを招待してから、戻って削除を申請してください。",
+            "row": "{name} — {docCount}件のドキュメント、{knowledgeCount}件のナレッジファイル"
+          },
+          "promote": {
+            "title": "新しい管理者が割り当てられます（他のメンバーがいます）",
+            "body": "これらのワークスペースは残りのメンバーのために存続します。最も在籍期間の長いメンバーが管理者になります。",
+            "row": "{name} — {newAdminName}（現在は{newAdminPreviousRole}）が管理者になります"
+          },
+          "removeMember": {
+            "title": "あなたが削除されるだけです",
+            "body": "あなたが編集者または閲覧者であるワークスペースは、あなたなしで存続します。",
+            "row": "{name} — 現在は{currentRole}"
+          }
+        },
+        "manualSteps": {
+          "heading": "先に行っておくとよい手順",
+          "exportFirst": "データエクスポート機能を使って、当社が保持するあなたに関するすべてのデータをZIPでダウンロードしてください — ここで何が起きても、そのファイルは保管しておいてください。",
+          "transferDocs": "共同編集者に残したいドキュメントは、その人が所有するワークスペースに移動するか、複製してもらってください。",
+          "inviteWorkspaceMember": "残したいワークスペースは、削除前に少なくとも1人の管理者役割の共同編集者を招待してください。",
+          "downloadKnowledge": "残したいナレッジベースのファイルは、先にmarkotoの外にダウンロードしてください。"
+        },
+        "timing": "実際の連鎖削除は、1時間に1回のバックグラウンドジョブとして実行されます。猶予期間の終了後、あなたのデータは約1時間以内に完全に消去されます。",
+        "noRecovery": "連鎖削除が実行されると、アカウントと内容は完全に失われます — 復元する方法はありません。"
+      }
+    },
+    "export": {
+      "emailReadySubject": "markotoのデータエクスポートの準備ができました",
+      "emailReadyBody": "エクスポートのダウンロード準備ができました。リンクは7日間で失効します。"
+    },
+    "abuse": {
+      "title": "違法なコンテンツを報告",
+      "intro": "markoto上のドキュメントに違法なコンテンツが含まれていると思われる場合は、お知らせください。すべての報告を確認し、当社のポリシーに合致するものには対応します。",
+      "docIdLabel": "ドキュメントのURLまたはID（任意）",
+      "categoryLabel": "何を報告しますか？",
+      "category": {
+        "illegal_content": "EU法上の違法コンテンツ",
+        "copyright": "著作権侵害",
+        "csam": "児童性的虐待コンテンツ",
+        "harassment": "嫌がらせや脅迫",
+        "spam": "スパムや詐欺",
+        "other": "その他"
+      },
+      "bodyLabel": "どのような内容ですか？",
+      "bodyPlaceholder": "見た内容と、なぜ削除すべきかを説明してください。",
+      "emailLabel": "メールアドレス（任意、受領を確認できるように）",
+      "submit": "報告を送信",
+      "submittedTitle": "ありがとうございます — 報告を受け付けました",
+      "submittedBody": "すべての報告を確認します。メールアドレスをご提供いただいた場合は、判断内容をお知らせします。",
+      "reportThisDoc": "このドキュメントを報告"
+    },
+    "aiTransparency": {
+      "badge": "AI支援",
+      "publicDocFooter": "このドキュメントの一部はAIの支援を受けて生成されました。",
+      "assistantLabel": "AIアシスタント"
+    },
+    "footer": {
+      "privacy": "プライバシー",
+      "terms": "利用規約",
+      "dpa": "データ処理契約書",
+      "subProcessors": "サブプロセッサー",
+      "abuse": "不正利用を報告",
+      "imprint": "運営者情報"
+    },
+    "documentPage": {
+      "translationNoticeTitle": "便宜のために翻訳を提供しています",
+      "translationNoticeBody": "このページは、正文である英語版の翻訳です。文言が異なる場合は、英語版が優先されます。",
+      "viewAuthoritative": "英語版（正文）を見る",
+      "lastUpdated": "最終更新：{date}",
+      "version": "バージョン{version}",
+      "missingLocale": "このページはまだあなたの言語に翻訳されていません。正文である英語版を表示しています。"
+    }
+  },
+  "settings": {
+    "profile": {
+      "title": "プロフィール",
+      "intro": "あなたのアカウント、当社が保持するあなたのデータ、そしてその両方を管理するための操作です。これらの機能が提供され次第、支出と利用の詳細もここに表示されます。",
+      "account": {
+        "heading": "アカウント",
+        "email": "メール",
+        "locale": "言語",
+        "ageConfirmed": "年齢確認",
+        "ageNotConfirmed": "未確認",
+        "createdAt": "登録日"
+      },
+      "spending": {
+        "heading": "支出と利用",
+        "comingSoon": "近日公開 — AIクレジットの利用状況、プラン履歴、請求書がここに表示されます。当面は、料金ページから請求を管理してください。",
+        "viewPricing": "料金を見る"
+      },
+      "data": {
+        "heading": "あなたのデータ",
+        "exportTitle": "データのコピーをダウンロード",
+        "exportDescription": "当社が保持するあなたに関するすべてのデータをZIPで用意します — アカウントプロフィール、あなたが所有する全ドキュメントのMarkdown、あなたが書いたコメント、請求履歴、AI利用ログ、監査記録と同意記録。作成はバックグラウンドで実行され、通常は1分未満です。準備ができるとこのページが更新され、ダウンロードリンクもメールでお送りします。リンクは7日間有効です。",
+        "exportButton": "エクスポートを申請",
+        "exportInProgress": "エクスポート実行中 — 準備ができるとこのページが更新されます。",
+        "exportHistoryHeading": "最近のエクスポート",
+        "exportHistoryEmpty": "過去のエクスポートはありません。",
+        "exportExpiresAt": "{date}まで利用可能",
+        "exportDownload": "ダウンロード"
+      },
+      "delete": {
+        "heading": "アカウントを削除",
+        "description": "お考えが変わった場合に備えて、データは30日間保持します。その後、すべてが完全に削除されます — ドキュメント、コメント、ワークスペースのメンバーシップ、請求履歴。あなたが唯一のメンバーであるワークスペースは連鎖削除され、共同メンバーがいるワークスペースには自動的に新しい管理者が割り当てられます。",
+        "button": "アカウントの削除を申請",
+        "scheduled": "{date}に削除予定",
+        "cancel": "削除をキャンセル"
+      },
+      "legal": {
+        "heading": "法的事項",
+        "subheading": "あなたが同意したプライバシーポリシー、利用規約、データ処理契約書のバージョンです。いずれかの文書を実質的に更新した場合、ここに「再同意が必要」と表示され、以降の操作の前に改めて確認を求めます。",
+        "notAccepted": "未同意",
+        "needsReacceptance": "再同意が必要（現行v{version}）",
+        "dpaNotApplicable": "ワークスペースを作成する際に必要です"
+      },
+      "consent": {
+        "heading": "プライバシーの選択",
+        "subheading": "markotoの利用についてトラッキングする可能性がある内容です。必須ストレージは常に有効です（ログイン＋同意の決定そのもの）。他の2つの項目は許可するまでオフです — ここでいつでもお考えを変えられます。",
+        "purposeAlwaysOn": "常に有効",
+        "granted": "許可済み",
+        "refused": "拒否済み",
+        "notSet": "未設定",
+        "change": "プライバシーの選択を変更"
+      }
+    }
+  }
+}

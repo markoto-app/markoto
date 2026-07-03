@@ -1,1 +1,1171 @@
-{}
+{
+  "app": {
+    "name": "markoto",
+    "tagline": "Editor de markdown colaborativo",
+    "offline": "Estás sin conexión — los cambios se guardan localmente hasta que te vuelvas a conectar."
+  },
+  "landing": {
+    "hero": "Repensando el arte de escribir.",
+    "subtitle": "Un editor de markdown colaborativo con sincronización en vivo, asistencia de IA y gestión completa de documentos.",
+    "newDocument": "Nuevo documento",
+    "openDocument": "Abrir documento",
+    "recentDocuments": "Documentos recientes",
+    "noRecent": "No hay documentos recientes"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "loginGithub": "Continuar con GitHub",
+    "loginGoogle": "Continuar con Google",
+    "loginRequired": "Inicio de sesión requerido",
+    "linkedTitle": "Cuentas vinculadas",
+    "linkedDescription": "Tu inicio de sesión con {provider} ya está conectado a tu cuenta existente. A partir de ahora puedes iniciar sesión con cualquiera de los dos proveedores."
+  },
+  "editor": {
+    "untitled": "Sin título",
+    "placeholder": "Empieza a escribir...",
+    "syncAuthFailedTitle": "El servidor de sincronización rechazó la conexión",
+    "syncAuthFailedDescription": "Normalmente tienes acceso de edición aquí. El servidor de sincronización rechazó el intercambio — probablemente un límite de solicitudes por IP o un token caducado. Recarga para intentarlo de nuevo.",
+    "syncAuthFailedReload": "Recargar",
+    "aiWorkspaceBadge": "espacio de trabajo de markoto",
+    "aiWorkspaceBadgeTooltip": "Este documento está en un espacio de trabajo de markoto — el trabajo de markoto aquí usa el fondo de créditos del patrocinador, no el tuyo.",
+    "aiWorkspaceSponsoredBy": "espacio de trabajo de markoto patrocinado por {name}",
+    "bold": "Negrita",
+    "italic": "Cursiva",
+    "heading": "Encabezado",
+    "link": "Enlace",
+    "code": "Código",
+    "quote": "Cita",
+    "list": "Lista",
+    "orderedList": "Lista ordenada",
+    "taskList": "Lista de tareas",
+    "image": "Imagen",
+    "preview": "Vista previa",
+    "edit": "Editar",
+    "splitView": "Vista dividida",
+    "strikethrough": "Tachado",
+    "highlight": "Resaltado",
+    "insert": "Insertar (subrayado)",
+    "subscript": "Subíndice",
+    "superscript": "Superíndice",
+    "horizontalRule": "Regla horizontal",
+    "pageBreak": "Salto de página",
+    "table": "Tabla",
+    "hideFromPreview": "Hacer invisible (ocultar de la vista previa)"
+  },
+  "status": {
+    "connecting": "Conectando...",
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "synced": "Sincronizado",
+    "users": "{count} usuario | {count} usuarios"
+  },
+  "share": {
+    "title": "Acceso al documento",
+    "subtitle": "Todos los visitantes usan el mismo enlace. El modo de acceso de abajo controla lo que pueden hacer con él.",
+    "share": "Compartir",
+    "copyLink": "Copiar enlace",
+    "linkCopied": "¡Enlace copiado!",
+    "systemShare": "Compartir mediante el sistema…",
+    "qrCode": "Mostrar código QR",
+    "accessMode": "Modo de acceso",
+    "private": "Privado — solo tú",
+    "openEdit": "Cualquiera puede editar",
+    "openView": "Cualquiera puede ver",
+    "passwordProtected": "Protegido con contraseña",
+    "setPassword": "Establecer contraseña del documento",
+    "passwordPlaceholder": "Introduce una contraseña...",
+    "passwordMinLength": "Mínimo 4 caracteres",
+    "passwordRequired": "Contraseña requerida",
+    "passwordRequiredDesc": "Este documento está protegido. Introduce la contraseña para continuar.",
+    "enterPassword": "Contraseña",
+    "invalidPassword": "Contraseña incorrecta. Inténtalo de nuevo.",
+    "unlock": "Desbloquear",
+    "viewOnly": "Solo lectura"
+  },
+  "access": {
+    "privateTitle": "Este documento es privado",
+    "privateDescLoggedIn": "Solo el propietario puede abrir este documento. Si crees que deberías tener acceso, pídele que cambie la configuración de uso compartido.",
+    "privateDescAnon": "Solo el propietario puede abrir este documento. Si tienes acceso, inicia sesión para continuar.",
+    "backHome": "Volver al inicio"
+  },
+  "presence": {
+    "offline": "sin conexión",
+    "anonymousEditor": "Editor anónimo",
+    "guest": "Invitado"
+  },
+  "activity": {
+    "title": "Actividad",
+    "noActivity": "Aún no hay actividad",
+    "anonymous": "Anónimo",
+    "untitled": "Sin título",
+    "justNow": "ahora mismo",
+    "minutesAgo": "hace {count} min",
+    "hoursAgo": "hace {count} h",
+    "daysAgo": "hace {count} d",
+    "action": {
+      "edit": "editó el documento",
+      "join": "se unió",
+      "leave": "salió",
+      "comment": {
+        "added": "añadió un comentario",
+        "replied": "respondió a un comentario",
+        "resolved": "resolvió un comentario",
+        "reopened": "reabrió un comentario",
+        "deleted": "eliminó un comentario",
+        "deletedReply": "eliminó una respuesta"
+      },
+      "title": {
+        "changed": "renombró el documento"
+      },
+      "theme": {
+        "changed": "cambió el tema"
+      },
+      "ai": {
+        "tool": "usó una herramienta"
+      },
+      "restore": "restauró el documento",
+      "aiTool": {
+        "web_search": "buscó en la web",
+        "fetch_url": "obtuvo una URL",
+        "generate_image": "generó una imagen",
+        "view_image": "miró una imagen",
+        "search_knowledge": "buscó en la base de conocimiento",
+        "get_knowledge_file": "leyó un archivo de conocimiento"
+      }
+    },
+    "detail": {
+      "titleChanged": "{from} → {to}",
+      "restoredFrom": "Desde {ago}"
+    },
+    "restore": {
+      "button": {
+        "label": "Restaurar",
+        "tooltip": "Restaura el documento a este punto. Reversible — puedes volver a través del registro de actividad."
+      },
+      "confirm": {
+        "title": "¿Restaurar el documento?",
+        "body": "El documento volverá al estado de {when}. Los cambios realizados desde entonces se eliminarán (pero se podrán recuperar desde el registro de actividad).",
+        "reversibleHint": "Esta restauración también es reversible — puedes volver al estado actual en cualquier momento.",
+        "cta": "Restaurar"
+      },
+      "success": "Documento restaurado.",
+      "error": {
+        "unauthorized": "No tienes acceso de edición a este documento.",
+        "unavailable": "No se puede restaurar desde esta fila — es anterior a la función de restauración.",
+        "notFound": "Esa fila de actividad no existe para este documento.",
+        "generic": "La restauración falló. El documento no se ha modificado."
+      }
+    },
+    "filter": {
+      "all": "Todo",
+      "edits": "Ediciones",
+      "comments": "Comentarios",
+      "ai": "IA",
+      "meta": "Meta"
+    },
+    "noFilterMatches": "Aún no hay nada en esta categoría",
+    "diff": {
+      "viewChange": "Ver cambio",
+      "hideChange": "Ocultar cambio",
+      "empty": "Sin cambios en el texto.",
+      "unavailable": "Diferencia no disponible para esta fila.",
+      "error": "No se pudo cargar la diferencia.",
+      "retry": "Reintentar",
+      "truncated": "Mostrando {shown} de {total} fragmentos — diferencia truncada."
+    },
+    "commentContext": {
+      "view": "Ver hilo",
+      "hide": "Ocultar hilo",
+      "replyMarker": "(respuesta)",
+      "resolved": "Resuelto",
+      "unavailable": "Este hilo ya no existe.",
+      "error": "No se pudo cargar el hilo.",
+      "retry": "Reintentar"
+    },
+    "aiTool": {
+      "view": "Ver detalles",
+      "hide": "Ocultar detalles",
+      "sourcesHeading": "Fuentes",
+      "noSources": "No se mostraron fuentes.",
+      "imageInDoc": "La imagen generada se insertó en el documento.",
+      "knowledgeNote": "Función de conocimiento del espacio de trabajo."
+    }
+  },
+  "comments": {
+    "title": "Comentarios",
+    "addLabel": "Añadir comentario",
+    "addAria": "Añadir un comentario sobre la selección",
+    "empty": "Aún no hay comentarios. Selecciona texto y pulsa el botón de comentario.",
+    "post": "Enviar",
+    "cancel": "Cancelar",
+    "reply": "Responder",
+    "replyPost": "Responder",
+    "resolve": "Resolver",
+    "unresolve": "Reabrir",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "deleteThreadConfirm": "¿Eliminar este hilo de comentarios?",
+    "deleteReplyConfirm": "¿Eliminar esta respuesta?",
+    "showResolved": "Mostrar resueltos",
+    "activeSection": "Activo",
+    "orphanedSection": "Eliminado del documento",
+    "orphanedHint": "El texto al que estaba adjunto este comentario fue eliminado.",
+    "resolvedSection": "Resuelto",
+    "composerPlaceholder": "Añade un comentario…",
+    "replyPlaceholder": "Responder…",
+    "selectTextFirst": "Selecciona texto en el editor para iniciar un comentario.",
+    "draftHeading": "Nuevo comentario",
+    "mentionTrigger": "Escribe {'@'} para mencionar a un miembro del espacio de trabajo",
+    "submitHint": "{cmd}+Enter  para publicar  ·  Esc  para cancelar",
+    "anonymous": "Anónimo",
+    "aiEntryName": "markoto",
+    "aiEntryDescription": "Pide a markoto que actúe en este hilo",
+    "aiMentionTooltip": "Mencionar a {'@'}markoto le pide a markoto que responda en este hilo.",
+    "aiMentionHint": "Consejo: incluye {'@'}markoto en un comentario para pedirle a markoto que actúe sobre él.",
+    "aiResponding": "markoto está respondiendo…",
+    "aiTriggerFailed": "No se pudo contactar con markoto para este hilo.",
+    "aiTriggerExhausted": "Cuota agotada — mejora tu plan para pedirle a markoto desde los comentarios."
+  },
+  "image": {
+    "loginToUpload": "Inicia sesión para subir imágenes.",
+    "uploadFailed": "Error al subir la imagen",
+    "dropToUpload": "Suelta la imagen para subirla",
+    "uploading": "Subiendo..."
+  },
+  "import": {
+    "title": "Importar documento",
+    "description": "Convierte un archivo a markdown y cárgalo en el editor.",
+    "selectFile": "Haz clic para seleccionar un archivo",
+    "changeFile": "Elegir un archivo diferente",
+    "formats": "Compatibles: DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
+    "import": "Importar",
+    "error": "Error al importar. Prueba con otro archivo.",
+    "conflictTitle": "El documento tiene contenido existente",
+    "conflictDesc": "¿Cómo te gustaría gestionar el contenido importado?",
+    "replace": "Reemplazar todo",
+    "append": "Añadir al final"
+  },
+  "export": {
+    "title": "Exportar",
+    "markdown": "Markdown (.md)",
+    "pdf": "PDF (.pdf)",
+    "exporting": "Exportando..."
+  },
+  "newDoc": {
+    "title": "Nuevo documento",
+    "subtitle": "Unas pocas opciones rápidas ayudan a markoto a escribir para ti desde el principio. Todo es opcional — puedes saltar a un documento en blanco en cualquier momento.",
+    "titleLabel": "Título",
+    "titlePlaceholder": "p. ej. Plan de lanzamiento del T3",
+    "descriptionLabel": "Descripción",
+    "descriptionHelp": "Una línea sobre lo que estás escribiendo. La IA lo ve en cada turno.",
+    "descriptionPlaceholder": "¿De qué trata este documento?",
+    "languageLabel": "Idioma",
+    "audienceLabel": "Público",
+    "themeLabel": "Tema",
+    "themeHelp": "Define el estilo visual. Puedes cambiarlo en cualquier momento.",
+    "themeWorkspaceDefault": "Predeterminado del espacio de trabajo",
+    "themeWorkspaceDefaultHelp": "Usa el tema establecido como predeterminado para este espacio de trabajo.",
+    "templateLabel": "Plantilla",
+    "templateHelp": "Rellena previamente el documento con una estructura básica que puedes editar. Cada sección viene con una nota de comentario para que markoto sepa qué corresponde a cada parte.",
+    "create": "Crear documento",
+    "skip": "Solo dame un documento en blanco"
+  },
+  "templates": {
+    "blank": {
+      "label": "En blanco",
+      "description": "Solo un título. Tú aportas la estructura."
+    },
+    "business-plan": {
+      "label": "Plan de negocio",
+      "description": "Resumen ejecutivo, mercado, modelo, hoja de ruta, finanzas, riesgos."
+    },
+    "academic-paper": {
+      "label": "Artículo académico",
+      "description": "Resumen, introducción, trabajos relacionados, métodos, resultados, discusión, referencias."
+    },
+    "recipe": {
+      "label": "Receta",
+      "description": "Ficha resumen, ingredientes, utensilios, instrucciones, variaciones."
+    },
+    "meeting-notes": {
+      "label": "Notas de reunión",
+      "description": "Agenda, discusión, decisiones, tareas pendientes, preguntas abiertas."
+    },
+    "project-readme": {
+      "label": "README del proyecto",
+      "description": "Eslogan, por qué, inicio rápido, funciones, documentación, contribuir, licencia."
+    }
+  },
+  "documentPanel": {
+    "title": "Documento",
+    "description": {
+      "label": "Descripción",
+      "help": "Una línea sobre qué es este documento. La IA lo ve en cada turno — así es como el modelo sabe en qué estás trabajando sin volver a escribirlo.",
+      "placeholder": "p. ej. Plan de lanzamiento del T3 para la nueva app móvil"
+    },
+    "language": {
+      "label": "Idioma",
+      "help": "Define el idioma en el que escribe markoto. Elige un preajuste o escribe cualquier nombre de idioma.",
+      "placeholder": "Elige o escribe un idioma (p. ej. romanche, suizo alemán)",
+      "customActive": "Usando el idioma que escribiste. Elige un preajuste para volver."
+    },
+    "audience": {
+      "label": "Público",
+      "help": "Indica a markoto para quién está escrito. Afecta al tono, la estructura y la elección de palabras."
+    }
+  },
+  "audiences": {
+    "technical": {
+      "label": "Técnico",
+      "description": "Ingenieros, desarrolladores, usuarios técnicos. Preciso, conciso, apto para código."
+    },
+    "marketing": {
+      "label": "Marketing / SEO",
+      "description": "Clientes, prospectos, motores de búsqueda. Fácil de escanear, orientado a beneficios, consciente de las palabras clave."
+    },
+    "academic": {
+      "label": "Académico",
+      "description": "Investigadores, revisores por pares. Formal, en tercera persona, con evidencias citadas."
+    },
+    "casual": {
+      "label": "Informal / Blog",
+      "description": "Lectores generales. Conversacional, en segunda persona, con ejemplos concretos."
+    },
+    "business": {
+      "label": "Negocios",
+      "description": "Ejecutivos, directivos. Resultados primero, cuantificado, orientado a la acción."
+    },
+    "creative": {
+      "label": "Escritura creativa",
+      "description": "Ficción, no ficción narrativa. Mostrar en lugar de contar, ritmo variado."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "ja": "日本語",
+    "zh": "中文"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "openPanel": "Abrir panel",
+    "back": "Atrás",
+    "delete": "Eliminar",
+    "duplicate": "Duplicar",
+    "move": "Mover al espacio de trabajo…",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "menu": "Menú"
+  },
+  "menu": {
+    "lightMode": "Modo claro",
+    "darkMode": "Modo oscuro",
+    "account": "Cuenta"
+  },
+  "menubar": {
+    "file": {
+      "title": "Archivo",
+      "new": "Nuevo documento",
+      "import": "Importar…",
+      "export": "Exportar",
+      "print": "Imprimir",
+      "duplicate": "Duplicar…",
+      "move": "Mover al espacio de trabajo…",
+      "delete": "Eliminar documento…"
+    },
+    "edit": {
+      "title": "Editar",
+      "undo": "Deshacer",
+      "redo": "Rehacer"
+    },
+    "view": {
+      "title": "Ver",
+      "language": "Idioma"
+    },
+    "insert": {
+      "title": "Insertar",
+      "codeBlock": "Bloque de código",
+      "footnote": "Nota al pie",
+      "alert": "Aviso",
+      "alertNote": "Nota",
+      "alertTip": "Consejo",
+      "alertImportant": "Importante",
+      "alertWarning": "Advertencia",
+      "alertCaution": "Precaución",
+      "math": "Fórmula",
+      "mathInline": "Fórmula en línea",
+      "mathBlock": "Ecuación en bloque",
+      "diagram": "Diagrama",
+      "diagramFlowchart": "Diagrama de flujo",
+      "diagramSequence": "Diagrama de secuencia",
+      "diagramClass": "Diagrama de clases",
+      "diagramState": "Diagrama de estados",
+      "diagramEr": "Relación de entidades",
+      "diagramGantt": "Diagrama de Gantt",
+      "diagramPie": "Gráfico circular",
+      "diagramMindmap": "Mapa mental",
+      "toc": "Tabla de contenidos",
+      "definitionList": "Lista de definiciones"
+    },
+    "format": {
+      "title": "Formato",
+      "inlineCode": "Código en línea"
+    },
+    "sharing": {
+      "title": "Compartir",
+      "access": "Configuración de uso compartido…",
+      "password": "Establecer o cambiar contraseña…",
+      "copyLink": "Copiar enlace"
+    },
+    "help": {
+      "title": "Ayuda",
+      "shortcuts": "Atajos de teclado",
+      "feedback": "Informar de un problema",
+      "github": "Ver en GitHub"
+    }
+  },
+  "ai": {
+    "placeholder": "Pregúntale a markoto…",
+    "send": "Enviar",
+    "stop": "Detener",
+    "loginRequired": "Inicia sesión para preguntarle a markoto",
+    "statusThinking": "markoto está pensando…",
+    "statusSearching": "markoto está buscando en la web…",
+    "statusFetching": "markoto está leyendo una página…",
+    "statusEditing": "markoto está editando el documento…",
+    "statusDone": "Hecho",
+    "otherSessions": "{n} otra sesión | {n} otras sesiones",
+    "helpingTooltip": "markoto está ayudando a {name}",
+    "alreadyRunning": "Ya tienes una sesión de markoto en curso en este documento.",
+    "rateLimited": "Demasiadas solicitudes. Inténtalo de nuevo en un minuto.",
+    "failed": "No se pudo contactar con markoto",
+    "micStart": "Iniciar entrada de voz",
+    "micBlocked": "Micrófono bloqueado — actívalo en la configuración de tu navegador",
+    "micStop": "Detener y enviar",
+    "micCancel": "Cancelar entrada de voz",
+    "micRequestingPermission": "Esperando el micrófono…",
+    "micTranscribing": "Transcribiendo…",
+    "micInaudibleTitle": "No se entendió",
+    "micInaudibleDescription": "La grabación estaba en silencio o era ininteligible. Inténtalo de nuevo.",
+    "micErrorTitle": "Error en la entrada de voz",
+    "dictateStart": "Iniciar dictado",
+    "dictateStop": "Detener dictado",
+    "dictateConnecting": "Conectando…",
+    "dictateListening": "Escuchando…",
+    "dictateBudgetExhaustedTitle": "Presupuesto diario de dictado alcanzado",
+    "dictateBudgetExhaustedDescription": "Has usado los minutos de dictado de hoy. Inténtalo de nuevo mañana.",
+    "dictateSessionCapTitle": "Sesión de dictado finalizada",
+    "dictateSessionCapDescription": "Las sesiones tienen un límite de 10 minutos. Inicia una nueva para continuar.",
+    "dictateIdleTitle": "Dictado en pausa",
+    "dictateIdleDescription": "Sin audio durante 30 segundos — el dictado se detuvo.",
+    "dictateErrorTitle": "Error en el dictado",
+    "budgetExhaustedTitle": "Sin créditos de IA",
+    "budgetExhaustedDescription": "Has usado todos tus créditos de IA de este período de facturación. Mejora tu plan para seguir.",
+    "exhaustedPlaceholder": "Sin créditos de IA — mejora tu plan para continuar",
+    "workspaceBudgetExhaustedTitle": "Presupuesto de IA del espacio de trabajo agotado",
+    "workspaceBudgetExhaustedDescription": "El presupuesto de IA compartido de este espacio de trabajo está agotado para el período de facturación actual. Contacta con el propietario del espacio de trabajo para recargar o mejorar el plan.",
+    "workspaceExhaustedPlaceholder": "Presupuesto de IA del espacio de trabajo agotado — contacta con el propietario",
+    "upgradeCta": "Mejorar plan",
+    "remainingLabel": "Quedan {remaining} de {limit} créditos de IA este mes",
+    "responseLabel": "markoto dice",
+    "responseQuestionLabel": "markoto está preguntando",
+    "responseDismiss": "Descartar",
+    "responseShowLast": "Última respuesta de markoto",
+    "errors": {
+      "duplicateSession": "Ya tienes una sesión de markoto en curso en este documento.",
+      "abortNotInitiator": "Solo la persona que inició esta sesión de markoto puede detenerla."
+    }
+  },
+  "mobileTabBar": {
+    "label": "Paneles del documento",
+    "editor": "Editor",
+    "dictateStart": "Dictar",
+    "dictateStop": "Detener",
+    "documentShort": "Info",
+    "commentsShort": "Comentarios",
+    "activityShort": "Actividad",
+    "themeShort": "Tema",
+    "knowledgeShort": "Conocimiento"
+  },
+  "editorCommands": {
+    "formatting": "Formato",
+    "headings": "Encabezados",
+    "lists": "Listas",
+    "insert": "Insertar",
+    "bold": "Negrita",
+    "italic": "Cursiva",
+    "strike": "Tachado",
+    "code": "Código",
+    "heading1": "Encabezado 1",
+    "heading2": "Encabezado 2",
+    "heading3": "Encabezado 3",
+    "body": "Cuerpo",
+    "bulletList": "Lista con viñetas",
+    "numberedList": "Lista numerada",
+    "taskList": "Lista de tareas",
+    "link": "Enlace",
+    "footnote": "Nota al pie",
+    "toc": "Tabla de contenidos",
+    "hiddenComment": "Nota oculta"
+  },
+  "pricing": {
+    "title": "Precios",
+    "subtitle": "Elige el plan que mejor se adapte. Todos los niveles usan el mismo modelo de IA — los usuarios de pago simplemente obtienen más.",
+    "aiCreditsPerMonth": "créditos de markoto/mes",
+    "creditsHint": "Una consulta de texto usa 1 crédito; las imágenes y búsquedas fundamentadas usan 5; los minutos de voz cuentan 5 por minuto.",
+    "workspaces": "espacios de trabajo",
+    "knowledgeFiles": "archivos de conocimiento",
+    "knowledgeStorage": "almacenamiento total",
+    "dictation": "dictado por voz",
+    "teamBilling": "espacio de trabajo de markoto: patrocina a markoto para todos en un espacio de trabajo",
+    "currentPlan": "Plan actual",
+    "manageSubscription": "Gestionar suscripción",
+    "freeForever": "Gratis para siempre",
+    "upgrade": "Mejorar plan",
+    "downgrade": "Bajar de plan",
+    "signUp": "Registrarse",
+    "close": "Cerrar",
+    "footnote": "Todos los niveles incluyen colaboración en tiempo real, historial de versiones y documentos ilimitados. Los créditos de IA se reinician cada mes."
+  },
+  "topbar": {
+    "planBadge": "Plan: {plan}",
+    "creditsTooltipTitle": "créditos de markoto",
+    "creditsRemaining": "Quedan {remaining} de {limit} créditos",
+    "creditsPercent": "{pct}% restante",
+    "creditsResetOn": "Se reinicia el {date}",
+    "creditsHint": "Una consulta de texto usa 1 crédito; las imágenes y búsquedas fundamentadas usan 5; la voz cuenta 5 por minuto.",
+    "upgradeToPlan": "Mejorar a {plan}",
+    "topPlan": "Tienes el plan superior.",
+    "viewAllPlans": "Ver todos los planes"
+  },
+  "theme": {
+    "title": "Tema del documento",
+    "description": "Personaliza el aspecto de este documento. Los cambios se aplican en vivo para todos los que tengan acceso.",
+    "readOnly": "No tienes permiso para editar el tema de este documento.",
+    "reset": "Restablecer valores predeterminados",
+    "portrait": "Vertical",
+    "landscape": "Horizontal",
+    "column": "columna",
+    "columns": "columnas",
+    "section": {
+      "page": "Página",
+      "body": "Texto del cuerpo",
+      "headings": "Encabezados",
+      "color": "Colores",
+      "layout": "Diseño",
+      "header": "Encabezado de página",
+      "footer": "Pie de página",
+      "code": "Bloques de código",
+      "tables": "Tablas",
+      "blocks": "Imágenes y citas",
+      "toc": "Tabla de contenidos",
+      "mermaid": "Diagramas",
+      "alerts": "Advertencias",
+      "meta": "Voz meta",
+      "cover": "Portada"
+    },
+    "page": {
+      "size": "Tamaño de página",
+      "orientation": "Orientación",
+      "margin": "Margen (mm)",
+      "marginHelp": "Margen uniforme en los cuatro lados."
+    },
+    "body": {
+      "font": "Fuente",
+      "size": "Tamaño (pt)",
+      "lineHeight": "Altura de línea",
+      "textAlign": "Alineación de párrafos",
+      "textAlignHelp": "Justificar rellena la línea de borde a borde con separación de sílabas.",
+      "color": "Color del texto",
+      "background": "Fondo de página",
+      "dropCap": "Capitular en el primer párrafo",
+      "dropCapHelp": "Muestra la primera letra a ~3,4× del tamaño del cuerpo, en la fuente de encabezado.",
+      "firstLineIndent": "Sangría de primera línea del párrafo",
+      "firstLineIndentHelp": "Sangra la primera línea de cada párrafo excepto el primero de una secuencia (tipografía de novela).",
+      "paragraphSpacing": "Espaciado de párrafos (em)",
+      "hyphenate": "Separar sílabas automáticamente en el cuerpo",
+      "hyphenateHelp": "Divide palabras largas en los saltos de línea. Recomendado para texto justificado."
+    },
+    "headings": {
+      "font": "Fuente",
+      "scale": "Relación de escala",
+      "weight": "Grosor",
+      "color": "Color",
+      "colorHelp": "A menudo el color de marca, pero se mantiene independiente para que puedas combinarlos.",
+      "underline": "Subrayado (con color de marca)",
+      "letterSpacing": "Espaciado entre letras (em)",
+      "lineHeight": "Altura de línea",
+      "spacingScale": "Escala del margen superior",
+      "spacingScaleHelp": "Multiplicador de los márgenes superiores de los encabezados. 1,0 = valor de impresión predeterminado, 1,5 = respiración editorial."
+    },
+    "align": {
+      "left": "Izquierda",
+      "center": "Centro",
+      "right": "Derecha",
+      "justify": "Justificar (rellenar)"
+    },
+    "fonts": {
+      "sans": "Sans-serif",
+      "serif": "Serif"
+    },
+    "color": {
+      "brand": "Color de marca",
+      "brandHelp": "Se usa para enlaces, acentos, encabezados de tabla (cuando se elige) y subrayados de encabezados.",
+      "secondary": "Color secundario",
+      "secondaryHelp": "Filetes, divisores, bordes de tabla, pies de figura y guías de la tabla de contenidos."
+    },
+    "layout": {
+      "columns": "Columnas",
+      "columnGap": "Espacio entre columnas (mm)"
+    },
+    "runningSlots": {
+      "left": "Izquierda",
+      "center": "Centro",
+      "right": "Derecha",
+      "help": "Usa los tokens de abajo para valores dinámicos como el número de página.",
+      "tokens": "Insertar:",
+      "image": "Imagen",
+      "imageHelp": "Logotipo o marca opcional que se muestra en el encabezado en cada página del cuerpo (la portada suprime los encabezados automáticamente).",
+      "imagePosition": "Posición de la imagen",
+      "imageHeight": "Altura de la imagen",
+      "uploadImage": "Subir imagen"
+    },
+    "code": {
+      "theme": "Tema de color",
+      "fontSize": "Tamaño de fuente (pt)",
+      "none": "Sin formato (sin resaltado de sintaxis)"
+    },
+    "tables": {
+      "headerBackground": "Fondo del encabezado",
+      "headerBgBrand": "Color de marca",
+      "headerBgMuted": "Tinte sutil",
+      "headerBgNone": "Ninguno",
+      "headerTextColor": "Color del texto del encabezado",
+      "headerTextColorHelp": "Elige blanco automáticamente cuando el encabezado tiene el color de marca.",
+      "headerColorAuto": "Automático",
+      "headerColorInherit": "Heredar (color del cuerpo)",
+      "borders": "Estilo de borde",
+      "bordersAll": "Alrededor de cada celda",
+      "bordersHorizontal": "Solo entre filas",
+      "bordersMinimal": "Superior + inferior + debajo del encabezado",
+      "bordersNone": "Sin bordes",
+      "zebra": "Colores de fila alternos",
+      "zebraHelp": "Franjas sutiles en filas alternas.",
+      "cellPadding": "Relleno de celda (px)"
+    },
+    "blocks": {
+      "imageRadius": "Radio de imagen (px)",
+      "imageMaxWidth": "Ancho máximo de imagen (%)",
+      "blockquoteStyle": "Estilo de cita en bloque",
+      "hrStyle": "Estilo de regla horizontal",
+      "hrStyleHelp": "Cómo se muestra `---` (regla horizontal de Markdown).",
+      "hrThickness": "Grosor de la regla (px)"
+    },
+    "blockquote": {
+      "border": "Borde izquierdo",
+      "background": "Fondo con tinte",
+      "none": "Simple"
+    },
+    "hr": {
+      "rule": "Línea sólida",
+      "dashed": "Línea discontinua",
+      "dotted": "Línea de puntos",
+      "asterism": "Asterismo (⁂)",
+      "none": "Invisible"
+    },
+    "mermaid": {
+      "theme": "Tema del diagrama",
+      "themeHelp": "Se aplica a todos los diagramas de Mermaid en este documento.",
+      "themeDefault": "Predeterminado",
+      "themeDark": "Oscuro",
+      "themeForest": "Bosque (verde)",
+      "themeNeutral": "Neutro (escala de grises)",
+      "themeBase": "Base (con tinte de marca)"
+    },
+    "alerts": {
+      "help": "Colores para advertencias al estilo de GitHub ([!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]).",
+      "note": "Nota",
+      "tip": "Consejo",
+      "important": "Importante",
+      "warning": "Advertencia",
+      "caution": "Precaución"
+    },
+    "meta": {
+      "font": "Fuente meta",
+      "fontHelp": "Se usa para el texto de encabezado / pie de página, pies de figura y notas al pie — la voz «sobre el documento»."
+    },
+    "cover": {
+      "enabled": "Mostrar portada",
+      "enabledHelp": "Antepone una hoja de título como página 1 (suprime los números de página y el encabezado).",
+      "layout": "Diseño",
+      "layoutClassic": "Clásico — todo centrado",
+      "layoutEditorial": "Editorial — logotipo arriba, título a ⅓, meta a ⅔",
+      "layoutBanner": "Banner — logotipo + título en una banda superior con tinte de marca",
+      "layoutMinimal": "Minimalista — solo el título, centrado (logotipo y meta ocultos)",
+      "align": "Alineación del texto",
+      "titleSize": "Tamaño del título",
+      "subtitleSize": "Tamaño del subtítulo",
+      "showTitle": "Mostrar el título del documento",
+      "showSubtitle": "Mostrar el subtítulo",
+      "subtitle": "Subtítulo",
+      "showDate": "Mostrar la fecha",
+      "showAuthors": "Mostrar los autores",
+      "showLogo": "Mostrar el logotipo",
+      "authors": "Autores",
+      "authorsHelp": "Cada autor se muestra en su propia línea. Hasta 10.",
+      "authorPlaceholder": "Nombre del autor",
+      "addAuthor": "Añadir autor",
+      "removeAuthor": "Eliminar autor"
+    },
+    "brand": {
+      "logo": "Logotipo de marca",
+      "logoHelp": "PNG, JPEG, WebP o GIF (máx. 10 MB). Se muestra sobre el título en la portada.",
+      "uploadLogo": "Subir logotipo",
+      "replaceLogo": "Reemplazar logotipo",
+      "clearLogo": "Eliminar",
+      "logoHeight": "Altura del logotipo (px)"
+    },
+    "toc": {
+      "showTitle": "Mostrar el encabezado «Tabla de contenidos»",
+      "showTitleHelp": "Añade un encabezado con estilo sobre la lista.",
+      "maxDepth": "Nivel máximo de encabezado",
+      "maxDepthHelp": "Hasta qué profundidad llega la tabla de contenidos generada automáticamente.",
+      "depth2": "H1–H2 (solo secciones)",
+      "depth3": "H1–H3",
+      "depth4": "H1–H4 (todo)",
+      "showPageNumbers": "Mostrar números de página",
+      "showPageNumbersHelp": "Números de página estilo impresión junto a cada entrada.",
+      "leaderStyle": "Guía entre el título y el número",
+      "leaderDotted": "Punteada",
+      "leaderDashed": "Discontinua",
+      "leaderNone": "Ninguna"
+    },
+    "saved": {
+      "title": "Tus temas",
+      "saveCurrent": "Guardar actual",
+      "namePrompt": "Nombra este tema",
+      "savedToast": "Guardado como preajuste personal",
+      "saveFailedTitle": "No se pudo guardar el tema",
+      "rename": "Renombrar",
+      "renamePrompt": "Nuevo nombre",
+      "renameFailedTitle": "No se pudo renombrar",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar «{name}»? Los documentos que ya lo usan conservan su copia.",
+      "deleteFailedTitle": "No se pudo eliminar"
+    },
+    "presets": {
+      "title": "Plantillas",
+      "applied": "Plantilla aplicada a tu documento",
+      "markoto": {
+        "name": "markoto",
+        "description": "El aspecto característico. Encabezados editoriales Fraunces, cuerpo Inter sobre papel crema cálido, acento bermellón — una guía de campo serena, no un panel de control."
+      },
+      "modern": {
+        "name": "Moderno",
+        "description": "Limpia Inter sans-serif con acento azul. El punto de partida neutro."
+      },
+      "academic": {
+        "name": "Artículo académico",
+        "description": "Cuerpo Source Serif a dos columnas, números de página en el encabezado, bordes de tabla mínimos — estilo revista."
+      },
+      "tech": {
+        "name": "Informe técnico",
+        "description": "IBM Plex Sans compacta, color de marca cian, bloques de código oscuros, encabezados de tabla con color de marca y filas cebra."
+      },
+      "business": {
+        "name": "Informe de negocios",
+        "description": "Encabezados Playfair sobre cuerpo Source Sans, acento ámbar cálido, encabezados de tabla con color de marca, título centrado."
+      },
+      "novel": {
+        "name": "Novela",
+        "description": "Serif Crimson Text para lectura extensa. Sin bloques de código, citas simples, solo un número de página en el pie."
+      },
+      "newsletter": {
+        "name": "Boletín",
+        "description": "Cuerpo Karla bajo encabezados PT Serif, acento verde, encabezados de tabla con color de marca — sensación de resumen semanal."
+      }
+    }
+  },
+  "table": {
+    "title": "Insertar tabla",
+    "description": "Pasa el cursor para elegir el tamaño y luego haz clic para insertar.",
+    "tocTitle": "Tabla de contenidos"
+  },
+  "duplicate": {
+    "title": "Duplicar documento",
+    "description": "Crea una copia independiente con el mismo contenido, tema y configuración de acceso. Las imágenes también se copian.",
+    "titleLabel": "Título del nuevo documento",
+    "titlePlaceholder": "Copia de …",
+    "confirm": "Duplicar",
+    "success": "Documento duplicado",
+    "successDesc": "«{title}» está listo.",
+    "failed": "No se pudo duplicar"
+  },
+  "move": {
+    "title": "Mover documento",
+    "description": "Elige dónde debe alojarse este documento. Los miembros del espacio de trabajo de destino obtendrán acceso según su rol.",
+    "document": "Documento",
+    "personal": "Personal (sin espacio de trabajo)",
+    "noWorkspaces": "No tienes ningún espacio de trabajo donde puedas archivar documentos.",
+    "confirm": "Mover",
+    "success": "Documento movido",
+    "successToPersonal": "«{title}» ahora es un documento personal.",
+    "successToWorkspace": "«{title}» ahora está en {workspace}.",
+    "failed": "No se pudo mover el documento"
+  },
+  "delete": {
+    "title": "Eliminar documento",
+    "warning": "Esto eliminará permanentemente el documento y todo su contenido. Esta acción no se puede deshacer.",
+    "document": "Documento",
+    "confirmPrompt": "Escribe «{title}» para confirmar:",
+    "confirm": "Eliminar documento",
+    "dangerZone": "Zona de peligro",
+    "dangerZoneDesc": "Eliminar un documento es permanente. Todos los colaboradores perderán el acceso.",
+    "deleteButton": "Eliminar este documento",
+    "success": "Documento eliminado",
+    "successDesc": "«{title}» ha sido eliminado permanentemente.",
+    "failed": "Error al eliminar",
+    "remoteTitle": "Documento eliminado",
+    "remoteDesc": "Este documento fue eliminado por el propietario."
+  },
+  "workspace": {
+    "tabs": {
+      "documents": "Documentos",
+      "knowledge": "Conocimiento",
+      "ai": "markoto",
+      "settings": "Configuración"
+    },
+    "settings": {
+      "title": "Configuración del espacio de trabajo",
+      "subtitle": "Valores predeterminados para los nuevos documentos creados en este espacio de trabajo.",
+      "defaultTheme": {
+        "title": "Tema predeterminado",
+        "help": "Se aplica a los nuevos documentos creados aquí. Los documentos existentes no se ven afectados — conservan el tema que tengan.",
+        "useGlobal": "Sin predeterminado — usar markoto",
+        "useGlobalHelp": "Los nuevos documentos empiezan con el preajuste de markoto hasta que alguien elija uno diferente.",
+        "savedTitle": "Tema predeterminado actualizado",
+        "appliedToast": "Los nuevos documentos de este espacio de trabajo usarán este tema",
+        "clearedToast": "Los nuevos documentos de este espacio de trabajo usarán el preajuste de markoto",
+        "failedTitle": "No se pudo guardar el tema predeterminado"
+      }
+    },
+    "capReached": "{used} de {limit} espacios de trabajo usados en el plan {plan}. Elimina uno o mejora el plan para añadir más.",
+    "capReachedShort": "Límite de espacios de trabajo alcanzado — mejora el plan",
+    "sectionTitle": "Mis espacios de trabajo",
+    "newWorkspace": "Nuevo espacio de trabajo",
+    "createTitle": "Crear un espacio de trabajo",
+    "createDescription": "Los espacios de trabajo son carpetas para tus documentos. Dale un nombre y, si quieres, una breve descripción de para qué es.",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "p. ej. Marketing, Investigación, Planificación del T4",
+    "descriptionLabel": "Descripción",
+    "descriptionOptional": "Descripción (opcional)",
+    "descriptionPlaceholder": "¿Para qué es este espacio de trabajo?",
+    "create": "Crear espacio de trabajo",
+    "docCount": "sin documentos | {count} documento | {count} documentos",
+    "empty": "Aún no hay documentos",
+    "emptyDescription": "Empieza creando tu primer documento en este espacio de trabajo.",
+    "emptyDescriptionViewer": "Los documentos creados aquí aparecerán en esta lista.",
+    "newDocument": "Nuevo documento",
+    "backToHome": "Atrás",
+    "rename": "Renombrar espacio de trabajo",
+    "edit": "Editar espacio de trabajo",
+    "editTitle": "Editar espacio de trabajo",
+    "delete": "Eliminar espacio de trabajo",
+    "deleteTitle": "Eliminar espacio de trabajo",
+    "deleteWarning": "Esto eliminará permanentemente este espacio de trabajo y {count} documento en su interior. Esto no se puede deshacer. | Esto eliminará permanentemente este espacio de trabajo y {count} documentos en su interior. Esto no se puede deshacer.",
+    "deleteWarningEmpty": "Esto eliminará permanentemente este espacio de trabajo. Esto no se puede deshacer.",
+    "deleteConfirmPrompt": "Escribe «{name}» para confirmar:",
+    "deleteConfirm": "Eliminar espacio de trabajo",
+    "deleteSuccess": "Espacio de trabajo eliminado",
+    "deleteFailed": "No se pudo eliminar el espacio de trabajo",
+    "createFailed": "No se pudo crear el espacio de trabajo",
+    "saveFailed": "No se pudo guardar el espacio de trabajo",
+    "notFound": "Espacio de trabajo no encontrado",
+    "notFoundDesc": "Este espacio de trabajo no existe o no tienes acceso a él.",
+    "noWorkspaces": "Aún no tienes ningún espacio de trabajo.",
+    "untitledDoc": "Sin título",
+    "roles": {
+      "admin": "Administrador",
+      "editor": "Editor",
+      "viewer": "Lector"
+    },
+    "members": {
+      "title": "Miembros de {name}",
+      "manage": "Gestionar",
+      "manageTitle": "Gestionar miembros",
+      "adminDescription": "Añade colaboradores por correo electrónico, cambia roles o elimina miembros.",
+      "memberDescription": "Personas que tienen acceso a este espacio de trabajo.",
+      "addTitle": "Añadir un miembro",
+      "addHint": "Introduce la dirección de correo electrónico de alguien con una cuenta de markoto. Obtendrá acceso instantáneo con el rol que elijas.",
+      "emailPlaceholder": "Introduce una dirección de correo electrónico",
+      "add": "Añadir",
+      "addFailed": "No se pudo añadir el miembro",
+      "remove": "Eliminar del espacio de trabajo",
+      "removeFailed": "No se pudo eliminar el miembro",
+      "roleChangeFailed": "No se pudo cambiar el rol",
+      "you": "(tú)",
+      "leave": "Abandonar espacio de trabajo",
+      "leaveFailed": "No se pudo abandonar el espacio de trabajo",
+      "leftToast": "Has abandonado el espacio de trabajo"
+    }
+  },
+  "knowledge": {
+    "title": "Base de conocimiento",
+    "description": "Sube PDF, documentos de Word, presentaciones u hojas de cálculo. El asistente de IA puede buscarlos al escribir en cualquier documento de este espacio de trabajo.",
+    "upload": "Subir archivos",
+    "capFilesReached": "Este espacio de trabajo ha alcanzado el límite de archivos ({limit}). Elimina un archivo o mejora el plan para añadir más.",
+    "capBytesReached": "Este espacio de trabajo ha alcanzado su límite de almacenamiento ({limit} MB). Elimina un archivo o mejora el plan para añadir más.",
+    "capReachedShort": "En el límite — mejora el plan",
+    "empty": "Aún no hay archivos de conocimiento.",
+    "emptyDescription": "Sube un PDF o documento de Word para que markoto tenga contexto cuando escribas.",
+    "emptyDescriptionViewer": "Aún no se ha subido nada a este espacio de trabajo.",
+    "uploadQueued": "Subida en cola",
+    "uploadFailed": "Error al subir",
+    "deleted": "Archivo eliminado",
+    "deleteFailed": "No se pudo eliminar el archivo",
+    "loadFailed": "No se pudo cargar la base de conocimiento",
+    "deleteTitle": "Eliminar de la base de conocimiento",
+    "deleteWarning": "La IA ya no podrá hacer referencia a este archivo al escribir. Todo lo ya escrito usándolo permanece en tus documentos.",
+    "deleteConfirm": "Eliminar archivo",
+    "chunks": "fragmentos",
+    "status": {
+      "processing": "Procesando",
+      "ready": "Listo",
+      "failed": "Fallido"
+    }
+  },
+  "error": {
+    "generic": "Algo salió mal. Inténtalo de nuevo.",
+    "network": "Error de red. Comprueba tu conexión e inténtalo de nuevo.",
+    "unauthorized": "Inicia sesión para continuar.",
+    "forbidden": "No tienes permiso para hacer eso.",
+    "notFound": "No encontrado.",
+    "rateLimited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+    "serverError": "Algo se rompió de nuestro lado. Ya hemos sido notificados.",
+    "documentCreateFailed": "No se pudo crear el documento",
+    "documentCreateFailedDescription": "El servidor rechazó la solicitud.",
+    "pdfExportFailedTitle": "Error al exportar el PDF",
+    "pdfExportFailedDescription": "Error desconocido",
+    "shareAccessModeFailed": "No se pudo actualizar la configuración de uso compartido",
+    "sharePasswordFailed": "No se pudo establecer la contraseña del documento",
+    "activityLoadFailed": "No se pudo cargar la actividad",
+    "retry": "Reintentar"
+  },
+  "legal": {
+    "consent": {
+      "banner": {
+        "title": "Tus opciones de privacidad",
+        "intro": "Usamos cookies y tecnologías similares para mantener markoto en funcionamiento y, con tu consentimiento, para entender cómo se usa. Puedes cambiar o retirar tu consentimiento en cualquier momento desde la insignia de privacidad en el pie de página.",
+        "essentialNotice": "El almacenamiento esencial siempre está activo — sin él, markoto no puede mantener tu sesión iniciada ni recordar tus preferencias.",
+        "acceptAll": "Aceptar todo",
+        "rejectAll": "Rechazar todo",
+        "customize": "Personalizar",
+        "save": "Guardar opciones",
+        "learnMore": "Lee nuestra política de privacidad",
+        "footerLink": "Opciones de privacidad"
+      },
+      "purpose": {
+        "essential": {
+          "label": "Esencial",
+          "description": "Sesión de inicio, preferencia de idioma, tu propia decisión de consentimiento. Necesario para que el servicio funcione."
+        },
+        "analytics": {
+          "label": "Análisis del producto",
+          "description": "Vistas de página agregadas y uso de funciones para que podamos mejorar markoto. Sin seguimiento entre sitios, sin perfiles publicitarios."
+        },
+        "session_replay": {
+          "label": "Repetición de sesión",
+          "description": "Grabaciones anonimizadas de las interacciones con la interfaz para ayudarnos a depurar problemas. Los campos de formulario y el contenido del documento se ocultan."
+        }
+      },
+      "withdraw": {
+        "title": "Retirar el consentimiento",
+        "intro": "Ya has respondido a nuestra solicitud de consentimiento. Puedes cambiar de opinión en cualquier momento a continuación.",
+        "currentState": "Estado actual",
+        "granted": "Concedido",
+        "refused": "Rechazado"
+      }
+    },
+    "ageGate": {
+      "title": "Confirma tu edad",
+      "body": "Según la legislación de la UE, necesitamos una confirmación rápida de que tienes al menos 16 años. Si en tu país se aplica una edad digital de consentimiento inferior, contáctanos.",
+      "checkbox": "Confirmo que tengo al menos 16 años",
+      "continue": "Continuar",
+      "underage": "Soy menor de 16 años",
+      "underageNotice": "Lo sentimos — markoto requiere que cumplas la edad digital de consentimiento en tu país. No almacenamos ningún dato sobre ti."
+    },
+    "policyAcceptance": {
+      "newVersionTitle": "Nuestros términos de privacidad han cambiado",
+      "newVersionBody": "Hemos actualizado {document}. Revisa y acepta la nueva versión para seguir usando markoto.",
+      "review": "Revisar cambios",
+      "accept": "He leído y acepto",
+      "documents": {
+        "privacy": "la Política de Privacidad",
+        "tos": "los Términos del Servicio",
+        "dpa": "el Anexo de Tratamiento de Datos"
+      }
+    },
+    "delete": {
+      "confirmTitle": "¿Eliminar tu cuenta?",
+      "confirmBody": "Conservaremos tus datos durante 30 días por si cambias de opinión. Después de eso, todo se elimina permanentemente. Esta acción no se puede deshacer una vez finalizado el período de gracia.",
+      "confirmTypeIn": "Escribe {phrase} para confirmar",
+      "confirmCta": "Programar eliminación",
+      "confirmCancel": "Cancelar",
+      "graceBannerTitle": "Cuenta programada para eliminación",
+      "graceBannerBody": "Tu cuenta se eliminará permanentemente el {date}. Puedes cancelarlo en cualquier momento antes de esa fecha.",
+      "graceBannerCancel": "Cancelar eliminación",
+      "emailConfirmSubject": "Tu cuenta de markoto está programada para eliminación",
+      "emailExecutedSubject": "Tu cuenta de markoto ha sido eliminada",
+      "consequences": {
+        "title": "Esto es exactamente lo que pasará",
+        "intro": "Queremos que veas el panorama completo antes de confirmar. Todo lo siguiente se ejecuta automáticamente una vez que termina la ventana de gracia de 30 días.",
+        "deleted": {
+          "heading": "Eliminado permanentemente",
+          "ownedDocs": "{count} documento(s) de tu propiedad — incluidos los que hayas compartido con colaboradores en modo edición. Los colaboradores pierden el acceso al mismo tiempo.",
+          "themes": "Tus temas guardados y preferencias personales.",
+          "ai": "Tus sesiones de IA, historial de consultas y contadores de uso.",
+          "exports": "{count} exportación(es) de datos anterior(es) y sus archivos ZIP descargables.",
+          "stripe": "Tu registro de cliente de Stripe (Stripe conserva las facturas subyacentes durante el período que exige la ley fiscal)."
+        },
+        "anonymised": {
+          "heading": "Se conserva en la plataforma con tu nombre eliminado",
+          "comments": "{count} comentario(s) que escribiste en documentos que no son tuyos — reemplazados por «[usuario eliminado]». Los cuerpos se mantienen para que otros participantes puedan seguir la conversación.",
+          "activity": "{count} entrada del registro de actividad en documentos que no son tuyos — se mostrará como «Anónimo» de ahora en adelante.",
+          "audit": "{count} entrada en nuestro registro de seguridad interno — se elimina tu id de usuario.",
+          "consent": "{count} decisión(es) de consentimiento — anonimizadas pero conservadas como prueba legal según el artículo 7(1) del RGPD."
+        },
+        "workspaces": {
+          "heading": "Espacios de trabajo",
+          "cascadeDelete": {
+            "title": "Se eliminarán en cascada (miembro único)",
+            "body": "Estos espacios de trabajo se eliminarán permanentemente junto con cada documento y archivo de conocimiento en su interior. Si quieres conservar su contenido, invita primero a un colaborador con rol de administrador y luego vuelve y solicita la eliminación.",
+            "row": "{name} — {docCount} documento(s), {knowledgeCount} archivo(s) de conocimiento"
+          },
+          "promote": {
+            "title": "Recibirán un nuevo administrador (existen otros miembros)",
+            "body": "Estos espacios de trabajo siguen activos para los miembros restantes. El miembro con más antigüedad se convierte en administrador.",
+            "row": "{name} — {newAdminName} (actualmente {newAdminPreviousRole}) se convierte en administrador"
+          },
+          "removeMember": {
+            "title": "Simplemente serás eliminado",
+            "body": "Los espacios de trabajo donde eres editor o lector continúan sin ti.",
+            "row": "{name} — actualmente {currentRole}"
+          }
+        },
+        "manualSteps": {
+          "heading": "Pasos que quizá quieras dar primero",
+          "exportFirst": "Usa la función de exportación de datos para descargar todo lo que tenemos sobre ti como un ZIP — conserva ese archivo independientemente de lo que pase aquí.",
+          "transferDocs": "Para cualquier documento que quieras que un colaborador conserve, muévelo a un espacio de trabajo que le pertenezca o pídele que lo duplique.",
+          "inviteWorkspaceMember": "Para cualquier espacio de trabajo que quieras preservar, invita al menos a un colaborador con rol de administrador antes de eliminar.",
+          "downloadKnowledge": "Para los archivos de la base de conocimiento que quieras conservar, descárgalos fuera de markoto primero."
+        },
+        "timing": "La cascada real se ejecuta como una tarea en segundo plano una vez por hora. Una vez que termina la ventana de gracia, tus datos se purgan por completo en aproximadamente una hora.",
+        "noRecovery": "Una vez que se ejecuta la cascada, tu cuenta y contenido desaparecen permanentemente — no hay forma de recuperarlos."
+      }
+    },
+    "export": {
+      "emailReadySubject": "Tu exportación de datos de markoto está lista",
+      "emailReadyBody": "Tu exportación está lista para descargar. El enlace caduca en 7 días."
+    },
+    "abuse": {
+      "title": "Denunciar contenido ilegal",
+      "intro": "Si crees que un documento en markoto contiene contenido ilegal, dínoslo. Acusamos recibo de cada denuncia y actuamos sobre las que cumplen nuestra política.",
+      "docIdLabel": "URL o ID del documento (opcional)",
+      "categoryLabel": "¿Qué estás denunciando?",
+      "category": {
+        "illegal_content": "Contenido ilegal según la legislación de la UE",
+        "copyright": "Infracción de derechos de autor",
+        "csam": "Material de abuso sexual infantil",
+        "harassment": "Acoso o amenazas",
+        "spam": "Spam o estafa",
+        "other": "Otra cosa"
+      },
+      "bodyLabel": "¿Qué debemos saber?",
+      "bodyPlaceholder": "Describe lo que viste y por qué debería eliminarse.",
+      "emailLabel": "Tu correo electrónico (opcional, para poder confirmarte que lo recibimos)",
+      "submit": "Enviar denuncia",
+      "submittedTitle": "Gracias — se recibió tu denuncia",
+      "submittedBody": "Acusamos recibo de cada denuncia. Si proporcionaste un correo electrónico, te informaremos de lo que decidimos.",
+      "reportThisDoc": "Denunciar este documento"
+    },
+    "aiTransparency": {
+      "badge": "Asistido por IA",
+      "publicDocFooter": "Partes de este documento se generaron con asistencia de IA.",
+      "assistantLabel": "Asistente de IA"
+    },
+    "footer": {
+      "privacy": "Privacidad",
+      "terms": "Términos",
+      "dpa": "Anexo de Tratamiento de Datos",
+      "subProcessors": "Subencargados",
+      "abuse": "Denunciar abuso",
+      "imprint": "Aviso legal"
+    },
+    "documentPage": {
+      "translationNoticeTitle": "Traducción proporcionada por comodidad",
+      "translationNoticeBody": "Esta página es una traducción de la versión inglesa autorizada. Si los textos difieren, prevalece la versión inglesa.",
+      "viewAuthoritative": "Ver en inglés (autorizado)",
+      "lastUpdated": "Última actualización: {date}",
+      "version": "Versión {version}",
+      "missingLocale": "Aún no hemos traducido esta página a tu idioma. Mostrando la versión inglesa autorizada."
+    }
+  },
+  "settings": {
+    "profile": {
+      "title": "Perfil",
+      "intro": "Tu cuenta, los datos que tenemos sobre ti y los controles para gestionar ambos. Los detalles de gasto y uso también estarán aquí a medida que se lancen esas funciones.",
+      "account": {
+        "heading": "Cuenta",
+        "email": "Correo electrónico",
+        "locale": "Idioma",
+        "ageConfirmed": "Confirmación de edad",
+        "ageNotConfirmed": "No confirmada",
+        "createdAt": "Miembro desde"
+      },
+      "spending": {
+        "heading": "Gasto y uso",
+        "comingSoon": "Próximamente — tu uso de créditos de IA, historial de planes y facturas estarán aquí. Por ahora, gestiona la facturación desde la página de Precios.",
+        "viewPricing": "Ver precios"
+      },
+      "data": {
+        "heading": "Tus datos",
+        "exportTitle": "Descarga una copia de tus datos",
+        "exportDescription": "Prepararemos un ZIP con todo lo que tenemos sobre ti — el perfil de tu cuenta, cada documento de tu propiedad en Markdown, comentarios que hayas escrito, historial de facturación, registros de uso de IA, registros de auditoría y consentimiento. La generación se ejecuta en segundo plano, normalmente en menos de un minuto. Esta página se actualiza cuando esté lista, y también te enviaremos un enlace de descarga por correo electrónico. El enlace es válido durante 7 días.",
+        "exportButton": "Solicitar exportación",
+        "exportInProgress": "Exportación en curso — esta página se actualiza cuando esté lista.",
+        "exportHistoryHeading": "Exportaciones recientes",
+        "exportHistoryEmpty": "No hay exportaciones anteriores.",
+        "exportExpiresAt": "Disponible hasta el {date}",
+        "exportDownload": "Descargar"
+      },
+      "delete": {
+        "heading": "Eliminar tu cuenta",
+        "description": "Conservaremos tus datos durante 30 días por si cambias de opinión. Después de eso, todo se elimina permanentemente — documentos, comentarios, membresías de espacios de trabajo, historial de facturación. Los espacios de trabajo donde eres el único miembro se eliminan en cascada; los espacios de trabajo con otros miembros reciben un nuevo administrador automáticamente.",
+        "button": "Solicitar eliminación de la cuenta",
+        "scheduled": "Programada para eliminación el {date}",
+        "cancel": "Cancelar eliminación"
+      },
+      "legal": {
+        "heading": "Legal",
+        "subheading": "Versiones de la Política de Privacidad, los Términos del Servicio y el Anexo de Tratamiento de Datos que has aceptado. Si actualizamos algún documento de forma sustancial, verás aquí «requiere nueva aceptación» y te lo volveremos a solicitar antes de cualquier acción adicional.",
+        "notAccepted": "No aceptado",
+        "needsReacceptance": "requiere nueva aceptación (actual v{version})",
+        "dpaNotApplicable": "Requerido cuando creas un espacio de trabajo"
+      },
+      "consent": {
+        "heading": "Opciones de privacidad",
+        "subheading": "Lo que podemos registrar sobre tu uso de markoto. El almacenamiento esencial siempre está activo (inicio de sesión + tu propia decisión de consentimiento). Las otras dos áreas están desactivadas hasta que las concedas — cambia de opinión aquí en cualquier momento.",
+        "purposeAlwaysOn": "siempre activo",
+        "granted": "Concedido",
+        "refused": "Rechazado",
+        "notSet": "Sin definir",
+        "change": "Cambiar tus opciones de privacidad"
+      }
+    }
+  }
+}

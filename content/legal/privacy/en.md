@@ -8,7 +8,7 @@ translationStatus: authoritative
 
 # Privacy Policy
 
-> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to bill you. AI features run on EU-resident providers (Mistral AI for text and voice, Jina AI for embeddings and web search, Black Forest Labs for image generation); payments go through Stripe. We don't sell your data, we don't run ads, and we don't train AI on your content. You can export everything we hold about you and delete your account at any time from your settings.
+> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to bill you. AI features run on EU-resident providers (Mistral AI for text and voice, Jina AI for embeddings and single-page fetching, Staan for web search, Black Forest Labs for image generation); payments go through Stripe. We don't sell your data, we don't run ads, and we don't train AI on your content. You can export everything we hold about you and delete your account at any time from your settings.
 
 ---
 
@@ -46,7 +46,7 @@ We notify workspace-owner customers at least 30 days in advance of any new sub-p
 
 ## 5. Storage location and retention
 
-Application data and documents live in OVHcloud's managed PostgreSQL and Object Storage in the European Union (France). AI-related processing is performed by Google in the United States. Billing data is held by Stripe under EU/US dual hosting. Transactional emails (deletion confirmations, data-export-ready notifications, breach notifications) are dispatched via Resend; only the recipient address, subject line, and message body transit Resend's systems, and Resend retains those for 30 days for deliverability monitoring.
+Application data and documents live in OVHcloud's managed PostgreSQL and Object Storage in the European Union (France). AI-related processing is performed by EU-resident providers — Mistral AI (France), Jina AI (Germany), Staan (EU), and Black Forest Labs (EU-pinned region) — routed through our self-hosted LiteLLM proxy. Billing data is held by Stripe under EU/US dual hosting. Application-error telemetry is processed by Sentry in its EU (Frankfurt) region. Transactional emails (deletion confirmations, data-export-ready notifications, breach notifications) are dispatched via Resend; only the recipient address, subject line, and message body transit Resend's systems, and Resend retains those for 30 days for deliverability monitoring.
 
 Retention follows the per-purpose schedule in §11. As a general rule:
 
@@ -125,7 +125,7 @@ markoto does not make decisions producing legal or similarly significant effects
 
 ## 8. AI features and transparency
 
-markoto includes an AI writing assistant and a knowledge-base retrieval system. AI requests are routed through our self-hosted LiteLLM proxy to EU-resident providers: Mistral AI (text generation, voice transcription via Voxtral), Jina AI (embeddings for the knowledge base, web-search content extraction), and Black Forest Labs (image generation, EU-pinned region). We disclose this to you in the user interface — every AI-assisted message carries a visible "AI" badge, and any AI-generated content placed in a public document is footed with a transparency notice. None of these providers use API content to train their models on the tiers we use.
+markoto includes an AI writing assistant and a knowledge-base retrieval system. AI requests are routed through our self-hosted LiteLLM proxy to EU-resident providers: Mistral AI (text generation, voice transcription via Voxtral), Jina AI (embeddings for the knowledge base, single-URL page content extraction), Staan (web search via a proprietary European search index, EU-only routing), and Black Forest Labs (image generation, EU-pinned region). Web-search queries no longer transit US search backends. We disclose this to you in the user interface — every AI-assisted message carries a visible "AI" badge, and any AI-generated content placed in a public document is footed with a transparency notice. None of these providers use API content to train their models on the tiers we use.
 
 If you would prefer a workspace where AI features are disabled entirely, your workspace administrator can toggle this in workspace settings. Anonymous and standalone documents may still use AI features unless you opt out at the account level (forthcoming).
 

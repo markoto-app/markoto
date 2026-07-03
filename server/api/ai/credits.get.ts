@@ -1,5 +1,6 @@
 import { resolveBillingContext } from '../../utils/billing'
 import { getUserKeyInfo } from '../../utils/litellmKeys'
+import { getWorkspaceRole } from '../../utils/workspaceAccess'
 import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
 
 /**
@@ -30,7 +31,18 @@ export default defineEventHandler(async (event) => {
   // workspace's `(+)` pool while the user is on `/w/:wsId` or in a
   // sponsored doc.
   const query = getQuery(event)
-  const workspaceId = typeof query.workspaceId === 'string' ? query.workspaceId : null
+  const requestedWorkspaceId = typeof query.workspaceId === 'string' ? query.workspaceId : null
+
+  // Only honour the workspace billing context if the caller is actually a
+  // member. `resolveBillingContext` checks the sponsor's plan + `aiEnabled`
+  // but NOT membership, so without this gate any logged-in user who learns a
+  // `(+)` workspace id (e.g. from a shared doc URL or a lapsed membership)
+  // could read the sponsor's live budget/points. Non-members fall back to
+  // their own self-billed context.
+  const workspaceId = requestedWorkspaceId
+    && (await getWorkspaceRole(userId, requestedWorkspaceId)) !== null
+    ? requestedWorkspaceId
+    : null
 
   const billing = await resolveBillingContext(userId, workspaceId)
 

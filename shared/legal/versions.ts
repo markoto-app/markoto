@@ -20,8 +20,8 @@
 // Authoritative locale is always English. Translations render with a
 // "for convenience; English is authoritative" banner on non-EN locales.
 
-export const PRIVACY_VERSION = 3
-export const PRIVACY_EFFECTIVE_DATE = '2026-05-06'
+export const PRIVACY_VERSION = 4
+export const PRIVACY_EFFECTIVE_DATE = '2026-07-03'
 
 export const TOS_VERSION = 1
 export const TOS_EFFECTIVE_DATE = '2026-05-04'
@@ -31,6 +31,11 @@ export const DPA_EFFECTIVE_DATE = '2026-05-04'
 
 export const ABUSE_POLICY_VERSION = 1
 export const ABUSE_POLICY_EFFECTIVE_DATE = '2026-05-04'
+
+// The Impressum / provider-identification page (Swiss UWG Art. 3(1)(s),
+// EU/DSA contact-point requirement). Facts come from shared/legal/entity.ts.
+export const IMPRINT_VERSION = 1
+export const IMPRINT_EFFECTIVE_DATE = '2026-07-03'
 
 export const CONSENT_VERSION = 1
 

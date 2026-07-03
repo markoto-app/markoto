@@ -836,12 +836,13 @@ export async function webSearch(
 ): Promise<WebSearchResult> {
   // Abort guard — if we're already past the deadline, don't even issue the call.
   if (signal.aborted) throw new Error('aborted')
-  // Phase 5: Jina Search → Mistral synthesis is the only path. The
-  // legacy `googleSearch` grounding helper (pre-Phase-5, Gemini-era)
-  // has been removed; the `ai` + `model` args are retained on the
-  // signature so the existing unit-test harness keeps working until
-  // P5.4 retypes the loop.
-  return await webSearchViaJina(query, signal, spendCtx)
+  // Web search runs on Staan (staan.ai) — a European search index (OVHcloud,
+  // EU) that replaces Jina Search. The motivation: Jina Search fans out to
+  // Google/Bing under the hood, routing queries through US processors; Staan
+  // uses its own EU index. EU-only routing (disabling Staan's optional US
+  // fallback) is an ACCOUNT-LEVEL setting in the Staan dashboard — there is no
+  // per-request parameter — so it must be verified enabled on the account.
+  return await webSearchViaStaan(query, signal, spendCtx)
 }
 
 // --- URL context sub-call -------------------------------------------------
@@ -904,27 +905,25 @@ export async function fetchUrl(
   return await fetchUrlViaJina(url, signal, spendCtx)
 }
 
-// ─── Phase 4: Mistral path (Jina Search/Reader → Mistral synthesis) ─────
+// ─── AI grounding providers ─────────────────────────────────────────────
 //
-// Replaces the pre-Phase-5 Gemini-era `googleSearch` grounding + `urlContext`
-// pair, neither of which has a Mistral equivalent. Both paths use a
-// 2-call pattern:
+//   web_search → Staan /search/web (staan.ai): the European search index
+//                returns ranked results (title/url/snippet) → Mistral
+//                synthesis compresses them into a cited answer.
+//   fetch_url  → Jina Reader (r.jina.ai) → Mistral synthesis with
+//                json_schema strict:true extracting {summary, images[]}.
+//                Jina stays for the direct-URL-fetch case: the user (or the
+//                model) supplies a specific URL, so there is no Google/Bing
+//                search backend involved — the EU-sovereignty concern that
+//                motivated the Staan swap applies only to search fan-out.
 //
-//   web_search → fetch s.jina.ai/?q=… (raw markdown of top results) →
-//                Mistral chat completion synthesises a 3-6 sentence answer
-//   fetch_url  → fetch r.jina.ai/{url} (page-as-markdown) →
-//                Mistral chat completion with json_schema strict:true
-//                extracts {summary, images[]}
-//
-// Spike findings §5.2: Jina returns raw scraped markdown, not synthesised
-// answers. We need the second call to compress the dump into a useful
-// answer that's behaviorally close to the historical grounded turn.
-// Cost still −82% vs the legacy grounded path (spike findings §6).
-//
-// Token-budget hint: Jina caps at ~5 results × ~2k tokens per result =
-// ~10k input tokens to Mistral synthesis. With Mistral Small 4.0 input
-// at $0.15/M, that's $0.0015 per synthesis call + ~$0.003 Jina fee =
-// ~$0.005/grounded turn — exactly the spike's projection.
+// History: the pre-Staan web_search used Jina Search (s.jina.ai) for the
+// first call. Jina Search fans out to Google/Bing, routing queries through
+// US processors; Staan uses a proprietary EU index. The swap is a like-for-
+// like source replacement — same 2-call (search → synthesise) shape, same
+// synthesis prompt — so only the search backend changes. Staan's synthesising
+// /answer endpoint would collapse this to one call but is gated to a higher
+// plan tier (403 on the current key), so we keep our own synthesis step.
 
 const _WEB_SEARCH_SYSTEM_PROMPT
   = 'You are a web-search synthesiser. Given a dump of search results '
@@ -934,43 +933,52 @@ const _WEB_SEARCH_SYSTEM_PROMPT
     + 'aren\'t in the dump. If the dump doesn\'t answer the query, say '
     + 'so in one sentence.'
 
-interface JinaSearchSource {
-  title: string
-  url: string
-  description?: string
-  content?: string
+// Staan /search/web response envelope (fields we consume). See
+// https://docs.staan.ai/docs/web-search.md.
+interface StaanSearchResult {
+  title?: string
+  url?: string
+  snippet?: string
+}
+interface StaanSearchResponse {
+  search_id?: string
+  web?: { results?: StaanSearchResult[] }
 }
 
-async function webSearchViaJina(
+async function webSearchViaStaan(
   query: string,
   signal: AbortSignal,
   spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
 ): Promise<WebSearchResult> {
   const config = useRuntimeConfig()
-  const jinaKey = process.env.JINA_AI_API_KEY
-  if (!jinaKey) {
-    throw new Error('JINA_AI_API_KEY not configured (required for web_search via mistral path)')
+  const staanKey = process.env.STAAN_API_KEY
+  if (!staanKey) {
+    throw new Error('STAAN_API_KEY not configured (required for web_search)')
   }
 
-  // 1) Jina Search — returns up to 10 result pages as JSON envelope
-  //    with title/url/description/content (markdown).
-  const jinaUrl = `https://s.jina.ai/?q=${encodeURIComponent(query)}`
-  const jinaRes = await fetch(jinaUrl, {
+  // 1) Staan search — returns up to 10 ranked results with title/url/snippet.
+  //    Staan enforces a 400-char query cap and rejects longer queries.
+  const staanRes = await fetch('https://api.staan.ai/v2/search/web', {
+    method: 'POST',
     headers: {
-      'Authorization': `Bearer ${jinaKey}`,
-      'Accept': 'application/json',
-      // Cap content size to keep the synthesis-call input bounded.
-      'X-Token-Budget': '8000'
+      'Authorization': `Bearer ${staanKey}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     },
+    body: JSON.stringify({
+      q: query.trim().slice(0, 400),
+      // en-us is the broadest index for an English-first product; the doc
+      // language isn't threaded into this sub-call today. `count` is fixed
+      // at 10 by the API.
+      market: 'en-us'
+    }),
     signal
   })
-  if (!jinaRes.ok) {
-    throw new Error(`Jina Search returned ${jinaRes.status}`)
+  if (!staanRes.ok) {
+    throw new Error(`Staan search returned ${staanRes.status}`)
   }
-  const jinaPayload = await jinaRes.json() as {
-    data?: JinaSearchSource[]
-  }
-  const results = jinaPayload.data ?? []
+  const staanPayload = await staanRes.json() as StaanSearchResponse
+  const results = staanPayload.web?.results ?? []
 
   if (results.length === 0) {
     return {
@@ -982,7 +990,7 @@ async function webSearchViaJina(
   // 2) Mistral synthesis — pass results as a numbered list, ask for a
   //    concise answer with [n] citations.
   const dump = results.slice(0, 8).map((r, i) =>
-    `[${i + 1}] ${r.title}\nURL: ${r.url}\n${(r.content || r.description || '').slice(0, 1500)}`
+    `[${i + 1}] ${r.title ?? ''}\nURL: ${r.url ?? ''}\n${(r.snippet ?? '').slice(0, 1500)}`
   ).join('\n\n---\n\n')
 
   const litellm = useLitellmAdmin()
@@ -995,20 +1003,13 @@ async function webSearchViaJina(
       { role: 'user', content: `Query: ${query}\n\nSearch results:\n${dump}` }
     ],
     max_tokens: 400,
-    // Modest temperature for the prose synthesis. Pure-prose paragraph
-    // over search results — no structured-output contract, no tool
-    // selection — so the temp=0 robotic-tone tradeoff doesn't earn
-    // anything here. 0.3 is a deliberate floor that keeps citations
-    // faithful while letting sentences vary turn to turn.
-    // (`fetch_url` synthesis below stays at 0 because it has a strict
-    // JSON schema; the outer agentic loop stays at 0 because tool
-    // selection wants determinism.)
+    // Modest temperature for the prose synthesis (no structured-output
+    // contract). `fetch_url` synthesis stays at 0 because it has a strict
+    // JSON schema; the outer agentic loop stays at 0 for tool determinism.
     temperature: 0.3,
-    // Synthesis calls are sub-steps of the text agentic loop; bill
-    // them under the same tag set as the surrounding loop call so
-    // /admin/ai-spend's "text-loop" total includes web_search /
-    // fetch_url synthesis cost AND the workspace + user breakdowns
-    // attribute correctly.
+    // Sub-step of the text agentic loop — same tag set so /admin/ai-spend's
+    // "text-loop" total includes web_search synthesis and the workspace +
+    // user breakdowns attribute correctly.
     ...featureMetadata(FEATURE_TAGS.textLoop, spendCtx)
   }, { signal })
 
@@ -1020,10 +1021,7 @@ async function webSearchViaJina(
   })).filter(s => s.uri)
 
   if (!answer) {
-    return {
-      text: 'No answer returned by the synthesiser.',
-      sources
-    }
+    return { text: 'No answer returned by the synthesiser.', sources }
   }
   if (sources.length === 0) return { text: answer, sources: [] }
   const sourceList = sources.map(s => `  - ${s.title}: ${s.uri}`).join('\n')

@@ -32,6 +32,23 @@ nuxt_s3_bucket: "REPLACE_ME"
 # Optional dedicated dictation-JWT secret. Empty falls back to nuxt_jwt_secret.
 nuxt_ai_dictate_jwt_secret: ""
 
+# ─── LiteLLM proxy (self-hosted AI gateway) ───
+litellm_master_key: "REPLACE_ME"           # openssl rand -hex 32, prefix "sk-" optional
+litellm_salt_key: "REPLACE_ME"             # openssl rand -hex 32 (encrypts key tokens at rest — NEVER rotate casually)
+
+# ─── AI provider keys (all EU-resident providers) ───
+jina_ai_api_key: "REPLACE_ME"              # jina.ai — embeddings + fetch_url reader
+staan_api_key: "REPLACE_ME"                # staan.ai — web_search (enable EU-only routing in the dashboard)
+mistral_api_key: "REPLACE_ME"              # mistral.ai — text + voice
+bfl_api_key: "REPLACE_ME"                  # blackforestlabs — image generation
+
+# ─── Stripe billing (test keys for staging; live keys for prod) ───
+nuxt_stripe_secret_key: "REPLACE_ME"       # sk_live_… / sk_test_…
+nuxt_stripe_webhook_secret: "REPLACE_ME"   # whsec_… from the deployed webhook endpoint (NOT `stripe listen`)
+nuxt_stripe_price_pro: "REPLACE_ME"        # price_… recurring, Pro tier
+nuxt_stripe_price_max: "REPLACE_ME"        # price_… recurring, Max tier
+nuxt_stripe_price_ultra: "REPLACE_ME"      # price_… recurring, Ultra tier
+
 # ─── OAuth (optional pairs — both-or-neither per provider) ───
 nuxt_oauth_github_client_id: ""
 nuxt_oauth_github_client_secret: ""

@@ -956,6 +956,19 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
     // and thrashed flow tests. Synthesis sub-calls already run at 0;
     // pinning the outer loop matches that.
     temperature: 0,
+    // Mistral prompt caching is AUTOMATIC on a stable prompt prefix (cached
+    // tokens bill at 10%). The win comes from keeping the system+tools prefix
+    // byte-identical across turns and successive prompts — set up by the
+    // static-first system-prompt ordering in prompt.post.ts. Verified through
+    // the proxy: cached_tokens reaches ~98% of prompt_tokens on warm requests
+    // (~88% input-cost cut). Caching does NOT require the key below.
+    //
+    // `prompt_cache_key` (keyed on docId to group every turn/prompt/user on a
+    // doc) is future-proofing: it would warm the cache a request sooner. But
+    // LiteLLM 1.83.14 drops it on the mistral provider (traced end-to-end,
+    // even with allowed_openai_params in config.yaml), so it's a harmless
+    // no-op today that activates on a LiteLLM upgrade that forwards it.
+    ...(opts.docId ? { prompt_cache_key: `doc:${opts.docId}` } : {}),
     // LiteLLM spend-tags: feature, workspace (when the doc is in one),
     // and the initiating user. Sub-tool synthesis calls
     // (web_search/fetch_url) inside this loop carry the same tag set

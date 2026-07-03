@@ -93,6 +93,23 @@ services:
       # Phase 5: every AI surface routes through LiteLLM. Distinct
       # dictation-JWT secret falls back to NUXT_JWT_SECRET when empty.
       - NUXT_AI_DICTATE_JWT_SECRET=${NUXT_AI_DICTATE_JWT_SECRET}
+      # AI grounding provider keys read directly by the app process (NOT via
+      # LiteLLM): Staan backs web_search, Jina Reader backs fetch_url. Enable
+      # Staan EU-only routing in the dashboard — no per-request parameter.
+      - STAAN_API_KEY=${STAAN_API_KEY:?STAAN_API_KEY required}
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:?JINA_AI_API_KEY required}
+      # LiteLLM proxy + Stripe billing. server/plugins/01-validate-secrets.ts
+      # requires the LiteLLM pair unconditionally and the Stripe pair whenever
+      # NODE_ENV=production (set below), so the app crash-loops at boot without
+      # these. The URL targets the in-network proxy; the master key matches the
+      # one mounted into the litellm container from .env.
+      - NUXT_LITELLM_URL=http://litellm:4000
+      - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
+      - NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:?NUXT_STRIPE_SECRET_KEY required}
+      - NUXT_STRIPE_WEBHOOK_SECRET=${NUXT_STRIPE_WEBHOOK_SECRET:?NUXT_STRIPE_WEBHOOK_SECRET required}
+      - NUXT_STRIPE_PRICE_PRO=${NUXT_STRIPE_PRICE_PRO:?NUXT_STRIPE_PRICE_PRO required}
+      - NUXT_STRIPE_PRICE_MAX=${NUXT_STRIPE_PRICE_MAX:?NUXT_STRIPE_PRICE_MAX required}
+      - NUXT_STRIPE_PRICE_ULTRA=${NUXT_STRIPE_PRICE_ULTRA:?NUXT_STRIPE_PRICE_ULTRA required}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN:?DOMAIN required}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
@@ -153,7 +170,7 @@ services:
       # connect-src includes *.ingest.sentry.io for browser error
       # reporting; api.stripe.com + js.stripe.com are listed pre-emptively
       # for the not-yet-shipped checkout integration (AGENTS.md §7).
-      - "traefik.http.middlewares.security-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https://${DOMAIN} https://*.${DOMAIN}; connect-src 'self' https://${DOMAIN} wss://sync.${DOMAIN} https://api.stripe.com https://*.ingest.sentry.io; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+      - "traefik.http.middlewares.security-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https://${DOMAIN} https://*.${DOMAIN} ${NUXT_S3_ENDPOINT}; connect-src 'self' https://${DOMAIN} wss://sync.${DOMAIN} https://api.stripe.com https://*.ingest.sentry.io ${NUXT_S3_ENDPOINT}; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Resource-Policy=same-site"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=(self)"
@@ -170,6 +187,19 @@ services:
         condition: service_healthy
     networks:
       - web
+      - internal
+
+  # LiteLLM + its DB-init one-shot come from docker-compose.base.yml via
+  # `include:`. Compose REPLACES `networks:` wholesale on merge, and base
+  # leaves them on the default network — but prod's postgres is on `internal`
+  # only, so without this override litellm-db-init can't reach postgres and
+  # litellm never becomes healthy (which gates `app` startup). Mirror the
+  # same override docker-compose.local.yml uses.
+  litellm:
+    networks:
+      - internal
+  litellm-db-init:
+    networks:
       - internal
 
   sync:

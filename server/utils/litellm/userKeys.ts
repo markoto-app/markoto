@@ -85,6 +85,14 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
     method: 'POST',
     body: JSON.stringify({
       max_budget: budget,
+      // Monthly spend reset. LiteLLM resets `spend` to 0 every
+      // `budget_duration` (reset date lands on the 1st of the month —
+      // matches the "resets on the first" copy in the AI Points UI). This
+      // is the ONLY periodic reset now: free users have no Stripe invoice
+      // to hang a reset on, so without this their "$1/month" was a lifetime
+      // $1. Paid users reset here too — we deliberately do NOT also reset on
+      // invoice.paid (that would double-reset and over-grant budget).
+      budget_duration: '30d',
       user_id: String(userId),
       // Abuse cap. The user can't make more than 60 LLM calls/min from
       // a single virtual key. Generous for normal use (the agentic loop
@@ -171,7 +179,11 @@ export async function updateUserKeyBudget(userId: number, plan: PlanName): Promi
     method: 'POST',
     body: JSON.stringify({
       key: handle.token,
-      max_budget: budget
+      max_budget: budget,
+      // Keep the monthly reset schedule attached on every budget change.
+      // Keys created before this field existed pick it up on their next
+      // plan change; new keys already have it from /key/generate.
+      budget_duration: '30d'
     })
   })
   if (!res.ok) {

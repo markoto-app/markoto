@@ -25,7 +25,8 @@ const links: FooterLink[] = [
   { to: '/legal/terms', label: t('legal.footer.terms') },
   { to: '/legal/dpa', label: t('legal.footer.dpa') },
   { to: '/legal/sub-processors', label: t('legal.footer.subProcessors') },
-  { to: '/legal/abuse-policy', label: t('legal.footer.abuse') }
+  { to: '/legal/abuse-policy', label: t('legal.footer.abuse') },
+  { to: '/legal/imprint', label: t('legal.footer.imprint') }
 ]
 
 // "Privacy choices" trigger — re-opens the consent banner so the

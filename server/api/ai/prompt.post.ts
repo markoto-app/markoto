@@ -159,9 +159,23 @@ export default defineEventHandler(async (event) => {
       })
     : ''
   const conversationBlock = await loadConversationBlock(docId, userId)
-  const systemPrompt = documentContextBlock + conversationBlock + SYSTEM_PROMPT
+  // Order matters for Mistral prompt caching, which is AUTOMATIC on a stable
+  // prompt prefix (cached tokens bill at 10%). The cacheable prefix must lead
+  // with the most STABLE content so the longest byte-identical prefix is
+  // reused across turns AND across successive prompts on the same doc:
+  //   1. SYSTEM_PROMPT        — fully static (identical for every user/doc)
+  //   2. documentContextBlock — stable per doc
+  //   3. knowledge + members  — stable per workspace
+  //   4. conversationBlock    — changes on every user prompt → MUST be last
+  // Previously the dynamic conversationBlock led, which invalidated the whole
+  // prefix on every follow-up. Verified through the LiteLLM proxy: with this
+  // ordering, cached_tokens climbs to ~98% of prompt_tokens on warm requests
+  // (~88% input-cost cut). See streamFromLiteLLM in runLoop.ts.
+  const systemPrompt = SYSTEM_PROMPT
+    + documentContextBlock
     + buildKnowledgeBlock(wsCtx.knowledgeFiles)
     + buildWorkspaceMembersBlock(wsCtx.members)
+    + conversationBlock
 
   // Resolve billing context up-front to lazy-create the LiteLLM virtual
   // key (if not already provisioned) and to pick the right attribution
