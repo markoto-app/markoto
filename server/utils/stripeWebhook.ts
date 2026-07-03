@@ -324,6 +324,11 @@ export async function handleSubscriptionDeleted(
         const userId = await getUserIdByCustomer(customerId)
         if (userId !== null) {
           await updateUserKeyBudget(userId, 'free')
+          // Un-brick: a user who spent more than the free cap ($1) while on
+          // a paid plan would otherwise sit over-budget until the monthly
+          // budget_duration reset (up to a month away). Reset spend now so
+          // the drop to free takes effect immediately.
+          await resetUserKeySpend(userId)
         }
       } catch (e) {
         console.warn(`[stripe/webhook] LiteLLM key drop-to-free failed (customer=${customerId}):`, e instanceof Error ? e.message : e)
@@ -354,16 +359,18 @@ async function getUserIdByCustomer(customerId: string, db?: DbOrTx): Promise<num
  * `invoice.paid` handler. Fires on subscription renewal. Update the
  * period anchors so the billing-period key advances to the new cycle.
  *
- * Phase 6: also resets the user's LiteLLM virtual-key spend to 0 so
- * the next AI call starts the fresh cycle at full AI Points. Idempotent
- * — replays land at the same end state.
+ * We deliberately do NOT reset the LiteLLM virtual-key spend here. Spend
+ * resets are driven by the key's `budget_duration` (monthly, on the 1st)
+ * so every tier — including free, which has no invoice — resets uniformly.
+ * Resetting here as well would double-reset paid users (once on their
+ * billing date, once on the 1st) and over-grant budget.
  *
  * Skip non-subscription invoices (one-off charges etc.).
  */
 export async function handleInvoicePaid(
   event: Stripe.InvoicePaidEvent,
   db?: DbOrTx,
-  deferAfterCommit?: DeferredAfterCommit
+  _deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
   const invoice = event.data.object
   // Stripe API 2025+ moved subscription off the invoice root onto
@@ -388,24 +395,9 @@ export async function handleInvoicePaid(
     }
   }, db)
 
-  // Phase 6: reset LiteLLM cumulative spend to 0 so the user starts
-  // the new cycle with their full AI Points balance restored. Deferred
-  // to post-commit (Phase 7 fix — see handleCheckoutSessionCompleted).
-  if (deferAfterCommit) {
-    deferAfterCommit.push(async () => {
-      try {
-        const userId = await getUserIdByCustomer(customerId)
-        if (userId !== null) {
-          await resetUserKeySpend(userId)
-        }
-      } catch (e) {
-        console.warn(`[stripe/webhook] LiteLLM spend reset failed (customer=${customerId}):`, e instanceof Error ? e.message : e)
-        Sentry.captureException(e, {
-          tags: { component: 'stripeWebhook', event: 'litellm_spend_reset_failed', customerId }
-        })
-      }
-    })
-  }
+  // NOTE: no LiteLLM spend reset here — see the handler doc comment. The
+  // key's `budget_duration` resets spend monthly for every tier; resetting
+  // on invoice.paid too would double-reset paid users.
 
   return { matched }
 }

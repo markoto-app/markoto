@@ -87,6 +87,37 @@ describe('GET /api/ai/credits', () => {
     expect(body.pointsRemaining).toBe(body.pointsTotal)
   })
 
+  it('does NOT leak the sponsor pool to a NON-member who passes the workspaceId', async () => {
+    // Regression guard: resolveBillingContext checks the sponsor plan +
+    // ai_enabled but NOT membership. Without the endpoint-level membership
+    // gate, any logged-in user who learns a `(+)` workspace id could read
+    // the sponsor's live budget. A non-member must fall back to self-bill.
+    const sponsor = await createUser()
+    const outsider = await createUser() // NOT a member of the workspace
+    const db = testDb()
+    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const past = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+    await db.query(
+      'UPDATE users SET plan = $1, plan_valid_until = $2, stripe_current_period_start = $3 WHERE id = $4',
+      ['max', future, past, sponsor.id]
+    )
+    const ws = await createWorkspace(sponsor.id)
+    // Deliberately do NOT add `outsider` as a member.
+    await db.query(
+      'UPDATE workspaces SET ai_enabled = TRUE, billing_owner_id = $1 WHERE workspace_id = $2',
+      [sponsor.id, ws.workspaceId]
+    )
+
+    const client = await loggedInClient(outsider.id)
+    const res = await client.get(`/api/ai/credits?workspaceId=${encodeURIComponent(ws.workspaceId)}`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { plan: string, attribution: string, pointsTotal: number }
+    // Must see their OWN free pool, not the sponsor's Max pool.
+    expect(body.plan).toBe('free')
+    expect(body.attribution).toBe('user')
+    expect(body.pointsTotal).toBe(dollarsToPoints(TIERS.free.litellmBudgetUsd))
+  })
+
   it('falls back to self-bill when the sponsor\'s plan has lapsed', async () => {
     // Sponsor plan expired yesterday — the resolver collapses (+) and
     // the member sees their own free-tier pool, NOT a stale sponsor pool.
