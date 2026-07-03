@@ -199,6 +199,25 @@ onUnmounted(() => {
 .mk-sheet-host {
   position: fixed;
   inset: 0;
+  /* Reset the UA <dialog> box. Browsers style
+     `dialog { width: fit-content; height: fit-content; margin: auto;
+     padding: 1em; border: solid; background: canvas }`. Without an
+     explicit width/height override the dialog collapses to 0×0 here —
+     its only child (.mk-sheet) is position:absolute, so it contributes
+     nothing to fit-content — and the absolutely-positioned sheet is then
+     sized against that 0×0 box and lands off-screen (width 0, y negative).
+     That was the bug: the mobile bottom sheet never appeared even though
+     its open state was set. Chrome AND Firefox both ship the fit-content
+     UA rule, so it reproduced on every Android browser. Filling the
+     viewport + neutralising the rest of the UA dialog box fixes it. */
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   pointer-events: none;
   z-index: 50;
 }
