@@ -253,7 +253,9 @@ jobs:
             dockerfile: Dockerfile
             image: md-online-app
           - service: sync-server
-            context: ./sync-server
+            # Repo-root context: the sync Dockerfile COPYs both sync-server/src
+            # AND the top-level shared/ dir, so ./sync-server can't see shared/.
+            context: .
             dockerfile: ./sync-server/Dockerfile
             image: md-online-sync
           - service: renderer

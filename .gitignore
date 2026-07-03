@@ -46,3 +46,8 @@ logs
 *.secrets
 
 .mcp.json
+
+# OVH OpenStack credentials (contains OS_PASSWORD) — never commit
+openrc.sh
+*openrc*
+.env.staging-openrc
