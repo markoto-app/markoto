@@ -178,6 +178,16 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # sync-server/ ships as a separate package with its own node_modules.
+      # A handful of unit tests import sync-server source directly
+      # (syncAuth.test.ts, contractsJwt.test.ts → sync-server/src/auth.ts →
+      # sentry.ts → @sentry/bun), so those deps must be present or the
+      # imports fail with ERR_MODULE_NOT_FOUND. The coverage job already does
+      # this; the unit job needs it too.
+      - name: Install sync-server dependencies
+        run: bun install --frozen-lockfile
+        working-directory: sync-server
+
       - name: Unit tests
         run: bun run test:unit
 
