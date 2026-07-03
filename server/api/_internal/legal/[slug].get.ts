@@ -8,6 +8,8 @@ import {
   AUTHORITATIVE_LOCALE,
   DPA_EFFECTIVE_DATE,
   DPA_VERSION,
+  IMPRINT_EFFECTIVE_DATE,
+  IMPRINT_VERSION,
   LEGAL_DOCUMENT_LOCALES,
   PRIVACY_EFFECTIVE_DATE,
   PRIVACY_VERSION,
@@ -41,7 +43,7 @@ import {
 // links, headings, blockquotes, inline code). The renderer's
 // `linkify: true` auto-links bare URLs in the body for convenience.
 
-const ALLOWED_SLUGS = ['privacy', 'terms', 'dpa', 'abuse-policy'] as const
+const ALLOWED_SLUGS = ['privacy', 'terms', 'dpa', 'abuse-policy', 'imprint'] as const
 type LegalSlug = (typeof ALLOWED_SLUGS)[number]
 
 interface SlugMetadata {
@@ -74,6 +76,11 @@ const SLUG_META: Record<LegalSlug, SlugMetadata> = {
     version: ABUSE_POLICY_VERSION,
     effectiveDate: ABUSE_POLICY_EFFECTIVE_DATE,
     defaultTitle: 'Abuse and Illegal Content Policy'
+  },
+  'imprint': {
+    version: IMPRINT_VERSION,
+    effectiveDate: IMPRINT_EFFECTIVE_DATE,
+    defaultTitle: 'Imprint'
   }
 }
 
@@ -139,7 +146,13 @@ export default defineEventHandler(async (event) => {
     controllerAddress: entity.controllerAddress,
     privacyContactEmail: entity.privacyContactEmail,
     abuseContactEmail: entity.abuseContactEmail,
-    governingLaw: entity.governingLaw
+    governingLaw: entity.governingLaw,
+    legalForm: entity.legalForm,
+    registeredOffice: entity.registeredOffice,
+    representedBy: entity.representedBy,
+    uid: entity.uid,
+    chId: entity.chId,
+    ehraId: entity.ehraId
   }
   const substituted = body.replace(/\{\{(\w+)\}\}/g, (full, key: string) => {
     if (!Object.hasOwn(substitutions, key)) return full
