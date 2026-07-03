@@ -133,6 +133,19 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   // (Docker container co-located with the app). It is part of the
   // controller's own processing, not a third-party sub-processor.
   {
+    id: 'sentry',
+    name: 'Functional Software, Inc. (Sentry)',
+    purpose: 'Application error + performance telemetry, stored in Sentry\'s EU (Frankfurt) data region',
+    // Data at rest is the EU (Frankfurt) region, but the parent company is
+    // US-based (support/operational access), so this is classified `global`
+    // with DPF + SCC-fallback rather than `intra_eu`.
+    location: 'global',
+    transferMechanism: 'dpf_with_sccs_fallback',
+    dpfCertified: true,
+    privacyPolicyUrl: 'https://sentry.io/privacy/',
+    dpaUrl: 'https://sentry.io/legal/dpa/'
+  },
+  {
     id: 'resend',
     name: 'Resend, Inc.',
     purpose: 'Transactional email delivery — account-deletion confirmations, data-export-ready notifications, breach notifications',

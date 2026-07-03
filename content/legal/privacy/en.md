@@ -46,7 +46,7 @@ We notify workspace-owner customers at least 30 days in advance of any new sub-p
 
 ## 5. Storage location and retention
 
-Application data and documents live in OVHcloud's managed PostgreSQL and Object Storage in the European Union (France). AI-related processing is performed by Google in the United States. Billing data is held by Stripe under EU/US dual hosting. Transactional emails (deletion confirmations, data-export-ready notifications, breach notifications) are dispatched via Resend; only the recipient address, subject line, and message body transit Resend's systems, and Resend retains those for 30 days for deliverability monitoring.
+Application data and documents live in OVHcloud's managed PostgreSQL and Object Storage in the European Union (France). AI-related processing is performed by EU-resident providers — Mistral AI (France), Jina AI (Germany), Staan (EU), and Black Forest Labs (EU-pinned region) — routed through our self-hosted LiteLLM proxy. Billing data is held by Stripe under EU/US dual hosting. Application-error telemetry is processed by Sentry in its EU (Frankfurt) region. Transactional emails (deletion confirmations, data-export-ready notifications, breach notifications) are dispatched via Resend; only the recipient address, subject line, and message body transit Resend's systems, and Resend retains those for 30 days for deliverability monitoring.
 
 Retention follows the per-purpose schedule in §11. As a general rule:
 

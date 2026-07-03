@@ -124,7 +124,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     basis: 'legitimate_interest',
     dataCategories: ['error_stack', 'request_url', 'user_id'],
     retention: 90,
-    subProcessors: []
+    subProcessors: ['sentry']
   }
 ]
 
