@@ -284,7 +284,15 @@ async function transformMermaid(html: string, theme: MermaidTheme): Promise<stri
 
 /** Render one mermaid source string and swap the originating `<pre>` for an `<img>` wrapper or error placeholder. Mirrors `app/utils/printPdf.ts`. */
 async function replaceMermaidBlock(doc: Document, pre: Element, source: string, m: MermaidModule): Promise<void> {
-  const id = 'mmd-' + crypto.randomUUID()
+  // crypto.randomUUID() is a secure-context-only API. This print page is
+  // served to the renderer's headless Chromium over plain HTTP
+  // (http://app:3000, container-to-container), which is NOT a secure
+  // context, so crypto.randomUUID is undefined there and would throw —
+  // halting the mermaid transform before __pagedReady is set and hanging
+  // the render until the sidecar's 45s waitForFunction timeout. Fall back
+  // to a non-secure-context-safe id (only needs to be unique per render).
+  const id = 'mmd-' + (globalThis.crypto?.randomUUID?.()
+    ?? (Date.now().toString(36) + Math.random().toString(36).slice(2)))
   try {
     const { svg } = await m.render(id, source)
     const { natW, natH } = extractMermaidNaturalSize(svg)

@@ -264,7 +264,12 @@
   async function renderMermaidBlock(mer, codeEl) {
     var preEl = codeEl.parentElement;
     var source = codeEl.textContent || '';
-    var renderId = 'mmd-' + crypto.randomUUID();
+    // crypto.randomUUID() is secure-context-only; this srcdoc iframe runs
+    // inside the HTTPS app so it's available, but guard it so a plain-HTTP
+    // (self-hosted, no TLS) deploy doesn't throw here. Unique-per-pass id.
+    var renderId = 'mmd-' + (self.crypto && self.crypto.randomUUID
+      ? self.crypto.randomUUID()
+      : (Date.now().toString(36) + Math.random().toString(36).slice(2)));
     try {
       var rendered = await mer.render(renderId, source);
       var svgStr = rendered.svg;
