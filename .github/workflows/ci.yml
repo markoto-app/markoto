@@ -230,8 +230,19 @@ jobs:
       # Test stack defaults — match docker-compose.test.yml.
       TEST_MODE: "1"
       NUXT_GOOGLE_SPEECH_MOCK: "1"
+      # Raise the V8 heap ceiling for the Nuxt build (the test stack + the
+      # integration setup both run `bun run build`, which OOM'd at the
+      # default heap limit on the 7 GB runner: "Reached heap limit").
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
+
+      # The integration setup's `bun run build` hit the V8 heap ceiling
+      # ("Reached heap limit") on the 7 GB runner. That's a soft heap limit,
+      # not physical exhaustion — NODE_OPTIONS=--max-old-space-size (in the
+      # job env above) lifts it using the existing RAM+swap. NO extra
+      # swapfile here: /mnt is Docker's data-root on the runner, and a big
+      # swapfile there starves the test-stack image pulls ("no space left").
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
