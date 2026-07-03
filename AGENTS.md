@@ -27,6 +27,7 @@ This file holds project-wide context. Domain-specific detail lives next to the c
 | `server/api/AGENTS.md` | API route map |
 | `server/utils/AGENTS.md` | Workspace knowledge base + history/diff/restore + Stripe webhook + audit log + sweep locks + idempotency |
 | `server/utils/agentic/AGENTS.md` | AI agentic loop, tools, voice, dictation, per-tool + per-session caps |
+| `server/mcp/AGENTS.md` | MCP server — PAT auth, tool wrappers, YDocPool, agent attribution chain |
 | `sync-server/AGENTS.md` | Hocuspocus configuration + Valkey-backed per-doc state + sticky sessions |
 | `shared/templates/AGENTS.md` | Template registry/renderer split |
 | `tests/e2e/AGENTS.md` | Flow Docs system (Playwright tests = docs) |
