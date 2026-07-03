@@ -184,6 +184,52 @@ describe('createAuth / onAuthenticate', () => {
     })
   })
 
+  describe('connectionConfig.readOnly enforcement (critical — the actual write gate)', () => {
+    // Regression guard for the server-side read-only bug: the value returned
+    // from onAuthenticate is merged into Hocuspocus request *context* only and
+    // does NOT block writes. Hocuspocus blocks writes off `connection.readOnly`,
+    // seeded from `connectionConfig.readOnly` (default `false`). The hook must
+    // mutate that object, or every read-only token yields a writable connection.
+
+    it('stamps connectionConfig.readOnly=true for a read-only token', async () => {
+      const token = sign({ docId: 'doc-1', userId: 1, readOnly: true })
+      const connectionConfig = { readOnly: false } // Hocuspocus default
+      await auth({ documentName: 'doc-1', token, connectionConfig })
+      expect(connectionConfig.readOnly).toBe(true)
+    })
+
+    it('stamps connectionConfig.readOnly=true when the claim is missing (safe default)', async () => {
+      const token = sign({ docId: 'doc-1', userId: 1 }) // readOnly omitted
+      const connectionConfig = { readOnly: false }
+      await auth({ documentName: 'doc-1', token, connectionConfig })
+      expect(connectionConfig.readOnly).toBe(true)
+    })
+
+    it('stamps connectionConfig.readOnly=false only for an explicitly writable token', async () => {
+      const token = sign({ docId: 'doc-1', userId: 1, readOnly: false })
+      const connectionConfig = { readOnly: false }
+      await auth({ documentName: 'doc-1', token, connectionConfig })
+      expect(connectionConfig.readOnly).toBe(false)
+    })
+
+    it('never leaves a read-only token on a writable connection default', async () => {
+      // The exact bug: Hocuspocus hands us { readOnly: false }; a viewer JWT
+      // must flip it to true, not pass through.
+      for (const val of [null, 0, '', 'false', 1, true, undefined] as unknown[]) {
+        const token = sign({ docId: 'doc-1', userId: 1, readOnly: val as unknown as boolean })
+        const connectionConfig = { readOnly: false }
+        await auth({ documentName: 'doc-1', token, connectionConfig })
+        expect(connectionConfig.readOnly, `for readOnly=${JSON.stringify(val)}`).toBe(true)
+      }
+    })
+
+    it('does not throw when connectionConfig is absent (test-shape call)', async () => {
+      const token = sign({ docId: 'doc-1', userId: 1, readOnly: false })
+      const ctx = await auth({ documentName: 'doc-1', token })
+      expect(ctx.readOnly).toBe(false)
+    })
+  })
+
   describe('userName default', () => {
     it('returns null when userName claim is missing', async () => {
       const token = sign({ docId: 'doc-1', userId: 1, readOnly: false })

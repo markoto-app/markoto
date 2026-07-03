@@ -48,8 +48,19 @@ export interface CreateAuthOptions {
 export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
   return async function onAuthenticate({
     documentName,
-    token
-  }: { documentName: string, token: string | null }): Promise<AuthContext> {
+    token,
+    connectionConfig
+  }: {
+    documentName: string
+    token: string | null
+    // Hocuspocus passes the live connection config in the hook payload. We
+    // MUST mutate `connectionConfig.readOnly` here — the object returned from
+    // this hook is merged into request `context` only, which does NOT block
+    // writes. The write gate in Hocuspocus reads `connection.readOnly`, seeded
+    // from `connectionConfig.readOnly` (default `false`). Optional so unit
+    // tests can call the hook with just `{ documentName, token }`.
+    connectionConfig?: { readOnly: boolean }
+  }): Promise<AuthContext> {
     // Always require a valid JWT — no anonymous bypass. Empty string and
     // null both count as missing.
     if (!token) {
@@ -112,6 +123,16 @@ export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
     //   - hand-crafted JWTs from a leaked/rotated-out secret that omit
     //     the field to escalate from view-only to write
     const readOnly = payload.readOnly !== false
+
+    // Enforce read-only server-side. This is the load-bearing line: without
+    // it, a read-only JWT still yields a writable connection because
+    // Hocuspocus never reads our returned `readOnly` for write-blocking — it
+    // only reads `connectionConfig.readOnly`, which defaults to `false`. A
+    // malicious client (or a devtools bypass of the CM6 read-only compartment)
+    // could otherwise send Y.js updates to any doc it can open a token for.
+    if (connectionConfig) {
+      connectionConfig.readOnly = readOnly
+    }
 
     return {
       readOnly,
