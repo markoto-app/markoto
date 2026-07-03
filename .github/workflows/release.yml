@@ -7,23 +7,23 @@ name: release
 #                             circuits the rest. We use the PR title as the
 #                             release name and the PR body as the release
 #                             notes — no aggregation, no release-drafter.
-#   2. bump-version         — write package.json files + CHANGELOG, commit
-#                             back to main with [skip ci], tag vX.Y.Z
+#   2. bump-version         — compute the next version from the latest v* TAG
+#                             (not package.json) and push an annotated vX.Y.Z
+#                             tag. NO commit back to main.
 #   3. build-images         — matrix [app, sync-server, renderer, markitdown, backup], push to GHCR
 #   4. run-flows            — regenerate flow output against the freshly-built
 #                             tag (uses docker-compose.test.yml --profile flows)
-#   5. commit-flow-manifests — commit ONLY manifest.json files; PNGs/WebPs go
-#                              to the GitHub Release as assets
-#   6. create-release       — softprops/action-gh-release using the PR title
+#   5. create-release       — softprops/action-gh-release using the PR title
 #                             as the release name, the PR body as the body
 #                             (with an auto-appended footer), and flow image
 #                             assets attached
-#   7. notify-release       — single Apprise message
+#   6. notify-release       — single Apprise message
 #
-# Branch-protection bypass: bump-version + commit-flow-manifests push directly
-# to main using RELEASE_BOT_TOKEN (a fine-scoped PAT with `contents:write`,
-# explicitly whitelisted in the branch-protection rule's "allow specified
-# actors to bypass required pull requests"). See docs/GITHUB-CONFIG.md.
+# main is strictly PR-only: this workflow NEVER pushes a commit to main.
+# Versions live in the git tag history, not a committed package.json bump,
+# and flow manifests ship as Release assets rather than a commit. The only
+# write is the vX.Y.Z tag push (tags aren't covered by the branch ruleset),
+# authenticated by RELEASE_BOT_TOKEN. See docs/GITHUB-CONFIG.md.
 #
 # Why "PR-title + PR-body" over release-drafter aggregation:
 #
@@ -126,7 +126,13 @@ jobs:
         if: steps.pr.outputs.should_release == 'true'
         run: |
           set -euo pipefail
-          CURRENT=$(jq -r .version package.json)
+          # Source of truth for the current version is the latest v* tag,
+          # NOT package.json — the release flow no longer commits a version
+          # bump back to main (main is strictly PR-only), so the tag history
+          # is the durable version record. resolve-pr checks out at
+          # fetch-depth: 0, so every tag is present here. No tags yet → 0.0.0.
+          CURRENT=$(git tag --list 'v*' --sort=-v:refname | head -n1 | sed 's/^v//')
+          CURRENT=${CURRENT:-0.0.0}
           BUMP="${{ steps.pr.outputs.bump }}"
           NEW=$(node -e "
             const [maj, min, pat] = process.argv[1].split('.').map(Number);
@@ -150,88 +156,23 @@ jobs:
     outputs:
       tag: v${{ needs.resolve-pr.outputs.new_version }}
     steps:
-      # We push back to main, so check out using the release-bot token from
-      # the start. RELEASE_BOT_TOKEN is the fine-scoped PAT whitelisted in
-      # branch-protection's "allow specified actors to bypass required PRs".
+      # Checked out at the merged commit on main. We create + push an
+      # annotated tag there — NO commit back to main (main is strictly
+      # PR-only, enforced by the repository ruleset). Tags are not covered
+      # by the branch ruleset, so the tag push is allowed. RELEASE_BOT_TOKEN
+      # authenticates the push (GITHUB_TOKEN would also work for tags).
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_BOT_TOKEN }}
 
-      - name: Bump versions in all package.json
-        run: |
-          set -euo pipefail
-          NEW="${{ needs.resolve-pr.outputs.new_version }}"
-          for f in package.json sync-server/package.json renderer/package.json; do
-            tmp=$(mktemp)
-            jq --arg v "$NEW" '.version = $v' "$f" > "$tmp"
-            mv "$tmp" "$f"
-            echo "Updated $f → $NEW"
-          done
-
-      - name: Update CHANGELOG.md
-        env:
-          NEW: ${{ needs.resolve-pr.outputs.new_version }}
-          PR_NUMBER: ${{ needs.resolve-pr.outputs.pr_number }}
-          TITLE: ${{ needs.resolve-pr.outputs.pr_title }}
-          AUTHOR: ${{ needs.resolve-pr.outputs.pr_author }}
-          PR_BODY_RAW: ${{ needs.resolve-pr.outputs.pr_body }}
-        run: |
-          set -euo pipefail
-          DATE=$(date -u +%Y-%m-%d)
-          export DATE
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-
-          new = os.environ["NEW"]
-          date = os.environ["DATE"]
-          pr_n = os.environ["PR_NUMBER"]
-          title = os.environ["TITLE"]
-          author = os.environ["AUTHOR"]
-          body = os.environ.get("PR_BODY_RAW", "").strip() or "_(No description provided.)_"
-
-          p = Path("CHANGELOG.md")
-          if p.exists():
-              src = p.read_text()
-          else:
-              src = (
-                  "# Changelog\n\n"
-                  "All notable changes are documented here. Each entry is sourced verbatim "
-                  "from the merged PR's title + description.\n\n"
-                  "## [Unreleased]\n\n(Populated on next release.)\n"
-              )
-
-          marker = "## [Unreleased]"
-          if marker not in src:
-              src = src.rstrip() + "\n\n## [Unreleased]\n\n(Populated on next release.)\n"
-
-          section = (
-              f"## [{new}] — {date}\n\n"
-              f"**{title}** (#{pr_n} by @{author})\n\n"
-              f"{body}\n"
-          )
-
-          import re
-          new_src = re.sub(
-              r"## \[Unreleased\][\s\S]*?(?=\n## \[|\Z)",
-              "## [Unreleased]\n\n(Populated on next release.)\n\n" + section + "\n",
-              src,
-              count=1,
-          )
-          p.write_text(new_src)
-          PY
-
-      - name: Commit + tag
+      - name: Tag release
         run: |
           set -euo pipefail
           NEW="${{ needs.resolve-pr.outputs.new_version }}"
           git config user.name "markoto-release-bot"
           git config user.email "release-bot@users.noreply.github.com"
-          git add package.json sync-server/package.json renderer/package.json CHANGELOG.md
-          git commit -m "chore(release): v${NEW} [skip ci]"
           git tag -a "v${NEW}" -m "Release v${NEW}"
-          git push origin HEAD:main
           git push origin "v${NEW}"
 
   build-images:
@@ -348,46 +289,11 @@ jobs:
           path: tests/e2e/output/flows
           retention-days: 30
 
-  commit-flow-manifests:
-    name: commit-flow-manifests
-    needs: [resolve-pr, run-flows-and-collect-outputs]
-    if: needs.resolve-pr.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Pull latest main (bump-version pushed a commit there).
-          ref: main
-          fetch-depth: 0
-          token: ${{ secrets.RELEASE_BOT_TOKEN }}
-
-      - name: Download flow output artefact
-        uses: actions/download-artifact@v4
-        with:
-          name: flow-output
-          path: tests/e2e/output/flows
-
-      - name: Stage manifest.json files only
-        run: |
-          set -euo pipefail
-          # Add ONLY manifest.json files. Image bytes go to the Release
-          # assets in the next job, NOT to git.
-          find tests/e2e/output/flows -name 'manifest.json' -print0 \
-            | xargs -0 git add -f
-          git diff --cached --stat || true
-
-      - name: Commit + push if changed
-        run: |
-          set -euo pipefail
-          git config user.name "markoto-release-bot"
-          git config user.email "release-bot@users.noreply.github.com"
-          if git diff --cached --quiet; then
-            echo "No manifest changes to commit."
-            exit 0
-          fi
-          NEW="${{ needs.resolve-pr.outputs.new_version }}"
-          git commit -m "chore(flows): refresh manifests for v${NEW} [skip ci]"
-          git push origin HEAD:main
+  # NOTE: flow manifests are NOT committed back to main (main is strictly
+  # PR-only). The flow output is still published — run-flows uploads it as
+  # the `flow-output` artifact and create-release packs it into the GitHub
+  # Release assets. If the docs-site gallery ever needs the manifests in
+  # git, refresh them via a normal PR rather than an automated push to main.
 
   create-release:
     name: create-release
@@ -396,7 +302,6 @@ jobs:
       - bump-version
       - build-images
       - run-flows-and-collect-outputs
-      - commit-flow-manifests
     if: needs.resolve-pr.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     outputs:
