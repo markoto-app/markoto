@@ -1,6 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { getTemplate, TEMPLATE_LOCALES, type TemplateLocale } from '~~/shared/templates'
 
 /**
@@ -17,11 +16,14 @@ import { getTemplate, TEMPLATE_LOCALES, type TemplateLocale } from '~~/shared/te
  * Nitro build, with no plugin coordination.
  */
 
-// Resolve the templates content directory once. `import.meta.url` is
-// the file URL of THIS file, which can be either source-tree or
-// bundled — both shapes resolve `../../shared/...` correctly.
-const HERE = dirname(fileURLToPath(import.meta.url))
-const CONTENT_ROOT = resolve(HERE, '../..', 'shared/templates/content')
+// Resolve the templates content directory from process.cwd() — the repo
+// root under `bun run dev`, `/app` in the prod container. The earlier
+// import.meta.url approach was fragile: once Nitro bundles this file into
+// a .output chunk, `../../shared/...` no longer points at the source tree,
+// so every template body 500'd/returned null in prod. The .md bodies are
+// shipped to /app/shared/templates/content by the Dockerfile (fs reads
+// aren't traced into the Nitro bundle, same as content/legal + drizzle).
+const CONTENT_ROOT = resolve(process.cwd(), 'shared/templates/content')
 
 const cache = new Map<string, string>()
 
