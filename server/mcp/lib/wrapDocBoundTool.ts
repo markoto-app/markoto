@@ -1,0 +1,368 @@
+import type { ZodRawShape } from 'zod'
+import type { H3Event } from 'h3'
+import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js'
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
+import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxtjs/mcp-toolkit/server'
+import { stripWrapperArgs } from './stripWrapperArgs'
+import { getDocAuthz } from '../../utils/workspaceAccess'
+import { getMemberRole } from '../../repos/workspaceMembers'
+import { findUserNameById } from '../../repos/users'
+import { connectAsMcpClient } from '../../utils/mcpHocuspocusClient'
+import {
+  TOOL_HANDLERS,
+  META_TOOL_HANDLERS,
+  type MetaToolName,
+  type ToolName
+} from '../../utils/agentic/toolHandlers'
+import { hasScope, requireMcpAuth } from './mcpToolContext'
+import { resolveBillingContext } from '../../utils/billing'
+import type { ToolResult } from '../../utils/aiToolAdapter'
+import type { MetaToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
+import type { McpScope } from '../../utils/mcpAuth'
+
+// Wrappers that bake the per-class boilerplate every MCP tool needs.
+// Three flavors based on what context the tool needs to operate on:
+//
+//   buildDocBoundTool       — tool reads/mutates a specific doc.
+//                              Takes `doc_id` arg; opens YDocPool entry.
+//   buildWorkspaceBoundTool — tool operates on a workspace (knowledge,
+//                              workspace docs). Takes `workspace_id` arg;
+//                              membership-checked; no Y handles.
+//   buildUserOnlyTool       — tool operates on the user's own data
+//                              (saved themes, my docs, web/url tools).
+//                              No doc / workspace context.
+//
+// Each wrapper:
+//   - Includes a scope guard (`enabled` returns false unless the PAT
+//     carries the right scope).
+//   - Authz-checks against the PAT-resolved userId.
+//   - Builds a ToolContext appropriate for the class (real Y handles
+//     for doc-bound, in-memory stub Y.Doc for workspace + user-only).
+//   - Dispatches to TOOL_HANDLERS[name].
+//   - Releases pool entries / cleans up stub Y handles in `finally`.
+//
+// Audit chain (verified end-to-end by tests/integration/mcp/audit-and-session.test.ts):
+//   activity_log.actor_principal LIKE 'mcp:%'
+//     → strip 'mcp:' → mcp_sessions.mcp_session_id
+//     → mcp_sessions.user_id + client_name + token_id
+// Forensic queries for "what did Claude Desktop do at 14:32" join
+// activity_log → mcp_sessions → users via the actor_principal column.
+
+export type ToolAnnotations = {
+  readOnlyHint?: boolean
+  destructiveHint?: boolean
+  idempotentHint?: boolean
+  openWorldHint?: boolean
+}
+
+// ─── Doc-bound ──────────────────────────────────────────────────────
+
+export interface WrapDocBoundToolOpts<Schema extends ZodRawShape> {
+  /** Any ToolName (DOC or META). The type split's load-bearing
+   *  invariant runs in the OTHER direction (META wrappers can't accept
+   *  DOC names, see WrapWorkspaceBoundToolOpts / WrapUserOnlyToolOpts).
+   *  A META handler wrapped here gets a YDocPool checkout it doesn't
+   *  use — wasteful but not incorrect; we accept it for the case of
+   *  doc-scoped queries like `search_activity_log` (META) that
+   *  conceptually take a doc_id but never read the live Y.Doc. */
+  name: ToolName
+  description: string
+  inputSchema: Schema
+  scope: McpScope
+  /** 'view' = canView required; 'edit' = canEdit required. */
+  access: 'view' | 'edit'
+  annotations?: ToolAnnotations
+}
+
+export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBoundToolOpts<Schema>) {
+  assertSchemaContains(opts.inputSchema, 'doc_id', opts.name)
+
+  // `defineMcpTool` is called inside the helper so the generic Schema
+  // flows through to its `McpToolDefinition<Schema>` return type. Build-
+  // ing the object externally and passing it in loses the inference
+  // because TypeScript can't reconnect the schema generic to the
+  // handler signature across the function boundary.
+  return defineMcpTool({
+    name: opts.name,
+    title: titleFromName(opts.name),
+    description: opts.description,
+    inputSchema: opts.inputSchema,
+    annotations: opts.annotations ?? {},
+    enabled: (event: H3Event): boolean => hasScope(event, opts.scope),
+    handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
+      const event = useEvent()
+      const auth = requireMcpAuth(event)
+      const docId = String(args.doc_id ?? '')
+      if (!docId) {
+        throw createError({
+          statusCode: 400,
+          message: `${opts.name}: doc_id is required`,
+          data: { code: 'mcp/missing-doc-id' }
+        })
+      }
+
+      // `assertDocAccess` returns the resolved authz info so we can
+      // thread `workspaceId` into `connectAsMcpClient` instead of
+      // having that helper re-query `getDoc`. One DB round-trip per
+      // tool call, not two.
+      const authz = await assertDocAccess(opts.name, auth.userId, docId, opts.access)
+
+      const userName = (await findUserNameById(auth.userId)) ?? `user-${auth.userId}`
+      const mcpSessionId = mcpSessionIdFromEvent(event) ?? `oneshot-${Date.now()}`
+
+      const handle = await connectAsMcpClient({
+        docId,
+        userId: auth.userId,
+        mcpSessionId,
+        userName,
+        workspaceId: authz.workspaceId
+      })
+      try {
+        // The combined TOOL_HANDLERS map covers both DOC + META names.
+        // Both accept handle.ctx (DocToolContext) — META handlers via
+        // structural subtyping (DocToolContext extends MetaToolContext).
+        // We strip wrapper-injected `doc_id` from the args before
+        // dispatch so the handler receives the SAME shape the in-app
+        // loop passes (the loop carries docId out-of-band on
+        // DocToolContext). Without this strip, handlers that do
+        // `{...patch}`-style spread (e.g. `coerceThemePatch` in
+        // update_theme) leak `doc_id` into downstream merges and
+        // strict-validators reject the result. See `stripWrapperArgs`
+        // for the full rationale.
+        const handlerArgs = stripWrapperArgs(args, 'doc_id')
+        return toolResultToCallToolResult(await TOOL_HANDLERS[opts.name]!(handle.ctx, handlerArgs))
+      } finally {
+        handle.release()
+      }
+    }) as McpToolCallback<Schema>
+  })
+}
+
+// ─── Workspace-bound ────────────────────────────────────────────────
+
+export interface WrapWorkspaceBoundToolOpts<Schema extends ZodRawShape> {
+  /** Must be a key in META_TOOL_HANDLERS. Compile error if you try to
+   *  pass a doc-bound name (e.g. 'replace_text') — that's the whole
+   *  point of the type-narrowing. */
+  name: MetaToolName
+  description: string
+  inputSchema: Schema
+  scope: McpScope
+  /** Minimum workspace role required. Knowledge tools are 'viewer';
+   *  destructive workspace tools (none yet) would be 'admin'. */
+  minRole: 'viewer' | 'editor' | 'admin'
+  annotations?: ToolAnnotations
+}
+
+export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWorkspaceBoundToolOpts<Schema>) {
+  assertSchemaContains(opts.inputSchema, 'workspace_id', opts.name)
+
+  return defineMcpTool({
+    name: opts.name,
+    title: titleFromName(opts.name),
+    description: opts.description,
+    inputSchema: opts.inputSchema,
+    annotations: opts.annotations ?? {},
+    enabled: (event: H3Event): boolean => hasScope(event, opts.scope),
+    handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
+      const event = useEvent()
+      const auth = requireMcpAuth(event)
+      const workspaceId = String(args.workspace_id ?? '')
+      if (!workspaceId) {
+        throw createError({
+          statusCode: 400,
+          message: `${opts.name}: workspace_id is required`,
+          data: { code: 'mcp/missing-workspace-id' }
+        })
+      }
+
+      const role = await getMemberRole(workspaceId, auth.userId)
+      if (!isRoleSufficient(role, opts.minRole)) {
+        // Same anti-enumeration shape as `getDocAuthz` failures.
+        throw createError({
+          statusCode: 404,
+          message: `${opts.name}: workspace not found`,
+          data: { code: 'mcp/workspace-not-found' }
+        })
+      }
+
+      const ctx = await buildStubContext(auth.userId, workspaceId, mcpSessionIdFromEvent(event))
+      try {
+        // Strip the wrapper-injected `workspace_id` for the same
+        // reason `buildDocBoundTool` strips `doc_id` — keeps the
+        // handler's args shape identical to what the in-app loop
+        // passes (loop carries workspaceId on MetaToolContext).
+        const handlerArgs = stripWrapperArgs(args, 'workspace_id')
+        return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, handlerArgs))
+      } finally {
+        ctx.dispose()
+      }
+    }) as McpToolCallback<Schema>
+  })
+}
+
+// ─── User-only ──────────────────────────────────────────────────────
+
+export interface WrapUserOnlyToolOpts<Schema extends ZodRawShape> {
+  /** Must be a key in META_TOOL_HANDLERS. */
+  name: MetaToolName
+  description: string
+  inputSchema: Schema
+  scope: McpScope
+  annotations?: ToolAnnotations
+}
+
+export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnlyToolOpts<Schema>) {
+  return defineMcpTool({
+    name: opts.name,
+    title: titleFromName(opts.name),
+    description: opts.description,
+    inputSchema: opts.inputSchema,
+    annotations: opts.annotations ?? {},
+    enabled: (event: H3Event): boolean => hasScope(event, opts.scope),
+    handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
+      const event = useEvent()
+      const auth = requireMcpAuth(event)
+      const ctx = await buildStubContext(auth.userId, null, mcpSessionIdFromEvent(event))
+      try {
+        return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, args))
+      } finally {
+        ctx.dispose()
+      }
+    }) as McpToolCallback<Schema>
+  })
+}
+
+// ─── Internal helpers ──────────────────────────────────────────────
+
+/**
+ * Translate the in-app loop's `ToolResult` shape into MCP's
+ * `CallToolResult`. The loop uses `{ content: string, isError, extraParts }`;
+ * MCP uses `{ content: ContentBlock[], isError, structuredContent? }`.
+ *
+ * `extraParts` (image inlineData) get converted to MCP image content
+ * blocks. JSON returns from the loop's text content stay as text.
+ */
+function toolResultToCallToolResult(r: ToolResult): CallToolResult {
+  const text = { type: 'text' as const, text: r.content }
+  if (!r.extraParts || r.extraParts.length === 0) {
+    return { content: [text], isError: r.isError }
+  }
+  const extras = r.extraParts.flatMap((part): CallToolResult['content'] => {
+    if ('inlineData' in part && part.inlineData?.data && part.inlineData.mimeType) {
+      return [{
+        type: 'image' as const,
+        data: part.inlineData.data,
+        mimeType: part.inlineData.mimeType
+      }]
+    }
+    return []
+  })
+  return { content: [text, ...extras], isError: r.isError }
+}
+
+function titleFromName(name: string): string {
+  return name.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
+}
+
+function mcpSessionIdFromEvent(event: H3Event): string | null {
+  const v = getHeader(event, 'mcp-session-id')
+  return typeof v === 'string' && v.length > 0 ? v : null
+}
+
+// `assertKnownTool` (the previous runtime guard) is gone — the
+// type-narrow on `WrapDocBoundToolOpts.name` (DocToolName) and
+// `WrapWorkspaceBoundToolOpts.name` / `WrapUserOnlyToolOpts.name`
+// (MetaToolName) catches every typo at compile time. Cheaper +
+// stronger than a module-load runtime check.
+
+function assertSchemaContains(schema: ZodRawShape, field: string, name: string): void {
+  if (!(field in schema)) {
+    throw new Error(`[mcp] Tool "${name}" missing required \`${field}\` field in inputSchema.`)
+  }
+}
+
+const ROLE_RANK: Record<'viewer' | 'editor' | 'admin', number> = { viewer: 0, editor: 1, admin: 2 }
+function isRoleSufficient(actual: 'viewer' | 'editor' | 'admin' | null, required: 'viewer' | 'editor' | 'admin'): boolean {
+  if (actual === null) return false
+  return ROLE_RANK[actual] >= ROLE_RANK[required]
+}
+
+/**
+ * Authz check + return the resolved authz info so the caller can
+ * forward `workspaceId` to `connectAsMcpClient` (avoiding a second
+ * `getDoc` round-trip).
+ */
+async function assertDocAccess(
+  toolName: string,
+  userId: number,
+  docId: string,
+  kind: 'view' | 'edit'
+): Promise<{ workspaceId: string | null }> {
+  const authz = await getDocAuthz(userId, docId)
+  if (!authz.exists) {
+    throw createError({
+      statusCode: 404,
+      message: `${toolName}: document not found`,
+      data: { code: 'mcp/doc-not-found' }
+    })
+  }
+  const allowed = kind === 'edit' ? authz.canEdit : authz.canView
+  if (!allowed) {
+    // 404-shape (not 403) — matches the in-app endpoints' anti-
+    // enumeration policy.
+    throw createError({
+      statusCode: 404,
+      message: `${toolName}: document not found`,
+      data: { code: 'mcp/doc-not-found' }
+    })
+  }
+  return { workspaceId: authz.workspaceId }
+}
+
+/**
+ * Build a `MetaToolContext` for handlers that don't touch Y.js state
+ * (workspace-bound queries, user-only data fetches). MetaToolContext
+ * doesn't include `ydoc`/`ytext`/`ymeta`/`awareness` — the type system
+ * makes it impossible to misroute a doc-bound handler through here.
+ *
+ * Idiomatically there's no Y.Doc to dispose; the `dispose` field is
+ * kept on the return shape so the call site stays symmetric with
+ * `connectAsMcpClient`'s `release()`.
+ */
+async function buildStubContext(
+  userId: number,
+  workspaceId: string | null,
+  mcpSessionId: string | null
+): Promise<{ ctx: MetaToolContext, dispose: () => void }> {
+  const billingContext = await resolveBillingContext(userId, workspaceId)
+  const sessionId = mcpSessionId ?? `oneshot-${Date.now()}`
+
+  const ctx: MetaToolContext = {
+    // Sentinel — handlers that need a real doc don't take MetaToolContext
+    // (caught at compile time by the dispatch table split). Logging
+    // sites that do happen to read `ctx.docId` see this string and can
+    // distinguish "no doc context" from a real id.
+    docId: 'mcp:no-doc-context',
+    initiatorUserId: userId,
+    workspaceId,
+    sessionId,
+    attributedTo: billingContext.attributedTo,
+    plan: billingContext.plan,
+    periodStart: billingContext.periodStart,
+    virtualKey: billingContext.virtualKey,
+    updateStatus: (_phase: ToolStatusPhase, _message?: string) => {
+      // No-op — workspace/user-only tools have no doc-level awareness
+      // to broadcast on. The MCP client gets the result via the normal
+      // tool-call return; live doc collaborators can't see this work
+      // happen (which is correct — it's not on a doc).
+    }
+  }
+  return {
+    ctx,
+    dispose: () => {
+      // No-op — no Y.Doc to tear down. Kept for call-site symmetry
+      // with `connectAsMcpClient`'s `release()`.
+    }
+  }
+}

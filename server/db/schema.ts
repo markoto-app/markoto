@@ -443,9 +443,35 @@ export const activityLog = pgTable('activity_log', {
   // store flush) may legitimately leave them empty.
   yjsDocIdBefore: integer('yjs_doc_id_before'),
   yjsDocIdAfter: integer('yjs_doc_id_after'),
+  // Synthetic-principal label for agent-driven rows. Carries the JWT's
+  // userId verbatim when non-numeric — `'ai:assistant:{aiSessionId}'`
+  // for the in-app loop, `'mcp:{mcpSessionId}'` for MCP. NULL for
+  // human edits (which use `userId` instead).
+  //
+  // The unified-attribution chain that ActivityFeed renders against:
+  //   actor_principal LIKE 'ai:assistant:%'
+  //     → strip prefix → ai_sessions.session_id
+  //       → ai_sessions.initiator_user_id → users (the human)
+  //   actor_principal LIKE 'mcp:%'
+  //     → strip prefix → mcp_sessions.mcp_session_id
+  //       → mcp_sessions.user_id → users (the human)
+  //       → mcp_sessions.client_name (e.g. 'Claude Desktop')
+  //
+  // Without this column, agent rows in `activity_log` have NO
+  // traceback to the human initiator from the activity row alone.
+  // The pre-Phase-3 implementation worked around this by hardcoding
+  // `userName='AI Assistant'` for AI rows; this column moves the
+  // identification to a structured field so MCP can join through
+  // the same render layer without polluting `user_name`.
+  actorPrincipal: text('actor_principal'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   index('idx_activity_doc').on(table.docId, table.createdAt),
+  // Forensic queries for "every agent row across all docs": uncommon
+  // (the per-doc activity feed is the hot path) but cheap to support.
+  // Partial — only agent rows have a non-null principal, so the index
+  // stays small.
+  index('idx_activity_actor_principal').on(table.actorPrincipal).where(sql`actor_principal IS NOT NULL`),
   // Partial unique index that closes the cross-instance flush race
   // documented in `sync-server/AGENTS.md`. Two sync-server containers
   // can flush the same doc concurrently, both compute the same edit
@@ -825,4 +851,128 @@ export const dataExportJobs = pgTable('data_export_jobs', {
   index('idx_data_export_jobs_user').on(table.userId, table.createdAt.desc()),
   // Worker queue scan: oldest queued row first.
   index('idx_data_export_jobs_status').on(table.status, table.createdAt)
+])
+
+// MCP Personal Access Tokens. Long-lived bearer tokens that external MCP
+// clients (Claude Desktop, Cursor, ChatGPT app store, ad-hoc scripts)
+// present in `Authorization: Bearer <token>` to call our /mcp endpoint.
+//
+// Auth model: SHA-256-hashed at rest (the plaintext is shown ONCE on
+// creation and never reconstructed — same pattern as GitHub PATs). The
+// `Authorization` header is hashed on each MCP request and looked up
+// against `tokenHash`; positive results are Valkey-cached for 60s to
+// avoid a DB hit per tool call.
+//
+// Cascade-delete on user removal — a token without an owner has no
+// principal to act as, so it's deleted alongside the user. Revocation
+// (`revokedAt`) is a soft-delete: the row stays for audit but the
+// verifier rejects it. Expiry (`expiresAt`) is optional; null = does
+// not expire (rotation is the user's responsibility, surfaced in the
+// /settings/integrations UI as a "last used" timestamp).
+//
+// Scopes are a typed subset of `documents:read | documents:write |
+// knowledge:read | web:fetch`. Stored as a text array; per-tool
+// `enabled` guards in server/mcp/tools/*.ts check membership before
+// the tool is exposed.
+export const mcpPersonalTokens = pgTable('mcp_personal_tokens', {
+  id: serial('id').primaryKey(),
+  // Public-facing handle (`mkt_pat_<nanoid>`); used in the API responses
+  // and the URL of DELETE /api/mcp/tokens/:tokenId. Distinct from `id`
+  // so leaks of the URL don't disclose row counts / creation order.
+  tokenId: text('token_id').notNull().unique(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // User-supplied label ("Claude Desktop on laptop", "CI script"). Free-
+  // form, ≤80 chars (validated at the API layer). Helps the user pick
+  // the right token to revoke.
+  name: text('name').notNull(),
+  // SHA-256 of the plaintext token. The plaintext is `mkt_<32-char-base32>`
+  // and exists only in memory long enough to return to the issuer; we
+  // never store or log it. Hash is hex-encoded (64 chars).
+  tokenHash: text('token_hash').notNull().unique(),
+  // Granted scope list. v1 supports the four named scopes; tools gate
+  // visibility via `enabled: event => hasScope(event, '...')`. Stored
+  // as a text array (Postgres native) — we don't need joins here, just
+  // membership checks at request time.
+  scopes: text('scopes').array().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  // Bumped by the verifier on every successful authentication, capped to
+  // once-per-minute via Valkey to avoid hot-row contention. Surfaced in
+  // the UI so users can spot dormant tokens to revoke.
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  // Soft-delete. Set when the user clicks "Revoke" or when a sweeper
+  // (future) ages out tokens past `expiresAt`. The verifier rejects any
+  // row where this is non-null.
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  // Optional hard expiry. v1 leaves this null (manual revocation only);
+  // a follow-up phase will default to 1y to force rotation.
+  expiresAt: timestamp('expires_at', { withTimezone: true })
+}, table => [
+  // Verifier hot path: lookup by hash. Unique above already creates the
+  // index — no extra index needed.
+  // List endpoint: most-recent-first per user.
+  index('idx_mcp_personal_tokens_user').on(table.userId, table.createdAt.desc())
+])
+
+// MCP Sessions. One row per Claude Desktop / Cursor / ChatGPT
+// connection — assigned by the toolkit at `initialize` time, stable
+// across every tool call in the same connection. Exists to close the
+// audit-attribution gap: `activity_log` rows from MCP-driven edits
+// are stamped `userId='mcp:{mcpSessionId}'` (synthetic principal,
+// non-numeric — matches the existing AI loop pattern). Without this
+// table, that string is a dead pointer — the forensic question "what
+// did Claude Desktop do at 14:32" can only answer "MCP did it", not
+// "user 42 via the 'home laptop' token". The join chain:
+//
+//   activity_log.user_id = 'mcp:{mcpSessionId}'
+//     → mcp_sessions.mcp_session_id  (strip 'mcp:' prefix)
+//       → mcp_sessions.user_id       → users.id (the human)
+//       → mcp_sessions.token_id      → mcp_personal_tokens (which credential)
+//
+// Writer: `touchMcpSession` in `server/utils/mcpAuth.ts`, called from
+// the MCP middleware. INSERT … ON CONFLICT DO UPDATE bumps
+// `last_active_at`; Valkey throttles to once-per-minute so a chatty
+// MCP client doesn't write 50 UPDATEs/sec to the same row.
+//
+// Cascade rules:
+//   - user_id → users(id) ON DELETE CASCADE — a deleted user's
+//     sessions go with them (no orphan rows pointing at nothing).
+//   - token_id → mcp_personal_tokens(token_id) ON DELETE SET NULL —
+//     if the PAT is hard-deleted (e.g. user-deletion cascade), the
+//     session row survives with `token_id=NULL` so the audit trail
+//     stays joinable to user_id. Soft-revocation (revoked_at) doesn't
+//     null this column; it stays linked.
+export const mcpSessions = pgTable('mcp_sessions', {
+  id: serial('id').primaryKey(),
+  // Toolkit-assigned UUID from `Mcp-Session-Id` response header.
+  // Unique across all clients and times. Stripped of the `mcp:`
+  // prefix used in activity_log (the prefix is applied at the join
+  // boundary, not stored here).
+  mcpSessionId: text('mcp_session_id').notNull().unique(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // Which PAT minted this session. `tokenId` (not the `id`) so the
+  // FK works across PAT rotation + reveals nothing about row counts.
+  tokenId: text('token_id').references(() => mcpPersonalTokens.tokenId, { onDelete: 'set null' }),
+  // Free-form client identification from MCP `clientInfo.name` in the
+  // initialize call ("Claude Desktop", "Cursor", "ChatGPT app", or
+  // user-defined for ad-hoc scripts). May be null if we miss the
+  // initialize call (we only see session-id starting on the second
+  // call). Surfaced to users in `/settings/integrations` audit views.
+  clientName: text('client_name'),
+  // User-Agent header on the FIRST request that carried the session
+  // id (typically the `initialized` notification). Captured once;
+  // not updated on subsequent calls.
+  userAgent: text('user_agent'),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+  // Bumped on every authenticated tool call. Valkey-throttled to
+  // once-per-minute. Used for session-lifetime analysis + idle
+  // pruning (future sweeper). Surfaced in /settings/integrations.
+  lastActiveAt: timestamp('last_active_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  // Audit-forensics index: "every MCP session for this user, most
+  // recent first". Also covers the FK lookup from user-deletion
+  // cascade.
+  index('idx_mcp_sessions_user').on(table.userId, table.lastActiveAt.desc()),
+  // Token-attribution index: "every session that used this PAT".
+  // Useful when triaging a leaked-token incident.
+  index('idx_mcp_sessions_token').on(table.tokenId)
 ])

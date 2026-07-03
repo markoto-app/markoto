@@ -9,6 +9,28 @@ export type { HocuspocusConnection, HocuspocusDocument, HocuspocusInstance } fro
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
 const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || undefined
 
+// TEST_MODE-only ring buffer for kick-user observation. Lets integration
+// tests assert "the workspace mutation actually dispatched a kick" — the
+// dispatch shape is unit-tested in `tests/unit/syncNotify.test.ts`, but
+// without this buffer there's no way to confirm the call SITES (every
+// /api/workspaces/:wsId/members/* mutation handler) didn't silently drop
+// the dispatch in a refactor. Test/prod drift guard.
+//
+// Gated on TEST_MODE so the prod sync-server never accumulates this
+// state. Capped at 100 entries (LRU) — tests assert against recent
+// state and clear between cases. Both endpoints require the same
+// X-Internal-Secret as the rest of /internal/*; they are NOT a public
+// surface even in test.
+const TEST_MODE = process.env.TEST_MODE === '1'
+const RECENT_KICKS_CAP = 100
+interface RecordedKick { userId: string, docIds: string[], at: number }
+const recentKicks: RecordedKick[] = []
+function recordKick(userId: string, docIds: string[]) {
+  if (!TEST_MODE) return
+  recentKicks.push({ userId, docIds, at: Date.now() })
+  if (recentKicks.length > RECENT_KICKS_CAP) recentKicks.splice(0, recentKicks.length - RECENT_KICKS_CAP)
+}
+
 function sendJson(response: ServerResponse, status: number, body: Record<string, unknown>) {
   response.writeHead(status, { 'Content-Type': 'application/json' })
   response.end(JSON.stringify(body))
@@ -75,6 +97,17 @@ async function handleInternalRequestInner(
     }
     if (url === '/internal/kick-user' && request.method === 'POST') {
       return await handleKickUser(request, response, instance)
+    }
+    // TEST_MODE-only inspection endpoints. The path includes `_test`
+    // so it's grep-distinguishable from production paths in any audit.
+    if (TEST_MODE && url === '/internal/_test/recent-kicks' && request.method === 'GET') {
+      sendJson(response, 200, { kicks: recentKicks })
+      return true
+    }
+    if (TEST_MODE && url === '/internal/_test/recent-kicks' && request.method === 'DELETE') {
+      recentKicks.length = 0
+      sendJson(response, 200, { cleared: true })
+      return true
     }
     sendJson(response, 404, { error: 'Not found' })
     return true
@@ -172,6 +205,8 @@ async function handleKickUser(
   const targetDocIds = rawDocIds.filter((d): d is string => typeof d === 'string')
 
   const { kicked, missing } = performKickUser(instance, targetUserId, targetDocIds)
+  // Record for TEST_MODE inspection — no-op in prod.
+  recordKick(targetUserId, targetDocIds)
   sendJson(response, 200, { success: true, kicked, docsNotLoaded: missing })
   return true
 }

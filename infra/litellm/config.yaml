@@ -80,6 +80,29 @@ model_list:
       output_cost_per_token: 0.00000060  # $0.60 / M tokens
       max_tokens: 256000
 
+  # ---- Fallback for mistral-small-2603 ----
+  # Ministral 8B is a different model family (separate Mistral rate-
+  # limit pool from `mistral-small-*`), with the same essential
+  # capabilities — function calling, vision, 262K context. Smaller
+  # parameter count means simpler answers, but as a fallback it's
+  # near-free: same input cost, 4× CHEAPER output ($0.15 vs $0.60).
+  #
+  # This kicks in via `router_settings.fallbacks` below ONLY when the
+  # primary `mistral-small-2603` model exhausts its retry budget on a
+  # 429 (Mistral free tier rate-limit window). Steady-state traffic
+  # never sees this entry. When the fallback fires, spend tags still
+  # carry `feature:` / `workspace:` / `user:` / `doc:` so the AI Spend
+  # dashboard groups it correctly (the fallback model is recorded as
+  # the actual billed model, distinguishable in the Model axis).
+  - model_name: ministral-8b-latest
+    litellm_params:
+      model: mistral/ministral-8b-latest
+      api_key: os.environ/MISTRAL_API_KEY
+    model_info:
+      input_cost_per_token: 0.00000015   # $0.15 / M tokens (matches small input)
+      output_cost_per_token: 0.00000015  # $0.15 / M tokens (4× cheaper than small output)
+      max_tokens: 262144
+
   # ---- Phase 3: BFL FLUX.2 [pro] image generation (custom provider) ----
   # Wraps BFL's submission+poll API. EU-pinned to api.eu2.bfl.ai (no
   # round-robin to api.us2.bfl.ai). Exposed via chat-completions because
@@ -137,3 +160,15 @@ general_settings:
 router_settings:
   num_retries: 1
   timeout: 60
+  # Fallback chain on RATE-LIMIT EXHAUSTION. If `mistral-small-2603`
+  # returns 429 after num_retries above are exhausted, LiteLLM
+  # transparently re-routes the same request to `ministral-8b-latest`.
+  # The SDK-level retry layer in `server/utils/litellm/createCompletion.ts`
+  # adds another 4 retries with exponential backoff (3s/6s/12s/24s)
+  # AROUND the proxy's behaviour — so a single sustained 429 burst is
+  # answered by: (proxy 1 retry) → (fallback to ministral) → (SDK 4
+  # retries on whatever LiteLLM ultimately returns). Net: in-app AI
+  # rarely surfaces "Could not reach markoto" even on Mistral throttle
+  # storms.
+  fallbacks:
+    - mistral-small-2603: [ministral-8b-latest]

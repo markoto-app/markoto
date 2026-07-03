@@ -115,6 +115,10 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
     'Click the row to expand its diff',
     firstEditRow,
     {
+      // Mobile: activity row sits inside the Activity BottomSheet
+      // portal — Reka's overlay intercepts pointer events. See
+      // `tests/e2e/AGENTS.md` "Bottom-sheet portal interception".
+      force: editor.isMobile,
       hero: true,
       result: 'The diff drawer expands inline — green for added lines, red for removed, line numbers down the gutter.',
       after: async () => {

@@ -348,14 +348,39 @@ describe('executeFunctionByName — dispatch', () => {
     expect(res.content).toContain('Unsupported function')
   })
 
-  it('web_search is NOT routed here (handled by runLoop)', async () => {
-    // Documented in the handler comment — web_search needs the
-    // AiClient client and is async, so the loop calls the
-    // `webSearch` helper directly. If the dispatcher started handling
-    // it, that'd invoke a nonsense `handleWebSearch` we never wrote.
+  it('web_search IS routed through the dispatch table (Phase 2: MCP needs it)', async () => {
+    // Phase 2 added web_search + fetch_url to TOOL_HANDLERS so MCP
+    // wrappers can call them. The in-app runLoop continues to call
+    // `webSearch` directly because it has the abort signal + spend
+    // context handy. Either path should work — this test pins that
+    // the dispatcher knows about web_search now AND that an unknown
+    // name still returns the "Unsupported function" sentinel.
     const { session } = makeSession('')
-    const res = await executeFunctionByName(session, 'web_search', { query: 'x' })
-    expect(res.isError).toBe(true)
-    expect(res.content).toContain('Unsupported function')
+
+    // Negative oracle: unknown names hit the dispatcher's `default`
+    // branch and return a clean error.
+    const unknown = await executeFunctionByName(session, 'definitely_not_a_tool', {})
+    expect(unknown.isError).toBe(true)
+    expect(unknown.content).toContain('Unsupported function')
+
+    // Positive oracle: web_search is routed (i.e. NOT in the
+    // "unknown" branch). We don't actually execute it — that would
+    // need runtime config + Jina; instead we assert the dispatcher
+    // dispatches it. If it returned the "Unsupported function"
+    // sentinel, this test would fail.
+    let routedToBridge = false
+    try {
+      const r = await executeFunctionByName(session, 'web_search', { query: 'x' })
+      // If it returns synchronously without runtime config, that's
+      // already proof — make sure it didn't return the unknown
+      // sentinel.
+      routedToBridge = !r.content.includes('Unsupported function')
+    } catch {
+      // Expected — without runtime config the bridge throws inside
+      // webSearch. THROWING from inside the handler proves we got
+      // past the dispatcher's `default` branch (which never throws).
+      routedToBridge = true
+    }
+    expect(routedToBridge).toBe(true)
   })
 })

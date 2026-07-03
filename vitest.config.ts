@@ -192,8 +192,7 @@ export default defineConfig({
           sequence: { concurrent: false, groupOrder: 1 },
           testTimeout: 30_000,
           hookTimeout: 120_000,
-          globalSetup: ['./tests/integration/setup/globalSetup.ts'],
-          setupFiles: ['./tests/integration/setup/stubSetup.ts']
+          globalSetup: ['./tests/integration/setup/globalSetup.ts']
         }
       }
     ]

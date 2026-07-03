@@ -168,10 +168,22 @@ export class EditorPage {
    * which is set by the bottom-bar component when the
    * useAI().mySession ref clears (status='done' or session aborted).
    *
-   * Default 90s because real Mistral turns can take 5-30s and a
-   * multi-tool loop chains several. Override for fast prompts.
+   * Default 240s. Real Mistral turns are 5-30s; a multi-tool loop
+   * (fetch_url's 2-call sub-pipeline + surrounding agentic turns) chains
+   * 4-6 of them. The LiteLLM wrapper retries 429s with up to 45s of
+   * cumulative backoff per call (3s + 6s + 12s + 24s — see
+   * `server/utils/litellm/createCompletion.ts`), sized to ride out a
+   * full Mistral per-minute rate-limit window. Worst case for a
+   * 4-call loop hitting sustained throttling: ~30s × 4 + ~45s × 1 retry
+   * burst ≈ 165s. 240s = ~50% headroom on top.
+   *
+   * Override downward for single-prompt flows where the savings matter
+   * (the test still aborts on real 5-min server-side deadline). Override
+   * upward (e.g. `300_000`) for AI flows that genuinely chain many
+   * tools — `ai-comment-mention` already does this via its own
+   * `test.setTimeout(600_000)`.
    */
-  async waitForAiIdle(timeout = 90_000): Promise<void> {
+  async waitForAiIdle(timeout = 240_000): Promise<void> {
     await expect(this.ai.promptBar).toHaveAttribute('data-active', 'false', { timeout })
   }
 

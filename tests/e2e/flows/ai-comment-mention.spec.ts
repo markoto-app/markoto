@@ -74,6 +74,9 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     'Click "Add comment" to start a thread',
     editor.page.comments.selectionPopupTrigger,
     {
+      // Mobile: selection popup floats over the editor; click target
+      // is OK without force, but the resulting comments panel opens
+      // in a BottomSheet so subsequent interactions need it.
       result: 'The comments sidebar opens — composer focused, ready for your note.',
       after: () => editor.page.comments.composerInput.waitFor({ state: 'visible' })
     }
@@ -108,6 +111,11 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     'Click the markoto entry',
     editor.page.ai.mentionTypeaheadAi,
     {
+      // Mobile: typeahead popover renders inside the Comments
+      // BottomSheet portal — Reka's overlay intercepts pointer
+      // events. See `tests/e2e/AGENTS.md` "Bottom-sheet portal
+      // interception".
+      force: editor.isMobile,
       // Direction-anchor the typeahead row on the approach frame —
       // even with the typeahead open, the markoto row sits among
       // workspace members and a first-time reader needs the arrow
@@ -133,7 +141,10 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     'Finish your question',
     editor.page.comments.composerInput,
     question,
-    { result: 'Your question is ready — submit to summon markoto.' }
+    {
+      force: editor.isMobile,
+      result: 'Your question is ready — submit to summon markoto.'
+    }
   )
   await expect(editor.page.comments.composerInput).toHaveValue(`@markoto ${question}`)
 
@@ -182,6 +193,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     'Click Submit to post and trigger markoto',
     editor.page.comments.composerSubmit,
     {
+      force: editor.isMobile,
       result: 'Your comment lands — the thread glows with a rainbow ring while markoto works.',
       // Wait for the AI-active visual state. The rainbow-ring class
       // (.is-ai-active) is keyed off awareness's commentThreadId, so

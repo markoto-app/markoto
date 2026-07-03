@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
     docId?: string
     userId?: number | null
     userName?: string | null
+    actorPrincipal?: string | null
     action?: ActivityAction
     wordCount?: number | null
     linesAdded?: number | null
@@ -51,6 +52,9 @@ export default defineEventHandler(async (event) => {
     docId: body.docId,
     userId: typeof body.userId === 'number' ? body.userId : null,
     userName: body.userName || null,
+    actorPrincipal: typeof body.actorPrincipal === 'string' && body.actorPrincipal.length > 0
+      ? body.actorPrincipal
+      : null,
     action: body.action,
     wordCount: body.wordCount ?? null,
     linesAdded: body.linesAdded ?? null,

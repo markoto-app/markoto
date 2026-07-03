@@ -40,32 +40,90 @@ test('Upgrade to Pro', async ({ page, flow, editor }) => {
   // the logged-in user's tier; for the upgrade arc to read clearly
   // we want Free as the starting state (the default for new users).
   const { userId } = await editor.page.loginAsTestUser('Maya Chen')
+
+  // Intercept cross-origin navigations at TWO layers BEFORE the first
+  // page.goto. The pricing page does `window.location.href = url` on
+  // Upgrade click where `url` is the Stripe-mock checkout URL — a
+  // different origin we don't want the browser to follow (separate
+  // hosted page; lands on a "Something went wrong / merchant" stub
+  // that poisons every subsequent screenshot/assertion).
+  //
+  //   1. Browser-route level (page.route). Hard-block any request to a
+  //      cross-origin URL by returning an empty 200. Catches the case
+  //      where the assignment triggers an actual fetch before the
+  //      property setter chain runs.
+  //
+  //   2. JS-property level (addInitScript). Override the
+  //      window.location.href setter to silently drop cross-origin
+  //      writes. Must be installed BEFORE page.goto — addInitScript
+  //      applies to FUTURE page loads, not the current one. (The
+  //      previous shape used page.evaluate AFTER goto; that didn't
+  //      survive subsequent reloads.)
+  await page.addInitScript(() => {
+    const proto = Object.getPrototypeOf(window.location)
+    const desc = Object.getOwnPropertyDescriptor(proto, 'href')
+    if (!desc?.set) return
+    const sameOrigin = window.location.origin
+    Object.defineProperty(window.location, 'href', {
+      configurable: true,
+      get: desc.get,
+      set: (v: string) => {
+        if (typeof v === 'string') {
+          let isCrossOrigin: boolean
+          try {
+            const target = new URL(v, sameOrigin)
+            isCrossOrigin = target.origin !== sameOrigin
+          } catch {
+            isCrossOrigin = false
+          }
+          if (isCrossOrigin) {
+            console.log('[test-stub] Cross-origin redirect intercepted:', v)
+            return
+          }
+        }
+        desc.set!.call(window.location, v)
+      }
+    })
+  })
+
+  await page.route('**/*', async (route) => {
+    const reqUrl = route.request().url()
+    try {
+      const target = new URL(reqUrl)
+      // Allow same-origin (localhost:3001) + the Nuxt internal asset
+      // origins; block anything else (stripe-mock at 127.0.0.1:12111,
+      // real checkout.stripe.com, etc.). The Nuxt prod server runs on
+      // localhost:3001 in flow tests (see flows-ephemeral.ts).
+      const isAllowed = target.origin === 'http://localhost:3001'
+        || target.origin === 'http://127.0.0.1:3001'
+      if (!isAllowed) {
+        await route.fulfill({ status: 200, body: '', contentType: 'text/html' })
+        return
+      }
+    } catch { /* malformed URL — let it through */ }
+    await route.continue()
+  })
+
   await page.goto('/pricing')
   await page.locator('[data-testid="pricing-tier-free"]').waitFor({ state: 'visible', timeout: 10_000 })
 
-  // The pricing page sets `window.location.href = <stripe url>` on
-  // Upgrade click — we don't want to actually navigate to Stripe's
-  // hosted form (separate origin, can't iframe, shouldn't drive
-  // from a flow). Stub the href setter on the live page so the
-  // click visibly fires (button shows loading spinner via the SDK
-  // round-trip) but the page stays on /pricing.
-  await page.evaluate(() => {
-    const proto = Object.getPrototypeOf(window.location)
-    const desc = Object.getOwnPropertyDescriptor(proto, 'href')
-    if (desc?.set) {
-      Object.defineProperty(window.location, 'href', {
-        configurable: true,
-        get: desc.get,
-        set: (v: string) => {
-          if (typeof v === 'string' && (v.includes('checkout.stripe.com') || v.includes('stripe-mock'))) {
-            console.log('[test-stub] Stripe redirect intercepted:', v)
-            return
-          }
-          desc.set!.call(window.location, v)
-        }
-      })
-    }
+  // Fresh test users get the consent banner on first visit. Its
+  // dialog overlay intercepts pointer events on the Upgrade button
+  // below — hover/click on the button times out. Wait for the banner
+  // to render (it mounts after page hydration), then dismiss it so
+  // the rest of the flow can interact normally. The consent flow is
+  // covered separately; we just don't want to capture it as part of
+  // the upgrade story.
+  const consentBanner = page.locator('[data-testid="consent-banner"]')
+  await consentBanner.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {
+    // Banner may not appear if a previous test in the same context
+    // already accepted (shouldn't happen with fresh contexts but be
+    // defensive). Skip dismiss in that case.
   })
+  if (await consentBanner.isVisible().catch(() => false)) {
+    await consentBanner.getByRole('button', { name: /accept all/i }).click()
+    await consentBanner.waitFor({ state: 'hidden', timeout: 5_000 })
+  }
 
   await flow.heading('Upgrade to Pro', 3)
   await flow.narrate(
@@ -143,6 +201,18 @@ test('Upgrade to Pro', async ({ page, flow, editor }) => {
   // The integration tests rely on the same env-var-driven mapping;
   // the fixture's price id is `price_test_pro` which is the value
   // wired into the test stack (see docker-compose.test.yml).
+  //
+  // Override the subscription item's period dates to "now" → "now+30d"
+  // so `resolveBillingContext` doesn't demote the plan to Free via its
+  // `planActive(plan, planValidUntil, now)` check. The fixture ships
+  // with hard-coded epoch seconds (~April-May 2026) which expire
+  // relative to wallclock — without this override the test fails the
+  // moment the calendar passes the fixture's `current_period_end`.
+  const items = (subObj.items as { data: Array<Record<string, unknown>> }).data
+  const item = items[0]!
+  const nowSec = Math.floor(Date.now() / 1000)
+  item.current_period_start = nowSec
+  item.current_period_end = nowSec + 30 * 24 * 60 * 60
   const subBody = JSON.stringify(subEvent)
   const subSig = computeStripeSig(subBody, FLOWS_WEBHOOK_SECRET)
   await page.request.post('/api/webhooks/stripe', {

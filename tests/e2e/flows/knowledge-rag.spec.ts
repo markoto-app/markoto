@@ -132,27 +132,52 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   }
 
   // The Upload button opens a native file chooser via VueUse's
-  // useFileDialog. Same pattern as import-existing — register the
-  // waitForEvent BEFORE the click that triggers the chooser.
+  // useFileDialog. On mobile the button is inside the Knowledge
+  // BottomSheet portal where Reka's overlay intercepts pointer
+  // events — and DOM-level `el.click()` workaround doesn't trigger
+  // the filechooser (browsers require a real user-gesture click for
+  // file dialogs). Bypass the chooser entirely by writing directly
+  // to the hidden `<input type="file">` via setInputFiles. Desktop
+  // path stays on the user-visible filechooser flow.
   const fixture = path.resolve('tests/e2e/fixtures/import-files/q3-launch-postmortem.html')
-  const chooserPromise = page.waitForEvent('filechooser', { timeout: 10_000 })
-
-  await flow.click(
-    'Click Upload to pick a file',
-    page.locator('[data-testid="knowledge-upload-button"]').first(),
-    {
-      annotations: [
-        { label: 'upload', selector: 'button:has-text("Upload")', kind: 'arrow' }
-      ],
-      result: 'The file picker opens — pick the postmortem HTML and markitdown takes over.',
-      after: async () => {
+  if (editor.isMobile) {
+    // useFileDialog mounts the hidden `<input type="file">` lazily —
+    // it only exists in DOM AFTER the upload button's click handler
+    // calls input.click(). Trigger the handler via DOM-level click
+    // (force-evaluate bypasses the BottomSheet's pointer-event
+    // interception); register the filechooser listener BEFORE the
+    // click. Some browsers accept the synthetic click as a user-
+    // gesture-derived chain since it dispatches through normal
+    // event listeners.
+    await flow.step(
+      'Tap Upload + choose the postmortem HTML',
+      async () => {
+        const chooserPromise = page.waitForEvent('filechooser', { timeout: 10_000 })
+        await page.locator('[data-testid="knowledge-upload-button"]').first().evaluate((el: HTMLElement) => el.click())
         const chooser = await chooserPromise
         await chooser.setFiles(fixture)
-        // Wait for the file row to appear in the list.
         await page.locator('[data-testid^="knowledge-file-row-"][data-filename="q3-launch-postmortem.html"]').first().waitFor({ state: 'visible', timeout: 10_000 })
+      },
+      { result: 'The file lands in the upload list — markitdown takes over from here.' }
+    )
+  } else {
+    const chooserPromise = page.waitForEvent('filechooser', { timeout: 10_000 })
+    await flow.click(
+      'Click Upload to pick a file',
+      page.locator('[data-testid="knowledge-upload-button"]').first(),
+      {
+        annotations: [
+          { label: 'upload', selector: 'button:has-text("Upload")', kind: 'arrow' }
+        ],
+        result: 'The file picker opens — pick the postmortem HTML and markitdown takes over.',
+        after: async () => {
+          const chooser = await chooserPromise
+          await chooser.setFiles(fixture)
+          await page.locator('[data-testid^="knowledge-file-row-"][data-filename="q3-launch-postmortem.html"]').first().waitFor({ state: 'visible', timeout: 10_000 })
+        }
       }
-    }
-  )
+    )
+  }
 
   // Wait for the file to flip from `processing` → `ready`. The
   // panel polls `/api/workspaces/:id/knowledge` every 5s; the

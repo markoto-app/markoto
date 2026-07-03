@@ -1,63 +1,22 @@
-import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
-import { HocuspocusProvider } from '@hocuspocus/provider'
-import { Awareness } from 'y-protocols/awareness'
+import type { HocuspocusProvider } from '@hocuspocus/provider'
 import type { AttributedTo } from './billing'
 import type { PlanName } from '~~/shared/config/tiers'
 import { aiClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
-// Node environment needs a WebSocket implementation; 'ws' is a transitive dep of hocuspocus provider
-// but may not be auto-picked on Bun/Nitro. We import it explicitly at runtime if needed.
+import { checkout, release, type PoolEntry } from './yDocPool'
+import type { ToolContext, ToolStatusPhase } from './agentic/toolContext'
 
-export type AiStatusPhase = 'thinking' | 'tool' | 'editing' | 'done' | 'error'
+// Re-export for callers that still import `AiStatusPhase` from this
+// module. Going forward they should import `ToolStatusPhase` from
+// `./agentic/toolContext` directly.
+export type AiStatusPhase = ToolStatusPhase
 
-export interface AiSession {
-  ydoc: Y.Doc
-  ytext: Y.Text
-  ymeta: Y.Map<unknown>
-  awareness: Awareness
+// AiSession = ToolContext + the loop-only lifecycle plumbing the
+// runLoop needs (`provider` for telemetry, `destroy()` for the
+// finally-block teardown). Tool handlers see only the `ToolContext`
+// surface — see `server/utils/agentic/toolContext.ts` for the rationale.
+export interface AiSession extends ToolContext {
   provider: HocuspocusProvider
-  sessionId: string
-  docId: string
-  /**
-   * User id of whoever kicked off the session. Tools that write to
-   * audited tables (e.g. `uploads.uploaderId` from `generate_image`)
-   * attribute to this id rather than the AI's synthetic `ai:assistant:*`
-   * principal, so activity logs stay human-readable.
-   */
-  initiatorUserId: number
-  /**
-   * Workspace the parent document belongs to, if any. Resolved once at
-   * session-open time so the knowledge-base tools don't re-query every
-   * call. `null` for standalone / anonymous docs — those sessions don't
-   * have `search_knowledge` / `get_knowledge_file` exposed in the first
-   * place, but the field is read defensively inside the handlers too.
-   */
-  workspaceId: string | null
-  /**
-   * Billing target for this session. `user:{id}` when self-billing,
-   * `workspace:{id}` when a `(+)` workspace's owner covers the cost.
-   * Resolved once at session open via `resolveBillingContext`. Tool
-   * handlers use this directly instead of re-resolving — membership
-   * can drift mid-session, but the billing target is frozen at open.
-   */
-  attributedTo: AttributedTo
-  /** Plan that applies to the session. Same freeze-at-open rule as attributedTo. */
-  plan: PlanName
-  /**
-   * Billing-period start frozen at session-open. Used for periodEnd
-   * display in the AI Points UI. Paid users: Stripe anniversary;
-   * Free: calendar-month UTC.
-   */
-  periodStart: Date
-  /**
-   * Per-user (or per-(+)-workspace-owner) LiteLLM virtual-key bearer
-   * token. Frozen at session open so a mid-session plan lapse doesn't
-   * mid-rug the active session. Tool handlers pass this to
-   * `useLitellmForUser(virtualKey)` for any sub-call (BFL image gen,
-   * future Mistral synthesis, etc.).
-   */
-  virtualKey: string
-  updateStatus(phase: AiStatusPhase, message?: string): void
   destroy(): Promise<void>
 }
 
@@ -87,11 +46,38 @@ export interface SessionMeta {
 }
 
 /**
+ * Mint the loop's Hocuspocus JWT. Synthetic principal
+ * `ai:assistant:{sessionId}` for activity-log attribution; 10m TTL —
+ * tight enough to limit replay if leaked, generous enough to cover the
+ * 5-min prompt deadline plus salvage paths.
+ */
+function mintLoopJwt(docId: string, sessionId: string): string {
+  const config = useRuntimeConfig()
+  if (!config.jwtSecret) throw new Error('JWT secret not configured')
+  const payload: SessionJwtPayload = {
+    docId,
+    userId: aiClientUserId(sessionId),
+    // Activity-log attribution picks this up via the onChange hook.
+    // Always "markoto" — initiator's name lives in awareness.aiSession
+    // for UI display.
+    userName: 'markoto',
+    readOnly: false
+  }
+  return jwt.sign(payload, config.jwtSecret, { expiresIn: '10m' })
+}
+
+/**
  * Connects to Hocuspocus as "AI Assistant" — the AI's own Y.js client.
- * Awareness advertises the AI identity + initiator + live status so the UI
- * can render a distinct avatar and show what the AI is doing. The display
- * name is deliberately vendor-neutral ("AI Assistant") so swapping the
- * underlying model provider is a config change, not a UI rename.
+ * Awareness advertises the AI identity + initiator + live status so the
+ * UI can render a distinct avatar and show what the AI is doing. The
+ * display name is deliberately vendor-neutral ("markoto") so swapping
+ * the underlying model provider is a config change, not a UI rename.
+ *
+ * Implementation: routes through `yDocPool.checkout` with principalId
+ * `loop:{sessionId}`. Each loop run has a unique session id so this is
+ * always a fresh checkout (no cache hits) — but going through the pool
+ * keeps the connection lifecycle in one place and lets the MCP wrapper
+ * use the exact same primitive.
  */
 export async function createAiSession(
   docId: string,
@@ -99,157 +85,101 @@ export async function createAiSession(
   signal: AbortSignal
 ): Promise<AiSession> {
   const config = useRuntimeConfig()
-  if (!config.jwtSecret) {
-    throw new Error('JWT secret not configured')
-  }
-  if (!config.syncInternalUrl) {
-    throw new Error('syncInternalUrl not configured')
-  }
+  if (!config.syncInternalUrl) throw new Error('syncInternalUrl not configured')
 
-  const payload = {
-    docId,
-    userId: aiClientUserId(meta.sessionId),
-    // Activity-log attribution picks this up via the onChange hook.
-    // Always "markoto" — the initiator's name lives in
-    // awareness.aiSession for UI display. Internal JWT principal
-    // (`ai:assistant:…`) stays unchanged so existing access checks
-    // still work.
-    userName: 'markoto',
-    readOnly: false
-  } satisfies SessionJwtPayload
-  const token = jwt.sign(
-    payload,
-    config.jwtSecret,
-    // 10m TTL — sessions are sub-minute in practice (5 min hard
-    // deadline; sweeper kills at 7 min). 1h was an overhang that
-    // gave a leaked AI-session token a usable replay window long
-    // after the session ended; 10m keeps it tight while still
-    // covering pathological loops near the prompt deadline.
-    { expiresIn: '10m' }
-  )
+  // Convert http(s):// → ws(s):// for Hocuspocus.
+  const syncUrl = config.syncInternalUrl.replace(/^http(s?):\/\//, 'ws$1://')
+  const principalId = `loop:${meta.sessionId}`
+  const key = { docId, principalId }
 
-  const ydoc = new Y.Doc()
-  const awareness = new Awareness(ydoc)
-
-  // Set identity BEFORE connecting so the first sync carries it.
-  awareness.setLocalStateField('user', {
-    name: 'markoto',
-    color: meta.initiatorColor,
-    isAI: true
-  })
-  awareness.setLocalStateField('aiSession', {
-    sessionId: meta.sessionId,
-    initiatorName: meta.initiatorName,
-    initiatorUserId: meta.initiatorUserId,
-    prompt: meta.prompt,
-    // Only included when present — keeps the awareness payload small
-    // for the common (non-comment-trigger) case.
-    ...(meta.commentThreadId ? { commentThreadId: meta.commentThreadId } : {})
-  })
-  awareness.setLocalStateField('aiStatus', { phase: 'thinking', message: null })
-
-  // Hocuspocus needs a WebSocket URL. syncInternalUrl is configured as http:// for
-  // HTTP calls (like /internal/notify-deleted); convert to ws:// for the WebSocket.
-  const wsUrl = config.syncInternalUrl.replace(/^http(s?):\/\//, 'ws$1://')
-  console.log(`[aiClient] Connecting to ${wsUrl} as session ${meta.sessionId} for doc ${docId}`)
-
-  let syncResolved = false
-  let resolveSync!: () => void
-  let rejectSync!: (e: Error) => void
-  const syncReady = new Promise<void>((resolve, reject) => {
-    resolveSync = resolve
-    rejectSync = reject
-  })
-  const timer = setTimeout(() => {
-    if (!syncResolved) {
-      syncResolved = true
-      rejectSync(new Error('Sync timeout (10s)'))
-    }
-  }, 10_000)
-
-  const provider = new HocuspocusProvider({
-    url: wsUrl,
-    name: docId,
-    document: ydoc,
-    awareness,
-    token,
-    onOpen: () => console.log(`[aiClient] open ${meta.sessionId}`),
-    onConnect: () => console.log(`[aiClient] connected ${meta.sessionId}`),
-    onSynced: () => {
-      if (syncResolved) return
-      syncResolved = true
-      clearTimeout(timer)
-      console.log(`[aiClient] synced ${meta.sessionId}`)
-      resolveSync()
+  // Race the checkout against an external abort (request cancelled
+  // before sync completed). The pool's own 10s sync timeout is the
+  // other terminating condition.
+  const checkoutPromise = checkout(key, {
+    jwt: mintLoopJwt(docId, meta.sessionId),
+    awarenessUser: {
+      name: 'markoto',
+      color: meta.initiatorColor,
+      isAI: true
     },
-    onAuthenticationFailed: (data) => {
-      if (syncResolved) return
-      syncResolved = true
-      clearTimeout(timer)
-      console.error(`[aiClient] auth failed ${meta.sessionId}:`, data?.reason)
-      rejectSync(new Error('Sync authentication failed: ' + (data?.reason || 'unknown')))
+    awarenessExtra: {
+      aiSession: {
+        sessionId: meta.sessionId,
+        initiatorName: meta.initiatorName,
+        initiatorUserId: meta.initiatorUserId,
+        prompt: meta.prompt,
+        // Only included when present — keeps the awareness payload
+        // small for the common (non-comment-trigger) case.
+        ...(meta.commentThreadId ? { commentThreadId: meta.commentThreadId } : {})
+      },
+      aiStatus: { phase: 'thinking', message: null }
     },
-    onClose: (data) => {
-      const evt = (data as { event?: { code?: number, reason?: string } })?.event
-      console.log(`[aiClient] close ${meta.sessionId}:`, evt?.code, evt?.reason)
-      if (!syncResolved) {
-        syncResolved = true
-        clearTimeout(timer)
-        rejectSync(new Error(`Connection closed: ${evt?.code} ${evt?.reason || ''}`))
-      }
-    }
+    syncUrl
   })
 
-  signal.addEventListener('abort', () => {
-    if (syncResolved) return
-    syncResolved = true
-    clearTimeout(timer)
-    rejectSync(new Error('Aborted before sync'))
-  }, { once: true })
+  const abortPromise = new Promise<never>((_, reject) => {
+    if (signal.aborted) {
+      reject(new Error('Aborted before sync'))
+      return
+    }
+    signal.addEventListener('abort', () => reject(new Error('Aborted before sync')), { once: true })
+  })
 
-  await syncReady
-
-  const ytext = ydoc.getText('content')
-  const ymeta = ydoc.getMap<unknown>('meta')
-
-  const updateStatus = (phase: AiStatusPhase, message?: string) => {
-    awareness.setLocalStateField('aiStatus', { phase, message: message ?? null })
+  let entry: PoolEntry
+  try {
+    entry = await Promise.race([checkoutPromise, abortPromise])
+  } catch (err) {
+    // If the abort fired before the pool entry was returned, but the
+    // pool checkout still completes later, release it so it can be
+    // idle-evicted instead of pinned forever. The race winner doesn't
+    // know about the loser — fire-and-forget cleanup.
+    void checkoutPromise.then(
+      e => release(e.key),
+      () => undefined
+    )
+    throw err
   }
 
-  const destroy = async () => {
-    // Each teardown step is wrapped individually because they can fail
-    // independently — awareness set can throw after provider destroy, provider
-    // disconnect can throw if the WS already dropped, etc. We want the full
-    // sequence to run regardless.
+  // Loop's `aiStatus` field uses the same awareness slot the legacy
+  // `updateStatus` closure wrote to. Handlers continue to call
+  // `ctx.updateStatus(...)` and the slot writes show up to other
+  // collaborators as before.
+  const updateStatus = (phase: ToolStatusPhase, message?: string): void => {
+    entry.awareness.setLocalStateField('aiStatus', { phase, message: message ?? null })
+  }
+
+  const destroy = async (): Promise<void> => {
+    // Broadcast the AI's disappearance before releasing — collaborators
+    // see the avatar drop immediately rather than waiting for idle
+    // eviction.
     try {
-      awareness.setLocalState(null) // broadcast disappearance
+      entry.awareness.setLocalState(null)
     } catch { /* best-effort */ }
-    try {
-      provider.disconnect()
-    } catch { /* best-effort */ }
-    try {
-      provider.destroy()
-    } catch { /* best-effort */ }
-    try {
-      ydoc.destroy()
-    } catch { /* best-effort */ }
+    release(key)
+    // Sweeper closes the entry IDLE_MS after release. We don't force
+    // close here because:
+    //   - Multiple checkouts on the same key (in flight from concurrent
+    //     features that share the principal) shouldn't be torn down by
+    //     one consumer's destroy.
+    //   - Idle eviction is the canonical close path; respecting it here
+    //     keeps the API symmetric.
   }
 
   return {
-    ydoc,
-    ytext,
-    ymeta,
-    awareness,
-    provider,
-    sessionId: meta.sessionId,
     docId,
     initiatorUserId: meta.initiatorUserId,
     workspaceId: meta.workspaceId ?? null,
+    ydoc: entry.ydoc,
+    ytext: entry.ytext,
+    ymeta: entry.ymeta,
+    awareness: entry.awareness,
+    sessionId: meta.sessionId,
     attributedTo: meta.attributedTo,
     plan: meta.plan,
     periodStart: meta.periodStart,
     virtualKey: meta.virtualKey,
     updateStatus,
+    provider: entry.provider,
     destroy
   }
 }

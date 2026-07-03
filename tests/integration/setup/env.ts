@@ -7,7 +7,7 @@
 //   Postgres:  5432 (dev)     → 5433 (test)
 //   Valkey:    6379 (dev)     → 6380 (test)
 //   SeaweedFS: 8333 (dev)     → 8334 (test)
-//   Sync stub: 4001 (dev)     → 4010 (test, in-process Node stub)
+//   Sync:      4001 (dev)     → 4002 (test, real sync-test container)
 
 export const TEST_PORT = 3101
 export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
@@ -33,19 +33,31 @@ export const TEST_VALKEY_PORT = '6380'
 // the same auth code path prod uses.
 export const TEST_VALKEY_PASSWORD = 'testpassword'
 
-// Kick-user / notify-deleted target. The global setup boots a tiny Node
-// HTTP stub on this port and points Nuxt's runtime config at it. Stub
-// records calls so assertions can verify membership-change endpoints
-// actually dispatched the expected kick.
-export const TEST_SYNC_PORT = 4010
+// Sync-server target — the real `sync-test` Hocuspocus container under
+// docker-compose.test.yml, host-mapped on 4002. Both internal HTTP
+// endpoints (/internal/kick-user, /internal/notify-deleted) AND the
+// WebSocket Y.js sync protocol are served by the same process, so
+// pointing Nuxt's `syncInternalUrl` here unlocks live-sync coverage
+// (MCP doc-bound tools, AI agentic loop, real Hocuspocus auth flow).
+//
+// Previously this pointed at an in-process Node HTTP stub on port 4010
+// that recorded /internal/kick-user calls for assertion. Removed: the
+// stub couldn't speak Hocuspocus protocol, which gated every Y.js-
+// touching tool out of integration coverage. The kick-user dispatch
+// shape is now pinned by `tests/unit/syncNotify.test.ts`.
+export const TEST_SYNC_PORT = 4002
 export const TEST_SYNC_URL = `http://127.0.0.1:${TEST_SYNC_PORT}`
 
 // Deterministic secrets. Fixtures sign JWTs with TEST_JWT_SECRET and seal
 // cookies using TEST_SESSION_PASSWORD; both have to match the values the
-// Nuxt subprocess boots with.
-export const TEST_JWT_SECRET = 'test-jwt-secret-' + 'x'.repeat(64)
+// Nuxt subprocess boots with. JWT_SECRET + INTERNAL_API_SECRET ALSO have
+// to match the sync-test container's build-time env vars (same compose
+// file) — otherwise Nuxt → sync /internal calls 403 and Hocuspocus
+// rejects every WS connection. If you bump these, mirror the change in
+// docker-compose.test.yml's sync-test environment.
+export const TEST_JWT_SECRET = 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char'
 export const TEST_SESSION_PASSWORD = 'test-session-password-' + 'y'.repeat(64)
-export const TEST_INTERNAL_SECRET = 'test-internal-secret-' + 'z'.repeat(32)
+export const TEST_INTERNAL_SECRET = 'test-internal-api-secret-isolated'
 
 // Valkey-compatible endpoint for the test stack. Rate limits and session
 // locks fall open/closed per `server/utils/rateLimit.ts` semantics when

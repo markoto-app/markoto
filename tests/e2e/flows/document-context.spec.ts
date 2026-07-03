@@ -81,6 +81,10 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     page.locator('#doc-description'),
     'Onboarding-Email für neu registrierte Nutzer.',
     {
+      // Mobile: Document panel renders inside the BottomSheet portal.
+      // Pointer events on the input are intercepted by Reka's overlay.
+      // See `tests/e2e/AGENTS.md` "Bottom-sheet portal interception".
+      force: editor.isMobile,
       result: 'The description is captured — the AI will see this on every prompt.'
     }
   )
@@ -96,7 +100,14 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     await flow.step(
       'Open the Audience dropdown',
       async () => {
-        await page.locator('#doc-audience').click({ force: true })
+        // Reka USelect listens on pointerdown/pointerup, not click.
+        // Dispatch the full pointer sequence per AGENTS.md workaround #3.
+        await page.locator('#doc-audience').evaluate((el: HTMLElement) => {
+          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
+          el.dispatchEvent(new PointerEvent('pointerdown', opts))
+          el.dispatchEvent(new PointerEvent('pointerup', opts))
+          el.click()
+        })
         await page.getByRole('option', { name: /marketing/i }).first().waitFor({ state: 'visible' })
       },
       { result: 'The audience options appear.' }
@@ -104,7 +115,13 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     await flow.step(
       'Pick "Marketing / SEO"',
       async () => {
-        await page.getByRole('option', { name: /marketing/i }).first().click({ force: true })
+        // Same pointer-sequence pattern for the option (Reka).
+        await page.getByRole('option', { name: /marketing/i }).first().evaluate((el: HTMLElement) => {
+          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
+          el.dispatchEvent(new PointerEvent('pointerdown', opts))
+          el.dispatchEvent(new PointerEvent('pointerup', opts))
+          el.click()
+        })
         await page.locator('#doc-audience').waitFor({ state: 'visible' })
       },
       { result: 'The audience switches to Marketing.' }
@@ -135,7 +152,13 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     await flow.step(
       'Type "Deutsch" in Language',
       async () => {
-        await page.locator('#doc-language').click({ force: true })
+        // UInputMenu is a Reka combobox; same pointer-sequence story.
+        await page.locator('#doc-language').evaluate((el: HTMLElement) => {
+          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
+          el.dispatchEvent(new PointerEvent('pointerdown', opts))
+          el.dispatchEvent(new PointerEvent('pointerup', opts))
+          el.click()
+        })
         await page.locator('#doc-language').pressSequentially('Deutsch')
         await page.getByRole('option', { name: /deutsch/i }).first().waitFor({ state: 'visible', timeout: 5_000 })
       },
@@ -144,7 +167,12 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     await flow.step(
       'Tap "Deutsch"',
       async () => {
-        await page.getByRole('option', { name: /deutsch/i }).first().click({ force: true })
+        await page.getByRole('option', { name: /deutsch/i }).first().evaluate((el: HTMLElement) => {
+          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
+          el.dispatchEvent(new PointerEvent('pointerdown', opts))
+          el.dispatchEvent(new PointerEvent('pointerup', opts))
+          el.click()
+        })
         await page.waitForTimeout(500)
       },
       { result: 'The language switches to Deutsch.' }

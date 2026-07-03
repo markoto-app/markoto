@@ -142,6 +142,9 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     'Click Restore on the "bad" edit row (top of the feed)',
     restoreButtons.first(),
     {
+      // Mobile: restore button sits inside the Activity BottomSheet
+      // portal — pointer events intercepted. See `tests/e2e/AGENTS.md`.
+      force: editor.isMobile,
       result: 'The confirm modal appears — read the warning, then commit.',
       after: () => page.locator('[data-testid="restore-confirm"]').waitFor({ state: 'visible', timeout: 5_000 })
     }

@@ -88,7 +88,16 @@ export const SYNTHETIC_USER_ID_PREFIXES = [
   'ai:assistant:',
   'restore:',
   'comments-server:',
-  'ai-cross-doc-read:'
+  'ai-cross-doc-read:',
+  // MCP tool calls — issued by `connectAsMcpClient` in
+  // `server/utils/mcpHocuspocusClient.ts`. Each MCP session
+  // (one Claude Desktop / Cursor connection) has a stable id;
+  // every tool call from that session uses the same principal so
+  // the YDocPool can dedupe per-session connections and so
+  // activity-log rows stay attributable to the originating MCP
+  // session. Real-user attribution is recoverable via the (Phase 3)
+  // `mcp_sessions` table — see plan file.
+  'mcp:'
 ] as const
 
 export type SyntheticUserIdPrefix = typeof SYNTHETIC_USER_ID_PREFIXES[number]
@@ -103,6 +112,14 @@ export function aiClientUserId(sessionId: string): `ai:assistant:${string}` {
  *  `server/utils/restoreDoc.ts`. */
 export function restoreClientUserId(actorUserId: number, sessionId: string): `restore:${number}:${string}` {
   return `restore:${actorUserId}:${sessionId}`
+}
+
+/** Build the synthetic userId for an MCP client session. Used by
+ *  `server/utils/mcpHocuspocusClient.ts`. The mcpSessionId comes from
+ *  the MCP toolkit's `Mcp-Session-Id` header (one per Claude Desktop
+ *  / Cursor connection). */
+export function mcpClientUserId(mcpSessionId: string): `mcp:${string}` {
+  return `mcp:${mcpSessionId}`
 }
 
 // ─── Scoped HTTP tokens ──────────────────────────────────────────────

@@ -197,7 +197,7 @@ type StoreDocumentData = Parameters<NonNullable<NonNullable<ConstructorParameter
 function resolveAttribution(
   data: StoreDocumentData,
   trackedFetch: Awaited<ReturnType<typeof getLastEditor>>
-): { userName: string | null, userId: number | null } {
+): { userName: string | null, userId: number | null, actorPrincipal: string | null } {
   const tracked = trackedFetch.value
   let userName: string | null = tracked?.userName ?? null
   if (!tracked) {
@@ -214,16 +214,37 @@ function resolveAttribution(
     userName = mostRecentEditorFromAwareness(awareness)
   }
   // The tracked.userId is the JWT's userId — string. Real users get a
-  // numeric id; AI sessions use the synthetic `ai:assistant:{sessionId}`
-  // form which is non-numeric and resolves to null, exactly what we
-  // want (no users.id row to JOIN against).
-  return { userName, userId: parseTrackedUserId(tracked?.userId) }
+  // numeric id (parsed → integer for activity_log.user_id); synthetic
+  // principals (`ai:assistant:{sid}`, `mcp:{sid}`) are non-numeric and
+  // resolve to null on `parseTrackedUserId`. We pass the RAW string
+  // through `actorPrincipal` so the app-side activity row can join
+  // back to ai_sessions / mcp_sessions and resolve the human
+  // initiator. Fallback case (no tracked, awareness heuristic) leaves
+  // actorPrincipal null — the awareness layer doesn't carry the JWT
+  // principal, so the audit chain breaks for that rare path. Same
+  // property as user_name in fallback.
+  return {
+    userName,
+    userId: parseTrackedUserId(tracked?.userId),
+    actorPrincipal: parseActorPrincipal(tracked?.userId)
+  }
 }
 
 function parseTrackedUserId(rawUserId: string | undefined): number | null {
   if (!rawUserId) return null
   const n = Number(rawUserId)
   return Number.isFinite(n) ? n : null
+}
+
+/** Returns the raw JWT.userId when it's a synthetic-principal string
+ *  (non-numeric), null otherwise. The verifier list lives in
+ *  `shared/contracts/jwt.ts` (`SYNTHETIC_USER_ID_PREFIXES`); we
+ *  duplicate the prefix check here to keep the sync-server free of
+ *  shared/-folder imports (it has its own minimal dep tree). */
+function parseActorPrincipal(rawUserId: string | undefined): string | null {
+  if (!rawUserId) return null
+  if (Number.isFinite(Number(rawUserId))) return null // numeric → real user
+  return rawUserId
 }
 
 /**
@@ -245,7 +266,7 @@ async function logEditActivity(
     const ytext = data.document.getText('content')
     const currentText = ytext.toJSON()
     const wordCount = countWords(currentText)
-    const { userName, userId } = resolveAttribution(data, trackedFetch)
+    const { userName, userId, actorPrincipal } = resolveAttribution(data, trackedFetch)
 
     const prevFetch = await getPrevText(data.documentName)
     await setPrevText(data.documentName, currentText)
@@ -263,6 +284,7 @@ async function logEditActivity(
       docId: data.documentName,
       userId,
       userName,
+      actorPrincipal,
       action: 'edit',
       wordCount,
       linesAdded: added,
@@ -293,6 +315,7 @@ async function logMetaDiffActivity(
   try {
     const userName: string | null = tracked?.userName ?? null
     const userId = parseTrackedUserId(tracked?.userId)
+    const actorPrincipal = parseActorPrincipal(tracked?.userId)
     const prevMetaFetch = await getPrevMeta(data.documentName)
     const prevMeta = prevMetaFetch.value
     const currMeta = readMetaSnapshot(data.document)
@@ -304,6 +327,7 @@ async function logMetaDiffActivity(
         docId: data.documentName,
         userId,
         userName,
+        actorPrincipal,
         action: 'title.changed',
         metadata: {
           kind: 'title.changed',
@@ -319,6 +343,7 @@ async function logMetaDiffActivity(
         docId: data.documentName,
         userId,
         userName,
+        actorPrincipal,
         action: 'theme.changed',
         metadata: { kind: 'theme.changed' },
         yjsDocIdBefore,

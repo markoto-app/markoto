@@ -17,7 +17,12 @@ export default defineNuxtConfig({
     '@pinia/colada-nuxt',
     '@vite-pwa/nuxt',
     'nuxt-codemirror',
-    '@sentry/nuxt/module'
+    '@sentry/nuxt/module',
+    // MCP server: exposes our AI tools to external clients (Claude Desktop,
+    // Cursor, ChatGPT app store) at /mcp via JSON-RPC. Tools live in
+    // server/mcp/tools/*; auth is PAT-based in v1 (mcp_personal_tokens).
+    // See server/mcp/AGENTS.md.
+    '@nuxtjs/mcp-toolkit'
   ],
 
   devtools: {
@@ -232,7 +237,11 @@ export default defineNuxtConfig({
     // (Hocuspocus Y.js sync) flows through its own standalone container,
     // not Nitro.
     experimental: {
-      websocket: true
+      websocket: true,
+      // Required by @nuxtjs/mcp-toolkit composables (useEvent, useMcpServer,
+      // useMcpSession, useMcpLogger) — they read the current event from
+      // Nitro's async-local storage. Without this they throw at runtime.
+      asyncContext: true
     },
     // Match the runtime: the Dockerfile's runtime stage runs the output with
     // `bun`, and packages like lib0 have `bun` conditional exports that
@@ -304,6 +313,17 @@ export default defineNuxtConfig({
       cookieKey: 'ypad_locale',
       fallbackLocale: 'en'
     }
+  },
+
+  // MCP server config. Tools, resources, and prompts auto-discovered from
+  // server/mcp/{tools,resources,prompts}/. Sessions on so external clients
+  // can stash a docId index across calls; defaultHandlerStrategy: 'orphans'
+  // means /mcp exposes everything not attached to a named handler.
+  mcp: {
+    name: 'markoto',
+    description: 'Collaborative markdown editor — read, search, and edit your docs from any MCP client.',
+    sessions: true,
+    defaultHandlerStrategy: 'orphans'
   },
 
   pwa: {

@@ -22,6 +22,7 @@ import {
 import { useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
+import { aiClientUserId } from '~~/shared/contracts/jwt'
 import { docExists } from '../../repos/documents'
 import {
   newStreamState,
@@ -216,12 +217,22 @@ class SessionTelemetry {
  *
  * Fire-and-forget — failures must never block the agentic loop.
  */
-async function logAiTool(docId: string, metadata: Extract<ActivityMetadata, { kind: 'ai.tool' }>): Promise<void> {
+async function logAiTool(
+  docId: string,
+  sessionId: string,
+  metadata: Extract<ActivityMetadata, { kind: 'ai.tool' }>
+): Promise<void> {
   try {
     if (!(await docExists(docId))) return
     await appendActivity({
       docId,
       userName: 'AI Assistant',
+      // Carries the synthetic principal so the activity-feed
+      // enrichment join can resolve back to the human initiator
+      // through `ai_sessions.session_id = sessionId`. Without this,
+      // the row would be indistinguishable from a deleted-user edit
+      // — `user_id=NULL`, `user_name='AI Assistant'`, no traceback.
+      actorPrincipal: aiClientUserId(sessionId),
       action: 'ai.tool',
       metadata
     })
@@ -627,7 +638,7 @@ async function runSubCall(
     if (name === 'web_search') {
       const { query } = validatedArgs as { query: string }
       const out = await webSearch(ctx.opts.ai, ctx.opts.model, query, ctx.opts.abortController.signal, subCallContext)
-      void logAiTool(ctx.opts.aiSession.docId, {
+      void logAiTool(ctx.opts.aiSession.docId, ctx.opts.aiSession.sessionId, {
         kind: 'ai.tool',
         tool: 'web_search',
         query: query.slice(0, 200),
@@ -640,7 +651,7 @@ async function runSubCall(
     }
     const { url } = validatedArgs as { url: string }
     const out = await fetchUrl(ctx.opts.ai, ctx.opts.model, url, ctx.opts.abortController.signal, subCallContext)
-    void logAiTool(ctx.opts.aiSession.docId, {
+    void logAiTool(ctx.opts.aiSession.docId, ctx.opts.aiSession.sessionId, {
       kind: 'ai.tool',
       tool: 'fetch_url',
       url: out.url.slice(0, 500),
@@ -683,7 +694,7 @@ function pickStr(args: unknown, key: string, max: number): string {
 function logMetaTool(ctx: LoopContext, name: string, validatedArgs: unknown): void {
   const builder = META_TOOL_BUILDERS[name]
   if (!builder) return
-  void logAiTool(ctx.opts.aiSession.docId, builder(validatedArgs))
+  void logAiTool(ctx.opts.aiSession.docId, ctx.opts.aiSession.sessionId, builder(validatedArgs))
 }
 
 /**

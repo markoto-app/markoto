@@ -6,6 +6,8 @@ import { useLitellmAdmin } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { TEMPLATE_IDS } from '~~/shared/templates'
+import { AUDIENCE_KINDS } from '~~/shared/audiences'
 import {
   HexColorSchema,
   PageSizeSchema,
@@ -105,10 +107,10 @@ const GetKnowledgeFileArgs = z.object({
 // Comments are the primary channel for AI ↔ user communication. Every comment
 // appears in the sidebar in real time (same as collaborator comments).
 
-const ReadCommentsArgs = z.object({})
+export const ReadCommentsArgs = z.object({})
   .describe('Read all comment threads on this document: IDs, anchored line ranges, resolved status, bodies, and replies. Call this before creating, replying to, resolving, or deleting any comment.')
 
-const CreateCommentArgs = z.object({
+export const CreateCommentArgs = z.object({
   start_line: z.number().int().min(1)
     .describe('First line of the text range to anchor the comment to (1-indexed, inclusive).'),
   end_line: z.number().int().min(1)
@@ -117,21 +119,21 @@ const CreateCommentArgs = z.object({
     .describe('Comment body (max 4000 chars). May include @[Name](user:ID) mention tokens using IDs from <workspace_members>.')
 }).describe('Place a new comment anchored to a line range. Use for review notes, questions, to-dos, or to communicate with the user about a specific part of the document. Your comment appears as "AI Assistant".')
 
-const ReplyToCommentArgs = z.object({
+export const ReplyToCommentArgs = z.object({
   comment_id: z.string().min(1).max(64)
     .describe('The id of the comment thread to reply to (from read_comments).'),
   body: z.string().trim().min(1).max(2000)
     .describe('Reply body (max 2000 chars). May include @[Name](user:ID) mention tokens.')
 }).describe('Add a reply to an existing comment thread. Your reply appears as "AI Assistant" nested under the thread.')
 
-const ResolveCommentArgs = z.object({
+export const ResolveCommentArgs = z.object({
   comment_id: z.string().min(1).max(64)
     .describe('The id of the comment thread to resolve or reopen (from read_comments).'),
   resolved: z.boolean()
     .describe('true to mark the thread resolved, false to reopen it.')
 }).describe('Resolve or reopen a comment thread. Resolved threads are hidden by default in the UI but not deleted.')
 
-const DeleteCommentArgs = z.object({
+export const DeleteCommentArgs = z.object({
   comment_id: z.string().min(1).max(64)
     .describe('The id of the comment thread (from read_comments).'),
   reply_id: z.string().min(1).max(64).optional()
@@ -146,12 +148,12 @@ const SetTitleArgs = z.object({
     .describe('The new document title (1–255 characters after trimming leading/trailing whitespace).')
 }).describe('Set the document title shown in the tab, topbar, and document listings.')
 
-const ViewImageArgs = z.object({
+export const ViewImageArgs = z.object({
   src: z.string().min(1).max(2048)
     .describe('The image URL or path exactly as it appears in the markdown (e.g. "/api/files/abc/def.png" for uploaded images, or "https://example.com/chart.jpg" for external URLs). Copy it verbatim from the source markdown.')
 }).describe('Fetch an image from the document and add it to the conversation so you can see its contents. Use this whenever you need to reason about what an image actually shows — for writing alt text, describing figures, summarising charts, or verifying a picture matches its caption.')
 
-const GenerateImageArgs = z.object({
+export const GenerateImageArgs = z.object({
   prompt: z.string().trim().min(1).max(2000)
     .describe('Detailed description of the image to generate. Be specific about subject, style, composition, mood. Good: "A warm handshake between two business professionals, shallow depth of field, office lighting, photorealistic". Weak: "handshake".'),
   alt: z.string().trim().min(1).max(200)
@@ -183,10 +185,10 @@ const GenerateImageArgs = z.object({
 // pattern as `view_image`). Costs more interactions because the
 // vision model charges per-image input.
 
-const GetPageCountArgs = z.object({}).strict()
+export const GetPageCountArgs = z.object({}).strict()
   .describe('Return the total number of paginated pages in the current document (using the current theme\'s @page rules). Use when the user references a specific page number ("look at page 3") so you know if that page exists, before calling view_pages. Triggers a backend render if the doc hasn\'t been rendered yet.')
 
-const ViewPagesArgs = z.object({
+export const ViewPagesArgs = z.object({
   pages: z.array(z.number().int().min(1).max(50)).min(1).max(5)
     .describe('1-indexed list of page numbers to fetch. Maximum 5 pages per call. Page numbers must be within the doc\'s rendered page count (use get_page_count first if you don\'t know it).')
 }).strict()
@@ -332,7 +334,7 @@ const RunningSlotsPatch = z.object({
 // merged theme goes through `isValidTheme`. The canonical numeric
 // surface lives in theme.ts; don't add a new weight/column/depth
 // value without updating both lists.
-const UpdateThemeArgs = z.object({
+export const UpdateThemeArgs = z.object({
   preset: z.enum(PRESET_IDS).optional()
     .describe(`Apply a built-in preset as the base, replacing ALL current theme values. Other fields passed alongside are applied on top of the preset. Available presets: ${PRESET_IDS.join(', ')}. Mutually exclusive with theme_id and from_workspace_default — pass only one base source.`),
   theme_id: z.string().min(1).max(64).optional()
@@ -465,11 +467,11 @@ const UpdateThemeArgs = z.object({
 // All three reuse the `initiatorUserId` already on the AI session;
 // they're light enough to be ALWAYS-ON (no workspace-gated split).
 
-const GetThemeArgs = z.object({}).describe('Read the document\'s current theme as JSON. Use BEFORE calling `update_theme` for "mix theme X with theme Y" or "tweak the current colors" — without it you don\'t know what the doc looks like right now. Pure read; no edits.')
+export const GetThemeArgs = z.object({}).describe('Read the document\'s current theme as JSON. Use BEFORE calling `update_theme` for "mix theme X with theme Y" or "tweak the current colors" — without it you don\'t know what the doc looks like right now. Pure read; no edits.')
 
 const ListThemesArgs = z.object({}).describe('List the user\'s saved theme presets AND the workspace default theme (if the document is in a workspace and a default is set). Each saved theme returns its theme_id, name, and full theme JSON; pass the theme_id to `update_theme` to apply one as the base. Use when the user mentions a theme by name ("apply my Brand red", "use the workspace default"). Pure read; no edits.')
 
-const SaveThemeAsPresetArgs = z.object({
+export const SaveThemeAsPresetArgs = z.object({
   name: z.string().trim().min(1).max(80)
     .describe('User-visible name for the preset (1–80 chars). Should describe what the theme is for ("Brand red", "Quarterly report", "Academic mix"). Becomes the label in the user\'s saved-themes list.')
 }).describe('Save the document\'s CURRENT theme as a personal preset for the initiator. Available across all their documents from the theme picker afterwards. Capped at 20 saved themes per user — call returns an error if the cap is reached. Only call when the user explicitly asks to save / bookmark / remember a theme. Does NOT change the current document\'s theme; pair with `update_theme` if they also want it applied somewhere.')
@@ -492,6 +494,55 @@ const SaveThemeAsPresetArgs = z.object({
 // initiator's permissions, never the AI's synthetic principal.
 
 const ListWorkspaceDocumentsArgs = z.object({}).describe('List all OTHER documents in the current document\'s workspace (the current document is excluded). Returns each doc\'s id, title, description, language, access_mode, last_active timestamp, and is_owner flag for the initiator. Errors if the document is not in a workspace. Use when the user asks to summarise the workspace, find a sibling doc by topic, or cross-reference content. After picking a candidate, call `view_other_document({ doc_id: ... })` to actually read it.')
+
+const ListMyDocumentsArgs = z.object({
+  limit: z.number().int().min(1).max(100).optional()
+    .describe('Max documents to return. Default 25, cap 100. Sorted by last-active descending so the most recently touched docs come first.')
+}).describe('List documents the initiator OWNS, across every workspace they participate in. Returns each doc\'s id, title, description, language, access_mode, workspace_id, word_count, and last_active timestamp. Use when the user references a doc by name without giving the id ("the Q3 retro doc", "my brand guidelines") so you can find the matching id, then call `view_other_document({ doc_id: ... })` to read it. Cross-workspace counterpart to `list_workspace_documents`, which is per-workspace and exposes shared (not just owned) docs.')
+
+// ─── Host-style tools (Phase 4) ──────────────────────────────────────
+// Tools that operate AT the user's library level rather than inside a
+// specific doc: create + duplicate + export. Available to both the
+// in-app agentic loop and MCP clients.
+
+const TEMPLATE_ID_ENUM = TEMPLATE_IDS.length > 0
+  ? (TEMPLATE_IDS as [string, ...string[]])
+  : (['blank'] as [string, ...string[]])
+
+export const CreateDocumentArgs = z.object({
+  title: z.string().trim().max(255).optional()
+    .describe('Doc title (≤255 chars after trimming). Empty / omitted falls back to "Untitled".'),
+  initial_markdown: z.string().max(100_000).optional()
+    .describe('Optional initial body for the new doc. Up to 100k chars. The new doc is opened as a Y.js client and this string is inserted at the start before the tool returns. Omit to get an empty doc.'),
+  workspace_id: z.string().min(1).optional()
+    .describe('Optional workspace id to file the doc into. Caller MUST be admin or editor of the workspace; viewers and non-members get a 403. Omit for a personal (non-workspace) doc.'),
+  description: z.string().max(500).optional()
+    .describe('Optional one-sentence summary, ≤500 chars. Surfaced in doc listings + injected into AI prompts as the doc\'s purpose statement.'),
+  audience: z.enum(AUDIENCE_KINDS as [string, ...string[]]).optional()
+    .describe(`Audience the doc is written for — drives AI tone steering. One of: ${AUDIENCE_KINDS.join(', ')}.`),
+  language: z.string().trim().min(1).max(50).optional()
+    .describe('Free-form language label ("English", "Deutsch", "Schwiizerdütsch"). Used in AI prompts as the writing language.'),
+  template_id: z.enum(TEMPLATE_ID_ENUM).optional()
+    .describe(`Template id whose default body becomes the initial markdown when initial_markdown is NOT provided. One of: ${TEMPLATE_IDS.join(', ')}.`),
+  theme_preset: z.string().min(1).optional()
+    .describe('Built-in theme preset id to apply (one of THEME_PRESETS). Mutually exclusive with theme_id.'),
+  theme_id: z.string().min(1).max(64).optional()
+    .describe('User-saved theme preset id (from list_themes). Mutually exclusive with theme_preset. Caller must own the theme.')
+}).describe('Create a NEW document owned by the initiator. Returns { doc_id, url } so the caller can deep-link or follow up with view_document / insert_text. Optional initial_markdown seeds the doc body in one call.')
+
+export const DuplicateDocumentArgs = z.object({
+  source_doc_id: z.string().trim().min(1)
+    .describe('The doc id to duplicate. Caller must have edit access on the source.'),
+  title: z.string().trim().max(255).optional()
+    .describe('Title for the duplicate. Defaults to "Copy of {source title}" when omitted.'),
+  workspace_id: z.string().optional()
+    .describe('Target workspace id, or empty string to park as a personal (non-workspace) doc. Omit to inherit the source\'s workspace. Caller must be admin or editor of the target.')
+}).describe('Duplicate a document into a new docId owned by the initiator. Carries over title, theme, accessMode, content (Y.js state with image-URL rewrite), and S3 image assets. Returns { doc_id, url }.')
+
+export const ExportDocumentAsMarkdownArgs = z.object({
+  doc_id: z.string().min(1)
+    .describe('The doc id to export.')
+}).describe('Read a document\'s full markdown body. Use to deliver the doc to the user as text, archive a snapshot, or feed it into another tool. Same source as view_document but returns the raw markdown without line-number prefixes.')
 
 const ViewOtherDocumentArgs = z.object({
   doc_id: z.string().trim().min(1).max(2048)
@@ -524,6 +575,10 @@ export type GetThemeInput = z.infer<typeof GetThemeArgs>
 export type ListThemesInput = z.infer<typeof ListThemesArgs>
 export type SaveThemeAsPresetInput = z.infer<typeof SaveThemeAsPresetArgs>
 export type ListWorkspaceDocumentsInput = z.infer<typeof ListWorkspaceDocumentsArgs>
+export type ListMyDocumentsInput = z.infer<typeof ListMyDocumentsArgs>
+export type CreateDocumentInput = z.infer<typeof CreateDocumentArgs>
+export type DuplicateDocumentInput = z.infer<typeof DuplicateDocumentArgs>
+export type ExportDocumentAsMarkdownInput = z.infer<typeof ExportDocumentAsMarkdownArgs>
 export type ViewOtherDocumentInput = z.infer<typeof ViewOtherDocumentArgs>
 export type GetPageCountInput = z.infer<typeof GetPageCountArgs>
 export type ViewPagesInput = z.infer<typeof ViewPagesArgs>
@@ -544,6 +599,10 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   list_themes: ListThemesArgs,
   save_theme_as_preset: SaveThemeAsPresetArgs,
   list_workspace_documents: ListWorkspaceDocumentsArgs,
+  list_my_documents: ListMyDocumentsArgs,
+  create_document: CreateDocumentArgs,
+  duplicate_document: DuplicateDocumentArgs,
+  export_document_as_markdown: ExportDocumentAsMarkdownArgs,
   view_other_document: ViewOtherDocumentArgs,
   set_title: SetTitleArgs,
   view_image: ViewImageArgs,
@@ -633,6 +692,26 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
     'list_workspace_documents',
     'List all OTHER documents in the current document\'s workspace (the current document itself is excluded). Returns id, title, description, language, access_mode, last_active, and is_owner per row. Errors if the current document is not in a workspace. Use to find sibling docs to summarise / cross-reference, or to discover what else lives in the workspace. Pair with `view_other_document` to read a specific one.',
     ListWorkspaceDocumentsArgs
+  ),
+  decl(
+    'list_my_documents',
+    'List documents the initiator OWNS, across every workspace they participate in (NOT scoped to the current doc\'s workspace). Returns id, title, description, language, access_mode, workspace_id, word_count, and last_active per row, sorted most-recent-first. Use when the user references a doc by name without giving the id ("the Q3 retro doc", "my brand guidelines doc") so you can find the matching id and then call `view_other_document({ doc_id: ... })`. Cross-workspace counterpart to `list_workspace_documents`.',
+    ListMyDocumentsArgs
+  ),
+  decl(
+    'create_document',
+    'Create a NEW document owned by the initiator. Optional initial_markdown seeds the doc body in one call (no follow-up insert_text needed). Optional workspace_id files into a workspace (caller must be admin/editor of it). Returns { doc_id, url } — share the url with the user or follow up with view_document / insert_text against the new doc_id.',
+    CreateDocumentArgs
+  ),
+  decl(
+    'duplicate_document',
+    'Duplicate an existing document into a new docId owned by the initiator. Carries title, theme, accessMode, content (Y.js state with image-URL rewrite), and S3 image assets. Caller must have edit access on the source. Use for "fork this template", "make a copy I can edit", "branch this for revision". Returns { doc_id, url }.',
+    DuplicateDocumentArgs
+  ),
+  decl(
+    'export_document_as_markdown',
+    'Read a document\'s full markdown body — same source as view_document but without line-number prefixes. Use when the caller wants the raw doc text (deliver to user, archive, feed to another tool). Different from view_document, which is for AI inspection of the working text.',
+    ExportDocumentAsMarkdownArgs
   ),
   decl(
     'view_other_document',

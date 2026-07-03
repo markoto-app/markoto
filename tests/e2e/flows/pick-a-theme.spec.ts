@@ -106,6 +106,11 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     'Click "Academic Paper" to switch to a journal-style two-column layout',
     editor.page.theme.preset('academic'),
     {
+      // Mobile: theme presets render inside the BottomSheet portal;
+      // Reka's overlay intercepts pointer events at Playwright's
+      // coordinate layer despite the target being visible + stable.
+      // See `tests/e2e/AGENTS.md` "Bottom-sheet portal interception".
+      force: editor.isMobile,
       result: 'Body text becomes a serif (Source Serif 4), columns split, '
         + 'and the preview repaginates with academic-paper proportions.',
       after: async () => {
@@ -157,7 +162,13 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     await flow.step(
       'Tap "markoto" to return to the brand default',
       async () => {
-        await editor.page.theme.preset('markoto').click({ force: true })
+        // DOM-level click — bypasses Playwright's coordinate routing
+        // (the preset card lives inside the BottomSheet portal where
+        // Reka's overlay intercepts AND can leave the target outside
+        // the viewport calculation). `click({ force: true })` skips
+        // actionability but still requires viewport coords; evaluate
+        // doesn't. Workaround #2 from `tests/e2e/AGENTS.md`.
+        await editor.page.theme.preset('markoto').evaluate((el: HTMLElement) => el.click())
         await page.waitForTimeout(1500)
       },
       { result: 'Back to the brand default — cream paper, Fraunces headings.' }

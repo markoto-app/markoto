@@ -164,7 +164,14 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   await sam.editor.comments.composerInput.pressSequentially(
     'Should we lead with what slipped, since that\'s the audience\'s biggest worry?'
   )
-  await sam.editor.comments.composerSubmit.click()
+  // Mobile: composer-submit lives inside the Comments BottomSheet
+  // portal where Reka's overlay intercepts pointer events. DOM-level
+  // click bypasses coordinate routing. See `tests/e2e/AGENTS.md`.
+  if (sam.editor.isMobile) {
+    await sam.editor.comments.composerSubmit.evaluate((el: HTMLElement) => el.click())
+  } else {
+    await sam.editor.comments.composerSubmit.click()
+  }
   await sam.editor.comments.thread.first().waitFor({ state: 'visible' })
 
   await sam.flow.shot('Sam posts the comment. The thread sits in their sidebar.')
