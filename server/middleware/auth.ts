@@ -77,7 +77,8 @@ export default defineEventHandler(async (event) => {
     '/api/upload',
     '/api/import',
     '/api/ai',
-    '/api/billing' // checkout + portal — user-triggered Stripe actions
+    '/api/billing', // checkout + portal — user-triggered Stripe actions
+    '/api/mcp' // MCP personal-access-token management — issue/list/revoke
   ]
 
   if (protectedPrefixes.some(p => path.startsWith(p))) {

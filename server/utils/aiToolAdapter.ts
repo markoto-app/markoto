@@ -6,18 +6,16 @@
 // validated tool call to the right handler.
 
 import type { AgenticPart as Part } from './agentic/aiTypes'
+import { TOOL_HANDLERS, KNOWN_TOOL_NAMES } from './agentic/toolHandlers'
 import { litellmCompletion } from './litellm/createCompletion'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { nanoid } from 'nanoid'
 import * as Y from 'yjs'
 import * as Sentry from '@sentry/nuxt'
-import type { AiSession } from './aiClient'
+import type { DocToolContext, MetaToolContext } from './agentic/toolContext'
 import { useLitellmForUser } from './litellmClient'
 import { FEATURE_TAGS, featureMetadata } from './litellm/featureTags'
 import type {
-  ViewDocumentInput,
-  ReplaceTextInput,
-  InsertTextInput,
   UpdateThemeInput,
   SetTitleInput,
   ViewImageInput,
@@ -33,6 +31,10 @@ import type {
   ListThemesInput,
   SaveThemeAsPresetInput,
   ListWorkspaceDocumentsInput,
+  ListMyDocumentsInput,
+  CreateDocumentInput,
+  DuplicateDocumentInput,
+  ExportDocumentAsMarkdownInput,
   ViewOtherDocumentInput,
   GetPageCountInput,
   ViewPagesInput,
@@ -44,7 +46,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag } from '../repos/documents'
+import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
 import { decideTokenAccess } from '~~/shared/utils/docPermissions'
 import { openTrustedCommentClient } from './commentsServerClient'
 import { recordPending, markConfirmed } from '../repos/uploads'
@@ -57,7 +59,10 @@ import {
   listThemesByUser
 } from '../repos/themes'
 import { getWorkspace } from '../repos/workspaces'
-import { canManageDoc } from './workspaceAccess'
+import { canEditDoc, canManageDoc } from './workspaceAccess'
+import { createDocument } from './createDocument'
+import { duplicateDocument } from './duplicateDocument'
+import { useS3Client } from './s3'
 import { embedQuery } from './embeddings'
 import { appendAiMessage } from '../repos/aiSessionMessages'
 import { searchActivity, type ActivityEntry } from '../repos/activity'
@@ -92,8 +97,8 @@ function withLineNumbers(text: string, startLine: number = 1): string {
   return lines.map((line, i) => `${startLine + i}: ${line}`).join('\n')
 }
 
-function handleView(
-  session: AiSession,
+export function handleView(
+  session: DocToolContext,
   input: { view_range?: [number, number], max_characters?: number }
 ): ToolResult {
   const fullText = session.ytext.toJSON()
@@ -133,8 +138,8 @@ function findIndexOfOnlyMatch(haystack: string, needle: string): { found: number
   return { found: count === 1 ? first : -1, count }
 }
 
-function handleStrReplace(
-  session: AiSession,
+export function handleStrReplace(
+  session: DocToolContext,
   input: { old_str: string, new_str: string }
 ): ToolResult {
   if (input.old_str.length === 0) {
@@ -186,8 +191,8 @@ export function lineToCharOffset(full: string, insertLine: number): number | nul
   return Math.min(idx, full.length)
 }
 
-function handleInsert(
-  session: AiSession,
+export function handleInsert(
+  session: DocToolContext,
   input: { insert_line: number, insert_text: string }
 ): ToolResult {
   const full = session.ytext.toJSON()
@@ -281,8 +286,8 @@ export function summarizePatch(patch: UpdateThemeInput): string {
   return parts.length ? parts.join(' + ') : '(no changes)'
 }
 
-async function handleUpdateTheme(
-  session: AiSession,
+export async function handleUpdateTheme(
+  session: DocToolContext,
   input: UpdateThemeInput
 ): Promise<ToolResult> {
   const conflictErr = checkBaseSourceConflict(input)
@@ -340,7 +345,7 @@ function checkBaseSourceConflict(input: UpdateThemeInput): ToolResult | null {
  * failure (preset id unknown, saved theme missing, workspace default
  * unset).
  */
-async function resolveBaseTheme(session: AiSession, input: UpdateThemeInput): Promise<BaseResolution> {
+async function resolveBaseTheme(session: DocToolContext, input: UpdateThemeInput): Promise<BaseResolution> {
   if (input.preset) {
     const preset = THEME_PRESETS.find(p => p.id === input.preset)
     if (!preset) {
@@ -369,7 +374,7 @@ async function resolveBaseTheme(session: AiSession, input: UpdateThemeInput): Pr
   return { ok: true, theme: await resolveCurrentTheme(session) }
 }
 
-function applyThemeToYDoc(session: AiSession, merged: DocTheme): void {
+function applyThemeToYDoc(session: DocToolContext, merged: DocTheme): void {
   const origin = `ai:assistant:${session.sessionId}`
   session.ydoc.transact(() => {
     session.ymeta.set('theme', merged)
@@ -385,7 +390,7 @@ function applyThemeToYDoc(session: AiSession, merged: DocTheme): void {
  * everyone. Worst case on a DB hiccup: a new visitor sees stale
  * theme for the few hundred ms between connect and first Y.js sync.
  */
-async function persistThemeBestEffort(session: AiSession, merged: DocTheme): Promise<void> {
+async function persistThemeBestEffort(session: DocToolContext, merged: DocTheme): Promise<void> {
   try {
     await updateDocMeta(session.docId, { theme: merged })
   } catch (e) {
@@ -406,15 +411,15 @@ async function persistThemeBestEffort(session: AiSession, merged: DocTheme): Pro
  * Shared because both `get_theme` and `save_theme_as_preset` need
  * "what theme is the doc using right NOW," and we want them in lockstep.
  */
-async function resolveCurrentTheme(session: AiSession): Promise<DocTheme> {
+async function resolveCurrentTheme(session: DocToolContext): Promise<DocTheme> {
   const fromYmeta = session.ymeta.get('theme')
   if (isValidTheme(fromYmeta)) return fromYmeta
   const doc = await getDoc(session.docId)
   return (doc?.theme && isValidTheme(doc.theme)) ? doc.theme : defaultTheme
 }
 
-async function handleGetTheme(
-  session: AiSession,
+export async function handleGetTheme(
+  session: DocToolContext,
   _input: GetThemeInput
 ): Promise<ToolResult> {
   const theme = await resolveCurrentTheme(session)
@@ -424,8 +429,8 @@ async function handleGetTheme(
   return ok(JSON.stringify(theme, null, 2))
 }
 
-async function handleListThemes(
-  session: AiSession,
+export async function handleListThemes(
+  session: MetaToolContext,
   _input: ListThemesInput
 ): Promise<ToolResult> {
   // Saved themes are SCOPED TO THE SESSION INITIATOR — never the AI's
@@ -465,8 +470,8 @@ async function handleListThemes(
 const MAX_THEMES_PER_USER = 20
 const MAX_THEME_NAME_LENGTH = 80
 
-async function handleSaveThemeAsPreset(
-  session: AiSession,
+export async function handleSaveThemeAsPreset(
+  session: DocToolContext,
   input: SaveThemeAsPresetInput
 ): Promise<ToolResult> {
   const name = input.name.trim()
@@ -534,8 +539,8 @@ export function parseDocIdFromInput(raw: string): string | null {
   return null
 }
 
-async function handleListWorkspaceDocuments(
-  session: AiSession,
+export async function handleListWorkspaceDocuments(
+  session: MetaToolContext,
   _input: ListWorkspaceDocumentsInput
 ): Promise<ToolResult> {
   if (!session.workspaceId) {
@@ -577,10 +582,198 @@ async function handleListWorkspaceDocuments(
   return ok(JSON.stringify(payload, null, 2))
 }
 
+const LIST_MY_DOCUMENTS_DEFAULT_LIMIT = 25
+
+export async function handleListMyDocuments(
+  session: MetaToolContext,
+  input: ListMyDocumentsInput
+): Promise<ToolResult> {
+  // Initiator-scoped — ownership is the truth source. The session's
+  // synthetic principal is irrelevant here; we always look up against
+  // the real human's id (same pattern handleListThemes,
+  // handleSaveThemeAsPreset use).
+  const limit = input.limit ?? LIST_MY_DOCUMENTS_DEFAULT_LIMIT
+  const rows = await listOwnedByUser(session.initiatorUserId)
+  const sliced = rows.slice(0, limit)
+
+  if (sliced.length === 0) {
+    return ok('You don\'t own any documents yet. Create one with `create_document` (when available), or open a public doc by URL via `view_other_document`.')
+  }
+
+  const payload = {
+    documents: sliced.map(r => ({
+      doc_id: r.docId,
+      title: r.title,
+      description: r.description,
+      language: r.language,
+      access_mode: r.accessMode,
+      workspace_id: r.workspaceId,
+      word_count: r.wordCount,
+      size_bytes: r.sizeBytes,
+      last_active: r.lastActive instanceof Date ? r.lastActive.toISOString() : r.lastActive
+    })),
+    total_owned: rows.length,
+    returned: sliced.length,
+    notes: [
+      'Sorted most-recently-active first.',
+      'Pass `doc_id` to view_other_document to read a specific entry.',
+      'workspace_id is null for standalone (non-workspace) documents.'
+    ]
+  }
+  return ok(JSON.stringify(payload, null, 2))
+}
+
+// ─── Host-style tools (Phase 4) ──────────────────────────────────────
+
+export async function handleCreateDocument(
+  session: MetaToolContext,
+  input: CreateDocumentInput
+): Promise<ToolResult> {
+  // Anonymous initiators can't reach this path — every consumer
+  // (MCP wrapper + agentic loop's prompt endpoint) requires an
+  // authenticated user. The session.initiatorUserId is the real
+  // human's id; we pass it through as ownerId.
+  let result: { docId: string, url: string }
+  try {
+    result = await createDocument({
+      ownerId: session.initiatorUserId,
+      title: input.title,
+      description: input.description,
+      audience: input.audience as Parameters<typeof createDocument>[0]['audience'],
+      language: input.language,
+      templateId: input.template_id,
+      themePreset: input.theme_preset,
+      themeId: input.theme_id,
+      workspaceId: input.workspace_id ?? null
+    })
+  } catch (e) {
+    // createDocument throws createError(...); bubble the user-facing
+    // message up as a tool error so the model self-corrects (e.g.
+    // "Not a member of this workspace" → model picks a different
+    // workspace_id or omits it).
+    const msg = e instanceof Error ? e.message : 'Document creation failed'
+    return err(`Error: ${msg}`)
+  }
+
+  // Optional initial markdown — open a transient Hocuspocus client on
+  // the new doc, insert the body in one transact, disconnect. Mirrors
+  // the `openTrustedCommentClient` pattern (server-side mutation
+  // broadcast live so any other client connecting in the next few
+  // seconds sees the seeded body via Y.js sync, not a refresh).
+  //
+  // Origin tag: 'seed:{userId}' — the activity_log row sync-server
+  // emits for this transact carries this string in `actor_principal`,
+  // so the audit chain still resolves to the human (no agent kind,
+  // because seeding isn't an agent action — just bootstrapping).
+  if (input.initial_markdown && input.initial_markdown.length > 0) {
+    try {
+      const client = await openTrustedCommentClient(
+        result.docId,
+        `seed:${session.initiatorUserId}`
+      )
+      try {
+        const ytext = client.ydoc.getText('content')
+        client.ydoc.transact(() => {
+          ytext.insert(0, input.initial_markdown!)
+        }, `seed:${session.initiatorUserId}`)
+      } finally {
+        await client.destroy()
+      }
+    } catch (e) {
+      // Doc was created successfully; seeding failed. Surface as a
+      // partial-success message so the caller knows to either retry
+      // the seed or use insert_text.
+      const msg = e instanceof Error ? e.message : 'unknown'
+      return ok(JSON.stringify({
+        doc_id: result.docId,
+        url: result.url,
+        warning: `Document created but initial_markdown seed failed: ${msg}. Use insert_text({doc_id: "${result.docId}", insert_line: 0, insert_text: "..."}) to populate.`
+      }, null, 2))
+    }
+  }
+
+  return ok(JSON.stringify({
+    doc_id: result.docId,
+    url: result.url
+  }, null, 2))
+}
+
+export async function handleDuplicateDocument(
+  session: MetaToolContext,
+  input: DuplicateDocumentInput
+): Promise<ToolResult> {
+  // Authz mirrors the in-app duplicate endpoint:
+  //   - canEditDoc on source (anyone who can edit can fork)
+  //   - admin/editor on target workspace if specified (else inherit
+  //     source's workspace)
+  const source = await getDoc(input.source_doc_id)
+  if (!source) {
+    return err(`Error: source document "${input.source_doc_id}" not found, or you don't have access to it.`)
+  }
+  if (!(await canEditDoc(session.initiatorUserId, input.source_doc_id))) {
+    return err(`Error: source document "${input.source_doc_id}" not found, or you don't have access to it.`)
+  }
+
+  // Resolve target workspace. `''` from the schema means "park as
+  // personal" (null); `undefined` means "inherit source"; a non-empty
+  // string is an explicit target.
+  let targetWorkspaceId: string | null
+  if (input.workspace_id === undefined) {
+    targetWorkspaceId = source.workspaceId
+  } else if (input.workspace_id === '') {
+    targetWorkspaceId = null
+  } else {
+    targetWorkspaceId = input.workspace_id
+  }
+  if (targetWorkspaceId !== null) {
+    const role = await getMemberRole(targetWorkspaceId, session.initiatorUserId)
+    if (role === null || role === 'viewer') {
+      return err(`Error: cannot duplicate into workspace "${targetWorkspaceId}" — must be admin or editor.`)
+    }
+  }
+
+  const title = input.title?.trim() || `Copy of ${source.title}`
+  const newDocId = nanoid(10)
+  const config = useRuntimeConfig()
+  try {
+    await duplicateDocument(
+      {
+        sourceDocId: input.source_doc_id,
+        newDocId,
+        ownerId: session.initiatorUserId,
+        workspaceId: targetWorkspaceId,
+        title
+      },
+      { s3: useS3Client(), bucket: config.s3.bucket }
+    )
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Duplicate failed'
+    return err(`Error: ${msg}`)
+  }
+  return ok(JSON.stringify({
+    doc_id: newDocId,
+    url: `/d/${newDocId}`
+  }, null, 2))
+}
+
+export async function handleExportDocumentAsMarkdown(
+  session: DocToolContext,
+  _input: ExportDocumentAsMarkdownInput
+): Promise<ToolResult> {
+  // Pure read of ytext. The wrapper has already authz-checked +
+  // checked out the YDocPool entry, so session.ytext is the live
+  // synced body.
+  const markdown = session.ytext.toJSON()
+  // Match the tool description's contract: NO line-number prefixes.
+  // view_document is for inspection (with line numbers); this is for
+  // delivery / archival / pipe-to-another-tool.
+  return ok(markdown)
+}
+
 const VIEW_OTHER_DOC_CHAR_CAP = 50_000
 
-async function handleViewOtherDocument(
-  session: AiSession,
+export async function handleViewOtherDocument(
+  session: MetaToolContext,
   input: ViewOtherDocumentInput
 ): Promise<ToolResult> {
   const targetId = parseDocIdFromInput(input.doc_id)
@@ -643,7 +836,7 @@ type CrossDocAccess = { ok: true, ctx: CrossDocCtx } | { ok: false, error: ToolR
  * ship the password through the AI tool surface, so the user has to
  * intervene.
  */
-async function resolveCrossDocAccess(session: AiSession, targetId: string): Promise<CrossDocAccess> {
+async function resolveCrossDocAccess(session: MetaToolContext, targetId: string): Promise<CrossDocAccess> {
   const ctx = await getDocWithActorRole(targetId, session.initiatorUserId)
   if (!ctx) {
     return { ok: false, error: err(`Error: document "${targetId}" not found, or you don't have access to it.`) }
@@ -673,7 +866,7 @@ async function resolveCrossDocAccess(session: AiSession, targetId: string): Prom
 
 type DocBodyResult = { ok: true, body: string } | { ok: false, error: ToolResult }
 
-async function readOtherDocBody(session: AiSession, targetId: string): Promise<DocBodyResult> {
+async function readOtherDocBody(session: MetaToolContext, targetId: string): Promise<DocBodyResult> {
   let client: Awaited<ReturnType<typeof openTrustedCommentClient>> | null = null
   try {
     client = await openTrustedCommentClient(
@@ -745,8 +938,8 @@ function scopeLabelFor(ctx: CrossDocCtx, initiatorUserId: number): string {
 
 // --- Set title ------------------------------------------------------------
 
-async function handleSetTitle(
-  session: AiSession,
+export async function handleSetTitle(
+  session: DocToolContext,
   input: SetTitleInput
 ): Promise<ToolResult> {
   // Zod trims and enforces 1–255; belt-and-braces re-check so an empty
@@ -877,8 +1070,8 @@ async function fetchExternalImage(url: string): Promise<{ bytes: Uint8Array, mim
   }
 }
 
-async function handleViewImage(
-  session: AiSession,
+export async function handleViewImage(
+  session: MetaToolContext,
   input: ViewImageInput
 ): Promise<ToolResult> {
   const src = input.src.trim()
@@ -1033,8 +1226,8 @@ export function sanitizeAltText(s: string): string {
   return s.replace(/[[\]()]/g, '').replace(/\s+/g, ' ').trim()
 }
 
-async function handleGenerateImage(
-  session: AiSession,
+export async function handleGenerateImage(
+  session: MetaToolContext,
   input: GenerateImageInput
 ): Promise<ToolResult> {
   // Phase 6: no app-side interaction-charging. The BFL custom provider
@@ -1137,8 +1330,8 @@ async function handleGenerateImage(
 // these tools only when the user references a specific page — burning 25
 // interactions speculatively would chew through budget.
 
-async function handleGetPageCount(
-  session: AiSession,
+export async function handleGetPageCount(
+  session: MetaToolContext,
   _input: GetPageCountInput
 ): Promise<ToolResult> {
   // Phase 6: no app-side interaction-charging. The renderer call below
@@ -1155,8 +1348,8 @@ async function handleGetPageCount(
   }
 }
 
-async function handleViewPages(
-  session: AiSession,
+export async function handleViewPages(
+  session: MetaToolContext,
   input: ViewPagesInput
 ): Promise<ToolResult> {
   const requestedPages = Array.from(new Set(input.pages)).sort((a, b) => a - b)
@@ -1243,8 +1436,8 @@ async function handleViewPages(
  * The model's `output` is intentionally short — it just confirms the
  * message landed so the model doesn't try to repeat it.
  */
-async function handleMessageToUser(
-  session: AiSession,
+export async function handleMessageToUser(
+  session: DocToolContext,
   input: MessageToUserInput
 ): Promise<ToolResult> {
   const isQuestion = input.is_question === true
@@ -1364,8 +1557,8 @@ export function formatActivityRow(row: ActivityEntry): string {
   }
 }
 
-async function handleSearchActivityLog(
-  session: AiSession,
+export async function handleSearchActivityLog(
+  session: MetaToolContext,
   input: SearchActivityLogInput
 ): Promise<ToolResult> {
   // Parse + validate the optional ISO timestamps. Zod's `.datetime()`
@@ -1412,67 +1605,15 @@ async function handleSearchActivityLog(
 }
 
 export async function executeFunctionByName(
-  session: AiSession,
+  session: DocToolContext,
   name: string,
   args: unknown
 ): Promise<ToolResult> {
-  switch (name) {
-    case 'view_document': {
-      const vr = (args as ViewDocumentInput).view_range
-      // Zod schema guarantees exactly two integers when present (min(2).max(2)).
-      // The `!` non-null assertions tell TS what the runtime validator already
-      // enforces. Narrowing to a tuple keeps `handleView`'s signature tight.
-      return handleView(session, {
-        view_range: vr ? [vr[0]!, vr[1]!] : undefined
-      })
-    }
-    case 'replace_text':
-      return handleStrReplace(session, args as ReplaceTextInput)
-    case 'insert_text':
-      return handleInsert(session, args as InsertTextInput)
-    case 'update_theme':
-      return handleUpdateTheme(session, args as UpdateThemeInput)
-    case 'get_theme':
-      return handleGetTheme(session, args as GetThemeInput)
-    case 'list_themes':
-      return handleListThemes(session, args as ListThemesInput)
-    case 'save_theme_as_preset':
-      return handleSaveThemeAsPreset(session, args as SaveThemeAsPresetInput)
-    case 'list_workspace_documents':
-      return handleListWorkspaceDocuments(session, args as ListWorkspaceDocumentsInput)
-    case 'view_other_document':
-      return handleViewOtherDocument(session, args as ViewOtherDocumentInput)
-    case 'set_title':
-      return handleSetTitle(session, args as SetTitleInput)
-    case 'view_image':
-      return handleViewImage(session, args as ViewImageInput)
-    case 'generate_image':
-      return handleGenerateImage(session, args as GenerateImageInput)
-    case 'get_page_count':
-      return handleGetPageCount(session, args as GetPageCountInput)
-    case 'view_pages':
-      return handleViewPages(session, args as ViewPagesInput)
-    case 'search_knowledge':
-      return handleSearchKnowledge(session, args as SearchKnowledgeInput)
-    case 'get_knowledge_file':
-      return handleGetKnowledgeFile(session, args as GetKnowledgeFileInput)
-    case 'read_comments':
-      return handleReadComments(session, args as ReadCommentsInput)
-    case 'create_comment':
-      return handleCreateComment(session, args as CreateCommentInput)
-    case 'reply_to_comment':
-      return handleReplyToComment(session, args as ReplyToCommentInput)
-    case 'resolve_comment':
-      return handleResolveComment(session, args as ResolveCommentInput)
-    case 'delete_comment':
-      return handleDeleteComment(session, args as DeleteCommentInput)
-    case 'message_to_user':
-      return handleMessageToUser(session, args as MessageToUserInput)
-    case 'search_activity_log':
-      return handleSearchActivityLog(session, args as SearchActivityLogInput)
-    default:
-      return err(`Error: Unsupported function "${name}". Supported: view_document, replace_text, insert_text, web_search, update_theme, get_theme, list_themes, save_theme_as_preset, list_workspace_documents, view_other_document, set_title, view_image, generate_image, get_page_count, view_pages, search_knowledge, get_knowledge_file, read_comments, create_comment, reply_to_comment, resolve_comment, delete_comment, message_to_user, search_activity_log.`)
+  const handler = TOOL_HANDLERS[name]
+  if (!handler) {
+    return err(`Error: Unsupported function "${name}". Supported: ${KNOWN_TOOL_NAMES.join(', ')}.`)
   }
+  return handler(session, args)
 }
 
 // --- Knowledge tools -------------------------------------------------------
@@ -1500,7 +1641,7 @@ const KNOWLEDGE_FILE_CHAR_CAP = 40_000
  * Viewer role still passes: viewers can read knowledge (same as the
  * REST list endpoint). We reject only on "no membership at all".
  */
-async function verifyWorkspaceMembership(session: AiSession): Promise<string | null> {
+async function verifyWorkspaceMembership(session: MetaToolContext): Promise<string | null> {
   if (!session.workspaceId) {
     return 'Error: this tool is only available for documents inside a workspace.'
   }
@@ -1511,7 +1652,7 @@ async function verifyWorkspaceMembership(session: AiSession): Promise<string | n
   return null
 }
 
-async function handleSearchKnowledge(session: AiSession, input: SearchKnowledgeInput): Promise<ToolResult> {
+export async function handleSearchKnowledge(session: MetaToolContext, input: SearchKnowledgeInput): Promise<ToolResult> {
   const denied = await verifyWorkspaceMembership(session)
   if (denied) return err(denied)
   // verifyWorkspaceMembership guarantees workspaceId is non-null when
@@ -1560,7 +1701,7 @@ async function handleSearchKnowledge(session: AiSession, input: SearchKnowledgeI
   return ok(lines.join('\n'))
 }
 
-async function handleGetKnowledgeFile(session: AiSession, input: GetKnowledgeFileInput): Promise<ToolResult> {
+export async function handleGetKnowledgeFile(session: MetaToolContext, input: GetKnowledgeFileInput): Promise<ToolResult> {
   const denied = await verifyWorkspaceMembership(session)
   if (denied) return err(denied)
 
@@ -1692,8 +1833,8 @@ function formatThreadReplies(map: Y.Map<unknown>): string[] {
   return lines
 }
 
-function handleReadComments(
-  session: AiSession,
+export function handleReadComments(
+  session: DocToolContext,
   _input: ReadCommentsInput
 ): ToolResult {
   const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
@@ -1713,8 +1854,8 @@ function handleReadComments(
   return ok(lines.join('\n'))
 }
 
-async function handleCreateComment(
-  session: AiSession,
+export async function handleCreateComment(
+  session: DocToolContext,
   input: CreateCommentInput
 ): Promise<ToolResult> {
   if (input.end_line < input.start_line) {
@@ -1773,8 +1914,8 @@ async function handleCreateComment(
   return ok(`Comment ${id} created on lines ${input.start_line}–${input.end_line}.`)
 }
 
-function handleReplyToComment(
-  session: AiSession,
+export function handleReplyToComment(
+  session: DocToolContext,
   input: ReplyToCommentInput
 ): ToolResult {
   const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
@@ -1822,8 +1963,8 @@ function handleReplyToComment(
   return ok(`Reply ${id} added to thread ${input.comment_id}.`)
 }
 
-function handleResolveComment(
-  session: AiSession,
+export function handleResolveComment(
+  session: DocToolContext,
   input: ResolveCommentInput
 ): ToolResult {
   const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
@@ -1841,8 +1982,8 @@ function handleResolveComment(
   return err(`Error: comment "${input.comment_id}" not found. Call read_comments to get current IDs.`)
 }
 
-async function handleDeleteComment(
-  session: AiSession,
+export async function handleDeleteComment(
+  session: DocToolContext,
   input: DeleteCommentInput
 ): Promise<ToolResult> {
   const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
@@ -1879,7 +2020,7 @@ function canDeleteEntry(map: Y.Map<unknown>, initiatorUserId: number): boolean {
 }
 
 async function deleteReplyFromThread(
-  session: AiSession,
+  session: DocToolContext,
   parentMap: Y.Map<unknown>,
   commentId: string,
   replyId: string,
@@ -1907,7 +2048,7 @@ async function deleteReplyFromThread(
 }
 
 async function deleteWholeThread(
-  session: AiSession,
+  session: DocToolContext,
   ycomments: Y.Array<Y.Map<unknown>>,
   index: number,
   parentMap: Y.Map<unknown>,

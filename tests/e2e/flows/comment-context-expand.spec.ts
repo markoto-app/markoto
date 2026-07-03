@@ -50,7 +50,14 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   await editor.page.comments.selectionPopupTrigger.click()
   await editor.page.comments.composerInput.waitFor({ state: 'visible' })
   await editor.page.comments.composerInput.fill('Should we restrict editing here for the public version?')
-  await editor.page.comments.composerSubmit.click()
+  // Mobile: composer-submit is inside the Comments BottomSheet portal.
+  // `click()` times out on Reka's overlay interception; DOM-level
+  // click bypasses coordinate routing. See `tests/e2e/AGENTS.md`.
+  if (editor.isMobile) {
+    await editor.page.comments.composerSubmit.evaluate((el: HTMLElement) => el.click())
+  } else {
+    await editor.page.comments.composerSubmit.click()
+  }
   // Give Hocuspocus + sync-server time to flush the comments
   // snapshot (advisory-lock + DB write).
   await page.waitForTimeout(3_000)
@@ -73,7 +80,10 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   // sheet's close button is an `aria-label="Close"` glyph in the
   // sheet header (see BottomSheet.vue).
   if (editor.isMobile) {
-    await page.locator('.mk-sheet-host button[aria-label="Close"]').first().click()
+    // The sheet's OWN close button is also pointer-intercepted by
+    // the sheet's overlay (Reka portal stacking quirk). DOM-level
+    // click bypasses coordinate routing.
+    await page.locator('.mk-sheet-host button[aria-label="Close"]').first().evaluate((el: HTMLElement) => el.click())
     await page.locator('.mk-sheet-host').waitFor({ state: 'detached', timeout: 5_000 })
   }
 
@@ -112,6 +122,8 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
     'Click the comment-added row',
     commentRow,
     {
+      // Mobile: activity row lives inside the Activity BottomSheet.
+      force: editor.isMobile,
       hero: true,
       result: 'The comment-context drawer expands — parent body, replies (none yet), resolution state. Anyone reviewing the audit can see this thread the way it looked then.',
       after: async () => {

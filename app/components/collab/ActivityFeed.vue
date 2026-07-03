@@ -73,6 +73,18 @@ interface ActivityEntry {
   metadata: ActivityMetadata | null
   yjsDocIdBefore: number | null
   yjsDocIdAfter: number | null
+  // Phase-3 unified attribution. `actorPrincipal` carries the
+  // synthetic principal string ('ai:assistant:{sid}' / 'mcp:{sid}')
+  // for agent-driven rows; the resolved fields below are populated
+  // by `enrichActivityAgentFields` server-side via JOIN to
+  // ai_sessions / mcp_sessions → users. Null for human rows and for
+  // legacy AI rows that pre-date the actor_principal column.
+  actorPrincipal: string | null
+  agentKind: 'ai' | 'mcp' | null
+  agentInitiatorUserId: number | null
+  agentInitiatorName: string | null
+  agentInitiatorAvatarUrl: string | null
+  agentClientName: string | null
   createdAt: string | number
 }
 
@@ -283,12 +295,57 @@ const FILTER_CHIPS: Array<{ key: FilterKey, icon: string | null }> = [
   { key: 'meta', icon: 'i-lucide-settings-2' }
 ]
 
-// AI rows get the sparkles avatar fallback (matches the prompt-bar
-// branding); other rows fall back to UAvatar's own initials/colored
-// circle. Anonymous rows have neither name nor avatar — UAvatar renders
-// a generic placeholder for those.
-function isAi(entry: ActivityEntry): boolean {
+// Unified agent predicate. An agent row is any activity made by a
+// non-human principal — the in-app AI loop ('ai') or MCP ('mcp').
+// New rows carry an explicit `agentKind` (resolved server-side from
+// `actor_principal`). The two `userName` fallbacks cover:
+//   - 'AI Assistant' — historical AI rows from before the
+//     actor_principal column landed.
+//   - 'markoto' — comment-snapshot rows whose user_name is sourced
+//     from the comment's authorName field. This path doesn't yet
+//     propagate actor_principal (the comment-author is stored in
+//     Y.js, not the JWT principal), so legacy detection by name is
+//     still required. Same fallback for both AI + MCP comments,
+//     which share `handleCreateComment`.
+//   - 'MCP' — defensive fallback if an MCP row landed with
+//     actor_principal somehow missing.
+function isAgent(entry: ActivityEntry): boolean {
+  if (entry.agentKind !== null) return true
   return entry.userName === 'AI Assistant'
+    || entry.userName === 'markoto'
+    || entry.userName === 'MCP'
+}
+
+/**
+ * Display name for the row. For agent rows: prefer the resolved
+ * initiator (the human who triggered) so the activity feed mirrors
+ * what the live PresenceBar already shows ("Helping Joel"). Falls
+ * back to the raw userName ('markoto' / 'MCP' / 'AI Assistant')
+ * when the session was swept or the row pre-dates the join chain.
+ */
+function displayName(entry: ActivityEntry): string {
+  if (entry.agentInitiatorName) return entry.agentInitiatorName
+  return entry.userName ?? t('activity.anonymous')
+}
+
+/**
+ * "via {label}" badge text for agent rows. Empty string for human
+ * rows (no badge rendered).
+ *   - MCP: `agentClientName` (which already coalesces to userAgent
+ *     when the initialize-time clientInfo.name wasn't captured)
+ *   - AI: a friendly literal — the in-app loop has no per-client
+ *     distinction yet (someday: voice prompt vs comment trigger vs
+ *     prompt bar)
+ */
+function agentBadgeText(entry: ActivityEntry): string {
+  if (entry.agentKind === 'mcp') return entry.agentClientName ?? 'MCP'
+  if (entry.agentKind === 'ai') return 'markoto AI'
+  // Legacy AI rows (no actor_principal yet, detected by userName).
+  // Don't show the "via" badge for those — we'd be inventing a
+  // label, and the existing UX shows just "AI Assistant" / "markoto"
+  // as the name. Once the migration backfills (or rows age out via
+  // the 500-row cap), this branch goes away.
+  return ''
 }
 
 // Per-row diff drawer expansion. Only `edit` rows are expandable in
@@ -489,10 +546,14 @@ function onRestored() {
            the brand chrome's neutral. Earlier this used inverse
            shading (sumi-950 in light, sumi-50 in dark) which made
            the seal disappear in dark mode. -->
+        <!-- Agent rows (in-app AI loop OR MCP) get the seal-on-disc.
+             The seal is the brand AI mark — same visual for both
+             kinds. The differentiation between "AI loop" and "MCP"
+             lives in the badge text below, not the avatar. -->
         <div
-          v-if="isAi(entry)"
+          v-if="isAgent(entry)"
           class="shrink-0 mt-0.5 size-7 rounded-full flex items-center justify-center bg-default border border-default"
-          :title="entry.userName ?? 'markoto'"
+          :title="displayName(entry)"
         >
           <CommonSeal :size="9" />
         </div>
@@ -506,9 +567,21 @@ function onRestored() {
         />
 
         <div class="flex-1 min-w-0 leading-snug">
-          <div class="flex items-baseline gap-2 text-xs">
+          <div class="flex items-baseline gap-2 text-xs flex-wrap">
             <span class="font-semibold text-default truncate">
-              {{ entry.userName || t('activity.anonymous') }}
+              {{ displayName(entry) }}
+            </span>
+            <!-- "via {agent}" badge — mono micro-label, eyebrow shape.
+                 Empty for human rows + legacy agent rows that pre-date
+                 the actor_principal column. The presence of a non-empty
+                 badge is what tells collaborators "this edit was made
+                 through an agent, not directly by the human". -->
+            <span
+              v-if="agentBadgeText(entry)"
+              class="font-mono text-[10px] uppercase tracking-wider text-muted shrink-0"
+              :title="entry.actorPrincipal ?? undefined"
+            >
+              via {{ agentBadgeText(entry) }}
             </span>
             <span class="text-muted shrink-0">{{ formatTime(entry.createdAt) }}</span>
           </div>
@@ -517,7 +590,7 @@ function onRestored() {
             <UIcon
               :name="iconFor(entry)"
               class="size-3.5 shrink-0"
-              :class="isAi(entry) ? 'text-amber-500' : 'text-muted'"
+              :class="isAgent(entry) ? 'text-amber-500' : 'text-muted'"
             />
             <span>{{ actionLabel(entry) }}</span>
             <!-- Git-style diff badges (edits only). -->

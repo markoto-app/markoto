@@ -58,6 +58,8 @@ export async function resetDb(): Promise<void> {
       documents,
       processed_webhook_events,
       pending_stripe_events,
+      mcp_sessions,
+      mcp_personal_tokens,
       users
     RESTART IDENTITY CASCADE
   `)

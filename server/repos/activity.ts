@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm'
-import { activityLog, users } from '../db/schema'
+import { activityLog, users, aiSessions, mcpSessions } from '../db/schema'
 import { useDatabase } from '../utils/database'
 
 // Activity-log repository. Append-mostly table with a per-doc row cap
@@ -88,6 +88,38 @@ export interface ActivityEntry {
    */
   yjsDocIdBefore: number | null
   yjsDocIdAfter: number | null
+  /**
+   * Raw synthetic-principal label stored on the row. `null` for human
+   * edits + comment-snapshot rows that pre-date the actor_principal
+   * column. Read by `enrichActivityAgentFields` to resolve the
+   * `agent*` fields below.
+   */
+  actorPrincipal: string | null
+  /**
+   * Agent kind, derived from `actorPrincipal` prefix. `null` for
+   * human edits + legacy AI rows that pre-date the actor_principal
+   * column (those still render as "AI Assistant" via the legacy
+   * `userName === 'markoto' || 'AI Assistant'` fallback in the UI).
+   */
+  agentKind: 'ai' | 'mcp' | null
+  /**
+   * Real human who initiated the agent action — resolved via:
+   *   ai:  actor_principal → ai_sessions.initiator_user_id → users
+   *   mcp: actor_principal → mcp_sessions.user_id → users
+   * `null` for non-agent rows OR when the session row has been
+   * cleaned up (90-day sweeper for mcp_sessions, etc.).
+   */
+  agentInitiatorUserId: number | null
+  agentInitiatorName: string | null
+  agentInitiatorAvatarUrl: string | null
+  /**
+   * For MCP: `mcp_sessions.client_name` — friendly client label
+   * ("Claude Desktop", "Cursor", etc.) captured from the
+   * `initialize` call's `clientInfo.name`. Falls back to the UA
+   * string when clientInfo wasn't captured. `null` for AI / human
+   * rows.
+   */
+  agentClientName: string | null
   createdAt: Date
 }
 
@@ -99,6 +131,17 @@ export interface AppendInput {
   // between callers is fine; the DB column is nullable either way.
   userId?: number | null
   userName: string | null
+  /**
+   * Synthetic-principal label for agent-driven rows
+   * (`'ai:assistant:{aiSessionId}'`, `'mcp:{mcpSessionId}'`). NULL
+   * for human edits + anonymous edits. Sourced from the JWT.userId
+   * when non-numeric (sync-server's `parseActorPrincipal`). Used by
+   * `listRecentActivity`'s enrichment join to resolve the human
+   * initiator + agent client name through the appropriate session
+   * table. See `server/db/schema.ts` activity_log.actor_principal
+   * comment for the join chain.
+   */
+  actorPrincipal?: string | null
   action: ActivityAction
   wordCount?: number | null
   linesAdded?: number | null
@@ -133,6 +176,7 @@ export async function appendActivity(input: AppendInput): Promise<AppendActivity
     docId: input.docId,
     userId: input.userId ?? null,
     userName: input.userName,
+    actorPrincipal: input.actorPrincipal ?? null,
     action: input.action,
     wordCount: typeof input.wordCount === 'number' ? Math.round(input.wordCount) : null,
     linesAdded: typeof input.linesAdded === 'number' ? Math.max(0, Math.round(input.linesAdded)) : null,
@@ -186,9 +230,11 @@ export async function pruneActivity(docId: string): Promise<void> {
 
 export async function listRecentActivity(docId: string, limit = 50): Promise<ActivityEntry[]> {
   const db = useDatabase()
-  // LEFT JOIN users so we can stamp the row with the author's current
-  // avatar URL. Null for AI rows (no FK) and for users who were deleted
-  // since the activity row was written (FK has `set null`).
+  // LEFT JOIN users for human-author avatars. The agent enrichment
+  // (resolving actorPrincipal → session table → initiator user) runs
+  // as a separate batch step after the base select — keeps the SQL
+  // straightforward and lets the enrichment short-circuit when the
+  // page has no agent rows.
   const rows = await db
     .select({
       id: activityLog.id,
@@ -203,6 +249,7 @@ export async function listRecentActivity(docId: string, limit = 50): Promise<Act
       metadata: activityLog.metadata,
       yjsDocIdBefore: activityLog.yjsDocIdBefore,
       yjsDocIdAfter: activityLog.yjsDocIdAfter,
+      actorPrincipal: activityLog.actorPrincipal,
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
@@ -210,7 +257,143 @@ export async function listRecentActivity(docId: string, limit = 50): Promise<Act
     .where(eq(activityLog.docId, docId))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit)
-  return rows as ActivityEntry[]
+  return enrichActivityAgentFields(rows as RawActivityRow[])
+}
+
+/**
+ * Raw activity row before the agent-enrichment pass — base SQL
+ * select shape. Identical to `ActivityEntry` minus the `agent*`
+ * fields that the enrichment pass adds.
+ */
+type RawActivityRow = Omit<
+  ActivityEntry,
+  'agentKind' | 'agentInitiatorUserId' | 'agentInitiatorName' | 'agentInitiatorAvatarUrl' | 'agentClientName'
+>
+
+/**
+ * Enrich `actor_principal`-tagged rows with the resolved human
+ * initiator + (for MCP) client name. Three small batched queries:
+ *   1. ai_sessions by sessionId  → initiator_user_id
+ *   2. mcp_sessions by mcpSessionId → user_id, client_name, user_agent
+ *   3. users by initiator id     → name, avatar_url
+ *
+ * No-ops cheaply when no rows have an `actor_principal`. Tolerant of
+ * missing session rows (sweeper / cascade): such rows render with
+ * `agentInitiatorName=null` — UI falls back to the row's `userName`
+ * (e.g. 'AI Assistant' / 'MCP').
+ */
+async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<ActivityEntry[]> {
+  const aiSessionIds = new Set<string>()
+  const mcpSessionIds = new Set<string>()
+  for (const r of rows) {
+    if (!r.actorPrincipal) continue
+    if (r.actorPrincipal.startsWith('ai:assistant:')) {
+      aiSessionIds.add(r.actorPrincipal.slice('ai:assistant:'.length))
+    } else if (r.actorPrincipal.startsWith('mcp:')) {
+      mcpSessionIds.add(r.actorPrincipal.slice('mcp:'.length))
+    }
+  }
+  if (aiSessionIds.size === 0 && mcpSessionIds.size === 0) {
+    // No agent rows — return rows with the agent fields nulled.
+    return rows.map(r => ({
+      ...r,
+      agentKind: null,
+      agentInitiatorUserId: null,
+      agentInitiatorName: null,
+      agentInitiatorAvatarUrl: null,
+      agentClientName: null
+    }))
+  }
+
+  const db = useDatabase()
+
+  // Fetch session rows + collect initiator user ids.
+  const aiRows = aiSessionIds.size === 0
+    ? []
+    : await db.select({
+        sessionId: aiSessions.sessionId,
+        initiatorUserId: aiSessions.initiatorUserId
+      }).from(aiSessions).where(inArray(aiSessions.sessionId, Array.from(aiSessionIds)))
+  const mcpRows = mcpSessionIds.size === 0
+    ? []
+    : await db.select({
+        mcpSessionId: mcpSessions.mcpSessionId,
+        userId: mcpSessions.userId,
+        clientName: mcpSessions.clientName,
+        userAgent: mcpSessions.userAgent
+      }).from(mcpSessions).where(inArray(mcpSessions.mcpSessionId, Array.from(mcpSessionIds)))
+
+  const aiBySid = new Map(aiRows.map(r => [r.sessionId, r]))
+  const mcpBySid = new Map(mcpRows.map(r => [r.mcpSessionId, r]))
+
+  // Batch-fetch initiator user info (name + avatar).
+  const initiatorIds = new Set<number>()
+  for (const r of aiRows) initiatorIds.add(r.initiatorUserId)
+  for (const r of mcpRows) initiatorIds.add(r.userId)
+
+  const userRows = initiatorIds.size === 0
+    ? []
+    : await db.select({
+        id: users.id,
+        name: users.name,
+        avatarUrl: users.avatarUrl
+      }).from(users).where(inArray(users.id, Array.from(initiatorIds)))
+  const userById = new Map(userRows.map(r => [r.id, r]))
+
+  // Stamp every row with the resolved agent fields (or nulls).
+  return rows.map((r): ActivityEntry => {
+    if (!r.actorPrincipal) {
+      return {
+        ...r,
+        agentKind: null,
+        agentInitiatorUserId: null,
+        agentInitiatorName: null,
+        agentInitiatorAvatarUrl: null,
+        agentClientName: null
+      }
+    }
+    if (r.actorPrincipal.startsWith('ai:assistant:')) {
+      const sid = r.actorPrincipal.slice('ai:assistant:'.length)
+      const aiRow = aiBySid.get(sid)
+      const initiator = aiRow ? userById.get(aiRow.initiatorUserId) : undefined
+      return {
+        ...r,
+        agentKind: 'ai',
+        agentInitiatorUserId: aiRow?.initiatorUserId ?? null,
+        agentInitiatorName: initiator?.name ?? null,
+        agentInitiatorAvatarUrl: initiator?.avatarUrl ?? null,
+        agentClientName: null
+      }
+    }
+    if (r.actorPrincipal.startsWith('mcp:')) {
+      const sid = r.actorPrincipal.slice('mcp:'.length)
+      const mcpRow = mcpBySid.get(sid)
+      const initiator = mcpRow ? userById.get(mcpRow.userId) : undefined
+      // Display fallback: client_name (from clientInfo.name on
+      // initialize) → user_agent (always captured) → null. The UI
+      // formats "{initiatorName} via {clientName ?? userAgent ?? 'MCP'}".
+      const clientLabel = mcpRow?.clientName ?? mcpRow?.userAgent ?? null
+      return {
+        ...r,
+        agentKind: 'mcp',
+        agentInitiatorUserId: mcpRow?.userId ?? null,
+        agentInitiatorName: initiator?.name ?? null,
+        agentInitiatorAvatarUrl: initiator?.avatarUrl ?? null,
+        agentClientName: clientLabel
+      }
+    }
+    // Unknown synthetic prefix — render as a generic agent row so we
+    // don't accidentally fall through to user-edit display. Stamps
+    // agentKind: null but keeps the row visible.
+    return {
+      ...r,
+      agentKind: null,
+      agentInitiatorUserId: null,
+      agentInitiatorName: null,
+      agentInitiatorAvatarUrl: null,
+      agentClientName: null
+    }
+  })
 }
 
 /**
@@ -235,13 +418,16 @@ export async function getActivityById(activityId: number, docId: string): Promis
       metadata: activityLog.metadata,
       yjsDocIdBefore: activityLog.yjsDocIdBefore,
       yjsDocIdAfter: activityLog.yjsDocIdAfter,
+      actorPrincipal: activityLog.actorPrincipal,
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
     .leftJoin(users, eq(activityLog.userId, users.id))
     .where(and(eq(activityLog.id, activityId), eq(activityLog.docId, docId)))
     .limit(1)
-  return (rows[0] as ActivityEntry | undefined) ?? null
+  if (rows.length === 0) return null
+  const enriched = await enrichActivityAgentFields(rows as RawActivityRow[])
+  return enriched[0] ?? null
 }
 
 /**
@@ -315,6 +501,7 @@ export async function searchActivity(
       metadata: activityLog.metadata,
       yjsDocIdBefore: activityLog.yjsDocIdBefore,
       yjsDocIdAfter: activityLog.yjsDocIdAfter,
+      actorPrincipal: activityLog.actorPrincipal,
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
@@ -322,7 +509,7 @@ export async function searchActivity(
     .where(and(...filters))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit)
-  return rows as ActivityEntry[]
+  return enrichActivityAgentFields(rows as RawActivityRow[])
 }
 
 /**

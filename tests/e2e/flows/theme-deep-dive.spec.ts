@@ -91,6 +91,9 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
     'Open the Body section',
     bodySection,
     {
+      // Mobile: accordion lives inside BottomSheet portal; pointer
+      // routing is intercepted. See `tests/e2e/AGENTS.md`.
+      force: editor.isMobile,
       result: 'The Body editor expands — font, size, line height, colour, and the drop-cap switch.',
       after: () => page.locator('[data-testid="theme-body-font-select"]').waitFor({ state: 'visible', timeout: 3_000 })
     }
@@ -119,15 +122,18 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
     'Flip the drop-cap switch',
     dropCapSwitch,
     {
+      force: editor.isMobile,
       result: 'The first letter of paragraph 1 grows to span two lines — drop cap engaged.',
       after: async () => {
         // Reka UI's SwitchRoot toggles state on click but the
         // attribute write lags one tick behind a synthetic click.
-        // Wait for the state flip; if it didn't take, retry once.
+        // Wait for the state flip; if it didn't take, retry once
+        // via DOM-level click (skips coordinate routing — works
+        // inside the sheet too).
         try {
           await expect(dropCapSwitch).toHaveAttribute('data-state', 'checked', { timeout: 1_500 })
         } catch {
-          await dropCapSwitch.click({ force: true })
+          await dropCapSwitch.evaluate((el: HTMLElement) => el.click())
           await expect(dropCapSwitch).toHaveAttribute('data-state', 'checked', { timeout: 3_000 })
         }
         await page.waitForTimeout(900)
@@ -153,6 +159,7 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
     'Open the Colour section',
     colorSection,
     {
+      force: editor.isMobile,
       hero: true,
       result: 'The colour editor expands — brand + secondary, each behind a swatch.',
       after: () => page.locator('[data-testid="theme-color-brand-trigger"]').waitFor({ state: 'visible', timeout: 3_000 }),

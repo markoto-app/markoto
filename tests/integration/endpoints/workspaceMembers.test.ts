@@ -7,7 +7,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
-import { clearSyncCalls, getSyncCalls, waitForSyncCall } from '../setup/syncStub'
+import { clearRecentKicks, waitForKick, fetchRecentKicks } from '../setup/syncProbe'
 
 // PATCH / DELETE /api/workspaces/:wsId/members/:userId
 //
@@ -17,6 +17,15 @@ import { clearSyncCalls, getSyncCalls, waitForSyncCall } from '../setup/syncStub
 //      MUST dispatch a kick-user to the sync-server with the target userId
 //      and every workspace doc. Regression target: pre-fix, changes
 //      silently left stale JWTs valid for up to 2 hours.
+//
+// The kick-side assertion uses `waitForKick` against the real sync-test
+// container's TEST_MODE-only `/internal/_test/recent-kicks` ring buffer
+// (see `tests/integration/setup/syncProbe.ts`). Replaces the previous
+// in-process HTTP stub — same coverage, but now the kick goes through
+// the SAME code path prod uses (Nuxt → sync-test container → kickUser
+// handler). The dispatch SHAPE (URL, headers, body) is also pinned at
+// the unit tier in `tests/unit/syncNotify.test.ts` — defence in depth
+// against the dispatch site being silently removed.
 
 async function roleOf(workspaceId: string, userId: number): Promise<string | null> {
   const db = testDb()
@@ -30,7 +39,7 @@ async function roleOf(workspaceId: string, userId: number): Promise<string | nul
 describe('PATCH /api/workspaces/:wsId/members/:userId', () => {
   beforeEach(async () => {
     await resetDb()
-    clearSyncCalls()
+    await clearRecentKicks()
   })
 
   it('admin can promote editor to admin', async () => {
@@ -115,7 +124,10 @@ describe('PATCH /api/workspaces/:wsId/members/:userId', () => {
     const body = await res.json() as { noop?: boolean }
     expect(body.noop).toBe(true)
     // No kick dispatched on no-op — saves a useless round-trip.
-    expect(getSyncCalls().filter(c => c.path === '/internal/kick-user')).toHaveLength(0)
+    // Brief settle so a buggy dispatch would have time to land.
+    await new Promise(r => setTimeout(r, 200))
+    const kicks = await fetchRecentKicks()
+    expect(kicks).toHaveLength(0)
   })
 
   it('dispatches kick-user with the target userId and every workspace doc', async () => {
@@ -131,11 +143,8 @@ describe('PATCH /api/workspaces/:wsId/members/:userId', () => {
       { role: 'viewer' }
     )
     expect(res.status).toBe(200)
-    const call = await waitForSyncCall(c => c.path === '/internal/kick-user')
-    expect(call.method).toBe('POST')
-    const body = call.body as { userId: number, docIds: string[] }
-    expect(body.userId).toBe(editor.id)
-    expect(new Set(body.docIds)).toEqual(new Set([doc1.docId, doc2.docId]))
+    const kick = await waitForKick(k => k.userId === String(editor.id))
+    expect(new Set(kick.docIds)).toEqual(new Set([doc1.docId, doc2.docId]))
   })
 
   it('dispatches kick even when role LOOSENS (viewer → editor)', async () => {
@@ -151,15 +160,15 @@ describe('PATCH /api/workspaces/:wsId/members/:userId', () => {
       `/api/workspaces/${ws.workspaceId}/members/${viewer.id}`,
       { role: 'editor' }
     )
-    const call = await waitForSyncCall(c => c.path === '/internal/kick-user')
-    expect((call.body as { userId: number }).userId).toBe(viewer.id)
+    const kick = await waitForKick(k => k.userId === String(viewer.id))
+    expect(kick.userId).toBe(String(viewer.id))
   })
 })
 
 describe('DELETE /api/workspaces/:wsId/members/:userId', () => {
   beforeEach(async () => {
     await resetDb()
-    clearSyncCalls()
+    await clearRecentKicks()
   })
 
   it('admin can remove another member', async () => {
@@ -230,10 +239,9 @@ describe('DELETE /api/workspaces/:wsId/members/:userId', () => {
     const client = await loggedInClient(admin.id)
     const res = await client.delete(`/api/workspaces/${ws.workspaceId}/members/${editor.id}`)
     expect(res.status).toBe(200)
-    const call = await waitForSyncCall(c => c.path === '/internal/kick-user')
-    const body = call.body as { userId: number, docIds: string[] }
-    expect(body.userId).toBe(editor.id)
-    expect(body.docIds).toContain(doc.docId)
+    expect(await roleOf(ws.workspaceId, editor.id)).toBeNull()
+    const kick = await waitForKick(k => k.userId === String(editor.id))
+    expect(kick.docIds).toContain(doc.docId)
   })
 
   it('refuses invalid userId (400)', async () => {

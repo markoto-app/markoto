@@ -76,6 +76,8 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     'Click "Academic"',
     editor.page.theme.preset('academic'),
     {
+      // Mobile: BottomSheet portal interception. See `tests/e2e/AGENTS.md`.
+      force: editor.isMobile,
       result: editor.isMobile
         ? 'The academic preset is selected — preview iframe is hidden in mobile edit-only mode.'
         : 'The preview repaginates — Fraunces body, refined '
@@ -103,6 +105,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     'Open the Cover section',
     editor.page.theme.coverSection,
     {
+      force: editor.isMobile,
       result: 'The Cover section expands. The on/off switch sits at the top.',
       after: () => editor.page.theme.coverEnabledSwitch.waitFor({ state: 'visible' })
     }
@@ -112,6 +115,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     'Toggle cover OFF',
     editor.page.theme.coverEnabledSwitch,
     {
+      force: editor.isMobile,
       result: editor.isMobile
         ? 'The cover toggle flips off — preview iframe hidden in mobile edit-only mode.'
         : 'The preview repaginates — page 1 is now the document body, '
@@ -146,6 +150,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     'Click "Save current" (bookmark icon)',
     page.locator('[data-testid="theme-save-current"]'),
     {
+      force: editor.isMobile,
       hero: true,
       result: 'A name prompt appears + auto-resolves with your name; the '
         + 'theme lands in the saved-themes list above the built-in '

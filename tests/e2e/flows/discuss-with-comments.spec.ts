@@ -65,7 +65,13 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     'Write your comment',
     editor.page.comments.composerInput,
     'Should we mention the keyboard shortcuts here too?',
-    { result: 'Your draft is ready to post.' }
+    {
+      // Mobile: comments composer is inside the BottomSheet portal
+      // where Reka's overlay intercepts pointer events. See
+      // `tests/e2e/AGENTS.md` "Bottom-sheet portal interception".
+      force: editor.isMobile,
+      result: 'Your draft is ready to post.'
+    }
   )
   await expect(editor.page.comments.composerInput).toHaveValue(
     'Should we mention the keyboard shortcuts here too?'
@@ -78,6 +84,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     'Click Submit to post',
     editor.page.comments.composerSubmit,
     {
+      force: editor.isMobile,
       result: 'Your comment lands in the sidebar — the passage gets a yellow underline.',
       highlights: [
         { label: 'Your new thread', selector: '[data-testid="comment-thread"]' }
@@ -110,14 +117,20 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     'Type a reply directly under the comment',
     replyInput,
     'Yes — and link to the cheat sheet.',
-    { result: 'Your reply is ready to send.' }
+    {
+      force: editor.isMobile,
+      result: 'Your reply is ready to send.'
+    }
   )
   await expect(replyInput).toHaveValue('Yes — and link to the cheat sheet.')
 
   await flow.click(
     'Submit the reply',
     replySubmit,
-    { result: 'Replies thread directly under the original — the order of conversation stays clear.' }
+    {
+      force: editor.isMobile,
+      result: 'Replies thread directly under the original — the order of conversation stays clear.'
+    }
   )
 
   // Assertions: the reply rendered as a child of the same thread.
@@ -135,7 +148,10 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   await flow.click(
     'Click Resolve on the thread',
     editor.page.comments.resolveIn(newThread),
-    { result: 'The thread leaves the active list — the editor underline disappears.' }
+    {
+      force: editor.isMobile,
+      result: 'The thread leaves the active list — the editor underline disappears.'
+    }
   )
 
   await expect(editor.page.comments.thread).toHaveCount(0)
@@ -145,6 +161,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     'Reveal the Resolved section to confirm it\'s archived',
     editor.page.comments.showResolvedToggle,
     {
+      force: editor.isMobile,
       // Hero outcome: the discussion is closed but the history is
       // preserved. The "out of the way, but recoverable" frame is
       // what makes resolve-as-archive (vs delete) the trustworthy

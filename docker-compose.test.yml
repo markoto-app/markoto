@@ -124,7 +124,12 @@ services:
     stop_grace_period: 30s
     environment:
       - PORT=9000
-      - INTERNAL_API_SECRET=test-internal-secret-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+      # MUST match TEST_INTERNAL_SECRET in tests/integration/setup/env.ts
+      # AND the sync-test container's INTERNAL_API_SECRET. Three-way pin
+      # — drift between any two breaks render-token verification (Nuxt
+      # mints the JWT, renderer hits Nuxt's /_internal/render-bootstrap
+      # which verifies it; both sides need the same secret).
+      - INTERNAL_API_SECRET=test-internal-api-secret-isolated
       - APP_URL=http://host.docker.internal:3101
       - S3_ENDPOINT=http://seaweedfs-test:8333
       - S3_ACCESS_KEY=ypad-access-key
@@ -218,7 +223,13 @@ services:
     build:
       context: .
       dockerfile: sync-server/Dockerfile
-    profiles: ["flows"]
+    # No profile — sync-test always runs. Originally gated behind
+    # `profiles: ["flows"]` to skip its build cost for integration
+    # runs, but every MCP doc-bound tool (and the AI agentic loop)
+    # opens a real Hocuspocus WS connection that the in-process Node
+    # stub on 4010 couldn't satisfy. Now integration tests can
+    # exercise the full Y.js sync path. Flow tests still work — they
+    # just override APP_URL to the flow runner's port.
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
@@ -242,8 +253,16 @@ services:
       - VALKEY_PASSWORD=testpassword
       - VALKEY_DB=0
       # Sync server reaches the Nuxt app on host for activity logging.
-      # Flows run the app on host port 3001 (see flows-ephemeral.ts).
-      - APP_URL=http://host.docker.internal:3001
+      # Flow tests run the app on host port 3001 (see flows-ephemeral.ts).
+      # Integration tests run the app on host port 3101 — set
+      # SYNC_TEST_APP_URL=http://host.docker.internal:3101 in the env
+      # before `docker compose up` (test:integration:up does this).
+      - APP_URL=${SYNC_TEST_APP_URL:-http://host.docker.internal:3001}
+      # Enable the TEST_MODE-gated /internal/_test/recent-kicks
+      # endpoint that integration tests use to verify kick dispatches
+      # actually reached the sync server. Off in prod (no production
+      # consumer of this state); always on for the test container.
+      - TEST_MODE=1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

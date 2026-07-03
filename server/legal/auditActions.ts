@@ -33,6 +33,17 @@ export const AUDIT_ABUSE_DISMISSED = 'abuse.dismissed'
 export const AUDIT_ADMIN_GRANTED = 'admin.granted'
 export const AUDIT_ADMIN_REVOKED = 'admin.revoked'
 
+// MCP Personal Access Token lifecycle. Issuing or revoking a PAT is
+// equivalent to handing out (or rescinding) full-account API access,
+// so it's an audit-grade event. `actor` is always the user themselves
+// (PATs are issued + revoked from the user's own session); the
+// `scope_id` is the public token id (`mkt_pat_…`), NOT the SHA-256
+// hash — leaking the hash to the audit log would weaken cache-eviction
+// forensics. The token name is captured in `metadata.name` so the
+// audit row is human-readable ("revoked 'Claude Desktop on laptop'").
+export const AUDIT_MCP_TOKEN_ISSUED = 'mcp.token_issued'
+export const AUDIT_MCP_TOKEN_REVOKED = 'mcp.token_revoked'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -51,3 +62,5 @@ export type ComplianceAuditAction
     | typeof AUDIT_ABUSE_DISMISSED
     | typeof AUDIT_ADMIN_GRANTED
     | typeof AUDIT_ADMIN_REVOKED
+    | typeof AUDIT_MCP_TOKEN_ISSUED
+    | typeof AUDIT_MCP_TOKEN_REVOKED

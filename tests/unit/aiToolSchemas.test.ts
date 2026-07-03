@@ -491,13 +491,17 @@ describe('TOOL_SCHEMAS registry', () => {
   it('registers exactly the declared tools (drift guard against added/removed entries)', () => {
     expect(Object.keys(TOOL_SCHEMAS).sort()).toEqual([
       'create_comment',
+      'create_document',
       'delete_comment',
+      'duplicate_document',
+      'export_document_as_markdown',
       'fetch_url',
       'generate_image',
       'get_knowledge_file',
       'get_page_count',
       'get_theme',
       'insert_text',
+      'list_my_documents',
       'list_themes',
       'list_workspace_documents',
       'message_to_user',

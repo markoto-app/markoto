@@ -54,7 +54,14 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
         ? []
         : [{ label: 'theme tab', selector: '[data-testid="sidebar-tab-theme"]', kind: 'arrow' }],
       result: 'The theme panel opens to the preset cards + section accordions.',
-      after: () => editor.page.theme.coverSection.waitFor({ state: 'visible', timeout: 5_000 })
+      // Mobile: cover-section button lives below the sheet's visible
+      // viewport (sheet has internal scroll). `state: 'visible'` would
+      // require it to be on-screen; `attached` is enough — the next
+      // click forces it into view.
+      after: () => editor.page.theme.coverSection.waitFor({
+        state: editor.isMobile ? 'attached' : 'visible',
+        timeout: 5_000
+      })
     }
   )
 
@@ -62,6 +69,8 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     'Open the Cover page section',
     editor.page.theme.coverSection,
     {
+      // Mobile: BottomSheet portal interception. See `tests/e2e/AGENTS.md`.
+      force: editor.isMobile,
       annotations: [
         { label: 'Cover page accordion', selector: 'button:has-text("Cover page")', kind: 'arrow' }
       ],
@@ -90,7 +99,15 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     await flow.step(
       'Open the layout dropdown',
       async () => {
-        await layoutSelect.click({ force: true })
+        // Reka USelect listens on pointerdown/pointerup, not click.
+        // DOM-level click() doesn't open the popover. Dispatch the
+        // full pointer sequence per `tests/e2e/AGENTS.md` workaround #3.
+        await layoutSelect.evaluate((el: HTMLElement) => {
+          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
+          el.dispatchEvent(new PointerEvent('pointerdown', opts))
+          el.dispatchEvent(new PointerEvent('pointerup', opts))
+          el.click()
+        })
         await page.getByRole('option', { name: /banner/i }).first().waitFor({ state: 'visible', timeout: 3_000 })
       },
       { result: 'The four cover layouts list.' }
@@ -152,6 +169,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     'Flip the "Show subtitle" toggle on',
     page.locator('[data-testid="theme-cover-show-subtitle-switch"]'),
     {
+      force: editor.isMobile,
       result: 'The subtitle field appears underneath, ready for input.',
       after: () => page.locator('[data-testid="theme-cover-subtitle-input"]').waitFor({ state: 'visible', timeout: 3_000 })
     }
@@ -162,6 +180,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     page.locator('[data-testid="theme-cover-subtitle-input"]'),
     'Internal draft · v0.3 · Engineering team',
     {
+      force: editor.isMobile,
       hero: true,
       result: 'The subtitle lands on the cover. The PDF will open on this page.',
       after: () => page.waitForTimeout(900),

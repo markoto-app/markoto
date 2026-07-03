@@ -14,13 +14,21 @@ WORKDIR /app
 USER bun
 
 # Layered COPYs so source edits don't bust the install cache.
-# `--chown=root:root --chmod=755` makes the source files immutable to the
+# `--chown=root:root --chmod=755` makes the source FILES immutable to the
 # runtime `bun` user (defense in depth — see docker:S6504); `bun install
 # --ignore-scripts` blocks postinstall script execution from compromised
 # packages even when they're on bun's built-in trustedDependencies list
 # (docker:S6505).
-COPY --chown=root:root --chmod=755 sync-server/package.json sync-server/bun.lock ./sync-server/
+#
+# CRITICAL ORDERING: `WORKDIR` runs BEFORE the `COPY` so the target
+# directory is created by `WORKDIR` (inheriting the current USER, `bun`)
+# and the COPY only writes FILES into it. The naive order (COPY first,
+# WORKDIR second) makes COPY create the parent directory with its own
+# `--chown=root:root --chmod=755`, which is what Sonar S6504 wants for
+# files but blocks `bun install` from creating `node_modules` (parent
+# dir not bun-writable → EACCES). Same issue applied to `shared/` below.
 WORKDIR /app/sync-server
+COPY --chown=root:root --chmod=755 sync-server/package.json sync-server/bun.lock ./
 RUN bun install --frozen-lockfile --ignore-scripts
 
 # `shared/` is its own self-contained package — package.json declares its
@@ -32,14 +40,15 @@ RUN bun install --frozen-lockfile --ignore-scripts
 # and `/app/sync-server/node_modules/` is a sibling, not an ancestor.
 # Installed as a separate layer so a sync-server source edit doesn't
 # bust the shared/ install cache.
-WORKDIR /app
-COPY --chown=root:root --chmod=755 shared/package.json shared/bun.lock ./shared/
 WORKDIR /app/shared
+COPY --chown=root:root --chmod=755 shared/package.json shared/bun.lock ./
 RUN bun install --frozen-lockfile --ignore-scripts
 
 # Runtime source + the rest of shared/. The package.json + bun.lock are
 # already there from the install layer; the rest is the source the sync
-# server imports at runtime.
+# server imports at runtime. Both target dirs already exist from the
+# WORKDIRs above, so these COPYs just drop files in (no parent-dir
+# perm churn).
 COPY --chown=root:root --chmod=755 sync-server/src /app/sync-server/src
 COPY --chown=root:root --chmod=755 shared /app/shared
 

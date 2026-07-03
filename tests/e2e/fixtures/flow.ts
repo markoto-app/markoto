@@ -167,6 +167,15 @@ export type ClickOpts
     /** Optional async to await between click and outcome screenshot
      *  (e.g. waitForURL on a navigating click). */
     after?: () => Promise<void>
+    /** Bypass Playwright's actionability checks on the underlying
+     *  hover + click. Required for elements inside `mk-sheet-host`
+     *  (BottomSheet) — Reka's portaled overlays intercept pointer
+     *  events at the wrong stacking layer for Playwright's coordinate-
+     *  based clicks even when the target is visible + stable. Real
+     *  touch dispatches the same event chain successfully; this is a
+     *  Playwright-only quirk, not a product bug. See `tests/e2e/AGENTS.md`
+     *  "Bottom-sheet portal interception" for the full context. */
+    force?: boolean
     chain?: false
   }
   | {
@@ -177,6 +186,8 @@ export type ClickOpts
     /** Approach-shot annotations still apply on chained clicks. */
     annotations?: AnnotationRef[]
     after?: () => Promise<void>
+    /** See ClickOpts.force above. */
+    force?: boolean
   }
 
 export type TypeOpts = {
@@ -188,6 +199,9 @@ export type TypeOpts = {
   /** Mark the outcome (post-typing) shot as the flow's hero. */
   hero?: boolean
   after?: () => Promise<void>
+  /** Bypass actionability checks on the focusing click before
+   *  pressSequentially. See ClickOpts.force. */
+  force?: boolean
 }
 
 export type ShotOpts = {
@@ -204,6 +218,8 @@ export type HoverOpts = {
   highlights?: HighlightRef[]
   /** Direction-anchoring annotations on the hover (approach) shot. */
   annotations?: AnnotationRef[]
+  /** Bypass actionability checks. See ClickOpts.force. */
+  force?: boolean
 }
 
 export type Flow = {
@@ -633,13 +649,32 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         },
         click: async (caption, locator, opts) => {
           await locator.scrollIntoViewIfNeeded().catch(() => {})
-          await locator.hover()
-          const approachCursor = await readCursor({ formSnap: false })
-          await captureFrame('approach', caption, {
-            cursor: approachCursor,
-            annotations: opts.annotations
-          })
-          await locator.click()
+          // Force mode: bypass coordinate routing entirely. Used for
+          // elements inside `mk-sheet-host` (BottomSheet) where Reka's
+          // overlay both intercepts pointer events AND can leave the
+          // target outside Playwright's "in viewport" calculation
+          // (sheet scrolls internally, not the page). Skip visual
+          // hover (the cursor would land on an invalid coordinate
+          // anyway), capture an approach frame without cursor, then
+          // dispatch a DOM-level click that doesn't route through
+          // pointer coordinates. See `tests/e2e/AGENTS.md`
+          // "Bottom-sheet portal interception" workarounds 1+2.
+          let approachCursor: { x: number, y: number } | null = null
+          if (opts.force) {
+            await captureFrame('approach', caption, {
+              cursor: null,
+              annotations: opts.annotations
+            })
+            await locator.evaluate((el: HTMLElement) => el.click())
+          } else {
+            await locator.hover()
+            approachCursor = await readCursor({ formSnap: false })
+            await captureFrame('approach', caption, {
+              cursor: approachCursor,
+              annotations: opts.annotations
+            })
+            await locator.click()
+          }
           if (opts.after) await opts.after()
           if ('chain' in opts && opts.chain) return
           const resultOpts = opts as {
@@ -655,12 +690,35 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         },
         type: async (caption, locator, text, opts) => {
           await locator.scrollIntoViewIfNeeded().catch(() => {})
-          await locator.click()
-          const approachCursor = await readCursor({ formSnap: true })
-          await captureFrame('approach', caption, {
-            cursor: approachCursor,
-            annotations: opts.annotations
-          })
+          let approachCursor: { x: number, y: number } | null = null
+          if (opts.force) {
+            // Force mode: bypass coordinate routing entirely. Sheet-
+            // bound inputs reject standard click() (Reka overlay
+            // intercepts). Focus + position the caret at end-of-
+            // content (`evaluate(el.focus())` alone leaves the caret
+            // at position 0, which would split the typed text into
+            // existing content); pressSequentially then appends
+            // cleanly. Per-keystroke visual is fine in mobile sheets
+            // since touch dispatches the same chain.
+            await locator.evaluate((el: HTMLInputElement | HTMLTextAreaElement) => {
+              el.focus()
+              const end = el.value.length
+              try {
+                el.setSelectionRange(end, end)
+              } catch { /* contenteditable / non-input — caret moved by focus */ }
+            })
+            await captureFrame('approach', caption, {
+              cursor: null,
+              annotations: opts.annotations
+            })
+          } else {
+            await locator.click()
+            approachCursor = await readCursor({ formSnap: true })
+            await captureFrame('approach', caption, {
+              cursor: approachCursor,
+              annotations: opts.annotations
+            })
+          }
           await locator.pressSequentially(text)
           if (opts.after) await opts.after()
           await captureFrame('outcome', opts.result, {
@@ -671,12 +729,25 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         },
         hover: async (caption, locator, opts) => {
           await locator.scrollIntoViewIfNeeded().catch(() => {})
-          await locator.hover()
-          await captureFrame('approach', caption, {
-            highlights: opts?.highlights,
-            annotations: opts?.annotations,
-            formSnap: false
-          })
+          if (opts?.force) {
+            // No real hover possible on a sheet-portaled element
+            // (cursor coordinates land outside the viewport). Just
+            // capture an approach frame without cursor — the visual
+            // value of "show me the cursor on the target" is gone in
+            // mobile sheets anyway since touch has no cursor.
+            await captureFrame('approach', caption, {
+              highlights: opts?.highlights,
+              annotations: opts?.annotations,
+              formSnap: false
+            })
+          } else {
+            await locator.hover()
+            await captureFrame('approach', caption, {
+              highlights: opts?.highlights,
+              annotations: opts?.annotations,
+              formSnap: false
+            })
+          }
         },
         narrate: async (text) => {
           await captureFrame('narration', text, { formSnap: false })

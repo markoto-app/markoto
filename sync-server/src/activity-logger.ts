@@ -20,6 +20,15 @@ type ActivityEvent = {
   /** Optional user id — drives avatar JOIN on the read endpoint. */
   userId?: number | null
   userName: string | null
+  /**
+   * Synthetic-principal label for agent-driven rows (`'ai:assistant:{sid}'`,
+   * `'mcp:{sid}'`). NULL for human edits. The app-side enrichment in
+   * `listRecentActivity` uses this to JOIN to ai_sessions / mcp_sessions
+   * → users so the activity feed can render "Joel via Claude Desktop"
+   * for agent rows. See `server/db/schema.ts` activity_log.actor_principal
+   * column comment.
+   */
+  actorPrincipal?: string | null
   action: ActivityAction
   wordCount?: number | null
   linesAdded?: number | null
