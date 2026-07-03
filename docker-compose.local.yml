@@ -136,6 +136,10 @@ services:
       # container (which reads LITELLM_MASTER_KEY from .env via base.yml).
       - NUXT_LITELLM_URL=http://litellm:4000
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
+      # AI grounding provider keys read directly by the app process (NOT via
+      # LiteLLM): Staan backs web_search, Jina Reader backs fetch_url.
+      - STAAN_API_KEY=${STAAN_API_KEY:?STAAN_API_KEY required}
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:?JINA_AI_API_KEY required}
       # Postgres + Valkey atomic parts. *_HOST overridden to the docker
       # service name; .env owns user/password/db/port. The Nuxt app
       # composes the URL via shared/utils/connectionStrings.ts.

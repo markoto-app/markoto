@@ -64,7 +64,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     basis: 'contract',
     dataCategories: ['user_prompt', 'document_context', 'ai_generated_content'],
     retention: 90,
-    subProcessors: ['mistral_ai', 'jina_ai', 'bfl']
+    subProcessors: ['mistral_ai', 'jina_ai', 'bfl', 'staan']
   },
   {
     id: 'workspace_knowledge_rag',

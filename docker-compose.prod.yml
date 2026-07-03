@@ -93,6 +93,11 @@ services:
       # Phase 5: every AI surface routes through LiteLLM. Distinct
       # dictation-JWT secret falls back to NUXT_JWT_SECRET when empty.
       - NUXT_AI_DICTATE_JWT_SECRET=${NUXT_AI_DICTATE_JWT_SECRET}
+      # AI grounding provider keys read directly by the app process (NOT via
+      # LiteLLM): Staan backs web_search, Jina Reader backs fetch_url. Enable
+      # Staan EU-only routing in the dashboard — no per-request parameter.
+      - STAAN_API_KEY=${STAAN_API_KEY:?STAAN_API_KEY required}
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:?JINA_AI_API_KEY required}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN:?DOMAIN required}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
