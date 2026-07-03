@@ -286,7 +286,12 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PUSH_TOKEN }}
+          # RELEASE_BOT_TOKEN carries packages:write, so it doubles as the
+          # GHCR push credential — one PAT instead of a separate
+          # GHCR_PUSH_TOKEN. The job also declares `packages: write`, so
+          # ${{ secrets.GITHUB_TOKEN }} would work too; we use the release
+          # bot for a single, auditable image-publishing identity.
+          password: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       - name: Build + push
         uses: docker/build-push-action@v6
