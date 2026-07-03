@@ -80,7 +80,12 @@ async function transformMermaid(html: string, theme: MermaidTheme): Promise<stri
  * but an `<img>` is atomic. Same approach as `pagedPreviewIframe.html`.
  */
 async function replaceMermaidBlock(doc: Document, pre: Element, source: string, m: MermaidModule): Promise<void> {
-  const id = 'mmd-' + crypto.randomUUID()
+  // crypto.randomUUID() is secure-context-only. This client-side path runs
+  // in the HTTPS app so it's available today, but guard it anyway — a
+  // self-hosted deploy served over plain HTTP would otherwise throw here.
+  // The id only needs to be unique within this render pass.
+  const id = 'mmd-' + (globalThis.crypto?.randomUUID?.()
+    ?? (Date.now().toString(36) + Math.random().toString(36).slice(2)))
   try {
     const { svg } = await m.render(id, source)
     const { natW, natH } = extractMermaidNaturalSize(svg)
