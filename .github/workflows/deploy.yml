@@ -51,6 +51,12 @@ jobs:
     environment: ${{ inputs.environment }}
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      # SSH login user on the VPS. Prod is Ansible-provisioned with a
+      # dedicated `markoto` user; the manually-provisioned staging box
+      # uses `debian`. Set a per-environment `DEPLOY_USER` variable
+      # (Settings → Environments → <env> → Variables) to override; the
+      # default preserves the original prod behaviour.
+      DEPLOY_USER: ${{ vars.DEPLOY_USER || 'markoto' }}
       TAG: ${{ inputs.tag }}
     steps:
       - name: Validate tag
@@ -79,7 +85,7 @@ jobs:
         id: roll
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes "markoto@${DEPLOY_HOST}" \
+          ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
             TAG="${TAG}" \
             'bash -se' <<'REMOTE'
           set -euo pipefail
@@ -163,7 +169,7 @@ jobs:
         id: prev
         run: |
           set -euo pipefail
-          PREV=$(ssh -o BatchMode=yes "markoto@${DEPLOY_HOST}" \
+          PREV=$(ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
             'cat /opt/markoto/.last-deploy.prev 2>/dev/null || echo unknown')
           echo "tag=$PREV" >> "$GITHUB_OUTPUT"
 
