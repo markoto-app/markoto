@@ -230,8 +230,24 @@ jobs:
       # Test stack defaults — match docker-compose.test.yml.
       TEST_MODE: "1"
       NUXT_GOOGLE_SPEECH_MOCK: "1"
+      # Raise the V8 heap ceiling for the Nuxt build (the test stack + the
+      # integration setup both run `bun run build`, which OOM'd at the
+      # default heap limit on the 7 GB runner: "Reached heap limit").
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
+
+      # The Nuxt/Vite build peaks above the 7 GB of a private-repo runner —
+      # the compose `--profile flows up` (builds the app image) AND the
+      # integration setup's `bun run build` both need headroom. Swap on the
+      # large /mnt disk prevents the OOM-killer from SIGKILLing the build.
+      - name: Add swap (memory-heavy Nuxt build)
+        run: |
+          sudo fallocate -l 12G /mnt/ci-swapfile
+          sudo chmod 600 /mnt/ci-swapfile
+          sudo mkswap /mnt/ci-swapfile
+          sudo swapon /mnt/ci-swapfile
+          free -h
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

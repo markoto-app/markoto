@@ -216,6 +216,20 @@ jobs:
         with:
           ref: v${{ needs.resolve-pr.outputs.new_version }}
 
+      # The Nuxt/Vite build (with Sentry source-map processing) peaks above
+      # the 7 GB of a private-repo runner and the OOM-killer SIGKILLs
+      # `bun run build` inside the Docker build ("cannot allocate memory").
+      # Add swap on the large /mnt disk so the build has virtual-memory
+      # headroom. Only the `app` image build is heavy enough to need it, but
+      # the step is a cheap no-op for the others.
+      - name: Add swap (memory-heavy app build)
+        run: |
+          sudo fallocate -l 12G /mnt/ci-swapfile
+          sudo chmod 600 /mnt/ci-swapfile
+          sudo mkswap /mnt/ci-swapfile
+          sudo swapon /mnt/ci-swapfile
+          free -h
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
