@@ -237,17 +237,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The Nuxt/Vite build peaks above the 7 GB of a private-repo runner —
-      # the compose `--profile flows up` (builds the app image) AND the
-      # integration setup's `bun run build` both need headroom. Swap on the
-      # large /mnt disk prevents the OOM-killer from SIGKILLing the build.
-      - name: Add swap (memory-heavy Nuxt build)
-        run: |
-          sudo fallocate -l 12G /mnt/ci-swapfile
-          sudo chmod 600 /mnt/ci-swapfile
-          sudo mkswap /mnt/ci-swapfile
-          sudo swapon /mnt/ci-swapfile
-          free -h
+      # The integration setup's `bun run build` hit the V8 heap ceiling
+      # ("Reached heap limit") on the 7 GB runner. That's a soft heap limit,
+      # not physical exhaustion — NODE_OPTIONS=--max-old-space-size (in the
+      # job env above) lifts it using the existing RAM+swap. NO extra
+      # swapfile here: /mnt is Docker's data-root on the runner, and a big
+      # swapfile there starves the test-stack image pulls ("no space left").
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

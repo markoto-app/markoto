@@ -216,18 +216,23 @@ jobs:
         with:
           ref: v${{ needs.resolve-pr.outputs.new_version }}
 
-      # The Nuxt/Vite build (with Sentry source-map processing) peaks above
-      # the 7 GB of a private-repo runner and the OOM-killer SIGKILLs
+      # The `app` Nuxt/Vite build (with Sentry source-map processing) peaks
+      # above the 7 GB of a private-repo runner and the OOM-killer SIGKILLs
       # `bun run build` inside the Docker build ("cannot allocate memory").
-      # Add swap on the large /mnt disk so the build has virtual-memory
-      # headroom. Only the `app` image build is heavy enough to need it, but
-      # the step is a cheap no-op for the others.
-      - name: Add swap (memory-heavy app build)
+      # bun uses JSC (no V8 heap flag), so the fix is more virtual memory.
+      # Put swap on ROOT (/) — /mnt is Docker's data-root, and a swapfile
+      # there starves the image layers. Free some preinstalled bulk from /
+      # first so the swapfile + build layers both fit. Cheap no-op for the
+      # small images.
+      - name: Free disk + add swap (memory-heavy app build)
         run: |
-          sudo fallocate -l 12G /mnt/ci-swapfile
-          sudo chmod 600 /mnt/ci-swapfile
-          sudo mkswap /mnt/ci-swapfile
-          sudo swapon /mnt/ci-swapfile
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost 2>/dev/null || true
+          df -h /
+          sudo fallocate -l 10G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
           free -h
 
       - name: Set up QEMU
