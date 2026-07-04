@@ -230,6 +230,16 @@ jobs:
       # Test stack defaults — match docker-compose.test.yml.
       TEST_MODE: "1"
       NUXT_GOOGLE_SPEECH_MOCK: "1"
+      # Live-AI flow keys. docker-compose.test.yml's litellm-test reads these
+      # (`${MISTRAL_API_KEY:-stub}` etc.) to reach the real upstream providers,
+      # and the Playwright `requireLiveAi()` guard reads them from the env to
+      # decide whether the AI flows can run. Until these repository secrets are
+      # set they resolve to '' → litellm-test falls back to its `stub` default
+      # and the AI flows fail their guard (everything else still runs). Add the
+      # secrets under Settings → Secrets and variables → Actions.
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
+      BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
       # Raise the V8 heap ceiling for the Nuxt build (the test stack + the
       # integration setup both run `bun run build`, which OOM'd at the
       # default heap limit on the 7 GB runner: "Reached heap limit").
@@ -266,7 +276,16 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
+      # The integration app binds :3101 (TEST_PORT); sync-test posts
+      # activity-log rows back to it, so its APP_URL must point there.
+      # The default baked into the compose file is :3001 (the flows app
+      # port) — without this override the MCP activity round-trip lands
+      # on a dead port and the mcp:% attribution tests fail. The flows
+      # phase (`flows:test`) recreates sync-test back to :3001 itself
+      # (scripts/flows-ephemeral.ts sets SYNC_TEST_APP_URL explicitly).
       - name: Bring up test stack
+        env:
+          SYNC_TEST_APP_URL: http://host.docker.internal:3101
         run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
 
       # Replaces `bun run test:repos` — covers the same project plus
