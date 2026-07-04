@@ -133,6 +133,9 @@ services:
       # Dev = host bun via host.docker.internal.
       - APP_URL=http://host.docker.internal:3000
       - S3_ENDPOINT=http://seaweedfs:8333
+      # SeaweedFS doesn't support SSE-S3 — omit the encryption header or
+      # PDF/PNG render uploads fail with an opaque S3 InternalError.
+      - S3_SSE=none
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

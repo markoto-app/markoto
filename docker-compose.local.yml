@@ -211,6 +211,9 @@ services:
       - INTERNAL_API_SECRET=local-internal-api-secret-change-me
       - APP_URL=http://app:3000
       - S3_ENDPOINT=http://seaweedfs:8333
+      # SeaweedFS doesn't support SSE-S3 — omit the encryption header or
+      # PDF/PNG render uploads fail with an opaque S3 InternalError.
+      - S3_SSE=none
     expose:
       - "9000"
     networks:

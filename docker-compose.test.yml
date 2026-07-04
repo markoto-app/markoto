@@ -135,6 +135,10 @@ services:
       - S3_ACCESS_KEY=ypad-access-key
       - S3_SECRET_KEY=ypad-secret-key
       - S3_BUCKET=ypad
+      # SeaweedFS doesn't support SSE-S3 — it returns InternalError on the
+      # ServerSideEncryption header, which surfaced as "Renderer 500" on
+      # every PDF export test. Prod (OVH) keeps SSE on (unset → AES256).
+      - S3_SSE=none
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
