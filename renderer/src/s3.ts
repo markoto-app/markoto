@@ -14,6 +14,15 @@ function required(name: string): string {
   return v
 }
 
+// SSE-S3 on every render artefact (defense-in-depth) — see docs/S3-SETUP.md.
+// SeaweedFS (dev + test S3 backend) does NOT support SSE-S3 and returns an
+// opaque `InternalError` on the encryption header, which surfaced as a
+// generic "Renderer 500" on every PDF export in those envs. Gate the header
+// so those backends can disable it (S3_SSE=none) while prod (OVH) keeps the
+// default. Unset → AES256 (prod-safe default).
+const sseValue = process.env.S3_SSE ?? 'AES256'
+const useSse = sseValue !== '' && sseValue.toLowerCase() !== 'none'
+
 export const s3 = new S3Client({
   endpoint,
   region: 'us-east-1',
@@ -35,7 +44,7 @@ export async function putBytes(
     // page PNGs, manifest). Belt-and-braces alongside the bucket-level
     // default — see docs/S3-SETUP.md §6. Direct server-side PUTs set
     // the header per-object so a misconfigured bucket can't silently
-    // drop encryption.
-    ServerSideEncryption: 'AES256'
+    // drop encryption. Omitted when S3_SSE=none (SeaweedFS dev/test).
+    ...(useSse ? { ServerSideEncryption: sseValue as 'AES256' } : {})
   }))
 }
