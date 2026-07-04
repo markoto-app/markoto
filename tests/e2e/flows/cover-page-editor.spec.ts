@@ -96,18 +96,12 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
   // mobile branch).
   const layoutSelect = page.locator('[data-testid="theme-cover-layout-select"]')
   if (editor.isMobile) {
+    // Real clicks — the option popover now stacks above the bottom sheet
+    // (main.css z-index fix), so no synthetic-PointerEvent workaround needed.
     await flow.step(
       'Open the layout dropdown',
       async () => {
-        // Reka USelect listens on pointerdown/pointerup, not click.
-        // DOM-level click() doesn't open the popover. Dispatch the
-        // full pointer sequence per `tests/e2e/AGENTS.md` workaround #3.
-        await layoutSelect.evaluate((el: HTMLElement) => {
-          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
-          el.dispatchEvent(new PointerEvent('pointerdown', opts))
-          el.dispatchEvent(new PointerEvent('pointerup', opts))
-          el.click()
-        })
+        await layoutSelect.click()
         await page.getByRole('option', { name: /banner/i }).first().waitFor({ state: 'visible', timeout: 3_000 })
       },
       { result: 'The four cover layouts list.' }
@@ -115,25 +109,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     await flow.step(
       'Pick "Banner"',
       async () => {
-        // Reka USelect listens on pointerdown/pointerup (Radix-style),
-        // NOT plain click events. Force-click + DOM `el.click()` both
-        // produced just a MouseEvent — neither fires the selection
-        // handler when the popover is rendered inside a `mk-sheet-host`
-        // bottom sheet (the sheet's portal stacking + aria-hidden
-        // shenanigans confuse Reka's pointer-capture). Dispatch the
-        // proper pointerdown→pointerup→click sequence on the option
-        // so Reka's listener actually fires the value change.
-        await page.getByRole('option', { name: /banner/i }).first().evaluate((el: HTMLElement) => {
-          const fire = (type: string) => el.dispatchEvent(new PointerEvent(type, {
-            bubbles: true,
-            cancelable: true,
-            pointerType: 'mouse',
-            isPrimary: true
-          }))
-          fire('pointerdown')
-          fire('pointerup')
-          el.click()
-        })
+        await page.getByRole('option', { name: /banner/i }).first().click()
         await page.waitForTimeout(900)
       },
       { result: 'The Banner layout takes effect.' }

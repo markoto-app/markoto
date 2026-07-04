@@ -223,6 +223,15 @@ async function main() {
   console.log(`[flows-ephemeral] waiting for ${NUXT_URL} to come up`)
   await waitForHttp(`${NUXT_URL}/api/health`, 60_000)
 
+  // Serve-only mode (local debugging): keep the stack + app alive and skip
+  // Playwright + teardown so you can iterate with `flows:test:against-running`
+  // against http://localhost:3001. Ctrl-C to tear down. Not used by CI.
+  if (process.env.FLOWS_SERVE_ONLY === '1') {
+    console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1 — app up at ${NUXT_URL}. Ctrl-C to tear down.`)
+    await new Promise(() => {}) // wait forever; cleanup runs on SIGINT/SIGTERM
+    return
+  }
+
   // Step 5: Playwright. Pass through all argv so callers can scope to
   // a single test (e.g. `bun run flows:test --project=en-light-desktop`).
   console.log('[flows-ephemeral] running Playwright')

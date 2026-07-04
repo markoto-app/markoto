@@ -89,25 +89,19 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     }
   )
 
-  // Audience: USelect (Reka button + popover). On mobile the
-  // Document panel renders inside a `mk-sheet-host` bottom sheet that
-  // keeps intercepting pointer events on the option list (Reka
-  // portals the popover but the sheet overlay's `aria-hidden="true"`
-  // doesn't prevent pointer routing). Force-click to bypass the
-  // actionability check there. Desktop has no overlay so the
-  // standard click works.
+  // Audience: USelect (Reka button + popover). The mobile branch used to
+  // need synthetic PointerEvents because the option popover rendered BEHIND
+  // the bottom sheet (untappable). That was a real product bug — now fixed
+  // by lifting select/combobox popovers above the sheet (main.css) — so both
+  // mobile and desktop select with plain clicks. The branch remains only
+  // because the desktop version records richer flow-doc annotations.
   if (editor.isMobile) {
+    // Real clicks — the option popover now stacks above the bottom sheet
+    // (main.css z-index fix), so no synthetic-PointerEvent workaround needed.
     await flow.step(
       'Open the Audience dropdown',
       async () => {
-        // Reka USelect listens on pointerdown/pointerup, not click.
-        // Dispatch the full pointer sequence per AGENTS.md workaround #3.
-        await page.locator('#doc-audience').evaluate((el: HTMLElement) => {
-          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
-          el.dispatchEvent(new PointerEvent('pointerdown', opts))
-          el.dispatchEvent(new PointerEvent('pointerup', opts))
-          el.click()
-        })
+        await page.locator('#doc-audience').click()
         await page.getByRole('option', { name: /marketing/i }).first().waitFor({ state: 'visible' })
       },
       { result: 'The audience options appear.' }
@@ -115,13 +109,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     await flow.step(
       'Pick "Marketing / SEO"',
       async () => {
-        // Same pointer-sequence pattern for the option (Reka).
-        await page.getByRole('option', { name: /marketing/i }).first().evaluate((el: HTMLElement) => {
-          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
-          el.dispatchEvent(new PointerEvent('pointerdown', opts))
-          el.dispatchEvent(new PointerEvent('pointerup', opts))
-          el.click()
-        })
+        await page.getByRole('option', { name: /marketing/i }).first().click()
         await page.locator('#doc-audience').waitFor({ state: 'visible' })
       },
       { result: 'The audience switches to Marketing.' }
@@ -146,19 +134,16 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     )
   }
 
-  // Language: UInputMenu (Reka combobox). Same bottom-sheet
-  // intercept on mobile → force-click pattern.
+  // Language: UInputMenu (Reka combobox).
   if (editor.isMobile) {
     await flow.step(
       'Type "Deutsch" in Language',
       async () => {
-        // UInputMenu is a Reka combobox; same pointer-sequence story.
-        await page.locator('#doc-language').evaluate((el: HTMLElement) => {
-          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
-          el.dispatchEvent(new PointerEvent('pointerdown', opts))
-          el.dispatchEvent(new PointerEvent('pointerup', opts))
-          el.click()
-        })
+        await page.locator('#doc-language').click()
+        // Clear the current language ("English") first — otherwise
+        // pressSequentially appends to it ("DeutschEnglish") and the Deutsch
+        // preset never matches.
+        await page.locator('#doc-language').fill('')
         await page.locator('#doc-language').pressSequentially('Deutsch')
         await page.getByRole('option', { name: /deutsch/i }).first().waitFor({ state: 'visible', timeout: 5_000 })
       },
@@ -167,12 +152,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     await flow.step(
       'Tap "Deutsch"',
       async () => {
-        await page.getByRole('option', { name: /deutsch/i }).first().evaluate((el: HTMLElement) => {
-          const opts = { bubbles: true, cancelable: true, pointerType: 'mouse', isPrimary: true }
-          el.dispatchEvent(new PointerEvent('pointerdown', opts))
-          el.dispatchEvent(new PointerEvent('pointerup', opts))
-          el.click()
-        })
+        await page.getByRole('option', { name: /deutsch/i }).first().click()
         await page.waitForTimeout(500)
       },
       { result: 'The language switches to Deutsch.' }
