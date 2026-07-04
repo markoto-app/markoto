@@ -182,7 +182,11 @@ async function cleanup() {
 }
 
 async function main() {
-  // Step 1: docker stack
+  // Step 1: docker stack. The renderer container navigates back to the app's
+  // print page — point it at OUR port (the flow app serves on NUXT_PORT, not
+  // the integration default of 3101), or every server-rendered-PDF flow fails
+  // because the renderer can't reach the app.
+  process.env.RENDERER_APP_URL = `http://host.docker.internal:${NUXT_PORT}`
   console.log('[flows-ephemeral] booting docker stack')
   const upCode = await shellOut(['docker', 'compose', '-f', COMPOSE_FILE, '--profile', COMPOSE_PROFILE, 'up', '-d', '--wait'])
   if (upCode !== 0) {
