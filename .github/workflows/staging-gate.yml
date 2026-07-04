@@ -8,6 +8,8 @@ name: staging-gate
 #
 # Flow:  merge → release.yml builds vX.Y.Z + latest images
 #              → THIS workflow deploys `latest` to staging (health-gated)
+#              → resets the staging DB to a clean slate (public schema wiped,
+#                drizzle migration ledger preserved) so runs don't bleed state
 #              → smoke suite runs against https://staging.markoto.app
 #              → red gate ⇒ nothing should be promoted to prod
 #
@@ -86,6 +88,14 @@ jobs:
           done
           [ "$ok" = 1 ] || { echo "staging health check failed after 90s"; exit 1; }
           REMOTE
+
+      # Wipe staging to a clean slate so each smoke run starts from empty +
+      # predictable state (no doc/rate-limit/sync-state bleed between runs).
+      # Truncates the `public` schema only; the drizzle migration ledger lives
+      # in a separate schema and is preserved. Guards on DOMAIN containing
+      # "staging" — refuses to run against anything else.
+      - name: Reset staging DB
+        run: SSH_KEY="$HOME/.ssh/id_ed25519" ./scripts/reset-staging-db.sh
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

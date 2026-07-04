@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Reset the STAGING environment to a clean slate before an e2e / smoke run.
+#
+# Staging is a throwaway TEST environment (no real users). Its Postgres is the
+# in-VPS docker-compose container, so we can safely wipe it between runs — the
+# whole point of a staging DB is that it's disposable. This:
+#   - TRUNCATEs every APP table (the `public` schema), RESTART IDENTITY CASCADE,
+#     so each run starts from empty + predictable ids. The drizzle migration
+#     ledger lives in the separate `drizzle` schema and is left UNTOUCHED, so
+#     the schema stays intact and boot-time migrations see no diff.
+#   - FLUSHes Valkey (rate limits, per-doc sync attribution/diff state, sweep
+#     locks) so leftover state can't leak between runs.
+#
+# It does NOT restart the sync-server: e2e runs create fresh docs with new ids,
+# so any stale in-memory Y.Doc state is never touched. (If a run ever needs a
+# cold sync-server, restart `sync` separately.)
+#
+# NOT for prod. Guards on the remote DOMAIN containing "staging".
+#
+# Env:
+#   DEPLOY_HOST  (required)                    VPS host / IP
+#   DEPLOY_USER  (default: debian)             SSH user
+#   SSH_KEY      (default: ~/.ssh/markoto_staging)  private key path
+set -euo pipefail
+
+HOST="${DEPLOY_HOST:?DEPLOY_HOST required}"
+SSH_USER="${DEPLOY_USER:-debian}"
+KEY="${SSH_KEY:-$HOME/.ssh/markoto_staging}"
+# ssh doesn't tilde-expand a path that arrives via a variable, so normalise a
+# leading `~/` to $HOME/ ourselves (matters when the caller passes SSH_KEY=~/...).
+KEY="${KEY/#\~\//$HOME/}"
+
+echo "[reset-staging-db] resetting ${SSH_USER}@${HOST} ..."
+ssh -i "$KEY" -o BatchMode=yes -o StrictHostKeyChecking=no "${SSH_USER}@${HOST}" 'bash -se' <<'REMOTE'
+set -euo pipefail
+cd /opt/markoto
+
+# Safety guard: refuse anything that doesn't look like staging.
+DOMAIN=$(awk -F= '/^DOMAIN=/{print $2}' .env | tr -d '"')
+case "$DOMAIN" in
+  *staging*) : ;;
+  *) echo "[reset-staging-db] REFUSING — DOMAIN='${DOMAIN}' is not a staging host" >&2; exit 1 ;;
+esac
+
+PU=$(awk -F= '/^POSTGRES_USER=/{print $2}' .env)
+PD=$(awk -F= '/^POSTGRES_DB=/{print $2}' .env)
+PP=$(awk -F= '/^POSTGRES_PASSWORD=/{print $2}' .env)
+
+sudo docker exec -e PGPASSWORD="$PP" markoto-postgres-1 \
+  psql -U "$PU" -d "$PD" -v ON_ERROR_STOP=1 <<'SQL'
+DO $$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+    EXECUTE format('TRUNCATE TABLE public.%I RESTART IDENTITY CASCADE', r.tablename);
+  END LOOP;
+END $$;
+SQL
+echo "[reset-staging-db] public schema truncated"
+
+# Best-effort Valkey flush — don't fail the reset if it's unreachable.
+VP=$(awk -F= '/^VALKEY_PASSWORD=/{print $2}' .env)
+if sudo docker exec markoto-valkey-1 valkey-cli -a "$VP" FLUSHALL >/dev/null 2>&1; then
+  echo "[reset-staging-db] valkey flushed"
+else
+  echo "[reset-staging-db] valkey flush skipped (unreachable)"
+fi
+REMOTE
+echo "[reset-staging-db] done."
