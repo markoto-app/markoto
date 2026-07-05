@@ -17,6 +17,13 @@
 # Restore: see docs/DEPLOY.md §6 — `gpg --decrypt | gunzip | psql`.
 
 set -e
+# pipefail makes a pipeline return the FIRST non-zero exit, not just the
+# last stage's. Without it, `pg_dump | gzip | gpg` reports success as long
+# as gpg succeeds — even if pg_dump died mid-stream and produced a
+# truncated dump. That's how a silently-corrupt backup gets uploaded and
+# looks fine. Verified supported by busybox ash in postgres:16-alpine
+# (the base image); it is NOT portable POSIX, so keep the alpine base.
+set -o pipefail
 
 : "${POSTGRES_HOST:=postgres}"
 : "${POSTGRES_USER:=ypad}"
@@ -51,11 +58,10 @@ backup_once() {
   # The passphrase is fed via fd 3 instead of --passphrase "$VAR" so it
   # never appears in `ps`/`/proc/<pid>/cmdline`. --batch + --pinentry-mode
   # loopback keeps gpg fully non-interactive in a containerised setting.
-  # `set -o pipefail` would surface mid-pipeline errors but POSIX `sh`
-  # (Alpine /bin/sh = busybox ash) doesn't support it portably; we
-  # tolerate the existing best-effort chain since the upload step
-  # itself fails loudly when the dump errored out (truncated/empty
-  # tmpfile → nonzero size check would still be useful future work).
+  # `set -o pipefail` (above) makes this `if` false if ANY stage fails —
+  # so a mid-pipeline pg_dump failure skips the upload instead of shipping
+  # a truncated dump. A post-pipeline size floor (below) is the second
+  # guard against a pg_dump that exits 0 but produced too little.
   if pg_dump -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
         --no-owner --clean --if-exists 2>/tmp/pg_dump.err \
         | gzip \
@@ -67,17 +73,29 @@ backup_once() {
 $BACKUP_GPG_PASSPHRASE
 EOF_PASSPHRASE
   then
-    size=$(du -h "$tmp" | cut -f1)
-    # --sse AES256 is bucket-default-encryption defense-in-depth: even
-    # though the file body is already gpg-encrypted, the S3 object's
-    # at-rest layer adds the second key. Provider-managed key encrypts
-    # ciphertext blob; passphrase decrypts the contents. Either alone
-    # is insufficient for restore.
-    if aws --endpoint-url "$S3_ENDPOINT" s3 cp "$tmp" "s3://${S3_BUCKET}/${key}" \
-          --sse AES256 --no-progress; then
-      echo "[backup] Uploaded ${size} (encrypted) to s3://${S3_BUCKET}/${key}"
+    # Size floor: a real encrypted dump — even of a near-empty schema — is
+    # comfortably over 1 KB. A tmpfile below the floor means the pipeline
+    # produced almost nothing (a pg_dump that exited 0 but wrote a stub, or
+    # a gpg of an empty stream); refuse to upload it over a good backup.
+    # (Don't `return` here — this function is called bare under `set -e`,
+    # so a non-zero return would kill the whole backup loop. Skip the
+    # upload and let the next interval retry.)
+    bytes=$(wc -c < "$tmp" 2>/dev/null || echo 0)
+    if [ "$bytes" -lt 1024 ]; then
+      echo "[backup] Refusing to upload — dump is implausibly small (${bytes} bytes). Treating as failure; will retry next interval." >&2
     else
-      echo "[backup] S3 upload FAILED for ${key}" >&2
+      size=$(du -h "$tmp" | cut -f1)
+      # --sse AES256 is bucket-default-encryption defense-in-depth: even
+      # though the file body is already gpg-encrypted, the S3 object's
+      # at-rest layer adds the second key. Provider-managed key encrypts
+      # ciphertext blob; passphrase decrypts the contents. Either alone
+      # is insufficient for restore.
+      if aws --endpoint-url "$S3_ENDPOINT" s3 cp "$tmp" "s3://${S3_BUCKET}/${key}" \
+            --sse AES256 --no-progress; then
+        echo "[backup] Uploaded ${size} (encrypted) to s3://${S3_BUCKET}/${key}"
+      else
+        echo "[backup] S3 upload FAILED for ${key}" >&2
+      fi
     fi
   else
     echo "[backup] pg_dump | gpg pipeline FAILED:" >&2

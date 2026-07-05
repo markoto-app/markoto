@@ -106,6 +106,8 @@ services:
     build: .
     restart: unless-stopped
     stop_grace_period: 30s
+    # Match prod's cap so the pre-push full-stack run behaves like prod.
+    mem_limit: 2g
     environment:
       # The bundled validator hardcodes the prod-only Stripe check
       # (process.env.NODE_ENV === 'production' is dead-code-eliminated at

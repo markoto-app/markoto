@@ -71,6 +71,11 @@ services:
     restart: unless-stopped
     # SIGTERM handler needs time to drain HTTP and close the pg pool.
     stop_grace_period: 30s
+    # The Nuxt SSR + Nitro process is the busiest service. 2 GB covers SSR
+    # render peaks + the pg pool + in-flight AI loops with headroom; a cap
+    # means a leak or a pathological request restarts the app alone rather
+    # than OOMing sync/postgres/renderer alongside it.
+    mem_limit: 2g
     environment:
       - NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD:?NUXT_SESSION_PASSWORD required}
       - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID}

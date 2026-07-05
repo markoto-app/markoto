@@ -34,6 +34,13 @@ services:
     # first migration.
     image: pgvector/pgvector:pg16
     restart: unless-stopped
+    # Hard memory cap so a runaway query (big sort, pathological join) can't
+    # starve the box and take every other service down with it. 1 GB is
+    # comfortable for our workload (small pool, conservative default
+    # shared_buffers/work_mem) plus the tiny co-hosted `litellm` DB. Prod's
+    # intended topology is OVH managed Postgres, where this cap is moot; it
+    # protects the in-stack dev/local/staging path.
+    mem_limit: 1g
     environment:
       - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER required}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
@@ -76,6 +83,10 @@ services:
   litellm:
     image: ghcr.io/berriai/litellm:main-v1.83.14-stable
     restart: unless-stopped
+    # Cap the proxy. Steady-state it's a thin Python router; the memory
+    # peak is the cold-start Prisma migration run (see start_period below).
+    # 1 GB clears that with headroom without letting a leak balloon.
+    mem_limit: 1g
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/litellm
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
@@ -112,6 +123,12 @@ services:
   valkey:
     image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
     restart: unless-stopped
+    # Cap set ABOVE the 1 GB `--maxmemory` below: an AOF rewrite forks the
+    # process and copy-on-write can transiently push RSS past the dataset
+    # size, so 1.5 GB leaves rewrite headroom while still bounding a runaway.
+    # (In practice our keyspace — rate limits, locks, 24h sync-state — stays
+    # far below 1 GB; allkeys-lru evicts before maxmemory anyway.)
+    mem_limit: 1536m
     # AOF with fsync-every-second is a fine trade for rate-limit data:
     # worst case we lose ≤1s of hits on crash, sliding windows self-heal.
     # 1gb headroom for rate-limit + presence + render-singleflight +
@@ -152,6 +169,12 @@ services:
   sync:
     restart: unless-stopped
     stop_grace_period: 30s
+    # Hocuspocus holds every actively-connected doc's Y.Doc in memory. 1 GB
+    # covers a healthy number of concurrent docs for our scale; a cap here
+    # means a pathological doc (or a connection leak) restarts sync alone
+    # instead of OOMing the whole box. Sticky sessions keep a doc's clients
+    # pinned to one instance, so per-instance memory scales with local load.
+    mem_limit: 1g
     environment:
       - PORT=4001
       - POSTGRES_USER=${POSTGRES_USER}
@@ -171,6 +194,11 @@ services:
 
   markitdown:
     restart: unless-stopped
+    # Import parsing (PDF/DOCX/PPTX/XLSX) can spike on a large or
+    # image-heavy file. 1 GB absorbs typical imports; a cap keeps a
+    # malicious/huge upload from taking the box down (the app also enforces
+    # a 50 MB import size limit upstream).
+    mem_limit: 1g
 
   # Backend PDF + PNG renderer. Playwright + Chromium drives the
   # paged.js preview pipeline against /_internal/render/:docId on the
@@ -204,6 +232,10 @@ services:
 
   backup:
     restart: unless-stopped
+    # The backup is a streaming pipe (pg_dump | gzip | gpg | aws s3 cp) — it
+    # never buffers the whole dump in memory, so a small cap is plenty and
+    # keeps a stuck backup from competing with live services for RAM.
+    mem_limit: 512m
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432

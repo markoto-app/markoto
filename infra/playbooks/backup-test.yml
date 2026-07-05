@@ -1,13 +1,23 @@
 ---
-# Verify the most recent gpg-encrypted dump is restorable end-to-end:
-#   1. List backups in S3
-#   2. Download the most recent one to /tmp on the VPS
-#   3. Decrypt + decompress + redirect to a test schema
-#   4. Cleanup
+# Restore drill — proves the most recent gpg-encrypted dump is not just
+# decryptable but ACTUALLY RESTORABLE end-to-end:
+#   1. Locate the most-recent backup in S3
+#   2. Download + gpg-decrypt + gunzip + `psql` it into a THROWAWAY database
+#      on the live Postgres instance (a real restore, not a `head` sniff)
+#   3. Verify the restored schema has the tables we expect
+#   4. Drop the throwaway database + clean up tmp files
+#
+# Run periodically (it's operator-invoked, not scheduled) — the restore
+# competes with prod for Postgres CPU/disk transiently, so pick a quiet
+# window. A `head -200` sniff (the previous version) could pass on a
+# TRUNCATED dump whose first 200 lines happen to look fine; a full psql
+# restore is the only thing that proves the dump applies cleanly.
 - name: Backup restore drill
   hosts: markoto
   become: true
   gather_facts: false
+  vars:
+    restore_db: markoto_restore_drill
   vars_files:
     - ../group_vars/all.yml
     - ../group_vars/all.vault.yml
@@ -31,24 +41,75 @@
           Run the in-stack backup once before testing.
       when: latest_backup.stdout | trim | length == 0
 
-    - name: Decrypt + sniff first 200 lines (does NOT apply to db)
-      ansible.builtin.shell: |
-        set -euo pipefail
-        cd {{ markoto_root }}
-        BACKUP_KEY="{{ latest_backup.stdout | trim }}"
-        docker compose -f docker-compose.prod.yml exec -T backup sh -c "
-          aws --endpoint-url \"\$S3_ENDPOINT\" \
-            s3 cp \"s3://\$S3_BUCKET/backups/postgres/${BACKUP_KEY}\" \
-            /tmp/restore-test.gpg \
-          && gpg --batch --quiet --pinentry-mode loopback \
-                 --passphrase \"\$BACKUP_GPG_PASSPHRASE\" \
-                 --decrypt /tmp/restore-test.gpg \
-            | gunzip | head -200 \
-          && rm -f /tmp/restore-test.gpg
-        "
-      register: restore_probe
-      changed_when: false
+    # Restore + verify inside a block so the throwaway DB is ALWAYS dropped,
+    # even when the restore or verification step fails the play.
+    - name: Restore drill (throwaway DB cleaned up in always)
+      block:
+        - name: Download + decrypt + restore into a throwaway database
+          ansible.builtin.shell: |
+            set -euo pipefail
+            cd {{ markoto_root }}
+            BACKUP_KEY="{{ latest_backup.stdout | trim }}"
+            docker compose -f docker-compose.prod.yml exec -T backup sh -c "
+              set -e
+              set -o pipefail
+              # Fresh throwaway DB (drop any leftover from a prior aborted drill).
+              dropdb -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" --if-exists {{ restore_db }}
+              createdb -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" {{ restore_db }}
+              # Real restore: S3 -> gpg -> gunzip -> psql. --set ON_ERROR_STOP=1
+              # makes psql exit non-zero on the FIRST bad statement, so a
+              # truncated / corrupt dump fails the drill loudly (pipefail then
+              # propagates it out of this sh -c).
+              aws --endpoint-url \"\$S3_ENDPOINT\" \
+                s3 cp \"s3://\$S3_BUCKET/backups/postgres/${BACKUP_KEY}\" /tmp/restore-test.gpg
+              gpg --batch --quiet --pinentry-mode loopback \
+                  --passphrase \"\$BACKUP_GPG_PASSPHRASE\" \
+                  --decrypt /tmp/restore-test.gpg \
+                | gunzip \
+                | psql -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" -d {{ restore_db }} \
+                       --set ON_ERROR_STOP=1 --quiet >/dev/null
+              rm -f /tmp/restore-test.gpg
+            "
+          register: restore_apply
+          changed_when: false
 
-    - name: Show first lines of decrypted SQL
-      ansible.builtin.debug:
-        msg: "{{ restore_probe.stdout_lines[:10] }}"
+        - name: Verify the restored schema has the expected core tables
+          ansible.builtin.shell: |
+            set -euo pipefail
+            cd {{ markoto_root }}
+            docker compose -f docker-compose.prod.yml exec -T backup sh -c "
+              # Both must resolve to a real relation (non-empty output) or the
+              # restore was structurally incomplete. Also print the table count
+              # as a sanity signal.
+              psql -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" -d {{ restore_db }} -tAc \
+                \"SELECT to_regclass('public.users') IS NOT NULL
+                     AND to_regclass('public.documents') IS NOT NULL,
+                        (SELECT count(*) FROM information_schema.tables
+                           WHERE table_schema='public')\"
+            "
+          register: restore_verify
+          changed_when: false
+
+        - name: Fail the drill if core tables are missing
+          ansible.builtin.fail:
+            msg: >-
+              Restore verification FAILED — core tables (users/documents) not
+              present in the restored database. Backup may be truncated or
+              corrupt. Verify output: {{ restore_verify.stdout | trim }}
+          when: not (restore_verify.stdout | trim | lower).startswith('t|')
+
+        - name: Report restore drill result
+          ansible.builtin.debug:
+            msg: >-
+              Restore drill PASSED — {{ latest_backup.stdout | trim }} applied
+              cleanly into a throwaway DB; core tables present
+              (verify = {{ restore_verify.stdout | trim }} as core-ok|table-count).
+      always:
+        - name: Drop the throwaway database
+          ansible.builtin.shell: |
+            set -euo pipefail
+            cd {{ markoto_root }}
+            docker compose -f docker-compose.prod.yml exec -T backup sh -c "
+              dropdb -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" --if-exists {{ restore_db }}
+            "
+          changed_when: false
