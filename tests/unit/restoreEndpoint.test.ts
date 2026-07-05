@@ -33,7 +33,12 @@ vi.mock('../../server/utils/documentAccess', () => ({ requireDocEditAccess }))
 vi.mock('../../server/repos/activity', () => ({
   getActivityById, appendActivity, pruneActivity
 }))
-vi.mock('../../server/utils/restoreDoc', () => ({ restoreDocToYjsId }))
+vi.mock('../../server/utils/restoreDoc', () => ({
+  restoreDocToYjsId,
+  // Real class so the endpoint's `e instanceof RestorePointCompactedError`
+  // check resolves. Generic thrown errors aren't instances → 500 path.
+  RestorePointCompactedError: class RestorePointCompactedError extends Error {}
+}))
 vi.mock('../../server/repos/users', () => ({ findUserNameById }))
 vi.mock('nanoid', () => ({ nanoid: nanoidFn }))
 

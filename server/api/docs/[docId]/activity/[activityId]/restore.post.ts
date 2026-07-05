@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import { requireDocEditAccess } from '../../../../../utils/documentAccess'
 import { getActivityById, appendActivity, pruneActivity } from '../../../../../repos/activity'
-import { restoreDocToYjsId } from '../../../../../utils/restoreDoc'
+import { restoreDocToYjsId, RestorePointCompactedError } from '../../../../../utils/restoreDoc'
 import { findUserNameById } from '../../../../../repos/users'
 
 // POST /api/docs/:docId/activity/:activityId/restore
@@ -81,6 +81,16 @@ export default defineEventHandler(async (event) => {
     yjsDocIdBeforeRestore = result.yjsDocIdBeforeRestore
     yjsDocIdAfterRestore = result.yjsDocIdAfterRestore
   } catch (e) {
+    // Target compacted away (F4) — the live doc is untouched (we refuse
+    // BEFORE the apply). Surface as 410 Gone with a clear message, NOT a
+    // retryable 500: retrying won't bring the merged-away history back.
+    if (e instanceof RestorePointCompactedError) {
+      throw createError({
+        statusCode: 410,
+        statusMessage: 'Restore unavailable',
+        message: 'This restore point is too old — its history has been compacted and can no longer be restored. Restore to a more recent point instead.'
+      })
+    }
     // The Y.js transaction is atomic — on any failure inside
     // restoreDocToYjsId, the live doc is unchanged. Surface as 500
     // so the client retries via UI affordance. Log the underlying

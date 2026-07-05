@@ -952,20 +952,20 @@ export function skipVariants(
  * state.
  *
  * Call from inside an AI flow's `test('...', async ({ ... }) => { ... })`
- * body BEFORE any other setup. Throws (via test.skip → fail-loud in
- * CI) if any required key is missing.
+ * body BEFORE any other setup. SKIPS the test (visibly, via `test.skip`)
+ * when any required key is absent — the fast PR gate runs without the AI
+ * keys so these flows skip there; the release/staging full-suite run wires
+ * the keys so they execute. Locally they run whenever the keys are in `.env`.
  */
 export function requireLiveAi(): void {
   const required = ['MISTRAL_API_KEY', 'JINA_AI_API_KEY', 'BFL_API_KEY'] as const
   const missing = required.filter(k => !process.env[k])
-  if (missing.length > 0) {
-    throw new Error(
-      `[flows] Live AI flows require [${missing.join(', ')}] in the host shell. `
-      + 'These keys are forwarded into the LiteLLM proxy via flows-ephemeral.ts. '
-      + 'Set them and re-run, OR use `bun run flows:test:against-running` against a stack '
-      + 'that already has them wired.'
-    )
-  }
+  test.skip(
+    missing.length > 0,
+    `Live AI flow skipped — missing [${missing.join(', ')}] in the env. `
+    + 'Injected by flows-ephemeral.ts from the host/CI; present on the release + '
+    + 'staging full-suite run, intentionally absent on the fast PR gate.'
+  )
 }
 
 const slugify = (s: string) =>
