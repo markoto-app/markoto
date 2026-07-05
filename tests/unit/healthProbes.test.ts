@@ -13,7 +13,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 const mockState = vi.hoisted(() => ({
   dbExecute: async (): Promise<unknown> => ({ rows: [{ '?column?': 1 }] }),
-  valkeyPing: async (): Promise<unknown> => 'PONG'
+  valkeyPing: async (): Promise<unknown> => 'PONG',
+  s3Send: async (): Promise<unknown> => ({})
 }))
 
 vi.mock('../../server/utils/database', () => ({
@@ -28,18 +29,26 @@ vi.mock('../../server/utils/valkey', () => ({
   })
 }))
 
+vi.mock('../../server/utils/s3', () => ({
+  useS3Client: () => ({
+    send: () => mockState.s3Send()
+  })
+}))
+
 // Dynamic import after mocks register — same shape as other unit tests
 // (see `idempotency.test.ts`).
 const {
   probePostgres,
   probeValkey,
   probeSync,
+  probeS3,
   probeRenderer,
   probeMarkitdown,
   probeLitellm,
   runAllProbes,
   isOverallHealthy,
   getCachedHealth,
+  getCachedProbeResults,
   _resetHealthCache
 } = await import('../../server/utils/healthProbes')
 
@@ -64,6 +73,7 @@ function fakeFetch(status: number, delay = 0): typeof fetch {
 beforeEach(() => {
   mockState.dbExecute = async () => ({ rows: [{ '?column?': 1 }] })
   mockState.valkeyPing = async () => 'PONG'
+  mockState.s3Send = async () => ({})
   _resetHealthCache()
   vi.restoreAllMocks()
 })
@@ -100,6 +110,29 @@ describe('probeValkey', () => {
     const r = await probeValkey()
     expect(r.status).toBe('down')
     expect(r.error).toContain('NOAUTH')
+  })
+})
+
+describe('probeS3', () => {
+  it('skips when no bucket is configured', async () => {
+    expect((await probeS3('')).status).toBe('skipped')
+    expect((await probeS3(undefined)).status).toBe('skipped')
+    expect((await probeS3(null)).status).toBe('skipped')
+  })
+
+  it('returns ok when HeadBucket succeeds', async () => {
+    const r = await probeS3('markoto-bucket')
+    expect(r.status).toBe('ok')
+    expect(r.latencyMs).toBeGreaterThanOrEqual(0)
+  })
+
+  it('returns down when HeadBucket rejects (bucket unreachable / bad creds)', async () => {
+    mockState.s3Send = async () => {
+      throw new Error('NoSuchBucket')
+    }
+    const r = await probeS3('markoto-bucket')
+    expect(r.status).toBe('down')
+    expect(r.error).toContain('NoSuchBucket')
   })
 })
 
@@ -253,6 +286,56 @@ describe('runAllProbes + isOverallHealthy', () => {
     })
     expect(r.litellm.status).toBe('down')
     expect(isOverallHealthy(r)).toBe(false)
+  })
+
+  it('reports S3 when a bucket is configured', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(fakeFetch(200))
+    const r = await runAllProbes({
+      syncUrl: 'http://sync:4001',
+      rendererUrl: 'http://renderer:9000',
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000',
+      s3Bucket: 'markoto-bucket'
+    })
+    expect(r.s3.status).toBe('ok')
+  })
+
+  it('S3 down is reported but does NOT flag overall-down (non-gating)', async () => {
+    // S3 backs uploads/backups, not the core doc path — an S3 blip must
+    // not 503 the node out of Traefik rotation. It IS still visible.
+    mockState.s3Send = async () => {
+      throw new Error('connection reset')
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(fakeFetch(200))
+    const r = await runAllProbes({
+      syncUrl: 'http://sync:4001',
+      rendererUrl: 'http://renderer:9000',
+      markitdownUrl: 'http://markitdown:8080',
+      litellmUrl: 'http://litellm:4000',
+      s3Bucket: 'markoto-bucket'
+    })
+    expect(r.s3.status).toBe('down')
+    expect(isOverallHealthy(r)).toBe(true)
+  })
+
+  it('getCachedProbeResults shares the fan-out with getCachedHealth (one round)', async () => {
+    _resetHealthCache()
+    const dbSpy = vi.fn(async () => ({ rows: [{ '?column?': 1 }] }))
+    mockState.dbExecute = dbSpy
+    vi.spyOn(globalThis, 'fetch').mockImplementation(fakeFetch(200))
+    const urls = {
+      syncUrl: 'http://sync',
+      rendererUrl: 'http://renderer',
+      markitdownUrl: 'http://md',
+      litellmUrl: 'http://litellm:4000',
+      s3Bucket: 'markoto-bucket'
+    }
+    const health = await getCachedHealth(urls)
+    const results = await getCachedProbeResults(urls)
+    expect(health.status).toBe(200)
+    expect(results.s3.status).toBe('ok')
+    // Both reads served from one cached fan-out.
+    expect(dbSpy).toHaveBeenCalledTimes(1)
   })
 
   it('two calls within healthy TTL → one probe round', async () => {

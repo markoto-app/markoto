@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
   // Public routes that don't require authentication
   const publicRoutes = [
     { path: /^\/api\/health$/, methods: ['GET'] },
+    { path: /^\/api\/status$/, methods: ['GET'] }, // Public per-component status board for an external status page
     // Test-only login shim. Endpoint itself 404s unless TEST_MODE=1; still
     // whitelisted here so the auth middleware doesn't refuse it before the
     // handler even runs during integration tests.

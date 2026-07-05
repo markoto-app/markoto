@@ -21,6 +21,27 @@ describe('auth middleware whitelist', () => {
       expect(res.status).not.toBe(401)
     })
 
+    it('GET /api/status is public and returns a per-component board', async () => {
+      const res = await anonClient().get('/api/status')
+      // Status is a REPORT, not a gate — always 200 so a status-page
+      // poller's fetch succeeds even when a component is down.
+      expect(res.status).toBe(200)
+      const body = await res.json() as {
+        status: string
+        checks: Record<string, { status: string, latencyMs: number }>
+      }
+      expect(['ok', 'degraded']).toContain(body.status)
+      // Core components are reported (postgres + valkey are live in the
+      // test stack, so they should probe 'ok'); the board carries the
+      // full component set a status page renders.
+      expect(body.checks.postgres.status).toBe('ok')
+      expect(body.checks.valkey.status).toBe('ok')
+      for (const key of ['postgres', 'valkey', 'sync', 's3', 'renderer', 'markitdown', 'litellm']) {
+        expect(body.checks[key]).toBeDefined()
+        expect(['ok', 'down', 'skipped']).toContain(body.checks[key]!.status)
+      }
+    })
+
     it('GET /api/docs/:id/token is public', async () => {
       const doc = await createDoc({ accessMode: 'open-edit' })
       const res = await anonClient().get(`/api/docs/${doc.docId}/token`)

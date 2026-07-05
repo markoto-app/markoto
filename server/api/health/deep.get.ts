@@ -32,7 +32,8 @@ export default defineEventHandler(async (event) => {
     syncUrl: config.syncInternalUrl,
     rendererUrl: config.rendererInternalUrl,
     markitdownUrl: config.markitdownUrl,
-    litellmUrl: config.litellm?.url
+    litellmUrl: config.litellm?.url,
+    s3Bucket: config.s3?.bucket
   })
 
   const healthy = isOverallHealthy(results)
@@ -44,6 +45,7 @@ export default defineEventHandler(async (event) => {
       postgres: pick(results.postgres),
       valkey: pick(results.valkey),
       sync: pick(results.sync),
+      s3: pick(results.s3),
       renderer: pick(results.renderer),
       markitdown: pick(results.markitdown),
       litellm: pick(results.litellm)

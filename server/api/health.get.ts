@@ -29,7 +29,8 @@ export default defineEventHandler(async (event) => {
     syncUrl: config.syncInternalUrl,
     rendererUrl: config.rendererInternalUrl,
     markitdownUrl: config.markitdownUrl,
-    litellmUrl: config.litellm?.url
+    litellmUrl: config.litellm?.url,
+    s3Bucket: config.s3?.bucket
   })
   setResponseStatus(event, cached.status)
   return cached.body

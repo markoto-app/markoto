@@ -13,8 +13,10 @@
 // are NOT skippable — they're hard-required for any prod path.
 
 import { sql } from 'drizzle-orm'
+import { HeadBucketCommand } from '@aws-sdk/client-s3'
 import { useDatabase } from './database'
 import { useValkey } from './valkey'
+import { useS3Client } from './s3'
 
 export type ProbeStatus = 'ok' | 'down' | 'skipped'
 
@@ -82,6 +84,25 @@ export async function probeValkey(): Promise<ProbeResult> {
   }
 }
 
+// Object-storage liveness. HeadBucket is the cheapest "is the bucket
+// reachable + do my credentials work" check (no object read/list). Takes
+// the bucket as a param — like the HTTP probes take a URL — so the probe
+// stays pure/testable and skips cleanly when S3 isn't configured (test
+// envs / self-hosted opt-outs). Uses the shared singleton client.
+export async function probeS3(bucket: string | undefined | null): Promise<ProbeResult> {
+  if (!bucket) return skipped()
+  const started = performance.now()
+  try {
+    await withTimeout(
+      useS3Client().send(new HeadBucketCommand({ Bucket: bucket })),
+      PROBE_TIMEOUT_MS
+    )
+    return ok(Math.round(performance.now() - started))
+  } catch (e) {
+    return down(Math.round(performance.now() - started), e instanceof Error ? e.message : String(e))
+  }
+}
+
 function errorMessage(e: unknown): string {
   if (!(e instanceof Error)) return String(e)
   return e.name === 'TimeoutError' ? 'timeout' : e.message
@@ -132,12 +153,14 @@ export interface HealthProbeUrls {
   rendererUrl?: string | null
   markitdownUrl?: string | null
   litellmUrl?: string | null
+  s3Bucket?: string | null
 }
 
 export interface AllProbeResults {
   postgres: ProbeResult
   valkey: ProbeResult
   sync: ProbeResult
+  s3: ProbeResult
   renderer: ProbeResult
   markitdown: ProbeResult
   litellm: ProbeResult
@@ -152,6 +175,7 @@ export async function runAllProbes(urls: HealthProbeUrls): Promise<AllProbeResul
     probePostgres(),
     probeValkey(),
     probeSync(urls.syncUrl),
+    probeS3(urls.s3Bucket),
     probeRenderer(urls.rendererUrl),
     probeMarkitdown(urls.markitdownUrl),
     probeLitellm(urls.litellmUrl)
@@ -164,9 +188,10 @@ export async function runAllProbes(urls: HealthProbeUrls): Promise<AllProbeResul
     postgres: unwrap(settled[0]),
     valkey: unwrap(settled[1]),
     sync: unwrap(settled[2]),
-    renderer: unwrap(settled[3]),
-    markitdown: unwrap(settled[4]),
-    litellm: unwrap(settled[5])
+    s3: unwrap(settled[3]),
+    renderer: unwrap(settled[4]),
+    markitdown: unwrap(settled[5]),
+    litellm: unwrap(settled[6])
   }
 }
 
@@ -178,7 +203,16 @@ export async function runAllProbes(urls: HealthProbeUrls): Promise<AllProbeResul
 // deploy, which we accept here because compose `${VAR:?required}` already
 // fails fast at boot for those vars.
 export function isOverallHealthy(results: AllProbeResults): boolean {
-  return Object.values(results).every(r => r.status !== 'down')
+  // S3 is deliberately EXCLUDED from the rotation gate. Object storage
+  // backs image uploads, knowledge originals, and backups — NOT the core
+  // doc-edit path (Y.js state lives in Postgres). An S3 outage should show
+  // as degraded on the status page but must NOT return 503 here: Traefik
+  // treats 503 as "pull this node", and on a single-instance deployment
+  // that takes the WHOLE site down for something that only breaks uploads.
+  // S3 is still reported in /api/status + /api/health/deep. (renderer /
+  // markitdown / litellm remain gating — pre-existing behaviour.)
+  const { s3: _s3, ...gating } = results
+  return Object.values(gating).every(r => r.status !== 'down')
 }
 
 // ─── Cached aggregator ────────────────────────────────────────────────────
@@ -197,33 +231,57 @@ export interface CachedHealth {
 const HEALTHY_TTL_MS = 5_000
 const DEGRADED_TTL_MS = 2_000
 
-let cache: { expiresAt: number, value: CachedHealth } | null = null
+// One cache entry holds BOTH the raw probe results (for /api/status) and
+// the derived minimal health body (for /api/health), so the two endpoints
+// share a single fan-out per TTL window instead of each amplifying onto
+// the downstream deps. `health` is memoised alongside `results` so
+// `getCachedHealth` keeps returning a stable object within the window.
+interface HealthCacheEntry {
+  expiresAt: number
+  results: AllProbeResults
+  health: CachedHealth
+}
+
+let cache: HealthCacheEntry | null = null
 
 function projectChecks(results: AllProbeResults): Record<string, ProbeStatus> {
   return {
     postgres: results.postgres.status,
     valkey: results.valkey.status,
     sync: results.sync.status,
+    s3: results.s3.status,
     renderer: results.renderer.status,
     markitdown: results.markitdown.status,
     litellm: results.litellm.status
   }
 }
 
-export async function getCachedHealth(urls: HealthProbeUrls): Promise<CachedHealth> {
+async function getCacheEntry(urls: HealthProbeUrls): Promise<HealthCacheEntry> {
   if (cache && Date.now() < cache.expiresAt) {
-    return cache.value
+    return cache
   }
   const results = await runAllProbes(urls)
   const healthy = isOverallHealthy(results)
-  const value: CachedHealth = healthy
+  const health: CachedHealth = healthy
     ? { status: 200, body: { status: 'ok' } }
     : { status: 503, body: { status: 'degraded', checks: projectChecks(results) } }
   cache = {
     expiresAt: Date.now() + (healthy ? HEALTHY_TTL_MS : DEGRADED_TTL_MS),
-    value
+    results,
+    health
   }
-  return value
+  return cache
+}
+
+export async function getCachedHealth(urls: HealthProbeUrls): Promise<CachedHealth> {
+  return (await getCacheEntry(urls)).health
+}
+
+// Full per-component results behind the same TTL cache — powers the public
+// `/api/status` endpoint (which reports every component, always 200, for a
+// status page to render) without a second fan-out onto the deps.
+export async function getCachedProbeResults(urls: HealthProbeUrls): Promise<AllProbeResults> {
+  return (await getCacheEntry(urls)).results
 }
 
 export function _resetHealthCache(): void {
