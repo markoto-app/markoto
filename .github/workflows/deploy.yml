@@ -81,6 +81,79 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
+      # Render /opt/markoto/.env on the VM from the GitHub Environment
+      # secrets/variables (+ repo-level provider-key secrets). This makes GitHub
+      # the single source of truth for deploy config — no laptop ansible-vault
+      # in the loop. render-env.sh is a faithful, parity-tested port of env.j2;
+      # it fails loud if any required secret is empty, so a broken/partial
+      # GitHub config aborts the deploy BEFORE the running stack is touched.
+      # The previous .env is kept as .env.prev for manual recovery (the
+      # image-tag auto-rollback below does NOT restore .env).
+      - name: Render .env from GitHub secrets/variables
+        env:
+          # ── secrets (Environment-scoped) ──
+          NUXT_SESSION_PASSWORD: ${{ secrets.NUXT_SESSION_PASSWORD }}
+          NUXT_JWT_SECRET: ${{ secrets.NUXT_JWT_SECRET }}
+          NUXT_INTERNAL_API_SECRET: ${{ secrets.NUXT_INTERNAL_API_SECRET }}
+          NUXT_JWT_SECRET_PREVIOUS: ${{ secrets.NUXT_JWT_SECRET_PREVIOUS }}
+          NUXT_INTERNAL_API_SECRET_PREVIOUS: ${{ secrets.NUXT_INTERNAL_API_SECRET_PREVIOUS }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          VALKEY_PASSWORD: ${{ secrets.VALKEY_PASSWORD }}
+          NUXT_S3_ACCESS_KEY: ${{ secrets.NUXT_S3_ACCESS_KEY }}
+          NUXT_S3_SECRET_KEY: ${{ secrets.NUXT_S3_SECRET_KEY }}
+          LITELLM_MASTER_KEY: ${{ secrets.LITELLM_MASTER_KEY }}
+          LITELLM_SALT_KEY: ${{ secrets.LITELLM_SALT_KEY }}
+          NUXT_STRIPE_SECRET_KEY: ${{ secrets.NUXT_STRIPE_SECRET_KEY }}
+          NUXT_STRIPE_WEBHOOK_SECRET: ${{ secrets.NUXT_STRIPE_WEBHOOK_SECRET }}
+          BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+          NUXT_AI_DICTATE_JWT_SECRET: ${{ secrets.NUXT_AI_DICTATE_JWT_SECRET }}
+          NUXT_OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GITHUB_CLIENT_SECRET }}
+          NUXT_OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GOOGLE_CLIENT_SECRET }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          # ── provider keys (repo-level secrets) ──
+          JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
+          STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
+          # ── variables (Environment-scoped, non-secret) ──
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
+          POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
+          VALKEY_DB: ${{ vars.VALKEY_DB }}
+          VALKEY_TLS_ENABLED: ${{ vars.VALKEY_TLS_ENABLED }}
+          NUXT_S3_ENDPOINT: ${{ vars.NUXT_S3_ENDPOINT }}
+          NUXT_S3_BUCKET: ${{ vars.NUXT_S3_BUCKET }}
+          NUXT_STRIPE_PRICE_PRO: ${{ vars.NUXT_STRIPE_PRICE_PRO }}
+          NUXT_STRIPE_PRICE_MAX: ${{ vars.NUXT_STRIPE_PRICE_MAX }}
+          NUXT_STRIPE_PRICE_ULTRA: ${{ vars.NUXT_STRIPE_PRICE_ULTRA }}
+          NUXT_OAUTH_GITHUB_CLIENT_ID: ${{ vars.NUXT_OAUTH_GITHUB_CLIENT_ID }}
+          NUXT_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.NUXT_OAUTH_GOOGLE_CLIENT_ID }}
+          NUXT_PUBLIC_SENTRY_DSN: ${{ vars.NUXT_PUBLIC_SENTRY_DSN }}
+          DOMAIN: ${{ vars.DOMAIN }}
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+          REGISTRY: ${{ vars.REGISTRY }}
+          BACKUP_INTERVAL_SECONDS: ${{ vars.BACKUP_INTERVAL_SECONDS }}
+          BACKUP_RETENTION_COUNT: ${{ vars.BACKUP_RETENTION_COUNT }}
+          OVH_PG_HOST: ${{ vars.OVH_PG_HOST }}
+          OVH_PG_CA_REMOTE_PATH: ${{ vars.OVH_PG_CA_REMOTE_PATH }}
+          # the tag being deployed pins IMAGE_TAG in the rendered .env
+          IMAGE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          bash infra/render-env.sh > /tmp/rendered.env
+          echo "rendered .env: $(grep -cE '^[A-Z]' /tmp/rendered.env) keys"
+          # ship atomically; keep the old one as .env.prev for recovery
+          scp -o BatchMode=yes /tmp/rendered.env "${DEPLOY_USER}@${DEPLOY_HOST}:/opt/markoto/.env.new"
+          ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" '
+            set -euo pipefail
+            cd /opt/markoto
+            [ -f .env ] && cp -a .env .env.prev || true
+            install -m 600 .env.new .env
+            rm -f .env.new
+          '
+          shred -u /tmp/rendered.env 2>/dev/null || rm -f /tmp/rendered.env
+
       - name: Roll forward + health check
         id: roll
         run: |
