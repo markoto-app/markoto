@@ -59,6 +59,10 @@ jobs:
       DEPLOY_USER: ${{ vars.DEPLOY_USER || 'markoto' }}
       TAG: ${{ inputs.tag }}
     steps:
+      # Needed so the "Render .env" step can run infra/render-env.sh — this
+      # workflow otherwise only SSHes to the VM and wouldn't check out the repo.
+      - uses: actions/checkout@v4
+
       - name: Validate tag
         run: |
           set -euo pipefail
