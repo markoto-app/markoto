@@ -30,9 +30,14 @@ export interface HocuspocusSyncOptions {
   ydoc: Y.Doc
   awareness: Awareness
   syncUrl: string
-  /** Called to read the current JWT at connect time. Changes over the doc's
-   *  lifetime (anonymous → password-verified) so we read it lazily. */
-  getToken: () => string
+  /** Reads the JWT for a (re)connection. Passed straight to
+   *  HocuspocusProvider's `token` option, which invokes it on EVERY
+   *  (re)connect — so returning a value that reflects the current token
+   *  (and refreshes it when near expiry) is what keeps a long-lived
+   *  session's reconnect from presenting a dead JWT (F5). May be async
+   *  (the provider awaits it). Changes over the doc's lifetime (anonymous
+   *  → password-verified → refreshed), so it must be read lazily. */
+  getToken: () => string | Promise<string>
   /** Fires on every successful sync (initial load + later reconnects). */
   onSynced?: () => void
   /** Fires on disconnect; receives whether we ever synced in this provider's
@@ -85,7 +90,12 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
       name: opts.docId,
       document: opts.ydoc,
       awareness: opts.awareness,
-      token: opts.getToken(),
+      // Pass an accessor (not a resolved string): HocuspocusProvider calls
+      // it on every (re)connect, so a token that refreshes near expiry keeps
+      // reconnects authenticated instead of replaying a dead JWT (F5).
+      // `Promise.resolve` normalises the sync-or-async accessor to the
+      // provider's `() => Promise<string>` shape.
+      token: () => Promise.resolve(opts.getToken()),
       onConnect: () => { status.value = 'connected' },
       onDisconnect: () => {
         status.value = 'disconnected'

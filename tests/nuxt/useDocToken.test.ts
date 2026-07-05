@@ -346,3 +346,91 @@ describe('useDocToken — independence between instances', () => {
     expect(b.isReadOnly.value).toBe(false)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════
+// getFreshToken — F5 token refresh on reconnect
+// ═══════════════════════════════════════════════════════════════════════
+
+// Build a syntactically-real JWT (header.payload.sig) whose payload
+// carries an `exp` claim `expSecondsFromNow` in the future (negative =
+// already expired). `marker` makes otherwise-identical tokens distinct
+// so tests can tell a reused token from a refetched one.
+function makeJwt(expSecondsFromNow: number, marker: string): string {
+  const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  const head = b64({ alg: 'HS256', typ: 'JWT' })
+  const payload = b64({
+    docId: 'doc-123',
+    marker,
+    exp: Math.floor(Date.now() / 1000) + expSecondsFromNow
+  })
+  return `${head}.${payload}.sig`
+}
+
+describe('useDocToken — getFreshToken (F5)', () => {
+  it('reuses the current token while it is comfortably valid (no refetch)', async () => {
+    response.current = { token: makeJwt(3600, 'valid'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    const original = t.tokenData.value!.token
+
+    // If getFreshToken wrongly refetched, it would return THIS token.
+    response.current = { token: makeJwt(3600, 'unwanted-refetch'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const fresh = await t.getFreshToken()
+
+    expect(fresh).toBe(original)
+    expect(t.tokenData.value!.token).toBe(original)
+  })
+
+  it('refetches a fresh JWT when the current one is near/at expiry', async () => {
+    response.current = { token: makeJwt(30, 'expiring'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+
+    const newToken = makeJwt(7200, 'refetched')
+    response.current = { token: newToken, readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const fresh = await t.getFreshToken()
+
+    expect(fresh).toBe(newToken)
+    expect(t.tokenData.value!.token).toBe(newToken)
+  })
+
+  it('treats an expired token as needing refresh', async () => {
+    response.current = { token: makeJwt(-10, 'dead'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+
+    const newToken = makeJwt(7200, 'revived')
+    response.current = { token: newToken, readOnly: false, accessMode: 'open-edit', ownerId: null }
+    expect(await t.getFreshToken()).toBe(newToken)
+  })
+
+  it('keeps the existing token when a refresh yields no usable token (password-gated / null)', async () => {
+    response.current = { token: makeJwt(30, 'pw-owner'), readOnly: false, accessMode: 'password-protected', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    const original = t.tokenData.value!.token
+
+    // A non-owner password doc returns token:null from /token — must NOT
+    // clobber the (still-present) token to empty.
+    response.current = { token: null, readOnly: false, accessMode: 'password-protected', ownerId: 1 }
+    const fresh = await t.getFreshToken()
+
+    expect(fresh).toBe(original)
+    expect(t.tokenData.value!.token).toBe(original)
+  })
+
+  it('falls back to the current token when the refetch request errors', async () => {
+    response.current = { token: makeJwt(30, 'expiring'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    const original = t.tokenData.value!.token
+
+    response.current = new Error('network down')
+    expect(await t.getFreshToken()).toBe(original)
+  })
+
+  it('returns empty string when there is no token to refresh (forbidden / pre-fetch)', async () => {
+    const t = useDocToken('doc-123')
+    expect(await t.getFreshToken()).toBe('')
+  })
+})

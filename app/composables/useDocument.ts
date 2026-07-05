@@ -96,7 +96,10 @@ export function useDocument(docId: string) {
     ydoc,
     awareness,
     syncUrl,
-    getToken: () => tokenState.tokenData.value?.token || '',
+    // Refreshing accessor — the provider calls this on every reconnect;
+    // it refetches a fresh JWT when the current one is near expiry so a
+    // >2h session doesn't reconnect with a dead token (F5).
+    getToken: () => tokenState.getFreshToken(),
     onSynced: () => {
       // Authoritative empty-doc seed. `onSynced` means we've received the
       // server's current state for this doc, so `ytext.length === 0` here

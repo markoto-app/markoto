@@ -156,11 +156,12 @@ describe('useHocuspocusSync — connect() with syncUrl', () => {
     expect(cfg.awareness).toBe(awareness)
   })
 
-  it('calls getToken() lazily at connect time (not composable setup time)', () => {
-    // The composable must READ the token at connect time, not at
-    // `useHocuspocusSync()` call time, so a post-password-verify token
-    // swap picks up the fresh JWT on the next reconnect. Verify by
-    // mutating the return value between setup and connect.
+  it('passes getToken as the provider token accessor (re-evaluated per connect, not resolved once)', async () => {
+    // The composable must hand an ACCESSOR to HocuspocusProvider (which
+    // invokes it on every reconnect), not a resolved string — that's what
+    // lets a post-password-verify swap AND the F5 near-expiry refresh take
+    // effect on the next reconnect. The accessor is normalised to
+    // `() => Promise<string>` at the provider boundary.
     let currentToken = 'jwt-initial'
     const h = makeHarness()
     const sync = useHocuspocusSync(baseOpts(h, { getToken: () => currentToken }))
@@ -169,7 +170,8 @@ describe('useHocuspocusSync — connect() with syncUrl', () => {
     sync.connect()
 
     const cfg = h.latest().config as Record<string, unknown>
-    expect(cfg.token).toBe('jwt-updated')
+    expect(typeof cfg.token).toBe('function')
+    expect(await (cfg.token as () => Promise<string>)()).toBe('jwt-updated')
   })
 })
 
@@ -354,7 +356,7 @@ describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
     expect(sync.status.value).toBe('connecting')
   })
 
-  it('reconnect() picks up a fresh token from getToken() on the new provider', () => {
+  it('reconnect() picks up a fresh token from getToken() on the new provider', async () => {
     // The orchestrator updates the token ref before calling
     // reconnect() — this test pins that the new provider sees the
     // fresh value, not the stale one from the initial connect.
@@ -362,11 +364,11 @@ describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
     const h = makeHarness()
     const sync = useHocuspocusSync(baseOpts(h, { getToken: () => currentToken }))
     sync.connect()
-    expect((h.latest().config as Record<string, unknown>).token).toBe('jwt-old')
+    expect(await ((h.latest().config as Record<string, unknown>).token as () => Promise<string>)()).toBe('jwt-old')
 
     currentToken = 'jwt-new'
     sync.reconnect()
-    expect((h.latest().config as Record<string, unknown>).token).toBe('jwt-new')
+    expect(await ((h.latest().config as Record<string, unknown>).token as () => Promise<string>)()).toBe('jwt-new')
   })
 
   it('destroy() destroys the provider (alias for disconnect semantics)', () => {

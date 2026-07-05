@@ -73,7 +73,7 @@ const hoisted = vi.hoisted(() => {
     capturedSyncOpts: null as null | {
       docId: string
       syncUrl: string
-      getToken: () => string
+      getToken: () => string | Promise<string>
       onSynced?: () => void
       onDisconnect?: (everSynced: boolean) => void
       onAuthFailed?: () => void
@@ -123,6 +123,10 @@ mockNuxtImport('useDocToken', () => {
     initialLanguage: hoisted.tokenState.initialLanguage,
     initialBody: hoisted.tokenState.initialBody,
     fetchToken: hoisted.tokenMocks.fetchToken,
+    // Faithful stub of the real getFreshToken happy path — return the
+    // current token. The refetch-near-expiry behaviour is pinned against
+    // the real implementation in tests/nuxt/useDocToken.test.ts.
+    getFreshToken: () => Promise.resolve(hoisted.tokenState.tokenData.value?.token || ''),
     onPasswordVerified: hoisted.tokenMocks.onPasswordVerified,
     clearPendingUnlock: hoisted.tokenMocks.clearPendingUnlock,
     markReadOnly: hoisted.tokenMocks.markReadOnly,
@@ -351,13 +355,15 @@ describe('useDocument — sync lifecycle wiring', () => {
   })
 
   it('forwards the CURRENT token via getToken() (not a stale snapshot)', async () => {
+    // getToken now delegates to tokenState.getFreshToken() (async) so the
+    // provider re-reads a possibly-refreshed JWT on every reconnect (F5).
     hoisted.tokenState.tokenData.value = { token: 'initial', readOnly: false }
     const doc = useDocument('doc-abc')
     await flushFetchToken()
-    expect(hoisted.capturedSyncOpts!.getToken()).toBe('initial')
+    expect(await hoisted.capturedSyncOpts!.getToken()).toBe('initial')
 
     hoisted.tokenState.tokenData.value = { token: 'rotated', readOnly: false }
-    expect(hoisted.capturedSyncOpts!.getToken()).toBe('rotated')
+    expect(await hoisted.capturedSyncOpts!.getToken()).toBe('rotated')
     doc.destroy()
   })
 
@@ -365,7 +371,7 @@ describe('useDocument — sync lifecycle wiring', () => {
     hoisted.tokenState.tokenData.value = null
     const doc = useDocument('doc-abc')
     await flushFetchToken()
-    expect(hoisted.capturedSyncOpts!.getToken()).toBe('')
+    expect(await hoisted.capturedSyncOpts!.getToken()).toBe('')
     doc.destroy()
   })
 })

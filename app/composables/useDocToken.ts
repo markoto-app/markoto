@@ -26,6 +26,44 @@ export interface DocTokenState {
   readOnly: boolean
 }
 
+// Refetch the JWT when it's within this window of expiring (or already
+// expired). The doc token is minted with a 2h TTL; HocuspocusProvider
+// re-invokes its token callback on every (re)connect, so refreshing here
+// keeps a >2h-old session from reconnecting with a dead JWT and getting
+// bounced to read-only (F5: `onAuthenticationFailed` → `markReadOnly`).
+// 60s of slack absorbs clock skew + the handshake round-trip.
+const TOKEN_REFRESH_BUFFER_MS = 60_000
+
+/**
+ * Read a JWT's `exp` (epoch seconds) as epoch ms WITHOUT verifying the
+ * signature — we only need to know when to refetch, and the sync server
+ * re-verifies the token on every handshake regardless. Returns null when
+ * the token is absent or unparseable, which the caller treats as "refresh
+ * now" (fail safe toward refetching rather than presenting a dead token).
+ */
+function jwtExpiryMs(token: string): number | null {
+  const parts = token.split('.')
+  if (parts.length !== 3) return null
+  try {
+    // JWT payload is base64url (URL-safe alphabet, no padding). Restore
+    // the standard alphabet + padding before atob. The payload is ASCII
+    // JSON (docId/userId/readOnly/scope/iat/exp), so atob's binary string
+    // parses cleanly.
+    const b64 = parts[1]!.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    const payload = JSON.parse(atob(padded)) as { exp?: unknown }
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
+function isTokenExpiringSoon(token: string): boolean {
+  const expMs = jwtExpiryMs(token)
+  if (expMs === null) return true
+  return expMs - Date.now() < TOKEN_REFRESH_BUFFER_MS
+}
+
 export function useDocToken(docId: string) {
   // The JWT + readOnly flag currently in use by the provider. Null means we
   // haven't fetched yet; an empty-token object means the fetch failed (we
@@ -140,6 +178,47 @@ export function useDocToken(docId: string) {
   }
 
   /**
+   * Fetch a fresh JWT from `/token` WITHOUT disturbing the rest of the doc
+   * state (theme, doc-context, ownership) — a pure token refresh for the
+   * reconnect path. Updates `tokenData` + `isReadOnly` only when the server
+   * issues a usable token. A password-gated doc (non-owner) returns
+   * `token: null` here — its usable JWT came from `/password`, which we
+   * can't re-mint without the password — so we DON'T clobber the existing
+   * token to empty; we return null and let the caller keep what it has.
+   */
+  async function refetchTokenOnly(): Promise<string | null> {
+    try {
+      const data = await $fetch<{ token: string | null, readOnly: boolean }>(
+        `/api/docs/${docId}/token`
+      )
+      if (!data.token) return null
+      tokenData.value = { token: data.token, readOnly: data.readOnly }
+      isReadOnly.value = data.readOnly
+      return data.token
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Token accessor handed to the sync provider. HocuspocusProvider calls
+   * this on every (re)connect. Returns the current JWT while it's still
+   * comfortably valid; refetches a fresh one when it's near/at expiry so a
+   * long-lived (>2h) session's reconnect doesn't present a dead token and
+   * get bounced to read-only (F5). Falls back to the current token when a
+   * refetch can't issue a new one (offline, or a password-gated doc whose
+   * JWT can't be silently reminted) — that reconnect may still fail auth,
+   * exactly as it did before, so this is never worse than the old path.
+   */
+  async function getFreshToken(): Promise<string> {
+    const current = tokenData.value?.token || ''
+    if (!current) return '' // no token yet / forbidden / password-gated pre-unlock
+    if (!isTokenExpiringSoon(current)) return current
+    const refreshed = await refetchTokenOnly()
+    return refreshed ?? current
+  }
+
+  /**
    * Called by PasswordModal after `/password` verified and returned a JWT.
    * Swaps the token in place; the orchestrator watches for this and triggers
    * a provider reconnect. `requiresPassword` stays true until the first sync
@@ -196,6 +275,7 @@ export function useDocToken(docId: string) {
     initialBody,
     // Actions
     fetchToken,
+    getFreshToken,
     onPasswordVerified,
     clearPendingUnlock,
     markReadOnly,
