@@ -27,8 +27,10 @@ const queryPool = new Pool({ connectionString: DATABASE_URL, max: 2, ssl: PG_SSL
 //
 // useIndex is forced to `false` because y-postgresql@1.0.1 ships a SQL bug in
 // the index-creation branch (`AND indexname = $1_docname_idx` — invalid pg
-// parameter syntax). At our scale, reads are still fast enough without it; we
-// can revisit if the upstream fixes it or if profiling demands an index.
+// parameter syntax). Since the library won't create the docname index, we
+// create a correct one ourselves at boot (see ensureDocnameIndex below) —
+// otherwise every `WHERE docname = ...` query (load cursor, historyReplay,
+// MAX/MIN(id) boundary reads, renderClient, dataExport) is a full table scan.
 // flushSize: 200 — library default; merges accumulated updates into a single
 //   compacted update once the row count crosses the threshold per document.
 
@@ -50,6 +52,28 @@ async function buildPgdb() {
 }
 
 let pgdb = await buildPgdb()
+
+// F3: create the docname index y-postgresql can't (useIndex:false above).
+// `buildPgdb()` has already checked-and-created the `yjs_documents` table, so
+// the table exists here. CONCURRENTLY = non-blocking on an already-populated
+// prod table; IF NOT EXISTS = idempotent across sync-server restarts; on a
+// fresh (empty) table it's instant. Best-effort: a missing index only degrades
+// reads to a scan — it never breaks sync — so a failure is logged, not fatal.
+async function ensureDocnameIndex(): Promise<void> {
+  try {
+    await queryPool.query(
+      'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_yjs_documents_docname ON yjs_documents (docname)'
+    )
+    console.log('[persistence] ensured index idx_yjs_documents_docname on yjs_documents(docname)')
+  } catch (e) {
+    console.error(
+      '[persistence] could not create docname index (reads degrade to a scan):',
+      e instanceof Error ? e.message : e
+    )
+    captureException(e, { tags: { component: 'persistence', event: 'index_create_failed' } })
+  }
+}
+await ensureDocnameIndex()
 
 // Self-heal: y-postgresql checks-and-creates yjs_documents ONCE at boot.
 // If the table later vanishes (manual `DROP`, `docker compose down -v` mid-

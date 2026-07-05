@@ -2,7 +2,7 @@
 
 Standalone WS sync container. Config at `src/index.ts`. Hooks: `onLoadDocument`, `onStoreDocument`, `onAuthenticate`, `onConnect`/`onDisconnect`, `onRequest`.
 
-- **Persistence:** `y-postgresql` singleton with `useIndex: false` (1.0.1 has a SQL bug in the index-creation branch), `flushSize: 200`. `onLoadDocument` returns `new Y.Doc()` on failure (never throws). `clearDocument` on deletion.
+- **Persistence:** `y-postgresql` singleton with `useIndex: false` (1.0.1 has a SQL bug in the index-creation branch — so `persistence.ts` creates the `idx_yjs_documents_docname` index itself at boot, `CREATE INDEX CONCURRENTLY IF NOT EXISTS`), `flushSize: 200`. **`onLoadDocument` RE-THROWS on a load error** (rejecting the WS connection so clients reconnect once persistence recovers) — it must NOT return a fresh `new Y.Doc()`, which would let clients' cached state persist back as "new" writes and silently overwrite the real document. y-postgresql returns an empty doc for genuinely-absent rows without throwing, so the catch only fires on real errors. `clearDocument` on deletion.
 - **Auth:** `JWT_SECRET` required at startup. Every WS connection must present a valid JWT. Verifies `payload.docId === documentName`.
 - **Rate limiter:** 20 connections/IP via `connectionIPs: Map<socketId, ip>` (not mutating connection object — Hocuspocus v3 hook shapes vary). Max 5000 rooms.
 - **Activity logging:** Primary attribution from the Valkey-backed `last-editor` key (JWT `userName`, written in `onChange`). Fallback: `mostRecentEditorFromAwareness`. Fire-and-forget POST to `${APP_URL}/api/internal/activity` with 5s timeout. Stamps `yjsDocIdBefore`/`yjsDocIdAfter` boundary ids per row so Tier 1 diff + Tier 2 restore can replay (see `app/components/collab/AGENTS.md`).
