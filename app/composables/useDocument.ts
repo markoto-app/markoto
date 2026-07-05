@@ -98,18 +98,26 @@ export function useDocument(docId: string) {
     syncUrl,
     getToken: () => tokenState.tokenData.value?.token || '',
     onSynced: () => {
+      // Authoritative empty-doc seed. `onSynced` means we've received the
+      // server's current state for this doc, so `ytext.length === 0` here
+      // definitively means the server has NO content — safe to seed the
+      // welcome/template body. This is the ONLY seed path (F9): we
+      // deliberately do NOT seed on a never-synced disconnect. The
+      // genuinely-serverless dev path (no syncUrl) still seeds because
+      // `connect()` routes it through `onSynced`.
       insertWelcomeIfEmpty()
       // If this sync came after password verification, now it's safe to show
       // the editor content — flipping `requiresPassword` false causes the
       // template's `v-if` gate to mount the editor.
       tokenState.clearPendingUnlock()
     },
-    onDisconnect: (everSynced) => {
-      // Server unreachable from the first try? Seed welcome so the user isn't
-      // staring at an empty editor. If we'd already synced once, the doc has
-      // real content (possibly) and the welcome seed would be wrong.
-      if (!everSynced) insertWelcomeIfEmpty()
-    },
+    // No `onDisconnect` seed (F9 fix). A disconnect BEFORE any sync means we
+    // never learned the server's content, so seeding welcome would write a
+    // local update that merges with the server's real content once the
+    // provider auto-reconnects and finally syncs — silently corrupting the
+    // document. An unreachable server shows an empty editor + a
+    // "disconnected" status instead: honest and non-destructive. The doc
+    // seeds correctly if/when a real sync lands and finds it empty.
     onAuthFailed: () => {
       tokenState.markReadOnly()
     }

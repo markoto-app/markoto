@@ -317,24 +317,28 @@ describe('useDocument — sync lifecycle wiring', () => {
     doc.destroy()
   })
 
-  it('onDisconnect(everSynced=false) seeds welcome when server was never reachable', async () => {
+  it('does NOT wire an onDisconnect seed (F9: never seed without an authoritative sync)', async () => {
+    // The welcome seed must run ONLY from onSynced. useDocument must not
+    // pass an onDisconnect handler that writes to the Y.Doc — a pre-sync
+    // disconnect seed would merge with the server's real content when the
+    // provider auto-reconnects and finally syncs, corrupting the doc.
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    expect(hoisted.capturedSyncOpts!.onDisconnect).toBeUndefined()
+    // The doc stays empty on a disconnect-before-sync; nothing seeds it.
+    expect(doc.ytext.length).toBe(0)
+    doc.destroy()
+  })
+
+  it('seeds on onSynced even if a disconnect happened first (server recovered, still empty)', async () => {
+    // A transient outage on first load must not lose the welcome seed: once
+    // a real sync lands and finds the doc empty, it seeds authoritatively.
     const doc = useDocument('doc-abc')
     await flushFetchToken()
     expect(doc.ytext.length).toBe(0)
 
-    hoisted.capturedSyncOpts!.onDisconnect!(false)
+    hoisted.capturedSyncOpts!.onSynced!()
     expect(doc.ytext.toString()).toContain('Welcome to markoto')
-    doc.destroy()
-  })
-
-  it('onDisconnect(everSynced=true) does NOT re-seed over existing content', async () => {
-    const doc = useDocument('doc-abc')
-    await flushFetchToken()
-    doc.ytext.insert(0, 'real sync content')
-    const before = doc.ytext.toString()
-
-    hoisted.capturedSyncOpts!.onDisconnect!(true)
-    expect(doc.ytext.toString()).toBe(before)
     doc.destroy()
   })
 

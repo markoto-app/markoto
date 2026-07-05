@@ -37,8 +37,11 @@ export interface HocuspocusSyncOptions {
   onSynced?: () => void
   /** Fires on disconnect; receives whether we ever synced in this provider's
    *  lifetime so the caller can distinguish "server offline" from "lost after
-   *  first sync". Used to seed an empty doc with the welcome content only
-   *  when the first load definitively failed. */
+   *  first sync" (useful for status/telemetry). NOTE: the caller must NOT
+   *  seed doc content from here — a disconnect before any sync means the
+   *  server's content is unknown, and a local seed would merge with real
+   *  content on auto-reconnect (F9). Welcome seeding lives on `onSynced`
+   *  only. */
   onDisconnect?: (everSynced: boolean) => void
   /** Hocuspocus rejected the JWT — caller should flip `isReadOnly`. */
   onAuthFailed?: () => void

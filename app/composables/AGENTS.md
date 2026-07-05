@@ -12,7 +12,7 @@ Three-file split for the editor's document lifecycle:
 - **Single Awareness instance** passed to both provider AND yCollab.
 - Title/theme/description/audience/language **bridged via `ymeta.observe()`** → Vue refs + computed setters.
 - **`requiresPassword` flips false only on `onSynced`** to prevent the empty-doc-prepend bug.
-- **First-sync-or-disconnect-without-sync** seeds `initialBody` (template) when present, falling back to `welcomeMarkdown`, gated on `ytext.length === 0` so existing content is never overwritten.
+- **Welcome/template seeding happens ONLY on `onSynced`** (authoritative empty-doc check), seeding `initialBody` (template) when present, falling back to `welcomeMarkdown`, gated on `ytext.length === 0` so existing content is never overwritten. **F9:** it must NOT seed on a never-synced disconnect — a local seed on a doc we never synced merges with the server's real content when the provider auto-reconnects, corrupting it. An unreachable server shows an empty editor + "disconnected" status; the doc seeds if/when a real sync lands empty. The genuinely-serverless dev path (no `syncUrl`) still seeds because `connect()` routes it through `onSynced`. Residual (separate from F9, not yet closed): two clients opening a brand-new never-seeded doc within the same sync-handshake window both `onSynced` empty and both seed → duplicated welcome. The durable fix is server-side seeding at doc creation; client seeding can't mutually exclude concurrent first-openers.
 
 ## Edit-access mirroring
 
