@@ -46,7 +46,7 @@ function getBrowser(): Promise<Browser> {
     // Mapping `localhost` → `host.docker.internal` routes those lookups
     // through the docker bridge gateway to the host's loopback, which
     // has the published S3 port. In prod, presigned URLs use the
-    // external S3 endpoint (Infomaniak), so this rule is harmless —
+    // external S3 endpoint (OVH Object Storage), so this rule is harmless —
     // it only fires on `localhost` lookups, which prod never produces.
     //
     // EXCLUDE_LOCALHOST keeps anything that ALREADY resolves locally

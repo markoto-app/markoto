@@ -1,6 +1,8 @@
 # S3 Bucket Setup
 
-markoto uses external S3 in production (Infomaniak by default; any S3-compatible endpoint works via `NUXT_S3_ENDPOINT`). Browsers talk to the bucket **directly** for image uploads (presigned PUT) and image reads (302-redirect to presigned GET from `/api/files/:docId/:fileId`). Traefik never proxies S3 traffic in prod — so CORS must be configured on the bucket itself.
+markoto uses external S3 in production — **OVH Object Storage** (region `s3.de`, Frankfurt, chosen for EU data residency); any S3-compatible endpoint works via `NUXT_S3_ENDPOINT`. Browsers talk to the bucket **directly** for image uploads (presigned PUT) and image reads (302-redirect to presigned GET from `/api/files/:docId/:fileId`). Traefik never proxies S3 traffic in prod — so CORS must be configured on the bucket itself.
+
+> The provider-specific `### Infomaniak` subsections below are a **console example**. For **OVH Object Storage** (our actual provider) and any other S3-compatible endpoint, use the `aws s3api` commands in the sibling subsections — they work identically against your `NUXT_S3_ENDPOINT`. OVH's console does not expose CORS / lifecycle / default-encryption directly, so the S3-API path is the supported route.
 
 ## 1. Create the bucket
 
