@@ -27,10 +27,16 @@ import { useDatabasePool } from './database'
 //   - `maxYjsId === null` → return an empty Y.Doc. Happens when the
 //     activity row predates the boundary-tracking feature, or when
 //     the row was written before any store had occurred (rare).
-//   - `maxYjsId` references a row that has since been merged away by
-//     y-postgresql's compaction. The merged row's `id` is HIGHER than
-//     the originals it absorbed, but we replay in id-order regardless,
-//     so the resulting Y.Doc state is correct (it's just collapsed).
+//   - `maxYjsId` references a row that has since been COMPACTED AWAY by
+//     y-postgresql (`flushDocument` → `clearUpdatesRange` DELETES every
+//     `v1` row below the merged row). The merged row's `id` is HIGHER
+//     than `maxYjsId`, so `WHERE id <= maxYjsId` EXCLUDES it while the
+//     originals it absorbed are already deleted → this returns an EMPTY
+//     Y.Doc. That's lossy, not "collapsed but correct". It's harmless for
+//     the read-only diff endpoint (degrades to a whole-doc diff), but a
+//     DESTRUCTIVE caller must never apply an empty reconstruction over a
+//     live doc — `restoreDoc.ts` guards this with a compaction-floor check
+//     (`RestorePointCompactedError`) before it touches anything.
 //   - Row data is a `Buffer` from pg's bytea decoder; we slice into a
 //     proper Uint8Array view before passing to `applyUpdate` (lib0
 //     rejects raw Buffers in some bundling configurations).

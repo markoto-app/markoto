@@ -229,6 +229,56 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       )
       expect(res.status).toBe(410)
     })
+
+    // F4 (data-loss guard): y-postgresql compaction physically DELETES every
+    // granular `v1` row below the merged row. Restoring to a target below that
+    // surviving floor used to reconstruct an EMPTY doc and WIPE the live doc.
+    // The compaction-floor guard must refuse with 410 instead.
+    it('returns 410 (does NOT wipe) when the target id is below the compaction floor', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const low = await insertYjsRow(doc.docId, '')     // target — gets compacted away
+      await insertYjsRow(doc.docId, '')
+      const merged = await insertYjsRow(doc.docId, '')   // stands in for the merged row
+      const activityId = await insertActivityRow(doc.docId, low, low)
+      // Simulate `clearUpdatesRange`: delete every v1 row below the merged one.
+      await testDb().query(
+        `DELETE FROM yjs_documents WHERE docname = $1 AND version = 'v1' AND id < $2`,
+        [doc.docId, merged]
+      )
+
+      const client = await loggedInClient(owner.id)
+      const res = await client.post(
+        `/api/docs/${doc.docId}/activity/${activityId}/restore`,
+        {}
+      )
+      // 410 = guard fired pre-apply. A 200/500 here would mean it attempted the
+      // restore with an empty reconstruction — i.e. the doc-wipe bug.
+      expect(res.status).toBe(410)
+    })
+
+    it('does NOT 410 when the target id is AT the compaction floor (still reconstructable)', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      await insertYjsRow(doc.docId, '')
+      await insertYjsRow(doc.docId, '')
+      const floor = await insertYjsRow(doc.docId, '')
+      const activityId = await insertActivityRow(doc.docId, floor, floor)
+      await testDb().query(
+        `DELETE FROM yjs_documents WHERE docname = $1 AND version = 'v1' AND id < $2`,
+        [doc.docId, floor]
+      )
+
+      const client = await loggedInClient(owner.id)
+      const res = await client.post(
+        `/api/docs/${doc.docId}/activity/${activityId}/restore`,
+        {}
+      )
+      // target == floor → the merged row IS included by `id <= target`, so the
+      // guard must NOT fire. Falls through to the WS path: 200 (full stack) or
+      // 500 (no Hocuspocus in this harness). Just never 410.
+      expect([200, 500]).toContain(res.status)
+    }, 30_000)
   })
 
   describe('failure path — atomicity', () => {
