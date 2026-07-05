@@ -1,6 +1,7 @@
 import { createHmac } from 'crypto'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
+import { fileURLToPath } from 'url'
 
 // Helpers for testing Stripe webhook + endpoint flows.
 //
@@ -17,7 +18,10 @@ import { resolve } from 'path'
 // verification path runs in tests — not a bypass. That way a bug in
 // signature parsing is caught here, not at prod first-run.
 
-const FIXTURE_DIR = resolve(__dirname, '..', '..', 'fixtures', 'stripe')
+// ESM-safe fixture dir (`__dirname` is undefined under the Node ESM loader
+// Playwright uses — it only worked when Bun's compat polyfill was present).
+// This file is imported by upgrade-to-pro.spec.ts, so it must load in both.
+const FIXTURE_DIR = fileURLToPath(new URL('../../fixtures/stripe', import.meta.url))
 
 /**
  * Test webhook secret. Arbitrary string — must match what the

@@ -87,6 +87,13 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_S3_SECRET_KEY: 'ypad-secret-key',
   NUXT_S3_BUCKET: 'ypad',
   NUXT_MARKITDOWN_URL: 'http://localhost:8081',
+  // renderer-test publishes :9000 on host :9101 (docker-compose.test.yml).
+  // Without this override the prod build falls back to the runtimeConfig
+  // default (`http://localhost:9000`), so the /api/health renderer probe is
+  // `down` → health returns 503 → the health-wait below times out and NO flow
+  // runs. (Locally this hid behind a stray dev renderer squatting on :9000.)
+  // Same value the integration harness uses — see tests/integration/setup/server.ts.
+  NUXT_RENDERER_INTERNAL_URL: 'http://localhost:9101',
   NUXT_PUBLIC_SYNC_URL: 'ws://localhost:4002',
   NUXT_SYNC_INTERNAL_URL: 'http://localhost:4002',
   NUXT_JWT_SECRET: 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char',
@@ -187,6 +194,13 @@ async function main() {
   // the integration default of 3101), or every server-rendered-PDF flow fails
   // because the renderer can't reach the app.
   process.env.RENDERER_APP_URL = `http://host.docker.internal:${NUXT_PORT}`
+  // Same story for sync-test: it posts activity-log rows back to the app.
+  // The flow app serves on NUXT_PORT (3001). Set this EXPLICITLY (not just
+  // relying on the compose default) so that when the CI job brought sync-test
+  // up pointed at the integration port (3101), this `up` recreates it back on
+  // our port — otherwise the inherited env would leave it on 3101 and every
+  // activity-attribution flow would silently log to a dead port.
+  process.env.SYNC_TEST_APP_URL = `http://host.docker.internal:${NUXT_PORT}`
   console.log('[flows-ephemeral] booting docker stack')
   const upCode = await shellOut(['docker', 'compose', '-f', COMPOSE_FILE, '--profile', COMPOSE_PROFILE, 'up', '-d', '--wait'])
   if (upCode !== 0) {
