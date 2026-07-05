@@ -221,21 +221,21 @@ jobs:
         run: bun run test:dom
 
   test-repos-integration-flows:
+    # Name retained for branch-protection compatibility. Now coverage +
+    # integration ONLY — the Playwright flow suite moved to staging-gate.yml
+    # (it's slow + best run once, pre-staging, with the real AI keys).
     name: test-repos-integration-flows
     runs-on: ubuntu-latest
-    # Heavy stack — only on ready-for-review PRs to keep draft loops snappy.
+    # Only on ready-for-review PRs to keep draft loops snappy.
     if: github.event.pull_request.draft == false
-    timeout-minutes: 25
+    timeout-minutes: 20
     env:
       # Test stack defaults — match docker-compose.test.yml.
       TEST_MODE: "1"
       NUXT_GOOGLE_SPEECH_MOCK: "1"
-      # NOTE: the live-AI provider keys (MISTRAL/JINA/BFL/STAAN) are
-      # DELIBERATELY NOT wired here. This is the fast PR gate — with the keys
-      # absent, `requireLiveAi()` makes the ~5 live-AI flows `test.skip()`
-      # (visible in the report) so PRs stay quick and don't spend API budget on
-      # every push. The full suite WITH the keys runs post-merge in
-      # staging-gate.yml before the staging deploy. See that workflow.
+      # No live-AI provider keys + no Playwright flow suite here: the PR gate
+      # is coverage + integration only. The full flow suite (incl. live AI)
+      # runs post-merge in staging-gate.yml before the staging deploy.
       # Raise the V8 heap ceiling for the Nuxt build (the test stack + the
       # integration setup both run `bun run build`, which OOM'd at the
       # default heap limit on the 7 GB runner: "Reached heap limit").
@@ -269,16 +269,12 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: sync-server
 
-      - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
-
       # The integration app binds :3101 (TEST_PORT); sync-test posts
       # activity-log rows back to it, so its APP_URL must point there.
-      # The default baked into the compose file is :3001 (the flows app
-      # port) — without this override the MCP activity round-trip lands
-      # on a dead port and the mcp:% attribution tests fail. The flows
-      # phase (`flows:test`) recreates sync-test back to :3001 itself
-      # (scripts/flows-ephemeral.ts sets SYNC_TEST_APP_URL explicitly).
+      # The default baked into the compose file is :3001; this override
+      # keeps the MCP activity round-trip on the right port so the mcp:%
+      # attribution tests pass. (The full flow suite — incl. live AI —
+      # runs in staging-gate.yml, NOT on the PR gate.)
       - name: Bring up test stack
         env:
           SYNC_TEST_APP_URL: http://host.docker.internal:3101
@@ -294,9 +290,11 @@ jobs:
       - name: Integration tests
         run: bun run test:integration
 
-      - name: Flow tests (Playwright e2e)
-        run: bun run flows:test
-
+      # NOTE: the Playwright flow suite is NOT run here — it's slow (the
+      # 4-project matrix ~= the whole 25-min budget on its own). It runs
+      # post-merge in staging-gate.yml (full suite incl. live AI) before
+      # the staging deploy. Keeping the PR gate to coverage + integration
+      # is what makes it fast.
       - name: Tear down test stack
         if: always()
         run: docker compose -f docker-compose.test.yml --profile flows down -v
@@ -311,17 +309,6 @@ jobs:
           path: coverage/lcov.info
           if-no-files-found: error
           retention-days: 1
-
-      - name: Upload Playwright artefacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-output-${{ github.event.pull_request.number }}
-          path: |
-            tests/e2e/output
-            playwright-report
-          if-no-files-found: ignore
-          retention-days: 7
 
   sonar:
     name: sonar
