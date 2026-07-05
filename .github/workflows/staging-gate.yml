@@ -7,7 +7,10 @@ name: staging-gate
 # bug that shipped broken and was only found on staging.
 #
 # Flow:  merge → release.yml builds vX.Y.Z + latest images
-#              → THIS workflow deploys `latest` to staging (health-gated)
+#              → THIS workflow runs the FULL flow suite incl. live-AI flows
+#                (the fast PR gate skips those — see ci.yml) on an ephemeral
+#                stack with the real provider keys
+#              → if green, deploys `latest` to staging (health-gated)
 #              → resets the staging DB to a clean slate (public schema wiped,
 #                drizzle migration ledger preserved) so runs don't bleed state
 #              → smoke suite runs against https://staging.markoto.app
@@ -39,8 +42,55 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Full flow suite INCLUDING the live-AI flows (document-context, write-with-ai,
+  # summon-ai-from-comment, voice-dictate, knowledge-grounded-ai). The fast PR
+  # gate in ci.yml runs without the provider keys so these skip; here we wire the
+  # repo-level keys so they run for real against the ephemeral stack. This is the
+  # "run everything before we touch staging" gate — deploy-and-smoke needs it.
+  full-flow-suite:
+    name: full flow suite (live AI)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    # Live-AI flows are network-bound (~30-50s per Mistral round-trip), so the
+    # full suite needs materially more wall-clock than the fast PR gate.
+    timeout-minutes: 45
+    env:
+      TEST_MODE: "1"
+      NUXT_GOOGLE_SPEECH_MOCK: "1"
+      NODE_OPTIONS: --max-old-space-size=6144
+      # Repo-level provider keys — flows-ephemeral.ts forwards them into the
+      # litellm-test container, and requireLiveAi() sees them so the AI flows run.
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
+      BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
+      STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Install sync-server dependencies
+        run: bun install --frozen-lockfile
+        working-directory: sync-server
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+      # flows:test manages its own ephemeral stack (down -v → up → build → serve
+      # → playwright → teardown), forwarding the provider keys above.
+      - name: Full flow suite (ephemeral stack, live AI)
+        run: bun run flows:test
+      - name: Tear down flow stack
+        if: always()
+        run: docker compose -f docker-compose.test.yml --profile flows down -v
+
   deploy-and-smoke:
     name: deploy-and-smoke (staging)
+    # Gate: only touch staging once the full flow suite (incl. live AI) is green.
+    needs: full-flow-suite
     # Manual dispatch always runs; the auto path only runs when the release
     # actually succeeded (a failed/incomplete release built no good images).
     if: >-
