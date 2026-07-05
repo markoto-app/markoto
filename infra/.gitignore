@@ -4,8 +4,11 @@
 # Filled-in inventory — only the example template is committed.
 inventory.ini
 
-# Plaintext vault — only the .example.yml is committed. The encrypted
-# all.vault.yml CAN be committed once `ansible-vault encrypt`'d.
+# Vault — only all.vault.example.yml (placeholders) is committed. NEVER commit
+# the real vault, encrypted or not. This is a public (FSL) repo: ansible-vault
+# ciphertext in a public repo is a permanent offline brute-force target, so the
+# real secrets live in GitHub (Environment secrets/variables), not in git.
+group_vars/all.vault.yml
 group_vars/all.vault.yml.unencrypted
 
 # Provider CA bundles — site-specific, distributed out of band.

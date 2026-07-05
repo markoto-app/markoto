@@ -4,8 +4,8 @@
 # This starts Postgres, Valkey, SeaweedFS (S3 for image uploads + backups in dev),
 # Hocuspocus sync, markitdown (file → markdown converter), and the backup sidecar.
 #
-# Production uses external S3 (Infomaniak) and drops SeaweedFS entirely;
-# only this dev compose still ships it.
+# Production uses external S3 (OVH Object Storage) and drops SeaweedFS
+# entirely; only this dev compose still ships it.
 #
 # Postgres:    localhost:5432  (credentials from .env: POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB)
 # Valkey:      localhost:6379  (rate limit + session locks)
