@@ -88,7 +88,7 @@ vi.mock('@hocuspocus/provider', () => ({
 // values per call AND record the order of calls so tests can pin
 // "before is captured before WS connect" and similar.
 
-const txExecuteCalls: Array<{ kind: 'lock' | 'maxId', orderInTransaction: number }> = []
+const txExecuteCalls: Array<{ kind: 'lock' | 'maxId' | 'floor', orderInTransaction: number }> = []
 const txState = {
   // Driven by tests via beforeEach. The Nth `MAX(id)` SELECT returns
   // the Nth value from this array; the helper makes 2 such calls per
@@ -114,6 +114,14 @@ const dbMock = {
         if (callIndex === 1) {
           txExecuteCalls.push({ kind: 'lock', orderInTransaction: callIndex })
           return { rows: [] }
+        }
+        // Call 3 is the F4 compaction-floor probe (SELECT MIN(id) WHERE
+        // version='v1'). Return null so the guard is skipped in these
+        // happy-path tests; it does NOT consume a maxId slot. The guard
+        // firing is covered by the restore integration test.
+        if (callIndex === 3) {
+          txExecuteCalls.push({ kind: 'floor', orderInTransaction: callIndex })
+          return { rows: [{ min_v1_id: null }] }
         }
         const idx = txState.maxIdCallIndex
         txState.maxIdCallIndex += 1
@@ -211,14 +219,15 @@ describe('restoreDocToYjsId', () => {
       // The MockProvider's constructor records how many tx.execute
       // calls had landed BEFORE it ran. By the time the provider is
       // constructed, the helper must have already issued: (1) the
-      // advisory lock query, (2) the SELECT MAX(id) for `before` —
-      // that's 2 tx.execute() calls. If the value is 1, the helper
-      // is doing the SELECT MAX after the WS connect (the bug).
+      // advisory lock query, (2) the SELECT MAX(id) for `before`, and
+      // (3) the SELECT MIN(id) F4 compaction-floor probe — that's 3
+      // tx.execute() calls. A smaller value means the helper is reading
+      // `before` AFTER the WS connect (the reversibility bug).
       txState.maxIdValues = [40, 41]
       await restoreDocToYjsId({
         docId: 'doc-y', targetYjsId: 30, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
-      expect(txState.providerConstructedAtCallIndex).toBe(2)
+      expect(txState.providerConstructedAtCallIndex).toBe(3)
     })
 
     it('returns null for both ids when MAX(id) is null (empty doc, no rows yet)', async () => {

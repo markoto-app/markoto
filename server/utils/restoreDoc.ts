@@ -68,6 +68,24 @@ export interface RestoreDocResult {
 }
 
 /**
+ * Thrown when the restore target sits below y-postgresql's compaction floor:
+ * `flushDocument` → `clearUpdatesRange` physically DELETES every granular `v1`
+ * row below the merged row, so a target id below the lowest surviving row can
+ * no longer be reconstructed. `reconstructDocAtYjsId` would return an EMPTY
+ * doc for it, and applying that would WIPE the live document. We refuse instead.
+ * The endpoint maps this to 410 Gone. See the F4 guard in `restoreDocToYjsId`.
+ */
+export class RestorePointCompactedError extends Error {
+  constructor(public readonly targetYjsId: number, public readonly floorId: number) {
+    super(
+      `Restore target yjs id ${targetYjsId} is below the compaction floor ${floorId}: `
+      + 'its granular history has been merged away and can no longer be reconstructed.'
+    )
+    this.name = 'RestorePointCompactedError'
+  }
+}
+
+/**
  * Snap the live Y.Doc to the state at `targetYjsId`. Throws on
  * timeout / WS auth failure / replay failure. The live doc is
  * unchanged on any error (Y.js transactions are atomic).
@@ -94,6 +112,25 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
       sql`SELECT MAX(id) AS id FROM yjs_documents WHERE docname = ${opts.docId}`
     )
     const yjsDocIdBeforeRestore = (beforeRow.rows?.[0])?.id ?? null
+
+    // ─── F4 compaction-floor guard (prevents restore from WIPING a doc) ──
+    // y-postgresql compaction (`flushDocument` → `clearUpdatesRange`) DELETES
+    // every granular `v1` row below the merged row, collapsing the doc into a
+    // single row at the highest id. If `targetYjsId` sits below that surviving
+    // floor, its rows are gone: `reconstructDocAtYjsId` would match zero rows
+    // (the merged row is excluded by `id <= targetYjsId`) and return an EMPTY
+    // doc — and the apply below unconditionally clears the live content, so an
+    // empty reconstruction WIPES the live document. The target is unrecoverable,
+    // not empty, so we refuse. (Target >= floor replays faithfully: the merged
+    // row at `floor` carries all state up to it, plus any granular rows above.)
+    const floorRow = await tx.execute<{ min_v1_id: number | null }>(
+      sql`SELECT MIN(id) AS min_v1_id FROM yjs_documents
+          WHERE docname = ${opts.docId} AND version = 'v1'`
+    )
+    const minSurvivingV1 = (floorRow.rows?.[0])?.min_v1_id ?? null
+    if (minSurvivingV1 !== null && opts.targetYjsId < minSurvivingV1) {
+      throw new RestorePointCompactedError(opts.targetYjsId, minSurvivingV1)
+    }
 
     // Step 1: replay to get the past state's full Y.Doc, then EXTRACT
     // the values we want to restore (text, comments, meta) as plain
