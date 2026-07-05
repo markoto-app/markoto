@@ -316,3 +316,15 @@ select:focus-visible,
   80%  { background: var(--color-sumi-300); opacity: 1; }
   100% { background: var(--color-sumi-300); opacity: 0; }
 }
+
+
+/* Select / combobox popovers (USelectMenu / UInputMenu) opened from INSIDE
+   the mobile bottom sheet must render ABOVE it. BottomSheet's `.mk-sheet-host`
+   is z-50; the popover teleports to <body> with no z-index, so its option
+   list renders BEHIND the sheet content and is untappable on mobile (real
+   bug — e.g. the theme layout / font selects). Scoped to poppers that contain
+   a listbox so it does NOT touch menus, tooltips, or modal content. The
+   !important overrides Reka's inline z-index on the wrapper. */
+[data-reka-popper-content-wrapper]:has([role="listbox"]) {
+  z-index: 60 !important;
+}
