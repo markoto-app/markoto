@@ -2,7 +2,7 @@ import type { AgenticAIClient as AiClient, AgenticFunctionDeclaration as Functio
 import { litellmCompletion } from '../litellm/createCompletion'
 import { z, type ZodType } from 'zod'
 import { assertSafeUrl } from './urlGuard'
-import { useLitellmAdmin } from '../litellmClient'
+import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
@@ -819,6 +819,26 @@ export const KNOWLEDGE_TOOL_DECLARATIONS: FunctionDeclaration[] = [
  *   - Output format (top answer + bulleted sources) is controlled by us, not
  *     whatever shape the upstream grounding returns.
  */
+/**
+ * Context threaded into the web-tool synthesis sub-calls.
+ *
+ * `workspaceId` / `userId` / `docId` drive the four-axis spend TAGS
+ * (`featureMetadata` reads them). `virtualKey` is the LiteLLM per-user
+ * virtual key the Mistral synthesis call authenticates WITH — so the
+ * token spend lands on the caller's `max_budget` and a budget-exhausted
+ * user's `web_search` / `fetch_url` fails at the proxy instead of
+ * silently running on the master key. Both production call sites pass it
+ * (the in-app loop from `billingContext.virtualKey`, MCP from
+ * `MetaToolContext.virtualKey`); the admin-key fallback exists only so a
+ * key-less harness path doesn't crash.
+ */
+export interface WebToolSpendContext {
+  workspaceId?: string | null
+  userId?: number | null
+  docId?: string | null
+  virtualKey?: string
+}
+
 export interface WebSearchResult {
   /** The synthesised answer text the main loop hands back to the model. */
   text: string
@@ -832,7 +852,7 @@ export async function webSearch(
   _model: string,
   query: string,
   signal: AbortSignal,
-  spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
+  spendCtx: WebToolSpendContext = {}
 ): Promise<WebSearchResult> {
   // Abort guard — if we're already past the deadline, don't even issue the call.
   if (signal.aborted) throw new Error('aborted')
@@ -885,7 +905,7 @@ export async function fetchUrl(
   _model: string,
   rawUrl: string,
   signal: AbortSignal,
-  spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
+  spendCtx: WebToolSpendContext = {}
 ): Promise<FetchUrlResult> {
   if (signal.aborted) throw new Error('aborted')
 
@@ -948,7 +968,7 @@ interface StaanSearchResponse {
 async function webSearchViaStaan(
   query: string,
   signal: AbortSignal,
-  spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
+  spendCtx: WebToolSpendContext = {}
 ): Promise<WebSearchResult> {
   const config = useRuntimeConfig()
   const staanKey = process.env.STAAN_API_KEY
@@ -993,7 +1013,11 @@ async function webSearchViaStaan(
     `[${i + 1}] ${r.title ?? ''}\nURL: ${r.url ?? ''}\n${(r.snippet ?? '').slice(0, 1500)}`
   ).join('\n\n---\n\n')
 
-  const litellm = useLitellmAdmin()
+  // Authenticate the synthesis with the caller's virtual key so the
+  // token spend counts against their LiteLLM max_budget (see
+  // WebToolSpendContext). Fall back to the master key only when a
+  // key-less harness path reaches here.
+  const litellm = spendCtx.virtualKey ? useLitellmForUser(spendCtx.virtualKey) : useLitellmAdmin()
   const textModel = config.litellm?.textModel || 'mistral-small-2603'
 
   const synth = await litellmCompletion(litellm, {
@@ -1068,7 +1092,7 @@ const _FETCH_URL_JSON_SCHEMA = {
 async function fetchUrlViaJina(
   url: string,
   signal: AbortSignal,
-  spendCtx: { workspaceId?: string | null, userId?: number | null, docId?: string | null } = {}
+  spendCtx: WebToolSpendContext = {}
 ): Promise<FetchUrlResult> {
   const config = useRuntimeConfig()
   const jinaKey = process.env.JINA_AI_API_KEY
@@ -1111,7 +1135,11 @@ async function fetchUrlViaJina(
   }
 
   // 2) Mistral structured-output synthesis — extract {summary, images[]}.
-  const litellm = useLitellmAdmin()
+  // Authenticate the synthesis with the caller's virtual key so the
+  // token spend counts against their LiteLLM max_budget (see
+  // WebToolSpendContext). Fall back to the master key only when a
+  // key-less harness path reaches here.
+  const litellm = spendCtx.virtualKey ? useLitellmForUser(spendCtx.virtualKey) : useLitellmAdmin()
   const textModel = config.litellm?.textModel || 'mistral-small-2603'
 
   const synth = await litellmCompletion(litellm, {

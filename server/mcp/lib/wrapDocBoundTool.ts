@@ -15,6 +15,7 @@ import {
   type ToolName
 } from '../../utils/agentic/toolHandlers'
 import { hasScope, requireMcpAuth } from './mcpToolContext'
+import { checkRateLimit } from '../../utils/rateLimit'
 import { resolveBillingContext } from '../../utils/billing'
 import type { ToolResult } from '../../utils/aiToolAdapter'
 import type { MetaToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
@@ -210,6 +211,20 @@ export interface WrapUserOnlyToolOpts<Schema extends ZodRawShape> {
   inputSchema: Schema
   scope: McpScope
   annotations?: ToolAnnotations
+  /**
+   * Optional per-user rate limit. The in-app agentic loop caps
+   * cost-amplifying tools per session (`SESSION_TOOL_CALL_CAPS`) and per
+   * user per hour (the 20/h `ai-prompt` limit); MCP has neither — each
+   * tool call is a discrete external JSON-RPC request driven by the
+   * client's own loop. Web tools (`web_search` / `fetch_url`) issue an
+   * upstream search + an LLM synthesis, so without a cap a `web:fetch`
+   * PAT can hammer them. The synthesis now bills the user's virtual key
+   * (max_budget-bounded), but the upstream search call is on a shared
+   * key and isn't per-user metered — this limit bounds that surface.
+   * Keyed on the PAT user id; fails OPEN on Valkey error (anti-abuse,
+   * not correctness — matches `checkRateLimit` polarity).
+   */
+  rateLimit?: { namespace: string, max: number, windowMs: number }
 }
 
 export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnlyToolOpts<Schema>) {
@@ -223,6 +238,21 @@ export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnly
     handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
       const event = useEvent()
       const auth = requireMcpAuth(event)
+      if (opts.rateLimit) {
+        const ok = await checkRateLimit(
+          opts.rateLimit.namespace,
+          String(auth.userId),
+          opts.rateLimit.max,
+          opts.rateLimit.windowMs
+        )
+        if (!ok) {
+          throw createError({
+            statusCode: 429,
+            message: `${opts.name}: rate limit exceeded — slow down.`,
+            data: { code: 'mcp/rate-limited' }
+          })
+        }
+      }
       const ctx = await buildStubContext(auth.userId, null, mcpSessionIdFromEvent(event))
       try {
         return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, args))

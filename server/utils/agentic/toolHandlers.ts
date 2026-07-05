@@ -141,7 +141,10 @@ export const META_TOOL_HANDLERS = Object.freeze({
     const result = await webSearch(undefined, '', query, neverAbortSignal(), {
       workspaceId: ctx.workspaceId,
       userId: ctx.initiatorUserId,
-      docId: ctx.docId
+      docId: ctx.docId,
+      // Bill the synthesis to the caller's virtual key so MCP web-tool
+      // spend lands on their max_budget, matching the in-app loop.
+      virtualKey: ctx.virtualKey
     })
     return { content: result.text, isError: false }
   },
@@ -150,7 +153,8 @@ export const META_TOOL_HANDLERS = Object.freeze({
     const result = await fetchUrl(undefined, '', url, neverAbortSignal(), {
       workspaceId: ctx.workspaceId,
       userId: ctx.initiatorUserId,
-      docId: ctx.docId
+      docId: ctx.docId,
+      virtualKey: ctx.virtualKey
     })
     return { content: result.text, isError: false }
   }

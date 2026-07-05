@@ -631,7 +631,10 @@ async function runSubCall(
   const subCallContext = {
     workspaceId: ctx.opts.aiSession.workspaceId ?? null,
     userId: ctx.opts.aiSession.initiatorUserId ?? null,
-    docId: ctx.opts.aiSession.docId ?? null
+    docId: ctx.opts.aiSession.docId ?? null,
+    // Bill the Mistral synthesis sub-call to the caller's virtual key
+    // (not the master key) so it counts against their max_budget.
+    virtualKey: ctx.opts.billingContext.virtualKey
   }
 
   try {
