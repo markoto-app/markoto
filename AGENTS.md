@@ -350,7 +350,7 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 - [ ] Batch 4: `markdown-it-criticmarkup`, `markdown-it-multimd-table`, client-side BibTeX citations.
 
 **Power features**
-- [ ] Markdown frontmatter, command palette, TOC sidebar, folding, highlighting, QR code sharing, keyboard cheat sheet, Y.js compaction, remaining locale translations, markdown export with base64-inlined images.
+- [ ] Markdown frontmatter, command palette, TOC sidebar, folding, highlighting, QR code sharing, keyboard cheat sheet, remaining locale translations, markdown export with base64-inlined images. (Y.js compaction shipped — background `yjs_documents` sweep in `sync-server/src/compaction.ts`.)
 
 **Mobile MMP**
 - [ ] Floating toolbar above virtual keyboard via `visualViewport`, bottom tab bar (Edit/Preview/AI), sidebar as bottom sheet.

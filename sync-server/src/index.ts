@@ -11,6 +11,7 @@ import { authFromEnv } from './auth'
 import { rateLimiter } from './rate-limiter'
 import { logActivity, mostRecentEditorFromAwareness, countWords, lineDiff } from './activity-logger'
 import { handleInternalRequest } from './internal-http'
+import { startCompactionSweeper, stopCompactionSweeper } from './compaction'
 import { shipCommentsSnapshot, dropSnapshotCache } from './comments-snapshot'
 import {
   getLastEditor,
@@ -182,6 +183,12 @@ const server = new Server({
 server.listen(port, () => {
   console.log(`[hocuspocus] Sync server listening on port ${port}`)
 })
+
+// Background compaction of the yjs_documents append-log. y-postgresql only
+// merges granular update rows on document LOAD, so an always-loaded (never
+// re-loaded) doc grows unbounded — this sweep bounds it. See compaction.ts
+// for the race-safety design.
+startCompactionSweeper()
 
 // ─── onStoreDocument helpers ─────────────────────────────────────────
 
@@ -371,6 +378,7 @@ async function shutdown(signal: string) {
     process.exit(1)
   }, 25_000)
   try {
+    await stopCompactionSweeper()
     await server.destroy()
     await ypgPersistence.destroy()
     await closeValkey()
