@@ -237,9 +237,9 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
     it('returns 410 (does NOT wipe) when the target id is below the compaction floor', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-      const low = await insertYjsRow(doc.docId, '')     // target — gets compacted away
+      const low = await insertYjsRow(doc.docId, '') // target — gets compacted away
       await insertYjsRow(doc.docId, '')
-      const merged = await insertYjsRow(doc.docId, '')   // stands in for the merged row
+      const merged = await insertYjsRow(doc.docId, '') // stands in for the merged row
       const activityId = await insertActivityRow(doc.docId, low, low)
       // Simulate `clearUpdatesRange`: delete every v1 row below the merged one.
       await testDb().query(
