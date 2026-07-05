@@ -87,6 +87,8 @@
     "privateTitle": "This document is private",
     "privateDescLoggedIn": "Only the owner can open this document. If you think you should have access, ask them to change the sharing settings.",
     "privateDescAnon": "Only the owner can open this document. If you have access, log in to continue.",
+    "notFoundTitle": "Document not found",
+    "notFoundDesc": "This document doesn't exist, or it was deleted. Check the link, or head back home to start a new one.",
     "backHome": "Back to home"
   },
   "presence": {

@@ -29,6 +29,7 @@ const {
   isDeleted,
   requiresPassword,
   forbidden,
+  notFound,
   accessMode,
   workspaceId: docWorkspaceId,
   workspaceRole: docWorkspaceRole,
@@ -786,11 +787,43 @@ const _statusIcon = computed(() => {
 </script>
 
 <template>
+  <!-- Document doesn't exist (token endpoint 404'd). Short-circuit with a
+       dedicated screen — without it the empty token leaves the provider
+       unable to connect and the user staring at a misleading
+       "disconnected / view only" editor for a doc that was never there. -->
+  <div
+    v-if="notFound"
+    class="h-screen flex items-center justify-center p-6 bg-[var(--ui-bg)]"
+  >
+    <div class="max-w-md w-full text-center space-y-4">
+      <div class="mx-auto size-14 rounded-full bg-muted flex items-center justify-center">
+        <UIcon
+          name="i-lucide-file-question"
+          class="size-7 text-muted"
+        />
+      </div>
+      <h1 class="text-xl font-semibold">
+        {{ t('access.notFoundTitle') }}
+      </h1>
+      <p class="text-sm text-muted">
+        {{ t('access.notFoundDesc') }}
+      </p>
+      <div class="flex justify-center gap-2 pt-2">
+        <UButton
+          variant="soft"
+          @click="navigateTo('/')"
+        >
+          {{ t('access.backHome') }}
+        </UButton>
+      </div>
+    </div>
+  </div>
+
   <!-- Private document, accessed by someone who isn't the owner. Short-circuit
        before rendering any editor chrome — we never fetched a token, there's
        no Y.Doc content, and the user can't interact with any toolbar actions. -->
   <div
-    v-if="forbidden"
+    v-else-if="forbidden"
     class="h-screen flex items-center justify-center p-6 bg-[var(--ui-bg)]"
   >
     <div class="max-w-md w-full text-center space-y-4">

@@ -40,6 +40,7 @@ const hoisted = vi.hoisted(() => {
       hasOwner: ref(false),
       requiresPassword: ref(false),
       forbidden: ref(false),
+      notFound: ref(false),
       accessMode: ref<string>('open-edit'),
       pendingPasswordUnlock: ref(false),
       initialTheme: shallowRef<unknown>(null),
@@ -115,6 +116,7 @@ mockNuxtImport('useDocToken', () => {
     hasOwner: hoisted.tokenState.hasOwner,
     requiresPassword: hoisted.tokenState.requiresPassword,
     forbidden: hoisted.tokenState.forbidden,
+    notFound: hoisted.tokenState.notFound,
     accessMode: hoisted.tokenState.accessMode,
     pendingPasswordUnlock: hoisted.tokenState.pendingPasswordUnlock,
     initialTheme: hoisted.tokenState.initialTheme,
@@ -183,6 +185,7 @@ function resetHoisted() {
   hoisted.tokenState.hasOwner.value = false
   hoisted.tokenState.requiresPassword.value = false
   hoisted.tokenState.forbidden.value = false
+  hoisted.tokenState.notFound.value = false
   hoisted.tokenState.accessMode.value = 'open-edit'
   hoisted.tokenState.pendingPasswordUnlock.value = false
   hoisted.tokenState.initialTheme.value = null
@@ -239,6 +242,15 @@ describe('useDocument — initial connect gating', () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
     expect(hoisted.syncMocks.connect).not.toHaveBeenCalled()
+    doc.destroy()
+  })
+
+  it('does NOT connect when the doc is not found (an empty-token connect would just churn)', async () => {
+    hoisted.tokenState.notFound.value = true
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    expect(hoisted.syncMocks.connect).not.toHaveBeenCalled()
+    expect(doc.notFound.value).toBe(true)
     doc.destroy()
   })
 

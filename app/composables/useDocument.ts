@@ -320,7 +320,10 @@ export function useDocument(docId: string) {
     _descriptionRef.value = tokenState.initialDescription.value
     _audienceRef.value = tokenState.initialAudience.value
     _languageRef.value = tokenState.initialLanguage.value
-    if (!tokenState.requiresPassword.value && !tokenState.forbidden.value) {
+    // Don't connect for docs we can't/shouldn't sync: password-gated
+    // (no token yet), forbidden (no token, ever), or not-found (the doc
+    // doesn't exist — an empty-token connect would just churn + fail).
+    if (!tokenState.requiresPassword.value && !tokenState.forbidden.value && !tokenState.notFound.value) {
       sync.connect()
     }
   })
@@ -359,6 +362,7 @@ export function useDocument(docId: string) {
     isDeleted: readonly(isDeleted),
     requiresPassword: readonly(tokenState.requiresPassword),
     forbidden: readonly(tokenState.forbidden),
+    notFound: readonly(tokenState.notFound),
     accessMode: readonly(tokenState.accessMode),
     workspaceId: readonly(tokenState.workspaceId),
     workspaceRole: readonly(tokenState.workspaceRole),

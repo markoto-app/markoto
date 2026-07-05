@@ -87,6 +87,8 @@
     "privateTitle": "Dieses Dokument ist privat",
     "privateDescLoggedIn": "Nur der Eigentümer kann dieses Dokument öffnen. Wenn Sie glauben, dass Sie Zugriff haben sollten, bitten Sie ihn, die Freigabeeinstellungen zu ändern.",
     "privateDescAnon": "Nur der Eigentümer kann dieses Dokument öffnen. Wenn Sie Zugriff haben, melden Sie sich an, um fortzufahren.",
+    "notFoundTitle": "Dokument nicht gefunden",
+    "notFoundDesc": "Dieses Dokument existiert nicht oder wurde gelöscht. Überprüfen Sie den Link oder kehren Sie zur Startseite zurück, um ein neues zu erstellen.",
     "backHome": "Zurück zur Startseite"
   },
   "presence": {

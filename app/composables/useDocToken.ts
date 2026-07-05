@@ -87,6 +87,11 @@ export function useDocToken(docId: string) {
   // Private doc, non-owner: same "no token" treatment as password-protected
   // but with no client-side unlock path. EditorLayout renders a lock screen.
   const forbidden = ref(false)
+  // The doc doesn't exist (token endpoint 404'd). Distinct from `forbidden`
+  // (exists but you can't see it) and from a transient fetch failure — the
+  // editor renders a dedicated not-found screen instead of a misleading
+  // "disconnected / view only" dead end.
+  const notFound = ref(false)
   const accessMode = ref<string>('open-edit')
   // Current workspace assignment + caller's role inside it, if any. Used
   // by the File menu to decide which of Duplicate / Move / Delete to
@@ -170,9 +175,16 @@ export function useDocToken(docId: string) {
         && typeof userId === 'number'
         && data.ownerId === userId
       hasOwner.value = data.ownerId != null
-    } catch {
-      // Network / 404 / 403 — fall through to a no-token state. The provider
-      // will stay disconnected; the UI surfaces that via `status`.
+    } catch (e: unknown) {
+      // A 404 means the doc genuinely doesn't exist — flag it so the editor
+      // shows a not-found screen rather than silently falling through to a
+      // "disconnected / view only" dead end (the provider would never
+      // connect with an empty token). Any other error (network, 5xx) stays a
+      // transient no-token state surfaced via `status`.
+      const status = e as { statusCode?: number, status?: number, response?: { status?: number } }
+      if (status?.statusCode === 404 || status?.status === 404 || status?.response?.status === 404) {
+        notFound.value = true
+      }
       tokenData.value = { token: '', readOnly: false }
     }
   }
@@ -262,6 +274,7 @@ export function useDocToken(docId: string) {
     hasOwner,
     requiresPassword,
     forbidden,
+    notFound,
     accessMode,
     workspaceId,
     workspaceRole,

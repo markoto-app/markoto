@@ -246,16 +246,22 @@ describe('useDocToken — network / 4xx failure', () => {
     expect(t.tokenData.value).toEqual({ token: '', readOnly: false })
     expect(t.requiresPassword.value).toBe(false)
     expect(t.forbidden.value).toBe(false)
+    // A non-404 error is a transient disconnect, NOT a missing doc — the
+    // not-found screen must not fire on a network blip.
+    expect(t.notFound.value).toBe(false)
   })
 
-  it('falls through when the docId does not match a registered endpoint (404)', async () => {
-    // Cross-check that the URL template is `/api/docs/:docId/token`:
-    // if we pass a docId we haven't stubbed, Nitro 404s and the catch
-    // branch runs.
+  it('flags notFound on a genuine 404 (doc does not exist)', async () => {
+    // An unstubbed docId makes Nitro return a real 404, exercising the
+    // exact status the token endpoint throws for a nonexistent doc. The
+    // catch branch must flip `notFound` so the editor renders the
+    // not-found screen instead of a misleading "disconnected" dead end.
     const t = useDocToken('unregistered-id')
     await t.fetchToken()
 
     expect(t.tokenData.value).toEqual({ token: '', readOnly: false })
+    expect(t.notFound.value).toBe(true)
+    expect(t.forbidden.value).toBe(false)
   })
 })
 

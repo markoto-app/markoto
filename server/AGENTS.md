@@ -116,6 +116,7 @@ A leak of one minted token cannot pivot to another scope: `verifyRenderToken` re
 
 - `orphan-cleanup` — removes pending uploads with no DB row.
 - `ai-session-sweep` — aborts AI sessions older than 7 min (above the 5-min prompt deadline).
+- `ai-records-sweep` — enforces the privacy policy's 90-day retention on AI prompt/tool-call records (`ai_session_messages`) + reaps orphaned `ai_sessions` past 90 days. Distinct from `ai-session-sweep` (that's a 7-min in-flight abort; this is the GDPR retention purge). See `server/utils/aiRecordsSweep.ts`.
 - `inactive-doc-sweep` — flags stale anonymous docs.
 - `knowledge-sweep` — retries stuck-processing rows (10 min TTL) + reaps `failed` rows (7 day TTL).
 - `webhook-event-sweep` — prunes `processed_webhook_events` (>90d) and `pending_stripe_events` (processed >7d, unprocessed >30d). See `server/utils/AGENTS.md`.

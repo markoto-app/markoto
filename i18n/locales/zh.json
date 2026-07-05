@@ -87,6 +87,8 @@
     "privateTitle": "本文档为私有",
     "privateDescLoggedIn": "只有所有者才能打开本文档。如果你认为自己应有访问权限，请让所有者更改分享设置。",
     "privateDescAnon": "只有所有者才能打开本文档。如果你有访问权限，请登录以继续。",
+    "notFoundTitle": "未找到文档",
+    "notFoundDesc": "该文档不存在或已被删除。请检查链接，或返回首页新建一个。",
     "backHome": "返回首页"
   },
   "presence": {

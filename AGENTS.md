@@ -34,6 +34,7 @@ This file holds project-wide context. Domain-specific detail lives next to the c
 | `infra/README.md` | Ansible layout, role conventions, deploy/rollback playbooks |
 | `docs/RELEASE-PROCESS.md` | One-PR-one-release flow + GHA wiring |
 | `docs/RUNBOOK.md` | Symptom-driven prod incident playbook |
+| `docs/BREACH-RESPONSE.md` | GDPR Art.33/34 + Swiss FADP data-breach response runbook (72h clock, notification paths) |
 | `docs/CHEATSHEET.md` | Command discovery (Make targets, common workflows) |
 | `docs/DEPLOY-OVH.md` | First-time OVH VPS provisioning |
 | `docs/SECURITY-HARDENING.md` | Tier-1 hardening rationale + verification |
@@ -500,6 +501,7 @@ For feature-specific gotchas see the sub-AGENTS.md for that area.
 
 **Where to look first when something breaks:**
 - `docs/RUNBOOK.md` — symptom-driven incident playbook.
+- `docs/BREACH-RESPONSE.md` — if the incident involves a personal-data breach (unauthorised access/disclosure/loss), the 72h GDPR Art.33 clock starts at awareness.
 - `docs/CHEATSHEET.md` — common Make targets + workflows.
 - `docs/RELEASE-PROCESS.md` — deploy mechanics.
 - `infra/README.md` — Ansible layout.
