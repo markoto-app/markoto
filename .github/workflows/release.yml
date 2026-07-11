@@ -316,6 +316,19 @@ jobs:
           path: tests/e2e/output/flows
           retention-days: 30
 
+      # On failure, the flow-output step above never runs and the Playwright
+      # error contexts (test-results/) used to vanish with the runner —
+      # debugging the July-11 polished-pdf hang required a full local
+      # reproduction because of exactly this gap. Ship them always.
+      - name: Upload failure artefacts (error contexts + traces)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flow-failure-artefacts
+          path: test-results
+          retention-days: 14
+          if-no-files-found: ignore
+
   # NOTE: flow manifests are NOT committed back to main (main is strictly
   # PR-only). The flow output is still published — run-flows uploads it as
   # the `flow-output` artifact and create-release packs it into the GitHub
