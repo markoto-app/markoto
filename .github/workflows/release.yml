@@ -274,6 +274,10 @@ jobs:
       IMAGE_TAG: v${{ needs.resolve-pr.outputs.new_version }}
       TEST_MODE: "1"
       NUXT_GOOGLE_SPEECH_MOCK: "1"
+      # flows-ephemeral.ts runs `bun run build`, which OOMs at the default V8
+      # heap limit on the 7 GB runner (same fix as ci.yml test-repos-integration-flows
+      # and staging-gate.yml full-flow-suite — this job was the only one missing it).
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
         with:
