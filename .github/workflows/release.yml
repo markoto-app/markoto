@@ -269,7 +269,10 @@ jobs:
     needs: [resolve-pr, build-images]
     if: needs.resolve-pr.outputs.should_release == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # 45 to match staging-gate's full-flow-suite: install + Playwright +
+    # test stack (litellm migrations) + `bun run build` + the flow suite
+    # legitimately exceed 25 (first post-OOM-fix run timed out at 25:29).
+    timeout-minutes: 45
     env:
       IMAGE_TAG: v${{ needs.resolve-pr.outputs.new_version }}
       TEST_MODE: "1"
