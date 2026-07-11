@@ -200,7 +200,7 @@ export default defineEventHandler(async (event) => {
 
   // Run in background — HTTP response returns immediately after registration.
   // All edits reach the client over Y.js; we don't need to stream anything on
-  // this HTTP response. See AGENTS.md §15 for the full design.
+  // this HTTP response. See server/utils/agentic/AGENTS.md for the full design.
   void runPromptLoop({
     docId, sessionId, userId, initiatorName, initiatorColor, abortController, deadlineTimer,
     prompt,

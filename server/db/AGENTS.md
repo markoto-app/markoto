@@ -12,6 +12,8 @@ Single source of truth for the schema (`schema.ts`) plus the migration cookbook 
 
 ## Migration cookbook
 
+**Destructive-migration guard:** CI's `migration-guard` job runs `scripts/check-destructive-migrations.ts` over CHANGED `drizzle/*.sql` files and fails on `DROP` / `TRUNCATE` / similar unless the file carries an explicit `-- allow-destructive: <reason>` marker. Intentional destructive migrations must add that comment with a real rationale.
+
 ### Recipe 1: Adding a `vector(N)` column or pgvector index
 
 Drizzle does NOT emit `CREATE EXTENSION`. The first migration to touch pgvector must hand-prepend the extension DDL or the next `db:generate` will silently produce SQL that explodes on apply.
@@ -29,7 +31,7 @@ CREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint
 
 **Done already in:** `0005_lame_cassandra_nova.sql` (workspace_knowledge_chunks).
 
-**HNSW dimension cap:** pgvector's HNSW index caps at 2000 dims. We use 768 (Gemini MRL) for HNSW + cost. 3072 (full Gemini embedding) requires IVFFlat — slower + worse recall.
+**HNSW dimension cap:** pgvector's HNSW index caps at 2000 dims. We use 768 — Jina v5-text-nano's native dimensionality (no MRL truncation needed) — for HNSW + cost. Larger embedding models (>2000 dims) would require IVFFlat — slower + worse recall.
 
 ### Recipe 2: Partial unique indexes
 
@@ -115,9 +117,9 @@ Three tables back the privacy infrastructure (Workstream B). All follow the exis
 
 - **`consent_log`** — append-only ePrivacy/GDPR-Art.7 record. Keyed on `anonId` (the `markoto-anon-id` cookie, persists past login) plus optional `userId` for the post-login bridge. There is NO unique constraint — every save writes a new row; "current consent" is whatever the latest row by `received_at` says. Don't add an UPDATE path.
 - **`abuse_reports`** — DSA Art.16 queue. `reporter_user_id` is `ON DELETE SET NULL` so reporter deletion doesn't drop the record (snapshotted `reporter_email` survives for moderator follow-up). `doc_id` is plain `text`, NOT an FK to `documents.doc_id` — moderators triage by URL, malformed/missing ids are informational. Migration `0013_*.sql` dropped the original FK after a "test" input pasted by a real reporter exploded with FK violation.
-- **`data_export_jobs`** — GDPR Art.15/20 worker queue. Status lifecycle `queued` → `processing` → `ready` (+ `s3_key` + `expires_at`) / `failed` (+ `error_message`) / `expired`. Drained by the `data-export-worker` plugin; expired rows reaped by `data-export-expiry-sweep`.
+- **`data_export_jobs`** — GDPR Art.15/20 worker queue. Status lifecycle `queued` → `running` → `ready` (+ `s3_key` + `expires_at`) / `failed` (+ `error_message`) / `expired`. Drained by the `data-export-worker` plugin; expired rows reaped by `data-export-expiry-sweep`.
 
-**Account-deletion columns on `users`** (`deletion_requested_at`, `deletion_confirmed_at`, `deletion_reason`) are nullable — null is the steady state. Cancellation = `UPDATE … SET deletion_requested_at = NULL` plus the same nulling of the other two. Hard purge in `accountDeletionExecute.ts` deletes the row entirely, taking owned docs + sole-member workspaces with it.
+**Account-deletion columns on `users`** (`deletion_requested_at`, `deletion_grace_until`) are nullable — null on both is the steady state. Cancellation = `UPDATE … SET deletion_requested_at = NULL, deletion_grace_until = NULL`. The sweep scans for `deletion_grace_until < now()` (partial index). Hard purge in `accountDeletionExecute.ts` deletes the row entirely, taking owned docs + sole-member workspaces with it.
 
 **Policy-acceptance columns on `users`** are paired: `*_version_accepted` (integer) + `*_locale` (text) for privacy / tos / dpa, plus `age_confirmed_at` (timestamp). Bumping a `_VERSION` constant in `shared/legal/versions.ts` makes every user with a stale `_version_accepted` re-prompt — no migration touches the table.
 
@@ -127,4 +129,4 @@ Three tables back the privacy infrastructure (Workstream B). All follow the exis
 
 ## SSL
 
-Production uses OVH-managed Postgres which requires TLS. `server/utils/database.ts` calls `resolvePostgresSsl()` which **fails loudly** on misconfigured `PGSSLMODE` / `PGSSLROOTCERT` — silent fallback to no-TLS would expose credentials over the public network. Don't catch the throw; let it propagate so a misconfigured deploy fails at boot.
+Production uses OVH-managed Postgres which requires TLS. `server/utils/database.ts` calls `resolvePostgresSsl()` which reads `PGSSL` (only honoured value: `disable`, an explicit opt-out) and `PGSSLROOTCERT`, and **fails loudly** on an unreadable `PGSSLROOTCERT` path — silent fallback to no-TLS would expose credentials over the public network. Don't catch the throw; let it propagate so a misconfigured deploy fails at boot.

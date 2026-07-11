@@ -36,7 +36,7 @@
 - `GET /api/workspaces/:wsId/knowledge` — any member; returns items (sans `markdown_cache`) + aggregate usage/cap info
 - `DELETE /api/workspaces/:wsId/knowledge/:knowledgeId` — admin or editor-who-uploaded; cascades chunks via FK + best-effort S3 delete
 
-**AI (login required):** `POST /api/ai/prompt` (returns `{sessionId}`; also handles selection-scoped rewrites since phase 5 collapsed the separate rewrite path into this one), `POST /api/ai/abort` (initiator only, 403 otherwise), `POST /api/ai/transcribe` (voice → text via Cloud STT sync; `{text, inaudible}`), `POST /api/ai/dictate/token` (mints 60s JWT for the dictation WS), `WS /api/ai/dictate` (live dictation relay — JWT auth via first message, NOT query string), `POST /api/docs/:docId/comments/:commentId/trigger-ai` (AI ↔ comment thread via `@ai` mention; see `server/utils/agentic/AGENTS.md`)
+**AI (login required):** `POST /api/ai/prompt` (returns `{sessionId}`; also handles selection-scoped rewrites since phase 5 collapsed the separate rewrite path into this one), `POST /api/ai/abort` (initiator only, 403 otherwise), `POST /api/ai/transcribe` (voice → text via Voxtral Mini Transcribe through LiteLLM; `{text, inaudible}`), `POST /api/ai/dictate/token` (mints 60s JWT for the dictation WS), `WS /api/ai/dictate` (live dictation relay — JWT auth via first message, NOT query string), `POST /api/docs/:docId/comments/:commentId/trigger-ai` (AI ↔ comment thread via `@ai` mention; see `server/utils/agentic/AGENTS.md`)
 
 **Billing (login required):** `POST /api/billing/checkout` (Stripe Checkout session for upgrade flow), `POST /api/billing/portal` (Stripe billing-portal session for plan management).
 
