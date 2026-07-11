@@ -55,7 +55,9 @@ jobs:
     runs-on: ubuntu-latest
     # Live-AI flows are network-bound (~30-50s per Mistral round-trip), so the
     # full suite needs materially more wall-clock than the fast PR gate.
-    timeout-minutes: 45
+    # 90 matches release.yml's run-flows job: the serial one-worker suite alone
+    # measured ~55 min in CI (160 tests @ ~3.1/min) BEFORE the live-AI extras.
+    timeout-minutes: 90
     env:
       TEST_MODE: "1"
       NUXT_GOOGLE_SPEECH_MOCK: "1"
