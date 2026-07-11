@@ -2,6 +2,8 @@
 // master-key Authorization header so the `/key/*` admin surface is
 // callable from one place. No DB, no encryption — pure HTTP.
 
+import { trimTrailingSlashes } from '../../../shared/utils/trimTrailingSlashes'
+
 interface LitellmAdminConfig {
   url: string
   masterKey: string
@@ -14,7 +16,7 @@ function adminConfig(): LitellmAdminConfig {
   if (!url || !masterKey) {
     throw new Error('[litellmKeys] NUXT_LITELLM_URL and NUXT_LITELLM_MASTER_KEY must be set')
   }
-  return { url: url.replace(/\/+$/, ''), masterKey }
+  return { url: trimTrailingSlashes(url), masterKey }
 }
 
 export async function litellmAdminFetch(path: string, init: RequestInit = {}): Promise<Response> {

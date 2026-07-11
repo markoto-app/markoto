@@ -29,8 +29,16 @@ import { verifyJwtWithRotation } from '../../shared/utils/secrets'
 export function extractToken(event: H3Event): string | null {
   const auth = getRequestHeader(event, 'authorization')
   if (typeof auth === 'string' && auth.length > 0) {
-    const match = /^Bearer\s+(.+)$/i.exec(auth)
-    if (match?.[1]) return match[1].trim()
+    // "Bearer" (case-insensitive) + ≥1 whitespace char, then the token.
+    // Prefix-test + slice + trim instead of /^Bearer\s+(.+)$/ — the
+    // ambiguous \s+/.+ boundary in that regex backtracks super-linearly
+    // on attacker-supplied header values. A header that is "Bearer" +
+    // whitespace only yields no token and falls through to the query
+    // param, same as a bare "Bearer".
+    if (/^Bearer\s/i.test(auth)) {
+      const token = auth.slice('Bearer'.length).trim()
+      if (token.length > 0) return token
+    }
   }
   const q = getQuery(event).token
   if (typeof q === 'string' && q.length > 0) return q
