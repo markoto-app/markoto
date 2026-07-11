@@ -266,10 +266,15 @@
     var source = codeEl.textContent || '';
     // crypto.randomUUID() is secure-context-only; this srcdoc iframe runs
     // inside the HTTPS app so it's available, but guard it so a plain-HTTP
-    // (self-hosted, no TLS) deploy doesn't throw here. Unique-per-pass id.
-    var renderId = 'mmd-' + (self.crypto && self.crypto.randomUUID
+    // (self-hosted, no TLS) deploy doesn't throw here. The fallback uses
+    // crypto.getRandomValues, which — unlike randomUUID — is available in
+    // non-secure contexts too. Unique-per-pass id.
+    var renderId = 'mmd-' + (self.crypto.randomUUID
       ? self.crypto.randomUUID()
-      : (Date.now().toString(36) + Math.random().toString(36).slice(2)));
+      : (Date.now().toString(36) + Array.from(
+          self.crypto.getRandomValues(new Uint32Array(2)),
+          function (n) { return n.toString(36); }
+        ).join('')));
     try {
       var rendered = await mer.render(renderId, source);
       var svgStr = rendered.svg;

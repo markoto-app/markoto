@@ -177,7 +177,7 @@ export type ToolName = DocToolName | MetaToolName
  *  generate the "Supported: ..." error for unknown names + by tests
  *  that enumerate the registry. */
 export const KNOWN_TOOL_NAMES: readonly string[] = Object.freeze(
-  [...Object.keys(DOC_TOOL_HANDLERS), ...Object.keys(META_TOOL_HANDLERS)].sort()
+  [...Object.keys(DOC_TOOL_HANDLERS), ...Object.keys(META_TOOL_HANDLERS)].sort((a, b) => a.localeCompare(b))
 )
 
 /** Convenience guards. */

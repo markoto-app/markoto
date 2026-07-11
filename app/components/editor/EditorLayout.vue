@@ -898,6 +898,7 @@ const _statusIcon = computed(() => {
           <input
             ref="titleInputEl"
             v-model="titleInput"
+            :aria-label="t('editor.titleInputAria')"
             data-testid="doc-title-input"
             class="bg-transparent border border-default rounded px-2 py-0.5 text-sm w-48 outline-none focus:border-primary"
             @keydown.enter="saveTitle"

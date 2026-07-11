@@ -44,6 +44,7 @@ import { and, eq, ne, sql } from 'drizzle-orm'
 import OpenAI from 'openai'
 
 import { workspaceKnowledge, workspaceKnowledgeChunks } from '../server/db/schema'
+import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'
 
 // ─── CLI args ─────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ function makeEmbedder(opts: CliOpts): Embedder {
   }
   const client = new OpenAI({
     apiKey: key,
-    baseURL: url.replace(/\/+$/, '') + '/v1'
+    baseURL: trimTrailingSlashes(url) + '/v1'
   })
   return {
     async embed(text: string): Promise<number[]> {

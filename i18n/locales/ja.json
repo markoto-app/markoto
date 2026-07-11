@@ -23,6 +23,7 @@
   },
   "editor": {
     "untitled": "無題",
+    "titleInputAria": "ドキュメントタイトル",
     "placeholder": "書き始めましょう...",
     "syncAuthFailedTitle": "同期サーバーが接続を拒否しました",
     "syncAuthFailedDescription": "通常はここで編集アクセスがあります。同期サーバーがハンドシェイクを拒否しました — IPごとのレート制限か、古いトークンが原因の可能性があります。再読み込みして再試行してください。",

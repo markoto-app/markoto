@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { trimTrailingSlashes } from '../../shared/utils/trimTrailingSlashes'
 
 /**
  * Thin OpenAI-SDK factory pointed at our self-hosted LiteLLM proxy.
@@ -41,7 +42,7 @@ export function useLitellmAdmin(): OpenAI {
     apiKey: masterKey,
     // OpenAI SDK appends `/v1` paths internally; LiteLLM accepts both
     // `/v1/...` and bare `/...` so passing the bare base URL is correct.
-    baseURL: url.replace(/\/+$/, '') + '/v1'
+    baseURL: trimTrailingSlashes(url) + '/v1'
   })
   return cachedAdminClient
 }
@@ -59,7 +60,7 @@ export function useLitellmForUser(virtualKey: string): OpenAI {
   }
   return new OpenAI({
     apiKey: virtualKey,
-    baseURL: url.replace(/\/+$/, '') + '/v1'
+    baseURL: trimTrailingSlashes(url) + '/v1'
   })
 }
 
