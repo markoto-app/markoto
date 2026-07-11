@@ -216,6 +216,8 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 | Token endpoint | 30 per IP/min |
 | Import | 10 per IP/min |
 | PDF download | 10 per IP/min (`server/api/docs/[docId]/pdf.get.ts`) |
+| Anonymous doc creation | 30 per IP/min (logged-in creation exempt — `server/api/docs.post.ts`) |
+| Billing checkout / portal | 10 per user/min each (`server/api/billing/{checkout,portal}.post.ts`) |
 | Abuse reports | 10 per user/hour |
 | AI calls (all billable surfaces) | per-user LiteLLM virtual key: tiered `max_budget` + `rpm_limit: 60`, set at key creation (`server/utils/litellm/userKeys.ts`). Replaced the legacy app-side AI-prompt/transcribe limits (Phase 6) |
 | Live dictation | 1 session/user (Valkey `SET NX`), 10 min/session hard cap, 30s idle timeout. No daily audio cap — spend is gated by the LiteLLM budget |
