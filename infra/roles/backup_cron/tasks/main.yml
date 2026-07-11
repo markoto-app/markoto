@@ -14,9 +14,13 @@
     # On failure: append to failures log AND fire a markoto-notify ping.
     # `markoto-notify` is installed by roles/base; if Apprise isn't
     # configured the wrapper silently no-ops.
+    # `--once` is load-bearing: /backup.sh's default mode ends in an
+    # infinite interval loop (it's the sidecar's PID-1 entrypoint), so an
+    # exec WITHOUT the flag never returns — the cron job would hang
+    # forever and stack an orphaned loop process every night.
     job: >-
       cd {{ markoto_root }} &&
-      docker compose -f docker-compose.prod.yml exec -T backup /backup.sh
+      docker compose -f docker-compose.prod.yml exec -T backup /backup.sh --once
       >> {{ markoto_root }}/backup-cron.log 2>&1
       || (
       ec=$?;

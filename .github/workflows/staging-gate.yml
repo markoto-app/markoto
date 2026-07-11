@@ -42,6 +42,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # A release run where the PR carried `release:none` (resolve-pr says
+  # should_release=false) still CONCLUDES 'success' — every downstream job
+  # just skips. Without this check, such merges would burn the full ~45-min
+  # gate re-testing and re-deploying unchanged images. Query the triggering
+  # run's jobs and only proceed when create-release actually succeeded.
+  check-release:
+    name: check a release was published
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      released: ${{ steps.probe.outputs.released }}
+    steps:
+      - name: Probe triggering release run for a published release
+        id: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          conclusion=$(gh api "/repos/${{ github.repository }}/actions/runs/${RUN_ID}/jobs" \
+            --jq '.jobs[] | select(.name == "create-release") | .conclusion')
+          echo "create-release concluded: ${conclusion:-<absent>}"
+          if [ "$conclusion" = "success" ]; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            echo "No release published by the triggering run (release:none merge) — gate skips."
+          fi
+
   # Full flow suite INCLUDING the live-AI flows (document-context, write-with-ai,
   # summon-ai-from-comment, voice-dictate, knowledge-grounded-ai). The fast PR
   # gate in ci.yml runs without the provider keys so these skip; here we wire the
@@ -49,9 +84,9 @@ jobs:
   # "run everything before we touch staging" gate — deploy-and-smoke needs it.
   full-flow-suite:
     name: full flow suite (live AI)
+    needs: check-release
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+      needs.check-release.outputs.released == 'true'
     runs-on: ubuntu-latest
     # Live-AI flows are network-bound (~30-50s per Mistral round-trip), so the
     # full suite needs materially more wall-clock than the fast PR gate.
@@ -91,13 +126,12 @@ jobs:
 
   deploy-and-smoke:
     name: deploy-and-smoke (staging)
-    # Gate: only touch staging once the full flow suite (incl. live AI) is green.
+    # Gate: only touch staging once the full flow suite (incl. live AI) is
+    # green. The release-actually-published + release-run-succeeded checks
+    # live upstream in check-release; a skipped or failed suite skips this
+    # job via the needs chain.
     needs: full-flow-suite
-    # Manual dispatch always runs; the auto path only runs when the release
-    # actually succeeded (a failed/incomplete release built no good images).
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+    if: needs.full-flow-suite.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Binds the staging DEPLOY_HOST / DEPLOY_SSH_KEY secrets + DEPLOY_USER var.
