@@ -123,6 +123,16 @@ echo "[backup] Started — interval ${BACKUP_INTERVAL_SECONDS}s, retention ${BAC
 # Run once at startup so a fresh deploy already has a snapshot.
 backup_once
 
+# `--once` mode: used by the belt-and-braces host cron (roles/backup_cron),
+# which `docker compose exec`s this script inside the running sidecar for
+# a one-shot run. Without this exit, the exec'd invocation would fall
+# into the interval loop below and never return — the cron job would hang
+# forever and stack a new orphaned loop process every night.
+if [ "${1:-}" = "--once" ]; then
+  echo "[backup] --once: single run complete, exiting."
+  exit 0
+fi
+
 while true; do
   sleep "$BACKUP_INTERVAL_SECONDS"
   backup_once

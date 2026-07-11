@@ -49,6 +49,39 @@ jobs:
       - name: Typecheck
         run: bun --bun run typecheck
 
+  # ci.yml's `migration-guard` also only runs on `pull_request` — a direct
+  # push to main lands without the destructive-DDL check, and the deploy
+  # pipeline's code-only rollback contract depends on it (expand-contract:
+  # the previous release must run against the new schema). Re-run it here
+  # against the pushed commit range.
+  migration-guard:
+    name: migration-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      # No `bun install` — the script uses only node builtins. Diff base is
+      # the pre-push SHA; on a brand-new branch or history rewrite GitHub
+      # sends the zero SHA, in which case there's no meaningful range to
+      # scan and we skip rather than false-positive on all of history.
+      - name: Guard against backward-incompatible migrations
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "No usable before-SHA (new branch / history rewrite) — skipping."
+            exit 0
+          fi
+          BASE_REF="$BASE_SHA" bun scripts/check-destructive-migrations.ts
+
   sonar:
     name: sonar
     needs: lint-typecheck
@@ -92,7 +125,7 @@ jobs:
 
   notify-on-failure:
     name: notify-on-failure
-    needs: [lint-typecheck, sonar]
+    needs: [lint-typecheck, migration-guard, sonar]
     if: failure()
     runs-on: ubuntu-latest
     steps:

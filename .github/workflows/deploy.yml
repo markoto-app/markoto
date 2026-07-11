@@ -1,9 +1,9 @@
 name: deploy
 
-# Phase 12 — fires on release.published. SSHes to the VPS, pulls the new
-# images (private GHCR via PAT mounted on the VPS at provision time), runs
-# compose up, polls /api/health, auto-rollbacks on failure, sends Apprise
-# notifications either way.
+# Manual deploy dispatcher (see `on:` below — NOT event-triggered). SSHes
+# to the VPS, pulls the requested tag (private GHCR via PAT mounted on the
+# VPS at provision time), runs compose up, polls /api/health,
+# auto-rollbacks on failure, sends Apprise notifications either way.
 #
 # Required GitHub secrets (see docs/GITHUB-CONFIG.md):
 #   DEPLOY_SSH_KEY    — private OpenSSH key for the markoto user on the VPS
@@ -185,24 +185,30 @@ jobs:
           docker compose -f docker-compose.prod.yml pull
           docker compose -f docker-compose.prod.yml up -d
 
-          # Health-check loop: 30 attempts × 3 s = 90 s.
+          # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD
+          # first boot: litellm runs ~118 Prisma migrations before turning
+          # healthy (start_period 60s) and `app` gates on litellm via
+          # depends_on service_healthy — a 90 s budget could expire while a
+          # perfectly healthy deploy was still warming up and trigger a
+          # spurious auto-rollback. Warm rolls pass on early attempts, so
+          # the longer ceiling costs nothing in the common case.
           DOMAIN=$(awk -F= '/^DOMAIN=/{print $2}' .env | tr -d '"')
           if [ -z "$DOMAIN" ]; then
             echo "DOMAIN not in .env — cannot probe health" >&2
             exit 1
           fi
           ok=0
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             if curl -fsS --max-time 5 "https://${DOMAIN}/api/health" > /dev/null 2>&1; then
               echo "Health check passed on attempt $i"
               ok=1
               break
             fi
-            sleep 3
+            sleep 5
           done
 
           if [ "$ok" -ne 1 ]; then
-            echo "Health check failed after 90s — rolling back to $PREV" >&2
+            echo "Health check failed after 300s — rolling back to $PREV" >&2
             export IMAGE_TAG="$PREV"
             docker compose -f docker-compose.prod.yml pull || true
             docker compose -f docker-compose.prod.yml up -d
