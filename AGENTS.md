@@ -1,6 +1,6 @@
 # markoto — Project Guide
 
-Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google) via `nuxt-auth-utils`, PostgreSQL (app data + Y.js state via `y-postgresql` + pgvector embeddings), external S3 for image uploads & pg backups, multi-lingual UI via `@nuxtjs/i18n`, AI writing assistance via a self-hosted LiteLLM proxy fronting Mistral (text + voice) / Jina (embeddings + web search) / BFL (image gen) — all EU-resident — with workspace knowledge-base retrieval, Stripe billing for tiered AI budgets enforced as per-user LiteLLM virtual-key `max_budget`. Single Linux VPS today, multi-instance-capable since Phase 3. Docker Compose + Ansible.
+Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google) via `nuxt-auth-utils`, PostgreSQL (app data + Y.js state via `y-postgresql` + pgvector embeddings), external S3 for image uploads & pg backups, multi-lingual UI via `@nuxtjs/i18n`, AI writing assistance via a self-hosted LiteLLM proxy fronting Mistral (text + voice) / Jina (embeddings + `fetch_url` page extraction via Jina Reader) / Staan (web search) / BFL (image gen) — all EU-resident — with workspace knowledge-base retrieval, Stripe billing for tiered AI budgets enforced as per-user LiteLLM virtual-key `max_budget`. Single Linux VPS today, multi-instance-capable since Phase 3. Docker Compose + Ansible.
 
 Login is **optional** — public docs work anonymously. Login is required to own, manage permissions, use workspaces, delete, or use AI.
 
@@ -56,7 +56,7 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 - **Server-rendered PDF + PNG via Playwright sidecar** (`renderer` service). Internal-only; called by `server/utils/renderClient.ts`. The browser-side paged.js path still drives live preview + the `Cmd/Ctrl+P` print fallback.
 - **AI joins the doc as a real Y.js client** — edits broadcast live via CRDT, status via awareness. See `server/utils/agentic/AGENTS.md`.
 - **Preview is paged, in an iframe.** `themeToCss(theme)` drives both live preview AND server-rendered PDF. See `app/utils/AGENTS.md`.
-- **Stripe billing for AI quotas.** Per-user `users.plan` + `ai_usage_period` table; atomic interaction counter in `runLoop.ts`; Stripe webhook hardened with `processed_webhook_events` (idempotency) + `pending_stripe_events` (out-of-order stash). Workspaces can have `ai_enabled=true` to bill member AI usage to the workspace owner. See `server/utils/AGENTS.md`.
+- **Stripe billing for AI quotas.** Per-user `users.plan` + per-user LiteLLM virtual keys — the proxy's `max_budget` is the sole enforcement gate (the legacy `ai_usage_period` interaction counter was retired in Phase 6). Stripe webhook hardened with `processed_webhook_events` (idempotency) + `pending_stripe_events` (out-of-order stash). Workspaces can have `ai_enabled=true` to bill member AI usage to the workspace owner. See `server/utils/AGENTS.md`.
 - **Markitdown isolated.** Python/FastAPI wrapper; Nuxt image stays lean (~615 MB vs ~1.1 GB for pandoc).
 - **Single-VPS today, multi-instance-capable.** Sticky sessions + Valkey-backed sync state + advisory-locked sweepers + Stripe event dedup mean we can scale horizontally without code changes. We're not running multi-instance yet; 30-second downtime budget on deploy is the accepted trade.
 
@@ -114,7 +114,7 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 | `y-postgresql` | 1.0.1 | Y.js persistence (⚠ `useIndex: false` — 1.0.1 has SQL bug) |
 | `pg` | ^8.20 | Driver |
 | `ioredis` | ^5 | Per-doc state in Valkey (separate from app's pool) |
-| `jsonwebtoken` | 9.0.2 | JWT verification |
+| `@sentry/bun` | ^10 | Error telemetry (JWT verification uses `shared/utils/secrets`, no `jsonwebtoken` dep) |
 
 ### Nuxt server
 
@@ -125,8 +125,8 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 | `pg` | ^8.20 | Driver |
 | `@aws-sdk/client-s3` + presigner | 3.750.0 | Image uploads |
 | `jsonwebtoken` | 9.0.2 | Hocuspocus token minting |
-| `stripe` | ^17 | Subscription + webhook |
-| `zod` | ^4 | Validates Gemini function-call args; `z.toJSONSchema` generates tool schemas |
+| `stripe` | ^22 | Subscription + webhook |
+| `zod` | ^4 | Validates AI tool-call args (Mistral/OpenAI shape); `z.toJSONSchema` generates tool schemas |
 
 ### LiteLLM proxy (`infra/litellm/`)
 
@@ -155,7 +155,7 @@ Headless Playwright service used by `server/utils/renderClient.ts` for server-re
 
 ### CI/CD (`.github/workflows/`)
 
-`ci.yml` — lint + typecheck + unit/dom/nuxt + repos + integration + actionlint + gitleaks + ansible-lint + yamllint. `release.yml` — PR-merge → tagged GHCR images + GH Release built from PR title + body. `deploy.yml` — Ansible-driven prod deploy + rollback dispatcher.
+`ci.yml` (PR gate) — jobs: `label-check`, `semantic-pr-title`, `actions-lint` (actionlint), `secret-scan` (gitleaks), `lint-typecheck` (incl. ansible-lint + yamllint), `migration-guard`, `test-unit-dom`, `test-repos-integration-flows` (repos + integration + coverage + fast flow suite), `sonar`. `release.yml` — merge to `main` → version bump + tagged GHCR images + GH Release built from PR title + body (skipped for `release:none` PRs). `staging-gate.yml` — auto after `release.yml`: full flow suite with live AI → deploy `latest` to staging → public smoke vs `https://staging.markoto.app`. `deploy.yml` — MANUAL `workflow_dispatch` only (staging or prod, tag input, auto-rollback). `sonar.yml` — SonarCloud baseline analysis on `main` pushes.
 
 > Password hashing uses `nuxt-auth-utils` built-in scrypt `hashPassword`/`verifyPassword` — not argon2.
 
@@ -165,7 +165,7 @@ Headless Playwright service used by `server/utils/renderClient.ts` for server-re
 
 | Data | Storage |
 |---|---|
-| Users (incl. `plan`, `plan_valid_until`, `stripe_*` cols, `locale`, `age_confirmed_at`, `deletion_requested_at`/`deletion_confirmed_at`/`deletion_reason`, `is_admin`, `*_version_accepted`/`*_locale` for privacy/tos/dpa policy acceptance), documents (theme JSONB, `workspace_id`), shares, workspaces (incl. `billing_owner_id`, `ai_enabled`), workspace_members, uploads, activity, audit, consent_log, abuse_reports, data_export_jobs, rate-limits, AI sessions, ai_usage_period, processed_webhook_events, pending_stripe_events | PostgreSQL (Drizzle) |
+| Users (incl. `plan`, `plan_valid_until`, `stripe_*` cols, `litellm_key_*` cols, `locale`, `age_confirmed_at`, `deletion_requested_at`/`deletion_grace_until`, `is_admin`, `*_version_accepted`/`*_locale` for privacy/tos/dpa policy acceptance), documents (theme JSONB, `workspace_id`), workspaces (incl. `billing_owner_id`, `ai_enabled`), workspace_members, themes, uploads, activity_log, audit_log, consent_log, abuse_reports, data_export_jobs, ai_sessions, ai_session_messages, document_comments, mcp_personal_tokens, mcp_sessions, processed_webhook_events, pending_stripe_events | PostgreSQL (Drizzle) |
 | Y.js document state | PostgreSQL (`yjs_documents` via `y-postgresql`) |
 | Workspace knowledge (rows + markdown cache) | PostgreSQL (`workspace_knowledge`) |
 | Knowledge chunks (content + 768-d vector + tsvector) | PostgreSQL (`workspace_knowledge_chunks`, pgvector HNSW + GIN) |
@@ -185,16 +185,16 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 
 **Stripe webhook tables** (Phase 8): `processed_webhook_events` (event-id dedup) + `pending_stripe_events` (out-of-order stash for `customer.subscription.created` arriving before `checkout.session.completed`). See `server/utils/stripeWebhook.ts` + `server/utils/webhookEventSweep.ts`.
 
-**AI usage** (`ai_usage_period`): per-user, atomic interaction counter, billing-cycle-anchored reset. Threaded through `runLoop.ts`. NOT in Valkey — billing is correctness-critical.
+**AI budget enforcement:** per-user LiteLLM virtual keys (`users.litellm_key_id` + encrypted `litellm_key_token`) with `max_budget` enforced by the proxy. The legacy `ai_usage_period` interaction-counter table was retired in Phase 6 (see the retirement note near `workspaceKnowledgeChunks` in `server/db/schema.ts`). Rate limits live in Valkey, not in a Postgres table.
 
 **Document context columns** (added in `0001_silky_eternals.sql`): `description`, `audience`, `language`, `template_id` — all NOT NULL with sensible defaults. See `app/components/document/AGENTS.md`.
 
 **Privacy/compliance tables** (Workstream B):
 - `consent_log` — append-only ePrivacy/GDPR-Art.7 record of cookie/analytics consent decisions. Keyed on `anonId` (anonymous cookie minted client-side, persists past login) plus optional `userId` for the post-login bridge. Three purposes: `essential` (always granted, recorded for audit completeness), `analytics`, `session_replay`. Versioned via `CONSENT_VERSION` in `shared/legal/versions.ts`.
-- `abuse_reports` — DSA Article 16 notice-and-action queue. `reporter_user_id` is `ON DELETE SET NULL` so reporter deletion doesn't drop the record (snapshotted `reporter_email` survives for moderator follow-up). `doc_id` is free-form text (no FK) — moderators triage by URL, malformed/missing ids are informational. Status enum: `open` / `actioned` / `dismissed`.
-- `data_export_jobs` — GDPR Art.15/20 portability worker queue. Statuses: `queued` → `processing` → `ready` (S3 zip + 7-day TTL) / `failed` / `expired`. Drained by `dataExportWorker.ts` plugin; expired rows reaped by `dataExportExpirySweep.ts`.
+- `abuse_reports` — DSA Article 16 notice-and-action queue. `reporter_user_id` is `ON DELETE SET NULL` so reporter deletion doesn't drop the record (snapshotted `reporter_email` survives for moderator follow-up). `doc_id` is free-form text (no FK) — moderators triage by URL, malformed/missing ids are informational. Status enum: `open` / `acknowledged` / `actioned` / `dismissed`.
+- `data_export_jobs` — GDPR Art.15/20 portability worker queue. Statuses: `queued` → `running` → `ready` (S3 zip + 7-day TTL) / `failed` / `expired`. Drained by `dataExportWorker.ts` plugin; expired rows reaped by `dataExportExpirySweep.ts`.
 
-**Account-deletion columns** on `users`: `deletion_requested_at` (grace-period start, 30-day countdown by default) + `deletion_confirmed_at` (terminal) + `deletion_reason` (free-form). Cancelling the request nulls all three. The hard-purge runs in `accountDeletionExecute.ts`, kicked by `accountDeletionSweep.ts`.
+**Account-deletion columns** on `users`: `deletion_requested_at` (grace-period start) + `deletion_grace_until` (30-day deadline the sweep scans for). Cancelling the request nulls both. The hard-purge runs in `accountDeletionExecute.ts`, kicked by `accountDeletionSweep.ts`.
 
 **Policy-acceptance columns** on `users`: per-document `*_version_accepted` + `*_locale` pairs for privacy / tos / dpa. The Onboarding Gate writes the first three on signup; the DPA-acceptance modal writes its row only when the user is about to own a workspace (B2B-only document). When `versions.ts` bumps a version, users with stale `_version_accepted` see a re-acceptance modal on next visit. See `server/legal/AGENTS.md` + `app/components/legal/AGENTS.md`.
 
@@ -206,7 +206,7 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 
 **Authentication:** OAuth via `nuxt-auth-utils` (HTTP-only cookies, CSRF-protected). `SESSION_VERSION` invalidation. Hocuspocus always requires valid JWT with doc-scoped claims (Phase 1). `JWT_SECRET`, `DATABASE_URL`, `INTERNAL_API_SECRET`, `STRIPE_*` fail-fast on missing.
 
-**Tier-1 hardening (Phase 9):** Postgres TLS via `PGSSL*` env vars + `resolvePostgresSsl()` (fail-loud at boot if cert path unreadable); Valkey password + optional TLS; security headers + CSP via Traefik labels in `docker-compose.prod.yml`; secrets-rotation playbook in `docs/SECRETS-ROTATION.md`; storage-at-rest encryption assumed at the OVH platform layer. See `docs/SECURITY-HARDENING.md`.
+**Tier-1 hardening (Phase 9):** Postgres TLS via `PGSSL` / `PGSSLROOTCERT` env vars + `resolvePostgresSsl()` (fail-loud at boot if cert path unreadable); Valkey password + optional TLS; security headers + CSP via Traefik labels in `docker-compose.prod.yml`; secrets-rotation playbook in `docs/SECRETS-ROTATION.md`; storage-at-rest encryption assumed at the OVH platform layer. See `docs/SECURITY-HARDENING.md`.
 
 **Rate limits:**
 
@@ -215,16 +215,21 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 | Password brute-force | 5 per IP+docId/min |
 | Token endpoint | 30 per IP/min |
 | Import | 10 per IP/min |
-| AI prompt | 20 per user/hour |
-| AI transcribe | 60 per user/hour |
-| Live dictation | 1 session/user (Valkey `SET NX`), 30 min/user/day audio, 10 min/session, 30s idle |
+| PDF download | 10 per IP/min (`server/api/docs/[docId]/pdf.get.ts`) |
+| Abuse reports | 10 per user/hour |
+| AI calls (all billable surfaces) | per-user LiteLLM virtual key: tiered `max_budget` + `rpm_limit: 60`, set at key creation (`server/utils/litellm/userKeys.ts`). Replaced the legacy app-side AI-prompt/transcribe limits (Phase 6) |
+| Live dictation | 1 session/user (Valkey `SET NX`), 10 min/session hard cap, 30s idle timeout. No daily audio cap — spend is gated by the LiteLLM budget |
 | Hocuspocus | 20 connections/IP, 5000 rooms |
+| MCP web tools | 60/hour/user, shared bucket (`mcp-web-tools` — `web_search` + `fetch_url`) |
 | Knowledge upload | 30 presign-requests/user/min |
-| Knowledge — per workspace | 500 files, 1 GB total, 25 MB per file |
-| Knowledge — per user | 100 files, 2 GB total (across all workspaces) |
-| Knowledge — per file processing | 300-chunk ceiling (sentinel-truncated) |
+| Knowledge files per user (across all workspaces) | tiered free/pro/max/ultra: 5 / 50 / 500 / 2000 (`shared/config/tiers.ts`) |
+| Knowledge bytes per workspace | tiered: 50 MB / 2 GB / 1 GB / 1 GB |
+| Knowledge bytes per user (across all workspaces) | tiered: 50 MB / 2 GB / 10 GB / 50 GB |
+| Knowledge — per file | 25 MB, 300-chunk ceiling (sentinel-truncated) — platform limits in `shared/config/tiers.ts` |
 | AI agentic loop | per-tool call-count caps + per-session interaction cap (50) |
-| Workspaces per user | 20 owned (invited workspaces don't count) |
+| Workspaces owned per user | tiered: 1 / 10 / 30 / 100 (invited workspaces don't count) |
+
+Valkey-backed rate limits are bypassed entirely under `TEST_MODE=1`.
 
 **Rate-limit fail mode:** Valkey-backed limits fail OPEN on Valkey errors (DoS protection, not correctness). Single-session locks (live dictation, knowledge confirm) fail CLOSED (correctness; failing open would double-bill or duplicate state).
 
@@ -243,7 +248,7 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 **Error sanitisation:** `nuxt.config.ts` wires `nitro.errorHandler: '~~/server/error.ts'`. The handler exports `buildSanitizedErrorPayload(error, url)`: 4xx pass through (preserve `message` + `data` so `code: 'abuse/rate-limited'`-style hints reach the client); 5xx are stripped to `'Something went wrong on our side. Please try again — we\'ve been notified.'` + `data: { code: 'internal' }`. Stack traces never appear in the response. Drove this after a Drizzle error message containing the SQL + bound params (incl. an email) was rendered into a 500 response — a per-endpoint try/catch sweep would have left a blast-radius gap, the framework-level handler closes it for every present + future route.
 
 **Privacy / GDPR posture (Workstream B):**
-- **EU-only data path.** Operating entity is **LatentSpace Labs GmbH (Zurich, Switzerland)**, recognised as adequate under GDPR. Sub-processors all sit in EU regions OR Data Privacy Framework: OVH (Frankfurt + Strasbourg) for Postgres + Object Storage; Stripe Payments Europe (Dublin) for billing; Resend (DPF) for transactional email; Google (DPF) for Gemini + Cloud STT. Plausible (EU/Estonia) for cookieless analytics. Sentry EU region (Frankfurt) for telemetry. **No PostHog** — its EU residency story doesn't match our stance. See `server/legal/subProcessors.ts`.
+- **EU-only data path.** Operating entity is **LatentSpace Labs GmbH (Zurich, Switzerland)**, recognised as adequate under GDPR. Sub-processors all sit in EU regions OR Data Privacy Framework (registry: `server/legal/subProcessors.ts`): OVHcloud (`intra_eu`) for Managed Postgres + Object Storage; Mistral AI SAS (`intra_eu`) for text generation + Voxtral voice transcription; Jina AI GmbH (`intra_eu`) for embeddings + fetch-URL page extraction (Jina Reader); Staan / European Search Perspective SAS (`intra_eu`) for AI web search; Black Forest Labs GmbH (`intra_eu`) for image generation (EU-pinned FLUX.2); Stripe (DPF + SCC fallback) for billing; Resend (DPF + SCC fallback) for transactional email; Sentry (DPF + SCC fallback; data at rest in the Frankfurt EU region) for telemetry; Google LLC and GitHub, Inc. (both DPF + SCC fallback) for **OAuth sign-in only** — no other Google/GitHub data flows. **No PostHog** — its EU residency story doesn't match our stance.
 - **Lawful basis ledger.** Every processing purpose (auth, doc storage, AI inference, billing, abuse triage, etc.) is keyed in `server/legal/lawfulBasis.ts` with `{basis, dataCategories, retention, subProcessors}`. New features that touch personal data MUST be added; the privacy page renders this list verbatim, so adding code without adding a registry entry produces a visible doc gap.
 - **IP pseudonymisation.** All audit + abuse-report writes go through `truncateIp(ip)` (/24 IPv4, /48 IPv6). The raw IP never reaches the DB.
 - **Right-to-erasure pipeline.** `requestAccountDeletion` flips the user into the 30-day grace period; `accountDeletionExecute.ts` runs the 10-step purge (Stripe customer, S3 keys, owned docs, sole-member workspaces, Y.js state, AI sessions, comments anonymised on others' docs, audit attribution nulled via FK). `accountDeletionSweep.ts` claims rows past the deadline. Cancelling the request restores all state.
@@ -278,7 +283,7 @@ Dev: `bun run dev --host 0.0.0.0` (0.0.0.0 so sync container can reach via `host
 
 Prod key points: postgres healthcheck gates `app` + `sync` startup; `stop_grace_period: 30s`; Traefik healthcheck labels on `/api/health` + `/health`; sticky sessions on the `sync` service via `traefik.http.services.sync.loadbalancer.sticky.cookie=true`; backup sidecar pipes `pg_dump | gzip | aws s3 cp`; Dockerfile **must `COPY drizzle/`** into runtime image.
 
-Required env (canonical names — see `.env.example`): `DOMAIN`, `ACME_EMAIL`, `REGISTRY`, `IMAGE_TAG`, `POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD` (≥32), `NUXT_JWT_SECRET` (≥32), `NUXT_INTERNAL_API_SECRET` (≥32), `NUXT_S3_{ENDPOINT,ACCESS_KEY,SECRET_KEY,BUCKET}`, `NUXT_MARKITDOWN_URL`, `NUXT_SYNC_INTERNAL_URL`, `NUXT_PUBLIC_SYNC_URL`, `NUXT_LITELLM_URL`, `NUXT_LITELLM_MASTER_KEY`, `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY`, `JINA_AI_API_KEY`, `MISTRAL_API_KEY`, `BFL_API_KEY`, `NUXT_STRIPE_SECRET_KEY`, `NUXT_STRIPE_WEBHOOK_SECRET`, `BACKUP_INTERVAL_SECONDS`, `BACKUP_RETENTION_COUNT`. Optional pair: `NUXT_OAUTH_GITHUB_CLIENT_*` and/or `NUXT_OAUTH_GOOGLE_CLIENT_*`. Optional Sentry: `NUXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`. Optional Postgres TLS: `PGSSLMODE`, `PGSSLROOTCERT`. Optional: `NUXT_AI_DICTATE_JWT_SECRET` (falls back to `NUXT_JWT_SECRET`). Optional LiteLLM model overrides: `NUXT_LITELLM_{TEXT_MODEL,EMBEDDINGS_MODEL,EMBEDDINGS_DIMS,TRANSCRIBE_MODEL,REALTIME_TICK_MODEL}`. Compose substitutions use `${VAR:?required}`. Testing: `TEST_MODE=1` enables the in-process fakes (canned-fake STT, `/_test/login` shim) and bypasses the boot-time secret validator; `LITELLM_TEST_STUB=1` short-circuits per-user key creation for the unit/repos test tier (integration tests run against a real `litellm-test` container).
+Required env (canonical names — see `.env.example`): `DOMAIN`, `ACME_EMAIL`, `REGISTRY`, `IMAGE_TAG`, `POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD` (≥32), `NUXT_JWT_SECRET` (≥32), `NUXT_INTERNAL_API_SECRET` (≥32), `NUXT_S3_{ENDPOINT,ACCESS_KEY,SECRET_KEY,BUCKET}`, `NUXT_MARKITDOWN_URL`, `NUXT_SYNC_INTERNAL_URL`, `NUXT_PUBLIC_SYNC_URL`, `NUXT_LITELLM_URL`, `NUXT_LITELLM_MASTER_KEY`, `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY`, `JINA_AI_API_KEY`, `MISTRAL_API_KEY`, `BFL_API_KEY`, `NUXT_STRIPE_SECRET_KEY`, `NUXT_STRIPE_WEBHOOK_SECRET`, `BACKUP_INTERVAL_SECONDS`, `BACKUP_RETENTION_COUNT`. Optional pair: `NUXT_OAUTH_GITHUB_CLIENT_*` and/or `NUXT_OAUTH_GOOGLE_CLIENT_*`. Optional Sentry: `NUXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`. Optional Postgres TLS: `PGSSL` (only honoured value: `disable`), `PGSSLROOTCERT`. Optional: `NUXT_AI_DICTATE_JWT_SECRET` (falls back to `NUXT_JWT_SECRET`). Optional LiteLLM model overrides: `NUXT_LITELLM_{TEXT_MODEL,EMBEDDINGS_MODEL,EMBEDDINGS_DIMS,TRANSCRIBE_MODEL,REALTIME_TICK_MODEL}`. Compose substitutions use `${VAR:?required}`. Testing: `TEST_MODE=1` enables the in-process fakes (canned-fake STT, `/_test/login` shim) and bypasses the boot-time secret validator; `LITELLM_TEST_STUB=1` short-circuits per-user key creation for the unit/repos test tier (integration tests run against a real `litellm-test` container).
 
 ---
 
@@ -298,7 +303,7 @@ Required env (canonical names — see `.env.example`): `DOMAIN`, `ACME_EMAIL`, `
 
 `infra/` — Ansible. `playbooks/` (provision, deploy, rollback, backup-test), `roles/` (base, ssh_hardening, markoto, backup_cron), `group_vars/`, `templates/`, `requirements.yml` (Galaxy), `Makefile` (common targets), `README.md`. See `docs/DEPLOY-OVH.md` + `docs/RUNBOOK.md`.
 
-`.github/workflows/` — `ci.yml`, `release.yml`, `deploy.yml`. PR-title-as-release-name flow; one PR = one release. See `docs/RELEASE-PROCESS.md` + `docs/GITHUB-CONFIG.md`.
+`.github/workflows/` — `ci.yml`, `release.yml`, `staging-gate.yml`, `deploy.yml`, `sonar.yml`. PR-title-as-release-name flow; one PR = one release. See `docs/RELEASE-PROCESS.md` + `docs/GITHUB-CONFIG.md`.
 
 `drizzle/` — generated migrations + meta snapshots (committed). `i18n/locales/` — en/de/fr/es/ja/zh JSON.
 
@@ -329,10 +334,11 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 - **Document context + new-doc dialog + templates:** description / audience / language / templateId fields injected into every AI prompt; multi-language template skeletons. See `app/components/document/AGENTS.md` and `shared/templates/AGENTS.md`.
 - **Document duplication:** `POST /api/docs/:id/duplicate` clones row + Y.js state with URL rewrite + S3 assets. See `server/utils/duplicateDocument.ts`.
 - **Workspace knowledge base:** PDF/DOCX/PPTX/XLSX/HTML/EPUB/MD/TXT upload → markitdown → chunked → embedded → pgvector + tsvector hybrid search. See `server/utils/AGENTS.md`.
-- **AI:** 16 tools (always-on + workspace-gated knowledge tools + cross-doc tools + theme-inspection/preset tools), `@ai` comment trigger, voice input, live dictation. Providers: **Mistral Small 4.0** (text + vision), **Voxtral Mini Transcribe + Voxtral Realtime** (one-shot + live dictation), **Jina v5-text-nano** (embeddings + web-search content extraction), **BFL FLUX.2 [pro] EU-pinned** (image generation) — all routed via the self-hosted **LiteLLM proxy**. **Per-tool call-count caps + per-session interaction cap (50)** in `runLoop.ts` (Phase 2 — protects against cost-amplifying outliers). See `server/utils/agentic/AGENTS.md`.
+- **AI:** 21 always-on tools + 2 workspace-gated knowledge tools (doc/theme/web/render + comment + cross-doc + theme-inspection/preset tools), `@ai` comment trigger, voice input, live dictation. Providers: **Mistral Small 4.0** (text + vision), **Voxtral Mini Transcribe + Voxtral Realtime** (one-shot + live dictation), **Jina v5-text-nano** (embeddings) + **Jina Reader** (`fetch_url` page extraction), **Staan** (European Search Perspective SAS — `web_search`), **BFL FLUX.2 [pro] EU-pinned** (image generation) — all routed via the self-hosted **LiteLLM proxy**. **Per-tool call-count caps + per-session interaction cap (50)** in `runLoop.ts` (Phase 2 — protects against cost-amplifying outliers). See `server/utils/agentic/AGENTS.md`.
+- **MCP server:** external MCP clients (Claude Desktop, Cursor, scripts) call `/mcp` with long-lived Personal Access Tokens (SHA-256-hashed at rest, `mcp_personal_tokens` + `mcp_sessions` tables), scoped tool wrappers over the document/knowledge/web surfaces, YDocPool + agent attribution chain. See `server/mcp/AGENTS.md`.
 - **Billing (Stripe + LiteLLM):** `users.plan` + `plan_valid_until` + `stripe_*` cols; `workspaces.billing_owner_id` + `ai_enabled`; per-user LiteLLM virtual keys (`users.litellm_key_id` + AES-256-GCM-encrypted `litellm_key_token`) with `max_budget` enforced by the proxy; AI Points UI (1000 pts = $1.00) backed by `/api/ai/credits` reading `/key/info`; webhook signature verification + event-id dedup (`processed_webhook_events`) + out-of-order event stash (`pending_stripe_events`) + plan-lapse sweep + Stripe-driven `updateUserKeyBudget` / `resetUserKeySpend` on plan/period changes. See `server/utils/AGENTS.md`.
 - **Audit log (Phase 2):** `audit_log` table records security-relevant + billing-relevant operations. Distinct from user-facing `activity_log`. See `server/repos/audit.ts`.
-- **Privacy / GDPR / DSA infrastructure (Workstream B):** EU-only data path — every sub-processor is `intra_eu` (Mistral / Jina / BFL / OVH / Stripe / Plausible / Sentry-EU); lawful-basis registry rendered into the privacy page; truncated-IP audit log; account-deletion request → 30-day grace → full cascading purge with comment anonymisation + workspace promote/cascade rules; data-export ZIP queue (GDPR Art.15/20); cookie consent banner (CNIL-grade equal-prominence, three purposes, append-only `consent_log`, anon-id cookie persists across login); onboarding gate (Privacy + ToS + age ≥16); DPA acceptance gated to workspace owners; DSA Article 16 abuse reporter with admin triage queue + email-out to operator; admin RBAC via `users.is_admin` column + env-list bootstrap; framework-level error sanitisation; transactional email via Resend with sandbox-sender fallback. See `server/legal/AGENTS.md` + `app/components/legal/AGENTS.md`.
+- **Privacy / GDPR / DSA infrastructure (Workstream B):** EU-only data path — AI + storage sub-processors are `intra_eu` (Mistral / Jina / Staan / BFL / OVH), the rest DPF-covered (Stripe / Resend / Sentry-EU / OAuth-only Google + GitHub); lawful-basis registry rendered into the privacy page; truncated-IP audit log; account-deletion request → 30-day grace → full cascading purge with comment anonymisation + workspace promote/cascade rules; data-export ZIP queue (GDPR Art.15/20); cookie consent banner (CNIL-grade equal-prominence, three purposes, append-only `consent_log`, anon-id cookie persists across login); onboarding gate (Privacy + ToS + age ≥16); DPA acceptance gated to workspace owners; DSA Article 16 abuse reporter with admin triage queue + email-out to operator; admin RBAC via `users.is_admin` column + env-list bootstrap; framework-level error sanitisation; transactional email via Resend with sandbox-sender fallback. See `server/legal/AGENTS.md` + `app/components/legal/AGENTS.md`.
 - **Mobile:** Touch-optimized CM6, flex-wrap toolbar, hamburger menu, 640px breakpoint, mobile bottom sheets + format bar (Phase 14). See `app/AGENTS.md`.
 - **Flow docs system:** Playwright tests = documentation. See `tests/e2e/AGENTS.md`.
 
@@ -354,18 +360,18 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 - [ ] Markdown frontmatter, command palette, TOC sidebar, folding, highlighting, QR code sharing, keyboard cheat sheet, remaining locale translations, markdown export with base64-inlined images. (Y.js compaction shipped — background `yjs_documents` sweep in `sync-server/src/compaction.ts`.)
 
 **Mobile MMP**
-- [ ] Floating toolbar above virtual keyboard via `visualViewport`, bottom tab bar (Edit/Preview/AI), sidebar as bottom sheet.
+- [x] Mostly shipped — `visualViewport` keyboard-intrusion offset lives in `AIPromptBar.vue`; bottom sheets / format bar / view-mode bar shipped in the Phase 14 mobile sprint. Only the floating-toolbar-above-keyboard variant was deliberately deferred.
 
 **AI**
 - [ ] Semantic search across docs via embeddings — "find the section about X", "suggest related docs".
-- [ ] Safari support for voice input / dictation — Safari's `MediaRecorder` only emits `audio/mp4` (AAC) which Cloud STT sync doesn't accept.
+- [ ] Safari support for voice input / dictation — Safari's `MediaRecorder` only emits `audio/mp4` (AAC) which the Voxtral (Mistral) transcription path doesn't accept.
 
 **Flow docs system** (see `tests/e2e/AGENTS.md`)
 - [x] Tier 1 flows: `polished-pdf`, `import-existing`, `rich-content`, `password-protect` — shipped with hero strips, direction-anchoring annotations, and curated "Try next" forward links.
 - [x] Two-context fixture (`flow.spawn(actorLabel)`) — spawns a sibling `BrowserContext` with its own cookies + identity; both actors push into the same manifest with `actor` field stamped per frame; `password-protect` rewritten to use it (visitor frames now come from a genuinely separate browser, not a cookie-clear simulation).
-- [x] Tier 2 flows: `voice-dictate`, `document-context`, `knowledge-rag` — voice via the canned-fake STT mock (`NUXT_GOOGLE_SPEECH_MOCK=1`), document-context demonstrates audience+language steering on a single Gemini call, knowledge-rag uploads a postmortem fixture and asks the AI a question grounded in it.
-- [ ] Selective re-runs: `flows:test:changed`.
-- [ ] CI integration.
+- [x] Tier 2 flows: `voice-dictate`, `document-context`, `knowledge-rag` — voice via the canned-fake STT mock (`NUXT_GOOGLE_SPEECH_MOCK=1`), document-context demonstrates audience+language steering on a single Mistral call, knowledge-rag uploads a postmortem fixture and asks the AI a question grounded in it.
+- [x] Selective re-runs: `flows:test:changed` (`scripts/flows-test-changed.ts`).
+- [x] CI integration — fast flow suite runs on every PR (`ci.yml` `test-repos-integration-flows`); full suite incl. live-AI flows runs in `release.yml` + `staging-gate.yml`.
 - [ ] Doc-content i18n pattern.
 - [ ] `/docs/_internal/flows` gallery.
 - [ ] Mobile flow project (375×667 + dedicated `MobileEditorPage`).
@@ -406,7 +412,7 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 | CDN for paged.js / hljs / KaTeX / Mermaid | Vite can't inject into srcdoc iframes; versioned CDN URL = automatic cache-bust |
 | `pgvector/pgvector:pg16` over stock `postgres:16-alpine` (dev/local/test) | Data-dir-compatible drop-in; avoids "install pgvector at runtime" ceremony. Prod uses OVH managed Postgres with the extension preinstalled |
 | Single LiteLLM gateway for every AI surface | Phase 5–6 collapsed every provider onto one self-hosted EU-resident proxy with a vendor-agnostic OpenAI-shape API. Per-user virtual keys gate budget; spend tags surface 4-axis breakdowns to the admin dashboard. The interaction-counter table (`ai_usage_period`) was retired — LiteLLM's per-key `max_budget` is the only enforcement gate now |
-| Mistral / Jina / BFL all EU-resident, no DPF transfers | Phase 6 swap. Mistral (Paris, text + voice), Jina (Berlin, embeddings + web-search reader), BFL (EU-pinned `api.eu2.bfl.ai`, image gen). All `intra_eu` transfer mechanism — no DPF / SCC paperwork. Replaced `google_gemini` + `google_speech_to_text` from the prior stack |
+| Mistral / Jina / Staan / BFL all EU-resident, no DPF transfers | Phase 6 swap. Mistral (Paris, text + voice), Jina (Berlin, embeddings + `fetch_url` page extraction via Jina Reader), Staan (European Search Perspective SAS, `web_search`), BFL (EU-pinned `api.eu2.bfl.ai`, image gen). All `intra_eu` transfer mechanism — no DPF / SCC paperwork. Replaced `google_gemini` + `google_speech_to_text` from the prior stack |
 | Mistral `temperature: 0` on the agentic loop | Default ~0.7 caused tool-selection drift on a deterministic-ish task ("read doc, pick tool, edit, wrap up"). Pinning to 0 stabilises tool choice and stops flow tests from flaking on "model decided to chat instead of editing" |
 | Separate `dictateJwtSecret` | Rotate independently of the Hocuspocus secret. Falls back to `jwtSecret` for dev |
 | Zod as AI-tool source-of-truth | `z.toJSONSchema` generates the OpenAI/Mistral param schema + runtime validator from the same source; malformed args self-correct |
@@ -491,7 +497,7 @@ For feature-specific gotchas see the sub-AGENTS.md for that area.
 
 **What's managed:** OVH managed Postgres (HA + automatic backups + pgvector preinstalled), OVH Object Storage (S3-compatible). What's self-hosted: everything else (Nuxt app, Hocuspocus sync, renderer sidecar, markitdown, Valkey, backup sidecar).
 
-**Deploy flow:** Merge PR → `release.yml` builds + tags GHCR images + creates GH Release from PR title/body → `deploy.yml` (Ansible) pulls images on the VPS + runs `make deploy`. One PR = one release. See `docs/RELEASE-PROCESS.md`.
+**Deploy flow:** Merge PR → `release.yml` builds + tags GHCR images + creates GH Release from PR title/body (`release:none` PRs skip the release) → `staging-gate.yml` fires automatically: full flow suite incl. live-AI flows → deploys `latest` to staging (resetting the staging DB via `scripts/reset-staging-db.sh`) → public smoke suite against `https://staging.markoto.app` → prod deploy is a **manual** `deploy.yml` `workflow_dispatch` (choose environment + tag; the `.env` is rendered from GitHub secrets via `infra/render-env.sh`). One PR = one release. See `docs/RELEASE-PROCESS.md`.
 
 **Rollback:** `infra/playbooks/rollback.yml` flips the GHCR tag back. Database migrations are forward-only by convention; rollback is for code, not schema. See `docs/RUNBOOK.md`.
 

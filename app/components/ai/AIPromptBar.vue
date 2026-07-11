@@ -451,6 +451,7 @@ onUnmounted(() => {
         v-model="input"
         type="text"
         :placeholder="placeholder"
+        :aria-label="t('ai.placeholder')"
         :disabled="disabled"
         class="flex-1 min-w-0 bg-transparent outline-none font-serif italic text-[17px] tracking-tight placeholder:text-muted disabled:text-muted py-3 pr-0"
         data-testid="ai-prompt-bar-input"

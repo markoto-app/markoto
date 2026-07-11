@@ -17,6 +17,7 @@ import { HeadBucketCommand } from '@aws-sdk/client-s3'
 import { useDatabase } from './database'
 import { useValkey } from './valkey'
 import { useS3Client } from './s3'
+import { trimTrailingSlashes } from '../../shared/utils/trimTrailingSlashes'
 
 export type ProbeStatus = 'ok' | 'down' | 'skipped'
 
@@ -112,7 +113,7 @@ async function probeHttp(url: string | undefined | null, name: string, path = '/
   if (!url) return skipped()
   const started = performance.now()
   try {
-    const target = `${url.replace(/\/+$/, '')}${path}`
+    const target = `${trimTrailingSlashes(url)}${path}`
     const res = await fetch(target, {
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
       // GET — every sidecar's /health is a plain text 200.

@@ -23,6 +23,7 @@
   },
   "editor": {
     "untitled": "Unbenannt",
+    "titleInputAria": "Dokumenttitel",
     "placeholder": "Beginnen Sie zu schreiben...",
     "syncAuthFailedTitle": "Sync-Server hat die Verbindung abgelehnt",
     "syncAuthFailedDescription": "Normalerweise haben Sie hier Bearbeitungszugriff. Der Sync-Server hat den Handshake abgewiesen — wahrscheinlich ein IP-Ratenlimit oder ein veraltetes Token. Laden Sie neu, um es erneut zu versuchen.",

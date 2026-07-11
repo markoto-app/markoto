@@ -79,7 +79,9 @@ function wrapRangeChanges(
   const docLen = view.state.doc.length
   const selected = view.state.sliceDoc(from, to)
   const leading = /^\s*/.exec(selected)![0]
-  const trailing = /\s*$/.exec(selected)![0]
+  // trimEnd removes the exact same character set `\s` matches; computing
+  // the suffix this way avoids the super-linear backtracking of /\s*$/.
+  const trailing = selected.slice(selected.trimEnd().length)
   const trimmed = selected.slice(leading.length, selected.length - trailing.length)
 
   // Empty / whitespace-only — caller decides if it makes sense to act.
@@ -193,7 +195,7 @@ export function toggleWrap(view: EditorView, marker: string): void {
   for (const line of nonBlank) {
     const text = line.text
     const leading = /^\s*/.exec(text)![0]
-    const trailing = /\s*$/.exec(text)![0]
+    const trailing = text.slice(text.trimEnd().length)
     const trimmed = text.slice(leading.length, text.length - trailing.length)
 
     if (allWrapped) {
@@ -691,8 +693,8 @@ export function toggleComment(view: EditorView): void {
     // Unwrap. Preserve original leading/trailing whitespace by only
     // touching the trimmed core.
     const lead = /^\s*/.exec(selected)![0]
-    const trail = /\s*$/.exec(selected)![0]
-    const inner = trimmed.slice(4, -3).replace(/^\s+|\s+$/g, '')
+    const trail = selected.slice(selected.trimEnd().length)
+    const inner = trimmed.slice(4, -3).trim()
     const insert = lead + inner + trail
     view.dispatch({
       changes: { from, to, insert },

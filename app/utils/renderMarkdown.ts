@@ -151,7 +151,10 @@ function defaultSlugify(s: string): string {
     .replace(/[\s\u00A0]+/g, '-')
     .replace(/[^\p{L}\p{N}\-_]/gu, '')
     .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    // The preceding collapse guarantees no `--` runs remain, so stripping
+    // a SINGLE leading/trailing dash is equivalent to the old /^-+|-+$/
+    // (whose `-+$` half backtracks super-linearly).
+    .replace(/^-|-$/g, '')
 }
 
 // Lazy singleton via createGlobalState: the factory runs once on first

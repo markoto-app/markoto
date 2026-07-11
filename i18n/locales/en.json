@@ -23,6 +23,7 @@
   },
   "editor": {
     "untitled": "Untitled",
+    "titleInputAria": "Document title",
     "placeholder": "Start writing...",
     "syncAuthFailedTitle": "Sync server rejected the connection",
     "syncAuthFailedDescription": "You normally have edit access here. The sync server bounced the handshake — likely a per-IP rate limit or a stale token. Reload to try again.",

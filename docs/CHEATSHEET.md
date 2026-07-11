@@ -86,7 +86,7 @@ See `docs/DEPLOY-OVH.md` for the OVH walkthrough and `docs/DEPLOY.md` for the ge
 | Recent audit-log entries by an actor | `SELECT * FROM audit_log WHERE actor_user_id=<userId> ORDER BY ts DESC LIMIT 50;` |
 | Pending Stripe webhook events (out-of-order stash) | `SELECT * FROM pending_stripe_events WHERE processed=false;` |
 | Already-processed Stripe webhook events (idempotency) | `SELECT * FROM processed_webhook_events ORDER BY processed_at DESC LIMIT 50;` |
-| AI usage for a user this period | `SELECT * FROM ai_usage_period WHERE user_id=<userId> ORDER BY period_start DESC LIMIT 5;` |
+| AI budget/spend for a user | `SELECT litellm_key_id FROM users WHERE id=<userId>;` then LiteLLM `/key/info` — see `docs/RUNBOOK.md` "budget-exhausted" |
 | Sentry tag table for filtering | See `docs/RUNBOOK.md` and `docs/OBSERVABILITY.md` |
 
 ## I want to release a new version

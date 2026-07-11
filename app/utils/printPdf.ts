@@ -83,9 +83,14 @@ async function replaceMermaidBlock(doc: Document, pre: Element, source: string, 
   // crypto.randomUUID() is secure-context-only. This client-side path runs
   // in the HTTPS app so it's available today, but guard it anyway — a
   // self-hosted deploy served over plain HTTP would otherwise throw here.
-  // The id only needs to be unique within this render pass.
-  const id = 'mmd-' + (globalThis.crypto?.randomUUID?.()
-    ?? (Date.now().toString(36) + Math.random().toString(36).slice(2)))
+  // The fallback uses crypto.getRandomValues, which — unlike randomUUID —
+  // is defined in non-secure contexts too. The id only needs to be unique
+  // within this render pass.
+  const id = 'mmd-' + (globalThis.crypto.randomUUID?.()
+    ?? (Date.now().toString(36) + Array.from(
+      globalThis.crypto.getRandomValues(new Uint32Array(2)),
+      n => n.toString(36)
+    ).join('')))
   try {
     const { svg } = await m.render(id, source)
     const { natW, natH } = extractMermaidNaturalSize(svg)

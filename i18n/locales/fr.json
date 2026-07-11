@@ -23,6 +23,7 @@
   },
   "editor": {
     "untitled": "Sans titre",
+    "titleInputAria": "Titre du document",
     "placeholder": "Commencez à écrire...",
     "syncAuthFailedTitle": "Le serveur de synchronisation a rejeté la connexion",
     "syncAuthFailedDescription": "Vous avez normalement un accès en édition ici. Le serveur de synchronisation a refusé la négociation — probablement une limite de débit par IP ou un jeton expiré. Rechargez pour réessayer.",

@@ -71,6 +71,29 @@ describe('extractToken', () => {
     it('returns null for an empty authorization header', () => {
       expect(extractToken(fakeEvent({ headers: { authorization: '' } }))).toBeNull()
     })
+
+    it('treats "Bearer" + whitespace-only as no token (falls through to query)', () => {
+      expect(extractToken(fakeEvent({ headers: { authorization: 'Bearer   ' } }))).toBeNull()
+      const e = fakeEvent({
+        headers: { authorization: 'Bearer   ' },
+        url: '/?token=query-token'
+      })
+      expect(extractToken(e)).toBe('query-token')
+    })
+
+    it('accepts tab / mixed whitespace between Bearer and the token', () => {
+      expect(extractToken(fakeEvent({ headers: { authorization: 'Bearer\tabc' } }))).toBe('abc')
+      expect(extractToken(fakeEvent({ headers: { authorization: 'bearer \t abc' } }))).toBe('abc')
+    })
+
+    it('stays fast on adversarial whitespace-heavy headers (no backtracking)', () => {
+      // The old /^Bearer\s+(.+)$/ regex backtracked super-linearly on
+      // long whitespace runs; the prefix-test + slice must not.
+      const evil = 'Bearer' + ' '.repeat(100_000) + '\n'
+      const started = performance.now()
+      extractToken(fakeEvent({ headers: { authorization: evil } }))
+      expect(performance.now() - started).toBeLessThan(200)
+    })
   })
 
   describe('?token= query param', () => {

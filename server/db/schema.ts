@@ -20,7 +20,8 @@ export const users = pgTable('users', {
   avatarUrl: text('avatar_url'),
   // Subscription tier. Defaults to `free`; paid tiers are set by
   // the Stripe webhook when `invoice.paid` / `subscription.updated`
-  // lands. See AGENTS.md §15.
+  // lands. See AGENTS.md §7 "Billing (Stripe + LiteLLM)" +
+  // server/utils/AGENTS.md.
   plan: text('plan', { enum: ['free', 'pro', 'max', 'ultra'] }).notNull().default('free'),
   // Paid-tier expiry = Stripe's `current_period_end`. NULL for free
   // users (free never lapses). Set by the Stripe webhook; the

@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   const rawEmail = typeof body?.email === 'string' ? body.email.trim() : ''
   if (!rawEmail) throw createError({ statusCode: 400, message: 'Email is required' })
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
+  if (!isValidEmailShape(rawEmail)) {
     throw createError({ statusCode: 400, message: 'Invalid email address' })
   }
 

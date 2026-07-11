@@ -307,6 +307,7 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
       ref="textareaRef"
       v-model="body"
       :placeholder="placeholder || t('comments.composerPlaceholder')"
+      :aria-label="placeholder || t('comments.composerPlaceholder')"
       :maxlength="maxLength"
       rows="2"
       class="w-full resize-none rounded border border-default bg-default text-sm text-default px-2 py-1.5 outline-none focus:border-primary placeholder:text-muted"
