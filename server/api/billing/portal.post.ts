@@ -21,6 +21,16 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
+  // Rate limit: mirrors /api/billing/checkout — portal sessions are
+  // real Stripe API objects too.
+  if (!(await checkRateLimit('billing-portal', String(userId), 10, 60_000))) {
+    throw createError({
+      statusCode: 429,
+      message: 'Too many portal requests. Try again in a minute.',
+      data: { code: 'billing/rate-limited', messageKey: 'error.rateLimited' }
+    })
+  }
+
   const stripe = useStripeClient()
   if (!stripe) {
     throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })

@@ -36,6 +36,11 @@ on:
 
 permissions:
   contents: read
+  # check-release reads the triggering release run's job list via the API
+  # (GET /actions/runs/:id/jobs) — without actions:read the default token
+  # gets "Resource not accessible by integration" (HTTP 403) and the gate
+  # shows a red run instead of a clean skip on release:none merges.
+  actions: read
 
 concurrency:
   group: staging-gate
