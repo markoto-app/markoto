@@ -189,11 +189,10 @@ Three Tier-2 flows shipped, demonstrating features that score high on "users wou
 - **`delete-account-with-consequences`** (Workstream B) — profile page → click "Delete account" → consequences modal enumerates owned-doc deletion + comment anonymisation + workspace fates (sole-member cascade vs. promote-admin) → type-to-confirm email → grace banner appears → cancel button restores state. 8 variants (light/dark × desktop/mobile × single-member-workspace/multi-member-workspace). The flow asserts the consequence list MATCHES the planned fates, not just "the modal opened" — the consequences modal is the load-bearing UI for GDPR Art.17 informed consent and a stale text would be a real legal failure.
 - **`data-export`** (Workstream B) — profile → "Your data" section → request export → wait for the worker to flip the row to `ready` → download link appears with 7-day-expiry copy → second request shows in history above the first. 8 variants. The flow does NOT crack the ZIP open (that'd duplicate `tests/integration/dataExport.test.ts`); it asserts the user-facing surface only.
 
+Shipped since this list was drafted: the two-context fixture (`flow.spawn`, documented above — `password-protect` now uses a genuinely separate browser context), selective re-runs (`flows:test:changed` via `scripts/flows-test-changed.ts`), and CI integration (fast flow suite on every PR in `ci.yml`; full suite incl. live-AI flows in `release.yml` + `staging-gate.yml`).
+
 Future tier-1 work:
 
-- **Two-context fixture for password-protect.** Currently the flow simulates a fresh visitor by clearing cookies + reloading in the same context (honest because the narrative says "to simulate a visitor in this single browser, we drop the doc-scoped cookie and reload"). A real second `browser.newContext()` would let the screenshots come from a genuinely different browser identity AND from a visitor whose JWT expires independently of the owner's session.
-- **Selective re-runs**: `flows:test:changed` for incremental dev.
-- **CI integration.**
 - **Doc-content i18n pattern** (currently captions are en-only).
 - **`/docs/_internal/flows` gallery.**
 - **Dedicated `MobileEditorPage`** so the desktop-only skips on `polished-pdf` / `import-existing` / `rich-content` / `pick-a-theme` can be replaced with mobile-shaped equivalents (Editor drawer + bottom-sheet variants).

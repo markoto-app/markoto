@@ -75,7 +75,7 @@ Format below: **what / when to use it / what NOT to do.**
 
 ## Workspace Knowledge Base
 
-Workspace-scoped file uploads that the AI can retrieve from. Lives under `/w/:id` (and embedded in the editor's right sidebar via the library icon next to Activity + Theme). Files flow: presigned S3 PUT → markitdown parse → heading-aware chunker → Gemini per-chunk embedding → pgvector row. Retrieval: hybrid RRF over vector + BM25.
+Workspace-scoped file uploads that the AI can retrieve from. Lives under `/w/:id` (and embedded in the editor's right sidebar via the library icon next to Activity + Theme). Files flow: presigned S3 PUT → markitdown parse → heading-aware chunker → Jina per-chunk embedding (via LiteLLM) → pgvector row. Retrieval: hybrid RRF over vector + BM25.
 
 ### Data
 
@@ -92,22 +92,19 @@ Two-phase presign (same pattern as image uploads):
 
 ### `processKnowledge.ts`
 
-Sequential: fetch S3 bytes → POST to markitdown (`markitdown-server` FastAPI at `$NUXT_MARKITDOWN_URL`) with `?ext=…` → chunk the returned markdown (heading + paragraph aware, `maxChunks` cap from config — sentinel truncation chunk on overflow) → embed each chunk with `RETRIEVAL_DOCUMENT` task-type → `DELETE FROM chunks WHERE knowledge_id = :id` then bulk `INSERT` new chunks → flip status to `ready` + populate `markdown_cache` → delete the original S3 object. Errors flip the row to `failed` with a truncated `error_message`. Row-existence re-checked after conversion AND after embedding so a user deletion mid-pipeline aborts cleanly without wasting embedding round-trips.
+Sequential: fetch S3 bytes → POST to markitdown (`markitdown-server` FastAPI at `$NUXT_MARKITDOWN_URL`) with `?ext=…` → chunk the returned markdown (heading + paragraph aware, `maxChunks` cap from config — sentinel truncation chunk on overflow) → embed each chunk with the `retrieval.passage` task → `DELETE FROM chunks WHERE knowledge_id = :id` then bulk `INSERT` new chunks → flip status to `ready` + populate `markdown_cache` → delete the original S3 object. Errors flip the row to `failed` with a truncated `error_message`. Row-existence re-checked after conversion AND after embedding so a user deletion mid-pipeline aborts cleanly without wasting embedding round-trips.
 
 ### `embeddings.ts`
 
-**Dual-mode (Phase 1A migration).** Selects the backend via `runtimeConfig.knowledgeEmbeddingsProvider`:
+**Single Jina path via LiteLLM.** All embeddings route through the LiteLLM proxy → `jina-embeddings-v5-text-nano` (native 768-d, no MRL needed). (Historical: the pre-Phase-5 path was direct `@google/genai` Gemini embeddings; the dual-mode shim was removed in the Phase 7 cleanup.)
 
-- `gemini` (legacy) — direct `@google/genai` `embedContent`. Removed in Phase 7 cleanup.
-- `jina` — routes through the LiteLLM proxy → `jina-embeddings-v5-text-nano` (native 768-d, no MRL needed).
+Public API is provider-agnostic: `embedDocuments` / `embedQuery` / `embeddingVersionTag` / `resolveEmbeddingsConfig`; callsites in `processKnowledge.ts`, `repos/knowledge.ts`, and `scripts/re-embed-knowledge.ts` don't know the backend. Bounded `CONCURRENCY = 5` pool; Jina's `/v1/embeddings` is called per-chunk by convention here.
 
-Both paths share the same `embedDocuments` / `embedQuery` / `embeddingVersionTag` / `resolveEmbeddingsConfig` API; callsites in `processKnowledge.ts`, `repos/knowledge.ts`, and `scripts/re-embed-knowledge.ts` are provider-agnostic. Bounded `CONCURRENCY = 5` pool on both paths (per-call API: Gemini's JS SDK aggregates a multi-string `contents` array into ONE vector, NOT one per string — that's the Python SDK; Jina's `/v1/embeddings` is per-call by convention here).
+`embeddingVersionTag` is `{provider}/{model}:{dims}` (e.g. `jina/jina-embeddings-v5-text-nano:768`). Rows stamped before the migration carry the legacy `{model}:{dims}` shape — `scripts/re-embed-knowledge.ts` treats those as stale.
 
-`embeddingVersionTag` is now `{provider}/{model}:{dims}` (e.g. `jina/jina-embeddings-v5-text-nano:768`). Older rows stamped before the dual-mode migration carry the legacy `{model}:{dims}` shape — `scripts/re-embed-knowledge.ts` treats those as stale when the active provider is `jina`.
+Jina `task` values: `retrieval.passage` on ingest; `retrieval.query` on search. The `task` parameter propagates through LiteLLM as a top-level field (NOT via `extra_body`). Vectors differ across task values — the hint matters for recall.
 
-`RETRIEVAL_DOCUMENT` (Gemini taskType) / `retrieval.passage` (Jina task) on ingest; `RETRIEVAL_QUERY` / `retrieval.query` on search. Spike confirmed Jina's `task` parameter propagates through LiteLLM as a top-level field (NOT via `extra_body`). Vectors differ across task values — the hint matters for recall.
-
-**Re-embed script** (`scripts/re-embed-knowledge.ts`) drives the Phase 1A cutover: walks `workspace_knowledge_chunks`, re-embeds with the new provider, bumps the parent's `embedding_version`. Idempotent (filters by `embedding_version != target`); throttled to 5 concurrent. Run BEFORE flipping `NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER=jina` globally so the read path sees consistent vectors at every moment.
+**Re-embed script** (`scripts/re-embed-knowledge.ts`): walks `workspace_knowledge_chunks`, re-embeds with the active provider/model, bumps the parent's `embedding_version`. Idempotent (filters by `embedding_version != target`); throttled to 5 concurrent. Use it for any future model bump so the read path sees consistent vectors at every moment.
 
 **Reranker intentionally NOT in the pipeline.** Hybrid vector + BM25 RRF is sufficient for writing-doc retrieval. A reranker stage would add 100-200ms latency + extra Jina-token cost per knowledge search without a justified quality win on this workload. Revisit only if recall becomes the bottleneck under real usage.
 
@@ -125,9 +122,9 @@ Results merged by `(knowledgeId, chunkIndex)` and ranked via **Reciprocal Rank F
 | Layer | Check | Where |
 |---|---|---|
 | Rate limit | 30 upload-requests / user / min | `checkRateLimit('knowledge-upload', …)` in upload-request |
-| Per-workspace caps | 500 files + 1 GB | DB count/sum at upload-request + confirm |
-| Per-user caps | 100 files + 2 GB across ALL workspaces | DB count/sum at upload-request + confirm |
-| Workspace-per-user cap | 20 owned workspaces | `countOwnedWorkspacesByUser` in `POST /api/workspaces` |
+| Per-workspace bytes cap | tiered per plan (50 MB / 2 GB / 1 GB / 1 GB — `shared/config/tiers.ts`) | DB count/sum at upload-request + confirm |
+| Per-user caps | tiered files (5 / 50 / 500 / 2000) + bytes (50 MB / 2 GB / 10 GB / 50 GB) across ALL workspaces | DB count/sum at upload-request + confirm |
+| Workspace-per-user cap | tiered owned workspaces (1 / 10 / 30 / 100 — `TIERS[plan].workspacesOwned`) | `POST /api/workspaces` |
 | Concurrent races | Valkey inflight counters (`knowledge-upload-ws` + `knowledge-upload-user`), 6 min TTL | `reserveInflightSlot` / `releaseInflightSlot` (fail CLOSED) |
 | Confirm race | Postgres advisory lock `pg_advisory_xact_lock(hashtext(wsId))` inside a txn | confirm endpoint |
 | Content-type bypass | Magic-byte sniff via `file-type` on first 4 KB of S3 object | `fileTypeGuard.ts`, called in confirm |
@@ -135,7 +132,7 @@ Results merged by `(knowledgeId, chunkIndex)` and ranked via **Reciprocal Rank F
 | Abandoned `failed` rows | TTL sweep: `status='failed'` rows older than `failedRetentionDays = 7` auto-reaped | `server/plugins/knowledge-sweep.ts` |
 | Stuck `processing` rows | TTL sweep: `status='processing'` rows older than 10 min re-process | same plugin |
 
-All caps live in `config.knowledge.*`; workspaces-per-user in `config.workspaces.maxPerUser`. The inflight counter fails CLOSED (correctness cap); the rate limit fails OPEN (DoS protection, not a cost cap). The advisory lock is load-bearing: without it, two concurrent confirms that both read N-1 used at upload-request time would both commit and land at N+1.
+Tiered caps live in `shared/config/tiers.ts` (`TIERS[plan]` + `KNOWLEDGE_PLATFORM_LIMITS`, enforced via `server/utils/knowledgeQuota.ts`). The inflight counter fails CLOSED (correctness cap); the rate limit fails OPEN (DoS protection, not a cost cap). The advisory lock is load-bearing: without it, two concurrent confirms that both read N-1 used at upload-request time would both commit and land at N+1.
 
 ### Content-type validation
 
@@ -151,16 +148,16 @@ The two knowledge tools (`search_knowledge`, `get_knowledge_file`) are in `KNOWL
 
 ## Knowledge gotchas
 
-- **Gemini JS SDK `embedContent([str, str, …])` returns ONE vector, not N** — the SDK treats the array as a multi-part Content. Loop per-chunk with bounded concurrency. Python SDK does per-string; don't port Python patterns blindly. Symptom: `[embeddings] expected N vectors, got 1` flipping the row to `failed`.
+- **Embed per-chunk with bounded concurrency** — the pipeline loops one `/v1/embeddings` call per chunk (`CONCURRENCY = 5`) and validates the vector shape (`[embeddings] jina vector has wrong shape` throws rather than silently inserting a wrong-dims row).
 - **Jina v5-text-small is 1024-d native; v5-text-nano is 768-d native.** We pin v5-text-nano so no MRL truncation is needed and the existing `vector(768)` HNSW index is a perfect fit (zero DDL). Bumping to v5-text-small via MRL-truncate-to-768 is a config-only change if quality ever becomes the bottleneck.
 - **LiteLLM's native Jina embeddings provider has a spend-tracking bug** — Jina returns `usage.total_tokens` only (no `prompt_tokens`), but LiteLLM computes embedding cost as `input_cost_per_token × prompt_tokens`, so spend lands at `$0.00`. We work around this with a custom embeddings provider in `infra/litellm/custom_handlers.py:JinaEmbeddingsProvider` (registered as `jina-embed/...` in `custom_provider_map`) that hits Jina directly and reshapes the usage so `prompt_tokens == total_tokens`. The wrapper has the same OpenAI-shape interface as the native provider — callers don't see the difference, but spend now tracks correctly. File a similar wrapper if any future provider's usage shape doesn't match LiteLLM's expected fields.
-- **pgvector HNSW caps at 2000 dims** — 3072-d (Gemini's full `gemini-embedding-2-preview`) can't use HNSW; must use IVFFlat or drop to 768/1536 via MRL. We pick 768 for HNSW compat + cost.
+- **pgvector HNSW caps at 2000 dims** — larger embedding models can't use HNSW; they'd need IVFFlat or MRL truncation. We pick 768 (v5-text-nano native) for HNSW compat + cost.
 - **`websearch_to_tsquery` on stopword-only input returns empty tsquery** — the `@@` predicate then returns zero rows. Hybrid search degrades to vector-only in that case rather than erroring; don't add a guard that short-circuits on empty queries or you lose useful signal on single-keyword searches.
 - **Advisory locks must be INSIDE a txn** — `pg_advisory_xact_lock(hashtext(...))` only releases on COMMIT/ROLLBACK. All knowledge-confirm writes go through `db.transaction(async tx => ...)`.
 - **Valkey inflight counter fails CLOSED** — if Valkey is down, `reserveInflightSlot` returns `allowed: false`. We'd rather reject uploads on Valkey outage than let uncapped concurrent uploads through.
 - **`file-type` returns undefined on plain-text input** — no magic bytes for MD/TXT/HTML. The guard falls through to a printable-UTF-8 ratio check on the first 1 KB. Don't treat `undefined` as "unknown format = allow"; that's an allowlist bypass.
 - **Knowledge S3 original is deleted after processing** — `deleteKnowledgeArtifact` still tries to delete on row-delete, tolerating 404. Don't assume `workspace_knowledge.s3_key` points at a live object for `ready` rows.
-- **`processKnowledge` re-checks row existence after conversion AND after embedding** — user can delete mid-pipeline; without the re-check we'd waste Gemini embedding calls on a doomed insert.
+- **`processKnowledge` re-checks row existence after conversion AND after embedding** — user can delete mid-pipeline; without the re-check we'd waste embedding calls on a doomed insert.
 - **`pgvector/pgvector:pg16` over stock `postgres:16-alpine`** — data-dir-compatible drop-in. Migration `0005` hand-prepends `CREATE EXTENSION IF NOT EXISTS vector` because drizzle doesn't emit extension DDL.
 - **Confirm-endpoint input binding:** the knowledge-confirm handler requires `knowledgeId` to match the last path segment of `s3Key` — closes the "mint a presign for key A but claim it under knowledgeId B" surface.
 - **Mid-session workspace membership drift:** `/api/ai/prompt` resolves `session.workspaceId` once at session open. Knowledge tool handlers re-check `getMemberRole(workspaceId, initiatorUserId)` on every invocation via `verifyWorkspaceMembership()` so an admin demotion mid-session immediately revokes further knowledge access at the next tool call.

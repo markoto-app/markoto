@@ -16,7 +16,8 @@ import { getWorkspace, setWorkspaceBilling } from '../../../repos/workspaces'
 //     admin drain another user's pool without explicit consent.
 //   - Disabling is always allowed (any admin can turn off `(+)` at
 //     any time, regardless of their own plan). Mirrors the "deactivate
-//     is instant" property from AGENTS.md §15.
+//     is instant" property from AGENTS.md §7 "Billing (Stripe +
+//     LiteLLM)" / server/utils/AGENTS.md.
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
