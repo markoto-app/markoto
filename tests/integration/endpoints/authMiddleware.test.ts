@@ -121,6 +121,77 @@ describe('auth middleware whitelist', () => {
     })
   })
 
+  describe('default-deny backstop', () => {
+    // The middleware is DEFAULT-DENY: any /api route not in the explicit
+    // public whitelist requires a valid session — there is no
+    // fall-through-open branch. These tests pin the model itself, not
+    // individual endpoints: a regression back to prefix-matching would
+    // flip the unknown-route case below from 401 to 404.
+
+    it('GET /api/admin/abuse-reports rejects anonymous at the middleware', async () => {
+      const res = await anonClient().get('/api/admin/abuse-reports')
+      expect(res.status).toBe(401)
+    })
+
+    it('GET /api/admin/ai-spend rejects anonymous', async () => {
+      const res = await anonClient().get('/api/admin/ai-spend')
+      expect(res.status).toBe(401)
+    })
+
+    it('POST /api/abuse-reports rejects anonymous', async () => {
+      const res = await anonClient().post('/api/abuse-reports', {})
+      expect(res.status).toBe(401)
+    })
+
+    it('GET /api/health/deep rejects anonymous', async () => {
+      const res = await anonClient().get('/api/health/deep')
+      expect(res.status).toBe(401)
+    })
+
+    it('an UNKNOWN /api route rejects anonymous instead of falling through', async () => {
+      // This is the load-bearing default-deny pin: under the old
+      // prefix-list model this 404'd (fell through open); now the
+      // middleware refuses before routing. Also removes anonymous
+      // route-enumeration as a side effect.
+      const res = await anonClient().get('/api/route-that-does-not-exist')
+      expect(res.status).toBe(401)
+    })
+
+    it('an unknown /api route 404s (not 401) for a logged-in user', async () => {
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      const res = await client.get('/api/route-that-does-not-exist')
+      expect(res.status).toBe(404)
+    })
+
+    // Whitelist survivors — routes that previously relied on the implicit
+    // fall-through and are now explicitly public. A missed entry here
+    // breaks an anonymous product surface.
+
+    it('GET /api/version stays public', async () => {
+      const res = await anonClient().get('/api/version')
+      expect(res.status).toBe(200)
+    })
+
+    it('GET /api/_auth/session stays public (pre-login session probe)', async () => {
+      const res = await anonClient().get('/api/_auth/session')
+      expect(res.status).toBe(200)
+    })
+
+    it('GET /api/files/:docId/:fileId stays public (endpoint-gated)', async () => {
+      const doc = await createDoc({ accessMode: 'open-edit' })
+      const res = await anonClient().get(`/api/files/${doc.docId}/nonexistent-file`)
+      // The file doesn't exist so the endpoint 404s — the point is the
+      // middleware didn't 401 an anonymous image read on an open doc.
+      expect(res.status).not.toBe(401)
+    })
+
+    it('HEAD /api/health is treated as GET (external monitors probe with HEAD)', async () => {
+      const res = await anonClient().request('/api/health', { method: 'HEAD' })
+      expect(res.status).not.toBe(401)
+    })
+  })
+
   describe('internal route guard', () => {
     it('POST /api/internal/* requires X-Internal-Secret, not a user session', async () => {
       // Anonymous — should NOT get 401 (middleware lets internal routes

@@ -25,6 +25,25 @@ export default defineEventHandler(async (event) => {
   // `getValidatedUserSession` cross-checks the DB and clears stale cookies.
   const session = await getValidatedUserSession(event)
   const ownerId = session?.user?.id ?? null
+
+  // Rate limit ANONYMOUS creation only: each doc is a Postgres row +
+  // Y.js state that lives until the inactive-doc sweep, so an
+  // unauthenticated loop could fill the documents table with junk.
+  // 30/min per IP is far above human "new doc" cadence; logged-in
+  // users are accountable (owned rows, plan caps) and skip this.
+  if (!ownerId) {
+    const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
+      || getRequestHeader(event, 'x-real-ip')
+      || 'unknown'
+    if (!(await checkRateLimit('anon-doc-create', ip, 30, 60_000))) {
+      throw createError({
+        statusCode: 429,
+        message: 'Too many new documents. Try again in a minute.',
+        data: { code: 'docs/rate-limited', messageKey: 'error.rateLimited' }
+      })
+    }
+  }
+
   const body = await readBody<RawBody>(event).catch((): RawBody => ({}))
 
   // Endpoint-level type-shape validation (must reject 400 on wrong

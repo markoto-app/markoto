@@ -38,6 +38,17 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
+  // Rate limit: every call creates a real Stripe Checkout Session — a
+  // looping client would generate unbounded abandoned sessions and
+  // Stripe API load. 10/min is far above any human retry pattern.
+  if (!(await checkRateLimit('billing-checkout', String(userId), 10, 60_000))) {
+    throw createError({
+      statusCode: 429,
+      message: 'Too many checkout attempts. Try again in a minute.',
+      data: { code: 'billing/rate-limited', messageKey: 'error.rateLimited' }
+    })
+  }
+
   const body = await readBody<{ plan?: unknown }>(event)
   const requestedPlan = typeof body?.plan === 'string' ? body.plan : ''
   if (requestedPlan !== 'pro' && requestedPlan !== 'max' && requestedPlan !== 'ultra') {
