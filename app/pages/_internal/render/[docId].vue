@@ -290,9 +290,14 @@ async function replaceMermaidBlock(doc: Document, pre: Element, source: string, 
   // context, so crypto.randomUUID is undefined there and would throw —
   // halting the mermaid transform before __pagedReady is set and hanging
   // the render until the sidecar's 45s waitForFunction timeout. Fall back
-  // to a non-secure-context-safe id (only needs to be unique per render).
-  const id = 'mmd-' + (globalThis.crypto?.randomUUID?.()
-    ?? (Date.now().toString(36) + Math.random().toString(36).slice(2)))
+  // to a non-secure-context-safe id (only needs to be unique per render):
+  // crypto.getRandomValues — unlike randomUUID — IS defined in non-secure
+  // contexts, so it works over the plain-HTTP container path too.
+  const id = 'mmd-' + (globalThis.crypto.randomUUID?.()
+    ?? (Date.now().toString(36) + Array.from(
+      globalThis.crypto.getRandomValues(new Uint32Array(2)),
+      n => n.toString(36)
+    ).join('')))
   try {
     const { svg } = await m.render(id, source)
     const { natW, natH } = extractMermaidNaturalSize(svg)
