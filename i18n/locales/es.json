@@ -23,6 +23,7 @@
   },
   "editor": {
     "untitled": "Sin título",
+    "titleInputAria": "Título del documento",
     "placeholder": "Empieza a escribir...",
     "syncAuthFailedTitle": "El servidor de sincronización rechazó la conexión",
     "syncAuthFailedDescription": "Normalmente tienes acceso de edición aquí. El servidor de sincronización rechazó el intercambio — probablemente un límite de solicitudes por IP o un token caducado. Recarga para intentarlo de nuevo.",
