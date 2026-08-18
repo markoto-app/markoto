@@ -67,7 +67,7 @@ services:
       - internal
 
   app:
-    image: ${REGISTRY:?REGISTRY required}/md-online-app:${IMAGE_TAG:?IMAGE_TAG required}
+    image: ${REGISTRY:?REGISTRY required}/markoto-app:${IMAGE_TAG:?IMAGE_TAG required}
     restart: unless-stopped
     # SIGTERM handler needs time to drain HTTP and close the pg pool.
     stop_grace_period: 30s
@@ -208,7 +208,7 @@ services:
       - internal
 
   sync:
-    image: ${REGISTRY}/md-online-sync:${IMAGE_TAG}
+    image: ${REGISTRY}/markoto-sync:${IMAGE_TAG}
     environment:
       - JWT_SECRET=${NUXT_JWT_SECRET}
       - JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
@@ -266,7 +266,7 @@ services:
       - internal
 
   markitdown:
-    image: ${REGISTRY}/md-online-markitdown:${IMAGE_TAG}
+    image: ${REGISTRY}/markoto-markitdown:${IMAGE_TAG}
     expose:
       - "8080"
     networks:
@@ -276,7 +276,7 @@ services:
   # app's /_internal/render/:docId page (gated by INTERNAL_API_SECRET-signed
   # render tokens). Internal-network-only; never reachable from outside.
   renderer:
-    image: ${REGISTRY}/md-online-renderer:${IMAGE_TAG}
+    image: ${REGISTRY}/markoto-renderer:${IMAGE_TAG}
     environment:
       - APP_URL=http://app:3000
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
@@ -286,7 +286,7 @@ services:
       - internal
 
   backup:
-    image: ${REGISTRY}/md-online-backup:${IMAGE_TAG}
+    image: ${REGISTRY}/markoto-backup:${IMAGE_TAG}
     environment:
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
       - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:?BACKUP_INTERVAL_SECONDS required}

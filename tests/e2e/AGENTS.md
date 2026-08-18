@@ -280,7 +280,7 @@ Live Mistral / Jina / BFL round-trips run **5–30 s** depending on tool count. 
 
 ## Gotchas
 
-- **`docker compose down --remove-orphans` is a footgun in this project.** All compose files share the same project namespace (`md-online`), so `--remove-orphans` treats services from OTHER compose files as orphans and removes them. `bun run flows:down` and `scripts/flows-ephemeral.ts` deliberately do NOT use `--remove-orphans`.
+- **`docker compose down --remove-orphans` is a footgun in this project.** All compose files share the same project namespace (derived from the checkout directory name), so `--remove-orphans` treats services from OTHER compose files as orphans and removes them. `bun run flows:down` and `scripts/flows-ephemeral.ts` deliberately do NOT use `--remove-orphans`.
 - **Caption inversion bug from SPA navigation.** A click that triggers `router.push()` keeps the OS cursor at the click coordinates AND keeps the same JS context, so `window.__flowCursor` still holds coordinates valid on page A's layout, not page B's. The injection script stamps `location.pathname` on every motion; `readCursor` returns null when the path has changed since.
 - **Use `flow.click(caption, locator)` for navigation clicks**, NOT `flow.step('Click X', () => locator.click())`. The latter captures AFTER the click — the screenshot lands on the destination page with no meaningful cursor. `flow.click` hovers FIRST, screenshots WITH the cursor on the target, THEN clicks.
 - **`<ContentRenderer>` wraps its output in an unstyled `<div>`.** The fix: pass `class="docs-content"` to `<ContentRenderer>` so the wrapper carries the grid styles directly.

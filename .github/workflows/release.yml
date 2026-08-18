@@ -184,7 +184,7 @@ jobs:
       fail-fast: true
       matrix:
         # `image` is the GHCR repo name the prod compose pulls
-        # (${REGISTRY}/md-online-<x>); `service` is just the display label
+        # (${REGISTRY}/markoto-<x>); `service` is just the display label
         # + build cache scope. All five runtime images are built here — the
         # markitdown + backup images were previously omitted, so the prod
         # stack could never pull a complete set.
@@ -192,25 +192,25 @@ jobs:
           - service: app
             context: .
             dockerfile: Dockerfile
-            image: md-online-app
+            image: markoto-app
           - service: sync-server
             # Repo-root context: the sync Dockerfile COPYs both sync-server/src
             # AND the top-level shared/ dir, so ./sync-server can't see shared/.
             context: .
             dockerfile: ./sync-server/Dockerfile
-            image: md-online-sync
+            image: markoto-sync
           - service: renderer
             context: ./renderer
             dockerfile: ./renderer/Dockerfile
-            image: md-online-renderer
+            image: markoto-renderer
           - service: markitdown
             context: ./markitdown-server
             dockerfile: ./markitdown-server/Dockerfile
-            image: md-online-markitdown
+            image: markoto-markitdown
           - service: backup
             context: ./backup-server
             dockerfile: ./backup-server/Dockerfile
-            image: md-online-backup
+            image: markoto-backup
     steps:
       - uses: actions/checkout@v4
         with:
@@ -225,7 +225,7 @@ jobs:
       # root disk. NOT /mnt: that's the small disk Docker layers spill onto.
       # Only the app image build is heavy enough to need it.
       - name: Add swap (memory-heavy app build)
-        if: matrix.image == 'md-online-app'
+        if: matrix.image == 'markoto-app'
         run: |
           sudo fallocate -l 10G /swapfile-ci
           sudo chmod 600 /swapfile-ci
