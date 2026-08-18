@@ -140,7 +140,11 @@ EOF
 if [ -n "$OVH_PG_HOST" ] && [ -n "$OVH_PG_CA_REMOTE_PATH" ]; then
   echo "PGSSLROOTCERT=${OVH_PG_CA_REMOTE_PATH}"
   echo "PGSSL="
+  # libpq-style sslmode consumed by litellm's DATABASE_URL, the
+  # litellm-db-init psql, and the backup sidecar's pg_dump.
+  echo "POSTGRES_SSLMODE=require"
 else
   echo "PGSSLROOTCERT="
   echo "PGSSL=disable"
+  echo "POSTGRES_SSLMODE=disable"
 fi

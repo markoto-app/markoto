@@ -126,14 +126,19 @@ services:
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
-      # Postgres + Valkey atomic parts. *_HOST overridden to the docker
-      # service name; .env owns user/password/db/port. The Nuxt app
-      # composes the URL via shared/utils/connectionStrings.ts.
+      # Postgres + Valkey atomic parts. HOST/PORT default to the in-stack
+      # container; a managed-Postgres deployment overrides them via .env
+      # (POSTGRES_HOST=<cluster-host> POSTGRES_PORT=<port> + the TLS vars
+      # below). The Nuxt app composes the URL via
+      # shared/utils/connectionStrings.ts. NOTE: in managed mode the
+      # in-stack postgres container still runs (compose `include:` can't
+      # drop a service) — it sits idle and keeps the depends_on
+      # healthcheck satisfied; accepted overhead.
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - VALKEY_HOST=valkey
       - VALKEY_PORT=6379
       - VALKEY_PASSWORD=${VALKEY_PASSWORD}
@@ -197,6 +202,11 @@ services:
       # 502 user AI calls in the window between app-up and proxy-up.
       litellm:
         condition: service_healthy
+    # Managed-Postgres CA (render-env points PGSSLROOTCERT here). The dir
+    # is auto-created empty when unused — the mount is inert in in-stack
+    # mode.
+    volumes:
+      - /opt/markoto/secrets:/opt/markoto/secrets:ro
     networks:
       - web
       - internal
@@ -210,9 +220,32 @@ services:
   litellm:
     networks:
       - internal
+    environment:
+      # Managed-Postgres override of base's hardcoded @postgres:5432.
+      # sslmode=require (encrypted, no CA pin) is enough for the proxy's
+      # own bookkeeping DB — the primary data path (app + sync) pins the
+      # CA via PGSSLROOTCERT.
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/litellm?sslmode=${POSTGRES_SSLMODE:-disable}
   litellm-db-init:
     networks:
       - internal
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      # libpq TLS: require in managed mode, disable in-stack.
+      - PGSSLMODE=${POSTGRES_SSLMODE:-disable}
+    # Base hardcodes `-h postgres`; command REPLACES wholesale on compose
+    # merge, so this override is the full parameterized equivalent. On a
+    # managed cluster the POSTGRES_USER needs CREATEDB rights (OVH's
+    # default admin user has them).
+    command:
+      - |
+        psql -h "$$POSTGRES_HOST" -p "$$POSTGRES_PORT" -U "$$POSTGRES_USER" -d postgres -tAc \
+          "SELECT 1 FROM pg_database WHERE datname='litellm'" \
+          | grep -q 1 || \
+          psql -h "$$POSTGRES_HOST" -p "$$POSTGRES_PORT" -U "$$POSTGRES_USER" -d postgres -c "CREATE DATABASE litellm;"
 
   sync:
     image: ${REGISTRY}/markoto-sync:${IMAGE_TAG}
@@ -229,6 +262,11 @@ services:
       - NODE_ENV=production
       - PGSSLROOTCERT=${PGSSLROOTCERT:-}
       - PGSSL=${PGSSL:-}
+      # Managed-Postgres override of base's hardcoded service name.
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+    volumes:
+      - /opt/markoto/secrets:/opt/markoto/secrets:ro
     expose:
       - "4001"
     labels:
@@ -294,7 +332,15 @@ services:
 
   backup:
     image: ${REGISTRY}/markoto-backup:${IMAGE_TAG}
+    volumes:
+      - /opt/markoto/secrets:/opt/markoto/secrets:ro
     environment:
+      # Managed-Postgres overrides (base hardcodes the in-stack host).
+      # pg_dump is libpq — PGSSLMODE/PGSSLROOTCERT are honored natively.
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - PGSSLMODE=${POSTGRES_SSLMODE:-disable}
+      - PGSSLROOTCERT=${PGSSLROOTCERT:-}
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
       - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:?BACKUP_INTERVAL_SECONDS required}
       - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:?BACKUP_RETENTION_COUNT required}
