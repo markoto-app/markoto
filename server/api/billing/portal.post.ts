@@ -48,11 +48,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const config = useRuntimeConfig()
+  // Base URL from the Origin (browsers always send it on POST) with
+  // Host as fallback — both survive Traefik.
   const originHeader: string | undefined = getRequestHeader(event, 'origin')
   const hostHeader: string | undefined = getRequestHeader(event, 'host')
-  const siteUrl = typeof config.public?.siteUrl === 'string' ? config.public.siteUrl : ''
-  const origin = originHeader ?? hostHeader ?? siteUrl ?? ''
+  const origin = originHeader ?? hostHeader ?? ''
   const base = origin.startsWith('http') ? origin : `https://${origin}`
   const returnUrl = base + '/pricing'
 

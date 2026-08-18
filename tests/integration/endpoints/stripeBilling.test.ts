@@ -64,6 +64,51 @@ describe('POST /api/billing/checkout', () => {
     expect(res.status).toBe(200)
   })
 
+  it('upgrades IN PLACE when the user already has a live subscription', async () => {
+    // The double-subscription guard: a pro user "upgrading" to max must
+    // get a price swap on their EXISTING subscription, not a Checkout
+    // URL (which would create a second concurrent subscription).
+    // stripe-mock returns status=active for any subscription retrieve,
+    // so this exercises the live-subscription branch end to end.
+    const u = await createUser()
+    await testDb().query(
+      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3, plan_valid_until = $4 WHERE id = $5',
+      ['cus_existing_test', 'sub_existing_test', 'pro', new Date(Date.now() + 20 * 24 * 3600 * 1000), u.id]
+    )
+    const client = await loggedInClient(u.id)
+    const res = await client.post('/api/billing/checkout', { plan: 'max' })
+    expect(res.status).toBe(200)
+    const body = await res.json() as { updated?: boolean, plan?: string, url?: string }
+    expect(body.updated).toBe(true)
+    expect(body.plan).toBe('max')
+    // Crucially: NO checkout URL — nothing to redirect to.
+    expect(body.url).toBeUndefined()
+  })
+
+  it('409 when requesting the plan the user is already on', async () => {
+    const u = await createUser()
+    await testDb().query(
+      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3 WHERE id = $4',
+      ['cus_existing_test', 'sub_existing_test', 'pro', u.id]
+    )
+    const client = await loggedInClient(u.id)
+    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    expect(res.status).toBe(409)
+  })
+
+  it('still opens Checkout for a user with a customer id but no subscription id', async () => {
+    // subscribed → cancelled (subscription id nulled by the deleted-
+    // webhook) → resubscribes: fresh Checkout on the SAME customer.
+    const u = await createUser()
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = NULL WHERE id = $2', ['cus_existing_test', u.id])
+    const client = await loggedInClient(u.id)
+    const res = await client.post('/api/billing/checkout', { plan: 'ultra' })
+    expect(res.status).toBe(200)
+    const body = await res.json() as { url?: string, updated?: boolean }
+    expect(body.url).toMatch(/^https?:\/\//)
+    expect(body.updated).toBeUndefined()
+  })
+
   it('401 when the session points at a user row that was deleted mid-flight', async () => {
     // Session cookies are sealed-string, not DB-backed, so a valid
     // session for a deleted user survives on the client. But

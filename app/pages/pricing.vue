@@ -114,16 +114,41 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     return
   }
 
-  // Upgrade path → Checkout Session.
+  // Upgrade path. The server decides the mechanics: a first-time
+  // subscriber gets a Checkout URL to redirect to; a user with a live
+  // subscription gets an IN-PLACE price swap on that subscription
+  // (prorated, charged immediately) and `{ updated: true }` back —
+  // never a second concurrent subscription.
   checkoutLoading.value = plan
   try {
-    const { url } = await $fetch<{ url: string, sessionId: string }>('/api/billing/checkout', {
+    const resp = await $fetch<{ url?: string, sessionId?: string, updated?: boolean, plan?: PlanName }>('/api/billing/checkout', {
       method: 'POST',
       body: { plan }
     })
+    if (resp.updated) {
+      toast.add({
+        title: 'Plan updated',
+        description: `You are now on the ${resp.plan} plan. Your new AI budget is available immediately.`,
+        icon: 'i-lucide-check-circle',
+        color: 'success'
+      })
+      checkoutLoading.value = null
+      // Refresh the "current plan" highlight. The webhook that flips
+      // the plan can lag the API response by a beat — refetch once now
+      // and once shortly after so the page settles on the new state.
+      try {
+        billing.value = await $fetch<UserBilling>('/api/user/billing')
+        setTimeout(async () => {
+          try {
+            billing.value = await $fetch<UserBilling>('/api/user/billing')
+          } catch { /* highlight refresh only */ }
+        }, 2500)
+      } catch { /* highlight refresh only */ }
+      return
+    }
     // Full-page redirect — Stripe's hosted Checkout is a separate
     // origin, can't be iframed.
-    globalThis.location.href = url
+    if (resp.url) globalThis.location.href = resp.url
   } catch (e) {
     const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
     toast.add({

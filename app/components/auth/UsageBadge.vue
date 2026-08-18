@@ -14,8 +14,8 @@ import { useAiCredits } from '~/composables/useAiCredits'
 
 const { t, locale } = useI18n()
 const router = useRouter()
-const { billing } = useBilling()
-const { pointsRemaining, pointsTotal, fillRatio } = useAiCredits()
+const { billing, refresh: refreshBilling } = useBilling()
+const { pointsRemaining, pointsTotal, fillRatio, refresh: refreshCredits } = useAiCredits()
 
 const planLabel = computed(() => {
   const plan = billing.value?.plan ?? 'free'
@@ -75,11 +75,24 @@ async function onUpgrade(): Promise<void> {
   if (!nextPlan.value || upgradeLoading.value) return
   upgradeLoading.value = true
   try {
-    const { url } = await $fetch<{ url: string }>('/api/billing/checkout', {
+    const resp = await $fetch<{ url?: string, updated?: boolean }>('/api/billing/checkout', {
       method: 'POST',
       body: { plan: nextPlan.value }
     })
-    globalThis.location.href = url
+    if (resp.updated) {
+      // Existing subscription was upgraded IN PLACE (no Checkout
+      // redirect). Refresh plan + points so the badge reflects the new
+      // budget; the webhook that flips the plan can lag by a beat, so
+      // refresh again shortly after.
+      open.value = false
+      await Promise.allSettled([refreshBilling(), refreshCredits()])
+      setTimeout(() => {
+        void refreshBilling()
+        void refreshCredits()
+      }, 2500)
+      return
+    }
+    if (resp.url) globalThis.location.href = resp.url
   } catch (e) {
     const err = e as { data?: { message?: string }, message?: string }
 
