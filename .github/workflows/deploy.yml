@@ -159,6 +159,22 @@ jobs:
           '
           shred -u /tmp/rendered.env 2>/dev/null || rm -f /tmp/rendered.env
 
+      # Same rationale as staging-gate.yml: the host's compose files are
+      # otherwise only written at Ansible provision time, so a merged
+      # compose change would never reach the box — `pull && up -d`
+      # against the stale copy silently no-ops. Sync the compose pair +
+      # every repo path they bind-mount before rolling.
+      - name: Sync compose + mounted config to the host
+        run: |
+          set -euo pipefail
+          tar czf - \
+            docker-compose.prod.yml \
+            docker-compose.base.yml \
+            infra/litellm/config.yaml \
+            infra/litellm/custom_handlers.py \
+            infra/postgres/init \
+            | ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
+
       - name: Roll forward + health check
         id: roll
         run: |

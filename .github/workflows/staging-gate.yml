@@ -103,7 +103,13 @@ jobs:
       TAG: ${{ inputs.tag || 'latest' }}
       STAGING_URL: https://staging.markoto.app
     steps:
+      # Pin to the exact commit the triggering release was built from so
+      # the compose files we sync below match the images we deploy. On
+      # workflow_dispatch there is no triggering run — default-branch
+      # HEAD is the right answer there.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Configure SSH
         run: |
@@ -113,6 +119,27 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # The host's compose files were otherwise only written at Ansible
+      # provision time. Without this sync, a merged compose change (image
+      # rename, new service, changed mount) NEVER reaches staging —
+      # `pull && up -d` against the stale host copy silently no-ops and
+      # the smoke suite "passes" against the previous release. Found the
+      # hard way: the md-online-* → markoto-* image rename "deployed"
+      # successfully twice while the app container kept serving the old
+      # build. Synced set = the compose pair + every repo path the
+      # compose files bind-mount (litellm config + handlers, postgres
+      # init scripts).
+      - name: Sync compose + mounted config to the host
+        run: |
+          set -euo pipefail
+          tar czf - \
+            docker-compose.prod.yml \
+            docker-compose.base.yml \
+            infra/litellm/config.yaml \
+            infra/litellm/custom_handlers.py \
+            infra/postgres/init \
+            | ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
 
       - name: Deploy tag to staging + health-check
         run: |
