@@ -104,6 +104,13 @@ NUXT_STRIPE_PRICE_MAX=${NUXT_STRIPE_PRICE_MAX}
 NUXT_STRIPE_PRICE_ULTRA=${NUXT_STRIPE_PRICE_ULTRA}
 NUXT_STRIPE_AUTOMATIC_TAX=${NUXT_STRIPE_AUTOMATIC_TAX:-}
 
+# ─── Transactional email (Resend) ───
+# Empty RESEND_API_KEY = stub mode (emails logged, not sent). Set both
+# for real delivery: the key + a verified-domain From address, e.g.
+# markoto <no-reply@markoto.app> (no backticks here - heredoc context).
+RESEND_API_KEY=${RESEND_API_KEY:-}
+NUXT_EMAIL_FROM=${NUXT_EMAIL_FROM:-}
+
 # ─── OAuth ───
 NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID:-}
 NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET:-}

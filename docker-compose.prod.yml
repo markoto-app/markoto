@@ -117,6 +117,11 @@ services:
       - NUXT_STRIPE_PRICE_ULTRA=${NUXT_STRIPE_PRICE_ULTRA:?NUXT_STRIPE_PRICE_ULTRA required}
       # Optional — enables Stripe Tax on Checkout once the dashboard side is configured.
       - NUXT_STRIPE_AUTOMATIC_TAX=${NUXT_STRIPE_AUTOMATIC_TAX:-}
+      # Transactional email (Resend). Empty key = stub mode (logged, not
+      # sent) — sendEmail.ts auto-enables real delivery when the key is
+      # present; NUXT_EMAIL_FROM must be a verified-domain address.
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - NUXT_EMAIL_FROM=${NUXT_EMAIL_FROM:-}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN:?DOMAIN required}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080

@@ -114,6 +114,7 @@ jobs:
           NUXT_OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GITHUB_CLIENT_SECRET }}
           NUXT_OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GOOGLE_CLIENT_SECRET }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           # ── provider keys (repo-level secrets) ──
           JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
           STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
@@ -132,6 +133,7 @@ jobs:
           NUXT_STRIPE_PRICE_MAX: ${{ vars.NUXT_STRIPE_PRICE_MAX }}
           NUXT_STRIPE_PRICE_ULTRA: ${{ vars.NUXT_STRIPE_PRICE_ULTRA }}
           NUXT_STRIPE_AUTOMATIC_TAX: ${{ vars.NUXT_STRIPE_AUTOMATIC_TAX }}
+          NUXT_EMAIL_FROM: ${{ vars.NUXT_EMAIL_FROM }}
           NUXT_OAUTH_GITHUB_CLIENT_ID: ${{ vars.NUXT_OAUTH_GITHUB_CLIENT_ID }}
           NUXT_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.NUXT_OAUTH_GOOGLE_CLIENT_ID }}
           NUXT_PUBLIC_SENTRY_DSN: ${{ vars.NUXT_PUBLIC_SENTRY_DSN }}
