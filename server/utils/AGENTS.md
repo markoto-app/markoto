@@ -124,7 +124,7 @@ Results merged by `(knowledgeId, chunkIndex)` and ranked via **Reciprocal Rank F
 | Rate limit | 30 upload-requests / user / min | `checkRateLimit('knowledge-upload', …)` in upload-request |
 | Per-workspace bytes cap | tiered per plan (50 MB / 2 GB / 1 GB / 1 GB — `shared/config/tiers.ts`) | DB count/sum at upload-request + confirm |
 | Per-user caps | tiered files (5 / 50 / 500 / 2000) + bytes (50 MB / 2 GB / 10 GB / 50 GB) across ALL workspaces | DB count/sum at upload-request + confirm |
-| Workspace-per-user cap | tiered owned workspaces (1 / 10 / 30 / 100 — `TIERS[plan].workspacesOwned`) | `POST /api/workspaces` |
+| Workspace-per-user cap | tiered owned workspaces (defaults 1 / 10 / 30 / 100 — `getTiers()[plan].workspacesOwned`) | `POST /api/workspaces` |
 | Concurrent races | Valkey inflight counters (`knowledge-upload-ws` + `knowledge-upload-user`), 6 min TTL | `reserveInflightSlot` / `releaseInflightSlot` (fail CLOSED) |
 | Confirm race | Postgres advisory lock `pg_advisory_xact_lock(hashtext(wsId))` inside a txn | confirm endpoint |
 | Content-type bypass | Magic-byte sniff via `file-type` on first 4 KB of S3 object | `fileTypeGuard.ts`, called in confirm |
@@ -132,7 +132,7 @@ Results merged by `(knowledgeId, chunkIndex)` and ranked via **Reciprocal Rank F
 | Abandoned `failed` rows | TTL sweep: `status='failed'` rows older than `failedRetentionDays = 7` auto-reaped | `server/plugins/knowledge-sweep.ts` |
 | Stuck `processing` rows | TTL sweep: `status='processing'` rows older than 10 min re-process | same plugin |
 
-Tiered caps live in `shared/config/tiers.ts` (`TIERS[plan]` + `KNOWLEDGE_PLATFORM_LIMITS`, enforced via `server/utils/knowledgeQuota.ts`). The inflight counter fails CLOSED (correctness cap); the rate limit fails OPEN (DoS protection, not a cost cap). The advisory lock is load-bearing: without it, two concurrent confirms that both read N-1 used at upload-request time would both commit and land at N+1.
+Tiered caps live in `shared/config/tiers.ts` (`DEFAULT_TIERS` + `KNOWLEDGE_PLATFORM_LIMITS`; enforcement resolves via `server/utils/tierConfig.ts#getTiers()`, which applies optional `TIER_*` env overrides — see `.env.example`). The inflight counter fails CLOSED (correctness cap); the rate limit fails OPEN (DoS protection, not a cost cap). The advisory lock is load-bearing: without it, two concurrent confirms that both read N-1 used at upload-request time would both commit and land at N+1.
 
 ### Content-type validation
 

@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { users } from '../../db/schema'
 import { useDatabase } from '../database'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
+import { getTiers } from '~~/server/utils/tierConfig'
 import type { PlanName } from '~~/shared/config/tiers'
 import { encryptToken, decryptToken } from './tokenCrypto'
 import { litellmAdminFetch } from './litellmAdmin'
@@ -80,7 +81,7 @@ interface UserKeyHandle {
  * re-reads the winner's key.
  */
 export async function createUserKey(userId: number, plan: PlanName): Promise<UserKeyHandle> {
-  const budget = planToBudgetUsd(plan)
+  const budget = planToBudgetUsd(plan, getTiers())
   const res = await litellmAdminFetch('/key/generate', {
     method: 'POST',
     body: JSON.stringify({
@@ -174,7 +175,7 @@ export async function ensureUserKey(userId: number, plan: PlanName): Promise<Use
 export async function updateUserKeyBudget(userId: number, plan: PlanName): Promise<void> {
   if (isStubMode()) return
   const handle = await ensureUserKey(userId, plan)
-  const budget = planToBudgetUsd(plan)
+  const budget = planToBudgetUsd(plan, getTiers())
   const res = await litellmAdminFetch('/key/update', {
     method: 'POST',
     body: JSON.stringify({
@@ -261,7 +262,7 @@ export async function getUserKeyInfo(userId: number, plan: PlanName): Promise<Ke
   if (isStubMode()) {
     // No real spend in tests — surface the static plan budget with zero
     // spend so the AI Points UI renders "{full} / {full} pts".
-    return { spend: 0, maxBudget: planToBudgetUsd(plan) }
+    return { spend: 0, maxBudget: planToBudgetUsd(plan, getTiers()) }
   }
   const res = await litellmAdminFetch(`/key/info?key=${encodeURIComponent(handle.token)}`)
   if (!res.ok) {
@@ -274,7 +275,7 @@ export async function getUserKeyInfo(userId: number, plan: PlanName): Promise<Ke
   const info = payload.info ?? {}
   return {
     spend: typeof info.spend === 'number' ? info.spend : 0,
-    maxBudget: typeof info.max_budget === 'number' ? info.max_budget : planToBudgetUsd(plan)
+    maxBudget: typeof info.max_budget === 'number' ? info.max_budget : planToBudgetUsd(plan, getTiers())
   }
 }
 

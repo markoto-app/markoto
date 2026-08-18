@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createWorkspace } from '../setup/fixtures'
-import { TIERS } from '../../../shared/config/tiers'
+import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 
 // Tier-aware knowledge upload cap — integration through the real
 // /api/workspaces/:wsId/knowledge/upload-request endpoint. Complements

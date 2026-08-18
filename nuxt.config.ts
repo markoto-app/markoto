@@ -1,5 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { TIERS, KNOWLEDGE_PLATFORM_LIMITS, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
+import { KNOWLEDGE_PLATFORM_LIMITS, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
 
 export default defineNuxtConfig({
   // Dev proxy: mirror production Traefik routing through localhost:3000
@@ -164,13 +164,13 @@ export default defineNuxtConfig({
     // never auto-reaped. 0 disables sweeping entirely. Override via
     // NUXT_INACTIVE_DOC_TTL_DAYS.
     inactiveDocTtlDays: 180,
-    // Per-tier caps. Single source of truth in
-    // `shared/config/tiers.ts`; enforcement sites resolve via plan
-    // lookup (`TIERS[plan].*`). Numbers documented in AGENTS.md §15.
-    tiers: TIERS,
+    // Per-tier caps are NOT mirrored here: enforcement resolves them
+    // via `server/utils/tierConfig.ts#getTiers()` (committed defaults
+    // in `shared/config/tiers.ts` + TIER_* env overrides), and the
+    // client fetches the resolved map from GET /api/billing/tiers.
     // Knowledge-upload platform limits that don't vary by plan
     // (single-file size, chunker ceiling, failed-row TTL). Tier-
-    // varying caps (file count, bytes, etc.) live inside TIERS.
+    // varying caps (file count, bytes, etc.) live in the tier caps (see shared/config/tiers.ts).
     knowledge: KNOWLEDGE_PLATFORM_LIMITS,
     // Stripe config — all empty in dev, set via NUXT_STRIPE_* in prod.
     stripe: STRIPE_CONFIG_DEFAULTS,

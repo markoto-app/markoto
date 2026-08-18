@@ -224,7 +224,7 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 | Hocuspocus | 20 connections/IP, 5000 rooms |
 | MCP web tools | 60/hour/user, shared bucket (`mcp-web-tools` — `web_search` + `fetch_url`) |
 | Knowledge upload | 30 presign-requests/user/min |
-| Knowledge files per user (across all workspaces) | tiered free/pro/max/ultra: 5 / 50 / 500 / 2000 (`shared/config/tiers.ts`) |
+| Knowledge files per user (across all workspaces) | tiered free/pro/max/ultra defaults: 5 / 50 / 500 / 2000 (`shared/config/tiers.ts`; every tier cap is overridable at runtime via `TIER_*` env vars — resolved by `server/utils/tierConfig.ts#getTiers()`, served to the client by `GET /api/billing/tiers`) |
 | Knowledge bytes per workspace | tiered: 50 MB / 2 GB / 1 GB / 1 GB |
 | Knowledge bytes per user (across all workspaces) | tiered: 50 MB / 2 GB / 10 GB / 50 GB |
 | Knowledge — per file | 25 MB, 300-chunk ceiling (sentinel-truncated) — platform limits in `shared/config/tiers.ts` |

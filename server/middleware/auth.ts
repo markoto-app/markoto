@@ -31,6 +31,10 @@ export default defineEventHandler(async (event) => {
     // whitelisted here so the auth middleware doesn't refuse it before the
     // handler even runs during integration tests.
     { path: /^\/api\/_test\//, methods: ['POST'] },
+    // Resolved tier-cap map for the pricing page — logged-out visitors
+    // browse /pricing, and the caps it returns are displayed there
+    // anyway. Static config, no per-user data.
+    { path: /^\/api\/billing\/tiers$/, methods: ['GET'] },
     { path: /^\/api\/docs$/, methods: ['POST'] }, // Anonymous doc creation allowed (IP-rate-limited in the handler)
     { path: /^\/api\/docs\/[^/]+$/, methods: ['DELETE'] }, // Anon doc owner-less deletion is endpoint-gated
     { path: /^\/api\/docs\/[^/]+\/meta$/, methods: ['GET'] }, // Public doc metadata
