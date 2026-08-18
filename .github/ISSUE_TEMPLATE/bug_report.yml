@@ -1,0 +1,45 @@
+name: Bug report
+description: Something is broken in markoto or a self-hosted deployment
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+        **Security vulnerabilities:** please do NOT file them here — see [SECURITY.md](../blob/main/SECURITY.md).
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did this happen?
+      options:
+        - markoto.app (hosted)
+        - Self-hosted deployment
+        - Local development
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        1. Open a document …
+        2. Click …
+        3. Expected … but got …
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser + OS for UI bugs; deployment details (versions, compose file used) for self-hosted issues.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / console output
+      description: Relevant browser-console or server-log excerpts. Redact secrets and personal data.
+      render: shell
+    validations:
+      required: false

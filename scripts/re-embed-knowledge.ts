@@ -65,8 +65,7 @@ function parseArgs(argv: string[]): CliOpts {
   const has = (name: string): boolean => argv.includes(`--${name}`)
 
   // Single provider since Phase 6: Jina v5-text-nano via LiteLLM.
-  // The pre-Phase-5 Gemini path is gone — see docs/archive/litellm.md
-  // §17 for the rollback story.
+  // The pre-Phase-5 Gemini path is gone.
   const model = get('model') || 'jina-embeddings-v5-text-nano'
   const dimensions = Number(get('dimensions') || '768')
 

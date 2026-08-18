@@ -1,6 +1,6 @@
 # Server-side Conventions
 
-Nitro API + sync notification layer for md-online. Most cross-cutting code in this directory is organized as:
+Nitro API + sync notification layer for markoto. Most cross-cutting code in this directory is organized as:
 
 - `api/` — REST + WS routes (see `api/AGENTS.md` for the route map).
 - `routes/` — top-level Nitro routes (e.g. `auth/` for OAuth, the `api/ai/dictate.ts` WS handler).
