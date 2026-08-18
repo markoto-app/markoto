@@ -1,29 +1,116 @@
 # markoto
 
-Collaborative markdown editor: Y.js CRDT + Hocuspocus sync, OAuth (GitHub/Google), PostgreSQL (with pgvector), external S3, multi-lingual UI, Mistral-powered AI writing assistance (via LiteLLM proxy) with workspace knowledge-base retrieval. Single Linux VPS, Docker Compose. Login is optional — public docs work anonymously.
+**Rethinking the craft of writing.** markoto is a collaborative markdown editor
+with live sync, a paged WYSIWYG preview, polished PDF export, and an AI writing
+assistant that joins your document like a collaborator — built entirely on
+EU-resident infrastructure.
 
-## Quick start
+**[Try it live at markoto.app](https://markoto.app)** — no account needed; public
+documents work anonymously.
 
-1. **Develop locally:** `make dev` (starts infra), then `make dev-app` (runs Nuxt on the host).
-2. **Run tests:** `make test` (quick: lint + typecheck + unit + dom + repos) or `make test-all` (everything, ~15min).
-3. **Discover commands:** `make help` for an interactive menu — every common workflow surfaces there.
-4. **Deploy:** see `docs/DEPLOY-OVH.md`. Once the VPS is provisioned: `make deploy`.
+[![CI](https://github.com/joelbarmettlerUZH/markoto/actions/workflows/ci.yml/badge.svg)](https://github.com/joelbarmettlerUZH/markoto/actions/workflows/ci.yml)
+[![License: FSL-1.1-ALv2](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue)](./LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/joelbarmettlerUZH/markoto)](https://github.com/joelbarmettlerUZH/markoto/releases)
 
-If lost: `docs/CHEATSHEET.md` is the use-case-keyed flat reference.
-For 3 AM problems: `docs/RUNBOOK.md`.
-For architecture: `AGENTS.md` (with per-area sub-AGENTS.md files in `app/`, `server/`, `sync-server/`, etc.).
+![The markoto editor: markdown on the left, live paged preview on the right, AI assistant at the bottom](./docs/assets/readme-hero.webp)
 
-## Command discovery
+## What you get
 
-| What | Where |
-|---|---|
-| Root task runner (dev, test, lint, deploy) | `make help` |
-| Ansible/deploy subcommands | `cd infra && make help` |
-| All npm-style scripts | `bun run` |
-| Use-case-keyed flat reference | `docs/CHEATSHEET.md` |
+- **Real-time collaboration** — Y.js CRDT + Hocuspocus sync; share a link and
+  edits arrive live, with presence, per-author attribution, and a restorable
+  activity log. Documents can be open, read-only, password-protected, or private.
+- **True WYSIWYG for print** — the preview is paginated (A4/Letter, headers,
+  footers, footnotes, cover pages) and the *same* theme CSS drives the
+  server-rendered PDF export. What you see is literally what you ship.
+- **Rich markdown** — GFM plus KaTeX math, Mermaid diagrams, alerts,
+  footnotes, table of contents, page breaks, and a themable design system with
+  presets, Google-Fonts picker, and per-document themes.
+- **AI that edits with you** — ask markoto to write, restructure, research
+  (web search + page fetch), generate images, or answer from your workspace
+  knowledge base. The AI joins the document as a real CRDT client, so you watch
+  it type. Voice input and live dictation included.
+- **Workspaces & knowledge base** — role-based workspaces; uploaded files
+  (PDF/DOCX/PPTX/…) are converted, chunked, embedded, and retrieved via hybrid
+  pgvector + full-text search to ground AI answers.
+- **MCP server** — connect Claude Desktop, Cursor, or your own scripts to your
+  documents via personal access tokens.
+- **EU data path** — every AI and storage sub-processor is EU-resident
+  (Mistral, Jina, Staan, Black Forest Labs, OVHcloud) or DPF-covered, with a
+  full GDPR/DSA compliance surface (consent, data export, account deletion,
+  abuse reporting) built in.
 
-## License
+![Theme editor with cover page controls next to the paged preview](./docs/assets/readme-themes.webp)
 
-markoto is licensed under the Functional Source License, Version 1.1 with Apache 2.0 future grant. You can use, modify, and self-host markoto for any purpose EXCEPT competing with markoto as a commercial offering. Two years after each release, that release converts to Apache 2.0.
+## Self-hosting
 
-See [LICENSE](./LICENSE) for full terms. Learn more at https://fsl.software.
+markoto is a single-VPS deployment: one Nuxt app, a Hocuspocus sync server, a
+Playwright PDF renderer, Markitdown for imports, Postgres (+pgvector), Valkey,
+and any S3-compatible object storage — all wired via Docker Compose and
+deployable with the included Ansible playbooks.
+
+- **[docs/DEPLOY.md](./docs/DEPLOY.md)** — provider-agnostic production deploy
+  (any Debian/Ubuntu VPS + managed Postgres + S3).
+- **[docs/LOCAL.md](./docs/LOCAL.md)** — full stack locally with TLS.
+- **[docs/S3-SETUP.md](./docs/S3-SETUP.md)**, **[docs/SECURITY-HARDENING.md](./docs/SECURITY-HARDENING.md)** —
+  storage and hardening guides.
+
+Stripe billing is optional: without Stripe configuration the app runs with all
+accounts on the free tier and billing endpoints disabled. AI features require a
+self-hosted [LiteLLM](https://github.com/BerriAI/litellm) proxy (config
+included under `infra/litellm/`) plus API keys for the providers you enable.
+
+The remaining docs (`RUNBOOK.md`, `SECRETS-ROTATION.md`, `DEPLOY-OVH.md`,
+`BREACH-RESPONSE.md`, `GITHUB-CONFIG.md`) describe how **we** operate the
+hosted instance — published for transparency and as templates, not required
+reading for self-hosters.
+
+## Development
+
+Prerequisites: [Bun](https://bun.sh), Docker Compose v2.20+, `make`.
+
+```sh
+bun install
+make dev        # infra containers (Postgres, Valkey, S3, sync, renderer, …)
+make dev-app    # Nuxt with HMR on the host
+```
+
+`make help` surfaces every common workflow; `docs/CHEATSHEET.md` is the flat
+reference. Architecture documentation lives in [`AGENTS.md`](./AGENTS.md) with
+per-area deep-dives in sub-`AGENTS.md` files — written to be equally useful to
+humans and AI coding agents.
+
+Tests (3,200+ across five tiers — see [CONTRIBUTING.md](./CONTRIBUTING.md)):
+
+```sh
+bun run test               # unit + dom + nuxt, no Docker needed
+bun run test:integration   # full REST + sync tier against a Docker stack
+bun run flows:test         # Playwright flows (they double as the user docs!)
+```
+
+## License — "is this open source?"
+
+markoto is **source-available** under the
+[Functional Source License 1.1 with Apache-2.0 future grant](./LICENSE)
+(FSL-1.1-ALv2):
+
+- ✅ **Self-host it** for yourself, your team, or your company — free, for any
+  internal purpose.
+- ✅ **Read, modify, and contribute** — the full production codebase is here.
+- ❌ **Resell it as a competing service** — offering markoto (or a substantially
+  similar product) as a commercial offering is not permitted…
+- ⏳ **…for two years per release.** Each release automatically converts to
+  **Apache 2.0** two years after it ships. Old versions become genuinely open
+  source on a rolling basis.
+
+Learn more about FSL at [fsl.software](https://fsl.software).
+
+## Contributing & security
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — dev setup, test tiers, PR conventions
+  (PR titles become release notes verbatim).
+- [SECURITY.md](./SECURITY.md) — vulnerability disclosure. Never open a public
+  issue for a security problem.
+
+---
+
+markoto is built by [LatentSpace Labs GmbH](https://markoto.app/legal/imprint), Zurich.
