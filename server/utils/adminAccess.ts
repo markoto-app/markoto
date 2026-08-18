@@ -15,7 +15,7 @@ import { findUserById } from '../repos/users'
 // durable record — env-list changes only matter for new
 // bootstrapping users, not for users who have already logged in.
 //
-//   NUXT_ADMIN_USER_EMAILS=admin@example.com,founder@latentlabs.ch
+//   NUXT_ADMIN_USER_EMAILS=admin@example.com,founder@example.com
 //
 // **Belt-and-braces:** `requireAdminUser` allows access if EITHER
 // the column is true OR the email is on the bootstrap list. This
