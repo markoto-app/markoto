@@ -164,6 +164,15 @@ jobs:
       - name: Typecheck
         run: bun --bun run typecheck
 
+      # render-env.sh (CI deploy path) and env.j2 (Ansible path) must emit
+      # byte-identical .env content. The parity script existed but was never
+      # wired into CI, and the two DID silently drift (a var added to one
+      # file only) — this step makes the drift a PR failure.
+      - name: render-env ↔ env.j2 parity
+        run: |
+          pip install --quiet jinja2
+          bash infra/render-env-parity-test.sh
+
   migration-guard:
     name: migration-guard
     runs-on: ubuntu-latest
