@@ -1,0 +1,13 @@
+markoto
+Copyright 2026 LatentSpace Labs GmbH
+
+This product is licensed under the Functional Source License, Version 1.1,
+with Apache License 2.0 future grant (FSL-1.1-ALv2). See LICENSE.
+
+markoto bundles and depends on third-party open-source software, each under
+its own license, including (non-exhaustively): Nuxt, Vue, CodeMirror, Y.js,
+Hocuspocus, y-postgresql, markdown-it and the @mdit plugin family, KaTeX,
+Mermaid, highlight.js, paged.js, DOMPurify, Drizzle ORM, node-postgres,
+ioredis, Stripe SDK, LiteLLM, and Markitdown. The full dependency set and
+license metadata are recorded in package.json / bun.lock of each workspace
+(root, sync-server/, renderer/, markitdown-server/).
