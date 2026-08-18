@@ -11,11 +11,11 @@
 // "5000 AI Points". The math is transparent enough that a power user
 // who divides by 1000 lands on the actual dollar amount.
 //
-// Plan tier mapping lives in `shared/config/tiers.ts` (TIERS[plan].litellmBudgetUsd);
-// `planToBudgetUsd` is a thin wrapper for callsites that don't already
-// have a TierCaps reference handy.
+// Plan tier mapping lives in `shared/config/tiers.ts`
+// (tiers[plan].litellmBudgetUsd); `planToBudgetUsd` is a thin wrapper
+// for callsites that don't already have a TierCaps reference handy.
 
-import { TIERS, type PlanName } from '../config/tiers'
+import type { PlanName, TiersMap } from '../config/tiers'
 
 const POINTS_PER_DOLLAR = 1000
 
@@ -32,15 +32,20 @@ export function pointsToDollars(points: number): number {
 /**
  * The full monthly USD budget for a plan. Used at virtual-key creation
  * time and on Stripe webhook plan changes.
+ *
+ * `tiers` is REQUIRED (no default) so every call site consciously
+ * passes the RESOLVED map (server: `getTiers()`, client: the
+ * `/api/billing/tiers` fetch) — a defaulted param would silently miss
+ * runtime `TIER_*` overrides.
  */
-export function planToBudgetUsd(plan: PlanName): number {
-  return TIERS[plan].litellmBudgetUsd
+export function planToBudgetUsd(plan: PlanName, tiers: TiersMap): number {
+  return tiers[plan].litellmBudgetUsd
 }
 
 /**
  * The full monthly AI Points allotment for a plan. Used by /api/ai/credits
  * to populate the `pointsTotal` field for the UI's progress ring.
  */
-export function planToPointsTotal(plan: PlanName): number {
-  return dollarsToPoints(TIERS[plan].litellmBudgetUsd)
+export function planToPointsTotal(plan: PlanName, tiers: TiersMap): number {
+  return dollarsToPoints(tiers[plan].litellmBudgetUsd)
 }

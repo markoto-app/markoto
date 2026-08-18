@@ -8,7 +8,8 @@ import {
 import { users, workspaces } from '../db/schema'
 import { useDatabase } from './database'
 import { reserveInflightSlot, releaseInflightSlot } from './rateLimit'
-import { TIERS, KNOWLEDGE_PLATFORM_LIMITS, type PlanName } from '~~/shared/config/tiers'
+import { KNOWLEDGE_PLATFORM_LIMITS, type PlanName } from '~~/shared/config/tiers'
+import { getTiers } from '~~/server/utils/tierConfig'
 
 /**
  * Centralised cap enforcement for the workspace knowledge base.
@@ -115,8 +116,9 @@ export async function resolveCaps(args: {
     getEffectivePlan(args.uploaderId),
     getWorkspacePlan(args.workspaceId)
   ])
-  const wsTier = TIERS[workspacePlan]
-  const userTier = TIERS[uploaderPlan]
+  const tiers = getTiers()
+  const wsTier = tiers[workspacePlan]
+  const userTier = tiers[uploaderPlan]
   return {
     maxFileBytes: KNOWLEDGE_PLATFORM_LIMITS.maxFileBytes,
     maxFilesPerWorkspace: wsTier.knowledgeFiles,

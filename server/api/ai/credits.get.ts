@@ -2,6 +2,7 @@ import { resolveBillingContext } from '../../utils/billing'
 import { getUserKeyInfo } from '../../utils/litellmKeys'
 import { getWorkspaceRole } from '../../utils/workspaceAccess'
 import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
+import { getTiers } from '~~/server/utils/tierConfig'
 
 /**
  * GET /api/ai/credits — AI Points UI data source.
@@ -54,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   const remainingDollars = Math.max(0, info.maxBudget - info.spend)
   const pointsRemaining = dollarsToPoints(remainingDollars)
-  const pointsTotal = planToPointsTotal(billing.plan)
+  const pointsTotal = planToPointsTotal(billing.plan, getTiers())
 
   return {
     pointsRemaining,

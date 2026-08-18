@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm'
 import { createWorkspace, countOwnedWorkspacesByUser } from '../../repos/workspaces'
 import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
-import { TIERS, type PlanName } from '~~/shared/config/tiers'
+import type { PlanName } from '~~/shared/config/tiers'
+import { getTiers } from '~~/server/utils/tierConfig'
 import { DPA_VERSION } from '~~/shared/legal/versions'
 
 export default defineEventHandler(async (event) => {
@@ -27,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const validUntil = planRows[0]?.planValidUntil ?? null
   const lapsed = validUntil !== null && validUntil.getTime() <= Date.now()
   const effectivePlan: PlanName = lapsed ? 'free' : rawPlan
-  const cap = TIERS[effectivePlan].workspacesOwned
+  const cap = getTiers()[effectivePlan].workspacesOwned
 
   // GDPR Article 28 gate: the user is about to become a controller
   // for personal data their workspace members place inside this

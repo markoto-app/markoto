@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
-import { TIERS } from '../../../shared/config/tiers'
+import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 
 // GET /api/user/billing — session-level plan summary for the topbar +
 // pre-disabling new-workspace / knowledge-upload affordances. Phase 6

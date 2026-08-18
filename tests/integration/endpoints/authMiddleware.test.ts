@@ -84,6 +84,15 @@ describe('auth middleware whitelist', () => {
       const body = await res.text()
       expect(body).not.toContain('Unauthorized')
     })
+
+    it('GET /api/billing/tiers is public and returns every plan', async () => {
+      const res = await anonClient().get('/api/billing/tiers')
+      expect(res.status).toBe(200)
+      const body = await res.json() as Record<string, { litellmBudgetUsd: number }>
+      for (const plan of ['free', 'pro', 'max', 'ultra']) {
+        expect(body[plan]?.litellmBudgetUsd, `${plan} missing`).toBeGreaterThan(0)
+      }
+    })
   })
 
   describe('protected routes (session required)', () => {

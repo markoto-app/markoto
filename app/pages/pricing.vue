@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { TIERS, type PlanName } from '~~/shared/config/tiers'
+import { DEFAULT_TIERS, type PlanName } from '~~/shared/config/tiers'
 import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 
-// Pricing page. Shows every tier with live caps read from the shared
-// config + the caller's current plan highlighted. Upgrade buttons
-// open a Stripe Checkout Session; downgrade / "Manage subscription"
-// opens the Customer Portal.
+// Pricing page. Shows every tier with live caps + the caller's current
+// plan highlighted. Upgrade buttons open a Stripe Checkout Session;
+// downgrade / "Manage subscription" opens the Customer Portal.
 //
-// Tier caps are imported directly from `shared/config/tiers.ts` so
-// changing a number there re-renders the page without any copy edit.
+// Tier caps come from `GET /api/billing/tiers` — the server-RESOLVED
+// map (committed defaults + any TIER_* env overrides), so the hosted
+// deployment can adjust a cap without a rebuild. The committed
+// DEFAULT_TIERS serve as the SSR/fetch-failure fallback; in a stock
+// self-host deployment the two are identical.
 
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
+
+const { data: tiersData } = await useFetch('/api/billing/tiers')
+const TIERS = computed(() => tiersData.value ?? DEFAULT_TIERS)
 
 interface UserBilling {
   plan: PlanName
@@ -258,7 +263,7 @@ useHead({
                 class="shrink-0 self-center mt-0.5"
               />
               <span>
-                <strong>{{ planToPointsTotal(tier.plan).toLocaleString() }}</strong>
+                <strong>{{ planToPointsTotal(tier.plan, TIERS).toLocaleString() }}</strong>
                 {{ t('pricing.aiCreditsPerMonth') }}
               </span>
             </li>

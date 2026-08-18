@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
-import { TIERS } from '../../../shared/config/tiers'
+import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 import { dollarsToPoints } from '../../../shared/billing/aiPoints'
 
 // GET /api/ai/credits — drives the AI Points UI. Two branches:

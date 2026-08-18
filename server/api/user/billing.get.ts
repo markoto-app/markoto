@@ -1,7 +1,7 @@
 import { resolveBillingContext } from '../../utils/billing'
 import { countOwnedWorkspacesByUser } from '../../repos/workspaces'
 import { countKnowledgeByUploader, sumKnowledgeBytesByUploader } from '../../repos/knowledge'
-import { TIERS } from '~~/shared/config/tiers'
+import { getTiers } from '~~/server/utils/tierConfig'
 
 /**
  * Session-level billing summary for the current user. Drives:
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
   const ctx = await resolveBillingContext(userId, null)
-  const tier = TIERS[ctx.plan]
+  const tier = getTiers()[ctx.plan]
 
   const [ownedWorkspaces, knowledgeFiles, knowledgeBytes] = await Promise.all([
     countOwnedWorkspacesByUser(userId),

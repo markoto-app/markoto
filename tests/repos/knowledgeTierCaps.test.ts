@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
 import { resolveCaps } from '../../server/utils/knowledgeQuota'
-import { TIERS } from '../../shared/config/tiers'
+import { DEFAULT_TIERS as TIERS } from '../../shared/config/tiers'
 
 // Tier-aware knowledge caps. `resolveCaps` reads the workspace's
 // effective plan (billing owner if (+), else creator) for per-workspace
