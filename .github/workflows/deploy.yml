@@ -167,12 +167,17 @@ jobs:
       - name: Sync compose + mounted config to the host
         run: |
           set -euo pipefail
+          # infra/postgres/init is deliberately NOT synced: the initdb
+          # scripts only run on the FIRST boot of a fresh postgres data
+          # dir (a provision-time concern), and the host copy is
+          # root-owned from provisioning — the deploy user can't
+          # overwrite it (tar: Permission denied). Changing an init
+          # script requires an Ansible pass anyway.
           tar czf - \
             docker-compose.prod.yml \
             docker-compose.base.yml \
             infra/litellm/config.yaml \
             infra/litellm/custom_handlers.py \
-            infra/postgres/init \
             | ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
 
       - name: Roll forward + health check
