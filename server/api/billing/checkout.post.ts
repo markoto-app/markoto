@@ -3,11 +3,18 @@ import * as Sentry from '@sentry/nuxt'
 import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { useStripeClient } from '../../utils/stripeClient'
+import { findLiveSubscription, changeSubscriptionPrice } from '../../utils/stripePlanChange'
 import type { PlanName } from '~~/shared/config/tiers'
 
-// POST /api/billing/checkout — creates a Stripe Checkout Session for
-// the requested paid plan and returns the URL for the client to
-// redirect to.
+// POST /api/billing/checkout — plan purchase/upgrade endpoint. Two
+// outcomes depending on the caller's current Stripe state:
+//
+//   - No live subscription → creates a Stripe Checkout Session and
+//     returns `{ url, sessionId }` for a full-page redirect.
+//   - Live subscription (upgrade between paid tiers) → swaps the price
+//     on the EXISTING subscription in place (prorated, charged now)
+//     and returns `{ updated: true, plan }`. Never creates a second
+//     concurrent subscription.
 //
 // Flow:
 //   1. Client clicks "Upgrade to Pro" on /pricing.
@@ -66,33 +73,96 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 503, message: `No price ID configured for ${plan} plan` })
   }
 
-  // Pull user's email + existing stripe_customer_id. If they've
-  // subscribed before (e.g. subscribed → cancelled → now upgrading
-  // again), reuse the same Customer so Stripe dashboards show one
-  // continuous history.
+  // Pull user's email + existing Stripe anchors. If they've subscribed
+  // before (e.g. subscribed → cancelled → now upgrading again), reuse
+  // the same Customer so Stripe dashboards show one continuous history.
   const db = useDatabase()
   const rows = await db.select({
     email: users.email,
-    stripeCustomerId: users.stripeCustomerId
+    stripeCustomerId: users.stripeCustomerId,
+    stripeSubscriptionId: users.stripeSubscriptionId,
+    currentPlan: users.plan
   }).from(users).where(eq(users.id, userId)).limit(1)
   const userRow = rows[0]
   if (!userRow) {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
-  const { email, stripeCustomerId } = userRow
+  const { email, stripeCustomerId, stripeSubscriptionId, currentPlan } = userRow
 
+  // ── In-place plan change ────────────────────────────────────────────
+  // A Checkout Session in `mode: 'subscription'` ALWAYS creates a NEW
+  // subscription. If this user already has a live one (upgrade path:
+  // pro → max/ultra), that would leave them with TWO concurrent
+  // subscriptions billing the same customer. Probe the recorded
+  // subscription and, when it's live, swap its price in place instead —
+  // the `customer.subscription.updated` webhook applies the plan +
+  // period + LiteLLM budget exactly like a Checkout-born change.
+  let liveSub
+  try {
+    liveSub = await findLiveSubscription(stripe, stripeSubscriptionId)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Stripe error'
+    console.error('[billing/checkout] subscription probe failed:', msg)
+    Sentry.captureException(e, {
+      tags: { component: 'billing', event: 'subscription_probe_failed', userId: String(userId) }
+    })
+    // Fail CLOSED: proceeding to Checkout while we can't SEE the
+    // existing subscription is exactly how double-billing happens.
+    throw createError({ statusCode: 502, message: 'Could not verify your current subscription. Please try again.' })
+  }
+  if (liveSub) {
+    if (currentPlan === plan) {
+      throw createError({ statusCode: 409, message: `You are already on the ${plan} plan.` })
+    }
+    try {
+      await changeSubscriptionPrice(stripe, liveSub, priceId)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Stripe error'
+      console.error('[billing/checkout] in-place plan change failed:', msg)
+      Sentry.captureException(e, {
+        tags: { component: 'billing', event: 'plan_change_failed', userId: String(userId) }
+      })
+      // `error_if_incomplete` surfaces payment failures here with
+      // nothing changed — the user fixes their card in the Portal.
+      throw createError({ statusCode: 502, message: `Could not change your plan: ${msg}` })
+    }
+    // The webhook is the source of truth for users.plan; the client
+    // just shows success + refetches billing (which may briefly still
+    // read the old plan until the webhook lands — acceptable).
+    return { updated: true, plan }
+  }
+
+  // ── Fresh subscription via Checkout ─────────────────────────────────
   // `success_url` / `cancel_url` from runtime config. Supports
   // `{CHECKOUT_SESSION_ID}` — Stripe substitutes the real session id
   // after completion so our post-checkout page can fetch the order
   // state if we want. Don't URL-encode the placeholder; Stripe reads
-  // it verbatim.
+  // it verbatim. Base URL comes from the Origin (browsers always send
+  // it on POST) with Host as fallback — both survive Traefik.
   const originHeader: string | undefined = getRequestHeader(event, 'origin')
   const hostHeader: string | undefined = getRequestHeader(event, 'host')
-  const siteUrl = typeof config.public?.siteUrl === 'string' ? config.public.siteUrl : ''
-  const origin = originHeader ?? hostHeader ?? siteUrl ?? ''
+  const origin = originHeader ?? hostHeader ?? ''
   const base = origin.startsWith('http') ? origin : `https://${origin}`
   const successUrl = base + (config.stripe.successUrl || '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}')
   const cancelUrl = base + (config.stripe.cancelUrl || '/pricing?checkout=cancelled')
+
+  // Stripe Tax — opt-in via NUXT_STRIPE_AUTOMATIC_TAX=1 because
+  // `automatic_tax` HARD-ERRORS unless Stripe Tax is activated + an
+  // origin address is configured in the dashboard. Enable the flag as
+  // part of the live-mode launch checklist, not before. With an
+  // existing customer, Stripe additionally requires `customer_update`
+  // permissions to save the collected address/name back to the
+  // Customer. `tax_id_collection` lets B2B customers enter a VAT id
+  // (EU reverse charge).
+  const taxEnabled = ['1', 'true', 'yes'].includes(String(config.stripe.automaticTax || '').toLowerCase())
+  const taxFields = taxEnabled
+    ? {
+        automatic_tax: { enabled: true },
+        billing_address_collection: 'required' as const,
+        tax_id_collection: { enabled: true },
+        ...(stripeCustomerId ? { customer_update: { address: 'auto' as const, name: 'auto' as const } } : {})
+      }
+    : {}
 
   try {
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -103,7 +173,8 @@ export default defineEventHandler(async (event) => {
       cancel_url: cancelUrl,
       // Pass the customer if we have one; else pass email so Stripe
       // creates a new Customer linked to that address.
-      ...customerOrEmailFields(stripeCustomerId, email)
+      ...customerOrEmailFields(stripeCustomerId, email),
+      ...taxFields
     })
     if (!checkoutSession.url) {
       throw createError({ statusCode: 502, message: 'Stripe did not return a Checkout URL' })

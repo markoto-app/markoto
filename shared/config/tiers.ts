@@ -152,7 +152,13 @@ export const STRIPE_CONFIG_DEFAULTS = {
   priceUltra: '',
   apiBase: '',
   successUrl: '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}',
-  cancelUrl: '/pricing?checkout=cancelled'
+  cancelUrl: '/pricing?checkout=cancelled',
+  // '1' enables Stripe Tax on Checkout Sessions (automatic_tax +
+  // required billing address + VAT-id collection). OFF by default:
+  // `automatic_tax` hard-errors unless Stripe Tax is activated and an
+  // origin address is configured in the Stripe dashboard. Env:
+  // NUXT_STRIPE_AUTOMATIC_TAX — flip it as a live-launch step.
+  automaticTax: ''
 } as const
 
 export const STRIPE_CONFIG_KEYS = [
@@ -163,5 +169,6 @@ export const STRIPE_CONFIG_KEYS = [
   'priceUltra',
   'apiBase',
   'successUrl',
-  'cancelUrl'
+  'cancelUrl',
+  'automaticTax'
 ] as const

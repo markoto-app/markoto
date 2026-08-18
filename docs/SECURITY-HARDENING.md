@@ -86,7 +86,7 @@ upgrade-insecure-requests
 | `https://*.${DOMAIN}` in `img-src` | S3 image uploads served via `/api/files/...` go through our origin, but workspace knowledge previews + future asset-CDN domains will live on subdomains. The wildcard scopes us to our own apex. |
 | `wss://sync.${DOMAIN}` | Hocuspocus WebSocket. Required — without this the editor never syncs. |
 | `*.ingest.sentry.io` | Browser error reporting. Empty in dev keeps it inert. |
-| `api.stripe.com` + `js.stripe.com` + `hooks.stripe.com` | Pre-listed for the not-yet-shipped checkout flow (AGENTS.md §7). Safe to leave allow-listed before Stripe is wired up — the hosts simply aren't contacted. |
+| `api.stripe.com` + `js.stripe.com` + `hooks.stripe.com` | Stripe billing (Checkout redirect + webhooks + Stripe.js). Live since the Phase-6+ billing work — see `server/api/billing/` + `server/utils/stripeWebhook.ts`. |
 | `blob:` in `worker-src` + `img-src` | The PWA service worker registers from a blob URL; `<img>` blob URLs are used for paste-uploaded images before the presigned PUT completes. |
 
 ### Why `'unsafe-inline'` + `'unsafe-eval'`
