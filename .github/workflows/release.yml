@@ -27,8 +27,10 @@ name: release
 #
 # Why "PR-title + PR-body" over release-drafter aggregation:
 #
-# Our model is one-PR-equals-one-release. Every merge to main bumps the
-# version and ships. Aggregation across multiple PRs is unnecessary, and
+# Our model is one-LABELED-PR-equals-one-release. Merges WITHOUT a
+# release:patch|minor|major label do not release (Actions-budget economy —
+# label the last PR of a batch to ship the accumulated work). When a
+# release does run, aggregation across multiple PRs is unnecessary, and
 # release-drafter's category buckets bury what authors actually wrote in
 # their PR descriptions. Authors get rewarded for writing meaningful titles
 # + descriptions (PR template hints at "What changed" / "Why" / "How to
@@ -103,7 +105,14 @@ jobs:
               );
               return;
             }
-            const bump = releaseLabels[0]?.name.replace('release:', '') || 'patch';
+            // Releases are OPT-IN: an unlabeled merge does NOT release.
+            // The full release chain (5 image builds + the 40-min live-AI
+            // flow suite + staging deploy) costs ~90 billable minutes —
+            // far too much to spend on every docs/chore/fix merge. Label
+            // the LAST PR of a batch release:patch|minor|major to ship
+            // the accumulated work in one release. `release:none` is kept
+            // as an accepted explicit no-op for muscle-memory compat.
+            const bump = releaseLabels[0]?.name.replace('release:', '') || 'none';
             const skip = bump === 'none';
 
             core.setOutput('number', String(pr.number));
@@ -279,6 +288,18 @@ jobs:
       IMAGE_TAG: v${{ needs.resolve-pr.outputs.new_version }}
       TEST_MODE: "1"
       NUXT_GOOGLE_SPEECH_MOCK: "1"
+      # Live-AI provider keys — requireLiveAi() sees them so the AI flows
+      # (write-with-ai, knowledge-grounded-ai, voice-dictate, …) run for
+      # real here. This is THE one live-AI verification per release:
+      # staging-gate used to re-run the whole suite with these keys as a
+      # second pass, which doubled ~40 min of runner time per release for
+      # tests on the very same commit — the gate now trusts this run
+      # (create-release only publishes if this job is green) and goes
+      # straight to deploy + public smoke.
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
+      BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
+      STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
       # flows-ephemeral.ts runs `bun run build`, which OOMs at the default V8
       # heap limit on the 7 GB runner (same fix as ci.yml test-repos-integration-flows
       # and staging-gate.yml full-flow-suite — this job was the only one missing it).

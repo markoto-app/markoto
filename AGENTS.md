@@ -155,7 +155,7 @@ Headless Playwright service used by `server/utils/renderClient.ts` for server-re
 
 ### CI/CD (`.github/workflows/`)
 
-`ci.yml` (PR gate) — jobs: `label-check`, `semantic-pr-title`, `actions-lint` (actionlint), `secret-scan` (gitleaks), `lint-typecheck` (incl. ansible-lint + yamllint), `migration-guard`, `test-unit-dom`, `test-repos-integration-flows` (repos + integration + coverage + fast flow suite), `sonar`. `release.yml` — merge to `main` → version bump + tagged GHCR images + GH Release built from PR title + body (skipped for `release:none` PRs). `staging-gate.yml` — auto after `release.yml`: full flow suite with live AI → deploy `latest` to staging → public smoke vs `https://staging.markoto.app`. `deploy.yml` — MANUAL `workflow_dispatch` only (staging or prod, tag input, auto-rollback). `sonar.yml` — SonarCloud baseline analysis on `main` pushes.
+`ci.yml` (PR gate) — jobs: `label-check`, `semantic-pr-title`, `actions-lint` (actionlint), `secret-scan` (gitleaks), `lint-typecheck` (incl. ansible-lint + yamllint), `migration-guard`, `test-unit-dom`, `test-repos-integration-flows` (repos + integration + coverage + fast flow suite), `sonar`. `release.yml` — merge to `main` → releases are OPT-IN (runs only for PRs labeled `release:patch|minor|major`; unlabeled merges skip) → version bump + tagged GHCR images + full flow suite incl. live AI (provider keys wired here) + GH Release built from PR title + body. `staging-gate.yml` — auto after a published release: verify-release → deploy `latest` to staging → public smoke vs `https://staging.markoto.app` (no duplicate flow suite). `deploy.yml` — MANUAL `workflow_dispatch` only (staging or prod, tag input, auto-rollback). `sonar.yml` — SonarCloud baseline, weekly cron + manual dispatch.
 
 > Password hashing uses `nuxt-auth-utils` built-in scrypt `hashPassword`/`verifyPassword` — not argon2.
 
@@ -305,7 +305,7 @@ Required env (canonical names — see `.env.example`): `DOMAIN`, `ACME_EMAIL`, `
 
 `infra/` — Ansible. `playbooks/` (provision, deploy, rollback, backup-test), `roles/` (base, ssh_hardening, markoto, backup_cron), `group_vars/`, `templates/`, `requirements.yml` (Galaxy), `Makefile` (common targets), `README.md`. See `docs/DEPLOY-OVH.md` + `docs/RUNBOOK.md`.
 
-`.github/workflows/` — `ci.yml`, `release.yml`, `staging-gate.yml`, `deploy.yml`, `sonar.yml`. PR-title-as-release-name flow; one PR = one release. See `docs/RELEASE-PROCESS.md` + `docs/GITHUB-CONFIG.md`.
+`.github/workflows/` — `ci.yml`, `release.yml`, `staging-gate.yml`, `deploy.yml`, `sonar.yml`. PR-title-as-release-name flow; one labeled PR = one release (releases are opt-in). See `docs/RELEASE-PROCESS.md` + `docs/GITHUB-CONFIG.md`.
 
 `drizzle/` — generated migrations + meta snapshots (committed). `i18n/locales/` — en/de/fr/es/ja/zh JSON.
 
@@ -373,7 +373,7 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 - [x] Two-context fixture (`flow.spawn(actorLabel)`) — spawns a sibling `BrowserContext` with its own cookies + identity; both actors push into the same manifest with `actor` field stamped per frame; `password-protect` rewritten to use it (visitor frames now come from a genuinely separate browser, not a cookie-clear simulation).
 - [x] Tier 2 flows: `voice-dictate`, `document-context`, `knowledge-rag` — voice via the canned-fake STT mock (`NUXT_GOOGLE_SPEECH_MOCK=1`), document-context demonstrates audience+language steering on a single Mistral call, knowledge-rag uploads a postmortem fixture and asks the AI a question grounded in it.
 - [x] Selective re-runs: `flows:test:changed` (`scripts/flows-test-changed.ts`).
-- [x] CI integration — fast flow suite runs on every PR (`ci.yml` `test-repos-integration-flows`); full suite incl. live-AI flows runs in `release.yml` + `staging-gate.yml`.
+- [x] CI integration — fast flow suite runs on every PR (`ci.yml` `test-repos-integration-flows`); full suite incl. live-AI flows runs once per release in `release.yml`.
 - [ ] Doc-content i18n pattern.
 - [ ] `/docs/_internal/flows` gallery.
 - [ ] Mobile flow project (375×667 + dedicated `MobileEditorPage`).
@@ -499,7 +499,7 @@ For feature-specific gotchas see the sub-AGENTS.md for that area.
 
 **What's managed:** OVH managed Postgres (HA + automatic backups + pgvector preinstalled), OVH Object Storage (S3-compatible). What's self-hosted: everything else (Nuxt app, Hocuspocus sync, renderer sidecar, markitdown, Valkey, backup sidecar).
 
-**Deploy flow:** Merge PR → `release.yml` builds + tags GHCR images + creates GH Release from PR title/body (`release:none` PRs skip the release) → `staging-gate.yml` fires automatically: full flow suite incl. live-AI flows → deploys `latest` to staging (resetting the staging DB via `scripts/reset-staging-db.sh`) → public smoke suite against `https://staging.markoto.app` → prod deploy is a **manual** `deploy.yml` `workflow_dispatch` (choose environment + tag; the `.env` is rendered from GitHub secrets via `infra/render-env.sh`). One PR = one release. See `docs/RELEASE-PROCESS.md`.
+**Deploy flow:** Merge a `release:*`-labeled PR (releases are opt-in; unlabeled merges accumulate) → `release.yml` builds + tags GHCR images, runs the full flow suite incl. live-AI, creates the GH Release from PR title/body → `staging-gate.yml` fires automatically: verify-release → deploys `latest` to staging (resetting the staging DB via `scripts/reset-staging-db.sh`) → public smoke suite against `https://staging.markoto.app` → prod deploy is a **manual** `deploy.yml` `workflow_dispatch` (choose environment + tag; the `.env` is rendered from GitHub secrets via `infra/render-env.sh`). One labeled PR = one release. See `docs/RELEASE-PROCESS.md`.
 
 **Rollback:** `infra/playbooks/rollback.yml` flips the GHCR tag back. Database migrations are forward-only by convention; rollback is for code, not schema. See `docs/RUNBOOK.md`.
 

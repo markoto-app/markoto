@@ -49,9 +49,12 @@ all of them on every ready-for-review PR. Two hard rules:
 - **Your PR title + body become the release notes verbatim.** One merged PR =
   one release (see `docs/RELEASE-PROCESS.md`). Write the description for the
   person reading the release page: what changed, why, how to verify.
-- **Release labels** control versioning: `release:patch` (default),
-  `release:minor`, `release:major`, or `release:none` (no release — for
-  docs/CI-only changes).
+- **Releases are opt-in.** An unlabeled merge does NOT release — label a
+  PR `release:patch`, `release:minor`, or `release:major` to ship a
+  release (typically the last PR of a batch carries the label for the
+  accumulated work). The release chain (image builds + full live-AI flow
+  suite + staging deploy) is expensive, so it runs deliberately, not on
+  every merge.
 - Migrations are forward-only. `bun run db:generate` after schema changes;
   the CI `migration-guard` job blocks destructive migrations.
 
