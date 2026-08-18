@@ -1,10 +1,30 @@
 {
   "name": "markoto",
-  "version": "0.11.0",
+  "version": "0.1.0",
+  "description": "Collaborative markdown editor with live CRDT sync, paged WYSIWYG preview, server-rendered PDF export, and EU-resident AI writing assistance",
+  "homepage": "https://markoto.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joelbarmettlerUZH/markoto.git"
+  },
+  "bugs": {
+    "url": "https://github.com/joelbarmettlerUZH/markoto/issues"
+  },
+  "keywords": [
+    "markdown",
+    "editor",
+    "collaboration",
+    "crdt",
+    "yjs",
+    "hocuspocus",
+    "nuxt",
+    "pdf",
+    "ai"
+  ],
   "private": true,
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
-  "author": "Joel Barmettler",
+  "author": "LatentSpace Labs GmbH",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
