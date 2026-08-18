@@ -128,6 +128,13 @@ export async function startNuxt(): Promise<void> {
     // `computeStripeSig` using this same secret.
     // stripe-mock accepts any key matching `sk_test_<alphanumeric>`;
     // use a short suffix that matches their example format.
+    // Email: force stub mode. sendEmail.ts auto-enables real Resend
+    // delivery when RESEND_API_KEY is present, and the developer's .env
+    // (loaded by the spawned Nuxt subprocess) may carry a REAL key —
+    // without this, integration tests fire live Resend API calls
+    // (observed: sandbox-mode rejections in the test logs). Tests
+    // assert on state, never on delivered email, so stub is correct.
+    NUXT_EMAIL_PROVIDER: 'stub',
     NUXT_STRIPE_SECRET_KEY: 'sk_test_123abc',
     NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_integration',
     NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
