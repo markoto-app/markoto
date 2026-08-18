@@ -14,7 +14,7 @@
 // renderer-test (all in docker-compose.test.yml). `bun run test:integration:up`
 // brings them up.
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { resetDb, testDb, ensureYjsTable } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
@@ -78,6 +78,39 @@ beforeEach(async () => {
   await resetDb()
   await ensureYjsTable()
 })
+
+// Pay the render chain's COLD-START cost before any measured test. The
+// first render after stack boot covers Chromium's first page load in the
+// renderer container + the print page's SSR warm-up; on a loaded 2-core
+// CI runner that cold path has taken long enough that the app server
+// killed the connection mid-request ("TypeError: fetch failed /
+// SocketError: other side closed"), failing whichever auth-matrix test
+// ran first and cascading into the next request (observed twice on
+// 2026-08-18 across unrelated PRs; never locally, where cold renders
+// finish in ~2s). One tolerated warm-up render moves that cost out of
+// the measured tests; every test below still asserts exactly what it
+// asserted before. Deliberately non-fatal: if the renderer is genuinely
+// broken, the real tests fail with far better errors than this hook
+// could produce.
+beforeAll(async () => {
+  await resetDb()
+  await ensureYjsTable()
+  const owner = await createUser()
+  const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+  await insertYjsRow(doc.docId, '# warmup\n\ncold-start render\n')
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      if (res.status === 302) {
+        console.info(`[docPdf] warm-up render ok (attempt ${attempt})`)
+        return
+      }
+      console.warn(`[docPdf] warm-up render got ${res.status} (attempt ${attempt})`)
+    } catch (e) {
+      console.warn(`[docPdf] warm-up render failed (attempt ${attempt}):`, e instanceof Error ? e.message : e)
+    }
+  }
+}, 120_000)
 
 describe('GET /api/docs/:docId/pdf — real renderer', () => {
   describe('not-found and basic shape', () => {
