@@ -85,8 +85,18 @@ services:
     restart: unless-stopped
     # Cap the proxy. Steady-state it's a thin Python router; the memory
     # peak is the cold-start Prisma migration run (see start_period below).
-    # 1 GB clears that with headroom without letting a leak balloon.
-    mem_limit: 1g
+    # 1 GB was WRONG — empirically the boot path OOMs against a 1g memcg
+    # (kernel log on staging, 2026-08-18: `Memory cgroup out of memory:
+    # Killed process (litellm) anon-rss:611292kB` — the python process
+    # alone sits at ~640 MB before Prisma's node engine spawns). The
+    # child gets OOM-killed, the wrapper exits 0, and the container
+    # restart-loops through "Running prisma migrate deploy" forever,
+    # never turning healthy — which blocks `app` via depends_on and
+    # takes the whole deploy down. The 1g cap had only ever been
+    # config-validated: deploys didn't sync compose files to the host
+    # until the #44/#46 fix, so its first real application was also its
+    # first failure. 2 GB boots clean (verified live on staging).
+    mem_limit: 2g
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/litellm
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
