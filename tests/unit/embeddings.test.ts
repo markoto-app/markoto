@@ -73,9 +73,75 @@ describe('embeddingVersionTag', () => {
     expect(embeddingVersionTag({
       provider: 'jina',
       model: 'jina-embeddings-v5-text-nano',
+      upstreamModel: '',
       dimensions: 768,
+      shape: { sendTaskHint: true, sendDimensions: true },
       apiKey: 'k'
     })).toBe('jina/jina-embeddings-v5-text-nano:768')
+  })
+
+  it('uses the upstream model for a custom deployment when known', () => {
+    const base = {
+      provider: 'custom' as const,
+      model: 'custom-embeddings',
+      dimensions: 1536,
+      shape: { sendTaskHint: false, sendDimensions: false },
+      apiKey: 'k'
+    }
+    expect(embeddingVersionTag({ ...base, upstreamModel: 'openai/text-embedding-3-small' }))
+      .toBe('custom/openai/text-embedding-3-small:1536')
+    expect(embeddingVersionTag({ ...base, upstreamModel: '' })).toBe('custom/custom-embeddings:1536')
+  })
+})
+
+describe('custom (non-Jina) configuration', () => {
+  function useCustom(extra: Record<string, unknown> = {}, dims = 1536): void {
+    mockState.config = {
+      litellm: {
+        url: 'http://litellm:4000',
+        masterKey: 'sk-master',
+        embeddingsModel: 'custom-embeddings',
+        embeddingsDims: dims,
+        ...extra
+      }
+    } as unknown as typeof mockState.config
+    mockState.jinaResponse = { data: [{ embedding: new Array(dims).fill(0.01) }] }
+  }
+
+  it('resolves provider=custom and sends neither task nor dimensions by default', async () => {
+    useCustom()
+    expect(resolveEmbeddingsConfig().provider).toBe('custom')
+    await embedDocuments(['hello'])
+    await embedQuery('hello')
+    for (const call of mockState.jinaCalls) {
+      expect(call).not.toHaveProperty('task')
+      expect(call).not.toHaveProperty('dimensions')
+      expect(call.model).toBe('custom-embeddings')
+    }
+  })
+
+  it('sends dimensions when the operator opts in', async () => {
+    useCustom({ embeddingsSendDimensions: 'true' })
+    await embedDocuments(['hello'])
+    expect(mockState.jinaCalls[0]!.dimensions).toBe(1536)
+    expect(mockState.jinaCalls[0]).not.toHaveProperty('task')
+  })
+
+  it('sends the task hint when the operator opts in', async () => {
+    useCustom({ embeddingsTaskHints: 'true' })
+    await embedQuery('hello')
+    expect(mockState.jinaCalls[0]!.task).toBe('retrieval.query')
+  })
+
+  it('still rejects a vector of the wrong length with an actionable message', async () => {
+    useCustom()
+    mockState.jinaResponse = { data: [{ embedding: new Array(768).fill(0) }] }
+    await expect(embedDocuments(['x'])).rejects.toThrow(/NUXT_LITELLM_EMBEDDINGS_DIMS=1536/)
+  })
+
+  it('rejects dimensions beyond the HNSW limit', () => {
+    useCustom({}, 3072)
+    expect(() => resolveEmbeddingsConfig()).toThrow(/2000/)
   })
 })
 

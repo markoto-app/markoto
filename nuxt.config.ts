@@ -112,6 +112,12 @@ export default defineNuxtConfig({
       // 768) is a config-only change if quality becomes the bottleneck.
       embeddingsModel: 'jina-embeddings-v5-text-nano', // NUXT_LITELLM_EMBEDDINGS_MODEL
       embeddingsDims: 768, // NUXT_LITELLM_EMBEDDINGS_DIMS
+      // Self-hosters: swap the model/size via env. The pgvector column is
+      // re-typed to match at boot when empty (server/utils/embeddingColumn.ts);
+      // max 2000 dims (HNSW). See docs/AI-MODELS.md#embeddings.
+      embeddingsSendDimensions: 'auto', // NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS — auto|true|false (auto = Jina only)
+      embeddingsTaskHints: 'auto', // NUXT_LITELLM_EMBEDDINGS_TASK_HINTS — Jina `task` param; auto|true|false (auto = Jina only)
+      embeddingsUpstreamModel: '', // NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL — label only (version tag); mirrors the proxy's EMBEDDINGS_UPSTREAM_MODEL
       // Phase 2 transcribe model (Voxtral Mini Transcribe 2, $0.003/min).
       // Wrapped as a fake chat completion via custom_handlers.py to fix
       // LiteLLM's transcription cost-tracking gap with Mistral's response

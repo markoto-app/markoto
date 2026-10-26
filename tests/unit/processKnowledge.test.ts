@@ -93,6 +93,9 @@ vi.mock('../../server/utils/embeddings', () => ({
   embeddingVersionTag
 }))
 
+const assertKnowledgeEmbeddingsReady = vi.fn<() => Promise<void>>()
+vi.mock('../../server/utils/knowledgeEmbeddingsStatus', () => ({ assertKnowledgeEmbeddingsReady }))
+
 const sentryCaptureException = vi.fn()
 vi.mock('@sentry/nuxt', () => ({ captureException: sentryCaptureException }))
 
@@ -167,9 +170,26 @@ beforeEach(() => {
   tryAcquireSessionLock.mockResolvedValue(true) // Default: every test gets the lock.
   releaseSessionLock.mockReset()
   releaseSessionLock.mockResolvedValue(undefined)
+  assertKnowledgeEmbeddingsReady.mockReset()
+  assertKnowledgeEmbeddingsReady.mockResolvedValue(undefined)
 })
 
 // ─── Tests ────────────────────────────────────────────────────────────────
+
+describe('processKnowledge — embeddings misconfigured', () => {
+  it('fails the row with the actionable reason before converting or embedding', async () => {
+    selectQueue.push([row()])
+    assertKnowledgeEmbeddingsReady.mockRejectedValueOnce(new Error('[embeddings] run `bun run knowledge:reembed`'))
+
+    await processKnowledge('k1')
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(embedDocuments).not.toHaveBeenCalled()
+    expect(updateCalls).toHaveLength(1)
+    expect(updateCalls[0]!.set).toMatchObject({ status: 'failed' })
+    expect(String(updateCalls[0]!.set.errorMessage)).toContain('knowledge:reembed')
+  })
+})
 
 describe('processKnowledge — short-circuit paths', () => {
   it('no-ops when the row is not found (sweep-deleted between enqueue and run)', async () => {

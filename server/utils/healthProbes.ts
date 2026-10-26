@@ -17,6 +17,7 @@ import { HeadBucketCommand } from '@aws-sdk/client-s3'
 import { useDatabase } from './database'
 import { useValkey } from './valkey'
 import { useS3Client } from './s3'
+import { getKnowledgeEmbeddingsStatus } from './knowledgeEmbeddingsStatus'
 import { trimTrailingSlashes } from '../../shared/utils/trimTrailingSlashes'
 
 export type ProbeStatus = 'ok' | 'down' | 'skipped'
@@ -127,6 +128,19 @@ async function probeHttp(url: string | undefined | null, name: string, path = '/
     const msg = errorMessage(e)
     return down(latency, `${name}: ${msg}`)
   }
+}
+
+/**
+ * Knowledge-base embeddings configuration vs. the stored vector column.
+ * Reported on /api/health/deep only: deliberately NOT part of
+ * `isOverallHealthy` (a knowledge misconfiguration must not 503 the app out
+ * of rotation; the editor keeps working).
+ */
+export async function probeEmbeddings(): Promise<ProbeResult> {
+  const started = performance.now()
+  const status = await getKnowledgeEmbeddingsStatus()
+  const latency = Math.round(performance.now() - started)
+  return status.ok ? ok(latency) : down(latency, status.message)
 }
 
 export function probeSync(url: string | undefined | null): Promise<ProbeResult> {

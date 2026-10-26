@@ -5,6 +5,7 @@ import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
 import { useDatabase } from './database'
 import { chunkMarkdown } from './chunkMarkdown'
 import { embedDocuments, embeddingVersionTag, resolveEmbeddingsConfig } from './embeddings'
+import { assertKnowledgeEmbeddingsReady } from './knowledgeEmbeddingsStatus'
 import { tryAcquireSessionLock, releaseSessionLock } from './rateLimit'
 import { injectTraceHeaders } from './traceHeaders'
 
@@ -77,6 +78,10 @@ async function runPipeline(knowledgeId: string): Promise<void> {
   }
 
   try {
+    // A misconfigured or mismatched embeddings setup disables knowledge
+    // only: fail the row with the actionable reason before spending
+    // conversion effort.
+    await assertKnowledgeEmbeddingsReady()
     const markdown = await runConversion(row.s3Key, row.sourceExt)
 
     // Row may have been deleted by the user mid-conversion. Bail out

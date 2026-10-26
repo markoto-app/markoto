@@ -102,6 +102,14 @@ services:
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
       - JINA_AI_API_KEY=${JINA_AI_API_KEY:?JINA_AI_API_KEY required}
+      # Self-hosting: operator-configurable embeddings deployment
+      # (`custom-embeddings` in infra/litellm/config.yaml). Selected only when
+      # NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings. The proxy crashes at
+      # startup if these are undefined, hence the placeholder defaults.
+      # See docs/AI-MODELS.md#embeddings.
+      - EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-openai/text-embedding-3-small}
+      - EMBEDDINGS_UPSTREAM_API_BASE=${EMBEDDINGS_UPSTREAM_API_BASE:-https://api.openai.com/v1}
+      - EMBEDDINGS_UPSTREAM_API_KEY=${EMBEDDINGS_UPSTREAM_API_KEY:-}
       # Stubbed for Phase 4 / 5 — declared now so the env wiring is in
       # place when those phases land. `${VAR:-}` fallbacks let the stack
       # boot before the user provisions the keys.

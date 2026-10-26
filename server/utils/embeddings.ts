@@ -1,111 +1,131 @@
 import type OpenAI from 'openai'
 import { useLitellmAdmin } from './litellmClient'
 import { FEATURE_TAGS, featureMetadata } from './litellm/featureTags'
+import {
+  DEFAULT_EMBEDDINGS_DIMS,
+  DEFAULT_EMBEDDINGS_MODEL,
+  embeddingRequestParams,
+  isJinaModel,
+  parseEmbeddingDims,
+  parseTriState,
+  resolveRequestShape,
+  type EmbeddingRequestShape,
+  type EmbeddingTaskType
+} from '../../shared/utils/embeddingConfig'
 
 /**
  * Embeddings wrapper for the workspace knowledge base.
  *
- * Phase 5: routes through the LiteLLM proxy → `jina-embeddings-v5-text-nano`
- * at 768-d. Pre-Phase-5 (Gemini-era) the path was direct `@google/genai`
- * `embedContent`; that path was removed once every shipped chunk migrated
- * to Jina vectors via `scripts/re-embed-knowledge.ts`. The script itself
- * stays for any future re-embed (model bump, dim change, vendor swap).
+ * Every call routes through the LiteLLM proxy. Hosted markoto uses the
+ * default `jina-embeddings-v5-text-nano` (768-d); a self-hoster can point the
+ * proxy's `custom-embeddings` deployment at any OpenAI-compatible endpoint
+ * and pick the dimension (see docs/AI-MODELS.md#embeddings). Same code path,
+ * differences only through configuration.
  *
  * Public API is provider-agnostic: callsites in `processKnowledge.ts`,
- * `repos/knowledge.ts`, and `scripts/re-embed-knowledge.ts` use the same
+ * `repos/knowledge.ts`, and `scripts/reembed-knowledge.ts` use the same
  * `embedDocuments` / `embedQuery` signature.
  *
  * Behaviour:
  *   - Pin model + dimensionality from runtimeConfig so all calls produce
  *     vectors in one space (per-call drift breaks `1 - cosineDistance`).
+ *   - Provider-specific request parameters (Jina `task` hint, OpenAI
+ *     `dimensions`) are decided in `shared/utils/embeddingConfig.ts`: sent
+ *     for Jina models, opt-in for everything else.
  *   - Apply the same per-input character cap (defends against pre-chunked
  *     input that exceeds the model's token window).
- *   - Use bounded concurrency (5) for batch document embedding. We don't
- *     exploit Jina's true batch endpoint — the per-call shape is uniform
- *     enough that the extra pool plumbing isn't worth it at our scale.
+ *   - Use bounded concurrency (5) for batch document embedding.
  *   - Stamp results with an `embeddingVersion` string the caller persists
- *     so we can re-embed lazily if model or dims ever change without a
- *     destructive migration.
+ *     so a model or dimension change can be detected and re-embedded.
  *
- * On dimensions: pgvector HNSW caps at 2000 dims. We pin 768 because Jina
- * v5-text-nano's native dimensionality is 768 — no MRL truncation, no
- * loss vs the model's full output.
+ * On dimensions: pgvector HNSW caps at 2000 dims (validated by
+ * `parseEmbeddingDims`). The column's actual dimension is reconciled with
+ * `NUXT_LITELLM_EMBEDDINGS_DIMS` at boot by `server/utils/embeddingColumn.ts`.
  */
 
-export type EmbeddingTaskType
-  = | 'RETRIEVAL_DOCUMENT'
-    | 'RETRIEVAL_QUERY'
-    | 'SEMANTIC_SIMILARITY'
-    | 'CLASSIFICATION'
-    | 'CLUSTERING'
-
-/** Type alias retained for callers (notably `re-embed-knowledge.ts`).
- *  Single-valued post-Phase-5 — kept as a type alias rather than a string
- *  literal in case we add a second backend (e.g. local Ollama) later. */
-export type EmbeddingsProvider = 'jina'
+/** `jina` = a Jina model (task hint + dimensions sent by default);
+ *  `custom` = any other model behind LiteLLM. */
+export type EmbeddingsProvider = 'jina' | 'custom'
 
 const CONCURRENCY = 5
 
-// Per-input character cap. Jina v5-text-nano has a large token window
-// (≥2k); our chunker targets 800 with a 1500 ceiling — this is
-// belt-and-braces for any caller that hands us pre-chunked text we
-// didn't produce.
+// Per-input character cap. Our chunker targets 800 with a 1500 ceiling —
+// this is belt-and-braces for any caller that hands us pre-chunked text we
+// didn't produce, and keeps us under the context window of small local
+// models (nomic-embed-text: 2048 tokens).
 const MAX_INPUT_CHARS = 8000 // ~2000 tokens worst case in English
 
 export interface EmbeddingsConfig {
-  /** Backend selection. Single-valued today; kept on the shape so the
-   *  re-embed script signals intent at the boundary. */
   provider: EmbeddingsProvider
-  /** Provider-specific model id (e.g. `jina-embeddings-v5-text-nano`). */
+  /** LiteLLM model name the app asks for (e.g. `jina-embeddings-v5-text-nano`
+   *  or the operator-configurable `custom-embeddings`). */
   model: string
+  /** Upstream model behind a custom deployment (`EMBEDDINGS_UPSTREAM_MODEL`),
+   *  when known to the app. Only used to make the version tag meaningful. */
+  upstreamModel: string
   /** Output vector dimension. */
   dimensions: number
+  /** Which optional request parameters to send. */
+  shape: EmbeddingRequestShape
   /** LiteLLM master key (used as the OpenAI SDK's apiKey). */
   apiKey: string
 }
 
-export function resolveEmbeddingsConfig(): EmbeddingsConfig {
-  const config = useRuntimeConfig()
-  const apiKey = config.litellm?.masterKey
-  if (!apiKey) {
+/** Raw (unvalidated) settings, from runtimeConfig or the process env. */
+export interface RawEmbeddingsSettings {
+  model?: string
+  upstreamModel?: string
+  dims?: unknown
+  sendDimensions?: unknown
+  taskHints?: unknown
+  apiKey?: string
+}
+
+/** Validate raw settings into a config. Shared by the app and the re-embed script. */
+export function buildEmbeddingsConfig(raw: RawEmbeddingsSettings): EmbeddingsConfig {
+  if (!raw.apiKey) {
     throw new Error('[embeddings] NUXT_LITELLM_MASTER_KEY required')
   }
+  const model = raw.model || DEFAULT_EMBEDDINGS_MODEL
   return {
-    provider: 'jina',
-    model: config.litellm?.embeddingsModel || 'jina-embeddings-v5-text-nano',
-    dimensions: config.litellm?.embeddingsDims || 768,
-    apiKey
+    provider: isJinaModel(model) ? 'jina' : 'custom',
+    model,
+    upstreamModel: raw.upstreamModel || '',
+    dimensions: parseEmbeddingDims(raw.dims ?? DEFAULT_EMBEDDINGS_DIMS),
+    shape: resolveRequestShape(model, {
+      sendTaskHint: parseTriState(raw.taskHints, 'NUXT_LITELLM_EMBEDDINGS_TASK_HINTS'),
+      sendDimensions: parseTriState(raw.sendDimensions, 'NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS')
+    }),
+    apiKey: raw.apiKey
   }
+}
+
+export function resolveEmbeddingsConfig(): EmbeddingsConfig {
+  const litellm = useRuntimeConfig().litellm
+  return buildEmbeddingsConfig({
+    model: litellm?.embeddingsModel,
+    upstreamModel: litellm?.embeddingsUpstreamModel,
+    dims: litellm?.embeddingsDims,
+    sendDimensions: litellm?.embeddingsSendDimensions,
+    taskHints: litellm?.embeddingsTaskHints,
+    apiKey: litellm?.masterKey
+  })
 }
 
 /**
  * Stable identifier persisted with each row so re-embed jobs can detect
- * stale vectors. Format: `{provider}/{model}:{dims}`.
+ * stale vectors. Format: `{provider}/{model}:{dims}`. For a custom
+ * deployment the upstream model (when configured) replaces the generic
+ * `custom-embeddings` alias so switching upstream models is detectable.
  */
 export function embeddingVersionTag(cfg: EmbeddingsConfig): string {
-  return `${cfg.provider}/${cfg.model}:${cfg.dimensions}`
+  const model = cfg.provider === 'custom' && cfg.upstreamModel ? cfg.upstreamModel : cfg.model
+  return `${cfg.provider}/${model}:${cfg.dimensions}`
 }
 
 function truncate(text: string): string {
   if (text.length <= MAX_INPUT_CHARS) return text
   return text.slice(0, MAX_INPUT_CHARS)
-}
-
-/**
- * Map our internal task-type enum to Jina's. Jina's `task` parameter is
- * a top-level field on `/v1/embeddings` (NOT `extra_body` as the LiteLLM
- * docs imply for the OpenAI shim); spike confirmed it propagates.
- *
- * RETRIEVAL_DOCUMENT → retrieval.passage (corpus chunks)
- * RETRIEVAL_QUERY    → retrieval.query   (search-time query)
- * Other task types fall back to text-matching, Jina's symmetric default.
- */
-function mapTaskToJina(task: EmbeddingTaskType): string {
-  switch (task) {
-    case 'RETRIEVAL_DOCUMENT': return 'retrieval.passage'
-    case 'RETRIEVAL_QUERY': return 'retrieval.query'
-    default: return 'text-matching'
-  }
 }
 
 async function embedOne(
@@ -114,44 +134,41 @@ async function embedOne(
   text: string,
   taskType: EmbeddingTaskType
 ): Promise<number[]> {
-  // The OpenAI SDK's `embeddings.create` doesn't have a typed `task`
-  // field, but LiteLLM forwards unknown body params to the upstream
-  // provider verbatim. They ride in as a typed spread (spread members
+  // Optional request fields ride in as a typed spread (spread members
   // aren't excess-property-checked) so the SDK's typed fields keep their
   // literal types — in particular `encoding_format: 'float'`, which
-  // selects the `number[]` overload of `create` (openai >= 7 overloads
-  // on it; an `as any` extras object would collapse to the base64
-  // overload). `dimensions` IS typed in the OpenAI SDK.
-  //
-  // Jina-specific: the task hint propagates through LiteLLM. Without
-  // it v4's recall measurably degrades on retrieval workloads (verified
-  // in Phase 0 spike — vectors differ across task values). The LiteLLM
-  // spend-tag for /admin/ai-spend aggregation rides on the same path.
-  const litellmExtras = {
-    task: mapTaskToJina(taskType),
+  // selects the `number[]` overload of `create`. `task` (Jina) is not in
+  // the SDK's types but LiteLLM forwards unknown body params upstream
+  // verbatim; `dimensions` IS typed. Which of the two a model gets is
+  // decided by `embeddingRequestParams` (Jina: both; others: opt-in).
+  // The spend-tag for /admin/ai-spend aggregation rides on the same path.
+  const extras = {
+    ...embeddingRequestParams(cfg.shape, cfg.dimensions, taskType),
     ...featureMetadata(FEATURE_TAGS.embeddings)
   }
   const response = await client.embeddings.create({
-    ...litellmExtras,
+    ...extras,
     model: cfg.model,
     input: truncate(text),
-    dimensions: cfg.dimensions,
     // OpenAI SDK auto-injects `encoding_format: 'base64'` for
     // embeddings. With Jina via LiteLLM, that path returns a 192-d
     // truncated vector instead of the requested 768-d (silent
-    // failure: code reads `data[0].embedding.length === 192`,
-    // pgvector insert fails with "vector has wrong shape"). Force
-    // `'float'` so Jina returns the number array directly.
+    // failure: pgvector insert fails with "vector has wrong shape").
+    // Force `'float'` so the proxy returns the number array directly.
     encoding_format: 'float'
   })
   const values = response.data?.[0]?.embedding
   if (values?.length !== cfg.dimensions) {
-    throw new Error(`[embeddings] jina vector has wrong shape: ${values?.length ?? 0} != ${cfg.dimensions}`)
+    throw new Error(
+      `[embeddings] ${cfg.model} returned a vector with wrong shape: ${values?.length ?? 0} dims, `
+      + `but NUXT_LITELLM_EMBEDDINGS_DIMS=${cfg.dimensions}. Set it to the model's output size (then run the re-embed command), `
+      + 'or enable NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS if the model supports reduced output sizes.'
+    )
   }
   return values
 }
 
-// ─── Public API (unchanged shape) ─────────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────
 
 export interface EmbedOptions {
   /** Override provider config (tests, scripts). */
