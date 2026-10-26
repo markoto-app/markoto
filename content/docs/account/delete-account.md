@@ -23,8 +23,10 @@ purged.
 Hitting Delete opened a confirmation modal that enumerates exactly
 what's about to happen:
 
-- **Deleted:** owned docs (incl. anonymous), saved themes, AI usage
-  history, queued data exports, your Stripe customer record.
+- **Deleted:** owned docs (incl. anonymous), saved themes, AI session
+  history, your saved AI provider settings and keys, your MCP personal
+  access tokens, queued data exports, and (where billing is on) your
+  Stripe customer record.
 - **Anonymised, not deleted:** comments on other people's docs
   (collaboration history doesn't tear holes), activity-log
   attribution, audit-log actor, consent-log entries — all flip to
@@ -34,16 +36,13 @@ what's about to happen:
   the longest-tenured other admin to owner before removing your
   membership; everywhere else, you're just removed as a member.
 
-Confirming flips `users.deletion_requested_at = now()` and starts
-the 30-day countdown. A banner appears at the top of the app
-showing the days remaining + a Cancel button. The cancel restores
-all state — the column nulls, the audit row records the cancel,
-and your account is exactly as it was.
+Confirming starts the 30-day countdown. A banner appears at the top of
+the app showing the days remaining and a Cancel button. Cancelling
+restores everything: your account is exactly as it was.
 
-After the deadline passes, the `account-deletion-sweep` plugin
-claims your row and runs the 10-step purge through
-`accountDeletionExecute.ts`. You get a transactional email when
-the deletion completes.
+After the deadline passes, markoto purges the account automatically. On
+instances with email set up you get a confirmation email when the deletion
+completes.
 
 ## What's next
 

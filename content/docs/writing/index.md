@@ -13,11 +13,13 @@ diagrams, footnotes — so most documents can stay in plain `.md`
 without losing their visual structure.
 
 **Markdown + formatting**
+- [Markdown reference](/docs/writing/markdown-reference) — every syntax markoto renders, in one page.
 - [Tables, alerts, math, and diagrams](/docs/writing/rich-content) — the rich-content extensions.
 - [Have a discussion in your document](/docs/writing/comments) — comments, threading, resolve.
 - [Speak instead of typing](/docs/writing/voice-dictate) — live dictation streams text as you speak.
 
 **Working with the AI**
+- [What the AI can do, and what it needs](/docs/writing/ai-overview) — features, providers, limits.
 - [Write with the AI](/docs/writing/ai-prompt-bar) — the prompt bar walkthrough.
 - [Tell the AI who you're writing for](/docs/writing/document-context) — audience + language steering.
 - [Ask the AI about a file you uploaded](/docs/writing/knowledge-rag) — workspace knowledge retrieval.
@@ -27,7 +29,7 @@ without losing their visual structure.
 - [Ask the AI to read a URL](/docs/writing/ai-fetch-url) — pull in any external page.
 - [Ask the AI for current information](/docs/writing/ai-web-search) — grounded answers from live web results.
 - [Ask the AI to draw an image](/docs/writing/ai-generate-image) — generate, upload, insert.
-- [Hit the AI cap?](/docs/writing/ai-budget) — what happens, what your options are.
+- [AI Points and what happens when you run out](/docs/writing/ai-budget) — when the allowance applies, and your options.
 
 **Doc lifecycle**
 - [Duplicate a document](/docs/writing/duplicate) — clone everything into a new URL.

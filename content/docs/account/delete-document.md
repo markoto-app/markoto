@@ -20,14 +20,13 @@ snapshot.)
 
 ## What just happened
 
-`DELETE /api/docs/:id` runs `deleteDocument()` which removes:
+Deleting a document removes:
 
-- The `documents` row
-- The `yjs_documents` history rows (full Y.js state)
-- All `uploads` rows + their S3 objects under `docs/{docId}/`
-- The `comments` rows attached to the doc
-- The `activity_log` rows for the doc (auto-cascaded by FK)
-- Any cached PDF/PNG renders under `renders/{docId}/`
+- The document itself and its full edit history
+- All uploaded images (and AI-generated ones)
+- Its comments
+- Its activity log
+- Any cached PDF and page renders
 
 For docs that live in a workspace, admins can delete any doc; editors
 can only delete their own. Anonymous docs (no owner) are deletable by

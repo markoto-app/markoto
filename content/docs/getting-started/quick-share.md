@@ -32,6 +32,6 @@ for the password-gated flow.
 
 ## What's next
 
-- [Turn your draft into a polished PDF](/docs/getting-started/polished-pdf) — pick a theme and export.
-- [Bring an existing Word/PDF document in](/docs/getting-started/import-existing) — start from what you already have.
+- [Turn your draft into a polished PDF](/docs/import-export/polished-pdf) — pick a theme and export.
+- [Bring an existing Word/PDF document in](/docs/import-export/import-existing) — start from what you already have.
 - [Add tables, alerts, math, and diagrams](/docs/writing/rich-content) — make your docs richer.

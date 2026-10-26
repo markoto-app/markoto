@@ -17,13 +17,11 @@ the bones of what you're writing.
 
 ## What just happened
 
-The template registry (`shared/templates/`) ships a few starting
-shapes: blank, blog post, technical spec, meeting notes, academic
-paper, lecture handout. Each has its own markdown skeleton localised
-to the target language. The picker passes the template id to the
-new-doc API, the server reads the matching `<id>/<locale>.md`, and the
-doc is created with that body, the template's audience hint, and the
-suggested theme already applied.
+markoto ships six starting shapes: blank, meeting notes, project README,
+academic paper, business plan and recipe. Each is a markdown skeleton
+written in the language you pick, with short private comments telling you
+(or the AI) what belongs in each section. The new document starts with that
+body, the template's audience, and a suitable theme already applied.
 
 You can change any of it after the fact — the template is a starting
 point, not a constraint.

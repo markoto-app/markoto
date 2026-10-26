@@ -1,0 +1,76 @@
+---
+title: What the AI can do, and what it needs
+description: A map of markoto's AI features, which of them need a provider you connect, what leaves your document and what it costs, on markoto.app and on a self-hosted instance.
+category: writing
+order: 3.8
+icon: i-lucide-sparkles
+featured: true
+---
+
+# What the AI can do, and what it needs
+
+markoto's assistant works in your document like another collaborator: you
+ask, it reads the page, edits it, and you watch the changes appear. This page
+is the map. Each row links to a walkthrough.
+
+## The features
+
+| Feature | What it does | What it needs |
+|---|---|---|
+| [Prompt bar](/docs/writing/ai-prompt-bar) | Draft, rewrite, restructure, add sections | A **writing assistant** provider |
+| [Rewrite a selection](/docs/writing/ai-rewrite-selection) | Select text, say what you want, it is replaced in place | A writing assistant provider |
+| [`@markoto` in comments](/docs/writing/ai-comments) | Ask about one passage; the answer lands in the thread | A writing assistant provider |
+| [Look at another document](/docs/writing/ai-cross-doc) | Reads other documents you can open | A writing assistant provider |
+| [Workspace knowledge](/docs/writing/knowledge-rag) | Answers from files uploaded to a workspace | A writing assistant provider, and the instance's embeddings |
+| [Web search](/docs/writing/ai-web-search) | Current facts with cited sources | A writing assistant provider (for the summary) and web search enabled on the instance |
+| [Read a URL](/docs/writing/ai-fetch-url) | Summarises a page you link | A writing assistant provider and page fetching enabled on the instance |
+| [Draw an image](/docs/writing/ai-generate-image) | Generates an image and inserts it | An **image** provider |
+| Voice prompt (microphone in the prompt bar) | Say your prompt instead of typing it | A **voice transcription** provider |
+| [Live dictation](/docs/writing/voice-dictate) | Streams speech into the editor as you talk | A Mistral transcription provider |
+| [Connected apps (MCP)](/docs/account/mcp) | Claude Desktop, Cursor or scripts use the same document tools | A personal access token; the writing assistant is not involved |
+
+You need to be signed in to use AI. If a capability isn't available, its
+button is hidden or the AI bar tells you what to add. Nothing else in markoto
+depends on AI.
+
+## Where the provider comes from
+
+For each of the three capabilities (writing assistant, image, voice
+transcription) markoto picks, in this order:
+
+1. **Your own provider**, connected under **Settings -> AI provider** ([how](/docs/account/ai-provider)). Calls go to your account at that provider and are billed there.
+2. **The instance default**, if whoever runs this markoto set one. On a self-hosted instance that is the operator's choice (including a local model). On markoto.app there are no defaults today.
+3. Otherwise the capability is unavailable.
+
+So on markoto.app you connect your own key before the AI works. On a
+self-hosted instance it may already work, or you connect your own.
+
+## What markoto provides itself
+
+A few things are not tied to your own key:
+
+- **Knowledge-base embeddings**, so uploaded files can be searched.
+- **Web search and page fetching.** The instance pays for the search or page extraction, so each user gets an allowance (by default 30 calls an hour and 100 a day, shared by the editor AI and connected apps). Summarising the results runs on your writing assistant provider. If your instance has no search or fetch key, the AI doesn't offer those tools.
+
+## What leaves your document
+
+When you use AI, your prompt and the parts of the document the assistant
+reads are sent to the provider that handles the request: your own provider
+if you connected one, otherwise the instance default. Web search sends the
+search query to the instance's search provider, and page fetching sends the
+URL. Knowledge uploads are converted and embedded by the instance's
+embeddings provider. Nothing is sent anywhere unless you use one of these
+features. On markoto.app the platform-side providers (embeddings, search,
+page extraction) are located in the EU.
+
+## Cost and limits
+
+- On **your own provider**, your provider bills you and AI Points never apply.
+- **AI Points** only exist when a capability is paid for by the instance operator (an instance default). They are a monthly allowance per person; see [What happens when you run out](/docs/writing/ai-budget).
+- Every AI session has safety limits against runaway loops (for example at most 5 generated images and 10 web searches per session).
+
+## What's next
+
+- [Connect your own AI provider](/docs/account/ai-provider)
+- [Write with the AI prompt bar](/docs/writing/ai-prompt-bar)
+- [Use the AI from Claude Desktop or Cursor](/docs/account/mcp)
