@@ -58,6 +58,17 @@ export const TEST_VALKEY_PASSWORD = 'testpassword'
 // stub couldn't speak Hocuspocus protocol, which gated every Y.js-
 // touching tool out of integration coverage. The kick-user dispatch
 // shape is now pinned by `tests/unit/syncNotify.test.ts`.
+// Generic OIDC (WP7b): the `oidc-test` mock IdP (navikt mock-oauth2-server)
+// in docker-compose.test.yml. Every path is its own issuer with its own
+// signing key; the app trusts exactly TEST_OIDC_ISSUER.
+export const TEST_OIDC_PORT = 4130
+export const TEST_OIDC_BASE_URL = `http://127.0.0.1:${TEST_OIDC_PORT}`
+export const TEST_OIDC_ISSUER = `${TEST_OIDC_BASE_URL}/markoto`
+export const TEST_OIDC_CLIENT_ID = 'markoto-test-client'
+export const TEST_OIDC_CLIENT_SECRET = 'markoto-test-client-secret'
+/** In NUXT_ADMIN_USER_EMAILS of the test server (admin bootstrap on sign-in). */
+export const TEST_OIDC_ADMIN_EMAIL = 'oidc-admin@test.local'
+
 export const TEST_SYNC_PORT = 4002
 export const TEST_SYNC_URL = `http://127.0.0.1:${TEST_SYNC_PORT}`
 
