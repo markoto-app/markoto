@@ -56,6 +56,10 @@ Install options (each also readable from the environment variable shown):
   --github-client-secret S      (NUXT_OAUTH_GITHUB_CLIENT_SECRET)
   --google-client-id ID         Google OAuth client (NUXT_OAUTH_GOOGLE_CLIENT_ID)
   --google-client-secret S      (NUXT_OAUTH_GOOGLE_CLIENT_SECRET)
+  --oidc-issuer URL             your own OpenID Connect provider (NUXT_OAUTH_OIDC_ISSUER)
+  --oidc-client-id ID           (NUXT_OAUTH_OIDC_CLIENT_ID)
+  --oidc-client-secret S        (NUXT_OAUTH_OIDC_CLIENT_SECRET)
+  --oidc-name NAME              sign-in button label, e.g. Authentik (NUXT_OAUTH_OIDC_NAME)
   --mistral-api-key KEY         Mistral as the instance AI default: chat, voice (MISTRAL_API_KEY)
   --jina-api-key KEY            knowledge-base embeddings + fetch_url tool (JINA_AI_API_KEY)
   --staan-api-key KEY           web_search tool (STAAN_API_KEY)
@@ -297,22 +301,34 @@ configure() {
 }
 
 configure_oauth() {
-  local public_url="$1" gh_id gh_secret go_id go_secret
+  local public_url="$1" gh_id gh_secret go_id go_secret oidc_issuer oidc_id oidc_secret oidc_name
   gh_id="${OPT_GH_ID:-$(env_get NUXT_OAUTH_GITHUB_CLIENT_ID)}"
   gh_secret="${OPT_GH_SECRET:-$(env_get NUXT_OAUTH_GITHUB_CLIENT_SECRET)}"
   go_id="${OPT_GO_ID:-$(env_get NUXT_OAUTH_GOOGLE_CLIENT_ID)}"
   go_secret="${OPT_GO_SECRET:-$(env_get NUXT_OAUTH_GOOGLE_CLIENT_SECRET)}"
+  oidc_issuer="${OPT_OIDC_ISSUER:-$(env_get NUXT_OAUTH_OIDC_ISSUER)}"
+  oidc_id="${OPT_OIDC_ID:-$(env_get NUXT_OAUTH_OIDC_CLIENT_ID)}"
+  oidc_secret="${OPT_OIDC_SECRET:-$(env_get NUXT_OAUTH_OIDC_CLIENT_SECRET)}"
+  oidc_name="${OPT_OIDC_NAME:-$(env_get NUXT_OAUTH_OIDC_NAME)}"
 
-  if [ "$INTERACTIVE" = 1 ] && [ -z "$gh_id$go_id" ]; then
+  if [ "$INTERACTIVE" = 1 ] && [ -z "$gh_id$go_id$oidc_issuer" ]; then
     info "Login (optional)"
-    note "markoto signs users in with GitHub and/or Google OAuth. Without either,"
-    note "the instance is anonymous-only: documents work, but owning documents,"
-    note "workspaces and AI need an account. Create an OAuth app with callback URL:"
+    note "markoto signs users in with your own OpenID Connect provider (Authentik,"
+    note "Keycloak, Authelia, Pocket ID, Zitadel, ...) and/or GitHub / Google OAuth."
+    note "Without any, the instance is anonymous-only: documents work, but owning"
+    note "documents, workspaces and AI need an account. Redirect / callback URLs:"
+    note "  OpenID Connect: ${public_url}/auth/oidc   (scopes: openid email profile)"
     note "  GitHub: ${public_url}/auth/github   (github.com/settings/developers)"
     note "  Google: ${public_url}/auth/google   (console.cloud.google.com/apis/credentials)"
     case "$public_url" in http://localhost* | https://*) ;; *)
       warn "Login needs HTTPS (or http://localhost): browsers drop the secure OAuth cookies on plain http." ;;
     esac
+    if ask_yes_no "Configure an OpenID Connect provider now?" "n"; then
+      ask oidc_issuer "Issuer URL (as in its /.well-known/openid-configuration)" ""
+      ask oidc_id "Client ID" ""
+      ask_secret oidc_secret "Client secret"
+      ask oidc_name "Button label (e.g. Authentik; empty = \"single sign-on\")" ""
+    fi
     if ask_yes_no "Configure GitHub login now?" "n"; then
       ask gh_id "GitHub client ID" ""
       ask_secret gh_secret "GitHub client secret"
@@ -324,10 +340,18 @@ configure_oauth() {
   fi
   if [ -n "$gh_id" ] && [ -z "$gh_secret" ]; then die "GitHub client ID given without a secret"; fi
   if [ -n "$go_id" ] && [ -z "$go_secret" ]; then die "Google client ID given without a secret"; fi
+  if [ -n "$oidc_issuer$oidc_id$oidc_secret" ] && { [ -z "$oidc_issuer" ] || [ -z "$oidc_id" ] || [ -z "$oidc_secret" ]; }; then
+    die "OpenID Connect needs issuer, client ID and client secret together"
+  fi
+  case "$oidc_issuer" in "" | https://*) ;; *) die "the OpenID Connect issuer must be an https:// URL" ;; esac
   env_set NUXT_OAUTH_GITHUB_CLIENT_ID "$gh_id"
   env_set NUXT_OAUTH_GITHUB_CLIENT_SECRET "$gh_secret"
   env_set NUXT_OAUTH_GOOGLE_CLIENT_ID "$go_id"
   env_set NUXT_OAUTH_GOOGLE_CLIENT_SECRET "$go_secret"
+  env_set NUXT_OAUTH_OIDC_ISSUER "$oidc_issuer"
+  env_set NUXT_OAUTH_OIDC_CLIENT_ID "$oidc_id"
+  env_set NUXT_OAUTH_OIDC_CLIENT_SECRET "$oidc_secret"
+  env_set NUXT_OAUTH_OIDC_NAME "$oidc_name"
 }
 
 configure_ai() {
@@ -415,8 +439,8 @@ next_steps() {
   url="$(env_get MARKOTO_PUBLIC_URL)"
   info "markoto is running"
   note "Open:        ${BOLD}${url}${RESET}"
-  if [ -z "$(env_get NUXT_OAUTH_GITHUB_CLIENT_ID)$(env_get NUXT_OAUTH_GOOGLE_CLIENT_ID)" ]; then
-    note "Login:       not configured (anonymous-only). Add an OAuth app: docs/SELF-HOSTING.md#login"
+  if [ -z "$(env_get NUXT_OAUTH_GITHUB_CLIENT_ID)$(env_get NUXT_OAUTH_GOOGLE_CLIENT_ID)$(env_get NUXT_OAUTH_OIDC_ISSUER)" ]; then
+    note "Login:       not configured (anonymous-only). Add an IdP or OAuth app: docs/SELF-HOSTING.md#login"
   fi
   note "Configure:   edit $ENV_FILE, then: docker compose up -d   (from $ROOT)"
   note "Upgrade:     ./install.sh upgrade [--tag vX.Y.Z]"
@@ -463,6 +487,10 @@ OPT_GH_ID="${NUXT_OAUTH_GITHUB_CLIENT_ID:-}"
 OPT_GH_SECRET="${NUXT_OAUTH_GITHUB_CLIENT_SECRET:-}"
 OPT_GO_ID="${NUXT_OAUTH_GOOGLE_CLIENT_ID:-}"
 OPT_GO_SECRET="${NUXT_OAUTH_GOOGLE_CLIENT_SECRET:-}"
+OPT_OIDC_ISSUER="${NUXT_OAUTH_OIDC_ISSUER:-}"
+OPT_OIDC_ID="${NUXT_OAUTH_OIDC_CLIENT_ID:-}"
+OPT_OIDC_SECRET="${NUXT_OAUTH_OIDC_CLIENT_SECRET:-}"
+OPT_OIDC_NAME="${NUXT_OAUTH_OIDC_NAME:-}"
 OPT_MISTRAL="${MISTRAL_API_KEY:-}"
 OPT_JINA="${JINA_AI_API_KEY:-}"
 OPT_STAAN="${STAAN_API_KEY:-}"
@@ -499,6 +527,10 @@ while [ $# -gt 0 ]; do
     --github-client-secret) need_arg "$@"; OPT_GH_SECRET="$2"; shift ;;
     --google-client-id) need_arg "$@"; OPT_GO_ID="$2"; shift ;;
     --google-client-secret) need_arg "$@"; OPT_GO_SECRET="$2"; shift ;;
+    --oidc-issuer) need_arg "$@"; OPT_OIDC_ISSUER="$2"; shift ;;
+    --oidc-client-id) need_arg "$@"; OPT_OIDC_ID="$2"; shift ;;
+    --oidc-client-secret) need_arg "$@"; OPT_OIDC_SECRET="$2"; shift ;;
+    --oidc-name) need_arg "$@"; OPT_OIDC_NAME="$2"; shift ;;
     --mistral-api-key) need_arg "$@"; OPT_MISTRAL="$2"; shift ;;
     --jina-api-key) need_arg "$@"; OPT_JINA="$2"; shift ;;
     --staan-api-key) need_arg "$@"; OPT_STAAN="$2"; shift ;;
