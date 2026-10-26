@@ -88,12 +88,17 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // database until the user removes it or deletes the account — and
     // the in-flight request. Prompt/tool-call records follow
     // `ai_assistance` retention (90 days).
+    //
+    // Exception: web search + page fetch (`web_search` / `fetch_url`) are
+    // platform-provided for every user, BYOK included — queries go to Staan
+    // and fetched URLs to Jina Reader on OUR accounts, so both are listed
+    // below. The summarising step afterwards runs on the user's provider.
     id: 'user_directed_ai_provider',
     label: 'AI with your own provider (bring your own key)',
     basis: 'contract',
     dataCategories: ['provider_config', 'encrypted_api_key', 'user_prompt', 'document_context', 'audio_recording', 'ai_generated_content'],
     retention: 'until_deletion',
-    subProcessors: ['ovh_postgres']
+    subProcessors: ['ovh_postgres', 'staan', 'jina_ai']
   },
   {
     id: 'workspace_knowledge_rag',
