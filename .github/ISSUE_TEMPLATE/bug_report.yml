@@ -1,12 +1,24 @@
 name: Bug report
-description: Something is broken in markoto or a self-hosted deployment
+description: Something is broken in markoto or in a self-hosted deployment
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug!
-        **Security vulnerabilities:** please do NOT file them here — see [SECURITY.md](../blob/main/SECURITY.md).
+        Thanks for taking the time to report a bug.
+
+        **Security vulnerabilities:** do NOT file them here. Use [private vulnerability reporting](https://github.com/joelbarmettlerUZH/md-online/security/advisories/new) (see SECURITY.md).
+
+        **Self-hosting question?** Check the [troubleshooting section](https://github.com/joelbarmettlerUZH/md-online/blob/main/docs/SELF-HOSTING.md#troubleshooting) first, and ask in Discussions if you are not sure it is a bug.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched existing issues and did not find this one.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
   - type: dropdown
     id: surface
     attributes:
@@ -17,29 +29,36 @@ body:
         - Local development
     validations:
       required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag (for example v0.0.9) or commit. Self-hosted - the `IMAGE_TAG` in your `.env`. Hosted - leave empty.
+    validations:
+      required: false
   - type: textarea
     id: what-happened
     attributes:
       label: What happened?
       description: What did you do, what did you expect, and what happened instead?
       placeholder: |
-        1. Open a document …
-        2. Click …
-        3. Expected … but got …
+        1. Open a document ...
+        2. Click ...
+        3. Expected ... but got ...
     validations:
       required: true
   - type: textarea
     id: environment
     attributes:
       label: Environment
-      description: Browser + OS for UI bugs; deployment details (versions, compose file used) for self-hosted issues.
+      description: Browser and OS for UI bugs. For self-hosted problems - how you installed (`install.sh`, HTTPS or plain HTTP, behind your own proxy?), Docker and Compose versions, which AI providers you configured.
     validations:
       required: false
   - type: textarea
     id: logs
     attributes:
       label: Logs / console output
-      description: Relevant browser-console or server-log excerpts. Redact secrets and personal data.
+      description: Relevant browser-console output or `./install.sh logs <service>` lines. Redact secrets, API keys and personal data.
       render: shell
     validations:
       required: false

@@ -1,24 +1,25 @@
 ## What changed
 
-<!-- One sentence describing the user-visible change. This becomes the release notes title context. -->
+<!-- The PR title and this description become the release notes verbatim (when a maintainer labels the PR for release). Write for the person reading the release page. -->
 
 ## Why
 
-<!-- Optional: motivation, link to issues, screenshots. -->
+<!-- Motivation. Link the issue: "Closes #123". -->
 
 ## How to verify
 
-<!-- Optional: what reviewer or QA should check. -->
+<!-- What a reviewer should run or click. Include commands and expected results. -->
 
----
+## Upgrade notes
 
-<!--
-REQUIRED — add exactly one of these labels (CI will reject the PR otherwise):
-  release:major  — breaking changes (DB schema breaking, removed APIs, etc.)
-  release:minor  — new features (additive)
-  release:patch  — bug fixes, refactors, tests, docs (default)
-  release:none   — no release cut (rare; used for hot-iterating PRs that get re-released later)
+<!-- New or renamed environment variables, destructive or slow migrations, anything a self-hoster must do. Write "None" if there is nothing. -->
 
-OPTIONAL — add one type:* label for changelog categorisation:
-  type:feature, type:fix, type:refactor, type:docs, type:test, type:build, type:ci, type:chore, type:security
--->
+## Checklist
+
+- [ ] The PR title is a conventional commit (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `build:` or `ci:`).
+- [ ] I ran the relevant test tiers locally (`bun run lint && bun run typecheck && bun run test`, plus `test:repos` / `test:integration` when touching server code).
+- [ ] No lint or type suppressions (`eslint-disable`, `@ts-ignore`, `as any`, `!`) and no weakened assertions.
+- [ ] Docs updated where behaviour or configuration changed (`content/docs/`, `docs/SELF-HOSTING.md`, the relevant `AGENTS.md`).
+- [ ] Schema changes include the generated migration and `drizzle/meta/` snapshot.
+
+<!-- Do not add a `release:*` label yourself. Releases are opt-in; a maintainer labels the PR that should ship (docs/RELEASE-PROCESS.md). -->
