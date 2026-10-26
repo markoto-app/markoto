@@ -69,9 +69,19 @@ describe('PROCESSING_PURPOSES', () => {
     for (const purpose of PROCESSING_PURPOSES) {
       const r = purpose.retention
       const isInt = typeof r === 'number' && Number.isInteger(r) && r > 0
-      const isSentinel = r === 'until_deletion' || r === 'legal_minimum'
+      const isSentinel = r === 'until_deletion' || r === 'legal_minimum' || r === 'until_withdrawn'
       expect(isInt || isSentinel, `purpose ${purpose.id} has invalid retention: ${r}`).toBe(true)
     }
+  })
+})
+
+describe('paid_plans_waitlist purpose', () => {
+  it('is consent-backed, withdrawable, and only touches EU storage + the email sender', () => {
+    const purpose = PROCESSING_PURPOSES.find(p => p.id === 'paid_plans_waitlist')
+    expect(purpose).toBeDefined()
+    expect(purpose?.basis).toBe('consent')
+    expect(purpose?.retention).toBe('until_withdrawn')
+    expect(purpose?.subProcessors).toEqual(['ovh_postgres', 'resend'])
   })
 })
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import {
   createDoc,
@@ -48,6 +48,14 @@ async function insertComment(args: {
   )
 }
 
+async function insertWaitlistRow(email: string, userId: number | null): Promise<void> {
+  await testDb().query(
+    `INSERT INTO waitlist_signups (email, locale, consent_version, consent_text_id, user_id, confirm_token_hash, confirm_token_expires_at, unsubscribe_token_hash, confirmed_at)
+     VALUES ($1, 'en', 1, 'waitlist.consentLabel', $2, NULL, NULL, $3, NOW())`,
+    [email, userId, `unsub-hash-${email}`]
+  )
+}
+
 describe('executeAccountDeletion: full graph', () => {
   beforeEach(async () => {
     await resetDb()
@@ -67,8 +75,14 @@ describe('executeAccountDeletion: full graph', () => {
       await db.query(`DELETE FROM documents WHERE doc_id = $1`, [docId])
     })
   })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
 
   it('hard-deletes the user row and runs every cascade branch', async () => {
+    // Billing on so the Stripe-customer step runs (it's skipped when
+    // billing is off — see the dedicated case below).
+    vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
     // ── Build the test graph ─────────────────────────────────────
     const alice = await createUser()
     const bob = await createUser()
@@ -259,6 +273,35 @@ describe('executeAccountDeletion: full graph', () => {
       workspacesCascadeDeleted: 0,
       stripeCustomerDeleted: false
     })
+  })
+
+  it('billing off: skips the Stripe step cleanly even when a customer id is set', async () => {
+    vi.stubEnv('NUXT_BILLING_ENABLED', 'false')
+    const alice = await createUser()
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = 'cus_alice' WHERE id = $1`,
+      [alice.id]
+    )
+    const result = await executeAccountDeletion({ userId: alice.id })
+    expect(stripeCustomersDelMock).not.toHaveBeenCalled()
+    expect(result.summary.stripeCustomerDeleted).toBe(false)
+    const userRow = await testDb().query(`SELECT id FROM users WHERE id = $1`, [alice.id])
+    expect(userRow.rows).toHaveLength(0)
+  })
+
+  it('deletes the user\'s linked waitlist sign-up, leaves other people\'s alone', async () => {
+    const alice = await createUser()
+    const bob = await createUser()
+    await insertWaitlistRow('alice@example.com', alice.id)
+    await insertWaitlistRow('bob@example.com', bob.id)
+    await insertWaitlistRow('anon@example.com', null)
+
+    await executeAccountDeletion({ userId: alice.id })
+
+    const rows = await testDb().query<{ email: string }>(
+      `SELECT email FROM waitlist_signups ORDER BY email`
+    )
+    expect(rows.rows.map(r => r.email)).toEqual(['anon@example.com', 'bob@example.com'])
   })
 
   it('skips Stripe del when no customer id is set', async () => {

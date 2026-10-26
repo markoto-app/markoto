@@ -127,6 +127,13 @@
       "when": 1778596357761,
       "tag": "0017_quiet_sphinx",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793012502449,
+      "tag": "0018_tiresome_arclight",
+      "breakpoints": true
     }
   ]
 }

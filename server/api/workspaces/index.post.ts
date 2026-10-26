@@ -5,6 +5,7 @@ import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import type { PlanName } from '~~/shared/config/tiers'
 import { getTiers } from '~~/server/utils/tierConfig'
+import { effectivePlan, limitRecovery, limitUpgradeHint } from '~~/server/utils/billingMode'
 import { DPA_VERSION } from '~~/shared/legal/versions'
 
 export default defineEventHandler(async (event) => {
@@ -24,11 +25,9 @@ export default defineEventHandler(async (event) => {
     planValidUntil: users.planValidUntil,
     dpaVersionAccepted: users.dpaVersionAccepted
   }).from(users).where(eq(users.id, userId)).limit(1)
-  const rawPlan = (planRows[0]?.plan ?? 'free')
-  const validUntil = planRows[0]?.planValidUntil ?? null
-  const lapsed = validUntil !== null && validUntil.getTime() <= Date.now()
-  const effectivePlan: PlanName = lapsed ? 'free' : rawPlan
-  const cap = getTiers()[effectivePlan].workspacesOwned
+  // Lapsed paid plans and billing-off deployments both resolve to free.
+  const plan: PlanName = effectivePlan(planRows[0]?.plan ?? 'free', planRows[0]?.planValidUntil ?? null)
+  const cap = getTiers()[plan].workspacesOwned
 
   // GDPR Article 28 gate: the user is about to become a controller
   // for personal data their workspace members place inside this
@@ -54,8 +53,8 @@ export default defineEventHandler(async (event) => {
   if (owned >= cap) {
     throw createError({
       statusCode: 409,
-      message: `You've reached the workspace limit for your plan (${cap}, ${effectivePlan}). Delete an unused workspace or upgrade at /pricing to create more.`,
-      data: { plan: effectivePlan, cap }
+      message: `You've reached the workspace limit for your plan (${cap}, ${plan}). Delete an unused workspace to create a new one. ${limitUpgradeHint()}`,
+      data: { code: 'workspace/cap-reached', plan, cap, recovery: limitRecovery() }
     })
   }
 

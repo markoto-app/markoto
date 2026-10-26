@@ -49,6 +49,8 @@ When NOT to pass `tx`: bulk operations that are intentionally separate from the 
 
 `consentLog.ts` is append-only by convention (no `update`). Read paths return the latest row by `received_at` for a given `anon_id`.
 
+`waitlist.ts` owns `waitlist_signups` (paid-plans waitlist): `upsertWaitlistSignup` (`created` / `refreshed` — unconfirmed re-signup rotates both tokens / `unchanged` — already confirmed or lost a concurrent first insert; serialised with `SELECT … FOR UPDATE` + `ON CONFLICT DO NOTHING`), `confirmWaitlistSignup` (single-use, expiry-checked), `deleteWaitlistSignupByUnsubscribeToken`, `listWaitlistSignupsForUser` (export projection — never token hashes), `deleteExpiredUnconfirmedWaitlistSignups` (sweeper). Takes token HASHES only; hashing lives in `server/utils/waitlist.ts`.
+
 `abuseReports.ts` separates the public-write path (`createAbuseReport` — used by `/api/abuse-reports`) from the admin-read path (`listAbuseReports`, `getAbuseReportById` — both use `aliasedTable` to join the same `users` table twice for reporter + actioner). Status transitions go through `updateAbuseReportStatus` which also writes the audit row in the same transaction (atomicity matters: the status change is the audit-evidence).
 
 ### Adding a new repo

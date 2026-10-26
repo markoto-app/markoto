@@ -2,6 +2,7 @@ import { readRawBody } from 'h3'
 import * as Sentry from '@sentry/nuxt'
 import { useStripeClient } from '../../utils/stripeClient'
 import { dispatchStripeEvent } from '../../utils/stripeWebhook'
+import { assertBillingEnabled } from '../../utils/billingMode'
 
 // Stripe webhook entry point. Verifies the `Stripe-Signature` header
 // against the raw body using our webhook secret, then dispatches to
@@ -21,6 +22,11 @@ import { dispatchStripeEvent } from '../../utils/stripeWebhook'
 //     retry loop on events we genuinely don't handle)
 
 export default defineEventHandler(async (event) => {
+  // Billing off → 404 `billing/disabled`. Deliberately not 503: a 503
+  // tells Stripe to keep retrying a permanent configuration state. A
+  // stray endpoint left registered in the Stripe dashboard gets 404s
+  // and Stripe eventually disables it.
+  assertBillingEnabled()
   const config = useRuntimeConfig()
   const stripe = useStripeClient()
   if (!stripe) {

@@ -33,7 +33,9 @@ const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
 //
 // Works on desktop AND mobile — pricing grid stacks the same way
 // across breakpoints, the post-checkout return is a full reload.
-test('Upgrade to Pro', async ({ page, flow, editor }) => {
+// `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
+// playwright.config.ts `grepInvert`).
+test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   test.setTimeout(180_000)
 
   // Login. The pricing page renders a "current plan" badge based on
@@ -86,16 +88,22 @@ test('Upgrade to Pro', async ({ page, flow, editor }) => {
     })
   })
 
+  const appUrl = new URL(test.info().project.use.baseURL ?? 'http://localhost:3001')
+  const appOrigins = new Set([
+    appUrl.origin,
+    `${appUrl.protocol}//localhost:${appUrl.port}`,
+    `${appUrl.protocol}//127.0.0.1:${appUrl.port}`
+  ])
   await page.route('**/*', async (route) => {
     const reqUrl = route.request().url()
     try {
       const target = new URL(reqUrl)
-      // Allow same-origin (localhost:3001) + the Nuxt internal asset
-      // origins; block anything else (stripe-mock at 127.0.0.1:12111,
-      // real checkout.stripe.com, etc.). The Nuxt prod server runs on
-      // localhost:3001 in flow tests (see flows-ephemeral.ts).
-      const isAllowed = target.origin === 'http://localhost:3001'
-        || target.origin === 'http://127.0.0.1:3001'
+      // Allow the app's own origin (whatever host:port the flow stack
+      // serves on — derived from the configured baseURL, so a remapped
+      // port works too) in both its localhost / 127.0.0.1 spellings;
+      // block anything else (stripe-mock at 127.0.0.1:12111, real
+      // checkout.stripe.com, etc.).
+      const isAllowed = appOrigins.has(target.origin)
       if (!isAllowed) {
         await route.fulfill({ status: 200, body: '', contentType: 'text/html' })
         return

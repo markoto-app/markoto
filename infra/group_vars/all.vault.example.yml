@@ -42,12 +42,15 @@ staan_api_key: "REPLACE_ME"                # staan.ai — web_search (enable EU-
 mistral_api_key: "REPLACE_ME"              # mistral.ai — text + voice
 bfl_api_key: "REPLACE_ME"                  # blackforestlabs — image generation
 
-# ─── Stripe billing (test keys for staging; live keys for prod) ───
-nuxt_stripe_secret_key: "REPLACE_ME"       # sk_live_… / sk_test_…
-nuxt_stripe_webhook_secret: "REPLACE_ME"   # whsec_… from the deployed webhook endpoint (NOT `stripe listen`)
-nuxt_stripe_price_pro: "REPLACE_ME"        # price_… recurring, Pro tier
-nuxt_stripe_price_max: "REPLACE_ME"        # price_… recurring, Max tier
-nuxt_stripe_price_ultra: "REPLACE_ME"      # price_… recurring, Ultra tier
+# ─── Stripe billing — ONLY needed once nuxt_billing_enabled is true ───
+# Billing is off by default (free-only + "paid plans coming soon"); leave
+# these empty ("") until paid plans launch. Then: test keys for staging,
+# live keys for prod.
+nuxt_stripe_secret_key: ""                 # sk_live_… / sk_test_…
+nuxt_stripe_webhook_secret: ""             # whsec_… from the deployed webhook endpoint (NOT `stripe listen`)
+nuxt_stripe_price_pro: ""                  # price_… recurring, Pro tier
+nuxt_stripe_price_max: ""                  # price_… recurring, Max tier
+nuxt_stripe_price_ultra: ""                # price_… recurring, Ultra tier
 
 # ─── OAuth (optional pairs — both-or-neither per provider) ───
 nuxt_oauth_github_client_id: ""

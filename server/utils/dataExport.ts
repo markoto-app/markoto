@@ -17,6 +17,8 @@ import {
 import { useDatabase } from './database'
 import { reconstructTextAtYjsId } from './historyReplay'
 import { useStripeClient } from './stripeClient'
+import { isBillingEnabled } from './billingMode'
+import { listWaitlistSignupsForUser } from '../repos/waitlist'
 
 // GDPR Article 15 + 20 export builder. Produces a self-describing
 // ZIP archive containing every piece of personal data we hold for
@@ -41,6 +43,7 @@ import { useStripeClient } from './stripeClient'
 //   activity.ndjson                 ← rows where user_id = $userId
 //   audit.ndjson                    ← rows scoped to or by the user
 //   consent.ndjson
+//   waitlist.ndjson                 ← paid-plans waitlist sign-ups linked to the account
 //   billing/invoices.ndjson         ← Stripe invoice history (if any)
 //   billing/customer.json           ← Stripe customer record (if any)
 //
@@ -74,6 +77,9 @@ Contents:
   audit.ndjson           audit-log rows actioned by you OR scoped to
                          your user id.
   consent.ndjson         every consent decision you have made.
+  waitlist.ndjson        your paid-plans waitlist sign-up, if you joined
+                         it while signed in (email, language, consent
+                         version, sign-up + confirmation dates).
   billing/customer.json  your Stripe customer record (if billing was
                          set up).
   billing/invoices.ndjson  your Stripe invoice history (if any).
@@ -95,6 +101,7 @@ export interface BuildExportZipResult {
     activityLogRows: number
     auditLogRows: number
     consentLogRows: number
+    waitlistSignups: number
     invoices: number
   }
 }
@@ -135,6 +142,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const activityCount = await addActivityLogEntry(entries, db, userId)
   const auditCount = await addAuditLogEntry(entries, db, userId)
   const consentCount = await addConsentLogEntry(entries, db, userId)
+  const waitlistCount = await addWaitlistEntry(entries, userId)
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
 
   return {
@@ -149,6 +157,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
       activityLogRows: activityCount,
       auditLogRows: auditCount,
       consentLogRows: consentCount,
+      waitlistSignups: waitlistCount,
       invoices: invoicesCount
     }
   }
@@ -407,13 +416,27 @@ async function addConsentLogEntry(entries: Entries, db: Db, userId: number): Pro
 }
 
 /**
+ * Paid-plans waitlist rows linked to the account (sign-ups made while
+ * signed in). Token hashes are deliberately not exported — see
+ * `listWaitlistSignupsForUser`.
+ */
+async function addWaitlistEntry(entries: Entries, userId: number): Promise<number> {
+  const rows = await listWaitlistSignupsForUser(userId)
+  entries['waitlist.ndjson'] = strToU8(toNdjson(rows))
+  return rows.length
+}
+
+/**
  * Stripe billing — best-effort. Failures land an error marker so the
  * user can re-request later; no Stripe customer at all emits empty
  * placeholders for layout stability. Invoices capped at 100 to
  * survive malicious / weird state without blowing the export.
  */
 async function addBillingEntries(entries: Entries, stripeCustomerId: string | null): Promise<number> {
-  if (!stripeCustomerId) {
+  // Billing off → no Stripe client exists on this deployment; emit the
+  // same empty placeholders as "no Stripe customer" so the layout stays
+  // stable and the export never fails on billing.
+  if (!stripeCustomerId || !isBillingEnabled()) {
     entries['billing/customer.json'] = strToU8('{}')
     entries['billing/invoices.ndjson'] = strToU8('')
     return 0

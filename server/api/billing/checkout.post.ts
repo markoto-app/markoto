@@ -5,6 +5,7 @@ import { useDatabase } from '../../utils/database'
 import { useStripeClient } from '../../utils/stripeClient'
 import { findLiveSubscription, changeSubscriptionPrice } from '../../utils/stripePlanChange'
 import type { PlanName } from '~~/shared/config/tiers'
+import { assertBillingEnabled } from '../../utils/billingMode'
 
 // POST /api/billing/checkout — plan purchase/upgrade endpoint. Two
 // outcomes depending on the caller's current Stripe state:
@@ -43,6 +44,8 @@ function customerOrEmailFields(stripeCustomerId: string | null, email: string | 
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
+  // Billing off → 404 `billing/disabled` before any Stripe call.
+  assertBillingEnabled()
   const userId = session.user.id
 
   // Rate limit: every call creates a real Stripe Checkout Session — a

@@ -19,6 +19,7 @@ The Nitro subprocess is managed by `tests/integration/setup/server.ts`:
 1. `globalSetup.ts` runs `bun run build` (skip with `INTEGRATION_SKIP_BUILD=1` if the bundle is fresh).
 2. Spawns `.output/server/index.mjs` on `PORT=3001`, polls `/api/health` for up to 90s.
 3. All tests share that one subprocess. Teardown kills it on exit.
+4. A **second subprocess from the same build** boots on `TEST_BILLING_OFF_PORT` (3102) once the primary is healthy: `NUXT_BILLING_ENABLED` off, `NUXT_PLANS_COMING_SOON=true`, and every `NUXT_STRIPE_*` var stripped. The primary runs with billing ON (Stripe suites need it). Talk to the billing-off twin with `anonClient(TEST_BILLING_OFF_BASE_URL)` / `loggedInClient(id, name, TEST_BILLING_OFF_BASE_URL)` — see `endpoints/billingOff.test.ts`. Both share the test Postgres + Valkey, so `resetDb()` isolation is unchanged.
 
 **Why prod build, not `bun run dev`:** dev's WS upgrade handler doesn't reliably wire under Bun + crossws — `/api/ai/dictate` hangs on handshake instead of firing `open`. Prod binds the upgrade handler directly via `crossws/adapters/node`. Tests against the prod bundle also catch prod-only bugs that dev's SSR transform papers over (lib0 conditional exports, missing `traceInclude` deps, `nitro.preset: 'bun'`-specific edges).
 

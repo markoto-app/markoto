@@ -111,10 +111,18 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
   LITELLM_SALT_KEY: 'sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
   // (TEST_MODE is set above, near the top of this object.)
-  // Stripe: prod-build runtime validation requires these. Tests don't
-  // exercise billing UI, so dummy values that satisfy the shape are
-  // enough. Aligns with the integration-test setup (see
-  // tests/integration/setup/server.ts).
+  // Billing ON for the flow stack: the `@billing`-tagged flows
+  // (upgrade-to-pro, pricing-tour, ai-sponsoring, ai-budget-exhausted)
+  // drive checkout / plan / sponsorship UI that only exists with billing
+  // enabled. Playwright only selects those flows when
+  // FLOWS_BILLING_ENABLED=1, which main() derives from this value (see
+  // playwright.config.ts). The billing-OFF surface (coming-soon pricing,
+  // waitlist, 404 billing endpoints) is covered by
+  // tests/nuxt/pricingBillingModes.test.ts and the billing-off server in
+  // tests/integration/endpoints/billingOff.test.ts.
+  NUXT_BILLING_ENABLED: 'true',
+  // Stripe: talks to stripe-mock. Aligns with the integration-test
+  // setup (see tests/integration/setup/server.ts).
   NUXT_STRIPE_SECRET_KEY: 'sk_test_flows123',
   NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_flows',
   NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
@@ -266,6 +274,9 @@ try {
   // server. Set it BEFORE main() so it's in scope when Playwright
   // starts.
   process.env.PLAYWRIGHT_BASE_URL = NUXT_URL
+  // Tell playwright.config.ts whether this stack runs with billing on,
+  // so `@billing` flows are selected only when they can pass.
+  process.env.FLOWS_BILLING_ENABLED = FLOWS_ENV.NUXT_BILLING_ENABLED === 'true' ? '1' : ''
   await main()
 } finally {
   await cleanup()

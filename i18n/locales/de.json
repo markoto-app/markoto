@@ -482,7 +482,10 @@
     "errors": {
       "duplicateSession": "Sie haben bereits eine markoto-Sitzung für dieses Dokument laufen.",
       "abortNotInitiator": "Nur die Person, die diese markoto-Sitzung gestartet hat, kann sie stoppen."
-    }
+    },
+    "exhaustedPlaceholderFree": "Keine KI-Credits mehr — sie werden in der nächsten Periode aufgefüllt",
+    "budgetExhaustedResetDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt.",
+    "budgetExhaustedComingSoonDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt — Bezahlpläne mit mehr Credits folgen in Kürze."
   },
   "mobileTabBar": {
     "label": "Dokument-Panels",
@@ -533,7 +536,14 @@
     "downgrade": "Downgrade",
     "signUp": "Registrieren",
     "close": "Schließen",
-    "footnote": "Alle Stufen umfassen Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzte Dokumente. KI-Credits werden monatlich zurückgesetzt."
+    "footnote": "Alle Stufen umfassen Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzte Dokumente. KI-Credits werden monatlich zurückgesetzt.",
+    "comingSoonSubtitle": "markoto ist kostenlos, während wir unsere Bezahlpläne fertigstellen. Das bekommt jedes Konto heute — und das kommt als Nächstes.",
+    "comingSoonBadge": "Demnächst",
+    "availableNow": "Jetzt verfügbar",
+    "comingSoonFootnote": "Bezahlpläne, ihre Preise und Limits stehen noch nicht fest. Tragen Sie sich unten in die Warteliste ein, und wir schreiben Ihnen einmal, sobald sie starten.",
+    "freeFootnote": "Jedes Konto enthält Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzt viele Dokumente. KI-Credits werden jede Periode aufgefüllt.",
+    "selfHostedTitle": "Limits dieser Instanz",
+    "selfHostedSubtitle": "Diese markoto-Instanz verkauft keine Tarife. Jedes Konto erhält die unten aufgeführten Limits; der Betreiber dieser Instanz kann sie ändern."
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -915,7 +925,9 @@
       "leave": "Workspace verlassen",
       "leaveFailed": "Workspace konnte nicht verlassen werden",
       "leftToast": "Sie haben den Workspace verlassen"
-    }
+    },
+    "capReachedFree": "{used} von {limit} Workspaces genutzt. Löschen Sie einen, um einen neuen anzulegen.",
+    "capReachedShortFree": "Workspace-Limit erreicht"
   },
   "knowledge": {
     "title": "Wissensdatenbank",
@@ -940,7 +952,10 @@
       "processing": "Wird verarbeitet",
       "ready": "Bereit",
       "failed": "Fehlgeschlagen"
-    }
+    },
+    "capFilesReachedFree": "Dieser Workspace hat sein Dateilimit ({limit}) erreicht. Löschen Sie eine Datei, um eine weitere hinzuzufügen.",
+    "capBytesReachedFree": "Dieser Workspace hat sein Speicherlimit ({limit} MB) erreicht. Löschen Sie eine Datei, um Platz zu schaffen.",
+    "capReachedShortFree": "Limit erreicht"
   },
   "error": {
     "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
@@ -1169,6 +1184,42 @@
         "notSet": "Nicht festgelegt",
         "change": "Datenschutzeinstellungen ändern"
       }
+    }
+  },
+  "billing": {
+    "comingSoonCta": "Bezahlpläne folgen in Kürze",
+    "comingSoonHint": "Bezahlpläne mit höheren Limits folgen in Kürze."
+  },
+  "waitlist": {
+    "title": "Auf die Warteliste",
+    "description": "Erhalten Sie eine E-Mail, sobald die Bezahlpläne starten. Mehr schicken wir nicht.",
+    "emailLabel": "E-Mail-Adresse",
+    "emailPlaceholder": "sie{'@'}beispiel.ch",
+    "consentLabel": "Ich bin einverstanden, dass markoto meine E-Mail-Adresse speichert, um mich über den Start der Bezahlpläne zu informieren. Ich kann mich jederzeit über den Link in jeder E-Mail abmelden.",
+    "privacyLink": "Datenschutzerklärung",
+    "submit": "Auf die Warteliste",
+    "successTitle": "Prüfen Sie Ihr Postfach",
+    "successBody": "Falls diese Adresse E-Mails empfangen kann, haben wir einen Bestätigungslink gesendet. Ihre Anmeldung zählt erst, wenn Sie ihn anklicken.",
+    "missingToken": "Dieser Link ist unvollständig. Bitte öffnen Sie ihn genau so, wie er in der E-Mail steht.",
+    "backHome": "Zurück zu markoto",
+    "errors": {
+      "consentRequired": "Bitte setzen Sie das Häkchen bei der Einwilligung, um sich einzutragen.",
+      "invalidEmail": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+      "invalidToken": "Dieser Link ist ungültig oder abgelaufen."
+    },
+    "confirm": {
+      "title": "Anmeldung zur Warteliste bestätigen",
+      "body": "Bestätigen Sie, dass Sie eine E-Mail von uns erhalten möchten, sobald die Bezahlpläne von markoto starten.",
+      "button": "Anmeldung bestätigen",
+      "successTitle": "Sie stehen auf der Liste",
+      "successBody": "Wir schreiben Ihnen, sobald die Bezahlpläne starten. Jede E-Mail enthält einen Abmeldelink."
+    },
+    "unsubscribe": {
+      "title": "Warteliste verlassen",
+      "body": "Entfernen Sie Ihre E-Mail-Adresse von der Warteliste für Bezahlpläne. Wir löschen sie sofort.",
+      "button": "Meine Adresse entfernen",
+      "successTitle": "Sie wurden entfernt",
+      "successBody": "Ihre E-Mail-Adresse wurde von der Warteliste gelöscht."
     }
   }
 }

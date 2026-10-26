@@ -1,6 +1,7 @@
 import { migrationsComplete } from '../utils/migrations'
 import { runPlanLapseSweep } from '../utils/planLapseSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { isBillingEnabled } from '../utils/billingMode'
 
 // Plan-lapse sweep plugin. Thin wrapper — all the query logic lives
 // in `server/utils/planLapseSweep.ts` so it's importable from tests
@@ -25,6 +26,12 @@ async function lockedRun(): Promise<void> {
 }
 
 export default defineNitroPlugin((nitroApp) => {
+  // Stripe-dependent: with billing off there are no paid plans to lapse
+  // and no Stripe webhook rows to prune, so the timer never starts.
+  // The flag is read once at boot — flipping it needs a restart anyway
+  // (the Stripe secrets are validated at boot too).
+  if (!isBillingEnabled()) return
+
   void (async () => {
     await migrationsComplete
     await lockedRun()

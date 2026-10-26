@@ -17,6 +17,7 @@ import { resolveBillingContext } from '../../utils/billing'
 import { isBudgetExceededError } from '../../utils/litellmKeys'
 import { FEATURE_TAGS, featureMetadata } from '../../utils/litellm/featureTags'
 import { litellmCompletion } from '../../utils/litellm/createCompletion'
+import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billingMode'
 
 const ALLOWED_MIME = new Set([
   'audio/webm',
@@ -146,11 +147,11 @@ async function transcribeViaVoxtral(args: {
     if (isBudgetExceededError(e)) {
       throw createError({
         statusCode: 402,
-        message: 'AI Points exhausted. Upgrade your plan at /pricing to continue.',
+        message: budgetExhaustedMessage(),
         data: {
           code: 'ai/budget-exhausted',
-          messageKey: 'ai.budgetExhaustedDescription',
-          recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+          messageKey: budgetExhaustedMessageKey(),
+          recovery: limitRecovery()
         }
       })
     }

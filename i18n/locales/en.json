@@ -482,7 +482,10 @@
     "errors": {
       "duplicateSession": "You already have a markoto session running on this document.",
       "abortNotInitiator": "Only the person who started this markoto session can stop it."
-    }
+    },
+    "exhaustedPlaceholderFree": "Out of AI credits — they refill next period",
+    "budgetExhaustedResetDescription": "You've used all your AI credits for this period. They refill when the next period starts.",
+    "budgetExhaustedComingSoonDescription": "You've used all your AI credits for this period. They refill when the next period starts — paid plans with more credits are coming soon."
   },
   "mobileTabBar": {
     "label": "Document panels",
@@ -533,7 +536,14 @@
     "downgrade": "Downgrade",
     "signUp": "Sign up",
     "close": "Close",
-    "footnote": "All tiers include real-time collaboration, version history, and unlimited documents. AI credits reset monthly."
+    "footnote": "All tiers include real-time collaboration, version history, and unlimited documents. AI credits reset monthly.",
+    "comingSoonSubtitle": "markoto is free while we finish our paid plans. Here's what every account gets today — and what's coming.",
+    "comingSoonBadge": "Coming soon",
+    "availableNow": "Available now",
+    "comingSoonFootnote": "Paid plans, their prices and limits aren't final yet. Join the waitlist below and we'll email you once when they launch.",
+    "freeFootnote": "Every account includes real-time collaboration, version history, and unlimited documents. AI credits refill every period.",
+    "selfHostedTitle": "Limits on this instance",
+    "selfHostedSubtitle": "This markoto instance doesn't sell plans. Every account gets the limits below; the operator of this instance can change them."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -915,7 +925,9 @@
       "leave": "Leave workspace",
       "leaveFailed": "Could not leave workspace",
       "leftToast": "You have left the workspace"
-    }
+    },
+    "capReachedFree": "{used} of {limit} workspaces used. Delete one to create another.",
+    "capReachedShortFree": "Workspace limit reached"
   },
   "knowledge": {
     "title": "Knowledge base",
@@ -940,7 +952,10 @@
       "processing": "Processing",
       "ready": "Ready",
       "failed": "Failed"
-    }
+    },
+    "capFilesReachedFree": "This workspace has reached its file limit ({limit}). Delete a file to add another.",
+    "capBytesReachedFree": "This workspace has reached its storage limit ({limit} MB). Delete a file to free up space.",
+    "capReachedShortFree": "Limit reached"
   },
   "error": {
     "generic": "Something went wrong. Please try again.",
@@ -1169,6 +1184,42 @@
         "notSet": "Not set",
         "change": "Change your privacy choices"
       }
+    }
+  },
+  "billing": {
+    "comingSoonCta": "Paid plans coming soon",
+    "comingSoonHint": "Paid plans with higher limits are coming soon."
+  },
+  "waitlist": {
+    "title": "Join the waitlist",
+    "description": "Get one email when paid plans launch. That's all we'll send.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you{'@'}example.com",
+    "consentLabel": "I agree that markoto stores my email address to tell me when its paid plans launch. I can unsubscribe at any time with the link in every email.",
+    "privacyLink": "Privacy policy",
+    "submit": "Join the waitlist",
+    "successTitle": "Check your inbox",
+    "successBody": "If this address can receive email, we've sent it a confirmation link. Your sign-up only counts once you click it.",
+    "missingToken": "This link is incomplete. Please open it exactly as it appears in the email.",
+    "backHome": "Back to markoto",
+    "errors": {
+      "consentRequired": "Please tick the consent box to join the waitlist.",
+      "invalidEmail": "Please enter a valid email address.",
+      "invalidToken": "This link is invalid or has expired."
+    },
+    "confirm": {
+      "title": "Confirm your waitlist sign-up",
+      "body": "Confirm that you'd like one email from us when markoto's paid plans launch.",
+      "button": "Confirm sign-up",
+      "successTitle": "You're on the list",
+      "successBody": "We'll email you when paid plans launch. Every email includes an unsubscribe link."
+    },
+    "unsubscribe": {
+      "title": "Leave the waitlist",
+      "body": "Remove your email address from the paid-plans waitlist. We delete it immediately.",
+      "button": "Remove my address",
+      "successTitle": "You've been removed",
+      "successBody": "Your email address has been deleted from the waitlist."
     }
   }
 }

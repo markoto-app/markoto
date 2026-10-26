@@ -35,7 +35,9 @@ Adjacent: `shared/legal/` holds the version + entity registries (client-and-serv
 3. If the purpose is consent-backed (analytics, session_replay), also bump `CONSENT_VERSION` and add the matching consent purpose to `ConsentBanner.vue`'s purpose list.
 4. Update `content/legal/privacy/en.md` to reflect the new row in prose. Translations follow.
 
-The 13 current purposes (truncated): `account_authentication`, `document_storage`, `collaboration_sync`, `comments_and_mentions`, `ai_assistance`, `workspace_knowledge_rag`, `billing`, `fraud_and_abuse_prevention`, `security_audit_log`, `transactional_email`, `product_analytics`, `session_replay`, `error_monitoring`. Read `lawfulBasis.ts` for the full table.
+The 14 current purposes (truncated): `account_authentication`, `document_storage`, `collaboration_sync`, `comments_and_mentions`, `ai_assistance`, `workspace_knowledge_rag`, `billing`, `fraud_and_abuse_prevention`, `security_audit_log`, `transactional_email`, `product_analytics`, `session_replay`, `paid_plans_waitlist`, `error_monitoring`. Read `lawfulBasis.ts` for the full table.
+
+`paid_plans_waitlist` (WP3, `PRIVACY_VERSION` 4 → 5) is consent-based and uses the `until_withdrawn` retention sentinel: kept until unsubscribe, at the latest 3 months after the paid-plans launch announcement; unconfirmed sign-ups deleted after 7 days. Its consent is collected inline on the pricing page (unticked checkbox + double opt-in), NOT in the cookie banner, so `CONSENT_VERSION` was not bumped; the waitlist has its own `WAITLIST_CONSENT_VERSION` + `WAITLIST_CONSENT_TEXT_ID` in `shared/legal/versions.ts`, stored on every row.
 
 ### Adding a sub-processor
 

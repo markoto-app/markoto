@@ -173,7 +173,19 @@ export default defineNuxtConfig({
     // varying caps (file count, bytes, etc.) live in the tier caps (see shared/config/tiers.ts).
     knowledge: KNOWLEDGE_PLATFORM_LIMITS,
     // Stripe config — all empty in dev, set via NUXT_STRIPE_* in prod.
+    // Only read when NUXT_BILLING_ENABLED=true. The billing-mode flags
+    // themselves (NUXT_BILLING_ENABLED / NUXT_PLANS_COMING_SOON) are NOT
+    // runtimeConfig keys: they're parsed from the environment by
+    // `shared/config/billingMode.ts` (server guards + SSR-hydrated
+    // `useBillingMode()`), so enforcement utils that run outside Nitro
+    // (repos tests) see the same value. See server/utils/billingMode.ts.
     stripe: STRIPE_CONFIG_DEFAULTS,
+    // Public origin of this deployment (e.g. https://markoto.app), used
+    // to build absolute links in emails (waitlist confirm/unsubscribe).
+    // Set via NUXT_SITE_URL in prod. Empty → derived from the request's
+    // Host header, which is only trustworthy behind a host-matching
+    // proxy rule (as in docker-compose.prod.yml's Traefik router).
+    siteUrl: '',
     // Transactional email. All empty in dev (the helper falls back
     // to a console log via `[email-stub]`); set via NUXT_EMAIL_* in
     // prod to enable real delivery. See `server/utils/email/sendEmail.ts`

@@ -67,6 +67,7 @@ describe('buildExportZip', () => {
       'consent.ndjson',
       'profile.json',
       'themes.json',
+      'waitlist.ndjson',
       'workspace_memberships.json'
     ].sort())
 
@@ -75,6 +76,8 @@ describe('buildExportZip', () => {
     expect(readEntry(result.bytes, 'consent.ndjson')).toBe('')
     expect(readEntry(result.bytes, 'workspace_memberships.json')).toBe('[]')
     expect(readEntry(result.bytes, 'themes.json')).toBe('[]')
+    expect(readEntry(result.bytes, 'waitlist.ndjson')).toBe('')
+    expect(result.counts.waitlistSignups).toBe(0)
 
     // README is non-empty + describes the layout.
     const readme = readEntry(result.bytes, 'README.txt')
@@ -89,6 +92,42 @@ describe('buildExportZip', () => {
     expect(profile).not.toHaveProperty('githubId')
     expect(profile).not.toHaveProperty('googleId')
     expect(profile.githubLinked).toBe(true) // createUser sets gh-…
+  })
+
+  it('includes the user\'s linked waitlist sign-up without any token hashes', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `INSERT INTO waitlist_signups (email, locale, consent_version, consent_text_id, user_id, confirm_token_hash, confirm_token_expires_at, unsubscribe_token_hash)
+       VALUES ('me@example.com', 'de', 1, 'waitlist.consentLabel', $1, 'confirm-hash-secret', NOW() + interval '7 days', 'unsub-hash-secret')`,
+      [u.id]
+    )
+    const result = await buildExportZip(u.id)
+    const raw = readEntry(result.bytes, 'waitlist.ndjson')
+    expect(raw).not.toContain('hash-secret')
+    const rows = raw.trim().split('\n').map(l => JSON.parse(l))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      email: 'me@example.com',
+      locale: 'de',
+      consentVersion: 1,
+      consentTextId: 'waitlist.consentLabel',
+      confirmedAt: null
+    })
+    expect(result.counts.waitlistSignups).toBe(1)
+  })
+
+  it('billing off: a leftover Stripe customer id yields empty billing entries, never an error', async () => {
+    vi.stubEnv('NUXT_BILLING_ENABLED', 'false')
+    try {
+      const u = await createUser()
+      await testDb().query(`UPDATE users SET stripe_customer_id = 'cus_leftover' WHERE id = $1`, [u.id])
+      const result = await buildExportZip(u.id)
+      expect(readEntry(result.bytes, 'billing/customer.json')).toBe('{}')
+      expect(readEntry(result.bytes, 'billing/invoices.ndjson')).toBe('')
+      expect(result.counts.invoices).toBe(0)
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 
   it('includes owned-doc markdown + meta.json files', async () => {

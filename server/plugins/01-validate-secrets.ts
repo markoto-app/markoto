@@ -1,4 +1,6 @@
 import { validateSecrets } from '../../shared/utils/validateSecrets'
+import { isBillingEnabled } from '../utils/billingMode'
+import { stripeStartupErrors } from '../utils/stripeStartupCheck'
 
 // Fail-fast at boot if any critical config is missing or malformed. Runs
 // right after `00-db-migrate` so a misconfigured deploy crashes visibly
@@ -35,7 +37,14 @@ export default defineNitroPlugin(() => {
   checkPresenceFields(config, errors)
   checkOAuthPairs(config, errors)
   checkUrlFields(config, errors)
-  checkStripe(config, errors)
+  // Stripe is only validated when billing is switched on. With
+  // NUXT_BILLING_ENABLED unset/false (self-hosted + free-only SaaS) no
+  // code path touches Stripe, so requiring its secrets would just block
+  // boot. With billing ON the check below is exactly as strict as before.
+  errors.push(...stripeStartupErrors(config.stripe, {
+    billingEnabled: isBillingEnabled(),
+    isProduction: process.env.NODE_ENV === 'production'
+  }))
 
   if (errors.length > 0) {
     throw new Error(`[secrets] Startup validation failed:\n  - ${errors.join('\n  - ')}`)
@@ -124,26 +133,5 @@ function checkUrlFields(config: RuntimeCfg, errors: string[]): void {
     if (!schemes.includes(parsed.protocol)) {
       errors.push(`${name} must use ${schemes.join(' or ')} (got "${parsed.protocol}")`)
     }
-  }
-}
-
-/**
- * Stripe base override, when present, must be a parseable URL. Silently
- * falling back to api.stripe.com on a typo would be worse than refusing
- * to start — a dev pointing at stripe-mock with a broken URL would hit
- * real Stripe. Stripe secrets themselves are prod-only.
- */
-function checkStripe(config: RuntimeCfg, errors: string[]): void {
-  const apiBase = config.stripe?.apiBase
-  if (typeof apiBase === 'string' && apiBase.length > 0) {
-    try {
-      new URL(apiBase)
-    } catch {
-      errors.push(`NUXT_STRIPE_API_BASE is not a valid URL: "${apiBase}"`)
-    }
-  }
-  if (process.env.NODE_ENV === 'production') {
-    if (!config.stripe?.secretKey) errors.push('NUXT_STRIPE_SECRET_KEY is not set')
-    if (!config.stripe?.webhookSecret) errors.push('NUXT_STRIPE_WEBHOOK_SECRET is not set')
   }
 }

@@ -482,7 +482,10 @@
     "errors": {
       "duplicateSession": "你在本文档上已有一个正在运行的 markoto 会话。",
       "abortNotInitiator": "只有发起此 markoto 会话的人才能停止它。"
-    }
+    },
+    "exhaustedPlaceholderFree": "AI 额度已用尽——下个周期将自动补充",
+    "budgetExhaustedResetDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充。",
+    "budgetExhaustedComingSoonDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充；额度更多的付费方案即将推出。"
   },
   "mobileTabBar": {
     "label": "文档面板",
@@ -533,7 +536,14 @@
     "downgrade": "降级",
     "signUp": "注册",
     "close": "关闭",
-    "footnote": "所有层级均包含实时协作、版本历史和无限文档。AI 额度每月重置。"
+    "footnote": "所有层级均包含实时协作、版本历史和无限文档。AI 额度每月重置。",
+    "comingSoonSubtitle": "在付费方案准备就绪之前，markoto 免费开放。以下是每个账户目前可用的内容，以及即将推出的内容。",
+    "comingSoonBadge": "即将推出",
+    "availableNow": "现已可用",
+    "comingSoonFootnote": "付费方案及其价格和额度尚未最终确定。加入下方的候补名单，方案上线时我们会给您发送一封邮件。",
+    "freeFootnote": "每个账户都包含实时协作、版本历史和无限文档。AI 额度每个周期补充一次。",
+    "selfHostedTitle": "此实例的使用上限",
+    "selfHostedSubtitle": "此 markoto 实例不销售套餐。每个账户都享有以下上限，实例运营者可以调整。"
   },
   "topbar": {
     "planBadge": "套餐：{plan}",
@@ -915,7 +925,9 @@
       "leave": "退出工作区",
       "leaveFailed": "无法退出工作区",
       "leftToast": "你已退出该工作区"
-    }
+    },
+    "capReachedFree": "已使用 {used} / {limit} 个工作区。请删除一个后再创建新的。",
+    "capReachedShortFree": "已达工作区上限"
   },
   "knowledge": {
     "title": "知识库",
@@ -940,7 +952,10 @@
       "processing": "处理中",
       "ready": "就绪",
       "failed": "失败"
-    }
+    },
+    "capFilesReachedFree": "此工作区已达到文件数量上限（{limit}）。请删除一个文件后再添加。",
+    "capBytesReachedFree": "此工作区已达到存储上限（{limit} MB）。请删除文件以释放空间。",
+    "capReachedShortFree": "已达上限"
   },
   "error": {
     "generic": "出了点问题。请重试。",
@@ -1169,6 +1184,42 @@
         "notSet": "未设置",
         "change": "更改你的隐私选择"
       }
+    }
+  },
+  "billing": {
+    "comingSoonCta": "付费方案即将推出",
+    "comingSoonHint": "额度更高的付费方案即将推出。"
+  },
+  "waitlist": {
+    "title": "加入候补名单",
+    "description": "付费方案上线时，我们只会给您发送一封邮件。",
+    "emailLabel": "邮箱地址",
+    "emailPlaceholder": "you{'@'}example.com",
+    "consentLabel": "我同意 markoto 保存我的邮箱地址，以便在付费方案上线时通知我。我可以随时通过每封邮件中的链接退订。",
+    "privacyLink": "隐私政策",
+    "submit": "加入候补名单",
+    "successTitle": "请查收邮件",
+    "successBody": "如果该地址可以接收邮件，我们已向其发送确认链接。点击链接后登记才会生效。",
+    "missingToken": "此链接不完整。请按照邮件中的原样打开。",
+    "backHome": "返回 markoto",
+    "errors": {
+      "consentRequired": "请勾选同意选项以加入候补名单。",
+      "invalidEmail": "请输入有效的邮箱地址。",
+      "invalidToken": "此链接无效或已过期。"
+    },
+    "confirm": {
+      "title": "确认加入候补名单",
+      "body": "请确认您希望在 markoto 付费方案上线时收到我们的邮件。",
+      "button": "确认登记",
+      "successTitle": "您已加入名单",
+      "successBody": "付费方案上线时我们会发邮件通知您。每封邮件都包含退订链接。"
+    },
+    "unsubscribe": {
+      "title": "退出候补名单",
+      "body": "从付费方案候补名单中删除您的邮箱地址。我们会立即删除。",
+      "button": "删除我的地址",
+      "successTitle": "您已退出",
+      "successBody": "您的邮箱地址已从候补名单中删除。"
     }
   }
 }

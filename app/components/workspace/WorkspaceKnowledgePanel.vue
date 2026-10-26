@@ -95,14 +95,36 @@ const router = useRouter()
 const filesCapReached = computed(() => !!usage.value && usage.value.count >= usage.value.maxFiles)
 const bytesCapReached = computed(() => !!usage.value && usage.value.totalBytes >= usage.value.maxBytes)
 const uploadCapReached = computed(() => filesCapReached.value || bytesCapReached.value)
+// Billing mode decides what the at-cap affordance says and where it
+// goes: billing on → "upgrade" + /pricing; hosted free-only SaaS →
+// "paid plans coming soon" + /pricing (coming-soon page); self-hosted →
+// just "limit reached" and a toast, never a dead purchase link.
+const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 const uploadCapTooltip = computed(() => {
-  if (filesCapReached.value) return t('knowledge.capFilesReached', { limit: usage.value?.maxFiles ?? 0 })
-  if (bytesCapReached.value) return t('knowledge.capBytesReached', { limit: Math.round((usage.value?.maxBytes ?? 0) / (1024 * 1024)) })
-  return ''
+  const limitMb = Math.round((usage.value?.maxBytes ?? 0) / (1024 * 1024))
+  let msg = ''
+  if (filesCapReached.value) {
+    msg = billingEnabled.value
+      ? t('knowledge.capFilesReached', { limit: usage.value?.maxFiles ?? 0 })
+      : t('knowledge.capFilesReachedFree', { limit: usage.value?.maxFiles ?? 0 })
+  } else if (bytesCapReached.value) {
+    msg = billingEnabled.value
+      ? t('knowledge.capBytesReached', { limit: limitMb })
+      : t('knowledge.capBytesReachedFree', { limit: limitMb })
+  }
+  if (msg && plansComingSoon.value) msg = `${msg} ${t('billing.comingSoonHint')}`
+  return msg
 })
+const uploadCapShortLabel = computed(() =>
+  billingEnabled.value ? t('knowledge.capReachedShort') : t('knowledge.capReachedShortFree')
+)
 function onUploadClick() {
   if (uploadCapReached.value) {
-    router.push('/pricing')
+    if (pricingVisible.value) {
+      router.push('/pricing')
+    } else {
+      toast.add({ title: uploadCapShortLabel.value, description: uploadCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
+    }
     return
   }
   pickFile()
@@ -308,7 +330,7 @@ function iconFor(ext: string): string {
         data-testid="knowledge-upload-button"
         @click="onUploadClick"
       >
-        {{ uploadCapReached ? t('knowledge.capReachedShort') : t('knowledge.upload') }}
+        {{ uploadCapReached ? uploadCapShortLabel : t('knowledge.upload') }}
       </UButton>
     </div>
     <p
@@ -343,7 +365,7 @@ function iconFor(ext: string): string {
         data-testid="knowledge-upload-button"
         @click="onUploadClick"
       >
-        {{ uploadCapReached ? t('knowledge.capReachedShort') : t('knowledge.upload') }}
+        {{ uploadCapReached ? uploadCapShortLabel : t('knowledge.upload') }}
       </UButton>
     </div>
 

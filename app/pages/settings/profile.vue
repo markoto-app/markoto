@@ -24,6 +24,9 @@ interface ExportJob {
 
 const router = useRouter()
 const { t } = useI18n()
+// The spending section is a billing surface — hidden entirely when
+// billing is off (self-hosted / free-only SaaS).
+const { billingEnabled } = useBillingMode()
 const toast = useToast()
 const { loggedIn, user } = useUserSession()
 const { status, refresh: refreshAccountStatus } = useAccountStatus()
@@ -379,6 +382,7 @@ onBeforeUnmount(() => {
            future implementer doesn't have to rearrange the page.
            ───────────────────────────────────────────────────────── -->
       <section
+        v-if="billingEnabled"
         class="mb-10"
         data-testid="profile-spending-section"
       >

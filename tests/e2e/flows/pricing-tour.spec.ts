@@ -19,7 +19,9 @@ import { test, expect } from '../fixtures/flow'
 // tier card is still in the DOM with its testid, and the
 // `box`-kind annotations wrap the stacked cards correctly. Verified
 // against `en-light-mobile` (375×667). No `test.skip()` for mobile.
-test('What you get on each plan', async ({ page, flow, editor }) => {
+// `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
+// playwright.config.ts `grepInvert`).
+test('What you get on each plan', { tag: '@billing' }, async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   // Login so the page can highlight the user's current tier with

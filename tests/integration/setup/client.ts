@@ -17,6 +17,12 @@ export interface ClientOptions {
 export class TestClient {
   private cookies: string[] = []
 
+  /**
+   * `baseUrl` defaults to the primary (billing-on) test server; pass
+   * `TEST_BILLING_OFF_BASE_URL` to talk to the billing-off instance.
+   */
+  constructor(private readonly baseUrl: string = TEST_BASE_URL) {}
+
   /** Pre-seed a cookie (e.g. after out-of-band session creation). */
   setCookie(cookie: string): void {
     this.cookies.push(cookie)
@@ -47,7 +53,7 @@ export class TestClient {
       if (!headers['content-type']) headers['content-type'] = 'application/json'
     }
 
-    const res = await fetch(`${TEST_BASE_URL}${path}`, {
+    const res = await fetch(`${this.baseUrl}${path}`, {
       method: opts.method ?? 'GET',
       headers,
       body,
@@ -94,8 +100,8 @@ export class TestClient {
  * `/api/_test/login` shim (TEST_MODE=1 only) to seal a session cookie
  * and pre-seeds it on the client.
  */
-export async function loggedInClient(userId: number, name?: string): Promise<TestClient> {
-  const c = new TestClient()
+export async function loggedInClient(userId: number, name?: string, baseUrl: string = TEST_BASE_URL): Promise<TestClient> {
+  const c = new TestClient(baseUrl)
   const res = await c.post('/api/_test/login', { userId, name: name ?? `User ${userId}` })
   if (!res.ok) {
     throw new Error(`[loggedInClient] /api/_test/login returned ${res.status}: ${await res.text()}`)
@@ -103,6 +109,6 @@ export async function loggedInClient(userId: number, name?: string): Promise<Tes
   return c
 }
 
-export function anonClient(): TestClient {
-  return new TestClient()
+export function anonClient(baseUrl: string = TEST_BASE_URL): TestClient {
+  return new TestClient(baseUrl)
 }

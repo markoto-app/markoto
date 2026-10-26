@@ -116,13 +116,12 @@ services:
     # Match prod's cap so the pre-push full-stack run behaves like prod.
     mem_limit: 2g
     environment:
-      # The bundled validator hardcodes the prod-only Stripe check
-      # (process.env.NODE_ENV === 'production' is dead-code-eliminated at
-      # build time, so flipping NODE_ENV at runtime is a no-op). Stub the
-      # values so the check passes — local doesn't hit any Stripe code
-      # path. Prod compose populates the real keys via .env.
-      - NUXT_STRIPE_SECRET_KEY=sk_test_local_stub
-      - NUXT_STRIPE_WEBHOOK_SECRET=whsec_local_stub
+      # Billing mode (shared/config/billingMode.ts). Off by default, like
+      # prod: no Stripe vars needed (the boot-time Stripe check only runs
+      # with NUXT_BILLING_ENABLED=true). Override from your shell/.env to
+      # preview the hosted "coming soon" pricing page or the billing flow.
+      - NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED:-false}
+      - NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON:-false}
       - NUXT_SESSION_PASSWORD=local-session-password-at-least-32-characters-long
       - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID}
       - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET}

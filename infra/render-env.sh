@@ -27,12 +27,26 @@ for v in \
   NUXT_S3_ENDPOINT NUXT_S3_ACCESS_KEY NUXT_S3_SECRET_KEY NUXT_S3_BUCKET \
   LITELLM_MASTER_KEY LITELLM_SALT_KEY \
   JINA_AI_API_KEY STAAN_API_KEY MISTRAL_API_KEY BFL_API_KEY \
-  NUXT_STRIPE_SECRET_KEY NUXT_STRIPE_WEBHOOK_SECRET \
-  NUXT_STRIPE_PRICE_PRO NUXT_STRIPE_PRICE_MAX NUXT_STRIPE_PRICE_ULTRA \
   BACKUP_GPG_PASSPHRASE \
   DOMAIN ACME_EMAIL REGISTRY IMAGE_TAG ; do
   require "$v"
 done
+
+# Billing mode (shared/config/billingMode.ts). The hosted deployment runs
+# free-only with paid plans advertised as "coming soon": billing OFF,
+# coming-soon ON. Stripe secrets are only required once billing is on —
+# the same truthy spellings the app accepts (1/true/yes/on).
+NUXT_BILLING_ENABLED="${NUXT_BILLING_ENABLED:-false}"
+NUXT_PLANS_COMING_SOON="${NUXT_PLANS_COMING_SOON:-true}"
+case "$(echo "$NUXT_BILLING_ENABLED" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')" in
+  1|true|yes|on)
+    for v in \
+      NUXT_STRIPE_SECRET_KEY NUXT_STRIPE_WEBHOOK_SECRET \
+      NUXT_STRIPE_PRICE_PRO NUXT_STRIPE_PRICE_MAX NUXT_STRIPE_PRICE_ULTRA ; do
+      require "$v"
+    done
+    ;;
+esac
 
 # Non-secret defaults (env.j2 sources these from group_vars/all.yml).
 POSTGRES_HOST="${POSTGRES_HOST:-postgres}"
@@ -96,13 +110,26 @@ STAAN_API_KEY=${STAAN_API_KEY}
 MISTRAL_API_KEY=${MISTRAL_API_KEY}
 BFL_API_KEY=${BFL_API_KEY}
 
-# ─── Stripe billing ───
-NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY}
-NUXT_STRIPE_WEBHOOK_SECRET=${NUXT_STRIPE_WEBHOOK_SECRET}
-NUXT_STRIPE_PRICE_PRO=${NUXT_STRIPE_PRICE_PRO}
-NUXT_STRIPE_PRICE_MAX=${NUXT_STRIPE_PRICE_MAX}
-NUXT_STRIPE_PRICE_ULTRA=${NUXT_STRIPE_PRICE_ULTRA}
+# ─── Billing mode ───
+NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED}
+NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON}
+
+# ─── Stripe billing (only read when NUXT_BILLING_ENABLED is true) ───
+NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:-}
+NUXT_STRIPE_WEBHOOK_SECRET=${NUXT_STRIPE_WEBHOOK_SECRET:-}
+NUXT_STRIPE_PRICE_PRO=${NUXT_STRIPE_PRICE_PRO:-}
+NUXT_STRIPE_PRICE_MAX=${NUXT_STRIPE_PRICE_MAX:-}
+NUXT_STRIPE_PRICE_ULTRA=${NUXT_STRIPE_PRICE_ULTRA:-}
 NUXT_STRIPE_AUTOMATIC_TAX=${NUXT_STRIPE_AUTOMATIC_TAX:-}
+
+# ─── Free-tier limit overrides (optional; empty = committed default) ───
+# With billing off every account is on the free tier, so these are the
+# hosted deployment's effective limits. See shared/config/tiers.ts.
+TIER_FREE_LITELLM_BUDGET_USD=${TIER_FREE_LITELLM_BUDGET_USD:-}
+TIER_FREE_WORKSPACES_OWNED=${TIER_FREE_WORKSPACES_OWNED:-}
+TIER_FREE_KNOWLEDGE_FILES=${TIER_FREE_KNOWLEDGE_FILES:-}
+TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE=${TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE:-}
+TIER_FREE_KNOWLEDGE_BYTES_PER_USER=${TIER_FREE_KNOWLEDGE_BYTES_PER_USER:-}
 
 # ─── Transactional email (Resend) ───
 # Empty RESEND_API_KEY = stub mode (emails logged, not sent). Set both

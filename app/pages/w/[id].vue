@@ -85,17 +85,23 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
 const activeTab = ref<'documents' | 'knowledge' | 'ai' | 'settings'>('documents')
+const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
   const items: Array<{ label: string, icon?: string, slot: 'documents' | 'knowledge' | 'ai' | 'settings', value: string }> = [
     { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
-    { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' },
-    // No `icon` for the AI tab — UTabs would render it as a Lucide
-    // glyph, but the seal is a Vue component, not an Iconify name. The
-    // seal sits inside the Fraunces-titled section header within the
-    // tab content instead, where it carries equal weight without
-    // needing to squeeze into the icon slot.
-    { label: t('workspace.tabs.ai'), slot: 'ai', value: 'ai' }
+    { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' }
   ]
+  // The AI-workspace tab is `(+)` sponsorship — a paid-plan feature.
+  // With billing off it doesn't exist (the server 404s the toggle and
+  // the billing resolver ignores `ai_enabled`), so don't show it.
+  // No `icon` for the AI tab — UTabs would render it as a Lucide
+  // glyph, but the seal is a Vue component, not an Iconify name. The
+  // seal sits inside the Fraunces-titled section header within the
+  // tab content instead, where it carries equal weight without
+  // needing to squeeze into the icon slot.
+  if (billingEnabled.value) {
+    items.push({ label: t('workspace.tabs.ai'), slot: 'ai', value: 'ai' })
+  }
   // Admin-only Settings tab. Hidden for editors / viewers — there's
   // nothing actionable for them there. Putting the gate at tab-list
   // level (rather than inside the slot) means the tab strip is the
@@ -399,7 +405,7 @@ async function leaveWorkspace() {
              the old sparkle icon; this banner is genuine AI presence
              so it's the one place a small shu accent is correct. -->
         <div
-          v-if="data.workspace.aiEnabled"
+          v-if="billingEnabled && data.workspace.aiEnabled"
           class="flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-sm text-muted"
         >
           <CommonSeal

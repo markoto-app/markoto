@@ -24,6 +24,7 @@ import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
 import { aiClientUserId } from '~~/shared/contracts/jwt'
 import { docExists } from '../../repos/documents'
+import { budgetExhaustedBreadcrumb } from '../billingMode'
 import {
   newStreamState,
   processChunk,
@@ -311,7 +312,9 @@ interface LoopContext {
 }
 
 function emitBudgetBreadcrumb(ctx: LoopContext, plan: string): void {
-  const msg = `\n\n_AI Points exhausted for this billing period (plan: ${plan}). [Upgrade your plan](/pricing) to continue._\n`
+  // Wording depends on the billing mode — never link a purchase that
+  // doesn't exist on this deployment.
+  const msg = budgetExhaustedBreadcrumb(plan)
   try {
     ctx.opts.aiSession.ydoc.transact(() => {
       ctx.opts.aiSession.ytext.insert(ctx.opts.aiSession.ytext.length, msg)

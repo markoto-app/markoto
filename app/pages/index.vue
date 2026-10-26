@@ -12,18 +12,33 @@ const { showContextualError } = useErrorHandler()
 // Tooltip shown when the user tries to hover the disabled
 // "New workspace" button. Concrete numbers so the limit is visible;
 // upgrade path advertised on the second line.
+// Billing off → no plan name, no "upgrade"; on the hosted free-only
+// SaaS the tooltip adds "paid plans are coming soon".
+const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 const workspaceCapTooltip = computed(() => {
   const b = billing.value
   if (!b) return ''
-  return t('workspace.capReached', {
-    used: b.ownedWorkspaces,
-    limit: b.workspacesOwnedLimit,
-    plan: b.plan.charAt(0).toUpperCase() + b.plan.slice(1)
-  })
+  if (billingEnabled.value) {
+    return t('workspace.capReached', {
+      used: b.ownedWorkspaces,
+      limit: b.workspacesOwnedLimit,
+      plan: b.plan.charAt(0).toUpperCase() + b.plan.slice(1)
+    })
+  }
+  const msg = t('workspace.capReachedFree', { used: b.ownedWorkspaces, limit: b.workspacesOwnedLimit })
+  return plansComingSoon.value ? `${msg} ${t('billing.comingSoonHint')}` : msg
 })
+const workspaceCapShortLabel = computed(() =>
+  billingEnabled.value ? t('workspace.capReachedShort') : t('workspace.capReachedShortFree')
+)
 
 function onCapReachedClick() {
-  router.push('/pricing')
+  if (pricingVisible.value) {
+    router.push('/pricing')
+    return
+  }
+  // Self-hosted: nothing to buy — say so instead of a dead link.
+  toast.add({ title: workspaceCapShortLabel.value, description: workspaceCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
 }
 
 // OAuth account-merge flash. The auth handler redirects to
@@ -250,7 +265,8 @@ function onRowLongPress(doc: DocumentListItem) {
             {{ t('landing.newDocument') }}
           </UButton>
           <!-- At-cap pattern: stays visible, muted styling + tooltip +
-               click routes to /pricing. We never hide the button (user
+               click routes to /pricing (or, with billing off on a
+               self-hosted instance, explains the limit in a toast). We never hide the button (user
                should still see the feature exists) and never silently
                no-op on click (we redirect them toward upgrading). The
                native `disabled` attribute is NOT used because that
@@ -267,7 +283,7 @@ function onRowLongPress(doc: DocumentListItem) {
             data-testid="landing-new-workspace"
             @click="workspaceCapReached ? onCapReachedClick() : (showCreateWorkspace = true)"
           >
-            {{ workspaceCapReached ? t('workspace.capReachedShort') : t('workspace.newWorkspace') }}
+            {{ workspaceCapReached ? workspaceCapShortLabel : t('workspace.newWorkspace') }}
           </UButton>
         </div>
       </div>

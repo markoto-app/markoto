@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
 import { resolveCaps } from '../../server/utils/knowledgeQuota'
@@ -26,6 +26,17 @@ async function enableAiBilling(workspaceId: string, billingOwnerId: number): Pro
     [billingOwnerId, workspaceId]
   )
 }
+
+// These cases exercise PAID-plan behaviour, which only exists with
+// billing switched on (default is off — see shared/config/billingMode.ts).
+// `isBillingEnabled()` reads process.env per call, so stub it for this
+// file and restore afterwards (repos tests share one worker).
+beforeAll(() => {
+  vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
+})
+afterAll(() => {
+  vi.unstubAllEnvs()
+})
 
 describe('resolveCaps — per-uploader tier', () => {
   beforeEach(async () => {
