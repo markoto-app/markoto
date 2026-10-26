@@ -35,7 +35,7 @@ networks:
 
 services:
   traefik:
-    image: traefik:v3@sha256:5ae9c349154d5298a5d61a7b25e5f3a9f53314f1515e87632120b95051c7917c
+    image: traefik:v3@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
     restart: unless-stopped
     command:
       - "--api.dashboard=true"
@@ -88,7 +88,7 @@ services:
   # Defined inline (not in base) — prod uses external S3 and `include:`
   # has no "drop service" mechanic. See header in docker-compose.base.yml.
   seaweedfs:
-    image: chrislusf/seaweedfs@sha256:854479eebcbc0060d803edb27b3bd88a0552e23fde08a26a6482e59aff887a77
+    image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
     restart: unless-stopped
     command: >
       server -s3

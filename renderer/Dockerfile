@@ -6,23 +6,34 @@
 #
 # To bump Playwright: change the version on this FROM line AND the playwright
 # pin in package.json so they match. Mismatched versions wedge the launcher.
-FROM mcr.microsoft.com/playwright:v1.59.1-jammy
+FROM mcr.microsoft.com/playwright:v1.64.1-jammy
 
 # Bun via the official curl install. We don't need bun for Playwright (which
 # ships its Node), but the renderer's own HTTP server runs under Bun for
 # stack consistency. The Bun installer requires `unzip` which the Playwright
-# base image doesn't ship.
+# base image doesn't ship. The installer takes the release tag as its
+# argument — pinned to the same Bun as the oven/bun images + CI
+# (`bun-version`) so all three move together; without it the build
+# silently picks up whatever Bun is latest that day.
+#
+# The base image's global npm (+ npx) is removed: nothing here uses it
+# (deps install with bun), and its vendored node_modules carry fixable
+# HIGH CVEs that the CI image scan would otherwise flag on every build.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends unzip \
  && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL https://bun.sh/install | bash \
- && ln -s /root/.bun/bin/bun /usr/local/bin/bun
+ && curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.4" \
+ && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
+ && rm -rf /usr/lib/node_modules/npm /usr/bin/npm /usr/bin/npx
 
 WORKDIR /app
 
 # Layered COPYs so source edits don't bust the install cache.
-COPY package.json ./
-RUN bun install --no-save
+# Installs from the committed lockfile so the image gets exactly the
+# versions CI tested (`bun install --no-save` without a lockfile resolved
+# the semver ranges fresh on every build).
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY src ./src
 

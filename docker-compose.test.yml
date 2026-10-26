@@ -51,7 +51,7 @@ services:
       - "5433:5432"
 
   valkey-test:
-    image: valkey/valkey:8-alpine@sha256:1cb6b20b70d927560cc4cc5397b5f045e74aa603ff7696274778880bb6fadc75
+    image: valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
     restart: unless-stopped
     # No AOF — tests want a blank slate every boot. 512mb is plenty for
     # short test runs; mirrors prod policy without prod sizing.
@@ -81,7 +81,7 @@ services:
       - "6380:6379"
 
   seaweedfs-test:
-    image: chrislusf/seaweedfs@sha256:854479eebcbc0060d803edb27b3bd88a0552e23fde08a26a6482e59aff887a77
+    image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
     restart: unless-stopped
     command: >
       server -s3
@@ -183,7 +183,7 @@ services:
           psql -h postgres-test -U ypad -d postgres -c "CREATE DATABASE litellm_test;"
 
   litellm-test:
-    image: ghcr.io/berriai/litellm:main-v1.83.14-stable
+    image: ghcr.io/berriai/litellm:v1.106.4
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://ypad:testpassword@postgres-test:5432/litellm_test

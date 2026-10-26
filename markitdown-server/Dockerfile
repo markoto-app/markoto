@@ -8,7 +8,7 @@
 # `docker pull python:3.13-slim`, read the digest, update below, rebuild,
 # verify a docx + pdf import smoke-converts end-to-end via /api/import.
 # Pinned digest corresponds to python:3.13-slim at the time of bump.
-FROM python@sha256:d168b8d9eb761f4d3fe305ebd04aeb7e7f2de0297cec5fb2f8f6403244621664
+FROM python@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962
 
 # Unprivileged user — markitdown only ever reads from a BytesIO so it
 # doesn't need filesystem write, but defense in depth is cheap.
@@ -24,10 +24,16 @@ WORKDIR /app
 # transitive deps all ship manylinux wheels for python:3.13.
 # `--chown=root:root --chmod=755` makes server.py immutable to the
 # runtime `app` user (docker:S6504).
+# pip is removed once the deps are in: nothing at runtime installs
+# packages, and pip (plus the ensurepip wheel bundled with the base
+# image) vendors urllib3/msgpack/setuptools copies carrying fixable HIGH
+# CVEs that the CI image scan flags even though they never execute here.
 RUN pip install --no-cache-dir --only-binary=:all: \
-    'fastapi==0.136.0' \
-    'markitdown[all]==0.1.5' \
-    'uvicorn[standard]==0.44.0'
+    'fastapi==0.162.0' \
+    'markitdown[all]==0.1.9' \
+    'uvicorn[standard]==0.54.0' \
+ && pip uninstall -y pip \
+ && rm -rf /usr/local/lib/python3.13/ensurepip/_bundled
 
 COPY --chown=root:root --chmod=755 server.py /app/server.py
 
