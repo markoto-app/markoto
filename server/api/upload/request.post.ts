@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 import { getDoc } from '../../repos/documents'
 import { recordPending } from '../../repos/uploads'
 import { canEditDoc } from '../../utils/workspaceAccess'
+import { buildUploadKey, DOC_ID_RE } from '../../utils/uploadKey'
 
 // SVG deliberately excluded — SVG can embed <script> and event handlers
 // that execute when the file is opened directly (right-click → open,
@@ -18,13 +19,15 @@ const CONTENT_TYPE_EXT: Record<string, string> = {
 }
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 
-// nanoid alphabet + a generous length window. Any docId that doesn't
-// match this gets rejected before being interpolated into the S3 key —
-// without this, `docId: "../other-doc"` is signed for an arbitrary key.
-const DOC_ID_RE = /^[A-Za-z0-9_-]{8,32}$/
-
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
+  if (!(await checkRateLimit('upload-request', String(session.user.id), 60, 60_000))) {
+    throw createError({
+      statusCode: 429,
+      message: 'Too many uploads. Try again in a minute.',
+      data: { code: 'upload/rate-limited' }
+    })
+  }
   const { docId, filename, contentType, size } = await readBody(event)
 
   if (!docId || !filename || !contentType) {
@@ -61,34 +64,33 @@ export default defineEventHandler(async (event) => {
   // could presign a PUT into that doc's S3 prefix (and it wrongly blocked
   // workspace editors on open-view docs). `canEditDoc` is the same content-edit
   // gate every other write endpoint uses.
+  // The doc must exist: confirm resolves keys through the pending `uploads`
+  // row (FK to documents), and presigning for non-existent docs would hand
+  // out unlimited 10 MB PUT URLs into the bucket.
   const doc = await getDoc(docId)
-  if (doc) {
-    if (doc.accessMode !== 'open-edit' && !(await canEditDoc(session.user.id, docId))) {
-      throw createError({ statusCode: 403, message: 'No write access to this document' })
-    }
+  if (!doc) {
+    throw createError({ statusCode: 404, message: 'Document not found' })
   }
-  // If doc doesn't exist in DB yet (new anonymous doc), allow upload since user is authenticated
+  if (doc.accessMode !== 'open-edit' && !(await canEditDoc(session.user.id, docId))) {
+    throw createError({ statusCode: 403, message: 'No write access to this document' })
+  }
 
   const s3 = usePresignS3Client()
   const config = useRuntimeConfig()
   const fileId = nanoid(12)
-  const key = `docs/${docId}/${fileId}.${ext}`
+  const key = buildUploadKey(docId, fileId, ext)
 
-  // Insert an unconfirmed upload row BEFORE issuing the URL so the
-  // orphan cleanup has a record to compare against. If the user never
-  // PUTs the file, this row stays unconfirmed and gets reaped after
-  // 24h. If the doc itself doesn't exist in DB yet (anonymous-doc edge
-  // case), skip the insert — there's no FK target.
-  if (doc) {
-    await recordPending({
-      docId,
-      fileId: `${fileId}.${ext}`,
-      uploaderId: session.user.id,
-      contentType,
-      sizeBytes: size,
-      s3Key: key
-    })
-  }
+  // Insert an unconfirmed upload row BEFORE issuing the URL: /upload/confirm
+  // only acts on keys with a row owned by the caller, and the orphan cleanup
+  // uses it to reap uploads that never landed.
+  await recordPending({
+    docId,
+    fileId: `${fileId}.${ext}`,
+    uploaderId: session.user.id,
+    contentType,
+    sizeBytes: size,
+    s3Key: key
+  })
 
   // SSE NOTE: presigned PUTs deliberately omit `ServerSideEncryption` —
   // SigV4 binds every signed header into the URL, which would force the

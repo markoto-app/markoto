@@ -38,6 +38,13 @@ describe('POST /api/upload/request', () => {
     expect(res.status).toBe(401)
   })
 
+  it('404s a doc that does not exist (no presigned PUT for arbitrary ids)', async () => {
+    const user = await createUser()
+    const client = await loggedInClient(user.id)
+    const res = await client.post('/api/upload/request', reqBody('doc-doesnotexist'))
+    expect(res.status).toBe(404)
+  })
+
   describe('open-edit — anyone authenticated may upload', () => {
     it('logged-in non-owner gets a presigned URL', async () => {
       const owner = await createUser()
