@@ -61,6 +61,7 @@ export async function resetDb(): Promise<void> {
       mcp_sessions,
       mcp_personal_tokens,
       waitlist_signups,
+      user_ai_providers,
       users
     RESTART IDENTITY CASCADE
   `)

@@ -25,6 +25,16 @@ const router = useRouter()
 const { billing, refresh: refreshBilling } = useBilling()
 const { pointsRemaining, pointsTotal, fillRatio, refresh: refreshCredits } = useAiCredits()
 const { billingEnabled, plansComingSoon } = useBillingMode()
+// Bring your own key (WP4): AI Points only measure platform-paid AI
+// (an operator's model-alias defaults). Calls on the user's own key
+// never touch them, so the meter is hidden when nothing the user can do
+// spends points — and says so when they mix own keys with defaults.
+const { anyPlatformBilled, availability } = useAiAvailability()
+const usesOwnKey = computed(() => {
+  const a = availability.value
+  if (!a) return false
+  return a.chat.source === 'user' || a.image.source === 'user' || a.transcription.source === 'user'
+})
 
 const planLabel = computed(() => {
   const plan = billing.value?.plan ?? 'free'
@@ -121,7 +131,7 @@ function onManage(): void {
 
 <template>
   <UPopover
-    v-if="billing"
+    v-if="billing && anyPlatformBilled"
     v-model:open="open"
     :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
   >
@@ -196,6 +206,11 @@ function onManage(): void {
         <!-- Primer: what counts as a credit -->
         <div class="text-xs text-muted leading-relaxed border-t border-default pt-3">
           {{ t('topbar.creditsHint') }}
+          <span
+            v-if="usesOwnKey"
+            class="block mt-1"
+            data-testid="usage-badge-own-key-hint"
+          >{{ t('aiProvider.pointsOwnKeyHint') }}</span>
         </div>
 
         <!-- Actions -->

@@ -2,6 +2,7 @@ import type * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import type { AttributedTo } from '../billing'
 import type { PlanName } from '~~/shared/config/tiers'
+import type { ResolvedAiProviders } from '../aiProviders/resolve'
 
 // Two-tiered tool context. The split exists to make a class of bug
 // IMPOSSIBLE: a META-typed handler (one that doesn't need Y.js state)
@@ -71,6 +72,12 @@ export interface MetaToolContext {
    *  `useLitellmForUser(virtualKey)` so spend lands on the right
    *  budget. */
   virtualKey: string
+
+  /** AI providers for this call, resolved once at the consumer boundary
+   *  (user's BYOK config → instance default → null). LLM sub-calls
+   *  (web-tool synthesis → `chat`, `generate_image` → `image`) run on
+   *  these; a null capability means the feature is unavailable. */
+  aiProviders: ResolvedAiProviders
 
   /** Broadcast a status update. The loop maps this to
    *  `awareness.setLocalStateField('aiStatus', ...)`; MCP doc-bound

@@ -37,6 +37,12 @@ const dictationActive = computed(() =>
 const dictationBusy = computed(() =>
   props.dictationState === 'connecting' || props.dictationState === 'requesting-permission'
 )
+// Live dictation is Voxtral Realtime (Mistral-only). Hidden unless the
+// user's transcription provider is Mistral or the instance provides it.
+// Stays visible while availability is still loading / unknown — and
+// while a session is running, so the stop button never disappears.
+const { liveDictationAvailable } = useAiAvailability()
+const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationBusy.value)
 
 const { uploadAndInsert, uploading, error: uploadError } = useImageUpload(props.docId)
 const toast = useToast()
@@ -289,10 +295,12 @@ const diagramItems = computed(() => [[
          badge. Loading spinner covers the permission / connecting
          states. -->
     <USeparator
+      v-if="showDictation"
       orientation="vertical"
       class="h-5 mx-1"
     />
     <UTooltip
+      v-if="showDictation"
       :text="dictationActive || dictationBusy ? t('ai.dictateStop') : t('ai.dictateStart')"
     >
       <UButton

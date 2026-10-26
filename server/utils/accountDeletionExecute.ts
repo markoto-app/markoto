@@ -17,6 +17,7 @@ import {
 } from '../repos/accountDeletionRepo'
 import { listAllJobsForUser } from '../repos/dataExportJobs'
 import { findUserById } from '../repos/users'
+import { deleteAllAiProvidersForUser } from '../repos/aiProviders'
 import { deleteDocument } from './documentLifecycle'
 import { deleteKnowledgeArtifact } from './knowledgeAccess'
 import { useS3Client } from './s3'
@@ -89,6 +90,10 @@ export async function executeAccountDeletion(
 
   summary.aiSessionsDeleted = await deleteAiSessionsByUser(userId)
   summary.themesDeleted = await deleteThemesByUser(userId)
+  // BYOK provider configs hold third-party API keys (encrypted). The FK
+  // CASCADE would drop them with the user row anyway; deleting
+  // explicitly makes the count visible in the audit summary.
+  summary.aiProvidersDeleted = await deleteAllAiProvidersForUser(userId)
 
   const exportS3KeysToDelete = await collectExportS3Keys(userId, summary)
 
@@ -298,6 +303,7 @@ function emptySummary(): AccountDeletionSummary {
     aiSessionMessagesDeleted: 0,
     dataExportJobsDeleted: 0,
     stripeCustomerDeleted: false,
-    themesDeleted: 0
+    themesDeleted: 0,
+    aiProvidersDeleted: 0
   }
 }

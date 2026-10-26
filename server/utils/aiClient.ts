@@ -5,6 +5,7 @@ import type { PlanName } from '~~/shared/config/tiers'
 import { aiClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { checkout, release, type PoolEntry } from './yDocPool'
 import type { ToolContext, ToolStatusPhase } from './agentic/toolContext'
+import type { ResolvedAiProviders } from './aiProviders/resolve'
 
 // Re-export for callers that still import `AiStatusPhase` from this
 // module. Going forward they should import `ToolStatusPhase` from
@@ -36,6 +37,8 @@ export interface SessionMeta {
   periodStart: Date
   /** LiteLLM virtual-key bearer token resolved at session open. */
   virtualKey: string
+  /** BYOK / instance-default AI providers resolved at session open. */
+  aiProviders: ResolvedAiProviders
   /**
    * When the session was triggered by an `@ai` mention in a comment
    * thread, the thread's id rides on awareness so all clients can show
@@ -178,6 +181,7 @@ export async function createAiSession(
     plan: meta.plan,
     periodStart: meta.periodStart,
     virtualKey: meta.virtualKey,
+    aiProviders: meta.aiProviders,
     updateStatus,
     provider: entry.provider,
     destroy

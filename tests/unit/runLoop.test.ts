@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import {
   AgenticFinishReason as FinishReason,
   type AgenticGenerateContentResponse as GenerateContentResponse,
@@ -126,7 +127,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
     model: 'fake-test-model',
     systemPrompt: 'system',
     initialPrompt: 'user prompt',
-    aiSession: {} as Parameters<typeof runAgenticLoop>[0]['aiSession'],
+    aiSession: { aiProviders: FULL_AI_PROVIDERS } as Parameters<typeof runAgenticLoop>[0]['aiSession'],
     sessionId: 'sess-test',
     abortController: new AbortController(),
     setStatus: vi.fn(),

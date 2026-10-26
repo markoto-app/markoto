@@ -137,7 +137,25 @@ const FLOWS_ENV: Record<string, string> = {
   // (CM6 viewport virtualisation makes .cm-content unreliable for
   // long docs). Production builds default to false; only this test
   // stack flips it on.
-  NUXT_PUBLIC_EXPOSE_TEST_HANDLES: '1'
+  NUXT_PUBLIC_EXPOSE_TEST_HANDLES: '1',
+  // AI providers (WP4, bring your own key). The flow stack is shaped like
+  // a self-hosted instance whose operator configured the bundled LiteLLM
+  // model aliases as instance defaults — so the live-AI flows keep
+  // running on Mistral / BFL / Voxtral exactly as before BYOK. The
+  // private-network opt-in lets the `ai-provider-settings` flow save the
+  // fake OpenAI-compatible provider (docker-compose.test.yml
+  // `fake-openai-test`) at the docker bridge address.
+  NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603',
+  NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-2-pro',
+  NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
+  NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'true',
+  // Live dictation on the alias default needs the operator's Mistral key
+  // in the APP process (the realtime WS is direct, not via LiteLLM) —
+  // without it the dictation button is hidden. The flow stack swaps the
+  // realtime client for the canned mock (NUXT_GOOGLE_SPEECH_MOCK above),
+  // so a placeholder is enough on the key-less PR gate; a real key from
+  // the host env is kept when present.
+  MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'flows-placeholder-mistral-key'
 }
 
 let nuxtProc: Subprocess | null = null

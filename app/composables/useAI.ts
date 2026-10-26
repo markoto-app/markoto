@@ -63,6 +63,7 @@ export interface AiResponseEntry {
  */
 export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOptions = {}) {
   const { loggedIn, user: sessionUser } = useUserSession()
+  const { refresh: refreshAiAvailability } = useAiAvailability()
 
   // All active AI sessions on this doc, derived from awareness entries that
   // advertise `isAI: true` + an `aiSession` metadata block.
@@ -202,10 +203,16 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       const err = e as {
         statusCode?: number
         status?: number
-        data?: { statusCode?: number, message?: string }
+        data?: { statusCode?: number, message?: string, code?: string }
         message?: string
       }
       const code = err.statusCode ?? err.status ?? err.data?.statusCode
+      if (err.data?.code === 'ai/provider-missing') {
+        // Availability snapshot was stale (provider removed in another
+        // tab, instance default dropped) — refresh so the prompt bar
+        // swaps to the "Add your API key" call-to-action.
+        void refreshAiAvailability()
+      }
       if (code === 402) {
         // Budget-exhausted. Flip the flag so the prompt-bar toast
         // renders the upgrade CTA variant.

@@ -118,26 +118,15 @@ export default defineNuxtConfig({
       embeddingsSendDimensions: 'auto', // NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS — auto|true|false (auto = Jina only)
       embeddingsTaskHints: 'auto', // NUXT_LITELLM_EMBEDDINGS_TASK_HINTS — Jina `task` param; auto|true|false (auto = Jina only)
       embeddingsUpstreamModel: '', // NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL — label only (version tag); mirrors the proxy's EMBEDDINGS_UPSTREAM_MODEL
-      // Phase 2 transcribe model (Voxtral Mini Transcribe 2, $0.003/min).
-      // Wrapped as a fake chat completion via custom_handlers.py to fix
-      // LiteLLM's transcription cost-tracking gap with Mistral's response
-      // shape. The voice-prompt button hits this when
-      // NUXT_AI_TRANSCRIBE_PROVIDER=voxtral.
-      transcribeModel: 'voxtral-mini-transcribe', // NUXT_LITELLM_TRANSCRIBE_MODEL
-      // Phase 3 image model (BFL FLUX.2 [pro], $0.030/1024² image,
-      // EU-pinned). Wrapped as a fake chat completion via
-      // custom_handlers.py so OSS LiteLLM tracks spend properly (the
-      // /v1/images/generations cost path doesn't fire spend-logger
-      // callbacks for custom providers). Caller sends prompt + width +
-      // height in the message content.
-      imageModel: 'flux-2-pro', // NUXT_LITELLM_IMAGE_MODEL
+      // WP4: the chat / image / transcription MODELS are no longer runtime
+      // config. They resolve per request from the user's own provider
+      // (bring your own key) or the operator's instance default
+      // (`NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_*`, read from process.env
+      // by server/utils/aiProviders/config.ts). The former
+      // NUXT_LITELLM_{TEXT,IMAGE,TRANSCRIBE}_MODEL vars are gone; set
+      // NUXT_AI_DEFAULT_*_MODEL to the same alias instead.
       imageDefaultWidth: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_WIDTH
       imageDefaultHeight: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_HEIGHT
-      // Phase 4 text + vision model (Mistral Small 4.0). Cheaper than
-      // the pre-Phase-5 Gemini Flash-Lite path (-45%), 256k context,
-      // native vision input, OpenAI-compatible streaming tool calls.
-      // Same model handles view_image / view_pages — no two-model split.
-      textModel: 'mistral-small-2603', // NUXT_LITELLM_TEXT_MODEL
       // Phase 5 voice-tick metering stub. Each "call" against this fake
       // chat model bills $0.006 (1 minute of Voxtral Realtime audio) —
       // see infra/litellm/custom_handlers.py:VoxtralTickProvider. The

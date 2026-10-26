@@ -44,6 +44,14 @@ export const AUDIT_ADMIN_REVOKED = 'admin.revoked'
 export const AUDIT_MCP_TOKEN_ISSUED = 'mcp.token_issued'
 export const AUDIT_MCP_TOKEN_REVOKED = 'mcp.token_revoked'
 
+// Bring-your-own-key AI provider config saved / deleted (WP4). Storing a
+// third-party API key and pointing the server at a base URL is a
+// credential + outbound-traffic change, so it's audit-grade. `scope_id`
+// is the user id; `metadata` carries capability, provider HOST and model
+// — never the key (not even the last four characters).
+export const AUDIT_AI_PROVIDER_SAVED = 'ai_provider.saved'
+export const AUDIT_AI_PROVIDER_DELETED = 'ai_provider.deleted'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -64,3 +72,5 @@ export type ComplianceAuditAction
     | typeof AUDIT_ADMIN_REVOKED
     | typeof AUDIT_MCP_TOKEN_ISSUED
     | typeof AUDIT_MCP_TOKEN_REVOKED
+    | typeof AUDIT_AI_PROVIDER_SAVED
+    | typeof AUDIT_AI_PROVIDER_DELETED

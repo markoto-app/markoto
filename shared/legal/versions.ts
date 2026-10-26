@@ -21,7 +21,9 @@
 // "for convenience; English is authoritative" banner on non-EN locales.
 
 // v5 (2026-10-26): new processing purpose `paid_plans_waitlist`.
-export const PRIVACY_VERSION = 5
+// v6 (2026-10-26): new processing purpose `user_directed_ai_provider`
+// (bring-your-own-key AI: content goes to the provider the user picks).
+export const PRIVACY_VERSION = 6
 export const PRIVACY_EFFECTIVE_DATE = '2026-10-26'
 
 export const TOS_VERSION = 1

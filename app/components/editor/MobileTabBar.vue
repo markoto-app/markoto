@@ -55,6 +55,10 @@ const { t } = useI18n()
 const dictationActive = computed(() =>
   props.dictationState === 'recording' || props.dictationState === 'connecting'
 )
+// Live dictation needs a Mistral transcription provider (own key or
+// instance default) — hide the tab otherwise (kept while recording).
+const { liveDictationAvailable } = useAiAvailability()
+const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value)
 
 interface TabDef {
   name: TabName
@@ -115,6 +119,7 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
          recording status without opening anything. Short label fits
          the 50-60px column on phones. -->
     <button
+      v-if="showDictation"
       type="button"
       class="mk-tab"
       :class="{ 'mk-tab--dictation-active': dictationActive }"

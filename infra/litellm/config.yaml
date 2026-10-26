@@ -183,6 +183,47 @@ model_list:
       input_cost_per_token: 0.0
       output_cost_per_token: 0.0001        # × 60 reported tokens = $0.006/tick
 
+  # ---- WP4: bring-your-own-key (BYOK) passthrough ----
+  # Every BYOK call (chat / agent loop, web-tool synthesis, image
+  # generation, one-shot transcription) is sent as model `byok/<id>`
+  # with the user's `api_key` + `api_base` in the request body
+  # (LiteLLM "clientside credentials"). The app builds those fields in
+  # server/utils/aiProviders/requestFields.ts.
+  #
+  # Zero cost: the user's own provider account pays, so these calls
+  # must NOT debit the per-user virtual key's `max_budget`. Without the
+  # explicit zeros LiteLLM applies its built-in price table to known
+  # ids (verified on v1.106.4: `openai/gpt-4o` via a wildcard without
+  # model_info billed the key; with these zeros the key's spend stayed
+  # at 0.0). Calls still authenticate with the user's virtual key, so
+  # rpm_limit + spend-log tags keep working.
+  #
+  # No `api_key` here on purpose: a request that somehow arrives
+  # without one must fail, never fall back to an operator credential.
+  #
+  # `configurable_clientside_auth_params` opts THIS deployment (only)
+  # into a client-supplied `api_base`. The regex is defence-in-depth
+  # mirroring the app's SSRF policy for literal targets: http(s) only,
+  # no userinfo, no IPv6 literals, and not loopback / 0.x / link-local
+  # (cloud metadata) / markoto's own service hostnames. It deliberately
+  # stays the SAME for SaaS and self-host (one config file, no env
+  # templating): the per-deployment allowlist, the private-network
+  # opt-in and the DNS-resolution check live in the app
+  # (server/utils/aiProviders/urlPolicy.ts), which is the authoritative
+  # gate — LiteLLM v1.106.4 does NOT run its own `user_url_validation`
+  # DNS check on a clientside api_base for this path (verified).
+  - model_name: "byok/*"
+    litellm_params:
+      model: "openai/*"
+      configurable_clientside_auth_params:
+        - api_base: '^https?://(?!(?:localhost|litellm|postgres|valkey|redis|sync|renderer|markitdown|app|traefik|backup|seaweedfs|metadata)(?:[:/]|$))(?!(?:127|0|169\.254)\.)(?!\[)[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[^\s?#@]*)?$'
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+      input_cost_per_second: 0
+      output_cost_per_second: 0
+      output_cost_per_image: 0
+
 litellm_settings:
   drop_params: true
   set_verbose: false

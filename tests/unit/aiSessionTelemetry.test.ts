@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import {
   AgenticFinishReason as FinishReason,
   type AgenticGenerateContentResponse as GenerateContentResponse,
@@ -88,7 +89,8 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
   // path; nothing else is touched in the success scenario.
   const aiSession = {
     docId: 'doc-abc',
-    initiatorUserId: 42
+    initiatorUserId: 42,
+    aiProviders: FULL_AI_PROVIDERS
   } as unknown as Parameters<typeof runAgenticLoop>[0]['aiSession']
   return {
     ai: overrides.ai ?? makeFakeAi([]),

@@ -1020,3 +1020,37 @@ export const waitlistSignups = pgTable('waitlist_signups', {
   // Sweeper: "unconfirmed rows past their confirm window".
   index('idx_waitlist_signups_unconfirmed').on(table.confirmTokenExpiresAt).where(sql`${table.confirmedAt} IS NULL`)
 ])
+
+// Bring-your-own-key AI provider configs (WP4). One row per user per
+// capability (`chat` | `image` | `transcription`). Every LLM call for
+// that capability is routed through LiteLLM's zero-cost `byok/*`
+// deployment with these values as clientside credentials, so the
+// user's own provider account pays and the platform AI budget is not
+// touched. See `server/utils/aiProviders/` + docs/AI-MODELS.md.
+//
+//   - `api_key_encrypted` uses the same AES-256-GCM scheme as the
+//     LiteLLM virtual-key tokens (`server/utils/litellm/tokenCrypto.ts`,
+//     keyed off LITELLM_SALT_KEY). The plaintext is never returned to
+//     the client, never logged and never included in the data export;
+//     `api_key_last4` is what the UI shows.
+//   - `base_url` is validated against the BYOK URL policy at save time
+//     AND re-validated on every request (DNS can change).
+//   - `supports_tools` / `last_verified_at` record the last verification
+//     probe (chat: a tool-call round trip at temperature 0).
+//   - CASCADE on the user FK: account deletion removes the rows.
+export const userAiProviders = pgTable('user_ai_providers', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  capability: text('capability', { enum: ['chat', 'image', 'transcription'] }).notNull(),
+  baseUrl: text('base_url').notNull(),
+  model: text('model').notNull(),
+  apiKeyEncrypted: text('api_key_encrypted').notNull(),
+  apiKeyLast4: text('api_key_last4').notNull(),
+  supportsVision: boolean('supports_vision').notNull().default(false),
+  supportsTools: boolean('supports_tools'),
+  lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  uniqueIndex('uq_user_ai_providers_user_capability').on(table.userId, table.capability)
+])

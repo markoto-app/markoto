@@ -10,6 +10,7 @@ import {
   type SpeechStream
 } from '../../../utils/agentic/dictateSpeechClient'
 import { useLitellmForUser } from '../../../utils/litellmClient'
+import { liveDictationTarget, resolveAiProviders, type LiveDictationTarget } from '../../../utils/aiProviders/resolve'
 import { resolveBillingContext } from '../../../utils/billing'
 import { isBudgetExceededError } from '../../../utils/litellmKeys'
 import { FEATURE_TAGS, featureMetadata } from '../../../utils/litellm/featureTags'
@@ -100,6 +101,8 @@ interface DictatePeerContext {
    * close, fire ONE final tick if any audio flowed in the partial
    * minute since the last tick. Documented overrun: ≤1 extra minute.
    */
+  /** True when the stream runs on the operator's Mistral key (platform-paid) → bill ticks. */
+  voiceTickBilling?: boolean
   voiceTickInterval?: ReturnType<typeof setInterval>
   voiceTickActive?: boolean
   voiceLastTickAt?: number // ms epoch of the last tick fired
@@ -307,8 +310,9 @@ async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw: unkno
 
   // Phase 5 voice-tick: start the 60s billing heartbeat on the first
   // audio chunk. Idempotent (only the first call arms the interval).
-  // Phase 7: voxtral is the only path now.
-  if (!ctx.voiceTickActive) {
+  // BYOK: only when the stream runs on the operator's Mistral key — a
+  // user's own key is billed by Mistral directly, not by our budget.
+  if (ctx.voiceTickBilling && !ctx.voiceTickActive) {
     startVoiceTickOrchestrator(p, ctx)
   }
   resetIdleTimer(p, ctx)
@@ -528,7 +532,26 @@ async function handleAuth(
     peer.close(1011, 'billing resolve failed')
     return
   }
+  // BYOK: live dictation is Voxtral Realtime (Mistral-only, direct WS).
+  // Available with the user's own Mistral transcription key (their
+  // account pays — no LiteLLM ticks) or with a platform-alias instance
+  // default + the operator's MISTRAL_API_KEY (ticks bill the user's
+  // LiteLLM budget, as before BYOK). The mic is hidden otherwise; this
+  // is the server-side backstop.
+  let target: LiveDictationTarget | null
+  try {
+    target = liveDictationTarget((await resolveAiProviders(payload.userId)).transcription)
+  } catch (e) {
+    console.error('[dictate] provider resolve failed:', e instanceof Error ? e.message : e)
+    target = null
+  }
+  if (!target) {
+    peer.send(encodeServerFrame({ type: 'error', message: 'Live dictation needs a Mistral transcription key. Add one in Settings → AI provider.' }))
+    peer.close(4004, 'no dictation provider')
+    return
+  }
   ctx.virtualKey = billing.virtualKey
+  ctx.voiceTickBilling = target.platformBilled
 
   // Resolve workspaceId for spend tagging. Best-effort — a doc that
   // disappeared mid-handshake just means we tag with no workspace
@@ -540,9 +563,7 @@ async function handleAuth(
     ctx.workspaceId = null
   }
 
-  // Phase 7: voxtral is the only dictate path. Mistral key already
-  // validated at boot.
-  const client = createDictateRealtimeClient(process.env.MISTRAL_API_KEY ?? '')
+  const client = createDictateRealtimeClient(target.apiKey, target.model)
 
   // Normalize language: accept either BCP-47 (`de-DE`) or the short
   // ISO 639-1 UI locale (`de`). Defaults to en-US if nothing usable

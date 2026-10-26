@@ -142,9 +142,10 @@ export const META_TOOL_HANDLERS = Object.freeze({
       workspaceId: ctx.workspaceId,
       userId: ctx.initiatorUserId,
       docId: ctx.docId,
-      // Bill the synthesis to the caller's virtual key so MCP web-tool
-      // spend lands on their max_budget, matching the in-app loop.
-      virtualKey: ctx.virtualKey
+      // Authenticate the synthesis with the caller's virtual key and run
+      // it on their chat provider (BYOK), matching the in-app loop.
+      virtualKey: ctx.virtualKey,
+      chatProvider: ctx.aiProviders.chat
     })
     return { content: result.text, isError: false }
   },
@@ -154,7 +155,8 @@ export const META_TOOL_HANDLERS = Object.freeze({
       workspaceId: ctx.workspaceId,
       userId: ctx.initiatorUserId,
       docId: ctx.docId,
-      virtualKey: ctx.virtualKey
+      virtualKey: ctx.virtualKey,
+      chatProvider: ctx.aiProviders.chat
     })
     return { content: result.text, isError: false }
   }

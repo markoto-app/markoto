@@ -25,6 +25,11 @@ const menuItems = computed<MenuItem[]>(() => {
     icon: 'i-lucide-user',
     to: '/settings/profile'
   })
+  items.push({
+    label: t('aiProvider.menu'),
+    icon: 'i-lucide-key-round',
+    to: AI_SETTINGS_ROUTE
+  })
   if (accountStatus.value?.isAdmin) {
     items.push({
       label: 'Admin',

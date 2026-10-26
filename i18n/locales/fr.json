@@ -1221,5 +1221,99 @@
       "successTitle": "Vous avez été retiré",
       "successBody": "Votre adresse e-mail a été supprimée de la liste d'attente."
     }
+  },
+  "aiProvider": {
+    "title": "Fournisseur d'IA",
+    "menu": "Fournisseur d'IA",
+    "loading": "Chargement de vos réglages d'IA…",
+    "intro": "Votre propre clé : connectez votre propre fournisseur d'IA compatible OpenAI pour chaque fonction. Ces appels sont facturés sur votre compte fournisseur. markoto conserve la clé chiffrée et ne l'affiche plus jamais.",
+    "privacyNote": "Pour ces fonctions, vos prompts, le contexte utile du document et vos enregistrements sont envoyés au fournisseur que vous choisissez, selon votre propre contrat avec lui.",
+    "platformNote": "La recherche dans la base de connaissances, la recherche web et la récupération de pages passent toujours par les fournisseurs de markoto.",
+    "allowedProvidersNote": "Fournisseurs autorisés sur cette instance : {list}",
+    "privateAllowedNote": "Cette instance accepte aussi des fournisseurs sur votre réseau privé, comme Ollama.",
+    "pointsOwnKeyHint": "Les appels effectués avec votre propre clé sont facturés par votre fournisseur et ne consomment pas de points IA.",
+    "capability": {
+      "chat": {
+        "title": "Assistant d'écriture",
+        "description": "Indispensable pour toutes les fonctions d'IA : la barre de prompt, {'@'}ai dans les commentaires et les résumés de recherche web. Le modèle doit prendre en charge l'appel d'outils."
+      },
+      "image": {
+        "title": "Génération d'images",
+        "description": "Facultatif. Utilise l'API d'images compatible OpenAI de votre fournisseur. Sans elle, l'assistant ne peut pas créer d'images."
+      },
+      "transcription": {
+        "title": "Transcription vocale",
+        "description": "Facultatif. Active la saisie vocale. Une clé Mistral active aussi la dictée en direct."
+      }
+    },
+    "status": {
+      "own": "Votre clé",
+      "instance": "Fourni par cette instance",
+      "none": "Non configuré",
+      "never": "Pas encore vérifié",
+      "lastVerified": "Dernière vérification : {date}",
+      "keyEnding": "se termine par {last4}",
+      "noToolSupport": "Ce modèle n'a pas appelé l'outil de test ; l'assistant d'écriture risque de ne pas fonctionner. Choisissez un modèle compatible avec l'appel d'outils.",
+      "liveDictation": "La dictée en direct est disponible."
+    },
+    "form": {
+      "preset": "Fournisseur",
+      "custom": "Autre (compatible OpenAI)",
+      "baseUrl": "URL de base",
+      "baseUrlHint": "La racine de l'API compatible OpenAI du fournisseur, qui se termine souvent par /v1.",
+      "model": "Modèle",
+      "modelPlaceholder": "L'identifiant du modèle chez le fournisseur",
+      "suggestions": "Modèles suggérés : {list}",
+      "apiKey": "Clé d'API",
+      "apiKeyKeep": "Laissez vide pour conserver la clé enregistrée. Obligatoire si vous changez l'URL.",
+      "vision": "Ce modèle accepte les images",
+      "save": "Enregistrer et vérifier",
+      "verify": "Vérifier",
+      "remove": "Supprimer",
+      "cancel": "Annuler",
+      "edit": "Modifier",
+      "add": "Ajouter votre fournisseur"
+    },
+    "toast": {
+      "saved": "Fournisseur d'IA enregistré",
+      "savedWithWarning": "Fournisseur d'IA enregistré avec un avertissement",
+      "removed": "Fournisseur d'IA supprimé",
+      "saveFailed": "Impossible d'enregistrer le fournisseur d'IA",
+      "verifyFailed": "Impossible de vérifier le fournisseur d'IA"
+    },
+    "verify": {
+      "ok": "Connecté. Tout fonctionne.",
+      "authFailed": "Le fournisseur a refusé la clé d'API.",
+      "modelNotFound": "Le fournisseur ne connaît pas cet identifiant de modèle.",
+      "noToolSupport": "Connecté, mais le modèle n'a pas appelé l'outil de test. L'assistant d'écriture a besoin de l'appel d'outils.",
+      "urlRefused": "Cette URL n'est pas autorisée.",
+      "unreachable": "Le fournisseur est injoignable.",
+      "unexpectedResponse": "Le fournisseur a renvoyé une réponse inattendue."
+    },
+    "urlRefused": {
+      "invalid": "Saisissez une URL complète, par exemple https://api.mistral.ai/v1.",
+      "scheme": "Seules les URL http et https sont prises en charge.",
+      "credentialsInUrl": "Ne mettez pas d'identifiants dans l'URL. Utilisez le champ de la clé d'API.",
+      "internalHost": "Cette adresse appartient aux services internes de markoto et ne peut pas être utilisée.",
+      "notAllowlisted": "Ce fournisseur n'est pas autorisé sur cette instance. Choisissez-en un dans la liste.",
+      "httpsRequired": "Utilisez https. Le http simple n'est permis que pour des fournisseurs du réseau privé sur une instance auto-hébergée.",
+      "privateAddress": "Cette URL pointe vers une adresse privée, de bouclage ou de métadonnées, ce qui est interdit.",
+      "unresolvable": "Ce nom d'hôte est introuvable."
+    },
+    "errors": {
+      "keyRequired": "Saisissez la clé d'API. Elle est obligatoire pour ajouter un fournisseur ou changer son URL.",
+      "transcription": "Votre fournisseur de transcription a renvoyé une erreur. Vérifiez vos réglages de fournisseur d'IA.",
+      "loadFailed": "Impossible de charger vos réglages d'IA."
+    },
+    "missing": {
+      "chat": "Aucun fournisseur d'IA configuré. Ajoutez votre clé d'API dans les réglages pour utiliser l'assistant.",
+      "image": "Aucun fournisseur d'images configuré. Ajoutez-en un dans les réglages.",
+      "transcription": "Aucun fournisseur de transcription configuré. Ajoutez-en un dans les réglages.",
+      "cta": "Ouvrir les réglages d'IA"
+    },
+    "cta": {
+      "promptBar": "Ajoutez votre clé d'API dans les réglages pour utiliser l'assistant d'IA",
+      "openSettings": "Ouvrir les réglages du fournisseur d'IA"
+    }
   }
 }

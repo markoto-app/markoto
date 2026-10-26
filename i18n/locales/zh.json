@@ -1221,5 +1221,99 @@
       "successTitle": "您已退出",
       "successBody": "您的邮箱地址已从候补名单中删除。"
     }
+  },
+  "aiProvider": {
+    "title": "AI 服务商",
+    "menu": "AI 服务商",
+    "loading": "正在加载 AI 设置…",
+    "intro": "使用你自己的密钥：为每项功能接入你自己的、兼容 OpenAI 的 AI 服务商。这些调用的费用由你的服务商账户承担。markoto 会加密保存密钥，并且不会再次显示。",
+    "privacyNote": "使用这些功能时，你的提示词、相关文档内容和录音会依据你与所选服务商之间的协议发送给该服务商。",
+    "platformNote": "知识库搜索、网页搜索和网页抓取始终使用 markoto 自己的服务商。",
+    "allowedProvidersNote": "本实例允许的服务商：{list}",
+    "privateAllowedNote": "本实例也接受你私有网络中的服务商，例如 Ollama。",
+    "pointsOwnKeyHint": "使用你自己服务商密钥的调用由服务商计费，不消耗 AI 点数。",
+    "capability": {
+      "chat": {
+        "title": "写作助手",
+        "description": "所有 AI 功能都需要它：提示栏、评论中的 {'@'}ai 以及网页搜索摘要。模型必须支持工具调用。"
+      },
+      "image": {
+        "title": "图像生成",
+        "description": "可选。使用你服务商的 OpenAI 兼容图像 API。不配置的话，助手无法生成图像。"
+      },
+      "transcription": {
+        "title": "语音转写",
+        "description": "可选。启用语音输入。使用 Mistral 密钥还会启用实时听写。"
+      }
+    },
+    "status": {
+      "own": "你的密钥",
+      "instance": "由本实例提供",
+      "none": "未设置",
+      "never": "尚未验证",
+      "lastVerified": "上次验证：{date}",
+      "keyEnding": "尾号 {last4}",
+      "noToolSupport": "该模型没有调用测试工具，写作助手可能无法正常工作。请选择支持工具调用的模型。",
+      "liveDictation": "可以使用实时听写。"
+    },
+    "form": {
+      "preset": "服务商",
+      "custom": "其他（兼容 OpenAI）",
+      "baseUrl": "基础 URL",
+      "baseUrlHint": "服务商的 OpenAI 兼容 API 根地址，通常以 /v1 结尾。",
+      "model": "模型",
+      "modelPlaceholder": "服务商的模型 ID",
+      "suggestions": "推荐模型：{list}",
+      "apiKey": "API 密钥",
+      "apiKeyKeep": "留空则继续使用已保存的密钥。更改 URL 时必须填写。",
+      "vision": "该模型可以处理图像",
+      "save": "保存并验证",
+      "verify": "验证",
+      "remove": "移除",
+      "cancel": "取消",
+      "edit": "更改",
+      "add": "添加你的服务商"
+    },
+    "toast": {
+      "saved": "AI 服务商已保存",
+      "savedWithWarning": "AI 服务商已保存（有警告）",
+      "removed": "AI 服务商已移除",
+      "saveFailed": "无法保存 AI 服务商",
+      "verifyFailed": "无法验证 AI 服务商"
+    },
+    "verify": {
+      "ok": "已连接，一切正常。",
+      "authFailed": "服务商拒绝了该 API 密钥。",
+      "modelNotFound": "服务商不认识这个模型 ID。",
+      "noToolSupport": "已连接，但模型没有调用测试工具。写作助手需要工具调用。",
+      "urlRefused": "不允许使用此 URL。",
+      "unreachable": "无法连接到服务商。",
+      "unexpectedResponse": "服务商返回了意外的响应。"
+    },
+    "urlRefused": {
+      "invalid": "请输入完整的 URL，例如 https://api.mistral.ai/v1。",
+      "scheme": "仅支持 http 和 https URL。",
+      "credentialsInUrl": "请不要把凭据放进 URL，请使用 API 密钥字段。",
+      "internalHost": "该地址属于 markoto 的内部服务，不能使用。",
+      "notAllowlisted": "本实例不允许使用该服务商，请从列表中选择。",
+      "httpsRequired": "请使用 https。未加密的 http 仅允许在自托管实例上用于私有网络中的服务商。",
+      "privateAddress": "该 URL 指向私有、回环或元数据地址，不允许使用。",
+      "unresolvable": "找不到该主机名。"
+    },
+    "errors": {
+      "keyRequired": "请输入 API 密钥。添加服务商或更改 URL 时必须填写。",
+      "transcription": "你的转写服务商返回了错误，请检查 AI 服务商设置。",
+      "loadFailed": "无法加载你的 AI 设置。"
+    },
+    "missing": {
+      "chat": "尚未设置 AI 服务商。请在设置中添加你的 API 密钥以使用 AI 助手。",
+      "image": "尚未设置图像服务商，请在设置中添加。",
+      "transcription": "尚未设置转写服务商，请在设置中添加。",
+      "cta": "打开 AI 设置"
+    },
+    "cta": {
+      "promptBar": "请在设置中添加你的 API 密钥以使用 AI 助手",
+      "openSettings": "打开 AI 服务商设置"
+    }
   }
 }

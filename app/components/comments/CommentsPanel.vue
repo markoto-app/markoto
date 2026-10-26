@@ -207,11 +207,35 @@ async function onSubmitReply(commentId: string, body: string) {
   // model sees the latest reply in the list.
 }
 
+const { chatMissing, refresh: refreshAiAvailability } = useAiAvailability()
+const commentsRouter = useRouter()
+
+function showAiProviderMissingToast(): void {
+  toast.add({
+    title: t('aiProvider.missing.chat'),
+    icon: 'i-lucide-key-round',
+    color: 'warning',
+    actions: [{
+      label: t('aiProvider.missing.cta'),
+      color: 'neutral',
+      onClick: () => {
+        void commentsRouter.push(AI_SETTINGS_ROUTE)
+      }
+    }]
+  })
+}
+
 async function maybeTriggerAi(commentId: string, replyId: string | null) {
   // Anonymous editors (no logged-in user) can write `@ai` in a comment
   // but the server gates AI on login. Skipping the request avoids a
   // guaranteed 401 toast for the common open-edit-doc-and-test case.
   if (viewerId.value === null) return
+  // Bring your own key: no chat provider → point at the settings page
+  // instead of firing a request the server would refuse.
+  if (chatMissing.value) {
+    showAiProviderMissingToast()
+    return
+  }
   try {
     await $fetch(`/api/docs/${props.docId}/comments/${commentId}/trigger-ai`, {
       method: 'POST',
@@ -219,6 +243,11 @@ async function maybeTriggerAi(commentId: string, replyId: string | null) {
     })
   } catch (e) {
     const err = e as { statusCode?: number, data?: { code?: string } }
+    if (err?.data?.code === 'ai/provider-missing') {
+      showAiProviderMissingToast()
+      void refreshAiAvailability()
+      return
+    }
     if (err?.statusCode === 402 || err?.data?.code === 'ai/budget-exhausted') {
       toast.add({
         title: t('comments.aiTriggerExhausted'),

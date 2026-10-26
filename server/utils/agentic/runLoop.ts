@@ -11,7 +11,7 @@ import type { AiSession } from '../aiClient'
 import type { BillingContext } from '../billing'
 import { LitellmBudgetExhausted, isBudgetExceededError } from '../litellmKeys'
 import { executeFunctionByName } from '../aiToolAdapter'
-import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, webSearch, fetchUrl } from './functionTools'
+import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, filterToolsForProviders, webSearch, fetchUrl } from './functionTools'
 import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from './limits'
 import {
   internalToOpenAIMessages,
@@ -20,6 +20,8 @@ import {
   type StreamChunk
 } from './messageTranslation'
 import { useLitellmForUser } from '../litellmClient'
+import { providerRequestFields, withProviderErrors } from '../aiProviders/requestFields'
+import type { ResolvedAiProvider } from '../aiProviders/resolve'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
 import { aiClientUserId } from '~~/shared/contracts/jwt'
@@ -635,9 +637,11 @@ async function runSubCall(
     workspaceId: ctx.opts.aiSession.workspaceId ?? null,
     userId: ctx.opts.aiSession.initiatorUserId ?? null,
     docId: ctx.opts.aiSession.docId ?? null,
-    // Bill the Mistral synthesis sub-call to the caller's virtual key
-    // (not the master key) so it counts against their max_budget.
-    virtualKey: ctx.opts.billingContext.virtualKey
+    // The synthesis sub-call authenticates with the caller's virtual key
+    // (never the master key) and runs on the session's chat provider —
+    // the user's own key under BYOK, so it costs the platform nothing.
+    virtualKey: ctx.opts.billingContext.virtualKey,
+    chatProvider: ctx.opts.aiSession.aiProviders.chat
   }
 
   try {
@@ -780,6 +784,7 @@ async function openProviderStream(ctx: LoopContext): Promise<{ kind: 'stream', s
       abortSignal: ctx.opts.abortController.signal,
       thinkingBudget: ctx.thinkingBudget,
       virtualKey: ctx.opts.billingContext.virtualKey,
+      chatProvider: ctx.opts.aiSession.aiProviders.chat,
       workspaceId: ctx.opts.aiSession.workspaceId ?? null,
       initiatorUserId: ctx.opts.aiSession.initiatorUserId ?? null,
       docId: ctx.opts.aiSession.docId ?? null
@@ -853,7 +858,10 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     budget: new SessionBudget(),
     telemetry: new SessionTelemetry(),
     contents: [{ role: 'user', parts: [{ text: opts.initialPrompt }] }],
-    toolDeclarations: opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS,
+    // BYOK: hide tools the session's providers can't serve (no image
+    // provider → no generate_image; text-only chat model → no
+    // view_image / view_pages).
+    toolDeclarations: filterToolsForProviders(opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS, opts.aiSession.aiProviders),
     thinkingBudget: opts.thinkingBudget ?? 0
   }
 
@@ -916,6 +924,8 @@ interface StreamFromProviderOpts {
   abortSignal: AbortSignal
   thinkingBudget: number
   virtualKey: string
+  /** Resolved chat provider (BYOK / instance default). Null → the call fails with a settings hint. */
+  chatProvider: ResolvedAiProvider | null
   workspaceId?: string | null
   initiatorUserId?: number | null
   docId?: string | null
@@ -937,12 +947,15 @@ async function streamFromProvider(opts: StreamFromProviderOpts): Promise<AsyncIt
 }
 
 async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIterable<StreamChunk>> {
-  // useRuntimeConfig is auto-imported in the Nitro runtime; defensively
-  // gate so unit tests that don't run inside Nitro don't trip on the
-  // missing global.
-  const config = (typeof useRuntimeConfig === 'function' ? useRuntimeConfig() : {}) as { litellm?: { textModel?: string } }
+  // BYOK: the chat provider was resolved at session start (user key →
+  // instance default). `providerRequestFields` re-checks the base URL
+  // against the SSRF policy on every turn and yields either
+  // `byok/<model>` + clientside credentials (zero-cost deployment) or a
+  // platform model alias.
+  const provider = opts.chatProvider
+  if (!provider) throw new Error('No AI chat provider is configured. Add your API key in Settings → AI provider.')
   const litellm = useLitellmForUser(opts.virtualKey)
-  const textModel = config.litellm?.textModel || 'mistral-small-2603'
+  const providerFields = await providerRequestFields(provider)
 
   const messages = internalToOpenAIMessages(opts.systemPrompt, opts.contents)
   const tools = internalToOpenAITools(opts.toolDeclarations)
@@ -950,8 +963,8 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
   // `stream_options.include_usage: true` makes Mistral emit token usage
   // on the final chunk so our existing `usageMetadata` accumulator
   // catches it.
-  const oaiStream = await litellmStream(litellm, {
-    model: textModel,
+  const oaiStream = await withProviderErrors(provider, () => litellmStream(litellm, {
+    ...providerFields,
     messages,
     tools: tools.length > 0 ? tools : undefined,
     tool_choice: tools.length > 0 ? 'auto' : undefined,
@@ -984,7 +997,7 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
       userId: opts.initiatorUserId,
       docId: opts.docId
     })
-  }, { signal: opts.abortSignal })
+  }, { signal: opts.abortSignal }))
 
   return openAIStreamToInternalChunks(oaiStream)
 }

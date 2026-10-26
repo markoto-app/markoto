@@ -69,6 +69,25 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['mistral_ai', 'jina_ai', 'bfl', 'staan']
   },
   {
+    // Bring-your-own-key AI (WP4). When a user configures their OWN AI
+    // provider (Settings → AI provider), their prompts, document
+    // context, audio and generated content for that capability are sent
+    // to the provider THEY chose, under THEIR agreement with that
+    // provider, routed through our self-hosted LiteLLM proxy. markoto
+    // does not choose that recipient, so it is deliberately NOT listed
+    // as a sub-processor here; the user is the one directing the
+    // transfer. What markoto itself processes is the provider config
+    // (base URL, model, API key encrypted at rest) — stored in our
+    // database until the user removes it or deletes the account — and
+    // the in-flight request. Prompt/tool-call records follow
+    // `ai_assistance` retention (90 days).
+    id: 'user_directed_ai_provider',
+    basis: 'contract',
+    dataCategories: ['provider_config', 'encrypted_api_key', 'user_prompt', 'document_context', 'audio_recording', 'ai_generated_content'],
+    retention: 'until_deletion',
+    subProcessors: ['ovh_postgres']
+  },
+  {
     id: 'workspace_knowledge_rag',
     basis: 'contract',
     dataCategories: ['uploaded_files', 'extracted_text', 'embeddings'],
