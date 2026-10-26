@@ -45,6 +45,19 @@ if [ -z "$BACKUP_GPG_PASSPHRASE" ]; then
   exit 1
 fi
 
+# Server-side encryption header (see the upload below). Default AES256;
+# S3_SSE=none (or empty) omits it.
+sse="${S3_SSE-AES256}"
+case "$sse" in none | NONE) sse="" ;; esac
+
+upload_backup() {
+  if [ -n "$sse" ]; then
+    aws --endpoint-url "$S3_ENDPOINT" s3 cp "$1" "$2" --sse "$sse" --no-progress
+  else
+    aws --endpoint-url "$S3_ENDPOINT" s3 cp "$1" "$2" --no-progress
+  fi
+}
+
 export AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY"
 export AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY"
 
@@ -89,9 +102,10 @@ EOF_PASSPHRASE
       # though the file body is already gpg-encrypted, the S3 object's
       # at-rest layer adds the second key. Provider-managed key encrypts
       # ciphertext blob; passphrase decrypts the contents. Either alone
-      # is insufficient for restore.
-      if aws --endpoint-url "$S3_ENDPOINT" s3 cp "$tmp" "s3://${S3_BUCKET}/${key}" \
-            --sse AES256 --no-progress; then
+      # is insufficient for restore. S3_SSE=none drops the header for
+      # backends without SSE-S3 (SeaweedFS answers it with InternalError),
+      # same switch as the renderer.
+      if upload_backup "$tmp" "s3://${S3_BUCKET}/${key}"; then
         echo "[backup] Uploaded ${size} (encrypted) to s3://${S3_BUCKET}/${key}"
       else
         echo "[backup] S3 upload FAILED for ${key}" >&2

@@ -267,8 +267,13 @@ services:
     volumes:
       - /opt/markoto/secrets:/opt/markoto/secrets:ro
     networks:
-      - web
-      - internal
+      web: {}
+      internal:
+        # Chromium (renderer) can't use the service name `app`: it's an
+        # HSTS-preloaded TLD, so http://app:3000 is upgraded to https and
+        # fails with ERR_SSL_PROTOCOL_ERROR. The renderer uses this alias.
+        aliases:
+          - markoto-app
 
   # LiteLLM + its DB-init one-shot come from docker-compose.base.yml via
   # `include:`. Compose REPLACES `networks:` wholesale on merge, and base
@@ -382,7 +387,8 @@ services:
   renderer:
     image: ${REGISTRY}/markoto-renderer:${IMAGE_TAG}
     environment:
-      - APP_URL=http://app:3000
+      # Not http://app:3000 — see the `markoto-app` alias on the app service.
+      - APP_URL=http://markoto-app:3000
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
     expose:
       - "9000"
