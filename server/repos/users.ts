@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm'
 import { users } from '../db/schema'
 import { useDatabase } from '../utils/database'
 import { ConflictError } from './errors'
@@ -8,12 +8,14 @@ import { ConflictError } from './errors'
 // `select → if existing update else insert → re-select id` dance
 // github.get.ts / google.get.ts used to open-code.
 
-export type Provider = 'github' | 'google'
+export type Provider = 'github' | 'google' | 'oidc'
 
 export interface UserRow {
   id: number
   githubId: string | null
   googleId: string | null
+  oidcIssuer: string | null
+  oidcSubject: string | null
   login: string | null
   name: string
   email: string | null
@@ -23,9 +25,7 @@ export interface UserRow {
   createdAt: Date
 }
 
-export interface OAuthUpsertInput {
-  provider: Provider
-  providerUserId: string
+interface OAuthProfileFields {
   login?: string | null
   name: string
   email: string | null
@@ -41,12 +41,25 @@ export interface OAuthUpsertInput {
    * - GitHub: the userinfo endpoint only returns the primary email
    *   when `emailRequired: true` is set, and GitHub only lists an
    *   email as primary after it's been verified. So for our
-   *   GitHub flow, `email != null` ⇒ verified.
+   *   GitHub flow, `email != null` => verified.
    * - Google: OIDC userinfo returns `email_verified: boolean`
    *   directly. Pipe that through.
+   * - Generic OIDC: `email_verified === true` from the IdP. The OIDC
+   *   handler additionally drops an unverified email entirely (passes
+   *   `email: null`), see `server/utils/oidc/profile.ts`.
    */
   emailVerified: boolean
 }
+
+/**
+ * Identity at the provider. GitHub / Google ids are globally unique per
+ * provider; an OIDC `sub` is only unique per issuer, so OIDC identities
+ * are keyed by the (issuer, subject) pair.
+ */
+export type OAuthUpsertInput = OAuthProfileFields & (
+  | { provider: 'github' | 'google', providerUserId: string }
+  | { provider: 'oidc', providerUserId: string, oidcIssuer: string }
+)
 
 /**
  * Outcome returned from `upsertOAuthUser` so callers can show a
@@ -132,9 +145,7 @@ export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id'
  */
 export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUpsertResult> {
   const db = useDatabase()
-  const whereByProviderId = input.provider === 'github'
-    ? eq(users.githubId, input.providerUserId)
-    : eq(users.googleId, input.providerUserId)
+  const whereByProviderId = providerIdentityWhere(input)
 
   return db.transaction(async (tx): Promise<OAuthUpsertResult> => {
     const updated = await tryUpdateExistingByProvider(tx, input, whereByProviderId)
@@ -143,6 +154,24 @@ export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUps
     if (merged) return merged
     return insertNewUser(tx, input)
   })
+}
+
+/** WHERE clause matching the row that already holds this provider identity. */
+function providerIdentityWhere(input: OAuthUpsertInput): SQL | undefined {
+  switch (input.provider) {
+    case 'github': return eq(users.githubId, input.providerUserId)
+    case 'google': return eq(users.googleId, input.providerUserId)
+    case 'oidc': return and(eq(users.oidcIssuer, input.oidcIssuer), eq(users.oidcSubject, input.providerUserId))
+  }
+}
+
+/** Column values that bind this provider identity to a user row. */
+function providerIdentityColumns(input: OAuthUpsertInput): Pick<typeof users.$inferInsert, 'githubId' | 'googleId' | 'oidcIssuer' | 'oidcSubject'> {
+  switch (input.provider) {
+    case 'github': return { githubId: input.providerUserId }
+    case 'google': return { googleId: input.providerUserId }
+    case 'oidc': return { oidcIssuer: input.oidcIssuer, oidcSubject: input.providerUserId }
+  }
 }
 
 type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
@@ -154,7 +183,7 @@ type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0
 async function tryUpdateExistingByProvider(
   tx: Tx,
   input: OAuthUpsertInput,
-  whereByProviderId: ReturnType<typeof eq>
+  whereByProviderId: SQL | undefined
 ): Promise<OAuthUpsertResult | null> {
   const existing = (await tx
     .select({ id: users.id })
@@ -169,7 +198,7 @@ async function tryUpdateExistingByProvider(
       avatarUrl: input.avatarUrl,
       ...(input.provider === 'github' ? { login: input.login } : {})
     })
-    .where(and(whereByProviderId))
+    .where(whereByProviderId)
   return { userId: existing.id, outcome: 'updated' }
 }
 
@@ -187,27 +216,27 @@ async function tryMergeByVerifiedEmail(
   input: OAuthUpsertInput
 ): Promise<OAuthUpsertResult | null> {
   if (!input.emailVerified || !input.email) return null
-  const mergeCandidate = (await tx.execute<{ id: number, github_id: string | null, google_id: string | null }>(sql`
-    SELECT id, github_id, google_id FROM ${users}
+  const mergeCandidate = (await tx.execute<{ id: number, github_id: string | null, google_id: string | null, oidc_subject: string | null }>(sql`
+    SELECT id, github_id, google_id, oidc_subject FROM ${users}
     WHERE lower(email) = lower(${input.email})
     LIMIT 1
     FOR UPDATE
   `)).rows?.[0]
   if (!mergeCandidate) return null
 
-  const candidateHasOurProvider = input.provider === 'github'
-    ? mergeCandidate.github_id !== null
-    : mergeCandidate.google_id !== null
   // Candidate already has our provider id bound to a DIFFERENT value
   // (otherwise branch 1 would have matched). Overwriting would
   // clobber the existing binding — caller falls through to insert.
-  if (candidateHasOurProvider) return null
+  // For OIDC that includes an identity from a different issuer: a
+  // user row holds at most one OIDC identity, and re-pointing it to a
+  // new issuer is not something a login should do silently.
+  if (candidateHasProvider(mergeCandidate, input.provider)) return null
 
   // Merge: add our provider id to the existing row. Email casing
   // normalises to the second provider's. Login only updates on
-  // GitHub (Google has no equivalent).
-  const setClause: Record<string, unknown> = {
-    [input.provider === 'github' ? 'githubId' : 'googleId']: input.providerUserId,
+  // GitHub (the other providers have no equivalent).
+  const setClause: Partial<typeof users.$inferInsert> = {
+    ...providerIdentityColumns(input),
     email: input.email,
     avatarUrl: input.avatarUrl
   }
@@ -218,11 +247,21 @@ async function tryMergeByVerifiedEmail(
   return { userId: mergeCandidate.id, outcome: 'merged' }
 }
 
+function candidateHasProvider(
+  row: { github_id: string | null, google_id: string | null, oidc_subject: string | null },
+  provider: Provider
+): boolean {
+  switch (provider) {
+    case 'github': return row.github_id !== null
+    case 'google': return row.google_id !== null
+    case 'oidc': return row.oidc_subject !== null
+  }
+}
+
 /** Branch 3: genuinely new user. */
 async function insertNewUser(tx: Tx, input: OAuthUpsertInput): Promise<OAuthUpsertResult> {
   const inserted = await tx.insert(users).values({
-    githubId: input.provider === 'github' ? input.providerUserId : null,
-    googleId: input.provider === 'google' ? input.providerUserId : null,
+    ...providerIdentityColumns(input),
     login: input.login ?? null,
     name: input.name,
     email: input.email,

@@ -38,7 +38,7 @@ The installer asks for:
 
 1. **A domain** for HTTPS with Let's Encrypt, or nothing for **plain HTTP** on a port you choose (LAN use, or behind your own TLS reverse proxy).
 2. **Admin email(s)**: these accounts become instance admins on their first login.
-3. **Login** (optional): a GitHub and/or Google OAuth app. See [Login](#login).
+3. **Login** (optional): your own OpenID Connect provider and/or a GitHub / Google OAuth app. See [Login](#login).
 4. **AI keys** (optional): Mistral (instance default for chat and voice), Jina (knowledge-base embeddings and the `fetch_url` tool), Staan (the `web_search` tool).
 
 It then checks Docker, generates every secret with `openssl rand`, writes `.env` (mode 0600), pulls the images, starts the stack and waits until the app reports healthy. Secrets are never printed.
@@ -95,7 +95,57 @@ The compose files: `docker-compose.selfhost.yml` (everything, plain HTTP), `dock
 
 ## Login
 
-Login is GitHub and/or Google OAuth. Without an OAuth app the instance is **anonymous-only**: anyone who can reach it can create, edit and share public documents, import files and export PDFs, but nobody can own documents, use workspaces, upload images, use AI or reach `/admin`. The login buttons are hidden and the account menu says sign-in isn't set up.
+Users sign in with **your own OpenID Connect provider** (Authentik, Keycloak, Authelia, Pocket ID, Zitadel, Dex, ...) and/or **GitHub** and **Google** OAuth. Without any of them the instance is **anonymous-only**: anyone who can reach it can create, edit and share public documents, import files and export PDFs, but nobody can own documents, use workspaces, upload images, use AI or reach `/admin`. The login buttons are hidden and the account menu says sign-in isn't set up.
+
+### Your own identity provider (OpenID Connect)
+
+Register markoto at your IdP as a **confidential client** (client id + secret) for the **authorization code** flow:
+
+- Redirect URI: `https://docs.example.org/auth/oidc`
+- Scopes: `openid email profile`
+- PKCE `S256` (markoto always sends it; enforce it at the IdP if it offers the switch)
+- ID tokens signed with an asymmetric algorithm (RS256 / ES256 / ..., the default everywhere); HS256 tokens are rejected
+
+Then set, in `.env` (or `./install.sh --oidc-issuer URL --oidc-client-id ID --oidc-client-secret S --oidc-name Authentik`):
+
+| Variable | Value |
+|---|---|
+| `NUXT_OAUTH_OIDC_ISSUER` | The issuer, exactly as the `issuer` field of `<issuer>/.well-known/openid-configuration` (trailing slash included if your IdP has one). Must be `https://`. |
+| `NUXT_OAUTH_OIDC_CLIENT_ID` / `_SECRET` | The client's credentials. Issuer, id and secret are all-or-nothing: a partial set stops the app at boot. |
+| `NUXT_OAUTH_OIDC_NAME` | Optional button label: "Continue with *Authentik*". Empty: "Continue with single sign-on". |
+| `NUXT_OAUTH_OIDC_SCOPES` | Optional, default `openid email profile` (`openid` is always added). |
+
+`docker compose up -d`, and the sign-in menu shows the button (first, before GitHub/Google). Issuer values for common IdPs:
+
+| IdP | Issuer |
+|---|---|
+| Keycloak | `https://sso.example.org/realms/<realm>` |
+| Authentik | `https://auth.example.org/application/o/<application-slug>/` |
+| Authelia | `https://auth.example.org` |
+| Pocket ID | `https://id.example.org` |
+| Zitadel | `https://<instance>.zitadel.cloud` (or your domain) |
+| Dex | the `issuer:` from its config |
+
+**Example: Keycloak** (verified against Keycloak 26.8). In the realm: *Clients → Create client* → type OpenID Connect, client id `markoto` → *Client authentication* on, *Standard flow* on (Direct access grants off) → *Valid redirect URIs* `https://docs.example.org/auth/oidc`, *Web origins* `https://docs.example.org` → save; *Advanced → Proof Key for Code Exchange Code Challenge Method* `S256`; copy the secret from *Credentials*. Then:
+
+```bash
+NUXT_OAUTH_OIDC_ISSUER=https://sso.example.org/realms/myrealm
+NUXT_OAUTH_OIDC_CLIENT_ID=markoto
+NUXT_OAUTH_OIDC_CLIENT_SECRET=<from the Credentials tab>
+NUXT_OAUTH_OIDC_NAME=Keycloak
+```
+
+Keycloak puts `email_verified` in the token from the user's *Email verified* flag; tick it (or let users verify their address) for the accounts that should be linked or become admin, see below.
+
+**How accounts are matched.** An IdP account is identified by the pair (issuer, `sub`), never by its email; renaming a user or changing their email at the IdP keeps the same markoto account. The email is used only when the IdP asserts `email_verified: true`; otherwise markoto stores no email for that user. A verified email:
+
+- links the sign-in to an existing markoto account with the same email (e.g. someone who used GitHub before), the same rule as GitHub/Google. An account that already has an IdP identity is never re-pointed to another one;
+- is matched against `NUXT_ADMIN_USER_EMAILS` for the admin bootstrap;
+- is what workspace invitations look up.
+
+So an IdP that lets people self-register with unverified addresses can't be used to take over an existing account or become admin. If you change the issuer URL or move to another IdP, users get new accounts unless their verified email links them to the old ones.
+
+### GitHub and Google
 
 **GitHub** (github.com → Settings → Developer settings → OAuth Apps → New OAuth App):
 
@@ -110,9 +160,11 @@ Login is GitHub and/or Google OAuth. Without an OAuth app the instance is **anon
 
 Put the values in `.env` (or re-run `./install.sh`) and `docker compose up -d`. Both id and secret must be set, or the app refuses to start.
 
-**Login needs HTTPS.** The OAuth state and session cookies are `Secure`, which browsers only accept over HTTPS (and on `http://localhost`). On a plain-HTTP LAN address the editor works, but login does not. Use HTTPS mode, or plain-HTTP mode behind your own TLS proxy ([below](#behind-your-own-reverse-proxy)).
+### HTTPS and who can sign up
 
-Every user who can log in with GitHub/Google can create an account; there is no allowlist of accounts. Restrict access at the network level (VPN, firewall, proxy auth) if the instance shouldn't be open to everyone with a GitHub or Google account.
+**Login needs HTTPS.** The sign-in state and session cookies are `Secure`, which browsers only accept over HTTPS (and on `http://localhost`). On a plain-HTTP LAN address the editor works, but login does not. Use HTTPS mode, or plain-HTTP mode behind your own TLS proxy ([below](#behind-your-own-reverse-proxy)).
+
+Everyone who can sign in at a configured provider gets an account; markoto has no allowlist of its own. With your own IdP, decide there who may use markoto (e.g. Authentik/Keycloak group or application bindings). With GitHub/Google, restrict access at the network level (VPN, firewall, proxy auth) if the instance shouldn't be open to everyone with a GitHub or Google account.
 
 ## AI
 
@@ -178,7 +230,9 @@ Everything lives in `.env` next to the compose files. After a change: `docker co
 |---|---|
 | `NUXT_OAUTH_GITHUB_CLIENT_ID` / `_SECRET` | GitHub login. |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` / `_SECRET` | Google login. |
-| `NUXT_ADMIN_USER_EMAILS` | Comma-separated emails promoted to admin on login (`/admin/abuse-reports`, `/admin/ai-spend`). |
+| `NUXT_OAUTH_OIDC_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` | Your own OpenID Connect provider ([Login](#your-own-identity-provider-openid-connect)). |
+| `NUXT_OAUTH_OIDC_NAME`, `_SCOPES` | Optional button label and scopes for it. |
+| `NUXT_ADMIN_USER_EMAILS` | Comma-separated emails promoted to admin on login (`/admin/abuse-reports`, `/admin/ai-spend`). With your own IdP only a verified email (`email_verified: true`) counts. |
 
 ### Limits
 

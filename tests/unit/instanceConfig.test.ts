@@ -39,8 +39,27 @@ describe('resolveLoginProviders', () => {
       .toEqual(['google'])
   })
 
-  it('loginPath points at the nuxt-auth-utils handler', () => {
+  it('loginPath points at the auth handler', () => {
     expect(loginPath('google')).toBe('/auth/google')
+    expect(loginPath('oidc')).toBe('/auth/oidc')
+  })
+
+  it('offers OIDC only with issuer + id + secret, first in display order', () => {
+    const oidc = {
+      NUXT_OAUTH_OIDC_ISSUER: 'https://idp.example.org',
+      NUXT_OAUTH_OIDC_CLIENT_ID: 'markoto',
+      NUXT_OAUTH_OIDC_CLIENT_SECRET: 'secret'
+    }
+    expect(resolveLoginProviders(oidc)).toEqual(['oidc'])
+    expect(resolveLoginProviders({ ...oidc, NUXT_OAUTH_OIDC_ISSUER: '' })).toEqual([])
+    expect(resolveLoginProviders({ ...oidc, NUXT_OAUTH_GITHUB_CLIENT_ID: 'h', NUXT_OAUTH_GITHUB_CLIENT_SECRET: 'hs' }))
+      .toEqual(['oidc', 'github'])
+  })
+
+  it('carries the OIDC button name, trimmed and capped', () => {
+    expect(resolveInstanceConfig({ NUXT_OAUTH_OIDC_NAME: '  Authentik ' }).oidcProviderName).toBe('Authentik')
+    expect(resolveInstanceConfig({ NUXT_OAUTH_OIDC_NAME: 'x'.repeat(100) }).oidcProviderName).toHaveLength(40)
+    expect(resolveInstanceConfig({}).oidcProviderName).toBe('')
   })
 })
 

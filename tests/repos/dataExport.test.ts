@@ -93,6 +93,22 @@ describe('buildExportZip', () => {
     expect(profile).not.toHaveProperty('githubId')
     expect(profile).not.toHaveProperty('googleId')
     expect(profile.githubLinked).toBe(true) // createUser sets gh-…
+    expect(profile).not.toHaveProperty('oidcSubject')
+    expect(profile.oidcLinked).toBe(false)
+    expect(profile.oidcIssuer).toBeNull()
+  })
+
+  it('reports a linked OIDC identity by issuer, never by subject', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `UPDATE users SET oidc_issuer = $1, oidc_subject = $2 WHERE id = $3`,
+      ['https://idp.example.org/realms/markoto', 'opaque-subject-123', u.id]
+    )
+    const result = await buildExportZip(u.id)
+    const profile = JSON.parse(readEntry(result.bytes, 'profile.json'))
+    expect(profile.oidcLinked).toBe(true)
+    expect(profile.oidcIssuer).toBe('https://idp.example.org/realms/markoto')
+    expect(JSON.stringify(profile)).not.toContain('opaque-subject-123')
   })
 
   it('includes the user\'s linked waitlist sign-up without any token hashes', async () => {

@@ -141,6 +141,13 @@
       "when": 1793015793893,
       "tag": "0019_minor_angel",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793034533881,
+      "tag": "0020_noisy_sabra",
+      "breakpoints": true
     }
   ]
 }

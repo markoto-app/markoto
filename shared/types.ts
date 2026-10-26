@@ -4,7 +4,7 @@ export interface User {
   name: string
   email?: string
   avatar?: string
-  provider: 'github' | 'google'
+  provider: 'github' | 'google' | 'oidc'
 }
 
 export interface Document {

@@ -2,7 +2,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_PORT } from './env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT } from './env'
 import { buildTestEnv } from './testEnv'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
 
@@ -101,6 +101,16 @@ export async function startNuxt(): Promise<void> {
     NUXT_OAUTH_GITHUB_CLIENT_SECRET: 'test',
     NUXT_OAUTH_GOOGLE_CLIENT_ID: 'test',
     NUXT_OAUTH_GOOGLE_CLIENT_SECRET: 'test',
+    // Generic OIDC (WP7b) against the real `oidc-test` mock IdP
+    // (docker-compose.test.yml). http issuer is accepted because
+    // TEST_MODE=1; see tests/integration/endpoints/oidcLogin.test.ts.
+    NUXT_OAUTH_OIDC_ISSUER: TEST_OIDC_ISSUER,
+    NUXT_OAUTH_OIDC_CLIENT_ID: TEST_OIDC_CLIENT_ID,
+    NUXT_OAUTH_OIDC_CLIENT_SECRET: TEST_OIDC_CLIENT_SECRET,
+    NUXT_OAUTH_OIDC_REDIRECT_URL: `${TEST_BASE_URL}/auth/oidc`,
+    NUXT_OAUTH_OIDC_NAME: 'Test IdP',
+    // Admin allowlist bootstrap on sign-in — an address no other suite uses.
+    NUXT_ADMIN_USER_EMAILS: TEST_OIDC_ADMIN_EMAIL,
     NUXT_GOOGLE_API_KEY: 'test',
     // LiteLLM proxy. Phase 7: integration tests hit a real `litellm-test`
     // container (docker-compose.test.yml) on port 4100 so the per-user

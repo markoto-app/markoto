@@ -17,6 +17,8 @@
     "logout": "退出登录",
     "loginGithub": "使用 GitHub 继续",
     "loginGoogle": "使用 Google 继续",
+    "loginOidc": "使用 {provider} 继续",
+    "oidcDefaultName": "单点登录",
     "loginUnavailable": "此实例未配置登录。你仍然可以匿名创建和编辑文档。",
     "loginRequired": "需要登录",
     "linkedTitle": "账号已关联",

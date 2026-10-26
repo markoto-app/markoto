@@ -115,6 +115,7 @@
     "nuxt-auth-utils": "^0.5.32",
     "nuxt-codemirror": "^0.0.11",
     "openai": "^7.43.0",
+    "openid-client": "6.8.8",
     "pagedjs": "^0.4.3",
     "pg": "^8.23.1",
     "qrcode": "^1.5.4",
