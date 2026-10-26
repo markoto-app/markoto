@@ -171,7 +171,12 @@ export async function startNuxt(): Promise<void> {
     // Live dictation on the instance default needs the operator's
     // Mistral key in the app process (the realtime WS is direct). The
     // dictation tests use the in-process speech mock, so a stub works.
-    MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'stub-mistral-key'
+    MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'stub-mistral-key',
+    // Platform web tools (WP6): stub upstream keys so the primary server
+    // offers web_search + fetch_url (nothing in the suite calls Staan/Jina;
+    // TEST_MODE bypasses the per-user allowance).
+    STAAN_API_KEY: 'stub-staan-key',
+    JINA_AI_API_KEY: 'stub-jina-key'
   }
 
   // Boot guard: validate the resolved env we're about to hand the
@@ -216,6 +221,9 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   }
   env.NUXT_BILLING_ENABLED = 'false'
   env.NUXT_PLANS_COMING_SOON = 'true'
+  // Partially configured web tools: Jina only, no Staan key → web_search
+  // is unavailable while fetch_url stays on (pins `webTools` availability).
+  delete env.STAAN_API_KEY
   // SaaS BYOK policy: provider allowlist, no private networks.
   env.NUXT_AI_BYOK_ALLOWED_BASE_URLS = RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',')
   env.NUXT_AI_BYOK_ALLOW_PRIVATE_URLS = 'false'

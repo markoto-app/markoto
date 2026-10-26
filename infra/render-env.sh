@@ -118,6 +118,10 @@ STAAN_API_KEY=${STAAN_API_KEY}
 MISTRAL_API_KEY=${MISTRAL_API_KEY}
 BFL_API_KEY=${BFL_API_KEY}
 
+# ─── Web-tool allowance (calls/user; empty = default 30/hour, 100/day; 0 = unlimited) ───
+NUXT_WEB_TOOLS_HOURLY_LIMIT=${NUXT_WEB_TOOLS_HOURLY_LIMIT:-}
+NUXT_WEB_TOOLS_DAILY_LIMIT=${NUXT_WEB_TOOLS_DAILY_LIMIT:-}
+
 # ─── Knowledge-base embeddings (self-hosting; empty = hosted defaults) ───
 # Compose falls back to Jina v5-text-nano @ 768 for every empty value.
 # docs/AI-MODELS.md#embeddings

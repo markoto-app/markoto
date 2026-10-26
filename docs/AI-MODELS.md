@@ -58,6 +58,19 @@ Jina Reader and Staan are unchanged. We found no deprecation notices. Staan publ
 
 Source: [BFL pricing docs](https://docs.bfl.ai/quick_start/pricing). BFL has released FLUX 3 Image (around 2026-10-01) plus a Klein variant, with output up to 4K and multi-reference editing. We did not switch: the launch is three weeks old, prices we found came from secondary sources and include a temporary launch discount, and we could not confirm that FLUX 3 is served from the EU regional endpoint (`api.eu2.bfl.ai`), which is a hard requirement. FLUX.2 [pro] is still listed and not announced as retired. Revisit once BFL documents EU availability and a stable price.
 
+## Web search and page fetch: platform-paid, rate-limited
+
+`web_search` (Staan) and `fetch_url` (Jina Reader) are provided by the platform, also for users who brought their own chat key. Each call has two halves:
+
+- **Upstream call** (Staan search / Jina Reader): paid by the operator. It is a direct HTTP call from the app, so it does not appear in LiteLLM spend and never debits a user's AI Points.
+- **Synthesis** (summarising the results): runs on the chat provider of the session that invoked the tool. With a BYOK key the user pays their own provider for those tokens; with an instance default it debits the budget like any other chat call. With no chat provider the raw results are returned unsynthesised.
+
+Because the operator pays the upstream half, each user gets an allowance shared by `web_search`, `fetch_url`, the in-editor AI and MCP: **30 calls per hour and 100 per day** by default. Tune with `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `NUXT_WEB_TOOLS_DAILY_LIMIT` (`0` = unlimited). Over the limit the tool answers 429 `ai/web-tools-rate-limited`; the editor AI sees a tool error and carries on without web access. The counters live in Valkey and fail open if Valkey is down.
+
+**Self-hosting:** set `STAAN_API_KEY` and/or `JINA_AI_API_KEY` to enable the tools. With a key missing, that tool is not offered to the AI, is not listed over MCP, and `GET /api/ai/availability` reports `webTools.search` / `webTools.fetch` as `false`. (`JINA_AI_API_KEY` is also what the default embeddings use; with `custom-embeddings` it can stay empty.)
+
+The free-tier AI Points budget (`TIER_FREE_LITELLM_BUDGET_USD`) resets monthly with billing off: every virtual key carries LiteLLM's `budget_duration: '30d'`, so no Stripe event is needed.
+
 ## Bring your own key
 
 ### What users can configure

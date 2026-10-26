@@ -43,6 +43,12 @@ export interface AiAvailability {
   chat: AiCapabilityStatus & { supportsVision: boolean }
   image: AiCapabilityStatus
   transcription: AiCapabilityStatus & { liveDictation: boolean }
+  /**
+   * Platform-provided web tools (Staan search / Jina Reader). `false` when
+   * the operator has no upstream key — the tools are then not offered to
+   * the AI at all. Independent of the user's chat provider.
+   */
+  webTools: { search: boolean, fetch: boolean }
 }
 
 /** Sanitised view of a stored user provider config. Never carries the key. */

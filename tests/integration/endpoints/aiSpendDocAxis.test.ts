@@ -17,7 +17,8 @@ import { ALL_FEATURE_TAGS } from '../../../server/utils/litellm/featureTags'
 // call-site forgets `featureMetadata({ ..., docId })` or LiteLLM
 // silently drops unknown metadata keys would NOT be caught.
 //
-// Approach: seed `LiteLLM_SpendLogs` directly with a known
+// Approach (tags live in LiteLLM's `request_tags` column, verified live
+// against v1.106.4; `metadata->'tags'` is empty): seed `LiteLLM_SpendLogs` directly with a known
 // (feature, workspace, user, doc) combination, then query
 // /api/admin/axis-spend?axis=doc&value=X and assert the seeded
 // spend lands in the response.
@@ -40,13 +41,13 @@ async function seedSpendLog(opts: {
     await pool.query(
       `INSERT INTO "LiteLLM_SpendLogs"
         (request_id, call_type, api_key, spend, total_tokens, prompt_tokens, completion_tokens,
-         "startTime", "endTime", model, metadata)
+         "startTime", "endTime", model, request_tags)
        VALUES ($1, 'completion', '', $2, 100, 50, 50, $3, $3, 'mistral-small-2603', $4::jsonb)`,
       [
         requestId,
         opts.spend,
         opts.startTime.toISOString(),
-        JSON.stringify({ tags: opts.tags })
+        JSON.stringify(opts.tags)
       ]
     )
   } finally {

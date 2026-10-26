@@ -485,6 +485,8 @@
     },
     "exhaustedPlaceholderFree": "Out of AI credits — they refill next period",
     "budgetExhaustedResetDescription": "You've used all your AI credits for this period. They refill when the next period starts.",
+    "webToolsHourlyLimit": "You've reached the hourly limit for web search and page fetching. Try again within the hour, or continue without web tools.",
+    "webToolsDailyLimit": "You've reached the daily limit for web search and page fetching. Try again tomorrow, or continue without web tools.",
     "budgetExhaustedComingSoonDescription": "You've used all your AI credits for this period. They refill when the next period starts — paid plans with more credits are coming soon."
   },
   "mobileTabBar": {

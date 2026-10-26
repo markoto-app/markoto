@@ -100,6 +100,15 @@ describe('filterToolsForProviders', () => {
     expect(out).toContain('generate_image')
     expect(out).toContain('insert_text')
   })
+  it('drops web_search / fetch_url independently when the operator has no Staan / Jina key', () => {
+    const providers = { chat: { supportsVision: true }, image: {} }
+    const noSearch = names(filterToolsForProviders(ALL_TOOL_DECLARATIONS, providers, { search: false, fetch: true }))
+    expect(noSearch).not.toContain('web_search')
+    expect(noSearch).toContain('fetch_url')
+    const noFetch = names(filterToolsForProviders(ALL_TOOL_DECLARATIONS, providers, { search: true, fetch: false }))
+    expect(noFetch).toContain('web_search')
+    expect(noFetch).not.toContain('fetch_url')
+  })
 })
 
 describe('display helpers', () => {

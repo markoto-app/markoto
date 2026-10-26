@@ -152,8 +152,15 @@ services:
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       # AI grounding provider keys read directly by the app process (NOT via
       # LiteLLM): Staan backs web_search, Jina Reader backs fetch_url.
-      - STAAN_API_KEY=${STAAN_API_KEY:?STAAN_API_KEY required}
-      - JINA_AI_API_KEY=${JINA_AI_API_KEY:?JINA_AI_API_KEY required}
+      # Platform-paid web tools. Optional: without a key the matching tool
+      # (web_search / fetch_url) is simply not offered to the AI and
+      # /api/ai/availability reports webTools.{search,fetch}=false.
+      - STAAN_API_KEY=${STAAN_API_KEY:-}
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
+      # Per-user web-tool allowance (calls/hour, calls/day; 0 = unlimited,
+      # empty = default 30 / 100). Shared by the editor AI and MCP.
+      - NUXT_WEB_TOOLS_HOURLY_LIMIT=${NUXT_WEB_TOOLS_HOURLY_LIMIT:-}
+      - NUXT_WEB_TOOLS_DAILY_LIMIT=${NUXT_WEB_TOOLS_DAILY_LIMIT:-}
       # Bring-your-own-key AI (WP4) — instance defaults + URL policy. See
       # server/utils/aiProviders/config.ts. MISTRAL_API_KEY reaches the app
       # only for live dictation on a platform-alias transcription default.

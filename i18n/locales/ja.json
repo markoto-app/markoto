@@ -485,6 +485,8 @@
     },
     "exhaustedPlaceholderFree": "AIクレジットがありません — 次の期間に補充されます",
     "budgetExhaustedResetDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。",
+    "webToolsHourlyLimit": "Web検索とページ取得の1時間あたりの上限に達しました。1時間以内に再試行するか、Webツールなしで続けてください。",
+    "webToolsDailyLimit": "Web検索とページ取得の1日あたりの上限に達しました。明日もう一度お試しいただくか、Webツールなしで続けてください。",
     "budgetExhaustedComingSoonDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。クレジットが多い有料プランも近日公開予定です。"
   },
   "mobileTabBar": {

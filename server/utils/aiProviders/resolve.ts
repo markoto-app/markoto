@@ -20,6 +20,7 @@
 import { decryptToken } from '../litellm/tokenCrypto'
 import { listAiProviders, type AiProviderRow } from '../../repos/aiProviders'
 import { readInstanceDefault, realtimeDictationModel } from './config'
+import { getWebToolAvailability } from '../webTools'
 import {
   MISTRAL_API_HOST,
   baseUrlHost,
@@ -136,6 +137,7 @@ export function availabilityFrom(providers: ResolvedAiProviders): AiAvailability
     transcription: {
       ...status(providers.transcription),
       liveDictation: liveDictationTarget(providers.transcription) !== null
-    }
+    },
+    webTools: getWebToolAvailability()
   }
 }

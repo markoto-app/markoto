@@ -219,10 +219,11 @@ export async function setUserKeyMaxBudget(userId: number, plan: PlanName, dollar
 /**
  * Reset the cumulative spend back to 0 — typically on `invoice.paid`
  * (monthly renewal). The `max_budget` stays the same; only `spend`
- * resets, giving the user a clean cycle.
+ * resets, giving the user a clean cycle. Returns false (after logging)
+ * when the proxy refused — callers don't fail on it.
  */
-export async function resetUserKeySpend(userId: number): Promise<void> {
-  if (isStubMode()) return
+export async function resetUserKeySpend(userId: number): Promise<boolean> {
+  if (isStubMode()) return true
   const db = useDatabase()
   const rows = await db.select({
     keyToken: users.litellmKeyToken
@@ -231,11 +232,14 @@ export async function resetUserKeySpend(userId: number): Promise<void> {
   if (!encrypted) {
     // No key yet — nothing to reset. The next AI call will create one
     // with the right budget via `ensureUserKey`.
-    return
+    return true
   }
   const token = decryptToken(encrypted)
   const res = await litellmAdminFetch(`/key/${encodeURIComponent(token)}/reset_spend`, {
-    method: 'POST'
+    method: 'POST',
+    // LiteLLM >= 1.10x validates a JSON body on this route (a bodyless
+    // POST is a 422); `reset_to: 0` is the "clean cycle" we want.
+    body: JSON.stringify({ reset_to: 0 })
   })
   if (!res.ok) {
     // 404 on `/key/{key}/reset_spend` means LiteLLM lost the key
@@ -243,7 +247,9 @@ export async function resetUserKeySpend(userId: number): Promise<void> {
     // log + recreate via ensureUserKey on the next AI call.
     const text = await res.text().catch(() => '')
     console.warn(`[litellmKeys] /key/reset_spend failed: ${res.status} ${text.slice(0, 200)}`)
+    return false
   }
+  return true
 }
 
 interface KeyInfo {

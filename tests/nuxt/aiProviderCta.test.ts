@@ -45,8 +45,8 @@ function status(available: boolean, source: 'user' | 'instance' | 'none', platfo
   return { available, source, platformBilled }
 }
 
-function setAvailability(a: AiAvailability): void {
-  useState<AiAvailability | null>('ai-availability').value = a
+function setAvailability(a: Omit<AiAvailability, 'webTools'>): void {
+  useState<AiAvailability | null>('ai-availability').value = { ...a, webTools: { search: true, fetch: true } }
 }
 
 describe('AIPromptBar — bring your own key', () => {

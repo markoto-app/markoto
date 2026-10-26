@@ -485,6 +485,8 @@
     },
     "exhaustedPlaceholderFree": "AI 额度已用尽——下个周期将自动补充",
     "budgetExhaustedResetDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充。",
+    "webToolsHourlyLimit": "您已达到网页搜索和页面抓取的每小时上限。请在一小时内重试，或不使用网页工具继续。",
+    "webToolsDailyLimit": "您已达到网页搜索和页面抓取的每日上限。请明天再试，或不使用网页工具继续。",
     "budgetExhaustedComingSoonDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充；额度更多的付费方案即将推出。"
   },
   "mobileTabBar": {

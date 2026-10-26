@@ -1,18 +1,19 @@
 import { z } from 'zod'
 import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
+import { isWebToolAvailable } from '../../utils/webTools'
 
-// `fetch_url` is a 2-call pattern (Jina Reader → Mistral synthesis with
-// json_schema strict). Returns `{summary, images[]}`. The synthesis
-// bills against the caller's LiteLLM virtual key (max_budget-bounded);
-// the Jina Reader call is on a shared key. Shares the 60/hour
-// `mcp-web-tools` per-user cap with `web_search`. SSRF-guarded by
+// `fetch_url` is a 2-call pattern (Jina Reader → synthesis with json_schema
+// strict on the caller's chat provider). Returns `{summary, images[]}`. The
+// Jina Reader call is platform-paid and shares the per-user hourly/daily
+// web-tool allowance (`consumeWebToolQuota`) with `web_search` and the
+// in-app loop. Not listed when `JINA_AI_API_KEY` is unset. SSRF-guarded by
 // `assertSafeUrl` inside the handler.
 export default buildUserOnlyTool({
   name: 'fetch_url',
   description: 'Fetch a specific URL, extract its readable text content + visible image URLs, and return a structured {summary, images[]} synthesis.',
   scope: 'web:fetch',
   annotations: { readOnlyHint: true, openWorldHint: true, idempotentHint: false },
-  rateLimit: { namespace: 'mcp-web-tools', max: 60, windowMs: 60 * 60 * 1000 },
+  available: () => isWebToolAvailable('fetch_url'),
   inputSchema: {
     url: z.string().trim().min(1).max(2048).describe('The URL to fetch. Any public web page. Missing scheme is treated as https://. Do not pass /api/files/... paths.')
   }

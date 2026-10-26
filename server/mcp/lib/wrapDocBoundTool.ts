@@ -15,7 +15,6 @@ import {
   type ToolName
 } from '../../utils/agentic/toolHandlers'
 import { hasScope, requireMcpAuth } from './mcpToolContext'
-import { checkRateLimit } from '../../utils/rateLimit'
 import { resolveBillingContext } from '../../utils/billing'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import type { ToolResult } from '../../utils/aiToolAdapter'
@@ -213,19 +212,13 @@ export interface WrapUserOnlyToolOpts<Schema extends ZodRawShape> {
   scope: McpScope
   annotations?: ToolAnnotations
   /**
-   * Optional per-user rate limit. The in-app agentic loop caps
-   * cost-amplifying tools per session (`SESSION_TOOL_CALL_CAPS`) and per
-   * user per hour (the 20/h `ai-prompt` limit); MCP has neither — each
-   * tool call is a discrete external JSON-RPC request driven by the
-   * client's own loop. Web tools (`web_search` / `fetch_url`) issue an
-   * upstream search + an LLM synthesis, so without a cap a `web:fetch`
-   * PAT can hammer them. The synthesis now bills the user's virtual key
-   * (max_budget-bounded), but the upstream search call is on a shared
-   * key and isn't per-user metered — this limit bounds that surface.
-   * Keyed on the PAT user id; fails OPEN on Valkey error (anti-abuse,
-   * not correctness — matches `checkRateLimit` polarity).
+   * Optional availability gate (e.g. the operator has no Staan / Jina key
+   * for the web tools). When it returns false the tool is not listed for
+   * the client at all. Per-user rate limiting of the web tools lives in the
+   * shared handler (`consumeWebToolQuota`), so the in-app loop and MCP
+   * draw on one allowance.
    */
-  rateLimit?: { namespace: string, max: number, windowMs: number }
+  available?: () => boolean
 }
 
 export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnlyToolOpts<Schema>) {
@@ -235,25 +228,10 @@ export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnly
     description: opts.description,
     inputSchema: opts.inputSchema,
     annotations: opts.annotations ?? {},
-    enabled: (event: H3Event): boolean => hasScope(event, opts.scope),
+    enabled: (event: H3Event): boolean => hasScope(event, opts.scope) && (opts.available?.() ?? true),
     handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
       const event = useEvent()
       const auth = requireMcpAuth(event)
-      if (opts.rateLimit) {
-        const ok = await checkRateLimit(
-          opts.rateLimit.namespace,
-          String(auth.userId),
-          opts.rateLimit.max,
-          opts.rateLimit.windowMs
-        )
-        if (!ok) {
-          throw createError({
-            statusCode: 429,
-            message: `${opts.name}: rate limit exceeded — slow down.`,
-            data: { code: 'mcp/rate-limited' }
-          })
-        }
-      }
       const ctx = await buildStubContext(auth.userId, null, mcpSessionIdFromEvent(event))
       try {
         return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, args))

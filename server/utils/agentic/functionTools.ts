@@ -2,6 +2,7 @@ import type { AgenticAIClient as AiClient, AgenticFunctionDeclaration as Functio
 import { litellmCompletion } from '../litellm/createCompletion'
 import { z, type ZodType } from 'zod'
 import { assertSafeUrl } from './urlGuard'
+import { consumeWebToolQuota, isWebToolAvailable } from '../webTools'
 import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { providerRequestFields, withProviderErrors } from '../aiProviders/requestFields'
@@ -801,16 +802,21 @@ const VISION_INPUT_TOOLS = new Set(['view_image', 'view_pages'])
  * Drop tools the session's providers can't serve (BYOK): no image
  * provider → no `generate_image`; a chat model without vision → no
  * `view_image` / `view_pages` (their results are image parts a
- * text-only model would reject). Everything else is unaffected.
+ * text-only model would reject). `web_search` / `fetch_url` are dropped
+ * when the operator has no Staan / Jina key (`webTools`). Everything else
+ * is unaffected.
  */
 export function filterToolsForProviders(
   declarations: FunctionDeclaration[],
-  providers: { chat: { supportsVision: boolean } | null, image: unknown }
+  providers: { chat: { supportsVision: boolean } | null, image: unknown },
+  webTools: { search: boolean, fetch: boolean } = { search: true, fetch: true }
 ): FunctionDeclaration[] {
   const vision = providers.chat?.supportsVision ?? false
   return declarations.filter((d) => {
     const name = d.name ?? ''
     if (name === 'generate_image') return providers.image !== null
+    if (name === 'web_search') return webTools.search
+    if (name === 'fetch_url') return webTools.fetch
     if (VISION_INPUT_TOOLS.has(name)) return vision
     return true
   })
@@ -886,6 +892,10 @@ export async function webSearch(
 ): Promise<WebSearchResult> {
   // Abort guard — if we're already past the deadline, don't even issue the call.
   if (signal.aborted) throw new Error('aborted')
+  if (!isWebToolAvailable('web_search')) throw new Error('Web search is not configured on this instance.')
+  // Platform-paid upstream call: count it against the user's allowance
+  // (shared with fetch_url and with MCP) before spending anything.
+  await consumeWebToolQuota(spendCtx.userId)
   // Web search runs on Staan (staan.ai) — a European search index (OVHcloud,
   // EU) that replaces Jina Search. The motivation: Jina Search fans out to
   // Google/Bing under the hood, routing queries through US processors; Staan
@@ -938,6 +948,7 @@ export async function fetchUrl(
   spendCtx: WebToolSpendContext = {}
 ): Promise<FetchUrlResult> {
   if (signal.aborted) throw new Error('aborted')
+  if (!isWebToolAvailable('fetch_url')) throw new Error('Page fetching is not configured on this instance.')
 
   // Add an https:// scheme if the AI (or user) passed a bare hostname.
   const url = /^https?:\/\//i.test(rawUrl.trim())
@@ -948,6 +959,10 @@ export async function fetchUrl(
   // metadata IPs, link-local, non-HTTP schemes, and hostnames whose DNS
   // records resolve into private space all throw here.
   await assertSafeUrl(url)
+
+  // Platform-paid Jina Reader call — counted only for URLs that passed the
+  // SSRF guard, so a rejected URL never burns allowance.
+  await consumeWebToolQuota(spendCtx.userId)
 
   // Phase 5: Jina Reader → Mistral structured output is the only path.
   // The `ai` + `model` args are retained on the signature for harness
