@@ -1,13 +1,5 @@
 <script setup lang="ts">
 const { t } = useI18n()
-// Onboarding gate + consent banner exist only where the legal surfaces
-// are on (hosted SaaS). A self-hosted instance is its own operator and
-// ships without them by default — see shared/config/instance.ts.
-const { legalSurfaces } = useInstanceConfig()
-// The server-render page (/_internal/render/*) is loaded by the Playwright
-// sidecar and captured as PDF/PNG — no app overlay may paint over it.
-const route = useRoute()
-const showAppOverlays = computed(() => !route.path.startsWith('/_internal/'))
 
 useHead({
   meta: [
@@ -42,23 +34,9 @@ useSeoMeta({
 
 <template>
   <UApp :toaster="{ position: 'top-right' }">
-    <!-- Browser-level offline banner — shown above all routes so the
-         user sees it everywhere (dashboard, editor, workspace, docs).
-         Auto-hides when the network comes back. -->
-    <CommonOfflineBanner v-if="showAppOverlays" />
-    <!-- Visible across every authenticated route while a deletion is
-         scheduled. Hidden silently for anonymous users / users with
-         no pending deletion. -->
-    <LegalAccountDeletionGraceBanner v-if="showAppOverlays" />
-    <!-- Onboarding gate — blocks the app on first login until the
-         user confirms age + accepts current Privacy Policy + ToS.
-         Hidden for anonymous users (no row to attach acceptance
-         to) and for users who already accepted the current versions. -->
-    <LegalOnboardingGate v-if="legalSurfaces && showAppOverlays" />
-    <!-- Cookie / consent banner — first-visit prompt + persistent
-         re-open via the footer "Privacy choices" link. Renders for
-         anonymous + logged-in alike (ePrivacy is identity-agnostic). -->
-    <LegalConsentBanner v-if="legalSurfaces && showAppOverlays" />
+    <!-- Offline / deletion-grace banners, onboarding gate, consent
+         banner — kept off the server-render page. -->
+    <CommonAppOverlays />
     <!-- NuxtLayout wraps NuxtPage with whatever layout the page opts
          into via definePageMeta({ layout: 'name' }). Pages without
          a layout meta render bare (no default layout file exists),
