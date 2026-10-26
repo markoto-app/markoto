@@ -229,7 +229,7 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 | AI calls (all billable surfaces) | per-user LiteLLM virtual key: tiered `max_budget` + `rpm_limit: 60`, set at key creation (`server/utils/litellm/userKeys.ts`). Replaced the legacy app-side AI-prompt/transcribe limits (Phase 6) |
 | Live dictation | 1 session/user (Valkey `SET NX`), 10 min/session hard cap, 30s idle timeout. No daily audio cap — spend is gated by the LiteLLM budget |
 | Hocuspocus | 20 connections/IP, 5000 rooms |
-| MCP web tools | 60/hour/user, shared bucket (`mcp-web-tools` — `web_search` + `fetch_url`) |
+| Web tools (`web_search` Staan + `fetch_url` Jina Reader) | platform-paid upstream call, so per-user and shared by the editor AI + MCP: 30/hour and 100/day by default (`NUXT_WEB_TOOLS_{HOURLY,DAILY}_LIMIT`, `0` = unlimited), 429 `ai/web-tools-rate-limited`; fail OPEN on Valkey error (`server/utils/webTools.ts`). Tools not offered without `STAAN_API_KEY` / `JINA_AI_API_KEY` |
 | Knowledge upload | 30 presign-requests/user/min |
 | Knowledge files per user (across all workspaces) | tiered free/pro/max/ultra defaults: 5 / 50 / 500 / 2000 (`shared/config/tiers.ts`; every tier cap is overridable at runtime via `TIER_*` env vars — resolved by `server/utils/tierConfig.ts#getTiers()`, served to the client by `GET /api/billing/tiers`) |
 | Knowledge bytes per workspace | tiered: 50 MB / 2 GB / 1 GB / 1 GB |

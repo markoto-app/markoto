@@ -485,6 +485,8 @@
     },
     "exhaustedPlaceholderFree": "Keine KI-Credits mehr — sie werden in der nächsten Periode aufgefüllt",
     "budgetExhaustedResetDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt.",
+    "webToolsHourlyLimit": "Sie haben das stündliche Limit für Websuche und Seitenabruf erreicht. Versuchen Sie es innerhalb der nächsten Stunde erneut oder arbeiten Sie ohne Web-Werkzeuge weiter.",
+    "webToolsDailyLimit": "Sie haben das Tageslimit für Websuche und Seitenabruf erreicht. Versuchen Sie es morgen erneut oder arbeiten Sie ohne Web-Werkzeuge weiter.",
     "budgetExhaustedComingSoonDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt — Bezahlpläne mit mehr Credits folgen in Kürze."
   },
   "mobileTabBar": {

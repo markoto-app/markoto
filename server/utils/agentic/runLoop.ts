@@ -9,6 +9,7 @@ import * as Sentry from '@sentry/nuxt'
 import { litellmStream } from '../litellm/createCompletion'
 import type { AiSession } from '../aiClient'
 import type { BillingContext } from '../billing'
+import { getWebToolAvailability } from '../webTools'
 import { LitellmBudgetExhausted, isBudgetExceededError } from '../litellmKeys'
 import { executeFunctionByName } from '../aiToolAdapter'
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, filterToolsForProviders, webSearch, fetchUrl } from './functionTools'
@@ -861,7 +862,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     // BYOK: hide tools the session's providers can't serve (no image
     // provider → no generate_image; text-only chat model → no
     // view_image / view_pages).
-    toolDeclarations: filterToolsForProviders(opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS, opts.aiSession.aiProviders),
+    toolDeclarations: filterToolsForProviders(opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS, opts.aiSession.aiProviders, getWebToolAvailability()),
     thinkingBudget: opts.thinkingBudget ?? 0
   }
 

@@ -10,7 +10,7 @@ import { ALL_FEATURE_TAGS, type FeatureTag } from '../../utils/litellm/featureTa
 // per-tag totals but NOT cross-tabs — querying it with `tags=doc:X`
 // gives the doc total, but can't give "doc:X spend split by feature".
 // We get the cross-tab by querying `LiteLLM_SpendLogs` directly with
-// a JSONB metadata filter: rows where `metadata->'tags'` contains
+// a JSONB filter on `request_tags`: rows where `request_tags` contains
 // the axis tag, grouped by which feature tag co-occurs.
 //
 // Same Postgres connection pattern as `spendLogsSweep.ts` — the proxy
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
   const filterTag = `${opts.axis}:${opts.value}`
 
   // Cross-tab aggregation. For every row in the window where the
-  // metadata.tags array contains the axis tag, sum spend per
+  // request_tags array contains the axis tag, sum spend per
   // co-occurring feature tag. The `?` operator on a JSONB array tests
   // element-equality. Date filter on `startTime` cuts the scan to
   // the window — without it, scans all-time on every dashboard load.
@@ -108,11 +108,11 @@ export default defineEventHandler(async (event) => {
   const rows = await pool().query<Row>(
     `
     WITH matched AS (
-      SELECT spend, total_tokens, metadata->'tags' AS tags
+      SELECT spend, total_tokens, request_tags AS tags
       FROM "LiteLLM_SpendLogs"
       WHERE "startTime" >= $2::timestamp
         AND "startTime" < ($3::date + INTERVAL '1 day')
-        AND metadata->'tags' ? $1
+        AND request_tags ? $1
     ),
     feature_rows AS (
       -- Unnest the tags array; keep only feature-prefixed entries

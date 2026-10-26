@@ -51,6 +51,9 @@ export function useAiAvailability() {
   const transcriptionAvailable = computed(() => state.value === null || state.value.transcription.available)
   const liveDictationAvailable = computed(() => state.value === null || state.value.transcription.liveDictation)
   const chatPlatformBilled = computed(() => state.value === null || state.value.chat.platformBilled)
+  /** Operator has Staan / Jina keys; null snapshot → assume available. */
+  const webSearchAvailable = computed(() => state.value === null || state.value.webTools.search)
+  const pageFetchAvailable = computed(() => state.value === null || state.value.webTools.fetch)
   /**
    * Does anything the user can do consume platform AI Points? False when
    * every available capability runs on their own key — then the points
@@ -70,6 +73,8 @@ export function useAiAvailability() {
     transcriptionAvailable,
     liveDictationAvailable,
     chatPlatformBilled,
+    webSearchAvailable,
+    pageFetchAvailable,
     anyPlatformBilled
   }
 }
