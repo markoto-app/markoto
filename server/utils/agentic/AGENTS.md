@@ -5,7 +5,7 @@ Every AI surface routes through our self-hosted **LiteLLM proxy** at `infra/lite
 | Surface | Upstream model | Custom provider? |
 |---|---|---|
 | Text agentic loop + vision | Mistral Small 4.0 (`mistral-small-2603`) | No — Mistral is OpenAI-compatible end-to-end |
-| Voice transcribe (one-shot) | Voxtral Mini Transcribe 2 (`voxtral-mini-2507`) | Yes — `MistralTranscribeProvider` wraps `/v1/audio/transcriptions` as a chat completion so spend tracks correctly |
+| Voice transcribe (one-shot) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | Yes — `MistralTranscribeProvider` wraps `/v1/audio/transcriptions` as a chat completion so spend tracks correctly |
 | Live dictation | Voxtral Realtime via `@mistralai/mistralai/extra/realtime` (direct WS, NOT through LiteLLM) | LiteLLM only sees the per-minute billing tick (`VoxtralTickProvider`) |
 | Embeddings | Jina v5-text-nano (768-d native) | Yes — `JinaEmbeddingsProvider` reshapes `usage.total_tokens` → `prompt_tokens` so spend tracks |
 | Image generation | BFL FLUX.2 [pro] EU-pinned (`api.eu2.bfl.ai`) | Yes — `BFLFluxProvider` wraps submit+poll as a chat completion |

@@ -36,6 +36,7 @@ This file holds project-wide context. Domain-specific detail lives next to the c
 | `docs/RUNBOOK.md` | Symptom-driven prod incident playbook |
 | `docs/BREACH-RESPONSE.md` | GDPR Art.33/34 + Swiss FADP data-breach response runbook (72h clock, notification paths) |
 | `docs/CHEATSHEET.md` | Command discovery (Make targets, common workflows) |
+| `docs/AI-MODELS.md` | Chosen AI models per surface, rationale, sources, BYOK recommended models |
 | `docs/DEPLOY-OVH.md` | First-time OVH VPS provisioning |
 | `docs/SECURITY-HARDENING.md` | Tier-1 hardening rationale + verification |
 | `docs/GITHUB-CONFIG.md` | Branch protection, secrets, environments |

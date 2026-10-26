@@ -1,6 +1,6 @@
 /**
  * Voxtral (Mistral) supported transcription languages — ISO 639-1
- * codes. Source: Mistral model card for `voxtral-mini-transcribe-2507`
+ * codes. Source: Mistral model card for `voxtral-mini-2602`
  * + `voxtral-mini-transcribe-realtime-2602`.
  *
  * Why this lives in `shared/`: both the dictation WS handler and the

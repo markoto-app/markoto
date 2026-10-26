@@ -309,7 +309,7 @@ class MistralTranscribeProvider(CustomLLM):
     ) -> ModelResponse:
         import json as _json
 
-        model: str = kwargs.get("model", "mistral-transcribe/voxtral-mini-2507")
+        model: str = kwargs.get("model", "mistral-transcribe/voxtral-mini-2602")
         # Strip the "mistral-transcribe/" provider prefix.
         mistral_model = model.split("/", 1)[1] if "/" in model else model
         api_key = kwargs.get("api_key") or os.environ["MISTRAL_API_KEY"]
