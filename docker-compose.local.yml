@@ -143,6 +143,12 @@ services:
       # service; master key matches the one mounted into the litellm
       # container (which reads LITELLM_MASTER_KEY from .env via base.yml).
       - NUXT_LITELLM_URL=http://litellm:4000
+      # Embeddings (see docker-compose.prod.yml / docs/AI-MODELS.md#embeddings).
+      - NUXT_LITELLM_EMBEDDINGS_MODEL=${NUXT_LITELLM_EMBEDDINGS_MODEL:-jina-embeddings-v5-text-nano}
+      - NUXT_LITELLM_EMBEDDINGS_DIMS=${NUXT_LITELLM_EMBEDDINGS_DIMS:-768}
+      - NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS=${NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS:-auto}
+      - NUXT_LITELLM_EMBEDDINGS_TASK_HINTS=${NUXT_LITELLM_EMBEDDINGS_TASK_HINTS:-auto}
+      - NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       # AI grounding provider keys read directly by the app process (NOT via
       # LiteLLM): Staan backs web_search, Jina Reader backs fetch_url.

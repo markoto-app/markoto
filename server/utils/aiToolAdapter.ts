@@ -64,6 +64,7 @@ import { createDocument } from './createDocument'
 import { duplicateDocument } from './duplicateDocument'
 import { useS3Client } from './s3'
 import { embedQuery } from './embeddings'
+import { assertKnowledgeEmbeddingsReady } from './knowledgeEmbeddingsStatus'
 import { appendAiMessage } from '../repos/aiSessionMessages'
 import { searchActivity, type ActivityEntry } from '../repos/activity'
 import { stripAiMention } from './agentic/commentTriggerPrompt'
@@ -1666,6 +1667,7 @@ export async function handleSearchKnowledge(session: MetaToolContext, input: Sea
 
   let queryEmbedding: number[]
   try {
+    await assertKnowledgeEmbeddingsReady()
     queryEmbedding = await embedQuery(input.query)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'

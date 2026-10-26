@@ -1,4 +1,4 @@
-import { runAllProbes, isOverallHealthy, type ProbeResult } from '../../utils/healthProbes'
+import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } from '../../utils/healthProbes'
 
 // Auth-gated deep healthcheck. Same probes as `/api/health` but returns
 // per-component latencies + (when down) the underlying error string.
@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
   await requireValidatedUserSession(event)
 
   const config = useRuntimeConfig()
+  const embeddings = await probeEmbeddings()
   const results = await runAllProbes({
     syncUrl: config.syncInternalUrl,
     rendererUrl: config.rendererInternalUrl,
@@ -48,7 +49,10 @@ export default defineEventHandler(async (event) => {
       s3: pick(results.s3),
       renderer: pick(results.renderer),
       markitdown: pick(results.markitdown),
-      litellm: pick(results.litellm)
+      litellm: pick(results.litellm),
+      // Informational: "down" disables knowledge features only and does
+      // not change the overall status or HTTP code.
+      embeddings: pick(embeddings)
     }
   }
 })

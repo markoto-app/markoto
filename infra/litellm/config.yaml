@@ -35,6 +35,30 @@ model_list:
       mode: embedding
       input_cost_per_token: 0.00000002  # ~$0.02/M tokens
 
+  # ---- Embeddings: operator-configurable deployment (self-hosting) ----
+  # Hosted markoto keeps the Jina default above and never selects this
+  # entry. A self-hoster points knowledge embeddings at ANY provider
+  # LiteLLM supports by setting, in .env:
+  #   NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings
+  #   NUXT_LITELLM_EMBEDDINGS_DIMS=<model output size, max 2000>
+  #   EMBEDDINGS_UPSTREAM_MODEL=openai/text-embedding-3-small  (any LiteLLM id:
+  #       openai/<m> for OpenAI-compatible servers, mistral/mistral-embed,
+  #       ollama/nomic-embed-text, ...)
+  #   EMBEDDINGS_UPSTREAM_API_BASE=https://api.openai.com/v1
+  #   EMBEDDINGS_UPSTREAM_API_KEY=sk-...
+  # LiteLLM resolves os.environ/* for model, api_base and api_key alike
+  # (verified on v1.106.4). All three variables MUST be defined (possibly
+  # with placeholder values) or the proxy crashes at startup with
+  # "argument of type 'NoneType' is not iterable"; the compose files
+  # default them. See docs/AI-MODELS.md#embeddings.
+  - model_name: custom-embeddings
+    litellm_params:
+      model: os.environ/EMBEDDINGS_UPSTREAM_MODEL
+      api_base: os.environ/EMBEDDINGS_UPSTREAM_API_BASE
+      api_key: os.environ/EMBEDDINGS_UPSTREAM_API_KEY
+    model_info:
+      mode: embedding
+
   # Reranker intentionally NOT registered. Hybrid vector + BM25 RRF
   # gives sufficient retrieval quality for writing-doc workloads; adding
   # a reranker stage would burn 100-200ms latency + extra Jina-token cost
