@@ -11,7 +11,8 @@ name: staging-gate
 #                flow suite incl. live-AI flows (provider keys live there —
 #                the fast PR gate skips those, see ci.yml)
 #              → THIS workflow verifies a release was actually published,
-#                then deploys `latest` to staging (health-gated)
+#                then deploys `latest` to staging via deploy.yml (renders
+#                .env from GitHub, health-gated, auto-rollback)
 #              → resets the staging DB to a clean slate (public schema wiped,
 #                drizzle migration ledger preserved) so runs don't bleed state
 #              → smoke suite runs against https://staging.markoto.app
@@ -83,16 +84,37 @@ jobs:
             echo "No release published by the triggering run (release:none merge) — gate skips."
           fi
 
-  deploy-and-smoke:
-    name: deploy-and-smoke (staging)
+  # Deploy through the SAME path as a manual `deploy.yml` dispatch: render
+  # /opt/markoto/.env from the staging GitHub Environment (infra/render-env.sh),
+  # sync compose + mounted config, pull + up, 300 s cold-boot health budget,
+  # one-hop auto-rollback. The gate used to inline only the sync + up half,
+  # so every env var added after the host's last manual deploy (billing mode,
+  # BYOK allowlist, legal surfaces, ...) silently never reached staging, and
+  # its 90 s health budget was shorter than a cold LiteLLM migration boot.
+  deploy:
+    name: deploy (staging)
+    needs: check-release
+    if: needs.check-release.outputs.released == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      tag: ${{ inputs.tag || 'latest' }}
+      # Pin to the exact commit the triggering release was built from so
+      # the compose files we sync match the images we deploy. On
+      # workflow_dispatch there is no triggering run — default-branch
+      # HEAD is the right answer there.
+      ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+    secrets: inherit
+
+  smoke:
+    name: smoke (staging)
     # Gate: check-release verified the triggering run actually published a
     # release, which requires release.yml's run-flows job (the full suite
     # INCLUDING live-AI flows — the provider keys moved there) to have been
     # green on this exact commit. Re-running the same 40-min suite here
     # doubled the per-release Actions bill for zero extra signal, so the
-    # gate now goes straight to deploy + the public smoke suite.
-    needs: check-release
-    if: needs.check-release.outputs.released == 'true'
+    # gate goes straight to deploy + the public smoke suite.
+    needs: deploy
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Binds the staging DEPLOY_HOST / DEPLOY_SSH_KEY secrets + DEPLOY_USER var.
@@ -103,10 +125,6 @@ jobs:
       TAG: ${{ inputs.tag || 'latest' }}
       STAGING_URL: https://staging.markoto.app
     steps:
-      # Pin to the exact commit the triggering release was built from so
-      # the compose files we sync below match the images we deploy. On
-      # workflow_dispatch there is no triggering run — default-branch
-      # HEAD is the right answer there.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
@@ -119,54 +137,6 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-
-      # The host's compose files were otherwise only written at Ansible
-      # provision time. Without this sync, a merged compose change (image
-      # rename, new service, changed mount) NEVER reaches staging —
-      # `pull && up -d` against the stale host copy silently no-ops and
-      # the smoke suite "passes" against the previous release. Found the
-      # hard way: the md-online-* → markoto-* image rename "deployed"
-      # successfully twice while the app container kept serving the old
-      # build. Synced set = the compose pair + every repo path the
-      # compose files bind-mount (litellm config + handlers, postgres
-      # init scripts).
-      - name: Sync compose + mounted config to the host
-        run: |
-          set -euo pipefail
-          # infra/postgres/init is deliberately NOT synced: the initdb
-          # scripts only run on the FIRST boot of a fresh postgres data
-          # dir (a provision-time concern), and the host copy is
-          # root-owned from provisioning — the deploy user can't
-          # overwrite it (tar: Permission denied). Changing an init
-          # script requires an Ansible pass anyway.
-          tar czf - \
-            docker-compose.prod.yml \
-            docker-compose.base.yml \
-            infra/litellm/config.yaml \
-            infra/litellm/custom_handlers.py \
-            | ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
-
-      - name: Deploy tag to staging + health-check
-        run: |
-          set -euo pipefail
-          ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" TAG="$TAG" 'bash -se' <<'REMOTE'
-          set -euo pipefail
-          : "${TAG:?TAG must be set}"
-          cd /opt/markoto
-          export IMAGE_TAG="$TAG"
-          docker compose -f docker-compose.prod.yml pull
-          docker compose -f docker-compose.prod.yml up -d
-          DOMAIN=$(awk -F= '/^DOMAIN=/{print $2}' .env | tr -d '"')
-          [ -n "$DOMAIN" ] || { echo "DOMAIN not in .env"; exit 1; }
-          ok=0
-          for i in $(seq 1 30); do
-            if curl -fsS --max-time 5 "https://${DOMAIN}/api/health" > /dev/null 2>&1; then
-              echo "staging healthy on attempt $i"; ok=1; break
-            fi
-            sleep 3
-          done
-          [ "$ok" = 1 ] || { echo "staging health check failed after 90s"; exit 1; }
-          REMOTE
 
       # Wipe staging to a clean slate so each smoke run starts from empty +
       # predictable state (no doc/rate-limit/sync-state bleed between runs).
@@ -202,17 +172,17 @@ jobs:
           if [ -z "${APPRISE_URLS:-}" ]; then echo "no APPRISE_URLS configured"; exit 0; fi
           pip install apprise >/dev/null 2>&1 || true
           apprise -t "Staging gate FAILED (tag ${TAG})" \
-                  -b "Deploy or smoke failed on staging — prod promotion is blocked. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                  -b "Smoke suite failed on staging (deploy.yml notifies deploy failures itself) — prod promotion is blocked. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
                   "${APPRISE_URLS}" || true
 
   # ── promote-prod (DORMANT) ────────────────────────────────────────────────
   # Enable once the prod VPS + a `prod` GitHub Environment exist. Intended to
-  # run AUTOMATICALLY on a green deploy-and-smoke — no manual approval:
+  # run AUTOMATICALLY on a green smoke — no manual approval:
   #
   #   promote-prod:
   #     name: promote-prod
-  #     needs: deploy-and-smoke
-  #     if: needs.deploy-and-smoke.result == 'success'
+  #     needs: smoke
+  #     if: needs.smoke.result == 'success'
   #     runs-on: ubuntu-latest
   #     environment: prod          # DEPLOY_HOST/KEY + DEPLOY_USER for prod
   #     steps:

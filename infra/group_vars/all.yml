@@ -47,10 +47,15 @@ ovh_pg_ca_remote_path: /opt/markoto/secrets/ovh-pg-ca.pem
 # Path on the VPS where the stack lives.
 markoto_root: /opt/markoto
 markoto_user: markoto
+# Repo root on the control machine (playbooks live in infra/playbooks/), the
+# source of the compose files + bind-mounted config the markoto role syncs.
+markoto_repo_root: "{{ playbook_dir }}/../.."
 
 # Healthcheck poll knobs.
 health_endpoint: "https://{{ domain }}/api/health"
-health_timeout_seconds: 90
+# 300 s, like deploy.yml: a cold LiteLLM boot runs its Prisma migrations
+# before turning healthy, and `app` waits for it.
+health_timeout_seconds: 300
 
 # Timezone — UTC across the fleet keeps log correlation sane.
 host_timezone: UTC

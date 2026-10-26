@@ -32,14 +32,28 @@ on:
         description: 'Image tag to deploy (vX.Y.Z, or staging/latest)'
         required: true
         type: string
+  # staging-gate.yml reuses this exact deploy path for staging so the gate
+  # also renders .env from GitHub (before, it only synced compose files —
+  # every env var added since the host's last manual deploy never reached
+  # staging) and gets the cold-boot health budget + auto-rollback.
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment (staging or prod)'
+        required: true
+        type: string
+      tag:
+        description: 'Image tag to deploy (vX.Y.Z, or staging/latest)'
+        required: true
+        type: string
+      ref:
+        description: 'Git ref whose compose files + render script are shipped (default: the triggering ref)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
-
-concurrency:
-  # Serialize deploys per environment — never two deploys to the same host at once.
-  group: deploy-${{ inputs.environment }}
-  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -49,6 +63,12 @@ jobs:
     # Binds environment-scoped secrets (DEPLOY_HOST, DEPLOY_SSH_KEY) + any
     # required-reviewer protection rule for prod.
     environment: ${{ inputs.environment }}
+    # Serialize deploys per environment — never two deploys to the same host
+    # at once. Job-level (not workflow-level) so it also applies when this
+    # workflow is called from staging-gate.yml.
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       # SSH login user on the VPS. Prod is Ansible-provisioned with a
@@ -61,7 +81,11 @@ jobs:
     steps:
       # Needed so the "Render .env" step can run infra/render-env.sh — this
       # workflow otherwise only SSHes to the VM and wouldn't check out the repo.
+      # A caller (staging-gate.yml) pins the ref to the commit the release
+      # images were built from, so the synced compose files match them.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Validate tag
         run: |
@@ -144,6 +168,18 @@ jobs:
           BACKUP_RETENTION_COUNT: ${{ vars.BACKUP_RETENTION_COUNT }}
           OVH_PG_HOST: ${{ vars.OVH_PG_HOST }}
           OVH_PG_CA_REMOTE_PATH: ${{ vars.OVH_PG_CA_REMOTE_PATH }}
+          # Optional hosted-shape tuning (empty = render-env.sh default:
+          # billing off, plans "coming soon", SaaS BYOK allowlist, committed
+          # free-tier + web-tool limits).
+          NUXT_BILLING_ENABLED: ${{ vars.NUXT_BILLING_ENABLED }}
+          NUXT_PLANS_COMING_SOON: ${{ vars.NUXT_PLANS_COMING_SOON }}
+          NUXT_WEB_TOOLS_HOURLY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_HOURLY_LIMIT }}
+          NUXT_WEB_TOOLS_DAILY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_DAILY_LIMIT }}
+          TIER_FREE_LITELLM_BUDGET_USD: ${{ vars.TIER_FREE_LITELLM_BUDGET_USD }}
+          TIER_FREE_WORKSPACES_OWNED: ${{ vars.TIER_FREE_WORKSPACES_OWNED }}
+          TIER_FREE_KNOWLEDGE_FILES: ${{ vars.TIER_FREE_KNOWLEDGE_FILES }}
+          TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE: ${{ vars.TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE }}
+          TIER_FREE_KNOWLEDGE_BYTES_PER_USER: ${{ vars.TIER_FREE_KNOWLEDGE_BYTES_PER_USER }}
           # the tag being deployed pins IMAGE_TAG in the rendered .env
           IMAGE_TAG: ${{ inputs.tag }}
         run: |

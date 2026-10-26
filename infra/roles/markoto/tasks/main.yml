@@ -53,10 +53,34 @@
     - ghcr_username is defined
     - ghcr_username | length > 0
 
+# The compose files use `include:` with overrides of included services,
+# which Docker Compose 2.24–2.40 rejects ("services.X conflicts with
+# imported resource"). Fail before touching the running stack instead of
+# half-applying. geerlingguy.docker installs the plugin from Docker's apt
+# repo (v5.x since 2026); on an older host: `apt-get install --only-upgrade
+# docker-compose-plugin`.
+- name: Read the Docker Compose plugin version
+  ansible.builtin.command:
+    cmd: docker compose version --short
+  register: markoto_compose_version
+  changed_when: false
+
+- name: Require Docker Compose >= 5.0
+  ansible.builtin.assert:
+    that:
+      - markoto_compose_version.stdout | trim | regex_replace('^v', '') is version('5.0.0', '>=')
+    fail_msg: >-
+      Docker Compose {{ markoto_compose_version.stdout | trim }} is too old —
+      the compose files need >= 5.0. Upgrade the docker-compose-plugin apt
+      package (re-run provision.yml or apt-get install --only-upgrade
+      docker-compose-plugin).
+
+# docker-compose.base.yml is pulled in by the prod file's `include:`; without
+# it on the host `compose up` fails outright.
 - name: Discover compose files in repo
   ansible.builtin.find:
-    paths: "{{ playbook_dir }}/.."
-    patterns: "docker-compose.prod.yml,docker-compose.prod.*.yml"
+    paths: "{{ markoto_repo_root }}"
+    patterns: "docker-compose.prod.yml,docker-compose.prod.*.yml,docker-compose.base.yml"
     file_type: file
     recurse: false
   delegate_to: localhost
@@ -73,6 +97,31 @@
   loop: "{{ markoto_compose_files.files }}"
   loop_control:
     label: "{{ item.path | basename }}"
+
+# Every repo path the compose files bind-mount (same set the GitHub deploy
+# workflows sync, plus the provision-time Postgres initdb scripts).
+- name: Ensure bind-mounted config dirs exist
+  ansible.builtin.file:
+    path: "{{ markoto_root }}/{{ item }}"
+    state: directory
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0755"
+  loop:
+    - infra/litellm
+    - infra/postgres/init
+
+- name: Sync bind-mounted config files to the VPS
+  ansible.builtin.copy:
+    src: "{{ markoto_repo_root }}/{{ item }}"
+    dest: "{{ markoto_root }}/{{ item }}"
+    owner: "{{ markoto_user }}"
+    group: "{{ markoto_user }}"
+    mode: "0644"
+  loop:
+    - infra/litellm/config.yaml
+    - infra/litellm/custom_handlers.py
+    - infra/postgres/init/01-litellm-db.sql
 
 # CA copy is best-effort: many OVH plans don't pin a CA, but if you DO drop
 # the .pem at infra/files/ovh-pg-ca.pem we honour it. `failed_when: false`
