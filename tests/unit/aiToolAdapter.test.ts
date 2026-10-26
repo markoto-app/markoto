@@ -368,7 +368,7 @@ describe('executeFunctionByName — dispatch', () => {
     // need runtime config + Jina; instead we assert the dispatcher
     // dispatches it. If it returned the "Unsupported function"
     // sentinel, this test would fail.
-    let routedToBridge = false
+    let routedToBridge: boolean
     try {
       const r = await executeFunctionByName(session, 'web_search', { query: 'x' })
       // If it returns synchronously without runtime config, that's

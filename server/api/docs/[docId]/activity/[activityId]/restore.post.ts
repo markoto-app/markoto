@@ -68,8 +68,8 @@ export default defineEventHandler(async (event) => {
   // restore; concurrent restores serialize via the advisory lock.
   const sessionId = nanoid(12)
 
-  let yjsDocIdBeforeRestore: number | null = null
-  let yjsDocIdAfterRestore: number | null = null
+  let yjsDocIdBeforeRestore: number | null
+  let yjsDocIdAfterRestore: number | null
   try {
     const result = await restoreDocToYjsId({
       docId,

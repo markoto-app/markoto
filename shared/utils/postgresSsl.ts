@@ -45,7 +45,7 @@ export function resolvePostgresSsl(env: NodeJS.ProcessEnv = process.env): PoolCo
       // pool-construction stack at boot, which is exactly when the
       // operator can fix it.
       const msg = e instanceof Error ? e.message : String(e)
-      throw new Error(`[postgres] PGSSLROOTCERT='${caPath}' set but unreadable: ${msg}`)
+      throw new Error(`[postgres] PGSSLROOTCERT='${caPath}' set but unreadable: ${msg}`, { cause: e })
     }
   }
   return { rejectUnauthorized: true }
