@@ -70,7 +70,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     id: 'jina_ai',
     name: 'Jina AI GmbH',
-    purpose: 'Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader)',
+    purpose: 'Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader; the URL is sent for every user, including users with their own AI provider)',
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
@@ -80,7 +80,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     id: 'staan',
     name: 'Staan (European Search Perspective SAS)',
-    purpose: 'Web search for the AI writing assistant, via a proprietary European search index (EU-only routing)',
+    purpose: 'Web search for the AI writing assistant (the search query is sent for every user, including users with their own AI provider), via a proprietary European search index (EU-only routing)',
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
