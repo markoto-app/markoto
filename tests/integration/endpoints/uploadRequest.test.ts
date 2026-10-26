@@ -52,6 +52,28 @@ describe('POST /api/upload/request', () => {
     })
   })
 
+  // The browser PUTs straight to S3 with the presigned URL. Regression: from
+  // @aws-sdk 3.729 the client signed a default CRC32 into every PutObject —
+  // computed over the EMPTY body at presign time — so S3 rejected every real
+  // upload with 400 (images and knowledge files alike). Only a real PUT
+  // against the test SeaweedFS catches that; checking for a URL does not.
+  it('the presigned URL accepts the upload the browser sends', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+    const client = await loggedInClient(owner.id)
+    const res = await client.post('/api/upload/request', reqBody(doc.docId))
+    expect(res.status).toBe(200)
+    const { uploadUrl } = await res.json() as { uploadUrl: string }
+    expect(uploadUrl).not.toMatch(/x-amz-checksum/i)
+
+    const put = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': BODY.contentType },
+      body: new Uint8Array(BODY.size).fill(7)
+    })
+    expect(put.status, await put.text()).toBe(200)
+  })
+
   describe('open-view — owner/members only', () => {
     it('owner is allowed', async () => {
       const owner = await createUser()

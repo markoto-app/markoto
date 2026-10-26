@@ -27,7 +27,12 @@ export const s3 = new S3Client({
   endpoint,
   region: 'us-east-1',
   credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
-  forcePathStyle: true
+  forcePathStyle: true,
+  // Checksums only when an operation requires them — the pre-@aws-sdk-3.729
+  // request shape, which every S3-compatible backend (OVH, SeaweedFS)
+  // accepts. Same setting as the app's client (server/utils/s3.ts).
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+  responseChecksumValidation: 'WHEN_REQUIRED'
 })
 
 export async function putBytes(
