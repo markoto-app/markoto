@@ -10,6 +10,7 @@ Adjacent: `shared/legal/` holds the version + entity registries (client-and-serv
 |---|---|
 | `lawfulBasis.ts` | `PROCESSING_PURPOSES` — every processing purpose we run, paired with its GDPR Art.6 basis, data categories, retention, and sub-processor refs. Rendered into `/legal/privacy` verbatim. |
 | `subProcessors.ts` | `SUB_PROCESSORS` — the sub-processor table. Rendered into `/legal/sub-processors`. |
+| `registryView.ts` | Deployment-aware views over both registries: with billing off, Stripe and the `billing` purpose are hidden. Feeds `/api/_internal/sub-processors` and `renderProcessingPurposesMarkdown()`, which the legal renderer substitutes for `{{processingPurposesTable}}` (privacy §13). Add a `label` to every new purpose — it is the table's first column. |
 | `auditActions.ts` | `AUDIT_*` constants — the canonical action vocabulary for `audit_log.action`. |
 
 `shared/legal/versions.ts` (re-exported wherever needed):
