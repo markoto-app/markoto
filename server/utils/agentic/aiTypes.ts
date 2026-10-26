@@ -52,7 +52,9 @@ export interface AgenticFunctionDeclaration {
   name?: string
   description?: string
   parameters?: {
-    type?: string
+    // JSON Schema allows `type` to be a single type name or an array of
+    // them; zod's `toJSONSchema` result is typed that way (zod ≥ 4.4).
+    type?: string | string[]
     properties?: Record<string, unknown>
     required?: string[]
     [k: string]: unknown

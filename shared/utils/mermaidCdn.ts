@@ -32,8 +32,8 @@
  * sites will not validate it today. Treat mermaid as best-effort SRI
  * until the spec lands.
  */
-export const MERMAID_VERSION = '11.14.0'
+export const MERMAID_VERSION = '11.17.2'
 
 export const MERMAID_ESM_URL = `https://cdn.jsdelivr.net/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.esm.min.mjs`
 
-export const MERMAID_ESM_SRI = 'sha384-QKnqrMjp4QCSqR5R2H+rXW8780iTNp7Y3mwQOMdlAZhMePrlb/UxZJYF+Mqf+kUw'
+export const MERMAID_ESM_SRI = 'sha384-WpV0mnoAILtx5vne0am/qjdpWLSB/nef78GMd221pz6JKoZNgONGZbSu4ppDDPx/'

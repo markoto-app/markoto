@@ -1,3 +1,12 @@
+// @vitest-environment jsdom
+//
+// jsdom, not the dom project's default happy-dom: DOMPurify >= 3.4.8 walks
+// the tree with anti-clobbering `Node.prototype` getters that happy-dom
+// 20/21 implements incorrectly (capricorn86/happy-dom#2182, #2310). Under
+// happy-dom the sanitizer silently skips nodes — allowlisted tags vanish
+// and disallowed `href` schemes survive — so this suite would be testing
+// happy-dom, not our sanitizer. jsdom is DOMPurify's supported non-browser
+// DOM, and its output matches real Chromium for this config.
 import { describe, it, expect } from 'vitest'
 import { renderMarkdown } from '../../app/utils/renderMarkdown'
 
@@ -42,7 +51,7 @@ function findDangers(html: string): DangerFinding[] {
   const out: DangerFinding[] = []
   const root = parseDoc(html)
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
-  let n: Node | null = walker.currentNode
+  let n: Node | null
   while ((n = walker.nextNode())) {
     const el = n as Element
     const tag = el.tagName.toLowerCase()

@@ -37,7 +37,7 @@ import type { CodeTheme } from '../types/theme'
  * `<pre>` blocks the iframe can read), revisit this decision and adopt
  * option (a) — pre-compute SRI for every theme into a lookup table.
  */
-export const HLJS_VERSION = '11.11.1'
+export const HLJS_VERSION = '11.12.0'
 
 /**
  * Resolve the highlight.js stylesheet URL for the given code theme. An
