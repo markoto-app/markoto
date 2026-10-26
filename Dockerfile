@@ -15,6 +15,11 @@ RUN bun install --frozen-lockfile
 
 COPY --chown=bun:bun . .
 RUN bun run build
+# Operator CLIs. The runtime stage ships only the Nitro output — no
+# scripts/ dir, no node_modules — so standalone scripts are bundled into
+# single files (deps inlined) that run with the image's bun:
+#   docker compose exec app bun cli/reembed-knowledge.js [--dry-run]
+RUN bun build scripts/reembed-knowledge.ts --target=bun --outfile=cli/reembed-knowledge.js
 
 # --- Runtime stage ---------------------------------------------------------
 # Nitro's `bun` preset emits an output targeted at the Bun runtime — it
@@ -41,6 +46,8 @@ COPY --from=builder --chown=bun:bun /app/drizzle ./drizzle
 # Missing them 500s every /legal/* page and drops every template body.
 COPY --from=builder --chown=bun:bun /app/content ./content
 COPY --from=builder --chown=bun:bun /app/shared/templates/content ./shared/templates/content
+# Bundled operator CLIs (see the builder stage).
+COPY --from=builder --chown=bun:bun /app/cli ./cli
 
 USER bun
 EXPOSE 3000
