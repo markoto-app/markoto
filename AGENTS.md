@@ -69,42 +69,42 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 
 | Tool | Version | Purpose |
 |---|---|---|
-| Bun | 1.3.12 | JS/TS runtime + package manager |
-| Nuxt | 4.4.2 | Full-stack Vue (SSR + API via Nitro) |
+| Bun | 1.4.4 | JS/TS runtime + package manager (lockfile v2 — Bun ≥ 1.4 required to install) |
+| Nuxt | 4.6.2 | Full-stack Vue (SSR + API via Nitro) |
 
 ### Nuxt modules
 
 | Module | Version | Purpose |
 |---|---|---|
-| `@nuxt/ui` | 4.6.1 | Reka UI + Tailwind v4 |
-| `nuxt-auth-utils` | 0.5.29 | OAuth + sealed-cookie sessions |
-| `@nuxtjs/i18n` | 10.2.1 | 6 languages, lazy-loaded |
-| `@vueuse/nuxt` | 14.2.1 | VueUse auto-imports |
-| `@pinia/nuxt` | 0.11.3 | State management (must precede Colada) |
-| `@pinia/colada-nuxt` | 0.3.2 | `useQuery` / `useMutation` |
-| `@vite-pwa/nuxt` | 0.10.6 | PWA/Workbox |
-| `nuxt-codemirror` | 0.0.11 | CM6 Vue wrapper |
+| `@nuxt/ui` | 4.12.0 | Reka UI + Tailwind v4 |
+| `nuxt-auth-utils` | 0.5.32 | OAuth + sealed-cookie sessions |
+| `@nuxtjs/i18n` | 10.6.0 | 6 languages, lazy-loaded |
+| `@vueuse/nuxt` | 14.4.0 | VueUse auto-imports |
+| `@pinia/nuxt` | 1.0.3 | State management (must precede Colada) |
+| `@pinia/colada-nuxt` | 1.2.0 | `useQuery` / `useMutation` |
+| `@vite-pwa/nuxt` | 1.1.1 | PWA/Workbox |
+| `nuxt-codemirror` | 0.0.11 | CM6 Vue wrapper — its Vite alias dedupes `@codemirror/{state,view}` to the root copies, which are declared as direct deps |
 
 ### Frontend
 
 | Package | Version | Purpose |
 |---|---|---|
-| `yjs` | 13.6.30 | CRDT doc model |
-| `y-codemirror.next` | 0.3.5 | CM6 ↔ Y.js with remote cursors |
+| `yjs` | 13.6.33 | CRDT doc model |
+| `y-codemirror.next` | 0.3.6 | CM6 ↔ Y.js with remote cursors |
 | `@hocuspocus/provider` | 3.4.4 | WS provider |
-| `@codemirror/lang-markdown` | 6.3.2 | Markdown + GFM |
-| `@codemirror/language-data` | 6.5.1 | Code-fence highlighting |
-| `markdown-it` + plugins | 14.1.0 | Core renderer (task-lists, emoji, footnote + custom pagebreak rule) |
+| `@codemirror/lang-markdown` | 6.5.2 | Markdown + GFM |
+| `@codemirror/language-data` | 6.5.2 | Code-fence highlighting |
+| `markdown-it` + plugins | 14.3.3 | Core renderer (task-lists, emoji, footnote + custom pagebreak rule) |
 | `@mdit/plugin-{attrs,mark,ins,sub,sup,dl,abbr,figure,img-size}` | 0.23–0.25 | Batch 1: typography & semantic markup |
 | `@mdit/plugin-alert` + `@mdit/plugin-katex` + `katex` | 0.23–0.25 / 0.16 | Batch 2: alerts + math |
 | `markdown-it-anchor` + `markdown-it-toc-done-right` | 9.2.0 / 4.2.0 | Batch 3: heading IDs + `[[toc]]` |
-| `mermaid` (CDN ESM, lazy) | 11.x | Batch 3: diagrams; pinned in `shared/utils/mermaidCdn.ts` |
-| `highlight.js` | 11.11.1 | Code highlighting (CDN stylesheet) |
-| `dompurify` | 3.2.4 | XSS sanitization |
+| `mermaid` (CDN ESM, lazy) | 11.17.2 | Batch 3: diagrams; pinned in `shared/utils/mermaidCdn.ts` |
+| `highlight.js` | 11.12.0 | Code highlighting (CDN stylesheet) |
+| `dompurify` | 3.4.17 | XSS sanitization (XSS test suite runs under jsdom — happy-dom breaks DOMPurify ≥ 3.4.8) |
 | `pagedjs` (CDN) | 0.4.3 | CSS Paged Media polyfill; pinned in `shared/utils/pagedjsCdn.ts` |
-| `nanoid` | 5.1.5 | ID generation |
-| `openai` | ^6.36 | OpenAI SDK pointed at LiteLLM (used for embeddings + text agentic loop + image gen + voice transcribe) |
-| `@mistralai/mistralai` | ^2.2 | Mistral SDK — used only for Voxtral Realtime WS streaming (`extra/realtime` sub-export). All other Mistral calls go via LiteLLM. |
+| `nanoid` | 6.0.2 | ID generation |
+| `openai` | ^7.43 | OpenAI SDK pointed at LiteLLM (used for embeddings + text agentic loop + image gen + voice transcribe) |
+| `@mistralai/mistralai` | ^2.7 | Mistral SDK — used only for Voxtral Realtime WS streaming (`extra/realtime` sub-export). All other Mistral calls go via LiteLLM. |
 | `file-type` | ^22 | Magic-byte sniffer for knowledge-upload content-type validation |
 
 ### Sync server (`sync-server/`)
@@ -113,25 +113,25 @@ Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via
 |---|---|---|
 | `@hocuspocus/server` | 3.4.4 | WS sync server |
 | `y-postgresql` | 1.0.1 | Y.js persistence (⚠ `useIndex: false` — 1.0.1 has SQL bug) |
-| `pg` | ^8.20 | Driver |
-| `ioredis` | ^5 | Per-doc state in Valkey (separate from app's pool) |
+| `pg` | ^8.23 | Driver |
+| `ioredis` | ^6 | Per-doc state in Valkey (separate from app's pool) |
 | `@sentry/bun` | ^10 | Error telemetry (JWT verification uses `shared/utils/secrets`, no `jsonwebtoken` dep) |
 
 ### Nuxt server
 
 | Package | Version | Purpose |
 |---|---|---|
-| `drizzle-orm` | 0.45.2 | Type-safe ORM (`node-postgres` adapter) |
-| `drizzle-kit` | 0.31.10 | Migration generator |
-| `pg` | ^8.20 | Driver |
-| `@aws-sdk/client-s3` + presigner | 3.750.0 | Image uploads |
-| `jsonwebtoken` | 9.0.2 | Hocuspocus token minting |
-| `stripe` | ^22 | Subscription + webhook |
+| `drizzle-orm` | 0.45.4 | Type-safe ORM (`node-postgres` adapter) |
+| `drizzle-kit` | 0.31.11 | Migration generator |
+| `pg` | ^8.23 | Driver |
+| `@aws-sdk/client-s3` + presigner | 3.1156.0 | Image uploads |
+| `jsonwebtoken` | 9.0.3 | Hocuspocus token minting |
+| `stripe` | ^23 | Subscription + webhook |
 | `zod` | ^4 | Validates AI tool-call args (Mistral/OpenAI shape); `z.toJSONSchema` generates tool schemas |
 
 ### LiteLLM proxy (`infra/litellm/`)
 
-Vendor-agnostic gateway between the app and external AI providers. Self-hosted (`ghcr.io/berriai/litellm:main-v1.83.14-stable`) — runs as a Compose service on the project's `internal` network, backed by a separate `litellm` database on the existing Postgres instance.
+Vendor-agnostic gateway between the app and external AI providers. Self-hosted (`ghcr.io/berriai/litellm:v1.106.4` — since 1.84 LiteLLM tags stable releases as plain `vX.Y.Z`, no `-stable` suffix) — runs as a Compose service on the project's `internal` network, backed by a separate `litellm` database on the existing Postgres instance.
 
 Phase 1A wires only embeddings + reranker through LiteLLM (`jina-embeddings-v5-text-nano` for the workspace knowledge base). Phases 3 / 4 / 5 add image gen (BFL via custom provider, EU-pinned), text agentic loop (Mistral Small 4.0), and voice metering (Voxtral Realtime via custom-provider tick). The migration is complete; the historical migration plan + spike findings are archived outside the repo.
 

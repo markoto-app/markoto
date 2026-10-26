@@ -71,6 +71,7 @@ const hoisted = vi.hoisted(() => {
     },
     // Captured opts passed into useHocuspocusSync — gives tests the
     // hook handles so they can simulate provider lifecycle events.
+    metaCalls: [] as Array<{ url: string, method: string, body: unknown }>,
     capturedSyncOpts: null as null | {
       docId: string
       syncUrl: string
@@ -157,24 +158,26 @@ mockNuxtImport('useHocuspocusSync', () => {
 // We can't use registerEndpoint here: the server-side auth middleware
 // rejects `/api/docs/*` PUTs without a real session cookie before our
 // handler runs. Mocking `useUserSession` only changes client-side state.
-// Stubbing `$fetch` globally intercepts the call before it hits the
-// network/Nitro entirely — good enough for recording body + URL.
+// Mocking `$fetch` intercepts the call before it hits the network/Nitro
+// entirely — good enough for recording body + URL.
+//
+// Since Nuxt 4.5, `$fetch` in app code is an auto-import (nuxt/nuxt#35581)
+// rather than a read of the global, so `vi.stubGlobal('$fetch', …)` no
+// longer reaches `useDocument`; it has to be mocked as a Nuxt import.
 interface MetaCall { url: string, method: string, body: unknown }
-const metaCalls: MetaCall[] = []
-const realFetch = globalThis.$fetch
+const metaCalls: MetaCall[] = hoisted.metaCalls
 
-function installFetchStub() {
-  const stub = vi.fn(async (url: string, opts?: { method?: string, body?: unknown }) => {
+mockNuxtImport('$fetch', () => {
+  return async (url: string, opts?: { method?: string, body?: unknown }) => {
     if (/^\/api\/docs\/[^/]+\/meta$/.test(url) && opts?.method === 'PUT') {
-      metaCalls.push({ url, method: opts.method, body: opts.body })
+      hoisted.metaCalls.push({ url, method: opts.method, body: opts.body })
       return { ok: true }
     }
-    // Fall back to the real $fetch for anything else (registerEndpoint-
-    // backed routes in other test files still need to work).
-    return realFetch(url as never, opts as never)
-  })
-  vi.stubGlobal('$fetch', stub)
-}
+    // useDocument's only $fetch is the owner meta PUT; anything else is
+    // a test-setup gap and should fail loudly rather than hit Nitro.
+    throw new Error(`unexpected $fetch in useDocument test: ${opts?.method ?? 'GET'} ${url}`)
+  }
+})
 
 function resetHoisted() {
   hoisted.sessionUser.value = null
@@ -209,7 +212,6 @@ function resetHoisted() {
 
 beforeEach(() => {
   resetHoisted()
-  installFetchStub()
 })
 
 /**

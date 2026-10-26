@@ -213,7 +213,7 @@ async function assertPublicResolution(host: string): Promise<void> {
     addresses = await lookup(host, { all: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'DNS lookup failed'
-    throw new Error(`URL refused: hostname "${host}" could not be resolved (${msg}).`)
+    throw new Error(`URL refused: hostname "${host}" could not be resolved (${msg}).`, { cause: e })
   }
   if (!addresses.length) {
     throw new Error(`URL refused: hostname "${host}" returned no DNS records.`)

@@ -21,7 +21,7 @@ import { LOGOUT_CHANNEL_NAME } from '../composables/useLogout'
 export default defineNuxtPlugin(() => {
   if (typeof BroadcastChannel === 'undefined') return
 
-  let channel: BroadcastChannel | null = null
+  let channel: BroadcastChannel
   try {
     channel = new BroadcastChannel(LOGOUT_CHANNEL_NAME)
   } catch {

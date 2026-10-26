@@ -16,7 +16,8 @@ import { ensureUserKey } from './litellmKeys'
  * virtual-key budgets. There's no app-side interaction counter,
  * BudgetExhausted exception, or `chargeInteractions` call — LiteLLM's
  * spend tracker enforces `max_budget` natively, and a budget overrun
- * surfaces as an HTTP 400 `budget_exceeded` from the proxy. Callers
+ * surfaces as an HTTP 422 `budget_exceeded` from the proxy (400 before
+ * LiteLLM 1.104; detection is message-based, not status-based). Callers
  * use `useLitellmForUser(virtualKey)` from `litellmClient.ts` and
  * catch `LitellmBudgetExhausted` (or detect via `isBudgetExceededError`)
  * at the call site.

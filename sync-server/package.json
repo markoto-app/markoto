@@ -13,14 +13,14 @@
   },
   "dependencies": {
     "@hocuspocus/server": "^3.4.4",
-    "@sentry/bun": "^10.48.0",
-    "ioredis": "^5.10.1",
-    "pg": "^8.20.0",
+    "@sentry/bun": "^10.76.2",
+    "ioredis": "^6.0.0",
+    "pg": "^8.23.1",
     "y-postgresql": "^1.0.1",
-    "yjs": "^13.6.30"
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
-    "@types/pg": "^8.20.0",
-    "vitest": "^4.0.5"
+    "@types/pg": "^8.23.1",
+    "vitest": "^4.1.12"
   }
 }

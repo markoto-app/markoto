@@ -150,7 +150,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.12
+          bun-version: 1.4.4
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -187,7 +187,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.12
+          bun-version: 1.4.4
 
       # No `bun install` — the script uses only node builtins, so this stays
       # fast. Flags backward-incompatible DDL (DROP/RENAME/TYPE/SET NOT NULL/
@@ -208,7 +208,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.12
+          bun-version: 1.4.4
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -262,7 +262,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.12
+          bun-version: 1.4.4
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -345,6 +345,88 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  image-scan:
+    name: image-scan (${{ matrix.service }})
+    # Builds every runtime image exactly as release.yml does (same
+    # context/Dockerfile pairs) WITHOUT pushing, then scans it with Trivy.
+    # Fails on fixable HIGH/CRITICAL OS + library CVEs — `ignore-unfixed`
+    # keeps a CVE with no upstream fix yet from blocking unrelated PRs;
+    # bumping the base-image digest is the remedy when this goes red.
+    # Same draft gate as the heavy test job (image builds take minutes).
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: app
+            context: .
+            dockerfile: Dockerfile
+          - service: sync-server
+            context: .
+            dockerfile: ./sync-server/Dockerfile
+          - service: renderer
+            context: ./renderer
+            dockerfile: ./renderer/Dockerfile
+          - service: markitdown
+            context: ./markitdown-server
+            dockerfile: ./markitdown-server/Dockerfile
+          - service: backup
+            context: ./backup-server
+            dockerfile: ./backup-server/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      # The runner's root disk is too small for "build + load into the
+      # daemon + Trivy's own export copy" of the larger images (app with
+      # the 10 GB swapfile below, renderer at ~2 GB): both failed with
+      # `no space left on device`. Drop preinstalled SDKs this job never
+      # uses, and (below) scan an image tarball instead of a loaded image
+      # so the layers exist on disk once, not three times.
+      - name: Free runner disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      # Same memory headroom as release.yml's build-images job — the app
+      # build (Nuxt/Vite + Sentry source maps) OOMs without extra swap.
+      - name: Add swap (memory-heavy app build)
+        if: matrix.service == 'app'
+        run: |
+          sudo fallocate -l 10G /swapfile-ci
+          sudo chmod 600 /swapfile-ci
+          sudo mkswap /swapfile-ci
+          sudo swapon /swapfile-ci
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+          tags: markoto-${{ matrix.service }}:ci-scan
+          cache-from: type=gha,scope=${{ matrix.service }}
+
+      # Pinned by commit SHA (v0.36.0), not by tag: 76 of trivy-action's 77
+      # tags were force-pushed to credential-stealing commits in the March
+      # 2026 Trivy supply-chain compromise (GHSA-69fq-xp46-6x23), so a tag
+      # is not a trustworthy reference for this action.
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          input: ${{ runner.temp }}/image.tar
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: '1'
+
   notify-on-failure:
     name: notify-on-failure
     needs:
@@ -356,6 +438,7 @@ jobs:
       - test-unit-dom
       - test-repos-integration-flows
       - sonar
+      - image-scan
     if: failure()
     runs-on: ubuntu-latest
     steps:

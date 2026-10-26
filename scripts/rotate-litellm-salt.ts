@@ -143,7 +143,8 @@ async function main(): Promise<void> {
       } catch (e) {
         throw new Error(
           `user_id=${row.id}: decrypt with OLD salt failed (${e instanceof Error ? e.message : e}). `
-          + 'Either OLD_LITELLM_SALT_KEY is wrong, or this row was previously rotated to a different salt. Aborting.'
+          + 'Either OLD_LITELLM_SALT_KEY is wrong, or this row was previously rotated to a different salt. Aborting.',
+          { cause: e }
         )
       }
       updates.push({ id: row.id, next: encrypt(plaintext, newSalt) })

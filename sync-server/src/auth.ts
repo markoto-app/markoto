@@ -81,7 +81,8 @@ export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
       // single error. Preserves the log line with the real cause for
       // operators without leaking which specific thing failed to callers.
       console.warn(`[auth] Invalid token for ${documentName}:`, e instanceof Error ? e.message : e)
-      throw new Error('Invalid token')
+      // `cause` stays server-side (logs/Sentry); callers only see the message.
+      throw new Error('Invalid token', { cause: e })
     }
 
     // Scope check — a JWT minted for doc-A must never grant access to

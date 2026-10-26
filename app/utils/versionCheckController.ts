@@ -100,7 +100,7 @@ export function createVersionCheckController(
   async function poll(): Promise<void> {
     if (shown) return
     lastPolledAt = now()
-    let buildId: string | null = null
+    let buildId: string | null
     try {
       buildId = await deps.fetchBuildId()
     } catch {

@@ -57,7 +57,8 @@ export default async function globalSetup() {
     throw new Error(
       `[repos-test] useDatabase() smoke probe failed — env wiring is broken.\n`
       + `Did testEnv.applyTestEnv() set every var that postgresUrlFromEnv reads?\n`
-      + `Original error: ${e instanceof Error ? e.message : String(e)}`
+      + `Original error: ${e instanceof Error ? e.message : String(e)}`,
+      { cause: e }
     )
   }
   // Close the probe pool so the first real test gets a fresh one.
