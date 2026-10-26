@@ -24,7 +24,7 @@
 
 **Legal documents (no session):** `GET /api/_internal/legal/:slug` (renders markdown from `content/legal/:slug/<locale>.md` with `{{controllerName}}` / `{{controllerAddress}}` / `{{privacyContactEmail}}` / `{{abuseContactEmail}}` / `{{governingLaw}}` substitution against `resolveLegalEntity()`), `GET /api/_internal/sub-processors` (renders `SUB_PROCESSORS` registry as JSON for the `/legal/sub-processors` page).
 
-**Files:** `POST /api/upload/request` (presigned PUT), `POST /api/upload/confirm` (HEADs the S3 object then runs `file-type` magic-byte sniff against the declared MIME — bypass attempts get 415 + orphan delete), `GET /api/files/:docId/:fileId` (302 → presigned GET, access-controlled)
+**Files:** `POST /api/upload/request` (doc must exist + `canEditDoc`; 60/user/min; inserts the pending `uploads` row; presigned PUT), `POST /api/upload/confirm` (60/user/min; the key must match `docs/{docId}/{nanoid12}.{png|jpg|gif|webp}` AND resolve to the caller's own `uploads` row, else 404 with NO S3 call; then HEAD + `file-type` magic-byte sniff — mismatch gets 415 + delete of that validated key only; double confirm is idempotent. Never act on a client-supplied key without this row check: the bucket also holds backups), `GET /api/files/:docId/:fileId` (302 → presigned GET, access-controlled)
 
 **Import:** `POST /api/import` (DOCX/PDF/PPTX/XLSX/HTML/EPUB → markdown, 50MB, public)
 

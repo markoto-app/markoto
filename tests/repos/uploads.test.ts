@@ -3,6 +3,9 @@ import { resetDb, testDb } from '../integration/setup/db'
 import {
   recordPending,
   markConfirmed,
+  findOwnUpload,
+  confirmOwnUpload,
+  deletePending,
   listStaleUnconfirmed,
   purgeStaleUnconfirmed,
   listAllS3Keys,
@@ -65,6 +68,55 @@ describe('recordPending / markConfirmed', () => {
 
   it('markConfirmed on an unknown key is a no-op (no error)', async () => {
     await expect(markConfirmed('docs/ghost/z.png')).resolves.toBeUndefined()
+  })
+})
+
+describe('own-upload helpers (confirm path)', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function seedPending() {
+    const owner = await createUser()
+    const other = await createUser()
+    const doc = await seedDoc({ ownerId: owner.id })
+    const key = `docs/${doc.docId}/abc.png`
+    await recordPending({
+      docId: doc.docId, fileId: 'abc.png', uploaderId: owner.id,
+      contentType: 'image/png', sizeBytes: 7, s3Key: key
+    })
+    return { owner, other, doc, key }
+  }
+
+  it('findOwnUpload only resolves for the uploader', async () => {
+    const { owner, other, doc, key } = await seedPending()
+    expect(await findOwnUpload(key, other.id)).toBeNull()
+    expect(await findOwnUpload('docs/nope/x.png', owner.id)).toBeNull()
+    const row = await findOwnUpload(key, owner.id)
+    expect(row).toMatchObject({ docId: doc.docId, sizeBytes: 7, confirmedAt: null })
+  })
+
+  it('confirmOwnUpload flips once and refuses other users', async () => {
+    const { owner, other, key } = await seedPending()
+    expect(await confirmOwnUpload(key, other.id)).toBe(false)
+    expect(await confirmOwnUpload(key, owner.id)).toBe(true)
+    expect(await confirmOwnUpload(key, owner.id)).toBe(false)
+    expect((await findOwnUpload(key, owner.id))?.confirmedAt).toBeInstanceOf(Date)
+  })
+
+  it('deletePending removes only the uploader\'s pending row', async () => {
+    const { owner, other, key } = await seedPending()
+    await deletePending(key, other.id)
+    expect(await findOwnUpload(key, owner.id)).not.toBeNull()
+    await confirmOwnUpload(key, owner.id)
+    await deletePending(key, owner.id)
+    expect(await findOwnUpload(key, owner.id)).not.toBeNull()
+  })
+
+  it('deletePending drops a still-pending row', async () => {
+    const { owner, key } = await seedPending()
+    await deletePending(key, owner.id)
+    expect(await findOwnUpload(key, owner.id)).toBeNull()
   })
 })
 

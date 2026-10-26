@@ -5,7 +5,7 @@ import { useDatabase } from '../utils/database'
 // Uploads repository. Powers the presigned-URL upload flow:
 //   request → recordPending (row inserted as unconfirmed)
 //   S3 PUT
-//   confirm → markConfirmed (confirmedAt timestamp)
+//   confirm → findOwnUpload + markConfirmed (confirmedAt timestamp)
 //
 // The orphan-cleanup plugin reads stale unconfirmed rows + the full
 // s3Key list to reconcile against S3.
@@ -29,14 +29,66 @@ export async function recordPending(input: PendingUploadInput): Promise<void> {
   await db.insert(uploads).values(input)
 }
 
+export interface OwnUploadRow {
+  docId: string
+  contentType: string
+  sizeBytes: number
+  confirmedAt: Date | null
+}
+
 /**
- * Flip an upload to confirmed. Called after the HEAD-object check
- * succeeds in /upload/confirm. Matches by s3Key — the client gets the
- * full key back from /upload/request.
+ * The upload row `/api/upload/request` issued for `s3Key` to `uploaderId`,
+ * confirmed or not. Null when the key was never issued to this user, in
+ * which case /upload/confirm answers 404 without touching S3.
+ */
+export async function findOwnUpload(s3Key: string, uploaderId: number): Promise<OwnUploadRow | null> {
+  const db = useDatabase()
+  const rows = await db
+    .select({
+      docId: uploads.docId,
+      contentType: uploads.contentType,
+      sizeBytes: uploads.sizeBytes,
+      confirmedAt: uploads.confirmedAt
+    })
+    .from(uploads)
+    .where(and(eq(uploads.s3Key, s3Key), eq(uploads.uploaderId, uploaderId)))
+    .limit(1)
+  return rows[0] ?? null
+}
+
+/**
+ * Flip an upload to confirmed by key alone. Only for server-issued keys
+ * (AI image tool); the HTTP confirm path uses `confirmOwnUpload`.
  */
 export async function markConfirmed(s3Key: string): Promise<void> {
   const db = useDatabase()
   await db.update(uploads).set({ confirmedAt: new Date() }).where(eq(uploads.s3Key, s3Key))
+}
+
+/**
+ * Atomically flip the caller's pending upload to confirmed. Returns false
+ * when there was nothing to flip (already confirmed, or not theirs), so
+ * concurrent double-confirms are harmless.
+ */
+export async function confirmOwnUpload(s3Key: string, uploaderId: number): Promise<boolean> {
+  const db = useDatabase()
+  const rows = await db
+    .update(uploads)
+    .set({ confirmedAt: new Date() })
+    .where(and(eq(uploads.s3Key, s3Key), eq(uploads.uploaderId, uploaderId), isNull(uploads.confirmedAt)))
+    .returning({ id: uploads.id })
+  return rows.length > 0
+}
+
+/**
+ * Drop the caller's still-pending row (content-sniff rejection). Never
+ * touches a confirmed row.
+ */
+export async function deletePending(s3Key: string, uploaderId: number): Promise<void> {
+  const db = useDatabase()
+  await db
+    .delete(uploads)
+    .where(and(eq(uploads.s3Key, s3Key), eq(uploads.uploaderId, uploaderId), isNull(uploads.confirmedAt)))
 }
 
 /**
