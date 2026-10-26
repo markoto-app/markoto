@@ -3,6 +3,12 @@
  * Re-embed the workspace knowledge base after switching embedding model or
  * dimension (self-hosting). `bun run knowledge:reembed`.
  *
+ * The app image ships this script bundled (Dockerfile: `bun build` →
+ * /app/cli/reembed-knowledge.js), so on a compose deployment run it inside
+ * the app container, which already has every variable below:
+ *   docker compose exec app bun cli/reembed-knowledge.js --dry-run
+ * Keep it free of Nitro auto-imports so the bundle runs standalone.
+ *
  *   bun run knowledge:reembed -- --dry-run     # report only, change nothing
  *   bun run knowledge:reembed                  # do it
  *   bun run knowledge:reembed -- --batch-size 20 --concurrency 3 --pause-ms 500

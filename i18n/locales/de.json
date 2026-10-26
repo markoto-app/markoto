@@ -17,6 +17,7 @@
     "logout": "Abmelden",
     "loginGithub": "Mit GitHub fortfahren",
     "loginGoogle": "Mit Google fortfahren",
+    "loginUnavailable": "Die Anmeldung ist auf dieser Instanz nicht eingerichtet. Du kannst Dokumente trotzdem anonym erstellen und bearbeiten.",
     "loginRequired": "Anmeldung erforderlich",
     "linkedTitle": "Konten verknüpft",
     "linkedDescription": "Ihre {provider}-Anmeldung ist jetzt mit Ihrem bestehenden Konto verbunden. Ab sofort können Sie sich mit beiden Anbietern anmelden."

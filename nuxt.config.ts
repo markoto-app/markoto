@@ -86,6 +86,12 @@ export default defineNuxtConfig({
     },
     s3: {
       endpoint: '',
+      // NUXT_S3_PUBLIC_ENDPOINT — base URL browsers use for presigned S3
+      // URLs when it differs from `endpoint` (self-host compose: SeaweedFS
+      // is `http://seaweedfs:8333` inside the stack and published through
+      // Traefik on the public origin). Empty = same as `endpoint`. See
+      // server/utils/s3.ts#usePresignS3Client.
+      publicEndpoint: '',
       accessKey: '',
       secretKey: '',
       bucket: 'ypad'

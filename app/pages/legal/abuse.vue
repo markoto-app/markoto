@@ -11,6 +11,8 @@
 // query string `?docId=<id>`. Plain navigation lands on the form
 // with the doc field empty + a free-form input.
 
+definePageMeta({ middleware: 'legal-surfaces' })
+
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()

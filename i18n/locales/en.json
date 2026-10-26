@@ -17,6 +17,7 @@
     "logout": "Log out",
     "loginGithub": "Continue with GitHub",
     "loginGoogle": "Continue with Google",
+    "loginUnavailable": "Sign-in isn't set up on this instance. You can still create and edit documents anonymously.",
     "loginRequired": "Login required",
     "linkedTitle": "Accounts linked",
     "linkedDescription": "Your {provider} login is now connected to your existing account. You can sign in with either provider from here on."

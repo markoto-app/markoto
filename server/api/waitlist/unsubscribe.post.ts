@@ -17,9 +17,7 @@ import { hashWaitlistToken, parseWaitlistToken } from '../../utils/waitlist'
 // reveals nothing. Only a malformed token is a 400.
 
 export default defineEventHandler(async (event) => {
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || 'unknown'
+  const ip = getClientIp(event) ?? 'unknown'
   if (!(await checkRateLimit('waitlist-token', ip, 30, 10 * 60 * 1000))) {
     throw createError({
       statusCode: 429,

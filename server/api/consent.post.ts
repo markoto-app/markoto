@@ -64,9 +64,7 @@ export default defineEventHandler(async (event) => {
   // Truncate IP + hash UA — same audit-log convention. Storing
   // raw values would re-introduce identifying data we just
   // pseudonymised.
-  const rawIp = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const rawIp = getClientIp(event)
   const ipTruncated = truncateIp(rawIp)
   const userAgent = getRequestHeader(event, 'user-agent') ?? ''
   const userAgentHash = userAgent

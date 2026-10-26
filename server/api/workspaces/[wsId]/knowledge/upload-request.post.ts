@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
 
   let uploadUrl: string
   try {
-    const s3 = useS3Client()
+    const s3 = usePresignS3Client()
     // SSE NOTE: presigned PUTs deliberately omit `ServerSideEncryption`
     // — see server/api/upload/request.post.ts for the full rationale.
     // Bucket-level default-encryption (docs/S3-SETUP.md §6) covers the

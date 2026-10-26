@@ -148,6 +148,14 @@ services:
       # page "coming soon" + waitlist); leave it false when self-hosting.
       - NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED:-false}
       - NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON:-false}
+      # Legal surfaces (shared/config/instance.ts): onboarding gate, consent
+      # banner, DPA step, /legal/* pages. This file is the HOSTED stack, so
+      # they default ON here (the code default is off, for self-hosters —
+      # see docker-compose.selfhost.yml).
+      - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
+      # Number of trusted reverse proxies in front of the app (Traefik = 1).
+      # See shared/utils/clientIp.ts.
+      - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
       # Stripe — only read (and only required at boot, in production) when
       # NUXT_BILLING_ENABLED=true.
       - NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:-}
@@ -259,8 +267,13 @@ services:
     volumes:
       - /opt/markoto/secrets:/opt/markoto/secrets:ro
     networks:
-      - web
-      - internal
+      web: {}
+      internal:
+        # Chromium (renderer) can't use the service name `app`: it's an
+        # HSTS-preloaded TLD, so http://app:3000 is upgraded to https and
+        # fails with ERR_SSL_PROTOCOL_ERROR. The renderer uses this alias.
+        aliases:
+          - markoto-app
 
   # LiteLLM + its DB-init one-shot come from docker-compose.base.yml via
   # `include:`. Compose REPLACES `networks:` wholesale on merge, and base
@@ -374,7 +387,8 @@ services:
   renderer:
     image: ${REGISTRY}/markoto-renderer:${IMAGE_TAG}
     environment:
-      - APP_URL=http://app:3000
+      # Not http://app:3000 — see the `markoto-app` alias on the app service.
+      - APP_URL=http://markoto-app:3000
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
     expose:
       - "9000"

@@ -17,6 +17,8 @@ interface SubProcessor {
   dpaUrl: string | null
 }
 
+definePageMeta({ middleware: 'legal-surfaces' })
+
 const router = useRouter()
 const { t } = useI18n()
 

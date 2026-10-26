@@ -17,9 +17,7 @@ const MAX_SIZE = 50 * 1024 * 1024 // 50 MB — kept in sync with markitdown-serv
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 10 imports per IP per minute
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || 'unknown'
+  const ip = getClientIp(event) ?? 'unknown'
   if (!(await checkRateLimit('import', ip, 10, 60_000))) {
     throw createError({
       statusCode: 429,

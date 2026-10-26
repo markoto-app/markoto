@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   if (updates.accessMode !== undefined && beforeAccessMode !== updates.accessMode) {
     await appendAuditEvent({
       actorUserId: session.user.id,
-      actorIp: extractIp(event),
+      actorIp: getClientIp(event),
       scope: 'doc',
       scopeId: docId,
       action: 'doc.access_mode_changed',
@@ -154,10 +154,4 @@ function parseLanguage(raw: unknown): string | null {
     throw createError({ statusCode: 400, message: `Language too long (max ${LANGUAGE_MAX_LENGTH})` })
   }
   return trimmed
-}
-
-function extractIp(event: Parameters<Parameters<typeof defineEventHandler>[0]>[0]): string | null {
-  return getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
 }

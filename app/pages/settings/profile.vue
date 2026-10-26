@@ -30,11 +30,14 @@ const { billingEnabled } = useBillingMode()
 const toast = useToast()
 const { loggedIn, user } = useUserSession()
 const { status, refresh: refreshAccountStatus } = useAccountStatus()
+// Legal acceptance + consent sections only where the legal surfaces
+// exist (hosted SaaS); see shared/config/instance.ts.
+const { legalSurfaces, primaryLoginPath } = useInstanceConfig()
 
 useHead({ title: `${t('settings.profile.title')} · markoto` })
 
 if (import.meta.client && !loggedIn.value) {
-  globalThis.location.href = '/auth/github'
+  globalThis.location.href = primaryLoginPath.value ?? '/'
 }
 
 function onClose(): void {
@@ -274,6 +277,7 @@ function handleConsentUpdated(): void {
   void refreshConsent()
 }
 onMounted(() => {
+  if (!legalSurfaces.value) return
   void refreshConsent()
   globalThis.addEventListener('markoto:consent-updated', handleConsentUpdated)
 })
@@ -584,6 +588,7 @@ onBeforeUnmount(() => {
            but visually de-emphasised: it's a reference card, not a
            call-to-action. -->
       <section
+        v-if="legalSurfaces"
         class="mb-10"
         data-testid="profile-legal-section"
       >
@@ -638,6 +643,7 @@ onBeforeUnmount(() => {
            "Change" reopens the consent banner with the customize
            panel pre-populated from current decisions. -->
       <section
+        v-if="legalSurfaces"
         class="mb-10"
         data-testid="profile-consent-section"
       >

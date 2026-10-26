@@ -27,12 +27,14 @@ const router = useRouter()
 const { t } = useI18n()
 const toast = useToast()
 const { loggedIn } = useUserSession()
+// Login starts at the first configured OAuth provider ('/' when none).
+const { primaryLoginPath } = useInstanceConfig()
 const { refresh: refreshAvailability } = useAiAvailability()
 
 useHead({ title: `${t('aiProvider.title')} · markoto` })
 
 if (import.meta.client && !loggedIn.value) {
-  globalThis.location.href = '/auth/github'
+  globalThis.location.href = primaryLoginPath.value ?? '/'
 }
 
 function onClose(): void {

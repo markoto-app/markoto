@@ -5,6 +5,7 @@ import {
   PRIVACY_VERSION,
   TOS_VERSION
 } from '~~/shared/legal/versions'
+import { legalSurfacesEnabled } from '../../utils/instanceConfig'
 
 // Read the privacy-relevant state of the current user. Drives:
 //   - the deletion-grace banner (when `deletionRequestedAt` is set)
@@ -32,6 +33,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'User row vanished mid-request' })
   }
 
+  // Legal surfaces off (self-hosted default): no onboarding gate, no DPA
+  // step — every "required" flag is false. The accepted versions are
+  // still reported as stored.
+  const legal = legalSurfacesEnabled()
+
   return {
     // Admin allowlist check — drives the "Admin" entry in the
     // avatar dropdown. Env-based; see server/utils/adminAccess.ts.
@@ -40,7 +46,7 @@ export default defineEventHandler(async (event) => {
     locale: status.locale,
     age: {
       confirmedAt: status.ageConfirmedAt?.toISOString() ?? null,
-      confirmationRequired: status.ageConfirmedAt === null
+      confirmationRequired: legal && status.ageConfirmedAt === null
     },
     deletion: {
       requestedAt: status.deletionRequestedAt?.toISOString() ?? null,
@@ -52,15 +58,15 @@ export default defineEventHandler(async (event) => {
         currentVersion: PRIVACY_VERSION,
         acceptedVersion: status.privacyVersionAccepted,
         acceptedLocale: status.privacyVersionAcceptedLocale,
-        acceptanceRequired: status.privacyVersionAccepted === null
-          || status.privacyVersionAccepted < PRIVACY_VERSION
+        acceptanceRequired: legal && (status.privacyVersionAccepted === null
+          || status.privacyVersionAccepted < PRIVACY_VERSION)
       },
       tos: {
         currentVersion: TOS_VERSION,
         acceptedVersion: status.tosVersionAccepted,
         acceptedLocale: status.tosVersionAcceptedLocale,
-        acceptanceRequired: status.tosVersionAccepted === null
-          || status.tosVersionAccepted < TOS_VERSION
+        acceptanceRequired: legal && (status.tosVersionAccepted === null
+          || status.tosVersionAccepted < TOS_VERSION)
       },
       dpa: {
         currentVersion: DPA_VERSION,
@@ -69,8 +75,8 @@ export default defineEventHandler(async (event) => {
         // DPA acceptance is only required for workspace owners. The
         // endpoint reports the raw state; the UI gates the prompt on
         // "user owns ≥1 workspace" via a separate signal.
-        acceptanceRequired: status.dpaVersionAccepted === null
-          || status.dpaVersionAccepted < DPA_VERSION
+        acceptanceRequired: legal && (status.dpaVersionAccepted === null
+          || status.dpaVersionAccepted < DPA_VERSION)
       }
     }
   }

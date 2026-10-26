@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
   }
   // If doc doesn't exist in DB yet (new anonymous doc), allow upload since user is authenticated
 
-  const s3 = useS3Client()
+  const s3 = usePresignS3Client()
   const config = useRuntimeConfig()
   const fileId = nanoid(12)
   const key = `docs/${docId}/${fileId}.${ext}`

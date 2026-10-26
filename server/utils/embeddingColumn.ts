@@ -37,7 +37,10 @@ export const KNOWLEDGE_EMBEDDING_COLUMN: EmbeddingColumnTarget = {
 /** Name hashed into the advisory-lock key; shared by boot + re-embed script. */
 export const EMBEDDING_DIMENSION_LOCK = 'knowledge-embedding-dimension'
 
-export const REEMBED_COMMAND = 'bun run knowledge:reembed'
+// Both spellings of the same command: from a source checkout, and inside
+// the shipped app image (the Dockerfile bundles scripts/reembed-knowledge.ts
+// into /app/cli/ — the runtime image has no scripts/ dir or dev deps).
+export const REEMBED_COMMAND = '`bun run knowledge:reembed` (source checkout) or `docker compose exec app bun cli/reembed-knowledge.js` (container)'
 
 const IDENT = /^[a-z_][a-z0-9_]*$/
 
@@ -160,7 +163,7 @@ export type ReconcileResult
 export function mismatchMessage(current: number | null, target: number, stored: number): string {
   return `The knowledge-base vector column is ${current ?? 'unsized'}-dimensional but NUXT_LITELLM_EMBEDDINGS_DIMS=${target}, `
     + `and ${stored} stored vector${stored === 1 ? '' : 's'} cannot be converted. Knowledge search and uploads are disabled `
-    + `(the editor is unaffected). Either set NUXT_LITELLM_EMBEDDINGS_DIMS back to ${current ?? 'the old value'}, or run \`${REEMBED_COMMAND}\` to re-embed every chunk with the new model.`
+    + `(the editor is unaffected). Either set NUXT_LITELLM_EMBEDDINGS_DIMS back to ${current ?? 'the old value'}, or run ${REEMBED_COMMAND} to re-embed every chunk with the new model.`
 }
 
 /**

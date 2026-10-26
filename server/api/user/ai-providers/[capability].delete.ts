@@ -17,9 +17,7 @@ export default defineEventHandler(async (event) => {
   const deleted = await deleteAiProvider(userId, capability)
   if (!deleted) throw createError({ statusCode: 404, message: 'No provider configured for this capability' })
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
   await appendAuditEvent({
     actorUserId: userId,
     actorIp: truncateIp(ip),

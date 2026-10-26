@@ -32,9 +32,7 @@ export default defineEventHandler(async (event) => {
   // 30/min per IP is far above human "new doc" cadence; logged-in
   // users are accountable (owned rows, plan caps) and skip this.
   if (!ownerId) {
-    const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-      || getRequestHeader(event, 'x-real-ip')
-      || 'unknown'
+    const ip = getClientIp(event) ?? 'unknown'
     if (!(await checkRateLimit('anon-doc-create', ip, 30, 60_000))) {
       throw createError({
         statusCode: 429,

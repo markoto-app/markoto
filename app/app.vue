@@ -1,5 +1,9 @@
 <script setup lang="ts">
 const { t } = useI18n()
+// Onboarding gate + consent banner exist only where the legal surfaces
+// are on (hosted SaaS). A self-hosted instance is its own operator and
+// ships without them by default — see shared/config/instance.ts.
+const { legalSurfaces } = useInstanceConfig()
 
 useHead({
   meta: [
@@ -46,11 +50,11 @@ useSeoMeta({
          user confirms age + accepts current Privacy Policy + ToS.
          Hidden for anonymous users (no row to attach acceptance
          to) and for users who already accepted the current versions. -->
-    <LegalOnboardingGate />
+    <LegalOnboardingGate v-if="legalSurfaces" />
     <!-- Cookie / consent banner — first-visit prompt + persistent
          re-open via the footer "Privacy choices" link. Renders for
          anonymous + logged-in alike (ePrivacy is identity-agnostic). -->
-    <LegalConsentBanner />
+    <LegalConsentBanner v-if="legalSurfaces" />
     <!-- NuxtLayout wraps NuxtPage with whatever layout the page opts
          into via definePageMeta({ layout: 'name' }). Pages without
          a layout meta render bare (no default layout file exists),

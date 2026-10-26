@@ -28,9 +28,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only admins can delete the workspace' })
   }
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
 
   const childDocIds = await listDocIdsInWorkspace(wsId)
   for (const docId of childDocIds) {

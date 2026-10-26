@@ -1,0 +1,63 @@
+# Self-host overlay: HTTPS with Let's Encrypt for ${MARKOTO_DOMAIN}.
+# Used together with docker-compose.selfhost.yml (install.sh puts both in
+# COMPOSE_FILE when you give it a domain):
+#
+#   COMPOSE_FILE=docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml
+#
+# Requirements: DNS A/AAAA record for MARKOTO_DOMAIN pointing at this host,
+# and ports 80 + 443 reachable from the internet (the TLS-ALPN challenge
+# runs on 443; port 80 only redirects to https).
+#
+# Merge semantics (`-f` overlay): `command` and `volumes` replace the base
+# definition, `labels` / `environment` merge per key, `ports` are appended.
+
+services:
+  traefik:
+    command:
+      - "--api.dashboard=false"
+      - "--ping=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.forwardedHeaders.trustedIPs=${TRAEFIK_TRUSTED_IPS:-127.0.0.1/32}"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.forwardedHeaders.trustedIPs=${TRAEFIK_TRUSTED_IPS:-127.0.0.1/32}"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=${MARKOTO_INSTANCE:-markoto}-edge"
+      - "--providers.docker.constraints=Label(`markoto.instance`,`${MARKOTO_INSTANCE:-markoto}`)"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL required}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "${MARKOTO_HTTPS_BIND:-0.0.0.0}:${MARKOTO_HTTPS_PORT:-443}:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+
+  app:
+    labels:
+      - "traefik.http.routers.markoto-app.rule=Host(`${MARKOTO_DOMAIN:?MARKOTO_DOMAIN required}`)"
+      - "traefik.http.routers.markoto-app.entrypoints=websecure"
+      - "traefik.http.routers.markoto-app.tls.certresolver=le"
+
+  sync:
+    labels:
+      - "traefik.http.routers.markoto-sync.rule=Host(`${MARKOTO_DOMAIN}`) && PathPrefix(`/sync`)"
+      - "traefik.http.routers.markoto-sync.entrypoints=websecure"
+      - "traefik.http.routers.markoto-sync.tls.certresolver=le"
+
+  seaweedfs:
+    labels:
+      - "traefik.http.routers.markoto-s3.rule=Host(`${MARKOTO_DOMAIN}`) && PathPrefix(`/${NUXT_S3_BUCKET:-markoto-files}/`)"
+      - "traefik.http.routers.markoto-s3.entrypoints=websecure"
+      - "traefik.http.routers.markoto-s3.tls.certresolver=le"
+
+  # The PDF renderer's Chromium follows image redirects to the public URL.
+  # Resolve the domain to the docker host so it reaches this Traefik
+  # directly instead of hair-pinning through the public IP.
+  renderer:
+    extra_hosts:
+      - "${MARKOTO_DOMAIN}:host-gateway"
+
+volumes:
+  letsencrypt:

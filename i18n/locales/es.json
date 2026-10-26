@@ -17,6 +17,7 @@
     "logout": "Cerrar sesión",
     "loginGithub": "Continuar con GitHub",
     "loginGoogle": "Continuar con Google",
+    "loginUnavailable": "El inicio de sesión no está configurado en esta instancia. Aun así puedes crear y editar documentos de forma anónima.",
     "loginRequired": "Inicio de sesión requerido",
     "linkedTitle": "Cuentas vinculadas",
     "linkedDescription": "Tu inicio de sesión con {provider} ya está conectado a tu cuenta existente. A partir de ahora puedes iniciar sesión con cualquiera de los dos proveedores."

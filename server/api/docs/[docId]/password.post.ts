@@ -18,13 +18,6 @@ export default defineEventHandler(async (event) => {
   throw createError({ statusCode: 400, message: 'Invalid action' })
 })
 
-/** Best-effort client-IP extraction for rate-limit + audit attribution. */
-function extractIp(event: H3Event): string | null {
-  return getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
-}
-
 /**
  * SET password — doc owner or workspace admin. `canManageDoc`
  * encapsulates the orthogonal "doc owner vs workspace admin" branches;
@@ -47,7 +40,7 @@ async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, passwo
   // password-protected, so the after-state always has hasPassword=true.
   await appendAuditEvent({
     actorUserId: session.user.id,
-    actorIp: extractIp(event),
+    actorIp: getClientIp(event),
     scope: 'doc',
     scopeId: docId,
     action: 'doc.password_set',
@@ -60,7 +53,7 @@ async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, passwo
 
 /** VERIFY password — anyone (rate-limited 5/IP+docId/min). */
 async function handleVerify(event: H3Event, docId: string, doc: DocSnapshot, password: string | undefined) {
-  const ip = extractIp(event) ?? 'unknown'
+  const ip = getClientIp(event) ?? 'unknown'
   const rateLimitKey = `${ip}:${docId}`
 
   if (!(await checkRateLimit('password-verify', rateLimitKey, 5, 60_000))) {
@@ -122,7 +115,7 @@ async function handleRemove(event: H3Event, docId: string, doc: DocSnapshot) {
   // `clearDocPassword` flips access_mode back to open-edit.
   await appendAuditEvent({
     actorUserId: session.user.id,
-    actorIp: extractIp(event),
+    actorIp: getClientIp(event),
     scope: 'doc',
     scopeId: docId,
     action: 'doc.password_removed',

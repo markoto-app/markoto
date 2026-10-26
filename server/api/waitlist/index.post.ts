@@ -49,9 +49,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || 'unknown'
+  const ip = getClientIp(event) ?? 'unknown'
   if (!(await checkRateLimit('waitlist-signup', ip, IP_LIMIT, IP_WINDOW_MS))) {
     throw createError({
       statusCode: 429,

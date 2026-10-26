@@ -10,6 +10,11 @@
 // session.
 
 const { t } = useI18n()
+// Legal links + the "Privacy choices" button only where the legal
+// surfaces exist (hosted SaaS). The copyright line names the operator
+// when one is configured — never the hosted operator on a self-hosted
+// instance (shared/config/instance.ts).
+const { legalSurfaces, operatorName } = useInstanceConfig()
 
 interface FooterLink {
   to: string
@@ -46,9 +51,10 @@ function reopenConsent(): void {
   >
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-3 flex flex-col sm:flex-row items-center sm:items-center justify-between gap-2 sm:gap-4">
       <div class="text-xs text-muted font-mono">
-        © {{ new Date().getFullYear() }} LatentSpace Labs GmbH
+        © {{ new Date().getFullYear() }} {{ operatorName || 'markoto' }}
       </div>
       <nav
+        v-if="legalSurfaces"
         class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
         :aria-label="t('legal.footer.privacy')"
       >

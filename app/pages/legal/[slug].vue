@@ -16,6 +16,8 @@
 // haven't translated yet), we surface that loudly with a link back
 // to the authoritative copy.
 
+definePageMeta({ middleware: 'legal-surfaces' })
+
 const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()

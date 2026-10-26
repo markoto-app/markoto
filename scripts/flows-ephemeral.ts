@@ -121,6 +121,9 @@ const FLOWS_ENV: Record<string, string> = {
   // tests/nuxt/pricingBillingModes.test.ts and the billing-off server in
   // tests/integration/endpoints/billingOff.test.ts.
   NUXT_BILLING_ENABLED: 'true',
+  // Legal surfaces ON (hosted shape): the onboarding gate, consent banner
+  // and /legal/* flows document the hosted service.
+  NUXT_LEGAL_SURFACES_ENABLED: 'true',
   // Stripe: talks to stripe-mock. Aligns with the integration-test
   // setup (see tests/integration/setup/server.ts).
   NUXT_STRIPE_SECRET_KEY: 'sk_test_flows123',

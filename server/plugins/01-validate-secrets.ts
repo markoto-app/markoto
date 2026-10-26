@@ -116,6 +116,8 @@ function checkOAuthPairs(config: RuntimeCfg, errors: string[]): void {
 function checkUrlFields(config: RuntimeCfg, errors: string[]): void {
   const urlChecks: Array<{ name: string, value: unknown, schemes: string[] }> = [
     { name: 'NUXT_S3_ENDPOINT', value: config.s3?.endpoint, schemes: ['http:', 'https:'] },
+    // Optional (empty skipped): browser-facing base URL for presigned S3 URLs.
+    { name: 'NUXT_S3_PUBLIC_ENDPOINT', value: config.s3?.publicEndpoint, schemes: ['http:', 'https:'] },
     { name: 'NUXT_MARKITDOWN_URL', value: config.markitdownUrl, schemes: ['http:', 'https:'] },
     { name: 'NUXT_SYNC_INTERNAL_URL', value: config.syncInternalUrl, schemes: ['http:', 'https:'] },
     { name: 'NUXT_PUBLIC_SYNC_URL', value: config.public?.syncUrl, schemes: ['ws:', 'wss:'] },

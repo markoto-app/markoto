@@ -1,0 +1,42 @@
+# Self-host overlay: build markoto's five images from this checkout instead
+# of pulling them from GHCR. install.sh adds it to COMPOSE_FILE with
+# `--build`:
+#
+#   COMPOSE_FILE=docker-compose.selfhost.yml:docker-compose.selfhost.build.yml
+#
+# The built images are tagged with the same names the base file uses
+# (${REGISTRY}/markoto-*:${IMAGE_TAG}), so nothing else changes.
+# `pull_policy: never`: never try to pull these names from the registry;
+# `docker compose up` builds an image only when it is missing. After
+# `git pull`, rebuild explicitly: `docker compose build` (or
+# `./install.sh upgrade`, which does it).
+
+services:
+  app:
+    build: .
+    pull_policy: never
+
+  sync:
+    build:
+      # Repo root, so shared/ is visible to the sync-server Dockerfile.
+      context: .
+      dockerfile: sync-server/Dockerfile
+    pull_policy: never
+
+  markitdown:
+    build: ./markitdown-server
+    pull_policy: never
+
+  renderer:
+    build: ./renderer
+    pull_policy: never
+
+  # s3-init reuses this image (aws CLI), so it is built even without the
+  # backup profile.
+  s3-init:
+    build: ./backup-server
+    pull_policy: never
+
+  backup:
+    build: ./backup-server
+    pull_policy: never

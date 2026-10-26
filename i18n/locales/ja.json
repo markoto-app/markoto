@@ -17,6 +17,7 @@
     "logout": "ログアウト",
     "loginGithub": "GitHubで続ける",
     "loginGoogle": "Googleで続ける",
+    "loginUnavailable": "このインスタンスではサインインが設定されていません。ドキュメントは匿名で作成・編集できます。",
     "loginRequired": "ログインが必要です",
     "linkedTitle": "アカウントを連携しました",
     "linkedDescription": "{provider}ログインが既存のアカウントに連携されました。今後はどちらのプロバイダーでもサインインできます。"

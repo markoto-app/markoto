@@ -261,21 +261,14 @@ Changing to a different model with the **same** dimension (say 768 to a differen
 
 ### Re-embedding
 
-After editing `.env` to the new model (and restarting so the app picks it up), run from a checkout of the repository on a machine that can reach Postgres and the LiteLLM proxy:
+After editing `.env` to the new model (and restarting so the app picks it up), run the re-embed command. The app image ships it as a bundled CLI (`/app/cli/reembed-knowledge.js`), and the container already has every variable it needs (`POSTGRES_*`, `NUXT_LITELLM_URL`, `NUXT_LITELLM_MASTER_KEY`, `NUXT_LITELLM_EMBEDDINGS_*`):
 
 ```
-bun install
-bun run knowledge:reembed -- --dry-run   # report what would change
-bun run knowledge:reembed
+docker compose exec app bun cli/reembed-knowledge.js --dry-run   # report what would change
+docker compose exec app bun cli/reembed-knowledge.js
 ```
 
-The script reads the same variables as the app from the repo-root `.env` (`POSTGRES_*`, `NUXT_LITELLM_URL`, `NUXT_LITELLM_MASTER_KEY`, `NUXT_LITELLM_EMBEDDINGS_*`). In a typical compose deployment Postgres and LiteLLM are only reachable on the internal Docker network, so run it in a throwaway container attached to it:
-
-```
-docker run --rm --network <compose-project>_internal -v "$PWD":/app -w /app \
-  --env-file .env -e POSTGRES_HOST=postgres -e NUXT_LITELLM_URL=http://litellm:4000 \
-  oven/bun:1.4.4 sh -c "bun install --frozen-lockfile && bun run knowledge:reembed"
-```
+On the self-host stack, `./install.sh reembed --dry-run` / `./install.sh reembed` is the same thing. From a source checkout (development, or a machine that can reach Postgres and the LiteLLM proxy) the equivalent is `bun run knowledge:reembed -- --dry-run`, reading the repo-root `.env`.
 
 It takes the same advisory lock as the boot reconciliation, drops the HNSW index, retypes the column if the dimension changed (discarding the old vectors), re-embeds every chunk from its stored text file by file, and recreates the index at the end. It is resumable: if it stops (provider rate limit, network), run it again and it continues with the files still stale. Options: `--batch-size` (chunks per request group, default 50), `--concurrency` (parallel requests, default 5), `--pause-ms` (pause between groups, to stay under rate limits), `--force` (re-embed even files whose tag already matches; pass it once, never when resuming), `--dry-run`.
 

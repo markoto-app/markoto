@@ -19,9 +19,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
 
   // Same rate-limit key as the request endpoint so the budget is
   // shared — a stolen session can't burst-cancel-then-burst-request.

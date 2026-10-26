@@ -122,6 +122,8 @@ services:
       # preview the hosted "coming soon" pricing page or the billing flow.
       - NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED:-false}
       - NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON:-false}
+      # Legal surfaces default ON like prod (shared/config/instance.ts).
+      - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
       - NUXT_SESSION_PASSWORD=local-session-password-at-least-32-characters-long
       - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID}
       - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET}
@@ -206,8 +208,13 @@ services:
       valkey:
         condition: service_healthy
     networks:
-      - web
-      - internal
+      web: {}
+      internal:
+        # Chromium (renderer) can't use the service name `app`: it's an
+        # HSTS-preloaded TLD, so http://app:3000 is upgraded to https and
+        # fails with ERR_SSL_PROTOCOL_ERROR. The renderer uses this alias.
+        aliases:
+          - markoto-app
 
   sync:
     build:
@@ -246,7 +253,8 @@ services:
       # Hardcoded literal to mirror the app+sync hardcoded secrets in
       # this file — local boots without a populated .env.
       - INTERNAL_API_SECRET=local-internal-api-secret-change-me
-      - APP_URL=http://app:3000
+      # Not http://app:3000 — see the `markoto-app` alias on the app service.
+      - APP_URL=http://markoto-app:3000
       - S3_ENDPOINT=http://seaweedfs:8333
       # SeaweedFS doesn't support SSE-S3 — omit the encryption header or
       # PDF/PNG render uploads fail with an opaque S3 InternalError.
@@ -261,6 +269,8 @@ services:
     environment:
       - S3_ENDPOINT=http://seaweedfs:8333
       - BACKUP_INTERVAL_SECONDS=3600
+      # SeaweedFS rejects the SSE-S3 header (InternalError) — see backup.sh.
+      - S3_SSE=none
       - BACKUP_RETENTION_COUNT=5
       # Stub passphrase so the sidecar doesn't restart-loop. Local
       # backups encrypt against a throwaway key — never used for restore.
