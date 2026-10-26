@@ -20,7 +20,7 @@ everything that differs is configuration.
 
 ## Requirements
 
-- Linux host with Docker Engine and the Compose plugin **v2.20 or newer** (`docker compose version`).
+- Linux host with Docker Engine and the Compose plugin **v5.0 or newer** (`docker compose version`; current Docker Engine packages ship it). The compose files extend a shared base with `include:` and override its services, which Compose 2.24–2.40 reject with "conflicts with imported resource".
 - `openssl` and `curl` (for `install.sh`).
 - About 6 GB of RAM for a small instance (the containers have memory caps that add up to more, but they are limits, not reservations) and 15 GB of disk for images plus your data.
 - For HTTPS: a domain whose DNS A/AAAA record points at the host, and ports 80 and 443 reachable from the internet.

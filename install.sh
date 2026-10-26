@@ -14,7 +14,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="${MARKOTO_ENV_FILE:-$ROOT/.env}"
-MIN_COMPOSE="2.20.0"
+# The compose files override services they `include:` from the shared base.
+# Compose 2.24-2.40 reject that ("conflicts with imported resource"); it is
+# allowed again since v5.0.0 (compose-go#835).
+MIN_COMPOSE="5.0.0"
 HEALTH_TIMEOUT="${MARKOTO_HEALTH_TIMEOUT:-900}"
 ENV_MARKER="# markoto self-host configuration"
 

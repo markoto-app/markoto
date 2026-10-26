@@ -1,5 +1,7 @@
 # Shared service definitions consumed by dev / local / prod via Compose's
-# `include:` directive (Docker Compose v2.20+).
+# `include:` directive. Overriding an included service from the including
+# file needs Docker Compose >= 5.0.0 (2.24-2.40 reject it with "conflicts
+# with imported resource"; compose-go#835 re-allowed it).
 #
 # Why this exists: dev/local/prod previously duplicated ~80 % of every
 # service block. Drift was real — pool sizing, mem_limit, healthcheck

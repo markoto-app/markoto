@@ -255,9 +255,24 @@ jobs:
     # Static validation of the self-host deployment shape: install.sh is
     # shellcheck-clean and docker-compose.selfhost*.yml (+ the shared base)
     # render for HTTP, HTTPS, build-from-source and backup combinations.
-    # The runner image ships docker compose v2 and shellcheck.
+    # The runner image ships shellcheck but Compose v2.x, which rejects a
+    # file that overrides services it `include:`s ("conflicts with imported
+    # resource" — allowed again since Compose v5.0.0, compose-go#835). Every
+    # compose file here relies on that, so install a pinned v5 plugin.
+    env:
+      COMPOSE_VERSION: v5.4.0
+      COMPOSE_SHA256: 837fd1d35bf6a494f41b5b5988269a7be79de337cf1a1a6ff0e45ab51bb4e9be
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Docker Compose ${{ env.COMPOSE_VERSION }}
+        run: |
+          mkdir -p ~/.docker/cli-plugins
+          curl -fsSL -o ~/.docker/cli-plugins/docker-compose \
+            "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64"
+          echo "${COMPOSE_SHA256}  $HOME/.docker/cli-plugins/docker-compose" | sha256sum -c -
+          chmod +x ~/.docker/cli-plugins/docker-compose
+          docker compose version
 
       - name: Validate self-host compose + install.sh
         run: bash scripts/selfhost-check.sh
