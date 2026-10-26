@@ -1,0 +1,57 @@
+name: image-scan-weekly
+
+# Weekly Trivy scan of ALL runtime images built from main. PR scans (ci.yml)
+# only run for images whose inputs changed, so a new upstream CVE in an
+# unchanged base image / dependency would otherwise go unnoticed until the
+# next time someone touches that image. This closes the gap.
+#
+# Runs on a WEEKLY cron (+ manual dispatch, e.g. after bumping a base digest).
+
+on:
+  schedule:
+    # Monday 06:00 UTC — after the sonar baseline (05:20), before the work week.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-scan-weekly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image-scan:
+    name: image-scan
+    uses: ./.github/workflows/image-scan.yml
+
+  notify-on-failure:
+    name: notify-on-failure
+    needs: [image-scan]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Apprise
+        run: pip install apprise
+
+      - name: Send Apprise notification
+        env:
+          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "${APPRISE_URLS:-}" ]; then
+            echo "APPRISE_URLS secret not configured — skipping notification."
+            exit 0
+          fi
+          apprise -t "Image CVE scan failed on main" \
+                  -b "Commit \`${COMMIT_SHA}\`
+          Fixable HIGH/CRITICAL vulnerability in a runtime image. Bump the base digest or dependency.
+          Run: ${RUN_URL}" \
+                  -i markdown \
+                  "${APPRISE_URLS}"

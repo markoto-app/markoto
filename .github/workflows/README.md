@@ -1,8 +1,9 @@
 # GitHub Actions workflows
 
-Three workflows power markoto's CI/CD:
+These workflows power markoto's CI/CD:
 
-- `ci.yml` — runs on every PR. Lint + typecheck + tests. Must be green to merge.
+- `ci.yml` — runs on every PR. Lint + typecheck + tests. Must be green to merge. Heavy jobs (`test-repos-integration-flows`, `sonar`) skip on docs-only PRs and Trivy image scans run only for images whose Dockerfile/deps changed — gated by the `changes` job (`dorny/paths-filter`), at job level, never workflow-level `paths:` (that would leave required checks pending forever). `.github/workflows/*.yml` changes always count as non-docs.
+- `image-scan.yml` — reusable build + Trivy scan, called by `ci.yml` (PRs) and `image-scan-weekly.yml` (weekly cron + manual, all images on `main`).
 - `release.yml` — runs on push to main (post-merge). Bumps version, builds + pushes images, creates Release.
 - `deploy.yml` — runs on Release published. SSHes to VPS, deploys, auto-rollbacks on health failure.
 
