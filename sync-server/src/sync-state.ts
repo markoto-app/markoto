@@ -31,7 +31,12 @@ export interface LastEditor {
 
 export interface PreviousMeta {
   title: string | null
-  themeJson: string | null
+  /**
+   * SHA-256 of the JSON-serialised `ymeta.theme` — only compared for
+   * equality, so a hash keeps a theme with up to 64 KB of custom CSS
+   * from being copied into Valkey per doc.
+   */
+  themeHash: string | null
 }
 
 export type FetchCause = 'hit' | 'miss' | 'error'

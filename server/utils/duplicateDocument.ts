@@ -11,6 +11,7 @@ import {
   deleteUploadsForDoc
 } from '../repos/uploads'
 import { cloneYjsStateWithUrlRewrite } from './cloneYjsState'
+import { withThemeDocId } from '~~/shared/utils/customCss'
 
 // Duplicate a document end-to-end: DB row + Y.js state (with image URL
 // rewrite) + S3 image assets.
@@ -65,7 +66,9 @@ export async function duplicateDocument(
     title: input.title,
     accessMode: source.accessMode,
     passwordHash: source.passwordHash,
-    theme: source.theme,
+    // Custom CSS may reference the source's uploads; point it at the
+    // copies (same fileIds, new docId) like the markdown body rewrite.
+    theme: source.theme ? withThemeDocId(source.theme, input.sourceDocId, input.newDocId) : source.theme,
     wordCount: source.wordCount,
     sizeBytes: source.sizeBytes,
     description: source.description,

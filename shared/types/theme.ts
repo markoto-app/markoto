@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CUSTOM_CSS_MAX_BYTES } from './customCss'
 
 /**
  * Per-document theme. Drives both the live paged preview and the printed
@@ -385,7 +386,20 @@ export const DocThemeSchema = z.object({
     titleSize: z.number().min(0.6).max(4),
     /** Subtitle em multiplier — same intent as titleSize, smaller range. */
     subtitleSize: z.number().min(0.5).max(2.5)
-  }).strict()
+  }).strict(),
+  /**
+   * Optional user-authored CSS appended AFTER the generated theme CSS,
+   * so its rules win. Documents only (preview, print, server PDF/PNG) —
+   * never the app chrome. Stored as typed (formatting kept).
+   *
+   * The schema bounds the length only (UTF-16 units; the byte cap is in
+   * the sanitizer). The content check is `shared/utils/customCss.ts`:
+   * write paths reject on any issue, and every render path sanitizes
+   * again because `ymeta.theme` can be written directly over Y.js. The
+   * schema deliberately does NOT run the parser, so clients can validate
+   * an incoming `ymeta.theme` without loading it.
+   */
+  customCss: z.string().max(CUSTOM_CSS_MAX_BYTES).optional()
 }).strict()
 
 export type DocTheme = z.infer<typeof DocThemeSchema>

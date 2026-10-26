@@ -92,6 +92,10 @@ export default defineEventHandler(async (event) => {
     description: doc.description,
     audience: doc.audience,
     language: doc.language,
-    fileAccessToken
+    fileAccessToken,
+    // Public app origin(s) — absolute `https://<app>/api/files/…` URLs in
+    // custom CSS are treated as this app's (the print page itself is
+    // served from the internal container origin, so it can't tell).
+    appOrigins: customCssAppOrigins()
   }
 })

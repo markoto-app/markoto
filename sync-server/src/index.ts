@@ -5,6 +5,7 @@ import './validate-secrets'
 // targets before any other module grabs references to them. Importing a
 // name from the module also satisfies the side-effect import.
 import { captureMessage } from './sentry'
+import { createHash } from 'node:crypto'
 import { Server } from '@hocuspocus/server'
 import { ypgPersistence } from './persistence'
 import { authFromEnv } from './auth'
@@ -50,7 +51,9 @@ function readMetaSnapshot(doc: { getMap: (k: string) => { get: (k: string) => un
   const theme = ymeta.get('theme')
   return {
     title: typeof t === 'string' ? t : null,
-    themeJson: theme && typeof theme === 'object' ? JSON.stringify(theme) : null
+    themeHash: theme && typeof theme === 'object'
+      ? createHash('sha256').update(JSON.stringify(theme)).digest('hex')
+      : null
   }
 }
 
@@ -345,7 +348,7 @@ async function logMetaDiffActivity(
         yjsDocIdAfter
       })
     }
-    if (prevMeta.themeJson !== currMeta.themeJson) {
+    if (prevMeta.themeHash !== currMeta.themeHash) {
       logActivity({
         docId: data.documentName,
         userId,

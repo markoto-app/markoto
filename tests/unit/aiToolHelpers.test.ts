@@ -6,10 +6,11 @@ import {
   parseInternalFileRef,
   lineToCharOffset,
   sanitizeAltText,
-  parseDocIdFromInput
+  parseDocIdFromInput,
+  resolveThemeCustomCss
 } from '../../server/utils/aiToolAdapter'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
-import type { UpdateThemeInput } from '../../server/utils/agentic/functionTools'
+import { UpdateThemeArgs, type UpdateThemeInput } from '../../server/utils/agentic/functionTools'
 
 // Pure helpers that power the AI theme + image tools. Integration with
 // DB / S3 is skipped here (those paths need module mocks); these are the
@@ -311,5 +312,54 @@ describe('parseDocIdFromInput', () => {
   it('trims surrounding whitespace before matching', () => {
     expect(parseDocIdFromInput('  https://markoto.app/d/xyz  ')).toBe('xyz')
     expect(parseDocIdFromInput('\txyz\n')).toBe('xyz')
+  })
+})
+
+describe('update_theme custom CSS', () => {
+  const ORIGINS = ['https://app.test']
+
+  it('the tool schema accepts customCss and documents the restrictions', () => {
+    expect(UpdateThemeArgs.safeParse({ customCss: 'p { color: red }' }).success).toBe(true)
+    expect(UpdateThemeArgs.safeParse({ customCss: 42 }).success).toBe(false)
+    const description = UpdateThemeArgs.shape.customCss.description ?? ''
+    expect(description).toMatch(/@import/)
+    expect(description).toMatch(/\/api\/files/)
+  })
+
+  it('mergeTheme sets and clears customCss', () => {
+    expect(mergeTheme(defaultTheme, { customCss: 'p{color:red}' }).customCss).toBe('p{color:red}')
+    expect(mergeTheme({ ...defaultTheme, customCss: 'p{}' }, { customCss: '' }).customCss).toBe('')
+  })
+
+  it('summarizePatch names customCss', () => {
+    expect(summarizePatch({ customCss: 'p{}' } as UpdateThemeInput)).toBe('customCss')
+  })
+
+  it('rejects CSS the model sent when anything is wrong, with line/column', () => {
+    const merged = { ...defaultTheme, customCss: 'p { color: red }\n@import "http://evil.test/x.css";' }
+    const res = resolveThemeCustomCss(merged, true, 'doc1', ORIGINS)
+    expect(res.ok).toBe(false)
+    if (!res.ok) expect(res.error).toMatch(/line 2, column 1: @import is not allowed/)
+  })
+
+  it('rejects an upload from another document sent by the model', () => {
+    const merged = { ...defaultTheme, customCss: 'p { background: url(/api/files/doc2/a.png) }' }
+    expect(resolveThemeCustomCss(merged, true, 'doc1', ORIGINS).ok).toBe(false)
+  })
+
+  it('passes clean CSS through untouched (formatting kept)', () => {
+    const css = '/* note */\n.paged-doc h1 {\n  color: #123456;\n}\n'
+    const res = resolveThemeCustomCss({ ...defaultTheme, customCss: css }, true, 'doc1', ORIGINS)
+    expect(res).toEqual({ ok: true, theme: { ...defaultTheme, customCss: css }, note: '' })
+  })
+
+  it('adapts CSS inherited from a base theme instead of failing the call', () => {
+    const merged = { ...defaultTheme, customCss: 'p { color: red; background: url(/api/files/doc2/a.png) }' }
+    const res = resolveThemeCustomCss(merged, false, 'doc1', ORIGINS)
+    expect(res.ok).toBe(true)
+    if (res.ok) {
+      expect(res.theme.customCss).toBe('p{color:red}')
+      expect(res.note).toMatch(/1 custom CSS rule/)
+    }
   })
 })

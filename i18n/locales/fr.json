@@ -585,7 +585,8 @@
       "mermaid": "Diagrammes",
       "alerts": "Encarts",
       "meta": "Voix méta",
-      "cover": "Page de couverture"
+      "cover": "Page de couverture",
+      "customCss": "CSS personnalisé"
     },
     "page": {
       "size": "Taille de la page",
@@ -806,6 +807,36 @@
       "newsletter": {
         "name": "Newsletter",
         "description": "Corps Karla sous titres PT Serif, accent vert, en-têtes de tableau colorés — style digest hebdomadaire."
+      }
+    },
+    "customCss": {
+      "help": "Ajoutez vos propres règles CSS. Elles s'appliquent après les réglages du thème ci-dessus et l'emportent donc. Le CSS personnalisé ne met en forme que le document : aperçu, impression et export PDF. Le texte se trouve dans .paged-doc ; le format, les marges, les en-têtes et pieds de page se règlent avec des règles {'@'}page.",
+      "editorLabel": "CSS personnalisé",
+      "imagesHint": "Images : url() peut utiliser les images téléversées dans ce document (copiez l'adresse /api/files/… depuis l'éditeur) ou des URL data:image. Les autres sites et {'@'}import ne sont pas autorisés.",
+      "examplesTitle": "Exemples",
+      "example": {
+        "pageNumber": "Numéros de page en pied de page",
+        "h1": "Titres principaux plus grands",
+        "blockquote": "Citations sur fond teinté"
+      },
+      "insert": "Insérer",
+      "bytes": "{used} / {max} octets",
+      "checking": "vérification…",
+      "applied": "appliqué",
+      "notApplied": "non appliqué — corrigez les erreurs ci-dessous",
+      "position": "ligne {line}, col. {column}",
+      "droppedOnApply": "Certaines règles CSS de ce thème utilisent des images d'un autre document. Elles ont été retirées.",
+      "issue": {
+        "too-large": "Le CSS personnalisé dépasse 64 Ko.",
+        "syntax": "Erreur de syntaxe. Vérifiez qu'il ne manque pas une accolade, un deux-points ou un point-virgule.",
+        "at-rule": "{detail} n'est pas autorisé dans le CSS personnalisé.",
+        "property": "La propriété {detail} n'est pas autorisée.",
+        "function": "{detail} n'est pas autorisé.",
+        "url": "url() ne peut utiliser que des images de ce document ou des URL data:image.",
+        "svg-data-url": "Les URL data SVG ne sont pas autorisées. Utilisez PNG, JPEG, GIF ou WebP.",
+        "other-doc-file": "Cette image appartient à un autre document. Téléversez-la dans ce document et utilisez son adresse.",
+        "script-url": "Les URL javascript: et vbscript: ne sont pas autorisées.",
+        "value": "Cette valeur n'a pas pu être lue de façon sûre."
       }
     }
   },

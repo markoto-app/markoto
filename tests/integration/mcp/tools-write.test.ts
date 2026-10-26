@@ -168,6 +168,44 @@ describe('MCP write tools — set_title + update_theme persist to documents row'
     )
     expect(r2.rows[0]?.theme?.page?.margin).toBe(30)
   }, 15_000)
+
+  it('update_theme stores valid customCss verbatim', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id })
+    const css = '.paged-doc h1 {\n  color: #123456;\n}\n'
+
+    const { plaintext } = await mintPat({ userId: user.id, scopes: WRITE_SCOPES })
+    const res = await mcp(plaintext).call('update_theme', { doc_id: doc.docId, customCss: css })
+    if (res.isError) {
+      throw new Error(`update_theme returned isError: ${res.content.find(c => c.type === 'text')?.text ?? '(no text)'}`)
+    }
+
+    await new Promise(r => setTimeout(r, 2500))
+    const r2 = await testDb().query<{ theme: { customCss?: string } }>(
+      `SELECT theme FROM documents WHERE doc_id = $1`, [doc.docId]
+    )
+    expect(r2.rows[0]?.theme?.customCss).toBe(css)
+  }, 15_000)
+
+  it('update_theme rejects forbidden customCss with line/column and changes nothing', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id })
+
+    const { plaintext } = await mintPat({ userId: user.id, scopes: WRITE_SCOPES })
+    const res = await mcp(plaintext).call('update_theme', {
+      doc_id: doc.docId,
+      customCss: 'p { color: red }\np { background: url(http://evil.test/x.png) }'
+    })
+    expect(res.isError).toBe(true)
+    const text = res.content.find(c => c.type === 'text')?.text ?? ''
+    expect(text).toMatch(/line 2, column \d+: url\(\) may only point at an image uploaded to this document/)
+
+    await new Promise(r => setTimeout(r, 1000))
+    const r2 = await testDb().query<{ theme: unknown }>(
+      `SELECT theme FROM documents WHERE doc_id = $1`, [doc.docId]
+    )
+    expect(r2.rows[0]?.theme ?? null).toBeNull()
+  }, 15_000)
 })
 
 describe('MCP write tools — comment lifecycle', () => {

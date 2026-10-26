@@ -3,6 +3,7 @@ import type { DocTheme, CodeTheme, MermaidTheme, TocLeaderStyle, TocMaxDepth } f
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
 
 /**
  * Embedded theme editor — sits in the right sidebar slot alongside the
@@ -78,7 +79,8 @@ const sectionItems = computed(() => [
   { value: 'blocks', slot: 'blocks', label: t('theme.section.blocks'), icon: 'i-lucide-image' },
   { value: 'toc', slot: 'toc', label: t('theme.section.toc'), icon: 'i-lucide-list-tree' },
   { value: 'mermaid', slot: 'mermaid', label: t('theme.section.mermaid'), icon: 'i-lucide-workflow' },
-  { value: 'alerts', slot: 'alerts', label: t('theme.section.alerts'), icon: 'i-lucide-alert-circle' }
+  { value: 'alerts', slot: 'alerts', label: t('theme.section.alerts'), icon: 'i-lucide-alert-circle' },
+  { value: 'customCss', slot: 'customCss', label: t('theme.section.customCss'), icon: 'i-lucide-braces' }
 ])
 
 // Static option lists
@@ -314,6 +316,10 @@ function insertToken(token: string) {
   })
 }
 
+function setCustomCss(css: string) {
+  draft.value.customCss = css
+}
+
 function doReset() {
   draft.value = structuredClone(defaultTheme)
   emit('reset')
@@ -321,8 +327,12 @@ function doReset() {
 
 function applyPreset(preset: typeof THEME_PRESETS[number]) {
   if (!props.canEdit) return
-  draft.value = structuredClone(preset.theme)
-  emit('update:theme', structuredClone(preset.theme))
+  // Built-in presets have no custom CSS of their own, so they leave the
+  // document's custom CSS in place instead of wiping it.
+  const customCss = draft.value.customCss
+  const next: DocTheme = customCss ? { ...structuredClone(preset.theme), customCss } : structuredClone(preset.theme)
+  draft.value = structuredClone(next)
+  emit('update:theme', next)
   toast.add({
     title: t(`theme.presets.${preset.id}.name`),
     description: t('theme.presets.applied'),
@@ -406,16 +416,36 @@ async function saveCurrentAsPreset() {
   }
 }
 
-function applySaved(saved: SavedTheme) {
+async function applySaved(saved: SavedTheme) {
   if (!props.canEdit) return
-  draft.value = structuredClone(saved.theme)
-  emit('update:theme', structuredClone(saved.theme))
+  const theme = await adaptThemeToThisDoc(structuredClone(saved.theme))
+  draft.value = structuredClone(theme)
+  emit('update:theme', theme)
   toast.add({
     title: saved.name,
     description: t('theme.presets.applied'),
     icon: 'i-lucide-palette',
     color: 'success'
   })
+}
+
+/**
+ * A saved theme can carry custom CSS that points at the uploads of the
+ * document it was saved from. Those rules can't work here (and the
+ * server would refuse to store them for this doc), so drop them and say so.
+ */
+async function adaptThemeToThisDoc(theme: DocTheme): Promise<DocTheme> {
+  if (!theme.customCss?.trim()) return theme
+  const { adaptCustomCssToDoc } = await loadCustomCssSanitizer()
+  const adapted = adaptCustomCssToDoc(theme.customCss, { docId: props.docId, allowedOrigins: currentAppOrigins() })
+  if (adapted.dropped.length === 0) return theme
+  toast.add({
+    title: t('theme.section.customCss'),
+    description: t('theme.customCss.droppedOnApply'),
+    icon: 'i-lucide-braces',
+    color: 'neutral'
+  })
+  return { ...theme, customCss: adapted.css }
 }
 
 async function renameSaved(saved: SavedTheme) {
@@ -1528,6 +1558,15 @@ async function deleteSaved(saved: SavedTheme) {
                 </UPopover>
               </UFormField>
             </div>
+          </template>
+
+          <!-- Custom CSS (documents only — preview, print, PDF) -->
+          <template #customCss-body>
+            <DocumentThemeCustomCssSection
+              :model-value="draft.customCss"
+              :doc-id="docId"
+              @update:model-value="setCustomCss"
+            />
           </template>
         </UAccordion>
       </template>

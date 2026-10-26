@@ -8,6 +8,7 @@ import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/page
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
+import { sanitizeCustomCssForRender } from '~/utils/customCssLoader'
 
 // Cheap structural sanity check — the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
@@ -57,6 +58,7 @@ const { data: bootstrap, error: bootstrapError } = await useFetch<{
   audience: string
   language: string
   fileAccessToken: string
+  appOrigins?: string[]
 }>('/api/_internal/render-bootstrap', {
   query: { docId, t },
   key: `render-bootstrap-${docId}-${t ?? ''}`,
@@ -96,10 +98,23 @@ onMounted(async () => {
   const fileUrlRe = new RegExp(`/api/files/${docId}/([^"' )?]+)`, 'g')
   html = html.replace(fileUrlRe, (_, fileId) => `/api/files/${docId}/${fileId}?token=${encodeURIComponent(t)}`)
 
+  // Custom CSS: sanitized again here (the stored theme may have arrived
+  // via a direct Y.js write). Own-upload url()s get the same file-access
+  // token as the markdown images above; everything else external is
+  // already gone, and the CSP + renderer allowlist (PR #64) back that up.
+  const customCss = await sanitizeCustomCssForRender(
+    typeof theme.customCss === 'string' ? theme.customCss : undefined,
+    {
+      docId,
+      allowedOrigins: bootstrap.value?.appOrigins ?? [],
+      fileUrlSuffix: `?token=${encodeURIComponent(t)}`
+    }
+  )
   const themeCss = themeToCss(theme, {
     title,
     date: new Date().toISOString().slice(0, 10),
-    tocTitle: 'Table of Contents'
+    tocTitle: 'Table of Contents',
+    customCss
   })
   const fontsImport = themeFontsImport(theme)
 
@@ -183,6 +198,10 @@ onMounted(async () => {
   } finally {
     scratch.remove()
   }
+  // Same for images referenced from custom CSS (backgrounds etc.):
+  // nothing in the DOM waits for a CSS image, so warm them up here and
+  // again after pagination.
+  await preloadImages(customCss?.urls ?? [])
 
   // PagedConfig must be set BEFORE the polyfill loads. auto:false stops
   // the polyfill from auto-scanning the document — we drive the render
@@ -231,6 +250,7 @@ onMounted(async () => {
   if (paginatedImgs.length > 0) {
     await Promise.all(paginatedImgs.map(img => img.decode().catch(() => undefined)))
   }
+  await preloadImages(customCss?.urls ?? [])
 
   ;(globalThis as Window & {
     __pagedReady?: boolean
@@ -238,6 +258,17 @@ onMounted(async () => {
   }).__pagedPageCount = result?.total ?? document.querySelectorAll('.pagedjs_page').length
   ;(globalThis as Window & { __pagedReady?: boolean }).__pagedReady = true
 })
+
+/** Fetch + decode each URL as an image; failures are ignored (a broken
+ *  background must not fail the whole render). */
+async function preloadImages(urls: readonly string[]): Promise<void> {
+  if (urls.length === 0) return
+  await Promise.all(urls.map((src) => {
+    const img = new Image()
+    img.src = src
+    return img.decode().catch(() => undefined)
+  }))
+}
 
 interface MermaidModule {
   initialize: (config: Record<string, unknown>) => void

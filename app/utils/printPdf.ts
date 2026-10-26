@@ -6,6 +6,7 @@ import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 import { renderMarkdown } from '~/utils/renderMarkdown'
 import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
+import { sanitizeCustomCssForRender, currentAppOrigins } from './customCssLoader'
 
 /**
  * Mermaid singleton in the parent document context for the print path.
@@ -197,6 +198,8 @@ export async function printDocumentAsPdf(opts: {
   source: string
   theme: DocTheme
   title: string
+  /** Owning document — custom CSS may only reference this doc's uploads. */
+  docId: string
   tocTitle?: string
 }): Promise<void> {
   const rawHtml = await renderMarkdown(opts.source)
@@ -211,10 +214,17 @@ export async function printDocumentAsPdf(opts: {
     dateIso: new Date().toISOString().slice(0, 10),
     bodyHtml
   })
+  // Same render-time sanitize as the live preview (Y.js writes bypass
+  // the server-side check, so the stored CSS is never trusted as-is).
+  const customCss = await sanitizeCustomCssForRender(opts.theme.customCss, {
+    docId: opts.docId,
+    allowedOrigins: currentAppOrigins()
+  })
   const themeCss = themeToCss(opts.theme, {
     title: opts.title || '',
     date: new Date().toISOString().slice(0, 10),
-    tocTitle: opts.tocTitle || 'Table of Contents'
+    tocTitle: opts.tocTitle || 'Table of Contents',
+    customCss
   })
   const fontsImport = themeFontsImport(opts.theme)
 

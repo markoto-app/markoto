@@ -180,6 +180,21 @@ describe('duplicateDocument — happy path', () => {
       sizeBytes: 10_000
     })
   })
+
+  it('points custom CSS url()s at the copy\'s uploads', async () => {
+    getDoc.mockResolvedValueOnce(fakeSource({
+      theme: { page: { marginMm: 25 }, customCss: 'p { background: url(/api/files/SRC/a.png) } q { background: url(/api/files/OTHER/b.png) }' }
+    }))
+    listConfirmedUploadsForDoc.mockResolvedValueOnce([])
+    const s3 = makeS3()
+
+    await duplicateDocument(baseInput(), { s3, bucket: 'b' })
+
+    expect(insertDuplicateDoc.mock.calls[0][0].theme).toEqual({
+      page: { marginMm: 25 },
+      customCss: 'p { background: url(/api/files/TGT/a.png) } q { background: url(/api/files/OTHER/b.png) }'
+    })
+  })
 })
 
 describe('duplicateDocument — rollback', () => {

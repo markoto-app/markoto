@@ -585,7 +585,8 @@
       "mermaid": "図",
       "alerts": "注意書き",
       "meta": "メタ表現",
-      "cover": "表紙"
+      "cover": "表紙",
+      "customCss": "カスタム CSS"
     },
     "page": {
       "size": "ページサイズ",
@@ -806,6 +807,36 @@
       "newsletter": {
         "name": "ニュースレター",
         "description": "PT Serif見出しの下にKarla本文、緑のアクセント、ブランドカラーの表ヘッダー — 週刊ダイジェストの雰囲気。"
+      }
+    },
+    "customCss": {
+      "help": "独自の CSS ルールを追加できます。上のテーマ設定の後に適用されるため、こちらが優先されます。カスタム CSS が適用されるのはドキュメントだけです（プレビュー、印刷、PDF 書き出し）。本文は .paged-doc の中にあります。用紙サイズ、余白、ヘッダー、フッターは {'@'}page ルールで指定します。",
+      "editorLabel": "カスタム CSS",
+      "imagesHint": "画像：url() には、このドキュメントにアップロードした画像（エディターから /api/files/… のアドレスをコピー）か data:image URL を使えます。他のサイトや {'@'}import は使えません。",
+      "examplesTitle": "例",
+      "example": {
+        "pageNumber": "フッターにページ番号",
+        "h1": "大きめの見出し 1",
+        "blockquote": "背景付きの引用"
+      },
+      "insert": "挿入",
+      "bytes": "{used} / {max} バイト",
+      "checking": "確認中…",
+      "applied": "適用済み",
+      "notApplied": "未適用 — 下のエラーを修正してください",
+      "position": "{line} 行目、{column} 列目",
+      "droppedOnApply": "このテーマの CSS ルールの一部が別のドキュメントの画像を使っていたため、削除しました。",
+      "issue": {
+        "too-large": "カスタム CSS が 64 KB を超えています。",
+        "syntax": "構文エラーです。括弧、コロン、セミコロンの抜けを確認してください。",
+        "at-rule": "{detail} はカスタム CSS では使えません。",
+        "property": "{detail} プロパティは使えません。",
+        "function": "{detail} は使えません。",
+        "url": "url() に使えるのは、このドキュメントの画像か data:image URL だけです。",
+        "svg-data-url": "SVG の data URL は使えません。PNG、JPEG、GIF、WebP を使ってください。",
+        "other-doc-file": "この画像は別のドキュメントのものです。このドキュメントにアップロードして、そのアドレスを使ってください。",
+        "script-url": "javascript: と vbscript: の URL は使えません。",
+        "value": "この値を安全に読み取れませんでした。"
       }
     }
   },

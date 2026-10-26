@@ -585,7 +585,8 @@
       "mermaid": "图表",
       "alerts": "提示框",
       "meta": "元信息字体",
-      "cover": "封面页"
+      "cover": "封面页",
+      "customCss": "自定义 CSS"
     },
     "page": {
       "size": "页面尺寸",
@@ -806,6 +807,36 @@
       "newsletter": {
         "name": "简报",
         "description": "Karla 正文置于 PT Serif 标题之下、绿色点缀、品牌色表头 — 周报式质感。"
+      }
+    },
+    "customCss": {
+      "help": "添加你自己的 CSS 规则。它们在上方主题设置之后应用，因此优先生效。自定义 CSS 只作用于文档：预览、打印和 PDF 导出。正文位于 .paged-doc 内；页面尺寸、页边距、页眉和页脚用 {'@'}page 规则设置。",
+      "editorLabel": "自定义 CSS",
+      "imagesHint": "图片：url() 可以使用上传到本文档的图片（从编辑器复制 /api/files/… 地址）或 data:image URL。不允许其他网站和 {'@'}import。",
+      "examplesTitle": "示例",
+      "example": {
+        "pageNumber": "页脚中的页码",
+        "h1": "更大的一级标题",
+        "blockquote": "带底色的引用"
+      },
+      "insert": "插入",
+      "bytes": "{used} / {max} 字节",
+      "checking": "检查中…",
+      "applied": "已应用",
+      "notApplied": "未应用 — 请修正下面的错误",
+      "position": "第 {line} 行，第 {column} 列",
+      "droppedOnApply": "此主题中的部分 CSS 规则使用了其他文档的图片，已被移除。",
+      "issue": {
+        "too-large": "自定义 CSS 超过 64 KB。",
+        "syntax": "语法错误。请检查是否缺少括号、冒号或分号。",
+        "at-rule": "自定义 CSS 中不允许使用 {detail}。",
+        "property": "不允许使用 {detail} 属性。",
+        "function": "不允许使用 {detail}。",
+        "url": "url() 只能使用本文档的图片或 data:image URL。",
+        "svg-data-url": "不允许使用 SVG data URL。请使用 PNG、JPEG、GIF 或 WebP。",
+        "other-doc-file": "这张图片属于其他文档。请把它上传到本文档并使用其地址。",
+        "script-url": "不允许使用 javascript: 和 vbscript: URL。",
+        "value": "无法安全读取此值。"
       }
     }
   },

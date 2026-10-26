@@ -6,6 +6,8 @@ const props = defineProps<{
   source: string
   title: string
   theme?: DocTheme
+  /** Owning document — custom CSS may only reference this doc's uploads. */
+  docId: string
 }>()
 
 // Bubbled when the user presses Cmd/Ctrl+P inside the preview iframe.
@@ -27,6 +29,7 @@ const { pageCount: pgCount, isReady, error } = usePagedPreview({
   html: rendered,
   theme: themeRef,
   title: titleRef,
+  docId: computed(() => props.docId),
   container: iframeHost,
   onPrintShortcut: () => emit('printShortcut')
 })
