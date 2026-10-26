@@ -7,9 +7,9 @@ order: 14
 
 # Duplicate a document
 
-Got a doc you want to fork? The Duplicate action copies the live Y.js
-state, the theme, the document context (description, audience,
-language, template), and any image uploads to a new doc you own. The
+Got a doc you want to fork? The Duplicate action copies the text, the
+theme, the document context (description, audience, language, template)
+and any image uploads to a new doc you own. The
 new doc gets its own URL, its own activity log, and its own
 collaborators (none, by default).
 
@@ -18,18 +18,11 @@ collaborators (none, by default).
 
 ## What just happened
 
-`POST /api/docs/:id/duplicate` runs a transaction that:
-
-1. Inserts a new row in `documents` with the duplicator as `user_id`.
-2. Clones the Y.js snapshot from `yjs_documents` so the new doc opens
-   identical to the source.
-3. Copies the S3 image keys from `docs/{srcId}/` to `docs/{newId}/`
-   and rewrites the markdown image URLs in the new Y.js content.
-4. Carries over `description` / `audience` / `language` / `template_id`
-   so AI context is preserved.
-
-The endpoint honours the `Idempotency-Key` header so a network retry
-mid-clone doesn't produce two duplicates.
+markoto created a new document that you own, copied the current content
+so it opens identical to the source, copied the uploaded images into the new
+document (and pointed its image links at the copies), and carried over the
+description, audience, language and template so the AI keeps its context.
+The copy has its own address, its own activity log and no collaborators; a network retry in the middle won't produce two duplicates.
 
 ## What's next
 

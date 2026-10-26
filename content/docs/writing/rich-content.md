@@ -40,5 +40,6 @@ You used the Insert menu to add four non-trivial markdown extensions:
 
 ## What's next
 
+- [Markdown reference](/docs/writing/markdown-reference) — the full syntax list, including attributes, images and footnotes.
 - [Have a discussion in your document](/docs/writing/comments) — comment on a passage you just wrote.
 - [Pick a theme](/docs/themes/pick-a-theme) — make the rendered output look the part.

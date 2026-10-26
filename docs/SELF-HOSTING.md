@@ -12,11 +12,13 @@ everything that differs is configuration.
 - [Configuration reference](#configuration-reference)
 - [Ports and networking](#ports-and-networking)
 - [Upgrades](#upgrades)
+- [Upgrade notes](#upgrade-notes)
 - [Backups and restore](#backups)
 - [Re-embedding the knowledge base](#re-embedding)
 - [Legal pages](#legal-pages)
 - [Security notes](#security-notes)
 - [Troubleshooting](#troubleshooting)
+- [Getting help](#getting-help)
 
 ## Requirements
 
@@ -318,6 +320,23 @@ git pull                          # or: git checkout vX.Y.Z
 
 Keep the checkout and `IMAGE_TAG` on the same release: the compose files and the LiteLLM configuration come from the checkout, the code from the images.
 
+Before upgrading across several releases, read the [upgrade notes](#upgrade-notes) below and the [release notes](https://github.com/joelbarmettlerUZH/md-online/releases) of every release in between (each release's notes are the description of the pull request that shipped it).
+
+## Upgrade notes
+
+Changes that can need action when you upgrade an existing instance. Newest first. Anything not listed here is backwards compatible.
+
+| Change | Affects | What to do |
+|---|---|---|
+| **Docker Compose 5.0 or newer is required.** The compose files override services that they pull in with `include:`, which Compose 2.24 to 2.40 reject with "conflicts with imported resource". `install.sh` refuses to run on an older Compose. | Everyone | Update Docker Engine and the Compose plugin (`docker compose version` must print 5.0.0 or higher). |
+| **`NUXT_LEGAL_SURFACES_ENABLED` defaults to `false`.** The onboarding gate, cookie banner, DPA step and `/legal/*` pages describe the hosted service and its operator, so a self-hosted instance no longer shows them. | Instances that relied on the old always-on behaviour | Nothing, if you don't want them. To keep them, set `NUXT_LEGAL_SURFACES_ENABLED=true`, adapt `content/legal/` and set every `NUXT_LEGAL_*` variable ([Legal pages](#legal-pages)). |
+| **AI model variables renamed.** `NUXT_LITELLM_TEXT_MODEL`, `NUXT_LITELLM_IMAGE_MODEL` and `NUXT_LITELLM_TRANSCRIBE_MODEL` no longer exist and are ignored. The replacements are `NUXT_AI_DEFAULT_CHAT_MODEL` (was TEXT), `NUXT_AI_DEFAULT_IMAGE_MODEL` and `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL`, with the same alias values (for example `mistral-small-2603`). | Instances that set the old variables | Rename them in `.env`, then `docker compose up -d`. Without them, AI is unavailable until users add their own key under **Settings → AI provider**. |
+| **Bring your own key.** Chat, image generation and transcription now resolve per user: the user's own provider, else the instance default, else unavailable. Calls on a user's own key never use AI Points. | Everyone using AI | Decide whether to set instance defaults ([AI](#ai)) or let users bring keys. `NUXT_AI_BYOK_ALLOWED_BASE_URLS` and `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS` control which provider URLs users may enter. |
+| **Web search and page fetch are rate-limited** per user (30 per hour, 100 per day by default) and only offered when `STAAN_API_KEY` / `JINA_AI_API_KEY` is set. | Instances with those keys | Tune with `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `NUXT_WEB_TOOLS_DAILY_LIMIT` (`0` = unlimited). |
+| **Billing is off by default** (`NUXT_BILLING_ENABLED=false`). Stripe variables aren't required and the billing endpoints answer 404 `billing/disabled`; every account is on the free tier. | Instances that copied a hosted-style `.env` | Nothing. Raise limits with the `TIER_FREE_*` variables. |
+
+Database migrations are forward-only and run automatically. If a release notes a destructive migration, take a [backup](#backups) first (you should before every upgrade anyway).
+
 ## Backups
 
 With the `backup` profile (default), the `backup` service runs `pg_dump` once a day (`BACKUP_INTERVAL_SECONDS`, default 86400), encrypts it with `BACKUP_GPG_PASSPHRASE` (gpg, AES-256) and stores it in the bucket under `backups/postgres/`, keeping the newest `BACKUP_RETENTION_COUNT` (default 14).
@@ -395,13 +414,62 @@ You are the operator of your instance. If it is open to the public you may need 
 
 ## Troubleshooting
 
-| Symptom | Check |
+First look at `./install.sh status` (is every container up and healthy?) and `./install.sh logs <service>` (`app`, `sync`, `traefik`, `litellm`, `renderer`, `postgres`). As an instance admin, `/api/health/deep` shows each component's state; `/api/health` is the public pass/fail probe.
+
+### Installation and startup
+
+| Symptom | Cause and fix |
 |---|---|
-| `install.sh` times out waiting for health | `./install.sh logs app`. First boot also waits for LiteLLM's database migrations (a minute or two). |
-| `pg_dump`/app: password authentication failed | `POSTGRES_PASSWORD` changed after the volume was created. Put the old value back. |
-| Images don't show / uploads fail | `MARKOTO_PUBLIC_URL` must match the URL in the browser exactly (scheme, host, port). |
-| Live collaboration doesn't connect | `MARKOTO_SYNC_URL` must be the public URL with `ws://`/`wss://` and `/sync`; a proxy in front must pass WebSocket upgrades. |
-| Login fails with a cookie / state error | Login needs HTTPS (or `http://localhost`). Check the callback URL registered with GitHub/Google. |
-| Knowledge uploads fail | Embeddings need `JINA_AI_API_KEY` or a [custom embeddings provider](AI-MODELS.md#embeddings). |
-| Certificate not issued | DNS must point at the host and port 443 must be reachable from the internet: `./install.sh logs traefik`. |
-| Per-component status | Log in as admin and open `/api/health/deep`; `/api/health` is the public pass/fail probe. |
+| `docker compose ... is too old; need >= 5.0.0` | Update Docker Engine and the Compose plugin ([Requirements](#requirements)). |
+| `cannot talk to the docker daemon` | The daemon isn't running, or your user isn't in the `docker` group (`sudo usermod -aG docker $USER`, then log in again). |
+| `.env exists but was not written by install.sh` | A development `.env` is in the way. Run `./install.sh --env-file /path/to/selfhost.env` and pass `--env-file` to every later `docker compose` call, or move the old file. |
+| `--domain and --http-port are exclusive` | Pick HTTPS (domain) or plain HTTP (port), not both. |
+| `the app did not become healthy within 900s` | `./install.sh logs app`. First boot also waits for LiteLLM's database migrations and for Postgres to initialise (a minute or two on slow disks). Out-of-memory kills show up as containers restarting in `docker compose ps`; the stack wants about 6 GB of RAM. |
+| `Pulling failed ... Falling back to building` | The images for this tag aren't published, or the registry needs a login. Use a release tag (check it out first) or accept the local build (`--build`). |
+| `port is already allocated` / `address already in use` | Another service owns port 80, 443 or your chosen HTTP port. Pick another with `--http-port`, or free the port (`sudo ss -ltnp 'sport = :80'`). |
+| App container restarts with a missing-variable error naming a secret | The `.env` was edited or replaced and lost a generated secret. Run `./install.sh` again: it adds missing secrets and keeps existing ones. Never regenerate `LITELLM_SALT_KEY` or `BACKUP_GPG_PASSPHRASE` on a running instance. |
+| `password authentication failed` for Postgres | `POSTGRES_PASSWORD` was changed after the database volume was created. Put the old value back (or `ALTER USER` inside Postgres). |
+| App won't start after setting OAuth variables | Client ID and secret must both be set for a provider, or the app refuses to start. |
+
+### Networking and login
+
+| Symptom | Cause and fix |
+|---|---|
+| Certificate not issued | DNS must point at the host and ports 80 and 443 must be reachable from the internet: `./install.sh logs traefik`. Let's Encrypt rate-limits repeated failures; wait before retrying. |
+| Images don't show, uploads fail | `MARKOTO_PUBLIC_URL` must match what the browser shows exactly (scheme, host, port); storage URLs are signed for it. Behind a proxy, the proxy must preserve the `Host` header. |
+| Live collaboration doesn't connect | `MARKOTO_SYNC_URL` must be the public URL with `ws://` / `wss://` and `/sync`. A proxy in front must pass WebSocket upgrades. |
+| Login fails with a cookie / state error | Login needs HTTPS (or `http://localhost`). Check the callback URL registered with GitHub or Google. |
+| No login buttons at all | No sign-in provider is configured; the instance is anonymous-only ([Login](#login)). |
+| Unrelated users hit `429` together | The client IP is read wrongly behind your proxy, so everyone shares one rate-limit bucket. Set `TRAEFIK_TRUSTED_IPS` and `NUXT_TRUSTED_PROXY_HOPS` ([Security notes](#trusted-proxy)). |
+| Imports fail with 413 | Your proxy limits the body size. Allow up to 50 MB. |
+
+### AI
+
+| Symptom | Cause and fix |
+|---|---|
+| The AI bar says to add an API key | The user has no provider and the instance has no default. Add one under **Settings → AI provider**, or set `NUXT_AI_DEFAULT_*` ([AI](#ai)). |
+| Saving a provider fails verification | Wrong key, base URL or model id; the message names the failing step. For a local server (Ollama) the base URL must be reachable from inside the containers, and `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true` is needed for private URLs entered by users. |
+| "no tool support" warning on a chat provider | The model answered a tool-calling test with plain text. The writing assistant needs tool calling; pick another model. |
+| No microphone button | No transcription provider. Live dictation additionally needs a Mistral transcription key. |
+| The AI never generates images | No image provider is configured. |
+| The AI can't search the web or read URLs | `STAAN_API_KEY` / `JINA_AI_API_KEY` is missing (the tool isn't offered), or the per-user allowance is used up (429 `ai/web-tools-rate-limited`). |
+| Knowledge uploads fail | Embeddings need `JINA_AI_API_KEY` or a [custom embeddings provider](AI-MODELS.md#embeddings). After changing the model or dimension, run `./install.sh reembed` ([Re-embedding](#re-embedding)); `/api/health/deep` reports `checks.embeddings`. |
+| Platform-paid AI stops with budget messages | The user's monthly AI Points budget (`TIER_FREE_LITELLM_BUDGET_USD`) is used up. It resets every 30 days; raising the variable doesn't change existing users' keys. Calls on users' own keys never count. |
+| LiteLLM keeps restarting | `./install.sh logs litellm`. It starts without provider keys, but needs its database (`litellm-db-init`) and enough memory. |
+
+### Exports, backups and email
+
+| Symptom | Cause and fix |
+|---|---|
+| PDF export fails, or PDFs have no images | The `renderer` container loads images from the public URL, so that URL must be reachable from inside the containers ([Ports and networking](#ports-and-networking)). Check `./install.sh logs renderer`. |
+| Document import fails | `./install.sh logs markitdown`; unsupported or corrupt files are rejected. |
+| No backups appear | The `backup` profile is off (`COMPOSE_PROFILES` in `.env`), or the `backup` container is failing: `docker compose logs backup`. |
+| No emails arrive | Email isn't configured, so mails are only written to the app log as `[email-stub]` ([Email](#email-optional)). |
+| Admin pages return 403 | The signed-in email isn't in `NUXT_ADMIN_USER_EMAILS`. Promotion happens on login: log out and in again after changing it. |
+
+## Getting help
+
+- Questions and ideas: [GitHub Discussions](https://github.com/joelbarmettlerUZH/md-online/discussions).
+- Bugs: [open an issue](https://github.com/joelbarmettlerUZH/md-online/issues/new/choose) with your release tag, the compose files in use and the relevant log lines. Remove secrets first.
+- Security problems: never in a public issue, see [SECURITY.md](../SECURITY.md).
+- How the system fits together: [ARCHITECTURE.md](ARCHITECTURE.md).

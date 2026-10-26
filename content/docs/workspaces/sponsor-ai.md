@@ -1,39 +1,38 @@
 ---
 title: Sponsor AI for your team
-description: Toggle "AI on" for your workspace — every member's AI usage bills against your plan, not theirs.
+description: A paid-plan feature - let one workspace owner's plan cover every member's AI usage. Not available while paid plans are coming soon, or on self-hosted instances.
 category: workspaces
 order: 5
 ---
 
 # Sponsor AI for your team
 
-By default, AI usage bills to whoever runs the prompt — your AI cap
-counts your prompts, your teammate's cap counts theirs. For teams
-where one person upgrades to Max or Ultra and wants to share, **AI
-sponsoring** flips that: the workspace owner's plan covers everyone's
-AI calls inside the workspace.
+> **Availability.** AI sponsoring belongs to the paid plans. On markoto.app
+> paid plans are [coming soon](/docs/account/plans), so the toggle isn't
+> available yet. On a self-hosted instance there are no plans and no
+> sponsoring: everyone is on the same free tier, and AI runs on each person's
+> own provider or on an instance default the operator pays for.
+
+By default AI usage is billed to whoever runs the prompt. That only matters
+when someone pays for AI: members who bring their own provider key are
+billed by their provider, and nothing here changes that. For operator-paid
+AI, **sponsoring** lets one workspace admin's plan cover everyone's AI calls
+inside the workspace.
 
 ::flow{id="let-your-team-use-the-ai-on-your-dime" hide-title}
 ::
 
-## What just happened
+## How it works (when paid plans are live)
 
-The workspace settings page has an "AI for the team" toggle (only
-admins see it; only Max / Ultra owners can flip it on). When enabled,
-`workspaces.ai_enabled = true` and `billing_owner_id` points at the
-admin who turned it on. From then on, every AI prompt run inside the
-workspace is attributed to `workspace:{wsId}` instead of
-`user:{userId}` in the billing resolver.
-
-The toggle auto-disables if the billing owner's plan lapses or
-downgrades — the resolver checks the owner's `(plan, planValidUntil)`
-on every call so a state change is reflected immediately. No
-surprise charges, no surprise lockouts.
-
-The `(+)` badge next to AI features inside the workspace is the
-visible signal: "this is sponsored, your personal cap doesn't apply."
+The workspace settings page has an "AI for the team" toggle. Only admins see
+it, and only owners on a higher paid plan can switch it on. While it is on,
+AI prompts inside the workspace draw from the sponsor's allowance instead of
+the member's own. The toggle switches itself off if the sponsor's plan lapses
+or drops below the required tier, so there are no surprise charges and no
+surprise lockouts. A `(+)` badge next to AI features in the workspace shows
+that usage is sponsored.
 
 ## What's next
 
-- [Plans side-by-side](/docs/account/plans) — see which plans can sponsor.
-- [Hit the AI cap?](/docs/writing/ai-budget) — sponsored AI never hits a member's personal cap.
+- [Plans](/docs/account/plans): which plans can sponsor.
+- [AI Points](/docs/writing/ai-budget): what the allowance is and when it applies.

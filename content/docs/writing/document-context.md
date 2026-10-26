@@ -29,20 +29,17 @@ that the AI's system prompt picks up on every turn:
 
 - **Description** — one line that tells the AI what this document IS.
   Free text, ≤500 chars.
-- **Audience** — a closed enum of six writing registers (technical,
-  marketing, academic, casual, business, creative). Each maps to a
-  tuned tone fragment in `shared/audiences/index.ts`. Closed enum,
-  not free text — free-form audience steering belongs in the user's
-  prompt; audience is for DURABLE tone.
-- **Language** — free text with six curated presets. The AI gets the
-  self-language name resolved via `Intl.DisplayNames` (`de` →
-  "Deutsch", not "German") and the prompt ends with "Write all prose
-  in Deutsch."
+- **Audience** — one of six writing registers (technical, marketing,
+  academic, casual, business, creative), each with its own tone. It is
+  a fixed list on purpose: audience is for the durable tone of the whole
+  document, while one-off steering ("make this friendlier") belongs in
+  your prompt.
+- **Language** — free text with a few presets, so even "Romansh" works.
+  The AI is told to write all prose in that language.
 
-The AI prompt builder (`server/utils/agentic/documentContextPrompt.ts`)
-prepends a `<document_context>` block to the system prompt every turn.
-That's why the AI shifted languages without you mentioning the language
-in your prompt.
+These fields are sent along with the title on every prompt. That's why
+the AI shifted languages without you mentioning the language in your
+prompt.
 
 ## What's next
 

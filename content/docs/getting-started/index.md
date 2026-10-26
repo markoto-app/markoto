@@ -27,8 +27,10 @@ homepage and ends with a tangible result you can hand to someone.
 
 When you're comfortable with the basics:
 
-- [**Write**](/docs/writing) — markdown extensions, AI prompt, voice
-  dictation, comments, knowledge-grounded answers.
+- [**Write**](/docs/writing) — the [markdown reference](/docs/writing/markdown-reference),
+  comments, voice dictation, and the AI assistant.
+- [**Set up the AI**](/docs/writing/ai-overview) — what each AI feature
+  needs, and how to [connect your own provider](/docs/account/ai-provider).
 - [**Share**](/docs/sharing) — access modes (open-edit, view-only,
   password-protected, QR code).
 - [**Style**](/docs/themes) — themes, presets, cover pages.
@@ -38,5 +40,7 @@ When you're comfortable with the basics:
   and optional AI sponsoring.
 - [**History & restore**](/docs/history) — see every change, replay
   comments in context, restore any past version.
-- [**Account & billing**](/docs/account) — plans, upgrades, GDPR data
-  export, account deletion.
+- [**Account & privacy**](/docs/account) — AI provider setup, MCP access
+  tokens, plans and limits, GDPR data export, account deletion.
+- [**Run it yourself**](/docs/getting-started/self-hosting) — install markoto on
+  your own server.

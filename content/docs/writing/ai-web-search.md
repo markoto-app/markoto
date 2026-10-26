@@ -1,33 +1,36 @@
 ---
 title: Ask the AI for current information
-description: The AI's grounded-search tool answers from live web results — names, prices, news, anything time-sensitive.
+description: The AI can search the web and answer from live results, with sources - names, prices, news, anything time-sensitive.
 category: writing
 order: 10
 ---
 
 # Ask the AI for current information
 
-When your prompt asks something time-sensitive — "what's the current
-Stripe pricing for seats?", "who won the F1 race last weekend?" — the
-AI calls its `web_search` tool. The tool fetches live web results via
-Jina Reader, hands them to Mistral for synthesis, and writes its reply
-attributing the source.
+When your prompt asks something time-sensitive ("what's the current Stripe
+pricing for seats?", "who won the F1 race last weekend?"), the AI searches
+the web, reads the results and answers with sources. You don't have to ask
+for a search: it decides from your prompt.
 
 ::flow{id="ask-the-ai-for-current-information" hide-title}
 ::
 
 ## What just happened
 
-The grounded-search tool runs as a 2-call sub-pipeline on the AI side
-— Jina Reader pulls in fresh web results for your query, Mistral
-synthesises a 3–6 sentence answer, and the reply you see carries
-citations to the sources the model used. The citations render as
-inline links so you can verify anything the AI claims.
+The AI sent a search query to a European search provider (Staan), got back a
+ranked list of results, and wrote a short answer from them. The reply
+carries links to the sources it used, so you can verify anything it claims.
+When in doubt, ask it to cite.
 
-When in doubt, ask the AI to cite. The model is good at it; we don't
-post-process those citations away.
+## Good to know
+
+- **It needs to be set up.** Web search only appears when the instance has a search key. On a self-hosted instance the operator adds `STAAN_API_KEY` ([self-hosting guide](https://github.com/joelbarmettlerUZH/md-online/blob/main/docs/SELF-HOSTING.md#ai)); without it the AI simply doesn't offer search.
+- **You still need a writing assistant provider.** The search itself is paid for by the instance, but the AI that reads the results and writes the answer runs on your own provider or the instance default ([what the AI needs](/docs/writing/ai-overview)). Without a provider, the raw results come back unsummarised.
+- **There is an allowance.** Search and page reading share a limit per person: by default 30 calls an hour and 100 a day. When it is used up the AI tells you and carries on without the web. An instance operator can change the numbers.
+- **Per session** the AI searches at most 10 times, so one prompt can't run away.
+- Searches are English-market searches today; the AI can still write the answer in your document's language.
 
 ## What's next
 
-- [Ask the AI to read a specific URL](/docs/writing/ai-fetch-url) — bypass search when you already know the source.
-- [Ask the AI about a file you uploaded](/docs/writing/knowledge-rag) — for facts that live inside your workspace, not on the open web.
+- [Ask the AI to read a specific URL](/docs/writing/ai-fetch-url): skip search when you already know the source.
+- [Ask the AI about a file you uploaded](/docs/writing/knowledge-rag): for facts that live inside your workspace, not on the open web.

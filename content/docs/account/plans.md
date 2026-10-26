@@ -1,39 +1,42 @@
 ---
-title: What you get on each plan
-description: Free, Pro, Max, Ultra side-by-side — features, AI interactions per month, sponsoring eligibility.
+title: Plans and limits
+description: What you get today - a free tier with every writing feature - and what paid plans will add. Self-hosted instances have no plans, only limits their operator sets.
 category: account
 order: 1
 featured: true
 ---
 
-# What you get on each plan
+# Plans and limits
 
-markoto's free plan is genuinely generous — anonymous + signed-in docs,
-unlimited storage, every theme, every markdown extension, voice
-dictation, the full agentic AI loop. The paid tiers raise the AI
-budget and unlock workspace AI sponsoring.
+markoto's free tier is generous: anonymous and signed-in documents, every
+theme, every markdown extension, collaboration, comments, history and
+restore, PDF export, workspaces, import, the MCP server, and all the AI
+features (with your own AI provider). Plans only change **limits**, never
+whether the writing experience works.
+
+What you see depends on where markoto runs:
+
+| Where | Plans |
+|---|---|
+| **markoto.app** | Everyone is on Free. Pro, Max and Ultra are shown on the [pricing page](/pricing) as **coming soon**, with no prices and no purchase button. You can join a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. |
+| **A self-hosted instance** | No plans, no pricing page tiers, no waitlist, no purchase. Everyone is on the free tier, and the operator decides the limits (workspaces, knowledge storage, AI Points). |
+| **An instance with paid plans live** (later) | Free, Pro, Max and Ultra with Stripe checkout; see [Upgrade](/docs/account/upgrade). |
 
 ::flow{id="what-you-get-on-each-plan" hide-title}
 ::
 
-## What just happened
+## What limits a plan sets
 
-The pricing page is fed from `app/utils/pricing.ts` — single source of
-truth for tier names, monthly costs, AI interaction caps, and feature
-flags. The Stripe price ids per tier live in env (`NUXT_STRIPE_PRICE_*`)
-so we can rotate prices without code changes.
+- **Workspaces you can own.** Workspaces you are invited to never count.
+- **Knowledge storage**: files and bytes per workspace and per person ([knowledge](/docs/writing/knowledge-rag)).
+- **AI Points**, the monthly allowance for AI that the operator pays for. Calls on your own AI provider are not limited by it ([AI Points](/docs/writing/ai-budget)).
+- **Workspace AI sponsoring** (higher paid plans, once available): see [Sponsor AI](/docs/workspaces/sponsor-ai).
 
-What scales with the plan:
-- **AI interactions per month** — Free: tight; Pro: comfortable; Max:
-  generous; Ultra: enough that you'll never see the cap.
-- **Workspace AI sponsoring** — Max + Ultra only. Lower tiers can have
-  workspaces, but `(+)` AI sponsoring requires Max+.
-
-What doesn't scale: every plan ships full editor features, full theme
-system, full collaboration. We don't gate the writing experience on
-the price tier.
+The walkthrough above shows the pricing page of an instance with paid plans
+live. The current numbers always come from the instance you are on: open its
+pricing page to see them.
 
 ## What's next
 
-- [Upgrade to Pro](/docs/account/upgrade) — Stripe Checkout, instant credit.
-- [Sponsor AI for the team](/docs/workspaces/sponsor-ai) — Max+ feature.
+- [Connect your own AI provider](/docs/account/ai-provider): the way to use AI today.
+- [Upgrade](/docs/account/upgrade): for instances with paid plans live.

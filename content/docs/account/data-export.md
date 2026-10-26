@@ -19,12 +19,13 @@ about you and everything you've authored.
 
 ## What just happened
 
-Requesting an export enqueues a row in `data_export_jobs` (`status:
-queued`). A background worker drains the queue, calls `buildExportZip`,
-uploads the resulting bytes to S3 under `exports/{userId}/{jobId}.zip`,
-and flips the row to `ready` with a 7-day TTL on the download URL.
+Requesting an export queues a job. A background worker builds the ZIP,
+stores it, and the profile page shows a download link once it is ready
+(and an email goes out if the instance has email set up; otherwise the
+profile page is the place to look). The link works for 7 days, after which
+the file is deleted and you can request a new export.
 
-What's in the ZIP (13 standard entries):
+What's in the ZIP:
 
 1. `profile.json` — your account row, minus secrets
 2. `workspaces.json` — workspaces you own + member of
@@ -34,11 +35,11 @@ What's in the ZIP (13 standard entries):
 6. `audit-log.json` — audit events where you were the actor
 7. `knowledge-metadata.json` — workspace knowledge files you uploaded (metadata; the originals were deleted post-processing)
 8. `consent-log.json` — your cookie/analytics consent decisions
-9. `billing-snapshot.json` — your plan + period + usage stats
+9. `billing-snapshot.json` — your plan and billing period (empty where billing is off)
 10. `README.md` — describes each entry
 
-The download URL is presigned for 7 days; expiry sweeper marks the
-row `expired` after that and best-effort deletes the S3 object.
+Your saved AI provider keys are never part of the export: they are stored
+encrypted and only ever used by the server.
 
 ## What's next
 

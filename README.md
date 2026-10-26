@@ -43,30 +43,36 @@ documents work anonymously.
 
 ## Self-hosting
 
-markoto is a single-VPS deployment: one Nuxt app, a Hocuspocus sync server, a
-Playwright PDF renderer, Markitdown for imports, Postgres (+pgvector), Valkey,
-and any S3-compatible object storage — all wired via Docker Compose and
-deployable with the included Ansible playbooks.
+markoto runs on a single Linux machine with Docker. One installer writes the
+configuration, creates all credentials and starts the whole stack: the app, the
+Hocuspocus sync server, the PDF renderer, Markitdown, Postgres with pgvector,
+Valkey, object storage, the LiteLLM AI gateway and encrypted backups.
 
-- **[docs/DEPLOY.md](./docs/DEPLOY.md)** — provider-agnostic production deploy
-  (any Debian/Ubuntu VPS + managed Postgres + S3).
-- **[docs/LOCAL.md](./docs/LOCAL.md)** — full stack locally with TLS.
-- **[docs/S3-SETUP.md](./docs/S3-SETUP.md)**, **[docs/SECURITY-HARDENING.md](./docs/SECURITY-HARDENING.md)** —
-  storage and hardening guides.
+```sh
+git clone https://github.com/joelbarmettlerUZH/md-online.git markoto && cd markoto
+./install.sh
+```
 
-Stripe billing is optional: without Stripe configuration the app runs with all
-accounts on the free tier and billing endpoints disabled. AI features require a
-self-hosted [LiteLLM](https://github.com/BerriAI/litellm) proxy (config
-included under `infra/litellm/`) plus API keys for the providers you enable.
+Needs Docker with Compose 5.0 or newer. Sign-in, AI providers (bring your own
+key, or operator defaults including local models such as Ollama), HTTPS,
+backups, upgrades and troubleshooting are covered in
+**[docs/SELF-HOSTING.md](./docs/SELF-HOSTING.md)**. AI is optional and billing is
+off: every account is on the free tier, with limits you set.
 
-The remaining docs (`RUNBOOK.md`, `SECRETS-ROTATION.md`, `DEPLOY-OVH.md`,
-`BREACH-RESPONSE.md`, `GITHUB-CONFIG.md`) describe how **we** operate the
-hosted instance — published for transparency and as templates, not required
-reading for self-hosters.
+- **[docs/AI-MODELS.md](./docs/AI-MODELS.md)**: which models power which feature,
+  recommended models for bring-your-own-key, custom embeddings.
+- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)**: how the pieces fit together.
+- User documentation lives in `content/docs/` and is served at `/docs` on every
+  instance.
+
+The other files in `docs/` (`DEPLOY.md`, `DEPLOY-OVH.md`, `RUNBOOK.md`,
+`SECRETS-ROTATION.md`, `BREACH-RESPONSE.md`, `GITHUB-CONFIG.md`, ...) describe how
+**we** operate the hosted instance, published for transparency and as templates,
+not required reading for self-hosters.
 
 ## Development
 
-Prerequisites: [Bun](https://bun.sh), Docker Compose v2.20+, `make`.
+Prerequisites: [Bun](https://bun.sh) 1.4+, Docker Compose v2.20+, `make`.
 
 ```sh
 bun install
@@ -75,8 +81,8 @@ make dev-app    # Nuxt with HMR on the host
 ```
 
 `make help` surfaces every common workflow; `docs/CHEATSHEET.md` is the flat
-reference. Architecture documentation lives in [`AGENTS.md`](./AGENTS.md) with
-per-area deep-dives in sub-`AGENTS.md` files — written to be equally useful to
+reference. The architecture overview is [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md);
+engineering detail lives in [`AGENTS.md`](./AGENTS.md) with per-area deep-dives in sub-`AGENTS.md` files — written to be equally useful to
 humans and AI coding agents.
 
 Tests (3,200+ across five tiers — see [CONTRIBUTING.md](./CONTRIBUTING.md)):

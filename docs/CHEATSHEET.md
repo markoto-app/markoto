@@ -115,7 +115,10 @@ See `docs/DEPLOY-OVH.md` for the OVH walkthrough and `docs/DEPLOY.md` for the ge
 
 | What | Where |
 |---|---|
-| Architecture overview | `AGENTS.md` (per-area sub-AGENTS.md files in respective dirs) |
+| Contributing (setup, tests, PR rules) | `CONTRIBUTING.md` |
+| Architecture overview | `docs/ARCHITECTURE.md`, then `AGENTS.md` (per-area sub-AGENTS.md files in respective dirs) |
+| Self-hosting (install, config, upgrades, troubleshooting) | `docs/SELF-HOSTING.md` |
+| AI models and bring-your-own-key | `docs/AI-MODELS.md` |
 | 3 AM runbook | `docs/RUNBOOK.md` |
 | Release pipeline | `docs/RELEASE-PROCESS.md` |
 | Deploy walkthrough (OVH) | `docs/DEPLOY-OVH.md` |

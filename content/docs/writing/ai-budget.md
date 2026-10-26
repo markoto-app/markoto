@@ -1,32 +1,45 @@
 ---
-title: What happens when you hit the AI cap
-description: Each plan ships a monthly AI budget — see how the cap surfaces in the UI and what your options are.
+title: AI Points and what happens when you run out
+description: AI Points are a monthly allowance that only applies when the instance pays for the AI. Calls on your own provider never use them.
 category: writing
 order: 12
 ---
 
-# What happens when you hit the AI cap
+# AI Points and what happens when you run out
 
-AI is metered per interaction (a prompt + the AI's full agentic loop
-through tools and final reply). Free, Pro, Max, Ultra each ship a
-different monthly budget. When you run out, the prompt bar tells you
-plainly — no surprise downgrades to a worse model, no silent failure.
+**AI Points** are markoto's unit for AI that someone else pays for: 1000
+points equal one US dollar of model usage. They only come into play when a
+capability is paid for by the operator of the instance, that is, when the
+operator set a default model with their own provider key.
 
-::flow{id="what-happens-when-you-hit-the-ai-cap" hide-title}
-::
+- **Using your own provider** ([Settings -> AI provider](/docs/account/ai-provider)): your provider bills you directly and **nothing counts against AI Points**. There is no markoto-side cap on your own key.
+- **Using an operator-paid default** (common on self-hosted instances): each person has a monthly allowance, set by the operator. It refills every 30 days.
+- **On markoto.app** there are no operator-paid models today, so the points meter doesn't show up unless you use one.
 
-## What just happened
+The points meter in the top bar only appears when something you can do is
+operator-paid. If you have both your own keys and an operator default, the
+meter says that calls on your own key don't use points.
 
-Every interaction is counted in `ai_usage_period`, anchored to your
-billing cycle (Stripe period if you're paid; calendar month otherwise).
-When `interactions_used >= cap`, the prompt-bar submit returns a
-`BudgetExhausted` error and renders the plan-up call-to-action inline.
+## When the allowance is used up
 
-The counter increments atomically (`INSERT … ON CONFLICT DO UPDATE`)
-so two concurrent prompts can't both squeeze under the cap.
+The AI bar says so plainly: no silent downgrade to a worse model and no
+silent failure. It also writes a short note into the document where the AI
+would have answered. What you can do:
+
+- **Wait** until the next period starts and the allowance refills.
+- **Connect your own provider** for the writing assistant; it is unaffected by the cap.
+- **Ask the instance operator** to raise the allowance (the `TIER_FREE_LITELLM_BUDGET_USD` setting on a self-hosted instance).
+- On markoto.app, paid plans with larger allowances are **coming soon** ([plans](/docs/account/plans)). Where paid plans are live, the AI bar shows an Upgrade button.
+
+## Not the same as the safety limits
+
+Each AI session also has fixed safety limits that protect against runaway
+loops (at most 50 steps, 5 generated images, 10 web searches and 10 page
+reads). They apply to everyone, on every provider, and are not tied to
+points. A normal prompt uses a few steps.
 
 ## What's next
 
-- [What you get on each plan](/docs/account/plans) — Free / Pro / Max / Ultra side-by-side.
-- [Upgrade to Pro](/docs/account/upgrade) — Stripe Checkout, instant credit.
-- [Sponsor AI for your team](/docs/workspaces/sponsor-ai) — bill AI usage to a workspace owner so members never hit a personal cap.
+- [What the AI can do, and what it needs](/docs/writing/ai-overview)
+- [Connect your own AI provider](/docs/account/ai-provider)
+- [Plans](/docs/account/plans)

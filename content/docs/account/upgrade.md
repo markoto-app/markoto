@@ -1,35 +1,30 @@
 ---
-title: Upgrade to Pro
-description: One click takes you to Stripe Checkout; the upgrade is live the moment the webhook fires.
+title: Upgrade your plan
+description: How upgrading works on an instance with paid plans live. Not available on markoto.app yet (plans are coming soon) or on self-hosted instances.
 category: account
 order: 2
 ---
 
-# Upgrade to Pro
+# Upgrade your plan
 
-Hit "Upgrade" anywhere in the app — the prompt-bar exhausted-budget
-notice, the pricing page, the profile page — and you land in Stripe
-Checkout. Pay; the webhook fires; the upgrade is reflected in your
-account before you're back on the markoto tab.
+> **Availability.** Paid plans are **coming soon** on markoto.app, so there is
+> nothing to buy yet: no checkout, no billing portal. Self-hosted instances
+> never have paid plans. This page describes the flow for instances where
+> paid plans are switched on.
 
-::flow{id="upgrade-to-pro" hide-title}
-::
+Where plans are live, press **Upgrade** anywhere it appears (the AI bar when
+the allowance is used up, the pricing page, your profile) and you land in
+Stripe Checkout. Pay, and the new plan is active in your account as soon as
+Stripe confirms the payment, usually before you are back on the markoto tab.
+Managing or cancelling a subscription opens Stripe's billing portal. Changes
+take effect as Stripe reports them; if a subscription lapses, you fall back
+to the free tier and nothing is deleted.
 
-## What just happened
-
-`POST /api/billing/checkout` opens a Stripe Checkout session keyed on
-your user id and the chosen tier. After payment, Stripe fires
-`checkout.session.completed`, which the webhook handler dedups via
-`processed_webhook_events` and applies. The handler also drains any
-`pending_stripe_events` rows that arrived out of order (e.g. a
-`subscription.created` that beat the checkout event).
-
-Cancellation + plan management is handled the same way through
-`/api/billing/portal` — opens a Stripe-hosted billing portal; the
-webhook handles the rest.
+The checkout and portal links answer "billing is disabled" wherever billing
+is off.
 
 ## What's next
 
-- [What you get on each plan](/docs/account/plans) — confirm you picked the right tier.
-- [Sponsor AI for the team](/docs/workspaces/sponsor-ai) — only available Max+.
-- [Hit the AI cap?](/docs/writing/ai-budget) — what triggered the upgrade flow.
+- [Plans and limits](/docs/account/plans)
+- [AI Points](/docs/writing/ai-budget): what an upgrade raises.
+- [Sponsor AI for the team](/docs/workspaces/sponsor-ai): a higher-tier feature.

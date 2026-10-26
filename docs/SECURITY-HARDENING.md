@@ -1,5 +1,7 @@
 # Security Hardening
 
+> Operator docs for the hosted markoto.app deployment; self-hosters see [SELF-HOSTING.md](./SELF-HOSTING.md).
+
 Cross-cutting hardening notes for the production stack. Two sections today:
 
 - §A. HTTP headers + CSP — applied at the Traefik edge.

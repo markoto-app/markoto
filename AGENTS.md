@@ -40,7 +40,10 @@ This file holds project-wide context. Domain-specific detail lives next to the c
 | `docs/CHEATSHEET.md` | Command discovery (Make targets, common workflows) |
 | `docs/AI-MODELS.md` | Chosen AI models per surface, rationale, sources, BYOK recommended models |
 | `docs/DEPLOY-OVH.md` | First-time OVH VPS provisioning |
-| `docs/SELF-HOSTING.md` | Self-host install (`install.sh`), config reference, login/OAuth, BYOK + instance AI defaults, upgrades, backups/restore, re-embed, trusted proxy |
+| `docs/SELF-HOSTING.md` | Self-host install (`install.sh`), config reference, login/OAuth, BYOK + instance AI defaults, upgrades + upgrade notes, backups/restore, re-embed, trusted proxy, troubleshooting |
+| `docs/ARCHITECTURE.md` | Contributor-friendly architecture overview (mermaid diagram), distilled from this file |
+| `CONTRIBUTING.md` | Dev setup, test tiers + docker test stack, coding rules, PR conventions (DCO/CLA still undecided) |
+| `content/docs/` | User documentation rendered at `/docs` (Nuxt Content). Pages embed Playwright flows; write in the user's voice, no internals. Operator-only files in `docs/` carry an "Operator docs for the hosted markoto.app deployment" header |
 | `docs/SECURITY-HARDENING.md` | Tier-1 hardening rationale + verification |
 | `docs/GITHUB-CONFIG.md` | Branch protection, secrets, environments |
 

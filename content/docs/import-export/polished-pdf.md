@@ -28,10 +28,13 @@ and brand color. Then File → Save as PDF triggered the renderer
 sidecar — a headless Chromium running paged.js server-side — and the
 result was streamed back as a download.
 
-The PDF render is **cached per snapshot**. Every PDF download for a
-given doc + theme combo after the first hits S3 in under a second; the
-cold render takes 5–15 seconds. So the *second* PDF you ask for is
-near-instant, even if the first one took a beat.
+The PDF is rendered on the server by a headless browser that uses exactly
+the same theme as your preview, so the page breaks you saw are the page
+breaks you get. A new render takes 5-15 seconds; asking again for the same
+document and theme, without edits, is near-instant. PDF downloads are limited
+to 10 per minute per address. If the PDF renderer is unavailable, the
+download fails with an error rather than falling back to a different
+layout.
 
 ## What's next
 
