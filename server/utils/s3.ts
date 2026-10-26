@@ -12,7 +12,16 @@ function buildClient(endpoint: string): S3Client {
       accessKeyId: config.s3.accessKey,
       secretAccessKey: config.s3.secretKey
     },
-    forcePathStyle: true
+    forcePathStyle: true,
+    // Only send / verify checksums when an operation requires them. Since
+    // @aws-sdk 3.729 the default (WHEN_SUPPORTED) adds a CRC32 to every
+    // PutObject — and in a PRESIGNED PUT that checksum is computed over the
+    // empty body at signing time (`x-amz-checksum-crc32=AAAAAA==`), so the
+    // browser's real upload is rejected with 400 BadDigest. Every image and
+    // knowledge upload broke that way. WHEN_REQUIRED is the pre-3.729
+    // behaviour and what S3-compatible backends (OVH, SeaweedFS) expect.
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED'
   })
 }
 
