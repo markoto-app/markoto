@@ -18,9 +18,7 @@ export default defineEventHandler(async (event) => {
 
   // Modest brake on anonymous-delete. Aligned with the token endpoint
   // (30/min) — deletes are rarer, so 10/min per IP is plenty.
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || 'unknown'
+  const ip = getClientIp(event) ?? 'unknown'
   if (!(await checkRateLimit('doc-delete', ip, 10, 60_000))) {
     throw createError({ statusCode: 429, message: 'Too many delete requests. Try again later.' })
   }

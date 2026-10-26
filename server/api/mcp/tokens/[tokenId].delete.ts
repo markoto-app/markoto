@@ -45,9 +45,7 @@ export default defineEventHandler(async (event) => {
 
   // Audit the revocation. Same shape as issuance — security-grade
   // event, never log the hash.
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
   await appendAuditEvent({
     actorUserId: userId,
     actorIp: truncateIp(ip),

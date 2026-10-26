@@ -50,9 +50,7 @@ export default defineEventHandler(async (event) => {
   const wsDocIds = await listDocIdsInWorkspace(wsId)
   notifySyncKickUser(targetUserId, wsDocIds)
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
   await appendAuditEvent({
     actorUserId: session.user.id,
     actorIp: ip,

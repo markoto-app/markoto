@@ -80,9 +80,7 @@ export default defineEventHandler(async (event) => {
     locale
   })
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
 
   // Two audit rows — separable in queries by action. The age row
   // is dropped if the column was already non-null (idempotent

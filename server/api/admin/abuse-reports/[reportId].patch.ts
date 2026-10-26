@@ -87,9 +87,7 @@ export default defineEventHandler(async (event) => {
     .set(updates)
     .where(eq(abuseReports.reportId, reportId))
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
 
   await appendAuditEvent({
     actorUserId: admin.userId,

@@ -91,18 +91,32 @@ describe('createRateLimiter — per-IP cap', () => {
 })
 
 describe('createRateLimiter — IP extraction', () => {
-  it('extracts the first entry from a comma-separated XFF list', () => {
+  it('keys on the entry appended by the trusted proxy (rightmost), not the client-supplied first entry', () => {
     const rl = createRateLimiter({ maxConnectionsPerIP: 1 })
+    // A client sent "1.1.1.1, 2.2.2.2"; Traefik (1 trusted hop) appended
+    // the real peer 3.3.3.3. Only 3.3.3.3 is trustworthy.
     rl.onConnect(hookData({ ip: '1.1.1.1, 2.2.2.2, 3.3.3.3', socketId: 's1' }))
-    // The first IP is counted. A second connect from "1.1.1.1" (bare)
-    // should hit the same bucket.
-    expect(() => rl.onConnect(hookData({ ip: '1.1.1.1', socketId: 's2' })))
+    expect(() => rl.onConnect(hookData({ ip: '3.3.3.3', socketId: 's2' })))
       .toThrow('Too many connections')
   })
 
-  it('trims whitespace around the first entry', () => {
+  it('a spoofed first entry cannot escape the per-IP bucket', () => {
     const rl = createRateLimiter({ maxConnectionsPerIP: 1 })
-    rl.onConnect(hookData({ ip: '  1.1.1.1  , 2.2.2.2', socketId: 's1' }))
+    rl.onConnect(hookData({ ip: '9.9.9.1, 3.3.3.3', socketId: 's1' }))
+    expect(() => rl.onConnect(hookData({ ip: '9.9.9.2, 3.3.3.3', socketId: 's2' })))
+      .toThrow('Too many connections')
+  })
+
+  it('honours a larger trusted-hop count (own proxy in front of Traefik)', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 1, trustedHops: 2 })
+    rl.onConnect(hookData({ ip: '6.6.6.6, 1.1.1.1, 10.0.0.2', socketId: 's1' }))
+    expect(() => rl.onConnect(hookData({ ip: '1.1.1.1, 10.0.0.2', socketId: 's2' })))
+      .toThrow('Too many connections')
+  })
+
+  it('trims whitespace around entries', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 1 })
+    rl.onConnect(hookData({ ip: '2.2.2.2 ,  1.1.1.1  ', socketId: 's1' }))
     expect(() => rl.onConnect(hookData({ ip: '1.1.1.1', socketId: 's2' })))
       .toThrow('Too many connections')
   })
@@ -114,7 +128,19 @@ describe('createRateLimiter — IP extraction', () => {
       .toThrow('Too many connections')
   })
 
-  it('missing XFF buckets into the shared "unknown" slot', () => {
+  it('missing XFF falls back to the socket address', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 1 })
+    const direct = (socketId: string) => ({
+      request: { headers: {}, socket: { remoteAddress: '::ffff:192.0.2.7' } },
+      socketId
+    })
+    rl.onConnect(direct('a'))
+    expect(() => rl.onConnect(direct('b'))).toThrow('Too many connections')
+    // Another peer is a different bucket.
+    expect(() => rl.onConnect(hookData({ ip: '192.0.2.8', socketId: 'c' }))).not.toThrow()
+  })
+
+  it('missing XFF and socket address buckets into the shared "unknown" slot', () => {
     // Not a great place to be — in prod, Traefik always sets XFF and this
     // path is cold. Pin the behaviour so a change to "fail-closed on
     // missing XFF" is an explicit decision.

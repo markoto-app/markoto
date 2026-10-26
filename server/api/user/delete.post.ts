@@ -25,9 +25,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
 
   // Rate limit on (userId, IP) — userId-only would be DoS-able by a
   // session-stealing attacker; IP-only would be unfair to mobile users

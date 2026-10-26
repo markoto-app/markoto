@@ -8,21 +8,27 @@
 //     Protects against memory blowup when a crawler walks through random
 //     doc IDs and each one spawns a Y.Doc in RAM. Default: 5000.
 //
-// IP extraction: `x-forwarded-for` only. Requests without an XFF header
-// land in the shared "unknown" bucket. Production always runs behind
-// Traefik (which injects XFF), so in practice "unknown" never gets used
-// on the internet; the single shared bucket is an acceptable tradeoff
-// in dev / misconfigured deploys.
+// IP extraction: `shared/utils/clientIp.ts#resolveClientIp` — the
+// `TRUSTED_PROXY_HOPS`-th `x-forwarded-for` entry from the RIGHT (default
+// 1 = the Traefik in every shipped compose file), falling back to the
+// socket address when there is no header. The leftmost entry is whatever
+// the client sent, so keying on it let anyone pick their own bucket.
+// Requests with neither land in the shared "unknown" bucket.
 //
 // State is per-instance — `createRateLimiter()` returns a fresh limiter
 // with isolated Maps, which is what unit tests use. Production uses the
 // default singleton exported at the bottom.
 
+import { DEFAULT_TRUSTED_PROXY_HOPS, parseTrustedProxyHops, resolveClientIp } from '../../shared/utils/clientIp'
+
 // Minimal shape of Hocuspocus's onConnect/onDisconnect payload — only the
 // fields we read. Avoids importing Hocuspocus's internal types (which
 // shift between v3 patch releases).
 interface HookData {
-  request?: { headers?: Record<string, string | string[] | undefined> }
+  request?: {
+    headers?: Record<string, string | string[] | undefined>
+    socket?: { remoteAddress?: string }
+  }
   requestHeaders?: Record<string, string | string[] | undefined>
   socketId?: string
   connection?: { readyState?: { toString?: () => string } }
@@ -33,25 +39,23 @@ interface HookData {
 export interface RateLimiterOptions {
   maxConnectionsPerIP?: number
   maxActiveRooms?: number
+  /** Trusted reverse proxies in front of the sync server (default 1). */
+  trustedHops?: number
 }
 
-function extractIp(data: HookData): string {
-  // VERIFIED: read XFF from the upgrade request, not the WS socket. In prod
-  // every connection lands here via Traefik; the raw socket address is
-  // Traefik's container IP, NOT the client's. If we keyed on socket.remoteAddress
-  // the per-IP cap would behave as a single global cap of 20 connections
-  // (since every client looks identical). Always-on XFF in Traefik makes this
-  // correct in prod. The "unknown" bucket only applies in dev / direct
-  // (non-proxied) connections — accepted tradeoff documented at the top of
-  // this file.
+function extractIp(data: HookData, trustedHops: number): string {
+  // Read XFF from the upgrade request, not the WS socket: in prod every
+  // connection arrives via Traefik, so the raw socket address is Traefik's
+  // container IP for EVERY client — keyed on that, the per-IP cap would
+  // act as one global cap of 20 connections. The socket address is only
+  // the fallback for direct (non-proxied) connections.
   const request = data.request || { headers: data.requestHeaders }
   const headers = request?.headers || {}
-  const xff = headers['x-forwarded-for']
-  const raw = Array.isArray(xff) ? xff[0] : xff
-  if (typeof raw === 'string' && raw.length > 0) {
-    return raw.split(',')[0]!.trim()
-  }
-  return 'unknown'
+  return resolveClientIp({
+    forwardedFor: headers['x-forwarded-for'],
+    remoteAddress: data.request?.socket?.remoteAddress,
+    trustedHops
+  }) ?? 'unknown'
 }
 
 /**
@@ -61,6 +65,7 @@ function extractIp(data: HookData): string {
 export function createRateLimiter(options: RateLimiterOptions = {}) {
   const maxConnectionsPerIP = options.maxConnectionsPerIP ?? 20
   const maxActiveRooms = options.maxActiveRooms ?? 5000
+  const trustedHops = options.trustedHops ?? DEFAULT_TRUSTED_PROXY_HOPS
 
   const connectionsPerIP = new Map<string, number>()
   const connectionIPs = new Map<string, string>() // socketId → IP
@@ -77,7 +82,7 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
       }
 
       try {
-        const ip = extractIp(data)
+        const ip = extractIp(data, trustedHops)
 
         const current = connectionsPerIP.get(ip) || 0
         if (current >= maxConnectionsPerIP) {
@@ -150,5 +155,6 @@ const resolvedCap = Number.isFinite(parsedOverride) && parsedOverride > 0
   : defaultCap
 
 export const rateLimiter = createRateLimiter({
-  maxConnectionsPerIP: resolvedCap
+  maxConnectionsPerIP: resolvedCap,
+  trustedHops: parseTrustedProxyHops(process.env.TRUSTED_PROXY_HOPS)
 })

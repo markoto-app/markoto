@@ -21,9 +21,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
 
   if (!(await checkRateLimit('account-export-request', String(userId), 1, 24 * 60 * 60 * 1000))) {
     throw createError({

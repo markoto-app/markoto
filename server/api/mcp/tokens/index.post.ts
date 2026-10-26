@@ -64,9 +64,7 @@ export default defineEventHandler(async (event) => {
   // metadata; only the public token id + name + granted scopes.
   // `appendAuditEvent` is fire-and-forget (swallows + Sentries on
   // failure) so a Postgres hiccup never blocks the user's response.
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const ip = getClientIp(event)
   await appendAuditEvent({
     actorUserId: userId,
     actorIp: truncateIp(ip),
