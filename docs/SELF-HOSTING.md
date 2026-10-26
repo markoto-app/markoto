@@ -276,7 +276,7 @@ Postgres holds everything that matters: accounts, documents and their full edit 
 docker compose run --rm --no-deps -v "$PWD/backup-copy:/out" --entrypoint sh backup -c \
   'AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY" AWS_DEFAULT_REGION=us-east-1 \
    aws --endpoint-url "$S3_ENDPOINT" s3 sync "s3://$S3_BUCKET/backups/" /out/'
-# then ship ./backup-copy to another machine / storage
+# then ship ./backup-copy to another machine / storage (the files are owned by root)
 ```
 
 (sync `s3://$S3_BUCKET/` instead to copy the uploaded images too), or snapshot the Docker volumes (`<instance>_pg_data`, `<instance>_seaweed_data`) with your usual tooling. Keep `BACKUP_GPG_PASSPHRASE` somewhere safe outside the machine; without it the dumps can't be decrypted.
