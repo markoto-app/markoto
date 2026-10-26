@@ -1,5 +1,6 @@
 import * as Y from 'yjs'
 import { useDatabasePool } from './database'
+import { withThemeDocId } from '~~/shared/utils/customCss'
 
 // Clone Y.js state from one docId to another, rewriting image URLs in
 // the process so the target doc's markdown references its own
@@ -77,6 +78,10 @@ export async function cloneYjsStateWithUrlRewrite(
   const targetMeta = targetDoc.getMap('meta')
   sourceMeta.forEach((value, key) => {
     if (key === '_deleted') return
+    if (key === 'theme' && value && typeof value === 'object' && !Array.isArray(value)) {
+      targetMeta.set(key, withThemeDocId(value, sourceDocId, targetDocId))
+      return
+    }
     targetMeta.set(key, value)
   })
 

@@ -43,6 +43,7 @@ export default defineEventHandler(async (event) => {
         data: { issues: parsed.error.issues }
       })
     }
+    assertValidThemeCustomCss(parsed.data, null, event)
     update.theme = parsed.data
   }
 

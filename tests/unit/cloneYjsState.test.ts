@@ -99,4 +99,20 @@ describe('cloneYjsState — non-obvious contracts', () => {
     expect(tgt.getMap('meta').get('title')).toBe('Title')
     expect(tgt.getMap('meta').get('_deleted')).toBeUndefined()
   })
+
+  it('ymeta.theme custom CSS is pointed at the copy\'s uploads', async () => {
+    const src = new Y.Doc()
+    src.getText('content').insert(0, 'body')
+    src.getMap('meta').set('theme', { body: { size: 11 }, customCss: 'p{background:url(/api/files/SRC/a.png)}' })
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [rowFromDoc(src)] })
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [] })
+
+    await cloneYjsStateWithUrlRewrite('SRC', 'TGT')
+
+    const tgt = docFromInsertedUpdate(mockQuery.mock.calls[1] as [string, unknown[]])
+    expect(tgt.getMap('meta').get('theme')).toEqual({
+      body: { size: 11 },
+      customCss: 'p{background:url(/api/files/TGT/a.png)}'
+    })
+  })
 })

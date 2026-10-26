@@ -1,5 +1,6 @@
 import type { DocTheme, RunningSlots } from '../types/theme'
 import { pageHeightMm } from './pageDimensions'
+import type { CustomCssResult } from '../types/customCss'
 
 /**
  * Runtime values interpolated into the theme CSS. Kept separate from
@@ -17,6 +18,14 @@ export type ThemeRuntime = {
   // shouldn't be persisted to the doc — same translation should apply
   // when the doc opens in another language.
   tocTitle: string
+  /**
+   * The document's custom CSS AFTER `sanitizeCustomCss` (shared/utils/customCss.ts).
+   * Appended last so user rules override the theme. Typed as the
+   * sanitizer's result (not a bare string) so a call site can't hand the
+   * raw `theme.customCss` through by accident — `theme.customCss` itself
+   * is never read here.
+   */
+  customCss?: CustomCssResult
 }
 
 /**
@@ -24,7 +33,7 @@ export type ThemeRuntime = {
  * live paged preview and the PDF print iframe.
  */
 export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
-  return [
+  const blocks = [
     pageBlock(theme, runtime),
     rootBlock(theme),
     typographyBlock(theme),
@@ -39,7 +48,10 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     columnSpanBlock(),
     coverBlock(theme),
     breakHints()
-  ].join('\n\n')
+  ]
+  const custom = runtime.customCss?.css
+  if (custom) blocks.push(`/* custom css */\n${custom}`)
+  return blocks.join('\n\n')
 }
 
 /**

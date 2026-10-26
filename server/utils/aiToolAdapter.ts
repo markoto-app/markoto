@@ -47,6 +47,8 @@ import { renderDocument } from './renderClient'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { adaptCustomCssToDoc, formatCustomCssIssues } from '~~/shared/utils/customCss'
+import { customCssAppOrigins, themeCustomCssIssues } from './themeCustomCss'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
 import { decideTokenAccess } from '~~/shared/utils/docPermissions'
@@ -286,6 +288,8 @@ export function summarizePatch(patch: UpdateThemeInput): string {
   const touched = Object.entries(patch)
     .filter(([k, v]) => !DIRECTIVE_KEYS.has(k) && v && typeof v === 'object' && Object.keys(v).length > 0)
     .map(([k]) => k)
+  // customCss is a string field, so the object filter above skips it.
+  if (patch.customCss !== undefined) touched.push('customCss')
   if (touched.length) parts.push(touched.join(', '))
   return parts.length ? parts.join(' + ') : '(no changes)'
 }
@@ -308,11 +312,47 @@ export async function handleUpdateTheme(
     return err('Error: merged theme failed validation. Try narrower changes.')
   }
 
-  session.updateStatus('editing', 'Updating theme…')
-  applyThemeToYDoc(session, merged)
-  await persistThemeBestEffort(session, merged)
+  const css = resolveThemeCustomCss(merged, input.customCss !== undefined, session.docId, customCssAppOrigins())
+  if (!css.ok) return err(css.error)
 
-  return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.`)
+  session.updateStatus('editing', 'Updating theme…')
+  applyThemeToYDoc(session, css.theme)
+  await persistThemeBestEffort(session, css.theme)
+
+  return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.${css.note}`)
+}
+
+/**
+ * Custom-CSS gate for `update_theme` (same sanitizer as every other
+ * write path). CSS the model SENT is all-or-nothing: any issue rejects
+ * the call with line/column details so it can fix and retry. CSS that
+ * only came along with the base theme (a saved theme / workspace
+ * default made in another document) is adapted instead: rules that
+ * can't work here — usually another document's uploaded images — are
+ * dropped and the result says so.
+ *
+ * @internal exported for unit tests; not part of the public API.
+ */
+export function resolveThemeCustomCss(
+  merged: DocTheme,
+  cssFromPatch: boolean,
+  docId: string,
+  origins: readonly string[]
+): { ok: true, theme: DocTheme, note: string } | { ok: false, error: string } {
+  if (cssFromPatch) {
+    const issues = themeCustomCssIssues(merged, docId, origins)
+    if (issues.length > 0) {
+      return { ok: false, error: `Error: customCss rejected — nothing was changed. Fix these and retry:\n${formatCustomCssIssues(issues)}` }
+    }
+    return { ok: true, theme: merged, note: '' }
+  }
+  const adapted = adaptCustomCssToDoc(merged.customCss, { docId, allowedOrigins: origins })
+  if (adapted.dropped.length === 0) return { ok: true, theme: merged, note: '' }
+  return {
+    ok: true,
+    theme: { ...merged, customCss: adapted.css },
+    note: ` Note: ${adapted.dropped.length} custom CSS rule(s) from the base theme could not be used in this document and were removed.`
+  }
 }
 
 type BaseResolution = { ok: true, theme: DocTheme } | { ok: false, error: ToolResult }
@@ -356,7 +396,13 @@ async function resolveBaseTheme(session: DocToolContext, input: UpdateThemeInput
       // Should be unreachable — Zod enum restricts `preset` to known ids.
       return { ok: false, error: err(`Error: Unknown preset "${input.preset}".`) }
     }
-    return { ok: true, theme: preset.theme }
+    // Built-in presets carry no custom CSS, so keep the document's own
+    // (same behaviour as the theme panel).
+    const current = await resolveCurrentTheme(session)
+    return {
+      ok: true,
+      theme: current.customCss ? { ...preset.theme, customCss: current.customCss } : preset.theme
+    }
   }
   if (input.theme_id) {
     const saved = await getThemeById(input.theme_id, session.initiatorUserId)

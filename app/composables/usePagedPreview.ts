@@ -6,6 +6,8 @@ import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/page
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
+import type { CustomCssResult } from '~~/shared/types/customCss'
+import { sanitizeCustomCssForRender, currentAppOrigins } from '~/utils/customCssLoader'
 // Iframe bootstrap document — lives in its own .html file so backticks
 // don't need escaping and the HTML/CSS/JS gets proper syntax highlighting.
 // Loaded as a raw string via Vite's `?raw` import. URL placeholders are
@@ -50,6 +52,8 @@ export function usePagedPreview(opts: {
   html: Ref<string>
   theme: Ref<DocTheme>
   title: Ref<string>
+  /** Owning document — scopes which uploads custom CSS may reference. */
+  docId: Ref<string>
   container: Ref<HTMLElement | null>
   /**
    * Fired when the user presses Cmd/Ctrl+P while focus is INSIDE the
@@ -118,7 +122,50 @@ export function usePagedPreview(opts: {
   const i18n = (typeof useI18n === 'function') ? useI18n() : null
   const tocTitle = computed(() => i18n?.t('table.tocTitle') ?? 'Table of Contents')
 
+  // Sanitized custom CSS, keyed by the (docId, raw css) it was made from.
+  // The sanitizer is loaded lazily, so `render()` (synchronous, because
+  // of the pagination serialisation above) never awaits it: when the
+  // cache is stale it kicks off the sanitize and re-enters `render()`
+  // once the result is in. Documents without custom CSS skip all this.
+  let customCssKey = ''
+  let customCss: CustomCssResult | undefined
+  let customCssPending: string | null = null
+
+  /** True when the cache matches the current theme; otherwise starts a refresh. */
+  function customCssReady(): boolean {
+    const raw = opts.theme.value.customCss ?? ''
+    const key = `${opts.docId.value}\n${raw}`
+    if (key === customCssKey) return true
+    if (raw.trim() === '') {
+      customCss = undefined
+      customCssKey = key
+      customCssPending = null
+      return true
+    }
+    if (customCssPending === key) return false
+    customCssPending = key
+    let result: CustomCssResult | undefined
+    sanitizeCustomCssForRender(raw, { docId: opts.docId.value, allowedOrigins: currentAppOrigins() })
+      .then((res) => {
+        result = res
+      })
+      .catch((err: unknown) => {
+        // Fail closed: no custom CSS rather than unsanitized CSS.
+        console.warn('[custom css] sanitizer failed to load', err)
+      })
+      .finally(() => {
+        // A newer edit superseded this one; its own run will render.
+        if (customCssPending !== key) return
+        customCss = result
+        customCssPending = null
+        customCssKey = key
+        render()
+      })
+    return false
+  }
+
   function render() {
+    if (!customCssReady()) return
     if (!isReady.value || !iframe?.contentWindow) {
       pendingRender = true
       return
@@ -134,7 +181,8 @@ export function usePagedPreview(opts: {
     const themeCss = themeToCss(opts.theme.value, {
       title: opts.title.value || '',
       date: new Date().toISOString().slice(0, 10),
-      tocTitle: tocTitle.value
+      tocTitle: tocTitle.value,
+      customCss
     })
     const fontsImport = themeFontsImport(opts.theme.value)
     const hljsUrl = hljsThemeUrl(opts.theme.value.code.theme)

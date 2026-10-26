@@ -8,7 +8,7 @@ import { UpdateThemeArgs } from '../../utils/agentic/functionTools'
 // Adding `doc_id` on top is the only MCP-specific delta.
 export default buildDocBoundTool({
   name: 'update_theme',
-  description: 'Update the document theme — fonts, colors, page size, layout. Pass partial fields to merge on top of the current theme, or pass `preset` / `theme_id` / `from_workspace_default` (mutually exclusive) to replace the base before merging.',
+  description: 'Update the document theme — fonts, colors, page size, layout, and the document custom CSS (`customCss`, run through the same sanitizer as the editor: only this document\'s uploaded images or data:image URLs in url(), no @import/@font-face; a rejected value fails the call with line/column errors). Pass partial fields to merge on top of the current theme, or pass `preset` / `theme_id` / `from_workspace_default` (mutually exclusive) to replace the base before merging.',
   scope: 'documents:write',
   access: 'edit',
   annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },

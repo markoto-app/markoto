@@ -331,6 +331,7 @@ async function exportPdf() {
       source: ytext.toString(),
       theme: theme.value,
       title: title.value,
+      docId: props.docId,
       tocTitle: t('table.tocTitle')
     })
   } catch (e) {
@@ -1326,6 +1327,7 @@ const _statusIcon = computed(() => {
             :source="textContent"
             :title="title"
             :theme="theme"
+            :doc-id="docId"
             @print-shortcut="exportPdf"
           />
         </div>

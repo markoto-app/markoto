@@ -11,6 +11,7 @@ import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { TEMPLATE_IDS } from '~~/shared/templates'
 import { AUDIENCE_KINDS } from '~~/shared/audiences'
+import { CUSTOM_CSS_MAX_BYTES } from '~~/shared/types/customCss'
 import {
   HexColorSchema,
   PageSizeSchema,
@@ -339,7 +340,7 @@ const RunningSlotsPatch = z.object({
 // value without updating both lists.
 export const UpdateThemeArgs = z.object({
   preset: z.enum(PRESET_IDS).optional()
-    .describe(`Apply a built-in preset as the base, replacing ALL current theme values. Other fields passed alongside are applied on top of the preset. Available presets: ${PRESET_IDS.join(', ')}. Mutually exclusive with theme_id and from_workspace_default — pass only one base source.`),
+    .describe(`Apply a built-in preset as the base, replacing ALL current theme values except customCss (kept). Other fields passed alongside are applied on top of the preset. Available presets: ${PRESET_IDS.join(', ')}. Mutually exclusive with theme_id and from_workspace_default — pass only one base source.`),
   theme_id: z.string().min(1).max(64).optional()
     .describe('Apply one of the user\'s SAVED themes as the base, replacing ALL current theme values. The id comes from `list_themes` — never fabricate it. Other fields in the same call are merged on top. Mutually exclusive with `preset` and `from_workspace_default`.'),
   from_workspace_default: z.boolean().optional()
@@ -453,8 +454,10 @@ export const UpdateThemeArgs = z.object({
       .describe('Logo image URL. Typically a `/api/files/{docId}/{fileId}` from the standard image upload flow. Empty string clears the logo.'),
     logoHeight: z.number().int().min(8).max(80).optional()
       .describe('Logo height in px (8–80). Width scales proportionally.')
-  }).optional()
-}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`).')
+  }).optional(),
+  customCss: z.string().max(CUSTOM_CSS_MAX_BYTES).optional()
+    .describe('Custom CSS for the document (preview, print and PDF only — never the app UI), appended after the generated theme CSS so its rules win. REPLACES the whole existing custom CSS: call get_theme first and send the full edited text. Empty string clears it. Use it only for what the structured fields above cannot express. The document body is `.paged-doc`; paged.js @page rules and margin boxes work (e.g. `@page { @bottom-center { content: counter(page) } }`, `@page :first { … }`). Allowed: style rules, @media, @supports, @page + margin boxes, @keyframes, @container, @layer, @font-feature-values. Rejected (the whole call fails with line/column errors): @import, @font-face (use the font fields), @namespace, other at-rules, expression(), behavior/-moz-binding, javascript:/vbscript:, and url() to anything except images uploaded to THIS document (`/api/files/<this doc id>/<file id>`) or base64 data:image/png|jpeg|gif|webp URLs (no SVG data URLs, no external hosts). Max 64 KB.')
+}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
 
 // --- Theme inspection / preset management --------------------------------
 //

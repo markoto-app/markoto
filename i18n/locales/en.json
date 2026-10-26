@@ -585,7 +585,8 @@
       "mermaid": "Diagrams",
       "alerts": "Admonitions",
       "meta": "Meta voice",
-      "cover": "Cover page"
+      "cover": "Cover page",
+      "customCss": "Custom CSS"
     },
     "page": {
       "size": "Page size",
@@ -806,6 +807,36 @@
       "newsletter": {
         "name": "Newsletter",
         "description": "Karla body under PT Serif headings, green accent, brand-colored table headers — weekly-digest feel."
+      }
+    },
+    "customCss": {
+      "help": "Add your own CSS rules. They apply after the theme settings above, so they win. Custom CSS styles the document only: the preview, printing and PDF export. The text sits inside .paged-doc; page size, margins, headers and footers are set with {'@'}page rules.",
+      "editorLabel": "Custom CSS",
+      "imagesHint": "Images: url() can use images uploaded to this document (copy an image's /api/files/… address from the editor) or data:image URLs. Other websites and {'@'}import are not allowed.",
+      "examplesTitle": "Examples",
+      "example": {
+        "pageNumber": "Page numbers in the footer",
+        "h1": "Larger top-level headings",
+        "blockquote": "Shaded quotes"
+      },
+      "insert": "Insert",
+      "bytes": "{used} / {max} bytes",
+      "checking": "checking…",
+      "applied": "applied",
+      "notApplied": "not applied — fix the errors below",
+      "position": "line {line}, col {column}",
+      "droppedOnApply": "Some custom CSS rules in this theme use images from another document. They were removed.",
+      "issue": {
+        "too-large": "Custom CSS is larger than 64 KB.",
+        "syntax": "Syntax error. Check for a missing bracket, colon or semicolon.",
+        "at-rule": "{detail} is not allowed in custom CSS.",
+        "property": "The {detail} property is not allowed.",
+        "function": "{detail} is not allowed.",
+        "url": "url() can only use images uploaded to this document or data:image URLs.",
+        "svg-data-url": "SVG data URLs are not allowed. Use PNG, JPEG, GIF or WebP.",
+        "other-doc-file": "This image belongs to another document. Upload it to this document and use its address.",
+        "script-url": "javascript: and vbscript: URLs are not allowed.",
+        "value": "This value could not be read safely."
       }
     }
   },

@@ -26,6 +26,8 @@ export default defineEventHandler(async (event) => {
   if (description !== undefined) updates.description = description
   const defaultTheme = parseDefaultTheme(body?.defaultTheme)
   if (defaultTheme !== undefined) updates.defaultTheme = defaultTheme
+  // No document context — see `assertValidThemeCustomCss`.
+  assertValidThemeCustomCss(defaultTheme, null, event)
 
   await updateWorkspace(wsId, updates)
   return { success: true }

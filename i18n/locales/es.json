@@ -585,7 +585,8 @@
       "mermaid": "Diagramas",
       "alerts": "Advertencias",
       "meta": "Voz meta",
-      "cover": "Portada"
+      "cover": "Portada",
+      "customCss": "CSS personalizado"
     },
     "page": {
       "size": "Tamaño de página",
@@ -806,6 +807,36 @@
       "newsletter": {
         "name": "Boletín",
         "description": "Cuerpo Karla bajo encabezados PT Serif, acento verde, encabezados de tabla con color de marca — sensación de resumen semanal."
+      }
+    },
+    "customCss": {
+      "help": "Añade tus propias reglas CSS. Se aplican después de los ajustes del tema de arriba, así que tienen prioridad. El CSS personalizado solo da estilo al documento: vista previa, impresión y exportación a PDF. El texto está dentro de .paged-doc; el tamaño de página, los márgenes, encabezados y pies se definen con reglas {'@'}page.",
+      "editorLabel": "CSS personalizado",
+      "imagesHint": "Imágenes: url() puede usar imágenes subidas a este documento (copia la dirección /api/files/… desde el editor) o URL data:image. No se permiten otros sitios web ni {'@'}import.",
+      "examplesTitle": "Ejemplos",
+      "example": {
+        "pageNumber": "Números de página en el pie",
+        "h1": "Títulos principales más grandes",
+        "blockquote": "Citas sombreadas"
+      },
+      "insert": "Insertar",
+      "bytes": "{used} / {max} bytes",
+      "checking": "comprobando…",
+      "applied": "aplicado",
+      "notApplied": "no aplicado: corrige los errores de abajo",
+      "position": "línea {line}, col. {column}",
+      "droppedOnApply": "Algunas reglas CSS de este tema usan imágenes de otro documento. Se han eliminado.",
+      "issue": {
+        "too-large": "El CSS personalizado supera los 64 KB.",
+        "syntax": "Error de sintaxis. Comprueba si falta una llave, dos puntos o un punto y coma.",
+        "at-rule": "{detail} no está permitido en el CSS personalizado.",
+        "property": "La propiedad {detail} no está permitida.",
+        "function": "{detail} no está permitido.",
+        "url": "url() solo puede usar imágenes de este documento o URL data:image.",
+        "svg-data-url": "No se permiten URL data de SVG. Usa PNG, JPEG, GIF o WebP.",
+        "other-doc-file": "Esta imagen pertenece a otro documento. Súbela a este documento y usa su dirección.",
+        "script-url": "No se permiten URL javascript: ni vbscript:.",
+        "value": "Este valor no se pudo leer de forma segura."
       }
     }
   },

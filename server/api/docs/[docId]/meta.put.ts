@@ -29,6 +29,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const updates = buildMetaUpdates(body)
+  // Custom CSS needs the doc id (only this doc's uploads may be
+  // referenced) and the request origin, so it is checked here rather
+  // than in the pure field parsers.
+  assertValidThemeCustomCss(updates.theme, docId, event)
 
   // Snapshot the prior access mode BEFORE the write so we can record
   // the before/after for the audit row. Only fetched when accessMode

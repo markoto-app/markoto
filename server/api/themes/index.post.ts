@@ -32,6 +32,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // No document context: any doc's upload path passes; the render-time
+  // sanitizer drops the ones that don't belong to the doc it's applied to.
+  assertValidThemeCustomCss(parsed.data, null, event)
+
   const owned = await countThemesByUser(userId)
   if (owned >= MAX_THEMES_PER_USER) {
     throw createError({

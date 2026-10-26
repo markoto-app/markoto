@@ -145,15 +145,15 @@ describe('sync-state — Valkey-backed per-doc state', () => {
   })
 
   describe('prev-meta', () => {
-    it('round-trips title + themeJson', async () => {
+    it('round-trips title + themeHash', async () => {
       const { fake } = makeFake()
       _setValkeyClientForTests(fake)
 
-      await setPrevMeta('doc1', { title: 'Hello', themeJson: '{"font":"Inter"}' })
+      await setPrevMeta('doc1', { title: 'Hello', themeHash: '{"font":"Inter"}' })
       const result = await getPrevMeta('doc1')
 
       expect(result.cause).toBe('hit')
-      expect(result.value).toEqual({ title: 'Hello', themeJson: '{"font":"Inter"}' })
+      expect(result.value).toEqual({ title: 'Hello', themeHash: '{"font":"Inter"}' })
     })
 
     it('returns cause=miss on absent key', async () => {
@@ -192,7 +192,7 @@ describe('sync-state — Valkey-backed per-doc state', () => {
 
       store.set('sync:last-editor:doc1', '{"userName":"a","userId":"1","at":0}')
       store.set('sync:prev-text:doc1', 'x')
-      store.set('sync:prev-meta:doc1', '{"title":"a","themeJson":null}')
+      store.set('sync:prev-meta:doc1', '{"title":"a","themeHash":null}')
 
       await dropDocState('doc1')
 
