@@ -101,7 +101,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/litellm
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
-      - # Empty is fine when embeddings run on `custom-embeddings` (self-hosting);
+      # Empty is fine when embeddings run on `custom-embeddings` (self-hosting);
       # defined-but-empty keeps LiteLLM from crashing on an unset os.environ/ ref.
       - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
       # Self-hosting: operator-configurable embeddings deployment
