@@ -188,6 +188,10 @@ function buildProfileEntry(userRow: typeof users.$inferSelect) {
     avatarUrl: userRow.avatarUrl,
     githubLinked: userRow.githubId !== null,
     googleLinked: userRow.googleId !== null,
+    // Generic OIDC (WP7b): the issuer is the instance operator's own IdP;
+    // the subject is an opaque identifier, kept out like the GitHub/Google ids.
+    oidcLinked: userRow.oidcSubject !== null,
+    oidcIssuer: userRow.oidcIssuer,
     plan: userRow.plan,
     planValidUntil: userRow.planValidUntil?.toISOString() ?? null,
     locale: userRow.locale,

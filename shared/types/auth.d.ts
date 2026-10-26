@@ -3,7 +3,7 @@
 // file is the canonical place.
 //
 // Shape must match what `setUserSession(event, { user: {...} })` writes in
-// server/routes/auth/github.get.ts and google.get.ts, because those objects
+// server/routes/auth/{github,google,oidc}.get.ts, because those objects
 // are what flow back through `useUserSession().user` on the client and
 // `getUserSession(event).user` on the server.
 
@@ -19,7 +19,7 @@ declare module '#auth-utils' {
     // omits them entirely.
     email?: string | null
     avatar?: string | null
-    provider: 'github' | 'google'
+    provider: 'github' | 'google' | 'oidc'
   }
 
   interface UserSession {

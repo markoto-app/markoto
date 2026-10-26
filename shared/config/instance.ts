@@ -3,11 +3,14 @@
 // Same idea as `billingMode.ts`: one codebase, the deployment shape is
 // configuration. Two independent facts live here:
 //
-// 1. Login providers. Login is GitHub / Google OAuth via nuxt-auth-utils;
-//    a provider is offered only when both its client id and secret are
-//    set. A self-hosted instance without OAuth apps is anonymous-only
-//    (public docs work; ownership, workspaces and AI need an account),
-//    and the UI must not offer buttons that end in a 500.
+// 1. Login providers. GitHub / Google OAuth via nuxt-auth-utils, plus a
+//    generic OpenID Connect provider for self-hosters' own IdPs (WP7b,
+//    `server/routes/auth/oidc.get.ts`). A provider is offered only when
+//    its credentials are complete: client id + secret (GitHub, Google),
+//    issuer + client id + secret (OIDC). A self-hosted instance without
+//    any is anonymous-only (public docs work; ownership, workspaces and
+//    AI need an account), and the UI must not offer buttons that end in
+//    a 500.
 //
 // 2. Legal surfaces — the onboarding gate (age + Privacy + ToS), the
 //    cookie-consent banner, the DPA acceptance step for workspace owners,
@@ -28,13 +31,26 @@
 import { parseBooleanFlag } from './billingMode'
 import { resolveLegalEntity } from '../legal/entity'
 
-export type LoginProvider = 'github' | 'google'
+export type LoginProvider = 'oidc' | 'github' | 'google'
 
-export const LOGIN_PROVIDERS: readonly LoginProvider[] = ['github', 'google']
+/**
+ * Display order. The operator's own IdP comes first: an instance that
+ * configured one wants it to be the primary sign-in (it is also what
+ * `primaryLoginPath` picks for "log in to continue" redirects).
+ */
+export const LOGIN_PROVIDERS: readonly LoginProvider[] = ['oidc', 'github', 'google']
+
+/** Upper bound for `NUXT_OAUTH_OIDC_NAME` on the sign-in button. */
+export const OIDC_PROVIDER_NAME_MAX_LENGTH = 40
 
 export interface InstanceConfig {
-  /** OAuth providers with a complete client id + secret, in display order. */
+  /** Login providers with complete credentials, in display order. */
   loginProviders: LoginProvider[]
+  /**
+   * Button label for the OIDC provider (`NUXT_OAUTH_OIDC_NAME`, e.g.
+   * "Authentik"). Empty = the UI's generic "single sign-on" wording.
+   */
+  oidcProviderName: string
   /** Onboarding gate, consent banner, DPA step, /legal/* pages + footer links. */
   legalSurfaces: boolean
   /**
@@ -49,6 +65,7 @@ export interface InstanceConfig {
 /** Client-side fallback before hydration: nothing optional is offered. */
 export const MINIMAL_INSTANCE_CONFIG: InstanceConfig = Object.freeze({
   loginProviders: [],
+  oidcProviderName: '',
   legalSurfaces: false,
   operatorName: ''
 })
@@ -62,8 +79,13 @@ function isSet(raw: string | undefined): boolean {
 export function resolveLoginProviders(env: Env): LoginProvider[] {
   return LOGIN_PROVIDERS.filter((p) => {
     const upper = p.toUpperCase()
-    return isSet(env[`NUXT_OAUTH_${upper}_CLIENT_ID`]) && isSet(env[`NUXT_OAUTH_${upper}_CLIENT_SECRET`])
+    const pair = isSet(env[`NUXT_OAUTH_${upper}_CLIENT_ID`]) && isSet(env[`NUXT_OAUTH_${upper}_CLIENT_SECRET`])
+    return p === 'oidc' ? pair && isSet(env.NUXT_OAUTH_OIDC_ISSUER) : pair
   })
+}
+
+export function resolveOidcProviderName(env: Env): string {
+  return (env.NUXT_OAUTH_OIDC_NAME ?? '').trim().slice(0, OIDC_PROVIDER_NAME_MAX_LENGTH)
 }
 
 export function resolveLegalSurfacesEnabled(env: Env): boolean {
@@ -74,6 +96,7 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
   const legalSurfaces = resolveLegalSurfacesEnabled(env)
   return {
     loginProviders: resolveLoginProviders(env),
+    oidcProviderName: resolveOidcProviderName(env),
     legalSurfaces,
     operatorName: legalSurfaces
       ? resolveLegalEntity(env).controllerName
@@ -81,7 +104,7 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
   }
 }
 
-/** Path that starts the OAuth flow for a provider. */
+/** Path that starts the sign-in flow for a provider. */
 export function loginPath(provider: LoginProvider): string {
   return `/auth/${provider}`
 }

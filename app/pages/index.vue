@@ -7,6 +7,7 @@ const { loggedIn } = useUserSession()
 const { billing, workspaceCapReached } = useBilling()
 
 const toast = useToast()
+const { providerName } = useLoginOptions()
 const { showContextualError } = useErrorHandler()
 
 // Tooltip shown when the user tries to hover the disabled
@@ -42,7 +43,7 @@ function onCapReachedClick() {
 }
 
 // OAuth account-merge flash. The auth handler redirects to
-// `/?linked=github` or `/?linked=google` when a second-provider
+// `/?linked=github`, `/?linked=google` or `/?linked=oidc` when a second-provider
 // sign-in landed on an existing row (matched by verified email) and
 // we added the new provider id to it. Surface a one-time toast
 // explaining what happened, then strip the query param so a reload
@@ -50,11 +51,10 @@ function onCapReachedClick() {
 onMounted(() => {
   const route = useRoute()
   const linked = route.query.linked
-  if (typeof linked === 'string' && (linked === 'github' || linked === 'google')) {
-    const providerName = linked === 'github' ? 'GitHub' : 'Google'
+  if (typeof linked === 'string' && (linked === 'github' || linked === 'google' || linked === 'oidc')) {
     toast.add({
       title: t('auth.linkedTitle'),
-      description: t('auth.linkedDescription', { provider: providerName }),
+      description: t('auth.linkedDescription', { provider: providerName(linked) }),
       icon: 'i-lucide-link',
       color: 'success'
     })

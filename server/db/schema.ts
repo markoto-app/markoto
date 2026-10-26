@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 
@@ -14,6 +14,11 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   githubId: text('github_id').unique(),
   googleId: text('google_id').unique(),
+  // Generic OpenID Connect identity (WP7b, self-hosted IdPs). Keyed by
+  // the PAIR (issuer, subject) — `sub` is only unique per issuer, and
+  // the email is never the key. Both set or both null (CHECK below).
+  oidcIssuer: text('oidc_issuer'),
+  oidcSubject: text('oidc_subject'),
   login: text('login'),
   name: text('name').notNull(),
   email: text('email'),
@@ -103,7 +108,9 @@ export const users = pgTable('users', {
   // Account-deletion sweep scans for `deletionGraceUntil < now()`. Same
   // partial-index pattern: the column is null for the vast majority of
   // rows, so the index stays small.
-  index('idx_users_deletion_grace_until').on(table.deletionGraceUntil).where(sql`${table.deletionGraceUntil} is not null`)
+  index('idx_users_deletion_grace_until').on(table.deletionGraceUntil).where(sql`${table.deletionGraceUntil} is not null`),
+  uniqueIndex('uq_users_oidc_identity').on(table.oidcIssuer, table.oidcSubject),
+  check('ck_users_oidc_identity_pair', sql`(${table.oidcIssuer} is null) = (${table.oidcSubject} is null)`)
 ])
 
 export const documents = pgTable('documents', {

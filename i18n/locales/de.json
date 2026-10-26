@@ -17,6 +17,8 @@
     "logout": "Abmelden",
     "loginGithub": "Mit GitHub fortfahren",
     "loginGoogle": "Mit Google fortfahren",
+    "loginOidc": "Mit {provider} fortfahren",
+    "oidcDefaultName": "Single Sign-on",
     "loginUnavailable": "Die Anmeldung ist auf dieser Instanz nicht eingerichtet. Du kannst Dokumente trotzdem anonym erstellen und bearbeiten.",
     "loginRequired": "Anmeldung erforderlich",
     "linkedTitle": "Konten verknüpft",

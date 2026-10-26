@@ -17,6 +17,8 @@
     "logout": "Log out",
     "loginGithub": "Continue with GitHub",
     "loginGoogle": "Continue with Google",
+    "loginOidc": "Continue with {provider}",
+    "oidcDefaultName": "single sign-on",
     "loginUnavailable": "Sign-in isn't set up on this instance. You can still create and edit documents anonymously.",
     "loginRequired": "Login required",
     "linkedTitle": "Accounts linked",

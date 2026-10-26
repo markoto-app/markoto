@@ -1,6 +1,7 @@
 import { validateSecrets } from '../../shared/utils/validateSecrets'
 import { isBillingEnabled } from '../utils/billingMode'
 import { stripeStartupErrors } from '../utils/stripeStartupCheck'
+import { resolveOidcSettings } from '../utils/oidc/settings'
 
 // Fail-fast at boot if any critical config is missing or malformed. Runs
 // right after `00-db-migrate` so a misconfigured deploy crashes visibly
@@ -36,6 +37,9 @@ export default defineNitroPlugin(() => {
   ]))
   checkPresenceFields(config, errors)
   checkOAuthPairs(config, errors)
+  // Generic OIDC (WP7b): issuer + id + secret all-or-nothing, https
+  // issuer, parseable redirect URL. See server/utils/oidc/settings.ts.
+  errors.push(...resolveOidcSettings(process.env).errors)
   checkUrlFields(config, errors)
   // Stripe is only validated when billing is switched on. With
   // NUXT_BILLING_ENABLED unset/false (self-hosted + free-only SaaS) no

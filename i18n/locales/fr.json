@@ -17,6 +17,8 @@
     "logout": "Se déconnecter",
     "loginGithub": "Continuer avec GitHub",
     "loginGoogle": "Continuer avec Google",
+    "loginOidc": "Continuer avec {provider}",
+    "oidcDefaultName": "l’authentification unique",
     "loginUnavailable": "La connexion n'est pas configurée sur cette instance. Vous pouvez tout de même créer et modifier des documents de façon anonyme.",
     "loginRequired": "Connexion requise",
     "linkedTitle": "Comptes liés",

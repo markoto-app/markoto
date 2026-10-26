@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
 import { insertTable } from '~/utils/editorCommands'
-import { loginPath } from '~~/shared/config/instance'
 import TableSizePicker from './TableSizePicker.vue'
 import RightPanelHost from './RightPanelHost.vue'
 import MobileTabBar from './MobileTabBar.vue'
@@ -555,8 +554,9 @@ watch(() => colorMode.value, (v) => {
   colorModeValue.value = v === 'dark' ? 'dark' : 'light'
 })
 const { loggedIn, user: sessionUser } = useUserSession()
-// Login entries only for OAuth providers this instance has configured.
-const { loginProviders, primaryLoginPath } = useInstanceConfig()
+// Login entries only for providers this instance has configured.
+const { primaryLoginPath } = useInstanceConfig()
+const { loginOptions } = useLoginOptions()
 // Logout pipeline — clears localStorage/sessionStorage/IDB + broadcasts to
 // other tabs + tears down awareness BEFORE the session goes (so other
 // collaborators see the leaving frame on a still-open WS). See
@@ -613,10 +613,10 @@ const mobileMenuItems = computed(() => {
           onSelect: () => handleLogout()
         }
       ]
-    : loginProviders.value.map(provider => ({
-        label: t(provider === 'github' ? 'auth.loginGithub' : 'auth.loginGoogle'),
-        icon: provider === 'github' ? 'i-simple-icons-github' : 'i-simple-icons-google',
-        to: loginPath(provider),
+    : loginOptions.value.map(option => ({
+        label: option.label,
+        icon: option.icon,
+        to: option.to,
         external: true
       }))
 
