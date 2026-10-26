@@ -21,6 +21,7 @@ import { deleteDocument } from './documentLifecycle'
 import { deleteKnowledgeArtifact } from './knowledgeAccess'
 import { useS3Client } from './s3'
 import { useStripeClient } from './stripeClient'
+import { isBillingEnabled } from './billingMode'
 import { AUDIT_ACCOUNT_DELETE_EXECUTED } from '../legal/auditActions'
 import type { AccountDeletionSummary } from './accountDeletionPlan'
 
@@ -249,6 +250,10 @@ async function deleteStripeCustomer(
   summary: AccountDeletionSummary
 ): Promise<void> {
   if (!stripeCustomerId) return
+  // Billing off: Stripe isn't configured on this deployment, so there is
+  // nothing we could call. Skip silently — no error, no Sentry noise.
+  // (`stripeCustomerDeleted` stays false in the summary, which is true.)
+  if (!isBillingEnabled()) return
   try {
     const stripe = useStripeClient()
     if (!stripe) return

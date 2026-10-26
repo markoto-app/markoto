@@ -79,6 +79,13 @@ export default defineEventHandler(async (event) => {
     // hit this; we anchor the decision on a first-party
     // `markoto-anon` cookie set by the handler on first call.
     { path: /^\/api\/consent$/, methods: ['GET', 'POST'] },
+    // Paid-plans waitlist (double opt-in). Sign-up is open to logged-out
+    // visitors of /pricing; confirm + unsubscribe are reached from email
+    // links. All three are IP-rate-limited; tokens are 256-bit and hashed
+    // at rest. Sign-up 404s unless the waitlist is open (billing off +
+    // NUXT_PLANS_COMING_SOON).
+    { path: /^\/api\/waitlist$/, methods: ['POST'] },
+    { path: /^\/api\/waitlist\/(?:confirm|unsubscribe)$/, methods: ['POST'] },
     // Stripe webhooks: auth'd via `Stripe-Signature` header + our
     // webhook secret. No user session — Stripe's servers don't have
     // one. Handler does full cryptographic signature verification.

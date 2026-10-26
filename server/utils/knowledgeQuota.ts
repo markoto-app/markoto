@@ -10,6 +10,7 @@ import { useDatabase } from './database'
 import { reserveInflightSlot, releaseInflightSlot } from './rateLimit'
 import { KNOWLEDGE_PLATFORM_LIMITS, type PlanName } from '~~/shared/config/tiers'
 import { getTiers } from '~~/server/utils/tierConfig'
+import { effectivePlan, limitRecovery } from '~~/server/utils/billingMode'
 
 /**
  * Centralised cap enforcement for the workspace knowledge base.
@@ -62,12 +63,8 @@ async function getEffectivePlan(userId: number | null): Promise<PlanName> {
   }).from(users).where(eq(users.id, userId)).limit(1)
   const row = rows[0]
   if (!row) return 'free'
-  const raw = row.plan
-  const validUntil = row.planValidUntil
-  if (raw !== 'free' && validUntil !== null && validUntil.getTime() <= Date.now()) {
-    return 'free'
-  }
-  return raw
+  // Lapsed paid plans AND billing-off deployments both resolve to free.
+  return effectivePlan(row.plan, row.planValidUntil)
 }
 
 /**
@@ -169,7 +166,7 @@ export async function reserveUploadSlot(args: {
       message: `Workspace knowledge limit reached (${caps.maxFilesPerWorkspace} files).`,
       data: {
         code: 'knowledge/workspace-file-cap',
-        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+        recovery: limitRecovery()
       }
     })
   }
@@ -179,7 +176,7 @@ export async function reserveUploadSlot(args: {
       message: `Workspace knowledge storage limit reached (${Math.round(caps.maxTotalBytesPerWorkspace / (1024 * 1024))} MB).`,
       data: {
         code: 'knowledge/workspace-bytes-cap',
-        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+        recovery: limitRecovery()
       }
     })
   }
@@ -189,7 +186,7 @@ export async function reserveUploadSlot(args: {
       message: `You've reached the per-user knowledge upload limit (${caps.maxFilesPerUser} files).`,
       data: {
         code: 'knowledge/user-file-cap',
-        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+        recovery: limitRecovery()
       }
     })
   }
@@ -199,7 +196,7 @@ export async function reserveUploadSlot(args: {
       message: `You've reached the per-user knowledge storage limit (${Math.round(caps.maxTotalBytesPerUser / (1024 * 1024))} MB).`,
       data: {
         code: 'knowledge/user-bytes-cap',
-        recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' }
+        recovery: limitRecovery()
       }
     })
   }

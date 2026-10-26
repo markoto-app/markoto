@@ -32,6 +32,13 @@ jina_ai_api_key=v_jina
 staan_api_key=v_staan
 mistral_api_key=v_mistral
 bfl_api_key=v_bfl
+nuxt_billing_enabled=false
+nuxt_plans_coming_soon=true
+tier_free_litellm_budget_usd=7
+tier_free_workspaces_owned=3
+tier_free_knowledge_files=40
+tier_free_knowledge_bytes_per_workspace=1000
+tier_free_knowledge_bytes_per_user=2000
 nuxt_stripe_secret_key=v_stripe_sk
 nuxt_stripe_webhook_secret=v_stripe_wh
 nuxt_stripe_price_pro=v_price_pro
@@ -80,3 +87,24 @@ else
   echo "PARITY FAILED — render-env.sh drifted from env.j2 (diff above)"
   exit 1
 fi
+
+# 4. Billing gate: with billing OFF (the default) the Stripe vars are
+#    optional; with billing ON an empty Stripe secret must fail the render.
+declare -a NOSTRIPE=()
+for kv in "${ENVARGS[@]}"; do
+  case "$kv" in NUXT_STRIPE_*|NUXT_BILLING_ENABLED=*) ;; *) NOSTRIPE+=("$kv") ;; esac
+done
+if ! off_out=$(env -i "${NOSTRIPE[@]}" bash infra/render-env.sh 2>&1); then
+  echo "BILLING GATE FAILED — render-env.sh refused to render without Stripe vars while billing is off:"
+  echo "$off_out"
+  exit 1
+fi
+if ! echo "$off_out" | grep -qx 'NUXT_BILLING_ENABLED=false'; then
+  echo "BILLING GATE FAILED — billing must default to off (NUXT_BILLING_ENABLED=false)"
+  exit 1
+fi
+if env -i "${NOSTRIPE[@]}" NUXT_BILLING_ENABLED=true bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "BILLING GATE FAILED — render-env.sh rendered with billing ON but no Stripe secrets"
+  exit 1
+fi
+echo "BILLING GATE OK — Stripe vars optional when billing is off, required when on"

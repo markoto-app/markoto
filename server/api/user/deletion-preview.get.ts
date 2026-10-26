@@ -1,4 +1,5 @@
 import { planAccountDeletion } from '../../utils/accountDeletionPlan'
+import { isBillingEnabled } from '../../utils/billingMode'
 
 // Pre-deletion preview — surface to the user EXACTLY what will happen
 // when they confirm the deletion. Drives the consequence modal in
@@ -40,7 +41,9 @@ export default defineEventHandler(async (event) => {
       sessionMessages: plan.aiSessionMessagesToDelete
     },
     dataExportJobs: plan.dataExportJobsToDelete.length,
-    stripeCustomerWillBeDeleted: plan.stripeCustomerToDelete !== null,
+    // Billing off → the Stripe step is skipped (no Stripe client on this
+    // deployment), so don't promise it in the consequences modal.
+    stripeCustomerWillBeDeleted: plan.stripeCustomerToDelete !== null && isBillingEnabled(),
     retainedAnonymised: plan.rowsRetainedAnonymised
   }
 })

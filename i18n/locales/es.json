@@ -482,7 +482,10 @@
     "errors": {
       "duplicateSession": "Ya tienes una sesión de markoto en curso en este documento.",
       "abortNotInitiator": "Solo la persona que inició esta sesión de markoto puede detenerla."
-    }
+    },
+    "exhaustedPlaceholderFree": "Sin créditos de IA — se recargan en el próximo periodo",
+    "budgetExhaustedResetDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo.",
+    "budgetExhaustedComingSoonDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo; muy pronto habrá planes de pago con más créditos."
   },
   "mobileTabBar": {
     "label": "Paneles del documento",
@@ -533,7 +536,14 @@
     "downgrade": "Bajar de plan",
     "signUp": "Registrarse",
     "close": "Cerrar",
-    "footnote": "Todos los niveles incluyen colaboración en tiempo real, historial de versiones y documentos ilimitados. Los créditos de IA se reinician cada mes."
+    "footnote": "Todos los niveles incluyen colaboración en tiempo real, historial de versiones y documentos ilimitados. Los créditos de IA se reinician cada mes.",
+    "comingSoonSubtitle": "markoto es gratis mientras terminamos nuestros planes de pago. Esto es lo que incluye cada cuenta hoy, y lo que está por llegar.",
+    "comingSoonBadge": "Muy pronto",
+    "availableNow": "Disponible ahora",
+    "comingSoonFootnote": "Los planes de pago, sus precios y límites aún no son definitivos. Únete a la lista de espera de abajo y te escribiremos una vez, cuando se lancen.",
+    "freeFootnote": "Cada cuenta incluye colaboración en tiempo real, historial de versiones y documentos ilimitados. Los créditos de IA se recargan cada periodo.",
+    "selfHostedTitle": "Límites de esta instancia",
+    "selfHostedSubtitle": "Esta instancia de markoto no vende planes. Cada cuenta recibe los límites que se indican abajo; el operador de esta instancia puede cambiarlos."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -915,7 +925,9 @@
       "leave": "Abandonar espacio de trabajo",
       "leaveFailed": "No se pudo abandonar el espacio de trabajo",
       "leftToast": "Has abandonado el espacio de trabajo"
-    }
+    },
+    "capReachedFree": "{used} de {limit} espacios de trabajo usados. Elimina uno para crear otro.",
+    "capReachedShortFree": "Límite de espacios de trabajo alcanzado"
   },
   "knowledge": {
     "title": "Base de conocimiento",
@@ -940,7 +952,10 @@
       "processing": "Procesando",
       "ready": "Listo",
       "failed": "Fallido"
-    }
+    },
+    "capFilesReachedFree": "Este espacio de trabajo ha alcanzado su límite de archivos ({limit}). Elimina un archivo para añadir otro.",
+    "capBytesReachedFree": "Este espacio de trabajo ha alcanzado su límite de almacenamiento ({limit} MB). Elimina un archivo para liberar espacio.",
+    "capReachedShortFree": "Límite alcanzado"
   },
   "error": {
     "generic": "Algo salió mal. Inténtalo de nuevo.",
@@ -1169,6 +1184,42 @@
         "notSet": "Sin definir",
         "change": "Cambiar tus opciones de privacidad"
       }
+    }
+  },
+  "billing": {
+    "comingSoonCta": "Planes de pago muy pronto",
+    "comingSoonHint": "Muy pronto habrá planes de pago con límites más altos."
+  },
+  "waitlist": {
+    "title": "Únete a la lista de espera",
+    "description": "Recibe un correo cuando se lancen los planes de pago. Nada más.",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "tu{'@'}ejemplo.es",
+    "consentLabel": "Acepto que markoto guarde mi dirección de correo para avisarme cuando se lancen sus planes de pago. Puedo darme de baja en cualquier momento con el enlace incluido en cada correo.",
+    "privacyLink": "Política de privacidad",
+    "submit": "Unirme a la lista de espera",
+    "successTitle": "Revisa tu bandeja de entrada",
+    "successBody": "Si esta dirección puede recibir correos, le hemos enviado un enlace de confirmación. Tu inscripción solo cuenta cuando hagas clic en él.",
+    "missingToken": "Este enlace está incompleto. Ábrelo exactamente como aparece en el correo.",
+    "backHome": "Volver a markoto",
+    "errors": {
+      "consentRequired": "Marca la casilla de consentimiento para unirte a la lista de espera.",
+      "invalidEmail": "Introduce una dirección de correo válida.",
+      "invalidToken": "Este enlace no es válido o ha caducado."
+    },
+    "confirm": {
+      "title": "Confirma tu inscripción en la lista de espera",
+      "body": "Confirma que quieres recibir un correo nuestro cuando se lancen los planes de pago de markoto.",
+      "button": "Confirmar inscripción",
+      "successTitle": "Ya estás en la lista",
+      "successBody": "Te escribiremos cuando se lancen los planes de pago. Cada correo incluye un enlace para darte de baja."
+    },
+    "unsubscribe": {
+      "title": "Salir de la lista de espera",
+      "body": "Elimina tu dirección de correo de la lista de espera de los planes de pago. La borramos de inmediato.",
+      "button": "Eliminar mi dirección",
+      "successTitle": "Te hemos dado de baja",
+      "successBody": "Tu dirección de correo se ha eliminado de la lista de espera."
     }
   }
 }

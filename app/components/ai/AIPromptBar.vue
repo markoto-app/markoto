@@ -37,6 +37,7 @@ const { refresh: refreshBilling } = useBilling()
 // `refreshAiCredits` runs after a session ends so the AI Points badge
 // ticks down live without the user navigating away.
 const { isExhausted: creditsExhausted, isWorkspaceShared: creditsAreShared, refresh: refreshAiCredits } = useAiCredits()
+const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 const router = useRouter()
 
 const input = ref('')
@@ -92,9 +93,8 @@ const placeholder = computed(() => {
   // pool exhaustion gets its own copy because the path forward is
   // "contact the workspace owner", not /pricing.
   if (creditsExhausted.value) {
-    return creditsAreShared.value
-      ? t('ai.workspaceExhaustedPlaceholder')
-      : t('ai.exhaustedPlaceholder')
+    if (creditsAreShared.value) return t('ai.workspaceExhaustedPlaceholder')
+    return billingEnabled.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
   }
   // Active session → mirror the session's status message. Bar doubles
   // as a status indicator so the user knows the AI isn't stuck.
@@ -114,7 +114,41 @@ const placeholder = computed(() => {
 // to contact the owner.
 function onCapReached() {
   if (creditsAreShared.value) return
-  router.push('/pricing')
+  if (pricingVisible.value) {
+    router.push('/pricing')
+    return
+  }
+  // Self-hosted: nothing to buy — re-explain instead of a dead link.
+  showPersonalBudgetToast()
+}
+
+// Personal-pool exhaustion toast. Billing mode picks the copy + CTA:
+// billing on → "Upgrade"; hosted free-only SaaS → "refills next period,
+// paid plans coming soon" + link to the coming-soon page; self-hosted →
+// "refills next period", no action (there is nothing to buy).
+function showPersonalBudgetToast() {
+  let description = t('ai.budgetExhaustedDescription')
+  if (!billingEnabled.value) {
+    description = plansComingSoon.value
+      ? t('ai.budgetExhaustedComingSoonDescription')
+      : t('ai.budgetExhaustedResetDescription')
+  }
+  let actions: Array<{ label: string, color: 'primary' | 'neutral', onClick: () => void }> | undefined
+  const goToPricing = () => {
+    globalThis.location.href = '/pricing'
+  }
+  if (billingEnabled.value) {
+    actions = [{ label: t('ai.upgradeCta'), color: 'primary', onClick: goToPricing }]
+  } else if (plansComingSoon.value) {
+    actions = [{ label: t('billing.comingSoonCta'), color: 'neutral', onClick: goToPricing }]
+  }
+  toast.add({
+    title: t('ai.budgetExhaustedTitle'),
+    description,
+    icon: 'i-lucide-credit-card',
+    color: 'warning',
+    actions
+  })
 }
 
 // After a session ends, refresh the billing counter so the topbar
@@ -147,17 +181,7 @@ watch(creditsExhausted, (now, prev) => {
       })
       return
     }
-    toast.add({
-      title: t('ai.budgetExhaustedTitle'),
-      description: t('ai.budgetExhaustedDescription'),
-      icon: 'i-lucide-credit-card',
-      color: 'warning',
-      actions: [{
-        label: t('ai.upgradeCta'),
-        color: 'primary',
-        onClick: () => { globalThis.location.href = '/pricing' }
-      }]
-    })
+    showPersonalBudgetToast()
   }
 })
 
@@ -242,17 +266,7 @@ watch(() => props.ai.lastError.value, (err) => {
       })
       return
     }
-    toast.add({
-      title: t('ai.budgetExhaustedTitle'),
-      description: t('ai.budgetExhaustedDescription'),
-      icon: 'i-lucide-credit-card',
-      color: 'warning',
-      actions: [{
-        label: t('ai.upgradeCta'),
-        color: 'primary',
-        onClick: () => { globalThis.location.href = '/pricing' }
-      }]
-    })
+    showPersonalBudgetToast()
   } else {
     toast.add({
       title: t('ai.failed'),

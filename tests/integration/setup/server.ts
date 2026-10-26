@@ -2,7 +2,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TEST_BASE_URL, TEST_PORT } from './env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_PORT } from './env'
 import { buildTestEnv } from './testEnv'
 
 // Production Nitro subprocess lifecycle. Boot once for the whole test run
@@ -25,6 +25,7 @@ import { buildTestEnv } from './testEnv'
 // most edits invalidate the bundle).
 
 let proc: ChildProcess | null = null
+let billingOffProc: ChildProcess | null = null
 
 const BOOT_TIMEOUT_MS = 90_000
 const OUTPUT_ENTRY = '.output/server/index.mjs'
@@ -135,6 +136,10 @@ export async function startNuxt(): Promise<void> {
     // (observed: sandbox-mode rejections in the test logs). Tests
     // assert on state, never on delivered email, so stub is correct.
     NUXT_EMAIL_PROVIDER: 'stub',
+    // Billing ON for the primary server: the Stripe checkout / portal /
+    // webhook suites run here. The billing-off surface is covered by the
+    // second subprocess (see startBillingOffServer below).
+    NUXT_BILLING_ENABLED: 'true',
     NUXT_STRIPE_SECRET_KEY: 'sk_test_123abc',
     NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_integration',
     NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
@@ -170,7 +175,39 @@ export async function startNuxt(): Promise<void> {
 
   // Step 3: spawn the prod server.
   console.log(`[integration] starting production server on :${TEST_PORT}`)
-  proc = spawn('bun', ['run', join(process.cwd(), OUTPUT_ENTRY)], {
+  const primary = spawnServer(env, 'nuxt-test')
+  proc = primary
+  await waitForHealth(TEST_BASE_URL, primary)
+
+  // Step 4: the billing-off twin. Started only after the primary is
+  // healthy so its boot-time migrations are no-ops (no concurrent
+  // migrators on the shared test DB).
+  await startBillingOffServer(env)
+}
+
+/**
+ * Same build, billing OFF: NUXT_BILLING_ENABLED off, the hosted-SaaS
+ * "plans coming soon" mode on (so the waitlist is open), and EVERY
+ * NUXT_STRIPE_* var removed — the app must boot and serve without them.
+ */
+async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<void> {
+  const env: NodeJS.ProcessEnv = {}
+  for (const [k, v] of Object.entries(primaryEnv)) {
+    if (k.startsWith('NUXT_STRIPE_')) continue
+    env[k] = v
+  }
+  env.NUXT_BILLING_ENABLED = 'false'
+  env.NUXT_PLANS_COMING_SOON = 'true'
+  env.NITRO_PORT = String(TEST_BILLING_OFF_PORT)
+  env.PORT = String(TEST_BILLING_OFF_PORT)
+  console.log(`[integration] starting billing-off production server on :${TEST_BILLING_OFF_PORT}`)
+  const child = spawnServer(env, 'nuxt-test-billing-off')
+  billingOffProc = child
+  await waitForHealth(TEST_BILLING_OFF_BASE_URL, child)
+}
+
+function spawnServer(env: NodeJS.ProcessEnv, label: string): ChildProcess {
+  const child = spawn('bun', ['run', join(process.cwd(), OUTPUT_ENTRY)], {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false
@@ -179,28 +216,33 @@ export async function startNuxt(): Promise<void> {
   // Forward stderr so boot failures surface in the test log. Prod
   // stdout is much quieter than dev — gate it on DEBUG anyway in case
   // a developer wants to see "listening on :3101" etc.
-  proc.stderr?.on('data', (d) => {
-    process.stderr.write(`[nuxt-test] ${d}`)
+  child.stderr?.on('data', (d) => {
+    process.stderr.write(`[${label}] ${d}`)
   })
   if (process.env.DEBUG_NUXT_TEST === '1') {
-    proc.stdout?.on('data', (d) => {
-      process.stdout.write(`[nuxt-test] ${d}`)
+    child.stdout?.on('data', (d) => {
+      process.stdout.write(`[${label}] ${d}`)
     })
   }
-  proc.on('exit', (code, signal) => {
-    // Only surface unexpected exits. null + SIGTERM means we killed it.
-    if (proc && code !== null && code !== 0) {
-      console.error(`[nuxt-test] server exited code=${code} signal=${signal}`)
+  child.on('exit', (code, signal) => {
+    // Only surface unexpected exits. A non-zero code means it died on
+    // its own; our SIGTERM teardown exits with a null code.
+    if (code !== null && code !== 0) {
+      console.error(`[${label}] server exited code=${code} signal=${signal}`)
     }
   })
-
-  await waitForHealth()
+  return child
 }
 
 export async function stopNuxt(): Promise<void> {
-  if (!proc) return
-  const p = proc
+  const billingOff = billingOffProc
+  billingOffProc = null
+  const primary = proc
   proc = null
+  await Promise.all([billingOff, primary].map(p => (p ? stopProcess(p) : Promise.resolve())))
+}
+
+async function stopProcess(p: ChildProcess): Promise<void> {
   p.kill('SIGTERM')
   // Nitro has a small graceful-shutdown window; give it ~3s before SIGKILL.
   const killTimer = setTimeout(() => {
@@ -220,12 +262,12 @@ export async function stopNuxt(): Promise<void> {
   clearTimeout(killTimer)
 }
 
-async function waitForHealth(): Promise<void> {
+async function waitForHealth(baseUrl: string, child: ChildProcess): Promise<void> {
   const deadline = Date.now() + BOOT_TIMEOUT_MS
   let lastErr: unknown = null
   while (Date.now() < deadline) {
-    if (!proc || proc.exitCode !== null) {
-      throw new Error(`[nuxt-test] subprocess exited before becoming healthy (code=${proc?.exitCode})`)
+    if (child.exitCode !== null) {
+      throw new Error(`[nuxt-test] subprocess for ${baseUrl} exited before becoming healthy (code=${child.exitCode})`)
     }
     try {
       // `/api/version` is a tiny handler that returns 200 once Nitro is
@@ -233,7 +275,7 @@ async function waitForHealth(): Promise<void> {
       // here because the test env points markitdown at a black-hole port
       // and may not have the sync container running — that's a
       // configuration-aware decision, not a "boot failed" signal.
-      const res = await fetch(`${TEST_BASE_URL}/api/version`, {
+      const res = await fetch(`${baseUrl}/api/version`, {
         signal: AbortSignal.timeout(1500)
       })
       if (res.ok) return
@@ -243,5 +285,5 @@ async function waitForHealth(): Promise<void> {
     }
     await sleep(500)
   }
-  throw new Error(`[nuxt-test] not healthy after ${BOOT_TIMEOUT_MS}ms: ${lastErr instanceof Error ? lastErr.message : lastErr}`)
+  throw new Error(`[nuxt-test] ${baseUrl} not healthy after ${BOOT_TIMEOUT_MS}ms: ${lastErr instanceof Error ? lastErr.message : lastErr}`)
 }

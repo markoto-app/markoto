@@ -103,18 +103,25 @@ services:
       # Staan EU-only routing in the dashboard — no per-request parameter.
       - STAAN_API_KEY=${STAAN_API_KEY:?STAAN_API_KEY required}
       - JINA_AI_API_KEY=${JINA_AI_API_KEY:?JINA_AI_API_KEY required}
-      # LiteLLM proxy + Stripe billing. server/plugins/01-validate-secrets.ts
-      # requires the LiteLLM pair unconditionally and the Stripe pair whenever
-      # NODE_ENV=production (set below), so the app crash-loops at boot without
-      # these. The URL targets the in-network proxy; the master key matches the
-      # one mounted into the litellm container from .env.
+      # LiteLLM proxy. server/plugins/01-validate-secrets.ts requires the
+      # LiteLLM pair unconditionally, so the app crash-loops at boot without
+      # these. The URL targets the in-network proxy; the master key matches
+      # the one mounted into the litellm container from .env.
       - NUXT_LITELLM_URL=http://litellm:4000
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
-      - NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:?NUXT_STRIPE_SECRET_KEY required}
-      - NUXT_STRIPE_WEBHOOK_SECRET=${NUXT_STRIPE_WEBHOOK_SECRET:?NUXT_STRIPE_WEBHOOK_SECRET required}
-      - NUXT_STRIPE_PRICE_PRO=${NUXT_STRIPE_PRICE_PRO:?NUXT_STRIPE_PRICE_PRO required}
-      - NUXT_STRIPE_PRICE_MAX=${NUXT_STRIPE_PRICE_MAX:?NUXT_STRIPE_PRICE_MAX required}
-      - NUXT_STRIPE_PRICE_ULTRA=${NUXT_STRIPE_PRICE_ULTRA:?NUXT_STRIPE_PRICE_ULTRA required}
+      # Billing mode (shared/config/billingMode.ts). Default: billing OFF —
+      # no Stripe calls, Stripe vars not required, everyone on the free tier.
+      # NUXT_PLANS_COMING_SOON=true is the hosted free-only SaaS (pricing
+      # page "coming soon" + waitlist); leave it false when self-hosting.
+      - NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED:-false}
+      - NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON:-false}
+      # Stripe — only read (and only required at boot, in production) when
+      # NUXT_BILLING_ENABLED=true.
+      - NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:-}
+      - NUXT_STRIPE_WEBHOOK_SECRET=${NUXT_STRIPE_WEBHOOK_SECRET:-}
+      - NUXT_STRIPE_PRICE_PRO=${NUXT_STRIPE_PRICE_PRO:-}
+      - NUXT_STRIPE_PRICE_MAX=${NUXT_STRIPE_PRICE_MAX:-}
+      - NUXT_STRIPE_PRICE_ULTRA=${NUXT_STRIPE_PRICE_ULTRA:-}
       # Optional — enables Stripe Tax on Checkout once the dashboard side is configured.
       - NUXT_STRIPE_AUTOMATIC_TAX=${NUXT_STRIPE_AUTOMATIC_TAX:-}
       # Transactional email (Resend). Empty key = stub mode (logged, not
@@ -122,6 +129,17 @@ services:
       # present; NUXT_EMAIL_FROM must be a verified-domain address.
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - NUXT_EMAIL_FROM=${NUXT_EMAIL_FROM:-}
+      # Public origin for absolute links in emails (waitlist confirm /
+      # unsubscribe). Pinned to DOMAIN so links never follow a spoofed Host.
+      - NUXT_SITE_URL=https://${DOMAIN:?DOMAIN required}
+      # Free-tier limit overrides (shared/config/tiers.ts#resolveTiersFromEnv).
+      # Empty = committed default. With billing off these ARE every account's
+      # limits — raise them here (e.g. TIER_FREE_LITELLM_BUDGET_USD=20).
+      - TIER_FREE_LITELLM_BUDGET_USD=${TIER_FREE_LITELLM_BUDGET_USD:-}
+      - TIER_FREE_WORKSPACES_OWNED=${TIER_FREE_WORKSPACES_OWNED:-}
+      - TIER_FREE_KNOWLEDGE_FILES=${TIER_FREE_KNOWLEDGE_FILES:-}
+      - TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE=${TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE:-}
+      - TIER_FREE_KNOWLEDGE_BYTES_PER_USER=${TIER_FREE_KNOWLEDGE_BYTES_PER_USER:-}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN:?DOMAIN required}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080

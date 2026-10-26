@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: en
-version: 3
-effectiveDate: 2026-05-06
+version: 5
+effectiveDate: 2026-10-26
 translationStatus: authoritative
 ---
 
@@ -31,7 +31,7 @@ Each processing activity rests on one of the following lawful bases:
 - **Contract** (Article 6(1)(b)) — for everything required to deliver the service you signed up for: account creation, document storage, AI assistance, billing.
 - **Legal obligation** (Article 6(1)(c)) — for retention obligations under tax law (billing records) and security audit logging.
 - **Legitimate interest** (Article 6(1)(f)) — for fraud and abuse prevention, error monitoring, and security telemetry. You can object to processing on this basis (see §6).
-- **Consent** (Article 6(1)(a)) — for product analytics and session replay. We never load these unless you've granted consent in the cookie banner. You can withdraw at any time.
+- **Consent** (Article 6(1)(a)) — for product analytics and session replay (we never load these unless you've granted consent in the cookie banner), and for the paid-plans waitlist (only if you tick the consent box when you sign up and then confirm the email we send you). You can withdraw at any time.
 
 ## 4. Sub-processors and international transfers
 
@@ -56,6 +56,7 @@ Retention follows the per-purpose schedule in §11. As a general rule:
 - **Audit logs** are retained for the period required by law (typically 12 months for security-related logs).
 - **Billing records** are retained for the legal minimum imposed by EU and member-state tax law (typically 7–10 years).
 - **Transactional email metadata** (recipient + send timestamp + delivery status) is retained by Resend for 30 days; we do not store email bodies after delivery.
+- **Paid-plans waitlist.** If you join the waitlist on the pricing page, we store your email address, the language you signed up in, which version of the consent text you agreed to, when you signed up and confirmed, and — if you were signed in — a link to your account. We do not store your IP address. We use this only to tell you when paid plans launch. Your entry counts only after you click the confirmation link we email you (double opt-in); unconfirmed entries are deleted after 7 days. Every email contains an unsubscribe link that deletes your entry immediately; otherwise we delete the list at the latest 3 months after sending the launch announcement. Deleting your account also deletes a linked entry, and your data export includes it. The confirmation email is sent via Resend; the list itself is stored in OVHcloud's managed PostgreSQL in the EU.
 
 ## 5b. What happens when you delete your account
 
@@ -160,5 +161,6 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v5 (2026-10-26).** Added the `paid_plans_waitlist` processing purpose (consent, double opt-in): email address, locale, consent record and optional account link, kept until you unsubscribe or at the latest 3 months after the paid-plans launch announcement; unconfirmed sign-ups deleted after 7 days. Stored in OVHcloud (EU); confirmation emails via Resend.
 - **v2 (2026-05-05).** Added Resend, Inc. as a sub-processor for transactional email delivery (deletion confirmations, data-export-ready notifications). Email metadata is retained by Resend for 30 days; bodies are not archived. The `transactional_email` processing purpose now references Resend in the lawful-basis registry.
 - **v1 (2026-05-04).** Initial publication.

@@ -33,7 +33,9 @@ const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
 //
 // Works on desktop AND mobile — pricing grid stacks the same way
 // across breakpoints, the post-checkout return is a full reload.
-test('Upgrade to Pro', async ({ page, flow, editor }) => {
+// `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
+// playwright.config.ts `grepInvert`).
+test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   test.setTimeout(180_000)
 
   // Login. The pricing page renders a "current plan" badge based on

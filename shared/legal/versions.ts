@@ -20,8 +20,9 @@
 // Authoritative locale is always English. Translations render with a
 // "for convenience; English is authoritative" banner on non-EN locales.
 
-export const PRIVACY_VERSION = 4
-export const PRIVACY_EFFECTIVE_DATE = '2026-07-03'
+// v5 (2026-10-26): new processing purpose `paid_plans_waitlist`.
+export const PRIVACY_VERSION = 5
+export const PRIVACY_EFFECTIVE_DATE = '2026-10-26'
 
 export const TOS_VERSION = 1
 export const TOS_EFFECTIVE_DATE = '2026-05-04'
@@ -38,6 +39,16 @@ export const IMPRINT_VERSION = 1
 export const IMPRINT_EFFECTIVE_DATE = '2026-07-03'
 
 export const CONSENT_VERSION = 1
+
+// Version of the paid-plans waitlist consent text (the `waitlist.consentLabel`
+// i18n string + the purpose described in `lawfulBasis.ts`). Stored on every
+// `waitlist_signups` row together with `WAITLIST_CONSENT_TEXT_ID` so we can
+// prove WHICH text a person agreed to (GDPR Art.7(1)). Bump on any material
+// change to that text; existing rows keep the version they consented to.
+// Independent of `CONSENT_VERSION` (the cookie banner) — the waitlist
+// consent is collected inline on the pricing page, not in the banner.
+export const WAITLIST_CONSENT_VERSION = 1
+export const WAITLIST_CONSENT_TEXT_ID = 'waitlist.consentLabel'
 
 export const AUTHORITATIVE_LOCALE = 'en'
 

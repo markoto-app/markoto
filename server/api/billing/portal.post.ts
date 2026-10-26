@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nuxt'
 import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { useStripeClient } from '../../utils/stripeClient'
+import { assertBillingEnabled } from '../../utils/billingMode'
 
 // POST /api/billing/portal — creates a Stripe Customer Portal
 // session for the current user and returns the URL to redirect to.
@@ -19,6 +20,8 @@ import { useStripeClient } from '../../utils/stripeClient'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
+  // Billing off → 404 `billing/disabled` before any Stripe call.
+  assertBillingEnabled()
   const userId = session.user.id
 
   // Rate limit: mirrors /api/billing/checkout — portal sessions are

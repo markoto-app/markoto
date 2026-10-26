@@ -482,7 +482,10 @@
     "errors": {
       "duplicateSession": "このドキュメントではすでにmarkotoセッションが実行中です。",
       "abortNotInitiator": "このmarkotoセッションを停止できるのは、開始した本人だけです。"
-    }
+    },
+    "exhaustedPlaceholderFree": "AIクレジットがありません — 次の期間に補充されます",
+    "budgetExhaustedResetDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。",
+    "budgetExhaustedComingSoonDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。クレジットが多い有料プランも近日公開予定です。"
   },
   "mobileTabBar": {
     "label": "ドキュメントパネル",
@@ -533,7 +536,14 @@
     "downgrade": "ダウングレード",
     "signUp": "サインアップ",
     "close": "閉じる",
-    "footnote": "すべてのプランにリアルタイム共同編集、バージョン履歴、無制限のドキュメントが含まれます。AIクレジットは毎月リセットされます。"
+    "footnote": "すべてのプランにリアルタイム共同編集、バージョン履歴、無制限のドキュメントが含まれます。AIクレジットは毎月リセットされます。",
+    "comingSoonSubtitle": "有料プランの準備が整うまで、markoto は無料でご利用いただけます。現在すべてのアカウントで使える内容と、今後の予定をご覧ください。",
+    "comingSoonBadge": "近日公開",
+    "availableNow": "現在利用可能",
+    "comingSoonFootnote": "有料プランの内容、価格、上限はまだ確定していません。下のウェイトリストに登録いただくと、公開時に一度だけメールでお知らせします。",
+    "freeFootnote": "すべてのアカウントで、リアルタイム共同編集、バージョン履歴、無制限のドキュメントをご利用いただけます。AIクレジットは期間ごとに補充されます。",
+    "selfHostedTitle": "このインスタンスの上限",
+    "selfHostedSubtitle": "この markoto インスタンスではプランを販売していません。すべてのアカウントに以下の上限が適用され、インスタンスの運営者が変更できます。"
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
@@ -915,7 +925,9 @@
       "leave": "ワークスペースを退出",
       "leaveFailed": "ワークスペースを退出できませんでした",
       "leftToast": "ワークスペースを退出しました"
-    }
+    },
+    "capReachedFree": "{limit} 件中 {used} 件のワークスペースを使用中です。新しく作成するには 1 件削除してください。",
+    "capReachedShortFree": "ワークスペースの上限に達しました"
   },
   "knowledge": {
     "title": "ナレッジベース",
@@ -940,7 +952,10 @@
       "processing": "処理中",
       "ready": "準備完了",
       "failed": "失敗"
-    }
+    },
+    "capFilesReachedFree": "このワークスペースはファイル数の上限（{limit}）に達しました。追加するにはファイルを削除してください。",
+    "capBytesReachedFree": "このワークスペースはストレージの上限（{limit} MB）に達しました。空き容量を作るにはファイルを削除してください。",
+    "capReachedShortFree": "上限に達しました"
   },
   "error": {
     "generic": "問題が発生しました。もう一度お試しください。",
@@ -1169,6 +1184,42 @@
         "notSet": "未設定",
         "change": "プライバシーの選択を変更"
       }
+    }
+  },
+  "billing": {
+    "comingSoonCta": "有料プランは近日公開",
+    "comingSoonHint": "上限がより高い有料プランを近日公開予定です。"
+  },
+  "waitlist": {
+    "title": "ウェイトリストに登録",
+    "description": "有料プランの公開時にメールを一通だけお送りします。それ以外は送りません。",
+    "emailLabel": "メールアドレス",
+    "emailPlaceholder": "you{'@'}example.com",
+    "consentLabel": "有料プランの公開をお知らせするために、markoto が私のメールアドレスを保存することに同意します。各メールのリンクからいつでも登録を解除できます。",
+    "privacyLink": "プライバシーポリシー",
+    "submit": "ウェイトリストに登録",
+    "successTitle": "受信トレイをご確認ください",
+    "successBody": "このアドレスがメールを受信できる場合、確認用リンクを送信しました。リンクをクリックした時点で登録が完了します。",
+    "missingToken": "このリンクは不完全です。メールに記載されているとおりに開いてください。",
+    "backHome": "markoto に戻る",
+    "errors": {
+      "consentRequired": "ウェイトリストに登録するには、同意のチェックボックスにチェックを入れてください。",
+      "invalidEmail": "有効なメールアドレスを入力してください。",
+      "invalidToken": "このリンクは無効か、有効期限が切れています。"
+    },
+    "confirm": {
+      "title": "ウェイトリスト登録の確認",
+      "body": "markoto の有料プラン公開時にメールを受け取ることを確認してください。",
+      "button": "登録を確認する",
+      "successTitle": "登録が完了しました",
+      "successBody": "有料プランの公開時にメールでお知らせします。各メールには登録解除のリンクが含まれています。"
+    },
+    "unsubscribe": {
+      "title": "ウェイトリストから外れる",
+      "body": "有料プランのウェイトリストからメールアドレスを削除します。削除はすぐに行われます。",
+      "button": "メールアドレスを削除",
+      "successTitle": "登録を解除しました",
+      "successBody": "メールアドレスはウェイトリストから削除されました。"
     }
   }
 }

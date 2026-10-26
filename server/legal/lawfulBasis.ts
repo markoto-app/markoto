@@ -23,8 +23,10 @@ export type ProcessingPurpose = {
   // referenced by the privacy policy page.
   dataCategories: string[]
   // Retention in days from last activity, or 'until_deletion' for
-  // account-bound data, or 'legal_minimum' for billing/tax.
-  retention: number | 'until_deletion' | 'legal_minimum'
+  // account-bound data, 'legal_minimum' for billing/tax, or
+  // 'until_withdrawn' for consent-backed data kept until the person
+  // withdraws consent (with an outer bound documented on the entry).
+  retention: number | 'until_deletion' | 'legal_minimum' | 'until_withdrawn'
   // Sub-processor ids (from server/legal/subProcessors.ts) that touch
   // this purpose's data. Empty array = handled in-house only.
   subProcessors: string[]
@@ -118,6 +120,21 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     dataCategories: ['ui_interaction_recording', 'pseudonymous_id'],
     retention: 30,
     subProcessors: []
+  },
+  {
+    // Paid-plans waitlist (hosted SaaS while billing is off). Opt-in via
+    // an unticked checkbox + double opt-in email. Retention: until the
+    // person unsubscribes (one-click link in every email; deletes the
+    // row), or at the latest 3 months after we send the launch
+    // notification for paid plans. Unconfirmed sign-ups are deleted
+    // after 7 days. Linked to the account (if signed in) and deleted
+    // with it. No IP address is stored. See `waitlist_signups` in
+    // server/db/schema.ts.
+    id: 'paid_plans_waitlist',
+    basis: 'consent',
+    dataCategories: ['email', 'locale', 'consent_record', 'account_id_if_signed_in'],
+    retention: 'until_withdrawn',
+    subProcessors: ['ovh_postgres', 'resend']
   },
   {
     id: 'error_monitoring',

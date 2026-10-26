@@ -977,3 +977,46 @@ export const mcpSessions = pgTable('mcp_sessions', {
   // Useful when triaging a leaked-token incident.
   index('idx_mcp_sessions_token').on(table.tokenId)
 ])
+
+// Paid-plans waitlist (WP3). Only active while billing is OFF and the
+// deployment advertises upcoming plans (`NUXT_PLANS_COMING_SOON`). Lawful
+// basis: consent (GDPR Art.6(1)(a) / FADP Art.6(6)) — see
+// `server/legal/lawfulBasis.ts#paid_plans_waitlist`.
+//
+// Double opt-in: a row is written UNCONFIRMED on signup and only counts
+// once `confirmed_at` is set via the emailed confirm link. Unconfirmed
+// rows are reaped by `server/utils/waitlistSweep.ts` after the confirm
+// window. Unsubscribe DELETES the row (no suppression list — we hold
+// nothing once consent is withdrawn).
+//
+// Privacy shape:
+//   - `email` is normalised (trimmed + lower-cased) so re-signups are
+//     idempotent; unique.
+//   - Tokens are stored as SHA-256 hashes only; the raw values exist
+//     only in the email we send. A DB leak can't be replayed into
+//     confirm/unsubscribe actions.
+//   - No IP address is stored at all (rate limiting happens in Valkey).
+//   - `consent_version` + `consent_text_id` record WHICH consent text
+//     the person agreed to (`shared/legal/versions.ts` +
+//     the `waitlist.consentLabel` i18n key in the signup locale).
+//   - `user_id` is set when a logged-in user signs up; CASCADE so
+//     account deletion removes the waitlist entry with the account.
+export const waitlistSignups = pgTable('waitlist_signups', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  locale: text('locale').notNull(),
+  consentVersion: integer('consent_version').notNull(),
+  consentTextId: text('consent_text_id').notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  // Null once confirmed (the confirm link is single-use).
+  confirmTokenHash: text('confirm_token_hash').unique(),
+  confirmTokenExpiresAt: timestamp('confirm_token_expires_at', { withTimezone: true }),
+  unsubscribeTokenHash: text('unsubscribe_token_hash').notNull().unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true })
+}, table => [
+  // Account-deletion cascade + data-export lookup.
+  index('idx_waitlist_signups_user').on(table.userId),
+  // Sweeper: "unconfirmed rows past their confirm window".
+  index('idx_waitlist_signups_unconfirmed').on(table.confirmTokenExpiresAt).where(sql`${table.confirmedAt} IS NULL`)
+])

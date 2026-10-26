@@ -33,7 +33,9 @@ import { Pool } from 'pg'
 // copy stacked above the toggle (instead of a desktop two-column
 // shape), but the asserted server state — `aiEnabled === true`,
 // `billingOwnerId` set — is identical.
-test('Let your team use the AI on your dime', async ({ page, flow, editor }) => {
+// `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
+// playwright.config.ts `grepInvert`).
+test('Let your team use the AI on your dime', { tag: '@billing' }, async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   // Login + promote to Max. The promotion is direct DB UPDATE because

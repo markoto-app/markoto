@@ -22,6 +22,9 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
+// `(+)` sponsorship only exists with billing on; a stale `aiEnabled`
+// row must not stamp the seal on a billing-off deployment.
+const { billingEnabled } = useBillingMode()
 
 function formatDate(value: string | number | Date | null) {
   if (!value) return ''
@@ -72,7 +75,7 @@ function formatDate(value: string | number | Date | null) {
                  the role badge below carries identity; the seal
                  carries presence of intelligence. -->
             <CommonSeal
-              v-if="ws.aiEnabled"
+              v-if="billingEnabled && ws.aiEnabled"
               :size="8"
               class="shrink-0"
             />

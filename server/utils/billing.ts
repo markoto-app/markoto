@@ -3,6 +3,7 @@ import { users, workspaces } from '../db/schema'
 import { useDatabase } from './database'
 import type { PlanName } from '~~/shared/config/tiers'
 import { ensureUserKey } from './litellmKeys'
+import { isBillingEnabled } from './billingMode'
 
 /**
  * Phase 6 billing context resolution. Every AI call site calls
@@ -220,14 +221,18 @@ export async function resolveBillingContext(
   if (!caller) {
     throw new Error(`[billing] resolveBillingContext: user ${userId} not found`)
   }
+  // Billing off (self-hosted / free-only SaaS): nobody can hold a paid
+  // plan and there is no `(+)` sponsorship — everyone self-bills at the
+  // free tier (whose budget operators raise via TIER_FREE_* env vars).
+  const billingOn = isBillingEnabled()
   const callerActive = planActive(caller.plan, caller.planValidUntil, now)
   // A lapsed paid user reverts to Free caps until the plan-lapse
   // sweep catches up. Prevents a Pro user whose card just failed
   // from still getting Pro quota.
-  const effectiveCallerPlan: PlanName = callerActive ? caller.plan : 'free'
+  const effectiveCallerPlan: PlanName = billingOn && callerActive ? caller.plan : 'free'
 
   // (+) path: kicks in only when every precondition aligns.
-  if (workspaceId) {
+  if (billingOn && workspaceId) {
     const ws = await getWorkspaceBilling(workspaceId)
     if (ws && ws.aiEnabled && ws.billingOwnerId !== null) {
       const sponsor = await getUserPlan(ws.billingOwnerId)

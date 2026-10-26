@@ -3,7 +3,7 @@
 // editing one place.
 //
 // Ports are shifted from the dev stack so both can run concurrently:
-//   Nuxt:      3000 (dev)     → 3101 (test)
+//   Nuxt:      3000 (dev)     → 3101 (test), 3102 (test, billing off)
 //   Postgres:  5432 (dev)     → 5433 (test)
 //   Valkey:    6379 (dev)     → 6380 (test)
 //   SeaweedFS: 8333 (dev)     → 8334 (test)
@@ -11,6 +11,16 @@
 
 export const TEST_PORT = 3101
 export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
+
+// Second Nitro subprocess from the SAME build, booted with billing OFF
+// (NUXT_BILLING_ENABLED unset, NUXT_PLANS_COMING_SOON=true, and no
+// NUXT_STRIPE_* vars at all) so the billing-off surface — 404s on the
+// billing endpoints, the waitlist, free-only limits — is covered over
+// real HTTP. The primary server above runs with billing ON because the
+// Stripe checkout / portal / webhook suites need it. Shares the test
+// Postgres + Valkey; boots after the primary so migrations are no-ops.
+export const TEST_BILLING_OFF_PORT = 3102
+export const TEST_BILLING_OFF_BASE_URL = `http://127.0.0.1:${TEST_BILLING_OFF_PORT}`
 
 // The DB name guard — fixtures.ts and resetDb refuse to run unless the
 // connection string points at exactly this name. Belt and braces so a

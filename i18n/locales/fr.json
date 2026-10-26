@@ -482,7 +482,10 @@
     "errors": {
       "duplicateSession": "Vous avez déjà une session markoto en cours sur ce document.",
       "abortNotInitiator": "Seule la personne qui a démarré cette session markoto peut l'arrêter."
-    }
+    },
+    "exhaustedPlaceholderFree": "Plus de crédits IA — ils se rechargent à la prochaine période",
+    "budgetExhaustedResetDescription": "Vous avez utilisé tous vos crédits IA pour cette période. Ils se rechargent au début de la prochaine période.",
+    "budgetExhaustedComingSoonDescription": "Vous avez utilisé tous vos crédits IA pour cette période. Ils se rechargent au début de la prochaine période — des offres payantes avec plus de crédits arrivent bientôt."
   },
   "mobileTabBar": {
     "label": "Panneaux du document",
@@ -533,7 +536,14 @@
     "downgrade": "Rétrograder",
     "signUp": "S'inscrire",
     "close": "Fermer",
-    "footnote": "Tous les niveaux incluent la collaboration en temps réel, l'historique des versions et des documents illimités. Les crédits IA se réinitialisent chaque mois."
+    "footnote": "Tous les niveaux incluent la collaboration en temps réel, l'historique des versions et des documents illimités. Les crédits IA se réinitialisent chaque mois.",
+    "comingSoonSubtitle": "markoto est gratuit pendant que nous finalisons nos offres payantes. Voici ce que chaque compte reçoit aujourd'hui — et ce qui arrive.",
+    "comingSoonBadge": "Bientôt",
+    "availableNow": "Disponible maintenant",
+    "comingSoonFootnote": "Les offres payantes, leurs prix et leurs limites ne sont pas encore définitifs. Inscrivez-vous à la liste d'attente ci-dessous et nous vous écrirons une fois, à leur lancement.",
+    "freeFootnote": "Chaque compte inclut la collaboration en temps réel, l'historique des versions et des documents illimités. Les crédits IA se rechargent à chaque période.",
+    "selfHostedTitle": "Limites de cette instance",
+    "selfHostedSubtitle": "Cette instance markoto ne vend pas d'offres. Chaque compte bénéficie des limites ci-dessous ; l'opérateur de cette instance peut les modifier."
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
@@ -915,7 +925,9 @@
       "leave": "Quitter l'espace de travail",
       "leaveFailed": "Impossible de quitter l'espace de travail",
       "leftToast": "Vous avez quitté l'espace de travail"
-    }
+    },
+    "capReachedFree": "{used} espaces de travail utilisés sur {limit}. Supprimez-en un pour en créer un autre.",
+    "capReachedShortFree": "Limite d'espaces de travail atteinte"
   },
   "knowledge": {
     "title": "Base de connaissances",
@@ -940,7 +952,10 @@
       "processing": "Traitement en cours",
       "ready": "Prêt",
       "failed": "Échec"
-    }
+    },
+    "capFilesReachedFree": "Cet espace de travail a atteint sa limite de fichiers ({limit}). Supprimez un fichier pour en ajouter un autre.",
+    "capBytesReachedFree": "Cet espace de travail a atteint sa limite de stockage ({limit} Mo). Supprimez un fichier pour libérer de la place.",
+    "capReachedShortFree": "Limite atteinte"
   },
   "error": {
     "generic": "Une erreur est survenue. Veuillez réessayer.",
@@ -1169,6 +1184,42 @@
         "notSet": "Non défini",
         "change": "Modifier vos choix de confidentialité"
       }
+    }
+  },
+  "billing": {
+    "comingSoonCta": "Offres payantes bientôt disponibles",
+    "comingSoonHint": "Des offres payantes avec des limites plus élevées arrivent bientôt."
+  },
+  "waitlist": {
+    "title": "Rejoindre la liste d'attente",
+    "description": "Recevez un e-mail au lancement des offres payantes. Rien de plus.",
+    "emailLabel": "Adresse e-mail",
+    "emailPlaceholder": "vous{'@'}exemple.fr",
+    "consentLabel": "J'accepte que markoto conserve mon adresse e-mail pour m'informer du lancement de ses offres payantes. Je peux me désinscrire à tout moment grâce au lien présent dans chaque e-mail.",
+    "privacyLink": "Politique de confidentialité",
+    "submit": "Rejoindre la liste d'attente",
+    "successTitle": "Consultez votre boîte de réception",
+    "successBody": "Si cette adresse peut recevoir des e-mails, nous y avons envoyé un lien de confirmation. Votre inscription ne compte qu'une fois ce lien cliqué.",
+    "missingToken": "Ce lien est incomplet. Ouvrez-le exactement tel qu'il apparaît dans l'e-mail.",
+    "backHome": "Retour à markoto",
+    "errors": {
+      "consentRequired": "Veuillez cocher la case de consentement pour rejoindre la liste d'attente.",
+      "invalidEmail": "Veuillez saisir une adresse e-mail valide.",
+      "invalidToken": "Ce lien est invalide ou a expiré."
+    },
+    "confirm": {
+      "title": "Confirmez votre inscription à la liste d'attente",
+      "body": "Confirmez que vous souhaitez recevoir un e-mail de notre part au lancement des offres payantes de markoto.",
+      "button": "Confirmer l'inscription",
+      "successTitle": "Vous êtes inscrit",
+      "successBody": "Nous vous écrirons au lancement des offres payantes. Chaque e-mail contient un lien de désinscription."
+    },
+    "unsubscribe": {
+      "title": "Quitter la liste d'attente",
+      "body": "Retirez votre adresse e-mail de la liste d'attente des offres payantes. Nous la supprimons immédiatement.",
+      "button": "Retirer mon adresse",
+      "successTitle": "Vous avez été retiré",
+      "successBody": "Votre adresse e-mail a été supprimée de la liste d'attente."
     }
   }
 }

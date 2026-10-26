@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { users } from '../../../db/schema'
 import { useDatabase } from '../../../utils/database'
 import { getWorkspace, setWorkspaceBilling } from '../../../repos/workspaces'
+import { assertBillingEnabled } from '../../../utils/billingMode'
 
 // PATCH /api/workspaces/:wsId/billing — toggle (+) team-billing on a
 // workspace.
@@ -21,6 +22,9 @@ import { getWorkspace, setWorkspaceBilling } from '../../../repos/workspaces'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
+  // `(+)` sponsorship is a paid-plan feature — it doesn't exist while
+  // billing is off (404 `billing/disabled`, see billingMode.ts).
+  assertBillingEnabled()
   const wsId = requireWsId(event)
   const body = await readBody<{ aiEnabled?: unknown }>(event)
 

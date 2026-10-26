@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as Y from 'yjs'
 import { LitellmBudgetExhausted } from '../../server/utils/litellmKeys'
 
@@ -100,6 +100,10 @@ beforeEach(() => {
   fetchUrl.mockReset()
 })
 
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
 describe('runLoop — LiteLLM budget-exceeded catch path', () => {
   it('does NOT rethrow when streamFromProvider throws LitellmBudgetExhausted', async () => {
     // The contract: the loop must return cleanly so the outer
@@ -108,7 +112,8 @@ describe('runLoop — LiteLLM budget-exceeded catch path', () => {
     await expect(runAgenticLoop(makeOpts())).resolves.toBeUndefined()
   })
 
-  it('writes the upgrade-CTA breadcrumb into the Y.Doc when budget is exhausted', async () => {
+  it('writes the upgrade-CTA breadcrumb into the Y.Doc when budget is exhausted (billing on)', async () => {
+    vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
     const aiSession = makeAiSession()
     await runAgenticLoop(makeOpts({ aiSession }))
 
@@ -120,6 +125,30 @@ describe('runLoop — LiteLLM budget-exceeded catch path', () => {
     expect(docContent).toMatch(/AI Points exhausted/i)
     expect(docContent).toContain('/pricing')
     expect(docContent).toContain('pro') // billing context plan name
+  })
+
+  it('billing off (self-hosted): breadcrumb says the points refill and links nothing', async () => {
+    vi.stubEnv('NUXT_BILLING_ENABLED', 'false')
+    vi.stubEnv('NUXT_PLANS_COMING_SOON', 'false')
+    const aiSession = makeAiSession()
+    await runAgenticLoop(makeOpts({ aiSession }))
+
+    const docContent = (aiSession as unknown as { ytext: Y.Text }).ytext.toString()
+    expect(docContent).toMatch(/AI Points exhausted/i)
+    expect(docContent).toMatch(/refill/i)
+    expect(docContent).not.toContain('/pricing')
+    expect(docContent).not.toMatch(/upgrade/i)
+  })
+
+  it('billing off + plans coming soon (hosted SaaS): breadcrumb mentions upcoming plans, never "upgrade"', async () => {
+    vi.stubEnv('NUXT_BILLING_ENABLED', 'false')
+    vi.stubEnv('NUXT_PLANS_COMING_SOON', 'true')
+    const aiSession = makeAiSession()
+    await runAgenticLoop(makeOpts({ aiSession }))
+
+    const docContent = (aiSession as unknown as { ytext: Y.Text }).ytext.toString()
+    expect(docContent).toMatch(/coming soon/i)
+    expect(docContent).not.toMatch(/upgrade/i)
   })
 
   it('calls setStatus("done", "AI Points exhausted") so the UI tears down', async () => {

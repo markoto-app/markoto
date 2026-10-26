@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { resolveBillingContext } from '../../server/utils/billing'
@@ -14,6 +14,17 @@ import { resolveBillingContext } from '../../server/utils/billing'
 //   2. Sponsor's `plan_valid_until` flips to the past.
 //   3. Next resolve call must return the MEMBER's key, not the
 //      sponsor's; attribution flips from `workspace` → `user`.
+
+// These cases exercise PAID-plan behaviour, which only exists with
+// billing switched on (default is off — see shared/config/billingMode.ts).
+// `isBillingEnabled()` reads process.env per call, so stub it for this
+// file and restore afterwards (repos tests share one worker).
+beforeAll(() => {
+  vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
+})
+afterAll(() => {
+  vi.unstubAllEnvs()
+})
 
 describe('resolveBillingContext — (+) cascade re-attribution on sponsor lapse', () => {
   beforeEach(async () => {

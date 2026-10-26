@@ -68,6 +68,7 @@ import { appendAiMessage } from '../repos/aiSessionMessages'
 import { searchActivity, type ActivityEntry } from '../repos/activity'
 import { stripAiMention } from './agentic/commentTriggerPrompt'
 import { assertSafeUrl } from './agentic/urlGuard'
+import { budgetExhaustedMessage } from './billingMode'
 
 export interface ToolResult {
   content: string
@@ -1210,7 +1211,7 @@ async function generateImageBytesBfl(
       tags: { component: 'aiToolAdapter', event: 'image_generate_failed', provider: 'bfl' }
     })
     if (msg.includes('budget_exceeded') || msg.includes('Budget has been exceeded')) {
-      return { error: 'AI Points exhausted. Upgrade your plan at /pricing to continue.' }
+      return { error: budgetExhaustedMessage() }
     }
     return { error: `Image generation failed: ${msg}` }
   }

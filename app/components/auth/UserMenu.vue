@@ -8,19 +8,23 @@ const { status: accountStatus } = useAccountStatus()
 // when the current user is on the admin allowlist (env-driven via
 // NUXT_ADMIN_USER_EMAILS, exposed through /api/user/account-status).
 type MenuItem = { label: string, icon: string, to?: string, onSelect?: () => unknown }
+const { pricingVisible } = useBillingMode()
 const menuItems = computed<MenuItem[]>(() => {
-  const items: MenuItem[] = [
-    {
+  const items: MenuItem[] = []
+  // Pricing only when there's something to show: live plans, or the
+  // hosted SaaS "coming soon" page. A self-hosted instance has neither.
+  if (pricingVisible.value) {
+    items.push({
       label: t('pricing.title'),
       icon: 'i-lucide-credit-card',
       to: '/pricing'
-    },
-    {
-      label: t('settings.profile.title'),
-      icon: 'i-lucide-user',
-      to: '/settings/profile'
-    }
-  ]
+    })
+  }
+  items.push({
+    label: t('settings.profile.title'),
+    icon: 'i-lucide-user',
+    to: '/settings/profile'
+  })
   if (accountStatus.value?.isAdmin) {
     items.push({
       label: 'Admin',

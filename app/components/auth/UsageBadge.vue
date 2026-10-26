@@ -8,6 +8,14 @@
 // popover over a hover tooltip so the content can be richer (a real
 // styled card, not a bare browser tooltip) and so the upgrade button
 // is actually clickable without the tooltip disappearing.
+//
+// Billing off (self-hosted / free-only SaaS): the AI-points meter stays
+// — every account still has a monthly AI budget that drains and
+// refills, so "how much is left, when does it reset" is real
+// information. What goes away is everything that only exists to sell:
+// the plan name (everyone is on the same tier), the one-click upgrade
+// and the "top plan" line. On the hosted SaaS (`plansComingSoon`) the
+// footer links to the pricing page's "coming soon" + waitlist instead.
 
 import type { PlanName } from '~~/shared/config/tiers'
 import { useAiCredits } from '~/composables/useAiCredits'
@@ -16,6 +24,7 @@ const { t, locale } = useI18n()
 const router = useRouter()
 const { billing, refresh: refreshBilling } = useBilling()
 const { pointsRemaining, pointsTotal, fillRatio, refresh: refreshCredits } = useAiCredits()
+const { billingEnabled, plansComingSoon } = useBillingMode()
 
 const planLabel = computed(() => {
   const plan = billing.value?.plan ?? 'free'
@@ -63,7 +72,7 @@ const nextPlan = computed((): PlanName | null => {
   if (idx < 0 || idx >= PLAN_ORDER.length - 1) return null
   return PLAN_ORDER[idx + 1]
 })
-const canUpgrade = computed(() => nextPlan.value !== null)
+const canUpgrade = computed(() => billingEnabled.value && nextPlan.value !== null)
 
 const open = ref(false)
 const upgradeLoading = ref(false)
@@ -72,7 +81,7 @@ const upgradeLoading = ref(false)
 // bouncing through the pricing page when the user already knows what
 // they want. "View all plans" is the escape hatch for browsing tiers.
 async function onUpgrade(): Promise<void> {
-  if (!nextPlan.value || upgradeLoading.value) return
+  if (!billingEnabled.value || !nextPlan.value || upgradeLoading.value) return
   upgradeLoading.value = true
   try {
     const resp = await $fetch<{ url?: string, updated?: boolean }>('/api/billing/checkout', {
@@ -120,8 +129,12 @@ function onManage(): void {
       type="button"
       class="usage-badge hidden sm:flex items-center gap-2 pl-2.5 pr-3 py-1 rounded-full border border-default bg-default/60 backdrop-blur-sm transition-colors hover:bg-muted/40 cursor-pointer"
       aria-label="AI credits"
+      data-testid="usage-badge"
     >
-      <span class="text-xs font-semibold uppercase tracking-wide text-muted">
+      <span
+        v-if="billingEnabled"
+        class="text-xs font-semibold uppercase tracking-wide text-muted"
+      >
         {{ planLabel }}
       </span>
       <span class="usage-badge__bar-track relative h-1.5 w-20 rounded-full bg-muted/30 overflow-hidden">
@@ -144,6 +157,7 @@ function onManage(): void {
             {{ t('topbar.creditsTooltipTitle') }}
           </h3>
           <UBadge
+            v-if="billingEnabled"
             size="xs"
             variant="subtle"
             color="neutral"
@@ -197,19 +211,21 @@ function onManage(): void {
             {{ t('topbar.upgradeToPlan', { plan: nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) }) }}
           </UButton>
           <p
-            v-else
+            v-else-if="billingEnabled"
             class="text-xs text-center text-muted italic"
           >
             {{ t('topbar.topPlan') }}
           </p>
           <UButton
+            v-if="billingEnabled || plansComingSoon"
             block
             variant="ghost"
             color="neutral"
             size="sm"
+            data-testid="usage-badge-plans-link"
             @click="onManage"
           >
-            {{ t('topbar.viewAllPlans') }}
+            {{ billingEnabled ? t('topbar.viewAllPlans') : t('billing.comingSoonCta') }}
           </UButton>
         </div>
       </div>

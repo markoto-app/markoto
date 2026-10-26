@@ -27,7 +27,9 @@ import { test, expect } from '../fixtures/flow'
 // Works on desktop AND mobile — the prompt bar's exhausted
 // placeholder is identical across breakpoints and the click-through
 // to /pricing follows the same router.push call on both.
-test('What happens when you hit the AI cap', async ({ page, flow, editor }) => {
+// `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
+// playwright.config.ts `grepInvert`).
+test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page, flow, editor }) => {
   // Phase 7: budget exhaustion drives LiteLLM virtual-key `max_budget`
   // through the real proxy. The flow stack brings up `litellm-test`
   // alongside the rest of the test infra; the TEST_MODE-only endpoint

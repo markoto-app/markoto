@@ -11,9 +11,19 @@ import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 // deployment can adjust a cap without a rebuild. The committed
 // DEFAULT_TIERS serve as the SSR/fetch-failure fallback; in a stock
 // self-host deployment the two are identical.
+//
+// Three modes (see shared/config/billingMode.ts):
+//   - billing ON → everything below behaves exactly as before (Stripe
+//     Checkout / Customer Portal CTAs).
+//   - billing OFF + plans coming soon (hosted free-only SaaS) → every
+//     tier is shown, paid tiers carry a "coming soon" state with no
+//     price and no purchase button, plus the waitlist sign-up.
+//   - billing OFF, self-hosted → only the limits every account on this
+//     instance gets; no tiers, no prices, no waitlist.
 
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
+const { billingEnabled, plansComingSoon } = useBillingMode()
 
 const { data: tiersData } = await useFetch('/api/billing/tiers')
 const TIERS = computed(() => tiersData.value ?? DEFAULT_TIERS)
@@ -68,6 +78,26 @@ const TIER_COPY: TierCopy[] = [
   }
 ]
 
+// Self-hosted instances only show the one tier every account gets.
+const visibleTiers = computed(() =>
+  billingEnabled.value || plansComingSoon.value
+    ? TIER_COPY
+    : TIER_COPY.filter(tier => tier.plan === 'free')
+)
+
+// Billing off: a paid tier is a preview, not a product.
+function isComingSoon(plan: PlanName): boolean {
+  return !billingEnabled.value && plan !== 'free'
+}
+
+const pageTitle = computed(() =>
+  billingEnabled.value || plansComingSoon.value ? t('pricing.title') : t('pricing.selfHostedTitle')
+)
+const pageSubtitle = computed(() => {
+  if (billingEnabled.value) return t('pricing.subtitle')
+  return plansComingSoon.value ? t('pricing.comingSoonSubtitle') : t('pricing.selfHostedSubtitle')
+})
+
 function fmtBytes(bytes: number): string {
   if (bytes >= 1024 * 1024 * 1024) {
     const gb = bytes / (1024 * 1024 * 1024)
@@ -99,6 +129,7 @@ function ctaKind(plan: PlanName): CtaKind {
 const checkoutLoading = ref<PlanName | null>(null)
 
 async function onChangePlan(plan: PlanName): Promise<void> {
+  if (!billingEnabled.value) return
   if (!loggedIn.value) {
     globalThis.location.href = '/auth/github'
     return
@@ -163,7 +194,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
 
 const portalLoading = ref(false)
 async function openPortal(): Promise<void> {
-  if (portalLoading.value) return
+  if (!billingEnabled.value || portalLoading.value) return
   portalLoading.value = true
   try {
     const { url } = await $fetch<{ url: string }>('/api/billing/portal', {
@@ -200,7 +231,7 @@ function onClose(): void {
 }
 
 useHead({
-  title: t('pricing.title') + ' · markoto'
+  title: () => pageTitle.value + ' · markoto'
 })
 </script>
 
@@ -223,22 +254,29 @@ useHead({
     <main class="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
       <div class="text-center mb-6 sm:mb-10">
         <h1 class="font-serif text-3xl sm:text-4xl font-normal tracking-tight">
-          {{ t('pricing.title') }}
+          {{ pageTitle }}
         </h1>
-        <p class="mt-3 text-sm sm:text-base text-muted">
-          {{ t('pricing.subtitle') }}
+        <p
+          class="mt-3 text-sm sm:text-base text-muted"
+          data-testid="pricing-subtitle"
+        >
+          {{ pageSubtitle }}
         </p>
         <p class="mt-2 text-xs text-muted">
           {{ t('pricing.creditsHint') }}
         </p>
       </div>
 
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div
+        class="grid gap-4"
+        :class="visibleTiers.length > 1 ? 'md:grid-cols-2 lg:grid-cols-4' : 'max-w-sm mx-auto'"
+      >
         <article
-          v-for="tier in TIER_COPY"
+          v-for="tier in visibleTiers"
           :key="tier.plan"
           :data-testid="`pricing-tier-${tier.plan}`"
           :data-current="isCurrent(tier.plan)"
+          :data-coming-soon="isComingSoon(tier.plan)"
           class="relative border rounded-lg p-4 sm:p-6 flex flex-col"
           :class="[
             isCurrent(tier.plan)
@@ -259,7 +297,14 @@ useHead({
             {{ t('pricing.currentPlan') }}
           </div>
           <div
-            v-else-if="tier.badge"
+            v-else-if="isComingSoon(tier.plan)"
+            data-testid="pricing-coming-soon-badge"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-sumi-900 text-sumi-50 dark:bg-sumi-100 dark:text-sumi-900 font-mono text-[10.5px] tracking-[0.06em] uppercase font-medium px-2.5 py-0.5 rounded-full"
+          >
+            {{ t('pricing.comingSoonBadge') }}
+          </div>
+          <div
+            v-else-if="billingEnabled && tier.badge"
             class="absolute -top-3 left-1/2 -translate-x-1/2 bg-shu-500 text-white font-mono text-[10.5px] tracking-[0.06em] uppercase font-medium px-2.5 py-0.5 rounded-full"
           >
             {{ tier.badge }}
@@ -272,12 +317,24 @@ useHead({
             <p class="text-sm text-muted mt-1 min-h-[3em]">
               {{ tier.tagline }}
             </p>
-            <div class="mt-4">
+            <!-- Prices only when there's something to buy: paid prices
+                 aren't final while plans are "coming soon", and a
+                 self-hosted instance has no prices at all. -->
+            <div
+              v-if="billingEnabled"
+              class="mt-4"
+            >
               <span class="text-3xl font-bold">{{ tier.priceMonthly }}</span>
               <span
                 v-if="tier.plan !== 'free'"
                 class="text-sm text-muted ml-1"
               >/mo</span>
+            </div>
+            <div
+              v-else
+              class="mt-4 font-mono text-[11px] uppercase tracking-[0.06em] text-muted"
+            >
+              {{ isComingSoon(tier.plan) ? t('pricing.comingSoonBadge') : t('pricing.availableNow') }}
             </div>
           </div>
 
@@ -338,7 +395,36 @@ useHead({
             </li>
           </ul>
 
-          <div class="mt-6">
+          <!-- Billing off: no purchase surface at all. Free is "your
+               plan" (signed in) or "free forever"; paid tiers are a
+               disabled "coming soon" chip. -->
+          <div
+            v-if="!billingEnabled"
+            class="mt-6"
+          >
+            <UButton
+              v-if="isComingSoon(tier.plan)"
+              disabled
+              block
+              variant="subtle"
+              color="neutral"
+              data-testid="pricing-coming-soon-button"
+            >
+              {{ t('pricing.comingSoonBadge') }}
+            </UButton>
+            <UButton
+              v-else
+              disabled
+              block
+              variant="subtle"
+            >
+              {{ loggedIn ? t('pricing.currentPlan') : t('pricing.freeForever') }}
+            </UButton>
+          </div>
+          <div
+            v-else
+            class="mt-6"
+          >
             <!-- Four CTA states:
                  - current: disabled "Current plan" chip
                  - free-stay: anonymous visitor viewing Free → disabled "Free forever"
@@ -400,8 +486,22 @@ useHead({
         </article>
       </div>
 
-      <div class="mt-8 sm:mt-12 text-center text-sm text-muted">
-        <p>{{ t('pricing.footnote') }}</p>
+      <div class="mt-8 sm:mt-12 text-center text-sm text-muted space-y-2">
+        <p>{{ billingEnabled ? t('pricing.footnote') : t('pricing.freeFootnote') }}</p>
+        <p
+          v-if="plansComingSoon"
+          data-testid="pricing-coming-soon-footnote"
+        >
+          {{ t('pricing.comingSoonFootnote') }}
+        </p>
+      </div>
+
+      <!-- Paid-plans waitlist (hosted free-only SaaS only). -->
+      <div
+        v-if="plansComingSoon"
+        class="mt-8 sm:mt-12 max-w-xl mx-auto"
+      >
+        <PricingWaitlistForm />
       </div>
     </main>
 

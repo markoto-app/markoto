@@ -11,6 +11,13 @@ acme_email: you@example.com
 registry: ghcr.io/joelbarmettleruzh
 image_tag: latest
 
+# ─── Billing mode (see shared/config/billingMode.ts) ───
+# The hosted deployment runs free-only with paid plans shown as "coming
+# soon" + a waitlist. Set nuxt_billing_enabled: true (and the Stripe vars
+# in all.vault.yml) to launch paid plans.
+nuxt_billing_enabled: false
+nuxt_plans_coming_soon: true
+
 # ─── Backup sidecar tunables ───
 backup_interval_seconds: 86400
 backup_retention_count: 30

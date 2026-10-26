@@ -36,6 +36,7 @@ export type TransactionalEmailKind
     | 'data_export.ready'
     | 'consent.version_bump'
     | 'breach.notification'
+    | 'waitlist.confirm'
 
 export interface SendEmailArgs {
   // What kind of email this is. Used for logging and per-kind
@@ -60,6 +61,10 @@ export interface SendEmailArgs {
   // NEVER include secrets, full-page URLs with tokens, or anything else
   // we wouldn't want in our log retention.
   metadata?: Record<string, string | number | boolean>
+  // True when the body carries single-use secrets (confirm /
+  // unsubscribe links). Stub mode then logs a placeholder instead of
+  // the body preview, so tokens never land in log retention.
+  bodyContainsSecrets?: boolean
 }
 
 export interface SendEmailResult {
@@ -77,7 +82,8 @@ const NORMALISED_KIND_LABELS: Record<TransactionalEmailKind, string> = {
   'account.delete_executed': 'account-delete-executed',
   'data_export.ready': 'data-export-ready',
   'consent.version_bump': 'consent-version-bump',
-  'breach.notification': 'breach-notification'
+  'breach.notification': 'breach-notification',
+  'waitlist.confirm': 'waitlist-confirm'
 }
 
 // Resend's universal sandbox sender. Delivers only to the email
@@ -100,9 +106,10 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
   // Log + succeed; the product UX is load-bearing without delivery.
   const stubMode = !apiKey || explicitProvider === 'stub'
   if (stubMode) {
-    const previewBody = args.body.length > 280
+    let previewBody = args.body.length > 280
       ? `${args.body.slice(0, 280)}…`
       : args.body
+    if (args.bodyContainsSecrets) previewBody = '<redacted: contains single-use links>'
     console.log(`[email-stub] kind=${label} to=${redactEmail(args.to)} locale=${args.locale ?? 'en'} subject=${JSON.stringify(args.subject)} body=${JSON.stringify(previewBody)}`)
     return { delivered: true }
   }
