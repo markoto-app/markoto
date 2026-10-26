@@ -1,5 +1,6 @@
 import { visibleSubProcessors } from '../../legal/registryView'
 import { isBillingEnabled } from '../../utils/billingMode'
+import { assertLegalSurfacesEnabled } from '../../utils/instanceConfig'
 
 // Public-readable sub-processor registry. Surfaces the structured
 // data from `server/legal/subProcessors.ts` so the client-side
@@ -15,5 +16,6 @@ import { isBillingEnabled } from '../../utils/billingMode'
 // response is the registry shape unchanged.
 
 export default defineEventHandler(() => {
+  assertLegalSurfacesEnabled()
   return visibleSubProcessors(isBillingEnabled())
 })

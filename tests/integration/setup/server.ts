@@ -141,6 +141,11 @@ export async function startNuxt(): Promise<void> {
     // webhook suites run here. The billing-off surface is covered by the
     // second subprocess (see startBillingOffServer below).
     NUXT_BILLING_ENABLED: 'true',
+    // Legal surfaces (onboarding gate, DPA step, /legal/* endpoints) ON so
+    // the privacy/legal suites run; the self-hosted default (off) is
+    // covered by tests/unit/instanceConfig.test.ts. The billing-off twin
+    // inherits this env.
+    NUXT_LEGAL_SURFACES_ENABLED: 'true',
     NUXT_STRIPE_SECRET_KEY: 'sk_test_123abc',
     NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_integration',
     NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',

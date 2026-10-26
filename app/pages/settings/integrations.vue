@@ -24,12 +24,14 @@ interface IssueResponse extends IssuedToken {
 const router = useRouter()
 const toast = useToast()
 const { loggedIn, user } = useUserSession()
+// Login starts at the first configured OAuth provider ('/' when none).
+const { primaryLoginPath } = useInstanceConfig()
 const config = useRuntimeConfig()
 
 useHead({ title: 'Integrations · markoto' })
 
 if (import.meta.client && !loggedIn.value) {
-  globalThis.location.href = '/auth/github'
+  globalThis.location.href = primaryLoginPath.value ?? '/'
 }
 
 function onClose(): void {

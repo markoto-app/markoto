@@ -1,6 +1,8 @@
 # Privacy / legal surfaces
 
-The four user-facing privacy components. They sit at the layout level (above the editor, above the dashboard) and deliberately don't share much state — each is a self-contained policy enforcer.
+The four user-facing privacy components.
+
+**Hosted-only.** `OnboardingGate` + `ConsentBanner` mount only when `useInstanceConfig().legalSurfaces` is true (`NUXT_LEGAL_SURFACES_ENABLED`, see `shared/config/instance.ts`); `/api/user/account-status` reports every acceptance as not-required when off, the workspace DPA step disappears, `/legal/*` pages + endpoints 404 and the footer drops its legal links. Self-hosted instances run with them off by default; the hosted SaaS sets the flag in its env. Tests that need the surfaces must set the flag (integration + flow stacks do). They sit at the layout level (above the editor, above the dashboard) and deliberately don't share much state — each is a self-contained policy enforcer.
 
 | Component | What it does |
 |---|---|

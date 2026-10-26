@@ -23,6 +23,8 @@ import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
+// Login starts at the first configured OAuth provider ('/' when none).
+const { primaryLoginPath } = useInstanceConfig()
 const { billingEnabled, plansComingSoon } = useBillingMode()
 
 const { data: tiersData } = await useFetch('/api/billing/tiers')
@@ -131,7 +133,7 @@ const checkoutLoading = ref<PlanName | null>(null)
 async function onChangePlan(plan: PlanName): Promise<void> {
   if (!billingEnabled.value) return
   if (!loggedIn.value) {
-    globalThis.location.href = '/auth/github'
+    globalThis.location.href = primaryLoginPath.value ?? '/'
     return
   }
   if (plan === 'free' || checkoutLoading.value) return

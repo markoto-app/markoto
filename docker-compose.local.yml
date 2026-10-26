@@ -122,6 +122,8 @@ services:
       # preview the hosted "coming soon" pricing page or the billing flow.
       - NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED:-false}
       - NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON:-false}
+      # Legal surfaces default ON like prod (shared/config/instance.ts).
+      - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
       - NUXT_SESSION_PASSWORD=local-session-password-at-least-32-characters-long
       - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID}
       - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET}
@@ -261,6 +263,8 @@ services:
     environment:
       - S3_ENDPOINT=http://seaweedfs:8333
       - BACKUP_INTERVAL_SECONDS=3600
+      # SeaweedFS rejects the SSE-S3 header (InternalError) — see backup.sh.
+      - S3_SSE=none
       - BACKUP_RETENTION_COUNT=5
       # Stub passphrase so the sidecar doesn't restart-loop. Local
       # backups encrypt against a throwaway key — never used for restore.

@@ -148,6 +148,14 @@ services:
       # page "coming soon" + waitlist); leave it false when self-hosting.
       - NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED:-false}
       - NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON:-false}
+      # Legal surfaces (shared/config/instance.ts): onboarding gate, consent
+      # banner, DPA step, /legal/* pages. This file is the HOSTED stack, so
+      # they default ON here (the code default is off, for self-hosters —
+      # see docker-compose.selfhost.yml).
+      - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
+      # Number of trusted reverse proxies in front of the app (Traefik = 1).
+      # See shared/utils/clientIp.ts.
+      - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
       # Stripe — only read (and only required at boot, in production) when
       # NUXT_BILLING_ENABLED=true.
       - NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:-}

@@ -17,6 +17,7 @@
     "logout": "Se déconnecter",
     "loginGithub": "Continuer avec GitHub",
     "loginGoogle": "Continuer avec Google",
+    "loginUnavailable": "La connexion n'est pas configurée sur cette instance. Vous pouvez tout de même créer et modifier des documents de façon anonyme.",
     "loginRequired": "Connexion requise",
     "linkedTitle": "Comptes liés",
     "linkedDescription": "Votre connexion {provider} est désormais associée à votre compte existant. Vous pouvez vous connecter avec l'un ou l'autre fournisseur à partir de maintenant."

@@ -28,6 +28,8 @@ interface SpendResponse {
 
 const router = useRouter()
 const { loggedIn } = useUserSession()
+// Login starts at the first configured OAuth provider ('/' when none).
+const { primaryLoginPath } = useInstanceConfig()
 const { status: accountStatus } = useAccountStatus()
 const toast = useToast()
 
@@ -36,7 +38,7 @@ useHead({ title: 'AI spend · Admin · markoto' })
 if (import.meta.client) {
   watchEffect(() => {
     if (!loggedIn.value) {
-      globalThis.location.href = '/auth/github'
+      globalThis.location.href = primaryLoginPath.value ?? '/'
     } else if (accountStatus.value && !accountStatus.value.isAdmin) {
       router.push('/')
     }

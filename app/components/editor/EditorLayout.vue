@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
 import { insertTable } from '~/utils/editorCommands'
+import { loginPath } from '~~/shared/config/instance'
 import TableSizePicker from './TableSizePicker.vue'
 import RightPanelHost from './RightPanelHost.vue'
 import MobileTabBar from './MobileTabBar.vue'
@@ -554,6 +555,8 @@ watch(() => colorMode.value, (v) => {
   colorModeValue.value = v === 'dark' ? 'dark' : 'light'
 })
 const { loggedIn, user: sessionUser } = useUserSession()
+// Login entries only for OAuth providers this instance has configured.
+const { loginProviders, primaryLoginPath } = useInstanceConfig()
 // Logout pipeline — clears localStorage/sessionStorage/IDB + broadcasts to
 // other tabs + tears down awareness BEFORE the session goes (so other
 // collaborators see the leaving frame on a still-open WS). See
@@ -610,20 +613,12 @@ const mobileMenuItems = computed(() => {
           onSelect: () => handleLogout()
         }
       ]
-    : [
-        {
-          label: t('auth.loginGithub'),
-          icon: 'i-simple-icons-github',
-          to: '/auth/github',
-          external: true
-        },
-        {
-          label: t('auth.loginGoogle'),
-          icon: 'i-simple-icons-google',
-          to: '/auth/google',
-          external: true
-        }
-      ]
+    : loginProviders.value.map(provider => ({
+        label: t(provider === 'github' ? 'auth.loginGithub' : 'auth.loginGoogle'),
+        icon: provider === 'github' ? 'i-simple-icons-github' : 'i-simple-icons-google',
+        to: loginPath(provider),
+        external: true
+      }))
 
   // File actions — replaces the desktop EditorMenuBar's File menu on
   // mobile. Owner-only items (Move / Delete / Duplicate's destructive
@@ -847,9 +842,9 @@ const _statusIcon = computed(() => {
           {{ t('access.backHome') }}
         </UButton>
         <UButton
-          v-if="!loggedIn"
+          v-if="!loggedIn && primaryLoginPath"
           color="primary"
-          @click="navigateTo('/auth/github', { external: true })"
+          @click="navigateTo(primaryLoginPath, { external: true })"
         >
           {{ t('auth.login') }}
         </UButton>

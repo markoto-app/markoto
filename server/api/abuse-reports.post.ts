@@ -7,7 +7,7 @@ import { AUDIT_ABUSE_REPORTED } from '../legal/auditActions'
 import { checkRateLimit } from '../utils/rateLimit'
 import { findUserById } from '../repos/users'
 import { safeSendTransactionalEmail } from '../utils/email/sendEmail'
-import { resolveLegalEntity } from '~~/shared/legal/entity'
+import { abuseNotificationRecipient } from '../utils/instanceConfig'
 
 // DSA Article 16 notice-and-action submission. Records a structured
 // report in `abuse_reports` (status='open', triage queue), audit-
@@ -74,9 +74,7 @@ export default defineEventHandler(async (event) => {
   // log convention. The reporter's email comes from the user's
   // session profile (we already have it on `users.email` if they
   // signed in via OAuth).
-  const rawIp = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || null
+  const rawIp = getClientIp(event)
   const userAgent = getRequestHeader(event, 'user-agent') ?? ''
   const userAgentHash = userAgent
     ? createHash('sha256').update(userAgent).digest('hex')
@@ -120,12 +118,14 @@ export default defineEventHandler(async (event) => {
   // Best-effort operator notification. Routed to the abuse contact
   // address, which is also the public reporting channel — same
   // inbox triages email reports + form reports. The email is
-  // fire-and-forget; row + audit have already committed.
+  // fire-and-forget; row + audit have already committed. A self-hosted
+  // instance without a configured abuse inbox gets no email (`to: null`
+  // → skipped): the hosted operator's default must never receive another
+  // instance's reports. The report is still in /admin/abuse-reports.
   const reporter = reporterUser
-  const entity = resolveLegalEntity()
   void safeSendTransactionalEmail({
     kind: 'breach.notification', // closest existing kind label; the body distinguishes
-    to: entity.abuseContactEmail,
+    to: abuseNotificationRecipient(),
     locale: null,
     subject: `[markoto abuse] ${body.category} report ${reportId}`,
     body: [

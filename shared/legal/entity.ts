@@ -10,9 +10,13 @@
 // env vars (read at request time, not at module load) so the prod
 // deployment can pin its real legal entity without source edits.
 //
-// **Defaults are placeholders.** Keep them clearly distinguishable
-// from real values so a misconfigured production deployment surfaces
-// loudly rather than silently shipping a generic privacy policy.
+// **The defaults are the hosted markoto.app operator** (LatentSpace
+// Labs GmbH). They only ever surface while the legal surfaces are ON
+// (`NUXT_LEGAL_SURFACES_ENABLED`, see `shared/config/instance.ts`) —
+// the hosted SaaS. A self-hosted instance runs with them OFF by default
+// and never presents LatentSpace Labs as its operator; a self-hoster who
+// switches them on must set every `NUXT_LEGAL_*` value (and adapt
+// `content/legal/`) — see docs/SELF-HOSTING.md#legal-pages.
 
 export interface LegalEntity {
   // The legal entity operating markoto. Appears as "the controller"
@@ -42,29 +46,31 @@ export interface LegalEntity {
   ehraId: string
 }
 
-export function resolveLegalEntity(): LegalEntity {
+type Env = Record<string, string | undefined>
+
+export function resolveLegalEntity(env: Env = process.env): LegalEntity {
   return {
-    controllerName: (process.env.NUXT_LEGAL_CONTROLLER_NAME?.trim())
+    controllerName: (env.NUXT_LEGAL_CONTROLLER_NAME?.trim())
       || 'LatentSpace Labs GmbH',
-    controllerAddress: (process.env.NUXT_LEGAL_CONTROLLER_ADDRESS?.trim())
+    controllerAddress: (env.NUXT_LEGAL_CONTROLLER_ADDRESS?.trim())
       || 'c/o Joel Barmettler, Hirschgartnerweg 18, 8057 Zürich, Switzerland',
-    privacyContactEmail: (process.env.NUXT_LEGAL_PRIVACY_CONTACT_EMAIL?.trim())
+    privacyContactEmail: (env.NUXT_LEGAL_PRIVACY_CONTACT_EMAIL?.trim())
       || 'privacy@markoto.app',
-    abuseContactEmail: (process.env.NUXT_LEGAL_ABUSE_CONTACT_EMAIL?.trim())
+    abuseContactEmail: (env.NUXT_LEGAL_ABUSE_CONTACT_EMAIL?.trim())
       || 'abuse@markoto.app',
-    governingLaw: (process.env.NUXT_LEGAL_GOVERNING_LAW?.trim())
+    governingLaw: (env.NUXT_LEGAL_GOVERNING_LAW?.trim())
       || 'Swiss law',
-    legalForm: (process.env.NUXT_LEGAL_LEGAL_FORM?.trim())
+    legalForm: (env.NUXT_LEGAL_LEGAL_FORM?.trim())
       || 'Gesellschaft mit beschränkter Haftung (GmbH)',
-    registeredOffice: (process.env.NUXT_LEGAL_REGISTERED_OFFICE?.trim())
+    registeredOffice: (env.NUXT_LEGAL_REGISTERED_OFFICE?.trim())
       || 'Zürich, Switzerland',
-    representedBy: (process.env.NUXT_LEGAL_REPRESENTED_BY?.trim())
+    representedBy: (env.NUXT_LEGAL_REPRESENTED_BY?.trim())
       || 'Joel Barmettler',
-    uid: (process.env.NUXT_LEGAL_UID?.trim())
+    uid: (env.NUXT_LEGAL_UID?.trim())
       || 'CHE-170.986.632',
-    chId: (process.env.NUXT_LEGAL_CH_ID?.trim())
+    chId: (env.NUXT_LEGAL_CH_ID?.trim())
       || 'CH-020-4092420-2',
-    ehraId: (process.env.NUXT_LEGAL_EHRA_ID?.trim())
+    ehraId: (env.NUXT_LEGAL_EHRA_ID?.trim())
       || '1753104'
   }
 }

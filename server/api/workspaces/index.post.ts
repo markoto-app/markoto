@@ -7,6 +7,7 @@ import type { PlanName } from '~~/shared/config/tiers'
 import { getTiers } from '~~/server/utils/tierConfig'
 import { effectivePlan, limitRecovery, limitUpgradeHint } from '~~/server/utils/billingMode'
 import { DPA_VERSION } from '~~/shared/legal/versions'
+import { legalSurfacesEnabled } from '~~/server/utils/instanceConfig'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -37,8 +38,12 @@ export default defineEventHandler(async (event) => {
   // client-side flow surfaces a `DpaAcceptanceModal` before this
   // POST fires; the server-side check is defence-in-depth so a
   // direct curl can't slip past the consent.
+  //
+  // Only while the legal surfaces are on (hosted SaaS): the bundled DPA
+  // names the hosted operator as processor. A self-hosted instance runs
+  // its own contractual setup and shows no DPA step.
   const acceptedDpa = planRows[0]?.dpaVersionAccepted ?? null
-  if (acceptedDpa === null || acceptedDpa < DPA_VERSION) {
+  if (legalSurfacesEnabled() && (acceptedDpa === null || acceptedDpa < DPA_VERSION)) {
     throw createError({
       statusCode: 409,
       message: 'You must accept the Data Processing Addendum (DPA) before creating a workspace.',
