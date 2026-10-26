@@ -83,21 +83,27 @@ export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/
 // `fake-openai-test` in docker-compose.test.yml, published on host port
 // 4120. The BYOK base URL must be reachable from BOTH the app (on the
 // host, which runs the SSRF policy incl. DNS) and litellm-test (in a
-// container, which connects). The docker bridge gateway address is the
-// one both sides share: it is a local interface on the host and the
-// host's address from inside any container. Derived from the `docker0`
-// interface; override with TEST_FAKE_OPENAI_BASE_URL on hosts where
-// docker uses a different bridge.
+// container, which connects). A docker bridge gateway address is one
+// both sides share: it is a local interface on the host, and from inside
+// a container it reaches the host (where the port is published). We use
+// `docker0` when it has an address, else a compose network bridge
+// (`br-*`, created by `docker compose up` — e.g. on CI runners where
+// docker0 has no IPv4). Override with TEST_FAKE_OPENAI_BASE_URL.
 export const TEST_FAKE_OPENAI_PORT = 4120
 export const TEST_FAKE_OPENAI_HOST_URL = `http://127.0.0.1:${TEST_FAKE_OPENAI_PORT}`
 
 function dockerBridgeAddress(): string {
-  const bridge = networkInterfaces().docker0 ?? []
-  const v4 = bridge.find(i => i.family === 'IPv4')
-  if (!v4) {
-    throw new Error('[integration] no docker0 IPv4 address found; set TEST_FAKE_OPENAI_BASE_URL to a URL reachable from both the host and the litellm-test container.')
+  const interfaces = networkInterfaces()
+  const names = Object.keys(interfaces).sort()
+  const candidates = [
+    ...names.filter(n => n === 'docker0'),
+    ...names.filter(n => n.startsWith('br-'))
+  ]
+  for (const name of candidates) {
+    const v4 = (interfaces[name] ?? []).find(i => i.family === 'IPv4')
+    if (v4) return v4.address
   }
-  return v4.address
+  throw new Error('[integration] no docker bridge IPv4 address found (docker0 / br-*); set TEST_FAKE_OPENAI_BASE_URL to a URL reachable from both the host and the litellm-test container.')
 }
 
 export function fakeOpenAiBaseUrl(): string {
