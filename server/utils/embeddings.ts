@@ -116,10 +116,23 @@ async function embedOne(
 ): Promise<number[]> {
   // The OpenAI SDK's `embeddings.create` doesn't have a typed `task`
   // field, but LiteLLM forwards unknown body params to the upstream
-  // provider verbatim. We pass it via the SDK's untyped extras path so
-  // the call stays type-safe at the boundary. `dimensions` IS typed in
-  // the OpenAI SDK (it's now an OpenAI feature too).
+  // provider verbatim. They ride in as a typed spread (spread members
+  // aren't excess-property-checked) so the SDK's typed fields keep their
+  // literal types — in particular `encoding_format: 'float'`, which
+  // selects the `number[]` overload of `create` (openai >= 7 overloads
+  // on it; an `as any` extras object would collapse to the base64
+  // overload). `dimensions` IS typed in the OpenAI SDK.
+  //
+  // Jina-specific: the task hint propagates through LiteLLM. Without
+  // it v4's recall measurably degrades on retrieval workloads (verified
+  // in Phase 0 spike — vectors differ across task values). The LiteLLM
+  // spend-tag for /admin/ai-spend aggregation rides on the same path.
+  const litellmExtras = {
+    task: mapTaskToJina(taskType),
+    ...featureMetadata(FEATURE_TAGS.embeddings)
+  }
   const response = await client.embeddings.create({
+    ...litellmExtras,
     model: cfg.model,
     input: truncate(text),
     dimensions: cfg.dimensions,
@@ -129,14 +142,7 @@ async function embedOne(
     // failure: code reads `data[0].embedding.length === 192`,
     // pgvector insert fails with "vector has wrong shape"). Force
     // `'float'` so Jina returns the number array directly.
-    encoding_format: 'float',
-    // Jina-specific: task hint propagates through LiteLLM. Without this
-    // hint v4's recall measurably degrades on retrieval workloads
-    // (verified in Phase 0 spike — vectors differ across task values).
-    // LiteLLM spend-tag for /admin/ai-spend aggregation rides on the
-    // same untyped-extras path.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...({ task: mapTaskToJina(taskType), ...featureMetadata(FEATURE_TAGS.embeddings) } as any)
+    encoding_format: 'float'
   })
   const values = response.data?.[0]?.embedding
   if (values?.length !== cfg.dimensions) {
