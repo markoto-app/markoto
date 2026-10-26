@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_PORT } from './env'
 import { buildTestEnv } from './testEnv'
+import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
 
 // Production Nitro subprocess lifecycle. Boot once for the whole test run
 // from globalSetup, tear down at the end.
@@ -155,7 +156,22 @@ export async function startNuxt(): Promise<void> {
     // to this. The stub-based path is gone — it couldn't catch
     // browser/SSR-layer bugs (oklch in Nuxt UI styles, zod imports
     // wedging Vite SSR, etc.).
-    NUXT_RENDERER_INTERNAL_URL: 'http://127.0.0.1:9101'
+    NUXT_RENDERER_INTERNAL_URL: 'http://127.0.0.1:9101',
+    // AI providers — the primary server is shaped like a SELF-HOSTED
+    // instance: operator defaults that are LiteLLM model aliases (the
+    // bundled Mistral / BFL / Voxtral deployments, i.e. today's setup),
+    // free-form BYOK URLs, and the private-network opt-in so BYOK tests
+    // can point at the fake provider on the docker bridge. The
+    // billing-off twin below is shaped like the hosted SaaS instead.
+    NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603',
+    NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-2-pro',
+    NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
+    NUXT_AI_BYOK_ALLOWED_BASE_URLS: '',
+    NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'true',
+    // Live dictation on the instance default needs the operator's
+    // Mistral key in the app process (the realtime WS is direct). The
+    // dictation tests use the in-process speech mock, so a stub works.
+    MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'stub-mistral-key'
   }
 
   // Boot guard: validate the resolved env we're about to hand the
@@ -194,10 +210,15 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   const env: NodeJS.ProcessEnv = {}
   for (const [k, v] of Object.entries(primaryEnv)) {
     if (k.startsWith('NUXT_STRIPE_')) continue
+    // Hosted-SaaS AI shape: no instance AI defaults at all (BYOK only).
+    if (k.startsWith('NUXT_AI_DEFAULT_')) continue
     env[k] = v
   }
   env.NUXT_BILLING_ENABLED = 'false'
   env.NUXT_PLANS_COMING_SOON = 'true'
+  // SaaS BYOK policy: provider allowlist, no private networks.
+  env.NUXT_AI_BYOK_ALLOWED_BASE_URLS = RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',')
+  env.NUXT_AI_BYOK_ALLOW_PRIVATE_URLS = 'false'
   env.NITRO_PORT = String(TEST_BILLING_OFF_PORT)
   env.PORT = String(TEST_BILLING_OFF_PORT)
   console.log(`[integration] starting billing-off production server on :${TEST_BILLING_OFF_PORT}`)

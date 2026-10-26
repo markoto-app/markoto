@@ -128,6 +128,10 @@ markoto does not make decisions producing legal or similarly significant effects
 
 markoto includes an AI writing assistant and a knowledge-base retrieval system. AI requests are routed through our self-hosted LiteLLM proxy to EU-resident providers: Mistral AI (text generation, voice transcription via Voxtral), Jina AI (embeddings for the knowledge base, single-URL page content extraction), Staan (web search via a proprietary European search index, EU-only routing), and Black Forest Labs (image generation, EU-pinned region). Web-search queries no longer transit US search backends. We disclose this to you in the user interface — every AI-assisted message carries a visible "AI" badge, and any AI-generated content placed in a public document is footed with a transparency notice. None of these providers use API content to train their models on the tiers we use.
 
+### Your own AI provider (bring your own key)
+
+You can connect your own AI provider account (any OpenAI-compatible service, for example Mistral AI, OpenAI or a self-hosted model) under **Settings → AI provider**, separately for chat, image generation and voice transcription. When you do, the content needed for that feature — your prompt, the relevant document context, voice recordings, and the generated result — is sent through our LiteLLM proxy to **the provider you chose, under your own agreement with that provider**. markoto does not select that provider, and it is not one of our sub-processors; its terms and data-protection practices (including where it processes data and whether it trains on API content) are those of your contract with it. We store your provider settings (provider URL, model name, and your API key, encrypted at rest) until you remove them or delete your account; the key is never shown back to you in full, never included in your data export, and never logged. Prompt and tool-call records follow the 90-day retention above. Embeddings, web search and single-page fetching always use our own EU-resident providers listed above.
+
 If you would prefer a workspace where AI features are disabled entirely, your workspace administrator can toggle this in workspace settings. Anonymous and standalone documents may still use AI features unless you opt out at the account level (forthcoming).
 
 ## 9. Cookies and similar technologies
@@ -161,6 +165,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v6 (2026-10-26).** Added the `user_directed_ai_provider` processing purpose: you can bring your own AI provider (chat, image generation, voice transcription). Content for those features is then sent to the provider you choose under your agreement with it; we store your provider settings with the API key encrypted at rest until you remove them or delete your account.
 - **v5 (2026-10-26).** Added the `paid_plans_waitlist` processing purpose (consent, double opt-in): email address, locale, consent record and optional account link, kept until you unsubscribe or at the latest 3 months after the paid-plans launch announcement; unconfirmed sign-ups deleted after 7 days. Stored in OVHcloud (EU); confirmation emails via Resend.
 - **v2 (2026-05-05).** Added Resend, Inc. as a sub-processor for transactional email delivery (deletion confirmations, data-export-ready notifications). Email metadata is retained by Resend for 30 days; bodies are not archived. The `transactional_email` processing purpose now references Resend in the lawful-basis registry.
 - **v1 (2026-05-04).** Initial publication.

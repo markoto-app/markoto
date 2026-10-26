@@ -7,6 +7,8 @@ import { listReadyKnowledgeBrief } from '../../repos/knowledge'
 import { addAiSession, removeAiSession, DuplicateSessionError } from '../../utils/aiSessions'
 import { createAiSession } from '../../utils/aiClient'
 import { resolveBillingContext } from '../../utils/billing'
+import { requireAiProviders } from '../../utils/aiProviders/guard'
+import type { ResolvedAiProviders } from '../../utils/aiProviders/resolve'
 import { runAgenticLoop } from '../../utils/agentic/runLoop'
 import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../utils/agentic/functionTools'
 import {
@@ -184,6 +186,9 @@ export default defineEventHandler(async (event) => {
   // first model call and the runLoop catches `LitellmBudgetExhausted` /
   // `isBudgetExceededError(...)` to surface the upgrade-CTA breadcrumb.
   const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
+  // BYOK: the user's own provider (or the instance default). No chat
+  // provider → 409 `ai/provider-missing` with a link to the settings page.
+  const aiProviders = await requireAiProviders(userId, 'chat')
 
   const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706' // Warm orange — reused from the original AI-as-collaborator design
@@ -208,7 +213,8 @@ export default defineEventHandler(async (event) => {
     systemPrompt,
     toolDeclarations: wsCtx.toolDeclarations,
     workspaceId: wsCtx.workspaceId,
-    billingContext
+    billingContext,
+    aiProviders
   })
 
   return { sessionId }
@@ -330,6 +336,7 @@ interface PromptLoopArgs {
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
   workspaceId: string | null
   billingContext: Awaited<ReturnType<typeof resolveBillingContext>>
+  aiProviders: ResolvedAiProviders
 }
 
 /**
@@ -358,15 +365,15 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
       attributedTo: args.billingContext.attributedTo,
       plan: args.billingContext.plan,
       periodStart: args.billingContext.periodStart,
-      virtualKey: args.billingContext.virtualKey
+      virtualKey: args.billingContext.virtualKey,
+      aiProviders: args.aiProviders
     }, args.abortController.signal)
 
     await runAgenticLoop({
       // Phase 5: `ai` arg is for the unit-test seam only; production
       // routes through LiteLLM via the user's virtual key. `model` and
-      // `thinkingBudget` are also test-seam-only — LiteLLM resolves
-      // its own model from `config.litellm.textModel` and Mistral has
-      // no thinking-budget equivalent.
+      // `thinkingBudget` are also test-seam-only — the model comes from
+      // the session's resolved chat provider (`aiSession.aiProviders.chat`).
       model: '',
       systemPrompt: args.systemPrompt,
       initialPrompt: args.wrappedPrompt,

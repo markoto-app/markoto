@@ -17,6 +17,7 @@ import {
 import { hasScope, requireMcpAuth } from './mcpToolContext'
 import { checkRateLimit } from '../../utils/rateLimit'
 import { resolveBillingContext } from '../../utils/billing'
+import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import type { ToolResult } from '../../utils/aiToolAdapter'
 import type { MetaToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
 import type { McpScope } from '../../utils/mcpAuth'
@@ -366,6 +367,7 @@ async function buildStubContext(
   mcpSessionId: string | null
 ): Promise<{ ctx: MetaToolContext, dispose: () => void }> {
   const billingContext = await resolveBillingContext(userId, workspaceId)
+  const aiProviders = await resolveAiProviders(userId)
   const sessionId = mcpSessionId ?? `oneshot-${Date.now()}`
 
   const ctx: MetaToolContext = {
@@ -381,6 +383,7 @@ async function buildStubContext(
     plan: billingContext.plan,
     periodStart: billingContext.periodStart,
     virtualKey: billingContext.virtualKey,
+    aiProviders,
     updateStatus: (_phase: ToolStatusPhase, _message?: string) => {
       // No-op — workspace/user-only tools have no doc-level awareness
       // to broadcast on. The MCP client gets the result via the normal

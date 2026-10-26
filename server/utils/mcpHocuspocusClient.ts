@@ -3,6 +3,7 @@ import { mcpClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt
 import { checkout, release, type PoolKey } from './yDocPool'
 import type { ToolContext, ToolStatusPhase } from './agentic/toolContext'
 import { resolveBillingContext } from './billing'
+import { resolveAiProviders } from './aiProviders/resolve'
 import { getDoc } from '../repos/documents'
 import { useValkey } from './valkey'
 
@@ -182,6 +183,9 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
     ? input.workspaceId
     : (await getDoc(input.docId))?.workspaceId ?? null
   const billingContext = await resolveBillingContext(input.userId, workspaceId)
+  // BYOK providers, resolved per call like the billing context so a
+  // settings change is picked up on the next tool call.
+  const aiProviders = await resolveAiProviders(input.userId)
 
   let entry
   try {
@@ -237,6 +241,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
     plan: billingContext.plan,
     periodStart: billingContext.periodStart,
     virtualKey: billingContext.virtualKey,
+    aiProviders,
     updateStatus
   }
 

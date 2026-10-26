@@ -232,6 +232,35 @@ services:
       retries: 24
       start_period: 60s
 
+  # ─── Fake OpenAI-compatible provider (BYOK tests) ──────────────────
+  # Stands in for "the user's own AI provider" so integration + flow
+  # tests drive a real app → LiteLLM (clientside credentials) → provider
+  # round trip without a paid upstream. Stdlib-only Python, hosted on
+  # the LiteLLM image (already pulled for litellm-test — no extra image).
+  # See tests/fixtures/fake-openai/server.py for the scripted behaviour.
+  #
+  # Published on the host so BOTH sides can reach it at the docker
+  # bridge gateway address (e.g. http://172.17.0.1:4120/v1): the app
+  # (on the host) checks that URL against the BYOK SSRF policy, and
+  # litellm-test (in a container) connects to it. A compose service
+  # name would not resolve on the host. tests/integration/setup/env.ts
+  # derives the URL (override with TEST_FAKE_OPENAI_BASE_URL).
+  fake-openai-test:
+    image: ghcr.io/berriai/litellm:v1.106.4
+    restart: unless-stopped
+    entrypoint: ["python3", "/fake/server.py"]
+    environment:
+      - PORT=8090
+    volumes:
+      - ./tests/fixtures/fake-openai:/fake:ro
+    ports:
+      - "4120:8090"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8090/health', timeout=2).status == 200 else 1)"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
   # ─── Flow-test extras (profile: flows) ─────────────────────────────
   # Sync server + markitdown converter, only spun up when running
   # Playwright flow tests. Integration tests don't need either:

@@ -147,6 +147,13 @@ describe('executeAccountDeletion: full graph', () => {
       [alice.id, String(alice.id)]
     )
 
+    // (10) Bring-your-own-key AI provider config (encrypted key at rest).
+    await testDb().query(
+      `INSERT INTO user_ai_providers (user_id, capability, base_url, model, api_key_encrypted, api_key_last4)
+       VALUES ($1, 'chat', 'https://api.mistral.ai/v1', 'mistral-small-2603', 'v1:x:y:z', 'abcd')`,
+      [alice.id]
+    )
+
     // ── Execute ─────────────────────────────────────────────────
     const result = await executeAccountDeletion({ userId: alice.id })
 
@@ -154,6 +161,10 @@ describe('executeAccountDeletion: full graph', () => {
     // User row is gone.
     const userRow = await testDb().query(`SELECT id FROM users WHERE id = $1`, [alice.id])
     expect(userRow.rows.length).toBe(0)
+
+    // BYOK provider config (and its encrypted key) is gone.
+    const providerRows = await testDb().query(`SELECT 1 FROM user_ai_providers WHERE user_id = $1`, [alice.id])
+    expect(providerRows.rows.length).toBe(0)
 
     // Solo workspace + its doc gone.
     const soloWs = await testDb().query(
@@ -251,6 +262,7 @@ describe('executeAccountDeletion: full graph', () => {
     expect(summary!.workspacesCascadeDeleted).toBe(1)
     expect(summary!.workspacesPromoted).toBe(2) // co-admin + admin-only
     expect(summary!.themesDeleted).toBe(1)
+    expect(summary!.aiProvidersDeleted).toBe(1)
     expect(summary!.aiSessionsDeleted).toBe(1)
     expect(summary!.stripeCustomerDeleted).toBe(true)
 

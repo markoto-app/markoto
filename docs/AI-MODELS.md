@@ -2,9 +2,13 @@
 
 Which models power markoto's AI features, why, and which models we recommend if you bring your own key. Last reviewed: 2026-10-26. All prices are public list prices in USD from the provider, and they change; check the provider before budgeting.
 
-markoto routes every AI call through one gateway (LiteLLM), so each model below is a configuration choice, not a code dependency. The data path stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
+markoto routes every AI call through one gateway (LiteLLM), so each model below is a configuration choice, not a code dependency.
 
-## Models in use
+**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures no such defaults. Embeddings, web search (Staan) and page fetching (Jina Reader) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator — see [Embeddings](#embeddings)); they are never per-user.
+
+## Bundled models (operator defaults)
+
+These are the deployments that ship in `infra/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-2-pro`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
 
 | Feature | Model | List price | Notes |
 |---|---|---|---|
@@ -54,6 +58,81 @@ Jina Reader and Staan are unchanged. We found no deprecation notices. Staan publ
 
 Source: [BFL pricing docs](https://docs.bfl.ai/quick_start/pricing). BFL has released FLUX 3 Image (around 2026-10-01) plus a Klein variant, with output up to 4K and multi-reference editing. We did not switch: the launch is three weeks old, prices we found came from secondary sources and include a temporary launch discount, and we could not confirm that FLUX 3 is served from the EU regional endpoint (`api.eu2.bfl.ai`), which is a hard requirement. FLUX.2 [pro] is still listed and not announced as retired. Revisit once BFL documents EU availability and a stable price.
 
+## Bring your own key
+
+### What users can configure
+
+Under **Settings → AI provider** (`/settings/ai`) each signed-in user can connect their own **OpenAI-compatible** provider, separately for three capabilities:
+
+| Capability | Used by | Required? | Without it |
+|---|---|---|---|
+| Chat | The writing agent (prompt bar, selection rewrite), `@ai` in comments, web-search / page-fetch summaries | Yes, for any AI feature (unless the instance provides a default) | The prompt bar shows "Add your API key in Settings", `@ai` shows the same hint; web search / page fetch hand raw results back instead of a summary |
+| Image | `generate_image` (the provider's OpenAI images API, `/images/generations`) | Optional | The agent is not offered the `generate_image` tool |
+| Transcription | Voice prompt (`/audio/transcriptions`); live dictation if the provider is Mistral | Optional | The microphone buttons are hidden |
+
+Resolution order for every request, per capability: **the user's own config → the instance default → unavailable.**
+
+Live dictation streams audio to Mistral's Voxtral Realtime API over a WebSocket that LiteLLM cannot proxy. It is offered only when the transcription provider is Mistral (`https://api.mistral.ai/v1`, the user's key) or when the instance default is a platform alias and the operator set `MISTRAL_API_KEY` for the app.
+
+When the user saves a provider, markoto checks the URL (see below) and **verifies** it through the same LiteLLM path as real calls:
+
+- Chat: a small completion with one tool definition at temperature 0. A tool call back means OK. A plain-text answer is saved with a warning ("no tool support"), because the agent needs tool calling.
+- Transcription: a 0.5-second silent WAV (a fraction of a cent on the user's account).
+- Image: no image is generated (that would be a paid image per save). markoto lists the provider's models (`GET {base URL}/models`) with the key instead: a 401/403 fails, a model missing from a returned list is a warning.
+
+The API key is stored encrypted at rest (AES-256-GCM, same scheme as the LiteLLM virtual-key tokens), is never returned to the browser (the UI shows the host and the last four characters), never logged, and not included in the GDPR data export. Settings and keys are deleted with the account.
+
+### Setting up a provider
+
+| Provider | Base URL | Chat models to try | Image | Transcription |
+|---|---|---|---|---|
+| Mistral AI | `https://api.mistral.ai/v1` | `mistral-small-2603` (tested), `ministral-14b-2512` | — | `voxtral-mini-2602` (also unlocks live dictation) |
+| OpenAI | `https://api.openai.com/v1` | `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.5` | `gpt-image-1` | `gpt-4o-mini-transcribe`, `whisper-1` |
+| OpenRouter | `https://openrouter.ai/api/v1` | see the table below | — | — |
+| Groq | `https://api.groq.com/openai/v1` | check Groq's tool-calling models | — | `whisper-large-v3-turbo` |
+| Together AI | `https://api.together.xyz/v1` | provider list | provider list | — |
+| DeepInfra | `https://api.deepinfra.com/v1/openai` | provider list | — | provider list |
+| Fireworks AI | `https://api.fireworks.ai/inference/v1` | provider list | — | — |
+| Scaleway (EU) | `https://api.scaleway.ai/v1` | provider list | — | provider list |
+| Ollama (self-hosted only) | `http://host.docker.internal:11434/v1` | a tool-capable local model | — | — |
+
+The base URLs were checked against each provider's `/models` and `/chat/completions` routes on 2026-10-26. The settings page fills them in from a preset list. Model ids differ per provider; the verification step catches an unknown id.
+
+**Ollama / vLLM on a self-hosted instance.** markoto's LiteLLM container must reach the server. With Ollama on the Docker host, use `http://host.docker.internal:11434/v1` (add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `litellm` service on Linux) and set `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true`, otherwise private addresses are refused. Ollama ignores the API key, but the field is required: enter any placeholder. Pick a model whose tool calling works through your server's OpenAI endpoint (vLLM needs `--enable-auto-tool-choice` with the right parser).
+
+### Operator settings
+
+| Variable | Meaning |
+|---|---|
+| `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_MODEL` | Instance default per capability. Alone, it names a model alias from `infra/litellm/config.yaml` (platform-paid, debits AI Points; image aliases use the chat-wrapped convention of the bundled `flux-2-pro`, transcription aliases that of `voxtral-mini-transcribe`). |
+| `NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_BASE_URL` + `_API_KEY` | Together with `_MODEL`: an OpenAI-compatible endpoint used exactly like a user key (zero-cost to AI Points). The operator may point at private networks without the opt-in below; loopback, link-local/metadata addresses and markoto's own service names are still refused. |
+| `NUXT_AI_DEFAULT_CHAT_VISION` | `false` if the default chat model can't read images (default `true`). |
+| `NUXT_AI_BYOK_ALLOWED_BASE_URLS` | Comma-separated allowlist of base URLs users may pick. Empty (self-hosted default) = any public https URL. The hosted SaaS uses the eight non-local providers in the table above. |
+| `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS` | `true` lets users point at private-network endpoints (RFC 1918, CGNAT, IPv6 ULA) and use plain http for them. Default `false`. |
+| `NUXT_AI_REALTIME_MODEL` | Voxtral Realtime model for live dictation (default `voxtral-mini-transcribe-realtime-2602`). |
+
+The hosted SaaS sets no `NUXT_AI_DEFAULT_*` and the allowlist above (`infra/render-env.sh` / `infra/templates/env.j2`).
+
+### How BYOK calls flow
+
+Every BYOK call still goes through LiteLLM: the app sends model `byok/<model id>` plus the user's `api_key` and `api_base` in the request body (LiteLLM "clientside credentials"). The `byok/*` deployment has zero cost in `model_info`, so these calls never debit the user's AI Points budget, while the call still authenticates with the user's LiteLLM virtual key (requests-per-minute limit and spend-log tags keep working). Verified on LiteLLM v1.106.4: without the zero-cost entry, LiteLLM would apply its own price table to known model ids (for example `gpt-4o`) and bill the virtual key.
+
+**AI Points.** The points meter in the top bar only appears when something the user can do is platform-paid (an instance alias default). With only their own keys, it is hidden; when both are in play, it says that own-key calls don't use points.
+
+### SSRF protection
+
+The LiteLLM proxy connects to whatever base URL it is given, so a user-supplied URL is a server-side request forgery risk. markoto checks it in `server/utils/aiProviders/urlPolicy.ts`, when the user saves it **and again on every request**:
+
+1. Absolute `http(s)` URL, no credentials, no query or fragment.
+2. Never one of markoto's service hostnames (`litellm`, `postgres`, `valkey`, `sync`, `renderer`, `markitdown`, `localhost`, cloud-metadata names, …).
+3. With an allowlist configured, the URL must be at or below an allowlisted base URL.
+4. Every DNS answer is checked: loopback, link-local (including `169.254.169.254`), multicast and unspecified addresses are always refused; private addresses only with `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true`.
+5. Plain http only with that opt-in and only to private addresses, so an API key never crosses the internet unencrypted.
+
+LiteLLM v1.106.4 does **not** run its own `user_url_validation` DNS check on a clientside `api_base` when a deployment opts in with `configurable_clientside_auth_params` (we verified that a request to `169.254.169.254` was attempted). The app check is therefore the authoritative gate. The `byok/*` deployment additionally carries a regex that refuses literal loopback, metadata, IPv6-literal and markoto-service targets as defence in depth; it is the same for SaaS and self-host, because the deployment-specific parts (allowlist, private opt-in, DNS) can't be expressed in a static config file.
+
+Residual risk: LiteLLM resolves the hostname again when it connects. A DNS answer that changes between markoto's check and LiteLLM's connection (rebinding with a near-zero TTL) is not caught. On the hosted SaaS the allowlist limits hostnames to the major providers, which closes this; self-hosters who allow free-form URLs accept it.
+
 ## Recommended models for bring-your-own-key
 
 markoto's agent exposes about 23 tools (document editing, theme, web, image, comments, knowledge search), so the model needs reliable multi-tool function calling at low temperature, ideally with vision. Context needs are modest (documents plus tool results, typically under 100K tokens).
@@ -62,7 +141,7 @@ Only the Mistral rows below were tested by us (six tool-selection prompts agains
 
 | Provider | Model | Tools | Vision | Context | Approx. price | Notes |
 |---|---|---|---|---|---|---|
-| Mistral | `mistral-small-2603` (Small 4) | Tested | Yes | 262K | $0.15 / $0.60 | Our default. Best value. |
+| Mistral | `mistral-small-2603` (Small 4) | Tested | Yes | 262K | $0.15 / $0.60 | The bundled default. Best value. |
 | Mistral | `ministral-14b-2512` | Tested | Yes | 262K | $0.20 / $0.20 | Cheaper output, simpler answers |
 | Mistral | `ministral-8b-2512` | Tested | Yes | 262K | $0.15 / $0.15 | Fallback tier |
 | Mistral | `mistral-medium-3-5` | Tested | Yes | 262K | $1.50 / $7.50 | For harder writing/editing tasks |
@@ -82,7 +161,7 @@ Practical tips:
 - Set temperature to 0 for the agent model. Some reasoning models reject it or require extra parameters.
 - Local servers must expose an OpenAI-compatible `/v1/chat/completions` with tool calling enabled (for example vLLM's `--enable-auto-tool-choice` with the right parser). Without it the agent cannot call any tool.
 - Models that return their reasoning as structured blocks instead of a plain string may need adapter support.
-- Embeddings must stay at 768 dimensions unless the knowledge base is re-embedded; bring-your-own-key applies to the chat model only.
+- Bring-your-own-key covers chat, image generation and transcription. Embeddings are not per-user: the platform provides them on the hosted service, and on a self-hosted instance the operator configures them (see [Embeddings](#embeddings)).
 
 ## Embeddings
 

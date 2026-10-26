@@ -106,18 +106,64 @@ async function withRetry<T>(
   throw lastErr
 }
 
+/**
+ * LiteLLM request-body extensions beyond the OpenAI shape:
+ *   - `metadata.tags` — four-axis spend tags (featureTags.ts).
+ *   - `api_key` / `api_base` — clientside (BYOK) credentials. Only valid
+ *     together with a `byok/*` model; build them with
+ *     `providerRequestFields()` (server/utils/aiProviders/requestFields.ts),
+ *     which also re-runs the SSRF policy on the base URL.
+ */
+interface LitellmBodyExtensions {
+  metadata?: { tags: string[] }
+  api_key?: string
+  api_base?: string
+}
+
 export type LitellmCreateNonStreamParams = Omit<
   OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
   'metadata'
-> & {
-  metadata?: { tags: string[] }
-}
+> & LitellmBodyExtensions
 
 export type LitellmCreateStreamParams = Omit<
   OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
   'metadata'
-> & {
-  metadata?: { tags: string[] }
+> & LitellmBodyExtensions
+
+export type LitellmImageParams = Omit<OpenAI.Images.ImageGenerateParamsNonStreaming, 'metadata'> & LitellmBodyExtensions
+
+/**
+ * Image generation through LiteLLM's `/v1/images/generations` (BYOK
+ * path — the user's OpenAI-compatible images API). Uses the SDK's
+ * generic `post` because the typed `images.generate` rejects LiteLLM's
+ * body extensions. Same 429 retry policy as the chat wrappers.
+ */
+export async function litellmImage(
+  client: OpenAI,
+  body: LitellmImageParams,
+  opts?: { signal?: AbortSignal }
+): Promise<OpenAI.Images.ImagesResponse> {
+  return withRetry(
+    () => client.post<OpenAI.Images.ImagesResponse>('/images/generations', { body, signal: opts?.signal }),
+    opts
+  )
+}
+
+/**
+ * One-shot transcription through LiteLLM's `/v1/audio/transcriptions`
+ * (BYOK path). The form carries `model` + the clientside credential
+ * fields next to the audio file — verified that LiteLLM v1.106.4 reads
+ * `api_key` / `api_base` from multipart form fields.
+ */
+export async function litellmTranscription(
+  client: OpenAI,
+  form: FormData,
+  opts?: { signal?: AbortSignal }
+): Promise<{ text?: string }> {
+  return withRetry(
+    () => client.post<{ text?: string }>('/audio/transcriptions', { body: form, signal: opts?.signal }),
+    opts
+  )
 }
 
 /**

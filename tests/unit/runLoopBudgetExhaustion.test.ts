@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import * as Y from 'yjs'
 import { LitellmBudgetExhausted } from '../../server/utils/litellmKeys'
 
@@ -67,7 +68,8 @@ function makeAiSession() {
     ydoc,
     ytext,
     docId: 'doc-budget-test',
-    initiatorUserId: 42
+    initiatorUserId: 42,
+    aiProviders: FULL_AI_PROVIDERS
   } as unknown as Parameters<typeof runAgenticLoop>[0]['aiSession']
 }
 

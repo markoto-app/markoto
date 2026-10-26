@@ -1221,5 +1221,99 @@
       "successTitle": "Sie wurden entfernt",
       "successBody": "Ihre E-Mail-Adresse wurde von der Warteliste gelöscht."
     }
+  },
+  "aiProvider": {
+    "title": "KI-Anbieter",
+    "menu": "KI-Anbieter",
+    "loading": "KI-Einstellungen werden geladen…",
+    "intro": "Eigener Schlüssel: Verbinde für jede Funktion deinen eigenen OpenAI-kompatiblen KI-Anbieter. Diese Aufrufe bezahlt dein Anbieterkonto. markoto speichert den Schlüssel verschlüsselt und zeigt ihn nie wieder an.",
+    "privacyNote": "Für diese Funktionen werden deine Prompts, der relevante Dokumentkontext und deine Aufnahmen an den Anbieter gesendet, den du wählst – unter deiner eigenen Vereinbarung mit diesem Anbieter.",
+    "platformNote": "Wissensdatenbank-Suche, Websuche und Seitenabruf laufen immer über markotos eigene Anbieter.",
+    "allowedProvidersNote": "Auf dieser Instanz erlaubte Anbieter: {list}",
+    "privateAllowedNote": "Diese Instanz akzeptiert auch Anbieter in deinem privaten Netzwerk, zum Beispiel Ollama.",
+    "pointsOwnKeyHint": "Aufrufe mit deinem eigenen Anbieterschlüssel rechnet dein Anbieter ab; sie verbrauchen keine KI-Punkte.",
+    "capability": {
+      "chat": {
+        "title": "Schreibassistent",
+        "description": "Für jede KI-Funktion nötig: Prompt-Leiste, {'@'}ai in Kommentaren und Zusammenfassungen der Websuche. Das Modell muss Tool-Aufrufe unterstützen."
+      },
+      "image": {
+        "title": "Bildgenerierung",
+        "description": "Optional. Nutzt die OpenAI-kompatible Bild-API deines Anbieters. Ohne sie kann der Assistent keine Bilder erstellen."
+      },
+      "transcription": {
+        "title": "Sprachtranskription",
+        "description": "Optional. Aktiviert die Spracheingabe. Ein Mistral-Schlüssel aktiviert zusätzlich das Live-Diktat."
+      }
+    },
+    "status": {
+      "own": "Dein Schlüssel",
+      "instance": "Von dieser Instanz bereitgestellt",
+      "none": "Nicht eingerichtet",
+      "never": "Noch nicht geprüft",
+      "lastVerified": "Zuletzt geprüft am {date}",
+      "keyEnding": "endet auf {last4}",
+      "noToolSupport": "Dieses Modell hat das Test-Tool nicht aufgerufen; der Schreibassistent funktioniert damit vielleicht nicht. Wähle ein Modell mit Tool-Aufrufen.",
+      "liveDictation": "Live-Diktat ist verfügbar."
+    },
+    "form": {
+      "preset": "Anbieter",
+      "custom": "Anderer (OpenAI-kompatibel)",
+      "baseUrl": "Basis-URL",
+      "baseUrlHint": "Die OpenAI-kompatible API-Adresse des Anbieters, meist mit /v1 am Ende.",
+      "model": "Modell",
+      "modelPlaceholder": "Die Modell-ID des Anbieters",
+      "suggestions": "Vorgeschlagene Modelle: {list}",
+      "apiKey": "API-Schlüssel",
+      "apiKeyKeep": "Leer lassen, um den gespeicherten Schlüssel zu behalten. Pflicht, wenn du die URL änderst.",
+      "vision": "Dieses Modell versteht Bilder",
+      "save": "Speichern und prüfen",
+      "verify": "Prüfen",
+      "remove": "Entfernen",
+      "cancel": "Abbrechen",
+      "edit": "Ändern",
+      "add": "Eigenen Anbieter hinzufügen"
+    },
+    "toast": {
+      "saved": "KI-Anbieter gespeichert",
+      "savedWithWarning": "KI-Anbieter mit Warnung gespeichert",
+      "removed": "KI-Anbieter entfernt",
+      "saveFailed": "KI-Anbieter konnte nicht gespeichert werden",
+      "verifyFailed": "KI-Anbieter konnte nicht geprüft werden"
+    },
+    "verify": {
+      "ok": "Verbunden. Alles funktioniert.",
+      "authFailed": "Der Anbieter hat den API-Schlüssel abgelehnt.",
+      "modelNotFound": "Der Anbieter kennt diese Modell-ID nicht.",
+      "noToolSupport": "Verbunden, aber das Modell hat das Test-Tool nicht aufgerufen. Der Schreibassistent braucht Tool-Aufrufe.",
+      "urlRefused": "Diese URL ist nicht erlaubt.",
+      "unreachable": "Der Anbieter ist nicht erreichbar.",
+      "unexpectedResponse": "Der Anbieter hat unerwartet geantwortet."
+    },
+    "urlRefused": {
+      "invalid": "Gib eine vollständige URL ein, etwa https://api.mistral.ai/v1.",
+      "scheme": "Nur http- und https-URLs werden unterstützt.",
+      "credentialsInUrl": "Keine Zugangsdaten in die URL schreiben. Nutze das Feld für den API-Schlüssel.",
+      "internalHost": "Diese Adresse gehört zu markotos eigenen Diensten und kann nicht verwendet werden.",
+      "notAllowlisted": "Dieser Anbieter ist auf dieser Instanz nicht erlaubt. Wähle einen aus der Liste.",
+      "httpsRequired": "Verwende https. Reines http ist nur für Anbieter im privaten Netzwerk auf selbst gehosteten Instanzen erlaubt.",
+      "privateAddress": "Diese URL zeigt auf eine private, Loopback- oder Metadaten-Adresse; das ist nicht erlaubt.",
+      "unresolvable": "Dieser Hostname wurde nicht gefunden."
+    },
+    "errors": {
+      "keyRequired": "Gib den API-Schlüssel ein. Er ist nötig, wenn du einen Anbieter hinzufügst oder die URL änderst.",
+      "transcription": "Dein Transkriptionsanbieter hat einen Fehler gemeldet. Prüfe deine KI-Anbieter-Einstellungen.",
+      "loadFailed": "Deine KI-Einstellungen konnten nicht geladen werden."
+    },
+    "missing": {
+      "chat": "Kein KI-Anbieter eingerichtet. Hinterlege deinen API-Schlüssel in den Einstellungen, um den KI-Assistenten zu nutzen.",
+      "image": "Kein Bild-Anbieter eingerichtet. Füge in den Einstellungen einen hinzu.",
+      "transcription": "Kein Transkriptionsanbieter eingerichtet. Füge in den Einstellungen einen hinzu.",
+      "cta": "KI-Einstellungen öffnen"
+    },
+    "cta": {
+      "promptBar": "Hinterlege deinen API-Schlüssel in den Einstellungen, um den KI-Assistenten zu nutzen",
+      "openSettings": "KI-Anbieter-Einstellungen öffnen"
+    }
   }
 }

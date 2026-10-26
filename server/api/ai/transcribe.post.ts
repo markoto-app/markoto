@@ -16,7 +16,10 @@ import { useLitellmForUser } from '../../utils/litellmClient'
 import { resolveBillingContext } from '../../utils/billing'
 import { isBudgetExceededError } from '../../utils/litellmKeys'
 import { FEATURE_TAGS, featureMetadata } from '../../utils/litellm/featureTags'
-import { litellmCompletion } from '../../utils/litellm/createCompletion'
+import { litellmCompletion, litellmTranscription } from '../../utils/litellm/createCompletion'
+import { providerMissingError, requireAiProviders } from '../../utils/aiProviders/guard'
+import { providerRequestFields, withProviderErrors } from '../../utils/aiProviders/requestFields'
+import type { ResolvedAiProvider } from '../../utils/aiProviders/resolve'
 import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billingMode'
 
 const ALLOWED_MIME = new Set([
@@ -76,20 +79,69 @@ export default defineEventHandler(async (event) => {
   }
 
   const languageCode = normalizeLanguageCode(body.languageCode)
-  return await transcribeViaVoxtral({ audioB64, mimeType, languageCode, userId })
+  // BYOK: the user's transcription provider, else the instance default.
+  // Neither → 409 `ai/provider-missing` (the mic button is hidden in that
+  // case; this is the server-side backstop).
+  const providers = await requireAiProviders(userId, 'transcription')
+  const provider = providers.transcription
+  if (!provider) throw providerMissingError('transcription')
+  const billing = await resolveBillingContext(userId, null)
+  // Translate the upstream BCP-47 codes (e.g. 'en-US') to the ISO shape
+  // ('en') both the OpenAI transcription API and Voxtral expect.
+  const isoLanguage = languageCode.split('-')[0]?.toLowerCase() || 'en'
+  if (provider.credentials) {
+    return await transcribeViaByok({ audioB64, mimeType, isoLanguage, provider, virtualKey: billing.virtualKey })
+  }
+  return await transcribeViaVoxtral({ audioB64, mimeType, isoLanguage, userId, model: provider.model, virtualKey: billing.virtualKey })
 })
+
+const MIME_EXT: Record<string, string> = { 'webm': 'webm', 'ogg': 'ogg', 'wav': 'wav', 'x-wav': 'wav' }
+
+/**
+ * BYOK path: the user's OpenAI-compatible `/audio/transcriptions` via
+ * LiteLLM's zero-cost `byok/*` deployment (clientside credentials ride
+ * as multipart form fields next to the audio file).
+ */
+async function transcribeViaByok(args: {
+  audioB64: string
+  mimeType: string
+  isoLanguage: string
+  provider: ResolvedAiProvider
+  virtualKey: string
+}): Promise<{ text: string, inaudible: boolean }> {
+  try {
+    // Inside the try: the request-time SSRF re-check may refuse a stored
+    // base URL whose DNS changed since it was saved.
+    const fields = await providerRequestFields(args.provider)
+    const subtype = args.mimeType.split(';')[0]?.split('/')[1] ?? 'webm'
+    const form = new FormData()
+    form.append('file', new Blob([Buffer.from(args.audioB64, 'base64')], { type: args.mimeType }), `voice.${MIME_EXT[subtype] ?? 'webm'}`)
+    form.append('model', fields.model)
+    form.append('language', args.isoLanguage)
+    if (fields.api_key) form.append('api_key', fields.api_key)
+    if (fields.api_base) form.append('api_base', fields.api_base)
+    const resp = await withProviderErrors(args.provider, () => litellmTranscription(useLitellmForUser(args.virtualKey), form))
+    const text = (resp.text ?? '').trim()
+    return text ? { text, inaudible: false } : { text: '', inaudible: true }
+  } catch (e) {
+    // Message is already key-free (withProviderErrors redacts it).
+    console.error('[transcribe] BYOK provider error:', (e instanceof Error ? e.message : String(e)).slice(0, 300))
+    throw createError({
+      statusCode: 502,
+      message: 'Your transcription provider returned an error. Check the provider settings.',
+      data: { code: 'ai/provider-error', messageKey: 'aiProvider.errors.transcription' }
+    })
+  }
+}
 
 async function transcribeViaVoxtral(args: {
   audioB64: string
   mimeType: string
-  languageCode: string
+  isoLanguage: string
   userId: number
+  model: string
+  virtualKey: string
 }): Promise<{ text: string, inaudible: boolean }> {
-  // Phase 6 per-user billing: resolve the user's virtual key + use
-  // it as the bearer token. LiteLLM bills the user's $ budget and
-  // 4xx's with budget_exceeded if exhausted.
-  const billing = await resolveBillingContext(args.userId, null)
-
   // Test-mode short-circuit. The integration stack runs a real
   // LiteLLM proxy, but the upstream Mistral key is a stub — so a
   // real /v1/audio/transcriptions call would 401 and the test loop
@@ -100,15 +152,11 @@ async function transcribeViaVoxtral(args: {
     return { text: '', inaudible: true }
   }
 
-  const litellm = useLitellmForUser(billing.virtualKey)
-  const config = useRuntimeConfig()
-  const transcribeModel = config.litellm?.transcribeModel || 'voxtral-mini-transcribe'
-
-  // Translate the upstream BCP-47 codes (e.g. 'en-US') to Voxtral's
-  // ISO shape ('en'). (BCP-47 was the contract pre-Phase-5 when the
-  // path ran through Cloud STT; clients still send those codes.) The
-  // custom provider passes this verbatim to Mistral.
-  const isoLanguage = args.languageCode.split('-')[0]?.toLowerCase() || 'en'
+  // Operator alias (platform-paid): billed against the user's LiteLLM
+  // budget; LiteLLM 4xx's with budget_exceeded if exhausted.
+  const litellm = useLitellmForUser(args.virtualKey)
+  const transcribeModel = args.model
+  const isoLanguage = args.isoLanguage
 
   // Custom provider convention: single user message with JSON-encoded
   // {audio_base64, mime, language}. See infra/litellm/custom_handlers.py:

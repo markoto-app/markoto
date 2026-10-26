@@ -10,6 +10,21 @@ Every AI surface routes through our self-hosted **LiteLLM proxy** at `infra/lite
 | Embeddings | Jina v5-text-nano (768-d native) | Yes — `JinaEmbeddingsProvider` reshapes `usage.total_tokens` → `prompt_tokens` so spend tracks |
 | Image generation | BFL FLUX.2 [pro] EU-pinned (`api.eu2.bfl.ai`) | Yes — `BFLFluxProvider` wraps submit+poll as a chat completion |
 
+**The table above lists the BUNDLED deployments.** Since WP4 the chat / image / transcription rows are only used when they are the operator's instance default (`NUXT_AI_DEFAULT_*_MODEL=<alias>`); see "Bring your own key" below.
+
+## Bring your own key (WP4)
+
+Every chat / image / transcription call resolves a provider per user via `server/utils/aiProviders/resolve.ts` — **own config (`user_ai_providers`) → instance default (`NUXT_AI_DEFAULT_*`) → null**. The result rides on the tool context as `MetaToolContext.aiProviders` (resolved once per session at `/api/ai/prompt`, `trigger-ai`, per MCP call, and in `_test/exec-ai-tool`).
+
+- **Request shape**: `providerRequestFields(provider)` (`aiProviders/requestFields.ts`) returns `{ model: 'byok/<id>', api_key, api_base }` for a BYOK provider (re-running the SSRF policy on EVERY call) or `{ model: '<alias>' }` for a platform alias. Spread it into the LiteLLM body (`LitellmCreate*Params` / `LitellmImageParams` accept `api_key` / `api_base`). **Never send `api_key` with a non-`byok/` model** — on a platform deployment LiteLLM would replace the operator's provider key with it.
+- **Errors**: wrap BYOK calls in `withProviderErrors(provider, fn)` — re-throws an `AiProviderCallError` whose message has the key redacted (`redactSecret` also strips 8+-char prefixes/suffixes a provider might echo). Messages from the loop reach awareness + Sentry, so this is load-bearing.
+- **Chat loop** (`runLoop.ts#streamFromLiteLLM`): runs on `aiSession.aiProviders.chat`; null → throws (the endpoints already 409 `ai/provider-missing` before opening a session). `filterToolsForProviders` drops `generate_image` without an image provider and `view_image` / `view_pages` for a chat model without vision.
+- **web_search / fetch_url synthesis**: `WebToolSpendContext.chatProvider`. No chat provider → the raw Staan results / Jina page text are returned unsynthesised (search + reader are platform-provided). A BYOK model without `json_schema` support makes `fetch_url` fall back to prose (existing `JSON.parse` fallback).
+- **generate_image**: BYOK → OpenAI images API (`/v1/images/generations` via `litellmImage`, size mapped to 1024², 1536×1024 or 1024×1536; `b64_json` sniffed for PNG/JPEG/WebP, a returned `url` fetched through `fetchExternalImage` = SSRF guard + caps). Alias default → the BFL chat-wrapped convention (only `flux-2-pro`-style chat-wrapped image deployments work as an alias).
+- **Transcription** (`/api/ai/transcribe`): BYOK → multipart `/v1/audio/transcriptions` via `litellmTranscription` with `api_key` / `api_base` as form fields (verified on v1.106.4); alias → the Voxtral chat-wrapped custom provider (unchanged, TEST_MODE stub kept for that path only).
+- **Live dictation**: `liveDictationTarget()` — the user's own Mistral key (transcription base URL host `api.mistral.ai`; no LiteLLM ticks, Mistral bills the user) or an alias default + operator `MISTRAL_API_KEY` in the app env (ticks bill the user's budget as before). Otherwise the WS closes with 4004 and the mic is hidden client-side.
+- **Spend**: the `byok/*` deployment has zero `model_info` cost, so BYOK calls leave `max_budget` untouched while still authenticating with the user's virtual key (rpm limit, spend-log tags). Pinned by `tests/integration/endpoints/aiProviders.test.ts`.
+
 Per-user budget enforcement: every authenticated user gets a LiteLLM virtual key with `max_budget` set to their plan tier. Spend logs carry four-axis tags (`feature:` / `workspace:` / `user:` / `doc:`) for the `/admin/ai-spend` and `/admin/axis-spend` dashboards.
 
 ## Four flows

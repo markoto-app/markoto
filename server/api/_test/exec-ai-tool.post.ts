@@ -26,6 +26,8 @@
 import * as Y from 'yjs'
 import { executeFunctionByName } from '../../utils/aiToolAdapter'
 import { getDoc } from '../../repos/documents'
+import { resolveAiProviders } from '../../utils/aiProviders/resolve'
+import { resolveBillingContext } from '../../utils/billing'
 import type { AiSession, AiStatusPhase } from '../../utils/aiClient'
 
 export default defineEventHandler(async (event) => {
@@ -58,11 +60,12 @@ export default defineEventHandler(async (event) => {
   // The session's ydoc/ymeta is only read by tools that mutate the
   // CURRENT doc (set_title, update_theme), which aren't exercised by
   // these tests.
-  // Synthetic virtual key — integration tests don't bring up LiteLLM
-  // (the test stack pins NUXT_LITELLM_URL to an unreachable port). Tools
-  // exercised here either don't touch the proxy or are mocked at the
-  // upstream level. The field still has to exist to satisfy `AiSession`.
-  const virtualKey = 'sk-fake-test-virtual-key'
+  // The caller's virtual key via the normal billing resolver. Under
+  // LITELLM_TEST_STUB=1 a user without a key gets the stub token (tools
+  // that never reach the proxy don't care); a test that provisioned a
+  // real key for its user (BYOK image generation through litellm-test)
+  // gets that one, exactly like a real session would.
+  const virtualKey = (await resolveBillingContext(session.user.id, doc.workspaceId)).virtualKey
 
   const ydoc = new Y.Doc()
   const aiSession: AiSession = {
@@ -83,6 +86,9 @@ export default defineEventHandler(async (event) => {
       1, 0, 0, 0
     )),
     virtualKey,
+    // Real resolution so BYOK tests can drive e.g. generate_image with
+    // the caller's configured image provider.
+    aiProviders: await resolveAiProviders(session.user.id),
     updateStatus: (_phase: AiStatusPhase, _message?: string) => { /* swallow */ },
     destroy: async () => { /* */ }
   }

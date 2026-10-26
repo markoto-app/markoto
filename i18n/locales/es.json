@@ -1221,5 +1221,99 @@
       "successTitle": "Te hemos dado de baja",
       "successBody": "Tu dirección de correo se ha eliminado de la lista de espera."
     }
+  },
+  "aiProvider": {
+    "title": "Proveedor de IA",
+    "menu": "Proveedor de IA",
+    "loading": "Cargando tus ajustes de IA…",
+    "intro": "Tu propia clave: conecta tu propio proveedor de IA compatible con OpenAI para cada función. Estas llamadas las paga tu cuenta del proveedor. markoto guarda la clave cifrada y nunca vuelve a mostrarla.",
+    "privacyNote": "Para estas funciones, tus prompts, el contexto relevante del documento y tus grabaciones se envían al proveedor que elijas, bajo tu propio acuerdo con ese proveedor.",
+    "platformNote": "La búsqueda en la base de conocimiento, la búsqueda web y la descarga de páginas siempre usan los proveedores propios de markoto.",
+    "allowedProvidersNote": "Proveedores permitidos en esta instancia: {list}",
+    "privateAllowedNote": "Esta instancia también acepta proveedores de tu red privada, como Ollama.",
+    "pointsOwnKeyHint": "Las llamadas con tu propia clave las factura tu proveedor y no consumen puntos de IA.",
+    "capability": {
+      "chat": {
+        "title": "Asistente de escritura",
+        "description": "Necesario para todas las funciones de IA: la barra de prompts, {'@'}ai en los comentarios y los resúmenes de búsqueda web. El modelo debe admitir llamadas a herramientas."
+      },
+      "image": {
+        "title": "Generación de imágenes",
+        "description": "Opcional. Usa la API de imágenes compatible con OpenAI de tu proveedor. Sin ella, el asistente no puede crear imágenes."
+      },
+      "transcription": {
+        "title": "Transcripción de voz",
+        "description": "Opcional. Activa la entrada por voz. Una clave de Mistral también activa el dictado en directo."
+      }
+    },
+    "status": {
+      "own": "Tu clave",
+      "instance": "Proporcionado por esta instancia",
+      "none": "Sin configurar",
+      "never": "Aún sin verificar",
+      "lastVerified": "Última verificación: {date}",
+      "keyEnding": "termina en {last4}",
+      "noToolSupport": "Este modelo no llamó a la herramienta de prueba, así que el asistente de escritura podría no funcionar. Elige un modelo con llamadas a herramientas.",
+      "liveDictation": "El dictado en directo está disponible."
+    },
+    "form": {
+      "preset": "Proveedor",
+      "custom": "Otro (compatible con OpenAI)",
+      "baseUrl": "URL base",
+      "baseUrlHint": "La raíz de la API compatible con OpenAI del proveedor, que suele terminar en /v1.",
+      "model": "Modelo",
+      "modelPlaceholder": "El identificador del modelo en el proveedor",
+      "suggestions": "Modelos sugeridos: {list}",
+      "apiKey": "Clave de API",
+      "apiKeyKeep": "Déjalo vacío para conservar la clave guardada. Es obligatoria si cambias la URL.",
+      "vision": "Este modelo acepta imágenes",
+      "save": "Guardar y verificar",
+      "verify": "Verificar",
+      "remove": "Quitar",
+      "cancel": "Cancelar",
+      "edit": "Cambiar",
+      "add": "Añadir tu proveedor"
+    },
+    "toast": {
+      "saved": "Proveedor de IA guardado",
+      "savedWithWarning": "Proveedor de IA guardado con una advertencia",
+      "removed": "Proveedor de IA quitado",
+      "saveFailed": "No se pudo guardar el proveedor de IA",
+      "verifyFailed": "No se pudo verificar el proveedor de IA"
+    },
+    "verify": {
+      "ok": "Conectado. Todo funciona.",
+      "authFailed": "El proveedor rechazó la clave de API.",
+      "modelNotFound": "El proveedor no conoce este identificador de modelo.",
+      "noToolSupport": "Conectado, pero el modelo no llamó a la herramienta de prueba. El asistente de escritura necesita llamadas a herramientas.",
+      "urlRefused": "Esta URL no está permitida.",
+      "unreachable": "No se pudo contactar con el proveedor.",
+      "unexpectedResponse": "El proveedor devolvió una respuesta inesperada."
+    },
+    "urlRefused": {
+      "invalid": "Introduce una URL completa, por ejemplo https://api.mistral.ai/v1.",
+      "scheme": "Solo se admiten URL http y https.",
+      "credentialsInUrl": "No pongas credenciales en la URL. Usa el campo de la clave de API.",
+      "internalHost": "Esta dirección pertenece a los servicios internos de markoto y no se puede usar.",
+      "notAllowlisted": "Este proveedor no está permitido en esta instancia. Elige uno de la lista.",
+      "httpsRequired": "Usa https. El http sin cifrar solo se permite para proveedores de red privada en instancias autoalojadas.",
+      "privateAddress": "Esta URL apunta a una dirección privada, de bucle local o de metadatos, lo que no está permitido.",
+      "unresolvable": "No se encontró este nombre de host."
+    },
+    "errors": {
+      "keyRequired": "Introduce la clave de API. Es obligatoria al añadir un proveedor o cambiar su URL.",
+      "transcription": "Tu proveedor de transcripción devolvió un error. Revisa los ajustes de tu proveedor de IA.",
+      "loadFailed": "No se pudieron cargar tus ajustes de IA."
+    },
+    "missing": {
+      "chat": "No hay ningún proveedor de IA configurado. Añade tu clave de API en los ajustes para usar el asistente.",
+      "image": "No hay ningún proveedor de imágenes configurado. Añade uno en los ajustes.",
+      "transcription": "No hay ningún proveedor de transcripción configurado. Añade uno en los ajustes.",
+      "cta": "Abrir ajustes de IA"
+    },
+    "cta": {
+      "promptBar": "Añade tu clave de API en los ajustes para usar el asistente de IA",
+      "openSettings": "Abrir ajustes del proveedor de IA"
+    }
   }
 }

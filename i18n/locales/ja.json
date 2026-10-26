@@ -1221,5 +1221,99 @@
       "successTitle": "登録を解除しました",
       "successBody": "メールアドレスはウェイトリストから削除されました。"
     }
+  },
+  "aiProvider": {
+    "title": "AI プロバイダー",
+    "menu": "AI プロバイダー",
+    "loading": "AI 設定を読み込んでいます…",
+    "intro": "自分のキーを使う：機能ごとに、OpenAI 互換の自分の AI プロバイダーを接続できます。これらの呼び出しの料金はあなたのプロバイダーアカウントに請求されます。markoto はキーを暗号化して保存し、二度と表示しません。",
+    "privacyNote": "これらの機能では、プロンプト、関連するドキュメントの内容、録音が、あなたが選んだプロバイダーに、そのプロバイダーとのあなた自身の契約のもとで送信されます。",
+    "platformNote": "ナレッジベース検索、ウェブ検索、ページの取得は常に markoto 自身のプロバイダーで実行されます。",
+    "allowedProvidersNote": "このインスタンスで使えるプロバイダー：{list}",
+    "privateAllowedNote": "このインスタンスでは、Ollama などプライベートネットワーク上のプロバイダーも使えます。",
+    "pointsOwnKeyHint": "自分のプロバイダーキーでの呼び出しはプロバイダーから請求され、AI ポイントは消費しません。",
+    "capability": {
+      "chat": {
+        "title": "執筆アシスタント",
+        "description": "すべての AI 機能に必要です：プロンプトバー、コメントでの {'@'}ai、ウェブ検索の要約。モデルはツール呼び出しに対応している必要があります。"
+      },
+      "image": {
+        "title": "画像生成",
+        "description": "任意。プロバイダーの OpenAI 互換画像 API を使います。設定しないと、アシスタントは画像を作成できません。"
+      },
+      "transcription": {
+        "title": "音声の文字起こし",
+        "description": "任意。音声入力を有効にします。Mistral のキーならライブ口述も有効になります。"
+      }
+    },
+    "status": {
+      "own": "自分のキー",
+      "instance": "このインスタンスが提供",
+      "none": "未設定",
+      "never": "まだ確認していません",
+      "lastVerified": "最終確認：{date}",
+      "keyEnding": "末尾 {last4}",
+      "noToolSupport": "このモデルはテスト用ツールを呼び出しませんでした。執筆アシスタントが動作しない可能性があります。ツール呼び出しに対応したモデルを選んでください。",
+      "liveDictation": "ライブ口述が使えます。"
+    },
+    "form": {
+      "preset": "プロバイダー",
+      "custom": "その他（OpenAI 互換）",
+      "baseUrl": "ベース URL",
+      "baseUrlHint": "プロバイダーの OpenAI 互換 API のルート。通常は /v1 で終わります。",
+      "model": "モデル",
+      "modelPlaceholder": "プロバイダーのモデル ID",
+      "suggestions": "おすすめのモデル：{list}",
+      "apiKey": "API キー",
+      "apiKeyKeep": "空欄のままにすると保存済みのキーを使い続けます。URL を変更する場合は必須です。",
+      "vision": "このモデルは画像を扱えます",
+      "save": "保存して確認",
+      "verify": "確認",
+      "remove": "削除",
+      "cancel": "キャンセル",
+      "edit": "変更",
+      "add": "プロバイダーを追加"
+    },
+    "toast": {
+      "saved": "AI プロバイダーを保存しました",
+      "savedWithWarning": "AI プロバイダーを保存しました（警告あり）",
+      "removed": "AI プロバイダーを削除しました",
+      "saveFailed": "AI プロバイダーを保存できませんでした",
+      "verifyFailed": "AI プロバイダーを確認できませんでした"
+    },
+    "verify": {
+      "ok": "接続しました。問題ありません。",
+      "authFailed": "プロバイダーが API キーを拒否しました。",
+      "modelNotFound": "プロバイダーにこのモデル ID がありません。",
+      "noToolSupport": "接続しましたが、モデルがテスト用ツールを呼び出しませんでした。執筆アシスタントにはツール呼び出しが必要です。",
+      "urlRefused": "この URL は使用できません。",
+      "unreachable": "プロバイダーに接続できませんでした。",
+      "unexpectedResponse": "プロバイダーから予期しない応答がありました。"
+    },
+    "urlRefused": {
+      "invalid": "https://api.mistral.ai/v1 のような完全な URL を入力してください。",
+      "scheme": "http と https の URL のみ対応しています。",
+      "credentialsInUrl": "URL に認証情報を含めないでください。API キーの欄を使ってください。",
+      "internalHost": "このアドレスは markoto 内部のサービスのため使用できません。",
+      "notAllowlisted": "このプロバイダーはこのインスタンスでは使えません。一覧から選んでください。",
+      "httpsRequired": "https を使ってください。暗号化なしの http は、セルフホストのインスタンスでプライベートネットワーク上のプロバイダーにのみ使えます。",
+      "privateAddress": "この URL はプライベート、ループバック、またはメタデータのアドレスを指しているため使用できません。",
+      "unresolvable": "このホスト名が見つかりませんでした。"
+    },
+    "errors": {
+      "keyRequired": "API キーを入力してください。プロバイダーの追加時や URL の変更時に必要です。",
+      "transcription": "文字起こしプロバイダーでエラーが発生しました。AI プロバイダーの設定を確認してください。",
+      "loadFailed": "AI 設定を読み込めませんでした。"
+    },
+    "missing": {
+      "chat": "AI プロバイダーが設定されていません。AI アシスタントを使うには、設定で API キーを追加してください。",
+      "image": "画像プロバイダーが設定されていません。設定で追加してください。",
+      "transcription": "文字起こしプロバイダーが設定されていません。設定で追加してください。",
+      "cta": "AI 設定を開く"
+    },
+    "cta": {
+      "promptBar": "AI アシスタントを使うには、設定で API キーを追加してください",
+      "openSettings": "AI プロバイダーの設定を開く"
+    }
   }
 }

@@ -1221,5 +1221,99 @@
       "successTitle": "You've been removed",
       "successBody": "Your email address has been deleted from the waitlist."
     }
+  },
+  "aiProvider": {
+    "title": "AI provider",
+    "menu": "AI provider",
+    "loading": "Loading your AI settings…",
+    "intro": "Bring your own key: connect your own OpenAI-compatible AI provider for each feature. Your provider account pays for these calls. markoto stores the key encrypted and never shows it again.",
+    "privacyNote": "For these features, your prompts, the relevant document context and your recordings are sent to the provider you choose, under your own agreement with that provider.",
+    "platformNote": "Knowledge-base search, web search and page fetching always run on markoto's own providers.",
+    "allowedProvidersNote": "Providers allowed on this instance: {list}",
+    "privateAllowedNote": "This instance also accepts providers on your private network, such as Ollama.",
+    "pointsOwnKeyHint": "Calls made with your own provider key are billed by your provider and don't use AI Points.",
+    "capability": {
+      "chat": {
+        "title": "Writing assistant",
+        "description": "Required for every AI feature: the prompt bar, {'@'}ai in comments and web-search summaries. The model must support tool calling."
+      },
+      "image": {
+        "title": "Image generation",
+        "description": "Optional. Uses your provider's OpenAI-compatible images API. Without it, the assistant can't create images."
+      },
+      "transcription": {
+        "title": "Voice transcription",
+        "description": "Optional. Turns on the voice prompt. A Mistral key also turns on live dictation."
+      }
+    },
+    "status": {
+      "own": "Your key",
+      "instance": "Provided by this instance",
+      "none": "Not set up",
+      "never": "Not verified yet",
+      "lastVerified": "Last verified {date}",
+      "keyEnding": "ends in {last4}",
+      "noToolSupport": "This model didn't call the test tool, so the writing assistant may not work with it. Pick a model with tool calling.",
+      "liveDictation": "Live dictation is available."
+    },
+    "form": {
+      "preset": "Provider",
+      "custom": "Other (OpenAI-compatible)",
+      "baseUrl": "Base URL",
+      "baseUrlHint": "The provider's OpenAI-compatible API root, usually ending in /v1.",
+      "model": "Model",
+      "modelPlaceholder": "The provider's model id",
+      "suggestions": "Suggested models: {list}",
+      "apiKey": "API key",
+      "apiKeyKeep": "Leave empty to keep the saved key. Required when you change the URL.",
+      "vision": "This model accepts images",
+      "save": "Save and verify",
+      "verify": "Verify",
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "edit": "Change",
+      "add": "Add your provider"
+    },
+    "toast": {
+      "saved": "AI provider saved",
+      "savedWithWarning": "AI provider saved with a warning",
+      "removed": "AI provider removed",
+      "saveFailed": "Could not save the AI provider",
+      "verifyFailed": "Could not verify the AI provider"
+    },
+    "verify": {
+      "ok": "Connected. Everything works.",
+      "authFailed": "The provider rejected the API key.",
+      "modelNotFound": "The provider doesn't know this model id.",
+      "noToolSupport": "Connected, but the model didn't call the test tool. The writing assistant needs tool calling.",
+      "urlRefused": "This URL is not allowed.",
+      "unreachable": "The provider could not be reached.",
+      "unexpectedResponse": "The provider returned an unexpected response."
+    },
+    "urlRefused": {
+      "invalid": "Enter a full URL such as https://api.mistral.ai/v1.",
+      "scheme": "Only http and https URLs are supported.",
+      "credentialsInUrl": "Don't put credentials in the URL. Use the API key field.",
+      "internalHost": "This address belongs to markoto's own services and can't be used.",
+      "notAllowlisted": "This provider is not allowed on this instance. Pick one from the list.",
+      "httpsRequired": "Use https. Plain http is only allowed for private-network providers on self-hosted instances.",
+      "privateAddress": "This URL points at a private, loopback or metadata address, which is not allowed.",
+      "unresolvable": "This host name could not be found."
+    },
+    "errors": {
+      "keyRequired": "Enter the API key. It's required when you add a provider or change its URL.",
+      "transcription": "Your transcription provider returned an error. Check your AI provider settings.",
+      "loadFailed": "Could not load your AI settings."
+    },
+    "missing": {
+      "chat": "No AI provider set up. Add your API key in Settings to use the AI assistant.",
+      "image": "No image provider set up. Add one in Settings.",
+      "transcription": "No transcription provider set up. Add one in Settings.",
+      "cta": "Open AI settings"
+    },
+    "cta": {
+      "promptBar": "Add your API key in Settings to use the AI assistant",
+      "openSettings": "Open AI provider settings"
+    }
   }
 }

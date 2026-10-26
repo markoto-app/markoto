@@ -48,6 +48,14 @@ case "$(echo "$NUXT_BILLING_ENABLED" | tr '[:upper:]' '[:lower:]' | tr -d '[:spa
     ;;
 esac
 
+# Bring-your-own-key AI (WP4). The hosted SaaS sets NO instance AI defaults
+# (every user brings their own key) and restricts BYOK base URLs to the
+# provider allowlist below (shared/ai/providers.ts
+# RECOMMENDED_SAAS_ALLOWED_BASE_URLS — keep in sync). Private-network
+# provider URLs stay off.
+NUXT_AI_BYOK_ALLOWED_BASE_URLS="${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-https://api.mistral.ai/v1,https://api.openai.com/v1,https://openrouter.ai/api/v1,https://api.groq.com/openai/v1,https://api.together.xyz/v1,https://api.deepinfra.com/v1/openai,https://api.fireworks.ai/inference/v1,https://api.scaleway.ai/v1}"
+NUXT_AI_BYOK_ALLOW_PRIVATE_URLS="${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}"
+
 # Non-secret defaults (env.j2 sources these from group_vars/all.yml).
 POSTGRES_HOST="${POSTGRES_HOST:-postgres}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
@@ -120,6 +128,23 @@ NUXT_LITELLM_EMBEDDINGS_TASK_HINTS=${NUXT_LITELLM_EMBEDDINGS_TASK_HINTS:-}
 EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
 EMBEDDINGS_UPSTREAM_API_BASE=${EMBEDDINGS_UPSTREAM_API_BASE:-}
 EMBEDDINGS_UPSTREAM_API_KEY=${EMBEDDINGS_UPSTREAM_API_KEY:-}
+
+# ─── Bring-your-own-key AI (WP4) ───
+# Instance defaults per capability (empty on the hosted SaaS = BYOK only).
+# MODEL alone = a LiteLLM model alias (platform-paid); MODEL + BASE_URL +
+# API_KEY = an OpenAI-compatible endpoint used like a user key.
+NUXT_AI_DEFAULT_CHAT_MODEL=${NUXT_AI_DEFAULT_CHAT_MODEL:-}
+NUXT_AI_DEFAULT_CHAT_BASE_URL=${NUXT_AI_DEFAULT_CHAT_BASE_URL:-}
+NUXT_AI_DEFAULT_CHAT_API_KEY=${NUXT_AI_DEFAULT_CHAT_API_KEY:-}
+NUXT_AI_DEFAULT_CHAT_VISION=${NUXT_AI_DEFAULT_CHAT_VISION:-}
+NUXT_AI_DEFAULT_IMAGE_MODEL=${NUXT_AI_DEFAULT_IMAGE_MODEL:-}
+NUXT_AI_DEFAULT_IMAGE_BASE_URL=${NUXT_AI_DEFAULT_IMAGE_BASE_URL:-}
+NUXT_AI_DEFAULT_IMAGE_API_KEY=${NUXT_AI_DEFAULT_IMAGE_API_KEY:-}
+NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=${NUXT_AI_DEFAULT_TRANSCRIBE_MODEL:-}
+NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL=${NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL:-}
+NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY=${NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY:-}
+NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS}
+NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=$(echo "$NUXT_AI_BYOK_ALLOW_PRIVATE_URLS" | tr '[:upper:]' '[:lower:]')
 
 # ─── Billing mode ───
 NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED}

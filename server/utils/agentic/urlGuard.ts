@@ -144,6 +144,43 @@ export function isPrivateIp(ip: string): boolean {
 }
 
 /**
+ * Narrower classifier for addresses that are NEVER a legitimate target,
+ * even when an operator explicitly allows private networks (the BYOK
+ * `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS` opt-in for Ollama / vLLM on the
+ * LAN): loopback (the caller's own container), "this network",
+ * link-local incl. the cloud metadata endpoint `169.254.169.254`,
+ * multicast + reserved space, and their IPv6 equivalents. Unparseable
+ * input is treated as forbidden (fail closed).
+ *
+ * RFC 1918 / CGNAT / IPv6 ULA ranges are deliberately NOT in this set —
+ * they are "private but reachable on purpose" (a docker bridge, a LAN
+ * GPU box) and are governed by the opt-in instead.
+ */
+export function isAlwaysForbiddenIp(ip: string): boolean {
+  const family = isIP(ip)
+  if (family === 4) {
+    const parts = ip.split('.').map(Number)
+    if (parts.length !== 4 || parts.some(p => Number.isNaN(p) || p < 0 || p > 255)) return true
+    const [a, b] = parts as [number, number, number, number]
+    return a === 0 || a === 127 || (a === 169 && b === 254) || a >= 224
+  }
+  if (family === 6) {
+    const lower = ip.toLowerCase().split('%')[0]!
+    if (lower === '::1' || lower === '::') return true
+    const mapped = /^::ffff:([0-9.]+)$/.exec(lower)
+    if (mapped) return isIP(mapped[1]!) === 4 ? isAlwaysForbiddenIp(mapped[1]!) : true
+    // AWS IMDS over IPv6.
+    if (lower === 'fd00:ec2::254') return true
+    const first = ipv6FirstHextet(lower)
+    if (first < 0) return true
+    if (first >= 0xfe80 && first <= 0xfebf) return true // link-local
+    if (first >= 0xff00) return true // multicast
+    return false
+  }
+  return true
+}
+
+/**
  * Resolves a hostname to all A/AAAA records and rejects if ANY resolved
  * IP is private. Catches DNS-rebinding-shaped attacks where the public
  * authoritative answer is fine but a TOCTOU resolves to a private IP.

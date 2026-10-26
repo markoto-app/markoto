@@ -1,0 +1,34 @@
+import { listAiProviders } from '../../../repos/aiProviders'
+import { toProviderView } from '../../../utils/aiProviders/store'
+import { readInstanceDefault, resolveByokUrlPolicy } from '../../../utils/aiProviders/config'
+import { availabilityFrom, resolveAiProviders } from '../../../utils/aiProviders/resolve'
+import { AI_CAPABILITIES, PROVIDER_PRESETS } from '~~/shared/ai/providers'
+
+// GET /api/user/ai-providers — everything the "AI provider" settings
+// page needs: the caller's saved configs (key-free views), which
+// capabilities have an instance default, the effective availability,
+// and the URL policy (so the UI can show the allowed providers and hide
+// local presets the instance would refuse).
+
+export default defineEventHandler(async (event) => {
+  const session = await requireValidatedUserSession(event)
+  const userId = session.user.id
+  const [rows, providers] = await Promise.all([listAiProviders(userId), resolveAiProviders(userId)])
+  const policy = resolveByokUrlPolicy()
+  return {
+    providers: rows.map(toProviderView),
+    instanceDefaults: {
+      chat: readInstanceDefault('chat') !== null,
+      image: readInstanceDefault('image') !== null,
+      transcription: readInstanceDefault('transcription') !== null
+    },
+    availability: availabilityFrom(providers),
+    policy: {
+      allowedBaseUrls: policy.allowedBaseUrls,
+      allowPrivate: policy.allowPrivate
+    },
+    presets: PROVIDER_PRESETS.filter(p => (policy.allowPrivate || !p.local)
+      && (policy.allowedBaseUrls.length === 0 || policy.allowedBaseUrls.some(u => p.baseUrl === u || p.baseUrl.startsWith(`${u}/`)))),
+    capabilities: AI_CAPABILITIES
+  }
+})

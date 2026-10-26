@@ -36,7 +36,13 @@ const { refresh: refreshBilling } = useBilling()
 // Phase 6: AI exhaustion comes from /api/ai/credits (LiteLLM /key/info).
 // `refreshAiCredits` runs after a session ends so the AI Points badge
 // ticks down live without the user navigating away.
-const { isExhausted: creditsExhausted, isWorkspaceShared: creditsAreShared, refresh: refreshAiCredits } = useAiCredits()
+const { isExhausted: pointsExhausted, isWorkspaceShared: creditsAreShared, refresh: refreshAiCredits } = useAiCredits()
+// Bring your own key (WP4): which capabilities this user can use, and
+// whether chat is paid by the platform. AI Points only gate the bar when
+// chat actually spends them — a user on their own key is never blocked
+// by an empty platform budget.
+const { chatMissing, transcriptionAvailable, chatPlatformBilled } = useAiAvailability()
+const creditsExhausted = computed(() => chatPlatformBilled.value && pointsExhausted.value)
 const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 const router = useRouter()
 
@@ -88,6 +94,7 @@ watch(() => voice.errorMessage.value, (err) => {
 
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
+  if (chatMissing.value) return t('aiProvider.cta.promptBar')
   // Out of credits → swap the placeholder so the user reads the
   // reason the bar is disabled + the path forward. Workspace-shared
   // pool exhaustion gets its own copy because the path forward is
@@ -187,10 +194,16 @@ watch(creditsExhausted, (now, prev) => {
 
 const disabled = computed(() => {
   return !loggedIn.value
+    || chatMissing.value
     || !!props.ai.mySessionId.value
     || props.ai.submitting.value
     || creditsExhausted.value
 })
+
+const aiSettingsRoute = AI_SETTINGS_ROUTE
+function goToAiSettings(): void {
+  void router.push(aiSettingsRoute)
+}
 
 // Voice UI is mutually exclusive with the text input; each voice state
 // maps to one of four display modes for the middle slot of the bar.
@@ -459,6 +472,17 @@ onUnmounted(() => {
            channel to the AI extends that moment to the user side
            of the conversation. Both placeholder and typed text
            inherit the family. -->
+      <!-- No chat provider (bring your own key, nothing configured and no
+           instance default): the bar becomes the call-to-action instead
+           of an input that would only fail. -->
+      <NuxtLink
+        v-else-if="loggedIn && chatMissing"
+        :to="aiSettingsRoute"
+        class="flex-1 min-w-0 py-3 text-sm text-muted hover:text-default transition-colors truncate"
+        data-testid="ai-prompt-bar-provider-cta"
+      >
+        {{ t('aiProvider.cta.promptBar') }}
+      </NuxtLink>
       <input
         v-else
         ref="inputEl"
@@ -507,13 +531,14 @@ onUnmounted(() => {
         @click="voice.cancel()"
       />
       <UButton
-        v-else-if="!isActive"
+        v-else-if="!isActive && transcriptionAvailable && !chatMissing"
         color="neutral"
         variant="ghost"
         :icon="micPermissionDenied ? 'i-lucide-mic-off' : 'i-lucide-mic'"
         :disabled="micDisabled"
         :aria-label="micTitle"
         :title="micTitle"
+        data-testid="ai-prompt-bar-mic"
         class="ai-prompt-bar__secondary"
         @click="voice.toggle()"
       />
@@ -548,6 +573,16 @@ onUnmounted(() => {
         here is shu (red); invoking the AI is the one place where a
         call-to-action SHOULD wear the seal.
       -->
+      <UButton
+        v-else-if="!isActive && loggedIn && chatMissing"
+        color="neutral"
+        icon="i-lucide-key-round"
+        :aria-label="t('aiProvider.cta.openSettings')"
+        :title="t('aiProvider.cta.openSettings')"
+        data-testid="ai-prompt-bar-settings"
+        class="ai-prompt-bar__action"
+        @click="goToAiSettings"
+      />
       <UButton
         v-else-if="!isActive"
         :color="creditsExhausted ? 'neutral' : 'primary'"

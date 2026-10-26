@@ -258,6 +258,8 @@ export interface AccountDeletionSummary {
   dataExportJobsDeleted: number
   stripeCustomerDeleted: boolean
   themesDeleted: number
+  /** BYOK provider configs (incl. encrypted API keys) removed. */
+  aiProvidersDeleted: number
 }
 
 // Also expose a small repo-shape helper to count themes (only used

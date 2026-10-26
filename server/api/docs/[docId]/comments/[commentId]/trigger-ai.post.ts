@@ -7,6 +7,8 @@ import { listReadyKnowledgeBrief } from '../../../../../repos/knowledge'
 import { addAiSession, removeAiSession, DuplicateSessionError } from '../../../../../utils/aiSessions'
 import { createAiSession } from '../../../../../utils/aiClient'
 import { resolveBillingContext } from '../../../../../utils/billing'
+import { requireAiProviders } from '../../../../../utils/aiProviders/guard'
+import type { ResolvedAiProviders } from '../../../../../utils/aiProviders/resolve'
 import { runAgenticLoop } from '../../../../../utils/agentic/runLoop'
 import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../../../../utils/agentic/functionTools'
 import { buildDocumentContext } from '../../../../../utils/agentic/documentContextPrompt'
@@ -68,6 +70,9 @@ export default defineEventHandler(async (event) => {
   // right attribution and lazy-create the key if needed. Exhaustion
   // surfaces inside the runLoop's catch block (LitellmBudgetExhausted).
   const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
+  // BYOK: no chat provider → 409 `ai/provider-missing` (the client shows
+  // the "Add your API key in Settings" call-to-action).
+  const aiProviders = await requireAiProviders(userId, 'chat')
   const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706'
   const sessionId = nanoid(12)
@@ -92,7 +97,8 @@ export default defineEventHandler(async (event) => {
     systemPrompt,
     toolDeclarations: wsCtx.toolDeclarations,
     workspaceId: wsCtx.workspaceId,
-    billingContext
+    billingContext,
+    aiProviders
   })
 
   return { sessionId, commentId, replyId }
@@ -289,6 +295,7 @@ interface TriggerLoopArgs {
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
   workspaceId: string | null
   billingContext: Awaited<ReturnType<typeof resolveBillingContext>>
+  aiProviders: ResolvedAiProviders
 }
 
 async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
@@ -311,13 +318,13 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
       plan: args.billingContext.plan,
       periodStart: args.billingContext.periodStart,
       virtualKey: args.billingContext.virtualKey,
+      aiProviders: args.aiProviders,
       commentThreadId: args.commentId
     }, args.abortController.signal)
 
     await runAgenticLoop({
-      // Production omits `ai` so runLoop routes through LiteLLM →
-      // Mistral. `model` is also test-seam-only — LiteLLM resolves
-      // its own model from `config.litellm.textModel`.
+      // Production omits `ai` so runLoop routes through LiteLLM on the
+      // session's resolved chat provider. `model` is test-seam-only.
       model: '',
       systemPrompt: args.systemPrompt,
       initialPrompt: args.wrappedSeedPrompt,

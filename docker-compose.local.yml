@@ -154,6 +154,22 @@ services:
       # LiteLLM): Staan backs web_search, Jina Reader backs fetch_url.
       - STAAN_API_KEY=${STAAN_API_KEY:?STAAN_API_KEY required}
       - JINA_AI_API_KEY=${JINA_AI_API_KEY:?JINA_AI_API_KEY required}
+      # Bring-your-own-key AI (WP4) — instance defaults + URL policy. See
+      # server/utils/aiProviders/config.ts. MISTRAL_API_KEY reaches the app
+      # only for live dictation on a platform-alias transcription default.
+      - NUXT_AI_DEFAULT_CHAT_MODEL=${NUXT_AI_DEFAULT_CHAT_MODEL:-}
+      - NUXT_AI_DEFAULT_CHAT_BASE_URL=${NUXT_AI_DEFAULT_CHAT_BASE_URL:-}
+      - NUXT_AI_DEFAULT_CHAT_API_KEY=${NUXT_AI_DEFAULT_CHAT_API_KEY:-}
+      - NUXT_AI_DEFAULT_CHAT_VISION=${NUXT_AI_DEFAULT_CHAT_VISION:-}
+      - NUXT_AI_DEFAULT_IMAGE_MODEL=${NUXT_AI_DEFAULT_IMAGE_MODEL:-}
+      - NUXT_AI_DEFAULT_IMAGE_BASE_URL=${NUXT_AI_DEFAULT_IMAGE_BASE_URL:-}
+      - NUXT_AI_DEFAULT_IMAGE_API_KEY=${NUXT_AI_DEFAULT_IMAGE_API_KEY:-}
+      - NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=${NUXT_AI_DEFAULT_TRANSCRIBE_MODEL:-}
+      - NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL=${NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL:-}
+      - NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY=${NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY:-}
+      - NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-}
+      - NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
       # Postgres + Valkey atomic parts. *_HOST overridden to the docker
       # service name; .env owns user/password/db/port. The Nuxt app
       # composes the URL via shared/utils/connectionStrings.ts.

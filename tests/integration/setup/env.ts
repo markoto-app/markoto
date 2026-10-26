@@ -8,6 +8,9 @@
 //   Valkey:    6379 (dev)     → 6380 (test)
 //   SeaweedFS: 8333 (dev)     → 8334 (test)
 //   Sync:      4001 (dev)     → 4002 (test, real sync-test container)
+//   Fake OpenAI-compatible provider (BYOK): 4120 (test only)
+
+import { networkInterfaces } from 'node:os'
 
 export const TEST_PORT = 3101
 export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
@@ -75,3 +78,30 @@ export const TEST_INTERNAL_SECRET = 'test-internal-api-secret-isolated'
 // Valkey. The docker-compose.test.yml stack maps Valkey to localhost:6380
 // with `--requirepass testpassword`.
 export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/0`
+
+// ─── Fake OpenAI-compatible provider (BYOK) ──────────────────────────
+// `fake-openai-test` in docker-compose.test.yml, published on host port
+// 4120. The BYOK base URL must be reachable from BOTH the app (on the
+// host, which runs the SSRF policy incl. DNS) and litellm-test (in a
+// container, which connects). The docker bridge gateway address is the
+// one both sides share: it is a local interface on the host and the
+// host's address from inside any container. Derived from the `docker0`
+// interface; override with TEST_FAKE_OPENAI_BASE_URL on hosts where
+// docker uses a different bridge.
+export const TEST_FAKE_OPENAI_PORT = 4120
+export const TEST_FAKE_OPENAI_HOST_URL = `http://127.0.0.1:${TEST_FAKE_OPENAI_PORT}`
+
+function dockerBridgeAddress(): string {
+  const bridge = networkInterfaces().docker0 ?? []
+  const v4 = bridge.find(i => i.family === 'IPv4')
+  if (!v4) {
+    throw new Error('[integration] no docker0 IPv4 address found; set TEST_FAKE_OPENAI_BASE_URL to a URL reachable from both the host and the litellm-test container.')
+  }
+  return v4.address
+}
+
+export function fakeOpenAiBaseUrl(): string {
+  const override = process.env.TEST_FAKE_OPENAI_BASE_URL
+  if (override) return override
+  return `http://${dockerBridgeAddress()}:${TEST_FAKE_OPENAI_PORT}/v1`
+}

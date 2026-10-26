@@ -19,6 +19,7 @@ import { reconstructTextAtYjsId } from './historyReplay'
 import { useStripeClient } from './stripeClient'
 import { isBillingEnabled } from './billingMode'
 import { listWaitlistSignupsForUser } from '../repos/waitlist'
+import { listAiProviders } from '../repos/aiProviders'
 
 // GDPR Article 15 + 20 export builder. Produces a self-describing
 // ZIP archive containing every piece of personal data we hold for
@@ -40,6 +41,7 @@ import { listWaitlistSignupsForUser } from '../repos/waitlist'
 //   ai/sessions.ndjson
 //   ai/messages.ndjson              ← prompt + tool-call history
 //   ai/usage.ndjson                 ← per-period interaction counter
+//   ai/providers.json               ← BYOK provider configs (never the key)
 //   activity.ndjson                 ← rows where user_id = $userId
 //   audit.ndjson                    ← rows scoped to or by the user
 //   consent.ndjson
@@ -73,6 +75,9 @@ Contents:
   ai/sessions.ndjson     AI sessions you initiated.
   ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
   ai/usage.ndjson        per-billing-period AI interaction counters.
+  ai/providers.json      your own AI provider settings (provider URL,
+                         model, last verification). API keys are never
+                         exported.
   activity.ndjson        activity-log rows attributed to you.
   audit.ndjson           audit-log rows actioned by you OR scoped to
                          your user id.
@@ -102,6 +107,7 @@ export interface BuildExportZipResult {
     auditLogRows: number
     consentLogRows: number
     waitlistSignups: number
+    aiProviders: number
     invoices: number
   }
 }
@@ -143,6 +149,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const auditCount = await addAuditLogEntry(entries, db, userId)
   const consentCount = await addConsentLogEntry(entries, db, userId)
   const waitlistCount = await addWaitlistEntry(entries, userId)
+  const aiProvidersCount = await addAiProvidersEntry(entries, userId)
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
 
   return {
@@ -158,6 +165,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
       auditLogRows: auditCount,
       consentLogRows: consentCount,
       waitlistSignups: waitlistCount,
+      aiProviders: aiProvidersCount,
       invoices: invoicesCount
     }
   }
@@ -423,6 +431,26 @@ async function addConsentLogEntry(entries: Entries, db: Db, userId: number): Pro
 async function addWaitlistEntry(entries: Entries, userId: number): Promise<number> {
   const rows = await listWaitlistSignupsForUser(userId)
   entries['waitlist.ndjson'] = strToU8(toNdjson(rows))
+  return rows.length
+}
+
+/**
+ * Bring-your-own-key AI provider configs. Exported WITHOUT the key —
+ * neither the ciphertext nor the last four characters: an export ZIP
+ * travels by email link and must not become a credential carrier.
+ */
+async function addAiProvidersEntry(entries: Entries, userId: number): Promise<number> {
+  const rows = await listAiProviders(userId)
+  entries['ai/providers.json'] = strToU8(JSON.stringify(rows.map(r => ({
+    capability: r.capability,
+    baseUrl: r.baseUrl,
+    model: r.model,
+    supportsVision: r.supportsVision,
+    supportsTools: r.supportsTools,
+    lastVerifiedAt: r.lastVerifiedAt ? r.lastVerifiedAt.toISOString() : null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString()
+  })), null, 2))
   return rows.length
 }
 

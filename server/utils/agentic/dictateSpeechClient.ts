@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events'
+import { DEFAULT_REALTIME_MODEL } from '../aiProviders/config'
 import {
   AudioEncoding,
   RealtimeTranscription
@@ -106,21 +107,26 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
 // codec change. The pre-Phase-5 (Cloud STT) MP4/AAC rejection (Safari
 // quirk) may disappear under Voxtral — verify in a future safari pass.
 
-export function createDictateRealtimeClient(apiKey: string): SpeechClientLike {
+/**
+ * `apiKey` is the Mistral key that pays for the stream: the user's own
+ * (BYOK transcription provider on api.mistral.ai) or the operator's
+ * `MISTRAL_API_KEY` when the instance default is a platform alias.
+ */
+export function createDictateRealtimeClient(apiKey: string, model: string = DEFAULT_REALTIME_MODEL): SpeechClientLike {
   if (process.env.TEST_MODE === '1' && (
     process.env.NUXT_VOXTRAL_REALTIME_MOCK === '1'
     || process.env.NUXT_GOOGLE_SPEECH_MOCK === '1'
   )) {
     return new MockRealtimeClient()
   }
-  return new VoxtralRealtimeClient(apiKey)
+  return new VoxtralRealtimeClient(apiKey, model)
 }
 
 class VoxtralRealtimeClient implements SpeechClientLike {
-  constructor(private readonly apiKey: string) {}
+  constructor(private readonly apiKey: string, private readonly model: string) {}
 
   streamingRecognize(req: StreamingRecognizeRequest): SpeechStream {
-    const stream = new VoxtralRealtimeStream(this.apiKey, req)
+    const stream = new VoxtralRealtimeStream(this.apiKey, this.model, req)
     stream.start()
     return stream
   }
@@ -141,15 +147,17 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   private readonly chunkQueue: Array<Uint8Array | null> = []
   private readonly waiters: Array<(value: Uint8Array | null) => void> = []
   private readonly apiKey: string
+  private readonly model: string
   private readonly req: StreamingRecognizeRequest
   private ended = false
   private aborted = false
   private finalText = ''
   private partialText = ''
 
-  constructor(apiKey: string, req: StreamingRecognizeRequest) {
+  constructor(apiKey: string, model: string, req: StreamingRecognizeRequest) {
     super()
     this.apiKey = apiKey
+    this.model = model
     this.req = req
   }
 
@@ -181,7 +189,7 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
       // the purpose-built realtime-transcribe (not generic realtime
       // chat) — same logic as Phase 2: dedicated transcription beats
       // a generative chat model for our voice-prompt input flow.
-      const model = 'voxtral-mini-transcribe-realtime-2602'
+      const model = this.model
       const audioFormat = {
         encoding: AudioEncoding.PcmS16le,
         sampleRate: req.config.sampleRateHertz

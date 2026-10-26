@@ -7,7 +7,9 @@
 
 import type { AgenticPart as Part } from './agentic/aiTypes'
 import { TOOL_HANDLERS, KNOWN_TOOL_NAMES } from './agentic/toolHandlers'
-import { litellmCompletion } from './litellm/createCompletion'
+import { litellmCompletion, litellmImage } from './litellm/createCompletion'
+import { providerRequestFields, withProviderErrors } from './aiProviders/requestFields'
+import type { ResolvedAiProvider } from './aiProviders/resolve'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { nanoid } from 'nanoid'
 import * as Y from 'yjs'
@@ -1122,26 +1124,34 @@ const IMAGE_MIME_EXT: Record<string, string> = {
 }
 
 interface ImageGenOpts {
-  /** Output width in pixels. Default from runtimeConfig (1024 for BFL path). */
+  /** The session's image provider (BYOK / instance default). Null = unavailable. */
+  provider: ResolvedAiProvider | null
+  /** Output width in pixels. Default from runtimeConfig (1024). */
   width?: number
-  /** Output height in pixels. Default from runtimeConfig (1024 for BFL path). */
+  /** Output height in pixels. Default from runtimeConfig (1024). */
   height?: number
-  /** Per-user LiteLLM virtual-key bearer token (BFL path only). */
+  /** Per-user LiteLLM virtual-key bearer token. */
   virtualKey?: string
-  /** Workspace context for spend-tagging (BFL path only). */
+  /** Workspace context for spend-tagging. */
   workspaceId?: string | null
-  /** Initiating user id for spend-tagging (BFL path only). */
+  /** Initiating user id for spend-tagging. */
   userId?: number | null
-  /** Doc the image is being inserted into — drives doc-axis spend tag (BFL path only). */
+  /** Doc the image is being inserted into — drives doc-axis spend tag. */
   docId?: string | null
 }
 
 type ImageGenResult = { bytes: Uint8Array, mimeType: string } | { error: string }
 
 /**
- * Generate an image from a text prompt. Routes through LiteLLM →
- * BFL FLUX.2 [pro] EU-pinned. 1024² default ($0.030/image). Honors
- * width/height (BFL meters by megapixel — non-square prices linearly).
+ * Generate an image from a text prompt. Two paths, picked by the
+ * resolved image provider:
+ *
+ *   - BYOK (user key, or an instance default with base URL): the user's
+ *     OpenAI-compatible images API via LiteLLM's zero-cost `byok/*`
+ *     deployment (`/v1/images/generations`).
+ *   - Instance default WITHOUT base URL: the operator's LiteLLM model
+ *     alias, using the chat-wrapped convention of the bundled
+ *     `flux-2-pro` deployment (BFL FLUX.2 [pro], EU-pinned). Platform-paid.
  *
  * Returns raw bytes + MIME type, or an error string. The S3 upload + Y.js
  * insertion happens in `handleGenerateImage` and is shape-agnostic.
@@ -1149,15 +1159,82 @@ type ImageGenResult = { bytes: Uint8Array, mimeType: string } | { error: string 
 async function generateImageBytes(
   prompt: string,
   _signal: AbortSignal,
-  opts: ImageGenOpts = {}
+  opts: ImageGenOpts
 ): Promise<ImageGenResult> {
-  return generateImageBytesBfl(prompt, opts)
+  const provider = opts.provider
+  if (!provider) {
+    return { error: 'Image generation is not available: no image provider is configured. The user can add one under Settings → AI provider.' }
+  }
+  if (provider.credentials) return generateImageBytesByok(prompt, provider, opts)
+  return generateImageBytesBfl(prompt, provider.model, opts)
 }
 
-// ─── BFL FLUX.2 [pro] path ──────────────────────────────────────────────
+/** Sniff PNG / JPEG / WebP from magic bytes — providers don't always say. */
+function sniffImageMime(bytes: Uint8Array): string | null {
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'image/png'
+  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'image/jpeg'
+  if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'image/webp'
+  return null
+}
+
+/**
+ * OpenAI-style images APIs only accept a few fixed sizes. Map the
+ * requested aspect to the nearest of the common gpt-image sizes.
+ */
+function openAiImageSize(width: number, height: number): string {
+  if (width > height * 1.2) return '1536x1024'
+  if (height > width * 1.2) return '1024x1536'
+  return '1024x1024'
+}
+
+// ─── BYOK path: OpenAI-compatible images API ────────────────────────────
+
+async function generateImageBytesByok(
+  prompt: string,
+  provider: ResolvedAiProvider,
+  opts: ImageGenOpts
+): Promise<ImageGenResult> {
+  if (!opts.virtualKey) return { error: 'Image generation requires a LiteLLM virtual key.' }
+  const config = useRuntimeConfig()
+  const width = opts.width ?? config.litellm?.imageDefaultWidth ?? 1024
+  const height = opts.height ?? config.litellm?.imageDefaultHeight ?? 1024
+  try {
+    const litellm = useLitellmForUser(opts.virtualKey)
+    const fields = await providerRequestFields(provider)
+    const resp = await withProviderErrors(provider, () => litellmImage(litellm, {
+      ...fields,
+      prompt,
+      n: 1,
+      size: openAiImageSize(width, height),
+      ...featureMetadata(FEATURE_TAGS.imageGen, { workspaceId: opts.workspaceId, userId: opts.userId, docId: opts.docId })
+    }))
+    const first = resp.data?.[0]
+    if (first?.b64_json) {
+      const bytes = Buffer.from(first.b64_json, 'base64')
+      const mimeType = sniffImageMime(bytes)
+      if (!mimeType) return { error: 'The image provider returned an unsupported image format.' }
+      return { bytes, mimeType }
+    }
+    if (first?.url) {
+      // Some providers (dall-e style) answer with a URL. The URL comes
+      // from a third party, so it goes through the same SSRF guard,
+      // size cap and MIME allowlist as `view_image`.
+      return await fetchExternalImage(first.url)
+    }
+    return { error: 'The image provider returned no image.' }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    console.error('[generate_image] [byok] failed:', msg)
+    return { error: `Image generation failed: ${msg}` }
+  }
+}
+
+// ─── BFL FLUX.2 [pro] path (operator alias) ─────────────────────────────
 
 async function generateImageBytesBfl(
   prompt: string,
+  model: string,
   opts: ImageGenOpts
 ): Promise<ImageGenResult> {
   if (!opts.virtualKey) {
@@ -1165,7 +1242,6 @@ async function generateImageBytesBfl(
   }
   const config = useRuntimeConfig()
   const litellm = useLitellmForUser(opts.virtualKey)
-  const model = config.litellm?.imageModel || 'flux-2-pro'
   const width = opts.width ?? config.litellm?.imageDefaultWidth ?? 1024
   const height = opts.height ?? config.litellm?.imageDefaultHeight ?? 1024
 
@@ -1243,6 +1319,7 @@ export async function handleGenerateImage(
   //    don't thread a finer-grained signal here.
   const controller = new AbortController()
   const gen = await generateImageBytes(input.prompt, controller.signal, {
+    provider: session.aiProviders.image,
     width: input.width,
     height: input.height,
     virtualKey: session.virtualKey,

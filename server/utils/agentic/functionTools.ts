@@ -4,6 +4,8 @@ import { z, type ZodType } from 'zod'
 import { assertSafeUrl } from './urlGuard'
 import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
+import { providerRequestFields, withProviderErrors } from '../aiProviders/requestFields'
+import type { ResolvedAiProvider } from '../aiProviders/resolve'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { TEMPLATE_IDS } from '~~/shared/templates'
@@ -792,6 +794,28 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
  * has at least one `status='ready'` knowledge file. Exposing them
  * empty-handed invites the model to hallucinate filenames.
  */
+/** Tools that send images TO the model — only offered to vision-capable chat models. */
+const VISION_INPUT_TOOLS = new Set(['view_image', 'view_pages'])
+
+/**
+ * Drop tools the session's providers can't serve (BYOK): no image
+ * provider → no `generate_image`; a chat model without vision → no
+ * `view_image` / `view_pages` (their results are image parts a
+ * text-only model would reject). Everything else is unaffected.
+ */
+export function filterToolsForProviders(
+  declarations: FunctionDeclaration[],
+  providers: { chat: { supportsVision: boolean } | null, image: unknown }
+): FunctionDeclaration[] {
+  const vision = providers.chat?.supportsVision ?? false
+  return declarations.filter((d) => {
+    const name = d.name ?? ''
+    if (name === 'generate_image') return providers.image !== null
+    if (VISION_INPUT_TOOLS.has(name)) return vision
+    return true
+  })
+}
+
 export const KNOWLEDGE_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   decl(
     'search_knowledge',
@@ -837,6 +861,12 @@ export interface WebToolSpendContext {
   userId?: number | null
   docId?: string | null
   virtualKey?: string
+  /**
+   * The session's chat provider (BYOK key or instance default). The
+   * synthesis step runs on it; when null (no provider configured) the
+   * tools return the raw search results / page text unsynthesised.
+   */
+  chatProvider?: ResolvedAiProvider | null
 }
 
 export interface WebSearchResult {
@@ -970,7 +1000,6 @@ async function webSearchViaStaan(
   signal: AbortSignal,
   spendCtx: WebToolSpendContext = {}
 ): Promise<WebSearchResult> {
-  const config = useRuntimeConfig()
   const staanKey = process.env.STAAN_API_KEY
   if (!staanKey) {
     throw new Error('STAAN_API_KEY not configured (required for web_search)')
@@ -1013,15 +1042,28 @@ async function webSearchViaStaan(
     `[${i + 1}] ${r.title ?? ''}\nURL: ${r.url ?? ''}\n${(r.snippet ?? '').slice(0, 1500)}`
   ).join('\n\n---\n\n')
 
-  // Authenticate the synthesis with the caller's virtual key so the
-  // token spend counts against their LiteLLM max_budget (see
-  // WebToolSpendContext). Fall back to the master key only when a
-  // key-less harness path reaches here.
-  const litellm = spendCtx.virtualKey ? useLitellmForUser(spendCtx.virtualKey) : useLitellmAdmin()
-  const textModel = config.litellm?.textModel || 'mistral-small-2603'
+  const sources = results.slice(0, 8).map(r => ({
+    title: (r.title ?? r.url ?? '').slice(0, 200),
+    uri: r.url ?? ''
+  })).filter(s => s.uri)
 
-  const synth = await litellmCompletion(litellm, {
-    model: textModel,
+  // No chat provider (no BYOK key, no instance default): hand the raw
+  // ranked results back instead of a synthesised answer. Search itself is
+  // platform-provided and works without a key.
+  const provider = spendCtx.chatProvider
+  if (!provider) {
+    return { text: `Search results for "${query}":\n\n${dump}`, sources }
+  }
+
+  // Authenticate the synthesis with the caller's virtual key (rpm limits
+  // + spend tags) and run it on the session's chat provider — the user's
+  // own key under BYOK. Fall back to the master key only when a key-less
+  // harness path reaches here.
+  const litellm = spendCtx.virtualKey ? useLitellmForUser(spendCtx.virtualKey) : useLitellmAdmin()
+  const providerFields = await providerRequestFields(provider)
+
+  const synth = await withProviderErrors(provider, () => litellmCompletion(litellm, {
+    ...providerFields,
     messages: [
       { role: 'system', content: _WEB_SEARCH_SYSTEM_PROMPT },
       { role: 'user', content: `Query: ${query}\n\nSearch results:\n${dump}` }
@@ -1035,14 +1077,9 @@ async function webSearchViaStaan(
     // "text-loop" total includes web_search synthesis and the workspace +
     // user breakdowns attribute correctly.
     ...featureMetadata(FEATURE_TAGS.textLoop, spendCtx)
-  }, { signal })
+  }, { signal }))
 
   const answer = (synth.choices?.[0]?.message?.content ?? '').trim()
-
-  const sources = results.slice(0, 8).map(r => ({
-    title: (r.title ?? r.url ?? '').slice(0, 200),
-    uri: r.url ?? ''
-  })).filter(s => s.uri)
 
   if (!answer) {
     return { text: 'No answer returned by the synthesiser.', sources }
@@ -1094,7 +1131,6 @@ async function fetchUrlViaJina(
   signal: AbortSignal,
   spendCtx: WebToolSpendContext = {}
 ): Promise<FetchUrlResult> {
-  const config = useRuntimeConfig()
   const jinaKey = process.env.JINA_AI_API_KEY
   if (!jinaKey) {
     throw new Error('JINA_AI_API_KEY not configured (required for fetch_url via mistral path)')
@@ -1134,16 +1170,24 @@ async function fetchUrlViaJina(
     }
   }
 
-  // 2) Mistral structured-output synthesis — extract {summary, images[]}.
-  // Authenticate the synthesis with the caller's virtual key so the
-  // token spend counts against their LiteLLM max_budget (see
-  // WebToolSpendContext). Fall back to the master key only when a
-  // key-less harness path reaches here.
-  const litellm = spendCtx.virtualKey ? useLitellmForUser(spendCtx.virtualKey) : useLitellmAdmin()
-  const textModel = config.litellm?.textModel || 'mistral-small-2603'
+  // No chat provider configured: return the extracted page text itself
+  // (truncated) — the reader is platform-provided and works without a key.
+  const provider = spendCtx.chatProvider
+  if (!provider) {
+    const excerpt = pageMarkdown.slice(0, 12000)
+    return { text: `Page: ${pageTitle || url}\n\n${excerpt}`, url, summary: excerpt, images: [] }
+  }
 
-  const synth = await litellmCompletion(litellm, {
-    model: textModel,
+  // 2) Structured-output synthesis — extract {summary, images[]} — on the
+  // session's chat provider (the user's own key under BYOK), authenticated
+  // with the caller's virtual key. Master key only for a key-less harness.
+  // A BYOK model without `json_schema` support returns prose; the
+  // JSON.parse fallback below hands that prose back verbatim.
+  const litellm = spendCtx.virtualKey ? useLitellmForUser(spendCtx.virtualKey) : useLitellmAdmin()
+  const providerFields = await providerRequestFields(provider)
+
+  const synth = await withProviderErrors(provider, () => litellmCompletion(litellm, {
+    ...providerFields,
     messages: [
       { role: 'system', content: _FETCH_URL_SYSTEM_PROMPT },
       { role: 'user', content: `URL: ${url}\nTitle: ${pageTitle}\n\nPage content:\n${pageMarkdown.slice(0, 30000)}` }
@@ -1158,7 +1202,7 @@ async function fetchUrlViaJina(
     // surrounding loop call so workspace + user + doc breakdowns
     // attribute correctly.
     ...featureMetadata(FEATURE_TAGS.textLoop, spendCtx)
-  }, { signal })
+  }, { signal }))
 
   const raw = synth.choices?.[0]?.message?.content ?? ''
   let parsed: FetchUrlResponse
