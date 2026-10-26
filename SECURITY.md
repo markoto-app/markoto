@@ -12,7 +12,7 @@ Preferred: GitHub private vulnerability reporting.
 2. Choose **Report a vulnerability** (direct link: <https://github.com/joelbarmettlerUZH/md-online/security/advisories/new>).
 3. Describe the issue.
 
-Alternative: email **TODO-security-contact**.
+Alternative: email **[joel@latentspace-labs.ch](mailto:joel@latentspace-labs.ch)**.
 
 Please include:
 
