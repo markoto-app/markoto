@@ -185,6 +185,8 @@ services:
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
+      # Mirrored into the print-page CSP (server/utils/renderCsp.ts); the renderer reads the same variable.
+      - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       # Postgres + Valkey atomic parts. HOST/PORT default to the in-stack
       # container; a managed-Postgres deployment overrides them via .env
       # (POSTGRES_HOST=<cluster-host> POSTGRES_PORT=<port> + the TLS vars
@@ -390,6 +392,9 @@ services:
       # Not http://app:3000 — see the `markoto-app` alias on the app service.
       - APP_URL=http://markoto-app:3000
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
+      # Network allowlist (renderer/src/allowlist.ts): app origin, the S3
+      # endpoint above and the pinned CDNs. Anything else is aborted.
+      - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
     expose:
       - "9000"
     networks:

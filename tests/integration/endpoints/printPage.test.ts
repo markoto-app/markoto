@@ -71,6 +71,27 @@ describe('GET /_internal/render/:docId (print page)', () => {
     expect(html).toContain('id="render-mount"')
   })
 
+  it('sends a restrictive CSP (second layer behind the renderer allowlist)', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    const token = mintRenderToken(doc.docId)
+
+    const res = await anonClient().get(
+      `/_internal/render/${doc.docId}?t=${encodeURIComponent(token)}`
+    )
+
+    const csp = res.headers.get('content-security-policy') ?? ''
+    expect(csp).toContain('default-src \'none\'')
+    // Images: own origin, data/blob, the S3 host + the operator's extra origin — nothing else.
+    expect(csp).toContain('img-src \'self\' data: blob: http://127.0.0.1:8334 http://host.docker.internal:3187;')
+    expect(csp).not.toMatch(/img-src[^;]*\*/)
+  })
+
+  it('does not put the render CSP on other pages', async () => {
+    const res = await anonClient().get('/api/health')
+    expect(res.headers.get('content-security-policy')).toBeNull()
+  })
+
   it('returns 403 when the render token is missing', async () => {
     const owner = await createUser()
     const doc = await createDoc({ ownerId: owner.id })

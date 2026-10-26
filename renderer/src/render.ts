@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { chromium, type Browser, type BrowserContext } from 'playwright'
 import { putBytes } from './s3'
+import { buildAllowedOrigins, hostForLog, isAllowedUrl } from './allowlist'
 
 // One persistent browser, page-pool of POOL_SIZE. New BrowserContext per
 // render isolates cookies / storage between docs. The pool is a simple
@@ -30,6 +31,12 @@ const INTERNAL_SECRET = (() => {
   if (!v) throw new Error('[renderer] INTERNAL_API_SECRET environment variable is required')
   return v
 })()
+
+// Origins Chromium may talk to (SSRF lockdown — see ./allowlist.ts).
+const ALLOWED_ORIGINS = buildAllowedOrigins(process.env)
+console.info(`[renderer] network allowlist: ${[...ALLOWED_ORIGINS].join(', ')}`)
+// At most this many distinct blocked hosts are logged per render.
+const MAX_BLOCKED_LOGS_PER_RENDER = 10
 
 let browserPromise: Promise<Browser> | null = null
 function getBrowser(): Promise<Browser> {
@@ -153,6 +160,36 @@ export async function renderDocument(input: RenderInput): Promise<RenderOutput> 
   }
 }
 
+/**
+ * Abort every request outside the allowlist and refuse WebSockets outright.
+ *
+ * KNOWN GAP (verified empirically): Playwright does NOT re-enter this handler
+ * for HTTP redirect hops of a request it `continue()`d, so an allowed origin
+ * that 302s to a blocked one is not caught here. The print page's own CSP
+ * (server/utils/renderCsp.ts, enforced by Chromium on every hop) closes that
+ * gap — keep both layers.
+ *
+ * Logs the blocked HOST only (never path/query — they can carry tokens),
+ * once per host per render, capped.
+ */
+async function lockDownNetwork(context: BrowserContext, docId: string): Promise<void> {
+  const loggedHosts = new Set<string>()
+  await context.route('**/*', async (route) => {
+    const url = route.request().url()
+    if (isAllowedUrl(url, ALLOWED_ORIGINS)) {
+      await route.continue()
+      return
+    }
+    const host = hostForLog(url)
+    if (!loggedHosts.has(host) && loggedHosts.size < MAX_BLOCKED_LOGS_PER_RENDER) {
+      loggedHosts.add(host)
+      console.warn(`[renderer] blocked request to ${host} (doc ${docId})`)
+    }
+    await route.abort('blockedbyclient')
+  })
+  await context.routeWebSocket(/.*/, ws => ws.close())
+}
+
 async function doRender(
   input: RenderInput,
   browser: Browser,
@@ -164,9 +201,12 @@ async function doRender(
     viewport: { width: 1280, height: 1024 },
     // 1.5x devicePixelRatio gives us ~144 DPI screenshots out of A4-sized
     // pages. Higher DPRs trade file size for negligible vision-model gain.
-    deviceScaleFactor: 1.5
+    deviceScaleFactor: 1.5,
+    // No service workers: they could fetch outside context.route().
+    serviceWorkers: 'block'
   })
   setContext(context)
+  await lockDownNetwork(context, docId)
   const page = await context.newPage()
   page.setDefaultTimeout(NAV_TIMEOUT_MS)
 

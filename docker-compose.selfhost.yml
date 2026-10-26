@@ -223,6 +223,8 @@ services:
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
+      # Mirrored into the print-page CSP (server/utils/renderCsp.ts); the renderer reads the same variable.
+      - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       - NUXT_LITELLM_URL=http://litellm:4000
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -390,6 +392,12 @@ services:
       # Not http://app:3000 — see the `markoto-app` alias on the app service.
       - APP_URL=http://markoto-app:3000
       - S3_ENDPOINT=http://seaweedfs:8333
+      # The origin presigned document-image URLs point at (the app's
+      # NUXT_S3_PUBLIC_ENDPOINT). The renderer's network allowlist admits
+      # this origin, not the internal seaweedfs one. Extra origins:
+      # RENDERER_ALLOWED_ORIGINS (comma-separated).
+      - S3_PUBLIC_ENDPOINT=${MARKOTO_PUBLIC_URL}
+      - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       # SeaweedFS doesn't support SSE-S3 headers on these PUTs.
       - S3_SSE=none
     # The renderer's Chromium maps `localhost` to host.docker.internal

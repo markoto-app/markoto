@@ -172,6 +172,8 @@ export async function startNuxt(): Promise<void> {
     // browser/SSR-layer bugs (oklch in Nuxt UI styles, zod imports
     // wedging Vite SSR, etc.).
     NUXT_RENDERER_INTERNAL_URL: 'http://127.0.0.1:9101',
+    // Same extra origin as renderer-test in docker-compose.test.yml (print-page CSP mirror).
+    RENDERER_ALLOWED_ORIGINS: 'http://host.docker.internal:3187',
     // AI providers — the primary server is shaped like a SELF-HOSTED
     // instance: operator defaults that are LiteLLM model aliases (the
     // bundled Mistral / BFL / Voxtral deployments, i.e. today's setup),
