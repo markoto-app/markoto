@@ -149,7 +149,7 @@ Health probe at `http://litellm:4000/health/liveliness` is wired into `/api/heal
 
 ### Renderer sidecar (`renderer/`)
 
-Headless Playwright service used by `server/utils/renderClient.ts` for server-rendered PDF + per-page PNG. Internal-only; not exposed via Traefik.
+Headless Playwright service used by `server/utils/renderClient.ts` for server-rendered PDF + per-page PNG. Internal-only; not exposed via Traefik. **Network lockdown (SSRF):** the renderer loads the print page straight from the app container (no Traefik, no CSP) and renders attacker-influenced markdown, so every browser-context request is checked against an origin allowlist (`renderer/src/allowlist.ts`: `APP_URL`, `S3_PUBLIC_ENDPOINT` else `S3_ENDPOINT`, jsDelivr + Google Fonts, plus `RENDERER_ALLOWED_ORIGINS`); anything else is aborted (host-only log), WebSockets and service workers are refused. Playwright does not re-enter `route()` for redirect hops, so `server/middleware/renderCsp.ts` also sends a mirrored CSP on `/_internal/render/*` (the app container needs the same `RENDERER_ALLOWED_ORIGINS`). A new CDN host the print page loads from MUST be added to both `DEFAULT_CDN_ORIGINS` and `renderCsp.ts`. Pinned by `tests/integration/endpoints/rendererNetwork.test.ts` + `tests/unit/rendererAllowlist.test.ts`.
 
 ### Infra (`infra/`)
 

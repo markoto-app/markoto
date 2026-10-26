@@ -149,6 +149,10 @@ services:
       # ServerSideEncryption header, which surfaced as "Renderer 500" on
       # every PDF export test. Prod (OVH) keeps SSE on (unset → AES256).
       - S3_SSE=none
+      # Extra origin the renderer may fetch from — tests/integration/endpoints/
+      # rendererNetwork.test.ts runs its "allowed" canary image server here.
+      # MUST match ALLOWED_PORT in that test.
+      - RENDERER_ALLOWED_ORIGINS=http://host.docker.internal:3187
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

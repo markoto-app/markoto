@@ -140,6 +140,9 @@ services:
       # Dev = host bun via host.docker.internal.
       - APP_URL=http://host.docker.internal:3000
       - S3_ENDPOINT=http://seaweedfs:8333
+      # Presigned image URLs use the app's NUXT_S3_ENDPOINT (localhost:8333
+      # in .env.example); the renderer's network allowlist must admit it.
+      - S3_PUBLIC_ENDPOINT=http://localhost:8333
       # SeaweedFS doesn't support SSE-S3 — omit the encryption header or
       # PDF/PNG render uploads fail with an opaque S3 InternalError.
       - S3_SSE=none
