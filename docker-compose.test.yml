@@ -83,10 +83,17 @@ services:
   seaweedfs-test:
     image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
     restart: unless-stopped
+    # `-master.volumeSizeLimitMB=256`: recent SeaweedFS derives how many
+    # volumes a server may hold from free disk / volume size limit (default
+    # 30 GB). On a small /data -- e.g. the tmpfs on a 16 GB CI runner -- that
+    # leaves no free volume slot and every PUT fails with "No writable
+    # volumes" (surfaced by the renderer as an S3 InternalError / "Renderer
+    # 500"). Small volumes keep plenty of slots on any realistic disk.
     command: >
       server -s3
       -ip=seaweedfs-test -ip.bind=0.0.0.0
       -dir=/data -s3.config=/etc/seaweedfs/s3.json -s3.port=8333
+      -master.volumeSizeLimitMB=256
     ports:
       - "8334:8333"
     tmpfs:
