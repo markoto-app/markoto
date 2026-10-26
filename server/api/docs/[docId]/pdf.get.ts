@@ -30,9 +30,7 @@ export default defineEventHandler(async (event) => {
   // Cache-hit responses are sub-second and still rate-limited (the
   // counter doesn't differentiate hit vs. miss), which is the right
   // call: the limit is on REQUEST volume, not on renderer load.
-  const ip = getRequestHeader(event, 'x-forwarded-for')?.split(',')[0]?.trim()
-    || getRequestHeader(event, 'x-real-ip')
-    || 'unknown'
+  const ip = getClientIp(event) ?? 'unknown'
   if (!(await checkRateLimit('pdf-download', ip, 10, 60_000))) {
     throw createError({ statusCode: 429, message: 'Too many PDF requests. Try again in a minute.' })
   }
@@ -75,7 +73,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = useRuntimeConfig()
-  const s3 = useS3Client()
+  const s3 = usePresignS3Client()
 
   // ResponseContentDisposition rides in the presigned URL so we don't have
   // to proxy the bytes through Nuxt — S3 stamps the header at fetch time.

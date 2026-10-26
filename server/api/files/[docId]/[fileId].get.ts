@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
 
-  const s3 = useS3Client()
+  const s3 = usePresignS3Client()
   const config = useRuntimeConfig()
   const key = `docs/${docId}/${fileId}`
 
