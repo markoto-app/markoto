@@ -26,11 +26,13 @@
 export const PRIVACY_VERSION = 6
 export const PRIVACY_EFFECTIVE_DATE = '2026-10-26'
 
-export const TOS_VERSION = 1
-export const TOS_EFFECTIVE_DATE = '2026-05-04'
+// v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
+export const TOS_VERSION = 2
+export const TOS_EFFECTIVE_DATE = '2026-10-26'
 
-export const DPA_VERSION = 1
-export const DPA_EFFECTIVE_DATE = '2026-05-04'
+// v2 (2026-10-26): members' own (BYOK) AI providers are not sub-processors.
+export const DPA_VERSION = 2
+export const DPA_EFFECTIVE_DATE = '2026-10-26'
 
 export const ABUSE_POLICY_VERSION = 1
 export const ABUSE_POLICY_EFFECTIVE_DATE = '2026-05-04'

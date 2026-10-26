@@ -22,6 +22,8 @@ content/legal/
 - **Material vs. cosmetic changes.** Adding a sub-processor, processing purpose, retention period, or user right is material → bump version. Typo fixes and pure-translation polish do NOT bump.
 - **Sub-processor list and lawful-basis table.** Don't hard-code these in markdown — render them from `server/legal/{subProcessors,lawfulBasis}.ts` so a single edit propagates.
 
+`tests/unit/legal/documents.test.ts` enforces that every translation has the registry version, the same `{{placeholders}}` and the same number of `##` sections as `en.md`. The privacy page's purposes table comes from `{{processingPurposesTable}}` (generated from `server/legal/lawfulBasis.ts`, English only). German uses Swiss orthography (`ss`, no `ß`), matching the imprint.
+
 ## Adding a translation
 
 1. Copy `en.md` to `{locale}.md`.

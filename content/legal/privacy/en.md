@@ -1,14 +1,14 @@
 ---
 slug: privacy
 locale: en
-version: 5
+version: 6
 effectiveDate: 2026-10-26
 translationStatus: authoritative
 ---
 
 # Privacy Policy
 
-> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to bill you. AI features run on EU-resident providers (Mistral AI for text and voice, Jina AI for embeddings and single-page fetching, Staan for web search, Black Forest Labs for image generation); payments go through Stripe. We don't sell your data, we don't run ads, and we don't train AI on your content. You can export everything we hold about you and delete your account at any time from your settings.
+> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to run your account. The service is currently free; paid plans are not offered yet. AI features run on EU-resident providers (Mistral AI for text and voice, Jina AI for embeddings and single-page fetching, Staan for web search, Black Forest Labs for image generation) unless you connect your own AI provider, in which case your AI content goes to the provider you chose. We don't sell your data, we don't run ads, and we don't train AI on your content. You can export the data we hold about you and delete your account at any time from your settings.
 
 ---
 
@@ -16,26 +16,26 @@ translationStatus: authoritative
 
 markoto is operated by **{{controllerName}}** ({{controllerAddress}}). For any privacy question, write to **{{privacyContactEmail}}**.
 
-For the purposes of the General Data Protection Regulation (Regulation (EU) 2016/679 — "GDPR"), markoto is the **data controller** of personal data you provide directly (your account, your billing details). Where you use markoto inside a workspace owned by another party, that workspace's owner is the controller of any content you place inside their workspace, and markoto acts as a **processor** under a Data Processing Addendum (see `/legal/dpa`).
+For the purposes of the General Data Protection Regulation (Regulation (EU) 2016/679 — "GDPR"), markoto is the **data controller** of personal data you provide directly (your account and, if you join it, the paid-plans waitlist). Where you use markoto inside a workspace owned by another party, that workspace's owner is the controller of any content you place inside their workspace, and markoto acts as a **processor** under a Data Processing Addendum (see `/legal/dpa`).
 
 ## 2. What data we process and why
 
 We follow the principle of data minimisation: we collect the smallest amount of data needed for each purpose, and we tell you what each purpose is.
 
-The full table of processing purposes — including lawful basis, data categories, retention period, and which sub-processors are involved — is rendered at the end of this page from our internal registry. Any change to this table is treated as a material change to this policy and bumps the policy version (see §13).
+The full table of processing purposes — including lawful basis, data categories, retention period, and which sub-processors are involved — is set out in the register in §13 below, which is generated from our internal registry. Any change to this register is treated as a material change to this policy and bumps the policy version (see §14).
 
 ## 3. Lawful basis (GDPR Article 6)
 
 Each processing activity rests on one of the following lawful bases:
 
-- **Contract** (Article 6(1)(b)) — for everything required to deliver the service you signed up for: account creation, document storage, AI assistance, billing.
-- **Legal obligation** (Article 6(1)(c)) — for retention obligations under tax law (billing records) and security audit logging.
+- **Contract** (Article 6(1)(b)) — for everything required to deliver the service you signed up for: account creation, document storage, AI assistance, and — once paid plans are offered — billing.
+- **Legal obligation** (Article 6(1)(c)) — for security audit logging and, once paid plans are offered, retention obligations under tax law (billing records).
 - **Legitimate interest** (Article 6(1)(f)) — for fraud and abuse prevention, error monitoring, and security telemetry. You can object to processing on this basis (see §6).
 - **Consent** (Article 6(1)(a)) — for product analytics and session replay (we never load these unless you've granted consent in the cookie banner), and for the paid-plans waitlist (only if you tick the consent box when you sign up and then confirm the email we send you). You can withdraw at any time.
 
 ## 4. Sub-processors and international transfers
 
-We use a small list of sub-processors, all governed by GDPR Article 28 contracts. The current list is at `/legal/sub-processors`.
+We use a small list of sub-processors, all governed by GDPR Article 28 contracts. The current list is at `/legal/sub-processors`. That list shows only the providers this deployment actually uses: for example, Stripe (payment processing) appears only once paid plans are switched on, and an AI provider that **you** connect yourself (see §8) is not our sub-processor and is not listed.
 
 Where a sub-processor processes data outside the European Economic Area, we rely on:
 
@@ -46,15 +46,16 @@ We notify workspace-owner customers at least 30 days in advance of any new sub-p
 
 ## 5. Storage location and retention
 
-Application data and documents live in OVHcloud's managed PostgreSQL and Object Storage in the European Union (France). AI-related processing is performed by EU-resident providers — Mistral AI (France), Jina AI (Germany), Staan (EU), and Black Forest Labs (EU-pinned region) — routed through our self-hosted LiteLLM proxy. Billing data is held by Stripe under EU/US dual hosting. Application-error telemetry is processed by Sentry in its EU (Frankfurt) region. Transactional emails (deletion confirmations, data-export-ready notifications, breach notifications) are dispatched via Resend; only the recipient address, subject line, and message body transit Resend's systems, and Resend retains those for 30 days for deliverability monitoring.
+Application data and documents live in OVHcloud's managed PostgreSQL and Object Storage in the European Union (France). AI-related processing is performed by EU-resident providers — Mistral AI (France), Jina AI (Germany), Staan (EU), and Black Forest Labs (EU-pinned region) — routed through our self-hosted LiteLLM proxy. While the service is free we do not process payment data; once paid plans are offered, billing data will be held by Stripe. Application-error telemetry is processed by Sentry in its EU (Frankfurt) region. Transactional emails (deletion confirmations, data-export-ready notifications, breach notifications) are dispatched via Resend; only the recipient address, subject line, and message body transit Resend's systems, and Resend retains those for 30 days for deliverability monitoring.
 
-Retention follows the per-purpose schedule in §11. As a general rule:
+Retention follows the per-purpose schedule in the register in §13. As a general rule:
 
 - **Account data** persists until you request deletion.
 - **Documents and content** persist until you delete them or your account.
+- **Anonymous documents** (created without signing in, and not part of a workspace) are deleted automatically after 180 days without activity on the hosted service. Self-hosted deployments may configure a different period or disable this clean-up. Documents owned by an account and workspace documents are not deleted automatically.
 - **AI prompt and tool-call records** are retained for 90 days for abuse-prevention review, then purged.
-- **Audit logs** are retained for the period required by law (typically 12 months for security-related logs).
-- **Billing records** are retained for the legal minimum imposed by EU and member-state tax law (typically 7–10 years).
+- **Audit logs** are kept for as long as needed for security and legal purposes. When you delete your account, your account id is removed from them (see §5b).
+- **Billing records** do not exist while the service is free. Once paid plans are offered, they will be retained for the legal minimum imposed by EU and member-state tax law (typically 7–10 years).
 - **Transactional email metadata** (recipient + send timestamp + delivery status) is retained by Resend for 30 days; we do not store email bodies after delivery.
 - **Paid-plans waitlist.** If you join the waitlist on the pricing page, we store your email address, the language you signed up in, which version of the consent text you agreed to, when you signed up and confirmed, and — if you were signed in — a link to your account. We do not store your IP address. We use this only to tell you when paid plans launch. Your entry counts only after you click the confirmation link we email you (double opt-in); unconfirmed entries are deleted after 7 days. Every email contains an unsubscribe link that deletes your entry immediately; otherwise we delete the list at the latest 3 months after sending the launch announcement. Deleting your account also deletes a linked entry, and your data export includes it. The confirmation email is sent via Resend; the list itself is stored in OVHcloud's managed PostgreSQL in the EU.
 
@@ -68,9 +69,9 @@ We want to be fully transparent about what deletion does. The button at `/settin
 - **Every document you own** — including documents you've shared with collaborators in edit mode. Co-collaborators lose access to those documents at the same time. *If you want collaborators to keep a document, transfer it to them or duplicate it under their account before requesting deletion.*
 - **Every saved theme** under your account.
 - **Every workspace where you are the only member** — and every document and knowledge file inside those workspaces. *If you want to keep workspace content, either invite a co-member before deleting your account, or download the documents first using the data-export feature at `/settings/profile`.*
-- **Your AI usage** — past prompts (we keep these privately for 90 days for abuse review), the per-billing-period interaction counter, any open AI sessions.
+- **Your AI usage** — past prompts (we keep these privately for 90 days for abuse review), any open AI sessions, and any bring-your-own-key AI provider settings with their encrypted API keys (see §8).
 - **Your data export jobs** and any ZIP files we'd prepared for you.
-- **Your Stripe customer record** — we instruct Stripe to delete it. Stripe retains the underlying invoice and payment records for the period required by tax law (typically 7 to 10 years) regardless of our request.
+- **Your Stripe customer record, if one exists** (only possible once paid plans are offered) — we instruct Stripe to delete it. Stripe retains the underlying invoice and payment records for the period required by tax law (typically 7 to 10 years) regardless of our request.
 
 ### What gets anonymised — kept on the platform with your name removed
 
@@ -95,7 +96,7 @@ Because workspace cascade-delete removes content owned by other members of a wor
 
 ### Your data export
 
-Before requesting account deletion, you can use the **data export** feature at `/settings/profile` to receive a ZIP archive of everything we hold about you — documents in markdown, comments you authored, billing history, workspace memberships, AI usage logs, and consent decisions. This is a separate flow that produces a downloadable file you can keep regardless of what happens to your markoto account.
+Before requesting account deletion, you can use the **data export** feature at `/settings/profile` to receive a ZIP archive of everything we hold about you — documents in markdown, comments you authored, workspace memberships, AI usage logs, your AI provider settings (provider URL, model and capability — never the API key), your waitlist entry if any, consent decisions and, once paid plans exist, billing history. This is a separate flow that produces a downloadable file you can keep regardless of what happens to your markoto account.
 
 ### How long the cascade actually takes
 
@@ -122,7 +123,7 @@ We respond to all requests within 30 days. We do not charge for these requests e
 
 ## 7. Automated decision-making
 
-markoto does not make decisions producing legal or similarly significant effects on you based solely on automated processing. The AI assistant offers suggestions you choose to accept or reject — final authorship is always yours. Stripe performs automated risk scoring on payment attempts; if an attempt is declined on this basis you can request human review by writing to us.
+markoto does not make decisions producing legal or similarly significant effects on you based solely on automated processing. The AI assistant offers suggestions you choose to accept or reject — final authorship is always yours. Once paid plans are offered, Stripe will perform automated risk scoring on payment attempts; if an attempt is declined on this basis you will be able to request human review by writing to us.
 
 ## 8. AI features and transparency
 
@@ -130,9 +131,9 @@ markoto includes an AI writing assistant and a knowledge-base retrieval system. 
 
 ### Your own AI provider (bring your own key)
 
-You can connect your own AI provider account (any OpenAI-compatible service, for example Mistral AI, OpenAI or a self-hosted model) under **Settings → AI provider**, separately for chat, image generation and voice transcription. When you do, the content needed for that feature — your prompt, the relevant document context, voice recordings, and the generated result — is sent through our LiteLLM proxy to **the provider you chose, under your own agreement with that provider**. markoto does not select that provider, and it is not one of our sub-processors; its terms and data-protection practices (including where it processes data and whether it trains on API content) are those of your contract with it. We store your provider settings (provider URL, model name, and your API key, encrypted at rest) until you remove them or delete your account; the key is never shown back to you in full, never included in your data export, and never logged. Prompt and tool-call records follow the 90-day retention above. Embeddings, web search and single-page fetching always use our own EU-resident providers listed above.
+You can connect your own AI provider account (an OpenAI-compatible service from the choices offered in the settings, for example Mistral AI or OpenAI; self-hosted deployments of markoto may allow others) under **Settings → AI provider**, separately for chat, image generation and voice transcription. When you do, the content needed for that feature — your prompt, the relevant document context, voice recordings, and the generated result — is sent through our LiteLLM proxy to **the provider you chose, under your own agreement with that provider**. markoto does not select that provider, and it is not one of our sub-processors; its terms and data-protection practices (including where it processes data and whether it trains on API content) are those of your contract with it. We store your provider settings (provider URL, model name, and your API key, encrypted at rest) until you remove them or delete your account; only the last four characters of the key are ever shown back to you, the key is never included in your data export (the export contains the provider URL, model and capability only), and we do not write it to our application logs. Prompt and tool-call records follow the 90-day retention above. Embeddings, web search and single-page fetching always use our own EU-resident providers listed above.
 
-If you would prefer a workspace where AI features are disabled entirely, your workspace administrator can toggle this in workspace settings. Anonymous and standalone documents may still use AI features unless you opt out at the account level (forthcoming).
+Using the AI features requires signing in. They are optional: document content is sent to an AI provider only when you invoke the assistant or upload files to a workspace knowledge base (which are embedded by Jina AI).
 
 ## 9. Cookies and similar technologies
 
@@ -159,12 +160,19 @@ We protect data using transport encryption (TLS), at-rest encryption at the OVHc
 
 If we become aware of a personal data breach affecting you, we will notify the supervisory authority within 72 hours and notify you without undue delay if the breach poses a high risk to your rights.
 
-## 13. Changes to this policy
+## 13. Register of processing purposes
+
+The table below is generated from our internal registry of processing purposes and lists only what this deployment actually does (for example, billing is listed only once paid plans are switched on). The table is maintained in English.
+
+{{processingPurposesTable}}
+
+## 14. Changes to this policy
 
 This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Material changes (new processing purposes, new sub-processors, changed retention) trigger a version bump and an in-product re-acceptance prompt. Previous versions are available on request from **{{privacyContactEmail}}**.
 
 ### Change log
 
+- **v6 (2026-10-26), editorial alignment with the free-only service.** Stripe and billing are described as relevant only once paid plans are offered (the sub-processor list and the register omit Stripe while billing is off). The register of processing purposes is now actually shown in §13. Corrected statements about audit-log retention, anonymous-document clean-up (180 days of inactivity), the retired interaction counter and the (non-existent) account-level AI opt-out.
 - **v6 (2026-10-26).** Added the `user_directed_ai_provider` processing purpose: you can bring your own AI provider (chat, image generation, voice transcription). Content for those features is then sent to the provider you choose under your agreement with it; we store your provider settings with the API key encrypted at rest until you remove them or delete your account.
 - **v5 (2026-10-26).** Added the `paid_plans_waitlist` processing purpose (consent, double opt-in): email address, locale, consent record and optional account link, kept until you unsubscribe or at the latest 3 months after the paid-plans launch announcement; unconfirmed sign-ups deleted after 7 days. Stored in OVHcloud (EU); confirmation emails via Resend.
 - **v2 (2026-05-05).** Added Resend, Inc. as a sub-processor for transactional email delivery (deletion confirmations, data-export-ready notifications). Email metadata is retained by Resend for 30 days; bodies are not archived. The `transactional_email` processing purpose now references Resend in the lawful-basis registry.

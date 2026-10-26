@@ -1,8 +1,8 @@
 ---
 slug: dpa
 locale: en
-version: 1
-effectiveDate: 2026-05-04
+version: 2
+effectiveDate: 2026-10-26
 translationStatus: authoritative
 ---
 
@@ -47,6 +47,8 @@ The Processor will:
 ## 6. Sub-processors
 
 The Controller authorises the Processor to engage the sub-processors listed at `/legal/sub-processors`. The Processor will notify the Controller at least 30 days in advance of any new sub-processor. If the Controller objects on reasonable data-protection grounds, the Processor and Controller will work in good faith to resolve the objection; if no resolution is reached, the Controller may terminate the Service.
+
+**Providers connected by members (bring your own key).** A workspace member may connect their own AI provider account in their personal settings. When that member uses the AI features, content they send (including workspace content in the document they are working on) is transmitted to that provider on the member's instruction. Such a provider is not engaged by the Processor, is not a sub-processor under this DPA, and is not listed at `/legal/sub-processors`. The Controller is responsible for deciding whether, and with what content, its members may use their own AI providers, and for instructing its members accordingly.
 
 ## 7. International transfers
 
