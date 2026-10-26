@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import MarkdownIt from 'markdown-it'
 import { resolveLegalEntity } from '~~/shared/legal/entity'
+import { renderProcessingPurposesMarkdown } from '~~/server/legal/registryView'
+import { isBillingEnabled } from '~~/server/utils/billingMode'
 import {
   ABUSE_POLICY_EFFECTIVE_DATE,
   ABUSE_POLICY_VERSION,
@@ -152,7 +154,8 @@ export default defineEventHandler(async (event) => {
     representedBy: entity.representedBy,
     uid: entity.uid,
     chId: entity.chId,
-    ehraId: entity.ehraId
+    ehraId: entity.ehraId,
+    processingPurposesTable: renderProcessingPurposesMarkdown(isBillingEnabled())
   }
   const substituted = body.replace(/\{\{(\w+)\}\}/g, (full, key: string) => {
     if (!Object.hasOwn(substitutions, key)) return full

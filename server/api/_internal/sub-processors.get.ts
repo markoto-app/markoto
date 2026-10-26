@@ -1,4 +1,5 @@
-import { SUB_PROCESSORS } from '../../legal/subProcessors'
+import { visibleSubProcessors } from '../../legal/registryView'
+import { isBillingEnabled } from '../../utils/billingMode'
 
 // Public-readable sub-processor registry. Surfaces the structured
 // data from `server/legal/subProcessors.ts` so the client-side
@@ -9,10 +10,10 @@ import { SUB_PROCESSORS } from '../../legal/subProcessors'
 // categories of recipients) of personal data. Anonymous + logged-in
 // readers alike — and any regulator — should be able to fetch this.
 //
-// The response is a copy of the registry (no transforms): we
-// return the same shape `SUB_PROCESSORS` exports so the page can
-// render without re-mapping fields.
+// Deployment-aware: with billing off Stripe is never contacted, so it
+// is omitted (see `server/legal/registryView.ts`). Otherwise the
+// response is the registry shape unchanged.
 
 export default defineEventHandler(() => {
-  return SUB_PROCESSORS
+  return visibleSubProcessors(isBillingEnabled())
 })
