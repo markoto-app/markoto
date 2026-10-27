@@ -479,10 +479,18 @@ export class EditorPage {
    *   2. POST to /api/_test/login → response sets a sealed session
    *      cookie on the page context.
    *
+   * `options.email` stores a verified account email on the row — what
+   * workspace invitations are matched against (the invited teammate in
+   * `invite-a-teammate`). Omitted = NULL, like an OAuth account without
+   * a verified address.
+   *
    * Returns the user id so callers can use it (e.g. for billing
    * resolution checks).
    */
-  async loginAsTestUser(name: string): Promise<{ userId: number, name: string }> {
+  async loginAsTestUser(
+    name: string,
+    options: { email?: string } = {}
+  ): Promise<{ userId: number, name: string }> {
     // Postgres lives at the ephemeral test stack's port (5433). The
     // pool stays open per test for ~25ms total work; closing it after
     // every login would force a fresh TCP handshake on every flow.
@@ -504,15 +512,16 @@ export class EditorPage {
       // and broke every flow on the next bump).
       const result = await pool.query<{ id: number }>(
         `INSERT INTO users (
-           github_id, name, plan,
+           github_id, name, email, plan,
            age_confirmed_at,
            privacy_version_accepted, privacy_version_accepted_locale,
            tos_version_accepted, tos_version_accepted_locale,
            dpa_version_accepted, dpa_version_accepted_locale
          )
-         VALUES ($1, $2, 'free', NOW(), $3, 'en', $4, 'en', $5, 'en')
+         VALUES ($1, $2, $6, 'free', NOW(), $3, 'en', $4, 'en', $5, 'en')
          ON CONFLICT (github_id) DO UPDATE SET
            name = EXCLUDED.name,
+           email = EXCLUDED.email,
            age_confirmed_at = EXCLUDED.age_confirmed_at,
            privacy_version_accepted = EXCLUDED.privacy_version_accepted,
            privacy_version_accepted_locale = EXCLUDED.privacy_version_accepted_locale,
@@ -521,7 +530,7 @@ export class EditorPage {
            dpa_version_accepted = EXCLUDED.dpa_version_accepted,
            dpa_version_accepted_locale = EXCLUDED.dpa_version_accepted_locale
          RETURNING id`,
-        [githubId, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION]
+        [githubId, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION, options.email ?? null]
       )
       const userId = result.rows[0].id
       await this.loginAsExistingUser(userId, name)

@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures/flow'
-import { Pool } from 'pg'
 
 // Tier 2: "Invite a teammate to your workspace".
 //
@@ -13,13 +12,13 @@ import { Pool } from 'pg'
 // from one identity (a PENDING invitation — nobody joins without
 // accepting); the teammate signs in with the invited email, finds the
 // invitation on their dashboard and accepts it. The invitation is by
-// EMAIL — not username — so we pre-create the teammate's user row with
-// a known email and pass the SAME email to the invite form.
+// EMAIL — not username — so the teammate's account is created with a
+// known email and the SAME email goes into the invite form.
 //
-// Setup shortcut: workspace + teammate user row are created via
-// direct DB INSERT; the story is the invite mechanic, not the
-// surrounding plumbing. Driving workspace creation through the UI
-// is its own flow (`workspace-tour`).
+// Setup shortcut: the teammate's account (via the test login shim) and
+// the workspace (via the API) skip the UI; the story is the invite
+// mechanic, not the surrounding plumbing. Driving workspace creation
+// through the UI is its own flow (`workspace-tour`).
 //
 // Runs on desktop AND mobile. Same workspace landing page →
 // `WorkspaceMemberAvatars` (no responsive hide) → members modal
@@ -31,28 +30,15 @@ import { Pool } from 'pg'
 test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  // Pre-create the teammate's user row with a known email. Direct
-  // INSERT because `loginAsTestUser` doesn't take an email argument
-  // (its shape is name + plan; email is set during real OAuth from
-  // the GitHub/Google profile, not by the test shim).
+  // Sam, the invitee: a second browser context with its own session. The
+  // account carries a verified email — the address the invitation is
+  // matched against — and the post-onboarding policy acceptance every
+  // test user gets (otherwise the onboarding gate covers the dashboard).
+  // The invitation is by EMAIL, never by username, so the SAME address
+  // goes into the invite form below.
   const teammateEmail = `sam-reeves-${Date.now()}@team.example`
-  const pool = new Pool({
-    connectionString: 'postgres://ypad:testpassword@localhost:5433/ypad_test',
-    max: 1
-  })
-  let teammateUserId: number
-  try {
-    const r = await pool.query<{ id: number }>(
-      `INSERT INTO users (github_id, name, email, plan)
-       VALUES ($1, $2, $3, 'free')
-       ON CONFLICT (github_id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name
-       RETURNING id`,
-      [`flow-test-teammate-${Date.now()}`, 'Sam Reeves', teammateEmail]
-    )
-    teammateUserId = r.rows[0].id
-  } finally {
-    await pool.end()
-  }
+  const teammate = await flow.spawn('teammate')
+  const { userId: teammateUserId } = await teammate.editor.loginAsTestUser('Sam Reeves', { email: teammateEmail })
 
   // Maya (the admin) logs in + creates the workspace via API.
   await editor.page.loginAsTestUser('Maya Chen')
@@ -131,14 +117,6 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
     + 'workspace name, role and who invited them. (Where email is set up, '
     + 'Sam also gets an invitation email with a one-time link.)'
   )
-
-  // Spawn Sam — fresh BrowserContext, separate identity. Their
-  // session has to map to the SAME user row we pre-created above
-  // (so the invite finds them). `loginAsTestUser` would create a
-  // NEW user keyed on a fresh github_id; use `loginAsExistingUser`
-  // to seal a session against the pre-existing id instead.
-  const teammate = await flow.spawn('teammate')
-  await teammate.editor.loginAsExistingUser(teammateUserId, 'Sam Reeves')
 
   await teammate.page.goto('/')
   const inviteList = teammate.page.locator('[data-testid="workspace-invite-list"]')
