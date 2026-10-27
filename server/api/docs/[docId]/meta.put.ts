@@ -33,6 +33,15 @@ export default defineEventHandler(async (event) => {
   // referenced) and the request origin, so it is checked here rather
   // than in the pure field parsers.
   assertValidThemeCustomCss(updates.theme, docId, event)
+  // Same for theme images: the schema checks the shape, but only this
+  // document's uploads (or a bundled asset) may be referenced.
+  if (updates.theme && themeImagesForDoc(updates.theme, docId).dropped.length > 0) {
+    throw createError({
+      statusCode: 400,
+      message: 'Theme images must be uploaded to this document',
+      data: { code: 'theme/image-not-in-doc' }
+    })
+  }
 
   // Snapshot the prior access mode BEFORE the write so we can record
   // the before/after for the audit row. Only fetched when accessMode

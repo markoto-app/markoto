@@ -8,36 +8,66 @@
  * `::footnote-call`, etc.) it doesn't whitelist. A class selector on a
  * real `<span>` survives the polisher's pass and renders identically.
  *
+ * Works on PARSED HTML (an inert `<template>`), never on the string: the
+ * input is sanitised markup, and splitting it with regexes could cut a
+ * tag in half and turn attribute text into markup. Only a text node's
+ * first code point is ever moved into the span.
+ *
  * Edge cases honored:
- *   - HTML starts with non-`<p>` (heading/blockquote/image): the regex
- *     finds the FIRST `<p>` regardless of position. The cover section
- *     prepended by `buildCoverHtml` uses `<h1>`/`<div>`, never `<p>`,
- *     so the wrap correctly skips past the cover to the body's first
- *     paragraph.
- *   - Leading whitespace inside the `<p>`: skipped before the wrap so
- *     the cap is the first non-space glyph.
- *   - Empty paragraph (`<p></p>`): no wrap.
- *   - First "letter" is a multibyte character (emoji, CJK, surrogate
- *     pair): we wrap one full code point via `Array.from`.
- *   - No `<p>` in the input at all: returned unchanged.
- *   - First `<p>` has attributes (e.g. `<p class="text-center">`):
- *     attributes are preserved in the wrapped output.
+ *   - HTML starts with non-`<p>` (heading/blockquote/image): the FIRST
+ *     `<p>` in document order is used. The cover section prepended by
+ *     `buildCoverHtml` uses `<h1>`/`<div>`, never `<p>`, so the wrap
+ *     skips past the cover to the body's first paragraph.
+ *   - Leading whitespace inside the `<p>`: skipped, the cap is the first
+ *     non-space glyph.
+ *   - Paragraph starting with an inline element (`<strong>`, `<a>`, …):
+ *     the cap is that element's first letter. One starting with an image
+ *     or line break gets no cap.
+ *   - Empty / whitespace-only paragraph, no `<p>` at all, or already
+ *     wrapped: returned unchanged (the input string itself).
+ *   - Multibyte first character (emoji, CJK, surrogate pair): one full
+ *     code point via `Array.from`.
+ *   - Browser-only (needs `document`); all callers run client-side.
  */
+
+/** Inline elements we look inside for the first letter. */
+const DESCEND_INTO = new Set(['a', 'abbr', 'b', 'code', 'del', 'em', 'i', 'ins', 'mark', 's', 'span', 'strong', 'sub', 'sup', 'u'])
+
+const TEXT_NODE = 3
+const ELEMENT_NODE = 1
+
+function firstTextNode(parent: Node): Text | null {
+  for (const child of Array.from(parent.childNodes)) {
+    if (child.nodeType === TEXT_NODE) {
+      if (child instanceof Text && (child.data.trim() !== '')) return child
+      continue
+    }
+    if (child.nodeType !== ELEMENT_NODE || !(child instanceof Element)) continue
+    if (child.classList.contains('markoto-dropcap')) return null
+    return DESCEND_INTO.has(child.tagName.toLowerCase()) ? firstTextNode(child) : null
+  }
+  return null
+}
+
 export function wrapFirstLetterAsDropCap(html: string): string {
-  const match = /<p(\s[^>]*)?>([\s\S]*?)<\/p>/i.exec(html)
-  if (!match) return html
-  const [full, attrs = '', inner] = match
-  if (!inner) return html
-  const leading = /^\s*/.exec(inner)?.[0] ?? ''
-  const rest = inner.slice(leading.length)
-  if (!rest) return html
-  // `Array.from` iterates by code point so surrogate pairs (emoji, some
-  // CJK) get treated as one character — without this, slice(0, 1) would
-  // split a 2-unit code point and produce an invalid leading char.
-  const chars = Array.from(rest)
-  if (chars.length === 0) return html
-  const first = chars[0]!
-  const tail = rest.slice(first.length)
-  const wrapped = `<p${attrs}>${leading}<span class="markoto-dropcap">${first}</span>${tail}</p>`
-  return html.replace(full, wrapped)
+  const tpl = document.createElement('template')
+  tpl.innerHTML = html
+  const p = tpl.content.querySelector('p')
+  if (!p) return html
+  const text = firstTextNode(p)
+  if (!text) return html
+  const leading = /^\s*/.exec(text.data)?.[0] ?? ''
+  const rest = text.data.slice(leading.length)
+  const first = Array.from(rest)[0]
+  if (!first) return html
+
+  const doc = text.ownerDocument
+  const span = doc.createElement('span')
+  span.className = 'markoto-dropcap'
+  span.textContent = first
+  const tail = doc.createTextNode(rest.slice(first.length))
+  text.data = leading
+  text.after(span, tail)
+  if (leading === '') text.remove()
+  return tpl.innerHTML
 }

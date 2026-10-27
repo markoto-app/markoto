@@ -5,7 +5,10 @@ import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 import { renderMarkdown } from '~/utils/renderMarkdown'
-import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
+import { composeFinalHtml } from '~/utils/composeFinalHtml'
+import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { themeImagesForDoc } from '~~/shared/utils/themeImages'
+import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { sanitizeCustomCssForRender, currentAppOrigins } from './customCssLoader'
 
 /**
@@ -202,31 +205,35 @@ export async function printDocumentAsPdf(opts: {
   docId: string
   tocTitle?: string
 }): Promise<void> {
+  // Re-validate the theme here: it comes from `ymeta.theme`, which any
+  // editor can write over Y.js. Invalid → default theme; image URLs that
+  // don't belong to this document are dropped.
+  const theme = themeImagesForDoc(isValidTheme(opts.theme) ? opts.theme : defaultTheme, opts.docId).theme
   const rawHtml = await renderMarkdown(opts.source)
   // Replace any mermaid code blocks with their rendered SVG BEFORE the
   // iframe builds — paged.js then paginates plain inline SVG.
-  const bodyHtml = await transformMermaid(rawHtml, opts.theme.mermaid.theme)
+  const bodyHtml = await transformMermaid(rawHtml, theme.mermaid.theme)
   // Cover + drop-cap composition matches the live preview pipeline via
-  // the shared helper. See `shared/utils/composeFinalHtml.ts`.
+  // the shared helper. See `app/utils/composeFinalHtml.ts`.
   const html = composeFinalHtml({
-    theme: opts.theme,
+    theme,
     title: opts.title || '',
     dateIso: new Date().toISOString().slice(0, 10),
     bodyHtml
   })
   // Same render-time sanitize as the live preview (Y.js writes bypass
   // the server-side check, so the stored CSS is never trusted as-is).
-  const customCss = await sanitizeCustomCssForRender(opts.theme.customCss, {
+  const customCss = await sanitizeCustomCssForRender(theme.customCss, {
     docId: opts.docId,
     allowedOrigins: currentAppOrigins()
   })
-  const themeCss = themeToCss(opts.theme, {
+  const themeCss = themeToCss(theme, {
     title: opts.title || '',
     date: new Date().toISOString().slice(0, 10),
     tocTitle: opts.tocTitle || 'Table of Contents',
     customCss
   })
-  const fontsImport = themeFontsImport(opts.theme)
+  const fontsImport = themeFontsImport(theme)
 
   return new Promise<void>((resolve, reject) => {
     const iframe = document.createElement('iframe')
@@ -288,7 +295,7 @@ export async function printDocumentAsPdf(opts: {
       // iframe (see usePagedPreview.ts and shared/utils/hljsCdn.ts).
       // Variant follows the doc theme's `code.theme`; 'none' skips
       // the link entirely so plain monospace renders.
-      const hljsUrl = hljsThemeUrl(opts.theme.code.theme)
+      const hljsUrl = hljsThemeUrl(theme.code.theme)
       if (hljsUrl) {
         const hljsLink = idoc.createElement('link')
         hljsLink.rel = 'stylesheet'

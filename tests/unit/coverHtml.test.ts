@@ -165,14 +165,28 @@ describe('buildCoverHtml — HTML escaping (XSS defense)', () => {
     expect(buildCoverHtml(t, 'T', '2026-04-29'))
       .toContain('Alice &amp; Bob')
   })
-  test('escapes < > & in logo URL', () => {
+  // Regression: the logo URL is interpolated into an attribute, where a
+  // quote ends the value. A theme can reach the renderer without HTTP
+  // validation (Y.js), so the builder itself must not trust it.
+  test('drops a logo URL that is not an upload path (attribute breakout)', () => {
+    const t: DocTheme = {
+      ...baseTheme,
+      cover: { ...baseTheme.cover, showLogo: true },
+      brand: { logoUrl: 'x" onerror="alert(1)', logoHeight: 48 }
+    }
+    const out = buildCoverHtml(t, 'T', '2026-04-29')
+    expect(out).not.toContain('onerror')
+    expect(out).not.toContain('markoto-cover-logo')
+  })
+  test('drops a logo URL with markup characters', () => {
     const t: DocTheme = {
       ...baseTheme,
       cover: { ...baseTheme.cover, showLogo: true },
       brand: { logoUrl: '/x"><script>', logoHeight: 48 }
     }
-    expect(buildCoverHtml(t, 'T', '2026-04-29'))
-      .toContain('src="/x"&gt;&lt;script&gt;')
+    const out = buildCoverHtml(t, 'T', '2026-04-29')
+    expect(out).not.toContain('<script')
+    expect(out).not.toContain('markoto-cover-logo')
   })
 })
 
@@ -188,7 +202,7 @@ describe('buildCoverHtml — element ordering', () => {
         showAuthors: true,
         authors: ['A']
       },
-      brand: { logoUrl: '/logo.png', logoHeight: 48 }
+      brand: { logoUrl: '/api/files/doc1/AbCdEfGhIjKl.png', logoHeight: 48 }
     }
     const out = buildCoverHtml(t, 'TITLE', '2026-04-29')
     const iLogo = out.indexOf('cover-logo')
@@ -225,7 +239,7 @@ describe('buildCoverHtml — never emits <p> tags', () => {
         authors: ['A', 'B'],
         showLogo: true
       },
-      brand: { logoUrl: '/logo.png', logoHeight: 48 }
+      brand: { logoUrl: '/api/files/doc1/AbCdEfGhIjKl.png', logoHeight: 48 }
     }
     const out = buildCoverHtml(t, 'T', '2026-04-29')
     expect(out).not.toMatch(/<p[\s>]/)

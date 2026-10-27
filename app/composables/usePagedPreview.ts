@@ -1,7 +1,10 @@
 import type { Ref } from 'vue'
 import type { DocTheme } from '~~/shared/types/theme'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
-import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
+import { composeFinalHtml } from '~/utils/composeFinalHtml'
+import { themeImagesForDoc } from '~~/shared/utils/themeImages'
+import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
 import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
@@ -178,20 +181,25 @@ export function usePagedPreview(opts: {
       pendingRender = true
       return
     }
-    const themeCss = themeToCss(opts.theme.value, {
+    // Re-validated at render time: the theme may have arrived over Y.js.
+    // Invalid → default theme; image URLs that don't belong to this
+    // document are dropped.
+    const current = opts.theme.value
+    const theme = themeImagesForDoc(isValidTheme(current) ? current : defaultTheme, opts.docId.value).theme
+    const themeCss = themeToCss(theme, {
       title: opts.title.value || '',
       date: new Date().toISOString().slice(0, 10),
       tocTitle: tocTitle.value,
       customCss
     })
-    const fontsImport = themeFontsImport(opts.theme.value)
-    const hljsUrl = hljsThemeUrl(opts.theme.value.code.theme)
-    const mermaidTheme = opts.theme.value.mermaid.theme
+    const fontsImport = themeFontsImport(theme)
+    const hljsUrl = hljsThemeUrl(theme.code.theme)
+    const mermaidTheme = theme.mermaid.theme
     // Compose the final HTML through the shared helper so live preview,
     // browser print, and the server-rendered PDF stay byte-identical
     // (one place to change cover/dropcap composition order).
     const html = composeFinalHtml({
-      theme: opts.theme.value,
+      theme,
       title: opts.title.value || '',
       dateIso: new Date().toISOString().slice(0, 10),
       bodyHtml: opts.html.value

@@ -10,6 +10,8 @@
 // list response anyway. Saving the round-trip here keeps the
 // expansion instant.
 
+import { safeLinkUrl } from '~/utils/activityFeedHelpers'
+
 interface Source { title: string, uri: string }
 interface FetchImage { url: string, description?: string }
 
@@ -26,9 +28,21 @@ interface AiToolMetadata {
   images?: FetchImage[]
 }
 
-const _props = defineProps<{
+const props = defineProps<{
   metadata: AiToolMetadata
 }>()
+
+// Every URL below comes from a tool input or a fetched page, so it is
+// bound only after `safeLinkUrl` (http(s) or a relative path); entries
+// without a usable URL are not rendered as links/images.
+const sources = computed(() => (props.metadata.sources ?? [])
+  .map(src => ({ title: src.title, uri: safeLinkUrl(src.uri) }))
+  .filter((src): src is Source => src.uri !== undefined))
+const pageUrl = computed(() => safeLinkUrl(props.metadata.url))
+const images = computed(() => (props.metadata.images ?? [])
+  .map(img => ({ description: img.description, url: safeLinkUrl(img.url) }))
+  .filter((img): img is FetchImage => img.url !== undefined))
+const viewedSrc = computed(() => safeLinkUrl(props.metadata.src))
 
 const { t } = useI18n()
 
@@ -55,7 +69,7 @@ function hostOf(rawUrl: string): string {
         “{{ metadata.query }}”
       </div>
       <div
-        v-if="metadata.sources && metadata.sources.length > 0"
+        v-if="sources.length > 0"
         class="space-y-1"
       >
         <div class="text-[11px] uppercase tracking-wide text-muted">
@@ -63,7 +77,7 @@ function hostOf(rawUrl: string): string {
         </div>
         <ul class="space-y-1">
           <li
-            v-for="(src, i) in metadata.sources"
+            v-for="(src, i) in sources"
             :key="i"
             class="text-xs"
           >
@@ -96,8 +110,8 @@ function hostOf(rawUrl: string): string {
     <!-- fetch_url: page summary + image strip -->
     <template v-else-if="metadata.tool === 'fetch_url'">
       <a
-        v-if="metadata.url"
-        :href="metadata.url"
+        v-if="pageUrl"
+        :href="pageUrl"
         target="_blank"
         rel="noopener noreferrer"
         class="text-xs text-primary hover:underline flex items-center gap-1.5 break-all"
@@ -106,7 +120,7 @@ function hostOf(rawUrl: string): string {
           name="i-lucide-external-link"
           class="size-3 shrink-0"
         />
-        {{ metadata.url }}
+        {{ pageUrl }}
       </a>
       <div
         v-if="metadata.summary"
@@ -115,11 +129,11 @@ function hostOf(rawUrl: string): string {
         {{ metadata.summary }}
       </div>
       <div
-        v-if="metadata.images && metadata.images.length > 0"
+        v-if="images.length > 0"
         class="grid grid-cols-3 gap-1"
       >
         <a
-          v-for="(img, i) in metadata.images"
+          v-for="(img, i) in images"
           :key="i"
           :href="img.url"
           target="_blank"
@@ -158,14 +172,14 @@ function hostOf(rawUrl: string): string {
     <!-- view_image: thumbnail of the image AI looked at -->
     <template v-else-if="metadata.tool === 'view_image'">
       <a
-        v-if="metadata.src"
-        :href="metadata.src"
+        v-if="viewedSrc"
+        :href="viewedSrc"
         target="_blank"
         rel="noopener noreferrer"
         class="block rounded overflow-hidden border border-default/60 max-h-48 bg-muted"
       >
         <img
-          :src="metadata.src"
+          :src="viewedSrc"
           alt=""
           class="w-full h-full object-contain"
           loading="lazy"

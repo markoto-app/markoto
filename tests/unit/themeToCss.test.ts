@@ -419,3 +419,36 @@ describe('themeToCss — special characters are interpolated safely', () => {
     expect(themed).toContain('--doc-brand')
   })
 })
+
+describe('themeToCss — generated CSS strings and image URLs (regression)', () => {
+  const withHeader = (header: Partial<DocTheme['header']>): DocTheme => ({
+    ...markoto,
+    header: { ...markoto.header, left: '{title}', center: '', right: '', imageUrl: '', ...header }
+  })
+
+  test('a newline in the title cannot end the CSS string and start a new rule', () => {
+    const css = themeToCss(withHeader({}), { ...runtime, title: 'x\n}} .paged-doc p { color: red } @page { x: "' })
+    // The raw newline is escaped, so the injected text stays inside the
+    // string: `}} .paged-doc p { color: red }` never starts a line of CSS.
+    expect(css).not.toContain('\n}} .paged-doc p')
+    const box = /@top-left \{\s*content: ("(?:[^"\\\n]|\\.)*");/.exec(css)
+    expect(box?.[1]).toContain(String.raw`\a `)
+  })
+
+  test('control characters in the title are escaped, NUL becomes U+FFFD', () => {
+    const css = themeToCss(withHeader({}), { ...runtime, title: 'a\r\fb\u0000c\u007F' })
+    expect(css).toContain(String.raw`"a\d \c b` + '�' + String.raw`c\7f "`)
+  })
+
+  test('an image URL that is not an upload path is not emitted', () => {
+    const evil = String.raw`x\'); }} .paged-doc p { color: red } @page { x: url('`
+    const css = themeToCss(withHeader({ imageUrl: evil, imagePosition: 'left' }), runtime)
+    expect(css).not.toContain('.paged-doc p { color: red }')
+    expect(css).not.toContain('content: url(')
+  })
+
+  test('an upload-path image URL is emitted as a quoted url()', () => {
+    const css = themeToCss(withHeader({ imageUrl: '/api/files/doc1/AbCdEfGhIjKl.png', imagePosition: 'center' }), runtime)
+    expect(css).toMatch(/@top-center \{\s*content: url\("\/api\/files\/doc1\/AbCdEfGhIjKl\.png"\);/)
+  })
+})

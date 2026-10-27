@@ -299,6 +299,29 @@ describe('custom CSS — server renderer', () => {
     expect(Math.abs(g - b)).toBeLessThan(40)
   }, 90_000)
 
+  // Regression (theme image URLs): a logo URL that breaks out of the
+  // cover `<img src>` attribute used to become a live event handler on
+  // the render page. The marker handler would paint the page sheet green.
+  it('a stored logo URL with an attribute breakout does not run on the render page', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    await insertYjsRow(doc.docId, '# Cover regression\n\nA paragraph.\n')
+    const marker = `x" onerror="document.head.insertAdjacentHTML('beforeend','<style>.pagedjs_page{background:#00ff00!important}</style>')`
+    await setDocTheme(doc.docId, {
+      ...defaultTheme,
+      cover: { ...defaultTheme.cover, enabled: true, showLogo: true },
+      brand: { ...defaultTheme.brand, logoUrl: marker }
+    })
+    const client = await loggedInClient(owner.id)
+    const res = await client.post('/api/_test/exec-ai-tool', { docId: doc.docId, name: 'view_pages', args: { pages: [1] } })
+    expect(res.status).toBe(200)
+    const body = await res.json() as ToolResponse
+    expect(body.isError, body.content).toBe(false)
+    const png = Buffer.from(body.extraParts?.[0]?.inlineData?.data ?? '', 'base64')
+    const [, g, b] = pixelAt(png, 3, 3)
+    expect(Math.abs(g - b)).toBeLessThan(40)
+  }, 90_000)
+
   it('never fetches a url() the sanitizer dropped, even on the renderer allowlist', async () => {
     const png = await renderFirstPagePng(
       `.pagedjs_page { background: #00ff00 !important }\n.paged-doc { background-image: url(http://host.docker.internal:${ALLOWED_PORT}/from-custom-css.png) }\n:root { --x: url(http://host.docker.internal:${ALLOWED_PORT}/from-custom-prop.png) }\n.paged-doc h1 { background: var(--x) }`

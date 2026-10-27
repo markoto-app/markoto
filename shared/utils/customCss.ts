@@ -43,6 +43,12 @@ import {
  *     rejected. Custom-property values are parsed too (`parseCustomProperty`),
  *     so `--x: url(http://…)` is caught where it is declared, not only
  *     where `var(--x)` uses it.
+ *   - `var()` / `env()` / `attr()` are refused inside image-producing
+ *     functions (`image-set()`, `image()`, `cross-fade()`, `src()`,
+ *     `element()`): their value is only known in the browser, so a URL
+ *     parked in a custom property would bypass the URL check.
+ *   - Input nested deeper than `MAX_NESTING_DEPTH`, or that makes the
+ *     parser throw, fails closed (empty CSS + a `syntax` issue).
  *   - Anything css-tree could only keep as an unparsed `Raw` chunk must be
  *     free of `(`, `\`, `@` and `<` — otherwise it is dropped.
  *   - HTML breakout: the output ends up inside a `<style>` element, so
@@ -107,6 +113,24 @@ const FORBIDDEN_FUNCTIONS = new Set(['expression'])
 
 /** Functions whose string arguments are URLs. */
 const URL_FUNCTIONS = new Set(['url', 'src', 'image-set', 'image', 'cross-fade'])
+
+/**
+ * Functions that produce an image from their arguments. A substitution
+ * function inside one of them is refused: `image-set(var(--p) 1x)` with
+ * `--p: "http://…"` only becomes a URL in the browser, after this
+ * sanitizer looked at a harmless-looking string in a custom property.
+ */
+const IMAGE_ARG_FUNCTIONS = new Set([...URL_FUNCTIONS, 'element'])
+
+/** Values substituted by the browser at computed-value time. */
+const SUBSTITUTION_FUNCTIONS = new Set(['var', 'env', 'attr'])
+
+/**
+ * Deepest `{` / `(` / `[` nesting accepted. css-tree's parser and walker
+ * recurse per level, so thousands of levels overflow the stack; real
+ * stylesheets stay far below this.
+ */
+const MAX_NESTING_DEPTH = 32
 
 const SCRIPT_SCHEME_RE = /(?:java|vb)script:/i
 
@@ -203,6 +227,44 @@ function isInertRaw(text: string): boolean {
   return !/[()\\@<]/.test(text) && !SCRIPT_SCHEME_RE.test(text.replaceAll(/\s/g, ''))
 }
 
+/**
+ * Bracket nesting depth of `input`, ignoring brackets inside strings and
+ * comments. Returns early once `limit` is exceeded.
+ */
+function nestingDepth(input: string, limit: number): number {
+  let depth = 0
+  let max = 0
+  let quote: string | null = null
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]
+    if (quote !== null) {
+      if (ch === '\\') i++
+      else if (ch === quote) quote = null
+      continue
+    }
+    if (ch === '/' && input[i + 1] === '*') {
+      const end = input.indexOf('*/', i + 2)
+      if (end < 0) break
+      i = end + 1
+    } else if (ch === '"' || ch === '\'') {
+      quote = ch
+    } else if (ch === '\\') {
+      i++
+    } else if (ch === '{' || ch === '(' || ch === '[') {
+      depth++
+      max = Math.max(max, depth)
+      if (max > limit) return max
+    } else if ((ch === '}' || ch === ')' || ch === ']') && depth > 0) {
+      depth--
+    }
+  }
+  return max
+}
+
+function failClosed(message: string): CustomCssResult {
+  return { css: '', issues: [{ code: 'syntax', message, line: 1, column: 1 }], urls: [] }
+}
+
 interface Frame {
   node: CssNode
   item: ListItem<CssNode> | null
@@ -211,6 +273,18 @@ interface Frame {
 
 export function sanitizeCustomCss(input: string, opts: SanitizeCustomCssOptions): CustomCssResult {
   if (typeof input !== 'string' || input.trim() === '') return { css: '', issues: [], urls: [] }
+  if (nestingDepth(input, MAX_NESTING_DEPTH) > MAX_NESTING_DEPTH) {
+    return failClosed(`Custom CSS is nested more than ${MAX_NESTING_DEPTH} levels deep.`)
+  }
+  try {
+    return sanitizeChecked(input, opts)
+  } catch {
+    // Fail closed: no CSS at all rather than a partial or unchecked result.
+    return failClosed('Custom CSS could not be processed.')
+  }
+}
+
+function sanitizeChecked(input: string, opts: SanitizeCustomCssOptions): CustomCssResult {
   const bytes = customCssByteLength(input)
   if (bytes > CUSTOM_CSS_MAX_BYTES) {
     return {
@@ -284,6 +358,10 @@ export function sanitizeCustomCss(input: string, opts: SanitizeCustomCssOptions)
   const insideUrlFunction = (): boolean =>
     stack.some(f => f.node.type === 'Function' && URL_FUNCTIONS.has(unprefixed(decodedName(f.node.name))))
 
+  /** An enclosing function (not the current node) produces an image. */
+  const insideImageFunction = (): boolean =>
+    stack.slice(0, -1).some(f => f.node.type === 'Function' && IMAGE_ARG_FUNCTIONS.has(unprefixed(decodedName(f.node.name))))
+
   const applyUrl = (node: CssNode & { value: string }) => {
     const res = checkUrl(node.value, opts)
     if (res.ok) {
@@ -341,6 +419,9 @@ export function sanitizeCustomCss(input: string, opts: SanitizeCustomCssOptions)
         const name = unprefixed(decodedName(node.name))
         if (FORBIDDEN_FUNCTIONS.has(name)) {
           report(node, 'function', `${name}() is not allowed.`, `${name}()`)
+          doomEnclosing()
+        } else if (SUBSTITUTION_FUNCTIONS.has(name) && insideImageFunction()) {
+          report(node, 'function', `${name}() is not allowed inside image functions such as image-set(). Write the URL directly.`, `${name}()`)
           doomEnclosing()
         }
         return

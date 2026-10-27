@@ -1,6 +1,7 @@
 import type { DocTheme, RunningSlots } from '../types/theme'
 import { pageHeightMm } from './pageDimensions'
 import type { CustomCssResult } from '../types/customCss'
+import { isThemeImageUrl } from './themeImages'
 
 /**
  * Runtime values interpolated into the theme CSS. Kept separate from
@@ -98,7 +99,9 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
   // mental model per slot anyway. paged.js margin boxes accept
   // `content: url('...')` per CSS Paged Media; the image inherits the
   // slot's vertical alignment from the @top-X box itself.
-  const imgSlot = slots.imageUrl.trim() ? slots.imagePosition : null
+  // Only an upload path / bundled asset is emitted (the theme can reach
+  // here over Y.js without validation); anything else drops the image.
+  const imgSlot = slots.imageUrl && isThemeImageUrl(slots.imageUrl) ? slots.imagePosition : null
   const text: Record<RunningSlotPosition, string> = {
     left: slots.left,
     center: slots.center,
@@ -109,12 +112,11 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
   for (const pos of positions) {
     const boxName = `${edge}-${pos}`
     if (imgSlot === pos) {
-      // Image slot — escape single-quotes in URLs (none expected for
-      // /api/files, but defense in depth) and pin the image height in
-      // pt so it lines up with the running header's text-size scale.
-      const safeUrl = slots.imageUrl.replaceAll('\'', String.raw`\'`)
+      // Image slot — URL serialised as a CSS string (shape-checked
+      // above, so this is belt and braces); height pinned in pt so it
+      // lines up with the running header's text-size scale.
       out.push(`  @${boxName} {
-    content: url('${safeUrl}');
+    content: url(${cssString(slots.imageUrl)});
     height: ${slots.imageHeight}pt;
     width: auto;
   }`)
@@ -1016,8 +1018,23 @@ function breakHints(): string {
 
 // — helpers ———————————————————————————————————————————————————————————
 
+/**
+ * Serialise `s` as a double-quoted CSS string (CSSOM "serialize a
+ * string"): `"` and `\` are backslash-escaped, NUL becomes U+FFFD, and
+ * every other control character (incl. newline, which would otherwise
+ * end the string and let the rest of the value become CSS) is written as
+ * a hex escape. Every generated string value goes through here.
+ */
 function cssString(s: string): string {
-  return '"' + s.replaceAll('\\', String.raw`\\`).replaceAll('"', String.raw`\"`) + '"'
+  let out = '"'
+  for (const ch of s) {
+    const code = ch.codePointAt(0) ?? 0
+    if (code === 0) out += '\uFFFD'
+    else if (code < 0x20 || code === 0x7f) out += `\\${code.toString(16)} `
+    else if (ch === '"' || ch === '\\') out += `\\${ch}`
+    else out += ch
+  }
+  return out + '"'
 }
 
 function cssFontStack(name: string): string {

@@ -170,6 +170,34 @@ describe('POST /api/upload/confirm', () => {
     expect(await confirmedAt(key)).toBe('no-row')
   })
 
+  // Regression: the presigned PUT did not bind Content-Type, so a valid
+  // PNG could be stored as `text/html` and served back as a document.
+  it('the presigned PUT refuses a Content-Type other than the requested one', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id, accessMode: 'private' })
+    const { key, uploadUrl } = await requestUpload(user.id, doc.docId)
+    expect(new URL(uploadUrl).searchParams.get('X-Amz-SignedHeaders')).toContain('content-type')
+    const res = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'text/html' }, body: PNG })
+    expect(res.status).toBe(403)
+    expect(await exists(key)).toBe(false)
+  })
+
+  it('rejects and deletes an object whose stored Content-Type is not the requested image type', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id, accessMode: 'private' })
+    const { key } = await requestUpload(user.id, doc.docId)
+    // Simulates an object that reached the key with a different stored
+    // type (e.g. uploaded before the type was signed).
+    await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: PNG, ContentType: 'text/html' }))
+
+    const client = await loggedInClient(user.id)
+    const res = await client.post('/api/upload/confirm', { key })
+    expect(res.status).toBe(415)
+    expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('upload/content-type-mismatch')
+    expect(await exists(key)).toBe(false)
+    expect(await confirmedAt(key)).toBe('no-row')
+  })
+
   it('403s when write access was lost between request and confirm', async () => {
     const owner = await createUser()
     const other = await createUser()

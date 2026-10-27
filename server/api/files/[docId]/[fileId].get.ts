@@ -10,6 +10,14 @@ import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 // presigned URLs for nonsense keys.
 const FILE_ID_RE = /^[A-Za-z0-9_-]{1,64}\.(png|jpg|jpeg|gif|webp)$/
 
+const EXT_CONTENT_TYPE: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp'
+}
+
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
   const fileId = requireRouteParam(event, 'fileId')
@@ -54,11 +62,19 @@ export default defineEventHandler(async (event) => {
   // is tightened, or the password is rotated. 120s is enough for the browser
   // to follow the 302 and fetch the bytes; anything longer is surface area
   // we don't want. Callers that need the bytes again will be re-authorized.
+  //
+  // The response type is forced from the file extension (S3's
+  // `response-content-type` override) instead of trusting whatever type
+  // the object was stored with: an image URL must never be served as
+  // HTML, even for objects uploaded before the type was bound at upload.
+  const ext = fileId.slice(fileId.lastIndexOf('.') + 1).toLowerCase()
   const url = await getSignedUrl(
     s3,
     new GetObjectCommand({
       Bucket: config.s3.bucket,
-      Key: key
+      Key: key,
+      ResponseContentType: EXT_CONTENT_TYPE[ext] ?? 'application/octet-stream',
+      ResponseContentDisposition: `inline; filename="${fileId}"`
     }),
     { expiresIn: 120 }
   )

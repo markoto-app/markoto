@@ -1,6 +1,7 @@
-import type { DocTheme } from '../types/theme'
-import { buildCoverHtml } from '../../app/utils/coverHtml'
-import { wrapFirstLetterAsDropCap } from '../../app/utils/dropcapWrap'
+import type { DocTheme } from '~~/shared/types/theme'
+import { buildCoverHtml } from './coverHtml'
+import { wrapFirstLetterAsDropCap } from './dropcapWrap'
+import { sanitizeRenderedHtml } from './sanitizeHtml'
 
 /**
  * Combine the cover page + body markdown render + optional drop-cap
@@ -22,10 +23,15 @@ import { wrapFirstLetterAsDropCap } from '../../app/utils/dropcapWrap'
  * string used by the cover's "Date" line. Returns an HTML string that's
  * ready to drop into paged.js's Previewer.preview() call.
  *
- * Cover-first ordering is deliberate: drop-cap matches the first body
- * `<p>` via regex; running it AFTER cover injection means it skips past
- * the cover (h1/divs) and lands on the actual first paragraph. Reversing
- * this order would put the drop-cap on the cover subtitle.
+ * Cover-first ordering is deliberate: drop-cap targets the first
+ * `<p>`; running it AFTER cover injection means it skips past the cover
+ * (h1/divs) and lands on the actual first paragraph. Reversing this
+ * order would put the drop-cap on the cover subtitle.
+ *
+ * The composed document is sanitised as a whole (same allowlist as
+ * `renderMarkdown`), not only the markdown body: the cover is built from
+ * theme values, and the theme can reach a renderer over Y.js without any
+ * HTTP validation. Browser-only (DOM + DOMPurify); every caller is.
  */
 export function composeFinalHtml(opts: {
   theme: DocTheme
@@ -39,5 +45,5 @@ export function composeFinalHtml(opts: {
   if (theme.body.dropCap) {
     html = wrapFirstLetterAsDropCap(html)
   }
-  return html
+  return sanitizeRenderedHtml(html)
 }

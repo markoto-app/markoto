@@ -1,6 +1,8 @@
 import * as Y from 'yjs'
 import { useDatabasePool } from './database'
 import { withThemeDocId } from '~~/shared/utils/customCss'
+import { withThemeImagesDocId } from '~~/shared/utils/themeImages'
+import { isValidTheme } from '~~/shared/utils/themeValidation'
 
 // Clone Y.js state from one docId to another, rewriting image URLs in
 // the process so the target doc's markdown references its own
@@ -79,7 +81,11 @@ export async function cloneYjsStateWithUrlRewrite(
   sourceMeta.forEach((value, key) => {
     if (key === '_deleted') return
     if (key === 'theme' && value && typeof value === 'object' && !Array.isArray(value)) {
-      targetMeta.set(key, withThemeDocId(value, sourceDocId, targetDocId))
+      const cssMoved = withThemeDocId(value, sourceDocId, targetDocId)
+      // Theme images move with the uploads too; only touched on a
+      // well-formed theme (a malformed one is left for the renderers'
+      // fallback rather than half-rewritten).
+      targetMeta.set(key, isValidTheme(cssMoved) ? withThemeImagesDocId(cssMoved, sourceDocId, targetDocId) : cssMoved)
       return
     }
     targetMeta.set(key, value)

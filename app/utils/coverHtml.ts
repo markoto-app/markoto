@@ -1,4 +1,5 @@
 import type { DocTheme } from '~~/shared/types/theme'
+import { isThemeImageUrl } from '~~/shared/utils/themeImages'
 
 /**
  * Build the cover-page HTML when `theme.cover.enabled`. Returns the
@@ -27,6 +28,11 @@ import type { DocTheme } from '~~/shared/types/theme'
  *   - All text values are HTML-escaped — even though theme JSONB is
  *     validated at intake, defense-in-depth: title, subtitle, author
  *     names and the date string all go through `esc`.
+ *   - The logo URL lands in an attribute. The theme can arrive over
+ *     Y.js without HTTP validation, so the builder re-checks the shape
+ *     itself (`isThemeImageUrl`: upload path or bundled asset, no quotes
+ *     possible) AND escapes it for attribute context. `composeFinalHtml`
+ *     additionally sanitises the composed document.
  */
 export function buildCoverHtml(theme: DocTheme, title: string, dateIso: string): string {
   if (!theme.cover.enabled) return ''
@@ -40,8 +46,9 @@ export function buildCoverHtml(theme: DocTheme, title: string, dateIso: string):
 }
 
 function buildLogoHtml(theme: DocTheme): string {
-  if (!theme.cover.showLogo || !theme.brand.logoUrl) return ''
-  return `<img class="markoto-cover-logo" src="${esc(theme.brand.logoUrl)}" alt="">`
+  const url = theme.brand.logoUrl
+  if (!theme.cover.showLogo || !url || !isThemeImageUrl(url)) return ''
+  return `<img class="markoto-cover-logo" src="${escAttr(url)}" alt="">`
 }
 
 function buildTitleHtml(theme: DocTheme, title: string): string {
@@ -73,4 +80,9 @@ function buildMetaHtml(theme: DocTheme, dateIso: string): string {
 /** Minimal HTML escape for text interpolated into element bodies. */
 function esc(s: string): string {
   return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+}
+
+/** HTML escape for a double-quoted attribute value (quotes included). */
+function escAttr(s: string): string {
+  return esc(s).replaceAll('"', '&quot;').replaceAll('\'', '&#39;')
 }
