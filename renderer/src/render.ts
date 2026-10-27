@@ -33,7 +33,12 @@ const INTERNAL_SECRET = (() => {
 })()
 
 // Origins Chromium may talk to (SSRF lockdown — see ./allowlist.ts).
-const ALLOWED_ORIGINS = buildAllowedOrigins(process.env)
+const ALLOWED_ORIGINS = buildAllowedOrigins({
+  APP_URL: process.env.APP_URL,
+  S3_ENDPOINT: process.env.S3_ENDPOINT,
+  S3_PUBLIC_ENDPOINT: process.env.S3_PUBLIC_ENDPOINT,
+  RENDERER_ALLOWED_ORIGINS: process.env.RENDERER_ALLOWED_ORIGINS
+})
 console.info(`[renderer] network allowlist: ${[...ALLOWED_ORIGINS].join(', ')}`)
 // At most this many distinct blocked hosts are logged per render.
 const MAX_BLOCKED_LOGS_PER_RENDER = 10
@@ -141,11 +146,11 @@ function mintRenderToken(docId: string, snapshotId: number): string {
 
 export async function renderDocument(input: RenderInput): Promise<RenderOutput> {
   await pool.acquire(POOL_WAIT_MS)
-  let context: BrowserContext | null = null
+  const created: { context: BrowserContext | null } = { context: null }
   try {
     const browser = await getBrowser()
     return await Promise.race([
-      doRender(input, browser, (ctx) => { context = ctx }),
+      doRender(input, browser, (ctx) => { created.context = ctx }),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Render hard timeout')), RENDER_TIMEOUT_MS)
       )
@@ -154,7 +159,7 @@ export async function renderDocument(input: RenderInput): Promise<RenderOutput> 
     // Best-effort context teardown. Errors swallowed — if it's already
     // closed (timeout path), close() throws and we don't care.
     try {
-      await context?.close()
+      await created.context?.close()
     } catch { /* noop */ }
     pool.release()
   }

@@ -43,7 +43,7 @@ export function injectTraceHeaders(
   headers: Record<string, string>
 ): Record<string, string> {
   try {
-    const trace = (Sentry as { getTraceData?: () => Record<string, string> }).getTraceData?.() ?? {}
+    const trace = Sentry.getTraceData()
     return { ...headers, ...trace }
   } catch {
     return headers

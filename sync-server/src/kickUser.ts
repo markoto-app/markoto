@@ -17,7 +17,9 @@ export interface HocuspocusDocument extends YDoc {
 }
 export interface HocuspocusInstance {
   documents?: Map<string, HocuspocusDocument>
-  unloadDocument?: (doc: YDoc) => void
+  // Method syntax: Hocuspocus' own `unloadDocument` takes its richer
+  // `Document`; the instance we receive only ever passes docs it loaded.
+  unloadDocument?(doc: HocuspocusDocument): unknown
 }
 
 /**

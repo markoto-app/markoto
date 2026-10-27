@@ -70,6 +70,7 @@ class ByteReader {
     for (;;) {
       if (this.pos >= this.buf.length) throw new RangeError('unexpected end of message')
       const byte = this.buf[this.pos++]
+      if (byte === undefined) throw new RangeError('unexpected end of message')
       n += (byte & 0x7f) * mult
       if (byte < 0x80) return n
       mult *= 128
@@ -159,6 +160,7 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
     while (lo <= hi) {
       const mid = (lo + hi) >> 1
       const s = list[mid]
+      if (!s) return null
       if (id.clock < s.id.clock) hi = mid - 1
       else if (id.clock >= s.id.clock + s.length) lo = mid + 1
       else return s
@@ -229,6 +231,7 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
     }
     for (let i = chain.length - 1; i >= 0; i--) {
       const step = chain[i]
+      if (!step) continue
       if (step.intoNested && typeof result !== 'string') {
         result = { root: result.root, key: null, nested: true }
       }
