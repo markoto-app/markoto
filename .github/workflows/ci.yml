@@ -33,12 +33,18 @@ name: ci
 #   image-scan          — Trivy scan, only for images whose Dockerfile /
 #                         deps / base pins changed (image-scan.yml). The
 #                         weekly image-scan-weekly.yml covers the rest.
-#   notify-on-failure   — single Apprise ping if any of the above failed
 #
-# Branch protection on `main` should require `label-check`,
-# `semantic-pr-title`, `actions-lint`, `secret-scan`, `lint-typecheck`,
-# `test-unit-dom`, and (for ready-for-review PRs)
-# `test-repos-integration-flows` + `sonar`. See docs/GITHUB-CONFIG.md.
+# There is deliberately no failure notification here: PR runs cannot use a
+# main-restricted Environment, so a notifier would need APPRISE_URLS as a
+# repo-level secret readable by any branch workflow. GitHub's own PR check
+# notifications cover this; main-only workflows (release, deploy, weekly
+# scans) still notify through Environment-scoped APPRISE_URLS.
+#
+# The `main` ruleset requires `label-check`, `semantic-pr-title`,
+# `actions-lint`, `secret-scan`, `lint-typecheck`, `test-unit-dom`,
+# `migration-guard`, `selfhost-check` and `test-repos-integration-flows`.
+# `sonar` is NOT required (fork PRs never get its token). See
+# docs/GITHUB-CONFIG.md.
 # Jobs skipped by path filters report as skipped, which satisfies a
 # required check.
 
@@ -46,9 +52,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
-permissions:
-  contents: read
-  pull-requests: read
+# Least privilege: nothing by default, each job grants itself what it needs.
+permissions: {}
 
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
@@ -61,6 +66,9 @@ jobs:
   # by `if` reports as skipped, which satisfies the required check.
   changes:
     name: changes
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.code.outputs.code }}
@@ -150,10 +158,11 @@ jobs:
 
   label-check:
     name: label-check
+    permissions: {}
     runs-on: ubuntu-latest
     steps:
       - name: Validate exactly one (or zero) release:* label
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const labels = context.payload.pull_request.labels.map(l => l.name);
@@ -181,6 +190,8 @@ jobs:
 
   semantic-pr-title:
     name: semantic-pr-title
+    permissions:
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       # Enforces feat:/fix:/docs:/chore:/refactor:/test:/build:/ci: prefix +
@@ -188,7 +199,7 @@ jobs:
       # release.yml) — this gate is what stops a sloppy title from shipping
       # straight to the public release page.
       - name: Validate PR title
-        uses: amannn/action-semantic-pull-request@v5
+        uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017 # v5.5.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -214,43 +225,56 @@ jobs:
 
   actions-lint:
     name: actions-lint
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     # Catches workflow regressions at PR-check time: schema mistakes,
     # ${{ }} expression typos, shellcheck-flagged bash inside `run:` blocks,
     # unpinned action versions, etc. See `.github/workflows/README.md` for
     # how to run the same lint locally before pushing.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Download actionlint
         id: get_actionlint
-        # Pin to the v1.7.12 tag of the download script. The script's first
+        # Pin to the commit of the v1.7.12 tag of the download script. The script's first
         # arg pins the binary version it fetches — both layers are pinned
         # so a tampered `main` can't substitute a different binary.
-        run: bash <(curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+        run: bash <(curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
         shell: bash
 
       - name: Run actionlint
-        run: ${{ steps.get_actionlint.outputs.executable }} -color
+        env:
+          ACTIONLINT: ${{ steps.get_actionlint.outputs.executable }}
+        run: |
+          "${ACTIONLINT}" -color
         shell: bash
 
   secret-scan:
     name: secret-scan
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     # Scans the full git history for leaked credentials. fetch-depth: 0
     # is required so gitleaks sees every commit, not just the PR head.
     # The default action config matches our local `make secrets-scan`.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   selfhost-check:
     name: selfhost-check
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     # Static validation of the self-host deployment shape: install.sh is
     # shellcheck-clean and docker-compose.selfhost*.yml (+ the shared base)
@@ -263,7 +287,9 @@ jobs:
       COMPOSE_VERSION: v5.4.0
       COMPOSE_SHA256: 837fd1d35bf6a494f41b5b5988269a7be79de337cf1a1a6ff0e45ab51bb4e9be
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install Docker Compose ${{ env.COMPOSE_VERSION }}
         run: |
@@ -279,12 +305,16 @@ jobs:
 
   lint-typecheck:
     name: lint-typecheck
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
 
@@ -300,28 +330,47 @@ jobs:
       - name: Typecheck
         run: bun --bun run typecheck
 
+      # sync-server/ and renderer/ ship as separate packages with their own
+      # lockfiles, so `nuxt typecheck` never sees them. Each has its own
+      # tsconfig + `typecheck` script.
+      - name: Install sync-server + renderer dependencies
+        run: |
+          bun install --frozen-lockfile --cwd sync-server
+          bun install --frozen-lockfile --cwd renderer
+
+      - name: Typecheck sync-server
+        run: bun --bun run typecheck
+        working-directory: sync-server
+
+      - name: Typecheck renderer
+        run: bun --bun run typecheck
+        working-directory: renderer
+
       # render-env.sh (CI deploy path) and env.j2 (Ansible path) must emit
       # byte-identical .env content. The parity script existed but was never
       # wired into CI, and the two DID silently drift (a var added to one
       # file only) — this step makes the drift a PR failure.
       - name: render-env ↔ env.j2 parity
         run: |
-          pip install --quiet jinja2
+          pip install --quiet jinja2==3.1.6
           bash infra/render-env-parity-test.sh
 
   migration-guard:
     name: migration-guard
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       # fetch-depth: 0 so the guard can diff the PR's new migrations against
       # the base branch (it only scans CHANGED drizzle/*.sql — historical
       # migrations legitimately contain DROP/TRUNCATE).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
 
@@ -337,12 +386,16 @@ jobs:
 
   test-unit-dom:
     name: test-unit-dom
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
 
@@ -373,6 +426,8 @@ jobs:
     # regenerates the docs/demo screenshots, incl. live AI) runs only in
     # release.yml, for PRs labeled release:*.
     name: test-repos-integration-flows
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     needs: changes
     # Only on ready-for-review PRs to keep draft loops snappy, and only when
@@ -394,7 +449,9 @@ jobs:
       # default heap limit on the 7 GB runner: "Reached heap limit").
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       # The integration setup's `bun run build` hit the V8 heap ceiling
       # ("Reached heap limit") on the 7 GB runner. That's a soft heap limit,
@@ -404,7 +461,7 @@ jobs:
       # swapfile there starves the test-stack image pulls ("no space left").
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
 
@@ -453,7 +510,7 @@ jobs:
 
       - name: Upload coverage for sonar
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: coverage-lcov
           # Only the lcov file — the html / json-summary reports add
@@ -464,36 +521,58 @@ jobs:
 
   sonar:
     name: sonar
+    permissions:
+      contents: read
+      pull-requests: read
     needs: [changes, test-repos-integration-flows]
     # Inherits the heavy-job's gates (draft + docs-only) — sonar isn't useful
     # without the coverage artifact that job produces. Mirror the gates so a
     # draft or docs-only PR skips sonar instead of failing on a missing
     # artifact (a skipped dependency would skip this job anyway; the explicit
     # condition keeps that visible).
+    #
+    # Fork PRs (and Dependabot PRs, whose secrets live in a separate
+    # namespace) never receive SONAR_TOKEN, so the scan could only ever fail
+    # there: skip the job instead of showing a red check nobody can fix.
+    # Same-repo PRs fail loudly below if the secret is missing.
     if: >-
       github.event.pull_request.draft == false &&
-      needs.changes.outputs.code == 'true'
+      needs.changes.outputs.code == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           # Full history → accurate blame + new-code period detection.
           fetch-depth: 0
 
       - name: Download coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: coverage-lcov
           path: coverage
 
+      - name: Require SONAR_TOKEN
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "${SONAR_TOKEN:-}" ]; then
+            echo "::error title=Missing secret::SONAR_TOKEN is not set (repo-level Actions secret, see docs/GITHUB-CONFIG.md)."
+            exit 1
+          fi
+
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v7
+        uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2 # v7.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   image-scan:
     name: image-scan
+    permissions:
+      contents: read
     needs: changes
     # Builds + Trivy-scans only the images whose inputs changed in this PR
     # (Dockerfile, package.json / bun.lock, base-image pins — see the
@@ -507,51 +586,3 @@ jobs:
     uses: ./.github/workflows/image-scan.yml
     with:
       services: ${{ needs.changes.outputs.image_services }}
-
-  notify-on-failure:
-    name: notify-on-failure
-    needs:
-      - changes
-      - label-check
-      - semantic-pr-title
-      - actions-lint
-      - secret-scan
-      - selfhost-check
-      - lint-typecheck
-      - test-unit-dom
-      - test-repos-integration-flows
-      - sonar
-      - image-scan
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Apprise
-        run: pip install apprise
-
-      - name: Send Apprise notification
-        env:
-          APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
-          # Pass user-controlled GitHub context fields through env to avoid
-          # script-injection (a PR title/branch with backticks or $() would
-          # otherwise execute on the runner). actionlint flags `head_ref`
-          # specifically; we pipe the others through the same way for
-          # consistency.
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_REF: ${{ github.head_ref }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then
-            echo "APPRISE_URLS secret not configured — skipping notification."
-            exit 0
-          fi
-          apprise -t "CI failed on PR #${PR_NUMBER}" \
-                  -b "Branch \`${PR_HEAD_REF}\` — ${PR_TITLE}
-          Run: ${RUN_URL}" \
-                  -i markdown \
-                  "${APPRISE_URLS}"

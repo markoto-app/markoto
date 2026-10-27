@@ -5,10 +5,14 @@ name: deploy
 # VPS at provision time), runs compose up, polls /api/health,
 # auto-rollbacks on failure, sends Apprise notifications either way.
 #
-# Required GitHub secrets (see docs/GITHUB-CONFIG.md):
-#   DEPLOY_SSH_KEY    — private OpenSSH key for the markoto user on the VPS
-#   DEPLOY_HOST       — IP or DNS of the VPS
-#   APPRISE_URLS      — semicolon-separated Apprise URLs
+# Required secrets, all scoped to the target Environment (staging / prod; see
+# docs/GITHUB-CONFIG.md):
+#   DEPLOY_SSH_KEY     — private OpenSSH key for the deploy user on the VPS
+#   DEPLOY_HOST        — IP or DNS of the VPS
+#   DEPLOY_KNOWN_HOSTS — pinned SSH host keys (`ssh-keyscan -t ed25519 HOST`);
+#                        the job refuses to connect without them
+#   APPRISE_URLS       — Apprise URLs (optional: notifications are skipped)
+# plus the app + provider secrets that infra/render-env.sh renders into .env.
 #
 # The VPS must already have run `docker login ghcr.io` via the Ansible
 # `markoto` role (uses the `ghcr_pat` vault entry — see infra/group_vars/
@@ -52,12 +56,13 @@ on:
         type: string
         default: ''
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   deploy:
     name: deploy (${{ inputs.environment }})
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Binds environment-scoped secrets (DEPLOY_HOST, DEPLOY_SSH_KEY) + any
@@ -83,8 +88,9 @@ jobs:
       # workflow otherwise only SSHes to the VM and wouldn't check out the repo.
       # A caller (staging-gate.yml) pins the ref to the commit the release
       # images were built from, so the synced compose files match them.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ inputs.ref || github.ref }}
 
       - name: Validate tag
@@ -100,17 +106,16 @@ jobs:
           fi
           echo "Deploying $TAG to $DEPLOY_HOST"
 
-      - name: Configure SSH
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+      # Pinned host keys + strict checking for every ssh/scp below.
+      - name: Configure SSH (pinned host keys)
+        uses: ./.github/actions/setup-ssh
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
 
       # Render /opt/markoto/.env on the VM from the GitHub Environment
-      # secrets/variables (+ repo-level provider-key secrets). This makes GitHub
+      # secrets/variables (provider keys included). This makes GitHub
       # the single source of truth for deploy config — no laptop ansible-vault
       # in the loop. render-env.sh is a faithful, parity-tested port of env.j2;
       # it fails loud if any required secret is empty, so a broken/partial
@@ -142,7 +147,7 @@ jobs:
           NUXT_OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GOOGLE_CLIENT_SECRET }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          # ── provider keys (repo-level secrets) ──
+          # ── provider keys (Environment-scoped, like the rest) ──
           JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
           STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
@@ -191,18 +196,24 @@ jobs:
           IMAGE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
-          bash infra/render-env.sh > /tmp/rendered.env
-          echo "rendered .env: $(grep -cE '^[A-Z]' /tmp/rendered.env) keys"
-          # ship atomically; keep the old one as .env.prev for recovery
-          scp -o BatchMode=yes /tmp/rendered.env "${DEPLOY_USER}@${DEPLOY_HOST}:/opt/markoto/.env.new"
-          ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" '
+          # Owner-only from the first byte, on the runner and on the host: no
+          # window where the secrets file is group/world readable.
+          umask 077
+          rendered="$(mktemp)"
+          trap 'shred -u "$rendered" 2>/dev/null || rm -f "$rendered"' EXIT
+          bash infra/render-env.sh > "$rendered"
+          echo "rendered .env: $(grep -cE '^[A-Z]' "$rendered") keys"
+          # Stream over ssh stdin into a 0600 temp file next to .env, keep the
+          # old one as .env.prev for recovery, then rename into place (atomic:
+          # compose never sees a half-written .env).
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" '
             set -euo pipefail
+            umask 077
             cd /opt/markoto
-            [ -f .env ] && cp -a .env .env.prev || true
-            install -m 600 .env.new .env
-            rm -f .env.new
-          '
-          shred -u /tmp/rendered.env 2>/dev/null || rm -f /tmp/rendered.env
+            cat > .env.new
+            if [ -f .env ]; then cp -a .env .env.prev; fi
+            mv -f .env.new .env
+          ' < "$rendered"
 
       # Same rationale as staging-gate.yml: the host's compose files are
       # otherwise only written at Ansible provision time, so a merged
@@ -223,13 +234,13 @@ jobs:
             docker-compose.base.yml \
             infra/litellm/config.yaml \
             infra/litellm/custom_handlers.py \
-            | ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
+            | ssh "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
 
       - name: Roll forward + health check
         id: roll
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
             TAG="${TAG}" \
             'bash -se' <<'REMOTE'
           set -euo pipefail
@@ -295,8 +306,10 @@ jobs:
             exit 65       # signal "rollback failed"
           fi
 
-          # Success. Update marker.
+          # Success. Update marker; the previous .env is no longer needed
+          # (it is only kept for recovery from a failed deploy).
           echo "$TAG" > .last-deploy
+          rm -f .env.prev
           REMOTE
           ec=$?
           {
@@ -319,24 +332,24 @@ jobs:
         id: prev
         run: |
           set -euo pipefail
-          PREV=$(ssh -o BatchMode=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+          PREV=$(ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
             'cat /opt/markoto/.last-deploy.prev 2>/dev/null || echo unknown')
           echo "tag=$PREV" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
 
       - name: Install Apprise
-        run: pip install apprise
+        run: pip install apprise==1.9.9
 
       - name: Notify (success)
         if: steps.roll.outputs.status == 'succeeded'
         env:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "no APPRISE_URLS"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
           apprise -t "Deploy ${TAG} succeeded" \
                   -b "Deployed to ${DEPLOY_HOST}.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -349,7 +362,7 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
           PREV_TAG: ${{ steps.prev.outputs.tag }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "no APPRISE_URLS"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
           apprise -t "Deploy ${TAG} FAILED — rolled back to ${PREV_TAG}" \
                   -b "Auto-rollback restored ${PREV_TAG} on ${DEPLOY_HOST}. Health check now passing under previous version. Investigate the failed release.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -362,7 +375,7 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
           PREV_TAG: ${{ steps.prev.outputs.tag }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "no APPRISE_URLS"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
           apprise -t "Deploy ${TAG} FAILED — ROLLBACK ALSO FAILED" \
                   -b "Both ${TAG} and rollback to ${PREV_TAG} failed health on ${DEPLOY_HOST}. MANUAL INTERVENTION REQUIRED.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -371,6 +384,8 @@ jobs:
 
       - name: Fail the job if deploy didn't succeed
         if: steps.roll.outputs.status != 'succeeded'
+        env:
+          DEPLOY_STATUS: ${{ steps.roll.outputs.status }}
         run: |
-          echo "Deploy status: ${{ steps.roll.outputs.status }}"
+          echo "Deploy status: ${DEPLOY_STATUS}"
           exit 1

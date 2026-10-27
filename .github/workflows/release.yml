@@ -1,6 +1,6 @@
 name: release
 
-# Phase 12 — squash-merge to main fires this. Pipeline:
+# Phase 12 — a merge to main fires this. Pipeline:
 #
 #   1. resolve-pr           — find the PR for this commit, read its title +
 #                             body + release:* label. release:none short-
@@ -40,10 +40,11 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  packages: write
-  pull-requests: read
+# Least privilege: nothing by default, each job grants itself what it needs.
+# Jobs that need high-value secrets (RELEASE_BOT_TOKEN, live-AI provider keys,
+# APPRISE_URLS) bind the `release` Environment, which only deploys from `main`
+# (docs/GITHUB-CONFIG.md). Repo-level secrets are NOT used here.
+permissions: {}
 
 concurrency:
   # Serialize releases — never two release runs in flight against main.
@@ -53,6 +54,9 @@ concurrency:
 jobs:
   resolve-pr:
     name: resolve-pr
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     outputs:
       should_release: ${{ steps.pr.outputs.should_release }}
@@ -65,13 +69,14 @@ jobs:
       new_version: ${{ steps.compute.outputs.new_version }}
       previous_tag: ${{ steps.compute.outputs.previous_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Get merged PR details
         id: pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
@@ -79,7 +84,7 @@ jobs:
               repo: context.repo.repo,
               commit_sha: context.sha,
             });
-            // With squash-merge there's exactly one. Direct pushes to main
+            // A merged PR maps to exactly one merge commit. Direct pushes to main
             // are blocked by branch protection except for the release bot's
             // [skip ci] commits, which never re-enter this workflow.
             const pr = (prs.data.find(p => p.merged_at) || prs.data[0]);
@@ -133,6 +138,8 @@ jobs:
       - name: Compute new version
         id: compute
         if: steps.pr.outputs.should_release == 'true'
+        env:
+          PR_BUMP: ${{ steps.pr.outputs.bump }}
         run: |
           set -euo pipefail
           # Source of truth for the current version is the latest v* tag,
@@ -142,7 +149,7 @@ jobs:
           # fetch-depth: 0, so every tag is present here. No tags yet → 0.0.0.
           CURRENT=$(git tag --list 'v*' --sort=-v:refname | head -n1 | sed 's/^v//')
           CURRENT=${CURRENT:-0.0.0}
-          BUMP="${{ steps.pr.outputs.bump }}"
+          BUMP="${PR_BUMP}"
           NEW=$(node -e "
             const [maj, min, pat] = process.argv[1].split('.').map(Number);
             const bump = process.argv[2];
@@ -161,6 +168,10 @@ jobs:
     name: bump-version
     needs: resolve-pr
     if: needs.resolve-pr.outputs.should_release == 'true'
+    permissions:
+      contents: read
+    # RELEASE_BOT_TOKEN lives in this main-only Environment.
+    environment: release
     runs-on: ubuntu-latest
     outputs:
       tag: v${{ needs.resolve-pr.outputs.new_version }}
@@ -170,15 +181,25 @@ jobs:
       # PR-only, enforced by the repository ruleset). Tags are not covered
       # by the branch ruleset, so the tag push is allowed. RELEASE_BOT_TOKEN
       # authenticates the push (GITHUB_TOKEN would also work for tags).
-      - uses: actions/checkout@v4
+      - name: Require RELEASE_BOT_TOKEN
+        env:
+          RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+        run: |
+          if [ -z "${RELEASE_BOT_TOKEN:-}" ]; then
+            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/GITHUB-CONFIG.md). No tag was pushed."
+            exit 1
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       - name: Tag release
+        env:
+          NEW: ${{ needs.resolve-pr.outputs.new_version }}
         run: |
           set -euo pipefail
-          NEW="${{ needs.resolve-pr.outputs.new_version }}"
           git config user.name "markoto-release-bot"
           git config user.email "release-bot@users.noreply.github.com"
           git tag -a "v${NEW}" -m "Release v${NEW}"
@@ -188,6 +209,13 @@ jobs:
     name: build-images (${{ matrix.service }})
     needs: [resolve-pr, bump-version]
     if: needs.resolve-pr.outputs.should_release == 'true'
+    permissions:
+      contents: read
+      packages: write
+      # cosign keyless signing (GitHub OIDC -> Fulcio certificate).
+      id-token: write
+    # RELEASE_BOT_TOKEN (GHCR push credential) lives in this main-only Environment.
+    environment: release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -221,8 +249,9 @@ jobs:
             dockerfile: ./backup-server/Dockerfile
             image: markoto-backup
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: v${{ needs.resolve-pr.outputs.new_version }}
 
       # The `app` Nuxt/Vite build (with Sentry source-map processing) peaks
@@ -243,26 +272,36 @@ jobs:
           swapon --show
           free -h
 
+      - name: Require RELEASE_BOT_TOKEN
+        env:
+          RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+        run: |
+          if [ -z "${RELEASE_BOT_TOKEN:-}" ]; then
+            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/GITHUB-CONFIG.md)."
+            exit 1
+          fi
+
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          # RELEASE_BOT_TOKEN carries packages:write, so it doubles as the
-          # GHCR push credential — one PAT instead of a separate
-          # GHCR_PUSH_TOKEN. The job also declares `packages: write`, so
-          # ${{ secrets.GITHUB_TOKEN }} would work too; we use the release
-          # bot for a single, auditable image-publishing identity.
+          # RELEASE_BOT_TOKEN (from the main-only `release` Environment)
+          # carries packages:write, so it doubles as the GHCR push
+          # credential. ${{ secrets.GITHUB_TOKEN }} (the job declares
+          # `packages: write`) works too once each package grants this repo
+          # Actions write access — docs/GITHUB-CONFIG.md, owner checklist.
           password: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       - name: Build + push
-        uses: docker/build-push-action@v6
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
@@ -270,13 +309,45 @@ jobs:
           tags: |
             ghcr.io/joelbarmettleruzh/${{ matrix.image }}:v${{ needs.resolve-pr.outputs.new_version }}
             ghcr.io/joelbarmettleruzh/${{ matrix.image }}:latest
+          # Links the GHCR package to this repository.
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=v${{ needs.resolve-pr.outputs.new_version }}
+          # BuildKit attestations pushed next to the image: SLSA provenance
+          # (max detail) and an SBOM.
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+
+      # Keyless: the signature is bound to this workflow's OIDC identity
+      # (release.yml on refs/heads/main) and logged in the public Rekor log.
+      # Signing the digest covers every tag that points at it.
+      - name: Sign image (cosign keyless)
+        env:
+          IMAGE: ghcr.io/joelbarmettleruzh/${{ matrix.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DIGEST:-}" ]; then
+            echo "::error title=No digest::build-push-action returned no image digest; refusing to ship an unsigned image."
+            exit 1
+          fi
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+          echo "Signed ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
 
   run-flows-and-collect-outputs:
     name: run-flows-and-collect-outputs
     needs: [resolve-pr, build-images]
     if: needs.resolve-pr.outputs.should_release == 'true'
+    permissions:
+      contents: read
+    # Live-AI provider keys live in this main-only Environment.
+    environment: release
     runs-on: ubuntu-latest
     # The flow suite is 160 Playwright tests on ONE worker by design
     # (flow-docs record ordered manifests against a shared stack) —
@@ -288,29 +359,38 @@ jobs:
       IMAGE_TAG: v${{ needs.resolve-pr.outputs.new_version }}
       TEST_MODE: "1"
       NUXT_GOOGLE_SPEECH_MOCK: "1"
-      # Live-AI provider keys — requireLiveAi() sees them so the AI flows
-      # (write-with-ai, knowledge-grounded-ai, voice-dictate, …) run for
-      # real here. This is THE one live-AI verification per release:
-      # staging-gate used to re-run the whole suite with these keys as a
-      # second pass, which doubled ~40 min of runner time per release for
-      # tests on the very same commit — the gate now trusts this run
-      # (create-release only publishes if this job is green) and goes
-      # straight to deploy + public smoke.
-      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-      JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
-      BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
-      STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
+      # The live-AI provider keys are deliberately NOT job-level env: they are
+      # bound only to the two steps that use them (test-stack bring-up passes
+      # them into the litellm container; `flows:test` reads them), so
+      # `bun install`, Playwright and every other step never see them.
       # flows-ephemeral.ts runs `bun run build`, which OOMs at the default V8
       # heap limit on the 7 GB runner (same fix as ci.yml test-repos-integration-flows
       # and staging-gate.yml full-flow-suite — this job was the only one missing it).
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: v${{ needs.resolve-pr.outputs.new_version }}
 
+      - name: Require live-AI provider keys
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
+          BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
+          STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
+        run: |
+          missing=""
+          for n in MISTRAL_API_KEY JINA_AI_API_KEY BFL_API_KEY STAAN_API_KEY; do
+            if [ -z "${!n:-}" ]; then missing="${missing} ${n}"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=Missing secrets::Not set in the 'release' Environment (docs/GITHUB-CONFIG.md):${missing}"
+            exit 1
+          fi
+
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
 
@@ -320,10 +400,25 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
+      # requireLiveAi() sees the keys, so the AI flows (write-with-ai,
+      # knowledge-grounded-ai, voice-dictate, …) run for real. This is THE
+      # one live-AI verification per release: staging-gate trusts this run
+      # (create-release only publishes if this job is green) and goes
+      # straight to deploy + public smoke.
       - name: Bring up test stack against built images
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
+          BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
+          STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
         run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
 
       - name: Run flow tests
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
+          BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
+          STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
         run: bun run flows:test
 
       - name: Tear down test stack
@@ -331,7 +426,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml --profile flows down -v
 
       - name: Upload flow output (manifests + images)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: flow-output
           path: tests/e2e/output/flows
@@ -343,7 +438,7 @@ jobs:
       # reproduction because of exactly this gap. Ship them always.
       - name: Upload failure artefacts (error contexts + traces)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: flow-failure-artefacts
           path: test-results
@@ -364,12 +459,14 @@ jobs:
       - build-images
       - run-flows-and-collect-outputs
     if: needs.resolve-pr.outputs.should_release == 'true'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     outputs:
       release_url: ${{ steps.release.outputs.url }}
     steps:
       - name: Download flow output artefact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: flow-output
           path: flow-output
@@ -416,7 +513,7 @@ jobs:
 
       - name: Create GitHub Release
         id: release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: v${{ needs.resolve-pr.outputs.new_version }}
           name: ${{ needs.resolve-pr.outputs.pr_title }}
@@ -432,14 +529,17 @@ jobs:
     name: notify-release
     needs: [resolve-pr, create-release]
     if: needs.resolve-pr.outputs.should_release == 'true'
+    permissions: {}
+    # APPRISE_URLS lives in this main-only Environment.
+    environment: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
 
       - name: Install Apprise
-        run: pip install apprise
+        run: pip install apprise==1.9.9
 
       - name: Send Apprise notification
         env:
@@ -449,7 +549,7 @@ jobs:
           URL: ${{ needs.create-release.outputs.release_url }}
         run: |
           if [ -z "${APPRISE_URLS:-}" ]; then
-            echo "APPRISE_URLS not set — skipping notification."
+            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (docs/GITHUB-CONFIG.md)."
             exit 0
           fi
           apprise -t "markoto v${NEW} released" \

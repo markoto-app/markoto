@@ -87,9 +87,11 @@ test-all: ## Run EVERY test suite (slow — ~15min)
 
 # === Linters ===
 .PHONY: lint
-lint: ## Run all lint+typecheck (eslint + tsc + ansible-lint + yamllint + actionlint)
+lint: ## Run all lint+typecheck (eslint + tsc incl. sync-server + renderer + ansible-lint + yamllint + actionlint)
 	bun run lint
 	bun run typecheck
+	cd sync-server && bun --bun run typecheck
+	cd renderer && bun --bun run typecheck
 	$(MAKE) -C infra lint
 	$(MAKE) lint-actions
 

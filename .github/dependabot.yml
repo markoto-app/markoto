@@ -1,0 +1,41 @@
+# Dependabot keeps the supply-chain pins current: workflow actions are pinned by
+# commit SHA (with a `# vX.Y.Z` comment) and base images by digest, so nothing
+# moves unless one of these PRs is merged. JavaScript dependencies (Bun
+# lockfiles) are handled by Renovate (renovate.json), not here.
+#
+# Updates are grouped and weekly to keep the PR volume (and the Actions budget
+# each PR consumes) low. Security updates still arrive immediately.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directories:
+      - "/"
+      - "/sync-server"
+      - "/renderer"
+      - "/markitdown-server"
+      - "/backup-server"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "build"
+    groups:
+      docker-base-images:
+        patterns: ["*"]
