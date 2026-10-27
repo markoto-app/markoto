@@ -305,6 +305,17 @@ describe('upload() — error handling', () => {
     expect(confirmCalls).toHaveLength(0)
   })
 
+  it('shows the localised hint when the image storage quota is reached', async () => {
+    requestEp.handler = () => new ApiError(409, {
+      message: 'English server sentence',
+      data: { code: 'upload/storage-quota', messageKey: 'image.storageQuotaReached' }
+    })
+    const { upload, error } = useImageUpload('doc-xyz')
+    expect(await upload(makeFile())).toBe(null)
+    expect(error.value).toMatch(/image storage limit/)
+    expect(fetchCalls.find(c => c.url.startsWith('https://s3.test/'))).toBeUndefined()
+  })
+
   it('maps 401 to the special "login_required" marker regardless of message', async () => {
     // The UI uses this marker to show a "please log in" CTA instead of
     // a generic error toast. Pin that 401 wins over message extraction.

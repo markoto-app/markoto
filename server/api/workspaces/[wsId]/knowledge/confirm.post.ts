@@ -1,25 +1,36 @@
-import { HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { CopyObjectCommand, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { sql } from 'drizzle-orm'
 import { createKnowledge, disambiguateFilename } from '../../../../repos/knowledge'
 import { useDatabase } from '../../../../utils/database'
 import { resolveEmbeddingsConfig, embeddingVersionTag } from '../../../../utils/embeddings'
 import { processKnowledge } from '../../../../utils/processKnowledge'
 import { requireContentMatchesExtension } from '../../../../utils/fileTypeGuard'
-import {
-  assertCapsOnConfirm,
-  INFLIGHT_NS_USER,
-  INFLIGHT_NS_WORKSPACE
-} from '../../../../utils/knowledgeQuota'
-import { releaseInflightSlot } from '../../../../utils/rateLimit'
+import { assertCapsOnConfirm, releaseKnowledgeUploadSlots } from '../../../../utils/knowledgeQuota'
 import { claimPendingKnowledgeUpload, restorePendingKnowledgeUpload } from '../../../../utils/knowledgePendingUpload'
+import { stagingKeyFor } from '../../../../utils/uploadKey'
+
+/** The original's stored Content-Type must be exactly the type upload-request signed. */
+function requireStoredContentType(stored: string | undefined, expected: string): void {
+  const normalised = stored?.split(';')[0]?.trim().toLowerCase()
+  if (normalised !== expected.toLowerCase()) {
+    throw createError({
+      statusCode: 415,
+      message: `Uploaded file has content type ${stored ?? 'none'}; expected ${expected}.`,
+      data: { code: 'knowledge/content-type-mismatch' }
+    })
+  }
+}
 
 /**
  * Step 2: after the client has PUT the file to S3, call this to:
  *   0. Claim the pending record upload-request issued to this caller for
  *      this workspace (404 otherwise — no S3 call).
- *   1. HEAD the object (did it actually land?).
- *   2. Sniff the first bytes — confirm the content matches the claimed
- *      extension (stops the "signed as PDF, uploaded EXE" abuse).
+ *   1. HEAD the staging object (did it actually land? stored type = the
+ *      signed type?).
+ *   2. Copy it to the final key, delete the staging key, and sniff the
+ *      COPY's first bytes — confirm the content matches the claimed
+ *      extension (stops the "signed as PDF, uploaded EXE" abuse, and a
+ *      re-used presigned URL can't swap the bytes after the sniff).
  *   3. Take a Postgres advisory lock keyed on the workspace ID,
  *      re-check all caps, disambiguate filename, and insert the row —
  *      all inside one transaction. The lock serialises concurrent
@@ -88,18 +99,16 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig()
   const s3 = useS3Client()
+  // The browser PUT the staging key; the final key only ever holds the
+  // copy confirm made (and sniffed) below.
+  const stagingKey = stagingKeyFor(s3Key)
 
-  const releaseSlots = async () => {
-    // Best-effort; rateLimit.ts swallows Valkey errors.
-    await Promise.all([
-      releaseInflightSlot(INFLIGHT_NS_WORKSPACE, wsId),
-      releaseInflightSlot(INFLIGHT_NS_USER, String(userId))
-    ])
-  }
   const cleanupOrphanS3 = async () => {
-    try {
-      await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: s3Key }))
-    } catch { /* object may already be gone */ }
+    for (const Key of [stagingKey, s3Key]) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key }))
+      } catch { /* object may already be gone */ }
+    }
   }
 
   try {
@@ -107,7 +116,7 @@ export default defineEventHandler(async (event) => {
     try {
       head = await s3.send(new HeadObjectCommand({
         Bucket: config.s3.bucket,
-        Key: s3Key
+        Key: stagingKey
       }))
     } catch {
       // Not landed (yet) — keep the claim so the client can retry.
@@ -120,9 +129,21 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Uploaded object has no size' })
     }
 
-    // Magic-byte sniff. Runs before caps so a junk upload never
-    // consumes workspace bytes — we reject, delete, and release.
+    // Stored type (signed at upload-request) + copy to the final key +
+    // magic-byte sniff OF THE COPY. Runs before caps so a junk upload
+    // never consumes workspace bytes — we reject, delete, and release.
+    // Bytes PUT to the staging key after the copy never reach the key
+    // processKnowledge reads.
     try {
+      requireStoredContentType(head.ContentType, mimeType)
+      await s3.send(new CopyObjectCommand({
+        Bucket: config.s3.bucket,
+        CopySource: `/${config.s3.bucket}/${stagingKey}`,
+        Key: s3Key,
+        ContentType: mimeType,
+        MetadataDirective: 'REPLACE'
+      }))
+      await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: stagingKey }))
       await requireContentMatchesExtension({ s3Key, ext })
     } catch (e) {
       await cleanupOrphanS3()
@@ -174,6 +195,7 @@ export default defineEventHandler(async (event) => {
     // Always release — success, cap rejection, content-type mismatch,
     // S3 missing, DB failure. The slot is a resource held during
     // upload; its life ends at confirm regardless of outcome.
-    await releaseSlots()
+    // Best-effort; rateLimit.ts swallows Valkey errors.
+    await releaseKnowledgeUploadSlots(wsId, userId)
   }
 })

@@ -301,6 +301,10 @@ services:
       - TIER_FREE_KNOWLEDGE_FILES=${TIER_FREE_KNOWLEDGE_FILES:-500}
       - TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE=${TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE:-1073741824}
       - TIER_FREE_KNOWLEDGE_BYTES_PER_USER=${TIER_FREE_KNOWLEDGE_BYTES_PER_USER:-10737418240}
+      - TIER_FREE_IMAGE_BYTES_PER_USER=${TIER_FREE_IMAGE_BYTES_PER_USER:-10737418240}
+      # Days an unreferenced doc image is kept before the image GC deletes
+      # it. Empty = 30, 0 = GC off.
+      - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}
       - NUXT_INACTIVE_DOC_TTL_DAYS=${NUXT_INACTIVE_DOC_TTL_DAYS:-180}
       # ─── Operator surfaces (shared/config/instance.ts) ───
       # The bundled privacy policy / terms / DPA / imprint describe the

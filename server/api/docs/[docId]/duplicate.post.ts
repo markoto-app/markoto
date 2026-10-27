@@ -1,7 +1,8 @@
 import { nanoid } from 'nanoid'
 import { getDoc } from '../../../repos/documents'
-import { duplicateDocument } from '../../../utils/duplicateDocument'
+import { duplicateDocument, ImageQuotaExceededError } from '../../../utils/duplicateDocument'
 import { withIdempotency } from '../../../utils/idempotency'
+import { imageQuotaError, resolveImageQuotaBytes } from '../../../utils/imageQuota'
 
 // Duplicate a document into a new docId. The duplicator becomes the
 // new owner — duplicates are "my copy of their template". Same
@@ -50,10 +51,17 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   return withIdempotency(event, `duplicate:${sourceDocId}`, session.user.id, async () => {
     const newDocId = nanoid(10)
-    await duplicateDocument(
-      { sourceDocId, newDocId, ownerId: session.user.id, workspaceId: targetWorkspaceId, title },
-      { s3: useS3Client(), bucket: config.s3.bucket }
-    )
+    // The copied images count against the duplicator's image quota.
+    const imageQuotaBytes = await resolveImageQuotaBytes(session.user.id)
+    try {
+      await duplicateDocument(
+        { sourceDocId, newDocId, ownerId: session.user.id, workspaceId: targetWorkspaceId, title },
+        { s3: useS3Client(), bucket: config.s3.bucket, imageQuotaBytes }
+      )
+    } catch (e) {
+      if (e instanceof ImageQuotaExceededError) throw imageQuotaError(e.limitBytes)
+      throw e
+    }
     return { docId: newDocId }
   })
 })

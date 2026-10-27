@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
 import { reserveUploadSlot } from '../../../../utils/knowledgeQuota'
 import { recordPendingKnowledgeUpload } from '../../../../utils/knowledgePendingUpload'
+import { stagingKeyFor } from '../../../../utils/uploadKey'
 
 /**
  * Step 1 of knowledge upload: mint a presigned PUT URL.
@@ -17,9 +18,20 @@ import { recordPendingKnowledgeUpload } from '../../../../utils/knowledgePending
  *
  * Row inserts happen at CONFIRM time, not here — that way an abandoned
  * upload (never PUT) doesn't create a `status='processing'` row the
- * sweep has to retry. Orphaned S3 objects (PUT but not confirmed) are
- * swept by orphan-cleanup via prefix listing.
+ * sweep has to retry. Objects PUT but never confirmed (and staging
+ * leftovers) are deleted by orphan-cleanup's knowledge pass
+ * (`server/utils/knowledgeOrphanSweep.ts`) once they are older than its
+ * grace period and no `workspace_knowledge` row references them.
+ *
+ * The URL writes a STAGING key (`…/knowledge/staging/{id}.{ext}`) with
+ * `Content-Type` and length signed; confirm copies it to the final key
+ * (`s3Key` below) and sniffs the copy, so re-using the URL later can't
+ * swap the bytes processing reads.
  */
+
+// Presigned PUT lifetime. S3 checks expiry when the request starts, so a
+// slow 25 MB upload that begins in time still completes.
+const KNOWLEDGE_PUT_TTL_SECONDS = 120
 
 const EXT_TO_MIME: Record<string, string> = {
   pdf: 'application/pdf',
@@ -96,15 +108,19 @@ export default defineEventHandler(async (event) => {
     // Bucket-level default-encryption (docs/S3-SETUP.md §6) covers the
     // browser PUT path; server-side direct PUTs set the header
     // explicitly as defense-in-depth.
+    //
+    // CONTENT-TYPE IS SIGNED (as for images): without it in the signed
+    // headers the client could store the original under any type.
+    // Confirm re-checks the stored type.
     uploadUrl = await getSignedUrl(
       s3,
       new PutObjectCommand({
         Bucket: config.s3.bucket,
-        Key: s3Key,
+        Key: stagingKeyFor(s3Key),
         ContentType: mimeType,
         ContentLength: size
       }),
-      { expiresIn: 300 }
+      { expiresIn: KNOWLEDGE_PUT_TTL_SECONDS, signableHeaders: new Set(['content-type']) }
     )
     // Confirm only accepts uploads recorded here, for this caller.
     await recordPendingKnowledgeUpload({ workspaceId: wsId, userId, knowledgeId }, { s3Key, ext, mimeType })
@@ -119,6 +135,6 @@ export default defineEventHandler(async (event) => {
     s3Key,
     ext,
     mimeType,
-    expiresIn: 300
+    expiresIn: KNOWLEDGE_PUT_TTL_SECONDS
   }
 })

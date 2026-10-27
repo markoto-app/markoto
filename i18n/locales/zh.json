@@ -247,7 +247,8 @@
     "loginToUpload": "请登录以上传图片。",
     "uploadFailed": "图片上传失败",
     "dropToUpload": "拖放图片以上传",
-    "uploading": "上传中…"
+    "uploading": "上传中…",
+    "storageQuotaReached": "你已达到图片存储上限。从文档中删除的图片在清理后会释放空间。"
   },
   "import": {
     "title": "导入文档",
@@ -563,6 +564,7 @@
     "workspaces": "工作区",
     "knowledgeFiles": "知识文件",
     "knowledgeStorage": "总存储空间",
+    "imageStorage": "图片存储",
     "dictation": "语音听写",
     "teamBilling": "markoto 工作区：为工作区中的每个人赞助 markoto",
     "currentPlan": "当前套餐",
@@ -1289,6 +1291,11 @@
         "description": "在不再使用的设备上仍处于登录状态，或担心他人可以访问？在所有浏览器和设备（包括本设备）上退出 markoto。",
         "button": "在所有设备上退出",
         "failed": "无法在所有设备上退出"
+      },
+      "storage": {
+        "heading": "存储",
+        "images": "文档图片",
+        "description": "你在文档中上传或生成的图片，包括复制文档时产生的副本。不再被任何文档使用的图片会在一段时间后自动清理。"
       }
     }
   },

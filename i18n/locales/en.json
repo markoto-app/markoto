@@ -247,7 +247,8 @@
     "loginToUpload": "Please log in to upload images.",
     "uploadFailed": "Image upload failed",
     "dropToUpload": "Drop image to upload",
-    "uploading": "Uploading..."
+    "uploading": "Uploading...",
+    "storageQuotaReached": "You've reached your image storage limit. Images you remove from your documents free up space once they are cleaned up."
   },
   "import": {
     "title": "Import Document",
@@ -563,6 +564,7 @@
     "workspaces": "workspaces",
     "knowledgeFiles": "knowledge files",
     "knowledgeStorage": "total storage",
+    "imageStorage": "image storage",
     "dictation": "voice dictation",
     "teamBilling": "markoto workspace: sponsor markoto for everyone in a workspace",
     "currentPlan": "Current plan",
@@ -1289,6 +1291,11 @@
         "description": "Signed in on a device you no longer use, or worried someone else has access? Sign out of markoto in every browser and on every device, including this one.",
         "button": "Log out everywhere",
         "failed": "Could not log out everywhere"
+      },
+      "storage": {
+        "heading": "Storage",
+        "images": "Document images",
+        "description": "Images you upload or generate in your documents, including copies made when you duplicate a document. Images that no document uses any more are cleaned up automatically after a while."
       }
     }
   },

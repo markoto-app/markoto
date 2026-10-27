@@ -93,10 +93,12 @@ export default defineEventHandler(async (event) => {
       Bucket: config.s3.bucket,
       Key: pdfKey,
       ResponseContentDisposition: disposition,
-      ResponseContentType: 'application/pdf'
+      ResponseContentType: 'application/pdf',
+      // The PDF bytes are as private as the doc: no shared caching.
+      ResponseCacheControl: PRIVATE_NO_STORE
     }),
     { expiresIn: 120 }
   )
 
-  return sendRedirect(event, url, 302)
+  return sendPrivateRedirect(event, url)
 })

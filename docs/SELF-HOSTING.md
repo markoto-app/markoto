@@ -261,6 +261,7 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `TIER_FREE_KNOWLEDGE_FILES` | `500` | Knowledge files per user (all workspaces). |
 | `TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE` | `1073741824` (1 GiB) | |
 | `TIER_FREE_KNOWLEDGE_BYTES_PER_USER` | `10737418240` (10 GiB) | |
+| `TIER_FREE_IMAGE_BYTES_PER_USER` | `10737418240` (10 GiB) | Document images per user: uploads, AI-generated images and the copies made by duplicating a doc. Pending uploads count from the moment the upload starts. |
 | `TIER_FREE_LITELLM_BUDGET_USD` | `1` | Monthly AI Points budget per user, only for platform-paid instance defaults. Applied when a user's AI key is created (first AI use); later changes don't update existing users. |
 | `NUXT_INACTIVE_DOC_TTL_DAYS` | `180` | Anonymous documents untouched this long are deleted. `0` disables. |
 | `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `_DAILY_LIMIT` | `30` / `100` | Web tool calls per user. |
@@ -270,6 +271,9 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | Variable | Default | Meaning |
 |---|---|---|
 | `NUXT_S3_BUCKET` | `markoto-files` | Bucket name. It is also the URL path prefix under which browsers reach storage, so don't pick a name that collides with an app route (`api`, `d`, `w`, `docs`, `settings`, …). |
+| `NUXT_IMAGE_GC_RETENTION_DAYS` | `30` | An uploaded image that no document, restorable document version, theme or comment has referenced for this many days is deleted. `0` turns the image clean-up off. |
+
+Uploads that are started but never finished are removed automatically: document images after 24 hours, workspace knowledge files after one hour.
 
 To use an external S3 service instead of SeaweedFS, point the app at it with an override file (`NUXT_S3_ENDPOINT`, `NUXT_S3_PUBLIC_ENDPOINT` empty, and CORS as in [S3-SETUP.md](S3-SETUP.md)); the bundled SeaweedFS then sits idle.
 
@@ -343,6 +347,7 @@ Changes that can need action when you upgrade an existing instance. Newest first
 
 | Change | Affects | What to do |
 |---|---|---|
+| **Image storage quota and image clean-up.** Each user's document images (uploads, AI-generated images, copies made by duplicating a document) are limited by `TIER_FREE_IMAGE_BYTES_PER_USER` (self-host default 10 GiB); existing images count toward it, and new uploads are refused with a clear message once the limit is reached. Images that nothing references any more are deleted after `NUXT_IMAGE_GC_RETENTION_DAYS` (default 30). Duplicated documents' images now count for the person who duplicated them. An image upload that is in progress while you upgrade fails and has to be repeated. The migration adds two nullable columns to `uploads`. | Everyone | Raise `TIER_FREE_IMAGE_BYTES_PER_USER` if your users store more; set `NUXT_IMAGE_GC_RETENTION_DAYS=0` to keep unused images forever. |
 | **Stricter outbound-request and import limits.** AI provider URLs that answer with a redirect now fail (use the provider's final API URL); more internal host spellings are refused. With `NUXT_LEGAL_SURFACES_ENABLED=true`, an empty `NUXT_AI_BYOK_ALLOWED_BASE_URLS` stops the app from starting. OpenID Connect needs `NUXT_OAUTH_OIDC_REDIRECT_URL` or `NUXT_SITE_URL` (no longer taken from the request). Imports over 51 MiB are refused at the edge, and zip-based files that inflate past 200 MB are refused by the converter. | Instances with legal surfaces on; OIDC setups outside the shipped compose files; very large imports | Set the allowlist (see [Security notes](#security-notes)) or the OIDC redirect URL if boot reports them missing. |
 | **Workspace invitations must be accepted.** Inviting by email now creates a pending invitation; the person joins only after accepting it (dashboard, or the emailed link). Existing members are unaffected. | Workspace admins | Tell invitees to accept from their dashboard (they must sign in with the invited email address, or use the email link). |
 | **Anonymous documents can be deleted only from the browser that created them.** Anonymous documents created before this release can no longer be deleted through the app; the inactive-document clean-up still removes them. | Anonymous users | Nothing. |

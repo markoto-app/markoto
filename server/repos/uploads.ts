@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import { uploads } from '../db/schema'
 import { useDatabase } from '../utils/database'
 
@@ -27,6 +27,87 @@ export interface PendingUploadInput {
 export async function recordPending(input: PendingUploadInput): Promise<void> {
   const db = useDatabase()
   await db.insert(uploads).values(input)
+}
+
+// ─── Per-user image storage quota ──────────────────────────────────────
+//
+// Every upload row — pending or confirmed — counts against its uploader's
+// quota, so a reservation is made the moment a presigned URL is issued.
+// Check + insert run in ONE transaction holding a per-user advisory lock,
+// so N parallel requests are serialised and can't all pass a "used + size
+// <= max" check that only one of them should pass.
+
+type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
+
+async function lockUploaderQuota(tx: Tx, uploaderId: number): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`image-quota:${uploaderId}`}))`)
+}
+
+async function sumUploaderBytes(tx: Tx | ReturnType<typeof useDatabase>, uploaderId: number): Promise<number> {
+  const rows = await tx
+    .select({ total: sql<string | null>`coalesce(sum(${uploads.sizeBytes}), 0)` })
+    .from(uploads)
+    .where(eq(uploads.uploaderId, uploaderId))
+  return Number(rows[0]?.total ?? 0)
+}
+
+/** Bytes counted against the user's image quota (pending + confirmed rows). */
+export async function sumImageBytesByUploader(uploaderId: number): Promise<number> {
+  return sumUploaderBytes(useDatabase(), uploaderId)
+}
+
+export interface QuotaReservation {
+  reserved: boolean
+  /** Bytes in use before this reservation. */
+  usedBytes: number
+}
+
+/**
+ * Insert a pending upload row if it fits the uploader's quota. Atomic per
+ * uploader (advisory lock + sum + insert in one transaction).
+ */
+export async function reservePendingUpload(input: PendingUploadInput, maxBytes: number): Promise<QuotaReservation> {
+  const db = useDatabase()
+  return db.transaction(async (tx) => {
+    await lockUploaderQuota(tx, input.uploaderId)
+    const usedBytes = await sumUploaderBytes(tx, input.uploaderId)
+    if (usedBytes + input.sizeBytes > maxBytes) return { reserved: false, usedBytes }
+    await tx.insert(uploads).values(input)
+    return { reserved: true, usedBytes }
+  })
+}
+
+export type ConfirmOutcome = 'confirmed' | 'already-confirmed' | 'over-quota' | 'missing'
+
+/**
+ * Flip the caller's pending upload to confirmed — unless the uploader is
+ * now over quota (e.g. the quota was lowered since the request), in which
+ * case the row stays pending and the caller deletes it. The row's own
+ * bytes were reserved at request time, so the check is "total <= max".
+ */
+export async function confirmOwnUploadWithinQuota(
+  s3Key: string,
+  uploaderId: number,
+  maxBytes: number
+): Promise<ConfirmOutcome> {
+  const db = useDatabase()
+  return db.transaction(async (tx) => {
+    await lockUploaderQuota(tx, uploaderId)
+    const rows = await tx
+      .select({ confirmedAt: uploads.confirmedAt })
+      .from(uploads)
+      .where(and(eq(uploads.s3Key, s3Key), eq(uploads.uploaderId, uploaderId)))
+      .limit(1)
+    const row = rows[0]
+    if (!row) return 'missing'
+    if (row.confirmedAt) return 'already-confirmed'
+    if (await sumUploaderBytes(tx, uploaderId) > maxBytes) return 'over-quota'
+    await tx
+      .update(uploads)
+      .set({ confirmedAt: new Date() })
+      .where(and(eq(uploads.s3Key, s3Key), eq(uploads.uploaderId, uploaderId), isNull(uploads.confirmedAt)))
+    return 'confirmed'
+  })
 }
 
 export interface OwnUploadRow {
@@ -181,8 +262,12 @@ export interface InsertConfirmedUpload {
 export async function insertConfirmedUploads(rows: InsertConfirmedUpload[]): Promise<void> {
   if (rows.length === 0) return
   const db = useDatabase()
+  await db.insert(uploads).values(toConfirmedValues(rows))
+}
+
+function toConfirmedValues(rows: InsertConfirmedUpload[]) {
   const now = new Date()
-  await db.insert(uploads).values(rows.map(r => ({
+  return rows.map(r => ({
     docId: r.docId,
     fileId: r.fileId,
     uploaderId: r.uploaderId,
@@ -190,5 +275,111 @@ export async function insertConfirmedUploads(rows: InsertConfirmedUpload[]): Pro
     sizeBytes: r.sizeBytes,
     s3Key: r.s3Key,
     confirmedAt: now
-  })))
+  }))
+}
+
+/**
+ * Insert already-confirmed rows attributed to `uploaderId` if their total
+ * fits that user's image quota (same advisory lock as uploads). Returns
+ * false — inserting nothing — when it doesn't.
+ */
+export async function insertConfirmedUploadsWithinQuota(
+  rows: InsertConfirmedUpload[],
+  uploaderId: number,
+  maxBytes: number
+): Promise<QuotaReservation> {
+  const db = useDatabase()
+  return db.transaction(async (tx) => {
+    await lockUploaderQuota(tx, uploaderId)
+    const usedBytes = await sumUploaderBytes(tx, uploaderId)
+    const adding = rows.reduce((n, r) => n + r.sizeBytes, 0)
+    if (usedBytes + adding > maxBytes) return { reserved: false, usedBytes }
+    if (rows.length > 0) await tx.insert(uploads).values(toConfirmedValues(rows))
+    return { reserved: true, usedBytes }
+  })
+}
+
+// ─── Image garbage collection (see server/utils/imageGc.ts) ─────────────
+
+export interface GcCandidate {
+  id: number
+  fileId: string
+  s3Key: string
+  unreferencedSince: Date | null
+}
+
+/**
+ * Docs that have at least one confirmed upload eligible for a GC check:
+ * confirmed before `confirmedBefore` and not checked since `checkedBefore`.
+ * Least-recently-checked first so every doc gets its turn.
+ */
+export async function listGcCandidateDocIds(args: {
+  confirmedBefore: Date
+  checkedBefore: Date
+  limit: number
+}): Promise<string[]> {
+  const db = useDatabase()
+  const rows = await db
+    .select({ docId: uploads.docId })
+    .from(uploads)
+    .where(and(
+      lt(uploads.confirmedAt, args.confirmedBefore),
+      or(isNull(uploads.gcCheckedAt), lt(uploads.gcCheckedAt, args.checkedBefore))
+    ))
+    .groupBy(uploads.docId)
+    .orderBy(sql`min(coalesce(${uploads.gcCheckedAt}, 'epoch'::timestamptz))`)
+    .limit(args.limit)
+  return rows.map(r => r.docId)
+}
+
+/** The doc's confirmed uploads old enough to be checked. */
+export async function listGcCandidatesForDoc(docId: string, confirmedBefore: Date): Promise<GcCandidate[]> {
+  const db = useDatabase()
+  return db
+    .select({
+      id: uploads.id,
+      fileId: uploads.fileId,
+      s3Key: uploads.s3Key,
+      unreferencedSince: uploads.unreferencedSince
+    })
+    .from(uploads)
+    .where(and(eq(uploads.docId, docId), lt(uploads.confirmedAt, confirmedBefore)))
+}
+
+/**
+ * Record a GC check: referenced rows get `unreferenced_since = NULL`,
+ * unreferenced rows keep an existing stamp or get `now`.
+ */
+export async function recordGcCheck(args: {
+  referencedIds: number[]
+  unreferencedIds: number[]
+  now: Date
+}): Promise<void> {
+  const db = useDatabase()
+  if (args.referencedIds.length > 0) {
+    await db
+      .update(uploads)
+      .set({ gcCheckedAt: args.now, unreferencedSince: null })
+      .where(inArray(uploads.id, args.referencedIds))
+  }
+  if (args.unreferencedIds.length > 0) {
+    await db
+      .update(uploads)
+      .set({ gcCheckedAt: args.now, unreferencedSince: sql`coalesce(${uploads.unreferencedSince}, ${args.now})` })
+      .where(inArray(uploads.id, args.unreferencedIds))
+  }
+}
+
+/**
+ * Delete the row if it is STILL marked unreferenced since before `cutoff`
+ * (a concurrent check that found a reference clears the stamp and wins).
+ * Returns the S3 key to delete, or null when the row was kept.
+ */
+export async function deleteExpiredUnreferencedUpload(id: number, cutoff: Date): Promise<string | null> {
+  const db = useDatabase()
+  const rows = await db
+    .delete(uploads)
+    .where(and(eq(uploads.id, id), lt(uploads.unreferencedSince, cutoff)))
+    .returning({ s3Key: uploads.s3Key })
+  return rows[0]?.s3Key ?? null
 }

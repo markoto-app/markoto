@@ -247,7 +247,8 @@
     "loginToUpload": "Inicia sesión para subir imágenes.",
     "uploadFailed": "Error al subir la imagen",
     "dropToUpload": "Suelta la imagen para subirla",
-    "uploading": "Subiendo..."
+    "uploading": "Subiendo...",
+    "storageQuotaReached": "Has alcanzado tu límite de almacenamiento de imágenes. Las imágenes que quitas de tus documentos liberan espacio cuando se limpian."
   },
   "import": {
     "title": "Importar documento",
@@ -563,6 +564,7 @@
     "workspaces": "espacios de trabajo",
     "knowledgeFiles": "archivos de conocimiento",
     "knowledgeStorage": "almacenamiento total",
+    "imageStorage": "almacenamiento de imágenes",
     "dictation": "dictado por voz",
     "teamBilling": "espacio de trabajo de markoto: patrocina a markoto para todos en un espacio de trabajo",
     "currentPlan": "Plan actual",
@@ -1289,6 +1291,11 @@
         "description": "¿Tienes la sesión iniciada en un dispositivo que ya no usas o te preocupa que otra persona tenga acceso? Cierra la sesión de markoto en todos los navegadores y dispositivos, incluido este.",
         "button": "Cerrar sesión en todas partes",
         "failed": "No se pudo cerrar la sesión en todas partes"
+      },
+      "storage": {
+        "heading": "Almacenamiento",
+        "images": "Imágenes de documentos",
+        "description": "Imágenes que subes o generas en tus documentos, incluidas las copias creadas al duplicar un documento. Las imágenes que ya no usa ningún documento se eliminan automáticamente al cabo de un tiempo."
       }
     }
   },

@@ -247,7 +247,8 @@
     "loginToUpload": "Veuillez vous connecter pour téléverser des images.",
     "uploadFailed": "Échec du téléversement de l'image",
     "dropToUpload": "Déposez l'image pour la téléverser",
-    "uploading": "Téléversement..."
+    "uploading": "Téléversement...",
+    "storageQuotaReached": "Vous avez atteint votre limite de stockage d'images. Les images que vous retirez de vos documents libèrent de l'espace une fois nettoyées."
   },
   "import": {
     "title": "Importer un document",
@@ -563,6 +564,7 @@
     "workspaces": "espaces de travail",
     "knowledgeFiles": "fichiers de connaissances",
     "knowledgeStorage": "stockage total",
+    "imageStorage": "stockage d'images",
     "dictation": "dictée vocale",
     "teamBilling": "espace de travail markoto : sponsorisez markoto pour tous les membres d'un espace de travail",
     "currentPlan": "Forfait actuel",
@@ -1289,6 +1291,11 @@
         "description": "Connecté sur un appareil que vous n'utilisez plus, ou inquiet qu'une autre personne y ait accès ? Déconnectez-vous de markoto dans tous les navigateurs et sur tous les appareils, y compris celui-ci.",
         "button": "Se déconnecter partout",
         "failed": "Impossible de se déconnecter partout"
+      },
+      "storage": {
+        "heading": "Stockage",
+        "images": "Images des documents",
+        "description": "Les images que vous téléversez ou générez dans vos documents, y compris les copies créées en dupliquant un document. Les images qu'aucun document n'utilise plus sont supprimées automatiquement après un certain temps."
       }
     }
   },

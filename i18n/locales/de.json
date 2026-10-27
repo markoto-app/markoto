@@ -247,7 +247,8 @@
     "loginToUpload": "Bitte melden Sie sich an, um Bilder hochzuladen.",
     "uploadFailed": "Bild-Upload fehlgeschlagen",
     "dropToUpload": "Bild zum Hochladen ablegen",
-    "uploading": "Wird hochgeladen..."
+    "uploading": "Wird hochgeladen...",
+    "storageQuotaReached": "Du hast dein Speicherlimit für Bilder erreicht. Bilder, die du aus deinen Dokumenten entfernst, geben Platz frei, sobald sie bereinigt werden."
   },
   "import": {
     "title": "Dokument importieren",
@@ -563,6 +564,7 @@
     "workspaces": "Workspaces",
     "knowledgeFiles": "Wissensdateien",
     "knowledgeStorage": "Gesamtspeicher",
+    "imageStorage": "Bildspeicher",
     "dictation": "Sprachdiktat",
     "teamBilling": "markoto-Workspace: markoto für alle in einem Workspace sponsern",
     "currentPlan": "Aktueller Tarif",
@@ -1289,6 +1291,11 @@
         "description": "Auf einem Gerät angemeldet, das Sie nicht mehr nutzen, oder Sorge, dass jemand anderes Zugriff hat? Melden Sie sich in jedem Browser und auf jedem Gerät von markoto ab, auch auf diesem.",
         "button": "Überall abmelden",
         "failed": "Abmelden auf allen Geräten fehlgeschlagen"
+      },
+      "storage": {
+        "heading": "Speicher",
+        "images": "Bilder in Dokumenten",
+        "description": "Bilder, die du in deinen Dokumenten hochlädst oder erzeugst, einschließlich Kopien beim Duplizieren eines Dokuments. Bilder, die kein Dokument mehr verwendet, werden nach einiger Zeit automatisch bereinigt."
       }
     }
   },

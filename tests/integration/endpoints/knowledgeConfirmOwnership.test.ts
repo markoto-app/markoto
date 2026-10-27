@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { S3Client, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, HeadObjectCommand, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
@@ -36,6 +36,12 @@ async function exists(key: string): Promise<boolean> {
   }
 }
 
+/** Where the presigned PUT lands (confirm copies it to the final key). */
+function staging(key: string): string {
+  const slash = key.lastIndexOf('/')
+  return `${key.slice(0, slash)}/staging${key.slice(slash)}`
+}
+
 async function requestAndUpload(userId: number, wsId: string, filename: string, body: string): Promise<Issued> {
   const client = await loggedInClient(userId)
   const res = await client.post(`/api/workspaces/${wsId}/knowledge/upload-request`, {
@@ -44,7 +50,7 @@ async function requestAndUpload(userId: number, wsId: string, filename: string, 
   })
   expect(res.status).toBe(200)
   const issued = await res.json() as Issued
-  seeded.push(issued.s3Key)
+  seeded.push(issued.s3Key, staging(issued.s3Key))
   const put = await fetch(issued.uploadUrl, { method: 'PUT', headers: { 'Content-Type': issued.mimeType }, body })
   expect(put.status, await put.text()).toBe(200)
   return issued
@@ -86,7 +92,8 @@ describe('knowledge confirm requires the caller\'s own pending upload', () => {
     const otherClient = await loggedInClient(other.id)
     const stolen = await otherClient.post(`/api/workspaces/${ws.workspaceId}/knowledge/confirm`, confirmBody(issued, 'notes.txt'))
     expect(stolen.status).toBe(404)
-    expect(await exists(issued.s3Key)).toBe(true)
+    // Untouched: still where the PUT left it (the staging key).
+    expect(await exists(staging(issued.s3Key))).toBe(true)
     expect(await knowledgeRows(ws.workspaceId)).toEqual([])
 
     // The real uploader can still confirm it.
@@ -122,5 +129,80 @@ describe('knowledge confirm requires the caller\'s own pending upload', () => {
       mimeType: 'text/plain'
     })
     expect(res.status).toBe(404)
+  })
+})
+
+describe('knowledge presigned PUT: signed type, staging key, immutable original', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  afterEach(async () => {
+    for (const key of seeded.splice(0)) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
+      } catch { /* already gone */ }
+    }
+  })
+
+  // Regression: `content-type` was not a signed header, so the original
+  // could be stored under any type (e.g. `text/html` for a `.md`).
+  it('the PUT refuses a Content-Type other than the issued one', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const client = await loggedInClient(owner.id)
+    const body = '# Notes\n'
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
+      filename: 'notes.md',
+      size: Buffer.byteLength(body)
+    })
+    const issued = await res.json() as Issued
+    seeded.push(issued.s3Key, staging(issued.s3Key))
+    const url = new URL(issued.uploadUrl)
+    expect(url.searchParams.get('X-Amz-SignedHeaders')).toContain('content-type')
+    expect(Number(url.searchParams.get('X-Amz-Expires'))).toBeLessThanOrEqual(120)
+
+    const put = await fetch(issued.uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'text/html' }, body })
+    expect(put.status).toBe(403)
+  })
+
+  it('confirm rejects (and deletes) an original stored under another type', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const client = await loggedInClient(owner.id)
+    const body = 'plain notes\n'
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
+      filename: 'notes.txt',
+      size: Buffer.byteLength(body)
+    })
+    const issued = await res.json() as Issued
+    seeded.push(issued.s3Key, staging(issued.s3Key))
+    // An object that reached the staging key with a different stored type.
+    await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: staging(issued.s3Key), Body: body, ContentType: 'text/html' }))
+
+    const confirm = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/confirm`, confirmBody(issued, 'notes.txt'))
+    expect(confirm.status).toBe(415)
+    expect((await confirm.json() as { data?: { code?: string } }).data?.code).toBe('knowledge/content-type-mismatch')
+    expect(await exists(staging(issued.s3Key))).toBe(false)
+    expect(await exists(issued.s3Key)).toBe(false)
+    expect(await knowledgeRows(ws.workspaceId)).toEqual([])
+  })
+
+  // Regression: the URL targeted the key processing reads, so bytes could
+  // be swapped after confirm had sniffed them.
+  it('the URL writes a staging key; confirm moves the upload to the stored key', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const issued = await requestAndUpload(owner.id, ws.workspaceId, 'notes.txt', 'Original notes.\n')
+    const url = new URL(issued.uploadUrl)
+    expect(url.pathname.endsWith(`/${BUCKET}/${issued.s3Key}`)).toBe(false)
+    expect(url.pathname.endsWith(`/${BUCKET}/${staging(issued.s3Key)}`)).toBe(true)
+
+    const client = await loggedInClient(owner.id)
+    const ok = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/confirm`, confirmBody(issued, 'notes.txt'))
+    expect(ok.status).toBe(200)
+    expect(await exists(staging(issued.s3Key))).toBe(false)
+    const row = await testDb().query<{ s3_key: string }>('SELECT s3_key FROM workspace_knowledge WHERE knowledge_id = $1', [issued.knowledgeId])
+    expect(row.rows[0]?.s3_key).toBe(issued.s3Key)
   })
 })

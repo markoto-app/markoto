@@ -8,8 +8,11 @@ import {
 import {
   listConfirmedUploadsForDoc,
   insertConfirmedUploads,
-  deleteUploadsForDoc
+  insertConfirmedUploadsWithinQuota,
+  deleteUploadsForDoc,
+  sumImageBytesByUploader
 } from '../repos/uploads'
+import { imageQuotaMessage } from './imageQuota'
 import { cloneYjsStateWithUrlRewrite } from './cloneYjsState'
 import { withThemeDocId } from '~~/shared/utils/customCss'
 import { withThemeImagesDocId } from '~~/shared/utils/themeImages'
@@ -46,6 +49,23 @@ export interface DuplicateInput {
 export interface DuplicateDeps {
   s3: Pick<S3Client, 'send'>
   bucket: string
+  /**
+   * The duplicator's image quota (`resolveImageQuotaBytes(ownerId)`). The
+   * copied images are attributed to the duplicator — not the original
+   * uploaders, whose quota a stranger could otherwise fill by duplicating
+   * their open doc — and must fit that quota.
+   */
+  imageQuotaBytes: number
+}
+
+/** The copies would push the duplicator over their image storage quota. */
+export class ImageQuotaExceededError extends Error {
+  readonly limitBytes: number
+  constructor(limitBytes: number) {
+    super(imageQuotaMessage(limitBytes))
+    this.name = 'ImageQuotaExceededError'
+    this.limitBytes = limitBytes
+  }
 }
 
 export async function duplicateDocument(
@@ -55,6 +75,15 @@ export async function duplicateDocument(
   const source = await getDoc(input.sourceDocId)
   if (!source) {
     throw new Error(`Source document ${input.sourceDocId} not found`)
+  }
+
+  // Cheap quota pre-check before anything is written or copied. The
+  // authoritative check is the atomic insert in phase 2.
+  const uploadsToClone = await listConfirmedUploadsForDoc(input.sourceDocId)
+  const cloneBytes = uploadsToClone.reduce((n, r) => n + r.sizeBytes, 0)
+  if (input.ownerId !== null && cloneBytes > 0
+    && await sumImageBytesByUploader(input.ownerId) + cloneBytes > deps.imageQuotaBytes) {
+    throw new ImageQuotaExceededError(deps.imageQuotaBytes)
   }
 
   // Phase 1: documents row. Description/audience/language/templateId
@@ -85,7 +114,6 @@ export async function duplicateDocument(
   try {
     // Phase 2: S3 image asset clone. Uses the same fileId on both
     // sides so the rewritten markdown URLs match.
-    const uploadsToClone = await listConfirmedUploadsForDoc(input.sourceDocId)
     const copiedRows: Parameters<typeof insertConfirmedUploads>[0] = []
     for (const row of uploadsToClone) {
       const newS3Key = `docs/${input.newDocId}/${row.fileId}`
@@ -101,13 +129,16 @@ export async function duplicateDocument(
       copiedRows.push({
         docId: input.newDocId,
         fileId: row.fileId,
-        uploaderId: row.uploaderId,
+        uploaderId: input.ownerId ?? row.uploaderId,
         contentType: row.contentType,
         sizeBytes: row.sizeBytes,
         s3Key: newS3Key
       })
     }
-    if (copiedRows.length > 0) {
+    if (copiedRows.length > 0 && input.ownerId !== null) {
+      const res = await insertConfirmedUploadsWithinQuota(copiedRows, input.ownerId, deps.imageQuotaBytes)
+      if (!res.reserved) throw new ImageQuotaExceededError(deps.imageQuotaBytes)
+    } else if (copiedRows.length > 0) {
       await insertConfirmedUploads(copiedRows)
     }
 

@@ -9,6 +9,9 @@ interface UploadResult {
 export function useImageUpload(docId: string) {
   const uploading = ref(false)
   const error = ref<string | null>(null)
+  // `$i18n` rather than `useI18n()`: the composable is also used outside a
+  // component setup context.
+  const i18n = useNuxtApp().$i18n
 
   async function upload(file: File): Promise<UploadResult | null> {
     uploading.value = true
@@ -50,10 +53,16 @@ export function useImageUpload(docId: string) {
       const url = `/api/files/${docId}/${fileId}`
       return { fileId, url }
     } catch (e) {
-      const err = e as { statusCode?: number, status?: number, data?: { statusCode?: number, message?: string }, message?: string }
+      const err = e as { statusCode?: number, status?: number, data?: { statusCode?: number, message?: string, data?: { messageKey?: string } }, message?: string }
       const statusCode = err.statusCode || err.data?.statusCode || err.status
+      // `err.data` is the error body; the server's hint sits in its `data`.
+      const messageKey = err.data?.data?.messageKey
       if (statusCode === 401) {
         error.value = 'login_required'
+      } else if (messageKey && i18n.te(messageKey)) {
+        // Localised server hint, e.g. `image.storageQuotaReached` (409
+        // `upload/storage-quota`) instead of the English server message.
+        error.value = i18n.t(messageKey)
       } else {
         error.value = err.data?.message || err.message || 'Upload failed'
       }

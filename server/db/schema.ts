@@ -358,6 +358,15 @@ export const aiSessionMessages = pgTable('ai_session_messages', {
 //   - S3 objects under docs/{docId}/ with no matching s3_key in uploads
 //     AND last-modified > 24h → defensive cleanup.
 //   - whole prefix docs/{docId}/ when the parent document is gone → cascade.
+// `s3_key` is the FINAL key (`docs/{docId}/{fileId}`); the browser PUTs to
+// a staging key (`docs/{docId}/staging/{fileId}`) that confirm copies from,
+// so the presigned URL can never rewrite a confirmed image.
+// Every row (pending or confirmed) counts against the uploader's
+// `imageBytesPerUser` quota. The image GC (`server/utils/imageGc.ts`)
+// stamps `gc_checked_at` on every check and `unreferenced_since` when a
+// confirmed image is referenced nowhere (current doc, restorable history,
+// other docs, themes, comments); it deletes the image only once that has
+// held for the retention window.
 export const uploads = pgTable('uploads', {
   id: serial('id').primaryKey(),
   docId: text('doc_id').notNull().references(() => documents.docId),
@@ -367,7 +376,9 @@ export const uploads = pgTable('uploads', {
   sizeBytes: integer('size_bytes').notNull(),
   s3Key: text('s3_key').notNull().unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  confirmedAt: timestamp('confirmed_at', { withTimezone: true })
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+  gcCheckedAt: timestamp('gc_checked_at', { withTimezone: true }),
+  unreferencedSince: timestamp('unreferenced_since', { withTimezone: true })
 }, table => [
   index('idx_uploads_doc').on(table.docId),
   index('idx_uploads_unconfirmed').on(table.confirmedAt, table.createdAt)

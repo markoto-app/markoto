@@ -17,8 +17,13 @@ const insertDuplicateDoc = vi.fn()
 const deleteDocRow = vi.fn()
 
 const listConfirmedUploadsForDoc = vi.fn()
+const insertConfirmedUploadsWithinQuota = vi.fn()
 const insertConfirmedUploads = vi.fn()
+const sumImageBytesByUploader = vi.fn()
 const deleteUploadsForDoc = vi.fn()
+
+// The duplicator's image quota passed in by the callers.
+const QUOTA = 1000
 
 const cloneYjsStateWithUrlRewrite = vi.fn()
 
@@ -31,7 +36,9 @@ vi.mock('../../server/repos/documents', () => ({
 }))
 vi.mock('../../server/repos/uploads', () => ({
   listConfirmedUploadsForDoc,
+  insertConfirmedUploadsWithinQuota,
   insertConfirmedUploads,
+  sumImageBytesByUploader,
   deleteUploadsForDoc
 }))
 vi.mock('../../server/utils/cloneYjsState', () => ({ cloneYjsStateWithUrlRewrite }))
@@ -74,7 +81,12 @@ beforeEach(() => {
   insertDuplicateDoc.mockReset()
   deleteDocRow.mockReset()
   listConfirmedUploadsForDoc.mockReset()
+  listConfirmedUploadsForDoc.mockResolvedValue([])
+  insertConfirmedUploadsWithinQuota.mockReset()
+  insertConfirmedUploadsWithinQuota.mockResolvedValue({ reserved: true, usedBytes: 0 })
   insertConfirmedUploads.mockReset()
+  sumImageBytesByUploader.mockReset()
+  sumImageBytesByUploader.mockResolvedValue(0)
   deleteUploadsForDoc.mockReset()
   cloneYjsStateWithUrlRewrite.mockReset()
   sentryCaptureException.mockReset()
@@ -84,7 +96,7 @@ describe('duplicateDocument — source-not-found', () => {
   it('throws before any write if the source doc is gone', async () => {
     getDoc.mockResolvedValueOnce(null)
     const s3 = makeS3()
-    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b' }))
+    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuotaBytes: QUOTA }))
       .rejects.toThrow(/Source document SRC not found/)
     expect(insertDuplicateDoc).not.toHaveBeenCalled()
     expect(s3.send).not.toHaveBeenCalled()
@@ -108,14 +120,15 @@ describe('duplicateDocument — happy path', () => {
       order.push('s3copy')
       return {}
     })
-    insertConfirmedUploads.mockImplementationOnce(async () => {
+    insertConfirmedUploadsWithinQuota.mockImplementationOnce(async () => {
       order.push('insertUploads')
+      return { reserved: true, usedBytes: 0 }
     })
     cloneYjsStateWithUrlRewrite.mockImplementationOnce(async () => {
       order.push('cloneYjs')
     })
 
-    await duplicateDocument(baseInput(), { s3, bucket: 'my-bucket' })
+    await duplicateDocument(baseInput(), { s3, bucket: 'my-bucket', imageQuotaBytes: QUOTA })
 
     expect(order).toEqual(['insertRow', 's3copy', 's3copy', 'insertUploads', 'cloneYjs'])
   })
@@ -128,14 +141,14 @@ describe('duplicateDocument — happy path', () => {
       { fileId: 'abc123', s3Key: 'docs/SRC/abc123', uploaderId: 1, contentType: 'image/png', sizeBytes: 1 }
     ])
     const s3 = makeS3()
-    await duplicateDocument(baseInput(), { s3, bucket: 'b' })
+    await duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuotaBytes: QUOTA })
 
     const copyCmd = s3.send.mock.calls[0]![0] as { input: { CopySource: string, Key: string } }
     expect(copyCmd.input.CopySource).toBe('/b/docs/SRC/abc123')
     expect(copyCmd.input.Key).toBe('docs/TGT/abc123')
   })
 
-  it('skips insertConfirmedUploads entirely when the source has zero images', async () => {
+  it('skips insertConfirmedUploadsWithinQuota entirely when the source has zero images', async () => {
     // Source without any confirmed uploads shouldn't hit the bulk-insert
     // — otherwise we'd be trying to INSERT an empty array (some drivers
     // choke on zero-row inserts, others don't; cheaper to skip).
@@ -143,9 +156,9 @@ describe('duplicateDocument — happy path', () => {
     listConfirmedUploadsForDoc.mockResolvedValueOnce([])
     const s3 = makeS3()
 
-    await duplicateDocument(baseInput(), { s3, bucket: 'b' })
+    await duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuotaBytes: QUOTA })
 
-    expect(insertConfirmedUploads).not.toHaveBeenCalled()
+    expect(insertConfirmedUploadsWithinQuota).not.toHaveBeenCalled()
     expect(s3.send).not.toHaveBeenCalled()
     expect(cloneYjsStateWithUrlRewrite).toHaveBeenCalledOnce()
   })
@@ -165,7 +178,7 @@ describe('duplicateDocument — happy path', () => {
     listConfirmedUploadsForDoc.mockResolvedValueOnce([])
     const s3 = makeS3()
 
-    await duplicateDocument(baseInput({ ownerId: 7, workspaceId: 'ws1' }), { s3, bucket: 'b' })
+    await duplicateDocument(baseInput({ ownerId: 7, workspaceId: 'ws1' }), { s3, bucket: 'b', imageQuotaBytes: QUOTA })
 
     const arg = insertDuplicateDoc.mock.calls[0][0]
     expect(arg).toMatchObject({
@@ -188,7 +201,7 @@ describe('duplicateDocument — happy path', () => {
     listConfirmedUploadsForDoc.mockResolvedValueOnce([])
     const s3 = makeS3()
 
-    await duplicateDocument(baseInput(), { s3, bucket: 'b' })
+    await duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuotaBytes: QUOTA })
 
     expect(insertDuplicateDoc.mock.calls[0][0].theme).toEqual({
       page: { marginMm: 25 },
@@ -207,7 +220,7 @@ describe('duplicateDocument — happy path', () => {
     }))
     listConfirmedUploadsForDoc.mockResolvedValueOnce([])
 
-    await duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b' })
+    await duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b', imageQuotaBytes: QUOTA })
 
     const theme = insertDuplicateDoc.mock.calls[0][0].theme
     expect(theme.brand.logoUrl).toBe('/api/files/TGT/AbCdEfGhIjKl.png')
@@ -226,7 +239,7 @@ describe('duplicateDocument — rollback', () => {
     const s3 = makeS3()
     s3.send.mockRejectedValueOnce(new Error('AccessDenied'))
 
-    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b' })).rejects.toThrow('AccessDenied')
+    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuotaBytes: QUOTA })).rejects.toThrow('AccessDenied')
 
     expect(deleteUploadsForDoc).toHaveBeenCalledWith('TGT')
     expect(deleteDocRow).toHaveBeenCalledWith('TGT')
@@ -242,7 +255,7 @@ describe('duplicateDocument — rollback', () => {
     const s3 = makeS3()
     cloneYjsStateWithUrlRewrite.mockRejectedValueOnce(new Error('Y.js replay failed'))
 
-    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b' })).rejects.toThrow('Y.js replay failed')
+    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuotaBytes: QUOTA })).rejects.toThrow('Y.js replay failed')
 
     expect(deleteUploadsForDoc).toHaveBeenCalledWith('TGT')
     expect(deleteDocRow).toHaveBeenCalledWith('TGT')
@@ -258,7 +271,7 @@ describe('duplicateDocument — rollback', () => {
     cloneYjsStateWithUrlRewrite.mockRejectedValueOnce(new Error('original failure'))
     deleteUploadsForDoc.mockRejectedValueOnce(new Error('rollback also failed'))
 
-    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b' }))
+    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuotaBytes: QUOTA }))
       .rejects.toThrow('original failure')
 
     expect(sentryCaptureException).toHaveBeenCalledOnce()
@@ -280,7 +293,7 @@ describe('duplicateDocument — rollback', () => {
     getDoc.mockResolvedValueOnce(fakeSource())
     insertDuplicateDoc.mockRejectedValueOnce(new Error('unique constraint'))
 
-    await expect(duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b' }))
+    await expect(duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b', imageQuotaBytes: QUOTA }))
       .rejects.toThrow('unique constraint')
 
     expect(deleteDocRow).not.toHaveBeenCalled()
@@ -305,9 +318,55 @@ describe('duplicateDocument — rollback', () => {
     })
     cloneYjsStateWithUrlRewrite.mockRejectedValueOnce(new Error('force rollback'))
 
-    await expect(duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b' }))
+    await expect(duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b', imageQuotaBytes: QUOTA }))
       .rejects.toThrow('force rollback')
 
     expect(order).toEqual(['uploads', 'row'])
+  })
+})
+
+describe('duplicateDocument — image storage quota', () => {
+  const images = [
+    { fileId: 'fa', s3Key: 'docs/SRC/fa', uploaderId: 1, contentType: 'image/png', sizeBytes: 300 },
+    { fileId: 'fb', s3Key: 'docs/SRC/fb', uploaderId: 1, contentType: 'image/png', sizeBytes: 400 }
+  ]
+
+  // Regression: copies kept the ORIGINAL uploader, so anyone able to edit
+  // an open doc could fill its author's quota (and storage was unbounded).
+  it('attributes the copies to the duplicator and inserts them within their quota', async () => {
+    getDoc.mockResolvedValueOnce(fakeSource())
+    listConfirmedUploadsForDoc.mockResolvedValueOnce(images)
+
+    await duplicateDocument(baseInput({ ownerId: 2 }), { s3: makeS3(), bucket: 'b', imageQuotaBytes: QUOTA })
+
+    expect(insertConfirmedUploadsWithinQuota).toHaveBeenCalledOnce()
+    const [rows, uploaderId, maxBytes] = insertConfirmedUploadsWithinQuota.mock.calls[0]!
+    expect(uploaderId).toBe(2)
+    expect(maxBytes).toBe(QUOTA)
+    expect((rows as Array<{ uploaderId: number }>).map(r => r.uploaderId)).toEqual([2, 2])
+  })
+
+  it('refuses before writing or copying anything when the copies would not fit', async () => {
+    getDoc.mockResolvedValueOnce(fakeSource())
+    listConfirmedUploadsForDoc.mockResolvedValueOnce(images)
+    sumImageBytesByUploader.mockResolvedValueOnce(QUOTA - 500) // 700 more would exceed it
+    const s3 = makeS3()
+
+    await expect(duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuotaBytes: QUOTA }))
+      .rejects.toThrow(/image storage limit/)
+    expect(insertDuplicateDoc).not.toHaveBeenCalled()
+    expect(s3.send).not.toHaveBeenCalled()
+  })
+
+  it('rolls back when the atomic insert finds the quota exhausted', async () => {
+    getDoc.mockResolvedValueOnce(fakeSource())
+    listConfirmedUploadsForDoc.mockResolvedValueOnce(images)
+    insertConfirmedUploadsWithinQuota.mockResolvedValueOnce({ reserved: false, usedBytes: QUOTA })
+
+    await expect(duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b', imageQuotaBytes: QUOTA }))
+      .rejects.toThrow(/image storage limit/)
+    expect(deleteUploadsForDoc).toHaveBeenCalledWith('TGT')
+    expect(deleteDocRow).toHaveBeenCalledWith('TGT')
+    expect(cloneYjsStateWithUrlRewrite).not.toHaveBeenCalled()
   })
 })

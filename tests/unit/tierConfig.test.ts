@@ -28,7 +28,8 @@ describe('tier config — completeness', () => {
       'workspacesOwned',
       'knowledgeFiles',
       'knowledgeBytesPerWorkspace',
-      'knowledgeBytesPerUser'
+      'knowledgeBytesPerUser',
+      'imageBytesPerUser'
     ]
     for (const plan of PLAN_NAMES) {
       const caps = DEFAULT_TIERS[plan]
@@ -104,13 +105,15 @@ describe('resolveTiersFromEnv — runtime overrides', () => {
       TIER_PRO_WORKSPACES_OWNED: '25',
       TIER_MAX_KNOWLEDGE_FILES: '999',
       TIER_ULTRA_KNOWLEDGE_BYTES_PER_WORKSPACE: '123456789',
-      TIER_ULTRA_KNOWLEDGE_BYTES_PER_USER: '987654321'
+      TIER_ULTRA_KNOWLEDGE_BYTES_PER_USER: '987654321',
+      TIER_FREE_IMAGE_BYTES_PER_USER: '123456'
     })
     expect(tiers.free.litellmBudgetUsd).toBe(2)
     expect(tiers.pro.workspacesOwned).toBe(25)
     expect(tiers.max.knowledgeFiles).toBe(999)
     expect(tiers.ultra.knowledgeBytesPerWorkspace).toBe(123456789)
     expect(tiers.ultra.knowledgeBytesPerUser).toBe(987654321)
+    expect(tiers.free.imageBytesPerUser).toBe(123456)
   })
 
   it('rejects invalid values — typos degrade to the default, never to a broken product', () => {

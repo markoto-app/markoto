@@ -29,18 +29,42 @@ import { effectivePlan, limitRecovery } from '~~/server/utils/billingMode'
  * 429 rate-limit).
  */
 
-// Inflight slot TTL. Matches the presigned-URL TTL (300s) plus a small
-// safety margin so that an abandoned upload-request (user never PUTs)
-// frees its slot after the URL is useless anyway. The presigned TTL is
-// 300s from S3 signing — 360s here covers clock skew + the confirm
-// roundtrip on the happy path.
-const INFLIGHT_SLOT_TTL_MS = 360 * 1000
+// Inflight slot TTL. Matches the presigned-URL TTL (120s, upload-request)
+// plus a safety margin so that an abandoned upload-request (user never
+// PUTs) frees its slot soon after the URL is useless anyway — the margin
+// covers clock skew + a slow upload + the confirm roundtrip.
+export const INFLIGHT_SLOT_TTL_MS = 180 * 1000
 
 // Namespaces for the inflight counters. Keep them stable — they key
 // into Valkey under `inflight:{namespace}:{key}`, so renaming would
 // orphan live counters in production.
 export const INFLIGHT_NS_WORKSPACE = 'knowledge-upload-ws'
 export const INFLIGHT_NS_USER = 'knowledge-upload-user'
+// One member's share of a workspace's slots (key `{wsId}:{userId}`).
+export const INFLIGHT_NS_WORKSPACE_MEMBER = 'knowledge-upload-ws-member'
+
+/**
+ * How many of a workspace's `wsSlots` free inflight slots one member may
+ * hold at once: half (rounded up), so a single editor requesting presigns
+ * without ever confirming can't lock every other member out. With one
+ * slot left it's first come, first served — someone has to take it.
+ */
+export function memberShareOfWorkspaceSlots(wsSlots: number): number {
+  return Math.max(1, Math.ceil(wsSlots / 2))
+}
+
+export function workspaceMemberSlotKey(workspaceId: string, userId: number): string {
+  return `${workspaceId}:${userId}`
+}
+
+/** Release every inflight counter one upload-request reserved. Best-effort. */
+export async function releaseKnowledgeUploadSlots(workspaceId: string, userId: number): Promise<void> {
+  await Promise.all([
+    releaseInflightSlot(INFLIGHT_NS_WORKSPACE, workspaceId),
+    releaseInflightSlot(INFLIGHT_NS_WORKSPACE_MEMBER, workspaceMemberSlotKey(workspaceId, userId)),
+    releaseInflightSlot(INFLIGHT_NS_USER, String(userId))
+  ])
+}
 
 export interface KnowledgeCaps {
   maxFileBytes: number
@@ -206,19 +230,38 @@ export async function reserveUploadSlot(args: {
   const wsSlotMax = Math.max(1, caps.maxFilesPerWorkspace - wsCount)
   const userSlotMax = Math.max(1, caps.maxFilesPerUser - userCount)
 
-  const wsSlot = await reserveInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId, wsSlotMax, INFLIGHT_SLOT_TTL_MS)
-  if (!wsSlot.allowed) {
+  // The member's own share of the workspace's slots is reserved FIRST, so
+  // a member at their share never consumes a workspace slot.
+  const memberKey = workspaceMemberSlotKey(args.workspaceId, args.userId)
+  const memberSlot = await reserveInflightSlot(
+    INFLIGHT_NS_WORKSPACE_MEMBER, memberKey, memberShareOfWorkspaceSlots(wsSlotMax), INFLIGHT_SLOT_TTL_MS
+  )
+  if (!memberSlot.allowed) {
     throw createError({
       statusCode: 409,
-      message: 'Too many pending uploads for this workspace — try again in a moment.'
+      message: 'You have too many pending uploads in this workspace — finish or wait for them, then try again.',
+      data: { code: 'knowledge/too-many-pending' }
+    })
+  }
+  const wsSlot = await reserveInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId, wsSlotMax, INFLIGHT_SLOT_TTL_MS)
+  if (!wsSlot.allowed) {
+    await releaseInflightSlot(INFLIGHT_NS_WORKSPACE_MEMBER, memberKey)
+    throw createError({
+      statusCode: 409,
+      message: 'Too many pending uploads for this workspace — try again in a moment.',
+      data: { code: 'knowledge/too-many-pending' }
     })
   }
   const userSlot = await reserveInflightSlot(INFLIGHT_NS_USER, String(args.userId), userSlotMax, INFLIGHT_SLOT_TTL_MS)
   if (!userSlot.allowed) {
-    await releaseInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId)
+    await Promise.all([
+      releaseInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId),
+      releaseInflightSlot(INFLIGHT_NS_WORKSPACE_MEMBER, memberKey)
+    ])
     throw createError({
       statusCode: 409,
-      message: 'Too many pending uploads on your account — try again in a moment.'
+      message: 'Too many pending uploads on your account — try again in a moment.',
+      data: { code: 'knowledge/too-many-pending' }
     })
   }
 
@@ -227,10 +270,7 @@ export async function reserveUploadSlot(args: {
     releaseSlots: async () => {
       if (released) return
       released = true
-      await Promise.all([
-        releaseInflightSlot(INFLIGHT_NS_WORKSPACE, args.workspaceId),
-        releaseInflightSlot(INFLIGHT_NS_USER, String(args.userId))
-      ])
+      await releaseKnowledgeUploadSlots(args.workspaceId, args.userId)
     }
   }
 }
