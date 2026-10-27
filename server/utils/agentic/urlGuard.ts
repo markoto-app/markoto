@@ -1,7 +1,8 @@
 // Guards against SSRF in AI tool inputs. All URL-taking tools must call
-// `assertSafeUrl()` before passing the URL onward. The model is allowed
-// to ask for any HTTP(S) URL on the public internet; private CIDRs,
-// metadata IPs, link-local, loopback, and non-HTTP schemes are all
+// `assertSafeUrl()` (or `resolvePublicAddresses()` when they open the
+// connection themselves) before passing the URL onward. The model is
+// allowed to ask for any HTTP(S) URL on the public internet; private
+// CIDRs, metadata IPs, link-local, loopback, and non-HTTP schemes are all
 // rejected with a clear error the agentic loop surfaces back to the
 // model (so it learns and can pick a different URL).
 //
@@ -16,168 +17,212 @@
 //     dereference depending on backend.
 //   - DNS-resolved hostnames that map to private space — the public-DNS
 //     answer is fine but the resolved IP is not (DNS rebinding-shaped).
+//   - Every textual form of an IPv6 address that embeds an IPv4 one
+//     (`::ffff:7f00:1`, NAT64, 6to4, …): addresses are parsed into bytes.
 //
-// We can't fully prevent rebinding without piping the resolved IP into
-// the actual fetch (Jina Reader re-resolves server-side, just as the
-// pre-Phase-5 Gemini `urlContext` did). For our threat model — the AI
-// is the requester, not a userland fetch pinned to one IP — single-
-// resolve before forwarding the URL is the practical mitigation. A
-// determined attacker with a controlled DNS authority that returns
-// 1s-TTL records flipping public→private mid-resolution is out of
-// scope here; the secondary defenses are the downstream rate limits +
-// interaction caps + audit log.
+// Rebinding: `fetch_url` forwards the URL to Jina Reader, which resolves
+// it again on its own network — nothing we can pin there. Where the app
+// itself connects (`view_image`, `safeFetch.ts`), it connects to the
+// address that was checked, so a DNS answer that flips after the check
+// is never used.
 
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 
 const ALLOWED_SCHEMES = new Set(['http:', 'https:'])
 
-/**
- * IPv4 private + special-use ranges. Returns true if `ip` is an IPv4
- * dotted-quad in any of:
- *   - 0.0.0.0/8        — "this network"
- *   - 10.0.0.0/8       — RFC 1918
- *   - 100.64.0.0/10    — CGNAT (often used internally)
- *   - 127.0.0.0/8      — loopback
- *   - 169.254.0.0/16   — link-local + AWS/GCP metadata
- *   - 172.16.0.0/12    — RFC 1918
- *   - 192.0.0.0/24     — IETF protocol assignments
- *   - 192.168.0.0/16   — RFC 1918
- *   - 198.18.0.0/15    — benchmarking
- *   - 224.0.0.0/4      — multicast
- *   - 240.0.0.0/4      — reserved (incl. broadcast 255.255.255.255)
- */
-/** Predicate matching `(a, b)` against one private/special-use IPv4 range. */
-type Ipv4RangeCheck = (a: number, b: number) => boolean
+/** Longest URL the URL-taking tools accept (fetch_url, view_image). */
+export const MAX_TOOL_URL_LENGTH = 2000
 
 /**
- * Table of private + special-use IPv4 ranges. Order is irrelevant; we
- * short-circuit on the first match. Comment carries the range name so
- * the table reads as documentation.
+ * Address classes, from most to least restrictive:
+ *   - `forbidden` — never a legitimate target, even when an operator
+ *     allows private networks (BYOK `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS`):
+ *     loopback, "this network", link-local incl. cloud metadata,
+ *     multicast, reserved, documentation/discard ranges, tunnelling
+ *     prefixes whose real endpoint can't be verified, unparseable input.
+ *   - `private` — reachable on purpose on a LAN / docker bridge
+ *     (RFC 1918, CGNAT, IPv6 unique-local / site-local); refused unless
+ *     the caller opts in.
+ *   - `public` — anything else in global unicast space.
+ *
+ * Addresses are parsed into bytes (no regexes on the text form), so every
+ * spelling of the same address — `::ffff:127.0.0.1`, `::ffff:7f00:1`,
+ * `0:0:0:0:0:ffff:7f00:0001` — gets the same answer. IPv6 forms that
+ * carry an IPv4 address (IPv4-mapped, IPv4-compatible, IPv4-translated,
+ * NAT64 `64:ff9b::/96`, 6to4 `2002::/16`) are classified by the embedded
+ * IPv4 address.
  */
-const PRIVATE_IPV4_RANGES: Ipv4RangeCheck[] = [
-  a => a === 0, //                        0.0.0.0/8        "this network"
-  a => a === 10, //                       10.0.0.0/8       RFC 1918
-  a => a === 127, //                      127.0.0.0/8      loopback
-  (a, b) => a === 169 && b === 254, //    169.254.0.0/16   link-local + AWS/GCP metadata
-  (a, b) => a === 172 && b >= 16 && b <= 31, // 172.16.0.0/12  RFC 1918
-  (a, b) => a === 192 && b === 0, //      192.0.0.0/24     IETF protocol assignments
-  (a, b) => a === 192 && b === 168, //    192.168.0.0/16   RFC 1918
-  (a, b) => a === 198 && (b === 18 || b === 19), // 198.18.0.0/15  benchmarking
-  (a, b) => a === 100 && b >= 64 && b <= 127, //   100.64.0.0/10  CGNAT
-  a => a >= 224 //                        224.0.0.0/4 multicast + 240.0.0.0/4 reserved
+export type IpClass = 'public' | 'private' | 'forbidden'
+
+type Bytes = readonly number[]
+
+interface IpRange {
+  /** Network prefix as bytes (rest zero). */
+  net: Bytes
+  bits: number
+  cls: Exclude<IpClass, 'public'>
+}
+
+const IPV4_RANGES: readonly IpRange[] = [
+  { net: [0, 0, 0, 0], bits: 8, cls: 'forbidden' }, //        "this network"
+  { net: [127, 0, 0, 0], bits: 8, cls: 'forbidden' }, //      loopback
+  { net: [169, 254, 0, 0], bits: 16, cls: 'forbidden' }, //   link-local + AWS/GCP metadata
+  { net: [192, 0, 2, 0], bits: 24, cls: 'forbidden' }, //     TEST-NET-1 (documentation)
+  { net: [198, 51, 100, 0], bits: 24, cls: 'forbidden' }, //  TEST-NET-2
+  { net: [203, 0, 113, 0], bits: 24, cls: 'forbidden' }, //   TEST-NET-3
+  { net: [224, 0, 0, 0], bits: 4, cls: 'forbidden' }, //      multicast
+  { net: [240, 0, 0, 0], bits: 4, cls: 'forbidden' }, //      reserved incl. broadcast
+  { net: [10, 0, 0, 0], bits: 8, cls: 'private' }, //         RFC 1918
+  { net: [100, 64, 0, 0], bits: 10, cls: 'private' }, //      CGNAT
+  { net: [172, 16, 0, 0], bits: 12, cls: 'private' }, //      RFC 1918
+  { net: [192, 0, 0, 0], bits: 24, cls: 'private' }, //       IETF protocol assignments
+  { net: [192, 88, 99, 0], bits: 24, cls: 'private' }, //     6to4 relay anycast (deprecated)
+  { net: [192, 168, 0, 0], bits: 16, cls: 'private' }, //     RFC 1918
+  { net: [198, 18, 0, 0], bits: 15, cls: 'private' } //       benchmarking
 ]
 
-function isPrivateIPv4(ip: string): boolean {
-  const parts = ip.split('.').map(Number)
-  if (parts.length !== 4 || parts.some(p => Number.isNaN(p) || p < 0 || p > 255)) {
-    // Not a well-formed dotted-quad — refuse to classify as public.
-    // Callers treat unclassifiable as private (fail-closed).
-    return true
+function hextetsToBytes(hextets: readonly number[]): number[] {
+  const out: number[] = []
+  for (let i = 0; i < 8; i++) {
+    const h = hextets[i] ?? 0
+    out.push((h >> 8) & 0xff, h & 0xff)
   }
-  const [a, b] = parts as [number, number, number, number]
-  return PRIVATE_IPV4_RANGES.some(check => check(a, b))
+  return out
 }
 
-/**
- * Normalise an IPv6 address to its lowercase fully-expanded form. The
- * `node:net` parsers can't handle IPv6 numerically, but for prefix
- * checks we just need lowercase + the leading hextets.
- */
-function ipv6FirstHextet(ip: string): number {
-  const lower = ip.toLowerCase()
-  // Strip a zone id ("fe80::1%eth0") if present.
-  const noZone = lower.split('%')[0]!
-  // "::1" expands to "0000:0000:...:0001"; we only need the FIRST
-  // hextet for prefix tests, so just split on ':' and take the first
-  // segment. "::1" → ["", "", "1"] → first non-empty hextet is "" so
-  // treat that case explicitly.
-  if (noZone === '::1') return 0 // loopback caught separately
-  const segs = noZone.split(':')
-  const first = segs[0]
-  if (first === undefined || first === '') return 0
-  const n = Number.parseInt(first, 16)
-  return Number.isFinite(n) ? n : -1
+function v6Range(hextets: number[], bits: number, cls: IpRange['cls']): IpRange {
+  return { net: hextetsToBytes(hextets), bits, cls }
 }
 
-/**
- * IPv6 private + special-use ranges. Returns true if `ip` is an IPv6
- * literal in any of:
- *   - ::1/128            — loopback
- *   - ::/128             — unspecified
- *   - fc00::/7           — Unique Local Addresses (RFC 4193)
- *   - fe80::/10          — link-local
- *   - ff00::/8           — multicast
- *   - ::ffff:0:0/96      — IPv4-mapped (re-check the embedded v4)
- */
-function isPrivateIPv6(ip: string): boolean {
-  const lower = ip.toLowerCase().split('%')[0]!
-  if (lower === '::1' || lower === '::') return true
-  // IPv4-mapped IPv6 ("::ffff:127.0.0.1") — strip prefix, re-check v4.
-  const mapped = /^::ffff:([0-9.]+)$/.exec(lower)
-  if (mapped) {
-    const v4 = mapped[1]!
-    if (isIP(v4) === 4) return isPrivateIPv4(v4)
-    return true // malformed — fail closed
+const IPV6_RANGES: readonly IpRange[] = [
+  v6Range([0xfd00, 0x0ec2, 0, 0, 0, 0, 0, 0x0254], 128, 'forbidden'), // AWS IMDS over IPv6
+  v6Range([0x0064, 0xff9b, 0x0001], 48, 'private'), //                    NAT64 local-use (RFC 8215)
+  v6Range([0x0100], 64, 'forbidden'), //                                  discard-only
+  v6Range([0x2001, 0x0db8], 32, 'forbidden'), //                          documentation
+  // IETF special-purpose block, incl. Teredo 2001::/32 (its real
+  // endpoint is obfuscated in the address and can't be checked).
+  v6Range([0x2001], 23, 'forbidden'),
+  v6Range([0xfc00], 7, 'private'), //                                     unique-local (RFC 4193)
+  v6Range([0xfe80], 10, 'forbidden'), //                                  link-local
+  v6Range([0xfec0], 10, 'private'), //                                    site-local (deprecated)
+  v6Range([0xff00], 8, 'forbidden') //                                    multicast
+]
+
+const NAT64_WELL_KNOWN = hextetsToBytes([0x0064, 0xff9b])
+
+function matchesPrefix(bytes: Bytes, prefix: Bytes, bits: number): boolean {
+  for (let bit = 0; bit < bits; bit += 8) {
+    const width = Math.min(8, bits - bit)
+    const mask = (0xff << (8 - width)) & 0xff
+    const index = bit / 8
+    if (((bytes[index] ?? 0) & mask) !== ((prefix[index] ?? 0) & mask)) return false
   }
-  const first = ipv6FirstHextet(lower)
-  if (first < 0) return true // unparseable — fail closed
-  // fc00::/7  → first hextet 0xfc00..0xfdff
-  if (first >= 0xfc00 && first <= 0xfdff) return true
-  // fe80::/10 → first hextet 0xfe80..0xfebf
-  if (first >= 0xfe80 && first <= 0xfebf) return true
-  // ff00::/8 multicast
-  if (first >= 0xff00 && first <= 0xffff) return true
-  return false
-}
-
-/**
- * Classifier: is `ip` a private/internal IP we must refuse?
- * Dispatches by family detected via `node:net.isIP`.
- */
-export function isPrivateIp(ip: string): boolean {
-  const family = isIP(ip)
-  if (family === 4) return isPrivateIPv4(ip)
-  if (family === 6) return isPrivateIPv6(ip)
-  // Not a recognisable IP at all — refuse classification.
   return true
 }
 
+/** Strict dotted-quad parser (what `isIP` accepts as family 4). */
+function parseIPv4(ip: string): number[] | null {
+  if (isIP(ip) !== 4) return null
+  const parts = ip.split('.').map(Number)
+  if (parts.length !== 4 || parts.some(p => !Number.isInteger(p) || p < 0 || p > 255)) return null
+  return parts
+}
+
+function parseHextetGroups(part: string): number[] | null {
+  if (part === '') return []
+  const groups = part.split(':').map(g => (/^[0-9a-f]{1,4}$/.test(g) ? Number.parseInt(g, 16) : Number.NaN))
+  return groups.some(Number.isNaN) ? null : groups
+}
+
+/** Parse any valid IPv6 text form (zone id stripped) into 16 bytes. */
+export function parseIPv6(raw: string): number[] | null {
+  const ip = raw.split('%')[0] ?? ''
+  if (isIP(ip) !== 6) return null
+  let text = ip.toLowerCase()
+  // A trailing dotted IPv4 (`::ffff:1.2.3.4`) becomes two hextets.
+  const lastColon = text.lastIndexOf(':')
+  const tail = text.slice(lastColon + 1)
+  if (tail.includes('.')) {
+    const v4 = parseIPv4(tail)
+    if (!v4) return null
+    const [a = 0, b = 0, c = 0, d = 0] = v4
+    text = `${text.slice(0, lastColon + 1)}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`
+  }
+  const halves = text.split('::')
+  if (halves.length > 2) return null
+  const head = parseHextetGroups(halves[0] ?? '')
+  const rest = halves.length === 2 ? parseHextetGroups(halves[1] ?? '') : []
+  if (!head || !rest) return null
+  if (halves.length === 1 && head.length !== 8) return null
+  if (halves.length === 2 && head.length + rest.length > 7) return null
+  const zeros = new Array<number>(8 - head.length - rest.length).fill(0)
+  return hextetsToBytes([...head, ...zeros, ...rest])
+}
+
+function classifyRanges(bytes: Bytes, ranges: readonly IpRange[]): IpClass | null {
+  for (const range of ranges) {
+    if (matchesPrefix(bytes, range.net, range.bits)) return range.cls
+  }
+  return null
+}
+
+function classifyIPv4Bytes(bytes: Bytes): IpClass {
+  return classifyRanges(bytes, IPV4_RANGES) ?? 'public'
+}
+
+/** The IPv4 address an IPv6 address carries, if it is one of the embedding forms. */
+function embeddedIPv4(bytes: Bytes): Bytes | null {
+  const zeroUpTo = (n: number) => bytes.slice(0, n).every(b => b === 0)
+  // ::ffff:a.b.c.d (mapped) and ::a.b.c.d (compatible, deprecated)
+  if (zeroUpTo(10) && bytes[10] === bytes[11] && (bytes[10] === 0xff || bytes[10] === 0)) {
+    return bytes.slice(12, 16)
+  }
+  // ::ffff:0:a.b.c.d (IPv4-translated, RFC 2765)
+  if (zeroUpTo(8) && bytes[8] === 0xff && bytes[9] === 0xff && bytes[10] === 0 && bytes[11] === 0) {
+    return bytes.slice(12, 16)
+  }
+  // 64:ff9b::a.b.c.d (NAT64 well-known prefix, RFC 6052)
+  if (matchesPrefix(bytes, NAT64_WELL_KNOWN, 96)) return bytes.slice(12, 16)
+  // 2002:aabb:ccdd::/48 (6to4)
+  if (bytes[0] === 0x20 && bytes[1] === 0x02) return bytes.slice(2, 6)
+  return null
+}
+
+function classifyIPv6Bytes(bytes: Bytes): IpClass {
+  const allZeroBefore15 = bytes.slice(0, 15).every(b => b === 0)
+  if (allZeroBefore15 && (bytes[15] === 0 || bytes[15] === 1)) return 'forbidden' // :: and ::1
+  const v4 = embeddedIPv4(bytes)
+  if (v4) return classifyIPv4Bytes(v4)
+  const special = classifyRanges(bytes, IPV6_RANGES)
+  if (special) return special
+  // Only 2000::/3 is allocated global unicast; anything else is reserved.
+  const first = bytes[0] ?? 0
+  return first >= 0x20 && first <= 0x3f ? 'public' : 'forbidden'
+}
+
+/** Classify an IP address literal. Unparseable input is `forbidden`. */
+export function classifyIp(ip: string): IpClass {
+  const v4 = parseIPv4(ip)
+  if (v4) return classifyIPv4Bytes(v4)
+  const v6 = parseIPv6(ip)
+  if (v6) return classifyIPv6Bytes(v6)
+  return 'forbidden'
+}
+
+/** Is `ip` anything but a public address? (Fails closed on garbage.) */
+export function isPrivateIp(ip: string): boolean {
+  return classifyIp(ip) !== 'public'
+}
+
 /**
- * Narrower classifier for addresses that are NEVER a legitimate target,
- * even when an operator explicitly allows private networks (the BYOK
- * `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS` opt-in for Ollama / vLLM on the
- * LAN): loopback (the caller's own container), "this network",
- * link-local incl. the cloud metadata endpoint `169.254.169.254`,
- * multicast + reserved space, and their IPv6 equivalents. Unparseable
- * input is treated as forbidden (fail closed).
- *
- * RFC 1918 / CGNAT / IPv6 ULA ranges are deliberately NOT in this set —
- * they are "private but reachable on purpose" (a docker bridge, a LAN
- * GPU box) and are governed by the opt-in instead.
+ * Narrower check: addresses that are NEVER a legitimate target, even when
+ * an operator explicitly allows private networks (the BYOK opt-in for
+ * Ollama / vLLM on the LAN). RFC 1918 / CGNAT / ULA / site-local are
+ * deliberately not in this set — they are governed by the opt-in.
  */
 export function isAlwaysForbiddenIp(ip: string): boolean {
-  const family = isIP(ip)
-  if (family === 4) {
-    const parts = ip.split('.').map(Number)
-    if (parts.length !== 4 || parts.some(p => Number.isNaN(p) || p < 0 || p > 255)) return true
-    const [a, b] = parts as [number, number, number, number]
-    return a === 0 || a === 127 || (a === 169 && b === 254) || a >= 224
-  }
-  if (family === 6) {
-    const lower = ip.toLowerCase().split('%')[0]!
-    if (lower === '::1' || lower === '::') return true
-    const mapped = /^::ffff:([0-9.]+)$/.exec(lower)
-    if (mapped) return isIP(mapped[1]!) === 4 ? isAlwaysForbiddenIp(mapped[1]!) : true
-    // AWS IMDS over IPv6.
-    if (lower === 'fd00:ec2::254') return true
-    const first = ipv6FirstHextet(lower)
-    if (first < 0) return true
-    if (first >= 0xfe80 && first <= 0xfebf) return true // link-local
-    if (first >= 0xff00) return true // multicast
-    return false
-  }
-  return true
+  return classifyIp(ip) === 'forbidden'
 }
 
 /**
@@ -189,14 +234,44 @@ export function isAlwaysForbiddenIp(ip: string): boolean {
  * back to the model and the model can self-correct with a different URL.
  */
 export async function assertSafeUrl(rawUrl: string): Promise<void> {
+  await resolvePublicAddresses(parseToolUrl(rawUrl))
+}
+
+/**
+ * Parse a tool-supplied URL (scheme-less input gets `https://`) and run
+ * the structural checks: length, http(s) scheme, hostname present. The
+ * returned `URL#href` is what callers forward — never the raw string, so
+ * the URL that was checked is the URL that is used.
+ */
+export function parseToolUrl(rawUrl: string): URL {
   const parsed = parseUrlOrThrow(rawUrl)
   assertAllowedScheme(parsed)
+  extractHostname(parsed)
+  return parsed
+}
+
+export type HostResolver = (host: string) => Promise<string[]>
+
+export const systemHostResolver: HostResolver = async (host) => {
+  const rows = await lookup(host, { all: true })
+  return rows.map(r => r.address)
+}
+
+/**
+ * Every address the URL's host stands for, each checked public. An IP
+ * literal is classified directly; a name is resolved (all A + AAAA) and
+ * refused if ANY answer is not public. Callers that open the connection
+ * themselves must connect to one of the returned addresses (see
+ * `safeFetch.ts`) so a DNS answer that changes after the check is never
+ * used.
+ */
+export async function resolvePublicAddresses(parsed: URL, resolve: HostResolver = systemHostResolver): Promise<string[]> {
   const host = extractHostname(parsed)
   if (isIP(host) !== 0) {
     assertPublicLiteral(host)
-    return
+    return [host]
   }
-  await assertPublicResolution(host)
+  return assertPublicResolution(host, resolve)
 }
 
 /**
@@ -208,6 +283,9 @@ export async function assertSafeUrl(rawUrl: string): Promise<void> {
 function parseUrlOrThrow(rawUrl: string): URL {
   const trimmed = (rawUrl ?? '').trim()
   if (!trimmed) throw new Error('URL refused: empty URL.')
+  if (trimmed.length > MAX_TOOL_URL_LENGTH) {
+    throw new Error(`URL refused: longer than ${MAX_TOOL_URL_LENGTH} characters.`)
+  }
   const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
   try {
     return new URL(withScheme)
@@ -240,14 +318,14 @@ function assertPublicLiteral(host: string): void {
 }
 
 /**
- * DNS resolution. `lookup({ all: true })` returns every A + AAAA. ANY
- * private resolved IP fails — covers rebinding-shaped setups where
- * one record is public and another private.
+ * DNS resolution. Every A + AAAA answer is checked; ANY private resolved
+ * IP fails — covers rebinding-shaped setups where one record is public
+ * and another private.
  */
-async function assertPublicResolution(host: string): Promise<void> {
-  let addresses: Array<{ address: string, family: number }>
+async function assertPublicResolution(host: string, resolve: HostResolver): Promise<string[]> {
+  let addresses: string[]
   try {
-    addresses = await lookup(host, { all: true })
+    addresses = await resolve(host)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'DNS lookup failed'
     throw new Error(`URL refused: hostname "${host}" could not be resolved (${msg}).`, { cause: e })
@@ -255,9 +333,10 @@ async function assertPublicResolution(host: string): Promise<void> {
   if (!addresses.length) {
     throw new Error(`URL refused: hostname "${host}" returned no DNS records.`)
   }
-  for (const a of addresses) {
-    if (isPrivateIp(a.address)) {
+  for (const address of addresses) {
+    if (isPrivateIp(address)) {
       throw new Error('URL refused: hostname resolves to a private IP. Use a public URL.')
     }
   }
+  return addresses
 }

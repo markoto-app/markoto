@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseOidcScopes, resolveOidcSettings } from '../../server/utils/oidc/settings'
+import { oidcRedirectErrors, oidcRedirectUri, parseOidcScopes, resolveOidcSettings } from '../../server/utils/oidc/settings'
 import { OidcProfileError, profileFromClaims } from '../../server/utils/oidc/profile'
 import { OIDC_FLOW_MAX_AGE_SECONDS, decodeFlowCookie, encodeFlowCookie } from '../../server/utils/oidc/flowCookie'
 
@@ -13,6 +13,26 @@ const FULL = {
   NUXT_OAUTH_OIDC_CLIENT_ID: 'markoto',
   NUXT_OAUTH_OIDC_CLIENT_SECRET: 's3cret'
 }
+
+// Regression (Host-header fallback): without `_REDIRECT_URL` / site URL
+// the redirect URI used to be built from the request's Host header.
+describe('oidcRedirectUri', () => {
+  it('prefers the explicit redirect URL, then NUXT_SITE_URL', () => {
+    expect(oidcRedirectUri({ redirectUrl: 'https://login.example.org/auth/oidc' }, 'https://docs.example.org')).toBe('https://login.example.org/auth/oidc')
+    expect(oidcRedirectUri({ redirectUrl: null }, 'https://docs.example.org/')).toBe('https://docs.example.org/auth/oidc')
+  })
+
+  it('has no request-derived fallback: null when neither is configured', () => {
+    expect(oidcRedirectUri({ redirectUrl: null }, '')).toBeNull()
+    expect(oidcRedirectUri({ redirectUrl: null }, undefined)).toBeNull()
+  })
+
+  it('boot validation refuses OIDC without a redirect URI source', () => {
+    expect(oidcRedirectErrors({ redirectUrl: null }, '')).toHaveLength(1)
+    expect(oidcRedirectErrors({ redirectUrl: null }, 'https://docs.example.org')).toEqual([])
+    expect(oidcRedirectErrors(null, '')).toEqual([])
+  })
+})
 
 describe('resolveOidcSettings', () => {
   it('is off without any OIDC variable', () => {

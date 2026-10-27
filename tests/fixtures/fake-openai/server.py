@@ -32,6 +32,10 @@ Test introspection (not part of the OpenAI surface):
   GET  /_test/requests   recorded requests (path, model, auth key suffix,
                          api fields) newest last
   POST /_test/reset      clear the record
+
+Redirect SSRF fixture:
+  ANY  /redirect/<status>/<port>/<rest>   answers <status> with Location
+                         http://<same host>:<port>/canary/<rest>
 """
 
 import json
@@ -151,6 +155,9 @@ class Handler(BaseHTTPRequestHandler):
 
     # ── routes ───────────────────────────────────────────────────────
     def do_GET(self):
+        if self.path.startswith("/redirect/"):
+            self._redirect()
+            return
         if self.path == "/_test/requests":
             self._send_json(200, {"requests": RECORDED})
             return
@@ -168,6 +175,22 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._error(404, "Not found", "not_found")
 
+    def _redirect(self):
+        """`/redirect/<status>/<port>/<rest>` → <status> to
+        `http://<same host>:<port>/canary/<rest>`: a provider URL that
+        bounces the proxy to another (internal) service. The redirect SSRF
+        tests put a canary listener on <port> and assert it is never hit."""
+        parts = self.path.split("/", 4)  # ['', 'redirect', status, port, rest]
+        if len(parts) < 5 or not parts[2].isdigit() or not parts[3].isdigit():
+            self._error(400, "Bad redirect path", "bad_redirect")
+            return
+        host = (self.headers.get("Host") or "127.0.0.1").rsplit(":", 1)[0]
+        self._record("", {"redirect": parts[2]})
+        self.send_response(int(parts[2]))
+        self.send_header("Location", f"http://{host}:{parts[3]}/canary/{parts[4]}")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_POST(self):
         if self.path == "/_test/reset":
             RECORDED.clear()
@@ -175,6 +198,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"ok": True})
             return
         raw = self._read_body()
+        if self.path.startswith("/redirect/"):
+            self._redirect()
+            return
         if self.path.startswith("/v1/chat/completions"):
             self._chat(raw)
         elif self.path.startswith("/v1/images/generations"):

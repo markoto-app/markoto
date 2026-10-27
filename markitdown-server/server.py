@@ -18,9 +18,29 @@ Endpoints:
 
   GET /health
     Returns: 200 "ok" — used by Docker HEALTHCHECK and Traefik
+
+Resource guards (anonymous users can reach /convert through /api/import):
+  - Archive pre-flight: zip-based formats (docx/pptx/xlsx/epub/odt/…, and
+    anything that starts with the zip magic) are inspected before any
+    converter sees them. Too many entries, too much uncompressed data
+    (measured by actually inflating, not by trusting the headers) or an
+    extreme compression ratio → 413. A 300 KB DOCX that inflates to
+    300 MB used to OOM-kill the worker.
+  - Isolation: each conversion runs in a forked child process with an
+    address-space limit and a wall-clock timeout. A converter that blows
+    up only kills its own child (→ 413 / 504), never the worker serving
+    other users.
+  - One conversion at a time per worker, so the memory budget holds.
 """
 
+import asyncio
 import io
+import multiprocessing
+import os
+import resource
+import threading
+import zipfile
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import PlainTextResponse
 from markitdown import MarkItDown, StreamInfo
@@ -35,13 +55,151 @@ from markitdown._exceptions import (
 # the docker network.
 MAX_SIZE = 50 * 1024 * 1024  # 50 MB
 
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        value = int(os.environ.get(name, ""))
+        return value if value > 0 else default
+    except ValueError:
+        return default
+
+
+# Archive limits. Real office documents stay far below these: a 300-page
+# DOCX with images inflates to a few tens of MB and has < 1000 entries.
+MAX_ARCHIVE_UNCOMPRESSED_BYTES = _env_int("MARKITDOWN_MAX_UNCOMPRESSED_MB", 200) * 1024 * 1024
+MAX_ARCHIVE_ENTRIES = _env_int("MARKITDOWN_MAX_ARCHIVE_ENTRIES", 10_000)
+MAX_ARCHIVE_RATIO = _env_int("MARKITDOWN_MAX_COMPRESSION_RATIO", 100)
+# Ratios are only meaningful once there is something to expand: tiny
+# archives (a few KB of XML compress very well) are always fine.
+RATIO_FLOOR_BYTES = 10 * 1024 * 1024
+
+# Per-conversion child limits.
+CONVERT_TIMEOUT_SECONDS = _env_int("MARKITDOWN_TIMEOUT_SECONDS", 60)
+CHILD_MEMORY_BYTES = _env_int("MARKITDOWN_CHILD_MEMORY_MB", 384) * 1024 * 1024
+
+ZIP_EXTENSIONS = {"docx", "docm", "dotx", "pptx", "pptm", "xlsx", "xlsm", "epub", "odt", "ods", "odp", "zip"}
+ZIP_MAGIC = b"PK\x03\x04"
+_INFLATE_CHUNK = 64 * 1024
+
 # MarkItDown is stateless and converter-routing is per-call. Building
 # once at module load avoids repeating the optional-converter discovery
-# on every request.
+# on every request; forked children inherit the instance.
 md = MarkItDown()
+
+# One child at a time per worker process (2 uvicorn workers → at most 2
+# children), so the memory budget is predictable.
+_convert_slot = threading.Semaphore(1)
+_fork = multiprocessing.get_context("fork")
 
 # disable docs/redoc — not a public API.
 app = FastAPI(title="markitdown-server", docs_url=None, redoc_url=None)
+
+
+class ArchiveRejected(Exception):
+    pass
+
+
+def check_archive(body: bytes) -> None:
+    """Raise ArchiveRejected when a zip container would expand too far.
+
+    Header sizes are attacker-controlled, so after the cheap header check
+    every entry is inflated (in bounded chunks, output discarded) and the
+    real byte count is enforced.
+    """
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(body))
+    except zipfile.BadZipFile:
+        # Not a readable zip: let the converter produce its usual error.
+        return
+    with archive:
+        entries = archive.infolist()
+        if len(entries) > MAX_ARCHIVE_ENTRIES:
+            raise ArchiveRejected(f"archive has {len(entries)} entries (limit {MAX_ARCHIVE_ENTRIES})")
+        declared = sum(e.file_size for e in entries)
+        if declared > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
+            raise ArchiveRejected("archive expands beyond the size limit")
+        total = 0
+        for entry in entries:
+            if entry.is_dir():
+                continue
+            try:
+                with archive.open(entry) as stream:
+                    while True:
+                        chunk = stream.read(_INFLATE_CHUNK)
+                        if not chunk:
+                            break
+                        total += len(chunk)
+                        if total > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
+                            raise ArchiveRejected("archive expands beyond the size limit")
+            except ArchiveRejected:
+                raise
+            except Exception:
+                # Corrupt / encrypted / unsupported entry: the converter
+                # reports it; we only care about expansion here.
+                continue
+        if total > RATIO_FLOOR_BYTES and total > MAX_ARCHIVE_RATIO * max(len(body), 1):
+            raise ArchiveRejected("archive compression ratio is too high")
+
+
+def _child_convert(conn, body: bytes, ext: str) -> None:
+    """Runs in the forked child: cap memory, convert, send the outcome."""
+    try:
+        _soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+        limit = _current_vm_bytes() + CHILD_MEMORY_BYTES
+        if hard != resource.RLIM_INFINITY:
+            limit = min(limit, hard)
+        resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
+        stream_info = StreamInfo(extension=f".{ext}", filename=f"input.{ext}")
+        result = md.convert_stream(io.BytesIO(body), stream_info=stream_info)
+        conn.send(("ok", result.markdown))
+    except MemoryError:
+        conn.send(("memory", ""))
+    except UnsupportedFormatException as e:
+        conn.send(("unsupported", str(e)[:200]))
+    except MissingDependencyException as e:
+        conn.send(("dependency", str(e)[:200]))
+    except Exception as e:  # every other converter error maps to 422
+        # markitdown wraps converter exceptions (incl. a MemoryError from
+        # the address-space cap) into its own FileConversionException.
+        message = str(e)
+        conn.send(("memory", "") if "MemoryError" in message else ("failed", message[:500]))
+    finally:
+        conn.close()
+
+
+def _current_vm_bytes() -> int:
+    """Virtual size of this process (the child inherits the parent's)."""
+    try:
+        with open("/proc/self/status", encoding="ascii") as status:
+            for line in status:
+                if line.startswith("VmSize:"):
+                    return int(line.split()[1]) * 1024
+    except OSError:
+        pass
+    return 0
+
+
+def convert_isolated(body: bytes, ext: str) -> tuple[str, str]:
+    """Convert in a child process. Returns (outcome, payload)."""
+    with _convert_slot:
+        parent_conn, child_conn = _fork.Pipe(duplex=False)
+        child = _fork.Process(target=_child_convert, args=(child_conn, body, ext), daemon=True)
+        child.start()
+        child_conn.close()
+        try:
+            if parent_conn.poll(CONVERT_TIMEOUT_SECONDS):
+                try:
+                    return parent_conn.recv()
+                except EOFError:
+                    # Child died without answering (killed by the kernel /
+                    # crashed in native code while over the memory cap).
+                    return ("memory", "")
+            return ("timeout", "")
+        finally:
+            parent_conn.close()
+            if child.is_alive():
+                child.kill()
+            child.join(5)
 
 
 @app.get("/health")
@@ -53,13 +211,17 @@ def health() -> PlainTextResponse:
     "/convert",
     responses={
         400: {"description": "Empty body or missing 'ext' query param"},
-        413: {"description": "Request body exceeds the size cap"},
+        413: {"description": "Request body exceeds the size cap, or the archive / conversion exceeds the resource limits"},
         415: {"description": "Markitdown does not support the requested format"},
         422: {"description": "Conversion failed (corrupt file, malformed input, etc.)"},
         501: {"description": "Format requires an optional dependency that isn't installed"},
+        504: {"description": "Conversion took longer than the time limit"},
     },
 )
 async def convert(request: Request) -> PlainTextResponse:
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_SIZE:
+        raise HTTPException(413, "File too large")
     body = await request.body()
     if not body:
         raise HTTPException(400, "Empty body")
@@ -70,24 +232,27 @@ async def convert(request: Request) -> PlainTextResponse:
     if not raw_ext:
         raise HTTPException(400, "Missing 'ext' query parameter")
 
+    if raw_ext in ZIP_EXTENSIONS or body.startswith(ZIP_MAGIC):
+        try:
+            await asyncio.to_thread(check_archive, body)
+        except ArchiveRejected as e:
+            raise HTTPException(413, f"Archive rejected: {e}")
+
     # Markitdown reads StreamInfo to route to the right converter — extension
     # alone is enough for the formats we accept; mimetype is left to the
     # converter to sniff if needed.
-    stream_info = StreamInfo(
-        extension=f".{raw_ext}",
-        filename=f"input.{raw_ext}"
-    )
-
-    try:
-        result = md.convert_stream(io.BytesIO(body), stream_info=stream_info)
-    except UnsupportedFormatException as e:
-        raise HTTPException(415, f"Unsupported format: {str(e)[:200]}")
-    except MissingDependencyException as e:
-        raise HTTPException(501, f"Format requires extra dependency: {str(e)[:200]}")
-    except Exception as e:
-        # Catch-all so a converter raising e.g. PdfReadError doesn't 500
-        # the whole service. Slice to keep the error message bounded —
-        # converters love to dump full stack traces in their messages.
-        raise HTTPException(422, f"Conversion failed: {str(e)[:500]}")
-
-    return PlainTextResponse(result.markdown, media_type="text/markdown; charset=utf-8")
+    outcome, payload = await asyncio.to_thread(convert_isolated, body, raw_ext)
+    if outcome == "ok":
+        return PlainTextResponse(payload, media_type="text/markdown; charset=utf-8")
+    if outcome == "memory":
+        raise HTTPException(413, "Conversion exceeded the memory limit")
+    if outcome == "timeout":
+        raise HTTPException(504, "Conversion took too long")
+    if outcome == "unsupported":
+        raise HTTPException(415, f"Unsupported format: {payload}")
+    if outcome == "dependency":
+        raise HTTPException(501, f"Format requires extra dependency: {payload}")
+    # Catch-all so a converter raising e.g. PdfReadError doesn't 500 the
+    # whole service. Bounded — converters love to dump full stack traces
+    # in their messages.
+    raise HTTPException(422, f"Conversion failed: {payload}")

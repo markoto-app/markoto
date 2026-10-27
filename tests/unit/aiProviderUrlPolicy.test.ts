@@ -146,6 +146,48 @@ describe('isAlwaysForbiddenIp', () => {
   )
 })
 
+// Regression (internal-hostname bypass): a trailing dot is the same name
+// to a resolver, and some compose names were missing from the list.
+describe('internal hostnames — every spelling, every compose name', () => {
+  const resolveToBridge: Resolver = async () => ['172.18.0.7']
+  it.each([
+    'litellm.',
+    'postgres.',
+    'LITELLM',
+    'Valkey..',
+    'markoto-app',
+    'litellm-db-init',
+    's3-init',
+    'fake-openai-test',
+    'markoto-litellm-1',
+    'myinstance-postgres-1',
+    'markoto_app_1'
+  ])('refuses %s even with the private-network opt-in', async (host) => {
+    expect(await refusal(`http://${host}:4000/v1`, SELF_HOST_PRIVATE, resolveToBridge)).toBe('internal-host')
+  })
+
+  it('does not over-match ordinary public hostnames that contain a service word', async () => {
+    const pub: Resolver = async () => ['93.184.215.14']
+    expect(await refusal('https://sync.example.com/v1', SELF_HOST, pub)).toBeNull()
+    expect(await refusal('https://app-1.example.com/v1', SELF_HOST, pub)).toBeNull()
+  })
+})
+
+// Regression (IPv6 classification): literal forms that embed a forbidden
+// IPv4 address were accepted under the private-network opt-in.
+describe('IPv6 literal forms under the private-network opt-in', () => {
+  it.each([
+    ['IPv4-mapped loopback (hex form)', 'http://[::ffff:7f00:1]/v1'],
+    ['IPv4-mapped metadata', 'http://[::ffff:169.254.169.254]/v1'],
+    ['IPv4-compatible loopback', 'http://[::127.0.0.1]/v1'],
+    ['NAT64 loopback', 'http://[64:ff9b::7f00:1]/v1'],
+    ['6to4 loopback', 'http://[2002:7f00:1::]/v1'],
+    ['Teredo', 'http://[2001:0:4136:e378:8000:63bf:3fff:fdd2]/v1']
+  ])('refuses %s', async (_label, url) => {
+    expect(await refusal(url, SELF_HOST_PRIVATE)).toBe('private-address')
+  })
+})
+
 describe('recommended SaaS allowlist', () => {
   it('is all https and already normalised', () => {
     for (const url of RECOMMENDED_SAAS_ALLOWED_BASE_URLS) {

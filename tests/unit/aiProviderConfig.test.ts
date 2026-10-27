@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { instanceDefaultProblems, readInstanceDefault, resolveByokUrlPolicy } from '../../server/utils/aiProviders/config'
-import { redactSecret, classifyProviderError } from '../../server/utils/aiProviders/requestFields'
+import { AiProviderCallError, PROVIDER_ERROR_MESSAGES, classifyProviderError, providerErrorMessage, redactSecret, withProviderErrors } from '../../server/utils/aiProviders/requestFields'
+import { AiProviderUrlRefused } from '../../server/utils/aiProviders/urlPolicy'
+import type { ResolvedAiProvider } from '../../server/utils/aiProviders/resolve'
 import { filterToolsForProviders, ALL_TOOL_DECLARATIONS } from '../../server/utils/agentic/functionTools'
-import { apiKeyLast4, normalizeBaseUrl } from '../../shared/ai/providers'
+import { VERIFY_CODES, apiKeyLast4, normalizeBaseUrl } from '../../shared/ai/providers'
 
 describe('readInstanceDefault', () => {
   it('no model → no default', () => {
@@ -79,6 +81,49 @@ describe('classifyProviderError', () => {
     [new Error('weird'), 'unexpected-response']
   ])('%s → %s', (err, code) => {
     expect(classifyProviderError(err)).toBe(code)
+  })
+})
+
+// Regression (BYOK error echo): a provider URL that redirected the proxy
+// to an internal service got that service's body back in the error text
+// ("Received: '<internal body>'"), which verification and the agent loop
+// showed to the user. Upstream text must never reach the user.
+describe('provider error messages carry no upstream text', () => {
+  const user: ResolvedAiProvider = {
+    capability: 'chat',
+    source: 'user',
+    model: 'm',
+    credentials: { baseUrl: 'https://llm.example.com/v1', apiKey: ['fixture', 'key', 'dddd', 'eeee'].join('-') },
+    supportsVision: false
+  }
+  const leak = 'INTERNAL-SECRET-BODY'
+
+  it.each([
+    [Object.assign(new Error(`InternalServerError: OpenAIException - Empty or invalid response from LLM endpoint. Received: '${leak}'`), { status: 500 })],
+    [Object.assign(new Error(`AuthenticationError: ${leak}`), { status: 401 })],
+    [new Error(`APIConnectionError: connection refused ${leak}`)]
+  ])('withProviderErrors hides the upstream message (%#)', async (upstream) => {
+    const err = await withProviderErrors(user, async () => {
+      throw upstream
+    }).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(AiProviderCallError)
+    expect(String(err instanceof Error ? err.message : err)).not.toContain(leak)
+  })
+
+  it('names a redirect without echoing the redirect target', () => {
+    const e = Object.assign(new Error('APIError: OpenAIException - Error code: 302'), { status: 500 })
+    const message = providerErrorMessage(classifyProviderError(e), e)
+    expect(message).toMatch(/redirect/i)
+    expect(message).not.toContain('302')
+  })
+
+  it('keeps our own URL-policy text (it says what to fix)', () => {
+    const e = new AiProviderUrlRefused('private-address', 'This URL points at a private network address, which this instance does not allow.')
+    expect(providerErrorMessage('url-refused', e)).toBe(e.message)
+  })
+
+  it('every code has a fixed message', () => {
+    for (const code of VERIFY_CODES) expect(PROVIDER_ERROR_MESSAGES[code].length).toBeGreaterThan(0)
   })
 })
 

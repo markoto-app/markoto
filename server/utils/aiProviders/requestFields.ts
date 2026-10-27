@@ -83,10 +83,43 @@ export function classifyProviderError(e: unknown): VerifyCode {
 }
 
 /**
- * Wrap a provider call so any thrown error is re-thrown with the key
- * redacted. Budget-exceeded errors keep their message shape (the
- * callers' `isBudgetExceededError` checks match on it) — they only occur
- * on platform-billed calls, which carry no user key anyway.
+ * Fixed, user-facing sentence per failure code. Upstream response bodies
+ * never reach the user: a provider URL that redirects (or otherwise
+ * misbehaves) could otherwise turn the error text into a way to read
+ * whatever the request ended up hitting. The raw (key-redacted) detail
+ * goes to the server log only.
+ */
+export const PROVIDER_ERROR_MESSAGES: Record<VerifyCode, string> = {
+  'ok': 'The provider answered.',
+  'auth-failed': 'The provider rejected the API key.',
+  'model-not-found': 'The provider does not know this model id.',
+  'no-tool-support': 'The model answered without calling a tool.',
+  'url-refused': 'This provider URL is not allowed on this instance.',
+  'unreachable': 'The provider could not be reached.',
+  'unexpected-response': 'The provider returned an unexpected response.'
+}
+
+const REDIRECT_PATTERN = /\bError code: 3\d\d\b|\bstatus(?: code)?:? 3\d\d\b/i
+
+/** User-facing message for a failed provider call — never includes upstream text. */
+export function providerErrorMessage(code: VerifyCode, e: unknown): string {
+  // Our own policy text (no upstream content) — keep it, it says what to fix.
+  if (e instanceof AiProviderUrlRefused) return e.message
+  const status = errorStatus(e)
+  const msg = e instanceof Error ? e.message : String(e)
+  if ((status !== null && status >= 300 && status < 400) || REDIRECT_PATTERN.test(msg)) {
+    return 'The provider answered with a redirect, which is not followed. Use the provider\'s final API URL.'
+  }
+  return PROVIDER_ERROR_MESSAGES[code]
+}
+
+/**
+ * Wrap a provider call so any thrown error is re-thrown as an
+ * `AiProviderCallError` carrying a stable code and a fixed message (see
+ * `providerErrorMessage`); the key-redacted upstream detail is logged
+ * server-side only. Budget-exceeded errors are not wrapped — they only
+ * occur on platform-billed calls, which carry no user key, and the
+ * callers' `isBudgetExceededError` checks match on their message.
  */
 /**
  * Wrap a provider stream so errors raised while it is CONSUMED (an SSE
@@ -109,7 +142,14 @@ export async function withProviderErrors<T>(provider: ResolvedAiProvider, fn: ()
     return await fn()
   } catch (e) {
     if (!provider.credentials || e instanceof AiProviderUrlRefused) throw e
-    const message = redactSecret(e instanceof Error ? e.message : String(e), provider.credentials.apiKey)
-    throw new AiProviderCallError(classifyProviderError(e), message, errorStatus(e))
+    const code = classifyProviderError(e)
+    logProviderFailure(code, e, provider.credentials.apiKey)
+    throw new AiProviderCallError(code, providerErrorMessage(code, e), errorStatus(e))
   }
+}
+
+/** Server-log line for a failed provider call (key redacted, bounded). */
+export function logProviderFailure(code: VerifyCode, e: unknown, apiKey: string | null | undefined): void {
+  const detail = redactSecret(e instanceof Error ? e.message : String(e), apiKey).slice(0, 300)
+  console.warn(`[ai-provider] call failed (${code}): ${detail}`)
 }
