@@ -12,12 +12,14 @@
 //     markitdown with no expansion cap; a ~300 KB DOCX that inflates to
 //     300 MB OOM-killed a converter worker. markitdown now refuses it with
 //     413 and keeps serving (tested against markitdown-test directly — the
-//     integration app server has no markitdown configured).
+//     integration app server has no markitdown configured). The ratio
+//     check runs while inflating, so a bomb is refused after ~ratio x its
+//     upload size of work, not after inflating up to the absolute cap.
 //
 // Test stack required: postgres-test + valkey-test + markitdown-test
 // (docker-compose.test.yml).
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { request } from 'node:http'
 import { Zip, ZipDeflate, zipSync, strToU8 } from 'fflate'
 import { TEST_PORT } from '../setup/env'
@@ -168,6 +170,17 @@ async function convert(bytes: Uint8Array, ext: string): Promise<{ status: number
 }
 
 describe('markitdown decompression limits', () => {
+  // Building a bomb is CPU-bound and blocks this process's event loop for
+  // seconds on a slow runner. Do it up front: done between requests it
+  // would leave a pooled keep-alive connection idle past the server's
+  // keep-alive timeout, and the next request would fail on that stale socket.
+  let bomb300: Uint8Array
+  let bomb150: Uint8Array
+  beforeAll(async () => {
+    bomb300 = await bombDocx(300)
+    bomb150 = await bombDocx(150)
+  }, 120_000)
+
   it('converts an ordinary DOCX (positive control)', async () => {
     const out = await convert(smallDocx('Hello from a small docx'), 'docx')
     expect(out.status).toBe(200)
@@ -175,15 +188,30 @@ describe('markitdown decompression limits', () => {
   })
 
   it('regression: refuses a small DOCX that inflates to 300 MB, and keeps serving', async () => {
-    const bomb = await bombDocx(300)
-    expect(bomb.byteLength).toBeLessThan(2 * 1024 * 1024)
-    const out = await convert(bomb, 'docx')
+    expect(bomb300.byteLength).toBeLessThan(2 * 1024 * 1024)
+    const out = await convert(bomb300, 'docx')
     expect(out.status).toBe(413)
     expect(out.text).toMatch(/archive/i)
     // Same worker pool still converts the next request.
     const after = await convert(smallDocx('still alive'), 'docx')
     expect(after.status).toBe(200)
     expect(after.text).toContain('still alive')
+  }, 60_000)
+
+  it('aborts a bomb that passes the declared-size check as soon as the ratio is exceeded', async () => {
+    // 150 MiB declared (under the 200 MB cap) from a ~150 KB upload: only the
+    // measured expansion can refuse it, and it must do so after about the
+    // ratio allowance (100 x the upload, 10 MiB at least), not after
+    // inflating all 150 MiB.
+    expect(bomb150.byteLength).toBeLessThan(1024 * 1024)
+    const allowance = Math.max(10 * 1024 * 1024, 100 * bomb150.byteLength)
+    const out = await convert(bomb150, 'docx')
+    expect(out.status).toBe(413)
+    expect(out.text).toMatch(/compression ratio/)
+    const inflated = Number(/stopped after (\d+) bytes/.exec(out.text)?.[1])
+    expect(inflated).toBeGreaterThan(allowance)
+    // Stops within one 64 KiB read chunk of the allowance.
+    expect(inflated).toBeLessThanOrEqual(allowance + 64 * 1024)
   }, 60_000)
 
   it('refuses an archive with too many entries', async () => {
