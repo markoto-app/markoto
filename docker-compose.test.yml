@@ -337,6 +337,13 @@ services:
       # actually reached the sync server. Off in prod (no production
       # consumer of this state); always on for the test container.
       - TEST_MODE=1
+      # Low size limits so tests/integration/sync/syncHardening.test.ts can
+      # exercise them with modest payloads. Still far above anything the
+      # other suites (or the flow docs) write. MUST match the constants in
+      # that test file.
+      - SYNC_MAX_MESSAGE_BYTES=1572864
+      - SYNC_MAX_UPDATE_BYTES=1048576
+      - SYNC_MAX_DOCUMENT_BYTES=2097152
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

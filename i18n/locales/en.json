@@ -31,6 +31,13 @@
     "syncAuthFailedTitle": "Sync server rejected the connection",
     "syncAuthFailedDescription": "You normally have edit access here. The sync server bounced the handshake — likely a per-IP rate limit or a stale token. Reload to try again.",
     "syncAuthFailedReload": "Reload",
+    "syncRejected": {
+      "title": "Your latest changes were not saved",
+      "updateTooLarge": "That change is too large to sync in one go. Reload, then add the content in smaller parts.",
+      "documentTooLarge": "This document has reached its maximum size. Reload, then remove content or split it into several documents.",
+      "invalidMeta": "A document setting (title, theme or details) had a value the server could not accept. Reload to continue.",
+      "invalidUpdate": "The server could not process a change from this tab. Reload to continue."
+    },
     "aiWorkspaceBadge": "markoto workspace",
     "aiWorkspaceBadgeTooltip": "This document is in a markoto workspace — markoto's work here uses the sponsor's credit pool, not yours.",
     "aiWorkspaceSponsoredBy": "markoto workspace sponsored by {name}",

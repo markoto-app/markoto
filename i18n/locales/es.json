@@ -31,6 +31,13 @@
     "syncAuthFailedTitle": "El servidor de sincronización rechazó la conexión",
     "syncAuthFailedDescription": "Normalmente tienes acceso de edición aquí. El servidor de sincronización rechazó el intercambio — probablemente un límite de solicitudes por IP o un token caducado. Recarga para intentarlo de nuevo.",
     "syncAuthFailedReload": "Recargar",
+    "syncRejected": {
+      "title": "Tus últimos cambios no se han guardado",
+      "updateTooLarge": "Este cambio es demasiado grande para sincronizarlo de una vez. Recarga y añade el contenido en partes más pequeñas.",
+      "documentTooLarge": "Este documento ha alcanzado su tamaño máximo. Recarga y elimina contenido o divídelo en varios documentos.",
+      "invalidMeta": "Un ajuste del documento (título, tema o detalles) tenía un valor que el servidor no puede aceptar. Recarga para continuar.",
+      "invalidUpdate": "El servidor no pudo procesar un cambio de esta pestaña. Recarga para continuar."
+    },
     "aiWorkspaceBadge": "espacio de trabajo de markoto",
     "aiWorkspaceBadgeTooltip": "Este documento está en un espacio de trabajo de markoto — el trabajo de markoto aquí usa el fondo de créditos del patrocinador, no el tuyo.",
     "aiWorkspaceSponsoredBy": "espacio de trabajo de markoto patrocinado por {name}",

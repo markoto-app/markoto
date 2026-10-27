@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Awareness } from 'y-protocols/awareness'
+import { normalizeAwarenessUser } from '~~/shared/utils/awarenessUser'
 
 // Presence bar shows:
 //   1. Live editors — currently connected, full opacity, colored ring.
@@ -26,7 +27,7 @@ interface AwarenessUser {
   color: string
   avatar?: string
   isAI?: boolean
-  id?: number | string // yCollab seeds this from the JWT userId
+  id?: number // seeded from the session user id; absent for anonymous
 }
 
 interface AiSessionMeta {
@@ -100,10 +101,15 @@ function updateLive() {
 
   states.forEach((state, clientId) => {
     if (clientId === localId) return
-    if (!state?.user) return
-    const user = state.user as AwarenessUser
+    // Peers choose their own awareness payload. Normalise before
+    // rendering: `color` lands in inline styles, `avatar` in <img src>,
+    // and a non-string name used to crash `charAt` below. (The document
+    // composable already normalises on receipt; this keeps the component
+    // safe on its own.)
+    const user: AwarenessUser | null = normalizeAwarenessUser(state?.user, { ownOrigin: window.location.origin })
+    if (!user) return
     // yCollab passes the JWT userId into `user.id` — numeric for real users,
-    // string 'anonymous' for unauthenticated, also numeric for AI.
+    // absent for unauthenticated, also numeric for AI.
     const userId = parseUserIdFromAwareness(user.id)
     // Drop other tabs of the SAME human user. AI sessions skip this
     // (each session is a distinct presence even if it's "the AI") and

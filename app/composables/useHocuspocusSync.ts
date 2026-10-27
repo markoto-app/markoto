@@ -1,6 +1,7 @@
 import * as Y from 'yjs'
-import { HocuspocusProvider, type HocuspocusProviderConfiguration } from '@hocuspocus/provider'
+import { HocuspocusProvider, WebSocketStatus, type HocuspocusProviderConfiguration } from '@hocuspocus/provider'
 import type { Awareness } from 'y-protocols/awareness'
+import { syncRejectionFromClose, type SyncCloseReason } from '~~/shared/contracts/syncClose'
 
 /**
  * Minimal shape the composable needs from a "provider". Real
@@ -9,6 +10,9 @@ import type { Awareness } from 'y-protocols/awareness'
  */
 export interface ProviderLike {
   destroy(): void
+  /** Close the socket and stop reconnecting (HocuspocusProvider has it;
+   *  optional so minimal test fakes don't need it). */
+  disconnect?(): void
 }
 
 /**
@@ -70,6 +74,16 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
   const synced = ref(false)
   const userCount = ref(1)
   const docSizeBytes = ref(0)
+  // Set when the sync server refused one of our updates (too large,
+  // invalid document setting, …). Reconnecting would resend the same
+  // state and be refused again, so the provider stops; the editor shows
+  // a banner asking the user to reload.
+  const syncRejection = ref<SyncCloseReason | null>(null)
+
+  function stopReconnecting() {
+    provider.value?.disconnect?.()
+    status.value = 'disconnected'
+  }
 
   const makeProvider = opts.providerFactory
     ?? ((config: HocuspocusProviderConfiguration) => new HocuspocusProvider(config))
@@ -107,6 +121,18 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
         opts.onSynced?.()
       },
       onAuthenticationFailed: () => { opts.onAuthFailed?.() },
+      onClose: ({ event }) => {
+        const rejection = syncRejectionFromClose(event)
+        if (!rejection) return
+        syncRejection.value = rejection
+        stopReconnecting()
+      },
+      // A socket-level close (oversized frame, code 1009) has already
+      // scheduled a reconnect inside the provider by the time `onClose`
+      // runs; cut that attempt off as soon as it starts.
+      onStatus: ({ status: next }) => {
+        if (syncRejection.value && next === WebSocketStatus.Connecting) stopReconnecting()
+      },
       onAwarenessChange: ({ states }) => {
         // Dedup by `user.id` so multiple tabs of the SAME human don't
         // inflate the count. Anonymous editors (no `user.id`) and AI
@@ -177,6 +203,7 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
     // Reset sync tracking so the next `onSynced` fires the welcome-seed / clear-
     // pending-unlock branches fresh. docSizeBytes gets recomputed on sync.
     synced.value = false
+    syncRejection.value = null
     status.value = 'connecting'
     connect()
   }
@@ -191,6 +218,7 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
     synced,
     userCount,
     docSizeBytes,
+    syncRejection,
     connect,
     disconnect,
     reconnect,

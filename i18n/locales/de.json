@@ -31,6 +31,13 @@
     "syncAuthFailedTitle": "Sync-Server hat die Verbindung abgelehnt",
     "syncAuthFailedDescription": "Normalerweise haben Sie hier Bearbeitungszugriff. Der Sync-Server hat den Handshake abgewiesen — wahrscheinlich ein IP-Ratenlimit oder ein veraltetes Token. Laden Sie neu, um es erneut zu versuchen.",
     "syncAuthFailedReload": "Neu laden",
+    "syncRejected": {
+      "title": "Ihre letzten Änderungen wurden nicht gespeichert",
+      "updateTooLarge": "Diese Änderung ist zu groß, um sie auf einmal zu synchronisieren. Laden Sie neu und fügen Sie den Inhalt in kleineren Teilen ein.",
+      "documentTooLarge": "Dieses Dokument hat seine maximale Größe erreicht. Laden Sie neu und entfernen Sie Inhalt oder teilen Sie ihn auf mehrere Dokumente auf.",
+      "invalidMeta": "Eine Dokumenteinstellung (Titel, Theme oder Angaben) hatte einen Wert, den der Server nicht annehmen konnte. Laden Sie neu, um weiterzuarbeiten.",
+      "invalidUpdate": "Der Server konnte eine Änderung aus diesem Tab nicht verarbeiten. Laden Sie neu, um weiterzuarbeiten."
+    },
     "aiWorkspaceBadge": "markoto-Workspace",
     "aiWorkspaceBadgeTooltip": "Dieses Dokument befindet sich in einem markoto-Workspace — die Arbeit von markoto nutzt hier das Guthaben des Sponsors, nicht Ihres.",
     "aiWorkspaceSponsoredBy": "markoto-Workspace gesponsert von {name}",
