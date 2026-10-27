@@ -34,6 +34,13 @@
     "syncAuthFailedTitle": "同期サーバーが接続を拒否しました",
     "syncAuthFailedDescription": "通常はここで編集アクセスがあります。同期サーバーがハンドシェイクを拒否しました — IPごとのレート制限か、古いトークンが原因の可能性があります。再読み込みして再試行してください。",
     "syncAuthFailedReload": "再読み込み",
+    "syncRejected": {
+      "title": "最新の変更は保存されていません",
+      "updateTooLarge": "この変更は一度に同期するには大きすぎます。再読み込みしてから、内容を小さく分けて追加してください。",
+      "documentTooLarge": "このドキュメントは最大サイズに達しました。再読み込みしてから、内容を削除するか複数のドキュメントに分けてください。",
+      "invalidMeta": "ドキュメントの設定（タイトル、テーマ、詳細）にサーバーが受け付けられない値が含まれていました。再読み込みして続けてください。",
+      "invalidUpdate": "このタブからの変更をサーバーが処理できませんでした。再読み込みして続けてください。"
+    },
     "aiWorkspaceBadge": "markotoワークスペース",
     "aiWorkspaceBadgeTooltip": "このドキュメントはmarkotoワークスペース内にあります — ここでのmarkotoの作業はあなたではなくスポンサーのクレジットプールを使用します。",
     "aiWorkspaceSponsoredBy": "{name}がスポンサーするmarkotoワークスペース",

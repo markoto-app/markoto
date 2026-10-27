@@ -10,7 +10,7 @@ import { Awareness } from 'y-protocols/awareness'
 // before loading the composable.
 import { ref, shallowRef } from 'vue'
 import { useHocuspocusSync, type ProviderLike } from '~/composables/useHocuspocusSync'
-import type { HocuspocusProviderConfiguration } from '@hocuspocus/provider'
+import { WebSocketStatus, type HocuspocusProviderConfiguration } from '@hocuspocus/provider'
 
 // Shim `ref` / `shallowRef` onto globalThis so the composable can read
 // them without a Nuxt auto-import transform in this unit context. The
@@ -458,5 +458,73 @@ describe('useHocuspocusSync — corner cases', () => {
     ydoc.getText('content').insert(0, 'x'.repeat(1000))
     h.latest().fireSynced()
     expect(sync.docSizeBytes.value).toBeGreaterThan(firstSize)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// Server-side rejection of an update (size limit / invalid ymeta value)
+//
+// The sync server closes the document connection with a known reason.
+// Reconnecting would resend the same state and be refused again, so the
+// composable surfaces the reason and stops the provider.
+// ═══════════════════════════════════════════════════════════════════════
+
+function closeEvent(code: number, reason: string) {
+  return Object.assign(new Event('close'), { code, reason, wasClean: true })
+}
+
+function rejectionHarness() {
+  const instances: Array<{ config: HocuspocusProviderConfiguration, disconnects: number }> = []
+  const factory = (config: HocuspocusProviderConfiguration): ProviderLike => {
+    const entry = { config, disconnects: 0 }
+    instances.push(entry)
+    return {
+      destroy() {},
+      disconnect() {
+        entry.disconnects++
+      }
+    }
+  }
+  return { factory, instances }
+}
+
+describe('useHocuspocusSync — sync rejection', () => {
+  it('surfaces a document-too-large close and stops the provider', () => {
+    const h = rejectionHarness()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
+    sync.connect()
+    h.instances[0]?.config.onClose?.({ event: closeEvent(1000, 'document-too-large') })
+    expect(sync.syncRejection.value).toBe('document-too-large')
+    expect(sync.status.value).toBe('disconnected')
+    expect(h.instances[0]?.disconnects).toBe(1)
+  })
+
+  it('maps a 1009 socket close (oversized frame) to update-too-large', () => {
+    const h = rejectionHarness()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
+    sync.connect()
+    h.instances[0]?.config.onClose?.({ event: closeEvent(1009, '') })
+    expect(sync.syncRejection.value).toBe('update-too-large')
+  })
+
+  it('cuts off a reconnect attempt the provider scheduled before the rejection', () => {
+    const h = rejectionHarness()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
+    sync.connect()
+    const config = h.instances[0]?.config
+    config?.onClose?.({ event: closeEvent(1009, '') })
+    config?.onStatus?.({ status: WebSocketStatus.Connecting })
+    expect(h.instances[0]?.disconnects).toBe(2)
+  })
+
+  it('an ordinary disconnect is not a rejection and keeps reconnecting', () => {
+    const h = rejectionHarness()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
+    sync.connect()
+    const config = h.instances[0]?.config
+    config?.onClose?.({ event: closeEvent(1006, '') })
+    config?.onStatus?.({ status: WebSocketStatus.Connecting })
+    expect(sync.syncRejection.value).toBe(null)
+    expect(h.instances[0]?.disconnects).toBe(0)
   })
 })

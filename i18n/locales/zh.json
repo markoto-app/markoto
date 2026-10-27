@@ -34,6 +34,13 @@
     "syncAuthFailedTitle": "同步服务器拒绝了此连接",
     "syncAuthFailedDescription": "你通常在此拥有编辑权限。同步服务器拒绝了握手 — 很可能是单 IP 速率限制或令牌已过期。请重新加载后再试。",
     "syncAuthFailedReload": "重新加载",
+    "syncRejected": {
+      "title": "你最近的更改未保存",
+      "updateTooLarge": "此更改太大，无法一次同步。请重新加载，然后分几次添加内容。",
+      "documentTooLarge": "此文档已达到最大大小。请重新加载，然后删除部分内容或将其拆分为多个文档。",
+      "invalidMeta": "某个文档设置（标题、主题或详细信息）的值无法被服务器接受。请重新加载以继续。",
+      "invalidUpdate": "服务器无法处理来自此标签页的更改。请重新加载以继续。"
+    },
     "aiWorkspaceBadge": "markoto 工作区",
     "aiWorkspaceBadgeTooltip": "本文档位于 markoto 工作区 — markoto 在此的工作使用赞助者的额度池，而非你的额度。",
     "aiWorkspaceSponsoredBy": "markoto 工作区由 {name} 赞助",

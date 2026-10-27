@@ -78,40 +78,37 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
   }
 }
 
-// Minimal shape of the y-protocols Awareness instance we touch — typed
-// locally so we don't pull y-protocols into the sync-server's deps just for
-// its type exports.
-interface AwarenessLike {
-  getStates: () => Map<number, { user?: { name?: unknown } } | undefined>
-  meta: Map<number, { clock: number, lastUpdated: number }>
+/** Identity of the authenticated connection an awareness client id was
+ *  last received on — taken from that connection's JWT, never from the
+ *  awareness payload. See `awareness-identity.ts`. */
+export interface VerifiedIdentity {
+  userId: string
+  userName: string | null
 }
 
 /**
- * Pick the user whose awareness state was updated most recently.
- * Rationale: y-codemirror.next updates awareness on every cursor move / keystroke,
- * so `meta.lastUpdated` is a strong signal for "who just edited this".
- * This is far more accurate than picking the first user in the map.
+ * Heuristic attribution for a store window with no tracked editor (cold
+ * doc / restart / Valkey down): the writer whose awareness state was
+ * updated most recently. y-codemirror.next updates awareness on every
+ * cursor move / keystroke, so the latest awareness update is a strong
+ * signal for "who just edited this". Ordered by the guard's monotonic
+ * `seq` (see awareness-guard.ts), not by wall-clock ms, so two updates
+ * in the same millisecond still have a defined order.
+ *
+ * The identity returned is the JWT identity of the connection that sent
+ * that awareness state — NOT `state.user.name`. Awareness is entirely
+ * client-controlled; trusting its name let an anonymous editor write any
+ * display name ("CEO Bob") into the activity log.
  */
-export function mostRecentEditorFromAwareness(awareness: AwarenessLike | null | undefined, fallback?: string | null): string | null {
-  if (!awareness?.getStates || !awareness.meta) return fallback ?? null
-
-  const states = awareness.getStates()
-  const meta = awareness.meta
-
-  let latestTime = 0
-  let latestName: string | null = null
-
-  for (const [clientID, state] of states) {
-    const m = meta.get(clientID)
-    const name = state?.user?.name
-    if (!m || typeof name !== 'string') continue
-    if (m.lastUpdated > latestTime) {
-      latestTime = m.lastUpdated
-      latestName = name
-    }
+export function mostRecentVerifiedEditor(
+  identities: ReadonlyMap<number, VerifiedIdentity & { seq: number }> | undefined
+): VerifiedIdentity | null {
+  if (!identities) return null
+  let latest: (VerifiedIdentity & { seq: number }) | null = null
+  for (const identity of identities.values()) {
+    if (!latest || identity.seq > latest.seq) latest = identity
   }
-
-  return latestName ?? fallback ?? null
+  return latest ? { userId: latest.userId, userName: latest.userName } : null
 }
 
 /**

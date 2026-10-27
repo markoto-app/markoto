@@ -208,6 +208,12 @@ services:
       - VALKEY_PORT=6379
       - VALKEY_PASSWORD=${VALKEY_PASSWORD}
       - VALKEY_DB=${VALKEY_DB:-0}
+      # Size limits for client updates (bytes). Empty = built-in defaults
+      # (17 MiB frame / 16 MiB update / 16 MiB document) — see
+      # sync-server/src/limits.ts and .env.example.
+      - SYNC_MAX_MESSAGE_BYTES=${SYNC_MAX_MESSAGE_BYTES:-}
+      - SYNC_MAX_UPDATE_BYTES=${SYNC_MAX_UPDATE_BYTES:-}
+      - SYNC_MAX_DOCUMENT_BYTES=${SYNC_MAX_DOCUMENT_BYTES:-}
     depends_on:
       postgres:
         condition: service_healthy

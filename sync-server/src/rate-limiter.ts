@@ -2,8 +2,9 @@
 //
 // Two independent caps:
 //   - `maxConnectionsPerIP` — protects against a single abusive IP
-//     opening thousands of rooms. Counted per live WS, decremented on
-//     disconnect. Default: 20.
+//     opening thousands of rooms. Counted per (socket, document), released
+//     when either the document connection or the raw socket goes away.
+//     Default: 20.
 //   - `maxActiveRooms` — global ceiling on distinct loaded documents.
 //     Protects against memory blowup when a crawler walks through random
 //     doc IDs and each one spawns a Y.Doc in RAM. Default: 5000.
@@ -31,9 +32,16 @@ interface HookData {
   }
   requestHeaders?: Record<string, string | string[] | undefined>
   socketId?: string
+  documentName?: string
   connection?: { readyState?: { toString?: () => string } }
   instance?: { documents?: { size?: number } }
   __rateLimitSocketId?: string
+}
+
+// Minimal shape of the raw `ws` socket whose teardown we subscribe to.
+// `close` fires for every socket — authenticated or not.
+interface ClosableSocket {
+  once: (event: 'close', listener: () => void) => unknown
 }
 
 export interface RateLimiterOptions {
@@ -61,6 +69,21 @@ function extractIp(data: HookData, trustedHops: number): string {
 /**
  * Build a rate limiter with isolated state. Default limits match
  * production; tests override with tiny numbers to exercise the caps.
+ *
+ * Slot lifecycle. Hocuspocus calls `onConnect` when a socket sends its
+ * first auth frame for a document — BEFORE `onAuthenticate`. Its
+ * `onDisconnect` hook is only wired for connections that authenticated
+ * and loaded the document, so a socket whose authentication fails never
+ * fires it. Releasing only from `onDisconnect` leaked one slot per failed
+ * handshake, until the IP (and everyone behind the same NAT) was locked
+ * out for the lifetime of the process. Slots are therefore keyed per
+ * (socket, document) and released by whichever comes first:
+ *   - `onDisconnect` — the document connection closed (the socket may
+ *     stay open for other documents),
+ *   - `onSocketClosed` — the raw WebSocket closed. Covers every teardown
+ *     path, including failed authentication. Wired from the `ws` server's
+ *     `connection` event in index.ts via `trackSocket`.
+ * Both are idempotent, so the two paths never double-decrement.
  */
 export function createRateLimiter(options: RateLimiterOptions = {}) {
   const maxConnectionsPerIP = options.maxConnectionsPerIP ?? 20
@@ -68,7 +91,50 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
   const trustedHops = options.trustedHops ?? DEFAULT_TRUSTED_PROXY_HOPS
 
   const connectionsPerIP = new Map<string, number>()
-  const connectionIPs = new Map<string, string>() // socketId → IP
+  const connectionIPs = new Map<string, string>() // slot key → IP
+  const socketSlots = new Map<string, Set<string>>() // socketId → slot keys
+  // Upgrade request → socketId. The raw socket close only knows its
+  // upgrade request; Hocuspocus hands the same request object to every
+  // hook of that socket, so this is how a close finds its slots.
+  const requestSockets = new WeakMap<object, string>()
+  // Requests whose socket already closed. An auth frame that was being
+  // processed when the socket dropped can still reach `onConnect` after
+  // the close — it must not take a slot that nothing would release.
+  const closedRequests = new WeakSet<object>()
+
+  function slotKey(socketId: string, documentName: string | undefined): string {
+    return `${socketId}|${documentName ?? ''}`
+  }
+
+  function releaseSlot(socketId: string, key: string): void {
+    const ip = connectionIPs.get(key)
+    if (!ip) return
+    connectionIPs.delete(key)
+    const slots = socketSlots.get(socketId)
+    if (slots) {
+      slots.delete(key)
+      if (slots.size === 0) socketSlots.delete(socketId)
+    }
+    const n = (connectionsPerIP.get(ip) || 1) - 1
+    if (n <= 0) {
+      connectionsPerIP.delete(ip)
+    } else {
+      connectionsPerIP.set(ip, n)
+    }
+  }
+
+  function onSocketClosed(request: object): void {
+    try {
+      closedRequests.add(request)
+      const socketId = requestSockets.get(request)
+      if (!socketId) return
+      const slots = socketSlots.get(socketId)
+      if (!slots) return
+      for (const key of [...slots]) releaseSlot(socketId, key)
+    } catch (e) {
+      console.warn('[rate-limiter] onSocketClosed error:', e instanceof Error ? e.message : e)
+    }
+  }
 
   return {
     onConnect(data: HookData) {
@@ -82,7 +148,21 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
       }
 
       try {
+        const request = data.request
+        // Socket already gone: nothing to count, and nothing would ever
+        // release the slot.
+        if (request && closedRequests.has(request)) return
+
         const ip = extractIp(data, trustedHops)
+        // If Hocuspocus doesn't surface a socketId (hook shapes vary
+        // between v3 patch releases), fall through to a monotonic token so
+        // the counter still decrements correctly later.
+        const socketId = data.socketId
+          || data.connection?.readyState?.toString?.()
+          || String(Date.now())
+        const key = slotKey(socketId, data.documentName)
+        // Same socket re-authenticating the same document: already counted.
+        if (connectionIPs.has(key)) return
 
         const current = connectionsPerIP.get(ip) || 0
         if (current >= maxConnectionsPerIP) {
@@ -90,15 +170,11 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
           throw new Error('Too many connections')
         }
         connectionsPerIP.set(ip, current + 1)
-
-        // Track IP by socketId for cleanup in onDisconnect. If Hocuspocus
-        // doesn't surface a socketId (hook shapes vary between v3 patch
-        // releases), fall through to a monotonic token so the counter
-        // still decrements correctly later.
-        const socketId = data.socketId
-          || data.connection?.readyState?.toString?.()
-          || String(Date.now())
-        connectionIPs.set(socketId, ip)
+        connectionIPs.set(key, ip)
+        const slots = socketSlots.get(socketId) ?? new Set<string>()
+        slots.add(key)
+        socketSlots.set(socketId, slots)
+        if (request) requestSockets.set(request, socketId)
         data.__rateLimitSocketId = socketId
       } catch (e) {
         if (e instanceof Error
@@ -115,19 +191,23 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
     onDisconnect(data: HookData) {
       try {
         const socketId = data.__rateLimitSocketId || data.socketId || ''
-        const ip = connectionIPs.get(socketId)
-        if (ip) {
-          connectionIPs.delete(socketId)
-          const n = (connectionsPerIP.get(ip) || 1) - 1
-          if (n <= 0) {
-            connectionsPerIP.delete(ip)
-          } else {
-            connectionsPerIP.set(ip, n)
-          }
-        }
+        releaseSlot(socketId, slotKey(socketId, data.documentName))
       } catch (e) {
         console.warn('[rate-limiter] onDisconnect error:', e instanceof Error ? e.message : e)
       }
+    },
+
+    /**
+     * The raw WebSocket behind `request` closed. Releases every slot the
+     * socket held — the path that covers sockets whose authentication
+     * failed (Hocuspocus never fires `onDisconnect` for those).
+     */
+    onSocketClosed,
+
+    /** Subscribe to a raw socket's teardown. Called for every accepted
+     *  WebSocket, before Hocuspocus authenticates it. */
+    trackSocket(socket: ClosableSocket, request: object) {
+      socket.once('close', () => onSocketClosed(request))
     },
 
     // Test-only introspection. Not part of the production API — production

@@ -220,6 +220,7 @@ Everything lives in `.env` next to the compose files. After a change: `docker co
 | `MARKOTO_HTTPS_PORT` / `MARKOTO_HTTPS_BIND` | `443` / `0.0.0.0` | HTTPS mode. Let's Encrypt's TLS challenge needs public port 443. |
 | `TRAEFIK_TRUSTED_IPS` | `127.0.0.1/32` | Comma-separated CIDRs of proxies in front of Traefik whose `X-Forwarded-*` headers are kept. |
 | `NUXT_TRUSTED_PROXY_HOPS` | `1` | Reverse proxies in front of the app (Traefik = 1). See [Security notes](#trusted-proxy). |
+| `SYNC_MAX_MESSAGE_BYTES` / `SYNC_MAX_UPDATE_BYTES` / `SYNC_MAX_DOCUMENT_BYTES` | 17 MiB / 16 MiB / 16 MiB | Largest WebSocket message, single change and document (encoded size) the collaboration server accepts, in bytes. A refused change shows the editor a "changes were not saved" banner; deleting content is always allowed. |
 | `MARKOTO_INSTANCE` | `markoto` | Instance name: compose project, network names, Traefik routing scope. Run several instances on one host with different names and ports. |
 | `COMPOSE_FILE`, `COMPOSE_PROJECT_NAME`, `COMPOSE_PROFILES` | set by `install.sh` | Which compose files and profiles `docker compose` uses. |
 | `REGISTRY` / `IMAGE_TAG` | `ghcr.io/joelbarmettleruzh` / release tag | Image source. |

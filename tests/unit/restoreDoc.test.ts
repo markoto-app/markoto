@@ -161,7 +161,7 @@ const runtimeConfigState: { value: FakeRuntimeConfig } = {
 ;(globalThis as Record<string, unknown>).useRuntimeConfig = () => runtimeConfigState.value
 
 // Now safe to import the unit under test — all mocks registered.
-const { restoreDocToYjsId } = await import('../../server/utils/restoreDoc')
+const { restoreDocToYjsId, readRestorableMeta } = await import('../../server/utils/restoreDoc')
 
 beforeEach(() => {
   providerCalls.length = 0
@@ -396,5 +396,25 @@ describe('restoreDocToYjsId', () => {
       })
       expect(replayMock).toHaveBeenCalledWith('replay-doc', 999)
     })
+  })
+})
+
+// The restore client writes past ymeta values through the WebSocket, where
+// the sync server validates them. A past value that fails today's
+// validation (old theme schema, corrupted nested Y type) would get the
+// whole restore update rejected — so it is skipped instead.
+describe('readRestorableMeta', () => {
+  it('copies valid restorable keys and skips invalid or corrupted ones', () => {
+    const past = new Y.Doc()
+    const meta = past.getMap<unknown>('meta')
+    meta.set('title', 'Past title')
+    meta.set('description', 'd'.repeat(501))
+    meta.set('audience', 'casual')
+    meta.set('_deleted', true)
+    const nested = new Y.Map<unknown>()
+    meta.set('theme', nested)
+    nested.set('n', new Y.Map<unknown>())
+
+    expect(readRestorableMeta(meta)).toEqual({ title: 'Past title', audience: 'casual' })
   })
 })

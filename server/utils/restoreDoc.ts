@@ -6,6 +6,30 @@ import { sql } from 'drizzle-orm'
 import { useDatabase } from './database'
 import { reconstructDocAtYjsId } from './historyReplay'
 import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
+import { isValidMetaValue } from '~~/shared/utils/ymetaValidation'
+
+const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
+
+/**
+ * The past state's restorable ymeta values as plain JS. Only values that
+ * pass the sync server's ymeta validation are returned — the server
+ * rejects (and closes the connection on) an update carrying anything
+ * else, which would fail the whole restore. A past theme that no longer
+ * matches today's schema, or a corrupted value (e.g. a nested Y type),
+ * is skipped: the doc keeps its current value for that key. Values are
+ * read per key — never `toJSON()` on the whole map, which recurses into
+ * nested Y types without a depth bound.
+ */
+export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const k of RESTORABLE_META_KEYS) {
+    if (!pastMeta.has(k)) continue
+    const v = pastMeta.get(k)
+    if (v instanceof Y.AbstractType) continue
+    if (isValidMetaValue(k, v)) out[k] = v
+  }
+  return out
+}
 
 // "Snap the live Y.Doc to a past state" — the execution side of
 // the Tier 2 restore feature.
@@ -139,7 +163,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     const past = await reconstructDocAtYjsId(opts.docId, opts.targetYjsId)
     const pastText = past.getText('content').toJSON()
     const pastComments = past.getArray('comments').toJSON() as unknown[]
-    const pastMeta = past.getMap('meta').toJSON() as Record<string, unknown>
+    const pastMeta = readRestorableMeta(past.getMap('meta'))
     past.destroy()
 
     // Step 2: open a synthetic Hocuspocus client as the acting user.
@@ -250,9 +274,8 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
         // are deliberately NOT touched — restoring a deleted-marker
         // would re-delete the doc.
         const ymeta = ydoc.getMap('meta')
-        const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
-        for (const k of RESTORABLE_META_KEYS) {
-          if (k in pastMeta) ymeta.set(k, pastMeta[k])
+        for (const [k, v] of Object.entries(pastMeta)) {
+          ymeta.set(k, v)
         }
       }, `restore:${opts.actorUserId}:${opts.sessionId}`)
 

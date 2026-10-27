@@ -5,12 +5,16 @@ import './validate-secrets'
 // targets before any other module grabs references to them. Importing a
 // name from the module also satisfies the side-effect import.
 import { captureMessage } from './sentry'
-import { createHash } from 'node:crypto'
 import { Server } from '@hocuspocus/server'
 import { ypgPersistence } from './persistence'
 import { authFromEnv } from './auth'
 import { rateLimiter } from './rate-limiter'
-import { logActivity, mostRecentEditorFromAwareness, countWords, lineDiff } from './activity-logger'
+import { logActivity, mostRecentVerifiedEditor, countWords, lineDiff, type VerifiedIdentity } from './activity-logger'
+import { parseSyncLimits } from './limits'
+import { createUpdateGuard, SyncRejection } from './update-guard'
+import { attachAwarenessGuard, awarenessIdentities } from './awareness-guard'
+import { readMetaSnapshot } from './meta-snapshot'
+import { SYNC_CLOSE_REASONS } from '../../shared/contracts/syncClose'
 import { handleInternalRequest } from './internal-http'
 import { startCompactionSweeper, stopCompactionSweeper } from './compaction'
 import { shipCommentsSnapshot, dropSnapshotCache } from './comments-snapshot'
@@ -21,8 +25,7 @@ import {
   setPrevText,
   getPrevMeta,
   setPrevMeta,
-  dropDocState,
-  type PreviousMeta
+  dropDocState
 } from './sync-state'
 import { closeValkey } from './valkey'
 
@@ -45,17 +48,10 @@ const port = Number.parseInt(process.env.PORT || '4001')
 // edit can rebuild attribution from awareness without harm. Keeping all
 // state externalised lets multiple sync-server containers share the view.
 
-function readMetaSnapshot(doc: { getMap: (k: string) => { get: (k: string) => unknown } }): PreviousMeta {
-  const ymeta = doc.getMap('meta')
-  const t = ymeta.get('title')
-  const theme = ymeta.get('theme')
-  return {
-    title: typeof t === 'string' ? t : null,
-    themeHash: theme && typeof theme === 'object'
-      ? createHash('sha256').update(JSON.stringify(theme)).digest('hex')
-      : null
-  }
-}
+// Size limits (SYNC_MAX_{MESSAGE,UPDATE,DOCUMENT}_BYTES) + pre-apply
+// validation of every client update. See limits.ts / update-guard.ts.
+const syncLimits = parseSyncLimits(process.env)
+const updateGuard = createUpdateGuard(syncLimits)
 
 const server = new Server({
   port,
@@ -64,19 +60,49 @@ const server = new Server({
 
   async onLoadDocument(data) {
     const doc = await ypgPersistence.onLoadDocument(data)
-    // Seed the previous-text cache so the FIRST diff after load is measured
-    // against what was on disk, not against an empty string (which would
-    // otherwise report a huge "+N lines" on the next store).
-    // Y.Text exposes the doc body via toString(); prefer the equivalent
-    // toJSON() which TS can verify returns string (Sonar can't see Y.Text's
-    // toString override otherwise — S6551).
-    const ytext = doc.getText('content')
-    await setPrevText(data.documentName, ytext.toJSON())
-    // Same for title + theme: seed against current state so the first
-    // store after load doesn't emit a spurious "title changed" with a
-    // null `from` value.
-    await setPrevMeta(data.documentName, readMetaSnapshot(doc))
+    // Seeding the diff baselines is best-effort: a failure here must never
+    // reject the load (Hocuspocus would refuse every connection to the
+    // document — a corrupted value in it would make it unloadable and
+    // therefore unrepairable).
+    try {
+      // Seed the previous-text cache so the FIRST diff after load is measured
+      // against what was on disk, not against an empty string (which would
+      // otherwise report a huge "+N lines" on the next store).
+      // Y.Text exposes the doc body via toString(); prefer the equivalent
+      // toJSON() which TS can verify returns string (Sonar can't see Y.Text's
+      // toString override otherwise — S6551).
+      const ytext = doc.getText('content')
+      await setPrevText(data.documentName, ytext.toJSON())
+      // Same for title + theme: seed against current state so the first
+      // store after load doesn't emit a spurious "title changed" with a
+      // null `from` value.
+      await setPrevMeta(data.documentName, readMetaSnapshot(doc))
+    } catch (e) {
+      console.warn(`[hocuspocus] baseline seed failed for ${data.documentName}:`, e instanceof Error ? e.message : e)
+    }
     return doc
+  },
+
+  async afterLoadDocument(data) {
+    attachAwarenessGuard(data.document)
+  },
+
+  async beforeHandleMessage(data) {
+    try {
+      updateGuard.check(data.document, data.update, data.connection.readOnly)
+    } catch (e) {
+      // Anything unexpected inside the guard fails closed too, with a
+      // reason the editor recognises (so it stops resending the update).
+      const rejection = e instanceof SyncRejection
+        ? e
+        : new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, e instanceof Error ? e.message : 'guard error')
+      console.warn(`[hocuspocus] ${rejection.message} on ${data.documentName} (socket ${data.socketId})`)
+      captureMessage('[hocuspocus] update rejected', {
+        level: 'warning',
+        tags: { component: 'hocuspocus', event: 'update_rejected', reason: rejection.reason }
+      })
+      throw rejection
+    }
   },
 
   async onChange(data) {
@@ -113,7 +139,10 @@ const server = new Server({
     // row happens to be by the time we re-query (which under
     // multi-instance concurrency could be a row a different instance
     // wrote).
-    const yjsDocIdAfter = await ypgPersistence.onStoreDocument(data)
+    const yjsDocIdAfter = await ypgPersistence.onStoreDocument(
+      data,
+      bytes => updateGuard.noteDocumentSize(data.document, bytes)
+    )
 
     // Read the tracked editor ONCE for the whole hook so the edit-row and
     // meta-diff blocks below see consistent attribution. Valkey miss vs
@@ -181,6 +210,17 @@ const server = new Server({
       throw null
     }
   }
+}, {
+  // Frames above this are refused by `ws` itself (close 1009) before they
+  // are buffered further or reach Hocuspocus.
+  maxPayload: syncLimits.maxMessageBytes
+})
+
+// Release the socket's rate-limit slots on EVERY teardown. Hocuspocus's
+// onDisconnect only fires for connections that authenticated, so failed
+// handshakes used to leak their slot for good (see rate-limiter.ts).
+server.webSocketServer.on('connection', (socket, request) => {
+  rateLimiter.trackSocket(socket, request)
 })
 
 server.listen(port, () => {
@@ -203,13 +243,18 @@ type StoreDocumentData = Parameters<NonNullable<NonNullable<ConstructorParameter
  * awareness heuristic when nothing has been tracked (cold doc /
  * restart, or Valkey down). Logs a Sentry warning on the fallback path
  * so prod drift is visible.
+ *
+ * Every name here comes from a JWT, never from the client-controlled
+ * awareness payload: a tracked anonymous editor stays anonymous
+ * (`userName: null`, principal `anonymous`), and the fallback names the
+ * JWT identity of the connection whose awareness moved last.
  */
 function resolveAttribution(
   data: StoreDocumentData,
   trackedFetch: Awaited<ReturnType<typeof getLastEditor>>
 ): { userName: string | null, userId: number | null, actorPrincipal: string | null } {
   const tracked = trackedFetch.value
-  let userName: string | null = tracked?.userName ?? null
+  let fallback: VerifiedIdentity | null = null
   if (!tracked) {
     const cause = trackedFetch.cause === 'error' ? 'valkey-error' : 'valkey-miss'
     const errMsg = trackedFetch.error ? ` (${trackedFetch.error.message})` : ''
@@ -218,29 +263,23 @@ function resolveAttribution(
       level: 'warning',
       tags: { component: 'hocuspocus', event: 'attribution_fallback', cause }
     })
+    fallback = mostRecentVerifiedEditor(awarenessIdentities(data.document))
   }
-  if (!userName) {
-    const awareness = (data.document as unknown as { awareness?: Parameters<typeof mostRecentEditorFromAwareness>[0] }).awareness
-    userName = mostRecentEditorFromAwareness(awareness)
-  }
-  // The tracked.userId is the JWT's userId — string. Real users get a
-  // numeric id (parsed → integer for activity_log.user_id); synthetic
-  // principals (`ai:assistant:{sid}`, `mcp:{sid}`) are non-numeric and
+  const editor = tracked ?? fallback
+  // The JWT userId is a string. Real users get a numeric id (parsed →
+  // integer for activity_log.user_id); synthetic principals
+  // (`ai:assistant:{sid}`, `mcp:{sid}`, `anonymous`) are non-numeric and
   // resolve to null on `parseTrackedUserId`. We pass the RAW string
-  // through `actorPrincipal` so the app-side activity row can join
-  // back to ai_sessions / mcp_sessions and resolve the human
-  // initiator. Fallback case (no tracked, awareness heuristic) leaves
-  // actorPrincipal null — the awareness layer doesn't carry the JWT
-  // principal, so the audit chain breaks for that rare path. Same
-  // property as user_name in fallback.
+  // through `actorPrincipal` so the app-side activity row can join back
+  // to ai_sessions / mcp_sessions and resolve the human initiator.
   return {
-    userName,
-    userId: parseTrackedUserId(tracked?.userId),
-    actorPrincipal: parseActorPrincipal(tracked?.userId)
+    userName: editor?.userName ?? null,
+    userId: parseTrackedUserId(editor?.userId),
+    actorPrincipal: parseActorPrincipal(editor?.userId)
   }
 }
 
-function parseTrackedUserId(rawUserId: string | undefined): number | null {
+function parseTrackedUserId(rawUserId: string | null | undefined): number | null {
   if (!rawUserId) return null
   const n = Number(rawUserId)
   return Number.isFinite(n) ? n : null
@@ -251,7 +290,7 @@ function parseTrackedUserId(rawUserId: string | undefined): number | null {
  *  `shared/contracts/jwt.ts` (`SYNTHETIC_USER_ID_PREFIXES`); we
  *  duplicate the prefix check here to keep the sync-server free of
  *  shared/-folder imports (it has its own minimal dep tree). */
-function parseActorPrincipal(rawUserId: string | undefined): string | null {
+function parseActorPrincipal(rawUserId: string | null | undefined): string | null {
   if (!rawUserId) return null
   if (Number.isFinite(Number(rawUserId))) return null // numeric → real user
   return rawUserId

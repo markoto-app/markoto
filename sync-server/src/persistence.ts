@@ -142,9 +142,15 @@ export const ypgPersistence = {
    * between our INSERT and a follow-up MAX query and bump the answer
    * to a row that isn't ours. Returns null only on a store failure.
    */
-  async onStoreDocument({ documentName, document }: { documentName: string, document: Y.Doc }): Promise<number | null> {
+  async onStoreDocument(
+    { documentName, document }: { documentName: string, document: Y.Doc },
+    // Receives the encoded state size — the update guard's document-size
+    // bookkeeping reuses it instead of encoding the doc a second time.
+    onEncoded?: (bytes: number) => void
+  ): Promise<number | null> {
     try {
       const update = Y.encodeStateAsUpdate(document)
+      onEncoded?.(update.byteLength)
       const id = await withSelfHeal(`store:${documentName}`, () => pgdb.storeUpdate(documentName, update))
       return typeof id === 'number' ? id : null
     } catch (e) {

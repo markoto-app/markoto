@@ -34,6 +34,13 @@
     "syncAuthFailedTitle": "Le serveur de synchronisation a rejeté la connexion",
     "syncAuthFailedDescription": "Vous avez normalement un accès en édition ici. Le serveur de synchronisation a refusé la négociation — probablement une limite de débit par IP ou un jeton expiré. Rechargez pour réessayer.",
     "syncAuthFailedReload": "Recharger",
+    "syncRejected": {
+      "title": "Vos dernières modifications n'ont pas été enregistrées",
+      "updateTooLarge": "Cette modification est trop volumineuse pour être synchronisée en une fois. Rechargez, puis ajoutez le contenu en plusieurs parties.",
+      "documentTooLarge": "Ce document a atteint sa taille maximale. Rechargez, puis supprimez du contenu ou répartissez-le sur plusieurs documents.",
+      "invalidMeta": "Un réglage du document (titre, thème ou détails) avait une valeur que le serveur ne peut pas accepter. Rechargez pour continuer.",
+      "invalidUpdate": "Le serveur n'a pas pu traiter une modification de cet onglet. Rechargez pour continuer."
+    },
     "aiWorkspaceBadge": "espace de travail markoto",
     "aiWorkspaceBadgeTooltip": "Ce document se trouve dans un espace de travail markoto — le travail de markoto ici utilise le pool de crédits du sponsor, pas le vôtre.",
     "aiWorkspaceSponsoredBy": "espace de travail markoto sponsorisé par {name}",

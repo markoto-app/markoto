@@ -8,6 +8,8 @@ import {
   canEditTheme as computeCanEditTheme,
   docSizeWarning as computeDocSizeWarning
 } from '~~/shared/utils/documentHelpers'
+import { normalizeAwarenessStates, normalizeAwarenessUser } from '~~/shared/utils/awarenessUser'
+import { clampMetaString } from '~~/shared/utils/ymetaValidation'
 
 /**
  * Thin orchestrator that wires together the three sub-composables a document
@@ -49,6 +51,17 @@ export function useDocument(docId: string) {
   // local and remote clients share the same object. Components (PresenceBar,
   // yCollab) bind to this once at mount and never need to re-subscribe.
   const awareness = new Awareness(ydoc)
+
+  // Normalise every remote peer's `user` field (name / colour / avatar /
+  // id) the moment it arrives, before anything renders it. Registered
+  // here — before yCollab and PresenceBar subscribe — so the y-codemirror
+  // caret widget (which interpolates `color` into a raw style attribute)
+  // and the presence bar only ever see the normalised shape. The sync
+  // server normalises too; this is the client-side half of that guard.
+  const awarenessOrigin = import.meta.client ? globalThis.location?.origin : undefined
+  awareness.on('change', ({ added, updated }: { added: number[], updated: number[] }) => {
+    normalizeAwarenessStates(awareness, [...added, ...updated], { ownOrigin: awarenessOrigin })
+  })
 
   // Expose awareness alongside the ydoc test handle (gated on the
   // same exposeTestHandles flag). Flow tests use it to assert
@@ -148,7 +161,10 @@ export function useDocument(docId: string) {
   })
 
   function applySessionAwareness() {
-    awareness.setLocalStateField('user', {
+    // Normalised before broadcast so the shape we send is exactly what
+    // peers (and the sync server) accept: a long OAuth display name is
+    // capped, a non-https avatar is dropped.
+    awareness.setLocalStateField('user', normalizeAwarenessUser({
       // Seed `id` from the session so remote clients can match this awareness
       // state to a workspace-member row (role tooltips, "is this person live"
       // lookup in PresenceBar). Unauthenticated visitors stay id-less and
@@ -157,7 +173,7 @@ export function useDocument(docId: string) {
       name: loggedIn.value ? sessionUser.value?.name : generateRandomName(),
       color: pickColor(),
       avatar: sessionUser.value?.avatar
-    })
+    }, { ownOrigin: awarenessOrigin }))
   }
 
   // Bridge Y.js Map reactivity to Vue: `ymeta.get()` isn't tracked by Vue,
@@ -192,7 +208,9 @@ export function useDocument(docId: string) {
   const title = computed({
     get: () => _titleRef.value,
     set: (v: string) => {
-      if (!tokenState.isReadOnly.value) ymeta.set('title', v)
+      // Clamped to the sync server's ymeta bounds — an over-long value
+      // would be rejected there and close the connection.
+      if (!tokenState.isReadOnly.value) ymeta.set('title', clampMetaString('title', v))
     }
   })
 
@@ -280,8 +298,9 @@ export function useDocument(docId: string) {
     get: () => _descriptionRef.value,
     set: (v: string) => {
       if (tokenState.isReadOnly.value) return
-      ymeta.set('description', v)
-      if (tokenState.isOwner.value) persistDocContext({ description: v })
+      const next = clampMetaString('description', v)
+      ymeta.set('description', next)
+      if (tokenState.isOwner.value) persistDocContext({ description: next })
     }
   })
   const audience = computed({
@@ -296,8 +315,9 @@ export function useDocument(docId: string) {
     get: () => _languageRef.value,
     set: (v: string) => {
       if (tokenState.isReadOnly.value) return
-      ymeta.set('language', v)
-      if (tokenState.isOwner.value) persistDocContext({ language: v })
+      const next = clampMetaString('language', v)
+      ymeta.set('language', next)
+      if (tokenState.isOwner.value) persistDocContext({ language: next })
     }
   })
 
@@ -364,6 +384,7 @@ export function useDocument(docId: string) {
     userCount: readonly(sync.userCount),
     isReadOnly: readonly(tokenState.isReadOnly),
     syncAuthFailed: readonly(tokenState.syncAuthFailed),
+    syncRejection: readonly(sync.syncRejection),
     isOwner: readonly(tokenState.isOwner),
     canDelete: readonly(tokenState.canDelete),
     isDeleted: readonly(isDeleted),

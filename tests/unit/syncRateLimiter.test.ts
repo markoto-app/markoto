@@ -228,3 +228,84 @@ describe('createRateLimiter — resilience', () => {
     warn.mockRestore()
   })
 })
+
+// Hocuspocus runs `onConnect` (which takes the slot) BEFORE
+// `onAuthenticate`, but only wires `onDisconnect` for connections that
+// authenticated. A socket whose handshake is rejected therefore never
+// fires `onDisconnect`; its slot must be released when the raw socket
+// closes, or ~20 bad handshakes lock the IP out until a restart.
+describe('createRateLimiter — socket teardown releases slots', () => {
+  function socketPair(ip: string, socketId: string, documentName = 'doc-1') {
+    const request = { headers: { 'x-forwarded-for': ip } }
+    return { request, socketId, documentName }
+  }
+
+  it('releases the slot of a socket whose authentication failed when the socket closes', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 2 })
+    const a = socketPair('7.7.7.7', 'fail-a')
+    const b = socketPair('7.7.7.7', 'fail-b')
+    rl.onConnect(a)
+    rl.onConnect(b)
+    // Auth failed → no onDisconnect. Only the raw socket close arrives.
+    rl.onSocketClosed(a.request)
+    rl.onSocketClosed(b.request)
+    expect(rl._snapshot().connectionsPerIP.size).toBe(0)
+    expect(() => rl.onConnect(socketPair('7.7.7.7', 'legit'))).not.toThrow()
+  })
+
+  it('a flood of failed handshakes larger than the cap does not lock the IP out', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 3 })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    for (let i = 0; i < 25; i++) {
+      const s = socketPair('8.8.8.8', `flood-${i}`)
+      rl.onConnect(s)
+      rl.onSocketClosed(s.request)
+    }
+    warn.mockRestore()
+    expect(() => rl.onConnect(socketPair('8.8.8.8', 'after-flood'))).not.toThrow()
+  })
+
+  it('onDisconnect then socket close does not double-decrement', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 2 })
+    const a = socketPair('9.9.9.9', 'a')
+    const b = socketPair('9.9.9.9', 'b')
+    rl.onConnect(a)
+    rl.onConnect(b)
+    rl.onDisconnect(a)
+    rl.onSocketClosed(a.request)
+    expect(rl._snapshot().connectionsPerIP.get('9.9.9.9')).toBe(1)
+  })
+
+  it('one socket multiplexing two documents releases both slots on close', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 2 })
+    const request = { headers: { 'x-forwarded-for': '5.5.5.5' } }
+    rl.onConnect({ request, socketId: 'mux', documentName: 'doc-a' })
+    rl.onConnect({ request, socketId: 'mux', documentName: 'doc-b' })
+    expect(rl._snapshot().connectionsPerIP.get('5.5.5.5')).toBe(2)
+    rl.onSocketClosed(request)
+    expect(rl._snapshot().connectionsPerIP.size).toBe(0)
+  })
+
+  it('an auth frame processed after the socket already closed takes no slot', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 1 })
+    const a = socketPair('4.4.4.4', 'late')
+    rl.onSocketClosed(a.request)
+    rl.onConnect(a)
+    expect(rl._snapshot().connectionsPerIP.size).toBe(0)
+  })
+
+  it('trackSocket releases on the socket close event', () => {
+    const rl = createRateLimiter({ maxConnectionsPerIP: 1 })
+    const listeners: Array<() => void> = []
+    const socket = {
+      once: (_event: 'close', fn: () => void) => {
+        listeners.push(fn)
+      }
+    }
+    const a = socketPair('3.3.3.3', 'tracked')
+    rl.trackSocket(socket, a.request)
+    rl.onConnect(a)
+    for (const fn of listeners) fn()
+    expect(() => rl.onConnect(socketPair('3.3.3.3', 'next'))).not.toThrow()
+  })
+})

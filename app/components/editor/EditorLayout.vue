@@ -25,6 +25,7 @@ const {
   userCount,
   isReadOnly,
   syncAuthFailed,
+  syncRejection,
   isOwner,
   canDelete,
   isDeleted,
@@ -500,6 +501,28 @@ watch(syncAuthFailed, (failed) => {
     title: t('editor.syncAuthFailedTitle'),
     description: t('editor.syncAuthFailedDescription'),
     icon: 'i-lucide-shield-alert',
+    color: 'error'
+  })
+})
+
+// The sync server refused one of our updates (too large / invalid
+// document setting) and the provider stopped. Edits from here on stay
+// local, so say so loudly: one toast plus the persistent banner below.
+const syncRejectionMessage = computed(() => {
+  switch (syncRejection.value) {
+    case 'update-too-large': return t('editor.syncRejected.updateTooLarge')
+    case 'document-too-large': return t('editor.syncRejected.documentTooLarge')
+    case 'invalid-meta': return t('editor.syncRejected.invalidMeta')
+    case 'invalid-update': return t('editor.syncRejected.invalidUpdate')
+    default: return null
+  }
+})
+watch(syncRejectionMessage, (message) => {
+  if (!message) return
+  toast.add({
+    title: t('editor.syncRejected.title'),
+    description: message,
+    icon: 'i-lucide-cloud-off',
     color: 'error'
   })
 })
@@ -1143,6 +1166,34 @@ const _statusIcon = computed(() => {
         <div class="flex-1 min-w-0">
           <span class="font-medium">{{ t('editor.syncAuthFailedTitle') }}</span>
           <span class="ml-2 text-xs opacity-80">{{ t('editor.syncAuthFailedDescription') }}</span>
+        </div>
+        <UButton
+          size="xs"
+          color="error"
+          variant="solid"
+          icon="i-lucide-rotate-ccw"
+          @click="$router.go(0)"
+        >
+          {{ t('editor.syncAuthFailedReload') }}
+        </UButton>
+      </div>
+
+      <!-- Sync rejection banner: the server refused an update (too large,
+           invalid document setting). Unlike the auth banner the editor
+           stays editable, but nothing is saved until a reload. -->
+      <div
+        v-if="syncRejectionMessage"
+        class="border-b border-error bg-error/10 text-error px-4 py-2 flex items-center gap-3 text-sm"
+        role="alert"
+        data-testid="sync-rejection-banner"
+      >
+        <UIcon
+          name="i-lucide-cloud-off"
+          class="size-4 shrink-0"
+        />
+        <div class="flex-1 min-w-0">
+          <span class="font-medium">{{ t('editor.syncRejected.title') }}</span>
+          <span class="ml-2 text-xs opacity-80">{{ syncRejectionMessage }}</span>
         </div>
         <UButton
           size="xs"
