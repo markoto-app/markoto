@@ -159,20 +159,31 @@ services:
       - AWS_SECRET_ACCESS_KEY=${NUXT_S3_SECRET_KEY}
       - AWS_DEFAULT_REGION=us-east-1
       - S3_BUCKET=${NUXT_S3_BUCKET:-markoto-files}
+      # A separate backup bucket on this SeaweedFS (BACKUP_S3_BUCKET set,
+      # BACKUP_S3_ENDPOINT unset) is created too. With an external backup
+      # endpoint the bucket is the operator's to create.
+      - BACKUP_S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-}
+      - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET:-}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        i=0
-        while [ "$$i" -lt 90 ]; do
-          if aws --endpoint-url http://seaweedfs:8333 s3api head-bucket --bucket "$$S3_BUCKET" >/dev/null 2>&1; then
-            echo "[s3-init] bucket $$S3_BUCKET exists"; exit 0
-          fi
-          if aws --endpoint-url http://seaweedfs:8333 s3api create-bucket --bucket "$$S3_BUCKET" >/dev/null 2>&1; then
-            echo "[s3-init] bucket $$S3_BUCKET created"; exit 0
-          fi
-          i=$$((i + 1)); sleep 2
-        done
-        echo "[s3-init] SeaweedFS did not become ready" >&2; exit 1
+        ensure_bucket() {
+          i=0
+          while [ "$$i" -lt 90 ]; do
+            if aws --endpoint-url http://seaweedfs:8333 s3api head-bucket --bucket "$$1" >/dev/null 2>&1; then
+              echo "[s3-init] bucket $$1 exists"; return 0
+            fi
+            if aws --endpoint-url http://seaweedfs:8333 s3api create-bucket --bucket "$$1" >/dev/null 2>&1; then
+              echo "[s3-init] bucket $$1 created"; return 0
+            fi
+            i=$$((i + 1)); sleep 2
+          done
+          echo "[s3-init] SeaweedFS did not become ready" >&2; return 1
+        }
+        ensure_bucket "$$S3_BUCKET" || exit 1
+        if [ -z "$$BACKUP_S3_ENDPOINT" ] && [ -n "$$BACKUP_S3_BUCKET" ] && [ "$$BACKUP_S3_BUCKET" != "$$S3_BUCKET" ]; then
+          ensure_bucket "$$BACKUP_S3_BUCKET" || exit 1
+        fi
     depends_on:
       seaweedfs:
         condition: service_started
@@ -424,8 +435,10 @@ services:
     image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/markoto-backup:${IMAGE_TAG:-latest}
     profiles: ["backup"]
     environment:
-      - S3_ENDPOINT=http://seaweedfs:8333
-      - S3_BUCKET=${NUXT_S3_BUCKET:-markoto-files}
+      # Same bucket and keys as the app unless BACKUP_S3_* point elsewhere
+      # (a second bucket, or an external S3 provider — docs/SELF-HOSTING.md#backups).
+      - S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-http://seaweedfs:8333}
+      - S3_BUCKET=${BACKUP_S3_BUCKET:-${NUXT_S3_BUCKET:-markoto-files}}
       - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:-86400}
       # SeaweedFS rejects the SSE-S3 header (InternalError) — see backup.sh.
       - S3_SSE=none

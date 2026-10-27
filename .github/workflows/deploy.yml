@@ -134,6 +134,9 @@ jobs:
           NUXT_STRIPE_SECRET_KEY: ${{ secrets.NUXT_STRIPE_SECRET_KEY }}
           NUXT_STRIPE_WEBHOOK_SECRET: ${{ secrets.NUXT_STRIPE_WEBHOOK_SECRET }}
           BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+          # Backup storage (optional; empty falls back to NUXT_S3_*)
+          BACKUP_S3_ACCESS_KEY: ${{ secrets.BACKUP_S3_ACCESS_KEY }}
+          BACKUP_S3_SECRET_KEY: ${{ secrets.BACKUP_S3_SECRET_KEY }}
           NUXT_AI_DICTATE_JWT_SECRET: ${{ secrets.NUXT_AI_DICTATE_JWT_SECRET }}
           NUXT_OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GITHUB_CLIENT_SECRET }}
           NUXT_OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GOOGLE_CLIENT_SECRET }}
@@ -166,6 +169,10 @@ jobs:
           REGISTRY: ${{ vars.REGISTRY }}
           BACKUP_INTERVAL_SECONDS: ${{ vars.BACKUP_INTERVAL_SECONDS }}
           BACKUP_RETENTION_COUNT: ${{ vars.BACKUP_RETENTION_COUNT }}
+          BACKUP_S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+          BACKUP_S3_REGION: ${{ vars.BACKUP_S3_REGION }}
+          BACKUP_S3_PREFIX: ${{ vars.BACKUP_S3_PREFIX }}
           OVH_PG_HOST: ${{ vars.OVH_PG_HOST }}
           OVH_PG_CA_REMOTE_PATH: ${{ vars.OVH_PG_CA_REMOTE_PATH }}
           # Optional hosted-shape tuning (empty = render-env.sh default:

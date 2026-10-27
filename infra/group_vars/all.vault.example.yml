@@ -28,6 +28,16 @@ nuxt_s3_access_key: "REPLACE_ME"
 nuxt_s3_secret_key: "REPLACE_ME"
 nuxt_s3_bucket: "REPLACE_ME"
 
+# ─── Backup storage (optional; defaults to the nuxt_s3_* values above) ───
+# Set these to a dedicated bucket with its own backup-only key
+# (docs/LAUNCH-CHECKLIST.md). Only the backup sidecar receives them.
+# backup_s3_endpoint: "https://s3.example.com"
+# backup_s3_bucket: "markoto-backups"
+# backup_s3_access_key: "REPLACE_ME"
+# backup_s3_secret_key: "REPLACE_ME"
+# backup_s3_region: "us-east-1"
+# backup_s3_prefix: "backups/postgres"
+
 # ─── AI dictate JWT (Phase 5: every AI surface routes through LiteLLM) ───
 # Optional dedicated dictation-JWT secret. Empty falls back to nuxt_jwt_secret.
 nuxt_ai_dictate_jwt_secret: ""

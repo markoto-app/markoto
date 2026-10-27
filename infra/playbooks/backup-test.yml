@@ -27,9 +27,12 @@
         set -euo pipefail
         cd {{ markoto_root }}
         docker compose -f docker-compose.prod.yml exec -T backup sh -c '
+          export AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY"
+          export AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY"
+          export AWS_DEFAULT_REGION="$S3_REGION"
           aws --endpoint-url "$S3_ENDPOINT" \
-            s3 ls "s3://$S3_BUCKET/backups/postgres/" \
-            | sort | tail -1 | awk "{print \$4}"
+            s3 ls "s3://$S3_BUCKET/$S3_PREFIX/" \
+            | awk "{print \$4}" | { grep -E "[.]sql[.]gz[.]gpg$" || true; } | sort | tail -1
         '
       register: latest_backup
       changed_when: false
@@ -37,7 +40,8 @@
     - name: Fail if no backup yet exists
       ansible.builtin.fail:
         msg: >-
-          No backup found at s3://{{ nuxt_s3_bucket }}/backups/postgres/.
+          No backup found in the backup bucket/prefix (BACKUP_S3_BUCKET /
+          BACKUP_S3_PREFIX; the app's bucket and backups/postgres when unset).
           Run the in-stack backup once before testing.
       when: latest_backup.stdout | trim | length == 0
 
@@ -53,6 +57,9 @@
             docker compose -f docker-compose.prod.yml exec -T backup sh -c "
               set -e
               set -o pipefail
+              export AWS_ACCESS_KEY_ID=\"\$S3_ACCESS_KEY\"
+              export AWS_SECRET_ACCESS_KEY=\"\$S3_SECRET_KEY\"
+              export AWS_DEFAULT_REGION=\"\$S3_REGION\"
               # Fresh throwaway DB (drop any leftover from a prior aborted drill).
               dropdb -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" --if-exists {{ restore_db }}
               createdb -h \"\$POSTGRES_HOST\" -U \"\$POSTGRES_USER\" {{ restore_db }}
@@ -61,7 +68,7 @@
               # truncated / corrupt dump fails the drill loudly (pipefail then
               # propagates it out of this sh -c).
               aws --endpoint-url \"\$S3_ENDPOINT\" \
-                s3 cp \"s3://\$S3_BUCKET/backups/postgres/${BACKUP_KEY}\" /tmp/restore-test.gpg
+                s3 cp \"s3://\$S3_BUCKET/\$S3_PREFIX/${BACKUP_KEY}\" /tmp/restore-test.gpg
               gpg --batch --quiet --pinentry-mode loopback \
                   --passphrase \"\$BACKUP_GPG_PASSPHRASE\" \
                   --decrypt /tmp/restore-test.gpg \
