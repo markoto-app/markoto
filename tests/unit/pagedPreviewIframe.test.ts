@@ -1,88 +1,95 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
-import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
-import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
-import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 
-// Guards the placeholder-substitution contract between pagedPreviewIframe.html
-// and usePagedPreview.ts. The file's header comment names each placeholder
-// token for readers, which puts every token in the string twice — once in the
-// comment, once at its real usage site. A plain `.replace()` only substitutes
-// the first occurrence (the comment) and would leave paged.js's <script src>
-// unresolved. This suite would have caught the initial bug where the refactor
-// shipped with `.replace` instead of `.replaceAll`.
+// Static contract of the preview / print iframe bootstrap
+// (app/composables/pagedPreviewIframe.html). The document runs sandboxed in
+// an OPAQUE origin (no allow-same-origin) and inherits the app's nonce-based
+// CSP, so it must:
+//   - talk to the parent only via postMessage, to the parent's exact origin,
+//     and accept messages only from window.parent with that origin;
+//   - never reach into window.parent's DOM (it would throw anyway);
+//   - carry the CSP nonce on every inline script and use no inline event
+//     handlers (no 'unsafe-inline' in script-src);
+//   - load every CDN asset with SRI + crossorigin=anonymous.
+// The substitution itself (buildPreviewSrcdoc) is covered in
+// tests/nuxt/previewFrame.test.ts.
 //
-// Loaded via readFileSync (not `?raw`) so this stays in the `unit` project
-// which runs without Vite's transform pipeline.
+// Loaded via readFileSync (not `?raw`) so this stays a plain unit test.
 const BOOTSTRAP_HTML = readFileSync(
   fileURLToPath(new URL('../../app/composables/pagedPreviewIframe.html', import.meta.url)),
   'utf8'
 )
+const WITHOUT_COMMENT = BOOTSTRAP_HTML.replace(/<!--[\s\S]*?-->/, '')
 
-function substitute(source: string): string {
-  return source
-    .replaceAll('__PAGEDJS_POLYFILL_URL__', PAGEDJS_POLYFILL_URL)
-    .replaceAll('__PAGEDJS_POLYFILL_SRI__', PAGEDJS_POLYFILL_SRI)
-    .replaceAll('__KATEX_CSS_URL__', KATEX_CSS_URL)
-    .replaceAll('__KATEX_CSS_SRI__', KATEX_CSS_SRI)
-    .replaceAll('__MERMAID_ESM_URL__', MERMAID_ESM_URL)
-}
+const PLACEHOLDERS = [
+  '__CSP_NONCE__',
+  '__PARENT_ORIGIN__',
+  '__INITIAL_DARK__',
+  '__PAGEDJS_POLYFILL_URL__',
+  '__PAGEDJS_POLYFILL_SRI__',
+  '__KATEX_CSS_URL__',
+  '__KATEX_CSS_SRI__',
+  '__MERMAID_URL__',
+  '__MERMAID_SRI__'
+]
 
 describe('pagedPreviewIframe.html', () => {
-  it('contains each placeholder at a real usage site (not only in the comment)', () => {
-    // Strip the leading HTML comment block and assert each token still
-    // appears — proves the placeholder lives in an actual `src`/`href`/
-    // `import()` position, not just in documentation.
-    const withoutComment = BOOTSTRAP_HTML.replace(/<!--[\s\S]*?-->/, '')
-    expect(withoutComment).toContain('__PAGEDJS_POLYFILL_URL__')
-    expect(withoutComment).toContain('__PAGEDJS_POLYFILL_SRI__')
-    expect(withoutComment).toContain('__KATEX_CSS_URL__')
-    expect(withoutComment).toContain('__KATEX_CSS_SRI__')
-    expect(withoutComment).toContain('__MERMAID_ESM_URL__')
+  it('uses each placeholder at a real usage site and no unknown ones', () => {
+    for (const p of PLACEHOLDERS) expect(WITHOUT_COMMENT, p).toContain(p)
+    const used = new Set(WITHOUT_COMMENT.match(/__[A-Z_]+__/g) ?? [])
+    expect([...used].sort()).toEqual([...PLACEHOLDERS].sort())
   })
 
-  it('leaves no placeholder tokens after substitution', () => {
-    const out = substitute(BOOTSTRAP_HTML)
-    // Any leftover `__SOMETHING__` token means either a missing replace call
-    // here or a new placeholder added to the HTML without a matching replace
-    // in usePagedPreview.ts.
-    expect(out).not.toMatch(/__[A-Z_]+__/)
+  it('carries the CSP nonce on every inline script and has no inline handlers', () => {
+    // Real tags start a line; `<script>` inside JS comments is prose.
+    const scripts = WITHOUT_COMMENT.match(/^<script\b[^>]*>/gm) ?? []
+    expect(scripts.length).toBeGreaterThan(0)
+    for (const tag of scripts) {
+      if (tag.includes(' src=')) continue
+      expect(tag).toContain('nonce="__CSP_NONCE__"')
+    }
+    // on*="…" attributes run only with 'unsafe-inline' — the CSP has none.
+    expect(WITHOUT_COMMENT).not.toMatch(/<[a-z]+[^>]*\son[a-z]+=/i)
   })
 
-  it('wires the substituted CDN URLs into the expected tags', () => {
-    const out = substitute(BOOTSTRAP_HTML)
-    expect(out).toContain(`<script src="${PAGEDJS_POLYFILL_URL}"`)
-    expect(out).toContain(`<link rel="stylesheet" href="${KATEX_CSS_URL}"`)
-    expect(out).toContain(`import('${MERMAID_ESM_URL}')`)
+  it('never touches the parent document (opaque origin)', () => {
+    expect(WITHOUT_COMMENT).not.toMatch(/window\.parent\.document|parent\.document/)
+    expect(WITHOUT_COMMENT).not.toContain('__renderDoc')
   })
 
-  it('attaches SRI + crossorigin attrs to the SRI-locked tags', () => {
-    // paged.js + KaTeX must carry both `integrity=` and
-    // `crossorigin="anonymous"`. Without the latter, the browser silently
-    // skips SRI on cross-origin responses and ANY bytes are accepted.
-    const out = substitute(BOOTSTRAP_HTML)
-    expect(out).toContain(`integrity="${PAGEDJS_POLYFILL_SRI}"`)
-    expect(out).toContain(`integrity="${KATEX_CSS_SRI}"`)
-    // Both SRI-locked tags must be in CORS mode.
-    const scriptMatch = out.match(/<script\s+src="[^"]*paged\.polyfill[^"]*"[^>]*>/)
-    expect(scriptMatch?.[0]).toContain('crossorigin="anonymous"')
-    const linkMatch = out.match(/<link\s+rel="stylesheet"\s+href="[^"]*katex[^"]*"[^>]*>/)
-    expect(linkMatch?.[0]).toContain('crossorigin="anonymous"')
+  it('posts to the parent origin only and checks the sender of incoming messages', () => {
+    // Every postMessage goes through toParent(), which targets PARENT_ORIGIN.
+    const posts = WITHOUT_COMMENT.match(/postMessage\([^)]*\)/g) ?? []
+    expect(posts).toEqual(['postMessage(msg, PARENT_ORIGIN)'])
+    expect(WITHOUT_COMMENT).toContain('e.source !== window.parent || e.origin !== PARENT_ORIGIN')
   })
 
-  it('exposes the mount structure the composable expects', () => {
-    // usePagedPreview reads `__renderDoc` off `iframe.contentWindow` and
-    // relies on the #mount/#pending divs being present. These are the
-    // structural contract between the HTML and the composable; if any go
-    // missing, the preview silently breaks in a way that's only caught in
-    // the browser.
+  it('loads CDN assets with SRI in CORS mode', () => {
+    const pagedjs = WITHOUT_COMMENT.match(/<script\s+src="__PAGEDJS_POLYFILL_URL__"[^>]*>/)?.[0] ?? ''
+    expect(pagedjs).toContain('integrity="__PAGEDJS_POLYFILL_SRI__"')
+    expect(pagedjs).toContain('crossorigin="anonymous"')
+    const katex = WITHOUT_COMMENT.match(/<link\s+rel="stylesheet"\s+href="__KATEX_CSS_URL__"[^>]*>/)?.[0] ?? ''
+    expect(katex).toContain('integrity="__KATEX_CSS_SRI__"')
+    expect(katex).toContain('crossorigin="anonymous"')
+    // Mermaid + the highlight.js theme are injected at runtime with SRI.
+    expect(WITHOUT_COMMENT).toContain('s.integrity = MERMAID_SRI')
+    expect(WITHOUT_COMMENT).toContain('link.integrity = opts.hljsSri')
+    expect(WITHOUT_COMMENT).not.toMatch(/\bimport\(/)
+  })
+
+  it('exposes the mount structure and the message protocol the host expects', () => {
     expect(BOOTSTRAP_HTML).toContain('id="mount"')
     expect(BOOTSTRAP_HTML).toContain('id="pending"')
-    expect(BOOTSTRAP_HTML).toContain('window.__renderDoc')
-    // The iframe must message `iframe-ready` back — otherwise the composable
-    // queues the first render forever.
-    expect(BOOTSTRAP_HTML).toContain('type: \'iframe-ready\'')
-    expect(BOOTSTRAP_HTML).toContain('type: \'paginated\'')
+    for (const type of ['iframe-ready', 'paginated', 'iframe-error', 'print-shortcut', 'print-done']) {
+      expect(WITHOUT_COMMENT).toContain(`type: '${type}'`)
+    }
+    expect(WITHOUT_COMMENT).toContain('data.type === \'render\'')
+    expect(WITHOUT_COMMENT).toContain('data.type === \'color-mode\'')
+  })
+
+  it('keeps every link inside the preview (no self-navigation of the sandboxed frame)', () => {
+    expect(WITHOUT_COMMENT).toContain('closest(\'a[href]\')')
+    expect(WITHOUT_COMMENT).toMatch(/if \(!a\) return;\s*e\.preventDefault\(\);/)
   })
 })

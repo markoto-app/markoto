@@ -190,6 +190,26 @@ describe('verifyDocJwt', () => {
     })
   })
 
+  describe('scope claim (scope-narrowed tokens only where the endpoint opts in)', () => {
+    it('refuses a file-access token unless the caller accepts that scope', () => {
+      const token = sign({ docId: 'doc-1', scope: 'file-access' })
+      expect(verifyDocJwt(token, 'doc-1', SECRET)).toBe(false)
+      expect(verifyDocJwt(token, 'doc-1', SECRET, null, ['file-access'])).toBe(true)
+    })
+
+    it('refuses other scopes even where file-access is accepted', () => {
+      for (const scope of ['dictate', 'render', '', 1]) {
+        const token = sign({ docId: 'doc-1', scope })
+        expect(verifyDocJwt(token, 'doc-1', SECRET, null, ['file-access']), String(scope)).toBe(false)
+      }
+    })
+
+    it('still accepts scope-less session tokens where file-access is accepted', () => {
+      const token = sign({ docId: 'doc-1', userId: 7 })
+      expect(verifyDocJwt(token, 'doc-1', SECRET, null, ['file-access'])).toBe(true)
+    })
+  })
+
   describe('signature / expiry', () => {
     it('returns false for a token signed with a different secret', () => {
       const token = sign({ docId: 'doc-1' }, {}, WRONG)

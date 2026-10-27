@@ -409,6 +409,9 @@ export function useDocument(docId: string) {
     resetTheme,
     onPasswordVerified,
     setAccessMode: tokenState.setAccessMode,
+    // Doc JWT for HTTP calls made on behalf of a session-less viewer (the
+    // preview's image-token fetch). Empty when there is none.
+    getDocJwt: () => tokenState.getFreshToken(),
     destroy
   }
 }

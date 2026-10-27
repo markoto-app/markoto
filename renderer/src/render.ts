@@ -192,7 +192,7 @@ export async function renderDocument(input: RenderInput): Promise<RenderOutput> 
  * KNOWN GAP (verified empirically): Playwright does NOT re-enter this handler
  * for HTTP redirect hops of a request it `continue()`d, so an allowed origin
  * that 302s to a blocked one is not caught here. The print page's own CSP
- * (server/utils/renderCsp.ts, enforced by Chromium on every hop) closes that
+ * (server/utils/csp.ts, enforced by Chromium on every hop) closes that
  * gap — keep both layers.
  *
  * Logs the blocked HOST only (never path/query — they can carry tokens),

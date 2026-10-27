@@ -45,7 +45,9 @@ export default defineEventHandler(async (event) => {
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
     workspaceRole: row.workspaceRole,
-    hasValidDocJwt: hasValidDocJwt(event, docId)
+    // `file-access` tokens come from the render page and the live
+    // preview iframe (both run without the session cookie).
+    hasValidDocJwt: hasValidDocJwt(event, docId, ['file-access'])
   }
 
   const decision = decideFileAccess(doc, actor)

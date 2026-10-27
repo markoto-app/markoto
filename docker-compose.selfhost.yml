@@ -344,7 +344,7 @@ services:
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
-      # Mirrored into the print-page CSP (server/utils/renderCsp.ts); the renderer reads the same variable.
+      # Mirrored into the print-page CSP (server/utils/csp.ts); the renderer reads the same variable.
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       - NUXT_LITELLM_URL=http://litellm:4000
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
@@ -473,13 +473,14 @@ services:
       - "traefik.http.services.markoto-app.loadbalancer.healthcheck.interval=10s"
       - "traefik.http.services.markoto-app.loadbalancer.healthcheck.timeout=10s"
       # Security headers (see docs/SECURITY-HARDENING.md for the rationale of
-      # each directive). Same-origin sync + S3 mean 'self' covers connect-src
-      # and img-src. HSTS is ignored by browsers on plain http.
+      # each directive). HSTS is ignored by browsers on plain http. The
+      # Content-Security-Policy (per-response nonce) and
+      # Cross-Origin-Resource-Policy come from the app itself
+      # (server/plugins/csp.ts) — same policy as the hosted deployment.
       - "traefik.http.middlewares.markoto-headers.headers.stsSeconds=31536000"
       - "traefik.http.middlewares.markoto-headers.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.markoto-headers.headers.frameDeny=true"
       - "traefik.http.middlewares.markoto-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
-      - "traefik.http.middlewares.markoto-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob:; connect-src 'self' https://*.ingest.sentry.io https://*.ingest.de.sentry.io; frame-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
       - "traefik.http.middlewares.markoto-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
       - "traefik.http.middlewares.markoto-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=()"
     depends_on:

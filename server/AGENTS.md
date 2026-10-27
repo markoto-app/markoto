@@ -45,6 +45,7 @@ Workspace membership overrides: admin/editor bypasses `private` and `password-pr
 |---|---|---|---|
 | `GET /api/docs/:id/token` | implicit doc — `{docId, userId, readOnly}` | 2h | Hocuspocus `onAuthenticate` (rejects mismatched `documentName`) |
 | `server/utils/renderTokens.ts` | `'render'` + `{docId, snapshotId}` | 60s | `app/pages/_internal/render/[docId].vue` (renderer-only path) |
+| `server/utils/fileAccessToken.ts` (render-bootstrap: 5 min; `GET /api/docs/:id/file-token`: 15 min) | `'file-access'` + `{docId, readOnly: true}` | 5–15 min | `/api/files` ONLY (`hasValidDocJwt(event, docId, ['file-access'])`); every other `hasValidDocJwt` caller refuses scoped tokens, Hocuspocus refuses any scope. Used by the server render page and the sandboxed (opaque-origin, cookie-less) preview/print iframes |
 | `POST /api/ai/dictate/token` | dictate — `{userId}` (separate `dictateJwtSecret`, falls back to `jwtSecret`) | 60s | first WS message on `/api/ai/dictate` |
 | `server/utils/aiClient.ts` (AI joins as Y.js client) | `userId='ai:assistant:{sessionId}'` | 10m | Hocuspocus, same path as user tokens |
 | `server/utils/restoreDoc.ts` (synthetic restore client) | same | 5m | Hocuspocus |

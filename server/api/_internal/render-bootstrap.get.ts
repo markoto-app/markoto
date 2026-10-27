@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import { mintFileAccessToken } from '../../utils/fileAccessToken'
 import { verifyRenderToken } from '../../utils/renderTokens'
 import { getDoc } from '../../repos/documents'
 import { reconstructTextAtYjsId } from '../../utils/historyReplay'
@@ -50,39 +50,16 @@ export default defineEventHandler(async (event) => {
   const snapshotId = payload.snapshotId > 0 ? payload.snapshotId : null
   const markdown = await reconstructTextAtYjsId(docId, snapshotId)
 
-  // Mint a short-lived, read-only doc-scoped JWT so the print page can
-  // load `/api/files/{docId}/...` images on PRIVATE / password-protected
-  // / workspace docs. Without this, decideFileAccess denies the
-  // renderer's anonymous fetch (it has no session cookie) and the
-  // images come up blank in the PDF. The same JWT shape Hocuspocus
-  // expects — extractToken / verifyDocJwt over in /api/files already
-  // accepts it via `?token=` query, so the print page just appends it
-  // to every /api/files URL before paginating. Scoped to the docId so
-  // a stray hop can't pivot to other docs; 5-minute TTL is well
-  // longer than any single render but short enough to be useless if
-  // it leaks.
-  const config = useRuntimeConfig()
-  if (!config.jwtSecret) {
-    throw createError({ statusCode: 500, message: 'jwtSecret not configured' })
-  }
-  const fileAccessToken = jwt.sign(
-    {
-      docId,
-      userId: 'render',
-      userName: null,
-      readOnly: true,
-      // Scope-narrow the token so a leak can't be replayed against the
-      // Hocuspocus WS to read the live doc state. The sync-server's
-      // onAuthenticate hook explicitly rejects any JWT that carries a
-      // `scope` claim — only legacy/session shape tokens (no `scope`)
-      // are allowed to open Y.js connections. /api/files's
-      // `verifyDocJwt` accepts both shapes, so this token still works
-      // for the image-fetch path the print page actually needs.
-      scope: 'file-access'
-    },
-    config.jwtSecret,
-    { expiresIn: '5m' }
-  )
+  // Mint a short-lived, read-only doc-scoped `file-access` JWT so the
+  // print page can load `/api/files/{docId}/...` images on PRIVATE /
+  // password-protected / workspace docs. Without this, decideFileAccess
+  // denies the renderer's anonymous fetch (it has no session cookie) and
+  // the images come up blank in the PDF. The print page appends it to
+  // every /api/files URL before paginating. Only /api/files accepts the
+  // `file-access` scope (and Hocuspocus refuses any scoped token); 5-minute
+  // TTL is well longer than any single render but short enough to be
+  // useless if it leaks. See server/utils/fileAccessToken.ts.
+  const fileAccessToken = mintFileAccessToken(docId, 5 * 60).token
 
   return {
     snapshotId: payload.snapshotId,
