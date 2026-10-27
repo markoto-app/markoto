@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CUSTOM_CSS_MAX_BYTES } from './customCss'
+import { THEME_IMAGE_URL_RE } from '../utils/themeImages'
 
 /**
  * Per-document theme. Drives both the live paged preview and the printed
@@ -50,6 +51,17 @@ const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 export const HexColorSchema = z.string().regex(HEX_COLOR_REGEX, 'must be a hex color')
 const hexColor = HexColorSchema
 const fontName = z.string().regex(FONT_NAME_REGEX, 'must be a valid font name (letters, digits, spaces; 1-40 chars)')
+
+/**
+ * Theme image URL (cover logo, header/footer image): empty, an upload
+ * path `/api/files/<docId>/<fileId>.<png|jpg|jpeg|gif|webp>`, or a
+ * bundled `/markoto-logos/*` asset. These values are interpolated into
+ * an HTML attribute and a CSS `url()`, so nothing else is accepted.
+ * Whether an upload path belongs to THE document is checked where the
+ * document is known (`meta.put`, AI `update_theme`, render time) — see
+ * `shared/utils/themeImages.ts`.
+ */
+const themeImageUrl = z.string().max(500).regex(THEME_IMAGE_URL_RE, 'must be empty or an image uploaded to the document')
 
 const slotTemplate = z.string().max(200).refine(
   (s: string) => TEMPLATE_SAFE_TEXT_REGEX.test(s.replace(TEMPLATE_TOKEN_REGEX, '')),
@@ -176,7 +188,7 @@ export const RunningSlotsSchema = z.object({
    * users typically pick one mental model. Cover page suppresses
    * margin boxes entirely so this never appears on the cover.
    */
-  imageUrl: z.string().max(500),
+  imageUrl: themeImageUrl,
   imagePosition: HeaderImagePositionSchema,
   /**
    * Image height in pt (running headers are sized in pt, not px, so
@@ -288,12 +300,11 @@ export const DocThemeSchema = z.object({
    * margin-box `{logo}` token. `logoUrl` is empty string when no logo
    * has been uploaded; otherwise it's a `/api/files/{docId}/{fileId}`
    * URL produced by the standard image-upload pipeline (same as
-   * inline doc images). Validated as bounded length, not full URL —
-   * we accept relative paths since logos live in the doc's own S3
-   * namespace.
+   * inline doc images), or a bundled `/markoto-logos/*` asset for the
+   * built-in presets. See `themeImageUrl` above.
    */
   brand: z.object({
-    logoUrl: z.string().max(500),
+    logoUrl: themeImageUrl,
     logoHeight: z.number().int().min(8).max(80) // px, on cover
   }).strict(),
   layout: z.object({

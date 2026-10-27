@@ -27,15 +27,23 @@ const warned = new Set<string>()
  * Render-path sanitize: returns the cleaned CSS to inline (offending
  * rules dropped), or `undefined` when the theme has none. Issues are
  * logged once per distinct input — the editor's Custom CSS section is
- * where they're shown to the author.
+ * where they're shown to the author. Fails closed: if the sanitizer
+ * can't be loaded or throws, the document renders without custom CSS
+ * instead of failing the preview / print / server render.
  */
 export async function sanitizeCustomCssForRender(
   css: string | undefined,
   opts: SanitizeCustomCssOptions
 ): Promise<CustomCssResult | undefined> {
   if (!css?.trim()) return undefined
-  const { sanitizeCustomCss } = await loadCustomCssSanitizer()
-  const result = sanitizeCustomCss(css, opts)
+  let result: CustomCssResult
+  try {
+    const { sanitizeCustomCss } = await loadCustomCssSanitizer()
+    result = sanitizeCustomCss(css, opts)
+  } catch (err: unknown) {
+    console.warn('[custom css] not applied: sanitizer failed', err)
+    return undefined
+  }
   if (result.issues.length > 0) {
     const key = `${opts.docId}:${css}`
     if (!warned.has(key)) {

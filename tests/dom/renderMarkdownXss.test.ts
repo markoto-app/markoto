@@ -279,6 +279,19 @@ describe('renderMarkdown — legit features pass through', () => {
     expect(styled.length).toBeGreaterThan(0)
   })
 
+  it('keeps every KaTeX inline style declaration', async () => {
+    const formulas = String.raw`\frac{a}{b} + \sqrt[3]{x^2} + \overline{AB} + \color{#b5371f}{c} + \underbrace{x+y}_{n} + \boxed{z} + \cancel{q}`
+    const { default: katex } = await import('katex')
+    const expected = Array.from(
+      parseDoc(katex.renderToString(formulas, { output: 'html' })).querySelectorAll('[style]'),
+      el => el.getAttribute('style')?.replaceAll(/\s+/g, '').replace(/;$/, '')
+    )
+    const root = parseDoc(await renderMarkdown(`$${formulas}$\n`))
+    const actual = Array.from(root.querySelectorAll('.katex-html [style]'), el => el.getAttribute('style')?.replaceAll(/\s+/g, '').replace(/;$/, ''))
+    expect(expected.length).toBeGreaterThan(10)
+    expect(actual).toEqual(expected)
+  })
+
   it('renders footnotes transformed to inline span (paged-media shape)', async () => {
     // The render pipeline post-processes `<sup class="footnote-ref">`
     // into an inline `<span class="footnote">` so paged.js's
@@ -365,6 +378,35 @@ describe('renderMarkdown — allowlist semantics', () => {
     const h2 = parseDoc(html).querySelector('h2')
     expect(h2).not.toBeNull()
     expect(h2?.getAttribute('foo')).toBeNull()
+  })
+
+  it('documented {style=…} layout attributes still work', async () => {
+    const img = parseDoc(await renderMarkdown('![A caption](photo.jpg){style="width: 50%; float: right"}\n')).querySelector('img')
+    expect(img?.getAttribute('style')?.replaceAll(/\s+/g, '')).toBe('width:50%;float:right')
+    const p = parseDoc(await renderMarkdown('Centered {style="text-align: center"}\n')).querySelector('p')
+    expect(p?.getAttribute('style')?.replaceAll(/\s+/g, '')).toBe('text-align:center')
+  })
+
+  // Regression: DOMPurify does not parse CSS, so `style` values used to
+  // pass through verbatim (overlays, external url() beacons).
+  it.each([
+    ['position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9;background-color:red', ['fixed', 'z-index', '100vw'], 'top: 0; left: 0; background-color: red'],
+    ['color:red;background-image:url(x.png)', ['url(', 'background-image'], 'color: red'],
+    ['font-weight:600;background:url(x.png)', ['url('], 'font-weight: 600'],
+    [String.raw`width:10px;behavior:url(x.htc);-moz-binding:url(x)`, ['behavior', 'binding'], 'width: 10px'],
+    [String.raw`color:\72 ed;width:expression(alert(1))`, ['expression', String.raw`\72`], null],
+    ['width:var(--x);height:env(safe-area-inset-top)', ['var(', 'env('], null],
+    ['content:"x";cursor:url(x.cur),auto', ['content', 'cursor'], null]
+  ])('unsafe {style=%s} is filtered', async (style, gone, kept) => {
+    const html = await renderMarkdown(`**b**{style="${style}"} tail\n`)
+    const value = parseDoc(html).querySelector('strong')?.getAttribute('style') ?? null
+    for (const g of gone) expect(value ?? '').not.toContain(g)
+    expect(value).toBe(kept)
+  })
+
+  it('safe declarations survive next to a filtered one', async () => {
+    const html = await renderMarkdown('**b**{style="position:fixed;color:#b5371f;font-weight:600"}\n')
+    expect(parseDoc(html).querySelector('strong')?.getAttribute('style')?.replaceAll(/\s+/g, '')).toBe('color:#b5371f;font-weight:600')
   })
 
   it('data-* attributes pass through (DOMPurify default — documented quirk)', async () => {

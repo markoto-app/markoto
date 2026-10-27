@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { renderMarkdown } from '~/utils/renderMarkdown'
-import { composeFinalHtml } from '~~/shared/utils/composeFinalHtml'
+import { composeFinalHtml } from '~/utils/composeFinalHtml'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import type { DocTheme, MermaidTheme } from '~~/shared/types/theme'
@@ -9,6 +9,7 @@ import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 import { sanitizeCustomCssForRender } from '~/utils/customCssLoader'
+import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 
 // Cheap structural sanity check — the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
@@ -73,9 +74,16 @@ if (bootstrapError.value || !bootstrap.value) {
 }
 
 onMounted(async () => {
-  const theme: DocTheme = (bootstrap.value && looksLikeTheme(bootstrap.value.theme))
-    ? bootstrap.value.theme!
-    : defaultTheme
+  // Full schema validation runs here, client-side only (the zod import is
+  // what wedges SSR, see above): the stored theme is validated at write
+  // time, but render time must not depend on that. Invalid → default
+  // theme; image URLs that don't belong to this document are dropped.
+  const { isValidTheme } = await import('~~/shared/utils/themeValidation')
+  const stored = bootstrap.value?.theme
+  const theme: DocTheme = themeImagesForDoc(
+    looksLikeTheme(stored) && isValidTheme(stored) ? stored : defaultTheme,
+    docId
+  ).theme
   const title = bootstrap.value?.title ?? ''
   const markdown = bootstrap.value?.markdown ?? ''
 

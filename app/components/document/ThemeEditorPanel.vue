@@ -4,6 +4,7 @@ import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
+import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 
 /**
  * Embedded theme editor — sits in the right sidebar slot alongside the
@@ -430,11 +431,13 @@ async function applySaved(saved: SavedTheme) {
 }
 
 /**
- * A saved theme can carry custom CSS that points at the uploads of the
- * document it was saved from. Those rules can't work here (and the
- * server would refuse to store them for this doc), so drop them and say so.
+ * A saved theme can carry custom CSS and a logo / header image that
+ * point at the uploads of the document it was saved from. Those can't be
+ * used here (and the server would refuse to store them for this doc), so
+ * the images are cleared and the CSS rules dropped (with a notice).
  */
-async function adaptThemeToThisDoc(theme: DocTheme): Promise<DocTheme> {
+async function adaptThemeToThisDoc(saved: DocTheme): Promise<DocTheme> {
+  const theme = themeImagesForDoc(saved, props.docId).theme
   if (!theme.customCss?.trim()) return theme
   const { adaptCustomCssToDoc } = await loadCustomCssSanitizer()
   const adapted = adaptCustomCssToDoc(theme.customCss, { docId: props.docId, allowedOrigins: currentAppOrigins() })

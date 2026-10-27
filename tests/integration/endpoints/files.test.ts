@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import jwt from 'jsonwebtoken'
 import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
@@ -188,6 +189,35 @@ describe('GET /api/files/:docId/:fileId', () => {
       const client = await loggedInClient(member.id)
       const res = await client.get(`/api/files/${doc.docId}/${FILE_ID}`)
       expect(res.status).toBe(302)
+    })
+  })
+
+  // Regression: the redirect target used to serve whatever type the
+  // object was stored with, so an image key could come back as HTML.
+  describe('response type is forced from the extension', () => {
+    const s3 = new S3Client({
+      endpoint: 'http://127.0.0.1:8334',
+      region: 'us-east-1',
+      credentials: { accessKeyId: 'ypad-access-key', secretAccessKey: 'ypad-secret-key' },
+      forcePathStyle: true
+    })
+
+    it('an object stored as text/html is served as image/png', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-view' })
+      const key = `docs/${doc.docId}/${FILE_ID}`
+      await s3.send(new PutObjectCommand({ Bucket: 'ypad', Key: key, Body: 'not really html', ContentType: 'text/html' }))
+      try {
+        const res = await anonClient().get(`/api/files/${doc.docId}/${FILE_ID}`)
+        expect(res.status).toBe(302)
+        const location = res.headers.get('location') ?? ''
+        const obj = await fetch(location)
+        expect(obj.status).toBe(200)
+        expect(obj.headers.get('content-type')).toBe('image/png')
+        expect(obj.headers.get('content-disposition')).toBe(`inline; filename="${FILE_ID}"`)
+      } finally {
+        await s3.send(new DeleteObjectCommand({ Bucket: 'ypad', Key: key })).catch(() => {})
+      }
     })
   })
 })

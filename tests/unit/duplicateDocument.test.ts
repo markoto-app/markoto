@@ -195,6 +195,24 @@ describe('duplicateDocument — happy path', () => {
       customCss: 'p { background: url(/api/files/TGT/a.png) } q { background: url(/api/files/OTHER/b.png) }'
     })
   })
+
+  it('points the cover logo and header image at the copy\'s uploads', async () => {
+    const { defaultTheme } = await import('../../shared/utils/defaultTheme')
+    getDoc.mockResolvedValueOnce(fakeSource({
+      theme: {
+        ...defaultTheme,
+        brand: { ...defaultTheme.brand, logoUrl: '/api/files/SRC/AbCdEfGhIjKl.png' },
+        header: { ...defaultTheme.header, imageUrl: '/api/files/SRC/b.webp' }
+      }
+    }))
+    listConfirmedUploadsForDoc.mockResolvedValueOnce([])
+
+    await duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b' })
+
+    const theme = insertDuplicateDoc.mock.calls[0][0].theme
+    expect(theme.brand.logoUrl).toBe('/api/files/TGT/AbCdEfGhIjKl.png')
+    expect(theme.header.imageUrl).toBe('/api/files/TGT/b.webp')
+  })
 })
 
 describe('duplicateDocument — rollback', () => {

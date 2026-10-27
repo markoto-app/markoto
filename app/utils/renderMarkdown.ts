@@ -2,7 +2,7 @@
  * markdown-it + DOMPurify pipeline, factored out as a standalone async
  * function so both the live paged preview (`useMarkdownPreview`) and the
  * PDF print iframe (`printPdf`) share the same security-critical render
- * path. The strict ALLOWED_TAGS / ALLOWED_ATTR allowlist below is the XSS
+ * path. The strict ALLOWED_TAGS / ALLOWED_ATTR allowlist (`sanitizeHtml.ts`) is the XSS
  * boundary — DOMPurify's defaults plus a few additions would be looser; an
  * explicit allowlist fails closed when a future markdown-it plugin starts
  * emitting an unexpected tag.
@@ -21,22 +21,15 @@ import type Renderer from 'markdown-it/lib/renderer.mjs'
 import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 import { createGlobalState } from '@vueuse/core'
+import { sanitizeRenderedHtml } from './sanitizeHtml'
 
 // markdown-it exports Options as a nested type under the default class; we
 // pluck it from the instance shape so the type resolution doesn't depend on
 // the internal `/lib` path layout.
 type MarkdownItOptions = MarkdownIt['options']
 
-// Minimal DOMPurify shape — we only touch `.sanitize`. Avoids a direct
-// `typeof DOMPurify` import (dompurify v3's default export is both a value
-// and a type in its `.d.ts`, which TS rejects as a type annotation).
-interface DOMPurifySanitizer {
-  sanitize: (source: string, config?: Record<string, unknown>) => string
-}
-
 interface MarkdownPipeline {
   md: MarkdownIt
-  purify: DOMPurifySanitizer
 }
 
 /**
@@ -165,7 +158,6 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   const [
     { default: MarkdownIt },
     hljsMod,
-    { default: DOMPurify },
     taskListsMod,
     emojiMod,
     footnoteMod,
@@ -190,7 +182,6 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   ] = await Promise.all([
     import('markdown-it'),
     import('highlight.js'),
-    import('dompurify'),
     import('markdown-it-task-lists'),
     import('markdown-it-emoji'),
     import('markdown-it-footnote'),
@@ -333,63 +324,19 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     return defaultLinkOpen(tokens, idx, options, env, self)
   }
 
-  return { md, purify: DOMPurify }
+  return { md }
 })
 
-const SANITIZE_OPTS = {
-  ALLOWED_TAGS: [
-    'a', 'abbr', 'b', 'blockquote', 'br', 'code', 'dd', 'del', 'div', 'dl',
-    'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'hr', 'i', 'img', 'input', 'ins', 'li', 'mark', 'nav', 'ol', 'p', 'pre',
-    's', 'section', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td',
-    'tfoot', 'th', 'thead', 'tr', 'u', 'ul',
-    // KaTeX MathML output (@mdit/plugin-katex with output=htmlAndMathml).
-    // The HTML side is built from spans we already allow; the MathML
-    // mirror gives screen readers + copy-paste the semantic tree.
-    'math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'mtext',
-    'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mover', 'munder',
-    'munderover', 'mspace', 'mstyle', 'mpadded', 'menclose', 'mtable',
-    'mtr', 'mtd'
-  ],
-  ALLOWED_ATTR: [
-    'href', 'src', 'alt', 'title', 'target', 'rel',
-    'class',
-    'id',
-    'type', 'checked', 'disabled',
-    // img-size emits width/height as bare attrs; figure emits no
-    // extra attrs by default but gets them via attrs plugin if used.
-    'width', 'height',
-    // KaTeX uses inline `style` for vertical alignment of fractions,
-    // square roots, etc. — its CSS classes alone don't position the
-    // glyph stack. DOMPurify v3 sanitizes style values (strips
-    // expression(), url(javascript:…)) so this is safe to allow.
-    'style',
-    // MathML attributes used by KaTeX's mathml output.
-    'mathvariant', 'displaystyle', 'scriptlevel', 'encoding',
-    // ARIA + role for KaTeX's a11y wrapping of the HTML rendering.
-    'aria-hidden', 'role'
-  ],
-  // Explicit URI allowlist — strictly more restrictive than DOMPurify's default.
-  // Permits:
-  //   - http(s) and mailto schemes
-  //   - Any URL without a scheme (absolute paths like `/api/files/…`,
-  //     protocol-relative `//host/…`, fragments `#anchor`, bare relative
-  //     paths like `foo.png`) — the `[^:]*(?:\/|#|$)` branch lets any
-  //     string through iff it never reaches a `:` before hitting a path
-  //     separator / fragment / end-of-string.
-  // Denies:
-  //   - data:, javascript:, vbscript:, file:, ftp:, tel:, and every other
-  //     scheme — any `:` that isn't part of `https:` or `mailto:` fails.
-  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|[^:]*(?:\/|#|$))/i
-}
+// The tag/attribute/URI allowlist + inline-style filter live in
+// `sanitizeHtml.ts`, shared with `composeFinalHtml`'s final pass.
 
 /**
  * Render markdown source to sanitized HTML. Initializes the singleton on
  * first call. Browser-only — guard with `import.meta.client` in callers.
  */
 export async function renderMarkdown(source: string): Promise<string> {
-  const { md, purify } = await useMarkdownPipeline()
-  const html = purify.sanitize(md.render(source), SANITIZE_OPTS)
+  const { md } = await useMarkdownPipeline()
+  const html = sanitizeRenderedHtml(md.render(source))
   return transformFootnotesForPagedMedia(html)
 }
 

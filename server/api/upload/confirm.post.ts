@@ -14,6 +14,18 @@ function notFound() {
   return createError({ statusCode: 404, message: 'Upload not found' })
 }
 
+/** The object's stored Content-Type must be exactly the type the upload was requested for. */
+function requireStoredContentType(stored: string | undefined, expected: string): void {
+  const normalised = stored?.split(';')[0]?.trim().toLowerCase()
+  if (normalised !== expected.toLowerCase()) {
+    throw createError({
+      statusCode: 415,
+      message: `Uploaded object has content type ${stored ?? 'none'}; expected ${expected}.`,
+      data: { code: 'upload/content-type-mismatch' }
+    })
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
@@ -64,10 +76,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Upload not found in S3' })
   }
 
-  // Magic-byte sniff. The presigned PUT only binds the Content-Type header
-  // S3 records — not the actual bytes. On mismatch we 415 AND delete the
-  // caller's own pending object + row so garbage can't pile up in the bucket.
+  // Stored type + magic-byte sniff. The presigned PUT binds the
+  // Content-Type header S3 records (signed in /upload/request), not the
+  // actual bytes. Both must match the requested image type; on mismatch
+  // we 415 AND delete the caller's own pending object + row so garbage
+  // can't pile up in the bucket.
   try {
+    requireStoredContentType(head.ContentType, row.contentType)
     await requireContentMatchesExtension({ s3Key: key, ext: parsed.ext })
   } catch (e) {
     try {

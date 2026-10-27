@@ -93,3 +93,26 @@ export function expansionToggleLabelKey(entry: ActivityLike, expanded: boolean):
   }
   return null
 }
+
+/**
+ * A URL from activity metadata that may be bound to `href` / `src`, or
+ * `undefined`. AI-tool rows carry URLs from tool inputs and fetched
+ * pages, so only absolute http(s) URLs and same-origin relative paths
+ * pass — no `javascript:`/`data:`/other schemes, no protocol-relative
+ * `//host`.
+ */
+export function safeLinkUrl(raw: unknown): string | undefined {
+  if (typeof raw !== 'string' || raw === '') return undefined
+  // Browsers strip leading/trailing C0 + space and drop tab/newline
+  // inside a URL, so judge the scheme on that normalised form.
+  let start = 0
+  while (start < raw.length && raw.charCodeAt(start) <= 0x20) start++
+  const normalised = raw.slice(start).replaceAll(/[\t\n\r]/g, '')
+  // `//host`, `\\host`, `/\host`: protocol-relative, i.e. another origin.
+  if (/^[/\\]{2}/.test(normalised)) return undefined
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(normalised)
+  if (scheme) return /^https?$/i.test(scheme[1] ?? '') ? raw : undefined
+  // No scheme: a path. Anything with a `:` before the first `/` would
+  // be read as a scheme by a browser.
+  return /^[^:]*(?:[/?#]|$)/.test(normalised) ? raw : undefined
+}

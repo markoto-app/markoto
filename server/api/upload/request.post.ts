@@ -100,6 +100,13 @@ export default defineEventHandler(async (event) => {
   // every PUT — presigned or not — gets AES256-at-rest regardless.
   // Server-side direct PUTs (renderer, AI image gen, backup sidecar)
   // set the header explicitly as defense-in-depth.
+  //
+  // CONTENT-TYPE IS SIGNED: the presigner leaves it unsigned by default,
+  // which would let the client PUT image bytes with any stored type
+  // (e.g. `text/html`) and have the bucket serve them as that type. With
+  // `content-type` in the signed headers the browser must send exactly
+  // the type requested here, or S3 rejects the PUT. Confirm re-checks the
+  // stored type, and `/api/files` forces it on the way out.
   const uploadUrl = await getSignedUrl(
     s3,
     new PutObjectCommand({
@@ -108,7 +115,7 @@ export default defineEventHandler(async (event) => {
       ContentType: contentType,
       ContentLength: size
     }),
-    { expiresIn: 300 }
+    { expiresIn: 300, signableHeaders: new Set(['content-type']) }
   )
 
   return {

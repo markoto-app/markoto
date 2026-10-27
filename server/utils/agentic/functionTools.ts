@@ -451,7 +451,7 @@ export const UpdateThemeArgs = z.object({
   }).optional(),
   brand: z.object({
     logoUrl: z.string().max(500).optional()
-      .describe('Logo image URL. Typically a `/api/files/{docId}/{fileId}` from the standard image upload flow. Empty string clears the logo.'),
+      .describe('Logo image URL: must be an image uploaded to THIS document (`/api/files/<this doc id>/<file id>`, png/jpg/gif/webp, e.g. one you generated or that is already in the document). External URLs are not accepted. Empty string clears the logo.'),
     logoHeight: z.number().int().min(8).max(80).optional()
       .describe('Logo height in px (8–80). Width scales proportionally.')
   }).optional(),

@@ -47,6 +47,7 @@ import { renderDocument } from './renderClient'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { adaptCustomCssToDoc, formatCustomCssIssues } from '~~/shared/utils/customCss'
 import { customCssAppOrigins, themeCustomCssIssues } from './themeCustomCss'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
@@ -304,7 +305,12 @@ export async function handleUpdateTheme(
   const baseResult = await resolveBaseTheme(session, input)
   if (!baseResult.ok) return baseResult.error
 
-  const merged = mergeTheme(baseResult.theme, coerceThemePatch(input))
+  // Image URLs (cover logo, header/footer image) may only point at this
+  // document's uploads. Foreign or malformed ones — from the patch or
+  // from a base theme made in another document — are cleared first so
+  // the result can validate, and the model is told.
+  const images = themeImagesForDoc(mergeTheme(baseResult.theme, coerceThemePatch(input)), session.docId)
+  const merged = images.theme
   if (!isValidTheme(merged)) {
     // Should never happen — the Zod schema's enums/ranges mirror
     // isValidTheme — but this is defence-in-depth so we never write
@@ -319,7 +325,10 @@ export async function handleUpdateTheme(
   applyThemeToYDoc(session, css.theme)
   await persistThemeBestEffort(session, css.theme)
 
-  return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.${css.note}`)
+  const imageNote = images.dropped.length > 0
+    ? ` Note: ${images.dropped.join(', ')} did not point at an image uploaded to this document and ${images.dropped.length === 1 ? 'was' : 'were'} cleared.`
+    : ''
+  return ok(`Theme updated. Changed sections: ${summarizePatch(input)}. Changes are now live in the preview.${css.note}${imageNote}`)
 }
 
 /**

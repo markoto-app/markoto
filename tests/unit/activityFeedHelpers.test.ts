@@ -3,6 +3,7 @@ import {
   categoryOf,
   isExpandable,
   expansionToggleLabelKey,
+  safeLinkUrl,
   type ActivityLike,
   type ActivityAction
 } from '../../app/utils/activityFeedHelpers'
@@ -146,5 +147,35 @@ describe('expansionToggleLabelKey', () => {
   it('reuses the diff-drawer label for restore rows', () => {
     expect(expansionToggleLabelKey(entry({ action: 'restore' }), false)).toBe('activity.diff.viewChange')
     expect(expansionToggleLabelKey(entry({ action: 'restore' }), true)).toBe('activity.diff.hideChange')
+  })
+})
+
+// --- safeLinkUrl ------------------------------------------------------------
+
+describe('safeLinkUrl (regression: AI-tool metadata URLs)', () => {
+  it.each([
+    'https://example.com/a?b=c',
+    'http://example.com',
+    '/api/files/doc1/a.png',
+    'relative/path.png'
+  ])('keeps %s', (url) => {
+    expect(safeLinkUrl(url)).toBe(url)
+  })
+
+  it.each([
+    'javascript:alert(1)',
+    ' JavaScript:alert(1)',
+    'java\tscript:alert(1)',
+    'data:text/html,<b>x</b>',
+    'vbscript:msgbox',
+    'file:///etc/passwd',
+    '//evil.example/x'
+  ])('drops %s', (url) => {
+    expect(safeLinkUrl(url)).toBeUndefined()
+  })
+
+  it('drops non-strings', () => {
+    expect(safeLinkUrl(undefined)).toBeUndefined()
+    expect(safeLinkUrl(42)).toBeUndefined()
   })
 })

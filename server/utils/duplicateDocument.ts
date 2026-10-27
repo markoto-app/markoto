@@ -12,6 +12,8 @@ import {
 } from '../repos/uploads'
 import { cloneYjsStateWithUrlRewrite } from './cloneYjsState'
 import { withThemeDocId } from '~~/shared/utils/customCss'
+import { withThemeImagesDocId } from '~~/shared/utils/themeImages'
+import { isValidTheme } from '~~/shared/utils/themeValidation'
 
 // Duplicate a document end-to-end: DB row + Y.js state (with image URL
 // rewrite) + S3 image assets.
@@ -66,9 +68,10 @@ export async function duplicateDocument(
     title: input.title,
     accessMode: source.accessMode,
     passwordHash: source.passwordHash,
-    // Custom CSS may reference the source's uploads; point it at the
-    // copies (same fileIds, new docId) like the markdown body rewrite.
-    theme: source.theme ? withThemeDocId(source.theme, input.sourceDocId, input.newDocId) : source.theme,
+    // Custom CSS and theme images may reference the source's uploads;
+    // point them at the copies (same fileIds, new docId) like the
+    // markdown body rewrite.
+    theme: source.theme ? withThemeUploadsDocId(source.theme, input.sourceDocId, input.newDocId) : source.theme,
     wordCount: source.wordCount,
     sizeBytes: source.sizeBytes,
     description: source.description,
@@ -122,4 +125,10 @@ export async function duplicateDocument(
     }
     throw e
   }
+}
+
+/** Custom CSS always; theme images only on a well-formed theme (legacy partial rows are copied as they are). */
+function withThemeUploadsDocId<T extends { customCss?: string }>(theme: T, sourceDocId: string, targetDocId: string): T {
+  const cssMoved = withThemeDocId(theme, sourceDocId, targetDocId)
+  return isValidTheme(cssMoved) ? withThemeImagesDocId(cssMoved, sourceDocId, targetDocId) : cssMoved
 }

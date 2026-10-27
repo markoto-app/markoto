@@ -396,6 +396,53 @@ describe('adaptCustomCssToDoc + rewriteCustomCssDocId', () => {
   })
 })
 
+describe('substitution inside url-taking functions (regression)', () => {
+  // A string in a custom property is not a URL where it is declared;
+  // `var()` substitutes it into image-set() only in the browser, after
+  // the sanitizer ran. So var()/env()/attr() may not appear inside any
+  // function whose arguments are URLs.
+  it.each([
+    'p { --p: "http://evil.test/x.png"; background-image: image-set(var(--p) 1x) }',
+    'p { --p: "http://evil.test/x.png"; background-image: -webkit-image-set(var(--p) 1x) }',
+    'p { --a: "http://evil.test/x.png"; --b: var(--a); mask-image: image-set(var(--b) 1x) }',
+    'p { background-image: image(var(--p)) }',
+    'p { background-image: cross-fade(var(--p), url(/api/files/doc1/a.png)) }',
+    'p { background-image: src(var(--p)) }',
+    'p { background-image: image-set(env(--p) 1x) }',
+    'p { background-image: image-set(attr(data-src) 1x) }',
+    'p { background-image: -moz-element(var(--p)) }'
+  ])('rejects %s', (css) => {
+    const r = expectRejected(css, 'function', /(?:image-set|image|cross-fade|src|element)\((?:var|env|attr)\(/)
+    expect(r.css).not.toContain('image-set(')
+  })
+
+  it('var() outside url-taking functions still works', () => {
+    expectKept('p { --c: #123456; --label: "Note"; color: var(--c); content: var(--label) }', 'color:var(--c)', 'content:var(--label)')
+  })
+})
+
+describe('deeply nested input (regression)', () => {
+  it.each([
+    ['blocks', '@media all{'.repeat(5000) + 'p{color:red}' + '}'.repeat(5000)],
+    ['functions', 'p{width:' + 'calc('.repeat(10000) + '1px' + ')'.repeat(10000) + '}']
+  ])('nested %s fail closed with an issue instead of throwing', (_label, css) => {
+    let r: ReturnType<typeof run> | undefined
+    expect(() => {
+      r = run(css)
+    }).not.toThrow()
+    expect(r?.css).toBe('')
+    expect(r?.issues.map(i => i.code)).toContain('syntax')
+  })
+
+  it('moderate nesting is still accepted', () => {
+    expectKept('@media print { @supports (display: grid) { .a { & .b { width: calc(100% - calc(2px + 1em)) } } } }', 'calc(100% - calc(2px + 1em))')
+  })
+
+  it('brackets inside strings and comments do not count as nesting', () => {
+    expectKept(`/* ${'('.repeat(100)} */ p { content: "${'{'.repeat(100)}" }`, 'content:')
+  })
+})
+
 describe('themeToCss integration', () => {
   const runtime = { title: 'T', date: '2026-01-01', tocTitle: 'Contents' }
 

@@ -138,6 +138,13 @@ services:
       - "traefik.http.routers.markoto-s3.rule=PathPrefix(`/${NUXT_S3_BUCKET:-markoto-files}/`)"
       - "traefik.http.routers.markoto-s3.entrypoints=web"
       - "traefik.http.services.markoto-s3.loadbalancer.server.port=8333"
+      # The bucket is served from the app's own origin, so its responses
+      # must never be rendered as active content: no MIME sniffing, and a
+      # sandbox CSP in case an object's type is wrong (uploads are typed
+      # at upload and `/api/files` forces the image type on the way out).
+      - "traefik.http.routers.markoto-s3.middlewares=markoto-s3-headers"
+      - "traefik.http.middlewares.markoto-s3-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.markoto-s3-headers.headers.contentSecurityPolicy=sandbox; default-src 'none'; img-src 'self' data:"
     networks:
       - edge
       - internal

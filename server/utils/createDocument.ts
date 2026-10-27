@@ -14,6 +14,7 @@ import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { isTemplateId } from '~~/shared/templates'
 import type { DocTheme } from '~~/shared/types/theme'
 import { adaptCustomCssToDoc } from '~~/shared/utils/customCss'
+import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 
 // Document creation — single source of truth shared by:
 //   - `POST /api/docs` (the user-facing endpoint)
@@ -122,14 +123,16 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
 }
 
 /**
- * A saved theme / workspace default may carry custom CSS that points at
- * the uploads of the document it was made in. A brand-new doc has no
- * uploads, so those rules are dropped here (the render-time sanitizer
- * would ignore them anyway — this keeps the stored CSS honest).
+ * A saved theme / workspace default may carry custom CSS and theme
+ * images that point at the uploads of the document it was made in. A
+ * brand-new doc has no uploads, so those rules / image URLs are dropped
+ * here (the render-time checks would ignore them anyway — this keeps the
+ * stored theme honest).
  */
 function withCustomCssForNewDoc(theme: DocTheme, docId: string): DocTheme {
-  const adapted = adaptCustomCssToDoc(theme.customCss, { docId })
-  return adapted.dropped.length === 0 ? theme : { ...theme, customCss: adapted.css }
+  const images = themeImagesForDoc(theme, docId).theme
+  const adapted = adaptCustomCssToDoc(images.customCss, { docId })
+  return adapted.dropped.length === 0 ? images : { ...images, customCss: adapted.css }
 }
 
 async function resolveWorkspace(raw: string | null | undefined, ownerId: number | null): Promise<string | null> {
