@@ -52,6 +52,20 @@ export const AUDIT_MCP_TOKEN_REVOKED = 'mcp.token_revoked'
 export const AUDIT_AI_PROVIDER_SAVED = 'ai_provider.saved'
 export const AUDIT_AI_PROVIDER_DELETED = 'ai_provider.deleted'
 
+// "Log out everywhere": the user's session epoch was bumped, every
+// outstanding session cookie stopped working. `scope_id` is the user id.
+export const AUDIT_ACCOUNT_SESSIONS_REVOKED = 'account.sessions_revoked'
+
+// Workspace invitations (pending invite + accept). `scope` is
+// `workspace`, `scope_id` the workspace id. The invitee's email is NOT
+// copied into the audit row (it lives on the invite row, which is
+// deleted on accept / decline / revoke / expiry); `metadata` carries the
+// invite id + role only.
+export const AUDIT_WORKSPACE_INVITE_CREATED = 'workspace.invite_created'
+export const AUDIT_WORKSPACE_INVITE_REVOKED = 'workspace.invite_revoked'
+export const AUDIT_WORKSPACE_INVITE_ACCEPTED = 'workspace.invite_accepted'
+export const AUDIT_WORKSPACE_INVITE_DECLINED = 'workspace.invite_declined'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -74,3 +88,8 @@ export type ComplianceAuditAction
     | typeof AUDIT_MCP_TOKEN_REVOKED
     | typeof AUDIT_AI_PROVIDER_SAVED
     | typeof AUDIT_AI_PROVIDER_DELETED
+    | typeof AUDIT_ACCOUNT_SESSIONS_REVOKED
+    | typeof AUDIT_WORKSPACE_INVITE_CREATED
+    | typeof AUDIT_WORKSPACE_INVITE_REVOKED
+    | typeof AUDIT_WORKSPACE_INVITE_ACCEPTED
+    | typeof AUDIT_WORKSPACE_INVITE_DECLINED

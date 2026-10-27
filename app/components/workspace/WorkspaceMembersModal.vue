@@ -6,9 +6,11 @@ import type { WorkspaceMember } from './WorkspaceMemberAvatars.vue'
 //   - Admin: add new, change role, remove any (incl. self if not last admin)
 //   - Editor / Viewer: read-only list + "leave workspace" on own row
 //
-// Add-by-email is the only supported invite mechanism — no typeahead search
-// to avoid enumerating the user base. Caller types the full email; server
-// returns 404 if no account matches, 409 if already a member.
+// Invite-by-email is the only way in — no typeahead search, so the user
+// base can't be enumerated. The server records a PENDING invitation and
+// answers the same way whether or not the address has an account; the
+// person joins only after accepting (dashboard, or the invitation email).
+// Admins see the open invitations below the roster and can revoke them.
 
 type MemberRole = 'admin' | 'editor' | 'viewer'
 
@@ -38,13 +40,56 @@ const rowBusy = ref<number | null>(null)
 
 const isAdmin = computed(() => props.myRole === 'admin')
 
+interface PendingInvite {
+  inviteId: string
+  email: string
+  role: MemberRole
+  invitedByName: string | null
+  createdAt: string
+  expiresAt: string
+}
+const invites = ref<PendingInvite[]>([])
+const inviteBusy = ref<string | null>(null)
+const { showError } = useErrorHandler()
+
+async function loadInvites(): Promise<void> {
+  if (!isAdmin.value) {
+    invites.value = []
+    return
+  }
+  try {
+    invites.value = await $fetch<PendingInvite[]>(`/api/workspaces/${props.workspaceId}/invites`)
+  } catch {
+    invites.value = []
+  }
+}
+
 watch(open, (v) => {
   if (v) {
     localMembers.value = [...props.members]
     newEmail.value = ''
     newRole.value = 'editor'
+    void loadInvites()
   }
 })
+
+function fmtDate(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+async function revokeInvite(invite: PendingInvite) {
+  inviteBusy.value = invite.inviteId
+  try {
+    await $fetch(`/api/workspaces/${props.workspaceId}/invites/${invite.inviteId}`, { method: 'DELETE' })
+    invites.value = invites.value.filter(i => i.inviteId !== invite.inviteId)
+  } catch (e) {
+    showError('workspace.members.revokeFailed', e)
+  } finally {
+    inviteBusy.value = null
+  }
+}
 
 const adminCount = computed(() => localMembers.value.filter(m => m.role === 'admin').length)
 
@@ -67,22 +112,21 @@ async function addMember() {
   if (!email) return
   adding.value = true
   try {
-    const res = await $fetch<WorkspaceMember>(`/api/workspaces/${props.workspaceId}/members`, {
+    await $fetch(`/api/workspaces/${props.workspaceId}/members`, {
       method: 'POST',
       body: { email, role: newRole.value }
     })
-    localMembers.value = [...localMembers.value, res]
-    emit('updated', localMembers.value)
+    toast.add({
+      title: t('workspace.members.invitedToast'),
+      description: t('workspace.members.invitedToastDescription', { email }),
+      icon: 'i-lucide-mail-check',
+      color: 'neutral'
+    })
     newEmail.value = ''
     newRole.value = 'editor'
+    await loadInvites()
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('workspace.members.addFailed'),
-      description: err?.data?.message || err?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.members.addFailed', e)
   } finally {
     adding.value = false
   }
@@ -238,7 +282,61 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
           </li>
         </ul>
 
-        <!-- Admin-only: add new member -->
+        <!-- Admin-only: open invitations (the address typed, never
+             account data). -->
+        <div
+          v-if="isAdmin && invites.length > 0"
+          class="space-y-2"
+          data-testid="workspace-pending-invites"
+        >
+          <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted">
+            {{ t('workspace.members.pendingTitle') }}
+          </h3>
+          <ul class="divide-y divide-default border border-default rounded-lg overflow-hidden">
+            <li
+              v-for="invite in invites"
+              :key="invite.inviteId"
+              class="flex items-center gap-3 p-3"
+              :data-testid="`workspace-pending-invite-${invite.email}`"
+            >
+              <div class="size-8 rounded-full flex items-center justify-center bg-elevated shrink-0">
+                <UIcon
+                  name="i-lucide-mail"
+                  class="size-4 text-muted"
+                />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm truncate">
+                  {{ invite.email }}
+                </p>
+                <p class="font-mono text-[10.5px] lowercase tracking-wide text-muted">
+                  {{ t('workspace.members.pendingExpires', { date: fmtDate(invite.expiresAt) }) }}
+                </p>
+              </div>
+              <UBadge
+                size="xs"
+                color="neutral"
+                variant="subtle"
+              >
+                {{ roleLabel(invite.role) }}
+              </UBadge>
+              <UTooltip :text="t('workspace.members.revoke')">
+                <UButton
+                  icon="i-lucide-x"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  :aria-label="t('workspace.members.revoke')"
+                  :loading="inviteBusy === invite.inviteId"
+                  :data-testid="`workspace-revoke-invite-${invite.email}`"
+                  @click="revokeInvite(invite)"
+                />
+              </UTooltip>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Admin-only: invite a new member -->
         <div
           v-if="isAdmin"
           class="space-y-2 pt-2 border-t border-default"

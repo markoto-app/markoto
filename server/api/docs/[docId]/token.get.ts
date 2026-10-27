@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { getDocWithActorRole } from '../../../repos/documents'
-import { decideTokenAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { decideDocDelete, decideTokenAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
 import type { SessionJwtPayload } from '../../../../shared/contracts/jwt'
 import { renderTemplate } from '../../../utils/templateRenderer'
 
@@ -38,6 +39,29 @@ export default defineEventHandler(async (event) => {
   }
 
   const decision = decideTokenAccess(doc, actor)
+
+  // Denied (private / password-gated, caller not entitled): return only
+  // what the editor needs to draw the gate. No title-derived template
+  // body, description, owner, workspace, theme or `(+)` sponsor — a
+  // leaked link to a private doc must not leak its metadata.
+  if (decision.outcome === 'forbidden' || decision.outcome === 'password-required') {
+    return {
+      token: null,
+      requiresPassword: decision.outcome === 'password-required',
+      forbidden: decision.outcome === 'forbidden',
+      readOnly: true,
+      accessMode: row.accessMode,
+      ownerId: null,
+      workspaceId: null,
+      workspaceRole: null,
+      workspaceAiEnabled: false,
+      workspaceBillingOwner: null,
+      theme: null,
+      initialBody: null,
+      canDelete: false
+    }
+  }
+
   // workspaceId + workspaceRole leak to the client so the editor UI can
   // decide which File-menu items to render without a second round-trip.
   // They don't widen access — the client already knows it has the doc
@@ -74,14 +98,14 @@ export default defineEventHandler(async (event) => {
       description: row.description,
       language: row.language
     }),
-    templateId: row.templateId
-  }
-
-  if (decision.outcome === 'forbidden') {
-    return { token: null, requiresPassword: false, forbidden: true, ...responseBase }
-  }
-  if (decision.outcome === 'password-required') {
-    return { token: null, requiresPassword: true, forbidden: false, ...responseBase }
+    templateId: row.templateId,
+    // Whether DELETE /api/docs/:id would succeed for this caller — the
+    // File menu shows "Delete" only then. For an anonymous doc that's
+    // only the creating browser (creator-key cookie).
+    canDelete: decideDocDelete(doc, {
+      ...actor,
+      isAnonCreator: anonCreatorKeyMatches(readAnonCreatorKey(event), row.anonCreatorKeyHash)
+    }).outcome === 'allow'
   }
 
   const payload = {

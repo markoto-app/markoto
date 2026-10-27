@@ -22,7 +22,10 @@
     "loginUnavailable": "La connexion n'est pas configurée sur cette instance. Vous pouvez tout de même créer et modifier des documents de façon anonyme.",
     "loginRequired": "Connexion requise",
     "linkedTitle": "Comptes liés",
-    "linkedDescription": "Votre connexion {provider} est désormais associée à votre compte existant. Vous pouvez vous connecter avec l'un ou l'autre fournisseur à partir de maintenant."
+    "linkedDescription": "Votre connexion {provider} est désormais associée à votre compte existant. Vous pouvez vous connecter avec l'un ou l'autre fournisseur à partir de maintenant.",
+    "reauthTitle": "Reconnectez-vous",
+    "reauthAction": "Se reconnecter",
+    "reauthRequired": "Pour votre sécurité, cette action nécessite une connexion récente. Reconnectez-vous puis réessayez."
   },
   "editor": {
     "untitled": "Sans titre",
@@ -947,23 +950,56 @@
       "title": "Membres de {name}",
       "manage": "Gérer",
       "manageTitle": "Gérer les membres",
-      "adminDescription": "Ajoutez des collaborateurs par e-mail, changez les rôles ou retirez des membres.",
+      "adminDescription": "Invitez des collaborateurs par e-mail, modifiez les rôles ou retirez des membres.",
       "memberDescription": "Personnes ayant accès à cet espace de travail.",
-      "addTitle": "Ajouter un membre",
-      "addHint": "Saisissez l'adresse e-mail d'une personne disposant d'un compte markoto. Elle obtiendra un accès instantané au rôle que vous choisissez.",
+      "addTitle": "Inviter un membre",
+      "addHint": "Saisissez son adresse e-mail. La personne ne rejoint l'espace qu'après avoir accepté l'invitation — dans markoto en étant connectée avec cette adresse, ou depuis l'e-mail d'invitation.",
       "emailPlaceholder": "Saisissez une adresse e-mail",
-      "add": "Ajouter",
-      "addFailed": "Impossible d'ajouter le membre",
+      "add": "Inviter",
+      "addFailed": "Impossible d'envoyer l'invitation",
       "remove": "Retirer de l'espace de travail",
       "removeFailed": "Impossible de retirer le membre",
       "roleChangeFailed": "Impossible de changer le rôle",
       "you": "(vous)",
       "leave": "Quitter l'espace de travail",
       "leaveFailed": "Impossible de quitter l'espace de travail",
-      "leftToast": "Vous avez quitté l'espace de travail"
+      "leftToast": "Vous avez quitté l'espace de travail",
+      "invitedToast": "Invitation envoyée",
+      "invitedToastDescription": "{email} peut l'accepter dans les 14 jours.",
+      "pendingTitle": "Invitations en attente",
+      "pendingExpires": "expire le {date}",
+      "revoke": "Retirer l'invitation",
+      "revokeFailed": "Impossible de retirer l'invitation",
+      "errors": {
+        "invalidEmail": "Saisissez une adresse e-mail valide.",
+        "alreadyMember": "Cette personne est déjà membre de l'espace de travail.",
+        "inviteCap": "Cet espace de travail a trop d'invitations en attente. Retirez-en d'abord quelques-unes."
+      }
     },
     "capReachedFree": "{used} espaces de travail utilisés sur {limit}. Supprimez-en un pour en créer un autre.",
-    "capReachedShortFree": "Limite d'espaces de travail atteinte"
+    "capReachedShortFree": "Limite d'espaces de travail atteinte",
+    "invites": {
+      "sectionTitle": "Invitations",
+      "invitedBy": "{name} vous a invité en tant que {role}",
+      "invitedAs": "Vous êtes invité en tant que {role}",
+      "accept": "Accepter",
+      "decline": "Refuser",
+      "accepted": "Vous avez rejoint {name}",
+      "acceptFailed": "Impossible d'accepter l'invitation",
+      "declineFailed": "Impossible de refuser l'invitation",
+      "errors": {
+        "notFound": "Cette invitation n'existe plus ou a expiré."
+      },
+      "page": {
+        "title": "Invitation à un espace de travail",
+        "intro": "Vous avez été invité à rejoindre un espace de travail sur markoto.",
+        "signIn": "Connectez-vous pour accepter l'invitation.",
+        "accept": "Accepter l'invitation",
+        "declined": "Invitation refusée.",
+        "missingToken": "Ce lien d'invitation est incomplet. Rouvrez-le depuis l'e-mail.",
+        "home": "Aller au tableau de bord"
+      }
+    }
   },
   "knowledge": {
     "title": "Base de connaissances",
@@ -1219,6 +1255,12 @@
         "refused": "Refusé",
         "notSet": "Non défini",
         "change": "Modifier vos choix de confidentialité"
+      },
+      "sessions": {
+        "heading": "Sessions",
+        "description": "Connecté sur un appareil que vous n'utilisez plus, ou inquiet qu'une autre personne y ait accès ? Déconnectez-vous de markoto dans tous les navigateurs et sur tous les appareils, y compris celui-ci.",
+        "button": "Se déconnecter partout",
+        "failed": "Impossible de se déconnecter partout"
       }
     }
   },

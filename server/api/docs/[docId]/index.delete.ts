@@ -1,13 +1,14 @@
 import { getDoc, getDocWithActorRole } from '../../../repos/documents'
 import { deleteDocument } from '../../../utils/documentLifecycle'
 import { appendAuditEvent } from '../../../repos/audit'
+import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
 import { decideDocDelete, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 
 // Delete a document. Authorisation is decided by `decideDocDelete`:
-//   - anonymous doc (no owner, no workspace) → anyone may delete, even an
-//     anonymous caller. No persistent identity to scope the right to, so
-//     "anyone with edit access" is the closest approximation. Anon docs
-//     are always open-edit, so edit access = view access = everyone.
+//   - anonymous doc (no owner, no workspace) → only the browser that
+//     created it, proven by the httpOnly creator-key cookie whose hash
+//     is stored on the row (`utils/anonCreator.ts`). Others with the
+//     link can still edit the open-edit doc, but not delete it.
 //   - owned standalone doc → owner only.
 //   - workspace doc → owner or workspace admin.
 // `deleteDocument` itself trusts its input (it's also called from the
@@ -39,7 +40,8 @@ export default defineEventHandler(async (event) => {
   }
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
-    workspaceRole: row.workspaceRole
+    workspaceRole: row.workspaceRole,
+    isAnonCreator: anonCreatorKeyMatches(readAnonCreatorKey(event), row.anonCreatorKeyHash)
   }
 
   const decision = decideDocDelete(doc, actor)

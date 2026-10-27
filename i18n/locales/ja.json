@@ -22,7 +22,10 @@
     "loginUnavailable": "このインスタンスではサインインが設定されていません。ドキュメントは匿名で作成・編集できます。",
     "loginRequired": "ログインが必要です",
     "linkedTitle": "アカウントを連携しました",
-    "linkedDescription": "{provider}ログインが既存のアカウントに連携されました。今後はどちらのプロバイダーでもサインインできます。"
+    "linkedDescription": "{provider}ログインが既存のアカウントに連携されました。今後はどちらのプロバイダーでもサインインできます。",
+    "reauthTitle": "もう一度サインイン",
+    "reauthAction": "サインインし直す",
+    "reauthRequired": "セキュリティのため、この操作には最近のサインインが必要です。もう一度サインインしてから再試行してください。"
   },
   "editor": {
     "untitled": "無題",
@@ -947,23 +950,56 @@
       "title": "{name}のメンバー",
       "manage": "管理",
       "manageTitle": "メンバーを管理",
-      "adminDescription": "メールで共同編集者を追加したり、役割を変更したり、メンバーを削除したりできます。",
+      "adminDescription": "メールでコラボレーターを招待し、ロールを変更し、メンバーを削除します。",
       "memberDescription": "このワークスペースにアクセスできる人。",
-      "addTitle": "メンバーを追加",
-      "addHint": "markotoアカウントを持つ人のメールアドレスを入力してください。選んだ役割で即座にアクセスできるようになります。",
+      "addTitle": "メンバーを招待",
+      "addHint": "メールアドレスを入力してください。招待を承認した時点で参加となります（そのアドレスでサインインした markoto 内、または招待メールから）。",
       "emailPlaceholder": "メールアドレスを入力",
-      "add": "追加",
-      "addFailed": "メンバーを追加できませんでした",
+      "add": "招待",
+      "addFailed": "招待を送信できませんでした",
       "remove": "ワークスペースから削除",
       "removeFailed": "メンバーを削除できませんでした",
       "roleChangeFailed": "役割を変更できませんでした",
       "you": "（あなた）",
       "leave": "ワークスペースを退出",
       "leaveFailed": "ワークスペースを退出できませんでした",
-      "leftToast": "ワークスペースを退出しました"
+      "leftToast": "ワークスペースを退出しました",
+      "invitedToast": "招待を送信しました",
+      "invitedToastDescription": "{email} は 14 日以内に承認できます。",
+      "pendingTitle": "保留中の招待",
+      "pendingExpires": "有効期限 {date}",
+      "revoke": "招待を取り消す",
+      "revokeFailed": "招待を取り消せませんでした",
+      "errors": {
+        "invalidEmail": "有効なメールアドレスを入力してください。",
+        "alreadyMember": "この人はすでにワークスペースのメンバーです。",
+        "inviteCap": "このワークスペースには保留中の招待が多すぎます。先にいくつか取り消してください。"
+      }
     },
     "capReachedFree": "{limit} 件中 {used} 件のワークスペースを使用中です。新しく作成するには 1 件削除してください。",
-    "capReachedShortFree": "ワークスペースの上限に達しました"
+    "capReachedShortFree": "ワークスペースの上限に達しました",
+    "invites": {
+      "sectionTitle": "招待",
+      "invitedBy": "{name} さんが{role}として招待しました",
+      "invitedAs": "{role}として招待されています",
+      "accept": "承認",
+      "decline": "辞退",
+      "accepted": "{name} に参加しました",
+      "acceptFailed": "招待を承認できませんでした",
+      "declineFailed": "招待を辞退できませんでした",
+      "errors": {
+        "notFound": "この招待は存在しないか、期限切れです。"
+      },
+      "page": {
+        "title": "ワークスペースへの招待",
+        "intro": "markoto のワークスペースに招待されました。",
+        "signIn": "招待を承認するにはサインインしてください。",
+        "accept": "招待を承認",
+        "declined": "招待を辞退しました。",
+        "missingToken": "この招待リンクは不完全です。メールからもう一度開いてください。",
+        "home": "ダッシュボードへ"
+      }
+    }
   },
   "knowledge": {
     "title": "ナレッジベース",
@@ -1219,6 +1255,12 @@
         "refused": "拒否済み",
         "notSet": "未設定",
         "change": "プライバシーの選択を変更"
+      },
+      "sessions": {
+        "heading": "セッション",
+        "description": "使わなくなった端末でサインインしたままですか？ 他の人がアクセスできるのではと心配ですか？ この端末を含め、すべてのブラウザと端末で markoto からサインアウトします。",
+        "button": "すべての端末からログアウト",
+        "failed": "すべての端末からログアウトできませんでした"
       }
     }
   },

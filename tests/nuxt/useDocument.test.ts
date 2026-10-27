@@ -40,6 +40,7 @@ const hoisted = vi.hoisted(() => {
       hasOwner: ref(false),
       requiresPassword: ref(false),
       forbidden: ref(false),
+      canDelete: ref(false),
       notFound: ref(false),
       accessMode: ref<string>('open-edit'),
       pendingPasswordUnlock: ref(false),
@@ -51,6 +52,7 @@ const hoisted = vi.hoisted(() => {
     },
     tokenMocks: {
       fetchToken: vi.fn<() => Promise<void>>(() => Promise.resolve()),
+      hydrateAfterUnlock: vi.fn<(t: string) => Promise<void>>(() => Promise.resolve()),
       onPasswordVerified: vi.fn<(t: string) => void>(),
       clearPendingUnlock: vi.fn<() => void>(),
       markReadOnly: vi.fn<() => void>(),
@@ -117,6 +119,7 @@ mockNuxtImport('useDocToken', () => {
     hasOwner: hoisted.tokenState.hasOwner,
     requiresPassword: hoisted.tokenState.requiresPassword,
     forbidden: hoisted.tokenState.forbidden,
+    canDelete: hoisted.tokenState.canDelete,
     notFound: hoisted.tokenState.notFound,
     accessMode: hoisted.tokenState.accessMode,
     pendingPasswordUnlock: hoisted.tokenState.pendingPasswordUnlock,
@@ -126,6 +129,7 @@ mockNuxtImport('useDocToken', () => {
     initialLanguage: hoisted.tokenState.initialLanguage,
     initialBody: hoisted.tokenState.initialBody,
     fetchToken: hoisted.tokenMocks.fetchToken,
+    hydrateAfterUnlock: hoisted.tokenMocks.hydrateAfterUnlock,
     // Faithful stub of the real getFreshToken happy path — return the
     // current token. The refetch-near-expiry behaviour is pinned against
     // the real implementation in tests/nuxt/useDocToken.test.ts.
@@ -192,8 +196,11 @@ function resetHoisted() {
   hoisted.tokenState.accessMode.value = 'open-edit'
   hoisted.tokenState.pendingPasswordUnlock.value = false
   hoisted.tokenState.initialTheme.value = null
+  hoisted.tokenState.initialDescription.value = ''
+  hoisted.tokenState.initialAudience.value = 'casual'
   hoisted.tokenMocks.fetchToken.mockReset().mockImplementation(() => Promise.resolve())
   hoisted.tokenMocks.onPasswordVerified.mockReset()
+  hoisted.tokenMocks.hydrateAfterUnlock.mockReset().mockImplementation(() => Promise.resolve())
   hoisted.tokenMocks.clearPendingUnlock.mockReset()
   hoisted.tokenMocks.markReadOnly.mockReset()
   hoisted.tokenMocks.setAccessMode.mockReset()
@@ -631,10 +638,29 @@ describe('useDocument — onPasswordVerified', () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
 
-    doc.onPasswordVerified('fresh-jwt')
+    await doc.onPasswordVerified('fresh-jwt')
 
+    expect(hoisted.tokenMocks.hydrateAfterUnlock).toHaveBeenCalledWith('fresh-jwt')
     expect(hoisted.tokenMocks.onPasswordVerified).toHaveBeenCalledWith('fresh-jwt')
     expect(hoisted.syncMocks.reconnect).toHaveBeenCalledTimes(1)
+    doc.destroy()
+  })
+
+  it('seeds the document context fetched with the unlock token before reconnecting', async () => {
+    // A gated visitor's /token response carries no metadata (private doc
+    // metadata stays private); after the unlock the metadata comes from
+    // /meta with the new JWT and seeds the refs before sync settles.
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.tokenMocks.hydrateAfterUnlock.mockImplementation(async () => {
+      hoisted.tokenState.initialDescription.value = 'Unlocked description'
+      hoisted.tokenState.initialAudience.value = 'technical'
+    })
+
+    await doc.onPasswordVerified('fresh-jwt')
+
+    expect(doc.description.value).toBe('Unlocked description')
+    expect(doc.audience.value).toBe('technical')
     doc.destroy()
   })
 })

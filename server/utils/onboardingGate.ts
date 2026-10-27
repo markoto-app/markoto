@@ -26,13 +26,14 @@ export function onboardingIncomplete(state: OnboardingState): boolean {
 }
 
 // Routes a not-yet-onboarded user must still be able to call:
-// accepting the gate itself, logging out, the cookie banner (layered
-// above the gate), leaving (account deletion + its cancel), taking
+// accepting the gate itself, logging out (incl. "log out everywhere"),
+// the cookie banner (layered above the gate), leaving (account deletion + its cancel), taking
 // their data with them (export), withdrawing waitlist consent from an
 // email link, and the non-session surfaces (webhooks, internal, test).
 const EXEMPT_PATHS: RegExp[] = [
   /^\/api\/user\/onboarding-accept$/,
   /^\/api\/_auth\/session$/,
+  /^\/api\/user\/sessions\/revoke$/,
   /^\/api\/consent$/,
   /^\/api\/user\/delete$/,
   /^\/api\/user\/delete-cancel$/,

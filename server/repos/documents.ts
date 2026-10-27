@@ -47,6 +47,8 @@ export interface DocAuthzRow {
   ownerId: number | null
   workspaceId: string | null
   accessMode: AccessMode
+  /** Anonymous docs: hash of the creating browser's key (never sent to clients). */
+  anonCreatorKeyHash: string | null
   theme: DocTheme | null
   workspaceRole: WorkspaceRole | null
   /**
@@ -97,6 +99,8 @@ export interface CreateDocInput {
   language?: string
   templateId?: string
   theme?: DocTheme | null
+  /** Anonymous docs only: SHA-256 of the creating browser's creator key. */
+  anonCreatorKeyHash?: string
 }
 
 export interface MetaUpdate {
@@ -179,6 +183,7 @@ export async function getDocWithActorRole(
       ownerId: documents.ownerId,
       workspaceId: documents.workspaceId,
       accessMode: documents.accessMode,
+      anonCreatorKeyHash: documents.anonCreatorKeyHash,
       theme: documents.theme,
       title: documents.title,
       description: documents.description,
@@ -226,6 +231,7 @@ export async function getDocWithActorRole(
     ownerId: row.ownerId,
     workspaceId: row.workspaceId,
     accessMode: row.accessMode,
+    anonCreatorKeyHash: row.anonCreatorKeyHash,
     theme: row.theme,
     workspaceRole: (row.role ?? null),
     workspaceAiEnabled: row.workspaceAiEnabled,
@@ -257,6 +263,7 @@ export async function createDoc(input: CreateDocInput): Promise<void> {
   if (input.language !== undefined) values.language = input.language
   if (input.templateId !== undefined) values.templateId = input.templateId
   if (input.theme !== undefined) values.theme = input.theme
+  if (input.anonCreatorKeyHash !== undefined) values.anonCreatorKeyHash = input.anonCreatorKeyHash
   await db.insert(documents).values(values as typeof documents.$inferInsert)
 }
 

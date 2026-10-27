@@ -26,6 +26,9 @@ const props = defineProps<{
   // or workspace admin only. Gates the destructive / ownership-changing
   // entries in File (Move, Delete).
   canManage: boolean
+  // Server-computed (token endpoint): owner / workspace admin, or the
+  // browser that created an anonymous doc.
+  canDelete: boolean
   // Right-sidebar state — used to render check marks next to "Activity"
   // and "Theme" in the View menu so the user can see what's currently open.
   rightSidebar: 'document' | 'activity' | 'theme' | 'knowledge' | 'comments' | null
@@ -146,9 +149,12 @@ const fileItems = computed(() => {
     if (props.canManage) {
       items.push({ label: t('menubar.file.move'), icon: 'i-lucide-folder-input', onSelect: () => emit('move-document') })
     }
-    // Delete sits at the bottom of File — destructive, kept under its
-    // own separator so it's not a one-click slip from the copy/move
-    // entries.
+  }
+  // Delete sits at the bottom of File — destructive, kept under its
+  // own separator so it's not a one-click slip from the copy/move
+  // entries. Shown only when the server says the delete would succeed
+  // (an anonymous creator has no login but may delete their own doc).
+  if (props.canDelete) {
     items.push(
       { type: 'separator' },
       { label: t('menubar.file.delete'), icon: 'i-lucide-trash-2', onSelect: () => emit('delete-document') }

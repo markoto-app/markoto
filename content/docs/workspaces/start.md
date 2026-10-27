@@ -30,6 +30,6 @@ don't count toward the cap).
 
 ## What's next
 
-- [Invite a teammate](/docs/workspaces/invite) — exact-email invite with role pick.
+- [Invite a teammate](/docs/workspaces/invite) — invite by email; they join once they accept.
 - [Roles inside a workspace](/docs/workspaces/roles) — what each role can do.
 - [Set a default theme](/docs/workspaces/default-theme) — every new doc starts styled to your team.

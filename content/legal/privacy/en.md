@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: en
-version: 6
-effectiveDate: 2026-10-26
+version: 7
+effectiveDate: 2026-10-27
 translationStatus: authoritative
 ---
 
@@ -58,6 +58,7 @@ Retention follows the per-purpose schedule in the register in §13. As a general
 - **Billing records** do not exist while the service is free. Once paid plans are offered, they will be retained for the legal minimum imposed by EU and member-state tax law (typically 7–10 years).
 - **Transactional email metadata** (recipient + send timestamp + delivery status) is retained by Resend for 30 days; we do not store email bodies after delivery.
 - **Paid-plans waitlist.** If you join the waitlist on the pricing page, we store your email address, the language you signed up in, which version of the consent text you agreed to, when you signed up and confirmed, and — if you were signed in — a link to your account. We do not store your IP address. We use this only to tell you when paid plans launch. Your entry counts only after you click the confirmation link we email you (double opt-in); unconfirmed entries are deleted after 7 days. Every email contains an unsubscribe link that deletes your entry immediately; otherwise we delete the list at the latest 3 months after sending the launch announcement. Deleting your account also deletes a linked entry, and your data export includes it. The confirmation email is sent via Resend; the list itself is stored in OVHcloud's managed PostgreSQL in the EU.
+- **Workspace invitations.** When a workspace admin invites someone by email, we keep the address they typed, the offered role and who invited on a pending invitation. Nobody becomes a member without accepting it. The invitation is deleted when it is accepted, declined or revoked, and at the latest after 14 days. If you have an account with that email address you see the invitation in markoto; if email is set up, one invitation email with a single-use link is also sent via Resend. Deleting your account deletes invitations addressed to you, and your data export lists the open invitations you received and sent.
 
 ## 5b. What happens when you delete your account
 
@@ -141,6 +142,8 @@ Using the AI features requires signing in. They are optional: document content i
 
 We use essential storage (a session cookie, a language preference, and your consent decision itself) to keep you logged in and remember your preferences — this requires no consent under the ePrivacy Directive. We use product analytics and session replay only with your consent, which you can grant or withdraw at any time from the "Privacy choices" link in the footer of every page.
 
+If you create a document without signing in, your browser also keeps a random creator key in an essential cookie, so that only that browser can delete the document later. The key is not linked to you or your account; we store only a hash of it with the document.
+
 We do not use cross-site advertising trackers and we do not sell or share data with advertisers.
 
 ## 10. Children
@@ -174,6 +177,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v7 (2026-10-27).** Added the `workspace_invitations` processing purpose (legitimate interest): when a workspace admin invites someone by email, we keep that email address, the offered role and who invited on a pending invitation until the person accepts or declines it, an admin revokes it, or it expires after 14 days. Nobody joins a workspace without accepting. If email is set up, one invitation email per invite is sent via Resend (at most three per address per day). Stored in OVHcloud (EU).
 - **v6 (2026-10-26), editorial alignment with the free-only service.** Stripe and billing are described as relevant only once paid plans are offered (the sub-processor list and the register omit Stripe while billing is off). The register of processing purposes is now actually shown in §13. Corrected statements about audit-log retention, anonymous-document clean-up (180 days of inactivity), the retired interaction counter and the (non-existent) account-level AI opt-out.
 - **v6 (2026-10-26).** Added the `user_directed_ai_provider` processing purpose: you can bring your own AI provider (chat, image generation, voice transcription). Content for those features is then sent to the provider you choose under your agreement with it; we store your provider settings with the API key encrypted at rest until you remove them or delete your account. Web search and page fetching are provided by us for every user, including those with their own AI provider: search queries go to Staan and fetched web addresses to Jina AI, and per-user hourly and daily usage counters (timestamps only, no content) are kept in Valkey.
 - **v5 (2026-10-26).** Added the `paid_plans_waitlist` processing purpose (consent, double opt-in): email address, locale, consent record and optional account link, kept until you unsubscribe or at the latest 3 months after the paid-plans launch announcement; unconfirmed sign-ups deleted after 7 days. Stored in OVHcloud (EU); confirmation emails via Resend.

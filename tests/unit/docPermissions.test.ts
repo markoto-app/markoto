@@ -275,17 +275,27 @@ describe('decideActivityAccess', () => {
 
 describe('decideDocDelete', () => {
   describe('anonymous doc (no owner, no workspace)', () => {
-    it('anonymous caller can delete anon open-edit doc', () => {
-      // This is the bug-fix case: before, no one could ever delete an anon
-      // doc. Current spec: anon doc = public, delete is as unscoped as
-      // "who can edit it", which is everyone.
+    // Only the browser that created an anonymous doc (it presents the
+    // creator key) may delete it; everyone else can still edit it.
+    it('the creating browser can delete its anon open-edit doc', () => {
       const d = doc({ accessMode: 'open-edit' })
-      expect(decideDocDelete(d, actor())).toEqual({ outcome: 'allow' })
+      expect(decideDocDelete(d, actor({ isAnonCreator: true }))).toEqual({ outcome: 'allow' })
     })
 
-    it('logged-in caller can delete anon open-edit doc', () => {
+    it('another anonymous caller cannot delete an anon doc', () => {
       const d = doc({ accessMode: 'open-edit' })
-      expect(decideDocDelete(d, actor({ userId: 99 }))).toEqual({ outcome: 'allow' })
+      expect(decideDocDelete(d, actor())).toEqual({ outcome: 'deny', reason: 'not-anon-creator' })
+      expect(decideDocDelete(d, actor({ isAnonCreator: false }))).toMatchObject({ outcome: 'deny' })
+    })
+
+    it('a logged-in non-creator cannot delete an anon doc', () => {
+      const d = doc({ accessMode: 'open-edit' })
+      expect(decideDocDelete(d, actor({ userId: 99 }))).toMatchObject({ outcome: 'deny' })
+    })
+
+    it('a logged-in user who created it in this browser can delete it', () => {
+      const d = doc({ accessMode: 'open-edit' })
+      expect(decideDocDelete(d, actor({ userId: 99, isAnonCreator: true }))).toEqual({ outcome: 'allow' })
     })
 
     it.each(['private', 'open-view', 'password-protected'] as AccessMode[])(
@@ -294,7 +304,7 @@ describe('decideDocDelete', () => {
         // Anon docs should never exist in these modes (no owner to scope
         // them to). If one does, refuse delete rather than blow it away.
         const d = doc({ accessMode: mode })
-        expect(decideDocDelete(d, actor())).toMatchObject({ outcome: 'deny' })
+        expect(decideDocDelete(d, actor({ isAnonCreator: true }))).toMatchObject({ outcome: 'deny' })
       }
     )
   })

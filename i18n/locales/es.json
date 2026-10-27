@@ -22,7 +22,10 @@
     "loginUnavailable": "El inicio de sesión no está configurado en esta instancia. Aun así puedes crear y editar documentos de forma anónima.",
     "loginRequired": "Inicio de sesión requerido",
     "linkedTitle": "Cuentas vinculadas",
-    "linkedDescription": "Tu inicio de sesión con {provider} ya está conectado a tu cuenta existente. A partir de ahora puedes iniciar sesión con cualquiera de los dos proveedores."
+    "linkedDescription": "Tu inicio de sesión con {provider} ya está conectado a tu cuenta existente. A partir de ahora puedes iniciar sesión con cualquiera de los dos proveedores.",
+    "reauthTitle": "Vuelve a iniciar sesión",
+    "reauthAction": "Iniciar sesión de nuevo",
+    "reauthRequired": "Por tu seguridad, esta acción requiere un inicio de sesión reciente. Vuelve a iniciar sesión e inténtalo de nuevo."
   },
   "editor": {
     "untitled": "Sin título",
@@ -947,23 +950,56 @@
       "title": "Miembros de {name}",
       "manage": "Gestionar",
       "manageTitle": "Gestionar miembros",
-      "adminDescription": "Añade colaboradores por correo electrónico, cambia roles o elimina miembros.",
+      "adminDescription": "Invita a colaboradores por correo, cambia roles o elimina miembros.",
       "memberDescription": "Personas que tienen acceso a este espacio de trabajo.",
-      "addTitle": "Añadir un miembro",
-      "addHint": "Introduce la dirección de correo electrónico de alguien con una cuenta de markoto. Obtendrá acceso instantáneo con el rol que elijas.",
+      "addTitle": "Invitar a un miembro",
+      "addHint": "Introduce su dirección de correo. Solo se une después de aceptar la invitación: en markoto con la sesión iniciada con esa dirección o desde el correo de invitación.",
       "emailPlaceholder": "Introduce una dirección de correo electrónico",
-      "add": "Añadir",
-      "addFailed": "No se pudo añadir el miembro",
+      "add": "Invitar",
+      "addFailed": "No se pudo enviar la invitación",
       "remove": "Eliminar del espacio de trabajo",
       "removeFailed": "No se pudo eliminar el miembro",
       "roleChangeFailed": "No se pudo cambiar el rol",
       "you": "(tú)",
       "leave": "Abandonar espacio de trabajo",
       "leaveFailed": "No se pudo abandonar el espacio de trabajo",
-      "leftToast": "Has abandonado el espacio de trabajo"
+      "leftToast": "Has abandonado el espacio de trabajo",
+      "invitedToast": "Invitación enviada",
+      "invitedToastDescription": "{email} puede aceptarla en un plazo de 14 días.",
+      "pendingTitle": "Invitaciones pendientes",
+      "pendingExpires": "caduca el {date}",
+      "revoke": "Retirar invitación",
+      "revokeFailed": "No se pudo retirar la invitación",
+      "errors": {
+        "invalidEmail": "Introduce una dirección de correo válida.",
+        "alreadyMember": "Esta persona ya es miembro del espacio de trabajo.",
+        "inviteCap": "Este espacio de trabajo tiene demasiadas invitaciones pendientes. Retira algunas primero."
+      }
     },
     "capReachedFree": "{used} de {limit} espacios de trabajo usados. Elimina uno para crear otro.",
-    "capReachedShortFree": "Límite de espacios de trabajo alcanzado"
+    "capReachedShortFree": "Límite de espacios de trabajo alcanzado",
+    "invites": {
+      "sectionTitle": "Invitaciones",
+      "invitedBy": "{name} te ha invitado como {role}",
+      "invitedAs": "Estás invitado como {role}",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "accepted": "Te has unido a {name}",
+      "acceptFailed": "No se pudo aceptar la invitación",
+      "declineFailed": "No se pudo rechazar la invitación",
+      "errors": {
+        "notFound": "Esta invitación ya no existe o ha caducado."
+      },
+      "page": {
+        "title": "Invitación a un espacio de trabajo",
+        "intro": "Te han invitado a unirte a un espacio de trabajo en markoto.",
+        "signIn": "Inicia sesión para aceptar la invitación.",
+        "accept": "Aceptar invitación",
+        "declined": "Invitación rechazada.",
+        "missingToken": "Este enlace de invitación está incompleto. Ábrelo de nuevo desde el correo.",
+        "home": "Ir al panel"
+      }
+    }
   },
   "knowledge": {
     "title": "Base de conocimiento",
@@ -1219,6 +1255,12 @@
         "refused": "Rechazado",
         "notSet": "Sin definir",
         "change": "Cambiar tus opciones de privacidad"
+      },
+      "sessions": {
+        "heading": "Sesiones",
+        "description": "¿Tienes la sesión iniciada en un dispositivo que ya no usas o te preocupa que otra persona tenga acceso? Cierra la sesión de markoto en todos los navegadores y dispositivos, incluido este.",
+        "button": "Cerrar sesión en todas partes",
+        "failed": "No se pudo cerrar la sesión en todas partes"
       }
     }
   },

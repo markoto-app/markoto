@@ -23,8 +23,11 @@
 // v5 (2026-10-26): new processing purpose `paid_plans_waitlist`.
 // v6 (2026-10-26): new processing purpose `user_directed_ai_provider`
 // (bring-your-own-key AI: content goes to the provider the user picks).
-export const PRIVACY_VERSION = 6
-export const PRIVACY_EFFECTIVE_DATE = '2026-10-26'
+// v7 (2026-10-27): new processing purpose `workspace_invitations`
+// (pending workspace invites keep the invitee's email until accepted,
+// declined, revoked or expired after 14 days).
+export const PRIVACY_VERSION = 7
+export const PRIVACY_EFFECTIVE_DATE = '2026-10-27'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
 export const TOS_VERSION = 2

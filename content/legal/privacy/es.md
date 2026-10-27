@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: es
-version: 6
-effectiveDate: 2026-10-26
+version: 7
+effectiveDate: 2026-10-27
 translationStatus: machine-translated
 ---
 
@@ -58,6 +58,7 @@ La conservación sigue el calendario por fin recogido en el registro del apartad
 - **Los datos de facturación** no existen mientras el servicio sea gratuito. Cuando se ofrezcan planes de pago, se conservarán durante el mínimo legal impuesto por el Derecho fiscal de la UE y de los Estados miembros (normalmente de 7 a 10 años).
 - **Los metadatos de los correos transaccionales** (destinatario, hora de envío, estado de entrega) los conserva Resend 30 días; no almacenamos el cuerpo de los correos tras la entrega.
 - **Lista de espera de planes de pago.** Si se apunta a la lista de espera en la página de precios, almacenamos su dirección de correo electrónico, el idioma con el que se apuntó, la versión del texto de consentimiento que aceptó, cuándo se apuntó y confirmó y, si había iniciado sesión, un vínculo con su cuenta. No almacenamos su dirección IP. Lo usamos únicamente para avisarle cuando se lancen los planes de pago. Su inscripción solo cuenta tras hacer clic en el enlace de confirmación que le enviamos por correo (doble confirmación); las inscripciones sin confirmar se eliminan a los 7 días. Cada correo incluye un enlace de baja que elimina su inscripción de inmediato; en caso contrario, eliminamos la lista como máximo 3 meses después de enviar el anuncio del lanzamiento. Al eliminar su cuenta también se elimina una inscripción vinculada, y su exportación de datos la incluye. El correo de confirmación se envía a través de Resend; la lista en sí se almacena en la base de datos PostgreSQL gestionada de OVHcloud en la UE.
+- **Invitaciones a espacios de trabajo.** Cuando un administrador de un espacio de trabajo invita a alguien por correo electrónico, conservamos la dirección introducida, el rol ofrecido y quién invitó en una invitación pendiente. Nadie se convierte en miembro sin aceptarla. La invitación se elimina cuando se acepta, se rechaza o se retira y, como máximo, a los 14 días. Si tienes una cuenta con esa dirección de correo, ves la invitación en markoto; si el correo está configurado, también se envía a través de Resend un correo de invitación con un enlace de un solo uso. Al eliminar tu cuenta se eliminan las invitaciones dirigidas a ti, y tu exportación de datos incluye las invitaciones pendientes que has recibido y enviado.
 
 ## 5b. Qué ocurre cuando elimina su cuenta
 
@@ -141,6 +142,8 @@ El uso de las funciones de IA requiere iniciar sesión. Son opcionales: el conte
 
 Usamos almacenamiento esencial (una cookie de sesión, una preferencia de idioma y su propia decisión de consentimiento) para mantener su sesión iniciada y recordar sus preferencias; esto no requiere consentimiento conforme a la Directiva ePrivacy. Solo usamos analítica de producto y grabación de sesiones con su consentimiento, que puede dar o retirar en cualquier momento desde el enlace «Opciones de privacidad» del pie de cada página.
 
+Si creas un documento sin iniciar sesión, tu navegador guarda además una clave de creador aleatoria en una cookie esencial, para que solo ese navegador pueda eliminar el documento más adelante. La clave no está vinculada a ti ni a ninguna cuenta; solo guardamos un hash de ella junto al documento.
+
 No usamos rastreadores publicitarios entre sitios y no vendemos ni compartimos datos con anunciantes.
 
 ## 10. Menores
@@ -174,6 +177,7 @@ Esta es la **versión {{currentVersion}}**, en vigor desde el **{{effectiveDate}
 
 ### Historial de cambios
 
+- **v7 (2026-10-27).** Se añadió el fin de tratamiento `workspace_invitations` (interés legítimo): cuando un administrador de un espacio de trabajo invita a alguien por correo electrónico, conservamos esa dirección, el rol ofrecido y quién invitó en una invitación pendiente hasta que la persona la acepte o la rechace, un administrador la retire o caduque a los 14 días. Nadie se une a un espacio de trabajo sin aceptarlo. Si el correo está configurado, se envía un correo de invitación por invitación a través de Resend (como máximo tres por dirección y día). Almacenado en OVHcloud (UE).
 - **v6 (2026-10-26), adaptación editorial al servicio exclusivamente gratuito.** Stripe y la facturación se describen como relevantes solo cuando se ofrezcan planes de pago (la lista de subencargados y el registro omiten Stripe mientras la facturación esté desactivada). El registro de fines del tratamiento ahora se muestra realmente en el apartado 13. Se corrigieron las afirmaciones sobre la conservación de los registros de auditoría, la limpieza de documentos anónimos (180 días de inactividad), el contador de interacciones retirado y la (inexistente) exclusión de la IA a nivel de cuenta.
 - **v6 (2026-10-26).** Se añadió el fin de tratamiento `user_directed_ai_provider`: puede conectar su propio proveedor de IA (chat, generación de imágenes, transcripción de voz). El contenido de esas funciones se envía entonces al proveedor que elija, en virtud de su acuerdo con él; almacenamos los ajustes de su proveedor con la clave de API cifrada en reposo hasta que los elimine o elimine su cuenta. La búsqueda web y la obtención de páginas las proporcionamos nosotros a todos los usuarios, incluidos quienes usan su propio proveedor de IA: las consultas de búsqueda van a Staan y las direcciones web obtenidas a Jina AI; además se conservan en Valkey contadores de uso por hora y por día por persona (solo marcas de tiempo, sin contenido).
 - **v5 (2026-10-26).** Se añadió el fin de tratamiento `paid_plans_waitlist` (consentimiento, doble confirmación): dirección de correo electrónico, idioma, registro del consentimiento y vínculo opcional con la cuenta, conservados hasta la baja o, como máximo, 3 meses después del anuncio del lanzamiento de los planes de pago; las inscripciones sin confirmar se eliminan a los 7 días. Almacenado en OVHcloud (UE); correos de confirmación a través de Resend.

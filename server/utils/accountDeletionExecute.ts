@@ -18,6 +18,8 @@ import {
 import { listAllJobsForUser } from '../repos/dataExportJobs'
 import { findUserById } from '../repos/users'
 import { deleteAllAiProvidersForUser } from '../repos/aiProviders'
+import { deleteInvitesForEmail } from '../repos/workspaceInvites'
+import { normaliseInviteEmail } from './workspaceInvites'
 import { deleteDocument } from './documentLifecycle'
 import { deleteKnowledgeArtifact } from './knowledgeAccess'
 import { useS3Client } from './s3'
@@ -94,6 +96,12 @@ export async function executeAccountDeletion(
   // CASCADE would drop them with the user row anyway; deleting
   // explicitly makes the count visible in the audit summary.
   summary.aiProvidersDeleted = await deleteAllAiProvidersForUser(userId)
+  // Pending invitations addressed to the user's email (someone else
+  // typed the address; the person is leaving, so it goes). Invites the
+  // user SENT keep existing for their workspace; `invited_by_user_id`
+  // is SET NULL by the FK with the user row.
+  const inviteEmail = normaliseInviteEmail(userRow.email)
+  summary.workspaceInvitesDeleted = inviteEmail === null ? 0 : await deleteInvitesForEmail(inviteEmail)
 
   const exportS3KeysToDelete = await collectExportS3Keys(userId, summary)
 
@@ -304,6 +312,7 @@ function emptySummary(): AccountDeletionSummary {
     dataExportJobsDeleted: 0,
     stripeCustomerDeleted: false,
     themesDeleted: 0,
-    aiProvidersDeleted: 0
+    aiProvidersDeleted: 0,
+    workspaceInvitesDeleted: 0
   }
 }

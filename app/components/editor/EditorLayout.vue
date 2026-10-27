@@ -26,6 +26,7 @@ const {
   isReadOnly,
   syncAuthFailed,
   isOwner,
+  canDelete,
   isDeleted,
   requiresPassword,
   forbidden,
@@ -622,8 +623,9 @@ const mobileMenuItems = computed(() => {
       }))
 
   // File actions — replaces the desktop EditorMenuBar's File menu on
-  // mobile. Owner-only items (Move / Delete / Duplicate's destructive
-  // half) gate via the same canManageDoc check the menu bar does.
+  // mobile. Owner-only items (Move / Duplicate) gate via the same
+  // canManageDoc check the menu bar does; Delete via the server's
+  // `canDelete` (also true for the browser that created an anonymous doc).
   // Order mirrors what users expect: New on top, then import/export,
   // then doc-level (duplicate/move/delete).
   const fileGroup = [
@@ -663,7 +665,11 @@ const mobileMenuItems = computed(() => {
             label: t('menubar.file.move'),
             icon: 'i-lucide-folder-input',
             onSelect: () => { showMoveModal.value = true }
-          },
+          }
+        ]
+      : []),
+    ...(canDelete.value
+      ? [
           {
             label: t('menubar.file.delete'),
             icon: 'i-lucide-trash-2',
@@ -1095,6 +1101,7 @@ const _statusIcon = computed(() => {
           :is-read-only="isReadOnly"
           :logged-in="loggedIn"
           :can-manage="canManageDoc"
+          :can-delete="canDelete"
           :right-sidebar="rightSidebar"
           :has-knowledge-access="hasKnowledgeAccess"
           :view-mode="viewMode"

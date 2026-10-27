@@ -28,6 +28,7 @@ const { t } = useI18n()
 // billing is off (self-hosted / free-only SaaS).
 const { billingEnabled } = useBillingMode()
 const toast = useToast()
+const { handleReauthRequired, showError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 const { status, refresh: refreshAccountStatus } = useAccountStatus()
 // Legal acceptance + consent sections only where the legal surfaces
@@ -45,6 +46,24 @@ function onClose(): void {
     router.back()
   } else {
     router.push('/')
+  }
+}
+
+// ─────────── Sessions ───────────
+// "Log out everywhere" bumps the server-side session epoch, which
+// invalidates every session cookie (other browsers, devices, and this
+// one), then runs the normal logout clean-up + hard reload.
+const { logout } = useLogout()
+const revokingSessions = ref(false)
+async function onLogoutEverywhere(): Promise<void> {
+  if (revokingSessions.value) return
+  revokingSessions.value = true
+  try {
+    await $fetch('/api/user/sessions/revoke', { method: 'POST' })
+    await logout()
+  } catch (e) {
+    showError('settings.profile.sessions.failed', e)
+    revokingSessions.value = false
   }
 }
 
@@ -117,6 +136,7 @@ async function onRequestExport(): Promise<void> {
     })
     await refreshExports()
   } catch (e) {
+    if (handleReauthRequired(e)) return
     const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not request export',
@@ -375,6 +395,31 @@ onBeforeUnmount(() => {
             </dd>
           </div>
         </dl>
+      </section>
+
+      <!-- Sessions — sign out of every browser and device. -->
+      <section
+        class="mb-10"
+        data-testid="profile-sessions-section"
+      >
+        <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
+          {{ t('settings.profile.sessions.heading') }}
+        </h2>
+        <div class="border border-default rounded-lg px-4 py-4">
+          <p class="text-sm text-muted mb-4">
+            {{ t('settings.profile.sessions.description') }}
+          </p>
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-log-out"
+            :loading="revokingSessions"
+            data-testid="logout-everywhere-button"
+            @click="onLogoutEverywhere"
+          >
+            {{ t('settings.profile.sessions.button') }}
+          </UButton>
+        </div>
       </section>
 
       <!-- ─────────────────────────────────────────────────────────────

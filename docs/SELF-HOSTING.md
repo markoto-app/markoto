@@ -266,7 +266,7 @@ See [AI](#ai): `NUXT_AI_DEFAULT_*`, `NUXT_AI_BYOK_ALLOWED_BASE_URLS`, `NUXT_AI_B
 
 ### Email (optional)
 
-Without email configuration, transactional emails (account-deletion confirmations, data-export links) are written to the app log as `[email-stub]` and every flow completes normally. The data export is still downloadable from the profile page.
+Without email configuration, transactional emails (account-deletion confirmations, data-export links) are written to the app log as `[email-stub]` and every flow completes normally. The data export is still downloadable from the profile page. Workspace invitations work without email too: the invitee sees the invitation on their dashboard after signing in with the invited address (with email configured they also get a one-time accept link; the link host comes from `NUXT_SITE_URL`).
 
 | Variable | Meaning |
 |---|---|
@@ -330,6 +330,9 @@ Changes that can need action when you upgrade an existing instance. Newest first
 
 | Change | Affects | What to do |
 |---|---|---|
+| **Workspace invitations must be accepted.** Inviting by email now creates a pending invitation; the person joins only after accepting it (dashboard, or the emailed link). Existing members are unaffected. | Workspace admins | Tell invitees to accept from their dashboard (they must sign in with the invited email address, or use the email link). |
+| **Anonymous documents can be deleted only from the browser that created them.** Anonymous documents created before this release can no longer be deleted through the app; the inactive-document clean-up still removes them. | Anonymous users | Nothing. |
+| **Sessions can be revoked, and some actions need a recent sign-in.** "Log out everywhere" is on the profile page; account deletion, data-export requests and AI-provider changes ask for a sign-in from the last 12 hours. | Everyone | Nothing; sign in again when asked. |
 | **`NUXT_SITE_URL` is required in production.** Email links are built only from it, never from the request's Host header. The self-host compose sets it from `MARKOTO_PUBLIC_URL`. | Instances run outside the shipped compose files | Set `NUXT_SITE_URL` to the public URL, or the app refuses to start. |
 | **Admin rights come only from the stored admin flag.** `NUXT_ADMIN_USER_EMAILS` promotes a user when they sign in with a verified email; an email on the list no longer grants admin before that sign-in. | Admins added to the list but not signed in since | Sign out and in again. |
 | **Document passwords need at least 8 characters** when set. Existing shorter passwords keep working. Password checks are limited per client, per document, and by failed attempts per document. | Everyone | Nothing. |

@@ -1,11 +1,46 @@
 import { eq } from 'drizzle-orm'
 import { documents } from '../../../db/schema'
+import { getDocWithActorRole } from '../../../repos/documents'
+import { hasValidDocJwt } from '../../../utils/docTokenVerify'
+import { renderTemplate } from '../../../utils/templateRenderer'
+import { decideTokenAccess } from '../../../../shared/utils/docPermissions'
 
+// GET /api/docs/:docId/meta — document metadata.
+//
+// Public route (whitelisted), but gated by the SAME decision as the
+// token endpoint (`decideTokenAccess`): a caller who couldn't open the
+// doc learns only what the editor needs to draw the gate —
+// `{ accessMode, requiresPassword, forbidden }` — never the title,
+// description, owner, theme or workspace. A visitor who unlocked a
+// password-protected doc proves it with the doc JWT from
+// `POST /password` (`Authorization: Bearer …`) and gets the full shape;
+// the editor uses that to hydrate theme + document context after the
+// unlock.
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
-  const db = useDatabase()
+  const session = await getValidatedUserSession(event)
+
+  const authz = await getDocWithActorRole(docId, session?.user?.id ?? null)
+  if (!authz) {
+    throw createError({ statusCode: 404, message: 'Document not found' })
+  }
+
+  const decision = decideTokenAccess(
+    { ownerId: authz.ownerId, workspaceId: authz.workspaceId, accessMode: authz.accessMode },
+    { userId: session?.user?.id ?? null, workspaceRole: authz.workspaceRole }
+  )
+  if (decision.outcome !== 'allow' && !hasValidDocJwt(event, docId)) {
+    return {
+      docId,
+      accessMode: authz.accessMode,
+      hasPassword: authz.accessMode === 'password-protected',
+      requiresPassword: decision.outcome === 'password-required',
+      forbidden: decision.outcome === 'forbidden'
+    }
+  }
 
   // Explicit projection — never ship `passwordHash` over a public endpoint.
+  const db = useDatabase()
   const doc = (await db
     .select({
       id: documents.id,
@@ -33,5 +68,17 @@ export default defineEventHandler(async (event) => {
 
   // Boolean is safe to expose; the hash itself is not.
   const hasPassword = doc.accessMode === 'password-protected'
-  return { ...doc, hasPassword }
+  return {
+    ...doc,
+    hasPassword,
+    requiresPassword: false,
+    forbidden: false,
+    // Rendered template body, same as the token endpoint ships — lets
+    // the editor seed an empty doc after a password unlock.
+    initialBody: renderTemplate(doc.templateId, {
+      title: doc.title,
+      description: doc.description,
+      language: doc.language
+    })
+  }
 })

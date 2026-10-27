@@ -37,6 +37,7 @@ interface TokenPayload {
   accessMode: string
   ownerId: number | null
   theme?: unknown
+  canDelete?: boolean
 }
 
 const response: { current: TokenPayload | Error } = {
@@ -438,5 +439,49 @@ describe('useDocToken — getFreshToken (F5)', () => {
   it('returns empty string when there is no token to refresh (forbidden / pre-fetch)', async () => {
     const t = useDocToken('doc-123')
     expect(await t.getFreshToken()).toBe('')
+  })
+})
+
+// After a password unlock the gated /token response carried no metadata;
+// `hydrateAfterUnlock` fetches it from /meta with the unlock JWT.
+const metaCalls: Array<{ authorization: string | undefined }> = []
+registerEndpoint('/api/docs/doc-123/meta', (event: { node: { req: { headers: Record<string, string | string[] | undefined> } } }) => {
+  const auth = event.node.req.headers.authorization
+  metaCalls.push({ authorization: typeof auth === 'string' ? auth : undefined })
+  return {
+    theme: null,
+    description: 'Secret plan',
+    audience: 'business',
+    language: 'de',
+    initialBody: '# Template'
+  }
+})
+
+describe('useDocToken — hydrateAfterUnlock', () => {
+  it('fetches /meta with the unlock JWT and seeds the initial refs', async () => {
+    metaCalls.length = 0
+    const t = useDocToken('doc-123')
+    await t.hydrateAfterUnlock('unlock-jwt')
+
+    expect(metaCalls).toEqual([{ authorization: 'Bearer unlock-jwt' }])
+    expect(t.initialDescription.value).toBe('Secret plan')
+    expect(t.initialAudience.value).toBe('business')
+    expect(t.initialLanguage.value).toBe('de')
+    expect(t.initialBody.value).toBe('# Template')
+  })
+})
+
+describe('useDocToken — canDelete', () => {
+  it('reflects the server-computed delete permission', async () => {
+    response.current = { token: 'jwt', readOnly: false, accessMode: 'open-edit', ownerId: null, canDelete: true }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    expect(t.canDelete.value).toBe(true)
+  })
+
+  it('defaults to false when the server omits it', async () => {
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    expect(t.canDelete.value).toBe(false)
   })
 })
