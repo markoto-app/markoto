@@ -77,11 +77,12 @@ export interface SanitizeCustomCssOptions {
    */
   allowedOrigins?: readonly string[]
   /**
-   * Appended to every surviving own-upload URL. The server render page
-   * uses it for the `?token=` file-access JWT (its headless Chromium has
-   * no session cookie).
+   * Maps every surviving own-upload URL (normalised to
+   * `/api/files/<docId>/<fileId>`) to the URL emitted. The server render
+   * page uses it to add its `?token=` file-access JWT to the document's
+   * confirmed uploads (its headless Chromium has no session cookie).
    */
-  fileUrlSuffix?: string
+  fileUrl?: (path: string) => string
 }
 
 const ALLOWED_AT_RULES = new Set([
@@ -219,7 +220,8 @@ function checkUrl(raw: string, opts: SanitizeCustomCssOptions): UrlCheck {
   if (opts.docId !== null && match[1] !== opts.docId) {
     return { ok: false, code: 'other-doc-file', message: 'This image belongs to another document. Upload it to this document and use its URL instead.' }
   }
-  return { ok: true, value: `/api/files/${match[1]}/${match[2]}${opts.fileUrlSuffix ?? ''}` }
+  const ownPath = `/api/files/${match[1]}/${match[2]}`
+  return { ok: true, value: opts.fileUrl ? opts.fileUrl(ownPath) : ownPath }
 }
 
 /** A Raw chunk css-tree couldn't parse may only be inert text. */

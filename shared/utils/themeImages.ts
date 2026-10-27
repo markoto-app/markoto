@@ -16,7 +16,7 @@
  */
 
 const ID_PART = '[A-Za-z0-9_-]{1,64}'
-const UPLOAD_PATH = String.raw`/api/files/(${ID_PART})/${ID_PART}\.(?:png|jpe?g|gif|webp)`
+const UPLOAD_PATH = String.raw`/api/files/(${ID_PART})/(${ID_PART}\.(?:png|jpe?g|gif|webp))`
 const BUNDLED_ASSET = String.raw`/markoto-logos/[a-z0-9-]{1,64}\.(?:svg|png)`
 
 /** `''` (no image), an upload path, or a bundled brand asset. */
@@ -34,6 +34,18 @@ export function isThemeImageUrlForDoc(url: unknown, docId: string): boolean {
   if (!isThemeImageUrl(url)) return false
   const upload = UPLOAD_PATH_RE.exec(url)
   return upload === null || upload[1] === docId
+}
+
+/**
+ * The file id when `url` is EXACTLY an image upload URL of `docId`
+ * (`/api/files/<docId>/<fileId>`, no query, fragment, origin or other
+ * path around it); null otherwise. The server render page only gives its
+ * file-access token to such URLs — see `app/utils/renderFileTokens.ts`.
+ */
+export function ownUploadFileId(url: unknown, docId: string): string | null {
+  if (typeof url !== 'string') return null
+  const upload = UPLOAD_PATH_RE.exec(url)
+  return upload?.[1] === docId ? upload[2] ?? null : null
 }
 
 /** The image fields of a `DocTheme`, so callers don't need the zod-derived type. */

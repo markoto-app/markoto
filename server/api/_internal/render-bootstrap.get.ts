@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import { verifyRenderToken } from '../../utils/renderTokens'
 import { getDoc } from '../../repos/documents'
 import { reconstructTextAtYjsId } from '../../utils/historyReplay'
+import { listConfirmedUploadsForDoc } from '../../repos/uploads'
 
 // Called from the internal print page (`app/pages/_internal/render/[docId].vue`)
 // during SSR. Validates the render-token, replays the doc's Y.js history to
@@ -57,7 +58,8 @@ export default defineEventHandler(async (event) => {
   // images come up blank in the PDF. The same JWT shape Hocuspocus
   // expects — extractToken / verifyDocJwt over in /api/files already
   // accepts it via `?token=` query, so the print page just appends it
-  // to every /api/files URL before paginating. Scoped to the docId so
+  // to this document's own upload URLs (`fileIds` below) before
+  // paginating. Scoped to the docId so
   // a stray hop can't pivot to other docs; 5-minute TTL is well
   // longer than any single render but short enough to be useless if
   // it leaks.
@@ -93,6 +95,11 @@ export default defineEventHandler(async (event) => {
     audience: doc.audience,
     language: doc.language,
     fileAccessToken,
+    // The document's confirmed uploads. The print page gives the token
+    // ONLY to `/api/files/<docId>/<fileId>` URLs naming one of these
+    // (app/utils/renderFileTokens.ts), never to arbitrary URLs in the
+    // content.
+    fileIds: (await listConfirmedUploadsForDoc(docId)).map(u => u.fileId),
     // Public app origin(s) — absolute `https://<app>/api/files/…` URLs in
     // custom CSS are treated as this app's (the print page itself is
     // served from the internal container origin, so it can't tell).
