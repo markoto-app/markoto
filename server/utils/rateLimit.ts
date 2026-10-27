@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from './valkey'
-import { isTestModeEnabled } from '../../shared/utils/testMode'
+import { isRateLimitBypassed } from '../../shared/utils/testMode'
 
 // Sliding-window-log rate limiter backed by Valkey sorted sets.
 //
@@ -102,7 +102,7 @@ export async function checkRateLimit(
   // behaviour has its own tests (unit + the real-Valkey concurrency test
   // in tests/repos/rateLimitAtomic.test.ts). Only honoured on instances
   // that don't look like a real deployment — see shared/utils/testMode.ts.
-  if (isTestModeEnabled()) return true
+  if (isRateLimitBypassed(namespace)) return true
 
   const zkey = `rl:${namespace}:${key}`
   const now = Date.now()
@@ -137,7 +137,7 @@ export async function isRateLimitExhausted(
   maxEvents: number,
   windowMs: number
 ): Promise<boolean> {
-  if (isTestModeEnabled()) return false
+  if (isRateLimitBypassed(namespace)) return false
   const zkey = `rl:${namespace}:${key}`
   try {
     const count = await useValkey().eval(SLIDING_WINDOW_COUNT_SCRIPT, 1, zkey, Date.now() - windowMs)
@@ -154,7 +154,7 @@ export async function recordRateLimitEvent(
   key: string,
   windowMs: number
 ): Promise<void> {
-  if (isTestModeEnabled()) return
+  if (isRateLimitBypassed(namespace)) return
   const zkey = `rl:${namespace}:${key}`
   const now = Date.now()
   try {
@@ -262,7 +262,7 @@ export async function consumeRateLimitBudget(
   maxCost: number,
   windowMs: number
 ): Promise<{ allowed: boolean, remaining: number }> {
-  if (isTestModeEnabled()) return { allowed: true, remaining: maxCost }
+  if (isRateLimitBypassed(namespace)) return { allowed: true, remaining: maxCost }
 
   const bkey = `rlb:${namespace}:${key}`
 
@@ -300,7 +300,7 @@ export async function reserveInflightSlot(
   maxSlots: number,
   ttlMs: number
 ): Promise<{ allowed: boolean, current: number }> {
-  if (isTestModeEnabled()) return { allowed: true, current: 0 }
+  if (isRateLimitBypassed(namespace)) return { allowed: true, current: 0 }
 
   const ckey = `inflight:${namespace}:${key}`
   try {
@@ -318,7 +318,7 @@ export async function reserveInflightSlot(
  * negative (Valkey `DECR` can; we clamp by deleting at zero).
  */
 export async function releaseInflightSlot(namespace: string, key: string): Promise<void> {
-  if (isTestModeEnabled()) return
+  if (isRateLimitBypassed(namespace)) return
   const ckey = `inflight:${namespace}:${key}`
   try {
     const valkey = useValkey()

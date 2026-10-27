@@ -11,6 +11,7 @@
 //   Fake OpenAI-compatible provider (BYOK): 4120 (test only)
 
 import { networkInterfaces } from 'node:os'
+import { MCP_RATE_LIMITS } from '../../../server/mcp/lib/mcpGate'
 
 export const TEST_PORT = 3101
 export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
@@ -24,6 +25,11 @@ export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
 // Postgres + Valkey; boots after the primary so migrations are no-ops.
 export const TEST_BILLING_OFF_PORT = 3102
 export const TEST_BILLING_OFF_BASE_URL = `http://127.0.0.1:${TEST_BILLING_OFF_PORT}`
+
+// Rate-limit namespaces the billing-off server enforces despite test mode
+// (`TEST_ENFORCE_RATE_LIMITS`, shared/utils/testMode.ts): every MCP limit,
+// so tests/integration/mcp/rateLimits.test.ts can exercise them.
+export const TEST_ENFORCED_MCP_RATE_LIMITS: readonly string[] = Object.values(MCP_RATE_LIMITS).map(rule => rule.namespace)
 
 // The DB name guard — fixtures.ts and resetDb refuse to run unless the
 // connection string points at exactly this name. Belt and braces so a

@@ -2,7 +2,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT } from './env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT } from './env'
 import { buildTestEnv } from './testEnv'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
 
@@ -244,6 +244,10 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   // SaaS BYOK policy: provider allowlist, no private networks.
   env.NUXT_AI_BYOK_ALLOWED_BASE_URLS = RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',')
   env.NUXT_AI_BYOK_ALLOW_PRIVATE_URLS = 'false'
+  // The MCP limits are ENFORCED on this server (test mode bypasses every
+  // other limit, here and on the primary): tests/integration/mcp/rateLimits.test.ts
+  // drives them over real HTTP. No other suite calls /mcp on this port.
+  env.TEST_ENFORCE_RATE_LIMITS = TEST_ENFORCED_MCP_RATE_LIMITS.join(',')
   env.NITRO_PORT = String(TEST_BILLING_OFF_PORT)
   env.PORT = String(TEST_BILLING_OFF_PORT)
   console.log(`[integration] starting billing-off production server on :${TEST_BILLING_OFF_PORT}`)
