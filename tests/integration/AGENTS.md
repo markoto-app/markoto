@@ -12,7 +12,7 @@ bun run test:integration
 docker compose -f docker-compose.test.yml down -v
 ```
 
-`bun run test:integration` does NOT manage docker — it expects the stack to already be up. CI handles up + down separately so the same compose file can serve both `test:integration` and `flows:test` (the flow stack adds `--profile flows` for `sync-test` + `markitdown-test`).
+`bun run test:integration` does NOT manage docker — it expects the stack to already be up. CI handles up + down separately so the same compose file can serve both `test:integration` and `flows:test` (the flow stack adds `--profile flows`; `sync-test` and `markitdown-test` always run — `endpoints/importLimits.test.ts` calls markitdown-test on host port 8081 directly).
 
 The Nitro subprocess is managed by `tests/integration/setup/server.ts`:
 

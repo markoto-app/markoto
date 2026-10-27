@@ -129,3 +129,25 @@ export function resolveOidcSettings(env: Env): OidcSettingsResult {
     errors
   }
 }
+
+/**
+ * The redirect URI registered at the IdP: `NUXT_OAUTH_OIDC_REDIRECT_URL`,
+ * else `<NUXT_SITE_URL>/auth/oidc`. Never derived from the request's Host
+ * header (client-controlled); null when neither is configured — boot
+ * validation (`oidcRedirectErrors`) refuses that shape.
+ */
+export function oidcRedirectUri(settings: Pick<OidcSettings, 'redirectUrl'>, siteUrl: unknown): string | null {
+  if (settings.redirectUrl) return settings.redirectUrl
+  if (typeof siteUrl !== 'string' || siteUrl.trim() === '') return null
+  try {
+    return new URL('/auth/oidc', siteUrl.trim()).toString()
+  } catch {
+    return null
+  }
+}
+
+/** Boot-time error when OIDC is configured but no redirect URI can be built. */
+export function oidcRedirectErrors(settings: Pick<OidcSettings, 'redirectUrl'> | null, siteUrl: unknown): string[] {
+  if (!settings || oidcRedirectUri(settings, siteUrl) !== null) return []
+  return ['OpenID Connect sign-in needs NUXT_OAUTH_OIDC_REDIRECT_URL or NUXT_SITE_URL (the redirect URI is never taken from the request Host header)']
+}

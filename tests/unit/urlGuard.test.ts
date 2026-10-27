@@ -15,7 +15,7 @@ const lookup = vi.hoisted(() =>
 
 vi.mock('node:dns/promises', () => ({ lookup }))
 
-const { assertSafeUrl, isPrivateIp } = await import('../../server/utils/agentic/urlGuard')
+const { assertSafeUrl, classifyIp, isPrivateIp, parseToolUrl } = await import('../../server/utils/agentic/urlGuard')
 
 beforeEach(() => {
   lookup.mockReset()
@@ -59,7 +59,7 @@ describe('isPrivateIp — IPv6', () => {
     ['fc00::1', true],
     ['fd00::1', true],
     ['fe80::1', true],
-    ['fec0::1', false], // outside fe80::/10
+    ['fec0::1', true], // site-local (deprecated, fec0::/10)
     ['ff02::1', true], // multicast
     ['::ffff:127.0.0.1', true], // IPv4-mapped loopback
     ['::ffff:8.8.8.8', false], // IPv4-mapped public
@@ -67,6 +67,70 @@ describe('isPrivateIp — IPv6', () => {
     ['2606:4700:4700::1111', false] // Cloudflare public
   ])('classifies %s as private=%s', (ip, expected) => {
     expect(isPrivateIp(ip)).toBe(expected)
+  })
+})
+
+// Regression (IPv6 classification): `new URL()` rewrites
+// `[::ffff:127.0.0.1]` to `[::ffff:7f00:1]`, which a dotted-only regex
+// missed; other IPv4-embedding forms fell through as "public".
+describe('classifyIp — IPv6 forms (table)', () => {
+  it.each([
+    // [address, class]
+    ['::ffff:7f00:1', 'forbidden'], //               IPv4-mapped loopback, hex form
+    ['::ffff:127.0.0.1', 'forbidden'], //            IPv4-mapped loopback, dotted form
+    ['0:0:0:0:0:ffff:7f00:0001', 'forbidden'], //    fully expanded
+    ['::ffff:a9fe:a9fe', 'forbidden'], //            IPv4-mapped metadata 169.254.169.254
+    ['::ffff:a00:1', 'private'], //                  IPv4-mapped 10.0.0.1
+    ['::ffff:808:808', 'public'], //                 IPv4-mapped 8.8.8.8
+    ['::7f00:1', 'forbidden'], //                    IPv4-compatible loopback
+    ['::127.0.0.1', 'forbidden'], //                 IPv4-compatible, dotted
+    ['::ffff:0:7f00:1', 'forbidden'], //             IPv4-translated loopback
+    ['64:ff9b::7f00:1', 'forbidden'], //             NAT64 loopback
+    ['64:ff9b::a9fe:a9fe', 'forbidden'], //          NAT64 metadata
+    ['64:ff9b::808:808', 'public'], //               NAT64 to a public v4
+    ['64:ff9b:1::1', 'private'], //                  NAT64 local-use
+    ['2002:7f00:1::', 'forbidden'], //               6to4 of 127.0.0.1
+    ['2002:a00:1::1', 'private'], //                 6to4 of 10.0.0.1
+    ['2002:808:808::1', 'public'], //                6to4 of 8.8.8.8
+    ['2001:0:4136:e378:8000:63bf:3fff:fdd2', 'forbidden'], // Teredo
+    ['2001:db8::1', 'forbidden'], //                 documentation
+    ['100::1', 'forbidden'], //                      discard-only
+    ['fec0::1', 'private'], //                       site-local
+    ['fd12:3456::1', 'private'], //                  unique-local
+    ['fd00:ec2::254', 'forbidden'], //               AWS IMDS v6
+    ['fe80::1%eth0', 'forbidden'], //                link-local with zone id
+    ['ff02::1', 'forbidden'], //                     multicast
+    ['::', 'forbidden'], //                          unspecified
+    ['::1', 'forbidden'], //                         loopback
+    ['4000::1', 'forbidden'], //                     outside 2000::/3 (reserved)
+    ['2606:4700:4700::1111', 'public'],
+    ['2001:4860:4860::8888', 'public'],
+    ['::ffff:1.2.3', 'forbidden'] //                 malformed → fail closed
+  ])('%s → %s', (ip, expected) => {
+    expect(classifyIp(ip)).toBe(expected)
+  })
+
+  it.each([
+    'http://[::ffff:127.0.0.1]/',
+    'http://[::ffff:7f00:1]:8080/',
+    'http://[::7f00:1]/',
+    'http://[64:ff9b::a9fe:a9fe]/latest/meta-data/',
+    'http://[2002:7f00:1::]/',
+    'http://[fec0::1]/'
+  ])('assertSafeUrl refuses %s', async (url) => {
+    await expect(assertSafeUrl(url)).rejects.toThrow(/private IP/i)
+  })
+})
+
+describe('parseToolUrl', () => {
+  it('returns the parsed form that callers must forward', () => {
+    expect(parseToolUrl('example.com/a b').href).toBe('https://example.com/a%20b')
+    // WHATWG treats "\" as "/" for http(s): the checked host is allowed.example.
+    expect(parseToolUrl('https://allowed.example\\@internal.example/').href).toBe('https://allowed.example/@internal.example/')
+  })
+
+  it('refuses URLs longer than the cap', () => {
+    expect(() => parseToolUrl(`https://example.com/${'a'.repeat(2100)}`)).toThrow(/longer than/i)
   })
 })
 

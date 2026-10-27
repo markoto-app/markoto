@@ -3,12 +3,12 @@
 #
 # Two use cases share this compose file via `profiles`:
 #
-#   1) Integration tests (vitest) — postgres + valkey + seaweedfs + stripe-mock.
+#   1) Integration tests (vitest) — postgres + valkey + seaweedfs + stripe-mock
+#      + litellm + sync + markitdown (its archive limits are tested directly).
 #      These services have NO profile, so they start by default with `up -d`.
 #
-#   2) Flow tests (Playwright) — also need sync (Hocuspocus) + markitdown.
-#      These are gated behind `profiles: [flows]` so integration runs don't
-#      pay the extra build/startup cost. Pull them in with `--profile flows`.
+#   2) Flow tests (Playwright) — the same services; `--profile flows` is
+#      kept for anything flow-only.
 #
 # Integration:
 #   bun run test:integration:up      # postgres + valkey + seaweedfs + stripe-mock
@@ -16,7 +16,7 @@
 #   bun run test:integration:down
 #
 # Flows:
-#   bun run flows:up                       # adds sync + markitdown to the above
+#   bun run flows:up                       # same stack, flows profile
 #   bun run flows:test                     # hermetic full lifecycle (up, prod build, run, down)
 #   bun run flows:test:against-running     # run against an already-running app at PLAYWRIGHT_BASE_URL
 #   bun run flows:down
@@ -287,11 +287,11 @@ services:
       timeout: 2s
       retries: 30
 
-  # ─── Flow-test extras (profile: flows) ─────────────────────────────
-  # Sync server + markitdown converter, only spun up when running
-  # Playwright flow tests. Integration tests don't need either:
-  # vitest doesn't open WS connections to Hocuspocus, and document
-  # imports are exercised at the API level with mocked responses.
+  # ─── Sync server + markitdown converter ────────────────────────────
+  # Both run in every test stack (the flows profile adds the rest of the
+  # Playwright stack). Integration tests call markitdown-test directly
+  # for its resource limits; the app server under test has no markitdown
+  # configured.
 
   sync-test:
     build:
@@ -361,9 +361,12 @@ services:
       retries: 10
       start_period: 5s
 
+  # Always on (no profile): the integration suite exercises markitdown's
+  # archive / memory / time limits directly
+  # (tests/integration/endpoints/importLimits.test.ts).
   markitdown-test:
     build: ./markitdown-server
-    profiles: ["flows"]
+    mem_limit: 1g
     restart: unless-stopped
     ports:
       - "8081:8080"

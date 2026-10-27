@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../shared/ai/providers'
+import { byokUrlPolicyErrors } from '../../server/utils/aiProviders/config'
 
 // The hosted SaaS shape is pure configuration: infra/render-env.sh (CI
 // deploys) and infra/templates/env.j2 (Ansible) render the .env that the
@@ -77,5 +78,44 @@ describe('Ansible env.j2 hosted defaults', () => {
   it('uses the same BYOK allowlist default as shared/ai/providers.ts', () => {
     const m = /NUXT_AI_BYOK_ALLOWED_BASE_URLS=\{\{ nuxt_ai_byok_allowed_base_urls \| default\('([^']*)'\) \}\}/.exec(template)
     expect(m?.[1]).toBe(RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(','))
+  })
+})
+
+// Regression (fail-open allowlist): prod compose passed `${VAR:-}`, so a
+// .env without the line meant "any public URL" on the hosted service.
+describe('compose files never default the hosted BYOK allowlist to empty', () => {
+  it('prod requires it', () => {
+    const prod = readFileSync(resolve(ROOT, 'docker-compose.prod.yml'), 'utf8')
+    expect(prod).toMatch(/NUXT_AI_BYOK_ALLOWED_BASE_URLS=\$\{NUXT_AI_BYOK_ALLOWED_BASE_URLS:\?/)
+  })
+
+  it('local (hosted shape: legal surfaces on) defaults to the SaaS list', () => {
+    const local = readFileSync(resolve(ROOT, 'docker-compose.local.yml'), 'utf8')
+    const m = /NUXT_AI_BYOK_ALLOWED_BASE_URLS=\$\{NUXT_AI_BYOK_ALLOWED_BASE_URLS:-([^}]*)\}/.exec(local)
+    expect(m?.[1]).toBe(RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(','))
+  })
+})
+
+describe('boot check of the BYOK URL policy', () => {
+  it('regression: the hosted shape with an empty allowlist refuses to boot', () => {
+    expect(byokUrlPolicyErrors({}, true).join(' ')).toMatch(/NUXT_AI_BYOK_ALLOWED_BASE_URLS is empty/)
+    expect(byokUrlPolicyErrors({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: ' , ' }, true)).toHaveLength(1)
+  })
+
+  it('the hosted shape with the SaaS list boots', () => {
+    expect(byokUrlPolicyErrors({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',') }, true)).toEqual([])
+  })
+
+  it('self-host may leave it empty (free-form URLs)', () => {
+    expect(byokUrlPolicyErrors({}, false)).toEqual([])
+  })
+
+  it('reports entries that are not absolute http(s) URLs in any shape', () => {
+    const errors = byokUrlPolicyErrors({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: 'https://api.mistral.ai/v1,api.openai.com/v1' }, false)
+    expect(errors.join(' ')).toContain('"api.openai.com/v1"')
+  })
+
+  it('a list with only invalid entries counts as empty on the hosted shape', () => {
+    expect(byokUrlPolicyErrors({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: 'not-a-url' }, true)).toHaveLength(2)
   })
 })

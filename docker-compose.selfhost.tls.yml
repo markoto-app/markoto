@@ -39,6 +39,9 @@ services:
       - "traefik.http.routers.markoto-app.rule=Host(`${MARKOTO_DOMAIN:?MARKOTO_DOMAIN required}`)"
       - "traefik.http.routers.markoto-app.entrypoints=websecure"
       - "traefik.http.routers.markoto-app.tls.certresolver=le"
+      - "traefik.http.routers.markoto-import.rule=Host(`${MARKOTO_DOMAIN}`) && Path(`/api/import`)"
+      - "traefik.http.routers.markoto-import.entrypoints=websecure"
+      - "traefik.http.routers.markoto-import.tls.certresolver=le"
 
   sync:
     labels:

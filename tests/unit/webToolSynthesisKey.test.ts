@@ -50,7 +50,7 @@ const byokProvider: ResolvedAiProvider = {
   capability: 'chat',
   source: 'user',
   model: 'gpt-5.4-mini',
-  credentials: { baseUrl: 'https://203.0.113.10/v1', apiKey: 'sk-user-own-provider-key' },
+  credentials: { baseUrl: 'https://93.184.215.14/v1', apiKey: 'sk-user-own-provider-key' },
   supportsVision: false
 }
 
@@ -103,7 +103,7 @@ describe('web_search synthesis billing key', () => {
     const body = lastBody()
     expect(body.model).toBe('byok/gpt-5.4-mini')
     expect(body.api_key).toBe('sk-user-own-provider-key')
-    expect(body.api_base).toBe('https://203.0.113.10/v1')
+    expect(body.api_base).toBe('https://93.184.215.14/v1')
   })
 
   it('returns the raw results without an LLM call when no chat provider is configured', async () => {
@@ -129,6 +129,16 @@ describe('fetch_url synthesis billing key', () => {
     await fetchUrl(undefined, '', 'https://example.com', neverAbort, { chatProvider: aliasProvider })
     expect(useLitellmAdmin).toHaveBeenCalled()
     expect(useLitellmForUser).not.toHaveBeenCalled()
+  })
+
+  // Regression (parser differential): the raw string was forwarded, so a
+  // reader that parses "\" differently from WHATWG could fetch another host
+  // than the one the guard checked.
+  it('forwards the parsed URL the guard checked, not the raw input', async () => {
+    stubFetch('jina')
+    await fetchUrl(undefined, '', 'https://allowed.example\\@internal.example/', neverAbort, { chatProvider: null })
+    const fetchMock = vi.mocked(fetch)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://r.jina.ai/https://allowed.example/@internal.example/')
   })
 
   it('returns the page text without an LLM call when no chat provider is configured', async () => {

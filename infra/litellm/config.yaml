@@ -212,11 +212,17 @@ model_list:
   # (server/utils/aiProviders/urlPolicy.ts), which is the authoritative
   # gate — LiteLLM v1.106.4 does NOT run its own `user_url_validation`
   # DNS check on a clientside api_base for this path (verified).
+  # The name list must cover every compose service / container / alias
+  # name, each optionally followed by a trailing dot (same name to a
+  # resolver); tests/unit/internalHostnames.test.ts checks it against the
+  # compose files. Redirects from the provider are NOT followed
+  # (custom_handlers.py sets follow_redirects=False on LiteLLM's shared
+  # HTTP clients), so the checked host is the only host contacted.
   - model_name: "byok/*"
     litellm_params:
       model: "openai/*"
       configurable_clientside_auth_params:
-        - api_base: '^https?://(?!(?:localhost|litellm|postgres|valkey|redis|sync|renderer|markitdown|app|traefik|backup|seaweedfs|metadata)(?:[:/]|$))(?!(?:127|0|169\.254)\.)(?!\[)[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[^\s?#@]*)?$'
+        - api_base: '^https?://(?!(?:localhost|app|markoto-app|backup|litellm|litellm-db-init|markitdown|postgres|renderer|s3-init|seaweedfs|sync|traefik|valkey|redis|fake-openai-test|litellm-test|litellm-test-db-init|markitdown-test|oidc-test|postgres-test|renderer-test|seaweedfs-test|stripe-mock|sync-test|valkey-test|metadata|metadata\.google\.internal)\.?(?:[:/]|$))(?!(?:127|0|169\.254)\.)(?!\[)[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[^\s?#@]*)?$'
     model_info:
       input_cost_per_token: 0
       output_cost_per_token: 0

@@ -16,12 +16,13 @@
 //     warning (some providers' lists are incomplete, so it does not
 //     block the save).
 //
-// Every message returned here is key-free (`redactSecret`).
+// Every message returned here is a fixed sentence: neither the key nor
+// any upstream response text reaches the user (`providerErrorMessage`).
 
 import type OpenAI from 'openai'
 import { useLitellmForUser } from '../litellmClient'
 import { litellmCompletion, litellmTranscription } from '../litellm/createCompletion'
-import { classifyProviderError, providerRequestFields, redactSecret } from './requestFields'
+import { PROVIDER_ERROR_MESSAGES, classifyProviderError, logProviderFailure, providerErrorMessage, providerRequestFields } from './requestFields'
 import type { ResolvedAiProvider } from './resolve'
 import type { AiCapability, VerifyCode } from '~~/shared/ai/providers'
 
@@ -43,18 +44,11 @@ const PROBE_TOOL: OpenAI.Chat.Completions.ChatCompletionTool = {
   }
 }
 
-const HARD_FAILURE_MESSAGES: Partial<Record<VerifyCode, string>> = {
-  'auth-failed': 'The provider rejected the API key.',
-  'model-not-found': 'The provider does not know this model id.',
-  'unreachable': 'The provider could not be reached.',
-  'unexpected-response': 'The provider returned an unexpected response.'
-}
-
 function failure(e: unknown, apiKey: string): VerifyResult {
   const code = classifyProviderError(e)
-  const detail = redactSecret(e instanceof Error ? e.message : String(e), apiKey).slice(0, 300)
-  const base = HARD_FAILURE_MESSAGES[code] ?? 'Verification failed.'
-  return { code, ok: false, supportsTools: null, message: `${base} (${detail})` }
+  // Fixed message only: the upstream response text stays in the server log.
+  logProviderFailure(code, e, apiKey)
+  return { code, ok: false, supportsTools: null, message: providerErrorMessage(code, e) }
 }
 
 /** 0.5 s of 16 kHz mono silence as a WAV file. */
@@ -133,7 +127,7 @@ async function verifyImage(provider: ResolvedAiProvider, apiKey: string): Promis
       signal: AbortSignal.timeout(10_000)
     })
     if (res.status === 401 || res.status === 403) {
-      return { code: 'auth-failed', ok: false, supportsTools: null, message: HARD_FAILURE_MESSAGES['auth-failed'] ?? '' }
+      return { code: 'auth-failed', ok: false, supportsTools: null, message: PROVIDER_ERROR_MESSAGES['auth-failed'] }
     }
     if (!res.ok) {
       // Some image-only endpoints don't implement /models. Reachable +
