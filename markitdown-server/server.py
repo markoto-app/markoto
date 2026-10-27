@@ -24,7 +24,8 @@ Resource guards (anonymous users can reach /convert through /api/import):
     anything that starts with the zip magic) are inspected before any
     converter sees them. Too many entries, too much uncompressed data
     (measured by actually inflating, not by trusting the headers) or an
-    extreme compression ratio → 413. A 300 KB DOCX that inflates to
+    extreme compression ratio → 413, as soon as the running total crosses
+    the limit (a bomb costs ~ratio x upload size of work, not 200 MB). A 300 KB DOCX that inflates to
     300 MB used to OOM-kill the worker.
   - Isolation: each conversion runs in a forked child process with an
     address-space limit and a wall-clock timeout. A converter that blows
@@ -39,6 +40,7 @@ import multiprocessing
 import os
 import resource
 import threading
+import time
 import zipfile
 
 from fastapi import FastAPI, Request, HTTPException
@@ -72,6 +74,10 @@ MAX_ARCHIVE_RATIO = _env_int("MARKITDOWN_MAX_COMPRESSION_RATIO", 100)
 # Ratios are only meaningful once there is something to expand: tiny
 # archives (a few KB of XML compress very well) are always fine.
 RATIO_FLOOR_BYTES = 10 * 1024 * 1024
+# Wall-clock budget for the inflate pass. The ratio check keeps the work
+# bounded by the upload size; this guarantees a deterministic 504 (never a
+# silent hang) if the host is too starved to finish it.
+ARCHIVE_CHECK_TIMEOUT_SECONDS = _env_int("MARKITDOWN_ARCHIVE_CHECK_TIMEOUT_SECONDS", 20)
 
 # Per-conversion child limits.
 CONVERT_TIMEOUT_SECONDS = _env_int("MARKITDOWN_TIMEOUT_SECONDS", 60)
@@ -96,21 +102,43 @@ app = FastAPI(title="markitdown-server", docs_url=None, redoc_url=None)
 
 
 class ArchiveRejected(Exception):
+    """The archive exceeds a limit. `inflated` = bytes inflated before giving up."""
+
+    def __init__(self, message: str, inflated: int = 0):
+        super().__init__(message)
+        self.inflated = inflated
+
+
+class ArchiveCheckTimeout(Exception):
     pass
 
 
-def check_archive(body: bytes) -> None:
-    """Raise ArchiveRejected when a zip container would expand too far.
+def archive_inflate_limit(body_length: int) -> int:
+    """How many bytes the archive may inflate to before it is refused.
+
+    The ratio allowance (never below the floor, so tiny archives are
+    always fine) capped by the absolute limit. Enforced WHILE inflating,
+    so a bomb is refused after ~ratio x upload size of work instead of
+    after inflating everything up to the absolute cap.
+    """
+    return min(MAX_ARCHIVE_UNCOMPRESSED_BYTES, max(RATIO_FLOOR_BYTES, MAX_ARCHIVE_RATIO * max(body_length, 1)))
+
+
+def check_archive(body: bytes, time_budget: float = ARCHIVE_CHECK_TIMEOUT_SECONDS) -> int:
+    """Return the inflated byte count; raise ArchiveRejected when a zip container would expand too far.
 
     Header sizes are attacker-controlled, so after the cheap header check
     every entry is inflated (in bounded chunks, output discarded) and the
-    real byte count is enforced.
+    real byte count is enforced against the ratio / absolute limit as it
+    grows. ArchiveCheckTimeout when inspection outlives `time_budget`.
     """
     try:
         archive = zipfile.ZipFile(io.BytesIO(body))
     except zipfile.BadZipFile:
         # Not a readable zip: let the converter produce its usual error.
-        return
+        return 0
+    deadline = time.monotonic() + time_budget
+    limit = archive_inflate_limit(len(body))
     with archive:
         entries = archive.infolist()
         if len(entries) > MAX_ARCHIVE_ENTRIES:
@@ -129,16 +157,22 @@ def check_archive(body: bytes) -> None:
                         if not chunk:
                             break
                         total += len(chunk)
-                        if total > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
-                            raise ArchiveRejected("archive expands beyond the size limit")
-            except ArchiveRejected:
+                        if total > limit:
+                            reason = (
+                                "archive expands beyond the size limit"
+                                if limit >= MAX_ARCHIVE_UNCOMPRESSED_BYTES
+                                else "archive compression ratio is too high"
+                            )
+                            raise ArchiveRejected(f"{reason} (stopped after {total} bytes)", total)
+                        if time.monotonic() > deadline:
+                            raise ArchiveCheckTimeout()
+            except (ArchiveRejected, ArchiveCheckTimeout):
                 raise
             except Exception:
                 # Corrupt / encrypted / unsupported entry: the converter
                 # reports it; we only care about expansion here.
                 continue
-        if total > RATIO_FLOOR_BYTES and total > MAX_ARCHIVE_RATIO * max(len(body), 1):
-            raise ArchiveRejected("archive compression ratio is too high")
+    return total
 
 
 def _child_convert(conn, body: bytes, ext: str) -> None:
@@ -215,7 +249,7 @@ def health() -> PlainTextResponse:
         415: {"description": "Markitdown does not support the requested format"},
         422: {"description": "Conversion failed (corrupt file, malformed input, etc.)"},
         501: {"description": "Format requires an optional dependency that isn't installed"},
-        504: {"description": "Conversion took longer than the time limit"},
+        504: {"description": "Archive inspection or conversion took longer than the time limit"},
     },
 )
 async def convert(request: Request) -> PlainTextResponse:
@@ -237,6 +271,8 @@ async def convert(request: Request) -> PlainTextResponse:
             await asyncio.to_thread(check_archive, body)
         except ArchiveRejected as e:
             raise HTTPException(413, f"Archive rejected: {e}")
+        except ArchiveCheckTimeout:
+            raise HTTPException(504, "Archive inspection took too long")
 
     # Markitdown reads StreamInfo to route to the right converter — extension
     # alone is enough for the formats we accept; mimetype is left to the
