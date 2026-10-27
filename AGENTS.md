@@ -52,7 +52,7 @@ This file holds project-wide context. Domain-specific detail lives next to the c
 
 ## 1. Architecture
 
-Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via HTTPS/WSS to Traefik, which routes to the Nuxt app container, the Hocuspocus sync container, and the headless Playwright renderer sidecar. App + sync + renderer all talk to PostgreSQL (managed) and Valkey (self-hosted). App talks to Hocuspocus over internal HTTP. Backup sidecar does daily `pg_dump → S3`. Markitdown (FastAPI) handles imports only.
+Browser (Nuxt 4 SSR + SPA with CodeMirror 6, Y.js, paged.js iframe) connects via HTTPS/WSS to Traefik, which routes to the Nuxt app container, the Hocuspocus sync container, and the headless Playwright renderer sidecar. App + sync + renderer all talk to PostgreSQL (managed) and Valkey (self-hosted). App talks to Hocuspocus over internal HTTP. Backup sidecar (unprivileged user) does daily `pg_dump | gzip | gpg → S3`, into its own `BACKUP_S3_*` bucket/credentials (default: the app's `NUXT_S3_*`; the app and renderer never receive them). Markitdown (FastAPI) handles imports only.
 
 **Key design principles**
 - **Full-stack Nuxt.** One Bun process serves SSR + Nitro API + OAuth. No CDN.

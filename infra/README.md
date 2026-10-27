@@ -86,7 +86,7 @@ A single entry point for "something noteworthy happened on the box, ping me." Dr
 **Call sites:**
 
 - **APT post-Invoke hook** (`roles/base/templates/markoto-apt-hook.j2`) — fires on every `apt-get install/upgrade` so unattended-upgrades surface in the operator's notifications without the legacy `mail` setup.
-- **Backup cron failure path** (`roles/backup_cron/tasks/main.yml`) — appends to `/var/log/markoto/backup-failures.log` AND fires `markoto-notify "[markoto] backup FAILED at $(date -u)"`. Soft-fails if Apprise isn't configured (the wrapper exits 0 with no URLs set), so the cron doesn't go red on a misconfigured host.
+- **Backup cron failure path** (`roles/backup_cron/tasks/main.yml`) — runs `/usr/local/bin/backup.sh --once` in the sidecar (non-zero exit on a failed dump/upload; `scripts/selfhost-check.sh` asserts that path exists in the built image), appends to `backup-cron-failures.log` AND fires `markoto-notify "Backup failed on <host>"`. Soft-fails if Apprise isn't configured (the wrapper exits 0 with no URLs set), so the cron doesn't go red on a misconfigured host.
 - **`playbooks/deploy.yml` post-deploy step** — fires success / failure summary including the new `IMAGE_TAG` and `/api/health` outcome.
 
 The wrapper is intentionally tiny (just a shell exec into `apprise --config /etc/markoto/apprise.env`). Adding a new call site = `markoto-notify "<message>"`. Don't shell out to `apprise` directly anywhere else; the wrapper centralises the env lookup + soft-fail behaviour.

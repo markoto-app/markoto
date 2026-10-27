@@ -66,6 +66,10 @@ Install options (each also readable from the environment variable shown):
   --tag TAG                     image tag (IMAGE_TAG; default: checked-out release tag, else latest)
   --build                       build images from this checkout instead of pulling
   --no-backup                   don't run the encrypted backup sidecar
+  --backup-s3-endpoint URL      store backups in a separate S3 (BACKUP_S3_ENDPOINT; default: the bundled storage)
+  --backup-s3-bucket NAME       (BACKUP_S3_BUCKET; default: the app's bucket)
+  --backup-s3-access-key KEY    (BACKUP_S3_ACCESS_KEY; default: the app's key)
+  --backup-s3-secret-key KEY    (BACKUP_S3_SECRET_KEY)
   --instance NAME               compose project / instance name (MARKOTO_INSTANCE, default markoto)
   --env-file PATH               where to keep the configuration (MARKOTO_ENV_FILE, default ./.env)
   --no-start                    write .env only
@@ -286,6 +290,12 @@ configure() {
   ensure_secret NUXT_S3_SECRET_KEY hex
   set_config NUXT_S3_BUCKET "" "markoto-files"
   ensure_secret BACKUP_GPG_PASSPHRASE hex
+  # Optional separate backup storage (only the backup sidecar receives it).
+  # Unset = the same bucket and keys as the app.
+  set_config BACKUP_S3_ENDPOINT "$OPT_BACKUP_S3_ENDPOINT"
+  set_config BACKUP_S3_BUCKET "$OPT_BACKUP_S3_BUCKET"
+  set_config BACKUP_S3_ACCESS_KEY "$OPT_BACKUP_S3_ACCESS_KEY"
+  set_config BACKUP_S3_SECRET_KEY "$OPT_BACKUP_S3_SECRET_KEY"
 
   # Admins.
   local admins="${OPT_ADMIN_EMAIL:-$(env_get NUXT_ADMIN_USER_EMAILS)}"
@@ -498,6 +508,10 @@ OPT_TAG="${IMAGE_TAG:-}"
 OPT_INSTANCE="${MARKOTO_INSTANCE:-}"
 OPT_BUILD=0
 OPT_NO_BACKUP=0
+OPT_BACKUP_S3_ENDPOINT="${BACKUP_S3_ENDPOINT:-}"
+OPT_BACKUP_S3_BUCKET="${BACKUP_S3_BUCKET:-}"
+OPT_BACKUP_S3_ACCESS_KEY="${BACKUP_S3_ACCESS_KEY:-}"
+OPT_BACKUP_S3_SECRET_KEY="${BACKUP_S3_SECRET_KEY:-}"
 OPT_NO_START=0
 if [ "${MARKOTO_YES:-0}" = 1 ] || [ ! -t 0 ]; then INTERACTIVE=0; fi
 
@@ -539,6 +553,10 @@ while [ $# -gt 0 ]; do
     --env-file) need_arg "$@"; ENV_FILE="$2"; shift ;;
     --build) OPT_BUILD=1 ;;
     --no-backup) OPT_NO_BACKUP=1 ;;
+    --backup-s3-endpoint) need_arg "$@"; OPT_BACKUP_S3_ENDPOINT="$2"; shift ;;
+    --backup-s3-bucket) need_arg "$@"; OPT_BACKUP_S3_BUCKET="$2"; shift ;;
+    --backup-s3-access-key) need_arg "$@"; OPT_BACKUP_S3_ACCESS_KEY="$2"; shift ;;
+    --backup-s3-secret-key) need_arg "$@"; OPT_BACKUP_S3_SECRET_KEY="$2"; shift ;;
     --no-start) OPT_NO_START=1 ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown option: $1 (see ./install.sh help)" ;;

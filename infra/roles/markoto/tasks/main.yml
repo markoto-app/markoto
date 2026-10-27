@@ -16,7 +16,10 @@
     mode: "{{ item.mode }}"
   loop:
     - {path: "{{ markoto_root }}", mode: "0750"}
-    - {path: "{{ markoto_root }}/secrets", mode: "0700"}
+    # 0711: traversable, not listable. The containers (the backup sidecar
+    # runs as uid 70) reach the public Postgres CA bundle inside it; every
+    # file in here keeps its own restrictive mode.
+    - {path: "{{ markoto_root }}/secrets", mode: "0711"}
     - {path: "{{ markoto_root }}/traefik", mode: "0750"}
 
 # Traefik refuses to start if acme.json is world-readable.
@@ -132,7 +135,9 @@
     dest: "{{ ovh_pg_ca_remote_path }}"
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
-    mode: "0600"
+    # A CA certificate is public. Readable by the unprivileged backup user
+    # (uid 70) so pg_dump can verify the managed Postgres.
+    mode: "0644"
   when: ovh_pg_host | length > 0
   failed_when: false
 

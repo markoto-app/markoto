@@ -79,6 +79,12 @@ image_tag=v9.9.9
 backup_interval_seconds=1234
 backup_retention_count=7
 backup_gpg_passphrase=v_gpg
+backup_s3_endpoint=https://backup-s3.example.test
+backup_s3_bucket=v_backup_bucket
+backup_s3_access_key=v_backup_ak
+backup_s3_secret_key=v_backup_sk
+backup_s3_region=v_backup_region
+backup_s3_prefix=v/backup/prefix
 PY
 
 # 1. env.j2 render (ansible var names). ovh_pg_host empty -> PGSSL=disable branch.
@@ -104,6 +110,40 @@ if diff <(echo "$jinja_out" | grep -E '^[A-Z]' | sort) \
   echo "PARITY OK — render-env.sh ≡ env.j2 for the KEY=VALUE set"
 else
   echo "PARITY FAILED — render-env.sh drifted from env.j2 (diff above)"
+  exit 1
+fi
+
+# 3b. Backup storage falls back to the app's S3 values when no BACKUP_S3_* is
+#     set, in BOTH renderers (and identically).
+declare -a NOBACKUP=()
+for kv in "${ENVARGS[@]}"; do
+  case "$kv" in BACKUP_S3_*) ;; *) NOBACKUP+=("$kv") ;; esac
+done
+fallback_out=$(env -i "${NOBACKUP[@]}" bash infra/render-env.sh)
+for pair in ENDPOINT:endpoint BUCKET:bucket ACCESS_KEY:access_key SECRET_KEY:secret_key; do
+  suffix="${pair%%:*}"
+  want=$(echo "$fallback_out" | grep -E "^NUXT_S3_${suffix}=" | cut -d= -f2-)
+  got=$(echo "$fallback_out" | grep -E "^BACKUP_S3_${suffix}=" | cut -d= -f2-)
+  if [ -z "$want" ] || [ "$want" != "$got" ]; then
+    echo "BACKUP FALLBACK FAILED — BACKUP_S3_${suffix} does not default to NUXT_S3_${suffix}"
+    exit 1
+  fi
+done
+jinja_fallback=$(python3 - <<PY
+import jinja2
+ctx = {k: v for k, v in (line.split('=',1) for line in """$VARS""".strip().splitlines()) if not k.startswith('backup_s3_')}
+ctx['ovh_pg_host'] = ''
+ctx['ovh_pg_ca_remote_path'] = '/opt/markoto/secrets/ovh-pg-ca.pem'
+t = jinja2.Template(open('infra/templates/env.j2').read(), undefined=jinja2.StrictUndefined,
+                    trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
+print(t.render(**ctx))
+PY
+)
+if diff <(echo "$jinja_fallback" | grep -E '^BACKUP_S3_' | sort) \
+        <(echo "$fallback_out"  | grep -E '^BACKUP_S3_' | sort); then
+  echo "BACKUP FALLBACK OK — BACKUP_S3_* defaults to NUXT_S3_* in render-env.sh and env.j2"
+else
+  echo "BACKUP FALLBACK FAILED — render-env.sh and env.j2 disagree on the defaults (diff above)"
   exit 1
 fi
 

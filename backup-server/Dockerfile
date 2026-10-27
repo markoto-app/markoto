@@ -18,5 +18,12 @@ RUN rm -f /usr/local/bin/gosu
 COPY backup.sh /usr/local/bin/backup.sh
 RUN chmod +x /usr/local/bin/backup.sh
 
+# Run unprivileged. The base image's `postgres` user (uid 70) is enough for
+# pg_dump / psql / aws / gpg; backup.sh keeps HOME and the gpg home under /tmp.
+# Where Postgres TLS pins a CA (PGSSLROOTCERT) that file must be readable by
+# uid 70 — see roles/markoto (CA file mode) and docs/LAUNCH-CHECKLIST.md.
+ENV HOME=/tmp
+USER postgres
+
 ENTRYPOINT []
 CMD ["/usr/local/bin/backup.sh"]

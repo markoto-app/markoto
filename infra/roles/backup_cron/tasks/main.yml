@@ -1,8 +1,11 @@
 ---
 # Belt-and-braces cron. The in-stack `backup` sidecar is the primary path;
 # this is the safety net for "the sidecar silently stopped working".
-# Triggers a one-shot backup via the same container's /backup.sh entry-point
-# at 03:00 UTC daily and writes a stdout/stderr log. Failures append to
+# Triggers a one-shot backup via the same container's backup.sh entry-point
+# (/usr/local/bin/backup.sh, the path the image installs; CI asserts it
+# resolves in the built image) at 03:00 UTC daily and writes a stdout/stderr
+# log. backup.sh --once exits non-zero when the dump or upload failed, which
+# is what raises the markoto-notify alert below. Failures append to
 # /opt/markoto/backup-cron-failures.log so a daily `tail` shows alerts.
 
 - name: Install daily backup-trigger cron
@@ -20,7 +23,7 @@
     # forever and stack an orphaned loop process every night.
     job: >-
       cd {{ markoto_root }} &&
-      docker compose -f docker-compose.prod.yml exec -T backup /backup.sh --once
+      docker compose -f docker-compose.prod.yml exec -T backup /usr/local/bin/backup.sh --once
       >> {{ markoto_root }}/backup-cron.log 2>&1
       || (
       ec=$?;

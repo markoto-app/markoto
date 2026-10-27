@@ -353,7 +353,21 @@ With the `backup` profile (default), the `backup` service runs `pg_dump` once a 
 
 Postgres holds everything that matters: accounts, documents and their full edit history, comments, workspaces, knowledge text and vectors. The bucket holds uploaded images (and transient renders and exports).
 
-**The backups are on the same disk as the data.** Copy them off the machine. The backup image has the aws CLI and the credentials, so for example (from the repository directory, e.g. in a nightly cron job):
+**The backups are on the same disk as the data.** Either point the backup service at a separate S3 (below) or copy them off the machine.
+
+By default the backups go into the same bucket, with the same credentials, as the app's files. To use another S3-compatible store, set these in `.env` (or `./install.sh --backup-s3-endpoint URL --backup-s3-bucket NAME --backup-s3-access-key KEY --backup-s3-secret-key SECRET`) and run `docker compose up -d`:
+
+| Variable | Default |
+|---|---|
+| `BACKUP_S3_ENDPOINT` | the bundled SeaweedFS |
+| `BACKUP_S3_BUCKET` | the app's bucket (`NUXT_S3_BUCKET`); a different bucket name on the bundled SeaweedFS is created for you |
+| `BACKUP_S3_ACCESS_KEY`, `BACKUP_S3_SECRET_KEY` | the app's keys |
+| `BACKUP_S3_REGION` | `us-east-1` |
+| `BACKUP_S3_PREFIX` | `backups/postgres` |
+
+Only the backup service receives them. For an external store, create a bucket with versioning (and object lock if you can) and a key limited to that bucket. A failed backup makes `docker compose run --rm --no-deps backup /usr/local/bin/backup.sh --once` exit non-zero and shows in `docker compose logs backup`.
+
+The following copies the backups off the machine. The backup image has the aws CLI and the credentials, so for example (from the repository directory, e.g. in a nightly cron job):
 
 ```sh
 docker compose run --rm --no-deps -v "$PWD/backup-copy:/out" --entrypoint sh backup -c \

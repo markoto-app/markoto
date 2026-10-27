@@ -275,7 +275,7 @@ services:
   backup:
     build: ./backup-server
     environment:
-      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-http://seaweedfs:8333}
       - BACKUP_INTERVAL_SECONDS=3600
       # SeaweedFS rejects the SSE-S3 header (InternalError) — see backup.sh.
       - S3_SSE=none
