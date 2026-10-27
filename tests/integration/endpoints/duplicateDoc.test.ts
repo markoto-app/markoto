@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { nanoid } from 'nanoid'
+import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
@@ -424,5 +427,72 @@ describe('POST /api/docs/:docId/duplicate', () => {
       // Suppress unused warnings.
       void doc
     })
+  })
+})
+
+// Regression: duplicated images kept the ORIGINAL uploader and were never
+// counted, so any workspace editor could multiply a colleague's images
+// (and fill the author's quota) without limit.
+describe('POST /api/docs/:docId/duplicate — image storage quota', () => {
+  const s3 = new S3Client({
+    endpoint: 'http://127.0.0.1:8334',
+    region: 'us-east-1',
+    credentials: { accessKeyId: 'ypad-access-key', secretAccessKey: 'ypad-secret-key' },
+    forcePathStyle: true
+  })
+  const keys: string[] = []
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  afterEach(async () => {
+    for (const Key of keys.splice(0)) {
+      await s3.send(new DeleteObjectCommand({ Bucket: 'ypad', Key })).catch(() => {})
+    }
+  })
+
+  async function confirmedUpload(docId: string, uploaderId: number, sizeBytes: number): Promise<string> {
+    const fileId = `${nanoid(12)}.png`
+    const s3Key = `docs/${docId}/${fileId}`
+    await testDb().query(
+      `INSERT INTO uploads (doc_id, file_id, uploader_id, content_type, size_bytes, s3_key, confirmed_at)
+       VALUES ($1, $2, $3, 'image/png', $4, $5, now())`,
+      [docId, fileId, uploaderId, sizeBytes, s3Key]
+    )
+    return fileId
+  }
+
+  it('attributes the copied images to the duplicator', async () => {
+    const author = await createUser()
+    const colleague = await createUser()
+    const ws = await createWorkspace(author.id)
+    await setMemberRole(ws.workspaceId, colleague.id, 'editor')
+    const source = await createDoc({ ownerId: author.id, workspaceId: ws.workspaceId, accessMode: 'private' })
+    const fileId = await confirmedUpload(source.docId, author.id, 3)
+    await s3.send(new PutObjectCommand({ Bucket: 'ypad', Key: `docs/${source.docId}/${fileId}`, Body: 'png', ContentType: 'image/png' }))
+    keys.push(`docs/${source.docId}/${fileId}`)
+
+    const res = await (await loggedInClient(colleague.id)).post(`/api/docs/${source.docId}/duplicate`, {})
+    expect(res.status).toBe(200)
+    const { docId } = await res.json() as { docId: string }
+    keys.push(`docs/${docId}/${fileId}`)
+    const copy = await testDb().query<{ uploader_id: number }>('SELECT uploader_id FROM uploads WHERE doc_id = $1', [docId])
+    expect(copy.rows).toEqual([{ uploader_id: colleague.id }])
+  })
+
+  it('refuses with 409 upload/storage-quota when the copies would exceed the duplicator\'s quota', async () => {
+    const author = await createUser()
+    const colleague = await createUser()
+    const ws = await createWorkspace(author.id)
+    await setMemberRole(ws.workspaceId, colleague.id, 'editor')
+    const source = await createDoc({ ownerId: author.id, workspaceId: ws.workspaceId, accessMode: 'private' })
+    await confirmedUpload(source.docId, author.id, TIERS.free.imageBytesPerUser + 1)
+
+    const res = await (await loggedInClient(colleague.id)).post(`/api/docs/${source.docId}/duplicate`, {})
+    expect(res.status).toBe(409)
+    expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('upload/storage-quota')
+    const owned = await testDb().query<{ c: string }>('SELECT count(*) AS c FROM documents WHERE owner_id = $1', [colleague.id])
+    expect(Number(owned.rows[0]?.c)).toBe(0)
   })
 })

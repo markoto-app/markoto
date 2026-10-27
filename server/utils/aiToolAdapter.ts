@@ -54,7 +54,8 @@ import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
 import { decideTokenAccess } from '~~/shared/utils/docPermissions'
 import { openTrustedCommentClient } from './commentsServerClient'
-import { recordPending, markConfirmed } from '../repos/uploads'
+import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesByUploader } from '../repos/uploads'
+import { imageQuotaMessage, resolveImageQuotaBytes } from './imageQuota'
 import { getKnowledgeWithMarkdown, searchKnowledge } from '../repos/knowledge'
 import { getMemberRole } from '../repos/workspaceMembers'
 import {
@@ -804,7 +805,11 @@ export async function handleDuplicateDocument(
         workspaceId: targetWorkspaceId,
         title
       },
-      { s3: useS3Client(), bucket: config.s3.bucket }
+      {
+        s3: useS3Client(),
+        bucket: config.s3.bucket,
+        imageQuotaBytes: await resolveImageQuotaBytes(session.initiatorUserId)
+      }
     )
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Duplicate failed'
@@ -1353,6 +1358,14 @@ export async function handleGenerateImage(
   // error string).
   session.updateStatus('tool', 'Generating image…')
 
+  // 1. Image storage quota — checked BEFORE generating so a full quota
+  //    doesn't burn the user's AI budget on an image we can't store. The
+  //    atomic reservation (with the real size) happens before the PUT.
+  const quotaBytes = await resolveImageQuotaBytes(session.initiatorUserId)
+  if (await sumImageBytesByUploader(session.initiatorUserId) >= quotaBytes) {
+    return err(`Error: ${imageQuotaMessage(quotaBytes)}`)
+  }
+
   // 2. Generate. The 5-minute loop deadline is the effective cap — we
   //    don't thread a finer-grained signal here.
   const controller = new AbortController()
@@ -1377,6 +1390,33 @@ export async function handleGenerateImage(
   const s3 = useS3Client()
   const config = useRuntimeConfig()
 
+  // 3a. Reserve the bytes (pending `uploads` row) atomically against the
+  //     quota BEFORE the PUT, so concurrent generations can't overshoot.
+  //     Skipped for the anonymous-doc edge case (no FK target). A DB
+  //     failure stays non-fatal: an S3 object with no row still serves,
+  //     it is just reaped later by orphan-cleanup.
+  const doc = await getDoc(session.docId)
+  let rowReserved = false
+  if (doc) {
+    try {
+      const reservation = await reservePendingUpload({
+        docId: session.docId,
+        fileId: fileIdWithExt,
+        uploaderId: session.initiatorUserId,
+        contentType: gen.mimeType,
+        sizeBytes: gen.bytes.byteLength,
+        s3Key: key
+      }, quotaBytes)
+      if (!reservation.reserved) return err(`Error: ${imageQuotaMessage(quotaBytes)}`)
+      rowReserved = true
+    } catch (e) {
+      console.warn(`[aiToolAdapter] uploads row insert failed for ${key}:`, e)
+      Sentry.captureException(e, {
+        tags: { component: 'aiToolAdapter', event: 'uploads_row_insert_failed', s3Key: key }
+      })
+    }
+  }
+
   try {
     await s3.send(new PutObjectCommand({
       Bucket: config.s3.bucket,
@@ -1395,26 +1435,17 @@ export async function handleGenerateImage(
       // silently breaking only the AI-image flow.
     }))
   } catch (e) {
+    if (rowReserved) {
+      await deletePending(key, session.initiatorUserId).catch(() => { /* reaped after 24 h */ })
+    }
     const msg = e instanceof Error ? e.message : 'Unknown error'
     return err(`Error: failed to upload generated image: ${msg}`)
   }
 
-  // 3. Record pending + confirm in the uploads table so orphan-cleanup
-  //    doesn't reap it. Skip for anonymous-doc edge case (no FK target)
-  //    — same behaviour as /api/upload/request. Best-effort: an S3
-  //    object with no DB row still serves correctly; it just risks being
-  //    cleaned up later if anonymous→owned promotion doesn't reconcile.
-  const doc = await getDoc(session.docId)
-  if (doc) {
+  // 3b. Confirm the row so orphan-cleanup doesn't reap it. Server-written
+  //     bytes never had a presigned URL, so no staging copy is needed.
+  if (rowReserved) {
     try {
-      await recordPending({
-        docId: session.docId,
-        fileId: fileIdWithExt,
-        uploaderId: session.initiatorUserId,
-        contentType: gen.mimeType,
-        sizeBytes: gen.bytes.byteLength,
-        s3Key: key
-      })
       await markConfirmed(key)
     } catch (e) {
       // Non-fatal — see note above.

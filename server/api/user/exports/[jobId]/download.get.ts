@@ -65,10 +65,12 @@ export default defineEventHandler(async (event) => {
       Bucket: config.s3.bucket,
       Key: job.s3Key,
       ResponseContentDisposition: `attachment; filename="${filename}"`,
-      ResponseContentType: 'application/zip'
+      ResponseContentType: 'application/zip',
+      // The download itself is per-user data too.
+      ResponseCacheControl: PRIVATE_NO_STORE
     }),
     { expiresIn: 5 * 60 }
   )
 
-  return sendRedirect(event, url, 302)
+  return sendPrivateRedirect(event, url)
 })

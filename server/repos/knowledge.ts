@@ -191,6 +191,16 @@ export async function deleteKnowledgeRow(knowledgeId: string): Promise<void> {
     .where(eq(workspaceKnowledge.knowledgeId, knowledgeId))
 }
 
+/**
+ * Every original key a knowledge row points at (any status). The
+ * orphan sweep keeps exactly these and deletes other knowledge objects.
+ */
+export async function listAllKnowledgeS3Keys(): Promise<string[]> {
+  const db = useDatabase()
+  const rows = await db.select({ s3Key: workspaceKnowledge.s3Key }).from(workspaceKnowledge)
+  return rows.map(r => r.s3Key)
+}
+
 export interface SearchHit {
   knowledgeId: string
   filename: string

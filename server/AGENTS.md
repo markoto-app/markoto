@@ -139,7 +139,8 @@ A leak of one minted token cannot pivot to another scope: `verifyRenderToken` re
 
 `server/plugins/` runs at boot. Naming uses numeric prefixes for load order (`00-db-migrate.ts` before `99-shutdown.ts`). Background sweepers:
 
-- `orphan-cleanup` — removes pending uploads with no DB row.
+- `orphan-cleanup` — hourly: unconfirmed image uploads (24 h), untracked objects under live doc prefixes, deleted docs' prefixes, and knowledge objects (final or staging) with no `workspace_knowledge` row after 1 h (`utils/knowledgeOrphanSweep.ts`).
+- `image-gc-sweep` — every 6 h: deletes confirmed doc images referenced nowhere (doc, restorable history, other docs, themes, comments) for `NUXT_IMAGE_GC_RETENTION_DAYS` (default 30, 0 = off). See `utils/imageGc.ts`.
 - `ai-session-sweep` — aborts AI sessions older than 7 min (above the 5-min prompt deadline).
 - `ai-records-sweep` — enforces the privacy policy's 90-day retention on AI prompt/tool-call records (`ai_session_messages`) + reaps orphaned `ai_sessions` past 90 days. Distinct from `ai-session-sweep` (that's a 7-min in-flight abort; this is the GDPR retention purge). See `server/utils/aiRecordsSweep.ts`.
 - `inactive-doc-sweep` — flags stale anonymous docs.

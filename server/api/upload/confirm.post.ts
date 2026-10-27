@@ -1,15 +1,21 @@
-import { HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { confirmOwnUpload, deletePending, findOwnUpload } from '../../repos/uploads'
+import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
+import { confirmOwnUploadWithinQuota, deletePending, findOwnUpload } from '../../repos/uploads'
 import { getDocWithActorRole } from '../../repos/documents'
 import { requireContentMatchesExtension } from '../../utils/fileTypeGuard'
-import { parseUploadKey } from '../../utils/uploadKey'
+import { parseUploadKey, stagingKeyFor } from '../../utils/uploadKey'
 import { canWriteDocContent } from '../../utils/documentAccess'
+import { imageQuotaError, resolveImageQuotaBytes } from '../../utils/imageQuota'
 
 // The key is client-supplied, so it is never trusted by itself: it must have
 // the exact shape `/api/upload/request` mints AND resolve to an `uploads` row
 // issued to the calling user. Anything else is a 404 BEFORE any S3 call (no
 // existence oracle, and DeleteObject can only ever reach a key we issued to
 // this user — the bucket also holds backups).
+//
+// The browser PUT lands on the staging key (`docs/{docId}/staging/{file}`).
+// Confirm copies it to the final key and sniffs the COPY: the presigned URL
+// stays valid for its lifetime and can rewrite the staging object at any
+// time, but never the final object `/api/files` serves.
 function notFound() {
   return createError({ statusCode: 404, message: 'Upload not found' })
 }
@@ -25,6 +31,22 @@ function requireStoredContentType(stored: string | undefined, expected: string):
     })
   }
 }
+
+/** The stored size must be the size the upload was requested (and reserved) for. */
+function requireStoredSize(stored: number | undefined, expected: number): void {
+  if (stored !== expected) {
+    throw createError({
+      statusCode: 400,
+      message: 'Uploaded object size does not match the requested size.',
+      data: { code: 'upload/size-mismatch' }
+    })
+  }
+}
+
+// One confirm per key at a time: a failing confirm deletes the final
+// object, which must never race a concurrent confirm that succeeded.
+const CONFIRM_LOCK_NS = 'upload-confirm'
+const CONFIRM_LOCK_TTL_MS = 60_000
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -63,41 +85,88 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'No write access to this document' })
   }
 
+  if (!(await tryAcquireSessionLock(CONFIRM_LOCK_NS, key, CONFIRM_LOCK_TTL_MS))) {
+    throw createError({
+      statusCode: 409,
+      message: 'This upload is already being confirmed. Try again in a moment.',
+      data: { code: 'upload/confirm-in-progress' }
+    })
+  }
+  try {
+    return await confirmUpload({ key, userId, row, ext: parsed.ext })
+  } finally {
+    await releaseSessionLock(CONFIRM_LOCK_NS, key)
+  }
+})
+
+async function confirmUpload(args: {
+  key: string
+  userId: number
+  row: { contentType: string, sizeBytes: number }
+  ext: string
+}) {
+  const { key, userId, row } = args
   const s3 = useS3Client()
-  const config = useRuntimeConfig()
+  const bucket = useRuntimeConfig().s3.bucket
+  const stagingKey = stagingKeyFor(key)
+
+  const discard = async () => {
+    try {
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: stagingKey }))
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+      await deletePending(key, userId)
+    } catch { /* orphan-cleanup sweeper covers it */ }
+  }
 
   let head
   try {
-    head = await s3.send(new HeadObjectCommand({
-      Bucket: config.s3.bucket,
-      Key: key
-    }))
+    head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: stagingKey }))
   } catch {
+    // Not landed (yet): keep the pending row so the client can retry.
     throw createError({ statusCode: 404, message: 'Upload not found in S3' })
   }
 
-  // Stored type + magic-byte sniff. The presigned PUT binds the
-  // Content-Type header S3 records (signed in /upload/request), not the
-  // actual bytes. Both must match the requested image type; on mismatch
-  // we 415 AND delete the caller's own pending object + row so garbage
-  // can't pile up in the bucket.
+  // Stored type + size + magic-byte sniff. The presigned PUT binds the
+  // Content-Type header and length S3 records (signed in /upload/request),
+  // not the actual bytes. On mismatch we 415 AND delete the caller's own
+  // pending objects + row so garbage can't pile up in the bucket.
   try {
     requireStoredContentType(head.ContentType, row.contentType)
-    await requireContentMatchesExtension({ s3Key: key, ext: parsed.ext })
+    requireStoredSize(head.ContentLength, row.sizeBytes)
+    // Copy first, then sniff the copy: bytes PUT to the staging key after
+    // this point never reach the final key.
+    await s3.send(new CopyObjectCommand({
+      Bucket: bucket,
+      CopySource: `/${bucket}/${stagingKey}`,
+      Key: key,
+      ContentType: row.contentType,
+      MetadataDirective: 'REPLACE'
+    }))
+    await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: stagingKey }))
+    await requireContentMatchesExtension({ s3Key: key, ext: args.ext })
   } catch (e) {
-    try {
-      await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: key }))
-      await deletePending(key, userId)
-    } catch { /* orphan-cleanup sweeper covers it */ }
+    await discard()
     throw e
   }
 
-  // Atomic flip; false means a concurrent confirm won, which is fine.
-  await confirmOwnUpload(key, userId)
+  // Quota re-check + atomic flip. The row's bytes were reserved at request
+  // time; this only refuses when the user is over quota NOW (e.g. a lower
+  // quota was configured since). 'missing' = the row vanished meanwhile
+  // (doc deleted) → the object has no owner, drop it.
+  const quotaBytes = await resolveImageQuotaBytes(userId)
+  const outcome = await confirmOwnUploadWithinQuota(key, userId, quotaBytes)
+  if (outcome === 'over-quota') {
+    await discard()
+    throw imageQuotaError(quotaBytes)
+  }
+  if (outcome === 'missing') {
+    await discard()
+    throw notFound()
+  }
 
   return {
     success: true,
-    size: head.ContentLength,
-    contentType: head.ContentType
+    size: row.sizeBytes,
+    contentType: row.contentType
   }
-})
+}

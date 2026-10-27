@@ -138,6 +138,9 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(location).toContain(`renders/${doc.docId}/`)
       expect(location).toContain('document.pdf')
       expect(location).toMatch(/response-content-disposition=attachment/i)
+      // Neither the redirect nor the PDF bytes may land in a shared cache.
+      expect(res.headers.get('cache-control')).toBe('private, no-store')
+      expect(location).toMatch(/response-cache-control=private%2C%20no-store/i)
 
       await wipeRendersFor(doc.docId)
     }, 60_000)

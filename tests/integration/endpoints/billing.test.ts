@@ -30,12 +30,16 @@ describe('GET /api/user/billing', () => {
       workspacesOwnedLimit: number
       knowledgeFilesLimit: number
       knowledgeBytesPerUserLimit: number
+      imageBytesPerUserLimit: number
+      imageBytesUsed: number
       periodStart: string
     }
     expect(body.plan).toBe('free')
     expect(body.workspacesOwnedLimit).toBe(TIERS.free.workspacesOwned)
     expect(body.knowledgeFilesLimit).toBe(TIERS.free.knowledgeFiles)
     expect(body.knowledgeBytesPerUserLimit).toBe(TIERS.free.knowledgeBytesPerUser)
+    expect(body.imageBytesPerUserLimit).toBe(TIERS.free.imageBytesPerUser)
+    expect(body.imageBytesUsed).toBe(0)
     // ISO string on the first of some month at midnight UTC.
     expect(body.periodStart).toMatch(/^\d{4}-\d{2}-01T00:00:00\.000Z$/)
   })

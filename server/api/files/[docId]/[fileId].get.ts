@@ -79,5 +79,5 @@ export default defineEventHandler(async (event) => {
     { expiresIn: 120 }
   )
 
-  return sendRedirect(event, url, 302)
+  return sendPrivateRedirect(event, url)
 })

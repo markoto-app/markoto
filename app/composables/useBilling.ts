@@ -12,6 +12,9 @@ export interface UserBilling {
   knowledgeFilesLimit: number
   knowledgeBytesUsed: number
   knowledgeBytesPerUserLimit: number
+  /** Document image storage (pending uploads included) vs. the per-user quota. */
+  imageBytesUsed: number
+  imageBytesPerUserLimit: number
 }
 
 /**

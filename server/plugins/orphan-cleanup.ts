@@ -3,16 +3,21 @@ import * as Sentry from '@sentry/nuxt'
 import { listAllDocIds } from '../repos/documents'
 import { listStaleUnconfirmed, purgeStaleUnconfirmed, listAllS3Keys } from '../repos/uploads'
 import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { sweepKnowledgeOrphans } from '../utils/knowledgeOrphanSweep'
+import { s3ObjectStore } from '../utils/objectStore'
+import { stagingKeyFor } from '../utils/uploadKey'
 
 const ONE_HOUR_MS = 60 * 60 * 1000
 const ONE_DAY_MS = 24 * ONE_HOUR_MS
 
-// Reconciles S3 against the documents + uploads tables. Three layers:
+// Reconciles S3 against the documents + uploads + workspace_knowledge
+// tables. Four layers:
 //
 //   1. Unconfirmed-upload sweep: delete uploads rows where confirmed_at
-//      IS NULL AND created_at < now - 24h. Their S3 object (if any) is
-//      also removed. Catches abandoned upload flows (user requested a
-//      presigned URL but never PUT, or PUT failed on the client side).
+//      IS NULL AND created_at < now - 24h. Their S3 objects (final AND
+//      staging key, if any) are also removed. Catches abandoned upload
+//      flows (user requested a presigned URL but never PUT, PUT failed on
+//      the client side, or never confirmed).
 //
 //   2. Doc-level orphan sweep: list `docs/{id}/` prefixes; if `id` isn't
 //      in the documents table, drop the entire prefix. Catches force-
@@ -23,7 +28,14 @@ const ONE_DAY_MS = 24 * ONE_HOUR_MS
 //      is > 24h old. The 24h grace prevents racing the create-doc flow
 //      (where a file can briefly land in S3 before its uploads row
 //      commits, though our request handler now writes the row first —
-//      kept for belt-and-suspenders).
+//      kept for belt-and-suspenders). Also catches staging objects
+//      (`docs/{id}/staging/…`) left over after a confirm.
+//
+//   4. Knowledge sweep (`server/utils/knowledgeOrphanSweep.ts`): objects
+//      under `workspaces/*/knowledge/` (final or staging) older than 1 h
+//      that no `workspace_knowledge` row points at — uploads that were
+//      PUT but never confirmed, and originals of deleted rows. Runs even
+//      when the doc layers failed.
 //
 // Runs once on server startup (after a 30s delay so other subsystems are
 // ready), then every hour.
@@ -45,12 +57,21 @@ export default defineNitroPlugin((nitroApp) => {
       const bucket = useRuntimeConfig().s3.bucket
       const now = Date.now()
 
-      await sweepUnconfirmedUploads(s3, bucket)
-      const { liveDocIds } = await sweepDocLevelOrphans(s3, bucket)
-      await sweepDefensiveStaleS3(s3, bucket, liveDocIds, now)
-    } catch (e) {
-      console.error('[orphan-cleanup] Reconciliation failed:', e instanceof Error ? e.message : e)
-      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
+      try {
+        await sweepUnconfirmedUploads(s3, bucket)
+        const { liveDocIds } = await sweepDocLevelOrphans(s3, bucket)
+        await sweepDefensiveStaleS3(s3, bucket, liveDocIds, now)
+      } catch (e) {
+        console.error('[orphan-cleanup] Reconciliation failed:', e instanceof Error ? e.message : e)
+        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
+      }
+      try {
+        const { deleted } = await sweepKnowledgeOrphans({ store: s3ObjectStore(s3, bucket), now })
+        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} orphaned knowledge object(s)`)
+      } catch (e) {
+        console.error('[orphan-cleanup] Knowledge sweep failed:', e instanceof Error ? e.message : e)
+        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'knowledge_sweep_failed' } })
+      }
     } finally {
       await releaseSweepLock('orphan-cleanup')
       running = false
@@ -86,7 +107,7 @@ async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<vo
   await deleteObjectsBatched(
     s3,
     bucket,
-    stale.map(u => u.s3Key),
+    stale.flatMap(u => [u.s3Key, stagingKeyFor(u.s3Key)]),
     'unconfirmed'
   )
   // Drop the rows whether or not the S3 delete succeeded — the row

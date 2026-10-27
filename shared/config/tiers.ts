@@ -33,6 +33,13 @@ export interface TierCaps {
   knowledgeBytesPerWorkspace: number
   /** Per-user byte cap summed across every workspace they upload to. */
   knowledgeBytesPerUser: number
+  /**
+   * Per-user byte cap on document images (own uploads, AI-generated
+   * images, and the copies a duplicated doc gets), summed over every
+   * document. A pending upload counts from the moment its presigned URL
+   * is issued, so parallel requests can't overshoot.
+   */
+  imageBytesPerUser: number
 }
 
 // Committed values are the SELF-HOSTER DEFAULTS. The hosted deployment
@@ -47,14 +54,16 @@ export const DEFAULT_TIERS = {
     workspacesOwned: 1,
     knowledgeFiles: 5,
     knowledgeBytesPerWorkspace: 50 * 1024 * 1024,
-    knowledgeBytesPerUser: 50 * 1024 * 1024
+    knowledgeBytesPerUser: 50 * 1024 * 1024,
+    imageBytesPerUser: 100 * 1024 * 1024
   },
   pro: {
     litellmBudgetUsd: 5, // 5000 AI Points
     workspacesOwned: 10,
     knowledgeFiles: 50,
     knowledgeBytesPerWorkspace: 2 * 1024 * 1024 * 1024,
-    knowledgeBytesPerUser: 2 * 1024 * 1024 * 1024
+    knowledgeBytesPerUser: 2 * 1024 * 1024 * 1024,
+    imageBytesPerUser: 2 * 1024 * 1024 * 1024
   },
   max: {
     litellmBudgetUsd: 15, // 15000 AI Points
@@ -64,14 +73,16 @@ export const DEFAULT_TIERS = {
     // corpus size, not per-user-total. Max users get more via the
     // per-user cap (10 GB) spread across more workspaces.
     knowledgeBytesPerWorkspace: 1024 * 1024 * 1024,
-    knowledgeBytesPerUser: 10 * 1024 * 1024 * 1024
+    knowledgeBytesPerUser: 10 * 1024 * 1024 * 1024,
+    imageBytesPerUser: 10 * 1024 * 1024 * 1024
   },
   ultra: {
     litellmBudgetUsd: 35, // 35000 AI Points
     workspacesOwned: 100,
     knowledgeFiles: 2000,
     knowledgeBytesPerWorkspace: 1024 * 1024 * 1024,
-    knowledgeBytesPerUser: 50 * 1024 * 1024 * 1024
+    knowledgeBytesPerUser: 50 * 1024 * 1024 * 1024,
+    imageBytesPerUser: 50 * 1024 * 1024 * 1024
   }
 } as const satisfies Record<PlanName, TierCaps>
 
@@ -87,7 +98,8 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   workspacesOwned: 'WORKSPACES_OWNED',
   knowledgeFiles: 'KNOWLEDGE_FILES',
   knowledgeBytesPerWorkspace: 'KNOWLEDGE_BYTES_PER_WORKSPACE',
-  knowledgeBytesPerUser: 'KNOWLEDGE_BYTES_PER_USER'
+  knowledgeBytesPerUser: 'KNOWLEDGE_BYTES_PER_USER',
+  imageBytesPerUser: 'IMAGE_BYTES_PER_USER'
 }
 
 /**
@@ -123,7 +135,8 @@ export const MONOTONIC_CAP_FIELDS: readonly (keyof TierCaps)[] = [
   'litellmBudgetUsd',
   'workspacesOwned',
   'knowledgeFiles',
-  'knowledgeBytesPerUser'
+  'knowledgeBytesPerUser',
+  'imageBytesPerUser'
 ]
 
 // Platform constraints that don't vary by plan. Grouped here alongside

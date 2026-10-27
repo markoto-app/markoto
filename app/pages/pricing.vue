@@ -381,6 +381,16 @@ useHead({
                 {{ t('pricing.knowledgeStorage') }}
               </span>
             </li>
+            <li class="flex gap-2">
+              <UIcon
+                name="i-lucide-image"
+                class="size-4 text-muted shrink-0 mt-0.5"
+              />
+              <span>
+                <strong>{{ fmtBytes(TIERS[tier.plan].imageBytesPerUser) }}</strong>
+                {{ t('pricing.imageStorage') }}
+              </span>
+            </li>
             <!-- Phase 6: dictation cap retired. Voice dictation runs against the same AI Points budget as everything else. -->
 
             <li

@@ -149,8 +149,17 @@ async function onRequestExport(): Promise<void> {
   }
 }
 
+// ─────────── Storage ───────────
+const { billing } = useBilling()
+const imageStoragePercent = computed(() => {
+  const b = billing.value
+  if (!b || b.imageBytesPerUserLimit <= 0) return 0
+  return Math.min(100, Math.round((b.imageBytesUsed / b.imageBytesPerUserLimit) * 100))
+})
+
 function fmtBytes(bytes: number | null): string {
   if (bytes === null) return ''
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${bytes} B`
@@ -419,6 +428,38 @@ onBeforeUnmount(() => {
           >
             {{ t('settings.profile.sessions.button') }}
           </UButton>
+        </div>
+      </section>
+
+      <!-- Storage — document images vs. the per-user quota (shown in
+           every billing mode: the limit is real either way). -->
+      <section
+        v-if="billing"
+        class="mb-10"
+        data-testid="profile-storage-section"
+      >
+        <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
+          {{ t('settings.profile.storage.heading') }}
+        </h2>
+        <div class="border border-default rounded-lg px-4 py-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-2">
+            <span class="text-sm text-muted">{{ t('settings.profile.storage.images') }}</span>
+            <span
+              class="text-sm font-mono sm:text-right"
+              data-testid="profile-image-storage"
+            >
+              {{ fmtBytes(billing.imageBytesUsed) }} / {{ fmtBytes(billing.imageBytesPerUserLimit) }}
+            </span>
+          </div>
+          <UProgress
+            :model-value="imageStoragePercent"
+            size="xs"
+            color="neutral"
+            class="mb-3"
+          />
+          <p class="text-sm text-muted">
+            {{ t('settings.profile.storage.description') }}
+          </p>
         </div>
       </section>
 

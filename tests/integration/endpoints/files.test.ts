@@ -88,6 +88,9 @@ describe('GET /api/files/:docId/:fileId', () => {
       const client = await loggedInClient(owner.id)
       const res = await client.get(`/api/files/${doc.docId}/${FILE_ID}`)
       expect(res.status).toBe(302)
+      // Regression: the per-viewer redirect carried no cache headers, so a
+      // shared cache in front of the app could replay it to other viewers.
+      expect(res.headers.get('cache-control')).toBe('private, no-store')
     })
 
     it.each(['admin', 'editor', 'viewer'] as const)('workspace %s gets 302', async (role) => {

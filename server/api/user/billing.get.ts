@@ -1,6 +1,7 @@
 import { resolveBillingContext } from '../../utils/billing'
 import { countOwnedWorkspacesByUser } from '../../repos/workspaces'
 import { countKnowledgeByUploader, sumKnowledgeBytesByUploader } from '../../repos/knowledge'
+import { sumImageBytesByUploader } from '../../repos/uploads'
 import { getTiers } from '~~/server/utils/tierConfig'
 
 /**
@@ -19,10 +20,11 @@ export default defineEventHandler(async (event) => {
   const ctx = await resolveBillingContext(userId, null)
   const tier = getTiers()[ctx.plan]
 
-  const [ownedWorkspaces, knowledgeFiles, knowledgeBytes] = await Promise.all([
+  const [ownedWorkspaces, knowledgeFiles, knowledgeBytes, imageBytes] = await Promise.all([
     countOwnedWorkspacesByUser(userId),
     countKnowledgeByUploader(userId),
-    sumKnowledgeBytesByUploader(userId)
+    sumKnowledgeBytesByUploader(userId),
+    sumImageBytesByUploader(userId)
   ])
 
   return {
@@ -35,6 +37,10 @@ export default defineEventHandler(async (event) => {
     knowledgeFilesUsed: knowledgeFiles,
     knowledgeFilesLimit: tier.knowledgeFiles,
     knowledgeBytesUsed: knowledgeBytes,
-    knowledgeBytesPerUserLimit: tier.knowledgeBytesPerUser
+    knowledgeBytesPerUserLimit: tier.knowledgeBytesPerUser,
+    // Document images (uploads + AI images + duplicate copies), pending
+    // uploads included — the same sum the upload quota enforces.
+    imageBytesUsed: imageBytes,
+    imageBytesPerUserLimit: tier.imageBytesPerUser
   }
 })
