@@ -38,7 +38,33 @@ export function useValkey(): Redis {
   return client
 }
 
+let subscriber: Redis | null = null
+
+/**
+ * Dedicated connection for pub/sub SUBSCRIBE (a subscribed ioredis
+ * connection can't run normal commands). Same config as `useValkey()`;
+ * ioredis re-subscribes its channels after a reconnect. Used by the AI
+ * session stream (`agentic/sessionChannel.ts`).
+ */
+export function useValkeySubscriber(): Redis {
+  if (subscriber) return subscriber
+  subscriber = useValkey().duplicate()
+  subscriber.on('error', (e: Error) => {
+    console.warn('[valkey] subscriber error:', e.message)
+  })
+  return subscriber
+}
+
 export async function closeValkey(): Promise<void> {
+  const sub = subscriber
+  subscriber = null
+  if (sub) {
+    try {
+      await sub.quit()
+    } catch {
+      // Already closed — nothing to release.
+    }
+  }
   if (!client) return
   try {
     await client.quit()

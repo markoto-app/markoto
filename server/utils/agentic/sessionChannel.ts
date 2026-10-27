@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { useValkey } from '../valkey'
+import { useValkey, useValkeySubscriber } from '../valkey'
 import type { ToolStatusPhase } from './toolContext'
 
 // Initiator-only channel for an AI session.
@@ -16,11 +16,18 @@ import type { ToolStatusPhase } from './toolContext'
 //   - pending confirmation requests + their answers (taint gate, see
 //     `crossBoundary.ts`).
 //
-// The client polls `GET /api/ai/sessions/:sessionId` (initiator only) and
-// answers confirmations through `POST …/confirm`.
+// The client follows it through the push stream
+// `GET /api/ai/sessions/:sessionId/stream` (SSE, initiator only — see
+// `sessionStream.ts`), falls back to polling `GET /api/ai/sessions/:id`
+// when the stream breaks, and answers confirmations through
+// `POST …/confirm`.
 //
-// Storage is Valkey so a poll or an answer that lands on another app
-// instance still works. One key per field, each written by exactly one
+// Storage is Valkey so a read, a stream or an answer that lands on
+// another app instance still works. Every write also PUBLISHes a
+// "changed" ping on `ai:session-channel:{sid}:notify` (Valkey pub/sub,
+// reaches every instance) so open streams re-read right away. The ping
+// carries no data — subscribers re-read the keys, so a lost ping only
+// delays an update until the stream's periodic re-read. One key per field, each written by exactly one
 // party, so concurrent writes never read-modify-write the same value.
 // Keys outlive the session by `CHANNEL_TTL_MS` so the client can pick up
 // the final answer / error after the AI client has left the document.
@@ -40,6 +47,32 @@ export interface ChannelStore {
   /** Set only when the key is absent. Resolves true when it was written. */
   setIfAbsent(key: string, value: string, ttlMs: number): Promise<boolean>
   del(key: string): Promise<void>
+  /** Tell open streams of `sessionId` that something changed (best-effort). */
+  notify(sessionId: string): Promise<void>
+  /** Call `listener` on every change of `sessionId`. Resolves to the unsubscribe function. */
+  subscribe(sessionId: string, listener: () => void): Promise<() => void>
+}
+
+const notifyChannel = (sid: string) => `ai:session-channel:${sid}:notify`
+
+// One subscriber connection per process, shared by every open stream.
+// Listeners are ref-counted per Valkey channel.
+const valkeyListeners = new Map<string, Set<() => void>>()
+let messageHandlerOn: ReturnType<typeof useValkeySubscriber> | null = null
+
+function installValkeyMessageHandler(): void {
+  const sub = useValkeySubscriber()
+  if (messageHandlerOn === sub) return
+  messageHandlerOn = sub
+  sub.on('message', (channel: string) => {
+    for (const listener of valkeyListeners.get(channel) ?? []) {
+      try {
+        listener()
+      } catch (e) {
+        logChannelError('notify listener', e)
+      }
+    }
+  })
 }
 
 export const valkeyChannelStore: ChannelStore = {
@@ -55,6 +88,37 @@ export const valkeyChannelStore: ChannelStore = {
   },
   async del(key) {
     await useValkey().del(key)
+  },
+  async notify(sessionId) {
+    try {
+      await useValkey().publish(notifyChannel(sessionId), '1')
+    } catch (e) {
+      logChannelError('notify', e)
+    }
+  },
+  async subscribe(sessionId, listener) {
+    installValkeyMessageHandler()
+    const channel = notifyChannel(sessionId)
+    let set = valkeyListeners.get(channel)
+    if (!set) {
+      set = new Set()
+      valkeyListeners.set(channel, set)
+      try {
+        await useValkeySubscriber().subscribe(channel)
+      } catch (e) {
+        valkeyListeners.delete(channel)
+        throw e
+      }
+    }
+    set.add(listener)
+    return () => {
+      const current = valkeyListeners.get(channel)
+      if (!current) return
+      current.delete(listener)
+      if (current.size > 0) return
+      valkeyListeners.delete(channel)
+      useValkeySubscriber().unsubscribe(channel).catch((e: unknown) => logChannelError('unsubscribe', e))
+    }
   }
 }
 
@@ -169,6 +233,7 @@ export class AiSessionChannel {
     } catch (e) {
       logChannelError('open', e)
     }
+    await this.store.notify(this.sessionId)
   }
 
   async setStatus(status: ChannelStatus): Promise<void> {
@@ -176,7 +241,9 @@ export class AiSessionChannel {
       await this.store.set(statusKey(this.sessionId), JSON.stringify(status), CHANNEL_TTL_MS)
     } catch (e) {
       logChannelError('status', e)
+      return
     }
+    await this.store.notify(this.sessionId)
   }
 
   async setResponse(response: ChannelResponse): Promise<void> {
@@ -184,7 +251,9 @@ export class AiSessionChannel {
       await this.store.set(responseKey(this.sessionId), JSON.stringify(response), CHANNEL_TTL_MS)
     } catch (e) {
       logChannelError('response', e)
+      return
     }
+    await this.store.notify(this.sessionId)
   }
 
   /**
@@ -206,6 +275,7 @@ export class AiSessionChannel {
       logChannelError('confirmation request', e)
       return false
     }
+    await this.store.notify(this.sessionId)
     try {
       return await this.waitForAnswer(id, expiresAt, signal)
     } finally {
@@ -214,6 +284,7 @@ export class AiSessionChannel {
       } catch (e) {
         logChannelError('confirmation cleanup', e)
       }
+      await this.store.notify(this.sessionId)
     }
   }
 
@@ -265,6 +336,31 @@ export async function readSessionChannel(sessionId: string, store: ChannelStore 
   }
 }
 
+/** What the initiator receives (GET and stream share the shape). */
+export interface SessionView {
+  sessionId: string
+  docId: string
+  prompt: string
+  commentThreadId: string | null
+  phase: ToolStatusPhase
+  message: string | null
+  response: ChannelResponse | null
+  confirmation: PendingConfirmation | null
+}
+
+export function toSessionView(snapshot: ChannelSnapshot): SessionView {
+  return {
+    sessionId: snapshot.sessionId,
+    docId: snapshot.docId,
+    prompt: snapshot.prompt,
+    commentThreadId: snapshot.commentThreadId,
+    phase: snapshot.status?.phase ?? 'thinking',
+    message: snapshot.status?.message ?? null,
+    response: snapshot.response,
+    confirmation: snapshot.confirmation
+  }
+}
+
 /**
  * Record the initiator's answer for the pending confirmation `confirmationId`.
  * Returns false when no such confirmation is pending (expired, answered,
@@ -279,12 +375,15 @@ export async function answerSessionConfirmation(
 ): Promise<boolean> {
   const pending = readConfirmation(await store.get(confirmKey(sessionId)))
   if (!pending || pending.id !== confirmationId || pending.expiresAt <= now()) return false
+  // The loop picks the answer up and clears the request; that write
+  // notifies the stream.
   return store.setIfAbsent(answerKey(sessionId, confirmationId), allow ? 'allow' : 'deny', CHANNEL_TTL_MS)
 }
 
 /** In-memory store for unit tests and the test seam. */
 export function createMemoryChannelStore(): ChannelStore & { keys(): string[] } {
   const data = new Map<string, string>()
+  const listeners = new Map<string, Set<() => void>>()
   return {
     async get(key) {
       return data.get(key) ?? null
@@ -299,6 +398,20 @@ export function createMemoryChannelStore(): ChannelStore & { keys(): string[] } 
     },
     async del(key) {
       data.delete(key)
+    },
+    async notify(sessionId) {
+      for (const listener of listeners.get(sessionId) ?? []) listener()
+    },
+    async subscribe(sessionId, listener) {
+      let set = listeners.get(sessionId)
+      if (!set) {
+        set = new Set()
+        listeners.set(sessionId, set)
+      }
+      set.add(listener)
+      return () => {
+        listeners.get(sessionId)?.delete(listener)
+      }
     },
     keys() {
       return [...data.keys()]

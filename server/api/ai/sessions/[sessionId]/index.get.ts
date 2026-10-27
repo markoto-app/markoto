@@ -1,4 +1,4 @@
-import { readSessionChannel } from '../../../../utils/agentic/sessionChannel'
+import { readSessionChannel, toSessionView } from '../../../../utils/agentic/sessionChannel'
 
 // GET /api/ai/sessions/:sessionId — the initiator's private view of an
 // AI session: their prompt, the live status message, the latest
@@ -8,6 +8,10 @@ import { readSessionChannel } from '../../../../utils/agentic/sessionChannel'
 // included) gets 404 — the same answer as for an unknown or expired
 // session, so a session id reveals nothing. Other participants see the
 // coarse "markoto is working" state through Y.js awareness instead.
+//
+// The prompt bar follows the session through the push stream
+// (`./stream.get.ts`); this endpoint is the fallback when the stream
+// breaks and the one final read after the session left the document.
 
 const SESSION_ID_RE = /^[\w-]{1,64}$/
 
@@ -22,14 +26,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'AI session not found', data: { code: 'ai/session-not-found' } })
   }
   setResponseHeader(event, 'Cache-Control', 'private, no-store')
-  return {
-    sessionId: snapshot.sessionId,
-    docId: snapshot.docId,
-    prompt: snapshot.prompt,
-    commentThreadId: snapshot.commentThreadId,
-    phase: snapshot.status?.phase ?? 'thinking',
-    message: snapshot.status?.message ?? null,
-    response: snapshot.response,
-    confirmation: snapshot.confirmation
-  }
+  return toSessionView(snapshot)
 })

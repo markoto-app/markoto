@@ -1,3 +1,4 @@
+import { onScopeDispose } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'
 import type { EditorSelectionSnapshot } from '~~/shared/types/editorSelection'
 
@@ -10,8 +11,32 @@ export interface UseAIOptions {
    * so a costly read is fine.
    */
   getEditorSelection?: () => EditorSelectionSnapshot
-  /** Poll cadence for the initiator's private session status (ms). */
+  /** Poll cadence for the fallback polling of the private session status (ms). */
   pollIntervalMs?: number
+  /**
+   * Opens the push stream (`GET /api/ai/sessions/:id/stream`). Defaults
+   * to the browser's `EventSource`; `null` = no streaming, poll only
+   * (also what happens where `EventSource` doesn't exist).
+   */
+  createEventSource?: ((url: string) => AiEventSource) | null
+}
+
+/** The slice of `EventSource` the composable uses (injectable for tests). */
+export interface AiEventSource {
+  readonly readyState: number
+  addEventListener(type: string, listener: (event: { data?: unknown }) => void): void
+  onerror: ((event: Event) => void) | null
+  close(): void
+}
+
+/** `EventSource.CLOSED` — the browser gave up (HTTP error, wrong content type). */
+const EVENT_SOURCE_CLOSED = 2
+/** Consecutive stream errors without a message before falling back to polling. */
+const STREAM_MAX_ERRORS = 3
+
+function defaultEventSourceFactory(): ((url: string) => AiEventSource) | null {
+  if (typeof EventSource === 'undefined') return null
+  return url => new EventSource(url)
 }
 
 /**
@@ -71,7 +96,7 @@ export interface AiResponseEntry {
   ts: number
 }
 
-/** Shape of `GET /api/ai/sessions/:sessionId`. */
+/** Shape of `GET /api/ai/sessions/:sessionId` (and of the stream's `status` events). */
 interface PrivateSessionStatus {
   sessionId: string
   prompt: string
@@ -85,6 +110,32 @@ const DEFAULT_POLL_MS = 600
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null
+}
+
+function parseStatusEvent(data: unknown): PrivateSessionStatus | null {
+  if (typeof data !== 'string') return null
+  let v: unknown
+  try {
+    v = JSON.parse(data)
+  } catch {
+    return null
+  }
+  if (!isRecord(v) || typeof v.sessionId !== 'string' || typeof v.phase !== 'string') return null
+  const response = isRecord(v.response) && typeof v.response.message === 'string' && typeof v.response.ts === 'number'
+    ? { message: v.response.message, isQuestion: v.response.isQuestion === true, ts: v.response.ts }
+    : null
+  const c = v.confirmation
+  const confirmation = isRecord(c) && typeof c.id === 'string' && typeof c.tool === 'string' && typeof c.expiresAt === 'number'
+    ? { id: c.id, tool: c.tool, target: typeof c.target === 'string' ? c.target : null, expiresAt: c.expiresAt }
+    : null
+  return {
+    sessionId: v.sessionId,
+    prompt: typeof v.prompt === 'string' ? v.prompt : '',
+    phase: v.phase,
+    message: typeof v.message === 'string' ? v.message : null,
+    response,
+    confirmation
+  }
 }
 
 function statusCodeOf(e: unknown): number | undefined {
@@ -102,10 +153,12 @@ function statusCodeOf(e: unknown): number | undefined {
  *     every tab sees the AI appear, change phase and leave. Only
  *     public fields ride there.
  *   - The initiator's private channel — while I have a session, the
- *     composable polls `GET /api/ai/sessions/:id` for the prompt, the
- *     live status text, `message_to_user` answers and confirmation
- *     requests ("markoto wants to read 'Q3 plan'"), and answers those
- *     through `POST …/confirm`.
+ *     composable follows the push stream `GET /api/ai/sessions/:id/stream`
+ *     (Server-Sent Events) for the prompt, the live status text,
+ *     `message_to_user` answers and confirmation requests ("markoto
+ *     wants to read 'Q3 plan'"), and answers those through
+ *     `POST …/confirm`. If the stream can't be opened or keeps failing
+ *     it falls back to polling `GET /api/ai/sessions/:id`.
  *
  * The `editorSelection` override is consumed by the bottom prompt bar so
  * cursor / selection state flows through to the server's `<editor_state>`
@@ -115,6 +168,9 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   const { loggedIn, user: sessionUser } = useUserSession()
   const { refresh: refreshAiAvailability } = useAiAvailability()
   const pollMs = options.pollIntervalMs ?? DEFAULT_POLL_MS
+  const createEventSource = options.createEventSource === undefined
+    ? defaultEventSourceFactory()
+    : options.createEventSource
 
   // All active AI sessions on this doc, derived from awareness entries that
   // advertise `isAI: true` + an `aiSession` metadata block.
@@ -213,11 +269,65 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
 
   let pollTimer: ReturnType<typeof setTimeout> | null = null
   let pollingFor: string | null = null
+  let stream: AiEventSource | null = null
 
   function stopPolling() {
     if (pollTimer) clearTimeout(pollTimer)
     pollTimer = null
     pollingFor = null
+    if (stream) {
+      stream.onerror = null
+      stream.close()
+    }
+    stream = null
+  }
+
+  /** The tracked session is over — stop following it. */
+  function finishTracking(sid: string) {
+    if (startedSessionId.value === sid) startedSessionId.value = null
+    stopPolling()
+  }
+
+  /**
+   * Follow `sid` through the push stream. Falls back to polling when the
+   * browser gives up on it (HTTP error — e.g. a proxy that refuses SSE)
+   * or it fails `STREAM_MAX_ERRORS` times in a row without delivering.
+   */
+  function startStream(sid: string, factory: (url: string) => AiEventSource) {
+    let es: AiEventSource
+    try {
+      es = factory(`/api/ai/sessions/${encodeURIComponent(sid)}/stream`)
+    } catch {
+      startPolling(sid)
+      return
+    }
+    stream = es
+    let errors = 0
+    es.addEventListener('status', (ev) => {
+      if (pollingFor !== sid) return
+      errors = 0
+      const s = parseStatusEvent(ev.data)
+      if (s && (trackedSessionId.value === sid || mySessionId.value === null)) applyStatus(s)
+    })
+    es.addEventListener('end', () => {
+      if (pollingFor !== sid) return
+      finishTracking(sid)
+    })
+    es.onerror = () => {
+      if (pollingFor !== sid) return
+      errors++
+      if (es.readyState !== EVENT_SOURCE_CLOSED && errors < STREAM_MAX_ERRORS) return
+      // Give up on the stream for this session; polling still works.
+      es.onerror = null
+      es.close()
+      stream = null
+      startPolling(sid)
+    }
+  }
+
+  function startPolling(sid: string) {
+    void fetchStatus(sid)
+    schedulePoll(sid)
   }
 
   function schedulePoll(sid: string) {
@@ -231,8 +341,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         && (privateStatus.value.phase === 'done' || privateStatus.value.phase === 'error')
         && mySessionId.value !== sid
       if (!alive || finished) {
-        if (startedSessionId.value === sid) startedSessionId.value = null
-        stopPolling()
+        finishTracking(sid)
         return
       }
       schedulePoll(sid)
@@ -250,8 +359,8 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     if (!sid) return
     privateStatus.value = null
     pollingFor = sid
-    void fetchStatus(sid)
-    schedulePoll(sid)
+    if (createEventSource) startStream(sid, createEventSource)
+    else startPolling(sid)
   }, { immediate: true })
 
   // Once awareness shows the session I started, awareness drives tracking.
@@ -259,7 +368,10 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     if (sid && startedSessionId.value === sid) startedSessionId.value = null
   })
 
-  onUnmounted(() => {
+  // Scope disposal (= component unmount in the editor) closes the stream
+  // and stops polling; `onScopeDispose` also covers callers that run the
+  // composable in a detached effect scope (tests).
+  onScopeDispose(() => {
     awareness.off('change', refresh)
     stopPolling()
   })
@@ -294,7 +406,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         body: { confirmationId: c.id, allow }
       })
     } catch (e) {
-      // 409 = already answered / timed out — the next poll shows the
+      // 409 = already answered / timed out — the next update shows the
       // current state; anything else is worth a toast.
       if (statusCodeOf(e) !== 409) {
         const msg = isRecord(e) && typeof e.message === 'string' ? e.message : 'Request failed'
@@ -302,7 +414,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       }
     } finally {
       answeringConfirmation.value = false
-      // Hide the answered request right away; the poll confirms.
+      // Hide the answered request right away; the next update confirms.
       const cur = privateStatus.value
       if (cur?.confirmation?.id === c.id) privateStatus.value = { ...cur, confirmation: null }
     }
