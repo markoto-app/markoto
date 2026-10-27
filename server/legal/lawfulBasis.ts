@@ -44,10 +44,14 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['github_oauth', 'google_oauth']
   },
   {
+    // `edit_attribution`: who changed a document — the activity log and
+    // which user each in-editor AI session wrote for
+    // (`ai_session_provenance`, read by the AI's safety checks). Kept as
+    // long as the document / account.
     id: 'document_storage',
     label: 'Document storage',
     basis: 'contract',
-    dataCategories: ['document_content', 'document_metadata', 'images'],
+    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution'],
     retention: 'until_deletion',
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },

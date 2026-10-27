@@ -15,6 +15,8 @@ import { buildDocumentContext } from '../../../../../utils/agentic/documentConte
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../../../../utils/agentic/workspacePromptBlocks'
 import { AiSessionChannel } from '../../../../../utils/agentic/sessionChannel'
 import { buildSessionGuard } from '../../../../../utils/agentic/sessionGuard'
+import type { CrossBoundaryGuard } from '../../../../../utils/agentic/crossBoundary'
+import { finalizeSessionProvenance, recordSessionProvenance } from '../../../../../utils/agentic/sessionProvenance'
 import {
   buildCommentTriggerBlock,
   resolveCommentTrigger,
@@ -296,6 +298,9 @@ async function claimAiSession(args: ClaimSessionArgs): Promise<void> {
     }
     throw e
   }
+  // Provenance row BEFORE the AI client can write (taint gate, see
+  // `sessionProvenance.ts`). Releases the session again on failure.
+  await recordSessionProvenance(args.sessionId, args.docId, args.userId)
 }
 
 interface TriggerLoopArgs {
@@ -321,6 +326,7 @@ interface TriggerLoopArgs {
 
 async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
   let aiSession: Awaited<ReturnType<typeof createAiSession>> | null = null
+  let crossBoundary: CrossBoundaryGuard | null = null
   const status: { phase: StreamStatusPhase } = { phase: 'thinking' }
   const setStatus = (phase: StreamStatusPhase, message?: string) => {
     status.phase = phase
@@ -346,7 +352,7 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
 
     // Taint gate. The triggering message is the caller's own (checked
     // above); the rest of the thread may not be.
-    const crossBoundary = await buildSessionGuard({
+    crossBoundary = await buildSessionGuard({
       docId: args.docId,
       initiatorUserId: args.userId,
       workspaceId: args.workspaceId,
@@ -383,6 +389,9 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
     const lingerMs = status.phase === 'error' ? 2500 : 500
     await new Promise(r => setTimeout(r, lingerMs))
     if (aiSession) await aiSession.destroy()
+    // The AI has left the document: its edits count as the invoker's
+    // own only if the session never read anybody else's content.
+    await finalizeSessionProvenance(args.sessionId, crossBoundary)
     await removeAiSession(args.sessionId)
   }
 }

@@ -309,6 +309,28 @@ export const aiSessions = pgTable('ai_sessions', {
   index('idx_ai_sessions_started_at').on(table.startedAt)
 ])
 
+// Who an in-editor AI session (`ai:assistant:<sessionId>` in
+// `activity_log.actor_principal`) wrote for, and whether its output can
+// count as that person's own text. Read by the AI taint gate
+// (`server/repos/docProvenance.ts`): an AI edit is the invoker's own only
+// when `clean` is true. A row starts `clean = false` when the session is
+// claimed and is flipped to true only after the session ended without
+// ever reading content written by somebody else (`crossBoundary.ts`) —
+// a crash, an error before the flag is written, or a tainted session all
+// leave it false, so its edits stay "foreign". Unlike `ai_sessions`
+// (deleted at session end) and `ai_session_messages` (90-day retention)
+// this row lives as long as the document's edit history does.
+export const aiSessionProvenance = pgTable('ai_session_provenance', {
+  sessionId: text('session_id').primaryKey(),
+  docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  clean: boolean('clean').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  // Data export + account-deletion lookups by user.
+  index('idx_ai_session_provenance_user').on(table.userId)
+])
+
 // Per-(doc, user) conversation memory feeding the AI agentic loop's
 // short-term context. Records the FACT of past prompts + tool calls
 // + AI messages so a follow-up prompt can resolve "it" / "that table"
