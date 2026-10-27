@@ -10,6 +10,9 @@
 #    anything.
 # 3. The rendered config must not leak the hosted operator defaults into a
 #    self-hosted instance (legal surfaces off by default).
+# 4. Backup sidecar credentials + cron path.
+# 5. Network segmentation and the container hardening baseline for the
+#    selfhost / prod / local stacks; dev + test publish on loopback only.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -103,3 +106,150 @@ if ! docker run --rm --entrypoint sh markoto-backup-ci -c "test -f '$cron_path' 
   exit 1
 fi
 echo "ok: cron command $cron_path exists in the backup image (non-root)"
+
+# ─── Container + network isolation (docs/SECURITY-HARDENING.md) ───────
+# Rendered against placeholder values for every stack that runs the
+# product: selfhost (all overlays), prod, local. The rules:
+#   - the renderer and markitdown (they parse untrusted input) share no
+#     network with postgres / valkey / litellm / sync / db-init;
+#   - only app / renderer / backup / s3-init / traefik share a network with
+#     the bundled SeaweedFS;
+#   - nothing but the socket proxy mounts the Docker socket;
+#   - every service drops all capabilities and sets no-new-privileges;
+#   - the renderer, markitdown, litellm, valkey, sync, app and traefik run
+#     on a read-only root filesystem; the renderer keeps Chromium's sandbox
+#     (custom seccomp profile, never --no-sandbox);
+#   - the LiteLLM admin UI is off.
+cat > "$tmp/prod.env" <<'EOF3'
+DOMAIN=docs.example.org
+ACME_EMAIL=ops@example.org
+REGISTRY=ghcr.io/example
+IMAGE_TAG=v0.0.0
+POSTGRES_USER=markoto
+POSTGRES_PASSWORD=placeholder
+POSTGRES_DB=markoto
+POSTGRES_PORT=5432
+VALKEY_PASSWORD=placeholder
+VALKEY_DB=0
+VALKEY_PORT=6379
+NUXT_SESSION_PASSWORD=placeholder-placeholder-placeholder-00
+NUXT_JWT_SECRET=placeholder-placeholder-placeholder-000000
+NUXT_INTERNAL_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_S3_ENDPOINT=https://s3.example.org
+NUXT_S3_ACCESS_KEY=placeholder
+NUXT_S3_SECRET_KEY=placeholder
+NUXT_S3_BUCKET=markoto-files
+NUXT_AI_BYOK_ALLOWED_BASE_URLS=https://api.example.org/v1
+LITELLM_MASTER_KEY=sk-placeholder
+LITELLM_SALT_KEY=sk-placeholder
+BACKUP_GPG_PASSPHRASE=placeholder
+BACKUP_INTERVAL_SECONDS=86400
+BACKUP_RETENTION_COUNT=14
+EOF3
+
+render_config() { # render_config OUT ENVFILE FILES [PROFILES]
+  # Unset optional vars warn on stderr; show that only if rendering fails.
+  if ! COMPOSE_FILE="$3" COMPOSE_PROFILES="${4:-}" \
+      docker compose --env-file "$2" -p markoto-ci config --format json > "$1" 2> "$tmp/config.err"; then
+    cat "$tmp/config.err" >&2
+    echo "FAIL: docker compose config ($3)" >&2
+    exit 1
+  fi
+}
+
+check_isolation() { # check_isolation LABEL CONFIG_JSON
+  local label="$1" cfg="$2" out
+  out="$(jq -r '
+    def members($n): [.services | to_entries[] | select((.value.networks // {}) | has($n)) | .key];
+    def nets($s): ((.services[$s].networks // {}) | keys);
+    . as $c
+    | [
+        # untrusted-input parsers vs the data plane
+        ( ["renderer", "markitdown"][] as $s | select($c.services[$s])
+          | ($c | nets($s))[] as $n
+          | ($c | members($n))[] as $m
+          | select(["postgres", "valkey", "litellm", "sync", "db-init"] | index($m))
+          | "\($s) shares network \($n) with \($m)" ),
+        # who may reach the bundled object storage
+        ( select($c.services.seaweedfs) | ($c | nets("seaweedfs"))[] as $n
+          | ($c | members($n))[] as $m
+          | select(["seaweedfs", "app", "renderer", "backup", "s3-init", "traefik"] | index($m) | not)
+          | "\($m) shares network \($n) with seaweedfs" ),
+        # the Docker socket
+        ( .services | to_entries[] | select(.key != "socket-proxy")
+          | select([.value.volumes[]? | .source // "" | test("docker\\.sock")] | any)
+          | "\(.key) mounts the Docker socket" ),
+        # capabilities + no-new-privileges, everywhere
+        ( .services | to_entries[]
+          | select(((.value.cap_drop // []) | index("ALL")) == null)
+          | "\(.key) does not drop all capabilities" ),
+        ( .services | to_entries[]
+          | select(((.value.security_opt // []) | index("no-new-privileges:true")) == null)
+          | "\(.key) lacks no-new-privileges" ),
+        # read-only root filesystems
+        ( ["renderer", "markitdown", "litellm", "valkey", "sync", "app", "traefik", "socket-proxy"][] as $s
+          | select($c.services[$s]) | select($c.services[$s].read_only != true)
+          | "\($s) has a writable root filesystem" ),
+        # Chromium sandbox profile
+        ( select(.services.renderer)
+          | select(((.services.renderer.security_opt // []) | map(select(startswith("seccomp="))) | length) == 0)
+          | "renderer has no seccomp profile (Chromium sandbox)" ),
+        # LiteLLM admin UI
+        ( select(.services.litellm) | select(.services.litellm.environment.DISABLE_ADMIN_UI != "True")
+          | "litellm admin UI is not disabled" )
+      ]
+    | .[]' "$cfg")"
+  if [ -n "$out" ]; then
+    printf 'FAIL (%s): %s\n' "$label" "$out" >&2
+    exit 1
+  fi
+  echo "ok: isolation + hardening ($label)"
+}
+
+for combo in \
+  "selfhost|docker-compose.selfhost.yml|backup" \
+  "selfhost tls|docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml|backup" \
+  "selfhost build|docker-compose.selfhost.yml:docker-compose.selfhost.build.yml|backup"; do
+  IFS='|' read -r label files profiles <<< "$combo"
+  render_config "$tmp/iso.json" "$tmp/selfhost.env" "$files" "$profiles"
+  check_isolation "$label" "$tmp/iso.json"
+done
+render_config "$tmp/iso.json" "$tmp/prod.env" "docker-compose.prod.yml"
+check_isolation "prod" "$tmp/iso.json"
+render_config "$tmp/local.json" "$tmp/prod.env" "docker-compose.local.yml"
+check_isolation "local" "$tmp/local.json"
+
+# The renderer code must never launch Chromium without its sandbox, and the
+# profile must keep the one rule the sandbox needs.
+if grep -rn -- '--no-sandbox' renderer/src; then
+  echo "FAIL: renderer/src passes --no-sandbox to Chromium" >&2
+  exit 1
+fi
+if ! jq -e '[.syscalls[] | select(.action == "SCMP_ACT_ALLOW" and ((.includes // {}) | length) == 0 and ((.names | index("unshare")) != null))] | length == 1' renderer/seccomp.json > /dev/null; then
+  echo "FAIL: renderer/seccomp.json must allow unshare unconditionally (Chromium user-namespace sandbox)" >&2
+  exit 1
+fi
+echo "ok: renderer keeps Chromium's sandbox"
+
+# ─── Dev + test stacks publish on loopback only ───────────────────────
+# Throwaway credentials (devpassword, the committed seaweedfs/s3.json keys)
+# must never be reachable from the LAN. The only other binding allowed is
+# the test network's gateway address for fake-openai-test (see
+# docker-compose.test.yml).
+check_loopback() { # check_loopback LABEL CONFIG_JSON
+  local out
+  out="$(jq -r '
+    .services | to_entries[] | .key as $s | (.value.ports // [])[]
+    | select((.host_ip // "") as $ip | ($ip != "127.0.0.1") and (($s == "fake-openai-test" and ($ip | startswith("10.213.47."))) | not))
+    | "\($s) publishes \(.published) on \(.host_ip // "all interfaces")"' "$2")"
+  if [ -n "$out" ]; then
+    printf 'FAIL (%s): %s\n' "$1" "$out" >&2
+    exit 1
+  fi
+  echo "ok: $1 publishes on loopback only"
+}
+render_config "$tmp/dev.json" "$tmp/prod.env" "docker-compose.dev.yml"
+check_loopback "dev" "$tmp/dev.json"
+render_config "$tmp/test.json" "$tmp/prod.env" "docker-compose.test.yml" "flows"
+check_loopback "test" "$tmp/test.json"
+check_loopback "local" "$tmp/local.json"

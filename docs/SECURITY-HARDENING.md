@@ -2,11 +2,14 @@
 
 > Operator docs for the hosted markoto.app deployment; self-hosters see [SELF-HOSTING.md](./SELF-HOSTING.md).
 
-Cross-cutting hardening notes for the production stack. Two sections today:
+Cross-cutting hardening notes for the production stack. Three sections today:
 
 - §A. HTTP headers + CSP — applied at the Traefik edge.
 - §B. Valkey deployment posture — password enforcement, network exposure,
   optional TLS for managed-Redis providers.
+- §C. Containers, networks and database roles — least-privilege
+  containers, the Chromium sandbox in the renderer, purpose networks,
+  the Docker socket proxy, separate Postgres roles.
 
 For Postgres TLS see `shared/utils/postgresSsl.ts` (similar shape — opt-in
 via env, system CA by default, `PGSSLROOTCERT` for cert pinning). For
@@ -183,8 +186,8 @@ This expands all label substitutions (including the CSP string with `${DOMAIN}`)
 We trust the VPS provider for disk encryption + the managed Postgres
 provider (when used) for at-rest encryption. We do **NOT** extend the
 trust boundary to include the Valkey container's host port — Valkey
-requires a password and is bound to the docker `internal` network only
-in production. The threat we're closing: any process on the VPS host
+requires a password and is bound to the internal `data` network only
+in production (§C.3). The threat we're closing: any process on the VPS host
 (including a misconfigured neighbour container or a future ops tool
 running with looser permissions) being able to read/write rate-limit
 counters, presence keys, render-singleflight locks, and per-doc edit
@@ -218,10 +221,10 @@ The runtime client config flows through `valkeyClientConfigFromEnv()` in
 
 | Compose file | Valkey listener | Why |
 |---|---|---|
-| `docker-compose.prod.yml` | `expose: ["6379"]` (docker internal network only, no host port) | The app + sync containers reach Valkey over the `internal` docker bridge. Publishing 6379 would let any VPS-host process bypass docker network ACLs. |
+| `docker-compose.prod.yml` | `expose: ["6379"]` (`data` network only, no host port) | The app, sync, LiteLLM and backup containers reach Valkey over the internal `data` bridge (§C.3); the renderer and markitdown can't. Publishing 6379 would let any VPS-host process bypass docker network ACLs. |
 | `docker-compose.local.yml` | `expose: ["6379"]` (same) | App runs IN a container; no host access needed. |
-| `docker-compose.dev.yml` | `ports: ["6379:6379"]` | Nuxt runs on the host (`bun run dev`) and reaches Valkey via `localhost:6379`. Acceptable: dev infra holds nothing private. |
-| `docker-compose.test.yml` | `ports: ["6380:6379"]` | vitest runs on the host and reaches Valkey via `localhost:6380`. tmpfs storage; nothing private. |
+| `docker-compose.dev.yml` | `ports: ["127.0.0.1:6379:6379"]` | Nuxt runs on the host (`bun run dev`) and reaches Valkey via `localhost:6379`. Loopback only: the weak dev password must never face the LAN. |
+| `docker-compose.test.yml` | `ports: ["127.0.0.1:6380:6379"]` | vitest runs on the host and reaches Valkey via `localhost:6380`. tmpfs storage; loopback only. |
 
 Valkey listens on `0.0.0.0` inside the container (the upstream image
 default) — that's correct because the docker bridge IS the only route in
@@ -310,3 +313,165 @@ ss -ltnp | grep -E ':6379|:6380' || echo "ok: no valkey on host"
 - Deploy prerequisites: `docs/DEPLOY.md`.
 - Postgres TLS counterpart: `shared/utils/postgresSsl.ts` plus the
   existing TLS section in `docs/DEPLOY.md`.
+
+---
+
+# Section C — Containers, networks and database roles
+
+The goal: a compromise of any one container — most plausibly the renderer
+(Chromium on user-authored HTML/CSS/SVG and CDN scripts) or markitdown
+(parsers for uploaded Office/PDF files) — gives the attacker as little as
+possible: no root, no capabilities, nothing writable outside tmpfs, no
+route to the database or the AI gateway, no Docker API. Enforced in CI by
+`scripts/selfhost-check.sh` for the selfhost, prod and local stacks.
+
+## C.1 Container baseline
+
+Every service: `cap_drop: [ALL]` + `security_opt: [no-new-privileges:true]`.
+
+| Service | Runs as | Root filesystem | Notes |
+|---|---|---|---|
+| app | `bun` (image) | read-only, tmpfs `/tmp` | |
+| sync | `bun` (image) | read-only, tmpfs `/tmp` | |
+| renderer | `pwuser` (image, uid 1000) | read-only, tmpfs `/tmp` (512 MB, counts against `mem_limit`) | `pids_limit: 2048`; Chromium sandbox on (§C.2) |
+| markitdown | `app` (image) | read-only, tmpfs `/tmp` | no network except `import` (§C.3) |
+| litellm | `65534:65534` (nobody) | read-only, tmpfs `/tmp` | admin UI off (`DISABLE_ADMIN_UI=True`) |
+| valkey | `999:1000` (the image's `valkey` user, no root entrypoint) | read-only, data on its volume | |
+| traefik | root **without capabilities** | read-only | binding 80/443 needs no capability (Docker sets `ip_unprivileged_port_start=0`); prod keeps `DAC_OVERRIDE` only while `traefik/acme.json` is owned by the deploy user (see docs/LAUNCH-CHECKLIST.md) |
+| socket-proxy | root without capabilities (to open the `root:docker` socket) | read-only, tmpfs `/tmp` `/run` | §C.4 |
+| db-init | `postgres` | read-only | one-shot, §C.5 |
+| backup | `postgres` (uid 70) | writable | stages the encrypted dump in `/tmp`, which can be large |
+| postgres, seaweedfs | image entrypoint (root → drops to its user) | writable | keep `CHOWN DAC_OVERRIDE FOWNER SETGID SETUID` only — what the entrypoint needs to fix data-dir ownership and drop privileges |
+
+## C.2 Renderer: Chromium's sandbox
+
+The renderer used to run as root with `--no-sandbox`. It now runs as
+`pwuser` and launches Chromium **with** its sandbox (`chromiumSandbox:
+true`, `renderer/src/render.ts`). As an unprivileged process without
+capabilities, Chromium's zygote sandboxes renderer processes in new user /
+PID / network namespaces. Docker's default seccomp profile only allows
+`clone(CLONE_NEWUSER)` / `unshare` / `chroot` with `CAP_SYS_ADMIN` /
+`CAP_SYS_CHROOT`, so the renderer gets its own profile,
+`renderer/seccomp.json`: Docker's default profile
+(github.com/moby/profiles, `seccomp/default.json`, Apache-2.0) plus one
+rule allowing `chroot`, `clone` and `unshare` unconditionally. The kernel
+still checks every namespace operation; only the seccomp pre-filter is
+relaxed. Trade-off accepted: user namespaces add kernel attack surface,
+but without them a Chromium exploit lands directly in the renderer's
+process instead of in Chromium's sandbox.
+
+Verified on Docker 29 with `kernel.apparmor_restrict_unprivileged_userns=1`
+(Ubuntu-style hosts): Docker's `docker-default` AppArmor profile permits
+the user namespace. Chromium's zygote processes run in their own user
+namespace (`/proc/<pid>/ns/user` differs from the browser process),
+seccomp mode 2, uid 1000.
+
+To regenerate the profile after a Docker upgrade:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/moby/profiles/main/seccomp/default.json \
+  | jq '.syscalls += [{"names":["chroot","clone","unshare"],"action":"SCMP_ACT_ALLOW","comment":"markoto renderer: Chromium namespace sandbox (unprivileged user namespaces) without CAP_SYS_ADMIN/CAP_SYS_CHROOT"}]' \
+  > renderer/seccomp.json
+```
+
+Escape hatch: a host that forbids unprivileged user namespaces entirely
+(`kernel.unprivileged_userns_clone=0`, some hardened kernels, rootless
+setups) fails renders with "No usable sandbox!". There,
+`RENDERER_CHROMIUM_SANDBOX=false` on the renderer service launches Chromium
+without its sandbox (logged as a warning at boot). Everything else in this
+section still applies, so the blast radius stays the renderer container.
+
+## C.3 Purpose networks
+
+The flat `internal` network is gone. `internal: true` networks have no
+route off the host.
+
+| Network | Members | Internal |
+|---|---|---|
+| `web` / `edge` | traefik, app, sync | no (published entrypoint, app/sync egress) |
+| `docker-api` | traefik, socket-proxy | yes |
+| `data` | postgres, valkey, app, sync, litellm, db-init, backup | yes |
+| `render` | app (alias `markoto-app`), renderer | yes |
+| `import` | app, markitdown | yes |
+| `storage` (self-host, local) | seaweedfs, traefik, app, renderer, backup, s3-init | yes (local: no, for the loopback-published S3 port) |
+| `egress` | litellm, backup (+ db-init in prod) | no — AI providers, managed Postgres, external S3 |
+| `renderer-egress` | renderer only | no — S3 and the pinned CDNs (the browser-level allowlist in `renderer/src/allowlist.ts` still applies) |
+
+So the renderer reaches the app and its own egress, nothing else; markitdown
+reaches only the app (it has no internet either). Verified from inside the
+running self-host stack: `postgres`, `valkey`, `litellm`, `sync` don't even
+resolve from the renderer or markitdown.
+
+**Bundled SeaweedFS (self-host):** master, volume and filer bind and
+advertise `127.0.0.1` inside the SeaweedFS container; only the
+SigV4-authenticated S3 API listens on the network (`-s3.ip.bind=0.0.0.0`),
+and the Iceberg / Lance side ports are off. Residual: `weed server` binds
+the S3 gateway's gRPC port (18333, IAM-cache sync) on the same address as
+the S3 API and has no flag to separate them. It is reachable only from the
+`storage` members, all of which already hold the S3 admin key (which the
+embedded IAM API on 8333 accepts for the same operations), so it grants
+nothing extra.
+
+## C.4 Docker socket proxy
+
+Traefik's docker provider talks to `tcp://socket-proxy:2375`
+(`tecnativa/docker-socket-proxy`, digest-pinned) instead of mounting
+`/var/run/docker.sock`. The proxy allows `GET` on containers, events,
+ping and version only (`CONTAINERS=1`, `POST=0`); every write endpoint and
+everything else (images, exec, volumes, networks, …) answers 403. A
+compromised Traefik can therefore no longer create a privileged container,
+i.e. no longer become root on the host. It can still read container
+metadata (including environment variables) — inherent to the docker
+provider. Verify: `docker compose exec traefik wget -qO- --post-data= http://socket-proxy:2375/containers/create` → `403 Forbidden`.
+
+## C.5 Postgres roles
+
+`POSTGRES_USER` is the **admin** role (the bundled image's bootstrap
+superuser, or the managed cluster's admin user). It is used only by the
+`db-init` one-shot and the backup sidecar. With `POSTGRES_APP_USER` /
+`POSTGRES_APP_PASSWORD` and `POSTGRES_LITELLM_USER` /
+`POSTGRES_LITELLM_PASSWORD` set, `db-init` (`infra/postgres/db-init.sh`,
+idempotent, runs on every `up`):
+
+- creates both roles as `LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`, and
+  re-applies their passwords (rotation = change `.env`, `up -d`);
+- makes the app role the owner of the app database and the LiteLLM role the
+  owner of `litellm`, and hands over every object the admin created before
+  (tables, sequences, views, functions, enum types, the `drizzle` schema —
+  extension-owned pgvector objects stay with the admin);
+- creates the `vector` extension as admin (not a trusted extension);
+- revokes `CONNECT`/`TEMP` on both databases from `PUBLIC` — the LiteLLM
+  role cannot open the app database and vice versa.
+
+The app needs LiteLLM's spend-log table for the 90-day retention sweep and
+the admin spend query; it connects with the LiteLLM role for that
+(`NUXT_LITELLM_DB_USER` / `_PASSWORD`, `server/utils/litellm/litellmDb.ts`).
+That widens nothing — the app already holds the LiteLLM master key; the
+separation protects the app database *from* a compromised proxy.
+
+`install.sh` generates the roles for every self-host install and upgrade.
+The hosted deployment opts in by setting the GitHub Environment values
+(docs/LAUNCH-CHECKLIST.md); without them, everything keeps using the admin
+role exactly as before.
+
+## C.6 Dev and test stacks
+
+`docker-compose.dev.yml`, `docker-compose.test.yml` and
+`docker-compose.local.yml` publish every port on `127.0.0.1` only (they run
+with committed, throwaway credentials). Containers that need the host's
+`bun run dev` reach it through `host.docker.internal`; the renderer maps
+`localhost` image URLs to the SeaweedFS container instead
+(`RENDERER_LOCALHOST_TARGET`), because loopback-published ports aren't
+reachable through the docker bridge. The one non-loopback binding is
+`fake-openai-test` on the test network's fixed gateway address
+(`10.213.47.1`, see the compose file): the BYOK base URL has to be the same
+non-loopback address for the app on the host and for LiteLLM in a container.
+
+## C.7 Verification
+
+```bash
+bash scripts/selfhost-check.sh            # static: networks, caps, read-only, loopback binds
+docker compose exec renderer sh -c 'cat /proc/1/status | grep -E "^(Uid|CapEff|NoNewPrivs)"'
+docker compose exec renderer bun -e 'require("net").connect(5432,"postgres").on("error",e=>console.log(e.code))'   # ENOTFOUND
+docker compose exec postgres psql -U "$POSTGRES_USER" -c "select usename, datname from pg_stat_activity where usename is not null"
+```
