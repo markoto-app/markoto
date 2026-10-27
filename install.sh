@@ -63,7 +63,7 @@ Install options (each also readable from the environment variable shown):
   --mistral-api-key KEY         Mistral as the instance AI default: chat, voice (MISTRAL_API_KEY)
   --jina-api-key KEY            knowledge-base embeddings + fetch_url tool (JINA_AI_API_KEY)
   --staan-api-key KEY           web_search tool (STAAN_API_KEY)
-  --tag TAG                     image tag (IMAGE_TAG; default: checked-out release tag, else latest)
+  --tag TAG                     image tag (IMAGE_TAG; default: newest release tag of this checkout, else latest)
   --build                       build images from this checkout instead of pulling
   --no-backup                   don't run the encrypted backup sidecar
   --backup-s3-endpoint URL      store backups in a separate S3 (BACKUP_S3_ENDPOINT; default: the bundled storage)
@@ -179,12 +179,16 @@ compose() {
 }
 
 # ─── Configuration ─────────────────────────────────────────────────────
-# Images matching the checked-out release keep compose files and images in
-# step; any other checkout falls back to `latest`.
+# Prefer an immutable release tag over the moving `latest`: the release tag
+# of the checked-out commit, else the newest release tag reachable from it,
+# else (shallow clone / no tags) `latest`.
 default_tag() {
   local tag=""
   if command -v git >/dev/null 2>&1 && [ -e "$ROOT/.git" ]; then
-    tag="$(git -C "$ROOT" describe --tags --exact-match 2>/dev/null || true)"
+    tag="$(git -C "$ROOT" describe --tags --exact-match --match 'v[0-9]*' 2>/dev/null || true)"
+    if [ -z "$tag" ]; then
+      tag="$(git -C "$ROOT" describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)"
+    fi
   fi
   printf '%s' "${tag:-latest}"
 }

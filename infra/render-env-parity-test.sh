@@ -169,3 +169,82 @@ if env -i "${NOSTRIPE[@]}" NUXT_BILLING_ENABLED=true bash infra/render-env.sh >/
   exit 1
 fi
 echo "BILLING GATE OK — Stripe vars optional when billing is off, required when on"
+
+# 5. Value safety (render-env.sh only — env.j2 is the legacy laptop path and
+#    expects plain values). Every rendered key must survive a compose-style
+#    parse byte-for-byte even when the input is full of characters that
+#    compose would interpolate, truncate or mangle; values that cannot be
+#    represented (single quote, embedded newline) must fail the render.
+NASTY="a b\$home #c\"d\\e\`f\`g"
+declare -a NASTYARGS=()
+for kv in "${ENVARGS[@]}"; do
+  case "$kv" in
+    DOMAIN=*|NUXT_BILLING_ENABLED=*) NASTYARGS+=("$kv") ;;
+    *) NASTYARGS+=("${kv%%=*}=$NASTY") ;;
+  esac
+done
+nasty_out=$(env -i "${NASTYARGS[@]}" bash infra/render-env.sh)
+NASTY="$NASTY" NASTY_OUT="$nasty_out" NASTY_KEYS="$(printf '%s\n' "${NASTYARGS[@]}" | grep -F "=$NASTY" | cut -d= -f1 | tr '\n' ' ')" python3 - <<'PY'
+import os, sys
+
+nasty = os.environ['NASTY']
+keys = set(os.environ['NASTY_KEYS'].split())
+unsafe = set('$#"\\`')
+bad = []
+seen = set()
+for line in os.environ['NASTY_OUT'].splitlines():
+    if not line or line.startswith('#') or '=' not in line:
+        continue
+    key, raw = line.split('=', 1)
+    if raw.startswith("'"):
+        # compose: a single-quoted value is taken literally
+        if len(raw) < 2 or not raw.endswith("'") or "'" in raw[1:-1]:
+            bad.append((key, 'malformed single-quoted value'))
+            continue
+        value = raw[1:-1]
+    else:
+        value = raw
+        if unsafe & set(raw) or raw != raw.strip():
+            bad.append((key, 'unquoted value with characters compose would mangle'))
+            continue
+    if key in keys:
+        seen.add(key)
+        if value != nasty:
+            bad.append((key, 'value changed by quoting'))
+missing = keys - seen
+if missing:
+    bad.extend((k, 'not rendered / not round-tripped') for k in sorted(missing))
+if bad:
+    for key, why in bad:
+        print('VALUE SAFETY FAILED - %s: %s' % (key, why))
+    sys.exit(1)
+print('VALUE SAFETY OK - %d keys survive a compose-style parse byte-for-byte' % len(seen))
+PY
+
+# Leading/trailing spaces are quoted too; a trailing newline (pasted secret) is
+# stripped; embedded newlines and single quotes fail loudly.
+pad_out=$(env -i "${ENVARGS[@]}" "NUXT_JWT_SECRET= padded " bash infra/render-env.sh)
+if ! echo "$pad_out" | grep -qxF "NUXT_JWT_SECRET=' padded '"; then
+  echo "VALUE SAFETY FAILED - leading/trailing spaces must be single-quoted"
+  exit 1
+fi
+nl_out=$(env -i "${ENVARGS[@]}" "NUXT_JWT_SECRET=trailing
+" bash infra/render-env.sh 2>/dev/null)
+if ! echo "$nl_out" | grep -qxF "NUXT_JWT_SECRET=trailing"; then
+  echo "VALUE SAFETY FAILED - a trailing newline must be stripped, not emitted"
+  exit 1
+fi
+if env -i "${ENVARGS[@]}" "NUXT_JWT_SECRET=a
+b=c" bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "VALUE SAFETY FAILED - an embedded newline (key injection) must fail the render"
+  exit 1
+fi
+if env -i "${ENVARGS[@]}" "NUXT_JWT_SECRET=it's" bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "VALUE SAFETY FAILED - a single quote must fail the render"
+  exit 1
+fi
+if env -i "${ENVARGS[@]}" "DOMAIN=evil.test\$(id)" bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "VALUE SAFETY FAILED - a non-hostname DOMAIN must fail the render"
+  exit 1
+fi
+echo "VALUE SAFETY OK - spaces quoted, trailing newline stripped, newline/quote/bad DOMAIN rejected"

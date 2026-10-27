@@ -197,7 +197,7 @@
 
 - name: Install apprise into the venv
   ansible.builtin.pip:
-    name: apprise
+    name: apprise==1.9.9
     state: present
     virtualenv: /opt/markoto-tools
 

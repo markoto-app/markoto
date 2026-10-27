@@ -47,6 +47,7 @@ services:
     restart: unless-stopped
     command:
       - "--api.dashboard=false"
+      - "--global.sendAnonymousUsage=false"
       - "--ping=true"
       - "--entrypoints.web.address=:80"
       # Proxies whose X-Forwarded-* headers Traefik keeps (your own TLS

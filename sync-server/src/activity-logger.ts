@@ -142,13 +142,16 @@ export function lineDiff(before: string, after: string): { added: number, remove
   }
   // LCS table — dp[i][j] = LCS length of a[0..i) vs b[0..j).
   const m = a.length, n = b.length
-  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0))
+  const at = (i: number, j: number): number => dp[i]?.[j] ?? 0
   for (let i = 0; i < m; i++) {
+    const row = dp[i + 1]
+    if (!row) continue
     for (let j = 0; j < n; j++) {
-      dp[i + 1][j + 1] = a[i] === b[j] ? dp[i][j] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1])
+      row[j + 1] = a[i] === b[j] ? at(i, j) + 1 : Math.max(at(i + 1, j), at(i, j + 1))
     }
   }
-  const common = dp[m][n]
+  const common = at(m, n)
   return {
     added: n - common,
     removed: m - common
