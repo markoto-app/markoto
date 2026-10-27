@@ -222,7 +222,7 @@ model_list:
     litellm_params:
       model: "openai/*"
       configurable_clientside_auth_params:
-        - api_base: '^https?://(?!(?:localhost|app|markoto-app|backup|litellm|litellm-db-init|markitdown|postgres|renderer|s3-init|seaweedfs|sync|traefik|valkey|redis|fake-openai-test|litellm-test|litellm-test-db-init|markitdown-test|oidc-test|postgres-test|renderer-test|seaweedfs-test|stripe-mock|sync-test|valkey-test|metadata|metadata\.google\.internal)\.?(?:[:/]|$))(?!(?:127|0|169\.254)\.)(?!\[)[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[^\s?#@]*)?$'
+        - api_base: '^https?://(?!(?:localhost|app|markoto-app|backup|litellm|litellm-db-init|db-init|socket-proxy|markitdown|postgres|renderer|s3-init|seaweedfs|sync|traefik|valkey|redis|fake-openai-test|litellm-test|litellm-test-db-init|markitdown-test|oidc-test|postgres-test|renderer-test|seaweedfs-test|stripe-mock|sync-test|valkey-test|metadata|metadata\.google\.internal)\.?(?:[:/]|$))(?!(?:127|0|169\.254)\.)(?!\[)[A-Za-z0-9.-]+(?::[0-9]{1,5})?(?:/[^\s?#@]*)?$'
     model_info:
       input_cost_per_token: 0
       output_cost_per_token: 0
@@ -247,9 +247,12 @@ litellm_settings:
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   database_url: os.environ/DATABASE_URL
-  # Admin UI on for now (operator convenience). Disable via env when we
-  # move to a fully config-driven prod deploy.
-  disable_admin_ui: false
+  # No admin UI: the proxy is configured from this file and driven by the
+  # app over the API (master key); the UI would be one more login surface on
+  # a service that holds every provider key and per-user virtual key. It is
+  # switched off with the DISABLE_ADMIN_UI=True env var on the litellm
+  # service (docker-compose.base.yml / docker-compose.test.yml): v1.106.4
+  # ignores a `disable_admin_ui` key here.
 
 router_settings:
   num_retries: 1

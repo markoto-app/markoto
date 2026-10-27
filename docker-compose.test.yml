@@ -25,6 +25,22 @@
 # so dev + test stacks can run simultaneously. Test DB name is ypad_test —
 # integration tests refuse to run against any other name as a belt-and-braces
 # guard against running TRUNCATEs on a dev database.
+#
+# Every published port binds to 127.0.0.1 (the stack uses fixed, committed
+# credentials). The one exception, fake-openai-test, is ALSO bound to the
+# gateway address of this project's network (below): the BYOK base URL has
+# to be one address that both the app on the host and litellm-test in a
+# container can reach, and that is not loopback (the SSRF policy refuses
+# loopback). A fixed subnet makes that gateway address known up front
+# (tests/integration/setup/env.ts). Override both variables together if
+# 10.213.47.0/24 collides with a network on your machine.
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${TEST_NETWORK_SUBNET:-10.213.47.0/24}
+          gateway: ${TEST_NETWORK_GATEWAY:-10.213.47.1}
 
 services:
   postgres-test:
@@ -48,7 +64,7 @@ services:
       retries: 15
       start_period: 2s
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
 
   valkey-test:
     image: valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
@@ -78,7 +94,7 @@ services:
     # reaches Valkey on `localhost:6380`. Test infra is throwaway / tmpfs;
     # nothing private lives in the container.
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
 
   seaweedfs-test:
     image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
@@ -89,13 +105,19 @@ services:
     # leaves no free volume slot and every PUT fails with "No writable
     # volumes" (surfaced by the renderer as an S3 InternalError / "Renderer
     # 500"). Small volumes keep plenty of slots on any realistic disk.
+    #
+    # S3 listens on 8334 INSIDE the container too, so the same
+    # `localhost:8334` presigned URLs the host-side app mints work from the
+    # renderer (its Chromium maps `localhost` to this container —
+    # RENDERER_LOCALHOST_TARGET below), while the published port stays on
+    # the host's loopback.
     command: >
       server -s3
       -ip=seaweedfs-test -ip.bind=0.0.0.0
-      -dir=/data -s3.config=/etc/seaweedfs/s3.json -s3.port=8333
+      -dir=/data -s3.config=/etc/seaweedfs/s3.json -s3.port=8334
       -master.volumeSizeLimitMB=256
     ports:
-      - "8334:8333"
+      - "127.0.0.1:8334:8334"
     tmpfs:
       - /data
     volumes:
@@ -111,7 +133,7 @@ services:
     image: stripe/stripe-mock:latest
     restart: unless-stopped
     ports:
-      - "12111:12111"
+      - "127.0.0.1:12111:12111"
     # No healthcheck available (image has no shell + no curl); port
     # 12111 is up as soon as the process binds, which is near-instant.
 
@@ -129,6 +151,17 @@ services:
     build: ./renderer
     restart: unless-stopped
     stop_grace_period: 30s
+    # Same hardening as docker-compose.base.yml's renderer, so the suites
+    # exercise the shape production runs (incl. Chromium's sandbox).
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./renderer/seccomp.json
+    pids_limit: 2048
     environment:
       - PORT=9000
       # MUST match TEST_INTERNAL_SECRET in tests/integration/setup/env.ts
@@ -141,7 +174,10 @@ services:
       # on :3001 and sets RENDERER_APP_URL so the renderer's Chromium navigates
       # back to the right port. Default keeps the integration wiring.
       - APP_URL=${RENDERER_APP_URL:-http://host.docker.internal:3101}
-      - S3_ENDPOINT=http://seaweedfs-test:8333
+      - S3_ENDPOINT=http://seaweedfs-test:8334
+      # Presigned image URLs point at localhost:8334 (the flow runner's
+      # NUXT_S3_ENDPOINT); resolve that to the SeaweedFS container.
+      - RENDERER_LOCALHOST_TARGET=seaweedfs-test
       - S3_ACCESS_KEY=ypad-access-key
       - S3_SECRET_KEY=ypad-secret-key
       - S3_BUCKET=ypad
@@ -156,7 +192,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "9101:9000"
+      - "127.0.0.1:9101:9000"
     depends_on:
       seaweedfs-test:
         condition: service_started
@@ -177,27 +213,40 @@ services:
   # provisioned upstream model keys — Phase 7 tests don't actually
   # invoke models, only the admin surface (/key/*).
 
+  # Same bootstrap script as the real stacks (infra/postgres/db-init.sh):
+  # creates `litellm_test` owned by its own `litellm_test` role, which
+  # litellm-test and the app's spend-log paths (NUXT_LITELLM_DB_USER in
+  # tests/integration/setup/server.ts) use. The app itself stays on the
+  # `ypad` admin role here — the suites TRUNCATE across the schema.
   litellm-test-db-init:
     image: pgvector/pgvector:pg16
     restart: "no"
     depends_on:
       postgres-test:
         condition: service_healthy
+    user: postgres
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - PGHOST=postgres-test
+      - PGUSER=ypad
       - PGPASSWORD=testpassword
-    entrypoint: ["sh", "-c"]
-    command:
-      - |
-        psql -h postgres-test -U ypad -d postgres -tAc \
-          "SELECT 1 FROM pg_database WHERE datname='litellm_test'" \
-          | grep -q 1 || \
-          psql -h postgres-test -U ypad -d postgres -c "CREATE DATABASE litellm_test;"
+      - APP_DB=ypad_test
+      - LITELLM_DB=litellm_test
+      - LITELLM_DB_USER=litellm_test
+      - LITELLM_DB_PASSWORD=litellmtestpassword
+    volumes:
+      - ./infra/postgres/db-init.sh:/db-init.sh:ro
+    entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm-test:
     image: ghcr.io/berriai/litellm:v1.106.4
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://ypad:testpassword@postgres-test:5432/litellm_test
+      - DATABASE_URL=postgresql://litellm_test:litellmtestpassword@postgres-test:5432/litellm_test
       - LITELLM_MASTER_KEY=sk-test-litellm-master
       - LITELLM_SALT_KEY=sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
       # Upstream provider keys. Integration tests (vitest) only hit
@@ -217,13 +266,22 @@ services:
       - BFL_API_KEY=${BFL_API_KEY:-stub}
       - STORE_MODEL_IN_DB=false
       - LITELLM_LOG=ERROR
+      - DISABLE_ADMIN_UI=True
     volumes:
       - ./infra/litellm/config.yaml:/app/config.yaml:ro
       - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     ports:
-      - "4100:4000"
+      - "127.0.0.1:4100:4000"
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -243,12 +301,13 @@ services:
   # the LiteLLM image (already pulled for litellm-test — no extra image).
   # See tests/fixtures/fake-openai/server.py for the scripted behaviour.
   #
-  # Published on the host so BOTH sides can reach it at the docker
-  # bridge gateway address (e.g. http://172.17.0.1:4120/v1): the app
+  # Published on the host so BOTH sides can reach it at this network's
+  # gateway address (http://10.213.47.1:4120/v1 by default): the app
   # (on the host) checks that URL against the BYOK SSRF policy, and
   # litellm-test (in a container) connects to it. A compose service
   # name would not resolve on the host. tests/integration/setup/env.ts
-  # derives the URL (override with TEST_FAKE_OPENAI_BASE_URL).
+  # builds the URL (override with TEST_FAKE_OPENAI_BASE_URL). The
+  # loopback binding serves the suites' /_test/requests reads.
   fake-openai-test:
     image: ghcr.io/berriai/litellm:v1.106.4
     restart: unless-stopped
@@ -258,7 +317,8 @@ services:
     volumes:
       - ./tests/fixtures/fake-openai:/fake:ro
     ports:
-      - "4120:8090"
+      - "127.0.0.1:4120:8090"
+      - "${TEST_NETWORK_GATEWAY:-10.213.47.1}:4120:8090"
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8090/health', timeout=2).status == 200 else 1)"]
       interval: 2s
@@ -347,7 +407,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "4002:4001"
+      - "127.0.0.1:4002:4001"
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -369,7 +429,7 @@ services:
     mem_limit: 1g
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health').read()"]
       interval: 3s

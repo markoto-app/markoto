@@ -10,10 +10,13 @@
  * Workbox caches `cdn.jsdelivr.net/*`, so first load is online but
  * subsequent reloads work offline.
  *
- * Pinned to the version installed in package.json. Update both
- * together; the URL is versioned so old caches don't bleed.
+ * Pinned to the version installed in package.json (also forced onto
+ * @mdit/plugin-katex via `overrides`). Update both together — KaTeX 0.18
+ * prefixed its internal CSS classes, so a stylesheet from another minor
+ * line mis-renders the markup. The URL is versioned so old caches don't
+ * bleed.
  */
-export const KATEX_VERSION = '0.16.47'
+export const KATEX_VERSION = '0.18.11'
 
 export const KATEX_CSS_URL = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/katex.min.css`
 
@@ -30,4 +33,4 @@ export const KATEX_CSS_URL = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION
  * Replace KATEX_CSS_SRI with `sha384-<new>`. Both MUST update together
  * or the stylesheet will be blocked by the browser.
  */
-export const KATEX_CSS_SRI = 'sha384-nH0MfJ44wi1dd7w6jinlyBgljjS8EJAh2JBoRad8a3VDw2K69vfaaqm4WnR+gXtA'
+export const KATEX_CSS_SRI = 'sha384-NJ/T2p1ROqNH3Yico+wdWm5Rv2rlinAOvV25Sw1zLOaxg8yLDPVv8GGAUccx50rh'

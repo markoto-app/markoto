@@ -57,8 +57,8 @@ export interface ByokUrlPolicy {
 export const INTERNAL_HOSTNAMES: ReadonlySet<string> = new Set([
   'localhost',
   // base / dev / local / prod / selfhost
-  'app', 'markoto-app', 'backup', 'litellm', 'litellm-db-init', 'markitdown', 'postgres', 'renderer',
-  's3-init', 'seaweedfs', 'sync', 'traefik', 'valkey', 'redis',
+  'app', 'markoto-app', 'backup', 'litellm', 'litellm-db-init', 'db-init', 'markitdown', 'postgres', 'renderer',
+  's3-init', 'seaweedfs', 'socket-proxy', 'sync', 'traefik', 'valkey', 'redis',
   // test stack
   'fake-openai-test', 'litellm-test', 'litellm-test-db-init', 'markitdown-test', 'oidc-test', 'postgres-test',
   'renderer-test', 'seaweedfs-test', 'stripe-mock', 'sync-test', 'valkey-test',

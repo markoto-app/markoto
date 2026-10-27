@@ -23,6 +23,7 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.forwardedHeaders.trustedIPs=${TRAEFIK_TRUSTED_IPS:-127.0.0.1/32}"
       - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://socket-proxy:2375"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=${MARKOTO_INSTANCE:-markoto}-edge"
       - "--providers.docker.constraints=Label(`markoto.instance`,`${MARKOTO_INSTANCE:-markoto}`)"
@@ -31,8 +32,9 @@ services:
       - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
     ports:
       - "${MARKOTO_HTTPS_BIND:-0.0.0.0}:${MARKOTO_HTTPS_PORT:-443}:443"
+    # No Docker socket here: Traefik reads the Docker API through the
+    # read-only socket-proxy (docker-compose.selfhost.yml).
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - letsencrypt:/letsencrypt
 
   app:
