@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nuxt'
 import { verifyMcpPat, touchMcpSession, type McpAuthContext } from '../utils/mcpAuth'
 import { checkRateLimit } from '../utils/rateLimit'
 import { getClientRateLimitKey } from '../utils/clientIp'
@@ -16,8 +17,9 @@ import { evaluateMcpRequest, jsonRpcErrorResponse } from './lib/mcpGate'
 //     MCP clients treat 401 as "start OAuth discovery", which we don't
 //     offer,
 //   - every request carrying `Mcp-Session-Id` must present the token
-//     that created that session (`utils/mcpSessionBinding.ts`); per user
-//     at most MAX_SESSIONS_PER_USER live sessions.
+//     that created that session (`utils/mcpSessionBinding.ts`, stored in
+//     Valkey so it survives restarts and is shared by every instance);
+//     per user at most MAX_SESSIONS_PER_USER live sessions.
 //
 // Tools additionally re-check their scope and the user's access to the
 // doc / workspace on every call (`lib/wrapDocBoundTool.ts`).
@@ -52,6 +54,23 @@ async function initializeClientName(event: Parameters<typeof readBody>[0]): Prom
   } catch {
     // Not JSON-RPC (GET stream, malformed body) — nothing to record.
     return null
+  }
+}
+
+/**
+ * Bind a session the toolkit just created to the creating token. If that
+ * fails (Valkey error, or the id is somehow already bound) the session
+ * stays unbound: its next request is refused and the client
+ * re-initializes — never served to an unverified token.
+ */
+async function bindNewSession(bindings: ReturnType<typeof useMcpSessionBindings>, sessionId: string, auth: McpAuthContext): Promise<void> {
+  try {
+    if (!(await bindings.bind(sessionId, auth.tokenId, auth.userId))) {
+      console.warn('[mcp] new session id was already bound; left unbound')
+    }
+  } catch (e) {
+    console.warn(`[mcp] could not bind the new session: ${e instanceof Error ? e.message : String(e)}`)
+    Sentry.captureException(e, { tags: { component: 'mcp', event: 'session_bind_failed' } })
   }
 }
 
@@ -98,7 +117,7 @@ export default defineMcpHandler({
     const result = await next()
     const newSessionId = result.headers.get('mcp-session-id')
     if (newSessionId) {
-      bindings.bind(newSessionId, auth.tokenId, auth.userId)
+      await bindNewSession(bindings, newSessionId, auth)
       void touchMcpSession({
         mcpSessionId: newSessionId,
         userId: auth.userId,

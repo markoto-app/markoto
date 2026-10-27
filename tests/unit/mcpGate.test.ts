@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { evaluateMcpRequest, jsonRpcErrorResponse, MCP_RATE_LIMITS, type McpGateDeps, type RateLimitRule } from '../../server/mcp/lib/mcpGate'
-import { McpSessionBindings, MAX_SESSIONS_PER_USER, BINDING_IDLE_MS } from '../../server/utils/mcpSessionBinding'
+import type { BindingCheck, McpSessionBindings } from '../../server/utils/mcpSessionBinding'
 import type { McpAuthContext } from '../../server/utils/mcpAuth'
 
 // /mcp request gate (A3 / A4 / A5): no session without a verified token,
@@ -10,13 +10,52 @@ import type { McpAuthContext } from '../../server/utils/mcpAuth'
 const ALICE_FULL: McpAuthContext = { userId: 1, scopes: ['documents:read', 'documents:write'], tokenId: 'mkt_pat_full' }
 const ALICE_RO: McpAuthContext = { userId: 1, scopes: ['documents:read'], tokenId: 'mkt_pat_ro' }
 
-function deps(overrides: Partial<McpGateDeps> = {}): McpGateDeps & { rateLimit: ReturnType<typeof vi.fn> } {
+/**
+ * Plain in-memory binding table for the gate's decision logic. The real
+ * table (Valkey: set-if-absent, per-user LRU cap, idle expiry, revoke)
+ * is tested against the Valkey container in tests/repos/mcpSessionBinding.test.ts.
+ */
+function memoryBindings(): McpSessionBindings & { throwOnCheck: boolean } {
+  const table = new Map<string, { tokenId: string, userId: number }>()
+  return {
+    throwOnCheck: false,
+    async bind(sessionId, tokenId, userId) {
+      if (table.has(sessionId)) return false
+      table.set(sessionId, { tokenId, userId })
+      return true
+    },
+    async check(sessionId, tokenId): Promise<BindingCheck> {
+      if (this.throwOnCheck) throw new Error('valkey down')
+      const b = table.get(sessionId)
+      if (!b) return 'unknown'
+      return b.tokenId === tokenId ? 'ok' : 'token-mismatch'
+    },
+    async countForUser(userId) {
+      return [...table.values()].filter(b => b.userId === userId).length
+    },
+    async release(sessionId) {
+      table.delete(sessionId)
+    },
+    async releaseToken(tokenId) {
+      let n = 0
+      for (const [id, b] of table) {
+        if (b.tokenId === tokenId) {
+          table.delete(id)
+          n++
+        }
+      }
+      return n
+    }
+  }
+}
+
+function deps(overrides: Partial<Omit<McpGateDeps, 'bindings'>> = {}): McpGateDeps & { rateLimit: ReturnType<typeof vi.fn>, bindings: ReturnType<typeof memoryBindings> } {
   const tokens: Record<string, McpAuthContext> = { 'Bearer full': ALICE_FULL, 'Bearer ro': ALICE_RO }
   const rateLimit = vi.fn(async (_rule: RateLimitRule, _key: string) => true)
   return {
     verifyToken: async h => (h ? tokens[h] ?? null : null),
     rateLimit,
-    bindings: new McpSessionBindings(),
+    bindings: memoryBindings(),
     ...overrides
   }
 }
@@ -28,7 +67,7 @@ describe('evaluateMcpRequest', () => {
       const r = await evaluateMcpRequest({ authHeader, clientKey: '203.0.113.9', sessionId: null }, d)
       expect(r).toMatchObject({ kind: 'reject', status: 403 })
     }
-    expect(d.bindings.countForUser(1)).toBe(0)
+    expect(await d.bindings.countForUser(1)).toBe(0)
   })
 
   it('lets a verified token open a session', async () => {
@@ -38,7 +77,7 @@ describe('evaluateMcpRequest', () => {
 
   it('serves a session only to the token that created it', async () => {
     const d = deps()
-    d.bindings.bind('sess-1', ALICE_FULL.tokenId, ALICE_FULL.userId)
+    await d.bindings.bind('sess-1', ALICE_FULL.tokenId, ALICE_FULL.userId)
     expect(await evaluateMcpRequest({ authHeader: 'Bearer full', clientKey: 'c', sessionId: 'sess-1' }, d))
       .toEqual({ kind: 'proceed', auth: ALICE_FULL, opensSession: false })
     // Same user, other (read-only) token → as if the session did not exist.
@@ -65,53 +104,21 @@ describe('evaluateMcpRequest', () => {
     expect(await evaluateMcpRequest({ authHeader: 'Bearer full', clientKey: 'c', sessionId: null }, d))
       .toMatchObject({ kind: 'reject', status: 429 })
     expect(d.rateLimit).toHaveBeenCalledWith(MCP_RATE_LIMITS.sessionsPerUser, '1')
-    d.bindings.bind('sess-1', ALICE_FULL.tokenId, 1)
+    await d.bindings.bind('sess-1', ALICE_FULL.tokenId, 1)
     expect(await evaluateMcpRequest({ authHeader: 'Bearer full', clientKey: 'c', sessionId: 'sess-1' }, d))
       .toMatchObject({ kind: 'proceed', opensSession: false })
   })
 })
 
-describe('McpSessionBindings', () => {
-  it('keeps at most MAX_SESSIONS_PER_USER per user, dropping the least recently used', () => {
-    let now = 0
-    const b = new McpSessionBindings(() => now)
-    for (let i = 0; i < MAX_SESSIONS_PER_USER; i++) {
-      now += 1
-      b.bind(`s${i}`, 't1', 1)
-    }
-    now += 1
-    expect(b.check('s0', 't1')).toBe('ok') // s0 is now the most recently used
-    now += 1
-    b.bind('new', 't1', 1)
-    expect(b.countForUser(1)).toBe(MAX_SESSIONS_PER_USER)
-    expect(b.check('s1', 't1')).toBe('unknown') // the least recently used one went
-    expect(b.check('s0', 't1')).toBe('ok')
-    expect(b.check('new', 't1')).toBe('ok')
-    // Other users are unaffected.
-    b.bind('bob', 't2', 2)
-    expect(b.check('bob', 't2')).toBe('ok')
-  })
-
-  it('forgets idle sessions (and frees the per-user slot)', () => {
-    let now = 0
-    const b = new McpSessionBindings(() => now)
-    b.bind('s1', 't1', 1)
-    expect(b.check('s1', 't1')).toBe('ok')
-    expect(b.countForUser(1)).toBe(1)
-    now += BINDING_IDLE_MS + 1
-    expect(b.check('s1', 't1')).toBe('unknown')
-    expect(b.countForUser(1)).toBe(0)
-  })
-
-  it('a successful check keeps the session alive', () => {
-    let now = 0
-    const b = new McpSessionBindings(() => now)
-    b.bind('s1', 't1', 1)
-    now += BINDING_IDLE_MS - 1
-    expect(b.check('s1', 't1')).toBe('ok')
-    now += BINDING_IDLE_MS - 1
-    expect(b.check('s1', 't1')).toBe('ok')
-    expect(b.check('s1', 't2')).toBe('token-mismatch')
+describe('evaluateMcpRequest — binding storage failure', () => {
+  it('refuses the session when the binding lookup fails (fail closed)', async () => {
+    const d = deps()
+    await d.bindings.bind('sess-1', ALICE_FULL.tokenId, 1)
+    d.bindings.throwOnCheck = true
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(await evaluateMcpRequest({ authHeader: 'Bearer full', clientKey: 'c', sessionId: 'sess-1' }, d))
+      .toMatchObject({ kind: 'reject', status: 404, message: 'Session not found' })
+    warn.mockRestore()
   })
 })
 
