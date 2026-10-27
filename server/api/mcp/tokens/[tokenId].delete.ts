@@ -2,6 +2,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { mcpPersonalTokens } from '../../../db/schema'
 import { useDatabase } from '../../../utils/database'
 import { invalidateMcpPatCache } from '../../../utils/mcpAuth'
+import { useMcpSessionBindings } from '../../../utils/mcpSessionBinding'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_MCP_TOKEN_REVOKED } from '../../../legal/auditActions'
 
@@ -42,6 +43,12 @@ export default defineEventHandler(async (event) => {
   }
 
   await invalidateMcpPatCache(row.tokenHash)
+  // Free the token's MCP session bindings (and the user's session slots).
+  // Not load-bearing for security — the token itself no longer verifies —
+  // so a Valkey error only leaves the bindings to expire on their own.
+  await useMcpSessionBindings().releaseToken(tokenId, userId).catch((e: unknown) => {
+    console.warn(`[mcp] releasing session bindings of a revoked token failed: ${e instanceof Error ? e.message : String(e)}`)
+  })
 
   // Audit the revocation. Same shape as issuance — security-grade
   // event, never log the hash.

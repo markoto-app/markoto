@@ -30,6 +30,8 @@ import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../utils/age
 import { UNTRUSTED_DATA_RULE } from '../../utils/agentic/untrustedText'
 import { AiSessionChannel } from '../../utils/agentic/sessionChannel'
 import { buildSessionGuard } from '../../utils/agentic/sessionGuard'
+import type { CrossBoundaryGuard } from '../../utils/agentic/crossBoundary'
+import { finalizeSessionProvenance, recordSessionProvenance } from '../../utils/agentic/sessionProvenance'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 
 // System prompt bits derived from source-of-truth data — keeps them in sync
@@ -291,6 +293,9 @@ async function claimAiSession(args: ClaimSessionArgs): Promise<void> {
     }
     throw e
   }
+  // Provenance row BEFORE the AI client can write (taint gate, see
+  // `sessionProvenance.ts`). Releases the session again on failure.
+  await recordSessionProvenance(args.sessionId, args.docId, args.userId)
 }
 
 interface PromptLoopArgs {
@@ -320,6 +325,7 @@ interface PromptLoopArgs {
  */
 async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
   let aiSession: Awaited<ReturnType<typeof createAiSession>> | null = null
+  let crossBoundary: CrossBoundaryGuard | null = null
   const status: { phase: StreamStatusPhase } = { phase: 'thinking' }
   const setStatus = (phase: StreamStatusPhase, message?: string) => {
     status.phase = phase
@@ -348,7 +354,7 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
     // makes cross-document / knowledge / web tools ask the initiator
     // first. Only what the initiator typed counts as their own text —
     // NOT the editor-state wrapper, which quotes document content.
-    const crossBoundary = await buildSessionGuard({
+    crossBoundary = await buildSessionGuard({
       docId: args.docId,
       initiatorUserId: args.userId,
       workspaceId: args.workspaceId,
@@ -385,6 +391,9 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
     const lingerMs = status.phase === 'error' ? 2500 : 500
     await new Promise(r => setTimeout(r, lingerMs))
     if (aiSession) await aiSession.destroy()
+    // The AI has left the document: its edits count as the invoker's
+    // own only if the session never read anybody else's content.
+    await finalizeSessionProvenance(args.sessionId, crossBoundary)
     await removeAiSession(args.sessionId)
   }
 }

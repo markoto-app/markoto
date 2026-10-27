@@ -21,7 +21,7 @@ Three-file split for the editor's document lifecycle:
 
 ## Other composables here
 
-- `useAI.ts` — agentic prompt + selection-popup pipeline; talks to `/api/ai/prompt`. Public session state (who, phase, comment thread) comes from awareness; the initiator's own prompt, status text, `message_to_user` answers and pending confirmations come from polling `GET /api/ai/sessions/:id` (starts when `/api/ai/prompt` returns the id or awareness shows a session of mine; one last read after the session leaves). `answerConfirmation(allow)` posts `…/confirm`.
+- `useAI.ts` — agentic prompt + selection-popup pipeline; talks to `/api/ai/prompt`. Public session state (who, phase, comment thread) comes from awareness; the initiator's own prompt, status text, `message_to_user` answers and pending confirmations come from the push stream `GET /api/ai/sessions/:id/stream` (`EventSource`; starts when `/api/ai/prompt` returns the id or awareness shows a session of mine; closed on `end`, on scope dispose and when tracking stops; one last `GET /api/ai/sessions/:id` after the session leaves). Falls back to polling the GET every 600 ms when the browser gives up on the stream or after 3 consecutive errors. `createEventSource` option (null = poll only) is the test seam. `answerConfirmation(allow)` posts `…/confirm`.
 - `useComments.ts` — `Y.Array<Y.Map>` "comments" wrapper. Author identity from awareness; `observeDeep` for nested replies.
 - `useImageUpload.ts` — presigned PUT flow.
 - `useVoicePrompt.ts` / `useVoiceDictation.ts` — see `server/utils/agentic/AGENTS.md` for the server-side counterparts.

@@ -179,6 +179,9 @@ export async function deleteThemesByUser(userId: number): Promise<number> {
  *                                            for an audit count
  *   - data_export_jobs.user_id (CASCADE)
  *   - ai_session_messages.user_id (CASCADE)
+ *   - ai_session_provenance.user_id (CASCADE) — that user's AI edits
+ *                                            on surviving docs then count
+ *                                            as foreign for the taint gate
  *   - themes.user_id (CASCADE) — explicit for audit count
  *   - uploads.uploader_id (SET NULL)
  *   - documents.workspace_id is set null on workspace delete via FK
