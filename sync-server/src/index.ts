@@ -263,7 +263,7 @@ function resolveAttribution(
       level: 'warning',
       tags: { component: 'hocuspocus', event: 'attribution_fallback', cause }
     })
-    fallback = mostRecentVerifiedEditor(data.document.awareness, awarenessIdentities(data.document))
+    fallback = mostRecentVerifiedEditor(awarenessIdentities(data.document))
   }
   const editor = tracked ?? fallback
   // The JWT userId is a string. Real users get a numeric id (parsed →

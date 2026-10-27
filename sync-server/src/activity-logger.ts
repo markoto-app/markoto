@@ -78,13 +78,6 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
   }
 }
 
-// Minimal shape of the y-protocols Awareness instance we touch — typed
-// locally so we don't pull y-protocols into the sync-server's deps just for
-// its type exports.
-interface AwarenessLike {
-  meta: Map<number, { clock: number, lastUpdated: number }>
-}
-
 /** Identity of the authenticated connection an awareness client id was
  *  last received on — taken from that connection's JWT, never from the
  *  awareness payload. See `awareness-identity.ts`. */
@@ -97,8 +90,10 @@ export interface VerifiedIdentity {
  * Heuristic attribution for a store window with no tracked editor (cold
  * doc / restart / Valkey down): the writer whose awareness state was
  * updated most recently. y-codemirror.next updates awareness on every
- * cursor move / keystroke, so `meta.lastUpdated` is a strong signal for
- * "who just edited this".
+ * cursor move / keystroke, so the latest awareness update is a strong
+ * signal for "who just edited this". Ordered by the guard's monotonic
+ * `seq` (see awareness-guard.ts), not by wall-clock ms, so two updates
+ * in the same millisecond still have a defined order.
  *
  * The identity returned is the JWT identity of the connection that sent
  * that awareness state — NOT `state.user.name`. Awareness is entirely
@@ -106,21 +101,14 @@ export interface VerifiedIdentity {
  * display name ("CEO Bob") into the activity log.
  */
 export function mostRecentVerifiedEditor(
-  awareness: AwarenessLike | null | undefined,
-  identities: ReadonlyMap<number, VerifiedIdentity> | undefined
+  identities: ReadonlyMap<number, VerifiedIdentity & { seq: number }> | undefined
 ): VerifiedIdentity | null {
-  if (!awareness?.meta || !identities) return null
-  let latestTime = 0
-  let latest: VerifiedIdentity | null = null
-  for (const [clientID, identity] of identities) {
-    const m = awareness.meta.get(clientID)
-    if (!m) continue
-    if (m.lastUpdated > latestTime) {
-      latestTime = m.lastUpdated
-      latest = identity
-    }
+  if (!identities) return null
+  let latest: (VerifiedIdentity & { seq: number }) | null = null
+  for (const identity of identities.values()) {
+    if (!latest || identity.seq > latest.seq) latest = identity
   }
-  return latest
+  return latest ? { userId: latest.userId, userName: latest.userName } : null
 }
 
 /**

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import * as Y from '../../sync-server/src/yjs'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import {
@@ -60,18 +60,27 @@ describe('attribution from awareness never trusts the client-chosen name', () =>
       { webSocket: aliceSocket, context: { readOnly: false, userId: '7', userName: 'Alice' } }
     ])
     attachAwarenessGuard(doc)
-    vi.useFakeTimers()
-    try {
-      sendAwareness(doc.awareness, { user: { name: 'Alice' } }, aliceSocket)
-      vi.advanceTimersByTime(50)
-      // The anonymous editor claims to be someone else, and moves last.
-      sendAwareness(doc.awareness, { user: { name: 'CEO Bob (forged)' } }, anonSocket)
-    } finally {
-      vi.useRealTimers()
-    }
+    // Back to back, typically within the same millisecond: ordering must
+    // not depend on the wall clock.
+    sendAwareness(doc.awareness, { user: { name: 'Alice' } }, aliceSocket)
+    // The anonymous editor claims to be someone else, and moves last.
+    sendAwareness(doc.awareness, { user: { name: 'CEO Bob (forged)' } }, anonSocket)
 
-    const editor = mostRecentVerifiedEditor(doc.awareness, awarenessIdentities(doc))
+    const editor = mostRecentVerifiedEditor(awarenessIdentities(doc))
     expect(editor).toEqual({ userId: 'anonymous', userName: null })
+  })
+
+  it('orders by arrival, so the last of two back-to-back updates wins either way round', () => {
+    const anonSocket = {}
+    const aliceSocket = {}
+    const doc = fakeDocument([
+      { webSocket: anonSocket, context: { readOnly: false, userId: 'anonymous', userName: null } },
+      { webSocket: aliceSocket, context: { readOnly: false, userId: '7', userName: 'Alice' } }
+    ])
+    attachAwarenessGuard(doc)
+    sendAwareness(doc.awareness, { user: { name: 'x' } }, anonSocket)
+    sendAwareness(doc.awareness, { user: { name: 'Alice' } }, aliceSocket)
+    expect(mostRecentVerifiedEditor(awarenessIdentities(doc))).toEqual({ userId: '7', userName: 'Alice' })
   })
 
   it('ignores read-only connections and unknown origins', () => {
@@ -82,7 +91,7 @@ describe('attribution from awareness never trusts the client-chosen name', () =>
     attachAwarenessGuard(doc)
     sendAwareness(doc.awareness, { user: { name: 'Viewer' } }, viewerSocket)
     sendAwareness(doc.awareness, { user: { name: 'Ghost' } }, {})
-    expect(mostRecentVerifiedEditor(doc.awareness, awarenessIdentities(doc))).toBe(null)
+    expect(mostRecentVerifiedEditor(awarenessIdentities(doc))).toBe(null)
   })
 
   it('writerIdentityFromContext requires an explicit writer context', () => {

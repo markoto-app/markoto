@@ -36,10 +36,19 @@ export interface GuardedDocument {
   getConnections: () => ConnectionLike[]
 }
 
-const identitiesByDoc = new WeakMap<object, Map<number, VerifiedIdentity>>()
+/** A writer identity plus the order in which its awareness last arrived. */
+export interface TrackedIdentity extends VerifiedIdentity {
+  /** Monotonic per-process counter, bumped on every awareness update.
+   *  Orders updates exactly, unlike wall-clock ms (two updates in the
+   *  same millisecond would tie). */
+  seq: number
+}
+
+const identitiesByDoc = new WeakMap<object, Map<number, TrackedIdentity>>()
+let awarenessSeq = 0
 
 /** Verified identities of this document's awareness clients (writers only). */
-export function awarenessIdentities(doc: object): ReadonlyMap<number, VerifiedIdentity> | undefined {
+export function awarenessIdentities(doc: object): ReadonlyMap<number, TrackedIdentity> | undefined {
   return identitiesByDoc.get(doc)
 }
 
@@ -57,7 +66,7 @@ export function writerIdentityFromContext(context: unknown): VerifiedIdentity | 
 }
 
 export function attachAwarenessGuard(doc: GuardedDocument): void {
-  const identities = new Map<number, VerifiedIdentity>()
+  const identities = new Map<number, TrackedIdentity>()
   identitiesByDoc.set(doc, identities)
 
   doc.awareness.on('change', ({ added, updated }) => {
@@ -70,8 +79,9 @@ export function attachAwarenessGuard(doc: GuardedDocument): void {
     // raw WebSocket as the origin.
     const connection = origin ? doc.getConnections().find(c => c.webSocket === origin) : undefined
     const identity = connection ? writerIdentityFromContext(connection.context) : null
+    const seq = ++awarenessSeq
     for (const id of [...added, ...updated]) {
-      if (identity) identities.set(id, identity)
+      if (identity) identities.set(id, { ...identity, seq })
       else identities.delete(id)
     }
   })
