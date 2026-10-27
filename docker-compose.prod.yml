@@ -29,6 +29,7 @@ services:
     restart: unless-stopped
     command:
       - "--api.dashboard=false"
+      - "--global.sendAnonymousUsage=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.websecure.address=:443"
