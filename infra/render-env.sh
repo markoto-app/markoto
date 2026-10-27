@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Render /opt/markoto/.env from environment variables, for the CI-driven deploy
 # (.github/workflows/deploy.yml). The workflow injects each value from GitHub
-# Environment secrets/variables (+ repo-level provider-key secrets), whose NAMES
+# Environment secrets/variables (provider keys included), whose NAMES
 # are exactly the .env keys — so there is no ansible-var translation here.
 #
 # ⚠️  This is a faithful bash port of infra/templates/env.j2 (the ansible/laptop
@@ -77,6 +77,78 @@ BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX:-backups/postgres}"
 OVH_PG_HOST="${OVH_PG_HOST:-}"
 OVH_PG_CA_REMOTE_PATH="${OVH_PG_CA_REMOTE_PATH:-/opt/markoto/secrets/ovh-pg-ca.pem}"
 
+# ─── Value safety ───
+# Compose parses the rendered file, so an unquoted `$`, `#`, quote, backslash
+# or backtick in a value would be interpolated, truncated or mangled, and a
+# newline would inject extra keys. Values are therefore checked and, when they
+# contain such characters, wrapped in single quotes (compose takes single-
+# quoted values literally, like install.sh does). A single quote or a newline
+# cannot be represented inside single quotes, so those fail the render.
+# Plain values are emitted unchanged (byte-identical to infra/templates/env.j2).
+VALKEY_TLS_ENABLED="$(echo "$VALKEY_TLS_ENABLED" | tr '[:upper:]' '[:lower:]')"
+NUXT_AI_BYOK_ALLOW_PRIVATE_URLS="$(echo "$NUXT_AI_BYOK_ALLOW_PRIVATE_URLS" | tr '[:upper:]' '[:lower:]')"
+
+# DOMAIN is spliced into URLs (wss://sync.${DOMAIN}), so it must be a plain
+# hostname rather than a quoted value.
+case "$DOMAIN" in
+  *[!A-Za-z0-9.-]*)
+    echo "render-env: DOMAIN must be a plain hostname (letters, digits, '.', '-')" >&2
+    exit 1
+    ;;
+esac
+
+for n in \
+  ACME_EMAIL BACKUP_GPG_PASSPHRASE BACKUP_INTERVAL_SECONDS \
+  BACKUP_RETENTION_COUNT BACKUP_S3_ACCESS_KEY BACKUP_S3_BUCKET \
+  BACKUP_S3_ENDPOINT BACKUP_S3_PREFIX BACKUP_S3_REGION \
+  BACKUP_S3_SECRET_KEY BFL_API_KEY EMBEDDINGS_UPSTREAM_API_BASE \
+  EMBEDDINGS_UPSTREAM_API_KEY EMBEDDINGS_UPSTREAM_MODEL IMAGE_TAG \
+  JINA_AI_API_KEY LITELLM_MASTER_KEY LITELLM_SALT_KEY \
+  MISTRAL_API_KEY NUXT_AI_BYOK_ALLOWED_BASE_URLS NUXT_AI_BYOK_ALLOW_PRIVATE_URLS \
+  NUXT_AI_DEFAULT_CHAT_API_KEY NUXT_AI_DEFAULT_CHAT_BASE_URL NUXT_AI_DEFAULT_CHAT_MODEL \
+  NUXT_AI_DEFAULT_CHAT_VISION NUXT_AI_DEFAULT_IMAGE_API_KEY NUXT_AI_DEFAULT_IMAGE_BASE_URL \
+  NUXT_AI_DEFAULT_IMAGE_MODEL NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL \
+  NUXT_AI_DEFAULT_TRANSCRIBE_MODEL NUXT_AI_DICTATE_JWT_SECRET NUXT_BILLING_ENABLED \
+  NUXT_EMAIL_FROM NUXT_INTERNAL_API_SECRET NUXT_INTERNAL_API_SECRET_PREVIOUS \
+  NUXT_JWT_SECRET NUXT_JWT_SECRET_PREVIOUS NUXT_LITELLM_EMBEDDINGS_DIMS \
+  NUXT_LITELLM_EMBEDDINGS_MODEL NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS NUXT_LITELLM_EMBEDDINGS_TASK_HINTS \
+  NUXT_OAUTH_GITHUB_CLIENT_ID NUXT_OAUTH_GITHUB_CLIENT_SECRET NUXT_OAUTH_GOOGLE_CLIENT_ID \
+  NUXT_OAUTH_GOOGLE_CLIENT_SECRET NUXT_PLANS_COMING_SOON NUXT_PUBLIC_SENTRY_DSN \
+  NUXT_S3_ACCESS_KEY NUXT_S3_BUCKET NUXT_S3_ENDPOINT \
+  NUXT_S3_SECRET_KEY NUXT_SESSION_PASSWORD NUXT_STRIPE_AUTOMATIC_TAX \
+  NUXT_STRIPE_PRICE_MAX NUXT_STRIPE_PRICE_PRO NUXT_STRIPE_PRICE_ULTRA \
+  NUXT_STRIPE_SECRET_KEY NUXT_STRIPE_WEBHOOK_SECRET NUXT_WEB_TOOLS_DAILY_LIMIT \
+  NUXT_WEB_TOOLS_HOURLY_LIMIT OVH_PG_CA_REMOTE_PATH POSTGRES_DB \
+  POSTGRES_HOST POSTGRES_PASSWORD POSTGRES_PORT \
+  POSTGRES_USER REGISTRY RESEND_API_KEY \
+  SENTRY_DSN STAAN_API_KEY TIER_FREE_KNOWLEDGE_BYTES_PER_USER \
+  TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE TIER_FREE_KNOWLEDGE_FILES TIER_FREE_LITELLM_BUDGET_USD \
+  TIER_FREE_WORKSPACES_OWNED VALKEY_DB VALKEY_PASSWORD \
+  VALKEY_TLS_ENABLED
+do
+  v="${!n:-}"
+  # A pasted secret often carries a trailing newline; drop it (warn) rather
+  # than fail the deploy. Embedded newlines are rejected below.
+  if [[ "$v" == *$'\n' || "$v" == *$'\r' ]]; then
+    while [[ "$v" == *$'\n' || "$v" == *$'\r' ]]; do v="${v%?}"; done
+    echo "render-env: warning: trailing newline stripped from '$n'" >&2
+  fi
+  case "$v" in
+    *$'\n'*|*$'\r'*)
+      echo "render-env: '$n' contains a newline, which cannot be written to a .env file" >&2
+      exit 1
+      ;;
+    *\'*)
+      echo "render-env: '$n' contains a single quote, which cannot be written to a .env file" >&2
+      exit 1
+      ;;
+  esac
+  if [[ "$v" == *[\$\#\"\\\`]* || "$v" =~ ^[[:space:]] || "$v" =~ [[:space:]]$ ]]; then
+    v="'${v}'"
+  fi
+  printf -v "$n" '%s' "$v"
+done
+
 cat <<EOF
 # markoto .env — rendered by CI (deploy.yml) from GitHub Environment secrets.
 # Do not edit on the VPS; re-dispatch the deploy workflow after changing secrets.
@@ -100,7 +172,7 @@ VALKEY_HOST=valkey
 VALKEY_PORT=6379
 VALKEY_PASSWORD=${VALKEY_PASSWORD}
 VALKEY_DB=${VALKEY_DB}
-VALKEY_TLS_ENABLED=$(echo "$VALKEY_TLS_ENABLED" | tr '[:upper:]' '[:lower:]')
+VALKEY_TLS_ENABLED=${VALKEY_TLS_ENABLED}
 
 # ─── S3 / object storage ───
 NUXT_S3_ENDPOINT=${NUXT_S3_ENDPOINT}
@@ -157,7 +229,7 @@ NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=${NUXT_AI_DEFAULT_TRANSCRIBE_MODEL:-}
 NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL=${NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL:-}
 NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY=${NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY:-}
 NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS}
-NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=$(echo "$NUXT_AI_BYOK_ALLOW_PRIVATE_URLS" | tr '[:upper:]' '[:lower:]')
+NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS}
 
 # ─── Billing mode ───
 NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED}

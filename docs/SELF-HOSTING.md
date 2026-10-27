@@ -67,7 +67,7 @@ docker compose up -d        # after editing .env
 
 ### Images
 
-By default the stack pulls `ghcr.io/joelbarmettleruzh/markoto-{app,sync,renderer,markitdown,backup}` at `IMAGE_TAG`. The installer picks the release tag of the checked-out commit (`git describe --tags --exact-match`), else `latest`. If the images can't be pulled, it falls back to building them from the checkout.
+By default the stack pulls `ghcr.io/joelbarmettleruzh/markoto-{app,sync,renderer,markitdown,backup}` at `IMAGE_TAG`. The installer picks the release tag of the checked-out commit, else the newest release tag reachable from it, and only falls back to the moving `latest` when the checkout has no tags (for example a shallow clone). Pass `--tag vX.Y.Z` to choose explicitly. Release images are signed (see [Verifying images](#verifying-images)). If the images can't be pulled, it falls back to building them from the checkout.
 
 To always build from source:
 
@@ -76,6 +76,18 @@ To always build from source:
 ```
 
 This adds `docker-compose.selfhost.build.yml` to `COMPOSE_FILE`. After `git pull`, rebuild with `docker compose build && docker compose up -d` (or `./install.sh upgrade`).
+
+### Verifying images
+
+Release images are signed keyless with [cosign](https://docs.sigstore.dev/cosign/overview/) (GitHub OIDC, recorded in the public Rekor log) and carry a build provenance + SBOM attestation. Verify one before running it:
+
+```sh
+cosign verify ghcr.io/joelbarmettleruzh/markoto-app:vX.Y.Z \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity 'https://github.com/joelbarmettlerUZH/md-online/.github/workflows/release.yml@refs/heads/main'
+```
+
+Prefer a pinned `vX.Y.Z` tag over `latest`, which moves with every release.
 
 ## What runs
 

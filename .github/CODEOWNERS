@@ -1,0 +1,27 @@
+# Code owners. Combined with the `main` ruleset (docs/GITHUB-CONFIG.md) this
+# makes the owner the reviewer of record for every change.
+#
+# Last matching pattern wins, so the sensitive paths below are listed
+# explicitly (and again after the catch-all) to make the emphasis visible:
+# they define what runs with secrets, what ships to the VPS and what
+# self-hosters run.
+
+*                          @joelbarmettlerUZH
+
+# CI/CD: workflows, composite actions, dependency automation, owners file
+/.github/                  @joelbarmettlerUZH
+
+# Deployment + infrastructure
+/infra/                    @joelbarmettlerUZH
+/scripts/                  @joelbarmettlerUZH
+/install.sh                @joelbarmettlerUZH
+
+# Compose files and container images
+/docker-compose*.yml       @joelbarmettlerUZH
+/Dockerfile                @joelbarmettlerUZH
+/*/Dockerfile              @joelbarmettlerUZH
+/.dockerignore             @joelbarmettlerUZH
+
+# Instructions that AI agents load into maintainers' sessions
+AGENTS.md                  @joelbarmettlerUZH
+/.agents/                  @joelbarmettlerUZH

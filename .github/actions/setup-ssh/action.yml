@@ -1,0 +1,59 @@
+name: Configure pinned SSH
+description: >-
+  Writes the deploy key and a PINNED known_hosts and forces strict host-key
+  checking for every ssh/scp in the job. Fails if the key or the pinned host
+  keys are missing, or if the pinned file does not contain the target host.
+  There is deliberately no ssh-keyscan fallback (trust-on-first-use would let a
+  network attacker receive the rendered .env).
+
+inputs:
+  host:
+    description: Deploy host (DEPLOY_HOST)
+    required: true
+  private-key:
+    description: Private OpenSSH key (DEPLOY_SSH_KEY)
+    required: true
+  known-hosts:
+    description: >-
+      Pinned known_hosts lines for the host (DEPLOY_KNOWN_HOSTS, the output of
+      `ssh-keyscan -t ed25519 HOST` taken over a trusted path)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Write key + pinned known_hosts
+      shell: bash
+      env:
+        DEPLOY_HOST: ${{ inputs.host }}
+        DEPLOY_SSH_KEY: ${{ inputs.private-key }}
+        DEPLOY_KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        set -euo pipefail
+        missing=""
+        for n in DEPLOY_HOST DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+          if [ -z "${!n:-}" ]; then missing="${missing} ${n}"; fi
+        done
+        if [ -n "$missing" ]; then
+          echo "::error title=Missing secrets::Not set in this job's Environment (docs/GITHUB-CONFIG.md):${missing}"
+          exit 1
+        fi
+
+        umask 077
+        mkdir -p ~/.ssh
+        printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+        printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+        if ! ssh-keygen -F "$DEPLOY_HOST" -f ~/.ssh/known_hosts > /dev/null; then
+          echo "::error title=Host key not pinned::DEPLOY_KNOWN_HOSTS has no entry for the deploy host. Regenerate it with: ssh-keyscan -t ed25519 <host>"
+          exit 1
+        fi
+
+        cat > ~/.ssh/config <<'SSHCONF'
+        Host *
+          IdentityFile ~/.ssh/id_ed25519
+          IdentitiesOnly yes
+          BatchMode yes
+          StrictHostKeyChecking yes
+          UserKnownHostsFile ~/.ssh/known_hosts
+        SSHCONF

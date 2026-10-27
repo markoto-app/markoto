@@ -15,6 +15,7 @@ services:
   traefik:
     command:
       - "--api.dashboard=false"
+      - "--global.sendAnonymousUsage=false"
       - "--ping=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
