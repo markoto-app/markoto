@@ -37,6 +37,7 @@ export type TransactionalEmailKind
     | 'consent.version_bump'
     | 'breach.notification'
     | 'waitlist.confirm'
+    | 'workspace.invite'
 
 export interface SendEmailArgs {
   // What kind of email this is. Used for logging and per-kind
@@ -83,7 +84,8 @@ const NORMALISED_KIND_LABELS: Record<TransactionalEmailKind, string> = {
   'data_export.ready': 'data-export-ready',
   'consent.version_bump': 'consent-version-bump',
   'breach.notification': 'breach-notification',
-  'waitlist.confirm': 'waitlist-confirm'
+  'waitlist.confirm': 'waitlist-confirm',
+  'workspace.invite': 'workspace-invite'
 }
 
 // Resend's universal sandbox sender. Delivers only to the email

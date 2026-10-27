@@ -1,4 +1,4 @@
-import { upsertOAuthUser } from '../../repos/users'
+import { getSessionEpoch, upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/validatedSession'
 import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
 import { githubVerifiedEmail, type GitHubEmailEntry } from '../../utils/oauthEmail'
@@ -43,6 +43,8 @@ export default defineOAuthGitHubEventHandler({
         provider: 'github'
       },
       loggedInAt: Date.now(),
+      // Current session epoch; a later "log out everywhere" bumps it.
+      e: await getSessionEpoch(userId),
       v: SESSION_VERSION
     })
     // `?linked=github` when we merged into an existing account; the

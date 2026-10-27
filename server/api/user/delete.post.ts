@@ -1,4 +1,5 @@
 import { requestAccountDeletionByUser } from '../../utils/accountDeletion'
+import { bumpSessionEpoch } from '../../repos/users'
 import { checkRateLimit } from '../../utils/rateLimit'
 import { isRepoError } from '../../repos/errors'
 
@@ -22,7 +23,8 @@ import { isRepoError } from '../../repos/errors'
 // the user-row update commits. Email is best-effort.
 
 export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
+  // Sensitive action: needs a recent sign-in (401 auth/reauth-required).
+  const session = await requireRecentLogin(event)
   const userId = session.user.id
 
   const ip = getClientIp(event)
@@ -44,6 +46,13 @@ export default defineEventHandler(async (event) => {
       userId,
       actorIp: ip
     })
+
+    // Sign out every OTHER session: a deletion request is exactly when a
+    // stolen cookie must stop working. This browser keeps its session
+    // (re-sealed with the new epoch) so the user can still cancel from
+    // the grace banner.
+    const epoch = await bumpSessionEpoch(userId)
+    if (epoch !== null) await setUserSession(event, { e: epoch })
 
     return {
       ok: true,

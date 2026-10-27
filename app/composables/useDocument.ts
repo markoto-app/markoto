@@ -325,21 +325,23 @@ export function useDocument(docId: string) {
 
   // Initial connect. Password-protected / private docs must NOT connect until
   // the user unlocks them, otherwise content syncs before the gate appears.
-  tokenState.fetchToken().then(() => {
-    applySessionAwareness()
-    // Seed the local theme ref from the DB-stored value so the preview can
-    // paint with the right page size/colors before sync settles. If the
-    // owner edits the theme later, that overwrites ymeta and broadcasts.
+  // Seed the local theme + document-context refs from the DB-stored
+  // values (the /token round-trip, or /meta after a password unlock) so
+  // the preview and the Document tab paint with real values before sync
+  // settles. Once Y.js sync delivers the ymeta values, the observers
+  // above take over.
+  function applyInitialSeeds() {
     if (tokenState.initialTheme.value && isValidTheme(tokenState.initialTheme.value)) {
       _themeRef.value = tokenState.initialTheme.value
     }
-    // Seed the document context refs from the /token round-trip so the
-    // Document tab + AI prompt builder see real values before sync
-    // settles. Once Y.js sync delivers the ymeta values, the observer
-    // above takes over.
     _descriptionRef.value = tokenState.initialDescription.value
     _audienceRef.value = tokenState.initialAudience.value
     _languageRef.value = tokenState.initialLanguage.value
+  }
+
+  tokenState.fetchToken().then(() => {
+    applySessionAwareness()
+    applyInitialSeeds()
     // Don't connect for docs we can't/shouldn't sync: password-gated
     // (no token yet), forbidden (no token, ever), or not-found (the doc
     // doesn't exist — an empty-token connect would just churn + fail).
@@ -353,7 +355,11 @@ export function useDocument(docId: string) {
    * provider with the new JWT. `requiresPassword` stays true until the first
    * sync completes — see `onSynced` above.
    */
-  function onPasswordVerified(newToken: string) {
+  async function onPasswordVerified(newToken: string) {
+    // A gated visitor's /token carried no metadata; fetch it with the
+    // unlock JWT and seed before the provider reconnects.
+    await tokenState.hydrateAfterUnlock(newToken)
+    applyInitialSeeds()
     tokenState.onPasswordVerified(newToken)
     sync.reconnect()
   }
@@ -380,6 +386,7 @@ export function useDocument(docId: string) {
     syncAuthFailed: readonly(tokenState.syncAuthFailed),
     syncRejection: readonly(sync.syncRejection),
     isOwner: readonly(tokenState.isOwner),
+    canDelete: readonly(tokenState.canDelete),
     isDeleted: readonly(isDeleted),
     requiresPassword: readonly(tokenState.requiresPassword),
     forbidden: readonly(tokenState.forbidden),

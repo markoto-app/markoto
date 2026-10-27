@@ -28,6 +28,7 @@ const emit = defineEmits<{ changed: [] }>()
 
 const { t, locale } = useI18n()
 const toast = useToast()
+const { handleReauthRequired } = useErrorHandler()
 
 const CUSTOM = 'custom'
 const editing = ref(false)
@@ -156,6 +157,7 @@ async function onSave(): Promise<void> {
     toast.add({ title: t(warn ? 'aiProvider.toast.savedWithWarning' : 'aiProvider.toast.saved'), color: warn ? 'warning' : 'success', icon: 'i-lucide-check' })
     emit('changed')
   } catch (e) {
+    if (handleReauthRequired(e)) return
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.saveFailed') }
   } finally {
     saving.value = false
@@ -190,6 +192,7 @@ async function onRemove(): Promise<void> {
     toast.add({ title: t('aiProvider.toast.removed'), color: 'neutral', icon: 'i-lucide-check' })
     emit('changed')
   } catch (e) {
+    if (handleReauthRequired(e)) return
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.saveFailed') }
   } finally {
     removing.value = false

@@ -40,6 +40,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { handleReauthRequired } = useErrorHandler()
 const { refresh: refreshAccountStatus } = useAccountStatus()
 
 const preview = ref<DeletionPreview | null>(null)
@@ -95,6 +96,7 @@ async function onConfirm(): Promise<void> {
     open.value = false
     emit('scheduled')
   } catch (e) {
+    if (handleReauthRequired(e)) return
     const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not schedule deletion',

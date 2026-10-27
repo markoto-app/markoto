@@ -22,7 +22,10 @@
     "loginUnavailable": "此实例未配置登录。你仍然可以匿名创建和编辑文档。",
     "loginRequired": "需要登录",
     "linkedTitle": "账号已关联",
-    "linkedDescription": "你的 {provider} 登录已连接到现有账号。此后你可以使用任一登录方式登录。"
+    "linkedDescription": "你的 {provider} 登录已连接到现有账号。此后你可以使用任一登录方式登录。",
+    "reauthTitle": "请重新登录",
+    "reauthAction": "重新登录",
+    "reauthRequired": "为了您的安全，此操作需要近期登录。请重新登录后再试。"
   },
   "editor": {
     "untitled": "无标题",
@@ -954,23 +957,56 @@
       "title": "{name} 的成员",
       "manage": "管理",
       "manageTitle": "管理成员",
-      "adminDescription": "通过电子邮件添加协作者、更改角色或移除成员。",
+      "adminDescription": "通过邮箱邀请协作者、更改角色或移除成员。",
       "memberDescription": "有权访问此工作区的人员。",
-      "addTitle": "添加成员",
-      "addHint": "输入拥有 markoto 账号的人的电子邮件地址。他们将立即以你选择的角色获得访问权限。",
+      "addTitle": "邀请成员",
+      "addHint": "输入对方的邮箱地址。对方接受邀请后才会加入——可在使用该邮箱登录的 markoto 中，或通过邀请邮件接受。",
       "emailPlaceholder": "输入电子邮件地址",
-      "add": "添加",
-      "addFailed": "无法添加成员",
+      "add": "邀请",
+      "addFailed": "无法发送邀请",
       "remove": "从工作区移除",
       "removeFailed": "无法移除成员",
       "roleChangeFailed": "无法更改角色",
       "you": "（你）",
       "leave": "退出工作区",
       "leaveFailed": "无法退出工作区",
-      "leftToast": "你已退出该工作区"
+      "leftToast": "你已退出该工作区",
+      "invitedToast": "邀请已发送",
+      "invitedToastDescription": "{email} 可在 14 天内接受。",
+      "pendingTitle": "待处理的邀请",
+      "pendingExpires": "{date} 过期",
+      "revoke": "撤销邀请",
+      "revokeFailed": "无法撤销邀请",
+      "errors": {
+        "invalidEmail": "请输入有效的邮箱地址。",
+        "alreadyMember": "此人已是该工作区的成员。",
+        "inviteCap": "此工作区的待处理邀请过多。请先撤销一些。"
+      }
     },
     "capReachedFree": "已使用 {used} / {limit} 个工作区。请删除一个后再创建新的。",
-    "capReachedShortFree": "已达工作区上限"
+    "capReachedShortFree": "已达工作区上限",
+    "invites": {
+      "sectionTitle": "邀请",
+      "invitedBy": "{name} 邀请您成为{role}",
+      "invitedAs": "您被邀请成为{role}",
+      "accept": "接受",
+      "decline": "拒绝",
+      "accepted": "您已加入 {name}",
+      "acceptFailed": "无法接受邀请",
+      "declineFailed": "无法拒绝邀请",
+      "errors": {
+        "notFound": "此邀请已不存在或已过期。"
+      },
+      "page": {
+        "title": "工作区邀请",
+        "intro": "您已被邀请加入 markoto 上的一个工作区。",
+        "signIn": "登录以接受邀请。",
+        "accept": "接受邀请",
+        "declined": "已拒绝邀请。",
+        "missingToken": "此邀请链接不完整。请从邮件中重新打开。",
+        "home": "前往控制台"
+      }
+    }
   },
   "knowledge": {
     "title": "知识库",
@@ -1226,6 +1262,12 @@
         "refused": "已拒绝",
         "notSet": "未设置",
         "change": "更改你的隐私选择"
+      },
+      "sessions": {
+        "heading": "会话",
+        "description": "在不再使用的设备上仍处于登录状态，或担心他人可以访问？在所有浏览器和设备（包括本设备）上退出 markoto。",
+        "button": "在所有设备上退出",
+        "failed": "无法在所有设备上退出"
       }
     }
   },

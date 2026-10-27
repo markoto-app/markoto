@@ -1,6 +1,12 @@
 import type { H3Event } from 'h3'
 import { findUserById } from '../repos/users'
 import type { OnboardingState } from './onboardingGate'
+import {
+  REAUTH_REQUIRED_CODE,
+  REAUTH_REQUIRED_MESSAGE_KEY,
+  isRecentLogin,
+  sessionEpochMatches
+} from './sessionPolicy'
 
 /**
  * Bump this constant whenever the session shape changes (new required fields,
@@ -37,6 +43,9 @@ type SessionCache = {
   // Onboarding / policy-acceptance columns of the same row, read in the
   // same query — consumed by the onboarding gate middleware.
   onboarding?: OnboardingState
+  // `loggedInAt` of the validated cookie (epoch ms), for the
+  // recent-sign-in check on sensitive actions.
+  loggedInAt?: unknown
 }
 
 function getCache(event: H3Event): SessionCache {
@@ -74,8 +83,17 @@ async function resolveValidatedUser(event: H3Event): Promise<ValidatedUser | nul
     return null
   }
 
+  // Revoked session: the user's epoch was bumped ("log out everywhere",
+  // account-deletion request) after this cookie was sealed.
+  if (!sessionEpochMatches((session as { e?: unknown }).e, row.sessionEpoch)) {
+    await clearUserSession(event)
+    cache.validatedUser = null
+    return null
+  }
+
   const user = { id: row.id, name: row.name }
   cache.validatedUser = user
+  cache.loggedInAt = (session as { loggedInAt?: unknown }).loggedInAt
   cache.onboarding = {
     ageConfirmedAt: row.ageConfirmedAt,
     privacyVersionAccepted: row.privacyVersionAccepted,
@@ -118,4 +136,23 @@ export async function getValidatedOnboardingState(event: H3Event): Promise<Onboa
   const user = await resolveValidatedUser(event)
   if (!user) return null
   return getCache(event).onboarding ?? null
+}
+
+/**
+ * `requireValidatedUserSession` plus a recent sign-in (see
+ * `sessionPolicy.ts`). Guards the actions a stolen cookie must not be
+ * able to take quietly: account deletion, data-export requests and
+ * bring-your-own-key provider changes. A stale sign-in answers 401
+ * `auth/reauth-required`; the client offers "Sign in again".
+ */
+export async function requireRecentLogin(event: H3Event): Promise<{ user: ValidatedUser }> {
+  const session = await requireValidatedUserSession(event)
+  if (!isRecentLogin(getCache(event).loggedInAt)) {
+    throw createError({
+      statusCode: 401,
+      message: 'Please sign in again to continue.',
+      data: { code: REAUTH_REQUIRED_CODE, messageKey: REAUTH_REQUIRED_MESSAGE_KEY }
+    })
+  }
+  return session
 }

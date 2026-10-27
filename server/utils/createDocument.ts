@@ -53,6 +53,10 @@ export interface CreateDocumentParams {
    *  the workspace; viewers and non-members are rejected. Anonymous
    *  creators (ownerId=null) cannot file into a workspace at all. */
   workspaceId?: string | null
+  /** Anonymous creation only (ignored when `ownerId` is set): SHA-256 of
+   *  the creating browser's creator key, so only that browser may later
+   *  delete the doc (see `server/utils/anonCreator.ts`). */
+  anonCreatorKeyHash?: string
 }
 
 export interface CreateDocumentResult {
@@ -117,6 +121,10 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
 
   const theme = await resolveTheme(input, input.ownerId, workspaceId)
   if (theme !== null) create.theme = withCustomCssForNewDoc(theme, docId)
+
+  if (input.ownerId == null && input.anonCreatorKeyHash !== undefined) {
+    create.anonCreatorKeyHash = input.anonCreatorKeyHash
+  }
 
   await createDoc(create)
   return { docId, url: `/d/${docId}` }

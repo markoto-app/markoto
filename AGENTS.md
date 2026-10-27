@@ -174,7 +174,7 @@ Headless Playwright service used by `server/utils/renderClient.ts` for server-re
 
 | Data | Storage |
 |---|---|
-| Users (incl. `plan`, `plan_valid_until`, `stripe_*` cols, `litellm_key_*` cols, `locale`, `age_confirmed_at`, `deletion_requested_at`/`deletion_grace_until`, `is_admin`, `*_version_accepted`/`*_locale` for privacy/tos/dpa policy acceptance), documents (theme JSONB, `workspace_id`), workspaces (incl. `billing_owner_id`, `ai_enabled`), workspace_members, themes, uploads, activity_log, audit_log, consent_log, abuse_reports, data_export_jobs, ai_sessions, ai_session_messages, document_comments, mcp_personal_tokens, mcp_sessions, processed_webhook_events, pending_stripe_events, waitlist_signups, user_ai_providers (BYOK provider config per user per capability, AES-256-GCM-encrypted key) | PostgreSQL (Drizzle) |
+| Users (incl. `plan`, `plan_valid_until`, `stripe_*` cols, `litellm_key_*` cols, `locale`, `age_confirmed_at`, `deletion_requested_at`/`deletion_grace_until`, `is_admin`, `*_version_accepted`/`*_locale` for privacy/tos/dpa policy acceptance), documents (theme JSONB, `workspace_id`), workspaces (incl. `billing_owner_id`, `ai_enabled`), workspace_members, themes, uploads, activity_log, audit_log, consent_log, abuse_reports, data_export_jobs, ai_sessions, ai_session_messages, document_comments, mcp_personal_tokens, mcp_sessions, processed_webhook_events, pending_stripe_events, waitlist_signups, user_ai_providers (BYOK provider config per user per capability, AES-256-GCM-encrypted key), workspace_invites (pending invitations) | PostgreSQL (Drizzle) |
 | Y.js document state | PostgreSQL (`yjs_documents` via `y-postgresql`) |
 | Workspace knowledge (rows + markdown cache) | PostgreSQL (`workspace_knowledge`) |
 | Knowledge chunks (content + 768-d vector + tsvector) | PostgreSQL (`workspace_knowledge_chunks`, pgvector HNSW + GIN) |
@@ -198,6 +198,10 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 
 **Document context columns** (added in `0001_silky_eternals.sql`): `description`, `audience`, `language`, `template_id` — all NOT NULL with sensible defaults. See `app/components/document/AGENTS.md`.
 
+**Workspace invitations** (security batch B4): `workspace_invites` — one open invite per (workspace, normalised email): role, inviter (`ON DELETE SET NULL`), optional SHA-256 of the single-use emailed accept token, 14-day `expires_at` (expired rows reaped by `workspace-invite-sweep`). Inviting never adds a member; accepting (in-app on the matching verified account email, or via the emailed link) creates the `workspace_members` row. Lawful basis `workspace_invitations`. See `server/AGENTS.md` → Workspaces & roles.
+
+**Session revocation + anonymous-doc ownership** (B4): `users.session_epoch` (sealed into the cookie, bumped by "log out everywhere" + account-deletion request) and `documents.anon_creator_key_hash` (SHA-256 of the creating browser's `markoto-anon-creator` cookie; only that browser may delete an anonymous doc). See `server/AGENTS.md`.
+
 **Paid-plans waitlist** (WP3): `waitlist_signups` — normalised email (unique), locale, `consent_version` + `consent_text_id`, optional `user_id` (`ON DELETE CASCADE`), SHA-256 hashes of the confirm + unsubscribe tokens (raw tokens exist only in the email), `created_at` / `confirmed_at`. No IP stored. Double opt-in; only confirmed rows count; unsubscribe deletes the row; unconfirmed rows reaped after 7 days by `waitlist-sweep`. Only open when billing is off AND `NUXT_PLANS_COMING_SOON=true`. Lawful basis `paid_plans_waitlist` (consent) in `server/legal/lawfulBasis.ts`. See `server/utils/AGENTS.md`.
 
 **Privacy/compliance tables** (Workstream B):
@@ -215,7 +219,7 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 
 ## 4. Security
 
-**Authentication:** OAuth via `nuxt-auth-utils` (HTTP-only `SameSite=Strict` cookies) plus an Origin / `Sec-Fetch-Site` check on every state-changing `/api` request (`server/middleware/csrf.ts`; webhooks + internal shared-secret routes exempt; 403 `csrf/origin-mismatch`). `SESSION_VERSION` invalidation. Hocuspocus always requires valid JWT with doc-scoped claims (Phase 1). `JWT_SECRET`, `DATABASE_URL`, `INTERNAL_API_SECRET`, `STRIPE_*` fail-fast on missing.
+**Authentication:** OAuth via `nuxt-auth-utils` (HTTP-only `SameSite=Strict` cookies) plus an Origin / `Sec-Fetch-Site` check on every state-changing `/api` request (`server/middleware/csrf.ts`; webhooks + internal shared-secret routes exempt; 403 `csrf/origin-mismatch`). `SESSION_VERSION` invalidation. Per-user session epoch makes cookies revocable ("log out everywhere"); account deletion, data-export requests and BYOK key changes need a sign-in ≤ 12 h old (401 `auth/reauth-required`). Metadata of docs the caller can't open (`/meta`, denied `/token`) is never returned. Hocuspocus always requires valid JWT with doc-scoped claims (Phase 1). `JWT_SECRET`, `DATABASE_URL`, `INTERNAL_API_SECRET`, `STRIPE_*` fail-fast on missing.
 
 **Tier-1 hardening (Phase 9):** Postgres TLS via `PGSSL` / `PGSSLROOTCERT` env vars + `resolvePostgresSsl()` (fail-loud at boot if cert path unreadable); Valkey password + optional TLS; security headers + CSP via Traefik labels in `docker-compose.prod.yml`; secrets-rotation playbook in `docs/SECRETS-ROTATION.md`; storage-at-rest encryption assumed at the OVH platform layer. See `docs/SECURITY-HARDENING.md`.
 
@@ -236,6 +240,8 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 | Live dictation | 1 session/user (Valkey `SET NX`), 10 min/session hard cap, 30s idle timeout. No daily audio cap — spend is gated by the LiteLLM budget |
 | Hocuspocus | 20 connections/IP (released on every socket close, incl. failed auth), 5000 rooms; per client update: 17 MiB WS frame / 16 MiB update / 16 MiB encoded document (`SYNC_MAX_{MESSAGE,UPDATE,DOCUMENT}_BYTES`; deletions always pass), ymeta writes validated like `PUT /meta` — see `sync-server/AGENTS.md` |
 | Web tools (`web_search` Staan + `fetch_url` Jina Reader) | platform-paid upstream call, so per-user and shared by the editor AI + MCP: 30/hour and 100/day by default (`NUXT_WEB_TOOLS_{HOURLY,DAILY}_LIMIT`, `0` = unlimited), 429 `ai/web-tools-rate-limited`; fail OPEN on Valkey error (`server/utils/webTools.ts`). Tools not offered without `STAAN_API_KEY` / `JINA_AI_API_KEY` |
+| Workspace invites | 20/hour per admin + 30/hour per workspace (429), ≤50 open invites per workspace (409 `workspace/invite-cap`), ≤3 invite emails per address per day (silently skipped); invite-link accept 20/user/10 min |
+| Log out everywhere | 10/user/hour |
 | Knowledge upload | 30 presign-requests/user/min |
 | Knowledge files per user (across all workspaces) | tiered free/pro/max/ultra defaults: 5 / 50 / 500 / 2000 (`shared/config/tiers.ts`; every tier cap is overridable at runtime via `TIER_*` env vars — resolved by `server/utils/tierConfig.ts#getTiers()`, served to the client by `GET /api/billing/tiers`) |
 | Knowledge bytes per workspace | tiered: 50 MB / 2 GB / 1 GB / 1 GB |
@@ -354,7 +360,7 @@ For per-feature deep-dive, follow the sub-AGENTS.md links. List form, not essays
 - **Theme system:** Per-doc JSONB + `ymeta.theme` live broadcast, server validation, `ThemeEditorPanel.vue` (16 sections), 6 built-in presets (incl. markoto), 20-font Google Fonts picker, TOC controls, mermaid theme picker, header/footer token chips, cover-page redesign, user-saved theme presets + workspace default theme, **custom CSS** (`theme.customCss`, documents only, css-tree sanitizer at write + render time — see `app/utils/AGENTS.md`).
 - **Markdown extensions:** Batch 1 (typography), Batch 2 (katex + alerts), Batch 3 (anchor + TOC + Mermaid), pagebreak + comments. See `app/utils/AGENTS.md`.
 - **Editor chrome:** Google-Docs-style menu bar, table size picker, diagram/alert/math dropdowns, right sidebar (Activity / Theme / Document / Knowledge), view-mode toggle, `DeleteConfirmModal`. Mobile-first redesign — bottom sheets, format bar, view-mode bar, voice + comment popups (Phase 14 mobile sprint).
-- **Workspaces:** Three-role model, invite-by-email, last-admin invariant, cascade delete, role-gated UI at `/w/:id`. See `server/AGENTS.md`.
+- **Workspaces:** Three-role model, invite-by-email as a pending invitation the invitee accepts (dashboard or emailed link), last-admin invariant, cascade delete, role-gated UI at `/w/:id`. See `server/AGENTS.md`.
 - **Document context + new-doc dialog + templates:** description / audience / language / templateId fields injected into every AI prompt; multi-language template skeletons. See `app/components/document/AGENTS.md` and `shared/templates/AGENTS.md`.
 - **Document duplication:** `POST /api/docs/:id/duplicate` clones row + Y.js state with URL rewrite + S3 assets. See `server/utils/duplicateDocument.ts`.
 - **Workspace knowledge base:** PDF/DOCX/PPTX/XLSX/HTML/EPUB/MD/TXT upload → markitdown → chunked → embedded → pgvector + tsvector hybrid search. See `server/utils/AGENTS.md`.

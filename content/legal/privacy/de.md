@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: de
-version: 6
-effectiveDate: 2026-10-26
+version: 7
+effectiveDate: 2026-10-27
 translationStatus: machine-translated
 ---
 
@@ -58,6 +58,7 @@ Die Aufbewahrung richtet sich nach dem Zeitplan je Zweck im Verzeichnis in Ziffe
 - **Abrechnungsdaten** gibt es nicht, solange der Dienst kostenlos ist. Sobald kostenpflichtige Pläne angeboten werden, werden sie für die nach EU- und mitgliedstaatlichem Steuerrecht vorgeschriebene Mindestdauer aufbewahrt (in der Regel 7–10 Jahre).
 - **Metadaten von Transaktions-E-Mails** (Empfänger, Sendezeitpunkt, Zustellstatus) werden von Resend 30 Tage lang aufbewahrt; E-Mail-Inhalte speichern wir nach der Zustellung nicht.
 - **Warteliste für kostenpflichtige Pläne.** Wenn Sie sich auf der Preisseite in die Warteliste eintragen, speichern wir Ihre E-Mail-Adresse, die Sprache bei der Anmeldung, welche Version des Einwilligungstextes Sie akzeptiert haben, den Zeitpunkt von Anmeldung und Bestätigung sowie – falls Sie angemeldet waren – eine Verknüpfung mit Ihrem Konto. Wir speichern Ihre IP-Adresse nicht. Wir verwenden dies ausschliesslich, um Sie zu informieren, wenn kostenpflichtige Pläne starten. Ihr Eintrag zählt erst, nachdem Sie den Bestätigungslink in unserer E-Mail angeklickt haben (Double-Opt-in); unbestätigte Einträge werden nach 7 Tagen gelöscht. Jede E-Mail enthält einen Abmeldelink, der Ihren Eintrag sofort löscht; andernfalls löschen wir die Liste spätestens 3 Monate nach Versand der Ankündigung des Starts. Die Löschung Ihres Kontos löscht auch einen verknüpften Eintrag, und Ihr Datenexport enthält ihn. Die Bestätigungs-E-Mail wird über Resend versandt; die Liste selbst liegt in der verwalteten PostgreSQL-Datenbank von OVHcloud in der EU.
+- **Einladungen in Arbeitsbereiche.** Lädt ein Admin eines Arbeitsbereichs jemanden per E-Mail ein, speichern wir die eingegebene Adresse, die angebotene Rolle und die einladende Person in einer offenen Einladung. Niemand wird ohne Annahme Mitglied. Die Einladung wird gelöscht, sobald sie angenommen, abgelehnt oder zurückgezogen wird, spätestens nach 14 Tagen. Wer mit dieser E-Mail-Adresse ein Konto hat, sieht die Einladung in markoto; ist E-Mail eingerichtet, wird zusätzlich eine Einladungs-E-Mail mit einem einmal verwendbaren Link über Resend versendet. Mit Ihrem Konto werden auch an Sie gerichtete Einladungen gelöscht; Ihr Datenexport enthält die offenen Einladungen, die Sie erhalten und versendet haben.
 
 ## 5b. Was bei der Löschung Ihres Kontos geschieht
 
@@ -141,6 +142,8 @@ Die Nutzung der KI-Funktionen setzt eine Anmeldung voraus. Sie sind optional: Do
 
 Wir verwenden notwendigen Speicher (ein Sitzungs-Cookie, eine Spracheinstellung und Ihren Einwilligungsentscheid selbst), um Sie angemeldet zu halten und Ihre Einstellungen zu merken – dies erfordert nach der ePrivacy-Richtlinie keine Einwilligung. Produktanalyse und Sitzungsaufzeichnung nutzen wir nur mit Ihrer Einwilligung, die Sie jederzeit über den Link «Datenschutzeinstellungen» in der Fusszeile jeder Seite erteilen oder widerrufen können.
 
+Erstellen Sie ein Dokument ohne Anmeldung, speichert Ihr Browser zudem einen zufälligen Ersteller-Schlüssel in einem notwendigen Cookie, damit nur dieser Browser das Dokument später löschen kann. Der Schlüssel ist weder mit Ihnen noch mit einem Konto verknüpft; wir speichern beim Dokument nur einen Hash davon.
+
 Wir verwenden keine seitenübergreifenden Werbe-Tracker und verkaufen oder teilen keine Daten mit Werbetreibenden.
 
 ## 10. Kinder
@@ -174,6 +177,7 @@ Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**. Wesen
 
 ### Änderungsverlauf
 
+- **v7 (2026-10-27).** Verarbeitungszweck `workspace_invitations` hinzugefügt (berechtigtes Interesse): Lädt ein Admin eines Arbeitsbereichs jemanden per E-Mail ein, speichern wir diese E-Mail-Adresse, die angebotene Rolle und die einladende Person in einer offenen Einladung, bis die Person sie annimmt oder ablehnt, ein Admin sie zurückzieht oder sie nach 14 Tagen abläuft. Niemand tritt einem Arbeitsbereich ohne Zustimmung bei. Ist E-Mail eingerichtet, wird pro Einladung eine Einladungs-E-Mail über Resend versendet (höchstens drei pro Adresse und Tag). Gespeichert bei OVHcloud (EU).
 - **v6 (2026-10-26), redaktionelle Anpassung an den ausschliesslich kostenlosen Dienst.** Stripe und die Abrechnung werden als erst relevant beschrieben, sobald kostenpflichtige Pläne angeboten werden (die Liste der Unterauftragsverarbeiter und das Verzeichnis lassen Stripe aus, solange die Abrechnung ausgeschaltet ist). Das Verzeichnis der Verarbeitungszwecke wird nun tatsächlich in Ziffer 13 angezeigt. Angaben zur Aufbewahrung der Audit-Protokolle, zur Bereinigung anonymer Dokumente (180 Tage Inaktivität), zum abgeschafften Interaktionszähler und zur (nicht vorhandenen) kontoweiten KI-Abmeldung wurden korrigiert.
 - **v6 (2026-10-26).** Verarbeitungszweck `user_directed_ai_provider` hinzugefügt: Sie können Ihren eigenen KI-Anbieter anbinden (Chat, Bilderzeugung, Sprachtranskription). Inhalte für diese Funktionen werden dann auf Grundlage Ihrer Vereinbarung mit dem von Ihnen gewählten Anbieter an diesen gesendet; wir speichern Ihre Anbietereinstellungen mit im Ruhezustand verschlüsseltem API-Schlüssel, bis Sie sie entfernen oder Ihr Konto löschen. Websuche und Seitenabruf werden von uns für alle Nutzenden bereitgestellt, auch für solche mit eigenem KI-Anbieter: Suchanfragen gehen an Staan und abgerufene Webadressen an Jina AI; zudem führen wir pro Person stündliche und tägliche Nutzungszähler (nur Zeitstempel, kein Inhalt) in Valkey.
 - **v5 (2026-10-26).** Verarbeitungszweck `paid_plans_waitlist` hinzugefügt (Einwilligung, Double-Opt-in): E-Mail-Adresse, Sprache, Einwilligungsnachweis und optionale Kontoverknüpfung, aufbewahrt bis zur Abmeldung oder spätestens 3 Monate nach der Ankündigung des Starts kostenpflichtiger Pläne; unbestätigte Anmeldungen werden nach 7 Tagen gelöscht. Gespeichert bei OVHcloud (EU); Bestätigungs-E-Mails über Resend.

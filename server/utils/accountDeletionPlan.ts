@@ -260,6 +260,8 @@ export interface AccountDeletionSummary {
   themesDeleted: number
   /** BYOK provider configs (incl. encrypted API keys) removed. */
   aiProvidersDeleted: number
+  /** Open workspace invitations addressed to the user's email. */
+  workspaceInvitesDeleted: number
 }
 
 // Also expose a small repo-shape helper to count themes (only used

@@ -1,4 +1,4 @@
-import { upsertOAuthUser } from '../../repos/users'
+import { getSessionEpoch, upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/validatedSession'
 import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
 import { resolveOidcSettings, type OidcSettings } from '../../utils/oidc/settings'
@@ -131,6 +131,8 @@ export default defineEventHandler(async (event) => {
       provider: 'oidc'
     },
     loggedInAt: Date.now(),
+    // Current session epoch; a later "log out everywhere" bumps it.
+    e: await getSessionEpoch(userId),
     v: SESSION_VERSION
   })
   const target = outcome === 'merged' ? '/?linked=oidc' : '/'

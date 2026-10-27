@@ -22,7 +22,10 @@
     "loginUnavailable": "Sign-in isn't set up on this instance. You can still create and edit documents anonymously.",
     "loginRequired": "Login required",
     "linkedTitle": "Accounts linked",
-    "linkedDescription": "Your {provider} login is now connected to your existing account. You can sign in with either provider from here on."
+    "linkedDescription": "Your {provider} login is now connected to your existing account. You can sign in with either provider from here on.",
+    "reauthTitle": "Sign in again",
+    "reauthAction": "Sign in again",
+    "reauthRequired": "For your security, this action needs a recent sign-in. Please sign in again and retry."
   },
   "editor": {
     "untitled": "Untitled",
@@ -954,23 +957,56 @@
       "title": "Members of {name}",
       "manage": "Manage",
       "manageTitle": "Manage members",
-      "adminDescription": "Add collaborators by email, change roles, or remove members.",
+      "adminDescription": "Invite collaborators by email, change roles, or remove members.",
       "memberDescription": "People who have access to this workspace.",
-      "addTitle": "Add a member",
-      "addHint": "Enter the email address of someone with a markoto account. They'll get instant access at the role you pick.",
+      "addTitle": "Invite a member",
+      "addHint": "Enter their email address. They join only after accepting the invitation — in markoto when signed in with that address, or from the invitation email.",
       "emailPlaceholder": "Enter an email address",
-      "add": "Add",
-      "addFailed": "Could not add member",
+      "add": "Invite",
+      "addFailed": "Could not send the invitation",
       "remove": "Remove from workspace",
       "removeFailed": "Could not remove member",
       "roleChangeFailed": "Could not change role",
       "you": "(you)",
       "leave": "Leave workspace",
       "leaveFailed": "Could not leave workspace",
-      "leftToast": "You have left the workspace"
+      "leftToast": "You have left the workspace",
+      "invitedToast": "Invitation sent",
+      "invitedToastDescription": "{email} can accept it within 14 days.",
+      "pendingTitle": "Pending invitations",
+      "pendingExpires": "expires {date}",
+      "revoke": "Revoke invitation",
+      "revokeFailed": "Could not revoke the invitation",
+      "errors": {
+        "invalidEmail": "Enter a valid email address.",
+        "alreadyMember": "This person is already a member of the workspace.",
+        "inviteCap": "This workspace has too many open invitations. Revoke some first."
+      }
     },
     "capReachedFree": "{used} of {limit} workspaces used. Delete one to create another.",
-    "capReachedShortFree": "Workspace limit reached"
+    "capReachedShortFree": "Workspace limit reached",
+    "invites": {
+      "sectionTitle": "Invitations",
+      "invitedBy": "{name} invited you as {role}",
+      "invitedAs": "You're invited as {role}",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "You joined {name}",
+      "acceptFailed": "Could not accept the invitation",
+      "declineFailed": "Could not decline the invitation",
+      "errors": {
+        "notFound": "This invitation doesn't exist any more or has expired."
+      },
+      "page": {
+        "title": "Workspace invitation",
+        "intro": "You've been invited to join a workspace on markoto.",
+        "signIn": "Sign in to accept the invitation.",
+        "accept": "Accept invitation",
+        "declined": "Invitation declined.",
+        "missingToken": "This invitation link is incomplete. Open it again from the email.",
+        "home": "Go to the dashboard"
+      }
+    }
   },
   "knowledge": {
     "title": "Knowledge base",
@@ -1226,6 +1262,12 @@
         "refused": "Refused",
         "notSet": "Not set",
         "change": "Change your privacy choices"
+      },
+      "sessions": {
+        "heading": "Sessions",
+        "description": "Signed in on a device you no longer use, or worried someone else has access? Sign out of markoto in every browser and on every device, including this one.",
+        "button": "Log out everywhere",
+        "failed": "Could not log out everywhere"
       }
     }
   },

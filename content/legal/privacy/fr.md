@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: fr
-version: 6
-effectiveDate: 2026-10-26
+version: 7
+effectiveDate: 2026-10-27
 translationStatus: machine-translated
 ---
 
@@ -58,6 +58,7 @@ La conservation suit le calendrier par finalité figurant dans le registre du po
 - **Les données de facturation** n'existent pas tant que le service est gratuit. Dès que des offres payantes sont proposées, elles seront conservées pendant la durée minimale imposée par le droit fiscal de l'UE et des États membres (généralement 7 à 10 ans).
 - **Les métadonnées des e-mails transactionnels** (destinataire, horodatage d'envoi, statut de livraison) sont conservées 30 jours par Resend ; nous ne conservons pas le corps des e-mails après leur livraison.
 - **Liste d'attente des offres payantes.** Si vous vous inscrivez sur la liste d'attente depuis la page des tarifs, nous conservons votre adresse e-mail, la langue utilisée lors de l'inscription, la version du texte de consentement que vous avez acceptée, la date de l'inscription et de la confirmation et, si vous étiez connecté, un lien vers votre compte. Nous ne conservons pas votre adresse IP. Nous l'utilisons uniquement pour vous informer du lancement des offres payantes. Votre inscription n'est prise en compte qu'après un clic sur le lien de confirmation envoyé par e-mail (double opt-in) ; les inscriptions non confirmées sont supprimées après 7 jours. Chaque e-mail contient un lien de désinscription qui supprime immédiatement votre inscription ; à défaut, nous supprimons la liste au plus tard 3 mois après l'envoi de l'annonce du lancement. La suppression de votre compte supprime également une inscription liée, et votre export de données l'inclut. L'e-mail de confirmation est envoyé via Resend ; la liste elle-même est stockée dans la base PostgreSQL gérée d'OVHcloud, dans l'UE.
+- **Invitations aux espaces de travail.** Lorsqu'un administrateur d'espace de travail invite quelqu'un par e-mail, nous conservons l'adresse saisie, le rôle proposé et l'auteur de l'invitation dans une invitation en attente. Personne ne devient membre sans l'accepter. L'invitation est supprimée dès qu'elle est acceptée, refusée ou retirée, et au plus tard au bout de 14 jours. Si vous avez un compte avec cette adresse e-mail, vous voyez l'invitation dans markoto ; si l'envoi d'e-mails est configuré, un e-mail d'invitation contenant un lien à usage unique est aussi envoyé via Resend. La suppression de votre compte supprime les invitations qui vous sont adressées, et votre export de données liste les invitations en attente reçues et envoyées.
 
 ## 5b. Ce qui se passe lorsque vous supprimez votre compte
 
@@ -141,6 +142,8 @@ L'utilisation des fonctionnalités d'IA nécessite d'être connecté. Elles sont
 
 Nous utilisons un stockage essentiel (un cookie de session, une préférence de langue et votre décision de consentement elle-même) pour vous maintenir connecté et mémoriser vos préférences — cela ne requiert pas de consentement au titre de la directive ePrivacy. Nous n'utilisons les statistiques d'usage et l'enregistrement de sessions qu'avec votre consentement, que vous pouvez accorder ou retirer à tout moment depuis le lien « Choix de confidentialité » en pied de chaque page.
 
+Si vous créez un document sans vous connecter, votre navigateur conserve aussi une clé de créateur aléatoire dans un cookie essentiel, afin que seul ce navigateur puisse supprimer le document par la suite. La clé n'est liée ni à vous ni à un compte ; nous ne conservons qu'une empreinte (hash) de celle-ci avec le document.
+
 Nous n'utilisons pas de traceurs publicitaires intersites et nous ne vendons ni ne partageons de données avec des annonceurs.
 
 ## 10. Enfants
@@ -174,6 +177,7 @@ Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}
 
 ### Historique des modifications
 
+- **v7 (2026-10-27).** Ajout de la finalité de traitement `workspace_invitations` (intérêt légitime) : lorsqu'un administrateur d'espace de travail invite quelqu'un par e-mail, nous conservons cette adresse, le rôle proposé et l'auteur de l'invitation dans une invitation en attente, jusqu'à ce que la personne l'accepte ou la refuse, qu'un administrateur la retire ou qu'elle expire au bout de 14 jours. Personne ne rejoint un espace de travail sans l'avoir accepté. Si l'envoi d'e-mails est configuré, un e-mail d'invitation est envoyé par invitation via Resend (au plus trois par adresse et par jour). Stockage chez OVHcloud (UE).
 - **v6 (2026-10-26), alignement rédactionnel sur le service exclusivement gratuit.** Stripe et la facturation sont décrits comme pertinents uniquement lorsque des offres payantes sont proposées (la liste des sous-traitants ultérieurs et le registre omettent Stripe tant que la facturation est désactivée). Le registre des finalités de traitement est désormais réellement affiché au point 13. Correction des mentions relatives à la conservation des journaux d'audit, au nettoyage des documents anonymes (180 jours d'inactivité), au compteur d'interactions supprimé et à la (inexistante) désactivation de l'IA au niveau du compte.
 - **v6 (2026-10-26).** Ajout de la finalité de traitement `user_directed_ai_provider` : vous pouvez connecter votre propre fournisseur d'IA (discussion, génération d'images, transcription vocale). Le contenu de ces fonctionnalités est alors envoyé au fournisseur que vous avez choisi, dans le cadre de votre accord avec lui ; nous conservons vos paramètres de fournisseur avec la clé d'API chiffrée au repos jusqu'à ce que vous les supprimiez ou supprimiez votre compte. La recherche web et la récupération de pages sont fournies par nos soins à tous les utilisateurs, y compris ceux qui ont leur propre fournisseur d'IA : les requêtes de recherche vont à Staan et les adresses web récupérées à Jina AI ; des compteurs d'utilisation horaires et quotidiens par personne (horodatages uniquement, sans contenu) sont conservés dans Valkey.
 - **v5 (2026-10-26).** Ajout de la finalité de traitement `paid_plans_waitlist` (consentement, double opt-in) : adresse e-mail, langue, preuve de consentement et lien facultatif avec le compte, conservés jusqu'à la désinscription ou, au plus tard, 3 mois après l'annonce du lancement des offres payantes ; inscriptions non confirmées supprimées après 7 jours. Stockage chez OVHcloud (UE) ; e-mails de confirmation via Resend.

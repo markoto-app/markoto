@@ -34,6 +34,11 @@ export interface ActorState {
   // Only meaningful for the view-level decisions (file, activity); the token
   // endpoint never sees this (that's where the JWT comes *from*).
   hasValidDocJwt?: boolean
+  // True when the request carries the creator key of an anonymous doc
+  // (the browser that created it, see `server/utils/anonCreator.ts`).
+  // Only read by `decideDocDelete`: anonymous docs can be deleted only
+  // by their creating browser.
+  isAnonCreator?: boolean
 }
 
 export type TokenOutcome = 'allow' | 'forbidden' | 'password-required'
@@ -178,10 +183,12 @@ export function decideActivityAccess(doc: DocState, actor: ActorState): ViewDeci
  * Decide whether a delete is allowed.
  *
  * Rules:
- *   - Anonymous doc (no owner, no workspace, open-edit): anyone can
- *     delete. There's no persistent owner identity to scope delete to;
- *     "anyone with edit access" is the closest approximation. Anonymous
- *     callers included.
+ *   - Anonymous doc (no owner, no workspace, open-edit): only the
+ *     browser that created it, proven by its creator key
+ *     (`actor.isAnonCreator`). Everyone else with the link can still
+ *     edit the doc, but not delete it. Legacy anonymous docs without a
+ *     stored key can't be deleted through the API; the inactive-doc
+ *     sweep removes them.
  *   - Owned standalone doc: only the owner.
  *   - Workspace doc: owner OR workspace admin.
  *   - Editor-own case: a workspace editor who is also the doc owner
@@ -192,10 +199,13 @@ export function decideDocDelete(doc: DocState, actor: ActorState): DeleteDecisio
     // Defensive: accessMode could theoretically be anything, but in
     // practice anon docs are always open-edit (see docs.post.ts). Refusing
     // delete on unexpected anon modes is safer than allowing.
-    if (doc.accessMode === 'open-edit') {
+    if (doc.accessMode !== 'open-edit') {
+      return { outcome: 'deny', reason: 'anon-doc-in-unexpected-mode' }
+    }
+    if (actor.isAnonCreator === true) {
       return { outcome: 'allow' }
     }
-    return { outcome: 'deny', reason: 'anon-doc-in-unexpected-mode' }
+    return { outcome: 'deny', reason: 'not-anon-creator' }
   }
 
   if (isDocOwner(doc, actor)) {

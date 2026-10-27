@@ -12,7 +12,8 @@ import {
 // docs could never be deleted — no session = no authz path.
 //
 // Current rules (per decideDocDelete):
-//   - Anonymous doc (no owner, no workspace, open-edit) → anyone can delete
+//   - Anonymous doc (no owner, no workspace, open-edit) → only the browser
+//     that created it (creator-key cookie)
 //   - Owned standalone → owner only (401 anon, 403 non-owner)
 //   - Workspace doc → owner or admin
 
@@ -35,20 +36,74 @@ describe('DELETE /api/docs/:docId', () => {
   })
 
   describe('anonymous (no-owner) doc', () => {
-    it('anonymous caller can delete anon open-edit doc (bug-fix regression)', async () => {
-      const doc = await createDoc({ accessMode: 'open-edit' })
-      const res = await anonClient().delete(`/api/docs/${doc.docId}`)
+    // Only the browser that created an anonymous doc may delete it: the
+    // creation response sets an httpOnly creator-key cookie whose hash is
+    // stored on the row. Others can still edit an open-edit doc.
+    async function createAnonDoc(client: ReturnType<typeof anonClient>): Promise<string> {
+      const res = await client.post('/api/docs', {})
       expect(res.status).toBe(200)
-      expect(await docExists(doc.docId)).toBe(false)
+      const body = await res.json() as { docId: string }
+      return body.docId
+    }
+
+    it('the creating browser can delete its anonymous doc', async () => {
+      const creator = anonClient()
+      const docId = await createAnonDoc(creator)
+      const res = await creator.delete(`/api/docs/${docId}`)
+      expect(res.status).toBe(200)
+      expect(await docExists(docId)).toBe(false)
     })
 
-    it('logged-in caller can also delete anon open-edit doc', async () => {
-      const doc = await createDoc({ accessMode: 'open-edit' })
+    it('stores only a hash of the creator key on the row', async () => {
+      const creator = anonClient()
+      const docId = await createAnonDoc(creator)
+      const r = await testDb().query<{ h: string | null }>(
+        'SELECT anon_creator_key_hash AS h FROM documents WHERE doc_id = $1',
+        [docId]
+      )
+      expect(r.rows[0]?.h).toMatch(/^[0-9a-f]{64}$/)
+      expect(creator.cookieHeader()).not.toContain(r.rows[0]?.h ?? 'missing')
+    })
+
+    it('one browser key covers every doc it created', async () => {
+      const creator = anonClient()
+      const a = await createAnonDoc(creator)
+      const b = await createAnonDoc(creator)
+      expect((await creator.delete(`/api/docs/${a}`)).status).toBe(200)
+      expect((await creator.delete(`/api/docs/${b}`)).status).toBe(200)
+    })
+
+    it('another anonymous browser cannot delete it (403)', async () => {
+      const docId = await createAnonDoc(anonClient())
+      const res = await anonClient().delete(`/api/docs/${docId}`)
+      expect(res.status).toBe(403)
+      expect(await docExists(docId)).toBe(true)
+    })
+
+    it('a logged-in non-creator cannot delete it (403)', async () => {
+      const docId = await createAnonDoc(anonClient())
       const someone = await createUser()
       const client = await loggedInClient(someone.id)
-      const res = await client.delete(`/api/docs/${doc.docId}`)
-      expect(res.status).toBe(200)
-      expect(await docExists(doc.docId)).toBe(false)
+      const res = await client.delete(`/api/docs/${docId}`)
+      expect(res.status).toBe(403)
+      expect(await docExists(docId)).toBe(true)
+    })
+
+    it('a legacy anonymous doc without a stored key cannot be deleted through the API', async () => {
+      const doc = await createDoc({ accessMode: 'open-edit' })
+      expect((await anonClient().delete(`/api/docs/${doc.docId}`)).status).toBe(403)
+      expect(await docExists(doc.docId)).toBe(true)
+    })
+
+    it('the token endpoint reports canDelete only to the creating browser', async () => {
+      const creator = anonClient()
+      const docId = await createAnonDoc(creator)
+      const mine = await (await creator.get(`/api/docs/${docId}/token`)).json() as { canDelete: boolean, readOnly: boolean }
+      const theirs = await (await anonClient().get(`/api/docs/${docId}/token`)).json() as { canDelete: boolean, readOnly: boolean }
+      expect(mine.canDelete).toBe(true)
+      expect(theirs.canDelete).toBe(false)
+      // Others can still edit the open-edit doc.
+      expect(theirs.readOnly).toBe(false)
     })
   })
 

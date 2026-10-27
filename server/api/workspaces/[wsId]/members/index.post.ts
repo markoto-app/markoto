@@ -1,16 +1,46 @@
-import { findUserByEmail } from '../../../../repos/users'
-import { getMemberRole, addMember } from '../../../../repos/workspaceMembers'
+import { findUserById } from '../../../../repos/users'
+import { getWorkspace } from '../../../../repos/workspaces'
+import {
+  countOpenWorkspaceInvites,
+  isEmailWorkspaceMember,
+  upsertWorkspaceInvite
+} from '../../../../repos/workspaceInvites'
+import { appendAuditEvent } from '../../../../repos/audit'
+import { AUDIT_WORKSPACE_INVITE_CREATED } from '../../../../legal/auditActions'
+import { safeSendTransactionalEmail } from '../../../../utils/email/sendEmail'
+import { emailLinkBaseUrl } from '../../../../utils/siteUrl'
+import {
+  WORKSPACE_INVITE_EMAILS_PER_ADDRESS,
+  WORKSPACE_INVITE_EMAIL_WINDOW_MS,
+  WORKSPACE_INVITE_OPEN_CAP,
+  WORKSPACE_INVITE_PER_ADMIN_LIMIT,
+  WORKSPACE_INVITE_PER_WORKSPACE_LIMIT,
+  WORKSPACE_INVITE_TTL_MS,
+  WORKSPACE_INVITE_WINDOW_MS,
+  buildWorkspaceInviteEmail,
+  generateInviteToken,
+  hashInviteSecret,
+  isInviteRole,
+  normaliseInviteEmail,
+  normaliseInviteLocale
+} from '../../../../utils/workspaceInvites'
 
-// Add a collaborator to a workspace by email. Admin-only.
+// POST /api/workspaces/:wsId/members — invite someone by email. Admin-only.
 //
-// Lookup is **exact-email-only**: no substring/typeahead endpoint exists,
-// because returning partial matches on email would let any logged-in user
-// enumerate the registered user base. Caller types the full address; we
-// resolve server-side and 404 if there's no account. This matches Slack /
-// Notion / GitHub invite flows.
+// Creates (or refreshes) a PENDING invite; nobody becomes a member here.
+// The invitee accepts in-app (the invite matches the verified email on
+// their account) or through the emailed link — see
+// `/api/user/invites/*`. So:
+//   - The response is the same `202 { ok: true }` whether or not the
+//     address belongs to an account, and carries no profile data (no
+//     account-existence / PII oracle).
+//   - Only an address that is ALREADY a member of this workspace is
+//     refused (409) — the admin can see the member list anyway.
 //
-// Email comparison is case-insensitive (users may have signed up with a
-// capitalized email via GitHub but type lowercase when inviting).
+// Abuse limits: per-admin and per-workspace hourly rate limits (429), a
+// cap on open invites per workspace (409 `workspace/invite-cap`), and at
+// most 3 invite emails per address per day (beyond that the invite is
+// still recorded but no email goes out — same 202).
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const wsId = requireWsId(event)
@@ -19,44 +49,101 @@ export default defineEventHandler(async (event) => {
   const role = await getWorkspaceRole(session.user.id, wsId)
   if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
   if (role !== 'admin') {
-    throw createError({ statusCode: 403, message: 'Only admins can add members' })
+    throw createError({ statusCode: 403, message: 'Only admins can invite members' })
   }
 
-  const rawEmail = typeof body?.email === 'string' ? body.email.trim() : ''
-  if (!rawEmail) throw createError({ statusCode: 400, message: 'Email is required' })
-  if (!isValidEmailShape(rawEmail)) {
-    throw createError({ statusCode: 400, message: 'Invalid email address' })
+  const email = normaliseInviteEmail(body?.email)
+  if (!email) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid email address',
+      data: { code: 'workspace/invalid-email', messageKey: 'workspace.members.errors.invalidEmail' }
+    })
   }
 
   // Default role for new invites is 'editor' — the most common case.
-  // Admin picks viewer or admin from the UI dropdown if they want to override.
-  const newRole = typeof body?.role === 'string' ? body.role : 'editor'
-  if (newRole !== 'admin' && newRole !== 'editor' && newRole !== 'viewer') {
+  const newRole = body?.role === undefined ? 'editor' : body.role
+  if (!isInviteRole(newRole)) {
     throw createError({ statusCode: 400, message: 'Invalid role' })
   }
 
-  const userRow = await findUserByEmail(rawEmail)
-  if (!userRow) {
-    // 404 rather than 400 so the client can distinguish "no such account"
-    // from a shape error. No PII-enumeration concern here — the caller
-    // already knows the email (they typed it).
-    throw createError({ statusCode: 404, message: 'No user with that email' })
+  const userKey = String(session.user.id)
+  if (!(await checkRateLimit('workspace-invite-user', userKey, WORKSPACE_INVITE_PER_ADMIN_LIMIT, WORKSPACE_INVITE_WINDOW_MS))
+    || !(await checkRateLimit('workspace-invite-ws', wsId, WORKSPACE_INVITE_PER_WORKSPACE_LIMIT, WORKSPACE_INVITE_WINDOW_MS))) {
+    throw createError({
+      statusCode: 429,
+      message: 'Too many invitations. Try again later.',
+      data: { code: 'workspace/invite-rate-limited', messageKey: 'error.rateLimited' }
+    })
   }
 
-  // Prevent duplicate rows. Also catches the admin-adding-themselves case
-  // (they're already in the table with role='admin').
-  if ((await getMemberRole(wsId, userRow.id)) !== null) {
-    throw createError({ statusCode: 409, message: 'Already a member of this workspace' })
+  if (await isEmailWorkspaceMember(wsId, email)) {
+    throw createError({
+      statusCode: 409,
+      message: 'Already a member of this workspace',
+      data: { code: 'workspace/already-member', messageKey: 'workspace.members.errors.alreadyMember' }
+    })
   }
 
-  await addMember(wsId, userRow.id, newRole)
-
-  return {
-    userId: userRow.id,
-    name: userRow.name,
-    email: userRow.email,
-    login: userRow.login,
-    avatarUrl: userRow.avatarUrl,
-    role: newRole
+  const now = new Date()
+  if (await countOpenWorkspaceInvites(wsId, now, email) >= WORKSPACE_INVITE_OPEN_CAP) {
+    throw createError({
+      statusCode: 409,
+      message: `A workspace can have at most ${WORKSPACE_INVITE_OPEN_CAP} open invitations.`,
+      data: { code: 'workspace/invite-cap', messageKey: 'workspace.members.errors.inviteCap', limit: WORKSPACE_INVITE_OPEN_CAP }
+    })
   }
+
+  // Email link only when the deployment has a configured site URL (links
+  // are never built from the request Host) and the per-address daily
+  // budget isn't spent. Without it the invite is in-app only.
+  const baseUrl = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
+  const sendEmail = baseUrl !== null
+    && await checkRateLimit('workspace-invite-email', hashInviteSecret(email), WORKSPACE_INVITE_EMAILS_PER_ADDRESS, WORKSPACE_INVITE_EMAIL_WINDOW_MS)
+  const token = sendEmail ? generateInviteToken() : null
+
+  const inviteId = await upsertWorkspaceInvite({
+    workspaceId: wsId,
+    email,
+    role: newRole,
+    invitedByUserId: session.user.id,
+    tokenHash: token === null ? null : hashInviteSecret(token),
+    expiresAt: new Date(now.getTime() + WORKSPACE_INVITE_TTL_MS)
+  })
+
+  if (token !== null && baseUrl !== null) {
+    const [inviter, workspace] = await Promise.all([findUserById(session.user.id), getWorkspace(wsId)])
+    const content = buildWorkspaceInviteEmail({
+      locale: normaliseInviteLocale(inviter?.locale),
+      baseUrl,
+      token,
+      inviterName: inviter?.name ?? session.user.name,
+      workspaceName: workspace?.name ?? '',
+      role: newRole
+    })
+    // Fire-and-forget like every transactional email; the invite is
+    // committed and visible in-app regardless.
+    void safeSendTransactionalEmail({
+      kind: 'workspace.invite',
+      to: email,
+      locale: normaliseInviteLocale(inviter?.locale),
+      subject: content.subject,
+      body: content.body,
+      bodyContainsSecrets: true
+    })
+  }
+
+  await appendAuditEvent({
+    actorUserId: session.user.id,
+    actorIp: getClientIp(event),
+    scope: 'workspace',
+    scopeId: wsId,
+    action: AUDIT_WORKSPACE_INVITE_CREATED,
+    before: null,
+    after: null,
+    metadata: { inviteId, role: newRole, emailed: token !== null }
+  })
+
+  setResponseStatus(event, 202)
+  return { ok: true, invited: true }
 })

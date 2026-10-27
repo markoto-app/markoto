@@ -64,8 +64,12 @@ describe('auth middleware whitelist', () => {
     })
 
     it('DELETE /api/docs/:id is public (endpoint decides for anon docs)', async () => {
-      const doc = await createDoc({ accessMode: 'open-edit' }) // anon doc
-      const res = await anonClient().delete(`/api/docs/${doc.docId}`)
+      // Anonymous doc created by this (cookie-holding) anonymous browser —
+      // only the creating browser may delete it.
+      const creator = anonClient()
+      const created = await creator.post('/api/docs', {})
+      const { docId } = await created.json() as { docId: string }
+      const res = await creator.delete(`/api/docs/${docId}`)
       expect(res.status).toBe(200)
     })
 

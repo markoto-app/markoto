@@ -22,7 +22,10 @@
     "loginUnavailable": "Die Anmeldung ist auf dieser Instanz nicht eingerichtet. Du kannst Dokumente trotzdem anonym erstellen und bearbeiten.",
     "loginRequired": "Anmeldung erforderlich",
     "linkedTitle": "Konten verknüpft",
-    "linkedDescription": "Ihre {provider}-Anmeldung ist jetzt mit Ihrem bestehenden Konto verbunden. Ab sofort können Sie sich mit beiden Anbietern anmelden."
+    "linkedDescription": "Ihre {provider}-Anmeldung ist jetzt mit Ihrem bestehenden Konto verbunden. Ab sofort können Sie sich mit beiden Anbietern anmelden.",
+    "reauthTitle": "Erneut anmelden",
+    "reauthAction": "Erneut anmelden",
+    "reauthRequired": "Zu Ihrer Sicherheit erfordert diese Aktion eine kürzliche Anmeldung. Bitte melden Sie sich erneut an und versuchen Sie es noch einmal."
   },
   "editor": {
     "untitled": "Unbenannt",
@@ -954,23 +957,56 @@
       "title": "Mitglieder von {name}",
       "manage": "Verwalten",
       "manageTitle": "Mitglieder verwalten",
-      "adminDescription": "Fügen Sie Mitarbeiter per E-Mail hinzu, ändern Sie Rollen oder entfernen Sie Mitglieder.",
+      "adminDescription": "Mitwirkende per E-Mail einladen, Rollen ändern oder Mitglieder entfernen.",
       "memberDescription": "Personen, die Zugriff auf diesen Workspace haben.",
-      "addTitle": "Ein Mitglied hinzufügen",
-      "addHint": "Geben Sie die E-Mail-Adresse von jemandem mit einem markoto-Konto ein. Er erhält sofortigen Zugriff mit der von Ihnen gewählten Rolle.",
+      "addTitle": "Mitglied einladen",
+      "addHint": "Geben Sie die E-Mail-Adresse ein. Die Person tritt erst bei, wenn sie die Einladung annimmt — in markoto, angemeldet mit dieser Adresse, oder über die Einladungs-E-Mail.",
       "emailPlaceholder": "E-Mail-Adresse eingeben",
-      "add": "Hinzufügen",
-      "addFailed": "Mitglied konnte nicht hinzugefügt werden",
+      "add": "Einladen",
+      "addFailed": "Einladung konnte nicht gesendet werden",
       "remove": "Aus Workspace entfernen",
       "removeFailed": "Mitglied konnte nicht entfernt werden",
       "roleChangeFailed": "Rolle konnte nicht geändert werden",
       "you": "(Sie)",
       "leave": "Workspace verlassen",
       "leaveFailed": "Workspace konnte nicht verlassen werden",
-      "leftToast": "Sie haben den Workspace verlassen"
+      "leftToast": "Sie haben den Workspace verlassen",
+      "invitedToast": "Einladung gesendet",
+      "invitedToastDescription": "{email} kann sie innerhalb von 14 Tagen annehmen.",
+      "pendingTitle": "Offene Einladungen",
+      "pendingExpires": "läuft ab am {date}",
+      "revoke": "Einladung zurückziehen",
+      "revokeFailed": "Einladung konnte nicht zurückgezogen werden",
+      "errors": {
+        "invalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "alreadyMember": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
+        "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück."
+      }
     },
     "capReachedFree": "{used} von {limit} Workspaces genutzt. Löschen Sie einen, um einen neuen anzulegen.",
-    "capReachedShortFree": "Workspace-Limit erreicht"
+    "capReachedShortFree": "Workspace-Limit erreicht",
+    "invites": {
+      "sectionTitle": "Einladungen",
+      "invitedBy": "{name} hat Sie als {role} eingeladen",
+      "invitedAs": "Sie sind als {role} eingeladen",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "accepted": "Sie sind {name} beigetreten",
+      "acceptFailed": "Einladung konnte nicht angenommen werden",
+      "declineFailed": "Einladung konnte nicht abgelehnt werden",
+      "errors": {
+        "notFound": "Diese Einladung existiert nicht mehr oder ist abgelaufen."
+      },
+      "page": {
+        "title": "Einladung in einen Arbeitsbereich",
+        "intro": "Sie wurden in einen Arbeitsbereich auf markoto eingeladen.",
+        "signIn": "Melden Sie sich an, um die Einladung anzunehmen.",
+        "accept": "Einladung annehmen",
+        "declined": "Einladung abgelehnt.",
+        "missingToken": "Dieser Einladungslink ist unvollständig. Öffnen Sie ihn erneut aus der E-Mail.",
+        "home": "Zum Dashboard"
+      }
+    }
   },
   "knowledge": {
     "title": "Wissensdatenbank",
@@ -1226,6 +1262,12 @@
         "refused": "Abgelehnt",
         "notSet": "Nicht festgelegt",
         "change": "Datenschutzeinstellungen ändern"
+      },
+      "sessions": {
+        "heading": "Sitzungen",
+        "description": "Auf einem Gerät angemeldet, das Sie nicht mehr nutzen, oder Sorge, dass jemand anderes Zugriff hat? Melden Sie sich in jedem Browser und auf jedem Gerät von markoto ab, auch auf diesem.",
+        "button": "Überall abmelden",
+        "failed": "Abmelden auf allen Geräten fehlgeschlagen"
       }
     }
   },

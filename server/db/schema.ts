@@ -100,6 +100,13 @@ export const users = pgTable('users', {
   privacyVersionAcceptedLocale: text('privacy_version_accepted_locale'),
   dpaVersionAccepted: integer('dpa_version_accepted'),
   dpaVersionAcceptedLocale: text('dpa_version_accepted_locale'),
+  // Session revocation counter. Every sealed session cookie carries the
+  // value current at sign-in (`e`); `resolveValidatedUser` rejects a
+  // cookie whose `e` differs. Bumped by "log out everywhere" and by an
+  // account-deletion request, which invalidates every outstanding
+  // cookie at once (cookies themselves can't be recalled). Cookies from
+  // before this column existed carry no `e` and count as epoch 0.
+  sessionEpoch: integer('session_epoch').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   // Plan-lapse sweep scans for `planValidUntil < now()` among non-free
@@ -167,6 +174,15 @@ export const documents = pgTable('documents', {
   // audience/language fields carry all live AI context). Not
   // editable post-creation. `blank` = no skeleton.
   templateId: text('template_id').notNull().default('blank'),
+  // Anonymous docs only: SHA-256 of the creating browser's random
+  // creator key (the httpOnly `markoto-anon-creator` cookie). Deleting
+  // an ownerless doc requires presenting the matching key, so only the
+  // browser that created it can delete it (others can still edit an
+  // open-edit doc). NULL for owned docs and for anonymous docs created
+  // before this column existed — those can't be deleted anonymously;
+  // the inactive-doc sweep still removes them. No PII: the key is a
+  // random value, not tied to an identity.
+  anonCreatorKeyHash: text('anon_creator_key_hash'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow()
 }, table => [
@@ -242,6 +258,40 @@ export const workspaceMembers = pgTable('workspace_members', {
 }, table => [
   primaryKey({ columns: [table.workspaceId, table.userId] }),
   index('idx_workspace_members_user').on(table.userId)
+])
+
+// Pending workspace invitations. Inviting by email no longer adds a
+// member: it creates one of these rows, and only the invitee accepting
+// it (in-app, matched on their verified account email, or via the
+// emailed link) creates the `workspace_members` row.
+//
+//   - `email` is the address the admin typed, normalised (trim +
+//     lower-case). Matched case-insensitively against `users.email`
+//     (only verified addresses are stored there) for the in-app list.
+//   - `token_hash` = SHA-256 of the single-use accept token sent by
+//     email; NULL when no email was sent (email not configured). The
+//     raw token only exists in the email.
+//   - One open invite per (workspace, email); re-inviting refreshes it.
+//   - Expired rows are deleted by the `workspace-invite-sweep`; accept /
+//     decline / revoke delete the row.
+//   - CASCADE with the workspace; `invited_by` SET NULL when the
+//     inviter's account is deleted.
+export const workspaceInvites = pgTable('workspace_invites', {
+  id: serial('id').primaryKey(),
+  inviteId: text('invite_id').notNull().unique(),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: text('role', { enum: ['admin', 'editor', 'viewer'] }).notNull().default('editor'),
+  invitedByUserId: integer('invited_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  tokenHash: text('token_hash').unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  uniqueIndex('uq_workspace_invites_ws_email').on(table.workspaceId, table.email),
+  // Invitee lookup ("invites for my email") + account-deletion purge.
+  index('idx_workspace_invites_email').on(table.email),
+  // Sweeper: expired rows.
+  index('idx_workspace_invites_expires').on(table.expiresAt)
 ])
 
 // Active AI sessions. Survives Nitro restarts so the per-user-per-doc cap can't
