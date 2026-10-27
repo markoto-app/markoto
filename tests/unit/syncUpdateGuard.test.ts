@@ -242,3 +242,39 @@ describe('parseSyncLimits', () => {
     expect(parseSyncLimits({ SYNC_MAX_MESSAGE_BYTES: '1234' }).maxMessageBytes).toBe(1234)
   })
 })
+
+describe('update guard — stateless messages', () => {
+  /** varString(doc) varUint(type) varString(payload) — Stateless (5) / BroadcastStateless (6). */
+  function statelessMessage(type: 5 | 6, payload = 'hello'): Uint8Array {
+    const enc = encoding.createEncoder()
+    encoding.writeVarString(enc, DOC)
+    encoding.writeVarUint(enc, type)
+    encoding.writeVarString(enc, payload)
+    return encoding.toUint8Array(enc)
+  }
+
+  it('refuses broadcast and plain stateless messages from a read-only connection', () => {
+    const guard = createUpdateGuard(parseSyncLimits({}))
+    const server = new Y.Doc()
+    for (const type of [5, 6] as const) {
+      const r = rejectionOf(() => guard.check(server, statelessMessage(type), true))
+      expect(r?.reason).toBe('invalid-update')
+      expect(r?.message).toContain('read-only')
+    }
+  })
+
+  it('keeps stateless messages from writers', () => {
+    const guard = createUpdateGuard(parseSyncLimits({}))
+    const server = new Y.Doc()
+    expect(() => guard.check(server, statelessMessage(6), false)).not.toThrow()
+    expect(() => guard.check(server, statelessMessage(5), false)).not.toThrow()
+  })
+
+  it('still lets read-only connections send awareness and sync messages', () => {
+    const guard = createUpdateGuard(parseSyncLimits({}))
+    const server = new Y.Doc()
+    expect(() => guard.check(server, awarenessMessage(), true)).not.toThrow()
+    const update = clientUpdate(server, c => c.getText('content').insert(0, 'x'))
+    expect(() => guard.check(server, syncMessage(update), true)).not.toThrow()
+  })
+})

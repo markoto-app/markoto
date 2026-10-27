@@ -16,13 +16,17 @@ import { defaultTheme } from '../../../shared/utils/defaultTheme'
 //   - ymeta writes are validated on the WebSocket path, and a document
 //     with an already-corrupted theme still loads,
 //   - awareness `user` fields are normalised before they are relayed,
-//   - anonymous edits are not attributed to a client-chosen name.
+//   - anonymous edits are not attributed to a client-chosen name,
+//   - messages queued before authentication are bounded (bytes + time),
+//   - read-only connections can't broadcast stateless messages.
 //
 // The size limits come from docker-compose.test.yml (sync-test env) and
 // MUST match the constants below.
 const MAX_MESSAGE_BYTES = 1_572_864
 const MAX_UPDATE_BYTES = 1_048_576
 const MAX_DOCUMENT_BYTES = 2_097_152
+const MAX_PREAUTH_BYTES = 4_194_304
+const AUTH_TIMEOUT_MS = 3000
 
 const WS_URL = `ws://127.0.0.1:${TEST_SYNC_PORT}`
 
@@ -45,6 +49,7 @@ interface Client {
   awareness: Awareness
   provider: HocuspocusProvider
   closes: Array<{ code: number, reason: string }>
+  stateless: string[]
   synced: Promise<void>
 }
 
@@ -54,6 +59,7 @@ function connect(docId: string, identity: Identity): Client {
   const doc = new Y.Doc()
   const awareness = new Awareness(doc)
   const closes: Array<{ code: number, reason: string }> = []
+  const stateless: string[] = []
   let resolveSynced: () => void = () => {}
   let rejectSynced: (e: Error) => void = () => {}
   const synced = new Promise<void>((resolve, reject) => {
@@ -71,9 +77,12 @@ function connect(docId: string, identity: Identity): Client {
     onAuthenticationFailed: ({ reason }) => rejectSynced(new Error(`auth failed: ${reason}`)),
     onClose: ({ event }) => {
       closes.push({ code: event.code, reason: event.reason })
+    },
+    onStateless: ({ payload }) => {
+      stateless.push(payload)
     }
   })
-  const client = { doc, awareness, provider, closes, synced }
+  const client = { doc, awareness, provider, closes, stateless, synced }
   openClients.push(client)
   return client
 }
@@ -315,4 +324,101 @@ describe('activity-log attribution', () => {
     const row = await editRow(doc.docId)
     expect(row.user_name).toBe('Real User')
   }, 30_000)
+})
+
+/** varString(doc) varUint(type) …payload — a raw Hocuspocus frame. */
+function rawFrame(docId: string, type: number, write: (enc: encoding.Encoder) => void): Uint8Array {
+  const enc = encoding.createEncoder()
+  encoding.writeVarString(enc, docId)
+  encoding.writeVarUint(enc, type)
+  write(enc)
+  return encoding.toUint8Array(enc)
+}
+
+/** A raw socket that never authenticates; resolves with its close event. */
+function openUnauthenticated(onOpen: (ws: WebSocket) => void): Promise<{ code: number, reason: string, elapsedMs: number }> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(WS_URL)
+    const started = Date.now()
+    const timer = setTimeout(() => {
+      ws.terminate()
+      reject(new Error('socket was not closed by the server'))
+    }, 20_000)
+    ws.on('open', () => onOpen(ws))
+    ws.on('close', (code, reason) => {
+      clearTimeout(timer)
+      resolve({ code, reason: reason.toString(), elapsedMs: Date.now() - started })
+    })
+    ws.on('error', () => { /* the close event follows */ })
+  })
+}
+
+describe('messages queued before authentication', () => {
+  it('closes a socket that queues more than SYNC_MAX_PREAUTH_BYTES without authenticating', async () => {
+    const doc = await createDoc()
+    const chunk = 512 * 1024
+    const close = await openUnauthenticated((ws) => {
+      // Sync updates for a document that never sends its Auth frame —
+      // Hocuspocus would queue them all.
+      for (let sent = 0; sent <= MAX_PREAUTH_BYTES + chunk; sent += chunk) {
+        ws.send(rawFrame(doc.docId, 0, (enc) => {
+          encoding.writeVarUint(enc, 2)
+          encoding.writeVarUint8Array(enc, new Uint8Array(chunk))
+        }))
+      }
+    })
+    expect(close.code).toBe(4413)
+    expect(close.reason).toBe('update-too-large')
+    expect(close.elapsedMs).toBeLessThan(AUTH_TIMEOUT_MS)
+    // The server is fine and still serves real clients.
+    const client = connect(doc.docId, { userId: 'anonymous', userName: null })
+    await expect(client.synced).resolves.toBeUndefined()
+  }, 30_000)
+
+  it('closes a socket whose document never sends its Auth frame within SYNC_AUTH_TIMEOUT_MS', async () => {
+    const doc = await createDoc()
+    const close = await openUnauthenticated((ws) => {
+      ws.send(rawFrame(doc.docId, 1, enc => encoding.writeVarUint8Array(enc, new Uint8Array([0]))))
+    })
+    expect(close.code).toBe(4408)
+    expect(close.reason).toBe('auth-timeout')
+    expect(close.elapsedMs).toBeGreaterThanOrEqual(AUTH_TIMEOUT_MS - 200)
+  }, 30_000)
+
+  it('leaves normal clients alone (auth frame first, then sync)', async () => {
+    const doc = await createDoc()
+    const client = connect(doc.docId, { userId: 'anonymous', userName: null })
+    await client.synced
+    client.doc.getText('content').insert(0, 'x'.repeat(200_000))
+    await new Promise(r => setTimeout(r, AUTH_TIMEOUT_MS + 500))
+    expect(client.closes).toEqual([])
+  }, 30_000)
+})
+
+describe('stateless messages', () => {
+  function broadcastStateless(c: Client, payload: string): void {
+    c.provider.configuration.websocketProvider.send(rawFrame(c.provider.configuration.name, 6, enc => encoding.writeVarString(enc, payload)))
+  }
+
+  it('a writer\'s broadcast reaches the other clients (positive control)', async () => {
+    const doc = await createDoc()
+    const writer = connect(doc.docId, { userId: 'anonymous', userName: null })
+    const viewer = connect(doc.docId, { userId: 'anonymous', userName: null, readOnly: true })
+    await Promise.all([writer.synced, viewer.synced])
+    broadcastStateless(writer, 'from-writer')
+    await waitFor(() => viewer.stateless.includes('from-writer'))
+  })
+
+  it('a read-only connection\'s broadcast is dropped and its connection closed', async () => {
+    const doc = await createDoc()
+    const writer = connect(doc.docId, { userId: 'anonymous', userName: null })
+    const viewer = connect(doc.docId, { userId: 'anonymous', userName: null, readOnly: true })
+    await Promise.all([writer.synced, viewer.synced])
+    broadcastStateless(viewer, 'from-viewer')
+    await waitFor(() => viewer.closes.find(c => c.reason === 'invalid-update'))
+    // Give a relay time to arrive if it were going to.
+    broadcastStateless(writer, 'marker')
+    await waitFor(() => writer.stateless.includes('marker'))
+    expect(writer.stateless).not.toContain('from-viewer')
+  })
 })

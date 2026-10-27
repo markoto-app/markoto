@@ -344,6 +344,11 @@ services:
       - SYNC_MAX_MESSAGE_BYTES=1572864
       - SYNC_MAX_UPDATE_BYTES=1048576
       - SYNC_MAX_DOCUMENT_BYTES=2097152
+      # Pre-auth queue limits, low for the same reason (syncHardening.test.ts
+      # constants). The provider authenticates within milliseconds, so the
+      # 3 s auth timeout never affects the other suites.
+      - SYNC_MAX_PREAUTH_BYTES=4194304
+      - SYNC_AUTH_TIMEOUT_MS=3000
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

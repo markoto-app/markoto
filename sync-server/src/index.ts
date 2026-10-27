@@ -12,6 +12,7 @@ import { rateLimiter } from './rate-limiter'
 import { logActivity, mostRecentVerifiedEditor, countWords, lineDiff, type VerifiedIdentity } from './activity-logger'
 import { parseSyncLimits } from './limits'
 import { createUpdateGuard, SyncRejection } from './update-guard'
+import { createPreAuthGuard, parsePreAuthLimits } from './pre-auth-guard'
 import { attachAwarenessGuard, awarenessIdentities } from './awareness-guard'
 import { readMetaSnapshot } from './meta-snapshot'
 import { SYNC_CLOSE_REASONS } from '../../shared/contracts/syncClose'
@@ -52,6 +53,19 @@ const port = Number.parseInt(process.env.PORT || '4001')
 // validation of every client update. See limits.ts / update-guard.ts.
 const syncLimits = parseSyncLimits(process.env)
 const updateGuard = createUpdateGuard(syncLimits)
+
+// Memory cap for messages queued before a document authenticates
+// (SYNC_MAX_PREAUTH_BYTES / SYNC_MAX_PREAUTH_TOTAL_BYTES /
+// SYNC_AUTH_TIMEOUT_MS). See pre-auth-guard.ts.
+const preAuthGuard = createPreAuthGuard(parsePreAuthLimits(process.env), {
+  onReject: (reason, detail) => {
+    console.warn(`[hocuspocus] closing socket before authentication: ${reason} (${detail})`)
+    captureMessage('[hocuspocus] pre-auth socket closed', {
+      level: 'warning',
+      tags: { component: 'hocuspocus', event: 'preauth_rejected', reason }
+    })
+  }
+})
 
 const server = new Server({
   port,
@@ -170,12 +184,18 @@ const server = new Server({
     return auth.onAuthenticate(data)
   },
 
+  async connected(data) {
+    // The document's pre-auth queue has been replayed: stop counting it.
+    preAuthGuard.documentEstablished(data.request, data.socketId, data.documentName)
+  },
+
   async onConnect(data) {
     rateLimiter.onConnect(data)
   },
 
   async onDisconnect(data) {
     rateLimiter.onDisconnect(data)
+    preAuthGuard.documentClosed(data.socketId, data.documentName)
     // Free attribution/diff state when the last client leaves the room.
     // `clientsCount` in onDisconnect reflects the count AFTER this disconnect;
     // 0 means we just lost the last collaborator. onLoadDocument re-seeds the
@@ -219,8 +239,12 @@ const server = new Server({
 // Release the socket's rate-limit slots on EVERY teardown. Hocuspocus's
 // onDisconnect only fires for connections that authenticated, so failed
 // handshakes used to leak their slot for good (see rate-limiter.ts).
+// Registered after Hocuspocus's own `connection` listener (set up in the
+// Server constructor), so the pre-auth guard's `message` listener runs
+// after Hocuspocus has queued each frame.
 server.webSocketServer.on('connection', (socket, request) => {
   rateLimiter.trackSocket(socket, request)
+  preAuthGuard.trackSocket(socket, request)
 })
 
 server.listen(port, () => {
