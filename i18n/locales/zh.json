@@ -446,6 +446,27 @@
     }
   },
   "ai": {
+    "workingGeneric": "markoto 正在工作…",
+    "otherSessionWorking": "markoto 正在为 {name} 工作",
+    "confirm": {
+      "label": "markoto 需要你的确认",
+      "reason": "在本次会话中，markoto 读取了其他人撰写的文本，因此在访问你的其他文档、工作区知识库或网络之前会先征求你的同意。",
+      "allow": "允许",
+      "deny": "拒绝",
+      "tools": {
+        "view_other_document": "markoto 想要读取“{target}”。",
+        "list_my_documents": "markoto 想要列出你的文档。",
+        "list_workspace_documents": "markoto 想要列出此工作区中的文档。",
+        "search_knowledge": "markoto 想要在工作区知识库中搜索“{target}”。",
+        "get_knowledge_file": "markoto 想要读取知识文件“{target}”。",
+        "create_document": "markoto 想要新建文档“{target}”。",
+        "duplicate_document": "markoto 想要复制“{target}”。",
+        "web_search": "markoto 想要在网上搜索“{target}”。",
+        "fetch_url": "markoto 想要打开 {target}",
+        "view_image": "markoto 想要加载图片 {target}",
+        "generic": "markoto 想要使用 {tool}。"
+      }
+    },
     "placeholder": "向 markoto 提问…",
     "send": "发送",
     "stop": "停止",

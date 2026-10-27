@@ -19,7 +19,10 @@ import { resolveBillingContext } from '../../utils/billing'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import type { ToolResult } from '../../utils/aiToolAdapter'
 import type { MetaToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
-import type { McpScope } from '../../utils/mcpAuth'
+import type { McpAuthContext, McpScope } from '../../utils/mcpAuth'
+import { checkRateLimit } from '../../utils/rateLimit'
+import { consumeRenderAllowance } from '../../utils/renderRateLimit'
+import { MCP_RATE_LIMITS, type RateLimitRule } from './mcpGate'
 
 // Wrappers that bake the per-class boilerplate every MCP tool needs.
 // Three flavors based on what context the tool needs to operate on:
@@ -49,6 +52,41 @@ import type { McpScope } from '../../utils/mcpAuth'
 // Forensic queries for "what did Claude Desktop do at 14:32" join
 // activity_log → mcp_sessions → users via the actor_principal column.
 
+/**
+ * Extra per-call allowance for expensive tools: `'render'` = the shared
+ * server-render allowance (same bucket as `GET /api/docs/:id/pdf`), or a
+ * per-user rule (e.g. `MCP_RATE_LIMITS.generateImagePerUser`).
+ */
+export type ToolCallLimit = 'render' | RateLimitRule
+
+/**
+ * Admission check every MCP tool handler runs first:
+ *   - authenticated (the middleware already refused anonymous requests),
+ *   - the token CURRENTLY grants the tool's scope — the toolkit fixed the
+ *     session's tool list at `initialize`, so this re-check is what makes
+ *     scopes binding per call,
+ *   - per-user tool-call rate limit, plus the tool's extra limit.
+ * A missing scope answers like an unknown tool (no existence oracle).
+ */
+export async function admitToolCall(event: H3Event, name: string, scope: McpScope, limit?: ToolCallLimit): Promise<McpAuthContext> {
+  const auth = requireMcpAuth(event)
+  if (!hasScope(event, scope)) {
+    throw createError({ statusCode: 404, message: `Tool ${name} not found`, data: { code: 'mcp/tool-not-found' } })
+  }
+  const perUser = MCP_RATE_LIMITS.toolCallsPerUser
+  if (!(await checkRateLimit(perUser.namespace, String(auth.userId), perUser.max, perUser.windowMs))) {
+    throw createError({ statusCode: 429, message: 'Too many tool calls. Try again in a minute.', data: { code: 'mcp/rate-limited' } })
+  }
+  if (limit === 'render') {
+    if (!(await consumeRenderAllowance(event))) {
+      throw createError({ statusCode: 429, message: 'Too many render requests. Try again in a minute.', data: { code: 'mcp/render-rate-limited' } })
+    }
+  } else if (limit && !(await checkRateLimit(limit.namespace, String(auth.userId), limit.max, limit.windowMs))) {
+    throw createError({ statusCode: 429, message: `Too many ${name} calls. Try again later.`, data: { code: 'mcp/rate-limited' } })
+  }
+  return auth
+}
+
 export type ToolAnnotations = {
   readOnlyHint?: boolean
   destructiveHint?: boolean
@@ -73,6 +111,8 @@ export interface WrapDocBoundToolOpts<Schema extends ZodRawShape> {
   /** 'view' = canView required; 'edit' = canEdit required. */
   access: 'view' | 'edit'
   annotations?: ToolAnnotations
+  /** Extra per-call allowance (render tools, image generation). */
+  limit?: ToolCallLimit
 }
 
 export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBoundToolOpts<Schema>) {
@@ -92,7 +132,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
     enabled: (event: H3Event): boolean => hasScope(event, opts.scope),
     handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
       const event = useEvent()
-      const auth = requireMcpAuth(event)
+      const auth = await admitToolCall(event, opts.name, opts.scope, opts.limit)
       const docId = String(args.doc_id ?? '')
       if (!docId) {
         throw createError({
@@ -167,7 +207,7 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
     enabled: (event: H3Event): boolean => hasScope(event, opts.scope),
     handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
       const event = useEvent()
-      const auth = requireMcpAuth(event)
+      const auth = await admitToolCall(event, opts.name, opts.scope)
       const workspaceId = String(args.workspace_id ?? '')
       if (!workspaceId) {
         throw createError({
@@ -231,7 +271,7 @@ export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnly
     enabled: (event: H3Event): boolean => hasScope(event, opts.scope) && (opts.available?.() ?? true),
     handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
       const event = useEvent()
-      const auth = requireMcpAuth(event)
+      const auth = await admitToolCall(event, opts.name, opts.scope)
       const ctx = await buildStubContext(auth.userId, null, mcpSessionIdFromEvent(event))
       try {
         return toolResultToCallToolResult(await META_TOOL_HANDLERS[opts.name](ctx.ctx, args))

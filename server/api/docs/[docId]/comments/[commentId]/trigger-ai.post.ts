@@ -12,6 +12,9 @@ import type { ResolvedAiProviders } from '../../../../../utils/aiProviders/resol
 import { runAgenticLoop } from '../../../../../utils/agentic/runLoop'
 import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../../../../utils/agentic/functionTools'
 import { buildDocumentContext } from '../../../../../utils/agentic/documentContextPrompt'
+import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../../../../utils/agentic/workspacePromptBlocks'
+import { AiSessionChannel } from '../../../../../utils/agentic/sessionChannel'
+import { buildSessionGuard } from '../../../../../utils/agentic/sessionGuard'
 import {
   buildCommentTriggerBlock,
   resolveCommentTrigger,
@@ -31,18 +34,21 @@ import { EDITOR_SELECTION_TEXT_MAX } from '~~/shared/types/editorSelection'
 // containing `@ai`. The session is identical to a regular /api/ai/prompt
 // run except:
 //
-//   1. The system prompt is the comment-trigger flavour (lives in
-//      runLoop.ts as a sibling to SYSTEM_PROMPT) — instructs the model
-//      to end with reply_to_comment on the trigger thread, never to
-//      create_comment, never to resolve unless asked.
-//   2. The seed user-message is the triggering message body with @ai
-//      mentions stripped.
+//   1. The system prompt is the comment-trigger flavour
+//      (`commentTriggerPrompt.ts`) — instructs the model to end with
+//      reply_to_comment on the trigger thread, never to create_comment,
+//      never to resolve unless asked.
+//   2. The seed user-message is the `<comment_trigger>` block (the
+//      thread as quoted data) followed by the triggering message body
+//      with @ai mentions stripped.
 //   3. Awareness `aiSession` includes a `commentThreadId` so all
 //      clients can render a per-thread "AI is working" indicator.
 //
 // Auth: requires login + doc-edit access (same as /api/ai/prompt;
-// viewers can write comments but can't summon AI). Per-user-per-doc
-// session cap still applies.
+// viewers can write comments but can't summon AI). The triggering
+// message must be the CALLER's own and must mention the AI — nobody can
+// start a session (on their own budget) seeded with someone else's
+// message. Per-user-per-doc session cap still applies.
 
 const HARD_DEADLINE_MS = 5 * 60_000
 
@@ -62,8 +68,10 @@ export default defineEventHandler(async (event) => {
   const doc = await getDoc(docId)
   const wsCtx = await resolveWorkspaceContext(doc?.workspaceId ?? null, userId)
   const triggerCtx = await peekTriggerThread(docId, userId, commentId, replyId)
-  const wrappedSeedPrompt = wrapSeedWithEditorState(triggerCtx.seedPrompt, triggerCtx.thread)
-  const systemPrompt = buildTriggerSystemPrompt(doc, triggerCtx.block, wsCtx)
+  // The thread is written by whoever commented: it goes into the USER
+  // message as quoted data, never into the system prompt.
+  const wrappedSeedPrompt = triggerCtx.block + '\n' + wrapSeedWithEditorState(triggerCtx.seedPrompt, triggerCtx.thread)
+  const systemPrompt = buildTriggerSystemPrompt(doc, wsCtx)
 
   // Phase 6: budget enforcement is delegated to the LiteLLM proxy via the
   // virtual key. We still resolve the billing context here to pick the
@@ -85,11 +93,13 @@ export default defineEventHandler(async (event) => {
 
   await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
   const deadlineTimer = setTimeout(() => abortController.abort(), HARD_DEADLINE_MS)
+  // Initiator-only channel (prompt, status text, answers, confirmations).
+  const channel = new AiSessionChannel(sessionId)
+  await channel.open({ initiatorUserId: userId, docId, prompt: triggerCtx.seedPrompt.slice(0, 240), commentThreadId: commentId })
 
   // Fire-and-forget. The trigger thread id rides on awareness so the
   // client can render a per-thread highlight on the matching comment
-  // card. Keep the initiator's (stripped) seed prompt visible in the
-  // prompt-bar tooltip — most informative thing we have.
+  // card; the (stripped) seed prompt goes to the initiator's channel.
   void runTriggerLoop({
     docId, commentId, sessionId, userId, initiatorName, initiatorColor, abortController, deadlineTimer,
     seedPrompt: triggerCtx.seedPrompt,
@@ -97,6 +107,9 @@ export default defineEventHandler(async (event) => {
     systemPrompt,
     toolDeclarations: wsCtx.toolDeclarations,
     workspaceId: wsCtx.workspaceId,
+    knowledgeFiles: wsCtx.knowledgeFiles,
+    threadHasOthers: triggerCtx.threadHasOthers,
+    channel,
     billingContext,
     aiProviders
   })
@@ -164,6 +177,8 @@ interface TriggerCtx {
   thread: NonNullable<ReturnType<typeof resolveCommentTrigger>>
   block: string
   seedPrompt: string
+  /** Someone other than the caller wrote part of the thread → the session starts tainted. */
+  threadHasOthers: boolean
 }
 
 /**
@@ -171,9 +186,10 @@ interface TriggerCtx {
  * context BEFORE opening the (long-lived) AI session. Lighter than
  * running a full createAiSession just to peek at one thread.
  *
- * 404 is the right answer for "thread missing OR triggering message
- * was AI-authored (loop guard)". Both surface to the client, which
- * quietly drops.
+ * 404 is the right answer for "thread missing", "triggering message
+ * was AI-authored (loop guard)", "triggering message isn't the caller's"
+ * and "triggering message doesn't mention the AI". All surface to the
+ * client, which quietly drops.
  *
  * Empty seed prompt (someone posted just `@ai`) is replaced with a
  * safe default so the model has something to react to and isn't stuck
@@ -184,14 +200,18 @@ async function peekTriggerThread(docId: string, userId: number, commentId: strin
   try {
     const ytext = peek.ydoc.getText('content')
     const thread = resolveCommentTrigger(peek.ydoc, ytext, commentId, replyId)
-    if (!thread) {
+    // Comment authorship is client-written Y.js data, so this is not
+    // proof — but it stops the endpoint from being pointed at somebody
+    // else's message (or one that never asked for the AI).
+    if (thread?.triggerAuthorId !== userId || !thread.triggerMentionsAi) {
       throw createError({ statusCode: 404, message: 'Comment thread not found or not eligible to trigger AI.' })
     }
     let seedPrompt = thread.triggerBody
     if (seedPrompt.length === 0) {
       seedPrompt = 'Read the thread and the anchored text in <comment_trigger>, then take whatever action seems most useful and reply on the thread explaining what you did.'
     }
-    return { thread, block: buildCommentTriggerBlock(thread), seedPrompt }
+    const threadHasOthers = thread.parentAuthorId !== userId || thread.replies.some(r => r.authorId !== userId)
+    return { thread, block: buildCommentTriggerBlock(thread), seedPrompt, threadHasOthers }
   } finally {
     await peek.destroy()
   }
@@ -226,13 +246,11 @@ function wrapSeedWithEditorState(seedPrompt: string, thread: TriggerCtx['thread'
 /**
  * Same shape as /api/ai/prompt's system prompt build but uses the
  * comment-trigger flavour SYSTEM_PROMPT (banishes create_comment,
- * forces reply_to_comment ending) and prepends the per-thread block
- * BEFORE the static system prompt so the model sees the trigger
- * context up front.
+ * forces reply_to_comment ending). The per-thread block is NOT part of
+ * it — it rides in the user message as quoted data.
  */
 function buildTriggerSystemPrompt(
   doc: Awaited<ReturnType<typeof getDoc>>,
-  triggerBlock: string,
   ws: WorkspaceCtx
 ): string {
   const documentContextBlock = doc
@@ -243,9 +261,9 @@ function buildTriggerSystemPrompt(
         language: doc.language
       })
     : ''
-  const knowledgeBlock = ws.exposeKnowledgeTools ? buildKnowledgeBlockForTrigger(ws.knowledgeFiles) : ''
-  const membersBlock = ws.members.length > 0 ? buildWorkspaceMembersBlockForTrigger(ws.members) : ''
-  return documentContextBlock + triggerBlock + COMMENT_TRIGGER_SYSTEM_PROMPT + knowledgeBlock + membersBlock
+  const knowledgeBlock = ws.exposeKnowledgeTools ? buildKnowledgeBlock(ws.knowledgeFiles) : ''
+  const membersBlock = buildWorkspaceMembersBlock(ws.members)
+  return documentContextBlock + COMMENT_TRIGGER_SYSTEM_PROMPT + knowledgeBlock + membersBlock
 }
 
 interface ClaimSessionArgs {
@@ -294,6 +312,9 @@ interface TriggerLoopArgs {
   systemPrompt: string
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
   workspaceId: string | null
+  knowledgeFiles: WorkspaceCtx['knowledgeFiles']
+  threadHasOthers: boolean
+  channel: AiSessionChannel
   billingContext: Awaited<ReturnType<typeof resolveBillingContext>>
   aiProviders: ResolvedAiProviders
 }
@@ -303,7 +324,8 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
   const status: { phase: StreamStatusPhase } = { phase: 'thinking' }
   const setStatus = (phase: StreamStatusPhase, message?: string) => {
     status.phase = phase
-    aiSession?.updateStatus(phase, message)
+    if (aiSession) aiSession.updateStatus(phase, message)
+    else void args.channel.setStatus({ phase, message: message ?? null })
   }
 
   try {
@@ -312,7 +334,7 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
       initiatorName: args.initiatorName,
       initiatorUserId: args.userId,
       initiatorColor: args.initiatorColor,
-      prompt: args.seedPrompt.slice(0, 240),
+      channel: args.channel,
       workspaceId: args.workspaceId,
       attributedTo: args.billingContext.attributedTo,
       plan: args.billingContext.plan,
@@ -321,6 +343,19 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
       aiProviders: args.aiProviders,
       commentThreadId: args.commentId
     }, args.abortController.signal)
+
+    // Taint gate. The triggering message is the caller's own (checked
+    // above); the rest of the thread may not be.
+    const crossBoundary = await buildSessionGuard({
+      docId: args.docId,
+      initiatorUserId: args.userId,
+      workspaceId: args.workspaceId,
+      ydoc: aiSession.ydoc,
+      channel: args.channel,
+      invokerText: [args.seedPrompt],
+      knowledgeFiles: args.knowledgeFiles,
+      extraInitialTaint: args.threadHasOthers ? 'a comment thread with other participants' : null
+    })
 
     await runAgenticLoop({
       // Production omits `ai` so runLoop routes through LiteLLM on the
@@ -338,10 +373,11 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
       // Tells runLoop's salvage path to call `reply_to_comment`
       // instead of `message_to_user` when Mistral emits prose with
       // no tool call. Without this the comment thread looks ignored.
-      commentThreadId: args.commentId
+      commentThreadId: args.commentId,
+      crossBoundary
     })
   } catch (e: unknown) {
-    handleTriggerLoopError(e, args, aiSession, setStatus)
+    handleTriggerLoopError(e, args, setStatus)
   } finally {
     clearTimeout(args.deadlineTimer)
     const lingerMs = status.phase === 'error' ? 2500 : 500
@@ -354,7 +390,6 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
 function handleTriggerLoopError(
   e: unknown,
   args: TriggerLoopArgs,
-  aiSession: Awaited<ReturnType<typeof createAiSession>> | null,
   setStatus: (phase: StreamStatusPhase, message?: string) => void
 ): void {
   const err = e as { name?: string, message?: string }
@@ -363,9 +398,8 @@ function handleTriggerLoopError(
       || err?.name === 'AbortError'
       || err?.message === 'aborted'
       || /abort/i.test(String(err?.message ?? ''))
-  if (aiSession) {
-    setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
-  }
+  // Message → initiator only (session channel); others see the phase.
+  setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
   if (isAbort) {
     console.log(`[ai/trigger ${args.sessionId}] aborted by user`)
   } else {
@@ -374,35 +408,4 @@ function handleTriggerLoopError(
       tags: { component: 'aiCommentTrigger', event: 'loop_failed', sessionId: args.sessionId, docId: args.docId, commentId: args.commentId }
     })
   }
-}
-
-// Local copies of the two block builders from /api/ai/prompt — kept
-// inline to avoid an export ripple while the prompt endpoint and the
-// trigger endpoint converge. Both functions are pure formatters; if
-// they ever diverge (e.g. trigger needs different framing) we can
-// keep the divergence local.
-
-function buildKnowledgeBlockForTrigger(files: Array<{ knowledgeId: string, filename: string, sizeBytes: number, sourceExt: string, tokenCount: number }>): string {
-  if (files.length === 0) return ''
-  const lines = files.map((f) => {
-    const kb = Math.max(1, Math.round(f.sizeBytes / 1024))
-    return `- knowledge_id="${f.knowledgeId}" filename="${f.filename}" type=${f.sourceExt} size=${kb}KB tokens=${f.tokenCount}`
-  })
-  return (
-    `\n\n<knowledge_files>\n`
-    + `The user's workspace has the following uploaded knowledge files. Call \`search_knowledge\` to query across them, or \`get_knowledge_file\` with a specific knowledge_id when you need the full text. Only ids listed here are valid — do NOT invent or guess.\n\n`
-    + `${lines.join('\n')}\n`
-    + `</knowledge_files>`
-  )
-}
-
-function buildWorkspaceMembersBlockForTrigger(members: Array<{ userId: number, name: string }>): string {
-  if (members.length === 0) return ''
-  const lines = members.map(m => `- user_id=${m.userId} name="${m.name}"`)
-  return (
-    `\n\n<workspace_members>\n`
-    + `When mentioning teammates in comments, use @[Name](user:ID) with these user IDs:\n\n`
-    + `${lines.join('\n')}\n`
-    + `</workspace_members>`
-  )
 }

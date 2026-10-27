@@ -79,10 +79,12 @@ export interface MetaToolContext {
    *  these; a null capability means the feature is unavailable. */
   aiProviders: ResolvedAiProviders
 
-  /** Broadcast a status update. The loop maps this to
-   *  `awareness.setLocalStateField('aiStatus', ...)`; MCP doc-bound
-   *  wrappers map to `'mcpStatus'`; META wrappers no-op (no
-   *  meaningful awareness slot when there's no doc). */
+  /** Report progress. Only the PHASE is broadcast to the document's
+   *  other participants (loop: awareness `aiStatus`, MCP doc-bound:
+   *  `mcpStatus`); the message (which can name other documents,
+   *  queries, URLs) goes to the initiator alone — the loop's session
+   *  channel (`sessionChannel.ts`), nowhere for MCP (the MCP client sees
+   *  the tool result). META wrappers no-op. */
   updateStatus(phase: ToolStatusPhase, message?: string): void
 }
 
@@ -101,6 +103,10 @@ export interface DocToolContext extends MetaToolContext {
   ytext: Y.Text
   ymeta: Y.Map<unknown>
   awareness: Awareness
+  /** Deliver a `message_to_user` answer to the initiator only (never
+   *  via awareness). Absent where there is no initiator UI (MCP, test
+   *  seams) — the handler then only records conversation memory. */
+  deliverResponse?(response: { message: string, isQuestion: boolean, ts: number }): void
 }
 
 /**

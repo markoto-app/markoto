@@ -446,6 +446,27 @@
     }
   },
   "ai": {
+    "workingGeneric": "markoto arbeitet…",
+    "otherSessionWorking": "markoto arbeitet für {name}",
+    "confirm": {
+      "label": "markoto fragt zuerst",
+      "reason": "markoto hat in dieser Sitzung Text gelesen, den andere geschrieben haben. Deshalb fragt es, bevor es auf deine anderen Dokumente, das Workspace-Wissen oder das Web zugreift.",
+      "allow": "Erlauben",
+      "deny": "Ablehnen",
+      "tools": {
+        "view_other_document": "markoto möchte „{target}“ lesen.",
+        "list_my_documents": "markoto möchte deine Dokumente auflisten.",
+        "list_workspace_documents": "markoto möchte die Dokumente in diesem Workspace auflisten.",
+        "search_knowledge": "markoto möchte das Workspace-Wissen nach „{target}“ durchsuchen.",
+        "get_knowledge_file": "markoto möchte die Wissensdatei „{target}“ lesen.",
+        "create_document": "markoto möchte ein neues Dokument erstellen: „{target}“.",
+        "duplicate_document": "markoto möchte „{target}“ kopieren.",
+        "web_search": "markoto möchte im Web nach „{target}“ suchen.",
+        "fetch_url": "markoto möchte {target} öffnen",
+        "view_image": "markoto möchte das Bild {target} laden",
+        "generic": "markoto möchte {tool} verwenden."
+      }
+    },
     "placeholder": "markoto fragen…",
     "send": "Senden",
     "stop": "Stopp",

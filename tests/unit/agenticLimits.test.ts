@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import {
   AgenticFinishReason as FinishReason,
   type AgenticGenerateContentResponse as GenerateContentResponse,
   type AgenticFunctionCall as FunctionCall
 } from '../../server/utils/agentic/aiTypes'
+import { soloSessionGuard } from './fixtures/crossBoundary'
 
 // Tests for the per-session safety caps in runLoop.ts:
 //   - SESSION_INTERACTION_CAP (50): runaway-loop guard. Aborts the
@@ -84,6 +85,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
       attribution: 'user'
     },
     logger: () => {},
+    crossBoundary: soloSessionGuard(),
     ...overrides
   }
 }
@@ -92,6 +94,14 @@ beforeEach(() => {
   executeFunctionByName.mockReset()
   webSearch.mockReset()
   fetchUrl.mockReset()
+  // The loop only dispatches tools it offered; web_search / fetch_url
+  // are offered only when the operator configured their upstream keys.
+  vi.stubEnv('STAAN_API_KEY', 'test-staan-key')
+  vi.stubEnv('JINA_AI_API_KEY', 'test-jina-key')
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 describe('limits.ts module exports', () => {
@@ -127,7 +137,9 @@ describe('SESSION_INTERACTION_CAP enforcement', () => {
     webSearch.mockResolvedValue({ text: 'ok', sources: [] })
 
     const setStatus = vi.fn()
-    await runAgenticLoop(makeOpts({ ai: makeFakeAi(turns), setStatus }))
+    // After the first web_search the session is tainted (web content);
+    // the following identical searches ask the initiator — approve them.
+    await runAgenticLoop(makeOpts({ ai: makeFakeAi(turns), setStatus, crossBoundary: soloSessionGuard({ confirm: async () => true }) }))
 
     // Some setStatus call should be ('error', message containing cap text)
     const errorCalls = setStatus.mock.calls.filter(c => c[0] === 'error')

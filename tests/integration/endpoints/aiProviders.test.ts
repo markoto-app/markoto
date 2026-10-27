@@ -3,10 +3,10 @@ import * as Y from 'yjs'
 import { Pool } from 'pg'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient, type TestClient } from '../setup/client'
-import { createDoc, createUser } from '../setup/fixtures'
-import { TEST_BILLING_OFF_BASE_URL, TEST_FAKE_OPENAI_HOST_URL, fakeOpenAiBaseUrl } from '../setup/env'
-import { buildTestEnv } from '../setup/testEnv'
-import { decryptToken, encryptToken } from '../../../server/utils/litellm/tokenCrypto'
+import { createDoc } from '../setup/fixtures'
+import { TEST_BILLING_OFF_BASE_URL, fakeOpenAiBaseUrl } from '../setup/env'
+import { LITELLM_MASTER_KEY, LITELLM_URL, byokUser, fakeRequests, resetFake, uniqueKey, waitFor } from '../setup/byok'
+import { decryptToken } from '../../../server/utils/litellm/tokenCrypto'
 
 // Bring-your-own-key AI providers (WP4), end to end:
 //   app (SSRF policy, encryption, verification) → litellm-test (`byok/*`
@@ -24,36 +24,6 @@ const FAKE = fakeOpenAiBaseUrl()
 const DOC_MARKER = 'BYOK fake provider says hello.'
 const TRANSCRIPT = 'hello from the fake transcription provider'
 const LITELLM_DB_URL = process.env.NUXT_LITELLM_DB_URL ?? 'postgres://ypad:testpassword@localhost:5433/litellm_test'
-const LITELLM_URL = 'http://127.0.0.1:4100'
-const LITELLM_MASTER_KEY = 'sk-test-litellm-master'
-// Same salt as the server subprocess, so the token we store decrypts there.
-process.env.LITELLM_SALT_KEY = buildTestEnv().LITELLM_SALT_KEY
-
-interface FakeRequest { path: string, model: string, keySuffix: string, tools?: string[] }
-
-async function fakeRequests(): Promise<FakeRequest[]> {
-  const res = await fetch(`${TEST_FAKE_OPENAI_HOST_URL}/_test/requests`)
-  const body: { requests: FakeRequest[] } = await res.json()
-  return body.requests
-}
-
-async function resetFake(): Promise<void> {
-  await fetch(`${TEST_FAKE_OPENAI_HOST_URL}/_test/reset`, { method: 'POST', body: '{}' })
-}
-
-function uniqueKey(label: string): string {
-  return `sk-byok-${label}-${Math.random().toString(36).slice(2, 10)}`
-}
-
-async function waitFor<T>(probe: () => Promise<T | null>, timeoutMs: number, what: string): Promise<T> {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    const value = await probe()
-    if (value !== null) return value
-    await new Promise(r => setTimeout(r, 500))
-  }
-  throw new Error(`timed out waiting for ${what}`)
-}
 
 async function readYtext(docname: string): Promise<string> {
   const r = await testDb().query<{ value: Buffer }>(
@@ -65,34 +35,6 @@ async function readYtext(docname: string): Promise<string> {
   const ydoc = new Y.Doc()
   for (const row of r.rows) Y.applyUpdate(ydoc, new Uint8Array(row.value))
   return ydoc.getText('content').toString()
-}
-
-/**
- * The integration server runs with `LITELLM_TEST_STUB=1` (shared test
- * env), so users would otherwise get the stub virtual key, which the real
- * `litellm-test` proxy rejects. BYOK calls must authenticate with a REAL
- * virtual key (rpm limits + spend logs are part of what we assert), so
- * provision one through the proxy's admin API and store it exactly like
- * `createUserKey` does (encrypted token + key id on the user row).
- */
-async function provisionVirtualKey(userId: number): Promise<void> {
-  const res = await fetch(`${LITELLM_URL}/key/generate`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${LITELLM_MASTER_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ max_budget: 1, user_id: String(userId), rpm_limit: 600, metadata: { allow_client_tags: true } })
-  })
-  if (!res.ok) throw new Error(`/key/generate failed: ${res.status} ${await res.text()}`)
-  const body: { key: string, token_id?: string, token?: string } = await res.json()
-  await testDb().query(
-    'UPDATE users SET litellm_key_id = $1, litellm_key_token = $2 WHERE id = $3',
-    [body.token_id ?? body.token, encryptToken(body.key), userId]
-  )
-}
-
-async function byokUser(): Promise<{ id: number }> {
-  const u = await createUser()
-  await provisionVirtualKey(u.id)
-  return u
 }
 
 async function saveProvider(client: TestClient, capability: string, body: Record<string, unknown>): Promise<Response> {

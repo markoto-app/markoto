@@ -26,6 +26,10 @@ import type { StreamStatusPhase } from '../../utils/agentic/streamStatus'
 import { MARKDOWN_REFERENCE } from '../../utils/agentic/markdownReference'
 import { validateEditorSelection, wrapPromptWithEditorState, EDITOR_STATE_INSTRUCTIONS } from '../../utils/agentic/editorStatePrompt'
 import { buildDocumentContext } from '../../utils/agentic/documentContextPrompt'
+import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../utils/agentic/workspacePromptBlocks'
+import { UNTRUSTED_DATA_RULE } from '../../utils/agentic/untrustedText'
+import { AiSessionChannel } from '../../utils/agentic/sessionChannel'
+import { buildSessionGuard } from '../../utils/agentic/sessionGuard'
 import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 
 // System prompt bits derived from source-of-truth data — keeps them in sync
@@ -93,50 +97,11 @@ Behavior:
 - Ambiguous style/tone? Match the doc's existing style; otherwise neutral professional prose.
 - Never narrate the plan ("I'll now search the knowledge base…"). Just do it.
 
+${UNTRUSTED_DATA_RULE}
+
 ${EDITOR_STATE_INSTRUCTIONS}
 
 ${MARKDOWN_REFERENCE}`
-
-/**
- * Build a `<knowledge_files>` block listing the workspace's ready
- * knowledge files, appended to the system prompt so the model knows
- * which files exist before calling `search_knowledge` /
- * `get_knowledge_file`. Keeps it honest — the model won't fabricate
- * knowledge_ids the user never uploaded.
- *
- * Returns an empty string when there's nothing to expose (non-workspace
- * doc, or workspace has zero ready files). In that case, knowledge
- * tools are ALSO filtered out of the tool list.
- */
-function buildKnowledgeBlock(files: Array<{ knowledgeId: string, filename: string, sizeBytes: number, sourceExt: string, tokenCount: number }>): string {
-  if (files.length === 0) return ''
-  const lines = files.map((f) => {
-    const kb = Math.max(1, Math.round(f.sizeBytes / 1024))
-    return `- knowledge_id="${f.knowledgeId}" filename="${f.filename}" type=${f.sourceExt} size=${kb}KB tokens=${f.tokenCount}`
-  })
-  return (
-    `\n\n<knowledge_files>\n`
-    + `The user's workspace has the following uploaded knowledge files. Call \`search_knowledge\` to query across them, or \`get_knowledge_file\` with a specific knowledge_id when you need the full text. Only ids listed here are valid — do NOT invent or guess.\n\n`
-    + `${lines.join('\n')}\n`
-    + `</knowledge_files>`
-  )
-}
-
-/**
- * Build a `<workspace_members>` block listing the workspace member names
- * and IDs for @-mention support in comments. Only appended for workspace
- * docs where the caller is a member. Empty string for standalone docs.
- */
-function buildWorkspaceMembersBlock(members: Array<{ userId: number, name: string }>): string {
-  if (members.length === 0) return ''
-  const lines = members.map(m => `- user_id=${m.userId} name="${m.name}"`)
-  return (
-    `\n\n<workspace_members>\n`
-    + `When mentioning teammates in comments, use @[Name](user:ID) with these user IDs:\n\n`
-    + `${lines.join('\n')}\n`
-    + `</workspace_members>`
-  )
-}
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -202,6 +167,10 @@ export default defineEventHandler(async (event) => {
 
   await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
   const deadlineTimer = setTimeout(() => abortController.abort(), HARD_DEADLINE_MS)
+  // Initiator-only channel: prompt, status text, answers, confirmations.
+  // Opened before the response so the client's first poll finds it.
+  const channel = new AiSessionChannel(sessionId)
+  await channel.open({ initiatorUserId: userId, docId, prompt, commentThreadId: null })
 
   // Run in background — HTTP response returns immediately after registration.
   // All edits reach the client over Y.js; we don't need to stream anything on
@@ -213,6 +182,8 @@ export default defineEventHandler(async (event) => {
     systemPrompt,
     toolDeclarations: wsCtx.toolDeclarations,
     workspaceId: wsCtx.workspaceId,
+    knowledgeFiles: wsCtx.knowledgeFiles,
+    channel,
     billingContext,
     aiProviders
   })
@@ -335,6 +306,8 @@ interface PromptLoopArgs {
   systemPrompt: string
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
   workspaceId: string | null
+  knowledgeFiles: PromptWorkspaceCtx['knowledgeFiles']
+  channel: AiSessionChannel
   billingContext: Awaited<ReturnType<typeof resolveBillingContext>>
   aiProviders: ResolvedAiProviders
 }
@@ -350,7 +323,8 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
   const status: { phase: StreamStatusPhase } = { phase: 'thinking' }
   const setStatus = (phase: StreamStatusPhase, message?: string) => {
     status.phase = phase
-    aiSession?.updateStatus(phase, message)
+    if (aiSession) aiSession.updateStatus(phase, message)
+    else void args.channel.setStatus({ phase, message: message ?? null })
   }
 
   await recordUserPromptMemory(args)
@@ -360,7 +334,7 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
       initiatorName: args.initiatorName,
       initiatorUserId: args.userId,
       initiatorColor: args.initiatorColor,
-      prompt: args.prompt,
+      channel: args.channel,
       workspaceId: args.workspaceId,
       attributedTo: args.billingContext.attributedTo,
       plan: args.billingContext.plan,
@@ -368,6 +342,21 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
       virtualKey: args.billingContext.virtualKey,
       aiProviders: args.aiProviders
     }, args.abortController.signal)
+
+    // Taint gate: a document other people edit (or later: their
+    // comments, web pages, their knowledge files, other documents)
+    // makes cross-document / knowledge / web tools ask the initiator
+    // first. Only what the initiator typed counts as their own text —
+    // NOT the editor-state wrapper, which quotes document content.
+    const crossBoundary = await buildSessionGuard({
+      docId: args.docId,
+      initiatorUserId: args.userId,
+      workspaceId: args.workspaceId,
+      ydoc: aiSession.ydoc,
+      channel: args.channel,
+      invokerText: [args.prompt],
+      knowledgeFiles: args.knowledgeFiles
+    })
 
     await runAgenticLoop({
       // Phase 5: `ai` arg is for the unit-test seam only; production
@@ -384,10 +373,11 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
       abortController: args.abortController,
       setStatus,
       billingContext: args.billingContext,
+      crossBoundary,
       onToolCall: (name, validatedArgs) => recordToolCallMemory(args, name, validatedArgs)
     })
   } catch (e: unknown) {
-    handlePromptLoopError(e, args, aiSession, setStatus)
+    handlePromptLoopError(e, args, setStatus)
   } finally {
     clearTimeout(args.deadlineTimer)
     // Leave the final status visible long enough for clients to latch it —
@@ -447,7 +437,6 @@ async function recordToolCallMemory(args: PromptLoopArgs, name: string, validate
 function handlePromptLoopError(
   e: unknown,
   args: PromptLoopArgs,
-  aiSession: Awaited<ReturnType<typeof createAiSession>> | null,
   setStatus: (phase: StreamStatusPhase, message?: string) => void
 ): void {
   // Treat anything that happens after we signaled abort as an abort,
@@ -460,9 +449,10 @@ function handlePromptLoopError(
       || err?.name === 'AbortError'
       || err?.message === 'aborted'
       || /abort/i.test(String(err?.message ?? ''))
-  if (aiSession) {
-    setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
-  }
+  // The message reaches the initiator only (session channel); other
+  // participants just see the phase. BYOK errors are key-redacted where
+  // they are raised (`withProviderErrors` / `redactProviderStream`).
+  setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
   if (isAbort) {
     console.log(`[ai/prompt ${args.sessionId}] aborted by user`)
   } else {

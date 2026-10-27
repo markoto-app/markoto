@@ -60,6 +60,8 @@ export interface KnowledgeBrief {
   sizeBytes: number
   sourceExt: string
   tokenCount: number
+  /** Who uploaded the file — the AI loop treats other people's files as untrusted content. */
+  uploaderId: number | null
 }
 
 export async function listReadyKnowledgeBrief(workspaceId: string): Promise<KnowledgeBrief[]> {
@@ -69,7 +71,8 @@ export async function listReadyKnowledgeBrief(workspaceId: string): Promise<Know
     filename: workspaceKnowledge.filename,
     sizeBytes: workspaceKnowledge.sizeBytes,
     sourceExt: workspaceKnowledge.sourceExt,
-    tokenCount: workspaceKnowledge.tokenCount
+    tokenCount: workspaceKnowledge.tokenCount,
+    uploaderId: workspaceKnowledge.uploaderId
   }).from(workspaceKnowledge)
     .where(and(
       eq(workspaceKnowledge.workspaceId, workspaceId),

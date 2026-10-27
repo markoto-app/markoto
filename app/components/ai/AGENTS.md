@@ -1,6 +1,6 @@
 # AI presence primitives + AIPromptBar
 
-Six components, two roles:
+Seven components, two roles:
 
 | Component | Role |
 |---|---|
@@ -8,7 +8,8 @@ Six components, two roles:
 | `Tag.vue` | The hot-stamp pill with the AI's name. Companion to `Cursor` for awareness UI. White-on-shu in both modes — the "hot stamp" feel is intentional. |
 | `GutterMark.vue` | The shu vertical hairline rendered in the editor gutter for lines the AI has touched. Wired up via a CM6 line decoration that reads from awareness. |
 | `Thinking.vue` | The italic-serif observational line. **The only place in the product Fraunces italic appears** — burning that scarcity is what makes the AI's voice land. |
-| `AIPromptBar.vue` | The bottom-of-editor input. Renders the `is-active` shu pulse, the count chip from `useBilling`, voice-input toggle, send affordance. The whole state-machine for "AI is responding" lives here + on awareness. |
+| `AIPromptBar.vue` | The bottom-of-editor input. Renders the `is-active` shu pulse, the count chip from `useBilling`, voice-input toggle, send affordance. The whole state-machine for "AI is responding" lives here + in `useAI` (awareness for the public phase, the initiator's session channel for status text / answers / confirmations). |
+| `AIConfirmPanel.vue` | The inline "markoto wants to read 'Q3 plan' — Allow / Deny" card above the prompt bar (taint gate, `server/utils/agentic/crossBoundary.ts`). Initiator only. The question is the AI voice (Fraunces italic, seal), the target is the exact title / query / URL, buttons are neutral, the border is shu. No answer within the server timeout = deny. |
 | `WaveformVisualizer.vue` | The voice-input visualizer (live dictation + voice-prompt input). Pure SVG — no canvas, no audio analyser node leaking across teardown. |
 
 ## The "the seal IS the AI" contract — operational version
@@ -24,9 +25,9 @@ Lucide `i-lucide-sparkles` is **banned in user-facing AI chrome**. If you reach 
 
 The four in-document primitives (`Cursor`, `Tag`, `GutterMark`, `Thinking`) are driven by Y.js awareness state, NOT by props passed top-down through the editor tree. The contract:
 
-- The AI joins the doc as a real Y.js client (see `server/utils/agentic/AGENTS.md`). Its awareness state has `{ user: { name, color: shu, isAI: true }, cursor: { line, ch }, thinking: '...' }`.
+- The AI joins the doc as a real Y.js client (see `server/utils/agentic/AGENTS.md`). Its awareness state has `{ user: { name, color, isAI: true }, aiSession: { sessionId, initiatorName, initiatorUserId, commentThreadId? }, aiStatus: { phase, message: null } }` — public fields only, because awareness reaches every participant. The prompt, the live status text, `message_to_user` answers and confirmation requests reach only the initiator, via `GET /api/ai/sessions/:id` polled by `useAI`. Never add session details to awareness.
 - The editor's awareness watcher resolves `isAI === true` clients into shu rendering + the primitive components. Human collaborators (any `isAI !== true` awareness entry) render via the standard cool-slate yCollab path.
-- The `thinking` field is what `Thinking.vue` reads. It updates as the AI streams its agentic-loop reasoning between turns. Cleared on session end.
+- `Thinking.vue` renders a text prop; for the initiator that text comes from their private channel, for everyone else only a generic "markoto is working…" (`ai.workingGeneric`) is available.
 
 A consequence: a "fake AI cursor" can't be plumbed in by setting a prop. It has to come from a real awareness entry. This is intentional — it forces the awareness state to be the single source of truth for "where is the AI right now."
 

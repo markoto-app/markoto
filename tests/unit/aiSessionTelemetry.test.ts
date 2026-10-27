@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import {
   AgenticFinishReason as FinishReason,
   type AgenticGenerateContentResponse as GenerateContentResponse,
   type AgenticFunctionCall as FunctionCall
 } from '../../server/utils/agentic/aiTypes'
+import { soloSessionGuard } from './fixtures/crossBoundary'
 
 // Tests for Item 1 — AI session telemetry. The runLoop must emit a
 // single `Sentry.captureMessage('ai-session-completed', ...)` on every
@@ -110,6 +111,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
       attribution: 'user'
     },
     logger: () => {},
+    crossBoundary: soloSessionGuard(),
     ...overrides
   }
 }
@@ -119,6 +121,14 @@ beforeEach(() => {
   executeFunctionByName.mockReset()
   webSearch.mockReset()
   fetchUrl.mockReset()
+  // The loop only dispatches tools it offered; web_search / fetch_url
+  // are offered only when the operator configured their upstream keys.
+  vi.stubEnv('STAAN_API_KEY', 'test-staan-key')
+  vi.stubEnv('JINA_AI_API_KEY', 'test-jina-key')
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 describe('AI session telemetry — Sentry.captureMessage("ai-session-completed")', () => {
@@ -213,7 +223,9 @@ describe('AI session telemetry — Sentry.captureMessage("ai-session-completed")
     }
     webSearch.mockResolvedValue({ text: 'ok', sources: [] })
 
-    await runAgenticLoop(makeOpts({ ai: makeFakeAi(turns) }))
+    // After the first web_search the session is tainted (web content);
+    // the following identical searches ask the initiator — approve them.
+    await runAgenticLoop(makeOpts({ ai: makeFakeAi(turns), crossBoundary: soloSessionGuard({ confirm: async () => true }) }))
 
     expect(captureMessage).toHaveBeenCalledTimes(1)
     const [, opts] = captureMessage.mock.calls[0]!

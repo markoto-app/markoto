@@ -9,6 +9,8 @@ export default buildDocBoundTool({
   description: 'Return the total number of paginated pages in the document under the current theme. Use when the user references a specific page number to know if it exists, before calling view_pages. Triggers a backend render if uncached.',
   scope: 'documents:read',
   access: 'view',
+  // Server render on a cache miss — shares the REST PDF route's allowance.
+  limit: 'render',
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   inputSchema: {
     doc_id: z.string().min(1).describe('The doc id to count pages for.')

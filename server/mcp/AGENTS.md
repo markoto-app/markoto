@@ -12,14 +12,17 @@ For the in-app AI loop these tools originally served, see `server/utils/agentic/
 
 | Path | Role |
 |---|---|
-| `index.ts` | The default MCP handler. Soft-auth middleware: verify the bearer PAT, stash `event.context.mcp`, touch the session row. |
+| `index.ts` | The default MCP handler. Gate middleware (`lib/mcpGate.ts`): rate limits, PAT required (403 JSON-RPC error otherwise — no session for anonymous callers), session ↔ token binding, `mcp_sessions` row. |
 | `tools/*.ts` | One file per tool (28). Each is a ~10-line `buildDocBoundTool` / `buildWorkspaceBoundTool` / `buildUserOnlyTool` call — schema + scope + thin dispatch. Auto-discovered by the toolkit. |
-| `lib/wrapDocBoundTool.ts` | The three wrapper builders. Bake per-class boilerplate (scope guard, authz, context construction, dispatch, cleanup). |
+| `lib/wrapDocBoundTool.ts` | The three wrapper builders + `admitToolCall` (per-call scope re-check, per-user tool-call limit, optional render / image limit). Bake per-class boilerplate (scope guard, authz, context construction, dispatch, cleanup). |
+| `lib/mcpGate.ts` | `evaluateMcpRequest` (pure decision logic for the middleware, unit-tested) + `MCP_RATE_LIMITS` + `jsonRpcErrorResponse`. |
 | `lib/mcpToolContext.ts` | `hasScope(event, scope)` + `requireMcpAuth(event)` request helpers. |
 | `lib/stripWrapperArgs.ts` | Removes wrapper-injected `doc_id` / `workspace_id` before dispatch (pure, unit-tested in isolation). |
 
 **Shared with the loop** (live in `server/utils/`, NOT here):
-- `utils/mcpAuth.ts` — PAT primitives (generate/hash/verify/revoke) + `mcp_sessions` touch + clientInfo stash.
+- `utils/mcpAuth.ts` — PAT primitives (generate/hash/verify/revoke) + `mcp_sessions` touch.
+- `utils/mcpSessionBinding.ts` — process-local `sessionId → {tokenId, userId}` table (the toolkit's sessions are process-local too) + per-user live-session count.
+- `utils/renderRateLimit.ts` — the render allowance shared with `GET /api/docs/:id/pdf`.
 - `utils/mcpHocuspocusClient.ts` — `connectAsMcpClient()`: the MCP equivalent of `createAiSession`, builds a `DocToolContext` backed by the pool.
 - `utils/yDocPool.ts` — process-level `(docId, principalId)` HocuspocusProvider pool shared by BOTH the loop and MCP.
 - `utils/agentic/toolContext.ts` — the `MetaToolContext` / `DocToolContext` split.
@@ -30,9 +33,18 @@ For the in-app AI loop these tools originally served, see `server/utils/agentic/
 
 ## Request lifecycle
 
-1. **Middleware (`index.ts`)** — extract `Authorization: Bearer mkt_…`, `verifyMcpPat` it. On failure it just `return`s: `event.context.mcp` stays undefined. **We NEVER throw 401 from the MCP route** — clients interpret a 401 as "this server wants OAuth discovery" and kick into a flow we don't implement. Unauthenticated callers instead see an **empty tool catalog** because every tool's `enabled` guard returns false without a matching scope.
-2. **Session bookkeeping** — the middleware peeks the JSON-RPC body. On `initialize` it stashes `clientInfo.name` ('Claude Desktop', 'Cursor') keyed on `(tokenHash, userAgent)` for 60s (no session id exists yet). On the first follow-up call carrying an `Mcp-Session-Id`, it drains the stash and `touchMcpSession` UPSERTs the `mcp_sessions` row. Fire-and-forget, Valkey-throttled to 1/min/session.
-3. **Tool call** — the wrapper's `enabled` scope guard runs first (invisible tools for missing scopes), then the handler runs `requireMcpAuth`, authz-checks the doc/workspace against the PAT user, builds the right context, dispatches to `TOOL_HANDLERS[name]`, and cleans up in `finally`.
+1. **Middleware (`index.ts` → `lib/mcpGate.ts`)** — runs before the toolkit, so before it can create a session:
+   - rate limit per client address (`mcp-client`, 300/min) — also bounds unauthenticated noise;
+   - `Authorization: Bearer mkt_…` must verify (`verifyMcpPat`). Otherwise a JSON-RPC error with **HTTP 403** (`-32001`, "Authentication required …"). **Never 401** — clients interpret a 401 as "this server wants OAuth discovery" and kick into a flow we don't implement. Anonymous `initialize` calls used to create toolkit sessions (global cap 1000 per process, 30-min idle) and could lock everyone out; now they create nothing;
+   - rate limit per token (`mcp-token`, 240/min);
+   - a request WITH `Mcp-Session-Id` must present the token that created that session (`McpSessionBindings.check`) — any other token (same user or not) gets 404 "Session not found", like an unknown id;
+   - a request WITHOUT one may open a session within the per-user creation rate (`mcp-session-user`, 60/hour — the toolkit keeps idle sessions 30 min in a table shared by everybody); at most `MAX_SESSIONS_PER_USER` (20) stay usable per user, binding one more drops that user's least recently used one (client re-initializes, never locked out). After the toolkit answered, the new id from the response header is bound to the token and the `mcp_sessions` row is written right away (`touchMcpSession` with `clientInfo.name` from the `initialize` body and the creating `token_id`).
+2. **Session bookkeeping** — every later authenticated request touches the `mcp_sessions` row (`last_active_at`). Fire-and-forget, Valkey-throttled to 1/min/session. `client_name`, `user_agent` and `token_id` are first-writer-wins.
+3. **Tool call** — the wrapper's `enabled` scope guard hides tools at `initialize` (the toolkit fixes a session's tool list then); the handler's `admitToolCall` re-checks the scope on EVERY call (missing → "Tool X not found"), applies the per-user tool-call limit (`mcp-tool-user`, 120/min) and the tool's extra limit (render tools: the shared `pdf-download` allowance, 10/client/min; `generate_image`: 20/user/hour), then authz-checks the doc/workspace against the PAT user, builds the right context, dispatches to `TOOL_HANDLERS[name]`, and cleans up in `finally`.
+
+All rate limits are Valkey sliding windows (`checkRateLimit`): fail OPEN on Valkey errors and bypassed under `TEST_MODE` (so the integration suite can't exercise them — `tests/unit/mcpGate.test.ts` pins the decision logic).
+
+**The taint + confirm gate of the in-editor loop (`server/utils/agentic/crossBoundary.ts`) does NOT apply to MCP — decided.** An MCP client is the user's own agent: the client shows each tool call to its user (most ask before running one), the user chose the token's scopes, and markoto has no UI inside the client to confirm in. Prompt injection inside the client's own model is the client's concern; markoto keeps every MCP call inside the token's scopes and the user's access (per-call authz below).
 
 ---
 
@@ -72,7 +84,7 @@ The `(docId, principalId)` key (not docId-alone) avoids **awareness contention**
 | `mcp_sessions` | One row per client connection. `mcp_session_id` (unique, from the toolkit), `user_id`, `token_id` (FK, `SET NULL`), `client_name`, `user_agent`, `last_active_at`. Migration `0016`. |
 | `activity_log.actor_principal` | Nullable text + partial index (`WHERE actor_principal IS NOT NULL`). Structured agent-attribution field. Migration `0017`. |
 
-**Token shape**: `mkt_<32-char-base32>` (160 bits from `crypto.randomBytes`). The `mkt_` prefix makes leaks greppable (GitHub's `ghp_` trick). Only the SHA-256 hash is stored; plaintext is returned **exactly once** at issuance and never reconstructed. Scopes: `documents:read`, `documents:write`, `knowledge:read`, `web:fetch`.
+**Token shape**: `mkt_<32-char-base32>` (160 bits from `crypto.randomBytes`). The `mkt_` prefix makes leaks greppable (GitHub's `ghp_` trick). Only the SHA-256 hash is stored; plaintext is returned **exactly once** at issuance and never reconstructed. Scopes: `documents:read`, `documents:write`, `knowledge:read`, `web:fetch` (`web_search`, `fetch_url`). `generate_image` requires **`documents:write`** (it writes an asset into a document and spends the user's AI budget); until the security fix it was under `web:fetch`. No data migration: new tokens get all four scopes, so tokens issued from the UI already carry `documents:write`; a token with `web:fetch` but without `documents:write` (only possible via a hand-written scope list) simply no longer lists `generate_image` — re-issue it with write access if wanted.
 
 **Attribution chain** (the whole point of `actor_principal` + `mcp_sessions`; verified end-to-end by `tests/integration/mcp/audit-and-session.test.ts`):
 
@@ -92,7 +104,7 @@ The same column also serves `ai:assistant:%` (loop → `ai_sessions`). `server/r
 
 - **Verify hot path** (`verifyMcpPat`) is Valkey read-through cached 60s, keyed on the token hash. **Positive hits only** — misses aren't cached so a fresh token lights up immediately and a brute-forcer gets no free cache hits. Cache/DB miss, `revoked_at != null`, and past-`expires_at` all return null → soft-fail. `last_used_at` bump is throttled 1/min via a separate Valkey key (hot-row protection).
 - **Revocation** (`DELETE /api/mcp/tokens/:tokenId`) soft-deletes (`revoked_at`) and calls `invalidateMcpPatCache(hash)` so the 60s cache doesn't keep accepting it. 404 (not 403) for a foreign/already-revoked token id — anti-enumeration.
-- **Scope guard**: `enabled: event => hasScope(event, scope)`. Unauthenticated OR wrong-scope → the tool doesn't appear in `tools/list`.
+- **Scope guard**: `enabled: event => hasScope(event, scope)` hides the tool from `tools/list` at `initialize`; `admitToolCall` re-checks on every call. Sessions are bound to their creating token, so a session can't be reused with a narrower (or another user's) token.
 - **Per-request authz** is ALWAYS re-checked against the PAT user inside the handler — `getDocAuthz` (doc-bound, 404-shape on both missing + forbidden) or `getMemberRole` vs `minRole` (workspace-bound, same 404-shape). The scope grant is necessary, not sufficient: a `documents:write` PAT still can't touch a doc the user can't edit.
 - **Token CRUD endpoints** (`api/mcp/tokens/*`) are authed by the **normal Nitro session** (`requireValidatedUserSession`), NOT by a PAT — you manage tokens from the logged-in web UI (`app/pages/settings/integrations.vue`). Issue + revoke emit `mcp.token_issued` / `mcp.token_revoked` audit events (never logging the hash). Per-user cap: `MAX_PATS_PER_USER = 20` active.
 - **Per-user open-doc cap**: `connectAsMcpClient` reserves a Valkey set slot (`MAX_OPEN_DOCS_PER_USER = 10`, 10-min TTL) before pool checkout; 429 over cap. Fails OPEN on Valkey error (anti-abuse, not correctness — matches `checkRateLimit` polarity).
@@ -111,7 +123,10 @@ The same column also serves `ai:assistant:%` (loop → `ai_sessions`). `server/r
 
 | Decision | Rationale |
 |---|---|
-| Never throw 401 from the MCP route | Clients treat 401 as "start OAuth discovery" — a flow we don't implement in v1. Soft-auth + `enabled` scope guards give unauthenticated callers an empty catalog instead of a discovery churn. |
+| Never throw 401 from the MCP route | Clients treat 401 as "start OAuth discovery" — a flow we don't implement in v1. Unauthenticated callers get a 403 JSON-RPC error instead (no session created). |
+| No session before authentication; session bound to its token | The toolkit's session table is global per process (max 1000); anonymous `initialize` filled it. The toolkit fixes a session's tools from the creating token's scopes, so without a binding any token holding the session id inherited them. |
+| Keep toolkit sessions (not stateless mode) | `Mcp-Session-Id` is the YDocPool principal (`mcp:{sid}`) and the activity-attribution key; stateless mode would lose warm providers and the attribution join. |
+| No taint/confirm gate for MCP | The client is the user's own agent and confirms tool calls in its own UI; see "Request lifecycle". |
 | PAT (v1), OAuth deferred | PATs are a known, low-friction model (GitHub/npm). OAuth discovery is a bigger surface; the `mkt_` token + hashed-storage design is complete and shippable now. |
 | Reuse loop tool handlers, don't fork | `toolHandlers.ts` (`DOC_/META_TOOL_HANDLERS`) is the single implementation. The MCP wrappers + the in-app loop both dispatch against it. Extracting this (with `toolContext.ts`, `toolHandlers.ts`, `createDocument.ts`) is why the feature diff also touched `aiClient.ts` / `aiToolAdapter.ts` / `functionTools.ts`. |
 | Two-tier context (`Meta`/`Doc`) split | Makes "META handler wrapped as doc-bound" (and vice versa) a compile error. The wrapper builders type-constrain which names they accept. |
@@ -127,8 +142,9 @@ The same column also serves `ai:assistant:%` (loop → `ai_sessions`). `server/r
 - **`buildDocBoundTool` schemas MUST include `doc_id`; `buildWorkspaceBoundTool` MUST include `workspace_id`.** Asserted at module load (`assertSchemaContains`) — a missing field throws at boot, not at call time.
 - **`stripWrapperArgs` must run before dispatch in every wrapper.** Forgetting it leaks `doc_id`/`workspace_id` into spread-style handlers (`update_theme`) and strict validators reject the merged result. Unit-pinned in isolation (`tests/unit/mcpWrapperShapeIsolation.test.ts`); wired-path pinned at the integration tier (`tests/integration/mcp/tools-write.test.ts` runs `update_theme` and asserts the merged theme persists).
 - **Doc/workspace authz failures return 404, not 403** — anti-enumeration, matching the in-app endpoints. A forbidden doc and a non-existent doc are indistinguishable to the caller.
-- **The middleware peeks the JSON-RPC body via `readBody`** (which caches the parse so the toolkit's downstream handler doesn't re-read). `initialize` has no session id yet — that's why `clientInfo.name` is stashed on `(tokenHash, userAgent)` and drained on the next call.
-- **`touchMcpSession` uses COALESCE-first-writer-wins** for `client_name`/`user_agent` (never overwrite a real value with null on later calls) but updates `token_id` unconditionally (a mid-session PAT rotation should be reflected). Session-touch failure is Sentry-captured, never fatal — the tool call already authenticated.
+- **The middleware peeks the JSON-RPC body via `readBody`** (which caches the parse so the toolkit's downstream handler doesn't re-read) to take `clientInfo.name` from `initialize`; the session id comes from the toolkit's RESPONSE (`next()` returns the `Response`), so binding + row write happen after the toolkit answered and before the client can use the id.
+- **`touchMcpSession` uses COALESCE-first-writer-wins** for `client_name`, `user_agent` AND `token_id` (the binding refuses any other token, so the creating credential is the one to record). Session-touch failure is Sentry-captured, never fatal — the tool call already authenticated.
+- **The session binding is process-local** — exactly like the toolkit's sessions. A restart drops both; clients re-initialize.
 - **`connectAsMcpClient` trusts its `docId`** — callers MUST authz-check before calling. The doc-bound wrapper does this via `assertDocAccess` and threads the resolved `workspaceId` through so `connectAsMcpClient` skips a second `getDoc`.
 - **`mint`ed MCP JWT sets `userName: 'MCP'`** (the friendly `activity_log.user_name`); the join-able principal rides in the JWT `userId` field (`mcp:{sid}`), which the sync-server writes into `actor_principal`. Don't conflate the two.
 - **MCP tool calls have no abort signal** — the loop's 5-min deadline has no MCP equivalent. `web_search`/`fetch_url` get a never-aborts signal and rely on the underlying Jina/Mistral SDK timeouts (`neverAbortSignal()` in `toolHandlers.ts`).

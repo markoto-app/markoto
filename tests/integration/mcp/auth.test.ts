@@ -3,13 +3,16 @@ import { resetDb, testDb } from '../setup/db'
 import { createUser } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
 
-// Auth surface for the /mcp endpoint. Per toolkit guidance the MCP
-// route NEVER throws 401 on bad auth (clients interpret that as an
-// OAuth-discovery hint and switch protocols). Instead, unauthenticated
-// or under-scoped callers see an EMPTY catalog — no tools, no errors.
+// Auth surface for the /mcp endpoint. The MCP route NEVER answers 401
+// (clients interpret that as an OAuth-discovery hint and switch
+// protocols). A request without a valid token is refused with HTTP 403 +
+// a JSON-RPC error BEFORE the toolkit runs — so no server session is
+// ever created for it (anonymous `initialize` calls used to fill the
+// toolkit's global session table). Under-scoped callers see only the
+// tools their scopes allow.
 //
 // These tests pin both halves of that contract:
-//   - bad/missing/revoked/expired token → empty tools/list
+//   - bad/missing/revoked/expired token → 403 refusal, no session id
 //   - per-scope subset → exactly the right tools surface
 //
 // Calling a hidden tool comes back as "Tool not found" (toolkit's
@@ -20,24 +23,27 @@ describe('MCP auth — token validity', () => {
     await resetDb()
   })
 
-  it('no Authorization header → empty tools/list', async () => {
-    const tools = await mcp(null).listTools()
-    expect(tools).toEqual([])
+  async function expectRefused(token: string | null): Promise<void> {
+    const r = await mcp(token).rawInitialize()
+    expect(r.status).toBe(403)
+    expect(r.sessionId).toBeNull()
+    expect(r.rpc.error?.message).toMatch(/Authentication required/)
+  }
+
+  it('no Authorization header → refused, no session', async () => {
+    await expectRefused(null)
   })
 
-  it('malformed bearer (wrong prefix) → empty tools/list', async () => {
-    const tools = await mcp('not-a-real-token').listTools()
-    expect(tools).toEqual([])
+  it('malformed bearer (wrong prefix) → refused', async () => {
+    await expectRefused('not-a-real-token')
   })
 
-  it('correctly-shaped but non-existent token → empty tools/list', async () => {
+  it('correctly-shaped but non-existent token → refused', async () => {
     // mkt_ prefix + 32 base32 chars: passes shape, fails DB lookup.
-    const phantom = 'mkt_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    const tools = await mcp(phantom).listTools()
-    expect(tools).toEqual([])
+    await expectRefused('mkt_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
   })
 
-  it('revoked token → empty tools/list', async () => {
+  it('revoked token → refused', async () => {
     const user = await createUser()
     const { plaintext, tokenId } = await mintPat({ userId: user.id, scopes: ['documents:read'] })
 
@@ -47,21 +53,28 @@ describe('MCP auth — token validity', () => {
       `UPDATE mcp_personal_tokens SET revoked_at = NOW() WHERE token_id = $1`,
       [tokenId]
     )
-
-    const tools = await mcp(plaintext).listTools()
-    expect(tools).toEqual([])
+    await expectRefused(plaintext)
   })
 
-  it('expired token → empty tools/list', async () => {
+  it('expired token → refused', async () => {
     const user = await createUser()
     const { plaintext } = await mintPat({
       userId: user.id,
       scopes: ['documents:read'],
       expiresAt: new Date(Date.now() - 60_000) // 1 minute in the past
     })
+    await expectRefused(plaintext)
+  })
 
-    const tools = await mcp(plaintext).listTools()
-    expect(tools).toEqual([])
+  it('many anonymous initialize calls create no sessions — a real user still connects', async () => {
+    // The toolkit keeps at most 1000 sessions per process; anonymous
+    // initialize calls must not consume them.
+    for (let i = 0; i < 25; i++) await expectRefused(null)
+    const user = await createUser()
+    const { plaintext } = await mintPat({ userId: user.id, scopes: ['documents:read'] })
+    const r = await mcp(plaintext).rawInitialize()
+    expect(r.status).toBe(200)
+    expect(r.sessionId).toMatch(/^[0-9a-f-]{36}$/)
   })
 
   it('verify cache makes revocation eventual within TTL (cached hit survives DB revoke)', async () => {
@@ -115,7 +128,7 @@ describe('MCP auth — scope gating', () => {
     expect(names).toEqual(expected)
   })
 
-  it('documents:read + documents:write → 23 tools (12 read + 11 write)', async () => {
+  it('documents:read + documents:write → 24 tools (12 read + 12 write, incl. generate_image)', async () => {
     const user = await createUser()
     const { plaintext } = await mintPat({
       userId: user.id,
@@ -123,12 +136,14 @@ describe('MCP auth — scope gating', () => {
     })
 
     const tools = await mcp(plaintext).listTools()
-    expect(tools.length).toBe(23)
+    expect(tools.length).toBe(24)
 
     const names = tools.map(t => t.name)
     // Spot-check: write tools surface, knowledge + web do not.
     expect(names).toContain('replace_text')
     expect(names).toContain('create_document')
+    // generate_image writes an asset into a doc → documents:write.
+    expect(names).toContain('generate_image')
     expect(names).not.toContain('search_knowledge')
     expect(names).not.toContain('web_search')
   })
@@ -159,13 +174,13 @@ describe('MCP auth — scope gating', () => {
     expect(names).toEqual(['get_knowledge_file', 'search_knowledge'])
   })
 
-  it('web:fetch alone → 3 web tools, no docs/knowledge tools', async () => {
+  it('web:fetch alone → the 2 web-read tools, no docs/knowledge tools (generate_image needs documents:write)', async () => {
     const user = await createUser()
     const { plaintext } = await mintPat({ userId: user.id, scopes: ['web:fetch'] })
 
     const tools = await mcp(plaintext).listTools()
     const names = tools.map(t => t.name).sort()
-    expect(names).toEqual(['fetch_url', 'generate_image', 'web_search'])
+    expect(names).toEqual(['fetch_url', 'web_search'])
   })
 
   it('calling a tool outside granted scope is rejected (read-only PAT cannot call replace_text)', async () => {

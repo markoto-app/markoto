@@ -446,6 +446,27 @@
     }
   },
   "ai": {
+    "workingGeneric": "markoto が作業中…",
+    "otherSessionWorking": "markoto が {name} さんのために作業中",
+    "confirm": {
+      "label": "markoto からの確認",
+      "reason": "このセッションで markoto は他の人が書いたテキストを読みました。そのため、あなたの他のドキュメント、ワークスペースのナレッジ、ウェブにアクセスする前に確認します。",
+      "allow": "許可",
+      "deny": "拒否",
+      "tools": {
+        "view_other_document": "markoto が「{target}」を読もうとしています。",
+        "list_my_documents": "markoto があなたのドキュメント一覧を取得しようとしています。",
+        "list_workspace_documents": "markoto がこのワークスペースのドキュメント一覧を取得しようとしています。",
+        "search_knowledge": "markoto がワークスペースのナレッジで「{target}」を検索しようとしています。",
+        "get_knowledge_file": "markoto がナレッジファイル「{target}」を読もうとしています。",
+        "create_document": "markoto が新しいドキュメント「{target}」を作成しようとしています。",
+        "duplicate_document": "markoto が「{target}」をコピーしようとしています。",
+        "web_search": "markoto がウェブで「{target}」を検索しようとしています。",
+        "fetch_url": "markoto が {target} を開こうとしています",
+        "view_image": "markoto が画像 {target} を読み込もうとしています",
+        "generic": "markoto が {tool} を使おうとしています。"
+      }
+    },
     "placeholder": "markotoに質問…",
     "send": "送信",
     "stop": "停止",

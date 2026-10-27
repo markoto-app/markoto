@@ -94,6 +94,8 @@ export interface McpClientOptions {
   clientName?: string
   /** Skip the auto-initialize so tests can assert pre-handshake behaviour. */
   skipInitialize?: boolean
+  /** Reuse an existing `Mcp-Session-Id` (e.g. one another token created) instead of initializing. */
+  sessionId?: string
 }
 
 export class McpClient {
@@ -104,6 +106,10 @@ export class McpClient {
 
   constructor(private readonly options: McpClientOptions = {}) {
     this.clientName = options.clientName ?? 'integration-test'
+    if (options.sessionId) {
+      this.sessionId = options.sessionId
+      this.initialized = true
+    }
   }
 
   /** Run the full handshake: initialize → notifications/initialized.
@@ -184,6 +190,28 @@ export class McpClient {
       throw new Error(`[mcp-client] ${name} first content block is not text: ${JSON.stringify(first)}`)
     }
     return first.text
+  }
+
+  /** Raw `initialize` exchange: HTTP status, assigned session id (if any) and the JSON-RPC body. */
+  async rawInitialize(): Promise<{ status: number, sessionId: string | null, rpc: RpcResult<{ protocolVersion: string }> }> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream'
+    }
+    if (this.options.token) headers['Authorization'] = `Bearer ${this.options.token}`
+    const res = await fetch(`${TEST_BASE_URL}/mcp`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: this.nextRpcId++,
+        method: 'initialize',
+        params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: this.clientName, version: '0.0.1' } }
+      })
+    })
+    const sessionId = res.headers.get('mcp-session-id')
+    const text = await res.text()
+    return { status: res.status, sessionId, rpc: text ? this.parsePayload(text, res.status) : {} }
   }
 
   /** Returns the Mcp-Session-Id assigned by the server on initialize.

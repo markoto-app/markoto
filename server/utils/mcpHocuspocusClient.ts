@@ -216,8 +216,11 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
     throw err
   }
 
-  const updateStatus = (phase: ToolStatusPhase, message?: string): void => {
-    entry.awareness.setLocalStateField('mcpStatus', { phase, message: message ?? null })
+  // Phase only: awareness reaches every participant of the document,
+  // and status messages can name the user's other documents, queries or
+  // URLs. The MCP client learns the details from the tool result.
+  const updateStatus = (phase: ToolStatusPhase, _message?: string): void => {
+    entry.awareness.setLocalStateField('mcpStatus', { phase, message: null })
   }
 
   let released = false

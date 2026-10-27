@@ -152,7 +152,7 @@ Residual risk: LiteLLM resolves the hostname again when it connects. A DNS answe
 
 ## Recommended models for bring-your-own-key
 
-markoto's agent exposes about 23 tools (document editing, theme, web, image, comments, knowledge search), so the model needs reliable multi-tool function calling at low temperature, ideally with vision. Context needs are modest (documents plus tool results, typically under 100K tokens).
+markoto's agent exposes about 29 tools (document editing, theme, web, image, comments, knowledge search), so the model needs reliable multi-tool function calling at low temperature, ideally with vision. Context needs are modest (documents plus tool results, typically under 100K tokens).
 
 Only the Mistral rows below were tested by us (six tool-selection prompts against nine tool definitions at `temperature: 0`). Everything else is based on provider listings and should be tried before you rely on it. Prices are approximate public list prices per million input / output tokens.
 

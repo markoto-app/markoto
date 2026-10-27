@@ -43,12 +43,18 @@ difference is what context markoto sees up front.
    passage as if you'd selected it.
 3. The thread lights up with a rainbow ring while markoto works.
 4. markoto uses tools to read the document, find sources if needed,
-   and post a reply on the thread when it's done. If you asked
+   and post a reply on the thread when it's done. If the thread has other
+   participants and markoto wants to reach beyond the document (your other
+   documents, workspace knowledge, the web), it asks you first in the prompt
+   bar ([when the AI asks first](/docs/writing/ai-prompt-bar#when-the-ai-asks-first)). If you asked
    for an edit, it edits the anchored span directly and the reply
    summarises what changed.
 
 ## Loop guards
 
+- markoto only answers a mention in a message **you** wrote: pointing
+  it at someone else's comment does nothing. It runs on your AI provider
+  and with your access, so it starts only when you ask.
 - markoto's own messages are detected and excluded from re-triggering — it
   can't summon itself.
 - markoto-authored comment bodies have the mention token stripped before

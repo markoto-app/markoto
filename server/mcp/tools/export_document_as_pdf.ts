@@ -6,7 +6,8 @@ import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxt
 import { renderDocument } from '../../utils/renderClient'
 import { useS3Client } from '../../utils/s3'
 import { getDocAuthz } from '../../utils/workspaceAccess'
-import { hasScope, requireMcpAuth } from '../lib/mcpToolContext'
+import { hasScope } from '../lib/mcpToolContext'
+import { admitToolCall } from '../lib/wrapDocBoundTool'
 
 // MCP-only tool. The in-app agentic loop has no use for a PDF blob —
 // `view_pages` already gives the loop per-page PNGs for visual
@@ -44,7 +45,9 @@ export default defineMcpTool({
   enabled: event => hasScope(event, 'documents:read'),
   handler: (async (args: ShapeOutput<typeof inputSchema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
     const event = useEvent()
-    const auth = requireMcpAuth(event)
+    // Scope re-check + per-user call limit + the render allowance shared
+    // with `GET /api/docs/:id/pdf`.
+    const auth = await admitToolCall(event, 'export_document_as_pdf', 'documents:read', 'render')
     const docId = String(args.doc_id ?? '')
     if (!docId) {
       throw createError({

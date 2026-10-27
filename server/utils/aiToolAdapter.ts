@@ -75,6 +75,7 @@ import { searchActivity, type ActivityEntry } from '../repos/activity'
 import { stripAiMention } from './agentic/commentTriggerPrompt'
 import { fetchExternalImage as fetchExternalImageGuarded, type ExternalImageResult } from './externalImage'
 import { budgetExhaustedMessage } from './billingMode'
+import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
 
 export interface ToolResult {
   content: string
@@ -923,6 +924,26 @@ async function resolveCrossDocAccess(session: MetaToolContext, targetId: string)
   return { ok: false, error: err(`Error: document "${targetId}" not found, or you don't have access to it.`) }
 }
 
+/**
+ * Title of the document `docRef` (bare id or markoto URL) when `userId`
+ * may open it — the same access decision `view_other_document` makes.
+ * Null when the reference doesn't parse, the doc doesn't exist, or the
+ * user can't open it. Used to label confirmation requests for the
+ * session's initiator, so it never reveals more than the user could see.
+ */
+export async function accessibleDocTitle(userId: number, docRef: string): Promise<string | null> {
+  const targetId = parseDocIdFromInput(docRef)
+  if (!targetId) return null
+  const ctx = await getDocWithActorRole(targetId, userId)
+  if (!ctx) return null
+  const decision = decideTokenAccess(
+    { ownerId: ctx.ownerId, workspaceId: ctx.workspaceId, accessMode: ctx.accessMode },
+    { userId, workspaceRole: ctx.workspaceRole }
+  )
+  if (decision.outcome !== 'allow') return null
+  return ctx.title || targetId
+}
+
 type DocBodyResult = { ok: true, body: string } | { ok: false, error: ToolResult }
 
 async function readOtherDocBody(session: MetaToolContext, targetId: string): Promise<DocBodyResult> {
@@ -1516,18 +1537,15 @@ export async function handleViewPages(
  * `AiClient` client and is async.
  */
 /**
- * `message_to_user` — push a short ephemeral message into the AI's
- * awareness so the frontend's response panel renders it above the prompt
- * bar. Awareness already carries `user`, `aiSession`, `aiStatus`; we add
- * an `aiResponse` slot keyed by `ts` so clients can dedupe and trigger
- * the auto-collapse timer on appearance.
+ * `message_to_user` — a short ephemeral answer for the person who ran
+ * the session, rendered in the response panel above their prompt bar.
  *
- * Why awareness, not a DB row: this is ephemeral by design (one response
- * per session, replaced not appended). Awareness gives us multi-tab
- * delivery for free and dies with the session — no cleanup, no privacy
- * surface, no migrations. Phase 2 will add a DB-backed conversation
- * substrate for the AI's MEMORY of past turns; this surface stays
- * ephemeral.
+ * Delivered through `session.deliverResponse` = the initiator-only
+ * session channel (`agentic/sessionChannel.ts`), NOT awareness:
+ * awareness reaches every participant of the document, and these
+ * answers can summarise the initiator's other documents or knowledge.
+ * One response per session, replaced not appended; `ts` lets the client
+ * detect a fresh message even when the body repeats.
  *
  * The model's `output` is intentionally short — it just confirms the
  * message landed so the model doesn't try to repeat it.
@@ -1537,14 +1555,7 @@ export async function handleMessageToUser(
   input: MessageToUserInput
 ): Promise<ToolResult> {
   const isQuestion = input.is_question === true
-  // ts uniquely identifies each response so clients can detect a fresh
-  // message even when the body is identical to the previous one. Date.now()
-  // resolution (ms) is plenty — the model is not racing itself.
-  session.awareness.setLocalStateField('aiResponse', {
-    message: input.message,
-    isQuestion,
-    ts: Date.now()
-  })
+  session.deliverResponse?.({ message: input.message, isQuestion, ts: Date.now() })
 
   // Persist a verbatim memory row so a follow-up prompt's
   // `<conversation_history>` block can show what the AI told the user.
@@ -1999,7 +2010,7 @@ export async function handleCreateComment(
     map.set('anchorEnd', anchorEnd)
     map.set('body', safeBody)
     map.set('authorId', null)
-    map.set('authorName', 'markoto')
+    map.set('authorName', AI_COMMENT_AUTHOR_NAME)
     map.set('authorAvatar', null)
     map.set('createdAt', now)
     map.set('updatedAt', now)
@@ -2049,7 +2060,7 @@ export function handleReplyToComment(
     reply.set('id', id)
     reply.set('body', safeBody)
     reply.set('authorId', null)
-    reply.set('authorName', 'markoto')
+    reply.set('authorName', AI_COMMENT_AUTHOR_NAME)
     reply.set('authorAvatar', null)
     reply.set('createdAt', now)
     reply.set('updatedAt', now)
@@ -2110,8 +2121,7 @@ export async function handleDeleteComment(
  */
 function canDeleteEntry(map: Y.Map<unknown>, initiatorUserId: number): boolean {
   const authorId = map.get('authorId')
-  const authorName = map.get('authorName')
-  if (authorId === null && (authorName === 'markoto' || authorName === 'AI Assistant')) return true
+  if (isAiCommentAuthor(authorId, map.get('authorName'))) return true
   if (authorId === initiatorUserId) return true
   return false
 }
@@ -2132,7 +2142,7 @@ async function deleteReplyFromThread(
     const r = repliesArr.get(j)
     if (!(r instanceof Y.Map) || r.get('id') !== replyId) continue
     if (!canDeleteEntry(r, session.initiatorUserId) && !(await initiatorCanManage())) {
-      return err(`Error: cannot delete reply "${replyId}" — it was not authored by AI Assistant or by you, and you do not have document management rights.`)
+      return err(`Error: cannot delete reply "${replyId}" — it was not authored by markoto or by you, and you do not have document management rights.`)
     }
     const origin = `ai:assistant:${session.sessionId}`
     session.ydoc.transact(() => {
@@ -2153,7 +2163,7 @@ async function deleteWholeThread(
   initiatorCanManage: () => Promise<boolean>
 ): Promise<ToolResult> {
   if (!canDeleteEntry(parentMap, session.initiatorUserId) && !(await initiatorCanManage())) {
-    return err(`Error: cannot delete thread "${commentId}" — it was not authored by AI Assistant or by you, and you do not have document management rights.`)
+    return err(`Error: cannot delete thread "${commentId}" — it was not authored by markoto or by you, and you do not have document management rights.`)
   }
   const origin = `ai:assistant:${session.sessionId}`
   session.ydoc.transact(() => {

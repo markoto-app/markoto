@@ -446,6 +446,27 @@
     }
   },
   "ai": {
+    "workingGeneric": "markoto is working…",
+    "otherSessionWorking": "markoto is working for {name}",
+    "confirm": {
+      "label": "markoto asks first",
+      "reason": "markoto has read text written by other people in this session, so it asks before reaching your other documents, workspace knowledge or the web.",
+      "allow": "Allow",
+      "deny": "Deny",
+      "tools": {
+        "view_other_document": "markoto wants to read “{target}”.",
+        "list_my_documents": "markoto wants to list your documents.",
+        "list_workspace_documents": "markoto wants to list the documents in this workspace.",
+        "search_knowledge": "markoto wants to search workspace knowledge for “{target}”.",
+        "get_knowledge_file": "markoto wants to read the knowledge file “{target}”.",
+        "create_document": "markoto wants to create a new document, “{target}”.",
+        "duplicate_document": "markoto wants to copy “{target}”.",
+        "web_search": "markoto wants to search the web for “{target}”.",
+        "fetch_url": "markoto wants to open {target}",
+        "view_image": "markoto wants to load the image {target}",
+        "generic": "markoto wants to use {tool}."
+      }
+    },
     "placeholder": "Ask markoto…",
     "send": "Send",
     "stop": "Stop",
