@@ -46,18 +46,51 @@ export interface ByokUrlPolicy {
 }
 
 /**
- * Hostnames of markoto's own services (prod compose names, their `-test`
- * twins, and cloud metadata aliases). Refused unconditionally: even a
- * self-hoster who opted into private URLs never wants the proxy to POST
- * an API request at its own database.
+ * Hostnames of markoto's own services: every service name, container
+ * name and network alias in the `docker-compose*.yml` files (pinned by
+ * `tests/unit/internalHostnames.test.ts`, which fails when a compose file
+ * gains a name that is missing here or in the LiteLLM `api_base` regex),
+ * plus cloud metadata aliases. Refused unconditionally: even a self-hoster
+ * who opted into private URLs never wants the proxy to POST an API
+ * request at its own database.
  */
-const INTERNAL_HOSTNAMES = new Set([
+export const INTERNAL_HOSTNAMES: ReadonlySet<string> = new Set([
   'localhost',
-  'litellm', 'postgres', 'valkey', 'redis', 'sync', 'renderer', 'markitdown', 'app', 'traefik', 'backup', 'seaweedfs',
-  'litellm-test', 'postgres-test', 'valkey-test', 'sync-test', 'renderer-test', 'markitdown-test', 'seaweedfs-test',
-  'stripe-mock',
+  // base / dev / local / prod / selfhost
+  'app', 'markoto-app', 'backup', 'litellm', 'litellm-db-init', 'markitdown', 'postgres', 'renderer',
+  's3-init', 'seaweedfs', 'sync', 'traefik', 'valkey', 'redis',
+  // test stack
+  'fake-openai-test', 'litellm-test', 'litellm-test-db-init', 'markitdown-test', 'oidc-test', 'postgres-test',
+  'renderer-test', 'seaweedfs-test', 'stripe-mock', 'sync-test', 'valkey-test',
+  // cloud metadata
   'metadata', 'metadata.google.internal'
 ])
+
+/**
+ * Compose's default container names (`<project>-<service>-<n>`) resolve
+ * on the compose network too, under whatever project name the operator
+ * picked — match them by the service part.
+ */
+const COMPOSE_CONTAINER_NAME = new RegExp(
+  `^[a-z0-9][a-z0-9_-]*[-_](?:${[...INTERNAL_HOSTNAMES].filter(n => /^[a-z0-9-]+$/.test(n)).join('|')})[-_]\\d+$`
+)
+
+/**
+ * Canonical form of a hostname for the internal-name check: lowercase,
+ * IPv6 brackets dropped, trailing dots removed (`litellm.` is the same
+ * name as `litellm` to a resolver).
+ */
+export function normalizeHostname(raw: string): string {
+  return raw.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, '')
+}
+
+/** Is `host` one of markoto's own service names (any spelling)? */
+export function isInternalHostname(raw: string): boolean {
+  const host = normalizeHostname(raw)
+  return INTERNAL_HOSTNAMES.has(host)
+    || host.endsWith('.localhost')
+    || COMPOSE_CONTAINER_NAME.test(host)
+}
 
 export type Resolver = (host: string) => Promise<string[]>
 
@@ -92,9 +125,9 @@ function checkStructure(raw: string, policy: ByokUrlPolicy): UrlPolicyResult & {
   if (parsed.search || parsed.hash) {
     return refuse('invalid', 'The base URL must not contain a query string or fragment.')
   }
-  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  const host = normalizeHostname(parsed.hostname)
   if (!host) return refuse('invalid', 'The URL has no hostname.')
-  if (INTERNAL_HOSTNAMES.has(host) || host.endsWith('.localhost')) {
+  if (isInternalHostname(host)) {
     return refuse('internal-host', 'This host is an internal service and cannot be used as an AI provider.')
   }
   if (policy.allowedBaseUrls.length > 0 && !isUnderAllowlist(normalized, policy.allowedBaseUrls)) {

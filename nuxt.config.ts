@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
 import { KNOWLEDGE_PLATFORM_LIMITS, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
 
 export default defineNuxtConfig({
@@ -295,6 +296,19 @@ export default defineNuxtConfig({
   vite: {
     server: {
       allowedHosts: ['host.docker.internal', 'localhost']
+    }
+  },
+
+  hooks: {
+    // Production server entry: the bun preset's entry plus a request-body
+    // size limit enforced by Bun (the preset buffers every body before
+    // routing, so handlers can't refuse an oversized one in time — see the
+    // file header). Set on the built `bun` Nitro only: the prerender and dev
+    // Nitro instances need their own entries.
+    'nitro:init'(nitro) {
+      if (nitro.options.preset === 'bun') {
+        nitro.options.entry = fileURLToPath(new URL('./server/runtime/bunEntry.ts', import.meta.url))
+      }
     }
   },
 

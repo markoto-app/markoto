@@ -1,7 +1,7 @@
 import type { AgenticAIClient as AiClient, AgenticFunctionDeclaration as FunctionDeclaration } from './aiTypes'
 import { litellmCompletion } from '../litellm/createCompletion'
 import { z, type ZodType } from 'zod'
-import { assertSafeUrl } from './urlGuard'
+import { assertSafeUrl, parseToolUrl } from './urlGuard'
 import { consumeWebToolQuota, isWebToolAvailable } from '../webTools'
 import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
@@ -953,10 +953,11 @@ export async function fetchUrl(
   if (signal.aborted) throw new Error('aborted')
   if (!isWebToolAvailable('fetch_url')) throw new Error('Page fetching is not configured on this instance.')
 
-  // Add an https:// scheme if the AI (or user) passed a bare hostname.
-  const url = /^https?:\/\//i.test(rawUrl.trim())
-    ? rawUrl.trim()
-    : `https://${rawUrl.trim()}`
+  // Parse once (bare hostnames get https://, length + scheme checked) and
+  // forward the PARSED form: the URL the guard checked is byte-for-byte
+  // the URL Jina receives, so a parser difference (backslashes, odd
+  // escapes) can't make Jina fetch a host other than the one checked.
+  const url = parseToolUrl(rawUrl).href
 
   // SSRF guard. Reject before forwarding to upstream — private CIDRs,
   // metadata IPs, link-local, non-HTTP schemes, and hostnames whose DNS

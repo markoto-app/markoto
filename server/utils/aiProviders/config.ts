@@ -98,6 +98,29 @@ export function resolveByokUrlPolicy(env: Env = process.env): ByokUrlPolicy {
 }
 
 /**
+ * Boot-time checks of the BYOK URL policy (`plugins/01-validate-secrets.ts`).
+ *
+ * The hosted service (detected by its legal surfaces being on — the
+ * self-host default is off) must run with a provider allowlist: an empty
+ * `NUXT_AI_BYOK_ALLOWED_BASE_URLS` means "any public URL", and a missing
+ * line in a hand-edited `.env` would silently switch that on. So that
+ * shape refuses to boot instead of failing open. Any shape: an entry that
+ * is not an absolute URL is reported rather than silently dropped.
+ */
+export function byokUrlPolicyErrors(env: Env, hostedShape: boolean): string[] {
+  const errors: string[] = []
+  const entries = clean(env.NUXT_AI_BYOK_ALLOWED_BASE_URLS).split(',').map(e => e.trim()).filter(e => e.length > 0)
+  const invalid = entries.filter(entry => !/^https?:\/\//i.test(entry) || normalizeBaseUrl(entry) === null)
+  if (invalid.length > 0) {
+    errors.push(`NUXT_AI_BYOK_ALLOWED_BASE_URLS has entries that are not absolute http(s) URLs: ${invalid.map(e => `"${e.slice(0, 80)}"`).join(', ')}`)
+  }
+  if (hostedShape && entries.length - invalid.length === 0) {
+    errors.push('NUXT_AI_BYOK_ALLOWED_BASE_URLS is empty, but this instance runs the hosted shape (NUXT_LEGAL_SURFACES_ENABLED=true): set the provider allowlist (see infra/render-env.sh) so user-supplied AI provider URLs are restricted')
+  }
+  return errors
+}
+
+/**
  * Policy applied to operator-configured instance defaults. The operator
  * is trusted to pick the endpoint (no allowlist, private networks OK —
  * e.g. `http://ollama:11434/v1` on the compose network), but the

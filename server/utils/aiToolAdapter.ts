@@ -73,7 +73,7 @@ import { assertKnowledgeEmbeddingsReady } from './knowledgeEmbeddingsStatus'
 import { appendAiMessage } from '../repos/aiSessionMessages'
 import { searchActivity, type ActivityEntry } from '../repos/activity'
 import { stripAiMention } from './agentic/commentTriggerPrompt'
-import { assertSafeUrl } from './agentic/urlGuard'
+import { fetchExternalImage as fetchExternalImageGuarded, type ExternalImageResult } from './externalImage'
 import { budgetExhaustedMessage } from './billingMode'
 
 export interface ToolResult {
@@ -1086,47 +1086,9 @@ async function fetchFromS3(docId: string, fileId: string): Promise<{ bytes: Uint
   }
 }
 
-async function fetchExternalImage(url: string): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
-  // SSRF guard before any network IO. Rejects private CIDRs, metadata
-  // IPs, link-local, non-HTTP schemes, and hostnames whose DNS records
-  // resolve into private space. Critical here because `view_image`
-  // takes ARBITRARY user-supplied URLs and we DO follow redirects —
-  // the guard runs before the fetch so a malicious src is refused
-  // upfront, and we don't pin the resolved IP onto the actual fetch
-  // (limitation called out in urlGuard.ts).
-  try {
-    await assertSafeUrl(url)
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : 'URL refused' }
-  }
-  // 10s hard cap — an AI session that's already racing the 5-minute
-  // deadline shouldn't spend a whole minute on one image fetch.
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), 10_000)
-  try {
-    const resp = await fetch(url, { signal: ctrl.signal, redirect: 'follow' })
-    if (!resp.ok) {
-      return { error: `Remote returned HTTP ${resp.status}.` }
-    }
-    const mimeType = (resp.headers.get('content-type') || '').split(';')[0]!.trim().toLowerCase()
-    if (!ALLOWED_IMAGE_TYPES.has(mimeType)) {
-      return { error: `Remote returned content-type "${mimeType || '(none)'}". Allowed: ${[...ALLOWED_IMAGE_TYPES].join(', ')}.` }
-    }
-    const contentLength = Number(resp.headers.get('content-length') ?? '0')
-    if (contentLength && contentLength > MAX_IMAGE_BYTES) {
-      return { error: `Remote image is ${Math.round(contentLength / 1024)}KB, which exceeds the ${MAX_IMAGE_BYTES / (1024 * 1024)}MB limit.` }
-    }
-    const bytes = new Uint8Array(await resp.arrayBuffer())
-    if (bytes.byteLength > MAX_IMAGE_BYTES) {
-      return { error: `Remote image exceeded the ${MAX_IMAGE_BYTES / (1024 * 1024)}MB limit after fetch.` }
-    }
-    return { bytes, mimeType }
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Unknown error'
-    return { error: `Failed to fetch image: ${msg}` }
-  } finally {
-    clearTimeout(timer)
-  }
+/** `view_image` limits applied to external URLs (see `externalImage.ts`). */
+function fetchExternalImage(url: string): Promise<ExternalImageResult> {
+  return fetchExternalImageGuarded(url, { allowedTypes: ALLOWED_IMAGE_TYPES, maxBytes: MAX_IMAGE_BYTES })
 }
 
 export async function handleViewImage(

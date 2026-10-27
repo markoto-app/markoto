@@ -1,7 +1,7 @@
 import { getSessionEpoch, upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/validatedSession'
 import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
-import { resolveOidcSettings, type OidcSettings } from '../../utils/oidc/settings'
+import { oidcRedirectUri, resolveOidcSettings, type OidcSettings } from '../../utils/oidc/settings'
 import {
   buildOidcAuthorizationRequest,
   completeOidcAuthorization,
@@ -28,14 +28,16 @@ import type { H3Event } from 'h3'
 
 const isDevelopment = process.env.NODE_ENV === 'development'
 
+// Configured URLs only — never the request Host header (boot validation
+// refuses an OIDC setup with neither `_REDIRECT_URL` nor `NUXT_SITE_URL`).
 function redirectUriFor(event: H3Event, settings: OidcSettings): string {
-  if (settings.redirectUrl) return settings.redirectUrl
-  const siteUrl = useRuntimeConfig(event).siteUrl
-  if (typeof siteUrl === 'string' && siteUrl.length > 0) {
-    return new URL('/auth/oidc', siteUrl).toString()
-  }
-  const requestUrl = getRequestURL(event)
-  return `${requestUrl.protocol}//${requestUrl.host}/auth/oidc`
+  const uri = oidcRedirectUri(settings, useRuntimeConfig(event).siteUrl)
+  if (uri) return uri
+  throw createError({
+    statusCode: 503,
+    message: 'OpenID Connect sign-in is not fully configured on this instance.',
+    data: { code: 'auth/oidc-misconfigured' }
+  })
 }
 
 function loginFailed(): Error {

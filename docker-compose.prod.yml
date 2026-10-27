@@ -126,7 +126,10 @@ services:
       - NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=${NUXT_AI_DEFAULT_TRANSCRIBE_MODEL:-}
       - NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL=${NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL:-}
       - NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY=${NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY:-}
-      - NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-}
+      # Hosted shape: the provider allowlist is mandatory (the app also
+      # refuses to boot with legal surfaces on and an empty list). Rendered
+      # by infra/render-env.sh / infra/templates/env.j2.
+      - NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS:?NUXT_AI_BYOK_ALLOWED_BASE_URLS required (BYOK provider allowlist)}
       - NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
       # LiteLLM proxy. server/plugins/01-validate-secrets.ts requires the
@@ -253,6 +256,17 @@ services:
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Resource-Policy=same-site"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=(self)"
       - "traefik.http.routers.app.middlewares=security-headers"
+      # /api/import (anonymous document import, 50 MB file cap) gets its own
+      # router with a request-body limit, so an oversized or endless upload
+      # is cut off at the edge instead of streaming into the app. 51 MiB =
+      # the app's MAX_BODY (file + multipart framing). Longer rule = higher
+      # priority than the catch-all `app` router.
+      - "traefik.http.routers.app-import.rule=Host(`${DOMAIN}`) && Path(`/api/import`)"
+      - "traefik.http.routers.app-import.entrypoints=websecure"
+      - "traefik.http.routers.app-import.tls.certresolver=le"
+      - "traefik.http.routers.app-import.service=app"
+      - "traefik.http.routers.app-import.middlewares=import-body-limit,security-headers"
+      - "traefik.http.middlewares.import-body-limit.buffering.maxRequestBodyBytes=53477376"
     depends_on:
       postgres:
         condition: service_healthy

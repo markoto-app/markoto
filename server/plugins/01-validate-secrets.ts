@@ -1,7 +1,9 @@
 import { validateSecrets } from '../../shared/utils/validateSecrets'
 import { isBillingEnabled } from '../utils/billingMode'
 import { stripeStartupErrors } from '../utils/stripeStartupCheck'
-import { resolveOidcSettings } from '../utils/oidc/settings'
+import { oidcRedirectErrors, resolveOidcSettings } from '../utils/oidc/settings'
+import { byokUrlPolicyErrors } from '../utils/aiProviders/config'
+import { legalSurfacesEnabled } from '../utils/instanceConfig'
 import { isTestModeEnabled, testModeBootError } from '../../shared/utils/testMode'
 import { siteUrlErrors } from '../utils/siteUrl'
 
@@ -45,7 +47,11 @@ export default defineNitroPlugin(() => {
   checkOAuthPairs(config, errors)
   // Generic OIDC (WP7b): issuer + id + secret all-or-nothing, https
   // issuer, parseable redirect URL. See server/utils/oidc/settings.ts.
-  errors.push(...resolveOidcSettings(process.env).errors)
+  const oidc = resolveOidcSettings(process.env)
+  errors.push(...oidc.errors)
+  errors.push(...oidcRedirectErrors(oidc.settings, config.siteUrl))
+  // BYOK provider URLs: the hosted shape must run with an allowlist.
+  errors.push(...byokUrlPolicyErrors(process.env, legalSurfacesEnabled()))
   checkUrlFields(config, errors)
   errors.push(...siteUrlErrors(config.siteUrl, process.env.NODE_ENV === 'production'))
   // Stripe is only validated when billing is switched on. With

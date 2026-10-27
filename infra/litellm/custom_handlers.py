@@ -36,6 +36,31 @@ from litellm.types.utils import (
 
 
 # -----------------------------------------------------------------------------
+# Outbound HTTP clients for OpenAI-compatible upstreams: never follow redirects
+# -----------------------------------------------------------------------------
+#
+# The `byok/*` deployment (config.yaml) sends requests to a user-supplied
+# `api_base`. The app checks that URL (and its DNS answers) before every
+# call, but LiteLLM's default OpenAI client follows HTTP redirects
+# (`follow_redirects=True` in litellm/llms/openai/common_utils.py), so a
+# provider host that passes the check could answer 302/307 and make the
+# proxy fetch an internal address the check never saw (verified on
+# v1.106.4: chat, streaming chat, image generation and transcription all
+# followed the redirect, and transcription returned the redirect target's
+# body as the transcript).
+#
+# LiteLLM uses `litellm.client_session` / `litellm.aclient_session` as the
+# HTTP client for every OpenAI-SDK-backed call when they are set, so
+# clients with `follow_redirects=False` close this for all of them. A
+# redirect now surfaces as a non-2xx upstream error. No real AI API
+# redirects its inference endpoints, so the bundled providers are
+# unaffected. This module is imported at proxy start (custom_provider_map),
+# which is why the setting lives here.
+litellm.client_session = httpx.Client(follow_redirects=False)
+litellm.aclient_session = httpx.AsyncClient(follow_redirects=False)
+
+
+# -----------------------------------------------------------------------------
 # Provider 1 — BFL FLUX.2 [pro], EU-pinned, polling-based
 # -----------------------------------------------------------------------------
 
