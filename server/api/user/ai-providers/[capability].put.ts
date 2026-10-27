@@ -16,7 +16,8 @@ import { baseUrlHost, codeKey, isAiCapability } from '~~/shared/ai/providers'
 // user's own account, so it must not become a request amplifier.
 
 export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
+  // Sensitive action: needs a recent sign-in (401 auth/reauth-required).
+  const session = await requireRecentLogin(event)
   const userId = session.user.id
   const capability = getRouterParam(event, 'capability')
   if (!isAiCapability(capability)) {

@@ -29,10 +29,16 @@ Deleting a document removes:
 - Any cached PDF and page renders
 
 For docs that live in a workspace, admins can delete any doc; editors
-can only delete their own. Anonymous docs (no owner) are deletable by
-anyone with edit access — which is most people, since anonymous docs
-default to open-edit. (That's the cost of frictionless anonymous
-editing; if you don't want it, sign in.)
+can only delete their own.
+
+Anonymous docs (created without signing in) can be deleted only from
+the browser that created them: markoto remembers that browser with a
+small cookie. Anyone with the link can still edit an anonymous doc
+(they're open-edit by default), but they can't delete it. If you clear
+your cookies or switch browsers, you can no longer delete the doc
+yourself; unused anonymous docs are cleaned up automatically after a
+long period of inactivity. To keep full control over a doc, sign in
+before you create it.
 
 ## What's next
 

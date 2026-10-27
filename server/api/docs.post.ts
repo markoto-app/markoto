@@ -1,4 +1,5 @@
 import { createDocument } from '../utils/createDocument'
+import { ensureAnonCreatorKey, hashAnonCreatorKey } from '../utils/anonCreator'
 import { isAudienceKind, type AudienceKind } from '~~/shared/audiences'
 import { isTemplateId } from '~~/shared/templates'
 
@@ -66,8 +67,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'themeId must be a string' })
   }
 
+  // Anonymous creation: bind the doc to this browser's creator key
+  // (httpOnly cookie, minted on first anonymous create) so only this
+  // browser can delete it later. Only the hash is stored.
+  const anonCreatorKeyHash = ownerId === null
+    ? hashAnonCreatorKey(ensureAnonCreatorKey(event))
+    : undefined
+
   const result = await createDocument({
     ownerId,
+    anonCreatorKeyHash,
     workspaceId: typeof body.workspaceId === 'string' ? body.workspaceId : null,
     title: body.title as string | undefined,
     description: body.description as string | undefined,

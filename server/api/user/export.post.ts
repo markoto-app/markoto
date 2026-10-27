@@ -18,7 +18,8 @@ import { isRepoError } from '../../repos/errors'
 // button when an active job exists; the server enforces.
 
 export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
+  // Sensitive action: needs a recent sign-in (401 auth/reauth-required).
+  const session = await requireRecentLogin(event)
   const userId = session.user.id
 
   const ip = getClientIp(event)

@@ -109,6 +109,20 @@ export async function loggedInClient(userId: number, name?: string, baseUrl: str
   return c
 }
 
+/**
+ * Like `loggedInClient`, but the sealed session records a sign-in at
+ * `loggedInAt` (epoch ms). Used to exercise the recent-sign-in
+ * requirement on sensitive actions (account deletion, export, BYOK).
+ */
+export async function loggedInClientSignedInAt(userId: number, loggedInAt: number): Promise<TestClient> {
+  const c = new TestClient(TEST_BASE_URL)
+  const res = await c.post('/api/_test/login', { userId, name: `User ${userId}`, loggedInAt })
+  if (!res.ok) {
+    throw new Error(`[loggedInClientSignedInAt] /api/_test/login returned ${res.status}: ${await res.text()}`)
+  }
+  return c
+}
+
 export function anonClient(baseUrl: string = TEST_BASE_URL): TestClient {
   return new TestClient(baseUrl)
 }

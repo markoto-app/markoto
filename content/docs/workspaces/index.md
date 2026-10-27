@@ -15,7 +15,7 @@ access, or invite members.
 
 - [Start a workspace](/docs/workspaces/start) — create one, name it, set defaults.
 - [Roles inside a workspace](/docs/workspaces/roles) — what admins, editors, and viewers can each do.
-- [Invite a teammate](/docs/workspaces/invite) — exact-email invite with role pick.
+- [Invite a teammate](/docs/workspaces/invite) — invite by email; they join once they accept.
 - [Two writers, one document](/docs/workspaces/live-collab) — live co-editing with awareness.
 - [Sponsor AI for your team](/docs/workspaces/sponsor-ai) — a paid-plan feature (coming soon): bill workspace AI usage to one owner.
 - [Ask the AI about uploaded files](/docs/writing/knowledge-rag) — the workspace knowledge base.

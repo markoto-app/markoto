@@ -316,6 +316,28 @@ describe('executeAccountDeletion: full graph', () => {
     expect(rows.rows.map(r => r.email)).toEqual(['anon@example.com', 'bob@example.com'])
   })
 
+  it('deletes invitations addressed to the user; keeps invites they sent (inviter nulled)', async () => {
+    const alice = await createUser({ email: 'Alice@Example.com' })
+    const bob = await createUser()
+    const bobWs = await createWorkspace(bob.id)
+    const aliceAndBobWs = await createWorkspace(bob.id)
+    await setMemberRole(aliceAndBobWs.workspaceId, alice.id, 'admin')
+    await testDb().query(
+      `INSERT INTO workspace_invites (invite_id, workspace_id, email, role, invited_by_user_id, expires_at)
+       VALUES ('to-alice-1', $1, 'alice@example.com', 'editor', $2, NOW() + interval '7 days'),
+              ('by-alice-1', $3, 'carol@example.com', 'editor', $4, NOW() + interval '7 days')`,
+      [bobWs.workspaceId, bob.id, aliceAndBobWs.workspaceId, alice.id]
+    )
+
+    const { summary } = await executeAccountDeletion({ userId: alice.id })
+
+    expect(summary.workspaceInvitesDeleted).toBe(1)
+    const rows = await testDb().query<{ invite_id: string, invited_by_user_id: number | null }>(
+      `SELECT invite_id, invited_by_user_id FROM workspace_invites ORDER BY invite_id`
+    )
+    expect(rows.rows).toEqual([{ invite_id: 'by-alice-1', invited_by_user_id: null }])
+  })
+
   it('skips Stripe del when no customer id is set', async () => {
     const alice = await createUser()
     await executeAccountDeletion({ userId: alice.id })

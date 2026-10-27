@@ -37,5 +37,5 @@ self-lockout.
 
 ## What's next
 
-- [Invite a teammate](/docs/workspaces/invite) — exact-email invite with role pick.
+- [Invite a teammate](/docs/workspaces/invite) — invite by email; they join once they accept.
 - [Sponsor AI for the team](/docs/workspaces/sponsor-ai) — admin-set, members benefit.

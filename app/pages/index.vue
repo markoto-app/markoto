@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue'
+import type { WorkspaceInviteItem } from '~/components/workspace/WorkspaceInviteList.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -139,6 +140,29 @@ const {
   }
 )
 
+// Open workspace invitations addressed to this account. Failures are
+// non-fatal (the section just stays hidden) — the workspace list and
+// documents are the primary content of the dashboard.
+const myInvites = ref<WorkspaceInviteItem[]>([])
+async function loadInvites(): Promise<void> {
+  if (!loggedIn.value) {
+    myInvites.value = []
+    return
+  }
+  try {
+    myInvites.value = await $fetch<WorkspaceInviteItem[]>('/api/user/invites')
+  } catch {
+    myInvites.value = []
+  }
+}
+function onInviteRemoved(inviteId: string): void {
+  myInvites.value = myInvites.value.filter(i => i.inviteId !== inviteId)
+}
+function onInviteAccepted(): void {
+  workspacesFetched.value = false
+  loadWorkspaces()
+}
+
 // Defer the load to AFTER hydration (VueUse `tryOnMounted` =
 // SSR-safe `onMounted`). Two SSR↔client mismatches collapse here:
 //   1) Bare `$fetch` on SSR doesn't forward the request's cookies, so
@@ -153,11 +177,20 @@ const {
 // SSR HTML and client first render agree; the spinner appears on the
 // next tick. See the equivalent guard in app/pages/w/[id].vue.
 tryOnMounted(() => {
+  // Back from signing in to accept an emailed workspace invitation
+  // (every OAuth callback lands on `/`): return to the accept page.
+  const pendingInvite = loggedIn.value ? readPendingInviteToken() : null
+  if (pendingInvite) {
+    clearPendingInviteToken()
+    router.replace({ path: '/invites/accept', query: { token: pendingInvite } })
+    return
+  }
   watch(loggedIn, () => {
     docsFetched.value = false
     workspacesFetched.value = false
     loadDocs()
     loadWorkspaces()
+    void loadInvites()
   }, { immediate: true })
 })
 
@@ -286,6 +319,22 @@ function onRowLongPress(doc: DocumentListItem) {
             {{ workspaceCapReached ? workspaceCapShortLabel : t('workspace.newWorkspace') }}
           </UButton>
         </div>
+      </div>
+
+      <!-- Pending workspace invitations addressed to this account.
+           Hidden when there are none. -->
+      <div
+        v-if="loggedIn && myInvites.length > 0"
+        class="mt-12 w-full max-w-4xl"
+      >
+        <h2 class="font-serif text-2xl font-normal mb-4">
+          {{ t('workspace.invites.sectionTitle') }}
+        </h2>
+        <WorkspaceInviteList
+          :invites="myInvites"
+          @removed="onInviteRemoved"
+          @accepted="onInviteAccepted"
+        />
       </div>
 
       <!-- My workspaces. Mounts whenever logged-in so the loading

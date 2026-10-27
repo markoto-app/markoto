@@ -30,6 +30,7 @@ vi.mock('../../server/repos/users', () => ({ findUserById }))
 const {
   SESSION_VERSION,
   getValidatedUserSession,
+  requireRecentLogin,
   requireValidatedUserSession
 } = await import('../../server/utils/validatedSession')
 
@@ -94,7 +95,7 @@ describe('getValidatedUserSession', () => {
 
   it('returns {id,name} on a valid session', async () => {
     getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION })
-    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice', email: 'a@b.c' })
+    findUserById.mockResolvedValueOnce({ id: 42, sessionEpoch: 0, name: 'Alice', email: 'a@b.c' })
     const r = await getValidatedUserSession(fakeEvent())
     expect(r).toEqual({ user: { id: 42, name: 'Alice' } })
   })
@@ -106,6 +107,7 @@ describe('getValidatedUserSession', () => {
     getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION })
     findUserById.mockResolvedValueOnce({
       id: 42,
+      sessionEpoch: 0,
       name: 'Alice',
       email: 'a@b.c',
       githubId: 'abc',
@@ -121,7 +123,7 @@ describe('getValidatedUserSession', () => {
     // on top of middleware's call without re-querying the DB per request.
     const event = fakeEvent()
     getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION })
-    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice' })
+    findUserById.mockResolvedValueOnce({ id: 42, sessionEpoch: 0, name: 'Alice' })
 
     await getValidatedUserSession(event)
     await getValidatedUserSession(event)
@@ -163,7 +165,7 @@ describe('requireValidatedUserSession', () => {
 
   it('returns {user:{id,name}} on a valid session', async () => {
     getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION })
-    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice' })
+    findUserById.mockResolvedValueOnce({ id: 42, sessionEpoch: 0, name: 'Alice' })
     const r = await requireValidatedUserSession(fakeEvent())
     expect(r).toEqual({ user: { id: 42, name: 'Alice' } })
   })
@@ -188,7 +190,7 @@ describe('resolveValidatedUser — concurrent resolution on empty cache', () => 
       await new Promise(resolve => setTimeout(resolve, 0))
       return { user: { id: 42 }, v: SESSION_VERSION }
     })
-    findUserById.mockResolvedValue({ id: 42, name: 'Alice' })
+    findUserById.mockResolvedValue({ id: 42, sessionEpoch: 0, name: 'Alice' })
 
     const [r1, r2] = await Promise.all([
       getValidatedUserSession(event),
@@ -203,5 +205,54 @@ describe('resolveValidatedUser — concurrent resolution on empty cache', () => 
     // someone adds a lock, the expectation here should drop to 1 —
     // but the result-equality above is the real invariant.
     expect(getUserSessionCalls).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('session epoch (revocation)', () => {
+  it('accepts a cookie without `e` while the user is still at epoch 0', async () => {
+    getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION })
+    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice', sessionEpoch: 0 })
+    expect(await getValidatedUserSession(fakeEvent())).toEqual({ user: { id: 42, name: 'Alice' } })
+  })
+
+  it('rejects + clears a cookie sealed before the epoch was bumped', async () => {
+    // "Log out everywhere" bumped users.session_epoch to 3; this cookie
+    // still carries 2 -> revoked.
+    getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION, e: 2 })
+    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice', sessionEpoch: 3 })
+    expect(await getValidatedUserSession(fakeEvent())).toBeNull()
+    expect(clearUserSession).toHaveBeenCalledOnce()
+  })
+
+  it('rejects a pre-epoch cookie once the user has revoked sessions', async () => {
+    getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION })
+    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice', sessionEpoch: 1 })
+    await expect(requireValidatedUserSession(fakeEvent())).rejects.toMatchObject({ statusCode: 401 })
+  })
+
+  it('accepts a cookie carrying the current epoch', async () => {
+    getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION, e: 3 })
+    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice', sessionEpoch: 3 })
+    expect(await getValidatedUserSession(fakeEvent())).toEqual({ user: { id: 42, name: 'Alice' } })
+  })
+})
+
+describe('requireRecentLogin', () => {
+  it('passes with a fresh sign-in', async () => {
+    getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION, loggedInAt: Date.now() - 60_000 })
+    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice', sessionEpoch: 0 })
+    expect(await requireRecentLogin(fakeEvent())).toEqual({ user: { id: 42, name: 'Alice' } })
+  })
+
+  it('answers 401 for an old sign-in', async () => {
+    getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION, loggedInAt: Date.now() - 13 * 60 * 60 * 1000 })
+    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice', sessionEpoch: 0 })
+    await expect(requireRecentLogin(fakeEvent())).rejects.toMatchObject({ statusCode: 401 })
+  })
+
+  it('answers 401 when the session has no loggedInAt at all', async () => {
+    getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION })
+    findUserById.mockResolvedValueOnce({ id: 42, name: 'Alice', sessionEpoch: 0 })
+    await expect(requireRecentLogin(fakeEvent())).rejects.toMatchObject({ statusCode: 401 })
   })
 })

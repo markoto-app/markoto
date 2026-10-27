@@ -87,6 +87,10 @@ export function useDocToken(docId: string) {
   // Private doc, non-owner: same "no token" treatment as password-protected
   // but with no client-side unlock path. EditorLayout renders a lock screen.
   const forbidden = ref(false)
+  // Server-computed: would DELETE /api/docs/:id succeed for this caller?
+  // (Owner / workspace admin; for an anonymous doc only the browser that
+  // created it.) Drives whether the File menu offers "Delete".
+  const canDelete = ref(false)
   // The doc doesn't exist (token endpoint 404'd). Distinct from `forbidden`
   // (exists but you can't see it) and from a transient fetch failure — the
   // editor renders a dedicated not-found screen instead of a misleading
@@ -153,12 +157,14 @@ export function useDocToken(docId: string) {
         language?: string
         initialBody?: string | null
         templateId?: string
+        canDelete?: boolean
       }>(`/api/docs/${docId}/token`)
 
       tokenData.value = { token: data.token ?? '', readOnly: data.readOnly }
       isReadOnly.value = data.readOnly
       requiresPassword.value = !!data.requiresPassword
       forbidden.value = !!data.forbidden
+      canDelete.value = data.canDelete === true
       accessMode.value = data.accessMode
       workspaceId.value = data.workspaceId
       workspaceRole.value = data.workspaceRole
@@ -242,6 +248,33 @@ export function useDocToken(docId: string) {
     tokenData.value = { token: newToken, readOnly: false }
   }
 
+  /**
+   * After a password unlock, fetch the doc's metadata with the new JWT
+   * (`/meta` accepts it as proof of the unlock). The `/token` response a
+   * gated visitor got earlier carries no metadata (no theme, description,
+   * template body), so this re-seeds the `initial*` refs before the
+   * provider syncs. Best-effort: on failure the refs keep their defaults
+   * and Y.js sync delivers the live values anyway.
+   */
+  async function hydrateAfterUnlock(newToken: string): Promise<void> {
+    try {
+      const data = await $fetch<{
+        theme?: DocTheme | null
+        description?: string
+        audience?: string
+        language?: string
+        initialBody?: string | null
+      }>(`/api/docs/${docId}/meta`, { headers: { Authorization: `Bearer ${newToken}` } })
+      initialTheme.value = data.theme ?? null
+      if (typeof data.description === 'string') initialDescription.value = data.description
+      if (typeof data.audience === 'string') initialAudience.value = data.audience
+      if (typeof data.language === 'string') initialLanguage.value = data.language
+      initialBody.value = typeof data.initialBody === 'string' ? data.initialBody : null
+    } catch {
+      // Non-fatal — sync is the live source of these values.
+    }
+  }
+
   function clearPendingUnlock() {
     if (pendingPasswordUnlock.value) {
       pendingPasswordUnlock.value = false
@@ -274,6 +307,7 @@ export function useDocToken(docId: string) {
     hasOwner,
     requiresPassword,
     forbidden,
+    canDelete,
     notFound,
     accessMode,
     workspaceId,
@@ -288,6 +322,7 @@ export function useDocToken(docId: string) {
     initialBody,
     // Actions
     fetchToken,
+    hydrateAfterUnlock,
     getFreshToken,
     onPasswordVerified,
     clearPendingUnlock,

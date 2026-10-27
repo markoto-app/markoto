@@ -8,8 +8,8 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 
-// Workspace CRUD + invite flow. Covers the remaining authz gates in
-// /api/workspaces — creation, rename, delete, and invite-by-email.
+// Workspace CRUD. Covers the remaining authz gates in /api/workspaces —
+// creation, rename, delete. Invitations: workspaceInvites.test.ts.
 
 async function workspaceExists(wsId: string): Promise<boolean> {
   const db = testDb()
@@ -112,115 +112,4 @@ describe('DELETE /api/workspaces/:wsId', () => {
   })
 })
 
-describe('POST /api/workspaces/:wsId/members (invite)', () => {
-  beforeEach(async () => {
-    await resetDb()
-  })
-
-  it('admin can invite an existing user by email with default editor role', async () => {
-    const admin = await createUser()
-    const invitee = await createUser({ email: 'invite@test.local' })
-    const ws = await createWorkspace(admin.id)
-    const client = await loggedInClient(admin.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'invite@test.local'
-    })
-    expect(res.status).toBe(200)
-    const body = await res.json() as { userId: number, role: string }
-    expect(body.userId).toBe(invitee.id)
-    expect(body.role).toBe('editor')
-  })
-
-  it('admin can invite with an explicit role', async () => {
-    const admin = await createUser()
-    const _invitee = await createUser({ email: 'viewer@test.local' })
-    const ws = await createWorkspace(admin.id)
-    const client = await loggedInClient(admin.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'viewer@test.local',
-      role: 'viewer'
-    })
-    expect(res.status).toBe(200)
-    expect((await res.json() as { role: string }).role).toBe('viewer')
-  })
-
-  it('email match is case-insensitive', async () => {
-    const admin = await createUser()
-    await createUser({ email: 'Alice@Test.Local' })
-    const ws = await createWorkspace(admin.id)
-    const client = await loggedInClient(admin.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'alice@test.local'
-    })
-    expect(res.status).toBe(200)
-  })
-
-  it('rejects invalid role (400)', async () => {
-    const admin = await createUser()
-    await createUser({ email: 'x@test.local' })
-    const ws = await createWorkspace(admin.id)
-    const client = await loggedInClient(admin.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'x@test.local',
-      role: 'godmode'
-    })
-    expect(res.status).toBe(400)
-  })
-
-  it('rejects malformed email (400)', async () => {
-    const admin = await createUser()
-    const ws = await createWorkspace(admin.id)
-    const client = await loggedInClient(admin.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'not-an-email'
-    })
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 404 for unknown email (never leaks user existence)', async () => {
-    const admin = await createUser()
-    const ws = await createWorkspace(admin.id)
-    const client = await loggedInClient(admin.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'noone@nowhere.test'
-    })
-    expect(res.status).toBe(404)
-  })
-
-  it('returns 409 when user is already a member', async () => {
-    const admin = await createUser()
-    const member = await createUser({ email: 'member@test.local' })
-    const ws = await createWorkspace(admin.id)
-    await setMemberRole(ws.workspaceId, member.id, 'editor')
-    const client = await loggedInClient(admin.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'member@test.local'
-    })
-    expect(res.status).toBe(409)
-  })
-
-  it('editor cannot invite (403, admin-only)', async () => {
-    const admin = await createUser()
-    const editor = await createUser()
-    await createUser({ email: 'target@test.local' })
-    const ws = await createWorkspace(admin.id)
-    await setMemberRole(ws.workspaceId, editor.id, 'editor')
-    const client = await loggedInClient(editor.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'target@test.local'
-    })
-    expect(res.status).toBe(403)
-  })
-
-  it('non-member is 404', async () => {
-    const admin = await createUser()
-    const stranger = await createUser()
-    await createUser({ email: 'target@test.local' })
-    const ws = await createWorkspace(admin.id)
-    const client = await loggedInClient(stranger.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, {
-      email: 'target@test.local'
-    })
-    expect(res.status).toBe(404)
-  })
-})
+// Invite-by-email (pending invite + accept) lives in workspaceInvites.test.ts.

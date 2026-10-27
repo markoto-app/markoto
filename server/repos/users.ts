@@ -27,6 +27,10 @@ export interface UserRow {
   ageConfirmedAt: Date | null
   privacyVersionAccepted: number | null
   tosVersionAccepted: number | null
+  /** Preferred locale (NULL = never chosen). */
+  locale: string | null
+  /** Session revocation counter — see `server/utils/sessionPolicy.ts`. */
+  sessionEpoch: number
 }
 
 interface OAuthProfileFields {
@@ -82,6 +86,31 @@ export async function findUserById(id: number): Promise<UserRow | null> {
   const db = useDatabase()
   const row = (await db.select().from(users).where(eq(users.id, id)).limit(1))[0]
   return row ?? null
+}
+
+/** The user's current session epoch (0 for a missing user). */
+export async function getSessionEpoch(userId: number): Promise<number> {
+  const db = useDatabase()
+  const row = (await db
+    .select({ sessionEpoch: users.sessionEpoch })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1))[0]
+  return row?.sessionEpoch ?? 0
+}
+
+/**
+ * Increment the session epoch, invalidating every session cookie sealed
+ * before this call. Returns the new epoch (null when the user is gone).
+ */
+export async function bumpSessionEpoch(userId: number): Promise<number | null> {
+  const db = useDatabase()
+  const row = (await db
+    .update(users)
+    .set({ sessionEpoch: sql`${users.sessionEpoch} + 1` })
+    .where(eq(users.id, userId))
+    .returning({ sessionEpoch: users.sessionEpoch }))[0]
+  return row?.sessionEpoch ?? null
 }
 
 export async function findUserNameById(id: number): Promise<string | null> {

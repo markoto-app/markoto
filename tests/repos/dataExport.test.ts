@@ -69,6 +69,7 @@ describe('buildExportZip', () => {
       'profile.json',
       'themes.json',
       'waitlist.ndjson',
+      'workspace_invites.json',
       'workspace_memberships.json'
     ].sort())
 
@@ -79,6 +80,7 @@ describe('buildExportZip', () => {
     expect(readEntry(result.bytes, 'themes.json')).toBe('[]')
     expect(readEntry(result.bytes, 'waitlist.ndjson')).toBe('')
     expect(result.counts.waitlistSignups).toBe(0)
+    expect(JSON.parse(readEntry(result.bytes, 'workspace_invites.json'))).toEqual({ received: [], sent: [] })
 
     // README is non-empty + describes the layout.
     const readme = readEntry(result.bytes, 'README.txt')
@@ -131,6 +133,26 @@ describe('buildExportZip', () => {
       confirmedAt: null
     })
     expect(result.counts.waitlistSignups).toBe(1)
+  })
+
+  it('includes open workspace invitations received and sent, never token hashes', async () => {
+    const admin = await createUser()
+    const u = await createUser({ email: 'Me@Example.com' })
+    const ws = await createWorkspace(admin.id, { name: 'Their space' })
+    const mine = await createWorkspace(u.id, { name: 'My space' })
+    await testDb().query(
+      `INSERT INTO workspace_invites (invite_id, workspace_id, email, role, invited_by_user_id, token_hash, expires_at)
+       VALUES ('inv-received-1', $1, 'me@example.com', 'viewer', $2, 'token-hash-secret', NOW() + interval '7 days'),
+              ('inv-sent-1', $3, 'friend@example.com', 'editor', $4, NULL, NOW() + interval '7 days')`,
+      [ws.workspaceId, admin.id, mine.workspaceId, u.id]
+    )
+    const result = await buildExportZip(u.id)
+    const raw = readEntry(result.bytes, 'workspace_invites.json')
+    expect(raw).not.toContain('token-hash-secret')
+    const parsed = JSON.parse(raw)
+    expect(parsed.received).toMatchObject([{ workspaceName: 'Their space', role: 'viewer' }])
+    expect(parsed.sent).toMatchObject([{ workspaceId: mine.workspaceId, email: 'friend@example.com', role: 'editor' }])
+    expect(result.counts.workspaceInvites).toBe(2)
   })
 
   it('billing off: a leftover Stripe customer id yields empty billing entries, never an error', async () => {

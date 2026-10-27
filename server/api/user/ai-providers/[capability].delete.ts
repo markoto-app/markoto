@@ -8,7 +8,8 @@ import { isAiCapability } from '~~/shared/ai/providers'
 // was nothing to delete.
 
 export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
+  // Sensitive action: needs a recent sign-in (401 auth/reauth-required).
+  const session = await requireRecentLogin(event)
   const userId = session.user.id
   const capability = getRouterParam(event, 'capability')
   if (!isAiCapability(capability)) {

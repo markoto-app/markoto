@@ -17,6 +17,10 @@
 // auto-cleaned via tryOnScopeDispose when no consumer remains.
 
 import { createSharedComposable } from '@vueuse/core'
+import { loginPath, type LoginProvider } from '~~/shared/config/instance'
+
+/** Server code for "this action needs a fresh sign-in" (server/utils/sessionPolicy.ts). */
+export const REAUTH_REQUIRED_CODE = 'auth/reauth-required'
 
 interface FetchErrorLike {
   statusCode?: number
@@ -135,10 +139,46 @@ function useErrorHandlerImpl() {
     return showError(defaultTitleKey, err)
   }
 
+  const { user } = useUserSession()
+  const { primaryLoginPath } = useInstanceConfig()
+
+  /**
+   * Sensitive actions (account deletion, data export, AI provider
+   * changes) answer 401 `auth/reauth-required` when the sign-in is
+   * older than the server allows. Show a "Sign in again" toast that
+   * restarts the login flow of the provider the user signed in with.
+   * Returns true when the error was that case (caller skips its own
+   * toast), false otherwise.
+   */
+  function handleReauthRequired(err: unknown): boolean {
+    const extracted = extractError(err)
+    if (extracted.code !== REAUTH_REQUIRED_CODE) return false
+    const provider: LoginProvider | undefined = user.value?.provider
+    const target = provider ? loginPath(provider) : primaryLoginPath.value
+    toast.add({
+      title: t('auth.reauthTitle'),
+      description: extracted.message,
+      icon: 'i-lucide-lock',
+      color: 'neutral',
+      actions: target
+        ? [{
+            label: t('auth.reauthAction'),
+            color: 'neutral',
+            onClick: () => {
+              // Hard navigation: the OAuth flow is a server redirect.
+              globalThis.location.href = target
+            }
+          }]
+        : undefined
+    })
+    return true
+  }
+
   return {
     extractError,
     showError,
-    showContextualError
+    showContextualError,
+    handleReauthRequired
   }
 }
 

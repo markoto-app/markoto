@@ -24,3 +24,4 @@ profile.
 - [Export all your data](/docs/account/data-export): a ZIP with everything we hold on you.
 - [Delete a document](/docs/account/delete-document): owner-only, immediate, irreversible.
 - [Delete your account](/docs/account/delete-account): 30-day grace period with a cancel button, then a full purge.
+- [Sign out everywhere](/docs/account/sessions): log out on every device, and why some actions ask you to sign in again.

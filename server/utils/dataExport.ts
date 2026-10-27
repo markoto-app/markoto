@@ -20,6 +20,8 @@ import { useStripeClient } from './stripeClient'
 import { isBillingEnabled } from './billingMode'
 import { listWaitlistSignupsForUser } from '../repos/waitlist'
 import { listAiProviders } from '../repos/aiProviders'
+import { listInvitesForExport } from '../repos/workspaceInvites'
+import { normaliseInviteEmail } from './workspaceInvites'
 
 // GDPR Article 15 + 20 export builder. Produces a self-describing
 // ZIP archive containing every piece of personal data we hold for
@@ -37,6 +39,7 @@ import { listAiProviders } from '../repos/aiProviders'
 //   documents/{docId}.meta.json
 //   comments.ndjson                 ← every comment authored by the user
 //   workspace_memberships.json
+//   workspace_invites.json          ← open invitations to you + sent by you
 //   themes.json                     ← saved themes
 //   ai/sessions.ndjson
 //   ai/messages.ndjson              ← prompt + tool-call history
@@ -71,6 +74,9 @@ Contents:
                          line (NDJSON format).
   workspace_memberships.json  workspaces you are a member of, with role
                          and join date.
+  workspace_invites.json  open workspace invitations addressed to your
+                         email ("received") and ones you sent
+                         ("sent": the address you typed, role, dates).
   themes.json            saved themes you've created.
   ai/sessions.ndjson     AI sessions you initiated.
   ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
@@ -100,6 +106,7 @@ export interface BuildExportZipResult {
     documents: number
     comments: number
     workspaceMemberships: number
+    workspaceInvites: number
     themes: number
     aiSessions: number
     aiSessionMessages: number
@@ -139,6 +146,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const documentsCount = await addOwnedDocumentsEntries(entries, db, userId)
   const commentsCount = await addCommentsEntry(entries, db, userId)
   const membershipsCount = await addWorkspaceMembershipsEntry(entries, db, userId)
+  const invitesCount = await addWorkspaceInvitesEntry(entries, userId, userRow.email)
   const themesCount = await addThemesEntry(entries, db, userId)
   const { sessionsCount, messagesCount } = await addAiEntries(entries, db, userId)
   // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
@@ -158,6 +166,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
       documents: documentsCount,
       comments: commentsCount,
       workspaceMemberships: membershipsCount,
+      workspaceInvites: invitesCount,
       themes: themesCount,
       aiSessions: sessionsCount,
       aiSessionMessages: messagesCount,
@@ -425,6 +434,30 @@ async function addConsentLogEntry(entries: Entries, db: Db, userId: number): Pro
     createdAt: c.createdAt.toISOString()
   }))))
   return consentRows.length
+}
+
+/**
+ * Open workspace invitations: addressed to the user's email, and sent by
+ * the user. Token hashes are never exported.
+ */
+async function addWorkspaceInvitesEntry(entries: Entries, userId: number, email: string | null): Promise<number> {
+  const { received, sent } = await listInvitesForExport(userId, normaliseInviteEmail(email))
+  entries['workspace_invites.json'] = strToU8(JSON.stringify({
+    received: received.map(r => ({
+      workspaceName: r.workspaceName,
+      role: r.role,
+      createdAt: r.createdAt.toISOString(),
+      expiresAt: r.expiresAt.toISOString()
+    })),
+    sent: sent.map(s => ({
+      workspaceId: s.workspaceId,
+      email: s.email,
+      role: s.role,
+      createdAt: s.createdAt.toISOString(),
+      expiresAt: s.expiresAt.toISOString()
+    }))
+  }, null, 2))
+  return received.length + sent.length
 }
 
 /**

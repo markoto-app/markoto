@@ -28,6 +28,10 @@ declare module '#auth-utils' {
     // changes, etc.). Sessions whose `v` doesn't match SESSION_VERSION are
     // cleared on the next request — see server/utils/validatedSession.ts.
     v?: number
+    // Session epoch at sign-in (`users.session_epoch`). A cookie whose
+    // `e` no longer matches the column was revoked ("log out
+    // everywhere", deletion request); see server/utils/sessionPolicy.ts.
+    e?: number
   }
 
   // No secure (server-only) session data today; keep the augmentation here

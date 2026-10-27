@@ -177,6 +177,22 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['ovh_postgres', 'resend']
   },
   {
+    // Workspace invitations. A workspace admin types a collaborator's
+    // email address; we keep it on a pending invitation (with the role
+    // and who invited) until the person accepts or declines, an admin
+    // revokes it, or it expires after 14 days (deleted by the
+    // `workspace-invite-sweep`). If email is configured, one invitation
+    // email per invite goes out via Resend (max 3 per address per day).
+    // Nobody becomes a member without accepting. See `workspace_invites`
+    // in server/db/schema.ts.
+    id: 'workspace_invitations',
+    label: 'Workspace invitations',
+    basis: 'legitimate_interest',
+    dataCategories: ['invitee_email', 'workspace_role', 'inviter_id'],
+    retention: 14,
+    subProcessors: ['ovh_postgres', 'resend']
+  },
+  {
     id: 'error_monitoring',
     label: 'Error monitoring',
     basis: 'legitimate_interest',
