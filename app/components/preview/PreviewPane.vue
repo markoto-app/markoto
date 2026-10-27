@@ -8,6 +8,8 @@ const props = defineProps<{
   theme?: DocTheme
   /** Owning document — custom CSS may only reference this doc's uploads. */
   docId: string
+  /** Doc JWT for session-less viewers (image access token fetch). */
+  getDocJwt?: () => Promise<string | null>
 }>()
 
 // Bubbled when the user presses Cmd/Ctrl+P inside the preview iframe.
@@ -31,7 +33,8 @@ const { pageCount: pgCount, isReady, error } = usePagedPreview({
   title: titleRef,
   docId: computed(() => props.docId),
   container: iframeHost,
-  onPrintShortcut: () => emit('printShortcut')
+  onPrintShortcut: () => emit('printShortcut'),
+  getDocJwt: props.getDocJwt
 })
 
 watch(pgCount, (n) => {

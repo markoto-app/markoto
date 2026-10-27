@@ -47,7 +47,8 @@ const {
   setTheme,
   resetTheme,
   onPasswordVerified,
-  setAccessMode
+  setAccessMode,
+  getDocJwt
 } = useDocument(props.docId)
 
 // Track whether the user has ever focused the editor in this session.
@@ -334,7 +335,8 @@ async function exportPdf() {
       theme: theme.value,
       title: title.value,
       docId: props.docId,
-      tocTitle: t('table.tocTitle')
+      tocTitle: t('table.tocTitle'),
+      getDocJwt
     })
   } catch (e) {
     showError('error.pdfExportFailedTitle', e)
@@ -1386,6 +1388,7 @@ const _statusIcon = computed(() => {
             :title="title"
             :theme="theme"
             :doc-id="docId"
+            :get-doc-jwt="getDocJwt"
             @print-shortcut="exportPdf"
           />
         </div>

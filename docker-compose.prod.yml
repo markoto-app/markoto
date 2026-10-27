@@ -258,7 +258,7 @@ services:
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
-      # Mirrored into the print-page CSP (server/utils/renderCsp.ts); the renderer reads the same variable.
+      # Mirrored into the print-page CSP (server/utils/csp.ts); the renderer reads the same variable.
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       # Postgres + Valkey atomic parts. HOST/PORT default to the in-stack
       # container; a managed-Postgres deployment overrides them via .env
@@ -321,19 +321,12 @@ services:
       - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
       - "traefik.http.middlewares.security-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
-      # CSP rationale per directive in docs/SECURITY-HARDENING.md.
-      # 'unsafe-inline' on script-src/style-src is unfortunate but
-      # required for Vite/Nuxt SSR hydration scripts and Nuxt UI's
-      # injected style block. 'unsafe-eval' is needed by Vue runtime
-      # compilation paths and mermaid. cdn.jsdelivr.net carries paged.js,
-      # KaTeX, hljs themes, and mermaid ESM. fonts.* serves the 20-font
-      # Google Fonts picker. wss://sync.${DOMAIN} is Hocuspocus.
-      # connect-src includes *.ingest.sentry.io for browser error
-      # reporting; api.stripe.com + js.stripe.com are listed pre-emptively
-      # for the not-yet-shipped checkout integration (AGENTS.md §7).
-      - "traefik.http.middlewares.security-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https://${DOMAIN} https://*.${DOMAIN} ${NUXT_S3_ENDPOINT}; connect-src 'self' https://${DOMAIN} wss://sync.${DOMAIN} https://api.stripe.com https://*.ingest.sentry.io ${NUXT_S3_ENDPOINT}; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+      # Content-Security-Policy and Cross-Origin-Resource-Policy are NOT
+      # set here: the app sends them itself (server/plugins/csp.ts) — the
+      # CSP carries a per-response script nonce, and /api/files needs a
+      # different CORP than the rest. A Traefik CSP label would be enforced
+      # IN ADDITION to the app's policy. See docs/SECURITY-HARDENING.md §2.
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
-      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Resource-Policy=same-site"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=(self)"
       - "traefik.http.routers.app.middlewares=security-headers"
       # /api/import (anonymous document import, 50 MB file cap) gets its own

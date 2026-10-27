@@ -89,7 +89,10 @@ describe('GET /_internal/render/:docId (print page)', () => {
 
   it('does not put the render CSP on other pages', async () => {
     const res = await anonClient().get('/api/health')
-    expect(res.headers.get('content-security-policy')).toBeNull()
+    const csp = res.headers.get('content-security-policy') ?? ''
+    // Every other response carries the app policy (server/plugins/csp.ts).
+    expect(csp).toContain('default-src \'self\'')
+    expect(csp).toContain('frame-ancestors \'none\'')
   })
 
   it('returns 403 when the render token is missing', async () => {

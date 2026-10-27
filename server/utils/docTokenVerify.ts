@@ -46,9 +46,20 @@ export function extractToken(event: H3Event): string | null {
 }
 
 /**
+ * Scope-narrowed doc JWTs. Session-shaped tokens (Hocuspocus connection,
+ * password unlock) carry NO `scope` claim and are accepted everywhere a
+ * doc JWT is; a token WITH a scope is only accepted by an endpoint that
+ * lists that scope. `file-access` tokens (render page, live preview
+ * iframe) therefore unlock `/api/files` only — not the activity log or
+ * the metadata endpoint.
+ */
+export type DocJwtScope = 'file-access'
+
+/**
  * Verify a JWT signature, then confirm its `docId` claim matches the
- * expected doc. Returns true iff both checks pass. Every failure mode
- * (bad signature, expired, malformed, wrong docId, missing docId)
+ * expected doc and its `scope` (if any) is one the caller accepts.
+ * Returns true iff all checks pass. Every failure mode (bad signature,
+ * expired, malformed, wrong docId, missing docId, foreign scope)
  * collapses to `false` — callers treat "no token" and "bad token"
  * identically and let the session-based path handle it.
  *
@@ -59,15 +70,18 @@ export function verifyDocJwt(
   token: string,
   expectedDocId: string,
   secret: string,
-  previous?: string | null
+  previous?: string | null,
+  acceptedScopes: readonly DocJwtScope[] = []
 ): boolean {
   try {
-    const payload = verifyJwtWithRotation<{ docId?: unknown }>(
+    const payload = verifyJwtWithRotation<{ docId?: unknown, scope?: unknown }>(
       token,
       secret,
       previous || undefined
     )
-    return typeof payload?.docId === 'string' && payload.docId === expectedDocId
+    if (typeof payload?.docId !== 'string' || payload.docId !== expectedDocId) return false
+    if (payload.scope === undefined) return true
+    return acceptedScopes.some(scope => scope === payload.scope)
   } catch {
     return false
   }
@@ -79,11 +93,15 @@ export function verifyDocJwt(
  * call the two pure halves directly; this function is exercised by
  * integration tests.
  */
-export function hasValidDocJwt(event: H3Event, expectedDocId: string): boolean {
+export function hasValidDocJwt(
+  event: H3Event,
+  expectedDocId: string,
+  acceptedScopes: readonly DocJwtScope[] = []
+): boolean {
   const token = extractToken(event)
   if (!token) return false
 
   const config = useRuntimeConfig()
   if (!config.jwtSecret) return false
-  return verifyDocJwt(token, expectedDocId, config.jwtSecret, config.jwtSecretPrevious || undefined)
+  return verifyDocJwt(token, expectedDocId, config.jwtSecret, config.jwtSecretPrevious || undefined, acceptedScopes)
 }

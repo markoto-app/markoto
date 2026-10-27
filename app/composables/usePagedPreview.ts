@@ -1,24 +1,26 @@
 import type { Ref } from 'vue'
 import type { DocTheme } from '~~/shared/types/theme'
-import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { composeFinalHtml } from '~/utils/composeFinalHtml'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
-import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
-import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
-import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
 import type { CustomCssResult } from '~~/shared/types/customCss'
 import { sanitizeCustomCssForRender, currentAppOrigins } from '~/utils/customCssLoader'
-// Iframe bootstrap document — lives in its own .html file so backticks
-// don't need escaping and the HTML/CSS/JS gets proper syntax highlighting.
-// Loaded as a raw string via Vite's `?raw` import. URL placeholders are
-// substituted at mount time below.
-import IFRAME_BOOTSTRAP from './pagedPreviewIframe.html?raw'
+import {
+  PREVIEW_SANDBOX,
+  appIsDark,
+  buildPreviewSrcdoc,
+  buildRenderMessage,
+  createFileTokenSource,
+  currentCspNonce,
+  parseFrameMessage,
+  mayReferenceOwnUploads,
+  postToFrame,
+  withOwnUploadToken
+} from '~/utils/previewFrame'
 
 /**
- * Preview pane backed by a persistent same-origin iframe.
+ * Preview pane backed by a persistent sandboxed (opaque-origin) iframe.
  *
  * Why an iframe instead of rendering paged.js directly into the host page:
  *
@@ -43,13 +45,11 @@ import IFRAME_BOOTSTRAP from './pagedPreviewIframe.html?raw'
  *   it's just the preview pane visibly re-rendering, which the user
  *   already expects to do during pagination.
  *
- * Communication is one-way through `iframe.contentWindow.__renderDoc(opts)`
- * (parent → iframe) and a single `postMessage` event for page count
- * (iframe → parent). The iframe initialization document lives in
- * `pagedPreviewIframe.html` — it loads the paged.js polyfill from the
- * `/api/_internal/pagedjs-polyfill.js` Nitro endpoint (same one the PDF
- * print iframe uses) and exposes the render function once `Paged.Previewer`
- * is available.
+ * The iframe has NO `allow-same-origin` (see app/utils/previewFrame.ts for
+ * the isolation model): everything crosses as a validated postMessage —
+ * render requests and the app's color mode go in, `iframe-ready` /
+ * `paginated` / `iframe-error` / `print-shortcut` come out. The bootstrap
+ * document lives in `pagedPreviewIframe.html`.
  */
 export function usePagedPreview(opts: {
   html: Ref<string>
@@ -66,6 +66,12 @@ export function usePagedPreview(opts: {
    * should kick off the same export flow as the menu item.
    */
   onPrintShortcut?: () => void
+  /**
+   * The doc JWT (password unlock / Hocuspocus token) for viewers without a
+   * session — used to fetch the image `file-access` token. Optional:
+   * signed-in viewers are authorised by their cookie.
+   */
+  getDocJwt?: () => Promise<string | null>
 }) {
   const pageCount = ref(0)
   const isPaginating = ref(false)
@@ -79,7 +85,7 @@ export function usePagedPreview(opts: {
   //
   // Why we serialize despite the iframe-side `mount` ⇆ `pending` swap:
   // paged.js's `previewer.preview(...)` is async and renders INTO
-  // `#pending`. If a second __renderDoc fires before the first's
+  // `#pending`. If a second render fires before the first's
   // `replaceChildren` swap completes, the second clears pending mid-
   // render-of-the-first AND begins its own preview. Whichever swap
   // runs last races against an empty pending, leaving `#mount` empty
@@ -90,18 +96,18 @@ export function usePagedPreview(opts: {
   let pendingRender = false
 
   function handleMessage(e: MessageEvent) {
-    if (e.source !== iframe?.contentWindow) return
-    const data = e.data as { type?: string, pageCount?: number, message?: string } | undefined
-    if (!data?.type) return
+    const data = parseFrameMessage(e, iframe?.contentWindow)
+    if (!data) return
     if (data.type === 'iframe-ready') {
       isReady.value = true
       error.value = null
+      sendColorMode()
       if (pendingRender) {
         pendingRender = false
         render()
       }
     } else if (data.type === 'paginated') {
-      pageCount.value = data.pageCount ?? 0
+      pageCount.value = data.pageCount
       isPaginating.value = false
       // Drain any render request that arrived while we were busy.
       if (pendingRender) {
@@ -109,7 +115,7 @@ export function usePagedPreview(opts: {
         render()
       }
     } else if (data.type === 'iframe-error') {
-      error.value = data.message ?? 'Preview failed to load.'
+      error.value = data.message || 'Preview failed to load.'
       isPaginating.value = false
       if (pendingRender) {
         pendingRender = false
@@ -125,19 +131,42 @@ export function usePagedPreview(opts: {
   const i18n = (typeof useI18n === 'function') ? useI18n() : null
   const tocTitle = computed(() => i18n?.t('table.tocTitle') ?? 'Table of Contents')
 
-  // Sanitized custom CSS, keyed by the (docId, raw css) it was made from.
-  // The sanitizer is loaded lazily, so `render()` (synchronous, because
-  // of the pagination serialisation above) never awaits it: when the
-  // cache is stale it kicks off the sanitize and re-enters `render()`
-  // once the result is in. Documents without custom CSS skip all this.
+  // Image access token for the opaque-origin iframe (its requests carry
+  // no cookie). `render()` stays synchronous (pagination serialisation
+  // above): when a token is needed but missing / about to expire it kicks
+  // off a fetch and re-enters once it is in.
+  const fileTokens = createFileTokenSource(() => opts.docId.value, opts.getDocJwt)
+  let fileTokenPending = false
+
+  /** The token to use ('' = none needed), or null while one is being fetched. */
+  function fileTokenFor(needed: boolean): string | null {
+    if (!needed) return ''
+    const token = fileTokens.current()
+    if (token !== null) return token
+    if (!fileTokenPending) {
+      fileTokenPending = true
+      fileTokens.refresh().finally(() => {
+        fileTokenPending = false
+        render()
+      })
+    }
+    return null
+  }
+
+  // Sanitized custom CSS, keyed by the (docId, file token, raw css) it was
+  // made from — own-upload url()s carry the token, so a new token means a
+  // new sanitize (every ~13 min). The sanitizer is loaded lazily, so
+  // `render()` never awaits it: when the cache is stale it kicks off the
+  // sanitize and re-enters `render()` once the result is in. Documents
+  // without custom CSS skip all this.
   let customCssKey = ''
   let customCss: CustomCssResult | undefined
   let customCssPending: string | null = null
 
-  /** True when the cache matches the current theme; otherwise starts a refresh. */
-  function customCssReady(): boolean {
-    const raw = opts.theme.value.customCss ?? ''
-    const key = `${opts.docId.value}\n${raw}`
+  /** True when the cache matches the current theme + token; otherwise starts a refresh. */
+  function customCssReady(raw: string, fileToken: string): boolean {
+    const docId = opts.docId.value
+    const key = `${docId}\n${fileToken}\n${raw}`
     if (key === customCssKey) return true
     if (raw.trim() === '') {
       customCss = undefined
@@ -148,7 +177,11 @@ export function usePagedPreview(opts: {
     if (customCssPending === key) return false
     customCssPending = key
     let result: CustomCssResult | undefined
-    sanitizeCustomCssForRender(raw, { docId: opts.docId.value, allowedOrigins: currentAppOrigins() })
+    sanitizeCustomCssForRender(raw, {
+      docId,
+      allowedOrigins: currentAppOrigins(),
+      fileUrl: path => withOwnUploadToken(path, docId, fileToken)
+    })
       .then((res) => {
         result = res
       })
@@ -168,14 +201,14 @@ export function usePagedPreview(opts: {
   }
 
   function render() {
-    if (!customCssReady()) return
-    if (!isReady.value || !iframe?.contentWindow) {
+    const frame = iframe?.contentWindow
+    if (!isReady.value || !frame) {
       pendingRender = true
       return
     }
-    // Serialize against in-flight pagination — concurrent __renderDoc
-    // calls race the `#pending` ⇆ `#mount` swap and can land an empty
-    // `#mount`. The 'paginated' / 'iframe-error' handlers drain
+    // Serialize against in-flight pagination — concurrent renders race
+    // the `#pending` ⇆ `#mount` swap inside the iframe and can land an
+    // empty `#mount`. The 'paginated' / 'iframe-error' handlers drain
     // `pendingRender` once the current run terminates.
     if (isPaginating.value) {
       pendingRender = true
@@ -185,16 +218,8 @@ export function usePagedPreview(opts: {
     // Invalid → default theme; image URLs that don't belong to this
     // document are dropped.
     const current = opts.theme.value
-    const theme = themeImagesForDoc(isValidTheme(current) ? current : defaultTheme, opts.docId.value).theme
-    const themeCss = themeToCss(theme, {
-      title: opts.title.value || '',
-      date: new Date().toISOString().slice(0, 10),
-      tocTitle: tocTitle.value,
-      customCss
-    })
-    const fontsImport = themeFontsImport(theme)
-    const hljsUrl = hljsThemeUrl(theme.code.theme)
-    const mermaidTheme = theme.mermaid.theme
+    const docId = opts.docId.value
+    const theme = themeImagesForDoc(isValidTheme(current) ? current : defaultTheme, docId).theme
     // Compose the final HTML through the shared helper so live preview,
     // browser print, and the server-rendered PDF stay byte-identical
     // (one place to change cover/dropcap composition order).
@@ -204,14 +229,27 @@ export function usePagedPreview(opts: {
       dateIso: new Date().toISOString().slice(0, 10),
       bodyHtml: opts.html.value
     })
+    const rawCustomCss = theme.customCss ?? ''
+    const fileToken = fileTokenFor(mayReferenceOwnUploads({ html, theme, rawCustomCss, docId }))
+    if (fileToken === null) return
+    if (!customCssReady(rawCustomCss, fileToken)) return
     isPaginating.value = true
-    ;(iframe.contentWindow as unknown as { __renderDoc: (o: unknown) => void }).__renderDoc({
+    postToFrame(frame, buildRenderMessage({
       html,
-      themeCss,
-      fontsImport,
-      hljsUrl,
-      mermaidTheme
-    })
+      theme,
+      title: opts.title.value || '',
+      tocTitle: tocTitle.value,
+      customCss,
+      docId,
+      fileToken,
+      print: false
+    }))
+  }
+
+  /** Mirror the app's color mode into the iframe (it can't read the parent DOM). */
+  function sendColorMode() {
+    const frame = iframe?.contentWindow
+    if (frame && isReady.value) postToFrame(frame, { type: 'color-mode', dark: appIsDark() })
   }
 
   // 250ms debounce. Lower than the previous 800ms because the iframe
@@ -234,34 +272,31 @@ export function usePagedPreview(opts: {
   // removeEventListener in onUnmounted needed.
   useEventListener(globalThis, 'message', handleMessage)
 
+  // The iframe used to observe the parent's <html class> itself; with an
+  // opaque origin it can't, so the parent forwards every change.
+  useMutationObserver(
+    () => (import.meta.client ? document.documentElement : null),
+    sendColorMode,
+    { attributes: true, attributeFilter: ['class'] }
+  )
+
   onMounted(() => {
     if (!opts.container.value) return
     iframe = document.createElement('iframe')
     iframe.title = 'Document preview'
     iframe.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: transparent;'
-    // Sandbox the preview iframe to the bare minimum it actually needs:
-    //   allow-scripts:        paged.js + the bootstrap script must run.
-    //   allow-same-origin:    the bootstrap reads parent's color-mode +
-    //                         dispatches scrolls/anchors against parent
-    //                         document; same-origin is also required for
-    //                         loaded font CSS (CORS) to apply.
-    // Deliberately omitted: allow-forms, allow-popups, allow-modals,
-    // allow-top-navigation, allow-pointer-lock. The preview should never
-    // navigate the host or open new windows. See docs/SECURITY-HARDENING.md.
-    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin')
-    // hljs theme is set per-render (depends on `theme.blocks.codeBlockTheme`).
-    // Bootstrap leaves the link href empty; renderDoc fills it.
-    // replaceAll (not replace): the HTML file's header comment names each
-    // placeholder for readers, so each token appears twice — once in the
-    // comment, once in the actual tag. `.replace` only substitutes the
-    // first occurrence, which would leave the real `<script src>` URL
-    // unreplaced and paged.js would never load.
-    iframe.srcdoc = IFRAME_BOOTSTRAP
-      .replaceAll('__PAGEDJS_POLYFILL_URL__', PAGEDJS_POLYFILL_URL)
-      .replaceAll('__PAGEDJS_POLYFILL_SRI__', PAGEDJS_POLYFILL_SRI)
-      .replaceAll('__KATEX_CSS_URL__', KATEX_CSS_URL)
-      .replaceAll('__KATEX_CSS_SRI__', KATEX_CSS_SRI)
-      .replaceAll('__MERMAID_ESM_URL__', MERMAID_ESM_URL)
+    // Sandbox: scripts only. NO allow-same-origin — the preview renders
+    // content any editor (or the AI) controls, and an opaque origin keeps
+    // a script injection there away from the app's cookies, storage, DOM
+    // and same-origin APIs. Also omitted: allow-forms, allow-popups,
+    // allow-modals, allow-top-navigation — the preview must never
+    // navigate the host or open windows. See docs/SECURITY-HARDENING.md.
+    iframe.setAttribute('sandbox', PREVIEW_SANDBOX)
+    iframe.srcdoc = buildPreviewSrcdoc({
+      parentOrigin: globalThis.location.origin,
+      nonce: currentCspNonce(),
+      dark: appIsDark()
+    })
     opts.container.value.appendChild(iframe)
   })
 

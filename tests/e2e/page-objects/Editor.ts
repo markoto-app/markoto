@@ -433,6 +433,16 @@ export class EditorPage {
    * hidden for the entire wait window. Scoping to `#mount` ensures
    * we only match the swapped-in (visible) pages.
    */
+  /**
+   * The preview iframe's root element, for `evaluate` INSIDE the frame.
+   * The preview runs sandboxed in an opaque origin, so the page can't
+   * reach `iframe.contentDocument`; Playwright evaluates in the frame's
+   * own context instead.
+   */
+  previewRoot(): Locator {
+    return this.page.frameLocator('iframe').first().locator('html')
+  }
+
   async waitForPreviewPaginated(timeout = 15_000): Promise<void> {
     await this.page
       .frameLocator('iframe')

@@ -6,9 +6,9 @@ import {
   isAllowedUrl,
   originOf
 } from '../../renderer/src/allowlist'
-import { buildRenderCsp } from '../../server/utils/renderCsp'
+import { buildRenderCsp } from '../../server/utils/csp'
 import { PAGEDJS_POLYFILL_URL } from '../../shared/utils/pagedjsCdn'
-import { MERMAID_ESM_URL } from '../../shared/utils/mermaidCdn'
+import { MERMAID_URL } from '../../shared/utils/mermaidCdn'
 import { KATEX_CSS_URL } from '../../shared/utils/katexCdn'
 
 const hosted = buildAllowedOrigins({
@@ -66,7 +66,7 @@ describe('isAllowedUrl', () => {
     expect(isAllowedUrl('https://s3.gra.io.cloud.ovh.net/bucket/docs/a/b.png?X-Amz-Signature=1', hosted)).toBe(true)
     for (const url of [
       PAGEDJS_POLYFILL_URL,
-      MERMAID_ESM_URL,
+      MERMAID_URL,
       KATEX_CSS_URL,
       'https://cdn.jsdelivr.net/npm/highlight.js@11.12.0/styles/github.min.css',
       'https://fonts.googleapis.com/css2?family=Inter&display=swap',
@@ -134,6 +134,7 @@ describe('hostForLog', () => {
 
 describe('buildRenderCsp', () => {
   const csp = buildRenderCsp({
+    nonce: 'cmVuZGVyLW5vbmNlLTEyMzQ1Ng==',
     s3Origin: 'https://s3.gra.io.cloud.ovh.net/',
     extraOrigins: 'https://img.example.org,junk'
   })
@@ -152,14 +153,18 @@ describe('buildRenderCsp', () => {
     )
   })
 
-  it('keeps the CDNs the print page needs', () => {
-    expect(directive(csp, 'script-src')).toContain('https://cdn.jsdelivr.net')
+  it('keeps the CDN files the print page needs (exact paths, not the whole host)', () => {
+    expect(directive(csp, 'script-src')).toContain(PAGEDJS_POLYFILL_URL)
+    expect(directive(csp, 'script-src')).toContain(MERMAID_URL)
+    expect(directive(csp, 'script-src')).toContain('\'nonce-cmVuZGVyLW5vbmNlLTEyMzQ1Ng==\'')
+    expect(directive(csp, 'script-src')).not.toMatch(/https:\/\/cdn\.jsdelivr\.net(\s|$)/)
+    expect(directive(csp, 'script-src')).not.toContain('unsafe')
     expect(directive(csp, 'style-src')).toContain('https://fonts.googleapis.com')
     expect(directive(csp, 'font-src')).toContain('https://fonts.gstatic.com')
   })
 
   it('does not widen img-src when S3 and extras are unset', () => {
-    const bare = buildRenderCsp({ s3Origin: undefined, extraOrigins: undefined })
+    const bare = buildRenderCsp({ nonce: '', s3Origin: undefined, extraOrigins: undefined })
     expect(directive(bare, 'img-src')).toBe('img-src \'self\' data: blob:')
   })
 })

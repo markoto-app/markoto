@@ -44,6 +44,10 @@ export default defineEventHandler(async (event) => {
     // PDF download — endpoint-gated via decideFileAccess, mirrors /api/files
     // semantics. Anonymous on open-* docs; owner / workspace member on private.
     { path: /^\/api\/docs\/[^/]+\/pdf$/, methods: ['GET'] },
+    // Image-read token for the sandboxed preview / print iframes — same
+    // decideFileAccess gate as /api/files (anonymous on open-* docs,
+    // password holders via the doc JWT as Bearer).
+    { path: /^\/api\/docs\/[^/]+\/file-token$/, methods: ['GET'] },
     { path: /^\/api\/docs\/[^/]+\/token$/, methods: ['GET'] }, // Returns anonymous token if no session
     { path: /^\/api\/docs\/[^/]+\/password$/, methods: ['POST'] }, // Password verify is public; set/remove check ownership inside
     { path: /^\/api\/docs\/[^/]+\/activity$/, methods: ['GET'] }, // Endpoint-gated — public on open-edit/open-view, members-only on private/password-protected

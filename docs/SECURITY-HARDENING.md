@@ -4,7 +4,8 @@
 
 Cross-cutting hardening notes for the production stack. Three sections today:
 
-- §A. HTTP headers + CSP — applied at the Traefik edge.
+- §A. HTTP headers + CSP — the CSP + CORP come from the app itself, the rest
+  from the Traefik edge; preview iframe isolation.
 - §B. Valkey deployment posture — password enforcement, network exposure,
   optional TLS for managed-Redis providers.
 - §C. Containers, networks and database roles — least-privilege
@@ -21,14 +22,20 @@ prerequisites see `docs/DEPLOY.md`.
 # Section A — HTTP Headers + CSP
 
 Where: every HTTPS response from the production stack carries a fixed set of
-security headers, applied at the Traefik edge via the `security-headers`
-middleware in `docker-compose.prod.yml`. The sync subdomain (Hocuspocus WS +
-`/health`) carries a parallel `sync-security-headers` middleware that drops
-CSP (no HTML responses) but keeps everything else.
+security headers. Most come from the Traefik edge (`security-headers`
+middleware in `docker-compose.prod.yml`, `markoto-headers` in
+`docker-compose.selfhost.yml`). **`Content-Security-Policy` and
+`Cross-Origin-Resource-Policy` come from the app** (`server/plugins/csp.ts`,
+policies in `server/utils/csp.ts`): the CSP carries a per-response script
+nonce that has to match the HTML, `/api/files` needs a different CORP than the
+rest, and one builder in code means hosted, self-host, local and the test
+stacks all serve the same policy. Traefik must NOT set either header — a
+Traefik CSP would be enforced in addition to the app's (pinned by
+`tests/unit/csp.test.ts`). The sync subdomain (Hocuspocus WS + `/health`)
+carries a parallel `sync-security-headers` middleware (no HTML, no CSP).
 
-This file documents what each header is for, the CSP allowlist rationale,
-the iframe-sandbox hardening on the preview/print iframes, and the
-verification recipe.
+This file documents what each header is for, the CSP rationale, the isolation
+of the preview/print iframes, and the verification recipe.
 
 ---
 
@@ -54,86 +61,126 @@ Content-Security-Policy: <see §2>
 | `X-Frame-Options: DENY` | No origin can iframe markoto. Mitigates click-jacking. If we ever want third-party embeds, switch to `SAMEORIGIN` or replace with CSP `frame-ancestors`. The CSP already sets `frame-ancestors 'none'`, so DENY is duplicative-but-belt-and-braces for older browsers. |
 | `Referrer-Policy: strict-origin-when-cross-origin` | Same-origin requests carry the full URL; cross-origin requests carry only the origin (no path). External links from a doc don't leak which doc the user was reading. |
 | `Cross-Origin-Opener-Policy: same-origin` | A new tab opened from markoto cannot keep a `window.opener` reference back to markoto. Tightens postMessage / Spectre-style surfaces. |
-| `Cross-Origin-Resource-Policy: same-site` | Other origins cannot embed our static resources via `<img>`/`<script>`/etc. unless they're under the same site. |
+| `Cross-Origin-Resource-Policy: same-site` | Other origins cannot embed our static resources via `<img>`/`<script>`/etc. unless they're under the same site. Set by the app. Exception: `/api/files/*` (a 302 to a presigned S3 URL) is `cross-origin` — the preview iframe runs in an opaque origin, which is never "same site", and its images go through this route; access there is decided by the session / file-access token, not by the requesting origin. |
 | `Permissions-Policy` | Disables camera + geolocation outright. Allows microphone (live dictation needs it) and payment (future Stripe checkout) only on our own origin. No third-party iframe can hijack any of these. |
 
 ---
 
 ## 2. Content Security Policy
 
-Final policy (applied to the app router only — the sync router serves
-WebSocket upgrades + a `/health` JSON probe and never returns HTML):
+Built per response by `buildAppCsp()` (`server/utils/csp.ts`), sent by
+`server/plugins/csp.ts` on every response of the production build (the
+`nuxt dev` server sends none — Vite's HMR client would trip it). Hosted shape:
 
 ```
 default-src 'self';
-script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com;
-style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com;
-font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:;
-img-src 'self' data: blob: https://${DOMAIN} https://*.${DOMAIN};
-connect-src 'self' https://${DOMAIN} wss://sync.${DOMAIN} https://api.stripe.com https://*.ingest.sentry.io;
-frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
-worker-src 'self' blob:;
-manifest-src 'self';
-object-src 'none';
-base-uri 'self';
-form-action 'self';
-frame-ancestors 'none';
-upgrade-insecure-requests
+script-src 'self' 'nonce-<per response>' 'wasm-unsafe-eval'
+  https://cdn.jsdelivr.net/npm/pagedjs@0.4.3/dist/paged.polyfill.min.js
+  https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js;
+style-src 'self' 'unsafe-inline'
+  https://cdn.jsdelivr.net/npm/katex@0.18.11/dist/katex.min.css
+  https://cdn.jsdelivr.net/npm/highlight.js@11.12.0/styles/
+  https://fonts.googleapis.com;
+font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net/npm/katex@0.18.11/dist/fonts/;
+img-src 'self' data: blob: <S3 origin>;
+connect-src 'self' <sync origin> <S3 origin> <Sentry ingest origin>;
+frame-src 'self'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' blob:;
+object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';
+upgrade-insecure-requests            (only when NUXT_SITE_URL is https)
 ```
 
-### Allowlist rationale per source
+The variable parts come from runtime config: `NUXT_PUBLIC_SYNC_URL`,
+`NUXT_S3_PUBLIC_ENDPOINT` (else `NUXT_S3_ENDPOINT`), `NUXT_PUBLIC_SENTRY_DSN`,
+`NUXT_SITE_URL`. A self-host on one origin collapses to `'self'`.
 
-| Source | Where it shows up |
+The server render page (`/_internal/render/*`, loaded by the renderer
+sidecar from the app container) gets `buildRenderCsp()`: `default-src
+'none'`, the same script/style/font sources (nonce, pinned CDN files), images
+from `'self'`, the S3 origin and `RENDERER_ALLOWED_ORIGINS`, `connect-src
+'self'`, no frames, `form-action 'none'`.
+
+### Sources and why
+
+| Source | Why |
 |---|---|
-| `cdn.jsdelivr.net` | `script-src` + `style-src`: paged.js polyfill, KaTeX CSS, hljs theme stylesheets, mermaid ESM. All version-pinned in `shared/utils/{pagedjsCdn,katexCdn,hljsCdn,mermaidCdn}.ts` with SRI hashes (mermaid is best-effort — `import()` does not yet support integrity validation). |
-| `fonts.googleapis.com` + `fonts.gstatic.com` | The 20-font Google Fonts picker drives `themeFontsImport()`. The CSS loads from `fonts.googleapis.com`; the actual woff2 files come from `fonts.gstatic.com`. |
-| `data:` in `font-src` | KaTeX inlines a couple of small font fallbacks as data URLs in its stylesheet. |
-| `https://*.${DOMAIN}` in `img-src` | S3 image uploads served via `/api/files/...` go through our origin, but workspace knowledge previews + future asset-CDN domains will live on subdomains. The wildcard scopes us to our own apex. |
-| `wss://sync.${DOMAIN}` | Hocuspocus WebSocket. Required — without this the editor never syncs. |
-| `*.ingest.sentry.io` | Browser error reporting. Empty in dev keeps it inert. |
-| `api.stripe.com` + `js.stripe.com` + `hooks.stripe.com` | Stripe billing (Checkout redirect + webhooks + Stripe.js). Live since the Phase-6+ billing work — see `server/api/billing/` + `server/utils/stripeWebhook.ts`. |
-| `blob:` in `worker-src` + `img-src` | The PWA service worker registers from a blob URL; `<img>` blob URLs are used for paste-uploaded images before the presigned PUT completes. |
+| `'nonce-…'` | Nuxt's own inline scripts (payload/config, color-mode) — stamped by the `render:html` hook on the head and body-edge chunks only, never on the rendered page body. The preview/print srcdoc iframes inherit the policy; their inline scripts carry the same nonce (read from `script.nonce` by `currentCspNonce()`). |
+| CDN **files** | jsDelivr serves arbitrary npm content, so a bare `https://cdn.jsdelivr.net` would let an injection load any package. Only the two exact script files (paged.js, Mermaid), the KaTeX stylesheet + its `fonts/` directory and the highlight.js `styles/` directory are allowed. Every one of them is also SRI-locked (`shared/utils/*Cdn.ts`). |
+| `'wasm-unsafe-eval'` | `@nuxt/content` compiles its SQLite WASM in the browser for client-side docs queries. Allows WebAssembly compilation only — not `eval`/`new Function`. |
+| `fonts.googleapis.com` + `fonts.gstatic.com` | The 20-font Google Fonts picker (`themeFontsImport()`). |
+| `data:` in `font-src` / `img-src` | KaTeX font fallbacks; Mermaid diagrams render as `data:image/svg+xml` `<img>`s; custom CSS may use raster `data:image/*`. |
+| S3 origin | Presigned image GETs (`/api/files` 302s there) and presigned upload PUTs. |
+| sync origin | Hocuspocus WebSocket. |
+| Sentry ingest origin | Browser error reporting (derived from the DSN — no wildcard). |
+| `blob:` in `worker-src` / `img-src` / `media-src` | PWA service-worker plumbing, paste-upload previews, dictation audio. |
 
-### Why `'unsafe-inline'` + `'unsafe-eval'`
+Stripe origins are gone: billing uses the Checkout **redirect**, not Stripe.js.
 
-Both flags weaken `script-src` and we accept the cost knowingly:
+### What still needs `'unsafe-inline'` and why
 
-- **`'unsafe-inline'`**: Vite/Nuxt SSR injects an inline `<script>` block per
-  page for hydration state (`window.__NUXT__`), and Nuxt UI injects an
-  inline `<style id="nuxt-ui-colors">` block carrying every color token.
-  Removing inline scripts requires either a per-request **nonce** plumbed
-  through Nitro's HTML rendering pipeline (non-trivial) or `'strict-dynamic'`
-  with a hash for the bootstrap script (Vite's hashed entry filenames
-  defeat the static-hash route). Documented as a future hardening
-  step — not a launch blocker.
-- **`'unsafe-eval'`**: Vue's runtime template compiler uses `new Function`
-  in some code paths, and mermaid's parser uses `eval`-like dynamic
-  evaluation. Dropping this flag will cause silent runtime failures in
-  certain themes — verify with a CSP-violation reporting endpoint before
-  removing.
+- **`style-src` only.** Nuxt UI injects its color tokens as an inline
+  `<style>`; Vue `:style` bindings, KaTeX output (inline `style` attributes
+  that pass the `sanitizeHtml.ts` property allowlist) and paged.js (a fresh
+  `<style>` per pagination) all need inline styles. Styles can't run script;
+  CSS-based exfiltration is bounded by `img-src` / `font-src` /
+  `connect-src`.
+- **`script-src` has neither `'unsafe-inline'` nor `'unsafe-eval'`.** Inline
+  event handlers (`onerror=` …) and injected `<script>` never run, even if
+  something slipped past DOMPurify. Vue's production build is runtime-only
+  (no template compiler, no `new Function`); paged.js and Mermaid don't
+  evaluate strings.
 
-### Upgrade path (follow-up)
-
-1. Add a `Report-Only` CSP that mirrors the active policy minus `'unsafe-inline'`/`'unsafe-eval'` and points `report-uri` at a `/api/_internal/csp-report` endpoint.
-2. Run for a week, collect violations.
-3. If the only violations are the known Vite + Nuxt UI inlines, plumb a per-request nonce through `useHead()` and remove `'unsafe-inline'` from `script-src` (style-src is harder; Nuxt UI's color tokens currently require it).
-4. Submit the domain to https://hstspreload.org once the stack has run with HSTS for 30 days without rollback.
+Regression pins: `tests/unit/csp.test.ts` (exact policy string, no proxy CSP
+label in any compose file, every hljs theme has an SRI hash),
+`tests/unit/pagedPreviewIframe.test.ts` (nonce on every inline script of the
+iframe bootstrap, no inline handlers), and the Playwright suite
+`tests/e2e/flows/preview-isolation.spec.ts` (no CSP violation on the editor
+with a doc using images + Mermaid + KaTeX + highlight.js, the landing page
+and the docs site).
 
 ---
 
-## 3. Iframe sandbox tightening
+## 3. Preview + print iframe isolation
 
-Two iframes in the editor host paged.js. Both carry a `sandbox` attribute now:
+Rendered document content is attacker-influenced (any editor of the doc,
+imports, the AI). It is DOMPurify-sanitised, but the preview is where a
+sanitizer bypass would execute — so it executes somewhere harmless:
 
-| Iframe | `sandbox` value | Why |
+| Iframe | `sandbox` | Origin |
 |---|---|---|
-| `app/composables/usePagedPreview.ts` (live preview) | `allow-scripts allow-same-origin` | paged.js + the bootstrap need scripts; the bootstrap reads `window.parent.document` for color-mode sync, which requires same-origin. Deliberately NOT `allow-forms` / `allow-popups` / `allow-top-navigation` — preview must never navigate the host or open new windows. |
-| `app/utils/printPdf.ts` (PDF export) | `allow-scripts allow-same-origin allow-modals` | Same as above + `allow-modals`: without it, Chromium silently no-ops `window.print()` inside a sandboxed iframe. |
+| live preview (`app/composables/usePagedPreview.ts`) | `allow-scripts` | opaque (`null`) |
+| browser print (`app/utils/printPdf.ts`, same bootstrap) | `allow-scripts allow-modals` | opaque (`null`) |
 
-Server-side render page (`app/pages/_internal/render/[docId].vue`) is loaded
-in a top-level Playwright tab inside the renderer container, never in an
-iframe — no sandbox needed there. The `frame-ancestors 'none'` in CSP
-already prevents anyone from iframing it from outside.
+No `allow-same-origin`: script inside the preview cannot read the app's
+cookies or storage (both throw), cannot touch `window.parent`'s DOM, and its
+requests to the app are cross-site — no session cookie, and the CSRF check
+refuses state-changing calls from origin `null`. Also omitted: `allow-forms`,
+`allow-popups`, `allow-top-navigation`; every link click in the preview is
+intercepted (fragments scroll, everything else is inert) and `frame-src
+'self'` refuses navigation elsewhere. `allow-modals` (print only) is what
+lets `window.print()` open the dialog.
+
+How the preview still works (details: `app/utils/AGENTS.md`):
+
+- **postMessage protocol** (`app/utils/previewFrame.ts`): render requests and
+  the app's color mode go in; ready / page count / errors / print shortcut /
+  print done come out. The parent accepts messages only from the iframe's
+  window with origin `null`, validated per type; the iframe accepts them only
+  from `window.parent` with the parent's exact origin and posts to that
+  origin only.
+- **Images**: own-document `/api/files/…` URLs get a 15-minute, read-only,
+  doc-scoped `file-access` JWT (`GET /api/docs/:docId/file-token`, same
+  access decision as `/api/files`). Only `/api/files` accepts that scope; the
+  sync server rejects every scoped token.
+- **Off-screen throttling**: Chromium throttles rendering of off-screen
+  cross-origin frames, so the hidden print iframe sits inside the viewport
+  (1×1 px, transparent, click-through).
+
+The server render page (`app/pages/_internal/render/[docId].vue`) is a
+top-level page in the renderer's own Chromium (no app session there at all);
+its CSP is `buildRenderCsp()` and its network is limited by the renderer
+allowlist (§C). Mermaid runs in each document's own context: inside the
+sandboxed iframe for preview/print, on the render page for the server PDF —
+never in the app's origin.
 
 ---
 
@@ -165,16 +212,16 @@ Compose-file syntax validation:
 docker compose -f docker-compose.prod.yml config > /dev/null
 ```
 
-This expands all label substitutions (including the CSP string with `${DOMAIN}`) and surfaces any quoting bug before deploy.
+This expands all label substitutions and surfaces any quoting bug before deploy. The CSP is not in the compose file any more — `curl -sI https://${DOMAIN}/ | grep -i content-security` shows the app's header (a new nonce on every request).
 
 ---
 
 ## 5. Follow-ups (not done here)
 
 - **HSTS preload submission** — manual step at https://hstspreload.org/ once HSTS has run unmodified for ~30 days. Removal takes weeks.
-- **CSP nonce wiring** — drop `'unsafe-inline'` from `script-src` once Vite/Nuxt-UI inlines are nonced.
 - **CSP violation reporting** — add `report-uri /api/_internal/csp-report` once a Nitro endpoint exists to ingest reports into Sentry as `component=csp` events.
-- **`docker-compose.local.yml`** — local stack does not currently apply these headers (mkcert TLS + nip.io domain; CSP'd CDN URLs would still resolve, but the dev loop tolerates a less-strict policy). Mirror the middleware to local once we want to verify CSP changes pre-push.
+- **`docker-compose.local.yml`** — the local stack does not apply the Traefik header set (HSTS, frame-deny, …). It does get the app's CSP + CORP, like every production build.
+- **`style-src 'unsafe-inline'`** — would need nonces/hashes for Nuxt UI's token block plus a KaTeX/paged.js pipeline without inline styles; not planned.
 - **S3 bucket-policy audit** — orthogonal to headers but listed in AGENTS.md §4. `aws s3api get-bucket-acl --bucket $BUCKET` post-deploy must show `ListBucket` denied to public.
 
 ---

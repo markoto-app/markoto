@@ -1,8 +1,8 @@
 import type { CodeTheme } from '../types/theme'
 
 /**
- * CDN URL for the highlight.js theme stylesheet used by the paged.js
- * preview AND the PDF print iframes.
+ * CDN URL + SRI hash for the highlight.js theme stylesheet used by the
+ * paged.js preview, the browser print iframe and the server render page.
  *
  * Why CDN instead of bundling: highlight.js's CSS would otherwise be
  * imported via Vite into the parent document, but srcdoc iframes don't
@@ -15,47 +15,46 @@ import type { CodeTheme } from '../types/theme'
  * Pinned to the version installed in package.json. Update both
  * together; the URL is versioned so old caches don't bleed.
  *
- * SRI rationale (intentionally NOT enforced for hljs):
- * Unlike paged.js, KaTeX, and mermaid, the hljs theme stylesheets do
- * NOT carry SRI hashes. We picked option (b) — skip SRI, document why:
+ * Every theme stylesheet is SRI-locked (`hljsTheme(theme).sri`): the CSP
+ * allows only this package path on jsDelivr, and the integrity hash pins
+ * the exact bytes, so a poisoned CDN response is refused by the browser
+ * instead of being cached by Workbox for 30 days. A CSS-only attack is
+ * narrower than JS, but attribute selectors + url() can still exfiltrate
+ * or alter what the reader sees.
  *
- *   1. The function returns one of ~30+ different theme URLs depending
- *      on user preference. Computing + maintaining a Record<theme, sri>
- *      lookup would mean re-hashing all themes on every hljs version
- *      bump (and getting the build to choke on a single mismatch).
- *   2. The stylesheet is loaded ONLY into the same-origin srcdoc iframe
- *      (live preview) or hidden print iframe — neither has access to
- *      cookies, OAuth session, or any privileged DOM the parent app
- *      cares about. A poisoned hljs stylesheet's blast radius is
- *      "the user's code blocks render with attacker-controlled colors".
- *   3. CSS-injection-via-attribute-selector exfil exists in theory but
- *      hljs themes don't touch user-attributed nodes (no `[href]`,
- *      `[data-token]`, etc. selectors); they target `.hljs-*` classes
- *      added by highlight.js itself, which carry no secrets.
- *
- * If the threat model changes (e.g. we start rendering secrets inside
- * `<pre>` blocks the iframe can read), revisit this decision and adopt
- * option (a) — pre-compute SRI for every theme into a lookup table.
+ * To bump HLJS_VERSION, recompute every hash below:
+ *   curl -sSL <URL> | openssl dgst -sha384 -binary | openssl base64 -A
  */
 export const HLJS_VERSION = '11.12.0'
 
+type HljsThemeName = Exclude<CodeTheme, 'none'>
+
+/** Path under `styles/` + SRI hash of each theme's minified stylesheet. */
+const HLJS_THEMES: Record<HljsThemeName, { path: string, sri: string }> = {
+  'github-light': { path: 'github', sri: 'sha384-eFTL69TLRZTkNfYZOLM+G04821K1qZao/4QLJbet1pP4tcF+fdXq/9CdqAbWRl/L' },
+  'github-dark': { path: 'github-dark', sri: 'sha384-wH75j6z1lH97ZOpMOInqhgKzFkAInZPPSPlZpYKYTOqsaizPvhQZmAtLcPKXpLyH' },
+  'monokai': { path: 'monokai', sri: 'sha384-Exar9WeMELq1EieDQNh7c2ggVht9/FEoVtGG2JKgmEwcm5zOXQwPMzp3PEsPJ/zq' },
+  'dracula': { path: 'base16/dracula', sri: 'sha384-8yvztywXIMtiE+HRhcQsx4/deaeolO/VC3gouoTc7kgVhEdHJ3nJwSU5fzO9HgUV' },
+  'solarized-light': { path: 'base16/solarized-light', sri: 'sha384-rnjP0mbM8/cpKzcxL41jkXETTXZTqLAxYj/Xt5x4/j+UsOi1hseTJVw+YdXRbbbi' },
+  'solarized-dark': { path: 'base16/solarized-dark', sri: 'sha384-xAOMWIFDjsMwim+nhPTvySn//mxqBQRxRtIyNbZ/uYLGKS7YZNlnhNmEIs0BW+hJ' }
+}
+
+/** Every highlight.js stylesheet lives under this prefix (also a CSP source expression). */
+export const HLJS_STYLES_BASE = `https://cdn.jsdelivr.net/npm/highlight.js@${HLJS_VERSION}/styles/`
+
 /**
- * Resolve the highlight.js stylesheet URL for the given code theme. An
- * empty return signals the caller to skip the stylesheet entirely
- * (corresponds to `code.theme: 'none'`); theme CSS strips `.hljs`
- * background/color so the block reads as plain monospace.
+ * Resolve the highlight.js stylesheet for the given code theme. An empty
+ * `url` signals the caller to skip the stylesheet entirely (corresponds
+ * to `code.theme: 'none'`); theme CSS strips `.hljs` background/color so
+ * the block reads as plain monospace.
  */
+export function hljsTheme(theme: CodeTheme): { url: string, sri: string } {
+  if (theme === 'none') return { url: '', sri: '' }
+  const entry = HLJS_THEMES[theme]
+  return { url: `${HLJS_STYLES_BASE}${entry.path}.min.css`, sri: entry.sri }
+}
+
+/** URL-only shorthand for `hljsTheme(theme).url`. */
 export function hljsThemeUrl(theme: CodeTheme): string {
-  if (theme === 'none') return ''
-  // Path on cdn.jsdelivr.net is `styles/<name>.min.css` for top-level
-  // themes and `styles/base16/<name>.min.css` for the base16 family.
-  const themePath: Record<Exclude<CodeTheme, 'none'>, string> = {
-    'github-light': 'github',
-    'github-dark': 'github-dark',
-    'monokai': 'monokai',
-    'dracula': 'base16/dracula',
-    'solarized-light': 'base16/solarized-light',
-    'solarized-dark': 'base16/solarized-dark'
-  }
-  return `https://cdn.jsdelivr.net/npm/highlight.js@${HLJS_VERSION}/styles/${themePath[theme]}.min.css`
+  return hljsTheme(theme).url
 }

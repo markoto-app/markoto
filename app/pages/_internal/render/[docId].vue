@@ -3,11 +3,11 @@ import { renderMarkdown } from '~/utils/renderMarkdown'
 import { composeFinalHtml } from '~/utils/composeFinalHtml'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import type { DocTheme, MermaidTheme } from '~~/shared/types/theme'
+import type { DocTheme } from '~~/shared/types/theme'
 import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
-import { hljsThemeUrl } from '~~/shared/utils/hljsCdn'
+import { hljsTheme } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
-import { MERMAID_ESM_URL } from '~~/shared/utils/mermaidCdn'
+import { transformMermaid } from '~/utils/mermaidLoader'
 import { sanitizeCustomCssForRender } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { attachRenderFileTokens, withRenderFileToken, type RenderFileAccess } from '~/utils/renderFileTokens'
@@ -174,12 +174,14 @@ onMounted(async () => {
   // KaTeX + hljs CSS — these are needed for visual correctness but they
   // CAN sit in the head; we just don't pass them to paged.js. paged.js
   // reads them naturally as a regular browser stylesheet during render.
-  const hljsUrl = hljsThemeUrl(theme.code.theme)
-  if (hljsUrl) {
-    // No SRI on hljs theme stylesheets — see shared/utils/hljsCdn.ts.
+  const hljs = hljsTheme(theme.code.theme)
+  if (hljs.url) {
+    // SRI-locked like every CDN asset (shared/utils/hljsCdn.ts).
     const link = document.createElement('link')
     link.rel = 'stylesheet'
-    link.href = hljsUrl
+    link.integrity = hljs.sri
+    link.crossOrigin = 'anonymous'
+    link.href = hljs.url
     document.head.appendChild(link)
   }
   // KaTeX is SRI-locked — same rationale as the live preview iframe.
@@ -285,99 +287,6 @@ async function preloadImages(urls: readonly string[]): Promise<void> {
     img.src = src
     return img.decode().catch(() => undefined)
   }))
-}
-
-interface MermaidModule {
-  initialize: (config: Record<string, unknown>) => void
-  render: (id: string, source: string) => Promise<{ svg: string }>
-}
-let mermaidPromise: Promise<MermaidModule> | null = null
-async function loadMermaid(theme: MermaidTheme): Promise<MermaidModule> {
-  if (!mermaidPromise) {
-    // Dynamic import() does not support SRI — mermaid is best-effort
-    // (see shared/utils/mermaidCdn.ts).
-    mermaidPromise = import(/* @vite-ignore */ MERMAID_ESM_URL)
-      .then(mod => mod.default)
-      .catch((err) => {
-        mermaidPromise = null
-        throw err
-      })
-  }
-  const m = await mermaidPromise
-  m.initialize({
-    startOnLoad: false,
-    theme,
-    securityLevel: 'antiscript',
-    themeVariables: { fontSize: '12px' },
-    flowchart: { htmlLabels: false, padding: 25 },
-    fontFamily: 'inherit'
-  })
-  return m
-}
-
-async function transformMermaid(html: string, theme: MermaidTheme): Promise<string> {
-  if (!html.includes('language-mermaid')) return html
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(`<body>${html}</body>`, 'text/html')
-  const blocks = Array.from(doc.querySelectorAll('pre code.language-mermaid'))
-  if (blocks.length === 0) return html
-  const m = await loadMermaid(theme)
-  for (const code of blocks) {
-    const pre = code.parentElement
-    if (!pre) continue
-    await replaceMermaidBlock(doc, pre, code.textContent || '', m)
-  }
-  return doc.body.innerHTML
-}
-
-/** Render one mermaid source string and swap the originating `<pre>` for an `<img>` wrapper or error placeholder. Mirrors `app/utils/printPdf.ts`. */
-async function replaceMermaidBlock(doc: Document, pre: Element, source: string, m: MermaidModule): Promise<void> {
-  // crypto.randomUUID() is a secure-context-only API. This print page is
-  // served to the renderer's headless Chromium over plain HTTP
-  // (http://app:3000, container-to-container), which is NOT a secure
-  // context, so crypto.randomUUID is undefined there and would throw —
-  // halting the mermaid transform before __pagedReady is set and hanging
-  // the render until the sidecar's 45s waitForFunction timeout. Fall back
-  // to a non-secure-context-safe id (only needs to be unique per render):
-  // crypto.getRandomValues — unlike randomUUID — IS defined in non-secure
-  // contexts, so it works over the plain-HTTP container path too.
-  const id = 'mmd-' + (globalThis.crypto.randomUUID?.()
-    ?? (Date.now().toString(36) + Array.from(
-      globalThis.crypto.getRandomValues(new Uint32Array(2)),
-      n => n.toString(36)
-    ).join('')))
-  try {
-    const { svg } = await m.render(id, source)
-    const { natW, natH } = extractMermaidNaturalSize(svg)
-    const finalSvg = natH ? svg.replace(/<svg(\b)/, `<svg height="${natH}"$1`) : svg
-    pre.replaceWith(buildMermaidImg(doc, finalSvg, natW, natH))
-  } catch (err: unknown) {
-    const errEl = doc.createElement('div')
-    errEl.className = 'mermaid-error'
-    errEl.textContent = `Mermaid error: ${err instanceof Error ? err.message : 'invalid diagram'}`
-    pre.replaceWith(errEl)
-  }
-}
-
-function extractMermaidNaturalSize(svg: string): { natW: number | null, natH: number | null } {
-  const vbNums = (svg.match(/viewBox="[^"]*"/) ?? [''])[0].match(/[\d.]+/g)
-  return {
-    natW: vbNums?.[2] ? Math.round(Number.parseFloat(vbNums[2])) : null,
-    natH: vbNums?.[3] ? Math.round(Number.parseFloat(vbNums[3])) : null
-  }
-}
-
-function buildMermaidImg(doc: Document, svg: string, natW: number | null, natH: number | null): HTMLElement {
-  const wrap = doc.createElement('div')
-  wrap.className = 'mermaid'
-  const svgBase64 = btoa(unescape(encodeURIComponent(svg)))
-  const img = doc.createElement('img')
-  img.src = `data:image/svg+xml;base64,${svgBase64}`
-  img.style.cssText = 'max-width:100%;display:block;'
-  if (natW) img.setAttribute('width', String(natW))
-  if (natH) img.setAttribute('height', String(natH))
-  wrap.appendChild(img)
-  return wrap
 }
 </script>
 

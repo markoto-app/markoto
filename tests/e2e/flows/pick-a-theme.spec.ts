@@ -136,10 +136,10 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   // mount the theme stylesheet by the time we can read it; the CSS
   // contract is verified by the unit tests in themeToCss.test.ts.
   if (!editor.isMobile) {
-    const academicBrand = await page.evaluate(() => {
-      const iframe = document.querySelector('iframe') as HTMLIFrameElement | null
-      const doc = iframe?.contentDocument
-      const style = Array.from(doc?.querySelectorAll('style') ?? [])
+    // The preview runs in an opaque-origin iframe (no contentDocument
+    // access from the page) — evaluate inside the frame instead.
+    const academicBrand = await editor.page.previewRoot().evaluate(() => {
+      const style = Array.from(document.querySelectorAll('style'))
         .find(s => (s.textContent ?? '').includes('--doc-brand'))
       return style?.textContent?.match(/--doc-brand:\s*(#[0-9a-fA-F]+)/)?.[1] ?? null
     })
@@ -193,10 +193,8 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   // ASSERTION: markoto's brand color (#B5371F shu) is back. Skipped
   // on mobile (same reason as the academic check above).
   if (!editor.isMobile) {
-    const markotoBrand = await page.evaluate(() => {
-      const iframe = document.querySelector('iframe') as HTMLIFrameElement | null
-      const doc = iframe?.contentDocument
-      const style = Array.from(doc?.querySelectorAll('style') ?? [])
+    const markotoBrand = await editor.page.previewRoot().evaluate(() => {
+      const style = Array.from(document.querySelectorAll('style'))
         .find(s => (s.textContent ?? '').includes('--doc-brand'))
       return style?.textContent?.match(/--doc-brand:\s*(#[0-9a-fA-F]+)/)?.[1] ?? null
     })
@@ -283,10 +281,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   // Mobile path skipped — paged.js mobile pipeline timing makes the
   // DOM check flaky; coverHtml.test.ts asserts the same contract.
   if (!editor.isMobile) {
-    const coverInDom = await page.evaluate(() => {
-      const iframe = document.querySelector('iframe') as HTMLIFrameElement | null
-      return !!iframe?.contentDocument?.querySelector('.markoto-cover')
-    })
+    const coverInDom = await editor.page.previewRoot().evaluate(() => !!document.querySelector('.markoto-cover'))
     expect(coverInDom).toBe(true)
   }
 
