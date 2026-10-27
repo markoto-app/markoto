@@ -12,7 +12,15 @@
 // (`/api/import`: 50 MB file + multipart framing = 51 MiB); browser
 // uploads go to S3 with presigned URLs and never through the app.
 //
-// When bumping nitropack, diff this file against the preset entry.
+// Left out on purpose: the preset's `startScheduleRunner()` (no Nitro
+// scheduled tasks are configured) and its `import.meta._websocket`
+// switches (websockets are always on).
+//
+// Upgrade guard: the preset source this copy was derived from is pinned
+// in tests/fixtures/nitropack/bun-preset-entry.mjs.txt, and
+// tests/unit/bunEntryUpstream.test.ts fails as soon as the installed
+// nitropack ships a different preset entry. Carry the change over here,
+// then refresh the snapshot.
 
 import '#nitro-internal-pollyfills'
 import { useNitroApp } from 'nitropack/runtime'
