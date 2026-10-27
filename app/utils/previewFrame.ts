@@ -2,6 +2,7 @@ import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/page
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidCdn'
 import { hljsTheme } from '~~/shared/utils/hljsCdn'
+import { ownUploadFileId } from '~~/shared/utils/themeImages'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { CustomCssResult } from '~~/shared/types/customCss'
@@ -31,8 +32,8 @@ import IFRAME_BOOTSTRAP from '~/composables/pagedPreviewIframe.html?raw'
  *   - the iframe can't call `__renderDoc` or read the parent's color mode,
  *     so both arrive as messages (`RenderMessage`, `ColorModeMessage`);
  *   - its `<img>` requests are cross-site and carry no session cookie, so
- *     the document's own `/api/files/<docId>/…` URLs get a short-lived
- *     `file-access` token appended (`withFileAccessToken`, minted by
+ *     the document's own upload URLs get a short-lived `file-access` token
+ *     appended (`withOwnUploadToken` / `attachOwnUploadTokens`, minted by
  *     `GET /api/docs/:docId/file-token`) — same mechanism as the server
  *     render page;
  *   - the srcdoc inherits the app's CSP, so its inline scripts carry the
@@ -141,33 +142,58 @@ function jsStringSafe(value: string): string {
   return /^[A-Za-z0-9.:/[\]-]*$/.test(value) ? value : ''
 }
 
-/** Escape a string for literal use inside a RegExp. */
-function escapeRegExp(value: string): string {
-  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
+/**
+ * `url` with `?token=<file-access JWT>` appended when it is EXACTLY one of
+ * this document's image uploads (`/api/files/<docId>/<fileId>`, no query,
+ * origin or other path around it — `ownUploadFileId`); otherwise unchanged.
+ * Same rule as the server render page (`renderFileTokens.ts`): nothing in
+ * the content can make the editor attach the token to a link, an external
+ * URL that merely contains the path, or another document's file.
+ */
+export function withOwnUploadToken(url: string, docId: string, token: string): string {
+  if (!token || ownUploadFileId(url, docId) === null) return url
+  return `${url}?token=${encodeURIComponent(token)}`
 }
 
-function fileUrlPattern(docId: string): RegExp {
-  // Own-document image URLs only (the same shape /api/files accepts),
-  // not already carrying a query string.
-  return new RegExp(String.raw`(/api/files/${escapeRegExp(docId)}/[A-Za-z0-9_-]{1,64}\.(?:png|jpe?g|gif|webp))(?![?\w])`, 'g')
-}
-
-/** True when `text` references one of the document's uploaded images. */
-export function referencesDocFiles(text: string, docId: string): boolean {
-  return fileUrlPattern(docId).test(text)
+/** Add the file token to every `<img src>` in `html` that is one of the document's own uploads. */
+export function attachOwnUploadTokens(html: string, docId: string, token: string): string {
+  if (!token) return html
+  const template = document.createElement('template')
+  template.innerHTML = html
+  let changed = false
+  for (const img of Array.from(template.content.querySelectorAll('img[src]'))) {
+    const src = img.getAttribute('src') ?? ''
+    const next = withOwnUploadToken(src, docId, token)
+    if (next !== src) {
+      img.setAttribute('src', next)
+      changed = true
+    }
+  }
+  return changed ? template.innerHTML : html
 }
 
 /**
- * Append `?token=<file-access JWT>` to every `/api/files/<docId>/<file>` URL
- * in rendered HTML or CSS. The token is a JWT (base64url + dots), so it is
- * inert inside both an HTML attribute and a CSS `url("…")`.
+ * Cheap, conservative check whether a render could need the file token:
+ * the HTML or the raw custom CSS mention `/api/files/`, or a theme image
+ * is an own upload. (Misses nothing; may fetch a token that ends up unused.)
  */
-export function withFileAccessToken(text: string, docId: string, token: string): string {
-  if (!token) return text
-  return text.replace(fileUrlPattern(docId), `$1?token=${encodeURIComponent(token)}`)
+export function mayReferenceOwnUploads(opts: {
+  html: string
+  theme: Pick<DocTheme, 'brand' | 'header' | 'footer'>
+  rawCustomCss: string | undefined
+  docId: string
+}): boolean {
+  const { html, theme, rawCustomCss, docId } = opts
+  return html.includes('/api/files/')
+    || (rawCustomCss ?? '').includes('/api/files/')
+    || [theme.brand.logoUrl, theme.header.imageUrl, theme.footer.imageUrl].some(u => ownUploadFileId(u, docId) !== null)
 }
 
-/** Everything the iframe needs to render one document, minus the HTML. */
+/**
+ * Everything the iframe needs to render one document. `customCss` must
+ * already carry the token on its own-upload url()s (sanitize it with
+ * `fileUrl: path => withOwnUploadToken(path, docId, token)`).
+ */
 export function buildRenderMessage(opts: {
   html: string
   theme: DocTheme
@@ -183,13 +209,14 @@ export function buildRenderMessage(opts: {
     title: opts.title,
     date: dateIso,
     tocTitle: opts.tocTitle,
-    customCss: opts.customCss
+    customCss: opts.customCss,
+    imageUrl: url => withOwnUploadToken(url, opts.docId, opts.fileToken)
   })
   const hljs = hljsTheme(opts.theme.code.theme)
   return {
     type: 'render',
-    html: withFileAccessToken(opts.html, opts.docId, opts.fileToken),
-    themeCss: withFileAccessToken(themeCss, opts.docId, opts.fileToken),
+    html: attachOwnUploadTokens(opts.html, opts.docId, opts.fileToken),
+    themeCss,
     fontsImport: themeFontsImport(opts.theme),
     hljsUrl: hljs.url,
     hljsSri: hljs.sri,

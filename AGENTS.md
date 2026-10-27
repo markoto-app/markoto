@@ -243,7 +243,7 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 | Waitlist sign-up | 5 per IP/hour (429); 3 confirmation emails per address/24 h (silently skipped — same 202, no oracle); confirm/unsubscribe 30 per IP/10 min |
 | AI calls (all billable surfaces) | per-user LiteLLM virtual key: tiered `max_budget` + `rpm_limit: 60`, set at key creation (`server/utils/litellm/userKeys.ts`). Replaced the legacy app-side AI-prompt/transcribe limits (Phase 6) |
 | Live dictation | 1 session/user (Valkey `SET NX`), 10 min/session hard cap, 30s idle timeout. No daily audio cap — spend is gated by the LiteLLM budget |
-| Hocuspocus | 20 connections/IP (released on every socket close, incl. failed auth), 5000 rooms; per client update: 17 MiB WS frame / 16 MiB update / 16 MiB encoded document (`SYNC_MAX_{MESSAGE,UPDATE,DOCUMENT}_BYTES`; deletions always pass), ymeta writes validated like `PUT /meta` — see `sync-server/AGENTS.md` |
+| Hocuspocus | 20 connections/IP (released on every socket close, incl. failed auth), 5000 rooms; per client update: 17 MiB WS frame / 16 MiB update / 16 MiB encoded document (`SYNC_MAX_{MESSAGE,UPDATE,DOCUMENT}_BYTES`; deletions always pass), ymeta writes validated like `PUT /meta`; messages queued before a document authenticates: 32 MiB/socket, 256 MiB/process, auth frame within 15 s (`SYNC_MAX_PREAUTH_BYTES`, `SYNC_MAX_PREAUTH_TOTAL_BYTES`, `SYNC_AUTH_TIMEOUT_MS`); read-only connections can't send stateless messages — see `sync-server/AGENTS.md` |
 | Web tools (`web_search` Staan + `fetch_url` Jina Reader) | platform-paid upstream call, so per-user and shared by the editor AI + MCP: 30/hour and 100/day by default (`NUXT_WEB_TOOLS_{HOURLY,DAILY}_LIMIT`, `0` = unlimited), 429 `ai/web-tools-rate-limited`; fail OPEN on Valkey error (`server/utils/webTools.ts`). Tools not offered without `STAAN_API_KEY` / `JINA_AI_API_KEY` |
 | Workspace invites | 20/hour per admin + 30/hour per workspace (429), ≤50 open invites per workspace (409 `workspace/invite-cap`), ≤3 invite emails per address per day (silently skipped); invite-link accept 20/user/10 min |
 | Log out everywhere | 10/user/hour |
@@ -261,7 +261,7 @@ Schema source-of-truth: `server/db/schema.ts`. Enums as `text('col', { enum: [..
 
 **Client keys:** IP-keyed limits use `getClientRateLimitKey(event)` — the IPv4 address or the IPv6 **/64** (a single subscriber controls a whole /64, so full-address keys would be unlimited buckets). **Atomic:** `checkRateLimit`, `consumeRateLimitBudget` and `reserveInflightSlot` are single Lua scripts in Valkey, so a concurrent burst can't overshoot (pinned against the real Valkey container in `tests/repos/rateLimitAtomic.test.ts`).
 
-Valkey-backed rate limits are bypassed under test mode — `TEST_MODE=1` on an instance that does NOT look like a real deployment (`shared/utils/testMode.ts`: a non-loopback `NUXT_SITE_URL` disables it, and boot refuses to start with `TEST_MODE=1` on such an instance).
+Valkey-backed rate limits are bypassed under test mode — `TEST_MODE=1` on an instance that does NOT look like a real deployment (`shared/utils/testMode.ts`: a non-loopback `NUXT_SITE_URL` disables it, and boot refuses to start with `TEST_MODE=1` on such an instance). `TEST_ENFORCE_RATE_LIMITS` (comma-separated namespaces or `*`, honoured only while test mode is active — it can only make an instance stricter) re-enables chosen limits: the integration suite's billing-off server enforces every MCP namespace so `tests/integration/mcp/rateLimits.test.ts` drives the real limits (`isRateLimitBypassed`).
 
 **Rate-limit fail mode:** Valkey-backed limits fail OPEN on Valkey errors (DoS protection, not correctness). Single-session locks + pending-upload claims (live dictation, knowledge confirm) fail CLOSED (correctness; failing open would double-bill or duplicate state).
 
@@ -496,6 +496,7 @@ For feature-specific gotchas see the sub-AGENTS.md for that area.
 
 - **`server/auth/` is not a Nitro route dir.** OAuth handlers live in `server/routes/auth/`.
 - **`@nuxtjs/i18n` v10:** `lazy` removed — lazy is default when `locales[].file` is set. `langDir: 'locales/'` resolves relative to `i18n/`, not `app/`.
+- **`server/runtime/bunEntry.ts` is a copy of nitropack's `bun` preset entry** (plus Bun's `maxRequestBodySize`). The preset source it was derived from is pinned in `tests/fixtures/nitropack/bun-preset-entry.mjs.txt`; `tests/unit/bunEntryUpstream.test.ts` fails when an upgraded nitropack ships a different preset entry. Then re-derive `bunEntry.ts` from `node_modules/nitropack/dist/presets/bun/runtime/bun.mjs` and refresh the snapshot — never just refresh the snapshot.
 - **`nitro.preset` must match runtime** — default `node-server` breaks packages with Bun conditional exports (lib0).
 - **Dev sync networking** — `host.docker.internal` + `host-gateway` on Linux; Nuxt dev must bind `0.0.0.0`.
 - **Drizzle `node-postgres`** — Promise-returning, no `.get()`/`.all()`. Use `(await db.select()...limit(1))[0]`.

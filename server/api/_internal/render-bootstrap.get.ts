@@ -2,6 +2,7 @@ import { mintFileAccessToken } from '../../utils/fileAccessToken'
 import { verifyRenderToken } from '../../utils/renderTokens'
 import { getDoc } from '../../repos/documents'
 import { reconstructTextAtYjsId } from '../../utils/historyReplay'
+import { listConfirmedUploadsForDoc } from '../../repos/uploads'
 
 // Called from the internal print page (`app/pages/_internal/render/[docId].vue`)
 // during SSR. Validates the render-token, replays the doc's Y.js history to
@@ -54,11 +55,11 @@ export default defineEventHandler(async (event) => {
   // print page can load `/api/files/{docId}/...` images on PRIVATE /
   // password-protected / workspace docs. Without this, decideFileAccess
   // denies the renderer's anonymous fetch (it has no session cookie) and
-  // the images come up blank in the PDF. The print page appends it to
-  // every /api/files URL before paginating. Only /api/files accepts the
-  // `file-access` scope (and Hocuspocus refuses any scoped token); 5-minute
-  // TTL is well longer than any single render but short enough to be
-  // useless if it leaks. See server/utils/fileAccessToken.ts.
+  // the images come up blank in the PDF. The print page appends it to the
+  // document's own upload URLs (`fileIds` below) before paginating. Only
+  // /api/files accepts the `file-access` scope (and Hocuspocus refuses any
+  // scoped token); 5-minute TTL is well longer than any single render but
+  // short enough to be useless if it leaks. See server/utils/fileAccessToken.ts.
   const fileAccessToken = mintFileAccessToken(docId, 5 * 60).token
 
   return {
@@ -70,6 +71,11 @@ export default defineEventHandler(async (event) => {
     audience: doc.audience,
     language: doc.language,
     fileAccessToken,
+    // The document's confirmed uploads. The print page gives the token
+    // ONLY to `/api/files/<docId>/<fileId>` URLs naming one of these
+    // (app/utils/renderFileTokens.ts), never to arbitrary URLs in the
+    // content.
+    fileIds: (await listConfirmedUploadsForDoc(docId)).map(u => u.fileId),
     // Public app origin(s) — absolute `https://<app>/api/files/…` URLs in
     // custom CSS are treated as this app's (the print page itself is
     // served from the internal container origin, so it can't tell).

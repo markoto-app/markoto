@@ -14,8 +14,9 @@ import {
   createFileTokenSource,
   currentCspNonce,
   parseFrameMessage,
+  mayReferenceOwnUploads,
   postToFrame,
-  referencesDocFiles
+  withOwnUploadToken
 } from '~/utils/previewFrame'
 
 /**
@@ -130,19 +131,42 @@ export function usePagedPreview(opts: {
   const i18n = (typeof useI18n === 'function') ? useI18n() : null
   const tocTitle = computed(() => i18n?.t('table.tocTitle') ?? 'Table of Contents')
 
-  // Sanitized custom CSS, keyed by the (docId, raw css) it was made from.
-  // The sanitizer is loaded lazily, so `render()` (synchronous, because
-  // of the pagination serialisation above) never awaits it: when the
-  // cache is stale it kicks off the sanitize and re-enters `render()`
-  // once the result is in. Documents without custom CSS skip all this.
+  // Image access token for the opaque-origin iframe (its requests carry
+  // no cookie). `render()` stays synchronous (pagination serialisation
+  // above): when a token is needed but missing / about to expire it kicks
+  // off a fetch and re-enters once it is in.
+  const fileTokens = createFileTokenSource(() => opts.docId.value, opts.getDocJwt)
+  let fileTokenPending = false
+
+  /** The token to use ('' = none needed), or null while one is being fetched. */
+  function fileTokenFor(needed: boolean): string | null {
+    if (!needed) return ''
+    const token = fileTokens.current()
+    if (token !== null) return token
+    if (!fileTokenPending) {
+      fileTokenPending = true
+      fileTokens.refresh().finally(() => {
+        fileTokenPending = false
+        render()
+      })
+    }
+    return null
+  }
+
+  // Sanitized custom CSS, keyed by the (docId, file token, raw css) it was
+  // made from — own-upload url()s carry the token, so a new token means a
+  // new sanitize (every ~13 min). The sanitizer is loaded lazily, so
+  // `render()` never awaits it: when the cache is stale it kicks off the
+  // sanitize and re-enters `render()` once the result is in. Documents
+  // without custom CSS skip all this.
   let customCssKey = ''
   let customCss: CustomCssResult | undefined
   let customCssPending: string | null = null
 
-  /** True when the cache matches the current theme; otherwise starts a refresh. */
-  function customCssReady(): boolean {
-    const raw = opts.theme.value.customCss ?? ''
-    const key = `${opts.docId.value}\n${raw}`
+  /** True when the cache matches the current theme + token; otherwise starts a refresh. */
+  function customCssReady(raw: string, fileToken: string): boolean {
+    const docId = opts.docId.value
+    const key = `${docId}\n${fileToken}\n${raw}`
     if (key === customCssKey) return true
     if (raw.trim() === '') {
       customCss = undefined
@@ -153,7 +177,11 @@ export function usePagedPreview(opts: {
     if (customCssPending === key) return false
     customCssPending = key
     let result: CustomCssResult | undefined
-    sanitizeCustomCssForRender(raw, { docId: opts.docId.value, allowedOrigins: currentAppOrigins() })
+    sanitizeCustomCssForRender(raw, {
+      docId,
+      allowedOrigins: currentAppOrigins(),
+      fileUrl: path => withOwnUploadToken(path, docId, fileToken)
+    })
       .then((res) => {
         result = res
       })
@@ -172,29 +200,7 @@ export function usePagedPreview(opts: {
     return false
   }
 
-  // Image access token for the opaque-origin iframe (its requests carry
-  // no cookie). Same lazy pattern as the custom CSS: `render()` stays
-  // synchronous and re-enters once a fresh token is in.
-  const fileTokens = createFileTokenSource(() => opts.docId.value, opts.getDocJwt)
-  let fileTokenPending = false
-
-  /** True when no token is needed or a fresh one is cached; otherwise starts a refresh. */
-  function fileTokenReady(html: string, themeCss: string): boolean {
-    const docId = opts.docId.value
-    if (!referencesDocFiles(html, docId) && !referencesDocFiles(themeCss, docId)) return true
-    if (fileTokens.current() !== null) return true
-    if (!fileTokenPending) {
-      fileTokenPending = true
-      fileTokens.refresh().finally(() => {
-        fileTokenPending = false
-        render()
-      })
-    }
-    return false
-  }
-
   function render() {
-    if (!customCssReady()) return
     const frame = iframe?.contentWindow
     if (!isReady.value || !frame) {
       pendingRender = true
@@ -212,7 +218,8 @@ export function usePagedPreview(opts: {
     // Invalid → default theme; image URLs that don't belong to this
     // document are dropped.
     const current = opts.theme.value
-    const theme = themeImagesForDoc(isValidTheme(current) ? current : defaultTheme, opts.docId.value).theme
+    const docId = opts.docId.value
+    const theme = themeImagesForDoc(isValidTheme(current) ? current : defaultTheme, docId).theme
     // Compose the final HTML through the shared helper so live preview,
     // browser print, and the server-rendered PDF stay byte-identical
     // (one place to change cover/dropcap composition order).
@@ -222,11 +229,10 @@ export function usePagedPreview(opts: {
       dateIso: new Date().toISOString().slice(0, 10),
       bodyHtml: opts.html.value
     })
-    // Cheap pre-check for own-image references (header/footer images +
-    // custom CSS live in the theme CSS); the message below carries the
-    // fully built CSS.
-    const cssProbe = `${theme.header.imageUrl} ${theme.footer.imageUrl} ${theme.brand.logoUrl} ${customCss?.css ?? ''}`
-    if (!fileTokenReady(html, cssProbe)) return
+    const rawCustomCss = theme.customCss ?? ''
+    const fileToken = fileTokenFor(mayReferenceOwnUploads({ html, theme, rawCustomCss, docId }))
+    if (fileToken === null) return
+    if (!customCssReady(rawCustomCss, fileToken)) return
     isPaginating.value = true
     postToFrame(frame, buildRenderMessage({
       html,
@@ -234,8 +240,8 @@ export function usePagedPreview(opts: {
       title: opts.title.value || '',
       tocTitle: tocTitle.value,
       customCss,
-      docId: opts.docId.value,
-      fileToken: fileTokens.current() ?? '',
+      docId,
+      fileToken,
       print: false
     }))
   }

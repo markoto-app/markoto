@@ -17,7 +17,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import jwt from 'jsonwebtoken'
-import { resetDb } from '../setup/db'
+import { resetDb, testDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
@@ -172,5 +172,26 @@ describe('GET /api/_internal/render-bootstrap', () => {
     // verify failure into the same 403 to avoid timing/shape oracles.
     const body = await res.json() as { message?: string }
     expect(body.message).toMatch(/invalid/i)
+  })
+
+  // The print page gives its file-access token only to these uploads.
+  it('lists the doc\'s confirmed uploads only (not pending ones, not other docs\')', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+    const other = await createDoc({ ownerId: owner.id })
+    const insert = (docId: string, fileId: string, confirmed: boolean) => testDb().query(
+      `INSERT INTO uploads (doc_id, file_id, uploader_id, content_type, size_bytes, s3_key, confirmed_at)
+       VALUES ($1, $2, $3, 'image/png', 10, $4, ${confirmed ? 'now()' : 'NULL'})`,
+      [docId, fileId, owner.id, `docs/${docId}/${fileId}`]
+    )
+    await insert(doc.docId, 'AbCdEfGhIjKl.png', true)
+    await insert(doc.docId, 'PendingPend1.png', false)
+    await insert(other.docId, 'OtherDocFile.png', true)
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${doc.docId}&t=${mintRenderToken(doc.docId, 1)}`
+    )
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ fileIds: ['AbCdEfGhIjKl.png'] })
   })
 })

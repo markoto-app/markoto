@@ -12,8 +12,9 @@ import {
   createFileTokenSource,
   currentCspNonce,
   parseFrameMessage,
+  mayReferenceOwnUploads,
   postToFrame,
-  referencesDocFiles
+  withOwnUploadToken
 } from './previewFrame'
 
 /** Pagination must finish within this; the print dialog itself has no limit. */
@@ -62,21 +63,23 @@ export async function printDocumentAsPdf(opts: {
     dateIso: new Date().toISOString().slice(0, 10),
     bodyHtml
   })
-  // Same render-time sanitize as the live preview (Y.js writes bypass
-  // the server-side check, so the stored CSS is never trusted as-is).
-  const customCss = await sanitizeCustomCssForRender(theme.customCss, {
-    docId: opts.docId,
-    allowedOrigins: currentAppOrigins()
-  })
-  // The opaque-origin iframe's image requests carry no cookie: own-image
-  // URLs get the short-lived file-access token, as in the live preview.
+  // The opaque-origin iframe's image requests carry no cookie: the
+  // document's own upload URLs get the short-lived file-access token, as
+  // in the live preview.
   let fileToken = ''
-  const cssProbe = `${theme.header.imageUrl} ${theme.footer.imageUrl} ${theme.brand.logoUrl} ${customCss?.css ?? ''}`
-  if (referencesDocFiles(html, opts.docId) || referencesDocFiles(cssProbe, opts.docId)) {
+  if (mayReferenceOwnUploads({ html, theme, rawCustomCss: theme.customCss, docId: opts.docId })) {
     const tokens = createFileTokenSource(() => opts.docId, opts.getDocJwt)
     await tokens.refresh()
     fileToken = tokens.current() ?? ''
   }
+  // Same render-time sanitize as the live preview (Y.js writes bypass
+  // the server-side check, so the stored CSS is never trusted as-is).
+  const docId = opts.docId
+  const customCss = await sanitizeCustomCssForRender(theme.customCss, {
+    docId,
+    allowedOrigins: currentAppOrigins(),
+    fileUrl: path => withOwnUploadToken(path, docId, fileToken)
+  })
   const message = buildRenderMessage({
     html,
     theme,

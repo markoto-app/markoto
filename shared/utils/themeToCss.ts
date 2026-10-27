@@ -27,6 +27,13 @@ export type ThemeRuntime = {
    * is never read here.
    */
   customCss?: CustomCssResult
+  /**
+   * Maps a header/footer image URL (already shape-checked, see
+   * `shared/utils/themeImages.ts`) to the URL the page actually loads.
+   * The server render page uses it to add its file-access token to this
+   * document's own uploads; everyone else loads the URL as stored.
+   */
+  imageUrl?: (url: string) => string
 }
 
 /**
@@ -115,8 +122,9 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
       // Image slot — URL serialised as a CSS string (shape-checked
       // above, so this is belt and braces); height pinned in pt so it
       // lines up with the running header's text-size scale.
+      const src = runtime.imageUrl ? runtime.imageUrl(slots.imageUrl) : slots.imageUrl
       out.push(`  @${boxName} {
-    content: url(${cssString(slots.imageUrl)});
+    content: url(${cssString(src)});
     height: ${slots.imageHeight}pt;
     width: auto;
   }`)

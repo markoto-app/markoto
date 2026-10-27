@@ -10,6 +10,7 @@ import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
 import { transformMermaid } from '~/utils/mermaidLoader'
 import { sanitizeCustomCssForRender } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
+import { attachRenderFileTokens, withRenderFileToken, type RenderFileAccess } from '~/utils/renderFileTokens'
 
 // Cheap structural sanity check — the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
@@ -59,6 +60,7 @@ const { data: bootstrap, error: bootstrapError } = await useFetch<{
   audience: string
   language: string
   fileAccessToken: string
+  fileIds?: string[]
   appOrigins?: string[]
 }>('/api/_internal/render-bootstrap', {
   query: { docId, t },
@@ -97,32 +99,39 @@ onMounted(async () => {
     dateIso: new Date().toISOString().slice(0, 10),
     bodyHtml
   })
-  // Append the file-access token to every /api/files/{docId}/... URL so
-  // private / password-gated / workspace-only docs' images load. The
-  // renderer's Chromium has no session cookie; without this every
-  // image 403s and the PDF comes up with broken images. The token is
-  // a 5-min, doc-scoped, read-only JWT minted by the bootstrap.
-  const t = bootstrap.value!.fileAccessToken
-  const fileUrlRe = new RegExp(`/api/files/${docId}/([^"' )?]+)`, 'g')
-  html = html.replace(fileUrlRe, (_, fileId) => `/api/files/${docId}/${fileId}?token=${encodeURIComponent(t)}`)
+  // File-access token (5-min, doc-scoped, read-only JWT from the
+  // bootstrap) so private / password-gated / workspace-only docs' images
+  // load — the renderer's Chromium has no session cookie. It goes ONLY to
+  // exact `/api/files/<docId>/<fileId>` URLs of this document's confirmed
+  // uploads: `<img src>` in the body + cover logo, the header/footer
+  // images (themeToCss `imageUrl`) and own-upload url()s in custom CSS.
+  // Nothing in the content can make the page attach it to another URL.
+  const fileAccess: RenderFileAccess = {
+    docId,
+    fileIds: new Set(bootstrap.value?.fileIds ?? []),
+    token: bootstrap.value?.fileAccessToken ?? ''
+  }
+  html = attachRenderFileTokens(html, fileAccess)
 
   // Custom CSS: sanitized again here (the stored theme may have arrived
-  // via a direct Y.js write). Own-upload url()s get the same file-access
-  // token as the markdown images above; everything else external is
-  // already gone, and the CSP + renderer allowlist (PR #64) back that up.
+  // via a direct Y.js write). The sanitizer keeps only exact own-upload
+  // url()s (normalised to `/api/files/<docId>/<fileId>`), which get the
+  // same file-access token; everything else external is already gone,
+  // and the CSP + renderer allowlist (PR #64) back that up.
   const customCss = await sanitizeCustomCssForRender(
     typeof theme.customCss === 'string' ? theme.customCss : undefined,
     {
       docId,
       allowedOrigins: bootstrap.value?.appOrigins ?? [],
-      fileUrlSuffix: `?token=${encodeURIComponent(t)}`
+      fileUrl: path => withRenderFileToken(path, fileAccess)
     }
   )
   const themeCss = themeToCss(theme, {
     title,
     date: new Date().toISOString().slice(0, 10),
     tocTitle: 'Table of Contents',
-    customCss
+    customCss,
+    imageUrl: url => withRenderFileToken(url, fileAccess)
   })
   const fontsImport = themeFontsImport(theme)
 

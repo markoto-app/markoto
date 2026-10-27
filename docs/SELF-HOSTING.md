@@ -237,6 +237,7 @@ Everything lives in `.env` next to the compose files. After a change: `docker co
 | `TRAEFIK_TRUSTED_IPS` | `127.0.0.1/32` | Comma-separated CIDRs of proxies in front of Traefik whose `X-Forwarded-*` headers are kept. |
 | `NUXT_TRUSTED_PROXY_HOPS` | `1` | Reverse proxies in front of the app (Traefik = 1). See [Security notes](#trusted-proxy). |
 | `SYNC_MAX_MESSAGE_BYTES` / `SYNC_MAX_UPDATE_BYTES` / `SYNC_MAX_DOCUMENT_BYTES` | 17 MiB / 16 MiB / 16 MiB | Largest WebSocket message, single change and document (encoded size) the collaboration server accepts, in bytes. A refused change shows the editor a "changes were not saved" banner; deleting content is always allowed. |
+| `SYNC_MAX_PREAUTH_BYTES` / `SYNC_MAX_PREAUTH_TOTAL_BYTES` / `SYNC_AUTH_TIMEOUT_MS` | 32 MiB / 256 MiB / 15000 | Memory the collaboration server spends on messages sent before a connection has logged in to a document: per connection and across all connections (bytes), and how long a connection may send messages for a document without its login token (ms). Over the limit the connection is closed. |
 | `MARKOTO_INSTANCE` | `markoto` | Instance name: compose project, network names, Traefik routing scope. Run several instances on one host with different names and ports. |
 | `COMPOSE_FILE`, `COMPOSE_PROJECT_NAME`, `COMPOSE_PROFILES` | set by `install.sh` | Which compose files and profiles `docker compose` uses. |
 | `REGISTRY` / `IMAGE_TAG` | `ghcr.io/joelbarmettleruzh` / release tag | Image source. |

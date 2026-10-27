@@ -6,9 +6,11 @@ import {
   PREVIEW_SANDBOX,
   PRINT_SANDBOX,
   buildPreviewSrcdoc,
+  attachOwnUploadTokens,
+  buildRenderMessage,
+  mayReferenceOwnUploads,
   parseFrameMessage,
-  referencesDocFiles,
-  withFileAccessToken
+  withOwnUploadToken
 } from '~/utils/previewFrame'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
@@ -97,28 +99,35 @@ describe('parseFrameMessage', () => {
   })
 })
 
-describe('withFileAccessToken', () => {
-  const html = '<img src="/api/files/doc-1/abc_DEF-12.png"><img src="/api/files/doc-2/x.png"><img src="/api/files/doc-1/y.jpg?token=old">'
-
-  it('appends the token to this document\'s image URLs only', () => {
-    const out = withFileAccessToken(html, 'doc-1', 'aaa.bbb.ccc')
-    expect(out).toContain('/api/files/doc-1/abc_DEF-12.png?token=aaa.bbb.ccc"')
-    expect(out).toContain('/api/files/doc-2/x.png"')
-    // Already carries a query: left alone.
-    expect(out).toContain('/api/files/doc-1/y.jpg?token=old"')
+describe('file-access token attachment (own uploads only)', () => {
+  it('adds the token to exact own-upload URLs only', () => {
+    expect(withOwnUploadToken('/api/files/doc-1/abc_DEF-12.png', 'doc-1', 'aaa.bbb.ccc')).toBe('/api/files/doc-1/abc_DEF-12.png?token=aaa.bbb.ccc')
+    for (const url of [
+      '/api/files/doc-2/x.png', // another document
+      '/api/files/doc-1/y.jpg?x=1', // already has a query
+      'https://evil.example/api/files/doc-1/x.png', // merely contains the path
+      '/api/files/doc-1/x.svg' // not an image upload shape
+    ]) {
+      expect(withOwnUploadToken(url, 'doc-1', 't'), url).toBe(url)
+    }
+    expect(withOwnUploadToken('/api/files/doc-1/x.png', 'doc-1', '')).toBe('/api/files/doc-1/x.png')
   })
 
-  it('works inside CSS url()', () => {
-    expect(withFileAccessToken('a{background:url("/api/files/doc-1/bg.webp")}', 'doc-1', 't'))
-      .toBe('a{background:url("/api/files/doc-1/bg.webp?token=t")}')
+  it('touches <img src> only — never links or text', () => {
+    const html = '<p><img src="/api/files/doc-1/a.png" alt=""><a href="/api/files/doc-1/a.png">link</a> /api/files/doc-1/a.png</p>'
+    const out = attachOwnUploadTokens(html, 'doc-1', 'tok')
+    expect(out).toContain('<img src="/api/files/doc-1/a.png?token=tok"')
+    expect(out).toContain('<a href="/api/files/doc-1/a.png">')
+    expect(out).toContain('</a> /api/files/doc-1/a.png</p>')
+    expect(attachOwnUploadTokens(html, 'doc-1', '')).toBe(html)
   })
 
-  it('treats the doc id literally (no regex injection)', () => {
-    expect(referencesDocFiles('/api/files/docX1/a.png', 'doc.1')).toBe(false)
-    expect(referencesDocFiles('/api/files/doc.1/a.png', 'doc.1')).toBe(true)
-  })
-
-  it('is a no-op without a token', () => {
-    expect(withFileAccessToken(html, 'doc-1', '')).toBe(html)
+  it('header/footer images in the theme CSS get the token via themeToCss', () => {
+    const theme = structuredClone(defaultTheme)
+    theme.header.imageUrl = '/api/files/doc-1/head.png'
+    const msg = buildRenderMessage({ html: '<p>x</p>', theme, title: 'T', tocTitle: 'TOC', customCss: undefined, docId: 'doc-1', fileToken: 'tok', print: false })
+    expect(msg.themeCss).toContain('/api/files/doc-1/head.png?token=tok')
+    expect(mayReferenceOwnUploads({ html: '<p>x</p>', theme, rawCustomCss: '', docId: 'doc-1' })).toBe(true)
+    expect(mayReferenceOwnUploads({ html: '<p>x</p>', theme: defaultTheme, rawCustomCss: '', docId: 'doc-1' })).toBe(false)
   })
 })

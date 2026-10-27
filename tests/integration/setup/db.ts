@@ -120,6 +120,12 @@ export async function resetValkey(): Promise<void> {
   await client.flushdb()
 }
 
+/** Delete one key from the test Valkey (e.g. a server-side cache entry). */
+export async function deleteValkeyKey(key: string): Promise<void> {
+  const client = await getValkey()
+  await client.del(key)
+}
+
 export async function closeTestValkey(): Promise<void> {
   if (_valkey) {
     await _valkey.quit().catch(() => {})

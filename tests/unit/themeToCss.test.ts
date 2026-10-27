@@ -451,4 +451,28 @@ describe('themeToCss — generated CSS strings and image URLs (regression)', () 
     const css = themeToCss(withHeader({ imageUrl: '/api/files/doc1/AbCdEfGhIjKl.png', imagePosition: 'center' }), runtime)
     expect(css).toMatch(/@top-center \{\s*content: url\("\/api\/files\/doc1\/AbCdEfGhIjKl\.png"\);/)
   })
+
+  // The server render page loads private docs' header/footer images with
+  // its file-access token; without the mapping those images 403 in the PDF.
+  test('runtime.imageUrl maps header and footer image URLs', () => {
+    const theme: DocTheme = {
+      ...withHeader({ imageUrl: '/api/files/doc1/AbCdEfGhIjKl.png', imagePosition: 'left' }),
+      footer: { ...markoto.footer, left: '', center: '', right: '', imageUrl: '/api/files/doc1/ZyXwVuTsRqPo.webp', imagePosition: 'right' }
+    }
+    const css = themeToCss(theme, { ...runtime, imageUrl: url => `${url}?token=t.k.n` })
+    expect(css).toMatch(/@top-left \{\s*content: url\("\/api\/files\/doc1\/AbCdEfGhIjKl\.png\?token=t\.k\.n"\);/)
+    expect(css).toMatch(/@bottom-right \{\s*content: url\("\/api\/files\/doc1\/ZyXwVuTsRqPo\.webp\?token=t\.k\.n"\);/)
+  })
+
+  test('runtime.imageUrl is never called for a URL that failed the shape check', () => {
+    const seen: string[] = []
+    themeToCss(withHeader({ imageUrl: 'https://evil.example/x.png', imagePosition: 'left' }), {
+      ...runtime,
+      imageUrl: (url) => {
+        seen.push(url)
+        return url
+      }
+    })
+    expect(seen).toEqual([])
+  })
 })
