@@ -89,10 +89,10 @@ beforeEach(async () => {
   blocked.hits.length = 0
 })
 
-async function renderPdfWith(markdown: string): Promise<number> {
+async function renderPdfWith(markdown: string | ((docId: string) => string)): Promise<number> {
   const owner = await createUser()
   const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-  await insertYjsRow(doc.docId, markdown)
+  await insertYjsRow(doc.docId, typeof markdown === 'string' ? markdown : markdown(doc.docId))
   const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
   return res.status
 }
@@ -109,6 +109,17 @@ describe('renderer network lockdown (SSRF)', () => {
     // A blocked image degrades to a broken image — the render itself succeeds.
     expect(status).toBe(302)
     expect(blocked.hits).toEqual([])
+  }, 90_000)
+
+  // The print page holds a file-access token for the document's own
+  // uploads. A URL that merely CONTAINS the upload path (here on an
+  // allowed origin) must not get it — it used to be appended to every
+  // `/api/files/<docId>/…` match in the HTML.
+  it('never hands the file-access token to a URL that only contains the doc\'s upload path', async () => {
+    const status = await renderPdfWith(docId => `# Doc\n\n![t](http://host.docker.internal:${allowed.port}/api/files/${docId}/AbCdEfGhIjKl.png)\n`)
+    expect(status).toBe(302)
+    expect(allowed.hits).toHaveLength(1)
+    expect(allowed.hits[0]).toMatch(/^\/api\/files\/[\w-]+\/AbCdEfGhIjKl\.png$/)
   }, 90_000)
 
   it('does not follow a redirect from an allowed origin to a blocked one', async () => {

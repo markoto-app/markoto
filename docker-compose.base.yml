@@ -275,6 +275,12 @@ services:
       - SYNC_MAX_MESSAGE_BYTES=${SYNC_MAX_MESSAGE_BYTES:-}
       - SYNC_MAX_UPDATE_BYTES=${SYNC_MAX_UPDATE_BYTES:-}
       - SYNC_MAX_DOCUMENT_BYTES=${SYNC_MAX_DOCUMENT_BYTES:-}
+      # Messages queued before a document authenticates. Empty = defaults
+      # (32 MiB per socket / 256 MiB per process / 15 s for the auth frame)
+      # — see sync-server/src/pre-auth-guard.ts and .env.example.
+      - SYNC_MAX_PREAUTH_BYTES=${SYNC_MAX_PREAUTH_BYTES:-}
+      - SYNC_MAX_PREAUTH_TOTAL_BYTES=${SYNC_MAX_PREAUTH_TOTAL_BYTES:-}
+      - SYNC_AUTH_TIMEOUT_MS=${SYNC_AUTH_TIMEOUT_MS:-}
     # Image user `bun`; source is root-owned. Bun only needs /tmp.
     read_only: true
     tmpfs:

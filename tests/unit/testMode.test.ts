@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isTestModeEnabled, productionSignals, testModeBootError } from '../../shared/utils/testMode'
+import { isRateLimitBypassed, isTestModeEnabled, productionSignals, testModeBootError } from '../../shared/utils/testMode'
 
 // TEST_MODE=1 unlocks the /api/_test/* login shim (log in as any user),
 // skips boot-time secret validation and disables rate limits. It must
@@ -47,5 +47,30 @@ describe('testModeBootError', () => {
   it('productionSignals names every reason', () => {
     expect(productionSignals({ NUXT_SITE_URL: 'https://docs.example.org' })).toHaveLength(1)
     expect(productionSignals({})).toEqual([])
+  })
+})
+
+describe('isRateLimitBypassed', () => {
+  it('never bypasses outside test mode, whatever TEST_ENFORCE_RATE_LIMITS says', () => {
+    expect(isRateLimitBypassed('mcp-token', {})).toBe(false)
+    expect(isRateLimitBypassed('mcp-token', { TEST_ENFORCE_RATE_LIMITS: '' })).toBe(false)
+    expect(isRateLimitBypassed('mcp-token', { TEST_MODE: '1', NUXT_SITE_URL: 'https://docs.example.org' })).toBe(false)
+  })
+
+  it('bypasses every namespace in test mode by default', () => {
+    expect(isRateLimitBypassed('mcp-token', { TEST_MODE: '1' })).toBe(true)
+    expect(isRateLimitBypassed('doc-password', { TEST_MODE: '1' })).toBe(true)
+  })
+
+  it('enforces only the listed namespaces in test mode', () => {
+    const env = { TEST_MODE: '1', TEST_ENFORCE_RATE_LIMITS: 'mcp-client, mcp-token' }
+    expect(isRateLimitBypassed('mcp-client', env)).toBe(false)
+    expect(isRateLimitBypassed('mcp-token', env)).toBe(false)
+    expect(isRateLimitBypassed('mcp-tool-user', env)).toBe(true)
+    expect(isRateLimitBypassed('doc-password', env)).toBe(true)
+  })
+
+  it('enforces everything with *', () => {
+    expect(isRateLimitBypassed('doc-password', { TEST_MODE: '1', TEST_ENFORCE_RATE_LIMITS: '*' })).toBe(false)
   })
 })

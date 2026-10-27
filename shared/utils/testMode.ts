@@ -51,6 +51,21 @@ export function isTestModeEnabled(env: Env = process.env): boolean {
 }
 
 /**
+ * True when the Valkey-backed rate limits of `namespace` are skipped:
+ * test mode is active and the namespace isn't listed in
+ * `TEST_ENFORCE_RATE_LIMITS` (comma-separated namespaces, or `*` for
+ * all). The list lets one integration server exercise real limits (the
+ * MCP limits) while the rest of the suite keeps the bypass. Outside test
+ * mode nothing is bypassed in the first place, so the switch can only
+ * make an instance stricter, never looser.
+ */
+export function isRateLimitBypassed(namespace: string, env: Env = process.env): boolean {
+  if (!isTestModeEnabled(env)) return false
+  const enforced = new Set((env.TEST_ENFORCE_RATE_LIMITS ?? '').split(',').map(s => s.trim()).filter(Boolean))
+  return !enforced.has('*') && !enforced.has(namespace)
+}
+
+/**
  * Boot-time error when `TEST_MODE=1` is set on an instance that looks
  * like a real deployment; null otherwise.
  */

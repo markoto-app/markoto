@@ -103,8 +103,8 @@ describe('allowed constructs survive', () => {
     expectKept('p { background-image: image-set("/api/files/doc1/a.png" 1x, url(/api/files/doc1/b.png) 2x) }', 'image-set("/api/files/doc1/a.png"1x,url(/api/files/doc1/b.png)2x)')
   })
 
-  it('fileUrlSuffix is appended to own uploads (render page token)', () => {
-    const r = run('p { background: url(/api/files/doc1/a.png) }', { ...OPTS, fileUrlSuffix: '?token=abc.def' })
+  it('fileUrl maps own uploads (render page token)', () => {
+    const r = run('p { background: url(/api/files/doc1/a.png) }', { ...OPTS, fileUrl: path => `${path}?token=abc.def` })
     expect(r.css).toContain('/api/files/doc1/a.png?token=abc.def')
   })
 

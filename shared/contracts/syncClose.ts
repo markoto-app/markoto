@@ -26,9 +26,20 @@ export type SyncCloseReason = typeof SYNC_CLOSE_REASONS[keyof typeof SYNC_CLOSE_
 
 /** Close codes (application range 4000–4999) paired with the reasons above. */
 export const SYNC_CLOSE_CODES = {
+  /** A document queued messages without sending its Auth frame in time (socket closed, reconnect). */
+  authTimeout: 4408,
   payloadTooLarge: 4413,
   unprocessable: 4422
 } as const
+
+/**
+ * Socket close reason when a document queued messages without sending
+ * its Auth frame in time (`sync-server/src/pre-auth-guard.ts`). Not a
+ * sync rejection: the editor reconnects as after any other disconnect.
+ * Queuing too MUCH before authentication closes with `update-too-large`
+ * instead.
+ */
+export const SYNC_AUTH_TIMEOUT_REASON = 'auth-timeout'
 
 /** RFC 6455 "message too big" — sent by the `ws` server on frames above maxPayload. */
 export const WS_CLOSE_MESSAGE_TOO_BIG = 1009

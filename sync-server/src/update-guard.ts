@@ -33,6 +33,7 @@ import * as Y from 'yjs'
 import { isValidMetaValue } from '../../shared/utils/ymetaValidation'
 import { SYNC_CLOSE_CODES, SYNC_CLOSE_REASONS, type SyncCloseReason } from '../../shared/contracts/syncClose'
 import type { SyncLimits } from './limits'
+import { ByteReader, MESSAGE_TYPE, readFrameHeader } from './frame'
 
 export const META_ROOT = 'meta'
 
@@ -53,38 +54,9 @@ export class SyncRejection extends Error {
 }
 
 // ─── Message framing ────────────────────────────────────────────────
-// Hocuspocus frame: varString(documentName) varUint(messageType) …
 // Sync / SyncReply: varUint(syncType) varUint8Array(payload)
-const MESSAGE_SYNC = 0
-const MESSAGE_SYNC_REPLY = 4
 const SYNC_STEP_2 = 1
 const SYNC_UPDATE = 2
-
-class ByteReader {
-  private pos = 0
-  constructor(private readonly buf: Uint8Array) {}
-
-  varUint(): number {
-    let n = 0
-    let mult = 1
-    for (;;) {
-      if (this.pos >= this.buf.length) throw new RangeError('unexpected end of message')
-      const byte = this.buf[this.pos++]
-      if (byte === undefined) throw new RangeError('unexpected end of message')
-      n += (byte & 0x7f) * mult
-      if (byte < 0x80) return n
-      mult *= 128
-      if (mult > Number.MAX_SAFE_INTEGER) throw new RangeError('varUint overflow')
-    }
-  }
-
-  bytes(len: number): Uint8Array {
-    if (this.pos + len > this.buf.length) throw new RangeError('unexpected end of message')
-    const out = this.buf.subarray(this.pos, this.pos + len)
-    this.pos += len
-    return out
-  }
-}
 
 /**
  * The Y.js update carried by a Sync step-2 / update message, or null for
@@ -95,7 +67,7 @@ export function extractSyncUpdate(message: Uint8Array): Uint8Array | null {
   try {
     r.bytes(r.varUint()) // document name
     const type = r.varUint()
-    if (type !== MESSAGE_SYNC && type !== MESSAGE_SYNC_REPLY) return null
+    if (type !== MESSAGE_TYPE.sync && type !== MESSAGE_TYPE.syncReply) return null
     const syncType = r.varUint()
     if (syncType !== SYNC_STEP_2 && syncType !== SYNC_UPDATE) return null
     return r.bytes(r.varUint())
@@ -269,6 +241,30 @@ export function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.GC
   }
 }
 
+// ─── Stateless messages ─────────────────────────────────────────────
+
+/**
+ * Refuse stateless messages from a read-only connection. Hocuspocus relays
+ * a `BroadcastStateless` frame to EVERY connection of the document, so a
+ * viewer could otherwise push arbitrary strings to all editors; plain
+ * `Stateless` frames go to the `onStateless` hook. The app itself sends
+ * neither (no `sendStateless` anywhere in the editor, AI or MCP clients),
+ * so only a non-standard client is affected. Rejecting closes that
+ * document connection and drops the message before it is relayed; writer
+ * connections keep the stock behaviour.
+ */
+function rejectReadOnlyStateless(message: Uint8Array): void {
+  let type: number
+  try {
+    type = readFrameHeader(message).type
+  } catch {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, 'malformed message')
+  }
+  if (type === MESSAGE_TYPE.stateless || type === MESSAGE_TYPE.broadcastStateless) {
+    throw new SyncRejection(SYNC_CLOSE_REASONS.invalidUpdate, 'stateless message from a read-only connection')
+  }
+}
+
 // ─── Guard ──────────────────────────────────────────────────────────
 
 export function createUpdateGuard(limits: SyncLimits) {
@@ -291,9 +287,14 @@ export function createUpdateGuard(limits: SyncLimits) {
         throw new SyncRejection(SYNC_CLOSE_REASONS.updateTooLarge, `${message.byteLength} bytes`)
       }
       const update = extractSyncUpdate(message)
-      // Read-only connections never get their updates applied (Hocuspocus
-      // acks them without applying), so there is nothing to validate.
-      if (update === null || readOnly) return
+      if (readOnly) {
+        rejectReadOnlyStateless(message)
+        // Read-only connections never get their updates applied
+        // (Hocuspocus acks them without applying), so there is nothing
+        // else to validate.
+        return
+      }
+      if (update === null) return
       if (update.byteLength > limits.maxUpdateBytes) {
         throw new SyncRejection(SYNC_CLOSE_REASONS.updateTooLarge, `${update.byteLength} bytes`)
       }

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import {
   isThemeImageUrl,
   isThemeImageUrlForDoc,
+  ownUploadFileId,
   themeImagesForDoc,
   withThemeImagesDocId
 } from '../../shared/utils/themeImages'
@@ -101,6 +102,30 @@ describe('withThemeImagesDocId', () => {
     expect(out.brand.logoUrl).toBe('/api/files/dstDoc222/AbCdEfGhIjKl.png')
     expect(out.header.imageUrl).toBe('/api/files/dstDoc222/b.webp')
     expect(out.footer.imageUrl).toBe(FOREIGN)
+  })
+})
+
+describe('ownUploadFileId', () => {
+  test('returns the file id of an exact upload URL of this document', () => {
+    expect(ownUploadFileId('/api/files/docA1234/AbCdEfGhIjKl.png', 'docA1234')).toBe('AbCdEfGhIjKl.png')
+    expect(ownUploadFileId('/api/files/docA1234/x_y-z.jpeg', 'docA1234')).toBe('x_y-z.jpeg')
+  })
+  test('null for another document, other shapes, and anything around the path', () => {
+    for (const url of [
+      '/api/files/docB5678/AbCdEfGhIjKl.png',
+      '/api/files/docA1234/AbCdEfGhIjKl.png?x=1',
+      '/api/files/docA1234/AbCdEfGhIjKl.png#f',
+      'https://evil.example/api/files/docA1234/AbCdEfGhIjKl.png',
+      '//evil.example/api/files/docA1234/AbCdEfGhIjKl.png',
+      '/x/api/files/docA1234/AbCdEfGhIjKl.png',
+      '/api/files/docA1234/AbCdEfGhIjKl.svg',
+      '/api/files/docA1234/a/b.png',
+      '/markoto-logos/seal.svg',
+      '',
+      42
+    ]) {
+      expect(ownUploadFileId(url, 'docA1234')).toBeNull()
+    }
   })
 })
 

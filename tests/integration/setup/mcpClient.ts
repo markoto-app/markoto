@@ -96,6 +96,8 @@ export interface McpClientOptions {
   skipInitialize?: boolean
   /** Reuse an existing `Mcp-Session-Id` (e.g. one another token created) instead of initializing. */
   sessionId?: string
+  /** Server to talk to (default: the primary test server). */
+  baseUrl?: string
 }
 
 export class McpClient {
@@ -103,9 +105,11 @@ export class McpClient {
   private sessionId: string | null = null
   private initialized = false
   readonly clientName: string
+  private readonly baseUrl: string
 
   constructor(private readonly options: McpClientOptions = {}) {
     this.clientName = options.clientName ?? 'integration-test'
+    this.baseUrl = options.baseUrl ?? TEST_BASE_URL
     if (options.sessionId) {
       this.sessionId = options.sessionId
       this.initialized = true
@@ -199,7 +203,7 @@ export class McpClient {
       'Accept': 'application/json, text/event-stream'
     }
     if (this.options.token) headers['Authorization'] = `Bearer ${this.options.token}`
-    const res = await fetch(`${TEST_BASE_URL}/mcp`, {
+    const res = await fetch(`${this.baseUrl}/mcp`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -232,7 +236,7 @@ export class McpClient {
     if (this.options.token) headers['Authorization'] = `Bearer ${this.options.token}`
     if (this.sessionId) headers['Mcp-Session-Id'] = this.sessionId
 
-    const res = await fetch(`${TEST_BASE_URL}/mcp`, {
+    const res = await fetch(`${this.baseUrl}/mcp`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
@@ -264,7 +268,7 @@ export class McpClient {
     }
     if (this.options.token) headers['Authorization'] = `Bearer ${this.options.token}`
     if (this.sessionId) headers['Mcp-Session-Id'] = this.sessionId
-    await fetch(`${TEST_BASE_URL}/mcp`, {
+    await fetch(`${this.baseUrl}/mcp`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
