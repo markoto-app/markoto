@@ -43,11 +43,33 @@ console.info(`[renderer] network allowlist: ${[...ALLOWED_ORIGINS].join(', ')}`)
 // At most this many distinct blocked hosts are logged per render.
 const MAX_BLOCKED_LOGS_PER_RENDER = 10
 
+// Chromium's own sandbox stays ON. The container runs as an unprivileged
+// user with no capabilities; the namespace sandbox then needs unprivileged
+// user namespaces, which the compose files allow with renderer/seccomp.json
+// (docs/SECURITY-HARDENING.md §C.2). RENDERER_CHROMIUM_SANDBOX=false is
+// an operator escape hatch for hosts that forbid user namespaces outright —
+// it is logged loudly because it removes a whole layer.
+const CHROMIUM_SANDBOX = process.env.RENDERER_CHROMIUM_SANDBOX !== 'false'
+if (!CHROMIUM_SANDBOX) {
+  console.warn('[renderer] RENDERER_CHROMIUM_SANDBOX=false: Chromium runs WITHOUT its sandbox')
+}
+
+// Where Chromium sends `localhost` lookups (see getBrowser). The docker
+// host by default; the dev and test stacks point it at their SeaweedFS
+// container instead, because they publish ports on 127.0.0.1 only, which
+// the docker host's bridge address doesn't serve.
+const LOCALHOST_TARGET = (() => {
+  const v = process.env.RENDERER_LOCALHOST_TARGET || 'host.docker.internal'
+  if (!/^[A-Za-z0-9.-]+$/.test(v)) throw new Error('[renderer] RENDERER_LOCALHOST_TARGET must be a bare hostname')
+  return v
+})()
+
 let browserPromise: Promise<Browser> | null = null
 function getBrowser(): Promise<Browser> {
   if (!browserPromise) {
     // `--host-resolver-rules`: rewrite `localhost` DNS lookups inside the
-    // renderer's Chromium to `host.docker.internal`. This solves the
+    // renderer's Chromium to `host.docker.internal` (RENDERER_LOCALHOST_TARGET
+    // above). This solves the
     // dev networking gotcha: presigned S3 URLs are minted with the
     // app's S3 endpoint host (e.g. `localhost:8333` in dev where
     // SeaweedFS is published on the host), but from inside the
@@ -64,11 +86,10 @@ function getBrowser(): Promise<Browser> {
     // EXCLUDE_LOCALHOST keeps anything that ALREADY resolves locally
     // (the renderer's own /health probe at 127.0.0.1:9000) untouched.
     const browserArgs = [
-      '--no-sandbox',
       '--disable-dev-shm-usage',
-      '--host-resolver-rules=MAP localhost host.docker.internal'
+      `--host-resolver-rules=MAP localhost ${LOCALHOST_TARGET}`
     ]
-    browserPromise = chromium.launch({ args: browserArgs })
+    browserPromise = chromium.launch({ args: browserArgs, chromiumSandbox: CHROMIUM_SANDBOX })
   }
   return browserPromise
 }

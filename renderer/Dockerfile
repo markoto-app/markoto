@@ -14,28 +14,42 @@ FROM mcr.microsoft.com/playwright:v1.64.1-jammy
 # base image doesn't ship. The installer takes the release tag as its
 # argument — pinned to the same Bun as the oven/bun images + CI
 # (`bun-version`) so all three move together; without it the build
-# silently picks up whatever Bun is latest that day.
+# silently picks up whatever Bun is latest that day. BUN_INSTALL puts the
+# binary outside /root so the unprivileged runtime user can execute it.
 #
 # The base image's global npm (+ npx) is removed: nothing here uses it
 # (deps install with bun), and its vendored node_modules carry fixable
 # HIGH CVEs that the CI image scan would otherwise flag on every build.
+# Firefox and WebKit are removed too: only Chromium is ever launched, and
+# every browser left in the image is attack surface and image weight.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends unzip \
  && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.4" \
- && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
- && rm -rf /usr/lib/node_modules/npm /usr/bin/npm /usr/bin/npx
+ && curl -fsSL https://bun.sh/install | BUN_INSTALL=/opt/bun bash -s "bun-v1.4.4" \
+ && ln -s /opt/bun/bin/bun /usr/local/bin/bun \
+ && rm -rf /usr/lib/node_modules/npm /usr/bin/npm /usr/bin/npx \
+ && rm -rf /ms-playwright/firefox-* /ms-playwright/webkit-*
 
 WORKDIR /app
 
 # Layered COPYs so source edits don't bust the install cache.
 # Installs from the committed lockfile so the image gets exactly the
 # versions CI tested (`bun install --no-save` without a lockfile resolved
-# the semver ranges fresh on every build).
+# the semver ranges fresh on every build). Everything under /app stays
+# root-owned: the runtime user can read it but not change it.
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts
 
 COPY src ./src
+
+# Run unprivileged as the base image's `pwuser` (uid 1000). Chromium keeps
+# its own sandbox (no --no-sandbox, see src/render.ts): as a non-root user
+# it uses unprivileged user namespaces, which compose allows through the
+# seccomp profile in renderer/seccomp.json. HOME points at /tmp because the
+# compose files mount the root filesystem read-only with a tmpfs on /tmp
+# (Chromium writes its profile, crashpad and font caches under HOME).
+ENV HOME=/tmp
+USER pwuser
 
 EXPOSE 9000
 

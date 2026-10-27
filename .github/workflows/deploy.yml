@@ -131,6 +131,9 @@ jobs:
           NUXT_JWT_SECRET_PREVIOUS: ${{ secrets.NUXT_JWT_SECRET_PREVIOUS }}
           NUXT_INTERNAL_API_SECRET_PREVIOUS: ${{ secrets.NUXT_INTERNAL_API_SECRET_PREVIOUS }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          # Separate DB roles (optional; empty = POSTGRES_USER for everything).
+          POSTGRES_APP_PASSWORD: ${{ secrets.POSTGRES_APP_PASSWORD }}
+          POSTGRES_LITELLM_PASSWORD: ${{ secrets.POSTGRES_LITELLM_PASSWORD }}
           VALKEY_PASSWORD: ${{ secrets.VALKEY_PASSWORD }}
           NUXT_S3_ACCESS_KEY: ${{ secrets.NUXT_S3_ACCESS_KEY }}
           NUXT_S3_SECRET_KEY: ${{ secrets.NUXT_S3_SECRET_KEY }}
@@ -157,6 +160,8 @@ jobs:
           POSTGRES_DB: ${{ vars.POSTGRES_DB }}
           POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
           POSTGRES_PORT: ${{ vars.POSTGRES_PORT }}
+          POSTGRES_APP_USER: ${{ vars.POSTGRES_APP_USER }}
+          POSTGRES_LITELLM_USER: ${{ vars.POSTGRES_LITELLM_USER }}
           VALKEY_DB: ${{ vars.VALKEY_DB }}
           VALKEY_TLS_ENABLED: ${{ vars.VALKEY_TLS_ENABLED }}
           NUXT_S3_ENDPOINT: ${{ vars.NUXT_S3_ENDPOINT }}
@@ -236,6 +241,8 @@ jobs:
             docker-compose.base.yml \
             infra/litellm/config.yaml \
             infra/litellm/custom_handlers.py \
+            infra/postgres/db-init.sh \
+            renderer/seccomp.json \
             | ssh "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
 
       - name: Roll forward + health check

@@ -94,16 +94,20 @@ Prefer a pinned `vX.Y.Z` tag over `latest`, which moves with every release.
 | Service | Image | Purpose |
 |---|---|---|
 | `traefik` | `traefik:v3` | The only service with a published port. Routes `/` to the app, `/sync` to Hocuspocus and `/<bucket>/…` to SeaweedFS, all on one origin. Let's Encrypt in HTTPS mode. |
+| `socket-proxy` | `tecnativa/docker-socket-proxy` | Read-only Docker API for Traefik (container list and events only); Traefik never gets the Docker socket itself. |
 | `app` | `markoto-app` | Nuxt (SSR + API + OAuth). Runs database migrations on start. |
 | `sync` | `markoto-sync` | Hocuspocus (real-time collaboration over WebSocket). |
-| `renderer` | `markoto-renderer` | Headless Chromium for server-side PDF export. |
+| `renderer` | `markoto-renderer` | Headless Chromium for server-side PDF export, with Chromium's own sandbox (needs the seccomp profile `renderer/seccomp.json` from the checkout). |
 | `markitdown` | `markoto-markitdown` | DOCX / PDF / PPTX / XLSX / HTML / EPUB import, knowledge-file parsing. |
 | `postgres` | `pgvector/pgvector:pg16` | All application data, document state, knowledge vectors. Volume `pg_data`. |
 | `valkey` | `valkey/valkey:9` | Rate limits, locks, per-document sync state. Volume `valkey_data`. |
 | `seaweedfs` | `chrislusf/seaweedfs` | S3-compatible storage: images, knowledge uploads (deleted after processing), PDF renders, data exports, backups. Volume `seaweed_data`. |
 | `s3-init` | `markoto-backup` | One-shot: creates the bucket. |
-| `litellm` + `litellm-db-init` | `ghcr.io/berriai/litellm` | AI gateway. Starts without any provider key. |
+| `litellm` | `ghcr.io/berriai/litellm` | AI gateway. Starts without any provider key. Admin UI off. |
+| `db-init` | `pgvector/pgvector:pg16` | One-shot on every start: creates the `litellm` database and the separate database roles for the app and LiteLLM (`infra/postgres/db-init.sh`). |
 | `backup` | `markoto-backup` | Optional (`COMPOSE_PROFILES=backup`, on by default): encrypted `pg_dump` into the bucket. |
+
+Every container runs without Linux capabilities and with `no-new-privileges`; the app, sync, renderer, markitdown, LiteLLM, Valkey and Traefik run as non-root users (Traefik: root without capabilities) on a read-only root filesystem. Details: [SECURITY-HARDENING.md, section C](SECURITY-HARDENING.md#section-c--containers-networks-and-database-roles).
 
 The compose files: `docker-compose.selfhost.yml` (everything, plain HTTP), `docker-compose.selfhost.tls.yml` (HTTPS overlay), `docker-compose.selfhost.build.yml` (build-from-source overlay). They include `docker-compose.base.yml`, which the hosted deployment shares.
 
@@ -240,7 +244,9 @@ Everything lives in `.env` next to the compose files. After a change: `docker co
 
 ### Secrets (generated)
 
-`POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine). Rotation: [SECRETS-ROTATION.md](SECRETS-ROTATION.md). `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.
+`POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine), `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD`. Rotation: [SECRETS-ROTATION.md](SECRETS-ROTATION.md). `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.
+
+Database roles: `POSTGRES_USER` (default `markoto`) is the admin role; only the `db-init` one-shot and the backup use it. The app and the collaboration server connect as `POSTGRES_APP_USER` (default `markoto_app`), which owns the application database and nothing else; LiteLLM connects as `POSTGRES_LITELLM_USER` (default `litellm`), which owns only the `litellm` database. Neither role can connect to the other's database. `db-init` re-applies the two role passwords on every start, so changing `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD` in `.env` followed by `docker compose up -d` rotates them. Setting a role's user to the value of `POSTGRES_USER` turns that separation off.
 
 ### Login and admin
 
@@ -303,7 +309,20 @@ Without email configuration, transactional emails (account-deletion confirmation
 
 ## Ports and networking
 
-Only Traefik publishes ports. Everything else is on two internal Docker networks (`<instance>-edge` for Traefik and the routed services, `<instance>-internal` for databases and backends).
+Only Traefik publishes ports. Everything else sits on purpose networks, so a service reaches only what it needs:
+
+| Network | Members |
+|---|---|
+| `<instance>-edge` | traefik, app, sync |
+| `<instance>-docker-api` | traefik, socket-proxy |
+| `<instance>-data` | postgres, valkey, app, sync, litellm, db-init, backup |
+| `<instance>-render` | app, renderer |
+| `<instance>-import` | app, markitdown |
+| `<instance>-storage` | seaweedfs, traefik, app, renderer, backup, s3-init |
+| `<instance>-egress` | litellm, backup (outbound: AI providers, an external backup bucket) |
+| `<instance>-renderer-egress` | renderer (outbound: fonts and scripts from the pinned CDNs, images via the public URL) |
+
+All but the two egress networks and `edge` are internal (no route off the host). The renderer and the import converter, which handle untrusted documents, cannot reach the database, Valkey, LiteLLM or the collaboration server. SeaweedFS's master, volume and filer listen only inside their own container; only its S3 API is on the network.
 
 | Mode | Published | Routes on one origin |
 |---|---|---|
@@ -348,6 +367,7 @@ Changes that can need action when you upgrade an existing instance. Newest first
 
 | Change | Affects | What to do |
 |---|---|---|
+| **Least-privilege containers, split networks and separate database roles.** Every service drops its Linux capabilities and runs with `no-new-privileges`; most run as non-root users on a read-only filesystem. The single `<instance>-internal` network is replaced by purpose networks ([Ports and networking](#ports-and-networking)), so the renderer and the import converter no longer reach the database. Traefik reads Docker through a read-only `socket-proxy` instead of the Docker socket. The `litellm-db-init` one-shot is replaced by `db-init`, which also creates separate Postgres roles: the app (`POSTGRES_APP_USER`, owner of the app database only) and LiteLLM (`POSTGRES_LITELLM_USER`, owner of the `litellm` database only), hands existing tables over to them and blocks cross-database access. LiteLLM's admin UI is off. The renderer keeps Chromium's sandbox (seccomp profile `renderer/seccomp.json`). | Everyone | Run `./install.sh upgrade` (not just `docker compose up -d`): it generates the two role passwords in `.env`. Without them, the app and LiteLLM keep using `POSTGRES_USER` as before. Afterwards remove the leftovers of the old layout: `docker compose up -d --remove-orphans` (the exited `litellm-db-init` container) and `docker network rm <instance>-internal`. Keep the checkout and `IMAGE_TAG` on the same release: the new compose files expect the non-root renderer image. Hosts that forbid unprivileged user namespaces: see [Troubleshooting](#exports-backups-and-email). |
 | **Image storage quota and image clean-up.** Each user's document images (uploads, AI-generated images, copies made by duplicating a document) are limited by `TIER_FREE_IMAGE_BYTES_PER_USER` (self-host default 10 GiB); existing images count toward it, and new uploads are refused with a clear message once the limit is reached. Images that nothing references any more are deleted after `NUXT_IMAGE_GC_RETENTION_DAYS` (default 30). Duplicated documents' images now count for the person who duplicated them. An image upload that is in progress while you upgrade fails and has to be repeated. The migration adds two nullable columns to `uploads`. | Everyone | Raise `TIER_FREE_IMAGE_BYTES_PER_USER` if your users store more; set `NUXT_IMAGE_GC_RETENTION_DAYS=0` to keep unused images forever. |
 | **Stricter outbound-request and import limits.** AI provider URLs that answer with a redirect now fail (use the provider's final API URL); more internal host spellings are refused. With `NUXT_LEGAL_SURFACES_ENABLED=true`, an empty `NUXT_AI_BYOK_ALLOWED_BASE_URLS` stops the app from starting. OpenID Connect needs `NUXT_OAUTH_OIDC_REDIRECT_URL` or `NUXT_SITE_URL` (no longer taken from the request). Imports over 51 MiB are refused at the edge, and zip-based files that inflate past 200 MB are refused by the converter. | Instances with legal surfaces on; OIDC setups outside the shipped compose files; very large imports | Set the allowlist (see [Security notes](#security-notes)) or the OIDC redirect URL if boot reports them missing. |
 | **Workspace invitations must be accepted.** Inviting by email now creates a pending invitation; the person joins only after accepting it (dashboard, or the emailed link). Existing members are unaffected. | Workspace admins | Tell invitees to accept from their dashboard (they must sign in with the invited email address, or use the email link). |
@@ -450,7 +470,8 @@ You are the operator of your instance. If it is open to the public you may need 
 ## Security notes
 
 - **Secrets** live only in `.env` (mode 0600). Back it up securely; `LITELLM_SALT_KEY` and `BACKUP_GPG_PASSPHRASE` can't be recovered.
-- **Exposure.** Only Traefik is published. Postgres, Valkey, LiteLLM (including its admin UI), SeaweedFS's admin ports and the internal service endpoints are not reachable from outside the Docker networks. Storage is reachable through Traefik but only with valid signatures.
+- **Exposure.** Only Traefik is published. Postgres, Valkey, LiteLLM and the internal service endpoints are not reachable from outside the Docker networks, and inside them only from the services that use them ([Ports and networking](#ports-and-networking)). LiteLLM's admin UI is switched off; SeaweedFS's admin ports listen only inside its container. Storage is reachable through Traefik but only with valid signatures.
+- **Containers.** No container has Linux capabilities beyond what an image's start-up needs (Postgres and SeaweedFS keep the few they use to fix data-directory ownership); all set `no-new-privileges`. Traefik reads the Docker API through a read-only proxy instead of the Docker socket. PDF export keeps Chromium's sandbox, which needs unprivileged user namespaces: the renderer runs with the seccomp profile `renderer/seccomp.json` (Docker's default plus the three calls the sandbox needs). On a host that forbids user namespaces altogether, set `RENDERER_CHROMIUM_SANDBOX=false` on the `renderer` service (see [Troubleshooting](#exports-backups-and-email)).
 - <a id="trusted-proxy"></a>**Trusted proxy / client IPs.** Rate limits and the (truncated) IP on audit records use the client address. markoto takes the `NUXT_TRUSTED_PROXY_HOPS`-th entry from the right of `X-Forwarded-For` (default 1: Traefik's own entry), never the client-supplied leftmost one. Traefik drops forwarded headers from addresses outside `TRAEFIK_TRUSTED_IPS`. If you put another proxy in front, set both (see [above](#behind-your-own-reverse-proxy)); if you set too few hops, everyone behind your proxy shares one rate-limit bucket; too many, and clients can spoof their address again.
 - **Bring-your-own-key URLs (SSRF).** Users can make the server connect to a provider URL. markoto checks the URL and every resolved address before each request (no loopback, link-local/cloud-metadata or internal service names; private networks only with `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true`). The LiteLLM proxy does not follow HTTP redirects, so a provider URL can't bounce it to another address. Residual risk: LiteLLM resolves the hostname again when it connects, so a DNS-rebinding attacker with a near-zero TTL could switch the address between check and connection. With free-form URLs (the self-host default) you accept that risk; set `NUXT_AI_BYOK_ALLOWED_BASE_URLS` to a list of providers to close it. If you switch the legal surfaces on (`NUXT_LEGAL_SURFACES_ENABLED=true`, the hosted shape), the allowlist is required and the app refuses to boot without it. See [AI-MODELS.md#ssrf-protection](AI-MODELS.md#ssrf-protection).
 - **Document import limits.** Anyone can import a file (`/api/import`, 10 per IP per minute). Request bodies are capped at 51 MiB (50 MB file + form framing) for every route by the app server itself (`NITRO_MAX_REQUEST_BODY_BYTES` to change it), and Traefik refuses larger bodies on the import route before they reach the app. The converter (markitdown) inspects zip-based files (DOCX, PPTX, XLSX, EPUB) before converting and refuses archives that inflate past 200 MB, contain more than 10,000 entries or compress more than 100:1; each conversion then runs in a child process with a memory cap and a 60 s time limit, so a hostile file can't take the converter down for other users. Tunable on the `markitdown` service: `MARKITDOWN_MAX_UNCOMPRESSED_MB`, `MARKITDOWN_MAX_ARCHIVE_ENTRIES`, `MARKITDOWN_MAX_COMPRESSION_RATIO`, `MARKITDOWN_TIMEOUT_SECONDS`, `MARKITDOWN_CHILD_MEMORY_MB` (defaults 200 / 10000 / 100 / 60 / 384).
@@ -500,13 +521,14 @@ First look at `./install.sh status` (is every container up and healthy?) and `./
 | The AI can't search the web or read URLs | `STAAN_API_KEY` / `JINA_AI_API_KEY` is missing (the tool isn't offered), or the per-user allowance is used up (429 `ai/web-tools-rate-limited`). |
 | Knowledge uploads fail | Embeddings need `JINA_AI_API_KEY` or a [custom embeddings provider](AI-MODELS.md#embeddings). After changing the model or dimension, run `./install.sh reembed` ([Re-embedding](#re-embedding)); `/api/health/deep` reports `checks.embeddings`. |
 | Platform-paid AI stops with budget messages | The user's monthly AI Points budget (`TIER_FREE_LITELLM_BUDGET_USD`) is used up. It resets every 30 days; raising the variable doesn't change existing users' keys. Calls on users' own keys never count. |
-| LiteLLM keeps restarting | `./install.sh logs litellm`. It starts without provider keys, but needs its database (`litellm-db-init`) and enough memory. |
+| LiteLLM keeps restarting | `./install.sh logs litellm`. It starts without provider keys, but needs its database (`./install.sh logs db-init`) and enough memory. |
 
 ### Exports, backups and email
 
 | Symptom | Cause and fix |
 |---|---|
 | PDF export fails, or PDFs have no images | The `renderer` container loads images from the public URL, so that URL must be reachable from inside the containers ([Ports and networking](#ports-and-networking)). Check `./install.sh logs renderer`. |
+| PDF export fails and the renderer log says `No usable sandbox!` | Chromium's sandbox needs unprivileged user namespaces, which this host (or kernel) forbids, or the seccomp profile `renderer/seccomp.json` isn't next to the compose files. Keep the checkout complete; if the host really forbids user namespaces, add `RENDERER_CHROMIUM_SANDBOX=false` to the `renderer` service's environment (Chromium then runs without its sandbox; the container stays unprivileged and isolated). |
 | Document import fails | `./install.sh logs markitdown`; unsupported or corrupt files are rejected. |
 | No backups appear | The `backup` profile is off (`COMPOSE_PROFILES` in `.env`), or the `backup` container is failing: `docker compose logs backup`. |
 | No emails arrive | Email isn't configured, so mails are only written to the app log as `[email-stub]` ([Email](#email-optional)). |

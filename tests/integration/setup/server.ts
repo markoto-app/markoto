@@ -2,7 +2,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT } from './env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT } from './env'
 import { buildTestEnv } from './testEnv'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
 
@@ -124,6 +124,9 @@ export async function startNuxt(): Promise<void> {
     // shared `postgres-test` container; `axis-spend` and `spend-logs-sweep`
     // both connect directly to query/maintain LiteLLM_SpendLogs.
     NUXT_LITELLM_DB_NAME: 'litellm_test',
+    // ...as LiteLLM's own role, like a deployment with separate roles.
+    NUXT_LITELLM_DB_USER: TEST_LITELLM_DB_USER,
+    NUXT_LITELLM_DB_PASSWORD: TEST_LITELLM_DB_PASSWORD,
     // Phase 6 collapsed `NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER` to a single
     // value (`jina`) when the Gemini path was retired. Left at the
     // default in tests; the env var still exists but no longer toggles

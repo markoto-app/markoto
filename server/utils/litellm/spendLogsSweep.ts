@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
 import { Pool } from 'pg'
+import { litellmDbUrl } from './litellmDb'
 
 // LiteLLM `LiteLLM_SpendLogs` retention sweeper. Phase 5 risk-register
 // item: every billable AI call writes a row, so the table grows
@@ -20,10 +21,8 @@ import { Pool } from 'pg'
 // has no write coordination on this table beyond its own connection
 // pool, so a sweep window deletion is safe.
 //
-// Connection: a dedicated pool on the litellm DB. Re-uses the app's
-// POSTGRES_HOST/PORT/USER/PASSWORD env vars (same Postgres instance,
-// different DB name). Falls back to NUXT_LITELLM_DB_URL if set, for
-// the rare deployment where LiteLLM has its own Postgres.
+// Connection: a dedicated pool on the litellm DB (same Postgres instance,
+// LiteLLM's own role when configured) — see ./litellmDb.ts.
 //
 // Failure-tolerant: a hiccup just leaves stale rows around for one
 // more cycle. The sweep doesn't gate any user-facing behaviour.
@@ -34,24 +33,10 @@ const TIMESTAMP_COL = '"startTime"'
 
 let cachedPool: Pool | null = null
 
-function buildLitellmDbUrl(): string {
-  if (process.env.NUXT_LITELLM_DB_URL) return process.env.NUXT_LITELLM_DB_URL
-  // Re-use the app's Postgres connection details, swap database name to
-  // `litellm` (the proxy's own DB, created by `litellm-db-init` in
-  // docker-compose.base.yml). The integration-test stack uses
-  // `litellm_test` — `NUXT_LITELLM_DB_URL` overrides the swap when set.
-  const user = process.env.POSTGRES_USER ?? 'ypad'
-  const password = process.env.POSTGRES_PASSWORD ?? ''
-  const host = process.env.POSTGRES_HOST ?? 'localhost'
-  const port = process.env.POSTGRES_PORT ?? '5432'
-  const db = process.env.NUXT_LITELLM_DB_NAME ?? 'litellm'
-  return `postgres://${user}:${encodeURIComponent(password)}@${host}:${port}/${db}`
-}
-
 function pool(): Pool {
   if (cachedPool) return cachedPool
   cachedPool = new Pool({
-    connectionString: buildLitellmDbUrl(),
+    connectionString: litellmDbUrl(),
     // Single-connection pool — the sweep is one query per day.
     max: 1,
     // Tighter timeouts than the app pool: we'd rather fail fast and

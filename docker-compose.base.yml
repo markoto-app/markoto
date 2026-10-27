@@ -24,6 +24,13 @@
 # and intentionally leaves env-specific knobs unset. Pair it with one
 # of docker-compose.{dev,local,prod}.yml.
 #
+# Container baseline (docs/SECURITY-HARDENING.md §C.1): every
+# long-running service here runs as a non-root user with `cap_drop: [ALL]`
+# and `no-new-privileges`, and on a read-only root filesystem where the
+# service allows it (writable paths are explicit tmpfs mounts / volumes).
+# Networks are NOT set here — each env file assigns its services to purpose
+# networks (data / render / import / ...), see docker-compose.prod.yml.
+#
 # `docker-compose.test.yml` does NOT include this base: test infra
 # uses suffixed service names (postgres-test, valkey-test, etc.) on
 # different ports with tmpfs storage — almost no shared shape.
@@ -60,27 +67,55 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    # The image's entrypoint starts as root only to fix data-dir ownership
+    # and then drops to the `postgres` user; these are the capabilities
+    # that step needs. Everything else is dropped.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
 
-  # Idempotent one-shot that ensures the `litellm` database exists. Runs
-  # before the litellm service starts. Necessary because the postgres
-  # image's /docker-entrypoint-initdb.d/ only fires on a *fresh* volume —
-  # existing deployments wouldn't have the DB after a base-compose update.
-  litellm-db-init:
+  # Idempotent one-shot, run before the app, sync and LiteLLM start (on
+  # every `up`): creates the `litellm` database and — when configured — the
+  # separate least-privilege roles for the app (POSTGRES_APP_USER) and for
+  # LiteLLM (POSTGRES_LITELLM_USER), hands existing objects over to them and
+  # revokes cross-database CONNECT. Connects as the admin role
+  # (POSTGRES_USER). Unset role vars = both keep using the admin role, the
+  # pre-roles behaviour. Logic + rationale: infra/postgres/db-init.sh.
+  # (/docker-entrypoint-initdb.d/ only fires on a *fresh* volume, so it
+  # can't carry this for existing installs.)
+  db-init:
     image: pgvector/pgvector:pg16
     restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
+    user: postgres
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGUSER=${POSTGRES_USER}
       - PGPASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_USER=${POSTGRES_USER}
-    entrypoint: ["sh", "-c"]
-    command:
-      - |
-        psql -h postgres -U "$$POSTGRES_USER" -d postgres -tAc \
-          "SELECT 1 FROM pg_database WHERE datname='litellm'" \
-          | grep -q 1 || \
-          psql -h postgres -U "$$POSTGRES_USER" -d postgres -c "CREATE DATABASE litellm;"
+      - APP_DB=${POSTGRES_DB}
+      - APP_DB_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
+      - APP_DB_PASSWORD=${POSTGRES_APP_PASSWORD:-}
+      - LITELLM_DB=litellm
+      - LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}
+      - LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
+    volumes:
+      - ./infra/postgres/db-init.sh:/db-init.sh:ro
+    entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm:
     image: ghcr.io/berriai/litellm:v1.106.4
@@ -100,7 +135,9 @@ services:
     # first failure. 2 GB boots clean (verified live on staging).
     mem_limit: 2g
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      # Its own role (owner of the litellm database only) when
+      # POSTGRES_LITELLM_USER is set — see db-init above.
+      - DATABASE_URL=postgresql://${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}:${POSTGRES_LITELLM_PASSWORD:-${POSTGRES_PASSWORD}}@postgres:5432/litellm
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
       # Empty is fine when embeddings run on `custom-embeddings` (self-hosting);
@@ -121,6 +158,8 @@ services:
       - BFL_API_KEY=${BFL_API_KEY:-}
       - STORE_MODEL_IN_DB=false
       - LITELLM_LOG=INFO
+      # No admin UI (see general_settings in infra/litellm/config.yaml).
+      - DISABLE_ADMIN_UI=True
     volumes:
       - ./infra/litellm/config.yaml:/app/config.yaml:ro
       # custom_handlers.py is loaded by litellm_settings.custom_provider_map
@@ -130,10 +169,21 @@ services:
       - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
+    # Unprivileged (`nobody`), read-only image; the Prisma engine and the
+    # proxy only write temp files. Verified: cold-start migrations, key
+    # generation and spend tracking all work under this shape.
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       postgres:
         condition: service_healthy
-      litellm-db-init:
+      db-init:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=2).status == 200 else 1)"]
@@ -180,6 +230,16 @@ services:
       retries: 5
     volumes:
       - valkey_data:/data
+    # The image's `valkey` user (999:1000) directly, instead of an
+    # entrypoint that starts as root to chown /data. The data volume is
+    # already owned by it (the image's /data is, and older entrypoints
+    # chowned existing volumes).
+    user: "999:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
   # NOTE: `seaweedfs` is defined per-env in dev/local (not in base).
   # Compose's `include:` always merges every service from the included
@@ -199,8 +259,9 @@ services:
     mem_limit: 1g
     environment:
       - PORT=4001
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # The app role (shared with the app: both write the app database).
+      - POSTGRES_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
+      - POSTGRES_PASSWORD=${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
@@ -220,11 +281,23 @@ services:
       - SYNC_MAX_PREAUTH_BYTES=${SYNC_MAX_PREAUTH_BYTES:-}
       - SYNC_MAX_PREAUTH_TOTAL_BYTES=${SYNC_MAX_PREAUTH_TOTAL_BYTES:-}
       - SYNC_AUTH_TIMEOUT_MS=${SYNC_AUTH_TIMEOUT_MS:-}
+    # Image user `bun`; source is root-owned. Bun only needs /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       postgres:
         condition: service_healthy
       valkey:
         condition: service_healthy
+      # The app role (POSTGRES_APP_USER) must exist and own the database
+      # before sync creates `yjs_documents`.
+      db-init:
+        condition: service_completed_successfully
 
   markitdown:
     restart: unless-stopped
@@ -233,6 +306,16 @@ services:
     # malicious/huge upload from taking the box down (the app also enforces
     # a 50 MB import size limit upstream).
     mem_limit: 1g
+    # Image user `app`. Parses untrusted files, so it gets the tightest
+    # shape: read-only, no capabilities, and (per env file) a network that
+    # reaches nothing but the app.
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
   # Backend PDF + PNG renderer. Playwright + Chromium drives the
   # paged.js preview pipeline against /_internal/render/:docId on the
@@ -257,6 +340,23 @@ services:
       # the healthcheck and trigger a restart loop.
       start_period: 30s
       retries: 3
+    # Chromium renders user-authored HTML/CSS/SVG, so this is the most
+    # exposed process in the stack. Image user `pwuser` (renderer/Dockerfile),
+    # no capabilities, read-only root with a tmpfs /tmp (Chromium's profile,
+    # shared memory — `--disable-dev-shm-usage` — and font caches; it counts
+    # against mem_limit). Chromium keeps its own sandbox: the seccomp profile
+    # is Docker's default plus `clone`/`unshare`/`chroot`, which Chromium's
+    # user-namespace sandbox needs without CAP_SYS_ADMIN (rationale +
+    # opt-out: docs/SECURITY-HARDENING.md §C.2).
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./renderer/seccomp.json
+    pids_limit: 2048
     environment:
       - PORT=9000
       - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
@@ -286,6 +386,8 @@ services:
       - S3_REGION=${BACKUP_S3_REGION:-us-east-1}
       - S3_PREFIX=${BACKUP_S3_PREFIX:-backups/postgres}
     # The sidecar runs as an unprivileged user; it needs no capabilities.
+    # Not read-only: the encrypted dump is staged in /tmp before upload and
+    # can be large (a tmpfs would count it against mem_limit).
     cap_drop:
       - ALL
     security_opt:

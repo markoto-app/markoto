@@ -113,6 +113,7 @@
   loop:
     - infra/litellm
     - infra/postgres/init
+    - renderer
 
 - name: Sync bind-mounted config files to the VPS
   ansible.builtin.copy:
@@ -125,6 +126,10 @@
     - infra/litellm/config.yaml
     - infra/litellm/custom_handlers.py
     - infra/postgres/init/01-litellm-db.sql
+    # Run by the db-init one-shot (docker-compose.base.yml).
+    - infra/postgres/db-init.sh
+    # The renderer's seccomp profile (Chromium sandbox).
+    - renderer/seccomp.json
 
 # CA copy is best-effort: many OVH plans don't pin a CA, but if you DO drop
 # the .pem at infra/files/ovh-pg-ca.pem we honour it. `failed_when: false`

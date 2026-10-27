@@ -25,6 +25,21 @@
 # `volumes`, `depends_on` and `networks` REPLACE the base definition.
 #
 # Every host port is configurable; nothing but Traefik publishes a port.
+#
+# Networks are split by purpose so a compromised container reaches only
+# what it needs (docs/SECURITY-HARDENING.md §C.3). `internal: true`
+# networks have no route off the host. Who sits where:
+#   edge             traefik, app, sync                    (published entrypoint)
+#   docker-api       traefik, socket-proxy                 (read-only Docker API)
+#   data             postgres, valkey + app, sync, litellm, db-init, backup
+#   render           app <-> renderer
+#   import           app <-> markitdown                    (markitdown has nothing else)
+#   storage          seaweedfs + traefik, app, renderer, backup, s3-init
+#                    (only the S3 port listens beyond seaweedfs' loopback)
+#   egress           litellm, backup                       (AI providers, external backup S3)
+#   renderer-egress  renderer alone                        (CDN, public URL for document images)
+# The renderer and markitdown — the two services that parse untrusted
+# input — can't reach Postgres, Valkey, LiteLLM or sync.
 
 include:
   - docker-compose.base.yml
@@ -35,13 +50,59 @@ networks:
   # never share a network.
   edge:
     name: ${MARKOTO_INSTANCE:-markoto}-edge
-  internal:
-    name: ${MARKOTO_INSTANCE:-markoto}-internal
+  docker-api:
+    name: ${MARKOTO_INSTANCE:-markoto}-docker-api
+    internal: true
+  data:
+    name: ${MARKOTO_INSTANCE:-markoto}-data
+    internal: true
+  render:
+    name: ${MARKOTO_INSTANCE:-markoto}-render
+    internal: true
+  import:
+    name: ${MARKOTO_INSTANCE:-markoto}-import
+    internal: true
+  storage:
+    name: ${MARKOTO_INSTANCE:-markoto}-storage
+    internal: true
+  egress:
+    name: ${MARKOTO_INSTANCE:-markoto}-egress
+  renderer-egress:
+    name: ${MARKOTO_INSTANCE:-markoto}-renderer-egress
 
 volumes:
   seaweed_data:
 
 services:
+  # Read-only Docker API for Traefik's docker provider: container list,
+  # inspect and events only (every write endpoint and everything else
+  # answers 403). Traefik never gets the socket itself, so a Traefik
+  # compromise can't start containers, i.e. can't become root on the host.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    restart: unless-stopped
+    mem_limit: 64m
+    environment:
+      - CONTAINERS=1
+      - EVENTS=1
+      - PING=1
+      - VERSION=1
+      - POST=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # Runs as root only to open the socket (root:docker 0660); no
+    # capabilities, read-only (it renders its haproxy config into /tmp).
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m
+      - /run:size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - docker-api
+
   traefik:
     image: traefik:v3@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
     restart: unless-stopped
@@ -56,6 +117,7 @@ services:
       # The default trusts nothing reachable from outside.
       - "--entrypoints.web.forwardedHeaders.trustedIPs=${TRAEFIK_TRUSTED_IPS:-127.0.0.1/32}"
       - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://socket-proxy:2375"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=${MARKOTO_INSTANCE:-markoto}-edge"
       # Only route THIS instance's containers, even if other stacks on the
@@ -63,31 +125,44 @@ services:
       - "--providers.docker.constraints=Label(`markoto.instance`,`${MARKOTO_INSTANCE:-markoto}`)"
     ports:
       - "${MARKOTO_HTTP_BIND:-0.0.0.0}:${MARKOTO_HTTP_PORT:-80}:80"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # Root without capabilities: binding :80/:443 needs none (Docker sets
+    # net.ipv4.ip_unprivileged_port_start=0 in the container), and the only
+    # file it writes is acme.json on its own volume (TLS overlay).
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    depends_on:
+      - socket-proxy
     networks:
       - edge
+      - docker-api
+      # Routes the bucket path to SeaweedFS (see its labels).
+      - storage
 
   postgres:
     expose:
       - "5432"
     networks:
-      - internal
+      - data
 
   valkey:
     expose:
       - "6379"
     networks:
-      - internal
+      - data
 
-  litellm-db-init:
+  # install.sh generates POSTGRES_APP_* and POSTGRES_LITELLM_*, so the app
+  # and LiteLLM each get a least-privilege role (infra/postgres/db-init.sh).
+  db-init:
     networks:
-      - internal
+      - data
 
   # LiteLLM boots with NO provider keys: every os.environ/ reference in
   # infra/litellm/config.yaml is defaulted to an empty-but-defined value in
@@ -102,7 +177,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - internal
+      - data
+      - egress
 
   # S3-compatible object storage for image uploads, knowledge files, PDF
   # renders, data exports and backups. Credentials come from .env; the
@@ -119,19 +195,39 @@ services:
     # `-master.volumeSizeLimitMB=256`: see docker-compose.dev.yml — keeps
     # enough volume slots on small disks. The image's own entrypoint drops
     # to the `seaweed` user, hence the chown.
+    #
+    # Only the S3 API (SigV4-authenticated) listens on the network
+    # (`-s3.ip.bind=0.0.0.0`). Master, volume and filer — which have no
+    # authentication — bind and advertise 127.0.0.1, so they are reachable
+    # from inside this container only; the Iceberg and Lance side ports are
+    # off.
     command:
       - |
         printf '{"identities":[{"name":"markoto","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","Write","List","Tagging","Lock"]}]}' "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /tmp/s3.json
         chown seaweed:seaweed /tmp/s3.json
         chmod 600 /tmp/s3.json
-        exec /entrypoint.sh server -s3 -ip=seaweedfs -ip.bind=0.0.0.0 -dir=/data -s3.config=/tmp/s3.json -s3.port=8333 -master.volumeSizeLimitMB=256
+        exec /entrypoint.sh server -s3 -ip=127.0.0.1 -ip.bind=127.0.0.1 -s3.ip.bind=0.0.0.0 -s3.port.iceberg=0 -s3.port.lance=0 -dir=/data -s3.config=/tmp/s3.json -s3.port=8333 -master.volumeSizeLimitMB=256
     volumes:
       - seaweed_data:/data
+    # The entrypoint starts as root to chown /data and the identity file,
+    # then drops to `seaweed`: those are the only capabilities kept.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
     expose:
       - "8333"
     labels:
       - "markoto.instance=${MARKOTO_INSTANCE:-markoto}"
       - "traefik.enable=true"
+      # Traefik reaches SeaweedFS over the storage network (it isn't on edge).
+      - "traefik.docker.network=${MARKOTO_INSTANCE:-markoto}-storage"
       # Browsers PUT/GET objects with presigned URLs signed for the public
       # origin (NUXT_S3_PUBLIC_ENDPOINT). Path-style URLs start with the
       # bucket name, so the bucket prefix is the route. Traefik keeps the
@@ -147,8 +243,7 @@ services:
       - "traefik.http.middlewares.markoto-s3-headers.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.markoto-s3-headers.headers.contentSecurityPolicy=sandbox; default-src 'none'; img-src 'self' data:"
     networks:
-      - edge
-      - internal
+      - storage
 
   # One-shot: create the bucket (idempotent). Reuses the backup image,
   # which already ships the aws CLI.
@@ -188,8 +283,15 @@ services:
     depends_on:
       seaweedfs:
         condition: service_started
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
-      - internal
+      - storage
 
   app:
     image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/markoto-app:${IMAGE_TAG:-latest}
@@ -246,8 +348,13 @@ services:
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       - NUXT_LITELLM_URL=http://litellm:4000
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # LiteLLM's own role, for the spend-log sweep + admin spend query
+      # (server/utils/litellm/litellmDb.ts); empty = the app role.
+      - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
+      - NUXT_LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
+      # The app's own role (owner of the app database only) — db-init.
+      - POSTGRES_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
+      - POSTGRES_PASSWORD=${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
@@ -336,6 +443,14 @@ services:
     # LiteLLM connects, so the app must resolve host.docker.internal too.
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Image user `bun`; nothing in /app is writable. Bun only needs /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     expose:
       - "3000"
     labels:
@@ -376,9 +491,14 @@ services:
         condition: service_healthy
       s3-init:
         condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
     networks:
       edge: {}
-      internal:
+      data: {}
+      import: {}
+      storage: {}
+      render:
         # The renderer's Chromium can't use the service name: `app` is an
         # HSTS-preloaded TLD, so Chromium upgrades http://app:3000 to https
         # and fails with ERR_SSL_PROTOCOL_ERROR.
@@ -409,14 +529,14 @@ services:
       - "traefik.http.services.markoto-sync.loadbalancer.server.port=4001"
     networks:
       - edge
-      - internal
+      - data
 
   markitdown:
     image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/markoto-markitdown:${IMAGE_TAG:-latest}
     expose:
       - "8080"
     networks:
-      - internal
+      - import
 
   renderer:
     image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/markoto-renderer:${IMAGE_TAG:-latest}
@@ -440,7 +560,9 @@ services:
     expose:
       - "9000"
     networks:
-      - internal
+      - render
+      - storage
+      - renderer-egress
 
   # Optional: COMPOSE_PROFILES=backup. Encrypted (gpg AES-256) pg_dump into
   # the bucket under backups/postgres/. It lands on the SAME disk as the
@@ -468,4 +590,7 @@ services:
       app:
         condition: service_healthy
     networks:
-      - internal
+      - data
+      - storage
+      # An external BACKUP_S3_ENDPOINT.
+      - egress

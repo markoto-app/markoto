@@ -1,5 +1,6 @@
 import { Pool } from 'pg'
 import { requireAdminUser } from '../../utils/adminAccess'
+import { litellmDbUrl } from '../../utils/litellm/litellmDb'
 import { ALL_FEATURE_TAGS, type FeatureTag } from '../../utils/litellm/featureTags'
 
 // Per-axis spend filter: returns the spend breakdown for ONE entity
@@ -30,20 +31,10 @@ type Axis = typeof VALID_AXES[number]
 
 let cachedPool: Pool | null = null
 
-function buildLitellmDbUrl(): string {
-  if (process.env.NUXT_LITELLM_DB_URL) return process.env.NUXT_LITELLM_DB_URL
-  const user = process.env.POSTGRES_USER ?? 'ypad'
-  const password = process.env.POSTGRES_PASSWORD ?? ''
-  const host = process.env.POSTGRES_HOST ?? 'localhost'
-  const port = process.env.POSTGRES_PORT ?? '5432'
-  const db = process.env.NUXT_LITELLM_DB_NAME ?? 'litellm'
-  return `postgres://${user}:${encodeURIComponent(password)}@${host}:${port}/${db}`
-}
-
 function pool(): Pool {
   if (cachedPool) return cachedPool
   cachedPool = new Pool({
-    connectionString: buildLitellmDbUrl(),
+    connectionString: litellmDbUrl(),
     max: 2,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 5000

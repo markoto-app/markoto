@@ -157,6 +157,8 @@ describe('internal hostnames — every spelling, every compose name', () => {
     'Valkey..',
     'markoto-app',
     'litellm-db-init',
+    'db-init',
+    'socket-proxy',
     's3-init',
     'fake-openai-test',
     'markoto-litellm-1',

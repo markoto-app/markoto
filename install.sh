@@ -121,6 +121,16 @@ ensure_secret() {
   env_set "$key" "$value"
 }
 
+# Separate least-privilege Postgres roles for the app and for LiteLLM
+# (created by the db-init one-shot, infra/postgres/db-init.sh). POSTGRES_USER
+# stays the admin role, used only by db-init and the backup sidecar.
+ensure_db_roles() {
+  set_config POSTGRES_APP_USER "" "markoto_app"
+  ensure_secret POSTGRES_APP_PASSWORD hex
+  set_config POSTGRES_LITELLM_USER "" "litellm"
+  ensure_secret POSTGRES_LITELLM_PASSWORD hex
+}
+
 # Set a config value: explicit flag/env wins, else keep the stored value,
 # else the default.
 set_config() {
@@ -282,6 +292,7 @@ configure() {
   set_config POSTGRES_USER "" "markoto"
   set_config POSTGRES_DB "" "markoto"
   ensure_secret POSTGRES_PASSWORD hex
+  ensure_db_roles
   ensure_secret VALKEY_PASSWORD hex
   set_config VALKEY_DB "" "0"
   ensure_secret NUXT_SESSION_PASSWORD hex
@@ -480,6 +491,7 @@ cmd_upgrade() {
   # Secrets introduced by newer versions get generated; existing ones stay.
   ensure_secret NUXT_AI_DICTATE_JWT_SECRET hex
   ensure_secret BACKUP_GPG_PASSPHRASE hex
+  ensure_db_roles
   info "Upgrading to image tag $(env_get IMAGE_TAG)"
   note "Database migrations run automatically when the app starts. Back up first:"
   note "docs/SELF-HOSTING.md#backups"
