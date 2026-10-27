@@ -1,3 +1,5 @@
+import { isTestModeEnabled } from '../../shared/utils/testMode'
+
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
 
@@ -27,10 +29,11 @@ export default defineEventHandler(async (event) => {
     // @nuxt/icon server bundle — icon JSON consumed by the pre-login
     // landing page and every anonymous editor surface.
     { path: /^\/api\/_nuxt_icon\//, methods: ['GET'] },
-    // Test-only login shim. Endpoint itself 404s unless TEST_MODE=1; still
-    // whitelisted here so the auth middleware doesn't refuse it before the
-    // handler even runs during integration tests.
-    { path: /^\/api\/_test\//, methods: ['POST'] },
+    // Test-only endpoints (login shim etc.) are public ONLY while test mode
+    // is active (`isTestModeEnabled`: TEST_MODE=1 on a non-production-
+    // looking instance). Otherwise they fall through to default-deny, and
+    // the handlers 404 on top of that.
+    ...(isTestModeEnabled() ? [{ path: /^\/api\/_test\//, methods: ['POST'] }] : []),
     // Resolved tier-cap map for the pricing page — logged-out visitors
     // browse /pricing, and the caps it returns are displayed there
     // anyway. Static config, no per-user data.

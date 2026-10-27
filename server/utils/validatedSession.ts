@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { findUserById } from '../repos/users'
+import type { OnboardingState } from './onboardingGate'
 
 /**
  * Bump this constant whenever the session shape changes (new required fields,
@@ -33,6 +34,9 @@ type SessionCache = {
   // `null` = checked, no valid session
   // object = checked, valid session
   validatedUser: ValidatedUser | null | undefined
+  // Onboarding / policy-acceptance columns of the same row, read in the
+  // same query — consumed by the onboarding gate middleware.
+  onboarding?: OnboardingState
 }
 
 function getCache(event: H3Event): SessionCache {
@@ -72,6 +76,11 @@ async function resolveValidatedUser(event: H3Event): Promise<ValidatedUser | nul
 
   const user = { id: row.id, name: row.name }
   cache.validatedUser = user
+  cache.onboarding = {
+    ageConfirmedAt: row.ageConfirmedAt,
+    privacyVersionAccepted: row.privacyVersionAccepted,
+    tosVersionAccepted: row.tosVersionAccepted
+  }
   return user
 }
 
@@ -98,4 +107,15 @@ export async function requireValidatedUserSession(event: H3Event): Promise<{ use
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   }
   return { user }
+}
+
+/**
+ * Onboarding / policy-acceptance state of the validated user, or null for
+ * anonymous callers. Shares the per-request user lookup with the helpers
+ * above (no extra query).
+ */
+export async function getValidatedOnboardingState(event: H3Event): Promise<OnboardingState | null> {
+  const user = await resolveValidatedUser(event)
+  if (!user) return null
+  return getCache(event).onboarding ?? null
 }

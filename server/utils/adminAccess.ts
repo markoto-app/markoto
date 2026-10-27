@@ -17,11 +17,12 @@ import { findUserById } from '../repos/users'
 //
 //   NUXT_ADMIN_USER_EMAILS=admin@example.com,founder@example.com
 //
-// **Belt-and-braces:** `requireAdminUser` allows access if EITHER
-// the column is true OR the email is on the bootstrap list. This
-// covers the gap between adding an email to the env and that
-// user's next login (where the auto-promotion writes the column).
-// Anyone in either set can hit /admin/* immediately.
+// **No email fallback at check time.** `isAdminUser` / `requireAdminUser`
+// read ONLY the column. The allowlist is applied when a user signs in
+// with a VERIFIED email (`bootstrapAdminFromEnv`; GitHub / Google / OIDC
+// all store NULL for unverified addresses), so a stored address is never
+// trusted on its own. Adding an email to the env therefore takes effect
+// at that user's next sign-in.
 
 function parseAdminEmails(): Set<string> {
   const raw = process.env.NUXT_ADMIN_USER_EMAILS ?? ''
@@ -35,9 +36,8 @@ function parseAdminEmails(): Set<string> {
 
 /**
  * Returns true if the email is on the bootstrap allowlist. Used
- * by the OAuth-upsert path to decide whether to auto-promote a
- * fresh login + by `requireAdminUser` as the belt-and-braces
- * fallback to the column.
+ * by the sign-in path (`bootstrapAdminFromEnv`, verified emails only)
+ * to decide whether to auto-promote.
  */
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false
@@ -45,27 +45,24 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 }
 
 /**
- * Returns true if the user is an admin — column-first, then env
- * fallback. Used by the account-status endpoint to surface the
- * `isAdmin` flag the UI gates the Admin nav-link on.
+ * Returns true if the user is an admin (`users.is_admin`). Used by the
+ * account-status endpoint to surface the `isAdmin` flag the UI gates
+ * the Admin nav-link on.
  */
 export async function isAdminUser(userId: number): Promise<boolean> {
   const user = await findUserById(userId)
-  if (!user) return false
-  return user.isAdmin || isAdminEmail(user.email)
+  return !!user && user.isAdmin
 }
 
 /**
- * Endpoint guard. Calls `requireValidatedUserSession`, then
- * checks the column + env-fallback. Throws 403 if neither
- * qualifies (does NOT 401 — they ARE logged in, they just don't
- * have admin rights).
+ * Endpoint guard. Calls `requireValidatedUserSession`, then checks
+ * the `users.is_admin` column. Throws 403 otherwise (does NOT 401 —
+ * they ARE logged in, they just don't have admin rights).
  */
 export async function requireAdminUser(event: H3Event): Promise<{ userId: number, name: string, email: string }> {
   const session = await requireValidatedUserSession(event)
   const user = await findUserById(session.user.id)
-  const isAdmin = !!user && (user.isAdmin || isAdminEmail(user.email))
-  if (!user || !isAdmin) {
+  if (!user?.isAdmin) {
     throw createError({
       statusCode: 403,
       message: 'Admin access required',

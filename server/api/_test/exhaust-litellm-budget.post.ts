@@ -19,9 +19,10 @@
 
 import { setUserKeyMaxBudget } from '../../utils/litellmKeys'
 import { resolveBillingContext } from '../../utils/billing'
+import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 export default defineEventHandler(async (event) => {
-  if (process.env.TEST_MODE !== '1') {
+  if (!isTestModeEnabled()) {
     throw createError({ statusCode: 404, message: 'Not found' })
   }
 

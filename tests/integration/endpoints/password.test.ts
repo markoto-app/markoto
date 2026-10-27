@@ -1,17 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import jwt from 'jsonwebtoken'
+import { Hash } from '@adonisjs/hash'
+import { Scrypt } from '@adonisjs/hash/drivers/scrypt'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
   createDoc,
   createUser,
   createWorkspace,
+  setDocPasswordHash,
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
 
 // POST /api/docs/:docId/password — one endpoint, three actions:
-//   action: 'set'     → owner / workspace admin, 4+ char password.
+//   action: 'set'     → owner / workspace admin, 8+ char password.
 //   action: 'verify'  → public (rate-limited in prod), returns 2h JWT.
 //   action: 'remove'  → owner / workspace admin, clears password + mode.
 //
@@ -19,6 +22,11 @@ import { TEST_JWT_SECRET } from '../setup/env'
 // trades knowledge of a password for a scoped JWT that unlocks private
 // asset access. Tests target the correctness of *what's returned* (JWT
 // shape + scope) and the negative cases (wrong password, wrong action).
+
+/** nuxt-auth-utils' scrypt format (same driver + default options as the server). */
+async function scryptHash(password: string): Promise<string> {
+  return new Hash(new Scrypt({})).make(password)
+}
 
 // Pre-hashed "secret123" — nuxt-auth-utils scrypt format. Let fixtures
 // inject this directly into the DB instead of hitting the SET action
@@ -127,15 +135,30 @@ describe('POST /api/docs/:docId/password', () => {
       expect(res.status).toBe(403)
     })
 
-    it('rejects password shorter than 4 chars (400)', async () => {
+    it('rejects a password shorter than 8 chars (400)', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
       const client = await loggedInClient(owner.id)
-      const res = await client.post(`/api/docs/${doc.docId}/password`, {
-        action: 'set',
-        password: 'abc'
-      })
-      expect(res.status).toBe(400)
+      for (const password of ['abc', 'pw1234', 'seven77']) {
+        const res = await client.post(`/api/docs/${doc.docId}/password`, { action: 'set', password })
+        expect(res.status).toBe(400)
+        const body = await res.json() as { data?: { code?: string, minLength?: number } }
+        expect(body.data?.code).toBe('password/too-short')
+        expect(body.data?.minLength).toBe(8)
+      }
+      const ok = await client.post(`/api/docs/${doc.docId}/password`, { action: 'set', password: 'eight888' })
+      expect(ok.status).toBe(200)
+    })
+
+    it('a password set under the old 4-char minimum still verifies', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'password-protected' })
+      // No API sets a short password any more: seed the hash directly,
+      // made by the same scrypt driver (default options) nuxt-auth-utils
+      // uses on the server.
+      await setDocPasswordHash(doc.docId, await scryptHash('abcd'))
+      const res = await anonClient().post(`/api/docs/${doc.docId}/password`, { action: 'verify', password: 'abcd' })
+      expect(res.status).toBe(200)
     })
 
     it('anonymous cannot set (401 from middleware? or 403 from handler)', async () => {

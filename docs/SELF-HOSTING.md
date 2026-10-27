@@ -162,6 +162,8 @@ So an IdP that lets people self-register with unverified addresses can't be used
 
 Put the values in `.env` (or re-run `./install.sh`) and `docker compose up -d`. Both id and secret must be set, or the app refuses to start.
 
+As with your own IdP, markoto only uses an email that GitHub or Google reports as verified (for linking accounts, `NUXT_ADMIN_USER_EMAILS` and invitations); an unverified address is not stored.
+
 ### HTTPS and who can sign up
 
 **Login needs HTTPS.** The sign-in state and session cookies are `Secure`, which browsers only accept over HTTPS (and on `http://localhost`). On a plain-HTTP LAN address the editor works, but login does not. Use HTTPS mode, or plain-HTTP mode behind your own TLS proxy ([below](#behind-your-own-reverse-proxy)).
@@ -234,7 +236,7 @@ Everything lives in `.env` next to the compose files. After a change: `docker co
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID` / `_SECRET` | Google login. |
 | `NUXT_OAUTH_OIDC_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` | Your own OpenID Connect provider ([Login](#your-own-identity-provider-openid-connect)). |
 | `NUXT_OAUTH_OIDC_NAME`, `_SCOPES` | Optional button label and scopes for it. |
-| `NUXT_ADMIN_USER_EMAILS` | Comma-separated emails promoted to admin on login (`/admin/abuse-reports`, `/admin/ai-spend`). With your own IdP only a verified email (`email_verified: true`) counts. |
+| `NUXT_ADMIN_USER_EMAILS` | Comma-separated emails promoted to admin on login (`/admin/abuse-reports`, `/admin/ai-spend`). Only a verified email counts (GitHub/Google verified address, IdP `email_verified: true`). |
 
 ### Limits
 
@@ -328,6 +330,11 @@ Changes that can need action when you upgrade an existing instance. Newest first
 
 | Change | Affects | What to do |
 |---|---|---|
+| **`NUXT_SITE_URL` is required in production.** Email links are built only from it, never from the request's Host header. The self-host compose sets it from `MARKOTO_PUBLIC_URL`. | Instances run outside the shipped compose files | Set `NUXT_SITE_URL` to the public URL, or the app refuses to start. |
+| **Admin rights come only from the stored admin flag.** `NUXT_ADMIN_USER_EMAILS` promotes a user when they sign in with a verified email; an email on the list no longer grants admin before that sign-in. | Admins added to the list but not signed in since | Sign out and in again. |
+| **Document passwords need at least 8 characters** when set. Existing shorter passwords keep working. Password checks are limited per client, per document, and by failed attempts per document. | Everyone | Nothing. |
+| **State-changing requests from another origin are refused** (403 `csrf/origin-mismatch`). | Setups that call the API from a page on a different host | Call it from the app's own origin, or without browser credentials. |
+| **`TEST_MODE=1` refuses to start** on an instance whose `NUXT_SITE_URL` is not a local address. It is for the test suite only. | Anyone who set it by mistake | Remove `TEST_MODE`. |
 | **Docker Compose 5.0 or newer is required.** The compose files override services that they pull in with `include:`, which Compose 2.24 to 2.40 reject with "conflicts with imported resource". `install.sh` refuses to run on an older Compose. | Everyone | Update Docker Engine and the Compose plugin (`docker compose version` must print 5.0.0 or higher). |
 | **`NUXT_LEGAL_SURFACES_ENABLED` defaults to `false`.** The onboarding gate, cookie banner, DPA step and `/legal/*` pages describe the hosted service and its operator, so a self-hosted instance no longer shows them. | Instances that relied on the old always-on behaviour | Nothing, if you don't want them. To keep them, set `NUXT_LEGAL_SURFACES_ENABLED=true`, adapt `content/legal/` and set every `NUXT_LEGAL_*` variable ([Legal pages](#legal-pages)). |
 | **AI model variables renamed.** `NUXT_LITELLM_TEXT_MODEL`, `NUXT_LITELLM_IMAGE_MODEL` and `NUXT_LITELLM_TRANSCRIBE_MODEL` no longer exist and are ignored. The replacements are `NUXT_AI_DEFAULT_CHAT_MODEL` (was TEXT), `NUXT_AI_DEFAULT_IMAGE_MODEL` and `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL`, with the same alias values (for example `mistral-small-2603`). | Instances that set the old variables | Rename them in `.env`, then `docker compose up -d`. Without them, AI is unavailable until users add their own key under **Settings → AI provider**. |
@@ -465,7 +472,7 @@ First look at `./install.sh status` (is every container up and healthy?) and `./
 | Document import fails | `./install.sh logs markitdown`; unsupported or corrupt files are rejected. |
 | No backups appear | The `backup` profile is off (`COMPOSE_PROFILES` in `.env`), or the `backup` container is failing: `docker compose logs backup`. |
 | No emails arrive | Email isn't configured, so mails are only written to the app log as `[email-stub]` ([Email](#email-optional)). |
-| Admin pages return 403 | The signed-in email isn't in `NUXT_ADMIN_USER_EMAILS`. Promotion happens on login: log out and in again after changing it. |
+| Admin pages return 403 | The signed-in email isn't in `NUXT_ADMIN_USER_EMAILS`, or the provider doesn't report it as verified. Promotion happens on login: log out and in again after changing it. |
 
 ## Getting help
 

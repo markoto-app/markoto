@@ -79,7 +79,7 @@
     "passwordProtected": "Protégé par mot de passe",
     "setPassword": "Définir le mot de passe du document",
     "passwordPlaceholder": "Saisissez un mot de passe...",
-    "passwordMinLength": "Minimum 4 caractères",
+    "passwordMinLength": "Minimum {min} caractères",
     "passwordRequired": "Mot de passe requis",
     "passwordRequiredDesc": "Ce document est protégé. Saisissez le mot de passe pour continuer.",
     "enterPassword": "Mot de passe",

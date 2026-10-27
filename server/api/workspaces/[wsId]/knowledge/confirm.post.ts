@@ -11,9 +11,12 @@ import {
   INFLIGHT_NS_WORKSPACE
 } from '../../../../utils/knowledgeQuota'
 import { releaseInflightSlot } from '../../../../utils/rateLimit'
+import { claimPendingKnowledgeUpload, restorePendingKnowledgeUpload } from '../../../../utils/knowledgePendingUpload'
 
 /**
  * Step 2: after the client has PUT the file to S3, call this to:
+ *   0. Claim the pending record upload-request issued to this caller for
+ *      this workspace (404 otherwise — no S3 call).
  *   1. HEAD the object (did it actually land?).
  *   2. Sniff the first bytes — confirm the content matches the claimed
  *      extension (stops the "signed as PDF, uploaded EXE" abuse).
@@ -73,6 +76,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'knowledgeId must match s3Key tail' })
   }
 
+  // The upload must be one `upload-request` issued to THIS caller in THIS
+  // workspace (atomic claim — a replayed or foreign knowledgeId finds
+  // nothing). Anything else is a 404 before any S3 call, so confirm can
+  // never HEAD, adopt or delete an object it didn't hand to this caller.
+  const pendingRef = { workspaceId: wsId, userId, knowledgeId }
+  const pending = await claimPendingKnowledgeUpload(pendingRef)
+  if (!pending || pending.s3Key !== s3Key || pending.ext !== ext || pending.mimeType !== mimeType) {
+    throw createError({ statusCode: 404, message: 'Upload not found' })
+  }
+
   const config = useRuntimeConfig()
   const s3 = useS3Client()
 
@@ -97,6 +110,8 @@ export default defineEventHandler(async (event) => {
         Key: s3Key
       }))
     } catch {
+      // Not landed (yet) — keep the claim so the client can retry.
+      await restorePendingKnowledgeUpload(pendingRef, pending)
       throw createError({ statusCode: 404, message: 'Upload not found in storage' })
     }
     const sizeBytes = head.ContentLength ?? 0

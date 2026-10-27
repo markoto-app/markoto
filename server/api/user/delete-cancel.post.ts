@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
 
   // Same rate-limit key as the request endpoint so the budget is
   // shared — a stolen session can't burst-cancel-then-burst-request.
-  const rlKey = `${userId}:${ip ?? 'unknown'}`
+  const rlKey = `${userId}:${getClientRateLimitKey(event)}`
   if (!(await checkRateLimit('account-delete-request', rlKey, 5, 60 * 60 * 1000))) {
     throw createError({
       statusCode: 429,

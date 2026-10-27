@@ -4,6 +4,7 @@ import {
   AudioEncoding,
   RealtimeTranscription
 } from '@mistralai/mistralai/extra/realtime'
+import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 // Factory for the dictate streaming client. Phase 7: cloud-stt path
 // removed — voxtral realtime is the only path. The mock-streaming
@@ -113,7 +114,7 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
  * `MISTRAL_API_KEY` when the instance default is a platform alias.
  */
 export function createDictateRealtimeClient(apiKey: string, model: string = DEFAULT_REALTIME_MODEL): SpeechClientLike {
-  if (process.env.TEST_MODE === '1' && (
+  if (isTestModeEnabled() && (
     process.env.NUXT_VOXTRAL_REALTIME_MOCK === '1'
     || process.env.NUXT_GOOGLE_SPEECH_MOCK === '1'
   )) {

@@ -78,3 +78,59 @@ export function resolveClientIp(input: ClientIpInput): string | null {
   const index = Math.max(0, entries.length - input.trustedHops)
   return entries[index] ?? null
 }
+
+const IPV4_RE = /^\d{1,3}(?:\.\d{1,3}){3}$/
+
+/**
+ * Rate-limit bucket for a client address.
+ *
+ * IPv4: the address itself. IPv6: the /64 prefix — a single subscriber
+ * or VPS is normally handed a whole /64, so keying on the full address
+ * would give one client an unlimited number of buckets by rotating
+ * source addresses. IPv4-mapped IPv6 (`::ffff:192.0.2.1`) counts as the
+ * embedded IPv4 address. Unknown / unparseable → `'unknown'` (one shared
+ * bucket, the conservative choice).
+ *
+ * Only for rate-limit KEYS. Audit / consent / abuse rows store the
+ * GDPR-truncated form (`truncateIp` in server/repos/audit.ts) instead.
+ */
+export function rateLimitIpKey(ip: string | null | undefined): string {
+  if (!ip) return 'unknown'
+  const addr = normaliseAddress(ip).toLowerCase()
+  if (IPV4_RE.test(addr)) return addr
+  if (!addr.includes(':')) return 'unknown'
+
+  const hextets = expandIpv6(addr)
+  if (!hextets) return 'unknown'
+  if (hextets.mappedIpv4) return hextets.mappedIpv4
+  const prefix = hextets.parts.slice(0, 4).map(h => h.replace(/^0+(?=.)/, ''))
+  return `${prefix.join(':')}::/64`
+}
+
+/**
+ * Expand `::` into eight explicit hextets. A trailing dotted IPv4 part is
+ * accepted only in the IPv4-mapped form (`::ffff:a.b.c.d`) and reported
+ * separately. Null when the address isn't parseable IPv6.
+ */
+function expandIpv6(addr: string): { parts: string[], mappedIpv4: string | null } | null {
+  let body = addr
+  let embedded: string | null = null
+  const lastColon = addr.lastIndexOf(':')
+  const tail = addr.slice(lastColon + 1)
+  if (tail.includes('.')) {
+    if (!IPV4_RE.test(tail)) return null
+    embedded = tail
+    body = `${addr.slice(0, lastColon + 1)}0:0`
+  }
+  const halves = body.split('::')
+  if (halves.length > 2) return null
+  const left = halves[0] ? halves[0].split(':') : []
+  const right = halves.length === 2 && halves[1] ? halves[1].split(':') : []
+  const fill = halves.length === 2 ? 8 - left.length - right.length : 0
+  if (fill < 0) return null
+  const parts = [...left, ...new Array<string>(fill).fill('0'), ...right]
+  if (parts.length !== 8 || parts.some(p => !/^[0-9a-f]{1,4}$/.test(p))) return null
+  if (embedded === null) return { parts, mappedIpv4: null }
+  const isMapped = parts.slice(0, 5).every(p => /^0+$/.test(p)) && parts[5] === 'ffff'
+  return isMapped ? { parts, mappedIpv4: embedded } : null
+}

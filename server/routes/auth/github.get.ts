@@ -1,36 +1,44 @@
 import { upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/validatedSession'
 import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
+import { githubVerifiedEmail, type GitHubEmailEntry } from '../../utils/oauthEmail'
 
 export default defineOAuthGitHubEventHandler({
   config: { emailRequired: true },
-  async onSuccess(event, { user }) {
-    // GitHub + `emailRequired: true` → userinfo returns the user's
-    // PRIMARY verified email. GitHub never exposes a primary email
-    // that hasn't been verified. So a non-null email on this
-    // codepath is safe to treat as verified for merge purposes.
-    const emailVerified = !!user.email
+  async onSuccess(event, { user, tokens }) {
+    // Only a VERIFIED address is used (stored, merged, matched against
+    // the admin allowlist). GitHub's public profile email carries no
+    // verification flag, so it is checked against /user/emails (the
+    // `user:email` scope is requested via `emailRequired`); an unverified
+    // or unresolvable address is stored as NULL, like OIDC.
+    const accessToken = typeof tokens?.access_token === 'string' ? tokens.access_token : ''
+    const email = await githubVerifiedEmail(user, () => $fetch<GitHubEmailEntry[]>('https://api.github.com/user/emails', {
+      headers: {
+        'User-Agent': 'markoto-oauth',
+        'Authorization': `token ${accessToken}`
+      }
+    }))
 
     const { userId, outcome } = await upsertOAuthUser({
       provider: 'github',
       providerUserId: user.id.toString(),
       login: user.login,
       name: user.name || user.login,
-      email: user.email,
+      email,
       avatarUrl: user.avatar_url,
-      emailVerified
+      emailVerified: email !== null
     })
 
-    // One-shot env-allowlist admin bootstrap. Idempotent (no-ops
-    // if the user is already admin OR not on the allowlist).
-    await bootstrapAdminFromEnv({ userId, email: user.email ?? null })
+    // One-shot env-allowlist admin bootstrap (verified email only).
+    // Idempotent (no-ops if the user is already admin OR not listed).
+    await bootstrapAdminFromEnv({ userId, email })
 
     await setUserSession(event, {
       user: {
         id: userId,
         login: user.login,
         name: user.name || user.login,
-        email: user.email,
+        email,
         avatar: user.avatar_url,
         provider: 'github'
       },

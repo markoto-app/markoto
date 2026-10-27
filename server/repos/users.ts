@@ -23,6 +23,10 @@ export interface UserRow {
   stripeCustomerId: string | null
   isAdmin: boolean
   createdAt: Date
+  /** Onboarding / policy acceptance — read by the server-side onboarding gate. */
+  ageConfirmedAt: Date | null
+  privacyVersionAccepted: number | null
+  tosVersionAccepted: number | null
 }
 
 interface OAuthProfileFields {

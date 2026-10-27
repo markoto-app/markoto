@@ -121,7 +121,7 @@ describe('audit log — doc.password_set / password_removed (B2)', () => {
     const client = await loggedInClient(owner.id)
     await client.post(`/api/docs/${doc.docId}/password`, {
       action: 'set',
-      password: 'pw1234'
+      password: 'pw123456'
     })
     const res = await client.post(`/api/docs/${doc.docId}/password`, { action: 'remove' })
     expect(res.status).toBe(200)

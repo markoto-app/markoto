@@ -1,5 +1,5 @@
 import { getAccountStatus } from '../../repos/users'
-import { isAdminEmail } from '../../utils/adminAccess'
+import { isAdminUser } from '../../utils/adminAccess'
 import {
   DPA_VERSION,
   PRIVACY_VERSION,
@@ -39,9 +39,10 @@ export default defineEventHandler(async (event) => {
   const legal = legalSurfacesEnabled()
 
   return {
-    // Admin allowlist check — drives the "Admin" entry in the
-    // avatar dropdown. Env-based; see server/utils/adminAccess.ts.
-    isAdmin: isAdminEmail(status.email),
+    // Drives the "Admin" entry in the avatar dropdown. Same source as
+    // `requireAdminUser` (the `users.is_admin` column); see
+    // server/utils/adminAccess.ts.
+    isAdmin: await isAdminUser(session.user.id),
     email: status.email,
     locale: status.locale,
     age: {

@@ -14,7 +14,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // silently dangerous; these tests pin the contract.
 
 // In-memory fake of the subset of ioredis we use. Enough to model
-// GET/INCRBY/SET NX PX/DEL/multi pipelines.
+// SET NX PX / DEL for the session lock, plus a throwing `eval` for the
+// budget helper's fail-open path.
 class FakeValkey {
   store = new Map<string, string>()
   ttls = new Map<string, number>()
@@ -43,30 +44,24 @@ class FakeValkey {
     return 'OK'
   }
 
-  async incrby(key: string, by: number): Promise<number> {
-    const cur = Number(this.store.get(key) ?? '0')
-    const next = cur + by
-    this.store.set(key, String(next))
-    return next
-  }
-
-  async pexpire(key: string, ttl: number): Promise<number> {
-    this.ttls.set(key, ttl)
-    return 1
-  }
-
   async del(key: string): Promise<number> {
     const had = this.store.delete(key) ? 1 : 0
     this.ttls.delete(key)
     return had
   }
 
-  multi() {
-    // We don't exercise multi() in the paths under test (those live in
-    // `checkRateLimit`, not the budget helpers), so a minimal stub is
-    // fine — throws if accidentally called so a future code change
-    // that routes through multi gets a visible regression.
-    throw new Error('multi() not modeled in FakeValkey')
+  async eval(): Promise<unknown> {
+    if (this.throwOnNext) {
+      const e = this.throwOnNext
+      this.throwOnNext = null
+      throw e
+    }
+    // The budget debit is a Lua script executed inside Valkey; its
+    // semantics (cap, peek, no debit on reject, concurrency) are tested
+    // against the real Valkey test container in
+    // tests/repos/rateLimitAtomic.test.ts. Only the fail-open path is
+    // modelled here.
+    throw new Error('eval() not modeled in FakeValkey')
   }
 }
 
@@ -98,46 +93,6 @@ describe('consumeRateLimitBudget', () => {
     fake.throwOnNext = null
   })
 
-  it('allows a cost under the cap and debits it', async () => {
-    const r = await consumeRateLimitBudget('test', 'user-1', 100, 1000, 60_000)
-    expect(r.allowed).toBe(true)
-    expect(r.remaining).toBe(900)
-  })
-
-  it('rejects costs that would exceed the cap WITHOUT debiting', async () => {
-    await consumeRateLimitBudget('test', 'user-1', 900, 1000, 60_000)
-    // Second call: 900 (spent) + 200 (would-be cost) > 1000 (cap).
-    const r = await consumeRateLimitBudget('test', 'user-1', 200, 1000, 60_000)
-    expect(r.allowed).toBe(false)
-    expect(r.remaining).toBe(100) // unchanged from the rejection
-    // Verify no debit happened — bucket still at 900.
-    const peek = await consumeRateLimitBudget('test', 'user-1', 0, 1000, 60_000)
-    expect(peek.remaining).toBe(100)
-  })
-
-  it('accumulates across calls within the window', async () => {
-    await consumeRateLimitBudget('ns', 'u', 300, 1000, 60_000)
-    await consumeRateLimitBudget('ns', 'u', 300, 1000, 60_000)
-    const r = await consumeRateLimitBudget('ns', 'u', 300, 1000, 60_000)
-    expect(r.allowed).toBe(true)
-    expect(r.remaining).toBe(100)
-  })
-
-  it('zero cost returns the actual remaining without debiting — peek mode', async () => {
-    // cost:0 is used by session-open paths to decide whether a user
-    // is already exhausted before starting. Must return the REAL
-    // remaining (maxCost - current), not a naive maxCost — otherwise
-    // exhausted users would always pass the open-time check and only
-    // trip on the first audio chunk (open-then-close flicker).
-    await consumeRateLimitBudget('ns', 'u', 400, 1000, 60_000)
-    const peek = await consumeRateLimitBudget('ns', 'u', 0, 1000, 60_000)
-    expect(peek.allowed).toBe(true)
-    expect(peek.remaining).toBe(600) // 1000 cap − 400 already spent
-    // Verify peek did NOT debit — another peek still reads 600.
-    const peek2 = await consumeRateLimitBudget('ns', 'u', 0, 1000, 60_000)
-    expect(peek2.remaining).toBe(600)
-  })
-
   it('fails OPEN on Valkey errors', async () => {
     // Defense-in-depth: a wedged Valkey must not DoS the app. The
     // function surfaces the error to Sentry (not asserted here) but
@@ -146,21 +101,6 @@ describe('consumeRateLimitBudget', () => {
     const r = await consumeRateLimitBudget('ns', 'u', 100, 1000, 60_000)
     expect(r.allowed).toBe(true)
     expect(r.remaining).toBe(1000)
-  })
-
-  it('isolates buckets by namespace', async () => {
-    await consumeRateLimitBudget('a', 'u', 900, 1000, 60_000)
-    // Different namespace = different bucket; should have full budget.
-    const r = await consumeRateLimitBudget('b', 'u', 900, 1000, 60_000)
-    expect(r.allowed).toBe(true)
-    expect(r.remaining).toBe(100)
-  })
-
-  it('isolates buckets by key (per-user)', async () => {
-    await consumeRateLimitBudget('ns', 'user-1', 900, 1000, 60_000)
-    const r = await consumeRateLimitBudget('ns', 'user-2', 900, 1000, 60_000)
-    expect(r.allowed).toBe(true)
-    expect(r.remaining).toBe(100)
   })
 })
 

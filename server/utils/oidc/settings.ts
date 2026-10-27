@@ -17,6 +17,8 @@
 //
 // Pure — takes an env-shaped record so every test tier can drive it.
 
+import { isTestModeEnabled } from '../../../shared/utils/testMode'
+
 type Env = Record<string, string | undefined>
 
 export const OIDC_DEFAULT_SCOPES = ['openid', 'email', 'profile'] as const
@@ -57,7 +59,7 @@ export function parseOidcScopes(raw: string | undefined): string[] {
 }
 
 function insecureHttpAllowed(env: Env): boolean {
-  return env.TEST_MODE === '1' || env.NODE_ENV === 'development'
+  return isTestModeEnabled(env) || env.NODE_ENV === 'development'
 }
 
 function parseIssuer(raw: string, allowInsecureHttp: boolean, errors: string[]): URL | null {

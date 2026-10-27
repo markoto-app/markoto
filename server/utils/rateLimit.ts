@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from './valkey'
+import { isTestModeEnabled } from '../../shared/utils/testMode'
 
 // Sliding-window-log rate limiter backed by Valkey sorted sets.
 //
@@ -9,14 +10,85 @@ import { useValkey } from './valkey'
 //              when two calls land in the same millisecond.
 // TTL:         2× window (via PEXPIRE), so abandoned keys self-clean.
 //
-// Two-step (count → add) is NOT atomic, but for our scale the race tolerance
-// is trivial: two concurrent requests at count = max-1 can both succeed,
-// admitting one extra attempt per burst. Protecting against that needs a
-// Lua script and the friction isn't worth it for rate limits.
+// Check-and-record runs as ONE Lua script (trim → count → add only when
+// under the limit), so it is atomic inside Valkey: a burst of N parallel
+// requests admits exactly `maxAttempts`. A count-then-add in two round
+// trips let every request that read the count before the first write
+// through — an unbounded overshoot under concurrency.
 //
 // Fails open: if Valkey is unreachable, the request is allowed through.
 // Rate limits are defense-in-depth (backend still validates payload size,
 // auth, etc.) — a wedged Valkey shouldn't DoS the app.
+
+const SLIDING_WINDOW_SCRIPT = `
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[2])
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[3]) then
+  return 0
+end
+redis.call('ZADD', KEYS[1], ARGV[1], ARGV[4])
+redis.call('PEXPIRE', KEYS[1], ARGV[5])
+return 1
+`
+
+// Count without recording — "has this key already used up its budget?"
+// for budgets that only count some outcomes (failed password attempts).
+const SLIDING_WINDOW_COUNT_SCRIPT = `
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
+return redis.call('ZCARD', KEYS[1])
+`
+
+const RECORD_EVENT_SCRIPT = `
+redis.call('ZADD', KEYS[1], ARGV[1], ARGV[2])
+redis.call('PEXPIRE', KEYS[1], ARGV[3])
+return 1
+`
+
+// Cost budget: debit only when the new total fits (cost 0 = peek).
+// Returns { allowed (1/0), total after the call }.
+const BUDGET_SCRIPT = `
+local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+local cost = tonumber(ARGV[1])
+if cost <= 0 then
+  return {1, current}
+end
+if current + cost > tonumber(ARGV[2]) then
+  return {0, current}
+end
+local after = redis.call('INCRBY', KEYS[1], cost)
+redis.call('PEXPIRE', KEYS[1], ARGV[3])
+return {1, after}
+`
+
+// Inflight counter: increment only when below the cap.
+// Returns { allowed (1/0), counter value }.
+const INFLIGHT_SCRIPT = `
+local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+if current >= tonumber(ARGV[1]) then
+  return {0, current}
+end
+local after = redis.call('INCR', KEYS[1])
+redis.call('PEXPIRE', KEYS[1], ARGV[2])
+return {1, after}
+`
+
+function reportValkeyError(e: unknown, namespace: string, what: string): void {
+  console.warn(`[rateLimit] valkey error ${what}:`, e instanceof Error ? e.message : e)
+  // Surface to the telemetry sink with a stable tag so operators can
+  // dashboard "rate-limit protection is currently bypassed" volume.
+  Sentry.captureException(e, {
+    tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
+  })
+}
+
+function windowMember(now: number): string {
+  return `${now}:${randomBytes(6).toString('hex')}`
+}
+
+/** Read a `{flag, value}` pair returned by the budget / inflight scripts. */
+function readPair(result: unknown): { ok: boolean, value: number } {
+  if (!Array.isArray(result)) throw new Error('unexpected script result')
+  return { ok: Number(result[0]) === 1, value: Number(result[1] ?? 0) }
+}
 
 export async function checkRateLimit(
   namespace: string,
@@ -26,44 +98,69 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   // Test-mode bypass. The integration suite pounds endpoints far harder
   // than a real user ever would; without this, password-brute-force and
-  // doc-delete limits make the suite flaky and order-dependent. Rate-limit
-  // behaviour itself has its own targeted tests when needed.
-  if (process.env.TEST_MODE === '1') return true
+  // doc-delete limits make the suite flaky and order-dependent. Limiter
+  // behaviour has its own tests (unit + the real-Valkey concurrency test
+  // in tests/repos/rateLimitAtomic.test.ts). Only honoured on instances
+  // that don't look like a real deployment — see shared/utils/testMode.ts.
+  if (isTestModeEnabled()) return true
 
   const zkey = `rl:${namespace}:${key}`
   const now = Date.now()
-  const windowStart = now - windowMs
 
   try {
-    const valkey = useValkey()
-
-    // Drop expired entries, then count — pipelined so it's one RTT.
-    const pipeline = valkey.multi()
-    pipeline.zremrangebyscore(zkey, '-inf', windowStart)
-    pipeline.zcard(zkey)
-    const results = await pipeline.exec()
-    if (!results) return true // exec returned null (transaction discarded)
-
-    const count = (results[1]?.[1] as number) ?? 0
-
-    if (count >= maxAttempts) return false
-
-    // Under limit — record and refresh the TTL in one pipeline.
-    const member = `${now}:${randomBytes(6).toString('hex')}`
-    await valkey.multi()
-      .zadd(zkey, now, member)
-      .pexpire(zkey, windowMs * 2)
-      .exec()
-
-    return true
+    const result = await useValkey().eval(
+      SLIDING_WINDOW_SCRIPT,
+      1,
+      zkey,
+      now,
+      now - windowMs,
+      maxAttempts,
+      windowMember(now),
+      windowMs * 2
+    )
+    return Number(result) === 1
   } catch (e) {
-    console.warn('[rateLimit] valkey error, failing open:', e instanceof Error ? e.message : e)
-    // Surface to the telemetry sink with a stable tag so operators can
-    // dashboard "rate-limit protection is currently bypassed" volume.
-    Sentry.captureException(e, {
-      tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
-    })
+    reportValkeyError(e, namespace, 'failing open')
     return true
+  }
+}
+
+/**
+ * True when `key` already has `maxEvents` or more events in the window.
+ * Records nothing — pair with `recordRateLimitEvent` for budgets that
+ * only count some outcomes (e.g. failed password attempts). Fails open
+ * (false) on Valkey errors and under the test-mode bypass.
+ */
+export async function isRateLimitExhausted(
+  namespace: string,
+  key: string,
+  maxEvents: number,
+  windowMs: number
+): Promise<boolean> {
+  if (isTestModeEnabled()) return false
+  const zkey = `rl:${namespace}:${key}`
+  try {
+    const count = await useValkey().eval(SLIDING_WINDOW_COUNT_SCRIPT, 1, zkey, Date.now() - windowMs)
+    return Number(count) >= maxEvents
+  } catch (e) {
+    reportValkeyError(e, namespace, 'failing open')
+    return false
+  }
+}
+
+/** Record one event in the window read by `isRateLimitExhausted`. Best-effort. */
+export async function recordRateLimitEvent(
+  namespace: string,
+  key: string,
+  windowMs: number
+): Promise<void> {
+  if (isTestModeEnabled()) return
+  const zkey = `rl:${namespace}:${key}`
+  const now = Date.now()
+  try {
+    await useValkey().eval(RECORD_EVENT_SCRIPT, 1, zkey, now, windowMember(now), windowMs * 2)
+  } catch (e) {
+    reportValkeyError(e, namespace, 'recording event')
   }
 }
 
@@ -94,7 +191,7 @@ export async function tryAcquireSessionLock(
   key: string,
   ttlMs: number
 ): Promise<boolean> {
-  // NOTE: deliberately NO `TEST_MODE === '1'` bypass here, unlike
+  // NOTE: deliberately NO test-mode bypass here, unlike
   // `checkRateLimit` / `consumeRateLimitBudget`. Those are DoS
   // limits where tests would pound the endpoint; a bypass prevents
   // flakiness. This function is a CORRECTNESS lock (one dictation
@@ -108,10 +205,7 @@ export async function tryAcquireSessionLock(
     const res = await valkey.set(lockKey, '1', 'PX', ttlMs, 'NX')
     return res === 'OK'
   } catch (e) {
-    console.warn('[rateLimit] valkey error on session lock, failing closed:', e instanceof Error ? e.message : e)
-    Sentry.captureException(e, {
-      tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
-    })
+    reportValkeyError(e, namespace, 'on session lock, failing closed')
     return false
   }
 }
@@ -149,12 +243,13 @@ export async function releaseSessionLock(
  *   - Returns `{ allowed: false, remaining }` WITHOUT debiting if the
  *     request would exceed the cap. Caller should surface a rate-limit
  *     error to the user.
+ *   - Cost 0 = peek: returns the actual remaining without touching the
+ *     bucket (callers use it at session-open time to decide whether to
+ *     proceed at all).
  *
- * Implementation note: we use a single Valkey key per window rather
- * than a sorted set because we don't need per-call provenance — just
- * a running total that expires after `windowMs`. PEXPIRE is set once
- * on first hit and refreshed on every debit so an abandoned window
- * always self-cleans.
+ * The read-check-debit runs as one Lua script, so concurrent debits
+ * can't jointly overshoot `maxCost`. The TTL is refreshed on every
+ * debit (sliding-window semantics) so an abandoned window self-cleans.
  *
  * Fails open (allowed: true, remaining: maxCost) on Valkey errors —
  * same rationale as `checkRateLimit`: rate limits are defense-in-depth,
@@ -167,43 +262,15 @@ export async function consumeRateLimitBudget(
   maxCost: number,
   windowMs: number
 ): Promise<{ allowed: boolean, remaining: number }> {
-  if (process.env.TEST_MODE === '1') return { allowed: true, remaining: maxCost }
+  if (isTestModeEnabled()) return { allowed: true, remaining: maxCost }
 
   const bkey = `rlb:${namespace}:${key}`
 
   try {
-    const valkey = useValkey()
-    // Peek current spend. We commit the debit in a second step so we
-    // can honour "reject if it'd overflow" semantics — an atomic
-    // INCRBY would admit the cost first and force us to roll back.
-    const currentStr = await valkey.get(bkey)
-    const current = currentStr ? Number(currentStr) : 0
-
-    // Cost 0 = peek. Return the actual remaining without touching
-    // the bucket. Callers use this at session-open time to decide
-    // whether to proceed; a naive "return maxCost" would always let
-    // exhausted users open a session and only the first chunk would
-    // trip the real debit, which is a bad UX (opens, then closes
-    // immediately with `budget-exhausted`).
-    if (cost <= 0) {
-      return { allowed: true, remaining: Math.max(0, maxCost - current) }
-    }
-
-    if (current + cost > maxCost) {
-      return { allowed: false, remaining: Math.max(0, maxCost - current) }
-    }
-    const after = await valkey.incrby(bkey, cost)
-    // Refresh the TTL on every write — sliding-window semantics. If
-    // the key already had a TTL, PEXPIRE just extends it; if it was
-    // first-touch this call (INCRBY creates it with no TTL), we
-    // install one here so it always self-cleans.
-    await valkey.pexpire(bkey, windowMs)
-    return { allowed: true, remaining: Math.max(0, maxCost - after) }
+    const { ok, value } = readPair(await useValkey().eval(BUDGET_SCRIPT, 1, bkey, cost, maxCost, windowMs))
+    return { allowed: ok, remaining: Math.max(0, maxCost - value) }
   } catch (e) {
-    console.warn('[rateLimit] valkey error on budget debit, failing open:', e instanceof Error ? e.message : e)
-    Sentry.captureException(e, {
-      tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
-    })
+    reportValkeyError(e, namespace, 'on budget debit, failing open')
     return { allowed: true, remaining: maxCost }
   }
 }
@@ -216,6 +283,8 @@ export async function consumeRateLimitBudget(
  *
  * Returns `{ allowed, current }`. When `allowed=false`, no slot was
  * reserved; caller should 409. `current` is post-increment on success.
+ * The check-and-increment is one Lua script, so the cap holds under
+ * concurrency.
  *
  * TTL is a safety net — the counter is decremented on confirm / abort,
  * but if the caller crashes between `reserve` and `release` the TTL
@@ -231,23 +300,14 @@ export async function reserveInflightSlot(
   maxSlots: number,
   ttlMs: number
 ): Promise<{ allowed: boolean, current: number }> {
-  if (process.env.TEST_MODE === '1') return { allowed: true, current: 0 }
+  if (isTestModeEnabled()) return { allowed: true, current: 0 }
 
   const ckey = `inflight:${namespace}:${key}`
   try {
-    const valkey = useValkey()
-    const current = Number(await valkey.get(ckey) ?? 0)
-    if (current >= maxSlots) return { allowed: false, current }
-    const after = await valkey.incr(ckey)
-    // INCR on a missing key creates it with no TTL; set TTL every time
-    // so the worst-case stale counter self-cleans within `ttlMs`.
-    await valkey.pexpire(ckey, ttlMs)
-    return { allowed: true, current: after }
+    const { ok, value } = readPair(await useValkey().eval(INFLIGHT_SCRIPT, 1, ckey, maxSlots, ttlMs))
+    return { allowed: ok, current: value }
   } catch (e) {
-    console.warn('[rateLimit] valkey error on inflight reserve, failing closed:', e instanceof Error ? e.message : e)
-    Sentry.captureException(e, {
-      tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
-    })
+    reportValkeyError(e, namespace, 'on inflight reserve, failing closed')
     return { allowed: false, current: 0 }
   }
 }
@@ -258,7 +318,7 @@ export async function reserveInflightSlot(
  * negative (Valkey `DECR` can; we clamp by deleting at zero).
  */
 export async function releaseInflightSlot(namespace: string, key: string): Promise<void> {
-  if (process.env.TEST_MODE === '1') return
+  if (isTestModeEnabled()) return
   const ckey = `inflight:${namespace}:${key}`
   try {
     const valkey = useValkey()

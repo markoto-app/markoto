@@ -21,6 +21,7 @@ import { providerMissingError, requireAiProviders } from '../../utils/aiProvider
 import { providerRequestFields, withProviderErrors } from '../../utils/aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../../utils/aiProviders/resolve'
 import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billingMode'
+import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 const ALLOWED_MIME = new Set([
   'audio/webm',
@@ -148,7 +149,7 @@ async function transcribeViaVoxtral(args: {
   // would time out waiting through SDK retries. The validation
   // tests only need the endpoint to RESPOND past its own ladder; we
   // satisfy that with a canned empty transcript when TEST_MODE=1.
-  if (process.env.TEST_MODE === '1') {
+  if (isTestModeEnabled()) {
     return { text: '', inaudible: true }
   }
 

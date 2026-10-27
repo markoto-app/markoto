@@ -1,5 +1,5 @@
 import { getRequestHeader, getRequestIP, type H3Event } from 'h3'
-import { parseTrustedProxyHops, resolveClientIp } from '../../shared/utils/clientIp'
+import { parseTrustedProxyHops, rateLimitIpKey, resolveClientIp } from '../../shared/utils/clientIp'
 
 /**
  * The requesting client's IP address, or `null` when it can't be told.
@@ -22,4 +22,13 @@ export function getClientIp(event: H3Event): string | null {
     remoteAddress: getRequestIP(event),
     trustedHops: parseTrustedProxyHops(process.env.NUXT_TRUSTED_PROXY_HOPS)
   })
+}
+
+/**
+ * Rate-limit key for the requesting client: the IPv4 address, or the
+ * IPv6 /64 prefix (see `rateLimitIpKey`). Use this — never the raw
+ * `getClientIp` value — whenever a limit is keyed on the client address.
+ */
+export function getClientRateLimitKey(event: H3Event): string {
+  return rateLimitIpKey(getClientIp(event))
 }
