@@ -34,14 +34,12 @@ interface AiSessionMeta {
   sessionId: string
   initiatorName: string
   initiatorUserId: number
-  prompt?: string
 }
 
 interface AiStatus {
   // Known: 'thinking' | 'tool' | 'editing' | 'done' | 'error'. Wider
   // string accepts upstream additions without the union drifting.
   phase: string
-  message: string | null
 }
 
 interface LiveEntry {
@@ -197,16 +195,15 @@ function parseUserIdFromAwareness(raw: unknown): number | null {
 
 function tooltipFor(e: DisplayEntry): string {
   if (e.kind === 'live' && e.isAI) {
-    // Build "Helping Joel — <current status>" so collaborators watching
-    // someone else's AI session can see *what* it's doing at a glance
-    // (fetching a URL, updating the theme, etc.). The status message
-    // is produced by `describeToolInput` on the server side.
+    // "markoto is helping Joel — markoto is working…". Deliberately
+    // generic: what the AI is doing (documents it reads, queries, URLs)
+    // is private to the person who started it, so awareness carries
+    // only the phase.
     const base = e.aiSession?.initiatorName
       ? t('ai.helpingTooltip', { name: e.aiSession.initiatorName })
       : e.user.name
-    const status = e.aiStatus
-    if (status && isActivePhase(status) && status.message) {
-      return `${base} — ${status.message}`
+    if (isActivePhase(e.aiStatus)) {
+      return `${base} — ${t('ai.workingGeneric')}`
     }
     return base
   }

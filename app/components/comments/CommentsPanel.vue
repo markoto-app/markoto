@@ -195,16 +195,11 @@ function submitDraft(body: string) {
 }
 
 async function onSubmitReply(commentId: string, body: string) {
-  postReply(commentId, body)
-  if (hasAiMention(body)) maybeTriggerAi(commentId, null)
-  // Note: replyId not threaded yet — postReply doesn't return it through
-  // the panel boundary. The server resolves "the most recent reply
-  // mentioning @ai" implicitly via the seed prompt; passing replyId would
-  // be a refinement once `postReply` returns the new reply id all the
-  // way up. For v1, the trigger fires with replyId=null and the prompt
-  // builder uses the parent body as the trigger — works because the
-  // rendered <comment_trigger> still includes the reply chain, and the
-  // model sees the latest reply in the list.
+  const replyId = postReply(commentId, body)
+  // The server only runs the AI for a message the caller wrote that
+  // mentions it, so the trigger must name THIS reply — the thread's
+  // parent may be somebody else's.
+  if (replyId && hasAiMention(body)) maybeTriggerAi(commentId, replyId)
 }
 
 const { chatMissing, refresh: refreshAiAvailability } = useAiAvailability()

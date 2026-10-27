@@ -132,6 +132,8 @@ describe('listReadyKnowledgeBrief', () => {
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'broken.pdf', status: 'failed' })
     const brief = await listReadyKnowledgeBrief(ws.workspaceId)
     expect(brief.map(b => b.filename).sort()).toEqual(['ready.pdf'])
+    // The AI loop decides from this whether a file is someone else's.
+    expect(brief[0]?.uploaderId).toBe(u.id)
   })
 
   it('returns empty for a workspace with no ready rows', async () => {

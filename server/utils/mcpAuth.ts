@@ -285,79 +285,12 @@ export interface TouchMcpSessionInput {
 const SESSION_TOUCH_THROTTLE_NAMESPACE = 'mcp:session:touch'
 const SESSION_TOUCH_THROTTLE_SECONDS = 60
 
-// ─── clientInfo.name stash ──────────────────────────────────────────
-//
-// The MCP toolkit assigns the `Mcp-Session-Id` during the `initialize`
-// call's RESPONSE. That call's REQUEST body carries `params.clientInfo.name`
-// ('Claude Desktop', 'Cursor', …) but doesn't have a session id yet, so
-// we can't write directly into `mcp_sessions(client_name)` then.
-//
-// Workaround: when initialize lands, stash `clientInfo.name` keyed on
-// (tokenHash, userAgent) for 60s. On the first follow-up call that
-// carries a session id (the `notifications/initialized` notification),
-// drain the stash and forward `clientName` to `touchMcpSession`. The
-// (tokenHash, userAgent) tuple is stable across the two calls because
-// they come from the same client process. Stash misses are harmless —
-// `client_name` stays null, the UI falls back to `user_agent`.
-
-const CLIENT_NAME_STASH_NAMESPACE = 'mcp:init:client-stash'
-const CLIENT_NAME_STASH_SECONDS = 60
-
-function clientStashKey(tokenHash: string, userAgent: string | null): string {
-  return `${CLIENT_NAME_STASH_NAMESPACE}:${tokenHash}:${(userAgent ?? '').slice(0, 200)}`
-}
-
-/** Stash the initialize-call's `clientInfo.name` for ~60s so the next
- *  request (which carries the session id) can drain it into the
- *  `mcp_sessions` row. Best-effort — Valkey errors are swallowed. */
-export async function stashMcpClientInfo(
-  tokenHash: string,
-  userAgent: string | null,
-  clientName: string
-): Promise<void> {
-  if (!clientName.trim()) return
-  try {
-    const valkey = useValkey()
-    await valkey.set(
-      clientStashKey(tokenHash, userAgent),
-      clientName.slice(0, 200),
-      'EX',
-      CLIENT_NAME_STASH_SECONDS
-    )
-  } catch {
-    // Non-fatal — stash miss means client_name stays null in
-    // mcp_sessions, UI falls back to user_agent.
-  }
-}
-
-/** Drain the stash if present. Returns the cached clientInfo.name or
- *  null. Safe to call on every request; only the initialize-followup
- *  hits a populated entry. */
-export async function drainMcpClientInfo(
-  tokenHash: string,
-  userAgent: string | null
-): Promise<string | null> {
-  try {
-    const valkey = useValkey()
-    const key = clientStashKey(tokenHash, userAgent)
-    const v = await valkey.get(key)
-    if (v) {
-      // Delete after draining — single-shot semantics. Subsequent
-      // calls in the same session use whatever's now in mcp_sessions.
-      await valkey.del(key)
-    }
-    return v ?? null
-  } catch {
-    return null
-  }
-}
-
 /**
  * Upsert an `mcp_sessions` row for the given session id. First call
- * INSERTs; subsequent calls bump `last_active_at` (with `client_name`
- * + `user_agent` only set if they're currently null — first writer
- * wins, since later calls don't necessarily carry the initialize
- * params anymore).
+ * (the middleware writes it on `initialize`, with `clientInfo.name`)
+ * INSERTs; subsequent calls bump `last_active_at` (with `client_name`,
+ * `user_agent` and `token_id` only set if they're currently null —
+ * first writer wins).
  *
  * Throttled to once-per-minute per session via Valkey `SET NX EX`
  * (same pattern as `bumpLastUsed` for PATs). A chatty MCP client
@@ -418,8 +351,11 @@ export async function touchMcpSession(input: TouchMcpSessionInput): Promise<void
       .onConflictDoUpdate({
         target: mcpSessions.mcpSessionId,
         set: {
+          // token_id is first-writer-wins too: the /mcp middleware binds a
+          // session to the token that created it and refuses any other
+          // token, so the creating credential is the one to record.
           lastActiveAt: new Date(),
-          tokenId: input.tokenId,
+          tokenId: sql`coalesce(${mcpSessions.tokenId}, ${input.tokenId})`,
           clientName: sql`coalesce(${mcpSessions.clientName}, ${input.clientName ?? null})`,
           userAgent: sql`coalesce(${mcpSessions.userAgent}, ${input.userAgent ?? null})`
         }

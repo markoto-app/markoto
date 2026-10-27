@@ -52,15 +52,38 @@ A token acts as you, limited to its scopes. New tokens get all four:
 | Scope | Allows |
 |---|---|
 | `documents:read` | List your documents, read them, comments, themes, activity, page images, export as markdown or PDF |
-| `documents:write` | Create, edit and duplicate documents, set titles, change themes, save theme presets, add, reply to, resolve and delete comments |
+| `documents:write` | Create, edit and duplicate documents, set titles, change themes, save theme presets, add, reply to, resolve and delete comments, generate images into a document (image generation also needs an image provider under your [AI provider settings](/docs/account/ai-provider) or an instance default) |
 | `knowledge:read` | Search and read knowledge files in workspaces you belong to |
-| `web:fetch` | Web search, URL reading and image generation (image generation also needs an image provider under your [AI provider settings](/docs/account/ai-provider) or an instance default) |
+| `web:fetch` | Web search and URL reading |
 
 A token can never exceed your own access: it can't edit a document you can't
 edit, or read a workspace you aren't in. Tools for a scope the token lacks
-are not even listed to the client. Web search and URL reading share the same
-allowance as the in-app AI (30 per hour and 100 per day by default) and
-exist only if the instance has those providers set up.
+are not even listed to the client, and every call is checked again. Web
+search and URL reading share the same allowance as the in-app AI (30 per
+hour and 100 per day by default) and exist only if the instance has those
+providers set up.
+
+Image generation needs `documents:write`. Tokens created before this
+change with all four scopes keep working; a token you limited to
+`web:fetch` without `documents:write` no longer offers image generation,
+so create a new token if you need it.
+
+## Limits
+
+- Every request needs a valid token; without one the server answers with
+  an error and keeps no connection state.
+- A connection (MCP session) belongs to the token that opened it and can't
+  be used with another token.
+- Calls are rate-limited per token and per account (120 tool calls a
+  minute). An account keeps up to 20 connections at once; opening one more
+  closes the one used least recently, and the client simply reconnects.
+- Rendering (PDF export, page count, page images) shares the allowance of
+  the PDF download in the editor, 10 renders a minute. Image generation is
+  limited to 20 an hour.
+
+Your MCP client is your own agent, so markoto doesn't ask you to confirm
+its tool calls the way the [in-editor AI does](/docs/writing/ai-prompt-bar#when-the-ai-asks-first);
+your client's own confirmation settings apply.
 
 ## Where edits show up
 

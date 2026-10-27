@@ -1,0 +1,90 @@
+import * as Y from 'yjs'
+import { getDoc } from '../../repos/documents'
+import { countOtherWorkspaceEditors, hasForeignContentActivity } from '../../repos/docProvenance'
+import type { KnowledgeBrief } from '../../repos/knowledge'
+import { accessibleDocTitle, parseDocIdFromInput } from '../aiToolAdapter'
+import { CrossBoundaryGuard } from './crossBoundary'
+import type { AiSessionChannel } from './sessionChannel'
+import { isAiCommentAuthor } from '~~/shared/ai/author'
+
+// Wires the taint gate (`crossBoundary.ts`) to the real data sources for
+// one loop session: document provenance, the live comments array, the
+// session's knowledge files and the initiator-only confirmation channel.
+
+/**
+ * A document is "solo" for `userId` when only they can have shaped its
+ * content: they own it, it isn't open for anyone to edit, no other
+ * workspace member can edit it, and every content change in its activity
+ * history is theirs (directly or through their own AI / MCP / restore).
+ * Anything else — including an unparseable or missing reference — is
+ * treated as shared.
+ */
+export async function isDocSoloForUser(docRef: string, userId: number): Promise<boolean> {
+  const docId = parseDocIdFromInput(docRef)
+  if (!docId) return false
+  const doc = await getDoc(docId)
+  if (doc?.ownerId !== userId) return false
+  if (doc.accessMode === 'open-edit') return false
+  if (doc.workspaceId && (await countOtherWorkspaceEditors(doc.workspaceId, userId)) > 0) return false
+  return !(await hasForeignContentActivity(docId, userId))
+}
+
+/**
+ * Does the comments array hold anything not written by `userId`?
+ * AI-named comments (no user id) are the invoker's own only on a solo
+ * document — elsewhere anybody who can comment could have written one
+ * under that name, so they count as foreign.
+ */
+export function commentsHaveForeignAuthors(ydoc: Y.Doc, userId: number, sessionDocSolo: boolean): boolean {
+  const isOwn = (map: Y.Map<unknown>): boolean => {
+    const authorId = map.get('authorId')
+    if (authorId === userId) return true
+    return sessionDocSolo && isAiCommentAuthor(authorId, map.get('authorName'))
+  }
+  const comments = ydoc.getArray<Y.Map<unknown>>('comments')
+  for (let i = 0; i < comments.length; i++) {
+    const m = comments.get(i)
+    if (!(m instanceof Y.Map)) continue
+    if (!isOwn(m)) return true
+    const replies = m.get('replies')
+    if (!(replies instanceof Y.Array)) continue
+    for (let j = 0; j < replies.length; j++) {
+      const r = replies.get(j)
+      if (r instanceof Y.Map && !isOwn(r)) return true
+    }
+  }
+  return false
+}
+
+export interface SessionGuardArgs {
+  docId: string
+  initiatorUserId: number
+  /** Session workspace (null for standalone docs / non-members). */
+  workspaceId: string | null
+  ydoc: Y.Doc
+  channel: AiSessionChannel
+  /** Text the initiator typed (prompt / their triggering comment). */
+  invokerText: readonly string[]
+  knowledgeFiles: readonly KnowledgeBrief[]
+  /** Extra reason the session starts tainted (e.g. a comment thread with other participants). */
+  extraInitialTaint?: string | null
+}
+
+export async function buildSessionGuard(args: SessionGuardArgs): Promise<CrossBoundaryGuard> {
+  const sessionDocSolo = await isDocSoloForUser(args.docId, args.initiatorUserId)
+  const initialTaint = sessionDocSolo ? (args.extraInitialTaint ?? null) : 'the shared document'
+  const knowledgeFiles = new Map(args.knowledgeFiles.map(f => [
+    f.knowledgeId,
+    { filename: f.filename, foreign: f.uploaderId !== args.initiatorUserId }
+  ]))
+  return new CrossBoundaryGuard(
+    { initialTaint, invokerText: args.invokerText, knowledgeFiles },
+    {
+      isDocSolo: ref => isDocSoloForUser(ref, args.initiatorUserId),
+      describeDoc: ref => accessibleDocTitle(args.initiatorUserId, ref),
+      commentsHaveForeignAuthors: () => commentsHaveForeignAuthors(args.ydoc, args.initiatorUserId, sessionDocSolo),
+      workspaceHasOtherEditors: async () => args.workspaceId !== null && (await countOtherWorkspaceEditors(args.workspaceId, args.initiatorUserId)) > 0,
+      confirm: (request, signal) => args.channel.requestConfirmation(request, signal)
+    }
+  )
+}

@@ -1,90 +1,112 @@
-import { verifyMcpPat, touchMcpSession, hashToken, extractMcpBearer, stashMcpClientInfo, drainMcpClientInfo, type McpAuthContext } from '../utils/mcpAuth'
+import { verifyMcpPat, touchMcpSession, type McpAuthContext } from '../utils/mcpAuth'
+import { checkRateLimit } from '../utils/rateLimit'
+import { getClientRateLimitKey } from '../utils/clientIp'
+import { useMcpSessionBindings } from '../utils/mcpSessionBinding'
+import { evaluateMcpRequest, jsonRpcErrorResponse } from './lib/mcpGate'
 
-// Default MCP handler. Soft-auth middleware: extract the bearer, verify
-// against `mcp_personal_tokens`, and stash the resolved user + scopes on
-// `event.context`. Per toolkit guidance we NEVER throw 401 from this
-// middleware — clients interpret 401 on the MCP route as "this server
-// requires OAuth discovery", which kicks them into a discovery flow we
-// don't yet implement (PAT in v1, OAuth deferred to a later phase).
+// Default MCP handler. The middleware is the gate in front of the MCP
+// toolkit (`lib/mcpGate.ts` holds the decision logic):
 //
-// Authentication failure simply leaves `event.context.mcp` undefined.
-// Per-tool `enabled: event => Boolean(event.context.mcp)` guards then
-// hide every tool from unauthenticated callers — they see an empty
-// catalog instead of a 401 churn.
+//   - rate limits per client address and per token,
+//   - a verified personal access token is REQUIRED. Without one the
+//     request is refused with a JSON-RPC error (HTTP 403) before the
+//     toolkit runs, so an anonymous `initialize` never creates a server
+//     session (the toolkit keeps at most 1000 per process — anonymous
+//     callers could otherwise exhaust them for everybody). Never 401:
+//     MCP clients treat 401 as "start OAuth discovery", which we don't
+//     offer,
+//   - every request carrying `Mcp-Session-Id` must present the token
+//     that created that session (`utils/mcpSessionBinding.ts`); per user
+//     at most MAX_SESSIONS_PER_USER live sessions.
 //
-// Side-effect: every authenticated request also touches the
-// `mcp_sessions` row (UPSERT, Valkey-throttled to 1/min) so
-// `activity_log` rows tagged `mcp:{mcpSessionId}` can be joined back
-// to the real human. Fire-and-forget — failure here is invisible to
-// the caller, same polarity as `appendAuditEvent`.
+// Tools additionally re-check their scope and the user's access to the
+// doc / workspace on every call (`lib/wrapDocBoundTool.ts`).
+//
+// Side-effect: authenticated requests touch the `mcp_sessions` row
+// (UPSERT, Valkey-throttled to 1/min) so `activity_log` rows tagged
+// `mcp:{mcpSessionId}` can be joined back to the real human. On
+// `initialize` the row is written right away with the client's
+// `clientInfo.name` and the creating token. Fire-and-forget — failure
+// here is invisible to the caller, same polarity as `appendAuditEvent`.
 
 declare module 'h3' {
   interface H3EventContext {
-    /** MCP-PAT-resolved auth context. Undefined for unauthenticated requests. */
+    /** MCP-PAT-resolved auth context. Set for every request that reaches the toolkit. */
     mcp?: McpAuthContext
+  }
+}
+
+/** `clientInfo.name` from an `initialize` body, if this is one. */
+async function initializeClientName(event: Parameters<typeof readBody>[0]): Promise<string | null> {
+  try {
+    const body: unknown = await readBody(event)
+    if (typeof body !== 'object' || body === null) return null
+    const rpc = body as Record<string, unknown>
+    if (rpc.method !== 'initialize') return null
+    const params = rpc.params
+    if (typeof params !== 'object' || params === null) return null
+    const clientInfo = (params as Record<string, unknown>).clientInfo
+    if (typeof clientInfo !== 'object' || clientInfo === null) return null
+    const name = (clientInfo as Record<string, unknown>).name
+    return typeof name === 'string' && name.trim().length > 0 ? name.trim().slice(0, 200) : null
+  } catch {
+    // Not JSON-RPC (GET stream, malformed body) — nothing to record.
+    return null
   }
 }
 
 export default defineMcpHandler({
   description: 'markoto — read, search, and edit your collaborative markdown documents.',
-  middleware: async (event) => {
-    const authHeader = getHeader(event, 'authorization')
-    const ctx = await verifyMcpPat(authHeader)
-    if (!ctx) return // anonymous — `enabled` guards hide every tool
-
-    event.context.mcp = ctx
-
-    const userAgent = getHeader(event, 'user-agent') ?? null
-
-    // Peek the JSON-RPC body to (a) stash clientInfo.name on
-    // `initialize` calls, and (b) detect `initialize` so we DON'T
-    // also try to touchMcpSession (no session id has been assigned
-    // yet — happens on the follow-up call). `readBody` caches the
-    // parse so the toolkit's downstream handler doesn't re-read.
-    let methodName: string | null = null
-    try {
-      const body = await readBody<{ method?: unknown, params?: { clientInfo?: { name?: unknown } } }>(event)
-      if (body && typeof body.method === 'string') methodName = body.method
-      if (methodName === 'initialize') {
-        const clientName = body?.params?.clientInfo?.name
-        if (typeof clientName === 'string' && clientName.trim().length > 0) {
-          // Extract the plaintext to hash. `extractMcpBearer` returns
-          // null if the header isn't a valid bearer — but we already
-          // know ctx is set, so the header is valid.
-          const plaintext = extractMcpBearer(authHeader)
-          if (plaintext) {
-            await stashMcpClientInfo(hashToken(plaintext), userAgent, clientName)
-          }
-        }
-        // No mcp-session-id on initialize; nothing to touch yet.
-        return
+  middleware: async (event, next) => {
+    const sessionHeader = getHeader(event, 'mcp-session-id')
+    const bindings = useMcpSessionBindings()
+    const decision = await evaluateMcpRequest(
+      {
+        authHeader: getHeader(event, 'authorization'),
+        clientKey: getClientRateLimitKey(event),
+        sessionId: typeof sessionHeader === 'string' && sessionHeader.length > 0 ? sessionHeader : null
+      },
+      {
+        verifyToken: verifyMcpPat,
+        rateLimit: (rule, key) => checkRateLimit(rule.namespace, key, rule.max, rule.windowMs),
+        bindings
       }
-    } catch {
-      // Body-peek failure isn't fatal — fall through to the session
-      // touch. The audit chain just won't get clientInfo.name from
-      // this request. Common case: requests that aren't JSON-RPC
-      // (notifications/initialized has a body too, but malformed
-      // bodies shouldn't break auth).
+    )
+    if (decision.kind === 'reject') {
+      return jsonRpcErrorResponse(decision.status, decision.rpcCode, decision.message)
     }
 
-    // Session-id-carrying call (anything after initialize). Drain
-    // the clientInfo stash if this is the first such call after
-    // initialize; subsequent calls find an empty stash and pass
-    // null, which `touchMcpSession`'s COALESCE-first-writer-wins
-    // logic preserves the original client_name.
-    const mcpSessionId = getHeader(event, 'mcp-session-id')
-    if (mcpSessionId) {
-      const plaintext = extractMcpBearer(authHeader)
-      const clientName = plaintext
-        ? await drainMcpClientInfo(hashToken(plaintext), userAgent)
-        : null
+    const auth = decision.auth
+    event.context.mcp = auth
+    const userAgent = getHeader(event, 'user-agent') ?? null
+
+    if (!decision.opensSession) {
       void touchMcpSession({
-        mcpSessionId,
-        userId: ctx.userId,
-        tokenId: ctx.tokenId,
+        mcpSessionId: String(sessionHeader),
+        userId: auth.userId,
+        tokenId: auth.tokenId,
+        clientName: null,
+        userAgent
+      })
+      return next()
+    }
+
+    // No session yet: let the toolkit answer (an `initialize` creates a
+    // session and returns its id in `Mcp-Session-Id`), then bind that id
+    // to this token before the client can use it.
+    const clientName = await initializeClientName(event)
+    const result = await next()
+    const newSessionId = result.headers.get('mcp-session-id')
+    if (newSessionId) {
+      bindings.bind(newSessionId, auth.tokenId, auth.userId)
+      void touchMcpSession({
+        mcpSessionId: newSessionId,
+        userId: auth.userId,
+        tokenId: auth.tokenId,
         clientName,
         userAgent
       })
     }
+    return result
   }
 })

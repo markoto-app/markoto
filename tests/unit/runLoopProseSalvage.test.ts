@@ -5,6 +5,7 @@ import {
   type AgenticGenerateContentResponse as GenerateContentResponse,
   type AgenticFunctionCall as FunctionCall
 } from '../../server/utils/agentic/aiTypes'
+import { soloSessionGuard } from './fixtures/crossBoundary'
 
 // Pin the salvage-path branching: when the model emits prose without
 // a tool call, the runLoop synthesises a fallback call. Pre-Phase-6
@@ -88,6 +89,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
       billingUserId: 1
     },
     logger: () => {},
+    crossBoundary: soloSessionGuard(),
     ...overrides
   }
 }

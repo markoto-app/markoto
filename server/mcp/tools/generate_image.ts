@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
+import { MCP_RATE_LIMITS } from '../lib/mcpGate'
 
 // Generates an image via BFL FLUX.2 [pro] EU-pinned through LiteLLM,
 // uploads to S3 under `docs/{docId}/...`, returns the markdown
@@ -13,8 +14,11 @@ import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 export default buildDocBoundTool({
   name: 'generate_image',
   description: 'Generate a photo or illustration from a text prompt and upload it as an asset of the doc. Returns the markdown reference (e.g. "![alt](/api/files/.../x.png)") — pair with `insert_text` or `replace_text` to place it.',
-  scope: 'web:fetch',
+  // Writes an asset into a document the user can edit and spends their
+  // AI budget — a document write, not a web read.
+  scope: 'documents:write',
   access: 'edit',
+  limit: MCP_RATE_LIMITS.generateImagePerUser,
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   inputSchema: {
     doc_id: z.string().min(1).describe('The doc id the generated image will belong to (asset stored at docs/{doc_id}/...).'),

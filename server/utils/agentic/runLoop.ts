@@ -21,7 +21,8 @@ import {
   type StreamChunk
 } from './messageTranslation'
 import { useLitellmForUser } from '../litellmClient'
-import { providerRequestFields, withProviderErrors } from '../aiProviders/requestFields'
+import { providerRequestFields, withProviderErrors, redactProviderStream } from '../aiProviders/requestFields'
+import type { CrossBoundaryGuard } from './crossBoundary'
 import type { ResolvedAiProvider } from '../aiProviders/resolve'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
@@ -297,6 +298,13 @@ export interface RunLoopOptions {
    * `message_to_user`.
    */
   commentThreadId?: string | null
+  /**
+   * Taint + confirm gate (see `crossBoundary.ts`). Required so no caller
+   * can start a loop that reaches the initiator's other documents,
+   * knowledge or the web without it. Built per session by
+   * `buildSessionGuard` in the prompt / comment-trigger endpoints.
+   */
+  crossBoundary: CrossBoundaryGuard
 }
 
 /**
@@ -572,6 +580,24 @@ function toolErrorResponse(call: FunctionCall, output: string): NonNullable<Cont
   }
 }
 
+/**
+ * Taint gate: once the session has read content the initiator didn't
+ * write, cross-document / knowledge / web tools wait for the initiator's
+ * explicit approval (prompt-bar confirm). Returns a tool-error outcome
+ * when they declined; null when the call may run.
+ */
+async function gateCrossBoundary(ctx: LoopContext, call: FunctionCall, validatedArgs: unknown): Promise<DispatchOutcome | null> {
+  const guard = ctx.opts.crossBoundary
+  const name = call.name ?? ''
+  if (!guard.needsConfirmation(name, validatedArgs)) return null
+  ctx.opts.setStatus('tool', 'Waiting for your confirmation…')
+  const gate = await guard.beforeTool(name, validatedArgs, ctx.opts.abortController.signal)
+  throwIfAborted(ctx)
+  if (gate.allowed) return null
+  ctx.log(`[crossBoundary] ${name} declined by the initiator (tainted by: ${guard.taintReasons.join(', ')})`)
+  return { kind: 'continue', responseParts: [toolErrorResponse(call, gate.message)] }
+}
+
 async function dispatchToolCall(
   ctx: LoopContext,
   call: FunctionCall
@@ -583,6 +609,14 @@ async function dispatchToolCall(
   ctx.telemetry.noteToolAttempt(call.name)
   ctx.log(`function_call: ${call.name} args=${JSON.stringify(call.args).slice(0, 200)}`)
 
+  // Only tools offered to this session may run — e.g. the knowledge
+  // tools are not offered without workspace membership + ready files,
+  // and a model that names them anyway must not reach the handler.
+  if (!ctx.toolDeclarations.some(d => d.name === call.name)) {
+    ctx.log(`function_call refused: ${call.name} is not offered in this session`)
+    return { kind: 'continue', responseParts: [toolErrorResponse(call, `Error: tool ${call.name} is not available in this session.`)] }
+  }
+
   const validation = validateToolArgs(ctx, call)
   if (!validation.ok) return validation.outcome
   const validatedArgs = validation.args
@@ -592,9 +626,13 @@ async function dispatchToolCall(
   const capExceeded = checkToolSlotCap(ctx, call)
   if (capExceeded) return capExceeded
 
+  const declined = await gateCrossBoundary(ctx, call, validatedArgs)
+  if (declined) return declined
+
   const runResult = await runOneTool(ctx, call.name, validatedArgs)
   if (runResult.kind === 'session-cap-exceeded') return runResult
   const result = runResult.result
+  await ctx.opts.crossBoundary.afterTool(call.name, validatedArgs, result)
 
   const responseParts: NonNullable<Content['parts']> = [{
     functionResponse: {
@@ -1000,5 +1038,10 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
     })
   }, { signal: opts.abortSignal }))
 
-  return openAIStreamToInternalChunks(oaiStream)
+  // BYOK: errors raised WHILE the stream is consumed (a provider SSE
+  // error event, a dropped connection) bypass `withProviderErrors` above,
+  // which only covers opening the stream. Wrap the iteration too so a
+  // provider that echoes the key mid-stream can't leak it into the
+  // status channel, logs or Sentry.
+  return openAIStreamToInternalChunks(redactProviderStream(provider, oaiStream))
 }

@@ -88,6 +88,22 @@ export function classifyProviderError(e: unknown): VerifyCode {
  * callers' `isBudgetExceededError` checks match on it) — they only occur
  * on platform-billed calls, which carry no user key anyway.
  */
+/**
+ * Wrap a provider stream so errors raised while it is CONSUMED (an SSE
+ * error event, a dropped connection) get the same key redaction as
+ * `withProviderErrors` gives errors raised while opening it. No-op for
+ * platform aliases (no user key to redact).
+ */
+export async function* redactProviderStream<T>(provider: ResolvedAiProvider, stream: AsyncIterable<T>): AsyncGenerator<T, void, unknown> {
+  try {
+    for await (const item of stream) yield item
+  } catch (e) {
+    if (!provider.credentials || e instanceof AiProviderUrlRefused) throw e
+    const message = redactSecret(e instanceof Error ? e.message : String(e), provider.credentials.apiKey)
+    throw new AiProviderCallError(classifyProviderError(e), message, errorStatus(e))
+  }
+}
+
 export async function withProviderErrors<T>(provider: ResolvedAiProvider, fn: () => Promise<T>): Promise<T> {
   try {
     return await fn()

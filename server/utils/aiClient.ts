@@ -6,6 +6,7 @@ import { aiClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { checkout, release, type PoolEntry } from './yDocPool'
 import type { ToolContext, ToolStatusPhase } from './agentic/toolContext'
 import type { ResolvedAiProviders } from './aiProviders/resolve'
+import type { AiSessionChannel } from './agentic/sessionChannel'
 
 // Re-export for callers that still import `AiStatusPhase` from this
 // module. Going forward they should import `ToolStatusPhase` from
@@ -18,6 +19,8 @@ export type AiStatusPhase = ToolStatusPhase
 // surface — see `server/utils/agentic/toolContext.ts` for the rationale.
 export interface AiSession extends ToolContext {
   provider: HocuspocusProvider
+  /** Initiator-only channel: prompt, status messages, answers, confirmations. */
+  channel: AiSessionChannel
   destroy(): Promise<void>
 }
 
@@ -26,7 +29,12 @@ export interface SessionMeta {
   initiatorName: string
   initiatorUserId: number
   initiatorColor: string
-  prompt: string
+  /**
+   * Initiator-only channel for this session. The prompt, status
+   * messages and answers go here — never into awareness, which every
+   * participant of the document receives.
+   */
+  channel: AiSessionChannel
   /** Workspace the doc belongs to, forwarded to the resulting AiSession. */
   workspaceId?: string | null
   /** Billing attribution target, resolved by the caller. */
@@ -70,11 +78,14 @@ function mintLoopJwt(docId: string, sessionId: string): string {
 }
 
 /**
- * Connects to Hocuspocus as "AI Assistant" — the AI's own Y.js client.
- * Awareness advertises the AI identity + initiator + live status so the
- * UI can render a distinct avatar and show what the AI is doing. The
- * display name is deliberately vendor-neutral ("markoto") so swapping
- * the underlying model provider is a config change, not a UI rename.
+ * Connects to Hocuspocus as "markoto" — the AI's own Y.js client.
+ * Awareness advertises ONLY what every participant may see: the AI
+ * identity, who started the session, the coarse phase and (for `@ai`
+ * comment sessions) the thread id — enough for "markoto is working for
+ * Alice". The prompt, status messages and answers go to the initiator
+ * through `meta.channel`. The display name is deliberately
+ * vendor-neutral ("markoto") so swapping the underlying model provider
+ * is a config change, not a UI rename.
  *
  * Implementation: routes through `yDocPool.checkout` with principalId
  * `loop:{sessionId}`. Each loop run has a unique session id so this is
@@ -110,7 +121,6 @@ export async function createAiSession(
         sessionId: meta.sessionId,
         initiatorName: meta.initiatorName,
         initiatorUserId: meta.initiatorUserId,
-        prompt: meta.prompt,
         // Only included when present — keeps the awareness payload
         // small for the common (non-comment-trigger) case.
         ...(meta.commentThreadId ? { commentThreadId: meta.commentThreadId } : {})
@@ -143,12 +153,21 @@ export async function createAiSession(
     throw err
   }
 
-  // Loop's `aiStatus` field uses the same awareness slot the legacy
-  // `updateStatus` closure wrote to. Handlers continue to call
-  // `ctx.updateStatus(...)` and the slot writes show up to other
-  // collaborators as before.
+  // Status: the phase alone goes to awareness (everyone sees "markoto
+  // is working"); the message ("Reading 'Q3 plan'…", URLs, queries) goes
+  // to the initiator's channel only. Awareness is only touched when the
+  // phase changes.
+  let broadcastPhase: ToolStatusPhase = 'thinking'
   const updateStatus = (phase: ToolStatusPhase, message?: string): void => {
-    entry.awareness.setLocalStateField('aiStatus', { phase, message: message ?? null })
+    if (phase !== broadcastPhase) {
+      broadcastPhase = phase
+      entry.awareness.setLocalStateField('aiStatus', { phase, message: null })
+    }
+    void meta.channel.setStatus({ phase, message: message ?? null })
+  }
+
+  const deliverResponse = (response: { message: string, isQuestion: boolean, ts: number }): void => {
+    void meta.channel.setResponse(response)
   }
 
   const destroy = async (): Promise<void> => {
@@ -183,6 +202,8 @@ export async function createAiSession(
     virtualKey: meta.virtualKey,
     aiProviders: meta.aiProviders,
     updateStatus,
+    deliverResponse,
+    channel: meta.channel,
     provider: entry.provider,
     destroy
   }

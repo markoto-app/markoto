@@ -35,6 +35,26 @@ It picks its tools turn by turn from your prompt; you don't tell it which
 to use. Prompts can be dictated: with a transcription provider connected,
 the microphone in the bar turns speech into a prompt.
 
+Your prompt, the AI's status and its answers are shown only to you.
+Collaborators see that markoto is working for you, not what you asked or
+what it is reading.
+
+## When the AI asks first
+
+Text written by other people (in a shared document, their comments, a web
+page, someone else's knowledge file) could contain instructions aimed at
+the AI. So once the AI has read such text in a session, it asks you
+before it reaches beyond the document: reading or listing your other
+documents, searching or opening workspace knowledge, creating or copying
+a document, searching the web, or opening a web address you didn't type
+yourself. A card above the prompt bar says exactly what it wants, for
+example *markoto wants to read "Q3 plan"*, with **Allow** and **Deny**.
+
+- **Allow** runs that one step; the same request isn't asked again in this session.
+- **Deny**, or no answer within about a minute and a half, skips it. The AI carries on without it and tells you what it couldn't do.
+
+In a private document only you have written, the AI never needs to ask.
+
 ## Tips for good prompts
 
 - **Be specific about location**: "add at the end", "after the section about X", "rewrite the first paragraph".

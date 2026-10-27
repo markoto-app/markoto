@@ -446,6 +446,27 @@
     }
   },
   "ai": {
+    "workingGeneric": "markoto está trabajando…",
+    "otherSessionWorking": "markoto está trabajando para {name}",
+    "confirm": {
+      "label": "markoto pregunta primero",
+      "reason": "En esta sesión, markoto ha leído texto escrito por otras personas, así que pregunta antes de acceder a tus otros documentos, al conocimiento del espacio de trabajo o a la web.",
+      "allow": "Permitir",
+      "deny": "Denegar",
+      "tools": {
+        "view_other_document": "markoto quiere leer «{target}».",
+        "list_my_documents": "markoto quiere listar tus documentos.",
+        "list_workspace_documents": "markoto quiere listar los documentos de este espacio de trabajo.",
+        "search_knowledge": "markoto quiere buscar «{target}» en el conocimiento del espacio de trabajo.",
+        "get_knowledge_file": "markoto quiere leer el archivo de conocimiento «{target}».",
+        "create_document": "markoto quiere crear un documento nuevo, «{target}».",
+        "duplicate_document": "markoto quiere copiar «{target}».",
+        "web_search": "markoto quiere buscar «{target}» en la web.",
+        "fetch_url": "markoto quiere abrir {target}",
+        "view_image": "markoto quiere cargar la imagen {target}",
+        "generic": "markoto quiere usar {tool}."
+      }
+    },
     "placeholder": "Pregúntale a markoto…",
     "send": "Enviar",
     "stop": "Detener",

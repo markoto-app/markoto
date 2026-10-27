@@ -10,6 +10,9 @@ const props = defineProps<{
     lastError: ReturnType<typeof useAI>['lastError']
     budgetExhausted: ReturnType<typeof useAI>['budgetExhausted']
     lastResponse: ReturnType<typeof useAI>['lastResponse']
+    pendingConfirmation: ReturnType<typeof useAI>['pendingConfirmation']
+    answeringConfirmation: ReturnType<typeof useAI>['answeringConfirmation']
+    answerConfirmation: ReturnType<typeof useAI>['answerConfirmation']
     prompt: ReturnType<typeof useAI>['prompt']
     abort: ReturnType<typeof useAI>['abort']
     clearLastError: ReturnType<typeof useAI>['clearLastError']
@@ -291,6 +294,12 @@ watch(() => props.ai.lastError.value, (err) => {
   props.ai.clearLastError()
 })
 
+// Other people's sessions: only who it is for — their prompt and the
+// AI's status text are private to them.
+const otherSessionsTooltip = computed(() =>
+  props.ai.otherSessions.value.map(s => t('ai.otherSessionWorking', { name: s.initiatorName })).join('\n')
+)
+
 async function onStop() {
   vibrateAbort(150)
   await props.ai.abort()
@@ -399,6 +408,15 @@ onUnmounted(() => {
          `lastResponse`. When expanded, it visually merges into the
          prompt bar shell below (single floating section). When
          collapsed it floats as a separate pill above the bar. -->
+    <!-- Allow / Deny for a cross-document, knowledge or web action the
+         AI wants to take after reading other people's text. Private to
+         the initiator (session channel), never broadcast. -->
+    <AIConfirmPanel
+      :request="props.ai.pendingConfirmation.value"
+      :busy="props.ai.answeringConfirmation.value"
+      @allow="props.ai.answerConfirmation(true)"
+      @deny="props.ai.answerConfirmation(false)"
+    />
     <AIResponsePanel
       :response="props.ai.lastResponse.value"
       class="ai-prompt-bar__response"
@@ -500,7 +518,7 @@ onUnmounted(() => {
            grow visually when collaborators are also asking the AI. -->
       <UTooltip
         v-if="ai.otherSessions.value.length > 0 && !voiceActive"
-        :text="ai.otherSessions.value.map(s => `${s.initiatorName}: ${s.prompt}`).join('\n')"
+        :text="otherSessionsTooltip"
       >
         <UBadge
           color="info"

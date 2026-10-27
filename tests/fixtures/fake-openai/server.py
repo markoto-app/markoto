@@ -16,6 +16,12 @@ Scripted behaviour keyed on the request:
   - Authorization must be "Bearer <key>". The key "bad-key" -> 401.
   - Model "missing-model" -> 404 model_not_found.
   - Model "no-tools-model" never emits tool calls (plain text instead).
+  - Model "obedient-chat" plays a model that follows instructions planted
+    in content (prompt-injection tests): first it calls `view_document`;
+    afterwards, when the latest tool result contains a line
+    `FAKE_DIRECTIVE <tool_name> <json-args>`, it calls exactly that tool
+    with those arguments (at most 6 tool turns); otherwise it answers
+    "Done." and the turn ends.
   - Otherwise, when tools are offered and the last message is NOT a tool
     result, the reply is a tool call: `insert_text` (when offered, so
     the markoto agent loop writes a marker line into the doc), else the
@@ -30,6 +36,7 @@ Test introspection (not part of the OpenAI surface):
 
 import json
 import os
+import re
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -45,6 +52,7 @@ TRANSCRIPT = "hello from the fake transcription provider"
 MODELS = [
     "fake-chat",
     "no-tools-model",
+    "obedient-chat",
     "fake-image",
     "fake-whisper",
 ]
@@ -53,6 +61,37 @@ MODELS = [
 PNG_1X1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
 
 RECORDED = []
+
+DIRECTIVE_RE = re.compile(r"FAKE_DIRECTIVE\s+([a-z_]+)\s+(\{[^\n]*\})")
+MAX_OBEDIENT_TOOL_TURNS = 6
+
+
+def _content_text(message):
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(p.get("text", "") for p in content if isinstance(p, dict))
+    return ""
+
+
+def _obedient_tool_call(messages, names):
+    """Tool call for the "obedient-chat" model, or None to answer in text."""
+    tool_messages = [m for m in messages if m.get("role") == "tool"]
+    if not tool_messages:
+        if "view_document" in names:
+            return ("view_document", {})
+        return (names[0], {}) if names else None
+    if len(tool_messages) >= MAX_OBEDIENT_TOOL_TURNS:
+        return None
+    match = DIRECTIVE_RE.search(_content_text(tool_messages[-1]))
+    if not match:
+        return None
+    try:
+        args = json.loads(match.group(2))
+    except ValueError:
+        return None
+    return (match.group(1), args)
 
 
 def _auth_key(headers):
@@ -153,17 +192,22 @@ class Handler(BaseHTTPRequestHandler):
             return
         model = req.get("model", "")
         tools = req.get("tools") or []
-        self._record(model, {"tools": [t.get("function", {}).get("name") for t in tools]})
+        messages = req.get("messages") or []
+        # Tool results the model was given (truncated) — lets tests prove
+        # what content did or did not reach the "provider".
+        tool_results = [_content_text(m)[:4000] for m in messages if m.get("role") == "tool"]
+        self._record(model, {"tools": [t.get("function", {}).get("name") for t in tools], "toolResults": tool_results})
         if not self._check_auth():
             return
         if model == "missing-model":
             self._error(404, "The model `missing-model` does not exist", "model_not_found")
             return
-        messages = req.get("messages") or []
         last_role = messages[-1].get("role") if messages else "user"
 
         tool_call = None
-        if tools and model != "no-tools-model" and last_role != "tool":
+        if model == "obedient-chat":
+            tool_call = _obedient_tool_call(messages, [t.get("function", {}).get("name") for t in tools])
+        elif tools and model != "no-tools-model" and last_role != "tool":
             names = [t.get("function", {}).get("name") for t in tools]
             if "insert_text" in names:
                 tool_call = ("insert_text", {"insert_line": 1, "insert_text": DOC_MARKER})

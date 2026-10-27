@@ -4,6 +4,7 @@ import { getDocWithActorRole } from '../../../repos/documents'
 import { decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 import { renderDocument } from '../../../utils/renderClient'
+import { consumeRenderAllowance } from '../../../utils/renderRateLimit'
 
 // Public-facing PDF download. Authorization mirrors GET /api/files/:docId/:fileId
 // (same `decideFileAccess` decision) — anyone who could read the doc's
@@ -22,16 +23,14 @@ import { renderDocument } from '../../../utils/renderClient'
 //   4. 302 redirect.
 
 export default defineEventHandler(async (event) => {
-  // Rate limit: 10 PDF downloads per IP per minute. Each cache miss
-  // spawns a Playwright render (~5-15s renderer compute), so a tight
-  // anonymous loop on an open-edit doc could saturate the renderer
-  // pool and starve real users. 10/min is generous for legitimate
-  // "view PDF" / "save PDF" traffic but caps the abuse surface.
-  // Cache-hit responses are sub-second and still rate-limited (the
-  // counter doesn't differentiate hit vs. miss), which is the right
-  // call: the limit is on REQUEST volume, not on renderer load.
-  const ip = getClientRateLimitKey(event)
-  if (!(await checkRateLimit('pdf-download', ip, 10, 60_000))) {
+  // Rate limit: 10 renders per client per minute, shared with the MCP
+  // render tools (`renderRateLimit.ts`). Each cache miss spawns a
+  // Playwright render (~5-15s renderer compute), so a tight anonymous
+  // loop on an open-edit doc could saturate the renderer pool and starve
+  // real users. Cache-hit responses are sub-second and still
+  // rate-limited (the counter doesn't differentiate hit vs. miss), which
+  // is the right call: the limit is on REQUEST volume, not renderer load.
+  if (!(await consumeRenderAllowance(event))) {
     throw createError({ statusCode: 429, message: 'Too many PDF requests. Try again in a minute.' })
   }
 

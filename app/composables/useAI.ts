@@ -10,18 +10,24 @@ export interface UseAIOptions {
    * so a costly read is fine.
    */
   getEditorSelection?: () => EditorSelectionSnapshot
+  /** Poll cadence for the initiator's private session status (ms). */
+  pollIntervalMs?: number
 }
 
+/**
+ * What EVERY participant of the document can see about an AI session
+ * (from Y.js awareness): who started it, its coarse phase, and the
+ * comment thread for `@ai` sessions. The prompt, status text and
+ * answers are private to the initiator — see `MyAiSessionInfo`.
+ */
 export interface AiSessionInfo {
   sessionId: string
   initiatorName: string
   initiatorUserId: number
-  prompt: string
   // Known phases: 'thinking' | 'tool' | 'editing' | 'done' | 'error'.
-  // The wider `string` accepts upstream phase additions (e.g. provider-
-  // specific stages from the runLoop) without forcing this union to drift.
+  // The wider `string` accepts upstream phase additions without forcing
+  // this union to drift.
   phase: string
-  message: string | null
   /**
    * Set when the session was triggered by an `@ai` mention in a
    * comment thread — carries the thread id so the comments panel can
@@ -29,15 +35,28 @@ export interface AiSessionInfo {
    * card. Undefined for normal prompt-bar / selection-popup sessions.
    */
   commentThreadId?: string | null
-  /**
-   * Latest non-document response from the AI for this session, set by
-   * the `message_to_user` tool. The frontend's response panel renders
-   * this above the prompt bar — auto-collapsed after 2s when
-   * `isQuestion` is false, sticky when true. Replaced (not appended) on
-   * every new call. Null when the AI hasn't sent a message_to_user
-   * this session.
-   */
-  aiResponse?: { message: string, isQuestion: boolean, ts: number } | null
+}
+
+/** A confirmation the server is waiting for (taint gate). */
+export interface AiConfirmationRequest {
+  id: string
+  /** Tool the AI wants to run (`view_other_document`, `web_search`, …). */
+  tool: string
+  /** Human-readable target: document title, query, URL, filename. */
+  target: string | null
+  /** Server wall-clock ms after which an unanswered request counts as "deny". */
+  expiresAt: number
+}
+
+/**
+ * The initiator's own session: the public fields plus what only they
+ * receive through `GET /api/ai/sessions/:id` (prompt, status message,
+ * pending confirmation).
+ */
+export interface MyAiSessionInfo extends AiSessionInfo {
+  prompt: string
+  message: string | null
+  confirmation: AiConfirmationRequest | null
 }
 
 /** Response surface for the AI prompt bar's response panel. */
@@ -52,10 +71,41 @@ export interface AiResponseEntry {
   ts: number
 }
 
+/** Shape of `GET /api/ai/sessions/:sessionId`. */
+interface PrivateSessionStatus {
+  sessionId: string
+  prompt: string
+  phase: string
+  message: string | null
+  response: { message: string, isQuestion: boolean, ts: number } | null
+  confirmation: AiConfirmationRequest | null
+}
+
+const DEFAULT_POLL_MS = 600
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null
+}
+
+function statusCodeOf(e: unknown): number | undefined {
+  if (!isRecord(e)) return undefined
+  if (typeof e.statusCode === 'number') return e.statusCode
+  if (typeof e.status === 'number') return e.status
+  return undefined
+}
+
 /**
- * Exposes AI prompt / abort actions and reactive state derived from Y.js
- * awareness. The AI joins the document as its own Y.js client, so every
- * tab naturally sees the AI "user" appear, change status, and leave.
+ * Exposes AI prompt / abort / confirm actions and reactive session state.
+ *
+ * Two sources:
+ *   - Y.js awareness — the AI joins the document as its own client, so
+ *     every tab sees the AI appear, change phase and leave. Only
+ *     public fields ride there.
+ *   - The initiator's private channel — while I have a session, the
+ *     composable polls `GET /api/ai/sessions/:id` for the prompt, the
+ *     live status text, `message_to_user` answers and confirmation
+ *     requests ("markoto wants to read 'Q3 plan'"), and answers those
+ *     through `POST …/confirm`.
  *
  * The `editorSelection` override is consumed by the bottom prompt bar so
  * cursor / selection state flows through to the server's `<editor_state>`
@@ -64,6 +114,7 @@ export interface AiResponseEntry {
 export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOptions = {}) {
   const { loggedIn, user: sessionUser } = useUserSession()
   const { refresh: refreshAiAvailability } = useAiAvailability()
+  const pollMs = options.pollIntervalMs ?? DEFAULT_POLL_MS
 
   // All active AI sessions on this doc, derived from awareness entries that
   // advertise `isAI: true` + an `aiSession` metadata block.
@@ -76,27 +127,14 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       const ai = state?.aiSession
       const status = state?.aiStatus
       if (!user?.isAI || !ai?.sessionId) continue
-      const rawResp = state?.aiResponse
-      const aiResponse = rawResp
-        && typeof rawResp.message === 'string'
-        && typeof rawResp.ts === 'number'
-        ? {
-            message: rawResp.message,
-            isQuestion: rawResp.isQuestion === true,
-            ts: rawResp.ts
-          }
-        : null
       list.push({
         sessionId: ai.sessionId,
         initiatorName: ai.initiatorName,
         initiatorUserId: ai.initiatorUserId,
-        prompt: ai.prompt ?? '',
         phase: status?.phase ?? 'thinking',
-        message: status?.message ?? null,
         commentThreadId: typeof ai.commentThreadId === 'string' && ai.commentThreadId.length > 0
           ? ai.commentThreadId
-          : null,
-        aiResponse
+          : null
       })
     }
     activeSessions.value = list
@@ -104,7 +142,6 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
 
   awareness.on('change', refresh)
   refresh()
-  onUnmounted(() => awareness.off('change', refresh))
 
   // The current user's session on this doc — used to show Stop button + disable input.
   const mySessionId = computed<string | null>(() => {
@@ -113,11 +150,6 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     if (typeof myId !== 'number') return null
     const mine = activeSessions.value.find(s => s.initiatorUserId === myId)
     return mine?.sessionId ?? null
-  })
-
-  const mySession = computed<AiSessionInfo | null>(() => {
-    if (!mySessionId.value) return null
-    return activeSessions.value.find(s => s.sessionId === mySessionId.value) ?? null
   })
 
   const otherSessions = computed<AiSessionInfo[]>(() => {
@@ -136,48 +168,145 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   // `clearLastError()` is called.
   const budgetExhausted = ref(false)
 
-  // Surface errors that happen mid-loop (server-side) back through `lastError` so
-  // AIPromptBar can toast them. Awareness clears the session ~2.5s after the error
-  // is written, so we must capture the message while it's still visible.
-  watch(mySession, (session, prev) => {
-    if (session?.phase === 'error' && session.message) {
-      lastError.value = session.message.replace(/^Error:\s*/i, '')
-    } else if (!session && prev?.phase === 'error') {
-      // Session just cleaned up after an error — keep lastError around for the toast.
+  // ─── Private status channel ───────────────────────────────────────
+  //
+  // `privateStatus` is the latest snapshot for the session I'm tracking.
+  // Tracking starts as soon as `/api/ai/prompt` returns a session id
+  // (before the AI client shows up in awareness) or when awareness shows
+  // a session of mine (e.g. an `@ai` comment I posted). When the session
+  // leaves awareness we fetch once more so the final answer / error isn't
+  // lost, then stop.
+  const privateStatus = ref<PrivateSessionStatus | null>(null)
+  const startedSessionId = ref<string | null>(null)
+  const trackedSessionId = computed(() => mySessionId.value ?? startedSessionId.value)
+
+  const lastResponse = ref<AiResponseEntry | null>(null)
+  let lastErrorSessionId: string | null = null
+
+  function applyStatus(s: PrivateSessionStatus) {
+    privateStatus.value = s
+    const r = s.response
+    if (r) {
+      const cur = lastResponse.value
+      if (cur?.sessionId !== s.sessionId || cur.ts !== r.ts) {
+        lastResponse.value = { sessionId: s.sessionId, message: r.message, isQuestion: r.isQuestion, ts: r.ts }
+      }
+    }
+    // Surface errors that happen mid-loop (server-side) through
+    // `lastError` so AIPromptBar can toast them — once per session.
+    if (s.phase === 'error' && s.message && lastErrorSessionId !== s.sessionId) {
+      lastErrorSessionId = s.sessionId
+      lastError.value = s.message.replace(/^Error:\s*/i, '')
+    }
+  }
+
+  /** One fetch; resolves false when the session is gone (404) so polling stops. */
+  async function fetchStatus(sid: string): Promise<boolean> {
+    try {
+      const s = await $fetch<PrivateSessionStatus>(`/api/ai/sessions/${encodeURIComponent(sid)}`)
+      if (trackedSessionId.value === sid || mySessionId.value === null) applyStatus(s)
+      return true
+    } catch (e) {
+      return statusCodeOf(e) !== 404
+    }
+  }
+
+  let pollTimer: ReturnType<typeof setTimeout> | null = null
+  let pollingFor: string | null = null
+
+  function stopPolling() {
+    if (pollTimer) clearTimeout(pollTimer)
+    pollTimer = null
+    pollingFor = null
+  }
+
+  function schedulePoll(sid: string) {
+    pollTimer = setTimeout(async () => {
+      if (pollingFor !== sid) return
+      const alive = await fetchStatus(sid)
+      if (pollingFor !== sid) return
+      // Gone, or finished without (still) being in awareness — e.g. the
+      // session failed before the AI could join the document.
+      const finished = privateStatus.value?.sessionId === sid
+        && (privateStatus.value.phase === 'done' || privateStatus.value.phase === 'error')
+        && mySessionId.value !== sid
+      if (!alive || finished) {
+        if (startedSessionId.value === sid) startedSessionId.value = null
+        stopPolling()
+        return
+      }
+      schedulePoll(sid)
+    }, pollMs)
+  }
+
+  watch(trackedSessionId, (sid, prev) => {
+    stopPolling()
+    if (prev && !sid) {
+      // Session left awareness: one last read for its final answer/error.
+      void fetchStatus(prev)
+      privateStatus.value = null
+      return
+    }
+    if (!sid) return
+    privateStatus.value = null
+    pollingFor = sid
+    void fetchStatus(sid)
+    schedulePoll(sid)
+  }, { immediate: true })
+
+  // Once awareness shows the session I started, awareness drives tracking.
+  watch(mySessionId, (sid) => {
+    if (sid && startedSessionId.value === sid) startedSessionId.value = null
+  })
+
+  onUnmounted(() => {
+    awareness.off('change', refresh)
+    stopPolling()
+  })
+
+  const mySession = computed<MyAiSessionInfo | null>(() => {
+    const sid = mySessionId.value
+    if (!sid) return null
+    const pub = activeSessions.value.find(s => s.sessionId === sid)
+    if (!pub) return null
+    const priv = privateStatus.value?.sessionId === sid ? privateStatus.value : null
+    return {
+      ...pub,
+      phase: priv?.phase ?? pub.phase,
+      prompt: priv?.prompt ?? '',
+      message: priv?.message ?? null,
+      confirmation: priv?.confirmation ?? null
     }
   })
 
-  // Latched copy of the most recent `message_to_user` response. Awareness
-  // disappears with the AI session (~2.5s after `done`), so without this
-  // latch the response panel would unmount the moment the loop ends —
-  // exactly when the user is reading it. We watch the live awareness
-  // entry, snapshot any fresh `aiResponse` into `lastResponse`, and let
-  // it persist until either the next response replaces it or the user
-  // dismisses it manually. New responses are detected by `(sessionId, ts)`
-  // so identical bodies in different sessions don't collide and re-emits
-  // within the same session bump the timestamp.
-  const lastResponse = ref<AiResponseEntry | null>(null)
-  watch(mySession, (session) => {
-    if (!session) return
-    const r = session.aiResponse
-    if (!r) return
-    const cur = lastResponse.value
-    if (cur?.sessionId === session.sessionId && cur.ts === r.ts) return
-    lastResponse.value = {
-      sessionId: session.sessionId,
-      message: r.message,
-      isQuestion: r.isQuestion,
-      ts: r.ts
-    }
-  }, { deep: true })
+  /** The confirmation the AI is waiting for, if any. */
+  const pendingConfirmation = computed<AiConfirmationRequest | null>(() => mySession.value?.confirmation ?? null)
+  const answeringConfirmation = ref(false)
 
-  // No public eviction handler today: the response panel's × collapses
-  // to the pill (`expanded=false` inside the panel) without clearing
-  // `lastResponse`, so the user can re-open the most recent reply via
-  // the pill at any time. The latched value is only replaced when a
-  // fresh `message_to_user` arrives. If we ever need explicit "forget
-  // this response" semantics (e.g. long-press, settings toggle), wire
-  // a new handler here.
+  async function answerConfirmation(allow: boolean): Promise<void> {
+    const sid = mySessionId.value
+    const c = pendingConfirmation.value
+    if (!sid || !c || answeringConfirmation.value) return
+    answeringConfirmation.value = true
+    try {
+      await $fetch(`/api/ai/sessions/${encodeURIComponent(sid)}/confirm`, {
+        method: 'POST',
+        body: { confirmationId: c.id, allow }
+      })
+    } catch (e) {
+      // 409 = already answered / timed out — the next poll shows the
+      // current state; anything else is worth a toast.
+      if (statusCodeOf(e) !== 409) {
+        const msg = isRecord(e) && typeof e.message === 'string' ? e.message : 'Request failed'
+        lastError.value = msg
+      }
+    } finally {
+      answeringConfirmation.value = false
+      // Hide the answered request right away; the poll confirms.
+      const cur = privateStatus.value
+      if (cur?.confirmation?.id === c.id) privateStatus.value = { ...cur, confirmation: null }
+    }
+  }
 
   async function prompt(
     text: string,
@@ -194,10 +323,11 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     // still ships happily; the server treats absence as `kind: 'none'`.
     const editorSelection = overrides?.editorSelection ?? options.getEditorSelection?.()
     try {
-      await $fetch<{ sessionId: string }>('/api/ai/prompt', {
+      const res = await $fetch<{ sessionId: string }>('/api/ai/prompt', {
         method: 'POST',
         body: { docId: docId.value, prompt: trimmed, editorSelection }
       })
+      if (typeof res?.sessionId === 'string') startedSessionId.value = res.sessionId
       return true
     } catch (e) {
       const err = e as {
@@ -243,10 +373,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   }
 
   // Exposed for consumers as a readonly ref plus an explicit `clearLastError`
-  // helper. Previously the component mutated `lastError.value = null` directly,
-  // which worked but gave no visible API contract and made it easy for the
-  // error to stick around if a new caller forgot to clear it. Now the intent is
-  // explicit: callers read `lastError`, show a toast, then call `clearLastError()`.
+  // helper: callers read `lastError`, show a toast, then call `clearLastError()`.
   function clearLastError() {
     lastError.value = null
     budgetExhausted.value = false
@@ -261,8 +388,11 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     lastError: readonly(lastError),
     budgetExhausted: readonly(budgetExhausted),
     lastResponse: readonly(lastResponse),
+    pendingConfirmation,
+    answeringConfirmation: readonly(answeringConfirmation),
     prompt,
     abort,
+    answerConfirmation,
     clearLastError
   }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
-import { ref, nextTick } from 'vue'
+import { ref } from 'vue'
 import * as Y from 'yjs'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import type { H3Event } from 'h3'
@@ -98,6 +98,44 @@ registerEndpoint('/api/ai/abort', {
   }
 })
 
+// Private session channel (`GET /api/ai/sessions/:id`, `POST …/confirm`).
+// Tests put the snapshot for a session id into `privateStatus`; ids
+// without an entry answer 404 (unknown / expired session).
+const privateStatus = new Map<string, Record<string, unknown>>()
+const confirmCalls: Array<{ sid: string, body: unknown }> = []
+for (const sid of ['sid-1', 'sid-mine', 'srv-sid-1']) {
+  registerEndpoint(`/api/ai/sessions/${sid}`, {
+    method: 'GET',
+    handler: async (event) => {
+      const snap = privateStatus.get(sid)
+      return respond(event, snap ?? new ApiError(404, { message: 'AI session not found' }))
+    }
+  })
+  registerEndpoint(`/api/ai/sessions/${sid}/confirm`, {
+    method: 'POST',
+    handler: async (event) => {
+      const body = await readBody(event)
+      confirmCalls.push({ sid, body })
+      return respond(event, { ok: true })
+    }
+  })
+}
+
+function setPrivateStatus(sid: string, patch: Record<string, unknown>) {
+  privateStatus.set(sid, {
+    sessionId: sid,
+    prompt: '',
+    phase: 'thinking',
+    message: null,
+    response: null,
+    confirmation: null,
+    ...patch
+  })
+}
+
+/** Poll quickly in tests. */
+const FAST = { pollIntervalMs: 15 }
+
 // — awareness helpers ——————————————————————————————————————————————
 //
 // Build a side Awareness, stamp a full state, encode-and-apply it onto
@@ -137,19 +175,6 @@ function pushAiClient(target: Awareness, state: AiClientState): Awareness {
   return peer
 }
 
-function updateAiStatus(
-  peer: Awareness,
-  target: Awareness,
-  status: { phase: string, message?: string | null }
-) {
-  peer.setLocalStateField('aiStatus', {
-    phase: status.phase,
-    message: status.message ?? null
-  })
-  const update = encodeAwarenessUpdate(peer, [peer.clientID])
-  applyAwarenessUpdate(target, update, 'test')
-}
-
 function removePeer(peer: Awareness, target: Awareness) {
   // Mark the peer offline by clearing its state + re-encoding. The
   // composable's `refresh()` sees the entry disappear.
@@ -183,6 +208,8 @@ beforeEach(() => {
   abortEp.handler = () => ({ ok: true })
   promptCalls.length = 0
   abortCalls.length = 0
+  privateStatus.clear()
+  confirmCalls.length = 0
 })
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -235,22 +262,18 @@ describe('useAI — activeSessions derivation', () => {
     })
     const ai = useAI(docId, awareness)
     expect(ai.activeSessions.value).toHaveLength(1)
+    // Only the public fields. Even if a (legacy / hostile) awareness
+    // entry carries prompt or status text, the composable doesn't
+    // surface it — that belongs to the initiator's private channel.
     expect(ai.activeSessions.value[0]).toEqual({
       sessionId: 'sid-1',
       initiatorName: 'Alice',
       initiatorUserId: 1,
-      prompt: 'Draft a haiku',
       phase: 'tool',
-      message: 'Searching the web',
       // commentThreadId is null for non-comment-trigger sessions; the
       // useAI composable surfaces it as null (not undefined) to keep
       // the field always-present for downstream consumers.
-      commentThreadId: null,
-      // aiResponse defaults to null until the AI calls
-      // `message_to_user`, which writes the response shape to
-      // awareness. Same always-present-as-null contract as
-      // commentThreadId.
-      aiResponse: null
+      commentThreadId: null
     })
   })
 
@@ -279,7 +302,6 @@ describe('useAI — activeSessions derivation', () => {
     applyAwarenessUpdate(awareness, encodeAwarenessUpdate(peer, [peer.clientID]), 'test')
     const ai = useAI(docId, awareness)
     expect(ai.activeSessions.value[0]?.phase).toBe('thinking')
-    expect(ai.activeSessions.value[0]?.message).toBe(null)
   })
 
   it('reacts to awareness changes (new client appears → list updates)', async () => {
@@ -373,79 +395,105 @@ describe('useAI — mySession / otherSessions', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════
-// watch(mySession, ...) — error capture into lastError
+// Private session channel — status text, errors, answers, confirmations
 // ═══════════════════════════════════════════════════════════════════════
 
-describe('useAI — error capture via watch(mySession)', () => {
-  it('captures session.message when phase transitions to error', async () => {
+describe('useAI — private session channel', () => {
+  it('merges my private status text into mySession; awareness alone has none', async () => {
     sessionState.loggedIn.value = true
     sessionState.user.value = { id: 7 }
     const { awareness, docId } = makeCtx()
-    const peer = pushAiClient(awareness, {
-      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7,
-      phase: 'thinking'
-    })
-    const ai = useAI(docId, awareness)
-    expect(ai.lastError.value).toBe(null)
-
-    updateAiStatus(peer, awareness, { phase: 'error', message: 'Rate limit exceeded' })
-    await nextTick()
-
-    expect(ai.lastError.value).toBe('Rate limit exceeded')
+    setPrivateStatus('sid-mine', { prompt: 'Draft a haiku', phase: 'tool', message: 'Reading "Q3 plan"…' })
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7, phase: 'tool' })
+    const ai = useAI(docId, awareness, FAST)
+    await vi.waitFor(() => expect(ai.mySession.value?.message).toBe('Reading "Q3 plan"…'))
+    expect(ai.mySession.value?.prompt).toBe('Draft a haiku')
   })
 
-  it('strips a leading "Error: " prefix from the captured message', () => {
+  it('never polls another person\'s session', async () => {
     sessionState.loggedIn.value = true
     sessionState.user.value = { id: 7 }
     const { awareness, docId } = makeCtx()
-    const peer = pushAiClient(awareness, {
-      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7,
-      phase: 'thinking'
-    })
-    const ai = useAI(docId, awareness)
-
-    updateAiStatus(peer, awareness, { phase: 'error', message: 'Error: Something broke' })
-    return nextTick().then(() => {
-      expect(ai.lastError.value).toBe('Something broke')
-    })
-  })
-
-  it('lastError survives past the session cleanup so the toast still fires', async () => {
-    // Awareness clears the session ~2.5s after error — the composable
-    // must latch the message before cleanup so the toast has a string.
-    sessionState.loggedIn.value = true
-    sessionState.user.value = { id: 7 }
-    const { awareness, docId } = makeCtx()
-    const peer = pushAiClient(awareness, {
-      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7,
-      phase: 'thinking'
-    })
-    const ai = useAI(docId, awareness)
-
-    updateAiStatus(peer, awareness, { phase: 'error', message: 'Kaboom' })
-    await nextTick()
-    expect(ai.lastError.value).toBe('Kaboom')
-
-    removePeer(peer, awareness)
-    await nextTick()
-    // The peer is gone but the error is still surfaced to the UI.
+    setPrivateStatus('sid-1', { phase: 'error', message: 'Not yours' })
+    pushAiClient(awareness, { sessionId: 'sid-1', initiatorName: 'Other', initiatorUserId: 8 })
+    const ai = useAI(docId, awareness, FAST)
+    await new Promise(r => setTimeout(r, 80))
     expect(ai.mySession.value).toBe(null)
-    expect(ai.lastError.value).toBe('Kaboom')
+    expect(ai.lastError.value).toBe(null)
   })
 
-  it('does NOT set lastError when phase is done (normal completion)', async () => {
+  it('captures an error from the channel, without the "Error: " prefix', async () => {
     sessionState.loggedIn.value = true
     sessionState.user.value = { id: 7 }
     const { awareness, docId } = makeCtx()
-    const peer = pushAiClient(awareness, {
-      sessionId: 'sid-1', initiatorName: 'Me', initiatorUserId: 7,
-      phase: 'thinking'
-    })
-    const ai = useAI(docId, awareness)
+    setPrivateStatus('sid-mine', { phase: 'thinking' })
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    const ai = useAI(docId, awareness, FAST)
+    setPrivateStatus('sid-mine', { phase: 'error', message: 'Error: Rate limit exceeded' })
+    await vi.waitFor(() => expect(ai.lastError.value).toBe('Rate limit exceeded'))
+  })
 
-    updateAiStatus(peer, awareness, { phase: 'done', message: 'All set' })
-    await nextTick()
+  it('reads the final state once more after the session leaves awareness, and keeps the error', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    setPrivateStatus('sid-mine', { phase: 'thinking' })
+    const peer = pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    const ai = useAI(docId, awareness, { pollIntervalMs: 5_000 })
+    // The error lands between polls; the session then leaves.
+    setPrivateStatus('sid-mine', { phase: 'error', message: 'Kaboom' })
+    removePeer(peer, awareness)
+    await vi.waitFor(() => expect(ai.lastError.value).toBe('Kaboom'))
+    expect(ai.mySession.value).toBe(null)
+  })
+
+  it('does NOT set lastError when the session completes normally', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    setPrivateStatus('sid-mine', { phase: 'done', message: 'Done' })
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    const ai = useAI(docId, awareness, FAST)
+    await vi.waitFor(() => expect(ai.mySession.value?.message).toBe('Done'))
     expect(ai.lastError.value).toBe(null)
+  })
+
+  it('latches a message_to_user answer from the channel', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    setPrivateStatus('sid-mine', { response: { message: 'Section 2 repeats section 1.', isQuestion: false, ts: 42 } })
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    const ai = useAI(docId, awareness, FAST)
+    await vi.waitFor(() => expect(ai.lastResponse.value?.message).toBe('Section 2 repeats section 1.'))
+    expect(ai.lastResponse.value).toMatchObject({ sessionId: 'sid-mine', isQuestion: false, ts: 42 })
+  })
+
+  it('starts polling as soon as /api/ai/prompt returns, before the AI joins awareness', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    setPrivateStatus('srv-sid-1', { phase: 'error', message: 'No chat provider' })
+    const ai = useAI(docId, awareness, FAST)
+    await ai.prompt('hello')
+    await vi.waitFor(() => expect(ai.lastError.value).toBe('No chat provider'))
+  })
+
+  it('exposes a pending confirmation and posts the answer', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    const confirmation = { id: 'conf-1', tool: 'view_other_document', target: 'Q3 plan', expiresAt: Date.now() + 60_000 }
+    setPrivateStatus('sid-mine', { phase: 'tool', confirmation })
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7, phase: 'tool' })
+    const ai = useAI(docId, awareness, FAST)
+    await vi.waitFor(() => expect(ai.pendingConfirmation.value).toEqual(confirmation))
+
+    // Server clears the request once answered.
+    setPrivateStatus('sid-mine', { phase: 'tool' })
+    await ai.answerConfirmation(false)
+    expect(confirmCalls).toEqual([{ sid: 'sid-mine', body: { confirmationId: 'conf-1', allow: false } }])
+    expect(ai.pendingConfirmation.value).toBe(null)
   })
 })
 

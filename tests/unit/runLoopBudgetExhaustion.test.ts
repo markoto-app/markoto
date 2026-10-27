@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import * as Y from 'yjs'
 import { LitellmBudgetExhausted } from '../../server/utils/litellmKeys'
+import { soloSessionGuard } from './fixtures/crossBoundary'
 
 // Phase 7: pin the runLoop's mid-loop budget-exhaustion catch path
 // at the unit layer. Pre-Phase-6 the app-side `chargeInteractions`
@@ -92,6 +93,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
       attribution: 'user'
     },
     logger: () => {},
+    crossBoundary: soloSessionGuard(),
     ...overrides
   }
 }

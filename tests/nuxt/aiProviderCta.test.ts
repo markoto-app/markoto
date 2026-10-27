@@ -35,6 +35,9 @@ function aiProps(): AiProp {
     lastError: ref<string | null>(null),
     budgetExhausted: ref(false),
     lastResponse: ref<AiProp['lastResponse']['value']>(null),
+    pendingConfirmation: computed(() => null),
+    answeringConfirmation: ref(false),
+    answerConfirmation: async () => {},
     prompt: async () => true,
     abort: async () => {},
     clearLastError: () => {}
