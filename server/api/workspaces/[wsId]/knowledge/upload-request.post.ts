@@ -2,6 +2,7 @@ import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
 import { reserveUploadSlot } from '../../../../utils/knowledgeQuota'
+import { recordPendingKnowledgeUpload } from '../../../../utils/knowledgePendingUpload'
 
 /**
  * Step 1 of knowledge upload: mint a presigned PUT URL.
@@ -105,6 +106,8 @@ export default defineEventHandler(async (event) => {
       }),
       { expiresIn: 300 }
     )
+    // Confirm only accepts uploads recorded here, for this caller.
+    await recordPendingKnowledgeUpload({ workspaceId: wsId, userId, knowledgeId }, { s3Key, ext, mimeType })
   } catch (e) {
     await releaseSlots()
     throw e

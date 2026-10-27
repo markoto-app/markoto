@@ -18,7 +18,7 @@ import { hashWaitlistToken, parseWaitlistToken } from '../../utils/waitlist'
 // all four — no oracle).
 
 export default defineEventHandler(async (event) => {
-  const ip = getClientIp(event) ?? 'unknown'
+  const ip = getClientRateLimitKey(event)
   if (!(await checkRateLimit('waitlist-token', ip, 30, 10 * 60 * 1000))) {
     throw createError({
       statusCode: 429,

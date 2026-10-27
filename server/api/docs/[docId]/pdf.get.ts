@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   // Cache-hit responses are sub-second and still rate-limited (the
   // counter doesn't differentiate hit vs. miss), which is the right
   // call: the limit is on REQUEST volume, not on renderer load.
-  const ip = getClientIp(event) ?? 'unknown'
+  const ip = getClientRateLimitKey(event)
   if (!(await checkRateLimit('pdf-download', ip, 10, 60_000))) {
     throw createError({ statusCode: 429, message: 'Too many PDF requests. Try again in a minute.' })
   }

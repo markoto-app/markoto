@@ -48,48 +48,25 @@ const captureException = vi.mocked(Sentry.captureException)
 // they're exercising. Methods left at the defaults return innocuous
 // success values so a stray call doesn't accidentally throw.
 type ValkeyShape = {
-  multi: () => unknown
+  eval: (...args: unknown[]) => Promise<unknown>
   set: (...args: unknown[]) => Promise<unknown>
   get: (key: string) => Promise<string | null>
-  incr: (key: string) => Promise<number>
-  incrby: (key: string, by: number) => Promise<number>
   decr: (key: string) => Promise<number>
-  pexpire: (key: string, ttl: number) => Promise<number>
   del: (key: string) => Promise<number>
 }
 
-// Sync thrower factory — used to simulate Valkey errors on the
-// non-async `multi()` callsite. Defining it once avoids the
-// `max-statements-per-line` lint that fires on inline
-// `() => { throw new Error() }` constructs.
-function syncThrow(message: string): () => never {
-  return () => {
-    throw new Error(message)
-  }
-}
-
-// Async thrower factory — same idea for `async () => { throw ... }`
-// callsites (get/set/decr/...).
+// Async thrower factory — used to simulate Valkey errors on the
+// async callsites (eval/set/decr/...).
 function asyncThrow(message: string): () => Promise<never> {
   return () => Promise.reject(new Error(message))
 }
 
 function mockValkey(overrides: Partial<ValkeyShape> = {}): ValkeyShape {
-  const defaultPipeline = {
-    zremrangebyscore: vi.fn().mockReturnThis(),
-    zcard: vi.fn().mockReturnThis(),
-    zadd: vi.fn().mockReturnThis(),
-    pexpire: vi.fn().mockReturnThis(),
-    exec: vi.fn(async () => [[null, 0], [null, 0]])
-  }
   const client: ValkeyShape = {
-    multi: () => defaultPipeline,
+    eval: async () => 1,
     set: async () => 'OK',
     get: async () => null,
-    incr: async () => 1,
-    incrby: async () => 1,
     decr: async () => 0,
-    pexpire: async () => 1,
     del: async () => 1,
     ...overrides
   }
@@ -114,25 +91,14 @@ afterEach(() => {
 })
 
 describe('checkRateLimit (fails OPEN)', () => {
-  it('returns true when Valkey throws on multi() — request allowed despite Valkey down', async () => {
-    mockValkey({ multi: syncThrow('ECONNREFUSED') })
-    const ok = await checkRateLimit('test', 'key', 5, 60_000)
-    expect(ok).toBe(true)
-  })
-
-  it('returns true when valkey.exec returns null (transaction discarded)', async () => {
-    const pipeline = {
-      zremrangebyscore: vi.fn().mockReturnThis(),
-      zcard: vi.fn().mockReturnThis(),
-      exec: vi.fn(async () => null)
-    }
-    mockValkey({ multi: () => pipeline })
+  it('returns true when the Valkey script call throws — request allowed despite Valkey down', async () => {
+    mockValkey({ eval: asyncThrow('ECONNREFUSED') })
     const ok = await checkRateLimit('test', 'key', 5, 60_000)
     expect(ok).toBe(true)
   })
 
   it('Sentry-captures the Valkey error with component/event/namespace tags', async () => {
-    mockValkey({ multi: syncThrow('ECONNREFUSED') })
+    mockValkey({ eval: asyncThrow('ECONNREFUSED') })
     await checkRateLimit('test-namespace', 'key', 5, 60_000)
     expect(captureException).toHaveBeenCalledWith(
       expect.any(Error),
@@ -146,35 +112,33 @@ describe('checkRateLimit (fails OPEN)', () => {
     )
   })
 
-  it('returns false when count is at or above maxAttempts', async () => {
-    const writePipeline = {
-      zadd: vi.fn().mockReturnThis(),
-      pexpire: vi.fn().mockReturnThis(),
-      exec: vi.fn(async () => [[null, 1], [null, 1]])
-    }
-    const readPipeline = {
-      zremrangebyscore: vi.fn().mockReturnThis(),
-      zcard: vi.fn().mockReturnThis(),
-      exec: vi.fn(async () => [[null, 0], [null, 5]])
-    }
-    let nthCall = 0
-    mockValkey({
-      multi: () => (nthCall++ === 0 ? readPipeline : writePipeline)
-    })
+  it('returns false when the script reports the limit is reached', async () => {
+    mockValkey({ eval: async () => 0 })
     expect(await checkRateLimit('test', 'key', 5, 60_000)).toBe(false)
+  })
+
+  it('checks and records in ONE script call on the namespaced key (atomic)', async () => {
+    const evalSpy = vi.fn(async () => 1)
+    mockValkey({ eval: evalSpy })
+    expect(await checkRateLimit('ns', 'k', 5, 60_000)).toBe(true)
+    expect(evalSpy).toHaveBeenCalledTimes(1)
+    const args = evalSpy.mock.calls[0] as unknown[]
+    expect(args[1]).toBe(1)
+    expect(args[2]).toBe('rl:ns:k')
+    expect(args[5]).toBe(5)
   })
 })
 
 describe('consumeRateLimitBudget (fails OPEN)', () => {
   it('returns allowed=true with full remaining when Valkey throws', async () => {
-    mockValkey({ get: asyncThrow('boom') })
+    mockValkey({ eval: asyncThrow('boom') })
     const result = await consumeRateLimitBudget('test', 'key', 100, 1000, 60_000)
     expect(result.allowed).toBe(true)
     expect(result.remaining).toBe(1000)
   })
 
   it('Sentry-captures the Valkey error', async () => {
-    mockValkey({ get: asyncThrow('boom') })
+    mockValkey({ eval: asyncThrow('boom') })
     await consumeRateLimitBudget('ns', 'key', 100, 1000, 60_000)
     expect(captureException).toHaveBeenCalledWith(
       expect.any(Error),
@@ -189,21 +153,17 @@ describe('consumeRateLimitBudget (fails OPEN)', () => {
   })
 
   it('returns allowed=false when current+cost exceeds maxCost (no Valkey error)', async () => {
-    mockValkey({ get: async () => '950' })
+    mockValkey({ eval: async () => [0, 950] })
     const result = await consumeRateLimitBudget('test', 'key', 100, 1000, 60_000)
     expect(result.allowed).toBe(false)
     expect(result.remaining).toBe(50)
   })
 
-  it('debits and refreshes TTL on a normal allowed call', async () => {
-    const incrby = vi.fn(async () => 200)
-    const pexpire = vi.fn(async () => 1)
-    mockValkey({ get: async () => '100', incrby, pexpire })
+  it('reports the post-debit remaining on a normal allowed call', async () => {
+    mockValkey({ eval: async () => [1, 200] })
     const result = await consumeRateLimitBudget('test', 'key', 100, 1000, 60_000)
     expect(result.allowed).toBe(true)
     expect(result.remaining).toBe(800)
-    expect(incrby).toHaveBeenCalled()
-    expect(pexpire).toHaveBeenCalled()
   })
 })
 
@@ -272,14 +232,14 @@ describe('releaseSessionLock (best-effort)', () => {
 
 describe('reserveInflightSlot (fails CLOSED)', () => {
   it('returns allowed=false on Valkey error — failing open would re-open the cap race', async () => {
-    mockValkey({ get: asyncThrow('boom') })
+    mockValkey({ eval: asyncThrow('boom') })
     const result = await reserveInflightSlot('upload', 'ws-1', 5, 60_000)
     expect(result.allowed).toBe(false)
     expect(result.current).toBe(0)
   })
 
   it('Sentry-captures the Valkey error', async () => {
-    mockValkey({ get: asyncThrow('boom') })
+    mockValkey({ eval: asyncThrow('boom') })
     await reserveInflightSlot('upload', 'ws-1', 5, 60_000)
     expect(captureException).toHaveBeenCalledWith(
       expect.any(Error),
@@ -294,21 +254,17 @@ describe('reserveInflightSlot (fails CLOSED)', () => {
   })
 
   it('returns allowed=false when at cap (no Valkey error)', async () => {
-    mockValkey({ get: async () => '5' })
+    mockValkey({ eval: async () => [0, 5] })
     const result = await reserveInflightSlot('upload', 'ws-1', 5, 60_000)
     expect(result.allowed).toBe(false)
     expect(result.current).toBe(5)
   })
 
-  it('increments the counter and refreshes TTL on success', async () => {
-    const incr = vi.fn(async () => 3)
-    const pexpire = vi.fn(async () => 1)
-    mockValkey({ get: async () => '2', incr, pexpire })
+  it('returns the post-increment counter on success', async () => {
+    mockValkey({ eval: async () => [1, 3] })
     const result = await reserveInflightSlot('upload', 'ws-1', 5, 60_000)
     expect(result.allowed).toBe(true)
     expect(result.current).toBe(3)
-    expect(incr).toHaveBeenCalled()
-    expect(pexpire).toHaveBeenCalled()
   })
 })
 
@@ -329,30 +285,45 @@ describe('releaseInflightSlot (best-effort)', () => {
 describe('TEST_MODE bypass — honoured by fail-OPEN helpers, NOT by lock helpers', () => {
   it('checkRateLimit returns true under TEST_MODE without touching Valkey', async () => {
     process.env.TEST_MODE = '1'
-    const client = mockValkey()
-    const multiSpy = vi.spyOn(client, 'multi')
+    const evalSpy = vi.fn()
+    mockValkey({ eval: evalSpy })
     expect(await checkRateLimit('any', 'any', 1, 1)).toBe(true)
-    expect(multiSpy).not.toHaveBeenCalled()
+    expect(evalSpy).not.toHaveBeenCalled()
   })
 
   it('consumeRateLimitBudget returns allowed=true with maxCost remaining without touching Valkey', async () => {
     process.env.TEST_MODE = '1'
-    const get = vi.fn()
-    mockValkey({ get })
+    const evalSpy = vi.fn()
+    mockValkey({ eval: evalSpy })
     const r = await consumeRateLimitBudget('any', 'any', 50, 500, 60_000)
     expect(r.allowed).toBe(true)
     expect(r.remaining).toBe(500)
-    expect(get).not.toHaveBeenCalled()
+    expect(evalSpy).not.toHaveBeenCalled()
   })
 
   it('reserveInflightSlot returns allowed=true under TEST_MODE without touching Valkey', async () => {
     process.env.TEST_MODE = '1'
-    const get = vi.fn()
-    mockValkey({ get })
+    const evalSpy = vi.fn()
+    mockValkey({ eval: evalSpy })
     const r = await reserveInflightSlot('upload', 'ws-1', 5, 60_000)
     expect(r.allowed).toBe(true)
     expect(r.current).toBe(0)
-    expect(get).not.toHaveBeenCalled()
+    expect(evalSpy).not.toHaveBeenCalled()
+  })
+
+  it('the TEST_MODE bypass is ignored on an instance that looks like a real deployment', async () => {
+    process.env.TEST_MODE = '1'
+    const original = process.env.NUXT_SITE_URL
+    process.env.NUXT_SITE_URL = 'https://docs.example.org'
+    try {
+      const evalSpy = vi.fn(async () => 0)
+      mockValkey({ eval: evalSpy })
+      expect(await checkRateLimit('any', 'any', 1, 1)).toBe(false)
+      expect(evalSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      if (original === undefined) delete process.env.NUXT_SITE_URL
+      else process.env.NUXT_SITE_URL = original
+    }
   })
 
   it('releaseInflightSlot returns under TEST_MODE without touching Valkey', async () => {

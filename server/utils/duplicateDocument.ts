@@ -67,7 +67,9 @@ export async function duplicateDocument(
     workspaceId: input.workspaceId,
     title: input.title,
     accessMode: source.accessMode,
-    passwordHash: source.passwordHash,
+    // Only a password-protected source carries its hash over; a hash
+    // left on a doc in another mode is dead state and must not travel.
+    passwordHash: source.accessMode === 'password-protected' ? source.passwordHash : null,
     // Custom CSS and theme images may reference the source's uploads;
     // point them at the copies (same fileIds, new docId) like the
     // markdown body rewrite.

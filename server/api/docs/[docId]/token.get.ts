@@ -6,7 +6,7 @@ import { renderTemplate } from '../../../utils/templateRenderer'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 30 token requests per IP per minute
-  const ip = getClientIp(event) ?? 'unknown'
+  const ip = getClientRateLimitKey(event)
   if (!(await checkRateLimit('token', ip, 30, 60_000))) {
     throw createError({ statusCode: 429, message: 'Too many requests. Try again later.' })
   }

@@ -1,4 +1,5 @@
 import { runDataExportWorker } from '../../utils/dataExportWorker'
+import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 // Test-only worker-tick. Runs `runDataExportWorker()` once on demand
 // so flow tests don't have to poll for 60+ seconds waiting for the
@@ -10,7 +11,7 @@ import { runDataExportWorker } from '../../utils/dataExportWorker'
 // at worst rebuild an export ZIP — not catastrophic, but the
 // principle is "no test surface in prod").
 export default defineEventHandler(async (_event) => {
-  if (process.env.TEST_MODE !== '1') {
+  if (!isTestModeEnabled()) {
     throw createError({ statusCode: 404, message: 'Not found' })
   }
   const result = await runDataExportWorker()

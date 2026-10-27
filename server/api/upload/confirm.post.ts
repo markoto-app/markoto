@@ -1,9 +1,9 @@
 import { HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { confirmOwnUpload, deletePending, findOwnUpload } from '../../repos/uploads'
-import { getDoc } from '../../repos/documents'
+import { getDocWithActorRole } from '../../repos/documents'
 import { requireContentMatchesExtension } from '../../utils/fileTypeGuard'
 import { parseUploadKey } from '../../utils/uploadKey'
-import { canEditDoc } from '../../utils/workspaceAccess'
+import { canWriteDocContent } from '../../utils/documentAccess'
 
 // The key is client-supplied, so it is never trusted by itself: it must have
 // the exact shape `/api/upload/request` mints AND resolve to an `uploads` row
@@ -57,9 +57,9 @@ export default defineEventHandler(async (event) => {
 
   // Same write gate as /upload/request, re-checked in case access changed
   // between request and confirm.
-  const doc = await getDoc(parsed.docId)
+  const doc = await getDocWithActorRole(parsed.docId, userId)
   if (!doc) throw notFound()
-  if (doc.accessMode !== 'open-edit' && !(await canEditDoc(userId, parsed.docId))) {
+  if (!canWriteDocContent(doc, userId)) {
     throw createError({ statusCode: 403, message: 'No write access to this document' })
   }
 

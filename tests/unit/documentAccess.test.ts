@@ -1,112 +1,107 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { DocAuthzRow } from '../../server/repos/documents'
 
-// Unit tests for requireDocEditAccess — the single gate that AI endpoints
-// use to prove an authenticated user may write to a doc. Any bug here
-// lets a logged-in user steer AI tools against ANY doc by id.
+// Unit tests for requireDocEditAccess — the gate that AI prompt, @ai
+// comment trigger, restore, dictation and image upload use to prove a
+// logged-in user may write to a doc server-side. Any bug here lets a user
+// write to a doc the editor itself would open read-only (or not at all).
 //
-// We stub three things at the module boundary:
-//   1. useDatabase() — return a promise that resolves to the doc row.
-//   2. canEditDoc() — already covered by workspaceAccess.test.ts; here
-//      it's a yes/no boolean and we drive both branches.
-//   3. createError — auto-imported by the SUT; vitest handles the
-//      undefined global via a local stub.
-const mockRow = vi.fn<() => Promise<{ accessMode: string, ownerId: number | null } | undefined>>()
+// The rule is the editor's own Y.js token rule (`decideTokenAccess`
+// granting a writable token), so this file pins the whole
+// (accessMode × role × ownership) matrix against the doc-row lookup.
 
-const dbChain = {
-  select: () => dbChain,
-  from: () => dbChain,
-  where: () => dbChain,
-  limit: async () => {
-    const r = await mockRow()
-    return r ? [r] : []
-  }
-}
+vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) =>
+  Object.assign(new Error(opts.message), { statusCode: opts.statusCode }))
 
-vi.stubGlobal('useDatabase', () => dbChain)
-vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) => {
-  const err = new Error(opts.message) as Error & { statusCode: number }
-  err.statusCode = opts.statusCode
-  return err
-})
-
-const canEditDoc = vi.fn<(userId: number, docId: string) => Promise<boolean>>()
-vi.stubGlobal('canEditDoc', canEditDoc)
-
-// Also expose as a mocked module for any ambient import.
-vi.mock('../../server/utils/workspaceAccess', () => ({ canEditDoc }))
+const getDocWithActorRole = vi.fn<(docId: string, userId: number | null) => Promise<DocAuthzRow | null>>()
+vi.mock('../../server/repos/documents', () => ({ getDocWithActorRole }))
 
 const { requireDocEditAccess } = await import('../../server/utils/documentAccess')
 
+const ACTOR = 42
+
+function row(overrides: Partial<DocAuthzRow>): DocAuthzRow {
+  return {
+    ownerId: 1,
+    workspaceId: null,
+    accessMode: 'private',
+    theme: null,
+    workspaceRole: null,
+    workspaceAiEnabled: null,
+    workspaceBillingOwner: null,
+    title: 'Doc',
+    description: '',
+    audience: 'technical',
+    language: 'en',
+    templateId: 'blank',
+    ...overrides
+  }
+}
+
 beforeEach(() => {
-  mockRow.mockReset()
-  canEditDoc.mockReset()
+  getDocWithActorRole.mockReset()
 })
 
 describe('requireDocEditAccess', () => {
   it('throws 404 when the doc does not exist', async () => {
-    mockRow.mockResolvedValueOnce(undefined)
-    await expect(requireDocEditAccess('missing', 42)).rejects.toMatchObject({
+    getDocWithActorRole.mockResolvedValueOnce(null)
+    await expect(requireDocEditAccess('missing', ACTOR)).rejects.toMatchObject({
       statusCode: 404,
       message: 'Document not found'
     })
-    // canEditDoc should never be queried for a non-existent doc.
-    expect(canEditDoc).not.toHaveBeenCalled()
   })
 
-  it('resolves when canEditDoc returns true (owner / admin / editor)', async () => {
-    mockRow.mockResolvedValueOnce({ accessMode: 'private', ownerId: 1 })
-    canEditDoc.mockResolvedValueOnce(true)
-    await expect(requireDocEditAccess('d1', 42)).resolves.toBeUndefined()
+  it('looks the doc up with the caller as actor', async () => {
+    getDocWithActorRole.mockResolvedValueOnce(row({ ownerId: ACTOR }))
+    await requireDocEditAccess('d1', ACTOR)
+    expect(getDocWithActorRole).toHaveBeenCalledWith('d1', ACTOR)
   })
 
-  it('resolves when accessMode=open-edit even if canEditDoc is false', async () => {
-    // Anonymous / open docs: anyone with the link can edit. AI endpoints
-    // need the same posture so a logged-in passer-by can use AI on a
-    // public scratch doc.
-    mockRow.mockResolvedValueOnce({ accessMode: 'open-edit', ownerId: null })
-    canEditDoc.mockResolvedValueOnce(false)
-    await expect(requireDocEditAccess('d1', 42)).resolves.toBeUndefined()
+  it.each(['private', 'open-edit', 'open-view', 'password-protected'] as const)(
+    'owner can write on a %s doc',
+    async (accessMode) => {
+      getDocWithActorRole.mockResolvedValueOnce(row({ ownerId: ACTOR, accessMode }))
+      await expect(requireDocEditAccess('d1', ACTOR)).resolves.toBeUndefined()
+    }
+  )
+
+  it.each([
+    ['admin', 'private'],
+    ['editor', 'private'],
+    ['editor', 'open-view'],
+    ['editor', 'password-protected'],
+    ['admin', 'open-edit']
+  ] as const)('workspace %s can write on a %s doc', async (workspaceRole, accessMode) => {
+    getDocWithActorRole.mockResolvedValueOnce(row({ workspaceId: 'ws', workspaceRole, accessMode }))
+    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toBeUndefined()
   })
 
-  it('throws 403 on private doc when canEditDoc returns false', async () => {
-    mockRow.mockResolvedValueOnce({ accessMode: 'private', ownerId: 1 })
-    canEditDoc.mockResolvedValueOnce(false)
-    await expect(requireDocEditAccess('d1', 42)).rejects.toMatchObject({
-      statusCode: 403,
-      message: 'No write access to this document'
-    })
+  it('a logged-in non-member can write on an open-edit doc (public edit grant)', async () => {
+    getDocWithActorRole.mockResolvedValueOnce(row({ accessMode: 'open-edit' }))
+    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toBeUndefined()
   })
 
-  it('throws 403 on open-view when canEditDoc returns false (view-only blocks AI writes)', async () => {
-    // open-view lets anyone SEE the doc but not edit it. AI writes must
-    // still be refused for non-owners; the accessMode fallback is
-    // scoped to open-edit only.
-    mockRow.mockResolvedValueOnce({ accessMode: 'open-view', ownerId: 1 })
-    canEditDoc.mockResolvedValueOnce(false)
-    await expect(requireDocEditAccess('d1', 42)).rejects.toMatchObject({
-      statusCode: 403
-    })
+  it('a workspace VIEWER cannot write on an open-edit doc (viewer wins over the public grant)', async () => {
+    getDocWithActorRole.mockResolvedValueOnce(row({ workspaceId: 'ws', workspaceRole: 'viewer', accessMode: 'open-edit' }))
+    await expect(requireDocEditAccess('d1', ACTOR)).rejects.toMatchObject({ statusCode: 403 })
   })
 
-  it('throws 403 on password-protected doc when canEditDoc returns false', async () => {
-    // Password-protected access lives behind the token endpoint, not
-    // accessMode. AI endpoints mint their own server-side JWT and must
-    // not treat password-gated docs as writable without membership.
-    mockRow.mockResolvedValueOnce({ accessMode: 'password-protected', ownerId: 1 })
-    canEditDoc.mockResolvedValueOnce(false)
-    await expect(requireDocEditAccess('d1', 42)).rejects.toMatchObject({
-      statusCode: 403
-    })
-  })
+  it.each(['private', 'open-view', 'password-protected'] as const)(
+    'a workspace viewer cannot write on a %s doc',
+    async (accessMode) => {
+      getDocWithActorRole.mockResolvedValueOnce(row({ workspaceId: 'ws', workspaceRole: 'viewer', accessMode }))
+      await expect(requireDocEditAccess('d1', ACTOR)).rejects.toMatchObject({ statusCode: 403 })
+    }
+  )
 
-  it('propagates a canEditDoc throw (does NOT silently deny on DB error)', async () => {
-    // Defensive: if canEditDoc throws (DB blip during the membership
-    // lookup), we must let the error propagate — not swallow + fall
-    // through to the accessMode check. A swallow would mean a
-    // transient DB issue gets presented to the user as "no edit
-    // access" (misleading) instead of "internal error" (truthful).
-    mockRow.mockResolvedValueOnce({ accessMode: 'private', ownerId: 1 })
-    canEditDoc.mockRejectedValueOnce(new Error('connection refused'))
-    await expect(requireDocEditAccess('d1', 42)).rejects.toThrow('connection refused')
-  })
+  it.each(['private', 'open-view', 'password-protected'] as const)(
+    'a non-member cannot write on a %s doc',
+    async (accessMode) => {
+      getDocWithActorRole.mockResolvedValueOnce(row({ accessMode }))
+      await expect(requireDocEditAccess('d1', ACTOR)).rejects.toMatchObject({
+        statusCode: 403,
+        message: 'No write access to this document'
+      })
+    }
+  )
 })

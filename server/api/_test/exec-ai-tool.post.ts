@@ -29,9 +29,10 @@ import { getDoc } from '../../repos/documents'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import { resolveBillingContext } from '../../utils/billing'
 import type { AiSession, AiStatusPhase } from '../../utils/aiClient'
+import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 export default defineEventHandler(async (event) => {
-  if (process.env.TEST_MODE !== '1') {
+  if (!isTestModeEnabled()) {
     throw createError({ statusCode: 404, message: 'Not found' })
   }
 

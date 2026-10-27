@@ -2,6 +2,8 @@ import { validateSecrets } from '../../shared/utils/validateSecrets'
 import { isBillingEnabled } from '../utils/billingMode'
 import { stripeStartupErrors } from '../utils/stripeStartupCheck'
 import { resolveOidcSettings } from '../utils/oidc/settings'
+import { isTestModeEnabled, testModeBootError } from '../../shared/utils/testMode'
+import { siteUrlErrors } from '../utils/siteUrl'
 
 // Fail-fast at boot if any critical config is missing or malformed. Runs
 // right after `00-db-migrate` so a misconfigured deploy crashes visibly
@@ -18,12 +20,16 @@ import { resolveOidcSettings } from '../utils/oidc/settings'
 type RuntimeCfg = ReturnType<typeof useRuntimeConfig>
 
 export default defineNitroPlugin(() => {
-  if (process.env.TEST_MODE === '1') return
   // `bun run build` boots Nitro in prerender mode (PWA workbox needs `/`
   // pre-rendered), which fires every plugin against runtimeConfig defaults
   // (empty strings). The validator runs at every real container start; the
   // build-time pass has nothing to validate.
   if (import.meta.prerender) return
+  // A stray TEST_MODE=1 on a real deployment would expose the test login
+  // shim; refuse to boot instead of silently ignoring it.
+  const testModeError = testModeBootError()
+  if (testModeError) throw new Error(`[secrets] ${testModeError}`)
+  if (isTestModeEnabled()) return
 
   const config = useRuntimeConfig()
   const errors: string[] = []
@@ -41,6 +47,7 @@ export default defineNitroPlugin(() => {
   // issuer, parseable redirect URL. See server/utils/oidc/settings.ts.
   errors.push(...resolveOidcSettings(process.env).errors)
   checkUrlFields(config, errors)
+  errors.push(...siteUrlErrors(config.siteUrl, process.env.NODE_ENV === 'production'))
   // Stripe is only validated when billing is switched on. With
   // NUXT_BILLING_ENABLED unset/false (self-hosted + free-only SaaS) no
   // code path touches Stripe, so requiring its secrets would just block

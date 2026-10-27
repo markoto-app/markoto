@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   // Rate limit on (userId, IP) — userId-only would be DoS-able by a
   // session-stealing attacker; IP-only would be unfair to mobile users
   // behind shared NAT. Hash both so the key isn't a PII column.
-  const rlKey = `${userId}:${ip ?? 'unknown'}`
+  const rlKey = `${userId}:${getClientRateLimitKey(event)}`
   if (!(await checkRateLimit('account-delete-request', rlKey, 5, 60 * 60 * 1000))) {
     throw createError({
       statusCode: 429,

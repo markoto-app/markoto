@@ -79,7 +79,7 @@
     "passwordProtected": "Passwortgeschützt",
     "setPassword": "Dokumentpasswort festlegen",
     "passwordPlaceholder": "Passwort eingeben...",
-    "passwordMinLength": "Mindestens 4 Zeichen",
+    "passwordMinLength": "Mindestens {min} Zeichen",
     "passwordRequired": "Passwort erforderlich",
     "passwordRequiredDesc": "Dieses Dokument ist geschützt. Geben Sie das Passwort ein, um fortzufahren.",
     "enterPassword": "Passwort",

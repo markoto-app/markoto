@@ -1,5 +1,6 @@
 import { upsertWaitlistSignup } from '../../repos/waitlist'
 import { safeSendTransactionalEmail } from '../../utils/email/sendEmail'
+import { emailLinkBaseUrl } from '../../utils/siteUrl'
 import {
   WAITLIST_CONFIRM_TTL_MS,
   WAITLIST_DISABLED_CODE,
@@ -49,7 +50,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const ip = getClientIp(event) ?? 'unknown'
+  const ip = getClientRateLimitKey(event)
   if (!(await checkRateLimit('waitlist-signup', ip, IP_LIMIT, IP_WINDOW_MS))) {
     throw createError({
       statusCode: 429,
@@ -102,11 +103,16 @@ export default defineEventHandler(async (event) => {
     unsubscribeTokenHash: hashWaitlistToken(unsubscribeToken)
   })
 
-  if (outcome !== 'unchanged') {
-    const configured = useRuntimeConfig(event).siteUrl
-    const baseUrl = typeof configured === 'string' && configured.length > 0
-      ? configured
-      : getRequestURL(event, { xForwardedProto: true }).origin
+  // Links are built from NUXT_SITE_URL only — never from the request's
+  // Host / X-Forwarded-* headers (client-influenced: a poisoned host
+  // would mail the single-use tokens to an attacker's domain). Without a
+  // configured site URL (only possible outside production, which refuses
+  // to boot without it) the email is skipped; the response stays 202.
+  const baseUrl = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
+  if (outcome !== 'unchanged' && baseUrl === null) {
+    console.warn('[waitlist] NUXT_SITE_URL is not set — confirmation email not sent')
+  }
+  if (outcome !== 'unchanged' && baseUrl !== null) {
     const content = buildWaitlistConfirmEmail({ locale, baseUrl, confirmToken, unsubscribeToken })
     // Fire-and-forget like every transactional email: the row is
     // committed; a delivery failure is Sentry-captured, and the person

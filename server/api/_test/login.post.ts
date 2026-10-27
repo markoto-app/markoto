@@ -1,16 +1,20 @@
 // Test-only login shim. Bypasses the OAuth flow for integration tests.
 //
-// ONLY active when the server is booted with `TEST_MODE=1`. In every other
-// environment this endpoint returns 404 — the guard runs before any body
-// parsing, so there's no surface for accidental exposure in prod if the
-// env var is ever set by mistake (it shouldn't be).
+// ONLY active when the server is booted with `TEST_MODE=1` on an instance
+// that doesn't look like a real deployment (`isTestModeEnabled`, see
+// shared/utils/testMode.ts). In every other environment this endpoint
+// returns 404 — the guard runs before any body parsing — and a real
+// deployment with a stray `TEST_MODE=1` refuses to boot at all
+// (plugins/01-validate-secrets.ts).
 //
 // Takes a userId + name, writes a sealed session cookie via the same
 // nuxt-auth-utils helper the OAuth handlers use, and returns the session
 // data. The test client picks the Set-Cookie header off the response and
 // replays it on subsequent calls.
+import { isTestModeEnabled } from '../../../shared/utils/testMode'
+
 export default defineEventHandler(async (event) => {
-  if (process.env.TEST_MODE !== '1') {
+  if (!isTestModeEnabled()) {
     throw createError({ statusCode: 404, message: 'Not found' })
   }
 

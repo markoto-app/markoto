@@ -1,34 +1,35 @@
 import { upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/validatedSession'
 import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
+import { googleVerifiedEmail } from '../../utils/oauthEmail'
 
 export default defineOAuthGoogleEventHandler({
   config: { scope: ['openid', 'email', 'profile'] },
   async onSuccess(event, { user }) {
-    // Google's OIDC userinfo carries `email_verified: boolean`
-    // directly. Pipe it through unchanged — the merge path only
-    // acts on it when it's strictly true.
+    // Google's userinfo carries `email_verified: boolean`. Only a
+    // verified address is used (stored, merged, matched against the
+    // admin allowlist); an unverified one is stored as NULL, like OIDC.
     const googleUser = user as { sub: string, name: string, email: string | null, email_verified?: boolean, picture: string }
-    const emailVerified = googleUser.email_verified === true
+    const email = googleVerifiedEmail(googleUser)
 
     const { userId, outcome } = await upsertOAuthUser({
       provider: 'google',
       providerUserId: googleUser.sub,
       name: googleUser.name,
-      email: googleUser.email,
+      email,
       avatarUrl: googleUser.picture,
-      emailVerified
+      emailVerified: email !== null
     })
 
-    // One-shot env-allowlist admin bootstrap. Idempotent (no-ops
-    // if the user is already admin OR not on the allowlist).
-    await bootstrapAdminFromEnv({ userId, email: googleUser.email ?? null })
+    // One-shot env-allowlist admin bootstrap (verified email only).
+    // Idempotent (no-ops if the user is already admin OR not listed).
+    await bootstrapAdminFromEnv({ userId, email })
 
     await setUserSession(event, {
       user: {
         id: userId,
         name: googleUser.name,
-        email: googleUser.email,
+        email,
         avatar: googleUser.picture,
         provider: 'google'
       },

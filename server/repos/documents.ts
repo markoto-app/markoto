@@ -267,14 +267,21 @@ export async function createDoc(input: CreateDocInput): Promise<void> {
  * inactive-doc sweep sees the activity.
  *
  * No authz check — caller must have already decided the actor can edit.
- * Throws NotFoundError if no row matched.
+ * Throws NotFoundError if no row matched. Setting an `accessMode` other
+ * than `password-protected` also clears the stored password hash.
  */
 export async function updateDocMeta(docId: string, update: MetaUpdate): Promise<void> {
   if (Object.keys(update).length === 0) return
   const db = useDatabase()
+  // Leaving password mode drops the hash: a stale hash must never be
+  // able to unlock the doc again (verify also refuses outside
+  // password mode). Switching back requires setting a new password.
+  const passwordReset = update.accessMode !== undefined && update.accessMode !== 'password-protected'
+    ? { passwordHash: null }
+    : {}
   const result = await db
     .update(documents)
-    .set({ ...update, lastActive: new Date() })
+    .set({ ...update, ...passwordReset, lastActive: new Date() })
     .where(eq(documents.docId, docId))
     .returning({ docId: documents.docId })
   if (result.length === 0) {

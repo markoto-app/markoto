@@ -4,6 +4,7 @@ import { useDatabase } from '../utils/database'
 import { truncateIp } from '../repos/audit'
 import { CONSENT_VERSION, AUTHORITATIVE_LOCALE, LEGAL_DOCUMENT_LOCALES } from '~~/shared/legal/versions'
 import { ensureAnonId } from '../utils/anonId'
+import { normaliseConsentDecisions } from '../utils/consentDecisions'
 
 // Append a consent decision to the audit-grade `consent_log` table.
 // One row per (subject × purpose) per submission — we never UPDATE,
@@ -22,28 +23,33 @@ import { ensureAnonId } from '../utils/anonId'
 // associate their pre-login decision.
 
 interface RequestBody {
-  decisions: Array<{
-    purpose: 'essential' | 'analytics' | 'session_replay'
-    granted: boolean
-  }>
+  decisions?: unknown
   locale?: string
 }
 
-const ALLOWED_PURPOSES = ['essential', 'analytics', 'session_replay'] as const
+// Public + append-only: bound the write rate per client (IPv4 / IPv6 /64).
+// A real visitor submits the banner a handful of times at most.
+const CONSENT_RATE_LIMIT = 20
+const CONSENT_RATE_WINDOW_MS = 10 * 60 * 1000
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<RequestBody>(event)
-  if (!body || !Array.isArray(body.decisions) || body.decisions.length === 0) {
-    throw createError({ statusCode: 400, message: 'No decisions provided' })
+  if (!(await checkRateLimit('consent', getClientRateLimitKey(event), CONSENT_RATE_LIMIT, CONSENT_RATE_WINDOW_MS))) {
+    throw createError({
+      statusCode: 429,
+      message: 'Too many consent submissions. Try again later.',
+      data: { code: 'consent/rate-limited', messageKey: 'error.rateLimited' }
+    })
   }
 
-  // Normalise the input: each decision must be a known purpose +
-  // a boolean. Filter out anything else rather than 400-ing the
-  // whole batch — partial saves of valid decisions are friendlier
-  // than rejecting the request on a stray key.
-  const valid = body.decisions.filter(d =>
-    ALLOWED_PURPOSES.includes(d.purpose) && typeof d.granted === 'boolean'
-  )
+  const body = await readBody<RequestBody>(event)
+  // At most one row per purpose per submission (last decision for a
+  // purpose wins); unknown purposes / non-boolean values are dropped
+  // rather than 400-ing the whole batch, but an empty or oversized
+  // array is refused.
+  const valid = normaliseConsentDecisions(body?.decisions)
+  if (valid === null) {
+    throw createError({ statusCode: 400, message: 'No decisions provided' })
+  }
   if (valid.length === 0) {
     throw createError({ statusCode: 400, message: 'No valid decisions in payload' })
   }
@@ -73,9 +79,8 @@ export default defineEventHandler(async (event) => {
 
   const db = useDatabase()
   // Bulk INSERT — drizzle expands the array into one statement.
-  // No conflict handling because the table is append-only;
-  // duplicate decisions just create duplicate rows (the read path
-  // takes the latest).
+  // No conflict handling because the table is append-only; repeated
+  // submissions create new rows (the read path takes the latest).
   await db.insert(consentLog).values(valid.map(d => ({
     userId,
     anonId,

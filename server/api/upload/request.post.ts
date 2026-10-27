@@ -1,9 +1,8 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
-import { getDoc } from '../../repos/documents'
 import { recordPending } from '../../repos/uploads'
-import { canEditDoc } from '../../utils/workspaceAccess'
+import { requireDocEditAccess } from '../../utils/documentAccess'
 import { buildUploadKey, DOC_ID_RE } from '../../utils/uploadKey'
 
 // SVG deliberately excluded — SVG can embed <script> and event handlers
@@ -55,25 +54,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Verify the user has write access to this document. `open-edit` docs are
-  // editable by anyone (that's the feature — upload still requires a logged-in
-  // session, gated above). For every other access mode — `open-view`,
-  // `private`, `password-protected` — only the owner or a workspace
-  // admin/editor may upload. The previous check only covered `open-view`
-  // non-owners, so any authenticated user who knew a private/password doc id
-  // could presign a PUT into that doc's S3 prefix (and it wrongly blocked
-  // workspace editors on open-view docs). `canEditDoc` is the same content-edit
-  // gate every other write endpoint uses.
-  // The doc must exist: confirm resolves keys through the pending `uploads`
-  // row (FK to documents), and presigning for non-existent docs would hand
-  // out unlimited 10 MB PUT URLs into the bucket.
-  const doc = await getDoc(docId)
-  if (!doc) {
-    throw createError({ statusCode: 404, message: 'Document not found' })
-  }
-  if (doc.accessMode !== 'open-edit' && !(await canEditDoc(session.user.id, docId))) {
-    throw createError({ statusCode: 403, message: 'No write access to this document' })
-  }
+  // Verify the user has write access to this document — the same rule
+  // as the editor's Y.js token (`requireDocEditAccess` →
+  // `decideTokenAccess`): owner / workspace admin+editor everywhere,
+  // anyone logged in on `open-edit` docs, and never a workspace viewer
+  // (viewer wins over the public edit grant). The doc must exist (404):
+  // confirm resolves keys through the pending `uploads` row (FK to
+  // documents), and presigning for non-existent docs would hand out
+  // unlimited 10 MB PUT URLs into the bucket.
+  await requireDocEditAccess(docId, session.user.id)
 
   const s3 = usePresignS3Client()
   const config = useRuntimeConfig()

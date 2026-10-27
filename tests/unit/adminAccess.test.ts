@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { isAdminEmail } from '../../server/utils/adminAccess'
 
 // `isAdminEmail` is the bootstrap allowlist parser. It's the
-// authority on "is this email on the env-list" — the column-first
-// admin check (`isAdminUser` / `requireAdminUser`) defers to this
-// for the env-fallback path. Any drift here (e.g. case-sensitive
-// match, whitespace breaking the parse) silently locks ops out
-// of /admin/*.
+// authority on "is this email on the env-list" — the sign-in bootstrap
+// (`bootstrapAdminFromEnv`, verified emails only) defers to this to set
+// `users.is_admin`. Any drift here (e.g. case-sensitive match,
+// whitespace breaking the parse) silently locks ops out of /admin/*.
+// The check-time behaviour (column only) is pinned by
+// adminAccessColumn.test.ts.
 
 const ORIGINAL_ENV = process.env.NUXT_ADMIN_USER_EMAILS
 

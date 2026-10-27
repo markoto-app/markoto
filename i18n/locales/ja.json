@@ -79,7 +79,7 @@
     "passwordProtected": "パスワード保護",
     "setPassword": "ドキュメントのパスワードを設定",
     "passwordPlaceholder": "パスワードを入力...",
-    "passwordMinLength": "4文字以上",
+    "passwordMinLength": "{min}文字以上",
     "passwordRequired": "パスワードが必要です",
     "passwordRequiredDesc": "このドキュメントは保護されています。続けるにはパスワードを入力してください。",
     "enterPassword": "パスワード",

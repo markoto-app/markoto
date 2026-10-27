@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useQRCode } from '@vueuse/integrations/useQRCode'
+import { DOC_PASSWORD_MIN_LENGTH } from '~~/shared/config/docPassword'
 
 const props = defineProps<{
   docId: string
@@ -102,7 +103,7 @@ async function saveAccessMode(mode: string) {
 }
 
 async function setPassword() {
-  if (!password.value || password.value.length < 4) return
+  if (!password.value || password.value.length < DOC_PASSWORD_MIN_LENGTH) return
 
   saving.value = true
   try {
@@ -276,7 +277,7 @@ async function setPassword() {
                 size="sm"
                 class="shrink-0"
                 :loading="saving"
-                :disabled="!password || password.length < 4"
+                :disabled="!password || password.length < DOC_PASSWORD_MIN_LENGTH"
                 data-testid="share-password-save"
                 @click="setPassword"
               >
@@ -284,7 +285,7 @@ async function setPassword() {
               </UButton>
             </div>
             <p class="text-xs text-muted mt-1">
-              {{ t('share.passwordMinLength') }}
+              {{ t('share.passwordMinLength', { min: DOC_PASSWORD_MIN_LENGTH }) }}
             </p>
           </div>
         </fieldset>

@@ -79,7 +79,7 @@
     "passwordProtected": "密码保护",
     "setPassword": "设置文档密码",
     "passwordPlaceholder": "请输入密码…",
-    "passwordMinLength": "至少 4 个字符",
+    "passwordMinLength": "至少 {min} 个字符",
     "passwordRequired": "需要密码",
     "passwordRequiredDesc": "本文档受保护。请输入密码以继续。",
     "enterPassword": "密码",
