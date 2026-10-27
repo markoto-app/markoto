@@ -51,6 +51,7 @@ export async function resetDb(): Promise<void> {
       uploads,
       ai_sessions,
       ai_session_messages,
+      ai_session_provenance,
       workspace_knowledge_chunks,
       workspace_knowledge,
       workspace_invites,
@@ -124,6 +125,18 @@ export async function resetValkey(): Promise<void> {
 export async function deleteValkeyKey(key: string): Promise<void> {
   const client = await getValkey()
   await client.del(key)
+}
+
+/** Read one key from the test Valkey (null when absent). */
+export async function getValkeyKey(key: string): Promise<string | null> {
+  const client = await getValkey()
+  return client.get(key)
+}
+
+/** Write one key into the test Valkey (no TTL). */
+export async function setValkeyKey(key: string, value: string): Promise<void> {
+  const client = await getValkey()
+  await client.set(key, value)
 }
 
 export async function closeTestValkey(): Promise<void> {

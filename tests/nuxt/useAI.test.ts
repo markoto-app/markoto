@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
-import { ref } from 'vue'
+import { effectScope, ref, type EffectScope } from 'vue'
 import * as Y from 'yjs'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import type { H3Event } from 'h3'
 import { setResponseStatus } from 'h3'
 
-import { useAI } from '~/composables/useAI'
+import { useAI as useAIComposable, type AiEventSource } from '~/composables/useAI'
 
 // Signal to a registerEndpoint handler: respond with a non-2xx status
 // and the given body. We can't `throw createError({...})` from the
@@ -103,10 +103,13 @@ registerEndpoint('/api/ai/abort', {
 // without an entry answer 404 (unknown / expired session).
 const privateStatus = new Map<string, Record<string, unknown>>()
 const confirmCalls: Array<{ sid: string, body: unknown }> = []
+/** `GET /api/ai/sessions/:id` calls per session id (request-volume checks). */
+const statusGets = new Map<string, number>()
 for (const sid of ['sid-1', 'sid-mine', 'srv-sid-1']) {
   registerEndpoint(`/api/ai/sessions/${sid}`, {
     method: 'GET',
     handler: async (event) => {
+      statusGets.set(sid, (statusGets.get(sid) ?? 0) + 1)
       const snap = privateStatus.get(sid)
       return respond(event, snap ?? new ApiError(404, { message: 'AI session not found' }))
     }
@@ -133,8 +136,73 @@ function setPrivateStatus(sid: string, patch: Record<string, unknown>) {
   })
 }
 
-/** Poll quickly in tests. */
-const FAST = { pollIntervalMs: 15 }
+// Every instance runs in its own effect scope, disposed after each test,
+// so no instance keeps polling / streaming into the next test.
+const scopes: EffectScope[] = []
+function useAI(...args: Parameters<typeof useAIComposable>): ReturnType<typeof useAIComposable> {
+  const scope = effectScope(true)
+  scopes.push(scope)
+  const result = scope.run(() => useAIComposable(...args))
+  if (!result) throw new Error('effect scope did not run')
+  return result
+}
+afterEach(() => {
+  for (const scope of scopes.splice(0)) scope.stop()
+})
+
+/** Poll quickly in tests; these cases exercise the polling path (no stream). */
+const FAST = { pollIntervalMs: 15, createEventSource: null }
+
+/**
+ * Scriptable stand-in for the browser's EventSource. `emitStatus` plays
+ * a server `status` event, `emit('end')` the end of the session, and
+ * `fail(closed)` an `error` event (closed = the browser gave up).
+ */
+class FakeEventSource implements AiEventSource {
+  static readonly instances: FakeEventSource[] = []
+  readyState = 1
+  onerror: ((event: Event) => void) | null = null
+  closed = false
+  private readonly listeners = new Map<string, Array<(event: { data?: unknown }) => void>>()
+
+  constructor(readonly url: string) {
+    FakeEventSource.instances.push(this)
+  }
+
+  addEventListener(type: string, listener: (event: { data?: unknown }) => void): void {
+    const list = this.listeners.get(type) ?? []
+    list.push(listener)
+    this.listeners.set(type, list)
+  }
+
+  emit(type: string, data: unknown = '{}'): void {
+    for (const l of this.listeners.get(type) ?? []) l({ data })
+  }
+
+  emitStatus(sid: string, patch: Record<string, unknown>): void {
+    this.emit('status', JSON.stringify({ sessionId: sid, prompt: '', phase: 'thinking', message: null, response: null, confirmation: null, ...patch }))
+  }
+
+  fail(closed: boolean): void {
+    if (closed) this.readyState = 2
+    this.onerror?.(new Event('error'))
+  }
+
+  close(): void {
+    this.closed = true
+    this.readyState = 2
+  }
+}
+
+const STREAM = { pollIntervalMs: 15, createEventSource: (url: string) => new FakeEventSource(url) }
+
+/** The single stream the composable opened. */
+function onlyStream(): FakeEventSource {
+  expect(FakeEventSource.instances).toHaveLength(1)
+  const es = FakeEventSource.instances[0]
+  if (!es) throw new Error('no stream opened')
+  return es
+}
 
 // — awareness helpers ——————————————————————————————————————————————
 //
@@ -210,6 +278,8 @@ beforeEach(() => {
   abortCalls.length = 0
   privateStatus.clear()
   confirmCalls.length = 0
+  statusGets.clear()
+  FakeEventSource.instances.length = 0
 })
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -439,7 +509,7 @@ describe('useAI — private session channel', () => {
     const { awareness, docId } = makeCtx()
     setPrivateStatus('sid-mine', { phase: 'thinking' })
     const peer = pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
-    const ai = useAI(docId, awareness, { pollIntervalMs: 5_000 })
+    const ai = useAI(docId, awareness, { pollIntervalMs: 5_000, createEventSource: null })
     // The error lands between polls; the session then leaves.
     setPrivateStatus('sid-mine', { phase: 'error', message: 'Kaboom' })
     removePeer(peer, awareness)
@@ -495,6 +565,137 @@ describe('useAI — private session channel', () => {
     expect(confirmCalls).toEqual([{ sid: 'sid-mine', body: { confirmationId: 'conf-1', allow: false } }])
     expect(ai.pendingConfirmation.value).toBe(null)
   })
+})
+
+describe('useAI — push stream (SSE) for my session', () => {
+  function mine() {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const ctx = makeCtx()
+    const peer = pushAiClient(ctx.awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7, phase: 'thinking' })
+    return { ...ctx, peer }
+  }
+
+  it('follows my session through the stream — no polling while it works', async () => {
+    const { awareness, docId } = mine()
+    const ai = useAI(docId, awareness, STREAM)
+    expect(FakeEventSource.instances.map(e => e.url)).toEqual(['/api/ai/sessions/sid-mine/stream'])
+    const es = onlyStream()
+    es.emitStatus('sid-mine', { prompt: 'Draft a haiku', phase: 'tool', message: 'Reading "Q3 plan"…' })
+    expect(ai.mySession.value?.message).toBe('Reading "Q3 plan"…')
+    expect(ai.mySession.value?.prompt).toBe('Draft a haiku')
+    const confirmation = { id: 'conf-1', tool: 'web_search', target: 'q', expiresAt: Date.now() + 60_000 }
+    es.emitStatus('sid-mine', { phase: 'tool', confirmation })
+    expect(ai.pendingConfirmation.value).toEqual(confirmation)
+    es.emitStatus('sid-mine', { phase: 'tool', response: { message: 'Here you go.', isQuestion: true, ts: 9 } })
+    expect(ai.lastResponse.value).toMatchObject({ sessionId: 'sid-mine', message: 'Here you go.', isQuestion: true, ts: 9 })
+    es.emitStatus('sid-mine', { phase: 'error', message: 'Error: Kaboom' })
+    expect(ai.lastError.value).toBe('Kaboom')
+    await new Promise(r => setTimeout(r, 60))
+    expect(statusGets.get('sid-mine') ?? 0).toBe(0)
+  })
+
+  it('ignores malformed events', () => {
+    const { awareness, docId } = mine()
+    const ai = useAI(docId, awareness, STREAM)
+    const es = onlyStream()
+    es.emit('status', 'not json')
+    es.emit('status', JSON.stringify({ phase: 'tool' }))
+    expect(ai.mySession.value?.message).toBe(null)
+  })
+
+  it('closes the stream on `end` and does not reconnect', async () => {
+    const { awareness, docId } = mine()
+    useAI(docId, awareness, STREAM)
+    const es = onlyStream()
+    es.emitStatus('sid-mine', { phase: 'done', message: 'Done' })
+    es.emit('end')
+    expect(es.closed).toBe(true)
+    await new Promise(r => setTimeout(r, 60))
+    expect(FakeEventSource.instances).toHaveLength(1)
+    expect(statusGets.get('sid-mine') ?? 0).toBe(0)
+  })
+
+  it('falls back to polling when the browser gives up on the stream', async () => {
+    const { awareness, docId } = mine()
+    setPrivateStatus('sid-mine', { phase: 'tool', message: 'From the poll' })
+    const ai = useAI(docId, awareness, STREAM)
+    const es = onlyStream()
+    es.fail(true)
+    expect(es.closed).toBe(true)
+    await vi.waitFor(() => expect(ai.mySession.value?.message).toBe('From the poll'))
+    expect(statusGets.get('sid-mine') ?? 0).toBeGreaterThan(0)
+  })
+
+  it('keeps the stream through transient errors, falls back after repeated ones', async () => {
+    const { awareness, docId } = mine()
+    setPrivateStatus('sid-mine', { phase: 'tool', message: 'From the poll' })
+    const ai = useAI(docId, awareness, STREAM)
+    const es = onlyStream()
+    es.fail(false)
+    es.fail(false)
+    es.emitStatus('sid-mine', { phase: 'tool', message: 'Streamed' }) // resets the error count
+    es.fail(false)
+    es.fail(false)
+    expect(es.closed).toBe(false)
+    expect(ai.mySession.value?.message).toBe('Streamed')
+    es.fail(false)
+    expect(es.closed).toBe(true)
+    await vi.waitFor(() => expect(ai.mySession.value?.message).toBe('From the poll'))
+  })
+
+  it('never opens a stream for another person\'s session', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    pushAiClient(awareness, { sessionId: 'sid-1', initiatorName: 'Other', initiatorUserId: 8 })
+    useAI(docId, awareness, STREAM)
+    await new Promise(r => setTimeout(r, 40))
+    expect(FakeEventSource.instances).toHaveLength(0)
+    expect(statusGets.get('sid-1') ?? 0).toBe(0)
+  })
+
+  it('reads the final state once more after the session leaves awareness', async () => {
+    const { awareness, docId, peer } = mine()
+    const ai = useAI(docId, awareness, STREAM)
+    const es = onlyStream()
+    setPrivateStatus('sid-mine', { phase: 'error', message: 'Late error' })
+    removePeer(peer, awareness)
+    await vi.waitFor(() => expect(es.closed).toBe(true))
+    await vi.waitFor(() => expect(ai.lastError.value).toBe('Late error'))
+    expect(statusGets.get('sid-mine')).toBe(1)
+  })
+
+  it('request volume: one stream instead of a request every 600 ms', async () => {
+    // The same 3-second session (an update every 300 ms), followed once
+    // with the default 600 ms polling and once with the stream.
+    const SESSION_MS = 3_000
+    const UPDATE_MS = 300
+    async function runSession(options: Parameters<typeof useAI>[2]): Promise<{ gets: number, streams: number }> {
+      statusGets.clear()
+      FakeEventSource.instances.length = 0
+      const { awareness, docId, peer } = mine()
+      setPrivateStatus('sid-mine', { phase: 'thinking' })
+      useAI(docId, awareness, options)
+      for (let t = UPDATE_MS; t <= SESSION_MS; t += UPDATE_MS) {
+        await new Promise(r => setTimeout(r, UPDATE_MS))
+        const patch = { phase: 'tool', message: `step ${t}` }
+        setPrivateStatus('sid-mine', patch)
+        for (const es of FakeEventSource.instances) es.emitStatus('sid-mine', patch)
+      }
+      removePeer(peer, awareness)
+      await new Promise(r => setTimeout(r, 50))
+      return { gets: statusGets.get('sid-mine') ?? 0, streams: FakeEventSource.instances.length }
+    }
+    const polled = await runSession({ createEventSource: null })
+    const streamed = await runSession({ createEventSource: (url: string) => new FakeEventSource(url) })
+    // Polling: one request on start + one per 600 ms + one final read.
+    expect(polled.streams).toBe(0)
+    expect(polled.gets).toBeGreaterThanOrEqual(5)
+    // Stream: one long-lived request + the final read after the session left.
+    expect(streamed).toEqual({ gets: 1, streams: 1 })
+    console.info(`[useAI request volume] ${SESSION_MS} ms session: polling ${polled.gets} requests, stream ${streamed.streams} stream + ${streamed.gets} request`)
+  }, 15_000)
 })
 
 // ═══════════════════════════════════════════════════════════════════════

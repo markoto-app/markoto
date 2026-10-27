@@ -1,5 +1,5 @@
 import type { McpAuthContext } from '../../utils/mcpAuth'
-import type { McpSessionBindings } from '../../utils/mcpSessionBinding'
+import type { BindingCheck, McpSessionBindings } from '../../utils/mcpSessionBinding'
 
 // Request gate for `/mcp`, run by the handler middleware BEFORE the MCP
 // toolkit sees the request (so before it can create a session):
@@ -15,7 +15,8 @@ import type { McpSessionBindings } from '../../utils/mcpSessionBinding'
 //      the per-user session-creation rate (the toolkit keeps a session for
 //      30 idle minutes in a table shared by everybody, so this bounds what
 //      one account can occupy; `McpSessionBindings` additionally keeps at
-//      most 20 usable sessions per user).
+//      most 20 usable sessions per user). The bindings live in Valkey;
+//      a lookup that fails counts as "no binding" (fail closed).
 //
 // Pure decision logic with injected dependencies (unit-tested); the
 // middleware in `server/mcp/index.ts` wires the real ones.
@@ -76,7 +77,7 @@ export async function evaluateMcpRequest(input: McpGateInput, deps: McpGateDeps)
   if (input.sessionId) {
     // Unknown and foreign sessions get the same answer as the toolkit's
     // own "unknown session" — no hint that the id exists.
-    if (deps.bindings.check(input.sessionId, auth.tokenId) !== 'ok') {
+    if (await checkBinding(deps.bindings, input.sessionId, auth.tokenId) !== 'ok') {
       return { kind: 'reject', status: 404, rpcCode: -32001, message: 'Session not found' }
     }
     return { kind: 'proceed', auth, opensSession: false }
@@ -85,6 +86,16 @@ export async function evaluateMcpRequest(input: McpGateInput, deps: McpGateDeps)
     return { kind: 'reject', status: 429, rpcCode: -32000, message: 'Too many new MCP sessions. Reuse your client\'s session or try again later.' }
   }
   return { kind: 'proceed', auth, opensSession: true }
+}
+
+/** Binding lookup; a storage error refuses the session (fail closed). */
+async function checkBinding(bindings: McpSessionBindings, sessionId: string, tokenId: string): Promise<BindingCheck> {
+  try {
+    return await bindings.check(sessionId, tokenId)
+  } catch (e) {
+    console.warn(`[mcp] session binding lookup failed: ${e instanceof Error ? e.message : String(e)}`)
+    return 'unknown'
+  }
 }
 
 /** JSON-RPC error envelope as an HTTP response (the toolkit's own error shape). */

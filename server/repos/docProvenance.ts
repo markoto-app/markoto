@@ -9,12 +9,22 @@ import { useDatabase } from '../utils/database'
 // is attributed to them directly (`user_id`) or through one of the
 // synthetic principals that act on their behalf:
 //
-//   ai:assistant:<sid>   their AI session (live `ai_sessions` row, or a
-//                        conversation-memory row of theirs for that sid —
-//                        `ai_sessions` rows are deleted at session end)
+//   ai:assistant:<sid>   their AI session — only when its
+//                        `ai_session_provenance` row is theirs AND clean
+//                        (the session ended without reading anybody
+//                        else's content). A session that was tainted, is
+//                        still running, crashed, or belongs to another
+//                        user counts as foreign. Sessions from before the
+//                        provenance table (no row) fall back to the old
+//                        rule: a live `ai_sessions` row or a
+//                        conversation-memory row of theirs for that sid
 //   mcp:<sid>            their MCP client (`mcp_sessions.user_id`)
 //   restore:<uid>:<sid>  a restore they ran
 //   seed:<uid>           the body they seeded through create_document
+//
+// Rows without a user id or principal are judged foreign too — before
+// F-7b the NOT (…) over NULL comparisons dropped them, so another user's
+// AI / MCP edits and anonymous edits never counted.
 //
 // Everything else — another user, an anonymous editor of an open-edit
 // doc, an AI / MCP session that can't be attributed — is foreign. The
@@ -33,10 +43,26 @@ export async function hasForeignContentActivity(docId: string, userId: number): 
     FROM activity_log a
     WHERE a.doc_id = ${docId}
       AND a.action IN (${actions})
-      AND NOT (
+      -- COALESCE: every comparison below is NULL for a row without
+      -- user_id / actor_principal (AI, MCP and anonymous edits), and
+      -- NOT (NULL) would silently drop exactly those rows.
+      AND NOT COALESCE((
         a.user_id = ${userId}
         OR (
           a.actor_principal LIKE 'ai:assistant:%'
+          AND EXISTS (
+            SELECT 1 FROM ai_session_provenance p
+            WHERE p.session_id = substring(a.actor_principal FROM 14)
+              AND p.user_id = ${userId}
+              AND p.clean
+          )
+        )
+        OR (
+          a.actor_principal LIKE 'ai:assistant:%'
+          AND NOT EXISTS (
+            SELECT 1 FROM ai_session_provenance p
+            WHERE p.session_id = substring(a.actor_principal FROM 14)
+          )
           AND (
             EXISTS (
               SELECT 1 FROM ai_sessions s
@@ -60,7 +86,7 @@ export async function hasForeignContentActivity(docId: string, userId: number): 
         )
         OR a.actor_principal LIKE ${`restore:${uid}:%`}
         OR a.actor_principal = ${`seed:${uid}`}
-      )
+      ), false)
     LIMIT 1
   `)
   return result.rows.length > 0

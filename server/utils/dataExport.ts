@@ -20,6 +20,7 @@ import { useStripeClient } from './stripeClient'
 import { isBillingEnabled } from './billingMode'
 import { listWaitlistSignupsForUser } from '../repos/waitlist'
 import { listAiProviders } from '../repos/aiProviders'
+import { listAiSessionProvenanceForUser } from '../repos/aiSessionProvenance'
 import { listInvitesForExport } from '../repos/workspaceInvites'
 import { normaliseInviteEmail } from './workspaceInvites'
 
@@ -80,6 +81,9 @@ Contents:
   themes.json            saved themes you've created.
   ai/sessions.ndjson     AI sessions you initiated.
   ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
+  ai/edit-provenance.ndjson  which AI sessions you started on which
+                         document, and whether their edits count as
+                         your own text for the AI's safety checks.
   ai/usage.ndjson        per-billing-period AI interaction counters.
   ai/providers.json      your own AI provider settings (provider URL,
                          model, last verification). API keys are never
@@ -367,6 +371,14 @@ async function addAiEntries(entries: Entries, db: Db, userId: number): Promise<{
     kind: m.kind,
     body: m.body,
     createdAt: m.createdAt.toISOString()
+  }))))
+
+  const provenanceRows = await listAiSessionProvenanceForUser(userId)
+  entries['ai/edit-provenance.ndjson'] = strToU8(toNdjson(provenanceRows.map(p => ({
+    sessionId: p.sessionId,
+    docId: p.docId,
+    countsAsYourOwnText: p.clean,
+    createdAt: p.createdAt.toISOString()
   }))))
 
   return { sessionsCount: sessionsRows.length, messagesCount: aiMessagesRows.length }

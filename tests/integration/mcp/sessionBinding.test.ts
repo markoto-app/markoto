@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { resetDb, testDb } from '../setup/db'
+import { deleteValkeyKey, getValkeyKey, resetDb, setValkeyKey, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
+import { loggedInClient } from '../setup/client'
 import { mcp, mintPat, McpClient } from '../setup/mcpClient'
 
 // A4: an MCP session belongs to the personal access token that created
@@ -64,4 +65,64 @@ describe('MCP sessions are bound to their token', () => {
     }
     expect(row).toEqual({ token_id: t.tokenId, client_name: 'Bound Client' })
   })
+})
+
+// F-7d: the bindings live in Valkey (not in the app process), so they
+// survive a restart and are shared by every instance.
+describe('MCP session bindings are stored in Valkey', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('initialize writes the binding to Valkey; the gate reads it from there on every request', async () => {
+    const user = await createUser()
+    const t = await mintPat({ userId: user.id, scopes: ['documents:read'] })
+    const client = mcp(t.plaintext)
+    await client.initialize()
+    const sid = client.getSessionId() ?? ''
+    expect(await getValkeyKey(`mcp:binding:${sid}`)).toBe(`${user.id}:${t.tokenId}`)
+    expect((await client.listTools()).length).toBeGreaterThan(0)
+
+    // Simulated restart / other instance: the app keeps nothing of its
+    // own — dropping the Valkey entry is enough to refuse the session
+    // even though this process still holds the toolkit session.
+    await deleteValkeyKey(`mcp:binding:${sid}`)
+    await expect(client.listTools()).rejects.toThrow(/Session not found/)
+  })
+
+  it('a binding written by "another instance" is honoured here (shared table)', async () => {
+    const user = await createUser()
+    const a = await mintPat({ userId: user.id, scopes: ['documents:read'] })
+    const b = await mintPat({ userId: user.id, scopes: ['documents:read'] })
+    const owner = mcp(a.plaintext)
+    await owner.initialize()
+    const sid = owner.getSessionId() ?? ''
+    // Re-point the stored binding as another instance would see it.
+    await setValkeyKey(`mcp:binding:${sid}`, `${user.id}:${b.tokenId}`)
+    await expect(owner.listTools()).rejects.toThrow(/Session not found/)
+    const other = new McpClient({ token: b.plaintext, sessionId: sid })
+    expect((await other.listTools()).length).toBeGreaterThan(0)
+  })
+
+  it('revoking the token drops its bindings', async () => {
+    const user = await createUser()
+    const t = await mintPat({ userId: user.id, scopes: ['documents:read'] })
+    const client = mcp(t.plaintext)
+    await client.initialize()
+    const sid = client.getSessionId() ?? ''
+    expect(await getValkeyKey(`mcp:binding:${sid}`)).not.toBe(null)
+    const web = await loggedInClient(user.id)
+    expect((await web.delete(`/api/mcp/tokens/${t.tokenId}`)).status).toBe(200)
+    expect(await getValkeyKey(`mcp:binding:${sid}`)).toBe(null)
+    await expect(client.listTools()).rejects.toThrow()
+  })
+
+  it('keeps at most 20 usable sessions per user — the least recently used one is dropped', async () => {
+    const user = await createUser()
+    const t = await mintPat({ userId: user.id, scopes: ['documents:read'] })
+    const first = mcp(t.plaintext)
+    await first.initialize()
+    for (let i = 0; i < 20; i++) await mcp(t.plaintext).initialize()
+    await expect(first.listTools()).rejects.toThrow(/Session not found/)
+  }, 60_000)
 })

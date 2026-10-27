@@ -58,6 +58,7 @@ describe('buildExportZip', () => {
     expect(names).toEqual([
       'README.txt',
       'activity.ndjson',
+      'ai/edit-provenance.ndjson',
       'ai/messages.ndjson',
       'ai/providers.json',
       'ai/sessions.ndjson',
