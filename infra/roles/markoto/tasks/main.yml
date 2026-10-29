@@ -110,8 +110,12 @@
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
     mode: "0755"
+  # infra/postgres is listed on its own: creating only infra/postgres/init
+  # leaves the implicitly created parent root-owned, and the deploy
+  # workflows' tar sync can't write infra/postgres/db-init.sh into it.
   loop:
     - infra/litellm
+    - infra/postgres
     - infra/postgres/init
     - renderer
 
