@@ -29,7 +29,8 @@ in the shared document, so collaborators see them live next to any edits of
 their own, with no "wait for it to finish". Everything it changes shows in
 the [activity log](/docs/history) as an AI edit, and you can undo or
 [restore an earlier version](/docs/history/restore). While it works, the AI
-appears in the presence bar with a status. You can stop it at any time.
+appears in the presence bar as working; only you see what it is doing. You
+can stop it at any time.
 
 It picks its tools turn by turn from your prompt; you don't tell it which
 to use. Prompts can be dictated: with a transcription provider connected,

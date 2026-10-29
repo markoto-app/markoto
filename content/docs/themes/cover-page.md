@@ -18,14 +18,13 @@ the right scale for the doc.
 
 ## What just happened
 
-The Theme tab's Cover Page section is a sub-editor that writes into
-the same theme JSONB column as the rest of the styling. Toggle the
-cover off entirely (default for short docs) or pick a layout and
-customise. The header image uploads through the same presigned-PUT
-flow as inline images.
+The cover page is part of the document's theme, edited in the Cover
+Page section of the Theme tab. Switch it off entirely (the default for
+short documents) or pick a layout and adjust it. A header image uploads
+like any other image.
 
-The cover renders in both the live preview and the exported PDF
-through the same paged.js engine — what you see is what you ship.
+The live preview and the exported PDF use the same layout engine, so
+the cover you see is the cover you get.
 
 ## What's next
 

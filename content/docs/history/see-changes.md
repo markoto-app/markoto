@@ -18,16 +18,13 @@ red strikethroughs for what came out, green for what went in.
 
 ## What just happened
 
-Each activity row carries two Y.js snapshot pointers — `before` and
-`after`. The diff endpoint replays the doc to those two boundaries,
-runs `structuredPatch` from the `diff` library, and returns the
-hunks. The drawer renders them with author colour, line numbers,
-and surrounding context.
+markoto compares the document just before and just after that edit and
+shows the changed passages with their author's colour, line numbers and
+a little surrounding context.
 
-Diff output is capped at 200 hunks — pathological diffs (a paste
-that replaces the whole doc, a scripted bulk rename) would otherwise
-make the drawer unusable. Past the cap, the drawer shows a "see
-restore for full content" footer.
+Very large changes (pasting over the whole document, for example) are
+cut off after 200 changed passages; to see the full earlier text, use
+[restore](/docs/history/restore).
 
 ## What's next
 

@@ -19,18 +19,15 @@ to "before the restore" if you change your mind.
 
 ## What just happened
 
-Restore acquires a Postgres advisory lock on the doc id (so two
-concurrent restore attempts can't race), replays the Y.js state
-to the target snapshot id, then connects a synthetic Hocuspocus
-client that broadcasts the restored state to all live editors. The
-synthetic client uses the restorer's identity so the activity row
-attributes correctly.
+markoto rewinds the document to the version you picked and everyone in
+the document sees the rollback immediately. The restore is recorded
+under your name in the activity log like any other change.
 
-The atomic-failure guarantee: if any step fails, the lock is released,
-the doc is unchanged, and the user sees an error. Half-applied restores
-are not possible.
+A restore either happens completely or not at all: if something goes
+wrong, the document stays as it was and you see an error.
 
-Edit access required (not just view) — restore is a content mutation.
+You need edit access to restore; viewers can browse the history but not
+roll it back.
 
 ## What's next
 

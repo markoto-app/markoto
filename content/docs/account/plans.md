@@ -29,6 +29,7 @@ What you see depends on where markoto runs:
 
 - **Workspaces you can own.** Workspaces you are invited to never count.
 - **Knowledge storage**: files and bytes per workspace and per person ([knowledge](/docs/writing/knowledge-rag)).
+- **Image storage**: the total size of the images you upload or the AI generates for you, across all your documents (100 MB on the free plan). Your profile page shows your usage.
 - **AI Points**, the monthly allowance for AI that the operator pays for. Calls on your own AI provider are not limited by it ([AI Points](/docs/writing/ai-budget)).
 - **Workspace AI sponsoring** (higher paid plans, once available): see [Sponsor AI](/docs/workspaces/sponsor-ai).
 

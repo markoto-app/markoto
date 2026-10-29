@@ -17,12 +17,9 @@ override per-doc; the default is the starting point, not a constraint.
 
 ## What just happened
 
-Workspace admins see a "Default theme" picker on the workspace
-settings page that lists the built-in presets, the admin's saved
-personal presets, and the current workspace default. The choice
-writes to the workspace row and is read by the new-doc API — the
-seeded `theme` JSONB on a fresh doc inside the workspace pulls from
-the workspace default rather than the global default.
+Workspace admins pick the default theme on the workspace settings page,
+from the built-in presets and their own saved presets. Every document
+created in the workspace from then on starts with that theme.
 
 Existing docs aren't retroactively re-themed. The workspace default
 applies only to docs created AFTER it was set.

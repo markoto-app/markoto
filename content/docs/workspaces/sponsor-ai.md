@@ -24,13 +24,13 @@ inside the workspace.
 
 ## How it works (when paid plans are live)
 
-The workspace settings page has an "AI for the team" toggle. Only admins see
-it, and only owners on a higher paid plan can switch it on. While it is on,
-AI prompts inside the workspace draw from the sponsor's allowance instead of
-the member's own. The toggle switches itself off if the sponsor's plan lapses
-or drops below the required tier, so there are no surprise charges and no
-surprise lockouts. A `(+)` badge next to AI features in the workspace shows
-that usage is sponsored.
+A workspace admin opens the **markoto** tab on the workspace page and
+switches sponsoring on. The switch is only active for admins on a plan that
+can sponsor. While it is on, AI prompts inside the workspace draw from the
+sponsor's allowance instead of the member's own, and a banner on the
+workspace and in its documents says so. Sponsoring switches itself off if
+the sponsor's plan lapses or drops below the required tier, so there are no
+surprise charges and no surprise lockouts.
 
 ## What's next
 

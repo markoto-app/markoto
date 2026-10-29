@@ -23,6 +23,10 @@ AI. A link or document id works for any document you can open. To find a
 document by title or topic, the AI browses the other documents in the
 workspace the current document belongs to, so that part needs a workspace.
 
+If the AI has already read text other people wrote in this session, it
+asks first: a **markoto asks first** card appears above the prompt bar with
+**Allow** and **Deny**. [Why it asks](/docs/writing/ai-prompt-bar#when-the-ai-asks-first).
+
 ## What's next
 
 - [Ask the AI about a file you uploaded](/docs/writing/knowledge-rag): same idea for workspace knowledge files.

@@ -249,6 +249,13 @@ test.describe('preview isolation + CSP', () => {
 
   test('no CSP violations on the landing page and the docs site', async ({ page }) => {
     const violations = cspViolations(page)
+    // A production build that bundled the wrong SQLite driver answered every
+    // Nuxt Content query with a 500 while all flows stayed green — the docs
+    // site was empty and nothing noticed. Fail on any failing content query.
+    const failedContentQueries: string[] = []
+    page.on('response', (res) => {
+      if (res.url().includes('/__nuxt_content/') && res.status() >= 400) failedContentQueries.push(`${res.status()} ${res.url()}`)
+    })
     await suppressConsentBanner(page)
     for (const path of ['/', '/docs']) {
       const res = await page.goto(path)
@@ -257,10 +264,11 @@ test.describe('preview isolation + CSP', () => {
     }
     // Client-side navigation inside the docs site (Nuxt Content queries).
     const docLink = page.locator('a[href^="/docs/"]').first()
-    if (await docLink.count() > 0) {
-      await docLink.click()
-      await page.waitForLoadState('networkidle')
-    }
+    await expect(docLink).toBeVisible()
+    await docLink.click()
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('main h1').first()).toBeVisible()
+    expect(failedContentQueries).toEqual([])
     expect(violations).toEqual([])
   })
 })

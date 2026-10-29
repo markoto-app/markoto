@@ -1348,7 +1348,7 @@
     "capability": {
       "chat": {
         "title": "Assistant d'écriture",
-        "description": "Indispensable pour toutes les fonctions d'IA : la barre de prompt, {'@'}ai dans les commentaires et les résumés de recherche web. Le modèle doit prendre en charge l'appel d'outils."
+        "description": "Indispensable pour toutes les fonctions d'IA : la barre de prompt, {'@'}markoto dans les commentaires et les résumés de recherche web. Le modèle doit prendre en charge l'appel d'outils."
       },
       "image": {
         "title": "Génération d'images",

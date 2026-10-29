@@ -27,14 +27,14 @@ what's about to happen:
   history, your saved AI provider settings and keys, your MCP personal
   access tokens, queued data exports, and (where billing is on) your
   Stripe customer record.
-- **Anonymised, not deleted:** comments on other people's docs
-  (collaboration history doesn't tear holes), activity-log
-  attribution, audit-log actor, consent-log entries — all flip to
-  "Deleted user" / null FK so the historical record stays readable.
-- **Workspace fates:** sole-member workspaces cascade-delete with
-  you; multi-member workspaces where you're the only admin promote
-  the longest-tenured other admin to owner before removing your
-  membership; everywhere else, you're just removed as a member.
+- **Anonymised, not deleted:** your comments on other people's docs
+  and your entries in activity and audit logs stay, shown as "Deleted
+  user", so other people's history still makes sense.
+- **Workspaces:** a workspace where you're the only member is deleted
+  with you. Where you're an admin and others remain, the longest-standing
+  other admin takes over; if there is none, the longest-standing editor
+  (then viewer) becomes admin. Everywhere else you're simply removed as a
+  member.
 
 Confirming starts the 30-day countdown. A banner appears at the top of
 the app showing the days remaining and a Cancel button. Cancelling

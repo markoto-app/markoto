@@ -1348,7 +1348,7 @@
     "capability": {
       "chat": {
         "title": "Writing assistant",
-        "description": "Required for every AI feature: the prompt bar, {'@'}ai in comments and web-search summaries. The model must support tool calling."
+        "description": "Required for every AI feature: the prompt bar, {'@'}markoto in comments and web-search summaries. The model must support tool calling."
       },
       "image": {
         "title": "Image generation",

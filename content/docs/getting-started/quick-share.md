@@ -25,10 +25,11 @@ with the link can read AND edit. That's the fastest way to draft
 something with a single collaborator: paste the link, both of you
 type, both of you see each other's edits live.
 
-If you'd rather give someone view-only access, or gate the
-document behind a password, the same share dialog has those
-options too. See [Lock a document behind a password](/docs/sharing/password-protect)
-for the password-gated flow.
+To give someone view-only access, or to lock the document behind a
+password, sign in before you create it: the owner of a document gets
+those options in the same share dialog. Anonymous documents always stay
+open-edit. See [Lock a document behind a password](/docs/sharing/password-protect)
+for the password flow.
 
 ## What's next
 

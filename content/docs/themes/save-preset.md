@@ -17,12 +17,10 @@ preset picker on every future doc.
 
 ## What just happened
 
-Saved presets live on your user account, not on the doc. The Theme tab
-serializes the current theme JSONB, you give it a name, and the row
-lands in the `themes` table keyed on `user_id`. The preset picker
-queries it next to the built-ins so they're indistinguishable in the
-UI — except that yours can be deleted from the picker and the
-built-ins can't.
+Saved presets belong to your account, not to one document. You give the
+current theme a name, and from then on it appears in the preset picker
+of every document you open, next to the built-in presets. Your own
+presets can be deleted from the picker; the built-in ones can't.
 
 For shared team styling, you don't need to save personally — set the
 preset as the [workspace default theme](/docs/workspaces/default-theme)
