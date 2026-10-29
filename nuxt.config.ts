@@ -342,6 +342,22 @@ export default defineNuxtConfig({
     }
   },
 
+  // The server always runs under Bun (nitro preset 'bun'), but Nuxt Content
+  // picks its SQLite driver from the runtime doing the BUILD. `bun run build`
+  // runs the nuxt CLI through its node shebang wherever node is installed
+  // (CI runners, dev machines), which baked in better-sqlite3 — unsupported
+  // in Bun, so every /docs query 500'd. The Docker build only worked because
+  // the bun image has no node. Pin the driver to the runtime — for
+  // production builds only: `nuxt dev` serves from Node, where bun:sqlite
+  // doesn't exist and the auto-detected driver is the right one.
+  $production: {
+    content: {
+      experimental: {
+        sqliteConnector: 'bun'
+      }
+    }
+  },
+
   // MCP server config. Tools, resources, and prompts auto-discovered from
   // server/mcp/{tools,resources,prompts}/. Sessions on so external clients
   // can stash a docId index across calls; defaultHandlerStrategy: 'orphans'
