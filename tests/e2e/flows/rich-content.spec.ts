@@ -380,7 +380,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   // moment; comment threads (collaboration on that surface) is
   // the natural next step.
   flow.next({
-    slug: 'discuss-with-comments',
+    slug: 'have-a-discussion',
     why: 'Now invite a collaborator to leave a comment on what you wrote'
   })
 })

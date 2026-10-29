@@ -1,6 +1,93 @@
 import { test, expect } from '../fixtures/flow'
 
-// Tier 1: "What you get on each plan".
+test('What you get on each plan', async ({ page, flow, editor }) => {
+  test.setTimeout(120_000)
+
+  await editor.page.loginAsTestUser('Maya Chen')
+  await page.goto('/pricing')
+  await page.getByTestId('pricing-tier-free').waitFor({ state: 'visible', timeout: 10_000 })
+
+  await flow.heading('What every account gets today', 3)
+  await flow.narrate(
+    'markoto is free while paid plans are being finished. Every account '
+    + 'is on Free, with every writing feature. Pro, Max and Ultra show '
+    + 'the larger limits they will bring; they have no price yet and '
+    + 'nothing to buy.'
+  )
+
+  // ASSERTION: Free is the current plan, every paid tier is a preview —
+  // a "coming soon" badge, no price, no purchase button.
+  await expect(page.getByTestId('pricing-tier-free')).toHaveAttribute('data-current', 'true')
+  for (const plan of ['pro', 'max', 'ultra']) {
+    const card = page.getByTestId(`pricing-tier-${plan}`)
+    await expect(card).toHaveAttribute('data-coming-soon', 'true')
+    await expect(card.getByTestId('pricing-coming-soon-badge')).toBeVisible()
+    await expect(card.getByTestId('pricing-coming-soon-button')).toBeDisabled()
+    await expect(card).not.toContainText('$')
+  }
+  await expect(page.getByRole('button', { name: /^upgrade$/i })).toHaveCount(0)
+
+  await flow.shot(
+    'You are on Free. The paid tiers are marked "coming soon": no prices, no checkout.',
+    {
+      hero: true,
+      annotations: [
+        { label: 'your plan', selector: '[data-testid="pricing-tier-free"]', kind: 'box' },
+        { label: 'coming soon', selector: '[data-testid="pricing-tier-pro"]', kind: 'box' }
+      ]
+    }
+  )
+
+  // ─── Waitlist ────────────────────────────────────────────────
+  await flow.heading('Hear when paid plans launch', 3)
+  const section = page.getByTestId('waitlist-section')
+  await section.scrollIntoViewIfNeeded()
+  await flow.narrate(
+    'Want to know when Pro, Max and Ultra launch? Leave your email on the '
+    + 'waitlist. markoto sends one email when they do, and every email has '
+    + 'an unsubscribe link.'
+  )
+
+  await flow.type(
+    'Type your email address',
+    page.getByTestId('waitlist-email').locator('input').or(page.locator('input[data-testid="waitlist-email"]')).first(),
+    'maya@northwind.example',
+    { result: 'Your address is filled in.' }
+  )
+
+  const submit = page.getByTestId('waitlist-submit')
+  // ASSERTION: nothing is sent without consent.
+  await expect(submit).toBeDisabled()
+  await flow.click(
+    'Tick the consent box',
+    page.getByTestId('waitlist-consent'),
+    {
+      result: 'With consent given, the button becomes active.',
+      after: () => expect(submit).toBeEnabled()
+    }
+  )
+
+  await flow.click('Click "Join the waitlist"', submit, {
+    result: 'Check your inbox: the sign-up only counts once you click the confirmation link in the email.',
+    after: () => expect(page.getByTestId('waitlist-success')).toBeVisible({ timeout: 10_000 })
+  })
+
+  flow.next({
+    slug: 'use-your-own-ai-provider',
+    why: 'Use the AI today on your own provider: no plan needed'
+  })
+})
+
+// Two flows on the pricing page.
+//
+// 1. "What you get on each plan" (untagged → billing-OFF pass, the
+//    markoto.app shape the docs describe): every account is on Free,
+//    paid tiers are "coming soon" with no price and no purchase button,
+//    and the waitlist sign-up sits under the grid. This is the flow
+//    content/docs/account/plans.md embeds.
+// 2. "Pricing with paid plans live" (`@billing`): the same page on an
+//    instance that sells plans. Kept for regression coverage only — no
+//    docs page embeds it, so scripts/build-flows.ts never publishes it.
 //
 // User-job: a reader trying to figure out whether the Free tier is
 // enough OR which paid tier they need. Job done when they've landed
@@ -21,7 +108,7 @@ import { test, expect } from '../fixtures/flow'
 // against `en-light-mobile` (375×667). No `test.skip()` for mobile.
 // `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
 // playwright.config.ts `grepInvert`).
-test('What you get on each plan', { tag: '@billing' }, async ({ page, flow, editor }) => {
+test('Pricing with paid plans live', { tag: '@billing' }, async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   // Login so the page can highlight the user's current tier with
@@ -77,7 +164,7 @@ test('What you get on each plan', { tag: '@billing' }, async ({ page, flow, edit
   await expect(page.locator('[data-testid="pricing-tier-free"] [data-testid="pricing-current-plan-badge"]')).toBeVisible()
 
   flow.next({
-    slug: 'let-your-team-use-the-ai-on-your-dime',
-    why: 'See how AI sponsorship works once you\'re on Max'
+    slug: 'use-your-own-ai-provider',
+    why: 'Connect your own AI provider: it is never limited by a plan'
   })
 })

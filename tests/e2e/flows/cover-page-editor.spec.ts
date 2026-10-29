@@ -189,7 +189,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
   expect(meta.theme.cover.subtitle).toBe('Internal draft · v0.3 · Engineering team')
 
   flow.next({
-    slug: 'save-your-custom-theme',
+    slug: 'save-your-custom-theme-as-a-preset',
     why: 'Once your cover looks right, save the whole theme as a preset so the next doc starts here'
   })
 })

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { flowEmbedSlugs } from '../shared/docs/flowDocPages'
 
 // Publishes Playwright flow output to the static dir so <Flow> can fetch
 // the manifests + frame images by URL. Mirrors the shape:
@@ -42,7 +43,6 @@ const DOCS_DIR = 'content/docs'
 // to public/flows either. Publishing by reference keeps the rule in one
 // place: embed a flow in a docs page and it gets published; drop the
 // embed and the next build reaps it.
-const FLOW_EMBED_RE = /::flow\{[^}]*\bid="([^"]+)"/g
 
 interface VariantStats {
   /** True if `.passed` sentinel was present and we re-published. */
@@ -209,7 +209,7 @@ async function referencedFlowSlugs(): Promise<Set<string>> {
   for (const rel of await fs.readdir(DOCS_DIR, { recursive: true })) {
     if (!rel.endsWith('.md')) continue
     const text = await fs.readFile(path.join(DOCS_DIR, rel), 'utf8')
-    for (const match of text.matchAll(FLOW_EMBED_RE)) slugs.add(match[1])
+    for (const slug of flowEmbedSlugs(text)) slugs.add(slug)
   }
   return slugs
 }

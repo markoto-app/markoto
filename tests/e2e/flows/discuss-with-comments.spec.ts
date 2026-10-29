@@ -181,7 +181,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   // reader hasn't seen — same threaded surface, the AI joins as a
   // collaborator on a passage.
   flow.next({
-    slug: 'ai-comment-mention',
+    slug: 'summon-ai-from-a-comment',
     why: 'Tag @markoto in a comment to summon the AI on a specific passage'
   })
 })

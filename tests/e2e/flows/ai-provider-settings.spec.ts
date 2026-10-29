@@ -133,5 +133,5 @@ test('Use your own AI provider', async ({ page, flow, editor }) => {
     + 'in the middle of your writing. You can re-check it with Verify or remove it at any time.'
   )
 
-  flow.next({ slug: 'ai-prompt-bar', why: 'Ask the assistant to write with your own provider' })
+  flow.next({ slug: 'write-with-ai', why: 'Ask the assistant to write with your own provider' })
 })

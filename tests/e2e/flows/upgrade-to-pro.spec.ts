@@ -260,7 +260,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   await expect(page.locator('[data-testid="pricing-tier-free"]')).not.toHaveAttribute('data-current', 'true')
 
   flow.next({
-    slug: 'let-your-team-use-the-ai-on-your-dime',
-    why: 'Now that you\'re on Pro, you might want to upgrade to Max next — that unlocks team AI sponsoring'
+    slug: 'knowledge-grounded-ai',
+    why: 'Put your bigger allowance to work: ground the AI in your own files'
   })
 })

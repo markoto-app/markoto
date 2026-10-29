@@ -160,7 +160,7 @@ test('Quick share', async ({ page, flow, editor }) => {
   // collaborate on the doc — the comments-thread flow picks up where
   // this one ends (someone joins via the link, leaves a thought).
   flow.next({
-    slug: 'discuss-with-comments',
+    slug: 'have-a-discussion',
     why: 'Now invite a teammate — leave a comment on a passage they wrote'
   })
 })

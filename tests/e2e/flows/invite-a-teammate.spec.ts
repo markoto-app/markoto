@@ -168,7 +168,7 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   await expect(teammateCard).toHaveAttribute('data-role', 'editor')
 
   flow.next({
-    slug: 'let-your-team-use-the-ai-on-your-dime',
-    why: 'Now that the team is in, sponsor their AI use against your plan'
+    slug: 'roles-inside-a-workspace',
+    why: 'Decide who can edit, comment or manage the workspace'
   })
 })

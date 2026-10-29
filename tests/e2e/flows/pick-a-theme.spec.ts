@@ -291,7 +291,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   // a finished doc. (Routes here rather than to polished-pdf
   // because polished-pdf isn't built yet — Tier-1 TODO.)
   flow.next({
-    slug: 'ai-prompt-bar',
+    slug: 'write-with-ai',
     why: 'Now ask the AI to fill in a section so the doc writes itself'
   })
 })

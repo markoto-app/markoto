@@ -33,9 +33,9 @@ What you see depends on where markoto runs:
 - **AI Points**, the monthly allowance for AI that the operator pays for. Calls on your own AI provider are not limited by it ([AI Points](/docs/writing/ai-budget)).
 - **Workspace AI sponsoring** (higher paid plans, once available): see [Sponsor AI](/docs/workspaces/sponsor-ai).
 
-The walkthrough above shows the pricing page of an instance with paid plans
-live. The current numbers always come from the instance you are on: open its
-pricing page to see them.
+The walkthrough above shows the pricing page on markoto.app, with paid plans
+coming soon. The current numbers always come from the instance you are on:
+open its pricing page to see them.
 
 ## What's next
 

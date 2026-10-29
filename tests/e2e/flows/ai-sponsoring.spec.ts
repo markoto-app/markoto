@@ -115,11 +115,10 @@ test('Let your team use the AI on your dime', { tag: '@billing' }, async ({ page
     page.locator('[data-testid="workspace-ai-sponsoring-toggle"]'),
     {
       hero: true,
-      result: 'The workspace is now sponsored. The state line below '
-        + 'flips to "members\' markoto use bills to your pool"; '
-        + 'every workspace member\'s next AI call (prompt, @markoto '
-        + 'mention, transcription) attributes to your interactions '
-        + 'budget.',
+      result: 'The workspace is now sponsored: the line below the switch '
+        + 'reads "on your plan". From now on, every member\'s AI use in '
+        + 'this workspace (prompts, @markoto mentions, voice) draws from '
+        + 'your AI Points instead of theirs.',
       after: async () => {
         // The toggle does an optimistic flip + a background PUT to
         // /api/workspaces/:id which the parent re-fetches on success.

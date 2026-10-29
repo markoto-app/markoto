@@ -1,4 +1,4 @@
-import type { EditorView } from '@codemirror/view'
+import type { EditorView, KeyBinding } from '@codemirror/view'
 import type { ChangeSpec } from '@codemirror/state'
 
 /**
@@ -745,3 +745,22 @@ export function insertDefinitionList(view: EditorView): void {
   })
   view.focus()
 }
+
+/**
+ * Keyboard shortcuts for inline formatting — the ones the Format menu
+ * advertises (Bold ⌘B, Italic ⌘I) and the welcome document mentions.
+ * `Mod` is Cmd on macOS and Ctrl elsewhere. Read-only editors fall
+ * through (return false) so the browser's own handling is untouched.
+ */
+function wrapCommand(marker: string): (view: EditorView) => boolean {
+  return (view) => {
+    if (view.state.readOnly) return false
+    toggleWrap(view, marker)
+    return true
+  }
+}
+
+export const formattingKeymap: readonly KeyBinding[] = [
+  { key: 'Mod-b', run: wrapCommand('**'), preventDefault: true },
+  { key: 'Mod-i', run: wrapCommand('*'), preventDefault: true }
+]

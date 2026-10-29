@@ -17,6 +17,7 @@
 
 import type { ComputedRef } from 'vue'
 import { useRouteQuery } from '@vueuse/router'
+import { resolveFlowDocPage } from '~~/shared/docs/flowDocPages'
 
 type Highlight = { label: string, x: number, y: number, w: number, h: number }
 type AnnotationKind = 'arrow' | 'box' | 'pin'
@@ -456,14 +457,16 @@ const _heroEntry = computed<OutcomeEntry | null>(() => {
 })
 
 // Hand-curated forward link the flow author set via `flow.next(...)`.
-// We resolve to a docs URL by looking it up in the Nuxt Content
-// collection — but for the v1 ship we just route to
-// `/docs/<category>/<slug>` is too brittle without the lookup, so
-// we fall back to a simple slug-based href the docs gallery can
-// override later. The card always shows `why`; the href is best-
-// effort.
-const nextLink = computed<NextLink | null>(() => manifest.value?.next ?? null)
-const nextHref = computed(() => nextLink.value ? `/docs/flows/${nextLink.value.slug}` : '')
+// `next.slug` names a FLOW; the reader needs the docs page that embeds it.
+// appConfig.flowDocPages is that map, scanned from content/docs at build
+// time (shared/docs/flowDocPages.ts). A slug no page embeds hides the card
+// rather than linking to a 404.
+const appConfig = useAppConfig()
+const nextHref = computed(() => {
+  const slug = manifest.value?.next?.slug
+  return slug ? resolveFlowDocPage(appConfig.flowDocPages, slug) : null
+})
+const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value?.next ?? null : null)
 </script>
 
 <template>
@@ -640,11 +643,10 @@ const nextHref = computed(() => nextLink.value ? `/docs/flows/${nextLink.value.s
       <!-- "Try next" card. Hand-curated forward link the flow author
            set via flow.next(...). Routes the reader to the next
            recommended flow rather than dumping them at the end of
-           the slideshow with nowhere to go. The href pattern is
-           best-effort — the docs gallery is free to override the
-           lookup once it lands. -->
+           the slideshow with nowhere to go. Hidden when no docs page
+           embeds the next flow. -->
       <NuxtLink
-        v-if="nextLink"
+        v-if="nextLink && nextHref"
         :to="nextHref"
         class="mt-4 flex items-center gap-3 px-4 py-3 rounded-lg border border-default bg-elevated/50 hover:bg-elevated transition-colors group"
       >

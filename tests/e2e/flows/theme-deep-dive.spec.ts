@@ -175,7 +175,7 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
   ).toBe(true)
 
   flow.next({
-    slug: 'save-your-custom-theme',
+    slug: 'save-your-custom-theme-as-a-preset',
     why: 'Once you\'ve dialled it in, save the whole theme as a preset to reuse it'
   })
 })

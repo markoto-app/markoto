@@ -143,7 +143,7 @@ test('Write with AI', async ({ flow, editor }) => {
   // but anchored on a SPECIFIC passage rather than the whole doc.
   // Natural escalation in capability + scope.
   flow.next({
-    slug: 'ai-comment-mention',
+    slug: 'summon-ai-from-a-comment',
     why: 'Ask the AI about a specific passage — tag @markoto in a comment'
   })
 })

@@ -19,9 +19,6 @@ billed by their provider, and nothing here changes that. For operator-paid
 AI, **sponsoring** lets one workspace admin's plan cover everyone's AI calls
 inside the workspace.
 
-::flow{id="let-your-team-use-the-ai-on-your-dime" hide-title}
-::
-
 ## How it works (when paid plans are live)
 
 A workspace admin opens the **markoto** tab on the workspace page and
