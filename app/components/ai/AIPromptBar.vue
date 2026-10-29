@@ -10,6 +10,8 @@ const props = defineProps<{
     lastError: ReturnType<typeof useAI>['lastError']
     budgetExhausted: ReturnType<typeof useAI>['budgetExhausted']
     lastResponse: ReturnType<typeof useAI>['lastResponse']
+    /** Optional so callers / tests that don't care can omit it. */
+    lastOutcome?: ReturnType<typeof useAI>['lastOutcome']
     pendingConfirmation: ReturnType<typeof useAI>['pendingConfirmation']
     answeringConfirmation: ReturnType<typeof useAI>['answeringConfirmation']
     answerConfirmation: ReturnType<typeof useAI>['answerConfirmation']
@@ -403,6 +405,8 @@ onUnmounted(() => {
     :style="{ bottom: bottomOffset }"
     data-testid="ai-prompt-bar"
     :data-active="isActive ? 'true' : 'false'"
+    :data-last-outcome="props.ai.lastOutcome?.value?.phase ?? ''"
+    :data-last-outcome-message="props.ai.lastOutcome?.value?.message ?? ''"
   >
     <!-- Ephemeral response panel — driven by `useAI`'s latched
          `lastResponse`. When expanded, it visually merges into the

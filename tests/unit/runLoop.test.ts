@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import * as Y from 'yjs'
 import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import {
   AgenticFinishReason as FinishReason,
@@ -122,13 +123,17 @@ function shapeChunk(c: StreamChunk): GenerateContentResponse {
   } as unknown as GenerateContentResponse
 }
 
-function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {}): Parameters<typeof runAgenticLoop>[0] {
+/**
+ * `ytext` gives the session a real document so the loop's edit-progress
+ * tracking can read it; tests that don't care leave it out.
+ */
+function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {}, ytext?: Y.Text): Parameters<typeof runAgenticLoop>[0] {
   return {
     ai: overrides.ai ?? makeFakeAi([]).ai,
     model: 'fake-test-model',
     systemPrompt: 'system',
     initialPrompt: 'user prompt',
-    aiSession: { aiProviders: FULL_AI_PROVIDERS } as Parameters<typeof runAgenticLoop>[0]['aiSession'],
+    aiSession: { aiProviders: FULL_AI_PROVIDERS, ...(ytext ? { ytext } : {}) } as Parameters<typeof runAgenticLoop>[0]['aiSession'],
     sessionId: 'sess-test',
     abortController: new AbortController(),
     setStatus: vi.fn(),
@@ -689,5 +694,208 @@ describe('runAgenticLoop — taint + confirm gate (cross-document access)', () =
     expect(confirm).toHaveBeenCalledWith({ tool: 'fetch_url', target: 'https://evil.example/?q=1' }, expect.any(AbortSignal))
     const parts = lastResponseParts(callsSeen, 2)
     expect(parts[0]?.functionResponse?.response?.output).toMatch(/did not allow/)
+  })
+})
+
+// --- Stalled edits ----------------------------------------------------------
+//
+// Release v0.2.1: 9 sessions ran into the 20-turn limit after the real
+// edit was done — the model kept inserting bare newlines, replacing text
+// with itself, or swapping a sentence back and forth. The loop now tells
+// the model when an edit changed nothing, and ends the session normally
+// after STALLED_TURN_LIMIT such turns in a row.
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null
+}
+
+/** Apply replace_text / insert_text to a real Y.Text, like the real handlers do. */
+function editingHandler(ytext: Y.Text) {
+  return async (_session: unknown, name: string, args: unknown) => {
+    const a = isRecord(args) ? args : {}
+    const full = ytext.toJSON()
+    if (name === 'replace_text' && typeof a.old_str === 'string' && typeof a.new_str === 'string') {
+      if (a.old_str === a.new_str) return { content: 'Error: No change: new_str is identical to old_str.', isError: true }
+      const at = full.indexOf(a.old_str)
+      if (at === -1) return { content: 'Error: No match found for old_str.', isError: true }
+      ytext.delete(at, a.old_str.length)
+      ytext.insert(at, a.new_str)
+      return { content: 'Replaced text at exactly one location.', isError: false }
+    }
+    if (name === 'insert_text' && typeof a.insert_text === 'string') {
+      ytext.insert(full.length, a.insert_text)
+      return { content: 'Inserted text.', isError: false }
+    }
+    return { content: 'ok', isError: false }
+  }
+}
+
+function docWith(text: string): Y.Text {
+  const ytext = new Y.Doc().getText('content')
+  ytext.insert(0, text)
+  return ytext
+}
+
+function callTurn(name: string, args: Record<string, unknown>, id = 'c'): FakeTurn {
+  return { chunks: [{ functionCalls: [{ id, name, args }], finishReason: FinishReason.STOP }] }
+}
+
+/** A turn where the model replies with text and no tool call (its finish signal). */
+function proseTurn(text: string): FakeTurn {
+  return { chunks: [{ text, parts: [{ text }], finishReason: FinishReason.STOP }] }
+}
+
+/** The `output` of the functionResponse in the last message the loop sent. */
+function lastFunctionOutput(contents: unknown[]): string {
+  const last = contents.at(-1)
+  const parts: unknown[] = isRecord(last) && Array.isArray(last.parts) ? last.parts : []
+  const first = parts[0]
+  const fr = isRecord(first) && isRecord(first.functionResponse) ? first.functionResponse : null
+  const resp = fr && isRecord(fr.response) ? fr.response : null
+  return resp && typeof resp.output === 'string' ? resp.output : ''
+}
+
+describe('runAgenticLoop — stalled edits', () => {
+  it('bare-newline inserts after the real edit end the session as done, not at the turn limit', async () => {
+    const ytext = docWith('# Welcome\n')
+    const { ai } = makeFakeAi([
+      callTurn('insert_text', { insert_line: 1, insert_text: 'A one-line intro.\n' }),
+      // Then the runaway: blank lines forever (more turns than the limit).
+      ...Array.from({ length: 25 }, () => callTurn('insert_text', { insert_line: 2, insert_text: '\n' }))
+    ])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
+    // 1 real edit + 3 stalled turns, then stop.
+    expect(executeFunctionByName).toHaveBeenCalledTimes(4)
+    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+    expect(setStatus).not.toHaveBeenCalledWith('error', expect.anything())
+  })
+
+  it('tells the model that a whitespace-only edit changed nothing and how to finish', async () => {
+    const ytext = docWith('Intro.\n')
+    const { ai, callsSeen } = makeFakeAi([
+      callTurn('insert_text', { insert_line: 1, insert_text: '\n' }),
+      proseTurn('Done.')
+    ])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    await runAgenticLoop(makeOpts({ ai }, ytext))
+    const output = lastFunctionOutput(callsSeen[1]?.contents ?? [])
+    expect(output).toContain('only changed spaces, line breaks or blank lines')
+    expect(output).toContain('reply without calling any tool')
+  })
+
+  it('a sentence swapped back and forth is stopped', async () => {
+    const ytext = docWith('Write short.')
+    const swaps: Array<[string, string]> = [
+      ['Write short.', 'Keep it short.'],
+      ['Keep it short.', 'Be concise.'],
+      ['Be concise.', 'Keep it short.'],
+      ['Keep it short.', 'Be concise.'],
+      ['Be concise.', 'Keep it short.'],
+      ['Keep it short.', 'Be concise.'],
+      ['Be concise.', 'Keep it short.']
+    ]
+    const { ai, callsSeen } = makeFakeAi(swaps.map(([o, n]) => callTurn('replace_text', { old_str: o, new_str: n })))
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
+    // progress, progress, then three reverts → stop after the 5th turn.
+    expect(executeFunctionByName).toHaveBeenCalledTimes(5)
+    expect(lastFunctionOutput(callsSeen[3]?.contents ?? [])).toContain('undoing your own edits')
+    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+  })
+
+  it('rejected old_str === new_str replacements count as stalled even without document text', async () => {
+    const { ai } = makeFakeAi(Array.from({ length: 10 }, () => callTurn('replace_text', { old_str: '---', new_str: '---' })))
+    executeFunctionByName.mockResolvedValue({ content: 'Error: No change: new_str is identical to old_str.', isError: true })
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }))
+    expect(executeFunctionByName).toHaveBeenCalledTimes(3)
+    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+  })
+
+  it('the same failing edit repeated is stopped', async () => {
+    // Session XS__q_OQpkPv: the model kept "fixing" text that only exists
+    // in the document context, getting "No match" every time.
+    const ytext = docWith('# Title\n')
+    const { ai, callsSeen } = makeFakeAi(Array.from({ length: 10 }, () =>
+      callTurn('replace_text', { old_str: 'Language: "EnglishDeutsch"', new_str: 'Language: "English"' })))
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
+    // First failure + three repeats.
+    expect(executeFunctionByName).toHaveBeenCalledTimes(4)
+    expect(lastFunctionOutput(callsSeen[2]?.contents ?? [])).toContain('you already made this exact call')
+    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+  })
+
+  it('real progress between stalled turns resets the streak', async () => {
+    const ytext = docWith('Start.\n')
+    const { ai } = makeFakeAi([
+      callTurn('insert_text', { insert_line: 1, insert_text: '\n' }),
+      callTurn('insert_text', { insert_line: 1, insert_text: '\n' }),
+      callTurn('insert_text', { insert_line: 1, insert_text: 'More.\n' }),
+      callTurn('insert_text', { insert_line: 1, insert_text: '\n' }),
+      callTurn('insert_text', { insert_line: 1, insert_text: '\n' }),
+      proseTurn('Done.')
+    ])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
+    expect(executeFunctionByName).toHaveBeenCalledTimes(5)
+    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+  })
+
+  it('reading between pointless edits does not reset the streak', async () => {
+    const ytext = docWith('Start.\n')
+    const { ai } = makeFakeAi([
+      callTurn('insert_text', { insert_line: 1, insert_text: '\n' }),
+      callTurn('view_document', {}),
+      callTurn('insert_text', { insert_line: 1, insert_text: '\n' }),
+      callTurn('view_document', {}),
+      callTurn('insert_text', { insert_line: 1, insert_text: '\n' }),
+      callTurn('view_document', {})
+    ])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    await runAgenticLoop(makeOpts({ ai }, ytext))
+    // Stops right after the third whitespace-only edit; the last read never runs.
+    expect(executeFunctionByName).toHaveBeenCalledTimes(5)
+  })
+})
+
+describe('runAgenticLoop — finishing after the work is done', () => {
+  it('closing prose after a document edit ends the session without a message_to_user', async () => {
+    const ytext = docWith('# Title\n')
+    const { ai } = makeFakeAi([
+      callTurn('insert_text', { insert_line: 1, insert_text: 'Intro.\n' }),
+      proseTurn('Added a one-line intro.')
+    ])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    const setStatus = vi.fn()
+    await runAgenticLoop(makeOpts({ ai, setStatus }, ytext))
+    expect(executeFunctionByName.mock.calls.map(c => c[1])).toEqual(['insert_text'])
+    expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
+  })
+
+  it('closing prose does not replace an answer already sent with message_to_user', async () => {
+    const { ai } = makeFakeAi([
+      callTurn('message_to_user', { message: 'markoto is a writing tool.', is_question: false }),
+      proseTurn('Done.')
+    ])
+    executeFunctionByName.mockResolvedValue({ content: 'Message shown to user.', isError: false })
+    await runAgenticLoop(makeOpts({ ai }))
+    expect(executeFunctionByName).toHaveBeenCalledTimes(1)
+  })
+
+  it('a failed edit does not suppress the prose answer', async () => {
+    const ytext = docWith('# Title\n')
+    const { ai } = makeFakeAi([
+      callTurn('replace_text', { old_str: 'missing', new_str: 'x' }),
+      proseTurn('I could not find that passage.')
+    ])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    await runAgenticLoop(makeOpts({ ai }, ytext))
+    expect(executeFunctionByName.mock.calls.map(c => c[1])).toEqual(['replace_text', 'message_to_user'])
   })
 })

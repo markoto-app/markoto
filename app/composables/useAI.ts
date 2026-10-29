@@ -96,6 +96,13 @@ export interface AiResponseEntry {
   ts: number
 }
 
+/** How my most recent session ended — `error` is what the failure toast reports. */
+export interface AiSessionOutcome {
+  sessionId: string
+  phase: 'done' | 'error'
+  message: string | null
+}
+
 /** Shape of `GET /api/ai/sessions/:sessionId` (and of the stream's `status` events). */
 interface PrivateSessionStatus {
   sessionId: string
@@ -237,6 +244,10 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   const trackedSessionId = computed(() => mySessionId.value ?? startedSessionId.value)
 
   const lastResponse = ref<AiResponseEntry | null>(null)
+  // Terminal phase of my latest session; cleared when the next one
+  // starts. Mirrored onto the prompt bar so flow tests can tell a
+  // finished session from one that ended in an error.
+  const lastOutcome = ref<AiSessionOutcome | null>(null)
   let lastErrorSessionId: string | null = null
 
   function applyStatus(s: PrivateSessionStatus) {
@@ -247,6 +258,9 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       if (cur?.sessionId !== s.sessionId || cur.ts !== r.ts) {
         lastResponse.value = { sessionId: s.sessionId, message: r.message, isQuestion: r.isQuestion, ts: r.ts }
       }
+    }
+    if (s.phase === 'done' || s.phase === 'error') {
+      lastOutcome.value = { sessionId: s.sessionId, phase: s.phase === 'error' ? 'error' : 'done', message: s.message }
     }
     // Surface errors that happen mid-loop (server-side) through
     // `lastError` so AIPromptBar can toast them — once per session.
@@ -358,6 +372,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     }
     if (!sid) return
     privateStatus.value = null
+    if (lastOutcome.value?.sessionId !== sid) lastOutcome.value = null
     pollingFor = sid
     if (createEventSource) startStream(sid, createEventSource)
     else startPolling(sid)
@@ -428,6 +443,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     if (!trimmed || submitting.value || mySessionId.value) return false
     submitting.value = true
     lastError.value = null
+    lastOutcome.value = null
     budgetExhausted.value = false
     // Prefer the call-site override (used by the selection popup to
     // pass a pre-captured range snapshot) — falls back to the lazily
@@ -500,6 +516,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     lastError: readonly(lastError),
     budgetExhausted: readonly(budgetExhausted),
     lastResponse: readonly(lastResponse),
+    lastOutcome: readonly(lastOutcome),
     pendingConfirmation,
     answeringConfirmation: readonly(answeringConfirmation),
     prompt,

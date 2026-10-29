@@ -185,6 +185,25 @@ export class EditorPage {
    */
   async waitForAiIdle(timeout = 240_000): Promise<void> {
     await expect(this.ai.promptBar).toHaveAttribute('data-active', 'false', { timeout })
+    await this.expectAiSessionSucceeded()
+  }
+
+  /**
+   * Fail when my last AI session ended in an error (turn limit, session
+   * cap, provider failure, …). The prompt bar mirrors the session's
+   * terminal phase into `data-last-outcome` (`done` | `error`, empty
+   * while none has ended) and the server's message into
+   * `data-last-outcome-message`. Without this check a flow passed even
+   * when the user saw "Could not reach markoto — Hit turn limit".
+   */
+  async expectAiSessionSucceeded(timeout = 15_000): Promise<void> {
+    const bar = this.ai.promptBar
+    await expect(bar).toHaveAttribute('data-last-outcome', /^(done|error)$/, { timeout })
+    const outcome = await bar.getAttribute('data-last-outcome')
+    if (outcome !== 'done') {
+      const message = await bar.getAttribute('data-last-outcome-message')
+      throw new Error(`AI session ended with an error: ${message ?? '(no message)'}`)
+    }
   }
 
   /**

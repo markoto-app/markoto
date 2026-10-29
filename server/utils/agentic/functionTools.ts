@@ -661,12 +661,12 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   ),
   decl(
     'replace_text',
-    'Replace a single exact-match occurrence of `old_str` with `new_str` in the document. `old_str` must match EXACTLY ONE location including whitespace — include enough surrounding context to be unique. Returns an error if zero or multiple matches are found.',
+    'Replace a single exact-match occurrence of `old_str` with `new_str` in the document. `old_str` must match EXACTLY ONE location including whitespace — include enough surrounding context to be unique. Returns an error if zero or multiple matches are found, or if `new_str` equals `old_str`. On success the result shows the edited lines as they now read.',
     ReplaceTextArgs
   ),
   decl(
     'insert_text',
-    'Insert `insert_text` after line `insert_line` (1-indexed). Use insert_line=0 to insert at the very start of the document. The inserted text is newline-terminated automatically.',
+    'Insert `insert_text` after line `insert_line` (1-indexed). Use insert_line=0 to insert at the very start of the document. The inserted text is newline-terminated automatically. Put any blank line you need INSIDE `insert_text` (e.g. "\\nNew paragraph.") — never call this just to add empty lines. The result shows the inserted lines as they now read.',
     InsertTextArgs
   ),
   decl(
