@@ -22,7 +22,7 @@ test('Share by QR code', async ({ page, flow, editor }) => {
   // The share modal opens from any doc — no login required, no
   // template choice. Use silentSetup so the manifest starts on the
   // share story, not on doc creation.
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Conference schedule' })
 
   await flow.heading('Share by QR code', 3)
   await flow.narrate(

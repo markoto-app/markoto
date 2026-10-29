@@ -37,7 +37,7 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   // Dictation auth requires a session; the test-mode login shim is
   // the same path the AI flows use.
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Interview notes' })
   // Markoto theme ships with cover.enabled=true; the preview iframe
   // shows the cover sheet, hiding the dictated text that lands at
   // the cursor (page 4+ of the welcome doc). Disable cover so the
@@ -78,8 +78,7 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
       annotations: editor.isMobile
         ? [{ label: 'mic tab', selector: '[data-testid="mobile-tab-dictate"]', kind: 'arrow' }]
         : [{ label: 'mic', selector: 'button[aria-label*="dictation" i]', kind: 'arrow' }],
-      result: 'The mic lights up red — the WebSocket is open, your audio is '
-        + 'streaming, the speech recognizer is listening.',
+      result: 'The mic lights up red — markoto is listening.',
       after: async () => {
         // Wait for the button to flip into its "recording" visual
         // state. The `animate-pulse` class is added when the
@@ -94,11 +93,11 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   // ─── Watch the words stream in ──────────────────────────────────
   await flow.heading('The words land in the doc', 3)
   await flow.narrate(
-    'The audio worklet captures 128 ms chunks at 16 kHz and posts '
-    + 'them straight to Mistral Voxtral Realtime. Interim transcripts appear as '
-    + 'ghost text at the caret; once the recognizer is confident, '
-    + 'they commit into the Y.js document with a `dictation:{userId}` '
-    + 'origin so undo / collaborator awareness recognises them.'
+    'Your speech streams to the speech-recognition service while you '
+    + 'talk. The words appear as faint text at the caret first; once '
+    + 'the recognizer is sure, they become regular text in the '
+    + 'document — your collaborators see them arrive live, and undo '
+    + 'removes them like anything you typed.'
   )
 
   // The mock STT's chunk-counted sequence: chunk 3 → "hello"
@@ -110,7 +109,7 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   await expect(page.locator('.cm-content')).toContainText(/how are you/i, { timeout: 20_000 })
 
   await flow.shot(
-    'The recognized phrase commits into the doc — same Y.js path as a typed character.',
+    'The recognized phrase is now part of the document, just like typed text.',
     {
       hero: true,
       highlights: [
@@ -122,9 +121,8 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   // ─── Stop the mic ───────────────────────────────────────────────
   await flow.heading('Stop the mic when you\'re done', 3)
   await flow.narrate(
-    'Click the mic again to close the WebSocket. markoto sends a '
-    + '`{type: "stop"}` frame, the recognizer flushes any remaining '
-    + 'partials as a final, and the editor returns to keyboard-only '
+    'Click the mic again to stop. The last words you said are '
+    + 'written in, and the editor is back to keyboard-only '
     + 'input. The mic permission stays granted for the rest of the '
     + 'session — re-clicking the mic resumes streaming without a '
     + 'new permission prompt.'

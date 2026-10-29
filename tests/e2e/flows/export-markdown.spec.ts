@@ -23,7 +23,7 @@ import { test, expect } from '../fixtures/flow'
 test('Save as Markdown', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Meeting notes' })
 
   await flow.heading('Save the doc as a .md file', 3)
   await flow.narrate(

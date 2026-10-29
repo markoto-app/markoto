@@ -8,29 +8,28 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // and inserts it into the doc, where it renders inline in the
 // preview just like any markdown image.
 //
-// Pipeline: prompt → AI calls `generate_image` → BFL FLUX.2 [pro]
-// (EU-pinned, via the LiteLLM proxy) returns the rendered image →
-// markoto uploads to S3 → registers an `uploads` row → returns
-// markdown reference → AI's next turn inserts the reference. The
+// Pipeline: prompt → AI calls `generate_image` → the image provider
+// (bundled default: BFL FLUX.2 [pro] via LiteLLM) returns the image →
+// markoto stores it under the doc → registers an `uploads` row →
+// returns the markdown reference → the AI inserts it. The
 // image is owned by the doc; deletion cascades clean up.
 //
 // Live LiteLLM round-trip → BFL. Cost: ~$0.030 per 1024² image. Skipped if no key.
-test('Ask the AI to draw an image', async ({ page, flow, editor }) => {
+test('Ask the AI to draw an image', async ({ flow, editor }) => {
   requireLiveAi()
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
-  await editor.page.disableCoverPage()
+  const draft = '# Field notebook\n\nA place for sketches, lists and half-finished thoughts from the studio.\n\n## This week\n\n- Sketch the new shelf layout\n- Order more paper\n'
+  await editor.silentSetup({ title: 'Field notebook', body: draft, cover: false })
 
   await flow.heading('Ask the AI to draw an image', 3)
   await flow.narrate(
-    'The AI prompt bar can do more than write. Ask it to generate '
-    + 'an image and it calls BFL FLUX.2 (EU-pinned via the LiteLLM proxy), uploads the '
-    + 'result to your doc\'s S3 prefix, and inserts the markdown '
-    + 'reference at the cursor. The image renders inline in the '
-    + 'preview just like any other; deleting the doc cascades the '
-    + 'image cleanup.'
+    'The AI prompt bar can do more than write. Ask it for an image '
+    + 'and it draws one with your image provider, stores it with the '
+    + 'document and places it in the text. It renders in the preview '
+    + 'like any image you uploaded yourself, and it is deleted together '
+    + 'with the document.'
   )
 
   // ─── Prompt + send ──────────────────────────────────────────────
@@ -50,14 +49,14 @@ test('Ask the AI to draw an image', async ({ page, flow, editor }) => {
     'Type the image prompt',
     editor.page.ai.promptBarInput,
     prompt,
-    { result: 'Your prompt is staged. Hit send to kick off the AI.' }
+    { result: 'Your prompt is ready. Hit send.' }
   )
 
   await flow.click(
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — generate_image runs, then the AI inserts the markdown reference.',
+      result: 'The AI is working — it draws the image, then places it in the document.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -66,24 +65,33 @@ test('Ask the AI to draw an image', async ({ page, flow, editor }) => {
   // Total budget 90s.
   await editor.page.waitForAiIdle()
 
+  // ASSERTION: an image reference to a file stored with THIS doc
+  // (![…](/api/files/<docId>/…)) landed in the text, and the preview
+  // renders it as a loaded image — not a broken placeholder.
+  const docId = editor.page.currentDocId()
+  const added = await editor.page.addedText(draft)
+  expect(added, `no image reference in: ${added}`).toMatch(new RegExp(`!\\[[^\\]]*\\]\\(/api/files/${docId}/[^)]+\\)`))
+  await editor.page.scrollEditorTo('/api/files/')
+  if (!editor.isMobile) {
+    const img = editor.page.previewRoot().locator('#mount img[src*="/api/files/"]').first()
+    await expect(img).toBeAttached({ timeout: 20_000 })
+    await expect.poll(
+      () => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0),
+      { timeout: 20_000, message: 'the generated image never loaded in the preview' }
+    ).toBe(true)
+    await editor.page.scrollPreviewTo('img[src*="/api/files/"]')
+  }
+
   await flow.shot(
-    'The AI generated an image, uploaded it, and inserted the '
-    + 'markdown reference. The preview renders the actual PNG inline.',
+    'The AI drew the illustration and placed it at the top of the '
+    + 'document — the preview shows the image itself.',
     {
       hero: true,
       highlights: [
-        { label: 'AI-generated image', selector: '.cm-content' }
+        { label: 'The image in your text', selector: '.cm-line:has-text("/api/files/")' }
       ]
     }
   )
-
-  // ASSERTION: an image markdown reference (![…](/api/files/…))
-  // landed in the editor source. The AI is non-deterministic in its
-  // wording around the image but always uses the markdown image
-  // syntax so the renderer can pick it up.
-  const editorText = await page.locator('.cm-content').textContent()
-  expect(editorText).toMatch(/!\[/)
-  expect(editorText).toMatch(/\/api\/files\/[^/]+\/[^)]+\)/)
 
   flow.next({
     slug: 'rich-content',

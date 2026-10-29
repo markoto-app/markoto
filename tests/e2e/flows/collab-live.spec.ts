@@ -25,7 +25,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // Maya is the primary actor. Login + silentSetup creates her
   // session, an owned doc, and parks her in the editor.
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Q3 kickoff agenda' })
   // The realtime payoff is in the editor body (typed characters,
   // remote cursors). The cover sheet would hide all of that in
   // the preview pane on the post-edit captures.
@@ -38,7 +38,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
 
   await flow.heading('Two writers, one document', 3)
   await flow.narrate(
-    'markoto syncs every keystroke through a Y.js CRDT — open the '
+    'markoto syncs every keystroke live — open the '
     + 'same link on a second device or send it to a collaborator and '
     + 'their edits arrive on your screen the moment they hit a key. '
     + 'The avatars at the top show who else is in the doc; the '
@@ -96,10 +96,10 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // ─── Sam types — Maya sees it land ─────────────────────────────
   await flow.heading('Sam types — you see it land in real time', 3)
   await flow.narrate(
-    'Sam adds a paragraph. The Y.js update flows through Hocuspocus '
-    + 'in ~100ms; on your screen the characters appear at Sam\'s '
-    + 'cursor as Sam types them. There is no "save" — the canonical '
-    + 'state is the live Y.Doc shared by every connected client.'
+    'Sam adds a paragraph. On your screen the characters appear at '
+    + 'Sam\'s cursor a fraction of a second after Sam types them. There '
+    + 'is no "save" button — every keystroke is already saved, and '
+    + 'everyone in the doc sees the same text.'
   )
 
   // Sam types a paragraph at the end of the doc. The action is on

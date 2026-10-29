@@ -258,55 +258,158 @@ export class EditorPage {
   }
 
   /**
-   * Disable the cover page on the current document so the preview
-   * iframe shows page 1 = inserted/dictated/AI-generated content,
-   * not the cover sheet. The markoto theme ships with
-   * `cover.enabled: true` by default — every new doc has a title
-   * page that hides the actual body in the preview pane until the
-   * reader scrolls or pages forward.
+   * Turn the cover page off (or on) for the current document so the
+   * preview shows page 1 = the content the flow is about, not the
+   * markoto title sheet every new doc opens with.
    *
-   * Requires the current actor to be logged in: PUT /api/docs/:id/meta
-   * is gated on `canEdit` which goes through `requireValidatedUserSession`.
-   * Anonymous flows that need preview visibility should call
-   * `loginAsTestUser()` before `silentSetup()` AND this helper after.
+   * Writes the theme the same way the Theme panel's cover switch does:
+   * into the shared `ymeta.theme` (via the flow stack's `__DEBUG_ydoc`
+   * test handle, NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1), so it applies live
+   * for every collaborator and works for anonymous docs too. The old
+   * implementation PUT /meta, which only updates the stored seed — an
+   * editor that had already loaded kept rendering the cover, which is
+   * why so many published frames showed nothing but "Untitled".
    *
-   * Implementation: PUT /meta with the FULL `defaultTheme` schema
-   * with `cover.enabled` flipped to false. We can't merge a partial
-   * over the GET-returned `theme` JSONB because the column may hold
-   * a partial (or null) and `isValidTheme` requires every field
-   * present. The default theme IS the markoto preset's full shape —
-   * sending it back unchanged-except-cover gives the same visual
-   * result the user gets when they toggle the cover switch in the
-   * theme panel. paged.js repaginates ~500 ms after Y.js broadcasts
-   * the new theme; we wait 800 ms so the next captured screenshot
-   * lands on a settled preview.
+   * Starts from the live theme (ymeta) or, before anyone touched it,
+   * the stored one (GET /meta) so a preset picked in the new-document
+   * dialog survives. When the preview is mounted, waits until it has
+   * repaginated with/without the cover.
    */
-  async disableCoverPage(): Promise<void> {
-    const url = new URL(this.page.url())
-    const m = url.pathname.match(/\/d\/([^/?]+)/)
-    if (!m) throw new Error(`[disableCoverPage] not on a /d/{id} route, got ${url.pathname}`)
-    const docId = m[1]
-
-    // Import the default theme via dynamic import to avoid pulling
-    // shared/utils into the page-object module graph at top level.
-    // Use a relative path — Playwright's TS resolver doesn't honour
-    // the `~~` alias from the Nuxt tsconfig.
+  async setCoverEnabled(enabled: boolean): Promise<void> {
+    const docId = this.currentDocId()
     const { defaultTheme } = await import('../../../shared/utils/defaultTheme')
-    // Spread on `cover` keeps every other cover sub-field
-    // (showSubtitle / layout / dateFormat etc.) at its default while
-    // flipping `enabled` off.
-    const newTheme = {
-      ...defaultTheme,
-      cover: { ...defaultTheme.cover, enabled: false }
+    const metaRes = await this.page.request.get(`/api/docs/${docId}/meta`)
+    const metaBody: unknown = metaRes.ok() ? await metaRes.json() : null
+    const stored: unknown = typeof metaBody === 'object' && metaBody !== null ? Reflect.get(metaBody, 'theme') : null
+    const applied = await this.page.evaluate(({ enabled, stored, fallback }) => {
+      const ydoc: unknown = Reflect.get(globalThis, '__DEBUG_ydoc')
+      if (typeof ydoc !== 'object' || ydoc === null) return false
+      const getMap: unknown = Reflect.get(ydoc, 'getMap')
+      if (typeof getMap !== 'function') return false
+      const meta: unknown = getMap.call(ydoc, 'meta')
+      if (typeof meta !== 'object' || meta === null) return false
+      const get: unknown = Reflect.get(meta, 'get')
+      const set: unknown = Reflect.get(meta, 'set')
+      if (typeof get !== 'function' || typeof set !== 'function') return false
+      const live: unknown = get.call(meta, 'theme')
+      let base: object = fallback
+      if (typeof stored === 'object' && stored !== null) base = stored
+      if (typeof live === 'object' && live !== null) base = live
+      const cover: unknown = Reflect.get(base, 'cover')
+      const coverBase = typeof cover === 'object' && cover !== null ? cover : {}
+      set.call(meta, 'theme', { ...base, cover: { ...coverBase, enabled } })
+      return true
+    }, { enabled, stored, fallback: defaultTheme })
+    if (!applied) {
+      throw new Error('[setCoverEnabled] window.__DEBUG_ydoc is missing — run against the flow stack (NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1)')
     }
+    if (await this.page.locator('iframe').count() > 0) {
+      const cover = this.page.frameLocator('iframe').first().locator('#mount .markoto-cover')
+      await expect(cover).toHaveCount(enabled ? 1 : 0, { timeout: 15_000 })
+      await this.waitForPreviewPaginated()
+    }
+  }
 
-    const putRes = await this.page.request.put(`/api/docs/${docId}/meta`, {
-      data: { theme: newTheme }
+  /** Shorthand for `setCoverEnabled(false)`. */
+  async disableCoverPage(): Promise<void> {
+    await this.setCoverEnabled(false)
+  }
+
+  /** The `/d/:id` id of the open document. Throws off the editor. */
+  currentDocId(): string {
+    const m = /\/d\/([^/?]+)/.exec(new URL(this.page.url()).pathname)
+    if (!m) throw new Error(`[currentDocId] not on a /d/{id} route, got ${this.page.url()}`)
+    return m[1]
+  }
+
+  /**
+   * The authoritative document text (Y.Text), via the flow stack's
+   * `__DEBUG_ytext` handle. Prefer this over `.cm-content` — CM6
+   * virtualises long documents, so the DOM only holds the viewport.
+   */
+  async docText(): Promise<string> {
+    return await this.page.evaluate(() => {
+      const ytext: unknown = Reflect.get(globalThis, '__DEBUG_ytext')
+      if (typeof ytext !== 'object' || ytext === null) return ''
+      const toText: unknown = Reflect.get(ytext, 'toString')
+      return typeof toText === 'function' ? String(toText.call(ytext)) : ''
     })
-    if (!putRes.ok()) {
-      throw new Error(`[disableCoverPage] PUT /meta returned ${putRes.status()}: ${await putRes.text()}`)
+  }
+
+  /**
+   * Replace the whole document text (Y.Text) with `markdown`, as one
+   * edit by this user — e.g. a short, realistic starting draft instead
+   * of the long welcome document, so the flow's outcome fits on the
+   * first preview page. Waits until the editor shows the new text.
+   */
+  async setDocText(markdown: string): Promise<void> {
+    // A new doc seeds its welcome/template body on the first sync —
+    // wait for it, so the seed can't land after (and next to) our text.
+    await expect.poll(() => this.docText(), { message: 'document never synced its initial body' }).not.toBe('')
+    const applied = await this.page.evaluate((text: string) => {
+      const ytext: unknown = Reflect.get(globalThis, '__DEBUG_ytext')
+      if (typeof ytext !== 'object' || ytext === null) return false
+      const length: unknown = Reflect.get(ytext, 'length')
+      const del: unknown = Reflect.get(ytext, 'delete')
+      const insert: unknown = Reflect.get(ytext, 'insert')
+      if (typeof length !== 'number' || typeof del !== 'function' || typeof insert !== 'function') return false
+      if (length > 0) del.call(ytext, 0, length)
+      insert.call(ytext, 0, text)
+      return true
+    }, markdown)
+    if (!applied) {
+      throw new Error('[setDocText] window.__DEBUG_ytext is missing — run against the flow stack (NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1)')
     }
-    await this.page.waitForTimeout(800)
+    await expect.poll(() => this.docText()).toBe(markdown)
+    const firstLine = markdown.split('\n').find(l => l.trim().length > 0)
+    if (firstLine) await expect(this.page.locator('.cm-line', { hasText: firstLine.replace(/^#+\s*/, '') }).first()).toBeAttached()
+  }
+
+  /**
+   * Close every open toast (Nuxt UI's close button on each) and wait
+   * until none is left — so an outcome frame doesn't show stale toasts
+   * from earlier steps stacked over the one that matters.
+   */
+  async dismissToasts(): Promise<void> {
+    const open = this.page.locator('[data-slot="viewport"] li[data-state="open"]')
+    for (let i = await open.count(); i > 0; i--) {
+      const close = open.first().locator('[data-slot="close"]')
+      if (await close.count() === 0) break
+      await close.click()
+    }
+    await expect(this.page.locator('[data-slot="viewport"] li[data-state]')).toHaveCount(0, { timeout: 10_000 })
+  }
+
+  /**
+   * The non-empty lines of the current document that weren't in
+   * `before` — i.e. what an AI run (or a collaborator) added.
+   */
+  async addedText(before: string): Promise<string> {
+    const old = new Set(before.split('\n'))
+    return (await this.docText()).split('\n').filter(l => l.trim() && !old.has(l)).join('\n')
+  }
+
+  /**
+   * Scroll the editor so the first line containing `text` is in view
+   * (e.g. the paragraph the AI just inserted), for an outcome shot that
+   * shows the result rather than the top of the document.
+   */
+  async scrollEditorTo(text: string | RegExp): Promise<void> {
+    const line = this.page.locator('.cm-line', { hasText: text }).first()
+    await expect(line).toBeAttached({ timeout: 15_000 })
+    await line.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
+  }
+
+  /**
+   * Scroll the live preview so the first element matching `selector`
+   * inside the rendered pages is in view. No-op when the preview isn't
+   * mounted (mobile edit mode).
+   */
+  async scrollPreviewTo(selector: string): Promise<void> {
+    if (await this.page.locator('iframe').count() === 0) return
+    const target = this.page.frameLocator('iframe').first().locator(`#mount ${selector}`).first()
+    await expect(target).toBeAttached({ timeout: 15_000 })
+    await target.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
   }
 
   /**
@@ -510,15 +613,17 @@ export class EditorPage {
    *
    * `options.email` stores a verified account email on the row — what
    * workspace invitations are matched against (the invited teammate in
-   * `invite-a-teammate`). Omitted = NULL, like an OAuth account without
-   * a verified address.
+   * `invite-a-teammate`) and what the profile page shows. Omitted =
+   * NULL, like an OAuth account without a verified address.
+   * `options.locale` sets the account language (profile page, emails);
+   * omitted = NULL (shown as "—").
    *
    * Returns the user id so callers can use it (e.g. for billing
    * resolution checks).
    */
   async loginAsTestUser(
     name: string,
-    options: { email?: string } = {}
+    options: { email?: string, locale?: string } = {}
   ): Promise<{ userId: number, name: string }> {
     // Postgres lives at the ephemeral test stack's port (5433). The
     // pool stays open per test for ~25ms total work; closing it after
@@ -541,16 +646,17 @@ export class EditorPage {
       // and broke every flow on the next bump).
       const result = await pool.query<{ id: number }>(
         `INSERT INTO users (
-           github_id, name, email, plan,
+           github_id, name, email, locale, plan,
            age_confirmed_at,
            privacy_version_accepted, privacy_version_accepted_locale,
            tos_version_accepted, tos_version_accepted_locale,
            dpa_version_accepted, dpa_version_accepted_locale
          )
-         VALUES ($1, $2, $6, 'free', NOW(), $3, 'en', $4, 'en', $5, 'en')
+         VALUES ($1, $2, $6, $7, 'free', NOW(), $3, 'en', $4, 'en', $5, 'en')
          ON CONFLICT (github_id) DO UPDATE SET
            name = EXCLUDED.name,
            email = EXCLUDED.email,
+           locale = EXCLUDED.locale,
            age_confirmed_at = EXCLUDED.age_confirmed_at,
            privacy_version_accepted = EXCLUDED.privacy_version_accepted,
            privacy_version_accepted_locale = EXCLUDED.privacy_version_accepted_locale,
@@ -559,7 +665,7 @@ export class EditorPage {
            dpa_version_accepted = EXCLUDED.dpa_version_accepted,
            dpa_version_accepted_locale = EXCLUDED.dpa_version_accepted_locale
          RETURNING id`,
-        [githubId, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION, options.email ?? null]
+        [githubId, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION, options.email ?? null, options.locale ?? null]
       )
       const userId = result.rows[0].id
       await this.loginAsExistingUser(userId, name)

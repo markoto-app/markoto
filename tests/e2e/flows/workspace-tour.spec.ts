@@ -94,9 +94,8 @@ test('Start a workspace', async ({ page, flow, editor }) => {
   await flow.heading('Create + land on the workspace', 3)
   await flow.narrate(
     'Submit creates the workspace, makes you the admin, and routes '
-    + 'you to its home page. The URL is `/w/{nanoid}` — share it and '
-    + 'others see the workspace exists, but they can\'t join until '
-    + 'an admin invites them.'
+    + 'you to its home page. Sharing its address doesn\'t let anyone '
+    + 'in: people join only when an admin invites them.'
   )
 
   await flow.click(

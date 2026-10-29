@@ -25,41 +25,18 @@ import { test, expect } from '../fixtures/flow'
 test('Rich content', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  // Log in so we can disable the cover page via PUT /api/docs/:id/meta
-  // (anon users get 401 from that endpoint). Without disabling the
-  // cover, the preview iframe shows page 1 = the cover sheet, and
-  // every inserted code block / alert / math / diagram lands on a
-  // later page that the iframe doesn't auto-scroll to. Reader of
-  // the slideshow needs to see the rendered output to understand
-  // the demo.
+  // A one-line doc with the cover off, so every inserted block lands on
+  // the preview's first page instead of behind the title sheet.
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
-  await editor.page.disableCoverPage()
-
-  // Wipe the seeded welcome content so the inserted rich-content
-  // samples are the FIRST thing on page 1 of the preview. Inserting
-  // at end-of-doc pushes the new content onto page 2+; the preview
-  // iframe doesn't auto-scroll to the cursor, so the reader of the
-  // slideshow only ever sees the doc title page in the preview pane
-  // even though we're actively inserting code blocks + diagrams. By
-  // starting from a blank doc, every insert lands on visible page 1.
-  await page.locator('.cm-content').click()
+  await editor.silentSetup({ title: 'Engineering handbook', body: '# Engineering handbook\n', cover: false })
   const accel = process.platform === 'darwin' ? 'Meta' : 'Control'
-  await page.keyboard.press(`${accel}+a`)
-  await page.keyboard.press('Delete')
-  // After delete, the caret is at line 1, col 0 — every subsequent
-  // insertBlock / insertAlert / insertMath / insertDiagram lands at
-  // the top of the doc. The Y.js delete + paged.js repaginate
-  // settles in <500 ms; brief pause so the preview is in a clean
-  // state before the first chapter card.
-  await page.waitForTimeout(500)
 
   // Title + intro.
   await flow.heading('Tables, alerts, math, and diagrams', 3)
   await flow.narrate(
     'Plain markdown gets you headings, lists, and links. markoto '
     + 'extends that with the things people actually need to publish '
-    + 'real documents — syntax-highlighted code, KaTeX math, GitHub-'
+    + 'real documents — syntax-highlighted code, math, GitHub-'
     + 'style alert callouts, and eight kinds of Mermaid diagram. '
     + 'Everything renders in the live preview and survives PDF export.'
   )
@@ -72,20 +49,33 @@ test('Rich content', async ({ page, flow, editor }) => {
   const insertMenuTrigger = page.locator('nav[aria-label="Menu bar"] > button').nth(3) // Insert is 4th
   const cmContentLocator = page.locator('.cm-content')
 
-  // After mobile insert: drawer closes itself, but make sure
-  // .cm-content has focus before keyboard input lands.
+  // Give the editor focus back WITHOUT moving the caret. (Clicking
+  // .cm-content put the caret wherever the click landed — that is how
+  // an earlier run typed the language hint after the closing fence and
+  // the LaTeX into the code block.) CM6 restores its selection on focus.
   async function refocusEditor() {
-    await cmContentLocator.click()
+    await cmContentLocator.focus()
+    await expect(cmContentLocator).toBeFocused()
+  }
+
+  // Every block starts after a blank line below everything so far.
+  // insertText (not Enter) so CM6 doesn't continue the previous
+  // block's markup — Enter after an alert line would add another "> ".
+  async function newLineAtEnd() {
+    await refocusEditor()
+    await cmContentLocator.press(`${accel}+End`)
+    await page.keyboard.insertText('\n\n')
   }
 
   // ─── A real code block ──────────────────────────────────────────
   await flow.heading('Insert a code block', 3)
   await flow.narrate(
-    'Code blocks pick up syntax highlighting from the language hint. '
-    + 'markoto loads highlight.js styles from the same CDN every '
-    + 'Markdown editor uses, so a Python fence renders the keywords '
-    + 'and strings the way readers expect.'
+    'Code blocks pick up syntax highlighting from the language hint, '
+    + 'so a Python fence renders the keywords and strings the way '
+    + 'readers expect — in the preview and in the PDF.'
   )
+
+  await newLineAtEnd()
 
   if (editor.isMobile) {
     await flow.click(
@@ -135,14 +125,22 @@ test('Rich content', async ({ page, flow, editor }) => {
   }
 
   // Type a language hint + a real Python snippet so the highlight
-  // is meaningful (not just monospaced text on a grey background).
-  // Use the editor locator's pressSequentially so the target is
-  // explicit even if some other element steals focus mid-test.
-  const cmContent = page.locator('.cm-content')
-  await cmContent.press('ArrowUp')
+  // is meaningful. The caret sits after the block: the menubar's
+  // block is "\n```\n\n```\n" (caret on the empty line below it),
+  // the mobile drawer's "```\n\n```" (caret after the closing fence).
+  // Walk up to the opening fence, add the language, step into the
+  // empty body line.
+  const cmContent = cmContentLocator
+  const upToOpeningFence = editor.isMobile ? 2 : 3
+  for (let i = 0; i < upToOpeningFence; i++) await cmContent.press('ArrowUp')
+  await cmContent.press('End')
   await cmContent.pressSequentially('python')
   await cmContent.press('ArrowDown')
-  await cmContent.pressSequentially('def fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        yield a\n        a, b = b, a + b')
+  await cmContent.press('End')
+  // insertText = what a paste does: the snippet's own indentation,
+  // without CM6's auto-indent stacking on every typed newline.
+  await page.keyboard.insertText('def fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        yield a\n        a, b = b, a + b')
+  await expect.poll(() => editor.page.docText()).toContain('```python\ndef fibonacci(n):\n    a, b = 0, 1\n')
 
   // ─── An alert callout ───────────────────────────────────────────
   await flow.heading('Add an alert callout', 3)
@@ -153,10 +151,8 @@ test('Rich content', async ({ page, flow, editor }) => {
     + 'stand out from the surrounding prose.'
   )
 
-  // Move below the code fence so the alert lands cleanly.
-  await cmContent.press(`${accel}+End`)
-  await cmContent.press('Enter')
-  await cmContent.press('Enter')
+  // Fresh line below the code fence so the alert lands cleanly.
+  await newLineAtEnd()
 
   if (editor.isMobile) {
     await flow.click(
@@ -216,18 +212,17 @@ test('Rich content', async ({ page, flow, editor }) => {
   }
 
   await cmContent.pressSequentially('Try Cmd / Ctrl + P to save this doc as a polished PDF.')
+  await expect.poll(() => editor.page.docText()).toMatch(/^> \[!TIP\]\n> Try Cmd \/ Ctrl \+ P/m)
 
   // ─── A math equation ────────────────────────────────────────────
   await flow.heading('Drop in a math equation', 3)
   await flow.narrate(
-    'Math is rendered with KaTeX — inline with $...$, block with '
+    'Math is typeset like in a paper — inline with $...$, block with '
     + '$$...$$. The Insert menu seeds the right delimiters so you '
     + 'don\'t have to remember which goes where.'
   )
 
-  await cmContent.press(`${accel}+End`)
-  await cmContent.press('Enter')
-  await cmContent.press('Enter')
+  await newLineAtEnd()
 
   if (editor.isMobile) {
     await flow.click(
@@ -273,6 +268,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   }
 
   await cmContent.pressSequentially('\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}')
+  await expect.poll(() => editor.page.docText()).toContain('$$\n\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\n$$')
 
   // ─── A Mermaid diagram ──────────────────────────────────────────
   await flow.heading('Render a diagram', 3)
@@ -283,9 +279,7 @@ test('Rich content', async ({ page, flow, editor }) => {
     + 'and see your data render without learning Mermaid\'s syntax.'
   )
 
-  await cmContent.press(`${accel}+End`)
-  await cmContent.press('Enter')
-  await cmContent.press('Enter')
+  await newLineAtEnd()
 
   if (editor.isMobile) {
     await flow.click(
@@ -336,14 +330,9 @@ test('Rich content', async ({ page, flow, editor }) => {
       {
         result: 'A working pie-chart Mermaid snippet lands — edit the slices to your data.',
         after: async () => {
-          // Mermaid loads + renders in the preview iframe. Give paged.js
-          // a beat to repaginate around the new diagram. (Tried polling
-          // for `div.mermaid img` — paged.js's iframe-mount + base64
-          // <img> wrapping makes the rendered node hard to detect from
-          // outside the iframe; the catch-on-timeout pattern just
-          // burned the full polling window. 2 s buffers the debounce
-          // and the mermaid CDN load on cold runs.)
-          await page.waitForTimeout(2_000)
+          // Mermaid loads from its CDN and renders into the preview as
+          // an <img> of the SVG; wait for that, not for a fixed time.
+          await expect(editor.page.previewRoot().locator('#mount div.mermaid img').first()).toBeAttached({ timeout: 30_000 })
           await editor.page.waitForPreviewPaginated()
         }
       }
@@ -354,10 +343,29 @@ test('Rich content', async ({ page, flow, editor }) => {
   await flow.heading('Live preview shows the render', 3)
   await flow.narrate(
     'Every insert shows up in the preview pane the moment you finish '
-    + 'typing. The same paged.js engine drives the live preview AND '
-    + 'the server-rendered PDF, so what you see really is what '
-    + 'you ship.'
+    + 'typing. The preview and the PDF come out of the same page '
+    + 'layout, so what you see really is what you ship.'
   )
+
+  // ASSERTIONS: the source holds four well-formed blocks, each on its
+  // own lines (an earlier run produced "python```" and LaTeX inside
+  // the code fence and still passed)...
+  const source = await editor.page.docText()
+  expect(source).toMatch(/^```python\ndef fibonacci\(n\):\n {4}a, b = 0, 1\n {4}for _ in range\(n\):\n {8}yield a\n {8}a, b = b, a \+ b\n```$/m)
+  expect(source).toMatch(/^> \[!TIP\]\n> Try Cmd \/ Ctrl \+ P to save this doc as a polished PDF\.$/m)
+  expect(source).toMatch(/^\$\$\n\\sum_\{i=1\}\^\{n\} i = \\frac\{n\(n\+1\)\}\{2\}\n\$\$$/m)
+  expect(source).toMatch(/^```mermaid\npie\b[\s\S]*?\n```$/m)
+
+  // ...and the preview renders each of them: highlighted code, the
+  // alert callout, typeset math and the diagram image.
+  if (!editor.isMobile) {
+    const preview = editor.page.previewRoot().locator('#mount')
+    await expect(preview.locator('pre code.hljs.language-python')).toHaveCount(1)
+    await expect(preview.locator('.markdown-alert')).toHaveCount(1)
+    await expect(preview.locator('.katex').first()).toBeAttached()
+    await expect(preview.locator('div.mermaid img').first()).toBeAttached()
+    await expect(preview.locator('.mermaid-error')).toHaveCount(0)
+  }
 
   await flow.shot(
     'Code block, Tip alert, math equation, pie chart — all in one doc, all rendered live.',
@@ -367,16 +375,6 @@ test('Rich content', async ({ page, flow, editor }) => {
       hero: true
     }
   )
-
-  // ASSERTIONS: each element survived the round-trip into the
-  // editor source. We don't assert on iframe-side render details
-  // (KaTeX HTML changes between versions, mermaid SVG is opaque) —
-  // we assert the markdown source has the four landmark fences.
-  const editorText = await page.locator('.cm-content').textContent()
-  expect(editorText).toMatch(/```python/i)
-  expect(editorText).toMatch(/> \[!TIP\]/i)
-  expect(editorText).toMatch(/\$\$/)
-  expect(editorText).toMatch(/```mermaid[\s\S]*pie/i)
 
   // Forward route: rich content is the "look at the surface area"
   // moment; comment threads (collaboration on that surface) is

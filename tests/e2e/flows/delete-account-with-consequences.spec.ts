@@ -72,13 +72,13 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
       // gate's "needs re-acceptance" check from this seed.
       const r = await pool.query<{ id: number }>(
         `INSERT INTO users (
-           github_id, name, plan,
+           github_id, name, email, locale, plan,
            age_confirmed_at,
            privacy_version_accepted, privacy_version_accepted_locale,
            tos_version_accepted, tos_version_accepted_locale,
            dpa_version_accepted, dpa_version_accepted_locale
          )
-         VALUES ($1, $2, 'free', NOW(), $3, 'en', $4, 'en', $5, 'en')
+         VALUES ($1, $2, $6, 'en', 'free', NOW(), $3, 'en', $4, 'en', $5, 'en')
          ON CONFLICT (github_id) DO UPDATE SET
            name = EXCLUDED.name,
            age_confirmed_at = EXCLUDED.age_confirmed_at,
@@ -89,7 +89,8 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
            dpa_version_accepted = EXCLUDED.dpa_version_accepted,
            dpa_version_accepted_locale = EXCLUDED.dpa_version_accepted_locale
          RETURNING id`,
-        [`flow-priv-${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION]
+        // A real-looking address + language: the profile page shows both.
+        [`flow-priv-${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION, `${name.toLowerCase()}@studio.example`]
       )
       return r.rows[0].id
     }
@@ -134,8 +135,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     'Your profile page lives under your avatar in the topbar. It is '
     + 'one page covering your account, your data (export + download), '
     + 'account deletion, and the legal record of policies you have '
-    + 'accepted. Spending and usage details will surface here too as '
-    + 'those features ship.'
+    + 'accepted.'
   )
 
   const avatarButton = page.locator('[data-testid="user-menu-trigger"]')
@@ -143,7 +143,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     'Click your avatar',
     avatarButton,
     {
-      result: 'A dropdown opens with pricing, profile, and log-out items.',
+      result: 'A menu opens — Profile is the one you want.',
       // Menu-item selector falls back to getByRole+name (AGENTS.md
       // option 2) — Nuxt UI's UDropdownMenu items array doesn't
       // accept per-item data-testid declaratively. Same pattern as
@@ -279,25 +279,29 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     'Click "Schedule deletion"',
     page.locator('[data-testid="deletion-confirm-submit"]'),
     {
-      result: 'The modal closes; a sumi-toned banner pins to the top of the page showing the deletion date and a one-click cancel.',
+      result: 'The modal closes; the delete-account section now says your account is scheduled for deletion, with the date and a Cancel button.',
       after: async () => {
         await page.locator('[data-testid="deletion-grace-banner"]').waitFor({ state: 'visible', timeout: 10_000 })
+        await page.locator('[data-testid="deletion-pending-card"]').waitFor({ state: 'visible', timeout: 5_000 })
       }
     }
   )
 
-  await page.locator('[data-testid="deletion-pending-card"]').waitFor({ state: 'visible', timeout: 5_000 })
+  // The click left the page scrolled down at the delete section; the
+  // banner pins to the top of the page. Scroll up so the hero frame
+  // shows it.
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await expect(page.locator('[data-testid="deletion-grace-banner"]')).toBeInViewport()
+  // The "scheduled" toast sits on top of the banner's Cancel button.
+  await editor.page.dismissToasts()
 
   await flow.shot(
-    'Top of the page: the grace banner. Inline on the page: the '
-    + 'scheduled-for-deletion card. Both show the same date; both '
-    + 'offer the same one-click cancel. The banner travels with you '
-    + 'across every route in the app for the next 30 days.',
+    'Top of every page for the next 30 days: the grace banner, with '
+    + 'the deletion date and a one-click cancel.',
     {
       hero: true,
       highlights: [
-        { label: 'grace banner (every page)', selector: '[data-testid="deletion-grace-banner"]' },
-        { label: 'scheduled card (this page)', selector: '[data-testid="deletion-pending-card"]' }
+        { label: 'grace banner (every page)', selector: '[data-testid="deletion-grace-banner"]' }
       ]
     }
   )
@@ -316,7 +320,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     'Click "Cancel deletion" in the banner',
     cancelBtn,
     {
-      result: 'The banner disappears; the page reverts to the normal delete-account zone; the audit log records the cancellation.',
+      result: 'The banner disappears and your account is back to normal — nothing was deleted.',
       after: () => page.locator('[data-testid="deletion-grace-banner"]').waitFor({ state: 'detached', timeout: 5_000 })
     }
   )

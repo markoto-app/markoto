@@ -269,6 +269,19 @@ export type Flow = {
    * Spawned contexts are auto-closed at fixture teardown.
    */
   spawn: (label: string) => Promise<SpawnedActor>
+  /**
+   * Declare that this flow deliberately provokes an error toast whose
+   * title or description matches `pattern`. Every OTHER error toast
+   * (`color: 'error'`) seen on any actor's page fails the flow — a flow
+   * whose screenshots show "Something went wrong" isn't a passing flow.
+   */
+  expectErrorToast: (pattern: RegExp) => void
+  /**
+   * Declare that this flow deliberately provokes a 5xx answer from the
+   * app on a request whose path matches `pattern`. Every other 5xx from
+   * the app origin fails the flow.
+   */
+  expectServerError: (pattern: RegExp) => void
 }
 
 export type SpawnedActor = {
@@ -297,8 +310,24 @@ export type EditorFixture = {
   /**
    * Same preamble but writes nothing to the manifest. Used when the
    * editor is just setup, not the subject.
+   *
+   * Pass `title` so the topbar (and the cover, if any) shows a real
+   * name instead of "Untitled", and `cover: false` when the preview's
+   * page 1 should show the document's content rather than the title
+   * sheet — the default for any flow whose outcome is visible in the
+   * preview.
    */
-  silentSetup: () => Promise<void>
+  silentSetup: (opts?: SetupOpts) => Promise<void>
+}
+
+export type SetupOpts = {
+  /** Typed into the new-document dialog's title field. */
+  title?: string
+  /** `false` turns the cover page off once the editor is ready. */
+  cover?: boolean
+  /** Replaces the seeded welcome text with this markdown (a short,
+   *  realistic draft the flow's outcome fits next to). */
+  body?: string
 }
 
 const CURSOR_INIT_SCRIPT = `
@@ -328,6 +357,41 @@ const CURSOR_INIT_SCRIPT = `
  * write), devtools chrome stripped from screenshots, cursor-tracking
  * listener installed for the cursor-coord readback.
  */
+/** Collects the failure signals every flow is checked against:
+ *  error toasts (reported by app/plugins/test-handles.client.ts) and
+ *  5xx answers from the app origin. */
+export type FailureSink = {
+  errorToasts: Array<{ actor: string, title: string, description: string }>
+  serverErrors: Array<{ actor: string, status: number, method: string, path: string }>
+}
+
+async function wireFailureSignals(page: Page, sink: FailureSink, actor: string, appOrigin: string): Promise<void> {
+  await page.exposeBinding('__flowErrorToast', (_source, payload: unknown) => {
+    const rec = typeof payload === 'object' && payload !== null ? payload as Record<string, unknown> : {}
+    sink.errorToasts.push({
+      actor,
+      title: typeof rec.title === 'string' ? rec.title : '',
+      description: typeof rec.description === 'string' ? rec.description : ''
+    })
+  })
+  page.on('response', (response) => {
+    if (response.status() < 500) return
+    let url: URL
+    try {
+      url = new URL(response.url())
+    } catch {
+      return
+    }
+    if (url.origin !== appOrigin) return
+    sink.serverErrors.push({
+      actor,
+      status: response.status(),
+      method: response.request().method(),
+      path: url.pathname
+    })
+  })
+}
+
 async function wireActorPage(page: Page, theme: 'light' | 'dark'): Promise<void> {
   await page.addInitScript((v: string) => {
     try {
@@ -417,6 +481,34 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // both signals agree.
     const theme: 'light' | 'dark' = variant.startsWith('dark') ? 'dark' : 'light'
     await wireActorPage(page, theme)
+
+    // Suite-wide failure signals. A flow passes only when no unexpected
+    // error toast appeared and the app answered no request with a 5xx —
+    // "all flows passed" must mean the features worked, not merely that
+    // the clicked elements existed.
+    const appOrigin = new URL(String(testInfo.project.use.baseURL ?? process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000')).origin
+    const sink: FailureSink = { errorToasts: [], serverErrors: [] }
+    const expectedToasts: RegExp[] = []
+    const expectedServerErrors: RegExp[] = []
+    await wireFailureSignals(page, sink, 'primary', appOrigin)
+    const unexpectedFailures = (): string[] => {
+      const out: string[] = []
+      for (const t of sink.errorToasts) {
+        if (expectedToasts.some(re => re.test(t.title) || re.test(t.description))) continue
+        out.push(`error toast [${t.actor}]: "${t.title}"${t.description ? ` — ${t.description}` : ''}`)
+      }
+      for (const e of sink.serverErrors) {
+        if (expectedServerErrors.some(re => re.test(e.path))) continue
+        out.push(`server error [${e.actor}]: ${e.status} on ${e.method} ${e.path}`)
+      }
+      return out
+    }
+    const assertNoUnexpectedFailures = () => {
+      const failures = unexpectedFailures()
+      if (failures.length) {
+        throw new Error(`[flow] ${slug}: unexpected failure signal(s):\n  ${failures.join('\n  ')}`)
+      }
+    }
 
     const viewportSize = page.viewportSize() ?? { width: 1280, height: 800 }
     // Cross-actor shared state. All actors push into `entries` so the
@@ -515,7 +607,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         const out: NonNullable<OutcomeEntry['highlights']> = []
         for (const ref of refs) {
           const loc = actorPage.locator(ref.selector).first()
-          const box = await loc.boundingBox().catch(() => null)
+          const box = await loc.boundingBox({ timeout: 5_000 }).catch(() => null)
           if (!box) {
             const msg = `[flow${actorLabel ? `:${actorLabel}` : ''}] highlight "${ref.label}" — selector \`${ref.selector}\` resolved to no visible box`
             if (STRICT_HIGHLIGHTS) {
@@ -535,7 +627,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         const out: Annotation[] = []
         for (const ref of refs) {
           const loc = actorPage.locator(ref.selector).first()
-          const box = await loc.boundingBox().catch(() => null)
+          const box = await loc.boundingBox({ timeout: 5_000 }).catch(() => null)
           if (!box) {
             const msg = `[flow${actorLabel ? `:${actorLabel}` : ''}] annotation "${ref.label}" — selector \`${ref.selector}\` resolved to no visible box`
             if (STRICT_HIGHLIGHTS) {
@@ -579,6 +671,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           return
         }
         await settle()
+        assertNoUnexpectedFailures()
         const cursor = opts.cursor !== undefined ? opts.cursor : await readCursor({ formSnap: opts.formSnap })
         const url = (() => {
           try {
@@ -757,6 +850,8 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         },
         skipNext: () => { suppress = true },
         next: (link) => { nextLink = link },
+        expectErrorToast: (pattern) => { expectedToasts.push(pattern) },
+        expectServerError: (pattern) => { expectedServerErrors.push(pattern) },
         spawn: async (label) => {
           // Spawn a fresh BrowserContext from the SAME browser that
           // owns the primary page. Inherit color scheme + viewport
@@ -780,6 +875,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           // would show devtools chrome, and might pick the wrong
           // theme on first paint.
           await wireActorPage(newPage, theme)
+          await wireFailureSignals(newPage, sink, label, appOrigin)
           spawnedContexts.push({ context: newContext, label })
           const newEditor = new EditorPage(newPage)
           return {
@@ -853,7 +949,12 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // don't survive a re-run that fails: each test's first action is
     // to recreate the output dir (see `outDir` setup above), which
     // wipes the previous .passed.
+    // Failure signals that arrived after the last capture (e.g. an
+    // error toast raised by the final click) still fail the flow.
+    // Only checked when the body itself passed — a thrown assertion
+    // already carries the more useful message.
     if (testInfo.status === testInfo.expectedStatus) {
+      assertNoUnexpectedFailures()
       await fs.writeFile(path.join(outDir, '.passed'), '')
     }
   },
@@ -895,7 +996,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         await flow.shot('The new-document dialog opens — five quick questions to set up your doc')
       },
 
-      silentSetup: async () => {
+      silentSetup: async (opts: SetupOpts = {}) => {
         await page.goto('/')
 
         // Wait for Vue hydration before clicking — SSR makes the
@@ -910,17 +1011,31 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         }).toPass({ timeout: 15_000 })
         await baseExpect(editor.newDocDialog.titleInput).toBeVisible()
 
+        if (opts.title) {
+          await editor.newDocDialog.titleInput.click()
+          await editor.newDocDialog.titleInput.pressSequentially(opts.title)
+          await baseExpect(editor.newDocDialog.titleInput).toHaveValue(opts.title)
+        }
         await Promise.all([
           page.waitForURL(/\/d\/[^/]+/),
-          editor.newDocDialog.submitBlank.click()
+          (opts.title ? editor.newDocDialog.submitCreate : editor.newDocDialog.submitBlank).click()
         ])
         await editor.waitForReady()
+        if (opts.title) {
+          await baseExpect(editor.titleButton).toContainText(opts.title)
+        }
+        if (opts.body !== undefined) {
+          await editor.setDocText(opts.body)
+        }
         // Mobile forces edit-only view (preview pane is hidden) — see
         // AGENTS.md §11. Skip the split-view setup; flow shots will
         // capture the editor in its single-pane mobile layout.
         if (!isMobile) {
           await editor.switchToSplitView()
           await editor.waitForPreviewPaginated()
+        }
+        if (opts.cover === false) {
+          await editor.setCoverEnabled(false)
         }
       }
     }

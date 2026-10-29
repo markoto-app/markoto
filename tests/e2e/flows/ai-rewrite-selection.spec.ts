@@ -21,7 +21,7 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Product update' })
   await editor.page.disableCoverPage()
 
   // Type a long-winded paragraph at the end of the welcome doc so
@@ -45,9 +45,9 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
   await flow.narrate(
     'The AI prompt bar is the same one you use to draft new '
     + 'sections — but if you SELECT text first, it tells the AI '
-    + 'EXACTLY where to act. The selection rides along on the '
-    + 'prompt; the model picks `replace_text` over `insert_text` '
-    + 'and your edit lands in place.'
+    + 'EXACTLY where to act. The selection travels with your '
+    + 'prompt, so the AI rewrites that passage in place instead of '
+    + 'adding new text somewhere else.'
   )
 
   // ─── Select the paragraph ───────────────────────────────────────

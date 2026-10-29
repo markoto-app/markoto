@@ -65,40 +65,47 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
 
   await page.goto(`/d/${primary.docId}`)
   await editor.page.waitForReady()
+  await expect(editor.page.titleButton).toContainText('Onboarding playbook')
+  // A short real draft instead of the welcome text, cover off, so the
+  // AI's paragraph lands on the preview's first page.
+  const draft = '# Onboarding playbook\n\n## First week\n\nEvery new hire pairs with a buddy for their first five days.\n'
+  await editor.page.setDocText(draft)
+  if (!editor.isMobile) {
+    await editor.page.switchToSplitView()
+    await editor.page.waitForPreviewPaginated()
+  }
   await editor.page.disableCoverPage()
 
   await flow.heading('Ask the AI about another doc in your workspace', 3)
   await flow.narrate(
-    'The AI in a workspace doc gets two extra tools: '
-    + '`list_workspace_documents` to enumerate siblings, and '
-    + '`view_other_document` to read one in full. Ask a question '
-    + 'about another doc and the AI fans out: lists the sibling '
-    + 'titles, reads the matching one, then answers in YOUR doc — '
-    + 'citing the source by title.'
+    'Inside a workspace the AI can find and read the other documents '
+    + 'you have access to. Ask about another doc by name and it looks '
+    + 'it up, reads it, then writes the answer into the doc you are in '
+    + '— naming the doc it took it from.'
   )
 
   await flow.click(
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,
-    { result: 'The bar lifts, ready for the cross-doc question.' }
+    { result: 'The bar lifts, ready for your question.' }
   )
 
   // Phrase as an insertion request, not a question. Questions tend
   // to route the AI to `message_to_user` (ephemeral chat answer);
   // "summarise into this doc" forces an `insert_text` end-state.
-  const prompt = 'There is a sibling doc in this workspace called the Q3 launch postmortem. Read it via the cross-doc tools and append a one-paragraph summary of its top onboarding fix at the end of THIS doc.'
+  const prompt = 'Read our Q3 launch postmortem doc in this workspace and append a one-paragraph summary of its top onboarding fix at the end of this doc.'
   await flow.type(
     'Ask about a sibling doc',
     editor.page.ai.promptBarInput,
     prompt,
-    { result: 'Your prompt names another doc in the workspace — the AI will fan out to read it.' }
+    { result: 'Your prompt names another doc in the workspace — the AI will go and read it.' }
   )
 
   await flow.click(
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI lists siblings, picks the postmortem, reads it, and writes the answer into THIS doc.',
+      result: 'The AI finds the postmortem, reads it, and writes the answer into this doc.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -107,6 +114,17 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   // → insert_text. Typically 3-4 turns, 30-60s wallclock.
   await editor.page.waitForAiIdle()
 
+  // ASSERTION: the AI added a paragraph carrying the fact that exists
+  // only in the other doc (the authentication-setup checklist) — the
+  // draft mentions neither word, so it had to read the postmortem.
+  const added = await editor.page.addedText(draft)
+  expect(added.length, 'the AI added nothing').toBeGreaterThan(80)
+  expect(added, `no fact from the postmortem in: ${added}`).toMatch(/checklist|authentication/i)
+  await editor.page.scrollEditorTo(/checklist|authentication/i)
+  if (!editor.isMobile) {
+    await expect(editor.page.previewRoot().locator('#mount')).toContainText(/checklist|authentication/i)
+  }
+
   await flow.shot(
     'The AI summarised the Q3 postmortem\'s onboarding finding into '
     + 'this doc — citing the source. The user never had to open the '
@@ -114,34 +132,10 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
     {
       hero: true,
       highlights: [
-        { label: 'AI cross-doc answer', selector: '.cm-content' }
+        { label: 'Answer from the other doc', selector: '.cm-line:has-text("checklist"), .cm-line:has-text("authentication")' }
       ]
     }
   )
-
-  // ASSERTION: the primary doc's body grew with cross-doc content.
-  // We can't pin the AI's exact answer (Mistral is non-deterministic
-  // and might paraphrase "checklist" as "list" or "guide"), so we
-  // assert that (a) the doc grew past its welcome baseline AND
-  // (b) the body mentions any of the keywords seeded into the
-  // sibling's description: checklist / authentication / onboarding /
-  // postmortem. The model received those tokens via
-  // `list_workspace_documents` so at least one is highly likely to
-  // surface in its answer.
-  const docId = page.url().match(/\/d\/([^/?]+)/)?.[1]
-  expect(docId).toBeTruthy()
-  const ytext = await page.evaluate(() => {
-    type Win = { __DEBUG_ytext?: { toString: () => string } }
-    return (window as unknown as Win).__DEBUG_ytext?.toString() ?? ''
-  })
-  // Welcome doc is ~2600 chars. We want >+50 chars added to prove the
-  // AI did real work (a one-paragraph summary is typically 150-300 chars).
-  // The previous threshold of 2700 occasionally flaked when Mistral
-  // emitted a terser-than-usual summary (e.g. 2608 chars = ~8 chars
-  // added). The KEYWORD check below is the load-bearing assertion —
-  // it proves the AI actually consulted the cross-doc.
-  expect(ytext.length).toBeGreaterThan(2650)
-  expect(ytext).toMatch(/checklist|authentication|onboarding|postmortem/i)
 
   flow.next({
     slug: 'knowledge-grounded-ai',

@@ -26,6 +26,11 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 //  sibling carrying mobile-specific narration. Deleted as part of the
 //  "single canonical spec per feature" cleanup — Flow.vue auto-routes
 //  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
+// Small, high-frequency function words: enough to tell a German
+// sentence from an English one without a language-detection library.
+const GERMAN_WORDS = new Set(['und', 'der', 'die', 'das', 'mit', 'sie', 'ihr', 'ihre', 'ihren', 'für', 'bei', 'ist', 'wir', 'ein', 'eine', 'einen', 'zu', 'dein', 'deine', 'deinem', 'dich', 'dir', 'du', 'willkommen', 'auf', 'in', 'von', 'nicht', 'jetzt', 'schon'])
+const ENGLISH_WORDS = new Set(['the', 'and', 'with', 'your', 'you', 'for', 'is', 'we', 'to', 'of', 'welcome', 'our', 'get', 'started'])
+
 test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   requireLiveAi()
   test.setTimeout(360_000)
@@ -33,9 +38,10 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   // AI requires a session; same TEST_MODE login shim the other AI
   // flows use.
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
-  // Cover sheet would hide the AI-added intro in the preview; disable.
-  await editor.page.disableCoverPage()
+  // A short German draft of an onboarding email, cover off so the
+  // preview's first page shows the intro the AI is about to add.
+  const draftBody = '# Willkommen bei Lumen\n\n## Deine ersten Schritte\n\n- Profil anlegen\n- Team einladen\n- Erstes Projekt starten\n'
+  await editor.silentSetup({ title: 'Onboarding-Email', body: draftBody, cover: false })
 
   // ─── Open the Document panel ────────────────────────────────────
   await flow.heading('Tell markoto who you\'re writing for', 3)
@@ -153,11 +159,16 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       'Tap "Deutsch"',
       async () => {
         await page.getByRole('option', { name: /deutsch/i }).first().click()
-        await page.waitForTimeout(500)
+        await expect(page.locator('#doc-language')).toHaveValue('Deutsch')
       },
       { result: 'The language switches to Deutsch.' }
     )
   } else {
+    // Clear the current language ("English") first — typing into the
+    // field appends, and "EnglishDeutsch" matches no preset (that is
+    // what an earlier published frame showed).
+    await page.locator('#doc-language').fill('')
+    await expect(page.locator('#doc-language')).toHaveValue('')
     await flow.type(
       'Type "Deutsch" in the Language field',
       page.locator('#doc-language'),
@@ -171,14 +182,23 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       'Pick "Deutsch"',
       page.getByRole('option', { name: /deutsch/i }).first(),
       {
-        result: 'The language switches to Deutsch — every AI prompt now ends '
-          + 'with "Write all prose in Deutsch."',
-        // The combobox closes its popover on selection; wait a beat for
-        // the input value to reflect the chosen item.
-        after: () => page.waitForTimeout(500)
+        result: 'The language switches to Deutsch — the AI now writes in German, '
+          + 'whatever language you ask in.',
+        after: () => expect(page.locator('#doc-language')).toHaveValue('Deutsch')
       }
     )
   }
+  await expect(page.locator('#doc-language')).toHaveValue('Deutsch')
+
+  // ASSERTION: the context is saved on the document — that saved copy
+  // is what the AI reads with every prompt.
+  const contextDocId = editor.page.currentDocId()
+  await expect.poll(async () => {
+    const res = await page.request.get(`/api/docs/${contextDocId}/meta`)
+    const meta: unknown = res.ok() ? await res.json() : null
+    return JSON.stringify(meta)
+  }, { timeout: 10_000, message: 'audience / language / description never reached the server' })
+    .toMatch(/(?=.*"audience":"marketing")(?=.*"language":"(de|Deutsch)")(?=.*Onboarding-Email für neu registrierte Nutzer)/)
 
   // ─── Ask the AI ─────────────────────────────────────────────────
   await flow.heading('Ask the AI for an intro', 3)
@@ -208,7 +228,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     }
   )
 
-  const prompt = 'Write a one-line welcome intro at the top.'
+  const prompt = 'Write a one-line welcome intro right below the main heading.'
   await flow.type(
     'Type a plain-English ask',
     editor.page.ai.promptBarInput,
@@ -223,7 +243,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — the bar pulses while the agentic loop runs.',
+      result: 'The AI is working — the bar pulses until it is done.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -231,6 +251,28 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   // Wait for the loop to finish. Single-tool ("insert_text" or
   // "replace_text") runs typically resolve in 5-15s.
   await editor.page.waitForAiIdle()
+
+  // ASSERTION: the AI added an intro, and it is German. The new lines
+  // are whatever wasn't in the draft; a German intro carries German
+  // function words and few English ones.
+  const after = await editor.page.docText()
+  const draftLines = new Set(draftBody.split('\n'))
+  const added = after.split('\n').filter(l => l.trim() && !draftLines.has(l)).join('\n')
+  expect(added.length, 'the AI added no text').toBeGreaterThan(20)
+  const words = added.toLowerCase().match(/[a-zäöüß]+/g) ?? []
+  const german = words.filter(w => GERMAN_WORDS.has(w)).length
+  const english = words.filter(w => ENGLISH_WORDS.has(w)).length
+  expect(german, `intro doesn't read as German: ${added}`).toBeGreaterThanOrEqual(2)
+  expect(german, `intro reads as English: ${added}`).toBeGreaterThan(english)
+  // ...and it is visible where the reader looks: in the editor and on
+  // the preview's first page.
+  const anchorWord = (added.match(/[A-Za-zÄÖÜäöüß]{6,}/) ?? [''])[0]
+  expect(anchorWord).not.toBe('')
+  await editor.page.scrollEditorTo(anchorWord)
+  if (!editor.isMobile) {
+    await editor.page.waitForPreviewPaginated()
+    await expect(editor.page.previewRoot().locator('#mount')).toContainText(anchorWord)
+  }
 
   await flow.shot(
     'The AI added a one-line intro — German body, marketing tone — '
@@ -245,15 +287,6 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       ]
     }
   )
-
-  // ASSERTION: the doc grew (silentSetup leaves the welcome doc
-  // ~30 lines; a successful AI run should land at least one new
-  // line of body text). We don't assert on language detection or
-  // exact wording — the model's output varies — but a non-trivial
-  // word count means the AI did something.
-  const doc = page.locator('.cm-content')
-  const wordCount = await doc.evaluate(el => (el.textContent ?? '').split(/\s+/).filter(Boolean).length)
-  expect(wordCount).toBeGreaterThan(50)
 
   // Forward route: now that the AI knows the doc's context, the
   // next move is making it look the part — pick a theme that

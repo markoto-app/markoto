@@ -111,16 +111,13 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
   LITELLM_SALT_KEY: 'sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
   // (TEST_MODE is set above, near the top of this object.)
-  // Billing ON for the flow stack: the `@billing`-tagged flows
-  // (upgrade-to-pro, pricing-tour, ai-sponsoring, ai-budget-exhausted)
-  // drive checkout / plan / sponsorship UI that only exists with billing
-  // enabled. Playwright only selects those flows when
-  // FLOWS_BILLING_ENABLED=1, which main() derives from this value (see
-  // playwright.config.ts). The billing-OFF surface (coming-soon pricing,
-  // waitlist, 404 billing endpoints) is covered by
-  // tests/nuxt/pricingBillingModes.test.ts and the billing-off server in
-  // tests/integration/endpoints/billingOff.test.ts.
-  NUXT_BILLING_ENABLED: 'true',
+  // Billing mode is NOT set here — main() runs the suite in two phases
+  // (see BILLING_PHASES below): every untagged flow against the hosted
+  // shape (billing off, paid plans "coming soon"), so the docs show what
+  // markoto.app users actually see; then only the `@billing`-tagged
+  // flows (upgrade-to-pro, pricing-tour, ai-sponsoring,
+  // ai-budget-exhausted) against a billing-ON server, because the
+  // checkout / plan / sponsorship UI they drive only exists there.
   // Legal surfaces ON (hosted shape): the onboarding gate, consent banner
   // and /legal/* flows document the hosted service.
   NUXT_LEGAL_SURFACES_ENABLED: 'true',
@@ -161,6 +158,16 @@ const FLOWS_ENV: Record<string, string> = {
   MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'flows-placeholder-mistral-key'
 }
 
+// The two passes of one run. Same database + infra; only the app server
+// restarts with the other billing mode. `grep` narrows Playwright to the
+// `@billing` flows for the billing-on pass; the billing-off pass relies
+// on playwright.config.ts's grepInvert (FLOWS_BILLING_ENABLED unset).
+type BillingPhase = { name: string, env: Record<string, string>, flowsBilling: string, grep: string[] }
+const BILLING_PHASES: readonly [BillingPhase, BillingPhase] = [
+  { name: 'billing off (hosted shape)', env: { NUXT_BILLING_ENABLED: 'false', NUXT_PLANS_COMING_SOON: 'true' }, flowsBilling: '', grep: [] },
+  { name: 'billing on (@billing flows)', env: { NUXT_BILLING_ENABLED: 'true', NUXT_PLANS_COMING_SOON: 'false' }, flowsBilling: '1', grep: ['--grep', '@billing'] }
+]
+
 let nuxtProc: Subprocess | null = null
 let cleaningUp = false
 
@@ -192,23 +199,39 @@ async function waitForHttp(url: string, timeoutMs: number): Promise<void> {
   throw new Error(`timed out waiting for ${url} after ${timeoutMs}ms`)
 }
 
+async function stopNuxt() {
+  const proc = nuxtProc
+  if (!proc) return
+  nuxtProc = null
+  console.log('[flows-ephemeral] stopping Nuxt server')
+  try {
+    proc.kill('SIGTERM')
+  } catch { /* already dead */ }
+  const t = setTimeout(() => {
+    try {
+      proc.kill('SIGKILL')
+    } catch { /* already dead */ }
+  }, 5000)
+  await proc.exited.catch(() => {})
+  clearTimeout(t)
+}
+
+async function startNuxt(extraEnv: Record<string, string>) {
+  console.log(`[flows-ephemeral] starting production server on :${NUXT_PORT}`)
+  nuxtProc = spawn({
+    cmd: ['bun', 'run', '.output/server/index.mjs'],
+    env: { ...process.env, ...FLOWS_ENV, ...extraEnv },
+    stdout: 'inherit',
+    stderr: 'inherit'
+  })
+  console.log(`[flows-ephemeral] waiting for ${NUXT_URL} to come up`)
+  await waitForHttp(`${NUXT_URL}/api/health`, 60_000)
+}
+
 async function cleanup() {
   if (cleaningUp) return
   cleaningUp = true
-  if (nuxtProc) {
-    console.log('[flows-ephemeral] stopping Nuxt server')
-    try {
-      nuxtProc.kill('SIGTERM')
-    } catch { /* already dead */ }
-    // Give Nuxt a moment to drain. SIGKILL after if it didn't exit.
-    const t = setTimeout(() => {
-      try {
-        nuxtProc?.kill('SIGKILL')
-      } catch { /* already dead */ }
-    }, 5000)
-    await nuxtProc.exited.catch(() => {})
-    clearTimeout(t)
-  }
+  await stopNuxt()
   console.log('[flows-ephemeral] tearing down docker stack')
   // NOTE: NO --remove-orphans here — that flag treats other compose
   // files in the same project namespace as orphans and removes them
@@ -251,38 +274,61 @@ async function main() {
     }
   }
 
-  // Step 3: spawn the production Nitro server (preset 'bun' →
-  // .output/server/index.mjs runs under Bun directly). Env-overridden
-  // to talk to the ephemeral infra.
-  console.log(`[flows-ephemeral] starting production server on :${NUXT_PORT}`)
-  nuxtProc = spawn({
-    cmd: ['bun', 'run', '.output/server/index.mjs'],
-    env: { ...process.env, ...FLOWS_ENV },
-    stdout: 'inherit',
-    stderr: 'inherit'
-  })
-
-  // Step 4: wait for it to respond.
-  console.log(`[flows-ephemeral] waiting for ${NUXT_URL} to come up`)
-  await waitForHttp(`${NUXT_URL}/api/health`, 60_000)
-
+  // Steps 3–5, once per billing phase: spawn the production Nitro
+  // server (preset 'bun' → .output/server/index.mjs runs under Bun),
+  // wait for it, run Playwright with the caller's argv (e.g.
+  // `--project=en-light-desktop`), stop the server.
+  //
   // Serve-only mode (local debugging): keep the stack + app alive and skip
   // Playwright + teardown so you can iterate with `flows:test:against-running`
   // against http://localhost:3001. Ctrl-C to tear down. Not used by CI.
   if (process.env.FLOWS_SERVE_ONLY === '1') {
-    console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1 — app up at ${NUXT_URL}. Ctrl-C to tear down.`)
+    // FLOWS_BILLING=on serves the billing-on shape instead.
+    const phase = process.env.FLOWS_BILLING === 'on' ? BILLING_PHASES[1] : BILLING_PHASES[0]
+    await startNuxt(phase.env)
+    console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1 — app up at ${NUXT_URL} (${phase.name}). Ctrl-C to tear down.`)
     await new Promise(() => {}) // wait forever; cleanup runs on SIGINT/SIGTERM
     return
   }
 
-  // Step 5: Playwright. Pass through all argv so callers can scope to
-  // a single test (e.g. `bun run flows:test --project=en-light-desktop`).
-  console.log('[flows-ephemeral] running Playwright')
-  const playwrightCode = await shellOut([
-    'bunx', 'playwright', 'test',
-    ...process.argv.slice(2)
-  ])
-  process.exitCode = playwrightCode
+  let exitCode = 0
+  let testsRan = 0
+  for (const phase of BILLING_PHASES) {
+    await startNuxt(phase.env)
+    // Tells playwright.config.ts whether `@billing` flows may be selected.
+    process.env.FLOWS_BILLING_ENABLED = phase.flowsBilling
+    console.log(`[flows-ephemeral] running Playwright — ${phase.name}`)
+    // --pass-with-no-tests: a run filtered to specs of only one kind
+    // leaves the other phase empty, which is fine. Both empty is not
+    // (checked below).
+    const code = await shellOut([
+      'bunx', 'playwright', 'test',
+      ...phase.grep,
+      '--pass-with-no-tests',
+      ...process.argv.slice(2)
+    ])
+    if (code !== 0) exitCode = code
+    testsRan += await countListedTests([...phase.grep, ...process.argv.slice(2)])
+    await stopNuxt()
+  }
+  if (testsRan === 0) {
+    console.error('[flows-ephemeral] no flow matched the given filters in either billing phase')
+    exitCode = exitCode || 1
+  }
+  process.exitCode = exitCode
+}
+
+/** How many tests Playwright would run for these args (current env). */
+async function countListedTests(args: string[]): Promise<number> {
+  const proc = spawn({
+    cmd: ['bunx', 'playwright', 'test', '--list', '--pass-with-no-tests', ...args],
+    stdout: 'pipe',
+    stderr: 'ignore'
+  })
+  const out = await new Response(proc.stdout).text()
+  await proc.exited
+  const m = /Total: (\d+) tests?/.exec(out)
+  return m ? Number(m[1]) : 0
 }
 
 // Cleanup on every exit path. Even on uncaught throws (the catch
@@ -295,9 +341,6 @@ try {
   // server. Set it BEFORE main() so it's in scope when Playwright
   // starts.
   process.env.PLAYWRIGHT_BASE_URL = NUXT_URL
-  // Tell playwright.config.ts whether this stack runs with billing on,
-  // so `@billing` flows are selected only when they can pass.
-  process.env.FLOWS_BILLING_ENABLED = FLOWS_ENV.NUXT_BILLING_ENABLED === 'true' ? '1' : ''
   await main()
 } finally {
   await cleanup()

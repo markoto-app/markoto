@@ -31,7 +31,7 @@ import { test, expect } from '../fixtures/flow'
 test('Pick a theme', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Annual report' })
 
   // Title + intro before any captured shots.
   await flow.heading('Pick a theme that fits your document', 3)

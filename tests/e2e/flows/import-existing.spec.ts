@@ -29,7 +29,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
   // thing on page 1 of the preview iframe (anon users get 401 from
   // the PUT /meta endpoint that toggles cover.enabled).
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Quarterly report' })
   await editor.page.disableCoverPage()
 
   // ─── Open the import dialog ──────────────────────────────────────
@@ -83,9 +83,8 @@ test('Import existing document', async ({ page, flow, editor }) => {
   await flow.heading('Pick the file you want to import', 3)
   await flow.narrate(
     'The dialog accepts Word (.docx), PDF, PowerPoint, Excel, HTML, '
-    + 'and EPUB up to 50 MB. The conversion runs in the markitdown '
-    + 'service — a small Python sidecar that wraps Microsoft’s '
-    + 'open-source markitdown library.'
+    + 'and EPUB up to 50 MB. markoto converts it to Markdown with '
+    + 'Microsoft’s open-source markitdown library, on its own servers.'
   )
 
   // The dropzone uses VueUse's `useFileDialog` which opens a native
@@ -122,8 +121,8 @@ test('Import existing document', async ({ page, flow, editor }) => {
   // ─── Trigger the import ──────────────────────────────────────────
   await flow.heading('Convert and load it into the editor', 3)
   await flow.narrate(
-    'Hit Import. The file streams to markitdown, comes back as '
-    + 'markdown, and lands directly in the editor — your headings, '
+    'Hit Import. The file is converted to Markdown and lands '
+    + 'directly in the editor — your headings, '
     + 'lists, and emphasis arrive intact, ready for further editing.'
   )
 

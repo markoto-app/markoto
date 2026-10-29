@@ -27,16 +27,16 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
 
   // Login + private doc + cover off so the preview shows the body.
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Launch announcement' })
   await editor.page.disableCoverPage()
 
   await flow.heading('Restore an earlier version of your doc', 3)
   await flow.narrate(
     'markoto records every meaningful change to a doc — edits, '
     + 'comments, theme tweaks, AI tool calls — in the Activity drawer '
-    + 'on the right. Each row carries the Y.js boundary ids around '
-    + 'that change, so we can replay the doc back to that state on '
-    + 'demand. Restoring is one click + a confirm; the rolled-back '
+    + 'on the right. Each row remembers exactly what the doc looked '
+    + 'like before and after that change, so markoto can bring that '
+    + 'state back on demand. Restoring is one click + a confirm; the rolled-back '
     + 'state syncs live to every collaborator just like any other edit.'
   )
 

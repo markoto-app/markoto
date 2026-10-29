@@ -14,7 +14,7 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // proxy via scripts/flows-ephemeral.ts; `requireLiveAi()` enforces
 // that up-front rather than failing mid-stream.
 
-test('Write with AI', async ({ page, flow, editor }) => {
+test('Write with AI', async ({ flow, editor }) => {
   requireLiveAi()
   // 6 minutes: the agentic loop can take 5-30s per Mistral turn, and
   // multi-tool runs chain several. A simple "extend this" prompt
@@ -28,20 +28,10 @@ test('Write with AI', async ({ page, flow, editor }) => {
   // BEFORE silentSetup so the doc is owned and the bar is live from
   // the moment the editor mounts.
   await editor.page.loginAsTestUser('Alice Liu')
-  await editor.silentSetup()
-  // The AI's edits land at end-of-doc by default — page 4+ behind
-  // the cover sheet that the markoto theme ships with. Disable
-  // cover so the reader sees the AI-added section in the preview.
-  await editor.page.disableCoverPage()
-
-  // Title + intro before any captured shots.
-  await flow.heading('Write with AI', 3)
-  await flow.narrate(
-    'The AI prompt bar floats at the bottom of every markoto document. '
-    + 'Type what you want, hit send, and the AI joins the doc as another '
-    + 'collaborator — you watch it type. It can draft new sections, '
-    + 'rewrite passages, even fetch sources from the web before it writes.'
-  )
+  // A short, real draft with the cover off, so the section the AI adds
+  // at the end lands on the preview's first page.
+  const draft = '# Team handbook\n\n## Writing in markoto\n\nWe draft every proposal in markoto so the whole team can edit at once.\n\n## Reviews\n\nLeave a comment on the passage you mean, not on the whole document.\n'
+  await editor.silentSetup({ title: 'Team handbook', body: draft, cover: false })
 
   // ─── Open the AI prompt bar ──────────────────────────────────────
   await flow.heading('Ask the AI to write for you', 3)
@@ -64,7 +54,7 @@ test('Write with AI', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'prompt bar', selector: '[data-testid="ai-prompt-bar"]', kind: 'arrow' }
       ],
-      result: 'The bar lifts and glows blue — ready for your prompt.',
+      result: 'The bar lifts and glows — ready for your prompt.',
       after: () => editor.page.ai.promptBarInput.waitFor({ state: 'visible' })
     }
   )
@@ -85,7 +75,7 @@ test('Write with AI', async ({ page, flow, editor }) => {
   // ─── Submit + watch the AI work ──────────────────────────────────
   await flow.heading('The AI joins your document', 3)
   await flow.narrate(
-    'The bar swaps to its active state — the rainbow ring pulses while '
+    'The bar swaps to its active state and pulses while '
     + 'the AI runs. It uses tools to read your document, find the right '
     + 'place to insert, and apply edits. Other collaborators see the '
     + 'changes land live, just like a human collaborator.'
@@ -95,7 +85,7 @@ test('Write with AI', async ({ page, flow, editor }) => {
     'Click send to submit your prompt',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — the bar pulses with a rainbow ring while it edits.',
+      result: 'The AI is working — the bar pulses while it edits.',
       // Wait for the active state to flip on. Without this the
       // outcome shot races the prompt-handler response and lands on
       // a still-idle bar.
@@ -112,22 +102,26 @@ test('Write with AI', async ({ page, flow, editor }) => {
   // ─── Wait for AI to finish + see the result ──────────────────────
   await flow.heading('The AI is done', 3)
   await flow.narrate(
-    'When the agentic loop finishes, the bar fades back to its idle '
+    'When the AI is done, the bar fades back to its idle '
     + 'state. The AI\'s edits are now part of your document — undo '
     + 'them with Cmd / Ctrl + Z if you don\'t like what it wrote, or '
     + 'iterate by sending another prompt that builds on its work.'
   )
 
-  // Idle = the agentic loop terminated. Could be `done` (success),
-  // `aborted` (user cancelled), or `error`. We don't gate on the
-  // status string because the model is non-deterministic — sometimes
-  // the model emits a doc edit and a status='done', sometimes it
-  // surfaces a status='error' on safety / context issues. The
-  // user-visible signal is "bar is idle again" either way.
+  // Idle = the session ended; waitForAiIdle also fails when it ended
+  // in an error (turn limit, provider failure) instead of `done`.
   await editor.page.waitForAiIdle()
 
+  // ASSERTION: the AI added a section about keyboard shortcuts — a
+  // heading plus body text — and it shows in the editor and preview.
+  const added = await editor.page.addedText(draft)
+  expect(added, 'the AI added nothing').toMatch(/^#{1,4} .*shortcut/im)
+  expect(added.split('\n').length).toBeGreaterThanOrEqual(2)
+  await editor.page.scrollEditorTo(/shortcut/i)
+  await editor.page.scrollPreviewTo(':is(h1, h2, h3, h4):has-text("shortcut")')
+
   await flow.shot(
-    'The AI added a "Keyboard shortcuts" section — exactly where it makes sense in the doc.',
+    'The AI added a "Keyboard shortcuts" section at the end of the doc — in the editor and the preview.',
     {
       // Hero outcome: doc content extended by the AI. This IS the
       // payoff of "ask the AI to write for you" — a reader who
@@ -140,18 +134,10 @@ test('Write with AI', async ({ page, flow, editor }) => {
         // natural anchor. We don't pin to a specific selector inside
         // the editor because the AI's exact output varies between
         // runs.
-        { label: 'AI\'s edits land in the editor', selector: '.cm-content' }
+        { label: 'The new section', selector: '.cm-line:has-text("shortcut")' }
       ]
     }
   )
-
-  // ASSERTION: doc content actually changed. silentSetup leaves the
-  // welcome doc content (~30 lines); a successful AI run with the
-  // "add a section" prompt should land an additional heading + body.
-  // We assert the doc grew rather than asserting on specific words.
-  const doc = page.locator('.cm-content')
-  const wordCount = await doc.evaluate(el => (el.textContent ?? '').split(/\s+/).filter(Boolean).length)
-  expect(wordCount).toBeGreaterThan(50)
 
   // Forward route: same surface (the AI joining as a collaborator)
   // but anchored on a SPECIFIC passage rather than the whole doc.

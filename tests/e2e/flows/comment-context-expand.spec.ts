@@ -30,7 +30,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Design review notes' })
   await editor.page.disableCoverPage()
 
   // Post a comment so there's a `comment.added` row in Activity.
@@ -65,8 +65,8 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   await flow.heading('Replay a comment in its original context', 3)
   await flow.narrate(
     'Every time someone posts, replies, resolves, or deletes a '
-    + 'comment, markoto stamps a snapshot of that thread\'s state '
-    + 'into the audit log. Click the row in Activity and the '
+    + 'comment, markoto keeps a snapshot of that thread in the '
+    + 'Activity log. Click the row in Activity and the '
     + 'drawer expands showing the thread the way it looked at '
     + 'that exact moment — parent, replies, resolution state, '
     + 'all preserved for as long as the doc lives.'
@@ -108,8 +108,8 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   await flow.heading('Click the comment row to replay it', 3)
   await flow.narrate(
     'Comment rows in the feed carry a chevron — click to expand. '
-    + 'The drawer fetches the thread snapshot from the audit log '
-    + 'and renders it inline. No modal, no navigation; the editor '
+    + 'The thread appears inline, exactly as it was at that moment. '
+    + 'No modal, no navigation; the editor '
     + 'stays in place.'
   )
 

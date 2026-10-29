@@ -56,6 +56,10 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   await page.goto('/')
 
   const wsName = 'Q3 launch — engineering retro'
+  const docTitle = 'Q4 rollout plan'
+  // A short starting draft so the AI's paragraph lands on the first
+  // preview page instead of after four pages of welcome text.
+  const docBody = '# Q4 rollout plan\n\nWhat we carry over from the Q3 launch.\n'
   const wsRes = await page.request.post('/api/workspaces', {
     data: { name: wsName }
   })
@@ -73,7 +77,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // upload UI as the desktop landing page's Knowledge tab.
   if (editor.isMobile) {
     const docRes = await page.request.post('/api/docs', {
-      data: { workspaceId: ws.workspaceId }
+      data: { workspaceId: ws.workspaceId, title: docTitle }
     })
     if (!docRes.ok()) {
       throw new Error(`[knowledge-rag] doc create failed: ${docRes.status()} ${await docRes.text()}`)
@@ -81,6 +85,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     const doc = await docRes.json() as { docId: string }
     await page.goto(`/d/${doc.docId}`)
     await editor.page.waitForReady()
+    await editor.page.setDocText(docBody)
     await editor.page.disableCoverPage()
   } else {
     await page.goto(`/w/${ws.workspaceId}`)
@@ -93,12 +98,10 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   await flow.heading('Ask the AI about a file you uploaded', 3)
   await flow.narrate(
     'Workspaces have a Knowledge tab — drop in PDFs, Word docs, '
-    + 'HTML exports, the team\'s RFCs, customer FAQs. markoto converts '
-    + 'them to markdown via markitdown, splits them into heading-aware '
-    + 'chunks, embeds each chunk via Jina v5-text-nano (through the '
-    + 'LiteLLM proxy), and indexes both the '
-    + 'vector AND a tsvector for hybrid retrieval. The AI gets a '
-    + '`search_knowledge` tool that hits this index.'
+    + 'HTML exports, the team\'s RFCs, customer FAQs. markoto reads '
+    + 'each file and indexes it, so the AI can look things up in it '
+    + 'whenever you write inside the workspace — and answer from your '
+    + 'files instead of from general knowledge.'
   )
 
   // ─── Upload a knowledge file ────────────────────────────────────
@@ -158,7 +161,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
         await chooser.setFiles(fixture)
         await page.locator('[data-testid^="knowledge-file-row-"][data-filename="q3-launch-postmortem.html"]').first().waitFor({ state: 'visible', timeout: 10_000 })
       },
-      { result: 'The file lands in the upload list — markitdown takes over from here.' }
+      { result: 'The file lands in the upload list and markoto starts reading it.' }
     )
   } else {
     const chooserPromise = page.waitForEvent('filechooser', { timeout: 10_000 })
@@ -169,7 +172,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'upload', selector: 'button:has-text("Upload")', kind: 'arrow' }
         ],
-        result: 'The file picker opens — pick the postmortem HTML and markitdown takes over.',
+        result: 'Pick the postmortem file — it lands in the list and markoto starts reading it.',
         after: async () => {
           const chooser = await chooserPromise
           await chooser.setFiles(fixture)
@@ -184,14 +187,12 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // status badge changes accordingly. The processing pipeline
   // (markitdown → chunk → embed each chunk → pgvector insert)
   // typically finishes in 3-15s for a small HTML file.
-  await flow.heading('Processing — markitdown + embeddings', 3)
+  await flow.heading('markoto reads the file', 3)
   await flow.narrate(
-    'The file streams to the markitdown sidecar for HTML → markdown '
-    + 'conversion, gets split into heading-aware chunks, each chunk '
-    + 'is embedded via Jina v5-text-nano (768-d native), and the '
-    + 'resulting vectors land in pgvector with a parallel tsvector '
-    + 'for lexical search. Hybrid RRF (Reciprocal Rank Fusion) over '
-    + 'the two indices gives the AI a grounded retrieval surface.'
+    'markoto converts the file to text, splits it into sections and '
+    + 'indexes them, both by meaning and by exact words. A small file '
+    + 'is ready in a few seconds; the badge flips to Ready when the AI '
+    + 'can use it.'
   )
 
   // Poll for ready. The badge text uses the i18n string
@@ -201,23 +202,19 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   await expect(page.locator('[data-testid^="knowledge-file-row-"][data-status="ready"]').first()).toBeVisible({ timeout: 60_000 })
 
   await flow.shot(
-    'The file is processed — markdown cached, chunks embedded, ready for retrieval.'
+    'The file is Ready — the AI can now look things up in it.'
   )
 
   // ─── Create a doc inside the workspace ───────────────────────────
   await flow.heading('Now ask the AI about it', 3)
   await flow.narrate(
     editor.isMobile
-      ? 'You\'re already inside a workspace doc — the AI has two extra tools wired up: '
-      + '`search_knowledge` (hybrid retrieval over the chunk index) and '
-      + '`get_knowledge_file` (full markdown of one file). It picks them automatically '
-      + 'when your prompt smells like a knowledge question. Close the Knowledge drawer '
-      + 'so the AI prompt bar is reachable.'
-      : 'Create a new doc in this workspace and the AI gets two extra '
-        + 'tools: `search_knowledge` (hybrid retrieval over the chunk '
-        + 'index) and `get_knowledge_file` (full markdown of one file). '
-        + 'It picks them automatically when your prompt smells like a '
-        + 'knowledge question.'
+      ? 'You\'re already in a document inside the workspace, so the AI can '
+      + 'search the workspace\'s files whenever your request refers to them. '
+      + 'Close the Knowledge drawer so the AI prompt bar is reachable.'
+      : 'Create a new document in this workspace. Inside a workspace the '
+        + 'AI can search its files whenever your request refers to them '
+        + '— no extra setup.'
   )
 
   if (editor.isMobile) {
@@ -249,8 +246,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       'Click "New document"',
       page.locator('[data-testid="workspace-new-document"]').first(),
       {
-        result: 'A blank doc opens, scoped to this workspace. The AI now has '
-          + 'access to the postmortem you uploaded.',
+        result: 'The new-document dialog opens. Give the doc a name.',
         after: async () => {
           // Wait for the new-doc dialog. The data-testid is on UModal
           // (Reka renders it in a portal which doesn't always
@@ -262,23 +258,24 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       }
     )
 
-    // Submit the dialog with default settings (blank doc, just give
-    // me the editor). The submit-blank path skips the form fields.
+    await editor.page.newDocDialog.titleInput.click()
+    await editor.page.newDocDialog.titleInput.pressSequentially(docTitle)
+    await expect(editor.page.newDocDialog.titleInput).toHaveValue(docTitle)
     await flow.click(
-      'Pick "Just give me a blank doc" to skip the form',
-      page.locator('[data-testid="newdoc-submit-blank"]'),
+      'Click "Create document"',
+      editor.page.newDocDialog.submitCreate,
       {
-        result: 'The editor opens. The AI prompt bar is at the bottom and the '
-          + 'workspace knowledge tools are wired up server-side.',
+        result: 'The editor opens inside the workspace, with the AI prompt bar at the bottom.',
         after: async () => {
           await page.waitForURL(/\/d\/[^/]+/)
           await editor.page.waitForReady()
-          // Disable cover so the AI's grounded answer (lands at end-
-          // of-doc which is page 1 of a blank doc) is visible in the
-          // preview pane.
-          await editor.page.disableCoverPage()
+          await expect(editor.page.titleButton).toContainText(docTitle)
+          await editor.page.setDocText(docBody)
           await editor.page.switchToSplitView()
           await editor.page.waitForPreviewPaginated()
+          // Cover off so the preview's first page shows the AI's
+          // grounded answer, not the title sheet.
+          await editor.page.disableCoverPage()
         }
       }
     )
@@ -287,11 +284,10 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // ─── Ask a question grounded in the file ────────────────────────
   await flow.heading('A question grounded in the postmortem', 3)
   await flow.narrate(
-    'The fixture file is a Q3 launch postmortem with specific facts: '
-    + 'a 24-hour staged rollout, an avatar-loading regression caught '
-    + 'at 5%, an open question about whether on-call should include '
-    + 'a designer. The AI should pick up `search_knowledge`, find '
-    + 'the relevant chunks, and quote them back in its answer.'
+    'The uploaded postmortem has specific facts no AI could guess: the '
+    + 'staged rollout caught an avatar bug at 5%, and the team wants to '
+    + 'cut the 24-hour rollout interval to 12 hours. Ask about it and '
+    + 'the AI looks it up in the file before it writes.'
   )
 
   await flow.click(
@@ -308,13 +304,13 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // the doc). The "Insert a short paragraph" lead-in routes the
   // answer through `insert_text` so the assertion below — which reads
   // off `.cm-content` — actually sees it.
-  const prompt = 'Insert a short paragraph at the end of this document summarising what the Q3 postmortem said about staged rollouts.'
+  const prompt = 'Add a short paragraph at the end of this doc on what our uploaded Q3 launch postmortem says about staged rollouts.'
   await flow.type(
     'Type a question only the file knows the answer to',
     editor.page.ai.promptBarInput,
     prompt,
     {
-      result: 'The question is staged. Hit send and watch the AI search the knowledge base.'
+      result: 'The question is ready. Send it and the AI searches your files first.'
     }
   )
 
@@ -322,8 +318,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — it calls `search_knowledge`, gets back '
-        + 'chunks from the postmortem, and folds them into its reply.',
+      result: 'The AI is working — it searches the workspace files, then writes the paragraph.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -333,9 +328,24 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // with the grounded answer. 90s budget covers worst case.
   await editor.page.waitForAiIdle()
 
+  // ASSERTION: the AI actually searched the knowledge base this session
+  // (the Activity log records every AI tool call) and the paragraph it
+  // wrote carries the file's real figures — 5%, 24 hours, 12 hours.
+  // Invented numbers ("~40%", "5–10%") fail here.
+  const docId = editor.page.currentDocId()
+  await expect.poll(async () => {
+    const res = await page.request.get(`/api/docs/${docId}/activity`)
+    return res.ok() ? JSON.stringify(await res.json()) : ''
+  }, { timeout: 15_000, message: 'the AI never called search_knowledge' }).toMatch(/search_knowledge/)
+  const docText = await editor.page.docText()
+  expect(docText).toMatch(/5\s?%/)
+  expect(docText).toMatch(/24[\s-]?(h\b|hours?)/i)
+  expect(docText).toMatch(/12[\s-]?(h\b|hours?)/i)
+  await editor.page.scrollEditorTo(/5\s?%/)
+
   await flow.shot(
-    'The AI quoted the postmortem — the staged-rollout interval (24h), '
-    + 'the avatar-bug catch at 5%, the proposed change to 12h. None of '
+    'The AI quoted the postmortem — the avatar bug caught at 5%, and the '
+    + 'plan to cut the 24-hour rollout interval to 12 hours. None of '
     + 'this is generic AI knowledge — it came straight from the file.',
     {
       // Hero outcome: a doc body containing facts that ONLY exist in
@@ -347,19 +357,6 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       ]
     }
   )
-
-  // ASSERTION: the doc grew AND the body mentions specific facts
-  // from the postmortem fixture. We don't assert exact phrasing —
-  // the model's wording varies — but the staged-rollout reference is
-  // the key claim, and "5%" or "24" should land verbatim because
-  // they're concrete numbers the model has nothing to substitute
-  // them with.
-  const editorText = await page.locator('.cm-content').textContent()
-  expect(editorText?.length ?? 0).toBeGreaterThan(100)
-  // The fixture contains "Staged rollout caught the avatar-loading
-  // regression at 5%" — the model should reproduce one of those
-  // landmarks.
-  expect(editorText).toMatch(/staged rollout|5%|24h|avatar/i)
 
   // Forward route: now that the workspace has knowledge, sharing
   // a polished version of the AI's grounded answer is the natural

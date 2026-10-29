@@ -18,7 +18,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Travel policy' })
   await editor.page.disableCoverPage()
 
   // Flip access mode to open-view BEFORE Maya types. Earlier ordering
@@ -38,9 +38,6 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   await cmContent.press('Enter')
   await cmContent.press('Enter')
   await cmContent.pressSequentially('Q3 launch postmortem — read-only copy for the wider team.')
-  // Give Hocuspocus a small flush window so the visitor's initial-state
-  // download includes Maya's typed line.
-  await page.waitForTimeout(3000)
 
   await flow.heading('Share as read-only', 3)
   await flow.narrate(
@@ -89,12 +86,10 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   // ─── Visitor opens the link ─────────────────────────────────────
   await flow.heading('What your visitor sees', 3)
   await flow.narrate(
-    'A visitor opens the link in their own browser. They\'re a '
-    + 'separate identity — separate cookies, separate session. '
-    + 'markoto issues them a JWT with `readOnly: true`; the editor '
-    + 'mounts in CodeMirror\'s read-only mode (Compartments + '
-    + 'EditorState.readOnly); the toolbar hides; the AI prompt bar '
-    + 'doesn\'t render at all. They can read; they can\'t change.'
+    'A visitor opens the link in their own browser. The document '
+    + 'opens read-only: no caret, no formatting toolbar, no AI prompt '
+    + 'bar — and markoto refuses any change from them on the server '
+    + 'too, not just in the interface. They can read; they can\'t change.'
   )
 
   // Spawn the visitor — fresh BrowserContext, fresh identity. Login
@@ -108,10 +103,15 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   const visitor = await flow.spawn('visitor')
   await visitor.editor.loginAsTestUser('Sam Reeves')
   await visitor.page.goto(docUrl)
-  await visitor.page.locator('.cm-content').waitFor({ state: 'attached', timeout: 15_000 })
-  // Switch the visitor to Edit view (read-only-mounted CodeMirror)
-  // instead of Preview (paged.js iframe) on DESKTOP. The iframe's
-  // render pipeline can hang screenshot calls in the test stack.
+  // Ready = doc loaded + connected. A read-only visitor opens in
+  // Preview, so the CodeMirror surface isn't mounted yet — waiting for
+  // `.cm-content` here raced the view-mode switch below.
+  await visitor.editor.waitForReady()
+  // The visitor gets Maya's live text (the doc is open on her side, so
+  // the sync server serves its in-memory state — no flush needed).
+  await expect.poll(() => visitor.editor.docText(), { timeout: 15_000 }).toMatch(/read-only copy for the wider team/i)
+  // Switch the visitor to Edit view (read-only-mounted CodeMirror) on
+  // DESKTOP so the frame shows the locked editor next to the preview.
   //
   // Mobile is preview-only for read-only viewers — the EditorLayout
   // hides the MobileTabBar via `v-if="!isReadOnly && viewMode !== 'preview'"`,
@@ -121,7 +121,10 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   // banner) which is the user-facing assertion the flow is making.
   if (!editor.isMobile) {
     await visitor.editor.viewMode.edit.click()
-    await visitor.page.waitForTimeout(800)
+    await expect(visitor.page.locator('.cm-content')).toHaveAttribute('contenteditable', 'false')
+    await expect(visitor.page.locator('.cm-content')).toBeVisible()
+  } else {
+    await visitor.editor.waitForPreviewPaginated()
   }
 
   await visitor.flow.shot(
@@ -152,11 +155,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   // exposed in `useDocument.ts` (`window.__DEBUG_ytext`). The Y.Doc
   // is the authoritative "what content does this client have"
   // question; CM6's rendered surface is just a viewport.
-  const visitorYjsText = await visitor.page.evaluate(() => {
-    type Win = { __DEBUG_ytext?: { toString: () => string } }
-    return (window as unknown as Win).__DEBUG_ytext?.toString() ?? ''
-  })
-  expect(visitorYjsText).toMatch(/read-only copy for the wider team/i)
+  expect(await visitor.editor.docText()).toMatch(/read-only copy for the wider team/i)
   await expect(visitor.page.locator('[data-testid="ai-prompt-bar"]')).toHaveCount(0)
 
   if (editor.isMobile) {

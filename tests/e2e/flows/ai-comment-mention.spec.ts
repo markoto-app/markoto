@@ -40,12 +40,15 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   test.setTimeout(600_000)
 
   await editor.page.loginAsTestUser('Sam Reeves')
-  await editor.silentSetup()
-  // Disable the cover sheet so the comment-anchored passage IS
-  // visible on page 1 of the preview iframe (the markoto theme
-  // ships cover.enabled=true; "Anyone with the link can edit" sits
-  // on page 2+ behind it otherwise).
-  await editor.page.disableCoverPage()
+  // A short sharing guide with the passage the question is about,
+  // cover off so it sits on the preview's first page.
+  // One short line, so Home / Shift+End selects all of it.
+  const passage = 'Anyone with the link can edit by default.'
+  await editor.silentSetup({
+    title: 'Sharing guide',
+    body: `# Sharing guide\n\n## Access\n\n${passage}\n\nSwitch the doc to view-only before you send it to a client.\n\n## Comments\n\nReviewers leave comments on the passage they mean.\n`,
+    cover: false
+  })
 
   // ─── Set the scene ──────────────────────────────────────────────
   await flow.heading('Mention @markoto in a comment', 3)
@@ -56,9 +59,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     + 'it joins the thread, reads the anchored text, and replies.'
   )
 
-  // Pick a line from the seeded welcome doc. "Anyone with the link
-  // can edit by default." — short, recognizable, and gives the AI a
-  // concrete passage to react to.
+  // The passage the question is about.
   const target = page.locator('.cm-content').getByText('Anyone with the link can edit').first()
   await flow.step(
     'Highlight the passage you want to ask about',
@@ -136,7 +137,10 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
 
   // Finish typing the question. The composer caret is right after
   // "@markoto " thanks to the typeahead pick — pressSequentially appends.
-  const question = 'what does \'view-only\' actually mean here?'
+  // A question, explicitly not an edit request: the reply belongs in
+  // the thread. (A vaguer ask once made the AI rewrite the anchored
+  // passage, which orphaned the thread under "Removed from document".)
+  const question = 'what can a client do with a view-only link? Just answer here, please keep the text as is.'
   await flow.type(
     'Finish your question',
     editor.page.comments.composerInput,
@@ -174,7 +178,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await flow.heading('markoto joins your thread', 3)
   await flow.narrate(
     'Once you post, the comment lands like any other — but the '
-    + 'thread card lights up with a rainbow ring and a "markoto is '
+    + 'thread card glows with a "markoto is '
     + 'responding…" badge. markoto is reading the anchored passage '
     + 'and the conversation so far, then replying in the same '
     + 'thread so the discussion stays in one place.'
@@ -194,7 +198,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     editor.page.comments.composerSubmit,
     {
       force: editor.isMobile,
-      result: 'Your comment lands — the thread glows with a rainbow ring while markoto works.',
+      result: 'Your comment lands — the thread glows while markoto works.',
       // Wait for the AI-active visual state. The rainbow-ring class
       // (.is-ai-active) is keyed off awareness's commentThreadId, so
       // its presence confirms the trigger endpoint actually fired
@@ -230,7 +234,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await flow.narrate(
     'markoto uses tools to inspect the document and craft a response. '
     + 'When it\'s done, it replies on this thread — same surface a '
-    + 'human collaborator would use. The rainbow ring fades and the '
+    + 'human collaborator would use. The glow fades and the '
     + 'reply is just another message you can react to.'
   )
 
@@ -250,6 +254,20 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   // A reply can land and the session still end in an error (e.g. the
   // turn limit) — the user would see a "Could not reach markoto" toast.
   await editor.page.expectAiSessionSucceeded()
+
+  // ASSERTION: the thread is still anchored to the passage (the AI
+  // answered instead of rewriting it), the passage is unchanged, and
+  // markoto's reply is visible in the thread.
+  await expect(thread).toHaveAttribute('data-anchored', 'true')
+  expect(await editor.page.docText()).toContain(passage)
+  const reply = thread.locator('[data-testid="comment-item"]').nth(1)
+  await expect(reply).toBeVisible()
+  await expect(reply).toContainText('markoto')
+  await expect(reply).toContainText(/view|read|comment|edit/i)
+  // Comments render plain text — a reply full of Markdown markup
+  // (**bold**) would show the asterisks.
+  await expect(reply).not.toContainText('**')
+  await reply.scrollIntoViewIfNeeded()
 
   await flow.shot(
     'markoto replied on the thread — the conversation stays in one place.',

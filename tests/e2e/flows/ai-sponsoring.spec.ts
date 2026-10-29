@@ -82,12 +82,11 @@ test('Let your team use the AI on your dime', { tag: '@billing' }, async ({ page
 
   await flow.heading('Let your team use the AI on your dime', 3)
   await flow.narrate(
-    'You\'re on Max — your AI quota is huge. Your teammates are on '
-    + 'Free, and they\'re going to hit the cap fast if they do real '
-    + 'work in this workspace. Sponsor their use: every markoto '
-    + 'request a member makes inside this workspace bills against '
-    + 'YOUR pool instead of theirs. Toggle once; durable until you '
-    + 'lapse, downgrade, or turn it back off.'
+    'When paid plans are live, an admin on Max or Ultra can sponsor '
+    + 'the workspace: every markoto request a member makes inside it '
+    + 'draws from the admin\'s AI allowance instead of the member\'s '
+    + 'free one. Toggle it once; it stays on until the plan lapses, '
+    + 'drops below Max, or you turn it off. (Here, Maya is on Max.)'
   )
 
   // ─── Open the AI tab ────────────────────────────────────────────
@@ -106,8 +105,9 @@ test('Let your team use the AI on your dime', { tag: '@billing' }, async ({ page
   // ─── Flip the toggle ────────────────────────────────────────────
   await flow.heading('Toggle AI sponsoring on', 3)
   await flow.narrate(
-    'The toggle disables itself if you\'re not on Max or Ultra — no '
-    + 'silent failure. As an admin on Max, it\'s active. Flip it.'
+    'The toggle is only active for an admin on Max or Ultra — anyone '
+    + 'else sees it disabled, never a switch that silently does nothing. '
+    + 'Maya qualifies. Flip it.'
   )
 
   await flow.click(

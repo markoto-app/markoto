@@ -28,7 +28,9 @@ import { test, expect } from '../fixtures/flow'
 test('Data export', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.page.loginAsTestUser('Maya Chen')
+  // A complete profile: the export flow opens on the profile page, so
+  // its Email and Language rows must show real values, not "—".
+  await editor.page.loginAsTestUser('Maya Chen', { email: 'maya.chen@studio.example', locale: 'en' })
 
   // Seed a workspace + a doc so the export has real personal data
   // to surface. The story is the export pipeline, not the seeding,
@@ -56,32 +58,29 @@ test('Data export', async ({ page, flow, editor }) => {
   // ─── Chapter 1: Why export ─────────────────────────────────────
   await flow.heading('Get a copy of everything we hold about you', 3)
   await flow.narrate(
-    'GDPR Article 20 gives you the right to a machine-readable copy '
-    + 'of every piece of personal data markoto holds about you. The '
-    + 'export feature is how you exercise that right: one click '
-    + 'enqueues a background build, you get an email when the archive '
-    + 'is ready, and a download link sits here for seven days. The '
-    + 'ZIP is plain JSON / NDJSON / Markdown — no vendor format, no '
-    + 'parser required to pipe it into other tooling.'
+    'You have the right to a machine-readable copy of every piece of '
+    + 'personal data markoto holds about you (GDPR Articles 15 and 20). '
+    + 'One click starts building the archive, you get an email when it '
+    + 'is ready, and a download link stays on this page for seven days. '
+    + 'The ZIP holds plain JSON and Markdown files — no special software '
+    + 'needed to open it.'
   )
 
   // ─── Chapter 2: Request the export ─────────────────────────────
   await flow.heading('Request the export', 3)
   await flow.narrate(
-    'The request goes into a queue: a worker picks it up, streams '
-    + 'the archive to object storage, and flips the row to ready. '
-    + 'The build covers your account profile, every document you own '
-    + 'as Markdown, comments you authored, AI prompt and tool-call '
-    + 'history, billing invoices, audit log entries about your '
-    + 'account, every consent decision you made. A README at the '
-    + 'top of the archive describes the layout in plain English.'
+    'The archive covers your account profile, every document you own '
+    + 'as Markdown, comments you wrote, your AI prompts and what the AI '
+    + 'did for you, your billing records, the security log entries about '
+    + 'your account and every consent decision you made. A README in '
+    + 'the archive explains each file in plain English.'
   )
 
   await flow.click(
     'Click "Request export"',
     page.locator('[data-testid="export-request-button"]'),
     {
-      result: 'A new row appears in the history with status "queued" — the worker takes it from there.',
+      result: 'A new row appears under Recent exports with the status "queued" — markoto builds it in the background.',
       after: () => page.locator('[data-testid="export-history-row"]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }
   )
@@ -89,20 +88,17 @@ test('Data export', async ({ page, flow, editor }) => {
   await expect(page.locator('[data-testid="export-history-row"]').first()).toContainText(/queued|running/i)
 
   // ─── Chapter 3: Wait for the worker to build ───────────────────
-  await flow.heading('Wait for the worker', 3)
+  await flow.heading('Your archive is ready', 3)
   await flow.narrate(
-    'In production, a background plugin runs every minute and picks '
-    + 'up queued jobs. For this demo we tick the worker manually so '
-    + 'the screenshot doesn\'t sit on a 60-second loading spinner — '
-    + 'the production path runs the same code. The worker builds the '
-    + 'ZIP in-memory via fflate, writes it to object storage with a '
-    + '7-day expiry, and flips the row to ready.'
+    'Building the archive usually takes under a minute. You can close '
+    + 'the page meanwhile: markoto emails you when it is done, and the '
+    + 'row here switches to ready with a Download button.'
   )
 
-  // The ephemeral test stack runs the same plugin (1-minute interval),
-  // but waiting on that here would slow the flow with a meaningless
-  // loading state. Tick the worker explicitly via the TEST_MODE-gated
-  // endpoint so the screenshot lands on the ready state directly.
+  // The ephemeral test stack runs the same worker plugin (1-minute
+  // interval), but waiting on that here would only add a minute of
+  // nothing. Tick the worker explicitly via the TEST_MODE-gated
+  // endpoint — the same code the plugin runs.
   const tickRes = await page.request.post('/api/_test/run-export-worker')
   if (!tickRes.ok()) throw new Error(`worker tick failed: ${tickRes.status()}`)
 
@@ -113,11 +109,13 @@ test('Data export', async ({ page, flow, editor }) => {
   await page.locator('[data-testid="export-history-row"]').first().waitFor({ state: 'visible' })
   await expect(page.locator('[data-testid="export-history-row"]').first()).toContainText(/ready/i, { timeout: 5_000 })
   await page.locator('[data-testid="export-download-button"]').first().waitFor({ state: 'visible', timeout: 5_000 })
+  // The profile page opens at the top (account details); bring the
+  // ready export into view for the outcome frame.
+  await page.locator('[data-testid="export-history-row"]').first().evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
 
   await flow.shot(
-    'The row flipped to ready. The size pill and expiry are right '
-    + 'there in mono — your archive is on object storage, the '
-    + 'Download button issues a 5-minute presigned URL when you click it.',
+    'The row says ready, with the archive\'s size and the date the '
+    + 'link expires. Download is one click away.',
     {
       hero: true,
       highlights: [
@@ -129,12 +127,10 @@ test('Data export', async ({ page, flow, editor }) => {
   // ─── Chapter 4: Verify the download endpoint ────────────────────
   await flow.heading('Download the archive', 3)
   await flow.narrate(
-    'Click Download and markoto issues a 302 to a 5-minute presigned '
-    + 'URL pointing at the ZIP in object storage. The browser follows '
-    + 'the redirect and the file lands on disk. The presigned URL is '
-    + 'tight on purpose — leaked links have limited reuse. If a slow '
-    + 'connection drops mid-download you can request a fresh link by '
-    + 'clicking Download again; you don\'t have to rebuild the archive.'
+    'Click Download and the ZIP lands on disk. Each click hands your '
+    + 'browser a short-lived link to the file, so a link that leaks '
+    + 'stops working after a few minutes. If a slow connection drops '
+    + 'mid-download, click Download again — the archive is not rebuilt.'
   )
 
   // Resolve the download URL cleanly — Playwright's getAttribute
@@ -144,19 +140,18 @@ test('Data export', async ({ page, flow, editor }) => {
   // the bytes (the seaweedfs presign in the test stack works for
   // PUTs/GETs from the app container; from the Playwright runner
   // it's network-namespaced differently).
-  const href = await page.locator('[data-testid="export-download-button"]').first().getAttribute('href')
-  expect(href).toBeTruthy()
-  const downloadRes = await page.request.get(href!, { maxRedirects: 0 })
+  const href = await page.locator('[data-testid="export-download-button"]').first().getAttribute('href') ?? ''
+  expect(href).not.toBe('')
+  const downloadRes = await page.request.get(href, { maxRedirects: 0 })
   expect(downloadRes.status()).toBeGreaterThanOrEqual(300)
   expect(downloadRes.status()).toBeLessThan(400)
   const location = downloadRes.headers()['location'] ?? ''
   expect(location).toContain('exports/')
 
   await flow.shot(
-    'The Download button issues a 302 → presigned URL on the exports/ '
-    + 'prefix. Five minutes of validity per click — long enough to '
-    + 'survive a slow download, short enough that a leaked link can\'t '
-    + 'sit forever in someone\'s scrollback.'
+    'Download hands your browser a fresh, short-lived link to the '
+    + 'archive — valid long enough for a slow connection, not long '
+    + 'enough to linger in someone else\'s chat history.'
   )
 
   flow.next({
