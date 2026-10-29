@@ -30,7 +30,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Team onboarding checklist' })
   await editor.page.disableCoverPage()
 
   // Type a recognisable line so we can verify the clone carried it.
@@ -83,12 +83,11 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
   // ─── Confirm + verify navigation ────────────────────────────────
   await flow.heading('Confirm and land in the clone', 3)
   await flow.narrate(
-    'Edit the title if you like, then commit. markoto clones the doc '
-    + 'row in Postgres, copies the Y.js binary state in one COPY '
-    + '(no replay), copies every uploaded image to a fresh S3 prefix '
-    + 'and rewrites the markdown URLs. The whole operation is '
-    + 'idempotent — a network retry mid-clone won\'t produce two '
-    + 'copies thanks to the `Idempotency-Key` header.'
+    'Edit the title if you like, then confirm. markoto copies the '
+    + 'text, the theme and every image (the copy points at its own '
+    + 'images, so deleting the original never breaks it). A flaky '
+    + 'connection can\'t leave you with two copies: a retried request '
+    + 'returns the copy that was already made.'
   )
 
   await flow.click(

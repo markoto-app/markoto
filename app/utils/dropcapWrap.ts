@@ -30,6 +30,14 @@
  *   - Browser-only (needs `document`); all callers run client-side.
  */
 
+/**
+ * Paragraphs inside these are not the body's opening prose: an alert's
+ * title ("Tip") or a quote, list item, table cell or caption must never
+ * get the drop cap — a doc starting with a Tip alert showed a giant "T"
+ * in front of "IP".
+ */
+const NOT_BODY_PROSE = 'blockquote, .markdown-alert, li, td, th, figure, figcaption, aside, dl, .footnote'
+
 /** Inline elements we look inside for the first letter. */
 const DESCEND_INTO = new Set(['a', 'abbr', 'b', 'code', 'del', 'em', 'i', 'ins', 'mark', 's', 'span', 'strong', 'sub', 'sup', 'u'])
 
@@ -52,7 +60,7 @@ function firstTextNode(parent: Node): Text | null {
 export function wrapFirstLetterAsDropCap(html: string): string {
   const tpl = document.createElement('template')
   tpl.innerHTML = html
-  const p = tpl.content.querySelector('p')
+  const p = Array.from(tpl.content.querySelectorAll('p')).find(el => !el.closest(NOT_BODY_PROSE)) ?? null
   if (!p) return html
   const text = firstTextNode(p)
   if (!text) return html

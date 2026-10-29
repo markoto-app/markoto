@@ -36,7 +36,11 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   // test user gets (otherwise the onboarding gate covers the dashboard).
   // The invitation is by EMAIL, never by username, so the SAME address
   // goes into the invite form below.
-  const teammateEmail = `sam-reeves-${Date.now()}@team.example`
+  // A clean, readable address — it is on screen in the invite form
+  // and the pending-invite row. Several Sam accounts with this email
+  // can exist across the suite's projects; the accept step below
+  // targets THIS workspace's invite by id, so that's harmless.
+  const teammateEmail = 'sam.reeves@team.example'
   const teammate = await flow.spawn('teammate')
   const { userId: teammateUserId } = await teammate.editor.loginAsTestUser('Sam Reeves', { email: teammateEmail })
 
@@ -118,12 +122,17 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
     + 'Sam also gets an invitation email with a one-time link.)'
   )
 
+  const openInvites = await page.request.get(`/api/workspaces/${ws.workspaceId}/invites`).then(r => r.json()) as Array<{ inviteId: string, email: string }>
+  const invite = openInvites.find(i => i.email === teammateEmail)
+  expect(invite, 'no open invite for Sam').toBeTruthy()
+  const inviteId = invite?.inviteId ?? ''
+
   await teammate.page.goto('/')
   const inviteList = teammate.page.locator('[data-testid="workspace-invite-list"]')
   await inviteList.waitFor({ state: 'visible', timeout: 15_000 })
   await teammate.flow.click(
     'Click Accept on the invitation',
-    inviteList.getByRole('button', { name: /accept/i }).first(),
+    teammate.page.locator(`[data-testid="workspace-invite-accept-${inviteId}"]`),
     {
       result: 'Sam joins as an editor; the workspace moves into My Workspaces.',
       after: () => teammate.page.locator(`[data-testid="workspace-list-item-${ws.workspaceId}"]`).waitFor({ state: 'visible', timeout: 15_000 })

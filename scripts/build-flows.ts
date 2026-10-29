@@ -31,6 +31,18 @@ import path from 'node:path'
 
 const FLOWS_SRC = 'tests/e2e/output/flows'
 const FLOWS_OUT = 'public/flows'
+const DOCS_DIR = 'content/docs'
+
+// Only flows a docs page embeds (`::flow{id="<slug>" ...}`) are published.
+// The suite's second pass runs the `@billing` flows on a billing-ON
+// server so the paid-plan UI keeps its regression coverage
+// (scripts/flows-ephemeral.ts), but some of them (`upgrade-to-pro`,
+// `what-happens-when-you-hit-the-ai-cap`) show purchase UI no public
+// instance offers today. No docs page embeds them, so they must not ship
+// to public/flows either. Publishing by reference keeps the rule in one
+// place: embed a flow in a docs page and it gets published; drop the
+// embed and the next build reaps it.
+const FLOW_EMBED_RE = /::flow\{[^}]*\bid="([^"]+)"/g
 
 interface VariantStats {
   /** True if `.passed` sentinel was present and we re-published. */
@@ -57,8 +69,9 @@ async function main() {
 
   await fs.mkdir(FLOWS_OUT, { recursive: true })
 
-  const stats = await publishAllVariants()
-  await garbageCollectStaleSlugs()
+  const referenced = await referencedFlowSlugs()
+  const stats = await publishAllVariants(referenced)
+  await garbageCollectStaleSlugs(referenced)
 
   console.log(
     `[flows] published ${stats.publishedVariants} variant(s) across ${stats.publishedSlugs.size} flow(s); `
@@ -78,7 +91,7 @@ async function main() {
  * Walk every (slug, locale, variant) source dir under FLOWS_SRC and
  * publish (or skip) it. Returns aggregate stats.
  */
-async function publishAllVariants(): Promise<RunStats> {
+async function publishAllVariants(referenced: Set<string>): Promise<RunStats> {
   const stats: RunStats = {
     publishedVariants: 0,
     skippedVariants: 0,
@@ -88,6 +101,7 @@ async function publishAllVariants(): Promise<RunStats> {
   }
 
   for await (const variant of walkVariants()) {
+    if (!referenced.has(variant.slug)) continue
     const result = await publishVariant(variant)
     if (result.published) {
       stats.publishedVariants += 1
@@ -174,14 +188,30 @@ async function publishVariant(v: VariantPath): Promise<VariantStats> {
  * Drop published slugs whose source directory disappeared entirely
  * (test renamed or deleted) so they don't 404 forever.
  */
-async function garbageCollectStaleSlugs(): Promise<void> {
+async function garbageCollectStaleSlugs(referenced: Set<string>): Promise<void> {
   for (const slug of await fs.readdir(FLOWS_OUT)) {
     const slugOut = path.join(FLOWS_OUT, slug)
     if (!(await isDir(slugOut))) continue
+    if (!referenced.has(slug)) {
+      await fs.rm(slugOut, { recursive: true, force: true })
+      console.log(`[flows] GC ${slug} — no docs page embeds it, removed from ${FLOWS_OUT}`)
+      continue
+    }
     if (await isDir(path.join(FLOWS_SRC, slug))) continue
     await fs.rm(slugOut, { recursive: true, force: true })
     console.log(`[flows] GC ${slug} — no source directory, removed from ${FLOWS_OUT}`)
   }
+}
+
+/** Every flow slug a page under content/docs embeds. */
+async function referencedFlowSlugs(): Promise<Set<string>> {
+  const slugs = new Set<string>()
+  for (const rel of await fs.readdir(DOCS_DIR, { recursive: true })) {
+    if (!rel.endsWith('.md')) continue
+    const text = await fs.readFile(path.join(DOCS_DIR, rel), 'utf8')
+    for (const match of text.matchAll(FLOW_EMBED_RE)) slugs.add(match[1])
+  }
+  return slugs
 }
 
 const isDir = async (p: string) => fs.stat(p).then(s => s.isDirectory(), () => false)

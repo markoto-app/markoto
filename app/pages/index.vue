@@ -358,6 +358,7 @@ function onRowLongPress(doc: DocumentListItem) {
       <!-- Recent documents -->
       <div
         v-if="loggedIn && myDocs.length > 0"
+        data-testid="landing-recent-documents"
         class="mt-12 w-full max-w-2xl"
       >
         <h2 class="font-serif text-2xl font-normal mb-4">

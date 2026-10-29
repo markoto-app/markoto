@@ -44,10 +44,11 @@ export default defineConfig({
   testIgnore: '**/_*.spec.ts',
   // Flows tagged `@billing` drive Stripe checkout / plan / sponsorship UI
   // that only exists when the target server runs with
-  // NUXT_BILLING_ENABLED=true. `scripts/flows-ephemeral.ts` boots its
-  // stack with billing on and sets FLOWS_BILLING_ENABLED=1; against any
-  // other server (billing off is the default — self-hosted and the
-  // free-only SaaS) they're not selected at all.
+  // NUXT_BILLING_ENABLED=true. `scripts/flows-ephemeral.ts` runs two
+  // passes: everything else against a billing-off server (the hosted
+  // free-only shape the docs describe), then `--grep @billing` against
+  // a billing-on server with FLOWS_BILLING_ENABLED=1. Against any other
+  // server (billing off is the default) they're not selected at all.
   grepInvert: process.env.FLOWS_BILLING_ENABLED === '1' ? undefined : /@billing/,
   timeout: 120_000,
   retries: process.env.CI ? 2 : 0,

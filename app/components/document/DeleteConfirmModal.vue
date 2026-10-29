@@ -7,6 +7,11 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{
+  // Fired right before the DELETE request, and `failed` when it errors —
+  // lets the editor tell its own deletion apart from someone else's
+  // (the sync broadcast can arrive before the response).
+  deleting: []
+  failed: []
   deleted: []
 }>()
 
@@ -31,6 +36,7 @@ async function handleDelete() {
   if (!canConfirm.value) return
   vibrate([100, 30, 100])
   deleting.value = true
+  emit('deleting')
   try {
     await $fetch(`/api/docs/${props.docId}`, { method: 'DELETE' })
     toast.add({
@@ -42,6 +48,7 @@ async function handleDelete() {
     open.value = false
     emit('deleted')
   } catch (e) {
+    emit('failed')
     const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('delete.failed'),

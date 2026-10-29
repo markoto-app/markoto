@@ -37,9 +37,8 @@ test('What you get on each plan', { tag: '@billing' }, async ({ page, flow, edit
   await flow.narrate(
     'markoto has four tiers — Free, Pro, Max, Ultra — split along '
     + 'the two axes that actually matter: AI credits per month and '
-    + 'workspaces you can own. The page reads from the same tier '
-    + 'config the server uses, so the numbers here are the numbers '
-    + 'the server enforces.'
+    + 'workspaces you can own. The numbers on this page are the '
+    + 'limits markoto actually applies.'
   )
 
   // ─── The full grid, with three direction-anchoring annotations ──
@@ -51,9 +50,9 @@ test('What you get on each plan', { tag: '@billing' }, async ({ page, flow, edit
   // unlock, the cap that drives the decision), which is what the
   // narration is actually about.
   await flow.shot(
-    'All four tiers side-by-side. Your current tier (Free) carries '
-    + 'a shu border + ring; Max is the sponsorship-eligible tier '
-    + 'where teams unlock the (+) workspace mechanic.',
+    'All four tiers side-by-side. Your current tier (Free) is '
+    + 'outlined; Max is the first tier that can sponsor a whole '
+    + 'workspace\'s AI use.',
     {
       hero: true,
       annotations: [

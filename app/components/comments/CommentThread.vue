@@ -98,6 +98,7 @@ function onClickThread(e: MouseEvent) {
     ]"
     :data-comment-id="comment.id"
     :data-ai-active="aiActive ? 'true' : 'false'"
+    :data-anchored="comment.anchor === null ? 'false' : 'true'"
     data-testid="comment-thread"
     @click="onClickThread"
   >

@@ -10,6 +10,6 @@ export default buildDocBoundTool({
   inputSchema: {
     doc_id: z.string().min(1).describe('The doc id containing the thread.'),
     comment_id: z.string().min(1).max(64).describe('The id of the comment thread to reply to (from read_comments).'),
-    body: z.string().trim().min(1).max(2000).describe('Reply body (max 2000 chars). May include @[Name](user:ID) mention tokens.')
+    body: z.string().trim().min(1).max(2000).describe('Reply body (max 2000 chars). Plain text — comments do not render Markdown. May include @[Name](user:ID) mention tokens.')
   }
 })

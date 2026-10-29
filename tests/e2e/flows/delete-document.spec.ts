@@ -26,25 +26,25 @@ test('Delete a document', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
-  // Set a recognisable title so the type-to-confirm step has a
-  // meaningful payload (silentSetup leaves the doc as "Untitled" by
-  // default — typing "Untitled" to confirm reads as test cheating).
+  // A second document the user keeps, so the dashboard the flow ends
+  // on shows a real "Recent documents" list — with the deleted draft
+  // visibly missing from it.
+  const keptTitle = 'Q4 planning notes'
+  const kept = await page.request.post('/api/docs', { data: { title: keptTitle } })
+  expect(kept.ok()).toBe(true)
+  // A recognisable title so the type-to-confirm step has a meaningful
+  // payload (typing "Untitled" to confirm reads as test cheating).
   const docTitle = 'Q3 launch retro draft'
-  await editor.page.titleButton.click()
-  await editor.page.titleInput.fill(docTitle)
-  await editor.page.titleInput.press('Enter')
-  await page.waitForTimeout(500)
+  await editor.silentSetup({ title: docTitle })
 
   await flow.heading('Delete a document', 3)
   await flow.narrate(
     'When you\'re done with a draft and don\'t want it lingering, '
     + 'delete it from File → Delete. markoto asks you to type the '
     + 'doc\'s title back as a confirmation — strong friction by '
-    + 'design, because deletion is irreversible. The row goes '
-    + 'away, the Y.js state is purged, every uploaded image is '
-    + 'cleaned out of S3, and every collaborator on the doc gets '
-    + 'redirected to their dashboard.'
+    + 'design, because deletion is permanent. The text, its history, '
+    + 'its comments and every image in it are removed, and anyone '
+    + 'who has the doc open is sent back to their dashboard.'
   )
 
   // ─── Open the menu containing Delete ────────────────────────────
@@ -92,7 +92,7 @@ test('Delete a document', async ({ page, flow, editor }) => {
     page.locator('[data-testid="delete-confirm-input"]'),
     docTitle,
     {
-      result: 'The Delete button enables — server roundtrip is one click away.'
+      result: 'The title matches, so the Delete button unlocks.'
     }
   )
 
@@ -102,20 +102,30 @@ test('Delete a document', async ({ page, flow, editor }) => {
     page.locator('[data-testid="delete-confirm"]'),
     {
       hero: true,
-      result: 'The doc is gone. You land back on the dashboard; the '
-        + 'deleted doc is no longer in the Recent Documents list.',
+      result: 'The doc is gone. You land back on your dashboard, and '
+        + 'your recent documents no longer list it.',
+      highlights: [
+        { label: 'Recent documents', selector: '[data-testid="landing-recent-documents"]' }
+      ],
       after: async () => {
         await page.waitForURL('/', { timeout: 10_000 })
-        await page.waitForTimeout(500)
+        // The list renders after the dashboard's docs fetch; the kept
+        // doc being listed proves the fetch landed, so the deleted
+        // doc's absence below means something.
+        await expect(page.locator('[data-testid="landing-recent-documents"]')).toContainText(keptTitle)
+        await page.locator('[data-testid="landing-recent-documents"]').scrollIntoViewIfNeeded()
       }
     }
   )
 
   // ASSERTION: we're on the dashboard root + the deleted doc's title
-  // is NOT visible in the recent-docs list. Negative-space assertion
-  // — proves the cascade actually wiped the row.
+  // is NOT in the recent-docs list. Negative-space assertion — proves
+  // the cascade actually wiped the row.
   expect(new URL(page.url()).pathname).toBe('/')
-  await expect(page.getByText(docTitle).first()).toHaveCount(0)
+  await expect(page.locator('[data-testid="landing-recent-documents"]')).not.toContainText(docTitle)
+  // The deleter gets the success toast, never the "deleted by the
+  // owner" notice meant for other people who had the doc open.
+  await expect(page.getByText(/deleted by the owner/i)).toHaveCount(0)
 
   flow.next({
     slug: 'restore-an-earlier-version',

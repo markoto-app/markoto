@@ -30,7 +30,7 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Release notes draft' })
   await editor.page.disableCoverPage()
 
   // Make a recognisable edit so the diff drawer has real content

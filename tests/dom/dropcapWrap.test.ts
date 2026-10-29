@@ -139,3 +139,22 @@ describe('wrapFirstLetterAsDropCap', () => {
     expect(() => wrapFirstLetterAsDropCap(html)).not.toThrow()
   })
 })
+
+describe('wrapFirstLetterAsDropCap — which paragraph', () => {
+  test('skips an alert title and takes the first body paragraph', () => {
+    const html = '<pre><code>x</code></pre><div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title">Tip</p><p>Body</p></div><p>Prose</p>'
+    const out = wrapFirstLetterAsDropCap(html)
+    expect(out).toContain('<p class="markdown-alert-title">Tip</p>')
+    expect(out).toContain('<p><span class="markoto-dropcap">P</span>rose</p>')
+  })
+
+  test('skips quotes, list items and table cells', () => {
+    const html = '<blockquote><p>Quote</p></blockquote><ul><li><p>Item</p></li></ul><p>Opening</p>'
+    expect(wrapFirstLetterAsDropCap(html)).toContain('<span class="markoto-dropcap">O</span>pening')
+  })
+
+  test('no body paragraph at all → unchanged', () => {
+    const html = '<blockquote><p>Only a quote</p></blockquote>'
+    expect(wrapFirstLetterAsDropCap(html)).toBe(html)
+  })
+})

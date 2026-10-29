@@ -30,10 +30,9 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
-  // Cover-page-on shows the visual difference more dramatically when
-  // we toggle it — but silentSetup leaves the markoto preset's
-  // default which IS cover-on, so we don't need disableCoverPage().
+  // Cover stays ON here: turning it off is one of the tweaks this
+  // flow saves into the preset.
+  await editor.silentSetup({ title: 'Team report template' })
 
   await flow.heading('Save your custom theme as a preset', 3)
   await flow.narrate(
@@ -80,8 +79,8 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
       force: editor.isMobile,
       result: editor.isMobile
         ? 'The academic preset is selected — preview iframe is hidden in mobile edit-only mode.'
-        : 'The preview repaginates — Fraunces body, refined '
-          + 'spacing, the academic preset\'s signature look.',
+        : 'The preview repaginates — two-column serif body and '
+          + 'restrained colour, the academic preset\'s signature look.',
       after: async () => {
         // Mobile is edit-only — no preview iframe to wait on.
         if (!editor.isMobile) {
@@ -121,8 +120,8 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
         : 'The preview repaginates — page 1 is now the document body, '
           + 'no title sheet.',
       after: async () => {
-        await page.waitForTimeout(800)
         if (!editor.isMobile) {
+          await expect(editor.page.previewRoot().locator('#mount .markoto-cover')).toHaveCount(0, { timeout: 10_000 })
           await editor.page.waitForPreviewPaginated()
         }
       }
@@ -142,6 +141,9 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   // page.on('dialog') fires synchronously inside the click handler;
   // attaching the listener after would miss the event.
   const PRESET_NAME = 'My academic, no cover'
+  // Clear the earlier "Template applied" toast so the hero frame shows
+  // only the save confirmation.
+  await editor.page.dismissToasts()
   page.once('dialog', (dialog) => {
     void dialog.accept(PRESET_NAME)
   })
@@ -152,9 +154,8 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     {
       force: editor.isMobile,
       hero: true,
-      result: 'A name prompt appears + auto-resolves with your name; the '
-        + 'theme lands in the saved-themes list above the built-in '
-        + 'presets, ready to re-apply on any doc.',
+      result: 'Give it a name and the theme lands under Your themes, above '
+        + 'the built-in templates — one click on any doc from now on.',
       after: async () => {
         // The save handler POSTs to /api/themes; on success the
         // saved-themes list refetches. Wait for the new card to

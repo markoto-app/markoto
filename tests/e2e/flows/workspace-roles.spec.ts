@@ -15,19 +15,12 @@ import { Pool } from 'pg'
 // `invite-a-teammate`). This flow assumes a member is already in
 // the workspace and zooms in on the consequences of each role.
 //
-// Single-actor flow. The spawned-teammate pattern was simpler in
-// concept but the multi-context cleanup raced with the final
-// screenshot in practice. Driving role changes through the API
-// from Maya's side keeps the demo declarative — the screenshots
-// stay on the workspace settings + members panel where the role
-// chips live.
+// Single-actor flow: Maya (admin) changes Sam's role through the
+// role chip in the members modal — the same click a real admin makes —
+// and the chip, the server and the last-admin rail are all asserted.
 //
 // Runs on desktop AND mobile. The members modal renders identically
-// at both viewport widths (Reka UI dialog reflows under `<sm`); the
-// flow drives role flips via the API rather than the role-chip
-// dropdown, so the platform-specific dropdown chrome doesn't gate
-// the assertion. Mobile shows the role-chip column stacked instead
-// of side-by-side, but the asserted server state is the same.
+// at both viewport widths (Reka UI dialog reflows under `<sm`).
 test('Roles inside a workspace', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
@@ -45,7 +38,8 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
       `INSERT INTO users (github_id, name, email, plan)
        VALUES ($1, $2, $3, 'free')
        RETURNING id`,
-      [`flow-test-teammate-${Date.now()}`, 'Sam Reeves', `sam-${Date.now()}@team.example`]
+      // Clean display email — it is on screen in the members modal.
+      [`flow-test-teammate-${Date.now()}`, 'Sam Reeves', 'sam.reeves@team.example']
     )
     teammateUserId = r.rows[0].id
   } finally {
@@ -83,9 +77,8 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
     + 'permissions, delete the workspace. Editors write content '
     + 'but can\'t touch access controls. Viewers read; their '
     + 'editor is locked. Two safety rails: one workspace must '
-    + 'always have at least one admin, and viewer read-only is '
-    + 'enforced four layers deep so no client-side workaround '
-    + 'sneaks past it.'
+    + 'always have at least one admin, and a viewer\'s read-only '
+    + 'access is enforced by the server, not just hidden in the UI.'
   )
 
   // ─── Open the members panel ─────────────────────────────────────
@@ -100,57 +93,63 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
       after: () => page.getByText(/Sam Reeves/i).first().waitFor({ state: 'visible', timeout: 5_000 })
     }
   )
+  const samChip = page.locator(`[data-testid="workspace-member-row-${teammateUserId}"] [data-testid="workspace-member-role"]`)
+  await expect(samChip).toContainText('Viewer')
 
   // ─── Promote Sam to editor (server-side) ────────────────────────
   await flow.heading('Promote Sam to editor', 3)
   await flow.narrate(
     'The role chip beside Sam\'s name opens a dropdown — Admin / '
-    + 'Editor / Viewer. Pick Editor and the change persists '
-    + 'immediately. The next time Sam\'s editor mints a token (on '
-    + 'reload, or when the existing token expires after 2 h), the '
-    + 'JWT carries `readOnly: false` and the read-only veil lifts.'
+    + 'Editor / Viewer. Pick Editor and the change is saved right away. '
+    + 'Sam\'s documents become writable the next time they open one '
+    + '(an editor that is already open picks it up within two hours).'
   )
 
-  // Drive the promotion via API. The role-chip dropdown is admin-
-  // only, non-testid'd, and racy with UDropdownMenu's animation;
-  // the reader's takeaway is "promoting changes the role", not
-  // "here's the dropdown". invite-a-teammate covers the members-
-  // modal UI tour.
-  const promoteRes = await page.request.patch(
-    `/api/workspaces/${ws.workspaceId}/members/${teammateUserId}`,
-    { data: { role: 'editor' } }
+  await flow.click(
+    'Click the role chip beside Sam',
+    samChip,
+    {
+      result: 'The role menu opens — Admin, Editor, Viewer.',
+      after: () => page.getByRole('menuitem', { name: /^editor/i }).waitFor({ state: 'visible' })
+    }
   )
-  expect(promoteRes.status()).toBe(200)
+  await flow.click(
+    'Pick "Editor"',
+    page.getByRole('menuitem', { name: /^editor/i }),
+    {
+      hero: true,
+      result: 'Sam\'s chip now reads Editor — the change is saved.',
+      highlights: [
+        { label: 'Sam is now an editor', selector: `[data-testid="workspace-member-row-${teammateUserId}"]` }
+      ],
+      after: () => expect(samChip).toContainText('Editor')
+    }
+  )
 
   const wsAfter = await page.request.get(`/api/workspaces/${ws.workspaceId}`).then(r => r.json()) as {
     members: Array<{ userId: number, role: string }>
   }
   expect(wsAfter.members.find(m => m.userId === teammateUserId)?.role).toBe('editor')
 
-  await flow.shot(
-    'Sam\'s row updates — the role chip flips to Editor. Sam reloads '
-    + 'the doc; their editor is now writable.',
-    {
-      hero: true,
-      highlights: [
-        { label: 'Members panel', selector: '[role="dialog"]' }
-      ]
-    }
-  )
-
   // ─── Last-admin invariant ───────────────────────────────────────
   await flow.heading('The last-admin invariant', 3)
   await flow.narrate(
     'A workspace must always have at least one admin — otherwise '
-    + 'no one can manage members or close it down. Trying to '
-    + 'demote yourself when you\'re the sole admin gets a 409 '
-    + 'from the server; the UI also disables the chip on your '
-    + 'own row in that case.'
+    + 'no one can manage members or close it down. While you are '
+    + 'the only admin, the role chip on your own row is locked, and '
+    + 'markoto refuses the change even if something tries it anyway.'
   )
 
   const meCheck = await page.request.get('/api/_auth/session').then(r => r.json()) as {
     user: { id: number }
   }
+  const myChip = page.locator(`[data-testid="workspace-member-row-${meCheck.user.id}"] [data-testid="workspace-member-role"]`)
+  await expect(myChip).toBeDisabled()
+  await flow.shot('Your own role chip is locked — you are the only admin.', {
+    highlights: [
+      { label: 'Locked: last admin', selector: `[data-testid="workspace-member-row-${meCheck.user.id}"] [data-testid="workspace-member-role"]` }
+    ]
+  })
   const demoteRes = await page.request.patch(
     `/api/workspaces/${ws.workspaceId}/members/${meCheck.user.id}`,
     { data: { role: 'editor' } }

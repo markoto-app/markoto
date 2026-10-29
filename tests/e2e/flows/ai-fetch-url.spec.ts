@@ -9,10 +9,9 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // the SSRF-guarded URL fetcher, and inserts a summary paragraph.
 //
 // Pipeline: AI calls `fetch_url(url)` → 2-call sub-pipeline (Jina
-// Reader fetches the page, then Mistral synthesises a structured
-// `{summary, images[]}` extraction with `json_schema strict:true`)
-// → AI weaves the result back into the doc, often with a citation
-// note about the source.
+// Reader fetches the page, then the chat model synthesises a
+// structured `{summary, images[]}` extraction) → AI weaves the result
+// into the doc with a link to the page (system-prompt citation rule).
 //
 // Live LiteLLM round-trip → Mistral. Skipped if no key.
 test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
@@ -20,18 +19,16 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
-  await editor.page.disableCoverPage()
+  const draft = '# Framework shortlist\n\n## Candidates\n\nWe are comparing frontend frameworks for the new customer dashboard.\n'
+  await editor.silentSetup({ title: 'Framework shortlist', body: draft, cover: false })
 
   await flow.heading('Drop a URL — the AI reads it for you', 3)
   await flow.narrate(
-    'Paste any URL into the AI prompt bar with a question and the '
-    + 'AI calls `fetch_url`: a guarded server-side fetcher (no '
-    + 'private CIDRs, no `file://`, no internal hostnames) feeds '
-    + 'the page through Jina Reader, hands the result to Mistral '
-    + 'for structured output, and the AI summarises into your doc with a '
-    + 'citation. Useful for articles, docs, RFC drafts, anything '
-    + 'public on the open web.'
+    'Paste any public URL into the AI prompt bar with a question and '
+    + 'the AI reads the page for you, then writes what you asked for '
+    + 'into your doc with a link back to the page. Useful for articles, '
+    + 'docs, RFC drafts, anything public on the open web. Private '
+    + 'network addresses are refused.'
   )
 
   // ─── Prompt with a URL ──────────────────────────────────────────
@@ -50,14 +47,14 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
     'Paste the URL with a question',
     editor.page.ai.promptBarInput,
     prompt,
-    { result: 'Your prompt is staged. The URL signals fetch_url to the AI.' }
+    { result: 'Your prompt is ready — the URL tells the AI which page to read.' }
   )
 
   await flow.click(
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — fetch_url runs, then the summary lands in the doc.',
+      result: 'The AI is working — it reads the page, then the summary lands in the doc.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -65,31 +62,30 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   // fetch_url + insert_text is typically 2-3 turns; 15-45s wallclock.
   await editor.page.waitForAiIdle()
 
+  // ASSERTION: the AI read the page this session (the Activity log
+  // records every AI tool call) and added a Vue summary that links
+  // back to the page it read.
+  const docId = editor.page.currentDocId()
+  await expect.poll(async () => {
+    const res = await page.request.get(`/api/docs/${docId}/activity`)
+    return res.ok() ? JSON.stringify(await res.json()) : ''
+  }, { timeout: 15_000, message: 'the AI never called fetch_url' }).toMatch(/fetch_url/)
+  const added = await editor.page.addedText(draft)
+  expect(added.length, 'the AI added no summary').toBeGreaterThan(150)
+  expect(added).toMatch(/vue/i)
+  expect(added, `no link to the page in: ${added}`).toMatch(/vuejs\.org/i)
+  await editor.page.scrollEditorTo(/vue/i)
+
   await flow.shot(
-    'The AI fetched the URL, ran a grounded summary, and wrote the '
-    + 'paragraph into the doc — with the source URL preserved so '
-    + 'the reader can verify.',
+    'The AI read the page and wrote the summary into the doc — with '
+    + 'a link to the source so the reader can verify.',
     {
       hero: true,
       highlights: [
-        { label: 'AI-written summary', selector: '.cm-content' }
+        { label: 'AI-written summary', selector: '.cm-line:has-text("vue")' }
       ]
     }
   )
-
-  // ASSERTION: the doc grew with a Vue-related summary. We can't
-  // assert exact wording (Mistral is non-deterministic) but the
-  // model receives the URL in its prompt + sees the page contents
-  // through the Jina Reader sub-call, so SOME mention of Vue /
-  // framework / JS should make it through.
-  const docId = page.url().match(/\/d\/([^/?]+)/)?.[1]
-  expect(docId).toBeTruthy()
-  const ytext = await page.evaluate(() => {
-    type Win = { __DEBUG_ytext?: { toString: () => string } }
-    return (window as unknown as Win).__DEBUG_ytext?.toString() ?? ''
-  })
-  expect(ytext.length).toBeGreaterThan(200)
-  expect(ytext).toMatch(/vue|javascript|framework/i)
 
   flow.next({
     slug: 'ask-the-ai-for-current-information',

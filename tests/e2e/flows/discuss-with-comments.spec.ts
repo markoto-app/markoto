@@ -18,7 +18,7 @@ import { test, expect } from '../fixtures/flow'
 test('Have a discussion', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Launch plan' })
 
   // ─── Discuss in your doc ────────────────────────────────────────
   await flow.heading('Have a discussion', 3)

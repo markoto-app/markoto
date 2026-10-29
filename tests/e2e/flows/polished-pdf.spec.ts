@@ -26,16 +26,15 @@ import { test, expect } from '../fixtures/flow'
 test('Polished PDF', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup()
+  await editor.silentSetup({ title: 'Research summary' })
 
   // Title + intro.
   await flow.heading('Download a polished PDF', 3)
   await flow.narrate(
     'When the doc looks right in the live preview, the PDF on disk '
-    + 'will look exactly the same — paged.js renders both. The File → '
-    + 'Save as PDF item triggers a server-side render in the renderer '
-    + 'sidecar; the byte-perfect PDF travels via S3 instead of through '
-    + 'the user\'s browser print dialog. Theme picking + tweaking is '
+    + 'will look exactly the same — both come out of the same page '
+    + 'layout. File → Save as PDF renders the file on the server and '
+    + 'downloads it, no browser print dialog involved. Theme picking + tweaking is '
     + 'a separate flow (see the next link below); this one focuses on '
     + 'the export path.'
   )
@@ -44,10 +43,9 @@ test('Polished PDF', async ({ page, flow, editor }) => {
   await flow.heading('Save it as a polished PDF', 3)
   await flow.narrate(
     'When the doc looks right in the live preview, the PDF on disk '
-    + 'will look exactly the same — same paged.js engine renders both. '
-    + 'The File → Save as PDF item triggers a server-side render in '
-    + 'the renderer sidecar, so the byte-perfect PDF travels via S3 '
-    + 'instead of through the user\'s print dialog.'
+    + 'will look exactly the same — both come out of the same page '
+    + 'layout. File → Save as PDF renders the file on the server and '
+    + 'downloads it, no print dialog involved.'
   )
 
   // Open the menu containing PDF export.

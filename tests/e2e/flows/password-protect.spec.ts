@@ -29,16 +29,21 @@ test('Password protect', async ({ page, flow, editor }) => {
   // so the doc is created with this user as owner — they then
   // see the access-mode controls in the share dialog.
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup()
+  await editor.silentSetup({
+    title: 'Board meeting notes',
+    body: '# Board meeting notes\n\n## Decisions\n\n- Hire two engineers in Q1\n- Move the launch to March\n\n## Next meeting\n\nFirst Monday of the month, 9:00.\n',
+    cover: false
+  })
 
   // Title + intro before the captures begin.
   await flow.heading('Lock a document with a password', 3)
   await flow.narrate(
-    'Anonymous documents share by URL — anyone with the link can read '
-    + 'AND write by default. To gate access, switch the doc\'s access '
-    + 'mode to password-protected and choose a passphrase. Visitors hit '
-    + 'a blocking dialog before the editor mounts; only the right '
-    + 'passphrase gets them past it.'
+    'Documents share by URL. To gate one, its owner switches the access '
+    + 'mode to password-protected and chooses a passphrase. Visitors hit '
+    + 'a blocking dialog before they see anything; only the right '
+    + 'passphrase gets them past it. Only the owner sees the access-mode '
+    + 'picker — sign in first, because a document created without an '
+    + 'account has no owner and can\'t be locked.'
   )
 
   // ─── Open the share dialog ───────────────────────────────────────
@@ -62,10 +67,9 @@ test('Password protect', async ({ page, flow, editor }) => {
   await flow.heading('Switch the access mode', 3)
   await flow.narrate(
     'Tap "Password protected" to gate the doc. The password input '
-    + 'appears below — choose something at least 4 characters, '
-    + 'memorable enough to share verbally with whoever needs in. '
-    + 'markoto stores only a scrypt hash; the plaintext is never '
-    + 'persisted server-side.'
+    + 'appears below — choose at least 8 characters, memorable enough '
+    + 'to share verbally with whoever needs in. markoto stores only a '
+    + 'one-way hash of it, never the passphrase itself.'
   )
 
   // The four access mode options render as buttons inside the share
@@ -92,7 +96,7 @@ test('Password protect', async ({ page, flow, editor }) => {
     passwordInput,
     sharedPassword,
     {
-      result: 'The passphrase is staged — Save commits the hash to the server.'
+      result: 'The passphrase is typed — Save locks the doc with it.'
     }
   )
 
@@ -105,12 +109,9 @@ test('Password protect', async ({ page, flow, editor }) => {
     saveBtn,
     {
       result: 'The doc is now gated — the access-mode banner shows "password protected".',
-      after: async () => {
-        // Server hashes + returns; the dialog re-reads the access
-        // mode from the parent. Brief settle so the next screenshot
-        // catches the updated badge.
-        await page.waitForTimeout(800)
-      }
+      // The topbar lock reflects the saved mode once the server
+      // answered.
+      after: () => expect(editor.page.accessLockButton).toHaveAttribute('aria-label', /password protected/i, { timeout: 10_000 })
     }
   )
 
@@ -128,11 +129,10 @@ test('Password protect', async ({ page, flow, editor }) => {
   // ─── What your visitor sees ──────────────────────────────────────
   await flow.heading('What your visitor sees', 3)
   await flow.narrate(
-    'A first-time visitor — separate browser, no JWT cookie for '
-    + 'this doc — hits the password modal before the editor mounts. '
-    + 'The modal blocks every layer: the JWT issued by the token '
-    + 'endpoint is `null`, the Y.js handshake is rejected, and the '
-    + 'editor markup is hidden until verification succeeds.'
+    'A first-time visitor — say, in their own browser — opens the '
+    + 'link and gets the password dialog first. Until the passphrase '
+    + 'checks out, markoto sends them nothing of the document: not '
+    + 'the text, not even its title.'
   )
 
   // Spawn the visitor — a genuinely separate BrowserContext (clean
@@ -158,11 +158,9 @@ test('Password protect', async ({ page, flow, editor }) => {
   // ─── Unlock the doc ──────────────────────────────────────────────
   await visitor.flow.heading('Unlock with the passphrase', 3)
   await visitor.flow.narrate(
-    'Type the passphrase and the gate lifts. markoto sets a '
-    + 'short-lived doc-scoped cookie so future page loads in this '
-    + 'browser skip the modal until the cookie expires. The '
-    + 'passphrase travels over HTTPS only; the server compares '
-    + 'scrypt hashes, not the plaintext.'
+    'Type the passphrase and the gate lifts. Too many wrong guesses '
+    + 'and markoto pauses password checks on the document for a while, '
+    + 'so a passphrase can\'t be brute-forced.'
   )
 
   await visitor.flow.type(
@@ -187,7 +185,7 @@ test('Password protect', async ({ page, flow, editor }) => {
       // ACROSS actors — the visitor's unlocked frame is the first
       // outcome marked hero in this flow, so it wins.
       hero: true,
-      result: 'The password modal closes — the editor mounts and the doc loads.',
+      result: 'The password dialog closes and the document opens.',
       after: async () => {
         // Wait for the CodeMirror content surface to be ATTACHED on
         // the visitor's page — the title button is mobile-hidden in
@@ -197,6 +195,13 @@ test('Password protect', async ({ page, flow, editor }) => {
         // mobile. We also wait for the password modal to detach.
         await visitor.page.locator('.cm-content').waitFor({ state: 'attached', timeout: 15_000 })
         await expect(visitor.page.locator('[data-testid="password-modal-input"]')).toHaveCount(0, { timeout: 10_000 })
+        await expect(visitor.page.locator('.cm-content')).toContainText('Board meeting notes', { timeout: 15_000 })
+        // Desktop shows the live preview next to the editor — wait for
+        // its pages, or the hero frame shows an empty preview pane.
+        if (!editor.isMobile && await visitor.page.locator('iframe').count() > 0) {
+          await visitor.editor.waitForPreviewPaginated()
+          await expect(visitor.editor.previewRoot().locator('#mount')).toContainText('Decisions')
+        }
       }
     }
   )

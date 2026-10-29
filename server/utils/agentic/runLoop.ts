@@ -1,3 +1,4 @@
+import { fetchUrlCitationReminder, webSearchCitationReminder } from './citations'
 import {
   AgenticFinishReason as FinishReason,
   type AgenticContent as Content,
@@ -761,7 +762,7 @@ async function runSubCall(
           uri: s.uri.slice(0, 500)
         }))
       })
-      return { content: out.text, isError: false }
+      return { content: out.text + webSearchCitationReminder(out.sources), isError: false }
     }
     const { url } = validatedArgs as { url: string }
     const out = await fetchUrl(ctx.opts.ai, ctx.opts.model, url, ctx.opts.abortController.signal, subCallContext)
@@ -775,7 +776,7 @@ async function runSubCall(
         description: i.description?.slice(0, 200)
       }))
     })
-    return { content: out.text, isError: false }
+    return { content: out.text + fetchUrlCitationReminder(out.url), isError: false }
   } catch (e: unknown) {
     if (ctx.opts.abortController.signal.aborted) throw e
     const msg = e instanceof Error ? e.message : 'Unknown error'

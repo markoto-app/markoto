@@ -7,18 +7,68 @@ import { fakeOpenAiBaseUrl } from '../../integration/setup/env'
 // has (Mistral, OpenAI, a model on their own server) so their own
 // provider runs — and pays for — the writing assistant.
 //
-// What this flow shows: Settings → AI provider → add a provider for the
-// writing assistant → markoto verifies it (a tool-calling test call) →
-// the card shows the host, the model and only the last four characters
-// of the key. The provider here is the test stack's fake OpenAI-
-// compatible server (`fake-openai-test`), reachable on the docker
-// bridge; the flow stack allows private-network providers like a
-// self-hosted instance would (NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true in
-// scripts/flows-ephemeral.ts). No live AI provider is called.
+// What this flow shows: Settings → AI provider → pick the Mistral
+// preset for the writing assistant → markoto verifies it (a
+// tool-calling test call) → the card shows the host, the model and only
+// the last four characters of the key.
+//
+// Staging: the screenshots show what a reader would do — the Mistral
+// preset — but no live provider is called and no real key is needed.
+// The save request is re-pointed at the test stack's fake OpenAI-
+// compatible server (`fake-openai-test`, on the docker bridge, allowed
+// because the flow stack sets NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true), so
+// the server-side SSRF check, verification call, encryption and storage
+// all run for real. Responses are mapped back to the Mistral values the
+// reader picked, and the instance's private-network opt-in is hidden —
+// markoto.app doesn't offer it, and readers shouldn't see a 10.x address.
+
+const SHOWN_BASE_URL = 'https://api.mistral.ai/v1'
+const SHOWN_HOST = 'api.mistral.ai'
+const SHOWN_MODEL = 'mistral-small-2603'
+const FAKE_MODEL = 'fake-chat'
+
+/** Deep-replace provider strings in an API payload; hide the private-network opt-in. */
+function mapPayload(value: unknown, map: ReadonlyMap<string, string>): unknown {
+  if (typeof value === 'string') return map.get(value) ?? value
+  if (Array.isArray(value)) return value.map(v => mapPayload(v, map))
+  if (typeof value === 'object' && value !== null) {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = k === 'allowPrivate' ? false : mapPayload(v, map)
+    }
+    return out
+  }
+  return value
+}
 
 test('Use your own AI provider', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
   await editor.page.loginAsTestUser('Maya Chen')
+
+  const fakeBaseUrl = fakeOpenAiBaseUrl()
+  const fakeHost = new URL(fakeBaseUrl).host
+  const toFake = new Map([[SHOWN_BASE_URL, fakeBaseUrl], [SHOWN_MODEL, FAKE_MODEL]])
+  const toShown = new Map([[fakeBaseUrl, SHOWN_BASE_URL], [fakeHost, SHOWN_HOST], [new URL(fakeBaseUrl).hostname, SHOWN_HOST], [FAKE_MODEL, SHOWN_MODEL]])
+  const savedBodies: unknown[] = []
+  await page.route('**/api/user/ai-providers**', async (route) => {
+    const request = route.request()
+    let postData: string | undefined
+    if (request.method() === 'PUT' || request.method() === 'POST') {
+      const raw = request.postData()
+      if (raw) {
+        const forwarded = mapPayload(JSON.parse(raw), toFake)
+        savedBodies.push(forwarded)
+        postData = JSON.stringify(forwarded)
+      }
+    }
+    const response = await route.fetch({ postData })
+    const text = await response.text()
+    let body = text
+    try {
+      body = JSON.stringify(mapPayload(JSON.parse(text), toShown))
+    } catch { /* not JSON — pass through */ }
+    await route.fulfill({ response, body })
+  })
 
   await page.goto('/settings/ai')
   const chatCard = page.getByTestId('ai-provider-card-chat')
@@ -45,11 +95,12 @@ test('Use your own AI provider', async ({ page, flow, editor }) => {
     }
   })
 
-  const baseUrl = fakeOpenAiBaseUrl()
-  await page.getByTestId('ai-provider-base-url-chat').fill(baseUrl)
-  await page.getByTestId('ai-provider-model-chat').fill('fake-chat')
+  // The form opens on the first preset (Mistral) with its address and
+  // a suggested model filled in; the reader only adds the key.
+  await expect(page.getByTestId('ai-provider-base-url-chat')).toHaveValue(SHOWN_BASE_URL)
+  await page.getByTestId('ai-provider-model-chat').fill(SHOWN_MODEL)
   await flow.step(
-    'Enter the provider address, the model and your API key',
+    'Pick your provider (here: Mistral), check the model and paste your API key',
     () => page.getByTestId('ai-provider-api-key-chat').fill('sk-flow-demo-key-4242')
   )
 
@@ -71,6 +122,11 @@ test('Use your own AI provider', async ({ page, flow, editor }) => {
   await expect(page.getByTestId('ai-provider-source-chat')).toHaveText(/your key/i)
   await expect(page.getByTestId('ai-provider-key-chat')).toContainText('4242')
   await expect(page.getByTestId('ai-provider-key-chat')).not.toContainText('sk-flow-demo')
+  await expect(page.getByTestId('ai-provider-host-chat')).toHaveText(SHOWN_HOST)
+  // The save really went to the server, verified against the fake
+  // provider the request was re-pointed at.
+  expect(savedBodies.some(b => JSON.stringify(b).includes(fakeBaseUrl))).toBe(true)
+  await expect(page.getByText(/private network/i)).toHaveCount(0)
   await flow.narrate(
     'Before saving, markoto sent a small test request with a tool definition through the '
     + 'same path the assistant uses, so a wrong key or an unknown model is caught here, not '

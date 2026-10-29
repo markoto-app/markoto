@@ -79,11 +79,16 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
     'Pick the academic preset',
     page.locator('[data-testid="workspace-default-theme-preset-academic"]'),
     {
-      result: 'The academic card lights up with a shu border — every new doc in this workspace will inherit this preset.',
+      result: 'The academic card is now selected — every new doc in this workspace starts with this preset.',
       annotations: [
         { label: 'Academic preset', selector: '[data-testid="workspace-default-theme-preset-academic"]', kind: 'arrow' }
       ],
-      after: () => page.waitForTimeout(800)
+      // The pick saves immediately — wait until the server has it.
+      after: () => expect.poll(async () => {
+        const res = await page.request.get(`/api/workspaces/${ws.workspaceId}`)
+        const body: unknown = res.ok() ? await res.json() : null
+        return JSON.stringify(body)
+      }, { timeout: 10_000 }).toMatch(/source serif/i)
     }
   )
 
@@ -110,6 +115,9 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
 
   // Switch back to the Documents tab so the workspace-level "+ New
   // document" button is in view.
+  // Close the "Default theme updated" toast first — it would sit on
+  // the new-document dialog in the next frames.
+  await editor.page.dismissToasts()
   await page.getByRole('tab', { name: /^documents$/i }).click()
   await page.locator('[data-testid="workspace-new-document"]').waitFor({ state: 'visible', timeout: 5_000 })
 
@@ -126,8 +134,17 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   // selected card. When the workspace default IS a built-in preset
   // (academic in our case), the matching preset card lights up
   // directly — no separate "inherit" card is rendered.
+  // ASSERTION: the academic card is the selected one.
+  const academicCard = page.locator('[data-testid="newdoc-theme-card-academic"]')
+  await expect(academicCard).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('[data-testid^="newdoc-theme-card-"][aria-pressed="true"]')).toHaveCount(1)
+  // The Theme question sits below the fold of the dialog — scroll it
+  // into view so the frame shows what the caption says.
+  await academicCard.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
+  await expect(academicCard).toBeInViewport()
+
   await flow.shot(
-    'Scroll to the Theme question — the academic card is preselected.',
+    'Further down, under the Theme question, the academic card is preselected.',
     {
       hero: true,
       highlights: [
@@ -135,15 +152,6 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
       ]
     }
   )
-
-  // ASSERTION: the academic card is rendered (the workspace's
-  // default-theme propagation through the new-doc dialog is the
-  // story; the dialog's per-pixel highlight state depends on a
-  // JSON.stringify equality check inside the Vue component which
-  // can drift on key ordering — we assert the underlying
-  // server-persisted state above instead).
-  const academicCard = page.locator('[data-testid="newdoc-theme-card-academic"]')
-  await expect(academicCard).toBeVisible()
 
   flow.next({
     slug: 'pick-a-theme',

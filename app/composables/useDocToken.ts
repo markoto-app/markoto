@@ -123,6 +123,9 @@ export function useDocToken(docId: string) {
   // the Document tab can hydrate before sync, and ymeta.* mirrors are
   // bridged in `useDocument` for live cross-client updates.
   const initialDescription = ref<string>('')
+  // Title stored on the documents row (from the new-document dialog).
+  // `useDocument` shows it until the live `ymeta.title` exists.
+  const initialTitle = ref<string>('')
   const initialAudience = ref<string>('casual')
   const initialLanguage = ref<string>('en')
   // Pre-rendered template body (with title/description placeholders
@@ -152,6 +155,7 @@ export function useDocToken(docId: string) {
         workspaceAiEnabled?: boolean | null
         workspaceBillingOwner?: BillingOwner | null
         theme?: DocTheme | null
+        title?: string
         description?: string
         audience?: string
         language?: string
@@ -171,6 +175,7 @@ export function useDocToken(docId: string) {
       workspaceAiEnabled.value = data.workspaceAiEnabled ?? false
       workspaceBillingOwner.value = data.workspaceBillingOwner ?? null
       initialTheme.value = data.theme ?? null
+      if (typeof data.title === 'string') initialTitle.value = data.title
       if (typeof data.description === 'string') initialDescription.value = data.description
       if (typeof data.audience === 'string') initialAudience.value = data.audience
       if (typeof data.language === 'string') initialLanguage.value = data.language
@@ -260,12 +265,14 @@ export function useDocToken(docId: string) {
     try {
       const data = await $fetch<{
         theme?: DocTheme | null
+        title?: string
         description?: string
         audience?: string
         language?: string
         initialBody?: string | null
       }>(`/api/docs/${docId}/meta`, { headers: { Authorization: `Bearer ${newToken}` } })
       initialTheme.value = data.theme ?? null
+      if (typeof data.title === 'string') initialTitle.value = data.title
       if (typeof data.description === 'string') initialDescription.value = data.description
       if (typeof data.audience === 'string') initialAudience.value = data.audience
       if (typeof data.language === 'string') initialLanguage.value = data.language
@@ -316,6 +323,7 @@ export function useDocToken(docId: string) {
     workspaceBillingOwner,
     pendingPasswordUnlock,
     initialTheme,
+    initialTitle,
     initialDescription,
     initialAudience,
     initialLanguage,

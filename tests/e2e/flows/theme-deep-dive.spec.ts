@@ -25,34 +25,23 @@ import { test, expect } from '../fixtures/flow'
 test('Tune your typography and colors', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
+  // Two real paragraphs under a heading (replacing the welcome text),
+  // cover off: drop-cap / body-font changes are what this flow shows,
+  // and the cover sheet would hide them. (Typing the paragraphs at the
+  // caret once glued them onto an existing heading line.)
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.page.createBlankDocWithTitle('Field guide to typography')
-
-  // Disable the cover so the preview's page 1 is the body — the
-  // body dials are what this flow is showing off, and a cover sheet
-  // hides them on first paint.
-  await editor.page.disableCoverPage()
-
-  // Type two paragraphs into the editor so drop-cap / body-font
-  // changes are visible. CodeMirror is the focused surface after
-  // the dialog closes; type into the editor area.
-  const editorArea = page.locator('.cm-content').first()
-  await editorArea.click()
-  await editorArea.pressSequentially(
-    'Long-form writing rewards a careful theme — typography that '
-    + 'breathes, a colour palette that fades behind the words, '
-    + 'and one or two flourishes that signal craft without '
-    + 'shouting for attention.\n\n'
-    + 'A theme editor is for the moments when a preset is close '
-    + 'but not right. Reach in, change three things, watch the '
-    + 'page repaint.'
-  )
-  // Mobile is edit-only (no preview iframe under `<sm`), so the
-  // split-view + preview-paginated wait only runs on desktop.
-  if (!editor.isMobile) {
-    await editor.page.switchToSplitView()
-    await editor.page.waitForPreviewPaginated()
-  }
+  await editor.silentSetup({
+    title: 'Field guide to typography',
+    body: '# Field guide to typography\n\n'
+      + 'Long-form writing rewards a careful theme — typography that '
+      + 'breathes, a colour palette that fades behind the words, '
+      + 'and one or two flourishes that signal craft without '
+      + 'shouting for attention.\n\n'
+      + 'A theme editor is for the moments when a preset is close '
+      + 'but not right. Reach in, change three things, watch the '
+      + 'page repaint.\n',
+    cover: false
+  })
 
   await flow.heading('Tune your typography and colors', 3)
   await flow.narrate(
@@ -104,9 +93,8 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
   await flow.narrate(
     'A drop cap on the first paragraph is the typographic signal '
     + 'for "this is a real piece of writing, not a memo". markoto '
-    + 'renders it via CSS `:first-letter` + `initial-letter` so '
-    + 'the descender hangs against the baseline of the second line '
-    + 'cleanly across browsers.'
+    + 'sets the first letter across two lines, the way books do — in '
+    + 'the preview and in the PDF.'
   )
 
   // Use flow.hover for the approach screenshot, then dispatch a

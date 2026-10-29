@@ -58,8 +58,9 @@ test('Quick share', async ({ flow, editor }) => {
   Pass on `flow.click(...)` opts to anchor the APPROACH frame; pass on `flow.shot/step/type/hover` opts to anchor that frame directly.
 - **`opts.hero: true`** — mark this OUTCOME frame as the flow's hero. Rendered above the slideshow as a "what success looks like" preview. At most one hero per flow; the first marked frame wins. Set on the most decisive outcome (a copied link, an AI's reply landed, a finished cover page).
 - **`editor.recordPreamble()`** — lean two-step preamble (open → click) for flows where doc creation IS the story. After capture, silently switches to split view.
-- **`editor.silentSetup()`** — same setup, but writes nothing to the manifest. For flows where the editor is just setup.
-- **`editor.page`** — `EditorPage` instance with stable selectors and composite helpers.
+- **`editor.silentSetup(opts?)`** — same setup, but writes nothing to the manifest. For flows where the editor is just setup. `opts.title` names the doc (no "Untitled" topbar/cover in the screenshots), `opts.body` replaces the welcome text with a short realistic draft, `opts.cover: false` turns the cover page off so the preview's first page shows content. Use all three whenever the preview is part of the story.
+- **`editor.page`** — `EditorPage` instance with stable selectors and composite helpers. Screenshot helpers: `setCoverEnabled` / `disableCoverPage` (writes `ymeta.theme` like the Theme panel does — works for anonymous docs and applies live), `setDocText`, `docText` / `addedText(before)` (authoritative Y.Text via the test handle), `scrollEditorTo(text)` / `scrollPreviewTo(selector)` (bring the outcome into view before the shot), `dismissToasts()` (no stale toasts stacked in a hero frame).
+- **Failure signals (every flow, automatic).** The fixture fails a flow on any error toast (`color: 'error'`, reported by `app/plugins/test-handles.client.ts` through an exposed binding) and on any 5xx answer from the app origin — checked before every capture and at teardown, across all spawned actors. A flow that deliberately provokes one declares it: `flow.expectErrorToast(/pattern/)` / `flow.expectServerError(/path pattern/)`.
 
 ## Captioning rules (read these before writing a flow)
 
@@ -124,7 +125,7 @@ Clipboard permissions are pre-granted globally in `use.permissions: ['clipboard-
 
 ## Build + serve
 
-`scripts/build-flows.ts` rebuilds `public/flows/` from `tests/e2e/output/flows/`: only variants with a `.passed` sentinel are republished (an unpassed variant keeps its prior published output), and slugs with no source dir are reaped. Walks `<slug>/<locale>/<variant>/`; copies `manifest.json` + `*.webp`.
+`scripts/build-flows.ts` rebuilds `public/flows/` from `tests/e2e/output/flows/`: only slugs a page under `content/docs/` embeds (`::flow{id="…"}`) are published — so flows that only exist as tests (e.g. the `@billing` checkout flows) never ship; only variants with a `.passed` sentinel are republished (an unpassed variant keeps its prior published output), and slugs with no source dir or no embedding page are reaped. Walks `<slug>/<locale>/<variant>/`; copies `manifest.json` + `*.webp`.
 
 **Refreshing the committed screenshots from a release.** `public/flows/` is committed and does NOT update itself — the release run's `flow-output` artifact is the source. After a green release: `gh run download <release-run-id> -n flow-output -D tests/e2e/output/flows` (move any local `tests/e2e/output/` aside first), then `bun run flows:build` and commit `public/flows/` in a docs PR. The artifact carries the `.passed` sentinels (`include-hidden-files: true` in `release.yml`); artifacts from releases before v0.2.2 lack them, and the upload step only runs when the whole flow job passed.
 
@@ -134,7 +135,7 @@ The `<Flow>` component (`app/components/content/Flow.vue`) fetches the manifest 
 
 Lives in `docker-compose.test.yml` under `profiles: [flows]` — adds `sync-test` + `markitdown-test` to the integration-test infra, all on isolated ports (5433/6380/8334/4002/8081). Integration runs (`docker compose up`) skip the flow-only services; flow runs (`--profile flows`) include them.
 
-Lifecycle: `bun run flows:test` (`scripts/flows-ephemeral.ts`) does docker-up → `bun run build` (production Nitro output to `.output/`) → spawn the prod server on PORT=3001 → poll `/api/health` → run Playwright → cleanup on every exit path. Cleanup deliberately does NOT use `--remove-orphans` because that flag treats other compose files in the same project namespace as orphans and would nuke dev infra. The lower-level `flows:test:against-running` skips the build + serve.
+Lifecycle: `bun run flows:test` (`scripts/flows-ephemeral.ts`) does docker-up → `bun run build` (production Nitro output to `.output/`) → spawn the prod server on PORT=3001 → poll `/api/health` → run Playwright → cleanup on every exit path. Playwright runs in **two passes** against the same infra: every untagged flow against a billing-OFF server with paid plans "coming soon" (the markoto.app shape the docs describe), then `--grep @billing` against a billing-ON server. `FLOWS_SERVE_ONLY=1` keeps one server up for `flows:test:against-running` (`FLOWS_BILLING=on` for the billing-on shape). Cleanup deliberately does NOT use `--remove-orphans` because that flag treats other compose files in the same project namespace as orphans and would nuke dev infra. The lower-level `flows:test:against-running` skips the build + serve.
 
 ## CI integration
 

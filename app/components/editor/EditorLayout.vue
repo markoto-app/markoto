@@ -28,7 +28,8 @@ const {
   syncRejection,
   isOwner,
   canDelete,
-  isDeleted,
+  deletedByOther,
+  setDeletingHere,
   requiresPassword,
   forbidden,
   notFound,
@@ -293,9 +294,11 @@ watch(requiresPassword, (val) => {
   passwordModalOpen.value = val
 }, { immediate: true })
 
-// If the doc was deleted remotely (e.g. by the owner from another session),
-// show a toast and redirect to the landing page.
-watch(isDeleted, (deleted) => {
+// If the doc was deleted by someone else (e.g. the owner from another
+// session), show a toast and redirect to the landing page. A deletion
+// started here is handled by the delete modal (its own success toast +
+// redirect), so it never shows "deleted by the owner" to the deleter.
+watch(deletedByOther, (deleted) => {
   if (!deleted) return
   toast.add({
     title: t('delete.remoteTitle'),
@@ -1709,6 +1712,8 @@ const _statusIcon = computed(() => {
       v-model:open="showDeleteModal"
       :doc-id="docId"
       :title="title"
+      @deleting="setDeletingHere(true)"
+      @failed="setDeletingHere(false)"
       @deleted="navigateTo('/')"
     />
 

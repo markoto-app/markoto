@@ -38,6 +38,22 @@ export function stripAiMention(body: string): string {
   return body.replace(AT_AI_RE, (_m, lead) => `${lead}AI`)
 }
 
+/**
+ * Comments render as plain text (+ mention tokens), so Markdown the
+ * model writes into a comment shows up literally — "**read**" in a
+ * reply bubble. The tool descriptions say "plain text", but at
+ * temperature 0 the model still bolds now and then; this removes the
+ * markers deterministically. Only unambiguous markup is touched:
+ * `**x**` / `__x__` pairs and leading `#` heading markers. Single `*`
+ * (arithmetic, footnotes) and mention tokens stay as they are.
+ */
+export function plainCommentText(body: string): string {
+  return body
+    .replace(/\*\*(\S(?:[^*\n]*\S)?)\*\*/g, '$1')
+    .replace(/__(\S(?:[^_\n]*\S)?)__/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+}
+
 /** Detect whether a body contains an `@ai` mention at a word boundary. */
 export function hasAiMention(body: string): boolean {
   AT_AI_RE.lastIndex = 0
