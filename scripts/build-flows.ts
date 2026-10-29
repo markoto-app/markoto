@@ -34,8 +34,9 @@ const FLOWS_OUT = 'public/flows'
 const DOCS_DIR = 'content/docs'
 
 // Only flows a docs page embeds (`::flow{id="<slug>" ...}`) are published.
-// The flow suite runs on a billing-ON stack so the paid-plan flows keep
-// their regression coverage, but some of them (`upgrade-to-pro`,
+// The suite's second pass runs the `@billing` flows on a billing-ON
+// server so the paid-plan UI keeps its regression coverage
+// (scripts/flows-ephemeral.ts), but some of them (`upgrade-to-pro`,
 // `what-happens-when-you-hit-the-ai-cap`) show purchase UI no public
 // instance offers today. No docs page embeds them, so they must not ship
 // to public/flows either. Publishing by reference keeps the rule in one
