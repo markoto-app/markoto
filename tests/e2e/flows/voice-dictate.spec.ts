@@ -31,20 +31,25 @@ import { test, expect } from '../fixtures/flow'
 // Mobile NOT skipped — the toolbar mic survives the wrap to mobile,
 // and the bottom tab bar surfaces the same toggle. Captions cover
 // both surfaces.
+// The fake recognizer's two final sentences (dictateSpeechClient.ts).
+const FIRST_SENTENCE = 'Lena says the new templates save her about an hour a week.'
+const SECOND_SENTENCE = 'The export still feels slow on long reports.'
+
 test('Speak instead of typing', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   // Dictation auth requires a session; the test-mode login shim is
   // the same path the AI flows use.
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup({ title: 'Interview notes' })
-  // Markoto theme ships with cover.enabled=true; the preview iframe
-  // shows the cover sheet, hiding the dictated text that lands at
-  // the cursor (page 4+ of the welcome doc). Disable cover so the
-  // preview shows actual content.
-  await editor.page.disableCoverPage()
+  // A short draft and no cover, so the dictated sentences land near the
+  // top of both the editor and the preview.
+  await editor.silentSetup({
+    title: 'Interview notes',
+    body: '# Interview notes\n\n## Lena Park, product designer\n\nThirty-minute call about the new release.',
+    cover: false
+  })
 
-  // Move the caret to the end of the welcome doc so dictation
+  // Move the caret to the end of the draft so dictation
   // appends rather than overwriting. The CM6 keyboard shortcut works
   // even on mobile because the editor surface accepts focus before
   // the mobile tab bar gets in the way.
@@ -57,10 +62,8 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   await flow.heading('Speak instead of typing', 3)
   await flow.narrate(
     'Click the mic in the toolbar (or the Dictate tab on mobile) and '
-    + 'markoto streams what you say into the doc. Words land at the '
-    + 'caret as you speak — interim partials render as ghost text, '
-    + 'and committed finals become real document content the moment '
-    + 'the speech recognizer is confident.'
+    + 'markoto writes what you say into the document, at the cursor, '
+    + 'while you speak.'
   )
 
   // The dictate mic — the toolbar surfaces it on desktop AND mobile
@@ -93,23 +96,22 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   // ─── Watch the words stream in ──────────────────────────────────
   await flow.heading('The words land in the doc', 3)
   await flow.narrate(
-    'Your speech streams to the speech-recognition service while you '
-    + 'talk. The words appear as faint text at the caret first; once '
-    + 'the recognizer is sure, they become regular text in the '
-    + 'document — your collaborators see them arrive live, and undo '
-    + 'removes them like anything you typed.'
+    'The words appear as faint text at the cursor first; once a '
+    + 'sentence is recognised, it becomes regular text in the document. '
+    + 'Your collaborators see it arrive live, and undo removes it like '
+    + 'anything you typed.'
   )
 
-  // The mock STT's chunk-counted sequence: chunk 3 → "hello"
-  // (interim) → chunk 4 → "hello world" (interim) → chunk 5 → "how"
-  // (interim) → chunk 6 → "how are you" (FINAL). The audio worklet
-  // emits chunks every ~128 ms, so the final lands after roughly
-  // 768 ms of fake-audio capture. Wait for the editor body to
-  // contain the committed text.
-  await expect(page.locator('.cm-content')).toContainText(/how are you/i, { timeout: 20_000 })
+  // The mock STT's chunk-counted sequence (dictateSpeechClient.ts
+  // MOCK_SEQUENCE) finalises two sentences within ~6 audio chunks
+  // (~128 ms each). Wait for the second one to be committed, then
+  // bring it into view (clear of the prompt bar).
+  await expect(page.locator('.cm-content')).toContainText(FIRST_SENTENCE, { timeout: 20_000 })
+  await expect(page.locator('.cm-content')).toContainText(SECOND_SENTENCE, { timeout: 20_000 })
+  await editor.page.scrollEditorTo('The export still feels slow')
 
   await flow.shot(
-    'The recognized phrase is now part of the document, just like typed text.',
+    'What you said is now part of the document, just like typed text.',
     {
       hero: true,
       highlights: [
@@ -121,11 +123,9 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   // ─── Stop the mic ───────────────────────────────────────────────
   await flow.heading('Stop the mic when you\'re done', 3)
   await flow.narrate(
-    'Click the mic again to stop. The last words you said are '
-    + 'written in, and the editor is back to keyboard-only '
-    + 'input. The mic permission stays granted for the rest of the '
-    + 'session — re-clicking the mic resumes streaming without a '
-    + 'new permission prompt.'
+    'Click the mic again to stop. The last words you said are written '
+    + 'in, and the editor is back to keyboard-only input. Your browser '
+    + 'remembers the mic permission, so starting again needs no new prompt.'
   )
 
   await flow.click(
@@ -143,8 +143,9 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   // ASSERTION: the dictated phrase landed in the markdown source
   // (not just rendered as ghost text). `.cm-content` reads the
   // committed Y.js text, not the interim widget.
-  const editorText = await page.locator('.cm-content').textContent()
-  expect(editorText).toMatch(/how are you/i)
+  const text = await editor.page.docText()
+  expect(text).toContain(FIRST_SENTENCE)
+  expect(text).toContain(SECOND_SENTENCE)
 
   // Forward route: voice in is the entry-level "let me write
   // hands-free" feature; voice INTO the AI prompt bar is the next

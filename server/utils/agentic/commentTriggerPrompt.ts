@@ -318,7 +318,8 @@ export function buildCommentTriggerBlock(thread: ResolvedThread): string {
     `- Do NOT call resolve_comment unless the triggering message explicitly asks you to resolve it. Resolution is a human action.`,
     `- The triggering message has already had its @ai mentions stripped — don't re-add @ai in your reply or you'll re-trigger yourself.`,
     '',
-    'If the request is purely conversational ("what do you think of this paragraph?"), just reply — no doc edit needed. If it asks for a doc change ("rewrite this", "add a TLDR"), do the change AND reply.',
+    'If the message is a question ("what does this mean?", "what can a client do with this?", "is this correct?") or purely conversational, answer it in the thread with reply_to_comment and leave the document unchanged. Only when it asks for a change ("rewrite this", "add a TLDR") do you edit the document, then reply.',
+    'The reply IS the answer: write the answer itself, not a note about what you are going to do.',
     '</comment_trigger>',
     ''
   )
@@ -393,7 +394,8 @@ Editor state — selection routing (read carefully):
 
 What to do when:
 - "Rewrite this", "make this more X", "fix this", "shorten this", "translate this", "insert the actual X here", "replace this with Y": \`replace_text\` with old_str = the anchored selection_text, new_str = the rewrite. Then \`reply_to_comment\` summarising the change ("Rewrote for clarity — let me know if the tone matches what you wanted.").
-- "What do you think of …", "is this section correct?", purely conversational: skip the doc edit, just \`reply_to_comment\` with your assessment.
+- Questions about the text — "what does this mean?", "what can a reader do with this?", "why …?", "is this section correct?", "what do you think of …" — and anything else purely conversational: do NOT edit the document. Answer with \`reply_to_comment\` alone. A question is not a request to rewrite the passage, even when the answer suggests the text could be better (say so in the reply instead). Only questions that ask for new wording ("how would you rewrite this?") follow the rewrite rule below.
+- Write the reply as the answer itself, in one to three plain sentences. Never narrate your plan ("I'll answer directly…", "Let me check…").
 - "How would you rewrite this?", "give me options": pick the strongest option, write it via \`replace_text\`, mention in the reply that you can iterate if they want a different angle.
 - "Translate this", "change the language": \`replace_text\` with the translation, then \`reply_to_comment\` confirming what you did.
 - "Add a TLDR", "add a section about X near here": use \`insert_text\` at the appropriate line — the anchor in <comment_trigger> tells you roughly where they're pointing.

@@ -4,60 +4,51 @@ import { test, expect } from '../fixtures/flow'
 //
 // User-job: a writer wants their document to LOOK right — typography,
 // page color, headings, the works — without learning CSS or fighting
-// per-doc settings. Job done when they've previewed the markoto theme,
-// switched to a different preset, watched the live preview update,
-// then turned on a cover page and seen page 1 become a title sheet.
+// per-doc settings. Job done when they've switched to a different preset,
+// watched the live preview update, switched back, and seen the cover page
+// turn page 1 into a title sheet.
 //
-// What this flow is NOT: a tour of every knob in the theme panel.
-// We pick FOUR moments that show what's possible — one preset switch,
-// one live-preview refresh, one cover toggle, one before/after.
+// The doc starts with the cover OFF so the first preview page shows the
+// report: each preset's typography is visible without scrolling. Presets
+// replace the whole theme, cover included — Academic Paper turns the
+// cover on, so its two columns are shown on page 2 (scrolled to).
 //
-// Captioning rules under the v2 (approach + outcome) model:
-//   • Imperative captions on flow.click(...) → "Click X", "Pick Y"
-//   • Declarative `result` on the outcome → "X happens", "Y appears"
-//   • Highlights live on outcomes only
-// Runs on desktop AND mobile. The body already has `editor.isMobile`
-// branches that route through the bottom-tab-bar Theme entry, skip
-// the iframe-only brand-color assertions (mobile is edit-only — no
-// preview iframe), and skip `waitForPreviewPaginated` calls. The
-// payoff visual on mobile is the theme-panel UI rather than the
-// repaginated preview, but the asserted server state (preset
-// selection, cover toggle) is identical.
-//
-// (Until Phase 6.30 there was a `pick-a-theme-mobile.spec.ts`
-//  sibling carrying mobile-specific narration. Deleted as part of the
-//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
-//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
+// Runs on desktop AND mobile. Mobile routes through the bottom-tab-bar
+// Theme entry and stops after the preset switch (no preview iframe on
+// mobile; the cover controls are covered by cover-page-editor.spec.ts).
 test('Pick a theme', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup({ title: 'Annual report' })
+  await editor.silentSetup({ title: 'Annual report', body: REPORT, cover: false })
 
-  // Title + intro before any captured shots.
+  /** The brand colour of the theme the preview is currently rendering. */
+  const previewBrand = () => editor.page.previewRoot().evaluate(() => {
+    const style = Array.from(document.querySelectorAll('style'))
+      .find(s => (s.textContent ?? '').includes('--doc-brand'))
+    return style?.textContent?.match(/--doc-brand:\s*(#[0-9a-fA-F]+)/)?.[1]?.toLowerCase() ?? null
+  })
+  const previewHasCover = () => editor.page.previewRoot().evaluate(() => document.querySelector('#mount .markoto-cover') !== null)
+  const themeMeta = async () => {
+    const res = await page.request.get(`/api/docs/${editor.page.currentDocId()}/meta`)
+    return (await res.json() as { theme: { color: { brand: string }, cover: { enabled: boolean } } }).theme
+  }
+
   await flow.heading('Pick a theme that fits your document', 3)
   await flow.narrate(
-    'Every markoto document carries its own theme — fonts, colors, '
-    + 'page margins, table styling, even cover-page layout. The same '
-    + 'theme drives the live preview AND the PDF export, so what you '
-    + 'see in the right pane is what you ship.'
+    'Every markoto document carries its own theme: fonts, colours, page '
+    + 'margins, tables, the cover page. The same theme drives the preview '
+    + 'and the PDF, so what you see on the right is what you send.'
   )
 
   // ─── Open the theme panel ──────────────────────────────────────────
   await flow.heading('Open the theme panel', 3)
   await flow.narrate(
-    'Markoto opens every new document with the markoto theme — Fraunces '
-    + 'editorial headings on Inter body, warm cream paper, vermillion '
-    + 'accents. To explore other looks, open the theme panel from the '
-    + 'right sidebar.'
+    'New documents use the markoto theme: Fraunces headings, Inter body '
+    + 'text, warm paper and vermillion accents. To try other looks, open '
+    + 'the theme panel.'
   )
 
   if (editor.isMobile) {
-    // Mobile UI redesign (2026 mobile sprint): the panel-picker
-    // dropdown was replaced by a fixed bottom MobileTabBar that
-    // surfaces every drawer as an always-visible tab. The Theme
-    // tab is one of seven (Editor / Mic / Document / Comments /
-    // Activity / Theme / Knowledge), small in the bottom strip —
-    // arrow annotation directs the reader to the right one.
     await flow.click(
       'Tap the Theme tab on the bottom bar',
       page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Theme"]'),
@@ -65,7 +56,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'theme tab', selector: '[data-testid="mobile-tab-bar"] button[aria-label="Theme"]', kind: 'arrow' }
         ],
-        result: 'The theme drawer slides up from the bottom — six presets at the top, controls below.',
+        result: 'The theme panel slides up: seven presets at the top, all settings below.',
         after: () => editor.page.theme.preset('markoto').waitFor({ state: 'visible' }),
         highlights: [
           { label: 'Built-in presets', selector: '[data-testid="theme-preset-markoto"]' }
@@ -78,13 +69,11 @@ test('Pick a theme', async ({ page, flow, editor }) => {
       editor.page.sidebar.theme,
       {
         // Direction-anchor the Theme tab — it's one of four icon-only
-        // sidebar tabs (Activity / Theme / Knowledge / Comments) and
-        // a first-time reader scanning right-to-left needs help
-        // landing on the right one.
+        // sidebar tabs and a first-time reader needs help finding it.
         annotations: [
           { label: 'theme tab', selector: 'button[aria-label*="theme" i]', kind: 'arrow' }
         ],
-        result: 'The theme panel opens — six built-in presets at the top, full controls below.',
+        result: 'The theme panel opens: seven built-in presets at the top, all settings below.',
         after: () => editor.page.theme.preset('markoto').waitFor({ state: 'visible' }),
         highlights: [
           { label: 'Built-in presets', selector: '[data-testid="theme-preset-markoto"]' }
@@ -96,92 +85,55 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   // ─── Try a different preset ────────────────────────────────────────
   await flow.heading('Try a different preset', 3)
   await flow.narrate(
-    'Each preset is a complete theme — fonts, colors, page margins, '
-    + 'table styling, even cover-page layout. Click a card to apply '
-    + 'it wholesale. The live preview updates instantly so you can '
-    + 'compare without committing.'
+    'Each preset is a complete theme. Click a card to apply it; the '
+    + 'preview updates right away, and your text stays exactly as it is.'
   )
 
   await flow.click(
-    'Click "Academic Paper" to switch to a journal-style two-column layout',
+    'Click "Academic Paper" for a journal-style two-column layout',
     editor.page.theme.preset('academic'),
     {
-      // Mobile: theme presets render inside the BottomSheet portal;
-      // Reka's overlay intercepts pointer events at Playwright's
-      // coordinate layer despite the target being visible + stable.
+      // Mobile: theme presets render inside the BottomSheet portal.
       // See `tests/e2e/AGENTS.md` "Bottom-sheet portal interception".
       force: editor.isMobile,
-      result: 'Body text becomes a serif (Source Serif 4), columns split, '
-        + 'and the preview repaginates with academic-paper proportions.',
+      result: editor.isMobile
+        ? 'Academic Paper is applied: serif type, justified text, two columns in the PDF.'
+        : 'The text switches to a serif, justified in two columns. Academic Paper adds '
+          + 'a cover page, so the report now starts on page 2.',
       after: async () => {
-        // Wait for the preview to repaginate. The simplest "wait" is a
-        // short pause + a check that the iframe stylesheet contains
-        // the new body font — but the iframe selector model is fragile
-        // across browsers, so we just wait a paginate cycle.
-        await page.waitForTimeout(1500)
-        // On mobile the cover sheet stays hidden through repeated
-        // paged.js zoom recalcs. Skip the visibility wait — by this
-        // point the CSS has been swapped and the assertion below
-        // reads the served stylesheet, not the rendered DOM.
+        await expect.poll(async () => (await themeMeta()).color.brand.toLowerCase()).toBe('#1e3a8a')
         if (!editor.isMobile) {
-          await editor.page.waitForPreviewPaginated()
+          await expect.poll(previewBrand).toBe('#1e3a8a')
+          // Academic turns the cover on: show page 2, where the columns are.
+          await editor.page.scrollPreviewTo('.pagedjs_page[data-page-number="2"]')
         }
       }
     }
   )
 
-  // ASSERTION: the academic preset's brand color (#1e3a8a navy) is now
-  // the doc's brand. Reach into the preview iframe + check the CSS var.
-  // Skipped on mobile — paged.js's mobile pipeline doesn't always
-  // mount the theme stylesheet by the time we can read it; the CSS
-  // contract is verified by the unit tests in themeToCss.test.ts.
-  if (!editor.isMobile) {
-    // The preview runs in an opaque-origin iframe (no contentDocument
-    // access from the page) — evaluate inside the frame instead.
-    const academicBrand = await editor.page.previewRoot().evaluate(() => {
-      const style = Array.from(document.querySelectorAll('style'))
-        .find(s => (s.textContent ?? '').includes('--doc-brand'))
-      return style?.textContent?.match(/--doc-brand:\s*(#[0-9a-fA-F]+)/)?.[1] ?? null
-    })
-    expect(academicBrand?.toLowerCase()).toBe('#1e3a8a')
-  }
-
   // ─── Switch back to markoto ────────────────────────────────────────
   await flow.heading('Switch back to markoto', 3)
   await flow.narrate(
-    'No commitment. Click any preset to switch — your text stays put, '
-    + 'only the styling changes. We\'re going back to markoto for the '
-    + 'rest of this tour.'
+    'Nothing is final: click another preset any time. Back to markoto '
+    + 'for the rest of this tour.'
   )
 
-  // On mobile the markoto preset card click sometimes hangs after
-  // the hover-screenshot (the academic preset's selection-ring
-  // re-render briefly captures pointer events on the card grid).
-  // Force-click bypasses the actionability re-check.
   if (editor.isMobile) {
-    await flow.step(
-      'Tap "markoto" to return to the brand default',
-      async () => {
-        // DOM-level click — bypasses Playwright's coordinate routing
-        // (the preset card lives inside the BottomSheet portal where
-        // Reka's overlay intercepts AND can leave the target outside
-        // the viewport calculation). `click({ force: true })` skips
-        // actionability but still requires viewport coords; evaluate
-        // doesn't. Workaround #2 from `tests/e2e/AGENTS.md`.
-        await editor.page.theme.preset('markoto').evaluate((el: HTMLElement) => el.click())
-        await page.waitForTimeout(1500)
-      },
-      { result: 'Back to the brand default — cream paper, Fraunces headings.' }
-    )
+    // DOM-level click — the preset card lives inside the BottomSheet
+    // portal. Workaround #2 from `tests/e2e/AGENTS.md`.
+    await flow.hover('Tap "markoto" to return to the default', editor.page.theme.preset('markoto'), { force: true })
+    await editor.page.theme.preset('markoto').evaluate((el: HTMLElement) => el.click())
+    await expect.poll(async () => (await themeMeta()).color.brand.toLowerCase()).toBe('#b5371f')
+    await flow.shot('Back to the markoto theme.')
   } else {
     await flow.click(
-      'Click "markoto" to return to the brand default',
+      'Click "markoto" to return to the default',
       editor.page.theme.preset('markoto'),
       {
-        result: 'Cream paper, Fraunces headings, the asterism scene break — back.',
+        result: 'Back to warm paper and Fraunces headings, with an asterism (⁂) between sections.',
         after: async () => {
-          await page.waitForTimeout(1500)
-          await editor.page.waitForPreviewPaginated()
+          await expect.poll(previewBrand).toBe('#b5371f')
+          await editor.page.scrollPreviewTo('hr')
         },
         highlights: [
           { label: 'Asterism scene break', selector: 'iframe' }
@@ -190,86 +142,59 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     )
   }
 
-  // ASSERTION: markoto's brand color (#B5371F shu) is back. Skipped
-  // on mobile (same reason as the academic check above).
-  if (!editor.isMobile) {
-    const markotoBrand = await editor.page.previewRoot().evaluate(() => {
-      const style = Array.from(document.querySelectorAll('style'))
-        .find(s => (s.textContent ?? '').includes('--doc-brand'))
-      return style?.textContent?.match(/--doc-brand:\s*(#[0-9a-fA-F]+)/)?.[1] ?? null
-    })
-    expect(markotoBrand?.toUpperCase()).toBe('#B5371F')
-  }
-
-  // ─── Add a cover page ──────────────────────────────────────────────
-  // Mobile stops the narrative here: the cover-toggle accordion +
-  // toggle + visible cover render all live in `cover-page-editor.spec.ts`
-  // which already runs on both variants. Pick-a-theme's load-bearing
-  // mobile assertion is the preset-switch (preset selection persists
-  // server-side via PUT /meta) — covered above. Avoiding the accordion
-  // dance here also dodges a Reka Accordion + bottom-sheet pointer-
-  // routing rabbit hole that doesn't earn its keep when there's a
-  // dedicated spec for the cover-page UX.
+  // ─── Cover page ────────────────────────────────────────────────────
+  // Mobile stops here: the cover controls are covered on both variants
+  // by `cover-page-editor.spec.ts`; the preview (the payoff) is
+  // desktop-only.
   if (editor.isMobile) {
     flow.next({
       slug: 'edit-your-cover-page',
-      why: 'Now make the cover sheet feel like yours — layout, subtitle, author byline'
+      why: 'Make the cover page your own: layout, subtitle, authors'
     })
     return
   }
 
-  await flow.heading('Add a cover page', 3)
+  await flow.heading('The cover page', 3)
   await flow.narrate(
-    'A cover page turns page 1 into a dedicated title sheet — your '
-    + 'document title centered, the date below, and no running header '
-    + 'or page number. Toggle it from the Cover page section.'
+    'The markoto preset comes with a cover page: a title sheet with the '
+    + 'logo, the document title and the date, and no header or page '
+    + 'number. The Cover page section switches it off and on.'
   )
 
   await flow.click(
     'Click "Cover page" to expand the section',
     editor.page.theme.coverSection,
     {
-      result: 'Cover-page controls appear — toggle, layout picker, '
-        + 'subtitle/author/date switches.',
+      result: 'The cover page settings: the on/off switch, layout, and which fields to show.',
       after: () => editor.page.theme.coverEnabledSwitch.waitFor({ state: 'visible' })
     }
   )
 
-  // ASSERTION: the cover toggle is already on (markoto preset has cover.enabled=true).
-  const coverInitiallyEnabled = await editor.page.theme.coverEnabledSwitch.getAttribute('data-state')
-  expect(['checked', 'on', 'true'].some(v => coverInitiallyEnabled === v)).toBe(true)
+  // ASSERTION: applying the markoto preset switched the cover on.
+  expect((await themeMeta()).cover.enabled).toBe(true)
+  await expect.poll(previewHasCover).toBe(true)
 
-  // For the demo, toggle off then on so the user sees the live cover-page
-  // appear. Otherwise nothing visible happens (cover was already on).
   await flow.click(
-    'Toggle the cover off to see the document without it',
+    'Switch the cover page off',
     editor.page.theme.coverEnabledSwitch,
     {
-      result: 'Page 1 becomes the body content — title moves into the running header.',
+      result: 'Without a cover, page 1 starts with the report itself.',
       after: async () => {
-        await page.waitForTimeout(1500)
-        if (!editor.isMobile) {
-          await editor.page.waitForPreviewPaginated()
-        }
+        await expect.poll(previewHasCover).toBe(false)
+        await editor.page.scrollPreviewTo('.pagedjs_page[data-page-number="1"]')
       }
     }
   )
 
   await flow.click(
-    'Toggle the cover back on',
+    'Switch it back on',
     editor.page.theme.coverEnabledSwitch,
     {
-      // Hero outcome: a dedicated title sheet is the moment a
-      // markdown doc reads as a publishable artefact. This is the
-      // "look what I made" frame for the theme system.
       hero: true,
-      result: 'Page 1 is now a dedicated title sheet — Fraunces title centered, '
-        + 'date underneath, no header / footer running text.',
+      result: 'Page 1 is a title sheet again: logo, title, date, and no page number.',
       after: async () => {
-        await page.waitForTimeout(1500)
-        if (!editor.isMobile) {
-          await editor.page.waitForPreviewPaginated()
-        }
+        await expect.poll(previewHasCover).toBe(true)
+        await editor.page.scrollPreviewTo('.markoto-cover')
       },
       highlights: [
         { label: 'Cover page', selector: 'iframe' }
@@ -277,21 +202,35 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     }
   )
 
-  // ASSERTION: the cover element exists in the preview iframe.
-  // Mobile path skipped — paged.js mobile pipeline timing makes the
-  // DOM check flaky; coverHtml.test.ts asserts the same contract.
-  if (!editor.isMobile) {
-    const coverInDom = await editor.page.previewRoot().evaluate(() => !!document.querySelector('.markoto-cover'))
-    expect(coverInDom).toBe(true)
-  }
+  // ASSERTION: the cover is on in the saved theme too.
+  await expect.poll(async () => (await themeMeta()).cover.enabled).toBe(true)
 
-  // Forward route: theme is the "make it pretty" track; AI is the
-  // "make it write itself" track. After picking a theme, asking
-  // the AI to fill a section is the most natural next step toward
-  // a finished doc. (Routes here rather than to polished-pdf
-  // because polished-pdf isn't built yet — Tier-1 TODO.)
   flow.next({
     slug: 'write-with-ai',
-    why: 'Now ask the AI to fill in a section so the doc writes itself'
+    why: 'Now ask the AI to draft a section for you'
   })
 })
+
+const REPORT = [
+  '# Annual report 2026',
+  '',
+  'This was the year we stopped treating writing as a solo activity. Teams moved their planning documents, launch notes and customer reports into shared drafts, and the number of documents with more than one author tripled.',
+  '',
+  '## Highlights',
+  '',
+  'Revenue grew 42% year over year, driven by workspace plans for teams of ten to fifty people. Churn fell to 2.1% a month, the lowest since launch, and two thirds of new accounts came from invitations sent by existing customers.',
+  '',
+  'We opened an office in Lisbon and grew the team from 18 to 31 people. Every new hire wrote their onboarding notes in markoto, and most of those notes became the handbook pages new colleagues read today.',
+  '',
+  '---',
+  '',
+  '## What we learned',
+  '',
+  'Customers do not want more features; they want fewer steps between a rough draft and a document they are proud to send. The most requested change all year was a better PDF, not a new button.',
+  '',
+  'Collaboration only works when everyone trusts the history. Restore, comments and the activity log were used far more than we expected, mostly by people who never edited a word themselves.',
+  '',
+  '## Looking ahead',
+  '',
+  'Next year we will focus on three things: faster exports, better templates for recurring documents, and AI help that cites its sources. Each of them shortens the path from draft to finished document.'
+].join('\n')
