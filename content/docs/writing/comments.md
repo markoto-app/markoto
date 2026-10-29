@@ -18,8 +18,8 @@ Replies thread under the original; resolved threads tuck into a
 
 ## How it works
 
-Comments are anchored to the text via Y.js's relative positions.
-That means the underline tracks the words as the doc grows: insert
+Comments stick to the words they're about, so the underline follows
+the text as the document changes: insert
 a paragraph above a comment, the underline moves down with the
 text. Type _into_ a commented passage and the comment expands to
 include what you added. If someone deletes the anchored text

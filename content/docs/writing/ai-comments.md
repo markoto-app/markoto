@@ -28,37 +28,30 @@ and the conversation so far, and replies in the same place.
   the tone more formal across the board", "structure this as a
   meeting agenda".
 
-Both surfaces drive the same agentic loop server-side; the only
-difference is what context markoto sees up front.
+Both work the same way; the only difference is what markoto looks at
+first.
 
-## How the trigger works
+## How it works
 
-1. You type `@markoto` in a comment composer. The mention typeahead
-   includes a synthetic "markoto" entry — pick it (or just
-   type the bare word). The legacy `@ai` token is still accepted
-   server-side for back-compat.
-2. When you submit, the server detects the mention via a word-boundary
-   regex, opens an agentic loop, and synthesizes an editor-state
-   selection from the comment's anchor so markoto sees the
-   passage as if you'd selected it.
-3. The thread lights up with a rainbow ring while markoto works.
-4. markoto uses tools to read the document, find sources if needed,
-   and post a reply on the thread when it's done. If the thread has other
-   participants and markoto wants to reach beyond the document (your other
-   documents, workspace knowledge, the web), it asks you first in the prompt
-   bar ([when the AI asks first](/docs/writing/ai-prompt-bar#when-the-ai-asks-first)). If you asked
-   for an edit, it edits the anchored span directly and the reply
+1. Type `@markoto` in a comment and pick **markoto** from the mention
+   list (or type the word in full).
+2. When you post the comment, markoto reads the passage the thread is
+   attached to, as if you had selected it.
+3. The thread shows a rainbow ring while markoto works.
+4. markoto reads the document, looks things up if it needs to, and posts
+   its reply in the thread. If the thread has other participants and
+   markoto wants to reach beyond the document (your other documents,
+   workspace knowledge, the web), it asks you first in the prompt bar
+   ([when the AI asks first](/docs/writing/ai-prompt-bar#when-the-ai-asks-first)).
+   If you asked for an edit, it edits the passage directly and the reply
    summarises what changed.
 
-## Loop guards
+## Good to know
 
-- markoto only answers a mention in a message **you** wrote: pointing
-  it at someone else's comment does nothing. It runs on your AI provider
+- markoto only answers a mention in a comment **you** wrote; a mention
+  inside someone else's comment does nothing. It runs on your AI provider
   and with your access, so it starts only when you ask.
-- markoto's own messages are detected and excluded from re-triggering — it
-  can't summon itself.
-- markoto-authored comment bodies have the mention token stripped before
-  they're posted, so the reply can't accidentally re-trigger either.
+- markoto never triggers itself: its own replies can't start another run.
 
 ## What's next
 

@@ -68,7 +68,7 @@ Images render as figures, with the alt text as the caption.
 ```
 
 Bare numbers are pixels. Drag and drop or paste an image into the editor to
-upload it (PNG, JPEG, GIF, WebP or SVG, up to 10 MB); markoto inserts the
+upload it (PNG, JPEG, GIF or WebP, up to 10 MB); markoto inserts the
 markdown for you. A link around an image works too:
 `[![alt](cat.jpg)](https://example.com)`.
 

@@ -18,14 +18,9 @@ was posted, so you can read the discussion in context.
 
 ## What just happened
 
-Each comment activity row carries a Y.js snapshot pointer. Clicking
-"Open in context" replays the doc state up to that snapshot using the
-same `historyReplay.ts` machinery that drives version restore — but
-instead of restoring, it renders a side-by-side view: the original
-passage on the left, the comment thread on the right, the present-day
-doc still safely behind both.
-
-Closing the dialog returns you to the live doc. Nothing was changed.
+markoto rebuilds the document as it was when the comment was posted and
+shows the original passage next to the comment thread. Your current
+document isn't touched.
 
 ## What's next
 

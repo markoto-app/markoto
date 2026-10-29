@@ -7,13 +7,12 @@ order: 4
 
 # Delete a document
 
-Doc deletion is the simplest destructive action in markoto. The owner
-hits Delete, confirms once, and the doc is gone — content, Y.js
-history, image uploads, activity log, comments. There is no trash, no
-undo, no recovery. (If you might want it back later, [duplicate
-it](/docs/writing/duplicate) before deleting, or
-[export the workspace](/docs/account/data-export) for a frozen
-snapshot.)
+Deleting a document is quick and final. The owner clicks Delete,
+confirms once, and the doc is gone: content, edit history, images,
+activity log and comments. There is no trash, no undo and no recovery.
+(If you might want it back later, [duplicate it](/docs/writing/duplicate)
+before deleting, or [export your data](/docs/account/data-export) for a
+frozen copy.)
 
 ::flow{id="delete-a-document" hide-title}
 ::

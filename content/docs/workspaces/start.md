@@ -1,6 +1,6 @@
 ---
 title: Start a workspace
-description: Create a workspace, name it, and pick its default theme — your shared home for team docs.
+description: Create a workspace and give it a name — your shared home for team docs.
 category: workspaces
 order: 1
 featured: true
@@ -19,14 +19,14 @@ URL — start a workspace.
 
 ## What just happened
 
-The "New workspace" dialog inserts a row in `workspaces` with you as
-both `owner_id` and `billing_owner_id`, plus a `workspace_members` row
-making you the first admin. The DPA acceptance modal fires here — DPA
-is workspace-owner-only, and creating a workspace is the moment the
-B2B contract relationship comes into existence.
+You're the workspace's first member and its admin: you decide who joins
+and what they can do. On markoto.app you're asked to accept the Data
+Processing Addendum the first time you create a workspace, because your
+team's documents are now stored on your behalf.
 
-You're capped at 20 owned workspaces per user (invited workspaces
-don't count toward the cap).
+How many workspaces you can own depends on the instance: one on the
+free plan at markoto.app, more on a self-hosted instance (its operator
+sets the limit). Workspaces you were invited to don't count.
 
 ## What's next
 

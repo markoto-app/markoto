@@ -443,6 +443,10 @@ jobs:
         with:
           name: flow-output
           path: tests/e2e/output/flows
+          # Keep the per-variant `.passed` sentinels: scripts/build-flows.ts
+          # only publishes variants that have one, and upload-artifact v4
+          # drops dotfiles by default.
+          include-hidden-files: true
           retention-days: 30
 
       # On failure, the flow-output step above never runs and the Playwright
