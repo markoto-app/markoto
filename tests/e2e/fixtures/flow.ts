@@ -993,7 +993,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           await baseExpect(editor.newDocDialog.heading).toBeVisible({ timeout: 1500 })
         }).toPass({ timeout: 15_000 })
         await baseExpect(editor.newDocDialog.titleInput).toBeVisible()
-        await flow.shot('The new-document dialog opens — five quick questions to set up your doc')
+        await flow.shot('The new-document dialog opens: six quick choices to set up your doc')
       },
 
       silentSetup: async (opts: SetupOpts = {}) => {

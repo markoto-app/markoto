@@ -1,6 +1,6 @@
 ---
 title: Polish your doc and download it as a PDF
-description: Pick a theme, watch the live preview repaginate, then export a server-rendered PDF in one click.
+description: What you see in the preview is what lands in the PDF. Export it from the File menu in one click.
 category: import-export
 order: 1
 featured: true
@@ -8,35 +8,32 @@ featured: true
 
 # Polish your doc and download it as a PDF
 
-The live preview in markoto is the same paged.js engine that drives the
-PDF export — the file you download is byte-for-byte what you see in the
-right pane. So polishing a doc is two steps: pick a theme, then hit
-File → Save as PDF.
+The preview on the right is the PDF: same theme, same fonts, same cover
+page, same page breaks. So polishing a document comes down to two steps:
+make it look right in the preview, then choose **File › Export › PDF**.
 
-This walkthrough switches to the academic-paper preset and exports the
-result. About one minute. Desktop only — the menubar (which holds Save
-as PDF) is hidden on mobile.
+This walkthrough exports a short research summary and opens the result. It
+takes about a minute. On a phone, the same item is in the menu at the top
+right.
 
 ::flow{id="polished-pdf" hide-title}
 ::
 
 ## What just happened
 
-You opened the Theme panel from the right sidebar, picked a preset, and
-watched paged.js repaginate the doc with new fonts, page proportions,
-and brand color. Then File → Save as PDF triggered the renderer
-sidecar — a headless Chromium running paged.js server-side — and the
-result was streamed back as a download.
+markoto turned the document into a PDF on its servers, using exactly the
+theme you see in the preview, and your browser downloaded it. A fresh export
+takes a few seconds; exporting the same document again without changes is
+almost instant. You can export up to 10 PDFs a minute.
 
-The PDF is rendered on the server by a headless browser that uses exactly
-the same theme as your preview, so the page breaks you saw are the page
-breaks you get. A new render takes 5-15 seconds; asking again for the same
-document and theme, without edits, is near-instant. PDF downloads are limited
-to 10 per minute per address. If the PDF renderer is unavailable, the
-download fails with an error rather than falling back to a different
-layout.
+If the PDF can't be created (for example during maintenance), markoto says
+so instead of handing you a file that looks different from your preview.
+
+Prefer your browser's print dialog? **File › Print** (or `Cmd/Ctrl + P`)
+prints the same paged view.
 
 ## What's next
 
-- [Lock the doc with a password](/docs/sharing/password-protect) — gate the PDF link behind a passphrase.
-- [Pick a different theme](/docs/themes/pick-a-theme) — six presets, all preview-perfect.
+- [Pick a theme](/docs/themes/pick-a-theme): seven presets, each one exactly what the PDF will look like.
+- [Edit your cover page](/docs/themes/cover-page): title, subtitle, logo and layout.
+- [Lock the doc with a password](/docs/sharing/password-protect): gate the link (and the PDF) behind a passphrase.

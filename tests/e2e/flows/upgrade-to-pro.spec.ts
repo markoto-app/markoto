@@ -88,7 +88,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
     })
   })
 
-  const appUrl = new URL(test.info().project.use.baseURL ?? 'http://localhost:3001')
+  const appUrl = new URL(test.info().project.use.baseURL ?? 'http://markoto.localhost:3001')
   const appOrigins = new Set([
     appUrl.origin,
     `${appUrl.protocol}//localhost:${appUrl.port}`,

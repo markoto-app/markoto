@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
-import { addNonceToScripts, buildAppCsp, buildRenderCsp, CDN_SCRIPT_SOURCES } from '../../server/utils/csp'
+import { addNonceToScripts, buildAppCsp, buildRenderCsp, CDN_SCRIPT_SOURCES, crossOriginResourcePolicyFor } from '../../server/utils/csp'
 import { PAGEDJS_POLYFILL_URL } from '../../shared/utils/pagedjsCdn'
 import { MERMAID_URL, MERMAID_SRI } from '../../shared/utils/mermaidCdn'
 import { KATEX_CSS_URL } from '../../shared/utils/katexCdn'
@@ -122,5 +122,20 @@ describe('deployment config', () => {
     const appLabels = text.split('\n').filter(l => /traefik\.http\.middlewares\./.test(l) && !l.includes('markoto-s3-headers'))
     expect(appLabels.filter(l => /contentSecurityPolicy|Content-Security-Policy/.test(l))).toEqual([])
     expect(appLabels.filter(l => /Cross-Origin-Resource-Policy/.test(l) && !l.includes('sync-security-headers'))).toEqual([])
+  })
+})
+
+describe('crossOriginResourcePolicyFor', () => {
+  // The preview iframes are opaque-origin: what they load must be cross-origin.
+  it('lets the preview iframe load uploads and the bundled cover logos', () => {
+    expect(crossOriginResourcePolicyFor('/api/files/abc/def')).toBe('cross-origin')
+    expect(crossOriginResourcePolicyFor('/markoto-logos/primary-lockup-light.svg')).toBe('cross-origin')
+  })
+
+  it('keeps everything else same-site', () => {
+    expect(crossOriginResourcePolicyFor('/')).toBe('same-site')
+    expect(crossOriginResourcePolicyFor('/api/docs/abc/meta')).toBe('same-site')
+    expect(crossOriginResourcePolicyFor('/markoto-logosX/a.svg')).toBe('same-site')
+    expect(crossOriginResourcePolicyFor('/_nuxt/entry.js')).toBe('same-site')
   })
 })

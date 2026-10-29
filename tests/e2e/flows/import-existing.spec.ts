@@ -162,8 +162,13 @@ test('Import existing document', async ({ page, flow, editor }) => {
         // edit-only (`v-if="viewMode !== 'edit'"` keeps the preview
         // iframe unmounted under `<sm`), so there's no iframe to
         // wait on — `cm-content` text is the only useful signal.
+        // The preview was already paginated with the welcome text, so
+        // "a page exists" is no signal: wait until the imported heading
+        // is on the first page and the welcome text is gone.
         if (!editor.isMobile) {
-          await editor.page.waitForPreviewPaginated()
+          const mount = page.frameLocator('iframe').first().locator('#mount')
+          await expect(mount.locator('.pagedjs_page').first()).toContainText(/Q3 launch postmortem/i, { timeout: 30_000 })
+          await expect(mount).not.toContainText(/Welcome to markoto/i)
         }
       }
     }

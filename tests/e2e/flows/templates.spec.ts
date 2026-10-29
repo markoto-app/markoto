@@ -80,6 +80,15 @@ test('Start from a template', async ({ page, flow, editor }) => {
     }
   )
 
+  // Name the doc so the editor + cover show a real title, not "Untitled".
+  await flow.type(
+    'Give the meeting a title',
+    editor.page.newDocDialog.titleInput,
+    'Weekly product sync',
+    { result: 'The title is set.' }
+  )
+  await expect(editor.page.newDocDialog.titleInput).toHaveValue('Weekly product sync')
+
   // Submit with the template applied. submitCreate posts the form
   // (vs submitBlank which would skip the template).
   await flow.click(
@@ -113,6 +122,7 @@ test('Start from a template', async ({ page, flow, editor }) => {
   // ASSERTION: the template body lands in the editor source. We
   // check for the meeting-notes-specific landmarks (Agenda heading,
   // Action items section, hint-comment patterns).
+  await expect(editor.page.titleButton).toContainText('Weekly product sync')
   const editorText = await page.locator('.cm-content').textContent()
   expect(editorText).toMatch(/Agenda/i)
   expect(editorText).toMatch(/Action items/i)
