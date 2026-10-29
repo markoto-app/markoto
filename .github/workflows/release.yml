@@ -254,6 +254,17 @@ jobs:
           persist-credentials: false
           ref: v${{ needs.resolve-pr.outputs.new_version }}
 
+      # The app build plus its 10 GB swapfile and BuildKit's cache export
+      # left the runner with ~90 MB free on the v0.2.0 release, so the
+      # cosign download after the push failed and the image went out
+      # unsigned. Drop preinstalled SDKs this job never uses first (same
+      # list as image-scan.yml).
+      - name: Free runner disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
       # The `app` Nuxt/Vite build (with Sentry source-map processing) peaks
       # above the 7 GB of a private-repo runner and the OOM-killer SIGKILLs
       # `bun run build` inside the Docker build ("cannot allocate memory").
@@ -299,6 +310,11 @@ jobs:
           # Actions write access — docs/GITHUB-CONFIG.md, owner checklist.
           password: ${{ secrets.RELEASE_BOT_TOKEN }}
 
+      # Installed BEFORE the build so a full disk after a large push can
+      # never leave a pushed image unsigned.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+
       - name: Build + push
         id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
@@ -320,9 +336,6 @@ jobs:
           sbom: true
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
-
-      - name: Install cosign
-        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
 
       # Keyless: the signature is bound to this workflow's OIDC identity
       # (release.yml on refs/heads/main) and logged in the public Rekor log.
