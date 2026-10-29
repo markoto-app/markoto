@@ -108,6 +108,12 @@ jobs:
       # workflow_dispatch there is no triggering run — default-branch
       # HEAD is the right answer there.
       ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+    # Required even though every secret deploy.yml reads lives only in the
+    # `staging` Environment: a called workflow sees an environment secret
+    # only when the caller passes it (by name or via inherit). Without
+    # this the v0.2.1 staging deploy ran with empty DEPLOY_* values. The
+    # only repo-level secret (SONAR_TOKEN) is unused by deploy.yml.
+    secrets: inherit
 
   smoke:
     name: smoke (staging)
