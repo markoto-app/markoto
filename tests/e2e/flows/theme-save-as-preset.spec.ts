@@ -93,11 +93,10 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   // ─── Tweak: turn the cover off ──────────────────────────────────
   await flow.heading('Tweak — turn the cover page off', 3)
   await flow.narrate(
-    'Every preset has a cover page on by default. For internal '
-    + 'docs the cover often gets in the way; turn it off and the '
-    + 'preview drops to "page 1 = first heading" instead of '
-    + '"page 1 = title sheet". The cover toggle is the topmost '
-    + 'switch in the Cover section.'
+    'Academic Paper opens with a cover page. For internal documents '
+    + 'a title sheet often gets in the way: switch it off and page 1 '
+    + 'starts with the text itself. The switch is at the top of the '
+    + 'Cover page section.'
   )
 
   await flow.click(

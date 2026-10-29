@@ -27,4 +27,4 @@ reachable at its link.
 ## What's next
 
 - [Export as PDF](/docs/import-export/polished-pdf) — same content, fully self-contained.
-- [Bring the doc back in later](/docs/import-export/import-existing) — import the `.md` file into a fresh doc.
+- [Bring a Markdown file back in](/docs/writing/markdown-reference): open a new document and paste the file's contents into the editor. (File › Import converts Word, PDF, PowerPoint, Excel, HTML and EPUB; a `.md` file is already Markdown, so pasting is all it takes.)

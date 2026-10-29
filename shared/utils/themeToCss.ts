@@ -269,6 +269,9 @@ function typographyBlock(theme: DocTheme): string {
   margin: 0.05em 0.1em 0 0;
   color: var(--doc-heading-color);
   font-weight: ${theme.headings.weight};
+}
+.paged-doc .markoto-dropcap-p {
+  display: flow-root;
 }`
     : ''
 

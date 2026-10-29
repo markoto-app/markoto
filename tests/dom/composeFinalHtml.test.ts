@@ -73,8 +73,10 @@ describe('composeFinalHtml — features keep working', () => {
       cover: { ...defaultTheme.cover, enabled: true, showSubtitle: true, subtitle: 'Sub' },
       body: { ...defaultTheme.body, dropCap: true }
     }
-    const out = compose(theme, '<p>Once upon a time</p>')
-    expect(out).toContain('<p><span class="markoto-dropcap">O</span>nce upon a time</p>')
+    // Long enough for a cap (DROPCAP_MIN_CHARS); short openers get none.
+    const prose = 'Once upon a time' + ', there was a writer who kept drafting the same opening paragraph'.repeat(4)
+    const out = compose(theme, `<p>${prose}</p>`)
+    expect(out).toContain('<p class="markoto-dropcap-p"><span class="markoto-dropcap">O</span>nce upon a time')
     expect(parse(out).querySelector('.markoto-cover .markoto-dropcap')).toBeNull()
   })
 

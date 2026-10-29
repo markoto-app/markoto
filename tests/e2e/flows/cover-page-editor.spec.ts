@@ -182,8 +182,9 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
       hero: true,
       result: 'The subtitle appears on the cover. The PDF will open on this page.',
       after: async () => {
+        // Saved to the document, and (desktop) visible on the cover.
+        await expect.poll(coverSubtitle).toBe('Internal draft · v0.3 · Engineering team')
         if (!editor.isMobile) await expect(cover.locator('.markoto-cover-subtitle')).toHaveText('Internal draft · v0.3 · Engineering team')
-        else await expect.poll(coverSubtitle).toBe('Internal draft · v0.3 · Engineering team')
       },
       // Highlight the subtitle input on mobile (no preview iframe to
       // point at); on desktop the iframe IS the payoff visual.

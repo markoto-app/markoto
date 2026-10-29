@@ -19,6 +19,9 @@ import { test, expect } from '../fixtures/flow'
 test('Pick a theme', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
+  // Signed in, so the doc is owned and theme changes are saved to it
+  // (asserted through /meta below), not only synced live.
+  await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup({ title: 'Annual report', body: REPORT, cover: false })
 
   /** The brand colour of the theme the preview is currently rendering. */

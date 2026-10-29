@@ -14,11 +14,32 @@ import { test, expect } from '../fixtures/flow'
 // Captioning rules under v2: imperative caption + declarative result
 // on every click; highlights only on outcomes that the user wouldn't
 // otherwise notice (the new thread, the resolved section).
+//
+// Two people: Maya (the owner) comments and resolves, Sam (a spawned,
+// separately signed-in browser) replies — a discussion, not one
+// anonymous user talking to themselves.
 
 test('Have a discussion', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup({ title: 'Launch plan' })
+  await editor.page.loginAsTestUser('Maya Chen')
+  await editor.silentSetup({
+    title: 'Launch plan',
+    body: [
+      '# Launch plan',
+      '',
+      'markoto 2.0 goes out in two steps, so support can keep up with the questions.',
+      '',
+      '## Timeline',
+      '',
+      'Public beta opens on Saturday, 1 November.',
+      '',
+      'General availability follows two weeks later, once the beta feedback is in.'
+    ].join('\n'),
+    cover: false
+  })
+  // Sam (spawned below) joins through the link: anyone with it can edit.
+  await editor.page.setAccessMode('open-edit')
 
   // ─── Discuss in your doc ────────────────────────────────────────
   await flow.heading('Have a discussion', 3)
@@ -31,7 +52,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
 
   // Click the line first to place the caret, then Home + Shift+End to
   // select it — more cross-browser-reliable than triple-click.
-  const target = page.locator('.cm-content').getByText('Working together').first()
+  const target = page.locator('.cm-content').getByText('Public beta opens on Saturday').first()
   await flow.step(
     'Highlight the passage you want to comment on',
     async () => {
@@ -64,7 +85,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   await flow.type(
     'Write your comment',
     editor.page.comments.composerInput,
-    'Should we mention the keyboard shortcuts here too?',
+    'Should we open on Monday instead, when support is fully staffed?',
     {
       // Mobile: comments composer is inside the BottomSheet portal
       // where Reka's overlay intercepts pointer events. See
@@ -74,7 +95,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     }
   )
   await expect(editor.page.comments.composerInput).toHaveValue(
-    'Should we mention the keyboard shortcuts here too?'
+    'Should we open on Monday instead, when support is fully staffed?'
   )
 
   // Submit — the thread lands in the sidebar AND the passage gets a
@@ -99,50 +120,68 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   // currently-foregrounded pane.
   const newThread = editor.page.comments.thread.first()
   await expect(newThread).toBeVisible()
-  await expect(newThread).toContainText('Should we mention the keyboard shortcuts')
+  await expect(newThread).toContainText('Should we open on Monday instead')
   await expect(page.locator('.cm-comment-anchor').first()).toBeAttached()
 
-  // ─── Reply to keep the discussion going ────────────────────────────
-  await flow.heading('Reply to keep the discussion going', 3)
+  // ─── Sam replies ───────────────────────────────────────────────────
+  await flow.heading('Your collaborator replies', 3)
   await flow.narrate(
-    'Each thread has an always-visible reply box at the bottom — no '
-    + '"Reply" button to click first. Your replies appear nested under '
-    + 'the original, so the order of conversation stays clear.'
+    'Sam opens the same document. The thread is waiting in the Comments '
+    + 'panel, with a reply box right under it. Replies sit nested under '
+    + 'the comment, so the conversation stays in order.'
   )
 
-  const replyInput = newThread.locator('[data-testid="comment-composer-input"]')
-  const replySubmit = newThread.locator('[data-testid="comment-composer-submit"]')
+  const sam = await flow.spawn('sam')
+  await sam.editor.loginAsTestUser('Sam Reeves')
+  await sam.page.goto(page.url())
+  await sam.editor.waitForReady()
+  if (editor.isMobile) {
+    await sam.editor.mobileTabs.comments.click()
+  } else {
+    await sam.editor.sidebar.comments.click()
+  }
+  const samThread = sam.editor.comments.thread.first()
+  await expect(samThread).toContainText('Should we open on Monday instead')
 
-  await flow.type(
-    'Type a reply directly under the comment',
-    replyInput,
-    'Yes — and link to the cheat sheet.',
+  const REPLY = 'Monday works. I will move the support rota.'
+  const samReplyInput = samThread.locator('[data-testid="comment-composer-input"]')
+  await sam.flow.type(
+    'Sam types a reply under the comment',
+    samReplyInput,
+    REPLY,
     {
       force: editor.isMobile,
-      result: 'Your reply is ready to send.'
+      result: 'Sam\'s reply is ready to send.'
     }
   )
-  await expect(replyInput).toHaveValue('Yes — and link to the cheat sheet.')
+  await expect(samReplyInput).toHaveValue(REPLY)
+  const samReplySubmit = samThread.locator('[data-testid="comment-composer-submit"]')
+  if (editor.isMobile) {
+    // Comments BottomSheet portal — DOM-level click (tests/e2e/AGENTS.md).
+    await samReplySubmit.evaluate((el: HTMLElement) => el.click())
+  } else {
+    await samReplySubmit.click()
+  }
+  await expect(samThread).toContainText(REPLY)
 
-  await flow.click(
-    'Submit the reply',
-    replySubmit,
-    {
-      force: editor.isMobile,
-      result: 'Replies thread directly under the original — the order of conversation stays clear.'
-    }
-  )
-
-  // Assertions: the reply rendered as a child of the same thread.
+  // Maya's screen: the reply arrives in her thread without a reload.
+  await expect(newThread).toContainText(REPLY, { timeout: 10_000 })
   await expect(editor.page.comments.thread).toHaveCount(1)
-  await expect(newThread).toContainText('Yes — and link to the cheat sheet.')
+  await flow.shot(
+    'On your screen, Sam\'s reply appears under your comment as soon as he sends it.',
+    {
+      highlights: [
+        { label: 'Sam\'s reply', selector: '[data-testid="comment-thread"]' }
+      ]
+    }
+  )
 
   // ─── Resolve when the discussion is done ───────────────────────────
   await flow.heading('Resolve the thread when you\'re done', 3)
   await flow.narrate(
-    'Once the question is answered, hit Resolve. The thread tucks into '
-    + 'a "Resolved" section so it doesn\'t crowd the active list — but '
-    + 'the history stays so you can reopen it later.'
+    'Question answered: resolve the thread. It moves into a "Resolved" '
+    + 'section so it doesn\'t crowd the active list, and the whole '
+    + 'conversation stays there in case you need it again.'
   )
 
   await flow.click(
