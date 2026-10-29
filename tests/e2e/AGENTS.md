@@ -124,7 +124,9 @@ Clipboard permissions are pre-granted globally in `use.permissions: ['clipboard-
 
 ## Build + serve
 
-`scripts/build-flows.ts` does a clean rebuild of `public/flows/` from `tests/e2e/output/flows/` (deletes everything first, then copies — stale flows whose tests no longer exist get reaped). Walks `<slug>/<locale>/<variant>/` recursively; only copies `manifest.json` + `*.png`.
+`scripts/build-flows.ts` rebuilds `public/flows/` from `tests/e2e/output/flows/`: only variants with a `.passed` sentinel are republished (an unpassed variant keeps its prior published output), and slugs with no source dir are reaped. Walks `<slug>/<locale>/<variant>/`; copies `manifest.json` + `*.webp`.
+
+**Refreshing the committed screenshots from a release.** `public/flows/` is committed and does NOT update itself — the release run's `flow-output` artifact is the source. After a green release: `gh run download <release-run-id> -n flow-output -D tests/e2e/output/flows` (move any local `tests/e2e/output/` aside first), then `bun run flows:build` and commit `public/flows/` in a docs PR. The artifact carries the `.passed` sentinels (`include-hidden-files: true` in `release.yml`); artifacts from releases before v0.2.2 lack them, and the upload step only runs when the whole flow job passed.
 
 The `<Flow>` component (`app/components/content/Flow.vue`) fetches the manifest using `useRequestURL().origin`-prefixed URLs so SSR works. Variant resolution: subscribes to `useColorMode().value`, picks the matching manifest with a 4-step fallback chain.
 
