@@ -14,6 +14,11 @@ PR's title + body, with the version derived from the git tag history. See
 
 (Populated on next release. Each entry is sourced verbatim from the merged PR's title + description — see `docs/RELEASE-PROCESS.md`.)
 
+## [0.2.0] — 2026-10-29
+
+Security hardening release plus custom CSS, invite acceptance and AI confirmations.
+Full notes: the GitHub Release for v0.2.0.
+
 ## [0.1.0] — 2026-08-18
 
 First public release of the markoto source tree.
