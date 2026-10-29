@@ -1348,7 +1348,7 @@
     "capability": {
       "chat": {
         "title": "Schreibassistent",
-        "description": "Für jede KI-Funktion nötig: Prompt-Leiste, {'@'}ai in Kommentaren und Zusammenfassungen der Websuche. Das Modell muss Tool-Aufrufe unterstützen."
+        "description": "Für jede KI-Funktion nötig: Prompt-Leiste, {'@'}markoto in Kommentaren und Zusammenfassungen der Websuche. Das Modell muss Tool-Aufrufe unterstützen."
       },
       "image": {
         "title": "Bildgenerierung",

@@ -28,6 +28,7 @@ by the server, so the site never sees your own address.
 - **You still need a writing assistant provider** to summarise the page ([what the AI needs](/docs/writing/ai-overview)). Without one, the raw page text comes back.
 - **Shared allowance.** Page reading and web search share a per-person limit, by default 30 calls an hour and 100 a day. At most 10 pages per AI session.
 - Scheme-less addresses such as `example.org/page` work; `https://` is assumed.
+- **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/writing/ai-prompt-bar#when-the-ai-asks-first).
 
 ## What's next
 

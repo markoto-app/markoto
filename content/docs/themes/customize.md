@@ -18,15 +18,11 @@ both the live preview AND the PDF export.
 
 ## What just happened
 
-The Theme tab is an in-doc editor for a JSONB column on the document.
-Each change goes through `themeToCss()` (the single function that
-drives both preview and export), broadcasts to other live editors via
-the `ymeta.theme` Y.js field, and validates server-side against the
-font allowlist + numeric ranges.
+Each change applies to the live preview and the PDF export at the same
+time, and everyone else in the document sees it immediately.
 
-Changing the theme is a tracked activity — the row in the activity
-log carries the theme diff so you can revert with the same Restore
-machinery as any other edit.
+Theme changes are recorded in the activity log, so you can
+[restore](/docs/history/restore) an earlier look like any other edit.
 
 ## What's next
 

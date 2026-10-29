@@ -29,6 +29,7 @@ When in doubt, ask it to cite.
 - **There is an allowance.** Search and page reading share a limit per person: by default 30 calls an hour and 100 a day. When it is used up the AI tells you and carries on without the web. An instance operator can change the numbers.
 - **Per session** the AI searches at most 10 times, so one prompt can't run away.
 - Searches are English-market searches today; the AI can still write the answer in your document's language.
+- **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/writing/ai-prompt-bar#when-the-ai-asks-first).
 
 ## What's next
 

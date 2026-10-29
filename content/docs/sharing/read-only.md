@@ -16,15 +16,14 @@ exactly that: link-shareable, read-only, no signup, no password.
 
 ## What just happened
 
-The share dialog sets `access_mode='open_view'` on the doc. The token
-endpoint that mints the Hocuspocus JWT reads the access mode and
-mints a `readOnly: true` token for any non-owner. Read-only is enforced
-in four layers — the JWT, the Hocuspocus server, the CodeMirror
-editable compartment, and the toolbar UI — so a determined client
-can't write through any of them.
+The document's access mode is now *view only*. Anyone with the link can
+read it and watch edits arrive live, but can't type, comment or change
+the theme. This is enforced by markoto's servers, not just hidden in the
+page, so nobody can write to the document by tinkering with their
+browser.
 
-Workspace members override at the role level: an admin or editor on
-the doc's workspace can still edit even if access mode is open-view.
+Workspace members keep their role: an admin or editor of the document's
+workspace can still edit it in view-only mode.
 
 ## What's next
 

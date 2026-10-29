@@ -17,19 +17,15 @@ resolution prompt. It just works.
 
 ## What just happened
 
-Every doc is backed by a Y.js CRDT. Each editor is a Y.js client
-connected via WebSocket to the Hocuspocus sync server. Edits are
-broadcast as Y.js update messages and merged deterministically — the
-same edit applied in any order produces the same final state.
+Every keystroke is sent to everyone else in the document as you type,
+and markoto merges simultaneous edits automatically, so two people
+typing in the same paragraph never overwrite each other.
 
-The PresenceBar at the top shows who's currently editing; the colored
-cursors in the doc come from Y.js awareness; the per-stripe author
-colors come from a 15-color desaturated palette in `app/utils/colors.ts`
-(no human ever wears the AI's vermillion).
+The presence bar at the top shows who's in the document; each person
+has their own cursor colour, and the AI always shows in markoto's red.
 
-Behind the scenes: the Y.js state lives in Postgres via `y-postgresql`,
-so a server restart doesn't lose work, and a client that goes offline
-and reconnects gets caught up automatically.
+Edits are saved on the server as they happen. If you lose your
+connection, keep typing: your changes sync when you're back online.
 
 ## What's next
 

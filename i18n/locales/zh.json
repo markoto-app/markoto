@@ -1348,7 +1348,7 @@
     "capability": {
       "chat": {
         "title": "写作助手",
-        "description": "所有 AI 功能都需要它：提示栏、评论中的 {'@'}ai 以及网页搜索摘要。模型必须支持工具调用。"
+        "description": "所有 AI 功能都需要它：提示栏、评论中的 {'@'}markoto 以及网页搜索摘要。模型必须支持工具调用。"
       },
       "image": {
         "title": "图像生成",

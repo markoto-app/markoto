@@ -27,16 +27,20 @@ the file is deleted and you can request a new export.
 
 What's in the ZIP:
 
-1. `profile.json` — your account row, minus secrets
-2. `workspaces.json` — workspaces you own + member of
-3. `documents/<docId>/` — meta, current markdown, **full Y.js history reconstructed**
-4. `comments.json` — your comments + comments others made on your docs
-5. `activity-log.json` — your activity-feed contributions
-6. `audit-log.json` — audit events where you were the actor
-7. `knowledge-metadata.json` — workspace knowledge files you uploaded (metadata; the originals were deleted post-processing)
-8. `consent-log.json` — your cookie/analytics consent decisions
-9. `billing-snapshot.json` — your plan and billing period (empty where billing is off)
-10. `README.md` — describes each entry
+- `README.txt` describes every file.
+- `profile.json`: your account details, without passwords or secrets.
+- `documents/`: every document you own, as a Markdown file plus a `.meta.json` with its title, sharing settings and dates.
+- `comments.ndjson`: every comment you wrote.
+- `workspace_memberships.json` and `workspace_invites.json`: the workspaces you belong to, and the invitations you received or sent.
+- `themes.json`: the themes you saved.
+- `ai/`: your AI sessions, prompts and the AI's steps, plus your AI provider settings (never the key).
+- `activity.ndjson` and `audit.ndjson`: your entries in the activity and audit logs.
+- `consent.ndjson`: your cookie and analytics choices.
+- `waitlist.ndjson`: your paid-plans waitlist sign-up, if any.
+- `billing/`: your billing records, empty where billing is off.
+
+Files that would be empty are still included, so the layout is always the
+same.
 
 Your saved AI provider keys are never part of the export: they are stored
 encrypted and only ever used by the server.
