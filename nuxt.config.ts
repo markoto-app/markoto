@@ -26,6 +26,31 @@ export default defineNuxtConfig({
     '@nuxtjs/mcp-toolkit'
   ],
 
+  // Nuxt Content in production builds (`nuxt dev` serves from Node and
+  // keeps the auto-detected settings):
+  // - sqliteConnector: the server always runs under Bun (nitro preset
+  //   'bun'), but Nuxt Content picks its SQLite driver from the runtime
+  //   doing the BUILD. `bun run build` runs the nuxt CLI through its node
+  //   shebang, so wherever a real Node is installed (CI runners, dev
+  //   machines) it baked in better-sqlite3, which Bun can't load: every
+  //   /docs query answered 500. The Docker build only worked because the
+  //   bun image's `node` is Bun itself.
+  // - database.filename: the content database is written at runtime, and
+  //   the app container's root filesystem is read-only (docs/SECURITY-
+  //   HARDENING.md §C), so the default `.data/` path fails with
+  //   SQLITE_CANTOPEN. /tmp is the container's tmpfs.
+  $production: {
+    content: {
+      database: {
+        type: 'sqlite',
+        filename: '/tmp/markoto-content.sqlite'
+      },
+      experimental: {
+        sqliteConnector: 'bun'
+      }
+    }
+  },
+
   devtools: {
     enabled: true
   },
