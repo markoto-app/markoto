@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import type { DocTheme } from '~~/shared/types/theme'
 import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
@@ -116,13 +117,14 @@ async function loadThemeContext() {
 // Map a theme JSONB to a known choice (built-in preset / saved theme /
 // neither). Used when pre-selecting based on the workspace default so
 // the matching card lights up if there's one.
+// Compared structurally: the workspace default comes back from a jsonb
+// column whose key order differs from the in-code preset.
 function matchThemeChoice(theme: DocTheme): ThemeChoice {
-  const json = JSON.stringify(theme)
   for (const preset of THEME_PRESETS) {
-    if (JSON.stringify(preset.theme) === json) return { kind: 'preset', id: preset.id }
+    if (jsonEqual(preset.theme, theme)) return { kind: 'preset', id: preset.id }
   }
   for (const saved of savedThemes.value) {
-    if (JSON.stringify(saved.theme) === json) return { kind: 'saved', themeId: saved.themeId }
+    if (jsonEqual(saved.theme, theme)) return { kind: 'saved', themeId: saved.themeId }
   }
   return { kind: 'inherit' }
 }
@@ -444,6 +446,7 @@ async function submit(blank: boolean) {
               :class="themeChoice.kind === 'preset' && themeChoice.id === preset.id
                 ? 'border-primary bg-elevated/40'
                 : 'border-default'"
+              :aria-pressed="themeChoice.kind === 'preset' && themeChoice.id === preset.id"
               @click="themeChoice = { kind: 'preset', id: preset.id }"
             >
               <div class="flex items-center gap-2 mb-1">

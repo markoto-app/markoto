@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ypgPersistence } from './persistence'
 import { matchesCurrentOrPrevious } from '../../shared/utils/secrets'
 import { performKickUser, type HocuspocusInstance } from './kickUser'
+import { flushPendingStore } from './flushDocument'
 import { Sentry } from './sentry'
 
 export type { HocuspocusConnection, HocuspocusDocument, HocuspocusInstance } from './kickUser'
@@ -98,6 +99,9 @@ async function handleInternalRequestInner(
     if (url === '/internal/kick-user' && request.method === 'POST') {
       return await handleKickUser(request, response, instance)
     }
+    if (url === '/internal/flush-document' && request.method === 'POST') {
+      return await handleFlushDocument(request, response, instance)
+    }
     // TEST_MODE-only inspection endpoints. The path includes `_test`
     // so it's grep-distinguishable from production paths in any audit.
     if (TEST_MODE && url === '/internal/_test/recent-kicks' && request.method === 'GET') {
@@ -173,6 +177,28 @@ async function handleNotifyDeleted(
   }, 3000)
 
   sendJson(response, 200, { success: true, notified: !!doc })
+  return true
+}
+
+/**
+ * Persist a loaded document's pending edits NOW instead of after the
+ * store debounce, so the caller can read complete `yjs_documents` rows
+ * (duplicate clones them). Answers once the store finished; `outcome`
+ * says whether there was anything to store (see flushDocument.ts).
+ */
+async function handleFlushDocument(
+  request: IncomingMessage,
+  response: ServerResponse,
+  instance: HocuspocusInstance
+): Promise<boolean> {
+  const body: unknown = await readJsonBody(request)
+  const docId = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).docId : undefined
+  if (typeof docId !== 'string' || docId.length === 0) {
+    sendJson(response, 400, { error: 'Missing docId' })
+    return true
+  }
+  const outcome = await flushPendingStore(instance, docId)
+  sendJson(response, 200, { success: true, outcome })
   return true
 }
 

@@ -178,10 +178,22 @@ export function useDocument(docId: string) {
 
   // Bridge Y.js Map reactivity to Vue: `ymeta.get()` isn't tracked by Vue,
   // so we observe the Map and update a reactive ref on every change.
-  const _titleRef = ref((ymeta.get('title') as string) || 'Untitled')
+  // Live title from ymeta. Empty until a client sets one — a doc created
+  // through the new-document dialog carries its title only on the DB row
+  // (seeded below via /token), so the computed `title` falls back to it.
+  const _ymetaTitleRef = ref((ymeta.get('title') as string) || '')
   // `_deleted` flag is set by the sync-server when the owner deletes the doc —
   // all connected clients see this via Y.js broadcast and redirect away.
   const isDeleted = ref(!!ymeta.get('_deleted'))
+  // True while THIS client's own delete request is in flight (File →
+  // Delete). The sync server broadcasts `_deleted` before the DELETE
+  // response lands, so without this the person deleting the doc was told
+  // "This document was deleted by the owner."
+  const deletingHere = ref(false)
+  const deletedByOther = computed(() => isDeleted.value && !deletingHere.value)
+  function setDeletingHere(active: boolean) {
+    deletingHere.value = active
+  }
   // Theme: lives on ymeta.theme as a plain JSON object so changes broadcast
   // to all collaborators in the same way the title does. Falls back to the
   // hardcoded `defaultTheme` until either (a) the /token round-trip seeds
@@ -194,7 +206,7 @@ export function useDocument(docId: string) {
   const _audienceRef = ref<string>((ymeta.get('audience') as string) ?? 'casual')
   const _languageRef = ref<string>((ymeta.get('language') as string) ?? 'en')
   ymeta.observe(() => {
-    _titleRef.value = (ymeta.get('title') as string) || 'Untitled'
+    _ymetaTitleRef.value = (ymeta.get('title') as string) || ''
     if (ymeta.get('_deleted')) isDeleted.value = true
     _themeRef.value = readThemeFromYmeta(ymeta)
     const d = ymeta.get('description')
@@ -206,7 +218,7 @@ export function useDocument(docId: string) {
   })
 
   const title = computed({
-    get: () => _titleRef.value,
+    get: () => _ymetaTitleRef.value || tokenState.initialTitle.value || 'Untitled',
     set: (v: string) => {
       // Clamped to the sync server's ymeta bounds — an over-long value
       // would be rejected there and close the connection.
@@ -258,12 +270,25 @@ export function useDocument(docId: string) {
   // but the /meta endpoint is owner-gated, so the DB persist is a
   // no-op for them. Y.js sync becomes the only persistence surface in
   // that case (same trade-off as theme on ownerless docs).
-  const persistDocContext = useDebounceFn((next: { description?: string, audience?: string, language?: string }) => {
+  //
+  // Changes are MERGED before the debounced PUT: `useDebounceFn` only
+  // runs the last call's arguments, so setting the audience and then the
+  // language within 800 ms used to persist only the language — the AI
+  // (which reads these fields from the row) never saw the audience.
+  type DocContextPatch = { description?: string, audience?: string, language?: string }
+  let pendingDocContext: DocContextPatch = {}
+  const flushDocContext = useDebounceFn(() => {
+    const body = pendingDocContext
+    pendingDocContext = {}
     $fetch(`/api/docs/${docId}/meta`, {
       method: 'PUT',
-      body: next
+      body
     }).catch(() => {})
   }, 800)
+  function persistDocContext(next: DocContextPatch) {
+    pendingDocContext = { ...pendingDocContext, ...next }
+    flushDocContext()
+  }
 
   function setTheme(next: DocTheme) {
     if (!canEditTheme.value) return
@@ -388,6 +413,8 @@ export function useDocument(docId: string) {
     isOwner: readonly(tokenState.isOwner),
     canDelete: readonly(tokenState.canDelete),
     isDeleted: readonly(isDeleted),
+    deletedByOther,
+    setDeletingHere,
     requiresPassword: readonly(tokenState.requiresPassword),
     forbidden: readonly(tokenState.forbidden),
     notFound: readonly(tokenState.notFound),

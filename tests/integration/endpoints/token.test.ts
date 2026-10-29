@@ -31,6 +31,7 @@ interface TokenResponse {
   accessMode: string
   ownerId: number | null
   theme: unknown
+  title?: string
   description?: string
   audience?: string
   language?: string
@@ -322,6 +323,9 @@ describe('GET /api/docs/:docId/token', () => {
       const res = await anonClient().get(`/api/docs/${doc.docId}/token`)
       const body = await res.json() as TokenResponse
       expect(body.initialBody).toContain('# Apfelstrudel')
+      // The dialog title rides along so the editor topbar shows it
+      // before any client has written ymeta.title.
+      expect(body.title).toBe('Apfelstrudel')
       expect(body.initialBody).toContain('At a glance')
       expect(body.initialBody).toContain('Ingredients')
       expect(body.initialBody).not.toContain('{{title}}')

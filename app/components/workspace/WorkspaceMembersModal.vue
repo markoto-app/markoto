@@ -212,6 +212,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
             v-for="m in localMembers"
             :key="m.userId"
             class="flex items-center gap-3 p-3"
+            :data-testid="`workspace-member-row-${m.userId}`"
           >
             <UAvatar
               v-if="m.avatarUrl"
@@ -252,6 +253,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
                 :loading="rowBusy === m.userId"
                 :disabled="isSoleAdmin(m)"
                 trailing-icon="i-lucide-chevron-down"
+                data-testid="workspace-member-role"
               >
                 {{ roleLabel(m.role) }}
               </UButton>

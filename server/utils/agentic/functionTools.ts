@@ -120,14 +120,14 @@ export const CreateCommentArgs = z.object({
   end_line: z.number().int().min(1)
     .describe('Last line of the text range (1-indexed, inclusive). Must be >= start_line.'),
   body: z.string().trim().min(1).max(4000)
-    .describe('Comment body (max 4000 chars). May include @[Name](user:ID) mention tokens using IDs from <workspace_members>.')
+    .describe('Comment body (max 4000 chars). Plain text — comments do not render Markdown, so no **bold**, # headings or list markup. May include @[Name](user:ID) mention tokens using IDs from <workspace_members>.')
 }).describe('Place a new comment anchored to a line range. Use for review notes, questions, to-dos, or to communicate with the user about a specific part of the document. Your comment appears as "markoto".')
 
 export const ReplyToCommentArgs = z.object({
   comment_id: z.string().min(1).max(64)
     .describe('The id of the comment thread to reply to (from read_comments).'),
   body: z.string().trim().min(1).max(2000)
-    .describe('Reply body (max 2000 chars). May include @[Name](user:ID) mention tokens.')
+    .describe('Reply body (max 2000 chars). Plain text — comments do not render Markdown, so no **bold**, # headings or list markup. May include @[Name](user:ID) mention tokens.')
 }).describe('Add a reply to an existing comment thread. Your reply appears as "markoto" nested under the thread.')
 
 export const ResolveCommentArgs = z.object({

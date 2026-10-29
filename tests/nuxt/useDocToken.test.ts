@@ -37,6 +37,7 @@ interface TokenPayload {
   accessMode: string
   ownerId: number | null
   theme?: unknown
+  title?: string
   canDelete?: boolean
 }
 
@@ -450,6 +451,7 @@ registerEndpoint('/api/docs/doc-123/meta', (event: { node: { req: { headers: Rec
   metaCalls.push({ authorization: typeof auth === 'string' ? auth : undefined })
   return {
     theme: null,
+    title: 'Launch plan',
     description: 'Secret plan',
     audience: 'business',
     language: 'de',
@@ -464,10 +466,20 @@ describe('useDocToken — hydrateAfterUnlock', () => {
     await t.hydrateAfterUnlock('unlock-jwt')
 
     expect(metaCalls).toEqual([{ authorization: 'Bearer unlock-jwt' }])
+    expect(t.initialTitle.value).toBe('Launch plan')
     expect(t.initialDescription.value).toBe('Secret plan')
     expect(t.initialAudience.value).toBe('business')
     expect(t.initialLanguage.value).toBe('de')
     expect(t.initialBody.value).toBe('# Template')
+  })
+})
+
+describe('useDocToken — initialTitle', () => {
+  it('seeds the DB title from /token (shown until ymeta carries one)', async () => {
+    response.current = { token: 'jwt', readOnly: false, accessMode: 'open-edit', ownerId: null, title: 'Project kickoff notes' }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    expect(t.initialTitle.value).toBe('Project kickoff notes')
   })
 })
 

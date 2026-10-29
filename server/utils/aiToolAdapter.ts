@@ -73,7 +73,7 @@ import { embedQuery } from './embeddings'
 import { assertKnowledgeEmbeddingsReady } from './knowledgeEmbeddingsStatus'
 import { appendAiMessage } from '../repos/aiSessionMessages'
 import { searchActivity, type ActivityEntry } from '../repos/activity'
-import { stripAiMention } from './agentic/commentTriggerPrompt'
+import { plainCommentText, stripAiMention } from './agentic/commentTriggerPrompt'
 import { fetchExternalImage as fetchExternalImageGuarded, type ExternalImageResult } from './externalImage'
 import { budgetExhaustedMessage } from './billingMode'
 import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
@@ -2068,7 +2068,7 @@ export async function handleCreateComment(
   // next time the doc is loaded by a client. Belt-and-suspenders: the
   // server-side trigger guard ALSO rejects AI-authored messages, but
   // stripping here keeps the badge from rendering misleadingly in the UI.
-  const safeBody = stripAiMention(input.body)
+  const safeBody = plainCommentText(stripAiMention(input.body))
 
   session.ydoc.transact(() => {
     const ycomments = session.ydoc.getArray<Y.Map<unknown>>('comments')
@@ -2121,7 +2121,7 @@ export function handleReplyToComment(
   const origin = `ai:assistant:${session.sessionId}`
 
   // Strip @ai from the reply body — same rationale as create_comment.
-  const safeBody = stripAiMention(input.body)
+  const safeBody = plainCommentText(stripAiMention(input.body))
 
   session.ydoc.transact(() => {
     const reply = new Y.Map<unknown>()

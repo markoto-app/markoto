@@ -1,4 +1,5 @@
 import type { Doc as YDoc } from 'yjs'
+import type { StoreDebouncer } from './flushDocument'
 
 // Pure in-memory kick-user logic. Lives in its own file so tests can import
 // it without pulling in `persistence.ts` (which opens a Postgres connection
@@ -20,6 +21,8 @@ export interface HocuspocusInstance {
   // Method syntax: Hocuspocus' own `unloadDocument` takes its richer
   // `Document`; the instance we receive only ever passes docs it loaded.
   unloadDocument?(doc: HocuspocusDocument): unknown
+  /** Hocuspocus' store debouncer (`/internal/flush-document`). */
+  debouncer?: StoreDebouncer
 }
 
 /**

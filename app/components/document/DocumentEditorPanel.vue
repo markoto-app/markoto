@@ -73,19 +73,18 @@ watch(() => props.audience, (next) => {
 
 // — Language combobox ────────────────────────────────────────────────
 // One UInputMenu drives both "pick a preset" and "type any language".
-// The model is the SELECTED ITEM (an object), not the raw string —
-// UInputMenu requires this when items are objects with labels.
+// `value-key="value"` makes the model the language STRING ("de",
+// "Romansh"), not the item object. (The model used to be typed as the
+// item while UInputMenu emitted the string, so the watcher below threw
+// every pick away: choosing "Deutsch" showed in the field but never
+// reached the document — the AI kept writing English.)
 //
 // Items: 6 curated presets, each {label, value}. The user can:
 //   - type to filter presets, click one → emits the preset value
 //   - type a non-matching string and press Enter (or click "Create…")
-//     → the create-item callback fires; we cap to MAX_LENGTH, emit it
-//     as the new language, and surface a synthetic item back into the
-//     model so the input shows the typed string instead of clearing.
-//
-// Mapping between props.language (string) and the model (item object)
-// happens via two computed refs — one read direction (string→item),
-// one write direction (item→string).
+//     → the create-item callback fires; we cap to MAX_LENGTH and use it
+//     as the new language; a synthetic item for it is listed first so
+//     the input shows the typed string instead of clearing.
 interface LanguageItem { label: string, value: string, custom?: boolean }
 
 const presetItems = computed<LanguageItem[]>(() =>
@@ -94,42 +93,37 @@ const presetItems = computed<LanguageItem[]>(() =>
 
 const isPresetLanguage = (v: string) => (LANGUAGE_PRESETS as readonly string[]).includes(v)
 
-function languageToItem(v: string): LanguageItem {
-  if (isPresetLanguage(v)) {
-    return presetItems.value.find(p => p.value === v) ?? { label: v, value: v }
-  }
-  return { label: v, value: v, custom: true }
-}
-
-const languageModel = ref<LanguageItem>(languageToItem(props.language))
+const languageModel = ref<string>(props.language)
+const languageIsCustom = computed(() =>
+  languageModel.value.trim().length > 0 && !isPresetLanguage(languageModel.value)
+)
 
 // Items list shown in the dropdown. When the user has typed a custom
 // value, surface it at the top so they can re-select it without
 // retyping.
 const languageItems = computed<LanguageItem[]>(() => {
-  if (languageModel.value.custom && languageModel.value.value.trim().length > 0) {
-    return [languageModel.value, ...presetItems.value]
+  if (languageIsCustom.value) {
+    return [{ label: languageModel.value, value: languageModel.value, custom: true }, ...presetItems.value]
   }
   return presetItems.value
 })
 
 const { ignoreUpdates: ignoreLanguageUpdates } = watchIgnorable(languageModel, (next) => {
-  if (!next || typeof next !== 'object') return
-  const value = (next.value ?? '').trim()
+  if (typeof next !== 'string') return
+  const value = next.trim()
   if (value.length === 0) return
   emit('update:language', value)
 })
 
 watch(() => props.language, (next) => {
-  if (next === languageModel.value.value) return
+  if (next === languageModel.value) return
   ignoreLanguageUpdates(() => {
-    languageModel.value = languageToItem(next)
+    languageModel.value = next
   })
 })
 
-function onCreateLanguage(text: string): LanguageItem {
-  const trimmed = text.trim().slice(0, LANGUAGE_MAX_LENGTH)
-  return { label: trimmed, value: trimmed, custom: !isPresetLanguage(trimmed) }
+function onCreateLanguage(text: string): string {
+  return text.trim().slice(0, LANGUAGE_MAX_LENGTH)
 }
 
 const audienceItems = AUDIENCE_KINDS.map(kind => ({
@@ -220,7 +214,7 @@ const audienceItems = AUDIENCE_KINDS.map(kind => ({
           @create="(text: string) => languageModel = onCreateLanguage(text)"
         />
         <p
-          v-if="languageModel.custom"
+          v-if="languageIsCustom"
           class="text-xs text-toned mt-1"
         >
           {{ t('documentPanel.language.customActive') }}

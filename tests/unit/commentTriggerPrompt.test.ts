@@ -5,6 +5,7 @@ import {
   resolveCommentTrigger,
   buildCommentTriggerBlock,
   buildCommentTrigger,
+  plainCommentText,
   stripAiMention,
   hasAiMention
 } from '../../server/utils/agentic/commentTriggerPrompt'
@@ -95,6 +96,19 @@ function seedComment(ydoc: Y.Doc, ytext: Y.Text, opts: {
 // ---------------------------------------------------------------------------
 // stripAiMention / hasAiMention (server-side counterparts of the client utils)
 // ---------------------------------------------------------------------------
+
+describe('plainCommentText (AI comment bodies render as plain text)', () => {
+  it('drops bold / underline-bold markers and heading hashes', () => {
+    expect(plainCommentText('A client can **read the document** but __not edit__ it.'))
+      .toBe('A client can read the document but not edit it.')
+    expect(plainCommentText('## Short answer\nYes.')).toBe('Short answer\nYes.')
+  })
+
+  it('leaves single asterisks, arithmetic and mention tokens alone', () => {
+    expect(plainCommentText('5 * 3 = 15, see note*')).toBe('5 * 3 = 15, see note*')
+    expect(plainCommentText('Ask @[Sam Reeves](user:12) about #42')).toBe('Ask @[Sam Reeves](user:12) about #42')
+  })
+})
 
 describe('stripAiMention', () => {
   it('replaces a leading @ai with literal AI', () => {

@@ -43,3 +43,40 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
     })
   })
 }
+
+/**
+ * Ask the sync-server to persist a document's pending edits NOW (its
+ * store is debounced 2–10 s) and wait until it has. Call before reading
+ * a live document's `yjs_documents` rows — `duplicateDocument` clones
+ * them, and without the flush a duplicate made right after an edit
+ * missed that edit.
+ *
+ * Unlike the kick above this one is awaited, but it never fails the
+ * caller: on timeout / sync-server down it reports false and the caller
+ * proceeds with what is persisted (the pre-fix behaviour). With several
+ * sync-server instances only the one behind `syncInternalUrl` is
+ * flushed; sticky sessions keep a document's writers on one instance.
+ */
+export async function flushSyncDocument(docId: string): Promise<boolean> {
+  const config = useRuntimeConfig()
+  if (!config.syncInternalUrl || !config.internalApiSecret) return false
+  try {
+    const res = await fetch(`${config.syncInternalUrl}/internal/flush-document`, {
+      method: 'POST',
+      headers: injectTraceHeaders({
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': config.internalApiSecret
+      }),
+      body: JSON.stringify({ docId }),
+      signal: AbortSignal.timeout(12_000)
+    })
+    if (!res.ok) throw new Error(`flush-document answered ${res.status}`)
+    return true
+  } catch (e) {
+    console.warn(`[syncNotify] flush-document for ${docId} failed:`, e instanceof Error ? e.message : e)
+    captureExceptionThrottled('syncNotify.flush-document', e, {
+      tags: { component: 'syncNotify', event: 'flush_document_failed' }
+    })
+    return false
+  }
+}

@@ -11,6 +11,6 @@ export default buildDocBoundTool({
     doc_id: z.string().min(1).describe('The doc id to comment on.'),
     start_line: z.number().int().min(1).describe('First line of the anchored range (1-indexed, inclusive).'),
     end_line: z.number().int().min(1).describe('Last line of the anchored range (1-indexed, inclusive, >= start_line).'),
-    body: z.string().trim().min(1).max(4000).describe('Comment body (max 4000 chars). May include @[Name](user:ID) mention tokens.')
+    body: z.string().trim().min(1).max(4000).describe('Comment body (max 4000 chars). Plain text — comments do not render Markdown. May include @[Name](user:ID) mention tokens.')
   }
 })

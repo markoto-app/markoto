@@ -80,6 +80,10 @@ export default defineEventHandler(async (event) => {
     workspaceAiEnabled: row.workspaceAiEnabled,
     workspaceBillingOwner: row.workspaceBillingOwner,
     theme: row.theme,
+    // Title as stored on the row (set by the new-document dialog). The
+    // editor shows it until the live Y.js title (`ymeta.title`) exists —
+    // a freshly created doc has a DB title but no ymeta title yet.
+    title: row.title,
     // Document context fields. The editor uses these to seed the
     // Document tab + the AI prompt context surfaces; the server-side
     // AI prompt path reads them straight from the documents row, so

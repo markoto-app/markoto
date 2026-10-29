@@ -45,6 +45,7 @@ const hoisted = vi.hoisted(() => {
       accessMode: ref<string>('open-edit'),
       pendingPasswordUnlock: ref(false),
       initialTheme: shallowRef<unknown>(null),
+      initialTitle: ref<string>(''),
       initialDescription: ref<string>(''),
       initialAudience: ref<string>('casual'),
       initialLanguage: ref<string>('en'),
@@ -74,6 +75,7 @@ const hoisted = vi.hoisted(() => {
     // Captured opts passed into useHocuspocusSync — gives tests the
     // hook handles so they can simulate provider lifecycle events.
     metaCalls: [] as Array<{ url: string, method: string, body: unknown }>,
+    debounce: { deferred: false, pending: null as null | (() => unknown) },
     capturedSyncOpts: null as null | {
       docId: string
       syncUrl: string
@@ -107,9 +109,25 @@ mockNuxtImport('useRuntimeConfig', () => {
 // The real useDebounceFn wraps the arg in a leading-edge-or-trailing
 // timer; an identity function matches the single-call semantics for
 // tests that only fire setTheme once.
+//
+// `hoisted.debounce.deferred = true` switches to real debounce semantics
+// (only the LAST call's arguments run, on `flushDebounced()`) for the
+// doc-context merge test.
 mockNuxtImport('useDebounceFn', () => {
-  return <T extends (...args: unknown[]) => unknown>(fn: T) => fn
+  return <A extends unknown[]>(fn: (...args: A) => unknown) => (...args: A) => {
+    if (hoisted.debounce.deferred) {
+      hoisted.debounce.pending = () => fn(...args)
+      return
+    }
+    return fn(...args)
+  }
 })
+
+function flushDebounced() {
+  const run = hoisted.debounce.pending
+  hoisted.debounce.pending = null
+  run?.()
+}
 
 mockNuxtImport('useDocToken', () => {
   return (_docId: string) => ({
@@ -124,6 +142,7 @@ mockNuxtImport('useDocToken', () => {
     accessMode: hoisted.tokenState.accessMode,
     pendingPasswordUnlock: hoisted.tokenState.pendingPasswordUnlock,
     initialTheme: hoisted.tokenState.initialTheme,
+    initialTitle: hoisted.tokenState.initialTitle,
     initialDescription: hoisted.tokenState.initialDescription,
     initialAudience: hoisted.tokenState.initialAudience,
     initialLanguage: hoisted.tokenState.initialLanguage,
@@ -196,6 +215,7 @@ function resetHoisted() {
   hoisted.tokenState.accessMode.value = 'open-edit'
   hoisted.tokenState.pendingPasswordUnlock.value = false
   hoisted.tokenState.initialTheme.value = null
+  hoisted.tokenState.initialTitle.value = ''
   hoisted.tokenState.initialDescription.value = ''
   hoisted.tokenState.initialAudience.value = 'casual'
   hoisted.tokenMocks.fetchToken.mockReset().mockImplementation(() => Promise.resolve())
@@ -214,6 +234,8 @@ function resetHoisted() {
   hoisted.syncMocks.reconnect.mockReset()
   hoisted.syncMocks.destroy.mockReset()
   hoisted.capturedSyncOpts = null
+  hoisted.debounce.deferred = false
+  hoisted.debounce.pending = null
   metaCalls.length = 0
 }
 
@@ -409,6 +431,26 @@ describe('useDocument — title bridge', () => {
     doc.destroy()
   })
 
+  it('title shows the DB title from /token while ymeta has no title (new-document dialog)', async () => {
+    hoisted.tokenState.initialTitle.value = 'Project kickoff notes'
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    expect(doc.title.value).toBe('Project kickoff notes')
+    // Showing it must not write ymeta — no spurious title.changed activity.
+    expect(doc.ydoc.getMap('meta').get('title')).toBeUndefined()
+    doc.destroy()
+  })
+
+  it('a live ymeta title wins over the DB title', async () => {
+    hoisted.tokenState.initialTitle.value = 'From the dialog'
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    doc.ydoc.getMap('meta').set('title', 'Renamed later')
+    await nextTick()
+    expect(doc.title.value).toBe('Renamed later')
+    doc.destroy()
+  })
+
   it('title updates when ymeta.title changes (observer pushes to ref)', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -453,6 +495,26 @@ describe('useDocument — deletion observer', () => {
     doc.destroy()
   })
 
+  it('deletedByOther stays false while this client is deleting the doc itself', async () => {
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    doc.setDeletingHere(true)
+    doc.ydoc.getMap('meta').set('_deleted', true)
+    await nextTick()
+    expect(doc.isDeleted.value).toBe(true)
+    expect(doc.deletedByOther.value).toBe(false)
+    doc.destroy()
+  })
+
+  it('deletedByOther flips true when someone else deletes the doc', async () => {
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    doc.ydoc.getMap('meta').set('_deleted', true)
+    await nextTick()
+    expect(doc.deletedByOther.value).toBe(true)
+    doc.destroy()
+  })
+
   it('once isDeleted is true, it stays true (one-way latch)', async () => {
     // Even if _deleted is later unset (shouldn\'t happen in prod but
     // pin the invariant), the client stays in the "deleted" state.
@@ -472,6 +534,26 @@ describe('useDocument — deletion observer', () => {
 // ═══════════════════════════════════════════════════════════════════════
 // Theme write path
 // ═══════════════════════════════════════════════════════════════════════
+
+describe('useDocument — document context persist', () => {
+  it('merges description, audience and language changes into one PUT (debounce keeps all fields)', async () => {
+    hoisted.tokenState.isOwner.value = true
+    hoisted.tokenState.hasOwner.value = true
+    hoisted.debounce.deferred = true
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+
+    doc.description.value = 'Onboarding email'
+    doc.audience.value = 'marketing'
+    doc.language.value = 'de'
+    flushDebounced()
+    await flushFetchToken()
+
+    expect(metaCalls).toHaveLength(1)
+    expect(metaCalls[0]?.body).toEqual({ description: 'Onboarding email', audience: 'marketing', language: 'de' })
+    doc.destroy()
+  })
+})
 
 describe('useDocument — setTheme', () => {
   it('writes to ymeta and persists when the user is the owner', async () => {

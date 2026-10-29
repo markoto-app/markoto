@@ -3,6 +3,7 @@ import { getDoc } from '../../../repos/documents'
 import { duplicateDocument, ImageQuotaExceededError } from '../../../utils/duplicateDocument'
 import { withIdempotency } from '../../../utils/idempotency'
 import { imageQuotaError, resolveImageQuotaBytes } from '../../../utils/imageQuota'
+import { flushSyncDocument } from '../../../utils/syncNotify'
 
 // Duplicate a document into a new docId. The duplicator becomes the
 // new owner — duplicates are "my copy of their template". Same
@@ -53,6 +54,10 @@ export default defineEventHandler(async (event) => {
     const newDocId = nanoid(10)
     // The copied images count against the duplicator's image quota.
     const imageQuotaBytes = await resolveImageQuotaBytes(session.user.id)
+    // The clone reads the persisted Y.js rows; edits from the last
+    // couple of seconds may still sit in the sync-server's debounced
+    // store. Persist them first so the copy matches what the user sees.
+    await flushSyncDocument(sourceDocId)
     try {
       await duplicateDocument(
         { sourceDocId, newDocId, ownerId: session.user.id, workspaceId: targetWorkspaceId, title },
