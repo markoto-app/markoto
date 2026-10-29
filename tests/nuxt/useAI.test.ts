@@ -528,6 +528,30 @@ describe('useAI — private session channel', () => {
     expect(ai.lastError.value).toBe(null)
   })
 
+  it('records how my session ended — done', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    setPrivateStatus('sid-mine', { phase: 'thinking' })
+    pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    const ai = useAI(docId, awareness, FAST)
+    expect(ai.lastOutcome.value).toBe(null)
+    setPrivateStatus('sid-mine', { phase: 'done', message: 'Done' })
+    await vi.waitFor(() => expect(ai.lastOutcome.value).toEqual({ sessionId: 'sid-mine', phase: 'done', message: 'Done' }))
+  })
+
+  it('records how my session ended — error, kept after the session leaves awareness', async () => {
+    sessionState.loggedIn.value = true
+    sessionState.user.value = { id: 7 }
+    const { awareness, docId } = makeCtx()
+    setPrivateStatus('sid-mine', { phase: 'thinking' })
+    const peer = pushAiClient(awareness, { sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7 })
+    const ai = useAI(docId, awareness, { pollIntervalMs: 5_000, createEventSource: null })
+    setPrivateStatus('sid-mine', { phase: 'error', message: 'Hit turn limit' })
+    removePeer(peer, awareness)
+    await vi.waitFor(() => expect(ai.lastOutcome.value).toEqual({ sessionId: 'sid-mine', phase: 'error', message: 'Hit turn limit' }))
+  })
+
   it('latches a message_to_user answer from the channel', async () => {
     sessionState.loggedIn.value = true
     sessionState.user.value = { id: 7 }

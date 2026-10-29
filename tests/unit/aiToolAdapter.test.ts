@@ -384,3 +384,49 @@ describe('executeFunctionByName — dispatch', () => {
     expect(routedToBridge).toBe(true)
   })
 })
+
+describe('edit results tell the model what happened', () => {
+  it('replace_text with old_str === new_str is rejected and leaves the doc untouched', async () => {
+    const { session, ytext, statusCalls } = makeSession('Intro.\n\n---\n\nBody')
+    const res = await executeFunctionByName(session, 'replace_text', { old_str: '---\n', new_str: '---\n' })
+    expect(res.isError).toBe(true)
+    expect(res.content).toMatch(/^Error: No change/)
+    expect(ytext.toString()).toBe('Intro.\n\n---\n\nBody')
+    // No "Applying edit…" status for an edit that never happens.
+    expect(statusCalls).toEqual([])
+  })
+
+  it('replace_text echoes the resulting lines with one line of context', async () => {
+    const { session } = makeSession('# Title\nold line\nnext')
+    const res = await executeFunctionByName(session, 'replace_text', { old_str: 'old line', new_str: 'new line\n\nsecond' })
+    expect(res.isError).toBe(false)
+    expect(res.content).toContain('Lines 2-4 now read')
+    expect(res.content).toContain('1: # Title\n2: new line\n3: \n4: second\n5: next')
+  })
+
+  it('replace_text that deletes text says so', async () => {
+    const { session, ytext } = makeSession('a\nremove me\nb')
+    const res = await executeFunctionByName(session, 'replace_text', { old_str: 'remove me\n', new_str: '' })
+    expect(res.isError).toBe(false)
+    expect(ytext.toString()).toBe('a\nb')
+    expect(res.content).toContain('removed')
+  })
+
+  it('insert_text echoes the inserted lines, making extra blank lines visible', async () => {
+    const { session } = makeSession('# Title\n\nBody')
+    const res = await executeFunctionByName(session, 'insert_text', { insert_line: 1, insert_text: '\n' })
+    expect(res.isError).toBe(false)
+    expect(res.content).toContain('Line 2 now reads')
+    // The new empty line 2 next to the existing empty line 3.
+    expect(res.content).toContain('1: # Title\n2: \n3: ')
+  })
+
+  it('very large edits are summarised instead of echoed', async () => {
+    const { session } = makeSession('start\n')
+    const big = Array.from({ length: 40 }, (_, i) => `line ${i}`).join('\n')
+    const res = await executeFunctionByName(session, 'insert_text', { insert_line: 1, insert_text: big })
+    expect(res.isError).toBe(false)
+    expect(res.content).toContain('call view_document')
+    expect(res.content).not.toContain('line 39')
+  })
+})

@@ -77,6 +77,7 @@ import { stripAiMention } from './agentic/commentTriggerPrompt'
 import { fetchExternalImage as fetchExternalImageGuarded, type ExternalImageResult } from './externalImage'
 import { budgetExhaustedMessage } from './billingMode'
 import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
+import { NO_OP_EDIT_ERROR_PREFIX } from './agentic/editProgress'
 
 export interface ToolResult {
   content: string
@@ -159,10 +160,15 @@ export function handleStrReplace(
   const { found, count } = findIndexOfOnlyMatch(full, input.old_str)
 
   if (count === 0) {
-    return err('Error: No match found for old_str. The string must match exactly, including whitespace.')
+    return err('Error: No match found for old_str. The string must match the document text exactly, including whitespace — call view_document to see it. The document context and conversation history are not part of the document and cannot be edited.')
   }
   if (count > 1) {
     return err(`Error: Found ${count} matches for old_str. Please provide more surrounding context to make a unique match.`)
+  }
+  // A replacement with itself changes nothing. Reporting it as a
+  // success let the model "fix" the same passage over and over.
+  if (input.old_str === input.new_str) {
+    return err(`${NO_OP_EDIT_ERROR_PREFIX}: new_str is identical to old_str, so the document already reads this way. Do not repeat this call. If the request is done, finish without calling another tool.`)
   }
 
   session.updateStatus('editing', 'Applying edit…')
@@ -173,7 +179,38 @@ export function handleStrReplace(
     session.ytext.insert(found, input.new_str)
   }, origin)
 
-  return ok('Successfully replaced text at exactly one location.')
+  return ok(`Replaced text at exactly one location. ${describeEditedRegion(session.ytext.toJSON(), found, input.new_str.length)}`)
+}
+
+/** Lines shown back to the model after an edit (plus one line of context on each side). */
+const EDIT_ECHO_MAX_LINES = 24
+const EDIT_ECHO_MAX_CHARS = 2400
+
+/**
+ * Show the model the lines its edit produced, numbered like
+ * `view_document`, with one line of context around them. Without it the
+ * model never saw the result (blank lines in particular) and kept
+ * re-editing the same spot.
+ *
+ * @internal exported for unit tests; not part of the public API.
+ */
+export function describeEditedRegion(full: string, start: number, length: number): string {
+  const lines = full.split('\n')
+  const firstLine = full.slice(0, start).split('\n').length
+  const insertedNewlines = full.slice(start, start + length).split('\n').length - 1
+  // An insertion that ends with a newline ends on the line before.
+  const endsWithNewline = length > 0 && full[start + length - 1] === '\n'
+  const lastLine = Math.max(firstLine, firstLine + insertedNewlines - (endsWithNewline ? 1 : 0))
+  if (length === 0) return `The text at line ${firstLine} was removed.`
+  const from = Math.max(1, firstLine - 1)
+  const to = Math.min(lines.length, lastLine + 1)
+  const span = firstLine === lastLine ? `Line ${firstLine} now reads` : `Lines ${firstLine}-${lastLine} now read`
+  if (lastLine - firstLine + 1 > EDIT_ECHO_MAX_LINES) {
+    return `Lines ${firstLine}-${lastLine} now hold the new text (${lastLine - firstLine + 1} lines; call view_document to read it).`
+  }
+  let echo = withLineNumbers(lines.slice(from - 1, to).join('\n'), from)
+  if (echo.length > EDIT_ECHO_MAX_CHARS) echo = echo.slice(0, EDIT_ECHO_MAX_CHARS) + '\n[truncated]'
+  return `${span} (with one line of context on each side):\n${echo}`
 }
 
 /**
@@ -220,7 +257,7 @@ export function handleInsert(
     session.ytext.insert(idx, insertText)
   }, origin)
 
-  return ok('Successfully inserted text.')
+  return ok(`Inserted text after line ${input.insert_line}. ${describeEditedRegion(session.ytext.toJSON(), idx, insertText.length)}`)
 }
 
 // --- Theme update ---------------------------------------------------------

@@ -247,6 +247,9 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
 
   // Wait for the active ring to fade — the loop has terminated.
   await expect(editor.page.ai.activeThread).toHaveCount(0, { timeout: 30_000 })
+  // A reply can land and the session still end in an error (e.g. the
+  // turn limit) — the user would see a "Could not reach markoto" toast.
+  await editor.page.expectAiSessionSucceeded()
 
   await flow.shot(
     'markoto replied on the thread — the conversation stays in one place.',

@@ -30,6 +30,13 @@ import { aiClientUserId } from '~~/shared/contracts/jwt'
 import { docExists } from '../../repos/documents'
 import { budgetExhaustedBreadcrumb } from '../billingMode'
 import {
+  DOC_EDIT_TOOLS,
+  EditProgressTracker,
+  NO_OP_EDIT_ERROR_PREFIX,
+  STALLED_TURN_LIMIT,
+  stalledEditNote
+} from './editProgress'
+import {
   newStreamState,
   processChunk,
   type StreamStatusPhase
@@ -47,12 +54,16 @@ type SessionOutcome
     | 'session-cap-exceeded'
     | 'budget-exhausted'
     | 'turn-limit'
+    | 'stalled'
 
 /**
  * The agentic loop: stream from the LLM (Mistral via LiteLLM) with
- * function calling, dispatch each tool call, loop until the model emits
- * pure prose (salvaged into one closing tool call) or we hit a stop
- * condition.
+ * function calling, dispatch each tool call, loop until the model replies
+ * without a tool call (its finish signal; prose is salvaged into one
+ * closing tool call unless the session already edited the document or
+ * answered the user) or we hit a stop condition — including
+ * `STALLED_TURN_LIMIT` turns in a row whose edits changed nothing but
+ * whitespace / reverted earlier edits (see `editProgress.ts`).
  *
  * Returns normally on STOP; throws on abort. Status transitions are
  * reported via setStatus(...) at every state change.
@@ -320,6 +331,24 @@ interface LoopContext {
   contents: Content[]
   toolDeclarations: FunctionDeclaration[]
   thinkingBudget: number
+  /** Classifies document edits; ends sessions that only shuffle whitespace / undo themselves. */
+  progress: EditProgressTracker
+  /** A document edit (replace_text / insert_text) succeeded in this session. */
+  editedDocument: boolean
+  /** A `message_to_user` answer was delivered in this session. */
+  answeredUser: boolean
+}
+
+/**
+ * Current document text, or null when the session has no readable
+ * Y.Text (the unit-test seam passes a bare session stub).
+ */
+function readDocText(session: AiSession): string | null {
+  try {
+    return session.ytext.toJSON()
+  } catch {
+    return null
+  }
 }
 
 function emitBudgetBreadcrumb(ctx: LoopContext, plan: string): void {
@@ -401,9 +430,27 @@ async function salvageProseTurn(
 ): Promise<void> {
   const proseText = collectProseText(modelParts)
   if (proseText.length > 0) {
-    await dispatchSalvageFallback(ctx, proseText, turnCount)
+    if (closingTextIsRedundant(ctx)) {
+      // The model's finish signal after it already did the work: "Done",
+      // "Added the intro." The edit is the receipt, and an earlier
+      // `message_to_user` answer must not be replaced by this note.
+      ctx.log(`turn ${turnCount}: finished; closing text not shown (${proseText.length} chars)`)
+    } else {
+      await dispatchSalvageFallback(ctx, proseText, turnCount)
+    }
   }
   finalizeSalvageStatus(ctx, finishReason)
+}
+
+/**
+ * Closing prose is only salvaged when it is the session's sole answer.
+ * Comment-trigger sessions always salvage — the thread reply is the
+ * deliverable, and a successful reply already ended the loop.
+ */
+function closingTextIsRedundant(ctx: LoopContext): boolean {
+  const isCommentTrigger = typeof ctx.opts.commentThreadId === 'string' && ctx.opts.commentThreadId.length > 0
+  if (isCommentTrigger) return false
+  return ctx.editedDocument || ctx.answeredUser
 }
 
 function collectProseText(modelParts: NonNullable<Content['parts']>): string {
@@ -629,16 +676,34 @@ async function dispatchToolCall(
   const declined = await gateCrossBoundary(ctx, call, validatedArgs)
   if (declined) return declined
 
+  const isDocEdit = DOC_EDIT_TOOLS.has(call.name)
+  const textBefore = isDocEdit ? readDocText(ctx.opts.aiSession) : null
   const runResult = await runOneTool(ctx, call.name, validatedArgs)
   if (runResult.kind === 'session-cap-exceeded') return runResult
   const result = runResult.result
   await ctx.opts.crossBoundary.afterTool(call.name, validatedArgs, result)
+  if (!result.isError && call.name === 'message_to_user') ctx.answeredUser = true
+
+  let output = result.content
+  if (isDocEdit) {
+    if (!result.isError) ctx.editedDocument = true
+    const verdict = ctx.progress.noteEdit(textBefore, readDocText(ctx.opts.aiSession), {
+      isError: result.isError,
+      rejectedNoOp: result.isError && result.content.startsWith(NO_OP_EDIT_ERROR_PREFIX),
+      call: `${call.name}:${JSON.stringify(validatedArgs)}`
+    })
+    if (verdict && verdict !== 'progress') ctx.log(`function_call ${call.name}: stalled edit (${verdict})`)
+    // A rejected no-op already says so in its error.
+    const alreadyExplained = verdict === 'no-change' && result.isError
+    const note = verdict && !alreadyExplained ? stalledEditNote(verdict) : null
+    if (note) output = `${output}\n\n${note}`
+  }
 
   const responseParts: NonNullable<Content['parts']> = [{
     functionResponse: {
       id: call.id,
       name: call.name,
-      response: { output: result.content, isError: result.isError }
+      response: { output, isError: result.isError }
     }
   }]
   // Tools that return non-JSON payloads (view_image → inlineData) smuggle
@@ -876,6 +941,18 @@ async function dispatchToolCallsForTurn(
     return { kind: 'done', outcome: 'success' }
   }
 
+  const progress = ctx.progress.endTurn()
+  if (progress.shouldStop) {
+    // The model keeps editing without changing anything: blank lines,
+    // no-op replacements, undoing its own edits. Its real work (if any)
+    // is already in the document — end like a normal finish instead of
+    // burning turns into the turn-limit error.
+    ctx.log(`turn ${turnCount}: ${progress.consecutiveStalledTurns} turns in a row without real edits (limit ${STALLED_TURN_LIMIT}) — ending session`)
+    ctx.telemetry.outcome = 'stalled'
+    ctx.opts.setStatus('done', 'Done')
+    return { kind: 'done', outcome: 'stalled' }
+  }
+
   if (responseParts.length === 0) {
     // Shouldn't happen (we had functionCalls above) but guard against
     // a pathological case where all names were unset.
@@ -901,7 +978,10 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     // provider → no generate_image; text-only chat model → no
     // view_image / view_pages).
     toolDeclarations: filterToolsForProviders(opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS, opts.aiSession.aiProviders, getWebToolAvailability()),
-    thinkingBudget: opts.thinkingBudget ?? 0
+    thinkingBudget: opts.thinkingBudget ?? 0,
+    progress: new EditProgressTracker(readDocText(opts.aiSession)),
+    editedDocument: false,
+    answeredUser: false
   }
 
   log(`[billing] session resolved: ${opts.billingContext.attributedTo} plan=${opts.billingContext.plan} virtualKey=…${opts.billingContext.virtualKey.slice(-6)}`)
