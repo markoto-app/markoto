@@ -1158,7 +1158,7 @@
         "intro": "We want you to see the full picture before you confirm. Everything below runs automatically once the 30-day grace window ends.",
         "deleted": {
           "heading": "Permanently deleted",
-          "ownedDocs": "{count} document you own, including one you share with collaborators. They lose access at the same time. | {count} documents you own, including any you share with collaborators. They lose access at the same time.",
+          "ownedDocs": "No documents you own. | {count} document you own, including one you share with collaborators. They lose access at the same time. | {count} documents you own, including any you share with collaborators. They lose access at the same time.",
           "themes": "Your saved themes and personal preferences.",
           "ai": "Your AI sessions, prompt history, and usage counters.",
           "exports": "{count} previous data export and its ZIP file. | {count} previous data exports and their ZIP files.",
