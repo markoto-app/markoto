@@ -22,6 +22,7 @@ import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 import { createGlobalState } from '@vueuse/core'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
+import { tableAttrsRowPlugin } from './markdownTableAttrs'
 
 // markdown-it exports Options as a nested type under the default class; we
 // pluck it from the instance shape so the type resolution doesn't depend on
@@ -307,6 +308,9 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   // Registered AFTER pagebreak so the pagebreak rule wins on its
   // exact pattern by registration order.
     .use(commentPlugin)
+  // `{.class}` on the line right after a table → attributes of the table
+  // (instead of an extra empty row). See markdownTableAttrs.ts.
+    .use(tableAttrsRowPlugin)
 
   // Open all preview links in a new tab. `rel="noopener noreferrer"`
   // prevents the opened page from reaching back into our window.
@@ -400,5 +404,8 @@ function transformFootnotesForPagedMedia(html: string): string {
   })
 
   section.remove()
+  // The separator markdown-it-footnote puts before the (now removed)
+  // footnote list would otherwise print as a stray rule at the very end.
+  root.querySelectorAll('hr.footnotes-sep').forEach(hr => hr.remove())
   return root.innerHTML
 }

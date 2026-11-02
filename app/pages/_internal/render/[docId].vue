@@ -7,7 +7,10 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
 import { hljsTheme } from '~~/shared/utils/hljsCdn'
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
-import { transformMermaid } from '~/utils/mermaidLoader'
+import { transformMermaid, inlineMermaidSvgs } from '~/utils/mermaidLoader'
+import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
+import { isPagedRuntime, registerPagedHandlers } from '~/utils/pagedHandlers'
+import { documentTexts } from '~~/shared/utils/documentLocale'
 import { sanitizeCustomCssForRender } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { attachRenderFileTokens, withRenderFileToken, type RenderFileAccess } from '~/utils/renderFileTokens'
@@ -88,15 +91,30 @@ onMounted(async () => {
   ).theme
   const title = bootstrap.value?.title ?? ''
   const markdown = bootstrap.value?.markdown ?? ''
+  // Cover date, `{date}` token, TOC title and chart number formats follow
+  // the document language (same helper as the live preview).
+  const texts = documentTexts(theme, bootstrap.value?.language)
+  const fontsImport = themeFontsImport(theme)
+
+  // Fonts first: Mermaid measures label widths with the body font, and
+  // paged.js measures every line. Bounded at 3s so a slow CDN doesn't
+  // wedge the whole render — paged.js will use whatever's loaded.
+  const fontsEl = document.createElement('style')
+  fontsEl.textContent = fontsImport
+  document.head.appendChild(fontsEl)
+  await Promise.race([
+    document.fonts.ready,
+    new Promise(r => setTimeout(r, 3000))
+  ])
 
   const rawHtml = await renderMarkdown(markdown)
-  const bodyHtml = await transformMermaid(rawHtml, theme.mermaid.theme)
+  const bodyHtml = await transformMermaid(rawHtml, { config: buildMermaidConfig(theme), locale: texts.locale })
   // Cover + drop-cap composition through the shared helper so the
   // server PDF matches the live preview byte-for-byte.
   let html = composeFinalHtml({
     theme,
     title,
-    dateIso: new Date().toISOString().slice(0, 10),
+    date: texts.date,
     bodyHtml
   })
   // File-access token (5-min, doc-scoped, read-only JWT from the
@@ -128,12 +146,11 @@ onMounted(async () => {
   )
   const themeCss = themeToCss(theme, {
     title,
-    date: new Date().toISOString().slice(0, 10),
-    tocTitle: 'Table of Contents',
+    date: texts.date,
+    tocTitle: texts.tocTitle,
     customCss,
     imageUrl: url => withRenderFileToken(url, fileAccess)
   })
-  const fontsImport = themeFontsImport(theme)
 
   document.title = title || 'Render'
 
@@ -146,17 +163,6 @@ onMounted(async () => {
   // therefore use the EXPLICIT API: Previewer.preview(html, [{ name:
   // cssText }], mount) bypasses document scanning entirely. The Nuxt
   // UI styles can stay in the head; paged.js will never look at them.
-
-  // Wait for fonts before paginating. Bounded at 3s so a slow CDN doesn't
-  // wedge the whole render — paged.js will use whatever's loaded.
-  // We DO inject the @import in head though so the font fetch happens.
-  const fontsEl = document.createElement('style')
-  fontsEl.textContent = fontsImport
-  document.head.appendChild(fontsEl)
-  await Promise.race([
-    document.fonts.ready,
-    new Promise(r => setTimeout(r, 3000))
-  ])
 
   // Mount target. paged.js writes the paginated DOM into this container.
   const placeholder = document.getElementById('render-mount')
@@ -242,11 +248,11 @@ onMounted(async () => {
     document.head.appendChild(polyfill)
   })
 
-  type Previewer = new () => {
-    preview: (html: string, stylesheets: Array<Record<string, string>>, mount: HTMLElement)
-    => Promise<{ total: number }>
-  }
-  const Paged = (globalThis as unknown as { Paged: { Previewer: Previewer } }).Paged
+  const Paged: unknown = Reflect.get(globalThis, 'Paged')
+  if (!isPagedRuntime(Paged)) throw new Error('paged.js did not initialise')
+  // Keep-with-next headings, whole-block moves, row-safe table breaks with
+  // repeated headers, orphan control — same handlers as the live preview.
+  registerPagedHandlers(Paged)
   const previewer = new Paged.Previewer()
   const result = await previewer.preview(
     `<div class="paged-doc">${html}</div>`,
@@ -265,6 +271,9 @@ onMounted(async () => {
   // images, but page.pdf() does not — hence images appeared on direct
   // screenshots but were absent from the produced PDF until this wait
   // landed.
+  // Mermaid diagrams were atomic <img>s for pagination; now inline them
+  // (sanitised) so their text uses the document's web fonts.
+  inlineMermaidSvgs(mount)
   const paginatedImgs = Array.from(mount.querySelectorAll('img'))
   if (paginatedImgs.length > 0) {
     await Promise.all(paginatedImgs.map(img => img.decode().catch(() => undefined)))

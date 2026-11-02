@@ -338,7 +338,7 @@ async function exportPdf() {
       theme: theme.value,
       title: title.value,
       docId: props.docId,
-      tocTitle: t('table.tocTitle'),
+      language: language.value,
       getDocJwt
     })
   } catch (e) {
@@ -1389,6 +1389,7 @@ const _statusIcon = computed(() => {
             v-model:page-count="pageCount"
             :source="textContent"
             :title="title"
+            :language="language"
             :theme="theme"
             :doc-id="docId"
             :get-doc-jwt="getDocJwt"

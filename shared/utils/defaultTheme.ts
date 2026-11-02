@@ -6,7 +6,7 @@ import type { DocTheme } from '../types/theme'
  *
  * This IS the markoto preset (kept in sync with `themePresets.ts`):
  * Fraunces editorial headings on Inter body, sumi-50 cream paper, shu
- * vermillion brand, minimal table borders, neutral mermaid. Every new
+ * vermillion brand, minimal table borders, document-matched mermaid. Every new
  * doc opens looking like markoto by default; users pick a different
  * preset only when they want something else.
  */
@@ -102,7 +102,7 @@ export const defaultTheme: DocTheme = {
     hrThickness: 1 // unused for asterism, kept for schema completeness
   },
   mermaid: {
-    theme: 'neutral'
+    theme: 'document'
   },
   alerts: {
     // Desaturated warm-paper palette — mirrors the markoto preset.

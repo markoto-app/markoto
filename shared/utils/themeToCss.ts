@@ -13,7 +13,8 @@ import { isThemeImageUrl } from './themeImages'
  */
 export type ThemeRuntime = {
   title: string
-  date: string // ISO YYYY-MM-DD
+  /** Publication date as shown (`documentTexts().date`), for `{date}`. */
+  date: string
   // Localized text rendered by CSS \`content:\` for the optional TOC
   // heading. Lives in runtime (not the theme) because i18n strings
   // shouldn't be persisted to the doc — same translation should apply
@@ -50,7 +51,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     codeBlock(theme),
     alertBlock(theme),
     katexBlock(),
-    mermaidBlock(),
+    mermaidBlock(theme),
     tocBlock(theme, runtime),
     pageBreakBlock(),
     columnSpanBlock(),
@@ -596,43 +597,41 @@ function katexBlock(): string {
 // — mermaid diagrams ——————————————————————————————————————————————————
 
 /**
- * Mermaid renders to inline SVG inside a `<div class="mermaid">` (the
- * preview/print iframes do the substitution before paged.js paginates;
- * see usePagedPreview + printPdf). All visual styling — node fills,
- * label fonts, edge colors — comes from mermaid's own theme set via
- * \`mermaid.initialize({ theme })\`. What's left here is layout glue:
- * center the diagram, cap its width, and avoid splitting across pages.
+ * Mermaid diagrams arrive as `<div class="mermaid"><img data:svg></div>`
+ * (atomic for paged.js) and are swapped for the inline SVG after
+ * pagination (so their text uses the page's web fonts — see
+ * app/utils/mermaidLoader.ts). Both forms share one sizing rule, so the
+ * swap never moves anything: natural size, never wider than the column
+ * and never taller than ~45% of the text area — a chart must not eat a
+ * whole page. Colours + fonts come from `buildMermaidConfig(theme)`.
  */
-function mermaidBlock(): string {
+function mermaidBlock(theme: DocTheme): string {
+  const textHeightMm = pageHeightMm(theme.page.size, theme.page.orientation) - 2 * theme.page.margin
+  const maxHeightMm = Math.max(40, Math.round(textHeightMm * 0.45))
   return [
     `.paged-doc .mermaid {
   margin: 1em auto;
   text-align: center;
   break-inside: avoid;
 }`,
-    `.paged-doc .mermaid svg {
-  max-width: 100%;
+    `.paged-doc .mermaid > img,
+.paged-doc .mermaid > svg {
+  display: block;
+  margin: 0 auto;
+  width: auto;
   height: auto;
-  /* Without this, the SVG hard-clips foreignObject HTML labels at the
-     foreignObject's own bbox even when the inner text is wider — the
-     symptom is "YPad document" rendering as "YPad docume". Letting
-     the SVG paint beyond its viewport keeps overflowing labels visible. */
+  max-width: 100%;
+  max-height: ${maxHeightMm}mm;
+  /* Labels mermaid measured a touch short must not be clipped at the
+     SVG viewport. */
   overflow: visible;
 }`,
-    // foreignObject defines a clipping viewport in SVG. mermaid sizes
-    // the foreignObject from a pre-render measurement that comes up
-    // short on multi-character labels (font metrics drift between
-    // measurement context and final render context). Forcing
-    // overflow:visible on foreignObject + nowrap on the inner content
-    // keeps every character readable even when mermaid undersizes the
-    // surrounding shape.
-    `.paged-doc .mermaid foreignObject {
-  overflow: visible;
-}`,
-    `.paged-doc .mermaid foreignObject > div,
-.paged-doc .mermaid foreignObject span,
-.paged-doc .mermaid foreignObject p {
-  white-space: nowrap;
+    // Mermaid draws pies 450px tall whatever their content; shown at full
+    // size a five-slice pie took half a page. Its labels are set larger
+    // to match (mermaidConfig.ts), so they stay legible at this size.
+    `.paged-doc .mermaid-pie > img,
+.paged-doc .mermaid-pie > svg {
+  max-height: ${Math.min(maxHeightMm, 85)}mm;
 }`,
     `.paged-doc .mermaid-error {
   margin: 1em 0;
@@ -927,6 +926,10 @@ function renderCoverLayoutCss(layout: string, ctx: CoverCtx): string {
  * Editorial: 6-row grid (logo → spacer 1fr → title+subtitle → spacer 1fr
  * → meta → spacer 1fr). Three equal spacers anchor logo at top, title
  * block at ~1/3, meta at ~2/3, with the bottom third intentionally empty.
+ * A short accent rule sits above the title and a hairline above the
+ * author/date block; a cover without a logo gets a full-bleed accent band
+ * along the top edge (`markoto-cover--no-logo`, set by coverHtml.ts) so
+ * it isn't a bare white sheet — the editorial cousin of `banner`.
  * The subtitle sits at the top of the spacer row under the title: two
  * items in ONE row of a grid without explicit columns get auto-placed
  * side by side (title left, subtitle right), so every item is pinned to
@@ -948,8 +951,25 @@ function editorialCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): st
 }
 .paged-doc .markoto-cover-logo { grid-row: 1; grid-column: 1; }
 .paged-doc .markoto-cover-title { grid-row: 3; grid-column: 1; }
+.paged-doc .markoto-cover-title::before {
+  content: '';
+  display: block;
+  width: 16mm;
+  height: 0;
+  border-top: 2.5pt solid var(--doc-brand);
+  margin: 0 ${align === 'right' ? '0' : 'auto'} 0.45em ${align === 'left' ? '0' : 'auto'};
+}
 .paged-doc .markoto-cover-subtitle { grid-row: 4; grid-column: 1; align-self: start; }
-.paged-doc .markoto-cover-meta { grid-row: 5; grid-column: 1; }`
+.paged-doc .markoto-cover-meta {
+  grid-row: 5;
+  grid-column: 1;
+  border-top: 0.75pt solid color-mix(in srgb, var(--doc-secondary) 60%, transparent);
+  padding-top: 0.9em;
+  min-width: 55%;
+}
+.paged-doc .markoto-cover--no-logo {
+  background: linear-gradient(var(--doc-brand), var(--doc-brand)) top left / 100% 7mm no-repeat;
+}`
 }
 
 /**
@@ -1036,10 +1056,23 @@ function classicCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): stri
 
 // — page-break hints (typography hygiene) —————————————————————————————
 
+/**
+ * Break hints. paged.js 0.4.3 doesn't honour `break-after: avoid-page`
+ * itself; `app/utils/pagedHandlers.ts` implements keep-with-next for
+ * headings and moves any block with a computed `break-inside: avoid` to
+ * the next page as a whole. The declarations stay as the standard CSS
+ * statement of intent (and for engines that do support them).
+ *
+ * Tables: only SHORT tables (≤ 12 body rows) are kept in one piece —
+ * forcing every table onto one page left half-empty pages behind long
+ * ones. Long tables split between rows and repeat their header row on
+ * the next page (pagedHandlers.ts).
+ */
 function breakHints(): string {
   return [
-    `.paged-doc h1, .paged-doc h2, .paged-doc h3 { break-after: avoid-page; }`,
-    `.paged-doc img, .paged-doc pre, .paged-doc table, .paged-doc blockquote { break-inside: avoid; }`
+    `.paged-doc h1, .paged-doc h2, .paged-doc h3, .paged-doc h4, .paged-doc h5, .paged-doc h6 { break-after: avoid-page; break-inside: avoid; }`,
+    `.paged-doc img, .paged-doc pre, .paged-doc blockquote { break-inside: avoid; }`,
+    `.paged-doc table:not(:has(tbody tr:nth-child(13))) { break-inside: avoid; }`
   ].join('\n')
 }
 

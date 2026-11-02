@@ -406,3 +406,35 @@ describe('DocThemeSchema.safeParse — error surfacing (richer-errors path)', ()
     }
   })
 })
+
+describe('cover.date + mermaid "document" (documents at scale)', () => {
+  it('accepts an absent, empty or real ISO publication date', () => {
+    const t = baseTheme()
+    expect(isValidTheme(t)).toBe(true)
+    t.cover.date = ''
+    expect(isValidTheme(t)).toBe(true)
+    t.cover.date = '2026-10-29'
+    expect(isValidTheme(t)).toBe(true)
+  })
+
+  it('rejects anything else as the publication date', () => {
+    for (const date of ['29.10.2026', '2026-02-30', '2026-10-29T00:00', '} body {', 'x'.repeat(20)]) {
+      const t = baseTheme()
+      t.cover.date = date
+      expect(isValidTheme(t), date).toBe(false)
+    }
+    const t: Record<string, unknown> = JSON.parse(JSON.stringify(baseTheme()))
+    const cover = t.cover
+    if (typeof cover === 'object' && cover !== null) Reflect.set(cover, 'date', 20261029)
+    expect(isValidTheme(t)).toBe(false)
+  })
+
+  it('accepts the "document" diagram colours and every built-in', () => {
+    for (const mt of ['document', 'default', 'dark', 'forest', 'neutral', 'base'] as const) {
+      const t = baseTheme()
+      t.mermaid.theme = mt
+      expect(isValidTheme(t), mt).toBe(true)
+    }
+    expect(defaultTheme.mermaid.theme).toBe('document')
+  })
+})

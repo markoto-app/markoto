@@ -20,7 +20,7 @@
   everything it needs arrives as messages (protocol: previewFrame.ts):
 
     parent → iframe   {type:'render', html, themeCss, fontsImport, hljsUrl,
-                       hljsSri, mermaidTheme, print}
+                       hljsSri, mermaidConfig, locale, print}
                       {type:'color-mode', dark}
     iframe → parent   {type:'iframe-ready'} {type:'paginated', pageCount}
                       {type:'iframe-error', message} {type:'print-shortcut'}
@@ -139,6 +139,10 @@
 <div id="pending" class="paged-mount"></div>
 <script nonce="__CSP_NONCE__">globalThis.PagedConfig = { auto: false };</script>
 <script src="__PAGEDJS_POLYFILL_URL__" integrity="__PAGEDJS_POLYFILL_SRI__" crossorigin="anonymous"></script>
+<!-- Pagination handlers (keep-with-next headings, unbreakable blocks,
+     row-safe table breaks + repeated header rows, orphans): the source of
+     app/utils/pagedHandlers.ts, inlined by buildPreviewSrcdoc. -->
+<script nonce="__CSP_NONCE__">__PAGED_HANDLERS_SCRIPT__</script>
 <script nonce="__CSP_NONCE__">
 (function() {
   'use strict';
@@ -269,24 +273,133 @@
   }
 
   /**
-   * Mermaid 11 serialises foreignObject labels as HTML (`<br>` without a
-   * self-close). An SVG <img> is parsed as XML, so that breaks the whole
-   * diagram. Re-serialise as XML. Same as `toWellFormedSvg` in
-   * app/utils/mermaidLoader.ts (server render page).
+   * Finish a freshly rendered mermaid SVG for the page — same steps as
+   * `finishMermaidSvg` in app/utils/mermaidLoader.ts (server render page):
+   *  - well-formed XML: mermaid serialises foreignObject labels as HTML
+   *    (`<br>` without a self-close) and an SVG <img> is parsed as XML;
+   *  - explicit pixel width/height from the viewBox (diagrams that still
+   *    use `useMaxWidth` come out width="100%": no intrinsic size);
+   *  - pie legend values (`showData`) and xy-chart axis ticks in the
+   *    document's number format.
    */
-  function toWellFormedSvg(svg) {
-    var parsed = new DOMParser().parseFromString(svg, 'text/html');
+  function formatPieLegendLabel(text, locale) {
+    var m = /^(.*) \[(-?\d+(?:\.\d+)?)\]$/.exec(text);
+    if (!m || !m[1]) return text;
+    var fmt;
+    try { fmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }); }
+    catch (e) { fmt = new Intl.NumberFormat('en', { maximumFractionDigits: 2 }); }
+    return m[1] + '  ' + fmt.format(Number(m[2]));
+  }
+  function formatAxisNumber(text, locale) {
+    var t = text.trim();
+    if (!/^-?\d+(?:\.\d+)?$/.test(t) || Math.abs(Number(t)) < 1000) return text;
+    try { return new Intl.NumberFormat(locale, { maximumFractionDigits: 6 }).format(Number(t)); }
+    catch (e) { return text; }
+  }
+  /**
+   * Thin a crowded numeric axis to at most 8 labels on a nice step
+   * (0, 500 … 7000 → 0, 1000 … 7000) — Mermaid has no tick-count
+   * option. Same as `thinAxisTicks` in mermaidLoader.ts.
+   */
+  function isNiceStep(step) {
+    if (!(step > 0) || !isFinite(step)) return false;
+    var mantissa = step / Math.pow(10, Math.floor(Math.log10(step)));
+    return [1, 2, 2.5, 5, 10].some(function (m) { return Math.abs(mantissa - m) < 1e-9; });
+  }
+  function thinAxisTicks(axis) {
+    var MAX = 8;
+    var labels = Array.prototype.slice.call(axis.querySelectorAll(':scope > g.label > text'));
+    if (labels.length <= MAX) return;
+    var values = labels.map(function (t) { return (t.textContent || '').trim(); });
+    if (!values.every(function (v) { return /^-?\d+(?:\.\d+)?$/.test(v); })) return;
+    var nums = values.map(Number);
+    var step = Math.abs(nums[1] - nums[0]);
+    if (!(step > 0)) return;
+    var onStep = function (n, s) { return Math.abs(n / s - Math.round(n / s)) < 1e-6; };
+    var factor = [2, 4, 5, 10, 20, 25, 50].find(function (f) {
+      return isNiceStep(step * f) && nums.filter(function (n) { return onStep(n, step * f); }).length <= MAX;
+    });
+    if (!factor) return;
+    var ticks = Array.prototype.slice.call(axis.querySelectorAll(':scope > g.ticks > path'));
+    nums.forEach(function (n, i) {
+      if (onStep(n, step * factor)) return;
+      labels[i].remove();
+      if (ticks.length === labels.length) ticks[i].remove();
+    });
+  }
+  function finishMermaidSvg(rawSvg, locale) {
+    var parsed = new DOMParser().parseFromString(rawSvg, 'text/html');
     var el = parsed.querySelector('svg');
-    return el ? new XMLSerializer().serializeToString(el) : svg;
+    if (!el) return { svg: rawSvg, width: null, height: null, kind: '' };
+    // Diagram type (pie, xychart, flowchart-v2 …) → wrapper class
+    // mermaid-<kind>, as diagramKind() in mermaidLoader.ts.
+    var kind = (el.getAttribute('aria-roledescription') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32);
+    var vb = (el.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+    var width = vb.length === 4 && vb[2] > 0 ? Math.ceil(vb[2]) : null;
+    var height = vb.length === 4 && vb[3] > 0 ? Math.ceil(vb[3]) : null;
+    if (width && height) {
+      el.setAttribute('width', String(width));
+      el.setAttribute('height', String(height));
+      el.style.removeProperty('max-width');
+      if (!(el.getAttribute('style') || '').trim()) el.removeAttribute('style');
+    }
+    el.querySelectorAll('g.legend text').forEach(function (t) {
+      var f = formatPieLegendLabel(t.textContent || '', locale);
+      if (f !== t.textContent) t.textContent = f;
+    });
+    el.querySelectorAll('g.left-axis, g.bottom-axis, g.right-axis, g.top-axis').forEach(thinAxisTicks);
+    el.querySelectorAll('g.left-axis text, g.bottom-axis text, g.right-axis text, g.top-axis text').forEach(function (t) {
+      var f = formatAxisNumber(t.textContent || '', locale);
+      if (f !== t.textContent) t.textContent = f;
+    });
+    return { svg: new XMLSerializer().serializeToString(el), width: width, height: height, kind: kind };
+  }
+
+  var SVG_DATA_PREFIX = 'data:image/svg+xml;base64,';
+
+  function base64ToUtf8(b64) {
+    var binary = atob(b64);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  /**
+   * After pagination: swap each mermaid <img> for its inline SVG, so the
+   * chart text uses the document's web fonts (an SVG loaded as an image
+   * can't). The SVG keeps the image's intrinsic size + CSS, so nothing
+   * moves. Same as `inlineMermaidSvgs` in mermaidLoader.ts (which also
+   * sanitises — this frame is the opaque-origin sandbox). Diagrams that
+   * still use <foreignObject> stay images, as on the server.
+   */
+  function inlineMermaidSvgs(root) {
+    root.querySelectorAll('.mermaid > img').forEach(function (img) {
+      var src = img.getAttribute('src') || '';
+      if (src.indexOf(SVG_DATA_PREFIX) !== 0) return;
+      var text;
+      try { text = base64ToUtf8(src.slice(SVG_DATA_PREFIX.length)); } catch (e) { return; }
+      if (/<foreignObject/i.test(text)) return;
+      var parsed = new DOMParser().parseFromString(text, 'image/svg+xml');
+      var svg = parsed.documentElement;
+      if (!svg || svg.nodeName.toLowerCase() !== 'svg' || parsed.querySelector('parsererror')) return;
+      svg.querySelectorAll('script').forEach(function (n) { n.remove(); });
+      var w = img.getAttribute('width');
+      var h = img.getAttribute('height');
+      if (w) svg.setAttribute('width', w);
+      if (h) svg.setAttribute('height', h);
+      svg.setAttribute('role', 'img');
+      img.replaceWith(document.importNode(svg, true));
+    });
   }
 
   /**
    * Render one mermaid source string and replace its <pre> with an
    * <img data-uri> wrapper (success) or an inline error placeholder
    * (mermaid threw). An <img> is atomic for paged.js — inline SVGs get
-   * fragmented across page breaks regardless of break-inside:avoid.
+   * fragmented across page breaks regardless of break-inside:avoid —
+   * so the SVG is inlined only after pagination (inlineMermaidSvgs).
    */
-  async function renderMermaidBlock(mer, codeEl) {
+  async function renderMermaidBlock(mer, codeEl, locale) {
     var preEl = codeEl.parentElement;
     var source = codeEl.textContent || '';
     // crypto.randomUUID() is secure-context-only; fall back to
@@ -299,21 +412,14 @@
         ).join('')));
     try {
       var rendered = await mer.render(renderId, source);
-      var svgStr = toWellFormedSvg(rendered.svg);
-      // viewBox="minX minY width height" — recover natural dims so
-      // the <img> resolves its intrinsic aspect ratio.
-      var vbNums = (svgStr.match(/viewBox="[^"]*"/) || [''])[0].match(/[\d.]+/g);
-      var natW = vbNums && vbNums[2] ? Math.round(Number.parseFloat(vbNums[2])) : null;
-      var natH = vbNums && vbNums[3] ? Math.round(Number.parseFloat(vbNums[3])) : null;
-      if (natH) svgStr = svgStr.replace(/<svg(\b)/, '<svg height="' + natH + '"$1');
-
+      var finished = finishMermaidSvg(rendered.svg, locale);
       var wrap = document.createElement('div');
-      wrap.className = 'mermaid';
+      wrap.className = finished.kind ? 'mermaid mermaid-' + finished.kind : 'mermaid';
       var img = document.createElement('img');
-      img.src = 'data:image/svg+xml;base64,' + utf8ToBase64(svgStr);
-      img.style.cssText = 'max-width:100%;display:block;';
-      if (natW) img.setAttribute('width', natW);
-      if (natH) img.setAttribute('height', natH);
+      img.src = SVG_DATA_PREFIX + utf8ToBase64(finished.svg);
+      img.alt = '';
+      if (finished.width) img.setAttribute('width', finished.width);
+      if (finished.height) img.setAttribute('height', finished.height);
       wrap.appendChild(img);
       preEl.replaceWith(wrap);
     } catch (err) {
@@ -333,7 +439,7 @@
       return typeof data.dark === 'boolean' ? data : null;
     }
     if (data.type === 'render') {
-      var strings = ['html', 'themeCss', 'fontsImport', 'hljsUrl', 'hljsSri', 'mermaidTheme'];
+      var strings = ['html', 'themeCss', 'fontsImport', 'hljsUrl', 'hljsSri', 'mermaidConfig', 'locale'];
       for (var i = 0; i < strings.length; i++) {
         if (typeof data[strings[i]] !== 'string') return null;
       }
@@ -351,11 +457,12 @@
     var stylesFromLastRender = [];
 
     // Mermaid lazy loader — injects the SRI-locked single-file bundle on
-    // the first render that contains a mermaid block. Theme is
-    // re-initialized only when it changes (mermaid has no per-render
-    // theme override).
+    // the first render that contains a mermaid block. Re-initialized only
+    // when the config changes (mermaid has no per-render override). The
+    // config is buildMermaidConfig(theme) (shared/utils/mermaidConfig.ts):
+    // document font + colours, label sizes, securityLevel 'antiscript'.
     var mermaidPromise = null;
-    var lastMermaidTheme = null;
+    var lastMermaidConfig = null;
     function loadMermaidScript() {
       return new Promise(function (resolve, reject) {
         var s = document.createElement('script');
@@ -370,7 +477,32 @@
         document.head.appendChild(s);
       });
     }
-    function ensureMermaid(theme) {
+    function parseMermaidConfig(json) {
+      try {
+        var cfg = JSON.parse(json);
+        if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) return null;
+        // antiscript: no <script> / javascript: URLs, but mermaid's own
+        // <style> survives ('strict' strips it and every shape turns
+        // black). A config can never lower it.
+        cfg.securityLevel = 'antiscript';
+        cfg.startOnLoad = false;
+        return cfg;
+      } catch (e) { return null; }
+    }
+    /**
+     * Mermaid sizes boxes by measuring labels in the configured font:
+     * load the body font first (bounded) or the inlined labels overflow.
+     */
+    function loadMermaidFont(cfg) {
+      var family = typeof cfg.fontFamily === 'string' ? cfg.fontFamily : '';
+      if (!family || !document.fonts) return Promise.resolve();
+      var loads = ['400', '600'].map(function (w) {
+        return document.fonts.load(w + ' 12px ' + family).catch(function () { return []; });
+      });
+      return Promise.race([Promise.all(loads), new Promise(function (r) { setTimeout(r, 2000); })]);
+    }
+    function ensureMermaid(configJson) {
+      var cfg = parseMermaidConfig(configJson) || { startOnLoad: false, securityLevel: 'antiscript' };
       if (!mermaidPromise) {
         mermaidPromise = loadMermaidScript().catch(function (err) {
           // Reset so a transient network failure doesn't permanently
@@ -379,30 +511,11 @@
           throw err;
         });
       }
-      return mermaidPromise.then(function (m) {
-        if (theme !== lastMermaidTheme) {
-          m.initialize({
-            startOnLoad: false,
-            theme: theme,
-            // antiscript: blocks <script> and javascript: URLs but keeps
-            // mermaid's own inline <style> block + foreignObject inline
-            // styles intact. 'strict' runs the SVG through DOMPurify
-            // with default config which strips <style> from SVG → every
-            // shape falls back to default-black fill/stroke AND label
-            // widths reflow. The SVG ends up as a data: <img>, which
-            // never runs script.
-            securityLevel: 'antiscript',
-            // 12px works across diagram types — the default 16px
-            // crowds multi-line cells and pushes node bounds outside
-            // their column on flowcharts.
-            themeVariables: { fontSize: '12px' },
-            // htmlLabels: false — plain SVG <text> instead of
-            // <foreignObject>; paged.js recurses into foreignObject and
-            // splits diagrams across pages regardless of break-inside.
-            flowchart: { htmlLabels: false, padding: 25 },
-            fontFamily: 'inherit'
-          });
-          lastMermaidTheme = theme;
+      return Promise.all([mermaidPromise, loadMermaidFont(cfg)]).then(function (res) {
+        var m = res[0];
+        if (configJson !== lastMermaidConfig) {
+          m.initialize(cfg);
+          lastMermaidConfig = configJson;
         }
         return m;
       });
@@ -444,14 +557,14 @@
      * in place. Returns the post-process innerHTML if any blocks were
      * processed, or null otherwise.
      */
-    async function preprocessMermaid(scratch, mermaidTheme) {
+    async function preprocessMermaid(scratch, mermaidConfig, locale) {
       var mermaidBlocks = Array.prototype.slice.call(
         scratch.querySelectorAll('pre code.language-mermaid')
       );
       if (mermaidBlocks.length === 0) return null;
       var mer;
       try {
-        mer = await ensureMermaid(mermaidTheme);
+        mer = await ensureMermaid(mermaidConfig);
       } catch (err) {
         mermaidBlocks.forEach(function (codeEl) {
           var errEl = document.createElement('div');
@@ -462,7 +575,7 @@
         return scratch.innerHTML;
       }
       for (var codeEl of mermaidBlocks) {
-        await renderMermaidBlock(mer, codeEl);
+        await renderMermaidBlock(mer, codeEl, locale);
       }
       return scratch.innerHTML;
     }
@@ -497,7 +610,7 @@
         document.body.appendChild(scratch);
         try {
           await decodeImagesIn(scratch);
-          var processedHtml = await preprocessMermaid(scratch, opts.mermaidTheme);
+          var processedHtml = await preprocessMermaid(scratch, opts.mermaidConfig, opts.locale);
           if (processedHtml !== null) html = processedHtml;
         } finally {
           scratch.remove();
@@ -511,6 +624,10 @@
           [{ 'theme.css': opts.themeCss }],
           pending
         );
+
+        // Diagrams were atomic <img>s for pagination; inline them now so
+        // their text uses the document's web fonts.
+        inlineMermaidSvgs(pending);
 
         var stylesAfter = Array.prototype.slice.call(document.head.querySelectorAll('style'));
         var newStyles = stylesAfter.filter(function(s) { return !stylesBefore.has(s); });

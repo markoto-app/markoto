@@ -4,6 +4,7 @@ import { composeFinalHtml } from '~/utils/composeFinalHtml'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { documentTexts } from '~~/shared/utils/documentLocale'
 import { sanitizeCustomCssForRender, currentAppOrigins } from './customCssLoader'
 import {
   PRINT_SANDBOX,
@@ -48,7 +49,8 @@ export async function printDocumentAsPdf(opts: {
   title: string
   /** Owning document — custom CSS may only reference this doc's uploads. */
   docId: string
-  tocTitle?: string
+  /** Document language (`ymeta.language`) — cover date, `{date}`, TOC title. */
+  language?: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
 }): Promise<void> {
@@ -60,7 +62,7 @@ export async function printDocumentAsPdf(opts: {
   const html = composeFinalHtml({
     theme,
     title: opts.title || '',
-    dateIso: new Date().toISOString().slice(0, 10),
+    date: documentTexts(theme, opts.language).date,
     bodyHtml
   })
   // The opaque-origin iframe's image requests carry no cookie: the
@@ -84,7 +86,7 @@ export async function printDocumentAsPdf(opts: {
     html,
     theme,
     title: opts.title || '',
-    tocTitle: opts.tocTitle || 'Table of Contents',
+    language: opts.language ?? '',
     customCss,
     docId: opts.docId,
     fileToken,

@@ -22,8 +22,8 @@ export const THEME_PRESETS: ThemePreset[] = [
   // body text, Fraunces editorial headings at the major-third scale,
   // shu (vermillion) reserved for links and the blockquote rule. Left-
   // ragged body (calm field guide, not institutional academic), minimal
-  // table borders, sharp image corners (print, not iOS), neutral
-  // mermaid (warm-paper tolerance), github-light code (closest to cream
+  // table borders, sharp image corners (print, not iOS), document-
+  // matched mermaid, github-light code (closest to cream
   // we get without a custom hljs theme).
   {
     id: 'markoto',
@@ -40,7 +40,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       code: { theme: 'github-light', fontSize: 9 },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 92, blockquoteStyle: 'border', hrStyle: 'asterism', hrThickness: 1 },
-      mermaid: { theme: 'neutral' },
+      mermaid: { theme: 'document' },
       // Desaturated warm-paper admonition palette. Each hue keeps its
       // traditional meaning (blue/info, green/tip, purple/important,
       // amber/warning, red/caution) but drops ~40% saturation so the
@@ -76,7 +76,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       code: { theme: 'github-dark', fontSize: 9 },
       tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'all', zebra: false, cellPadding: 6 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
-      mermaid: { theme: 'default' },
+      mermaid: { theme: 'document' },
       // GitHub palette — the canonical look most users have seen in
       // README admonitions for years.
       alerts: {
@@ -109,7 +109,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       code: { theme: 'github-light', fontSize: 10 },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 90, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
-      mermaid: { theme: 'neutral' },
+      mermaid: { theme: 'document' },
       // Academic restraint — slightly desaturated GitHub colours to
       // match the journal voice. Stay below the fold visually.
       alerts: {
@@ -142,7 +142,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       code: { theme: 'github-dark', fontSize: 9 },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 2 },
-      mermaid: { theme: 'dark' },
+      mermaid: { theme: 'document' },
       // Tech-report cyan-ish palette — note picks up the brand colour
       // since cyan IS the report's voice. The rest stay traditional.
       alerts: {
@@ -175,7 +175,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       code: { theme: 'github-light', fontSize: 9 },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8 },
       blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 1 },
-      mermaid: { theme: 'forest' },
+      mermaid: { theme: 'document' },
       // Business-report warm palette — note shifts to a navy that
       // pairs with the amber brand; warning picks up the brand amber.
       alerts: {
@@ -208,7 +208,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       code: { theme: 'none', fontSize: 10 },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 80, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1 },
-      mermaid: { theme: 'neutral' },
+      mermaid: { theme: 'document' },
       // Novel — admonitions are rare in fiction; if they appear they
       // should feel period-appropriate. Muted ink palette that reads
       // like marginalia in an old book.
@@ -242,7 +242,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       code: { theme: 'github-light', fontSize: 8 },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1 },
-      mermaid: { theme: 'forest' },
+      mermaid: { theme: 'document' },
       // Newsletter — bright, friendly admonition palette to match the
       // weekly-digest feel. Slightly more saturated than the reports.
       alerts: {

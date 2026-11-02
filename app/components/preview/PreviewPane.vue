@@ -5,6 +5,8 @@ import { defaultTheme } from '~~/shared/utils/defaultTheme'
 const props = defineProps<{
   source: string
   title: string
+  /** Document language — cover date, `{date}`, TOC title, chart numbers. */
+  language?: string
   theme?: DocTheme
   /** Owning document — custom CSS may only reference this doc's uploads. */
   docId: string
@@ -21,6 +23,7 @@ const pageCount = defineModel<number>('pageCount', { default: 0 })
 
 const sourceRef = computed(() => props.source)
 const titleRef = computed(() => props.title)
+const languageRef = computed(() => props.language ?? '')
 const themeRef = computed(() => props.theme ?? defaultTheme)
 
 const { rendered } = useMarkdownPreview(sourceRef)
@@ -31,6 +34,7 @@ const { pageCount: pgCount, isReady, error } = usePagedPreview({
   html: rendered,
   theme: themeRef,
   title: titleRef,
+  language: languageRef,
   docId: computed(() => props.docId),
   container: iframeHost,
   onPrintShortcut: () => emit('printShortcut'),

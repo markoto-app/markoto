@@ -71,3 +71,15 @@ describe('clampMetaString', () => {
     expect(clampMetaString('language', 'de')).toBe('de')
   })
 })
+
+describe('isValidMetaValue — theme contract stays in lockstep with themeValidation', () => {
+  it('accepts a publication date and the "document" diagram colours, rejects a bad date', () => {
+    const ok = structuredClone(defaultTheme)
+    ok.cover.date = '2026-10-29'
+    ok.mermaid.theme = 'document'
+    expect(isValidMetaValue('theme', ok)).toBe(true)
+    const bad = structuredClone(defaultTheme)
+    bad.cover.date = '2026-13-01'
+    expect(isValidMetaValue('theme', bad)).toBe(false)
+  })
+})

@@ -269,6 +269,20 @@ describe('buildCoverHtml — empty values are skipped, not rendered as empty tag
       },
       brand: { logoUrl: '', logoHeight: 48 }
     }
-    expect(buildCoverHtml(t, '', '')).toBe('<section class="markoto-cover"></section>')
+    expect(buildCoverHtml(t, '', '')).toBe('<section class="markoto-cover markoto-cover--no-logo"></section>')
+  })
+})
+
+describe('buildCoverHtml — accent hook + written-out date', () => {
+  test('a cover without a logo is marked so the layout CSS can add its accent', () => {
+    const noLogo: DocTheme = { ...baseTheme, brand: { ...baseTheme.brand, logoUrl: '' } }
+    expect(buildCoverHtml(noLogo, 'T', '29 October 2026')).toMatch(/^<section class="markoto-cover markoto-cover--no-logo">/)
+    const hidden: DocTheme = { ...baseTheme, cover: { ...baseTheme.cover, showLogo: false } }
+    expect(buildCoverHtml(hidden, 'T', '')).toMatch(/^<section class="markoto-cover markoto-cover--no-logo">/)
+    expect(buildCoverHtml(baseTheme, 'T', '')).toMatch(/^<section class="markoto-cover">/)
+  })
+
+  test('prints the date text it is given (already formatted for the document language)', () => {
+    expect(buildCoverHtml(baseTheme, 'T', '29. Oktober 2026')).toContain('<div class="markoto-cover-date">29. Oktober 2026</div>')
   })
 })
