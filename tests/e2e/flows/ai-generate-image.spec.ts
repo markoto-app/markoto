@@ -82,7 +82,7 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
     await editor.page.scrollPreviewTo('img[src*="/api/files/"]')
   }
   // Under the title, not above it: the H1 is still the first line.
-  expect((await editor.page.docText()).trimStart().startsWith('# Field notebook')).toBe(true)
+  expect((await editor.page.docText()).trimStart()).toMatch(/^# Field notebook\n/)
   // Mobile is edit-only by default: show the rendered page, not the
   // raw `![…](/api/files/…)` line.
   if (editor.isMobile) {

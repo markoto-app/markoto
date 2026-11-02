@@ -29,7 +29,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // on both screens. Cover off: the realtime payoff is the body.
   await editor.silentSetup({
     title: 'Q3 kickoff agenda',
-    body: '# Q3 kickoff agenda\n\n1. Welcome and goals for the quarter\n2. Launch retro\n3. Hiring plan',
+    body: '# Q3 kickoff agenda\n\n1. Welcome and goals for the quarter\n2. Launch retro\n3. Hiring plan\n\n## Notes',
     cover: false
   })
   // Logged-in users get a `private` doc by default. Sam (spawned

@@ -922,7 +922,8 @@ export async function handleViewOtherDocument(
     : ''
   // Readers know documents by their title, not their id: a summary that
   // cited `workspace doc "Kf50UWihca"` showed the raw id to the user.
-  const citation = `\n\nIf you mention or cite this document in the text, call it by its title ${JSON.stringify(ctx.title || 'Untitled')} and, if a link helps, link it as [title](/d/${targetId}). Never write the bare document id.`
+  const citeTitle = (ctx.title || 'Untitled').replaceAll(']', ')').replaceAll('[', '(')
+  const citation = `\n\nIf you mention or cite this document in the text, call it by its title, or link it exactly like this: [${citeTitle}](/d/${targetId}). Never write the bare document id, and never label the link with another document's title.`
   return ok(`${view.formatted}${trailer}${citation}\n\n--- metadata ---\n${JSON.stringify(meta, null, 2)}`)
 }
 

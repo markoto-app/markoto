@@ -744,6 +744,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
             highlights: opts?.highlights,
             annotations: opts?.annotations,
             hero: opts?.hero,
+            addressBar: opts?.addressBar,
             formSnap: true
           })
         },

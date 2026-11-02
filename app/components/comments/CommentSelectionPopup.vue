@@ -92,6 +92,14 @@ function onSelectionChange() {
     if (visible.value) hide()
     return
   }
+  // Only for the selection the user is working with: when the editor
+  // isn't focused (typing in the AI prompt bar, a remote or AI edit
+  // moving the DOM selection) the pill stays hidden — it used to pop up
+  // again at a stale spot after the AI rewrote the selected passage.
+  if (!view.hasFocus) {
+    if (visible.value) hide()
+    return
+  }
   const sel = view.state.selection.main
   if (sel.empty) {
     usedRange = null

@@ -398,7 +398,7 @@ describe('view_other_document — body formatting', () => {
     expect(res.isError).toBe(false)
     const beforeMeta = res.content.split('--- metadata ---')[0] ?? ''
     expect(beforeMeta).toMatch(/call it by its title/)
-    expect(beforeMeta).toContain('(/d/t)')
+    expect(beforeMeta).toMatch(/\[[^\]]+\]\(\/d\/t\)/)
     expect(beforeMeta).toMatch(/Never write the bare document id/)
   })
 

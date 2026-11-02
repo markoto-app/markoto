@@ -78,7 +78,7 @@ test('Ask the AI for current information', async ({ page, flow, editor }) => {
   expect(added, `no version number in: ${added}`).toMatch(/\b\d+\.\d+(\.\d+)?\b/)
   expect(added, `no source link in: ${added}`).toMatch(/\]\(https?:\/\/[^)\s]+\)|<https?:\/\/[^>\s]+>|https?:\/\/\S+/)
   // Under the title, not above it: the H1 is still the first line.
-  expect((await editor.page.docText()).trimStart().startsWith('# Frontend upgrade plan')).toBe(true)
+  expect((await editor.page.docText()).trimStart()).toMatch(/^# Frontend upgrade plan\n/)
   await editor.page.scrollEditorTo(/\d+\.\d+/)
   if (!editor.isMobile) {
     // The link renders as a real link in the preview.

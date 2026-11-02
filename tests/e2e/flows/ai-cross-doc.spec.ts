@@ -124,6 +124,10 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   // A citation names the other doc by its title, never by its bare id
   // (a link to /d/<id> is fine).
   expect(added.replace(/\(\/d\/[^)]+\)/g, ''), `bare doc id in: ${added}`).not.toContain(postmortemId)
+  // A link to the postmortem is labelled with the postmortem's title.
+  for (const m of added.matchAll(new RegExp(`\\[([^\\]]+)\\]\\(/d/${postmortemId}\\)`, 'g'))) {
+    expect(m[1], `link to the postmortem labelled "${m[1]}"`).toMatch(/postmortem/i)
+  }
   await editor.page.scrollEditorTo(/checklist|authentication/i)
   if (!editor.isMobile) {
     await expect(editor.page.previewRoot().locator('#mount')).toContainText(/checklist|authentication/i)
