@@ -34,6 +34,12 @@ function hide() {
   visible.value = false
 }
 
+// The selection a comment was just started on. Once the pill has been
+// used, the same selection doesn't bring it back (it lingered next to
+// the new thread after posting, because focus returns to the editor with
+// the passage still selected). Any other selection clears it.
+let usedRange: { from: number, to: number } | null = null
+
 onClickOutside(popupEl, () => hide())
 
 function reposition(view: EditorView) {
@@ -88,9 +94,15 @@ function onSelectionChange() {
   }
   const sel = view.state.selection.main
   if (sel.empty) {
+    usedRange = null
     if (visible.value) hide()
     return
   }
+  if (usedRange && usedRange.from === sel.from && usedRange.to === sel.to) {
+    if (visible.value) hide()
+    return
+  }
+  usedRange = null
   const text = view.state.sliceDoc(sel.from, sel.to).trim()
   if (!text) {
     if (visible.value) hide()
@@ -120,6 +132,8 @@ watch(() => props.disabled, (d) => {
 })
 
 function onClick() {
+  const sel = props.view?.state.selection.main
+  usedRange = sel ? { from: sel.from, to: sel.to } : null
   emit('trigger')
   hide()
 }

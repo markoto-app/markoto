@@ -121,6 +121,9 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     + 'for the rest of this tour.'
   )
 
+  // One "Template applied" toast at a time, not a stack of them.
+  await editor.page.dismissToasts()
+
   if (editor.isMobile) {
     // DOM-level click — the preset card lives inside the BottomSheet
     // portal. Workaround #2 from `tests/e2e/AGENTS.md`.
@@ -176,6 +179,8 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   // ASSERTION: applying the markoto preset switched the cover on.
   expect((await themeMeta()).cover.enabled).toBe(true)
   await expect.poll(previewHasCover).toBe(true)
+
+  await editor.page.dismissToasts()
 
   await flow.click(
     'Switch the cover page off',

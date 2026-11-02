@@ -32,7 +32,10 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   await editor.page.loginAsTestUser('Maya Chen')
   // Cover stays ON here: turning it off is one of the tweaks this
   // flow saves into the preset.
-  await editor.silentSetup({ title: 'Team report template' })
+  await editor.silentSetup({
+    title: 'Team report template',
+    body: '# Team report template\n\n## Summary\n\nTwo or three sentences on what happened this month and why it matters.\n\n## Numbers\n\n| Metric | This month | Last month |\n|---|---|---|\n| Active writers | 412 | 380 |\n'
+  })
 
   await flow.heading('Save your custom theme as a preset', 3)
   await flow.narrate(

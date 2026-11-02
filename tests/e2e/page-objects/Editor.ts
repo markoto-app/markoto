@@ -531,6 +531,22 @@ export class EditorPage {
    * docs land in preview mode briefly while `isReadOnly` resolves —
    * calling this puts you in the most useful mode for screenshots.
    */
+  /** Mobile only: the floating edit ⇄ preview switch's Preview button. */
+  get mobilePreviewButton(): Locator {
+    return this.page.locator('[data-testid="mobile-viewmode-bar"] button').nth(1)
+  }
+
+  /**
+   * Mobile only: switch to the rendered preview (mobile is edit-only by
+   * default, so result frames otherwise show raw markdown) and wait for
+   * its pages.
+   */
+  async showMobilePreview(): Promise<void> {
+    await this.mobilePreviewButton.click()
+    await expect(this.mobilePreviewButton).toHaveAttribute('aria-pressed', 'true')
+    await this.waitForPreviewPaginated()
+  }
+
   async switchToSplitView(): Promise<void> {
     await this.viewMode.split.click()
     await expect(this.viewMode.split).toHaveClass(/bg-primary/)

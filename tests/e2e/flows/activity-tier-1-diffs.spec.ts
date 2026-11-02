@@ -30,8 +30,11 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup({ title: 'Release notes draft' })
-  await editor.page.disableCoverPage()
+  await editor.silentSetup({
+    title: 'Release notes draft',
+    body: '# Release notes draft\n\nWhat ships in markoto 2.0, for the changelog.',
+    cover: false
+  })
 
   // Make a recognisable edit so the diff drawer has real content
   // to render. Two short paragraphs typed in sequence give the

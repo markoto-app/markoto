@@ -118,10 +118,20 @@ test('Write with AI', async ({ flow, editor }) => {
   expect(added, 'the AI added nothing').toMatch(/^#{1,4} .*shortcut/im)
   expect(added.split('\n').length).toBeGreaterThanOrEqual(2)
   await editor.page.scrollEditorTo(/shortcut/i)
+  // Mobile is edit-only by default: show the rendered section, not its
+  // markdown source (keyboard-key markup reads as noise there).
+  if (editor.isMobile) {
+    await flow.click('Tap the eye icon to see the page', editor.page.mobilePreviewButton, {
+      chain: true,
+      after: () => editor.page.showMobilePreview()
+    })
+  }
   await editor.page.scrollPreviewTo(':is(h1, h2, h3, h4):has-text("shortcut")')
 
   await flow.shot(
-    'The AI added a "Keyboard shortcuts" section at the end of the doc — in the editor and the preview.',
+    editor.isMobile
+      ? 'The AI added a "Keyboard shortcuts" section at the end of the doc.'
+      : 'The AI added a "Keyboard shortcuts" section at the end of the doc, in the editor and the preview.',
     {
       // Hero outcome: doc content extended by the AI. This IS the
       // payoff of "ask the AI to write for you" — a reader who
@@ -134,7 +144,9 @@ test('Write with AI', async ({ flow, editor }) => {
         // natural anchor. We don't pin to a specific selector inside
         // the editor because the AI's exact output varies between
         // runs.
-        { label: 'The new section', selector: '.cm-line:has-text("shortcut")' }
+        editor.isMobile
+          ? { label: 'The new section', selector: 'iframe' }
+          : { label: 'The new section', selector: '.cm-line:has-text("shortcut")' }
       ]
     }
   )

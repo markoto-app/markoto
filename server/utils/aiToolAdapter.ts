@@ -920,7 +920,10 @@ export async function handleViewOtherDocument(
   const trailer = view.truncated
     ? '\n\n[Truncated at 50 000 chars — call view_other_document again with view_range to read more.]'
     : ''
-  return ok(`${view.formatted}${trailer}\n\n--- metadata ---\n${JSON.stringify(meta, null, 2)}`)
+  // Readers know documents by their title, not their id: a summary that
+  // cited `workspace doc "Kf50UWihca"` showed the raw id to the user.
+  const citation = `\n\nIf you mention or cite this document in the text, call it by its title ${JSON.stringify(ctx.title || 'Untitled')} and, if a link helps, link it as [title](/d/${targetId}). Never write the bare document id.`
+  return ok(`${view.formatted}${trailer}${citation}\n\n--- metadata ---\n${JSON.stringify(meta, null, 2)}`)
 }
 
 type CrossDocCtx = NonNullable<Awaited<ReturnType<typeof getDocWithActorRole>>>
