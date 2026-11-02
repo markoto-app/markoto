@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
 import { KNOWLEDGE_PLATFORM_LIMITS, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
+import { scanFlowDocPages } from './scripts/lib/flowDocPagesFs'
 
 export default defineNuxtConfig({
   // Dev proxy: mirror production Traefik routing through localhost:3000
@@ -60,6 +61,14 @@ export default defineNuxtConfig({
   },
 
   css: ['~/assets/css/main.css'],
+
+  // Flow slug → docs page that embeds it (`::flow{id="…"}`), scanned from
+  // content/docs at build time. The <Flow> "Try next" card resolves
+  // `manifest.next.slug` through this map and hides itself when a slug has
+  // no page. See shared/docs/flowDocPages.ts.
+  appConfig: {
+    flowDocPages: scanFlowDocPages(fileURLToPath(new URL('./content/docs', import.meta.url)))
+  },
 
   runtimeConfig: {
     // nuxt-auth-utils reads `runtimeConfig.session` (shape = h3's SessionConfig,

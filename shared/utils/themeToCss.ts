@@ -269,6 +269,9 @@ function typographyBlock(theme: DocTheme): string {
   margin: 0.05em 0.1em 0 0;
   color: var(--doc-heading-color);
   font-weight: ${theme.headings.weight};
+}
+.paged-doc .markoto-dropcap-p {
+  display: flow-root;
 }`
     : ''
 
@@ -940,9 +943,13 @@ function editorialCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): st
 }
 
 /**
- * Banner: brand-tinted top band with logo + title, body color beneath
- * holding subtitle and meta. Uses grid so the band can span full bleed
- * inside the named page.
+ * Banner: brand-tinted top band holding logo + title, page colour beneath
+ * with subtitle and meta. One full-width grid column; the band is the
+ * cover's `::before` (a grid item spanning the logo + title rows) so the
+ * logo keeps its own size and the title its own width — painting the
+ * tint on the logo `<img>` itself stretched an empty tinted box beside
+ * the title. With no logo, the title is the first child and takes the
+ * band's top padding itself.
  */
 function bannerCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): string {
   return `.paged-doc .markoto-cover {
@@ -950,7 +957,8 @@ function bannerCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): strin
   break-after: page;
   page-break-after: always;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 100%;
+  grid-template-rows: auto auto auto 1fr auto;
   justify-items: ${justifyItems};
   text-align: ${align};
   height: ${coverHeightMm};
@@ -958,18 +966,19 @@ function bannerCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): strin
   padding: 0;
   box-sizing: border-box;
 }
-.paged-doc .markoto-cover-logo,
-.paged-doc .markoto-cover-title {
-  width: 100%;
-  padding-left: 18mm;
-  padding-right: 18mm;
+.paged-doc .markoto-cover::before {
+  content: '';
+  grid-row: 1 / 3;
+  grid-column: 1;
+  justify-self: stretch;
+  align-self: stretch;
   background: color-mix(in srgb, var(--doc-brand) 12%, var(--doc-bg));
-  box-sizing: border-box;
 }
-.paged-doc .markoto-cover-logo { grid-row: 1; padding-top: 24mm; padding-bottom: 0.6em; }
-.paged-doc .markoto-cover-title { grid-row: 1; align-self: end; padding-bottom: 24mm; }
-.paged-doc .markoto-cover-subtitle { grid-row: 2; padding: 18mm; }
-.paged-doc .markoto-cover-meta { grid-row: 3; padding: 0 18mm 24mm 18mm; }`
+.paged-doc .markoto-cover-logo { grid-row: 1; grid-column: 1; box-sizing: content-box; padding: 24mm 18mm 0 18mm; }
+.paged-doc .markoto-cover-title { grid-row: 2; grid-column: 1; box-sizing: border-box; max-width: 100%; margin: 0; padding: 0.6em 18mm 18mm 18mm; }
+.paged-doc .markoto-cover-title:first-child { padding-top: 24mm; }
+.paged-doc .markoto-cover-subtitle { grid-row: 3; grid-column: 1; box-sizing: border-box; max-width: 100%; margin: 0; padding: 14mm 18mm 0 18mm; }
+.paged-doc .markoto-cover-meta { grid-row: 5; grid-column: 1; margin: 0; padding: 0 18mm 24mm 18mm; }`
 }
 
 /**

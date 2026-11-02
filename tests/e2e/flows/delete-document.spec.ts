@@ -35,7 +35,10 @@ test('Delete a document', async ({ page, flow, editor }) => {
   // A recognisable title so the type-to-confirm step has a meaningful
   // payload (typing "Untitled" to confirm reads as test cheating).
   const docTitle = 'Q3 launch retro draft'
-  await editor.silentSetup({ title: docTitle })
+  await editor.silentSetup({
+    title: docTitle,
+    body: '# Q3 launch retro draft\n\nRough notes before the retro. Superseded by the shared retro doc.\n\n## What went well\n\n- Staged rollout caught the avatar bug early\n'
+  })
 
   await flow.heading('Delete a document', 3)
   await flow.narrate(

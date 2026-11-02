@@ -134,3 +134,22 @@ export function addNonceToScripts(chunk: string, nonce: string): string {
   if (nonceSource(nonce).length === 0) return chunk
   return chunk.replaceAll(/<script(?=[\s>])(?![^>]*\snonce=)/g, `<script nonce="${nonce}"`)
 }
+
+/**
+ * Cross-Origin-Resource-Policy for a request path.
+ *
+ * The live preview and print iframes run in an opaque origin, so every
+ * image they load is a cross-site request, and CORP `same-site` makes
+ * Chromium refuse it (`ERR_BLOCKED_BY_RESPONSE.NotSameSite`). Two kinds of
+ * resource are loaded there:
+ *   - `/api/files/…` (a 302 to presigned S3) — authorised by the session /
+ *     file-access token, not by the origin;
+ *   - `/markoto-logos/…` — the bundled brand marks the default theme puts
+ *     on every cover page (`brand.logoUrl`). Public static files.
+ * Everything else stays `same-site`. (Chromium happens to let plain
+ * `localhost` through, which is why the blocked cover logo only showed on
+ * real host names.)
+ */
+export function crossOriginResourcePolicyFor(path: string): 'cross-origin' | 'same-site' {
+  return path.startsWith('/api/files/') || path.startsWith('/markoto-logos/') ? 'cross-origin' : 'same-site'
+}

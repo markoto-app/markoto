@@ -558,15 +558,15 @@
   },
   "pricing": {
     "title": "Preise",
-    "subtitle": "Wählen Sie den passenden Tarif. Jede Stufe läuft auf demselben KI-Modell — zahlende Nutzer erhalten einfach mehr davon.",
-    "aiCreditsPerMonth": "markoto-Credits/Monat",
-    "creditsHint": "Ein Text-Prompt verbraucht 1 Credit; Bilder und fundierte Suchen verbrauchen 5; Sprachminuten zählen 5 pro Minute.",
+    "subtitle": "Wählen Sie den passenden Tarif. Tarife legen Ihre Limits fest: KI-Punkte, Workspaces und Speicher. KI über Ihren eigenen Anbieterschlüssel ist durch keinen Tarif begrenzt.",
+    "aiCreditsPerMonth": "KI-Punkte/Monat",
+    "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung. KI über Ihren eigenen Anbieterschlüssel rechnet Ihr Anbieter ab; sie verbraucht keine Punkte.",
     "workspaces": "Workspaces",
     "knowledgeFiles": "Wissensdateien",
     "knowledgeStorage": "Gesamtspeicher",
     "imageStorage": "Bildspeicher",
     "dictation": "Sprachdiktat",
-    "teamBilling": "markoto-Workspace: markoto für alle in einem Workspace sponsern",
+    "teamBilling": "Workspace-Sponsoring: die KI-Punkte aller Mitglieder eines Workspace übernehmen",
     "currentPlan": "Aktueller Tarif",
     "manageSubscription": "Abonnement verwalten",
     "freeForever": "Für immer kostenlos",
@@ -574,22 +574,29 @@
     "downgrade": "Downgrade",
     "signUp": "Registrieren",
     "close": "Schließen",
-    "footnote": "Alle Stufen umfassen Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzte Dokumente. KI-Credits werden monatlich zurückgesetzt.",
+    "footnote": "Alle Stufen umfassen Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzte Dokumente. KI-Punkte werden monatlich aufgefüllt.",
     "comingSoonSubtitle": "markoto ist kostenlos, während wir unsere Bezahlpläne fertigstellen. Das bekommt jedes Konto heute — und das kommt als Nächstes.",
     "comingSoonBadge": "Demnächst",
     "availableNow": "Jetzt verfügbar",
     "comingSoonFootnote": "Bezahlpläne, ihre Preise und Limits stehen noch nicht fest. Tragen Sie sich unten in die Warteliste ein, und wir schreiben Ihnen einmal, sobald sie starten.",
-    "freeFootnote": "Jedes Konto enthält Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzt viele Dokumente. KI-Credits werden jede Periode aufgefüllt.",
+    "freeFootnote": "Jedes Konto enthält Echtzeit-Zusammenarbeit, Versionsverlauf und unbegrenzt viele Dokumente. KI-Punkte werden jede Periode aufgefüllt.",
     "selfHostedTitle": "Limits dieser Instanz",
-    "selfHostedSubtitle": "Diese markoto-Instanz verkauft keine Tarife. Jedes Konto erhält die unten aufgeführten Limits; der Betreiber dieser Instanz kann sie ändern."
+    "selfHostedSubtitle": "Diese markoto-Instanz verkauft keine Tarife. Jedes Konto erhält die unten aufgeführten Limits; der Betreiber dieser Instanz kann sie ändern.",
+    "mostPopular": "Am beliebtesten",
+    "tiers": {
+      "free": "Alle Schreibfunktionen und ein Startkontingent an KI-Punkten.",
+      "pro": "Für Einzelpersonen: mehr KI-Punkte, Workspaces und Speicher.",
+      "max": "Für kleine Teams: Übernehmen Sie die KI-Punkte aller Mitglieder eines Ihrer Workspaces.",
+      "ultra": "Für größere Teams: Workspace-Sponsoring mit dem größten Kontingent."
+    }
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
-    "creditsTooltipTitle": "markoto-Credits",
-    "creditsRemaining": "{remaining} von {limit} Credits verbleibend",
+    "creditsTooltipTitle": "KI-Punkte",
+    "creditsRemaining": "{remaining} von {limit} Punkten übrig",
     "creditsPercent": "{pct}% verbleibend",
     "creditsResetOn": "Zurücksetzung am {date}",
-    "creditsHint": "Ein Text-Prompt verbraucht 1 Credit; Bilder und fundierte Suchen verbrauchen 5; Sprache zählt 5 pro Minute.",
+    "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung.",
     "upgradeToPlan": "Upgrade auf {plan}",
     "topPlan": "Sie nutzen den höchsten Tarif.",
     "viewAllPlans": "Alle Tarife anzeigen"
@@ -1128,6 +1135,11 @@
         "privacy": "die Datenschutzerklärung",
         "tos": "die Nutzungsbedingungen",
         "dpa": "den Auftragsverarbeitungsvertrag"
+      },
+      "documentNames": {
+        "privacy": "Datenschutzerklärung",
+        "tos": "Nutzungsbedingungen",
+        "dpa": "Auftragsverarbeitungsvertrag"
       }
     },
     "delete": {
@@ -1146,30 +1158,33 @@
         "intro": "Wir möchten, dass Sie das vollständige Bild sehen, bevor Sie bestätigen. Alles Folgende läuft automatisch ab, sobald die 30-tägige Kulanzfrist endet.",
         "deleted": {
           "heading": "Dauerhaft gelöscht",
-          "ownedDocs": "{count} Dokument(e), die Ihnen gehören — einschließlich aller, die Sie mit Mitarbeitern im Bearbeitungsmodus geteilt haben. Mitarbeiter verlieren gleichzeitig den Zugriff.",
+          "ownedDocs": "{count} Dokument, das Ihnen gehört, auch wenn Sie es mit anderen teilen. Diese verlieren gleichzeitig den Zugriff. | {count} Dokumente, die Ihnen gehören, auch die, die Sie mit anderen teilen. Diese verlieren gleichzeitig den Zugriff.",
           "themes": "Ihre gespeicherten Designs und persönlichen Einstellungen.",
           "ai": "Ihre KI-Sitzungen, Prompt-Verlauf und Nutzungszähler.",
-          "exports": "{count} frühere Datenexport(e) und deren herunterladbare ZIP-Dateien.",
+          "exports": "{count} früherer Datenexport und seine ZIP-Datei. | {count} frühere Datenexporte und ihre ZIP-Dateien.",
           "stripe": "Ihr Stripe-Kundendatensatz (Stripe bewahrt zugrunde liegende Rechnungen für den steuerrechtlich erforderlichen Zeitraum auf)."
         },
         "anonymised": {
           "heading": "Auf der Plattform behalten, aber Ihr Name entfernt",
-          "comments": "{count} Kommentar(e), die Sie zu Dokumenten geschrieben haben, die Ihnen nicht gehören — ersetzt durch \"[gelöschter Nutzer]\". Die Texte bleiben erhalten, damit andere Teilnehmer der Konversation weiter folgen können.",
-          "activity": "{count} Aktivitätsprotokolleintrag zu Dokumenten, die Ihnen nicht gehören — künftig als \"Anonym\" angezeigt.",
-          "audit": "{count} Eintrag in unserem internen Sicherheitsprotokoll — Ihre Nutzer-ID wird entfernt.",
-          "consent": "{count} Einwilligungsentscheidung(en) — anonymisiert, aber als rechtlicher Nachweis gemäß DSGVO Artikel 7(1) aufbewahrt."
+          "comments": "{count} Kommentar, den Sie in fremden Dokumenten geschrieben haben, erscheint als „[gelöschter Nutzer]“. Der Text bleibt, damit andere der Unterhaltung weiter folgen können. | {count} Kommentare, die Sie in fremden Dokumenten geschrieben haben, erscheinen als „[gelöschter Nutzer]“. Der Text bleibt, damit andere der Unterhaltung weiter folgen können.",
+          "activity": "{count} Eintrag im Aktivitätsprotokoll fremder Dokumente erscheint danach als „Anonym“. | {count} Einträge im Aktivitätsprotokoll fremder Dokumente erscheinen danach als „Anonym“.",
+          "audit": "{count} Eintrag in unserem internen Sicherheitsprotokoll; Ihre Nutzer-ID wird entfernt. | {count} Einträge in unserem internen Sicherheitsprotokoll; Ihre Nutzer-ID wird entfernt.",
+          "consent": "{count} Einwilligungsentscheidung, anonymisiert, aber als rechtlicher Nachweis nach Art. 7 Abs. 1 DSGVO aufbewahrt. | {count} Einwilligungsentscheidungen, anonymisiert, aber als rechtlicher Nachweis nach Art. 7 Abs. 1 DSGVO aufbewahrt."
         },
         "workspaces": {
           "heading": "Workspaces",
           "cascadeDelete": {
             "title": "Werden kaskadierend gelöscht (einziges Mitglied)",
             "body": "Diese Workspaces werden zusammen mit jedem darin enthaltenen Dokument und jeder Wissensdatei dauerhaft entfernt. Wenn Sie deren Inhalte bewahren möchten, laden Sie zuerst ein Mitglied mit Administratorrolle ein, kehren Sie dann zurück und beantragen Sie die Löschung.",
-            "row": "{name} — {docCount} Dokument(e), {knowledgeCount} Wissensdatei(en)"
+            "row": "{name}: {docs}, {files}",
+            "docCount": "keine Dokumente | {count} Dokument | {count} Dokumente",
+            "fileCount": "keine Wissensdateien | {count} Wissensdatei | {count} Wissensdateien"
           },
           "promote": {
             "title": "Erhalten einen neuen Administrator (andere Mitglieder vorhanden)",
-            "body": "Diese Workspaces bleiben für die verbleibenden Mitglieder aktiv. Das am längsten zugehörige Mitglied wird Administrator.",
-            "row": "{name} — {newAdminName} (derzeit {newAdminPreviousRole}) wird Administrator"
+            "body": "Diese Workspaces bleiben für die übrigen Mitglieder bestehen. Ein Admin, der vor den anderen beigetreten ist, übernimmt; gibt es keinen weiteren Admin, wird das am längsten beteiligte Mitglied Admin.",
+            "row": "{name}: {newAdminName} (derzeit {newAdminPreviousRole}) wird Admin",
+            "rowAlreadyAdmin": "{name}: {newAdminName} bleibt Admin und übernimmt"
           },
           "removeMember": {
             "title": "Sie werden einfach entfernt",
@@ -1186,7 +1201,8 @@
         },
         "timing": "Die eigentliche Kaskade läuft einmal pro Stunde als Hintergrundjob. Nach Ablauf der Kulanzfrist werden Ihre Daten innerhalb von etwa einer Stunde vollständig gelöscht.",
         "noRecovery": "Sobald die Kaskade läuft, sind Ihr Konto und Ihre Inhalte dauerhaft verschwunden — es gibt keinen Wiederherstellungsweg."
-      }
+      },
+      "cancelledToast": "Löschung abgebrochen. Ihr Konto bleibt, wie es ist."
     },
     "export": {
       "emailReadySubject": "Ihr markoto-Datenexport ist bereit",
@@ -1238,7 +1254,7 @@
   "settings": {
     "profile": {
       "title": "Profil",
-      "intro": "Ihr Konto, die Daten, die wir über Sie speichern, und die Steuerelemente zur Verwaltung beider. Ausgaben- und Nutzungsdetails werden hier ebenfalls angezeigt, sobald diese Funktionen verfügbar sind.",
+      "intro": "Ihr Konto, die Daten, die wir über Sie speichern, und die Einstellungen, mit denen Sie beides verwalten.",
       "account": {
         "heading": "Konto",
         "email": "E-Mail",

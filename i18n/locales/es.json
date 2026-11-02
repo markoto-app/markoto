@@ -558,15 +558,15 @@
   },
   "pricing": {
     "title": "Precios",
-    "subtitle": "Elige el plan que mejor se adapte. Todos los niveles usan el mismo modelo de IA — los usuarios de pago simplemente obtienen más.",
-    "aiCreditsPerMonth": "créditos de markoto/mes",
-    "creditsHint": "Una consulta de texto usa 1 crédito; las imágenes y búsquedas fundamentadas usan 5; los minutos de voz cuentan 5 por minuto.",
+    "subtitle": "Elige el plan que mejor se adapte. Los planes fijan tus límites: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave de proveedor nunca está limitada por un plan.",
+    "aiCreditsPerMonth": "puntos de IA/mes",
+    "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo. La IA con tu propia clave la factura tu proveedor y no consume puntos.",
     "workspaces": "espacios de trabajo",
     "knowledgeFiles": "archivos de conocimiento",
     "knowledgeStorage": "almacenamiento total",
     "imageStorage": "almacenamiento de imágenes",
     "dictation": "dictado por voz",
-    "teamBilling": "espacio de trabajo de markoto: patrocina a markoto para todos en un espacio de trabajo",
+    "teamBilling": "Patrocinio de espacio de trabajo: cubre los puntos de IA de todos los miembros de un espacio de trabajo",
     "currentPlan": "Plan actual",
     "manageSubscription": "Gestionar suscripción",
     "freeForever": "Gratis para siempre",
@@ -574,22 +574,29 @@
     "downgrade": "Bajar de plan",
     "signUp": "Registrarse",
     "close": "Cerrar",
-    "footnote": "Todos los niveles incluyen colaboración en tiempo real, historial de versiones y documentos ilimitados. Los créditos de IA se reinician cada mes.",
+    "footnote": "Todos los niveles incluyen colaboración en tiempo real, historial de versiones y documentos ilimitados. Los puntos de IA se recargan cada mes.",
     "comingSoonSubtitle": "markoto es gratis mientras terminamos nuestros planes de pago. Esto es lo que incluye cada cuenta hoy, y lo que está por llegar.",
     "comingSoonBadge": "Muy pronto",
     "availableNow": "Disponible ahora",
     "comingSoonFootnote": "Los planes de pago, sus precios y límites aún no son definitivos. Únete a la lista de espera de abajo y te escribiremos una vez, cuando se lancen.",
-    "freeFootnote": "Cada cuenta incluye colaboración en tiempo real, historial de versiones y documentos ilimitados. Los créditos de IA se recargan cada periodo.",
+    "freeFootnote": "Cada cuenta incluye colaboración en tiempo real, historial de versiones y documentos ilimitados. Los puntos de IA se recargan cada periodo.",
     "selfHostedTitle": "Límites de esta instancia",
-    "selfHostedSubtitle": "Esta instancia de markoto no vende planes. Cada cuenta recibe los límites que se indican abajo; el operador de esta instancia puede cambiarlos."
+    "selfHostedSubtitle": "Esta instancia de markoto no vende planes. Cada cuenta recibe los límites que se indican abajo; el operador de esta instancia puede cambiarlos.",
+    "mostPopular": "El más popular",
+    "tiers": {
+      "free": "Todas las funciones de escritura y una asignación inicial de puntos de IA.",
+      "pro": "Para quien escribe en solitario: más puntos de IA, espacios de trabajo y almacenamiento.",
+      "max": "Para equipos pequeños: cubre los puntos de IA de todos los miembros de un espacio de trabajo tuyo.",
+      "ultra": "Para equipos más grandes: patrocinio de espacios de trabajo con la mayor asignación."
+    }
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
-    "creditsTooltipTitle": "créditos de markoto",
-    "creditsRemaining": "Quedan {remaining} de {limit} créditos",
+    "creditsTooltipTitle": "Puntos de IA",
+    "creditsRemaining": "Quedan {remaining} de {limit} puntos",
     "creditsPercent": "{pct}% restante",
     "creditsResetOn": "Se reinicia el {date}",
-    "creditsHint": "Una consulta de texto usa 1 crédito; las imágenes y búsquedas fundamentadas usan 5; la voz cuenta 5 por minuto.",
+    "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo.",
     "upgradeToPlan": "Mejorar a {plan}",
     "topPlan": "Tienes el plan superior.",
     "viewAllPlans": "Ver todos los planes"
@@ -1128,6 +1135,11 @@
         "privacy": "la Política de Privacidad",
         "tos": "los Términos del Servicio",
         "dpa": "el Anexo de Tratamiento de Datos"
+      },
+      "documentNames": {
+        "privacy": "Política de privacidad",
+        "tos": "Términos del servicio",
+        "dpa": "Acuerdo de tratamiento de datos"
       }
     },
     "delete": {
@@ -1146,30 +1158,33 @@
         "intro": "Queremos que veas el panorama completo antes de confirmar. Todo lo siguiente se ejecuta automáticamente una vez que termina la ventana de gracia de 30 días.",
         "deleted": {
           "heading": "Eliminado permanentemente",
-          "ownedDocs": "{count} documento(s) de tu propiedad — incluidos los que hayas compartido con colaboradores en modo edición. Los colaboradores pierden el acceso al mismo tiempo.",
+          "ownedDocs": "{count} documento que te pertenece, incluso si lo compartes. Quienes tienen acceso lo pierden al mismo tiempo. | {count} documentos que te pertenecen, incluidos los que compartes. Quienes tienen acceso lo pierden al mismo tiempo.",
           "themes": "Tus temas guardados y preferencias personales.",
           "ai": "Tus sesiones de IA, historial de consultas y contadores de uso.",
-          "exports": "{count} exportación(es) de datos anterior(es) y sus archivos ZIP descargables.",
+          "exports": "{count} exportación de datos anterior y su archivo ZIP. | {count} exportaciones de datos anteriores y sus archivos ZIP.",
           "stripe": "Tu registro de cliente de Stripe (Stripe conserva las facturas subyacentes durante el período que exige la ley fiscal)."
         },
         "anonymised": {
           "heading": "Se conserva en la plataforma con tu nombre eliminado",
-          "comments": "{count} comentario(s) que escribiste en documentos que no son tuyos — reemplazados por «[usuario eliminado]». Los cuerpos se mantienen para que otros participantes puedan seguir la conversación.",
-          "activity": "{count} entrada del registro de actividad en documentos que no son tuyos — se mostrará como «Anónimo» de ahora en adelante.",
-          "audit": "{count} entrada en nuestro registro de seguridad interno — se elimina tu id de usuario.",
-          "consent": "{count} decisión(es) de consentimiento — anonimizadas pero conservadas como prueba legal según el artículo 7(1) del RGPD."
+          "comments": "{count} comentario que escribiste en documentos ajenos, mostrado como «[usuario eliminado]». El texto se mantiene para que los demás puedan seguir la conversación. | {count} comentarios que escribiste en documentos ajenos, mostrados como «[usuario eliminado]». El texto se mantiene para que los demás puedan seguir la conversación.",
+          "activity": "{count} entrada del registro de actividad de documentos ajenos, mostrada después como «Anónimo». | {count} entradas del registro de actividad de documentos ajenos, mostradas después como «Anónimo».",
+          "audit": "{count} entrada en nuestro registro interno de seguridad; se elimina tu identificador. | {count} entradas en nuestro registro interno de seguridad; se elimina tu identificador.",
+          "consent": "{count} decisión de consentimiento, anonimizada pero conservada como prueba legal según el artículo 7(1) del RGPD. | {count} decisiones de consentimiento, anonimizadas pero conservadas como prueba legal según el artículo 7(1) del RGPD."
         },
         "workspaces": {
           "heading": "Espacios de trabajo",
           "cascadeDelete": {
             "title": "Se eliminarán en cascada (miembro único)",
             "body": "Estos espacios de trabajo se eliminarán permanentemente junto con cada documento y archivo de conocimiento en su interior. Si quieres conservar su contenido, invita primero a un colaborador con rol de administrador y luego vuelve y solicita la eliminación.",
-            "row": "{name} — {docCount} documento(s), {knowledgeCount} archivo(s) de conocimiento"
+            "row": "{name}: {docs}, {files}",
+            "docCount": "ningún documento | {count} documento | {count} documentos",
+            "fileCount": "ningún archivo de conocimiento | {count} archivo de conocimiento | {count} archivos de conocimiento"
           },
           "promote": {
             "title": "Recibirán un nuevo administrador (existen otros miembros)",
-            "body": "Estos espacios de trabajo siguen activos para los miembros restantes. El miembro con más antigüedad se convierte en administrador.",
-            "row": "{name} — {newAdminName} (actualmente {newAdminPreviousRole}) se convierte en administrador"
+            "body": "Estos espacios de trabajo siguen activos para los demás miembros. Un administrador que se unió antes que los demás toma el relevo; si no hay otro administrador, el miembro más antiguo pasa a serlo.",
+            "row": "{name}: {newAdminName} (ahora {newAdminPreviousRole}) pasa a ser administrador",
+            "rowAlreadyAdmin": "{name}: {newAdminName} sigue como administrador y toma el relevo"
           },
           "removeMember": {
             "title": "Simplemente serás eliminado",
@@ -1186,7 +1201,8 @@
         },
         "timing": "La cascada real se ejecuta como una tarea en segundo plano una vez por hora. Una vez que termina la ventana de gracia, tus datos se purgan por completo en aproximadamente una hora.",
         "noRecovery": "Una vez que se ejecuta la cascada, tu cuenta y contenido desaparecen permanentemente — no hay forma de recuperarlos."
-      }
+      },
+      "cancelledToast": "Eliminación cancelada. Tu cuenta sigue igual."
     },
     "export": {
       "emailReadySubject": "Tu exportación de datos de markoto está lista",
@@ -1238,7 +1254,7 @@
   "settings": {
     "profile": {
       "title": "Perfil",
-      "intro": "Tu cuenta, los datos que tenemos sobre ti y los controles para gestionar ambos. Los detalles de gasto y uso también estarán aquí a medida que se lancen esas funciones.",
+      "intro": "Tu cuenta, los datos que tenemos sobre ti y los controles para gestionar ambos.",
       "account": {
         "heading": "Cuenta",
         "email": "Correo electrónico",

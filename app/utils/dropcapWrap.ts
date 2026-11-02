@@ -25,6 +25,11 @@
  *     or line break gets no cap.
  *   - Empty / whitespace-only paragraph, no `<p>` at all, or already
  *     wrapped: returned unchanged (the input string itself).
+ *   - Opening paragraph shorter than DROPCAP_MIN_CHARS, containing a
+ *     hard line break, or starting inside `<strong>`/`<b>`/`<code>`:
+ *     no cap (see DROPCAP_MIN_CHARS).
+ *   - The capped paragraph gets DROPCAP_PARAGRAPH_CLASS so the theme CSS
+ *     can contain the float (`display: flow-root`).
  *   - Multibyte first character (emoji, CJK, surrogate pair): one full
  *     code point via `Array.from`.
  *   - Browser-only (needs `document`); all callers run client-side.
@@ -57,13 +62,34 @@ function firstTextNode(parent: Node): Text | null {
   return null
 }
 
+/**
+ * A drop cap is ~3.4em tall, i.e. about three body lines. Next to a
+ * shorter opening paragraph it towers over one or two lines of small
+ * text and the float drags the following paragraph up beside it — the
+ * typical case for a short intro line or an AI-written one-liner. Below
+ * this length (about three lines of body text on an A4 page) the
+ * paragraph gets no cap.
+ */
+export const DROPCAP_MIN_CHARS = 220
+
+/** Class on the paragraph that holds the cap; theme CSS makes it contain the float. */
+export const DROPCAP_PARAGRAPH_CLASS = 'markoto-dropcap-p'
+
+/** Labels ("**Date:** …") and inline-formatted openers aren't prose to decorate. */
+const NO_CAP_INSIDE = new Set(['b', 'strong', 'code'])
+
 export function wrapFirstLetterAsDropCap(html: string): string {
   const tpl = document.createElement('template')
   tpl.innerHTML = html
   const p = Array.from(tpl.content.querySelectorAll('p')).find(el => !el.closest(NOT_BODY_PROSE)) ?? null
   if (!p) return html
+  // Only real opening prose: long enough to sit beside the cap, and not a
+  // block of hard-broken lines (metadata like Date / Attendees).
+  if ((p.textContent ?? '').trim().length < DROPCAP_MIN_CHARS) return html
+  if (p.querySelector('br')) return html
   const text = firstTextNode(p)
   if (!text) return html
+  if (text.parentElement && text.parentElement !== p && NO_CAP_INSIDE.has(text.parentElement.tagName.toLowerCase())) return html
   const leading = /^\s*/.exec(text.data)?.[0] ?? ''
   const rest = text.data.slice(leading.length)
   const first = Array.from(rest)[0]
@@ -77,5 +103,6 @@ export function wrapFirstLetterAsDropCap(html: string): string {
   text.data = leading
   text.after(span, tail)
   if (leading === '') text.remove()
+  p.classList.add(DROPCAP_PARAGRAPH_CLASS)
   return tpl.innerHTML
 }

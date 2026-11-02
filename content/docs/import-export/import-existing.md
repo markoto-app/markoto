@@ -23,9 +23,9 @@ on mobile.
 ## What just happened
 
 You opened the import dialog from File → Import, picked a file, and
-clicked Import. The file streamed to **markitdown** — a small Python
-sidecar that wraps Microsoft's open-source markitdown library — and
-came back as markdown. Because the doc already had the welcome content
+clicked Import. markoto converted it to Markdown on its servers (with
+Microsoft's open-source markitdown library) and put the result in the
+editor. Because the doc already had the welcome content
 seeded, markoto offered to either replace or append; you chose
 replace.
 

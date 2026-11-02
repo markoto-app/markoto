@@ -38,10 +38,13 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   // AI requires a session; same TEST_MODE login shim the other AI
   // flows use.
   await editor.page.loginAsTestUser('Maya Chen')
-  // A short German draft of an onboarding email, cover off so the
-  // preview's first page shows the intro the AI is about to add.
-  const draftBody = '# Willkommen bei Lumen\n\n## Deine ersten Schritte\n\n- Profil anlegen\n- Team einladen\n- Erstes Projekt starten\n'
-  await editor.silentSetup({ title: 'Onboarding-Email', body: draftBody, cover: false })
+  // A short ENGLISH draft of an onboarding email, cover off so the
+  // preview's first page shows the intro the AI is about to add. The
+  // draft and the prompt are English; only the document's Language
+  // setting (Deutsch) asks for German — so a German intro proves the
+  // setting, not the surrounding text, steered the AI.
+  const draftBody = '# Welcome to Lumen\n\n## Your first steps\n\n- Create your profile\n- Invite your team\n- Start your first project\n'
+  await editor.silentSetup({ title: 'Onboarding email', body: draftBody, cover: false })
 
   // ─── Open the Document panel ────────────────────────────────────
   await flow.heading('Tell markoto who you\'re writing for', 3)
@@ -85,7 +88,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   await flow.type(
     'Type a one-line description',
     page.locator('#doc-description'),
-    'Onboarding-Email für neu registrierte Nutzer.',
+    'Onboarding email for newly registered users.',
     {
       // Mobile: Document panel renders inside the BottomSheet portal.
       // Pointer events on the input are intercepted by Reka's overlay.
@@ -198,7 +201,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     const meta: unknown = res.ok() ? await res.json() : null
     return JSON.stringify(meta)
   }, { timeout: 10_000, message: 'audience / language / description never reached the server' })
-    .toMatch(/(?=.*"audience":"marketing")(?=.*"language":"(de|Deutsch)")(?=.*Onboarding-Email für neu registrierte Nutzer)/)
+    .toMatch(/(?=.*"audience":"marketing")(?=.*"language":"(de|Deutsch)")(?=.*Onboarding email for newly registered users)/)
 
   // ─── Ask the AI ─────────────────────────────────────────────────
   await flow.heading('Ask the AI for an intro', 3)
@@ -275,8 +278,8 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   }
 
   await flow.shot(
-    'The AI added a one-line intro — German body, marketing tone — '
-    + 'shaped by the document context, not by anything in the prompt.',
+    'The AI added a one-line intro in German with a marketing tone, '
+    + 'although the draft and the prompt are English: the document settings did that.',
     {
       // Hero outcome: the AI-rendered context-shaped output is the
       // payoff. Readers seeing this for the first time clock that

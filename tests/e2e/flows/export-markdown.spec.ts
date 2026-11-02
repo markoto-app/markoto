@@ -1,4 +1,6 @@
+import { readFile } from 'node:fs/promises'
 import { test, expect } from '../fixtures/flow'
+import { showTextFile } from '../fixtures/downloadViewer'
 
 // Tier 1: "Save the doc as a .md file."
 //
@@ -20,18 +22,34 @@ import { test, expect } from '../fixtures/flow'
 //   - Mobile: hamburger ("more") → "Export" (the mobile menu flattens
 //     Export's submenu down to its markdown action — Print + Save as
 //     PDF live as separate items in the same hamburger).
+const NOTES = [
+  '# Weekly sync',
+  '',
+  '**Date:** 3 November  ',
+  '**Attendees:** Maya, Sam, Priya',
+  '',
+  '## Decisions',
+  '',
+  '- Ship the new export on Thursday',
+  '- Move the retro to Friday afternoon',
+  '',
+  '## Action items',
+  '',
+  '- [ ] Sam: write the release notes',
+  '- [ ] Priya: update the [support FAQ](https://example.com/faq)'
+].join('\n')
+
 test('Save as Markdown', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup({ title: 'Meeting notes' })
+  await editor.silentSetup({ title: 'Weekly sync', body: NOTES })
 
   await flow.heading('Save the doc as a .md file', 3)
   await flow.narrate(
-    'Sometimes you want the source, not the rendered output. File → '
-    + 'Save as Markdown writes a `.md` of your doc straight to your '
-    + 'downloads folder — no PDF render, no server round-trip, just '
-    + 'the raw markdown. Useful for committing to a git repo, '
-    + 'pasting into another tool, or archiving the source.'
+    'Sometimes you want the source, not the finished page. File › Export › '
+    + 'Markdown saves the document as a .md file straight to your downloads '
+    + 'folder. Useful for a git repository, another Markdown editor, or an '
+    + 'archive.'
   )
 
   // ─── Open the menu containing Export ────────────────────────────
@@ -78,17 +96,29 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
     triggerCaption,
     triggerLocator,
     {
-      hero: true,
-      result: 'The .md file downloads to your disk — same content as what '
-        + 'you see in the editor, ready to commit or share.'
+      result: 'Your browser saves the file, named after the document.',
+      after: async () => {
+        await downloadPromise
+      }
     }
   )
 
-  // ASSERTION: a download fired and the suggested filename ends
-  // with .md. Don't open the file — we just want to confirm the
-  // export path triggered.
+  // ASSERTION: the download is a .md named after the doc, and its
+  // contents are exactly the document's Markdown.
   const download = await downloadPromise
-  expect(download.suggestedFilename()).toMatch(/\.md$/i)
+  const filename = download.suggestedFilename()
+  expect(filename).toMatch(/^Weekly sync.*\.md$/i)
+  const saved = await readFile(await download.path(), 'utf8')
+  expect(saved).toBe(await editor.page.docText())
+
+  // ─── Open the file ──────────────────────────────────────────────
+  await flow.heading('Open the file', 3)
+  const viewer = await flow.spawn('file')
+  await showTextFile(viewer.page, saved)
+  await viewer.flow.shot(
+    'The saved file is plain Markdown: headings, lists and links as you wrote them.',
+    { hero: true, addressBar: `Downloads/${filename}` }
+  )
 
   flow.next({
     slug: 'polished-pdf',

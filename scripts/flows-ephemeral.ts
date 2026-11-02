@@ -8,7 +8,7 @@ import { spawn, type Subprocess } from 'bun'
 // 3. Spawn `bun run .output/server/index.mjs` against the ephemeral
 //    infra on port 3001.
 // 4. Wait for /api/health to respond.
-// 5. Run Playwright against http://localhost:3001.
+// 5. Run Playwright against http://markoto.localhost:3001.
 // 6. Clean up on every exit path (success, test failure, Ctrl-C, crash).
 //
 // Why prod build over `bun run dev`:
@@ -31,7 +31,14 @@ import { spawn, type Subprocess } from 'bun'
 const COMPOSE_FILE = 'docker-compose.test.yml'
 const COMPOSE_PROFILE = 'flows'
 const NUXT_PORT = 3001
-const NUXT_URL = `http://localhost:${NUXT_PORT}`
+// The flows browse the app as `markoto.localhost` rather than `localhost`:
+// share dialogs, copied links and QR codes print `location.origin`, and the
+// screenshots are documentation. `*.localhost` is loopback by definition
+// (RFC 6761 — Chromium and systemd-resolved / Bun resolve it to 127.0.0.1
+// without any hosts entry) and still counts as a loopback NUXT_SITE_URL for
+// the TEST_MODE guard (shared/utils/testMode.ts), so nothing is faked: the
+// URL in a frame is the URL the browser really loaded.
+const NUXT_URL = `http://markoto.localhost:${NUXT_PORT}`
 
 // Env vars the Nuxt server needs to talk to the test infra. Mirrors
 // .env but with shifted ports (5433/6380/8334/4002/8081 — see compose
@@ -94,7 +101,9 @@ const FLOWS_ENV: Record<string, string> = {
   // runs. (Locally this hid behind a stray dev renderer squatting on :9000.)
   // Same value the integration harness uses — see tests/integration/setup/server.ts.
   NUXT_RENDERER_INTERNAL_URL: 'http://localhost:9101',
-  NUXT_PUBLIC_SYNC_URL: 'ws://localhost:4002',
+  // Same loopback host as the app (see NUXT_URL): the browser's sync
+  // socket and the CSP connect-src name it, not plain `localhost`.
+  NUXT_PUBLIC_SYNC_URL: 'ws://markoto.localhost:4002',
   NUXT_SYNC_INTERNAL_URL: 'http://localhost:4002',
   NUXT_JWT_SECRET: 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char',
   NUXT_INTERNAL_API_SECRET: 'test-internal-api-secret-isolated',
@@ -281,7 +290,7 @@ async function main() {
   //
   // Serve-only mode (local debugging): keep the stack + app alive and skip
   // Playwright + teardown so you can iterate with `flows:test:against-running`
-  // against http://localhost:3001. Ctrl-C to tear down. Not used by CI.
+  // against http://markoto.localhost:3001. Ctrl-C to tear down. Not used by CI.
   if (process.env.FLOWS_SERVE_ONLY === '1') {
     // FLOWS_BILLING=on serves the billing-on shape instead.
     const phase = process.env.FLOWS_BILLING === 'on' ? BILLING_PHASES[1] : BILLING_PHASES[0]

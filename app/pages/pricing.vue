@@ -49,34 +49,34 @@ interface TierCopy {
   plan: PlanName
   displayName: string
   priceMonthly: string
-  tagline: string
-  badge?: string
+  taglineKey: string
+  badgeKey?: string
 }
 const TIER_COPY: TierCopy[] = [
   {
     plan: 'free',
     displayName: 'Free',
     priceMonthly: '$0',
-    tagline: 'Try it out, draft a doc with AI, see if it fits.'
+    taglineKey: 'pricing.tiers.free'
   },
   {
     plan: 'pro',
     displayName: 'Pro',
     priceMonthly: '$10',
-    tagline: 'Solo power users. Your own AI credits on every doc you touch.'
+    taglineKey: 'pricing.tiers.pro'
   },
   {
     plan: 'max',
     displayName: 'Max',
     priceMonthly: '$50',
-    tagline: 'Small teams. Turn any workspace you own into an AI workspace so members share your credit pool.',
-    badge: 'Most popular'
+    taglineKey: 'pricing.tiers.max',
+    badgeKey: 'pricing.mostPopular'
   },
   {
     plan: 'ultra',
     displayName: 'Ultra',
     priceMonthly: '$100',
-    tagline: 'Large teams. Same AI-workspace sponsorship, bigger pool.'
+    taglineKey: 'pricing.tiers.ultra'
   }
 ]
 
@@ -306,10 +306,10 @@ useHead({
             {{ t('pricing.comingSoonBadge') }}
           </div>
           <div
-            v-else-if="billingEnabled && tier.badge"
+            v-else-if="billingEnabled && tier.badgeKey"
             class="absolute -top-3 left-1/2 -translate-x-1/2 bg-shu-500 text-white font-mono text-[10.5px] tracking-[0.06em] uppercase font-medium px-2.5 py-0.5 rounded-full"
           >
-            {{ tier.badge }}
+            {{ t(tier.badgeKey) }}
           </div>
 
           <div>
@@ -317,7 +317,7 @@ useHead({
               {{ tier.displayName }}
             </h2>
             <p class="text-sm text-muted mt-1 min-h-[3em]">
-              {{ tier.tagline }}
+              {{ t(tier.taglineKey) }}
             </p>
             <!-- Prices only when there's something to buy: paid prices
                  aren't final while plans are "coming soon", and a

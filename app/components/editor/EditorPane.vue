@@ -10,6 +10,7 @@ import { yCollab } from 'y-codemirror.next'
 import type { Text as YText, UndoManager } from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { dictationExtensions } from '~/utils/dictationExtensions'
+import { formattingKeymap } from '~/utils/editorCommands'
 import { commentDecorationsExtension, setCommentRanges, setFlashRange, type CommentRange } from '~/utils/commentDecorations'
 
 const props = withDefaults(defineProps<{
@@ -196,7 +197,8 @@ onMounted(() => {
     // strips them on Backspace at line start. Goes BEFORE defaultKeymap
     // so it wins the Enter/Backspace bindings — defaultKeymap's plain
     // newline would otherwise swallow the markdown-aware behaviour.
-    keymap.of([...markdownKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+    // formattingKeymap: Mod-b / Mod-i (the shortcuts the Format menu shows).
+    keymap.of([...formattingKeymap, ...markdownKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
     pasteURLAsLink,
     history(),
     drawSelection(),

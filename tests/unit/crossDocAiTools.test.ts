@@ -390,6 +390,18 @@ describe('view_other_document — body formatting', () => {
     expect(meta.truncated_chars_at).toBeNull()
   })
 
+  it('tells the model to cite the document by title, never by its bare id', async () => {
+    mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
+    mockedOpenTrusted.mockResolvedValue(makeTrustedClient('short'))
+    const session = makeSession({ initiatorUserId: 100 })
+    const res = await executeFunctionByName(session, 'view_other_document', { doc_id: 't' })
+    expect(res.isError).toBe(false)
+    const beforeMeta = res.content.split('--- metadata ---')[0] ?? ''
+    expect(beforeMeta).toMatch(/call it by its title/)
+    expect(beforeMeta).toMatch(/\[[^\]]+\]\(\/d\/t\)/)
+    expect(beforeMeta).toMatch(/Never write the bare document id/)
+  })
+
   it('view_range slices to the requested line range with 1-indexed inclusive bounds', async () => {
     mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
     mockedOpenTrusted.mockResolvedValue(

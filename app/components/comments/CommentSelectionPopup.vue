@@ -34,6 +34,12 @@ function hide() {
   visible.value = false
 }
 
+// The selection a comment was just started on. Once the pill has been
+// used, the same selection doesn't bring it back (it lingered next to
+// the new thread after posting, because focus returns to the editor with
+// the passage still selected). Any other selection clears it.
+let usedRange: { from: number, to: number } | null = null
+
 onClickOutside(popupEl, () => hide())
 
 function reposition(view: EditorView) {
@@ -86,11 +92,25 @@ function onSelectionChange() {
     if (visible.value) hide()
     return
   }
-  const sel = view.state.selection.main
-  if (sel.empty) {
+  // Only for the selection the user is working with: when the editor
+  // isn't focused (typing in the AI prompt bar, a remote or AI edit
+  // moving the DOM selection) the pill stays hidden — it used to pop up
+  // again at a stale spot after the AI rewrote the selected passage.
+  if (!view.hasFocus) {
     if (visible.value) hide()
     return
   }
+  const sel = view.state.selection.main
+  if (sel.empty) {
+    usedRange = null
+    if (visible.value) hide()
+    return
+  }
+  if (usedRange && usedRange.from === sel.from && usedRange.to === sel.to) {
+    if (visible.value) hide()
+    return
+  }
+  usedRange = null
   const text = view.state.sliceDoc(sel.from, sel.to).trim()
   if (!text) {
     if (visible.value) hide()
@@ -120,6 +140,8 @@ watch(() => props.disabled, (d) => {
 })
 
 function onClick() {
+  const sel = props.view?.state.selection.main
+  usedRange = sel ? { from: sel.from, to: sel.to } : null
   emit('trigger')
   hide()
 }

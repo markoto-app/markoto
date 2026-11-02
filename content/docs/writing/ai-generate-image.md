@@ -32,5 +32,5 @@ with a caption. You can resize it with `{width=50%}` like any other image
 
 ## What's next
 
-- [Drop in your own image](/docs/import-export/import-existing): drag-and-drop or paste works in the editor.
+- [Drop in your own image](/docs/writing/markdown-reference#images): drag-and-drop or paste works in the editor.
 - [Markdown reference](/docs/writing/markdown-reference#images): image sizing and captions.

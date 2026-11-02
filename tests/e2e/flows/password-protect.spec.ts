@@ -108,7 +108,10 @@ test('Password protect', async ({ page, flow, editor }) => {
     'Click Save to commit the password',
     saveBtn,
     {
-      result: 'The doc is now gated — the access-mode banner shows "password protected".',
+      result: 'The document is now password protected; the lock icon in the top bar shows it.',
+      highlights: [
+        { label: 'Password protected', selector: '[aria-label*="access mode" i]' }
+      ],
       // The topbar lock reflects the saved mode once the server
       // answered.
       after: () => expect(editor.page.accessLockButton).toHaveAttribute('aria-label', /password protected/i, { timeout: 10_000 })

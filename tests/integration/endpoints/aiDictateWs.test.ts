@@ -176,12 +176,13 @@ describe('WS /api/ai/dictate', () => {
         ws.send(Buffer.alloc(4096, 0))
       }
 
+      // Scripted by the canned fake in server/utils/agentic/dictateSpeechClient.ts.
       const p1 = await ws.nextMessageOfType('partial')
-      expect(p1.text).toBe('hello')
+      expect(p1.text).toBe('Lena says')
       const p2 = await ws.nextMessageOfType('partial')
-      expect(p2.text).toBe('hello world')
+      expect(p2.text).toBe('Lena says the new templates')
       const final = await ws.nextMessageOfType('final')
-      expect(final.text).toBe('hello world')
+      expect(final.text).toBe('Lena says the new templates save her about an hour a week.')
     })
 
     it('cleanly handles stop without emitting a spurious error', async () => {

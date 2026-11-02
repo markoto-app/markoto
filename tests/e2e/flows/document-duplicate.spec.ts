@@ -30,25 +30,35 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup({ title: 'Team onboarding checklist' })
-  await editor.page.disableCoverPage()
-
-  // Type a recognisable line so we can verify the clone carried it.
-  const cmContent = page.locator('.cm-content')
-  await cmContent.click()
-  const accel = process.platform === 'darwin' ? 'Meta' : 'Control'
-  await cmContent.press(`${accel}+End`)
-  await cmContent.press('Enter')
-  await cmContent.press('Enter')
-  await cmContent.pressSequentially('Q3 launch postmortem template — clone me to start a new postmortem.')
+  // The team's "house" checklist that every new hire's copy starts from.
+  await editor.silentSetup({
+    title: 'Team onboarding checklist',
+    body: [
+      '# Team onboarding checklist',
+      '',
+      'Copy this checklist for every new hire and tick items off together in the first week.',
+      '',
+      '## Day one',
+      '',
+      '- [ ] Laptop set up and signed in',
+      '- [ ] Intro call with your buddy',
+      '- [ ] Read the team handbook',
+      '',
+      '## First week',
+      '',
+      '- [ ] Ship one small change',
+      '- [ ] Join the Thursday demo'
+    ].join('\n'),
+    cover: false
+  })
 
   await flow.heading('Duplicate an existing document', 3)
   await flow.narrate(
-    'Templates seed an EMPTY skeleton. Duplicate clones an EXISTING '
-    + 'doc, including its content, theme, comments, and uploaded '
-    + 'images. Useful when your team has a "house" doc and starts '
-    + 'every new piece of work from a copy of it. The clone is fully '
-    + 'independent — editing one does not touch the other.'
+    'A template gives you an empty structure; Duplicate copies a '
+    + 'document you already have: its text, theme, images and document '
+    + 'settings. Comments stay with the original. Handy when your team '
+    + 'starts every new piece of work from a copy of a "house" document. '
+    + 'The copy is independent: editing one never changes the other.'
   )
 
   // ─── Open the menu containing Duplicate ─────────────────────────
@@ -124,7 +134,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
       return w.__DEBUG_ytext?.toString?.() ?? ''
     }),
     { timeout: 10_000 }
-  ).toMatch(/Q3 launch postmortem template/i)
+  ).toMatch(/Copy this checklist for every new hire/i)
 
   flow.next({
     slug: 'pick-a-theme',

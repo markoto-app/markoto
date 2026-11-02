@@ -137,10 +137,11 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
 
   // Finish typing the question. The composer caret is right after
   // "@markoto " thanks to the typeahead pick — pressSequentially appends.
-  // A question, explicitly not an edit request: the reply belongs in
-  // the thread. (A vaguer ask once made the AI rewrite the anchored
-  // passage, which orphaned the thread under "Removed from document".)
-  const question = 'what can a client do with a view-only link? Just answer here, please keep the text as is.'
+  // A plain question: the reply belongs in the thread and the passage
+  // must stay as it is. No steering in the prompt — the comment-trigger
+  // system prompt (commentTriggerPrompt.ts) tells the AI that questions
+  // get an answer, not an edit.
+  const question = 'what can a client do with a view-only link?'
   await flow.type(
     'Finish your question',
     editor.page.comments.composerInput,
@@ -267,6 +268,8 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   // Comments render plain text — a reply full of Markdown markup
   // (**bold**) would show the asterisks.
   await expect(reply).not.toContainText('**')
+  // The reply is the answer, not a note about what markoto is about to do.
+  await expect(reply).not.toContainText(/\b(I'll|I will|Let me)\b/)
   await reply.scrollIntoViewIfNeeded()
 
   await flow.shot(

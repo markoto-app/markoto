@@ -44,7 +44,7 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
   // then chains `insert_text` to place it in the doc. Phrasing the
   // request as "add a small illustration of X" is the canonical user
   // hook for this two-tool sequence.
-  const prompt = 'Add a small illustration of a notebook with a pen to the top of this document.'
+  const prompt = 'Add a small illustration of a notebook with a pen right below the main heading.'
   await flow.type(
     'Type the image prompt',
     editor.page.ai.promptBarInput,
@@ -81,14 +81,31 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
     ).toBe(true)
     await editor.page.scrollPreviewTo('img[src*="/api/files/"]')
   }
+  // Under the title, not above it: the H1 is still the first line.
+  expect((await editor.page.docText()).trimStart()).toMatch(/^# Field notebook\n/)
+  // Mobile is edit-only by default: show the rendered page, not the
+  // raw `![…](/api/files/…)` line.
+  if (editor.isMobile) {
+    await flow.click('Tap the eye icon to see the page', editor.page.mobilePreviewButton, {
+      chain: true,
+      after: async () => {
+        await editor.page.showMobilePreview()
+        const img = editor.page.previewRoot().locator('#mount img[src*="/api/files/"]').first()
+        await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0), { timeout: 20_000 }).toBe(true)
+        await editor.page.scrollPreviewTo('img[src*="/api/files/"]')
+      }
+    })
+  }
 
   await flow.shot(
-    'The AI drew the illustration and placed it at the top of the '
-    + 'document — the preview shows the image itself.',
+    'The AI drew the illustration and placed it right under the title; '
+    + 'the preview shows the image itself.',
     {
       hero: true,
       highlights: [
-        { label: 'The image in your text', selector: '.cm-line:has-text("/api/files/")' }
+        editor.isMobile
+          ? { label: 'The generated image', selector: 'iframe' }
+          : { label: 'The image in your text', selector: '.cm-line:has-text("/api/files/")' }
       ]
     }
   )

@@ -205,7 +205,7 @@ async function onCancelDeletion(): Promise<void> {
     await $fetch('/api/user/delete-cancel', { method: 'POST' })
     await refreshAccountStatus()
     toast.add({
-      title: t('legal.delete.graceBannerCancel'),
+      title: t('legal.delete.cancelledToast'),
       description: '',
       icon: 'i-lucide-check',
       color: 'neutral'
@@ -231,13 +231,13 @@ const policies = computed(() => {
   const p = status.value?.policy
   if (!p) return []
   return [
-    { key: 'privacy', label: t('legal.policyAcceptance.documents.privacy'), state: p.privacy, contextual: false },
-    { key: 'tos', label: t('legal.policyAcceptance.documents.tos'), state: p.tos, contextual: false },
+    { key: 'privacy', label: t('legal.policyAcceptance.documentNames.privacy'), state: p.privacy, contextual: false },
+    { key: 'tos', label: t('legal.policyAcceptance.documentNames.tos'), state: p.tos, contextual: false },
     // DPA is workspace-owner only (B2B). When the user hasn't
     // accepted, surface that as "Required when you create a
     // workspace" rather than the rose "needs re-acceptance"
     // warning — DPA acceptance is contextual, not overdue.
-    { key: 'dpa', label: t('legal.policyAcceptance.documents.dpa'), state: p.dpa, contextual: true }
+    { key: 'dpa', label: t('legal.policyAcceptance.documentNames.dpa'), state: p.dpa, contextual: true }
   ]
 })
 

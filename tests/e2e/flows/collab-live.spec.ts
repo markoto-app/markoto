@@ -25,11 +25,13 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // Maya is the primary actor. Login + silentSetup creates her
   // session, an owned doc, and parks her in the editor.
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup({ title: 'Q3 kickoff agenda' })
-  // The realtime payoff is in the editor body (typed characters,
-  // remote cursors). The cover sheet would hide all of that in
-  // the preview pane on the post-edit captures.
-  await editor.page.disableCoverPage()
+  // A short agenda, so Maya's line and Sam's paragraph both stay in view
+  // on both screens. Cover off: the realtime payoff is the body.
+  await editor.silentSetup({
+    title: 'Q3 kickoff agenda',
+    body: '# Q3 kickoff agenda\n\n1. Welcome and goals for the quarter\n2. Launch retro\n3. Hiring plan\n\n## Notes',
+    cover: false
+  })
   // Logged-in users get a `private` doc by default. Sam (spawned
   // below as a separate identity) can't access a private doc he
   // wasn't invited to. Open it up to "anyone with the link can
@@ -125,6 +127,8 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // Maya's POV: the SAME paragraph lands in her editor. She didn't
   // type it; Sam did; Y.js delivered it. The PresenceBar shows
   // Sam's avatar to confirm "this came from Sam".
+  await expect(cmContent).toContainText('Avatar regression caught early via the staged rollout.')
+  await editor.page.scrollEditorTo('Avatar regression caught early')
   await flow.shot(
     'On YOUR screen: Sam\'s paragraph appeared at the end of the doc, '
     + 'with no action from you. The avatar in the topbar tells you who.',
@@ -167,7 +171,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // Mobile: composer-submit lives inside the Comments BottomSheet
   // portal where Reka's overlay intercepts pointer events. DOM-level
   // click bypasses coordinate routing. See `tests/e2e/AGENTS.md`.
-  if (sam.editor.isMobile) {
+  if (editor.isMobile) {
     await sam.editor.comments.composerSubmit.evaluate((el: HTMLElement) => el.click())
   } else {
     await sam.editor.comments.composerSubmit.click()
@@ -187,6 +191,8 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
     await editor.page.mobileTabs.comments.click()
   }
   await editor.page.comments.thread.first().waitFor({ state: 'visible', timeout: 10_000 })
+  // Bring the anchored line into view on Maya's screen too.
+  await editor.page.scrollEditorTo('what shipped, what slipped')
 
   await flow.shot(
     'On YOUR screen: Sam\'s comment lands in your sidebar, anchored '

@@ -48,9 +48,10 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   })
   if (!siblingRes.ok()) throw new Error(`sibling create failed: ${siblingRes.status()}`)
   const sibling = await siblingRes.json() as { docId: string }
-  // Reference sibling.docId so eslint doesn't flag the var; the AI
-  // looks up the id itself via list_workspace_documents.
-  expect(sibling.docId).toBeTruthy()
+  // The AI looks the id up itself via list_workspace_documents; the
+  // flow only uses it to check the citation never shows it raw.
+  const postmortemId = sibling.docId
+  expect(postmortemId).toBeTruthy()
 
   // Now create the PRIMARY doc the user is sitting in.
   const primaryRes = await page.request.post('/api/docs', {
@@ -120,6 +121,13 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   const added = await editor.page.addedText(draft)
   expect(added.length, 'the AI added nothing').toBeGreaterThan(80)
   expect(added, `no fact from the postmortem in: ${added}`).toMatch(/checklist|authentication/i)
+  // A citation names the other doc by its title, never by its bare id
+  // (a link to /d/<id> is fine).
+  expect(added.replace(/\(\/d\/[^)]+\)/g, ''), `bare doc id in: ${added}`).not.toContain(postmortemId)
+  // A link to the postmortem is labelled with the postmortem's title.
+  for (const m of added.matchAll(new RegExp(`\\[([^\\]]+)\\]\\(/d/${postmortemId}\\)`, 'g'))) {
+    expect(m[1], `link to the postmortem labelled "${m[1]}"`).toMatch(/postmortem/i)
+  }
   await editor.page.scrollEditorTo(/checklist|authentication/i)
   if (!editor.isMobile) {
     await expect(editor.page.previewRoot().locator('#mount')).toContainText(/checklist|authentication/i)

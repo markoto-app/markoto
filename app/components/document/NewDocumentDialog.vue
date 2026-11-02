@@ -231,7 +231,7 @@ async function submit(blank: boolean) {
     :open="open"
     :title="t('newDoc.title')"
     :description="t('newDoc.subtitle')"
-    :ui="{ content: 'max-w-xl' }"
+    :ui="{ content: 'max-w-xl', header: 'shrink-0', title: 'pe-8', description: 'pe-8' }"
     data-testid="new-doc-dialog"
     @update:open="(v: boolean) => emit('update:open', v)"
   >

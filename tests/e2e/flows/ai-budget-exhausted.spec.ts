@@ -123,6 +123,6 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
 
   flow.next({
     slug: 'what-you-get-on-each-plan',
-    why: 'Read the four tiers side-by-side — every column shows AI credits + workspace caps + features'
+    why: 'See what every plan includes, and what the paid plans will add'
   })
 })

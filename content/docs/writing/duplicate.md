@@ -11,7 +11,7 @@ Got a doc you want to fork? The Duplicate action copies the text, the
 theme, the document context (description, audience, language, template)
 and any image uploads to a new doc you own. The
 new doc gets its own URL, its own activity log, and its own
-collaborators (none, by default).
+collaborators (none, by default). Comments are not copied: they stay on the original.
 
 ::flow{id="duplicate-a-document" hide-title}
 ::

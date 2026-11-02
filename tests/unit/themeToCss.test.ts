@@ -245,9 +245,16 @@ describe('themeToCss — Step 9: cover page', () => {
   test('layout=banner places logo + title in a brand-tinted top band', () => {
     const banner: DocTheme = { ...markoto, cover: { ...markoto.cover, layout: 'banner' } }
     const css = themeToCss(banner, runtime)
-    // Both logo and title share grid-row 1, on a color-mixed brand-tint background.
-    expect(css).toMatch(/markoto-cover-logo,\s*\.paged-doc \.markoto-cover-title\s*\{[^}]*background:\s*color-mix/)
-    expect(css).toMatch(/markoto-cover-meta\s*\{\s*grid-row:\s*3/)
+    // The band is the cover's ::before, spanning the logo (row 1) and
+    // title (row 2) rows on a color-mixed brand tint; the logo and title
+    // themselves carry no background (a tinted <img> stretched into an
+    // empty box beside the title).
+    expect(css).toMatch(/markoto-cover::before\s*\{[^}]*grid-row:\s*1 \/ 3[^}]*background:\s*color-mix/)
+    expect(css).toMatch(/markoto-cover-logo\s*\{\s*grid-row:\s*1;\s*grid-column:\s*1/)
+    expect(css).toMatch(/markoto-cover-title\s*\{\s*grid-row:\s*2;\s*grid-column:\s*1/)
+    expect(css).not.toMatch(/markoto-cover-(logo|title)[^{]*\{[^}]*background/)
+    expect(css).toMatch(/markoto-cover\s*\{[^}]*grid-template-columns:\s*100%/)
+    expect(css).toMatch(/markoto-cover-meta\s*\{\s*grid-row:\s*5/)
   })
   test('layout=minimal hides logo + meta even when toggled on', () => {
     const minimal: DocTheme = {

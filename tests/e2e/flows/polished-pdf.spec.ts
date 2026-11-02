@@ -1,15 +1,15 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect } from '../fixtures/flow'
+import { showPdf } from '../fixtures/downloadViewer'
 
 // Tier 1: "Polish your document and download it as a PDF".
 //
 // User-job: a writer has finished their draft and wants to send a
-// publishable artefact. Job done when they pick a theme, see the
-// cover-page preview, and trigger a server-rendered PDF.
+// publishable artefact. Job done when the PDF is on disk and opens
+// looking like the preview (cover page included).
 //
-// What this flow ISN'T: a full theme-knob tour (that's pick-a-theme).
-// We do ONE preset switch to show "themes are real" then commit to
-// the export path — the surface most users don't know exists.
+// What this flow ISN'T: a theme tour (that's pick-a-theme). It goes
+// straight to the export path — the surface most users don't know exists.
 //
 // Runs on desktop AND mobile. Same server-rendered PDF endpoint
 // (`/api/docs/:id/pdf`); entry point differs:
@@ -23,29 +23,33 @@ import { test, expect } from '../fixtures/flow'
 //   • Declarative `result` on the outcome → "X happens", "Y appears"
 //   • Annotations on approach frames anchor click targets
 //   • One hero on the most decisive outcome
+const RESEARCH_SUMMARY = [
+  '# Remote work and focus time',
+  '',
+  'We surveyed 412 people across six teams about how they protect time for deep work. Three habits stood out, and two of them cost nothing to adopt.',
+  '',
+  '## Key findings',
+  '',
+  '1. **Shared quiet hours** beat individual calendar blocks: teams that agreed on two meeting-free mornings a week reported 31% more uninterrupted work.',
+  '2. **Written updates** replaced most status meetings without anyone missing them.',
+  '3. **Notification batching** helped, but only when the whole team did it.',
+  '',
+  '## Recommendation',
+  '',
+  'Start with shared quiet hours. They need one team decision, no new tools, and the effect shows up within two weeks.'
+].join('\n')
+
 test('Polished PDF', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup({ title: 'Research summary' })
+  await editor.silentSetup({ title: 'Remote work and focus time', body: RESEARCH_SUMMARY })
 
-  // Title + intro.
   await flow.heading('Download a polished PDF', 3)
   await flow.narrate(
-    'When the doc looks right in the live preview, the PDF on disk '
-    + 'will look exactly the same — both come out of the same page '
-    + 'layout. File → Save as PDF renders the file on the server and '
-    + 'downloads it, no browser print dialog involved. Theme picking + tweaking is '
-    + 'a separate flow (see the next link below); this one focuses on '
-    + 'the export path.'
-  )
-
-  // ─── Save it as a PDF ───────────────────────────────────────────
-  await flow.heading('Save it as a polished PDF', 3)
-  await flow.narrate(
-    'When the doc looks right in the live preview, the PDF on disk '
-    + 'will look exactly the same — both come out of the same page '
-    + 'layout. File → Save as PDF renders the file on the server and '
-    + 'downloads it, no print dialog involved.'
+    'When the document looks right in the preview on the right, the PDF '
+    + 'looks the same: same theme, same cover page, same page breaks. '
+    + 'markoto builds the file for you and downloads it. No print dialog, '
+    + 'no fiddling with margins.'
   )
 
   // Open the menu containing PDF export.
@@ -70,7 +74,7 @@ test('Polished PDF', async ({ page, flow, editor }) => {
           annotations: [
             { label: 'file menu', selector: 'nav[aria-label="Menu bar"] > button:first-child', kind: 'arrow' }
           ],
-          result: 'The File menu opens — New, Import, Export, Print, Duplicate, Delete.',
+          result: 'The File menu opens: New, Import, Export, Print and Delete.',
           after: () => page.getByRole('menuitem', { name: /export/i }).first().waitFor({ state: 'visible' })
         }
   )
@@ -107,12 +111,14 @@ test('Polished PDF', async ({ page, flow, editor }) => {
   // commits a navigation in headless and reports url() === ':').
   const downloadPromise = page.waitForEvent('download', { timeout: 30_000 }).catch(() => null)
   await flow.click(
-    'Click "PDF (.pdf)" to render and download',
+    'Click "PDF (.pdf)" to create and download the file',
     pdfItem,
     {
-      hero: true,
-      result: 'A new tab opens — markoto renders the PDF on the server and '
-        + 'streams it back as a download. Same view, same fonts, same cover.'
+      result: 'markoto renders the PDF and your browser downloads it. A new render '
+        + 'takes a few seconds; asking again without changes is instant.',
+      after: async () => {
+        await downloadPromise
+      }
     }
   )
 
@@ -120,31 +126,40 @@ test('Polished PDF', async ({ page, flow, editor }) => {
   // browser behaviours cover the same product outcome:
   //   • HEADLESS Chromium (CI + every flows run) has no PDF viewer —
   //     the popup's navigation becomes a DOWNLOAD (attributed to the
-  //     opener page) and the popup never commits. The old
-  //     waitForLoadState + popup.url() assert hung here until the
-  //     120s test timeout; the opener's `download` event is the
-  //     signal that actually fires.
+  //     opener page) and the popup never commits.
   //   • HEADED Chrome renders the PDF inline — no download event; the
   //     popup commits to the endpoint URL (302 → presigned S3
   //     /renders/.../document.pdf). That's the fallback branch.
-  // The server chain itself (render → S3 → 302) is proven fast; see
-  // the renderer log line `docId=… format=pdf pages=… ms=…`.
   const popup = await popupPromise
   const download = await downloadPromise
+  const pdfUrl = `${new URL(page.url()).origin}/api/docs/${editor.page.currentDocId()}/pdf?inline=1`
+  let pdf: Buffer
   if (download) {
-    // Download URL is the final hop (presigned S3 /renders/… key) or
-    // the endpoint itself, depending on how the browser reports it.
     expect(download.url()).toMatch(/\/api\/docs\/[^/]+\/pdf|\/renders\/.+\.pdf/)
-    // The hero claim is "a real PDF lands on disk" — check the magic
-    // bytes, not just the URL shape.
-    const filePath = await download.path()
-    const head = await readFile(filePath)
-    expect(head.subarray(0, 5).toString()).toBe('%PDF-')
+    pdf = await readFile(await download.path())
   } else {
-    // Headed fallback: PDF viewer rendered it inline in the popup.
+    // Headed fallback: the viewer rendered it inline in the popup.
     await popup.waitForURL(/\/api\/docs\/[^/]+\/pdf|\/renders\/.+\.pdf/, { timeout: 15_000 })
-    expect(popup.url()).toMatch(/\/api\/docs\/[^/]+\/pdf|\/renders\/.+\.pdf/)
+    pdf = Buffer.from(await (await page.request.get(pdfUrl)).body())
   }
+  // The hero claim is "a real PDF lands on disk" — check the magic bytes.
+  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-')
+
+  // ─── Open the file ──────────────────────────────────────────────
+  // Show the downloaded bytes the way a reader opens them. Headless
+  // Chromium has no PDF viewer, so `showPdf` stands in for it (pdf.js,
+  // real file contents) at the URL the menu item opened.
+  await flow.heading('Open the PDF', 3)
+  const viewer = await flow.spawn('pdf')
+  const pageCount = await showPdf(viewer.page, pdfUrl, pdf, editor.isMobile ? 1 : 2)
+  // ASSERTION: cover + content — at least two pages.
+  expect(pageCount).toBeGreaterThanOrEqual(2)
+  await viewer.flow.shot(
+    editor.isMobile
+      ? 'The downloaded PDF opens with the same cover page as the preview.'
+      : 'The downloaded PDF: the cover page and the first page of content, exactly as in the preview.',
+    { hero: true }
+  )
 
   // Forward route: now that the PDF path is visible, locking the doc
   // down (so only specific people can view it) is the natural next

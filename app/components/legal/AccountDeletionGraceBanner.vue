@@ -55,7 +55,7 @@ async function onCancel(): Promise<void> {
     await $fetch('/api/user/delete-cancel', { method: 'POST' })
     await refresh()
     toast.add({
-      title: t('legal.delete.graceBannerCancel'),
+      title: t('legal.delete.cancelledToast'),
       description: '',
       icon: 'i-lucide-check',
       color: 'neutral'

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { addNonceToScripts, buildAppCsp, buildRenderCsp } from '../utils/csp'
+import { addNonceToScripts, buildAppCsp, buildRenderCsp, crossOriginResourcePolicyFor } from '../utils/csp'
 
 // Sets the Content-Security-Policy (with a fresh nonce per response) and
 // Cross-Origin-Resource-Policy on every response, and stamps that nonce on
@@ -23,11 +23,9 @@ declare module 'h3' {
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', (event) => {
     const path = event.path
-    // The live preview / print iframes run in an opaque origin, so their
-    // image requests are cross-site: `/api/files` (a 302 to presigned S3)
-    // must not carry CORP same-site or Chromium blocks the image. Its
-    // authorisation is the session / file-access token, not the origin.
-    setResponseHeader(event, 'Cross-Origin-Resource-Policy', path.startsWith('/api/files/') ? 'cross-origin' : 'same-site')
+    // CORP per path — see `crossOriginResourcePolicyFor` (the preview
+    // iframes' opaque origin makes their image requests cross-site).
+    setResponseHeader(event, 'Cross-Origin-Resource-Policy', crossOriginResourcePolicyFor(path))
 
     if (import.meta.dev) return
 

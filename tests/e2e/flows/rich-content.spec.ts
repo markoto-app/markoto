@@ -159,7 +159,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap the Editor tab',
       editor.page.mobileTabs.editor,
       {
-        result: 'The Editor drawer slides back up.',
+        chain: true,
         after: () => page.locator('[data-testid="ecp-insert-alert"]').first().waitFor({ state: 'visible' })
       }
     )
@@ -186,7 +186,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Open the Insert menu again',
       insertMenuTrigger,
       {
-        result: 'The Insert menu re-opens.',
+        chain: true,
         after: () => page.getByRole('menuitem', { name: /^alert$/i }).first().waitFor({ state: 'visible' })
       }
     )
@@ -229,7 +229,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap the Editor tab',
       editor.page.mobileTabs.editor,
       {
-        result: 'The Editor drawer slides back up.',
+        chain: true,
         after: () => page.locator('[data-testid="ecp-insert-math"]').first().waitFor({ state: 'visible' })
       }
     )
@@ -247,7 +247,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Open the Insert menu',
       insertMenuTrigger,
       {
-        result: 'The Insert menu re-opens.',
+        chain: true,
         after: () => page.getByRole('menuitem', { name: /^math$/i }).first().waitFor({ state: 'visible' })
       }
     )
@@ -286,7 +286,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap the Editor tab',
       editor.page.mobileTabs.editor,
       {
-        result: 'The Editor drawer slides back up.',
+        chain: true,
         after: () => page.locator('[data-testid="ecp-insert-diagram"]').first().waitFor({ state: 'visible' })
       }
     )
@@ -314,7 +314,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Open the Insert menu',
       insertMenuTrigger,
       {
-        result: 'The Insert menu re-opens.',
+        chain: true,
         after: () => page.getByRole('menuitem', { name: /^diagram$/i }).first().waitFor({ state: 'visible' })
       }
     )
@@ -367,6 +367,21 @@ test('Rich content', async ({ page, flow, editor }) => {
     await expect(preview.locator('.mermaid-error')).toHaveCount(0)
   }
 
+  // Mobile is edit-only by default: show the rendered page, not the
+  // markdown source, for the result.
+  if (editor.isMobile) {
+    await flow.click('Tap the eye icon to see the page', editor.page.mobilePreviewButton, {
+      chain: true,
+      after: async () => {
+        await editor.page.showMobilePreview()
+        const preview = editor.page.previewRoot().locator('#mount')
+        await expect(preview.locator('pre code.hljs.language-python')).toHaveCount(1)
+        await expect(preview.locator('div.mermaid img').first()).toBeAttached({ timeout: 15_000 })
+        await editor.page.scrollPreviewTo('pre')
+      }
+    })
+  }
+
   await flow.shot(
     'Code block, Tip alert, math equation, pie chart — all in one doc, all rendered live.',
     {
@@ -380,7 +395,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   // moment; comment threads (collaboration on that surface) is
   // the natural next step.
   flow.next({
-    slug: 'discuss-with-comments',
+    slug: 'have-a-discussion',
     why: 'Now invite a collaborator to leave a comment on what you wrote'
   })
 })

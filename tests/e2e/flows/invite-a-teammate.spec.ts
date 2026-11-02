@@ -134,8 +134,13 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
     'Click Accept on the invitation',
     teammate.page.locator(`[data-testid="workspace-invite-accept-${inviteId}"]`),
     {
-      result: 'Sam joins as an editor; the workspace moves into My Workspaces.',
-      after: () => teammate.page.locator(`[data-testid="workspace-list-item-${ws.workspaceId}"]`).waitFor({ state: 'visible', timeout: 15_000 })
+      hero: true,
+      result: 'Sam is in, as an editor: the workspace now sits in My Workspaces on '
+        + 'Sam\'s dashboard, ready to open.',
+      after: () => teammate.page.locator(`[data-testid="workspace-list-item-${ws.workspaceId}"]`).waitFor({ state: 'visible', timeout: 15_000 }),
+      highlights: [
+        { label: 'Newly joined workspace', selector: `[data-testid="workspace-list-item-${ws.workspaceId}"]` }
+      ]
     }
   )
 
@@ -145,17 +150,6 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
     members: Array<{ userId: number, role: string }>
   }
   expect(membersAfter.members.some(m => m.userId === teammateUserId && m.role === 'editor')).toBe(true)
-
-  await teammate.flow.shot(
-    'Sam\'s dashboard — the workspace you just shared sits in their '
-    + 'My Workspaces section, ready to click into.',
-    {
-      hero: true,
-      highlights: [
-        { label: 'Newly invited workspace', selector: `[data-testid="workspace-list-item-${ws.workspaceId}"]` }
-      ]
-    }
-  )
 
   // ASSERTION: Sam's dashboard contains the workspace card AND it
   // surfaces as an INVITED workspace (role=editor), not an owned
@@ -168,7 +162,7 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   await expect(teammateCard).toHaveAttribute('data-role', 'editor')
 
   flow.next({
-    slug: 'let-your-team-use-the-ai-on-your-dime',
-    why: 'Now that the team is in, sponsor their AI use against your plan'
+    slug: 'roles-inside-a-workspace',
+    why: 'Decide who can edit, comment or manage the workspace'
   })
 })

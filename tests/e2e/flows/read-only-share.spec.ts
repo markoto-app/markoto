@@ -18,8 +18,11 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup({ title: 'Travel policy' })
-  await editor.page.disableCoverPage()
+  await editor.silentSetup({
+    title: 'Travel policy',
+    body: '# Travel policy\n\nBook trains for trips under four hours. Flights need a manager\'s OK.\n\n## Expenses\n\nSubmit receipts within 30 days.',
+    cover: false
+  })
 
   // Flip access mode to open-view BEFORE Maya types. Earlier ordering
   // (type first, then change mode) caused Maya's edits to never reach

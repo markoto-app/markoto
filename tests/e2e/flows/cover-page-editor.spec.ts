@@ -20,24 +20,41 @@ import { test, expect } from '../fixtures/flow'
 // "watch the cover repaint live" beat is invisible there. The
 // asserted server state (`theme.cover.{enabled, layout, showSubtitle,
 // subtitle}` persisted via PUT /meta) is identical.
+const PLAYBOOK = [
+  '# Q3 product launch playbook',
+  '',
+  'Everything the launch team needs in one place: who owns what, the dates that cannot move, and how we decide when something slips.',
+  '',
+  '## Owners',
+  '',
+  '- **Launch lead:** Maya Chen',
+  '- **Release engineering:** Sam Ortiz',
+  '- **Customer comms:** Priya Natarajan'
+].join('\n')
+
 test('Edit your cover page', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.page.loginAsTestUser('Maya Chen')
-  await editor.page.createBlankDocWithTitle('Q3 product launch playbook')
-  if (!editor.isMobile) {
-    await editor.page.switchToSplitView()
-    await editor.page.waitForPreviewPaginated()
+  type CoverMeta = { theme: { cover: { layout: string, subtitle: string } } }
+  const readCover = async () => {
+    const res = await page.request.get(`/api/docs/${editor.page.currentDocId()}/meta`)
+    return (await res.json() as CoverMeta).theme.cover
   }
+  const coverLayout = async () => (await readCover()).layout
+  const coverSubtitle = async () => (await readCover()).subtitle
+
+  await editor.page.loginAsTestUser('Maya Chen')
+  await editor.silentSetup({ title: 'Q3 product launch playbook', body: PLAYBOOK })
+  if (!editor.isMobile) await editor.page.waitForPreviewPaginated()
+  const cover = page.frameLocator('iframe').first().locator('#mount .markoto-cover')
 
   await flow.heading('Edit your cover page', 3)
   await flow.narrate(
-    'Every doc starts with markoto\'s default cover page on — title '
-    + 'centred, no subtitle, today\'s date below. To make the cover '
-    + 'feel like YOURS, open the theme panel\'s Cover accordion. '
-    + 'Four layouts (Classic / Editorial / Banner / Minimal), every '
-    + 'field individually toggleable, the title size on a slider so '
-    + 'short titles look as deliberate as long ones.'
+    'Every new document opens with a cover page in the Editorial layout: '
+    + 'logo at the top, the title a third of the way down, today\'s date '
+    + 'below. The Cover page section of the theme panel changes all of it: '
+    + 'four layouts (Classic, Editorial, Banner, Minimal), a switch for '
+    + 'every field, and a slider for the title size.'
   )
 
   // ─── Open the theme panel + the cover accordion ─────────────────
@@ -82,9 +99,9 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
   // ─── Switch the layout ──────────────────────────────────────────
   await flow.heading('Pick a layout', 3)
   await flow.narrate(
-    'The default is Editorial — logo top, title at ⅓, metadata at '
-    + '⅔. Try Banner to drop a brand-tinted band across the top of '
-    + 'page 1. The preview repaginates after each pick.'
+    'Editorial is the default. Banner puts the logo and the title in a '
+    + 'tinted band across the top of the page. The preview updates as '
+    + 'soon as you pick a layout.'
   )
 
   // USelect renders as a button-trigger combobox. On mobile the
@@ -110,7 +127,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
       'Pick "Banner"',
       async () => {
         await page.getByRole('option', { name: /banner/i }).first().click()
-        await page.waitForTimeout(900)
+        await expect.poll(coverLayout).toBe('banner')
       },
       { result: 'The Banner layout takes effect.' }
     )
@@ -127,8 +144,13 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
       'Choose "Banner — logo + title in a brand-tinted top band"',
       page.getByRole('option', { name: /banner/i }).first(),
       {
-        result: 'The cover repaints — Banner layout drops a brand-tinted band across the top of page 1.',
-        after: () => page.waitForTimeout(900)
+        result: 'The cover changes: logo and title now sit in a tinted band across the top.',
+        after: async () => {
+          await expect.poll(coverLayout).toBe('banner')
+          // The preview shows the band (the cover's ::before) once it re-rendered.
+          await expect.poll(() => cover.evaluate(el => getComputedStyle(el, '::before').content)).not.toBe('none')
+          await expect(cover.locator('.markoto-cover-logo')).toBeVisible()
+        }
       }
     )
   }
@@ -136,9 +158,9 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
   // ─── Add a subtitle ─────────────────────────────────────────────
   await flow.heading('Add a subtitle line', 3)
   await flow.narrate(
-    'A short line under the title — version, date, "Internal '
-    + 'draft", whatever frames the doc. Subtitle is off by default; '
-    + 'flip the toggle, then type.'
+    'A short line under the title, such as a version, a team or '
+    + '"Internal draft". The subtitle is off by default: switch it on, '
+    + 'then type.'
   )
 
   await flow.click(
@@ -158,14 +180,18 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     {
       force: editor.isMobile,
       hero: true,
-      result: 'The subtitle lands on the cover. The PDF will open on this page.',
-      after: () => page.waitForTimeout(900),
+      result: 'The subtitle appears on the cover. The PDF will open on this page.',
+      after: async () => {
+        // Saved to the document, and (desktop) visible on the cover.
+        await expect.poll(coverSubtitle).toBe('Internal draft · v0.3 · Engineering team')
+        if (!editor.isMobile) await expect(cover.locator('.markoto-cover-subtitle')).toHaveText('Internal draft · v0.3 · Engineering team')
+      },
       // Highlight the subtitle input on mobile (no preview iframe to
       // point at); on desktop the iframe IS the payoff visual.
       highlights: [
         editor.isMobile
-          ? { label: 'Subtitle persisted — verifies via PUT /meta', selector: '[data-testid="theme-cover-subtitle-input"]' }
-          : { label: 'Live preview — page 1 is your cover', selector: 'iframe' }
+          ? { label: 'Subtitle', selector: '[data-testid="theme-cover-subtitle-input"]' }
+          : { label: 'Your cover page', selector: 'iframe' }
       ]
     }
   )
@@ -189,7 +215,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
   expect(meta.theme.cover.subtitle).toBe('Internal draft · v0.3 · Engineering team')
 
   flow.next({
-    slug: 'save-your-custom-theme',
+    slug: 'save-your-custom-theme-as-a-preset',
     why: 'Once your cover looks right, save the whole theme as a preset so the next doc starts here'
   })
 })

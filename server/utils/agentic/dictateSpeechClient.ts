@@ -45,11 +45,12 @@ const MOCK_SEQUENCE: Array<{
   atChunk: number
   event: { text: string, isFinal: boolean }
 }> = [
-  { atChunk: 1, event: { text: 'hello', isFinal: false } },
-  { atChunk: 2, event: { text: 'hello world', isFinal: false } },
-  { atChunk: 3, event: { text: 'hello world', isFinal: true } },
-  { atChunk: 5, event: { text: 'how', isFinal: false } },
-  { atChunk: 6, event: { text: 'how are you', isFinal: true } }
+  // Realistic dictation — the voice-dictate flow's screenshots show it.
+  { atChunk: 1, event: { text: 'Lena says', isFinal: false } },
+  { atChunk: 2, event: { text: 'Lena says the new templates', isFinal: false } },
+  { atChunk: 3, event: { text: 'Lena says the new templates save her about an hour a week.', isFinal: true } },
+  { atChunk: 5, event: { text: 'The export', isFinal: false } },
+  { atChunk: 6, event: { text: 'The export still feels slow on long reports.', isFinal: true } }
 ]
 
 class MockSpeechStream extends EventEmitter implements SpeechStream {

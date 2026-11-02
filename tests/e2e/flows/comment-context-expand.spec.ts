@@ -30,8 +30,12 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   test.setTimeout(120_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup({ title: 'Design review notes' })
-  await editor.page.disableCoverPage()
+  // The commented passage is the sharing rule on line 5.
+  await editor.silentSetup({
+    title: 'Design review notes',
+    body: '# Design review notes\n\n## Sharing\n\nAnyone with the link can edit by default.\n\nOwners can switch a document to view-only or add a password.',
+    cover: false
+  })
 
   // Post a comment so there's a `comment.added` row in Activity.
   // Use the same path discuss-with-comments does: select text,

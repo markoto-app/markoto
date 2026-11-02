@@ -157,7 +157,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
   expect(demoteRes.status()).toBe(409)
 
   flow.next({
-    slug: 'invite-a-teammate',
+    slug: 'invite-a-teammate-to-your-workspace',
     why: 'Now that you know what each role can do, see how the invite flow itself works'
   })
 })

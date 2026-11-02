@@ -21,48 +21,48 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
   test.setTimeout(360_000)
 
   await editor.page.loginAsTestUser('Maya Chen')
-  await editor.silentSetup({ title: 'Product update' })
-  await editor.page.disableCoverPage()
-
-  // Type a long-winded paragraph at the end of the welcome doc so
-  // there's a clear target for the rewrite. The seed sentence is
-  // intentionally verbose — gives the AI a clear "make this
-  // shorter" win.
-  const editorContent = page.locator('.cm-content').first()
-  await editorContent.click()
-  const accel = process.platform === 'darwin' ? 'Meta' : 'Control'
-  await editorContent.press(`${accel}+End`)
-  await editorContent.press('Enter')
-  await editorContent.press('Enter')
+  // A short product update whose middle paragraph is far too wordy —
+  // a clear "make this shorter" target with text before AND after it,
+  // so an in-place rewrite is visibly different from an append.
   const original = 'In the event that you should find yourself in a position '
     + 'where you are required to undertake the not-insignificant task of '
-    + 'composing a document of any considerable length, it would behove '
-    + 'you to consider, with all due deliberation, the merits of brevity.'
-  await editorContent.pressSequentially(original)
-  await page.waitForTimeout(800)
+    + 'exporting a document of any considerable length, it would behove '
+    + 'you to know that the export now completes in roughly half the time.'
+  await editor.silentSetup({
+    title: 'Product update',
+    body: [
+      '# Product update: October',
+      '',
+      'Three changes shipped this month.',
+      '',
+      original,
+      '',
+      'Comments now show who resolved a thread and when.'
+    ].join('\n'),
+    cover: false
+  })
+  const editorContent = page.locator('.cm-content').first()
+  await expect(editorContent).toContainText('it would behove you')
 
   await flow.heading('Rewrite a selection with the AI', 3)
   await flow.narrate(
-    'The AI prompt bar is the same one you use to draft new '
-    + 'sections — but if you SELECT text first, it tells the AI '
-    + 'EXACTLY where to act. The selection travels with your '
-    + 'prompt, so the AI rewrites that passage in place instead of '
-    + 'adding new text somewhere else.'
+    'The AI prompt bar is the same one you use to draft new sections. '
+    + 'Select text first, and the AI works on exactly that passage: it '
+    + 'rewrites it in place instead of adding text somewhere else.'
   )
 
   // ─── Select the paragraph ───────────────────────────────────────
   await flow.heading('Select the passage you want to rewrite', 3)
   await flow.narrate(
-    'Triple-click selects the line, click-and-drag selects a range. '
-    + 'Either way the AI gets the exact span (line numbers + text) '
-    + 'so it knows where to edit.'
+    'Triple-click selects a paragraph; click and drag selects any '
+    + 'range.'
   )
 
   // Click on the line that has our verbose sentence (the last
   // non-empty line of the editor) and triple-click to select it.
   const target = editorContent.getByText(/In the event that you should find yourself/i).first()
   await flow.step(
-    'Triple-click the verbose paragraph to select it',
+    'Triple-click the wordy paragraph to select it',
     async () => {
       await target.click({ clickCount: 3 })
     }
@@ -74,10 +74,9 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
   // ─── Ask the AI to rewrite ──────────────────────────────────────
   await flow.heading('Ask the AI to make it shorter', 3)
   await flow.narrate(
-    'Type your ask into the prompt bar — short instructions work '
-    + 'best ("make this shorter", "translate to German", "rewrite '
-    + 'as bullet points"). The selection stays in place while you '
-    + 'type; the editor snapshots it the moment you hit send.'
+    'Type what you want into the prompt bar. Short instructions work '
+    + 'best: "make this shorter", "translate to German", "turn this into '
+    + 'bullet points". Your selection stays put while you type.'
   )
 
   await editor.page.ai.promptBarInput.click()
@@ -85,25 +84,25 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
     'Type the rewrite instruction',
     editor.page.ai.promptBarInput,
     'Make this much shorter — one crisp sentence, plain language.',
-    { result: 'Your prompt is ready. The selection rides along on submit.' }
+    { result: 'Your instruction is ready; the paragraph is still selected.' }
   )
 
+  // The outcome frame is the finished rewrite, not the "Thinking…" state.
   await flow.click(
     'Send it',
     editor.page.ai.promptBarSend,
-    {
-      result: 'The AI is working — replace_text targets the selection, the verbose paragraph shrinks to a crisp sentence.',
-      after: () => editor.page.waitForAiActive()
-    }
+    { chain: true, after: () => editor.page.waitForAiActive() }
   )
 
   // Replace_text on a single passage typically resolves in 1-2 turns.
   await editor.page.waitForAiIdle()
+  await expect(editorContent).not.toContainText('it would behove you')
+  await editor.page.dismissToasts()
+  await editor.page.scrollEditorTo('Three changes shipped')
 
   await flow.shot(
-    'The verbose paragraph is gone — replaced in place with the '
-    + 'AI\'s shorter version. The end of the doc still ends with '
-    + 'the rewrite, NOT a new paragraph appended after it.',
+    'The wordy paragraph is now one short sentence, in the same place: '
+    + 'the paragraphs before and after it are untouched.',
     {
       hero: true,
       highlights: [
@@ -122,10 +121,14 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
     return (window as unknown as Win).__DEBUG_ytext?.toString() ?? ''
   })
   expect(ytext).not.toMatch(/behove/i)
-  expect(ytext).not.toMatch(/it would behove you to consider/i)
+  // In place: the paragraphs around the selection survive, in order.
+  expect(ytext.indexOf('Three changes shipped this month.')).toBeGreaterThanOrEqual(0)
+  expect(ytext.indexOf('Comments now show who resolved')).toBeGreaterThan(ytext.indexOf('Three changes shipped this month.'))
+  expect(ytext.trimEnd().endsWith('Comments now show who resolved a thread and when.')).toBe(true)
+  expect(ytext).toMatch(/export/i)
 
   flow.next({
     slug: 'write-with-ai',
-    why: 'Selection-rewrite is the precision tool — for new sections, the bottom prompt bar is the entry point'
+    why: 'Ask the AI to draft a whole new section'
   })
 })
