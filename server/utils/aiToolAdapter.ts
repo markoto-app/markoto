@@ -1504,7 +1504,9 @@ export async function handleGenerateImage(
   const md = `![${alt}](${url})`
 
   const sizeKB = Math.round(gen.bytes.byteLength / 1024)
-  return ok(`Generated and uploaded ${gen.mimeType} image (${sizeKB}KB). Markdown reference (copy verbatim into insert_text or replace_text): ${md}`)
+  // Placement reminder: without it the model tended to drop the image at
+  // line 0 (above the title) even when asked for "below the heading".
+  return ok(`Generated and uploaded ${gen.mimeType} image (${sizeKB}KB). Markdown reference (copy verbatim into insert_text or replace_text): ${md}\nPlace it where the user asked: insert_text with insert_line = the line it should follow (a document's title is line 1, so "below the heading" is insert_line 1 or later, never 0). Check the line numbers with view_document if you have not seen them yet.`)
 }
 
 // --- view_pages / get_page_count -----------------------------------------
