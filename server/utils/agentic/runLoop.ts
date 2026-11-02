@@ -37,6 +37,7 @@ import {
   STALLED_TURN_LIMIT,
   stalledEditNote
 } from './editProgress'
+import { ImageUrlProvenance, unseenImageError } from './imageProvenance'
 import {
   newStreamState,
   processChunk,
@@ -334,6 +335,8 @@ interface LoopContext {
   thinkingBudget: number
   /** Classifies document edits; ends sessions that only shuffle whitespace / undo themselves. */
   progress: EditProgressTracker
+  /** Text this session has seen; an edit may only add images whose URL occurs in it (`imageProvenance.ts`). */
+  imageProvenance: ImageUrlProvenance
   /** A document edit (replace_text / insert_text) succeeded in this session. */
   editedDocument: boolean
   /** A `message_to_user` answer was delivered in this session. */
@@ -344,6 +347,14 @@ interface LoopContext {
  * Current document text, or null when the session has no readable
  * Y.Text (the unit-test seam passes a bare session stub).
  */
+/** Text a `replace_text` / `insert_text` call would add to the document. */
+function addedEditText(args: unknown): string {
+  if (typeof args !== 'object' || args === null) return ''
+  const fields = args as Record<string, unknown>
+  const added = fields.new_str ?? fields.insert_text
+  return typeof added === 'string' ? added : ''
+}
+
 function readDocText(session: AiSession): string | null {
   try {
     return session.ytext.toJSON()
@@ -679,9 +690,18 @@ async function dispatchToolCall(
 
   const isDocEdit = DOC_EDIT_TOOLS.has(call.name)
   const textBefore = isDocEdit ? readDocText(ctx.opts.aiSession) : null
+  if (isDocEdit) {
+    const unseen = ctx.imageProvenance.unseenImageUrls(addedEditText(validatedArgs), textBefore)
+    if (unseen.length > 0) {
+      ctx.log(`function_call ${call.name} refused: image URL(s) not seen in this session: ${unseen.join(', ').slice(0, 200)}`)
+      const canGenerate = ctx.toolDeclarations.some(d => d.name === 'generate_image')
+      return { kind: 'continue', responseParts: [toolErrorResponse(call, unseenImageError(unseen, canGenerate))] }
+    }
+  }
   const runResult = await runOneTool(ctx, call.name, validatedArgs)
   if (runResult.kind === 'session-cap-exceeded') return runResult
   const result = runResult.result
+  if (!result.isError) ctx.imageProvenance.note(result.content)
   await ctx.opts.crossBoundary.afterTool(call.name, validatedArgs, result)
   if (!result.isError && call.name === 'message_to_user') ctx.answeredUser = true
 
@@ -981,6 +1001,9 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     toolDeclarations: filterToolsForProviders(opts.toolDeclarations ?? ALL_TOOL_DECLARATIONS, opts.aiSession.aiProviders, getWebToolAvailability()),
     thinkingBudget: opts.thinkingBudget ?? 0,
     progress: new EditProgressTracker(readDocText(opts.aiSession)),
+    // Document + the user's request. NOT the system prompt: its examples
+    // name the placeholder URLs the model must never embed.
+    imageProvenance: new ImageUrlProvenance(readDocText(opts.aiSession), opts.initialPrompt),
     editedDocument: false,
     answeredUser: false
   }

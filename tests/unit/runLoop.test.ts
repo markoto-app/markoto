@@ -899,3 +899,52 @@ describe('runAgenticLoop — finishing after the work is done', () => {
     expect(executeFunctionByName.mock.calls.map(c => c[1])).toEqual(['replace_text', 'message_to_user'])
   })
 })
+
+describe('runAgenticLoop — image URLs must come from the session', () => {
+  it('refuses an edit that embeds a made-up image URL and points the model at generate_image', async () => {
+    const ytext = docWith('# Field notes\n')
+    const { ai, callsSeen } = makeFakeAi([
+      callTurn('insert_text', { insert_line: 1, insert_text: '![A notebook](https://placehold.co/400x300?text=Notebook)\n' }),
+      proseTurn('Done.')
+    ])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    await runAgenticLoop(makeOpts({ ai }, ytext))
+    // The edit never reached the tool handler: the document is untouched.
+    expect(executeFunctionByName).not.toHaveBeenCalledWith(expect.anything(), 'insert_text', expect.anything())
+    expect(ytext.toJSON()).toBe('# Field notes\n')
+    const output = lastFunctionOutput(callsSeen[1]?.contents ?? [])
+    expect(output).toContain('image URL not from this session')
+    expect(output).toContain('call generate_image')
+  })
+
+  it('lets the model insert the URL a generate_image call returned', async () => {
+    const ytext = docWith('# Field notes\n')
+    const md = '![A notebook](/api/files/DOC1/abc123.png)'
+    const { ai } = makeFakeAi([
+      callTurn('generate_image', { prompt: 'a notebook', alt: 'A notebook' }),
+      callTurn('insert_text', { insert_line: 1, insert_text: `${md}\n` }),
+      proseTurn('Done.')
+    ])
+    const edit = editingHandler(ytext)
+    executeFunctionByName.mockImplementation(async (session: unknown, name: string, args: unknown) =>
+      name === 'generate_image'
+        ? { content: `Generated and uploaded image/png image (40KB). Markdown reference (copy verbatim into insert_text or replace_text): ${md}`, isError: false }
+        : edit(session, name, args)
+    )
+    await runAgenticLoop(makeOpts({ ai }, ytext))
+    expect(ytext.toJSON()).toContain(md)
+  })
+
+  it('allows an image URL the user typed, and one already in the document', async () => {
+    const ytext = docWith('# Logo\n![old](https://example.org/old.png)\n')
+    const { ai } = makeFakeAi([
+      callTurn('insert_text', { insert_line: 2, insert_text: '![logo](https://example.org/logo.png)\n' }),
+      callTurn('replace_text', { old_str: '![old](https://example.org/old.png)', new_str: '![Old logo](https://example.org/old.png)' }),
+      proseTurn('Done.')
+    ])
+    executeFunctionByName.mockImplementation(editingHandler(ytext))
+    await runAgenticLoop(makeOpts({ ai, initialPrompt: 'Add https://example.org/logo.png under the title' }, ytext))
+    expect(ytext.toJSON()).toContain('![logo](https://example.org/logo.png)')
+    expect(ytext.toJSON()).toContain('![Old logo](https://example.org/old.png)')
+  })
+})
