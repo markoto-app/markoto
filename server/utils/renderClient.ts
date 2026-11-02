@@ -3,6 +3,7 @@ import { useDatabasePool } from './database'
 import { useS3Client } from './s3'
 import { useValkey } from './valkey'
 import { injectTraceHeaders } from './traceHeaders'
+import { flushSyncDocument } from './syncNotify'
 import * as Sentry from '@sentry/nuxt'
 
 // Render orchestrator. Nuxt-side counterpart to renderer/src/render.ts:
@@ -229,6 +230,12 @@ export async function renderDocument(
   docId: string,
   opts: { format: 'pdf' | 'png' | 'both' }
 ): Promise<RenderResult> {
+  // The render reads the persisted Y.js rows (snapshot id + the print
+  // page's bootstrap). Edits from the last 2–10 s may still sit in the
+  // sync-server's debounced store — a PDF exported right after typing
+  // came out with only the cover page (v0.2.4 release flow run). Persist
+  // them first; on failure render what is stored, as before.
+  await flushSyncDocument(docId)
   const snapshotId = await getLatestSnapshotId(docId)
 
   // First, check the cache. If a usable manifest exists for the requested

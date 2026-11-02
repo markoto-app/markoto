@@ -36,6 +36,16 @@ vi.mock('@sentry/nuxt', () => ({
   captureException: vi.fn()
 }))
 
+// Records when the sync flush ran relative to the snapshot read.
+const callOrder: string[] = []
+const flushSyncDocument = vi.fn(async (_docId: string) => {
+  callOrder.push('flush')
+  return true
+})
+vi.mock('../../server/utils/syncNotify', () => ({
+  flushSyncDocument: (docId: string) => flushSyncDocument(docId)
+}))
+
 // useRuntimeConfig + global fetch are only read at function-call time
 // inside the SUT, so we can install these stubs after the import.
 vi.stubGlobal('useRuntimeConfig', () => ({
@@ -63,6 +73,24 @@ beforeEach(() => {
   dbQuery.mockReset()
   dbQuery.mockResolvedValue({ rows: [{ id: 100 }] })
   s3Send.mockReset()
+  flushSyncDocument.mockClear()
+  callOrder.length = 0
+})
+
+describe('renderClient.renderDocument — pending edits', () => {
+  it('flushes the doc on the sync server before reading its snapshot', async () => {
+    dbQuery.mockImplementation(async () => {
+      callOrder.push('snapshot')
+      return { rows: [{ id: 100 }] }
+    })
+    // Cache hit: HEAD + GET of the manifest.
+    s3Send
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ Body: { transformToString: async () => JSON.stringify(manifest('pdf')) } })
+    await renderDocument('DOC', { format: 'pdf' })
+    expect(flushSyncDocument).toHaveBeenCalledWith('DOC')
+    expect(callOrder.slice(0, 2)).toEqual(['flush', 'snapshot'])
+  })
 })
 
 describe('renderClient.renderDocument', () => {
