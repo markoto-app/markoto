@@ -296,6 +296,37 @@
     try { return new Intl.NumberFormat(locale, { maximumFractionDigits: 6 }).format(Number(t)); }
     catch (e) { return text; }
   }
+  /**
+   * Thin a crowded numeric axis to at most 8 labels on a nice step
+   * (0, 500 … 7000 → 0, 1000 … 7000) — Mermaid has no tick-count
+   * option. Same as `thinAxisTicks` in mermaidLoader.ts.
+   */
+  function isNiceStep(step) {
+    if (!(step > 0) || !isFinite(step)) return false;
+    var mantissa = step / Math.pow(10, Math.floor(Math.log10(step)));
+    return [1, 2, 2.5, 5, 10].some(function (m) { return Math.abs(mantissa - m) < 1e-9; });
+  }
+  function thinAxisTicks(axis) {
+    var MAX = 8;
+    var labels = Array.prototype.slice.call(axis.querySelectorAll(':scope > g.label > text'));
+    if (labels.length <= MAX) return;
+    var values = labels.map(function (t) { return (t.textContent || '').trim(); });
+    if (!values.every(function (v) { return /^-?\d+(?:\.\d+)?$/.test(v); })) return;
+    var nums = values.map(Number);
+    var step = Math.abs(nums[1] - nums[0]);
+    if (!(step > 0)) return;
+    var onStep = function (n, s) { return Math.abs(n / s - Math.round(n / s)) < 1e-6; };
+    var factor = [2, 4, 5, 10, 20, 25, 50].find(function (f) {
+      return isNiceStep(step * f) && nums.filter(function (n) { return onStep(n, step * f); }).length <= MAX;
+    });
+    if (!factor) return;
+    var ticks = Array.prototype.slice.call(axis.querySelectorAll(':scope > g.ticks > path'));
+    nums.forEach(function (n, i) {
+      if (onStep(n, step * factor)) return;
+      labels[i].remove();
+      if (ticks.length === labels.length) ticks[i].remove();
+    });
+  }
   function finishMermaidSvg(rawSvg, locale) {
     var parsed = new DOMParser().parseFromString(rawSvg, 'text/html');
     var el = parsed.querySelector('svg');
@@ -316,6 +347,7 @@
       var f = formatPieLegendLabel(t.textContent || '', locale);
       if (f !== t.textContent) t.textContent = f;
     });
+    el.querySelectorAll('g.left-axis, g.bottom-axis, g.right-axis, g.top-axis').forEach(thinAxisTicks);
     el.querySelectorAll('g.left-axis text, g.bottom-axis text, g.right-axis text, g.top-axis text').forEach(function (t) {
       var f = formatAxisNumber(t.textContent || '', locale);
       if (f !== t.textContent) t.textContent = f;

@@ -94,7 +94,7 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     expect(startNode(handler().onOverflow(overflowFrom(firstRow, r), r))?.nodeName).toBe('TABLE')
   })
 
-  it('never carries a single last row over on its own', () => {
+  it('keeps at least three body rows on each side of a split', () => {
     const rows = Array.from({ length: 6 }, (_, i) => `<tr data-ref="r${i}"><td>${i}</td></tr>`).join('')
     const source = el(`<table><tbody>${rows}</tbody></table>`)
     const r = el(`<div class="paged-doc"><p>Intro.</p><table><thead><tr><th>H</th></tr></thead><tbody>${rows}</tbody></table></div>`)
@@ -102,9 +102,13 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     const last = r.querySelector('tr[data-ref="r5"]')
     const middle = r.querySelector('tr[data-ref="r3"]')
     if (!last || !middle) throw new Error('fixture')
-    expect(refOf(startNode(h.onOverflow(overflowFrom(last, r), r)))).toBe('r4')
-    // Two or more rows to carry: break where paged.js wanted to.
+    expect(refOf(startNode(h.onOverflow(overflowFrom(last, r), r)))).toBe('r3')
+    // Three rows to carry and three staying: break where paged.js wanted to.
     expect(refOf(startNode(h.onOverflow(overflowFrom(middle, r), r)))).toBe('r3')
+    // Only one row would stay behind: the whole table moves.
+    const second = r.querySelector('tr[data-ref="r1"]')
+    if (!second) throw new Error('fixture')
+    expect(startNode(h.onOverflow(overflowFrom(second, r), r))?.nodeName).toBe('TABLE')
   })
 
   it('repeats the header row on a table continued from the previous page', () => {

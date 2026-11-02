@@ -11,8 +11,9 @@
  *  - Unbreakable blocks: anything with a computed `break-inside: avoid`
  *    (short tables, diagrams, code, quotes, alerts, math — set in
  *    themeToCss) moves to the next page as a whole when it doesn't fit.
- *  - Tables: never split inside a row; never leave only the header row
- *    behind; a table continued on the next page repeats its `<thead>`.
+ *  - Tables: never split inside a row; keep at least three body rows on
+ *    each side of a split (or move the table whole); a table continued on
+ *    the next page repeats its `<thead>`.
  *  - Orphans: a paragraph never leaves just one line at the page bottom.
  *
  * Every move is guarded: it only happens when there is other content on
@@ -53,6 +54,8 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
   Reflect.set(paged, flag, true)
 
   const HEADING = /^H[1-6]$/
+  /** Fewest body rows of a split table on either page. */
+  const MIN_ROWS = 3
 
   function hasContent(node: Node): boolean {
     if (node.nodeType === 3) return (node.textContent ?? '').trim().length > 0
@@ -141,17 +144,24 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
       const table = tr?.closest('table')
       if (tr && table && root.contains(tr)) {
         const inHead = tr.parentElement?.nodeName === 'THEAD'
-        const rowIndex = Array.from(table.querySelectorAll(':scope > tbody > tr')).indexOf(tr)
+        const bodyRows = Array.from(table.querySelectorAll(':scope > tbody > tr'))
+        const rowIndex = bodyRows.indexOf(tr)
         if (inHead || rowIndex <= 0) {
           if (!hasContentBefore(table, root)) return null
           target = table
         } else {
           target = tr
-          // Widow row: never carry a single last row over on its own.
-          const prevRow = tr.previousElementSibling
-          if (rowsFrom(tr) === 1 && prevRow) {
-            if (rowIndex >= 2) target = prevRow
+          // At least MIN_ROWS body rows on each side of a split: carry more
+          // rows over when too few would follow, move the whole table when
+          // too few would stay (a table that starts at the top of a page
+          // keeps paged.js's break — there is nowhere better).
+          const after = rowsFrom(tr)
+          if (after !== null && after < MIN_ROWS) {
+            const back = rowIndex - (MIN_ROWS - after)
+            if (back >= MIN_ROWS) target = bodyRows[back] ?? tr
             else if (hasContentBefore(table, root)) target = table
+          } else if (rowIndex < MIN_ROWS && hasContentBefore(table, root)) {
+            target = table
           }
         }
       }

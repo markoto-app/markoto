@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diagramKind, finishMermaidSvg, formatAxisNumber, formatPieLegendLabel } from '../../app/utils/mermaidLoader'
+import { diagramKind, finishMermaidSvg, formatAxisNumber, formatPieLegendLabel, thinAxisTicks } from '../../app/utils/mermaidLoader'
 
 // What mermaid 11 hands back for a pie with `showData` (trimmed): the SVG
 // still uses useMaxWidth-style sizing and the legend carries raw values.
@@ -60,5 +60,41 @@ describe('number formatting helpers', () => {
   it('diagramKind is a class-safe token', () => {
     const svg = new DOMParser().parseFromString('<svg aria-roledescription="flowchart-v2&quot; onload=x"></svg>', 'text/html').querySelector('svg')
     expect(svg && diagramKind(svg)).toBe('flowchart-v2onloadx')
+  })
+})
+
+describe('thinAxisTicks', () => {
+  function axis(values: string[]): Element {
+    const labels = values.map(v => `<text>${v}</text>`).join('')
+    const ticks = values.map(() => '<path/>').join('')
+    const doc = new DOMParser().parseFromString(`<svg><g class="left-axis"><g class="label">${labels}</g><g class="ticks">${ticks}</g></g></svg>`, 'text/html')
+    const g = doc.querySelector('g.left-axis')
+    if (!g) throw new Error('fixture')
+    return g
+  }
+  const texts = (g: Element) => Array.from(g.querySelectorAll('g.label text')).map(t => t.textContent)
+
+  it('thins 0–7000 in steps of 500 to steps of 1000 (labels and tick marks)', () => {
+    const g = axis(Array.from({ length: 15 }, (_, i) => String(7000 - i * 500)))
+    thinAxisTicks(g)
+    expect(texts(g)).toEqual(['7000', '6000', '5000', '4000', '3000', '2000', '1000', '0'])
+    expect(g.querySelectorAll('g.ticks path')).toHaveLength(8)
+  })
+
+  it('leaves short axes and category axes alone', () => {
+    const short = axis(['0', '1000', '2000', '3000'])
+    thinAxisTicks(short)
+    expect(texts(short)).toHaveLength(4)
+    const cats = axis(Array.from({ length: 12 }, (_, i) => `Q${i}`))
+    thinAxisTicks(cats)
+    expect(texts(cats)).toHaveLength(12)
+  })
+
+  it('applies inside finishMermaidSvg', () => {
+    const labels = Array.from({ length: 15 }, (_, i) => `<text>${i * 500}</text>`).join('')
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" aria-roledescription="xychart"><g class="left-axis"><g class="label">${labels}</g></g></svg>`
+    const out = finishMermaidSvg(svg, 'en').svg
+    expect(out).toContain('>7,000<')
+    expect(out).not.toContain('>6,500<')
   })
 })

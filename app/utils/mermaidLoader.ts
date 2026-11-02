@@ -188,6 +188,45 @@ export function formatAxisNumber(text: string, locale: string): string {
   }
 }
 
+/** Most tick labels a value axis keeps (Mermaid asks d3 for ~10, e.g. 15 for 0–7000). */
+const MAX_AXIS_TICKS = 8
+
+/** `step` is 1, 2, 2.5 or 5 × 10^n. */
+function isNiceStep(step: number): boolean {
+  if (!(step > 0) || !Number.isFinite(step)) return false
+  const mantissa = step / 10 ** Math.floor(Math.log10(step))
+  return [1, 2, 2.5, 5, 10].some(m => Math.abs(mantissa - m) < 1e-9)
+}
+
+/**
+ * Thin a crowded numeric axis (xy-chart value axis) to at most
+ * `MAX_AXIS_TICKS` labels on a nice step: 0, 500, …, 7000 → 0, 1000, …,
+ * 7000. Mermaid has no tick-count option. Removes the other labels and
+ * their tick marks (`g.label text` and `g.ticks path` are in the same
+ * order); category axes (non-numeric labels) are left alone.
+ */
+export function thinAxisTicks(axis: Element): void {
+  const labels = Array.from(axis.querySelectorAll(':scope > g.label > text'))
+  if (labels.length <= MAX_AXIS_TICKS) return
+  const values = labels.map(t => (t.textContent ?? '').trim())
+  if (!values.every(v => BARE_NUMBER_RE.test(v))) return
+  const nums = values.map(Number)
+  const step = Math.abs((nums[1] ?? 0) - (nums[0] ?? 0))
+  if (!(step > 0)) return
+  const factor = [2, 4, 5, 10, 20, 25, 50].find((f) => {
+    if (!isNiceStep(step * f)) return false
+    return nums.filter(n => Math.abs(n / (step * f) - Math.round(n / (step * f))) < 1e-6).length <= MAX_AXIS_TICKS
+  })
+  if (!factor) return
+  const keepStep = step * factor
+  const ticks = Array.from(axis.querySelectorAll(':scope > g.ticks > path'))
+  nums.forEach((n, i) => {
+    if (Math.abs(n / keepStep - Math.round(n / keepStep)) < 1e-6) return
+    labels[i]?.remove()
+    if (ticks.length === labels.length) ticks[i]?.remove()
+  })
+}
+
 /**
  * Finish a freshly rendered SVG for the page: well-formed XML (see
  * `toWellFormedSvg`), explicit pixel `width`/`height` from the viewBox
@@ -213,6 +252,9 @@ export function finishMermaidSvg(rawSvg: string, locale: string): { svg: string,
     const t = text.textContent ?? ''
     const formatted = formatPieLegendLabel(t, locale)
     if (formatted !== t) text.textContent = formatted
+  }
+  for (const axis of Array.from(el.querySelectorAll('g.left-axis, g.bottom-axis, g.right-axis, g.top-axis'))) {
+    thinAxisTicks(axis)
   }
   for (const text of Array.from(el.querySelectorAll('g.left-axis text, g.bottom-axis text, g.right-axis text, g.top-axis text'))) {
     const t = text.textContent ?? ''
