@@ -517,3 +517,55 @@ describe('themeToCss — generated CSS strings and image URLs (regression)', () 
     expect(seen).toEqual([])
   })
 })
+
+describe('themeToCss — documents at scale', () => {
+  const doc = (patch: (t: DocTheme) => void = () => {}) => {
+    const t = structuredClone(defaultTheme)
+    patch(t)
+    return themeToCss(t, runtime)
+  }
+
+  test('only short tables are kept in one piece (long ones split + repeat headers)', () => {
+    const css = doc()
+    expect(css).toContain('.paged-doc table:not(:has(tbody tr:nth-child(13))) { break-inside: avoid; }')
+    expect(css).not.toMatch(/\.paged-doc table, [^{]*\{ break-inside: avoid; \}/)
+    expect(css).toMatch(/\.paged-doc h1, [^{]*\.paged-doc h6 \{ break-after: avoid-page; break-inside: avoid; \}/)
+  })
+
+  test('diagrams fit the column and never take more than ~45% of the text area', () => {
+    const css = doc((t) => {
+      t.page.size = 'A4'
+      t.page.orientation = 'portrait'
+      t.page.margin = 20
+    })
+    expect(css).toMatch(/\.paged-doc \.mermaid > img,\s*\.paged-doc \.mermaid > svg \{[^}]*max-width: 100%;[^}]*max-height: 116mm;/)
+    expect(css).toMatch(/\.paged-doc \.mermaid-pie > img,\s*\.paged-doc \.mermaid-pie > svg \{\s*max-height: 85mm;/)
+  })
+
+  test('the TOC title comes from the runtime (document language)', () => {
+    const css = themeToCss(structuredClone(defaultTheme), { ...runtime, tocTitle: 'Inhalt' })
+    expect(css).toContain('content: "Inhalt";')
+  })
+
+  test('editorial cover: accent rule above the title, band when there is no logo', () => {
+    const css = doc((t) => {
+      t.cover.enabled = true
+      t.cover.layout = 'editorial'
+      t.cover.align = 'left'
+    })
+    expect(css).toMatch(/\.markoto-cover-title::before \{[^}]*border-top: 2\.5pt solid var\(--doc-brand\);[^}]*margin: 0 auto 0\.45em 0;/)
+    expect(css).toMatch(/\.markoto-cover--no-logo \{\s*background: linear-gradient\(var\(--doc-brand\), var\(--doc-brand\)\) top left \/ 100% 7mm no-repeat;/)
+    const centered = doc((t) => {
+      t.cover.enabled = true
+      t.cover.layout = 'editorial'
+      t.cover.align = 'center'
+    })
+    expect(centered).toContain('margin: 0 auto 0.45em auto;')
+  })
+
+  test('{date} in header/footer prints the runtime date text as given', () => {
+    const t = structuredClone(defaultTheme)
+    t.footer.right = '{date}'
+    expect(themeToCss(t, { ...runtime, date: '29. Oktober 2026' })).toContain('"29. Oktober 2026"')
+  })
+})

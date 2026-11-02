@@ -23,8 +23,6 @@ Tomasz Wierzba, Chief Financial Officer
 - **Slot Forecast generally available.** The arrival-prediction module launched on 19 August and was live at 64 sites by the end of September.
 - **Positive free cash flow.** EUR 130 k, helped by annual renewals invoiced in July. Cash at quarter end was EUR 14.2 m.
 
-<!-- pagebreak -->
-
 ## Key figures
 
 | Metric | Q3 2026 | Q2 2026 | Q3 2025 | Change YoY |
@@ -42,8 +40,6 @@ Tomasz Wierzba, Chief Financial Officer
 | Gross revenue retention, TTM | 95% | 96% | 94% | +1 pp |
 | Dock appointments booked (m) | 2.84 | 2.61 | 2.17 | +30.9% |
 | Headcount (FTE) | 123 | 118 | 104 | +18.3% |
-
-<!-- pagebreak -->
 
 # Financial performance
 
@@ -140,8 +136,6 @@ Research and development remains the largest cost line and the one we are least 
 
 The working-capital inflow in Q3 is seasonal. About 40% of our enterprise contracts renew on 1 July and are invoiced annually in advance, which lifts deferred revenue and cash in the third quarter. We therefore do not read one positive free-cash-flow quarter as a trend. Free cash flow over the last twelve months was −EUR 2.7 m, and we expect 2027 as a whole to be free-cash-flow positive.
 
-<!-- pagebreak -->
-
 # Customers and retention
 
 ## ARR development
@@ -185,8 +179,6 @@ We do not name customers without their consent; the wins below are described by 
 ## Churn
 
 Four customers with combined ARR of EUR 180 k left in the quarter. The largest (EUR 110 k) was acquired by a logistics group that standardises on an in-house yard-management system; the customer was satisfied with the product and has agreed to act as a reference. The other three were small single-site customers, two of which closed the site in question.
-
-<!-- pagebreak -->
 
 # Product and engineering
 
@@ -253,8 +245,6 @@ Two leadership changes took effect in the quarter. Sanne Kuipers joined on 1 Jul
 
 The employee survey in September had a response rate of 88%. Engagement was unchanged at 7.8 out of 10. As in March, the lowest-scoring item was clarity about career paths outside management; a dual-ladder framework for engineering and customer roles will be introduced in January.
 
-<!-- pagebreak -->
-
 # Outlook and guidance
 
 Based on the third-quarter results and the pipeline for the fourth quarter, we are raising guidance for revenue and EBITDA and narrowing the range for year-end ARR.
@@ -314,8 +304,6 @@ Free cash flow
 Dock appointment
 : A time slot at a loading dock reserved by a carrier through Quaybridge, counted once when it is confirmed.
 
-<!-- pagebreak -->
-
 ## Appendix B: Income statement
 
 Changes are shown in EUR k where the base is negative and in percentage points (pp) for margins. Cost lines are shown as negative values; their percentage changes refer to the size of the cost.
@@ -337,8 +325,7 @@ Changes are shown in EUR k where the base is negative and in percentage points (
 | Depreciation & amortisation | 210 | 220 | 230 | 240 | 250 | +4.2% | +19.0% | 600 | 720 | +20.0% |
 | **EBITDA** | **−470** | **−430** | **−370** | **−100** | **130** | **+230** | **+600** | **−1,640** | **−340** | **+1,300** |
 | EBITDA margin | −8.9% | −7.6% | −6.4% | −1.6% | 2.0% | +3.6 pp | +10.9 pp | −11.0% | −1.8% | +9.2 pp |
-
-<!-- pagebreak -->
+{.income-statement}
 
 ## Appendix C: ARR bridge by quarter
 

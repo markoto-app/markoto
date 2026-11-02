@@ -31,7 +31,8 @@ const PLACEHOLDERS = [
   '__KATEX_CSS_URL__',
   '__KATEX_CSS_SRI__',
   '__MERMAID_URL__',
-  '__MERMAID_SRI__'
+  '__MERMAID_SRI__',
+  '__PAGED_HANDLERS_SCRIPT__'
 ]
 
 describe('pagedPreviewIframe.html', () => {
@@ -94,7 +95,27 @@ describe('pagedPreviewIframe.html', () => {
     // breaks the whole diagram. Mirrors toWellFormedSvg in
     // app/utils/mermaidLoader.ts (covered in tests/dom/mermaidSvg.test.ts).
     expect(WITHOUT_COMMENT).toContain('new XMLSerializer().serializeToString(el)')
-    expect(WITHOUT_COMMENT).toContain('var svgStr = toWellFormedSvg(rendered.svg);')
+    expect(WITHOUT_COMMENT).toContain('var finished = finishMermaidSvg(rendered.svg, locale);')
+  })
+
+  it('renders mermaid with the theme config and inlines the SVGs only after pagination', () => {
+    // Config = buildMermaidConfig(theme) (document font + colours); a
+    // config can never lower the security level.
+    expect(WITHOUT_COMMENT).toContain('cfg.securityLevel = \'antiscript\';')
+    expect(WITHOUT_COMMENT).toContain('m.initialize(cfg);')
+    // <img> during layout (atomic for paged.js), inline SVG afterwards,
+    // before the pages are swapped into view.
+    const inline = WITHOUT_COMMENT.indexOf('inlineMermaidSvgs(pending);')
+    expect(inline).toBeGreaterThan(WITHOUT_COMMENT.indexOf('await previewer.preview('))
+    expect(inline).toBeLessThan(WITHOUT_COMMENT.indexOf('mount.replaceChildren('))
+    for (const field of ['mermaidConfig', 'locale']) expect(WITHOUT_COMMENT).toContain('\'' + field + '\'')
+  })
+
+  it('loads the pagination handlers right after paged.js, as a nonced inline script', () => {
+    const polyfill = BOOTSTRAP_HTML.indexOf('__PAGEDJS_POLYFILL_URL__" integrity')
+    const handlers = BOOTSTRAP_HTML.indexOf('<script nonce="__CSP_NONCE__">__PAGED_HANDLERS_SCRIPT__</script>')
+    expect(polyfill).toBeGreaterThan(0)
+    expect(handlers).toBeGreaterThan(polyfill)
   })
 
   it('keeps every link inside the preview (no self-navigation of the sandboxed frame)', () => {

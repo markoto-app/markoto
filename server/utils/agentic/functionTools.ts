@@ -419,6 +419,7 @@ export const UpdateThemeArgs = z.object({
   }).optional(),
   mermaid: z.object({
     theme: MermaidThemeSchema.optional()
+      .describe('Diagram colours. `document` (recommended) derives every colour from the theme (brand, heading, text, secondary, paper), incl. chart palettes; the others are Mermaid built-ins. Diagrams always use the body font.')
   }).optional(),
   alerts: z.object({
     note: HexColorSchema.optional().describe('Color for [!NOTE] admonitions.'),
@@ -443,6 +444,8 @@ export const UpdateThemeArgs = z.object({
     showSubtitle: z.boolean().optional(),
     subtitle: z.string().max(200).optional().describe('Cover subtitle text (≤200 chars).'),
     showDate: z.boolean().optional(),
+    date: z.string().regex(/^(?:\d{4}-\d{2}-\d{2})?$/).optional()
+      .describe('Publication date YYYY-MM-DD shown on the cover and by the {date} header/footer token (written out in the document language). Empty string = today.'),
     showAuthors: z.boolean().optional(),
     authors: z.array(z.string().max(100)).max(10).optional()
       .describe('Author name list (up to 10). Each renders on its own line — for collaboration. Pass full name strings; ordering is preserved.'),

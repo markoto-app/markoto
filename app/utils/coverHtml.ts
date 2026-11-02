@@ -34,15 +34,18 @@ import { isThemeImageUrl } from '~~/shared/utils/themeImages'
  *     possible) AND escapes it for attribute context. `composeFinalHtml`
  *     additionally sanitises the composed document.
  */
-export function buildCoverHtml(theme: DocTheme, title: string, dateIso: string): string {
+export function buildCoverHtml(theme: DocTheme, title: string, dateText: string): string {
   if (!theme.cover.enabled) return ''
+  const logo = buildLogoHtml(theme)
   const parts = [
-    buildLogoHtml(theme),
+    logo,
     buildTitleHtml(theme, title),
     buildSubtitleHtml(theme),
-    buildMetaHtml(theme, dateIso)
+    buildMetaHtml(theme, dateText)
   ].filter(Boolean)
-  return `<section class="markoto-cover">${parts.join('')}</section>`
+  // Layout CSS adds an accent where the logo would be (themeToCss).
+  const cls = logo ? 'markoto-cover' : 'markoto-cover markoto-cover--no-logo'
+  return `<section class="${cls}">${parts.join('')}</section>`
 }
 
 function buildLogoHtml(theme: DocTheme): string {
@@ -62,7 +65,7 @@ function buildSubtitleHtml(theme: DocTheme): string {
 }
 
 /** Author + date block. Empty when neither toggle is on AND neither produces text. */
-function buildMetaHtml(theme: DocTheme, dateIso: string): string {
+function buildMetaHtml(theme: DocTheme, dateText: string): string {
   const metaParts: string[] = []
   if (theme.cover.showAuthors) {
     for (const author of theme.cover.authors) {
@@ -70,8 +73,8 @@ function buildMetaHtml(theme: DocTheme, dateIso: string): string {
       if (trimmed) metaParts.push(`<div class="markoto-cover-author">${esc(trimmed)}</div>`)
     }
   }
-  if (theme.cover.showDate && dateIso) {
-    metaParts.push(`<div class="markoto-cover-date">${esc(dateIso)}</div>`)
+  if (theme.cover.showDate && dateText) {
+    metaParts.push(`<div class="markoto-cover-date">${esc(dateText)}</div>`)
   }
   if (metaParts.length === 0) return ''
   return `<div class="markoto-cover-meta">${metaParts.join('')}</div>`

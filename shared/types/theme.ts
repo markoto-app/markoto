@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { CUSTOM_CSS_MAX_BYTES } from './customCss'
 import { THEME_IMAGE_URL_RE } from '../utils/themeImages'
+import { isIsoDate } from '../utils/documentLocale'
 
 /**
  * Per-document theme. Drives both the live paged preview and the printed
@@ -126,10 +127,13 @@ export const TableBordersSchema = z.enum(['all', 'horizontal', 'minimal', 'none'
 export type TableBorders = z.infer<typeof TableBordersSchema>
 
 /**
- * Mermaid's built-in visual themes. Applied via `mermaid.initialize()`
- * in the iframe bootstrap before each render.
+ * Diagram colours. `document` (the default for new themes) derives every
+ * colour from the theme itself — accent, heading ink, text, neutral and
+ * paper, incl. the pie / xy-chart palettes (`shared/utils/mermaidConfig.ts`).
+ * The others are Mermaid's built-in themes, kept for an explicit choice.
+ * Diagram text always uses the body font.
  */
-export const MermaidThemeSchema = z.enum(['default', 'dark', 'forest', 'neutral', 'base'])
+export const MermaidThemeSchema = z.enum(['document', 'default', 'dark', 'forest', 'neutral', 'base'])
 export type MermaidTheme = z.infer<typeof MermaidThemeSchema>
 
 /** Visual style of the dotted leader between TOC entry and page number. */
@@ -174,7 +178,8 @@ export type HeaderImagePosition = z.infer<typeof HeaderImagePositionSchema>
  *   {title}  → document title
  *   {page}   → current page number
  *   {pages}  → total page count
- *   {date}   → today's date (ISO YYYY-MM-DD)
+ *   {date}   → the publication date (`cover.date`, else today), written
+ *              out in the document language
  * Empty string disables the slot.
  */
 export const RunningSlotsSchema = z.object({
@@ -379,6 +384,14 @@ export const DocThemeSchema = z.object({
     /** Free-form subtitle text rendered under the title. */
     subtitle: z.string().max(200),
     showDate: z.boolean(),
+    /**
+     * Publication date the author picked (`YYYY-MM-DD`), shown on the
+     * cover and by the `{date}` header/footer token, written out in the
+     * document language (`shared/utils/documentLocale.ts`). Empty or
+     * absent = the render date ("today"). Optional so themes stored
+     * before the field existed stay valid.
+     */
+    date: z.string().refine(v => v === '' || isIsoDate(v), { message: 'must be empty or a date (YYYY-MM-DD)' }).optional(),
     showAuthors: z.boolean(),
     /**
      * Multi-author list. We're a collaboration tool, so this is an

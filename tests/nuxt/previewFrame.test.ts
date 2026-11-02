@@ -125,9 +125,31 @@ describe('file-access token attachment (own uploads only)', () => {
   it('header/footer images in the theme CSS get the token via themeToCss', () => {
     const theme = structuredClone(defaultTheme)
     theme.header.imageUrl = '/api/files/doc-1/head.png'
-    const msg = buildRenderMessage({ html: '<p>x</p>', theme, title: 'T', tocTitle: 'TOC', customCss: undefined, docId: 'doc-1', fileToken: 'tok', print: false })
+    const msg = buildRenderMessage({ html: '<p>x</p>', theme, title: 'T', language: 'en', customCss: undefined, docId: 'doc-1', fileToken: 'tok', print: false })
     expect(msg.themeCss).toContain('/api/files/doc-1/head.png?token=tok')
     expect(mayReferenceOwnUploads({ html: '<p>x</p>', theme, rawCustomCss: '', docId: 'doc-1' })).toBe(true)
     expect(mayReferenceOwnUploads({ html: '<p>x</p>', theme: defaultTheme, rawCustomCss: '', docId: 'doc-1' })).toBe(false)
+  })
+})
+
+describe('documents at scale — render message + srcdoc', () => {
+  it('sends the document-matched mermaid config and the document locale', () => {
+    const theme = structuredClone(defaultTheme)
+    theme.mermaid.theme = 'document'
+    theme.cover.date = '2026-10-29'
+    const msg = buildRenderMessage({ html: '<p>x</p>', theme, title: 'T', language: 'de', customCss: undefined, docId: 'doc-1', fileToken: '', print: false })
+    const cfg: unknown = JSON.parse(msg.mermaidConfig)
+    expect(typeof cfg === 'object' && cfg !== null ? Reflect.get(cfg, 'securityLevel') : null).toBe('antiscript')
+    expect(typeof cfg === 'object' && cfg !== null ? Reflect.get(cfg, 'theme') : null).toBe('base')
+    expect(msg.locale).toBe('de')
+    // Localised TOC title in the theme CSS.
+    expect(msg.themeCss).toContain('content: "Inhalt";')
+  })
+
+  it('inlines the pagination handlers into the srcdoc, nonce\'d, without a raw placeholder', () => {
+    const srcdoc = buildPreviewSrcdoc({ parentOrigin: 'https://markoto.app', nonce: 'bm9uY2Utbm9uY2Utbm9uY2U=', dark: false })
+    expect(srcdoc).not.toContain('__PAGED_HANDLERS_SCRIPT__')
+    expect(srcdoc).toContain('<script nonce="bm9uY2Utbm9uY2Utbm9uY2U=">(function registerPagedHandlers')
+    expect(srcdoc).toContain('(globalThis.Paged);</script>')
   })
 })

@@ -19,8 +19,9 @@ import { sanitizeRenderedHtml } from './sanitizeHtml'
  * in any of those three call sites, route through this helper instead.
  *
  * Argument shape: `bodyHtml` is the OUTPUT of `renderMarkdown` (already
- * mermaid-transformed if appropriate). `dateIso` is the runtime date
- * string used by the cover's "Date" line. Returns an HTML string that's
+ * mermaid-transformed if appropriate). `date` is the publication date
+ * already written out in the document language (`documentTexts`), used
+ * by the cover's date line. Returns an HTML string that's
  * ready to drop into paged.js's Previewer.preview() call.
  *
  * Cover-first ordering is deliberate: drop-cap targets the first
@@ -36,11 +37,11 @@ import { sanitizeRenderedHtml } from './sanitizeHtml'
 export function composeFinalHtml(opts: {
   theme: DocTheme
   title: string
-  dateIso: string
+  date: string
   bodyHtml: string
 }): string {
-  const { theme, title, dateIso, bodyHtml } = opts
-  const coverHtml = buildCoverHtml(theme, title || '', dateIso)
+  const { theme, title, date, bodyHtml } = opts
+  const coverHtml = buildCoverHtml(theme, title || '', date)
   let html = coverHtml + bodyHtml
   if (theme.body.dropCap) {
     html = wrapFirstLetterAsDropCap(html)

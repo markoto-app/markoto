@@ -4,6 +4,7 @@ import { composeFinalHtml } from '~/utils/composeFinalHtml'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { documentTexts } from '~~/shared/utils/documentLocale'
 import type { CustomCssResult } from '~~/shared/types/customCss'
 import { sanitizeCustomCssForRender, currentAppOrigins } from '~/utils/customCssLoader'
 import {
@@ -55,6 +56,11 @@ export function usePagedPreview(opts: {
   html: Ref<string>
   theme: Ref<DocTheme>
   title: Ref<string>
+  /**
+   * Document language (`ymeta.language`). Cover date, `{date}` token, TOC
+   * title and chart number formats follow it (`documentTexts`).
+   */
+  language?: Ref<string>
   /** Owning document — scopes which uploads custom CSS may reference. */
   docId: Ref<string>
   container: Ref<HTMLElement | null>
@@ -125,11 +131,6 @@ export function usePagedPreview(opts: {
       opts.onPrintShortcut?.()
     }
   }
-
-  // i18n at composable scope so themeCss can carry the localized
-  // TOC heading text. Using a stub if i18n isn't installed (tests).
-  const i18n = (typeof useI18n === 'function') ? useI18n() : null
-  const tocTitle = computed(() => i18n?.t('table.tocTitle') ?? 'Table of Contents')
 
   // Image access token for the opaque-origin iframe (its requests carry
   // no cookie). `render()` stays synchronous (pagination serialisation
@@ -223,10 +224,11 @@ export function usePagedPreview(opts: {
     // Compose the final HTML through the shared helper so live preview,
     // browser print, and the server-rendered PDF stay byte-identical
     // (one place to change cover/dropcap composition order).
+    const language = opts.language?.value ?? ''
     const html = composeFinalHtml({
       theme,
       title: opts.title.value || '',
-      dateIso: new Date().toISOString().slice(0, 10),
+      date: documentTexts(theme, language).date,
       bodyHtml: opts.html.value
     })
     const rawCustomCss = theme.customCss ?? ''
@@ -238,7 +240,7 @@ export function usePagedPreview(opts: {
       html,
       theme,
       title: opts.title.value || '',
-      tocTitle: tocTitle.value,
+      language,
       customCss,
       docId,
       fileToken,
@@ -259,7 +261,7 @@ export function usePagedPreview(opts: {
   const debouncedRender = useDebounceFn(render, 250)
 
   let firstRender = true
-  watch([opts.html, opts.theme, opts.title], () => {
+  watch([opts.html, opts.theme, opts.title, () => opts.language?.value], () => {
     if (firstRender) {
       firstRender = false
       render() // immediate first paint after sync

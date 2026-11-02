@@ -163,7 +163,7 @@ test.describe('preview isolation + CSP', () => {
     // the bootstrap (sender check).
     const pagesBefore = await frame.evaluate(() => document.querySelectorAll('#mount .pagedjs_page').length)
     await frame.evaluate(() => {
-      window.postMessage({ type: 'render', html: '<p>forged</p>', themeCss: '', fontsImport: '', hljsUrl: '', hljsSri: '', mermaidTheme: 'default', print: false }, '*')
+      window.postMessage({ type: 'render', html: '<p>forged</p>', themeCss: '', fontsImport: '', hljsUrl: '', hljsSri: '', mermaidConfig: '{}', locale: 'en', print: false }, '*')
     })
     await page.waitForTimeout(1000)
     expect(await frame.evaluate(() => (document.getElementById('mount')?.textContent ?? '').includes('forged'))).toBe(false)
@@ -179,7 +179,7 @@ test.describe('preview isolation + CSP', () => {
         pages: document.querySelectorAll('#mount .pagedjs_page').length,
         imageLoaded: !!img && img.naturalWidth > 0,
         imageHasToken: !!img && img.src.includes('?token='),
-        mermaid: !!document.querySelector('#mount div.mermaid img'),
+        mermaid: !!document.querySelector('#mount div.mermaid > :is(svg, img)'),
         mermaidError: document.querySelector('#mount .mermaid-error')?.textContent ?? null,
         katex: !!document.querySelector('#mount .katex'),
         hljsSheet: !!document.querySelector<HTMLLinkElement>('link#hljs-theme')?.sheet,

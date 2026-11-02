@@ -5,6 +5,7 @@ import { THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
+import { isIsoDate } from '~~/shared/utils/documentLocale'
 
 /**
  * Embedded theme editor — sits in the right sidebar slot alongside the
@@ -269,13 +270,23 @@ const tocLeaderItems = computed(() => [
   { label: t('theme.toc.leaderDashed'), value: 'dashed' as TocLeaderStyle },
   { label: t('theme.toc.leaderNone'), value: 'none' as TocLeaderStyle }
 ])
-const mermaidThemeItems = computed(() => [
-  { label: t('theme.mermaid.themeDefault'), value: 'default' as MermaidTheme },
-  { label: t('theme.mermaid.themeDark'), value: 'dark' as MermaidTheme },
-  { label: t('theme.mermaid.themeForest'), value: 'forest' as MermaidTheme },
-  { label: t('theme.mermaid.themeNeutral'), value: 'neutral' as MermaidTheme },
-  { label: t('theme.mermaid.themeBase'), value: 'base' as MermaidTheme }
+const mermaidThemeItems = computed<Array<{ label: string, value: MermaidTheme }>>(() => [
+  { label: t('theme.mermaid.themeDocument'), value: 'document' },
+  { label: t('theme.mermaid.themeDefault'), value: 'default' },
+  { label: t('theme.mermaid.themeDark'), value: 'dark' },
+  { label: t('theme.mermaid.themeForest'), value: 'forest' },
+  { label: t('theme.mermaid.themeNeutral'), value: 'neutral' },
+  { label: t('theme.mermaid.themeBase'), value: 'base' }
 ])
+
+// Cover publication date (`YYYY-MM-DD`, '' = the render date). A native
+// date input already speaks that format.
+const coverDate = computed({
+  get: () => draft.value.cover.date ?? '',
+  set: (v: string) => {
+    draft.value.cover.date = isIsoDate(v) ? v : ''
+  }
+})
 
 // Section-header entries carry an empty `value` so the union type retains
 // the `value` key (USelectMenu's `value-key` prop only accepts keys that
@@ -717,6 +728,28 @@ async function deleteSaved(saved: SavedTheme) {
                 </UFormField>
                 <UFormField :label="t('theme.cover.showDate')">
                   <USwitch v-model="draft.cover.showDate" />
+                </UFormField>
+                <UFormField
+                  :label="t('theme.cover.date')"
+                  :help="t('theme.cover.dateHelp')"
+                >
+                  <div class="flex items-center gap-2">
+                    <UInput
+                      v-model="coverDate"
+                      type="date"
+                      class="flex-1"
+                      data-testid="theme-cover-date-input"
+                    />
+                    <UButton
+                      v-if="coverDate"
+                      icon="i-lucide-x"
+                      color="neutral"
+                      variant="ghost"
+                      size="sm"
+                      :aria-label="t('theme.cover.dateClear')"
+                      @click="coverDate = ''"
+                    />
+                  </div>
                 </UFormField>
                 <UFormField :label="t('theme.cover.showAuthors')">
                   <USwitch

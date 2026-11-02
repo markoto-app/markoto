@@ -1,10 +1,12 @@
 # Demo document: Quaybridge Q3 2026 quarterly report
 
-A realistic, publication-length markoto document (15 rendered A4 pages) for
+A realistic, publication-length markoto document (13 rendered A4 pages) for
 the product page, docs walkthroughs and flow tests. It is written as a real
 finance team would write it. Markdown features appear only where such a report
 would use them: tables (including one wide income statement), three charts,
-footnotes, three alerts, page breaks, a cover and a table of contents.
+footnotes, three alerts, a cover and a table of contents. There are only two
+manual page breaks (after the table of contents and before the appendix);
+everything else paginates by itself.
 
 | File | What it is |
 |---|---|
@@ -64,13 +66,14 @@ year-end ARR 22.4–22.8 m, EBITDA −0.1 to +0.2 m.
 
 ## Rendering notes
 
-- Page breaks are placed so that no heading is stranded at the bottom of a
-  page. markoto (paged.js 0.4.3) does not honour `break-after: avoid` on
-  headings, so after any edit that changes the text length, re-check the
-  page ends.
-- A table cannot carry a `{.class}` attribute (the line after a table becomes
-  an extra table row). The custom CSS therefore targets the wide income
-  statement as `table:has(th:nth-child(9))`.
-- Charts are Mermaid `xychart-beta`, `pie` and `flowchart`. They render as
-  images, so they do not use the theme fonts or colours (they use the
-  `neutral` Mermaid theme).
+- No manual page breaks are needed between sections: markoto keeps every
+  heading with the block that follows it, moves short tables (up to 12 rows)
+  and charts to the next page as a whole, splits long tables between rows
+  and repeats their header row.
+- The wide income statement carries `{.income-statement}` on the line under
+  the table; the custom CSS uses that class for its smaller type.
+- Charts are Mermaid `xychart-beta`, `pie` and `flowchart` with the
+  `document` diagram colours: they use the theme's accent palette and its
+  body font (IBM Plex Sans).
+- The cover shows the publication date picked in the theme
+  (`cover.date`: 2026-10-29), written out as "29 October 2026".

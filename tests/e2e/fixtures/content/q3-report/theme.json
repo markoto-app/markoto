@@ -76,7 +76,7 @@
     "hrThickness": 1
   },
   "mermaid": {
-    "theme": "neutral"
+    "theme": "document"
   },
   "alerts": {
     "note": "#2F5B7C",
@@ -99,6 +99,7 @@
     "showSubtitle": true,
     "subtitle": "Quarterly report to shareholders and the supervisory board",
     "showDate": true,
+    "date": "2026-10-29",
     "showAuthors": true,
     "authors": [
       "Finance & Strategy",
@@ -108,5 +109,5 @@
     "titleSize": 2.6,
     "subtitleSize": 1.2
   },
-  "customCss": "/* Figures line up in columns. */\n.paged-doc table { font-size: 0.95em; font-variant-numeric: tabular-nums lining-nums; }\n.paged-doc th { vertical-align: bottom; }\n/* Tables with nine or more columns (the five-quarter income statement):\n   smaller type and no wrapped row labels so they fit the text width. */\n.paged-doc table:has(th:nth-child(9)) { font-size: 0.78em; }\n.paged-doc table:has(th:nth-child(9)) th,\n.paged-doc table:has(th:nth-child(9)) td { padding-left: 3px; padding-right: 3px; white-space: nowrap; }\n/* Charts: centred and never taller than a third of the page. */\n.paged-doc .mermaid img { max-height: 90mm; width: auto; margin: 0.6em auto; }\n"
+  "customCss": "/* Figures line up in columns. */\n.paged-doc table { font-size: 0.95em; font-variant-numeric: tabular-nums lining-nums; }\n.paged-doc th { vertical-align: bottom; }\n/* The eleven-column income statement ({.income-statement} under the\n   table): smaller type and no wrapped row labels so it fits the text width. */\n.paged-doc table.income-statement { font-size: 0.78em; }\n.paged-doc table.income-statement th,\n.paged-doc table.income-statement td { padding-left: 3px; padding-right: 3px; white-space: nowrap; }\n"
 }

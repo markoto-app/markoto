@@ -4,7 +4,10 @@ import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidCdn'
 import { hljsTheme } from '~~/shared/utils/hljsCdn'
 import { ownUploadFileId } from '~~/shared/utils/themeImages'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
+import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
+import { documentTexts } from '~~/shared/utils/documentLocale'
 import type { DocTheme } from '~~/shared/types/theme'
+import { PAGED_HANDLERS_SCRIPT } from './pagedHandlers'
 import type { CustomCssResult } from '~~/shared/types/customCss'
 // Iframe bootstrap document — its own .html file so the HTML/CSS/JS gets
 // proper syntax highlighting. Loaded as a raw string via Vite's `?raw`.
@@ -49,7 +52,10 @@ export interface RenderMessage {
   fontsImport: string
   hljsUrl: string
   hljsSri: string
-  mermaidTheme: string
+  /** `JSON.stringify(buildMermaidConfig(theme))` — Mermaid's initialize config. */
+  mermaidConfig: string
+  /** BCP-47 document language (chart number formats). */
+  locale: string
   /** Print once paginated (browser print path). */
   print: boolean
 }
@@ -130,6 +136,14 @@ export function buildPreviewSrcdoc(opts: { parentOrigin: string, nonce: string, 
     .replaceAll('__KATEX_CSS_SRI__', KATEX_CSS_SRI)
     .replaceAll('__MERMAID_URL__', MERMAID_URL)
     .replaceAll('__MERMAID_SRI__', MERMAID_SRI)
+    // A function replacer: the script source must not be read as a
+    // replacement pattern (`$&`, `$1`, …).
+    .replaceAll('__PAGED_HANDLERS_SCRIPT__', () => pagedHandlersInline())
+}
+
+/** pagedHandlers.ts source as an inline-script body (never closes the tag). */
+function pagedHandlersInline(): string {
+  return PAGED_HANDLERS_SCRIPT.replaceAll(/<\/(script)/gi, String.raw`<\/$1`)
 }
 
 /** Nonces are base64; anything else is dropped rather than escaped. */
@@ -198,17 +212,18 @@ export function buildRenderMessage(opts: {
   html: string
   theme: DocTheme
   title: string
-  tocTitle: string
+  /** Document language (`ymeta.language`) — date + TOC title + numbers. */
+  language: string
   customCss: CustomCssResult | undefined
   docId: string
   fileToken: string
   print: boolean
 }): RenderMessage {
-  const dateIso = new Date().toISOString().slice(0, 10)
+  const texts = documentTexts(opts.theme, opts.language)
   const themeCss = themeToCss(opts.theme, {
     title: opts.title,
-    date: dateIso,
-    tocTitle: opts.tocTitle,
+    date: texts.date,
+    tocTitle: texts.tocTitle,
     customCss: opts.customCss,
     imageUrl: url => withOwnUploadToken(url, opts.docId, opts.fileToken)
   })
@@ -220,7 +235,8 @@ export function buildRenderMessage(opts: {
     fontsImport: themeFontsImport(opts.theme),
     hljsUrl: hljs.url,
     hljsSri: hljs.sri,
-    mermaidTheme: opts.theme.mermaid.theme,
+    mermaidConfig: JSON.stringify(buildMermaidConfig(opts.theme)),
+    locale: texts.locale,
     print: opts.print
   }
 }
