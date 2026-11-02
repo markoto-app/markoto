@@ -51,7 +51,7 @@ describe('createDictateRealtimeClient — provider selection', () => {
 
     expect(events.length).toBeGreaterThanOrEqual(3)
     expect(events[2]?.results?.[0]?.isFinal).toBe(true)
-    expect(events[2]?.results?.[0]?.alternatives?.[0]?.transcript).toBe('hello world')
+    expect(events[2]?.results?.[0]?.alternatives?.[0]?.transcript).toBe('Lena says the new templates save her about an hour a week.')
 
     stream.end()
     await new Promise(r => setImmediate(r))
