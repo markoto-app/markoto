@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 
-// Shows a downloaded PDF in a page so a flow can screenshot it.
+// Shows downloaded files (a PDF, an exported .md) in a page so a flow can
+// screenshot what the reader gets.
 //
 // Headless Chromium has no built-in PDF viewer, so a flow can't capture
 // "the PDF you just downloaded" the way a reader would see it. This
@@ -49,6 +50,21 @@ function viewerHtml(pdfBase64: string, pages: number): string {
     document.body.dataset.error = String(e)
   }
 </script></body></html>`
+}
+
+/**
+ * Show a downloaded text file (e.g. an exported `.md`) the way a browser
+ * shows plain text: monospace, unstyled. The content is the file's real
+ * bytes; pair the screenshot with `flow.shot(..., { addressBar })` so the
+ * frame is labelled with the file, not the app.
+ */
+export async function showTextFile(page: Page, text: string): Promise<void> {
+  const escaped = text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+  await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>
+    html, body { margin: 0; background: #fff; color: #111; }
+    pre { margin: 0; padding: 16px 20px; font: 13px/1.55 ui-monospace, 'DejaVu Sans Mono', monospace; white-space: pre-wrap; }
+  </style></head><body><pre>${escaped}</pre></body></html>`)
+  await page.locator('pre').waitFor({ state: 'visible' })
 }
 
 /**

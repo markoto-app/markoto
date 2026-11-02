@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect } from '../fixtures/flow'
-import { showPdf } from '../fixtures/pdfViewer'
+import { showPdf } from '../fixtures/downloadViewer'
 
 // Tier 1: "Polish your document and download it as a PDF".
 //
@@ -42,7 +42,7 @@ const RESEARCH_SUMMARY = [
 test('Polished PDF', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  await editor.silentSetup({ title: 'Research summary', body: RESEARCH_SUMMARY })
+  await editor.silentSetup({ title: 'Remote work and focus time', body: RESEARCH_SUMMARY })
 
   await flow.heading('Download a polished PDF', 3)
   await flow.narrate(

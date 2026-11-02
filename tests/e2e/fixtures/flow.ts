@@ -205,6 +205,10 @@ export type TypeOpts = {
 }
 
 export type ShotOpts = {
+  /** Address-bar text for a frame whose page has no app URL — e.g. a
+   *  downloaded file shown in a viewer: `Downloads/notes.md`. Without a
+   *  leading `/` the frame shows it instead of the app's domain + path. */
+  addressBar?: string
   highlights?: HighlightRef[]
   /** Mark this shot as the flow's hero frame. */
   hero?: boolean
@@ -664,6 +668,8 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
            *  approach + narration. Latch-once across the flow
            *  (across ALL actors — first hero wins). */
           hero?: boolean
+          /** See ShotOpts.addressBar. */
+          addressBar?: string
         } = {}
       ) => {
         if (suppress) {
@@ -680,7 +686,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
             return null
           }
         })()
-        const shotPath = url && url.protocol.startsWith('http') ? `${url.pathname}${url.search}` : '/'
+        const shotPath = opts.addressBar ?? (url && url.protocol.startsWith('http') ? `${url.pathname}${url.search}` : '/')
         const highlights = mode === 'outcome' ? await resolveHighlights(opts.highlights) : undefined
         const annotations = (mode === 'approach' || mode === 'outcome')
           ? await resolveAnnotations(opts.annotations)
@@ -729,6 +735,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
             highlights: opts?.highlights,
             annotations: opts?.annotations,
             hero: opts?.hero,
+            addressBar: opts?.addressBar,
             formSnap: true
           })
         },

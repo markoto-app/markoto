@@ -581,7 +581,14 @@
     "comingSoonFootnote": "Les offres payantes, leurs prix et leurs limites ne sont pas encore définitifs. Inscrivez-vous à la liste d'attente ci-dessous et nous vous écrirons une fois, à leur lancement.",
     "freeFootnote": "Chaque compte inclut la collaboration en temps réel, l'historique des versions et des documents illimités. Les points IA se rechargent à chaque période.",
     "selfHostedTitle": "Limites de cette instance",
-    "selfHostedSubtitle": "Cette instance markoto ne vend pas d'offres. Chaque compte bénéficie des limites ci-dessous ; l'opérateur de cette instance peut les modifier."
+    "selfHostedSubtitle": "Cette instance markoto ne vend pas d'offres. Chaque compte bénéficie des limites ci-dessous ; l'opérateur de cette instance peut les modifier.",
+    "mostPopular": "Le plus populaire",
+    "tiers": {
+      "free": "Toutes les fonctions d'écriture, plus une première dotation de points IA.",
+      "pro": "Pour les rédacteurs indépendants : plus de points IA, d'espaces de travail et de stockage.",
+      "max": "Pour les petites équipes : prenez en charge les points IA de tous les membres d'un de vos espaces de travail.",
+      "ultra": "Pour les équipes plus grandes : le parrainage d'espace de travail avec la plus grande dotation."
+    }
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
@@ -1128,6 +1135,11 @@
         "privacy": "la politique de confidentialité",
         "tos": "les conditions d'utilisation",
         "dpa": "l'avenant de traitement des données"
+      },
+      "documentNames": {
+        "privacy": "Politique de confidentialité",
+        "tos": "Conditions d'utilisation",
+        "dpa": "Accord de traitement des données"
       }
     },
     "delete": {
@@ -1146,30 +1158,33 @@
         "intro": "Nous voulons que vous ayez une vision complète avant de confirmer. Tout ce qui suit s'exécute automatiquement une fois la période de grâce de 30 jours terminée.",
         "deleted": {
           "heading": "Supprimé définitivement",
-          "ownedDocs": "{count} document(s) que vous possédez — y compris ceux partagés avec des collaborateurs en mode édition. Les collaborateurs perdent l'accès en même temps.",
+          "ownedDocs": "{count} document dont vous êtes propriétaire, y compris s'il est partagé. Les personnes qui y ont accès le perdent en même temps. | {count} documents dont vous êtes propriétaire, y compris ceux que vous partagez. Les personnes qui y ont accès le perdent en même temps.",
           "themes": "Vos thèmes enregistrés et préférences personnelles.",
           "ai": "Vos sessions IA, historique de requêtes et compteurs d'utilisation.",
-          "exports": "{count} export(s) de données précédent(s) et leurs fichiers ZIP téléchargeables.",
+          "exports": "{count} export de données précédent et son fichier ZIP. | {count} exports de données précédents et leurs fichiers ZIP.",
           "stripe": "Votre fiche client Stripe (Stripe conserve les factures sous-jacentes pour la durée requise par le droit fiscal)."
         },
         "anonymised": {
           "heading": "Conservé sur la plateforme avec votre nom retiré",
-          "comments": "{count} commentaire(s) que vous avez rédigé(s) sur des documents que vous ne possédez pas — remplacé(s) par « [utilisateur supprimé] ». Les contenus restent afin que les autres participants puissent suivre la conversation.",
-          "activity": "{count} entrée du journal d'activité sur des documents que vous ne possédez pas — affichée comme « Anonyme » désormais.",
-          "audit": "{count} entrée dans notre journal de sécurité interne — votre identifiant utilisateur est retiré.",
-          "consent": "{count} décision(s) de consentement — anonymisée(s) mais conservée(s) comme preuve légale au titre de l'article 7(1) du RGPD."
+          "comments": "{count} commentaire écrit sur des documents qui ne vous appartiennent pas, affiché comme « [utilisateur supprimé] ». Le texte reste pour que les autres puissent suivre la conversation. | {count} commentaires écrits sur des documents qui ne vous appartiennent pas, affichés comme « [utilisateur supprimé] ». Le texte reste pour que les autres puissent suivre la conversation.",
+          "activity": "{count} entrée du journal d'activité de documents qui ne vous appartiennent pas, affichée ensuite comme « Anonyme ». | {count} entrées du journal d'activité de documents qui ne vous appartiennent pas, affichées ensuite comme « Anonyme ».",
+          "audit": "{count} entrée dans notre journal de sécurité interne ; votre identifiant est retiré. | {count} entrées dans notre journal de sécurité interne ; votre identifiant est retiré.",
+          "consent": "{count} décision de consentement, anonymisée mais conservée comme preuve légale au titre de l'article 7(1) du RGPD. | {count} décisions de consentement, anonymisées mais conservées comme preuve légale au titre de l'article 7(1) du RGPD."
         },
         "workspaces": {
           "heading": "Espaces de travail",
           "cascadeDelete": {
             "title": "Seront supprimés en cascade (seul membre)",
             "body": "Ces espaces de travail seront définitivement supprimés avec tous les documents et fichiers de connaissances qu'ils contiennent. Si vous souhaitez préserver leur contenu, invitez d'abord un co-membre avec le rôle d'administrateur, puis revenez demander la suppression.",
-            "row": "{name} — {docCount} document(s), {knowledgeCount} fichier(s) de connaissances"
+            "row": "{name} : {docs}, {files}",
+            "docCount": "aucun document | {count} document | {count} documents",
+            "fileCount": "aucun fichier de connaissances | {count} fichier de connaissances | {count} fichiers de connaissances"
           },
           "promote": {
             "title": "Auront un nouvel administrateur (d'autres membres existent)",
-            "body": "Ces espaces de travail restent actifs pour les membres restants. Le membre le plus ancien devient administrateur.",
-            "row": "{name} — {newAdminName} (actuellement {newAdminPreviousRole}) devient administrateur"
+            "body": "Ces espaces de travail restent actifs pour les autres membres. Un admin arrivé avant les autres prend le relais ; s'il n'y a pas d'autre admin, le membre le plus ancien le devient.",
+            "row": "{name} : {newAdminName} (actuellement {newAdminPreviousRole}) devient admin",
+            "rowAlreadyAdmin": "{name} : {newAdminName} reste admin et prend le relais"
           },
           "removeMember": {
             "title": "Vous serez simplement retiré",
@@ -1186,7 +1201,8 @@
         },
         "timing": "La cascade proprement dite s'exécute en tâche de fond une fois par heure. Après la fin de la période de grâce, vos données sont entièrement purgées en environ une heure.",
         "noRecovery": "Une fois la cascade exécutée, votre compte et votre contenu sont perdus définitivement — il n'existe aucun moyen de récupération."
-      }
+      },
+      "cancelledToast": "Suppression annulée. Votre compte reste tel quel."
     },
     "export": {
       "emailReadySubject": "Votre export de données markoto est prêt",
@@ -1238,7 +1254,7 @@
   "settings": {
     "profile": {
       "title": "Profil",
-      "intro": "Votre compte, les données que nous détenons sur vous et les commandes pour gérer les deux. Les détails de dépenses et d'utilisation apparaîtront également ici à mesure que ces fonctionnalités seront déployées.",
+      "intro": "Votre compte, les données que nous détenons sur vous et les réglages pour gérer les deux.",
       "account": {
         "heading": "Compte",
         "email": "E-mail",

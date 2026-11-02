@@ -206,8 +206,18 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     'Click "Request account deletion"',
     page.locator('[data-testid="delete-account-button"]'),
     {
-      result: 'The consequence modal opens — listing every workspace by name and what will happen to each.',
-      after: () => page.locator('[data-testid="deletion-consequences-modal"]').waitFor({ state: 'visible', timeout: 5_000 })
+      result: 'The modal lists every workspace by name and what will happen to it: '
+        + 'deleted along with you (you are its only member), or handed to a named '
+        + 'member who becomes admin.',
+      after: async () => {
+        await page.locator('[data-testid="deletion-consequences-modal"]').waitFor({ state: 'visible', timeout: 5_000 })
+        await page.locator('[data-testid="ws-cascade-block"]').waitFor({ state: 'visible', timeout: 10_000 })
+        await page.locator('[data-testid="ws-promote-block"]').waitFor({ state: 'visible', timeout: 5_000 })
+      },
+      highlights: [
+        { label: 'deleted with you', selector: '[data-testid="ws-cascade-block"]' },
+        { label: 'gets a new admin', selector: '[data-testid="ws-promote-block"]' }
+      ]
     }
   )
 
@@ -226,25 +236,10 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
   // ─── Chapter 4: Read the named consequences ────────────────────
   await flow.heading('Read the named consequences', 3)
   await flow.narrate(
-    'Workspaces are named. Receiving admins are named. If a name in '
-    + 'the cascade box is something you want to preserve, you can '
-    + 'close the modal, invite a co-admin to that workspace first, '
-    + 'come back, and the next time you preview this list the row '
-    + 'will have moved into the promote box. No data accidentally '
-    + 'lost, no collaborators surprised.'
-  )
-
-  await flow.shot(
-    'Two boxes, two fates: red border = cascade-delete (sole member), '
-    + 'plain border = auto-promote with the named member becoming admin. '
-    + 'You can step out of this modal and rearrange first if any of '
-    + 'these names belong somewhere else.',
-    {
-      annotations: [
-        { label: 'cascade-delete', selector: '[data-testid="ws-cascade-block"]', kind: 'box' },
-        { label: 'auto-promote', selector: '[data-testid="ws-promote-block"]', kind: 'box' }
-      ]
-    }
+    'Every workspace and every new admin is named. Want to keep a '
+    + 'workspace that would be deleted? Close the modal, invite a '
+    + 'co-admin to it first, and come back: it moves into the "new '
+    + 'admin" group. Nothing is lost by accident, and nobody is surprised.'
   )
 
   // ─── Chapter 5: Type the confirm phrase ────────────────────────

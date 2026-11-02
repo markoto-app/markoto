@@ -173,11 +173,11 @@ async function onConfirm(): Promise<void> {
               {{ t('legal.delete.consequences.deleted.heading') }}
             </h3>
             <ul class="text-sm space-y-1 list-disc pl-5">
-              <li>{{ t('legal.delete.consequences.deleted.ownedDocs', { count: preview.ownedDocs.total }) }}</li>
+              <li>{{ t('legal.delete.consequences.deleted.ownedDocs', { count: preview.ownedDocs.total }, preview.ownedDocs.total) }}</li>
               <li>{{ t('legal.delete.consequences.deleted.themes') }}</li>
               <li>{{ t('legal.delete.consequences.deleted.ai') }}</li>
               <li v-if="preview.dataExportJobs > 0">
-                {{ t('legal.delete.consequences.deleted.exports', { count: preview.dataExportJobs }) }}
+                {{ t('legal.delete.consequences.deleted.exports', { count: preview.dataExportJobs }, preview.dataExportJobs) }}
               </li>
               <li v-if="preview.stripeCustomerWillBeDeleted">
                 {{ t('legal.delete.consequences.deleted.stripe') }}
@@ -209,8 +209,8 @@ async function onConfirm(): Promise<void> {
                 >
                   {{ t('legal.delete.consequences.workspaces.cascadeDelete.row', {
                     name: ws.name,
-                    docCount: ws.docCount,
-                    knowledgeCount: ws.knowledgeCount
+                    docs: t('legal.delete.consequences.workspaces.cascadeDelete.docCount', { count: ws.docCount }, ws.docCount),
+                    files: t('legal.delete.consequences.workspaces.cascadeDelete.fileCount', { count: ws.knowledgeCount }, ws.knowledgeCount)
                   }) }}
                 </li>
               </ul>
@@ -232,11 +232,13 @@ async function onConfirm(): Promise<void> {
                   v-for="ws in promoteRows"
                   :key="ws.workspaceId"
                 >
-                  {{ t('legal.delete.consequences.workspaces.promote.row', {
-                    name: ws.name,
-                    newAdminName: ws.kind === 'promote_admin' ? ws.newAdminName : '',
-                    newAdminPreviousRole: ws.kind === 'promote_admin' ? ws.newAdminPreviousRole : ''
-                  }) }}
+                  {{ ws.kind === 'promote_admin' && ws.newAdminPreviousRole === 'admin'
+                    ? t('legal.delete.consequences.workspaces.promote.rowAlreadyAdmin', { name: ws.name, newAdminName: ws.newAdminName })
+                    : t('legal.delete.consequences.workspaces.promote.row', {
+                      name: ws.name,
+                      newAdminName: ws.kind === 'promote_admin' ? ws.newAdminName : '',
+                      newAdminPreviousRole: ws.kind === 'promote_admin' ? t(`workspace.roles.${ws.newAdminPreviousRole}`) : ''
+                    }) }}
                 </li>
               </ul>
             </div>
@@ -259,7 +261,7 @@ async function onConfirm(): Promise<void> {
                 >
                   {{ t('legal.delete.consequences.workspaces.removeMember.row', {
                     name: ws.name,
-                    currentRole: ws.kind === 'remove_member' ? ws.currentRole : ''
+                    currentRole: ws.kind === 'remove_member' ? t(`workspace.roles.${ws.currentRole}`) : ''
                   }) }}
                 </li>
               </ul>
@@ -273,11 +275,11 @@ async function onConfirm(): Promise<void> {
             </h3>
             <ul class="text-sm space-y-1 list-disc pl-5">
               <li v-if="preview.commentsToAnonymise > 0">
-                {{ t('legal.delete.consequences.anonymised.comments', { count: preview.commentsToAnonymise }) }}
+                {{ t('legal.delete.consequences.anonymised.comments', { count: preview.commentsToAnonymise }, preview.commentsToAnonymise) }}
               </li>
-              <li>{{ t('legal.delete.consequences.anonymised.activity', { count: preview.retainedAnonymised.activityLog }) }}</li>
-              <li>{{ t('legal.delete.consequences.anonymised.audit', { count: preview.retainedAnonymised.auditLog }) }}</li>
-              <li>{{ t('legal.delete.consequences.anonymised.consent', { count: preview.retainedAnonymised.consentLog }) }}</li>
+              <li>{{ t('legal.delete.consequences.anonymised.activity', { count: preview.retainedAnonymised.activityLog }, preview.retainedAnonymised.activityLog) }}</li>
+              <li>{{ t('legal.delete.consequences.anonymised.audit', { count: preview.retainedAnonymised.auditLog }, preview.retainedAnonymised.auditLog) }}</li>
+              <li>{{ t('legal.delete.consequences.anonymised.consent', { count: preview.retainedAnonymised.consentLog }, preview.retainedAnonymised.consentLog) }}</li>
             </ul>
           </section>
 

@@ -95,8 +95,13 @@ test('Start from a template', async ({ page, flow, editor }) => {
     'Click "Create document"',
     editor.page.newDocDialog.submitCreate,
     {
-      result: 'The editor opens — Date / Attendees / Purpose at the top, '
-        + 'Agenda + Discussion + Action items below. All ready to fill in.',
+      hero: true,
+      result: 'The editor opens with the meeting skeleton in place: Date, Attendees, '
+        + 'Purpose, Agenda, Discussion, Action items, Decisions, Notes. The grey '
+        + 'notes say what goes where; they never show in the preview or the PDF.',
+      highlights: [
+        { label: 'Ready-made structure', selector: '.cm-content' }
+      ],
       after: async () => {
         await page.waitForURL(/\/d\/[^/]+/)
         await editor.page.waitForReady()
@@ -105,17 +110,6 @@ test('Start from a template', async ({ page, flow, editor }) => {
           await editor.page.waitForPreviewPaginated()
         }
       }
-    }
-  )
-
-  await flow.shot(
-    'Date, Attendees, Purpose, Agenda, Discussion, Action items, Decisions, '
-    + 'Notes — every section the template seeded, ready for content.',
-    {
-      hero: true,
-      highlights: [
-        { label: 'Pre-seeded structure', selector: '.cm-content' }
-      ]
     }
   )
 

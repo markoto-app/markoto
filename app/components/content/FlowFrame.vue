@@ -172,7 +172,12 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
             name="i-lucide-lock"
             class="size-3 text-muted shrink-0"
           />
-          <span class="text-muted">{{ chromeDomain }}</span>
+          <!-- A path without a leading "/" is a non-app location (a
+               downloaded file shown in a viewer): no app domain. -->
+          <span
+            v-if="!path || path.startsWith('/')"
+            class="text-muted"
+          >{{ chromeDomain }}</span>
           <span
             v-if="path"
             class="text-default truncate"

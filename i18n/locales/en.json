@@ -581,7 +581,14 @@
     "comingSoonFootnote": "Paid plans, their prices and limits aren't final yet. Join the waitlist below and we'll email you once when they launch.",
     "freeFootnote": "Every account includes real-time collaboration, version history, and unlimited documents. AI Points refill every period.",
     "selfHostedTitle": "Limits on this instance",
-    "selfHostedSubtitle": "This markoto instance doesn't sell plans. Every account gets the limits below; the operator of this instance can change them."
+    "selfHostedSubtitle": "This markoto instance doesn't sell plans. Every account gets the limits below; the operator of this instance can change them.",
+    "mostPopular": "Most popular",
+    "tiers": {
+      "free": "Every writing feature, plus a starter allowance of AI Points.",
+      "pro": "For solo writers: more AI Points, workspaces and storage.",
+      "max": "For small teams: sponsor the AI Points of everyone in a workspace you own.",
+      "ultra": "For larger teams: workspace sponsoring with the biggest allowance."
+    }
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1128,6 +1135,11 @@
         "privacy": "the Privacy Policy",
         "tos": "the Terms of Service",
         "dpa": "the Data Processing Addendum"
+      },
+      "documentNames": {
+        "privacy": "Privacy Policy",
+        "tos": "Terms of Service",
+        "dpa": "Data Processing Addendum"
       }
     },
     "delete": {
@@ -1146,30 +1158,33 @@
         "intro": "We want you to see the full picture before you confirm. Everything below runs automatically once the 30-day grace window ends.",
         "deleted": {
           "heading": "Permanently deleted",
-          "ownedDocs": "{count} document(s) you own — including any you've shared with collaborators in edit mode. Co-collaborators lose access at the same time.",
+          "ownedDocs": "{count} document you own, including one you share with collaborators. They lose access at the same time. | {count} documents you own, including any you share with collaborators. They lose access at the same time.",
           "themes": "Your saved themes and personal preferences.",
           "ai": "Your AI sessions, prompt history, and usage counters.",
-          "exports": "{count} previous data export(s) and their downloadable ZIP files.",
+          "exports": "{count} previous data export and its ZIP file. | {count} previous data exports and their ZIP files.",
           "stripe": "Your Stripe customer record (Stripe retains underlying invoices for the period required by tax law)."
         },
         "anonymised": {
           "heading": "Kept on the platform with your name removed",
-          "comments": "{count} comment(s) you wrote on documents you don't own — replaced with \"[deleted user]\". The bodies stay so other participants can still follow the conversation.",
-          "activity": "{count} activity-log entry on documents you don't own — shown as \"Anonymous\" going forward.",
-          "audit": "{count} entry in our internal security log — your user id is removed.",
-          "consent": "{count} consent decision(s) — anonymised but retained as legal proof under GDPR Article 7(1)."
+          "comments": "{count} comment you wrote on documents you don't own, shown as \"[deleted user]\". The text stays so others can still follow the conversation. | {count} comments you wrote on documents you don't own, shown as \"[deleted user]\". The text stays so others can still follow the conversation.",
+          "activity": "{count} activity-log entry on documents you don't own, shown as \"Anonymous\" from then on. | {count} activity-log entries on documents you don't own, shown as \"Anonymous\" from then on.",
+          "audit": "{count} entry in our internal security log; your user id is removed. | {count} entries in our internal security log; your user id is removed.",
+          "consent": "{count} consent decision, anonymised but kept as legal proof under GDPR Article 7(1). | {count} consent decisions, anonymised but kept as legal proof under GDPR Article 7(1)."
         },
         "workspaces": {
           "heading": "Workspaces",
           "cascadeDelete": {
             "title": "Will be cascade-deleted (sole member)",
             "body": "These workspaces will be permanently removed along with every document and knowledge file inside. If you want to preserve their contents, invite a co-member with admin role first, then come back and request deletion.",
-            "row": "{name} — {docCount} document(s), {knowledgeCount} knowledge file(s)"
+            "row": "{name}: {docs}, {files}",
+            "docCount": "no documents | {count} document | {count} documents",
+            "fileCount": "no knowledge files | {count} knowledge file | {count} knowledge files"
           },
           "promote": {
             "title": "Will get a new admin (other members exist)",
-            "body": "These workspaces stay live for the remaining members. The longest-tenured member becomes admin.",
-            "row": "{name} — {newAdminName} (currently {newAdminPreviousRole}) becomes admin"
+            "body": "These workspaces stay live for the remaining members. An admin who joined before the others takes over; if there is no other admin, the longest-standing member becomes one.",
+            "row": "{name}: {newAdminName} (currently {newAdminPreviousRole}) becomes admin",
+            "rowAlreadyAdmin": "{name}: {newAdminName} stays admin and takes over"
           },
           "removeMember": {
             "title": "You'll just be removed",
@@ -1186,7 +1201,8 @@
         },
         "timing": "The actual cascade runs as a background job once per hour. After the grace window ends, your data is fully purged within about an hour.",
         "noRecovery": "Once the cascade runs, your account and content are gone permanently — there is no recovery path."
-      }
+      },
+      "cancelledToast": "Deletion cancelled. Your account stays as it is."
     },
     "export": {
       "emailReadySubject": "Your markoto data export is ready",
@@ -1238,7 +1254,7 @@
   "settings": {
     "profile": {
       "title": "Profile",
-      "intro": "Your account, the data we hold about you, and the controls for managing both. Spending and usage details will live here too as those features ship.",
+      "intro": "Your account, the data we hold about you, and the controls for managing both.",
       "account": {
         "heading": "Account",
         "email": "Email",

@@ -581,7 +581,14 @@
     "comingSoonFootnote": "付费方案及其价格和额度尚未最终确定。加入下方的候补名单，方案上线时我们会给您发送一封邮件。",
     "freeFootnote": "每个账户都包含实时协作、版本历史和无限文档。AI 点数每个周期补充一次。",
     "selfHostedTitle": "此实例的使用上限",
-    "selfHostedSubtitle": "此 markoto 实例不销售套餐。每个账户都享有以下上限，实例运营者可以调整。"
+    "selfHostedSubtitle": "此 markoto 实例不销售套餐。每个账户都享有以下上限，实例运营者可以调整。",
+    "mostPopular": "最受欢迎",
+    "tiers": {
+      "free": "全部写作功能，外加一份起步 AI 点数。",
+      "pro": "面向个人：更多 AI 点数、工作区和存储空间。",
+      "max": "面向小团队：为你拥有的工作区中的每个人承担 AI 点数。",
+      "ultra": "面向更大的团队：额度最大的工作区赞助。"
+    }
   },
   "topbar": {
     "planBadge": "套餐：{plan}",
@@ -1128,6 +1135,11 @@
         "privacy": "隐私政策",
         "tos": "服务条款",
         "dpa": "数据处理附录"
+      },
+      "documentNames": {
+        "privacy": "隐私政策",
+        "tos": "服务条款",
+        "dpa": "数据处理协议"
       }
     },
     "delete": {
@@ -1146,30 +1158,33 @@
         "intro": "在你确认之前，我们希望你了解全貌。以下所有内容将在 30 天宽限期结束后自动执行。",
         "deleted": {
           "heading": "永久删除",
-          "ownedDocs": "你拥有的 {count} 个文档 — 包括任何你以编辑模式与协作者分享的文档。协作者将同时失去访问权限。",
+          "ownedDocs": "你拥有的 {count} 个文档（包括你共享的文档）。协作者也会同时失去访问权限。",
           "themes": "你保存的主题和个人偏好。",
           "ai": "你的 AI 会话、提示历史和使用计数器。",
-          "exports": "{count} 次之前的数据导出及其可下载的 ZIP 文件。",
+          "exports": "{count} 个以前的数据导出及其 ZIP 文件。",
           "stripe": "你的 Stripe 客户记录（Stripe 会按税法要求的期限保留相关发票）。"
         },
         "anonymised": {
           "heading": "保留在平台上但移除你的姓名",
-          "comments": "你在非本人所有的文档上撰写的 {count} 条评论 — 替换为“[已删除用户]”。正文将保留，以便其他参与者仍能跟上对话。",
-          "activity": "你在非本人所有的文档上的 {count} 条活动记录 — 此后显示为“匿名”。",
-          "audit": "我们内部安全日志中的 {count} 条记录 — 你的用户 ID 将被移除。",
-          "consent": "{count} 项同意决定 — 已匿名化，但依据 GDPR 第 7(1) 条作为法律凭证予以保留。"
+          "comments": "你在他人文档中写的 {count} 条评论将显示为“[已删除用户]”。正文会保留，以便其他人继续理解对话。",
+          "activity": "他人文档中的 {count} 条活动日志此后显示为“匿名”。",
+          "audit": "我们内部安全日志中的 {count} 条记录；你的用户 ID 会被移除。",
+          "consent": "{count} 条同意记录，已匿名化，但根据 GDPR 第 7(1) 条作为法律证明保留。"
         },
         "workspaces": {
           "heading": "工作区",
           "cascadeDelete": {
             "title": "将被级联删除（唯一成员）",
             "body": "这些工作区连同其中的每个文档和知识文件都将被永久移除。如果你想保留其内容，请先邀请一位具有管理员角色的协作成员，然后再回来请求删除。",
-            "row": "{name} — {docCount} 个文档，{knowledgeCount} 个知识文件"
+            "row": "{name}：{docs}，{files}",
+            "docCount": "没有文档 | {count} 个文档 | {count} 个文档",
+            "fileCount": "没有知识文件 | {count} 个知识文件 | {count} 个知识文件"
           },
           "promote": {
             "title": "将获得新管理员（存在其他成员）",
-            "body": "这些工作区将为剩余成员保持运行。任职时间最长的成员将成为管理员。",
-            "row": "{name} — {newAdminName}（当前为 {newAdminPreviousRole}）成为管理员"
+            "body": "这些工作区会继续为其余成员保留。先于其他人加入的管理员接管；如果没有其他管理员，加入时间最长的成员成为管理员。",
+            "row": "{name}：{newAdminName}（当前为 {newAdminPreviousRole}）成为管理员",
+            "rowAlreadyAdmin": "{name}：{newAdminName} 继续担任管理员并接管"
           },
           "removeMember": {
             "title": "你只会被移除",
@@ -1186,7 +1201,8 @@
         },
         "timing": "实际的级联操作作为后台任务每小时运行一次。宽限期结束后，你的数据将在约一小时内被完全清除。",
         "noRecovery": "级联操作一旦执行，你的账号和内容将永久消失 — 无任何恢复途径。"
-      }
+      },
+      "cancelledToast": "已取消删除。你的账户保持不变。"
     },
     "export": {
       "emailReadySubject": "你的 markoto 数据导出已就绪",
@@ -1238,7 +1254,7 @@
   "settings": {
     "profile": {
       "title": "个人资料",
-      "intro": "你的账号、我们持有的关于你的数据，以及管理二者的控制项。随着相关功能上线，消费与使用详情也将显示在这里。",
+      "intro": "你的账户、我们保存的关于你的数据，以及管理这两者的设置。",
       "account": {
         "heading": "账号",
         "email": "电子邮件",
