@@ -269,6 +269,18 @@
   }
 
   /**
+   * Mermaid 11 serialises foreignObject labels as HTML (`<br>` without a
+   * self-close). An SVG <img> is parsed as XML, so that breaks the whole
+   * diagram. Re-serialise as XML. Same as `toWellFormedSvg` in
+   * app/utils/mermaidLoader.ts (server render page).
+   */
+  function toWellFormedSvg(svg) {
+    var parsed = new DOMParser().parseFromString(svg, 'text/html');
+    var el = parsed.querySelector('svg');
+    return el ? new XMLSerializer().serializeToString(el) : svg;
+  }
+
+  /**
    * Render one mermaid source string and replace its <pre> with an
    * <img data-uri> wrapper (success) or an inline error placeholder
    * (mermaid threw). An <img> is atomic for paged.js — inline SVGs get
@@ -287,7 +299,7 @@
         ).join('')));
     try {
       var rendered = await mer.render(renderId, source);
-      var svgStr = rendered.svg;
+      var svgStr = toWellFormedSvg(rendered.svg);
       // viewBox="minX minY width height" — recover natural dims so
       // the <img> resolves its intrinsic aspect ratio.
       var vbNums = (svgStr.match(/viewBox="[^"]*"/) || [''])[0].match(/[\d.]+/g);

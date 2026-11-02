@@ -236,6 +236,20 @@ describe('themeToCss — Step 9: cover page', () => {
     expect(css).toMatch(/markoto-cover-title\s*\{\s*grid-row:\s*3/)
     expect(css).toMatch(/markoto-cover-meta\s*\{\s*grid-row:\s*5/)
   })
+  test('layout=editorial stacks the subtitle under the title (one column)', () => {
+    // Regression: title and subtitle both sat in grid-row 3 of a grid
+    // without explicit columns, so the subtitle was auto-placed into an
+    // implicit second column (title left, subtitle right).
+    const editorial: DocTheme = {
+      ...markoto,
+      cover: { ...markoto.cover, layout: 'editorial', showSubtitle: true, subtitle: 'Sub' }
+    }
+    const css = themeToCss(editorial, runtime)
+    expect(css).toMatch(/markoto-cover-subtitle\s*\{\s*grid-row:\s*4;\s*grid-column:\s*1/)
+    for (const part of ['logo', 'title', 'subtitle', 'meta']) {
+      expect(css).toMatch(new RegExp(`markoto-cover-${part}\\s*\\{\\s*grid-row:\\s*\\d;\\s*grid-column:\\s*1`))
+    }
+  })
   test('layout=classic uses flex-column centered (vertical mid)', () => {
     const classic: DocTheme = { ...markoto, cover: { ...markoto.cover, layout: 'classic' } }
     const css = themeToCss(classic, runtime)
@@ -312,6 +326,13 @@ describe('themeToCss — Step 8: meta font (eyebrow voice)', () => {
     // margin-box (footer)
     expect(css).toMatch(/@bottom-center\s*\{[^}]*font-family:\s*"?JetBrains Mono"?/)
   })
+  test('the @footnote area carries the meta font (it sits outside .paged-doc)', () => {
+    // paged.js moves footnotes into a page-level area outside `.paged-doc`,
+    // so the `.paged-doc .footnote` rule no longer matches there and the
+    // notes fell back to the browser's default serif.
+    const css = themeToCss(markoto, runtime)
+    expect(css).toMatch(/@footnote\s*\{[^}]*font-family:\s*"JetBrains Mono"/)
+  })
   test('Google Fonts import includes the meta font', () => {
     const css = themeToCss(markoto, runtime)
     // We don't call themeFontsImport here; the rule is that defaultTheme's
@@ -344,6 +365,19 @@ describe('themeToCss — modern preset (canonical look stays unchanged)', () => 
   })
   test('h1 line-height stays 1.2 (no override)', () => {
     expect(css).toMatch(/h1\s*\{[^}]*line-height:\s*1\.2[^5]/)
+  })
+})
+
+describe('themeToCss — horizontal table borders', () => {
+  test('keeps the rule under the header row; drops it only after the last body row', () => {
+    // Regression: `tr:last-child { border-bottom: none }` also matched the
+    // header row (the only — so last — <tr> of <thead>), which left
+    // horizontal-border tables with no line between header and body.
+    const theme: DocTheme = { ...markoto, tables: { ...markoto.tables, borders: 'horizontal' } }
+    const css = themeToCss(theme, runtime)
+    expect(css).toContain('.paged-doc tr { border-bottom: 1px solid var(--doc-secondary); }')
+    expect(css).toContain('.paged-doc tbody tr:last-child { border-bottom: none; }')
+    expect(css).not.toMatch(/\.paged-doc tr:last-child/)
   })
 })
 

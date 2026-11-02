@@ -88,6 +88,15 @@ describe('pagedPreviewIframe.html', () => {
     expect(WITHOUT_COMMENT).toContain('data.type === \'color-mode\'')
   })
 
+  it('re-serialises mermaid SVG as XML before turning it into an <img>', () => {
+    // Mermaid 11 emits HTML `<br>` inside foreignObject labels; an SVG
+    // data: <img> is parsed as XML, so without this a multi-line label
+    // breaks the whole diagram. Mirrors toWellFormedSvg in
+    // app/utils/mermaidLoader.ts (covered in tests/dom/mermaidSvg.test.ts).
+    expect(WITHOUT_COMMENT).toContain('new XMLSerializer().serializeToString(el)')
+    expect(WITHOUT_COMMENT).toContain('var svgStr = toWellFormedSvg(rendered.svg);')
+  })
+
   it('keeps every link inside the preview (no self-navigation of the sandboxed frame)', () => {
     expect(WITHOUT_COMMENT).toContain('closest(\'a[href]\')')
     expect(WITHOUT_COMMENT).toMatch(/if \(!a\) return;\s*e\.preventDefault\(\);/)

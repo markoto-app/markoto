@@ -83,6 +83,10 @@ function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor, metaFont)
   const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor, metaFont)
   const secondaryColor = theme.color.secondary
+  // The footnote area is a page-level box outside `.paged-doc`, so it does
+  // not inherit the body font: without an explicit family the notes fall
+  // back to the browser default serif. Same voice as figcaptions + the
+  // running header/footer (the meta font).
   return `@page {
   size: ${size} ${orientation};
   margin: ${margin}mm;
@@ -92,8 +96,10 @@ ${footerSlots}
     border-top: 0.5pt solid ${secondaryColor};
     padding-top: 4pt;
     margin-top: 8pt;
+    font-family: ${cssFontStack(metaFont)};
     font-size: 8pt;
     line-height: 1.3;
+    color: ${textColor};
   }
 }`
 }
@@ -339,7 +345,7 @@ function tableBlock(theme: DocTheme): string {
       break
     case 'horizontal':
       borderRules = `.paged-doc tr { border-bottom: 1px solid var(--doc-secondary); }
-.paged-doc tr:last-child { border-bottom: none; }`
+.paged-doc tbody tr:last-child { border-bottom: none; }`
       break
     case 'minimal':
       borderRules = `.paged-doc table { border-top: 2px solid var(--doc-text); border-bottom: 2px solid var(--doc-text); }
@@ -921,6 +927,10 @@ function renderCoverLayoutCss(layout: string, ctx: CoverCtx): string {
  * Editorial: 6-row grid (logo → spacer 1fr → title+subtitle → spacer 1fr
  * → meta → spacer 1fr). Three equal spacers anchor logo at top, title
  * block at ~1/3, meta at ~2/3, with the bottom third intentionally empty.
+ * The subtitle sits at the top of the spacer row under the title: two
+ * items in ONE row of a grid without explicit columns get auto-placed
+ * side by side (title left, subtitle right), so every item is pinned to
+ * column 1.
  */
 function editorialCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): string {
   return `.paged-doc .markoto-cover {
@@ -936,10 +946,10 @@ function editorialCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): st
   padding: 24mm 18mm;
   box-sizing: border-box;
 }
-.paged-doc .markoto-cover-logo { grid-row: 1; }
-.paged-doc .markoto-cover-title { grid-row: 3; }
-.paged-doc .markoto-cover-subtitle { grid-row: 3; align-self: end; margin-top: 0.4em; }
-.paged-doc .markoto-cover-meta { grid-row: 5; }`
+.paged-doc .markoto-cover-logo { grid-row: 1; grid-column: 1; }
+.paged-doc .markoto-cover-title { grid-row: 3; grid-column: 1; }
+.paged-doc .markoto-cover-subtitle { grid-row: 4; grid-column: 1; align-self: start; }
+.paged-doc .markoto-cover-meta { grid-row: 5; grid-column: 1; }`
 }
 
 /**

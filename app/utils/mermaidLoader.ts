@@ -98,7 +98,8 @@ async function replaceMermaidBlock(doc: Document, pre: Element, source: string, 
       n => n.toString(36)
     ).join('')))
   try {
-    const { svg } = await m.render(id, source)
+    const { svg: rawSvg } = await m.render(id, source)
+    const svg = toWellFormedSvg(rawSvg)
     const { natW, natH } = extractMermaidNaturalSize(svg)
     const finalSvg = natH ? svg.replace(/<svg(\b)/, `<svg height="${natH}"$1`) : svg
     pre.replaceWith(buildMermaidImg(doc, finalSvg, natW, natH))
@@ -108,6 +109,22 @@ async function replaceMermaidBlock(doc: Document, pre: Element, source: string, 
     errEl.textContent = `Mermaid error: ${err instanceof Error ? err.message : 'invalid diagram'}`
     pre.replaceWith(errEl)
   }
+}
+
+/**
+ * Re-serialise mermaid's SVG as well-formed XML. Mermaid 11 builds labels
+ * inside `<foreignObject>` with the HTML serializer, so a label line break
+ * comes out as `<br>` (no self-close). Inline in a page that is harmless,
+ * but as a `data:image/svg+xml` `<img>` the browser parses it as XML and
+ * the whole diagram renders as a broken image. Parsing it as HTML and
+ * serialising the `<svg>` with `XMLSerializer` closes every void element.
+ * The same transform lives in `pagedPreviewIframe.html` (live preview +
+ * browser print).
+ */
+export function toWellFormedSvg(svg: string): string {
+  const doc = new DOMParser().parseFromString(svg, 'text/html')
+  const el = doc.querySelector('svg')
+  return el ? new XMLSerializer().serializeToString(el) : svg
 }
 
 /** Natural width + height from the SVG's `viewBox` (`minX minY width height`). */
