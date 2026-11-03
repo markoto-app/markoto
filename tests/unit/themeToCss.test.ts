@@ -211,6 +211,28 @@ describe('themeToCss — Step 9: cover page', () => {
     expect(css).toContain('@top-left { content: \'\'; }')
     expect(css).toContain('@bottom-center { content: \'\'; }')
   })
+  test.each(['editorial', 'banner', 'minimal', 'classic'] as const)(
+    'multi-column theme: the %s cover spans every column (columns start after it)',
+    (layout) => {
+      // Regression: with `column-count` on `.paged-doc` the cover was laid
+      // out inside the first column — half-width band, title centred in
+      // the left column. The browser render check lives in the
+      // `cover-page-editor` flow; this pins the CSS contract.
+      const twoColumn: DocTheme = { ...academic, cover: { ...academic.cover, enabled: true, layout } }
+      expect(twoColumn.layout.columns).toBe(2)
+      const css = themeToCss(twoColumn, runtime)
+      expect(css).toMatch(/\.paged-doc\s*\{[^}]*column-count:\s*2/)
+      expect(css).toMatch(/\.paged-doc \.markoto-cover\s*\{[^}]*column-span:\s*all/)
+      expect(css).toMatch(/\.paged-doc \.markoto-cover\s*\{[^}]*width:\s*100%/)
+    }
+  )
+  test('single-column theme: the cover is NOT a column spanner', () => {
+    // paged.js fragments pages with CSS columns itself; a spanning cover
+    // in a single-column document made it drop everything after the
+    // cover (a one-page PDF — caught by tests/integration/endpoints/docPdf.test.ts).
+    expect(markoto.layout.columns).toBe(1)
+    expect(themeToCss(markoto, runtime)).not.toMatch(/markoto-cover\s*\{[^}]*column-span/)
+  })
   test('cover-disabled theme emits NO .markoto-cover rule', () => {
     const css = themeToCss(modern, runtime)
     expect(css).not.toContain('.markoto-cover')

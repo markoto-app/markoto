@@ -133,6 +133,26 @@
   --mk-md-syntax: var(--color-sumi-300);
   --mk-md-syntax-strong: var(--color-sumi-200);
   --mk-md-comment: var(--color-sumi-500);
+  --mk-css-selector: #A9BED6;
+  --mk-css-property: #D9B48A;
+  --mk-css-at: #CDA9C4;
+  --mk-css-number: #9CC3C2;
+  --mk-css-string: #AFC9A9;
+  --mk-css-punct: var(--color-sumi-400);
+}
+
+/* Custom CSS editor (ThemeCustomCssSection.vue) syntax colours. The
+   paper-aesthetic hues of app/utils/colors.ts (slate, ochre, mauve,
+   celadon, sage), darkened for ≥ 4.5:1 on the white editor card and
+   lightened under :root.dark for the sumi-900 card. Never shu: red is
+   the AI's colour. */
+:root {
+  --mk-css-selector: #3D5774;
+  --mk-css-property: #855A2E;
+  --mk-css-at: #7A4A6E;
+  --mk-css-number: #2F6966;
+  --mk-css-string: #46683F;
+  --mk-css-punct: var(--color-sumi-500);
 }
 
 /* Soften Nuxt UI input/dropdown focus rings. The default focus state
@@ -349,4 +369,33 @@ body { min-height: 100svh; }
    !important overrides Reka's inline z-index on the wrapper. */
 [data-reka-popper-content-wrapper]:has([role="listbox"]) {
   z-index: 60 !important;
+}
+
+/* Close button of every panel shown in the mobile bottom sheet
+   (BottomSheet.vue → Document, Comments, Activity, Theme, Knowledge,
+   Editor). The panels share one header shape with a small `xs` ×
+   that suits the desktop sidebar; inside the sheet it becomes a
+   44 × 44 px touch target (WCAG 2.5.5 / Apple HIG) with a larger
+   icon. The negative margin keeps the header height unchanged. */
+.mk-sheet .mk-panel-close {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -8px -8px -8px 0;
+  justify-content: center;
+}
+.mk-sheet .mk-panel-close [data-slot="leadingIcon"] {
+  width: 22px;
+  height: 22px;
+}
+
+/* Modals opened from INSIDE the mobile bottom sheet (save / edit / delete
+   a theme, confirmations) must render above it. Nuxt UI's modal overlay
+   and content carry no z-index and portal into the app root, while the
+   sheet (`.mk-sheet-host`, z-50) is teleported to the end of <body> — so
+   the modal opened BEHIND the sheet. Only while a sheet is open; 60
+   matches the listbox-popover rule above (equal z, later in the DOM wins,
+   so a select inside such a modal still opens on top). */
+html:has(.mk-sheet-host) [data-slot="overlay"],
+html:has(.mk-sheet-host) [role="dialog"][data-slot="content"] {
+  z-index: 60;
 }

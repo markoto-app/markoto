@@ -264,13 +264,17 @@
     "description": "Convertissez un fichier en markdown et chargez-le dans l'éditeur.",
     "selectFile": "Cliquez pour sélectionner un fichier",
     "changeFile": "Choisir un autre fichier",
-    "formats": "Pris en charge : DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
+    "formats": "Formats pris en charge : Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Importer",
     "error": "Échec de l'importation. Veuillez essayer un autre fichier.",
     "conflictTitle": "Le document contient déjà du contenu",
     "conflictDesc": "Comment souhaitez-vous traiter le contenu importé ?",
     "replace": "Tout remplacer",
-    "append": "Ajouter à la suite"
+    "append": "Ajouter à la suite",
+    "applyProperties": "Appliquer aussi le thème et les réglages du document contenus dans le fichier",
+    "applyPropertiesHelp": "Le fichier a été enregistré depuis markoto : titre, description, public, langue et thème (avec CSS personnalisé).",
+    "propertiesApplied": "Thème et réglages du document appliqués",
+    "propertiesPartlyApplied": "Certains réglages du fichier n’étaient pas valides et ont été ignorés."
   },
   "export": {
     "title": "Exporter",
@@ -833,15 +837,32 @@
     "saved": {
       "title": "Vos thèmes",
       "saveCurrent": "Enregistrer l'actuel",
-      "namePrompt": "Nommez ce thème",
       "savedToast": "Enregistré comme préréglage personnel",
       "saveFailedTitle": "Impossible d'enregistrer le thème",
-      "rename": "Renommer",
-      "renamePrompt": "Nouveau nom",
-      "renameFailedTitle": "Impossible de renommer",
       "delete": "Supprimer",
-      "deleteConfirm": "Supprimer « {name} » ? Les documents qui l'utilisent déjà conservent leur copie.",
-      "deleteFailedTitle": "Impossible de supprimer"
+      "deleteFailedTitle": "Impossible de supprimer",
+      "saveDialogTitle": "Enregistrer le thème",
+      "editDialogTitle": "Modifier le thème",
+      "saveDialogIntro": "Enregistre les réglages actuels, CSS personnalisé compris, comme l’un de vos thèmes. Vous pourrez l’appliquer à tous vos documents.",
+      "editDialogIntro": "Modifiez le nom ou la description. Les réglages du thème restent inchangés.",
+      "nameLabel": "Nom",
+      "namePlaceholder": "p. ex. Rapport trimestriel",
+      "nameRequired": "Saisissez un nom.",
+      "nameTooLong": "Le nom peut compter {max} caractères au maximum.",
+      "descriptionLabel": "Description",
+      "descriptionOptional": "facultatif",
+      "descriptionPlaceholder": "À quoi sert ce thème ?",
+      "save": "Enregistrer le thème",
+      "saveChanges": "Enregistrer les modifications",
+      "updateFailedTitle": "Impossible d’enregistrer les modifications",
+      "edit": "Modifier le nom et la description",
+      "editAria": "Modifier {name}",
+      "deleteAria": "Supprimer {name}",
+      "deleteTitle": "Supprimer le thème",
+      "deleteWarning": "Les documents qui l’utilisent déjà gardent leur apparence. Cette action est irréversible.",
+      "deleteConfirmButton": "Supprimer le thème",
+      "deleted": "Thème supprimé",
+      "fallbackDescription": "Titres en {heading}, texte en {body}"
     },
     "presets": {
       "title": "Modèles",
@@ -903,7 +924,8 @@
         "other-doc-file": "Cette image appartient à un autre document. Téléversez-la dans ce document et utilisez son adresse.",
         "script-url": "Les URL javascript: et vbscript: ne sont pas autorisées.",
         "value": "Cette valeur n'a pas pu être lue de façon sûre."
-      }
+      },
+      "docsLink": "Comment écrire du CSS personnalisé"
     }
   },
   "table": {

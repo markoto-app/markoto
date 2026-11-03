@@ -264,13 +264,17 @@
     "description": "Konvertieren Sie eine Datei in Markdown und laden Sie sie in den Editor.",
     "selectFile": "Klicken, um eine Datei auszuwählen",
     "changeFile": "Eine andere Datei wählen",
-    "formats": "Unterstützt: DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
+    "formats": "Unterstützt: Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Importieren",
     "error": "Import fehlgeschlagen. Bitte versuchen Sie eine andere Datei.",
     "conflictTitle": "Dokument enthält bereits Inhalt",
     "conflictDesc": "Wie möchten Sie mit dem importierten Inhalt umgehen?",
     "replace": "Alles ersetzen",
-    "append": "Anhängen"
+    "append": "Anhängen",
+    "applyProperties": "Auch Theme und Dokumenteinstellungen aus der Datei übernehmen",
+    "applyPropertiesHelp": "Die Datei wurde aus markoto gespeichert: Titel, Beschreibung, Zielgruppe, Sprache und Theme (mit eigenem CSS).",
+    "propertiesApplied": "Theme und Dokumenteinstellungen übernommen",
+    "propertiesPartlyApplied": "Einige Einstellungen in der Datei waren ungültig und wurden ausgelassen."
   },
   "export": {
     "title": "Exportieren",
@@ -833,15 +837,32 @@
     "saved": {
       "title": "Ihre Designs",
       "saveCurrent": "Aktuelles speichern",
-      "namePrompt": "Dieses Design benennen",
       "savedToast": "Als persönliche Voreinstellung gespeichert",
       "saveFailedTitle": "Design konnte nicht gespeichert werden",
-      "rename": "Umbenennen",
-      "renamePrompt": "Neuer Name",
-      "renameFailedTitle": "Umbenennen fehlgeschlagen",
       "delete": "Löschen",
-      "deleteConfirm": "\"{name}\" löschen? Dokumente, die es bereits verwenden, behalten ihre Kopie.",
-      "deleteFailedTitle": "Löschen fehlgeschlagen"
+      "deleteFailedTitle": "Löschen fehlgeschlagen",
+      "saveDialogTitle": "Theme speichern",
+      "editDialogTitle": "Theme bearbeiten",
+      "saveDialogIntro": "Speichert die aktuellen Einstellungen samt eigenem CSS als eines deiner Themes. Du kannst es auf jedes deiner Dokumente anwenden.",
+      "editDialogIntro": "Ändere den Namen oder die Beschreibung. Die Theme-Einstellungen bleiben, wie sie sind.",
+      "nameLabel": "Name",
+      "namePlaceholder": "z. B. Quartalsbericht",
+      "nameRequired": "Gib einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens {max} Zeichen lang sein.",
+      "descriptionLabel": "Beschreibung",
+      "descriptionOptional": "optional",
+      "descriptionPlaceholder": "Wofür ist dieses Theme gedacht?",
+      "save": "Theme speichern",
+      "saveChanges": "Änderungen speichern",
+      "updateFailedTitle": "Änderungen konnten nicht gespeichert werden",
+      "edit": "Name und Beschreibung bearbeiten",
+      "editAria": "{name} bearbeiten",
+      "deleteAria": "{name} löschen",
+      "deleteTitle": "Theme löschen",
+      "deleteWarning": "Dokumente, die es schon verwenden, behalten ihr Aussehen. Das lässt sich nicht rückgängig machen.",
+      "deleteConfirmButton": "Theme löschen",
+      "deleted": "Theme gelöscht",
+      "fallbackDescription": "Überschriften in {heading}, Text in {body}"
     },
     "presets": {
       "title": "Vorlagen",
@@ -903,7 +924,8 @@
         "other-doc-file": "Dieses Bild gehört zu einem anderen Dokument. Lade es in dieses Dokument hoch und verwende seine Adresse.",
         "script-url": "javascript:- und vbscript:-URLs sind nicht erlaubt.",
         "value": "Dieser Wert konnte nicht sicher gelesen werden."
-      }
+      },
+      "docsLink": "So schreibst du eigenes CSS"
     }
   },
   "table": {

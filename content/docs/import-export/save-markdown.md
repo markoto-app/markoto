@@ -20,6 +20,13 @@ open in any other markdown editor.
 Your browser saves the document exactly as it is right now as a `.md`
 file named after its title. Nothing is sent anywhere first.
 
+At the top of the file, between two `---` lines, markoto writes a short
+block with the document's settings: title, description, audience,
+language, the template it started from, and the whole theme, including
+your custom CSS. Most Markdown tools ignore or hide this block (it is the
+usual frontmatter format), and it is what lets markoto restore the look
+when you import the file again.
+
 Images stay links to markoto in the saved file rather than being
 embedded, so they show up outside markoto only while the document is
 reachable at its link.
@@ -27,4 +34,4 @@ reachable at its link.
 ## What's next
 
 - [Export as PDF](/docs/import-export/polished-pdf) — same content, fully self-contained.
-- [Bring a Markdown file back in](/docs/writing/markdown-reference): open a new document and paste the file's contents into the editor. (File › Import converts Word, PDF, PowerPoint, Excel, HTML and EPUB; a `.md` file is already Markdown, so pasting is all it takes.)
+- [Import a document](/docs/import-export/import-existing): File › Import takes the `.md` file back. A file saved from markoto brings its theme and document settings with it; you can choose to keep only the text.

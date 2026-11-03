@@ -168,6 +168,18 @@ describe('buildExportZip', () => {
     expect(JSON.stringify(profile)).not.toContain('opaque-subject-123')
   })
 
+  it('exports saved themes with their name and description', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `INSERT INTO themes (theme_id, user_id, name, description, theme) VALUES ($1, $2, $3, $4, $5)`,
+      ['th-export-1', u.id, 'Paper', 'Two columns, serif body', JSON.stringify({ page: { size: 'A4' } })]
+    )
+    const result = await buildExportZip(u.id)
+    const themes = JSON.parse(readEntry(result.bytes, 'themes.json')) as Array<{ themeId: string, name: string, description: string }>
+    expect(themes).toHaveLength(1)
+    expect(themes[0]).toMatchObject({ themeId: 'th-export-1', name: 'Paper', description: 'Two columns, serif body' })
+  })
+
   it('includes the user\'s linked waitlist sign-up without any token hashes', async () => {
     const u = await createUser()
     await testDb().query(

@@ -833,6 +833,20 @@ function coverBlock(theme: DocTheme): string {
 
   return [
     layoutCss,
+    // Multi-column themes put `column-count` on `.paged-doc`, the cover's
+    // parent. Without a spanner the cover is laid out inside the first
+    // column (half-width band, title centred in the left column). Every
+    // cover layout spans the whole page; the columns start after it.
+    // ONLY for multi-column themes: in a single-column document the
+    // nearest multi-column ancestor is paged.js's own page-content box
+    // (it fragments with CSS columns), and a spanning cover there makes
+    // paged.js drop everything after the cover (one-page PDF).
+    theme.layout.columns > 1
+      ? `.paged-doc .markoto-cover {
+  column-span: all;
+  width: 100%;
+}`
+      : '',
     `.paged-doc .markoto-cover-logo {
   display: block;
   height: ${theme.brand.logoHeight}px;

@@ -8,6 +8,7 @@ import EditorCommandsPanel from './EditorCommandsPanel.vue'
 import type { TabName } from './tabBarTypes'
 import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
+import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
 
 const props = defineProps<{
   docId: string
@@ -45,6 +46,8 @@ const {
   description,
   audience,
   language,
+  templateId,
+  setTemplateId,
   canEditTheme,
   setTheme,
   resetTheme,
@@ -349,8 +352,43 @@ async function exportPdf() {
   }
 }
 
-function exportMarkdown() {
-  downloadMarkdown(textContent.value, title.value)
+// The file carries the theme + document properties as YAML frontmatter
+// (shared/utils/markdownFrontmatter.ts) so importing it restores them.
+async function exportMarkdown() {
+  const { buildMarkdownExport } = await import('~~/shared/utils/markdownFrontmatter')
+  const content = buildMarkdownExport(textContent.value, {
+    title: title.value,
+    description: description.value,
+    audience: audience.value,
+    language: language.value,
+    templateId: templateId.value,
+    // Plain copy: the theme ref is a readonly proxy.
+    theme: structuredClone(toRaw(theme.value))
+  })
+  downloadMarkdown(content, title.value)
+}
+
+// Theme + properties from an imported markoto Markdown file. The server
+// already validated every field (server/utils/markdownImport.ts); the
+// setters below check again (setTheme: schema; ymeta: the sync server).
+function applyImportedProperties(
+  properties: ImportedDocProperties,
+  notes: { ignored: string[], droppedCustomCssRules: number }
+) {
+  if (isReadOnly.value) return
+  if (properties.title !== undefined) title.value = properties.title
+  if (properties.description !== undefined) description.value = properties.description
+  if (properties.audience !== undefined) audience.value = properties.audience
+  if (properties.language !== undefined) language.value = properties.language
+  if (properties.templateId !== undefined) setTemplateId(properties.templateId)
+  if (properties.theme && canEditTheme.value) setTheme(properties.theme)
+  const skipped = notes.ignored.length > 0 || notes.droppedCustomCssRules > 0
+  toast.add({
+    title: t('import.propertiesApplied'),
+    description: skipped ? t('import.propertiesPartlyApplied') : undefined,
+    icon: 'i-lucide-file-check-2',
+    color: skipped ? 'neutral' : 'success'
+  })
 }
 
 // Server-rendered PDF — bytes produced by the Playwright renderer container,
@@ -1536,6 +1574,8 @@ const _statusIcon = computed(() => {
                 color="neutral"
                 variant="ghost"
                 size="xs"
+                class="mk-panel-close"
+                data-testid="panel-close"
                 :aria-label="t('common.close')"
                 @click="closeSidebar"
               />
@@ -1582,6 +1622,8 @@ const _statusIcon = computed(() => {
                 color="neutral"
                 variant="ghost"
                 size="xs"
+                class="mk-panel-close"
+                data-testid="panel-close"
                 :aria-label="t('common.close')"
                 @click="closeSidebar"
               />
@@ -1768,6 +1810,8 @@ const _statusIcon = computed(() => {
       v-model:open="showImportModal"
       :ytext="ytext"
       :read-only="isReadOnly"
+      :doc-id="docId"
+      @apply-properties="applyImportedProperties"
     />
 
     <EditorKeyboardShortcutsModal v-model:open="showShortcuts" />

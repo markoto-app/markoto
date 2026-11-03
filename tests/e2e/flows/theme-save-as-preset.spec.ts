@@ -13,11 +13,8 @@ import { test, expect } from '../fixtures/flow'
 // then bookmarking the result. Saved presets live per-user and
 // surface in the picker for every doc the user owns.
 //
-// The save path uses `window.prompt()` for the name input — a native
-// browser dialog, not a custom modal. We auto-accept via Playwright's
-// `dialog` event so the flow doesn't hang on the prompt; the
-// screenshots show the BEFORE state (no saved preset) + the AFTER
-// state (preset card visible in the saved list).
+// The save path opens SavedThemeDialog (name + optional description);
+// the flow also edits the name through the pencil on the card.
 //
 // Runs on desktop AND mobile. The Theme panel mounts in the right
 // sidebar on desktop and in a bottom sheet on mobile; the testids
@@ -134,35 +131,57 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   await flow.heading('Bookmark it as a saved preset', 3)
   await flow.narrate(
     'The "Save current" button at the top of the presets list (the '
-    + 'bookmark icon) writes the current theme + a name you choose '
-    + 'into your saved-themes list. The button asks for a name via '
-    + 'a quick prompt; type anything memorable.'
+    + 'bookmark icon) opens a small dialog: a name, and an optional '
+    + 'line saying what the theme is for. Both show up on the card '
+    + 'in Your themes, just like the built-in presets.'
   )
 
-  // Pre-arm the prompt handler BEFORE the click that opens it.
-  // page.on('dialog') fires synchronously inside the click handler;
-  // attaching the listener after would miss the event.
   const PRESET_NAME = 'My academic, no cover'
+  const PRESET_DESCRIPTION = 'Two columns, serif body, starts with the text.'
   // Clear the earlier "Template applied" toast so the hero frame shows
   // only the save confirmation.
   await editor.page.dismissToasts()
-  page.once('dialog', (dialog) => {
-    void dialog.accept(PRESET_NAME)
-  })
+
+  const dialog = page.locator('[data-testid="saved-theme-dialog"]')
+  const nameInput = page.locator('[data-testid="saved-theme-name-input"]')
+  const descriptionInput = page.locator('[data-testid="saved-theme-description-input"]')
 
   await flow.click(
     'Click "Save current" (bookmark icon)',
     page.locator('[data-testid="theme-save-current"]'),
     {
       force: editor.isMobile,
+      result: 'The Save theme dialog opens with an empty name field.',
+      after: () => dialog.waitFor({ state: 'visible', timeout: 5_000 })
+    }
+  )
+
+  // The save button stays disabled until there is a name.
+  await expect(page.locator('[data-testid="saved-theme-submit"]')).toBeDisabled()
+
+  await flow.type(
+    'Name the theme',
+    nameInput,
+    PRESET_NAME,
+    { force: editor.isMobile, result: 'The counter next to the label shows how much room is left (80 characters).' }
+  )
+  await flow.type(
+    'Add a short description',
+    descriptionInput,
+    PRESET_DESCRIPTION,
+    { force: editor.isMobile, result: 'The description is optional, up to 200 characters.' }
+  )
+
+  await flow.click(
+    'Click "Save theme"',
+    page.locator('[data-testid="saved-theme-submit"]'),
+    {
       hero: true,
-      result: 'Give it a name and the theme lands under Your themes, above '
-        + 'the built-in templates — one click on any doc from now on.',
+      result: 'The theme lands under Your themes, above the built-in '
+        + 'templates, with its description. One click applies it to any doc from now on.',
       after: async () => {
-        // The save handler POSTs to /api/themes; on success the
-        // saved-themes list refetches. Wait for the new card to
-        // surface — its testid is `theme-saved-${themeId}` and the
-        // themeId is generated server-side, so we look for ANY
+        await dialog.waitFor({ state: 'hidden', timeout: 10_000 })
+        // The themeId is generated server-side, so we look for ANY
         // saved card.
         await page.locator('[data-testid^="theme-saved-"]').first().waitFor({ state: 'visible', timeout: 10_000 })
       },
@@ -172,13 +191,49 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     }
   )
 
-  // ASSERTION: at least one saved-theme card exists + carries the
-  // name we typed. The exact rendering of the name is up to the
-  // panel; we assert the saved-card list is non-empty AND the page
-  // contains the preset name we typed (somewhere — could be the
-  // card label or aria).
-  await expect(page.locator('[data-testid^="theme-saved-"]').first()).toBeVisible()
-  await expect(page.getByText(PRESET_NAME).first()).toBeVisible()
+  // ASSERTION: the card carries the name + the description, and the
+  // server stored both.
+  const card = page.locator('[data-testid^="theme-saved-"]').first()
+  await expect(card).toContainText(PRESET_NAME)
+  await expect(card).toContainText(PRESET_DESCRIPTION)
+  const stored = await page.request.get('/api/themes')
+  const storedThemes = (await stored.json() as { themes: Array<{ themeId: string, name: string, description: string }> }).themes
+  const savedRow = storedThemes.find(s => s.name === PRESET_NAME)
+  expect(savedRow?.description).toBe(PRESET_DESCRIPTION)
+  if (!savedRow) throw new Error('saved theme not returned by /api/themes')
+
+  // ─── Edit name + description ────────────────────────────────────
+  await flow.heading('Rename it later', 3)
+  await flow.narrate(
+    'The pencil on the card opens the same dialog with the current '
+    + 'name and description filled in. The bin next to it removes the '
+    + 'theme after asking once; documents that use it keep their look.'
+  )
+
+  await flow.click(
+    'Click the pencil on your theme',
+    page.locator(`[data-testid="saved-theme-edit-${savedRow.themeId}"]`),
+    {
+      force: editor.isMobile,
+      result: 'The Edit theme dialog shows the saved name and description.',
+      after: () => dialog.waitFor({ state: 'visible', timeout: 5_000 })
+    }
+  )
+  await expect(nameInput).toHaveValue(PRESET_NAME)
+  await expect(descriptionInput).toHaveValue(PRESET_DESCRIPTION)
+
+  const RENAMED = 'Team paper'
+  await nameInput.fill('')
+  await flow.type('Type a new name', nameInput, RENAMED, { force: editor.isMobile, result: 'The new name replaces the old one.' })
+  await flow.click(
+    'Click "Save changes"',
+    page.locator('[data-testid="saved-theme-submit"]'),
+    {
+      result: 'The card shows the new name; the description stays.',
+      after: () => expect(card).toContainText(RENAMED, { timeout: 10_000 })
+    }
+  )
+  await expect(card).toContainText(PRESET_DESCRIPTION)
 
   flow.next({
     slug: 'pick-a-theme',

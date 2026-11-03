@@ -264,13 +264,17 @@
     "description": "ファイルをMarkdownに変換してエディターに読み込みます。",
     "selectFile": "クリックしてファイルを選択",
     "changeFile": "別のファイルを選択",
-    "formats": "対応形式：DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
+    "formats": "対応形式：Markdown、DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
     "import": "インポート",
     "error": "インポートに失敗しました。別のファイルをお試しください。",
     "conflictTitle": "ドキュメントに既存の内容があります",
     "conflictDesc": "インポートした内容をどのように扱いますか？",
     "replace": "すべて置き換える",
-    "append": "追記する"
+    "append": "追記する",
+    "applyProperties": "ファイルのテーマとドキュメント設定も適用する",
+    "applyPropertiesHelp": "このファイルは markoto から保存されました：タイトル、説明、対象読者、言語、テーマ（カスタム CSS を含む）。",
+    "propertiesApplied": "テーマとドキュメント設定を適用しました",
+    "propertiesPartlyApplied": "ファイル内の一部の設定は無効だったため、適用されませんでした。"
   },
   "export": {
     "title": "エクスポート",
@@ -833,15 +837,32 @@
     "saved": {
       "title": "マイテーマ",
       "saveCurrent": "現在の設定を保存",
-      "namePrompt": "このテーマに名前を付ける",
       "savedToast": "個人プリセットとして保存しました",
       "saveFailedTitle": "テーマを保存できませんでした",
-      "rename": "名前を変更",
-      "renamePrompt": "新しい名前",
-      "renameFailedTitle": "名前を変更できませんでした",
       "delete": "削除",
-      "deleteConfirm": "「{name}」を削除しますか？すでに使用中のドキュメントはそのコピーを保持します。",
-      "deleteFailedTitle": "削除できませんでした"
+      "deleteFailedTitle": "削除できませんでした",
+      "saveDialogTitle": "テーマを保存",
+      "editDialogTitle": "テーマを編集",
+      "saveDialogIntro": "現在の設定（カスタム CSS を含む）をあなたのテーマとして保存します。どのドキュメントにも適用できます。",
+      "editDialogIntro": "名前または説明を変更します。テーマの設定はそのままです。",
+      "nameLabel": "名前",
+      "namePlaceholder": "例：四半期レポート",
+      "nameRequired": "名前を入力してください。",
+      "nameTooLong": "名前は {max} 文字以内にしてください。",
+      "descriptionLabel": "説明",
+      "descriptionOptional": "任意",
+      "descriptionPlaceholder": "このテーマの用途は？",
+      "save": "テーマを保存",
+      "saveChanges": "変更を保存",
+      "updateFailedTitle": "変更を保存できませんでした",
+      "edit": "名前と説明を編集",
+      "editAria": "{name} を編集",
+      "deleteAria": "{name} を削除",
+      "deleteTitle": "テーマを削除",
+      "deleteWarning": "すでに使用しているドキュメントの見た目は変わりません。この操作は元に戻せません。",
+      "deleteConfirmButton": "テーマを削除",
+      "deleted": "テーマを削除しました",
+      "fallbackDescription": "見出し {heading}・本文 {body}"
     },
     "presets": {
       "title": "テンプレート",
@@ -903,7 +924,8 @@
         "other-doc-file": "この画像は別のドキュメントのものです。このドキュメントにアップロードして、そのアドレスを使ってください。",
         "script-url": "javascript: と vbscript: の URL は使えません。",
         "value": "この値を安全に読み取れませんでした。"
-      }
+      },
+      "docsLink": "カスタム CSS の書き方"
     }
   },
   "table": {

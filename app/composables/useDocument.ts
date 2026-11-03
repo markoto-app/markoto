@@ -275,7 +275,7 @@ export function useDocument(docId: string) {
   // runs the last call's arguments, so setting the audience and then the
   // language within 800 ms used to persist only the language — the AI
   // (which reads these fields from the row) never saw the audience.
-  type DocContextPatch = { description?: string, audience?: string, language?: string }
+  type DocContextPatch = { description?: string, audience?: string, language?: string, templateId?: string }
   let pendingDocContext: DocContextPatch = {}
   const flushDocContext = useDebounceFn(() => {
     const body = pendingDocContext
@@ -345,6 +345,17 @@ export function useDocument(docId: string) {
       if (tokenState.isOwner.value) persistDocContext({ language: next })
     }
   })
+
+  /**
+   * Template the doc started from. Not in ymeta (it only seeds the first
+   * body); the Markdown import restores it from the file's frontmatter,
+   * persisted for owners like the other context fields.
+   */
+  function setTemplateId(next: string) {
+    if (tokenState.isReadOnly.value) return
+    tokenState.templateId.value = next
+    if (tokenState.isOwner.value) persistDocContext({ templateId: next })
+  }
 
   const docSizeWarning = computed(() => computeDocSizeWarning(sync.docSizeBytes.value))
 
@@ -433,6 +444,8 @@ export function useDocument(docId: string) {
     description,
     audience,
     language,
+    templateId: readonly(tokenState.templateId),
+    setTemplateId,
     canEditTheme: readonly(canEditTheme),
     setTheme,
     resetTheme,

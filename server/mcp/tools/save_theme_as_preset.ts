@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { SAVED_THEME_DESCRIPTION_MAX, SAVED_THEME_NAME_MAX } from '~~/shared/config/savedThemes'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 
 // `access: 'view'` — the handler READS the current doc's theme then
@@ -12,6 +13,7 @@ export default buildDocBoundTool({
   annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false },
   inputSchema: {
     doc_id: z.string().min(1).describe('The doc whose current theme to snapshot.'),
-    name: z.string().trim().min(1).max(80).describe('Name for the new preset (1–80 chars after trimming).')
+    name: z.string().trim().min(1).max(SAVED_THEME_NAME_MAX).describe(`Name for the new preset (1–${SAVED_THEME_NAME_MAX} chars after trimming).`),
+    description: z.string().trim().max(SAVED_THEME_DESCRIPTION_MAX).optional().describe(`Optional one-line description shown under the name (≤${SAVED_THEME_DESCRIPTION_MAX} chars).`)
   }
 })

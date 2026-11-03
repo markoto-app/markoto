@@ -20,6 +20,7 @@ import { resetDb, testDb, ensureYjsTable } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { defaultTheme } from '../../../shared/utils/defaultTheme'
+import { THEME_PRESETS } from '../../../shared/utils/themePresets'
 import { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 
 // Insert a Y.Doc row with REAL bytes. The renderer replays this back into
@@ -235,6 +236,32 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(manifest.pageCount).toBeGreaterThanOrEqual(2) // multi-page fixture
       expect(manifest.format).toBe('pdf')
       expect(manifest.pdfKey).toBe(pdfKey)
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
+    // Multi-column theme + cover: the cover spans both columns
+    // (column-span, themeToCss coverBlock) and the body still follows it.
+    it('two-column theme with a cover still renders the body after the cover', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const academic = THEME_PRESETS.find(p => p.id === 'academic')!.theme
+      expect(academic.layout.columns).toBe(2)
+      const theme = { ...academic, cover: { ...academic.cover, enabled: true } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const snapId = await insertYjsRow(doc.docId, multiPageBody())
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      )) as { pageCount: number }
+      expect(manifest.pageCount).toBeGreaterThanOrEqual(2)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      const fontNames = [...pdf.matchAll(/\/(?:BaseFont|FontName)\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
+      // The body face only appears when body text was laid out.
+      const bodyFont = academic.body.font.replaceAll(' ', '')
+      expect(fontNames.some(n => n.replaceAll('-', '').includes(bodyFont)), fontNames.join(', ')).toBe(true)
 
       await wipeRendersFor(doc.docId)
     }, 90_000)

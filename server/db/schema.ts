@@ -255,6 +255,10 @@ export const themes = pgTable('themes', {
   themeId: text('theme_id').notNull().unique(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  // Optional one-liner shown under the name in the theme lists (built-in
+  // presets carry one too). '' = none. Length capped at the API layer
+  // (`SAVED_THEME_DESCRIPTION_MAX`, shared/config/savedThemes.ts).
+  description: text('description').notNull().default(''),
   theme: jsonb('theme').$type<DocTheme>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()

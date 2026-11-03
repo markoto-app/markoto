@@ -352,6 +352,7 @@ async function addThemesEntry(entries: Entries, db: Db, userId: number): Promise
     themesRows.map(t => ({
       themeId: t.themeId,
       name: t.name,
+      description: t.description,
       theme: t.theme,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString()
