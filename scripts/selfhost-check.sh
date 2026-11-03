@@ -55,6 +55,11 @@ check() {
     echo "FAIL: legal surfaces must default to off for self-hosting ($label)" >&2
     exit 1
   fi
+  # The anonymous gate follows the legal surfaces unless the operator opts in.
+  if grep -q 'NUXT_ANON_GATE_ENABLED: "true"' "$out"; then
+    echo "FAIL: the anonymous gate must not default to on for self-hosting ($label)" >&2
+    exit 1
+  fi
   echo "ok: $label"
 }
 
@@ -145,6 +150,7 @@ LITELLM_SALT_KEY=sk-placeholder
 BACKUP_GPG_PASSPHRASE=placeholder
 BACKUP_INTERVAL_SECONDS=86400
 BACKUP_RETENTION_COUNT=14
+NUXT_ALTCHA_HMAC_KEY=placeholder-placeholder-placeholder-0000
 EOF3
 
 render_config() { # render_config OUT ENVFILE FILES [PROFILES]
@@ -216,6 +222,24 @@ for combo in \
 done
 render_config "$tmp/iso.json" "$tmp/prod.env" "docker-compose.prod.yml"
 check_isolation "prod" "$tmp/iso.json"
+
+# ─── Anonymous gate (shared/config/anonGate.ts) ───────────────────────
+# Hosted: on, and the ALTCHA key is required (compose refuses without it).
+# Self-host: install.sh generates the key on install AND upgrade.
+if ! jq -e '.services.app.environment.NUXT_ANON_GATE_ENABLED == "true"' "$tmp/iso.json" > /dev/null; then
+  echo "FAIL: prod must gate anonymous use (NUXT_ANON_GATE_ENABLED=true)" >&2
+  exit 1
+fi
+grep -v '^NUXT_ALTCHA_HMAC_KEY=' "$tmp/prod.env" > "$tmp/prod-nokey.env"
+if COMPOSE_FILE="docker-compose.prod.yml" docker compose --env-file "$tmp/prod-nokey.env" -p markoto-ci config > /dev/null 2>&1; then
+  echo "FAIL: prod compose must require NUXT_ALTCHA_HMAC_KEY" >&2
+  exit 1
+fi
+if [ "$(grep -c 'ensure_secret NUXT_ALTCHA_HMAC_KEY hex' install.sh)" -lt 2 ]; then
+  echo "FAIL: install.sh must generate NUXT_ALTCHA_HMAC_KEY on install and upgrade" >&2
+  exit 1
+fi
+echo "ok: anonymous gate wiring (prod on + key required, self-host key generated)"
 render_config "$tmp/local.json" "$tmp/prod.env" "docker-compose.local.yml"
 check_isolation "local" "$tmp/local.json"
 

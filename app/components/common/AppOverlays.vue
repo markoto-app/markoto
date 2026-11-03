@@ -1,9 +1,9 @@
 <script setup lang="ts">
-// App-wide overlays layered above every page. The onboarding gate and
-// consent banner exist only where the legal surfaces are on (hosted SaaS);
+// App-wide overlays layered above every page. The onboarding gate exists
+// only where the legal surfaces are on (hosted SaaS);
 // a self-hosted instance is its own operator and ships without them by
 // default — see shared/config/instance.ts.
-const { legalSurfaces } = useInstanceConfig()
+const { legalSurfaces, anonGate } = useInstanceConfig()
 // The server-render page (/_internal/render/*) is loaded by the Playwright
 // sidecar and captured as PDF/PNG — no overlay may paint over it.
 const route = useRoute()
@@ -25,9 +25,12 @@ const showOverlays = computed(() => !route.path.startsWith('/_internal/'))
          Hidden for anonymous users (no row to attach acceptance
          to) and for users who already accepted the current versions. -->
     <LegalOnboardingGate v-if="legalSurfaces" />
-    <!-- Cookie / consent banner — first-visit prompt + persistent
-         re-open via the footer "Privacy choices" link. Renders for
-         anonymous + logged-in alike (ePrivacy is identity-agnostic). -->
-    <LegalConsentBanner v-if="legalSurfaces" />
+    <!-- No cookie banner: markoto stores only what the service needs
+         (session, language, anonymous-document creator key), which
+         ePrivacy Art.5(3) exempts from consent. The footer carries a
+         short cookie note; privacy policy §9 lists every cookie. -->
+    <!-- Accept-terms step before an anonymous visitor's first document
+         (opened by useAnonDocCreate; shared/config/anonGate.ts). -->
+    <DocumentAnonGateDialog v-if="anonGate" />
   </template>
 </template>

@@ -16,6 +16,10 @@ Right-sidebar tab (next to Activity / Theme / Knowledge — toggled via `i-lucid
 
 Opens when the user clicks "+ New Document" on `/` or `/w/:id`. Five questions: title, description, language (defaults to UI locale if it's a preset), audience (USelect + per-option description), theme (2-col preset cards rendered in each preset's actual heading font face — same Google-Fonts preload trick as ThemeEditorPanel), template (2-col cards with icon + 2-line description). Two submit buttons: **Create document** posts the form; **Just give me a blank doc** POSTs nothing extra (schema defaults take over) for muscle memory of the legacy zero-config flow.
 
+### 4. The anonymous gate (`AnonGateDialog.vue`)
+
+Anonymous visitors on an instance with the gate (`useInstanceConfig().anonGate`) accept the Terms + age ≥16 once per browser before their first document. Every create path goes through `useAnonDocCreate().createDocument(body)` (`app/composables/useAnonGate.ts`): NewDocumentDialog and File → New. It opens the dialog (mounted once in `CommonAppOverlays`) only when the server hasn't seen this browser accept the current terms, attaches a fresh ALTCHA payload (solved invisibly in `app/workers/altchaPbkdf2.worker.ts` while the dialog is open — `prepare()` warms it up when NewDocumentDialog opens) and retries once on an expired / used check. A cancelled dialog throws `AnonGateCancelled` (not an error toast). Testids: `anon-gate-dialog`, `anon-gate-accept`, `anon-gate-continue`; flows pass it with `EditorPage.clickCreateAndPassGate()`.
+
 ## Audience enum
 
 Six registers in `shared/audiences/index.ts`: technical, marketing, academic, casual, business, creative. Each resolves to a tuned English tone fragment used in the AI system prompt. Audience is for DURABLE tone that survives every prompt without re-typing — free-form audience steering belongs in the user's prompt. Fragments are NOT user-editable AND NOT i18n'd (the AI is multilingual at OUTPUT — output language is driven by `language`, not the prompt's language). User-facing labels/descriptions ARE i18n'd via `audiences.<id>.label` / `.description`.

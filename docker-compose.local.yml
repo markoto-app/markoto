@@ -181,6 +181,9 @@ services:
       - NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON:-false}
       # Legal surfaces default ON like prod (shared/config/instance.ts).
       - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
+      # Anonymous gate follows the legal surfaces (on here, like prod).
+      - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-}
+      - NUXT_ALTCHA_HMAC_KEY=local-altcha-hmac-key-change-me-at-least-32-chars
       # Required in production builds (email links are built from it only).
       - NUXT_SITE_URL=https://ypad.127.0.0.1.nip.io
       - NUXT_SESSION_PASSWORD=local-session-password-at-least-32-characters-long

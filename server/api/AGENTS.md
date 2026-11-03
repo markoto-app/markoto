@@ -20,9 +20,11 @@
 
 **Consent / cookies (no session — anon-id-keyed):** `GET /api/consent?anonId=…` (returns latest row for the anon-id), `POST /api/consent` (append-only insert; carries optional `userId` for post-login bridge). The `markoto-anon-id` cookie is the consent identity, NOT the user.
 
-**Abuse reporting:** `POST /api/abuse-reports` (login required, 10/user/hour; DSA Art.16 notice-and-action submission; `docId` is free-form text not FK; reporter email + truncated IP + UA hash captured; best-effort operator email via Resend on every submit).
+**Abuse reporting:** `POST /api/abuse-reports` (public, DSA Art.16 notice: `contentUrl`, `category`, `body`, `reporterName` + `reporterEmail` (optional for `csam`), `goodFaith: true`, `locale`; signed in 10/user/hour; anonymous needs the anonymous gate on + `altcha` (purpose `abuse-report`) + 5/hour, 20/day per client key; receipt recorded in `moderation_notices`; best-effort operator email).
 
-**Admin (admin-only via `requireAdminUser`):** `GET /api/admin/abuse-reports` (triage queue with reporter + actioner joins via `aliasedTable`), `PATCH /api/admin/abuse-reports/:reportId` (status change → audit `abuse.actioned` / `.dismissed`).
+**Anonymous gate:** `GET /api/anon-gate/challenge?purpose=doc-create|abuse-report` (public, 60/client/min, `no-store`) → `{enabled, termsVersion, termsAccepted, challenge}`. Anonymous `POST /api/docs` needs `altcha` + `acceptTerms: true` (or the remembered-terms cookie) → else 403 `anon-gate/*`; 10/hour + 30/day per client key. See `server/AGENTS.md` → Anonymous gate.
+
+**Admin (admin-only via `requireAdminUser`):** `GET /api/admin/abuse-reports` (triage queue with reporter + actioner joins via `aliasedTable`), `PATCH /api/admin/abuse-reports/:reportId` (status change → audit `abuse.actioned` / `.dismissed`; closing needs `decision: {action, rule, explanation}`, applies removal / restriction and sends the decision notice + statement of reasons — `utils/moderationDecision.ts`; the GET lists `decision` + `notices`).
 
 **Legal documents (no session):** `GET /api/_internal/legal/:slug` (renders markdown from `content/legal/:slug/<locale>.md` with `{{controllerName}}` / `{{controllerAddress}}` / `{{privacyContactEmail}}` / `{{abuseContactEmail}}` / `{{governingLaw}}` substitution against `resolveLegalEntity()`), `GET /api/_internal/sub-processors` (renders `SUB_PROCESSORS` registry as JSON for the `/legal/sub-processors` page).
 

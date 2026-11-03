@@ -411,6 +411,8 @@ export function useDocument(docId: string) {
     syncAuthFailed: readonly(tokenState.syncAuthFailed),
     syncRejection: readonly(sync.syncRejection),
     isOwner: readonly(tokenState.isOwner),
+    /** The doc has an owner account (false = created anonymously). */
+    hasOwner: readonly(tokenState.hasOwner),
     canDelete: readonly(tokenState.canDelete),
     isDeleted: readonly(isDeleted),
     deletedByOther,

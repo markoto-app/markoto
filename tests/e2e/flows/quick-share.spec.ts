@@ -67,12 +67,32 @@ test('Quick share', async ({ page, flow, editor }) => {
     { result: '"Meeting notes" is selected — the editor will be pre-filled with its skeleton.' }
   )
 
-  // Submit — navigates to /d/{id}. flow.click awaits the URL change
+  // Submit. Without an account, the first document in this browser
+  // asks for one confirmation (terms + age); a bot check runs in the
+  // background meanwhile.
+  await flow.click(
+    'Click "Create document"',
+    editor.page.newDocDialog.submitCreate,
+    {
+      result: 'Without an account, markoto asks once: accept the Terms and confirm you\'re at least 16. A quick bot check runs in your browser meanwhile.',
+      after: async () => {
+        await expect(editor.page.anonGate.dialog).toBeVisible()
+      }
+    }
+  )
+
+  await flow.click(
+    'Tick the box to accept the Terms',
+    editor.page.anonGate.accept,
+    { result: 'Accepted. You won\'t be asked again in this browser.' }
+  )
+
+  // Continue — navigates to /d/{id}. flow.click awaits the URL change
   // before the outcome screenshot via `after`, so the outcome shot
   // captures the editor (not a half-loaded transition).
   await flow.click(
-    'Click "Create document" to open the editor',
-    editor.page.newDocDialog.submitCreate,
+    'Click "Accept and create" to open the editor',
+    editor.page.anonGate.continue,
     {
       result: 'The editor opens — your skeleton is ready to fill in.',
       after: async () => {

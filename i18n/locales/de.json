@@ -1097,48 +1097,13 @@
     "retry": "Erneut versuchen"
   },
   "legal": {
-    "consent": {
-      "banner": {
-        "title": "Ihre Datenschutzeinstellungen",
-        "intro": "Wir verwenden Cookies und ähnliche Technologien, um markoto am Laufen zu halten und, mit Ihrer Einwilligung, um zu verstehen, wie es genutzt wird. Sie können Ihre Einwilligung jederzeit über das Datenschutz-Symbol in der Fußzeile ändern oder widerrufen.",
-        "introShort": "Cookies halten markoto am Laufen; die Nutzung messen wir nur mit Ihrer Einwilligung, die Sie jederzeit ändern können.",
-        "essentialNotice": "Essenzielle Speicherung ist immer aktiv — ohne sie kann markoto Sie nicht angemeldet halten oder Ihre Einstellungen speichern.",
-        "acceptAll": "Alle akzeptieren",
-        "rejectAll": "Alle ablehnen",
-        "customize": "Anpassen",
-        "save": "Auswahl speichern",
-        "learnMore": "Unsere Datenschutzerklärung lesen",
-        "footerLink": "Datenschutzeinstellungen"
-      },
-      "purpose": {
-        "essential": {
-          "label": "Essenziell",
-          "description": "Anmeldesitzung, Spracheinstellung, Ihre Einwilligungsentscheidung selbst. Erforderlich, damit der Dienst funktioniert."
-        },
-        "analytics": {
-          "label": "Produktanalyse",
-          "description": "Aggregierte Seitenaufrufe und Funktionsnutzung, damit wir markoto verbessern können. Kein websiteübergreifendes Tracking, keine Werbeprofile."
-        },
-        "session_replay": {
-          "label": "Sitzungswiedergabe",
-          "description": "Anonymisierte Aufzeichnungen von UI-Interaktionen, die uns bei der Fehlerbehebung helfen. Formularfelder und Dokumentinhalte werden maskiert."
-        }
-      },
-      "withdraw": {
-        "title": "Einwilligung widerrufen",
-        "intro": "Sie haben unsere Einwilligungsabfrage bereits beantwortet. Sie können Ihre Meinung jederzeit unten ändern.",
-        "currentState": "Aktueller Stand",
-        "granted": "Erteilt",
-        "refused": "Abgelehnt"
-      }
-    },
     "ageGate": {
       "title": "Bestätigen Sie Ihr Alter",
-      "body": "Nach EU-Recht benötigen wir eine kurze Bestätigung, dass Sie mindestens 16 Jahre alt sind. Falls in Ihrem Land ein niedrigeres digitales Einwilligungsalter gilt, kontaktieren Sie uns bitte.",
+      "body": "markoto ist für Personen ab 16 Jahren. Bitte bestätigen Sie, dass Sie mindestens 16 Jahre alt sind. Das gilt in jedem Land, auch wenn das dortige Recht ein tieferes Alter vorsieht.",
       "checkbox": "Ich bestätige, dass ich mindestens 16 Jahre alt bin",
       "continue": "Fortfahren",
       "underage": "Ich bin unter 16",
-      "underageNotice": "Es tut uns leid — markoto setzt voraus, dass Sie das digitale Einwilligungsalter in Ihrem Land erreichen. Wir speichern keine Daten über Sie."
+      "underageNotice": "Es tut uns leid — markoto steht nur Personen ab 16 Jahren zur Verfügung. Wir speichern keine Daten über Sie."
     },
     "policyAcceptance": {
       "newVersionTitle": "Unsere Datenschutzbestimmungen haben sich geändert",
@@ -1237,11 +1202,38 @@
       },
       "bodyLabel": "Was sollten wir wissen?",
       "bodyPlaceholder": "Beschreiben Sie, was Sie gesehen haben und warum es entfernt werden sollte.",
-      "emailLabel": "Ihre E-Mail (optional, damit wir den Eingang bestätigen können)",
+      "emailLabel": "E-Mail",
       "submit": "Meldung absenden",
       "submittedTitle": "Danke — Ihre Meldung ist eingegangen",
       "submittedBody": "Wir bestätigen jede Meldung. Wenn Sie eine E-Mail angegeben haben, teilen wir Ihnen unsere Entscheidung mit.",
-      "reportThisDoc": "Dieses Dokument melden"
+      "reportThisDoc": "Dieses Dokument melden",
+      "policyHint": "In der {policy} steht, wogegen wir vorgehen und wie wir entscheiden.",
+      "policyLink": "Richtlinie zu Missbrauch und rechtswidrigen Inhalten",
+      "urlLabel": "Adresse (URL) des Inhalts",
+      "urlHelp": "Der vollständige Link zum Dokument, zum Beispiel https://markoto.app/d/…",
+      "bodyHelp": "Erklären Sie, warum der Inhalt rechtswidrig ist oder gegen unsere Regeln verstösst. Seien Sie konkret: welcher Teil, und was daran falsch ist.",
+      "contactLegend": "Ihr Name und Ihre E-Mail-Adresse",
+      "contactHelp": "Wir brauchen sie, um den Eingang Ihrer Meldung zu bestätigen und Ihnen unsere Entscheidung mitzuteilen.",
+      "contactOptionalCsam": "Bei Meldungen von Darstellungen sexuellen Kindesmissbrauchs freiwillig. Ohne E-Mail-Adresse können wir Ihnen unsere Entscheidung nicht mitteilen.",
+      "nameLabel": "Name",
+      "goodFaith": "Ich bestätige in gutem Glauben, dass die Angaben in dieser Meldung richtig und vollständig sind.",
+      "submittedBodyEmail": "Wir haben Ihnen eine Bestätigung per E-Mail geschickt und teilen Ihnen unsere Entscheidung dort mit.",
+      "reference": "Referenz: {id}",
+      "signInRequired": "Bitte melden Sie sich an, um Inhalte zu melden, oder schreiben Sie an die Kontaktadresse in der Missbrauchsrichtlinie.",
+      "signIn": "Anmelden",
+      "errors": {
+        "title": "Meldung konnte nicht gesendet werden",
+        "generic": "Bitte versuchen Sie es noch einmal.",
+        "rateLimited": "Zu viele Meldungen aus Ihrem Netzwerk. Bitte versuchen Sie es später noch einmal.",
+        "loginRequired": "Bitte melden Sie sich an, um Inhalte zu melden.",
+        "category": "Bitte wählen Sie, was Sie melden.",
+        "urlRequired": "Bitte geben Sie die Adresse (URL) des Inhalts an.",
+        "bodyTooShort": "Bitte erklären Sie, was am Inhalt falsch ist (mindestens 10 Zeichen).",
+        "bodyTooLong": "Die Erklärung ist zu lang (höchstens 5000 Zeichen).",
+        "goodFaith": "Bitte bestätigen Sie, dass Ihre Meldung richtig ist und in gutem Glauben erfolgt.",
+        "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        "contactRequired": "Bitte geben Sie Ihren Namen und Ihre E-Mail-Adresse an."
+      }
     },
     "aiTransparency": {
       "badge": "KI-unterstützt",
@@ -1254,7 +1246,8 @@
       "dpa": "Auftragsverarbeitungsvertrag",
       "subProcessors": "Unterauftragsverarbeiter",
       "abuse": "Missbrauch melden",
-      "imprint": "Impressum"
+      "imprint": "Impressum",
+      "cookieNote": "Cookies: nur notwendige"
     },
     "documentPage": {
       "translationNoticeTitle": "Übersetzung zur Bequemlichkeit bereitgestellt",
@@ -1305,16 +1298,8 @@
         "subheading": "Versionen der Datenschutzerklärung, Nutzungsbedingungen und des Auftragsverarbeitungsvertrags, die Sie akzeptiert haben. Wenn wir ein Dokument wesentlich aktualisieren, sehen Sie hier \"erneute Zustimmung erforderlich\" und wir fragen vor jeder weiteren Aktion erneut nach.",
         "notAccepted": "Nicht akzeptiert",
         "needsReacceptance": "erneute Zustimmung erforderlich (aktuell v{version})",
-        "dpaNotApplicable": "Erforderlich, wenn Sie einen Workspace erstellen"
-      },
-      "consent": {
-        "heading": "Datenschutzeinstellungen",
-        "subheading": "Was wir über Ihre Nutzung von markoto möglicherweise erfassen. Essenzielle Speicherung ist immer aktiv (Anmeldung + Ihre Einwilligungsentscheidung selbst). Die anderen beiden sind deaktiviert, bis Sie sie freigeben — ändern Sie Ihre Meinung hier jederzeit.",
-        "purposeAlwaysOn": "immer aktiv",
-        "granted": "Erteilt",
-        "refused": "Abgelehnt",
-        "notSet": "Nicht festgelegt",
-        "change": "Datenschutzeinstellungen ändern"
+        "dpaNotApplicable": "Erforderlich, wenn Sie einen Workspace erstellen",
+        "cookieNote": "markoto verwendet nur notwendige Cookies: Ihre Anmeldesitzung, Ihre Sprache und einen Schlüssel, mit dem Ihr Browser Dokumente löschen kann, die er ohne Konto erstellt hat. Es gibt keine Analyse, kein Tracking und keine Werbung, daher ist keine Einwilligung nötig. Die Datenschutzerklärung führt jedes Cookie auf."
       },
       "sessions": {
         "heading": "Sitzungen",
@@ -1543,5 +1528,31 @@
       "toDark": "Zum dunklen Modus wechseln",
       "toLight": "Zum hellen Modus wechseln"
     }
+  },
+  "anonGate": {
+    "eyebrow": "Vor Ihrem ersten Dokument",
+    "title": "Schreiben ohne Konto",
+    "pointPublic": "Wer den Link hat, kann Ihr Dokument öffnen und bearbeiten, solange Sie die Freigabe nicht ändern. Legen Sie darin nichts Vertrauliches ab.",
+    "pointRetention": "Es wird nach {days} Tagen ohne Aktivität gelöscht. Melden Sie sich an, um Ihre Dokumente zu behalten.",
+    "pointRules": "markoto prüft keine Dokumente. Rechtswidrige Inhalte, Betrug und Spam sind nicht erlaubt und werden auf Meldung hin entfernt.",
+    "accept": "Ich akzeptiere die {terms} einschliesslich der Regeln zur zulässigen Nutzung und bin mindestens {age} Jahre alt.",
+    "termsLink": "Nutzungsbedingungen",
+    "privacyNote": "Wie wir mit Ihren Daten umgehen: {privacy}.",
+    "privacyLink": "Datenschutzerklärung",
+    "botCheckRunning": "Bot-Prüfung läuft in Ihrem Browser…",
+    "botCheckReady": "Bot-Prüfung erledigt · läuft im Browser, ohne Tracking",
+    "signInInstead": "Stattdessen anmelden",
+    "cancel": "Abbrechen",
+    "continue": "Akzeptieren und erstellen",
+    "errors": {
+      "botCheck": "Die automatische Bot-Prüfung ist fehlgeschlagen. Bitte versuchen Sie es noch einmal.",
+      "termsRequired": "Bitte akzeptieren Sie zuerst die Nutzungsbedingungen.",
+      "unavailable": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
+      "rateLimited": "Zu viele neue Dokumente aus Ihrem Netzwerk. Melden Sie sich an oder versuchen Sie es später noch einmal."
+    }
+  },
+  "userContent": {
+    "notice": "Erstellt von einer Person ohne markoto-Konto, nicht von markoto",
+    "report": "Melden"
   }
 }

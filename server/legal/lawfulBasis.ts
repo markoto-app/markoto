@@ -129,11 +129,15 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: []
   },
   {
+    // `audit_log` is append-only; `audit-log-sweep` deletes rows older
+    // than 2 years (`server/utils/legalRetentionSweep.ts`,
+    // `NUXT_AUDIT_LOG_RETENTION_DAYS`). Account deletion nulls the actor
+    // id earlier (FK `ON DELETE SET NULL`); the IP is stored truncated.
     id: 'security_audit_log',
     label: 'Security audit log',
     basis: 'legal_obligation',
     dataCategories: ['actor_id', 'ip_truncated', 'action_metadata'],
-    retention: 'legal_minimum',
+    retention: 730,
     subProcessors: []
   },
   {
@@ -148,22 +152,9 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     retention: 30,
     subProcessors: ['resend']
   },
-  {
-    id: 'product_analytics',
-    label: 'Product analytics',
-    basis: 'consent',
-    dataCategories: ['page_views', 'feature_usage', 'pseudonymous_id'],
-    retention: 365,
-    subProcessors: []
-  },
-  {
-    id: 'session_replay',
-    label: 'Session replay',
-    basis: 'consent',
-    dataCategories: ['ui_interaction_recording', 'pseudonymous_id'],
-    retention: 30,
-    subProcessors: []
-  },
+  // `product_analytics` and `session_replay` were removed with
+  // PRIVACY_VERSION 8 / CONSENT_VERSION 2: no analytics or session-replay
+  // script was ever loaded, so listing them was a false disclosure.
   {
     // Paid-plans waitlist (hosted SaaS while billing is off). Opt-in via
     // an unticked checkbox + double opt-in email. Retention: until the
@@ -195,6 +186,51 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     dataCategories: ['invitee_email', 'workspace_role', 'inviter_id'],
     retention: 14,
     subProcessors: ['ovh_postgres', 'resend']
+  },
+  {
+    // Abuse / illegal-content reports (DSA Art. 16-18 notice and action):
+    // `abuse_reports` (what was reported and why: content URL + parsed doc
+    // id, explanation, category; the reporter's name + email — required
+    // unless CSAM, Art.16(2)(c) — locale, good-faith confirmation time and
+    // account if signed in; truncated IP + UA hash against report
+    // flooding; the moderator's decision as sent) and `moderation_notices`
+    // (the exact text of every receipt, decision notice and Art.17
+    // statement of reasons, incl. ones recorded as undeliverable; FK
+    // `ON DELETE CASCADE` on report_id, so they go with the report).
+    // `abuse-report-sweep` deletes a report 1 year after it was closed
+    // (actioned / dismissed, `actioned_at`; `NUXT_ABUSE_REPORT_RETENTION_DAYS`);
+    // open reports stay until handled. Notices are emailed via Resend.
+    // Anonymous reports are also covered by `anonymous_use_safeguards`
+    // (bot check + rate limits).
+    id: 'abuse_report_handling',
+    label: 'Abuse and illegal-content reports',
+    basis: 'legal_obligation',
+    dataCategories: [
+      'reported_content_url', 'report_explanation', 'report_category',
+      'reporter_name', 'reporter_email', 'reporter_locale', 'good_faith_confirmation_time',
+      'reporter_account_if_signed_in', 'ip_truncated', 'user_agent_hash',
+      'moderation_decision', 'moderation_notices'
+    ],
+    retention: 365,
+    subProcessors: ['ovh_postgres', 'resend']
+  },
+  {
+    // Anonymous-use safeguards (server/utils/anonGate/). Before a document
+    // is created without an account we record which Terms version the
+    // visitor accepted and when (on the document row, so it is deleted
+    // with the document — 30 days without activity), remember that
+    // acceptance in a first-party httpOnly cookie (version + time, no
+    // identifier), and run a proof-of-work bot check computed in our own
+    // server (no third party, no cookie; the used challenge's signature is
+    // kept in Valkey for ~20 minutes to stop replays). Per-network rate
+    // limits (truncated to /64 for IPv6) count requests for at most a day.
+    // The same bot check guards anonymous abuse reports.
+    id: 'anonymous_use_safeguards',
+    label: 'Terms acceptance and bot check for documents created without an account',
+    basis: 'legitimate_interest',
+    dataCategories: ['terms_version_accepted', 'acceptance_timestamp', 'bot_check_solution', 'rate_limit_counters'],
+    retention: 30,
+    subProcessors: ['ovh_postgres']
   },
   {
     id: 'error_monitoring',

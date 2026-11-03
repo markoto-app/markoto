@@ -1097,48 +1097,13 @@
     "retry": "Retry"
   },
   "legal": {
-    "consent": {
-      "banner": {
-        "title": "Your privacy choices",
-        "intro": "We use cookies and similar technologies to keep markoto running and, with your consent, to understand how it's used. You can change or withdraw your consent at any time from the privacy badge in the footer.",
-        "introShort": "Cookies keep markoto running; we only measure how it’s used with your consent, which you can change at any time.",
-        "essentialNotice": "Essential storage is always on — without it, markoto cannot keep you logged in or remember your preferences.",
-        "acceptAll": "Accept all",
-        "rejectAll": "Reject all",
-        "customize": "Customize",
-        "save": "Save choices",
-        "learnMore": "Read our privacy policy",
-        "footerLink": "Privacy choices"
-      },
-      "purpose": {
-        "essential": {
-          "label": "Essential",
-          "description": "Login session, language preference, your consent decision itself. Required for the service to function."
-        },
-        "analytics": {
-          "label": "Product analytics",
-          "description": "Aggregate page views and feature usage so we can improve markoto. No cross-site tracking, no advertising profiles."
-        },
-        "session_replay": {
-          "label": "Session replay",
-          "description": "Anonymized recordings of UI interactions to help us debug issues. Form fields and document content are masked."
-        }
-      },
-      "withdraw": {
-        "title": "Withdraw consent",
-        "intro": "You have already answered our consent prompt. You can change your mind at any time below.",
-        "currentState": "Current state",
-        "granted": "Granted",
-        "refused": "Refused"
-      }
-    },
     "ageGate": {
       "title": "Confirm your age",
-      "body": "Under EU law, we need a quick confirmation that you are at least 16 years old. If a lower digital age of consent applies in your country, please contact us.",
+      "body": "markoto is for people aged 16 and over. Please confirm that you are at least 16 years old. This applies in every country, even where local law sets a lower age.",
       "checkbox": "I confirm I am at least 16 years old",
       "continue": "Continue",
       "underage": "I am under 16",
-      "underageNotice": "We're sorry — markoto requires you to meet the digital age of consent in your country. We don't store any data about you."
+      "underageNotice": "We're sorry — markoto is only available to people aged 16 and over. We don't store any data about you."
     },
     "policyAcceptance": {
       "newVersionTitle": "Our privacy terms have changed",
@@ -1237,11 +1202,38 @@
       },
       "bodyLabel": "What should we know?",
       "bodyPlaceholder": "Describe what you saw and why it should be removed.",
-      "emailLabel": "Your email (optional, so we can confirm we received it)",
+      "emailLabel": "Email",
       "submit": "Submit report",
       "submittedTitle": "Thank you — your report was received",
       "submittedBody": "We acknowledge every report. If you provided an email, we'll let you know what we decided.",
-      "reportThisDoc": "Report this document"
+      "reportThisDoc": "Report this document",
+      "policyHint": "Read the {policy} to see what we act on and how we decide.",
+      "policyLink": "abuse and illegal-content policy",
+      "urlLabel": "Address (URL) of the content",
+      "urlHelp": "The full link to the document, for example https://markoto.app/d/…",
+      "bodyHelp": "Explain why the content is illegal or breaks our rules. Be specific: which part, and what is wrong with it.",
+      "contactLegend": "Your name and email",
+      "contactHelp": "We need them to confirm your report and to tell you our decision.",
+      "contactOptionalCsam": "Optional for reports of child sexual abuse material. Without an email address we cannot tell you our decision.",
+      "nameLabel": "Name",
+      "goodFaith": "I confirm in good faith that the information in this report is accurate and complete.",
+      "submittedBodyEmail": "We sent a confirmation to your email address and will tell you our decision there.",
+      "reference": "Reference: {id}",
+      "signInRequired": "Please sign in to report content, or write to the abuse contact named in the abuse policy.",
+      "signIn": "Sign in",
+      "errors": {
+        "title": "Could not send the report",
+        "generic": "Please try again.",
+        "rateLimited": "Too many reports from your network. Please try again later.",
+        "loginRequired": "Please sign in to report content.",
+        "category": "Please choose what you are reporting.",
+        "urlRequired": "Please give the address (URL) of the content.",
+        "bodyTooShort": "Please explain what is wrong with the content (at least 10 characters).",
+        "bodyTooLong": "The explanation is too long (at most 5000 characters).",
+        "goodFaith": "Please confirm that your report is accurate and made in good faith.",
+        "email": "Please enter a valid email address.",
+        "contactRequired": "Please give your name and email address."
+      }
     },
     "aiTransparency": {
       "badge": "AI-assisted",
@@ -1254,7 +1246,8 @@
       "dpa": "Data Processing Addendum",
       "subProcessors": "Sub-processors",
       "abuse": "Report abuse",
-      "imprint": "Imprint"
+      "imprint": "Imprint",
+      "cookieNote": "Cookies: essential only"
     },
     "documentPage": {
       "translationNoticeTitle": "Translation provided for convenience",
@@ -1305,16 +1298,8 @@
         "subheading": "Versions of the Privacy Policy, Terms of Service, and Data Processing Addendum you have accepted. If we update any document materially, you'll see \"needs re-acceptance\" here and we re-prompt before any further action.",
         "notAccepted": "Not accepted",
         "needsReacceptance": "needs re-acceptance (current v{version})",
-        "dpaNotApplicable": "Required when you create a workspace"
-      },
-      "consent": {
-        "heading": "Privacy choices",
-        "subheading": "What we may track about your use of markoto. Essential storage is always on (login + your consent decision itself). The other two surfaces are off until you grant them — change your mind here at any time.",
-        "purposeAlwaysOn": "always on",
-        "granted": "Granted",
-        "refused": "Refused",
-        "notSet": "Not set",
-        "change": "Change your privacy choices"
+        "dpaNotApplicable": "Required when you create a workspace",
+        "cookieNote": "markoto uses only essential cookies: your sign-in session, your language, and a key that lets your browser delete documents it created without an account. There is no analytics, tracking or advertising, so there is nothing to consent to. The privacy policy lists every cookie."
       },
       "sessions": {
         "heading": "Sessions",
@@ -1543,5 +1528,31 @@
       "toDark": "Switch to dark mode",
       "toLight": "Switch to light mode"
     }
+  },
+  "anonGate": {
+    "eyebrow": "Before your first document",
+    "title": "Writing without an account",
+    "pointPublic": "Anyone with the link can open your document and edit it, unless you change the sharing. Don't put confidential information in it.",
+    "pointRetention": "It is deleted after {days} days without activity. Sign in to keep your documents.",
+    "pointRules": "markoto does not review documents. Illegal content, scams and spam are not allowed and are removed when reported.",
+    "accept": "I accept the {terms}, including the acceptable use rules, and I am at least {age} years old.",
+    "termsLink": "Terms of Service",
+    "privacyNote": "How we handle your data: {privacy}.",
+    "privacyLink": "Privacy Policy",
+    "botCheckRunning": "checking for bots in your browser…",
+    "botCheckReady": "bot check done · runs in your browser, no tracking",
+    "signInInstead": "Sign in instead",
+    "cancel": "Cancel",
+    "continue": "Accept and create",
+    "errors": {
+      "botCheck": "The automatic bot check failed. Please try again.",
+      "termsRequired": "Please accept the Terms of Service first.",
+      "unavailable": "The bot check is not available right now. Please try again in a moment.",
+      "rateLimited": "Too many new documents from your network. Sign in, or try again later."
+    }
+  },
+  "userContent": {
+    "notice": "Created by a markoto user without an account, not by markoto",
+    "report": "Report"
   }
 }

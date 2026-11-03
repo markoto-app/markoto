@@ -64,8 +64,8 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
-    privacyPolicyUrl: 'https://mistral.ai/terms/#privacy-policy',
-    dpaUrl: 'https://mistral.ai/terms/#data-processing-agreement'
+    privacyPolicyUrl: 'https://legal.mistral.ai/terms/privacy-policy',
+    dpaUrl: 'https://legal.mistral.ai/terms/data-processing-addendum'
   },
   {
     id: 'jina_ai',
@@ -75,7 +75,9 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     transferMechanism: 'intra_eu',
     dpfCertified: false,
     privacyPolicyUrl: 'https://jina.ai/legal/#privacy-policy',
-    dpaUrl: 'https://jina.ai/legal/#data-processing-agreement'
+    // Jina AI is part of Elastic since 2025; jina.ai/legal points to the
+    // Elastic customer DPA for Jina products.
+    dpaUrl: 'https://www.elastic.co/pdf/v100623-0-elastic-customer-dpa.pdf'
   },
   {
     id: 'staan',
@@ -84,8 +86,9 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
-    // TODO(verify): confirm Staan's canonical privacy-policy + DPA URLs.
-    privacyPolicyUrl: 'https://staan.ai/privacy',
+    // Checked 2026-11-03: /privacy is a 404; the API privacy policy is
+    // /privacy-policy. Staan's DPA is available on request only.
+    privacyPolicyUrl: 'https://staan.ai/privacy-policy',
     dpaUrl: null
   },
   {
@@ -95,8 +98,10 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
-    privacyPolicyUrl: 'https://blackforestlabs.ai/privacy-policy/',
-    dpaUrl: 'https://blackforestlabs.ai/data-processing-agreement/'
+    privacyPolicyUrl: 'https://bfl.ai/privacy-policy/',
+    // Checked 2026-11-03: the former DPA URL is a 404 and no public DPA
+    // URL exists; the DPA is concluded out of band.
+    dpaUrl: null
   },
   {
     id: 'google_oauth',

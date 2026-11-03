@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createAnonDoc, dismissConsent } from './_helpers'
+import { smokeDoc } from './_helpers'
 
 // The mobile bottom-sheet drawer collapsed to 0×0 on every Android browser:
 // the UA styles `dialog { width/height: fit-content }`, the sheet's only child
@@ -8,13 +8,10 @@ import { createAnonDoc, dismissConsent } from './_helpers'
 // painted. This asserts the sheet renders with REAL dimensions on tap — it
 // would have failed with the 0×0 dialog.
 test('mobile bottom-sheet drawer opens with real size on tab tap', async ({ page }) => {
-  const docId = await createAnonDoc()
+  // Shared run document (globalSetup.ts) — never a new one per attempt.
+  const docId = smokeDoc('blank')
   await page.goto(`/d/${docId}`)
   await expect(page.locator('.cm-editor')).toBeVisible({ timeout: 30_000 })
-
-  // The consent banner (fixed bottom-0, z-60) would otherwise cover the tab
-  // bar and block the tap — dismiss it first.
-  await dismissConsent(page)
 
   const tabBar = page.locator('[data-testid="mobile-tab-bar"]')
   await expect(tabBar).toBeVisible()

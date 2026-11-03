@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import en from '../../../i18n/locales/en.json'
 
 // Pin the i18n keys our privacy / settings / admin surfaces
-// reference. A typo in a `t('legal.consent.banner.title')` shows
+// reference. A typo in a `t('legal.footer.cookieNote')` shows
 // the literal key string in the UI rather than the translation;
 // hard to spot in a code review, easy to spot in this list.
 //
@@ -10,24 +10,6 @@ import en from '../../../i18n/locales/en.json'
 // test passes when every key resolves to a non-empty string.
 
 const EXPECTED_KEYS: string[] = [
-  // Consent banner
-  'legal.consent.banner.title',
-  'legal.consent.banner.intro',
-  'legal.consent.banner.introShort',
-  'legal.consent.banner.essentialNotice',
-  'legal.consent.banner.acceptAll',
-  'legal.consent.banner.rejectAll',
-  'legal.consent.banner.customize',
-  'legal.consent.banner.save',
-  'legal.consent.banner.learnMore',
-  'legal.consent.banner.footerLink',
-  'legal.consent.purpose.essential.label',
-  'legal.consent.purpose.essential.description',
-  'legal.consent.purpose.analytics.label',
-  'legal.consent.purpose.analytics.description',
-  'legal.consent.purpose.session_replay.label',
-  'legal.consent.purpose.session_replay.description',
-
   // Age gate
   'legal.ageGate.title',
   'legal.ageGate.body',
@@ -114,6 +96,7 @@ const EXPECTED_KEYS: string[] = [
   'legal.footer.dpa',
   'legal.footer.subProcessors',
   'legal.footer.abuse',
+  'legal.footer.cookieNote',
 
   // Document page chrome
   'legal.documentPage.translationNoticeTitle',
@@ -153,13 +136,7 @@ const EXPECTED_KEYS: string[] = [
   'settings.profile.legal.notAccepted',
   'settings.profile.legal.needsReacceptance',
   'settings.profile.legal.dpaNotApplicable',
-  'settings.profile.consent.heading',
-  'settings.profile.consent.subheading',
-  'settings.profile.consent.purposeAlwaysOn',
-  'settings.profile.consent.granted',
-  'settings.profile.consent.refused',
-  'settings.profile.consent.notSet',
-  'settings.profile.consent.change'
+  'settings.profile.legal.cookieNote'
 ]
 
 function resolve(obj: unknown, path: string): unknown {

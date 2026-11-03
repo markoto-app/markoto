@@ -1,7 +1,7 @@
 {
   "slug": "dpa",
-  "version": 2,
-  "effectiveDate": "2026-10-26",
+  "version": 3,
+  "effectiveDate": "2026-11-03",
   "authoritativeLocale": "en",
   "translatedLocales": ["en", "fr", "de", "es"]
 }

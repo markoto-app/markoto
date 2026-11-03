@@ -4,7 +4,7 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 
 // Integration tests for the abuse-report HTTP flow:
-//   POST /api/abuse-reports                  (login-gated submission)
+//   POST /api/abuse-reports                  (submission; anonymous path in abuseReportsAnon.test.ts)
 //   GET  /api/admin/abuse-reports            (admin queue list)
 //   PATCH /api/admin/abuse-reports/:reportId (status transitions)
 //
@@ -25,6 +25,14 @@ async function countAuditByAction(action: string): Promise<number> {
   return Number(r.rows[0].c)
 }
 
+// The DSA Art.16(2) fields every valid report carries (signed-in
+// reporters' name + email default to their profile).
+function report(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return { contentUrl: 'https://markoto.app/d/some-doc', goodFaith: true, ...extra }
+}
+
+const DISMISS = { status: 'dismissed', decision: { explanation: 'Reviewed: nothing against the rules.' } }
+
 async function promoteToAdmin(userId: number): Promise<void> {
   await testDb().query(`UPDATE users SET is_admin = true WHERE id = $1`, [userId])
 }
@@ -34,12 +42,13 @@ describe('POST /api/abuse-reports', () => {
     await resetDb()
   })
 
-  it('rejects anonymous callers with 401', async () => {
+  it('anonymous callers need the bot check (403), not a sign-in', async () => {
     const res = await anonClient().request('/api/abuse-reports', {
       method: 'POST',
-      body: { category: 'spam', body: 'no session here' }
+      body: report({ category: 'spam', body: 'no session here', reporterName: 'A', reporterEmail: 'a@test.local' })
     })
-    expect(res.status).toBe(401)
+    expect(res.status).toBe(403)
+    expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('anon-gate/bot-check-required')
   })
 
   it('records a row + audit event for a logged-in submission', async () => {
@@ -50,10 +59,10 @@ describe('POST /api/abuse-reports', () => {
 
     const res = await client.request('/api/abuse-reports', {
       method: 'POST',
-      body: {
+      body: report({
         category: 'illegal_content',
         body: 'this passage describes a real-world threat'
-      }
+      })
     })
     expect(res.status).toBe(200)
     const json = await res.json() as { ok: boolean, reportId: string }
@@ -87,7 +96,7 @@ describe('POST /api/abuse-reports', () => {
     const client = await loggedInClient(reporter.id, reporter.name)
     const res = await client.request('/api/abuse-reports', {
       method: 'POST',
-      body: { category: 'spam', body: 'short' }
+      body: report({ category: 'spam', body: 'short' })
     })
     expect(res.status).toBe(400)
     expect(await countReports()).toBe(0)
@@ -98,7 +107,7 @@ describe('POST /api/abuse-reports', () => {
     const client = await loggedInClient(reporter.id, reporter.name)
     const res = await client.request('/api/abuse-reports', {
       method: 'POST',
-      body: { category: 'totally-made-up', body: 'a description that exists' }
+      body: report({ category: 'totally-made-up', body: 'a description that exists' })
     })
     expect(res.status).toBe(400)
   })
@@ -112,6 +121,7 @@ describe('POST /api/abuse-reports', () => {
       method: 'POST',
       body: {
         docId: 'test',
+        goodFaith: true,
         category: 'copyright',
         body: 'reporter pasted a typo for the doc id'
       }
@@ -154,14 +164,14 @@ describe('GET /api/admin/abuse-reports', () => {
     const liveClient = await loggedInClient(liveReporter.id, liveReporter.name)
     await liveClient.request('/api/abuse-reports', {
       method: 'POST',
-      body: { category: 'harassment', body: 'live report from active reporter' }
+      body: report({ category: 'harassment', body: 'live report from active reporter' })
     })
 
     const goneReporter = await createUser({ name: 'Gone', email: 'gone@test.local' })
     const goneClient = await loggedInClient(goneReporter.id, goneReporter.name)
     await goneClient.request('/api/abuse-reports', {
       method: 'POST',
-      body: { category: 'spam', body: 'reporter will delete their account' }
+      body: report({ category: 'spam', body: 'reporter will delete their account' })
     })
     // Simulate post-submission account deletion. FK is ON DELETE
     // SET NULL — reporter_user_id flips to null, email snapshot
@@ -189,7 +199,9 @@ describe('GET /api/admin/abuse-reports', () => {
     const gone = reports.find(r => r.reporter?.email === 'gone@test.local')
     expect(gone).toBeTruthy()
     expect(gone!.reporter!.userId).toBeNull()
-    expect(gone!.reporter!.name).toBeNull()
+    // The name typed (here: defaulted from the profile) at submission
+    // survives as a snapshot, like the email.
+    expect(gone!.reporter!.name).toBe('Gone')
     // Email snapshot is the surviving channel.
     expect(gone!.reporter!.email).toBe('gone@test.local')
     expect(gone!.reporter!.stillExists).toBe(false)
@@ -284,7 +296,7 @@ describe('PATCH /api/admin/abuse-reports/:reportId', () => {
 
     const res = await client.request(`/api/admin/abuse-reports/${reportId}`, {
       method: 'PATCH',
-      body: { status: 'actioned' }
+      body: { status: 'actioned', decision: { action: 'content_removed', rule: 'spam_or_seo', explanation: 'Spam page, removed.' } }
     })
     expect(res.status).toBe(200)
 
@@ -327,7 +339,7 @@ describe('PATCH /api/admin/abuse-reports/:reportId', () => {
     const client = await loggedInClient(admin.id, admin.name)
     const res = await client.request('/api/admin/abuse-reports/rep-nope', {
       method: 'PATCH',
-      body: { status: 'dismissed' }
+      body: DISMISS
     })
     expect(res.status).toBe(404)
   })

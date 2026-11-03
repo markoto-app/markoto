@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { SUB_PROCESSORS } from '../../../server/legal/subProcessors'
 import { PROCESSING_PURPOSES } from '../../../server/legal/lawfulBasis'
 import * as auditActions from '../../../server/legal/auditActions'
+import { ABUSE_REPORT_DEFAULT_RETENTION_DAYS, AUDIT_LOG_DEFAULT_RETENTION_DAYS } from '../../../server/utils/legalRetentionSweep'
 
 // Sanity tests for the legal registries. These are constants-only
 // modules — no DB, no I/O — but they're load-bearing for the
@@ -72,6 +73,38 @@ describe('PROCESSING_PURPOSES', () => {
       const isSentinel = r === 'until_deletion' || r === 'legal_minimum' || r === 'until_withdrawn'
       expect(isInt || isSentinel, `purpose ${purpose.id} has invalid retention: ${r}`).toBe(true)
     }
+  })
+})
+
+describe('consent-backed purposes', () => {
+  it('lists no analytics or session replay (no such script is loaded anywhere)', () => {
+    const ids = PROCESSING_PURPOSES.map(p => p.id)
+    expect(ids).not.toContain('product_analytics')
+    expect(ids).not.toContain('session_replay')
+  })
+})
+
+describe('security_audit_log purpose', () => {
+  it('matches the 2-year audit-log sweep', () => {
+    const purpose = PROCESSING_PURPOSES.find(p => p.id === 'security_audit_log')
+    expect(purpose?.retention).toBe(AUDIT_LOG_DEFAULT_RETENTION_DAYS)
+  })
+})
+
+describe('abuse_report_handling purpose', () => {
+  it('exists and matches the 1-year-after-closing abuse-report sweep', () => {
+    const purpose = PROCESSING_PURPOSES.find(p => p.id === 'abuse_report_handling')
+    expect(purpose?.basis).toBe('legal_obligation')
+    expect(purpose?.retention).toBe(ABUSE_REPORT_DEFAULT_RETENTION_DAYS)
+    expect(purpose?.subProcessors).toEqual(['ovh_postgres', 'resend'])
+  })
+
+  it('covers the Art.16(2) reporter fields and the moderation notices (one purpose for abuse handling)', () => {
+    const purpose = PROCESSING_PURPOSES.find(p => p.id === 'abuse_report_handling')
+    for (const category of ['reported_content_url', 'reporter_name', 'reporter_email', 'reporter_locale', 'good_faith_confirmation_time', 'moderation_notices']) {
+      expect(purpose?.dataCategories).toContain(category)
+    }
+    expect(PROCESSING_PURPOSES.filter(p => p.id.includes('abuse_report'))).toHaveLength(1)
   })
 })
 

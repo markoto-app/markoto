@@ -6,6 +6,7 @@ import { byokUrlPolicyErrors } from '../utils/aiProviders/config'
 import { legalSurfacesEnabled } from '../utils/instanceConfig'
 import { isTestModeEnabled, testModeBootError } from '../../shared/utils/testMode'
 import { siteUrlErrors } from '../utils/siteUrl'
+import { anonGateEnabled } from '../utils/anonGate/gate'
 
 // Fail-fast at boot if any critical config is missing or malformed. Runs
 // right after `00-db-migrate` so a misconfigured deploy crashes visibly
@@ -41,7 +42,10 @@ export default defineNitroPlugin(() => {
     { name: 'JWT_SECRET', value: config.jwtSecret },
     { name: 'INTERNAL_API_SECRET', value: config.internalApiSecret },
     { name: 'JWT_SECRET_PREVIOUS', value: config.jwtSecretPrevious, required: false },
-    { name: 'INTERNAL_API_SECRET_PREVIOUS', value: config.internalApiSecretPrevious, required: false }
+    { name: 'INTERNAL_API_SECRET_PREVIOUS', value: config.internalApiSecretPrevious, required: false },
+    // Anonymous gate (ALTCHA bot check + remembered-terms cookie): the key
+    // is only needed while the gate is on, but then it must be real.
+    { name: 'NUXT_ALTCHA_HMAC_KEY', value: process.env.NUXT_ALTCHA_HMAC_KEY, required: anonGateEnabled() }
   ]))
   checkPresenceFields(config, errors)
   checkOAuthPairs(config, errors)

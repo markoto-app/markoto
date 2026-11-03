@@ -485,6 +485,45 @@ export class EditorPage {
     }
   }
 
+  /** The accept-terms step an ANONYMOUS visitor sees before their first
+   *  document in this browser (`DocumentAnonGateDialog`). The bot check
+   *  behind it is the real ALTCHA proof of work, solved by the browser's
+   *  web worker (test difficulty on the flow stack) — nothing is bypassed. */
+  get anonGate() {
+    return {
+      dialog: this.page.locator('[data-testid="anon-gate-dialog"]'),
+      accept: this.page.locator('[data-testid="anon-gate-accept"]'),
+      continue: this.page.locator('[data-testid="anon-gate-continue"]'),
+      botCheck: this.page.locator('[data-testid="anon-gate-botcheck"]')
+    }
+  }
+
+  /** Tick the terms box and continue (the dialog must be open). */
+  async acceptAnonGate(): Promise<void> {
+    await expect(this.anonGate.dialog).toBeVisible()
+    await this.anonGate.accept.click()
+    await expect(this.anonGate.continue).toBeEnabled()
+    await this.anonGate.continue.click()
+  }
+
+  /**
+   * Click a create button and get to the new document: passes the
+   * accept-terms step when it appears (anonymous, first document in this
+   * browser) and waits for /d/:id either way. Signed-in users never see
+   * the step.
+   */
+  async clickCreateAndPassGate(button: Locator): Promise<void> {
+    await button.click()
+    const gate = this.anonGate.dialog
+    await Promise.race([
+      this.page.waitForURL(/\/d\/[^/]+/, { timeout: 30_000 }),
+      gate.waitFor({ state: 'visible', timeout: 30_000 })
+    ])
+    if (await gate.isVisible()) await this.acceptAnonGate()
+    // The bot check may still be solving when "continue" is clicked.
+    await this.page.waitForURL(/\/d\/[^/]+/, { timeout: 30_000 })
+  }
+
   /**
    * Wait for the new-document dialog to be open + ready for input.
    * Use after clicking a "+ New Document" button to gate subsequent
@@ -739,24 +778,13 @@ export class EditorPage {
   // ─── Navigation ───────────────────────────────────────────────────
 
   /**
-   * Go to homepage, click "New Document", wait for redirect to /d/{id}.
+   * Go to the homepage, open the new-document dialog, create a blank doc
+   * (passing the accept-terms step when anonymous) and wait for /d/{id}.
    * Does NOT wait for the WS handshake — call waitForReady() after.
-   * Split lifecycle from waitForReady so callers can record the
-   * redirect as a separate step in the manifest if they want.
-   *
-   * **ANONYMOUS USERS ONLY.** A logged-in user clicking "+ New Document"
-   * opens the new-doc dialog instead of navigating directly — call
-   * `openNewDocDialog()` for that path and submit the dialog yourself.
-   * Calling this from a logged-in test wedges Playwright on the
-   * `waitForURL` race for 120 s before the test timeout fires.
    */
   async createNewDoc(): Promise<void> {
-    await this.page.goto('/')
-    await expect(this.page.locator('[data-testid="landing-new-document"]')).toBeVisible()
-    await Promise.all([
-      this.page.waitForURL(/\/d\/[^/]+/),
-      this.page.locator('[data-testid="landing-new-document"]').click()
-    ])
+    await this.openNewDocDialog()
+    await this.clickCreateAndPassGate(this.newDocDialog.submitBlank)
   }
 
   /**
@@ -805,10 +833,7 @@ export class EditorPage {
     // before clicking submit. Guards against v-model-not-yet-synced
     // races that produced "Untitled" docs.
     await expect(this.newDocDialog.titleInput).toHaveValue(title)
-    await Promise.all([
-      this.page.waitForURL(/\/d\/[^/]+/),
-      this.newDocDialog.submitCreate.click()
-    ])
+    await this.clickCreateAndPassGate(this.newDocDialog.submitCreate)
     await this.waitForReady()
   }
 }
