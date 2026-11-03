@@ -9,8 +9,8 @@ import { formatMentionToken, COMMENT_BODY_MAX } from '~/utils/commentBody'
 //     the typeahead source so users can type "@" + arrow-down to
 //     summon the AI without remembering the bare `@ai` syntax.
 type MentionableEntry
-  = | { kind: 'user', id: number, name: string, email: string | null, avatarUrl: string | null }
-    | { kind: 'ai', id: 'ai', name: string, email: null, avatarUrl: null, description: string, aliases?: readonly string[] }
+  = | { kind: 'user', id: number, name: string, email: string | null }
+    | { kind: 'ai', id: 'ai', name: string, email: null, description: string, aliases?: readonly string[] }
 
 const props = withDefaults(defineProps<{
   mentionableUsers: readonly MentionableEntry[]
@@ -217,7 +217,7 @@ function pickMention(entry: MentionableEntry) {
   // Token shape depends on entry kind. The AI token is the bare `@ai`
   // string the server's hasAiMention regex matches; user tokens use
   // the structured `@[Name](user:N)` form so the renderer can resolve
-  // user_id → avatar.
+  // user_id → name.
   const token = (entry.kind === 'ai' ? '@markoto' : formatMentionToken(entry.name, entry.id)) + ' '
   body.value = before + token + after
   mentionContext.value = null
@@ -354,11 +354,9 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
           <span class="text-xs text-muted truncate ml-auto">{{ entry.description }}</span>
         </template>
         <template v-else>
-          <UAvatar
-            :src="entry.avatarUrl ?? undefined"
-            :alt="entry.name"
-            size="2xs"
-            referrerpolicy="no-referrer"
+          <CommonUserAvatar
+            :seed="avatarSeedFor({ id: entry.id })"
+            :size="16"
           />
           <span class="truncate">{{ entry.name }}</span>
           <span

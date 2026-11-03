@@ -73,8 +73,6 @@ export interface ActivityEntry {
   docId: string
   userId: number | null
   userName: string | null
-  /** Resolved at read time via JOIN — null for AI / anon / deleted users. */
-  avatarUrl: string | null
   action: ActivityAction
   wordCount: number | null
   linesAdded: number | null
@@ -111,7 +109,6 @@ export interface ActivityEntry {
    */
   agentInitiatorUserId: number | null
   agentInitiatorName: string | null
-  agentInitiatorAvatarUrl: string | null
   /**
    * For MCP: `mcp_sessions.client_name` — friendly client label
    * ("Claude Desktop", "Cursor", etc.) captured from the
@@ -230,8 +227,7 @@ export async function pruneActivity(docId: string): Promise<void> {
 
 export async function listRecentActivity(docId: string, limit = 50): Promise<ActivityEntry[]> {
   const db = useDatabase()
-  // LEFT JOIN users for human-author avatars. The agent enrichment
-  // (resolving actorPrincipal → session table → initiator user) runs
+  // The agent enrichment (resolving actorPrincipal → session table → initiator user) runs
   // as a separate batch step after the base select — keeps the SQL
   // straightforward and lets the enrichment short-circuit when the
   // page has no agent rows.
@@ -241,7 +237,6 @@ export async function listRecentActivity(docId: string, limit = 50): Promise<Act
       docId: activityLog.docId,
       userId: activityLog.userId,
       userName: activityLog.userName,
-      avatarUrl: users.avatarUrl,
       action: activityLog.action,
       wordCount: activityLog.wordCount,
       linesAdded: activityLog.linesAdded,
@@ -253,7 +248,6 @@ export async function listRecentActivity(docId: string, limit = 50): Promise<Act
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
-    .leftJoin(users, eq(activityLog.userId, users.id))
     .where(eq(activityLog.docId, docId))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit)
@@ -267,7 +261,7 @@ export async function listRecentActivity(docId: string, limit = 50): Promise<Act
  */
 type RawActivityRow = Omit<
   ActivityEntry,
-  'agentKind' | 'agentInitiatorUserId' | 'agentInitiatorName' | 'agentInitiatorAvatarUrl' | 'agentClientName'
+  'agentKind' | 'agentInitiatorUserId' | 'agentInitiatorName' | 'agentClientName'
 >
 
 /**
@@ -275,7 +269,7 @@ type RawActivityRow = Omit<
  * initiator + (for MCP) client name. Three small batched queries:
  *   1. ai_sessions by sessionId  → initiator_user_id
  *   2. mcp_sessions by mcpSessionId → user_id, client_name, user_agent
- *   3. users by initiator id     → name, avatar_url
+ *   3. users by initiator id     → name
  *
  * No-ops cheaply when no rows have an `actor_principal`. Tolerant of
  * missing session rows (sweeper / cascade): such rows render with
@@ -300,7 +294,6 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
       agentKind: null,
       agentInitiatorUserId: null,
       agentInitiatorName: null,
-      agentInitiatorAvatarUrl: null,
       agentClientName: null
     }))
   }
@@ -326,7 +319,7 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
   const aiBySid = new Map(aiRows.map(r => [r.sessionId, r]))
   const mcpBySid = new Map(mcpRows.map(r => [r.mcpSessionId, r]))
 
-  // Batch-fetch initiator user info (name + avatar).
+  // Batch-fetch initiator user info (name).
   const initiatorIds = new Set<number>()
   for (const r of aiRows) initiatorIds.add(r.initiatorUserId)
   for (const r of mcpRows) initiatorIds.add(r.userId)
@@ -335,8 +328,7 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
     ? []
     : await db.select({
         id: users.id,
-        name: users.name,
-        avatarUrl: users.avatarUrl
+        name: users.name
       }).from(users).where(inArray(users.id, Array.from(initiatorIds)))
   const userById = new Map(userRows.map(r => [r.id, r]))
 
@@ -348,7 +340,6 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
         agentKind: null,
         agentInitiatorUserId: null,
         agentInitiatorName: null,
-        agentInitiatorAvatarUrl: null,
         agentClientName: null
       }
     }
@@ -361,7 +352,6 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
         agentKind: 'ai',
         agentInitiatorUserId: aiRow?.initiatorUserId ?? null,
         agentInitiatorName: initiator?.name ?? null,
-        agentInitiatorAvatarUrl: initiator?.avatarUrl ?? null,
         agentClientName: null
       }
     }
@@ -378,7 +368,6 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
         agentKind: 'mcp',
         agentInitiatorUserId: mcpRow?.userId ?? null,
         agentInitiatorName: initiator?.name ?? null,
-        agentInitiatorAvatarUrl: initiator?.avatarUrl ?? null,
         agentClientName: clientLabel
       }
     }
@@ -390,7 +379,6 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
       agentKind: null,
       agentInitiatorUserId: null,
       agentInitiatorName: null,
-      agentInitiatorAvatarUrl: null,
       agentClientName: null
     }
   })
@@ -410,7 +398,6 @@ export async function getActivityById(activityId: number, docId: string): Promis
       docId: activityLog.docId,
       userId: activityLog.userId,
       userName: activityLog.userName,
-      avatarUrl: users.avatarUrl,
       action: activityLog.action,
       wordCount: activityLog.wordCount,
       linesAdded: activityLog.linesAdded,
@@ -422,7 +409,6 @@ export async function getActivityById(activityId: number, docId: string): Promis
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
-    .leftJoin(users, eq(activityLog.userId, users.id))
     .where(and(eq(activityLog.id, activityId), eq(activityLog.docId, docId)))
     .limit(1)
   if (rows.length === 0) return null
@@ -493,7 +479,6 @@ export async function searchActivity(
       docId: activityLog.docId,
       userId: activityLog.userId,
       userName: activityLog.userName,
-      avatarUrl: users.avatarUrl,
       action: activityLog.action,
       wordCount: activityLog.wordCount,
       linesAdded: activityLog.linesAdded,
@@ -505,7 +490,6 @@ export async function searchActivity(
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
-    .leftJoin(users, eq(activityLog.userId, users.id))
     .where(and(...filters))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit)

@@ -28,8 +28,8 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
   const css = themeToCss(markoto, runtime)
 
   describe('Step 1 — preset values', () => {
-    test('emits sumi-50 cream paper background', () => {
-      expect(css).toContain('--doc-bg: #FAF8F4')
+    test('emits plain white paper background', () => {
+      expect(css).toContain('--doc-bg: #FFFFFF')
     })
     test('emits sumi-950 body text colour', () => {
       expect(css).toContain('--doc-text: #14110D')

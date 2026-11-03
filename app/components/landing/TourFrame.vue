@@ -7,13 +7,20 @@
 defineProps<{
   /** CSS aspect-ratio of the body, e.g. "1280 / 800". */
   ratio: string
-  /** Aspect ratio on phones (< 640px), when the visual shows a focus crop. */
+  /**
+   * Aspect ratio on phones (< 640px), when the visual shows a focus crop.
+   * The product tour passes none: phones show the whole window (the crops
+   * cut through the editor and the pages).
+   */
   phoneRatio?: string
 }>()
 </script>
 
 <template>
-  <div class="mk-frame">
+  <div
+    class="mk-frame"
+    :class="{ 'mk-frame--crop': phoneRatio }"
+  >
     <div
       class="mk-frame__bar"
       aria-hidden="true"
@@ -80,10 +87,10 @@ defineProps<{
   overflow: hidden;
 }
 @media (max-width: 639px) {
-  /* Phones show the focus crop: the window chrome would only take
-     height from it. */
   .mk-frame { border-radius: 12px; }
-  .mk-frame__bar { display: none; }
+  /* A focus crop isn't the whole window: the window chrome would only
+     take height from it. */
+  .mk-frame--crop .mk-frame__bar { display: none; }
   .mk-frame__body { aspect-ratio: var(--mk-phone-ratio); }
 }
 </style>

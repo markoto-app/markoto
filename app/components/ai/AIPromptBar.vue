@@ -728,7 +728,7 @@ onUnmounted(() => {
     0 8px 24px -8px rgb(20 17 13 / 0.18);
 }
 
-:global(.dark) .ai-prompt-bar.is-focused .ai-prompt-bar__shell {
+html.dark .ai-prompt-bar.is-focused .ai-prompt-bar__shell {
   box-shadow:
     0 0 0 1.5px color-mix(in srgb, var(--color-shu-400) 90%, transparent),
     0 18px 44px -12px color-mix(in srgb, var(--color-shu-400) 50%, transparent),
@@ -785,7 +785,7 @@ onUnmounted(() => {
     0 8px 24px -8px rgb(20 17 13 / 0.18);
 }
 
-:global(.dark) .ai-prompt-bar.is-active .ai-prompt-bar__shell {
+html.dark .ai-prompt-bar.is-active .ai-prompt-bar__shell {
   box-shadow:
     0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-400) calc(60% + var(--_p) * 25%), transparent),
     0 calc(16px + var(--_p) * 12px) calc(40px + var(--_p) * 28px) -12px color-mix(in srgb, var(--color-shu-400) calc(35% + var(--_p) * 30%), transparent),

@@ -30,6 +30,11 @@ const menuItems = computed<MenuItem[]>(() => {
     icon: 'i-lucide-key-round',
     to: AI_SETTINGS_ROUTE
   })
+  items.push({
+    label: t('common.documentation'),
+    icon: 'i-lucide-book-open',
+    to: '/docs'
+  })
   if (accountStatus.value?.isAdmin) {
     items.push({
       label: 'Admin',
@@ -63,11 +68,10 @@ const menuItems = computed<MenuItem[]>(() => {
         class="gap-2"
         data-testid="user-menu-trigger"
       >
-        <UAvatar
-          :src="user?.avatar ?? undefined"
-          :alt="user?.name"
-          size="xs"
-          referrerpolicy="no-referrer"
+        <CommonUserAvatar
+          v-if="user"
+          :seed="avatarSeedFor({ id: user.id })"
+          :size="24"
         />
         <span class="hidden sm:inline font-serif text-base font-normal tracking-tight">{{ user?.name }}</span>
       </UButton>

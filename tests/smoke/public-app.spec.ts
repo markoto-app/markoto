@@ -7,11 +7,11 @@ import { smokeDoc } from './_helpers'
 // mean the vendored-asset/render pipeline is broken.
 test('anonymous doc loads, editor mounts, live preview paginates', async ({ page }) => {
   // Shared run document (globalSetup.ts) — never a new one per attempt.
-  const docId = smokeDoc('blank')
+  const docId = smokeDoc('demo')
   await page.goto(`/d/${docId}`)
 
   await expect(page.locator('.cm-editor')).toBeVisible()
-  // The seeded welcome content lands via Hocuspocus sync.
+  // The seeded Demo content lands via Hocuspocus sync.
   await expect(page.locator('.cm-content')).toContainText('markoto', { timeout: 30_000 })
 
   // Editing works.

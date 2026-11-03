@@ -41,7 +41,7 @@ describe('findUserById', () => {
   it('returns the full row for an existing user', async () => {
     const id = await upsert({
       provider: 'github', providerUserId: 'gh-1',
-      login: 'a', name: 'Alice', email: 'a@t.l', avatarUrl: 'u',
+      login: 'a', name: 'Alice', email: 'a@t.l',
       emailVerified: true
     })
     const row = await findUserById(id)
@@ -59,7 +59,7 @@ describe('findUserNameById', () => {
   it('returns just the name (lighter than findUserById)', async () => {
     const id = await upsert({
       provider: 'google', providerUserId: 'g-1',
-      name: 'Bob', email: null, avatarUrl: null,
+      name: 'Bob', email: null,
       emailVerified: false
     })
     expect(await findUserNameById(id)).toBe('Bob')
@@ -78,7 +78,7 @@ describe('findUserByEmail', () => {
   it('finds a user by exact email', async () => {
     await upsert({
       provider: 'github', providerUserId: 'gh-1',
-      login: 'c', name: 'Charlie', email: 'charlie@test.local', avatarUrl: null,
+      login: 'c', name: 'Charlie', email: 'charlie@test.local',
       emailVerified: true
     })
     const row = await findUserByEmail('charlie@test.local')
@@ -90,7 +90,7 @@ describe('findUserByEmail', () => {
     // lowercase — must still match.
     await upsert({
       provider: 'github', providerUserId: 'gh-2',
-      login: 'd', name: 'Dana', email: 'Dana@Test.Local', avatarUrl: null,
+      login: 'd', name: 'Dana', email: 'Dana@Test.Local',
       emailVerified: true
     })
     expect((await findUserByEmail('dana@test.local'))?.name).toBe('Dana')
@@ -105,7 +105,7 @@ describe('findUserByEmail', () => {
     // Pin behavior: null-email users never match an email lookup.
     await upsert({
       provider: 'google', providerUserId: 'g-nullmail',
-      name: 'Eve', email: null, avatarUrl: null,
+      name: 'Eve', email: null,
       emailVerified: false
     })
     expect(await findUserByEmail('')).toBeNull()
@@ -120,7 +120,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
   it('insert path: creates a new user row', async () => {
     const r = await upsertOAuthUser({
       provider: 'github', providerUserId: 'gh-insert',
-      login: 'alice', name: 'Alice', email: 'alice@test.local', avatarUrl: 'u',
+      login: 'alice', name: 'Alice', email: 'alice@test.local',
       emailVerified: true
     })
     expect(r.outcome).toBe('inserted')
@@ -133,12 +133,12 @@ describe('upsertOAuthUser — basic outcomes', () => {
   it('update path: second call with same providerId refreshes profile fields', async () => {
     const r1 = await upsertOAuthUser({
       provider: 'github', providerUserId: 'gh-update',
-      login: 'alice', name: 'Alice', email: 'alice@test.local', avatarUrl: 'u1',
+      login: 'alice', name: 'Alice', email: 'alice@test.local',
       emailVerified: true
     })
     const r2 = await upsertOAuthUser({
       provider: 'github', providerUserId: 'gh-update',
-      login: 'alice-new', name: 'Alice New', email: 'new@test.local', avatarUrl: 'u2',
+      login: 'alice-new', name: 'Alice New', email: 'new@test.local',
       emailVerified: true
     })
     expect(r2.outcome).toBe('updated')
@@ -147,18 +147,20 @@ describe('upsertOAuthUser — basic outcomes', () => {
     expect(row!.name).toBe('Alice New')
     expect(row!.login).toBe('alice-new')
     expect(row!.email).toBe('new@test.local')
-    expect(row!.avatarUrl).toBe('u2')
+    // Provider profile pictures are never stored (avatars are generated
+    // locally from the id).
+    expect(row!.avatarUrl).toBeNull()
   })
 
   it('update path does not flip googleId on a github user', async () => {
     const id = await upsert({
       provider: 'github', providerUserId: 'gh-x',
-      login: 'x', name: 'X', email: null, avatarUrl: null,
+      login: 'x', name: 'X', email: null,
       emailVerified: false
     })
     await upsert({
       provider: 'github', providerUserId: 'gh-x',
-      login: 'x2', name: 'X2', email: null, avatarUrl: null,
+      login: 'x2', name: 'X2', email: null,
       emailVerified: false
     })
     const row = await findUserById(id)
@@ -171,12 +173,12 @@ describe('upsertOAuthUser — basic outcomes', () => {
     // This pins the email-less signup behaviour.
     const ghId = await upsert({
       provider: 'github', providerUserId: 'shared-id',
-      name: 'GHUser', email: null, avatarUrl: null,
+      name: 'GHUser', email: null,
       emailVerified: false
     })
     const goId = await upsert({
       provider: 'google', providerUserId: 'shared-id',
-      name: 'GoUser', email: null, avatarUrl: null,
+      name: 'GoUser', email: null,
       emailVerified: false
     })
     expect(ghId).not.toBe(goId)
@@ -188,11 +190,11 @@ describe('upsertOAuthUser — basic outcomes', () => {
     const [a, b] = await Promise.allSettled([
       upsertOAuthUser({
         provider: 'github', providerUserId: 'gh-race',
-        name: 'Race1', email: null, avatarUrl: null, emailVerified: false
+        name: 'Race1', email: null, emailVerified: false
       }),
       upsertOAuthUser({
         provider: 'github', providerUserId: 'gh-race',
-        name: 'Race2', email: null, avatarUrl: null, emailVerified: false
+        name: 'Race2', email: null, emailVerified: false
       })
     ])
     const fulfilled = [a, b].filter(r => r.status === 'fulfilled')
@@ -214,7 +216,7 @@ describe('upsertOAuthUser — email-based merge', () => {
     // Alice signs up with GitHub first.
     const first = await upsertOAuthUser({
       provider: 'github', providerUserId: 'gh-alice',
-      login: 'alice', name: 'Alice', email: 'alice@test.local', avatarUrl: 'gh-avatar',
+      login: 'alice', name: 'Alice', email: 'alice@test.local',
       emailVerified: true
     })
     expect(first.outcome).toBe('inserted')
@@ -223,7 +225,7 @@ describe('upsertOAuthUser — email-based merge', () => {
     // one row, both provider ids populated.
     const second = await upsertOAuthUser({
       provider: 'google', providerUserId: 'g-alice',
-      name: 'Alice Smith', email: 'alice@test.local', avatarUrl: 'g-avatar',
+      name: 'Alice Smith', email: 'alice@test.local',
       emailVerified: true
     })
     expect(second.outcome).toBe('merged')
@@ -232,21 +234,21 @@ describe('upsertOAuthUser — email-based merge', () => {
     const row = await findUserById(first.userId)
     expect(row!.githubId).toBe('gh-alice')
     expect(row!.googleId).toBe('g-alice') // linked
-    // Avatar + email normalise to the latest login's values (user
-    // can always re-edit once we have a profile page). Login stays
-    // (GitHub-only field); Google doesn't set it.
-    expect(row!.avatarUrl).toBe('g-avatar')
+    // Email normalises to the latest login's value. Login stays
+    // (GitHub-only field); Google doesn't set it. No provider avatar
+    // is stored on either path.
+    expect(row!.avatarUrl).toBeNull()
   })
 
   it('case-insensitive email matching still merges', async () => {
     await upsert({
       provider: 'github', providerUserId: 'gh-caps',
-      login: 'u', name: 'Caps', email: 'Alice@Test.Local', avatarUrl: null,
+      login: 'u', name: 'Caps', email: 'Alice@Test.Local',
       emailVerified: true
     })
     const second = await upsertOAuthUser({
       provider: 'google', providerUserId: 'g-caps',
-      name: 'Alice', email: 'alice@test.local', avatarUrl: null,
+      name: 'Alice', email: 'alice@test.local',
       emailVerified: true
     })
     expect(second.outcome).toBe('merged')
@@ -263,12 +265,12 @@ describe('upsertOAuthUser — email-based merge', () => {
     // GitHub-originated account. Instead, a second row is inserted.
     const first = await upsert({
       provider: 'github', providerUserId: 'gh-alice',
-      login: 'alice', name: 'Alice', email: 'alice@test.local', avatarUrl: null,
+      login: 'alice', name: 'Alice', email: 'alice@test.local',
       emailVerified: true
     })
     const second = await upsertOAuthUser({
       provider: 'google', providerUserId: 'g-attacker',
-      name: 'Attacker', email: 'alice@test.local', avatarUrl: null,
+      name: 'Attacker', email: 'alice@test.local',
       emailVerified: false // <- the key difference
     })
     expect(second.outcome).toBe('inserted')
@@ -286,12 +288,12 @@ describe('upsertOAuthUser — email-based merge', () => {
     // new row even though an existing user might exist.
     await upsert({
       provider: 'github', providerUserId: 'gh-has-email',
-      login: 'u', name: 'U', email: 'u@test.local', avatarUrl: null,
+      login: 'u', name: 'U', email: 'u@test.local',
       emailVerified: true
     })
     const second = await upsertOAuthUser({
       provider: 'google', providerUserId: 'g-no-email',
-      name: 'NoEmail', email: null, avatarUrl: null,
+      name: 'NoEmail', email: null,
       emailVerified: false
     })
     expect(second.outcome).toBe('inserted')
@@ -303,12 +305,12 @@ describe('upsertOAuthUser — email-based merge', () => {
     // can't prove they're the same person.
     await upsert({
       provider: 'github', providerUserId: 'gh-no-email',
-      name: 'NoMail', email: null, avatarUrl: null,
+      name: 'NoMail', email: null,
       emailVerified: false
     })
     const second = await upsertOAuthUser({
       provider: 'google', providerUserId: 'g-with-email',
-      name: 'WithMail', email: 'anything@test.local', avatarUrl: null,
+      name: 'WithMail', email: 'anything@test.local',
       emailVerified: true
     })
     expect(second.outcome).toBe('inserted')
@@ -333,18 +335,18 @@ describe('upsertOAuthUser — email-based merge', () => {
     // once. No orphan rows, no duplicate inserts surviving.
     await upsert({
       provider: 'github', providerUserId: 'gh-race-alice',
-      login: 'alice', name: 'Alice', email: 'race@test.local', avatarUrl: null,
+      login: 'alice', name: 'Alice', email: 'race@test.local',
       emailVerified: true
     })
 
     const [a, b] = await Promise.allSettled([
       upsertOAuthUser({
         provider: 'google', providerUserId: 'g-race-same',
-        name: 'Alice', email: 'race@test.local', avatarUrl: null, emailVerified: true
+        name: 'Alice', email: 'race@test.local', emailVerified: true
       }),
       upsertOAuthUser({
         provider: 'google', providerUserId: 'g-race-same',
-        name: 'Alice', email: 'race@test.local', avatarUrl: null, emailVerified: true
+        name: 'Alice', email: 'race@test.local', emailVerified: true
       })
     ])
 
@@ -375,7 +377,6 @@ async function newUser(): Promise<number> {
     login: 'test',
     name: 'Test',
     email: `${Math.random().toString(36).slice(2, 10)}@test.local`,
-    avatarUrl: null,
     emailVerified: true
   })
   return r.userId

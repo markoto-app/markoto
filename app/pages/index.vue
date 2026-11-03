@@ -292,7 +292,19 @@ function onRowLongPress(doc: DocumentListItem) {
       >
         <CommonWordmark :size="20" />
       </NuxtLink>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1 sm:gap-2">
+        <!-- The user documentation, for everyone: visitors on the product
+             tour, the plain hero and the signed-in dashboard. -->
+        <UButton
+          to="/docs"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-book-open"
+          :aria-label="t('common.documentation')"
+          data-testid="header-docs-link"
+        >
+          <span class="hidden sm:inline">{{ t('common.docs') }}</span>
+        </UButton>
         <AuthUserMenu />
         <UButton
           v-if="showTour"

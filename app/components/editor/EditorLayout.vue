@@ -730,8 +730,36 @@ const mobileMenuItems = computed(() => {
       : [])
   ]
 
-  return [fileGroup, viewModeGroup, themeGroup, authGroup]
+  // Help — the phone's stand-in for the desktop Help menu (shortcuts
+  // need a keyboard, so they stay on the desktop menu).
+  const helpGroup = [
+    {
+      label: t('menubar.help.docs'),
+      icon: 'i-lucide-book-open',
+      onSelect: () => openDocs()
+    },
+    {
+      label: t('menubar.help.tour'),
+      icon: 'i-lucide-map',
+      onSelect: () => editorTour.value?.start()
+    }
+  ]
+
+  return [fileGroup, viewModeGroup, themeGroup, helpGroup, authGroup]
 })
+
+// Help → Documentation: the user docs in a new tab, so the document stays open.
+function openDocs(): void {
+  window.open('/docs', '_blank', 'noopener')
+}
+
+// Help → Keyboard shortcuts.
+const showShortcuts = ref(false)
+
+// First-run tour (EditorTour.vue): shown once per browser when the editor
+// is ready to write in; Help → "Take the tour" re-opens it.
+const editorTour = useTemplateRef<{ start: () => void }>('editorTour')
+const tourReady = computed(() => synced.value && !isReadOnly.value && !requiresPassword.value && editorView.value !== null)
 
 // Track Y.js text content as a reactive string for preview.
 // We observe on the Y.Doc 'update' event rather than ytext.observe because
@@ -989,12 +1017,10 @@ const _statusIcon = computed(() => {
           class="hidden sm:inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full border border-default bg-default/60 text-xs text-muted hover:text-default hover:bg-muted/40 transition-colors"
           :title="docWorkspaceSponsor ? t('editor.aiWorkspaceSponsoredBy', { name: docWorkspaceSponsor.name }) : t('editor.aiWorkspaceBadgeTooltip')"
         >
-          <UAvatar
+          <CommonUserAvatar
             v-if="docWorkspaceSponsor"
-            :src="docWorkspaceSponsor.avatarUrl ?? undefined"
-            :alt="docWorkspaceSponsor.name"
-            size="3xs"
-            referrerpolicy="no-referrer"
+            :seed="avatarSeedFor({ id: docWorkspaceSponsor.id })"
+            :size="16"
           />
           <CommonSeal
             v-else
@@ -1179,6 +1205,9 @@ const _statusIcon = computed(() => {
           @open-table-picker="tableModalOpen = true"
           @toggle-dictation="dictation.toggle()"
           @create-comment="triggerCreateComment"
+          @open-docs="openDocs"
+          @open-shortcuts="showShortcuts = true"
+          @start-tour="editorTour?.start()"
         />
       </div>
 
@@ -1739,6 +1768,13 @@ const _statusIcon = computed(() => {
       v-model:open="showImportModal"
       :ytext="ytext"
       :read-only="isReadOnly"
+    />
+
+    <EditorKeyboardShortcutsModal v-model:open="showShortcuts" />
+    <EditorTour
+      ref="editorTour"
+      :ready="tourReady"
+      :is-mobile="isMobile"
     />
 
     <!-- Share modal -->

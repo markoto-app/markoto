@@ -25,7 +25,7 @@ on mobile.
 You opened the import dialog from File → Import, picked a file, and
 clicked Import. markoto converted it to Markdown on its servers (with
 Microsoft's open-source markitdown library) and put the result in the
-editor. Because the doc already had the welcome content
+editor. Because the doc already had the Demo content
 seeded, markoto offered to either replace or append; you chose
 replace.
 

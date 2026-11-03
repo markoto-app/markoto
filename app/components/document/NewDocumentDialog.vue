@@ -5,7 +5,7 @@ import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
-import { TEMPLATES } from '~~/shared/templates'
+import { DEFAULT_TEMPLATE_ID, TEMPLATES } from '~~/shared/templates'
 
 // Same trick as ThemeEditorPanel — link every picker font's (same-origin)
 // stylesheet so each preset card can render its heading in its actual
@@ -31,11 +31,10 @@ if (import.meta.client) {
  * Two submit paths:
  *   - "Create" → POSTs the answers, navigates to /d/<id>
  *   - "Just give me a blank doc" → POSTs nothing extra (just the
- *     optional workspaceId), schema defaults take over
+ *     optional workspaceId), schema defaults take over: the `blank`
+ *     template, i.e. an empty document
  *
- * Phase 4 ships only `templateId='blank'`; Phase 5 adds the structural
- * skeletons. The template field is hidden from the dialog until then
- * to avoid showing a single useless option.
+ * The template picker pre-selects `demo` (DEFAULT_TEMPLATE_ID).
  */
 
 const props = defineProps<{
@@ -70,7 +69,9 @@ type ThemeChoice
     | { kind: 'saved', themeId: string }
     | { kind: 'inherit' }
 const themeChoice = ref<ThemeChoice>({ kind: 'preset', id: 'markoto' })
-const templateId = ref<string>('blank')
+// Demo by default: a first document shows what markoto can do. Blank
+// (truly empty) is one click away, and so is "Just give me a blank doc".
+const templateId = ref<string>(DEFAULT_TEMPLATE_ID)
 
 const { loggedIn } = useUserSession()
 
@@ -164,7 +165,7 @@ watch(() => props.open, async (next) => {
   title.value = ''
   description.value = ''
   audience.value = 'casual'
-  templateId.value = 'blank'
+  templateId.value = DEFAULT_TEMPLATE_ID
   languageModel.value = defaultLanguageItem()
   // Pull saved themes + workspace default fresh on every open so a
   // theme just-saved in the editor is immediately pickable here.
@@ -347,6 +348,7 @@ async function submit(blank: boolean) {
               :key="tpl.id"
               type="button"
               :data-testid="`newdoc-template-card-${tpl.id}`"
+              :aria-pressed="templateId === tpl.id"
               class="text-left rounded-md border p-2.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               :class="templateId === tpl.id
                 ? 'border-primary bg-elevated/40'

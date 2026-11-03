@@ -212,7 +212,7 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
   background: var(--color-shu-500);
   border-radius: 1px;
 }
-:global(.dark) .mk-tab--active::before {
+html.dark .mk-tab--active::before {
   background: var(--color-shu-400);
 }
 
@@ -225,7 +225,7 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
   color: var(--color-shu-500);
   animation: mk-pulse 2.4s ease-in-out infinite;
 }
-:global(.dark) .mk-tab--dictation-active {
+html.dark .mk-tab--dictation-active {
   color: var(--color-shu-400);
 }
 </style>

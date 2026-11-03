@@ -25,7 +25,7 @@ const { t } = useI18n()
 interface AwarenessUser {
   name: string
   color: string
-  avatar?: string
+  avatarSeed?: string // anonymous visitors' random per-tab token
   isAI?: boolean
   id?: number // seeded from the session user id; absent for anonymous
 }
@@ -57,7 +57,6 @@ type WorkspaceRole = 'admin' | 'editor' | 'viewer'
 interface RosterMember {
   userId: number
   name: string
-  avatarUrl: string | null
   role: WorkspaceRole
   isDocOwner: boolean
 }
@@ -66,7 +65,6 @@ interface OfflineEntry {
   kind: 'offline'
   userId: number
   name: string
-  avatarUrl: string | null
   role: WorkspaceRole
   isDocOwner: boolean
 }
@@ -100,11 +98,11 @@ function updateLive() {
   states.forEach((state, clientId) => {
     if (clientId === localId) return
     // Peers choose their own awareness payload. Normalise before
-    // rendering: `color` lands in inline styles, `avatar` in <img src>,
-    // and a non-string name used to crash `charAt` below. (The document
+    // rendering: `color` lands in inline styles, `avatarSeed` seeds the
+    // generated avatar, and a non-string name used to crash `charAt` below. (The document
     // composable already normalises on receipt; this keeps the component
     // safe on its own.)
-    const user: AwarenessUser | null = normalizeAwarenessUser(state?.user, { ownOrigin: window.location.origin })
+    const user: AwarenessUser | null = normalizeAwarenessUser(state?.user)
     if (!user) return
     // yCollab passes the JWT userId into `user.id` — numeric for real users,
     // absent for unauthenticated, also numeric for AI.
@@ -169,7 +167,6 @@ const merged = computed<DisplayEntry[]>(() => {
       kind: 'offline',
       userId: m.userId,
       name: m.name,
-      avatarUrl: m.avatarUrl,
       role: m.role,
       isDocOwner: m.isDocOwner
     }))
@@ -225,13 +222,11 @@ function isActivePhase(status: AiStatus | undefined): boolean {
   return status.phase !== 'done' && status.phase !== 'error'
 }
 
-function initialsOf(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')
-}
-
-const offlineColors = ['#64748b', '#71717a'] // muted slate + zinc, role-neutral
-function offlineBg(userId: number) {
-  return offlineColors[Math.abs(userId) % offlineColors.length]
+function liveSeed(e: LiveEntry): string {
+  // Signed-in: by user id (same face as in comments, members, …).
+  // Anonymous: the visitor's random session token; a peer on an old
+  // client without one still gets a stable face per connection.
+  return avatarSeedFor({ id: e.userId, avatarSeed: e.user.avatarSeed, fallback: e.clientId })
 }
 </script>
 
@@ -262,50 +257,33 @@ function offlineBg(userId: number) {
           :class="{ 'ai-pulse': e.isAI && isActivePhase(e.aiStatus) }"
           :style="{ '--tw-ring-color': e.user.color }"
         >
-          <UAvatar
-            v-if="e.user.avatar && !e.isAI"
-            :src="e.user.avatar"
-            :alt="e.user.name"
-            size="xs"
-            referrerpolicy="no-referrer"
-          />
           <!-- markoto presence: bone disc in light / sumi-900 in
-               dark (via `bg-default`) with the seal centered. Real
-               human collaborators still get their colored initial. -->
+               dark (via `bg-default`) with the seal centered. Humans
+               get their generated face. -->
           <div
             v-if="e.isAI"
             class="size-6 rounded-full flex items-center justify-center bg-default border border-default"
           >
             <CommonSeal :size="8" />
           </div>
-          <div
+          <CommonUserAvatar
             v-else
-            class="size-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
-            :style="{ backgroundColor: e.user.color }"
-          >
-            <span>{{ e.user.name.charAt(0).toUpperCase() }}</span>
-          </div>
+            :seed="liveSeed(e)"
+            :name="e.user.name"
+            :size="24"
+          />
         </div>
 
         <div
           v-else
           class="relative inline-flex rounded-full ring-2 ring-default shrink-0 opacity-50 transition-opacity duration-200"
         >
-          <UAvatar
-            v-if="e.avatarUrl"
-            :src="e.avatarUrl"
-            :alt="e.name"
-            size="xs"
+          <CommonUserAvatar
+            :seed="avatarSeedFor({ id: e.userId })"
+            :name="e.name"
+            :size="24"
             class="grayscale"
-            referrerpolicy="no-referrer"
           />
-          <div
-            v-else
-            class="size-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
-            :style="{ backgroundColor: offlineBg(e.userId) }"
-          >
-            {{ initialsOf(e.name) }}
-          </div>
         </div>
       </UTooltip>
     </div>

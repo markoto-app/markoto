@@ -25,7 +25,6 @@ export default defineOAuthGitHubEventHandler({
       login: user.login,
       name: user.name || user.login,
       email,
-      avatarUrl: user.avatar_url,
       emailVerified: email !== null
     })
 
@@ -39,7 +38,6 @@ export default defineOAuthGitHubEventHandler({
         login: user.login,
         name: user.name || user.login,
         email,
-        avatar: user.avatar_url,
         provider: 'github'
       },
       loggedInAt: Date.now(),

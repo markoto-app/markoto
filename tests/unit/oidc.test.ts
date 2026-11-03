@@ -99,8 +99,7 @@ describe('profileFromClaims', () => {
       subject: 'abc-123',
       email: 'Olga@Example.org',
       emailVerified: true,
-      name: 'Olga',
-      avatarUrl: null
+      name: 'Olga'
     })
   })
 
@@ -142,10 +141,8 @@ describe('profileFromClaims', () => {
     expect(profileFromClaims({ ...base, name: 'n'.repeat(400) }).name).toHaveLength(255)
   })
 
-  it('accepts only http(s) avatar URLs', () => {
-    expect(profileFromClaims({ ...base, picture: 'https://idp.example.org/a.png' }).avatarUrl).toBe('https://idp.example.org/a.png')
-    expect(profileFromClaims({ ...base, picture: 'javascript:alert(1)' }).avatarUrl).toBeNull()
-    expect(profileFromClaims({ ...base, picture: 'data:image/png;base64,AAAA' }).avatarUrl).toBeNull()
+  it('never takes the picture claim (provider avatars are not stored)', () => {
+    expect(profileFromClaims({ ...base, picture: 'https://idp.example.org/a.png' })).not.toHaveProperty('avatarUrl')
   })
 
   it('ignores malformed emails even when "verified"', () => {

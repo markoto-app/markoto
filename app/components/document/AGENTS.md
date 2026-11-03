@@ -14,7 +14,7 @@ Right-sidebar tab (next to Activity / Theme / Knowledge — toggled via `i-lucid
 
 ### 3. The new-doc dialog (`NewDocumentDialog.vue`)
 
-Opens when the user clicks "+ New Document" on `/` or `/w/:id`. Five questions: title, description, language (defaults to UI locale if it's a preset), audience (USelect + per-option description), theme (2-col preset cards rendered in each preset's actual heading font face — same Google-Fonts preload trick as ThemeEditorPanel), template (2-col cards with icon + 2-line description). Two submit buttons: **Create document** posts the form; **Just give me a blank doc** POSTs nothing extra (schema defaults take over) for muscle memory of the legacy zero-config flow.
+Opens when the user clicks "+ New Document" on `/` or `/w/:id`. Five questions: title, description, language (defaults to UI locale if it's a preset), audience (USelect + per-option description), theme (2-col preset cards rendered in each preset's actual heading font face — same Google-Fonts preload trick as ThemeEditorPanel), template (2-col cards with icon + 2-line description). Template defaults to **Demo** (`DEFAULT_TEMPLATE_ID`); cards carry `aria-pressed`. Two submit buttons: **Create document** posts the form; **Just give me a blank doc** POSTs nothing extra (schema defaults take over: `blank`, an empty document).
 
 ### 4. The anonymous gate (`AnonGateDialog.vue`)
 

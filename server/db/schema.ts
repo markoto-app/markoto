@@ -22,6 +22,11 @@ export const users = pgTable('users', {
   login: text('login'),
   name: text('name').notNull(),
   email: text('email'),
+  // Retired: provider profile pictures are no longer stored (avatars are
+  // generated locally from the user id — app/utils/userAvatar.ts).
+  // Nothing reads or writes it; migration 0025 nulled existing values.
+  // Kept so a code rollback to an older image doesn't break on a
+  // missing column; drop it in a later release.
   avatarUrl: text('avatar_url'),
   // Subscription tier. Defaults to `free`; paid tiers are set by
   // the Stripe webhook when `invoice.paid` / `subscription.updated`

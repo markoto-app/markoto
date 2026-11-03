@@ -39,7 +39,7 @@ withDefaults(defineProps<{
   background: var(--color-shu-500);
   /* Square. Authorship marks are not rounded — they're stamps. */
 }
-:global(.dark) .mk-gutter-mark {
+html.dark .mk-gutter-mark {
   background: var(--color-shu-400);
 }
 .mk-gutter-mark--merging {

@@ -125,7 +125,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
   // exposed by `useDocument.ts` when `NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1`,
   // which the flow-test stack sets) instead of `cm-content`'s
   // textContent — CM6 doesn't render lines outside the viewport into
-  // the DOM, so the appended Q3 line at the very END of the welcome
+  // the DOM, so the appended Q3 line at the very END of the Demo
   // doc may not be in the rendered span on mobile (smaller viewport,
   // edit-only). The Y.Doc is the authoritative content view.
   await expect.poll(

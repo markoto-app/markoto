@@ -300,7 +300,7 @@
   "templates": {
     "blank": {
       "label": "空白",
-      "description": "タイトルだけ。構成はあなたが作ります。"
+      "description": "まっさらなページ。中身はすべてあなた次第。"
     },
     "business-plan": {
       "label": "事業計画",
@@ -321,6 +321,10 @@
     "project-readme": {
       "label": "プロジェクトREADME",
       "description": "キャッチコピー、目的、クイックスタート、機能、ドキュメント、コントリビュート、ライセンス。"
+    },
+    "demo": {
+      "label": "デモ",
+      "description": "Markdown の基本と markoto の短いツアー。"
     }
   },
   "documentPanel": {
@@ -386,7 +390,9 @@
     "confirm": "確認",
     "close": "閉じる",
     "loading": "読み込み中...",
-    "menu": "メニュー"
+    "menu": "メニュー",
+    "docs": "ドキュメント",
+    "documentation": "ドキュメンテーション"
   },
   "menu": {
     "lightMode": "ライトモード",
@@ -452,7 +458,9 @@
       "title": "ヘルプ",
       "shortcuts": "キーボードショートカット",
       "feedback": "問題を報告",
-      "github": "GitHubで見る"
+      "github": "GitHubで見る",
+      "docs": "ドキュメンテーション",
+      "tour": "ツアーを見る"
     }
   },
   "ai": {
@@ -840,7 +848,7 @@
       "applied": "テンプレートをドキュメントに適用しました",
       "markoto": {
         "name": "markoto",
-        "description": "シグネチャーの見た目。Fraunchesの編集向け見出し、温かみのあるクリーム色の紙にInter本文、朱色のアクセント — ダッシュボードではなく、落ち着いたフィールドガイド。"
+        "description": "シグネチャーの見た目。Fraunces の編集向け見出し、シンプルな白い紙に Inter 本文、朱色のアクセント — ダッシュボードではなく、落ち着いたフィールドガイド。"
       },
       "modern": {
         "name": "モダン",
@@ -1252,7 +1260,9 @@
       "subProcessors": "サブプロセッサー",
       "abuse": "不正利用を報告",
       "imprint": "運営者情報",
-      "cookieNote": "Cookie：必須のもののみ"
+      "cookieNote": "Cookie：必須のもののみ",
+      "dpaShort": "DPA",
+      "navLabel": "ドキュメントと法的情報"
     },
     "documentPage": {
       "translationNoticeTitle": "便宜のために翻訳を提供しています",
@@ -1458,7 +1468,7 @@
       "markdown": "Markdown",
       "body": "ライブでページ組版されるプレビューを備えた、共同編集できるMarkdownエディター。プレーンテキストで書けば、プレビューとページ単位で同じPDFを書き出せます。",
       "cta": "書きはじめる — 登録不要",
-      "scroll": "スクロールして使い方を見る"
+      "next": "使い方を見る"
     },
     "scenes": {
       "write": {
@@ -1534,7 +1544,8 @@
     "tone": {
       "toDark": "ダークモードに切り替える",
       "toLight": "ライトモードに切り替える"
-    }
+    },
+    "nextScene": "次へ：{scene}"
   },
   "anonGate": {
     "eyebrow": "最初のドキュメントの前に",
@@ -1561,5 +1572,68 @@
   "userContent": {
     "notice": "アカウントのない markoto ユーザーが作成（markoto による作成ではありません）",
     "report": "通報"
+  },
+  "shortcuts": {
+    "title": "キーボードショートカット",
+    "subtitle": "markoto のエディタでのキー操作です。",
+    "groups": {
+      "format": "書式",
+      "edit": "編集",
+      "document": "ドキュメント",
+      "preview": "プレビュー（ポインターをページ上に置いたとき）"
+    },
+    "continueList": "リストや引用を続ける",
+    "indent": "リスト項目を字下げ / 字上げ",
+    "blankLine": "下に新しい行",
+    "moveLine": "行を上 / 下へ移動",
+    "copyLine": "行を上 / 下へコピー",
+    "deleteLine": "行を削除",
+    "selectLine": "行を選択",
+    "addCursor": "上 / 下にカーソルを追加",
+    "postComment": "コメントを投稿"
+  },
+  "editorTour": {
+    "stepOf": "{n} / {total}",
+    "skip": "スキップ",
+    "next": "次へ",
+    "done": "完了",
+    "steps": {
+      "write": {
+        "title": "左に Markdown、右にページ",
+        "body": "エディタに入力すると、プレビューに印刷・書き出しと同じページが表示されます。これらのボタンで、エディタ・両方・プレビューを切り替えます。"
+      },
+      "format": {
+        "title": "記法を覚えずに書式設定",
+        "body": "見出し、リスト、表、アラート、数式、図。書式を付けるには先にテキストを選択します。"
+      },
+      "theme": {
+        "title": "見た目を整える",
+        "body": "フォント、色、ページサイズ、ヘッダー、フッター、表紙はドキュメントテーマで設定します。"
+      },
+      "share": {
+        "title": "リンクを共有",
+        "body": "鍵アイコンで、リンクを開ける人を決めます：自分のみ、誰でも閲覧、誰でも編集、またはパスワード付き。"
+      },
+      "ai": {
+        "title": "markoto に頼む",
+        "body": "やりたいことを書くと、AI が共同編集者のようにドキュメントを書き換え、入力する様子が見えます。"
+      },
+      "help": {
+        "title": "ヘルプはここ",
+        "body": "ドキュメンテーション、キーボードショートカット、このツアーは「ヘルプ」メニューにあります。"
+      },
+      "writeMobile": {
+        "title": "書いて、ページを見る",
+        "body": "ここに Markdown を入力します。目のアイコンで、印刷・書き出しと同じページが表示されます。"
+      },
+      "formatMobile": {
+        "title": "書式と挿入",
+        "body": "「エディター」タブに、見出し、リスト、表、アラート、数式、図があります。"
+      },
+      "helpMobile": {
+        "title": "ヘルプはメニューに",
+        "body": "ドキュメンテーションとこのツアーはメニューにあります。"
+      }
+    }
   }
 }

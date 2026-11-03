@@ -251,6 +251,21 @@ select:focus-visible,
   color: var(--color-sumi-300);
 }
 
+/* Overscroll colour: what the rubber band shows past the top or bottom of
+   a page (macOS / iOS). The page itself always paints its own surface
+   (body `--ui-bg`, page roots `bg-muted`), so the root background only
+   shows there. Dark mode: the seal's shu-400, a small brand moment (it
+   used to happen by accident through broken `:global(.dark)` selectors
+   that styled <html>). Light mode: sumi-950, the ink of the product
+   page's closing footer. The product tour keeps its own surfaces on its
+   page root (ProductTour.vue). */
+html { background-color: var(--color-sumi-950); }
+html.dark { background-color: var(--color-shu-400); }
+body { min-height: 100svh; }
+@media print {
+  html, html.dark { background: none; }
+}
+
 /* Tailwind v4 dropped the default `cursor: pointer` on buttons — restore
    globally so we don't sprinkle `cursor-pointer` on every clickable. */
 @layer base {

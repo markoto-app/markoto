@@ -96,7 +96,7 @@ const question = computed(() => {
 .ai-confirm-panel {
   border-color: var(--color-shu-500);
 }
-:global(.dark) .ai-confirm-panel {
+html.dark .ai-confirm-panel {
   border-color: var(--color-shu-400);
 }
 

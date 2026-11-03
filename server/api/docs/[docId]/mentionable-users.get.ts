@@ -10,7 +10,8 @@ import { listMembers } from '../../../repos/workspaceMembers'
 // autocomplete.
 //
 // Returns minimal fields needed to render the typeahead row + emit the
-// `@[Name](user:N)` token: { id, name, email, avatarUrl }.
+// `@[Name](user:N)` token: { id, name, email }. The avatar is generated
+// client-side from the id.
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
@@ -36,8 +37,7 @@ export default defineEventHandler(async (event) => {
     users: members.map(m => ({
       id: m.userId,
       name: m.name,
-      email: m.email,
-      avatarUrl: m.avatarUrl
+      email: m.email
     }))
   }
 })

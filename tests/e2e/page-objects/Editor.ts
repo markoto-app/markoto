@@ -339,12 +339,13 @@ export class EditorPage {
   /**
    * Replace the whole document text (Y.Text) with `markdown`, as one
    * edit by this user — e.g. a short, realistic starting draft instead
-   * of the long welcome document, so the flow's outcome fits on the
+   * of the long Demo document, so the flow's outcome fits on the
    * first preview page. Waits until the editor shows the new text.
    */
   async setDocText(markdown: string): Promise<void> {
-    // A new doc seeds its welcome/template body on the first sync —
-    // wait for it, so the seed can't land after (and next to) our text.
+    // A new doc seeds its template body (Demo, by default) on the first
+    // sync — wait for it, so the seed can't land after (and next to) our
+    // text. Not for a Blank document: that one never gets a body.
     await expect.poll(() => this.docText(), { message: 'document never synced its initial body' }).not.toBe('')
     const applied = await this.page.evaluate((text: string) => {
       const ytext: unknown = Reflect.get(globalThis, '__DEBUG_ytext')
@@ -778,13 +779,15 @@ export class EditorPage {
   // ─── Navigation ───────────────────────────────────────────────────
 
   /**
-   * Go to the homepage, open the new-document dialog, create a blank doc
-   * (passing the accept-terms step when anonymous) and wait for /d/{id}.
-   * Does NOT wait for the WS handshake — call waitForReady() after.
+   * Go to the homepage, open the new-document dialog, create a doc with
+   * the dialog's defaults (the Demo template — `submitBlank` would give
+   * an empty document), passing the accept-terms step when anonymous,
+   * and wait for /d/{id}. Does NOT wait for the WS handshake — call
+   * waitForReady() after.
    */
   async createNewDoc(): Promise<void> {
     await this.openNewDocDialog()
-    await this.clickCreateAndPassGate(this.newDocDialog.submitBlank)
+    await this.clickCreateAndPassGate(this.newDocDialog.submitCreate)
   }
 
   /**

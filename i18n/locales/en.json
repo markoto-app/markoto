@@ -300,7 +300,7 @@
   "templates": {
     "blank": {
       "label": "Blank",
-      "description": "Just a title. You bring the structure."
+      "description": "An empty page. You bring everything."
     },
     "business-plan": {
       "label": "Business plan",
@@ -321,6 +321,10 @@
     "project-readme": {
       "label": "Project README",
       "description": "Tagline, why, quick start, features, docs, contributing, license."
+    },
+    "demo": {
+      "label": "Demo",
+      "description": "Markdown basics and a short tour of markoto."
     }
   },
   "documentPanel": {
@@ -386,7 +390,9 @@
     "confirm": "Confirm",
     "close": "Close",
     "loading": "Loading...",
-    "menu": "Menu"
+    "menu": "Menu",
+    "docs": "Docs",
+    "documentation": "Documentation"
   },
   "menu": {
     "lightMode": "Light mode",
@@ -452,7 +458,9 @@
       "title": "Help",
       "shortcuts": "Keyboard shortcuts",
       "feedback": "Report an issue",
-      "github": "View on GitHub"
+      "github": "View on GitHub",
+      "docs": "Documentation",
+      "tour": "Take the tour"
     }
   },
   "ai": {
@@ -840,7 +848,7 @@
       "applied": "Template applied to your document",
       "markoto": {
         "name": "markoto",
-        "description": "The signature look. Fraunces editorial headings, Inter body on warm cream paper, vermillion accent — calm field guide, not dashboard."
+        "description": "The signature look. Fraunces editorial headings, Inter body on plain white paper, vermillion accent — calm field guide, not dashboard."
       },
       "modern": {
         "name": "Modern",
@@ -1252,7 +1260,9 @@
       "subProcessors": "Sub-processors",
       "abuse": "Report abuse",
       "imprint": "Imprint",
-      "cookieNote": "Cookies: essential only"
+      "cookieNote": "Cookies: essential only",
+      "dpaShort": "DPA",
+      "navLabel": "Documentation and legal"
     },
     "documentPage": {
       "translationNoticeTitle": "Translation provided for convenience",
@@ -1458,7 +1468,7 @@
       "markdown": "Markdown",
       "body": "A collaborative Markdown editor with a live, paginated preview. Write plain text; export a PDF that matches the preview page for page.",
       "cta": "Start writing — no sign-up",
-      "scroll": "Scroll to see how it works"
+      "next": "See how it works"
     },
     "scenes": {
       "write": {
@@ -1534,7 +1544,8 @@
     "tone": {
       "toDark": "Switch to dark mode",
       "toLight": "Switch to light mode"
-    }
+    },
+    "nextScene": "Next: {scene}"
   },
   "anonGate": {
     "eyebrow": "Before your first document",
@@ -1561,5 +1572,68 @@
   "userContent": {
     "notice": "Created by a markoto user without an account, not by markoto",
     "report": "Report"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "subtitle": "What the keys do in markoto's editor.",
+    "groups": {
+      "format": "Format",
+      "edit": "Editing",
+      "document": "Document",
+      "preview": "Preview (pointer over the pages)"
+    },
+    "continueList": "Continue a list or quote",
+    "indent": "Indent / outdent a list item",
+    "blankLine": "New line below",
+    "moveLine": "Move line up / down",
+    "copyLine": "Copy line up / down",
+    "deleteLine": "Delete line",
+    "selectLine": "Select line",
+    "addCursor": "Add a cursor above / below",
+    "postComment": "Post a comment"
+  },
+  "editorTour": {
+    "stepOf": "{n} of {total}",
+    "skip": "Skip",
+    "next": "Next",
+    "done": "Done",
+    "steps": {
+      "write": {
+        "title": "Markdown left, pages right",
+        "body": "Type in the editor; the preview shows the pages exactly as they print and export. These buttons switch between editor, both, and preview."
+      },
+      "format": {
+        "title": "Format without the syntax",
+        "body": "Headings, lists, tables, alerts, math and diagrams. Select text first to format it."
+      },
+      "theme": {
+        "title": "Make it look right",
+        "body": "Fonts, colours, page size, header, footer and the cover page live in the document theme."
+      },
+      "share": {
+        "title": "Share the link",
+        "body": "The lock decides who can open the link: only you, anyone to view, anyone to edit, or with a password."
+      },
+      "ai": {
+        "title": "Ask markoto",
+        "body": "Describe what you want. The AI edits the document like a collaborator, and you watch it type."
+      },
+      "help": {
+        "title": "Help is here",
+        "body": "The documentation, the keyboard shortcuts and this tour are in the Help menu."
+      },
+      "writeMobile": {
+        "title": "Write, then look at the pages",
+        "body": "Type markdown here. The eye shows the pages as they print and export."
+      },
+      "formatMobile": {
+        "title": "Format and insert",
+        "body": "The Editor tab has headings, lists, tables, alerts, math and diagrams."
+      },
+      "helpMobile": {
+        "title": "Help is in the menu",
+        "body": "The documentation and this tour are in the menu."
+      }
+    }
   }
 }

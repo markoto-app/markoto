@@ -36,7 +36,6 @@ interface ActivityEntry {
   docId: string
   userId: number | null
   userName: string | null
-  avatarUrl: string | null
   action: string
   wordCount: number | null
   linesAdded: number | null
@@ -44,6 +43,9 @@ interface ActivityEntry {
   metadata: Record<string, unknown> | null
   yjsDocIdBefore: number | null
   yjsDocIdAfter: number | null
+  // Server-enriched agent fields; null on human rows.
+  actorPrincipal?: string | null
+  agentKind?: 'ai' | 'mcp' | null
   createdAt: string
 }
 
@@ -79,7 +81,6 @@ function makeRestoreEntry(over: Partial<ActivityEntry> = {}): ActivityEntry {
     docId: 'doc-x',
     userId: 7,
     userName: 'Joel',
-    avatarUrl: null,
     action: 'restore',
     wordCount: null,
     linesAdded: null,
@@ -120,6 +121,28 @@ async function flushDeep() {
     await nextTick()
   }
 }
+
+describe('ActivityFeed — avatars', () => {
+  it('gives a human row a generated avatar seeded by user id, and never an <img> from elsewhere', async () => {
+    entriesResponse.current = [makeRestoreEntry({ id: 50, userId: 7, actorPrincipal: null, agentKind: null })]
+    const wrapper = await mountSuspended(ActivityFeed, { props: { docId: 'doc-x' } })
+    await flushAsyncState()
+    const avatar = wrapper.find('[data-activity-id="50"] [data-testid="user-avatar"]')
+    expect(avatar.attributes('data-avatar-seed')).toBe('u-7')
+    for (const img of wrapper.findAll('[data-activity-id="50"] img')) {
+      expect(img.attributes('src') ?? '').toMatch(/^data:image\/svg\+xml/)
+    }
+  })
+
+  it('keeps the seal disc for an AI row', async () => {
+    entriesResponse.current = [makeRestoreEntry({ id: 51, userId: null, userName: 'markoto', action: 'edit', actorPrincipal: 'ai:assistant:s1', agentKind: 'ai' })]
+    const wrapper = await mountSuspended(ActivityFeed, { props: { docId: 'doc-x' } })
+    await flushAsyncState()
+    const card = wrapper.find('[data-activity-id="51"]')
+    expect(card.find('[data-testid="user-avatar"]').exists()).toBe(false)
+    expect(card.find('.mk-seal').exists()).toBe(true)
+  })
+})
 
 describe('ActivityFeed — restore-row affordances', () => {
   it('renders both the View change caret and the Restore button on a restore row', async () => {
@@ -244,7 +267,6 @@ describe('ActivityFeed — restore-row affordances', () => {
       docId: 'doc-x',
       userId: 7,
       userName: 'Joel',
-      avatarUrl: null,
       action: 'edit',
       wordCount: 42,
       linesAdded: 3,

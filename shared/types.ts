@@ -3,7 +3,6 @@ export interface User {
   login?: string
   name: string
   email?: string
-  avatar?: string
   provider: 'github' | 'google' | 'oidc'
 }
 

@@ -93,10 +93,10 @@ export default defineEventHandler(async (event) => {
     language: row.language,
     // Rendered template body (with {{title}} / {{description}}
     // substituted, locale-matched on doc.language). Null for the
-    // `blank` template — the client falls through to welcomeDoc in
-    // that case. Always shipped — the client only inserts when ytext
-    // is empty (gates same as welcomeDoc), so re-fetching the token
-    // on a doc that already has content is harmless.
+    // `blank` template — the document then stays empty. Always
+    // shipped — the client only inserts when ytext is empty, so
+    // re-fetching the token on a doc that already has content is
+    // harmless.
     initialBody: renderTemplate(row.templateId, {
       title: row.title,
       description: row.description,

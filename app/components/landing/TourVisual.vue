@@ -11,7 +11,7 @@ import { TOUR_DEPART_EVENT, TOUR_REST_EVENT, tourEventIndex } from '~/composable
  * One scene's picture: a poster still and a short looping video, each in
  * light + dark (both rendered, CSS-toggled — the Wordmark pattern, so SSR
  * and client agree and the hidden mode never downloads) and, inline on
- * phones, the scene's phone cut (`<source media>`). The cursor is baked
+ * phones with `phoneCut`, the scene's phone cut (`<source media>`). The cursor is baked
  * into the video by the capture.
  *
  * JS: play the visible video while the scene is on stage and pause it
@@ -44,8 +44,15 @@ const props = withDefaults(defineProps<{
    * picked a color mode — then `.dark` on <html> decides.
    */
   tone?: 'light' | 'dark' | 'flip'
+  /**
+   * Inline on phones, show the scene's phone cut (a focus crop) instead
+   * of the whole window. Off: the crops cut through the editor and the
+   * pages, so phones get the full frame, contained.
+   */
+  phoneCut?: boolean
 }>(), {
   load: true,
+  phoneCut: false,
   section: null,
   tone: 'light'
 })
@@ -108,8 +115,8 @@ function startFan(): void {
 }
 
 const hasVideo = computed(() => props.mode !== 'hero' && Boolean(props.scene.video))
-const phoneVideo = computed(() => (props.mode === 'inline' ? props.scene.phone?.video : undefined))
-const phonePoster = computed(() => (props.mode === 'inline' ? props.scene.phone?.poster : undefined))
+const phoneVideo = computed(() => (props.mode === 'inline' && props.phoneCut ? props.scene.phone?.video : undefined))
+const phonePoster = computed(() => (props.mode === 'inline' && props.phoneCut ? props.scene.phone?.poster : undefined))
 
 // ─── Playback ─────────────────────────────────────────────────────────
 const root = ref<HTMLElement | null>(null)

@@ -65,7 +65,6 @@ interface ActivityEntry {
   docId: string
   userId: number | null
   userName: string | null
-  avatarUrl: string | null
   action: ActivityAction
   wordCount: number | null
   linesAdded: number | null
@@ -83,7 +82,6 @@ interface ActivityEntry {
   agentKind: 'ai' | 'mcp' | null
   agentInitiatorUserId: number | null
   agentInitiatorName: string | null
-  agentInitiatorAvatarUrl: string | null
   agentClientName: string | null
   createdAt: string | number
 }
@@ -537,9 +535,9 @@ function onRestored() {
       @click="toggleExpanded(entry)"
     >
       <div class="p-3 flex gap-2.5">
-        <!-- Avatar. AI gets the sparkles tile; humans get UAvatar (which
-           falls back to initials/colored circle when no avatar URL).
-           Anonymous rows fall through to UAvatar's generic placeholder. -->
+        <!-- Avatar. Agents get the seal disc; humans their generated
+           face (seeded by user id). Rows without an id (anonymous,
+           deleted users) are seeded by their display name. -->
         <!-- markoto avatar — bone disc in light mode, dark disc in
            dark mode (matches the surrounding cards), seal centered.
            The seal stays shu in both modes; the ring around it is
@@ -557,13 +555,11 @@ function onRestored() {
         >
           <CommonSeal :size="9" />
         </div>
-        <UAvatar
+        <CommonUserAvatar
           v-else
-          :src="entry.avatarUrl ?? undefined"
-          :alt="entry.userName ?? t('activity.anonymous')"
-          size="sm"
-          class="shrink-0 mt-0.5"
-          referrerpolicy="no-referrer"
+          :seed="avatarSeedFor({ id: entry.userId, fallback: entry.userName })"
+          :size="28"
+          class="mt-0.5"
         />
 
         <div class="flex-1 min-w-0 leading-snug">

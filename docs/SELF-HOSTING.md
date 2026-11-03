@@ -31,7 +31,7 @@ everything that differs is configuration.
 ## Install
 
 ```sh
-git clone https://github.com/joelbarmettlerUZH/md-online.git markoto
+git clone https://github.com/joelbarmettlerUZH/markoto.app.git markoto
 cd markoto
 git checkout v0.0.9        # optional: pin a release; the installer then uses the matching images
 ./install.sh
@@ -85,7 +85,7 @@ Release images are signed keyless with [cosign](https://docs.sigstore.dev/cosign
 ```sh
 cosign verify ghcr.io/joelbarmettleruzh/markoto-app:vX.Y.Z \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --certificate-identity 'https://github.com/joelbarmettlerUZH/md-online/.github/workflows/release.yml@refs/heads/main'
+  --certificate-identity 'https://github.com/joelbarmettlerUZH/markoto.app/.github/workflows/release.yml@refs/heads/main'
 ```
 
 Prefer a pinned `vX.Y.Z` tag over `latest`, which moves with every release.
@@ -366,7 +366,7 @@ git pull                          # or: git checkout vX.Y.Z
 
 Keep the checkout and `IMAGE_TAG` on the same release: the compose files and the LiteLLM configuration come from the checkout, the code from the images.
 
-Before upgrading across several releases, read the [upgrade notes](#upgrade-notes) below and the [release notes](https://github.com/joelbarmettlerUZH/md-online/releases) of every release in between (each release's notes are the description of the pull request that shipped it).
+Before upgrading across several releases, read the [upgrade notes](#upgrade-notes) below and the [release notes](https://github.com/joelbarmettlerUZH/markoto.app/releases) of every release in between (each release's notes are the description of the pull request that shipped it).
 
 ## Upgrade notes
 
@@ -546,7 +546,7 @@ First look at `./install.sh status` (is every container up and healthy?) and `./
 
 ## Getting help
 
-- Questions and ideas: [GitHub Discussions](https://github.com/joelbarmettlerUZH/md-online/discussions).
-- Bugs: [open an issue](https://github.com/joelbarmettlerUZH/md-online/issues/new/choose) with your release tag, the compose files in use and the relevant log lines. Remove secrets first.
+- Questions and ideas: [GitHub Discussions](https://github.com/joelbarmettlerUZH/markoto.app/discussions).
+- Bugs: [open an issue](https://github.com/joelbarmettlerUZH/markoto.app/issues/new/choose) with your release tag, the compose files in use and the relevant log lines. Remove secrets first.
 - Security problems: never in a public issue, see [SECURITY.md](../SECURITY.md).
 - How the system fits together: [ARCHITECTURE.md](ARCHITECTURE.md).
