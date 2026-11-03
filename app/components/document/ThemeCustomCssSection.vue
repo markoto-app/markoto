@@ -99,11 +99,26 @@ async function mountEditor() {
     import('@lezer/highlight')
   ])
   if (view.value || !host.value) return
+  // Tags as @lezer/css emits them; colours are CSS variables in
+  // main.css (`--mk-css-*`, light + dark).
   const highlight = HighlightStyle.define([
-    { tag: [tags.propertyName, tags.attributeName], color: 'var(--mk-md-syntax-strong)' },
-    { tag: [tags.keyword, tags.definitionKeyword, tags.modifier], color: 'var(--mk-md-syntax)' },
-    { tag: [tags.string, tags.number, tags.unit, tags.color, tags.atom], color: 'var(--mk-md-syntax)' },
-    { tag: tags.comment, color: 'var(--mk-md-comment)' }
+    {
+      tag: [tags.tagName, tags.className, tags.constant(tags.className), tags.labelName, tags.definitionOperator, tags.namespace],
+      color: 'var(--mk-css-selector)'
+    },
+    { tag: [tags.propertyName, tags.attributeName], color: 'var(--mk-css-property)' },
+    {
+      tag: [tags.definitionKeyword, tags.keyword, tags.operatorKeyword, tags.modifier, tags.variableName],
+      color: 'var(--mk-css-at)'
+    },
+    { tag: [tags.number, tags.unit, tags.color], color: 'var(--mk-css-number)' },
+    { tag: tags.string, color: 'var(--mk-css-string)' },
+    { tag: tags.atom, color: 'var(--ui-text)' },
+    {
+      tag: [tags.punctuation, tags.separator, tags.brace, tags.paren, tags.squareBracket, tags.derefOperator, tags.logicOperator, tags.compareOperator, tags.arithmeticOperator],
+      color: 'var(--mk-css-punct)'
+    },
+    { tag: [tags.comment, tags.blockComment], color: 'var(--mk-md-comment)' }
   ])
   view.value = new View({
     parent: host.value,
@@ -194,6 +209,20 @@ function issueText(issue: CustomCssIssue): string {
     <p class="text-xs text-muted leading-relaxed">
       {{ t('theme.customCss.help') }}
     </p>
+    <!-- New tab: following it in place would leave the editor. -->
+    <a
+      href="/docs/themes/custom-css"
+      target="_blank"
+      rel="noopener"
+      class="inline-flex items-center gap-1.5 text-xs text-default underline decoration-default underline-offset-2 hover:decoration-current"
+      data-testid="theme-custom-css-docs-link"
+    >
+      <UIcon
+        name="i-lucide-book-open"
+        class="size-3.5 text-muted"
+      />
+      {{ t('theme.customCss.docsLink') }}
+    </a>
 
     <div
       ref="host"

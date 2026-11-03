@@ -264,13 +264,17 @@
     "description": "将文件转换为 Markdown 并加载到编辑器中。",
     "selectFile": "点击选择文件",
     "changeFile": "选择其他文件",
-    "formats": "支持格式：DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
+    "formats": "支持：Markdown、DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
     "import": "导入",
     "error": "导入失败。请尝试其他文件。",
     "conflictTitle": "文档已有内容",
     "conflictDesc": "你希望如何处理导入的内容？",
     "replace": "全部替换",
-    "append": "追加"
+    "append": "追加",
+    "applyProperties": "同时应用文件中的主题和文档设置",
+    "applyPropertiesHelp": "该文件由 markoto 保存：标题、描述、受众、语言和主题（含自定义 CSS）。",
+    "propertiesApplied": "已应用主题和文档设置",
+    "propertiesPartlyApplied": "文件中的部分设置无效，已被忽略。"
   },
   "export": {
     "title": "导出",
@@ -825,15 +829,32 @@
     "saved": {
       "title": "你的主题",
       "saveCurrent": "保存当前",
-      "namePrompt": "为此主题命名",
       "savedToast": "已保存为个人预设",
       "saveFailedTitle": "无法保存主题",
-      "rename": "重命名",
-      "renamePrompt": "新名称",
-      "renameFailedTitle": "无法重命名",
       "delete": "删除",
-      "deleteConfirm": "删除“{name}”？已在使用它的文档会保留各自的副本。",
-      "deleteFailedTitle": "无法删除"
+      "deleteFailedTitle": "无法删除",
+      "saveDialogTitle": "保存主题",
+      "editDialogTitle": "编辑主题",
+      "saveDialogIntro": "将当前设置（包括自定义 CSS）保存为你的主题之一，可应用到你的任何文档。",
+      "editDialogIntro": "修改名称或描述。主题设置保持不变。",
+      "nameLabel": "名称",
+      "namePlaceholder": "例如：季度报告",
+      "nameRequired": "请输入名称。",
+      "nameTooLong": "名称最多 {max} 个字符。",
+      "descriptionLabel": "描述",
+      "descriptionOptional": "可选",
+      "descriptionPlaceholder": "这个主题用于什么？",
+      "save": "保存主题",
+      "saveChanges": "保存更改",
+      "updateFailedTitle": "无法保存更改",
+      "edit": "编辑名称和描述",
+      "editAria": "编辑 {name}",
+      "deleteAria": "删除 {name}",
+      "deleteTitle": "删除主题",
+      "deleteWarning": "已使用它的文档保持原样。此操作无法撤销。",
+      "deleteConfirmButton": "删除主题",
+      "deleted": "主题已删除",
+      "fallbackDescription": "标题 {heading}，正文 {body}"
     },
     "presets": {
       "title": "模板",
@@ -895,7 +916,8 @@
         "other-doc-file": "这张图片属于其他文档。请把它上传到本文档并使用其地址。",
         "script-url": "不允许使用 javascript: 和 vbscript: URL。",
         "value": "无法安全读取此值。"
-      }
+      },
+      "docsLink": "如何编写自定义 CSS"
     }
   },
   "table": {

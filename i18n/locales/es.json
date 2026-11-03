@@ -264,13 +264,17 @@
     "description": "Convierte un archivo a markdown y cárgalo en el editor.",
     "selectFile": "Haz clic para seleccionar un archivo",
     "changeFile": "Elegir un archivo diferente",
-    "formats": "Compatibles: DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
+    "formats": "Compatibles: Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Importar",
     "error": "Error al importar. Prueba con otro archivo.",
     "conflictTitle": "El documento tiene contenido existente",
     "conflictDesc": "¿Cómo te gustaría gestionar el contenido importado?",
     "replace": "Reemplazar todo",
-    "append": "Añadir al final"
+    "append": "Añadir al final",
+    "applyProperties": "Aplicar también el tema y la configuración del documento del archivo",
+    "applyPropertiesHelp": "El archivo se guardó desde markoto: título, descripción, público, idioma y tema (con CSS propio).",
+    "propertiesApplied": "Tema y configuración del documento aplicados",
+    "propertiesPartlyApplied": "Algunos ajustes del archivo no eran válidos y se omitieron."
   },
   "export": {
     "title": "Exportar",
@@ -825,15 +829,32 @@
     "saved": {
       "title": "Tus temas",
       "saveCurrent": "Guardar actual",
-      "namePrompt": "Nombra este tema",
       "savedToast": "Guardado como preajuste personal",
       "saveFailedTitle": "No se pudo guardar el tema",
-      "rename": "Renombrar",
-      "renamePrompt": "Nuevo nombre",
-      "renameFailedTitle": "No se pudo renombrar",
       "delete": "Eliminar",
-      "deleteConfirm": "¿Eliminar «{name}»? Los documentos que ya lo usan conservan su copia.",
-      "deleteFailedTitle": "No se pudo eliminar"
+      "deleteFailedTitle": "No se pudo eliminar",
+      "saveDialogTitle": "Guardar tema",
+      "editDialogTitle": "Editar tema",
+      "saveDialogIntro": "Guarda la configuración actual, incluido el CSS propio, como uno de tus temas. Puedes aplicarlo a cualquiera de tus documentos.",
+      "editDialogIntro": "Cambia el nombre o la descripción. La configuración del tema no cambia.",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "p. ej. Informe trimestral",
+      "nameRequired": "Escribe un nombre.",
+      "nameTooLong": "El nombre puede tener como máximo {max} caracteres.",
+      "descriptionLabel": "Descripción",
+      "descriptionOptional": "opcional",
+      "descriptionPlaceholder": "¿Para qué es este tema?",
+      "save": "Guardar tema",
+      "saveChanges": "Guardar cambios",
+      "updateFailedTitle": "No se pudieron guardar los cambios",
+      "edit": "Editar nombre y descripción",
+      "editAria": "Editar {name}",
+      "deleteAria": "Eliminar {name}",
+      "deleteTitle": "Eliminar tema",
+      "deleteWarning": "Los documentos que ya lo usan conservan su aspecto. No se puede deshacer.",
+      "deleteConfirmButton": "Eliminar tema",
+      "deleted": "Tema eliminado",
+      "fallbackDescription": "Títulos en {heading}, texto en {body}"
     },
     "presets": {
       "title": "Plantillas",
@@ -895,7 +916,8 @@
         "other-doc-file": "Esta imagen pertenece a otro documento. Súbela a este documento y usa su dirección.",
         "script-url": "No se permiten URL javascript: ni vbscript:.",
         "value": "Este valor no se pudo leer de forma segura."
-      }
+      },
+      "docsLink": "Cómo escribir CSS propio"
     }
   },
   "table": {

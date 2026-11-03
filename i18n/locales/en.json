@@ -264,13 +264,17 @@
     "description": "Convert a file to markdown and load it into the editor.",
     "selectFile": "Click to select a file",
     "changeFile": "Choose a different file",
-    "formats": "Supported: DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
+    "formats": "Supported: Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Import",
     "error": "Import failed. Please try a different file.",
     "conflictTitle": "Document has existing content",
     "conflictDesc": "How would you like to handle the imported content?",
     "replace": "Replace all",
-    "append": "Append"
+    "append": "Append",
+    "applyProperties": "Also apply the theme and document settings from the file",
+    "applyPropertiesHelp": "The file was saved from markoto: title, description, audience, language and theme (with custom CSS).",
+    "propertiesApplied": "Theme and document settings applied",
+    "propertiesPartlyApplied": "Some settings in the file were not valid and were left out."
   },
   "export": {
     "title": "Export",
@@ -825,15 +829,32 @@
     "saved": {
       "title": "Your themes",
       "saveCurrent": "Save current",
-      "namePrompt": "Name this theme",
       "savedToast": "Saved as a personal preset",
       "saveFailedTitle": "Could not save theme",
-      "rename": "Rename",
-      "renamePrompt": "New name",
-      "renameFailedTitle": "Could not rename",
       "delete": "Delete",
-      "deleteConfirm": "Delete \"{name}\"? Documents already using it keep their copy.",
-      "deleteFailedTitle": "Could not delete"
+      "deleteFailedTitle": "Could not delete",
+      "saveDialogTitle": "Save theme",
+      "editDialogTitle": "Edit theme",
+      "saveDialogIntro": "Saves the current settings, custom CSS included, as one of your themes. You can apply it to any of your documents.",
+      "editDialogIntro": "Change the name or the description. The theme settings stay as they are.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Quarterly report",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name can be at most {max} characters.",
+      "descriptionLabel": "Description",
+      "descriptionOptional": "optional",
+      "descriptionPlaceholder": "What is this theme for?",
+      "save": "Save theme",
+      "saveChanges": "Save changes",
+      "updateFailedTitle": "Could not save changes",
+      "edit": "Edit name and description",
+      "editAria": "Edit {name}",
+      "deleteAria": "Delete {name}",
+      "deleteTitle": "Delete theme",
+      "deleteWarning": "Documents that already use it keep their look. This can’t be undone.",
+      "deleteConfirmButton": "Delete theme",
+      "deleted": "Theme deleted",
+      "fallbackDescription": "{heading} headings, {body} body text"
     },
     "presets": {
       "title": "Templates",
@@ -895,7 +916,8 @@
         "other-doc-file": "This image belongs to another document. Upload it to this document and use its address.",
         "script-url": "javascript: and vbscript: URLs are not allowed.",
         "value": "This value could not be read safely."
-      }
+      },
+      "docsLink": "How to write custom CSS"
     }
   },
   "table": {
