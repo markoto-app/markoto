@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { isRequestOriginAllowed, type OriginCheckInput } from '../../server/utils/csrf'
 
 // Origin check for state-changing API requests (defence in depth on top
-// of the SameSite=Strict session cookie, which does not separate a
+// of the SameSite=Lax session cookie, which does not separate a
 // sibling subdomain from the app).
 
 function req(overrides: Partial<OriginCheckInput>): OriginCheckInput {

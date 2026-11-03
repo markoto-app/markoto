@@ -134,6 +134,14 @@ describe('GET /auth/oidc — full sign-in against a real IdP', () => {
 
     expect(await sessionUser(res)).toMatchObject({ id: rows[0]?.id, provider: 'oidc', email: 'alice@idp.test' })
 
+    // The session cookie must be SameSite=Lax: the callback is reached by a
+    // redirect from the IdP's site, and browsers withhold a Strict cookie on
+    // the rest of that cross-site redirect chain, so the page after sign-in
+    // would render signed out (seen on staging with GitHub, 2026-11-03).
+    const sessionCookie = res.headers.getSetCookie().find(c => c.startsWith(`${SESSION_COOKIE}=`))
+    expect(sessionCookie).toMatch(/;\s*SameSite=Lax/i)
+    expect(sessionCookie).toMatch(/;\s*HttpOnly/i)
+
     // Second sign-in: same row.
     const again = await signIn('alice-sub', { email: 'alice@idp.test', email_verified: true, name: 'Alice Renamed' })
     expect(again.status).toBe(302)
