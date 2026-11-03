@@ -36,7 +36,7 @@ withDefaults(defineProps<{
   letter-spacing: 0.02em;
   vertical-align: middle;
 }
-:global(.dark) .mk-ai-tag {
+html.dark .mk-ai-tag {
   background: var(--color-shu-400);
   color: var(--color-sumi-50);
 }

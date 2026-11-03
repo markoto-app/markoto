@@ -43,7 +43,7 @@ defineProps<{
   margin: 0;
   animation: mk-ai-thinking-enter 240ms cubic-bezier(0.2, 0, 0, 1) both;
 }
-:global(.dark) .mk-ai-thinking {
+html.dark .mk-ai-thinking {
   color: var(--color-sumi-400);
 }
 .mk-ai-thinking__seal {
@@ -58,7 +58,7 @@ defineProps<{
      descender. */
   transform: translateY(-2px);
 }
-:global(.dark) .mk-ai-thinking__seal {
+html.dark .mk-ai-thinking__seal {
   background: var(--color-shu-400);
 }
 </style>

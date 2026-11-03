@@ -199,7 +199,7 @@ function onClickThread(e: MouseEvent) {
     0 calc(8px + var(--_p) * 8px) calc(20px + var(--_p) * 14px) -8px color-mix(in srgb, var(--color-shu-500) calc(28% + var(--_p) * 22%), transparent);
 }
 
-:global(.dark) .comment-thread-card.is-ai-active {
+html.dark .comment-thread-card.is-ai-active {
   box-shadow:
     0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-400) calc(65% + var(--_p) * 25%), transparent),
     0 calc(8px + var(--_p) * 8px) calc(20px + var(--_p) * 14px) -8px color-mix(in srgb, var(--color-shu-400) calc(32% + var(--_p) * 24%), transparent);

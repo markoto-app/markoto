@@ -188,7 +188,7 @@ function onClick() {
     0 4px 12px -4px rgb(20 17 13 / 0.12);
 }
 
-:global(.dark) .comment-selection-popup__pill {
+html.dark .comment-selection-popup__pill {
   background: color-mix(in srgb, var(--ui-bg-muted) 78%, transparent);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--color-shu-400) 50%, transparent),
