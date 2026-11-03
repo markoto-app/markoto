@@ -11,6 +11,7 @@
 //   Fake OpenAI-compatible provider (BYOK): 4120 (test only)
 
 import { MCP_RATE_LIMITS } from '../../../server/mcp/lib/mcpGate'
+import { ANON_ABUSE_REPORT_LIMITS, ANON_DOC_CREATE_LIMITS } from '../../../shared/config/anonLimits'
 
 export const TEST_PORT = 3101
 export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
@@ -29,6 +30,10 @@ export const TEST_BILLING_OFF_BASE_URL = `http://127.0.0.1:${TEST_BILLING_OFF_PO
 // (`TEST_ENFORCE_RATE_LIMITS`, shared/utils/testMode.ts): every MCP limit,
 // so tests/integration/mcp/rateLimits.test.ts can exercise them.
 export const TEST_ENFORCED_MCP_RATE_LIMITS: readonly string[] = Object.values(MCP_RATE_LIMITS).map(rule => rule.namespace)
+// ...and the anonymous-visitor limits (shared/config/anonLimits.ts), driven by
+// endpoints/anonGate.test.ts + abuseReportsAnon.test.ts with a fresh
+// X-Forwarded-For address per test (the bucket key).
+export const TEST_ENFORCED_ANON_RATE_LIMITS: readonly string[] = [...ANON_DOC_CREATE_LIMITS, ...ANON_ABUSE_REPORT_LIMITS].map(rule => rule.namespace)
 
 // The DB name guard — fixtures.ts and resetDb refuse to run unless the
 // connection string points at exactly this name. Belt and braces so a
@@ -87,6 +92,8 @@ export const TEST_SYNC_URL = `http://127.0.0.1:${TEST_SYNC_PORT}`
 export const TEST_JWT_SECRET = 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char'
 export const TEST_SESSION_PASSWORD = 'test-session-password-' + 'y'.repeat(64)
 export const TEST_INTERNAL_SECRET = 'test-internal-api-secret-isolated'
+/** ALTCHA master key of the test servers (anonymous gate); tests derive the same sub-keys. */
+export const TEST_ALTCHA_HMAC_KEY = 'test-altcha-hmac-key-isolated-from-dev-and-prod-x'
 
 // Valkey-compatible endpoint for the test stack. Rate limits and session
 // locks fall open/closed per `server/utils/rateLimit.ts` semantics when

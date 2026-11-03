@@ -101,6 +101,9 @@ export interface CreateDocInput {
   theme?: DocTheme | null
   /** Anonymous docs only: SHA-256 of the creating browser's creator key. */
   anonCreatorKeyHash?: string
+  /** Anonymous docs only: the Terms version + acceptance time from the gate. */
+  anonTermsVersion?: number
+  anonTermsAcceptedAt?: Date
 }
 
 export interface MetaUpdate {
@@ -264,6 +267,8 @@ export async function createDoc(input: CreateDocInput): Promise<void> {
   if (input.templateId !== undefined) values.templateId = input.templateId
   if (input.theme !== undefined) values.theme = input.theme
   if (input.anonCreatorKeyHash !== undefined) values.anonCreatorKeyHash = input.anonCreatorKeyHash
+  if (input.anonTermsVersion !== undefined) values.anonTermsVersion = input.anonTermsVersion
+  if (input.anonTermsAcceptedAt !== undefined) values.anonTermsAcceptedAt = input.anonTermsAcceptedAt
   await db.insert(documents).values(values as typeof documents.$inferInsert)
 }
 

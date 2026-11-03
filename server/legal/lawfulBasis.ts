@@ -206,6 +206,24 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['ovh_postgres', 'resend']
   },
   {
+    // Anonymous-use safeguards (server/utils/anonGate/). Before a document
+    // is created without an account we record which Terms version the
+    // visitor accepted and when (on the document row, so it is deleted
+    // with the document — 30 days without activity), remember that
+    // acceptance in a first-party httpOnly cookie (version + time, no
+    // identifier), and run a proof-of-work bot check computed in our own
+    // server (no third party, no cookie; the used challenge's signature is
+    // kept in Valkey for ~20 minutes to stop replays). Per-network rate
+    // limits (truncated to /64 for IPv6) count requests for at most a day.
+    // The same bot check guards anonymous abuse reports.
+    id: 'anonymous_use_safeguards',
+    label: 'Terms acceptance and bot check for documents created without an account',
+    basis: 'legitimate_interest',
+    dataCategories: ['terms_version_accepted', 'acceptance_timestamp', 'bot_check_solution', 'rate_limit_counters'],
+    retention: 30,
+    subProcessors: ['ovh_postgres']
+  },
+  {
     id: 'error_monitoring',
     label: 'Error monitoring',
     basis: 'legitimate_interest',

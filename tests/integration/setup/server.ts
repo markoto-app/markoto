@@ -2,7 +2,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT } from './env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_BILLING_OFF_PORT, TEST_ALTCHA_HMAC_KEY, TEST_ENFORCED_ANON_RATE_LIMITS, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT } from './env'
 import { buildTestEnv } from './testEnv'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
 
@@ -159,6 +159,9 @@ export async function startNuxt(): Promise<void> {
     // covered by tests/unit/instanceConfig.test.ts. The billing-off twin
     // inherits this env.
     NUXT_LEGAL_SURFACES_ENABLED: 'true',
+    // Anonymous gate follows the legal surfaces (on). The suite solves the
+    // real (test-difficulty) ALTCHA — see setup/anonGate.ts.
+    NUXT_ALTCHA_HMAC_KEY: TEST_ALTCHA_HMAC_KEY,
     NUXT_STRIPE_SECRET_KEY: 'sk_test_123abc',
     NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_integration',
     NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
@@ -250,7 +253,8 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   // The MCP limits are ENFORCED on this server (test mode bypasses every
   // other limit, here and on the primary): tests/integration/mcp/rateLimits.test.ts
   // drives them over real HTTP. No other suite calls /mcp on this port.
-  env.TEST_ENFORCE_RATE_LIMITS = TEST_ENFORCED_MCP_RATE_LIMITS.join(',')
+  // Same for the anonymous doc-create / report limits (anonGate tests).
+  env.TEST_ENFORCE_RATE_LIMITS = [...TEST_ENFORCED_MCP_RATE_LIMITS, ...TEST_ENFORCED_ANON_RATE_LIMITS].join(',')
   env.NITRO_PORT = String(TEST_BILLING_OFF_PORT)
   env.PORT = String(TEST_BILLING_OFF_PORT)
   console.log(`[integration] starting billing-off production server on :${TEST_BILLING_OFF_PORT}`)

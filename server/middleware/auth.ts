@@ -86,6 +86,14 @@ export default defineEventHandler(async (event) => {
     // hit this; we anchor the decision on a first-party
     // `markoto-anon` cookie set by the handler on first call.
     { path: /^\/api\/consent$/, methods: ['GET', 'POST'] },
+    // Anonymous gate (server/utils/anonGate/): the ALTCHA challenge an
+    // anonymous visitor solves before creating a doc or filing a report.
+    // IP-rate-limited; issuing one costs one PBKDF2 derivation.
+    { path: /^\/api\/anon-gate\/challenge$/, methods: ['GET'] },
+    // DSA Art.16 notice form: open to anyone. Anonymous reporters need a
+    // fresh ALTCHA solution + per-IP limits; signed-in ones a per-user
+    // limit. Checked in the handler.
+    { path: /^\/api\/abuse-reports$/, methods: ['POST'] },
     // Paid-plans waitlist (double opt-in). Sign-up is open to logged-out
     // visitors of /pricing; confirm + unsubscribe are reached from email
     // links. All three are IP-rate-limited; tokens are 256-bit and hashed

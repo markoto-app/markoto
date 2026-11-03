@@ -212,8 +212,9 @@ export default defineNuxtConfig({
     // owner AND no workspace are reaped once last_active is past this
     // many days — owned docs (any age) and workspace-attached docs are
     // never auto-reaped. 0 disables sweeping entirely. Override via
-    // NUXT_INACTIVE_DOC_TTL_DAYS.
-    inactiveDocTtlDays: 180,
+    // NUXT_INACTIVE_DOC_TTL_DAYS. 30 = what the hosted Terms + privacy
+    // policy promise; self-hosters may pick another period.
+    inactiveDocTtlDays: 30,
     // Per-tier caps are NOT mirrored here: enforcement resolves them
     // via `server/utils/tierConfig.ts#getTiers()` (committed defaults
     // in `shared/config/tiers.ts` + TIER_* env overrides), and the

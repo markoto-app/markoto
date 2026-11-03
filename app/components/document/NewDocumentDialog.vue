@@ -52,6 +52,9 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const { showError } = useErrorHandler()
+// Anonymous visitors pass the terms + bot-check gate on create; the
+// solver starts warming up as soon as the dialog opens.
+const anonDoc = useAnonDocCreate()
 
 // Form state. Resets on open so reopening doesn't carry stale values.
 const title = ref('')
@@ -157,6 +160,7 @@ function onCreateLanguage(text: string): LanguageItem {
 
 watch(() => props.open, async (next) => {
   if (!next) return
+  anonDoc.prepare()
   title.value = ''
   description.value = ''
   audience.value = 'casual'
@@ -210,13 +214,11 @@ async function submit(blank: boolean) {
       }
       if (templateId.value) body.templateId = templateId.value
     }
-    const { docId } = await $fetch<{ docId: string }>('/api/docs', {
-      method: 'POST',
-      body
-    })
+    const docId = await anonDoc.createDocument(body)
     emit('update:open', false)
     emit('created', docId)
   } catch (e) {
+    if (e instanceof AnonGateCancelled) return
     showError('error.documentCreateFailed', e)
   } finally {
     submitting.value = false

@@ -20,6 +20,11 @@ named document and a shareable URL on your clipboard.
 
 ## What just happened
 
+The first time you create a document without an account, markoto asks
+you to accept the Terms of Service and confirm you're at least 16. You
+see this once per browser. A quick bot check runs in your browser at the
+same time; it doesn't track you.
+
 Anonymous documents start in **open-edit** mode by default — anyone
 with the link can read AND edit. That's the fastest way to draft
 something with a single collaborator: paste the link, both of you
@@ -30,6 +35,10 @@ password, sign in before you create it: the owner of a document gets
 those options in the same share dialog. Anonymous documents always stay
 open-edit. See [Lock a document behind a password](/docs/sharing/password-protect)
 for the password flow.
+
+A document created without an account is deleted after 30 days without
+activity, and shows a short note that a markoto user wrote it, not
+markoto. Sign in to keep your documents.
 
 ## What's next
 

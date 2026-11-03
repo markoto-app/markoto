@@ -1,11 +1,10 @@
-import { and, isNull, lt } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
-import { documents } from '../db/schema'
 import { deleteDocument } from '../utils/documentLifecycle'
 import { migrationsComplete } from '../utils/migrations'
 import { getDoc } from '../repos/documents'
 import { appendAuditEvent } from '../repos/audit'
 import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/inactiveDocSweep'
 
 // Periodic cleanup of abandoned documents.
 //
@@ -15,7 +14,11 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 //     authenticated account implies the user expects their docs to stay
 //     around until they explicitly delete them.
 //   - Anonymous docs (ownerId NULL, workspaceId NULL) → reaped after
-//     `inactiveDocTtlDays` of inactivity. Default 180 days (~6 months).
+//     `inactiveDocTtlDays` of inactivity (NUXT_INACTIVE_DOC_TTL_DAYS,
+//     default 30 — the period the Terms + privacy policy state) once
+//     their `sweep_not_before` floor has passed (migration 0024 gave the
+//     docs that predate the 180 → 30 change a 30-day window). Candidate
+//     query: server/utils/inactiveDocSweep.ts.
 //
 // `last_active` is bumped by:
 //   - `meta.put` (title / word-count updates)
@@ -29,7 +32,6 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 
 const STARTUP_DELAY_MS = 30_000
 const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
-const DAY_MS = 24 * 60 * 60 * 1000
 const THROTTLE_MS = 100
 
 let running = false
@@ -44,7 +46,7 @@ async function sweep(): Promise<void> {
   }
   try {
     await migrationsComplete
-    const anonTtlDays = Number(useRuntimeConfig().inactiveDocTtlDays ?? 0)
+    const anonTtlDays = parseInactiveDocTtlDays(useRuntimeConfig().inactiveDocTtlDays)
     if (anonTtlDays <= 0) return
     const candidates = await loadInactiveAnonymousDocs(anonTtlDays)
     if (candidates.length === 0) return
@@ -62,24 +64,6 @@ async function sweep(): Promise<void> {
     await releaseSweepLock('inactive-doc-sweep')
     running = false
   }
-}
-
-/**
- * Candidate query mirrors `shouldReapDoc()`: anonymous (no owner),
- * not in a workspace, and `last_active` before the cutoff. Index hit
- * via `idx_documents_last_active`.
- */
-async function loadInactiveAnonymousDocs(anonTtlDays: number): Promise<Array<{ docId: string }>> {
-  const db = useDatabase()
-  const anonCutoff = new Date(Date.now() - anonTtlDays * DAY_MS)
-  return db
-    .select({ docId: documents.docId })
-    .from(documents)
-    .where(and(
-      isNull(documents.ownerId),
-      isNull(documents.workspaceId),
-      lt(documents.lastActive, anonCutoff)
-    ))
 }
 
 /**

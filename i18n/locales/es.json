@@ -1202,11 +1202,38 @@
       },
       "bodyLabel": "¿Qué debemos saber?",
       "bodyPlaceholder": "Describe lo que viste y por qué debería eliminarse.",
-      "emailLabel": "Tu correo electrónico (opcional, para poder confirmarte que lo recibimos)",
+      "emailLabel": "Correo electrónico",
       "submit": "Enviar denuncia",
       "submittedTitle": "Gracias — se recibió tu denuncia",
       "submittedBody": "Acusamos recibo de cada denuncia. Si proporcionaste un correo electrónico, te informaremos de lo que decidimos.",
-      "reportThisDoc": "Denunciar este documento"
+      "reportThisDoc": "Denunciar este documento",
+      "policyHint": "Lee la {policy} para saber contra qué actuamos y cómo decidimos.",
+      "policyLink": "política sobre abusos y contenido ilícito",
+      "urlLabel": "Dirección (URL) del contenido",
+      "urlHelp": "El enlace completo al documento, por ejemplo https://markoto.app/d/…",
+      "bodyHelp": "Explica por qué el contenido es ilícito o incumple nuestras normas. Sé concreto: qué parte y qué problema tiene.",
+      "contactLegend": "Tu nombre y tu correo electrónico",
+      "contactHelp": "Los necesitamos para confirmarte que recibimos la denuncia y comunicarte nuestra decisión.",
+      "contactOptionalCsam": "Opcional en denuncias de material de abuso sexual infantil. Sin correo electrónico no podremos comunicarte nuestra decisión.",
+      "nameLabel": "Nombre",
+      "goodFaith": "Confirmo de buena fe que la información de esta denuncia es exacta y completa.",
+      "submittedBodyEmail": "Te hemos enviado una confirmación por correo y te comunicaremos allí nuestra decisión.",
+      "reference": "Referencia: {id}",
+      "signInRequired": "Inicia sesión para denunciar contenido, o escribe al contacto indicado en la política sobre abusos.",
+      "signIn": "Iniciar sesión",
+      "errors": {
+        "title": "No se pudo enviar la denuncia",
+        "generic": "Inténtalo de nuevo.",
+        "rateLimited": "Demasiadas denuncias desde tu red. Inténtalo más tarde.",
+        "loginRequired": "Inicia sesión para denunciar contenido.",
+        "category": "Elige qué estás denunciando.",
+        "urlRequired": "Indica la dirección (URL) del contenido.",
+        "bodyTooShort": "Explica qué problema tiene el contenido (al menos 10 caracteres).",
+        "bodyTooLong": "La explicación es demasiado larga (5000 caracteres como máximo).",
+        "goodFaith": "Confirma que tu denuncia es exacta y se hace de buena fe.",
+        "email": "Introduce una dirección de correo válida.",
+        "contactRequired": "Indica tu nombre y tu dirección de correo."
+      }
     },
     "aiTransparency": {
       "badge": "Asistido por IA",
@@ -1501,5 +1528,31 @@
       "toDark": "Cambiar a modo oscuro",
       "toLight": "Cambiar a modo claro"
     }
+  },
+  "anonGate": {
+    "eyebrow": "Antes de tu primer documento",
+    "title": "Escribir sin cuenta",
+    "pointPublic": "Cualquiera que tenga el enlace puede abrir y editar tu documento, salvo que cambies cómo se comparte. No pongas en él nada confidencial.",
+    "pointRetention": "Se elimina tras {days} días sin actividad. Inicia sesión para conservar tus documentos.",
+    "pointRules": "markoto no revisa los documentos. El contenido ilícito, las estafas y el spam no están permitidos y se eliminan cuando se denuncian.",
+    "accept": "Acepto las {terms}, incluidas las normas de uso aceptable, y tengo al menos {age} años.",
+    "termsLink": "condiciones de uso",
+    "privacyNote": "Cómo tratamos tus datos: {privacy}.",
+    "privacyLink": "política de privacidad",
+    "botCheckRunning": "comprobando en tu navegador que no eres un bot…",
+    "botCheckReady": "comprobación lista · se ejecuta en tu navegador, sin rastreo",
+    "signInInstead": "Mejor inicio sesión",
+    "cancel": "Cancelar",
+    "continue": "Aceptar y crear",
+    "errors": {
+      "botCheck": "La comprobación automática contra bots ha fallado. Inténtalo de nuevo.",
+      "termsRequired": "Primero acepta las condiciones de uso.",
+      "unavailable": "La comprobación contra bots no está disponible ahora mismo. Inténtalo de nuevo en un momento.",
+      "rateLimited": "Demasiados documentos nuevos desde tu red. Inicia sesión o inténtalo más tarde."
+    }
+  },
+  "userContent": {
+    "notice": "Creado por un usuario de markoto sin cuenta, no por markoto",
+    "report": "Denunciar"
   }
 }

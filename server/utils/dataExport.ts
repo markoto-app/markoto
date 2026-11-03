@@ -1,7 +1,8 @@
 import { zipSync, strToU8 } from 'fflate'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import {
+  abuseReports,
   activityLog,
   aiSessionMessages,
   aiSessions,
@@ -9,6 +10,7 @@ import {
   consentLog,
   documentComments,
   documents,
+  moderationNotices,
   themes,
   users,
   workspaceMembers,
@@ -50,6 +52,8 @@ import { normaliseInviteEmail } from './workspaceInvites'
 //   audit.ndjson                    ← rows scoped to or by the user
 //   consent.ndjson
 //   waitlist.ndjson                 ← paid-plans waitlist sign-ups linked to the account
+//   abuse_reports.ndjson            ← reports the user filed while signed in + notices sent to them
+//   moderation_notices.ndjson       ← statements of reasons the user got as a document owner
 //   billing/invoices.ndjson         ← Stripe invoice history (if any)
 //   billing/customer.json           ← Stripe customer record (if any)
 //
@@ -95,6 +99,12 @@ Contents:
   waitlist.ndjson        your paid-plans waitlist sign-up, if you joined
                          it while signed in (email, language, consent
                          version, sign-up + confirmation dates).
+  abuse_reports.ndjson   reports you filed while signed in: what you
+                         reported and wrote, your contact details,
+                         the status, our decision and every notice we
+                         sent you about it (confirmation, decision).
+  moderation_notices.ndjson  statements of reasons we sent you when we
+                         removed or restricted one of your documents.
   billing/customer.json  your Stripe customer record (if billing was
                          set up).
   billing/invoices.ndjson  your Stripe invoice history (if any).
@@ -118,6 +128,8 @@ export interface BuildExportZipResult {
     auditLogRows: number
     consentLogRows: number
     waitlistSignups: number
+    abuseReports: number
+    moderationNotices: number
     aiProviders: number
     invoices: number
   }
@@ -161,6 +173,8 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const auditCount = await addAuditLogEntry(entries, db, userId)
   const consentCount = await addConsentLogEntry(entries, db, userId)
   const waitlistCount = await addWaitlistEntry(entries, userId)
+  const abuseReportsCount = await addAbuseReportsEntry(entries, db, userId)
+  const ownerNoticesCount = await addOwnerNoticesEntry(entries, db, userId)
   const aiProvidersCount = await addAiProvidersEntry(entries, userId)
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
 
@@ -178,6 +192,8 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
       auditLogRows: auditCount,
       consentLogRows: consentCount,
       waitlistSignups: waitlistCount,
+      abuseReports: abuseReportsCount,
+      moderationNotices: ownerNoticesCount,
       aiProviders: aiProvidersCount,
       invoices: invoicesCount
     }
@@ -480,6 +496,111 @@ async function addWorkspaceInvitesEntry(entries: Entries, userId: number, email:
 async function addWaitlistEntry(entries: Entries, userId: number): Promise<number> {
   const rows = await listWaitlistSignupsForUser(userId)
   entries['waitlist.ndjson'] = strToU8(toNdjson(rows))
+  return rows.length
+}
+
+/**
+ * Abuse reports the user filed while signed in (DSA Art.16 notices):
+ * the user's own fields, the status, the decision as it was SENT to them
+ * (action, rule, explanation) and the notices addressed to them as the
+ * reporter. Never the internal moderator notes, the moderator's identity,
+ * or anything about the reported document's owner.
+ */
+async function addAbuseReportsEntry(entries: Entries, db: Db, userId: number): Promise<number> {
+  const reports = await db
+    .select({
+      reportId: abuseReports.reportId,
+      contentUrl: abuseReports.contentUrl,
+      docId: abuseReports.docId,
+      category: abuseReports.category,
+      body: abuseReports.body,
+      reporterName: abuseReports.reporterName,
+      reporterEmail: abuseReports.reporterEmail,
+      reporterLocale: abuseReports.reporterLocale,
+      reporterIpTruncated: abuseReports.reporterIpTruncated,
+      goodFaithConfirmedAt: abuseReports.goodFaithConfirmedAt,
+      status: abuseReports.status,
+      decisionAction: abuseReports.decisionAction,
+      decisionRule: abuseReports.decisionRule,
+      decisionExplanation: abuseReports.decisionExplanation,
+      createdAt: abuseReports.createdAt,
+      acknowledgedAt: abuseReports.acknowledgedAt,
+      actionedAt: abuseReports.actionedAt
+    })
+    .from(abuseReports)
+    .where(eq(abuseReports.reporterUserId, userId))
+    .orderBy(asc(abuseReports.createdAt))
+  const notices = reports.length === 0
+    ? []
+    : await db
+        .select({
+          reportId: moderationNotices.reportId,
+          kind: moderationNotices.kind,
+          status: moderationNotices.status,
+          locale: moderationNotices.locale,
+          subject: moderationNotices.subject,
+          body: moderationNotices.body,
+          createdAt: moderationNotices.createdAt
+        })
+        .from(moderationNotices)
+        .where(and(
+          inArray(moderationNotices.reportId, reports.map(r => r.reportId)),
+          eq(moderationNotices.recipientRole, 'reporter')
+        ))
+        .orderBy(asc(moderationNotices.createdAt))
+  entries['abuse_reports.ndjson'] = strToU8(toNdjson(reports.map(r => ({
+    reportId: r.reportId,
+    contentUrl: r.contentUrl,
+    docId: r.docId,
+    category: r.category,
+    body: r.body,
+    reporterName: r.reporterName,
+    reporterEmail: r.reporterEmail,
+    reporterLocale: r.reporterLocale,
+    reporterIpTruncated: r.reporterIpTruncated,
+    goodFaithConfirmedAt: r.goodFaithConfirmedAt?.toISOString() ?? null,
+    status: r.status,
+    decision: r.decisionAction === null
+      ? null
+      : { action: r.decisionAction, rule: r.decisionRule, explanation: r.decisionExplanation },
+    createdAt: r.createdAt.toISOString(),
+    acknowledgedAt: r.acknowledgedAt?.toISOString() ?? null,
+    closedAt: r.actionedAt?.toISOString() ?? null,
+    noticesSentToYou: notices
+      .filter(n => n.reportId === r.reportId)
+      .map(n => ({ kind: n.kind, status: n.status, locale: n.locale, subject: n.subject, body: n.body, createdAt: n.createdAt.toISOString() }))
+  }))))
+  return reports.length
+}
+
+/**
+ * Statements of reasons (DSA Art.17) the user received as the owner of a
+ * removed / restricted document. The notice text contains no reporter
+ * data, so it is exported as sent.
+ */
+async function addOwnerNoticesEntry(entries: Entries, db: Db, userId: number): Promise<number> {
+  const rows = await db
+    .select({
+      reportId: moderationNotices.reportId,
+      kind: moderationNotices.kind,
+      status: moderationNotices.status,
+      locale: moderationNotices.locale,
+      subject: moderationNotices.subject,
+      body: moderationNotices.body,
+      createdAt: moderationNotices.createdAt
+    })
+    .from(moderationNotices)
+    .where(and(eq(moderationNotices.recipientUserId, userId), eq(moderationNotices.recipientRole, 'owner')))
+    .orderBy(asc(moderationNotices.createdAt))
+  entries['moderation_notices.ndjson'] = strToU8(toNdjson(rows.map(n => ({
+    reference: n.reportId,
+    kind: n.kind,
+    status: n.status,
+    locale: n.locale,
+    subject: n.subject,
+    body: n.body,
+    createdAt: n.createdAt.toISOString()
+  }))))
   return rows.length
 }
 

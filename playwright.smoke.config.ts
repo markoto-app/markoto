@@ -20,6 +20,10 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://staging.markoto.app
 
 export default defineConfig({
   testDir: './tests/smoke',
+  // Creates the run's two shared anonymous documents once (hosted
+  // anonymous creation is rate-limited per network; specs + retries
+  // reuse them). See tests/smoke/globalSetup.ts.
+  globalSetup: './tests/smoke/globalSetup.ts',
   timeout: 120_000,
   expect: { timeout: 30_000 },
   // Retry once (twice in CI) — smoke runs against a live network + the
