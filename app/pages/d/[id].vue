@@ -11,7 +11,7 @@ useSeoMeta({ robots: 'noindex, nofollow' })
   <ClientOnly>
     <EditorLayout :doc-id="docId" />
     <template #fallback>
-      <div class="h-screen flex items-center justify-center">
+      <div class="h-dvh flex items-center justify-center">
         <div class="text-center space-y-3">
           <UIcon
             name="i-lucide-loader"
