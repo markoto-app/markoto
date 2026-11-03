@@ -47,9 +47,9 @@ Le Sous-traitant :
 
 ## 6. Sous-traitants ultérieurs
 
-Le Responsable du traitement accorde au Sous-traitant une autorisation générale de recourir aux sous-traitants ultérieurs listés à l'adresse `/legal/sub-processors`. Le Sous-traitant informera le Responsable du traitement au moins 30 jours à l'avance de tout nouveau sous-traitant ultérieur. Si le Responsable du traitement s'y oppose pour des motifs raisonnables de protection des données, les parties s'efforceront de bonne foi de résoudre l'objection ; à défaut de solution, le Responsable du traitement peut résilier le Service. Le Sous-traitant impose à chaque sous-traitant ultérieur des obligations de protection des données offrant une protection au moins équivalente à celle du présent DPA et demeure responsable de leur exécution.
+Le Responsable du traitement accorde au Sous-traitant une autorisation générale de recourir aux sous-traitants ultérieurs listés à l'adresse [/legal/sub-processors](/legal/sub-processors). Le Sous-traitant informera le Responsable du traitement au moins 30 jours à l'avance de tout nouveau sous-traitant ultérieur. Si le Responsable du traitement s'y oppose pour des motifs raisonnables de protection des données, les parties s'efforceront de bonne foi de résoudre l'objection ; à défaut de solution, le Responsable du traitement peut résilier le Service. Le Sous-traitant impose à chaque sous-traitant ultérieur des obligations de protection des données offrant une protection au moins équivalente à celle du présent DPA et demeure responsable de leur exécution.
 
-**Fournisseurs connectés par des membres (apportez votre propre clé).** Un membre de l'espace de travail peut connecter son propre compte de fournisseur d'IA dans ses paramètres personnels. Lorsque ce membre utilise les fonctionnalités d'IA, le contenu qu'il envoie (y compris le contenu de l'espace de travail figurant dans le document sur lequel il travaille) est transmis à ce fournisseur sur instruction du membre. Un tel fournisseur n'est pas engagé par le Sous-traitant, n'est pas un sous-traitant ultérieur au sens du présent DPA et ne figure pas à l'adresse `/legal/sub-processors`. Il appartient au Responsable du traitement de décider si, et avec quel contenu, ses membres peuvent utiliser leurs propres fournisseurs d'IA, et de donner à ses membres les instructions correspondantes.
+**Fournisseurs connectés par des membres (apportez votre propre clé).** Un membre de l'espace de travail peut connecter son propre compte de fournisseur d'IA dans ses paramètres personnels. Lorsque ce membre utilise les fonctionnalités d'IA, le contenu qu'il envoie (y compris le contenu de l'espace de travail figurant dans le document sur lequel il travaille) est transmis à ce fournisseur sur instruction du membre. Un tel fournisseur n'est pas engagé par le Sous-traitant, n'est pas un sous-traitant ultérieur au sens du présent DPA et ne figure pas à l'adresse [/legal/sub-processors](/legal/sub-processors). Il appartient au Responsable du traitement de décider si, et avec quel contenu, ses membres peuvent utiliser leurs propres fournisseurs d'IA, et de donner à ses membres les instructions correspondantes.
 
 ## 7. Suppression et sauvegardes
 
@@ -64,7 +64,7 @@ Pour les transferts ultérieurs, le Sous-traitant respecte l'art. 16 LPD et le c
 - L'infrastructure principale du Sous-traitant (base de données, stockage de fichiers, sauvegardes) et ses fournisseurs d'IA se trouvent dans l'UE (France et Allemagne), dont la Suisse reconnaît le niveau de protection adéquat.
 - Lorsqu'un sous-traitant ultérieur se trouve dans un pays n'offrant pas un niveau de protection adéquat, ou peut accéder aux données depuis un tel pays, en particulier les États-Unis, le transfert repose, pour les destinataires certifiés, sur l'EU-U.S. et le Swiss-U.S. Data Privacy Framework, ou à défaut sur les clauses contractuelles types de la Commission européenne (2021/914), adaptées au droit suisse.
 
-La localisation et le mécanisme de transfert de chaque sous-traitant ultérieur sont publiés à l'adresse `/legal/sub-processors`.
+La localisation et le mécanisme de transfert de chaque sous-traitant ultérieur sont publiés à l'adresse [/legal/sub-processors](/legal/sub-processors).
 
 ## 9. Audit
 
@@ -144,7 +144,7 @@ Les sous-traitants ultérieurs sont sélectionnés pour leurs pratiques en mati�
 
 ## Annexe II : Sous-traitants ultérieurs
 
-Voir `/legal/sub-processors` pour la liste à jour, y compris la localisation et le mécanisme de transfert de chaque sous-traitant ultérieur.
+Voir [/legal/sub-processors](/legal/sub-processors) pour la liste à jour, y compris la localisation et le mécanisme de transfert de chaque sous-traitant ultérieur.
 
 ---
 

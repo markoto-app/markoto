@@ -10,11 +10,13 @@ translationStatus: authoritative
 
 > **In short:** markoto is a free service, provided as is. You must be 16 or older. Use it lawfully and follow the acceptable-use rules in §6. Documents you create without an account can be opened by anyone with the link, are deleted after 30 days without activity, and can only be deleted by the browser that created them. AI output is yours, but check it before you rely on it. If you connect your own AI provider, you pay its costs. We may remove content or suspend accounts that break these Terms, and we tell you why when we can reach you.
 
-**Contents:** 1. The service · 2. Eligibility and accounts · 3. Free service, fair use and limits · 4. Anonymous documents · 5. Your content · 6. Acceptable use · 7. AI features · 8. Content moderation and reporting · 9. Availability, changes and beta features · 10. Warranty · 11. Liability · 12. Indemnity (business users) · 13. Termination · 14. Governing law and courts · 15. Changes to these Terms · 16. General provisions
+**Contents**
+
+[[toc]]
 
 ## 1. The service
 
-markoto is a collaborative Markdown editor operated by **{{controllerName}}** ({{controllerAddress}}), "we" or "us". These Terms apply to everyone who uses markoto.app, with or without an account. Our Privacy Policy (`/legal/privacy`) explains how we handle personal data. Workspace owners also accept our Data Processing Addendum (`/legal/dpa`). Our Abuse and Illegal Content Policy (`/legal/abuse-policy`) explains how to report content.
+markoto is a collaborative Markdown editor operated by **{{controllerName}}** ({{controllerAddress}}), "we" or "us". These Terms apply to everyone who uses markoto.app, with or without an account. Our Privacy Policy ([/legal/privacy](/legal/privacy)) explains how we handle personal data. Workspace owners also accept our Data Processing Addendum ([/legal/dpa](/legal/dpa)). Our Abuse and Illegal Content Policy ([/legal/abuse-policy](/legal/abuse-policy)) explains how to report content.
 
 ## 2. Eligibility and accounts
 
@@ -122,7 +124,7 @@ This section describes how we handle content that may be illegal or break these 
 - **No general monitoring.** We do not read documents proactively, and we do not use automated content-recognition tools such as filters or hash matching to detect illegal content. We act on notices we receive and on what we notice ourselves while operating the service.
 - **Automated tools we do use.** Rate limits, size limits and the bot check limit misuse automatically, without looking at the meaning of your content. The AI providers may refuse requests through their own automated safety filters.
 - **Human review.** A person on our team reviews every notice and makes every moderation decision. We do not take moderation decisions automatically.
-- **How to report.** Anyone can report content, with or without an account, as described in our Abuse and Illegal Content Policy (`/legal/abuse-policy`) or by email to **{{abuseContactEmail}}**.
+- **How to report.** Anyone can report content, with or without an account, as described in our Abuse and Illegal Content Policy ([/legal/abuse-policy](/legal/abuse-policy)) or by email to **{{abuseContactEmail}}**.
 - **Measures.** Depending on how serious and how clear a case is, we may: remove a document or comment, or disable access to it; restrict access to it (for example make the document private, so that it is no longer reachable by link); suspend an account for a period; or terminate an account. We choose the least severe measure that is effective, taking into account how serious the violation is, whether it was intentional and whether it has happened before. We may also report content to the authorities as described in the Abuse Policy.
 - **Repeat abuse.** If someone repeatedly shares manifestly illegal content, or repeatedly sends manifestly unfounded notices or complaints, we first warn them where possible and then suspend the account or stop processing their notices for a reasonable period. Serious cases, such as child sexual abuse material, lead to immediate termination.
 - **Statement of reasons and complaints.** If we remove or restrict your content or suspend your account, we tell you why by email (if your account has an email address on file), including how you can complain. You can complain to **{{abuseContactEmail}}** within six months. A person reviews your complaint and we reverse our decision if it was wrong. You can also go to court. Anonymous documents have no contact details, so we cannot notify their creators.
@@ -153,7 +155,7 @@ If you use markoto as a business user, you will indemnify us against third-party
 
 ## 13. Termination
 
-You can stop using markoto at any time and delete your account from `/settings/profile`. Deletion takes effect after a 30-day grace period, as described in the Privacy Policy.
+You can stop using markoto at any time and delete your account from [/settings/profile](/settings/profile). Deletion takes effect after a 30-day grace period, as described in the Privacy Policy.
 
 We may suspend or terminate your account under §8, or if we have to by law. Where reasonable we warn you first and give you a chance to export your data. On termination your data is handled as described in the Privacy Policy. Sections that by their nature should survive termination (such as §§10–12, 14 and 16) continue to apply.
 

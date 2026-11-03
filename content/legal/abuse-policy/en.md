@@ -12,13 +12,13 @@ translationStatus: authoritative
 
 ## What this policy covers
 
-This policy is our **notice-and-action mechanism** under Article 16 of the EU **Digital Services Act** (Regulation (EU) 2022/2065, "DSA"). It also describes our statements of reasons (Art. 17), how affected users can object, and when we notify authorities (Art. 18). The rules on what is allowed are in §6 of our Terms of Service (`/legal/terms`), and how we moderate is in §8.
+This policy is our **notice-and-action mechanism** under Article 16 of the EU **Digital Services Act** (Regulation (EU) 2022/2065, "DSA"). It also describes our statements of reasons (Art. 17), how affected users can object, and when we notify authorities (Art. 18). The rules on what is allowed are in §6 of our Terms of Service ([/legal/terms](/legal/terms)), and how we moderate is in §8.
 
 ## How to report
 
 You can report content in two ways. Both are handled the same way:
 
-- **The report form** at `/legal/abuse`. It works without an account; your browser then solves a short bot check that runs on our own server, with no third party and no cookie. Documents created without an account show a "user content · Report" bar that opens the form with the document's address filled in.
+- **The report form** at [/legal/abuse](/legal/abuse). It works without an account; your browser then solves a short bot check that runs on our own server, with no third party and no cookie. Documents created without an account show a "user content · Report" bar that opens the form with the document's address filled in.
 - **Email** to **{{abuseContactEmail}}**.
 
 A complete report contains (Art. 16(2) DSA):
@@ -81,7 +81,7 @@ We may stop processing reports from people who frequently submit manifestly unfo
 
 ## Data we process for reports
 
-To handle a report we store the address of the reported content, your explanation, the category, your name and email address, the language you used, when you confirmed the good-faith statement and the time, plus a shortened IP address and a hash of your browser's user agent against report flooding. For reports sent while signed in, we also link your account. We keep a report, with the notices about it, while the case is open and delete it 1 year after it is closed. Your data export contains the reports you filed while signed in. See the Privacy Policy (`/legal/privacy`) for details.
+To handle a report we store the address of the reported content, your explanation, the category, your name and email address, the language you used, when you confirmed the good-faith statement and the time, plus a shortened IP address and a hash of your browser's user agent against report flooding. For reports sent while signed in, we also link your account. We keep a report, with the notices about it, while the case is open and delete it 1 year after it is closed. Your data export contains the reports you filed while signed in. See the Privacy Policy ([/legal/privacy](/legal/privacy)) for details.
 
 ## Contact
 

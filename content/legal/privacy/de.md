@@ -10,7 +10,9 @@ translationStatus: machine-translated
 
 > **Kurz gesagt:** markoto speichert die Dokumente, die Sie schreiben, die Kommentare, die Sie hinterlassen, und das Minimum, das wir für den Betrieb Ihres Kontos benötigen. Der Dienst ist kostenlos; kostenpflichtige Pläne werden noch nicht angeboten. Die KI-Funktionen laufen bei Anbietern in der EU (Mistral AI für Text und Sprache, Jina AI für Embeddings und das Abrufen einzelner Seiten, Staan für die Websuche, Black Forest Labs für die Bilderzeugung), es sei denn, Sie binden Ihren eigenen KI-Anbieter an; dann gehen Ihre KI-Inhalte an den von Ihnen gewählten Anbieter. Wir verwenden nur notwendige Cookies: keine Analyse, kein Tracking, keine Werbung. Wir verkaufen Ihre Daten nicht und trainieren keine KI mit Ihren Inhalten. Sie können die über Sie gespeicherten Daten jederzeit in Ihren Einstellungen exportieren und Ihr Konto dort löschen.
 
-**Inhalt:** 1. Wer wir sind · 2. Welche Daten wir verarbeiten und warum · 2b. Anonyme Dokumente, die Bot-Prüfung und Missbrauchsmeldungen · 3. Rechtsgrundlagen · 4. Empfänger und internationale Übermittlungen · 5. Speicherort und Aufbewahrung · 5b. Was bei der Löschung Ihres Kontos geschieht · 6. Ihre Rechte · 7. Automatisierte Entscheidungsfindung · 8. KI-Funktionen und Transparenz · 9. Cookies und ähnliche Technologien · 10. Altersvoraussetzung · 11. Recht auf Beschwerde · 12. Sicherheit · 13. Verzeichnis der Verarbeitungszwecke · 14. Änderungen dieser Erklärung
+**Inhalt**
+
+[[toc]]
 
 ---
 
@@ -20,7 +22,7 @@ markoto wird von **{{controllerName}}** ({{controllerAddress}}) betrieben. Bei D
 
 Diese Erklärung ist so verfasst, dass sie sowohl das **Bundesgesetz über den Datenschutz** (revidiertes DSG, in Kraft seit 1. September 2023) als auch, soweit sie auf uns anwendbar ist, die **Datenschutz-Grundverordnung** der EU (Verordnung (EU) 2016/679, «DSGVO») erfüllt. Die DSGVO gilt für uns, weil wir markoto Personen in der EU und im EWR anbieten.
 
-Wir sind **Verantwortliche** für die Personendaten, die Sie uns direkt mitteilen: Ihr Konto, anonyme Dokumente, die Sie erstellen, Missbrauchsmeldungen und, falls Sie sich eintragen, die Warteliste für kostenpflichtige Pläne. Wenn Sie markoto in einem Workspace nutzen, der einer anderen Partei gehört, ist deren Eigentümerin bzw. Eigentümer Verantwortliche für die Inhalte, die in diesen Workspace eingebracht werden, und wir handeln als deren **Auftragsverarbeiter** auf Grundlage unseres Auftragsverarbeitungsvertrags (`/legal/dpa`).
+Wir sind **Verantwortliche** für die Personendaten, die Sie uns direkt mitteilen: Ihr Konto, anonyme Dokumente, die Sie erstellen, Missbrauchsmeldungen und, falls Sie sich eintragen, die Warteliste für kostenpflichtige Pläne. Wenn Sie markoto in einem Workspace nutzen, der einer anderen Partei gehört, ist deren Eigentümerin bzw. Eigentümer Verantwortliche für die Inhalte, die in diesen Workspace eingebracht werden, und wir handeln als deren **Auftragsverarbeiter** auf Grundlage unseres Auftragsverarbeitungsvertrags ([/legal/dpa](/legal/dpa)).
 
 ## 2. Welche Daten wir verarbeiten und warum
 
@@ -54,7 +56,7 @@ Nach der DSGVO stützt sich jede Verarbeitung auf eine der folgenden Rechtsgrund
 
 ## 4. Empfänger und internationale Übermittlungen
 
-Wir setzen eine kleine Zahl von Dienstleistern («Unterauftragsverarbeiter») auf Grundlage schriftlicher Auftragsverarbeitungsverträge ein (Art. 28 DSGVO, Art. 9 DSG). Die aktuelle Liste finden Sie unter `/legal/sub-processors`. Sie zeigt nur die Anbieter, die diese Installation tatsächlich nutzt: Stripe (Zahlungen) erscheint erst, wenn kostenpflichtige Pläne aktiviert sind, und ein KI-Anbieter, den **Sie** selbst anbinden (siehe §8), ist nicht unser Unterauftragsverarbeiter und wird nicht aufgeführt.
+Wir setzen eine kleine Zahl von Dienstleistern («Unterauftragsverarbeiter») auf Grundlage schriftlicher Auftragsverarbeitungsverträge ein (Art. 28 DSGVO, Art. 9 DSG). Die aktuelle Liste finden Sie unter [/legal/sub-processors](/legal/sub-processors). Sie zeigt nur die Anbieter, die diese Installation tatsächlich nutzt: Stripe (Zahlungen) erscheint erst, wenn kostenpflichtige Pläne aktiviert sind, und ein KI-Anbieter, den **Sie** selbst anbinden (siehe §8), ist nicht unser Unterauftragsverarbeiter und wird nicht aufgeführt.
 
 **Wohin Ihre Daten gehen.** Wir haben unseren Sitz in der Schweiz. Unsere Datenbank, unser Dateispeicher, unsere Sicherungskopien und unsere KI-Anbieter befinden sich in der EU (Frankreich und Deutschland). Der Bundesrat anerkennt für die EU und den EWR einen angemessenen Datenschutz, und die Europäische Kommission anerkennt die Schweiz als angemessen; für diese Übermittlungen sind daher keine weiteren Garantien erforderlich.
 
@@ -92,14 +94,14 @@ Die Aufbewahrung richtet sich nach dem Verzeichnis in §13. Allgemein gilt:
 
 ## 5b. Was bei der Löschung Ihres Kontos geschieht
 
-Die Schaltfläche unter `/settings/profile` plant die endgültige Löschung Ihres Kontos **in 30 Tagen** ein. Während dieser Karenzzeit bleibt Ihr Konto nutzbar, und Sie können auf jeder Seite, die das Löschbanner zeigt, abbrechen. Nach Ablauf der 30 Tage läuft Folgendes automatisch ab, ohne weitere Bestätigung und ohne Möglichkeit, etwas wiederherzustellen.
+Die Schaltfläche unter [/settings/profile](/settings/profile) plant die endgültige Löschung Ihres Kontos **in 30 Tagen** ein. Während dieser Karenzzeit bleibt Ihr Konto nutzbar, und Sie können auf jeder Seite, die das Löschbanner zeigt, abbrechen. Nach Ablauf der 30 Tage läuft Folgendes automatisch ab, ohne weitere Bestätigung und ohne Möglichkeit, etwas wiederherzustellen.
 
 ### Was endgültig gelöscht wird
 
 - **Ihr Konto**: Name, E-Mail, Anmeldekennungen, Einstellungen, Sprache, Altersbestätigung, akzeptierte Versionen der Richtlinien.
 - **Jedes Dokument, das Ihnen gehört**, einschliesslich Dokumenten, die Sie mit Mitwirkenden im Bearbeitungsmodus geteilt haben. Mitwirkende verlieren gleichzeitig den Zugriff. *Wenn Mitwirkende ein Dokument behalten sollen, übertragen Sie es ihnen oder duplizieren Sie es zuvor unter ihrem Konto.*
 - **Jedes gespeicherte Theme** unter Ihrem Konto.
-- **Jeder Workspace, in dem Sie das einzige Mitglied sind**, mit jedem Dokument und jeder Wissensdatei darin. *Um Workspace-Inhalte zu behalten, laden Sie vor der Löschung Ihres Kontos ein weiteres Mitglied ein oder laden Sie die Dokumente zuvor über den Datenexport unter `/settings/profile` herunter.*
+- **Jeder Workspace, in dem Sie das einzige Mitglied sind**, mit jedem Dokument und jeder Wissensdatei darin. *Um Workspace-Inhalte zu behalten, laden Sie vor der Löschung Ihres Kontos ein weiteres Mitglied ein oder laden Sie die Dokumente zuvor über den Datenexport unter [/settings/profile](/settings/profile) herunter.*
 - **Ihre KI-Nutzung**: frühere Eingaben (90 Tage lang zur Missbrauchsprüfung aufbewahrt), offene KI-Sitzungen sowie Einstellungen eines selbst angebundenen KI-Anbieters (Bring your own key) samt verschlüsselten API-Schlüsseln (siehe §8).
 - **Ihre Datenexport-Aufträge** und alle für Sie vorbereiteten ZIP-Dateien.
 - **Ihr Stripe-Kundendatensatz, sofern vorhanden** (erst möglich, wenn kostenpflichtige Pläne angeboten werden). Wir weisen Stripe an, ihn zu löschen; Stripe bewahrt Rechnungs- und Zahlungsunterlagen für die steuerrechtlich vorgeschriebene Dauer auf.
@@ -127,7 +129,7 @@ Die Löschung eines Workspace entfernt auch Inhalte, die andere Personen in eine
 
 ### Ihr Datenexport
 
-Vor der Löschung Ihres Kontos können Sie über den **Datenexport** unter `/settings/profile` ein ZIP-Archiv mit allem erhalten, was wir über Sie speichern: Dokumente als Markdown, Ihre Kommentare, Workspace-Mitgliedschaften, KI-Nutzungsprotokolle, Ihre KI-Anbietereinstellungen (URL, Modell und Funktion, nie der API-Schlüssel), Ihren Wartelisteneintrag, Einwilligungsnachweise und, sobald es kostenpflichtige Pläne gibt, den Abrechnungsverlauf.
+Vor der Löschung Ihres Kontos können Sie über den **Datenexport** unter [/settings/profile](/settings/profile) ein ZIP-Archiv mit allem erhalten, was wir über Sie speichern: Dokumente als Markdown, Ihre Kommentare, Workspace-Mitgliedschaften, KI-Nutzungsprotokolle, Ihre KI-Anbietereinstellungen (URL, Modell und Funktion, nie der API-Schlüssel), Ihren Wartelisteneintrag, Einwilligungsnachweise und, sobald es kostenpflichtige Pläne gibt, den Abrechnungsverlauf.
 
 ### Wie lange es dauert
 
@@ -141,9 +143,9 @@ Bis die Löschung läuft, können Sie sie abbrechen, indem Sie sich anmelden und
 
 Nach der DSGVO (Art. 15–22) und dem DSG (Art. 25–28 und 32) haben Sie das Recht auf:
 
-- **Auskunft** über die bei uns gespeicherten Personendaten: Nutzen Sie den Export unter `/settings/profile` oder schreiben Sie uns.
+- **Auskunft** über die bei uns gespeicherten Personendaten: Nutzen Sie den Export unter [/settings/profile](/settings/profile) oder schreiben Sie uns.
 - **Berichtigung** unrichtiger Daten: Bearbeiten Sie Ihr Profil oder schreiben Sie uns.
-- **Löschung**: Nutzen Sie das Löschwerkzeug unter `/settings/profile`. Wir warten 30 Tage und löschen dann endgültig.
+- **Löschung**: Nutzen Sie das Löschwerkzeug unter [/settings/profile](/settings/profile). Wir warten 30 Tage und löschen dann endgültig.
 - **Einschränkung** der Verarbeitung: Schreiben Sie uns.
 - **Widerspruch** gegen die Verarbeitung auf Grundlage berechtigter Interessen: Schreiben Sie uns.
 - **Datenübertragbarkeit**: Der Export liefert Ihre Daten in maschinenlesbarem JSON, NDJSON und Markdown.
@@ -222,7 +224,7 @@ Wir würden es begrüssen, Ihr Anliegen zunächst direkt zu klären: Schreiben S
 
 ## 12. Sicherheit
 
-Wir schützen Daten durch Transportverschlüsselung (TLS), Verschlüsselung im Ruhezustand durch unseren Speicheranbieter, verschlüsselte Datenbank-Sicherungskopien, Verschlüsselung gespeicherter Geheimnisse wie KI-Anbieterschlüssel, strikte Trennung unserer internen Dienste, Zugriff nach dem Prinzip der minimalen Rechte, gekürzte IP-Adressen in Protokollen und regelmässige Sicherheitsupdates. markoto-Konten haben keine eigenen Passwörter: Sie melden sich über GitHub oder Google an. Wenn Sie ein Dokument mit einem Passwort schützen, speichern wir davon nur einen scrypt-Hash. Die Massnahmen sind in Anhang I unseres Auftragsverarbeitungsvertrags (`/legal/dpa`) ausführlicher beschrieben.
+Wir schützen Daten durch Transportverschlüsselung (TLS), Verschlüsselung im Ruhezustand durch unseren Speicheranbieter, verschlüsselte Datenbank-Sicherungskopien, Verschlüsselung gespeicherter Geheimnisse wie KI-Anbieterschlüssel, strikte Trennung unserer internen Dienste, Zugriff nach dem Prinzip der minimalen Rechte, gekürzte IP-Adressen in Protokollen und regelmässige Sicherheitsupdates. markoto-Konten haben keine eigenen Passwörter: Sie melden sich über GitHub oder Google an. Wenn Sie ein Dokument mit einem Passwort schützen, speichern wir davon nur einen scrypt-Hash. Die Massnahmen sind in Anhang I unseres Auftragsverarbeitungsvertrags ([/legal/dpa](/legal/dpa)) ausführlicher beschrieben.
 
 Führt eine Verletzung des Schutzes personenbezogener Daten voraussichtlich zu einem Risiko für Sie, benachrichtigen wir die zuständige Aufsichtsbehörde innerhalb von 72 Stunden, wo die DSGVO dies verlangt (Art. 33 DSGVO), und den EDÖB so rasch wie möglich, wo das DSG dies verlangt (Art. 24 DSG). Führt die Verletzung voraussichtlich zu einem hohen Risiko für Sie, informieren wir auch Sie unverzüglich.
 

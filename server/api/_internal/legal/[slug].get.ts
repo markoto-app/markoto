@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import MarkdownIt from 'markdown-it'
+import { legalMarkdown } from '~~/server/utils/legalMarkdown'
 import { resolveLegalEntity } from '~~/shared/legal/entity'
 import { assertLegalSurfacesEnabled } from '../../../utils/instanceConfig'
 import { renderProcessingPurposesMarkdown } from '~~/server/legal/registryView'
@@ -87,12 +87,6 @@ const SLUG_META: Record<LegalSlug, SlugMetadata> = {
   }
 }
 
-const md = new MarkdownIt({
-  html: false, // markdown source is trusted but defence-in-depth — any future external author can't smuggle raw HTML
-  linkify: true, // bare URLs in the body auto-link
-  typographer: true
-})
-
 export default defineEventHandler(async (event) => {
   // The bundled texts describe the hosted markoto.app service; a
   // deployment with the legal surfaces off (self-hosted default) must not
@@ -167,7 +161,7 @@ export default defineEventHandler(async (event) => {
     return substitutions[key] ?? full
   })
 
-  const html = md.render(substituted)
+  const html = legalMarkdown.render(substituted)
 
   return {
     slug,

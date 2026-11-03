@@ -207,6 +207,31 @@ function fmtDate(iso: string): string {
   font-size: 1.375rem;
   letter-spacing: -0.01em;
   margin: 2.5rem 0 0.75rem;
+  /* Contents links jump here; keep the heading clear of the top edge. */
+  scroll-margin-top: 1.5rem;
+}
+/* Contents list generated from the h2 headings ([[toc]] in the sources). */
+.legal-doc-prose :deep(.legal-toc) {
+  margin: 0 0 1.5rem;
+}
+.legal-doc-prose :deep(.legal-toc ul) {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  columns: 2 18rem;
+  column-gap: 2rem;
+}
+.legal-doc-prose :deep(.legal-toc li) {
+  margin: 0 0 0.375rem;
+  break-inside: avoid;
+}
+.legal-doc-prose :deep(.legal-toc a) {
+  text-decoration: none;
+  color: var(--ui-text-muted);
+}
+.legal-doc-prose :deep(.legal-toc a:hover) {
+  color: var(--ui-text);
+  text-decoration: underline;
 }
 .legal-doc-prose :deep(h3) {
   font-family: var(--font-serif);
@@ -245,7 +270,6 @@ function fmtDate(iso: string): string {
   padding-left: 1rem;
   margin: 0 0 1rem;
   color: var(--ui-text-muted);
-  font-style: italic;
 }
 .legal-doc-prose :deep(strong) {
   font-weight: 500;
