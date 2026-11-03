@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect } from '../fixtures/flow'
 import { showTextFile } from '../fixtures/downloadViewer'
+import { splitMarkotoFrontmatter } from '../../../shared/utils/markdownFrontmatter'
 
 // Tier 1: "Save the doc as a .md file."
 //
@@ -104,19 +105,26 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
   )
 
   // ASSERTION: the download is a .md named after the doc, and its
-  // contents are exactly the document's Markdown.
+  // contents are the document's Markdown under a markoto frontmatter
+  // block (theme + document properties, so an import restores them).
   const download = await downloadPromise
   const filename = download.suggestedFilename()
   expect(filename).toMatch(/^Weekly sync.*\.md$/i)
   const saved = await readFile(await download.path(), 'utf8')
-  expect(saved).toBe(await editor.page.docText())
+  const split = splitMarkotoFrontmatter(saved)
+  expect(split.kind).toBe('markoto')
+  if (split.kind !== 'markoto') throw new Error('no markoto frontmatter in the download')
+  expect(split.body).toBe(await editor.page.docText())
+  expect(split.data.title).toBe('Weekly sync')
+  expect(split.data.theme).toBeTruthy()
 
   // ─── Open the file ──────────────────────────────────────────────
   await flow.heading('Open the file', 3)
   const viewer = await flow.spawn('file')
   await showTextFile(viewer.page, saved)
   await viewer.flow.shot(
-    'The saved file is plain Markdown: headings, lists and links as you wrote them.',
+    'The saved file is plain Markdown: headings, lists and links as you wrote them. '
+    + 'A short block at the top keeps the theme and the document settings for a later import.',
     { hero: true, addressBar: `Downloads/${filename}` }
   )
 

@@ -115,6 +115,8 @@ export interface MetaUpdate {
   description?: string
   audience?: AudienceKind
   language?: string
+  /** Which template the document started from (Markdown import restores it). */
+  templateId?: string
 }
 
 /**

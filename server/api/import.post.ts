@@ -1,3 +1,6 @@
+import type { H3Event } from 'h3'
+import { importMarkdownFile } from '../utils/markdownImport'
+
 // Subset of formats markitdown handles well as document imports. Markitdown
 // also supports CSV/JSON/XML/audio/images, but those don't make sense as a
 // "drop a doc in to seed your markdown" path — they round-trip into markdown
@@ -13,6 +16,13 @@ const ALLOWED_EXTENSIONS = new Set([
   'htm',
   'epub'
 ])
+// Markdown needs no conversion: read as UTF-8 here, markoto's own
+// frontmatter (theme + document properties, written by Download
+// Markdown) is split off and validated (server/utils/markdownImport.ts).
+const MARKDOWN_EXTENSIONS = new Set(['md', 'markdown'])
+// A Markdown body lands in one Y.Doc (sync-server cap 16 MiB per document).
+const MARKDOWN_MAX_SIZE = 10 * 1024 * 1024
+const DOC_ID_SHAPE = /^[A-Za-z0-9_-]{1,64}$/
 const MAX_SIZE = 50 * 1024 * 1024 // 50 MB — kept in sync with markitdown-server/server.py
 // Whole request: the file plus multipart framing. Traefik's buffering
 // middleware on /api/import (prod + self-host compose) uses the same cap.
@@ -51,6 +61,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  if (MARKDOWN_EXTENSIONS.has(ext)) {
+    return await importMarkdown(event, file, form?.get('docId'))
+  }
+
   if (!ALLOWED_EXTENSIONS.has(ext)) {
     throw createError({
       statusCode: 415,
@@ -118,3 +132,35 @@ export default defineEventHandler(async (event) => {
     filename: file.name
   }
 })
+
+async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntryValue | null | undefined) {
+  if (file.size > MARKDOWN_MAX_SIZE) {
+    throw createError({
+      statusCode: 413,
+      message: 'Markdown file too large. Max 10MB.',
+      data: { code: 'import/file-too-large' }
+    })
+  }
+  let text: string
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())
+  } catch {
+    throw createError({
+      statusCode: 422,
+      message: 'This Markdown file is not valid UTF-8 text.',
+      data: { code: 'import/not-utf8' }
+    })
+  }
+  // Without the target document the theme's images and custom CSS can't
+  // be checked, so properties are only read when the editor names it
+  // (the import only converts — it never writes to the document).
+  const docId = typeof rawDocId === 'string' && DOC_ID_SHAPE.test(rawDocId) ? rawDocId : null
+  const result = docId
+    ? importMarkdownFile(text, { docId, allowedOrigins: customCssAppOrigins(event) })
+    : { markdown: text }
+  return {
+    ...result,
+    source: 'md',
+    filename: file.name
+  }
+}
