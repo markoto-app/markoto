@@ -90,18 +90,21 @@ export default defineNuxtConfig({
         // future h3 / nuxt-auth-utils default churn.
         httpOnly: true,
         path: '/',
-        // `strict` is what we want: the only same-site flow is the OAuth
-        // callback (GitHub/Google → /auth/<provider> on our own domain),
-        // which IS same-site, so strict allows the cookie to be set on
-        // the redirect. `strict` blocks cookie attachment on cross-site
-        // top-level navigations into the app, which means a deep-link
-        // shared from another origin won't carry the session — but the
-        // OAuth flow + normal app usage are unaffected. Tightening from
-        // the implicit `lax` default also prevents leakage into the
-        // `sync.${DOMAIN}` subdomain context: although we don't set
-        // `domain`, browsers gate `lax` cookies on top-level navigation
-        // schemes that `strict` rejects outright.
-        sameSite: 'strict'
+        // `lax`, NOT `strict`. The OAuth callback (/auth/<provider>) is
+        // reached by a redirect from the provider's site (github.com,
+        // accounts.google.com, the OIDC IdP), so the whole chain counts
+        // as a cross-site navigation: with `strict` the browser withholds
+        // the freshly set session cookie on the redirect to `/`, and the
+        // page after sign-in renders signed out (staging, 2026-11-03;
+        // Firefox: "omitted because of a cross-site redirect"). `strict`
+        // also made every link into the app from another site (Slack,
+        // email) open signed out, so private documents looked missing.
+        // `lax` still keeps the cookie off cross-site subrequests and
+        // cross-site POST/PUT/PATCH/DELETE; state-changing /api calls are
+        // additionally Origin-checked (server/middleware/csrf.ts), and GET
+        // handlers never change state. Pinned by
+        // tests/integration/endpoints/oidcLogin.test.ts.
+        sameSite: 'lax'
         // Intentionally NO `domain` — the cookie defaults to the exact
         // host that set it, which means it will never be auto-included
         // on requests to `sync.${DOMAIN}` (the Hocuspocus subdomain).

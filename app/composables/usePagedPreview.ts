@@ -7,9 +7,11 @@ import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { documentTexts } from '~~/shared/utils/documentLocale'
 import type { CustomCssResult } from '~~/shared/types/customCss'
 import { sanitizeCustomCssForRender, currentAppOrigins } from '~/utils/customCssLoader'
+import type { PreviewZoomCommand } from '~/composables/usePreviewZoom'
 import {
   PREVIEW_SANDBOX,
   appIsDark,
+  buildZoomMessage,
   buildPreviewSrcdoc,
   buildRenderMessage,
   createFileTokenSource,
@@ -78,6 +80,21 @@ export function usePagedPreview(opts: {
    * signed-in viewers are authorised by their cookie.
    */
   getDocJwt?: () => Promise<string | null>
+  /**
+   * Preview zoom (`usePreviewZoom`): the latest command is sent to the
+   * frame whenever it changes and again when the frame (re)loads. Zoom is
+   * applied inside the frame to the paginated pages — it never triggers a
+   * render.
+   */
+  zoom?: {
+    command: Ref<PreviewZoomCommand>
+    /** Ctrl/Cmd +/-/0 pressed or an overview page clicked inside the frame. */
+    onRequest: (action: 'in' | 'out' | 'reset' | 'page', page: number) => void
+    /** A pinch / Ctrl+wheel inside the frame ended at this factor. */
+    onGesture: (scale: number) => void
+    /** The frame applied a zoom (effective + fit-width factor). */
+    onApplied: (scale: number, fitScale: number) => void
+  }
 }) {
   const pageCount = ref(0)
   const isPaginating = ref(false)
@@ -108,6 +125,7 @@ export function usePagedPreview(opts: {
       isReady.value = true
       error.value = null
       sendColorMode()
+      sendZoom(false)
       if (pendingRender) {
         pendingRender = false
         render()
@@ -129,7 +147,28 @@ export function usePagedPreview(opts: {
       }
     } else if (data.type === 'print-shortcut') {
       opts.onPrintShortcut?.()
+    } else if (data.type === 'zoom-request') {
+      opts.zoom?.onRequest(data.action, data.page)
+    } else if (data.type === 'zoom-gesture') {
+      opts.zoom?.onGesture(data.scale)
+    } else if (data.type === 'zoom-state') {
+      opts.zoom?.onApplied(data.scale, data.fitScale)
     }
+  }
+
+  /** Post the current zoom command (`animate` false on frame load). */
+  function sendZoom(animate: boolean) {
+    const frame = iframe?.contentWindow
+    const cmd = opts.zoom?.command.value
+    if (!frame || !isReady.value || !cmd) return
+    const s = cmd.setting
+    postToFrame(frame, buildZoomMessage({
+      mode: s.mode,
+      scale: s.mode === 'scale' ? s.scale : undefined,
+      animate: animate && cmd.animate,
+      // A frame (re)load starts at the reading position, not a stale page jump.
+      page: animate ? cmd.page : 0
+    }))
   }
 
   // Image access token for the opaque-origin iframe (its requests carry
@@ -269,6 +308,10 @@ export function usePagedPreview(opts: {
       debouncedRender()
     }
   })
+
+  if (opts.zoom) {
+    watch(() => opts.zoom?.command.value.seq, () => sendZoom(true))
+  }
 
   // useEventListener auto-cleans on scope dispose — no manual
   // removeEventListener in onUnmounted needed.

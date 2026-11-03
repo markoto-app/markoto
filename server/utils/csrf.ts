@@ -1,5 +1,5 @@
 // Origin check for state-changing API requests — defence in depth on top
-// of the `SameSite=Strict` session cookie. SameSite only separates SITES:
+// of the `SameSite=Lax` session cookie. SameSite only separates SITES:
 // another origin on the same registrable domain (a sibling subdomain, a
 // staging host) still counts as same-site and gets the cookie. Browsers
 // stamp every cross-origin POST/PUT/PATCH/DELETE with `Origin` (and
