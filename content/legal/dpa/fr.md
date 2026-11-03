@@ -117,7 +117,7 @@ Il s'agit des mesures que le Sous-traitant prend au titre de l'article 32 du RGP
 
 ### 6. Journalisation et surveillance
 
-- Un journal d'audit de sécurité enregistre les modifications des contrôles d'accès, les suppressions, les actions administratives et les autres actions pertinentes pour la sécurité, avec des adresses IP tronquées (IPv4 en /24, IPv6 en /48).
+- Un journal d'audit de sécurité enregistre les modifications des contrôles d'accès, les suppressions, les actions administratives et les autres actions pertinentes pour la sécurité, avec des adresses IP tronquées (IPv4 en /24, IPv6 en /48). Les entrées sont supprimées automatiquement après 2 ans.
 - Les erreurs de l'application sont signalées à un service de surveillance des erreurs situé dans la région UE ; les cookies et en-têtes d'autorisation sont retirés des rapports d'erreurs.
 - Les alertes opérationnelles (sauvegardes, déploiements, mises à jour) sont envoyées aux exploitants.
 
@@ -135,7 +135,7 @@ Une procédure documentée de réponse aux violations de données couvre la dét
 ### 9. Minimisation et suppression des données
 
 - Seules les données nécessaires au Service sont collectées ; les adresses IP sont tronquées avant stockage ; les originaux téléversés dans la base de connaissances sont supprimés après traitement.
-- Des tâches de suppression automatique appliquent les durées de conservation (par exemple les enregistrements d'IA après 90 jours, les documents anonymes inactifs après 30 jours, les téléversements non confirmés après 24 heures).
+- Des tâches de suppression automatique appliquent les durées de conservation (par exemple les enregistrements d'IA après 90 jours, les documents anonymes inactifs après 30 jours, les téléversements non confirmés après 24 heures, les entrées du journal d'audit après 2 ans).
 - Les utilisateurs peuvent exporter et supprimer eux-mêmes leurs données.
 
 ### 10. Sous-traitants ultérieurs

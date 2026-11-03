@@ -81,7 +81,7 @@ We may stop processing reports from people who frequently submit manifestly unfo
 
 ## Data we process for reports
 
-To handle a report we store the URL, your explanation, the category, the time and, if you give them, your name and email address. For reports sent while signed in, we also link your account. See the Privacy Policy (`/legal/privacy`) for details.
+To handle a report we store the URL, your explanation, the category, the time and, if you give them, your name and email address. For reports sent while signed in, we also link your account. We keep a report while the case is open and delete it 1 year after it is closed. See the Privacy Policy (`/legal/privacy`) for details.
 
 ## Contact
 
@@ -91,5 +91,5 @@ All abuse-related communication: **{{abuseContactEmail}}**.
 
 This is **version {{currentVersion}}**, effective **{{effectiveDate}}**.
 
-- **v2 (2026-11-03).** Reports without an account; the information a report must contain (Art. 16(2) DSA); receipt and decision notices; statements of reasons to affected users and how to object; notification of threats to life or safety to authorities; misuse of the reporting channel.
+- **v2 (2026-11-03).** Reports without an account; the information a report must contain (Art. 16(2) DSA); receipt and decision notices; statements of reasons to affected users and how to object; notification of threats to life or safety to authorities; misuse of the reporting channel; reports are deleted 1 year after the case is closed.
 - **v1 (2026-05-04).** Initial publication.

@@ -412,6 +412,8 @@ services:
       # Days an unreferenced doc image is kept before the image GC deletes
       # it. Empty = 30, 0 = GC off.
       - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}
+      - NUXT_AUDIT_LOG_RETENTION_DAYS=${NUXT_AUDIT_LOG_RETENTION_DAYS:-}
+      - NUXT_ABUSE_REPORT_RETENTION_DAYS=${NUXT_ABUSE_REPORT_RETENTION_DAYS:-}
       - NUXT_INACTIVE_DOC_TTL_DAYS=${NUXT_INACTIVE_DOC_TTL_DAYS:-180}
       # ─── Operator surfaces (shared/config/instance.ts) ───
       # The bundled privacy policy / terms / DPA / imprint describe the

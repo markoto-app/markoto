@@ -117,7 +117,7 @@ These are the measures the Processor takes under Art. 32 GDPR and Art. 8 FADP. T
 
 ### 6. Logging and monitoring
 
-- A security audit log records access-control changes, deletions, administrative and other security-relevant actions, with IP addresses shortened (IPv4 to /24, IPv6 to /48).
+- A security audit log records access-control changes, deletions, administrative and other security-relevant actions, with IP addresses shortened (IPv4 to /24, IPv6 to /48). Entries are deleted automatically after 2 years.
 - Application errors are reported to an error-monitoring service in the EU region; cookies and authorisation headers are removed from error reports.
 - Operational alerts (backups, deployments, updates) are sent to the operators.
 
@@ -135,7 +135,7 @@ A documented data-breach response procedure covers detection, containment, asses
 ### 9. Data minimisation and deletion
 
 - Only data needed for the Service is collected; IP addresses are shortened before storage; uploaded knowledge-base originals are deleted after processing.
-- Automatic deletion jobs enforce retention periods (for example AI records after 90 days, inactive anonymous documents after 30 days, unconfirmed uploads after 24 hours).
+- Automatic deletion jobs enforce retention periods (for example AI records after 90 days, inactive anonymous documents after 30 days, unconfirmed uploads after 24 hours, audit-log entries after 2 years).
 - Users can export and delete their data themselves.
 
 ### 10. Sub-processors

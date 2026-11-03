@@ -41,7 +41,6 @@ function retentionLabel(retention: ProcessingPurpose['retention']): string {
     case 'until_deletion': return 'Until you delete it or your account'
     case 'legal_minimum': return 'Legal minimum'
     case 'until_withdrawn': return 'Until you withdraw consent (see the policy text for the outer limit)'
-    case 'no_automatic_deletion': return 'No automatic deletion yet (see §5 of the policy text)'
   }
 }
 

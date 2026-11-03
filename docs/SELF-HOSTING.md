@@ -279,6 +279,8 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 |---|---|---|
 | `NUXT_S3_BUCKET` | `markoto-files` | Bucket name. It is also the URL path prefix under which browsers reach storage, so don't pick a name that collides with an app route (`api`, `d`, `w`, `docs`, `settings`, …). |
 | `NUXT_IMAGE_GC_RETENTION_DAYS` | `30` | An uploaded image that no document, restorable document version, theme or comment has referenced for this many days is deleted. `0` turns the image clean-up off. |
+| `NUXT_AUDIT_LOG_RETENTION_DAYS` | `730` | Security audit-log entries older than this many days are deleted. `0` keeps them forever. |
+| `NUXT_ABUSE_REPORT_RETENTION_DAYS` | `365` | Closed abuse reports (actioned or dismissed) are deleted this many days after they were closed; open reports are kept until handled. `0` keeps them forever. |
 
 Uploads that are started but never finished are removed automatically: document images after 24 hours, workspace knowledge files after one hour.
 

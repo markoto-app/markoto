@@ -81,7 +81,7 @@ Nous pouvons, après un avertissement et pour une durée raisonnable, cesser de 
 
 ## Données que nous traitons pour les signalements
 
-Pour traiter un signalement, nous enregistrons l'URL, votre explication, la catégorie, l'heure et, si vous les indiquez, votre nom et votre adresse e-mail. Pour les signalements envoyés en étant connecté, nous associons également votre compte. Voir la politique de confidentialité (`/legal/privacy`) pour plus de détails.
+Pour traiter un signalement, nous enregistrons l'URL, votre explication, la catégorie, l'heure et, si vous les indiquez, votre nom et votre adresse e-mail. Pour les signalements envoyés en étant connecté, nous associons également votre compte. Nous conservons un signalement tant que le dossier est ouvert et le supprimons 1 an après sa clôture. Voir la politique de confidentialité (`/legal/privacy`) pour plus de détails.
 
 ## Contact
 
@@ -91,5 +91,5 @@ Pour toute communication relative aux abus : **{{abuseContactEmail}}**.
 
 Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}}**.
 
-- **v2 (2026-11-03).** Signalements sans compte ; informations que doit contenir un signalement (article 16, paragraphe 2, du DSA) ; accusés de réception et notifications des décisions ; exposés des motifs adressés aux utilisateurs concernés et voies de contestation ; signalement aux autorités des menaces pour la vie ou la sécurité ; usage abusif du canal de signalement.
+- **v2 (2026-11-03).** Signalements sans compte ; informations que doit contenir un signalement (article 16, paragraphe 2, du DSA) ; accusés de réception et notifications des décisions ; exposés des motifs adressés aux utilisateurs concernés et voies de contestation ; signalement aux autorités des menaces pour la vie ou la sécurité ; usage abusif du canal de signalement ; suppression des signalements 1 an après la clôture du dossier.
 - **v1 (2026-05-04).** Publication initiale.

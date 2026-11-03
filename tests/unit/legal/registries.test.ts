@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { SUB_PROCESSORS } from '../../../server/legal/subProcessors'
 import { PROCESSING_PURPOSES } from '../../../server/legal/lawfulBasis'
 import * as auditActions from '../../../server/legal/auditActions'
+import { ABUSE_REPORT_DEFAULT_RETENTION_DAYS, AUDIT_LOG_DEFAULT_RETENTION_DAYS } from '../../../server/utils/legalRetentionSweep'
 
 // Sanity tests for the legal registries. These are constants-only
 // modules — no DB, no I/O — but they're load-bearing for the
@@ -69,7 +70,7 @@ describe('PROCESSING_PURPOSES', () => {
     for (const purpose of PROCESSING_PURPOSES) {
       const r = purpose.retention
       const isInt = typeof r === 'number' && Number.isInteger(r) && r > 0
-      const isSentinel = r === 'until_deletion' || r === 'legal_minimum' || r === 'until_withdrawn' || r === 'no_automatic_deletion'
+      const isSentinel = r === 'until_deletion' || r === 'legal_minimum' || r === 'until_withdrawn'
       expect(isInt || isSentinel, `purpose ${purpose.id} has invalid retention: ${r}`).toBe(true)
     }
   })
@@ -84,9 +85,18 @@ describe('consent-backed purposes', () => {
 })
 
 describe('security_audit_log purpose', () => {
-  it('does not promise a retention period the code does not enforce', () => {
+  it('matches the 2-year audit-log sweep', () => {
     const purpose = PROCESSING_PURPOSES.find(p => p.id === 'security_audit_log')
-    expect(purpose?.retention).toBe('no_automatic_deletion')
+    expect(purpose?.retention).toBe(AUDIT_LOG_DEFAULT_RETENTION_DAYS)
+  })
+})
+
+describe('abuse_report_handling purpose', () => {
+  it('exists and matches the 1-year-after-closing abuse-report sweep', () => {
+    const purpose = PROCESSING_PURPOSES.find(p => p.id === 'abuse_report_handling')
+    expect(purpose?.basis).toBe('legal_obligation')
+    expect(purpose?.retention).toBe(ABUSE_REPORT_DEFAULT_RETENTION_DAYS)
+    expect(purpose?.subProcessors).toEqual(['ovh_postgres', 'resend'])
   })
 })
 

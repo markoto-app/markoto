@@ -80,6 +80,16 @@ describe('legal wording', () => {
     expect(privacy).not.toMatch(/180 days without activity/)
   })
 
+  // The periods the retention sweeps enforce (server/utils/legalRetentionSweep.ts).
+  it('states the audit-log and abuse-report retention the sweeps enforce', () => {
+    const privacy = read('privacy', 'en')
+    expect(privacy).toMatch(/Entries are deleted automatically after \*\*2 years\*\*/)
+    expect(privacy).toMatch(/delete it \*\*1 year after the case is closed\*\*/)
+    expect(privacy).not.toMatch(/Entries are currently not deleted automatically/i)
+    expect(read('dpa', 'en')).toMatch(/Entries are deleted automatically after 2 years/)
+    expect(read('abuse-policy', 'en')).toMatch(/delete it 1 year after it is closed/)
+  })
+
   it('terms carry an acceptable-use section reachable from the terms link', () => {
     const terms = read('terms', 'en')
     expect(terms).toMatch(/^## 6\. Acceptable use$/m)

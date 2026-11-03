@@ -81,7 +81,7 @@ Podemos dejar de tramitar las denuncias de personas que presenten con frecuencia
 
 ## Datos que tratamos para las denuncias
 
-Para tramitar una denuncia almacenamos la URL, su explicación, la categoría, el momento y, si nos los facilita, su nombre y su dirección de correo electrónico. En las denuncias enviadas con la sesión iniciada, vinculamos además su cuenta. Consulte la Política de privacidad (`/legal/privacy`) para más detalles.
+Para tramitar una denuncia almacenamos la URL, su explicación, la categoría, el momento y, si nos los facilita, su nombre y su dirección de correo electrónico. En las denuncias enviadas con la sesión iniciada, vinculamos además su cuenta. Conservamos una denuncia mientras el caso está abierto y la eliminamos 1 año después de su cierre. Consulte la Política de privacidad (`/legal/privacy`) para más detalles.
 
 ## Contacto
 
@@ -91,5 +91,5 @@ Para toda comunicación relacionada con abusos: **{{abuseContactEmail}}**.
 
 Esta es la **versión {{currentVersion}}**, en vigor desde el **{{effectiveDate}}**.
 
-- **v2 (2026-11-03).** Denuncias sin cuenta; la información que debe contener una denuncia (art. 16, apartado 2, del DSA); acuse de recibo y notificaciones de la decisión; exposiciones de motivos a los usuarios afectados y cómo oponerse; comunicación a las autoridades de las amenazas para la vida o la seguridad; uso indebido del canal de denuncia.
+- **v2 (2026-11-03).** Denuncias sin cuenta; la información que debe contener una denuncia (art. 16, apartado 2, del DSA); acuse de recibo y notificaciones de la decisión; exposiciones de motivos a los usuarios afectados y cómo oponerse; comunicación a las autoridades de las amenazas para la vida o la seguridad; uso indebido del canal de denuncia; las denuncias se eliminan 1 año después del cierre del caso.
 - **v1 (2026-05-04).** Publicación inicial.

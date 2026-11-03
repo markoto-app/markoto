@@ -81,7 +81,7 @@ Bei Personen, die häufig offensichtlich unbegründete Meldungen einreichen, kö
 
 ## Daten, die wir für Meldungen verarbeiten
 
-Zur Bearbeitung einer Meldung speichern wir die URL, Ihre Begründung, die Kategorie, den Zeitpunkt und, falls Sie diese angeben, Ihren Namen und Ihre E-Mail-Adresse. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Einzelheiten finden Sie in der Datenschutzerklärung (`/legal/privacy`).
+Zur Bearbeitung einer Meldung speichern wir die URL, Ihre Begründung, die Kategorie, den Zeitpunkt und, falls Sie diese angeben, Ihren Namen und Ihre E-Mail-Adresse. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Wir bewahren eine Meldung auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Einzelheiten finden Sie in der Datenschutzerklärung (`/legal/privacy`).
 
 ## Kontakt
 
@@ -91,5 +91,5 @@ Für alle Anliegen zu Missbrauch: **{{abuseContactEmail}}**.
 
 Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**.
 
-- **v2 (2026-11-03).** Meldungen ohne Konto; die Angaben, die eine Meldung enthalten muss (Art. 16 Abs. 2 DSA); Eingangsbestätigungen und Mitteilungen von Entscheiden; Begründungen an betroffene Nutzende und Einspruchsmöglichkeiten; Meldung von Drohungen gegen Leben oder Sicherheit an Behörden; Missbrauch des Meldewegs.
+- **v2 (2026-11-03).** Meldungen ohne Konto; die Angaben, die eine Meldung enthalten muss (Art. 16 Abs. 2 DSA); Eingangsbestätigungen und Mitteilungen von Entscheiden; Begründungen an betroffene Nutzende und Einspruchsmöglichkeiten; Meldung von Drohungen gegen Leben oder Sicherheit an Behörden; Missbrauch des Meldewegs; Meldungen werden 1 Jahr nach Abschluss des Falls gelöscht.
 - **v1 (2026-05-04).** Erstveröffentlichung.

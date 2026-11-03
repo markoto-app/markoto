@@ -25,12 +25,10 @@ export type ProcessingPurpose = {
   // referenced by the privacy policy page.
   dataCategories: string[]
   // Retention in days from last activity, or 'until_deletion' for
-  // account-bound data, 'legal_minimum' for billing/tax,
+  // account-bound data, 'legal_minimum' for billing/tax, or
   // 'until_withdrawn' for consent-backed data kept until the person
-  // withdraws consent (with an outer bound documented on the entry), or
-  // 'no_automatic_deletion' where no sweep deletes the rows yet (the
-  // policy text must say so honestly).
-  retention: number | 'until_deletion' | 'legal_minimum' | 'until_withdrawn' | 'no_automatic_deletion'
+  // withdraws consent (with an outer bound documented on the entry).
+  retention: number | 'until_deletion' | 'legal_minimum' | 'until_withdrawn'
   // Sub-processor ids (from server/legal/subProcessors.ts) that touch
   // this purpose's data. Empty array = handled in-house only.
   subProcessors: string[]
@@ -131,15 +129,15 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: []
   },
   {
-    // `audit_log` is append-only and NO sweep deletes rows today
-    // (server/repos/audit.ts has no delete path). Account deletion nulls
-    // the actor id (FK `ON DELETE SET NULL`); the IP is stored truncated.
-    // Privacy §5 states this; a retention period is an open item.
+    // `audit_log` is append-only; `audit-log-sweep` deletes rows older
+    // than 2 years (`server/utils/legalRetentionSweep.ts`,
+    // `NUXT_AUDIT_LOG_RETENTION_DAYS`). Account deletion nulls the actor
+    // id earlier (FK `ON DELETE SET NULL`); the IP is stored truncated.
     id: 'security_audit_log',
     label: 'Security audit log',
     basis: 'legal_obligation',
     dataCategories: ['actor_id', 'ip_truncated', 'action_metadata'],
-    retention: 'no_automatic_deletion',
+    retention: 730,
     subProcessors: []
   },
   {
@@ -187,6 +185,24 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     basis: 'legitimate_interest',
     dataCategories: ['invitee_email', 'workspace_role', 'inviter_id'],
     retention: 14,
+    subProcessors: ['ovh_postgres', 'resend']
+  },
+  {
+    // Abuse / illegal-content reports (DSA Art. 16-18 notice and action)
+    // stored in `abuse_reports`: what was reported and why, the reporter's
+    // contact details if given (and account if signed in), truncated IP +
+    // UA hash against report flooding, and the moderation outcome.
+    // `abuse-report-sweep` deletes a report 1 year after it was closed
+    // (actioned / dismissed; `NUXT_ABUSE_REPORT_RETENTION_DAYS`); open
+    // reports stay until handled. Receipt / decision emails via Resend.
+    // MERGE NOTE: feat/anonymous-gate adds reporter fields (name, good-faith
+    // statement, notices) — extend THIS purpose rather than adding a
+    // parallel one for the same table.
+    id: 'abuse_report_handling',
+    label: 'Abuse and illegal-content reports',
+    basis: 'legal_obligation',
+    dataCategories: ['reported_url', 'report_explanation', 'report_category', 'reporter_email_if_given', 'reporter_account_if_signed_in', 'ip_truncated', 'user_agent_hash', 'moderation_decision'],
+    retention: 365,
     subProcessors: ['ovh_postgres', 'resend']
   },
   {

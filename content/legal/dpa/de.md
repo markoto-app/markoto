@@ -117,7 +117,7 @@ Dies sind die Massnahmen, die die Auftragsverarbeiterin nach Art. 32 DSGVO und A
 
 ### 6. Protokollierung und Überwachung
 
-- Ein Sicherheits-Audit-Protokoll erfasst Änderungen an Zugriffskontrollen, Löschungen, administrative und andere sicherheitsrelevante Aktionen, mit gekürzten IP-Adressen (IPv4 auf /24, IPv6 auf /48).
+- Ein Sicherheits-Audit-Protokoll erfasst Änderungen an Zugriffskontrollen, Löschungen, administrative und andere sicherheitsrelevante Aktionen, mit gekürzten IP-Adressen (IPv4 auf /24, IPv6 auf /48). Einträge werden nach 2 Jahren automatisch gelöscht.
 - Anwendungsfehler werden an einen Fehlerüberwachungsdienst in der EU-Region gemeldet; Cookies und Autorisierungs-Header werden aus Fehlerberichten entfernt.
 - Betriebswarnungen (Sicherungskopien, Deployments, Updates) werden an das Betriebsteam gesendet.
 
@@ -135,7 +135,7 @@ Ein dokumentiertes Verfahren zur Reaktion auf Datenschutzverletzungen umfasst Er
 ### 9. Datenminimierung und Löschung
 
 - Es werden nur Daten erhoben, die für den Dienst erforderlich sind; IP-Adressen werden vor der Speicherung gekürzt; hochgeladene Originaldateien der Wissensdatenbank werden nach der Verarbeitung gelöscht.
-- Automatische Löschjobs setzen Aufbewahrungsfristen durch (zum Beispiel KI-Protokolle nach 90 Tagen, inaktive anonyme Dokumente nach 30 Tagen, unbestätigte Uploads nach 24 Stunden).
+- Automatische Löschjobs setzen Aufbewahrungsfristen durch (zum Beispiel KI-Protokolle nach 90 Tagen, inaktive anonyme Dokumente nach 30 Tagen, unbestätigte Uploads nach 24 Stunden, Audit-Protokolleinträge nach 2 Jahren).
 - Nutzende können ihre Daten selbst exportieren und löschen.
 
 ### 10. Unterauftragsverarbeiter

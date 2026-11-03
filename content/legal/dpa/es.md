@@ -117,7 +117,7 @@ Estas son las medidas que adopta el Encargado conforme al art. 32 del RGPD y al 
 
 ### 6. Registro y supervisión
 
-- Un registro de auditoría de seguridad recoge los cambios en los controles de acceso, las eliminaciones y las acciones administrativas y demás acciones relevantes para la seguridad, con las direcciones IP acortadas (IPv4 a /24, IPv6 a /48).
+- Un registro de auditoría de seguridad recoge los cambios en los controles de acceso, las eliminaciones y las acciones administrativas y demás acciones relevantes para la seguridad, con las direcciones IP acortadas (IPv4 a /24, IPv6 a /48). Las entradas se eliminan automáticamente a los 2 años.
 - Los errores de la aplicación se comunican a un servicio de supervisión de errores en la región de la UE; las cookies y las cabeceras de autorización se eliminan de los informes de errores.
 - Las alertas operativas (copias de seguridad, despliegues, actualizaciones) se envían a los operadores.
 
@@ -135,7 +135,7 @@ Un procedimiento documentado de respuesta a violaciones de datos abarca la detec
 ### 9. Minimización y supresión de datos
 
 - Solo se recogen los datos necesarios para el Servicio; las direcciones IP se acortan antes de almacenarse; los originales subidos a la base de conocimiento se eliminan tras su procesamiento.
-- Tareas de eliminación automática aplican los plazos de conservación (por ejemplo, los registros de IA a los 90 días, los documentos anónimos inactivos a los 30 días, las subidas sin confirmar a las 24 horas).
+- Tareas de eliminación automática aplican los plazos de conservación (por ejemplo, los registros de IA a los 90 días, los documentos anónimos inactivos a los 30 días, las subidas sin confirmar a las 24 horas, las entradas del registro de auditoría a los 2 años).
 - Los usuarios pueden exportar y eliminar sus datos por sí mismos.
 
 ### 10. Subencargados
