@@ -8,9 +8,9 @@ EU-resident infrastructure.
 **[Try it live at markoto.app](https://markoto.app)** — no account needed; public
 documents work anonymously.
 
-[![CI](https://github.com/joelbarmettlerUZH/markoto/actions/workflows/ci.yml/badge.svg)](https://github.com/joelbarmettlerUZH/markoto/actions/workflows/ci.yml)
+[![CI](https://github.com/joelbarmettlerUZH/markoto.app/actions/workflows/ci.yml/badge.svg)](https://github.com/joelbarmettlerUZH/markoto.app/actions/workflows/ci.yml)
 [![License: FSL-1.1-ALv2](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue)](./LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/joelbarmettlerUZH/markoto)](https://github.com/joelbarmettlerUZH/markoto/releases)
+[![Latest release](https://img.shields.io/github/v/release/joelbarmettlerUZH/markoto.app)](https://github.com/joelbarmettlerUZH/markoto.app/releases)
 
 ![The markoto editor: markdown on the left, live paged preview on the right, AI assistant at the bottom](./docs/assets/readme-hero.webp)
 
@@ -49,7 +49,7 @@ Hocuspocus sync server, the PDF renderer, Markitdown, Postgres with pgvector,
 Valkey, object storage, the LiteLLM AI gateway and encrypted backups.
 
 ```sh
-git clone https://github.com/joelbarmettlerUZH/md-online.git markoto && cd markoto
+git clone https://github.com/joelbarmettlerUZH/markoto.app.git markoto && cd markoto
 ./install.sh
 ```
 

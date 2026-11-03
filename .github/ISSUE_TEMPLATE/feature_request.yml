@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        For open-ended questions or early ideas, [Discussions](https://github.com/joelbarmettlerUZH/md-online/discussions) is the better place. Use this form for a concrete proposal.
+        For open-ended questions or early ideas, [Discussions](https://github.com/joelbarmettlerUZH/markoto.app/discussions) is the better place. Use this form for a concrete proposal.
   - type: dropdown
     id: area
     attributes:

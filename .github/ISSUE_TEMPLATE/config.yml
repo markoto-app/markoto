@@ -1,14 +1,14 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or idea (GitHub Discussions)
-    url: https://github.com/joelbarmettlerUZH/md-online/discussions
+    url: https://github.com/joelbarmettlerUZH/markoto.app/discussions
     about: Ask how to use or self-host markoto, or float an idea, before opening an issue.
   - name: Security vulnerability
-    url: https://github.com/joelbarmettlerUZH/md-online/security/advisories/new
+    url: https://github.com/joelbarmettlerUZH/markoto.app/security/advisories/new
     about: Report security issues privately. Never as a public issue.
   - name: User documentation
     url: https://markoto.app/docs
     about: Guides and walkthroughs for writing, sharing, themes, workspaces and AI.
   - name: Self-hosting guide
-    url: https://github.com/joelbarmettlerUZH/md-online/blob/main/docs/SELF-HOSTING.md
+    url: https://github.com/joelbarmettlerUZH/markoto.app/blob/main/docs/SELF-HOSTING.md
     about: Install, configuration, upgrade notes and troubleshooting for self-hosted instances.

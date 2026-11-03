@@ -50,7 +50,7 @@ id is unknown, the provider can't be reached, or the URL isn't allowed.
 Any service with an OpenAI-compatible API. The settings page offers presets
 for Mistral AI, OpenAI, OpenRouter, Groq, Together AI, DeepInfra, Fireworks AI
 and Scaleway. Model suggestions and tested recommendations are in the
-[AI models guide](https://github.com/joelbarmettlerUZH/md-online/blob/main/docs/AI-MODELS.md#recommended-models-for-bring-your-own-key).
+[AI models guide](https://github.com/joelbarmettlerUZH/markoto.app/blob/main/docs/AI-MODELS.md#recommended-models-for-bring-your-own-key).
 Tips:
 
 - The writing assistant needs **reliable tool calling** and works best at temperature 0. Mistral Small 4 is the model we test with.

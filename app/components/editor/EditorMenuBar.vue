@@ -402,12 +402,12 @@ const helpItems = computed(() => [[
   {
     label: t('menubar.help.feedback'),
     icon: 'i-lucide-message-circle',
-    onSelect: () => window.open('https://github.com/joelbarmettlerUZH/markoto/issues/new', '_blank', 'noopener,noreferrer')
+    onSelect: () => window.open('https://github.com/joelbarmettlerUZH/markoto.app/issues/new', '_blank', 'noopener,noreferrer')
   },
   {
     label: t('menubar.help.github'),
     icon: 'i-simple-icons-github',
-    onSelect: () => window.open('https://github.com/joelbarmettlerUZH/markoto', '_blank', 'noopener,noreferrer')
+    onSelect: () => window.open('https://github.com/joelbarmettlerUZH/markoto.app', '_blank', 'noopener,noreferrer')
   }
 ]])
 
