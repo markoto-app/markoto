@@ -5,8 +5,9 @@
     "offline": "You're offline — edits stay local until you reconnect."
   },
   "landing": {
-    "hero": "Rethinking the craft of writing.",
-    "subtitle": "A collaborative markdown editor with live sync, AI assistance, and full document management.",
+    "hero": "Beautifully rendered {markdown}.",
+    "heroMarkdown": "Markdown",
+    "subtitle": "A collaborative Markdown editor with a live, paginated preview. Write plain text; export a PDF that matches the preview page for page.",
     "newDocument": "New document",
     "openDocument": "Open document",
     "recentDocuments": "Recent documents",
@@ -1092,6 +1093,7 @@
       "banner": {
         "title": "Your privacy choices",
         "intro": "We use cookies and similar technologies to keep markoto running and, with your consent, to understand how it's used. You can change or withdraw your consent at any time from the privacy badge in the footer.",
+        "introShort": "Cookies keep markoto running; we only measure how it’s used with your consent, which you can change at any time.",
         "essentialNotice": "Essential storage is always on — without it, markoto cannot keep you logged in or remember your preferences.",
         "acceptAll": "Accept all",
         "rejectAll": "Reject all",
@@ -1447,6 +1449,91 @@
     "cta": {
       "promptBar": "Add your API key in Settings to use the AI assistant",
       "openSettings": "Open AI provider settings"
+    }
+  },
+  "tour": {
+    "label": "Product tour",
+    "hero": {
+      "title": "Beautifully rendered {markdown}.",
+      "markdown": "Markdown",
+      "body": "A collaborative Markdown editor with a live, paginated preview. Write plain text; export a PDF that matches the preview page for page.",
+      "cta": "Start writing — no sign-up",
+      "scroll": "Scroll to see how it works"
+    },
+    "scenes": {
+      "write": {
+        "label": "Editor",
+        "title": "Write Markdown, get paged documents.",
+        "body": "Type on the left; the right side lays it out as real A4 or Letter pages as you go."
+      },
+      "rich": {
+        "label": "Layout",
+        "title": "Headers, footers and page numbers.",
+        "body": "Set them once in the theme. Tables, charts, Mermaid diagrams, math and footnotes render on the page too."
+      },
+      "themes": {
+        "label": "Themes",
+        "title": "Change the look, not the Markdown.",
+        "body": "Pick one of seven themes, then adjust colours, fonts and the cover page. Your text stays untouched."
+      },
+      "collab": {
+        "label": "Collaboration",
+        "title": "Edit the same document at the same time.",
+        "body": "Live cursors, comments and {'@'}mentions. Changes sync instantly: no save button, no merge conflicts."
+      },
+      "ai": {
+        "label": "AI",
+        "title": "An AI assistant that edits your Markdown.",
+        "body": "Ask it to draft a section or fix a table. It writes into the document while you watch, and every change shows up in the history."
+      },
+      "knowledge": {
+        "label": "Knowledge",
+        "title": "Answers from your own files.",
+        "body": "Upload PDFs, Word or Excel files to a workspace. The AI answers from them instead of guessing."
+      },
+      "history": {
+        "label": "History",
+        "title": "Every change, with a diff.",
+        "body": "See who changed what, people and the AI alike, and restore an earlier version in one click."
+      },
+      "share": {
+        "label": "Share & export",
+        "title": "Share a link or export a PDF.",
+        "body": "Open, view-only or password-protected links. The PDF matches the preview page for page."
+      },
+      "yours": {
+        "label": "Self-hosting",
+        "title": "Source-available and self-hostable.",
+        "body": "Run it on your own server with one script, or use markoto.app, hosted in the EU. Bring your own AI key."
+      }
+    },
+    "chips": {
+      "byok": "Bring your own AI key",
+      "eu": "Hosted in the EU",
+      "oss": "Source-available · self-host with one script"
+    },
+    "cta": {
+      "title": "Try it with your own Markdown.",
+      "body": "Free on markoto.app, no sign-up needed — or host it yourself.",
+      "start": "Start writing",
+      "selfHost": "Self-host"
+    },
+    "alt": {
+      "hero": "The markoto editor with a quarterly report: Markdown on the left, all its laid-out pages side by side on the right.",
+      "write": "The executive summary of a quarterly report typed in Markdown while its page renders live, then the preview pulls back to show the whole report.",
+      "rich": "A running header and a footer with the date and page numbers are added in the theme panel and appear on every page.",
+      "themes": "A different preset restyles the report, then a new accent colour, a new heading font and a designed cover page.",
+      "collab": "Three people in one report: two colleagues type in different sections, the author comments and mentions one of them, who replies.",
+      "ai": "From a title alone, the AI writes an executive summary with a table of key figures into the report.",
+      "knowledge": "A memo is uploaded to the knowledge panel and processed, then the AI answers from it, quoting its figures.",
+      "history": "The activity log with edits by several people and the AI; one edit opened as a diff, then restored.",
+      "share": "The share dialog with the document link, its QR code and who may open it.",
+      "sharePdf": "Pages of the exported PDF fanned out: the cover, the summary and a page with a chart.",
+      "yours": "AI provider settings: the writing assistant connected to the user’s own provider and verified."
+    },
+    "tone": {
+      "toDark": "Switch to dark mode",
+      "toLight": "Switch to light mode"
     }
   }
 }

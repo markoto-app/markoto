@@ -26,6 +26,12 @@
 //   | Self-hosted (default)         | false                       |
 //   | Hosted SaaS                   | true                        |
 //
+// 3. Product tour — the scroll-driven product page shown at `/` to
+//    logged-out visitors (WP11, `app/components/landing/ProductTour.vue`).
+//    It markets the hosted service, so it is OFF by default; markoto.app
+//    turns it on with NUXT_PRODUCT_TOUR_ENABLED=true. Self-hosted
+//    instances keep the plain hero + "new document" page.
+//
 // Pure — takes an env-shaped record so every test tier can drive it.
 
 import { parseBooleanFlag } from './billingMode'
@@ -60,6 +66,8 @@ export interface InstanceConfig {
    * Empty = show nothing operator-specific.
    */
   operatorName: string
+  /** Scroll-driven product page at `/` for logged-out visitors (hosted only). */
+  productTour: boolean
 }
 
 /** Client-side fallback before hydration: nothing optional is offered. */
@@ -67,7 +75,8 @@ export const MINIMAL_INSTANCE_CONFIG: InstanceConfig = Object.freeze({
   loginProviders: [],
   oidcProviderName: '',
   legalSurfaces: false,
-  operatorName: ''
+  operatorName: '',
+  productTour: false
 })
 
 type Env = Record<string, string | undefined>
@@ -92,6 +101,10 @@ export function resolveLegalSurfacesEnabled(env: Env): boolean {
   return parseBooleanFlag(env.NUXT_LEGAL_SURFACES_ENABLED)
 }
 
+export function resolveProductTourEnabled(env: Env): boolean {
+  return parseBooleanFlag(env.NUXT_PRODUCT_TOUR_ENABLED)
+}
+
 export function resolveInstanceConfig(env: Env): InstanceConfig {
   const legalSurfaces = resolveLegalSurfacesEnabled(env)
   return {
@@ -100,7 +113,8 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
     legalSurfaces,
     operatorName: legalSurfaces
       ? resolveLegalEntity(env).controllerName
-      : (env.NUXT_LEGAL_CONTROLLER_NAME?.trim() ?? '')
+      : (env.NUXT_LEGAL_CONTROLLER_NAME?.trim() ?? ''),
+    productTour: resolveProductTourEnabled(env)
   }
 }
 

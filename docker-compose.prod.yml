@@ -222,6 +222,10 @@ services:
       # they default ON here (the code default is off, for self-hosters —
       # see docker-compose.selfhost.yml).
       - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
+      # Product tour (shared/config/instance.ts): the scroll-driven product
+      # page at / for logged-out visitors. Hosted marketing surface, so ON
+      # here; the code default (self-host) is off.
+      - NUXT_PRODUCT_TOUR_ENABLED=${NUXT_PRODUCT_TOUR_ENABLED:-true}
       # Number of trusted reverse proxies in front of the app (Traefik = 1).
       # See shared/utils/clientIp.ts.
       - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
@@ -328,7 +332,15 @@ services:
       # IN ADDITION to the app's policy. See docs/SECURITY-HARDENING.md §2.
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=(self)"
-      - "traefik.http.routers.app.middlewares=security-headers"
+      - "traefik.http.routers.app.middlewares=security-headers,app-compress"
+      # Compress dynamic responses (SSR HTML, API JSON, i18n messages).
+      # Static assets already arrive precompressed from Nitro
+      # (compressPublicAssets) and keep their Content-Encoding; media and
+      # archives are excluded, and so is text/event-stream so the AI
+      # session stream keeps flushing event by event. WebSocket upgrades
+      # (the sync router) never pass this middleware.
+      - "traefik.http.middlewares.app-compress.compress=true"
+      - "traefik.http.middlewares.app-compress.compress.excludedcontenttypes=text/event-stream,image/png,image/jpeg,image/webp,image/avif,image/gif,video/mp4,video/webm,font/woff2,application/zip,application/pdf,application/octet-stream"
       # /api/import (anonymous document import, 50 MB file cap) gets its own
       # router with a request-body limit, so an oversized or endless upload
       # is cut off at the edge instead of streaming into the app. 51 MiB =

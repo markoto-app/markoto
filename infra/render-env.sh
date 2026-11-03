@@ -250,6 +250,9 @@ NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON}
 # ─── Legal surfaces (hosted: onboarding gate, consent, DPA, /legal/*) ───
 NUXT_LEGAL_SURFACES_ENABLED=true
 
+# ─── Product tour (hosted: scroll-driven product page at / for logged-out visitors) ───
+NUXT_PRODUCT_TOUR_ENABLED=true
+
 # ─── Stripe billing (only read when NUXT_BILLING_ENABLED is true) ───
 NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:-}
 NUXT_STRIPE_WEBHOOK_SECRET=${NUXT_STRIPE_WEBHOOK_SECRET:-}

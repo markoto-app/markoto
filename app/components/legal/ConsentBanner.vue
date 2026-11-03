@@ -66,6 +66,31 @@ onMounted(async () => {
   }
 })
 
+// The bar's height, published as `--mk-consent-h` on <html> while it is
+// open, so pages can keep their content above it (the product page
+// shortens its sticky stage and pads its end; see ProductTour.vue).
+const barEl = ref<HTMLElement | null>(null)
+let barObserver: ResizeObserver | null = null
+function publishHeight(px: number): void {
+  if (px > 0) document.documentElement.style.setProperty('--mk-consent-h', `${Math.ceil(px)}px`)
+  else document.documentElement.style.removeProperty('--mk-consent-h')
+}
+watch(barEl, (el) => {
+  barObserver?.disconnect()
+  barObserver = null
+  if (!el) {
+    publishHeight(0)
+    return
+  }
+  barObserver = new ResizeObserver(() => publishHeight(el.offsetHeight))
+  barObserver.observe(el)
+  publishHeight(el.offsetHeight)
+})
+onBeforeUnmount(() => {
+  barObserver?.disconnect()
+  publishHeight(0)
+})
+
 // Watch route changes: if the banner was open and the user
 // navigated to /legal/*, hide it; re-open when they navigate
 // off. Mirrors the OnboardingGate pattern.
@@ -159,32 +184,97 @@ function startCustomize(): void {
 
 <template>
   <Teleport to="body">
+    <!-- A compact bar across the bottom: it informs and asks without
+         covering the page (no cookie wall). Reject all and Accept all
+         are the same size and weight (CNIL / EDPB); Customize is the
+         quieter third option, a link beside the privacy-policy link, and
+         opens the per-purpose switches. -->
     <dialog
       v-if="open"
       open
-      class="consent-overlay fixed inset-x-0 bottom-0 z-[60] p-4 sm:p-6"
+      class="consent-overlay"
       :aria-label="t('legal.consent.banner.title')"
       data-testid="consent-banner"
     >
-      <div class="max-w-3xl mx-auto bg-default border border-default rounded-lg shadow-lg p-5 sm:p-6">
-        <h2 class="font-serif text-xl font-normal tracking-tight mb-2">
-          {{ t('legal.consent.banner.title') }}
-        </h2>
-        <p class="text-sm text-muted mb-3">
-          {{ t('legal.consent.banner.intro') }}
-        </p>
-        <p class="text-xs text-muted font-mono mb-4">
-          {{ t('legal.consent.banner.essentialNotice') }}
-        </p>
+      <div
+        ref="barEl"
+        class="consent-bar"
+      >
+        <div class="consent-bar__inner">
+          <div class="consent-bar__text">
+            <h2 class="consent-bar__title font-serif text-base font-normal tracking-tight">
+              {{ t('legal.consent.banner.title') }}
+            </h2>
+            <p class="text-xs leading-relaxed text-muted">
+              <!-- Phones get the short intro (the full one is on the
+                   privacy page and in the Customize panel). -->
+              <span class="consent-bar__intro">{{ t('legal.consent.banner.intro') }}</span>
+              <span class="consent-bar__intro-short">{{ t('legal.consent.banner.introShort') }}</span>
+              {{ ' ' }}
+              <NuxtLink
+                to="/legal/privacy"
+                class="consent-bar__link font-mono underline hover:text-default"
+              >
+                {{ t('legal.consent.banner.learnMore') }}
+              </NuxtLink>
+              <template v-if="!customizing">
+                <span aria-hidden="true"> · </span>
+                <button
+                  type="button"
+                  class="consent-bar__link font-mono underline hover:text-default"
+                  data-testid="consent-customize"
+                  @click="startCustomize"
+                >
+                  {{ t('legal.consent.banner.customize') }}
+                </button>
+              </template>
+            </p>
+          </div>
+
+          <div class="consent-bar__actions">
+            <UButton
+              color="neutral"
+              variant="outline"
+              :loading="submitting"
+              class="consent-bar__choice"
+              data-testid="consent-reject-all"
+              @click="rejectAll"
+            >
+              {{ t('legal.consent.banner.rejectAll') }}
+            </UButton>
+            <UButton
+              v-if="customizing"
+              color="neutral"
+              :loading="submitting"
+              class="consent-bar__choice"
+              data-testid="consent-save"
+              @click="saveCustom"
+            >
+              {{ t('legal.consent.banner.save') }}
+            </UButton>
+            <UButton
+              v-else
+              color="neutral"
+              :loading="submitting"
+              class="consent-bar__choice"
+              data-testid="consent-accept-all"
+              @click="acceptAll"
+            >
+              {{ t('legal.consent.banner.acceptAll') }}
+            </UButton>
+          </div>
+        </div>
 
         <!-- Customize panel: granular per-purpose toggles. Hidden
-             until the user clicks "Customize". CNIL-grade: no
-             pre-ticked boxes, equal-prominence buttons. -->
+             until the user clicks "Customize". No pre-ticked boxes. -->
         <div
           v-if="customizing"
-          class="space-y-3 border-t border-default pt-4 mb-4"
+          class="consent-bar__panel"
           data-testid="consent-customize-panel"
         >
+          <p class="text-xs text-muted font-mono sm:col-span-3">
+            {{ t('legal.consent.banner.essentialNotice') }}
+          </p>
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1">
               <p class="text-sm font-medium">
@@ -227,63 +317,6 @@ function startCustomize(): void {
             />
           </div>
         </div>
-
-        <!-- CTA row. Reject + Accept get equal weight (CNIL-grade).
-             "Customize" is a third option for users who want
-             granular control. -->
-        <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end">
-          <NuxtLink
-            to="/legal/privacy"
-            class="text-xs font-mono text-muted hover:text-default underline mr-auto"
-          >
-            {{ t('legal.consent.banner.learnMore') }}
-          </NuxtLink>
-
-          <UButton
-            v-if="!customizing"
-            variant="ghost"
-            color="neutral"
-            block
-            class="sm:!w-auto"
-            data-testid="consent-customize"
-            @click="startCustomize"
-          >
-            {{ t('legal.consent.banner.customize') }}
-          </UButton>
-          <UButton
-            color="neutral"
-            variant="outline"
-            :loading="submitting"
-            block
-            class="sm:!w-auto"
-            data-testid="consent-reject-all"
-            @click="rejectAll"
-          >
-            {{ t('legal.consent.banner.rejectAll') }}
-          </UButton>
-          <UButton
-            v-if="customizing"
-            color="neutral"
-            :loading="submitting"
-            block
-            class="sm:!w-auto"
-            data-testid="consent-save"
-            @click="saveCustom"
-          >
-            {{ t('legal.consent.banner.save') }}
-          </UButton>
-          <UButton
-            v-else
-            color="neutral"
-            :loading="submitting"
-            block
-            class="sm:!w-auto"
-            data-testid="consent-accept-all"
-            @click="acceptAll"
-          >
-            {{ t('legal.consent.banner.acceptAll') }}
-          </UButton>
-        </div>
       </div>
     </dialog>
   </Teleport>
@@ -291,13 +324,88 @@ function startCustomize(): void {
 
 <style scoped>
 .consent-overlay {
-  /* Subtle backdrop dimming so the banner reads as "page-level
-     prompt" without being modal — the page underneath stays
-     readable + scrollable, matching CNIL's "no cookie wall"
-     guidance. */
+  /* Not modal: the page underneath stays readable and scrollable
+     (CNIL: no cookie wall). The dialog box itself is reset; the bar
+     inside it takes the clicks. */
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 60;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   pointer-events: none;
 }
-.consent-overlay > div {
+.consent-bar {
   pointer-events: auto;
+  max-height: 80svh;
+  overflow-y: auto;
+  border-top: 1px solid var(--ui-border);
+  background: var(--ui-bg);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+}
+.consent-bar__inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.consent-bar__text { min-width: 0; }
+/* Phones: a slim bar — no heading (the dialog keeps it as its label), the
+   short intro, the two equal choices side by side. */
+.consent-bar__title,
+.consent-bar__intro { display: none; }
+.consent-bar__link {
+  /* An inline link, padded to a comfortable tap target. */
+  display: inline-block;
+  padding-block: 6px;
+  margin-block: -6px;
+  cursor: pointer;
+}
+.consent-bar__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.consent-bar__choice {
+  justify-content: center;
+  min-height: 44px;
+}
+.consent-bar__panel {
+  max-width: 72rem;
+  margin: 12px auto 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-border);
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .consent-bar__title { display: block; }
+  .consent-bar__intro { display: inline; }
+  .consent-bar__intro-short { display: none; }
+  .consent-bar { padding: 12px 24px; }
+  .consent-bar__inner {
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+  }
+  .consent-bar__text { flex: 1; }
+  .consent-bar__actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .consent-bar__choice { min-width: 7.5rem; }
+  .consent-bar__panel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Short viewports (phones in landscape): the compact text, one row. */
+@media (min-width: 640px) and (max-height: 520px) {
+  .consent-bar { padding-block: 8px; }
+  .consent-bar__title,
+  .consent-bar__intro { display: none; }
+  .consent-bar__intro-short { display: inline; }
 }
 </style>

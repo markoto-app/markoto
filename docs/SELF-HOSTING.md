@@ -304,6 +304,7 @@ Without email configuration, transactional emails (account-deletion confirmation
 |---|---|---|
 | `NUXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` | empty | Error reporting to your Sentry project. Empty = nothing is sent anywhere. markoto has no analytics. |
 | `NUXT_LEGAL_SURFACES_ENABLED` | `false` | See [Legal pages](#legal-pages). |
+| `NUXT_PRODUCT_TOUR_ENABLED` | `false` | Shows the markoto.app product page at `/` to logged-out visitors instead of the plain "new document" page. It advertises the hosted service; leave it off. |
 | `NUXT_LEGAL_CONTROLLER_NAME` | | Shown in the footer ("© 2026 …"). |
 | `NUXT_LEGAL_ABUSE_CONTACT_EMAIL` | | Receives a notification for each in-app abuse report (needs email delivery). Reports are always listed under `/admin/abuse-reports`. |
 
