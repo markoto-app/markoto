@@ -96,6 +96,16 @@ If you are unsure whether something is allowed, write to **{{abuseContactEmail}}
 - **Transparency.** When the AI works in a document, it appears as a separate collaborator, its answers are labelled as coming from markoto's AI, and its edits are recorded in the document's activity log as made by the AI (or by the MCP client that made them). If you publish AI-generated text to inform the public on matters of public interest, or AI-generated images or video that show real people, places or events, you are responsible for disclosing that it is AI-generated where the law (for example Art. 50 of the EU AI Act) requires it.
 - **Providers.** Unless you connect your own provider, AI requests go to the providers listed in our Privacy Policy. Their own safety filters may refuse a request.
 
+### Free AI allowance
+
+If you are signed in and have not connected your own provider for the writing assistant, you can use it within a free monthly allowance:
+
+- The allowance runs on the model GLM-5.3 Flash by Z.ai, served by Mistral AI in the EU (see the Privacy Policy).
+- Each account has a monthly limit, and all free accounts together share a monthly pool. The allowance is available only while this month's pool lasts; both reset at the start of each month. Unused allowance does not carry over and has no cash value.
+- The allowance is provided free of charge and **"as is"**, without any guarantee of availability, quality or a particular model. It is a usage limit under §3: we may change the model, the limits or the pool, or end the allowance.
+- Do not try to get around the limits, for example by using several accounts.
+- As soon as you connect your own provider for the writing assistant, it is used instead of the allowance.
+
 ### Your own AI provider (bring your own key)
 
 You can connect your own AI provider account (separately for chat, image generation and voice transcription). When you do:
@@ -160,7 +170,7 @@ We may change these Terms, for example to reflect new features or legal requirem
 
 This is **version {{currentVersion}}**, effective **{{effectiveDate}}**.
 
-- **v3 (2026-11-03).** Anonymous documents (bot check, accepting the Terms, 30-day clean-up, deletion only by the creating browser); a full acceptable-use section; content moderation and complaint handling under the Digital Services Act; age rule of 16 everywhere; sanctions and one person per account; AI output ownership, accuracy and transparency; beta features; new liability clause with a fixed cap, indemnity for business users, courts; 30-day notice of changes; general provisions.
+- **v3 (2026-11-03).** Anonymous documents (bot check, accepting the Terms, 30-day clean-up, deletion only by the creating browser); a full acceptable-use section; content moderation and complaint handling under the Digital Services Act; age rule of 16 everywhere; sanctions and one person per account; AI output ownership, accuracy and transparency; beta features; new liability clause with a fixed cap, indemnity for business users, courts; 30-day notice of changes; general provisions. Free AI allowance for signed-in users within a monthly per-account limit and a shared monthly pool, without guarantee (§7).
 - **v2 (2026-10-26).** Aligned with the free-only service: no paid plans or payment terms in force, fair use and limits, anonymous-document clean-up, bring-your-own-key AI provider responsibilities, "as is" and discontinuation clauses.
 - **v1 (2026-05-04).** Initial publication.
 

@@ -96,6 +96,16 @@ Wenn Sie unsicher sind, ob etwas erlaubt ist, schreiben Sie an **{{abuseContactE
 - **Transparenz.** Wenn die KI in einem Dokument arbeitet, erscheint sie als eigene mitarbeitende Person, ihre Antworten sind als von der KI von markoto stammend gekennzeichnet, und ihre Änderungen werden im Aktivitätsprotokoll des Dokuments als von der KI (oder vom MCP-Client, der sie vorgenommen hat) vorgenommen erfasst. Wenn Sie KI-generierten Text veröffentlichen, um die Öffentlichkeit über Angelegenheiten von öffentlichem Interesse zu informieren, oder KI-generierte Bilder oder Videos, die reale Personen, Orte oder Ereignisse zeigen, sind Sie dafür verantwortlich, offenzulegen, dass sie KI-generiert sind, wo das Gesetz (zum Beispiel Art. 50 der KI-Verordnung der EU) dies verlangt.
 - **Anbieter.** Sofern Sie keinen eigenen Anbieter anbinden, gehen KI-Anfragen an die in unserer Datenschutzerklärung aufgeführten Anbieter. Deren eigene Sicherheitsfilter können eine Anfrage ablehnen.
 
+### Kostenloses KI-Kontingent
+
+Wenn Sie angemeldet sind und für den Schreibassistenten keinen eigenen Anbieter angebunden haben, können Sie ihn im Rahmen eines kostenlosen monatlichen Kontingents nutzen:
+
+- Das Kontingent läuft auf dem Modell GLM-5.3 Flash von Z.ai, bereitgestellt von Mistral AI in der EU (siehe Datenschutzerklärung).
+- Jedes Konto hat ein monatliches Limit, und alle kostenlosen Konten teilen sich einen monatlichen Topf. Das Kontingent steht nur zur Verfügung, solange der Topf dieses Monats reicht; beide werden zu Beginn jedes Monats zurückgesetzt. Nicht genutztes Kontingent verfällt und hat keinen Geldwert.
+- Das Kontingent wird kostenlos und **«wie besehen»** bereitgestellt, ohne Gewähr für Verfügbarkeit, Qualität oder ein bestimmtes Modell. Es ist ein Nutzungslimit im Sinne von §3: Wir können das Modell, die Limiten oder den Topf ändern oder das Kontingent beenden.
+- Versuchen Sie nicht, die Limiten zu umgehen, zum Beispiel mit mehreren Konten.
+- Sobald Sie für den Schreibassistenten Ihren eigenen Anbieter anbinden, wird dieser anstelle des Kontingents verwendet.
+
 ### Ihr eigener KI-Anbieter (Bring your own key)
 
 Sie können Ihr eigenes KI-Anbieterkonto anbinden (Chat, Bilderzeugung und Sprachtranskription getrennt). Wenn Sie das tun:
@@ -160,7 +170,7 @@ Wir können diese Bedingungen ändern, zum Beispiel um neue Funktionen oder rech
 
 Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**.
 
-- **v3 (2026-11-03).** Anonyme Dokumente (Bot-Prüfung, Akzeptieren der Bedingungen, Bereinigung nach 30 Tagen, Löschung nur durch den erstellenden Browser); ein vollständiger Abschnitt zur zulässigen Nutzung; Moderation von Inhalten und Behandlung von Beschwerden nach dem Digital Services Act; Altersgrenze von 16 Jahren überall; Sanktionen und eine Person pro Konto; Eigentum, Genauigkeit und Transparenz von KI-Ausgaben; Beta-Funktionen; neue Haftungsklausel mit fester Obergrenze, Freistellung für geschäftliche Nutzende, Gerichtsstand; Ankündigung von Änderungen 30 Tage im Voraus; allgemeine Bestimmungen.
+- **v3 (2026-11-03).** Anonyme Dokumente (Bot-Prüfung, Akzeptieren der Bedingungen, Bereinigung nach 30 Tagen, Löschung nur durch den erstellenden Browser); ein vollständiger Abschnitt zur zulässigen Nutzung; Moderation von Inhalten und Behandlung von Beschwerden nach dem Digital Services Act; Altersgrenze von 16 Jahren überall; Sanktionen und eine Person pro Konto; Eigentum, Genauigkeit und Transparenz von KI-Ausgaben; Beta-Funktionen; neue Haftungsklausel mit fester Obergrenze, Freistellung für geschäftliche Nutzende, Gerichtsstand; Ankündigung von Änderungen 30 Tage im Voraus; allgemeine Bestimmungen. Kostenloses KI-Kontingent für angemeldete Nutzerinnen und Nutzer im Rahmen eines monatlichen Limits pro Konto und eines gemeinsamen Monatstopfs, ohne Gewähr (§7).
 - **v2 (2026-10-26).** An den ausschliesslich kostenlosen Dienst angepasst: keine kostenpflichtigen Pläne oder Zahlungsbedingungen in Kraft, faire Nutzung und Limiten, Bereinigung anonymer Dokumente, Pflichten bei Anbindung eines eigenen KI-Anbieters, Klauseln zu «wie besehen» und zur Einstellung des Dienstes.
 - **v1 (2026-05-04).** Erstveröffentlichung.
 

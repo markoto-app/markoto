@@ -96,6 +96,16 @@ Si no está seguro de si algo está permitido, escriba a **{{abuseContactEmail}}
 - **Transparencia.** Cuando la IA trabaja en un documento, aparece como un colaborador independiente, sus respuestas se identifican como procedentes de la IA de markoto y sus ediciones quedan registradas en el registro de actividad del documento como realizadas por la IA (o por el cliente MCP que las hizo). Si publica texto generado por IA con el fin de informar al público sobre asuntos de interés público, o imágenes o vídeos generados por IA que muestren personas, lugares o hechos reales, usted es responsable de indicar que se han generado con IA cuando la ley lo exija (por ejemplo, el art. 50 del Reglamento de IA de la UE).
 - **Proveedores.** Salvo que conecte su propio proveedor, las solicitudes de IA se envían a los proveedores indicados en nuestra Política de privacidad. Sus propios filtros de seguridad pueden rechazar una solicitud.
 
+### Asignación gratuita de IA
+
+Si ha iniciado sesión y no ha conectado su propio proveedor para el asistente de escritura, puede usarlo dentro de una asignación mensual gratuita:
+
+- La asignación funciona con el modelo GLM-5.3 Flash de Z.ai, proporcionado por Mistral AI en la UE (véase la Política de privacidad).
+- Cada cuenta tiene un límite mensual y todas las cuentas gratuitas comparten una reserva mensual común. La asignación solo está disponible mientras dure la reserva de este mes; ambos se reinician al comienzo de cada mes. La asignación no utilizada no se acumula y no tiene valor monetario.
+- La asignación se ofrece gratuitamente y **«tal cual»**, sin garantía de disponibilidad, calidad ni de un modelo concreto. Es un límite de uso en el sentido del apartado 3: podemos cambiar el modelo, los límites o la reserva, o poner fin a la asignación.
+- No intente eludir los límites, por ejemplo usando varias cuentas.
+- En cuanto conecte su propio proveedor para el asistente de escritura, se utiliza en lugar de la asignación.
+
 ### Su propio proveedor de IA (traiga su propia clave)
 
 Puede conectar su propia cuenta de proveedor de IA (por separado para chat, generación de imágenes y transcripción de voz). Cuando lo haga:
@@ -160,7 +170,7 @@ Podemos modificar estas Condiciones, por ejemplo para reflejar nuevas funciones 
 
 Esta es la **versión {{currentVersion}}**, en vigor desde el **{{effectiveDate}}**.
 
-- **v3 (2026-11-03).** Documentos anónimos (comprobación contra bots, aceptación de las Condiciones, limpieza a los 30 días, eliminación solo por el navegador que los creó); apartado completo de uso aceptable; moderación de contenidos y tramitación de reclamaciones conforme al Reglamento de Servicios Digitales; edad mínima de 16 años en todos los países; sanciones y una persona por cuenta; titularidad, exactitud y transparencia de los resultados de la IA; funciones beta; nueva cláusula de responsabilidad con un límite fijo, indemnización para usuarios empresariales, tribunales; preaviso de 30 días para los cambios; disposiciones generales.
+- **v3 (2026-11-03).** Documentos anónimos (comprobación contra bots, aceptación de las Condiciones, limpieza a los 30 días, eliminación solo por el navegador que los creó); apartado completo de uso aceptable; moderación de contenidos y tramitación de reclamaciones conforme al Reglamento de Servicios Digitales; edad mínima de 16 años en todos los países; sanciones y una persona por cuenta; titularidad, exactitud y transparencia de los resultados de la IA; funciones beta; nueva cláusula de responsabilidad con un límite fijo, indemnización para usuarios empresariales, tribunales; preaviso de 30 días para los cambios; disposiciones generales. Asignación gratuita de IA para los usuarios que han iniciado sesión, dentro de un límite mensual por cuenta y una reserva mensual común, sin garantía (apartado 7).
 - **v2 (2026-10-26).** Adaptación al servicio exclusivamente gratuito: sin planes de pago ni condiciones de pago en vigor, uso razonable y límites, limpieza de documentos anónimos, responsabilidades al conectar un proveedor de IA propio, cláusulas «tal cual» y de cese del servicio.
 - **v1 (2026-05-04).** Publicación inicial.
 

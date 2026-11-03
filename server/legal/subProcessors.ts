@@ -60,7 +60,11 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     id: 'mistral_ai',
     name: 'Mistral AI SAS',
-    purpose: 'AI text generation for the writing assistant (Mistral Small) and voice transcription (Voxtral)',
+    // Hosted: the free AI allowance runs on Z.ai GLM-5.3 Flash, served and
+    // processed by Mistral itself through its EU endpoint
+    // (api.eu.mistral.ai, infra/litellm/config.yaml) — Z.ai receives no
+    // data, so it is not a sub-processor.
+    purpose: 'AI text generation for the writing assistant: the free AI allowance (Z.ai GLM-5.3 Flash, served and processed by Mistral on its EU endpoint; Z.ai receives no data) with Mistral Small as fallback; voice transcription (Voxtral)',
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
