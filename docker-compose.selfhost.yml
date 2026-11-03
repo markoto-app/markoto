@@ -458,7 +458,12 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.markoto-app.rule=PathPrefix(`/`)"
       - "traefik.http.routers.markoto-app.entrypoints=web"
-      - "traefik.http.routers.markoto-app.middlewares=markoto-headers"
+      - "traefik.http.routers.markoto-app.middlewares=markoto-headers,markoto-compress"
+      # Compress dynamic responses; precompressed static assets keep their
+      # encoding, media/archives and text/event-stream (AI session stream)
+      # are excluded. See docker-compose.prod.yml.
+      - "traefik.http.middlewares.markoto-compress.compress=true"
+      - "traefik.http.middlewares.markoto-compress.compress.excludedcontenttypes=text/event-stream,image/png,image/jpeg,image/webp,image/avif,image/gif,video/mp4,video/webm,font/woff2,application/zip,application/pdf,application/octet-stream"
       # /api/import (anonymous document import, 50 MB file cap) gets its own
       # router with a request-body limit (51 MiB = the app's MAX_BODY), so
       # an oversized or endless upload is cut off at the edge. Longer rule =

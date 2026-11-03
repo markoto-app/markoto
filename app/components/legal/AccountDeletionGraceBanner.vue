@@ -114,7 +114,7 @@ async function onCancel(): Promise<void> {
   background: var(--color-sumi-100, #f2efe7);
   border-bottom: 1px solid var(--color-sumi-200, #e5e1d4);
 }
-:global(.dark) .grace-banner {
+html.dark .grace-banner {
   /* Dark mode chrome resolves to flat sumi-950 (`bg-muted`); the
      banner needs to sit ABOVE that not just blend-mix into it.
      Step up to sumi-800 for a clearly-distinct strip + a

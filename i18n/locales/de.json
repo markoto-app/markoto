@@ -5,8 +5,9 @@
     "offline": "Sie sind offline — Änderungen bleiben lokal, bis Sie wieder verbunden sind."
   },
   "landing": {
-    "hero": "Die Kunst des Schreibens neu gedacht.",
-    "subtitle": "Ein kollaborativer Markdown-Editor mit Live-Synchronisierung, KI-Unterstützung und vollständiger Dokumentenverwaltung.",
+    "hero": "Schön gesetztes {markdown}.",
+    "heroMarkdown": "Markdown",
+    "subtitle": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
     "newDocument": "Neues Dokument",
     "openDocument": "Dokument öffnen",
     "recentDocuments": "Zuletzt verwendete Dokumente",
@@ -1092,6 +1093,7 @@
       "banner": {
         "title": "Ihre Datenschutzeinstellungen",
         "intro": "Wir verwenden Cookies und ähnliche Technologien, um markoto am Laufen zu halten und, mit Ihrer Einwilligung, um zu verstehen, wie es genutzt wird. Sie können Ihre Einwilligung jederzeit über das Datenschutz-Symbol in der Fußzeile ändern oder widerrufen.",
+        "introShort": "Cookies halten markoto am Laufen; die Nutzung messen wir nur mit Ihrer Einwilligung, die Sie jederzeit ändern können.",
         "essentialNotice": "Essenzielle Speicherung ist immer aktiv — ohne sie kann markoto Sie nicht angemeldet halten oder Ihre Einstellungen speichern.",
         "acceptAll": "Alle akzeptieren",
         "rejectAll": "Alle ablehnen",
@@ -1447,6 +1449,91 @@
     "cta": {
       "promptBar": "Hinterlege deinen API-Schlüssel in den Einstellungen, um den KI-Assistenten zu nutzen",
       "openSettings": "KI-Anbieter-Einstellungen öffnen"
+    }
+  },
+  "tour": {
+    "label": "Produkttour",
+    "hero": {
+      "title": "Schön gesetztes {markdown}.",
+      "markdown": "Markdown",
+      "body": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
+      "cta": "Jetzt schreiben — ohne Anmeldung",
+      "scroll": "Scrolle weiter, um zu sehen, wie es geht"
+    },
+    "scenes": {
+      "write": {
+        "label": "Editor",
+        "title": "Markdown schreiben, fertige Seiten erhalten.",
+        "body": "Links tippst du, rechts entstehen beim Schreiben echte A4- oder Letter-Seiten."
+      },
+      "rich": {
+        "label": "Layout",
+        "title": "Kopfzeilen, Fußzeilen und Seitenzahlen.",
+        "body": "Einmal im Theme festlegen, fertig. Auch Tabellen, Diagramme, Mermaid-Grafiken, Formeln und Fußnoten stehen auf der Seite."
+      },
+      "themes": {
+        "label": "Themes",
+        "title": "Neues Aussehen, gleiches Markdown.",
+        "body": "Wähle eines von sieben Themes und passe Farben, Schriften und Titelseite an. Dein Text bleibt unverändert."
+      },
+      "collab": {
+        "label": "Zusammenarbeit",
+        "title": "Gleichzeitig am selben Dokument arbeiten.",
+        "body": "Live-Cursor, Kommentare und {'@'}-Erwähnungen. Änderungen sind sofort bei allen: kein Speichern-Knopf, keine Merge-Konflikte."
+      },
+      "ai": {
+        "label": "KI",
+        "title": "Ein KI-Assistent, der dein Markdown bearbeitet.",
+        "body": "Lass ihn einen Abschnitt entwerfen oder eine Tabelle korrigieren. Er schreibt direkt ins Dokument, während du zusiehst, und jede Änderung steht im Verlauf."
+      },
+      "knowledge": {
+        "label": "Wissen",
+        "title": "Antworten aus deinen eigenen Dateien.",
+        "body": "Lade PDF-, Word- oder Excel-Dateien in einen Arbeitsbereich. Die KI antwortet auf ihrer Grundlage, statt zu raten."
+      },
+      "history": {
+        "label": "Verlauf",
+        "title": "Jede Änderung, mit Diff.",
+        "body": "Sieh, wer was geändert hat, Menschen wie KI, und stelle mit einem Klick eine frühere Version wieder her."
+      },
+      "share": {
+        "label": "Teilen & Export",
+        "title": "Link teilen oder PDF exportieren.",
+        "body": "Links zum Bearbeiten, nur zum Lesen oder mit Passwort. Das PDF entspricht der Vorschau Seite für Seite."
+      },
+      "yours": {
+        "label": "Selbst hosten",
+        "title": "Quellcode einsehbar, selbst hostbar.",
+        "body": "Betreibe es mit einem Skript auf deinem eigenen Server oder nutze markoto.app, gehostet in der EU. Mit deinem eigenen KI-Schlüssel."
+      }
+    },
+    "chips": {
+      "byok": "Eigener KI-Schlüssel",
+      "eu": "Gehostet in der EU",
+      "oss": "Quellcode einsehbar · Self-Hosting mit einem Skript"
+    },
+    "cta": {
+      "title": "Probier es mit deinem eigenen Markdown.",
+      "body": "Kostenlos auf markoto.app, ohne Anmeldung — oder hoste es selbst.",
+      "start": "Jetzt schreiben",
+      "selfHost": "Selbst hosten"
+    },
+    "alt": {
+      "hero": "Der markoto-Editor mit einem Quartalsbericht: links Markdown, rechts alle gesetzten Seiten nebeneinander.",
+      "write": "Die Zusammenfassung eines Quartalsberichts wird in Markdown getippt, während ihre Seite live entsteht; dann zeigt die Vorschau den ganzen Bericht.",
+      "rich": "Im Design-Panel kommen eine Kopfzeile und eine Fußzeile mit Datum und Seitenzahlen hinzu und erscheinen auf jeder Seite.",
+      "themes": "Eine andere Vorlage gestaltet den Bericht neu, dann eine neue Akzentfarbe, eine neue Überschriftenschrift und ein gestaltetes Deckblatt.",
+      "collab": "Drei Personen in einem Bericht: Zwei Kolleginnen schreiben in verschiedenen Abschnitten, der Autor kommentiert und erwähnt eine von ihnen, die antwortet.",
+      "ai": "Aus einem bloßen Titel schreibt die KI eine Zusammenfassung mit einer Tabelle der Kennzahlen in den Bericht.",
+      "knowledge": "Ein Memo wird ins Wissens-Panel hochgeladen und verarbeitet, dann antwortet die KI daraus und zitiert seine Zahlen.",
+      "history": "Das Aktivitätsprotokoll mit Änderungen mehrerer Personen und der KI; eine Änderung als Vergleich geöffnet und wiederhergestellt.",
+      "share": "Der Teilen-Dialog mit dem Link zum Dokument, seinem QR-Code und wer es öffnen darf.",
+      "sharePdf": "Seiten des exportierten PDFs, aufgefächert: Deckblatt, Zusammenfassung und eine Seite mit Diagramm.",
+      "yours": "KI-Anbieter-Einstellungen: Der Schreibassistent ist mit dem eigenen Anbieter verbunden und geprüft."
+    },
+    "tone": {
+      "toDark": "Zum dunklen Modus wechseln",
+      "toLight": "Zum hellen Modus wechseln"
     }
   }
 }
