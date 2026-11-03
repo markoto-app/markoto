@@ -536,8 +536,8 @@ function onRestored() {
     >
       <div class="p-3 flex gap-2.5">
         <!-- Avatar. Agents get the seal disc; humans their generated
-           face (seeded by user id). Anonymous / deleted-user rows have
-           no id and share one neutral face. -->
+           face (seeded by user id). Rows without an id (anonymous,
+           deleted users) are seeded by their display name. -->
         <!-- markoto avatar — bone disc in light mode, dark disc in
            dark mode (matches the surrounding cards), seal centered.
            The seal stays shu in both modes; the ring around it is
@@ -557,7 +557,7 @@ function onRestored() {
         </div>
         <CommonUserAvatar
           v-else
-          :seed="avatarSeedFor({ id: entry.userId })"
+          :seed="avatarSeedFor({ id: entry.userId, fallback: entry.userName })"
           :size="28"
           class="mt-0.5"
         />
