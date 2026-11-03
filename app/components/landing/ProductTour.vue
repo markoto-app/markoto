@@ -46,11 +46,6 @@ const hero = manifest.scenes.find(s => s.id === 'hero')
 const scenes = manifest.scenes.filter(s => s.id !== 'hero' && s.id !== 'cta')
 const viewportRatio = `${manifest.viewport.w} / ${manifest.viewport.h}`
 
-function phoneRatio(scene: TourScene): string {
-  const p = scene.phone?.poster.light
-  return p ? `${p.width} / ${p.height}` : viewportRatio
-}
-
 const INLINE_SIZES = '(max-width: 1023px) 92vw, 58vw'
 const STAGE_SIZES = '(min-width: 1440px) 900px, 62vw'
 const HERO_SIZES = '(max-width: 639px) calc(100vw - 32px), min(1120px, 92vw)'
@@ -137,6 +132,28 @@ function rests(): number[] {
   return out
 }
 const pager = useTourPager({ rests, active: pinnedNow })
+
+// ─── "Next" buttons ───────────────────────────────────────────────────
+// A quiet down arrow under the hero and every scene but the last: the
+// visible hint that the page goes on, and a way to page with a click or
+// Enter/Space. Pinned layout: one pager glide to the next rest (rest 0 is
+// the hero, rest k the k-th scene). Elsewhere: the next scene section
+// scrolls to the middle of the viewport (its snap point), smoothly unless
+// the visitor prefers reduced motion.
+function goToScene(i: number): void {
+  if (pinnedNow()) {
+    pager.goTo(i + 1)
+    return
+  }
+  const el = sectionEls.value[i]
+  if (!el) return
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  el.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' })
+}
+const nextLabel = (i: number): string => {
+  const next = scenes[i + 1]
+  return next ? t('tour.nextScene', { scene: sceneLabel(next) }) : ''
+}
 
 // ─── Colour phase (every layout, every engine) ────────────────────────
 // Dark once the flip scene's top has passed the middle of the viewport —
@@ -229,6 +246,19 @@ useSeoMeta({ description: () => t('tour.hero.body') })
             >
               {{ t('tour.hero.cta') }}
             </UButton>
+            <button
+              type="button"
+              class="mk-hero__scroll"
+              data-testid="tour-next-hero"
+              @click="goToScene(0)"
+            >
+              {{ t('tour.hero.next') }}
+              <UIcon
+                name="i-lucide-arrow-down"
+                class="mk-next__icon"
+                aria-hidden="true"
+              />
+            </button>
           </div>
         </div>
         <!-- The stacked / static layouts' hero picture. The pinned layout
@@ -237,10 +267,7 @@ useSeoMeta({ description: () => t('tour.hero.body') })
           v-if="hero"
           class="mk-hero__figure"
         >
-          <LandingTourFrame
-            :ratio="viewportRatio"
-            :phone-ratio="phoneRatio(hero)"
-          >
+          <LandingTourFrame :ratio="viewportRatio">
             <LandingTourVisual
               :scene="hero"
               :index="-1"
@@ -249,16 +276,6 @@ useSeoMeta({ description: () => t('tour.hero.body') })
             />
           </LandingTourFrame>
         </figure>
-        <p
-          class="mk-hero__scroll"
-          aria-hidden="true"
-        >
-          {{ t('tour.hero.scroll') }}
-          <UIcon
-            name="i-lucide-arrow-down"
-            class="size-3.5"
-          />
-        </p>
       </section>
 
       <!-- The pinned stage (desktop with scroll-driven animations only). -->
@@ -359,16 +376,34 @@ useSeoMeta({ description: () => t('tour.hero.body') })
             >
               {{ sceneBody(scene) }}
             </p>
+            <!-- Pinned layout: the next button rides with the copy. -->
+            <div
+              v-if="i < scenes.length - 1"
+              class="mk-line mk-next mk-next--pinned"
+              :style="lineVars(i, 3)"
+            >
+              <button
+                type="button"
+                class="mk-next__button"
+                :aria-label="nextLabel(i)"
+                :title="nextLabel(i)"
+                :data-testid="`tour-next-${i}`"
+                @click="goToScene(i + 1)"
+              >
+                <UIcon
+                  name="i-lucide-arrow-down"
+                  class="mk-next__icon"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
           </div>
           <figure
             v-if="scene.poster"
             class="mk-scene__figure"
             :style="{ viewTimelineName: `--mk-f-${i}` }"
           >
-            <LandingTourFrame
-              :ratio="viewportRatio"
-              :phone-ratio="phoneRatio(scene)"
-            >
+            <LandingTourFrame :ratio="viewportRatio">
               <LandingTourVisual
                 :scene="scene"
                 :index="i"
@@ -378,6 +413,25 @@ useSeoMeta({ description: () => t('tour.hero.body') })
               />
             </LandingTourFrame>
           </figure>
+          <!-- Static layouts: under the picture. -->
+          <div
+            v-if="i < scenes.length - 1"
+            class="mk-next mk-next--static"
+          >
+            <button
+              type="button"
+              class="mk-next__button"
+              :aria-label="nextLabel(i)"
+              :title="nextLabel(i)"
+              @click="goToScene(i + 1)"
+            >
+              <UIcon
+                name="i-lucide-arrow-down"
+                class="mk-next__icon"
+                aria-hidden="true"
+              />
+            </button>
+          </div>
         </section>
       </div>
     </div>
@@ -588,22 +642,74 @@ html .mk-tour-page--auto .mk-wordmark__img--dark {
   color: var(--mk-ink-soft);
   text-wrap: pretty;
 }
-.mk-hero__actions { padding-top: 4px; }
+.mk-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 20px;
+  padding-top: 4px;
+}
 .mk-cta { min-height: 48px; justify-content: center; }
 .mk-hero__figure {
   width: min(1120px, 100%);
   margin: clamp(40px, 7svh, 80px) 0 0;
 }
+/* "See how it works ↓" beside the call to action, and the round arrow
+   under every scene but the last: quiet (mono caption, hairline), but a
+   real button — a click (or Enter / Space) glides to the next scene. */
 .mk-hero__scroll {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: clamp(28px, 5svh, 48px);
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 6px;
+  border-radius: 8px;
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mk-muted);
+  transition: color 160ms ease;
+}
+.mk-hero__scroll:hover { color: var(--mk-ink); }
+.mk-next__icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.mk-next--pinned { display: none; }
+.mk-next--static {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+}
+.mk-next__button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--mk-chip-border);
+  border-radius: 999px;
+  color: var(--mk-muted);
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.mk-next__button:hover {
+  color: var(--mk-ink);
+  border-color: var(--mk-ink-soft);
+}
+.mk-hero__scroll:focus-visible,
+.mk-next__button:focus-visible {
+  outline: 2px solid var(--mk-ink);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* One small nudge, twice, then still: enough to say "there is more". */
+  .mk-hero__scroll .mk-next__icon { animation: mk-nudge 1.6s ease-in-out 1.4s 2; }
+}
+@keyframes mk-nudge {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 4px; }
 }
 
 /* ─── Visual (poster + video) ─── */
@@ -822,7 +928,7 @@ html .mk-tour-page--auto .mk-visual[data-tone="flip"] .mk-visual__tone--dark { o
 }
 @media (max-width: 639px) {
   .mk-final__actions { flex-direction: column; align-self: stretch; }
-  .mk-hero__actions { align-self: stretch; display: flex; flex-direction: column; }
+  .mk-hero__actions { align-self: stretch; flex-direction: column; align-items: stretch; }
 
   /* Phones: every scene is one composed screen above the cookie bar —
      copy, then the phone cut of its video. */
@@ -835,7 +941,7 @@ html .mk-tour-page--auto .mk-visual[data-tone="flip"] .mk-visual__tone--dark { o
   .mk-hero__title { font-size: clamp(38px, 11vw, 48px); line-height: 1.04; }
   .mk-hero__body { font-size: 16px; max-width: none; }
   .mk-hero__figure { margin-top: 32px; }
-  .mk-hero__scroll { align-self: center; margin-top: 24px; }
+  .mk-hero__scroll { align-self: center; }
   .mk-scene {
     gap: 22px;
     padding-block: 44px 52px;
@@ -885,17 +991,13 @@ html .mk-tour-page--auto .mk-visual[data-tone="flip"] .mk-visual__tone--dark { o
    (footer end, or the closing section's end without a footer), so
    nothing is unreachable. */
 html:has(.mk-tour-page) {
-  /* The canvas behind the page (seen for a frame during a fast glide)
-     matches the tour's phase, not the app's colour mode. */
-  background: var(--color-sumi-50);
-  transition: background-color 700ms cubic-bezier(.45, 0, .25, 1);
+  /* The root background is the overscroll colour (main.css: ink in
+     light mode, shu in dark); the page root paints the tour's phase. */
   scroll-snap-type: y proximity;
   scroll-padding-bottom: var(--mk-consent-h, 0px);
 }
-html:has(.mk-tour-page--dark),
-html:has(.mk-tour-page--auto.is-dark) { background: var(--color-sumi-950); }
 @media (prefers-reduced-motion: reduce) {
-  html:has(.mk-tour-page) { scroll-behavior: auto; transition: none; }
+  html:has(.mk-tour-page) { scroll-behavior: auto; }
 }
 .mk-snap {
   position: absolute;
@@ -986,8 +1088,6 @@ html:has(.mk-tour-page--auto.is-dark) { background: var(--color-sumi-950); }
         z-index: 1;
       }
       .mk-hero__figure { display: none; }
-      /* The window rising in under the hero is the scroll cue here. */
-      .mk-hero__scroll { display: none; }
       .mk-scenes {
         grid-row: 2;
         grid-column: 1;
@@ -1056,6 +1156,8 @@ html:has(.mk-tour-page--auto.is-dark) { background: var(--color-sumi-950); }
         width: var(--mk-copy);
       }
       .mk-scene--even .mk-scene__copy { margin-left: auto; }
+      .mk-next--static { display: none; }
+      .mk-next--pinned { display: flex; padding-top: 10px; }
       .mk-scene__copy > .mk-line {
         animation: mk-line linear both;
         animation-timeline: var(--mk-tl);
