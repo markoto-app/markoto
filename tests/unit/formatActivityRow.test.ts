@@ -17,7 +17,6 @@ function entry(overrides: Partial<ActivityEntry>): ActivityEntry {
     docId: 'doc-x',
     userId: 7,
     userName: 'Alice',
-    avatarUrl: null,
     action: 'edit',
     wordCount: null,
     linesAdded: null,

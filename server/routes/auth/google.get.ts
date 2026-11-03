@@ -9,7 +9,7 @@ export default defineOAuthGoogleEventHandler({
     // Google's userinfo carries `email_verified: boolean`. Only a
     // verified address is used (stored, merged, matched against the
     // admin allowlist); an unverified one is stored as NULL, like OIDC.
-    const googleUser = user as { sub: string, name: string, email: string | null, email_verified?: boolean, picture: string }
+    const googleUser = user as { sub: string, name: string, email: string | null, email_verified?: boolean }
     const email = googleVerifiedEmail(googleUser)
 
     const { userId, outcome } = await upsertOAuthUser({
@@ -17,7 +17,6 @@ export default defineOAuthGoogleEventHandler({
       providerUserId: googleUser.sub,
       name: googleUser.name,
       email,
-      avatarUrl: googleUser.picture,
       emailVerified: email !== null
     })
 
@@ -30,7 +29,6 @@ export default defineOAuthGoogleEventHandler({
         id: userId,
         name: googleUser.name,
         email,
-        avatar: googleUser.picture,
         provider: 'google'
       },
       loggedInAt: Date.now(),

@@ -22,7 +22,6 @@ export interface OidcProfile {
   email: string | null
   emailVerified: boolean
   name: string
-  avatarUrl: string | null
 }
 
 type Claims = Record<string, unknown>
@@ -30,7 +29,6 @@ type Claims = Record<string, unknown>
 const MAX_SUBJECT_LENGTH = 255
 const MAX_NAME_LENGTH = 255
 const MAX_EMAIL_LENGTH = 320
-const MAX_URL_LENGTH = 2048
 
 function str(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -62,17 +60,6 @@ function pickName(claims: Claims, email: string | null): string {
   return (first ?? 'User').slice(0, MAX_NAME_LENGTH)
 }
 
-function pickAvatar(value: unknown): string | null {
-  const raw = str(value)
-  if (!raw || raw.length > MAX_URL_LENGTH) return null
-  try {
-    const url = new URL(raw)
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null
-  } catch {
-    return null
-  }
-}
-
 export class OidcProfileError extends Error {}
 
 /**
@@ -101,7 +88,6 @@ export function profileFromClaims(idTokenClaims: Claims, userinfo?: Claims | nul
     subject,
     email,
     emailVerified,
-    name: pickName(merged, email),
-    avatarUrl: pickAvatar(merged.picture)
+    name: pickName(merged, email)
   }
 }

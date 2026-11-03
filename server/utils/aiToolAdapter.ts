@@ -1921,7 +1921,8 @@ export async function handleGetKnowledgeFile(session: MetaToolContext, input: Ge
 //
 // Comments live in a top-level `Y.Array<Y.Map>` named "comments" in the Y.Doc.
 // Each comment map has: id, anchorStart, anchorEnd (base64 Y.RelativePositions),
-// body, authorId (null for AI), authorName, authorAvatar, createdAt, updatedAt,
+// body, authorId (null for AI), authorName, authorAvatarSeed (anonymous authors
+// only), createdAt, updatedAt,
 // resolved, replies (nested Y.Array<Y.Map>).
 //
 // Anchors are encoded as base64 strings via Buffer (not btoa — server context).
@@ -2087,7 +2088,7 @@ export async function handleCreateComment(
     map.set('body', safeBody)
     map.set('authorId', null)
     map.set('authorName', AI_COMMENT_AUTHOR_NAME)
-    map.set('authorAvatar', null)
+    map.set('authorAvatarSeed', null)
     map.set('createdAt', now)
     map.set('updatedAt', now)
     map.set('resolved', false)
@@ -2137,7 +2138,7 @@ export function handleReplyToComment(
     reply.set('body', safeBody)
     reply.set('authorId', null)
     reply.set('authorName', AI_COMMENT_AUTHOR_NAME)
-    reply.set('authorAvatar', null)
+    reply.set('authorAvatarSeed', null)
     reply.set('createdAt', now)
     reply.set('updatedAt', now)
     repliesArr.push([reply])

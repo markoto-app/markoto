@@ -39,7 +39,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     id: 'account_authentication',
     label: 'Sign-in and account',
     basis: 'contract',
-    dataCategories: ['email', 'oauth_identifier', 'display_name', 'avatar_url'],
+    dataCategories: ['email', 'oauth_identifier', 'display_name'],
     retention: 'until_deletion',
     subProcessors: ['github_oauth', 'google_oauth']
   },
