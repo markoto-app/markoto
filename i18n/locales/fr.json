@@ -68,6 +68,14 @@
     "table": "Tableau",
     "hideFromPreview": "Rendre invisible (masquer de l'aperçu)"
   },
+  "previewZoom": {
+    "menu": "Zoom",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "fitWidth": "Ajuster à la largeur",
+    "allPages": "Toutes les pages",
+    "backToPage": "Revenir à la page"
+  },
   "status": {
     "connecting": "Connexion...",
     "connected": "Connecté",

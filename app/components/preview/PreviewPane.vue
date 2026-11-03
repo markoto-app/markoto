@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { isMacPlatform, zoomShortcutAction } from '~/utils/previewZoom'
 
 const props = defineProps<{
   source: string
@@ -12,6 +13,8 @@ const props = defineProps<{
   docId: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
+  /** Show the zoom pill in the pane (desktop; mobile has it in the view-mode bar). */
+  zoomControl?: boolean
 }>()
 
 // Bubbled when the user presses Cmd/Ctrl+P inside the preview iframe.
@@ -30,6 +33,10 @@ const { rendered } = useMarkdownPreview(sourceRef)
 // Host element the composable will append the preview iframe into.
 const iframeHost = ref<HTMLElement | null>(null)
 
+// Preview zoom — remembered per browser, applied inside the iframe.
+const zoom = usePreviewZoom()
+onMounted(() => zoom.load())
+
 const { pageCount: pgCount, isReady, error } = usePagedPreview({
   html: rendered,
   theme: themeRef,
@@ -38,8 +45,33 @@ const { pageCount: pgCount, isReady, error } = usePagedPreview({
   docId: computed(() => props.docId),
   container: iframeHost,
   onPrintShortcut: () => emit('printShortcut'),
-  getDocJwt: props.getDocJwt
+  getDocJwt: props.getDocJwt,
+  zoom: {
+    command: zoom.command,
+    onRequest: (action, page) => {
+      if (action === 'in') zoom.zoomIn()
+      else if (action === 'out') zoom.zoomOut()
+      else if (action === 'reset') zoom.fit()
+      else zoom.openPage(page)
+    },
+    onGesture: scale => zoom.gestureEnded(scale),
+    onApplied: (scale, fitScale) => zoom.reportApplied(scale, fitScale)
+  }
 })
+
+// Ctrl/Cmd + = / - / 0 while the pointer is over the preview but focus
+// is elsewhere (e.g. still in the editor). With focus inside the iframe
+// the frame handles the keys itself. The editor binds none of these.
+const pointerOver = ref(false)
+useEventListener(globalThis, 'keydown', (e: KeyboardEvent) => {
+  if (!pointerOver.value) return
+  const action = zoomShortcutAction(e, isMacPlatform())
+  if (!action) return
+  e.preventDefault()
+  if (action === 'in') zoom.zoomIn()
+  else if (action === 'out') zoom.zoomOut()
+  else zoom.fit()
+}, { capture: true })
 
 watch(pgCount, (n) => {
   pageCount.value = n
@@ -47,10 +79,18 @@ watch(pgCount, (n) => {
 </script>
 
 <template>
-  <div class="preview-pane h-full w-full relative">
+  <div
+    class="preview-pane h-full w-full relative"
+    @mouseenter="pointerOver = true"
+    @mouseleave="pointerOver = false"
+  >
     <div
       ref="iframeHost"
       class="iframe-host h-full w-full"
+    />
+    <PreviewZoomControl
+      v-if="zoomControl && isReady && !error"
+      class="absolute top-2 right-5 z-10"
     />
     <div
       v-if="error"

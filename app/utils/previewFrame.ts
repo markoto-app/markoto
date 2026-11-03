@@ -8,6 +8,8 @@ import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
 import { documentTexts } from '~~/shared/utils/documentLocale'
 import type { DocTheme } from '~~/shared/types/theme'
 import { PAGED_HANDLERS_SCRIPT } from './pagedHandlers'
+import { PREVIEW_ZOOM_SCRIPT } from './previewZoomFrame'
+import type { FrameZoomMode } from './previewZoomFrame'
 import type { CustomCssResult } from '~~/shared/types/customCss'
 // Iframe bootstrap document — its own .html file so the HTML/CSS/JS gets
 // proper syntax highlighting. Loaded as a raw string via Vite's `?raw`.
@@ -43,7 +45,7 @@ import IFRAME_BOOTSTRAP from '~/composables/pagedPreviewIframe.html?raw'
  *     page's CSP nonce (`currentCspNonce`).
  */
 
-export type ParentToFrameMessage = RenderMessage | ColorModeMessage
+export type ParentToFrameMessage = RenderMessage | ColorModeMessage | ZoomMessage
 
 export interface RenderMessage {
   type: 'render'
@@ -65,12 +67,34 @@ export interface ColorModeMessage {
   dark: boolean
 }
 
+/**
+ * Preview zoom (`usePreviewZoom` → the iframe's zoom engine,
+ * `previewZoomFrame.ts`). Presentation only — never re-paginates.
+ */
+export interface ZoomMessage {
+  type: 'zoom'
+  mode: FrameZoomMode
+  /** Factor for `mode: 'scale'` (ignored otherwise, still a valid number). */
+  scale: number
+  animate: boolean
+  /** 1-based page to scroll to the top (overview click); 0 = keep position. */
+  page: number
+}
+
+export type ZoomRequestAction = 'in' | 'out' | 'reset' | 'page'
+
 export type FrameToParentMessage
   = | { type: 'iframe-ready' }
     | { type: 'paginated', pageCount: number }
     | { type: 'iframe-error', message: string }
     | { type: 'print-shortcut' }
     | { type: 'print-done' }
+    /** Zoom the frame applied: `scale` is the effective factor, `fitScale` the fit-width one. */
+    | { type: 'zoom-state', mode: FrameZoomMode, scale: number, fitScale: number }
+    /** Shortcut pressed / overview page clicked inside the frame. `page` ≥ 1 only for 'page'. */
+    | { type: 'zoom-request', action: ZoomRequestAction, page: number }
+    /** A pinch / Ctrl+wheel ended at this factor (already applied in the frame). */
+    | { type: 'zoom-gesture', scale: number }
 
 /** `sandbox` value of the live preview iframe — deliberately no `allow-same-origin`. */
 export const PREVIEW_SANDBOX = 'allow-scripts'
@@ -99,9 +123,43 @@ export function parseFrameMessage(e: MessageEvent, frame: Window | null | undefi
       return typeof msg.message === 'string'
         ? { type: 'iframe-error', message: msg.message.slice(0, 500) }
         : null
+    case 'zoom-state':
+      return isZoomMode(msg.mode) && isZoomFactor(msg.scale) && isZoomFactor(msg.fitScale)
+        ? { type: 'zoom-state', mode: msg.mode, scale: msg.scale, fitScale: msg.fitScale }
+        : null
+    case 'zoom-request':
+      return parseZoomRequest(msg.action, msg.page)
+    case 'zoom-gesture':
+      return isZoomFactor(msg.scale) ? { type: 'zoom-gesture', scale: msg.scale } : null
     default:
       return null
   }
+}
+
+function isZoomMode(v: unknown): v is FrameZoomMode {
+  return v === 'fit' || v === 'scale' || v === 'overview'
+}
+
+/** A zoom factor the frame may report: finite, positive, sane. */
+function isZoomFactor(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 10
+}
+
+/** Upper bound for a page number (the frame can't have more pages than this). */
+const MAX_PAGE = 100_000
+
+function parseZoomRequest(action: unknown, page: unknown): FrameToParentMessage | null {
+  if (typeof page !== 'number' || !Number.isInteger(page) || page < 0 || page > MAX_PAGE) return null
+  if (action === 'page') return page >= 1 ? { type: 'zoom-request', action, page } : null
+  if (action === 'in' || action === 'out' || action === 'reset') return { type: 'zoom-request', action, page: 0 }
+  return null
+}
+
+/** The zoom message for a setting (`scale` is only meaningful in 'scale' mode). */
+export function buildZoomMessage(opts: { mode: FrameZoomMode, scale?: number, animate: boolean, page?: number }): ZoomMessage {
+  const scale = opts.mode === 'scale' && opts.scale !== undefined && Number.isFinite(opts.scale) && opts.scale > 0 ? opts.scale : 1
+  const page = opts.page !== undefined && Number.isInteger(opts.page) && opts.page > 0 ? opts.page : 0
+  return { type: 'zoom', mode: opts.mode, scale, animate: opts.animate, page }
 }
 
 /** Post a protocol message to the iframe. Its origin is opaque, hence '*'. */
@@ -139,6 +197,12 @@ export function buildPreviewSrcdoc(opts: { parentOrigin: string, nonce: string, 
     // A function replacer: the script source must not be read as a
     // replacement pattern (`$&`, `$1`, …).
     .replaceAll('__PAGED_HANDLERS_SCRIPT__', () => pagedHandlersInline())
+    .replaceAll('__PREVIEW_ZOOM_SCRIPT__', () => previewZoomInline())
+}
+
+/** previewZoomFrame.ts function source for the bootstrap script (never closes the tag). */
+function previewZoomInline(): string {
+  return PREVIEW_ZOOM_SCRIPT.replaceAll(/<\/(script)/gi, String.raw`<\/$1`)
 }
 
 /** pagedHandlers.ts source as an inline-script body (never closes the tag). */

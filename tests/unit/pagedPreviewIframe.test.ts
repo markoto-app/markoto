@@ -32,7 +32,8 @@ const PLACEHOLDERS = [
   '__KATEX_CSS_SRI__',
   '__MERMAID_URL__',
   '__MERMAID_SRI__',
-  '__PAGED_HANDLERS_SCRIPT__'
+  '__PAGED_HANDLERS_SCRIPT__',
+  '__PREVIEW_ZOOM_SCRIPT__'
 ]
 
 describe('pagedPreviewIframe.html', () => {
@@ -87,6 +88,34 @@ describe('pagedPreviewIframe.html', () => {
     }
     expect(WITHOUT_COMMENT).toContain('data.type === \'render\'')
     expect(WITHOUT_COMMENT).toContain('data.type === \'color-mode\'')
+    expect(WITHOUT_COMMENT).toContain('data.type === \'zoom\'')
+  })
+
+  it('validates zoom messages and leaves pagination alone', () => {
+    // The zoom engine is inlined from app/utils/previewZoomFrame.ts and
+    // talks to the parent through toParent() only.
+    expect(WITHOUT_COMMENT).toContain('var previewZoom = (__PREVIEW_ZOOM_SCRIPT__)(toParent);')
+    for (const check of ['modeOk', 'scaleOk', 'pageOk', 'typeof data.animate === \'boolean\'']) {
+      expect(WITHOUT_COMMENT).toContain(check)
+    }
+    // Zoom is re-applied after pagination, never the other way round: no
+    // zoom path calls renderDoc / previewer.preview.
+    expect(WITHOUT_COMMENT).toContain('else if (msg.type === \'zoom\') previewZoom.set(msg);')
+    const reapply = WITHOUT_COMMENT.indexOf('previewZoom.reapply(true);')
+    expect(reapply).toBeGreaterThan(WITHOUT_COMMENT.indexOf('mount.replaceChildren('))
+    // Pinch zooms the preview, not the app.
+    expect(WITHOUT_COMMENT).toContain('touch-action: pan-x pan-y;')
+    // Light-mode overview thumbnails keep a visible edge: a hairline sized
+    // in screen pixels (divided by the zoom), not the zoomed card shadow.
+    expect(WITHOUT_COMMENT).toContain('html.zoom-overview:not(.dark-preview) #mount .pagedjs_page {')
+    expect(WITHOUT_COMMENT).toContain('0 0 0 calc(1px / var(--page-zoom, 1)) rgba(20, 17, 13, 0.10)')
+  })
+
+  it('keeps print at 100 % whatever the preview zoom is', () => {
+    const print = WITHOUT_COMMENT.slice(WITHOUT_COMMENT.indexOf('@media print'))
+    expect(print).toContain('zoom: 1 !important;')
+    expect(print).toContain('display: block !important;')
+    expect(print).toContain('#mount { transform: none !important; }')
   })
 
   it('re-serialises mermaid SVG as XML before turning it into an <img>', () => {
