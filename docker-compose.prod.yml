@@ -214,6 +214,10 @@ services:
       - NUXT_LITELLM_EMBEDDINGS_TASK_HINTS=${NUXT_LITELLM_EMBEDDINGS_TASK_HINTS:-auto}
       - NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
+      # The app encrypts each user's LiteLLM virtual-key token at rest with
+      # this key (server/utils/litellm/userKeys.ts). Without it, creating
+      # the key (first AI use, BYOK save, AI Points) fails with a 500.
+      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
       # LiteLLM's own Postgres role, for the spend-log sweep + admin spend
       # query (server/utils/litellm/litellmDb.ts); empty = the app role.
       - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
