@@ -23,7 +23,7 @@ import { useAiCredits } from '~/composables/useAiCredits'
 const { t, locale } = useI18n()
 const router = useRouter()
 const { billing, refresh: refreshBilling } = useBilling()
-const { pointsRemaining, pointsTotal, fillRatio, refresh: refreshCredits } = useAiCredits()
+const { pointsRemaining, pointsTotal, fillRatio, isFreeAllowanceExhausted, refresh: refreshCredits } = useAiCredits()
 const { billingEnabled, plansComingSoon } = useBillingMode()
 // Bring your own key (WP4): AI Points only measure platform-paid AI
 // (an operator's model-alias defaults). Calls on the user's own key
@@ -35,6 +35,10 @@ const usesOwnKey = computed(() => {
   if (!a) return false
   return a.chat.source === 'user' || a.image.source === 'user' || a.transcription.source === 'user'
 })
+
+// Every AI capability runs on the user's own key: no points to show,
+// just say whose provider it is (links the settings page).
+const ownProviderOnly = computed(() => !anyPlatformBilled.value && usesOwnKey.value)
 
 const planLabel = computed(() => {
   const plan = billing.value?.plan ?? 'free'
@@ -130,8 +134,20 @@ function onManage(): void {
 </script>
 
 <template>
+  <NuxtLink
+    v-if="ownProviderOnly"
+    to="/settings/ai"
+    class="usage-badge hidden sm:flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full border border-default bg-default/60 backdrop-blur-sm transition-colors hover:bg-muted/40 text-xs text-muted"
+    data-testid="usage-badge-own-provider"
+  >
+    <UIcon
+      name="i-lucide-key-round"
+      class="size-3.5 shrink-0"
+    />
+    <span>{{ t('aiProvider.ownProviderBadge') }}</span>
+  </NuxtLink>
   <UPopover
-    v-if="billing && anyPlatformBilled"
+    v-else-if="billing && anyPlatformBilled"
     v-model:open="open"
     :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
   >
@@ -193,6 +209,22 @@ function onManage(): void {
             />
           </div>
         </div>
+
+        <!-- Shared free pool used up (hosted free tier) -->
+        <p
+          v-if="isFreeAllowanceExhausted"
+          class="text-xs text-warning leading-relaxed"
+          data-testid="usage-badge-free-allowance-exhausted"
+        >
+          {{ t('ai.freeAllowanceExhausted') }}
+          <NuxtLink
+            to="/settings/ai"
+            class="underline"
+            @click="open = false"
+          >
+            {{ t('ai.freeAllowanceCta') }}
+          </NuxtLink>
+        </p>
 
         <!-- Reset line -->
         <div class="flex items-center gap-2 text-xs text-muted">

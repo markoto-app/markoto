@@ -15,6 +15,8 @@ import { normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
 import { useLitellmForUser } from '../../utils/litellmClient'
 import { resolveBillingContext } from '../../utils/billing'
 import { isBudgetExceededError } from '../../utils/litellmKeys'
+import { isFreeAllowanceExhaustedError } from '../../utils/litellm/freeTierTeam'
+import { freeAllowanceExhaustedHttpError } from '../../utils/freeAllowance'
 import { FEATURE_TAGS, featureMetadata } from '../../utils/litellm/featureTags'
 import { litellmCompletion, litellmTranscription } from '../../utils/litellm/createCompletion'
 import { providerMissingError, requireAiProviders } from '../../utils/aiProviders/guard'
@@ -193,6 +195,7 @@ async function transcribeViaVoxtral(args: {
     Sentry.captureMessage('[transcribe] Voxtral non-2xx', {
       tags: { component: 'transcribe', event: 'voxtral_upstream_error' }
     })
+    if (isFreeAllowanceExhaustedError(e)) throw freeAllowanceExhaustedHttpError()
     if (isBudgetExceededError(e)) {
       throw createError({
         statusCode: 402,

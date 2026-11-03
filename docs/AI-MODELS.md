@@ -1,21 +1,24 @@
 # AI models
 
-Which models power markoto's AI features, why, and which models we recommend if you bring your own key. Last reviewed: 2026-10-26. All prices are public list prices in USD from the provider, and they change; check the provider before budgeting.
+Which models power markoto's AI features, why, and which models we recommend if you bring your own key. Last reviewed: 2026-11-03. All prices are public list prices in USD from the provider, and they change; check the provider before budgeting.
 
 markoto routes every AI call through one gateway (LiteLLM), so each model below is a configuration choice, not a code dependency.
 
-**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures no such defaults. Embeddings, web search (Staan) and page fetching (Jina Reader) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator — see [Embeddings](#embeddings)); they are never per-user.
+**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures one: a monthly [free AI allowance](#free-ai-allowance-hosted) for chat on Z.ai GLM-5.3 Flash served by Mistral in the EU; image generation and transcription stay bring-your-own-key there. Embeddings, web search (Staan) and page fetching (Jina Reader) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator — see [Embeddings](#embeddings)); they are never per-user.
 
 ## Bundled models (operator defaults)
 
 These are the deployments that ship in `infra/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-2-pro`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
 
-| Feature | Model | List price | Notes |
+**Mistral is EU-only.** Every Mistral deployment (chat, fallbacks, transcription) and the live-dictation WebSocket on the operator's key go to Mistral's EU regional endpoint `api.eu.mistral.ai` (inference in EU / EFTA data centres; the default `api.mistral.ai` makes no location commitment). Mistral bills regional inference at 1.1x list on every token type; the prices below are those EU prices (list in brackets), and they are what `infra/litellm/config.yaml` charges to budgets. A user's own Mistral key runs on whichever Mistral host the user configured.
+
+| Feature | Model | Price (EU endpoint) | Notes |
 |---|---|---|---|
-| AI writing assistant (tool calling, vision) | Mistral Small 4 (`mistral-small-2603`) | $0.15 in / $0.60 out per M tokens (cached input $0.015) | 262K context, function calling, vision |
-| Fallback when the primary is rate-limited | Ministral 3 8B (`ministral-8b-2512`) | $0.15 in / $0.15 out per M tokens | 262K context, function calling, vision |
-| Voice prompt (one-shot transcription) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | $0.003 per audio minute | GA |
-| Live dictation | Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) | $0.006 per audio minute | GA, WebSocket streaming |
+| AI writing assistant (tool calling, vision) | Mistral Small 4 (`mistral-small-2603`) | $0.165 in / $0.66 out per M tokens, cached input $0.0165 (list $0.15 / $0.60 / $0.015) | 262K context, function calling, vision; also the fallback of the free allowance |
+| Fallback when the primary is rate-limited | Ministral 3 8B (`ministral-8b-2512`) | $0.165 in / $0.165 out per M tokens (list $0.15 / $0.15) | 262K context, function calling, vision |
+| Free AI allowance (hosted chat default) | Z.ai GLM-5.3 Flash served by Mistral (`zai-glm-5-3-flash`) | $0.165 in / $0.55 out per M tokens, cached input $0.033 (list $0.15 / $0.50 / $0.03) | 1M context, function calling, vision, reasoning. See [Free AI allowance](#free-ai-allowance-hosted) |
+| Voice prompt (one-shot transcription) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | $0.0033 per audio minute (list $0.003) | GA |
+| Live dictation | Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) | $0.0066 per audio minute (list $0.006) | GA, WebSocket streaming |
 | Knowledge-base embeddings | Jina `jina-embeddings-v5-text-nano` | about $0.02-0.05 per M tokens (verify) | 768 dimensions, 8K context |
 | Web page extraction | Jina Reader | billed in output tokens from a shared Jina balance | |
 | Web search | Staan | no public rate card found | |
@@ -71,6 +74,68 @@ Because the operator pays the upstream half, each user gets an allowance shared 
 
 The free-tier AI Points budget (`TIER_FREE_LITELLM_BUDGET_USD`) resets monthly with billing off: every virtual key carries LiteLLM's `budget_duration: '30d'`, so no Stripe event is needed.
 
+## Free AI allowance (hosted)
+
+Signed-in users of the hosted SaaS who have not added their own key get a small monthly AI allowance on a platform-paid model. Anonymous visitors get no AI (AI always requires login). As soon as a user adds their own chat key under Settings → AI provider, that key is used instead (resolution order unchanged: own key → instance default → unavailable).
+
+| Setting | Hosted value | Variable |
+|---|---|---|
+| Chat default | `zai-glm-5-3-flash` (LiteLLM alias) | `NUXT_AI_DEFAULT_CHAT_MODEL` |
+| Vision | on (the model reads images) | `NUXT_AI_DEFAULT_CHAT_VISION` |
+| Per user per month | $0.50 = 500 AI Points | `TIER_FREE_LITELLM_BUDGET_USD` |
+| All free users together per month | $500 | `NUXT_FREE_TIER_TOTAL_BUDGET_USD` (unset / `0` = no ceiling, the self-host default) |
+
+All four are rendered by `infra/render-env.sh` / `infra/templates/env.j2` for staging and prod and can be overridden by a GitHub Environment variable / Ansible var. Self-hosted defaults are unchanged (no chat default, no ceiling).
+
+### The model: Z.ai GLM-5.3 Flash, served by Mistral
+
+Verified on 2026-11-03 against Mistral's model page, its regional-inference docs and a live `GET /v1/models` on both endpoints:
+
+- **API id** `zai-glm-5-3-flash` (no aliases). **GA**, no deprecation date. Listed as a third-party model "served without Mistral modifications" (MIT-licensed weights); Mistral serves it on its own platform, on "the same infrastructure, regional controls, and service commitments as Mistral models". So the Mistral contract and the account's no-training opt-out cover it like Mistral's own models (the opt-out is an account setting under Admin → Privacy; check it stays off).
+- **EU**: the default `api.mistral.ai` endpoint makes no location commitment. `api.eu.mistral.ai` processes inference in EU / EFTA data centres and serves this model; it costs 1.1x list. The deployment is pinned to it (`api_base` in `infra/litellm/config.yaml`), and the costs there are the EU prices: $0.165 / $0.033 cached / $0.55 per M tokens.
+- **Capabilities** (from `/v1/models`): `completion_chat`, `function_calling`, `vision`, `reasoning`; 1,048,576-token context, 128K max output. Tool calling and image input verified through our LiteLLM (a tool call with valid JSON arguments; a colour named from a test image).
+- **Reasoning switched off**: it is a reasoning model, and without a setting Mistral lets it think a lot (1.2-4.9K reasoning tokens on an edit turn, ~20 s). The `zai-glm-5-3-flash` deployment sets `reasoning_effort: low` as a LiteLLM deployment parameter, so every caller (agent loop, `@ai`, MCP, web-tool synthesis) gets it and the fallback deployment never does. Mistral accepts only `low` / `high` / `max` (`none` is a 400, a Z.ai-style `thinking: {type: disabled}` a 422); `low` gives 0 reasoning tokens on plain chat turns and on most tool turns, at most ~130 on an edit turn. Any thinking arrives as `reasoning_content` (never shown to users); `content` holds only the answer, so the loop needs no change.
+- **Prompt caching** is automatic. `usage.prompt_tokens_details.cached_tokens` reports hits, LiteLLM bills them at `cache_read_input_token_cost` (verified to the 1e-9 $ through the proxy: uncached x input + cached x cached + output x output, on the key AND the team). Measured behaviour: hits come in ~1152-token blocks and only for a prefix the cache has seen at least twice, so in practice the reused part is the prefix every user shares (system prompt + tools, ~15K tokens). The growing history of one session is rarely reused. About a third of calls missed entirely (replica routing); `prompt_cache_key` made no measurable difference.
+- **Fallback**: on 429 / 5xx / timeout after the proxy's retry, LiteLLM routes the request to `mistral-small-2603` (Mistral Small 4, also on the EU endpoint), so a fallback never leaves the EU path.
+
+### How the limits are enforced
+
+Both limits are LiteLLM budgets; the app keeps no counters.
+
+- **$0.50 per user**: the `max_budget` of the user's virtual key, reset monthly (`budget_duration: 30d`, which LiteLLM normalises to the 1st of the month, 00:00 UTC).
+- **$500 in total**: every free-tier key belongs to one LiteLLM team, `markoto-free-tier`, with `max_budget = NUXT_FREE_TIER_TOTAL_BUDGET_USD` and the same `30d` reset. LiteLLM checks the key AND the team before each call, so any platform-paid call of a free user draws on the pool: the agent loop, web-search / page-fetch synthesis, MCP, and (on instances with such defaults) image generation, transcription and dictation ticks. The team id is fixed, so no app-side storage is needed (`server/utils/litellm/freeTierTeam.ts`).
+- **Not in the pool**: BYOK calls (the `byok/*` deployment is zero-cost and LiteLLM skips budget checks for zero-cost models: verified, a BYOK call on a key whose team is exhausted still goes through), paid tiers once billing is on (their keys carry no team), and what the platform pays outside LiteLLM: the Staan / Jina Reader half of the web tools (capped per user by `NUXT_WEB_TOOLS_*_LIMIT`) and knowledge-base embeddings (capped by the knowledge file / byte limits).
+- **Membership**: new keys are created in the team; plan changes move keys in and out (`updateUserKeyBudget`); existing keys are reconciled at boot and every 6 h by the `litellm-key-reconcile` sweeper (one `/key/list` read, an update only for keys whose team, budget or reset differ, under the sweep lock), which also brings old keys to a lowered `TIER_FREE_LITELLM_BUDGET_USD`. LiteLLM only moves an existing key into a team its user belongs to, so the user is added as a team member first.
+- **When the pool is used up**: LiteLLM answers `Budget has been exceeded! Team=markoto-free-tier …` (HTTP 422). The app maps it to **402 `ai/free-allowance-exhausted`** (distinct from the per-user `ai/budget-exhausted`): the prompt endpoints refuse up front, the agent loop ends with the same message, and the prompt bar shows "This month's free AI allowance is used up. Add your own key in Settings → AI provider to keep going." with a link to `/settings/ai`. LiteLLM only refuses once spend is strictly above the budget and checks before the call, so concurrent in-flight calls can overshoot the ceiling by a few cents.
+
+### Cost per request
+
+Measured 2026-11-03 through the proxy with the app's real system prompt, tool list and message translation, on the Q3 report fixture (`tests/e2e/fixtures/content/q3-report/`, ~25K-token requests): a typical prompt is a 3-call loop (`view_document`, one edit, finish).
+
+| | GLM-5.3 Flash (EU price) |
+|---|---|
+| Cache hit ratio (prompt tokens served from cache) | 48-51 % |
+| Cost per prompt, measured | $0.006-0.011, mean about $0.008 |
+| Same prompt without caching | about $0.013 |
+| Prompts per user per month ($0.50) | about 60 |
+| Prompts per month for the whole pool ($500) | about 60,000 |
+
+The cost rows were measured before thinking was switched off; with `reasoning_effort: low` the output share drops further, so they are a slight overestimate. Input dominates (about 95 % of the cost with thinking off). Thinking off vs Mistral's default (default measured with `max`, which reasons like the default; same fixture, same session, 8 prompts each):
+
+| | Default thinking | `reasoning_effort: low` |
+|---|---|---|
+| Output tokens of an edit turn | 1,800-4,900 | 24-330 |
+| Latency of an edit turn | ~20 s | ~4.4 s |
+| Whole prompt (3-call loop) | ~25 s | ~17 s |
+| A plain chat answer | 1.2-2.5 s, 180-530 output tokens | 0.4-0.9 s, 10-60 output tokens |
+| Output cost per prompt | ~$0.0021 | ~$0.0002 |
+
+Tool-call arguments stayed valid JSON and the edits stayed grounded in the document's figures.
+
+### Prompt-caching layout
+
+`server/utils/agentic/promptAssembly.ts` orders every request from most to least stable: static system prompt, tool definitions (fixed order, deterministic JSON), document context, workspace context — and only then, in the first USER message, the conversation memory, editor state and prompt. Within a session the history only appends and tool-call arguments are replayed byte-for-byte as the model generated them. Until 2026-11-03 the conversation memory closed the system message: Mistral Small 4's template places the tool definitions after the system message, so that cached 0 % of a follow-up prompt; with the memory in the user message it caches 99 % (measured through the proxy; whole two-prompt sessions: 65 % → 85 % cache hits). GLM-5.3 Flash renders tools first and was unaffected (48-51 % either way). `tests/unit/promptCachePrefix.test.ts` pins the layout; the loop logs `usage: prompt=… cached=…` per call and Sentry's `ai-session-completed` carries `totalCachedInputTokens`.
+
 ## Bring your own key
 
 ### What users can configure
@@ -123,14 +188,14 @@ The base URLs were checked against each provider's `/models` and `/chat/completi
 | `NUXT_AI_BYOK_ALLOWED_BASE_URLS` | Comma-separated allowlist of base URLs users may pick. Empty (self-hosted default) = any public https URL. The hosted SaaS uses the eight non-local providers in the table above; an instance with `NUXT_LEGAL_SURFACES_ENABLED=true` (the hosted shape) refuses to boot with an empty list, and an entry that is not an absolute http(s) URL is a boot error everywhere. |
 | `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS` | `true` lets users point at private-network endpoints (RFC 1918, CGNAT, IPv6 ULA) and use plain http for them. Default `false`. |
 | `NUXT_AI_REALTIME_MODEL` | Voxtral Realtime model for live dictation (default `voxtral-mini-transcribe-realtime-2602`). |
+| `NUXT_FREE_TIER_TOTAL_BUDGET_USD` | Monthly ceiling in USD on platform-paid AI for all free-tier users together (a LiteLLM team budget, see [Free AI allowance](#free-ai-allowance-hosted)). Empty / `0` = none (self-host default); hosted 500. |
 
-The hosted SaaS sets no `NUXT_AI_DEFAULT_*` and the allowlist above (`infra/render-env.sh` / `infra/templates/env.j2`).
-
+The hosted SaaS sets `NUXT_AI_DEFAULT_CHAT_MODEL=zai-glm-5-3-flash` (the [free AI allowance](#free-ai-allowance-hosted)), no image / transcription default, and the allowlist above (`infra/render-env.sh` / `infra/templates/env.j2`).
 ### How BYOK calls flow
 
 Every BYOK call still goes through LiteLLM: the app sends model `byok/<model id>` plus the user's `api_key` and `api_base` in the request body (LiteLLM "clientside credentials"). The `byok/*` deployment has zero cost in `model_info`, so these calls never debit the user's AI Points budget, while the call still authenticates with the user's LiteLLM virtual key (requests-per-minute limit and spend-log tags keep working). Verified on LiteLLM v1.106.4: without the zero-cost entry, LiteLLM would apply its own price table to known model ids (for example `gpt-4o`) and bill the virtual key.
 
-**AI Points.** The points meter in the top bar only appears when something the user can do is platform-paid (an instance alias default). With only their own keys, it is hidden; when both are in play, it says that own-key calls don't use points.
+**AI Points.** The points meter in the top bar only appears when something the user can do is platform-paid (an instance alias default). With only their own keys it is replaced by a "Your own AI provider" chip linking to the settings; when both are in play, it says that own-key calls don't use points. With the free AI allowance the meter shows the per-user allowance (500 points for $0.50) and, once the shared pool is used up, the "free AI allowance is used up" line with the settings link.
 
 ### SSRF protection
 
@@ -285,7 +350,12 @@ Expect one embeddings request per chunk (a chunk is about 800 characters, roughl
 - Mistral changelog: https://docs.mistral.ai/getting-started/changelog/
 - Voxtral Mini Transcribe 3: https://docs.mistral.ai/models/voxtral-mini-transcribe-3-0
 - Voxtral Mini Transcribe Realtime 3: https://docs.mistral.ai/models/voxtral-mini-transcribe-realtime-3-0
-- Mistral `/v1/models` (queried live 2026-10-26 for ids, context, capabilities)
+- Mistral `/v1/models` (queried live 2026-10-26 for ids, context, capabilities; again 2026-11-03 on `api.mistral.ai` and `api.eu.mistral.ai` for `zai-glm-5-3-flash`)
+- Z.ai GLM-5.3 Flash on Mistral: https://docs.mistral.ai/models/zai-glm-5-3-flash
+- Mistral regional inference (EU endpoint, 1.1x pricing): https://docs.mistral.ai/inference/regional-inference
+- Mistral third-party open models announcement (2026-08-11): https://mistral.ai/news/regional-inference-open-models-new-compute/
+- Mistral prompt caching: https://docs.mistral.ai/studio-api/conversations/advanced/prompt-caching
+- Mistral training opt-out (API): https://help.mistral.ai/en/articles/347614-can-i-opt-out-of-my-input-or-output-data-being-used-for-training
 - Jina embeddings: https://jina.ai/embeddings/
 - Jina API pricing: https://jina.ai/api-dashboard/pricing
 - BFL pricing docs: https://docs.bfl.ai/quick_start/pricing

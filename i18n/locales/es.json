@@ -531,7 +531,11 @@
     "budgetExhaustedResetDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo.",
     "webToolsHourlyLimit": "Has alcanzado el límite por hora de búsqueda web y obtención de páginas. Inténtalo de nuevo dentro de una hora o continúa sin herramientas web.",
     "webToolsDailyLimit": "Has alcanzado el límite diario de búsqueda web y obtención de páginas. Inténtalo de nuevo mañana o continúa sin herramientas web.",
-    "budgetExhaustedComingSoonDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo; muy pronto habrá planes de pago con más créditos."
+    "budgetExhaustedComingSoonDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo; muy pronto habrá planes de pago con más créditos.",
+    "freeAllowanceExhaustedTitle": "Asignación gratuita de IA agotada",
+    "freeAllowanceExhausted": "La asignación gratuita de IA de este mes se ha agotado. Añade tu propia clave en Ajustes → Proveedor de IA para continuar.",
+    "freeAllowanceCta": "Añadir tu clave",
+    "freeAllowanceExhaustedPlaceholder": "La asignación gratuita de IA de este mes se ha agotado: añade tu propia clave para continuar"
   },
   "mobileTabBar": {
     "label": "Paneles del documento",
@@ -597,7 +601,8 @@
       "pro": "Para quien escribe en solitario: más puntos de IA, espacios de trabajo y almacenamiento.",
       "max": "Para equipos pequeños: cubre los puntos de IA de todos los miembros de un espacio de trabajo tuyo.",
       "ultra": "Para equipos más grandes: patrocinio de espacios de trabajo con la mayor asignación."
-    }
+    },
+    "freeAllowanceNote": "La asignación gratuita de IA funciona con un modelo alojado por Mistral AI en la UE y está disponible mientras dure la reserva compartida de este mes. Para más, añade tu propia clave en Ajustes → Proveedor de IA."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1442,7 +1447,9 @@
     "cta": {
       "promptBar": "Añade tu clave de API en los ajustes para usar el asistente de IA",
       "openSettings": "Abrir ajustes del proveedor de IA"
-    }
+    },
+    "ownProviderBadge": "Tu propio proveedor de IA",
+    "freeAllowanceNote": "Sin clave propia, tu cuenta recibe una asignación gratuita mensual de IA en el modelo predeterminado de esta instancia, mientras dure la reserva mensual compartida. En cuanto añades tu propia clave, se usa esa."
   },
   "tour": {
     "label": "Recorrido del producto",

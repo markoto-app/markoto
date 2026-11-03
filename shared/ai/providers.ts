@@ -167,6 +167,18 @@ export const RECOMMENDED_SAAS_ALLOWED_BASE_URLS: readonly string[] = PROVIDER_PR
 export const MISTRAL_API_HOST = 'api.mistral.ai'
 
 /**
+ * Mistral's EU regional endpoint (inference in EU / EFTA data centres;
+ * the global `api.mistral.ai` makes no location commitment). Every call
+ * the platform pays — LiteLLM deployments and the live-dictation
+ * WebSocket on the operator's key — goes here. A user's own Mistral key
+ * works on either host.
+ */
+export const MISTRAL_EU_API_HOST = 'api.eu.mistral.ai'
+
+/** Hosts whose Mistral transcription key unlocks live dictation (the realtime WS goes to the same host). */
+export const MISTRAL_LIVE_DICTATION_HOSTS: readonly string[] = [MISTRAL_API_HOST, MISTRAL_EU_API_HOST]
+
+/**
  * Normalise a provider base URL for storage + comparison: trims
  * whitespace and trailing slashes. Returns null when the input isn't
  * an absolute URL. Does NOT apply any security policy — see

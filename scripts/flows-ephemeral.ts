@@ -157,7 +157,13 @@ const FLOWS_ENV: Record<string, string> = {
   // private-network opt-in lets the `ai-provider-settings` flow save the
   // fake OpenAI-compatible provider (docker-compose.test.yml
   // `fake-openai-test`) at the docker bridge address.
-  NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603',
+  // Chat runs on the hosted free-allowance model (Z.ai GLM-5.3 Flash on
+  // Mistral's EU endpoint) inside the same shared monthly pool the hosted
+  // SaaS uses (NUXT_FREE_TIER_TOTAL_BUDGET_USD → LiteLLM team), so the
+  // live-AI flows exercise the hosted default. Image / transcription keep
+  // the bundled aliases so those flows still run.
+  NUXT_AI_DEFAULT_CHAT_MODEL: 'zai-glm-5-3-flash',
+  NUXT_FREE_TIER_TOTAL_BUDGET_USD: '500',
   NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-2-pro',
   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
   NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'true',

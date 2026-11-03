@@ -6,6 +6,12 @@ export interface AiCredits {
   plan: PlanName
   periodEnd: string
   attribution: 'user' | 'workspace'
+  /**
+   * The shared monthly free-tier pool (hosted SaaS): null when the plan
+   * isn't pooled. `exhausted` = nobody on the free tier can use the
+   * platform-paid AI until `resetsAt`, whatever their own points say.
+   */
+  freeAllowance?: { pooled: boolean, exhausted: boolean, resetsAt: string | null } | null
 }
 
 /**
@@ -75,6 +81,7 @@ export function useAiCredits(workspaceId?: string | null) {
   })
   const isLow = computed(() => fillRatio.value > 0 && fillRatio.value < 0.1)
   const isExhausted = computed(() => fillRatio.value <= 0)
+  const isFreeAllowanceExhausted = computed(() => state.value?.freeAllowance?.exhausted === true)
   // Phase 7: when (+) is active for this workspace the displayed pool
   // is the SPONSOR's. Members can't upgrade themselves out of an
   // exhausted shared budget — only the workspace owner can. Surface
@@ -91,6 +98,7 @@ export function useAiCredits(workspaceId?: string | null) {
     fillRatio,
     isLow,
     isExhausted,
+    isFreeAllowanceExhausted,
     attribution,
     isWorkspaceShared,
     refresh

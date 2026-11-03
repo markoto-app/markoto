@@ -6,6 +6,7 @@ import { getTiers } from '~~/server/utils/tierConfig'
 import type { PlanName } from '~~/shared/config/tiers'
 import { encryptToken, decryptToken } from './tokenCrypto'
 import { litellmAdminFetch } from './litellmAdmin'
+import { ensureFreeTierTeam, ensureFreeTierTeamMember, teamIdForPlan } from './freeTierTeam'
 
 // Per-user LiteLLM virtual-key CRUD. Single source of truth for the
 // user's AI budget. Every billable AI call goes through
@@ -82,10 +83,14 @@ interface UserKeyHandle {
  */
 export async function createUserKey(userId: number, plan: PlanName): Promise<UserKeyHandle> {
   const budget = planToBudgetUsd(plan, getTiers())
+  // Free-tier keys join the shared monthly pool (`freeTierTeam.ts`) when
+  // a global ceiling is configured; the team must exist first.
+  const teamId = teamIdForPlan(plan) === null ? null : await ensureFreeTierTeam()
   const res = await litellmAdminFetch('/key/generate', {
     method: 'POST',
     body: JSON.stringify({
       max_budget: budget,
+      ...(teamId ? { team_id: teamId } : {}),
       // Monthly spend reset. LiteLLM resets `spend` to 0 every
       // `budget_duration` (reset date lands on the 1st of the month —
       // matches the "resets on the first" copy in the AI Points UI). This
@@ -176,11 +181,17 @@ export async function updateUserKeyBudget(userId: number, plan: PlanName): Promi
   if (isStubMode()) return
   const handle = await ensureUserKey(userId, plan)
   const budget = planToBudgetUsd(plan, getTiers())
+  // Join / leave the free-tier pool with the plan: a paid plan must not be
+  // capped by (nor spend) the free users' shared ceiling. `null` detaches.
+  const teamId = teamIdForPlan(plan) === null ? null : await ensureFreeTierTeam()
+  // LiteLLM only moves a key into a team whose member its user is.
+  if (teamId) await ensureFreeTierTeamMember(userId)
   const res = await litellmAdminFetch('/key/update', {
     method: 'POST',
     body: JSON.stringify({
       key: handle.token,
       max_budget: budget,
+      team_id: teamId,
       // Keep the monthly reset schedule attached on every budget change.
       // Keys created before this field existed pick it up on their next
       // plan change; new keys already have it from /key/generate.

@@ -96,6 +96,16 @@ En cas de doute sur ce qui est autorisé, écrivez à **{{abuseContactEmail}}**.
 - **Transparence.** Lorsque l'IA travaille dans un document, elle apparaît comme un collaborateur distinct, ses réponses sont identifiées comme provenant de l'IA de markoto, et ses modifications sont enregistrées dans le journal d'activité du document comme effectuées par l'IA (ou par le client MCP qui les a effectuées). Si vous publiez un texte généré par l'IA dans le but d'informer le public sur des questions d'intérêt public, ou des images ou vidéos générées par l'IA représentant des personnes, des lieux ou des événements réels, il vous appartient d'indiquer qu'il s'agit d'un contenu généré par l'IA lorsque la loi l'exige (par exemple l'article 50 du règlement sur l'IA de l'UE).
 - **Fournisseurs.** Sauf si vous connectez votre propre fournisseur, les requêtes d'IA sont transmises aux fournisseurs indiqués dans notre politique de confidentialité. Leurs propres filtres de sécurité peuvent refuser une requête.
 
+### Allocation d'IA gratuite
+
+Si vous êtes connecté à votre compte et n'avez pas configuré votre propre fournisseur pour l'assistant de rédaction, vous pouvez l'utiliser dans la limite d'une allocation mensuelle gratuite :
+
+- L'allocation fonctionne avec le modèle GLM-5.3 Flash de Z.ai, fourni par Mistral AI dans l'UE (voir la Politique de confidentialité).
+- Chaque compte dispose d'une limite mensuelle, et tous les comptes gratuits partagent une réserve mensuelle commune. L'allocation n'est disponible que tant que la réserve de ce mois n'est pas épuisée ; les deux sont remises à zéro au début de chaque mois. L'allocation non utilisée n'est pas reportée et n'a aucune valeur monétaire.
+- L'allocation est fournie gratuitement et **« en l'état »**, sans garantie de disponibilité, de qualité ni d'un modèle particulier. Il s'agit d'une limite d'utilisation au sens du point 3 : nous pouvons modifier le modèle, les limites ou la réserve, ou mettre fin à l'allocation.
+- N'essayez pas de contourner ces limites, par exemple en utilisant plusieurs comptes.
+- Dès que vous configurez votre propre fournisseur pour l'assistant de rédaction, il est utilisé à la place de l'allocation.
+
 ### Votre propre fournisseur d'IA (apportez votre propre clé)
 
 Vous pouvez connecter votre propre compte de fournisseur d'IA (discussion, génération d'images et transcription vocale séparément). Dans ce cas :
@@ -160,7 +170,7 @@ Nous pouvons modifier les présentes conditions, par exemple pour tenir compte d
 
 Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}}**.
 
-- **v3 (2026-11-03).** Documents anonymes (vérification anti-robots, acceptation des conditions, nettoyage après 30 jours, suppression uniquement par le navigateur créateur) ; article complet sur l'utilisation acceptable ; modération des contenus et traitement des réclamations au titre du règlement sur les services numériques ; âge minimal de 16 ans partout ; sanctions et une personne par compte ; propriété, exactitude et transparence des résultats de l'IA ; fonctionnalités bêta ; nouvelle clause de responsabilité avec plafond fixe, garantie contre les réclamations de tiers pour les utilisateurs professionnels, for ; préavis de 30 jours pour les modifications ; dispositions générales.
+- **v3 (2026-11-03).** Documents anonymes (vérification anti-robots, acceptation des conditions, nettoyage après 30 jours, suppression uniquement par le navigateur créateur) ; article complet sur l'utilisation acceptable ; modération des contenus et traitement des réclamations au titre du règlement sur les services numériques ; âge minimal de 16 ans partout ; sanctions et une personne par compte ; propriété, exactitude et transparence des résultats de l'IA ; fonctionnalités bêta ; nouvelle clause de responsabilité avec plafond fixe, garantie contre les réclamations de tiers pour les utilisateurs professionnels, for ; préavis de 30 jours pour les modifications ; dispositions générales. Allocation d'IA gratuite pour les utilisateurs connectés, dans le cadre d'une limite mensuelle par compte et d'une réserve mensuelle commune, sans garantie (point 7).
 - **v2 (2026-10-26).** Alignement sur le service exclusivement gratuit : aucune offre payante ni condition de paiement en vigueur, usage raisonnable et limites, nettoyage des documents anonymes, responsabilités liées à la connexion d'un fournisseur d'IA personnel, clauses « en l'état » et d'interruption du service.
 - **v1 (2026-05-04).** Publication initiale.
 

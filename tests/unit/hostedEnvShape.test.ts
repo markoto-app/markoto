@@ -11,8 +11,9 @@ import { byokUrlPolicyErrors } from '../../server/utils/aiProviders/config'
 // gets when the GitHub Environment sets only the required secrets:
 // billing off, plans "coming soon", legal surfaces on, BYOK limited to
 // the known providers (the SSRF allowlist must match shared/ai/providers.ts),
-// no instance AI defaults (chat/image/transcription are BYOK on the SaaS)
-// and no OIDC login. infra/render-env-parity-test.sh separately proves the
+// the free AI allowance (chat default = the GLM-5.3 Flash alias, $0.50 per
+// user and $500 in total per month; image / transcription stay BYOK) and
+// no OIDC login. infra/render-env-parity-test.sh separately proves the
 // two renderers agree for a given value set.
 
 const ROOT = resolve(__dirname, '../..')
@@ -69,10 +70,39 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(vars.get('NUXT_AI_BYOK_ALLOW_PRIVATE_URLS')).toBe('false')
   })
 
-  it('sets no instance AI defaults (chat, image and transcription are BYOK)', () => {
-    const defaults = [...vars].filter(([k]) => k.startsWith('NUXT_AI_DEFAULT_'))
-    expect(defaults.length).toBeGreaterThan(0)
+  it('gives signed-in users the free AI allowance: chat on the platform-paid GLM-5.3 Flash alias', () => {
+    expect(vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')).toBe('zai-glm-5-3-flash')
+    expect(vars.get('NUXT_AI_DEFAULT_CHAT_VISION')).toBe('true')
+    // An alias, not an endpoint: platform-paid through LiteLLM, never clientside credentials.
+    expect(vars.get('NUXT_AI_DEFAULT_CHAT_BASE_URL')).toBe('')
+    expect(vars.get('NUXT_AI_DEFAULT_CHAT_API_KEY')).toBe('')
+  })
+
+  it('caps it at $0.50 per user and $500 in total per month', () => {
+    expect(vars.get('TIER_FREE_LITELLM_BUDGET_USD')).toBe('0.5')
+    expect(vars.get('NUXT_FREE_TIER_TOTAL_BUDGET_USD')).toBe('500')
+  })
+
+  it('the chat default is a deployment in infra/litellm/config.yaml', () => {
+    const config = readFileSync(resolve(ROOT, 'infra/litellm/config.yaml'), 'utf8')
+    expect(config).toContain(`- model_name: ${vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')}\n`)
+  })
+
+  it('sets no image or transcription default (those stay BYOK)', () => {
+    const defaults = [...vars].filter(([k]) => /^NUXT_AI_DEFAULT_(IMAGE|TRANSCRIBE)_/.test(k))
+    expect(defaults.length).toBe(6)
     for (const [k, v] of defaults) expect(v, k).toBe('')
+  })
+
+  it('each free-allowance default can be overridden by an Environment variable', () => {
+    const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/bin:/bin' }
+    for (const name of REQUIRED) env[name] = `test-${name.toLowerCase()}`
+    Object.assign(env, { NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603', TIER_FREE_LITELLM_BUDGET_USD: '2', NUXT_FREE_TIER_TOTAL_BUDGET_USD: '0' })
+    const out = spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
+    expect(out.status, out.stderr).toBe(0)
+    expect(out.stdout).toContain('\nNUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603\n')
+    expect(out.stdout).toContain('\nTIER_FREE_LITELLM_BUDGET_USD=2\n')
+    expect(out.stdout).toContain('\nNUXT_FREE_TIER_TOTAL_BUDGET_USD=0\n')
   })
 
   it('keeps the hosted embeddings (empty overrides = Jina default in compose)', () => {
@@ -87,6 +117,13 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
 
 describe('Ansible env.j2 hosted defaults', () => {
   const template = readFileSync(resolve(ROOT, 'infra/templates/env.j2'), 'utf8')
+
+  it('uses the same free-allowance defaults as render-env.sh', () => {
+    expect(template).toContain('NUXT_AI_DEFAULT_CHAT_MODEL={{ nuxt_ai_default_chat_model | default(\'zai-glm-5-3-flash\') }}')
+    expect(template).toContain('NUXT_AI_DEFAULT_CHAT_VISION={{ nuxt_ai_default_chat_vision | default(\'true\') | string | lower }}')
+    expect(template).toContain('TIER_FREE_LITELLM_BUDGET_USD={{ tier_free_litellm_budget_usd | default(\'0.5\') }}')
+    expect(template).toContain('NUXT_FREE_TIER_TOTAL_BUDGET_USD={{ nuxt_free_tier_total_budget_usd | default(\'500\') }}')
+  })
 
   it('uses the same BYOK allowlist default as shared/ai/providers.ts', () => {
     const m = /NUXT_AI_BYOK_ALLOWED_BASE_URLS=\{\{ nuxt_ai_byok_allowed_base_urls \| default\('([^']*)'\) \}\}/.exec(template)

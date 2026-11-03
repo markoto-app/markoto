@@ -189,7 +189,9 @@ function buildAssistantMessage(parts: Part[]): OAIMessage {
         type: 'function',
         function: {
           name: p.functionCall.name ?? '',
-          arguments: JSON.stringify(p.functionCall.args ?? {})
+          // Byte-identical replay of what the model generated (prompt
+          // caching); re-serialised args only when the raw text is absent.
+          arguments: p.functionCall.rawArgs ?? JSON.stringify(p.functionCall.args ?? {})
         }
       })
     }
@@ -273,10 +275,13 @@ export async function* openAIStreamToInternalChunks(
 ): AsyncGenerator<StreamChunk, void, unknown> {
   const accum = new Map<number, AccumulatingToolCall>()
   let finishReason: string | undefined
-  let promptTokens: number | undefined
-  let completionTokens: number | undefined
+  const usage: StreamUsage = {}
 
   for await (const chunk of stream) {
+    // Usage arrives on the FINAL chunk (via `stream_options:
+    // {include_usage: true}`), which carries `choices: []` — read it
+    // before the choice guard below, or it is skipped.
+    if (chunk.usage) readStreamUsage(chunk.usage, usage)
     const choice = chunk.choices?.[0]
     if (!choice) continue
     const delta = choice.delta as OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta | undefined
@@ -287,15 +292,25 @@ export async function* openAIStreamToInternalChunks(
     }
     if (delta?.tool_calls) accumulateToolCallDeltas(delta.tool_calls, accum)
     if (choice.finish_reason) finishReason = choice.finish_reason
-    // Usage arrives on the FINAL chunk (via `stream_options:
-    // {include_usage: true}`). Mistral provides it in the last chunk.
-    if (chunk.usage) {
-      promptTokens = chunk.usage.prompt_tokens
-      completionTokens = chunk.usage.completion_tokens
-    }
   }
 
-  yield buildTerminalChunk(accum, finishReason, promptTokens, completionTokens)
+  yield buildTerminalChunk(accum, finishReason, usage)
+}
+
+interface StreamUsage {
+  promptTokens?: number
+  completionTokens?: number
+  cachedTokens?: number
+  reasoningTokens?: number
+}
+
+function readStreamUsage(u: OpenAI.Completions.CompletionUsage, out: StreamUsage): void {
+  out.promptTokens = u.prompt_tokens
+  out.completionTokens = u.completion_tokens
+  const cached = u.prompt_tokens_details?.cached_tokens
+  if (typeof cached === 'number') out.cachedTokens = cached
+  const reasoning = u.completion_tokens_details?.reasoning_tokens
+  if (typeof reasoning === 'number') out.reasoningTokens = reasoning
 }
 
 /** Wrap a streamed text delta in the internal chunk shape. */
@@ -342,15 +357,17 @@ function accumulateToolCallDeltas(
 function buildTerminalChunk(
   accum: Map<number, AccumulatingToolCall>,
   finishReason: string | undefined,
-  promptTokens: number | undefined,
-  completionTokens: number | undefined
+  usage: StreamUsage
 ): StreamChunk {
   const calls: NonNullable<StreamChunk['functionCalls']> = []
   const modelParts: Part[] = []
   for (const [, t] of accum) {
     const parsedArgs = parseToolCallArgs(t.argsBuffer)
     calls.push({ id: t.id, name: t.name, args: parsedArgs })
-    modelParts.push({ functionCall: { id: t.id, name: t.name, args: parsedArgs } })
+    // Keep the raw argument text only when it is the JSON we parsed —
+    // replaying a malformed buffer would make the next request invalid.
+    const rawArgs = rawArgsIfValid(t.argsBuffer)
+    modelParts.push({ functionCall: { id: t.id, name: t.name, args: parsedArgs, ...(rawArgs === null ? {} : { rawArgs }) } })
   }
   return {
     candidates: [{
@@ -359,10 +376,21 @@ function buildTerminalChunk(
     }],
     functionCalls: calls.length > 0 ? calls : undefined,
     usageMetadata: {
-      promptTokenCount: promptTokens,
-      candidatesTokenCount: completionTokens,
-      thoughtsTokenCount: undefined
+      promptTokenCount: usage.promptTokens,
+      candidatesTokenCount: usage.completionTokens,
+      thoughtsTokenCount: usage.reasoningTokens,
+      cachedContentTokenCount: usage.cachedTokens
     }
+  }
+}
+
+function rawArgsIfValid(buf: string): string | null {
+  if (!buf || buf.trim().length === 0) return null
+  try {
+    const parsed: unknown = JSON.parse(buf)
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? buf : null
+  } catch {
+    return null
   }
 }
 

@@ -5,6 +5,7 @@ import {
   RealtimeTranscription
 } from '@mistralai/mistralai/extra/realtime'
 import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { MISTRAL_EU_API_HOST } from '../../../shared/ai/providers'
 
 // Factory for the dictate streaming client. Phase 7: cloud-stt path
 // removed — voxtral realtime is the only path. The mock-streaming
@@ -109,26 +110,33 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
 // codec change. The pre-Phase-5 (Cloud STT) MP4/AAC rejection (Safari
 // quirk) may disappear under Voxtral — verify in a future safari pass.
 
+/** Mistral's EU regional endpoint — the default for every platform-paid realtime stream. */
+export const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
+
 /**
  * `apiKey` is the Mistral key that pays for the stream: the user's own
- * (BYOK transcription provider on api.mistral.ai) or the operator's
- * `MISTRAL_API_KEY` when the instance default is a platform alias.
+ * (BYOK transcription provider on api.mistral.ai or api.eu.mistral.ai) or
+ * the operator's `MISTRAL_API_KEY` when the instance default is a platform
+ * alias. `serverURL` is the Mistral server the WebSocket opens against —
+ * the EU endpoint unless the user's own key is configured for another host
+ * (`liveDictationTarget`). The SDK's own default is the global endpoint,
+ * which makes no location commitment, so it is always passed explicitly.
  */
-export function createDictateRealtimeClient(apiKey: string, model: string = DEFAULT_REALTIME_MODEL): SpeechClientLike {
+export function createDictateRealtimeClient(apiKey: string, model: string = DEFAULT_REALTIME_MODEL, serverURL: string = MISTRAL_EU_SERVER_URL): SpeechClientLike {
   if (isTestModeEnabled() && (
     process.env.NUXT_VOXTRAL_REALTIME_MOCK === '1'
     || process.env.NUXT_GOOGLE_SPEECH_MOCK === '1'
   )) {
     return new MockRealtimeClient()
   }
-  return new VoxtralRealtimeClient(apiKey, model)
+  return new VoxtralRealtimeClient(apiKey, model, serverURL)
 }
 
 class VoxtralRealtimeClient implements SpeechClientLike {
-  constructor(private readonly apiKey: string, private readonly model: string) {}
+  constructor(private readonly apiKey: string, private readonly model: string, private readonly serverURL: string) {}
 
   streamingRecognize(req: StreamingRecognizeRequest): SpeechStream {
-    const stream = new VoxtralRealtimeStream(this.apiKey, this.model, req)
+    const stream = new VoxtralRealtimeStream(this.apiKey, this.model, req, this.serverURL)
     stream.start()
     return stream
   }
@@ -150,17 +158,19 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   private readonly waiters: Array<(value: Uint8Array | null) => void> = []
   private readonly apiKey: string
   private readonly model: string
+  private readonly serverURL: string
   private readonly req: StreamingRecognizeRequest
   private ended = false
   private aborted = false
   private finalText = ''
   private partialText = ''
 
-  constructor(apiKey: string, model: string, req: StreamingRecognizeRequest) {
+  constructor(apiKey: string, model: string, req: StreamingRecognizeRequest, serverURL: string) {
     super()
     this.apiKey = apiKey
     this.model = model
     this.req = req
+    this.serverURL = serverURL
   }
 
   /** Spawn the upstream-pump task. Called by the factory immediately after construction so the constructor itself stays synchronous (S7059). */
@@ -186,7 +196,7 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
 
   private async run(apiKey: string, req: StreamingRecognizeRequest): Promise<void> {
     try {
-      const client = new RealtimeTranscription({ apiKey })
+      const client = new RealtimeTranscription({ apiKey, serverURL: this.serverURL })
       // Voxtral's batch transcribe model id, in realtime variant. Using
       // the purpose-built realtime-transcribe (not generic realtime
       // chat) — same logic as Phase 2: dedicated transcription beats

@@ -20,7 +20,13 @@
 export interface AgenticPart {
   text?: string
   inlineData?: { mimeType?: string, data?: string }
-  functionCall?: { id?: string, name?: string, args?: unknown }
+  /**
+   * `rawArgs`: the argument JSON exactly as the model streamed it. Replayed
+   * verbatim in later turns (instead of re-serialising `args`) so the
+   * history stays byte-identical to what the provider generated — the
+   * prompt-cache prefix must not change between turns.
+   */
+  functionCall?: { id?: string, name?: string, args?: unknown, rawArgs?: string }
   functionResponse?: {
     id?: string
     name?: string
@@ -114,6 +120,8 @@ export interface AgenticGenerateContentResponse {
     promptTokenCount?: number
     candidatesTokenCount?: number
     thoughtsTokenCount?: number
+    /** Prompt tokens served from the provider's prompt cache (`usage.prompt_tokens_details.cached_tokens`). */
+    cachedContentTokenCount?: number
   }
 }
 

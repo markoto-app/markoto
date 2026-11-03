@@ -563,7 +563,7 @@ async function handleAuth(
     ctx.workspaceId = null
   }
 
-  const client = createDictateRealtimeClient(target.apiKey, target.model)
+  const client = createDictateRealtimeClient(target.apiKey, target.model, target.serverURL)
 
   // Normalize language: accept either BCP-47 (`de-DE`) or the short
   // ISO 639-1 UI locale (`de`). Defaults to en-US if nothing usable

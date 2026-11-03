@@ -502,6 +502,12 @@ useHead({
         <p>{{ billingEnabled ? t('pricing.footnote') : t('pricing.freeFootnote') }}</p>
         <p
           v-if="plansComingSoon"
+          data-testid="pricing-free-allowance-note"
+        >
+          {{ t('pricing.freeAllowanceNote') }}
+        </p>
+        <p
+          v-if="plansComingSoon"
           data-testid="pricing-coming-soon-footnote"
         >
           {{ t('pricing.comingSoonFootnote') }}

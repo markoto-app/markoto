@@ -74,6 +74,12 @@ function configFor(capability: AiCapability): AiProviderConfigView | null {
   return data.value?.providers.find(p => p.capability === capability) ?? null
 }
 
+// The instance has a platform-paid chat default AND the user's key draws
+// on the shared monthly free pool (hosted SaaS): say what they get
+// without a key of their own.
+const { state: aiCredits } = useAiCredits()
+const freeAllowancePooled = computed(() => data.value?.instanceDefaults.chat === true && aiCredits.value?.freeAllowance?.pooled === true)
+
 const allowlistText = computed(() => {
   const list = data.value?.policy.allowedBaseUrls ?? []
   return list.map(u => u.replace(/^https?:\/\//, '')).join(', ')
@@ -112,6 +118,13 @@ const allowlistText = computed(() => {
         </p>
         <p class="text-sm text-muted">
           {{ t('aiProvider.platformNote') }}
+        </p>
+        <p
+          v-if="freeAllowancePooled"
+          class="text-sm text-muted mt-2"
+          data-testid="ai-provider-free-allowance-note"
+        >
+          {{ t('aiProvider.freeAllowanceNote') }}
         </p>
       </header>
 

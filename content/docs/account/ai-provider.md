@@ -8,9 +8,12 @@ featured: true
 
 # Use your own AI provider
 
-markoto's AI features run on a provider account you connect. This is how the
-AI works on markoto.app, and it works the same way on any self-hosted
-instance (where the operator may also have set defaults, see [what the AI
+markoto's AI features can run on a provider account you connect. On
+markoto.app the writing assistant also works without one, on a monthly
+[free AI allowance](/docs/writing/ai-overview#the-free-ai-allowance-on-markotoapp);
+your own key takes over as soon as you add it, with no allowance or pool
+limits. Images and voice need your own provider there. Self-hosted instances
+work the same way, with whatever defaults the operator set ([what the AI
 needs](/docs/writing/ai-overview)).
 
 Open **Settings -> AI provider** (at `/settings/ai`, or the key icon in the AI
@@ -18,7 +21,7 @@ prompt bar) and connect a provider separately for each capability:
 
 | Capability | Used for | Needed? |
 |---|---|---|
-| **Writing assistant** | The prompt bar, selection rewrite, `@markoto` in comments, and summaries of web search and fetched pages. The model must support **tool calling**. | Yes, for any AI feature |
+| **Writing assistant** | The prompt bar, selection rewrite, `@markoto` in comments, and summaries of web search and fetched pages. The model must support **tool calling**. | Only if the instance has no default (on markoto.app: optional, the free allowance covers it) |
 | **Image generation** | Lets the assistant create images. Uses the provider's OpenAI-compatible images API. | Optional. Without it the assistant doesn't draw. |
 | **Voice transcription** | The microphone in the prompt bar. A **Mistral** key also turns on [live dictation](/docs/writing/voice-dictate). | Optional. Without it the microphone is hidden. |
 

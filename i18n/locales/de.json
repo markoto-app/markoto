@@ -531,7 +531,11 @@
     "budgetExhaustedResetDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt.",
     "webToolsHourlyLimit": "Sie haben das stündliche Limit für Websuche und Seitenabruf erreicht. Versuchen Sie es innerhalb der nächsten Stunde erneut oder arbeiten Sie ohne Web-Werkzeuge weiter.",
     "webToolsDailyLimit": "Sie haben das Tageslimit für Websuche und Seitenabruf erreicht. Versuchen Sie es morgen erneut oder arbeiten Sie ohne Web-Werkzeuge weiter.",
-    "budgetExhaustedComingSoonDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt — Bezahlpläne mit mehr Credits folgen in Kürze."
+    "budgetExhaustedComingSoonDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt — Bezahlpläne mit mehr Credits folgen in Kürze.",
+    "freeAllowanceExhaustedTitle": "Kostenloses KI-Kontingent aufgebraucht",
+    "freeAllowanceExhausted": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht. Hinterlegen Sie unter Einstellungen → KI-Anbieter Ihren eigenen Schlüssel, um weiterzumachen.",
+    "freeAllowanceCta": "Eigenen Schlüssel hinterlegen",
+    "freeAllowanceExhaustedPlaceholder": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht – hinterlegen Sie Ihren eigenen Schlüssel"
   },
   "mobileTabBar": {
     "label": "Dokument-Panels",
@@ -597,7 +601,8 @@
       "pro": "Für Einzelpersonen: mehr KI-Punkte, Workspaces und Speicher.",
       "max": "Für kleine Teams: Übernehmen Sie die KI-Punkte aller Mitglieder eines Ihrer Workspaces.",
       "ultra": "Für größere Teams: Workspace-Sponsoring mit dem größten Kontingent."
-    }
+    },
+    "freeAllowanceNote": "Das kostenlose KI-Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, und steht zur Verfügung, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlegen Sie unter Einstellungen → KI-Anbieter Ihren eigenen Schlüssel."
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -1442,7 +1447,9 @@
     "cta": {
       "promptBar": "Hinterlege deinen API-Schlüssel in den Einstellungen, um den KI-Assistenten zu nutzen",
       "openSettings": "KI-Anbieter-Einstellungen öffnen"
-    }
+    },
+    "ownProviderBadge": "Eigener KI-Anbieter",
+    "freeAllowanceNote": "Ohne eigenen Schlüssel erhält dein Konto ein monatliches kostenloses KI-Kontingent auf dem Standardmodell dieser Instanz – solange der gemeinsame Monatstopf reicht. Sobald du einen eigenen Schlüssel hinterlegst, wird dieser verwendet."
   },
   "tour": {
     "label": "Produkttour",

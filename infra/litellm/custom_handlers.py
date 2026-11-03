@@ -206,9 +206,9 @@ bfl_flux_provider = BFLFluxProvider()
 # Provider 2 — Voxtral Realtime voice-tick (billing-only stub)
 # -----------------------------------------------------------------------------
 # Strategy: report exactly 60 completion_tokens per call. Set
-#   model_info.output_cost_per_token: 0.0001
-# in config.yaml so each tick costs 60 × $0.0001 = $0.006 (1 minute of Voxtral
-# Realtime). The dictate orchestrator hits this once per minute of audio.
+#   model_info.output_cost_per_token: 0.00011
+# in config.yaml so each tick costs 60 × $0.00011 = $0.0066 (1 minute of Voxtral
+# Realtime on Mistral's EU endpoint, 1.1x list). The dictate orchestrator hits this once per minute of audio.
 # Direct upstream call to Voxtral Realtime stays in our app's WS handler.
 
 # -----------------------------------------------------------------------------
@@ -321,7 +321,9 @@ jina_embeddings_provider = JinaEmbeddingsProvider()
 # `choices[0].message.content` is the plain transcript. server/api/ai/
 # transcribe.post.ts is the only consumer.
 
-_MISTRAL_TRANSCRIBE_API = "https://api.mistral.ai/v1/audio/transcriptions"
+# EU regional endpoint: inference in EU / EFTA data centres (the default
+# api.mistral.ai makes no location commitment). Billed at 1.1x list.
+_MISTRAL_TRANSCRIBE_API = "https://api.eu.mistral.ai/v1/audio/transcriptions"
 
 
 class MistralTranscribeProvider(CustomLLM):
@@ -411,8 +413,8 @@ _VOXTRAL_TICK_TOKENS = 60  # × output_cost_per_token in config = per-tick cost
 
 class VoxtralTickProvider(CustomLLM):
     """Billing-only stub. Returns instantly. Reports usage so LiteLLM bills the
-    requesting key. Cost = output_cost_per_token (config) × 60 tokens = $0.006
-    per call = 1 minute of Voxtral Realtime."""
+    requesting key. Cost = output_cost_per_token (config) × 60 tokens = $0.0066
+    per call = 1 minute of Voxtral Realtime (EU endpoint price)."""
 
     async def acompletion(  # type: ignore[override]
         self, *args, **kwargs
