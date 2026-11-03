@@ -523,7 +523,11 @@
     "budgetExhaustedResetDescription": "You've used all your AI credits for this period. They refill when the next period starts.",
     "webToolsHourlyLimit": "You've reached the hourly limit for web search and page fetching. Try again within the hour, or continue without web tools.",
     "webToolsDailyLimit": "You've reached the daily limit for web search and page fetching. Try again tomorrow, or continue without web tools.",
-    "budgetExhaustedComingSoonDescription": "You've used all your AI credits for this period. They refill when the next period starts — paid plans with more credits are coming soon."
+    "budgetExhaustedComingSoonDescription": "You've used all your AI credits for this period. They refill when the next period starts — paid plans with more credits are coming soon.",
+    "freeAllowanceExhaustedTitle": "Free AI allowance used up",
+    "freeAllowanceExhausted": "This month's free AI allowance is used up. Add your own key in Settings → AI provider to keep going.",
+    "freeAllowanceCta": "Add your own key",
+    "freeAllowanceExhaustedPlaceholder": "This month's free AI allowance is used up — add your own key to keep going"
   },
   "mobileTabBar": {
     "label": "Document panels",
@@ -589,7 +593,8 @@
       "pro": "For solo writers: more AI Points, workspaces and storage.",
       "max": "For small teams: sponsor the AI Points of everyone in a workspace you own.",
       "ultra": "For larger teams: workspace sponsoring with the biggest allowance."
-    }
+    },
+    "freeAllowanceNote": "The free AI allowance runs on a model hosted by Mistral AI in the EU and is available while this month's shared free pool lasts. Add your own provider key in Settings → AI provider for more."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1449,7 +1454,9 @@
     "cta": {
       "promptBar": "Add your API key in Settings to use the AI assistant",
       "openSettings": "Open AI provider settings"
-    }
+    },
+    "ownProviderBadge": "Your own AI provider",
+    "freeAllowanceNote": "Without your own key, your account gets a monthly free AI allowance on this instance's default model, while the shared monthly pool lasts. As soon as you add your own key, it is used instead."
   },
   "tour": {
     "label": "Product tour",

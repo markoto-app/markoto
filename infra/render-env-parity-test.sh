@@ -58,6 +58,7 @@ nuxt_ai_byok_allow_private_urls=True
 nuxt_billing_enabled=false
 nuxt_plans_coming_soon=true
 tier_free_litellm_budget_usd=7
+nuxt_free_tier_total_budget_usd=250
 tier_free_workspaces_owned=3
 tier_free_knowledge_files=40
 tier_free_knowledge_bytes_per_workspace=1000

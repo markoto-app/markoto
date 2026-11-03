@@ -3,6 +3,7 @@ import { getUserKeyInfo } from '../../utils/litellmKeys'
 import { getWorkspaceRole } from '../../utils/workspaceAccess'
 import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/tierConfig'
+import { freeAllowanceView } from '../../utils/freeAllowance'
 
 /**
  * GET /api/ai/credits — AI Points UI data source.
@@ -19,6 +20,8 @@ import { getTiers } from '~~/server/utils/tierConfig'
  *   2. `getUserKeyInfo(billingUserId, plan)` for live spend +
  *      max_budget from the LiteLLM proxy.
  *   3. Convert: `pointsRemaining = (max_budget - spend) × 1000`.
+ *   4. `freeAllowance`: the shared monthly free-tier pool's state
+ *      (`{pooled, exhausted, resetsAt}`), null when not pooled.
  *
  * Auth-gated. Anonymous users have no AI budget — the endpoint is
  * not whitelisted in middleware/auth.ts.
@@ -56,12 +59,18 @@ export default defineEventHandler(async (event) => {
   const remainingDollars = Math.max(0, info.maxBudget - info.spend)
   const pointsRemaining = dollarsToPoints(remainingDollars)
   const pointsTotal = planToPointsTotal(billing.plan, getTiers())
+  // Free tier on an instance with a global monthly ceiling: the key also
+  // draws on the shared pool (`litellm/freeTierTeam.ts`). When the pool is
+  // used up the user's own points don't help — the UI says so and links
+  // the own-key settings instead. Null when the plan isn't pooled.
+  const freeAllowance = await freeAllowanceView(billing.plan)
 
   return {
     pointsRemaining,
     pointsTotal,
     plan: billing.plan,
     periodEnd: billing.periodEnd.toISOString(),
-    attribution: billing.attribution
+    attribution: billing.attribution,
+    freeAllowance
   }
 })

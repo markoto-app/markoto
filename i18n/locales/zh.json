@@ -523,7 +523,11 @@
     "budgetExhaustedResetDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充。",
     "webToolsHourlyLimit": "您已达到网页搜索和页面抓取的每小时上限。请在一小时内重试，或不使用网页工具继续。",
     "webToolsDailyLimit": "您已达到网页搜索和页面抓取的每日上限。请明天再试，或不使用网页工具继续。",
-    "budgetExhaustedComingSoonDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充；额度更多的付费方案即将推出。"
+    "budgetExhaustedComingSoonDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充；额度更多的付费方案即将推出。",
+    "freeAllowanceExhaustedTitle": "免费 AI 额度已用完",
+    "freeAllowanceExhausted": "本月的免费 AI 额度已用完。请在 设置 → AI 服务商 中添加你自己的密钥以继续使用。",
+    "freeAllowanceCta": "添加自己的密钥",
+    "freeAllowanceExhaustedPlaceholder": "本月的免费 AI 额度已用完——添加你自己的密钥即可继续"
   },
   "mobileTabBar": {
     "label": "文档面板",
@@ -589,7 +593,8 @@
       "pro": "面向个人：更多 AI 点数、工作区和存储空间。",
       "max": "面向小团队：为你拥有的工作区中的每个人承担 AI 点数。",
       "ultra": "面向更大的团队：额度最大的工作区赞助。"
-    }
+    },
+    "freeAllowanceNote": "免费 AI 额度使用由 Mistral AI 在欧盟托管的模型，在本月共享额度用完之前可用。如需更多，请在 设置 → AI 服务商 中添加你自己的密钥。"
   },
   "topbar": {
     "planBadge": "套餐：{plan}",
@@ -1449,7 +1454,9 @@
     "cta": {
       "promptBar": "请在设置中添加你的 API 密钥以使用 AI 助手",
       "openSettings": "打开 AI 服务商设置"
-    }
+    },
+    "ownProviderBadge": "你自己的 AI 服务商",
+    "freeAllowanceNote": "没有自己的密钥时，你的账户每月可在本实例的默认模型上获得免费 AI 额度，直至共享的月度额度用完。添加自己的密钥后即改用该密钥。"
   },
   "tour": {
     "label": "产品导览",

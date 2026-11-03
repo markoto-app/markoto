@@ -523,7 +523,11 @@
     "budgetExhaustedResetDescription": "Vous avez utilisé tous vos crédits IA pour cette période. Ils se rechargent au début de la prochaine période.",
     "webToolsHourlyLimit": "Vous avez atteint la limite horaire de recherche web et de récupération de pages. Réessayez dans l'heure ou continuez sans les outils web.",
     "webToolsDailyLimit": "Vous avez atteint la limite quotidienne de recherche web et de récupération de pages. Réessayez demain ou continuez sans les outils web.",
-    "budgetExhaustedComingSoonDescription": "Vous avez utilisé tous vos crédits IA pour cette période. Ils se rechargent au début de la prochaine période — des offres payantes avec plus de crédits arrivent bientôt."
+    "budgetExhaustedComingSoonDescription": "Vous avez utilisé tous vos crédits IA pour cette période. Ils se rechargent au début de la prochaine période — des offres payantes avec plus de crédits arrivent bientôt.",
+    "freeAllowanceExhaustedTitle": "Allocation IA gratuite épuisée",
+    "freeAllowanceExhausted": "L'allocation IA gratuite de ce mois est épuisée. Ajoutez votre propre clé dans Réglages → Fournisseur d'IA pour continuer.",
+    "freeAllowanceCta": "Ajouter votre clé",
+    "freeAllowanceExhaustedPlaceholder": "L'allocation IA gratuite de ce mois est épuisée — ajoutez votre propre clé pour continuer"
   },
   "mobileTabBar": {
     "label": "Panneaux du document",
@@ -589,7 +593,8 @@
       "pro": "Pour les rédacteurs indépendants : plus de points IA, d'espaces de travail et de stockage.",
       "max": "Pour les petites équipes : prenez en charge les points IA de tous les membres d'un de vos espaces de travail.",
       "ultra": "Pour les équipes plus grandes : le parrainage d'espace de travail avec la plus grande dotation."
-    }
+    },
+    "freeAllowanceNote": "L'allocation IA gratuite utilise un modèle hébergé par Mistral AI dans l'UE et reste disponible tant que la réserve commune de ce mois n'est pas épuisée. Pour aller plus loin, ajoutez votre propre clé dans Réglages → Fournisseur d'IA."
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
@@ -1449,7 +1454,9 @@
     "cta": {
       "promptBar": "Ajoutez votre clé d'API dans les réglages pour utiliser l'assistant d'IA",
       "openSettings": "Ouvrir les réglages du fournisseur d'IA"
-    }
+    },
+    "ownProviderBadge": "Votre propre fournisseur d'IA",
+    "freeAllowanceNote": "Sans clé personnelle, votre compte dispose d'une allocation IA gratuite mensuelle sur le modèle par défaut de cette instance, tant que la réserve mensuelle commune n'est pas épuisée. Dès que vous ajoutez votre propre clé, c'est elle qui est utilisée."
   },
   "tour": {
     "label": "Visite du produit",

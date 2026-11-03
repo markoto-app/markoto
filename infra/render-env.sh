@@ -56,6 +56,18 @@ esac
 NUXT_AI_BYOK_ALLOWED_BASE_URLS="${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-https://api.mistral.ai/v1,https://api.openai.com/v1,https://openrouter.ai/api/v1,https://api.groq.com/openai/v1,https://api.together.xyz/v1,https://api.deepinfra.com/v1/openai,https://api.fireworks.ai/inference/v1,https://api.scaleway.ai/v1}"
 NUXT_AI_BYOK_ALLOW_PRIVATE_URLS="${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}"
 
+# Free AI allowance (docs/AI-MODELS.md#free-ai-allowance). Signed-in users
+# without their own key get TIER_FREE_LITELLM_BUDGET_USD per month on the
+# platform-paid chat default (Z.ai GLM-5.3 Flash served by Mistral on its
+# EU endpoint, infra/litellm/config.yaml), all of them together capped at
+# NUXT_FREE_TIER_TOTAL_BUDGET_USD per month (a LiteLLM team budget). An
+# own key always takes precedence. Override any of these with an
+# Environment variable; there is no transcription / image default (BYOK).
+NUXT_AI_DEFAULT_CHAT_MODEL="${NUXT_AI_DEFAULT_CHAT_MODEL:-zai-glm-5-3-flash}"
+NUXT_AI_DEFAULT_CHAT_VISION="${NUXT_AI_DEFAULT_CHAT_VISION:-true}"
+TIER_FREE_LITELLM_BUDGET_USD="${TIER_FREE_LITELLM_BUDGET_USD:-0.5}"
+NUXT_FREE_TIER_TOTAL_BUDGET_USD="${NUXT_FREE_TIER_TOTAL_BUDGET_USD:-500}"
+
 # Non-secret defaults (env.j2 sources these from group_vars/all.yml).
 POSTGRES_HOST="${POSTGRES_HOST:-postgres}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
@@ -116,7 +128,7 @@ for n in \
   NUXT_AI_DEFAULT_CHAT_VISION NUXT_AI_DEFAULT_IMAGE_API_KEY NUXT_AI_DEFAULT_IMAGE_BASE_URL \
   NUXT_AI_DEFAULT_IMAGE_MODEL NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL \
   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL NUXT_AI_DICTATE_JWT_SECRET NUXT_BILLING_ENABLED \
-  NUXT_EMAIL_FROM NUXT_IMAGE_GC_RETENTION_DAYS NUXT_INTERNAL_API_SECRET NUXT_INTERNAL_API_SECRET_PREVIOUS \
+  NUXT_EMAIL_FROM NUXT_FREE_TIER_TOTAL_BUDGET_USD NUXT_IMAGE_GC_RETENTION_DAYS NUXT_INTERNAL_API_SECRET NUXT_INTERNAL_API_SECRET_PREVIOUS \
   NUXT_JWT_SECRET NUXT_JWT_SECRET_PREVIOUS NUXT_LITELLM_EMBEDDINGS_DIMS \
   NUXT_LITELLM_EMBEDDINGS_MODEL NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS NUXT_LITELLM_EMBEDDINGS_TASK_HINTS \
   NUXT_OAUTH_GITHUB_CLIENT_ID NUXT_OAUTH_GITHUB_CLIENT_SECRET NUXT_OAUTH_GOOGLE_CLIENT_ID \
@@ -226,10 +238,12 @@ EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
 EMBEDDINGS_UPSTREAM_API_BASE=${EMBEDDINGS_UPSTREAM_API_BASE:-}
 EMBEDDINGS_UPSTREAM_API_KEY=${EMBEDDINGS_UPSTREAM_API_KEY:-}
 
-# ─── Bring-your-own-key AI (WP4) ───
-# Instance defaults per capability (empty on the hosted SaaS = BYOK only).
-# MODEL alone = a LiteLLM model alias (platform-paid); MODEL + BASE_URL +
-# API_KEY = an OpenAI-compatible endpoint used like a user key.
+# ─── Bring-your-own-key AI (WP4) + free AI allowance ───
+# Instance defaults per capability. Hosted: chat = the free-allowance
+# alias (platform-paid, capped per user + in total), image / transcription
+# empty (BYOK only). MODEL alone = a LiteLLM model alias (platform-paid);
+# MODEL + BASE_URL + API_KEY = an OpenAI-compatible endpoint used like a
+# user key.
 NUXT_AI_DEFAULT_CHAT_MODEL=${NUXT_AI_DEFAULT_CHAT_MODEL:-}
 NUXT_AI_DEFAULT_CHAT_BASE_URL=${NUXT_AI_DEFAULT_CHAT_BASE_URL:-}
 NUXT_AI_DEFAULT_CHAT_API_KEY=${NUXT_AI_DEFAULT_CHAT_API_KEY:-}
@@ -242,6 +256,8 @@ NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL=${NUXT_AI_DEFAULT_TRANSCRIBE_BASE_URL:-}
 NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY=${NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY:-}
 NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS}
 NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS}
+# Global monthly ceiling (USD) on platform-paid AI for all free-tier users.
+NUXT_FREE_TIER_TOTAL_BUDGET_USD=${NUXT_FREE_TIER_TOTAL_BUDGET_USD}
 
 # ─── Billing mode ───
 NUXT_BILLING_ENABLED=${NUXT_BILLING_ENABLED}

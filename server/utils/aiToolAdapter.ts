@@ -76,6 +76,7 @@ import { searchActivity, type ActivityEntry } from '../repos/activity'
 import { plainCommentText, stripAiMention } from './agentic/commentTriggerPrompt'
 import { fetchExternalImage as fetchExternalImageGuarded, type ExternalImageResult } from './externalImage'
 import { budgetExhaustedMessage } from './billingMode'
+import { FREE_ALLOWANCE_EXHAUSTED_MESSAGE, isFreeAllowanceExhaustedError } from './litellm/freeTierTeam'
 import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
 import { NO_OP_EDIT_ERROR_PREFIX } from './agentic/editProgress'
 
@@ -1371,6 +1372,7 @@ async function generateImageBytesBfl(
     Sentry.captureException(e, {
       tags: { component: 'aiToolAdapter', event: 'image_generate_failed', provider: 'bfl' }
     })
+    if (isFreeAllowanceExhaustedError(msg)) return { error: FREE_ALLOWANCE_EXHAUSTED_MESSAGE }
     if (msg.includes('budget_exceeded') || msg.includes('Budget has been exceeded')) {
       return { error: budgetExhaustedMessage() }
     }

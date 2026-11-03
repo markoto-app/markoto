@@ -8,6 +8,7 @@ import { addAiSession, removeAiSession, DuplicateSessionError } from '../../../.
 import { createAiSession } from '../../../../../utils/aiClient'
 import { resolveBillingContext } from '../../../../../utils/billing'
 import { requireAiProviders } from '../../../../../utils/aiProviders/guard'
+import { assertFreeAllowanceAvailable } from '../../../../../utils/freeAllowance'
 import type { ResolvedAiProviders } from '../../../../../utils/aiProviders/resolve'
 import { runAgenticLoop } from '../../../../../utils/agentic/runLoop'
 import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../../../../utils/agentic/functionTools'
@@ -22,6 +23,7 @@ import {
   resolveCommentTrigger,
   COMMENT_TRIGGER_SYSTEM_PROMPT
 } from '../../../../../utils/agentic/commentTriggerPrompt'
+import { assemblePromptSystemPrompt } from '../../../../../utils/agentic/promptAssembly'
 import { openTrustedCommentClient } from '../../../../../utils/commentsServerClient'
 import type { StreamStatusPhase } from '../../../../../utils/agentic/streamStatus'
 import { wrapPromptWithEditorState } from '../../../../../utils/agentic/editorStatePrompt'
@@ -83,6 +85,10 @@ export default defineEventHandler(async (event) => {
   // BYOK: no chat provider → 409 `ai/provider-missing` (the client shows
   // the "Add your API key in Settings" call-to-action).
   const aiProviders = await requireAiProviders(userId, 'chat')
+  // Hosted free tier: the shared monthly pool may be used up — answer
+  // 402 `ai/free-allowance-exhausted` before opening a session (own-key
+  // users are never refused here).
+  await assertFreeAllowanceAvailable(aiProviders.chat, billingContext.plan)
   const initiatorName = (await findUserNameById(userId)) || userName
   const initiatorColor = '#d97706'
   const sessionId = nanoid(12)
@@ -265,7 +271,10 @@ function buildTriggerSystemPrompt(
     : ''
   const knowledgeBlock = ws.exposeKnowledgeTools ? buildKnowledgeBlock(ws.knowledgeFiles) : ''
   const membersBlock = buildWorkspaceMembersBlock(ws.members)
-  return documentContextBlock + COMMENT_TRIGGER_SYSTEM_PROMPT + knowledgeBlock + membersBlock
+  // Static prompt FIRST (identical for every trigger session), per-doc /
+  // per-workspace context after it — see `agentic/promptAssembly.ts`.
+  // The doc context used to lead, which made the whole prefix per-doc.
+  return assemblePromptSystemPrompt(COMMENT_TRIGGER_SYSTEM_PROMPT, { documentContextBlock, knowledgeBlock, membersBlock })
 }
 
 interface ClaimSessionArgs {

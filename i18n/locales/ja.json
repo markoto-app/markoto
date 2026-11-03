@@ -523,7 +523,11 @@
     "budgetExhaustedResetDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。",
     "webToolsHourlyLimit": "Web検索とページ取得の1時間あたりの上限に達しました。1時間以内に再試行するか、Webツールなしで続けてください。",
     "webToolsDailyLimit": "Web検索とページ取得の1日あたりの上限に達しました。明日もう一度お試しいただくか、Webツールなしで続けてください。",
-    "budgetExhaustedComingSoonDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。クレジットが多い有料プランも近日公開予定です。"
+    "budgetExhaustedComingSoonDescription": "この期間のAIクレジットをすべて使い切りました。次の期間の開始時に補充されます。クレジットが多い有料プランも近日公開予定です。",
+    "freeAllowanceExhaustedTitle": "無料のAI枠を使い切りました",
+    "freeAllowanceExhausted": "今月の無料AI枠は使い切られました。続けるには、設定 → AI プロバイダーでご自身のキーを追加してください。",
+    "freeAllowanceCta": "自分のキーを追加",
+    "freeAllowanceExhaustedPlaceholder": "今月の無料AI枠は使い切られました。自分のキーを追加すると続けられます"
   },
   "mobileTabBar": {
     "label": "ドキュメントパネル",
@@ -589,7 +593,8 @@
       "pro": "個人向け：より多くの AI ポイント、ワークスペース、ストレージ。",
       "max": "小規模チーム向け：所有するワークスペースの全員の AI ポイントを負担できます。",
       "ultra": "大規模チーム向け：最大の枠でワークスペースをスポンサー。"
-    }
+    },
+    "freeAllowanceNote": "無料のAI枠は、EU内でMistral AIがホストするモデルで動作し、今月の共有枠がなくなるまで利用できます。さらに使うには、設定 → AI プロバイダーでご自身のキーを追加してください。"
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
@@ -1449,7 +1454,9 @@
     "cta": {
       "promptBar": "AI アシスタントを使うには、設定で API キーを追加してください",
       "openSettings": "AI プロバイダーの設定を開く"
-    }
+    },
+    "ownProviderBadge": "自分の AI プロバイダー",
+    "freeAllowanceNote": "自分のキーがない場合、このインスタンスの既定モデルで毎月の無料 AI 枠を利用できます（共有の月間枠がなくなるまで）。自分のキーを追加すると、そちらが使われます。"
   },
   "tour": {
     "label": "製品ツアー",

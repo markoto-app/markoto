@@ -185,3 +185,31 @@ describe('runLoop — LiteLLM budget-exceeded catch path', () => {
     await expect(runAgenticLoop(makeOpts({ ai }))).rejects.toThrow(/upstream 500/i)
   })
 })
+
+// The shared monthly free-tier pool (LiteLLM team `markoto-free-tier`)
+// is used up. The proxy's message names the TEAM, not the key — copied
+// verbatim from LiteLLM v1.106.4. Handled differently from the per-user
+// budget: no "AI Points" breadcrumb in the (possibly shared) document;
+// the session ends with the typed "add your own key" message, which
+// reaches the initiator only.
+describe('runLoop — free-tier pool (team budget) exhausted', () => {
+  const TEAM_EXHAUSTED = 'Error code: 422 - {"error":{"message":"Budget has been exceeded! Team=markoto-free-tier Current cost: 500.0012, Max budget: 500.0","type":"budget_exceeded","param":null,"code":"422"}}'
+
+  it('ends the session with the free-allowance message and writes nothing into the document', async () => {
+    const setStatus = vi.fn()
+    const aiSession = makeAiSession()
+    await expect(runAgenticLoop(makeOpts({ ai: makeAiThrowing(new Error(TEAM_EXHAUSTED)), aiSession, setStatus }))).resolves.toBeUndefined()
+
+    const errorCall = setStatus.mock.calls.find(([phase]) => phase === 'error')
+    expect(errorCall?.[1]).toBe('This month\'s free AI allowance is used up. Add your own key in Settings → AI provider to keep going.')
+    expect(setStatus.mock.calls.some(([, message]) => /AI Points exhausted/i.test(String(message)))).toBe(false)
+    expect((aiSession as unknown as { ytext: Y.Text }).ytext.toString()).toBe('')
+  })
+
+  it('a per-KEY exhaustion still takes the AI Points path', async () => {
+    const setStatus = vi.fn()
+    const keyExhausted = new Error('Budget has been exceeded! Key=key (sk-...lt2Q) Current cost: 0.51, Max budget: 0.5')
+    await runAgenticLoop(makeOpts({ ai: makeAiThrowing(keyExhausted), setStatus }))
+    expect(setStatus.mock.calls.find(([phase]) => phase === 'done')?.[1]).toMatch(/AI Points exhausted/i)
+  })
+})

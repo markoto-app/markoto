@@ -12,6 +12,7 @@ import type { AiSession } from '../aiClient'
 import type { BillingContext } from '../billing'
 import { getWebToolAvailability } from '../webTools'
 import { LitellmBudgetExhausted, isBudgetExceededError } from '../litellmKeys'
+import { FREE_ALLOWANCE_EXHAUSTED_MESSAGE, isFreeAllowanceExhaustedError } from '../litellm/freeTierTeam'
 import { executeFunctionByName } from '../aiToolAdapter'
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, filterToolsForProviders, webSearch, fetchUrl } from './functionTools'
 import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from './limits'
@@ -38,6 +39,7 @@ import {
   stalledEditNote
 } from './editProgress'
 import { ImageUrlProvenance, unseenImageError } from './imageProvenance'
+import { initialUserParts } from './promptAssembly'
 import {
   newStreamState,
   processChunk,
@@ -55,6 +57,7 @@ type SessionOutcome
     | 'error'
     | 'session-cap-exceeded'
     | 'budget-exhausted'
+    | 'free-allowance-exhausted'
     | 'turn-limit'
     | 'stalled'
 
@@ -155,6 +158,8 @@ class SessionTelemetry {
   totalInputTokens = 0
   totalOutputTokens = 0
   totalThinkingTokens = 0
+  /** Prompt tokens served from the provider's prompt cache (billed at the cached rate). */
+  totalCachedInputTokens = 0
   sawAnyUsageMetadata = false
   outcome: SessionOutcome = 'error'
   abortReason?: string
@@ -166,9 +171,11 @@ class SessionTelemetry {
    */
   readonly toolCallCounts = new Map<string, number>()
 
-  noteUsage(usage: { promptTokenCount?: number, candidatesTokenCount?: number, thoughtsTokenCount?: number } | undefined): void {
+  noteUsage(usage: { promptTokenCount?: number, candidatesTokenCount?: number, thoughtsTokenCount?: number, cachedContentTokenCount?: number } | undefined): void {
     if (!usage) return
+    if (usage.promptTokenCount === undefined && usage.candidatesTokenCount === undefined) return
     this.sawAnyUsageMetadata = true
+    if (typeof usage.cachedContentTokenCount === 'number') this.totalCachedInputTokens += usage.cachedContentTokenCount
     if (typeof usage.promptTokenCount === 'number') this.totalInputTokens += usage.promptTokenCount
     if (typeof usage.candidatesTokenCount === 'number') this.totalOutputTokens += usage.candidatesTokenCount
     if (typeof usage.thoughtsTokenCount === 'number') this.totalThinkingTokens += usage.thoughtsTokenCount
@@ -209,6 +216,7 @@ class SessionTelemetry {
           totalInputTokens: this.sawAnyUsageMetadata ? this.totalInputTokens : -1,
           totalOutputTokens: this.sawAnyUsageMetadata ? this.totalOutputTokens : -1,
           totalThinkingTokens: this.sawAnyUsageMetadata ? this.totalThinkingTokens : -1,
+          totalCachedInputTokens: this.sawAnyUsageMetadata ? this.totalCachedInputTokens : -1,
           toolCallCounts: toolCounts,
           abortReason: this.abortReason,
           errorMessage: this.errorMessage,
@@ -272,6 +280,14 @@ export interface RunLoopOptions {
   model: string
   systemPrompt: string
   initialPrompt: string
+  /**
+   * Per-prompt context (conversation memory) that OPENS the first user
+   * message, ahead of `initialPrompt`. Kept out of `systemPrompt` so the
+   * system message + tool definitions stay a cacheable prefix across
+   * prompts (see `promptAssembly.ts`). Not part of the image-provenance
+   * "seen" text — that stays what the user typed + the document.
+   */
+  promptPreamble?: string
   aiSession: AiSession
   sessionId: string
   abortController: AbortController
@@ -355,6 +371,16 @@ function addedEditText(args: unknown): string {
   return typeof added === 'string' ? added : ''
 }
 
+/**
+ * One line per LLM call with the prompt-cache hit, so cache regressions
+ * show up in the server log (and the flow suites' output) per turn.
+ */
+function logTurnUsage(ctx: LoopContext, usage: StreamChunk['usageMetadata']): void {
+  if (usage?.promptTokenCount === undefined) return
+  const cached = usage.cachedContentTokenCount ?? 0
+  ctx.log(`usage: prompt=${usage.promptTokenCount} cached=${cached} output=${usage.candidatesTokenCount ?? 0} reasoning=${usage.thoughtsTokenCount ?? 0}`)
+}
+
 function readDocText(session: AiSession): string | null {
   try {
     return session.ytext.toJSON()
@@ -420,6 +446,7 @@ async function consumeStreamTurn(
     }
 
     ctx.telemetry.noteUsage(chunk.usageMetadata)
+    logTurnUsage(ctx, chunk.usageMetadata)
   }
 
   return { modelParts, functionCalls, finishReason }
@@ -916,6 +943,18 @@ async function openProviderStream(ctx: LoopContext): Promise<{ kind: 'stream', s
     })
     return { kind: 'stream', stream }
   } catch (e) {
+    // The shared free-tier pool is used up (LiteLLM team budget, see
+    // `litellm/freeTierTeam.ts`). Not the user's own allowance, so no
+    // "AI Points exhausted" breadcrumb in the (possibly shared) document:
+    // the session ends with the typed message, which reaches the
+    // initiator only, and the prompt bar's credits refresh shows the
+    // "add your own key" toast.
+    if (isFreeAllowanceExhaustedError(e)) {
+      ctx.telemetry.outcome = 'free-allowance-exhausted'
+      ctx.telemetry.errorMessage = e instanceof Error ? e.message : String(e)
+      ctx.opts.setStatus('error', FREE_ALLOWANCE_EXHAUSTED_MESSAGE)
+      return { kind: 'budget-exhausted' }
+    }
     if (e instanceof LitellmBudgetExhausted || isBudgetExceededError(e)) {
       ctx.telemetry.outcome = 'budget-exhausted'
       ctx.telemetry.errorMessage = e instanceof Error ? e.message : String(e)
@@ -994,7 +1033,7 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     log,
     budget: new SessionBudget(),
     telemetry: new SessionTelemetry(),
-    contents: [{ role: 'user', parts: [{ text: opts.initialPrompt }] }],
+    contents: [{ role: 'user', parts: initialUserParts(opts.promptPreamble, opts.initialPrompt) }],
     // BYOK: hide tools the session's providers can't serve (no image
     // provider → no generate_image; text-only chat model → no
     // view_image / view_pages).
@@ -1118,18 +1157,20 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
     // and thrashed flow tests. Synthesis sub-calls already run at 0;
     // pinning the outer loop matches that.
     temperature: 0,
-    // Mistral prompt caching is AUTOMATIC on a stable prompt prefix (cached
-    // tokens bill at 10%). The win comes from keeping the system+tools prefix
-    // byte-identical across turns and successive prompts — set up by the
-    // static-first system-prompt ordering in prompt.post.ts. Verified through
-    // the proxy: cached_tokens reaches ~98% of prompt_tokens on warm requests
-    // (~88% input-cost cut). Caching does NOT require the key below.
+    // Prompt caching (Mistral + the GLM models it serves) is AUTOMATIC on a
+    // byte-identical request prefix: cached tokens bill at 10 % (Mistral
+    // Small) / 20 % (GLM-5.3 Flash) of the input price. The prefix is set up
+    // by `promptAssembly.ts` (static system prompt + tools first, per-prompt
+    // context in the user message) and kept by this loop (history is
+    // append-only; tool-call arguments replay byte-for-byte, see
+    // `messageTranslation.ts`). Per-turn hits are logged (`usage: …`).
     //
-    // `prompt_cache_key` (keyed on docId to group every turn/prompt/user on a
-    // doc) is future-proofing: it would warm the cache a request sooner. But
-    // LiteLLM 1.83.14 drops it on the mistral provider (traced end-to-end,
-    // even with allowed_openai_params in config.yaml), so it's a harmless
-    // no-op today that activates on a LiteLLM upgrade that forwards it.
+    // `prompt_cache_key` groups every turn / prompt / user on a doc. Mistral
+    // documents it as raising the chance of a hit when requests spread over
+    // replicas (it guarantees nothing). LiteLLM's mistral provider does not
+    // list it as supported, so `drop_params` would strip it; the deployments
+    // in infra/litellm/config.yaml opt in via `allowed_openai_params`, which
+    // makes v1.106.4 forward it (verified in the proxy's request transform).
     ...(opts.docId ? { prompt_cache_key: `doc:${opts.docId}` } : {}),
     // LiteLLM spend-tags: feature, workspace (when the doc is in one),
     // and the initiating user. Sub-tool synthesis calls

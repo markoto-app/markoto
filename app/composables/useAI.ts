@@ -230,6 +230,9 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   // returns 402; cleared whenever a fresh request succeeds or
   // `clearLastError()` is called.
   const budgetExhausted = ref(false)
+  // The shared monthly free-tier pool is used up (402
+  // `ai/free-allowance-exhausted`) — distinct from the user's own points.
+  const freeAllowanceExhausted = ref(false)
 
   // ─── Private status channel ───────────────────────────────────────
   //
@@ -445,6 +448,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     lastError.value = null
     lastOutcome.value = null
     budgetExhausted.value = false
+    freeAllowanceExhausted.value = false
     // Prefer the call-site override (used by the selection popup to
     // pass a pre-captured range snapshot) — falls back to the lazily
     // computed default from `options.getEditorSelection`. `undefined`
@@ -461,7 +465,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       const err = e as {
         statusCode?: number
         status?: number
-        data?: { statusCode?: number, message?: string, code?: string }
+        data?: { statusCode?: number, message?: string, code?: string, messageKey?: string }
         message?: string
       }
       const code = err.statusCode ?? err.status ?? err.data?.statusCode
@@ -471,7 +475,11 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         // swaps to the "Add your API key" call-to-action.
         void refreshAiAvailability()
       }
-      if (code === 402) {
+      if (err.data?.code === 'ai/free-allowance-exhausted') {
+        // Shared free pool used up: the prompt bar shows the
+        // "add your own key" toast, not the per-user points one.
+        freeAllowanceExhausted.value = true
+      } else if (code === 402) {
         // Budget-exhausted. Flip the flag so the prompt-bar toast
         // renders the upgrade CTA variant.
         budgetExhausted.value = true
@@ -505,6 +513,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   function clearLastError() {
     lastError.value = null
     budgetExhausted.value = false
+    freeAllowanceExhausted.value = false
   }
 
   return {
@@ -515,6 +524,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     submitting,
     lastError: readonly(lastError),
     budgetExhausted: readonly(budgetExhausted),
+    freeAllowanceExhausted: readonly(freeAllowanceExhausted),
     lastResponse: readonly(lastResponse),
     lastOutcome: readonly(lastOutcome),
     pendingConfirmation,

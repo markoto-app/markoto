@@ -186,12 +186,16 @@ jobs:
           OVH_PG_HOST: ${{ vars.OVH_PG_HOST }}
           OVH_PG_CA_REMOTE_PATH: ${{ vars.OVH_PG_CA_REMOTE_PATH }}
           # Optional hosted-shape tuning (empty = render-env.sh default:
-          # billing off, plans "coming soon", SaaS BYOK allowlist, committed
-          # free-tier + web-tool limits).
+          # billing off, plans "coming soon", SaaS BYOK allowlist, the free
+          # AI allowance — chat default zai-glm-5-3-flash, $0.50/user and
+          # $500 total per month — committed free-tier + web-tool limits).
           NUXT_BILLING_ENABLED: ${{ vars.NUXT_BILLING_ENABLED }}
           NUXT_PLANS_COMING_SOON: ${{ vars.NUXT_PLANS_COMING_SOON }}
           NUXT_WEB_TOOLS_HOURLY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_HOURLY_LIMIT }}
           NUXT_WEB_TOOLS_DAILY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_DAILY_LIMIT }}
+          NUXT_AI_DEFAULT_CHAT_MODEL: ${{ vars.NUXT_AI_DEFAULT_CHAT_MODEL }}
+          NUXT_AI_DEFAULT_CHAT_VISION: ${{ vars.NUXT_AI_DEFAULT_CHAT_VISION }}
+          NUXT_FREE_TIER_TOTAL_BUDGET_USD: ${{ vars.NUXT_FREE_TIER_TOTAL_BUDGET_USD }}
           TIER_FREE_LITELLM_BUDGET_USD: ${{ vars.TIER_FREE_LITELLM_BUDGET_USD }}
           TIER_FREE_WORKSPACES_OWNED: ${{ vars.TIER_FREE_WORKSPACES_OWNED }}
           TIER_FREE_KNOWLEDGE_FILES: ${{ vars.TIER_FREE_KNOWLEDGE_FILES }}

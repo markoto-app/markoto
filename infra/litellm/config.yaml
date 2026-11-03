@@ -108,23 +108,92 @@ model_list:
       # Prompt caching: Mistral AUTOMATICALLY caches a stable prompt prefix
       # (system + tools, 1024+ tokens) and bills cached tokens at 10% — the
       # same automatic behaviour LiteLLM documents for OpenAI-style providers.
-      # That is what actually cuts cost here: the app orders the system prompt
-      # static-first (server/api/ai/prompt.post.ts) so the prefix stays
-      # byte-identical across turns/prompts. Verified through this proxy:
-      # cached_tokens climbs to ~98% of prompt_tokens by the 4th repeat request
-      # (~88% input-cost cut).
+      # That is what actually cuts cost here: the app keeps the system prompt +
+      # tools a byte-identical prefix across turns/prompts
+      # (server/utils/agentic/promptAssembly.ts). Mistral's template puts the
+      # tool definitions AFTER the system message, so per-prompt data must not
+      # sit in it: measured through this proxy (v1.106.4), 0 % cached with the
+      # conversation history at the end of the system message vs 99 % with it
+      # in the user message.
       #
-      # `allowed_openai_params` + the app's `prompt_cache_key` (runLoop.ts) are
-      # FUTURE-PROOFING: an explicit key would warm the cache a request sooner
-      # and let us group cache scope by doc. But LiteLLM 1.83.14 drops
-      # prompt_cache_key on the mistral provider even with this allow-list
-      # (traced: it never reaches the outgoing request). Harmless no-op today;
-      # activates automatically on a LiteLLM version that forwards it. Caching
-      # does NOT depend on it — automatic prefix caching already works.
+      # The app also sends `prompt_cache_key` (runLoop.ts). LiteLLM's mistral
+      # provider doesn't list it as supported, so `drop_params` would strip
+      # it; `allowed_openai_params` lets it through (v1.106.4 forwards it —
+      # checked in the provider's request transform; 1.83.14 dropped it).
       allowed_openai_params: ["prompt_cache_key"]
     model_info:
       input_cost_per_token: 0.00000015   # $0.15 / M tokens
+      # Cached prompt tokens bill at 10 % of input; stated explicitly so the
+      # spend LiteLLM debits from budgets uses the cached price.
+      cache_read_input_token_cost: 0.000000015
       output_cost_per_token: 0.00000060  # $0.60 / M tokens
+      max_tokens: 256000
+
+  # ---- Free AI allowance (hosted SaaS): Z.ai GLM-5.3 Flash on Mistral ----
+  # The hosted SaaS's instance chat default (NUXT_AI_DEFAULT_CHAT_MODEL,
+  # rendered by infra/render-env.sh + infra/templates/env.j2): signed-in
+  # users without their own key get a monthly allowance on this model.
+  # See docs/AI-MODELS.md#free-ai-allowance.
+  #
+  # Served BY MISTRAL on La Plateforme (third-party open model, MIT
+  # weights, "served without Mistral modifications"), so the Mistral
+  # contract, no-training opt-out and data terms apply as for Mistral's
+  # own models. Verified 2026-11-03 via GET /v1/models: GA, 1M context,
+  # function_calling + vision + reasoning, no deprecation date.
+  #
+  # EU-pinned: `api_base` is Mistral's EU regional endpoint. The default
+  # `api.mistral.ai` makes NO location commitment; `api.eu.mistral.ai`
+  # processes inference in EU/EFTA data centres at 1.1x list price.
+  # The costs below are therefore the EU price (1.1 x list): list is
+  # $0.15 / M input, $0.03 / M cached input, $0.50 / M output.
+  #
+  # Prompt caching: Mistral reports `usage.prompt_tokens_details.cached_tokens`
+  # and LiteLLM bills those at `cache_read_input_token_cost` (verified
+  # through this proxy on v1.106.4: spend = uncached x input +
+  # cached x cache_read + output x output, to the 1e-9 $). The cache works
+  # in ~1152-token blocks and only kicks in once a prefix has been seen
+  # twice (measured: the 3rd identical-prefix request hits, with or
+  # without `prompt_cache_key`), so what matters is a prefix shared by
+  # every user and turn — see server/utils/agentic/promptAssembly.ts.
+  # `prompt_cache_key` (sent by runLoop.ts, Mistral: "increases the chance
+  # of a cache hit") is let through `drop_params` by `allowed_openai_params`.
+  #
+  # It is a reasoning model: thinking tokens bill as output and come back
+  # as `reasoning_content` (never shown to users). `reasoning_effort`
+  # accepts low / high / max (not `none`).
+  - model_name: zai-glm-5-3-flash
+    litellm_params:
+      model: mistral/zai-glm-5-3-flash
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.000000165         # $0.165 / M (EU: 1.1 x $0.15)
+      cache_read_input_token_cost: 0.000000033  # $0.033 / M (EU: 1.1 x $0.03)
+      output_cost_per_token: 0.00000055         # $0.55 / M (EU: 1.1 x $0.50)
+      max_input_tokens: 1048576
+      max_output_tokens: 131072
+      supports_function_calling: true
+      supports_vision: true
+      supports_reasoning: true
+      supports_prompt_caching: true
+
+  # ---- Fallback for zai-glm-5-3-flash (EU-pinned Mistral Small 4) ----
+  # Used only via router_settings.fallbacks when GLM-5.3 Flash fails after
+  # the proxy's retry (429 / 5xx / timeout). Same model as the
+  # `mistral-small-2603` alias above but on the EU endpoint, so a fallback
+  # never leaves the EU data path the free allowance promises. Same tool
+  # calling + vision + automatic prefix caching (cached tokens bill at 10 %).
+  - model_name: mistral-small-2603-eu
+    litellm_params:
+      model: mistral/mistral-small-2603
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
+      allowed_openai_params: ["prompt_cache_key"]
+    model_info:
+      input_cost_per_token: 0.000000165         # $0.165 / M (EU: 1.1 x $0.15)
+      cache_read_input_token_cost: 0.0000000165 # 10 % of input
+      output_cost_per_token: 0.00000066         # $0.66 / M (EU: 1.1 x $0.60)
       max_tokens: 256000
 
   # ---- Fallback for mistral-small-2603 ----
@@ -267,5 +336,12 @@ router_settings:
   # retries on whatever LiteLLM ultimately returns). Net: in-app AI
   # rarely surfaces "Could not reach markoto" even on Mistral throttle
   # storms.
+  #
+  # The free-allowance model (`zai-glm-5-3-flash`) falls back to the
+  # EU-pinned Mistral Small deployment on the same conditions (LiteLLM
+  # fallbacks fire on any error left after the retry — 429, 5xx,
+  # timeout). Budget / team-budget rejections happen in the proxy's auth
+  # step, before routing, so they never trigger a fallback.
   fallbacks:
     - mistral-small-2603: [ministral-8b-2512]
+    - zai-glm-5-3-flash: [mistral-small-2603-eu]

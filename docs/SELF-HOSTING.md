@@ -269,7 +269,8 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE` | `1073741824` (1 GiB) | |
 | `TIER_FREE_KNOWLEDGE_BYTES_PER_USER` | `10737418240` (10 GiB) | |
 | `TIER_FREE_IMAGE_BYTES_PER_USER` | `10737418240` (10 GiB) | Document images per user: uploads, AI-generated images and the copies made by duplicating a doc. Pending uploads count from the moment the upload starts. |
-| `TIER_FREE_LITELLM_BUDGET_USD` | `1` | Monthly AI Points budget per user, only for platform-paid instance defaults. Applied when a user's AI key is created (first AI use); later changes don't update existing users. |
+| `TIER_FREE_LITELLM_BUDGET_USD` | `1` | Monthly AI Points budget per user, only for platform-paid instance defaults. Applied when a user's AI key is created (first AI use); a change reaches existing users at the next app start. |
+| `NUXT_FREE_TIER_TOTAL_BUDGET_USD` | empty (none) | Optional monthly ceiling in USD on platform-paid AI for all users together (a LiteLLM team budget). When it is used up, users without their own key are told the month's free allowance is used up; own-key calls are unaffected. See [AI-MODELS.md](./AI-MODELS.md#free-ai-allowance-hosted). |
 | `NUXT_INACTIVE_DOC_TTL_DAYS` | `180` | Anonymous documents untouched this long are deleted. `0` disables. |
 | `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `_DAILY_LIMIT` | `30` / `100` | Web tool calls per user. |
 
@@ -521,7 +522,7 @@ First look at `./install.sh status` (is every container up and healthy?) and `./
 | The AI never generates images | No image provider is configured. |
 | The AI can't search the web or read URLs | `STAAN_API_KEY` / `JINA_AI_API_KEY` is missing (the tool isn't offered), or the per-user allowance is used up (429 `ai/web-tools-rate-limited`). |
 | Knowledge uploads fail | Embeddings need `JINA_AI_API_KEY` or a [custom embeddings provider](AI-MODELS.md#embeddings). After changing the model or dimension, run `./install.sh reembed` ([Re-embedding](#re-embedding)); `/api/health/deep` reports `checks.embeddings`. |
-| Platform-paid AI stops with budget messages | The user's monthly AI Points budget (`TIER_FREE_LITELLM_BUDGET_USD`) is used up. It resets every 30 days; raising the variable doesn't change existing users' keys. Calls on users' own keys never count. |
+| Platform-paid AI stops with budget messages | The user's monthly AI Points budget (`TIER_FREE_LITELLM_BUDGET_USD`) is used up, or, with `NUXT_FREE_TIER_TOTAL_BUDGET_USD` set, the instance-wide monthly ceiling ("This month's free AI allowance is used up"). Both reset on the 1st of the month; a raised `TIER_FREE_LITELLM_BUDGET_USD` reaches existing users at the next app start. Calls on users' own keys never count. |
 | LiteLLM keeps restarting | `./install.sh logs litellm`. It starts without provider keys, but needs its database (`./install.sh logs db-init`) and enough memory. |
 
 ### Exports, backups and email

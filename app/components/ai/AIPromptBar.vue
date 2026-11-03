@@ -9,6 +9,8 @@ const props = defineProps<{
     submitting: ReturnType<typeof useAI>['submitting']
     lastError: ReturnType<typeof useAI>['lastError']
     budgetExhausted: ReturnType<typeof useAI>['budgetExhausted']
+    /** Optional so callers / tests that don't care can omit it. */
+    freeAllowanceExhausted?: ReturnType<typeof useAI>['freeAllowanceExhausted']
     lastResponse: ReturnType<typeof useAI>['lastResponse']
     /** Optional so callers / tests that don't care can omit it. */
     lastOutcome?: ReturnType<typeof useAI>['lastOutcome']
@@ -41,13 +43,17 @@ const { refresh: refreshBilling } = useBilling()
 // Phase 6: AI exhaustion comes from /api/ai/credits (LiteLLM /key/info).
 // `refreshAiCredits` runs after a session ends so the AI Points badge
 // ticks down live without the user navigating away.
-const { isExhausted: pointsExhausted, isWorkspaceShared: creditsAreShared, refresh: refreshAiCredits } = useAiCredits()
+const { isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShared: creditsAreShared, refresh: refreshAiCredits } = useAiCredits()
 // Bring your own key (WP4): which capabilities this user can use, and
 // whether chat is paid by the platform. AI Points only gate the bar when
 // chat actually spends them — a user on their own key is never blocked
 // by an empty platform budget.
 const { chatMissing, transcriptionAvailable, chatPlatformBilled } = useAiAvailability()
-const creditsExhausted = computed(() => chatPlatformBilled.value && pointsExhausted.value)
+// Hosted free tier: the shared monthly pool can run dry before the
+// user's own points do. Only platform-paid chat is affected — an own key
+// keeps working.
+const freePoolExhausted = computed(() => chatPlatformBilled.value && isFreeAllowanceExhausted.value)
+const creditsExhausted = computed(() => freePoolExhausted.value || (chatPlatformBilled.value && pointsExhausted.value))
 const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 const router = useRouter()
 
@@ -105,6 +111,7 @@ const placeholder = computed(() => {
   // pool exhaustion gets its own copy because the path forward is
   // "contact the workspace owner", not /pricing.
   if (creditsExhausted.value) {
+    if (freePoolExhausted.value) return t('ai.freeAllowanceExhaustedPlaceholder')
     if (creditsAreShared.value) return t('ai.workspaceExhaustedPlaceholder')
     return billingEnabled.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
   }
@@ -125,6 +132,10 @@ const placeholder = computed(() => {
 // the member has nothing to upgrade; the toast already told them
 // to contact the owner.
 function onCapReached() {
+  if (freePoolExhausted.value) {
+    showFreeAllowanceToast()
+    return
+  }
   if (creditsAreShared.value) return
   if (pricingVisible.value) {
     router.push('/pricing')
@@ -132,6 +143,18 @@ function onCapReached() {
   }
   // Self-hosted: nothing to buy — re-explain instead of a dead link.
   showPersonalBudgetToast()
+}
+
+// Shared free-tier pool used up: the way forward is the user's own key
+// (Settings → AI provider) — never an upgrade, and not "your points".
+function showFreeAllowanceToast() {
+  toast.add({
+    title: t('ai.freeAllowanceExhaustedTitle'),
+    description: t('ai.freeAllowanceExhausted'),
+    icon: 'i-lucide-key-round',
+    color: 'warning',
+    actions: [{ label: t('ai.freeAllowanceCta'), color: 'neutral', onClick: goToAiSettings }]
+  })
 }
 
 // Personal-pool exhaustion toast. Billing mode picks the copy + CTA:
@@ -180,6 +203,10 @@ watch(() => props.ai.mySessionId.value, (now, prev) => {
 // the user would otherwise miss.
 watch(creditsExhausted, (now, prev) => {
   if (now && !prev) {
+    if (freePoolExhausted.value) {
+      showFreeAllowanceToast()
+      return
+    }
     // Workspace-shared (+) pool exhausted — the member CAN'T fix this
     // by upgrading themselves; only the workspace owner's plan / spend
     // matters. Swap copy + drop the upgrade CTA so we don't push them
@@ -271,7 +298,10 @@ async function onSubmit() {
 
 watch(() => props.ai.lastError.value, (err) => {
   if (!err) return
-  if (props.ai.budgetExhausted.value) {
+  if (props.ai.freeAllowanceExhausted?.value) {
+    showFreeAllowanceToast()
+    void refreshAiCredits()
+  } else if (props.ai.budgetExhausted.value) {
     // Dedicated budget-exhausted toast with an Upgrade action. Users
     // need an obvious path forward — a generic "AI request failed"
     // toast doesn't tell them what to do.
