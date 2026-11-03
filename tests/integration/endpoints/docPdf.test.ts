@@ -258,7 +258,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
       expect(res.status).toBe(302)
       const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
-      const fontNames = [...pdf.matchAll(/\/BaseFont\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
+      const fontNames = [...pdf.matchAll(/\/(?:BaseFont|FontName)\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
       expect(fontNames.some(n => /Lora/i.test(n)), fontNames.join(', ')).toBe(true)
       expect(fontNames.some(n => /Playfair/i.test(n)), fontNames.join(', ')).toBe(true)
       expect(fontNames.some(n => /KaTeX/i.test(n)), fontNames.join(', ')).toBe(true)
