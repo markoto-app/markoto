@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>markoto</title>
+  <style>
+    .tile { fill: #FAF8F4; }
+    .seal { fill: #B5371F; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #1F1B14; }
+      .seal { fill: #D14828; }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="6"/>
+  <rect class="seal" x="7" y="7" width="18" height="18" rx="1"/>
+</svg>

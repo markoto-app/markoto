@@ -115,7 +115,7 @@ export function useCommentNotifications(opts: UseCommentNotificationsOptions) {
       title: opts.docTitle.value || 'New reply',
       body: `${last.authorName}: ${preview}`,
       tag: `comment-thread-${opts.docId}-${last.threadId}`,
-      icon: '/favicon.ico'
+      icon: '/icon-192.png'
     })
   })
 }
