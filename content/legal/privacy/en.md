@@ -1,14 +1,16 @@
 ---
 slug: privacy
 locale: en
-version: 7
-effectiveDate: 2026-10-27
+version: 8
+effectiveDate: 2026-11-03
 translationStatus: authoritative
 ---
 
 # Privacy Policy
 
-> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to run your account. The service is currently free; paid plans are not offered yet. AI features run on EU-resident providers (Mistral AI for text and voice, Jina AI for embeddings and single-page fetching, Staan for web search, Black Forest Labs for image generation) unless you connect your own AI provider, in which case your AI content goes to the provider you chose. We don't sell your data, we don't run ads, and we don't train AI on your content. You can export the data we hold about you and delete your account at any time from your settings.
+> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to run your account. The service is free; paid plans are not offered yet. AI features run on EU-based providers (Mistral AI for text and voice, Jina AI for embeddings and single-page fetching, Staan for web search, Black Forest Labs for image generation) unless you connect your own AI provider, in which case your AI content goes to the provider you chose. We use only essential cookies: no analytics, no tracking, no ads. We don't sell your data and we don't train AI on your content. You can export the data we hold about you and delete your account at any time from your settings.
+
+**Contents:** 1. Who we are · 2. What data we process and why · 2b. Anonymous documents, the bot check and abuse reports · 3. Lawful basis · 4. Recipients and international transfers · 5. Storage location and retention · 5b. What happens when you delete your account · 6. Your rights · 7. Automated decision-making · 8. AI features and transparency · 9. Cookies and similar technologies · 10. Age requirement · 11. Right to lodge a complaint · 12. Security · 13. Register of processing purposes · 14. Changes to this policy
 
 ---
 
@@ -16,154 +18,205 @@ translationStatus: authoritative
 
 markoto is operated by **{{controllerName}}** ({{controllerAddress}}). For any privacy question, write to **{{privacyContactEmail}}**.
 
-For the purposes of the General Data Protection Regulation (Regulation (EU) 2016/679 — "GDPR"), markoto is the **data controller** of personal data you provide directly (your account and, if you join it, the paid-plans waitlist). Where you use markoto inside a workspace owned by another party, that workspace's owner is the controller of any content you place inside their workspace, and markoto acts as a **processor** under a Data Processing Addendum (see `/legal/dpa`).
+This policy is written to meet both the **Swiss Federal Act on Data Protection** (revised FADP, in force since 1 September 2023) and, where it applies to us, the EU **General Data Protection Regulation** (Regulation (EU) 2016/679, "GDPR"). The GDPR applies to us because we offer markoto to people in the EU and EEA.
+
+We are the **controller** of personal data you give us directly: your account, anonymous documents you create, abuse reports and, if you join it, the paid-plans waitlist. Where you use markoto inside a workspace owned by someone else, that workspace's owner is the controller of the content placed in their workspace, and we act as their **processor** under our Data Processing Addendum (`/legal/dpa`).
 
 ## 2. What data we process and why
 
-We follow the principle of data minimisation: we collect the smallest amount of data needed for each purpose, and we tell you what each purpose is.
+We collect only what each purpose needs, and we tell you what each purpose is. The full list of processing purposes, with lawful basis, data categories, retention and recipients, is the register in §13, which is generated from our internal registry. Any change to that register is a material change to this policy and changes its version (see §14).
 
-The full table of processing purposes — including lawful basis, data categories, retention period, and which sub-processors are involved — is set out in the register in §13 below, which is generated from our internal registry. Any change to this register is treated as a material change to this policy and bumps the policy version (see §14).
+In brief, we process:
 
-## 3. Lawful basis (GDPR Article 6)
+- **Account data:** name, email address, the identifier and avatar from your sign-in provider (GitHub or Google), language, age confirmation, and which versions of our policies you accepted.
+- **Content:** documents, comments, images, knowledge-base files, themes and who edited what.
+- **AI usage:** prompts, document context and AI results, when you use the AI features.
+- **Technical data:** IP addresses (used in short-lived form for rate limiting and stored only shortened in logs), browser type, error reports.
 
-Each processing activity rests on one of the following lawful bases:
+## 2b. Anonymous documents, the bot check and abuse reports
 
-- **Contract** (Article 6(1)(b)) — for everything required to deliver the service you signed up for: account creation, document storage, AI assistance, and — once paid plans are offered — billing.
-- **Legal obligation** (Article 6(1)(c)) — for security audit logging and, once paid plans are offered, retention obligations under tax law (billing records).
-- **Legitimate interest** (Article 6(1)(f)) — for fraud and abuse prevention, error monitoring, and security telemetry. You can object to processing on this basis (see §6).
-- **Consent** (Article 6(1)(a)) — for product analytics and session replay (we never load these unless you've granted consent in the cookie banner), and for the paid-plans waitlist (only if you tick the consent box when you sign up and then confirm the email we send you). You can withdraw at any time.
+**Anonymous documents.** You can create a document without an account. Before your browser creates one, you confirm that you are at least 16 and accept our Terms, and your browser solves a bot check. We store with the document the version of the Terms you accepted, the time, and a hash of a random creator key that your browser keeps in a cookie (see §9). We do not ask for your name or email address. Anyone with the link can open the document; do not put personal data of others into it. Anonymous documents are deleted automatically after **30 days** without activity.
 
-## 4. Sub-processors and international transfers
+**Bot check.** The bot check is a proof-of-work puzzle that runs on our own servers and in your browser (ALTCHA). It involves no third party and sets no cookies. Your browser receives a puzzle, solves it, and sends the solution back; we check it and discard it. To prevent mass creation, we count requests per IP address (for IPv6, per /64 network) in a short-lived in-memory store; these counters expire after minutes and contain no content.
 
-We use a small list of sub-processors, all governed by GDPR Article 28 contracts. The current list is at `/legal/sub-processors`. That list shows only the providers this deployment actually uses: for example, Stripe (payment processing) appears only once paid plans are switched on, and an AI provider that **you** connect yourself (see §8) is not our sub-processor and is not listed.
+**Abuse reports.** If you report content, we store the URL, your explanation, the category, the time and, if you give them, your name and email address (and your account, if you are signed in). We use this to handle your report, to confirm receipt, to tell you our decision and, where the law requires it, to inform authorities. If we remove or restrict content, we send its owner a statement of reasons; it does not name you unless that is necessary to handle an intellectual-property notice. Reports are currently kept until we delete them manually; we are setting a fixed retention period.
 
-Where a sub-processor processes data outside the European Economic Area, we rely on:
+## 3. Lawful basis
 
-- The **EU-US Data Privacy Framework** adequacy decision (10 July 2023) for US-based, DPF-certified recipients, AND
-- **Standard Contractual Clauses** (2021/914) as a fallback in case the DPF adequacy decision is invalidated.
+Under the GDPR, each processing activity rests on one of these lawful bases (Art. 6 GDPR). Under the FADP, we process personal data in line with its principles (Art. 6 FADP) and, where a justification is needed, rely on the same grounds (Art. 31 FADP).
 
-We notify workspace-owner customers at least 30 days in advance of any new sub-processor.
+- **Contract** (Art. 6(1)(b) GDPR): everything needed to provide the service you use: accounts, documents, collaboration, AI assistance and, once paid plans are offered, billing.
+- **Legal obligation** (Art. 6(1)(c) GDPR): the security audit log, handling legal orders and notices, and, once paid plans are offered, keeping billing records under tax law.
+- **Legitimate interest** (Art. 6(1)(f) GDPR): keeping the service secure and free of abuse (rate limits, the bot check, abuse handling, error monitoring) and workspace invitations. You can object to processing on this basis (see §6).
+- **Consent** (Art. 6(1)(a) GDPR): only for the paid-plans waitlist (you tick the box and confirm the email we send you). You can withdraw at any time with the unsubscribe link.
+
+## 4. Recipients and international transfers
+
+We use a small number of service providers ("sub-processors") under written data-processing agreements (Art. 28 GDPR, Art. 9 FADP). The current list is at `/legal/sub-processors`. It shows only the providers this deployment actually uses: Stripe (payments) appears only once paid plans are switched on, and an AI provider that **you** connect yourself (see §8) is not our sub-processor and is not listed.
+
+**Where your data goes.** We are based in Switzerland. Our database, file storage, backups and AI providers are in the EU (France and Germany). The EU and EEA are recognised as providing adequate data protection by the Swiss Federal Council, and Switzerland is recognised as adequate by the European Commission, so no further safeguards are needed for these transfers.
+
+Some providers are based in the **United States**:
+
+| Provider | What they receive | Safeguard |
+| --- | --- | --- |
+| Google LLC | Sign-in, only if you choose "Sign in with Google" | Data Privacy Framework, with standard contractual clauses as fallback |
+| GitHub, Inc. | Sign-in, only if you choose "Sign in with GitHub" | Data Privacy Framework, with standard contractual clauses as fallback |
+| Resend, Inc. | Recipient address and content of emails we send you | Data Privacy Framework, with standard contractual clauses as fallback |
+| Functional Software, Inc. (Sentry) | Error reports: technical details, the page or request concerned, your internal user ID. Stored in Sentry's EU region (Frankfurt); the US company may have access for support and operations | Data Privacy Framework, with standard contractual clauses as fallback |
+| Stripe, Inc. | Billing data, only once paid plans are offered (not currently in use) | Data Privacy Framework, with standard contractual clauses as fallback |
+
+For these transfers we rely on the **EU-U.S. Data Privacy Framework** (European Commission adequacy decision of 10 July 2023) and the **Swiss-U.S. Data Privacy Framework** (recognised by the Swiss Federal Council with effect from 15 September 2024) for certified recipients, and otherwise on the European Commission's **standard contractual clauses** (2021/914), adapted for Swiss law as the FDPIC requires.
+
+We notify workspace owners at least 30 days in advance of any new sub-processor.
+
+### Content loaded from other services
+
+When you open markoto, your browser loads some resources directly from other providers, which therefore receive your IP address and browser details:
+
+- **Google Fonts** (Google LLC, United States, and Google Ireland Ltd.): the fonts of the interface and of document themes.
+- **jsDelivr** (an open-source content delivery network operated through several CDN providers worldwide): code for page layout, diagrams, maths and code highlighting in the document preview.
+
+These requests contain no document content and no account data. We are working on serving these files from our own servers.
 
 ## 5. Storage location and retention
 
-Application data and documents live in OVHcloud's managed PostgreSQL and Object Storage in the European Union (France). AI-related processing is performed by EU-resident providers — Mistral AI (France), Jina AI (Germany), Staan (EU), and Black Forest Labs (EU-pinned region) — routed through our self-hosted LiteLLM proxy. While the service is free we do not process payment data; once paid plans are offered, billing data will be held by Stripe. Application-error telemetry is processed by Sentry in its EU (Frankfurt) region. Transactional emails (deletion confirmations, data-export-ready notifications, breach notifications) are dispatched via Resend; only the recipient address, subject line, and message body transit Resend's systems, and Resend retains those for 30 days for deliverability monitoring.
+Application data and documents are stored in OVHcloud's managed PostgreSQL and Object Storage in the EU (France). AI processing is done by EU-based providers: Mistral AI (France), Jina AI (Germany), Staan (France) and Black Forest Labs (EU-pinned region), routed through our own LiteLLM proxy. While the service is free, we process no payment data. Error reports are processed by Sentry in its EU (Frankfurt) region. Transactional emails are sent through Resend.
 
-Retention follows the per-purpose schedule in the register in §13. As a general rule:
+Retention follows the register in §13. In general:
 
-- **Account data** persists until you request deletion.
-- **Documents and content** persist until you delete them or your account.
-- **Anonymous documents** (created without signing in, and not part of a workspace) are deleted automatically after 180 days without activity on the hosted service. Self-hosted deployments may configure a different period or disable this clean-up. Documents owned by an account and workspace documents are not deleted automatically.
-- **AI prompt and tool-call records** are retained for 90 days for abuse-prevention review, then purged.
-- **Audit logs** are kept for as long as needed for security and legal purposes. When you delete your account, your account id is removed from them (see §5b).
-- **Billing records** do not exist while the service is free. Once paid plans are offered, they will be retained for the legal minimum imposed by EU and member-state tax law (typically 7–10 years).
-- **Transactional email metadata** (recipient + send timestamp + delivery status) is retained by Resend for 30 days; we do not store email bodies after delivery.
-- **Paid-plans waitlist.** If you join the waitlist on the pricing page, we store your email address, the language you signed up in, which version of the consent text you agreed to, when you signed up and confirmed, and — if you were signed in — a link to your account. We do not store your IP address. We use this only to tell you when paid plans launch. Your entry counts only after you click the confirmation link we email you (double opt-in); unconfirmed entries are deleted after 7 days. Every email contains an unsubscribe link that deletes your entry immediately; otherwise we delete the list at the latest 3 months after sending the launch announcement. Deleting your account also deletes a linked entry, and your data export includes it. The confirmation email is sent via Resend; the list itself is stored in OVHcloud's managed PostgreSQL in the EU.
-- **Workspace invitations.** When a workspace admin invites someone by email, we keep the address they typed, the offered role and who invited on a pending invitation. Nobody becomes a member without accepting it. The invitation is deleted when it is accepted, declined or revoked, and at the latest after 14 days. If you have an account with that email address you see the invitation in markoto; if email is set up, one invitation email with a single-use link is also sent via Resend. Deleting your account deletes invitations addressed to you, and your data export lists the open invitations you received and sent.
+- **Account data** is kept until you delete your account.
+- **Documents and content** are kept until you delete them or your account.
+- **Anonymous documents** (created without signing in and not part of a workspace) are deleted automatically after **30 days** without activity. Documents owned by an account and workspace documents are not deleted automatically.
+- **AI prompt and tool-call records** are kept for 90 days for abuse review, then deleted.
+- **Audit log.** Our security audit log records who changed access controls, deleted content or performed other security-relevant actions, with IP addresses shortened (IPv4 to /24, IPv6 to /48). **Entries are currently not deleted automatically.** When you delete your account, your account ID is removed from them. We are setting a fixed retention period and will update this policy when we do.
+- **Backups.** We take an encrypted backup of the database once a day and keep the last 30, so each backup is kept for about **30 days**. Data you delete therefore remains in our backups for up to 30 days before it is overwritten. Our database provider OVHcloud also keeps its own automatic backups for a limited period. We use backups only to restore the service after a failure.
+- **Billing records** do not exist while the service is free. Once paid plans are offered, they will be kept for the period required by tax law (in Switzerland 10 years).
+- **Transactional email.** Resend keeps delivery records (recipient, time, status) for 30 days. We do not keep copies of the emails we send.
+- **Paid-plans waitlist.** If you join the waitlist on the pricing page, we store your email address, the language you signed up in, which version of the consent text you agreed to, when you signed up and confirmed, and, if you were signed in, a link to your account. We do not store your IP address. We use this only to tell you when paid plans launch. Your entry counts only after you click the confirmation link we email you (double opt-in); unconfirmed entries are deleted after 7 days. Every email contains an unsubscribe link that deletes your entry immediately; otherwise we delete the list at the latest 3 months after sending the launch announcement. Deleting your account also deletes a linked entry, and your data export includes it.
+- **Workspace invitations.** When a workspace admin invites someone by email, we keep the address they typed, the offered role and who invited on a pending invitation. Nobody becomes a member without accepting it. The invitation is deleted when it is accepted, declined or revoked, and at the latest after 14 days. If email is set up, one invitation email with a single-use link is sent via Resend. Deleting your account deletes invitations addressed to you, and your data export lists the open invitations you received and sent.
 
 ## 5b. What happens when you delete your account
 
-We want to be fully transparent about what deletion does. The button at `/settings/profile` schedules your account for permanent deletion **30 days from now**. During that grace period your account remains usable; you can cancel from any page that shows the deletion banner. After the 30 days elapse, the following runs automatically — there is no further confirmation, no further chance to recover anything.
+The button at `/settings/profile` schedules your account for permanent deletion **30 days from now**. During that grace period your account remains usable, and you can cancel from any page that shows the deletion banner. After the 30 days, the following runs automatically, with no further confirmation and no way to recover anything.
 
 ### What gets permanently deleted
 
-- **Your account row** — name, email, OAuth identifiers, preferences, locale, age confirmation, accepted-policy versions.
-- **Every document you own** — including documents you've shared with collaborators in edit mode. Co-collaborators lose access to those documents at the same time. *If you want collaborators to keep a document, transfer it to them or duplicate it under their account before requesting deletion.*
+- **Your account**: name, email, sign-in identifiers, preferences, language, age confirmation, accepted policy versions.
+- **Every document you own**, including documents you shared with collaborators in edit mode. Collaborators lose access at the same time. *If you want collaborators to keep a document, transfer it to them or duplicate it under their account first.*
 - **Every saved theme** under your account.
-- **Every workspace where you are the only member** — and every document and knowledge file inside those workspaces. *If you want to keep workspace content, either invite a co-member before deleting your account, or download the documents first using the data-export feature at `/settings/profile`.*
-- **Your AI usage** — past prompts (we keep these privately for 90 days for abuse review), any open AI sessions, and any bring-your-own-key AI provider settings with their encrypted API keys (see §8).
-- **Your data export jobs** and any ZIP files we'd prepared for you.
-- **Your Stripe customer record, if one exists** (only possible once paid plans are offered) — we instruct Stripe to delete it. Stripe retains the underlying invoice and payment records for the period required by tax law (typically 7 to 10 years) regardless of our request.
+- **Every workspace where you are the only member**, with every document and knowledge file in it. *To keep workspace content, invite a co-member before deleting your account, or download the documents first using the data export at `/settings/profile`.*
+- **Your AI usage**: past prompts (kept for 90 days for abuse review), open AI sessions, and any bring-your-own-key AI provider settings with their encrypted API keys (see §8).
+- **Your data export jobs** and any ZIP files prepared for you.
+- **Your Stripe customer record, if one exists** (only possible once paid plans are offered). We instruct Stripe to delete it; Stripe keeps invoice and payment records for the period required by tax law.
 
-### What gets anonymised — kept on the platform with your name removed
+Deleted data remains in our encrypted database backups until they are overwritten, for up to 30 days (see §5).
 
-- **Comments you authored on documents you don't own** — the body stays so the conversation is intelligible to other participants, but your name and your account link are replaced with `[deleted user]`.
-- **Audit-log entries** — we keep our internal security log with your account id removed but the surrounding action retained. Lawful basis: legitimate interest in fraud prevention + legal obligation. Retention follows our standard audit log policy.
-- **Activity-log entries** — your edits / restores / theme changes on documents you DON'T own remain in the doc's activity feed under "Anonymous". Edits on owned docs go away with the doc.
-- **Consent log entries** — we anonymise the user link but keep the historical record so we can demonstrate that consent was given (a GDPR Article 7(1) requirement).
+### What gets anonymised: kept with your name removed
 
-### What happens to workspaces where you're an admin alongside others
+- **Comments you wrote on documents you don't own.** The text stays so the conversation still makes sense to others, but your name and account link are replaced with `[deleted user]`.
+- **Audit-log entries.** We keep the security log entry with your account ID removed. These entries are currently not deleted automatically (see §5).
+- **Activity-log entries.** Your edits, restores and theme changes on documents you don't own stay in the document's activity feed as "Anonymous". Entries on your own documents are deleted with them.
+- **Consent records.** We remove the link to your account but keep the record, so we can show that consent was given (Art. 7(1) GDPR).
 
-If you are an admin of a workspace that has at least one other member when your account is deleted, **we automatically promote one of the remaining members to admin** — the longest-tenured member, preferring an existing admin, then an existing editor, then a viewer. The workspace and its content are preserved for the remaining members. The new admin is notified after the promotion.
+### Workspaces where you are an admin alongside others
 
-The workspace's "owner" provenance field is reassigned to the new admin so the FK constraints are clean. Authorisation has always been driven by the membership role, not the owner field, so this is purely bookkeeping.
+If you are an admin of a workspace with at least one other member, **we automatically promote one of the remaining members to admin**: the longest-standing member, preferring an existing admin, then an editor, then a viewer. The workspace and its content stay with the remaining members, and the new admin is notified. The workspace's "owner" field is reassigned to the new admin; access has always been controlled by membership roles, so this is bookkeeping only.
 
-### Workspaces you should clean up manually first
+### Clean up first
 
-Because workspace cascade-delete removes content owned by other members of a workspace where you were the only person, we strongly recommend you do the following before requesting account deletion if you want to ensure other people's work is preserved:
+Workspace deletion also removes content that other people put into a workspace where you are the only member. Before requesting deletion:
 
-- For any workspace where you are the only member but want to keep the content: invite at least one collaborator with admin role first, then they will inherit the workspace.
-- For any document you want a collaborator to keep: either transfer ownership to them (move it out of your workspace into one they own, OR duplicate it under their account), or have them download a copy first.
-- For knowledge-base files you'd like preserved: download them outside markoto, since these are deleted with the workspace.
+- For a workspace you want to keep: invite at least one collaborator as admin, so they inherit it.
+- For a document a collaborator should keep: move it into a workspace they own, duplicate it under their account, or have them download a copy.
+- For knowledge-base files you want to keep: download them, since they are deleted with the workspace.
 
 ### Your data export
 
-Before requesting account deletion, you can use the **data export** feature at `/settings/profile` to receive a ZIP archive of everything we hold about you — documents in markdown, comments you authored, workspace memberships, AI usage logs, your AI provider settings (provider URL, model and capability — never the API key), your waitlist entry if any, consent decisions and, once paid plans exist, billing history. This is a separate flow that produces a downloadable file you can keep regardless of what happens to your markoto account.
+Before deleting your account, you can use the **data export** at `/settings/profile` to get a ZIP archive of everything we hold about you: documents in Markdown, your comments, workspace memberships, AI usage logs, your AI provider settings (URL, model and capability, never the API key), your waitlist entry, consent records and, once paid plans exist, billing history.
 
-### How long the cascade actually takes
+### How long it takes
 
-A background job runs the cascade once per hour. In the worst case your data is fully purged within about an hour after the 30-day grace ends. You will receive a confirmation email when the deletion has been executed (subject to having an email on file).
+A background job runs once per hour, so your data is purged within about an hour after the grace period ends. You receive a confirmation email when the deletion has run (if we have an email address for you).
 
 ### Cancelling
 
-Until the cascade runs, you can cancel the scheduled deletion by signing in and clicking "Cancel deletion" from any page (a banner appears at the top of the screen during the grace window). After the cascade runs, your account, sessions, and content are gone — there is no recovery path.
+Until the deletion runs, you can cancel it by signing in and clicking "Cancel deletion" in the banner at the top of the screen. After it runs, your account, sessions and content are gone.
 
-## 6. Your rights (GDPR Articles 15–22)
+## 6. Your rights
 
-You have the right to:
+Under the GDPR (Art. 15–22) and the FADP (Art. 25–28 and 32), you have the right to:
 
-- **Access** the personal data we hold about you (Article 15) — use the export tool at `/settings/profile`.
-- **Rectify** inaccurate data (Article 16) — edit your profile, or write to us.
-- **Erase** your data ("right to be forgotten", Article 17) — use the delete tool at `/settings/profile`. We hold for 30 days then permanently purge.
-- **Restrict** processing (Article 18) — write to us.
-- **Object** to processing based on legitimate interest (Article 21) — write to us.
-- **Data portability** (Article 20) — the export tool returns your data in machine-readable JSON, NDJSON, and Markdown.
-- **Withdraw consent** (Article 7(3)) where processing is consent-based — toggle the relevant purpose in the cookie banner (footer privacy badge).
-- **Lodge a complaint** with a supervisory authority (Article 77) — see §11.
+- **Access** the personal data we hold about you: use the export at `/settings/profile`, or write to us.
+- **Rectification** of inaccurate data: edit your profile, or write to us.
+- **Erasure**: use the delete tool at `/settings/profile`. We wait 30 days, then delete permanently.
+- **Restriction** of processing: write to us.
+- **Object** to processing based on legitimate interest: write to us.
+- **Data portability**: the export returns your data in machine-readable JSON, NDJSON and Markdown.
+- **Withdraw consent** where processing is based on consent (currently only the waitlist): use the unsubscribe link.
+- **Complain** to a supervisory authority (see §11).
 
-We respond to all requests within 30 days. We do not charge for these requests except in the case of manifestly unfounded or excessive requests.
+We respond within 30 days. Requests are free unless they are manifestly unfounded or excessive.
 
 ## 7. Automated decision-making
 
-markoto does not make decisions producing legal or similarly significant effects on you based solely on automated processing. The AI assistant offers suggestions you choose to accept or reject — final authorship is always yours. Once paid plans are offered, Stripe will perform automated risk scoring on payment attempts; if an attempt is declined on this basis you will be able to request human review by writing to us.
+We do not make decisions with legal or similarly significant effects on you based solely on automated processing. The AI assistant only makes suggestions that you accept or reject. Moderation decisions are always taken by a person (see the Terms, §8). Once paid plans are offered, Stripe will score payment attempts for fraud risk automatically; if a payment is declined on that basis, you can ask for a human review.
 
 ## 8. AI features and transparency
 
-markoto includes an AI writing assistant and a knowledge-base retrieval system. AI requests are routed through our self-hosted LiteLLM proxy to EU-resident providers: Mistral AI (text generation, voice transcription via Voxtral), Jina AI (embeddings for the knowledge base, single-URL page content extraction), Staan (web search via a proprietary European search index, EU-only routing), and Black Forest Labs (image generation, EU-pinned region). Web-search queries no longer transit US search backends. We disclose this to you in the user interface — every AI-assisted message carries a visible "AI" badge, and any AI-generated content placed in a public document is footed with a transparency notice. None of these providers use API content to train their models on the tiers we use.
+markoto includes an AI writing assistant and a knowledge-base search. AI requests go through our own LiteLLM proxy to these EU-based providers: Mistral AI (text generation, voice transcription), Jina AI (embeddings for the knowledge base, extracting the content of a single web page), Staan (web search via a European search index) and Black Forest Labs (image generation, EU-pinned region).
+
+**AI transparency.** When the AI works in a document, it appears as a separate collaborator, its answers are labelled as coming from markoto's AI, and its edits are recorded in the document's activity log as made by the AI.
+
+**Training.** We do not use your content to train AI models. Our providers' terms differ:
+
+- **Jina AI** states in its terms that it does not use customer request data, inputs or uploaded content to train its models.
+- **Staan** states that search data is not used to train language models.
+- **Mistral AI** and **Black Forest Labs** may, under their standard terms, use API content to improve their models unless the customer opts out. We have opted out of this with both providers.
 
 ### Your own AI provider (bring your own key)
 
-You can connect your own AI provider account (an OpenAI-compatible service from the choices offered in the settings, for example Mistral AI or OpenAI; self-hosted deployments of markoto may allow others) under **Settings → AI provider**, separately for chat, image generation and voice transcription. When you do, the content needed for that feature — your prompt, the relevant document context, voice recordings, and the generated result — is sent through our LiteLLM proxy to **the provider you chose, under your own agreement with that provider**. markoto does not select that provider, and it is not one of our sub-processors; its terms and data-protection practices (including where it processes data and whether it trains on API content) are those of your contract with it. We store your provider settings (provider URL, model name, and your API key, encrypted at rest) until you remove them or delete your account; only the last four characters of the key are ever shown back to you, the key is never included in your data export (the export contains the provider URL, model and capability only), and we do not write it to our application logs. Prompt and tool-call records follow the 90-day retention above. Embeddings always use our own EU-resident provider listed above.
+You can connect your own AI provider account (an OpenAI-compatible service from the choices in the settings, for example Mistral AI or OpenAI) under **Settings → AI provider**, separately for chat, image generation and voice transcription. When you do, the content needed for that feature (your prompt, the relevant document context, voice recordings and the generated result) is sent through our LiteLLM proxy to **the provider you chose, under your own agreement with it**. We do not choose that provider and it is not our sub-processor; its terms and data-protection practices, including where it processes data and whether it trains on your content, are those of your contract with it. We store your provider settings (provider URL, model name and your API key, encrypted at rest) until you remove them or delete your account. Only the last four characters of the key are ever shown back to you, the key is never included in your data export, and we do not write it to our logs. Prompt and tool-call records follow the 90-day retention above. Embeddings always use our own provider listed above.
 
-Web search and single-page fetching are provided by us and work the same whether or not you use your own AI provider: the search query the assistant formulates (up to 400 characters, which may be derived from your prompt or document) is sent to Staan, and the web address the assistant wants to read is sent to Jina AI (Jina Reader), in both cases directly from our application (not via the LiteLLM proxy) and through our own account with that provider, not yours. Staan and Jina AI are our sub-processors, listed above. The search results or extracted page text are then summarised by your chat provider (your own provider if you connected one, otherwise ours), so that text is passed to it. To limit cost and abuse, each signed-in user may make a limited number of web searches and page fetches per hour and per day (by default 30 per hour and 100 per day, shared between the editor and MCP clients). To enforce this we keep counters in Valkey keyed by your internal user ID, which hold timestamps only — no query, address or content — and expire automatically after their time window. These tools are available only if the operator has configured them.
+Web search and single-page fetching are provided by us, whether or not you use your own AI provider: the search query the assistant formulates (up to 400 characters, possibly derived from your prompt or document) is sent to Staan, and the web address the assistant wants to read is sent to Jina AI, directly from our application and through our account with those providers. The results are then summarised by your chat provider (your own if you connected one, otherwise ours). To limit cost and abuse, each user may make a limited number of web searches and page fetches (by default 30 per hour and 100 per day). We count them in Valkey under your internal user ID; the counters hold only timestamps and expire automatically.
 
-Using the AI features requires signing in. They are optional: document content is sent to an AI provider only when you invoke the assistant or upload files to a workspace knowledge base (which are embedded by Jina AI).
+The AI features require an account and are optional: document content is sent to an AI provider only when you use the assistant or upload files to a workspace knowledge base (which are embedded by Jina AI).
 
 ## 9. Cookies and similar technologies
 
-We use essential storage (a session cookie, a language preference, and your consent decision itself) to keep you logged in and remember your preferences — this requires no consent under the ePrivacy Directive. We use product analytics and session replay only with your consent, which you can grant or withdraw at any time from the "Privacy choices" link in the footer of every page.
+markoto uses **only storage that is strictly necessary** to provide the service you ask for:
 
-If you create a document without signing in, your browser also keeps a random creator key in an essential cookie, so that only that browser can delete the document later. The key is not linked to you or your account; we store only a hash of it with the document.
+| Name | Purpose | Duration |
+| --- | --- | --- |
+| `nuxt-session` | Keeps you signed in (encrypted session cookie). Set only when you sign in. | 7 days |
+| `ypad_locale` | Remembers your language. | 1 year |
+| `markoto-anon-creator` | Random creator key that lets the browser which created an anonymous document delete it. Not linked to you; we store only a hash of it with the document. | 1 year |
+| `nuxt-color-mode` (local storage) | Remembers light or dark mode, if you choose one. | Until you clear it |
+| `markoto-pending-invite` (session storage) | Keeps a workspace invitation link while you sign in to accept it. | Until you close the tab |
+| Service worker cache | Lets markoto load faster and work offline. | Until you clear it |
 
-We do not use cross-site advertising trackers and we do not sell or share data with advertisers.
+We use **no analytics, no session replay, no advertising and no cross-site tracking**. Because all of this storage is strictly necessary for a service you explicitly request, it needs no consent under Art. 5(3) of the EU ePrivacy Directive and the national laws implementing it. Under Swiss law (Art. 45c of the Telecommunications Act), this section informs you about it, and you can block or delete cookies in your browser at any time; markoto may then not keep you signed in or let you delete anonymous documents. For this reason there is no cookie banner. If we ever want to use non-essential storage, we will ask for your consent first.
 
-## 10. Children
+Our earlier cookie banner set a `markoto-anon` cookie to remember your choice. We no longer set it; it expires on its own, and you can delete it. Records of decisions made with that banner are kept as described in §5b.
 
-markoto is not directed at children under the digital age of consent in your country (16 in most EU member states; lower in some). If you become aware that a child has created an account in violation of this, please report to **{{privacyContactEmail}}**.
+## 10. Age requirement
+
+You must be at least **16 years old** to use markoto, both with an account and for anonymous documents, whatever the age set by the law of your country. If you believe that someone under 16 is using markoto, please tell us at **{{privacyContactEmail}}** and we will delete the account or document.
 
 ## 11. Right to lodge a complaint
 
-If you believe we have failed to honour your rights, you have the right to lodge a complaint with a data protection supervisory authority.
+If you believe we have not respected your rights, you can complain to a data protection authority.
 
-- **In the EU/EEA:** you may complain to the supervisory authority of your country of habitual residence, your place of work, or the place of the alleged infringement. A list of EU/EEA supervisory authorities is published by the European Data Protection Board. Because we are established in Switzerland (outside the EU/EEA), we are not covered by the GDPR "one-stop-shop" mechanism, so there is no single lead authority — you may approach your local authority directly.
-- **In Switzerland:** the competent authority is the Federal Data Protection and Information Commissioner (FDPIC).
+- **In Switzerland:** the Federal Data Protection and Information Commissioner (FDPIC), www.edoeb.admin.ch.
+- **In the EU/EEA:** the supervisory authority of the country where you live or work, or where the alleged infringement took place. The European Data Protection Board publishes a list. As we are established in Switzerland, there is no single lead authority for us under the GDPR's one-stop-shop, so you can contact your local authority directly.
 
-We would also welcome the opportunity to resolve your concern directly first — please write to us at **{{privacyContactEmail}}**.
+We would welcome the chance to resolve your concern first: write to **{{privacyContactEmail}}**.
 
 ## 12. Security
 
-We protect data using transport encryption (TLS), at-rest encryption at the OVHcloud platform layer, scrypt password hashing, and IP truncation in audit logs. In the event of a personal data breach, we commit to notifying the competent supervisory authority within 72 hours as required by GDPR Article 33.
+We protect data with encryption in transit (TLS), encryption at rest provided by our storage provider, encrypted database backups, encryption of stored secrets such as AI provider keys, strict separation of our internal services, least-privilege access, shortened IP addresses in logs, and regular security updates. markoto accounts have no passwords of their own: you sign in through GitHub or Google. If you protect a document with a password, we store only a scrypt hash of it. The measures are described in more detail in Annex I of our Data Processing Addendum (`/legal/dpa`).
 
-If we become aware of a personal data breach affecting you, we will notify the supervisory authority within 72 hours and notify you without undue delay if the breach poses a high risk to your rights.
+If a personal data breach is likely to result in a risk to you, we notify the competent supervisory authority within 72 hours where the GDPR requires it (Art. 33 GDPR), and the FDPIC as soon as possible where the FADP requires it (Art. 24 FADP). If the breach is likely to result in a high risk to you, we also tell you without undue delay.
 
 ## 13. Register of processing purposes
 
@@ -173,10 +226,11 @@ The table below is generated from our internal registry of processing purposes a
 
 ## 14. Changes to this policy
 
-This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Material changes (new processing purposes, new sub-processors, changed retention) trigger a version bump and an in-product re-acceptance prompt. Previous versions are available on request from **{{privacyContactEmail}}**.
+This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Material changes (new processing purposes, new sub-processors, changed retention) change the version and lead to an in-product prompt to accept the new version. Previous versions are available on request from **{{privacyContactEmail}}**.
 
 ### Change log
 
+- **v8 (2026-11-03).** Removed the "product analytics" and "session replay" purposes and the cookie banner: neither was ever in use, and markoto uses only strictly necessary storage (§9 lists it). Added the Swiss FADP alongside the GDPR, the countries data is transferred to (§4) and content loaded from Google Fonts and jsDelivr. Described anonymous documents (terms acceptance, bot check, deletion after 30 days instead of 180) and abuse reports (§2b). Stated backup retention (about 30 days) and that audit-log entries are currently not deleted automatically. Corrected the statement on password hashing, the age rule (16 everywhere), the AI labelling description and the statements on AI training per provider.
 - **v7 (2026-10-27).** Added the `workspace_invitations` processing purpose (legitimate interest): when a workspace admin invites someone by email, we keep that email address, the offered role and who invited on a pending invitation until the person accepts or declines it, an admin revokes it, or it expires after 14 days. Nobody joins a workspace without accepting. If email is set up, one invitation email per invite is sent via Resend (at most three per address per day). Stored in OVHcloud (EU).
 - **v6 (2026-10-26), editorial alignment with the free-only service.** Stripe and billing are described as relevant only once paid plans are offered (the sub-processor list and the register omit Stripe while billing is off). The register of processing purposes is now actually shown in §13. Corrected statements about audit-log retention, anonymous-document clean-up (180 days of inactivity), the retired interaction counter and the (non-existent) account-level AI opt-out.
 - **v6 (2026-10-26).** Added the `user_directed_ai_provider` processing purpose: you can bring your own AI provider (chat, image generation, voice transcription). Content for those features is then sent to the provider you choose under your agreement with it; we store your provider settings with the API key encrypted at rest until you remove them or delete your account. Web search and page fetching are provided by us for every user, including those with their own AI provider: search queries go to Staan and fetched web addresses to Jina AI, and per-user hourly and daily usage counters (timestamps only, no content) are kept in Valkey.

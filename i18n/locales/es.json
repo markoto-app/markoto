@@ -1089,48 +1089,13 @@
     "retry": "Reintentar"
   },
   "legal": {
-    "consent": {
-      "banner": {
-        "title": "Tus opciones de privacidad",
-        "intro": "Usamos cookies y tecnologías similares para mantener markoto en funcionamiento y, con tu consentimiento, para entender cómo se usa. Puedes cambiar o retirar tu consentimiento en cualquier momento desde la insignia de privacidad en el pie de página.",
-        "introShort": "Las cookies mantienen markoto en marcha; solo medimos el uso con tu consentimiento, que puedes cambiar cuando quieras.",
-        "essentialNotice": "El almacenamiento esencial siempre está activo — sin él, markoto no puede mantener tu sesión iniciada ni recordar tus preferencias.",
-        "acceptAll": "Aceptar todo",
-        "rejectAll": "Rechazar todo",
-        "customize": "Personalizar",
-        "save": "Guardar opciones",
-        "learnMore": "Lee nuestra política de privacidad",
-        "footerLink": "Opciones de privacidad"
-      },
-      "purpose": {
-        "essential": {
-          "label": "Esencial",
-          "description": "Sesión de inicio, preferencia de idioma, tu propia decisión de consentimiento. Necesario para que el servicio funcione."
-        },
-        "analytics": {
-          "label": "Análisis del producto",
-          "description": "Vistas de página agregadas y uso de funciones para que podamos mejorar markoto. Sin seguimiento entre sitios, sin perfiles publicitarios."
-        },
-        "session_replay": {
-          "label": "Repetición de sesión",
-          "description": "Grabaciones anonimizadas de las interacciones con la interfaz para ayudarnos a depurar problemas. Los campos de formulario y el contenido del documento se ocultan."
-        }
-      },
-      "withdraw": {
-        "title": "Retirar el consentimiento",
-        "intro": "Ya has respondido a nuestra solicitud de consentimiento. Puedes cambiar de opinión en cualquier momento a continuación.",
-        "currentState": "Estado actual",
-        "granted": "Concedido",
-        "refused": "Rechazado"
-      }
-    },
     "ageGate": {
       "title": "Confirma tu edad",
-      "body": "Según la legislación de la UE, necesitamos una confirmación rápida de que tienes al menos 16 años. Si en tu país se aplica una edad digital de consentimiento inferior, contáctanos.",
+      "body": "markoto es para personas de 16 años o más. Confirma que tienes al menos 16 años. Esto se aplica en todos los países, aunque la ley local fije una edad inferior.",
       "checkbox": "Confirmo que tengo al menos 16 años",
       "continue": "Continuar",
       "underage": "Soy menor de 16 años",
-      "underageNotice": "Lo sentimos — markoto requiere que cumplas la edad digital de consentimiento en tu país. No almacenamos ningún dato sobre ti."
+      "underageNotice": "Lo sentimos — markoto solo está disponible para personas de 16 años o más. No almacenamos ningún dato sobre ti."
     },
     "policyAcceptance": {
       "newVersionTitle": "Nuestros términos de privacidad han cambiado",
@@ -1246,7 +1211,8 @@
       "dpa": "Anexo de Tratamiento de Datos",
       "subProcessors": "Subencargados",
       "abuse": "Denunciar abuso",
-      "imprint": "Aviso legal"
+      "imprint": "Aviso legal",
+      "cookieNote": "Cookies: solo esenciales"
     },
     "documentPage": {
       "translationNoticeTitle": "Traducción proporcionada por comodidad",
@@ -1297,16 +1263,8 @@
         "subheading": "Versiones de la Política de Privacidad, los Términos del Servicio y el Anexo de Tratamiento de Datos que has aceptado. Si actualizamos algún documento de forma sustancial, verás aquí «requiere nueva aceptación» y te lo volveremos a solicitar antes de cualquier acción adicional.",
         "notAccepted": "No aceptado",
         "needsReacceptance": "requiere nueva aceptación (actual v{version})",
-        "dpaNotApplicable": "Requerido cuando creas un espacio de trabajo"
-      },
-      "consent": {
-        "heading": "Opciones de privacidad",
-        "subheading": "Lo que podemos registrar sobre tu uso de markoto. El almacenamiento esencial siempre está activo (inicio de sesión + tu propia decisión de consentimiento). Las otras dos áreas están desactivadas hasta que las concedas — cambia de opinión aquí en cualquier momento.",
-        "purposeAlwaysOn": "siempre activo",
-        "granted": "Concedido",
-        "refused": "Rechazado",
-        "notSet": "Sin definir",
-        "change": "Cambiar tus opciones de privacidad"
+        "dpaNotApplicable": "Requerido cuando creas un espacio de trabajo",
+        "cookieNote": "markoto solo usa cookies esenciales: su sesión, su idioma y una clave que permite a su navegador eliminar los documentos que creó sin cuenta. No hay analítica, seguimiento ni publicidad, así que no hay nada que consentir. La política de privacidad enumera cada cookie."
       },
       "sessions": {
         "heading": "Sesiones",

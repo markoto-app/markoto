@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test'
+import { expect } from '@playwright/test'
 
 // API calls use the runtime's global `fetch`, NOT Playwright's `request`
 // fixture. Under Bun, the `request` fixture throws while parsing the
@@ -30,20 +30,4 @@ export async function createAnonDoc(body: Record<string, unknown> = {}): Promise
   const json = JSON.parse(text) as { docId?: string }
   expect(json.docId, 'docId in create response').toBeTruthy()
   return json.docId!
-}
-
-/**
- * Dismiss the cookie-consent banner if present. It's `fixed bottom-0 z-[60]`,
- * so on a fresh anonymous context it sits OVER the mobile bottom tab bar
- * (z-30) and blocks taps on it. Reject-all is the privacy-preserving choice.
- * No-op if the banner isn't showing (consent already recorded).
- */
-export async function dismissConsent(page: Page): Promise<void> {
-  const reject = page.locator('[data-testid="consent-reject-all"]')
-  if (await reject.isVisible().catch(() => false)) {
-    await reject.click()
-    await page.locator('[data-testid="consent-banner"]')
-      .waitFor({ state: 'detached', timeout: 5_000 })
-      .catch(() => { /* banner animates out; detachment is best-effort */ })
-  }
 }

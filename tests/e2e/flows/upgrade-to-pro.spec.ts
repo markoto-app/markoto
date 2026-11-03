@@ -115,24 +115,6 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   await page.goto('/pricing')
   await page.locator('[data-testid="pricing-tier-free"]').waitFor({ state: 'visible', timeout: 10_000 })
 
-  // Fresh test users get the consent banner on first visit. Its
-  // dialog overlay intercepts pointer events on the Upgrade button
-  // below — hover/click on the button times out. Wait for the banner
-  // to render (it mounts after page hydration), then dismiss it so
-  // the rest of the flow can interact normally. The consent flow is
-  // covered separately; we just don't want to capture it as part of
-  // the upgrade story.
-  const consentBanner = page.locator('[data-testid="consent-banner"]')
-  await consentBanner.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {
-    // Banner may not appear if a previous test in the same context
-    // already accepted (shouldn't happen with fresh contexts but be
-    // defensive). Skip dismiss in that case.
-  })
-  if (await consentBanner.isVisible().catch(() => false)) {
-    await consentBanner.getByRole('button', { name: /accept all/i }).click()
-    await consentBanner.waitFor({ state: 'hidden', timeout: 5_000 })
-  }
-
   await flow.heading('Upgrade to Pro', 3)
   await flow.narrate(
     'Pro lifts the AI credits cap from 100 to 1,500 a month and '

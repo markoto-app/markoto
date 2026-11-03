@@ -1,5 +1,4 @@
 import { test, expect, type Page } from '@playwright/test'
-import { dismissConsent } from './_helpers'
 
 // The hosted product page (WP11): with NUXT_PRODUCT_TOUR_ENABLED on, `/`
 // shows logged-out visitors the scroll-driven tour instead of the plain
@@ -49,7 +48,6 @@ test('logged-out home page shows the product tour when the instance enables it',
   await expect(page.getByTestId('tour-self-host')).toHaveAttribute('href', '/docs/getting-started/self-hosting')
 
   // The CTA still creates a document, like the plain hero's button.
-  await dismissConsent(page)
   await page.getByTestId('tour-start-writing').click()
   await expect(page.getByRole('dialog')).toBeVisible()
 })

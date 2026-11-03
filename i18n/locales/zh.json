@@ -1089,48 +1089,13 @@
     "retry": "重试"
   },
   "legal": {
-    "consent": {
-      "banner": {
-        "title": "你的隐私选择",
-        "intro": "我们使用 Cookie 及类似技术来维持 markoto 的运行，并在获得你同意的情况下了解其使用情况。你可以随时从页脚的隐私标记更改或撤回你的同意。",
-        "introShort": "Cookie 用于维持 markoto 的运行；只有在你同意后我们才会统计使用情况，你可以随时更改。",
-        "essentialNotice": "必要存储始终开启 — 没有它，markoto 无法让你保持登录状态或记住你的偏好。",
-        "acceptAll": "全部接受",
-        "rejectAll": "全部拒绝",
-        "customize": "自定义",
-        "save": "保存选择",
-        "learnMore": "阅读我们的隐私政策",
-        "footerLink": "隐私选择"
-      },
-      "purpose": {
-        "essential": {
-          "label": "必要",
-          "description": "登录会话、语言偏好以及你的同意决定本身。服务正常运行所必需。"
-        },
-        "analytics": {
-          "label": "产品分析",
-          "description": "汇总页面浏览量和功能使用情况，以便我们改进 markoto。无跨站追踪，无广告画像。"
-        },
-        "session_replay": {
-          "label": "会话回放",
-          "description": "对 UI 交互进行匿名记录，帮助我们排查问题。表单字段和文档内容均被遮蔽。"
-        }
-      },
-      "withdraw": {
-        "title": "撤回同意",
-        "intro": "你已回答过我们的同意提示。你可以随时在下方改变主意。",
-        "currentState": "当前状态",
-        "granted": "已授予",
-        "refused": "已拒绝"
-      }
-    },
     "ageGate": {
       "title": "确认你的年龄",
-      "body": "根据欧盟法律，我们需要你快速确认你已年满 16 周岁。如果你所在国家/地区适用更低的数字同意年龄，请与我们联系。",
+      "body": "markoto 面向 16 周岁及以上的用户。请确认你已年满 16 周岁。即使你所在国家/地区的法律规定了更低的年龄，此要求同样适用。",
       "checkbox": "我确认我已年满 16 周岁",
       "continue": "继续",
       "underage": "我未满 16 周岁",
-      "underageNotice": "很抱歉 — markoto 要求你达到所在国家/地区的数字同意年龄。我们不会存储关于你的任何数据。"
+      "underageNotice": "很抱歉 — markoto 仅面向 16 周岁及以上的用户。我们不会存储关于你的任何数据。"
     },
     "policyAcceptance": {
       "newVersionTitle": "我们的隐私条款已变更",
@@ -1246,7 +1211,8 @@
       "dpa": "数据处理附录",
       "subProcessors": "子处理方",
       "abuse": "举报滥用",
-      "imprint": "版本信息"
+      "imprint": "版本信息",
+      "cookieNote": "Cookie：仅限必要"
     },
     "documentPage": {
       "translationNoticeTitle": "此翻译仅供参考",
@@ -1297,16 +1263,8 @@
         "subheading": "你已接受的隐私政策、服务条款和数据处理附录的版本。如果我们对任何文档进行重大更新，你会在此看到“需重新接受”，并且在采取任何进一步操作之前，我们会再次提示你。",
         "notAccepted": "未接受",
         "needsReacceptance": "需重新接受（当前 v{version}）",
-        "dpaNotApplicable": "创建工作区时必需"
-      },
-      "consent": {
-        "heading": "隐私选择",
-        "subheading": "我们可能追踪的关于你使用 markoto 的内容。必要存储始终开启（登录 + 你的同意决定本身）。其他两项在你授予之前均处于关闭状态 — 你可随时在此改变主意。",
-        "purposeAlwaysOn": "始终开启",
-        "granted": "已授予",
-        "refused": "已拒绝",
-        "notSet": "未设置",
-        "change": "更改你的隐私选择"
+        "dpaNotApplicable": "创建工作区时必需",
+        "cookieNote": "markoto 只使用必要的 Cookie：您的登录会话、语言设置，以及让您的浏览器删除其在无账户状态下创建的文档的密钥。我们不做分析、跟踪或广告，因此无需征得同意。隐私政策列出了每一个 Cookie。"
       },
       "sessions": {
         "heading": "会话",

@@ -1,14 +1,16 @@
 ---
 slug: privacy
 locale: es
-version: 7
-effectiveDate: 2026-10-27
+version: 8
+effectiveDate: 2026-11-03
 translationStatus: machine-translated
 ---
 
 # Política de privacidad
 
-> **En resumen:** markoto almacena los documentos que escribe, los comentarios que deja y lo mínimo que necesitamos para gestionar su cuenta. El servicio es actualmente gratuito; todavía no se ofrecen planes de pago. Las funciones de IA se ejecutan en proveedores radicados en la UE (Mistral AI para texto y voz, Jina AI para embeddings y obtención de páginas individuales, Staan para la búsqueda web, Black Forest Labs para la generación de imágenes), salvo que conecte su propio proveedor de IA, en cuyo caso su contenido de IA se envía al proveedor que haya elegido. No vendemos sus datos, no mostramos publicidad y no entrenamos IA con su contenido. Puede exportar los datos que tenemos sobre usted y eliminar su cuenta en cualquier momento desde sus ajustes.
+> **En resumen:** markoto almacena los documentos que escribe, los comentarios que deja y lo mínimo que necesitamos para gestionar su cuenta. El servicio es gratuito; todavía no se ofrecen planes de pago. Las funciones de IA se ejecutan en proveedores radicados en la UE (Mistral AI para texto y voz, Jina AI para embeddings y obtención de páginas individuales, Staan para la búsqueda web, Black Forest Labs para la generación de imágenes), salvo que conecte su propio proveedor de IA, en cuyo caso su contenido de IA se envía al proveedor que haya elegido. Solo usamos cookies esenciales: ni analítica, ni rastreo, ni publicidad. No vendemos sus datos ni entrenamos IA con su contenido. Puede exportar los datos que tenemos sobre usted y eliminar su cuenta en cualquier momento desde sus ajustes.
+
+**Índice:** 1. Quiénes somos · 2. Qué datos tratamos y por qué · 2b. Documentos anónimos, comprobación contra bots y denuncias de abusos · 3. Base jurídica · 4. Destinatarios y transferencias internacionales · 5. Ubicación del almacenamiento y conservación · 5b. Qué ocurre cuando elimina su cuenta · 6. Sus derechos · 7. Decisiones automatizadas · 8. Funciones de IA y transparencia · 9. Cookies y tecnologías similares · 10. Requisito de edad · 11. Derecho a presentar una reclamación · 12. Seguridad · 13. Registro de fines del tratamiento · 14. Cambios en esta política
 
 ---
 
@@ -16,154 +18,205 @@ translationStatus: machine-translated
 
 markoto está operado por **{{controllerName}}** ({{controllerAddress}}). Para cualquier consulta sobre privacidad, escriba a **{{privacyContactEmail}}**.
 
-A los efectos del Reglamento general de protección de datos (Reglamento (UE) 2016/679, «RGPD»), markoto es el **responsable del tratamiento** de los datos personales que usted proporciona directamente (su cuenta y, si se apunta, la lista de espera de planes de pago). Cuando usa markoto dentro de un espacio de trabajo propiedad de un tercero, el propietario de ese espacio es el responsable del tratamiento de cualquier contenido que usted incorpore a él, y markoto actúa como **encargado del tratamiento** en virtud de una Adenda de tratamiento de datos (véase `/legal/dpa`).
+Esta política está redactada para cumplir tanto la **Ley federal suiza de protección de datos** (LPD revisada, en vigor desde el 1 de septiembre de 2023) como, en la medida en que nos sea aplicable, el **Reglamento general de protección de datos** de la UE (Reglamento (UE) 2016/679, «RGPD»). El RGPD nos es aplicable porque ofrecemos markoto a personas en la UE y el EEE.
+
+Somos el **responsable del tratamiento** de los datos personales que usted nos proporciona directamente: su cuenta, los documentos anónimos que crea, las denuncias de abusos y, si se apunta, la lista de espera de planes de pago. Cuando usa markoto dentro de un espacio de trabajo propiedad de un tercero, el propietario de ese espacio es el responsable del tratamiento del contenido incorporado a él, y nosotros actuamos como su **encargado del tratamiento** en virtud de nuestra Adenda de tratamiento de datos (`/legal/dpa`).
 
 ## 2. Qué datos tratamos y por qué
 
-Seguimos el principio de minimización de datos: recogemos la menor cantidad de datos necesaria para cada fin y le explicamos cuál es ese fin.
+Solo recogemos lo que cada fin requiere y le explicamos cuál es ese fin. La lista completa de fines del tratamiento, con la base jurídica, las categorías de datos, el plazo de conservación y los destinatarios, es el registro del apartado 13, generado a partir de nuestro registro interno. Cualquier cambio en ese registro se considera una modificación sustancial de esta política y cambia su versión (véase el apartado 14).
 
-La tabla completa de fines del tratamiento —con la base jurídica, las categorías de datos, el plazo de conservación y los subencargados implicados— se recoge en el registro del apartado 13 más abajo, generado a partir de nuestro registro interno. Cualquier cambio en este registro se considera una modificación sustancial de esta política y hace avanzar el número de versión (véase el apartado 14).
+En resumen, tratamos:
 
-## 3. Base jurídica (artículo 6 del RGPD)
+- **Datos de cuenta:** nombre, dirección de correo electrónico, el identificador y el avatar de su proveedor de inicio de sesión (GitHub o Google), idioma, confirmación de edad y las versiones de nuestras políticas que ha aceptado.
+- **Contenido:** documentos, comentarios, imágenes, archivos de la base de conocimiento, temas y quién editó qué.
+- **Uso de la IA:** solicitudes, contexto del documento y resultados de la IA, cuando usa las funciones de IA.
+- **Datos técnicos:** direcciones IP (usadas de forma efímera para los límites de frecuencia y almacenadas en los registros solo en forma acortada), tipo de navegador e informes de errores.
 
-Cada tratamiento se basa en una de las siguientes bases jurídicas:
+## 2b. Documentos anónimos, comprobación contra bots y denuncias de abusos
 
-- **Contrato** (artículo 6, apartado 1, letra b) — para todo lo necesario para prestar el servicio al que se registró: creación de cuenta, almacenamiento de documentos, asistencia de IA y, cuando se ofrezcan planes de pago, facturación.
-- **Obligación legal** (artículo 6, apartado 1, letra c) — para el registro de auditoría de seguridad y, cuando se ofrezcan planes de pago, las obligaciones de conservación del Derecho fiscal (datos de facturación).
-- **Interés legítimo** (artículo 6, apartado 1, letra f) — para la prevención del fraude y el abuso, la supervisión de errores y la telemetría de seguridad. Puede oponerse al tratamiento basado en este fundamento (véase el apartado 6).
-- **Consentimiento** (artículo 6, apartado 1, letra a) — para la analítica de producto y la grabación de sesiones (nunca las cargamos salvo que haya dado su consentimiento en el banner de cookies) y para la lista de espera de planes de pago (solo si marca la casilla de consentimiento al apuntarse y después confirma el correo que le enviamos). Puede retirarlo en cualquier momento.
+**Documentos anónimos.** Puede crear un documento sin cuenta. Antes de que su navegador lo cree, confirma que tiene al menos 16 años y acepta nuestras Condiciones, y su navegador supera una comprobación contra bots. Junto con el documento almacenamos la versión de las Condiciones que aceptó, el momento y un hash de una clave de creador aleatoria que su navegador guarda en una cookie (véase el apartado 9). No le pedimos su nombre ni su dirección de correo electrónico. Cualquier persona con el enlace puede abrir el documento; no incluya en él datos personales de terceros. Los documentos anónimos se eliminan automáticamente tras **30 días** sin actividad.
 
-## 4. Subencargados y transferencias internacionales
+**Comprobación contra bots.** La comprobación contra bots es un rompecabezas de prueba de trabajo que se ejecuta en nuestros propios servidores y en su navegador (ALTCHA). No interviene ningún tercero y no establece cookies. Su navegador recibe un rompecabezas, lo resuelve y nos devuelve la solución; nosotros la comprobamos y la descartamos. Para impedir la creación masiva, contamos las solicitudes por dirección IP (en IPv6, por red /64) en un almacén efímero en memoria; estos contadores caducan a los pocos minutos y no contienen ningún contenido.
 
-Utilizamos una breve lista de subencargados, todos vinculados por contratos conforme al artículo 28 del RGPD. La lista vigente está en `/legal/sub-processors`. Esa lista muestra únicamente los proveedores que este despliegue usa realmente: por ejemplo, Stripe (procesamiento de pagos) solo aparece cuando se activan los planes de pago, y un proveedor de IA que **usted** conecte por su cuenta (véase el apartado 8) no es nuestro subencargado y no figura en ella.
+**Denuncias de abusos.** Si denuncia contenido, almacenamos la URL, su explicación, la categoría, el momento y, si nos los facilita, su nombre y su dirección de correo electrónico (y su cuenta, si ha iniciado sesión). Los usamos para tramitar su denuncia, acusar recibo, comunicarle nuestra decisión y, cuando la ley lo exija, informar a las autoridades. Si retiramos o restringimos contenido, enviamos a su propietario una exposición de motivos; en ella no figura su nombre, salvo que sea necesario para tramitar una notificación relativa a propiedad intelectual. Actualmente las denuncias se conservan hasta que las eliminamos manualmente; estamos fijando un plazo de conservación determinado.
 
-Cuando un subencargado trata datos fuera del Espacio Económico Europeo, nos basamos en:
+## 3. Base jurídica
 
-- la decisión de adecuación del **Marco de Privacidad de Datos UE-EE. UU.** (Data Privacy Framework, 10 de julio de 2023) para los destinatarios con sede en EE. UU. certificados en el DPF, Y
-- las **cláusulas contractuales tipo** (2021/914) con carácter subsidiario, por si se invalidara la decisión de adecuación del DPF.
+Conforme al RGPD, cada actividad de tratamiento se basa en una de las siguientes bases jurídicas (art. 6 del RGPD). Conforme a la LPD, tratamos los datos personales de acuerdo con sus principios (art. 6 de la LPD) y, cuando se requiere una justificación, nos basamos en los mismos motivos (art. 31 de la LPD).
 
-Notificamos a los clientes propietarios de espacios de trabajo con al menos 30 días de antelación cualquier nuevo subencargado.
+- **Contrato** (art. 6, apartado 1, letra b), del RGPD): todo lo necesario para prestar el servicio que usa: cuentas, documentos, colaboración, asistencia de IA y, cuando se ofrezcan planes de pago, facturación.
+- **Obligación legal** (art. 6, apartado 1, letra c), del RGPD): el registro de auditoría de seguridad, la tramitación de órdenes y notificaciones legales y, cuando se ofrezcan planes de pago, la conservación de los registros de facturación conforme al Derecho fiscal.
+- **Interés legítimo** (art. 6, apartado 1, letra f), del RGPD): mantener el servicio seguro y libre de abusos (límites de frecuencia, comprobación contra bots, tramitación de abusos, supervisión de errores) y las invitaciones a espacios de trabajo. Puede oponerse al tratamiento basado en este fundamento (véase el apartado 6).
+- **Consentimiento** (art. 6, apartado 1, letra a), del RGPD): solo para la lista de espera de planes de pago (usted marca la casilla y confirma el correo que le enviamos). Puede retirarlo en cualquier momento mediante el enlace de baja.
+
+## 4. Destinatarios y transferencias internacionales
+
+Recurrimos a un número reducido de proveedores de servicios («subencargados») en virtud de contratos escritos de tratamiento de datos (art. 28 del RGPD, art. 9 de la LPD). La lista vigente está en `/legal/sub-processors`. Muestra únicamente los proveedores que este despliegue usa realmente: Stripe (pagos) solo aparece cuando se activan los planes de pago, y un proveedor de IA que **usted** conecte por su cuenta (véase el apartado 8) no es nuestro subencargado y no figura en ella.
+
+**Adónde van sus datos.** Estamos establecidos en Suiza. Nuestra base de datos, el almacenamiento de archivos, las copias de seguridad y los proveedores de IA se encuentran en la UE (Francia y Alemania). El Consejo Federal suizo reconoce que la UE y el EEE ofrecen una protección de datos adecuada, y la Comisión Europea reconoce lo mismo respecto de Suiza, por lo que estas transferencias no requieren garantías adicionales.
+
+Algunos proveedores tienen su sede en **Estados Unidos**:
+
+| Proveedor | Qué reciben | Garantía |
+| --- | --- | --- |
+| Google LLC | Inicio de sesión, solo si elige «Iniciar sesión con Google» | Marco de Privacidad de Datos, con cláusulas contractuales tipo como respaldo |
+| GitHub, Inc. | Inicio de sesión, solo si elige «Iniciar sesión con GitHub» | Marco de Privacidad de Datos, con cláusulas contractuales tipo como respaldo |
+| Resend, Inc. | Dirección del destinatario y contenido de los correos que le enviamos | Marco de Privacidad de Datos, con cláusulas contractuales tipo como respaldo |
+| Functional Software, Inc. (Sentry) | Informes de errores: detalles técnicos, la página o solicitud afectada, su identificador de usuario interno. Almacenados en la región de la UE de Sentry (Fráncfort); la empresa estadounidense puede tener acceso con fines de soporte y operación | Marco de Privacidad de Datos, con cláusulas contractuales tipo como respaldo |
+| Stripe, Inc. | Datos de facturación, solo cuando se ofrezcan planes de pago (actualmente no se usa) | Marco de Privacidad de Datos, con cláusulas contractuales tipo como respaldo |
+
+Para estas transferencias nos basamos en el **Marco de Privacidad de Datos UE-EE. UU.** (decisión de adecuación de la Comisión Europea de 10 de julio de 2023) y en el **Marco de Privacidad de Datos Suiza-EE. UU.** (reconocido por el Consejo Federal suizo con efectos desde el 15 de septiembre de 2024) para los destinatarios certificados y, en los demás casos, en las **cláusulas contractuales tipo** de la Comisión Europea (2021/914), adaptadas al Derecho suizo según exige el PFPDT.
+
+Notificamos a los propietarios de espacios de trabajo con al menos 30 días de antelación cualquier nuevo subencargado.
+
+### Contenido cargado desde otros servicios
+
+Cuando abre markoto, su navegador carga algunos recursos directamente de otros proveedores, que por tanto reciben su dirección IP y datos de su navegador:
+
+- **Google Fonts** (Google LLC, Estados Unidos, y Google Ireland Ltd.): las fuentes de la interfaz y de los temas de los documentos.
+- **jsDelivr** (una red de distribución de contenidos de código abierto operada a través de varios proveedores de CDN en todo el mundo): código para la maquetación de páginas, los diagramas, las fórmulas matemáticas y el resaltado de código en la vista previa del documento.
+
+Estas solicitudes no contienen contenido de documentos ni datos de cuenta. Estamos trabajando para servir estos archivos desde nuestros propios servidores.
 
 ## 5. Ubicación del almacenamiento y conservación
 
-Los datos de la aplicación y los documentos se alojan en la base de datos PostgreSQL gestionada y el almacenamiento de objetos de OVHcloud, en la Unión Europea (Francia). El tratamiento relacionado con la IA lo realizan proveedores radicados en la UE —Mistral AI (Francia), Jina AI (Alemania), Staan (UE) y Black Forest Labs (región de la UE fijada)— a través de nuestro proxy LiteLLM autoalojado. Mientras el servicio sea gratuito no tratamos datos de pago; cuando se ofrezcan planes de pago, los datos de facturación los conservará Stripe. La telemetría de errores de la aplicación la trata Sentry en su región de la UE (Fráncfort). Los correos transaccionales (confirmaciones de eliminación, avisos de exportación de datos lista, notificaciones de violaciones de seguridad) se envían a través de Resend; solo la dirección del destinatario, el asunto y el cuerpo del mensaje transitan por los sistemas de Resend, que los conserva 30 días para supervisar la entregabilidad.
+Los datos de la aplicación y los documentos se almacenan en la base de datos PostgreSQL gestionada y el almacenamiento de objetos de OVHcloud, en la UE (Francia). El tratamiento relacionado con la IA lo realizan proveedores radicados en la UE: Mistral AI (Francia), Jina AI (Alemania), Staan (Francia) y Black Forest Labs (región de la UE fijada), a través de nuestro propio proxy LiteLLM. Mientras el servicio sea gratuito, no tratamos datos de pago. Los informes de errores los trata Sentry en su región de la UE (Fráncfort). Los correos transaccionales se envían a través de Resend.
 
-La conservación sigue el calendario por fin recogido en el registro del apartado 13. Como regla general:
+La conservación sigue el registro del apartado 13. Como regla general:
 
-- **Los datos de cuenta** se conservan hasta que solicite su eliminación.
+- **Los datos de cuenta** se conservan hasta que elimine su cuenta.
 - **Los documentos y contenidos** se conservan hasta que los elimine o elimine su cuenta.
-- **Los documentos anónimos** (creados sin iniciar sesión y que no forman parte de un espacio de trabajo) se eliminan automáticamente tras 180 días sin actividad en el servicio alojado. Los despliegues autoalojados pueden configurar otro plazo o desactivar esta limpieza. Los documentos que pertenecen a una cuenta y los de espacios de trabajo no se eliminan automáticamente.
+- **Los documentos anónimos** (creados sin iniciar sesión y que no forman parte de un espacio de trabajo) se eliminan automáticamente tras **30 días** sin actividad. Los documentos que pertenecen a una cuenta y los de espacios de trabajo no se eliminan automáticamente.
 - **Los registros de solicitudes a la IA y llamadas a herramientas** se conservan 90 días para la revisión de abusos y después se eliminan.
-- **Los registros de auditoría** se conservan durante el tiempo necesario para fines de seguridad y jurídicos. Cuando elimina su cuenta, se retira de ellos su identificador de cuenta (véase el apartado 5b).
-- **Los datos de facturación** no existen mientras el servicio sea gratuito. Cuando se ofrezcan planes de pago, se conservarán durante el mínimo legal impuesto por el Derecho fiscal de la UE y de los Estados miembros (normalmente de 7 a 10 años).
-- **Los metadatos de los correos transaccionales** (destinatario, hora de envío, estado de entrega) los conserva Resend 30 días; no almacenamos el cuerpo de los correos tras la entrega.
-- **Lista de espera de planes de pago.** Si se apunta a la lista de espera en la página de precios, almacenamos su dirección de correo electrónico, el idioma con el que se apuntó, la versión del texto de consentimiento que aceptó, cuándo se apuntó y confirmó y, si había iniciado sesión, un vínculo con su cuenta. No almacenamos su dirección IP. Lo usamos únicamente para avisarle cuando se lancen los planes de pago. Su inscripción solo cuenta tras hacer clic en el enlace de confirmación que le enviamos por correo (doble confirmación); las inscripciones sin confirmar se eliminan a los 7 días. Cada correo incluye un enlace de baja que elimina su inscripción de inmediato; en caso contrario, eliminamos la lista como máximo 3 meses después de enviar el anuncio del lanzamiento. Al eliminar su cuenta también se elimina una inscripción vinculada, y su exportación de datos la incluye. El correo de confirmación se envía a través de Resend; la lista en sí se almacena en la base de datos PostgreSQL gestionada de OVHcloud en la UE.
-- **Invitaciones a espacios de trabajo.** Cuando un administrador de un espacio de trabajo invita a alguien por correo electrónico, conservamos la dirección introducida, el rol ofrecido y quién invitó en una invitación pendiente. Nadie se convierte en miembro sin aceptarla. La invitación se elimina cuando se acepta, se rechaza o se retira y, como máximo, a los 14 días. Si tienes una cuenta con esa dirección de correo, ves la invitación en markoto; si el correo está configurado, también se envía a través de Resend un correo de invitación con un enlace de un solo uso. Al eliminar tu cuenta se eliminan las invitaciones dirigidas a ti, y tu exportación de datos incluye las invitaciones pendientes que has recibido y enviado.
+- **Registro de auditoría.** Nuestro registro de auditoría de seguridad recoge quién modificó controles de acceso, eliminó contenido o realizó otras acciones relevantes para la seguridad, con las direcciones IP acortadas (IPv4 a /24, IPv6 a /48). **Actualmente las entradas no se eliminan automáticamente.** Cuando elimina su cuenta, se retira de ellas su identificador de cuenta. Estamos fijando un plazo de conservación determinado y actualizaremos esta política cuando lo hagamos.
+- **Copias de seguridad.** Realizamos una copia de seguridad cifrada de la base de datos una vez al día y conservamos las 30 últimas, de modo que cada copia se conserva unos **30 días**. Por tanto, los datos que elimine permanecen en nuestras copias de seguridad hasta 30 días antes de sobrescribirse. Nuestro proveedor de base de datos, OVHcloud, conserva además sus propias copias de seguridad automáticas durante un periodo limitado. Solo usamos las copias de seguridad para restablecer el servicio tras un fallo.
+- **Los registros de facturación** no existen mientras el servicio sea gratuito. Cuando se ofrezcan planes de pago, se conservarán durante el plazo exigido por el Derecho fiscal (en Suiza, 10 años).
+- **Correo transaccional.** Resend conserva los registros de entrega (destinatario, hora, estado) durante 30 días. No guardamos copias de los correos que enviamos.
+- **Lista de espera de planes de pago.** Si se apunta a la lista de espera en la página de precios, almacenamos su dirección de correo electrónico, el idioma con el que se apuntó, la versión del texto de consentimiento que aceptó, cuándo se apuntó y confirmó y, si había iniciado sesión, un vínculo con su cuenta. No almacenamos su dirección IP. Lo usamos únicamente para avisarle cuando se lancen los planes de pago. Su inscripción solo cuenta tras hacer clic en el enlace de confirmación que le enviamos por correo (doble confirmación); las inscripciones sin confirmar se eliminan a los 7 días. Cada correo incluye un enlace de baja que elimina su inscripción de inmediato; en caso contrario, eliminamos la lista como máximo 3 meses después de enviar el anuncio del lanzamiento. Al eliminar su cuenta también se elimina una inscripción vinculada, y su exportación de datos la incluye.
+- **Invitaciones a espacios de trabajo.** Cuando un administrador de un espacio de trabajo invita a alguien por correo electrónico, conservamos la dirección introducida, el rol ofrecido y quién invitó en una invitación pendiente. Nadie se convierte en miembro sin aceptarla. La invitación se elimina cuando se acepta, se rechaza o se retira y, como máximo, a los 14 días. Si el correo está configurado, se envía a través de Resend un correo de invitación con un enlace de un solo uso. Al eliminar su cuenta se eliminan las invitaciones dirigidas a usted, y su exportación de datos incluye las invitaciones pendientes que ha recibido y enviado.
 
 ## 5b. Qué ocurre cuando elimina su cuenta
 
-Queremos ser totalmente transparentes sobre lo que implica la eliminación. El botón de `/settings/profile` programa la eliminación permanente de su cuenta **dentro de 30 días**. Durante ese periodo de gracia su cuenta sigue siendo utilizable; puede cancelar desde cualquier página que muestre el banner de eliminación. Transcurridos los 30 días, lo siguiente se ejecuta automáticamente: sin más confirmación y sin posibilidad de recuperar nada.
+El botón de `/settings/profile` programa la eliminación permanente de su cuenta **dentro de 30 días**. Durante ese periodo de gracia su cuenta sigue siendo utilizable y puede cancelar desde cualquier página que muestre el banner de eliminación. Transcurridos los 30 días, lo siguiente se ejecuta automáticamente, sin más confirmación y sin posibilidad de recuperar nada.
 
 ### Qué se elimina de forma permanente
 
-- **El registro de su cuenta** — nombre, correo electrónico, identificadores OAuth, preferencias, idioma, confirmación de edad, versiones de las políticas aceptadas.
-- **Todos los documentos de su propiedad** — incluidos los que haya compartido con colaboradores en modo de edición. Los colaboradores pierden el acceso a esos documentos al mismo tiempo. *Si quiere que los colaboradores conserven un documento, transfiérales su propiedad o duplíquelo en su cuenta antes de solicitar la eliminación.*
+- **Su cuenta**: nombre, correo electrónico, identificadores de inicio de sesión, preferencias, idioma, confirmación de edad, versiones de las políticas aceptadas.
+- **Todos los documentos de su propiedad**, incluidos los que haya compartido con colaboradores en modo de edición. Los colaboradores pierden el acceso al mismo tiempo. *Si quiere que los colaboradores conserven un documento, transfiérales su propiedad o duplíquelo antes en su cuenta.*
 - **Todos los temas guardados** de su cuenta.
-- **Todos los espacios de trabajo en los que usted es el único miembro**, y todos los documentos y archivos de conocimiento que contienen. *Si quiere conservar el contenido de un espacio de trabajo, invite antes a otro miembro de eliminar su cuenta, o descargue los documentos previamente con la función de exportación de datos de `/settings/profile`.*
-- **Su uso de la IA** — solicitudes pasadas (las conservamos de forma privada 90 días para la revisión de abusos), sesiones de IA abiertas y los ajustes de un proveedor de IA propio (traiga su propia clave) con sus claves de API cifradas (véase el apartado 8).
-- **Sus trabajos de exportación de datos** y los archivos ZIP que hubiéramos preparado para usted.
-- **Su registro de cliente en Stripe, si existe** (solo posible cuando se ofrezcan planes de pago) — indicamos a Stripe que lo elimine. Stripe conserva los registros de facturas y pagos subyacentes durante el periodo que exija la normativa fiscal (normalmente de 7 a 10 años), con independencia de nuestra solicitud.
+- **Todos los espacios de trabajo en los que usted es el único miembro**, con todos los documentos y archivos de conocimiento que contienen. *Para conservar el contenido de un espacio de trabajo, invite a otro miembro antes de eliminar su cuenta, o descargue previamente los documentos con la exportación de datos de `/settings/profile`.*
+- **Su uso de la IA**: solicitudes pasadas (conservadas 90 días para la revisión de abusos), sesiones de IA abiertas y los ajustes de un proveedor de IA propio (traiga su propia clave) con sus claves de API cifradas (véase el apartado 8).
+- **Sus trabajos de exportación de datos** y los archivos ZIP preparados para usted.
+- **Su registro de cliente en Stripe, si existe** (solo posible cuando se ofrezcan planes de pago). Indicamos a Stripe que lo elimine; Stripe conserva los registros de facturas y pagos durante el plazo exigido por el Derecho fiscal.
 
-### Qué se anonimiza: se conserva en la plataforma sin su nombre
+Los datos eliminados permanecen en nuestras copias de seguridad cifradas de la base de datos hasta que se sobrescriben, como máximo 30 días (véase el apartado 5).
 
-- **Los comentarios que escribió en documentos que no son de su propiedad** — el texto permanece para que la conversación siga siendo comprensible para los demás participantes, pero su nombre y el vínculo con su cuenta se sustituyen por `[usuario eliminado]`.
-- **Las entradas del registro de auditoría** — conservamos nuestro registro de seguridad interno sin su identificador de cuenta pero con la acción correspondiente. Base jurídica: interés legítimo en la prevención del fraude + obligación legal. La conservación sigue nuestra política habitual de registro de auditoría.
-- **Las entradas del registro de actividad** — sus ediciones, restauraciones y cambios de tema en documentos que NO son suyos permanecen en el historial de actividad del documento como «Anónimo». Las ediciones en documentos propios desaparecen con el documento.
-- **Las entradas del registro de consentimiento** — anonimizamos el vínculo con el usuario pero conservamos el registro histórico para poder demostrar que se dio el consentimiento (exigencia del artículo 7, apartado 1, del RGPD).
+### Qué se anonimiza: se conserva sin su nombre
 
-### Qué ocurre con los espacios de trabajo en los que es administrador junto con otras personas
+- **Los comentarios que escribió en documentos que no son de su propiedad.** El texto permanece para que la conversación siga siendo comprensible para los demás, pero su nombre y el vínculo con su cuenta se sustituyen por `[deleted user]`.
+- **Las entradas del registro de auditoría.** Conservamos la entrada del registro de seguridad sin su identificador de cuenta. Actualmente estas entradas no se eliminan automáticamente (véase el apartado 5).
+- **Las entradas del registro de actividad.** Sus ediciones, restauraciones y cambios de tema en documentos que no son suyos permanecen en el historial de actividad del documento como «Anónimo». Las entradas de sus propios documentos se eliminan con ellos.
+- **Los registros de consentimiento.** Eliminamos el vínculo con su cuenta pero conservamos el registro, para poder demostrar que se dio el consentimiento (art. 7, apartado 1, del RGPD).
 
-Si es administrador de un espacio de trabajo que, cuando se elimine su cuenta, tenga al menos otro miembro, **promovemos automáticamente a administrador a uno de los miembros restantes**: el miembro más antiguo, prefiriendo a un administrador existente, después a un editor y después a un lector. El espacio de trabajo y su contenido se conservan para los miembros restantes. El nuevo administrador recibe un aviso tras la promoción.
+### Espacios de trabajo en los que es administrador junto con otras personas
 
-El campo de procedencia «propietario» del espacio de trabajo se reasigna al nuevo administrador para que las claves foráneas queden limpias. La autorización siempre se ha basado en el rol de miembro, no en el campo de propietario, por lo que se trata de una simple cuestión contable.
+Si es administrador de un espacio de trabajo con al menos otro miembro, **promovemos automáticamente a administrador a uno de los miembros restantes**: el miembro más antiguo, prefiriendo a un administrador existente, después a un editor y después a un lector. El espacio de trabajo y su contenido se quedan con los miembros restantes, y el nuevo administrador recibe un aviso. El campo «propietario» del espacio de trabajo se reasigna al nuevo administrador; el acceso siempre se ha controlado mediante los roles de miembro, por lo que se trata de una simple cuestión contable.
 
-### Espacios de trabajo que conviene limpiar manualmente antes
+### Haga limpieza antes
 
-Como la eliminación en cascada de un espacio de trabajo suprime también contenido de otros miembros cuando usted era la única persona, le recomendamos encarecidamente hacer lo siguiente antes de solicitar la eliminación de su cuenta si quiere asegurarse de que se conserve el trabajo de los demás:
+La eliminación de un espacio de trabajo suprime también el contenido que otras personas hayan incorporado a un espacio de trabajo en el que usted es el único miembro. Antes de solicitar la eliminación:
 
-- En cualquier espacio de trabajo del que sea el único miembro pero cuyo contenido quiera conservar: invite primero al menos a un colaborador con rol de administrador, que heredará el espacio.
-- En cualquier documento que quiera que conserve un colaborador: transfiérale la propiedad (muévalo fuera de su espacio de trabajo a uno que sea suyo, O duplíquelo en su cuenta) o pídale que descargue antes una copia.
-- En los archivos de la base de conocimiento que quiera preservar: descárguelos fuera de markoto, ya que se eliminan con el espacio de trabajo.
+- Si quiere conservar un espacio de trabajo: invite al menos a un colaborador como administrador, para que lo herede.
+- Si un colaborador debe conservar un documento: muévalo a un espacio de trabajo que sea suyo, duplíquelo en su cuenta o pídale que descargue una copia.
+- Si quiere conservar archivos de la base de conocimiento: descárguelos, ya que se eliminan con el espacio de trabajo.
 
 ### Su exportación de datos
 
-Antes de solicitar la eliminación de su cuenta, puede usar la función de **exportación de datos** en `/settings/profile` para recibir un archivo ZIP con todo lo que tenemos sobre usted: documentos en markdown, comentarios que haya escrito, pertenencia a espacios de trabajo, registros de uso de la IA, los ajustes de su proveedor de IA (URL del proveedor, modelo y función; nunca la clave de API), su inscripción en la lista de espera si la hay, sus decisiones de consentimiento y, cuando existan planes de pago, el historial de facturación. Es un flujo independiente que genera un archivo descargable que puede conservar pase lo que pase con su cuenta de markoto.
+Antes de eliminar su cuenta, puede usar la **exportación de datos** de `/settings/profile` para obtener un archivo ZIP con todo lo que tenemos sobre usted: documentos en Markdown, sus comentarios, pertenencia a espacios de trabajo, registros de uso de la IA, los ajustes de su proveedor de IA (URL, modelo y función; nunca la clave de API), su inscripción en la lista de espera, los registros de consentimiento y, cuando existan planes de pago, el historial de facturación.
 
-### Cuánto tarda realmente la cascada
+### Cuánto tarda
 
-Una tarea en segundo plano ejecuta la cascada una vez por hora. En el peor de los casos, sus datos se eliminan por completo aproximadamente una hora después de terminar el periodo de gracia de 30 días. Recibirá un correo de confirmación cuando se haya ejecutado la eliminación (siempre que haya una dirección de correo registrada).
+Una tarea en segundo plano se ejecuta una vez por hora, de modo que sus datos se eliminan aproximadamente una hora después de terminar el periodo de gracia. Recibirá un correo de confirmación cuando se haya ejecutado la eliminación (si tenemos una dirección de correo suya).
 
 ### Cancelación
 
-Hasta que se ejecute la cascada, puede cancelar la eliminación programada iniciando sesión y pulsando «Cancelar eliminación» en cualquier página (durante el periodo de gracia aparece un banner en la parte superior de la pantalla). Una vez ejecutada la cascada, su cuenta, sus sesiones y su contenido desaparecen: no hay forma de recuperarlos.
+Hasta que se ejecute la eliminación, puede cancelarla iniciando sesión y pulsando «Cancelar eliminación» en el banner de la parte superior de la pantalla. Una vez ejecutada, su cuenta, sus sesiones y su contenido desaparecen.
 
-## 6. Sus derechos (artículos 15 a 22 del RGPD)
+## 6. Sus derechos
 
-Tiene derecho a:
+Conforme al RGPD (arts. 15 a 22) y a la LPD (arts. 25 a 28 y 32), tiene derecho a:
 
-- **Acceder** a los datos personales que conservamos sobre usted (artículo 15): use la herramienta de exportación en `/settings/profile`.
-- **Rectificar** los datos inexactos (artículo 16): edite su perfil o escríbanos.
-- **Suprimir** sus datos («derecho al olvido», artículo 17): use la herramienta de eliminación en `/settings/profile`. Esperamos 30 días y después los eliminamos de forma permanente.
-- **Limitar** el tratamiento (artículo 18): escríbanos.
-- **Oponerse** al tratamiento basado en el interés legítimo (artículo 21): escríbanos.
-- **Portabilidad de los datos** (artículo 20): la herramienta de exportación devuelve sus datos en JSON, NDJSON y Markdown legibles por máquina.
-- **Retirar el consentimiento** (artículo 7, apartado 3) cuando el tratamiento se base en él: active o desactive el fin correspondiente en el banner de cookies (icono de privacidad del pie de página).
-- **Presentar una reclamación** ante una autoridad de control (artículo 77): véase el apartado 11.
+- **Acceder** a los datos personales que conservamos sobre usted: use la exportación de `/settings/profile` o escríbanos.
+- **Rectificar** los datos inexactos: edite su perfil o escríbanos.
+- **Suprimir** sus datos: use la herramienta de eliminación de `/settings/profile`. Esperamos 30 días y después los eliminamos de forma permanente.
+- **Limitar** el tratamiento: escríbanos.
+- **Oponerse** al tratamiento basado en el interés legítimo: escríbanos.
+- **Portabilidad de los datos**: la exportación devuelve sus datos en JSON, NDJSON y Markdown legibles por máquina.
+- **Retirar el consentimiento** cuando el tratamiento se base en él (actualmente solo la lista de espera): use el enlace de baja.
+- **Presentar una reclamación** ante una autoridad de control (véase el apartado 11).
 
-Respondemos a todas las solicitudes en 30 días. No cobramos por ellas, salvo en caso de solicitudes manifiestamente infundadas o excesivas.
+Respondemos en un plazo de 30 días. Las solicitudes son gratuitas, salvo que sean manifiestamente infundadas o excesivas.
 
 ## 7. Decisiones automatizadas
 
-markoto no adopta decisiones que produzcan efectos jurídicos o le afecten significativamente de modo similar basándose únicamente en un tratamiento automatizado. El asistente de IA ofrece sugerencias que usted decide aceptar o rechazar: la autoría final siempre es suya. Cuando se ofrezcan planes de pago, Stripe realizará una puntuación de riesgo automatizada de los intentos de pago; si un intento se rechaza por este motivo, podrá solicitar una revisión humana escribiéndonos.
+No adoptamos decisiones que produzcan efectos jurídicos o le afecten significativamente de modo similar basándonos únicamente en un tratamiento automatizado. El asistente de IA solo ofrece sugerencias que usted acepta o rechaza. Las decisiones de moderación las adopta siempre una persona (véanse las Condiciones, apartado 8). Cuando se ofrezcan planes de pago, Stripe evaluará automáticamente el riesgo de fraude de los intentos de pago; si un pago se rechaza por este motivo, puede solicitar una revisión humana.
 
 ## 8. Funciones de IA y transparencia
 
-markoto incluye un asistente de escritura con IA y un sistema de recuperación de la base de conocimiento. Las solicitudes de IA se encaminan a través de nuestro proxy LiteLLM autoalojado hacia proveedores radicados en la UE: Mistral AI (generación de texto, transcripción de voz con Voxtral), Jina AI (embeddings para la base de conocimiento, extracción del contenido de una URL individual), Staan (búsqueda web mediante un índice de búsqueda europeo propio, encaminamiento exclusivamente en la UE) y Black Forest Labs (generación de imágenes, región de la UE fijada). Las consultas de búsqueda web ya no transitan por buscadores estadounidenses. Se lo indicamos en la interfaz: cada mensaje asistido por IA lleva una insignia visible de «IA», y todo contenido generado por IA que se incluya en un documento público lleva un aviso de transparencia. Ninguno de estos proveedores utiliza el contenido de la API para entrenar sus modelos en los niveles que usamos.
+markoto incluye un asistente de escritura con IA y una búsqueda en la base de conocimiento. Las solicitudes de IA se encaminan a través de nuestro propio proxy LiteLLM hacia estos proveedores radicados en la UE: Mistral AI (generación de texto, transcripción de voz), Jina AI (embeddings para la base de conocimiento, extracción del contenido de una página web individual), Staan (búsqueda web mediante un índice de búsqueda europeo) y Black Forest Labs (generación de imágenes, región de la UE fijada).
+
+**Transparencia de la IA.** Cuando la IA trabaja en un documento, aparece como un colaborador independiente, sus respuestas se identifican como procedentes de la IA de markoto y sus ediciones quedan registradas en el registro de actividad del documento como realizadas por la IA.
+
+**Entrenamiento.** No usamos su contenido para entrenar modelos de IA. Las condiciones de nuestros proveedores difieren:
+
+- **Jina AI** declara en sus condiciones que no utiliza los datos de las solicitudes de sus clientes, las entradas ni el contenido subido para entrenar sus modelos.
+- **Staan** declara que los datos de búsqueda no se utilizan para entrenar modelos de lenguaje.
+- **Mistral AI** y **Black Forest Labs** pueden, conforme a sus condiciones estándar, utilizar el contenido de la API para mejorar sus modelos salvo que el cliente se oponga. Nos hemos opuesto a ello ante ambos proveedores.
 
 ### Su propio proveedor de IA (traiga su propia clave)
 
-Puede conectar su propia cuenta de proveedor de IA (un servicio compatible con OpenAI de entre las opciones ofrecidas en los ajustes, por ejemplo Mistral AI u OpenAI; los despliegues autoalojados de markoto pueden permitir otros) en **Ajustes → Proveedor de IA**, por separado para chat, generación de imágenes y transcripción de voz. Cuando lo hace, el contenido necesario para esa función —su solicitud, el contexto pertinente del documento, las grabaciones de voz y el resultado generado— se envía a través de nuestro proxy LiteLLM a **el proveedor que usted eligió, en virtud de su propio acuerdo con ese proveedor**. markoto no elige ese proveedor y este no es uno de nuestros subencargados; sus condiciones y prácticas de protección de datos (incluido dónde trata los datos y si entrena con contenido de la API) son las de su contrato con él. Almacenamos los ajustes de su proveedor (URL del proveedor, nombre del modelo y su clave de API, cifrada en reposo) hasta que los elimine o elimine su cuenta; solo se le vuelven a mostrar los últimos cuatro caracteres de la clave, la clave nunca se incluye en su exportación de datos (la exportación contiene solo la URL del proveedor, el modelo y la función) y no la escribimos en los registros de nuestra aplicación. Los registros de solicitudes y llamadas a herramientas siguen la conservación de 90 días indicada arriba. Los embeddings siempre usan nuestro propio proveedor radicado en la UE enumerado arriba.
+Puede conectar su propia cuenta de proveedor de IA (un servicio compatible con OpenAI de entre las opciones ofrecidas en los ajustes, por ejemplo Mistral AI u OpenAI) en **Ajustes → Proveedor de IA**, por separado para chat, generación de imágenes y transcripción de voz. Cuando lo hace, el contenido necesario para esa función (su solicitud, el contexto pertinente del documento, las grabaciones de voz y el resultado generado) se envía a través de nuestro proxy LiteLLM a **el proveedor que usted eligió, en virtud de su propio acuerdo con él**. No elegimos ese proveedor y no es nuestro subencargado; sus condiciones y prácticas de protección de datos, incluido dónde trata los datos y si entrena con su contenido, son las de su contrato con él. Almacenamos los ajustes de su proveedor (URL del proveedor, nombre del modelo y su clave de API, cifrada en reposo) hasta que los elimine o elimine su cuenta. Solo se le vuelven a mostrar los últimos cuatro caracteres de la clave, la clave nunca se incluye en su exportación de datos y no la escribimos en nuestros registros. Los registros de solicitudes y llamadas a herramientas siguen la conservación de 90 días indicada arriba. Los embeddings siempre usan nuestro propio proveedor indicado arriba.
 
-La búsqueda web y la obtención de páginas individuales las proporcionamos nosotros y funcionan igual si usa o no su propio proveedor de IA: la consulta de búsqueda que formula el asistente (hasta 400 caracteres, que puede derivarse de su solicitud o de su documento) se envía a Staan, y la dirección web que el asistente quiere leer se envía a Jina AI (Jina Reader), en ambos casos directamente desde nuestra aplicación (sin pasar por el proxy LiteLLM) y a través de nuestra propia cuenta con ese proveedor, no la suya. Staan y Jina AI son nuestros subencargados del tratamiento, enumerados arriba. Los resultados de búsqueda o el texto extraído de la página los resume después su proveedor de chat (su propio proveedor si conectó uno; si no, el nuestro), por lo que ese texto se le transmite. Para limitar costes y abusos, cada persona con sesión iniciada puede realizar un número limitado de búsquedas web y obtenciones de páginas por hora y por día (por defecto 30 por hora y 100 por día, compartidas entre el editor y los clientes MCP). Para aplicarlo conservamos en Valkey contadores asociados a su identificador de usuario interno, que solo contienen marcas de tiempo —ni consulta, ni dirección, ni contenido— y caducan automáticamente al terminar su ventana de tiempo. Estas herramientas solo están disponibles si el operador las ha configurado.
+La búsqueda web y la obtención de páginas individuales las proporcionamos nosotros, tanto si usa su propio proveedor de IA como si no: la consulta de búsqueda que formula el asistente (hasta 400 caracteres, que puede derivarse de su solicitud o de su documento) se envía a Staan, y la dirección web que el asistente quiere leer se envía a Jina AI, directamente desde nuestra aplicación y a través de nuestra cuenta con esos proveedores. Los resultados los resume después su proveedor de chat (el suyo propio si conectó uno; si no, el nuestro). Para limitar costes y abusos, cada usuario puede realizar un número limitado de búsquedas web y obtenciones de páginas (por defecto 30 por hora y 100 por día). Los contamos en Valkey asociados a su identificador de usuario interno; los contadores solo contienen marcas de tiempo y caducan automáticamente.
 
-El uso de las funciones de IA requiere iniciar sesión. Son opcionales: el contenido de un documento solo se envía a un proveedor de IA cuando invoca al asistente o sube archivos a una base de conocimiento de un espacio de trabajo (que Jina AI convierte en embeddings).
+Las funciones de IA requieren una cuenta y son opcionales: el contenido de un documento solo se envía a un proveedor de IA cuando usa el asistente o sube archivos a una base de conocimiento de un espacio de trabajo (que Jina AI convierte en embeddings).
 
 ## 9. Cookies y tecnologías similares
 
-Usamos almacenamiento esencial (una cookie de sesión, una preferencia de idioma y su propia decisión de consentimiento) para mantener su sesión iniciada y recordar sus preferencias; esto no requiere consentimiento conforme a la Directiva ePrivacy. Solo usamos analítica de producto y grabación de sesiones con su consentimiento, que puede dar o retirar en cualquier momento desde el enlace «Opciones de privacidad» del pie de cada página.
+markoto usa **únicamente el almacenamiento estrictamente necesario** para prestar el servicio que usted solicita:
 
-Si creas un documento sin iniciar sesión, tu navegador guarda además una clave de creador aleatoria en una cookie esencial, para que solo ese navegador pueda eliminar el documento más adelante. La clave no está vinculada a ti ni a ninguna cuenta; solo guardamos un hash de ella junto al documento.
+| Nombre | Finalidad | Duración |
+| --- | --- | --- |
+| `nuxt-session` | Mantiene su sesión iniciada (cookie de sesión cifrada). Solo se establece al iniciar sesión. | 7 días |
+| `ypad_locale` | Recuerda su idioma. | 1 año |
+| `markoto-anon-creator` | Clave de creador aleatoria que permite al navegador que creó un documento anónimo eliminarlo. No está vinculada a usted; solo almacenamos un hash de ella junto con el documento. | 1 año |
+| `nuxt-color-mode` (almacenamiento local) | Recuerda el modo claro u oscuro, si elige uno. | Hasta que lo borre |
+| `markoto-pending-invite` (almacenamiento de sesión) | Conserva un enlace de invitación a un espacio de trabajo mientras inicia sesión para aceptarla. | Hasta que cierre la pestaña |
+| Caché del service worker | Permite que markoto cargue más rápido y funcione sin conexión. | Hasta que la borre |
 
-No usamos rastreadores publicitarios entre sitios y no vendemos ni compartimos datos con anunciantes.
+**No usamos analítica, ni grabación de sesiones, ni publicidad, ni rastreo entre sitios.** Como todo este almacenamiento es estrictamente necesario para un servicio que usted solicita expresamente, no requiere consentimiento conforme al art. 5, apartado 3, de la Directiva ePrivacy de la UE y a las leyes nacionales que la transponen. Conforme al Derecho suizo (art. 45c de la Ley suiza de telecomunicaciones, LTC), este apartado le informa al respecto, y puede bloquear o eliminar las cookies en su navegador en cualquier momento; en ese caso, es posible que markoto no pueda mantener su sesión iniciada ni permitirle eliminar documentos anónimos. Por este motivo no hay banner de cookies. Si alguna vez queremos usar almacenamiento no esencial, le pediremos antes su consentimiento.
 
-## 10. Menores
+Nuestro anterior banner de cookies establecía una cookie `markoto-anon` para recordar su elección. Ya no la establecemos; caduca por sí sola y puede eliminarla. Los registros de las decisiones tomadas con ese banner se conservan según se describe en el apartado 5b.
 
-markoto no está dirigido a menores que no hayan alcanzado la edad de consentimiento digital de su país (16 años en la mayoría de los Estados miembros de la UE; menos en algunos). Si tiene conocimiento de que un menor ha creado una cuenta incumpliendo esta norma, comuníquelo a **{{privacyContactEmail}}**.
+## 10. Requisito de edad
+
+Debe tener al menos **16 años** para usar markoto, tanto con cuenta como para documentos anónimos, con independencia de la edad que fije la ley de su país. Si cree que una persona menor de 16 años está usando markoto, comuníquenoslo en **{{privacyContactEmail}}** y eliminaremos la cuenta o el documento.
 
 ## 11. Derecho a presentar una reclamación
 
-Si considera que no hemos respetado sus derechos, tiene derecho a presentar una reclamación ante una autoridad de control de protección de datos.
+Si considera que no hemos respetado sus derechos, puede presentar una reclamación ante una autoridad de protección de datos.
 
-- **En la UE/EEE:** puede reclamar ante la autoridad de control de su país de residencia habitual, de su lugar de trabajo o del lugar de la presunta infracción. El Comité Europeo de Protección de Datos publica una lista de las autoridades de control de la UE/EEE. Como estamos establecidos en Suiza (fuera de la UE/EEE), no nos alcanza el mecanismo de «ventanilla única» del RGPD, por lo que no existe una única autoridad principal: puede dirigirse directamente a su autoridad local.
-- **En Suiza:** la autoridad competente es el Comisionado Federal de Protección de Datos y Transparencia (PFPDT/EDÖB).
+- **En Suiza:** el Comisionado Federal de Protección de Datos y Transparencia (PFPDT), www.edoeb.admin.ch.
+- **En la UE/EEE:** la autoridad de control del país en el que vive o trabaja, o en el que se produjo la presunta infracción. El Comité Europeo de Protección de Datos publica una lista. Como estamos establecidos en Suiza, no tenemos una única autoridad principal conforme al mecanismo de ventanilla única del RGPD, por lo que puede dirigirse directamente a su autoridad local.
 
-También nos gustaría tener la oportunidad de resolver primero su preocupación directamente: escríbanos a **{{privacyContactEmail}}**.
+Nos gustaría tener la oportunidad de resolver primero su preocupación: escríbanos a **{{privacyContactEmail}}**.
 
 ## 12. Seguridad
 
-Protegemos los datos mediante cifrado en tránsito (TLS), cifrado en reposo en la capa de plataforma de OVHcloud, hash de contraseñas con scrypt y truncamiento de IP en los registros de auditoría. En caso de violación de la seguridad de los datos personales, nos comprometemos a notificarla a la autoridad de control competente en un plazo de 72 horas, conforme al artículo 33 del RGPD.
+Protegemos los datos mediante cifrado en tránsito (TLS), cifrado en reposo proporcionado por nuestro proveedor de almacenamiento, copias de seguridad cifradas de la base de datos, cifrado de los secretos almacenados, como las claves de proveedores de IA, separación estricta de nuestros servicios internos, acceso con privilegios mínimos, direcciones IP acortadas en los registros y actualizaciones de seguridad periódicas. Las cuentas de markoto no tienen contraseñas propias: inicia sesión a través de GitHub o Google. Si protege un documento con una contraseña, solo almacenamos un hash scrypt de ella. Las medidas se describen con más detalle en el anexo I de nuestra Adenda de tratamiento de datos (`/legal/dpa`).
 
-Si tenemos conocimiento de una violación de la seguridad de los datos personales que le afecte, la notificaremos a la autoridad de control en 72 horas y se lo comunicaremos a usted sin dilación indebida si la violación entraña un alto riesgo para sus derechos.
+Si es probable que una violación de la seguridad de los datos personales entrañe un riesgo para usted, la notificamos a la autoridad de control competente en un plazo de 72 horas cuando el RGPD lo exige (art. 33 del RGPD), y al PFPDT lo antes posible cuando la LPD lo exige (art. 24 de la LPD). Si es probable que la violación entrañe un alto riesgo para usted, se lo comunicamos también sin dilación indebida.
 
 ## 13. Registro de fines del tratamiento
 
@@ -173,10 +226,11 @@ La tabla siguiente se genera a partir de nuestro registro interno de fines del t
 
 ## 14. Cambios en esta política
 
-Esta es la **versión {{currentVersion}}**, en vigor desde el **{{effectiveDate}}**. Los cambios sustanciales (nuevos fines del tratamiento, nuevos subencargados, cambios en la conservación) provocan un cambio de versión y una solicitud de nueva aceptación en el producto. Las versiones anteriores están disponibles previa solicitud a **{{privacyContactEmail}}**.
+Esta es la **versión {{currentVersion}}**, en vigor desde el **{{effectiveDate}}**. Los cambios sustanciales (nuevos fines del tratamiento, nuevos subencargados, cambios en la conservación) provocan un cambio de versión y una solicitud en el producto para aceptar la nueva versión. Las versiones anteriores están disponibles previa solicitud a **{{privacyContactEmail}}**.
 
 ### Historial de cambios
 
+- **v8 (2026-11-03).** Se suprimieron los fines «analítica de producto» y «grabación de sesiones» y el banner de cookies: ninguno de ellos llegó a usarse, y markoto solo usa almacenamiento estrictamente necesario (el apartado 9 lo enumera). Se añadieron la LPD suiza junto al RGPD, los países a los que se transfieren los datos (apartado 4) y el contenido cargado desde Google Fonts y jsDelivr. Se describieron los documentos anónimos (aceptación de las condiciones, comprobación contra bots, eliminación a los 30 días en lugar de 180) y las denuncias de abusos (apartado 2b). Se indicó la conservación de las copias de seguridad (unos 30 días) y que las entradas del registro de auditoría actualmente no se eliminan automáticamente. Se corrigieron la afirmación sobre el hash de contraseñas, la norma de edad (16 años en todos los países), la descripción del etiquetado de la IA y las afirmaciones sobre el entrenamiento de IA por proveedor.
 - **v7 (2026-10-27).** Se añadió el fin de tratamiento `workspace_invitations` (interés legítimo): cuando un administrador de un espacio de trabajo invita a alguien por correo electrónico, conservamos esa dirección, el rol ofrecido y quién invitó en una invitación pendiente hasta que la persona la acepte o la rechace, un administrador la retire o caduque a los 14 días. Nadie se une a un espacio de trabajo sin aceptarlo. Si el correo está configurado, se envía un correo de invitación por invitación a través de Resend (como máximo tres por dirección y día). Almacenado en OVHcloud (UE).
 - **v6 (2026-10-26), adaptación editorial al servicio exclusivamente gratuito.** Stripe y la facturación se describen como relevantes solo cuando se ofrezcan planes de pago (la lista de subencargados y el registro omiten Stripe mientras la facturación esté desactivada). El registro de fines del tratamiento ahora se muestra realmente en el apartado 13. Se corrigieron las afirmaciones sobre la conservación de los registros de auditoría, la limpieza de documentos anónimos (180 días de inactividad), el contador de interacciones retirado y la (inexistente) exclusión de la IA a nivel de cuenta.
 - **v6 (2026-10-26).** Se añadió el fin de tratamiento `user_directed_ai_provider`: puede conectar su propio proveedor de IA (chat, generación de imágenes, transcripción de voz). El contenido de esas funciones se envía entonces al proveedor que elija, en virtud de su acuerdo con él; almacenamos los ajustes de su proveedor con la clave de API cifrada en reposo hasta que los elimine o elimine su cuenta. La búsqueda web y la obtención de páginas las proporcionamos nosotros a todos los usuarios, incluidos quienes usan su propio proveedor de IA: las consultas de búsqueda van a Staan y las direcciones web obtenidas a Jina AI; además se conservan en Valkey contadores de uso por hora y por día por persona (solo marcas de tiempo, sin contenido).

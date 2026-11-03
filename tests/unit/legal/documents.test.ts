@@ -61,4 +61,36 @@ describe('legal wording', () => {
       }
     }
   })
+
+  // Claims the code does not back. Each was in an earlier draft.
+  it('makes no claims the product does not back (authoritative English)', () => {
+    const privacy = read('privacy', 'en')
+    // Accounts have no passwords (OAuth only); only document passwords use scrypt.
+    expect(privacy).not.toMatch(/scrypt password hashing/i)
+    // No analytics or session replay is loaded, and there is no cookie banner.
+    expect(privacy).not.toMatch(/with your consent, which you can grant or withdraw/i)
+    expect(privacy).toMatch(/no analytics, no session replay/i)
+    // The age rule is 16 everywhere, not "16 in most EU states".
+    for (const { slug } of DOCS) {
+      expect(read(slug, 'en')).not.toMatch(/most EU member states/i)
+    }
+    // Anonymous documents: 30 days without activity.
+    expect(read('terms', 'en')).toMatch(/\*\*30 days\*\*/)
+    expect(privacy).toMatch(/deleted automatically after \*\*30 days\*\* without activity/)
+    expect(privacy).not.toMatch(/180 days without activity/)
+  })
+
+  it('terms carry an acceptable-use section reachable from the terms link', () => {
+    const terms = read('terms', 'en')
+    expect(terms).toMatch(/^## 6\. Acceptable use$/m)
+    for (const topic of [/phishing/i, /spam/i, /malware/i, /scrapers/i, /CDN/, /prompt injection/i, /Impersonate/i, /special categories/i]) {
+      expect(terms).toMatch(topic)
+    }
+  })
+
+  it('the liability cap is a fixed amount, not the (zero) fees paid', () => {
+    const terms = read('terms', 'en')
+    expect(terms).toMatch(/CHF 100/)
+    expect(terms).not.toMatch(/fees you paid us/i)
+  })
 })

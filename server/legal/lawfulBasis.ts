@@ -25,10 +25,12 @@ export type ProcessingPurpose = {
   // referenced by the privacy policy page.
   dataCategories: string[]
   // Retention in days from last activity, or 'until_deletion' for
-  // account-bound data, 'legal_minimum' for billing/tax, or
+  // account-bound data, 'legal_minimum' for billing/tax,
   // 'until_withdrawn' for consent-backed data kept until the person
-  // withdraws consent (with an outer bound documented on the entry).
-  retention: number | 'until_deletion' | 'legal_minimum' | 'until_withdrawn'
+  // withdraws consent (with an outer bound documented on the entry), or
+  // 'no_automatic_deletion' where no sweep deletes the rows yet (the
+  // policy text must say so honestly).
+  retention: number | 'until_deletion' | 'legal_minimum' | 'until_withdrawn' | 'no_automatic_deletion'
   // Sub-processor ids (from server/legal/subProcessors.ts) that touch
   // this purpose's data. Empty array = handled in-house only.
   subProcessors: string[]
@@ -129,11 +131,15 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: []
   },
   {
+    // `audit_log` is append-only and NO sweep deletes rows today
+    // (server/repos/audit.ts has no delete path). Account deletion nulls
+    // the actor id (FK `ON DELETE SET NULL`); the IP is stored truncated.
+    // Privacy §5 states this; a retention period is an open item.
     id: 'security_audit_log',
     label: 'Security audit log',
     basis: 'legal_obligation',
     dataCategories: ['actor_id', 'ip_truncated', 'action_metadata'],
-    retention: 'legal_minimum',
+    retention: 'no_automatic_deletion',
     subProcessors: []
   },
   {
@@ -148,22 +154,9 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     retention: 30,
     subProcessors: ['resend']
   },
-  {
-    id: 'product_analytics',
-    label: 'Product analytics',
-    basis: 'consent',
-    dataCategories: ['page_views', 'feature_usage', 'pseudonymous_id'],
-    retention: 365,
-    subProcessors: []
-  },
-  {
-    id: 'session_replay',
-    label: 'Session replay',
-    basis: 'consent',
-    dataCategories: ['ui_interaction_recording', 'pseudonymous_id'],
-    retention: 30,
-    subProcessors: []
-  },
+  // `product_analytics` and `session_replay` were removed with
+  // PRIVACY_VERSION 8 / CONSENT_VERSION 2: no analytics or session-replay
+  // script was ever loaded, so listing them was a false disclosure.
   {
     // Paid-plans waitlist (hosted SaaS while billing is off). Opt-in via
     // an unticked checkbox + double opt-in email. Retention: until the

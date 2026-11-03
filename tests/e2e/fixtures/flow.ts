@@ -429,13 +429,8 @@ async function wireActorPage(page: Page, theme: 'light' | 'dark'): Promise<void>
     page.evaluate(CURSOR_INIT_SCRIPT).catch(() => {})
   })
 
-  // Suppress the GDPR consent banner. Workstream B mounts a
-  // CNIL-grade dialog over every fresh page load when /api/consent
-  // says `promptRequired: true`. Flow tests run with a clean browser
-  // context every time → the banner intercepts every click → 15s
-  // timeout on the first locator wait. We short-circuit by returning
-  // "already accepted" — real consent enforcement is tested at the
-  // integration-test tier.
+  // There is no consent banner (essential cookies only, CONSENT_VERSION 2),
+  // so nothing needs suppressing here.
   //
   // We do NOT mock /api/user/account-status: the onboarding gate is
   // gated by columns on the `users` row, and `loginAsTestUser` seeds
@@ -443,25 +438,6 @@ async function wireActorPage(page: Page, theme: 'light' | 'dark'): Promise<void>
   // accepted, age confirmed). Mocking the endpoint would break tests
   // that NEED the real shape — notably the deletion-grace banner,
   // which mounts when the API reports `deletion.pending: true`.
-  await page.context().route('**/api/consent**', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          promptRequired: false,
-          decisions: {
-            essential: true,
-            analytics: false,
-            session_replay: false
-          },
-          currentVersion: 1
-        })
-      })
-      return
-    }
-    await route.continue()
-  })
 }
 
 export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({

@@ -10,7 +10,7 @@
 // session.
 
 const { t } = useI18n()
-// Legal links + the "Privacy choices" button only where the legal
+// Legal links + the cookie note only where the legal
 // surfaces exist (hosted SaaS). The copyright line names the operator
 // when one is configured — never the hosted operator on a self-hosted
 // instance (shared/config/instance.ts).
@@ -33,14 +33,6 @@ const links: FooterLink[] = [
   { to: '/legal/abuse-policy', label: t('legal.footer.abuse') },
   { to: '/legal/imprint', label: t('legal.footer.imprint') }
 ]
-
-// "Privacy choices" trigger — re-opens the consent banner so the
-// user can change their mind about analytics / session replay.
-// Implemented via CustomEvent on `window` so the link itself stays
-// a plain button without coupling to the banner component's refs.
-function reopenConsent(): void {
-  globalThis.dispatchEvent(new CustomEvent('markoto:reopen-consent'))
-}
 </script>
 
 <template>
@@ -67,14 +59,15 @@ function reopenConsent(): void {
         >
           {{ link.label }}
         </NuxtLink>
-        <button
-          type="button"
+        <!-- No consent banner exists (essential storage only); this note
+             says so and points at the cookie list in privacy §9. -->
+        <NuxtLink
+          to="/legal/privacy"
           class="text-xs font-mono text-muted hover:text-default transition-colors"
-          data-testid="footer-reopen-consent"
-          @click="reopenConsent"
+          data-testid="footer-cookie-note"
         >
-          {{ t('legal.consent.banner.footerLink') }}
-        </button>
+          {{ t('legal.footer.cookieNote') }}
+        </NuxtLink>
       </nav>
     </div>
   </footer>

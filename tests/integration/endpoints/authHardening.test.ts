@@ -274,7 +274,7 @@ describe('POST /api/consent payload bounds', () => {
   }
 
   it('writes at most one row per purpose per submission', async () => {
-    const decisions = Array.from({ length: 10 }, (_, i) => ({ purpose: 'analytics', granted: i % 2 === 0 }))
+    const decisions = Array.from({ length: 10 }, (_, i) => ({ purpose: 'essential', granted: i % 2 === 0 }))
     const res = await anonClient().post('/api/consent', { decisions })
     expect(res.status).toBe(200)
     expect((await res.json() as { recorded: number }).recorded).toBe(1)

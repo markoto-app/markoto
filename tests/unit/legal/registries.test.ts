@@ -69,9 +69,24 @@ describe('PROCESSING_PURPOSES', () => {
     for (const purpose of PROCESSING_PURPOSES) {
       const r = purpose.retention
       const isInt = typeof r === 'number' && Number.isInteger(r) && r > 0
-      const isSentinel = r === 'until_deletion' || r === 'legal_minimum' || r === 'until_withdrawn'
+      const isSentinel = r === 'until_deletion' || r === 'legal_minimum' || r === 'until_withdrawn' || r === 'no_automatic_deletion'
       expect(isInt || isSentinel, `purpose ${purpose.id} has invalid retention: ${r}`).toBe(true)
     }
+  })
+})
+
+describe('consent-backed purposes', () => {
+  it('lists no analytics or session replay (no such script is loaded anywhere)', () => {
+    const ids = PROCESSING_PURPOSES.map(p => p.id)
+    expect(ids).not.toContain('product_analytics')
+    expect(ids).not.toContain('session_replay')
+  })
+})
+
+describe('security_audit_log purpose', () => {
+  it('does not promise a retention period the code does not enforce', () => {
+    const purpose = PROCESSING_PURPOSES.find(p => p.id === 'security_audit_log')
+    expect(purpose?.retention).toBe('no_automatic_deletion')
   })
 })
 

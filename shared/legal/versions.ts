@@ -1,5 +1,5 @@
-// Version anchors for our four customer-facing legal documents +
-// the cookie-consent banner. Each is an integer; bumping ANY of these
+// Version anchors for our customer-facing legal documents +
+// the consent record. Each is an integer; bumping ANY of these
 // invalidates prior acceptance and re-prompts the user on next page
 // load.
 //
@@ -26,26 +26,43 @@
 // v7 (2026-10-27): new processing purpose `workspace_invitations`
 // (pending workspace invites keep the invitee's email until accepted,
 // declined, revoked or expired after 14 days).
-export const PRIVACY_VERSION = 7
-export const PRIVACY_EFFECTIVE_DATE = '2026-10-27'
+// v8 (2026-11-03): removed the product-analytics + session-replay
+// purposes (never loaded) and the cookie banner; cookie list; Swiss FADP
+// alongside GDPR with named transfer countries; backup retention; honest
+// audit-log retention; anonymous documents (30 days, bot check, terms
+// acceptance); precise age rule (16); AI training statements per provider.
+export const PRIVACY_VERSION = 8
+export const PRIVACY_EFFECTIVE_DATE = '2026-11-03'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
-export const TOS_VERSION = 2
-export const TOS_EFFECTIVE_DATE = '2026-10-26'
+// v3 (2026-11-03): anonymous documents, acceptable-use section, DSA
+// Art.14 moderation, liability cap + indemnity + forum, AI features,
+// change notice, boilerplate.
+export const TOS_VERSION = 3
+export const TOS_EFFECTIVE_DATE = '2026-11-03'
 
 // v2 (2026-10-26): members' own (BYOK) AI providers are not sub-processors.
-export const DPA_VERSION = 2
-export const DPA_EFFECTIVE_DATE = '2026-10-26'
+// v3 (2026-11-03): Swiss-processor transfer section (FADP), backups,
+// a full Annex I of technical and organisational measures.
+export const DPA_VERSION = 3
+export const DPA_EFFECTIVE_DATE = '2026-11-03'
 
-export const ABUSE_POLICY_VERSION = 1
-export const ABUSE_POLICY_EFFECTIVE_DATE = '2026-05-04'
+// v2 (2026-11-03): DSA Art.16(2) notice elements, Art.16(5) receipt +
+// decision notices, Art.17 statement of reasons, Art.20-style internal
+// complaints, Art.18 notification of threats to life or safety.
+export const ABUSE_POLICY_VERSION = 2
+export const ABUSE_POLICY_EFFECTIVE_DATE = '2026-11-03'
 
 // The Impressum / provider-identification page (Swiss UWG Art. 3(1)(s),
 // EU/DSA contact-point requirement). Facts come from shared/legal/entity.ts.
 export const IMPRINT_VERSION = 1
 export const IMPRINT_EFFECTIVE_DATE = '2026-07-03'
 
-export const CONSENT_VERSION = 1
+// v2 (2026-11-03): the `analytics` and `session_replay` purposes were
+// removed (no such script was ever loaded) and with them the cookie
+// banner: only essential storage remains, which needs no consent
+// (ePrivacy Art.5(3)). `consent_log` keeps the v1 rows as the record.
+export const CONSENT_VERSION = 2
 
 // Version of the paid-plans waitlist consent text (the `waitlist.consentLabel`
 // i18n string + the purpose described in `lawfulBasis.ts`). Stored on every

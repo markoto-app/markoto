@@ -28,21 +28,6 @@ function cspViolations(page: Page): string[] {
   return violations
 }
 
-async function suppressConsentBanner(page: Page): Promise<void> {
-  // Same short-circuit as the flow fixture (tests/e2e/fixtures/flow.ts).
-  await page.context().route('**/api/consent**', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ promptRequired: false, decisions: { essential: true, analytics: false, session_replay: false }, currentVersion: 1 })
-      })
-      return
-    }
-    await route.continue()
-  })
-}
-
 async function previewFrame(page: Page): Promise<Frame> {
   const handle = await page.locator('iframe[title="Document preview"]').elementHandle()
   const frame = await handle?.contentFrame()
@@ -60,7 +45,6 @@ test.describe('preview isolation + CSP', () => {
   test('preview content is isolated from the app and still renders everything', async ({ page }) => {
     test.setTimeout(120_000)
     const violations = cspViolations(page)
-    await suppressConsentBanner(page)
     const editor = new EditorPage(page)
     await editor.loginAsTestUser('Isolation Probe')
 
@@ -256,7 +240,6 @@ test.describe('preview isolation + CSP', () => {
     page.on('response', (res) => {
       if (res.url().includes('/__nuxt_content/') && res.status() >= 400) failedContentQueries.push(`${res.status()} ${res.url()}`)
     })
-    await suppressConsentBanner(page)
     for (const path of ['/', '/docs']) {
       const res = await page.goto(path)
       expect(res?.headers()['content-security-policy'] ?? '').toContain('\'nonce-')
