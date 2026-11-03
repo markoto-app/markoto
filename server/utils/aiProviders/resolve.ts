@@ -22,7 +22,8 @@ import { listAiProviders, type AiProviderRow } from '../../repos/aiProviders'
 import { readInstanceDefault, realtimeDictationModel } from './config'
 import { getWebToolAvailability } from '../webTools'
 import {
-  MISTRAL_API_HOST,
+  MISTRAL_EU_API_HOST,
+  MISTRAL_LIVE_DICTATION_HOSTS,
   baseUrlHost,
   type AiAvailability,
   type AiCapability,
@@ -109,6 +110,8 @@ export async function resolveAiProvider(userId: number, capability: AiCapability
 export interface LiveDictationTarget {
   apiKey: string
   model: string
+  /** Mistral server the realtime WebSocket connects to (`https://<host>`). */
+  serverURL: string
   /** Platform-paid → bill the per-minute LiteLLM tick against the user's budget. */
   platformBilled: boolean
 }
@@ -117,12 +120,17 @@ export function liveDictationTarget(transcription: ResolvedAiProvider | null): L
   if (!transcription) return null
   const model = realtimeDictationModel()
   if (transcription.credentials) {
-    if (baseUrlHost(transcription.credentials.baseUrl) !== MISTRAL_API_HOST) return null
-    return { apiKey: transcription.credentials.apiKey, model, platformBilled: false }
+    // The user's own Mistral key: stream to the host THEY configured
+    // (global or EU), under their agreement with Mistral.
+    const host = baseUrlHost(transcription.credentials.baseUrl)
+    if (!MISTRAL_LIVE_DICTATION_HOSTS.includes(host)) return null
+    return { apiKey: transcription.credentials.apiKey, model, serverURL: `https://${host}`, platformBilled: false }
   }
   const platformKey = (process.env.MISTRAL_API_KEY ?? '').trim()
   if (!platformKey) return null
-  return { apiKey: platformKey, model, platformBilled: true }
+  // Operator-paid: always Mistral's EU endpoint, like every LiteLLM
+  // Mistral deployment (infra/litellm/config.yaml).
+  return { apiKey: platformKey, model, serverURL: `https://${MISTRAL_EU_API_HOST}`, platformBilled: true }
 }
 
 export function availabilityFrom(providers: ResolvedAiProviders): AiAvailability {

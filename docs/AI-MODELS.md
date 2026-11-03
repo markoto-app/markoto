@@ -10,14 +10,15 @@ markoto routes every AI call through one gateway (LiteLLM), so each model below 
 
 These are the deployments that ship in `infra/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-2-pro`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
 
-| Feature | Model | List price | Notes |
+**Mistral is EU-only.** Every Mistral deployment (chat, fallbacks, transcription) and the live-dictation WebSocket on the operator's key go to Mistral's EU regional endpoint `api.eu.mistral.ai` (inference in EU / EFTA data centres; the default `api.mistral.ai` makes no location commitment). Mistral bills regional inference at 1.1x list on every token type; the prices below are those EU prices (list in brackets), and they are what `infra/litellm/config.yaml` charges to budgets. A user's own Mistral key runs on whichever Mistral host the user configured.
+
+| Feature | Model | Price (EU endpoint) | Notes |
 |---|---|---|---|
-| AI writing assistant (tool calling, vision) | Mistral Small 4 (`mistral-small-2603`) | $0.15 in / $0.60 out per M tokens (cached input $0.015) | 262K context, function calling, vision |
-| Fallback when the primary is rate-limited | Ministral 3 8B (`ministral-8b-2512`) | $0.15 in / $0.15 out per M tokens | 262K context, function calling, vision |
-| Free AI allowance (hosted chat default) | Z.ai GLM-5.3 Flash on Mistral's EU endpoint (`zai-glm-5-3-flash`) | $0.15 in / $0.50 out per M tokens (cached input $0.03); EU endpoint 1.1x | 1M context, function calling, vision, reasoning. See [Free AI allowance](#free-ai-allowance-hosted) |
-| Fallback for the free allowance | Mistral Small 4 on the EU endpoint (`mistral-small-2603-eu`) | as Mistral Small 4, 1.1x | Same model as `mistral-small-2603`, EU-pinned |
-| Voice prompt (one-shot transcription) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | $0.003 per audio minute | GA |
-| Live dictation | Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) | $0.006 per audio minute | GA, WebSocket streaming |
+| AI writing assistant (tool calling, vision) | Mistral Small 4 (`mistral-small-2603`) | $0.165 in / $0.66 out per M tokens, cached input $0.0165 (list $0.15 / $0.60 / $0.015) | 262K context, function calling, vision; also the fallback of the free allowance |
+| Fallback when the primary is rate-limited | Ministral 3 8B (`ministral-8b-2512`) | $0.165 in / $0.165 out per M tokens (list $0.15 / $0.15) | 262K context, function calling, vision |
+| Free AI allowance (hosted chat default) | Z.ai GLM-5.3 Flash served by Mistral (`zai-glm-5-3-flash`) | $0.165 in / $0.55 out per M tokens, cached input $0.033 (list $0.15 / $0.50 / $0.03) | 1M context, function calling, vision, reasoning. See [Free AI allowance](#free-ai-allowance-hosted) |
+| Voice prompt (one-shot transcription) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | $0.0033 per audio minute (list $0.003) | GA |
+| Live dictation | Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) | $0.0066 per audio minute (list $0.006) | GA, WebSocket streaming |
 | Knowledge-base embeddings | Jina `jina-embeddings-v5-text-nano` | about $0.02-0.05 per M tokens (verify) | 768 dimensions, 8K context |
 | Web page extraction | Jina Reader | billed in output tokens from a shared Jina balance | |
 | Web search | Staan | no public rate card found | |
@@ -93,9 +94,9 @@ Verified on 2026-11-03 against Mistral's model page, its regional-inference docs
 - **API id** `zai-glm-5-3-flash` (no aliases). **GA**, no deprecation date. Listed as a third-party model "served without Mistral modifications" (MIT-licensed weights); Mistral serves it on its own platform, on "the same infrastructure, regional controls, and service commitments as Mistral models". So the Mistral contract and the account's no-training opt-out cover it like Mistral's own models (the opt-out is an account setting under Admin → Privacy; check it stays off).
 - **EU**: the default `api.mistral.ai` endpoint makes no location commitment. `api.eu.mistral.ai` processes inference in EU / EFTA data centres and serves this model; it costs 1.1x list. The deployment is pinned to it (`api_base` in `infra/litellm/config.yaml`), and the costs there are the EU prices: $0.165 / $0.033 cached / $0.55 per M tokens.
 - **Capabilities** (from `/v1/models`): `completion_chat`, `function_calling`, `vision`, `reasoning`; 1,048,576-token context, 128K max output. Tool calling and image input verified through our LiteLLM (a tool call with valid JSON arguments; a colour named from a test image).
-- **Reasoning model**: it thinks before answering. Through LiteLLM the thinking arrives as `reasoning_content` (never shown to users) and `content` holds only the answer, so the agent loop needs no change. Thinking tokens bill as output (`reasoning_effort` accepts `low` / `high` / `max`; `low` measured 0 reasoning tokens, not set today).
+- **Reasoning switched off**: it is a reasoning model, and without a setting Mistral lets it think a lot (1.2-4.9K reasoning tokens on an edit turn, ~20 s). The `zai-glm-5-3-flash` deployment sets `reasoning_effort: low` as a LiteLLM deployment parameter, so every caller (agent loop, `@ai`, MCP, web-tool synthesis) gets it and the fallback deployment never does. Mistral accepts only `low` / `high` / `max` (`none` is a 400, a Z.ai-style `thinking: {type: disabled}` a 422); `low` gives 0 reasoning tokens on plain chat turns and on most tool turns, at most ~130 on an edit turn. Any thinking arrives as `reasoning_content` (never shown to users); `content` holds only the answer, so the loop needs no change.
 - **Prompt caching** is automatic. `usage.prompt_tokens_details.cached_tokens` reports hits, LiteLLM bills them at `cache_read_input_token_cost` (verified to the 1e-9 $ through the proxy: uncached x input + cached x cached + output x output, on the key AND the team). Measured behaviour: hits come in ~1152-token blocks and only for a prefix the cache has seen at least twice, so in practice the reused part is the prefix every user shares (system prompt + tools, ~15K tokens). The growing history of one session is rarely reused. About a third of calls missed entirely (replica routing); `prompt_cache_key` made no measurable difference.
-- **Fallback**: on 429 / 5xx / timeout after the proxy's retry, LiteLLM routes the request to `mistral-small-2603-eu` (Mistral Small 4 on the EU endpoint), so a fallback never leaves the EU path.
+- **Fallback**: on 429 / 5xx / timeout after the proxy's retry, LiteLLM routes the request to `mistral-small-2603` (Mistral Small 4, also on the EU endpoint), so a fallback never leaves the EU path.
 
 ### How the limits are enforced
 
@@ -119,7 +120,17 @@ Measured 2026-11-03 through the proxy with the app's real system prompt, tool li
 | Prompts per user per month ($0.50) | about 60 |
 | Prompts per month for the whole pool ($500) | about 60,000 |
 
-Input dominates (about 80 % of the cost); reasoning adds 1-4K output tokens on edit turns.
+The cost rows were measured before thinking was switched off; with `reasoning_effort: low` the output share drops further, so they are a slight overestimate. Input dominates (about 95 % of the cost with thinking off). Thinking off vs Mistral's default (default measured with `max`, which reasons like the default; same fixture, same session, 8 prompts each):
+
+| | Default thinking | `reasoning_effort: low` |
+|---|---|---|
+| Output tokens of an edit turn | 1,800-4,900 | 24-330 |
+| Latency of an edit turn | ~20 s | ~4.4 s |
+| Whole prompt (3-call loop) | ~25 s | ~17 s |
+| A plain chat answer | 1.2-2.5 s, 180-530 output tokens | 0.4-0.9 s, 10-60 output tokens |
+| Output cost per prompt | ~$0.0021 | ~$0.0002 |
+
+Tool-call arguments stayed valid JSON and the edits stayed grounded in the document's figures.
 
 ### Prompt-caching layout
 

@@ -97,10 +97,10 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
   it('each free-allowance default can be overridden by an Environment variable', () => {
     const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/bin:/bin' }
     for (const name of REQUIRED) env[name] = `test-${name.toLowerCase()}`
-    Object.assign(env, { NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603-eu', TIER_FREE_LITELLM_BUDGET_USD: '2', NUXT_FREE_TIER_TOTAL_BUDGET_USD: '0' })
+    Object.assign(env, { NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603', TIER_FREE_LITELLM_BUDGET_USD: '2', NUXT_FREE_TIER_TOTAL_BUDGET_USD: '0' })
     const out = spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
     expect(out.status, out.stderr).toBe(0)
-    expect(out.stdout).toContain('\nNUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603-eu\n')
+    expect(out.stdout).toContain('\nNUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603\n')
     expect(out.stdout).toContain('\nTIER_FREE_LITELLM_BUDGET_USD=2\n')
     expect(out.stdout).toContain('\nNUXT_FREE_TIER_TOTAL_BUDGET_USD=0\n')
   })
