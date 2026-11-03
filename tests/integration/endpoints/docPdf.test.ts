@@ -19,6 +19,7 @@ import * as Y from 'yjs'
 import { resetDb, testDb, ensureYjsTable } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
+import { defaultTheme } from '../../../shared/utils/defaultTheme'
 import { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 
 // Insert a Y.Doc row with REAL bytes. The renderer replays this back into
@@ -234,6 +235,33 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(manifest.pageCount).toBeGreaterThanOrEqual(2) // multi-page fixture
       expect(manifest.format).toBe('pdf')
       expect(manifest.pdfKey).toBe(pdfKey)
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
+    // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path
+    // (the renderer allows no CDN host any more). Chromium embeds the font
+    // files it actually used, by name: had a web font failed to load, the
+    // PDF would carry a system fallback instead.
+    it('embeds the theme\'s self-hosted fonts and KaTeX\'s math font', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const theme = {
+        ...defaultTheme,
+        body: { ...defaultTheme.body, font: 'Lora' },
+        headings: { ...defaultTheme.headings, font: 'Playfair Display' },
+        meta: { ...defaultTheme.meta, font: 'IBM Plex Mono' }
+      }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const snapId = await insertYjsRow(doc.docId, '# Fonts and math\n\nBody text in Lora, *in italics too*.\n\n$$\\int_0^1 x^2 \\, dx = \\frac{1}{3}$$\n\n```js\nconst answer = 42\n```\n')
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      const fontNames = [...pdf.matchAll(/\/BaseFont\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
+      expect(fontNames.some(n => /Lora/i.test(n)), fontNames.join(', ')).toBe(true)
+      expect(fontNames.some(n => /Playfair/i.test(n)), fontNames.join(', ')).toBe(true)
+      expect(fontNames.some(n => /KaTeX/i.test(n)), fontNames.join(', ')).toBe(true)
 
       await wipeRendersFor(doc.docId)
     }, 90_000)
