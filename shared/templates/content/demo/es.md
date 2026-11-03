@@ -1,6 +1,6 @@
 # Te damos la bienvenida a markoto
 
-A la izquierda está el markdown que escribes; a la derecha, la página en la que se convierte (el PDF se ve igual). Esta demo muestra primero lo básico de markdown y después lo que markoto añade. Cambia lo que quieras.
+Escribes markdown; la vista previa muestra la página en la que se convierte, y el PDF se ve igual. En una pantalla ancha la vista previa está a la derecha; en el móvil, detrás del ojo de arriba. Esta demo muestra primero lo básico de markdown y después lo que markoto añade. Cambia lo que quieras.
 
 ## Encabezados
 

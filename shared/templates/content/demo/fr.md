@@ -1,6 +1,6 @@
 # Bienvenue dans markoto
 
-À gauche, le markdown que vous tapez ; à droite, la page qu'il devient (le PDF est identique). Cette démo montre d'abord les bases du markdown, puis ce que markoto ajoute. Modifiez tout ce que vous voulez.
+Vous tapez du markdown ; l'aperçu montre la page qu'il devient, et le PDF est identique. Sur un grand écran, l'aperçu est à droite ; sur un téléphone, derrière l'œil en haut. Cette démo montre d'abord les bases du markdown, puis ce que markoto ajoute. Modifiez tout ce que vous voulez.
 
 ## Titres
 

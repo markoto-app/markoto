@@ -324,7 +324,7 @@
     },
     "demo": {
       "label": "Démo",
-      "description": "Une courte visite : les bases du markdown et où trouver le partage, les thèmes, les commentaires, l'IA et l'export PDF."
+      "description": "Les bases du markdown et une courte visite de markoto."
     }
   },
   "documentPanel": {
@@ -390,7 +390,9 @@
     "confirm": "Confirmer",
     "close": "Fermer",
     "loading": "Chargement...",
-    "menu": "Menu"
+    "menu": "Menu",
+    "docs": "Docs",
+    "documentation": "Documentation"
   },
   "menu": {
     "lightMode": "Mode clair",
@@ -456,7 +458,9 @@
       "title": "Aide",
       "shortcuts": "Raccourcis clavier",
       "feedback": "Signaler un problème",
-      "github": "Voir sur GitHub"
+      "github": "Voir sur GitHub",
+      "docs": "Documentation",
+      "tour": "Faire la visite"
     }
   },
   "ai": {
@@ -1256,7 +1260,9 @@
       "subProcessors": "Sous-traitants",
       "abuse": "Signaler un abus",
       "imprint": "Mentions légales",
-      "cookieNote": "Cookies : essentiels uniquement"
+      "cookieNote": "Cookies : essentiels uniquement",
+      "dpaShort": "DPA",
+      "navLabel": "Documentation et mentions légales"
     },
     "documentPage": {
       "translationNoticeTitle": "Traduction fournie par commodité",
@@ -1462,7 +1468,7 @@
       "markdown": "Markdown",
       "body": "Un éditeur Markdown collaboratif avec un aperçu paginé en direct. Écrivez du texte brut ; exportez un PDF identique à l’aperçu, page pour page.",
       "cta": "Commencer à écrire — sans inscription",
-      "scroll": "Faites défiler pour voir comment ça marche"
+      "next": "Voir comment ça marche"
     },
     "scenes": {
       "write": {
@@ -1538,7 +1544,8 @@
     "tone": {
       "toDark": "Passer en mode sombre",
       "toLight": "Passer en mode clair"
-    }
+    },
+    "nextScene": "Suivant : {scene}"
   },
   "anonGate": {
     "eyebrow": "Avant votre premier document",
@@ -1565,5 +1572,68 @@
   "userContent": {
     "notice": "Créé par un utilisateur de markoto sans compte, et non par markoto",
     "report": "Signaler"
+  },
+  "shortcuts": {
+    "title": "Raccourcis clavier",
+    "subtitle": "Ce que font les touches dans l'éditeur de markoto.",
+    "groups": {
+      "format": "Format",
+      "edit": "Édition",
+      "document": "Document",
+      "preview": "Aperçu (pointeur sur les pages)"
+    },
+    "continueList": "Continuer une liste ou une citation",
+    "indent": "Indenter / désindenter un élément de liste",
+    "blankLine": "Nouvelle ligne en dessous",
+    "moveLine": "Déplacer la ligne vers le haut / le bas",
+    "copyLine": "Copier la ligne vers le haut / le bas",
+    "deleteLine": "Supprimer la ligne",
+    "selectLine": "Sélectionner la ligne",
+    "addCursor": "Ajouter un curseur au-dessus / en dessous",
+    "postComment": "Publier un commentaire"
+  },
+  "editorTour": {
+    "stepOf": "{n} sur {total}",
+    "skip": "Passer",
+    "next": "Suivant",
+    "done": "Terminé",
+    "steps": {
+      "write": {
+        "title": "Le markdown à gauche, les pages à droite",
+        "body": "Tapez dans l'éditeur ; l'aperçu montre les pages telles qu'elles seront imprimées et exportées. Ces boutons passent de l'éditeur aux deux, puis à l'aperçu."
+      },
+      "format": {
+        "title": "Mettre en forme sans la syntaxe",
+        "body": "Titres, listes, tableaux, encadrés, formules et diagrammes. Sélectionnez d'abord le texte à mettre en forme."
+      },
+      "theme": {
+        "title": "Soigner l'apparence",
+        "body": "Polices, couleurs, format de page, en-tête, pied de page et page de couverture se règlent dans le thème du document."
+      },
+      "share": {
+        "title": "Partager le lien",
+        "body": "Le cadenas décide qui peut ouvrir le lien : vous seul, tout le monde en lecture, tout le monde en modification, ou avec un mot de passe."
+      },
+      "ai": {
+        "title": "Demander à markoto",
+        "body": "Décrivez ce que vous voulez. L'IA modifie le document comme une collaboratrice, et vous la voyez taper."
+      },
+      "help": {
+        "title": "L'aide est ici",
+        "body": "La documentation, les raccourcis clavier et cette visite sont dans le menu Aide."
+      },
+      "writeMobile": {
+        "title": "Écrire, puis voir les pages",
+        "body": "Tapez du markdown ici. L'œil montre les pages telles qu'elles seront imprimées et exportées."
+      },
+      "formatMobile": {
+        "title": "Mettre en forme et insérer",
+        "body": "L'onglet Éditeur propose titres, listes, tableaux, encadrés, formules et diagrammes."
+      },
+      "helpMobile": {
+        "title": "L'aide est dans le menu",
+        "body": "La documentation et cette visite sont dans le menu."
+      }
+    }
   }
 }

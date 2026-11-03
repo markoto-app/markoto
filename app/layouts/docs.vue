@@ -127,6 +127,9 @@ watch(() => route.path, () => {
       </main>
     </div>
 
+    <!-- Docs, legal pages and imprint one click away, as on the home page. -->
+    <CommonLegalFooter />
+
     <!-- Mobile sidebar drawer. Same nav tree, presented as a left-edge
          slideover that auto-closes on route change. Title slot keeps
          the heading consistent with the topbar's brand. -->

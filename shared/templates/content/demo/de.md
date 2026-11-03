@@ -1,6 +1,6 @@
 # Willkommen bei markoto
 
-Links steht das Markdown, das Sie tippen, rechts die Seite, die daraus wird (das PDF sieht genauso aus). Dieses Demo zeigt zuerst die Markdown-Grundlagen und dann, was markoto noch kann. Ändern Sie ruhig alles.
+Sie tippen Markdown, die Vorschau zeigt die Seite, die daraus wird, und das PDF sieht genauso aus. Auf einem breiten Bildschirm steht die Vorschau rechts, auf dem Handy hinter dem Auge oben. Dieses Demo zeigt zuerst die Markdown-Grundlagen und dann, was markoto noch kann. Ändern Sie ruhig alles.
 
 ## Überschriften
 

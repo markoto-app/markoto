@@ -1,6 +1,6 @@
 # Welcome to markoto
 
-On the left is the markdown you type, on the right the page it becomes (the PDF looks the same). This demo shows the markdown basics first, then what markoto adds on top. Change anything you like.
+You type markdown; the preview shows the page it becomes, and the PDF looks the same. On a wide screen the preview sits on the right, on a phone behind the eye at the top. This demo shows the markdown basics first, then what markoto adds on top. Change anything you like.
 
 ## Headings
 

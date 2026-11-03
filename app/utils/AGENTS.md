@@ -75,7 +75,7 @@ Pagebreak (`<!-- pagebreak -->`) wins by registration order — the pagebreak ru
 
 - `editorCommands.ts` — toolbar + menu commands (toggleBold, toggleHeading, insertTable, toggleComment, etc.).
 - `download.ts` — client-side `.md` download.
-- `welcomeDoc.ts` — initial body when a doc is empty AND `initialBody` (template) is null.
+- `keyboardShortcuts.ts` — the Help → Keyboard shortcuts sheet (`components/editor/KeyboardShortcutsModal.vue`). Editor rows are looked up BY COMMAND in the keymaps `EditorPane.vue` installs (a binding that disappears drops its row; `tests/unit/keyboardShortcuts.test.ts`); print / zoom / post-comment are listed with the key their handlers check. Add a row when you add a binding.
 - `dictationExtensions.ts` — CM6 ghost-text widget for live dictation. See `server/utils/agentic/AGENTS.md`.
 - `editorSelection.ts` — `EditorSelectionSnapshot` builder for the AI's `<editor_state>` block.
 - `commentAnchors.ts` — `Y.RelativePosition` ↔ base64 client-side (uses `btoa` — server side uses `Buffer`, see `server/utils/agentic/AGENTS.md`).

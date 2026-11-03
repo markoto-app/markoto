@@ -2,6 +2,7 @@ import { test as base, expect as baseExpect, type Locator, type Page } from '@pl
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../../app/utils/editorTour'
 import sharp from 'sharp'
 import { EditorPage } from '../page-objects/Editor'
 
@@ -404,6 +405,17 @@ async function wireActorPage(page: Page, theme: 'light' | 'dark'): Promise<void>
       // ignore storage failures
     }
   }, theme)
+
+  // The editor's first-run tour (EditorTour.vue) counts as seen: its
+  // popover would otherwise sit in every flow's screenshots and over the
+  // controls the flows click. A flow about the tour clears the key.
+  await page.addInitScript(([key, value]: [string, string]) => {
+    try {
+      localStorage.setItem(key, value)
+    } catch {
+      // ignore storage failures
+    }
+  }, [EDITOR_TOUR_STORAGE_KEY, EDITOR_TOUR_DONE] as [string, string])
 
   await page.addInitScript(() => {
     const css = `

@@ -75,6 +75,10 @@ const emit = defineEmits<{
   // Insert → Comment. Parent captures the current selection, opens the
   // sidebar, focuses the composer.
   'create-comment': []
+  // Help → Documentation / Keyboard shortcuts / Take the tour.
+  'open-docs': []
+  'open-shortcuts': []
+  'start-tour': []
   // Format / insert dispatch on the editor view directly via callbacks
   // rather than emits so we don't have to re-thread every command up
   // through EditorLayout. The view ref is sufficient.
@@ -394,9 +398,19 @@ const sharingItems = computed(() => [[
 
 const helpItems = computed(() => [[
   {
+    label: t('menubar.help.docs'),
+    icon: 'i-lucide-book-open',
+    onSelect: () => emit('open-docs')
+  },
+  {
     label: t('menubar.help.shortcuts'),
     icon: 'i-lucide-keyboard',
-    disabled: true // Not built yet — will surface a kbd cheat sheet later.
+    onSelect: () => emit('open-shortcuts')
+  },
+  {
+    label: t('menubar.help.tour'),
+    icon: 'i-lucide-map',
+    onSelect: () => emit('start-tour')
   },
   { type: 'separator' as const },
   {

@@ -324,7 +324,7 @@
     },
     "demo": {
       "label": "Demo",
-      "description": "Ein kurzer Rundgang: Markdown-Grundlagen und wo Sie Freigabe, Designs, Kommentare, die KI und den PDF-Export finden."
+      "description": "Markdown-Grundlagen und ein kurzer Rundgang durch markoto."
     }
   },
   "documentPanel": {
@@ -390,7 +390,9 @@
     "confirm": "Bestätigen",
     "close": "Schließen",
     "loading": "Wird geladen...",
-    "menu": "Menü"
+    "menu": "Menü",
+    "docs": "Doku",
+    "documentation": "Dokumentation"
   },
   "menu": {
     "lightMode": "Heller Modus",
@@ -456,7 +458,9 @@
       "title": "Hilfe",
       "shortcuts": "Tastenkürzel",
       "feedback": "Problem melden",
-      "github": "Auf GitHub ansehen"
+      "github": "Auf GitHub ansehen",
+      "docs": "Dokumentation",
+      "tour": "Rundgang starten"
     }
   },
   "ai": {
@@ -1256,7 +1260,9 @@
       "subProcessors": "Unterauftragsverarbeiter",
       "abuse": "Missbrauch melden",
       "imprint": "Impressum",
-      "cookieNote": "Cookies: nur notwendige"
+      "cookieNote": "Cookies: nur notwendige",
+      "dpaShort": "AVV",
+      "navLabel": "Dokumentation und Rechtliches"
     },
     "documentPage": {
       "translationNoticeTitle": "Übersetzung zur Bequemlichkeit bereitgestellt",
@@ -1462,7 +1468,7 @@
       "markdown": "Markdown",
       "body": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
       "cta": "Jetzt schreiben — ohne Anmeldung",
-      "scroll": "Scrolle weiter, um zu sehen, wie es geht"
+      "next": "So funktioniert's"
     },
     "scenes": {
       "write": {
@@ -1538,7 +1544,8 @@
     "tone": {
       "toDark": "Zum dunklen Modus wechseln",
       "toLight": "Zum hellen Modus wechseln"
-    }
+    },
+    "nextScene": "Weiter: {scene}"
   },
   "anonGate": {
     "eyebrow": "Vor Ihrem ersten Dokument",
@@ -1565,5 +1572,68 @@
   "userContent": {
     "notice": "Erstellt von einer Person ohne markoto-Konto, nicht von markoto",
     "report": "Melden"
+  },
+  "shortcuts": {
+    "title": "Tastenkürzel",
+    "subtitle": "Was die Tasten im Editor von markoto tun.",
+    "groups": {
+      "format": "Format",
+      "edit": "Bearbeiten",
+      "document": "Dokument",
+      "preview": "Vorschau (Zeiger über den Seiten)"
+    },
+    "continueList": "Liste oder Zitat fortsetzen",
+    "indent": "Listenpunkt ein- / ausrücken",
+    "blankLine": "Neue Zeile darunter",
+    "moveLine": "Zeile nach oben / unten verschieben",
+    "copyLine": "Zeile nach oben / unten kopieren",
+    "deleteLine": "Zeile löschen",
+    "selectLine": "Zeile auswählen",
+    "addCursor": "Cursor darüber / darunter hinzufügen",
+    "postComment": "Kommentar senden"
+  },
+  "editorTour": {
+    "stepOf": "{n} von {total}",
+    "skip": "Überspringen",
+    "next": "Weiter",
+    "done": "Fertig",
+    "steps": {
+      "write": {
+        "title": "Links Markdown, rechts Seiten",
+        "body": "Tippen Sie im Editor; die Vorschau zeigt die Seiten genau so, wie sie gedruckt und exportiert werden. Diese Schaltflächen wechseln zwischen Editor, beidem und Vorschau."
+      },
+      "format": {
+        "title": "Formatieren ohne Syntax",
+        "body": "Überschriften, Listen, Tabellen, Hinweise, Formeln und Diagramme. Zum Formatieren zuerst Text markieren."
+      },
+      "theme": {
+        "title": "Das richtige Aussehen",
+        "body": "Schriften, Farben, Seitenformat, Kopf- und Fusszeile und die Titelseite stellen Sie im Dokumentdesign ein."
+      },
+      "share": {
+        "title": "Den Link teilen",
+        "body": "Das Schloss legt fest, wer den Link öffnen kann: nur Sie, alle zum Ansehen, alle zum Bearbeiten oder mit Passwort."
+      },
+      "ai": {
+        "title": "markoto fragen",
+        "body": "Beschreiben Sie, was Sie möchten. Die KI bearbeitet das Dokument wie eine Mitautorin, und Sie sehen ihr beim Tippen zu."
+      },
+      "help": {
+        "title": "Hier gibt es Hilfe",
+        "body": "Die Dokumentation, die Tastenkürzel und dieser Rundgang stehen im Menü Hilfe."
+      },
+      "writeMobile": {
+        "title": "Schreiben, dann die Seiten ansehen",
+        "body": "Tippen Sie hier Markdown. Das Auge zeigt die Seiten so, wie sie gedruckt und exportiert werden."
+      },
+      "formatMobile": {
+        "title": "Formatieren und einfügen",
+        "body": "Im Tab Editor finden Sie Überschriften, Listen, Tabellen, Hinweise, Formeln und Diagramme."
+      },
+      "helpMobile": {
+        "title": "Hilfe steht im Menü",
+        "body": "Die Dokumentation und dieser Rundgang stehen im Menü."
+      }
+    }
   }
 }

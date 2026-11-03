@@ -150,7 +150,6 @@ export function useDocument(docId: string) {
     }
   }
 
-
   // Awareness bootstrap. A placeholder name/color is set eagerly so yCollab
   // (which may attach before `connect()` runs) has something to show. The
   // real session-aware values are re-applied inside `connect()`.

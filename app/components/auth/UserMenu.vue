@@ -30,6 +30,11 @@ const menuItems = computed<MenuItem[]>(() => {
     icon: 'i-lucide-key-round',
     to: AI_SETTINGS_ROUTE
   })
+  items.push({
+    label: t('common.documentation'),
+    icon: 'i-lucide-book-open',
+    to: '/docs'
+  })
   if (accountStatus.value?.isAdmin) {
     items.push({
       label: 'Admin',
