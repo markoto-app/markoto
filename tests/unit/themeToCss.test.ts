@@ -226,6 +226,13 @@ describe('themeToCss — Step 9: cover page', () => {
       expect(css).toMatch(/\.paged-doc \.markoto-cover\s*\{[^}]*width:\s*100%/)
     }
   )
+  test('single-column theme: the cover is NOT a column spanner', () => {
+    // paged.js fragments pages with CSS columns itself; a spanning cover
+    // in a single-column document made it drop everything after the
+    // cover (a one-page PDF — caught by tests/integration/endpoints/docPdf.test.ts).
+    expect(markoto.layout.columns).toBe(1)
+    expect(themeToCss(markoto, runtime)).not.toMatch(/markoto-cover\s*\{[^}]*column-span/)
+  })
   test('cover-disabled theme emits NO .markoto-cover rule', () => {
     const css = themeToCss(modern, runtime)
     expect(css).not.toContain('.markoto-cover')
