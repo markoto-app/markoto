@@ -846,7 +846,7 @@ const _statusIcon = computed(() => {
        "disconnected / view only" editor for a doc that was never there. -->
   <div
     v-if="notFound"
-    class="h-screen flex items-center justify-center p-6 bg-[var(--ui-bg)]"
+    class="h-dvh flex items-center justify-center p-6 bg-[var(--ui-bg)]"
   >
     <div class="max-w-md w-full text-center space-y-4">
       <div class="mx-auto size-14 rounded-full bg-muted flex items-center justify-center">
@@ -877,7 +877,7 @@ const _statusIcon = computed(() => {
        no Y.Doc content, and the user can't interact with any toolbar actions. -->
   <div
     v-else-if="forbidden"
-    class="h-screen flex items-center justify-center p-6 bg-[var(--ui-bg)]"
+    class="h-dvh flex items-center justify-center p-6 bg-[var(--ui-bg)]"
   >
     <div class="max-w-md w-full text-center space-y-4">
       <div class="mx-auto size-14 rounded-full bg-amber-500/10 flex items-center justify-center">
@@ -910,9 +910,13 @@ const _statusIcon = computed(() => {
     </div>
   </div>
 
+  <!-- h-dvh, not h-screen: 100vh is the viewport WITHOUT the mobile
+       browser address bar, so with the bar showing the shell ran taller
+       than the screen and the AI bar (absolute, bottom of <main>) slid
+       under the fixed MobileTabBar. dvh tracks the visible height. -->
   <div
     v-else
-    class="h-screen flex flex-col"
+    class="h-dvh flex flex-col"
   >
     <!-- Editor Header — three-column flex so the view-mode group sits
          visually centered in the bar (the page is the doc, view mode
