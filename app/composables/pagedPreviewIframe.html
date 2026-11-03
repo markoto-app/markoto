@@ -112,6 +112,17 @@
   html.zoom-overview #mount .pagedjs_page {
     cursor: zoom-in;
   }
+  /* Light mode: the page card's shadow sits inside the zoomed pages, so
+     at thumbnail size it all but disappears and white pages melt into
+     the bone surround. Same separation as fit width — a hairline plus
+     the soft drop shadow — sized in on-screen pixels (divided by the
+     zoom). Dark mode keeps its own shadow (below). */
+  html.zoom-overview:not(.dark-preview) #mount .pagedjs_page {
+    box-shadow:
+      0 0 0 calc(1px / var(--page-zoom, 1)) rgba(20, 17, 13, 0.10),
+      0 calc(1px / var(--page-zoom, 1)) calc(3px / var(--page-zoom, 1)) rgba(0, 0, 0, 0.08),
+      0 calc(4px / var(--page-zoom, 1)) calc(12px / var(--page-zoom, 1)) rgba(0, 0, 0, 0.06);
+  }
   /* The whole page is the click target (opens it at fit width). */
   html.zoom-overview #mount .pagedjs_page * {
     pointer-events: none;

@@ -105,6 +105,10 @@ describe('pagedPreviewIframe.html', () => {
     expect(reapply).toBeGreaterThan(WITHOUT_COMMENT.indexOf('mount.replaceChildren('))
     // Pinch zooms the preview, not the app.
     expect(WITHOUT_COMMENT).toContain('touch-action: pan-x pan-y;')
+    // Light-mode overview thumbnails keep a visible edge: a hairline sized
+    // in screen pixels (divided by the zoom), not the zoomed card shadow.
+    expect(WITHOUT_COMMENT).toContain('html.zoom-overview:not(.dark-preview) #mount .pagedjs_page {')
+    expect(WITHOUT_COMMENT).toContain('0 0 0 calc(1px / var(--page-zoom, 1)) rgba(20, 17, 13, 0.10)')
   })
 
   it('keeps print at 100 % whatever the preview zoom is', () => {
