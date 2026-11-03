@@ -266,12 +266,12 @@ const policies = computed(() => {
              and the email truncates with `min-w-0` + `truncate`
              so a long address can't push the close button off-screen. -->
         <div class="flex items-center gap-3 sm:gap-4 mb-4">
-          <UAvatar
-            :src="user?.avatar ?? undefined"
-            :alt="user?.name"
-            size="lg"
+          <CommonUserAvatar
+            v-if="user"
+            :seed="avatarSeedFor({ id: user.id })"
+            :name="user.name"
+            :size="40"
             class="sm:!size-16"
-            referrerpolicy="no-referrer"
           />
           <div class="min-w-0 flex-1">
             <h1 class="font-serif text-2xl sm:text-4xl font-normal tracking-tight truncate">

@@ -2,11 +2,14 @@
 import MentionPill from '~/components/comments/MentionPill.vue'
 import AiMentionPill from '~/components/comments/AiMentionPill.vue'
 import { parseCommentBody } from '~/utils/commentBody'
+import { isAiCommentAuthor } from '~~/shared/ai/author'
 
 const props = withDefaults(defineProps<{
   body: string
   authorName: string
-  authorAvatar: string | null
+  authorId: number | null
+  /** Anonymous author's avatar token (see `useComments`). */
+  authorAvatarSeed: string | null
   createdAt: number
   /** Show "Resolve" action; only on the thread root (not on replies). */
   isThreadRoot?: boolean
@@ -30,6 +33,10 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+// The AI keeps its seal disc; people get their generated face.
+const isAi = computed(() => isAiCommentAuthor(props.authorId, props.authorName))
+const avatarSeed = computed(() => avatarSeedFor({ id: props.authorId, avatarSeed: props.authorAvatarSeed, fallback: props.authorName }))
+
 const segments = computed(() => parseCommentBody(props.body))
 
 // Live "X ago" string via `useTimeAgoIntl` — owns its own 30s ticker
@@ -43,12 +50,17 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
     class="flex gap-2"
     data-testid="comment-item"
   >
-    <UAvatar
-      :src="authorAvatar ?? undefined"
-      :alt="authorName"
-      size="xs"
-      class="shrink-0 mt-0.5"
-      referrerpolicy="no-referrer"
+    <div
+      v-if="isAi"
+      class="size-6 shrink-0 mt-0.5 rounded-full flex items-center justify-center bg-default border border-default"
+    >
+      <CommonSeal :size="8" />
+    </div>
+    <CommonUserAvatar
+      v-else
+      :seed="avatarSeed"
+      :size="24"
+      class="mt-0.5"
     />
     <div class="flex-1 min-w-0">
       <!-- Author + timestamp register: author in Inter weight 500

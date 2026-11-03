@@ -8,7 +8,6 @@ interface MentionableUser {
   id: number
   name: string
   email: string | null
-  avatarUrl: string | null
 }
 
 const props = withDefaults(defineProps<{
@@ -112,7 +111,8 @@ function onClickThread(e: MouseEvent) {
     <CommentItem
       :body="comment.body"
       :author-name="comment.authorName"
-      :author-avatar="comment.authorAvatar"
+      :author-id="comment.authorId"
+      :author-avatar-seed="comment.authorAvatarSeed"
       :created-at="comment.createdAt"
       :is-thread-root="true"
       :resolved="comment.resolved"
@@ -132,7 +132,8 @@ function onClickThread(e: MouseEvent) {
         :key="reply.id"
         :body="reply.body"
         :author-name="reply.authorName"
-        :author-avatar="reply.authorAvatar"
+        :author-id="reply.authorId"
+        :author-avatar-seed="reply.authorAvatarSeed"
         :created-at="reply.createdAt"
         :read-only="readOnly"
         :can-delete="canDelete(reply.authorId, reply.authorName)"

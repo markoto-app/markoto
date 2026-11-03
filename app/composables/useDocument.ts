@@ -52,15 +52,14 @@ export function useDocument(docId: string) {
   // yCollab) bind to this once at mount and never need to re-subscribe.
   const awareness = new Awareness(ydoc)
 
-  // Normalise every remote peer's `user` field (name / colour / avatar /
-  // id) the moment it arrives, before anything renders it. Registered
+  // Normalise every remote peer's `user` field (name / colour / avatar
+  // seed / id) the moment it arrives, before anything renders it. Registered
   // here — before yCollab and PresenceBar subscribe — so the y-codemirror
   // caret widget (which interpolates `color` into a raw style attribute)
   // and the presence bar only ever see the normalised shape. The sync
   // server normalises too; this is the client-side half of that guard.
-  const awarenessOrigin = import.meta.client ? globalThis.location?.origin : undefined
   awareness.on('change', ({ added, updated }: { added: number[], updated: number[] }) => {
-    normalizeAwarenessStates(awareness, [...added, ...updated], { ownOrigin: awarenessOrigin })
+    normalizeAwarenessStates(awareness, [...added, ...updated])
   })
 
   // Expose awareness alongside the ydoc test handle (gated on the
@@ -161,7 +160,10 @@ export function useDocument(docId: string) {
   function applySessionAwareness() {
     // Normalised before broadcast so the shape we send is exactly what
     // peers (and the sync server) accept: a long OAuth display name is
-    // capped, a non-https avatar is dropped.
+    // capped. Avatars are generated locally — signed-in users from their
+    // `id`, anonymous visitors from a random per-tab `avatarSeed`
+    // (sessionStorage, `utils/userAvatar.ts`), so collaborators can tell
+    // them apart. No image URL is ever broadcast.
     awareness.setLocalStateField('user', normalizeAwarenessUser({
       // Seed `id` from the session so remote clients can match this awareness
       // state to a workspace-member row (role tooltips, "is this person live"
@@ -170,8 +172,8 @@ export function useDocument(docId: string) {
       id: loggedIn.value ? sessionUser.value?.id : undefined,
       name: loggedIn.value ? sessionUser.value?.name : generateRandomName(),
       color: pickColor(),
-      avatar: sessionUser.value?.avatar
-    }, { ownOrigin: awarenessOrigin }))
+      avatarSeed: loggedIn.value ? undefined : getAnonAvatarToken()
+    }))
   }
 
   // Bridge Y.js Map reactivity to Vue: `ymeta.get()` isn't tracked by Vue,

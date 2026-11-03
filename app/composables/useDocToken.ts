@@ -110,7 +110,7 @@ export function useDocToken(docId: string) {
   // Sponsor profile (billing owner) for the AI-workspace indicator.
   // Null when `workspaceAiEnabled` is false. Carries just the display
   // bits — no plan / no email / no stripe ids leak through here.
-  interface BillingOwner { id: number, name: string, avatarUrl: string | null }
+  interface BillingOwner { id: number, name: string }
   const workspaceBillingOwner = ref<BillingOwner | null>(null)
   // DB-stored theme (or null = use defaultTheme). Initial value comes back
   // on the same /token round-trip so the preview can paint immediately,

@@ -5,6 +5,7 @@ import { nextTick } from 'vue'
 // — import AFTER mocks are in place ————————————————————————————————
 import { useDocument } from '~/composables/useDocument'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { ANON_AVATAR_STORAGE_KEY } from '~/utils/userAvatar'
 
 // Orchestrator tests for `useDocument`. The strategy:
 //
@@ -31,7 +32,7 @@ const hoisted = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { ref, shallowRef } = require('vue') as typeof import('vue')
   return {
-    sessionUser: ref<{ id: number, name?: string, avatar?: string } | null>(null),
+    sessionUser: ref<{ id: number, name?: string } | null>(null),
     loggedIn: ref(false),
     tokenState: {
       tokenData: ref<{ token: string, readOnly: boolean } | null>({ token: 'jwt-v1', readOnly: false }),
@@ -255,6 +256,40 @@ async function flushFetchToken() {
   await Promise.resolve()
   await Promise.resolve()
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// Awareness identity (generated avatars)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useDocument — awareness avatar identity', () => {
+  it('a signed-in user broadcasts their id and no avatar URL or seed', async () => {
+    hoisted.loggedIn.value = true
+    hoisted.sessionUser.value = { id: 7, name: 'Alice' }
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    const user = doc.awareness.getLocalState()?.user as Record<string, unknown>
+    expect(user.id).toBe(7)
+    expect(user).not.toHaveProperty('avatar')
+    expect(user).not.toHaveProperty('avatarSeed')
+    doc.destroy()
+  })
+
+  it('an anonymous visitor broadcasts the random per-tab avatar seed kept in sessionStorage', async () => {
+    sessionStorage.removeItem(ANON_AVATAR_STORAGE_KEY)
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    const seed = (doc.awareness.getLocalState()?.user as Record<string, unknown>).avatarSeed
+    expect(seed).toMatch(/^[A-Za-z0-9]{16}$/)
+    expect(sessionStorage.getItem(ANON_AVATAR_STORAGE_KEY)).toBe(seed)
+    doc.destroy()
+
+    // Same tab, next document (or a reload): same face.
+    const again = useDocument('doc-def')
+    await flushFetchToken()
+    expect((again.awareness.getLocalState()?.user as Record<string, unknown>).avatarSeed).toBe(seed)
+    again.destroy()
+  })
+})
 
 // ═══════════════════════════════════════════════════════════════════════
 // Initial connect gating

@@ -114,6 +114,10 @@ If any of these show up, fix them:
 - **Italic Fraunces in a button or short heading.** Reserved for the AI voice + display emphasis (`<em>` inside Fraunces 300 hero headlines).
 - **Two reds on screen meaning different things.** Shu means *AI*. Error red is `error` (rose). They never confuse because shu always sits next to the seal/wordmark and error sits on alert chrome.
 
+### User avatars
+
+Every person is a DiceBear **Moods** face (CC0) drawn locally — never a GitHub/Google/OIDC picture (not stored since migration 0025; loading them would hand viewers' IPs to the provider) and never api.dicebear.com. One component: `<CommonUserAvatar :seed :name :size>` (`components/common/UserAvatar.vue`). Seeds via `avatarSeedFor()` (`utils/userAvatar.ts`): signed-in → `u-<id>` (same face everywhere), anonymous → `a-<token>` where the token is random per tab (`markoto-anon-avatar` in sessionStorage, broadcast as awareness `user.avatarSeed`, stored on the visitor's comments as `authorAvatarSeed`). Positive moods only (curated eye/mouth allow-list — Moods 10.6 has no mood tags), background from the `utils/colors.ts` pastels with a lighter face tint, sumi-950 ink, blink animation that the SVG itself switches off under `prefers-reduced-motion`. The renderer (`utils/userAvatarRender.ts`, `@dicebear/core` ≈ 45 KB gzip) is lazy-loaded; SSR + hydration show the seed's background disc and the face appears after mount. The AI never uses it — it keeps the seal disc.
+
 ### When in doubt
 
 Pick the move that reads as "calm field guide on warm paper". The brand wins by *restraint* — every removed piece of chrome and every dropped weight makes the wordmark + seal land harder.

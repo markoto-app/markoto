@@ -68,11 +68,10 @@ const menuItems = computed<MenuItem[]>(() => {
         class="gap-2"
         data-testid="user-menu-trigger"
       >
-        <UAvatar
-          :src="user?.avatar ?? undefined"
-          :alt="user?.name"
-          size="xs"
-          referrerpolicy="no-referrer"
+        <CommonUserAvatar
+          v-if="user"
+          :seed="avatarSeedFor({ id: user.id })"
+          :size="24"
         />
         <span class="hidden sm:inline font-serif text-base font-normal tracking-tight">{{ user?.name }}</span>
       </UButton>

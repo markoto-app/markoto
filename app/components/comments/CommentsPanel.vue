@@ -12,7 +12,6 @@ interface MentionableUser {
   id: number
   name: string
   email: string | null
-  avatarUrl: string | null
 }
 
 // Discriminated union shipped to CommentComposer. The AI entry is a
@@ -21,8 +20,8 @@ interface MentionableUser {
 // composer then decides at insertion time which token shape to write —
 // `@ai` literal vs `@[Name](user:N)`.
 type MentionableEntry
-  = | { kind: 'user', id: number, name: string, email: string | null, avatarUrl: string | null }
-    | { kind: 'ai', id: 'ai', name: string, email: null, avatarUrl: null, description: string, aliases?: readonly string[] }
+  = | { kind: 'user', id: number, name: string, email: string | null }
+    | { kind: 'ai', id: 'ai', name: string, email: null, description: string, aliases?: readonly string[] }
 
 const props = defineProps<{
   ytext: YText
@@ -126,7 +125,6 @@ const aiEntry = computed<MentionableEntry>(() => ({
   id: 'ai',
   name: t('comments.aiEntryName'),
   email: null,
-  avatarUrl: null,
   description: t('comments.aiEntryDescription'),
   // Aliases let the typeahead surface markoto when the user types
   // legacy `@ai` muscle-memory or just `@m` for "markoto". Fuse

@@ -1017,12 +1017,10 @@ const _statusIcon = computed(() => {
           class="hidden sm:inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full border border-default bg-default/60 text-xs text-muted hover:text-default hover:bg-muted/40 transition-colors"
           :title="docWorkspaceSponsor ? t('editor.aiWorkspaceSponsoredBy', { name: docWorkspaceSponsor.name }) : t('editor.aiWorkspaceBadgeTooltip')"
         >
-          <UAvatar
+          <CommonUserAvatar
             v-if="docWorkspaceSponsor"
-            :src="docWorkspaceSponsor.avatarUrl ?? undefined"
-            :alt="docWorkspaceSponsor.name"
-            size="3xs"
-            referrerpolicy="no-referrer"
+            :seed="avatarSeedFor({ id: docWorkspaceSponsor.id })"
+            :size="16"
           />
           <CommonSeal
             v-else
