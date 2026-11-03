@@ -5,7 +5,7 @@ import type { DocTheme } from '../types/theme'
  * and as the fallback when a doc's stored theme fails validation.
  *
  * This IS the markoto preset (kept in sync with `themePresets.ts`):
- * Fraunces editorial headings on Inter body, sumi-50 cream paper, shu
+ * Fraunces editorial headings on Inter body, plain white paper, shu
  * vermillion brand, minimal table borders, document-matched mermaid. Every new
  * doc opens looking like markoto by default; users pick a different
  * preset only when they want something else.
@@ -32,7 +32,10 @@ export const defaultTheme: DocTheme = {
     lineHeight: 1.55,
     textAlign: 'left',
     color: '#14110D', // sumi-950
-    background: '#FAF8F4', // sumi-50 — warm cream paper, not pure white
+    // Plain white paper: a new document looks like the page it prints
+    // on. (The cream sumi-50 page read as "something is off" to new
+    // users; anyone who wants it sets it in the Theme panel.)
+    background: '#FFFFFF',
     dropCap: true, // editorial signature on first paragraph
     firstLineIndent: false, // markoto uses paragraph spacing, not indent
     paragraphSpacing: 0.6, // standard print breathing
