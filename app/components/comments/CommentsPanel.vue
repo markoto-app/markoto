@@ -373,6 +373,8 @@ const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === n
           color="neutral"
           variant="ghost"
           size="xs"
+          class="mk-panel-close"
+          data-testid="panel-close"
           :aria-label="t('common.close')"
           @click="emit('close')"
         />

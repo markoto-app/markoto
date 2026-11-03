@@ -152,6 +152,8 @@ const audienceItems = AUDIENCE_KINDS.map(kind => ({
         color="neutral"
         variant="ghost"
         size="xs"
+        class="mk-panel-close"
+        data-testid="panel-close"
         :aria-label="t('common.close')"
         @click="emit('close')"
       />
