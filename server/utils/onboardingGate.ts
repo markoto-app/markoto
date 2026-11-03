@@ -29,7 +29,9 @@ export function onboardingIncomplete(state: OnboardingState): boolean {
 // accepting the gate itself, logging out (incl. "log out everywhere"),
 // the cookie banner (layered above the gate), leaving (account deletion + its cancel), taking
 // their data with them (export), withdrawing waitlist consent from an
-// email link, and the non-session surfaces (webhooks, internal, test).
+// email link, reporting illegal content (DSA Art.16: anyone may notify,
+// accepting our terms is not a precondition), and the non-session
+// surfaces (webhooks, internal, test).
 const EXEMPT_PATHS: RegExp[] = [
   /^\/api\/user\/onboarding-accept$/,
   /^\/api\/_auth\/session$/,
@@ -39,6 +41,7 @@ const EXEMPT_PATHS: RegExp[] = [
   /^\/api\/user\/delete-cancel$/,
   /^\/api\/user\/export$/,
   /^\/api\/waitlist\/(?:confirm|unsubscribe)$/,
+  /^\/api\/abuse-reports$/,
   /^\/api\/webhooks\//,
   /^\/api\/internal\//,
   /^\/api\/_internal\//,

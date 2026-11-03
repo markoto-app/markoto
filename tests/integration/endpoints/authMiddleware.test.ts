@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
+import { createAnonDoc } from '../setup/anonGate'
 
 // server/middleware/auth.ts is the central whitelist that gates every
 // /api/* path. Regressions here have big blast radius — a stray protected
@@ -67,16 +68,16 @@ describe('auth middleware whitelist', () => {
       // Anonymous doc created by this (cookie-holding) anonymous browser —
       // only the creating browser may delete it.
       const creator = anonClient()
-      const created = await creator.post('/api/docs', {})
+      const created = await createAnonDoc(creator)
       const { docId } = await created.json() as { docId: string }
       const res = await creator.delete(`/api/docs/${docId}`)
       expect(res.status).toBe(200)
     })
 
     it('POST /api/docs (doc creation) is public', async () => {
-      const res = await anonClient().post('/api/docs', {})
-      // Creation returns 200 with a new docId.
-      expect(res.status).not.toBe(401)
+      const res = await createAnonDoc(anonClient())
+      // Creation returns 200 with a new docId (through the anonymous gate).
+      expect(res.status).toBe(200)
     })
 
     it('POST /api/docs/:id/password is public (verify path)', async () => {
@@ -151,9 +152,14 @@ describe('auth middleware whitelist', () => {
       expect(res.status).toBe(401)
     })
 
-    it('POST /api/abuse-reports rejects anonymous', async () => {
+    it('POST /api/abuse-reports is public (DSA Art.16: anyone may notify; the handler validates + bot-checks)', async () => {
       const res = await anonClient().post('/api/abuse-reports', {})
-      expect(res.status).toBe(401)
+      expect(res.status).toBe(400)
+    })
+
+    it('GET /api/anon-gate/challenge is public', async () => {
+      const res = await anonClient().get('/api/anon-gate/challenge')
+      expect(res.status).toBe(200)
     })
 
     it('GET /api/health/deep rejects anonymous', async () => {

@@ -36,6 +36,7 @@
 
 import { parseBooleanFlag } from './billingMode'
 import { resolveLegalEntity } from '../legal/entity'
+import { DEFAULT_ANON_DOC_TTL_DAYS, resolveAnonDocTtlDays, resolveAnonGateEnabled } from './anonGate'
 
 export type LoginProvider = 'oidc' | 'github' | 'google'
 
@@ -68,6 +69,14 @@ export interface InstanceConfig {
   operatorName: string
   /** Scroll-driven product page at `/` for logged-out visitors (hosted only). */
   productTour: boolean
+  /**
+   * Anonymous visitors pass the bot check + accept the terms before their
+   * first document and may report content without signing in
+   * (`shared/config/anonGate.ts`).
+   */
+  anonGate: boolean
+  /** Days without activity after which anonymous documents are deleted (0 = never). */
+  anonDocTtlDays: number
 }
 
 /** Client-side fallback before hydration: nothing optional is offered. */
@@ -76,7 +85,9 @@ export const MINIMAL_INSTANCE_CONFIG: InstanceConfig = Object.freeze({
   oidcProviderName: '',
   legalSurfaces: false,
   operatorName: '',
-  productTour: false
+  productTour: false,
+  anonGate: false,
+  anonDocTtlDays: DEFAULT_ANON_DOC_TTL_DAYS
 })
 
 type Env = Record<string, string | undefined>
@@ -114,7 +125,9 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
     operatorName: legalSurfaces
       ? resolveLegalEntity(env).controllerName
       : (env.NUXT_LEGAL_CONTROLLER_NAME?.trim() ?? ''),
-    productTour: resolveProductTourEnabled(env)
+    productTour: resolveProductTourEnabled(env),
+    anonGate: resolveAnonGateEnabled(env),
+    anonDocTtlDays: resolveAnonDocTtlDays(env)
   }
 }
 

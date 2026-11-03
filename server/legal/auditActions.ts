@@ -25,6 +25,12 @@ export const AUDIT_ABUSE_REPORTED = 'abuse.reported'
 export const AUDIT_ABUSE_ACKNOWLEDGED = 'abuse.acknowledged'
 export const AUDIT_ABUSE_ACTIONED = 'abuse.actioned'
 export const AUDIT_ABUSE_DISMISSED = 'abuse.dismissed'
+// A DSA notice the pipeline produced for a report — confirmation of
+// receipt (Art.16(4)), decision to the reporter (Art.16(5)) or statement
+// of reasons to the owner (Art.17) — sent or recorded as not deliverable.
+// `scope_id` = report id; metadata: kind, recipient role, status. The text
+// itself lives in `moderation_notices`, never in the audit row.
+export const AUDIT_ABUSE_NOTICE_RECORDED = 'abuse.notice_recorded'
 
 // Platform-admin grants. Granted via the env allowlist bootstrap
 // or (forthcoming) via an admin-management UI; revoked the same way.
@@ -82,6 +88,7 @@ export type ComplianceAuditAction
     | typeof AUDIT_ABUSE_ACKNOWLEDGED
     | typeof AUDIT_ABUSE_ACTIONED
     | typeof AUDIT_ABUSE_DISMISSED
+    | typeof AUDIT_ABUSE_NOTICE_RECORDED
     | typeof AUDIT_ADMIN_GRANTED
     | typeof AUDIT_ADMIN_REVOKED
     | typeof AUDIT_MCP_TOKEN_ISSUED

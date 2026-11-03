@@ -1,10 +1,16 @@
 import { createDocument } from '../utils/createDocument'
 import { ensureAnonCreatorKey, hashAnonCreatorKey } from '../utils/anonCreator'
+import { enforceAnonGate } from '../utils/anonGate/gate'
+import { ANON_DOC_CREATE_LIMITS } from '~~/shared/config/anonLimits'
 import { isAudienceKind, type AudienceKind } from '~~/shared/audiences'
 import { isTemplateId } from '~~/shared/templates'
 
 // Document creation. Anonymous creation is allowed — falls back to
-// `open-edit` access mode with no workspace.
+// `open-edit` access mode with no workspace — but gated (hosted shape,
+// `NUXT_ANON_GATE_ENABLED`): the visitor must have accepted the Terms +
+// age statement and must send a fresh ALTCHA proof-of-work solution
+// (`altcha` + `acceptTerms` in the body; see server/utils/anonGate/).
+// The accepted terms version + time are stored on the doc row.
 //
 // All validation + theme resolution lives in `createDocument()` so the
 // AI tool handler (`handleCreateDocument` in aiToolAdapter.ts) shares
@@ -12,6 +18,8 @@ import { isTemplateId } from '~~/shared/templates'
 // JSON body into typed fields, hand off.
 
 interface RawBody {
+  altcha?: unknown
+  acceptTerms?: unknown
   workspaceId?: unknown
   title?: unknown
   description?: unknown
@@ -27,19 +35,21 @@ export default defineEventHandler(async (event) => {
   const session = await getValidatedUserSession(event)
   const ownerId = session?.user?.id ?? null
 
-  // Rate limit ANONYMOUS creation only: each doc is a Postgres row +
-  // Y.js state that lives until the inactive-doc sweep, so an
-  // unauthenticated loop could fill the documents table with junk.
-  // 30/min per IP is far above human "new doc" cadence; logged-in
-  // users are accountable (owned rows, plan caps) and skip this.
+  // Rate limit ANONYMOUS creation only, per client key (IPv4 or IPv6
+  // /64): each doc is a Postgres row + Y.js state that lives until the
+  // inactive-doc sweep, and anonymous docs are the abuse surface
+  // (phishing / spam pages on our domain). On top of the bot check.
+  // Logged-in users are accountable (owned rows, plan caps) and skip this.
   if (!ownerId) {
     const ip = getClientRateLimitKey(event)
-    if (!(await checkRateLimit('anon-doc-create', ip, 30, 60_000))) {
-      throw createError({
-        statusCode: 429,
-        message: 'Too many new documents. Try again in a minute.',
-        data: { code: 'docs/rate-limited', messageKey: 'error.rateLimited' }
-      })
+    for (const limit of ANON_DOC_CREATE_LIMITS) {
+      if (!(await checkRateLimit(limit.namespace, ip, limit.max, limit.windowMs))) {
+        throw createError({
+          statusCode: 429,
+          message: 'Too many new documents from this network. Sign in, or try again later.',
+          data: { code: 'docs/rate-limited', messageKey: 'anonGate.errors.rateLimited' }
+        })
+      }
     }
   }
 
@@ -67,6 +77,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'themeId must be a string' })
   }
 
+  // Anonymous gate AFTER the cheap shape checks (a malformed body never
+  // burns the visitor's solution) and BEFORE anything is written.
+  const acceptance = ownerId === null
+    ? await enforceAnonGate(event, { altcha: body.altcha, acceptTerms: body.acceptTerms }, 'doc-create')
+    : null
+
   // Anonymous creation: bind the doc to this browser's creator key
   // (httpOnly cookie, minted on first anonymous create) so only this
   // browser can delete it later. Only the hash is stored.
@@ -77,6 +93,7 @@ export default defineEventHandler(async (event) => {
   const result = await createDocument({
     ownerId,
     anonCreatorKeyHash,
+    anonTermsAcceptance: acceptance ?? undefined,
     workspaceId: typeof body.workspaceId === 'string' ? body.workspaceId : null,
     title: body.title as string | undefined,
     description: body.description as string | undefined,

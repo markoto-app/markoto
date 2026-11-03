@@ -27,6 +27,7 @@ const {
   syncAuthFailed,
   syncRejection,
   isOwner,
+  hasOwner,
   canDelete,
   deletedByOther,
   setDeletingHere,
@@ -449,12 +450,34 @@ onMenuImagePicked(async (files) => {
 // Menu-driven file actions. New-document hits the same endpoint as the
 // landing-page "New" button; we navigate immediately so the user lands
 // in their fresh doc.
+// "Created by a markoto user, not by markoto · Report" on documents
+// without an owner account (anonymous creations). Waits for the first
+// sync, by which time the token endpoint has told us who owns the doc
+// (no flash on owned docs).
+const { legalSurfaces } = useInstanceConfig()
+const showUserContentBar = computed(() =>
+  legalSurfaces.value
+  && synced.value
+  && !forbidden.value
+  && !notFound.value
+  && !hasOwner.value
+  && !docWorkspaceId.value
+)
+const reportContentLink = computed(() => {
+  const url = import.meta.client ? `${globalThis.location.origin}/d/${props.docId}` : `/d/${props.docId}`
+  return { path: '/legal/abuse', query: { url } }
+})
+
+// Anonymous visitors go through the same terms + bot-check gate as the
+// new-document dialog (useAnonDocCreate).
+const anonDoc = useAnonDocCreate()
 async function newDocument() {
   try {
-    const data = await $fetch<{ docId: string }>('/api/docs', { method: 'POST' })
-    navigateTo(`/d/${data.docId}`)
-  } catch {
-    toast.add({ title: 'Could not create document', color: 'error' })
+    const docId = await anonDoc.createDocument()
+    navigateTo(`/d/${docId}`)
+  } catch (e) {
+    if (e instanceof AnonGateCancelled) return
+    toast.add({ title: t('error.documentCreateFailed'), color: 'error' })
   }
 }
 
@@ -1209,6 +1232,31 @@ const _statusIcon = computed(() => {
         >
           {{ t('editor.syncAuthFailedReload') }}
         </UButton>
+      </div>
+
+      <!-- User-content bar: documents created without an account are
+           written by anonymous visitors, not by the operator. Says so
+           and links the report form (prefilled with this URL). Only
+           where the legal surfaces (and so the form) exist; not on
+           owned or workspace docs, whose authors are accountable. -->
+      <div
+        v-if="showUserContentBar"
+        class="border-b border-default bg-muted px-4 py-1 flex items-center gap-2 font-mono text-[10.5px] tracking-wide text-muted shrink-0"
+        data-testid="user-content-bar"
+      >
+        <UIcon
+          name="i-lucide-info"
+          class="size-3.5 shrink-0"
+        />
+        <span class="min-w-0 truncate">{{ t('userContent.notice') }}</span>
+        <span aria-hidden="true">·</span>
+        <NuxtLink
+          :to="reportContentLink"
+          class="underline shrink-0"
+          data-testid="user-content-report"
+        >
+          {{ t('userContent.report') }}
+        </NuxtLink>
       </div>
 
       <!-- Toolbar row.

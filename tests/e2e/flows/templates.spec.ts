@@ -103,6 +103,10 @@ test('Start from a template', async ({ page, flow, editor }) => {
         { label: 'Ready-made structure', selector: '.cm-content' }
       ],
       after: async () => {
+        // First anonymous document in this browser: accept the terms
+        // (the quick-share flow shows this step; here it is just setup).
+        await expect(editor.page.anonGate.dialog).toBeVisible()
+        await editor.page.acceptAnonGate()
         await page.waitForURL(/\/d\/[^/]+/)
         await editor.page.waitForReady()
         if (!editor.isMobile) {

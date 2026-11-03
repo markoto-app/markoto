@@ -2,6 +2,9 @@
 const { t } = useI18n()
 const route = useRoute()
 const docId = route.params.id as string
+// User documents stay out of search engines (the server also sends
+// X-Robots-Tag on /d/**, see server/utils/robots.ts).
+useSeoMeta({ robots: 'noindex, nofollow' })
 </script>
 
 <template>

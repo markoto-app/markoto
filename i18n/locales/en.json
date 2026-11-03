@@ -1237,11 +1237,38 @@
       },
       "bodyLabel": "What should we know?",
       "bodyPlaceholder": "Describe what you saw and why it should be removed.",
-      "emailLabel": "Your email (optional, so we can confirm we received it)",
+      "emailLabel": "Email",
       "submit": "Submit report",
       "submittedTitle": "Thank you — your report was received",
       "submittedBody": "We acknowledge every report. If you provided an email, we'll let you know what we decided.",
-      "reportThisDoc": "Report this document"
+      "reportThisDoc": "Report this document",
+      "policyHint": "Read the {policy} to see what we act on and how we decide.",
+      "policyLink": "abuse and illegal-content policy",
+      "urlLabel": "Address (URL) of the content",
+      "urlHelp": "The full link to the document, for example https://markoto.app/d/…",
+      "bodyHelp": "Explain why the content is illegal or breaks our rules. Be specific: which part, and what is wrong with it.",
+      "contactLegend": "Your name and email",
+      "contactHelp": "We need them to confirm your report and to tell you our decision.",
+      "contactOptionalCsam": "Optional for reports of child sexual abuse material. Without an email address we cannot tell you our decision.",
+      "nameLabel": "Name",
+      "goodFaith": "I confirm in good faith that the information in this report is accurate and complete.",
+      "submittedBodyEmail": "We sent a confirmation to your email address and will tell you our decision there.",
+      "reference": "Reference: {id}",
+      "signInRequired": "Please sign in to report content, or write to the abuse contact named in the abuse policy.",
+      "signIn": "Sign in",
+      "errors": {
+        "title": "Could not send the report",
+        "generic": "Please try again.",
+        "rateLimited": "Too many reports from your network. Please try again later.",
+        "loginRequired": "Please sign in to report content.",
+        "category": "Please choose what you are reporting.",
+        "urlRequired": "Please give the address (URL) of the content.",
+        "bodyTooShort": "Please explain what is wrong with the content (at least 10 characters).",
+        "bodyTooLong": "The explanation is too long (at most 5000 characters).",
+        "goodFaith": "Please confirm that your report is accurate and made in good faith.",
+        "email": "Please enter a valid email address.",
+        "contactRequired": "Please give your name and email address."
+      }
     },
     "aiTransparency": {
       "badge": "AI-assisted",
@@ -1543,5 +1570,31 @@
       "toDark": "Switch to dark mode",
       "toLight": "Switch to light mode"
     }
+  },
+  "anonGate": {
+    "eyebrow": "Before your first document",
+    "title": "Writing without an account",
+    "pointPublic": "Anyone with the link can open your document and edit it, unless you change the sharing. Don't put confidential information in it.",
+    "pointRetention": "It is deleted after {days} days without activity. Sign in to keep your documents.",
+    "pointRules": "markoto does not review documents. Illegal content, scams and spam are not allowed and are removed when reported.",
+    "accept": "I accept the {terms}, including the acceptable use rules, and I am at least {age} years old.",
+    "termsLink": "Terms of Service",
+    "privacyNote": "How we handle your data: {privacy}.",
+    "privacyLink": "Privacy Policy",
+    "botCheckRunning": "checking for bots in your browser…",
+    "botCheckReady": "bot check done · runs in your browser, no tracking",
+    "signInInstead": "Sign in instead",
+    "cancel": "Cancel",
+    "continue": "Accept and create",
+    "errors": {
+      "botCheck": "The automatic bot check failed. Please try again.",
+      "termsRequired": "Please accept the Terms of Service first.",
+      "unavailable": "The bot check is not available right now. Please try again in a moment.",
+      "rateLimited": "Too many new documents from your network. Sign in, or try again later."
+    }
+  },
+  "userContent": {
+    "notice": "Created by a markoto user without an account, not by markoto",
+    "report": "Report"
   }
 }

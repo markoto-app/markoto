@@ -57,6 +57,9 @@ export interface CreateDocumentParams {
    *  the creating browser's creator key, so only that browser may later
    *  delete the doc (see `server/utils/anonCreator.ts`). */
   anonCreatorKeyHash?: string
+  /** Anonymous creation only (ignored when `ownerId` is set): the Terms
+   *  acceptance the anonymous gate verified (server/utils/anonGate/). */
+  anonTermsAcceptance?: { termsVersion: number, acceptedAt: Date }
 }
 
 export interface CreateDocumentResult {
@@ -124,6 +127,10 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
 
   if (input.ownerId == null && input.anonCreatorKeyHash !== undefined) {
     create.anonCreatorKeyHash = input.anonCreatorKeyHash
+  }
+  if (input.ownerId == null && input.anonTermsAcceptance !== undefined) {
+    create.anonTermsVersion = input.anonTermsAcceptance.termsVersion
+    create.anonTermsAcceptedAt = input.anonTermsAcceptance.acceptedAt
   }
 
   await createDoc(create)

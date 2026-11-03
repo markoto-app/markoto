@@ -130,6 +130,9 @@ const FLOWS_ENV: Record<string, string> = {
   // Legal surfaces ON (hosted shape): the onboarding gate, consent banner
   // and /legal/* flows document the hosted service.
   NUXT_LEGAL_SURFACES_ENABLED: 'true',
+  // Anonymous gate follows the legal surfaces (on): flows tick the terms
+  // box and the browser solves the real (test-difficulty) ALTCHA.
+  NUXT_ALTCHA_HMAC_KEY: 'test-altcha-hmac-key-isolated-from-dev-and-prod-x',
   // Stripe: talks to stripe-mock. Aligns with the integration-test
   // setup (see tests/integration/setup/server.ts).
   NUXT_STRIPE_SECRET_KEY: 'sk_test_flows123',

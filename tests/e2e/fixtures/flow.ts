@@ -1024,10 +1024,9 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           await editor.newDocDialog.titleInput.pressSequentially(opts.title)
           await baseExpect(editor.newDocDialog.titleInput).toHaveValue(opts.title)
         }
-        await Promise.all([
-          page.waitForURL(/\/d\/[^/]+/),
-          (opts.title ? editor.newDocDialog.submitCreate : editor.newDocDialog.submitBlank).click()
-        ])
+        // Anonymous visitors (most flows) pass the accept-terms step +
+        // the real ALTCHA bot check here; signed-in flows go straight on.
+        await editor.clickCreateAndPassGate(opts.title ? editor.newDocDialog.submitCreate : editor.newDocDialog.submitBlank)
         await editor.waitForReady()
         if (opts.title) {
           await baseExpect(editor.titleButton).toContainText(opts.title)

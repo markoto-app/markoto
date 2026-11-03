@@ -75,6 +75,18 @@ describe('resolveInstanceConfig', () => {
     expect(resolveInstanceConfig({}).operatorName).not.toContain('LatentSpace')
   })
 
+  it('anonymous gate follows the legal surfaces unless set explicitly', () => {
+    expect(resolveInstanceConfig({}).anonGate).toBe(false)
+    expect(resolveInstanceConfig({ NUXT_LEGAL_SURFACES_ENABLED: 'true' }).anonGate).toBe(true)
+    expect(resolveInstanceConfig({ NUXT_ANON_GATE_ENABLED: 'true' }).anonGate).toBe(true)
+    expect(resolveInstanceConfig({ NUXT_LEGAL_SURFACES_ENABLED: 'true', NUXT_ANON_GATE_ENABLED: 'false' }).anonGate).toBe(false)
+  })
+
+  it('carries the anonymous-document retention (default 30 days)', () => {
+    expect(resolveInstanceConfig({}).anonDocTtlDays).toBe(30)
+    expect(resolveInstanceConfig({ NUXT_INACTIVE_DOC_TTL_DAYS: '0' }).anonDocTtlDays).toBe(0)
+  })
+
   it('hosted shape: legal surfaces on, operator = legal entity (default or override)', () => {
     expect(resolveInstanceConfig({ NUXT_LEGAL_SURFACES_ENABLED: 'true' }))
       .toMatchObject({ legalSurfaces: true, operatorName: 'LatentSpace Labs GmbH' })

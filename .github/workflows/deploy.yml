@@ -130,6 +130,8 @@ jobs:
           NUXT_INTERNAL_API_SECRET: ${{ secrets.NUXT_INTERNAL_API_SECRET }}
           NUXT_JWT_SECRET_PREVIOUS: ${{ secrets.NUXT_JWT_SECRET_PREVIOUS }}
           NUXT_INTERNAL_API_SECRET_PREVIOUS: ${{ secrets.NUXT_INTERNAL_API_SECRET_PREVIOUS }}
+          # Anonymous gate: self-hosted ALTCHA bot check HMAC key (openssl rand -hex 32).
+          NUXT_ALTCHA_HMAC_KEY: ${{ secrets.NUXT_ALTCHA_HMAC_KEY }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           # Separate DB roles (optional; empty = POSTGRES_USER for everything).
           POSTGRES_APP_PASSWORD: ${{ secrets.POSTGRES_APP_PASSWORD }}

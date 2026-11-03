@@ -1237,11 +1237,38 @@
       },
       "bodyLabel": "Que devrions-nous savoir ?",
       "bodyPlaceholder": "Décrivez ce que vous avez vu et pourquoi cela devrait être retiré.",
-      "emailLabel": "Votre e-mail (facultatif, pour que nous puissions confirmer la réception)",
+      "emailLabel": "E-mail",
       "submit": "Envoyer le signalement",
       "submittedTitle": "Merci — votre signalement a été reçu",
       "submittedBody": "Nous accusons réception de chaque signalement. Si vous avez fourni un e-mail, nous vous informerons de notre décision.",
-      "reportThisDoc": "Signaler ce document"
+      "reportThisDoc": "Signaler ce document",
+      "policyHint": "Consultez la {policy} pour savoir contre quoi nous agissons et comment nous décidons.",
+      "policyLink": "politique relative aux abus et aux contenus illicites",
+      "urlLabel": "Adresse (URL) du contenu",
+      "urlHelp": "Le lien complet vers le document, par exemple https://markoto.app/d/…",
+      "bodyHelp": "Expliquez pourquoi le contenu est illicite ou enfreint nos règles. Soyez précis : quelle partie, et ce qui pose problème.",
+      "contactLegend": "Votre nom et votre e-mail",
+      "contactHelp": "Nous en avons besoin pour confirmer la réception de votre signalement et vous informer de notre décision.",
+      "contactOptionalCsam": "Facultatif pour les signalements de matériel pédopornographique. Sans adresse e-mail, nous ne pouvons pas vous informer de notre décision.",
+      "nameLabel": "Nom",
+      "goodFaith": "Je confirme de bonne foi que les informations de ce signalement sont exactes et complètes.",
+      "submittedBodyEmail": "Nous vous avons envoyé une confirmation par e-mail et vous y communiquerons notre décision.",
+      "reference": "Référence : {id}",
+      "signInRequired": "Veuillez vous connecter pour signaler un contenu, ou écrire au contact indiqué dans la politique relative aux abus.",
+      "signIn": "Se connecter",
+      "errors": {
+        "title": "Impossible d'envoyer le signalement",
+        "generic": "Veuillez réessayer.",
+        "rateLimited": "Trop de signalements depuis votre réseau. Veuillez réessayer plus tard.",
+        "loginRequired": "Veuillez vous connecter pour signaler un contenu.",
+        "category": "Veuillez choisir ce que vous signalez.",
+        "urlRequired": "Veuillez indiquer l'adresse (URL) du contenu.",
+        "bodyTooShort": "Veuillez expliquer ce qui pose problème (au moins 10 caractères).",
+        "bodyTooLong": "L'explication est trop longue (5000 caractères au maximum).",
+        "goodFaith": "Veuillez confirmer que votre signalement est exact et fait de bonne foi.",
+        "email": "Veuillez saisir une adresse e-mail valide.",
+        "contactRequired": "Veuillez indiquer votre nom et votre adresse e-mail."
+      }
     },
     "aiTransparency": {
       "badge": "Assisté par IA",
@@ -1543,5 +1570,31 @@
       "toDark": "Passer en mode sombre",
       "toLight": "Passer en mode clair"
     }
+  },
+  "anonGate": {
+    "eyebrow": "Avant votre premier document",
+    "title": "Écrire sans compte",
+    "pointPublic": "Toute personne disposant du lien peut ouvrir et modifier votre document, sauf si vous changez le partage. N'y mettez rien de confidentiel.",
+    "pointRetention": "Il est supprimé après {days} jours sans activité. Connectez-vous pour conserver vos documents.",
+    "pointRules": "markoto n'examine pas les documents. Les contenus illicites, les arnaques et le spam sont interdits et supprimés lorsqu'ils sont signalés.",
+    "accept": "J'accepte les {terms}, y compris les règles d'utilisation acceptable, et j'ai au moins {age} ans.",
+    "termsLink": "conditions d'utilisation",
+    "privacyNote": "Comment nous traitons vos données : {privacy}.",
+    "privacyLink": "politique de confidentialité",
+    "botCheckRunning": "vérification anti-robots dans votre navigateur…",
+    "botCheckReady": "vérification terminée · dans votre navigateur, sans pistage",
+    "signInInstead": "Me connecter plutôt",
+    "cancel": "Annuler",
+    "continue": "Accepter et créer",
+    "errors": {
+      "botCheck": "La vérification anti-robots automatique a échoué. Veuillez réessayer.",
+      "termsRequired": "Veuillez d'abord accepter les conditions d'utilisation.",
+      "unavailable": "La vérification anti-robots est momentanément indisponible. Veuillez réessayer dans un instant.",
+      "rateLimited": "Trop de nouveaux documents depuis votre réseau. Connectez-vous ou réessayez plus tard."
+    }
+  },
+  "userContent": {
+    "notice": "Créé par un utilisateur de markoto sans compte, et non par markoto",
+    "report": "Signaler"
   }
 }

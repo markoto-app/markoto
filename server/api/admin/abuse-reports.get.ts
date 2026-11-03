@@ -1,5 +1,5 @@
 import { aliasedTable, desc, eq, inArray } from 'drizzle-orm'
-import { abuseReports, users } from '../../db/schema'
+import { abuseReports, moderationNotices, users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { requireAdminUser } from '../../utils/adminAccess'
 
@@ -59,6 +59,12 @@ export default defineEventHandler(async (event) => {
       reporterIpTruncated: abuseReports.reporterIpTruncated,
       reporterUserId: abuseReports.reporterUserId,
       reporterEmailSnapshot: abuseReports.reporterEmail,
+      reporterNameSnapshot: abuseReports.reporterName,
+      contentUrl: abuseReports.contentUrl,
+      goodFaithConfirmedAt: abuseReports.goodFaithConfirmedAt,
+      decisionAction: abuseReports.decisionAction,
+      decisionRule: abuseReports.decisionRule,
+      decisionExplanation: abuseReports.decisionExplanation,
       reporterName: reporter.name,
       reporterEmail: reporter.email,
       actionedBy: abuseReports.actionedBy,
@@ -72,9 +78,35 @@ export default defineEventHandler(async (event) => {
     .orderBy(desc(abuseReports.createdAt))
     .limit(limit)
 
+  // Every notice we produced for these reports (receipt, decision,
+  // statement of reasons — incl. the ones we could not deliver).
+  const notices = rows.length === 0
+    ? []
+    : await db
+        .select({
+          reportId: moderationNotices.reportId,
+          kind: moderationNotices.kind,
+          recipientRole: moderationNotices.recipientRole,
+          status: moderationNotices.status,
+          subject: moderationNotices.subject,
+          body: moderationNotices.body,
+          createdAt: moderationNotices.createdAt
+        })
+        .from(moderationNotices)
+        .where(inArray(moderationNotices.reportId, rows.map(r => r.reportId)))
+        .orderBy(moderationNotices.createdAt)
+
   return rows.map(r => ({
     reportId: r.reportId,
     docId: r.docId,
+    contentUrl: r.contentUrl,
+    goodFaithConfirmedAt: r.goodFaithConfirmedAt?.toISOString() ?? null,
+    decision: r.decisionAction === null
+      ? null
+      : { action: r.decisionAction, rule: r.decisionRule, explanation: r.decisionExplanation },
+    notices: notices
+      .filter(n => n.reportId === r.reportId)
+      .map(n => ({ kind: n.kind, recipientRole: n.recipientRole, status: n.status, subject: n.subject, body: n.body, createdAt: n.createdAt.toISOString() })),
     category: r.category,
     body: r.body,
     status: r.status,
@@ -88,13 +120,16 @@ export default defineEventHandler(async (event) => {
     // user has since deleted their account (FK auto-nulled). Email
     // channel reports (no reporterUserId) won't surface here —
     // those go to the abuse@ inbox separately.
-    reporter: r.reporterUserId === null && r.reporterEmailSnapshot === null
+    // Anonymous form reports (DSA Art.16, no account) carry only the
+    // name + email the reporter typed; `signedIn` tells them apart.
+    reporter: r.reporterUserId === null && r.reporterEmailSnapshot === null && r.reporterNameSnapshot === null
       ? null
       : {
           userId: r.reporterUserId,
-          name: r.reporterName,
-          email: r.reporterEmail ?? r.reporterEmailSnapshot,
-          stillExists: r.reporterUserId !== null && r.reporterName !== null
+          name: r.reporterName ?? r.reporterNameSnapshot,
+          email: r.reporterEmailSnapshot ?? r.reporterEmail,
+          stillExists: r.reporterUserId !== null && r.reporterName !== null,
+          signedIn: r.reporterUserId !== null
         },
     actionedBy: r.actionedBy === null
       ? null
