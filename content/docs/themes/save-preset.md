@@ -18,9 +18,15 @@ preset picker on every future doc.
 ## What just happened
 
 Saved presets belong to your account, not to one document. You give the
-current theme a name, and from then on it appears in the preset picker
-of every document you open, next to the built-in presets. Your own
-presets can be deleted from the picker; the built-in ones can't.
+current theme a name and, if you like, a short description of what it is
+for (up to 200 characters). From then on it appears in the preset picker
+of every document you open, next to the built-in presets, with its
+description underneath.
+
+The pencil on a saved theme changes its name and description; the theme
+settings themselves stay as they were. The bin deletes it after asking
+once. Documents that already use the theme keep their look. The built-in
+presets can't be changed or deleted.
 
 For shared team styling, you don't need to save personally — set the
 preset as the [workspace default theme](/docs/workspaces/default-theme)
