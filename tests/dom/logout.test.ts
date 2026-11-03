@@ -129,6 +129,24 @@ describe('performLogout — BroadcastChannel', () => {
     listener.close()
   })
 
+  it('posts only after the server session is cleared', async () => {
+    // This tab's own receiver (app/plugins/auth-broadcast.client.ts) hears
+    // the post too and reloads while it still sees a signed-in session. A
+    // post before the DELETE finished reloaded the page mid-request and
+    // aborted it, so logout did nothing. Record the order at post time.
+    const order: string[] = []
+    sessionStub.clear = vi.fn(async () => {
+      order.push('session.clear')
+      sessionStub.loggedIn.value = false
+    })
+    const post = vi.spyOn(BroadcastChannel.prototype, 'postMessage').mockImplementation(() => {
+      order.push('broadcast')
+    })
+    await performLogout()
+    expect(order).toEqual(['session.clear', 'broadcast'])
+    post.mockRestore()
+  })
+
   it('uses exactly the channel name a global listener would subscribe to', () => {
     // Sanity: the constant is the contract between sender + receiver.
     expect(LOGOUT_CHANNEL_NAME).toBe('markoto-auth')

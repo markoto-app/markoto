@@ -41,11 +41,16 @@ export interface LogoutOptions {
  */
 export async function performLogout(opts: LogoutOptions = {}): Promise<void> {
   await runBeforeClear(opts.beforeClear)
-  broadcastLoggedOut()
   clearWebStorage()
   await purgeMarkotoIdb()
   // Server-side session cookie cleared via nuxt-auth-utils.
   await useUserSession().clear()
+  // Broadcast only AFTER the server cleared the session. This tab's own
+  // receiver (app/plugins/auth-broadcast.client.ts) hears the message
+  // too; posted earlier, it still saw a signed-in session, reloaded the
+  // page and aborted the DELETE in flight, so the cookie survived and
+  // logout silently did nothing.
+  broadcastLoggedOut()
   await redirectHome()
 }
 
@@ -59,9 +64,8 @@ async function runBeforeClear(hook: LogoutOptions['beforeClear']): Promise<void>
 
 /**
  * Cross-tab notification — every other tab on this origin reloads so
- * they don't continue acting as the previous user. Posted BEFORE
- * clearing storage so other tabs can pull anything they need from the
- * message payload (today: just the type discriminator).
+ * they don't continue acting as the previous user. Posted after the
+ * session is cleared (see performLogout).
  */
 function broadcastLoggedOut(): void {
   if (typeof BroadcastChannel === 'undefined') return
