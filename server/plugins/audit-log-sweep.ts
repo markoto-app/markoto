@@ -1,0 +1,57 @@
+import * as Sentry from '@sentry/nuxt'
+import { migrationsComplete } from '../utils/migrations'
+import { runAuditLogSweep, resolveAuditLogRetentionDays } from '../utils/legalRetentionSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+
+// Enforces the 2-year audit-log retention stated in the privacy policy (§5)
+// and the DPA (`NUXT_AUDIT_LOG_RETENTION_DAYS`, default 730, 0 = keep forever).
+// See `utils/legalRetentionSweep.ts`.
+//
+// Mirrors `ai-records-sweep`: advisory-locked (cross-instance dedup),
+// startup delay, daily cadence.
+
+const NAME = 'audit-log-sweep'
+const STARTUP_DELAY_MS = 45_000
+const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
+
+let running = false
+
+async function sweep(): Promise<void> {
+  if (running) return
+  running = true
+  // Cross-instance dedup. Session-pinned advisory lock; release in finally.
+  if (!(await acquireSweepLock(NAME))) {
+    running = false
+    return
+  }
+  try {
+    await migrationsComplete
+    const days = resolveAuditLogRetentionDays()
+    const deleted = await runAuditLogSweep({ retentionDays: days })
+    if (deleted > 0) {
+      console.log(`[${NAME}] deleted ${deleted} audit-log row(s) older than ${days}d`)
+    }
+  } catch (e) {
+    console.warn(`[${NAME}] sweep failed:`, e instanceof Error ? e.message : e)
+    Sentry.captureException(e, {
+      tags: { component: NAME, event: 'sweep_failed' }
+    })
+  } finally {
+    await releaseSweepLock(NAME)
+    running = false
+  }
+}
+
+export default defineNitroPlugin((nitroApp) => {
+  const startupTimer = setTimeout(() => {
+    void sweep()
+  }, STARTUP_DELAY_MS)
+  const intervalTimer = setInterval(() => {
+    void sweep()
+  }, SWEEP_INTERVAL_MS)
+
+  nitroApp.hooks.hook('close', () => {
+    clearTimeout(startupTimer)
+    clearInterval(intervalTimer)
+  })
+})

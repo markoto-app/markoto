@@ -19,7 +19,7 @@ import { byokUrlPolicyErrors } from '../../server/utils/aiProviders/config'
 const ROOT = resolve(__dirname, '../..')
 
 const REQUIRED = [
-  'NUXT_SESSION_PASSWORD', 'NUXT_JWT_SECRET', 'NUXT_INTERNAL_API_SECRET',
+  'NUXT_SESSION_PASSWORD', 'NUXT_JWT_SECRET', 'NUXT_INTERNAL_API_SECRET', 'NUXT_ALTCHA_HMAC_KEY',
   'POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB', 'VALKEY_PASSWORD',
   'NUXT_S3_ENDPOINT', 'NUXT_S3_ACCESS_KEY', 'NUXT_S3_SECRET_KEY', 'NUXT_S3_BUCKET',
   'LITELLM_MASTER_KEY', 'LITELLM_SALT_KEY',
@@ -50,6 +50,19 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
 
   it('switches the legal surfaces on', () => {
     expect(vars.get('NUXT_LEGAL_SURFACES_ENABLED')).toBe('true')
+  })
+
+  it('gates anonymous use (terms + ALTCHA) and carries the ALTCHA key', () => {
+    expect(vars.get('NUXT_ANON_GATE_ENABLED')).toBe('true')
+    expect(vars.get('NUXT_ALTCHA_HMAC_KEY')).toBe('test-nuxt_altcha_hmac_key')
+  })
+
+  it('refuses to render without the ALTCHA key', () => {
+    const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/bin:/bin' }
+    for (const name of REQUIRED) if (name !== 'NUXT_ALTCHA_HMAC_KEY') env[name] = `test-${name.toLowerCase()}`
+    const out = spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
+    expect(out.status).not.toBe(0)
+    expect(out.stderr).toContain('NUXT_ALTCHA_HMAC_KEY')
   })
 
   it('limits BYOK base URLs to the SaaS provider allowlist, no private URLs', () => {

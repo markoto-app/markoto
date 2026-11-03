@@ -33,10 +33,10 @@ Adjacent: `shared/legal/` holds the version + entity registries (client-and-serv
 
 1. Add a row to `PROCESSING_PURPOSES` with `{id, label, basis, dataCategories, retention, subProcessors, description}`. The `id` is referenced by audit / docs and must be stable.
 2. **Bump `PRIVACY_VERSION`** in `shared/legal/versions.ts`. The version-bump invalidates all prior privacy-policy acceptance, so the next visit re-prompts.
-3. If the purpose is consent-backed (analytics, session_replay), also bump `CONSENT_VERSION` and add the matching consent purpose to `ConsentBanner.vue`'s purpose list.
+3. If the purpose needs cookie/storage consent, also add it to `CONSENT_PURPOSES` + `OPTIONAL_CONSENT_PURPOSES` (`server/utils/consentDecisions.ts`), bump `CONSENT_VERSION` and build a consent banner (there is none today: essential storage only, `CONSENT_VERSION` 2).
 4. Update `content/legal/privacy/en.md` to reflect the new row in prose. Translations follow.
 
-The 14 current purposes (truncated): `account_authentication`, `document_storage`, `collaboration_sync`, `comments_and_mentions`, `ai_assistance`, `workspace_knowledge_rag`, `billing`, `fraud_and_abuse_prevention`, `security_audit_log`, `transactional_email`, `product_analytics`, `session_replay`, `paid_plans_waitlist`, `workspace_invitations`, `error_monitoring` (plus `user_directed_ai_provider`). Read `lawfulBasis.ts` for the full table.
+The 14 current purposes (truncated): `account_authentication`, `document_storage`, `collaboration_sync`, `comments_and_mentions`, `ai_assistance`, `workspace_knowledge_rag`, `billing`, `fraud_and_abuse_prevention`, `security_audit_log`, `transactional_email`, `paid_plans_waitlist`, `workspace_invitations`, `error_monitoring` (plus `user_directed_ai_provider`). Read `lawfulBasis.ts` for the full table.
 
 `workspace_invitations` (`PRIVACY_VERSION` 6 → 7): legitimate interest; the invitee email an admin typed, the role and the inviter, kept on a pending invite until accept / decline / revoke or the 14-day expiry (`workspace-invite-sweep`); optional invite email via Resend. Invites addressed to a deleted account are purged by the deletion executor; the data export lists received + sent invites (`workspace_invites.json`). The anonymous-doc creator cookie is described in privacy §9 as essential storage (no consent).
 

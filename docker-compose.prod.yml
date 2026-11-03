@@ -27,7 +27,7 @@ include:
 #   render           app <-> renderer
 #   import           app <-> markitdown
 #   egress           litellm, db-init, backup        (AI providers, managed Postgres, S3)
-#   renderer-egress  renderer alone                  (S3, CDN)
+#   renderer-egress  renderer alone                  (S3 — presigned document images)
 # With managed Postgres, app/sync reach the cluster through `web`, the
 # others through `egress`.
 networks:
@@ -153,6 +153,10 @@ services:
       - NUXT_JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
       - NUXT_INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
       - NUXT_INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
+      # Anonymous gate (server/utils/anonGate/): HMAC key of the self-hosted
+      # ALTCHA bot check + the remembered-terms cookie. Required: the hosted
+      # service gates anonymous documents and reports.
+      - NUXT_ALTCHA_HMAC_KEY=${NUXT_ALTCHA_HMAC_KEY:?NUXT_ALTCHA_HMAC_KEY required}
       # Sentry (sentry.io). Server pulls from SENTRY_DSN with fallback
       # to NUXT_PUBLIC_SENTRY_DSN per sentry.server.config.ts.
       - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN}
@@ -225,6 +229,9 @@ services:
       # they default ON here (the code default is off, for self-hosters —
       # see docker-compose.selfhost.yml).
       - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
+      # Terms + bot check before anonymous documents / reports
+      # (shared/config/anonGate.ts). ON for the hosted service.
+      - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-true}
       # Product tour (shared/config/instance.ts): the scroll-driven product
       # page at / for logged-out visitors. Hosted marketing surface, so ON
       # here; the code default (self-host) is off.

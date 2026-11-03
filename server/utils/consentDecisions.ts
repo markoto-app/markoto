@@ -3,8 +3,20 @@
 // submission (last decision for a purpose wins), unknown purposes and
 // non-boolean values dropped, and oversized arrays refused outright.
 
-export const CONSENT_PURPOSES = ['essential', 'analytics', 'session_replay'] as const
+//
+// Purposes markoto records today. Only `essential` remains: no analytics
+// or session-replay script is loaded anywhere, so there is nothing to ask
+// consent for (CONSENT_VERSION 2, see shared/legal/versions.ts) and the
+// cookie banner was removed. `consent_log` keeps the rows written under
+// version 1 (incl. the retired `analytics` / `session_replay` purposes)
+// for the Art.7(1) record; new writes can only use the purposes below.
+// Adding a consent-based purpose again = add it here AND to
+// OPTIONAL_CONSENT_PURPOSES, bump CONSENT_VERSION, bring back a banner.
+export const CONSENT_PURPOSES = ['essential'] as const
 export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number]
+
+/** Purposes a visitor must actively decide on. Empty: nothing to prompt for. */
+export const OPTIONAL_CONSENT_PURPOSES: readonly ConsentPurpose[] = []
 
 export interface ConsentDecision {
   purpose: ConsentPurpose

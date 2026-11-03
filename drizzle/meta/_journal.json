@@ -169,6 +169,13 @@
       "when": 1793121295866,
       "tag": "0023_vengeful_darwin",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793712351837,
+      "tag": "0024_swift_albert_cleary",
+      "breakpoints": true
     }
   ]
 }

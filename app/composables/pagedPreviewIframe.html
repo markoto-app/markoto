@@ -5,10 +5,13 @@
   Loaded as a raw string via ?raw and turned into the iframe's srcdoc by
   `buildPreviewSrcdoc()` (app/utils/previewFrame.ts), which substitutes the
   placeholders: the CSP nonce (every inline script carries it), the parent
-  origin, the initial dark-mode flag, and the pinned CDN URLs + SRI hashes
-  (paged.js, KaTeX CSS, Mermaid). Every CDN tag carries integrity= plus
-  crossorigin=anonymous — SRI on cross-origin resources only fires in CORS
-  mode. Mermaid is the single-file IIFE build, injected on first use with
+  origin, the initial dark-mode flag, and the pinned same-origin asset URLs
+  + SRI hashes (paged.js, KaTeX CSS, Mermaid — served under /vendor/, see
+  shared/utils/vendorAssets.ts). Every such tag carries integrity= plus
+  crossorigin=anonymous: this document's origin is opaque, so even our own
+  origin is cross-origin here, and SRI on cross-origin resources only fires
+  in CORS mode (the server answers /vendor/ with ACAO: * + CORP
+  cross-origin). Mermaid is the single-file IIFE build, injected on first use with
   its SRI hash; the highlight.js theme link gets the per-theme hash it is
   sent with each render.
 
@@ -22,9 +25,19 @@
     parent → iframe   {type:'render', html, themeCss, fontsImport, hljsUrl,
                        hljsSri, mermaidConfig, locale, print}
                       {type:'color-mode', dark}
+                      {type:'zoom', mode, scale, animate, page}
     iframe → parent   {type:'iframe-ready'} {type:'paginated', pageCount}
                       {type:'iframe-error', message} {type:'print-shortcut'}
                       {type:'print-done'}
+                      {type:'zoom-state', mode, scale, fitScale}
+                      {type:'zoom-request', action, page}
+                      {type:'zoom-gesture', scale}
+
+  ZOOM (fit width / a fixed factor / the "All pages" overview) is applied
+  by the engine from app/utils/previewZoomFrame.ts, inlined below as
+  __PREVIEW_ZOOM_SCRIPT__. It only sets CSS zoom + layout classes on the
+  already paginated pages — never re-paginates — and the print block
+  below resets all of it.
 
   Incoming messages are accepted only from window.parent with the parent's
   exact origin; outgoing ones are posted to that origin only.
@@ -56,13 +69,16 @@
        surround. Dark mode: see body.dark-preview below. */
     background: #FAF8F4;
     scrollbar-gutter: stable;
+    /* Pinch zooms the preview (previewZoomFrame.ts), never the app. */
+    touch-action: pan-x pan-y;
   }
   body {
     /* Heavy bottom padding so scrolling reveals the last page in full
        even though the floating AI bar (in the parent app) overlays
        this iframe's bottom 80–100 px. Without it the final page sits
-       behind the bar and looks cropped. */
-    padding: 24px 16px 120px 16px;
+       behind the bar and looks cropped. The top padding leaves a lane
+       for the zoom control the parent floats over the pane's top right. */
+    padding: 48px 16px 120px 16px;
     min-height: 100vh;
     box-sizing: border-box;
   }
@@ -78,6 +94,52 @@
        computed in JS after each pagination and on iframe resize so the
        page width always equals the available column. */
     zoom: var(--page-zoom, 1);
+  }
+  /* Fixed zoom wider than the pane: left-aligned + horizontally
+     scrollable instead of overflowing on both sides (auto margins
+     resolve to 0 once the column is wider than the mount). */
+  html.zoom-scale #mount .pagedjs_pages {
+    width: max-content;
+    margin-inline: auto;
+  }
+  /* "All pages": the pages wrap side by side. --page-zoom and
+     --overview-gap (a constant on-screen gap) come from the engine. */
+  html.zoom-overview #mount .pagedjs_pages {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: var(--overview-gap, 16px);
+  }
+  html.zoom-overview #mount .pagedjs_page {
+    cursor: zoom-in;
+  }
+  /* Light mode: the page card's shadow sits inside the zoomed pages, so
+     at thumbnail size it all but disappears and white pages melt into
+     the bone surround. Same separation as fit width — a hairline plus
+     the soft drop shadow — sized in on-screen pixels (divided by the
+     zoom). Dark mode keeps its own shadow (below). */
+  html.zoom-overview:not(.dark-preview) #mount .pagedjs_page {
+    box-shadow:
+      0 0 0 calc(1px / var(--page-zoom, 1)) rgba(20, 17, 13, 0.10),
+      0 calc(1px / var(--page-zoom, 1)) calc(3px / var(--page-zoom, 1)) rgba(0, 0, 0, 0.08),
+      0 calc(4px / var(--page-zoom, 1)) calc(12px / var(--page-zoom, 1)) rgba(0, 0, 0, 0.06);
+  }
+  /* The whole page is the click target (opens it at fit width). */
+  html.zoom-overview #mount .pagedjs_page * {
+    pointer-events: none;
+  }
+  html.zoom-overview #mount .pagedjs_page:hover {
+    outline: calc(2px / var(--page-zoom, 1)) solid rgba(20, 17, 13, 0.35);
+  }
+  html.dark-preview.zoom-overview #mount .pagedjs_page:hover {
+    outline-color: rgba(250, 248, 244, 0.55);
+  }
+  /* During the pull-back / push-in the scaled mount must not add
+     scrollbars or scroll extent. */
+  html.zoom-animating {
+    overflow: hidden;
   }
   .paged-mount .pagedjs_page {
     background: white;
@@ -123,7 +185,10 @@
       display: block !important;
       gap: 0 !important;
       zoom: 1 !important;
+      width: auto !important;
+      margin: 0 !important;
     }
+    #mount { transform: none !important; }
     .paged-mount .pagedjs_page { box-shadow: none !important; }
   }
 </style>
@@ -167,26 +232,10 @@
   }
   applyColorMode(__INITIAL_DARK__);
 
-  // Recompute the page-fit zoom after pagination and on viewport resize.
-  // Page widths are absolute (A4 = 794px @ 96dpi); the available width
-  // is the body's content area minus its padding. Capped at 1 — we
-  // never enlarge pages, only shrink to fit narrow viewports.
-  function applyPageZoom() {
-    var mount = document.getElementById('mount');
-    if (!mount) return;
-    var pages = mount.querySelector('.pagedjs_pages');
-    var firstPage = mount.querySelector('.pagedjs_page');
-    if (!pages || !firstPage) return;
-    // Reset zoom temporarily to measure the natural page width — without
-    // this we'd read the already-scaled width and the zoom would drift
-    // smaller on every recompute.
-    pages.style.setProperty('--page-zoom', '1');
-    var pageWidth = firstPage.offsetWidth;
-    var available = mount.clientWidth;
-    if (!pageWidth || !available) return;
-    var zoom = Math.min(1, available / pageWidth);
-    pages.style.setProperty('--page-zoom', String(zoom));
-  }
+  // Zoom engine (fit width, fixed zoom, the overview grid, shortcuts,
+  // pinch). Source: app/utils/previewZoomFrame.ts — self-contained,
+  // inlined by buildPreviewSrcdoc. Talks to the parent through toParent.
+  var previewZoom = (__PREVIEW_ZOOM_SCRIPT__)(toParent);
 
   function whenPagedReady(cb) {
     if (globalThis.Paged && globalThis.Paged.Previewer) { cb(); return; }
@@ -236,7 +285,7 @@
   // ─── Stateless render helpers ─────────────────────────────────────
 
   /**
-   * Cap font wait at 1s — if Google Fonts is slow or a font name is
+   * Cap font wait at 1s — if a font file is slow or a font name is
    * unresolvable, document.fonts.ready can stall forever and wedge
    * pagination. Falls back to whatever fonts are ready by then; the
    * next render picks up late arrivals.
@@ -438,6 +487,12 @@
     if (data.type === 'color-mode') {
       return typeof data.dark === 'boolean' ? data : null;
     }
+    if (data.type === 'zoom') {
+      var modeOk = data.mode === 'fit' || data.mode === 'scale' || data.mode === 'overview';
+      var scaleOk = typeof data.scale === 'number' && isFinite(data.scale) && data.scale > 0 && data.scale <= 10;
+      var pageOk = typeof data.page === 'number' && Math.floor(data.page) === data.page && data.page >= 0;
+      return modeOk && scaleOk && pageOk && typeof data.animate === 'boolean' ? data : null;
+    }
     if (data.type === 'render') {
       var strings = ['html', 'themeCss', 'fontsImport', 'hljsUrl', 'hljsSri', 'mermaidConfig', 'locale'];
       for (var i = 0; i < strings.length; i++) {
@@ -520,8 +575,6 @@
         return m;
       });
     }
-
-    window.addEventListener('resize', applyPageZoom);
 
     /** Swap the theme-fonts <style> body when the imported URL set changes. */
     function applyFontsImport(opts) {
@@ -651,7 +704,7 @@
         }
         stylesFromLastRender = newStyles;
 
-        applyPageZoom();
+        previewZoom.reapply(true);
 
         if (wasNearBottom) {
           window.scrollTo(0, document.documentElement.scrollHeight);
@@ -680,6 +733,7 @@
       var msg = readMessage(e);
       if (!msg) return;
       if (msg.type === 'color-mode') applyColorMode(msg.dark);
+      else if (msg.type === 'zoom') previewZoom.set(msg);
       else if (msg.type === 'render') renderDoc(msg);
     });
 

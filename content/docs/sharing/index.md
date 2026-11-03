@@ -16,3 +16,4 @@ open-view, and password-protected — plus workspace-scoped roles
 - [Share as read-only](/docs/sharing/read-only) — open-view mode; anyone with the link reads, nobody edits.
 - [Lock a document behind a password](/docs/sharing/password-protect) — set a passphrase, gate the share link.
 - [Share by QR code](/docs/sharing/qr-code) — encode the link for in-the-room sharing.
+- [Report a document](/docs/sharing/report-content) — report a scam, illegal content or spam, no account needed.

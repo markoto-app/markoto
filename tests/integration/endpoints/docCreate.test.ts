@@ -6,6 +6,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
+import { createAnonDoc } from '../setup/anonGate'
 
 // POST /api/docs — creates a document. Defaults matter:
 //   - Anonymous creator → ownerId=null, accessMode='open-edit'
@@ -44,7 +45,7 @@ describe('POST /api/docs', () => {
 
   describe('default visibility', () => {
     it('anonymous creator gets open-edit, no owner', async () => {
-      const res = await anonClient().post('/api/docs', {})
+      const res = await createAnonDoc(anonClient())
       expect(res.status).toBe(200)
       const { docId } = await res.json() as { docId: string }
       const row = await readDoc(docId)
@@ -113,7 +114,7 @@ describe('POST /api/docs', () => {
     it('anonymous caller cannot use a workspaceId at all (401)', async () => {
       const admin = await createUser()
       const ws = await createWorkspace(admin.id)
-      const res = await anonClient().post('/api/docs', { workspaceId: ws.workspaceId })
+      const res = await createAnonDoc(anonClient(), { workspaceId: ws.workspaceId })
       expect(res.status).toBe(401)
     })
 
@@ -238,7 +239,7 @@ describe('POST /api/docs', () => {
     })
 
     it('anonymous caller can pass dialog fields (no workspace)', async () => {
-      const res = await anonClient().post('/api/docs', {
+      const res = await createAnonDoc(anonClient(), {
         title: 'Anon doc',
         audience: 'creative',
         language: 'fr'

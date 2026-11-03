@@ -5,6 +5,7 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL, TEST_JWT_SECRET } from '../setup/env'
 import { PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
+import { createAnonDoc } from '../setup/anonGate'
 
 // Access / auth hardening over real HTTP:
 //   - document password only works while the doc IS password-protected,
@@ -225,8 +226,8 @@ describe('server-side onboarding gate (legal surfaces on)', () => {
     expect(res.status).not.toBe(403)
   })
 
-  it('anonymous callers are not gated', async () => {
-    const res = await anonClient().post('/api/docs', {})
+  it('anonymous callers are not onboarding-gated (they pass the anonymous gate instead)', async () => {
+    const res = await createAnonDoc(anonClient())
     expect(res.status).toBe(200)
   })
 })
@@ -247,6 +248,7 @@ describe('Origin check on state-changing requests', () => {
   it('refuses a cross-site Sec-Fetch-Site without Origin', async () => {
     const res = await anonClient().post('/api/docs', {}, { headers: { 'sec-fetch-site': 'cross-site' } })
     expect(res.status).toBe(403)
+    expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('csrf/origin-mismatch')
   })
 
   it('allows the app\'s own origin', async () => {
@@ -274,7 +276,7 @@ describe('POST /api/consent payload bounds', () => {
   }
 
   it('writes at most one row per purpose per submission', async () => {
-    const decisions = Array.from({ length: 10 }, (_, i) => ({ purpose: 'analytics', granted: i % 2 === 0 }))
+    const decisions = Array.from({ length: 10 }, (_, i) => ({ purpose: 'essential', granted: i % 2 === 0 }))
     const res = await anonClient().post('/api/consent', { decisions })
     expect(res.status).toBe(200)
     expect((await res.json() as { recorded: number }).recorded).toBe(1)

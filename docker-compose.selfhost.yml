@@ -37,7 +37,7 @@
 #   storage          seaweedfs + traefik, app, renderer, backup, s3-init
 #                    (only the S3 port listens beyond seaweedfs' loopback)
 #   egress           litellm, backup                       (AI providers, external backup S3)
-#   renderer-egress  renderer alone                        (CDN, public URL for document images)
+#   renderer-egress  renderer alone                        (public URL for document images)
 # The renderer and markitdown — the two services that parse untrusted
 # input — can't reach Postgres, Valkey, LiteLLM or sync.
 
@@ -313,6 +313,9 @@ services:
       - NUXT_INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
       - NUXT_INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS:-}
       - NUXT_AI_DICTATE_JWT_SECRET=${NUXT_AI_DICTATE_JWT_SECRET:-}
+      # Key of the self-hosted ALTCHA bot check (anonymous gate, below).
+      # install.sh generates it; required only while the gate is on.
+      - NUXT_ALTCHA_HMAC_KEY=${NUXT_ALTCHA_HMAC_KEY:-}
       # ─── Login (optional; without a pair the instance is anonymous-only) ───
       # Callback URLs to register with the provider: <public URL>/auth/github
       # and <public URL>/auth/google. Pinned here so they stay right behind
@@ -415,13 +418,20 @@ services:
       # Days an unreferenced doc image is kept before the image GC deletes
       # it. Empty = 30, 0 = GC off.
       - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}
-      - NUXT_INACTIVE_DOC_TTL_DAYS=${NUXT_INACTIVE_DOC_TTL_DAYS:-180}
+      - NUXT_AUDIT_LOG_RETENTION_DAYS=${NUXT_AUDIT_LOG_RETENTION_DAYS:-}
+      - NUXT_ABUSE_REPORT_RETENTION_DAYS=${NUXT_ABUSE_REPORT_RETENTION_DAYS:-}
+      - NUXT_INACTIVE_DOC_TTL_DAYS=${NUXT_INACTIVE_DOC_TTL_DAYS:-30}
       # ─── Operator surfaces (shared/config/instance.ts) ───
       # The bundled privacy policy / terms / DPA / imprint describe the
       # hosted markoto.app service. Off by default: no onboarding gate, no
       # cookie banner, no DPA step, no /legal/* pages. Turn on only with your
       # own NUXT_LEGAL_* identity and adapted content/legal/ texts.
       - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-false}
+      # Anonymous gate: terms checkbox + invisible ALTCHA bot check before an
+      # anonymous visitor creates a document; anonymous abuse reports.
+      # Empty = follows NUXT_LEGAL_SURFACES_ENABLED. Set true to gate
+      # anonymous use without the legal pages (needs NUXT_ALTCHA_HMAC_KEY).
+      - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-}
       - NUXT_LEGAL_CONTROLLER_NAME=${NUXT_LEGAL_CONTROLLER_NAME:-}
       - NUXT_LEGAL_CONTROLLER_ADDRESS=${NUXT_LEGAL_CONTROLLER_ADDRESS:-}
       - NUXT_LEGAL_PRIVACY_CONTACT_EMAIL=${NUXT_LEGAL_PRIVACY_CONTACT_EMAIL:-}

@@ -25,10 +25,12 @@ export function useInstanceConfig() {
   const legalSurfaces = computed(() => config.value.legalSurfaces)
   const operatorName = computed(() => config.value.operatorName)
   const productTour = computed(() => config.value.productTour)
+  const anonGate = computed(() => config.value.anonGate)
+  const anonDocTtlDays = computed(() => config.value.anonDocTtlDays)
   /** Start of the login flow — the first configured provider, or null when login is off. */
   const primaryLoginPath = computed(() => {
     const first = config.value.loginProviders[0]
     return first ? loginPath(first) : null
   })
-  return { config, loginProviders, legalSurfaces, operatorName, productTour, primaryLoginPath }
+  return { config, loginProviders, legalSurfaces, operatorName, productTour, anonGate, anonDocTtlDays, primaryLoginPath }
 }

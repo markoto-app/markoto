@@ -10,8 +10,8 @@
  *     surfaces to sumi-950 (see main.css) so the rect blends.
  *
  * Both assets have the wordmark text outlined to paths, so they're
- * pixel-perfect from the first paint and don't depend on Fraunces
- * loading from Google Fonts. The SVG aspect ratio is 333×90; we
+ * pixel-perfect from the first paint and don't depend on the Fraunces
+ * web font loading. The SVG aspect ratio is 333×90; we
  * scale by `size` (height in px) and let the width follow.
  *
  * Hydration-safe color-mode swap: rather than picking the asset via

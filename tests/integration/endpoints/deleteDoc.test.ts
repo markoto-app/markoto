@@ -7,6 +7,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
+import { createAnonDoc as createAnonDocViaGate } from '../setup/anonGate'
 
 // DELETE /api/docs/:docId. Bug-fix regression target: pre-fix, anonymous
 // docs could never be deleted — no session = no authz path.
@@ -40,7 +41,7 @@ describe('DELETE /api/docs/:docId', () => {
     // creation response sets an httpOnly creator-key cookie whose hash is
     // stored on the row. Others can still edit an open-edit doc.
     async function createAnonDoc(client: ReturnType<typeof anonClient>): Promise<string> {
-      const res = await client.post('/api/docs', {})
+      const res = await createAnonDocViaGate(client)
       expect(res.status).toBe(200)
       const body = await res.json() as { docId: string }
       return body.docId

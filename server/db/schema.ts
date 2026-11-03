@@ -183,6 +183,20 @@ export const documents = pgTable('documents', {
   // the inactive-doc sweep still removes them. No PII: the key is a
   // random value, not tied to an identity.
   anonCreatorKeyHash: text('anon_creator_key_hash'),
+  // Anonymous docs created through the accept-terms gate
+  // (server/utils/anonGate/): the Terms version the creating visitor
+  // accepted (shared/legal/versions.ts TOS_VERSION at the time) and when
+  // they ticked the box. NULL for owned docs (accepted at onboarding) and
+  // for anonymous docs created before the gate, or on an instance with
+  // the gate off.
+  anonTermsVersion: integer('anon_terms_version'),
+  anonTermsAcceptedAt: timestamp('anon_terms_accepted_at', { withTimezone: true }),
+  // Earliest time the inactive-doc sweep may delete this doc. Set by
+  // migration 0024 on the anonymous docs that existed when retention went
+  // from 180 to 30 days (min(now + 30 days, last_active + 180 days)), so
+  // the shorter period never deletes them without a full 30-day notice
+  // window. NULL = no floor (every doc created since).
+  sweepNotBefore: timestamp('sweep_not_before', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow()
 }, table => [
@@ -861,6 +875,10 @@ export const abuseReports = pgTable('abuse_reports', {
   // even if the referenced doc never existed or has since been
   // deleted in response to the report itself.
   docId: text('doc_id'),
+  // The reported location exactly as the reporter gave it (DSA
+  // Art.16(2)(b) "exact electronic location") — usually the document
+  // URL. `doc_id` is what we could parse out of it. NULL on legacy rows.
+  contentUrl: text('content_url'),
   // Logged-in reporter — populated when the form-submission path
   // is used. NULL for email-channel reports + for legacy rows.
   // Set null on user delete (we anonymise, don't cascade-delete
@@ -869,6 +887,15 @@ export const abuseReports = pgTable('abuse_reports', {
   reporterUserId: integer('reporter_user_id').references(() => users.id, { onDelete: 'set null' }),
   // Optional reporter contact. Anonymous reports allowed.
   reporterEmail: text('reporter_email'),
+  // Reporter's name as typed in the form (Art.16(2)(c); optional for
+  // CSAM reports). Signed-in reporters default to their profile name.
+  reporterName: text('reporter_name'),
+  // UI locale at submission — the language of the receipt + decision
+  // notice emails.
+  reporterLocale: text('reporter_locale'),
+  // When the reporter confirmed the good-faith statement (Art.16(2)(d)).
+  // NULL only on legacy rows (before the statement existed).
+  goodFaithConfirmedAt: timestamp('good_faith_confirmed_at', { withTimezone: true }),
   // Truncated reporter IP for forensic correlation only — paired with
   // user_agent_hash so we can detect a single actor flooding reports
   // without storing identifying detail.
@@ -890,6 +917,16 @@ export const abuseReports = pgTable('abuse_reports', {
   // Free-form internal notes (resolution rationale, communications log).
   // Never surfaced to the reporter.
   notes: text('notes'),
+  // The moderator's decision (set on actioned / dismissed): what was done
+  // to the content, which rule it broke (shared/config/moderation.ts) and
+  // the explanation shown to the reporter (Art.16(5)) and, for removed /
+  // restricted content, to the document owner as the statement of reasons
+  // (Art.17). Unlike `notes` these ARE sent to people.
+  decisionAction: text('decision_action', {
+    enum: ['content_removed', 'access_restricted', 'no_action']
+  }),
+  decisionRule: text('decision_rule'),
+  decisionExplanation: text('decision_explanation'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   acknowledgedAt: timestamp('acknowledged_at', { withTimezone: true }),
   actionedAt: timestamp('actioned_at', { withTimezone: true })
@@ -898,6 +935,33 @@ export const abuseReports = pgTable('abuse_reports', {
   index('idx_abuse_reports_status').on(table.status, table.createdAt),
   // Per-doc lookup for "any open reports against this doc?".
   index('idx_abuse_reports_doc').on(table.docId)
+])
+
+// Every notice the moderation pipeline produced for a report, with the
+// exact text — the record of what we told whom (DSA Art.16(4)
+// confirmation of receipt, Art.16(5) decision notice to the reporter,
+// Art.17 statement of reasons to the owner of removed/restricted
+// content). A notice that could not be delivered is recorded too
+// (`not_delivered_*`), e.g. a statement of reasons for an anonymous
+// document whose creator we have no way to contact. No email address is
+// copied here: the reporter's lives on the report, the owner's on the
+// account (`recipient_user_id`, nulled when the account is deleted).
+export const moderationNotices = pgTable('moderation_notices', {
+  id: serial('id').primaryKey(),
+  noticeId: text('notice_id').notNull().unique(),
+  reportId: text('report_id').notNull().references(() => abuseReports.reportId, { onDelete: 'cascade' }),
+  kind: text('kind', { enum: ['receipt', 'decision', 'statement_of_reasons'] }).notNull(),
+  recipientRole: text('recipient_role', { enum: ['reporter', 'owner'] }).notNull(),
+  recipientUserId: integer('recipient_user_id').references(() => users.id, { onDelete: 'set null' }),
+  status: text('status', {
+    enum: ['sent', 'not_delivered_no_contact', 'failed']
+  }).notNull(),
+  locale: text('locale').notNull(),
+  subject: text('subject').notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_moderation_notices_report').on(table.reportId, table.createdAt)
 ])
 
 // GDPR Article 20 data-portability export jobs. The user requests an

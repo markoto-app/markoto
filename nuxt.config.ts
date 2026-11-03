@@ -24,7 +24,10 @@ export default defineNuxtConfig({
     // Cursor, ChatGPT app store) at /mcp via JSON-RPC. Tools live in
     // server/mcp/tools/*; auth is PAT-based in v1 (mcp_personal_tokens).
     // See server/mcp/AGENTS.md.
-    '@nuxtjs/mcp-toolkit'
+    '@nuxtjs/mcp-toolkit',
+    // Same-origin copies of paged.js / Mermaid / KaTeX / highlight.js and
+    // the web fonts under /vendor/ — see shared/utils/vendorAssets.ts.
+    './modules/vendor-assets'
   ],
 
   // Nuxt Content in production builds (`nuxt dev` serves from Node and
@@ -62,6 +65,14 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  ui: {
+    // No @nuxt/fonts: it downloads the CSS font families from Google Fonts
+    // at build time. Every web font is self-hosted from pinned Fontsource
+    // packages instead (shared/utils/themeFonts.ts, modules/vendor-assets.ts),
+    // so a build needs no network beyond the package registry.
+    fonts: false
+  },
+
   // Flow slug → docs page that embeds it (`::flow{id="…"}`), scanned from
   // content/docs at build time. The <Flow> "Try next" card resolves
   // `manifest.next.slug` through this map and hides itself when a slug has
@@ -90,18 +101,21 @@ export default defineNuxtConfig({
         // future h3 / nuxt-auth-utils default churn.
         httpOnly: true,
         path: '/',
-        // `strict` is what we want: the only same-site flow is the OAuth
-        // callback (GitHub/Google → /auth/<provider> on our own domain),
-        // which IS same-site, so strict allows the cookie to be set on
-        // the redirect. `strict` blocks cookie attachment on cross-site
-        // top-level navigations into the app, which means a deep-link
-        // shared from another origin won't carry the session — but the
-        // OAuth flow + normal app usage are unaffected. Tightening from
-        // the implicit `lax` default also prevents leakage into the
-        // `sync.${DOMAIN}` subdomain context: although we don't set
-        // `domain`, browsers gate `lax` cookies on top-level navigation
-        // schemes that `strict` rejects outright.
-        sameSite: 'strict'
+        // `lax`, NOT `strict`. The OAuth callback (/auth/<provider>) is
+        // reached by a redirect from the provider's site (github.com,
+        // accounts.google.com, the OIDC IdP), so the whole chain counts
+        // as a cross-site navigation: with `strict` the browser withholds
+        // the freshly set session cookie on the redirect to `/`, and the
+        // page after sign-in renders signed out (staging, 2026-11-03;
+        // Firefox: "omitted because of a cross-site redirect"). `strict`
+        // also made every link into the app from another site (Slack,
+        // email) open signed out, so private documents looked missing.
+        // `lax` still keeps the cookie off cross-site subrequests and
+        // cross-site POST/PUT/PATCH/DELETE; state-changing /api calls are
+        // additionally Origin-checked (server/middleware/csrf.ts), and GET
+        // handlers never change state. Pinned by
+        // tests/integration/endpoints/oidcLogin.test.ts.
+        sameSite: 'lax'
         // Intentionally NO `domain` — the cookie defaults to the exact
         // host that set it, which means it will never be auto-included
         // on requests to `sync.${DOMAIN}` (the Hocuspocus subdomain).
@@ -198,8 +212,9 @@ export default defineNuxtConfig({
     // owner AND no workspace are reaped once last_active is past this
     // many days — owned docs (any age) and workspace-attached docs are
     // never auto-reaped. 0 disables sweeping entirely. Override via
-    // NUXT_INACTIVE_DOC_TTL_DAYS.
-    inactiveDocTtlDays: 180,
+    // NUXT_INACTIVE_DOC_TTL_DAYS. 30 = what the hosted Terms + privacy
+    // policy promise; self-hosters may pick another period.
+    inactiveDocTtlDays: 30,
     // Per-tier caps are NOT mirrored here: enforcement resolves them
     // via `server/utils/tierConfig.ts#getTiers()` (committed defaults
     // in `shared/config/tiers.ts` + TIER_* env overrides), and the
@@ -418,13 +433,28 @@ export default defineNuxtConfig({
       navigateFallback: '/',
       navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
       cleanupOutdatedCaches: true,
-      // Runtime caching: static CDN assets only. Docs, doc tokens, AI, and
-      // upload endpoints intentionally bypass the SW — freshness beats
-      // offline for collaborative state.
+      // The vendored third-party assets under /vendor/ (paged.js, Mermaid,
+      // KaTeX, highlight.js, web fonts — shared/utils/vendorAssets.ts) stay
+      // out of the precache: ~12 MB, and a page only ever needs a few of
+      // them. They're runtime-cached on first use instead (below).
+      globIgnores: ['**/node_modules/**/*', 'vendor/**'],
+      // Runtime caching: the vendored static assets only. Docs, doc tokens,
+      // AI, and upload endpoints intentionally bypass the SW — freshness
+      // beats offline for collaborative state. First match wins:
+      //   - per-family font stylesheets (/vendor/fonts/<family>.css) are the
+      //     one unversioned name → serve cached, refresh in the background;
+      //   - everything else sits under a versioned directory and never
+      //     changes → cache first.
+      // (The sandboxed, opaque-origin preview iframes aren't SW clients;
+      // their requests use the HTTP cache — the files are `immutable`.)
       runtimeCaching: [{
-        urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
+        urlPattern: /\/vendor\/fonts\/[\w-]+\.css$/,
+        handler: 'StaleWhileRevalidate',
+        options: { cacheName: 'vendor-font-css', expiration: { maxEntries: 50 } }
+      }, {
+        urlPattern: /\/vendor\//,
         handler: 'CacheFirst',
-        options: { cacheName: 'cdn-cache', expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 3600 } }
+        options: { cacheName: 'vendor-assets', expiration: { maxEntries: 400, maxAgeSeconds: 365 * 24 * 3600 } }
       }]
     },
     client: {

@@ -31,7 +31,7 @@ const toast = useToast()
 const { handleReauthRequired, showError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 const { status, refresh: refreshAccountStatus } = useAccountStatus()
-// Legal acceptance + consent sections only where the legal surfaces
+// Legal acceptance section only where the legal surfaces
 // exist (hosted SaaS); see shared/config/instance.ts.
 const { legalSurfaces, primaryLoginPath } = useInstanceConfig()
 
@@ -239,79 +239,6 @@ const policies = computed(() => {
     // warning — DPA acceptance is contextual, not overdue.
     { key: 'dpa', label: t('legal.policyAcceptance.documentNames.dpa'), state: p.dpa, contextual: true }
   ]
-})
-
-// ─────────── Privacy choices (consent) ───────────
-type ConsentPurpose = 'essential' | 'analytics' | 'session_replay'
-interface ConsentDecision {
-  purpose: ConsentPurpose
-  granted: boolean
-  version: number
-}
-interface ConsentSummary {
-  currentVersion: number
-  promptRequired: boolean
-  decisions: Record<string, ConsentDecision>
-}
-
-const consentSummary = ref<ConsentSummary | null>(null)
-
-function consentStateText(key: ConsentPurpose, decision: ConsentDecision | undefined): string {
-  if (key === 'essential') return t('settings.profile.consent.purposeAlwaysOn')
-  if (!decision) return t('settings.profile.consent.notSet')
-  return decision.granted
-    ? t('settings.profile.consent.granted')
-    : t('settings.profile.consent.refused')
-}
-
-async function refreshConsent(): Promise<void> {
-  try {
-    consentSummary.value = await $fetch<ConsentSummary>('/api/consent')
-  } catch {
-    // Non-fatal — the section just shows "Not set" placeholders
-    // until the next mount.
-  }
-}
-
-const consentRows = computed(() => {
-  const d = consentSummary.value?.decisions ?? {}
-  const purposeOf = (key: ConsentPurpose) => {
-    const decision = d[key]
-    return {
-      key,
-      label: t(`legal.consent.purpose.${key}.label`),
-      description: t(`legal.consent.purpose.${key}.description`),
-      // Essential is always-on; we don't display granted/refused
-      // for it (it's not user-controllable).
-      stateText: consentStateText(key, decision),
-      stateMuted: key === 'essential' || !decision,
-      stateGranted: decision?.granted === true,
-      stateRefused: decision && !decision.granted
-    }
-  }
-  return [purposeOf('essential'), purposeOf('analytics'), purposeOf('session_replay')]
-})
-
-function reopenConsentBanner(): void {
-  // Same custom event the footer "Privacy choices" link
-  // dispatches. The banner component listens on `window` and
-  // re-opens with the customize panel pre-populated from the
-  // user's current decisions.
-  globalThis.dispatchEvent(new CustomEvent('markoto:reopen-consent'))
-}
-
-// Listen for the banner's "I just saved new choices" event so
-// the Privacy choices section refreshes without a page reload.
-function handleConsentUpdated(): void {
-  void refreshConsent()
-}
-onMounted(() => {
-  if (!legalSurfaces.value) return
-  void refreshConsent()
-  globalThis.addEventListener('markoto:consent-updated', handleConsentUpdated)
-})
-onBeforeUnmount(() => {
-  globalThis.removeEventListener('markoto:consent-updated', handleConsentUpdated)
 })
 </script>
 
@@ -670,7 +597,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- Legal — secondary content; lists accepted document versions
-           and (eventually) consent decisions. Surfaced for transparency
+           with the cookie note. Surfaced for transparency
            but visually de-emphasised: it's a reference card, not a
            call-to-action. -->
       <section
@@ -721,59 +648,12 @@ onBeforeUnmount(() => {
             </dd>
           </div>
         </dl>
-      </section>
-
-      <!-- Privacy choices — interactive consent state. Distinct from
-           Legal (which is read-only acceptance state). The user can
-           change analytics + session-replay opt-in here at any time;
-           "Change" reopens the consent banner with the customize
-           panel pre-populated from current decisions. -->
-      <section
-        v-if="legalSurfaces"
-        class="mb-10"
-        data-testid="profile-consent-section"
-      >
-        <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
-          {{ t('settings.profile.consent.heading') }}
-        </h2>
-        <p class="text-sm text-muted mb-3">
-          {{ t('settings.profile.consent.subheading') }}
-        </p>
-        <dl class="border border-default rounded-lg divide-y divide-default mb-4">
-          <div
-            v-for="row in consentRows"
-            :key="row.key"
-            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3"
-          >
-            <div class="flex-1 min-w-0">
-              <dt class="text-sm">
-                {{ row.label }}
-              </dt>
-              <dd class="text-xs text-muted">
-                {{ row.description }}
-              </dd>
-            </div>
-            <span
-              class="text-xs font-mono shrink-0 sm:text-right"
-              :class="{
-                'text-muted': row.stateMuted,
-                'text-default': row.stateGranted,
-                'text-rose-700 dark:text-rose-300': row.stateRefused
-              }"
-            >
-              {{ row.stateText }}
-            </span>
-          </div>
-        </dl>
-        <UButton
-          color="neutral"
-          variant="outline"
-          icon="i-lucide-shield"
-          data-testid="profile-consent-change"
-          @click="reopenConsentBanner"
+        <p
+          class="text-xs text-muted mt-3"
+          data-testid="profile-cookie-note"
         >
-          {{ t('settings.profile.consent.change') }}
-        </UButton>
+          {{ t('settings.profile.legal.cookieNote') }}
+        </p>
       </section>
     </main>
 

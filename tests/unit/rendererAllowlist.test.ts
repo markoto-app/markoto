@@ -1,15 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import {
-  DEFAULT_CDN_ORIGINS,
   buildAllowedOrigins,
   hostForLog,
   isAllowedUrl,
   originOf
 } from '../../renderer/src/allowlist'
 import { buildRenderCsp } from '../../server/utils/csp'
-import { PAGEDJS_POLYFILL_URL } from '../../shared/utils/pagedjsCdn'
-import { MERMAID_URL } from '../../shared/utils/mermaidCdn'
-import { KATEX_CSS_URL } from '../../shared/utils/katexCdn'
+import { PAGEDJS_POLYFILL_URL } from '../../shared/utils/pagedjsAssets'
+import { MERMAID_URL } from '../../shared/utils/mermaidAssets'
+import { KATEX_CSS_URL } from '../../shared/utils/katexAssets'
+import { hljsTheme } from '../../shared/utils/hljsAssets'
+import { fontStylesheetUrl } from '../../shared/utils/themeFonts'
+
+/** Third-party hosts the print page used to load from — none is allowed any more. */
+const FORMER_CDN_ORIGINS = ['https://cdn.jsdelivr.net', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com']
 
 const hosted = buildAllowedOrigins({
   APP_URL: 'http://markoto-app:3000',
@@ -29,10 +33,9 @@ describe('originOf', () => {
 })
 
 describe('buildAllowedOrigins', () => {
-  it('derives app, S3 and CDN origins from the environment', () => {
-    expect(hosted.has('http://markoto-app:3000')).toBe(true)
-    expect(hosted.has('https://s3.gra.io.cloud.ovh.net')).toBe(true)
-    for (const cdn of DEFAULT_CDN_ORIGINS) expect(hosted.has(cdn)).toBe(true)
+  it('derives exactly the app and S3 origins from the environment (no CDN)', () => {
+    expect([...hosted].sort()).toEqual(['http://markoto-app:3000', 'https://s3.gra.io.cloud.ovh.net'])
+    for (const cdn of FORMER_CDN_ORIGINS) expect(hosted.has(cdn)).toBe(false)
   })
 
   it('prefers S3_PUBLIC_ENDPOINT over the internal S3_ENDPOINT', () => {
@@ -52,27 +55,39 @@ describe('buildAllowedOrigins', () => {
     })
     expect(o.has('https://img.example.org')).toBe(true)
     expect(o.has('http://assets:9000')).toBe(true)
-    expect(o.size).toBe(DEFAULT_CDN_ORIGINS.length + 3)
+    expect(o.size).toBe(3)
   })
 
-  it('still builds a safe set with nothing configured', () => {
-    expect([...buildAllowedOrigins({})].sort()).toEqual([...DEFAULT_CDN_ORIGINS].sort())
+  it('still builds a safe (empty) set with nothing configured', () => {
+    expect([...buildAllowedOrigins({})]).toEqual([])
   })
 })
 
 describe('isAllowedUrl', () => {
-  it('allows the app, the S3 host and every CDN URL the print page loads', () => {
+  it('allows the app, the S3 host and every vendored asset the print page loads (all on the app origin)', () => {
     expect(isAllowedUrl('http://markoto-app:3000/_internal/render/abc?t=x', hosted)).toBe(true)
     expect(isAllowedUrl('https://s3.gra.io.cloud.ovh.net/bucket/docs/a/b.png?X-Amz-Signature=1', hosted)).toBe(true)
-    for (const url of [
+    for (const path of [
       PAGEDJS_POLYFILL_URL,
       MERMAID_URL,
       KATEX_CSS_URL,
+      hljsTheme('github-light').url,
+      fontStylesheetUrl('Inter') ?? ''
+    ]) {
+      expect(path.startsWith('/vendor/'), path).toBe(true)
+      const url = new URL(path, 'http://markoto-app:3000').href
+      expect(isAllowedUrl(url, hosted), url).toBe(true)
+    }
+  })
+
+  it('blocks the former CDN hosts (jsDelivr, Google Fonts)', () => {
+    for (const url of [
+      'https://cdn.jsdelivr.net/npm/pagedjs@0.4.3/dist/paged.polyfill.min.js',
       'https://cdn.jsdelivr.net/npm/highlight.js@11.12.0/styles/github.min.css',
       'https://fonts.googleapis.com/css2?family=Inter&display=swap',
       'https://fonts.gstatic.com/s/inter/v1/x.woff2'
     ]) {
-      expect(isAllowedUrl(url, hosted), url).toBe(true)
+      expect(isAllowedUrl(url, hosted), url).toBe(false)
     }
   })
 
@@ -153,14 +168,11 @@ describe('buildRenderCsp', () => {
     )
   })
 
-  it('keeps the CDN files the print page needs (exact paths, not the whole host)', () => {
-    expect(directive(csp, 'script-src')).toContain(PAGEDJS_POLYFILL_URL)
-    expect(directive(csp, 'script-src')).toContain(MERMAID_URL)
-    expect(directive(csp, 'script-src')).toContain('\'nonce-cmVuZGVyLW5vbmNlLTEyMzQ1Ng==\'')
-    expect(directive(csp, 'script-src')).not.toMatch(/https:\/\/cdn\.jsdelivr\.net(\s|$)/)
-    expect(directive(csp, 'script-src')).not.toContain('unsafe')
-    expect(directive(csp, 'style-src')).toContain('https://fonts.googleapis.com')
-    expect(directive(csp, 'font-src')).toContain('https://fonts.gstatic.com')
+  it('allows scripts, styles and fonts from the app origin only (no CDN)', () => {
+    expect(directive(csp, 'script-src')).toBe('script-src \'self\' \'nonce-cmVuZGVyLW5vbmNlLTEyMzQ1Ng==\'')
+    expect(directive(csp, 'style-src')).toBe('style-src \'self\' \'unsafe-inline\'')
+    expect(directive(csp, 'font-src')).toBe('font-src \'self\' data:')
+    for (const host of ['jsdelivr', 'googleapis', 'gstatic']) expect(csp).not.toContain(host)
   })
 
   it('does not widen img-src when S3 and extras are unset', () => {

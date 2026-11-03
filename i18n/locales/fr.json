@@ -68,6 +68,14 @@
     "table": "Tableau",
     "hideFromPreview": "Rendre invisible (masquer de l'aperçu)"
   },
+  "previewZoom": {
+    "menu": "Zoom",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "fitWidth": "Ajuster à la largeur",
+    "allPages": "Toutes les pages",
+    "backToPage": "Revenir à la page"
+  },
   "status": {
     "connecting": "Connexion...",
     "connected": "Connecté",
@@ -1094,48 +1102,13 @@
     "retry": "Réessayer"
   },
   "legal": {
-    "consent": {
-      "banner": {
-        "title": "Vos choix de confidentialité",
-        "intro": "Nous utilisons des cookies et technologies similaires pour faire fonctionner markoto et, avec votre consentement, pour comprendre comment il est utilisé. Vous pouvez modifier ou retirer votre consentement à tout moment depuis le badge de confidentialité en pied de page.",
-        "introShort": "Les cookies font fonctionner markoto ; nous ne mesurons l’usage qu’avec votre consentement, modifiable à tout moment.",
-        "essentialNotice": "Le stockage essentiel est toujours activé — sans lui, markoto ne peut pas vous garder connecté ni mémoriser vos préférences.",
-        "acceptAll": "Tout accepter",
-        "rejectAll": "Tout refuser",
-        "customize": "Personnaliser",
-        "save": "Enregistrer les choix",
-        "learnMore": "Lire notre politique de confidentialité",
-        "footerLink": "Choix de confidentialité"
-      },
-      "purpose": {
-        "essential": {
-          "label": "Essentiel",
-          "description": "Session de connexion, préférence de langue, votre décision de consentement elle-même. Nécessaire au fonctionnement du service."
-        },
-        "analytics": {
-          "label": "Analyses produit",
-          "description": "Vues de pages et utilisation des fonctionnalités agrégées afin d'améliorer markoto. Pas de suivi intersites, pas de profils publicitaires."
-        },
-        "session_replay": {
-          "label": "Rejeu de session",
-          "description": "Enregistrements anonymisés des interactions avec l'interface pour nous aider à déboguer les problèmes. Les champs de formulaire et le contenu des documents sont masqués."
-        }
-      },
-      "withdraw": {
-        "title": "Retirer le consentement",
-        "intro": "Vous avez déjà répondu à notre demande de consentement. Vous pouvez changer d'avis à tout moment ci-dessous.",
-        "currentState": "État actuel",
-        "granted": "Accordé",
-        "refused": "Refusé"
-      }
-    },
     "ageGate": {
       "title": "Confirmez votre âge",
-      "body": "Selon le droit de l'UE, nous avons besoin d'une confirmation rapide que vous avez au moins 16 ans. Si un âge numérique de consentement inférieur s'applique dans votre pays, veuillez nous contacter.",
+      "body": "markoto s'adresse aux personnes de 16 ans et plus. Veuillez confirmer que vous avez au moins 16 ans. Cette règle s'applique dans tous les pays, même si le droit local prévoit un âge inférieur.",
       "checkbox": "Je confirme avoir au moins 16 ans",
       "continue": "Continuer",
       "underage": "J'ai moins de 16 ans",
-      "underageNotice": "Nous sommes désolés — markoto exige que vous atteigniez l'âge numérique de consentement dans votre pays. Nous ne stockons aucune donnée vous concernant."
+      "underageNotice": "Nous sommes désolés — markoto est réservé aux personnes de 16 ans et plus. Nous ne stockons aucune donnée vous concernant."
     },
     "policyAcceptance": {
       "newVersionTitle": "Nos conditions de confidentialité ont changé",
@@ -1234,11 +1207,38 @@
       },
       "bodyLabel": "Que devrions-nous savoir ?",
       "bodyPlaceholder": "Décrivez ce que vous avez vu et pourquoi cela devrait être retiré.",
-      "emailLabel": "Votre e-mail (facultatif, pour que nous puissions confirmer la réception)",
+      "emailLabel": "E-mail",
       "submit": "Envoyer le signalement",
       "submittedTitle": "Merci — votre signalement a été reçu",
       "submittedBody": "Nous accusons réception de chaque signalement. Si vous avez fourni un e-mail, nous vous informerons de notre décision.",
-      "reportThisDoc": "Signaler ce document"
+      "reportThisDoc": "Signaler ce document",
+      "policyHint": "Consultez la {policy} pour savoir contre quoi nous agissons et comment nous décidons.",
+      "policyLink": "politique relative aux abus et aux contenus illicites",
+      "urlLabel": "Adresse (URL) du contenu",
+      "urlHelp": "Le lien complet vers le document, par exemple https://markoto.app/d/…",
+      "bodyHelp": "Expliquez pourquoi le contenu est illicite ou enfreint nos règles. Soyez précis : quelle partie, et ce qui pose problème.",
+      "contactLegend": "Votre nom et votre e-mail",
+      "contactHelp": "Nous en avons besoin pour confirmer la réception de votre signalement et vous informer de notre décision.",
+      "contactOptionalCsam": "Facultatif pour les signalements de matériel pédopornographique. Sans adresse e-mail, nous ne pouvons pas vous informer de notre décision.",
+      "nameLabel": "Nom",
+      "goodFaith": "Je confirme de bonne foi que les informations de ce signalement sont exactes et complètes.",
+      "submittedBodyEmail": "Nous vous avons envoyé une confirmation par e-mail et vous y communiquerons notre décision.",
+      "reference": "Référence : {id}",
+      "signInRequired": "Veuillez vous connecter pour signaler un contenu, ou écrire au contact indiqué dans la politique relative aux abus.",
+      "signIn": "Se connecter",
+      "errors": {
+        "title": "Impossible d'envoyer le signalement",
+        "generic": "Veuillez réessayer.",
+        "rateLimited": "Trop de signalements depuis votre réseau. Veuillez réessayer plus tard.",
+        "loginRequired": "Veuillez vous connecter pour signaler un contenu.",
+        "category": "Veuillez choisir ce que vous signalez.",
+        "urlRequired": "Veuillez indiquer l'adresse (URL) du contenu.",
+        "bodyTooShort": "Veuillez expliquer ce qui pose problème (au moins 10 caractères).",
+        "bodyTooLong": "L'explication est trop longue (5000 caractères au maximum).",
+        "goodFaith": "Veuillez confirmer que votre signalement est exact et fait de bonne foi.",
+        "email": "Veuillez saisir une adresse e-mail valide.",
+        "contactRequired": "Veuillez indiquer votre nom et votre adresse e-mail."
+      }
     },
     "aiTransparency": {
       "badge": "Assisté par IA",
@@ -1251,7 +1251,8 @@
       "dpa": "Avenant de traitement des données",
       "subProcessors": "Sous-traitants",
       "abuse": "Signaler un abus",
-      "imprint": "Mentions légales"
+      "imprint": "Mentions légales",
+      "cookieNote": "Cookies : essentiels uniquement"
     },
     "documentPage": {
       "translationNoticeTitle": "Traduction fournie par commodité",
@@ -1302,16 +1303,8 @@
         "subheading": "Versions de la politique de confidentialité, des conditions d'utilisation et de l'avenant de traitement des données que vous avez acceptées. Si nous mettons à jour un document de façon substantielle, vous verrez « nouvelle acceptation requise » ici et nous vous redemanderons votre accord avant toute autre action.",
         "notAccepted": "Non accepté",
         "needsReacceptance": "nouvelle acceptation requise (v{version} actuelle)",
-        "dpaNotApplicable": "Requis lorsque vous créez un espace de travail"
-      },
-      "consent": {
-        "heading": "Choix de confidentialité",
-        "subheading": "Ce que nous pouvons suivre concernant votre utilisation de markoto. Le stockage essentiel est toujours activé (connexion + votre décision de consentement elle-même). Les deux autres domaines sont désactivés jusqu'à ce que vous les autorisiez — changez d'avis ici à tout moment.",
-        "purposeAlwaysOn": "toujours activé",
-        "granted": "Accordé",
-        "refused": "Refusé",
-        "notSet": "Non défini",
-        "change": "Modifier vos choix de confidentialité"
+        "dpaNotApplicable": "Requis lorsque vous créez un espace de travail",
+        "cookieNote": "markoto n’utilise que des cookies essentiels : votre session de connexion, votre langue et une clé qui permet à votre navigateur de supprimer les documents qu’il a créés sans compte. Il n’y a ni mesure d’audience, ni pistage, ni publicité : aucun consentement n’est donc nécessaire. La politique de confidentialité liste chaque cookie."
       },
       "sessions": {
         "heading": "Sessions",
@@ -1542,5 +1535,31 @@
       "toDark": "Passer en mode sombre",
       "toLight": "Passer en mode clair"
     }
+  },
+  "anonGate": {
+    "eyebrow": "Avant votre premier document",
+    "title": "Écrire sans compte",
+    "pointPublic": "Toute personne disposant du lien peut ouvrir et modifier votre document, sauf si vous changez le partage. N'y mettez rien de confidentiel.",
+    "pointRetention": "Il est supprimé après {days} jours sans activité. Connectez-vous pour conserver vos documents.",
+    "pointRules": "markoto n'examine pas les documents. Les contenus illicites, les arnaques et le spam sont interdits et supprimés lorsqu'ils sont signalés.",
+    "accept": "J'accepte les {terms}, y compris les règles d'utilisation acceptable, et j'ai au moins {age} ans.",
+    "termsLink": "conditions d'utilisation",
+    "privacyNote": "Comment nous traitons vos données : {privacy}.",
+    "privacyLink": "politique de confidentialité",
+    "botCheckRunning": "vérification anti-robots dans votre navigateur…",
+    "botCheckReady": "vérification terminée · dans votre navigateur, sans pistage",
+    "signInInstead": "Me connecter plutôt",
+    "cancel": "Annuler",
+    "continue": "Accepter et créer",
+    "errors": {
+      "botCheck": "La vérification anti-robots automatique a échoué. Veuillez réessayer.",
+      "termsRequired": "Veuillez d'abord accepter les conditions d'utilisation.",
+      "unavailable": "La vérification anti-robots est momentanément indisponible. Veuillez réessayer dans un instant.",
+      "rateLimited": "Trop de nouveaux documents depuis votre réseau. Connectez-vous ou réessayez plus tard."
+    }
+  },
+  "userContent": {
+    "notice": "Créé par un utilisateur de markoto sans compte, et non par markoto",
+    "report": "Signaler"
   }
 }

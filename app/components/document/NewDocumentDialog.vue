@@ -4,23 +4,21 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { THEME_FONTS } from '~~/shared/utils/themeFonts'
+import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { TEMPLATES } from '~~/shared/templates'
 
-// Same trick as ThemeEditorPanel — pull every picker font in a single
-// Google Fonts request so each preset card can render its heading in
-// its actual font face. Otherwise we'd see "Modern" / "Academic Paper"
-// / etc. all in the system fallback and lose the visual signal.
+// Same trick as ThemeEditorPanel — link every picker font's (same-origin)
+// stylesheet so each preset card can render its heading in its actual
+// font face. Otherwise we'd see "Modern" / "Academic Paper" / etc. all in
+// the system fallback and lose the visual signal. The stylesheets only
+// declare @font-face rules; a font file downloads once text uses it.
 if (import.meta.client) {
-  const families = THEME_FONTS
-    .map(f => `family=${f.name.replaceAll(' ', '+')}:wght@400;500;600;700`)
-    .join('&')
   useHead({
-    link: [{
-      key: 'newdoc-theme-font-preview',
+    link: fontStylesheetUrls(THEME_FONTS.map(f => f.name)).map(href => ({
+      key: `newdoc-theme-font-preview-${href}`,
       rel: 'stylesheet',
-      href: `https://fonts.googleapis.com/css2?${families}&display=swap`
-    }]
+      href
+    }))
   })
 }
 
@@ -54,6 +52,9 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const { showError } = useErrorHandler()
+// Anonymous visitors pass the terms + bot-check gate on create; the
+// solver starts warming up as soon as the dialog opens.
+const anonDoc = useAnonDocCreate()
 
 // Form state. Resets on open so reopening doesn't carry stale values.
 const title = ref('')
@@ -159,6 +160,7 @@ function onCreateLanguage(text: string): LanguageItem {
 
 watch(() => props.open, async (next) => {
   if (!next) return
+  anonDoc.prepare()
   title.value = ''
   description.value = ''
   audience.value = 'casual'
@@ -212,13 +214,11 @@ async function submit(blank: boolean) {
       }
       if (templateId.value) body.templateId = templateId.value
     }
-    const { docId } = await $fetch<{ docId: string }>('/api/docs', {
-      method: 'POST',
-      body
-    })
+    const docId = await anonDoc.createDocument(body)
     emit('update:open', false)
     emit('created', docId)
   } catch (e) {
+    if (e instanceof AnonGateCancelled) return
     showError('error.documentCreateFailed', e)
   } finally {
     submitting.value = false

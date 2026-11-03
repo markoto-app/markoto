@@ -330,7 +330,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       {
         result: 'A working pie-chart Mermaid snippet lands — edit the slices to your data.',
         after: async () => {
-          // Mermaid loads from its CDN and renders into the preview (an
+          // Mermaid loads (from /vendor/) and renders into the preview (an
           // <img> of the SVG during pagination, the inline SVG after);
           // wait for that, not for a fixed time.
           await expect(editor.page.previewRoot().locator('#mount div.mermaid > :is(svg, img)').first()).toBeAttached({ timeout: 30_000 })

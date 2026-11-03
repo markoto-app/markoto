@@ -8,13 +8,14 @@ import {
   buildPreviewSrcdoc,
   attachOwnUploadTokens,
   buildRenderMessage,
+  buildZoomMessage,
   mayReferenceOwnUploads,
   parseFrameMessage,
   withOwnUploadToken
 } from '~/utils/previewFrame'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
-import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidCdn'
+import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsAssets'
+import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidAssets'
 
 // The live preview + print iframes run in an OPAQUE origin (sandbox without
 // allow-same-origin) — see app/utils/previewFrame.ts. These tests pin the
@@ -96,6 +97,52 @@ describe('parseFrameMessage', () => {
     expect(parseFrameMessage(ev({ type: 'navigate', url: 'https://x' }), frame)).toBeNull()
     expect(parseFrameMessage(ev('iframe-ready'), frame)).toBeNull()
     expect(parseFrameMessage(ev({ type: 'iframe-ready' }), null)).toBeNull()
+  })
+
+  it('accepts the zoom messages and checks their shape', () => {
+    expect(parseFrameMessage(ev({ type: 'zoom-state', mode: 'overview', scale: 0.18, fitScale: 0.7 }), frame))
+      .toEqual({ type: 'zoom-state', mode: 'overview', scale: 0.18, fitScale: 0.7 })
+    expect(parseFrameMessage(ev({ type: 'zoom-request', action: 'in', page: 0 }), frame))
+      .toEqual({ type: 'zoom-request', action: 'in', page: 0 })
+    expect(parseFrameMessage(ev({ type: 'zoom-request', action: 'page', page: 4 }), frame))
+      .toEqual({ type: 'zoom-request', action: 'page', page: 4 })
+    expect(parseFrameMessage(ev({ type: 'zoom-gesture', scale: 1.4 }), frame)).toEqual({ type: 'zoom-gesture', scale: 1.4 })
+    // Extra fields never reach the app.
+    expect(parseFrameMessage(ev({ type: 'zoom-gesture', scale: 1.4, html: '<b>' }), frame)).toEqual({ type: 'zoom-gesture', scale: 1.4 })
+
+    for (const bad of [
+      { type: 'zoom-state', mode: 'huge', scale: 1, fitScale: 1 },
+      { type: 'zoom-state', mode: 'fit', scale: Number.NaN, fitScale: 1 },
+      { type: 'zoom-state', mode: 'fit', scale: 1, fitScale: 0 },
+      { type: 'zoom-request', action: 'navigate', page: 0 },
+      { type: 'zoom-request', action: 'page', page: 0 },
+      { type: 'zoom-request', action: 'page', page: 1.5 },
+      { type: 'zoom-request', action: 'page', page: 1e9 },
+      { type: 'zoom-request', action: 'in' },
+      { type: 'zoom-gesture', scale: -1 },
+      { type: 'zoom-gesture', scale: 1e6 },
+      { type: 'zoom-gesture', scale: '2' }
+    ]) {
+      expect(parseFrameMessage(ev(bad), frame), JSON.stringify(bad)).toBeNull()
+    }
+    // Same origin / source rules as every other message.
+    expect(parseFrameMessage(ev({ type: 'zoom-gesture', scale: 1.4 }, { origin: 'https://evil.example' }), frame)).toBeNull()
+  })
+})
+
+describe('buildZoomMessage', () => {
+  it('builds the parent → frame zoom message', () => {
+    expect(buildZoomMessage({ mode: 'scale', scale: 1.25, animate: true })).toEqual({ type: 'zoom', mode: 'scale', scale: 1.25, animate: true, page: 0 })
+    expect(buildZoomMessage({ mode: 'fit', animate: true, page: 3 })).toEqual({ type: 'zoom', mode: 'fit', scale: 1, animate: true, page: 3 })
+    // Only a real factor / a real page number get through.
+    expect(buildZoomMessage({ mode: 'scale', scale: Number.NaN, animate: false, page: -2 })).toEqual({ type: 'zoom', mode: 'scale', scale: 1, animate: false, page: 0 })
+    expect(buildZoomMessage({ mode: 'overview', scale: 4, animate: false, page: 1.5 })).toEqual({ type: 'zoom', mode: 'overview', scale: 1, animate: false, page: 0 })
+  })
+
+  it('inlines the zoom engine into the srcdoc, without a raw placeholder', () => {
+    const srcdoc = buildPreviewSrcdoc({ parentOrigin: 'https://markoto.app', nonce: 'bm9uY2Utbm9uY2Utbm9uY2U=', dark: false })
+    expect(srcdoc).not.toContain('__PREVIEW_ZOOM_SCRIPT__')
+    expect(srcdoc).toContain('var previewZoom = (function installPreviewZoom(')
   })
 })
 

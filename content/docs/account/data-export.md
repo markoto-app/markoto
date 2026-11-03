@@ -37,6 +37,8 @@ What's in the ZIP:
 - `activity.ndjson` and `audit.ndjson`: your entries in the activity and audit logs.
 - `consent.ndjson`: your cookie and analytics choices.
 - `waitlist.ndjson`: your paid-plans waitlist sign-up, if any.
+- `abuse_reports.ndjson`: reports you sent while signed in, with our decision and the emails we sent you about them.
+- `moderation_notices.ndjson`: the explanations we sent you if we removed or restricted one of your documents.
 - `billing/`: your billing records, empty where billing is off.
 
 Files that would be empty are still included, so the layout is always the

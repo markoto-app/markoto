@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, createAnonDoc } from './_helpers'
+import { api, smokeDoc } from './_helpers'
 
 // The server-rendered PDF path (renderer sidecar → headless Chromium →
 // paged.js) is the one that shipped broken: crypto.randomUUID is undefined in
@@ -7,7 +7,8 @@ import { api, createAnonDoc } from './_helpers'
 // the sidecar timed out after 45s. The seeded welcome doc CONTAINS a mermaid
 // diagram, so this is the exact regression case.
 test('server-rendered PDF export succeeds for a mermaid doc', async ({ page }) => {
-  const docId = await createAnonDoc()
+  // Shared run document (globalSetup.ts) — never a new one per attempt.
+  const docId = smokeDoc('blank')
 
   // Open the doc so the welcome body (incl. mermaid) seeds into Y.js and the
   // sync-server persists it to yjs_documents — render-bootstrap replays that.

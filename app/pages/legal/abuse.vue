@@ -1,66 +1,90 @@
 <script setup lang="ts">
-// Abuse report form. Login-gated to keep spam manageable; anonymous
-// + non-account reports go through the email channel documented
-// in /legal/abuse-policy. DSA Article 16 requires the platform to
-// accept notices, not that any specific channel be public —
-// providing an email contact for anyone + a form for signed-in
-// users is a fully-compliant arrangement.
+// Report form (DSA Art.16 notice). Open to everyone: signed-in users
+// directly, anonymous visitors behind the invisible ALTCHA bot check
+// (shared/config/anonGate.ts) — without the gate on this instance the
+// form asks for a sign-in instead. Fields follow Art.16(2): the address of
+// the content, why it is illegal or against the rules, name + email
+// (optional for child-sexual-abuse reports, Art.16(2)(c)), and the
+// good-faith statement. The server sends a confirmation of receipt and,
+// later, the decision.
 //
-// Pre-fill: if the user clicked "Report this document" from
-// inside the editor (forthcoming surface), the docId arrives via
-// query string `?docId=<id>`. Plain navigation lands on the form
-// with the doc field empty + a free-form input.
+// Pre-fill: `?url=` (the "Report" link on a document) or the legacy
+// `?docId=`.
+import {
+  ANON_GATE_RETRYABLE_CODES,
+  ANON_GATE_CODES
+} from '~~/shared/config/anonGate'
+import {
+  REPORT_BODY_MAX,
+  REPORT_BODY_MIN,
+  REPORT_CATEGORIES,
+  REPORT_URL_MAX,
+  REPORTER_NAME_MAX,
+  contactOptionalFor,
+  type ReportCategory
+} from '~~/shared/config/moderation'
 
 definePageMeta({ middleware: 'legal-surfaces' })
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
-const { loggedIn } = useUserSession()
+const { t, te, locale } = useI18n()
+const { loggedIn, user } = useUserSession()
+const { anonGate, primaryLoginPath } = useInstanceConfig()
 const toast = useToast()
 
-useHead({ title: 'Report content · markoto' })
+useHead({ title: () => `${t('legal.abuse.title')} · markoto` })
 
-// Anonymous visitors are redirected to the abuse-policy doc which
-// describes the email channel they should use instead.
-if (import.meta.client && !loggedIn.value) {
-  void navigateTo('/legal/abuse-policy')
+const categories = computed(() => REPORT_CATEGORIES.map(value => ({
+  value,
+  label: t(`legal.abuse.category.${value}`)
+})))
+
+function prefillFromQuery(): string {
+  const url = route.query.url
+  if (typeof url === 'string' && url.trim()) return url.trim().slice(0, REPORT_URL_MAX)
+  const docId = route.query.docId
+  if (typeof docId === 'string' && docId.trim()) return docId.trim().slice(0, REPORT_URL_MAX)
+  return ''
 }
 
-const CATEGORIES = [
-  { value: 'illegal_content', label: t('legal.abuse.category.illegal_content') },
-  { value: 'copyright', label: t('legal.abuse.category.copyright') },
-  { value: 'csam', label: t('legal.abuse.category.csam') },
-  { value: 'harassment', label: t('legal.abuse.category.harassment') },
-  { value: 'spam', label: t('legal.abuse.category.spam') },
-  { value: 'other', label: t('legal.abuse.category.other') }
-] as const
-
-type Category = (typeof CATEGORIES)[number]['value']
-
-// docId pre-fill from query string when entering via "Report this
-// document". Strip leading `/d/` if a full URL was pasted.
-const docIdFromQuery = computed(() => {
-  const raw = route.query.docId
-  if (typeof raw !== 'string') return ''
-  // Accept either a bare doc-id (the canonical form) or a full
-  // URL like `/d/abc123` — strip the leading prefix if present.
-  const match = raw.match(/\/d\/([^/?]+)/)
-  return match ? match[1] : raw
-})
-
-const docId = ref(docIdFromQuery.value)
-const category = ref<Category>('illegal_content')
+const contentUrl = ref(prefillFromQuery())
+const category = ref<ReportCategory>('illegal_content')
 const reportBody = ref('')
+const reporterName = ref('')
+const reporterEmail = ref('')
+const goodFaith = ref(false)
 const submitting = ref(false)
 const submittedReportId = ref<string | null>(null)
+const errorMessage = ref('')
 
-watch(docIdFromQuery, (v) => {
-  docId.value = v
-}, { immediate: false })
+watch(() => route.query, () => {
+  const v = prefillFromQuery()
+  if (v) contentUrl.value = v
+})
+
+// Signed-in reporters: profile name + email as defaults (the server uses
+// them too when the fields are left empty).
+watch(user, (u) => {
+  if (!u) return
+  if (!reporterName.value && typeof u.name === 'string') reporterName.value = u.name
+  if (!reporterEmail.value && typeof u.email === 'string') reporterEmail.value = u.email
+}, { immediate: true })
+
+const needsSignIn = computed(() => !loggedIn.value && !anonGate.value)
+const contactOptional = computed(() => contactOptionalFor(category.value))
+const botCheck = useAnonBotCheck('abuse-report')
+onMounted(() => {
+  if (!loggedIn.value && anonGate.value) botCheck.prepare()
+})
 
 const canSubmit = computed(() =>
-  reportBody.value.trim().length >= 10 && !submitting.value
+  !needsSignIn.value
+  && contentUrl.value.trim().length > 0
+  && reportBody.value.trim().length >= REPORT_BODY_MIN
+  && (contactOptional.value || (reporterName.value.trim() && reporterEmail.value.trim()))
+  && goodFaith.value
+  && !submitting.value
 )
 
 function onClose(): void {
@@ -71,30 +95,50 @@ function onClose(): void {
   }
 }
 
+async function post(altcha: string | null): Promise<{ reportId: string }> {
+  return $fetch<{ reportId: string }>('/api/abuse-reports', {
+    method: 'POST',
+    body: {
+      contentUrl: contentUrl.value.trim(),
+      category: category.value,
+      body: reportBody.value.trim(),
+      reporterName: reporterName.value.trim(),
+      reporterEmail: reporterEmail.value.trim(),
+      goodFaith: goodFaith.value,
+      locale: locale.value,
+      ...(altcha ? { altcha } : {})
+    }
+  })
+}
+
+function messageFor(e: unknown): string {
+  const key = fetchErrorMessageKey(e)
+  if (key && te(key)) return t(key)
+  return fetchErrorMessage(e) ?? t('legal.abuse.errors.generic')
+}
+
 async function onSubmit(): Promise<void> {
   if (!canSubmit.value) return
   submitting.value = true
+  errorMessage.value = ''
   try {
-    const res = await $fetch<{ reportId: string }>('/api/abuse-reports', {
-      method: 'POST',
-      body: {
-        docId: docId.value.trim() || null,
-        category: category.value,
-        body: reportBody.value.trim()
-      }
-    })
+    const anonymous = !loggedIn.value
+    let res: { reportId: string }
+    try {
+      res = await post(anonymous ? await botCheck.take() : null)
+    } catch (e) {
+      const code = fetchErrorCode(e)
+      const retry = anonymous && code !== null
+        && (ANON_GATE_RETRYABLE_CODES.includes(code) || code === ANON_GATE_CODES.botCheckRequired)
+      if (!retry) throw e
+      res = await post(await botCheck.take())
+    }
     submittedReportId.value = res.reportId
-    toast.add({
-      title: t('legal.abuse.submittedTitle'),
-      description: '',
-      icon: 'i-lucide-check',
-      color: 'neutral'
-    })
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
+    errorMessage.value = messageFor(e)
     toast.add({
-      title: 'Could not submit report',
-      description: err.data?.message ?? err.message ?? 'Try again',
+      title: t('legal.abuse.errors.title'),
+      description: errorMessage.value,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -127,19 +171,21 @@ async function onSubmit(): Promise<void> {
         </h1>
         <p class="mt-3 text-sm text-muted">
           {{ t('legal.abuse.intro') }}
-          Read the
-          <NuxtLink
-            to="/legal/abuse-policy"
-            class="underline"
+          <i18n-t
+            keypath="legal.abuse.policyHint"
+            tag="span"
+            scope="global"
           >
-            abuse and illegal-content policy
-          </NuxtLink>
-          for what we act on and how we triage.
+            <template #policy>
+              <NuxtLink
+                to="/legal/abuse-policy"
+                class="underline"
+              >{{ t('legal.abuse.policyLink') }}</NuxtLink>
+            </template>
+          </i18n-t>
         </p>
       </header>
 
-      <!-- Submitted state. Shows the report id so the user has a
-           reference number if they need to follow up. -->
       <div
         v-if="submittedReportId"
         class="border border-default rounded-lg p-6 text-center"
@@ -153,34 +199,53 @@ async function onSubmit(): Promise<void> {
           {{ t('legal.abuse.submittedTitle') }}
         </h2>
         <p class="text-sm text-muted mb-3">
-          {{ t('legal.abuse.submittedBody') }}
+          {{ reporterEmail.trim() ? t('legal.abuse.submittedBodyEmail') : t('legal.abuse.submittedBody') }}
         </p>
         <p class="font-mono text-xs text-muted">
-          Reference: {{ submittedReportId }}
+          {{ t('legal.abuse.reference', { id: submittedReportId }) }}
         </p>
       </div>
 
-      <!-- Form. -->
+      <div
+        v-else-if="needsSignIn"
+        class="border border-default rounded-lg p-6 text-sm text-muted space-y-3"
+        data-testid="abuse-report-signin"
+      >
+        <p>{{ t('legal.abuse.signInRequired') }}</p>
+        <UButton
+          v-if="primaryLoginPath"
+          :to="primaryLoginPath"
+          external
+          color="neutral"
+        >
+          {{ t('legal.abuse.signIn') }}
+        </UButton>
+      </div>
+
       <form
         v-else
-        class="space-y-4"
+        class="space-y-5"
         data-testid="abuse-report-form"
         @submit.prevent="onSubmit"
       >
         <div>
           <label
-            for="abuse-doc-id"
-            class="block text-sm mb-2"
+            for="abuse-url"
+            class="block text-sm mb-1"
           >
-            {{ t('legal.abuse.docIdLabel') }}
+            {{ t('legal.abuse.urlLabel') }}
           </label>
+          <p class="text-xs text-muted mb-2">
+            {{ t('legal.abuse.urlHelp') }}
+          </p>
           <UInput
-            id="abuse-doc-id"
-            v-model="docId"
-            placeholder="markoto.app/d/abc123… (or leave blank for platform-wide)"
+            id="abuse-url"
+            v-model="contentUrl"
+            :maxlength="REPORT_URL_MAX"
+            placeholder="https://markoto.app/d/…"
             class="w-full font-mono"
             :ui="{ base: 'w-full' }"
-            data-testid="abuse-form-docid"
+            data-testid="abuse-form-url"
           />
         </div>
         <div>
@@ -193,7 +258,7 @@ async function onSubmit(): Promise<void> {
           <USelect
             id="abuse-category"
             v-model="category"
-            :items="CATEGORIES"
+            :items="categories"
             value-key="value"
             class="w-full"
             data-testid="abuse-form-category"
@@ -202,24 +267,96 @@ async function onSubmit(): Promise<void> {
         <div>
           <label
             for="abuse-body"
-            class="block text-sm mb-2"
+            class="block text-sm mb-1"
           >
             {{ t('legal.abuse.bodyLabel') }}
           </label>
+          <p class="text-xs text-muted mb-2">
+            {{ t('legal.abuse.bodyHelp') }}
+          </p>
           <UTextarea
             id="abuse-body"
             v-model="reportBody"
             :placeholder="t('legal.abuse.bodyPlaceholder')"
             :rows="6"
+            :maxlength="REPORT_BODY_MAX"
             class="w-full"
             :ui="{ base: 'w-full' }"
             data-testid="abuse-form-body"
           />
           <p class="text-xs text-muted mt-1 font-mono">
-            {{ reportBody.trim().length }} / 5000
+            {{ reportBody.trim().length }} / {{ REPORT_BODY_MAX }}
           </p>
         </div>
-        <div class="flex justify-end pt-2">
+
+        <fieldset class="grid gap-4 sm:grid-cols-2">
+          <legend class="text-sm mb-1 sm:col-span-2">
+            {{ t('legal.abuse.contactLegend') }}
+            <span class="block text-xs text-muted mt-0.5">
+              {{ contactOptional ? t('legal.abuse.contactOptionalCsam') : t('legal.abuse.contactHelp') }}
+            </span>
+          </legend>
+          <div>
+            <label
+              for="abuse-name"
+              class="block text-xs text-muted mb-1"
+            >{{ t('legal.abuse.nameLabel') }}</label>
+            <UInput
+              id="abuse-name"
+              v-model="reporterName"
+              :maxlength="REPORTER_NAME_MAX"
+              autocomplete="name"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="abuse-form-name"
+            />
+          </div>
+          <div>
+            <label
+              for="abuse-email"
+              class="block text-xs text-muted mb-1"
+            >{{ t('legal.abuse.emailLabel') }}</label>
+            <UInput
+              id="abuse-email"
+              v-model="reporterEmail"
+              type="email"
+              autocomplete="email"
+              class="w-full"
+              :ui="{ base: 'w-full' }"
+              data-testid="abuse-form-email"
+            />
+          </div>
+        </fieldset>
+
+        <UCheckbox
+          v-model="goodFaith"
+          :label="t('legal.abuse.goodFaith')"
+          data-testid="abuse-form-good-faith"
+        />
+
+        <p
+          v-if="!loggedIn"
+          class="font-mono text-[10.5px] tracking-wide text-muted flex items-center gap-1.5"
+          aria-live="polite"
+          data-testid="abuse-form-botcheck"
+        >
+          <UIcon
+            :name="botCheck.solving.value ? 'i-lucide-loader' : 'i-lucide-shield-check'"
+            class="size-3.5"
+            :class="{ 'animate-spin': botCheck.solving.value }"
+          />
+          {{ botCheck.solving.value ? t('anonGate.botCheckRunning') : t('anonGate.botCheckReady') }}
+        </p>
+
+        <p
+          v-if="errorMessage"
+          class="text-sm text-error"
+          role="alert"
+        >
+          {{ errorMessage }}
+        </p>
+
+        <div class="flex justify-end pt-1">
           <UButton
             type="submit"
             color="neutral"

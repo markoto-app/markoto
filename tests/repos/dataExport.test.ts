@@ -57,6 +57,7 @@ describe('buildExportZip', () => {
     const names = entryNames(result.bytes)
     expect(names).toEqual([
       'README.txt',
+      'abuse_reports.ndjson',
       'activity.ndjson',
       'ai/edit-provenance.ndjson',
       'ai/messages.ndjson',
@@ -67,6 +68,7 @@ describe('buildExportZip', () => {
       'billing/invoices.ndjson',
       'comments.ndjson',
       'consent.ndjson',
+      'moderation_notices.ndjson',
       'profile.json',
       'themes.json',
       'waitlist.ndjson',
@@ -99,6 +101,58 @@ describe('buildExportZip', () => {
     expect(profile).not.toHaveProperty('oidcSubject')
     expect(profile.oidcLinked).toBe(false)
     expect(profile.oidcIssuer).toBeNull()
+  })
+
+  it('includes the reports the user filed and the notices sent to them, never moderator notes or the owner\'s data', async () => {
+    const reporter = await createUser({ name: 'Rita', email: 'rita@example.org' })
+    const owner = await createUser({ name: 'Owner', email: 'owner@example.org' })
+    const db = testDb()
+    await db.query(
+      `INSERT INTO abuse_reports (report_id, doc_id, content_url, reporter_user_id, reporter_email, reporter_name, reporter_locale,
+         good_faith_confirmed_at, category, body, status, notes, actioned_by, decision_action, decision_rule, decision_explanation, actioned_at)
+       VALUES ('rep-mine', 'doc-x', 'https://markoto.app/d/doc-x', $1, 'rita@example.org', 'Rita', 'de', NOW(),
+         'spam', 'Scam page selling fake watches.', 'actioned', 'INTERNAL moderator note', $2, 'content_removed', 'spam_or_seo', 'Removed as spam.', NOW()),
+       ('rep-other', 'doc-y', 'https://markoto.app/d/doc-y', $2, 'owner@example.org', 'Owner', 'en', NOW(), 'spam', 'Someone else reported this.', 'open', NULL, NULL, NULL, NULL, NULL, NULL)`,
+      [reporter.id, owner.id]
+    )
+    await db.query(
+      `INSERT INTO moderation_notices (notice_id, report_id, kind, recipient_role, recipient_user_id, status, locale, subject, body)
+       VALUES ('ntc-1', 'rep-mine', 'receipt', 'reporter', $1, 'sent', 'de', 'Wir haben Ihre Meldung erhalten', 'receipt body'),
+              ('ntc-2', 'rep-mine', 'decision', 'reporter', $1, 'sent', 'de', 'Entscheidung', 'decision body'),
+              ('ntc-3', 'rep-mine', 'statement_of_reasons', 'owner', $2, 'sent', 'en', 'We removed one of your documents', 'statement body for the OWNER')`,
+      [reporter.id, owner.id]
+    )
+
+    const mine = await buildExportZip(reporter.id)
+    const raw = readEntry(mine.bytes, 'abuse_reports.ndjson')
+    expect(raw).not.toContain('INTERNAL moderator note')
+    expect(raw).not.toContain('statement body for the OWNER')
+    expect(raw).not.toContain('Someone else reported this')
+    const rows = raw.trim().split('\n').map(l => JSON.parse(l))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      reportId: 'rep-mine',
+      contentUrl: 'https://markoto.app/d/doc-x',
+      reporterName: 'Rita',
+      reporterEmail: 'rita@example.org',
+      status: 'actioned',
+      decision: { action: 'content_removed', rule: 'spam_or_seo', explanation: 'Removed as spam.' }
+    })
+    expect(Object.keys(rows[0])).not.toContain('notes')
+    expect(Object.keys(rows[0])).not.toContain('actionedBy')
+    expect(rows[0].noticesSentToYou.map((n: { kind: string }) => n.kind)).toEqual(['receipt', 'decision'])
+    expect(mine.counts.abuseReports).toBe(1)
+    expect(readEntry(mine.bytes, 'moderation_notices.ndjson')).toBe('')
+
+    // The owner sees the statement of reasons they got, nothing of the reporter.
+    const theirs = await buildExportZip(owner.id)
+    const notices = readEntry(theirs.bytes, 'moderation_notices.ndjson').trim().split('\n').map(l => JSON.parse(l))
+    expect(notices).toEqual([expect.objectContaining({ kind: 'statement_of_reasons', body: 'statement body for the OWNER', reference: 'rep-mine' })])
+    expect(JSON.stringify(notices)).not.toContain('rita@example.org')
+    expect(theirs.counts.moderationNotices).toBe(1)
+    // Their own (open) report is in their abuse_reports, without notices.
+    const ownRows = readEntry(theirs.bytes, 'abuse_reports.ndjson').trim().split('\n').map(l => JSON.parse(l))
+    expect(ownRows.map((r: { reportId: string }) => r.reportId)).toEqual(['rep-other'])
   })
 
   it('reports a linked OIDC identity by issuer, never by subject', async () => {

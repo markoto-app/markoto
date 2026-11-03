@@ -35,9 +35,9 @@ the browser that created them: markoto remembers that browser with a
 small cookie. Anyone with the link can still edit an anonymous doc
 (they're open-edit by default), but they can't delete it. If you clear
 your cookies or switch browsers, you can no longer delete the doc
-yourself; unused anonymous docs are cleaned up automatically after a
-long period of inactivity. To keep full control over a doc, sign in
-before you create it.
+yourself; anonymous docs are deleted automatically after 30 days
+without activity. To keep full control over a doc, sign in before you
+create it.
 
 ## What's next
 

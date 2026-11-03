@@ -61,4 +61,58 @@ describe('legal wording', () => {
       }
     }
   })
+
+  // Claims the code does not back. Each was in an earlier draft.
+  it('makes no claims the product does not back (authoritative English)', () => {
+    const privacy = read('privacy', 'en')
+    // Accounts have no passwords (OAuth only); only document passwords use scrypt.
+    expect(privacy).not.toMatch(/scrypt password hashing/i)
+    // No analytics or session replay is loaded, and there is no cookie banner.
+    expect(privacy).not.toMatch(/with your consent, which you can grant or withdraw/i)
+    expect(privacy).toMatch(/no analytics, no session replay/i)
+    // The age rule is 16 everywhere, not "16 in most EU states".
+    for (const { slug } of DOCS) {
+      expect(read(slug, 'en')).not.toMatch(/most EU member states/i)
+    }
+    // Anonymous documents: 30 days without activity.
+    expect(read('terms', 'en')).toMatch(/\*\*30 days\*\*/)
+    expect(privacy).toMatch(/deleted automatically after \*\*30 days\*\* without activity/)
+    expect(privacy).not.toMatch(/180 days without activity/)
+  })
+
+  // The periods the retention sweeps enforce (server/utils/legalRetentionSweep.ts).
+  it('states the audit-log and abuse-report retention the sweeps enforce', () => {
+    const privacy = read('privacy', 'en')
+    expect(privacy).toMatch(/Entries are deleted automatically after \*\*2 years\*\*/)
+    expect(privacy).toMatch(/delete it, with these notices, \*\*1 year after the case is closed\*\*/)
+    expect(privacy).not.toMatch(/Entries are currently not deleted automatically/i)
+    expect(read('dpa', 'en')).toMatch(/Entries are deleted automatically after 2 years/)
+    expect(read('abuse-policy', 'en')).toMatch(/delete it 1 year after it is closed/)
+  })
+
+  it('lists the anonymous terms cookie and no third-party font or CDN hosts', () => {
+    const privacy = read('privacy', 'en')
+    expect(privacy).toMatch(/`markoto-anon-terms`/)
+    for (const { slug } of DOCS) {
+      for (const locale of LEGAL_DOCUMENT_LOCALES) {
+        const text = read(slug, locale)
+        expect(text).not.toMatch(/Google Fonts|jsDelivr/)
+        expect(text).not.toMatch(/SameSite=Strict/)
+      }
+    }
+  })
+
+  it('terms carry an acceptable-use section reachable from the terms link', () => {
+    const terms = read('terms', 'en')
+    expect(terms).toMatch(/^## 6\. Acceptable use$/m)
+    for (const topic of [/phishing/i, /spam/i, /malware/i, /scrapers/i, /CDN/, /prompt injection/i, /Impersonate/i, /special categories/i]) {
+      expect(terms).toMatch(topic)
+    }
+  })
+
+  it('the liability cap is a fixed amount, not the (zero) fees paid', () => {
+    const terms = read('terms', 'en')
+    expect(terms).toMatch(/CHF 100/)
+    expect(terms).not.toMatch(/fees you paid us/i)
+  })
 })

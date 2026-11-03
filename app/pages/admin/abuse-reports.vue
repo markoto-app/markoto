@@ -13,9 +13,24 @@
 // Backwards transitions (closed → open) are intentionally NOT
 // supported — see the endpoint comment.
 
+import { MODERATION_RULES, isModerationRule, type ModerationRule } from '~~/shared/config/moderation'
+
+interface ModerationNotice {
+  kind: 'receipt' | 'decision' | 'statement_of_reasons'
+  recipientRole: 'reporter' | 'owner'
+  status: 'sent' | 'not_delivered_no_contact' | 'failed'
+  subject: string
+  body: string
+  createdAt: string
+}
+
 interface AbuseReport {
   reportId: string
   docId: string | null
+  contentUrl: string | null
+  goodFaithConfirmedAt: string | null
+  decision: { action: string, rule: string | null, explanation: string | null } | null
+  notices: ModerationNotice[]
   category: string
   body: string
   status: 'open' | 'acknowledged' | 'actioned' | 'dismissed'
@@ -29,6 +44,7 @@ interface AbuseReport {
     name: string | null
     email: string | null
     stillExists: boolean
+    signedIn: boolean
   } | null
   actionedBy: { userId: number, name: string | null, email: string | null } | null
 }
@@ -59,6 +75,47 @@ const filter = ref<'open' | 'acknowledged' | 'actioned' | 'dismissed' | 'open+ac
 const reports = ref<AbuseReport[]>([])
 const loading = ref(false)
 const noteDrafts = ref<Record<string, string>>({})
+// Decision drafts per report. The explanation and rule are SENT (to the
+// reporter, and to the owner as the statement of reasons) — unlike notes.
+interface DecisionDraft {
+  action: 'content_removed' | 'access_restricted'
+  rule: ModerationRule
+  explanation: string
+}
+const decisionDrafts = ref<Record<string, DecisionDraft>>({})
+function draftFor(reportId: string): DecisionDraft {
+  decisionDrafts.value[reportId] ??= { action: 'content_removed', rule: 'illegal_content', explanation: '' }
+  return decisionDrafts.value[reportId]
+}
+const RULE_LABEL: Record<ModerationRule, string> = {
+  illegal_content: 'Illegal content',
+  csam: 'Child sexual abuse material',
+  phishing_or_fraud: 'Phishing, scams or fraud',
+  malware: 'Malware or harmful downloads',
+  spam_or_seo: 'Spam or search-engine manipulation',
+  copyright: 'Copyright / IP infringement',
+  harassment_or_hate: 'Harassment, threats or hate speech',
+  privacy_violation: 'Other people\'s personal data',
+  other_terms: 'Other breach of the Terms'
+}
+function ruleLabel(rule: string): string {
+  return isModerationRule(rule) ? RULE_LABEL[rule] : rule
+}
+const RULE_OPTIONS = MODERATION_RULES.map(value => ({ value, label: RULE_LABEL[value] }))
+const ACTION_OPTIONS = [
+  { value: 'content_removed', label: 'Remove the document' },
+  { value: 'access_restricted', label: 'Restrict (set private)' }
+] as const
+const NOTICE_LABEL: Record<ModerationNotice['kind'], string> = {
+  receipt: 'Receipt → reporter',
+  decision: 'Decision → reporter',
+  statement_of_reasons: 'Statement of reasons → owner'
+}
+const NOTICE_STATUS_LABEL: Record<ModerationNotice['status'], string> = {
+  sent: 'sent',
+  not_delivered_no_contact: 'not delivered — no contact',
+  failed: 'failed'
+}
 const acting = ref<Record<string, boolean>>({})
 
 async function refresh(): Promise<void> {
@@ -100,11 +157,21 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
   if (acting.value[reportId]) return
   acting.value[reportId] = true
   try {
+    const draft = draftFor(reportId)
     await $fetch(`/api/admin/abuse-reports/${reportId}`, {
       method: 'PATCH',
       body: {
         status,
-        notes: (noteDrafts.value[reportId] ?? '').trim() || undefined
+        notes: (noteDrafts.value[reportId] ?? '').trim() || undefined,
+        ...(status === 'acknowledged'
+          ? {}
+          : {
+              decision: {
+                action: status === 'actioned' ? draft.action : 'no_action',
+                rule: draft.rule,
+                explanation: draft.explanation.trim()
+              }
+            })
       }
     })
     toast.add({
@@ -116,10 +183,9 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
     noteDrafts.value[reportId] = ''
     await refresh()
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: `Could not ${status} report`,
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: fetchErrorMessage(e) ?? 'Unknown error',
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -300,6 +366,13 @@ const FILTER_OPTIONS = [
               </span>
             </div>
             <div
+              v-if="report.contentUrl"
+              class="text-sm break-all"
+            >
+              <span class="font-mono text-[11px] uppercase tracking-wider text-muted mr-2">Reported:</span>
+              <span class="font-mono">{{ report.contentUrl }}</span>
+            </div>
+            <div
               v-if="report.docId"
               class="text-sm"
             >
@@ -329,6 +402,56 @@ const FILTER_OPTIONS = [
               </p>
             </div>
 
+            <p
+              class="text-xs text-muted font-mono"
+            >
+              {{ report.reporter?.signedIn ? 'signed-in reporter' : 'reporter not signed in' }}
+              · good-faith statement {{ report.goodFaithConfirmedAt ? 'confirmed' : '— (legacy report)' }}
+            </p>
+
+            <div
+              v-if="report.decision"
+              class="text-xs border-t border-default pt-2 mt-2 space-y-1"
+              data-testid="admin-report-decision"
+            >
+              <p class="font-mono uppercase tracking-wider text-muted">
+                Decision
+              </p>
+              <p>
+                {{ report.decision.action }}<template v-if="report.decision.rule">
+                  · {{ ruleLabel(report.decision.rule) }}
+                </template>
+              </p>
+              <p class="text-muted whitespace-pre-wrap">
+                {{ report.decision.explanation }}
+              </p>
+            </div>
+
+            <details
+              v-if="report.notices.length > 0"
+              class="text-xs border-t border-default pt-2 mt-2"
+              data-testid="admin-report-notices"
+            >
+              <summary class="font-mono uppercase tracking-wider text-muted cursor-pointer">
+                Notices ({{ report.notices.length }})
+              </summary>
+              <ul class="mt-2 space-y-2">
+                <li
+                  v-for="(notice, i) in report.notices"
+                  :key="i"
+                  :data-testid="`admin-notice-${notice.kind}`"
+                >
+                  <p class="font-mono text-muted">
+                    {{ NOTICE_LABEL[notice.kind] }} · {{ NOTICE_STATUS_LABEL[notice.status] }} · {{ fmtDate(notice.createdAt) }}
+                  </p>
+                  <p class="font-medium">
+                    {{ notice.subject }}
+                  </p>
+                  <pre class="whitespace-pre-wrap font-sans text-muted">{{ notice.body }}</pre>
+                </li>
+              </ul>
+            </details>
+
             <div
               v-if="report.actionedBy"
               class="text-xs text-muted font-mono"
@@ -344,6 +467,30 @@ const FILTER_OPTIONS = [
               v-if="report.status === 'open' || report.status === 'acknowledged'"
               class="border-t border-default pt-3 space-y-2"
             >
+              <div class="grid gap-2 sm:grid-cols-2">
+                <USelect
+                  v-model="draftFor(report.reportId).action"
+                  :items="[...ACTION_OPTIONS]"
+                  value-key="value"
+                  class="w-full"
+                  data-testid="admin-decision-action"
+                />
+                <USelect
+                  v-model="draftFor(report.reportId).rule"
+                  :items="RULE_OPTIONS"
+                  value-key="value"
+                  class="w-full"
+                  data-testid="admin-decision-rule"
+                />
+              </div>
+              <UTextarea
+                v-model="draftFor(report.reportId).explanation"
+                placeholder="Explanation (SENT to the reporter, and to the owner as the statement of reasons when you remove or restrict)"
+                :rows="3"
+                class="w-full"
+                :ui="{ base: 'w-full' }"
+                data-testid="admin-decision-explanation"
+              />
               <UTextarea
                 v-model="noteDrafts[report.reportId]"
                 placeholder="Notes (optional, internal — added to the audit trail)"

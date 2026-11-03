@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { createAnonDoc } from './_helpers'
+import { smokeDoc } from './_helpers'
 
 // Baseline "the app actually works" smoke: an anonymous doc loads, the
 // CodeMirror editor mounts, edits enter the buffer, and the live paged.js
 // preview (in the srcdoc iframe) actually paginates. A blank preview would
-// mean the CDN/render pipeline is broken.
+// mean the vendored-asset/render pipeline is broken.
 test('anonymous doc loads, editor mounts, live preview paginates', async ({ page }) => {
-  const docId = await createAnonDoc()
+  // Shared run document (globalSetup.ts) — never a new one per attempt.
+  const docId = smokeDoc('blank')
   await page.goto(`/d/${docId}`)
 
   await expect(page.locator('.cm-editor')).toBeVisible()
@@ -19,7 +20,7 @@ test('anonymous doc loads, editor mounts, live preview paginates', async ({ page
   await expect(page.locator('.cm-content')).toContainText('SMOKE_MARKER_42')
 
   // Live preview paginates (desktop default view is split, so the iframe is
-  // mounted). At least one paged.js page = the CDN + render pipeline is alive.
+  // mounted). At least one paged.js page = the /vendor/ assets + render pipeline are alive.
   const preview = page.frameLocator('iframe')
   await expect(preview.locator('.pagedjs_page').first()).toBeVisible({ timeout: 45_000 })
 })

@@ -13,6 +13,7 @@ nuxt_jwt_secret=v_jwt
 nuxt_internal_api_secret=v_internal
 nuxt_jwt_secret_previous=v_jwt_prev
 nuxt_internal_api_secret_previous=v_internal_prev
+nuxt_altcha_hmac_key=v_altcha
 postgres_user=v_pguser
 postgres_password=v_pgpw
 postgres_db=v_pgdb
