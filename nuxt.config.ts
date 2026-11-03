@@ -280,6 +280,13 @@ export default defineNuxtConfig({
     // logged server-side regardless. Belt-and-braces against pg
     // errors / drizzle queries leaking to the wire.
     errorHandler: '~~/server/error.ts',
+    // Ship .gz + .br siblings of every compressible public asset (JS,
+    // CSS, JSON, SVG) and let Nitro's static handler serve them by
+    // Accept-Encoding. Nothing in front of the app compresses (Traefik
+    // has no compress middleware), so without this the ~1.5 MB of
+    // client JS went over the wire raw — the product page's first-view
+    // budget (WP11) is unreachable that way.
+    compressPublicAssets: true,
     // Native WebSocket route support for `/api/ai/dictate` (voice
     // dictation relay to Mistral Voxtral Realtime). Other WS traffic
     // (Hocuspocus Y.js sync) flows through its own standalone container,

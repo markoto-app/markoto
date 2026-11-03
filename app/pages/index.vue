@@ -8,6 +8,25 @@ const { loggedIn } = useUserSession()
 const { billing, workspaceCapReached } = useBilling()
 
 const toast = useToast()
+
+// Hosted markoto.app shows the scroll-driven product page to logged-out
+// visitors (NUXT_PRODUCT_TOUR_ENABLED, WP11); everyone else gets the
+// plain hero + dashboard below.
+const { productTour } = useInstanceConfig()
+const showTour = computed(() => productTour.value && !loggedIn.value)
+// The tour's colours (useTourTone): it starts light and turns dark while
+// scrolling (ProductTour.vue). Only a choice made with this page's toggle
+// during this visit switches the flip off — a colour mode stored earlier
+// doesn't (Nuxt's toggle only ever stores light/dark, so one old click
+// would disable the flip for good). The toggle shows and flips what is on
+// screen, and stores the choice for the rest of the app too.
+const colorMode = useColorMode()
+const { mode: tourTone, dark: tourDark, shownDark: tourShownDark } = useTourTone()
+function toggleTourTone(): void {
+  const next = tourShownDark.value ? 'light' : 'dark'
+  tourTone.value = next
+  colorMode.preference = next
+}
 const { providerName } = useLoginOptions()
 const { showContextualError } = useErrorHandler()
 
@@ -257,7 +276,10 @@ function onRowLongPress(doc: DocumentListItem) {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col">
+  <div
+    class="min-h-screen flex flex-col"
+    :class="showTour ? ['mk-tour-page', `mk-tour-page--${tourTone}`, { 'is-dark': tourTone === 'auto' && tourDark }] : []"
+  >
     <!-- Header. The brand lockup is the wordmark + seal — the seal is
          the in-product AI presence indicator AND the standalone brand
          mark, so the dashboard shows the lockup rather than a generic
@@ -272,19 +294,44 @@ function onRowLongPress(doc: DocumentListItem) {
       </NuxtLink>
       <div class="flex items-center gap-2">
         <AuthUserMenu />
-        <UColorModeButton />
+        <UButton
+          v-if="showTour"
+          color="neutral"
+          variant="ghost"
+          class="mk-tone-toggle"
+          :icon="tourShownDark ? 'i-lucide-sun' : 'i-lucide-moon'"
+          :aria-label="tourShownDark ? t('tour.tone.toLight') : t('tour.tone.toDark')"
+          data-testid="tour-tone-toggle"
+          @click="toggleTourTone"
+        />
+        <UColorModeButton v-else />
       </div>
     </header>
 
     <!-- Hero. Editorial register from the homepage mockup —
          Fraunces weight 300 display, italic-400 emphasis on the
-         brand's loadbearing word ("craft"), Inter lede capped at
+         brand's loadbearing word ("Markdown"), Inter lede capped at
          34ch. -->
-    <main class="flex-1 flex flex-col items-center px-4 sm:px-6 py-10 sm:py-20">
+    <LandingProductTour
+      v-if="showTour"
+      class="flex-1"
+      @start="createDocument"
+    />
+    <main
+      v-else
+      class="flex-1 flex flex-col items-center px-4 sm:px-6 py-10 sm:py-20"
+    >
       <div class="max-w-2xl text-center space-y-5 sm:space-y-7">
-        <h1 class="font-serif text-[34px] sm:text-5xl md:text-6xl font-light tracking-tight leading-[1.06] sm:leading-[1.04]">
-          Rethinking the <em class="italic font-normal">craft</em> of writing.
-        </h1>
+        <i18n-t
+          keypath="landing.hero"
+          tag="h1"
+          scope="global"
+          class="font-serif text-[34px] sm:text-5xl md:text-6xl font-light tracking-tight leading-[1.06] sm:leading-[1.04]"
+        >
+          <template #markdown>
+            <em class="italic font-normal">{{ t('landing.heroMarkdown') }}</em>
+          </template>
+        </i18n-t>
         <p class="text-[14px] leading-[1.65] text-muted max-w-[34ch] mx-auto">
           {{ t('landing.subtitle') }}
         </p>
@@ -447,14 +494,6 @@ function onRowLongPress(doc: DocumentListItem) {
         </div>
       </div>
 
-      <!-- New-document dialog. Standalone (no workspace) on the home
-           page; the workspace page passes its own workspaceId in. -->
-      <DocumentNewDocumentDialog
-        v-model:open="showNewDocDialog"
-        :workspace-id="null"
-        @created="onDocCreated"
-      />
-
       <!-- Delete confirmation (shared across all doc rows) -->
       <DocumentDeleteConfirmModal
         v-if="deleteTarget"
@@ -502,6 +541,15 @@ function onRowLongPress(doc: DocumentListItem) {
         />
       </div>
     </main>
+
+    <!-- New-document dialog. Standalone (no workspace) on the home
+         page; the workspace page passes its own workspaceId in. Outside
+         <main> so the product tour's "Start writing" opens it too. -->
+    <DocumentNewDocumentDialog
+      v-model:open="showNewDocDialog"
+      :workspace-id="null"
+      @created="onDocCreated"
+    />
 
     <CommonLegalFooter />
   </div>

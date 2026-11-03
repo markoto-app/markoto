@@ -13,6 +13,7 @@ const EXPECTED_KEYS: string[] = [
   // Consent banner
   'legal.consent.banner.title',
   'legal.consent.banner.intro',
+  'legal.consent.banner.introShort',
   'legal.consent.banner.essentialNotice',
   'legal.consent.banner.acceptAll',
   'legal.consent.banner.rejectAll',

@@ -4,7 +4,8 @@ import {
   loginPath,
   resolveInstanceConfig,
   resolveLegalSurfacesEnabled,
-  resolveLoginProviders
+  resolveLoginProviders,
+  resolveProductTourEnabled
 } from '../../shared/config/instance'
 import {
   abuseNotificationRecipient,
@@ -79,6 +80,13 @@ describe('resolveInstanceConfig', () => {
       .toMatchObject({ legalSurfaces: true, operatorName: 'LatentSpace Labs GmbH' })
     expect(resolveInstanceConfig({ NUXT_LEGAL_SURFACES_ENABLED: '1', NUXT_LEGAL_CONTROLLER_NAME: 'Acme AG' }).operatorName)
       .toBe('Acme AG')
+  })
+
+  it('product tour is off unless NUXT_PRODUCT_TOUR_ENABLED is truthy (hosted only)', () => {
+    expect(resolveInstanceConfig({}).productTour).toBe(false)
+    expect(resolveProductTourEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'nope' })).toBe(false)
+    expect(resolveProductTourEnabled({ NUXT_PRODUCT_TOUR_ENABLED: ' TRUE ' })).toBe(true)
+    expect(resolveInstanceConfig({ NUXT_PRODUCT_TOUR_ENABLED: '1' }).productTour).toBe(true)
   })
 })
 

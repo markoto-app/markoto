@@ -5,8 +5,9 @@
     "offline": "Vous êtes hors ligne — les modifications restent locales jusqu'à votre reconnexion."
   },
   "landing": {
-    "hero": "Repenser l'art de l'écriture.",
-    "subtitle": "Un éditeur markdown collaboratif avec synchronisation en direct, assistance IA et gestion complète des documents.",
+    "hero": "Du {markdown}, joliment mis en page.",
+    "heroMarkdown": "Markdown",
+    "subtitle": "Un éditeur Markdown collaboratif avec un aperçu paginé en direct. Écrivez du texte brut ; exportez un PDF identique à l’aperçu, page pour page.",
     "newDocument": "Nouveau document",
     "openDocument": "Ouvrir un document",
     "recentDocuments": "Documents récents",
@@ -1100,6 +1101,7 @@
       "banner": {
         "title": "Vos choix de confidentialité",
         "intro": "Nous utilisons des cookies et technologies similaires pour faire fonctionner markoto et, avec votre consentement, pour comprendre comment il est utilisé. Vous pouvez modifier ou retirer votre consentement à tout moment depuis le badge de confidentialité en pied de page.",
+        "introShort": "Les cookies font fonctionner markoto ; nous ne mesurons l’usage qu’avec votre consentement, modifiable à tout moment.",
         "essentialNotice": "Le stockage essentiel est toujours activé — sans lui, markoto ne peut pas vous garder connecté ni mémoriser vos préférences.",
         "acceptAll": "Tout accepter",
         "rejectAll": "Tout refuser",
@@ -1455,6 +1457,91 @@
     "cta": {
       "promptBar": "Ajoutez votre clé d'API dans les réglages pour utiliser l'assistant d'IA",
       "openSettings": "Ouvrir les réglages du fournisseur d'IA"
+    }
+  },
+  "tour": {
+    "label": "Visite du produit",
+    "hero": {
+      "title": "Du {markdown}, joliment mis en page.",
+      "markdown": "Markdown",
+      "body": "Un éditeur Markdown collaboratif avec un aperçu paginé en direct. Écrivez du texte brut ; exportez un PDF identique à l’aperçu, page pour page.",
+      "cta": "Commencer à écrire — sans inscription",
+      "scroll": "Faites défiler pour voir comment ça marche"
+    },
+    "scenes": {
+      "write": {
+        "label": "Éditeur",
+        "title": "Écrivez du Markdown, obtenez des pages.",
+        "body": "Tapez à gauche ; à droite, le texte se met en pages au format A4 ou Letter au fil de la frappe."
+      },
+      "rich": {
+        "label": "Mise en page",
+        "title": "En-têtes, pieds de page et numéros de page.",
+        "body": "Réglés une fois pour toutes dans le thème. Tableaux, graphiques, diagrammes Mermaid, formules et notes de bas de page s’affichent aussi sur la page."
+      },
+      "themes": {
+        "label": "Thèmes",
+        "title": "Changez l’apparence, pas le Markdown.",
+        "body": "Choisissez l’un des sept thèmes, puis ajustez couleurs, polices et page de couverture. Votre texte reste intact."
+      },
+      "collab": {
+        "label": "Collaboration",
+        "title": "Modifiez le même document en même temps.",
+        "body": "Curseurs en direct, commentaires et mentions {'@'}. Les modifications se synchronisent instantanément : pas de bouton Enregistrer, pas de conflits de fusion."
+      },
+      "ai": {
+        "label": "IA",
+        "title": "Un assistant IA qui modifie votre Markdown.",
+        "body": "Demandez-lui de rédiger une section ou de corriger un tableau. Il écrit dans le document sous vos yeux, et chaque modification apparaît dans l’historique."
+      },
+      "knowledge": {
+        "label": "Connaissances",
+        "title": "Des réponses tirées de vos propres fichiers.",
+        "body": "Importez des fichiers PDF, Word ou Excel dans un espace de travail. L’IA y puise ses réponses au lieu de deviner."
+      },
+      "history": {
+        "label": "Historique",
+        "title": "Chaque modification, avec son diff.",
+        "body": "Voyez qui a modifié quoi, personnes comme IA, et restaurez une version antérieure en un clic."
+      },
+      "share": {
+        "label": "Partage et export",
+        "title": "Partagez un lien ou exportez un PDF.",
+        "body": "Liens en modification, en lecture seule ou protégés par mot de passe. Le PDF est identique à l’aperçu, page pour page."
+      },
+      "yours": {
+        "label": "Auto-hébergement",
+        "title": "Code source disponible, auto-hébergeable.",
+        "body": "Installez-le sur votre propre serveur avec un seul script, ou utilisez markoto.app, hébergé dans l’UE. Avec votre propre clé d’IA."
+      }
+    },
+    "chips": {
+      "byok": "Votre propre clé d’IA",
+      "eu": "Hébergé dans l’UE",
+      "oss": "Code source disponible · auto-hébergement en un script"
+    },
+    "cta": {
+      "title": "Essayez avec votre propre Markdown.",
+      "body": "Gratuit sur markoto.app, sans inscription — ou hébergez-le vous-même.",
+      "start": "Commencer à écrire",
+      "selfHost": "Auto-héberger"
+    },
+    "alt": {
+      "hero": "L’éditeur markoto avec un rapport trimestriel : le Markdown à gauche, toutes ses pages mises en page côte à côte à droite.",
+      "write": "La synthèse d’un rapport trimestriel saisie en Markdown pendant que sa page se compose en direct, puis l’aperçu recule pour montrer tout le rapport.",
+      "rich": "Un en-tête courant et un pied de page avec la date et les numéros de page sont ajoutés dans le panneau des thèmes et apparaissent sur chaque page.",
+      "themes": "Un autre modèle remet en forme le rapport, puis une nouvelle couleur d’accent, une nouvelle police de titres et une couverture soignée.",
+      "collab": "Trois personnes dans un même rapport : deux collègues écrivent dans des sections différentes, l’auteur commente et mentionne l’une d’elles, qui répond.",
+      "ai": "À partir du seul titre, l’IA rédige dans le rapport une synthèse avec un tableau des chiffres clés.",
+      "knowledge": "Une note est importée dans le panneau des connaissances et traitée, puis l’IA y répond en citant ses chiffres.",
+      "history": "Le journal d’activité avec les modifications de plusieurs personnes et de l’IA ; une modification ouverte en comparaison, puis restaurée.",
+      "share": "La boîte de partage avec le lien du document, son code QR et qui peut l’ouvrir.",
+      "sharePdf": "Les pages du PDF exporté, en éventail : la couverture, la synthèse et une page avec un graphique.",
+      "yours": "Réglages du fournisseur d’IA : l’assistant d’écriture est connecté au fournisseur de l’utilisateur et vérifié."
+    },
+    "tone": {
+      "toDark": "Passer en mode sombre",
+      "toLight": "Passer en mode clair"
     }
   }
 }

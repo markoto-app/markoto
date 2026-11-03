@@ -34,7 +34,7 @@ withDefaults(defineProps<{
   border-radius: 2px;
   flex-shrink: 0;
 }
-:global(.dark) .mk-seal {
+html.dark .mk-seal {
   background: var(--color-shu-400);
 }
 </style>

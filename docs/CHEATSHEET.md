@@ -36,6 +36,8 @@ See `docs/LOCAL.md` for the pre-push full-stack verification flow (`make local-u
 | Playwright e2e flow tests | `make test-flows` | ~10m |
 | Everything | `make test-all` | ~15m |
 
+Product-page videos (WP11, `public/tour/`): with a flow-stack app running in the hosted shape (see `tests/e2e/AGENTS.md`, AI keys exported, ffmpeg installed), `TOUR_OUTPUT_DIR=/tmp/tour bun run tour:capture` re-records + encodes every scene; `--encode` only re-encodes what was recorded.
+
 For repos / integration / flows: bring up the test stack first if it is not already: `make test-stack-up` (and `make test-stack-down` to tear down).
 
 ## I want to lint everything

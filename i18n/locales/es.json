@@ -5,8 +5,9 @@
     "offline": "Estás sin conexión — los cambios se guardan localmente hasta que te vuelvas a conectar."
   },
   "landing": {
-    "hero": "Repensando el arte de escribir.",
-    "subtitle": "Un editor de markdown colaborativo con sincronización en vivo, asistencia de IA y gestión completa de documentos.",
+    "hero": "{markdown}, bien maquetado.",
+    "heroMarkdown": "Markdown",
+    "subtitle": "Un editor de Markdown colaborativo con vista previa paginada en directo. Escribe texto plano y exporta un PDF idéntico a la vista previa, página a página.",
     "newDocument": "Nuevo documento",
     "openDocument": "Abrir documento",
     "recentDocuments": "Documentos recientes",
@@ -1100,6 +1101,7 @@
       "banner": {
         "title": "Tus opciones de privacidad",
         "intro": "Usamos cookies y tecnologías similares para mantener markoto en funcionamiento y, con tu consentimiento, para entender cómo se usa. Puedes cambiar o retirar tu consentimiento en cualquier momento desde la insignia de privacidad en el pie de página.",
+        "introShort": "Las cookies mantienen markoto en marcha; solo medimos el uso con tu consentimiento, que puedes cambiar cuando quieras.",
         "essentialNotice": "El almacenamiento esencial siempre está activo — sin él, markoto no puede mantener tu sesión iniciada ni recordar tus preferencias.",
         "acceptAll": "Aceptar todo",
         "rejectAll": "Rechazar todo",
@@ -1455,6 +1457,91 @@
     "cta": {
       "promptBar": "Añade tu clave de API en los ajustes para usar el asistente de IA",
       "openSettings": "Abrir ajustes del proveedor de IA"
+    }
+  },
+  "tour": {
+    "label": "Recorrido del producto",
+    "hero": {
+      "title": "{markdown}, bien maquetado.",
+      "markdown": "Markdown",
+      "body": "Un editor de Markdown colaborativo con vista previa paginada en directo. Escribe texto plano y exporta un PDF idéntico a la vista previa, página a página.",
+      "cta": "Empezar a escribir — sin registro",
+      "scroll": "Desplázate para ver cómo funciona"
+    },
+    "scenes": {
+      "write": {
+        "label": "Editor",
+        "title": "Escribe Markdown y obtén páginas.",
+        "body": "Escribe a la izquierda; a la derecha se maqueta al momento en páginas A4 o Letter reales."
+      },
+      "rich": {
+        "label": "Maquetación",
+        "title": "Encabezados, pies y números de página.",
+        "body": "Se configuran una vez en el tema. Las tablas, los gráficos, los diagramas Mermaid, las fórmulas y las notas al pie también aparecen en la página."
+      },
+      "themes": {
+        "label": "Temas",
+        "title": "Cambia el aspecto, no el Markdown.",
+        "body": "Elige uno de los siete temas y ajusta colores, fuentes y portada. Tu texto no se toca."
+      },
+      "collab": {
+        "label": "Colaboración",
+        "title": "Editad el mismo documento a la vez.",
+        "body": "Cursores en directo, comentarios y menciones con {'@'}. Los cambios se sincronizan al instante: sin botón de guardar ni conflictos de fusión."
+      },
+      "ai": {
+        "label": "IA",
+        "title": "Un asistente de IA que edita tu Markdown.",
+        "body": "Pídele que redacte una sección o que corrija una tabla. Escribe en el documento mientras miras, y cada cambio queda en el historial."
+      },
+      "knowledge": {
+        "label": "Conocimiento",
+        "title": "Respuestas a partir de tus archivos.",
+        "body": "Sube archivos PDF, Word o Excel a un espacio de trabajo. La IA responde a partir de ellos en lugar de adivinar."
+      },
+      "history": {
+        "label": "Historial",
+        "title": "Cada cambio, con su diff.",
+        "body": "Mira quién cambió qué, tanto personas como la IA, y restaura una versión anterior con un clic."
+      },
+      "share": {
+        "label": "Compartir y exportar",
+        "title": "Comparte un enlace o exporta un PDF.",
+        "body": "Enlaces de edición, de solo lectura o protegidos con contraseña. El PDF es idéntico a la vista previa, página a página."
+      },
+      "yours": {
+        "label": "Autoalojamiento",
+        "title": "Código fuente disponible y autoalojable.",
+        "body": "Instálalo en tu propio servidor con un solo script o usa markoto.app, alojado en la UE. Con tu propia clave de IA."
+      }
+    },
+    "chips": {
+      "byok": "Tu propia clave de IA",
+      "eu": "Alojado en la UE",
+      "oss": "Código fuente disponible · autoalojamiento con un script"
+    },
+    "cta": {
+      "title": "Pruébalo con tu propio Markdown.",
+      "body": "Gratis en markoto.app, sin registro — o alójalo tú mismo.",
+      "start": "Empezar a escribir",
+      "selfHost": "Autoalojar"
+    },
+    "alt": {
+      "hero": "El editor de markoto con un informe trimestral: Markdown a la izquierda y todas sus páginas maquetadas una junto a otra a la derecha.",
+      "write": "El resumen ejecutivo de un informe trimestral se escribe en Markdown mientras su página se maqueta en directo; luego la vista previa se aleja y muestra el informe completo.",
+      "rich": "En el panel de temas se añaden un encabezado y un pie de página con la fecha y los números de página, que aparecen en cada página.",
+      "themes": "Otro estilo predefinido rediseña el informe; después, un nuevo color de acento, una nueva fuente para los títulos y una portada diseñada.",
+      "collab": "Tres personas en un mismo informe: dos compañeras escriben en secciones distintas, el autor comenta y menciona a una de ellas, que responde.",
+      "ai": "A partir de solo el título, la IA escribe en el informe un resumen ejecutivo con una tabla de cifras clave.",
+      "knowledge": "Se sube un memorando al panel de conocimiento y se procesa; después la IA responde a partir de él citando sus cifras.",
+      "history": "El registro de actividad con cambios de varias personas y de la IA; un cambio abierto como comparación y luego restaurado.",
+      "share": "El diálogo de compartir con el enlace del documento, su código QR y quién puede abrirlo.",
+      "sharePdf": "Páginas del PDF exportado en abanico: la portada, el resumen y una página con un gráfico.",
+      "yours": "Ajustes del proveedor de IA: el asistente de escritura conectado al proveedor propio del usuario y verificado."
+    },
+    "tone": {
+      "toDark": "Cambiar a modo oscuro",
+      "toLight": "Cambiar a modo claro"
     }
   }
 }
