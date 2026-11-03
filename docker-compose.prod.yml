@@ -27,7 +27,7 @@ include:
 #   render           app <-> renderer
 #   import           app <-> markitdown
 #   egress           litellm, db-init, backup        (AI providers, managed Postgres, S3)
-#   renderer-egress  renderer alone                  (S3, CDN)
+#   renderer-egress  renderer alone                  (S3 — presigned document images)
 # With managed Postgres, app/sync reach the cluster through `web`, the
 # others through `egress`.
 networks:

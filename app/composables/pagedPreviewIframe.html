@@ -5,10 +5,13 @@
   Loaded as a raw string via ?raw and turned into the iframe's srcdoc by
   `buildPreviewSrcdoc()` (app/utils/previewFrame.ts), which substitutes the
   placeholders: the CSP nonce (every inline script carries it), the parent
-  origin, the initial dark-mode flag, and the pinned CDN URLs + SRI hashes
-  (paged.js, KaTeX CSS, Mermaid). Every CDN tag carries integrity= plus
-  crossorigin=anonymous — SRI on cross-origin resources only fires in CORS
-  mode. Mermaid is the single-file IIFE build, injected on first use with
+  origin, the initial dark-mode flag, and the pinned same-origin asset URLs
+  + SRI hashes (paged.js, KaTeX CSS, Mermaid — served under /vendor/, see
+  shared/utils/vendorAssets.ts). Every such tag carries integrity= plus
+  crossorigin=anonymous: this document's origin is opaque, so even our own
+  origin is cross-origin here, and SRI on cross-origin resources only fires
+  in CORS mode (the server answers /vendor/ with ACAO: * + CORP
+  cross-origin). Mermaid is the single-file IIFE build, injected on first use with
   its SRI hash; the highlight.js theme link gets the per-theme hash it is
   sent with each render.
 
@@ -282,7 +285,7 @@
   // ─── Stateless render helpers ─────────────────────────────────────
 
   /**
-   * Cap font wait at 1s — if Google Fonts is slow or a font name is
+   * Cap font wait at 1s — if a font file is slow or a font name is
    * unresolvable, document.fonts.ready can stall forever and wedge
    * pagination. Falls back to whatever fonts are ready by then; the
    * next render picks up late arrivals.

@@ -111,8 +111,8 @@ describe('page', () => {
 
 describe('body', () => {
   it('rejects font with CSS metacharacters (injection guard)', () => {
-    // The font name is interpolated into a Google Fonts URL
-    // (`family="..."`) and into CSS `font-family: "..."`. Quotes, angle
+    // The font name is interpolated into CSS `font-family: "..."` (and
+    // looked up in the self-hosted font registry). Quotes, angle
     // brackets, or backslashes would let a payload escape those strings.
     const t = baseTheme()
     const bad = ['Arial"; }', 'font\\escape', 'Inter<script>', '<img>', 'Inter;color:red']

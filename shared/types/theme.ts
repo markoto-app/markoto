@@ -24,10 +24,10 @@ import { isIsoDate } from '../utils/documentLocale'
 // ── Primitives ──────────────────────────────────────────────────────────
 
 /**
- * Conservative font-name pattern. Google Fonts allows letters, digits,
- * spaces. No quotes or CSS metacharacters: `themeToCss` wraps the name
- * in quotes, so a stray quote would let a payload escape the `family=`
- * URL.
+ * Conservative font-name pattern: letters, digits, spaces (every
+ * Google / Fontsource family name fits). No quotes or CSS
+ * metacharacters: `themeToCss` wraps the name in quotes, so a stray
+ * quote would let a payload escape the string.
  */
 const FONT_NAME_REGEX = /^[A-Za-z0-9 ]{1,40}$/
 
@@ -105,8 +105,8 @@ export const HeadingWeightSchema = z.union([
 export type HeadingWeight = z.infer<typeof HeadingWeightSchema>
 
 /**
- * Pre-curated highlight.js stylesheet. Maps to a single CDN URL via
- * `shared/utils/hljsCdn.ts`. Adding more is a matter of (a) adding
+ * Pre-curated highlight.js stylesheet. Maps to a single same-origin /vendor/ URL via
+ * `shared/utils/hljsAssets.ts`. Adding more is a matter of (a) adding
  * the variant here, (b) extending the URL map, (c) adding an i18n
  * label.
  */

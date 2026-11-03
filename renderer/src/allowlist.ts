@@ -9,13 +9,11 @@
 // origin set built here; anything else is aborted.
 //
 // Pure module (no Playwright import) so it is unit-testable from tests/unit.
-
-/** CDN hosts the print page loads: paged.js / mermaid / hljs / KaTeX (jsDelivr) and Google Fonts. */
-export const DEFAULT_CDN_ORIGINS: readonly string[] = [
-  'https://cdn.jsdelivr.net',
-  'https://fonts.googleapis.com',
-  'https://fonts.gstatic.com'
-]
+//
+// No third-party origin is allowed by default: paged.js, Mermaid, KaTeX,
+// highlight.js and the web fonts are served by the app itself under
+// /vendor/ (shared/utils/vendorAssets.ts), so the print page needs only
+// the app origin + the S3 host its images point at.
 
 export interface AllowlistEnv {
   APP_URL?: string
@@ -44,11 +42,10 @@ export function originOf(value: string): string | null {
  *   - the host presigned image URLs point at: `S3_PUBLIC_ENDPOINT` when set
  *     (self-host: S3 is reached internally but published under the public
  *     origin), else `S3_ENDPOINT` (hosted: same external URL on both sides),
- *   - the pinned CDN hosts,
  *   - operator extras from `RENDERER_ALLOWED_ORIGINS` (comma-separated origins).
  */
 export function buildAllowedOrigins(env: AllowlistEnv): Set<string> {
-  const origins = new Set<string>(DEFAULT_CDN_ORIGINS)
+  const origins = new Set<string>()
   const candidates = [
     env.APP_URL ?? '',
     env.S3_PUBLIC_ENDPOINT || env.S3_ENDPOINT || '',

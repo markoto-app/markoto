@@ -4,23 +4,21 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { THEME_FONTS } from '~~/shared/utils/themeFonts'
+import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { TEMPLATES } from '~~/shared/templates'
 
-// Same trick as ThemeEditorPanel — pull every picker font in a single
-// Google Fonts request so each preset card can render its heading in
-// its actual font face. Otherwise we'd see "Modern" / "Academic Paper"
-// / etc. all in the system fallback and lose the visual signal.
+// Same trick as ThemeEditorPanel — link every picker font's (same-origin)
+// stylesheet so each preset card can render its heading in its actual
+// font face. Otherwise we'd see "Modern" / "Academic Paper" / etc. all in
+// the system fallback and lose the visual signal. The stylesheets only
+// declare @font-face rules; a font file downloads once text uses it.
 if (import.meta.client) {
-  const families = THEME_FONTS
-    .map(f => `family=${f.name.replaceAll(' ', '+')}:wght@400;500;600;700`)
-    .join('&')
   useHead({
-    link: [{
-      key: 'newdoc-theme-font-preview',
+    link: fontStylesheetUrls(THEME_FONTS.map(f => f.name)).map(href => ({
+      key: `newdoc-theme-font-preview-${href}`,
       rel: 'stylesheet',
-      href: `https://fonts.googleapis.com/css2?${families}&display=swap`
-    }]
+      href
+    }))
   })
 }
 

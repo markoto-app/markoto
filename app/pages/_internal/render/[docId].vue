@@ -4,9 +4,9 @@ import { composeFinalHtml } from '~/utils/composeFinalHtml'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import type { DocTheme } from '~~/shared/types/theme'
-import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsCdn'
-import { hljsTheme } from '~~/shared/utils/hljsCdn'
-import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexCdn'
+import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsAssets'
+import { hljsTheme } from '~~/shared/utils/hljsAssets'
+import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexAssets'
 import { transformMermaid, inlineMermaidSvgs } from '~/utils/mermaidLoader'
 import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
 import { isPagedRuntime, registerPagedHandlers } from '~/utils/pagedHandlers'
@@ -97,8 +97,8 @@ onMounted(async () => {
   const fontsImport = themeFontsImport(theme)
 
   // Fonts first: Mermaid measures label widths with the body font, and
-  // paged.js measures every line. Bounded at 3s so a slow CDN doesn't
-  // wedge the whole render — paged.js will use whatever's loaded.
+  // paged.js measures every line. Bounded at 3s so a slow font load
+  // doesn't wedge the whole render — paged.js will use whatever's loaded.
   const fontsEl = document.createElement('style')
   fontsEl.textContent = fontsImport
   document.head.appendChild(fontsEl)
@@ -182,7 +182,7 @@ onMounted(async () => {
   // reads them naturally as a regular browser stylesheet during render.
   const hljs = hljsTheme(theme.code.theme)
   if (hljs.url) {
-    // SRI-locked like every CDN asset (shared/utils/hljsCdn.ts).
+    // SRI-locked like every vendored asset (shared/utils/hljsAssets.ts).
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.integrity = hljs.sri
@@ -239,8 +239,8 @@ onMounted(async () => {
   await new Promise<void>((resolve, reject) => {
     const polyfill = document.createElement('script')
     polyfill.src = PAGEDJS_POLYFILL_URL
-    // SRI-locked + crossorigin="anonymous" to defend against a poisoned
-    // jsdelivr response in the server-render path.
+    // SRI-locked + crossorigin="anonymous" (same-origin /vendor/ file,
+    // the hash pins its exact bytes — shared/utils/pagedjsAssets.ts).
     polyfill.integrity = PAGEDJS_POLYFILL_SRI
     polyfill.crossOrigin = 'anonymous'
     polyfill.onload = () => resolve()
