@@ -35,19 +35,21 @@ In brief, we process:
 
 ## 2b. Anonymous documents, the bot check and abuse reports
 
-**Anonymous documents.** You can create a document without an account. Before your browser creates one, you confirm that you are at least 16 and accept our Terms, and your browser solves a bot check. We store with the document the version of the Terms you accepted, the time, and a hash of a random creator key that your browser keeps in a cookie (see §9). We do not ask for your name or email address. Anyone with the link can open the document; do not put personal data of others into it. Anonymous documents are deleted automatically after **30 days** without activity.
+**Anonymous documents.** You can create a document without an account. Before your browser creates its first one, you tick a box to accept our Terms and confirm that you are at least 16, and your browser solves a bot check. We store with the document the version of the Terms you accepted and the time, and a hash of a random creator key that your browser keeps in a cookie so that it alone can delete the document. Your browser also remembers your acceptance in a cookie, so you are not asked again until the Terms change (see §9). We do not ask for your name or email address. Anyone with the link can open the document; do not put other people's personal data into it. Documents created without an account are marked as user content, with a link to report them. Anonymous documents are deleted automatically after **30 days** without activity, together with the terms acceptance stored with them.
 
-**Bot check.** The bot check is a proof-of-work puzzle that runs on our own servers and in your browser (ALTCHA). It involves no third party and sets no cookies. Your browser receives a puzzle, solves it, and sends the solution back; we check it and discard it. To prevent mass creation, we count requests per IP address (for IPv6, per /64 network) in a short-lived in-memory store; these counters expire after minutes and contain no content.
+**Search engines.** Every document page, with or without an account, tells search engines not to index it (an `X-Robots-Tag: noindex` header and a matching meta tag). Our `robots.txt` deliberately does not block documents, because a search engine has to be able to fetch a page to see that instruction. A link to a document can still be passed on, so treat a shared link as public.
 
-**Abuse reports.** If you report content, we store the URL, your explanation, the category, the time and, if you give them, your name and email address (and your account, if you are signed in). We use this to handle your report, to confirm receipt, to tell you our decision and, where the law requires it, to inform authorities. If we remove or restrict content, we send its owner a statement of reasons; it does not name you unless that is necessary to handle an intellectual-property notice. We keep a report while it is open and delete it **1 year after the case is closed** (when we have acted on it or decided not to).
+**Bot check.** The bot check is a proof-of-work puzzle (ALTCHA) that our own server issues and your browser solves. It involves no third party and sets no cookie. We check the solution and keep a fingerprint of the used puzzle for about 20 minutes so that it cannot be reused. To prevent mass creation, we count anonymous requests per IP address (for IPv6, per /64 network) in a short-lived store; these counters contain no content and expire within a day.
+
+**Abuse reports.** Anyone can report content, also without an account (then protected by the same bot check). We store the address of the reported content, your explanation, the category, your name and email address (optional only for reports of child sexual abuse material), the language you used, when you confirmed that your report is made in good faith, the time, a shortened IP address and a hash of your browser's user agent (against report flooding), and your account if you were signed in. We use this to handle your report, to confirm receipt and tell you our decision by email, and, where the law requires it, to inform authorities. If we remove or restrict a document, we send its owner a statement of reasons by email; it does not name you. For a document created without an account, we cannot reach its creator and record the statement as undeliverable. We keep a copy of every notice we send, or could not deliver, with the report. We keep a report while it is open and delete it, with these notices, **1 year after the case is closed** (when we have acted on it or decided not to). Your data export includes the reports you filed while signed in with the notices sent to you, and the statements of reasons you received as a document owner.
 
 ## 3. Lawful basis
 
 Under the GDPR, each processing activity rests on one of these lawful bases (Art. 6 GDPR). Under the FADP, we process personal data in line with its principles (Art. 6 FADP) and, where a justification is needed, rely on the same grounds (Art. 31 FADP).
 
 - **Contract** (Art. 6(1)(b) GDPR): everything needed to provide the service you use: accounts, documents, collaboration, AI assistance and, once paid plans are offered, billing.
-- **Legal obligation** (Art. 6(1)(c) GDPR): the security audit log, handling legal orders and notices, and, once paid plans are offered, keeping billing records under tax law.
-- **Legitimate interest** (Art. 6(1)(f) GDPR): keeping the service secure and free of abuse (rate limits, the bot check, abuse handling, error monitoring) and workspace invitations. You can object to processing on this basis (see §6).
+- **Legal obligation** (Art. 6(1)(c) GDPR): the security audit log, handling abuse reports and legal orders (EU Digital Services Act), and, once paid plans are offered, keeping billing records under tax law.
+- **Legitimate interest** (Art. 6(1)(f) GDPR): keeping the service secure and free of abuse (rate limits, the bot check and terms acceptance for documents created without an account, error monitoring) and workspace invitations. You can object to processing on this basis (see §6).
 - **Consent** (Art. 6(1)(a) GDPR): only for the paid-plans waitlist (you tick the box and confirm the email we send you). You can withdraw at any time with the unsubscribe link.
 
 ## 4. Recipients and international transfers
@@ -69,15 +71,6 @@ Some providers are based in the **United States**:
 For these transfers we rely on the **EU-U.S. Data Privacy Framework** (European Commission adequacy decision of 10 July 2023) and the **Swiss-U.S. Data Privacy Framework** (recognised by the Swiss Federal Council with effect from 15 September 2024) for certified recipients, and otherwise on the European Commission's **standard contractual clauses** (2021/914), adapted for Swiss law as the FDPIC requires.
 
 We notify workspace owners at least 30 days in advance of any new sub-processor.
-
-### Content loaded from other services
-
-When you open markoto, your browser loads some resources directly from other providers, which therefore receive your IP address and browser details:
-
-- **Google Fonts** (Google LLC, United States, and Google Ireland Ltd.): the fonts of the interface and of document themes.
-- **jsDelivr** (an open-source content delivery network operated through several CDN providers worldwide): code for page layout, diagrams, maths and code highlighting in the document preview.
-
-These requests contain no document content and no account data. We are working on serving these files from our own servers.
 
 ## 5. Storage location and retention
 
@@ -191,7 +184,9 @@ markoto uses **only storage that is strictly necessary** to provide the service 
 | `nuxt-session` | Keeps you signed in (encrypted session cookie). Set only when you sign in. | 7 days |
 | `ypad_locale` | Remembers your language. | 1 year |
 | `markoto-anon-creator` | Random creator key that lets the browser which created an anonymous document delete it. Not linked to you; we store only a hash of it with the document. | 1 year |
+| `markoto-anon-terms` | Remembers that you accepted the Terms before creating a document without an account: the Terms version and the time, signed by us, with no identifier. Set only when you accept. | 1 year, or until the Terms change |
 | `nuxt-color-mode` (local storage) | Remembers light or dark mode, if you choose one. | Until you clear it |
+| `markoto:preview-zoom` (local storage) | Remembers the zoom level of the document preview. | Until you clear it |
 | `markoto-pending-invite` (session storage) | Keeps a workspace invitation link while you sign in to accept it. | Until you close the tab |
 | Service worker cache | Lets markoto load faster and work offline. | Until you clear it |
 
@@ -230,7 +225,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
-- **v8 (2026-11-03).** Removed the "product analytics" and "session replay" purposes and the cookie banner: neither was ever in use, and markoto uses only strictly necessary storage (§9 lists it). Added the Swiss FADP alongside the GDPR, the countries data is transferred to (§4) and content loaded from Google Fonts and jsDelivr. Described anonymous documents (terms acceptance, bot check, deletion after 30 days instead of 180) and abuse reports (§2b). Stated backup retention (about 30 days), audit-log retention (2 years) and abuse-report retention (1 year after the case is closed). Corrected the statement on password hashing, the age rule (16 everywhere), the AI labelling description and the statements on AI training per provider.
+- **v8 (2026-11-03).** Removed the "product analytics" and "session replay" purposes and the cookie banner: neither was ever in use, and markoto uses only strictly necessary storage (§9 lists it). Added the Swiss FADP alongside the GDPR, and the countries data is transferred to (§4). Described anonymous documents (terms acceptance, bot check, deletion after 30 days instead of 180), noindex on documents and abuse reports without an account, with receipt, decision and statement-of-reasons notices (§2b). Stated backup retention (about 30 days), audit-log retention (2 years) and abuse-report retention (1 year after the case is closed). Corrected the statement on password hashing, the age rule (16 everywhere), the AI labelling description and the statements on AI training per provider.
 - **v7 (2026-10-27).** Added the `workspace_invitations` processing purpose (legitimate interest): when a workspace admin invites someone by email, we keep that email address, the offered role and who invited on a pending invitation until the person accepts or declines it, an admin revokes it, or it expires after 14 days. Nobody joins a workspace without accepting. If email is set up, one invitation email per invite is sent via Resend (at most three per address per day). Stored in OVHcloud (EU).
 - **v6 (2026-10-26), editorial alignment with the free-only service.** Stripe and billing are described as relevant only once paid plans are offered (the sub-processor list and the register omit Stripe while billing is off). The register of processing purposes is now actually shown in §13. Corrected statements about audit-log retention, anonymous-document clean-up (180 days of inactivity), the retired interaction counter and the (non-existent) account-level AI opt-out.
 - **v6 (2026-10-26).** Added the `user_directed_ai_provider` processing purpose: you can bring your own AI provider (chat, image generation, voice transcription). Content for those features is then sent to the provider you choose under your agreement with it; we store your provider settings with the API key encrypted at rest until you remove them or delete your account. Web search and page fetching are provided by us for every user, including those with their own AI provider: search queries go to Staan and fetched web addresses to Jina AI, and per-user hourly and daily usage counters (timestamps only, no content) are kept in Valkey.

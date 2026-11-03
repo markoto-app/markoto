@@ -18,7 +18,7 @@ Diese Richtlinie ist unser **Melde- und Abhilfeverfahren** nach Artikel 16 des *
 
 Sie können Inhalte auf zwei Wegen melden. Beide werden gleich behandelt:
 
-- **Das Meldeformular** unter `/legal/abuse`. Es funktioniert ohne Konto. Dokumente, die ohne Konto erstellt wurden, zeigen einen Link «Melden», der das Formular öffnet.
+- **Das Meldeformular** unter `/legal/abuse`. Es funktioniert ohne Konto; Ihr Browser löst dann eine kurze Bot-Prüfung, die auf unserem eigenen Server läuft, ohne Dritte und ohne Cookie. Dokumente, die ohne Konto erstellt wurden, zeigen eine Leiste «Inhalt von Nutzenden · Melden», die das Formular mit bereits eingetragener Adresse des Dokuments öffnet.
 - **E-Mail** an **{{abuseContactEmail}}**.
 
 Eine vollständige Meldung enthält (Art. 16 Abs. 2 DSA):
@@ -34,10 +34,10 @@ Die Bearbeitung unvollständiger Meldungen kann länger dauern, da wir den Inhal
 
 ## Was nach Ihrer Meldung geschieht
 
-1. **Eingang.** Wenn Sie eine E-Mail-Adresse angegeben haben, bestätigen wir den Eingang unverzüglich (Art. 16 Abs. 4). Das Formular zeigt Ihnen zudem eine Referenznummer an.
+1. **Eingang.** Wir bestätigen den Eingang unverzüglich per E-Mail (Art. 16 Abs. 4). Das Formular zeigt Ihnen zudem eine Referenznummer an.
 2. **Prüfung.** Eine Person aus unserem Team prüft die Meldung anhand des Gesetzes und unserer Nutzungsbedingungen. Wir setzen keine automatisierten Werkzeuge ein, um über Meldungen zu entscheiden.
-3. **Entscheid.** Wir entscheiden zeitnah, sorgfältig und objektiv. Wir können den Inhalt entfernen, den Zugang dazu sperren, ihn einschränken, das dahinterstehende Konto sperren oder kündigen oder nichts unternehmen. Wir können zuerst die Eigentümerin oder den Eigentümer des Inhalts kontaktieren, um deren bzw. dessen Standpunkt einzuholen.
-4. **Mitteilung des Entscheids.** Wenn Sie eine E-Mail-Adresse angegeben haben, teilen wir Ihnen unseren Entscheid mit und wie Sie Rechtsbehelfe einlegen können (Art. 16 Abs. 5).
+3. **Entscheid.** Wir entscheiden zeitnah, sorgfältig und objektiv. Wir können das Dokument entfernen, den Zugang dazu einschränken (es ist dann privat und über den Link nicht mehr erreichbar), das dahinterstehende Konto sperren oder kündigen oder nichts unternehmen. Wir können zuerst die Eigentümerin oder den Eigentümer des Inhalts kontaktieren, um deren bzw. dessen Standpunkt einzuholen.
+4. **Mitteilung des Entscheids.** Wir teilen Ihnen per E-Mail unseren Entscheid, die Gründe dafür und die Möglichkeiten für Rechtsbehelfe mit (Art. 16 Abs. 5). Wenn Sie Darstellungen sexuellen Kindesmissbrauchs ohne E-Mail-Adresse gemeldet haben, können wir Ihnen diese Mitteilungen nicht senden.
 
 Wir streben an, bei Meldungen zu Darstellungen sexuellen Kindesmissbrauchs und zu unmittelbaren Drohungen gegen Leben oder Sicherheit innerhalb von **24 Stunden** zu handeln, bei anderen eindeutigen Meldungen innerhalb von **3 Werktagen** und bei Meldungen, die eine eingehendere rechtliche Beurteilung erfordern, innerhalb von **14 Kalendertagen**.
 
@@ -63,9 +63,9 @@ Wenn wir Ihre Inhalte entfernen oder einschränken oder Ihr Konto sperren, sende
 - dass der Entscheid von einer Person und nicht von einem automatisierten System getroffen wurde;
 - wie Sie Einspruch erheben können.
 
-**Anonyme Dokumente.** Ein ohne Konto erstelltes Dokument hat keine Kontaktangaben. Wir können der Person, die es erstellt hat, keine Begründung zustellen, und halten die Begründung als nicht zustellbar fest.
+**Anonyme Dokumente.** Ein ohne Konto erstelltes Dokument hat keine Kontaktangaben. Wir können der Person, die es erstellt hat, keine Begründung zustellen, und halten die Begründung als nicht zustellbar fest. Den Text jeder Mitteilung, die wir senden oder nicht zustellen konnten, bewahren wir bei der Meldung auf.
 
-**So erheben Sie Einspruch.** Sie können sich innerhalb von **sechs Monaten** nach unserem Entscheid bei **{{abuseContactEmail}}** beschweren. Antworten Sie auf die Begründung oder geben Sie deren Referenz an und erläutern Sie, weshalb der Entscheid falsch war. Eine Person prüft Ihre Beschwerde, und wir stellen den Inhalt oder das Konto wieder her, wenn der Entscheid falsch war. Wir teilen Ihnen das Ergebnis mit. Sie haben zudem jederzeit das Recht, sich an ein Gericht zu wenden. Meldende können über denselben Kanal Einspruch dagegen erheben, dass wir aufgrund ihrer Meldung nichts unternommen haben.
+**So erheben Sie Einspruch.** Sie können sich innerhalb von **sechs Monaten** nach unserem Entscheid bei **{{abuseContactEmail}}** beschweren. Antworten Sie auf die Begründung oder geben Sie deren Referenz an und erläutern Sie, weshalb der Entscheid falsch war. Eine Person prüft Ihre Beschwerde, und wir stellen den Inhalt oder das Konto wieder her, wenn der Entscheid falsch war. Wir teilen Ihnen das Ergebnis mit. Sie können sich auch an eine zertifizierte aussergerichtliche Streitbeilegungsstelle wenden und haben jederzeit das Recht, ein Gericht anzurufen. Meldende können über denselben Kanal Einspruch dagegen erheben, dass wir aufgrund ihrer Meldung nichts unternommen haben.
 
 ## Drohungen gegen Leben oder Sicherheit
 
@@ -81,7 +81,7 @@ Bei Personen, die häufig offensichtlich unbegründete Meldungen einreichen, kö
 
 ## Daten, die wir für Meldungen verarbeiten
 
-Zur Bearbeitung einer Meldung speichern wir die URL, Ihre Begründung, die Kategorie, den Zeitpunkt und, falls Sie diese angeben, Ihren Namen und Ihre E-Mail-Adresse. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Wir bewahren eine Meldung auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Einzelheiten finden Sie in der Datenschutzerklärung (`/legal/privacy`).
+Zur Bearbeitung einer Meldung speichern wir die Adresse des gemeldeten Inhalts, Ihre Begründung, die Kategorie, Ihren Namen und Ihre E-Mail-Adresse, die von Ihnen verwendete Sprache, wann Sie die Erklärung zum guten Glauben bestätigt haben, und den Zeitpunkt sowie eine gekürzte IP-Adresse und einen Hash des User-Agents Ihres Browsers gegen massenhafte Meldungen. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Wir bewahren eine Meldung mit den Mitteilungen dazu auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Ihr Datenexport enthält die Meldungen, die Sie im angemeldeten Zustand eingereicht haben. Einzelheiten finden Sie in der Datenschutzerklärung (`/legal/privacy`).
 
 ## Kontakt
 

@@ -92,7 +92,7 @@ Dies sind die Massnahmen, die die Auftragsverarbeiterin nach Art. 32 DSGVO und A
 
 ### 2. Zugriffskontrolle
 
-- **Nutzende:** Anmeldung nur über etablierte Identitätsanbieter (GitHub, Google); Sitzungs-Cookies sind HTTP-only, `SameSite=Strict` und widerrufbar («Überall abmelden»); sensible Aktionen erfordern eine kürzlich erfolgte Anmeldung; jede zustandsändernde Anfrage wird auf Cross-Site Request Forgery geprüft.
+- **Nutzende:** Anmeldung nur über etablierte Identitätsanbieter (GitHub, Google); Sitzungs-Cookies sind HTTP-only, `SameSite=Lax` und widerrufbar («Überall abmelden»); sensible Aktionen erfordern eine kürzlich erfolgte Anmeldung; jede zustandsändernde Anfrage wird auf Cross-Site Request Forgery geprüft.
 - **Berechtigungen:** Der Zugriff auf jedes Dokument wird bei jeder Anfrage anhand seines Zugriffsmodus und der Workspace-Rolle des Mitglieds geprüft; die Bearbeitung in Echtzeit erfordert ein kurzlebiges, auf das Dokument beschränktes Token; Dateilinks verfallen nach zwei Minuten.
 - **Betrieb:** Der administrative Zugang zu den Servern ist auf namentlich bestimmte Mitarbeitende beschränkt, erfolgt nur per SSH-Schlüssel (keine Passwörter, keine Root-Anmeldung) und liegt hinter einer Host-Firewall mit Schutz gegen Brute-Force-Angriffe. Administrative Funktionen in der Anwendung erfordern eine ausdrückliche Administratorkennzeichnung und werden im Audit-Protokoll erfasst.
 

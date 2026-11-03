@@ -92,7 +92,7 @@ Estas son las medidas que adopta el Encargado conforme al art. 32 del RGPD y al 
 
 ### 2. Control de acceso
 
-- **Usuarios:** inicio de sesión únicamente a través de proveedores de identidad consolidados (GitHub, Google); las cookies de sesión son HTTP-only, `SameSite=Strict` y revocables («cerrar sesión en todas partes»); las acciones sensibles requieren un inicio de sesión reciente; cada solicitud que modifica el estado se comprueba frente a la falsificación de solicitudes entre sitios.
+- **Usuarios:** inicio de sesión únicamente a través de proveedores de identidad consolidados (GitHub, Google); las cookies de sesión son HTTP-only, `SameSite=Lax` y revocables («cerrar sesión en todas partes»); las acciones sensibles requieren un inicio de sesión reciente; cada solicitud que modifica el estado se comprueba frente a la falsificación de solicitudes entre sitios.
 - **Autorización:** el acceso a cada documento se comprueba en cada solicitud según su modo de acceso y el rol del miembro en el espacio de trabajo; la edición en tiempo real requiere un token de corta duración limitado al documento; los enlaces a archivos caducan a los dos minutos.
 - **Operadores:** el acceso administrativo a los servidores está limitado a personal designado, únicamente mediante clave SSH (sin contraseñas ni inicio de sesión como root), tras un cortafuegos del host con protección contra ataques de fuerza bruta. Las funciones administrativas de la aplicación requieren un indicador explícito de administrador y quedan registradas en el registro de auditoría.
 

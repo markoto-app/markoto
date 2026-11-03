@@ -92,7 +92,7 @@ These are the measures the Processor takes under Art. 32 GDPR and Art. 8 FADP. T
 
 ### 2. Access control
 
-- **Users:** sign-in only through established identity providers (GitHub, Google); session cookies are HTTP-only, `SameSite=Strict` and revocable ("log out everywhere"); sensitive actions require a recent sign-in; every state-changing request is checked against cross-site request forgery.
+- **Users:** sign-in only through established identity providers (GitHub, Google); session cookies are HTTP-only, `SameSite=Lax` and revocable ("log out everywhere"); sensitive actions require a recent sign-in; every state-changing request is checked against cross-site request forgery.
 - **Authorisation:** access to each document is checked on every request according to its access mode and the member's workspace role; real-time editing requires a short-lived, document-scoped token; file links expire after two minutes.
 - **Operators:** administrative access to servers is limited to named staff, by SSH key only (no passwords, no root login), behind a host firewall with brute-force protection. Administrative functions in the application require an explicit administrator flag and are recorded in the audit log.
 

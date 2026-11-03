@@ -18,7 +18,7 @@ This policy is our **notice-and-action mechanism** under Article 16 of the EU **
 
 You can report content in two ways. Both are handled the same way:
 
-- **The report form** at `/legal/abuse`. It works without an account. Documents created without an account show a "Report" link that opens it.
+- **The report form** at `/legal/abuse`. It works without an account; your browser then solves a short bot check that runs on our own server, with no third party and no cookie. Documents created without an account show a "user content · Report" bar that opens the form with the document's address filled in.
 - **Email** to **{{abuseContactEmail}}**.
 
 A complete report contains (Art. 16(2) DSA):
@@ -34,10 +34,10 @@ Reports that are incomplete may take longer, because we may not be able to ident
 
 ## What happens after you report
 
-1. **Receipt.** If you gave an email address, we confirm receipt without undue delay (Art. 16(4)). The form also shows you a reference number.
+1. **Receipt.** We confirm receipt by email without undue delay (Art. 16(4)). The form also shows you a reference number.
 2. **Review.** A person on our team reviews the report against the law and our Terms. We do not use automated tools to decide on reports.
-3. **Decision.** We decide in a timely, diligent and objective manner. We may remove the content, disable access to it, restrict it, suspend or terminate the account behind it, or take no action. We may contact the owner of the content to hear their side first.
-4. **Decision notice.** If you gave an email address, we tell you what we decided and how you can seek redress (Art. 16(5)).
+3. **Decision.** We decide in a timely, diligent and objective manner. We may remove the document, restrict access to it (it is then private and no longer reachable by link), suspend or terminate the account behind it, or take no action. We may contact the owner of the content to hear their side first.
+4. **Decision notice.** We email you what we decided, the reasons and how you can seek redress (Art. 16(5)). If you reported child sexual abuse material without an email address, we cannot send you these notices.
 
 We aim to act within **24 hours** on reports of child sexual abuse material and imminent threats to life or safety, within **3 business days** on other clear-cut reports, and within **14 calendar days** on reports that need a closer legal assessment.
 
@@ -63,9 +63,9 @@ If we remove or restrict your content or suspend your account, we send you a **s
 - that the decision was taken by a person, not by an automated system;
 - how you can object.
 
-**Anonymous documents.** A document created without an account has no contact details. We cannot send a statement of reasons to its creator, and we record the statement as undeliverable.
+**Anonymous documents.** A document created without an account has no contact details. We cannot send a statement of reasons to its creator, and we record the statement as undeliverable. We keep the text of every notice we send, or could not deliver, with the report.
 
-**How to object.** You can complain to **{{abuseContactEmail}}** within **six months** of our decision. Reply to the statement of reasons or quote its reference, and explain why the decision was wrong. A person reviews your complaint, and we restore the content or the account if the decision was wrong. We tell you the outcome. You also always have the right to go to court. Reporters can use the same channel to object to a decision not to act on their report.
+**How to object.** You can complain to **{{abuseContactEmail}}** within **six months** of our decision. Reply to the statement of reasons or quote its reference, and explain why the decision was wrong. A person reviews your complaint, and we restore the content or the account if the decision was wrong. We tell you the outcome. You can also turn to a certified out-of-court dispute settlement body, and you always have the right to go to court. Reporters can use the same channel to object to a decision not to act on their report.
 
 ## Threats to life or safety
 
@@ -81,7 +81,7 @@ We may stop processing reports from people who frequently submit manifestly unfo
 
 ## Data we process for reports
 
-To handle a report we store the URL, your explanation, the category, the time and, if you give them, your name and email address. For reports sent while signed in, we also link your account. We keep a report while the case is open and delete it 1 year after it is closed. See the Privacy Policy (`/legal/privacy`) for details.
+To handle a report we store the address of the reported content, your explanation, the category, your name and email address, the language you used, when you confirmed the good-faith statement and the time, plus a shortened IP address and a hash of your browser's user agent against report flooding. For reports sent while signed in, we also link your account. We keep a report, with the notices about it, while the case is open and delete it 1 year after it is closed. Your data export contains the reports you filed while signed in. See the Privacy Policy (`/legal/privacy`) for details.
 
 ## Contact
 

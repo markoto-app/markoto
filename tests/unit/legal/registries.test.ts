@@ -98,6 +98,14 @@ describe('abuse_report_handling purpose', () => {
     expect(purpose?.retention).toBe(ABUSE_REPORT_DEFAULT_RETENTION_DAYS)
     expect(purpose?.subProcessors).toEqual(['ovh_postgres', 'resend'])
   })
+
+  it('covers the Art.16(2) reporter fields and the moderation notices (one purpose for abuse handling)', () => {
+    const purpose = PROCESSING_PURPOSES.find(p => p.id === 'abuse_report_handling')
+    for (const category of ['reported_content_url', 'reporter_name', 'reporter_email', 'reporter_locale', 'good_faith_confirmation_time', 'moderation_notices']) {
+      expect(purpose?.dataCategories).toContain(category)
+    }
+    expect(PROCESSING_PURPOSES.filter(p => p.id.includes('abuse_report'))).toHaveLength(1)
+  })
 })
 
 describe('paid_plans_waitlist purpose', () => {

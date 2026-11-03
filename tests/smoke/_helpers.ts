@@ -1,4 +1,3 @@
-import { expect } from '@playwright/test'
 import { solveChallenge, type Challenge } from 'altcha-lib'
 import { deriveKey } from 'altcha-lib/algorithms/pbkdf2'
 

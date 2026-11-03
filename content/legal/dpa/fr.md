@@ -92,7 +92,7 @@ Il s'agit des mesures que le Sous-traitant prend au titre de l'article 32 du RGP
 
 ### 2. Contrôle d'accès
 
-- **Utilisateurs :** connexion uniquement via des fournisseurs d'identité reconnus (GitHub, Google) ; les cookies de session sont HTTP-only, `SameSite=Strict` et révocables (« se déconnecter partout ») ; les actions sensibles exigent une connexion récente ; chaque requête modifiant un état est contrôlée contre la falsification de requêtes intersites (CSRF).
+- **Utilisateurs :** connexion uniquement via des fournisseurs d'identité reconnus (GitHub, Google) ; les cookies de session sont HTTP-only, `SameSite=Lax` et révocables (« se déconnecter partout ») ; les actions sensibles exigent une connexion récente ; chaque requête modifiant un état est contrôlée contre la falsification de requêtes intersites (CSRF).
 - **Autorisation :** l'accès à chaque document est contrôlé à chaque requête en fonction de son mode d'accès et du rôle du membre dans l'espace de travail ; l'édition en temps réel nécessite un jeton éphémère limité au document ; les liens vers les fichiers expirent au bout de deux minutes.
 - **Exploitants :** l'accès administratif aux serveurs est limité à des membres du personnel nommément désignés, uniquement par clé SSH (pas de mot de passe, pas de connexion root), derrière un pare-feu d'hôte doté d'une protection contre les attaques par force brute. Les fonctions administratives de l'application exigent un indicateur administrateur explicite et sont enregistrées dans le journal d'audit.
 

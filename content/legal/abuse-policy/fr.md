@@ -18,7 +18,7 @@ La présente politique constitue notre **mécanisme de notification et d'action*
 
 Vous pouvez signaler un contenu de deux manières, traitées de façon identique :
 
-- **Le formulaire de signalement** à l'adresse `/legal/abuse`. Il fonctionne sans compte. Les documents créés sans compte affichent un lien « Signaler » qui l'ouvre.
+- **Le formulaire de signalement** à l'adresse `/legal/abuse`. Il fonctionne sans compte ; votre navigateur résout alors une brève vérification anti-robots exécutée sur notre propre serveur, sans tiers et sans cookie. Les documents créés sans compte affichent une barre « contenu d'utilisateur · Signaler » qui ouvre le formulaire avec l'adresse du document déjà renseignée.
 - **Par e-mail** à **{{abuseContactEmail}}**.
 
 Un signalement complet comprend (article 16, paragraphe 2, du DSA) :
@@ -34,10 +34,10 @@ Le traitement d'un signalement incomplet peut prendre plus de temps, car nous ri
 
 ## Ce qui se passe après votre signalement
 
-1. **Réception.** Si vous avez indiqué une adresse e-mail, nous accusons réception dans les meilleurs délais (article 16, paragraphe 4). Le formulaire vous affiche également un numéro de référence.
+1. **Réception.** Nous accusons réception par e-mail dans les meilleurs délais (article 16, paragraphe 4). Le formulaire vous affiche également un numéro de référence.
 2. **Examen.** Une personne de notre équipe examine le signalement au regard de la loi et de nos conditions d'utilisation. Nous n'utilisons pas d'outils automatisés pour statuer sur les signalements.
-3. **Décision.** Nous statuons en temps opportun, avec diligence et de manière objective. Nous pouvons retirer le contenu, en bloquer l'accès, le restreindre, suspendre ou résilier le compte concerné, ou ne prendre aucune mesure. Nous pouvons d'abord contacter le propriétaire du contenu pour recueillir sa position.
-4. **Notification de la décision.** Si vous avez indiqué une adresse e-mail, nous vous informons de notre décision et des voies de recours dont vous disposez (article 16, paragraphe 5).
+3. **Décision.** Nous statuons en temps opportun, avec diligence et de manière objective. Nous pouvons retirer le document, en restreindre l'accès (il devient alors privé et n'est plus accessible par lien), suspendre ou résilier le compte concerné, ou ne prendre aucune mesure. Nous pouvons d'abord contacter le propriétaire du contenu pour recueillir sa position.
+4. **Notification de la décision.** Nous vous informons par e-mail de notre décision, de ses motifs et des voies de recours dont vous disposez (article 16, paragraphe 5). Si vous avez signalé des contenus pédopornographiques sans indiquer d'adresse e-mail, nous ne pouvons pas vous envoyer ces notifications.
 
 Nous visons à agir dans un délai de **24 heures** pour les signalements de contenus pédopornographiques et de menaces imminentes pour la vie ou la sécurité, de **3 jours ouvrables** pour les autres signalements évidents et de **14 jours calendaires** pour les signalements nécessitant une appréciation juridique approfondie.
 
@@ -63,9 +63,9 @@ Si nous retirons ou restreignons votre contenu ou suspendons votre compte, nous 
 - que la décision a été prise par une personne et non par un système automatisé ;
 - la manière dont vous pouvez la contester.
 
-**Documents anonymes.** Un document créé sans compte ne comporte aucune coordonnée. Nous ne pouvons pas adresser d'exposé des motifs à son créateur et nous consignons l'exposé comme impossible à remettre.
+**Documents anonymes.** Un document créé sans compte ne comporte aucune coordonnée. Nous ne pouvons pas adresser d'exposé des motifs à son créateur et nous consignons l'exposé comme impossible à remettre. Nous conservons avec le signalement le texte de chaque notification que nous envoyons ou que nous n'avons pas pu remettre.
 
-**Comment contester.** Vous pouvez adresser une réclamation à **{{abuseContactEmail}}** dans un délai de **six mois** à compter de notre décision. Répondez à l'exposé des motifs ou citez sa référence, et expliquez pourquoi la décision était erronée. Une personne examine votre réclamation, et nous rétablissons le contenu ou le compte si la décision était erronée. Nous vous informons du résultat. Vous conservez en tout temps le droit de saisir les tribunaux. Les auteurs de signalements peuvent utiliser le même canal pour contester une décision de ne pas donner suite à leur signalement.
+**Comment contester.** Vous pouvez adresser une réclamation à **{{abuseContactEmail}}** dans un délai de **six mois** à compter de notre décision. Répondez à l'exposé des motifs ou citez sa référence, et expliquez pourquoi la décision était erronée. Une personne examine votre réclamation, et nous rétablissons le contenu ou le compte si la décision était erronée. Nous vous informons du résultat. Vous pouvez également vous adresser à un organe certifié de règlement extrajudiciaire des litiges, et vous conservez en tout temps le droit de saisir les tribunaux. Les auteurs de signalements peuvent utiliser le même canal pour contester une décision de ne pas donner suite à leur signalement.
 
 ## Menaces pour la vie ou la sécurité
 
@@ -81,7 +81,7 @@ Nous pouvons, après un avertissement et pour une durée raisonnable, cesser de 
 
 ## Données que nous traitons pour les signalements
 
-Pour traiter un signalement, nous enregistrons l'URL, votre explication, la catégorie, l'heure et, si vous les indiquez, votre nom et votre adresse e-mail. Pour les signalements envoyés en étant connecté, nous associons également votre compte. Nous conservons un signalement tant que le dossier est ouvert et le supprimons 1 an après sa clôture. Voir la politique de confidentialité (`/legal/privacy`) pour plus de détails.
+Pour traiter un signalement, nous enregistrons l'adresse du contenu signalé, votre explication, la catégorie, votre nom et votre adresse e-mail, la langue que vous avez utilisée, le moment où vous avez confirmé la déclaration de bonne foi et l'heure, ainsi qu'une adresse IP tronquée et une empreinte (hash) de l'agent utilisateur de votre navigateur contre les signalements en masse. Pour les signalements envoyés en étant connecté, nous associons également votre compte. Nous conservons un signalement, avec les notifications qui s'y rapportent, tant que le dossier est ouvert et le supprimons 1 an après sa clôture. Votre export de données comprend les signalements que vous avez déposés en étant connecté. Voir la politique de confidentialité (`/legal/privacy`) pour plus de détails.
 
 ## Contact
 

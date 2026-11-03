@@ -188,20 +188,29 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['ovh_postgres', 'resend']
   },
   {
-    // Abuse / illegal-content reports (DSA Art. 16-18 notice and action)
-    // stored in `abuse_reports`: what was reported and why, the reporter's
-    // contact details if given (and account if signed in), truncated IP +
-    // UA hash against report flooding, and the moderation outcome.
+    // Abuse / illegal-content reports (DSA Art. 16-18 notice and action):
+    // `abuse_reports` (what was reported and why: content URL + parsed doc
+    // id, explanation, category; the reporter's name + email — required
+    // unless CSAM, Art.16(2)(c) — locale, good-faith confirmation time and
+    // account if signed in; truncated IP + UA hash against report
+    // flooding; the moderator's decision as sent) and `moderation_notices`
+    // (the exact text of every receipt, decision notice and Art.17
+    // statement of reasons, incl. ones recorded as undeliverable; FK
+    // `ON DELETE CASCADE` on report_id, so they go with the report).
     // `abuse-report-sweep` deletes a report 1 year after it was closed
-    // (actioned / dismissed; `NUXT_ABUSE_REPORT_RETENTION_DAYS`); open
-    // reports stay until handled. Receipt / decision emails via Resend.
-    // MERGE NOTE: feat/anonymous-gate adds reporter fields (name, good-faith
-    // statement, notices) — extend THIS purpose rather than adding a
-    // parallel one for the same table.
+    // (actioned / dismissed, `actioned_at`; `NUXT_ABUSE_REPORT_RETENTION_DAYS`);
+    // open reports stay until handled. Notices are emailed via Resend.
+    // Anonymous reports are also covered by `anonymous_use_safeguards`
+    // (bot check + rate limits).
     id: 'abuse_report_handling',
     label: 'Abuse and illegal-content reports',
     basis: 'legal_obligation',
-    dataCategories: ['reported_url', 'report_explanation', 'report_category', 'reporter_email_if_given', 'reporter_account_if_signed_in', 'ip_truncated', 'user_agent_hash', 'moderation_decision'],
+    dataCategories: [
+      'reported_content_url', 'report_explanation', 'report_category',
+      'reporter_name', 'reporter_email', 'reporter_locale', 'good_faith_confirmation_time',
+      'reporter_account_if_signed_in', 'ip_truncated', 'user_agent_hash',
+      'moderation_decision', 'moderation_notices'
+    ],
     retention: 365,
     subProcessors: ['ovh_postgres', 'resend']
   },

@@ -18,7 +18,7 @@ Esta política es nuestro **mecanismo de notificación y acción** conforme al a
 
 Puede denunciar contenido de dos maneras. Ambas se tramitan del mismo modo:
 
-- **El formulario de denuncia** en `/legal/abuse`. Funciona sin cuenta. Los documentos creados sin cuenta muestran un enlace «Denunciar» que lo abre.
+- **El formulario de denuncia** en `/legal/abuse`. Funciona sin cuenta; en ese caso, su navegador supera una breve comprobación contra bots que se ejecuta en nuestro propio servidor, sin terceros y sin cookies. Los documentos creados sin cuenta muestran una barra «contenido de usuario · Denunciar» que abre el formulario con la dirección del documento ya rellenada.
 - **Correo electrónico** a **{{abuseContactEmail}}**.
 
 Una denuncia completa contiene (art. 16, apartado 2, del DSA):
@@ -34,10 +34,10 @@ Las denuncias incompletas pueden tardar más, porque es posible que no podamos i
 
 ## Qué ocurre después de su denuncia
 
-1. **Acuse de recibo.** Si nos facilitó una dirección de correo electrónico, acusamos recibo sin dilación indebida (art. 16, apartado 4). El formulario le muestra además un número de referencia.
+1. **Acuse de recibo.** Acusamos recibo por correo electrónico sin dilación indebida (art. 16, apartado 4). El formulario le muestra además un número de referencia.
 2. **Revisión.** Una persona de nuestro equipo revisa la denuncia a la luz de la ley y de nuestras Condiciones. No usamos herramientas automatizadas para decidir sobre las denuncias.
-3. **Decisión.** Decidimos de manera oportuna, diligente y objetiva. Podemos retirar el contenido, inhabilitar el acceso a él, restringirlo, suspender o cancelar la cuenta correspondiente, o no adoptar ninguna medida. Podemos ponernos antes en contacto con el propietario del contenido para conocer su postura.
-4. **Notificación de la decisión.** Si nos facilitó una dirección de correo electrónico, le comunicamos nuestra decisión y las vías de recurso de que dispone (art. 16, apartado 5).
+3. **Decisión.** Decidimos de manera oportuna, diligente y objetiva. Podemos retirar el documento, restringir el acceso a él (pasa a ser privado y deja de ser accesible mediante el enlace), suspender o cancelar la cuenta correspondiente, o no adoptar ninguna medida. Podemos ponernos antes en contacto con el propietario del contenido para conocer su postura.
+4. **Notificación de la decisión.** Le comunicamos por correo electrónico nuestra decisión, sus motivos y las vías de recurso de que dispone (art. 16, apartado 5). Si denunció material de abuso sexual infantil sin facilitar una dirección de correo electrónico, no podemos enviarle estas notificaciones.
 
 Procuramos actuar en un plazo de **24 horas** ante las denuncias de material de abuso sexual infantil y de amenazas inminentes para la vida o la seguridad, de **3 días hábiles** ante otras denuncias claras y de **14 días naturales** ante las denuncias que requieren una valoración jurídica más detenida.
 
@@ -63,9 +63,9 @@ Si retiramos o restringimos su contenido o suspendemos su cuenta, le enviamos un
 - que la decisión la adoptó una persona, no un sistema automatizado;
 - cómo puede oponerse.
 
-**Documentos anónimos.** Un documento creado sin cuenta no tiene datos de contacto. No podemos enviar una exposición de motivos a quien lo creó, y registramos la exposición como no entregable.
+**Documentos anónimos.** Un documento creado sin cuenta no tiene datos de contacto. No podemos enviar una exposición de motivos a quien lo creó, y registramos la exposición como no entregable. Conservamos con la denuncia el texto de cada notificación que enviamos o que no pudimos entregar.
 
-**Cómo oponerse.** Puede presentar una reclamación a **{{abuseContactEmail}}** en un plazo de **seis meses** desde nuestra decisión. Responda a la exposición de motivos o cite su referencia, y explique por qué la decisión fue errónea. Una persona revisa su reclamación, y restablecemos el contenido o la cuenta si la decisión fue errónea. Le comunicamos el resultado. Además, siempre tiene derecho a acudir a los tribunales. Quienes denuncian pueden usar el mismo canal para oponerse a la decisión de no actuar sobre su denuncia.
+**Cómo oponerse.** Puede presentar una reclamación a **{{abuseContactEmail}}** en un plazo de **seis meses** desde nuestra decisión. Responda a la exposición de motivos o cite su referencia, y explique por qué la decisión fue errónea. Una persona revisa su reclamación, y restablecemos el contenido o la cuenta si la decisión fue errónea. Le comunicamos el resultado. También puede dirigirse a un órgano certificado de resolución extrajudicial de litigios y siempre tiene derecho a acudir a los tribunales. Quienes denuncian pueden usar el mismo canal para oponerse a la decisión de no actuar sobre su denuncia.
 
 ## Amenazas para la vida o la seguridad
 
@@ -81,7 +81,7 @@ Podemos dejar de tramitar las denuncias de personas que presenten con frecuencia
 
 ## Datos que tratamos para las denuncias
 
-Para tramitar una denuncia almacenamos la URL, su explicación, la categoría, el momento y, si nos los facilita, su nombre y su dirección de correo electrónico. En las denuncias enviadas con la sesión iniciada, vinculamos además su cuenta. Conservamos una denuncia mientras el caso está abierto y la eliminamos 1 año después de su cierre. Consulte la Política de privacidad (`/legal/privacy`) para más detalles.
+Para tramitar una denuncia almacenamos la dirección del contenido denunciado, su explicación, la categoría, su nombre y su dirección de correo electrónico, el idioma que utilizó, el momento en que confirmó la declaración de buena fe y el momento de la denuncia, además de una dirección IP acortada y un hash del agente de usuario de su navegador contra las denuncias masivas. En las denuncias enviadas con la sesión iniciada, vinculamos además su cuenta. Conservamos una denuncia, con las notificaciones relativas a ella, mientras el caso está abierto y la eliminamos 1 año después de su cierre. Su exportación de datos contiene las denuncias que presentó con la sesión iniciada. Consulte la Política de privacidad (`/legal/privacy`) para más detalles.
 
 ## Contacto
 

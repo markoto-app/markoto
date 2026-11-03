@@ -84,10 +84,22 @@ describe('legal wording', () => {
   it('states the audit-log and abuse-report retention the sweeps enforce', () => {
     const privacy = read('privacy', 'en')
     expect(privacy).toMatch(/Entries are deleted automatically after \*\*2 years\*\*/)
-    expect(privacy).toMatch(/delete it \*\*1 year after the case is closed\*\*/)
+    expect(privacy).toMatch(/delete it, with these notices, \*\*1 year after the case is closed\*\*/)
     expect(privacy).not.toMatch(/Entries are currently not deleted automatically/i)
     expect(read('dpa', 'en')).toMatch(/Entries are deleted automatically after 2 years/)
     expect(read('abuse-policy', 'en')).toMatch(/delete it 1 year after it is closed/)
+  })
+
+  it('lists the anonymous terms cookie and no third-party font or CDN hosts', () => {
+    const privacy = read('privacy', 'en')
+    expect(privacy).toMatch(/`markoto-anon-terms`/)
+    for (const { slug } of DOCS) {
+      for (const locale of LEGAL_DOCUMENT_LOCALES) {
+        const text = read(slug, locale)
+        expect(text).not.toMatch(/Google Fonts|jsDelivr/)
+        expect(text).not.toMatch(/SameSite=Strict/)
+      }
+    }
   })
 
   it('terms carry an acceptable-use section reachable from the terms link', () => {
