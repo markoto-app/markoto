@@ -67,6 +67,14 @@
     "table": "表格",
     "hideFromPreview": "设为不可见（在预览中隐藏）"
   },
+  "previewZoom": {
+    "menu": "缩放",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "fitWidth": "适合宽度",
+    "allPages": "所有页面",
+    "backToPage": "返回页面视图"
+  },
   "status": {
     "connecting": "连接中…",
     "connected": "已连接",

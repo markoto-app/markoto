@@ -67,6 +67,14 @@
     "table": "表",
     "hideFromPreview": "非表示にする（プレビューから隠す）"
   },
+  "previewZoom": {
+    "menu": "ズーム",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "fitWidth": "幅に合わせる",
+    "allPages": "全ページ",
+    "backToPage": "ページ表示に戻る"
+  },
   "status": {
     "connecting": "接続中...",
     "connected": "接続済み",

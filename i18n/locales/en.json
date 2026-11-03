@@ -67,6 +67,14 @@
     "table": "Table",
     "hideFromPreview": "Make invisible (hide from preview)"
   },
+  "previewZoom": {
+    "menu": "Zoom",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fitWidth": "Fit width",
+    "allPages": "All pages",
+    "backToPage": "Back to page view"
+  },
   "status": {
     "connecting": "Connecting...",
     "connected": "Connected",

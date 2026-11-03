@@ -15,6 +15,7 @@ without losing their visual structure.
 **Markdown + formatting**
 - [Markdown reference](/docs/writing/markdown-reference) — every syntax markoto renders, in one page.
 - [Tables, alerts, math, and diagrams](/docs/writing/rich-content) — the rich-content extensions.
+- [Zoom the preview and see all pages](/docs/writing/zoom-the-preview) — zoom in, step back to every page at once.
 - [Have a discussion in your document](/docs/writing/comments) — comments, threading, resolve.
 - [Speak instead of typing](/docs/writing/voice-dictate) — live dictation streams text as you speak.
 

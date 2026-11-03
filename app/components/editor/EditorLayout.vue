@@ -1393,6 +1393,7 @@ const _statusIcon = computed(() => {
             :theme="theme"
             :doc-id="docId"
             :get-doc-jwt="getDocJwt"
+            :zoom-control="!isMobile"
             @print-shortcut="exportPdf"
           />
         </div>
@@ -1603,6 +1604,15 @@ const _statusIcon = computed(() => {
               class="size-4"
             />
           </button>
+          <!-- Preview zoom (fit width / all pages / fixed steps); pinch
+               on the preview zooms too. -->
+          <template v-if="viewMode === 'preview'">
+            <span
+              class="mx-0.5 h-4 w-px bg-[var(--ui-border)]"
+              aria-hidden="true"
+            />
+            <PreviewZoomControl compact />
+          </template>
         </div>
       </main>
 

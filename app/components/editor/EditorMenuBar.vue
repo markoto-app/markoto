@@ -171,6 +171,8 @@ const editItems = computed(() => {
   return [items]
 })
 
+const zoomMenu = usePreviewZoomMenu({ withStepItems: true })
+
 const viewItems = computed(() => [
   // View mode (radio-style: only one active)
   [
@@ -194,6 +196,13 @@ const viewItems = computed(() => [
       type: 'checkbox' as const,
       checked: props.viewMode === 'preview',
       onSelect: () => emit('set-view-mode', 'preview')
+    },
+    // Preview zoom — only while a preview is on screen.
+    {
+      label: t('previewZoom.menu'),
+      icon: 'i-lucide-zoom-in',
+      disabled: props.viewMode === 'edit',
+      children: zoomMenu.items.value
     }
   ],
   // Right-sidebar toggles (independent — but mutually exclusive in the
