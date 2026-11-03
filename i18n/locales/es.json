@@ -300,7 +300,7 @@
   "templates": {
     "blank": {
       "label": "En blanco",
-      "description": "Solo un título. Tú aportas la estructura."
+      "description": "Una página vacía. Tú pones todo lo demás."
     },
     "business-plan": {
       "label": "Plan de negocio",
@@ -321,6 +321,10 @@
     "project-readme": {
       "label": "README del proyecto",
       "description": "Eslogan, por qué, inicio rápido, funciones, documentación, contribuir, licencia."
+    },
+    "demo": {
+      "label": "Demo",
+      "description": "Un recorrido breve: lo básico de markdown y dónde están compartir, los temas, los comentarios, la IA y la exportación a PDF."
     }
   },
   "documentPanel": {

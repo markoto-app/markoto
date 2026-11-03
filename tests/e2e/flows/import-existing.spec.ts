@@ -134,7 +134,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
     'Click "Import" to convert and load',
     importBtn,
     {
-      // Conflict path: silentSetup leaves the seeded welcome doc
+      // Conflict path: silentSetup leaves the seeded Demo doc
       // (~30 lines), so applyImport asks how to merge instead of
       // replacing automatically. The Replace button is in the
       // conflict pane that takes over the modal.
@@ -143,9 +143,9 @@ test('Import existing document', async ({ page, flow, editor }) => {
     }
   )
 
-  // Click Replace to drop the welcome content and use the imported file.
+  // Click Replace to drop the demo content and use the imported file.
   await flow.click(
-    'Click "Replace" — drop the welcome content, use the import',
+    'Click "Replace" — drop the demo content, use the import',
     page.locator('[data-testid="import-replace-all"]'),
     {
       // Hero outcome: the imported text appearing in the editor IS
@@ -162,9 +162,9 @@ test('Import existing document', async ({ page, flow, editor }) => {
         // edit-only (`v-if="viewMode !== 'edit'"` keeps the preview
         // iframe unmounted under `<sm`), so there's no iframe to
         // wait on — `cm-content` text is the only useful signal.
-        // The preview was already paginated with the welcome text, so
+        // The preview was already paginated with the Demo text, so
         // "a page exists" is no signal: wait until the imported heading
-        // is on the first page and the welcome text is gone.
+        // is on the first page and the Demo text is gone.
         if (!editor.isMobile) {
           const mount = page.frameLocator('iframe').first().locator('#mount')
           await expect(mount.locator('.pagedjs_page').first()).toContainText(/Q3 launch postmortem/i, { timeout: 30_000 })

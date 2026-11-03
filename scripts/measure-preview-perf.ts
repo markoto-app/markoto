@@ -23,8 +23,10 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { chromium, type Frame, type Page } from '@playwright/test'
 import { Pool } from 'pg'
-import { welcomeMarkdown } from '../app/utils/welcomeDoc'
 import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../shared/legal/versions'
+
+// The Demo template: the content a new document opens with by default.
+const demoMarkdown = readFileSync(new URL('../shared/templates/content/demo/en.md', import.meta.url), 'utf-8')
 
 const BASE_URL = process.env.PERF_BASE_URL ?? 'http://localhost:3001'
 const ITERATIONS = Number(process.env.PERF_ITERATIONS ?? 15)
@@ -219,7 +221,7 @@ async function main() {
   const frame = await previewFrame(page)
 
   const docs: Array<{ name: string, markdown: string }> = [
-    { name: 'welcome x10', markdown: Array.from({ length: 10 }, () => welcomeMarkdown).join('\n\n<!-- pagebreak -->\n\n') },
+    { name: 'demo x10', markdown: Array.from({ length: 10 }, () => demoMarkdown).join('\n\n<!-- pagebreak -->\n\n') },
     { name: '50 pages (images, mermaid, math)', markdown: bigDocument(imageUrl) }
   ]
   const report: string[] = [`## ${LABEL}`, '', '| Document | Pages | p50 ms | p95 ms | mean ms | parent long tasks p50 ms | browser PSS MiB |', '|---|---|---|---|---|---|---|']

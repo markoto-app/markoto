@@ -300,7 +300,7 @@
   "templates": {
     "blank": {
       "label": "空白",
-      "description": "仅有一个标题，结构由你来搭建。"
+      "description": "一张空白页，内容全由你来写。"
     },
     "business-plan": {
       "label": "商业计划书",
@@ -321,6 +321,10 @@
     "project-readme": {
       "label": "项目 README",
       "description": "标语、缘由、快速上手、功能、文档、贡献、许可。"
+    },
+    "demo": {
+      "label": "演示",
+      "description": "简短导览：Markdown 基础，以及分享、主题、评论、AI 和 PDF 导出在哪里。"
     }
   },
   "documentPanel": {

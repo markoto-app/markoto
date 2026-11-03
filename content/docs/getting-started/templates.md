@@ -17,11 +17,13 @@ the bones of what you're writing.
 
 ## What just happened
 
-markoto ships six starting shapes: blank, meeting notes, project README,
-academic paper, business plan and recipe. Each is a markdown skeleton
-written in the language you pick, with short private comments telling you
-(or the AI) what belongs in each section. The new document starts with that
-body, the template's audience, and a suitable theme already applied.
+markoto ships seven starting shapes. **Demo** is picked for you: a short
+tour of markdown and of markoto (sharing, themes, comments, the AI, PDF
+export), handy for your first document. **Blank** is an empty page, and so
+is "Just give me a blank doc". The other five are skeletons: meeting notes,
+project README, academic paper, business plan and recipe. Each is written
+in the language you pick, with short private comments telling you (or the
+AI) what belongs in each section.
 
 You can change any of it after the fact — the template is a starting
 point, not a constraint.

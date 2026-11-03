@@ -3,7 +3,9 @@ import {
   TEMPLATES,
   TEMPLATE_IDS,
   isTemplateId,
-  getTemplate
+  getTemplate,
+  DEFAULT_TEMPLATE_ID,
+  TEMPLATE_LOCALES
 } from '../../shared/templates'
 import { renderTemplate } from '../../server/utils/templateRenderer'
 
@@ -20,6 +22,7 @@ import { renderTemplate } from '../../server/utils/templateRenderer'
 
 describe('TEMPLATES registry', () => {
   it('lists at least the seed templates we ship', () => {
+    expect(TEMPLATE_IDS).toContain('demo')
     expect(TEMPLATE_IDS).toContain('blank')
     expect(TEMPLATE_IDS).toContain('business-plan')
     expect(TEMPLATE_IDS).toContain('academic-paper')
@@ -36,6 +39,11 @@ describe('TEMPLATES registry', () => {
       expect(tpl.descriptionKey).toMatch(/^templates\./)
       expect(typeof tpl.hasContent).toBe('boolean')
     }
+  })
+
+  it('the new-document dialog defaults to the demo template', () => {
+    expect(DEFAULT_TEMPLATE_ID).toBe('demo')
+    expect(isTemplateId(DEFAULT_TEMPLATE_ID)).toBe(true)
   })
 
   it('blank is the only template without content', () => {
@@ -118,9 +126,25 @@ describe('renderTemplate', () => {
     expect(out).not.toContain('Zusammenfassung')
   })
 
-  it('falls back to English when no other locale matches', () => {
+  it('falls back to English when the template has no file for the locale', () => {
     const out = renderTemplate('business-plan', { ...baseCtx, language: 'ja' })
     expect(out).toContain('Executive summary')
+  })
+
+  it('ships the demo template in every UI locale', () => {
+    const en = renderTemplate('demo', baseCtx)
+    expect(en).toContain('# Welcome to markoto')
+    for (const locale of TEMPLATE_LOCALES) {
+      const out = renderTemplate('demo', { ...baseCtx, language: locale })
+      expect(out, `demo/${locale}.md`).toBeTruthy()
+      if (locale !== 'en') expect(out, `demo/${locale}.md is translated`).not.toBe(en)
+      // Same structure in every language: the same number of sections,
+      // the page break, the mermaid diagram and the task list.
+      expect(out!.match(/^## /gm)?.length, `demo/${locale}.md sections`).toBe(en!.match(/^## /gm)?.length)
+      expect(out).toContain('<!-- pagebreak -->')
+      expect(out).toContain('```mermaid')
+      expect(out).toContain('- [ ] ')
+    }
   })
 
   it('every non-blank template renders to non-empty content with at least one heading', () => {

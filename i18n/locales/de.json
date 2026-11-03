@@ -300,7 +300,7 @@
   "templates": {
     "blank": {
       "label": "Leer",
-      "description": "Nur ein Titel. Die Struktur bringen Sie mit."
+      "description": "Eine leere Seite. Alles andere bringen Sie mit."
     },
     "business-plan": {
       "label": "Businessplan",
@@ -321,6 +321,10 @@
     "project-readme": {
       "label": "Projekt-README",
       "description": "Slogan, Warum, Schnellstart, Funktionen, Doku, Mitwirken, Lizenz."
+    },
+    "demo": {
+      "label": "Demo",
+      "description": "Ein kurzer Rundgang: Markdown-Grundlagen und wo Sie Freigabe, Designs, Kommentare, die KI und den PDF-Export finden."
     }
   },
   "documentPanel": {

@@ -300,7 +300,7 @@
   "templates": {
     "blank": {
       "label": "空白",
-      "description": "タイトルだけ。構成はあなたが作ります。"
+      "description": "まっさらなページ。中身はすべてあなた次第。"
     },
     "business-plan": {
       "label": "事業計画",
@@ -321,6 +321,10 @@
     "project-readme": {
       "label": "プロジェクトREADME",
       "description": "キャッチコピー、目的、クイックスタート、機能、ドキュメント、コントリビュート、ライセンス。"
+    },
+    "demo": {
+      "label": "デモ",
+      "description": "短いツアー：Markdown の基本と、共有・テーマ・コメント・AI・PDF 書き出しの場所。"
     }
   },
   "documentPanel": {

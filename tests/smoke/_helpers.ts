@@ -67,17 +67,19 @@ export async function createAnonDoc(body: Record<string, unknown> = {}): Promise
 
 /**
  * The run's shared anonymous documents, created once by globalSetup.ts:
- *   - `blank`    — the welcome document, shared by every spec that just
- *                  needs "an anonymous doc" (editor + preview, PDF, mobile).
+ *   - `demo`     — a Demo-template document (markdown tour incl. a mermaid
+ *                  diagram), shared by every spec that just needs "an
+ *                  anonymous doc with content" (editor + preview, PDF, mobile).
  *   - `template` — created with the business-plan template; the template
  *                  spec needs its own because the template is chosen at
  *                  creation.
  * Two anonymous creations per run, whatever the retries.
  */
-export type SmokeDoc = 'blank' | 'template'
+export type SmokeDoc = 'demo' | 'template'
 
 export const SMOKE_DOCS_ENV = 'SMOKE_ANON_DOCS'
 
+export const DEMO_DOC_BODY: Record<string, unknown> = Object.freeze({ templateId: 'demo', language: 'en' })
 export const TEMPLATE_DOC_BODY: Record<string, unknown> = Object.freeze({ templateId: 'business-plan', language: 'en' })
 
 export function smokeDoc(kind: SmokeDoc): string {

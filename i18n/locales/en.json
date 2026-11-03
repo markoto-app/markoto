@@ -300,7 +300,7 @@
   "templates": {
     "blank": {
       "label": "Blank",
-      "description": "Just a title. You bring the structure."
+      "description": "An empty page. You bring everything."
     },
     "business-plan": {
       "label": "Business plan",
@@ -321,6 +321,10 @@
     "project-readme": {
       "label": "Project README",
       "description": "Tagline, why, quick start, features, docs, contributing, license."
+    },
+    "demo": {
+      "label": "Demo",
+      "description": "A short tour: markdown basics and where to find sharing, themes, comments, the AI and PDF export."
     }
   },
   "documentPanel": {

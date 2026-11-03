@@ -329,7 +329,7 @@ export type SetupOpts = {
   title?: string
   /** `false` turns the cover page off once the editor is ready. */
   cover?: boolean
-  /** Replaces the seeded welcome text with this markdown (a short,
+  /** Replaces the seeded Demo text with this markdown (a short,
    *  realistic draft the flow's outcome fits next to). */
   body?: string
 }
@@ -1002,7 +1002,10 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         }
         // Anonymous visitors (most flows) pass the accept-terms step +
         // the real ALTCHA bot check here; signed-in flows go straight on.
-        await editor.clickCreateAndPassGate(opts.title ? editor.newDocDialog.submitCreate : editor.newDocDialog.submitBlank)
+        // Always the form's Create button: the dialog's defaults give the
+        // Demo template, the document every flow starts from
+        // ("Just give me a blank doc" would leave it empty).
+        await editor.clickCreateAndPassGate(editor.newDocDialog.submitCreate)
         await editor.waitForReady()
         if (opts.title) {
           await baseExpect(editor.titleButton).toContainText(opts.title)

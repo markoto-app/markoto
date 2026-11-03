@@ -130,8 +130,8 @@ export function useDocToken(docId: string) {
   const initialLanguage = ref<string>('en')
   // Pre-rendered template body (with title/description placeholders
   // already substituted server-side, locale-matched). Null when the
-  // doc was created with the `blank` template — the editor falls back
-  // to welcomeDoc in that case. Only seeded when ytext is empty.
+  // doc was created with the `blank` template — the document then stays
+  // empty. Only seeded when ytext is empty.
   const initialBody = ref<string | null>(null)
 
   const { user: sessionUser } = useUserSession()

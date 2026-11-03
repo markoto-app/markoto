@@ -1,6 +1,6 @@
 # Templates
 
-Pure structural skeletons keyed off `templateId`. Six ship in v1: blank, business-plan, academic-paper, recipe, meeting-notes, project-readme. Each non-blank template has heading hierarchy + section-level `<!-- ... -->` instruction comments — invisible in preview/PDF (comment plugin in `app/utils/AGENTS.md`) but visible in the markdown source AND in the AI's `view_document` calls, so the model has section-level briefs to follow.
+Bodies keyed off `templateId`. Seven ship: demo (the new-document dialog's default, `DEFAULT_TEMPLATE_ID`: a markdown cheat sheet that also says where sharing, themes, cover page, comments + `@markoto`, the AI bar, dictation, activity/restore, PDF export and workspace knowledge live; all six UI locales), blank (truly empty — no body at all), business-plan, academic-paper, recipe, meeting-notes, project-readme. Each skeleton template has heading hierarchy + section-level `<!-- ... -->` instruction comments — invisible in preview/PDF (comment plugin in `app/utils/AGENTS.md`) but visible in the markdown source AND in the AI's `view_document` calls, so the model has section-level briefs to follow.
 
 ## Split between client-safe registry and server-only renderer
 
@@ -11,11 +11,11 @@ Pure structural skeletons keyed off `templateId`. Six ship in v1: blank, busines
 
 ## Multilingual
 
-Each template ships per-locale files (currently `en.md` + `de.md`). Locale resolution in `renderTemplate`: exact match → BCP-47 base (`de-CH` → `de`) → English fallback. Free-text languages drop to English without throwing; the AI handles output language via the doc-context block regardless. Adding a locale = drop new `.md` files + extend `TEMPLATE_LOCALES` once. Adding a template = drop the `<id>/en.md` file (mandatory) + register in `TEMPLATES` + add i18n keys for label/description.
+Each template ships per-locale files (`demo` in all six UI locales, the skeletons `en.md` + `de.md`; `TEMPLATE_LOCALES` lists all six, a missing file falls back to English). Locale resolution in `renderTemplate`: exact match → BCP-47 base (`de-CH` → `de`) → English fallback. Free-text languages drop to English without throwing; the AI handles output language via the doc-context block regardless. Adding a locale = drop new `.md` files + extend `TEMPLATE_LOCALES` once. Adding a template = drop the `<id>/en.md` file (mandatory) + register in `TEMPLATES` + add i18n keys for label/description.
 
 ## Seeding flow
 
-Server token endpoint pre-renders the body (with the doc's title/description, locale-matched on doc.language) and ships it as `initialBody` on every fetch. Client uses it only when `ytext.length === 0` — same gate as `welcomeMarkdown`, so re-fetching the token on a doc with content is harmless and `blank` template (renders to null) falls through to the generic welcome doc.
+Server token endpoint pre-renders the body (with the doc's title/description, locale-matched on doc.language) and ships it as `initialBody` on every fetch. Client uses it only when `ytext.length === 0`, so re-fetching the token on a doc with content is harmless. `blank` renders to null and the document stays empty (there is no generic welcome text any more). An empty `POST /api/docs` ("Just give me a blank doc", File → New) gets the schema default `blank`. The Demo text names real UI labels per locale (menu paths, button names): when one of those labels changes, update the demo files too.
 
 ## Gotchas
 

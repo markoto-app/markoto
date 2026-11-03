@@ -28,7 +28,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   // (type first, then change mode) caused Maya's edits to never reach
   // the visitor — the access-mode change races with the Hocuspocus
   // flush of Maya's typed buffer in the test stack and the visitor
-  // ends up with welcome-only state. Doing the mode change first is
+  // ends up with demo-only state. Doing the mode change first is
   // also what `collab-live` does (works there). The narrative in the
   // flow is unchanged: the user picks the mode, then writes content.
   await editor.page.setAccessMode('open-view')
@@ -59,7 +59,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
   // pressSequentially edits (the click triggers a re-render that
   // momentarily detaches the editor's CodeMirror view and DROPS
   // unflushed Y.js updates that haven't reached Hocuspocus yet — so
-  // the visitor connects later and gets welcome-only state).
+  // the visitor connects later and gets demo-only state).
   // Step B (truth): commit the mode change via the API, which doesn't
   // touch the editor's DOM at all.
   await flow.click(
