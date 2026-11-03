@@ -243,6 +243,20 @@ echo "ok: anonymous gate wiring (prod on + key required, self-host key generated
 render_config "$tmp/local.json" "$tmp/prod.env" "docker-compose.local.yml"
 check_isolation "local" "$tmp/local.json"
 
+# ─── App gets the LiteLLM salt key ────────────────────────────────────
+# The app encrypts users' LiteLLM virtual-key tokens with LITELLM_SALT_KEY.
+# Every compose shape that runs the app must pass it (it reached only the
+# litellm service once, and every AI setup on staging failed with a 500).
+render_config "$tmp/salt-prod.json" "$tmp/prod.env" "docker-compose.prod.yml"
+render_config "$tmp/salt-selfhost.json" "$tmp/selfhost.env" "docker-compose.selfhost.yml"
+for cfg in salt-prod salt-selfhost local; do
+  if ! jq -e '.services.app.environment.LITELLM_SALT_KEY == "sk-placeholder"' "$tmp/$cfg.json" > /dev/null; then
+    echo "FAIL: the app service must receive LITELLM_SALT_KEY ($cfg)" >&2
+    exit 1
+  fi
+done
+echo "ok: the app receives LITELLM_SALT_KEY (prod, self-host, local)"
+
 # The renderer code must never launch Chromium without its sandbox, and the
 # profile must keep the one rule the sandbox needs.
 if grep -rn -- '--no-sandbox' renderer/src; then
