@@ -276,10 +276,17 @@ function spawnServer(env: NodeJS.ProcessEnv, label: string): ChildProcess {
   child.stderr?.on('data', (d) => {
     process.stderr.write(`[${label}] ${d}`)
   })
+  //
+  // The pipe MUST be drained either way: an unread pipe fills after
+  // ~64 KiB, and the server's next `console.log` then blocks its event
+  // loop for good — every request hangs (the suite saw 30 s timeouts on
+  // every test after a few hundred AI-loop log lines).
   if (process.env.DEBUG_NUXT_TEST === '1') {
     child.stdout?.on('data', (d) => {
       process.stdout.write(`[${label}] ${d}`)
     })
+  } else {
+    child.stdout?.resume()
   }
   child.on('exit', (code, signal) => {
     // Only surface unexpected exits. A non-zero code means it died on
