@@ -12,13 +12,13 @@ translationStatus: machine-translated
 
 ## Qué cubre esta política
 
-Esta política es nuestro **mecanismo de notificación y acción** conforme al artículo 16 del **Reglamento de Servicios Digitales** de la UE (Reglamento (UE) 2022/2065, «DSA»). Describe también nuestras exposiciones de motivos (art. 17), cómo pueden oponerse los usuarios afectados y cuándo informamos a las autoridades (art. 18). Las normas sobre lo que está permitido figuran en el apartado 6 de nuestras Condiciones de servicio (`/legal/terms`), y la forma en que moderamos, en el apartado 8.
+Esta política es nuestro **mecanismo de notificación y acción** conforme al artículo 16 del **Reglamento de Servicios Digitales** de la UE (Reglamento (UE) 2022/2065, «DSA»). Describe también nuestras exposiciones de motivos (art. 17), cómo pueden oponerse los usuarios afectados y cuándo informamos a las autoridades (art. 18). Las normas sobre lo que está permitido figuran en el apartado 6 de nuestras Condiciones de servicio ([/legal/terms](/legal/terms)), y la forma en que moderamos, en el apartado 8.
 
 ## Cómo denunciar
 
 Puede denunciar contenido de dos maneras. Ambas se tramitan del mismo modo:
 
-- **El formulario de denuncia** en `/legal/abuse`. Funciona sin cuenta; en ese caso, su navegador supera una breve comprobación contra bots que se ejecuta en nuestro propio servidor, sin terceros y sin cookies. Los documentos creados sin cuenta muestran una barra «contenido de usuario · Denunciar» que abre el formulario con la dirección del documento ya rellenada.
+- **El formulario de denuncia** en [/legal/abuse](/legal/abuse). Funciona sin cuenta; en ese caso, su navegador supera una breve comprobación contra bots que se ejecuta en nuestro propio servidor, sin terceros y sin cookies. Los documentos creados sin cuenta muestran una barra «contenido de usuario · Denunciar» que abre el formulario con la dirección del documento ya rellenada.
 - **Correo electrónico** a **{{abuseContactEmail}}**.
 
 Una denuncia completa contiene (art. 16, apartado 2, del DSA):
@@ -81,7 +81,7 @@ Podemos dejar de tramitar las denuncias de personas que presenten con frecuencia
 
 ## Datos que tratamos para las denuncias
 
-Para tramitar una denuncia almacenamos la dirección del contenido denunciado, su explicación, la categoría, su nombre y su dirección de correo electrónico, el idioma que utilizó, el momento en que confirmó la declaración de buena fe y el momento de la denuncia, además de una dirección IP acortada y un hash del agente de usuario de su navegador contra las denuncias masivas. En las denuncias enviadas con la sesión iniciada, vinculamos además su cuenta. Conservamos una denuncia, con las notificaciones relativas a ella, mientras el caso está abierto y la eliminamos 1 año después de su cierre. Su exportación de datos contiene las denuncias que presentó con la sesión iniciada. Consulte la Política de privacidad (`/legal/privacy`) para más detalles.
+Para tramitar una denuncia almacenamos la dirección del contenido denunciado, su explicación, la categoría, su nombre y su dirección de correo electrónico, el idioma que utilizó, el momento en que confirmó la declaración de buena fe y el momento de la denuncia, además de una dirección IP acortada y un hash del agente de usuario de su navegador contra las denuncias masivas. En las denuncias enviadas con la sesión iniciada, vinculamos además su cuenta. Conservamos una denuncia, con las notificaciones relativas a ella, mientras el caso está abierto y la eliminamos 1 año después de su cierre. Su exportación de datos contiene las denuncias que presentó con la sesión iniciada. Consulte la Política de privacidad ([/legal/privacy](/legal/privacy)) para más detalles.
 
 ## Contacto
 

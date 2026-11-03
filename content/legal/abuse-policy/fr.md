@@ -12,13 +12,13 @@ translationStatus: machine-translated
 
 ## Ce que couvre cette politique
 
-La présente politique constitue notre **mécanisme de notification et d'action** au titre de l'article 16 du **règlement sur les services numériques** de l'UE (règlement (UE) 2022/2065, « DSA »). Elle décrit également nos exposés des motifs (article 17), la manière dont les utilisateurs concernés peuvent contester, et les cas dans lesquels nous informons les autorités (article 18). Les règles sur ce qui est autorisé figurent à l'article 6 de nos conditions d'utilisation (`/legal/terms`), et notre manière de modérer à l'article 8.
+La présente politique constitue notre **mécanisme de notification et d'action** au titre de l'article 16 du **règlement sur les services numériques** de l'UE (règlement (UE) 2022/2065, « DSA »). Elle décrit également nos exposés des motifs (article 17), la manière dont les utilisateurs concernés peuvent contester, et les cas dans lesquels nous informons les autorités (article 18). Les règles sur ce qui est autorisé figurent à l'article 6 de nos conditions d'utilisation ([/legal/terms](/legal/terms)), et notre manière de modérer à l'article 8.
 
 ## Comment signaler
 
 Vous pouvez signaler un contenu de deux manières, traitées de façon identique :
 
-- **Le formulaire de signalement** à l'adresse `/legal/abuse`. Il fonctionne sans compte ; votre navigateur résout alors une brève vérification anti-robots exécutée sur notre propre serveur, sans tiers et sans cookie. Les documents créés sans compte affichent une barre « contenu d'utilisateur · Signaler » qui ouvre le formulaire avec l'adresse du document déjà renseignée.
+- **Le formulaire de signalement** à l'adresse [/legal/abuse](/legal/abuse). Il fonctionne sans compte ; votre navigateur résout alors une brève vérification anti-robots exécutée sur notre propre serveur, sans tiers et sans cookie. Les documents créés sans compte affichent une barre « contenu d'utilisateur · Signaler » qui ouvre le formulaire avec l'adresse du document déjà renseignée.
 - **Par e-mail** à **{{abuseContactEmail}}**.
 
 Un signalement complet comprend (article 16, paragraphe 2, du DSA) :
@@ -81,7 +81,7 @@ Nous pouvons, après un avertissement et pour une durée raisonnable, cesser de 
 
 ## Données que nous traitons pour les signalements
 
-Pour traiter un signalement, nous enregistrons l'adresse du contenu signalé, votre explication, la catégorie, votre nom et votre adresse e-mail, la langue que vous avez utilisée, le moment où vous avez confirmé la déclaration de bonne foi et l'heure, ainsi qu'une adresse IP tronquée et une empreinte (hash) de l'agent utilisateur de votre navigateur contre les signalements en masse. Pour les signalements envoyés en étant connecté, nous associons également votre compte. Nous conservons un signalement, avec les notifications qui s'y rapportent, tant que le dossier est ouvert et le supprimons 1 an après sa clôture. Votre export de données comprend les signalements que vous avez déposés en étant connecté. Voir la politique de confidentialité (`/legal/privacy`) pour plus de détails.
+Pour traiter un signalement, nous enregistrons l'adresse du contenu signalé, votre explication, la catégorie, votre nom et votre adresse e-mail, la langue que vous avez utilisée, le moment où vous avez confirmé la déclaration de bonne foi et l'heure, ainsi qu'une adresse IP tronquée et une empreinte (hash) de l'agent utilisateur de votre navigateur contre les signalements en masse. Pour les signalements envoyés en étant connecté, nous associons également votre compte. Nous conservons un signalement, avec les notifications qui s'y rapportent, tant que le dossier est ouvert et le supprimons 1 an après sa clôture. Votre export de données comprend les signalements que vous avez déposés en étant connecté. Voir la politique de confidentialité ([/legal/privacy](/legal/privacy)) pour plus de détails.
 
 ## Contact
 

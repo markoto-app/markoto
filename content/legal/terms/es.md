@@ -10,11 +10,13 @@ translationStatus: machine-translated
 
 > **En resumen:** markoto es un servicio gratuito, prestado «tal cual». Debe tener 16 años o más. Úselo de forma lícita y respete las normas de uso aceptable del apartado 6. Los documentos que cree sin cuenta pueden ser abiertos por cualquier persona que tenga el enlace, se eliminan tras 30 días sin actividad y solo puede eliminarlos el navegador que los creó. Los resultados de la IA le pertenecen, pero compruébelos antes de confiar en ellos. Si conecta su propio proveedor de IA, usted asume sus costes. Podemos retirar contenido o suspender cuentas que incumplan estas Condiciones, y le explicamos el motivo cuando podemos contactar con usted.
 
-**Índice:** 1. El servicio · 2. Requisitos de acceso y cuentas · 3. Servicio gratuito, uso razonable y límites · 4. Documentos anónimos · 5. Su contenido · 6. Uso aceptable · 7. Funciones de IA · 8. Moderación de contenidos y denuncias · 9. Disponibilidad, cambios y funciones beta · 10. Garantía · 11. Responsabilidad · 12. Indemnización (usuarios empresariales) · 13. Terminación · 14. Ley aplicable y tribunales · 15. Cambios en estas Condiciones · 16. Disposiciones generales
+**Índice**
+
+[[toc]]
 
 ## 1. El servicio
 
-markoto es un editor de Markdown colaborativo operado por **{{controllerName}}** ({{controllerAddress}}), en adelante «nosotros». Estas Condiciones se aplican a todas las personas que usan markoto.app, con o sin cuenta. Nuestra Política de privacidad (`/legal/privacy`) explica cómo tratamos los datos personales. Los propietarios de espacios de trabajo aceptan además nuestra Adenda de tratamiento de datos (`/legal/dpa`). Nuestra Política de abuso y contenido ilícito (`/legal/abuse-policy`) explica cómo denunciar contenido.
+markoto es un editor de Markdown colaborativo operado por **{{controllerName}}** ({{controllerAddress}}), en adelante «nosotros». Estas Condiciones se aplican a todas las personas que usan markoto.app, con o sin cuenta. Nuestra Política de privacidad ([/legal/privacy](/legal/privacy)) explica cómo tratamos los datos personales. Los propietarios de espacios de trabajo aceptan además nuestra Adenda de tratamiento de datos ([/legal/dpa](/legal/dpa)). Nuestra Política de abuso y contenido ilícito ([/legal/abuse-policy](/legal/abuse-policy)) explica cómo denunciar contenido.
 
 ## 2. Requisitos de acceso y cuentas
 
@@ -122,7 +124,7 @@ Este apartado describe cómo tratamos el contenido que puede ser ilícito o incu
 - **Sin supervisión general.** No leemos los documentos de forma proactiva ni usamos herramientas automatizadas de reconocimiento de contenido, como filtros o comparación de hashes, para detectar contenido ilícito. Actuamos a partir de las notificaciones que recibimos y de lo que advertimos nosotros mismos al operar el servicio.
 - **Herramientas automatizadas que sí usamos.** Los límites de frecuencia, los límites de tamaño y la comprobación contra bots limitan los usos indebidos de forma automática, sin examinar el significado de su contenido. Los proveedores de IA pueden rechazar solicitudes mediante sus propios filtros de seguridad automatizados.
 - **Revisión humana.** Una persona de nuestro equipo revisa cada notificación y adopta cada decisión de moderación. No adoptamos decisiones de moderación de forma automatizada.
-- **Cómo denunciar.** Cualquier persona puede denunciar contenido, con o sin cuenta, tal como se describe en nuestra Política de abuso y contenido ilícito (`/legal/abuse-policy`) o por correo electrónico a **{{abuseContactEmail}}**.
+- **Cómo denunciar.** Cualquier persona puede denunciar contenido, con o sin cuenta, tal como se describe en nuestra Política de abuso y contenido ilícito ([/legal/abuse-policy](/legal/abuse-policy)) o por correo electrónico a **{{abuseContactEmail}}**.
 - **Medidas.** Según la gravedad y la claridad del caso, podemos: retirar un documento o comentario, o inhabilitar el acceso a él; restringir el acceso a él (por ejemplo, hacer privado el documento, de modo que deje de ser accesible mediante el enlace); suspender una cuenta durante un tiempo; o cancelar una cuenta. Elegimos la medida menos severa que resulte eficaz, teniendo en cuenta la gravedad de la infracción, si fue intencionada y si se ha producido antes. También podemos comunicar contenido a las autoridades según lo descrito en la Política de abuso.
 - **Abuso reiterado.** Si alguien comparte reiteradamente contenido manifiestamente ilícito, o envía reiteradamente notificaciones o reclamaciones manifiestamente infundadas, primero le advertimos cuando es posible y después suspendemos la cuenta o dejamos de tramitar sus notificaciones durante un periodo razonable. Los casos graves, como el material de abuso sexual infantil, conllevan la cancelación inmediata.
 - **Exposición de motivos y reclamaciones.** Si retiramos o restringimos su contenido o suspendemos su cuenta, le explicamos el motivo por correo electrónico (si su cuenta tiene una dirección de correo registrada), incluida la forma de reclamar. Puede presentar una reclamación a **{{abuseContactEmail}}** en un plazo de seis meses. Una persona revisa su reclamación y revocamos nuestra decisión si era errónea. También puede acudir a los tribunales. Los documentos anónimos no tienen datos de contacto, por lo que no podemos informar a quienes los crearon.
@@ -153,7 +155,7 @@ Si usa markoto como usuario empresarial, nos mantendrá indemnes frente a las re
 
 ## 13. Terminación
 
-Puede dejar de usar markoto en cualquier momento y eliminar su cuenta desde `/settings/profile`. La eliminación surte efecto tras un periodo de gracia de 30 días, tal como se describe en la Política de privacidad.
+Puede dejar de usar markoto en cualquier momento y eliminar su cuenta desde [/settings/profile](/settings/profile). La eliminación surte efecto tras un periodo de gracia de 30 días, tal como se describe en la Política de privacidad.
 
 Podemos suspender o cancelar su cuenta conforme al apartado 8, o cuando la ley nos obligue a ello. Cuando sea razonable, le avisaremos antes y le daremos la oportunidad de exportar sus datos. Tras la terminación, sus datos se tratan conforme a la Política de privacidad. Los apartados que por su naturaleza deban sobrevivir a la terminación (como los apartados 10 a 12, 14 y 16) siguen siendo aplicables.
 

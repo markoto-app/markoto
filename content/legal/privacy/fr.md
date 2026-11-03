@@ -10,7 +10,9 @@ translationStatus: machine-translated
 
 > **En bref :** markoto conserve les documents que vous rédigez, les commentaires que vous laissez et le minimum nécessaire pour gérer votre compte. Le service est gratuit ; les offres payantes ne sont pas encore proposées. Les fonctionnalités d'IA reposent sur des fournisseurs établis dans l'UE (Mistral AI pour le texte et la voix, Jina AI pour les embeddings et la récupération de pages isolées, Staan pour la recherche web, Black Forest Labs pour la génération d'images), sauf si vous connectez votre propre fournisseur d'IA : dans ce cas, votre contenu d'IA est envoyé au fournisseur que vous avez choisi. Nous n'utilisons que des cookies essentiels : ni statistiques d'usage, ni pistage, ni publicité. Nous ne vendons pas vos données et nous n'entraînons pas d'IA sur votre contenu. Vous pouvez exporter les données que nous détenons sur vous et supprimer votre compte à tout moment depuis vos paramètres.
 
-**Sommaire :** 1. Qui nous sommes · 2. Quelles données nous traitons et pourquoi · 2b. Documents anonymes, vérification anti-robots et signalements d'abus · 3. Base juridique · 4. Destinataires et transferts internationaux · 5. Lieu de stockage et conservation · 5b. Ce qui se passe lorsque vous supprimez votre compte · 6. Vos droits · 7. Décision automatisée · 8. Fonctionnalités d'IA et transparence · 9. Cookies et technologies similaires · 10. Âge minimal · 11. Droit d'introduire une réclamation · 12. Sécurité · 13. Registre des finalités de traitement · 14. Modifications de la présente politique
+**Sommaire**
+
+[[toc]]
 
 ---
 
@@ -20,7 +22,7 @@ markoto est exploité par **{{controllerName}}** ({{controllerAddress}}). Pour t
 
 La présente politique est rédigée de manière à satisfaire à la fois à la **loi fédérale suisse sur la protection des données** (nouvelle LPD, nLPD, en vigueur depuis le 1er septembre 2023) et, lorsqu'il nous est applicable, au **règlement général sur la protection des données** de l'UE (règlement (UE) 2016/679, « RGPD »). Le RGPD nous est applicable parce que nous proposons markoto à des personnes se trouvant dans l'UE et l'EEE.
 
-Nous sommes le **responsable du traitement** des données personnelles que vous nous fournissez directement : votre compte, les documents anonymes que vous créez, les signalements d'abus et, si vous vous y inscrivez, la liste d'attente des offres payantes. Lorsque vous utilisez markoto dans un espace de travail appartenant à un tiers, le propriétaire de cet espace est le responsable du traitement des contenus placés dans son espace de travail, et nous agissons en tant que **sous-traitant** pour son compte dans le cadre de notre accord de traitement des données (`/legal/dpa`).
+Nous sommes le **responsable du traitement** des données personnelles que vous nous fournissez directement : votre compte, les documents anonymes que vous créez, les signalements d'abus et, si vous vous y inscrivez, la liste d'attente des offres payantes. Lorsque vous utilisez markoto dans un espace de travail appartenant à un tiers, le propriétaire de cet espace est le responsable du traitement des contenus placés dans son espace de travail, et nous agissons en tant que **sous-traitant** pour son compte dans le cadre de notre accord de traitement des données ([/legal/dpa](/legal/dpa)).
 
 ## 2. Quelles données nous traitons et pourquoi
 
@@ -54,7 +56,7 @@ Au regard du RGPD, chaque traitement repose sur l'une des bases juridiques suiva
 
 ## 4. Destinataires et transferts internationaux
 
-Nous faisons appel à un petit nombre de prestataires (« sous-traitants ultérieurs ») liés par des accords écrits de traitement des données (article 28 du RGPD, art. 9 LPD). La liste à jour figure à l'adresse `/legal/sub-processors`. Elle n'indique que les prestataires réellement utilisés par ce déploiement : Stripe (paiement) n'y apparaît que lorsque les offres payantes sont activées, et un fournisseur d'IA que **vous** connectez vous-même (voir le point 8) n'est pas notre sous-traitant ultérieur et n'y figure pas.
+Nous faisons appel à un petit nombre de prestataires (« sous-traitants ultérieurs ») liés par des accords écrits de traitement des données (article 28 du RGPD, art. 9 LPD). La liste à jour figure à l'adresse [/legal/sub-processors](/legal/sub-processors). Elle n'indique que les prestataires réellement utilisés par ce déploiement : Stripe (paiement) n'y apparaît que lorsque les offres payantes sont activées, et un fournisseur d'IA que **vous** connectez vous-même (voir le point 8) n'est pas notre sous-traitant ultérieur et n'y figure pas.
 
 **Où vont vos données.** Nous sommes établis en Suisse. Notre base de données, notre stockage de fichiers, nos sauvegardes et nos fournisseurs d'IA se trouvent dans l'UE (France et Allemagne). Le Conseil fédéral suisse reconnaît que l'UE et l'EEE offrent un niveau de protection des données adéquat, et la Commission européenne reconnaît le caractère adéquat de la protection en Suisse ; ces transferts ne nécessitent donc aucune garantie supplémentaire.
 
@@ -92,14 +94,14 @@ La conservation suit le registre du point 13. En règle générale :
 
 ## 5b. Ce qui se passe lorsque vous supprimez votre compte
 
-Le bouton disponible à l'adresse `/settings/profile` programme la suppression définitive de votre compte **dans 30 jours**. Pendant ce délai de grâce, votre compte reste utilisable et vous pouvez annuler depuis toute page affichant le bandeau de suppression. Une fois les 30 jours écoulés, ce qui suit s'exécute automatiquement, sans nouvelle confirmation et sans possibilité de rien récupérer.
+Le bouton disponible à l'adresse [/settings/profile](/settings/profile) programme la suppression définitive de votre compte **dans 30 jours**. Pendant ce délai de grâce, votre compte reste utilisable et vous pouvez annuler depuis toute page affichant le bandeau de suppression. Une fois les 30 jours écoulés, ce qui suit s'exécute automatiquement, sans nouvelle confirmation et sans possibilité de rien récupérer.
 
 ### Ce qui est supprimé définitivement
 
 - **Votre compte** : nom, e-mail, identifiants de connexion, préférences, langue, confirmation d'âge, versions des politiques acceptées.
 - **Chaque document dont vous êtes propriétaire**, y compris les documents partagés avec des collaborateurs en mode édition. Les collaborateurs perdent l'accès en même temps. *Si vous souhaitez que des collaborateurs conservent un document, transférez-le-leur ou dupliquez-le au préalable sous leur compte.*
 - **Chaque thème enregistré** sous votre compte.
-- **Chaque espace de travail dont vous êtes le seul membre**, avec chaque document et fichier de connaissances qu'il contient. *Pour conserver le contenu d'un espace de travail, invitez un autre membre avant de supprimer votre compte, ou téléchargez d'abord les documents au moyen de l'export de données à l'adresse `/settings/profile`.*
+- **Chaque espace de travail dont vous êtes le seul membre**, avec chaque document et fichier de connaissances qu'il contient. *Pour conserver le contenu d'un espace de travail, invitez un autre membre avant de supprimer votre compte, ou téléchargez d'abord les documents au moyen de l'export de données à l'adresse [/settings/profile](/settings/profile).*
 - **Votre utilisation de l'IA** : requêtes passées (conservées 90 jours pour l'examen des abus), sessions d'IA ouvertes et paramètres d'un fournisseur d'IA personnel (apportez votre propre clé) avec leurs clés d'API chiffrées (voir le point 8).
 - **Vos tâches d'export de données** et les fichiers ZIP préparés pour vous.
 - **Votre fiche client Stripe, le cas échéant** (possible uniquement dès que des offres payantes seront proposées). Nous demandons à Stripe de la supprimer ; Stripe conserve les factures et enregistrements de paiement pendant la durée exigée par le droit fiscal.
@@ -127,7 +129,7 @@ La suppression d'un espace de travail supprime aussi les contenus que d'autres p
 
 ### Votre export de données
 
-Avant de supprimer votre compte, vous pouvez utiliser l'**export de données** à l'adresse `/settings/profile` pour obtenir une archive ZIP de tout ce que nous détenons sur vous : documents en Markdown, vos commentaires, vos appartenances aux espaces de travail, journaux d'utilisation de l'IA, vos paramètres de fournisseur d'IA (URL, modèle et fonctionnalité, jamais la clé d'API), votre inscription sur la liste d'attente, vos enregistrements de consentement et, dès que des offres payantes existeront, l'historique de facturation.
+Avant de supprimer votre compte, vous pouvez utiliser l'**export de données** à l'adresse [/settings/profile](/settings/profile) pour obtenir une archive ZIP de tout ce que nous détenons sur vous : documents en Markdown, vos commentaires, vos appartenances aux espaces de travail, journaux d'utilisation de l'IA, vos paramètres de fournisseur d'IA (URL, modèle et fonctionnalité, jamais la clé d'API), votre inscription sur la liste d'attente, vos enregistrements de consentement et, dès que des offres payantes existeront, l'historique de facturation.
 
 ### Combien de temps cela prend
 
@@ -141,9 +143,9 @@ Tant que la suppression n'a pas été exécutée, vous pouvez l'annuler en vous 
 
 Au titre du RGPD (articles 15 à 22) et de la LPD (art. 25 à 28 et 32), vous avez le droit :
 
-- d'**accéder** aux données personnelles que nous détenons à votre sujet : utilisez l'export à l'adresse `/settings/profile` ou écrivez-nous ;
+- d'**accéder** aux données personnelles que nous détenons à votre sujet : utilisez l'export à l'adresse [/settings/profile](/settings/profile) ou écrivez-nous ;
 - d'obtenir la **rectification** des données inexactes : modifiez votre profil ou écrivez-nous ;
-- d'obtenir l'**effacement** de vos données : utilisez l'outil de suppression à l'adresse `/settings/profile`. Nous attendons 30 jours, puis supprimons définitivement ;
+- d'obtenir l'**effacement** de vos données : utilisez l'outil de suppression à l'adresse [/settings/profile](/settings/profile). Nous attendons 30 jours, puis supprimons définitivement ;
 - d'obtenir la **limitation** du traitement : écrivez-nous ;
 - de vous **opposer** au traitement fondé sur l'intérêt légitime : écrivez-nous ;
 - à la **portabilité des données** : l'export fournit vos données aux formats JSON, NDJSON et Markdown, lisibles par machine ;
@@ -221,7 +223,7 @@ Nous serions heureux de pouvoir d'abord résoudre votre préoccupation : écrive
 
 ## 12. Sécurité
 
-Nous protégeons les données par le chiffrement en transit (TLS), le chiffrement au repos assuré par notre fournisseur de stockage, des sauvegardes chiffrées de la base de données, le chiffrement des secrets stockés tels que les clés de fournisseurs d'IA, une séparation stricte de nos services internes, un accès selon le principe du moindre privilège, des adresses IP tronquées dans les journaux et des mises à jour de sécurité régulières. Les comptes markoto n'ont pas de mot de passe propre : vous vous connectez via GitHub ou Google. Si vous protégez un document par un mot de passe, nous n'en conservons qu'une empreinte scrypt. Ces mesures sont décrites plus en détail à l'annexe I de notre accord de traitement des données (`/legal/dpa`).
+Nous protégeons les données par le chiffrement en transit (TLS), le chiffrement au repos assuré par notre fournisseur de stockage, des sauvegardes chiffrées de la base de données, le chiffrement des secrets stockés tels que les clés de fournisseurs d'IA, une séparation stricte de nos services internes, un accès selon le principe du moindre privilège, des adresses IP tronquées dans les journaux et des mises à jour de sécurité régulières. Les comptes markoto n'ont pas de mot de passe propre : vous vous connectez via GitHub ou Google. Si vous protégez un document par un mot de passe, nous n'en conservons qu'une empreinte scrypt. Ces mesures sont décrites plus en détail à l'annexe I de notre accord de traitement des données ([/legal/dpa](/legal/dpa)).
 
 Si une violation de données personnelles est susceptible d'engendrer un risque pour vous, nous en informons l'autorité de contrôle compétente dans un délai de 72 heures lorsque le RGPD l'exige (article 33 du RGPD), et le PFPDT dans les meilleurs délais lorsque la LPD l'exige (art. 24 LPD). Si la violation est susceptible d'engendrer un risque élevé pour vous, nous vous en informons également dans les meilleurs délais.
 

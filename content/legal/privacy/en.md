@@ -10,7 +10,9 @@ translationStatus: authoritative
 
 > **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to run your account. The service is free; paid plans are not offered yet. AI features run on EU-based providers (Mistral AI for text and voice, Jina AI for embeddings and single-page fetching, Staan for web search, Black Forest Labs for image generation) unless you connect your own AI provider, in which case your AI content goes to the provider you chose. We use only essential cookies: no analytics, no tracking, no ads. We don't sell your data and we don't train AI on your content. You can export the data we hold about you and delete your account at any time from your settings.
 
-**Contents:** 1. Who we are · 2. What data we process and why · 2b. Anonymous documents, the bot check and abuse reports · 3. Lawful basis · 4. Recipients and international transfers · 5. Storage location and retention · 5b. What happens when you delete your account · 6. Your rights · 7. Automated decision-making · 8. AI features and transparency · 9. Cookies and similar technologies · 10. Age requirement · 11. Right to lodge a complaint · 12. Security · 13. Register of processing purposes · 14. Changes to this policy
+**Contents**
+
+[[toc]]
 
 ---
 
@@ -20,7 +22,7 @@ markoto is operated by **{{controllerName}}** ({{controllerAddress}}). For any p
 
 This policy is written to meet both the **Swiss Federal Act on Data Protection** (revised FADP, in force since 1 September 2023) and, where it applies to us, the EU **General Data Protection Regulation** (Regulation (EU) 2016/679, "GDPR"). The GDPR applies to us because we offer markoto to people in the EU and EEA.
 
-We are the **controller** of personal data you give us directly: your account, anonymous documents you create, abuse reports and, if you join it, the paid-plans waitlist. Where you use markoto inside a workspace owned by someone else, that workspace's owner is the controller of the content placed in their workspace, and we act as their **processor** under our Data Processing Addendum (`/legal/dpa`).
+We are the **controller** of personal data you give us directly: your account, anonymous documents you create, abuse reports and, if you join it, the paid-plans waitlist. Where you use markoto inside a workspace owned by someone else, that workspace's owner is the controller of the content placed in their workspace, and we act as their **processor** under our Data Processing Addendum ([/legal/dpa](/legal/dpa)).
 
 ## 2. What data we process and why
 
@@ -54,7 +56,7 @@ Under the GDPR, each processing activity rests on one of these lawful bases (Art
 
 ## 4. Recipients and international transfers
 
-We use a small number of service providers ("sub-processors") under written data-processing agreements (Art. 28 GDPR, Art. 9 FADP). The current list is at `/legal/sub-processors`. It shows only the providers this deployment actually uses: Stripe (payments) appears only once paid plans are switched on, and an AI provider that **you** connect yourself (see §8) is not our sub-processor and is not listed.
+We use a small number of service providers ("sub-processors") under written data-processing agreements (Art. 28 GDPR, Art. 9 FADP). The current list is at [/legal/sub-processors](/legal/sub-processors). It shows only the providers this deployment actually uses: Stripe (payments) appears only once paid plans are switched on, and an AI provider that **you** connect yourself (see §8) is not our sub-processor and is not listed.
 
 **Where your data goes.** We are based in Switzerland. Our database, file storage, backups and AI providers are in the EU (France and Germany). The EU and EEA are recognised as providing adequate data protection by the Swiss Federal Council, and Switzerland is recognised as adequate by the European Commission, so no further safeguards are needed for these transfers.
 
@@ -92,14 +94,14 @@ Retention follows the register in §13. In general:
 
 ## 5b. What happens when you delete your account
 
-The button at `/settings/profile` schedules your account for permanent deletion **30 days from now**. During that grace period your account remains usable, and you can cancel from any page that shows the deletion banner. After the 30 days, the following runs automatically, with no further confirmation and no way to recover anything.
+The button at [/settings/profile](/settings/profile) schedules your account for permanent deletion **30 days from now**. During that grace period your account remains usable, and you can cancel from any page that shows the deletion banner. After the 30 days, the following runs automatically, with no further confirmation and no way to recover anything.
 
 ### What gets permanently deleted
 
 - **Your account**: name, email, sign-in identifiers, preferences, language, age confirmation, accepted policy versions.
 - **Every document you own**, including documents you shared with collaborators in edit mode. Collaborators lose access at the same time. *If you want collaborators to keep a document, transfer it to them or duplicate it under their account first.*
 - **Every saved theme** under your account.
-- **Every workspace where you are the only member**, with every document and knowledge file in it. *To keep workspace content, invite a co-member before deleting your account, or download the documents first using the data export at `/settings/profile`.*
+- **Every workspace where you are the only member**, with every document and knowledge file in it. *To keep workspace content, invite a co-member before deleting your account, or download the documents first using the data export at [/settings/profile](/settings/profile).*
 - **Your AI usage**: past prompts (kept for 90 days for abuse review), open AI sessions, and any bring-your-own-key AI provider settings with their encrypted API keys (see §8).
 - **Your data export jobs** and any ZIP files prepared for you.
 - **Your Stripe customer record, if one exists** (only possible once paid plans are offered). We instruct Stripe to delete it; Stripe keeps invoice and payment records for the period required by tax law.
@@ -127,7 +129,7 @@ Workspace deletion also removes content that other people put into a workspace w
 
 ### Your data export
 
-Before deleting your account, you can use the **data export** at `/settings/profile` to get a ZIP archive of everything we hold about you: documents in Markdown, your comments, workspace memberships, AI usage logs, your AI provider settings (URL, model and capability, never the API key), your waitlist entry, consent records and, once paid plans exist, billing history.
+Before deleting your account, you can use the **data export** at [/settings/profile](/settings/profile) to get a ZIP archive of everything we hold about you: documents in Markdown, your comments, workspace memberships, AI usage logs, your AI provider settings (URL, model and capability, never the API key), your waitlist entry, consent records and, once paid plans exist, billing history.
 
 ### How long it takes
 
@@ -141,9 +143,9 @@ Until the deletion runs, you can cancel it by signing in and clicking "Cancel de
 
 Under the GDPR (Art. 15–22) and the FADP (Art. 25–28 and 32), you have the right to:
 
-- **Access** the personal data we hold about you: use the export at `/settings/profile`, or write to us.
+- **Access** the personal data we hold about you: use the export at [/settings/profile](/settings/profile), or write to us.
 - **Rectification** of inaccurate data: edit your profile, or write to us.
-- **Erasure**: use the delete tool at `/settings/profile`. We wait 30 days, then delete permanently.
+- **Erasure**: use the delete tool at [/settings/profile](/settings/profile). We wait 30 days, then delete permanently.
 - **Restriction** of processing: write to us.
 - **Object** to processing based on legitimate interest: write to us.
 - **Data portability**: the export returns your data in machine-readable JSON, NDJSON and Markdown.
@@ -221,7 +223,7 @@ We would welcome the chance to resolve your concern first: write to **{{privacyC
 
 ## 12. Security
 
-We protect data with encryption in transit (TLS), encryption at rest provided by our storage provider, encrypted database backups, encryption of stored secrets such as AI provider keys, strict separation of our internal services, least-privilege access, shortened IP addresses in logs, and regular security updates. markoto accounts have no passwords of their own: you sign in through GitHub or Google. If you protect a document with a password, we store only a scrypt hash of it. The measures are described in more detail in Annex I of our Data Processing Addendum (`/legal/dpa`).
+We protect data with encryption in transit (TLS), encryption at rest provided by our storage provider, encrypted database backups, encryption of stored secrets such as AI provider keys, strict separation of our internal services, least-privilege access, shortened IP addresses in logs, and regular security updates. markoto accounts have no passwords of their own: you sign in through GitHub or Google. If you protect a document with a password, we store only a scrypt hash of it. The measures are described in more detail in Annex I of our Data Processing Addendum ([/legal/dpa](/legal/dpa)).
 
 If a personal data breach is likely to result in a risk to you, we notify the competent supervisory authority within 72 hours where the GDPR requires it (Art. 33 GDPR), and the FDPIC as soon as possible where the FADP requires it (Art. 24 FADP). If the breach is likely to result in a high risk to you, we also tell you without undue delay.
 
