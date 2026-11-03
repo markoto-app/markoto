@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { themeToCss } from '../../shared/utils/themeToCss'
+import { themeFontsImport, themeToCss } from '../../shared/utils/themeToCss'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import type { DocTheme, ThemeRuntime } from '../../shared/types/theme'
@@ -333,12 +333,12 @@ describe('themeToCss — Step 8: meta font (eyebrow voice)', () => {
     const css = themeToCss(markoto, runtime)
     expect(css).toMatch(/@footnote\s*\{[^}]*font-family:\s*"JetBrains Mono"/)
   })
-  test('Google Fonts import includes the meta font', () => {
+  test('font import includes the meta font (same-origin stylesheets only)', () => {
     const css = themeToCss(markoto, runtime)
-    // We don't call themeFontsImport here; the rule is that defaultTheme's
-    // meta font is JetBrains Mono and themeFontsImport must include it.
-    // Verified via a separate import test below.
     expect(css).toContain('JetBrains Mono')
+    const imports = themeFontsImport(markoto)
+    expect(imports).toContain('@import url(\'/vendor/fonts/jetbrains-mono.css\');')
+    expect(imports).not.toMatch(/https?:\/\//)
   })
   test('meta font defaults sensibly (markoto = JetBrains Mono, novel = body font)', () => {
     expect(THEME_PRESETS.find(p => p.id === 'markoto')!.theme.meta.font).toBe('JetBrains Mono')

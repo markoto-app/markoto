@@ -13,8 +13,8 @@ import {
   withOwnUploadToken
 } from '~/utils/previewFrame'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsCdn'
-import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidCdn'
+import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsAssets'
+import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidAssets'
 
 // The live preview + print iframes run in an OPAQUE origin (sandbox without
 // allow-same-origin) — see app/utils/previewFrame.ts. These tests pin the

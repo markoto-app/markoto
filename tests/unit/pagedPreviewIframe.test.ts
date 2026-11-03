@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest'
 //   - never reach into window.parent's DOM (it would throw anyway);
 //   - carry the CSP nonce on every inline script and use no inline event
 //     handlers (no 'unsafe-inline' in script-src);
-//   - load every CDN asset with SRI + crossorigin=anonymous.
+//   - load every vendored asset with SRI + crossorigin=anonymous.
 // The substitution itself (buildPreviewSrcdoc) is covered in
 // tests/nuxt/previewFrame.test.ts.
 //
@@ -66,7 +66,7 @@ describe('pagedPreviewIframe.html', () => {
     expect(WITHOUT_COMMENT).toContain('e.source !== window.parent || e.origin !== PARENT_ORIGIN')
   })
 
-  it('loads CDN assets with SRI in CORS mode', () => {
+  it('loads the vendored assets with SRI in CORS mode', () => {
     const pagedjs = WITHOUT_COMMENT.match(/<script\s+src="__PAGEDJS_POLYFILL_URL__"[^>]*>/)?.[0] ?? ''
     expect(pagedjs).toContain('integrity="__PAGEDJS_POLYFILL_SRI__"')
     expect(pagedjs).toContain('crossorigin="anonymous"')

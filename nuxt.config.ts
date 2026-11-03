@@ -24,7 +24,10 @@ export default defineNuxtConfig({
     // Cursor, ChatGPT app store) at /mcp via JSON-RPC. Tools live in
     // server/mcp/tools/*; auth is PAT-based in v1 (mcp_personal_tokens).
     // See server/mcp/AGENTS.md.
-    '@nuxtjs/mcp-toolkit'
+    '@nuxtjs/mcp-toolkit',
+    // Same-origin copies of paged.js / Mermaid / KaTeX / highlight.js and
+    // the web fonts under /vendor/ — see shared/utils/vendorAssets.ts.
+    './modules/vendor-assets'
   ],
 
   // Nuxt Content in production builds (`nuxt dev` serves from Node and
@@ -61,6 +64,14 @@ export default defineNuxtConfig({
   },
 
   css: ['~/assets/css/main.css'],
+
+  ui: {
+    // No @nuxt/fonts: it downloads the CSS font families from Google Fonts
+    // at build time. Every web font is self-hosted from pinned Fontsource
+    // packages instead (shared/utils/themeFonts.ts, modules/vendor-assets.ts),
+    // so a build needs no network beyond the package registry.
+    fonts: false
+  },
 
   // Flow slug → docs page that embeds it (`::flow{id="…"}`), scanned from
   // content/docs at build time. The <Flow> "Try next" card resolves
@@ -418,13 +429,28 @@ export default defineNuxtConfig({
       navigateFallback: '/',
       navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
       cleanupOutdatedCaches: true,
-      // Runtime caching: static CDN assets only. Docs, doc tokens, AI, and
-      // upload endpoints intentionally bypass the SW — freshness beats
-      // offline for collaborative state.
+      // The vendored third-party assets under /vendor/ (paged.js, Mermaid,
+      // KaTeX, highlight.js, web fonts — shared/utils/vendorAssets.ts) stay
+      // out of the precache: ~12 MB, and a page only ever needs a few of
+      // them. They're runtime-cached on first use instead (below).
+      globIgnores: ['**/node_modules/**/*', 'vendor/**'],
+      // Runtime caching: the vendored static assets only. Docs, doc tokens,
+      // AI, and upload endpoints intentionally bypass the SW — freshness
+      // beats offline for collaborative state. First match wins:
+      //   - per-family font stylesheets (/vendor/fonts/<family>.css) are the
+      //     one unversioned name → serve cached, refresh in the background;
+      //   - everything else sits under a versioned directory and never
+      //     changes → cache first.
+      // (The sandboxed, opaque-origin preview iframes aren't SW clients;
+      // their requests use the HTTP cache — the files are `immutable`.)
       runtimeCaching: [{
-        urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
+        urlPattern: /\/vendor\/fonts\/[\w-]+\.css$/,
+        handler: 'StaleWhileRevalidate',
+        options: { cacheName: 'vendor-font-css', expiration: { maxEntries: 50 } }
+      }, {
+        urlPattern: /\/vendor\//,
         handler: 'CacheFirst',
-        options: { cacheName: 'cdn-cache', expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 3600 } }
+        options: { cacheName: 'vendor-assets', expiration: { maxEntries: 400, maxAgeSeconds: 365 * 24 * 3600 } }
       }]
     },
     client: {

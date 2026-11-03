@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 
 // Workspace settings tab — admin-only chrome around workspace-wide
 // preferences. Currently exposes the default-theme picker; new
@@ -52,17 +53,15 @@ onMounted(() => {
   loadSavedThemes().catch(() => { /* swallowed inside loadSavedThemes */ })
 })
 
-// Eagerly preload the heading-font face for every preset so each card
-// renders in its own typography. Same approach the new-doc dialog
-// uses for its theme cards (`THEME_FONTS` preload via Google Fonts).
+// Link the (same-origin) stylesheet of every preset's heading font so
+// each card renders in its own typography. Same approach the new-doc
+// dialog uses for its theme cards.
 useHead({
-  link: [{
-    key: 'workspace-settings-theme-fonts',
+  link: fontStylesheetUrls(THEME_PRESETS.map(p => p.theme.headings.font)).map(href => ({
+    key: `workspace-settings-theme-fonts-${href}`,
     rel: 'stylesheet',
-    href: `https://fonts.googleapis.com/css2?${THEME_PRESETS
-      .map(p => `family=${p.theme.headings.font.replaceAll(' ', '+')}:wght@400;500;600;700`)
-      .join('&')}&display=swap`
-  }]
+    href
+  }))
 })
 
 // Match a theme to a preset id by deep-equality on the JSON payload —

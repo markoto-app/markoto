@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DocTheme, CodeTheme, MermaidTheme, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { THEME_FONTS } from '~~/shared/utils/themeFonts'
+import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
@@ -48,18 +48,16 @@ watch(draft, (next) => {
   emit('update:theme', structuredClone(toRaw(next)))
 }, { deep: true })
 
-// Eagerly load every picker font in a single Google Fonts request so each
-// item in the font dropdowns can be rendered in its own face.
+// Link every picker font's (same-origin) stylesheet so each item in the
+// font dropdowns can be rendered in its own face. Only @font-face rules:
+// the files download once a dropdown item shows text in that family.
 if (import.meta.client) {
-  const families = THEME_FONTS
-    .map(f => `family=${f.name.replaceAll(' ', '+')}:wght@400;500;600;700`)
-    .join('&')
   useHead({
-    link: [{
-      key: 'theme-font-picker-preview',
+    link: fontStylesheetUrls(THEME_FONTS.map(f => f.name)).map(href => ({
+      key: `theme-font-picker-preview-${href}`,
       rel: 'stylesheet',
-      href: `https://fonts.googleapis.com/css2?${families}&display=swap`
-    }]
+      href
+    }))
   })
 }
 

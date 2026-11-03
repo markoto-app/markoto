@@ -14,35 +14,22 @@
 //     redirect hops, Chromium enforces this on every hop.
 //
 // Design (see docs/SECURITY-HARDENING.md §2):
-//   - script-src: 'self' + the response nonce + exactly the two CDN FILES
-//     (paged.js polyfill, Mermaid bundle), both also SRI-locked. No
-//     'unsafe-inline' (inline event handlers and injected <script> never
-//     run), no 'unsafe-eval'. 'wasm-unsafe-eval' only on the app policy:
+//   - script-src: 'self' + the response nonce. paged.js + Mermaid are
+//     same-origin /vendor/ files (shared/utils/vendorAssets.ts), still
+//     SRI-locked at the tag. No 'unsafe-inline' (inline event handlers
+//     and injected <script> never run), no 'unsafe-eval'. 'wasm-unsafe-eval' only on the app policy:
 //     @nuxt/content compiles its SQLite WASM for client-side docs queries.
 //   - style-src keeps 'unsafe-inline': Nuxt UI injects its color tokens as
 //     an inline <style>, Vue/KaTeX/paged.js write inline style attributes
 //     and <style> elements at runtime (paged.js generates one per render).
 //     Styles can't execute script; CSS exfiltration is bounded by img-src /
 //     font-src / connect-src below.
-//   - CDN sources are exact package paths (jsDelivr serves arbitrary npm
-//     content, so a bare host would let an injection load any package).
+//   - No third-party origin anywhere: the web fonts, KaTeX + highlight.js
+//     stylesheets and the scripts above are all served from /vendor/ —
+//     visitors' browsers and the renderer talk to this origin (+ S3, sync,
+//     Sentry when configured) only.
 
-import { PAGEDJS_POLYFILL_URL } from '../../shared/utils/pagedjsCdn'
-import { MERMAID_URL } from '../../shared/utils/mermaidCdn'
-import { KATEX_CSS_URL } from '../../shared/utils/katexCdn'
-import { HLJS_STYLES_BASE } from '../../shared/utils/hljsCdn'
-
-/** CDN script files (exact paths). */
-export const CDN_SCRIPT_SOURCES: readonly string[] = [PAGEDJS_POLYFILL_URL, MERMAID_URL]
-
-/** KaTeX's stylesheet references its fonts relative to itself (`fonts/…`). */
-const KATEX_FONTS_BASE = new URL('fonts/', KATEX_CSS_URL).href
-
-/** CDN stylesheets: the KaTeX file + the highlight.js theme directory. */
-export const CDN_STYLE_SOURCES: readonly string[] = [KATEX_CSS_URL, HLJS_STYLES_BASE]
-
-const GOOGLE_FONTS_CSS = 'https://fonts.googleapis.com'
-const GOOGLE_FONTS_FILES = 'https://fonts.gstatic.com'
+import { VENDOR_BASE } from '../../shared/utils/vendorAssets'
 
 /** Origin of an absolute http(s)/ws(s) URL, or null. */
 export function urlOrigin(value: string | undefined | null, schemes: readonly string[] = ['http:', 'https:']): string | null {
@@ -83,9 +70,9 @@ export function buildAppCsp(input: AppCspInput): string {
   const sentry = urlOrigin(input.sentryDsn)
   const directives = [
     'default-src \'self\'',
-    ['script-src', '\'self\'', ...nonceSource(input.nonce), '\'wasm-unsafe-eval\'', ...CDN_SCRIPT_SOURCES].join(' '),
-    ['style-src', '\'self\'', '\'unsafe-inline\'', ...CDN_STYLE_SOURCES, GOOGLE_FONTS_CSS].join(' '),
-    ['font-src', '\'self\'', 'data:', GOOGLE_FONTS_FILES, KATEX_FONTS_BASE].join(' '),
+    ['script-src', '\'self\'', ...nonceSource(input.nonce), '\'wasm-unsafe-eval\''].join(' '),
+    ['style-src', '\'self\'', '\'unsafe-inline\''].join(' '),
+    'font-src \'self\' data:',
     ['img-src', ...unique(['\'self\'', 'data:', 'blob:', s3])].join(' '),
     ['connect-src', ...unique(['\'self\'', sync, s3, sentry])].join(' '),
     'frame-src \'self\'',
@@ -116,10 +103,10 @@ export function buildRenderCsp({ nonce, s3Origin, extraOrigins }: RenderCspInput
   return [
     'default-src \'none\'',
     // Nuxt's inline payload/bootstrap scripts carry the nonce; paged.js and
-    // Mermaid are the SRI-locked CDN files.
-    ['script-src', '\'self\'', ...nonceSource(nonce), ...CDN_SCRIPT_SOURCES].join(' '),
-    ['style-src', '\'self\'', '\'unsafe-inline\'', ...CDN_STYLE_SOURCES, GOOGLE_FONTS_CSS].join(' '),
-    ['font-src', '\'self\'', 'data:', GOOGLE_FONTS_FILES, KATEX_FONTS_BASE].join(' '),
+    // Mermaid are the SRI-locked same-origin /vendor/ files.
+    ['script-src', '\'self\'', ...nonceSource(nonce)].join(' '),
+    'style-src \'self\' \'unsafe-inline\'',
+    'font-src \'self\' data:',
     `img-src ${imgSrc.join(' ')}`,
     'connect-src \'self\'',
     'frame-src \'none\'',
@@ -146,10 +133,15 @@ export function addNonceToScripts(chunk: string, nonce: string): string {
  *     file-access token, not by the origin;
  *   - `/markoto-logos/…` — the bundled brand marks the default theme puts
  *     on every cover page (`brand.logoUrl`). Public static files.
+ *   - `/vendor/…` — paged.js, Mermaid, KaTeX CSS + fonts, highlight.js
+ *     themes and the web fonts (shared/utils/vendorAssets.ts). Public,
+ *     versioned static files; they also get `Access-Control-Allow-Origin: *`
+ *     (server/utils/vendorAssetHeaders.ts) because the iframe loads them
+ *     in CORS mode (SRI, fonts).
  * Everything else stays `same-site`. (Chromium happens to let plain
  * `localhost` through, which is why the blocked cover logo only showed on
  * real host names.)
  */
 export function crossOriginResourcePolicyFor(path: string): 'cross-origin' | 'same-site' {
-  return path.startsWith('/api/files/') || path.startsWith('/markoto-logos/') ? 'cross-origin' : 'same-site'
+  return path.startsWith('/api/files/') || path.startsWith('/markoto-logos/') || path.startsWith(VENDOR_BASE) ? 'cross-origin' : 'same-site'
 }
