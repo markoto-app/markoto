@@ -3,6 +3,7 @@ import {
   FREE_TIER_TEAM_ID,
   freeTierTotalBudgetProblems,
   freeTierTotalBudgetUsd,
+  isDuplicateTeamError,
   isFreeAllowanceExhaustedError,
   teamIdForPlan
 } from '../../server/utils/litellm/freeTierTeam'
@@ -57,6 +58,14 @@ describe('isFreeAllowanceExhaustedError', () => {
     expect(isFreeAllowanceExhaustedError(new Error('Budget has been exceeded! Team=some-workspace-team Current cost: 2, Max budget: 1'))).toBe(false)
     expect(isFreeAllowanceExhaustedError(new Error('upstream 500'))).toBe(false)
     expect(isFreeAllowanceExhaustedError(null)).toBe(false)
+  })
+})
+
+describe('isDuplicateTeamError', () => {
+  it('both of LiteLLM\'s "team id taken" answers count as a lost create race', () => {
+    expect(isDuplicateTeamError('{"error":{"message":"{\'error\': \'Team id = markoto-free-tier already exists. Please use a different team id.\'}","code":"400"}}')).toBe(true)
+    expect(isDuplicateTeamError('{"error":{"message":"Unique constraint failed on the fields: (`team_id`)","type":"internal_server_error","code":"500"}}')).toBe(true)
+    expect(isDuplicateTeamError('{"error":{"message":"Authentication Error","code":"401"}}')).toBe(false)
   })
 })
 

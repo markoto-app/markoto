@@ -120,6 +120,23 @@ describe('free-tier pool: team provisioning', () => {
     expect(String(info.budget_reset_at)).toMatch(/^\d{4}-\d{2}-01T00:00:00/)
   })
 
+  it('regression: concurrent first uses on a fresh deploy both get the team (create race)', async () => {
+    // Found by the ai-generate-image flow: the credits fetch and the first
+    // AI call both created the team; the loser got LiteLLM's 500 "Unique
+    // constraint failed" and the credits endpoint answered 500.
+    expect((await admin('/team/delete', { team_ids: [team.FREE_TIER_TEAM_ID] })).status).toBe(200)
+    team.resetFreeTierTeamMemo()
+    const first = team.ensureFreeTierTeam()
+    team.resetFreeTierTeamMemo() // a second instance: its own round trip
+    const second = team.ensureFreeTierTeam()
+    await expect(Promise.all([first, second])).resolves.toEqual([team.FREE_TIER_TEAM_ID, team.FREE_TIER_TEAM_ID])
+    expect((await teamInfo()).max_budget).toBe(500)
+
+    // Within one instance concurrent callers share one round trip.
+    team.resetFreeTierTeamMemo()
+    await expect(Promise.all([team.ensureFreeTierTeam(), team.ensureFreeTierTeam()])).resolves.toEqual([team.FREE_TIER_TEAM_ID, team.FREE_TIER_TEAM_ID])
+  })
+
   it('a changed ceiling is applied to the existing team (idempotent ensure)', async () => {
     process.env.NUXT_FREE_TIER_TOTAL_BUDGET_USD = '321'
     await team.ensureFreeTierTeam()

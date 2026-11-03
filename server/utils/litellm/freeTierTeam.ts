@@ -100,10 +100,13 @@ export function isFreeAllowanceExhaustedError(err: unknown): boolean {
 
 /** Budget the team was last brought to in this process (skip the round trip when unchanged). */
 let ensuredBudget: number | null = null
+/** The provisioning round trip in flight, shared by concurrent callers. */
+let inflight: { budget: number, run: Promise<void> } | null = null
 
 /** Test hook: forget the per-process "already ensured" memo. */
 export function resetFreeTierTeamMemo(): void {
   ensuredBudget = null
+  inflight = null
   poolCache = null
 }
 
@@ -138,8 +141,30 @@ export async function ensureFreeTierTeam(env: Env = process.env): Promise<string
   const budget = freeTierTotalBudgetUsd(env)
   if (budget === null) return null
   if (ensuredBudget === budget) return FREE_TIER_TEAM_ID
+  // Concurrent first uses in this process share one round trip (the
+  // credits fetch and the first AI call land together on a fresh deploy).
+  if (inflight?.budget !== budget) {
+    const run = provisionTeam(budget).finally(() => {
+      if (inflight?.run === run) inflight = null
+    })
+    inflight = { budget, run }
+  }
+  await inflight.run
+  ensuredBudget = budget
+  poolCache = null
+  return FREE_TIER_TEAM_ID
+}
 
-  const existing = await readTeam()
+/**
+ * LiteLLM's answers when the team id is taken (v1.106.4): 400 "already
+ * exists", or — when two creates race — a 500 "Unique constraint failed".
+ */
+export function isDuplicateTeamError(text: string): boolean {
+  return /already exists|Unique constraint failed/i.test(text)
+}
+
+async function provisionTeam(budget: number): Promise<void> {
+  let existing = await readTeam()
   if (!existing) {
     const res = await litellmAdminFetch('/team/new', {
       method: 'POST',
@@ -151,30 +176,29 @@ export async function ensureFreeTierTeam(env: Env = process.env): Promise<string
         metadata: { purpose: 'markoto free-tier monthly AI pool' }
       })
     })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      // Lost a create race with another instance: the team exists now.
-      if (!/already exists/i.test(text)) {
-        throw new Error(`[freeTierTeam] /team/new failed: ${res.status} ${text.slice(0, 200)}`)
-      }
+    if (res.ok) return
+    const text = await res.text().catch(() => '')
+    if (!isDuplicateTeamError(text)) {
+      throw new Error(`[freeTierTeam] /team/new failed: ${res.status} ${text.slice(0, 200)}`)
     }
-  } else if (existing.max_budget !== budget || existing.budget_duration !== FREE_TIER_BUDGET_DURATION) {
-    const res = await litellmAdminFetch('/team/update', {
-      method: 'POST',
-      body: JSON.stringify({
-        team_id: FREE_TIER_TEAM_ID,
-        max_budget: budget,
-        budget_duration: FREE_TIER_BUDGET_DURATION
-      })
-    })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`[freeTierTeam] /team/update failed: ${res.status} ${text.slice(0, 200)}`)
-    }
+    // Lost a create race (another request or instance): the team exists
+    // now — bring it to this budget like any existing team.
+    existing = await readTeam()
+    if (!existing) throw new Error('[freeTierTeam] team creation raced, but the team is still missing')
   }
-  ensuredBudget = budget
-  poolCache = null
-  return FREE_TIER_TEAM_ID
+  if (existing.max_budget === budget && existing.budget_duration === FREE_TIER_BUDGET_DURATION) return
+  const res = await litellmAdminFetch('/team/update', {
+    method: 'POST',
+    body: JSON.stringify({
+      team_id: FREE_TIER_TEAM_ID,
+      max_budget: budget,
+      budget_duration: FREE_TIER_BUDGET_DURATION
+    })
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`[freeTierTeam] /team/update failed: ${res.status} ${text.slice(0, 200)}`)
+  }
 }
 
 /**
@@ -192,7 +216,8 @@ export async function ensureFreeTierTeamMember(userId: number): Promise<void> {
   })
   if (res.ok) return
   const text = await res.text().catch(() => '')
-  if (/already in team|team_member_already_in_team/i.test(text)) return
+  // "already in team" (400), or a unique-constraint 500 when two adds race.
+  if (/already in team|team_member_already_in_team|Unique constraint failed/i.test(text)) return
   throw new Error(`[freeTierTeam] /team/member_add failed: ${res.status} ${text.slice(0, 200)}`)
 }
 
