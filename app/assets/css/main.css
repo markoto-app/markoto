@@ -256,10 +256,10 @@ select:focus-visible,
    (body `--ui-bg`, page roots `bg-muted`), so the root background only
    shows there. Dark mode: the seal's shu-400, a small brand moment (it
    used to happen by accident through broken `:global(.dark)` selectors
-   that styled <html>). Light mode: sumi-950, the ink of the product
-   page's closing footer. The product tour keeps its own surfaces on its
-   page root (ProductTour.vue). */
-html { background-color: var(--color-sumi-950); }
+   that styled <html>). Light mode: sumi-50, the warm off-white of the
+   app chrome (owner's pick). The product tour keeps its own surfaces on
+   its page root (ProductTour.vue). */
+html { background-color: var(--color-sumi-50); }
 html.dark { background-color: var(--color-shu-400); }
 body { min-height: 100svh; }
 @media print {
