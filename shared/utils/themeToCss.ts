@@ -833,6 +833,14 @@ function coverBlock(theme: DocTheme): string {
 
   return [
     layoutCss,
+    // Multi-column themes put `column-count` on `.paged-doc`, the cover's
+    // parent. Without a spanner the cover is laid out inside the first
+    // column (half-width band, title centred in the left column). Every
+    // cover layout spans the whole page; the columns start after it.
+    `.paged-doc .markoto-cover {
+  column-span: all;
+  width: 100%;
+}`,
     `.paged-doc .markoto-cover-logo {
   display: block;
   height: ${theme.brand.logoHeight}px;
