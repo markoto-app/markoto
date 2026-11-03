@@ -372,3 +372,15 @@ select:focus-visible,
   width: 22px;
   height: 22px;
 }
+
+/* Modals opened from INSIDE the mobile bottom sheet (save / edit / delete
+   a theme, confirmations) must render above it. Nuxt UI's modal overlay
+   and content carry no z-index and portal into the app root, while the
+   sheet (`.mk-sheet-host`, z-50) is teleported to the end of <body> — so
+   the modal opened BEHIND the sheet. Only while a sheet is open; 60
+   matches the listbox-popover rule above (equal z, later in the DOM wins,
+   so a select inside such a modal still opens on top). */
+html:has(.mk-sheet-host) [data-slot="overlay"],
+html:has(.mk-sheet-host) [role="dialog"][data-slot="content"] {
+  z-index: 60;
+}
