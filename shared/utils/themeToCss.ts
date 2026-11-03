@@ -2,6 +2,7 @@ import type { DocTheme, RunningSlots } from '../types/theme'
 import { pageHeightMm } from './pageDimensions'
 import type { CustomCssResult } from '../types/customCss'
 import { isThemeImageUrl } from './themeImages'
+import { fontStylesheetUrls } from './themeFonts'
 
 /**
  * Runtime values interpolated into the theme CSS. Kept separate from
@@ -64,15 +65,17 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
 }
 
 /**
- * Google Fonts @import URL for the theme's fonts. Returned separately
- * so changing a color doesn't trigger a font refetch.
+ * `@import` rules for the theme's fonts — one same-origin stylesheet per
+ * self-hosted family (shared/utils/themeFonts.ts); a family we don't
+ * serve is skipped and renders in the fallback stack. Returned separately
+ * so changing a color doesn't trigger a font refetch. The stylesheets
+ * only declare @font-face rules: a browser downloads just the weights,
+ * styles and unicode-range subsets the document actually uses.
  */
 export function themeFontsImport(theme: DocTheme): string {
-  const unique = [...new Set([theme.body.font, theme.headings.font, theme.meta.font])]
-    .filter(f => f?.trim())
-  if (unique.length === 0) return ''
-  const families = unique.map(googleFamilyParam).join('&')
-  return `@import url('https://fonts.googleapis.com/css2?${families}&display=swap');`
+  return fontStylesheetUrls([theme.body.font, theme.headings.font, theme.meta.font])
+    .map(url => `@import url('${url}');`)
+    .join('\n')
 }
 
 // — page block ————————————————————————————————————————————————————————
@@ -501,7 +504,7 @@ function codeBlock(theme: DocTheme): string {
   }
 
   // For all other themes, hljs's stylesheet (loaded into the iframe
-  // head from CDN — see hljsCdn.ts) owns the code block visuals
+  // head from /vendor/ — see hljsAssets.ts) owns the code block visuals
   // (background, foreground, padding, per-token colors). Theme CSS
   // only controls the surrounding box: font stack + size, margin,
   // border-radius, overflow.
@@ -577,7 +580,7 @@ function alertBlock(theme: DocTheme): string {
 /**
  * Layout-only adjustments around `@mdit/plugin-katex` output. Glyph
  * positioning and font selection come from the KaTeX stylesheet (loaded
- * via CDN inside the iframe). What remains here is print-context hygiene:
+ * from /vendor/ inside the iframe). What remains here is print-context hygiene:
  * block math gets a vertical breathing room, doesn't break across pages,
  * and overflows horizontally rather than clipping when the equation is
  * wider than the page.
@@ -1101,8 +1104,4 @@ function cssFontStack(name: string): string {
   const escaped = name.replaceAll('"', String.raw`\"`)
   const safe = name.includes(' ') ? `"${escaped}"` : name
   return `${safe}, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`
-}
-
-function googleFamilyParam(name: string): string {
-  return `family=${name.trim().replaceAll(' ', '+')}:wght@400;500;600;700;800`
 }

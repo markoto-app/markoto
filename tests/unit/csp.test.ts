@@ -1,11 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
-import { addNonceToScripts, buildAppCsp, buildRenderCsp, CDN_SCRIPT_SOURCES, crossOriginResourcePolicyFor } from '../../server/utils/csp'
-import { PAGEDJS_POLYFILL_URL } from '../../shared/utils/pagedjsCdn'
-import { MERMAID_URL, MERMAID_SRI } from '../../shared/utils/mermaidCdn'
-import { KATEX_CSS_URL } from '../../shared/utils/katexCdn'
-import { hljsTheme, HLJS_STYLES_BASE } from '../../shared/utils/hljsCdn'
+import { addNonceToScripts, buildAppCsp, buildRenderCsp, crossOriginResourcePolicyFor } from '../../server/utils/csp'
+import { MERMAID_URL, MERMAID_SRI } from '../../shared/utils/mermaidAssets'
+import { hljsTheme, HLJS_STYLES_BASE } from '../../shared/utils/hljsAssets'
 import { CodeThemeSchema } from '../../shared/types/theme'
 
 // Regression pins for the Content-Security-Policy (server/utils/csp.ts,
@@ -30,9 +28,9 @@ describe('buildAppCsp', () => {
   it('pins the hosted policy', () => {
     expect(hosted).toBe([
       'default-src \'self\'',
-      `script-src 'self' 'nonce-${NONCE}' 'wasm-unsafe-eval' ${PAGEDJS_POLYFILL_URL} ${MERMAID_URL}`,
-      `style-src 'self' 'unsafe-inline' ${KATEX_CSS_URL} ${HLJS_STYLES_BASE} https://fonts.googleapis.com`,
-      'font-src \'self\' data: https://fonts.gstatic.com https://cdn.jsdelivr.net/npm/katex@0.18.11/dist/fonts/',
+      `script-src 'self' 'nonce-${NONCE}' 'wasm-unsafe-eval'`,
+      'style-src \'self\' \'unsafe-inline\'',
+      'font-src \'self\' data:',
       'img-src \'self\' data: blob: https://s3.gra.io.cloud.ovh.net',
       'connect-src \'self\' wss://sync.markoto.app https://s3.gra.io.cloud.ovh.net https://o1.ingest.de.sentry.io',
       'frame-src \'self\'',
@@ -47,14 +45,14 @@ describe('buildAppCsp', () => {
     ].join('; '))
   })
 
-  it('never allows inline script, eval or a whole CDN host', () => {
+  it('never allows inline script, eval or any CDN', () => {
     const script = directive(hosted, 'script-src')
     expect(script).not.toContain('\'unsafe-inline\'')
     expect(script).not.toContain('\'unsafe-eval\'')
-    expect(script).not.toMatch(/https:\/\/cdn\.jsdelivr\.net\/?(\s|$)/)
     expect(script).not.toContain('*')
-    // Every CDN script source is an exact file, never a directory.
-    for (const src of CDN_SCRIPT_SOURCES) expect(src.endsWith('/')).toBe(false)
+    // paged.js, Mermaid, KaTeX, highlight.js and the web fonts are served
+    // from our own origin (/vendor/): no third-party host in the policy.
+    for (const host of ['jsdelivr', 'googleapis', 'gstatic', 'unpkg', 'cdnjs']) expect(hosted).not.toContain(host)
   })
 
   it('self-host over plain HTTP: no upgrade-insecure-requests, same-origin sync + S3', () => {
@@ -70,9 +68,9 @@ describe('buildAppCsp', () => {
     expect(bad).not.toContain('script-src *')
   })
 
-  it('the render page and the app allow the same CDN scripts', () => {
+  it('the render page allows scripts, styles and fonts from the app origin only, like the app', () => {
     const render = buildRenderCsp({ nonce: NONCE, s3Origin: undefined, extraOrigins: undefined })
-    expect(directive(render, 'script-src')).toBe(`script-src 'self' 'nonce-${NONCE}' ${CDN_SCRIPT_SOURCES.join(' ')}`)
+    expect(directive(render, 'script-src')).toBe(`script-src 'self' 'nonce-${NONCE}'`)
     expect(directive(render, 'style-src')).toBe(directive(hosted, 'style-src'))
     expect(directive(render, 'font-src')).toBe(directive(hosted, 'font-src'))
   })
@@ -91,8 +89,8 @@ describe('addNonceToScripts', () => {
   })
 })
 
-describe('CDN pins', () => {
-  it('every highlight.js theme has an SRI hash under the pinned path', () => {
+describe('vendored asset pins', () => {
+  it('every highlight.js theme has an SRI hash under the pinned same-origin path', () => {
     for (const theme of CodeThemeSchema.options) {
       const { url, sri } = hljsTheme(theme)
       if (theme === 'none') {
@@ -104,7 +102,7 @@ describe('CDN pins', () => {
     }
   })
   it('mermaid is the single-file build with SRI (dynamic import() cannot be SRI-checked)', () => {
-    expect(MERMAID_URL).toMatch(/\/mermaid@\d+\.\d+\.\d+\/dist\/mermaid\.min\.js$/)
+    expect(MERMAID_URL).toMatch(/^\/vendor\/mermaid@\d+\.\d+\.\d+\/mermaid\.min\.js$/)
     expect(MERMAID_SRI).toMatch(/^sha384-[A-Za-z0-9+/]{64}$/)
   })
 })
@@ -127,9 +125,11 @@ describe('deployment config', () => {
 
 describe('crossOriginResourcePolicyFor', () => {
   // The preview iframes are opaque-origin: what they load must be cross-origin.
-  it('lets the preview iframe load uploads and the bundled cover logos', () => {
+  it('lets the preview iframe load uploads, the bundled cover logos and the vendored assets', () => {
     expect(crossOriginResourcePolicyFor('/api/files/abc/def')).toBe('cross-origin')
     expect(crossOriginResourcePolicyFor('/markoto-logos/primary-lockup-light.svg')).toBe('cross-origin')
+    expect(crossOriginResourcePolicyFor(MERMAID_URL)).toBe('cross-origin')
+    expect(crossOriginResourcePolicyFor('/vendor/fonts/inter.css')).toBe('cross-origin')
   })
 
   it('keeps everything else same-site', () => {
@@ -137,5 +137,6 @@ describe('crossOriginResourcePolicyFor', () => {
     expect(crossOriginResourcePolicyFor('/api/docs/abc/meta')).toBe('same-site')
     expect(crossOriginResourcePolicyFor('/markoto-logosX/a.svg')).toBe('same-site')
     expect(crossOriginResourcePolicyFor('/_nuxt/entry.js')).toBe('same-site')
+    expect(crossOriginResourcePolicyFor('/vendorX/a.js')).toBe('same-site')
   })
 })

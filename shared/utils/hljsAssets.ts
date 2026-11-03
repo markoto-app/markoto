@@ -1,36 +1,32 @@
 import type { CodeTheme } from '../types/theme'
+import { vendorUrl } from './vendorAssets'
 
 /**
- * CDN URL + SRI hash for the highlight.js theme stylesheet used by the
- * paged.js preview, the browser print iframe and the server render page.
+ * Same-origin URL + SRI hash for the highlight.js theme stylesheet used by
+ * the paged.js preview, the browser print iframe and the server render
+ * page. Copied (unmodified) from `node_modules/highlight.js/styles/` at
+ * build time — modules/vendor-assets.ts, see shared/utils/vendorAssets.ts.
  *
- * Why CDN instead of bundling: highlight.js's CSS would otherwise be
- * imported via Vite into the parent document, but srcdoc iframes don't
- * inherit parent stylesheets. Loading from CDN inside the iframe
- * bootstrap puts the styles where they're actually needed.
+ * Why not imported via Vite: the CSS would land in the parent document,
+ * but srcdoc iframes don't inherit parent stylesheets; linking it inside
+ * the iframe bootstrap puts the styles where they're actually needed.
  *
- * Workbox caches `cdn.jsdelivr.net/*`, so first load is online but
- * subsequent reloads work offline.
+ * Every theme stylesheet is SRI-locked (`hljsTheme(theme).sri`). A
+ * CSS-only attack is narrower than JS, but attribute selectors + url()
+ * can still exfiltrate or alter what the reader sees.
  *
- * Pinned to the version installed in package.json. Update both
- * together; the URL is versioned so old caches don't bleed.
- *
- * Every theme stylesheet is SRI-locked (`hljsTheme(theme).sri`): the CSP
- * allows only this package path on jsDelivr, and the integrity hash pins
- * the exact bytes, so a poisoned CDN response is refused by the browser
- * instead of being cached by Workbox for 30 days. A CSS-only attack is
- * narrower than JS, but attribute selectors + url() can still exfiltrate
- * or alter what the reader sees.
- *
- * To bump HLJS_VERSION, recompute every hash below:
- *   curl -sSL <URL> | openssl dgst -sha384 -binary | openssl base64 -A
+ * To bump: change HLJS_VERSION (and package.json), then recompute every
+ * hash below:
+ *   openssl dgst -sha384 -binary node_modules/highlight.js/styles/<path>.min.css | openssl base64 -A
+ * The build refuses to start while a hash disagrees with the installed
+ * package.
  */
 export const HLJS_VERSION = '11.12.0'
 
 type HljsThemeName = Exclude<CodeTheme, 'none'>
 
 /** Path under `styles/` + SRI hash of each theme's minified stylesheet. */
-const HLJS_THEMES: Record<HljsThemeName, { path: string, sri: string }> = {
+export const HLJS_THEMES: Record<HljsThemeName, { path: string, sri: string }> = {
   'github-light': { path: 'github', sri: 'sha384-eFTL69TLRZTkNfYZOLM+G04821K1qZao/4QLJbet1pP4tcF+fdXq/9CdqAbWRl/L' },
   'github-dark': { path: 'github-dark', sri: 'sha384-wH75j6z1lH97ZOpMOInqhgKzFkAInZPPSPlZpYKYTOqsaizPvhQZmAtLcPKXpLyH' },
   'monokai': { path: 'monokai', sri: 'sha384-Exar9WeMELq1EieDQNh7c2ggVht9/FEoVtGG2JKgmEwcm5zOXQwPMzp3PEsPJ/zq' },
@@ -39,8 +35,8 @@ const HLJS_THEMES: Record<HljsThemeName, { path: string, sri: string }> = {
   'solarized-dark': { path: 'base16/solarized-dark', sri: 'sha384-xAOMWIFDjsMwim+nhPTvySn//mxqBQRxRtIyNbZ/uYLGKS7YZNlnhNmEIs0BW+hJ' }
 }
 
-/** Every highlight.js stylesheet lives under this prefix (also a CSP source expression). */
-export const HLJS_STYLES_BASE = `https://cdn.jsdelivr.net/npm/highlight.js@${HLJS_VERSION}/styles/`
+/** Every highlight.js stylesheet lives under this prefix. */
+export const HLJS_STYLES_BASE = vendorUrl('highlight.js', HLJS_VERSION, 'styles/')
 
 /**
  * Resolve the highlight.js stylesheet for the given code theme. An empty

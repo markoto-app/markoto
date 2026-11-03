@@ -274,7 +274,7 @@ When a flow asserts that the document body changed, phrase the prompt **imperati
 
 ### AI flow-test timeouts
 
-Live Mistral / Jina / BFL round-trips run **5–30 s** depending on tool count. `editor.waitForAiIdle()` defaults to 90 s (covers the worst case + safety). `rich-content` needs an extra 2 s buffer for mermaid render — polling `iframe div.mermaid > :is(svg, img)` (the diagram is an `<img>` during pagination and inline SVG afterwards) doesn't beat the underlying CDN script-load + render delay.
+Live Mistral / Jina / BFL round-trips run **5–30 s** depending on tool count. `editor.waitForAiIdle()` defaults to 90 s (covers the worst case + safety). `rich-content` needs an extra 2 s buffer for mermaid render — polling `iframe div.mermaid > :is(svg, img)` (the diagram is an `<img>` during pagination and inline SVG afterwards) doesn't beat the underlying Mermaid script-load + render delay.
 
 ## When you add a new flow
 

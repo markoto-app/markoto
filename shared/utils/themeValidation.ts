@@ -20,9 +20,8 @@ import { DocThemeSchema } from '../types/theme'
  *   - Hex colors are regex-checked — `themeToCss` interpolates them
  *     directly into CSS, so arbitrary strings would be an injection
  *     vector (`red; } body { display: none`).
- *   - Font names are ASCII-only, length-capped — they become part of
- *     Google Fonts `family=...` URLs and quoted CSS `font-family`
- *     values. A stray quote would escape the URL.
+ *   - Font names are ASCII-only, length-capped — they become quoted
+ *     CSS `font-family` values. A stray quote would escape the string.
  *   - Header/footer templates strip `{title}/{page}/{pages}/{date}`
  *     tokens before checking for CSS-escape characters.
  */

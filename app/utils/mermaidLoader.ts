@@ -1,5 +1,5 @@
 import createDOMPurify from 'dompurify'
-import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidCdn'
+import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidAssets'
 
 /**
  * Mermaid for a document that renders in its own top-level context: the
@@ -25,7 +25,7 @@ import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidCdn'
  *      computed doesn't move.
  *
  * Mermaid is the SRI-locked single-file build injected as a classic
- * `<script integrity crossorigin>` (see shared/utils/mermaidCdn.ts) — the
+ * `<script integrity crossorigin>` (see shared/utils/mermaidAssets.ts) — the
  * ESM build's dynamic `import()` cannot be integrity-checked.
  */
 

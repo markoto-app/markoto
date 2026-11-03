@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+
 const { t } = useI18n()
 
 useHead({
@@ -9,15 +11,11 @@ useHead({
     { rel: 'icon', href: '/favicon.ico' },
     // Brand fonts, calibrated against the homepage mockup. Inter is
     // the body/UI workhorse. JetBrains Mono is the eyebrow/meta/CTA
-    // register. Fraunces (variable opsz, weights 300–500 upright +
-    // 300–500 italic) handles the wordmark, display headlines, and
-    // the AI's italic voice. Preconnect avoids a serial DNS hop.
-    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-    {
-      rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,300..500&display=swap'
-    }
+    // register. Fraunces (variable opsz + wght, upright + italic)
+    // handles the wordmark, display headlines, and the AI's italic
+    // voice. Served from our own origin (shared/utils/themeFonts.ts) —
+    // no request leaves for Google Fonts.
+    ...fontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet', href }))
   ],
   htmlAttrs: {
     lang: 'en'

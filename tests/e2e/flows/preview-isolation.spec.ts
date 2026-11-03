@@ -14,6 +14,9 @@ import { EditorPage } from '../page-objects/Editor'
 //      links, dark mode, the browser print path.
 //   3. The app's Content-Security-Policy is sent with a nonce and no page
 //      we visit produces a CSP violation.
+//   4. No request leaves our own origins: fonts, paged.js, Mermaid, KaTeX
+//      and highlight.js are served from /vendor/ (no CDN, no Google Fonts);
+//      the only other origins are the ones the CSP names for sync / S3.
 //
 // Desktop only: on mobile the preview isn't mounted in edit view.
 
@@ -26,6 +29,25 @@ function cspViolations(page: Page): string[] {
     if (/Content Security Policy|Content-Security-Policy/i.test(text)) violations.push(text)
   })
   return violations
+}
+
+/** Every request URL the page's browser context makes (all frames, incl. the srcdoc iframes). */
+function recordRequests(page: Page): string[] {
+  const urls: string[] = []
+  page.context().on('request', req => urls.push(req.url()))
+  page.on('websocket', ws => urls.push(ws.url()))
+  return urls
+}
+
+/**
+ * Requests to an origin that is neither the app nor one the app's CSP
+ * names in `connect-src` (sync, S3, Sentry). A CDN or font host shows up
+ * here.
+ */
+function foreignRequests(urls: readonly string[], appOrigin: string, csp: string): string[] {
+  const connect = csp.split('; ').find(d => d.startsWith('connect-src ')) ?? ''
+  const firstParty = new Set([appOrigin, ...connect.split(' ').filter(s => /^[a-z]+:\/\//.test(s)).map(s => new URL(s).origin)])
+  return urls.filter(u => /^(https?|wss?):/.test(u) && !firstParty.has(new URL(u).origin))
 }
 
 async function previewFrame(page: Page): Promise<Frame> {
@@ -45,6 +67,7 @@ test.describe('preview isolation + CSP', () => {
   test('preview content is isolated from the app and still renders everything', async ({ page }) => {
     test.setTimeout(120_000)
     const violations = cspViolations(page)
+    const requests = recordRequests(page)
     const editor = new EditorPage(page)
     await editor.loginAsTestUser('Isolation Probe')
 
@@ -229,10 +252,16 @@ test.describe('preview isolation + CSP', () => {
     await expect(page.locator('iframe[aria-hidden="true"]')).toHaveCount(0)
 
     expect(violations).toEqual([])
+    // Fonts, KaTeX, highlight.js, Mermaid, paged.js all came from /vendor/.
+    expect(foreignRequests(requests, new URL(page.url()).origin, csp)).toEqual([])
+    expect(requests.some(u => u.includes('/vendor/mermaid@'))).toBe(true)
+    expect(requests.some(u => u.includes('/vendor/fonts/') && u.endsWith('.woff2'))).toBe(true)
   })
 
-  test('no CSP violations on the landing page and the docs site', async ({ page }) => {
+  test('no CSP violations and no third-party requests on the landing page and the docs site', async ({ page }) => {
     const violations = cspViolations(page)
+    const requests = recordRequests(page)
+    let csp = ''
     // A production build that bundled the wrong SQLite driver answered every
     // Nuxt Content query with a 500 while all flows stayed green — the docs
     // site was empty and nothing noticed. Fail on any failing content query.
@@ -242,7 +271,8 @@ test.describe('preview isolation + CSP', () => {
     })
     for (const path of ['/', '/docs']) {
       const res = await page.goto(path)
-      expect(res?.headers()['content-security-policy'] ?? '').toContain('\'nonce-')
+      csp = res?.headers()['content-security-policy'] ?? ''
+      expect(csp).toContain('\'nonce-')
       await page.waitForLoadState('networkidle')
     }
     // Client-side navigation inside the docs site (Nuxt Content queries).
@@ -253,5 +283,6 @@ test.describe('preview isolation + CSP', () => {
     await expect(page.locator('main h1').first()).toBeVisible()
     expect(failedContentQueries).toEqual([])
     expect(violations).toEqual([])
+    expect(foreignRequests(requests, new URL(page.url()).origin, csp)).toEqual([])
   })
 })

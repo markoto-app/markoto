@@ -288,7 +288,7 @@ const MessageToUserArgs = z.object({
 // `isValidTheme` exactly so the AI's schema advertises the same
 // valid-value surface the validator enforces at runtime.
 //
-// Fonts are pinned to the curated Google Fonts list in `themeFonts.ts`:
+// Fonts are pinned to the curated, self-hosted list in `themeFonts.ts`:
 // those are the only families themeToCss actually fetches, so letting
 // the AI choose "Times New Roman" or similar would render as a system
 // fallback rather than the classic serif the user asked for. Closest

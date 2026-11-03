@@ -3,7 +3,7 @@
 Nuxt 4 frontend. Substantive sub-domains have their own AGENTS.md:
 
 - `app/composables/AGENTS.md` — document composables (token, sync, document orchestrator, version-skew, cross-tab logout).
-- `app/utils/AGENTS.md` — preview rendering pipeline (paged.js iframe + server-side render path) + markdown comments + editor commands + CDN SRI conventions.
+- `app/utils/AGENTS.md` — preview rendering pipeline (paged.js iframe + server-side render path) + markdown comments + editor commands + vendored-asset (SRI) conventions.
 - `app/components/ai/AGENTS.md` — AI presence primitives (Cursor / Tag / GutterMark / Thinking / AIPromptBar / Waveform).
 - `app/components/collab/AGENTS.md` — Activity Log (Tier 1 diffs, Tier 2 restore).
 - `app/components/document/AGENTS.md` — document context fields + new-doc dialog.

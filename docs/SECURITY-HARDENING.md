@@ -61,7 +61,7 @@ Content-Security-Policy: <see §2>
 | `X-Frame-Options: DENY` | No origin can iframe markoto. Mitigates click-jacking. If we ever want third-party embeds, switch to `SAMEORIGIN` or replace with CSP `frame-ancestors`. The CSP already sets `frame-ancestors 'none'`, so DENY is duplicative-but-belt-and-braces for older browsers. |
 | `Referrer-Policy: strict-origin-when-cross-origin` | Same-origin requests carry the full URL; cross-origin requests carry only the origin (no path). External links from a doc don't leak which doc the user was reading. |
 | `Cross-Origin-Opener-Policy: same-origin` | A new tab opened from markoto cannot keep a `window.opener` reference back to markoto. Tightens postMessage / Spectre-style surfaces. |
-| `Cross-Origin-Resource-Policy: same-site` | Other origins cannot embed our static resources via `<img>`/`<script>`/etc. unless they're under the same site. Set by the app. Exception: `/api/files/*` (a 302 to a presigned S3 URL) is `cross-origin` — the preview iframe runs in an opaque origin, which is never "same site", and its images go through this route; access there is decided by the session / file-access token, not by the requesting origin. Same for `/markoto-logos/*`, the public brand marks the default theme puts on cover pages (`crossOriginResourcePolicyFor` in `server/utils/csp.ts`). |
+| `Cross-Origin-Resource-Policy: same-site` | Other origins cannot embed our static resources via `<img>`/`<script>`/etc. unless they're under the same site. Set by the app. Exception: `/api/files/*` (a 302 to a presigned S3 URL) is `cross-origin` — the preview iframe runs in an opaque origin, which is never "same site", and its images go through this route; access there is decided by the session / file-access token, not by the requesting origin. Same for `/markoto-logos/*`, the public brand marks the default theme puts on cover pages, and `/vendor/*`, the self-hosted paged.js / Mermaid / KaTeX / highlight.js files and web fonts (`crossOriginResourcePolicyFor` in `server/utils/csp.ts`; `/vendor/*` also answers `Access-Control-Allow-Origin: *` because fonts and the SRI-locked tags load in CORS mode — `server/utils/vendorAssetHeaders.ts`). |
 | `Permissions-Policy` | Disables camera + geolocation outright. Allows microphone (live dictation needs it) and payment (future Stripe checkout) only on our own origin. No third-party iframe can hijack any of these. |
 
 ---
@@ -74,14 +74,9 @@ Built per response by `buildAppCsp()` (`server/utils/csp.ts`), sent by
 
 ```
 default-src 'self';
-script-src 'self' 'nonce-<per response>' 'wasm-unsafe-eval'
-  https://cdn.jsdelivr.net/npm/pagedjs@0.4.3/dist/paged.polyfill.min.js
-  https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js;
-style-src 'self' 'unsafe-inline'
-  https://cdn.jsdelivr.net/npm/katex@0.18.11/dist/katex.min.css
-  https://cdn.jsdelivr.net/npm/highlight.js@11.12.0/styles/
-  https://fonts.googleapis.com;
-font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net/npm/katex@0.18.11/dist/fonts/;
+script-src 'self' 'nonce-<per response>' 'wasm-unsafe-eval';
+style-src 'self' 'unsafe-inline';
+font-src 'self' data:;
 img-src 'self' data: blob: <S3 origin>;
 connect-src 'self' <sync origin> <S3 origin> <Sentry ingest origin>;
 frame-src 'self'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' blob:;
@@ -95,7 +90,7 @@ The variable parts come from runtime config: `NUXT_PUBLIC_SYNC_URL`,
 
 The server render page (`/_internal/render/*`, loaded by the renderer
 sidecar from the app container) gets `buildRenderCsp()`: `default-src
-'none'`, the same script/style/font sources (nonce, pinned CDN files), images
+'none'`, the same script/style/font sources (`'self'` + nonce), images
 from `'self'`, the S3 origin and `RENDERER_ALLOWED_ORIGINS`, `connect-src
 'self'`, no frames, `form-action 'none'`.
 
@@ -104,9 +99,8 @@ from `'self'`, the S3 origin and `RENDERER_ALLOWED_ORIGINS`, `connect-src
 | Source | Why |
 |---|---|
 | `'nonce-…'` | Nuxt's own inline scripts (payload/config, color-mode) — stamped by the `render:html` hook on the head and body-edge chunks only, never on the rendered page body. The preview/print srcdoc iframes inherit the policy; their inline scripts carry the same nonce (read from `script.nonce` by `currentCspNonce()`). |
-| CDN **files** | jsDelivr serves arbitrary npm content, so a bare `https://cdn.jsdelivr.net` would let an injection load any package. Only the two exact script files (paged.js, Mermaid), the KaTeX stylesheet + its `fonts/` directory and the highlight.js `styles/` directory are allowed. Every one of them is also SRI-locked (`shared/utils/*Cdn.ts`). |
+| No CDN | paged.js, Mermaid, the KaTeX stylesheet + fonts, the highlight.js themes and every web font are served from our own origin under `/vendor/` (`shared/utils/vendorAssets.ts`, copied from the pinned npm packages at build time by `modules/vendor-assets.ts`), so `'self'` covers them and no third-party host appears in the policy. Visitors' browsers send their IP address to nobody but us. The scripts and stylesheets stay SRI-locked (`shared/utils/*Assets.ts`; the build fails when the installed package's bytes differ). |
 | `'wasm-unsafe-eval'` | `@nuxt/content` compiles its SQLite WASM in the browser for client-side docs queries. Allows WebAssembly compilation only — not `eval`/`new Function`. |
-| `fonts.googleapis.com` + `fonts.gstatic.com` | The 20-font Google Fonts picker (`themeFontsImport()`). |
 | `data:` in `font-src` / `img-src` | KaTeX font fallbacks; Mermaid diagrams render as `data:image/svg+xml` `<img>`s; custom CSS may use raster `data:image/*`. |
 | S3 origin | Presigned image GETs (`/api/files` 302s there) and presigned upload PUTs. |
 | sync origin | Hocuspocus WebSocket. |
@@ -171,6 +165,13 @@ How the preview still works (details: `app/utils/AGENTS.md`):
   doc-scoped `file-access` JWT (`GET /api/docs/:docId/file-token`, same
   access decision as `/api/files`). Only `/api/files` accepts that scope; the
   sync server rejects every scoped token.
+- **Scripts, styles and fonts** come from our own origin (`/vendor/…`), which
+  is cross-origin for the opaque iframe: those paths answer with
+  `Cross-Origin-Resource-Policy: cross-origin` and
+  `Access-Control-Allow-Origin: *` (public, versioned, credential-less
+  files), the SRI-locked tags carry `crossorigin="anonymous"`. Chromium
+  exempts plain `localhost` from part of this — test on a real host name
+  (e.g. `markoto.127.0.0.1.nip.io`).
 - **Off-screen throttling**: Chromium throttles rendering of off-screen
   cross-origin frames, so the hidden print iframe sits inside the viewport
   (1×1 px, transparent, click-through).
@@ -196,7 +197,9 @@ Expected output (one line per header). Spot-check the CSP with a real
 browser: load the editor, open DevTools → Console — there should be **zero**
 CSP violation reports during normal use (open a doc, type, switch themes,
 trigger AI, generate a PDF). If a violation appears, decide whether the
-allowlist is missing a host or whether the offending code is wrong.
+allowlist is missing a host or whether the offending code is wrong. The
+Network tab should show no request to any host but the app, sync, S3 and
+(if configured) Sentry — no font or script CDN.
 
 For the sync subdomain:
 
@@ -366,7 +369,7 @@ ss -ltnp | grep -E ':6379|:6380' || echo "ok: no valkey on host"
 # Section C — Containers, networks and database roles
 
 The goal: a compromise of any one container — most plausibly the renderer
-(Chromium on user-authored HTML/CSS/SVG and CDN scripts) or markitdown
+(Chromium on user-authored HTML/CSS/SVG) or markitdown
 (parsers for uploaded Office/PDF files) — gives the attacker as little as
 possible: no root, no capabilities, nothing writable outside tmpfs, no
 route to the database or the AI gateway, no Docker API. Enforced in CI by
@@ -442,7 +445,7 @@ route off the host.
 | `import` | app, markitdown | yes |
 | `storage` (self-host, local) | seaweedfs, traefik, app, renderer, backup, s3-init | yes (local: no, for the loopback-published S3 port) |
 | `egress` | litellm, backup (+ db-init in prod) | no — AI providers, managed Postgres, external S3 |
-| `renderer-egress` | renderer only | no — S3 and the pinned CDNs (the browser-level allowlist in `renderer/src/allowlist.ts` still applies) |
+| `renderer-egress` | renderer only | no — S3 / the public URL presigned images point at (the browser-level allowlist in `renderer/src/allowlist.ts` still applies: app origin + S3 + `RENDERER_ALLOWED_ORIGINS`, no CDN) |
 
 So the renderer reaches the app and its own egress, nothing else; markitdown
 reaches only the app (it has no internet either). Verified from inside the

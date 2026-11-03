@@ -37,7 +37,7 @@
 #   storage          seaweedfs + traefik, app, renderer, backup, s3-init
 #                    (only the S3 port listens beyond seaweedfs' loopback)
 #   egress           litellm, backup                       (AI providers, external backup S3)
-#   renderer-egress  renderer alone                        (CDN, public URL for document images)
+#   renderer-egress  renderer alone                        (public URL for document images)
 # The renderer and markitdown — the two services that parse untrusted
 # input — can't reach Postgres, Valkey, LiteLLM or sync.
 
