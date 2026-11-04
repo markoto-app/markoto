@@ -1,7 +1,8 @@
 import { mintFileAccessToken } from '../../utils/fileAccessToken'
 import { verifyRenderToken } from '../../utils/renderTokens'
 import { getDoc } from '../../repos/documents'
-import { reconstructTextAtYjsId } from '../../utils/historyReplay'
+import { reconstructDocAtYjsId } from '../../utils/historyReplay'
+import { resolveDocProperties } from '../../utils/docProperties'
 import { listConfirmedUploadsForDoc } from '../../repos/uploads'
 
 // Called from the internal print page (`app/pages/_internal/render/[docId].vue`)
@@ -45,11 +46,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  // Materialize the current ytext by replaying every yjs_documents row.
-  // `null` (no rows yet) yields an empty string — paged.js paginates a
-  // blank doc to zero pages, which the renderer surfaces as an error.
+  // Materialize the doc by replaying every yjs_documents row up to the
+  // snapshot. `null` (no rows yet) yields an empty doc — paged.js
+  // paginates a blank doc to zero pages, which the renderer surfaces as
+  // an error.
+  //
+  // Theme + properties come from the replayed ymeta first, the row only
+  // as a fallback: only the OWNER's editor persists them to the row, so
+  // an anonymous doc's theme (and any change by a workspace editor or an
+  // open-edit visitor) lives in Y.js alone. Reading `doc.theme` here
+  // rendered those PDFs with the default theme.
   const snapshotId = payload.snapshotId > 0 ? payload.snapshotId : null
-  const markdown = await reconstructTextAtYjsId(docId, snapshotId)
+  const ydoc = await reconstructDocAtYjsId(docId, snapshotId)
+  let markdown: string
+  let properties: ReturnType<typeof resolveDocProperties>
+  try {
+    markdown = ydoc.getText('content').toJSON()
+    properties = resolveDocProperties(ydoc.getMap('meta'), doc)
+  } finally {
+    ydoc.destroy()
+  }
 
   // Mint a short-lived, read-only doc-scoped `file-access` JWT so the
   // print page can load `/api/files/{docId}/...` images on PRIVATE /
@@ -65,11 +81,11 @@ export default defineEventHandler(async (event) => {
   return {
     snapshotId: payload.snapshotId,
     markdown,
-    theme: doc.theme,
-    title: doc.title,
-    description: doc.description,
-    audience: doc.audience,
-    language: doc.language,
+    theme: properties.theme,
+    title: properties.title,
+    description: properties.description,
+    audience: properties.audience,
+    language: properties.language,
     fileAccessToken,
     // The document's confirmed uploads. The print page gives the token
     // ONLY to `/api/files/<docId>/<fileId>` URLs naming one of these
