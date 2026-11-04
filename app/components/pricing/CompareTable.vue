@@ -162,7 +162,7 @@ const rows = computed<Row[]>(() => {
               v-for="(label, i) in columnLabels"
               :key="COLUMNS[i]"
               scope="col"
-              class="text-left font-mono font-normal text-[11px] uppercase tracking-[0.06em] text-muted px-3 py-3"
+              class="text-left font-mono font-normal text-[11px] uppercase tracking-[0.06em] text-muted px-3 py-3 whitespace-nowrap"
               :data-testid="`pricing-compare-col-${COLUMNS[i]}`"
             >
               {{ label }}
