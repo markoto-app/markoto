@@ -9,9 +9,8 @@ icon: i-lucide-history
 # History & restore
 
 markoto records every edit, theme change, and comment as an entry in
-the activity log. The log isn't just a feed: every entry remembers the
-document as it was, so you can see exactly what changed and restore the
-document to that point.
+the activity log. Every entry also keeps the document as it was, so you
+can see exactly what changed and restore the document to that point.
 
 - [See what changed in past edits](/docs/history/see-changes) — diff drawer with hunk-level highlights.
 - [Restore an earlier version](/docs/history/restore) — one click rolls the doc back, and the restore can itself be undone.

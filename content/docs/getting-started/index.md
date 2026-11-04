@@ -1,6 +1,6 @@
 ---
 title: Get started
-description: Three short tutorials that take you from the homepage to a finished, shared document.
+description: Four short tutorials that take you from the homepage to a finished, shared document.
 category: getting-started
 order: 1
 featured: true
@@ -10,10 +10,10 @@ icon: i-lucide-rocket
 # Get started
 
 markoto is a collaborative markdown editor with optional accounts. You
-can write a document anonymously, share it by URL, customize how it
-looks, and export to PDF — all without signing up.
+can write a document anonymously, share it by URL, change how it
+looks and export it to PDF, all without signing up.
 
-This section is three short walkthroughs. Each one starts at the
+This section is four short walkthroughs. Each one starts at the
 homepage and ends with a tangible result you can hand to someone.
 
 ## The starter tutorials

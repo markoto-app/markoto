@@ -8,7 +8,7 @@ translationStatus: authoritative
 
 # Data Processing Addendum
 
-This Data Processing Addendum ("**DPA**") forms part of the Terms of Service between **{{controllerName}}** ("**Processor**" or "**markoto**") and you, the workspace owner ("**Controller**"). It governs markoto's processing of personal data on the Controller's behalf in connection with the Service.
+This Data Processing Addendum ("**DPA**") forms part of the Terms of Service between **{{controllerName}}** ("**Processor**" or "**markoto**") and you, the workspace owner ("**Controller**"). It governs markoto's processing of personal data on the Controller's behalf in connection with markoto.app and its features (the "**Service**").
 
 This DPA is required only for workspace customers. If you use markoto only on personal documents, this DPA does not apply to you.
 
@@ -23,7 +23,7 @@ Capitalised terms not defined here have the meanings given in the EU General Dat
 
 ## 3. Subject matter, duration, nature and purpose of processing
 
-The Processor processes personal data placed into the Controller's workspace (document content, comments, knowledge-base files, member metadata, AI prompts and outputs) for the duration of the Service agreement and for the purpose of delivering the Service: storage, real-time collaboration, rendering, export, search, AI assistance and backup.
+The Processor processes personal data placed into the Controller's workspace (document content, comments, knowledge-base files, member metadata, AI prompts and outputs) for as long as the Terms of Service apply between the parties and for the purpose of delivering the Service: storage, real-time collaboration, rendering, export, search, AI assistance and backup.
 
 ## 4. Categories of data subjects and personal data
 
@@ -61,7 +61,7 @@ The Processor is established in **Switzerland**. The European Commission has rec
 
 For onward transfers, the Processor complies with Art. 16 FADP and Chapter V GDPR:
 
-- The Processor's main infrastructure (database, file storage, backups) and AI providers are located in the EU (France and Germany), which Switzerland recognises as adequate.
+- The Processor's main infrastructure (database, file storage, backups) is located in the EU (France). Its AI sub-processors process data in the EU and, for Mistral AI, also in EFTA countries. Switzerland recognises the EU and EEA states as adequate, and every EFTA country is either an EEA state or Switzerland.
 - Where a sub-processor is located in, or may access data from, a country without an adequate level of protection, in particular the United States, the transfer relies on the EU-U.S. and Swiss-U.S. Data Privacy Framework for certified recipients, or otherwise on the European Commission's standard contractual clauses (2021/914), adapted for Swiss law.
 
 The location and transfer mechanism of each sub-processor is published at [/legal/sub-processors](/legal/sub-processors).
@@ -135,7 +135,7 @@ A documented data-breach response procedure covers detection, containment, asses
 ### 9. Data minimisation and deletion
 
 - Only data needed for the Service is collected; IP addresses are shortened before storage; uploaded knowledge-base originals are deleted after processing.
-- Automatic deletion jobs enforce retention periods (for example AI records after 90 days, inactive anonymous documents after 30 days, unconfirmed uploads after 24 hours, audit-log entries after 2 years).
+- Automatic deletion jobs enforce retention periods (for example AI records after 90 days, anonymous documents 30 days after their last edit, unconfirmed uploads after 24 hours, audit-log entries after 2 years).
 - Users can export and delete their data themselves.
 
 ### 10. Sub-processors

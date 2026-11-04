@@ -24,7 +24,7 @@ without losing their visual structure.
 - [Write with the AI](/docs/writing/ai-prompt-bar) — the prompt bar walkthrough.
 - [Tell the AI who you're writing for](/docs/writing/document-context) — audience + language steering.
 - [Ask the AI about a file you uploaded](/docs/writing/knowledge-rag) — workspace knowledge retrieval.
-- [Summon the AI from a comment](/docs/writing/ai-comments) — `@ai` mention in any thread.
+- [Summon the AI from a comment](/docs/writing/ai-comments) — `@markoto` mention in any thread.
 - [Rewrite a selection with the AI](/docs/writing/ai-rewrite-selection) — highlight, prompt, replace.
 - [Ask the AI about another doc](/docs/writing/ai-cross-doc) — cross-doc retrieval.
 - [Ask the AI to read a URL](/docs/writing/ai-fetch-url) — pull in any external page.

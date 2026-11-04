@@ -8,11 +8,11 @@ featured: true
 
 # Plans and limits
 
-markoto's free tier is generous: anonymous and signed-in documents, every
+The free tier includes anonymous and signed-in documents, every
 theme, every markdown extension, collaboration, comments, history and
 restore, PDF export, workspaces, import, the MCP server, and all the AI
-features (with your own AI provider). Plans only change **limits**, never
-whether the writing experience works.
+features (with your own AI provider). Plans change **limits** only; the
+writing experience works the same on every plan.
 
 What you see depends on where markoto runs:
 

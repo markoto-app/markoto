@@ -18,14 +18,14 @@ Esta política es nuestro **mecanismo de notificación y acción** conforme al a
 
 Puede denunciar contenido de dos maneras. Ambas se tramitan del mismo modo:
 
-- **El formulario de denuncia** en [/legal/abuse](/legal/abuse). Funciona sin cuenta; en ese caso, su navegador supera una breve comprobación contra bots que se ejecuta en nuestro propio servidor, sin terceros y sin cookies. Los documentos creados sin cuenta muestran una barra «contenido de usuario · Denunciar» que abre el formulario con la dirección del documento ya rellenada.
+- **El formulario de denuncia** en [/legal/abuse](/legal/abuse). Funciona sin cuenta; en ese caso, su navegador supera una breve comprobación contra bots que se ejecuta en nuestro propio servidor, sin terceros y sin cookies. Los documentos anónimos (documentos creados sin cuenta) muestran una barra con el aviso «Creado por un usuario de markoto sin cuenta, no por markoto» y un enlace «Denunciar». El enlace abre el formulario con la dirección del documento ya rellenada.
 - **Correo electrónico** a **{{abuseContactEmail}}**.
 
 Una denuncia completa contiene (art. 16, apartado 2, del DSA):
 
 1. **La ubicación exacta** del contenido: la URL del documento (por ejemplo `https://markoto.app/d/…`) y, si resulta útil, a qué parte del documento se refiere.
 2. **Una explicación** de por qué considera que el contenido es ilícito o incumple nuestras Condiciones. Si es ilícito, indique qué ley infringe, si lo sabe.
-3. **Su nombre y su dirección de correo electrónico.** Puede omitirlos si denuncia contenido que pueda estar relacionado con el abuso sexual o la explotación sexual de menores.
+3. **Su nombre y su dirección de correo electrónico.** Solo puede omitirlos cuando denuncia material de abuso sexual infantil.
 4. **Una declaración** de que considera de buena fe que la información y las alegaciones de su denuncia son exactas y completas.
 
 Las denuncias incompletas pueden tardar más, porque es posible que no podamos identificar el contenido o valorarlo.
@@ -63,7 +63,7 @@ Si retiramos o restringimos su contenido o suspendemos su cuenta, le enviamos un
 - que la decisión la adoptó una persona, no un sistema automatizado;
 - cómo puede oponerse.
 
-**Documentos anónimos.** Un documento creado sin cuenta no tiene datos de contacto. No podemos enviar una exposición de motivos a quien lo creó, y registramos la exposición como no entregable. Conservamos con la denuncia el texto de cada notificación que enviamos o que no pudimos entregar.
+**Documentos anónimos.** Un documento anónimo no tiene datos de contacto. No podemos enviar una exposición de motivos a quien lo creó, y registramos la exposición como no entregable. Conservamos con la denuncia el texto de cada notificación que enviamos o que no pudimos entregar.
 
 **Cómo oponerse.** Puede presentar una reclamación a **{{abuseContactEmail}}** en un plazo de **seis meses** desde nuestra decisión. Responda a la exposición de motivos o cite su referencia, y explique por qué la decisión fue errónea. Una persona revisa su reclamación, y restablecemos el contenido o la cuenta si la decisión fue errónea. Le comunicamos el resultado. También puede dirigirse a un órgano certificado de resolución extrajudicial de litigios y siempre tiene derecho a acudir a los tribunales. Quienes denuncian pueden usar el mismo canal para oponerse a la decisión de no actuar sobre su denuncia.
 
@@ -77,11 +77,11 @@ Si una autoridad competente nos ordena actuar contra contenido ilícito o facili
 
 ## Uso indebido del canal de denuncia
 
-Podemos dejar de tramitar las denuncias de personas que presenten con frecuencia denuncias manifiestamente infundadas, tras una advertencia y durante un periodo razonable. Las denuncias falsas a sabiendas también pueden incumplir nuestras Condiciones.
+Podemos dejar de tramitar las denuncias de personas que presenten con frecuencia denuncias manifiestamente infundadas, tras una advertencia y durante un periodo razonable. Las denuncias falsas a sabiendas también pueden incumplir nuestras Condiciones (apartado 6).
 
 ## Datos que tratamos para las denuncias
 
-Para tramitar una denuncia almacenamos la dirección del contenido denunciado, su explicación, la categoría, su nombre y su dirección de correo electrónico, el idioma que utilizó, el momento en que confirmó la declaración de buena fe y el momento de la denuncia, además de una dirección IP acortada y un hash del agente de usuario de su navegador contra las denuncias masivas. En las denuncias enviadas con la sesión iniciada, vinculamos además su cuenta. Conservamos una denuncia, con las notificaciones relativas a ella, mientras el caso está abierto y la eliminamos 1 año después de su cierre. Su exportación de datos contiene las denuncias que presentó con la sesión iniciada. Consulte la Política de privacidad ([/legal/privacy](/legal/privacy)) para más detalles.
+Para tramitar una denuncia almacenamos la dirección del contenido denunciado, su explicación, la categoría, su nombre y su dirección de correo electrónico (salvo que los haya omitido en una denuncia de material de abuso sexual infantil), el idioma que utilizó, el momento en que confirmó la declaración de buena fe y el momento de la denuncia, además de una dirección IP acortada y un hash del agente de usuario de su navegador contra las denuncias masivas. En las denuncias enviadas con la sesión iniciada, vinculamos además su cuenta. Conservamos una denuncia, con las notificaciones relativas a ella, mientras el caso está abierto y la eliminamos 1 año después de su cierre. Su exportación de datos contiene las denuncias que presentó con la sesión iniciada. Consulte la Política de privacidad ([/legal/privacy](/legal/privacy)) para más detalles.
 
 ## Contacto
 

@@ -8,7 +8,7 @@ translationStatus: machine-translated
 
 # Adenda de tratamiento de datos
 
-Esta Adenda de tratamiento de datos («**DPA**») forma parte de las Condiciones de servicio entre **{{controllerName}}** (el «**Encargado**» o «**markoto**») y usted, propietario del espacio de trabajo (el «**Responsable**»). Regula el tratamiento por parte de markoto de datos personales por cuenta del Responsable en relación con el Servicio.
+Esta Adenda de tratamiento de datos («**DPA**») forma parte de las Condiciones de servicio entre **{{controllerName}}** (el «**Encargado**» o «**markoto**») y usted, propietario del espacio de trabajo (el «**Responsable**»). Regula el tratamiento por parte de markoto de datos personales por cuenta del Responsable en relación con markoto.app y sus funciones (el «**Servicio**»).
 
 Este DPA solo es necesario para los clientes con espacios de trabajo. Si usa markoto únicamente para documentos personales, este DPA no le es aplicable.
 
@@ -23,7 +23,7 @@ Los términos en mayúscula no definidos aquí tienen el significado que les atr
 
 ## 3. Objeto, duración, naturaleza y finalidad del tratamiento
 
-El Encargado trata los datos personales incorporados al espacio de trabajo del Responsable (contenido de documentos, comentarios, archivos de la base de conocimiento, metadatos de miembros, solicitudes y resultados de la IA) durante la vigencia del contrato del Servicio y con la finalidad de prestarlo: almacenamiento, colaboración en tiempo real, renderizado, exportación, búsqueda, asistencia de IA y copias de seguridad.
+El Encargado trata los datos personales incorporados al espacio de trabajo del Responsable (contenido de documentos, comentarios, archivos de la base de conocimiento, metadatos de miembros, solicitudes y resultados de la IA) mientras las Condiciones de servicio se apliquen entre las partes y con la finalidad de prestar el Servicio: almacenamiento, colaboración en tiempo real, renderizado, exportación, búsqueda, asistencia de IA y copias de seguridad.
 
 ## 4. Categorías de interesados y de datos personales
 
@@ -61,7 +61,7 @@ El Encargado está establecido en **Suiza**. La Comisión Europea ha reconocido 
 
 Para las transferencias ulteriores, el Encargado cumple el art. 16 de la LPD y el capítulo V del RGPD:
 
-- La infraestructura principal del Encargado (base de datos, almacenamiento de archivos, copias de seguridad) y los proveedores de IA se encuentran en la UE (Francia y Alemania), que Suiza reconoce como adecuada.
+- La infraestructura principal del Encargado (base de datos, almacenamiento de archivos, copias de seguridad) se encuentra en la UE (Francia). Sus subencargados de IA tratan los datos en la UE y, en el caso de Mistral AI, también en países de la AELC. Suiza reconoce como adecuada la protección de los Estados de la UE y del EEE, y todo país de la AELC es un Estado del EEE o Suiza.
 - Cuando un subencargado esté situado en un país sin un nivel adecuado de protección, o pueda acceder a datos desde él, en particular Estados Unidos, la transferencia se basa en el Marco de Privacidad de Datos UE-EE. UU. y Suiza-EE. UU. para los destinatarios certificados o, en los demás casos, en las cláusulas contractuales tipo de la Comisión Europea (2021/914), adaptadas al Derecho suizo.
 
 La ubicación y el mecanismo de transferencia de cada subencargado se publican en [/legal/sub-processors](/legal/sub-processors).
@@ -135,7 +135,7 @@ Un procedimiento documentado de respuesta a violaciones de datos abarca la detec
 ### 9. Minimización y supresión de datos
 
 - Solo se recogen los datos necesarios para el Servicio; las direcciones IP se acortan antes de almacenarse; los originales subidos a la base de conocimiento se eliminan tras su procesamiento.
-- Tareas de eliminación automática aplican los plazos de conservación (por ejemplo, los registros de IA a los 90 días, los documentos anónimos inactivos a los 30 días, las subidas sin confirmar a las 24 horas, las entradas del registro de auditoría a los 2 años).
+- Tareas de eliminación automática aplican los plazos de conservación (por ejemplo, los registros de IA a los 90 días, los documentos anónimos 30 días después de su última edición, las subidas sin confirmar a las 24 horas, las entradas del registro de auditoría a los 2 años).
 - Los usuarios pueden exportar y eliminar sus datos por sí mismos.
 
 ### 10. Subencargados

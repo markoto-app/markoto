@@ -8,9 +8,9 @@ icon: i-lucide-message-square-dashed
 
 # Summon markoto inside a comment
 
-The prompt bar at the bottom is great for "rewrite the whole
-section" prompts — but when you have a question about one specific
-passage, you don't want to lose the anchor. Mention `@markoto` inside
+The prompt bar at the bottom suits "rewrite the whole section"
+prompts. For a question about one specific passage, use a comment so
+the anchor stays attached. Mention `@markoto` inside
 any comment and markoto joins the thread, reads the anchored text
 and the conversation so far, and replies in the same place.
 
@@ -28,8 +28,7 @@ and the conversation so far, and replies in the same place.
   the tone more formal across the board", "structure this as a
   meeting agenda".
 
-Both work the same way; the only difference is what markoto looks at
-first.
+Both work the same way; they differ in what markoto looks at first.
 
 ## How it works
 

@@ -74,9 +74,9 @@ describe('legal wording', () => {
     for (const { slug } of DOCS) {
       expect(read(slug, 'en')).not.toMatch(/most EU member states/i)
     }
-    // Anonymous documents: 30 days without activity.
+    // Anonymous documents: 30 days without being edited (only edits bump last_active).
     expect(read('terms', 'en')).toMatch(/\*\*30 days\*\*/)
-    expect(privacy).toMatch(/deleted automatically after \*\*30 days\*\* without activity/)
+    expect(privacy).toMatch(/deleted automatically after \*\*30 days\*\* without being edited/)
     expect(privacy).not.toMatch(/180 days without activity/)
   })
 
