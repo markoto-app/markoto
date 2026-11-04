@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { parse as parseYaml } from 'yaml'
 import {
   LEGAL_SITEMAP_PATHS,
   buildSitemapXml,
@@ -72,8 +73,52 @@ describe('sitemapEntries', () => {
         { hreflang: 'x-default', href: `${BASE}/markdown-to-pdf` }
       ])
     }
-    // No localised marketing pages yet (SEO-2).
-    expect(marketingSitemapPages()).toEqual([])
+  })
+})
+
+describe('marketingSitemapPages (marketing content collection)', () => {
+  it('groups language versions per slug, leaves unreviewed translations out', () => {
+    const pages = marketingSitemapPages([
+      { path: '/marketing/de/markdown-to-pdf' },
+      { path: '/marketing/en/markdown-to-pdf' },
+      { path: '/marketing/fr/markdown-to-pdf', reviewed: false },
+      { path: '/marketing/en/markdown-cheat-sheet', reviewed: null },
+      { path: '/marketing/de/markdown-cheat-sheet', reviewed: false },
+      { path: '/docs/not-marketing' }
+    ])
+    expect(pages).toEqual([
+      { paths: { en: '/markdown-cheat-sheet' }, defaultLanguage: 'en' },
+      { paths: { en: '/markdown-to-pdf', de: '/de/markdown-to-pdf' }, defaultLanguage: 'en' }
+    ])
+  })
+
+  it('end to end: the sitemap lists reviewed versions with xhtml alternates only', () => {
+    const xml = buildSitemapXml(sitemapEntries(BASE, {
+      docsPaths: [],
+      legalSurfaces: false,
+      marketingPages: marketingSitemapPages([
+        { path: '/marketing/en/markdown-to-pdf' },
+        { path: '/marketing/de/markdown-to-pdf' },
+        { path: '/marketing/fr/markdown-to-pdf', reviewed: false }
+      ])
+    }))
+    expect(xml).toContain(`<loc>${BASE}/markdown-to-pdf</loc>`)
+    expect(xml).toContain(`<loc>${BASE}/de/markdown-to-pdf</loc>`)
+    expect(xml).toContain(`<xhtml:link rel="alternate" hreflang="de" href="${BASE}/de/markdown-to-pdf"/>`)
+    expect(xml).toContain(`<xhtml:link rel="alternate" hreflang="x-default" href="${BASE}/markdown-to-pdf"/>`)
+    expect(xml).not.toContain('/fr/markdown-to-pdf')
+  })
+
+  it('the committed content: the cheat sheet is listed, its unreviewed de stub is not', () => {
+    const dir = join(__dirname, '..', '..', 'content', 'marketing')
+    const versions = ['en', 'de'].map((locale) => {
+      const text = readFileSync(join(dir, locale, 'markdown-cheat-sheet.md'), 'utf8')
+      const fm: unknown = parseYaml(/^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '')
+      const reviewed = typeof fm === 'object' && fm !== null ? (fm as Record<string, unknown>).reviewed : undefined
+      return { path: `/marketing/${locale}/markdown-cheat-sheet`, reviewed: typeof reviewed === 'boolean' ? reviewed : undefined }
+    })
+    expect(versions[1]?.reviewed).toBe(false)
+    expect(marketingSitemapPages(versions)).toEqual([{ paths: { en: '/markdown-cheat-sheet' }, defaultLanguage: 'en' }])
   })
 })
 

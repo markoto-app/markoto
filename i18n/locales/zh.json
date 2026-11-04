@@ -1670,5 +1670,32 @@
         "body": "使用文档和本导览都在菜单里。"
       }
     }
+  },
+  "marketing": {
+    "nav": {
+      "label": "网站",
+      "pricing": "价格",
+      "useCases": "使用场景",
+      "compare": "对比",
+      "selfHost": "自托管"
+    },
+    "sample": {
+      "source": "Markdown",
+      "result": "渲染结果",
+      "kind": {
+        "commonmark": "CommonMark",
+        "gfm": "GitHub Markdown",
+        "markoto": "markoto 扩展"
+      }
+    },
+    "compare": {
+      "yes": "是",
+      "no": "否",
+      "partial": "部分"
+    },
+    "page": {
+      "updated": "更新于 {date}",
+      "unreviewed": "此译文尚未经过审校，以英文页面为准。"
+    }
   }
 }

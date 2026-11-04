@@ -1670,5 +1670,32 @@
         "body": "La documentation et cette visite sont dans le menu."
       }
     }
+  },
+  "marketing": {
+    "nav": {
+      "label": "Site",
+      "pricing": "Tarifs",
+      "useCases": "Cas d'usage",
+      "compare": "Comparer",
+      "selfHost": "Auto-héberger"
+    },
+    "sample": {
+      "source": "Markdown",
+      "result": "Résultat",
+      "kind": {
+        "commonmark": "CommonMark",
+        "gfm": "GitHub Markdown",
+        "markoto": "extension markoto"
+      }
+    },
+    "compare": {
+      "yes": "Oui",
+      "no": "Non",
+      "partial": "En partie"
+    },
+    "page": {
+      "updated": "Mis à jour le {date}",
+      "unreviewed": "Cette traduction n'a pas encore été relue. La page anglaise fait foi."
+    }
   }
 }

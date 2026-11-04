@@ -345,6 +345,23 @@ export async function renderMarkdown(source: string): Promise<string> {
 }
 
 /**
+ * Render markdown that is part of THIS REPOSITORY (the `::sample` blocks
+ * of content/marketing) to HTML with the same markdown-it pipeline as the
+ * preview, on the server too, so the page ships the result as static
+ * HTML. On the server the output is not run through DOMPurify (it needs a
+ * window); that is safe only because the source is committed content and
+ * `html: false` escapes raw HTML in it anyway. Never pass user input.
+ * In the browser (client-side navigation) the sanitiser runs as usual.
+ * Footnotes stay as markdown-it renders them (a list at the end) — the
+ * paged-media transform is a preview/PDF concern.
+ */
+export async function renderTrustedMarkdown(source: string): Promise<string> {
+  const { md } = await useMarkdownPipeline()
+  const html = md.render(source)
+  return import.meta.client ? sanitizeRenderedHtml(html) : html
+}
+
+/**
  * Lift markdown-it-footnote output from "all collected at end of doc" into
  * `float: footnote` inline anchors so paged.js places each footnote at the
  * bottom of the page where its reference appears (the standard print

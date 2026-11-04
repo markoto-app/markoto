@@ -9,6 +9,7 @@ import {
   MAX_TITLE_LENGTH,
   applyTitleTemplate
 } from '../../shared/seo/meta'
+import { MARKETING_LOCALES } from '../../shared/seo/marketing'
 
 // Every indexable static page fits a search result: the rendered <title>
 // (page title + " · markoto") ≤ 60 characters, the meta description
@@ -96,6 +97,31 @@ describe('marketing pages (/ and /pricing), every locale', () => {
       ]) {
         expect(lookup(messages, key).length, key).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)
       }
+    })
+  }
+})
+
+describe('marketing pages (content/marketing frontmatter)', () => {
+  const dir = join(ROOT, 'content', 'marketing')
+  const files = markdownFiles(dir)
+
+  it('finds the marketing pages', () => {
+    expect(files.length).toBeGreaterThan(0)
+  })
+
+  for (const file of files) {
+    const rel = file.slice(ROOT.length + 1)
+    it(`${rel}: title ≤ ${MAX_TITLE_LENGTH} with suffix, description ≤ ${MAX_DESCRIPTION_LENGTH}, valid language folder`, () => {
+      const fm = frontmatter(file)
+      expect(typeof fm.title, 'title').toBe('string')
+      expect(typeof fm.description, 'description').toBe('string')
+      expect(applyTitleTemplate(String(fm.title)).length).toBeLessThanOrEqual(MAX_TITLE_LENGTH)
+      const description = String(fm.description)
+      expect(description.trim().length).toBeGreaterThan(0)
+      expect(description.length).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH)
+      const locale = file.slice(dir.length + 1).split('/')[0]
+      expect(MARKETING_LOCALES.some(l => l === locale), `language folder ${locale}`).toBe(true)
+      if (fm.updated !== undefined) expect(String(fm.updated)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     })
   }
 })

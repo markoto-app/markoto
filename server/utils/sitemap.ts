@@ -9,6 +9,12 @@
 // Pure helpers; the route gathers the docs paths from Nuxt Content.
 
 import { resolveMarketingSiteEnabled, resolveSiteUrl } from '../../shared/config/instance'
+import {
+  DEFAULT_MARKETING_LOCALE,
+  indexableMarketingPages,
+  MARKETING_LOCALES,
+  type MarketingVersion
+} from '../../shared/seo/marketing'
 
 type Env = Record<string, string | undefined>
 
@@ -39,10 +45,10 @@ export const LEGAL_SITEMAP_PATHS = [
 export const STATIC_SITEMAP_PATHS = ['/', '/pricing', '/docs'] as const
 
 /**
- * A marketing page with language versions. SEO-2 adds the marketing
- * content collection (`/de/…`, `/fr/…` prefixes) and returns its pages
- * from `marketingSitemapPages()`; each becomes one entry per language,
- * all listing every version (incl. `x-default`) as alternates.
+ * A marketing page with language versions (the `marketing` content
+ * collection, `/de/…`, `/fr/…` prefixes; `marketingSitemapPages()`). Each
+ * becomes one entry per language, all listing every version (incl.
+ * `x-default`) as alternates.
  */
 export interface LocalisedPage {
   /** Path per language tag, e.g. `{ en: '/markdown-to-pdf', de: '/de/markdown-to-pdf' }`. */
@@ -51,9 +57,22 @@ export interface LocalisedPage {
   defaultLanguage: string
 }
 
-/** Extension point for SEO-2 (localised marketing pages). None yet. */
-export function marketingSitemapPages(): LocalisedPage[] {
-  return []
+/**
+ * Sitemap pages of the `marketing` content collection: one per slug with
+ * its indexable language versions. Unreviewed translations
+ * (`reviewed: false`) are `noindex` and stay out, as alternates too.
+ */
+export function marketingSitemapPages(versions: MarketingVersion[]): LocalisedPage[] {
+  return [...indexableMarketingPages(versions).entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, paths]) => {
+      const clean: Record<string, string> = {}
+      for (const locale of MARKETING_LOCALES) {
+        const path = paths[locale]
+        if (path) clean[locale] = path
+      }
+      return { paths: clean, defaultLanguage: DEFAULT_MARKETING_LOCALE }
+    })
 }
 
 /**
@@ -88,7 +107,7 @@ export interface SitemapSources {
   docsPaths: string[]
   /** Legal pages exist (legal surfaces on). */
   legalSurfaces: boolean
-  /** Localised marketing pages (SEO-2). */
+  /** Localised marketing pages (`marketingSitemapPages`). */
   marketingPages?: LocalisedPage[]
 }
 

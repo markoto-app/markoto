@@ -1670,5 +1670,32 @@
         "body": "La documentación y este recorrido están en el menú."
       }
     }
+  },
+  "marketing": {
+    "nav": {
+      "label": "Sitio",
+      "pricing": "Precios",
+      "useCases": "Casos de uso",
+      "compare": "Comparar",
+      "selfHost": "Autoalojar"
+    },
+    "sample": {
+      "source": "Markdown",
+      "result": "Resultado",
+      "kind": {
+        "commonmark": "CommonMark",
+        "gfm": "GitHub Markdown",
+        "markoto": "extensión de markoto"
+      }
+    },
+    "compare": {
+      "yes": "Sí",
+      "no": "No",
+      "partial": "En parte"
+    },
+    "page": {
+      "updated": "Actualizado el {date}",
+      "unreviewed": "Esta traducción aún no se ha revisado. La página en inglés es la referencia."
+    }
   }
 }

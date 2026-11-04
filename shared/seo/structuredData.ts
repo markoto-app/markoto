@@ -63,3 +63,28 @@ export function homeStructuredData(input: HomeStructuredDataInput): Record<strin
 export function serializeJsonLd(data: Record<string, unknown>): string {
   return JSON.stringify(data).replaceAll('<', String.raw`\u003c`)
 }
+
+export interface FaqItem {
+  /** The question. */
+  q: string
+  /** The answer, plain text. */
+  a: string
+}
+
+/**
+ * FAQPage for a marketing page's `::faq` block. Valid markup, but Google
+ * shows FAQ rich results only for a few government/health sites since
+ * 2023 — it helps other consumers, not rankings.
+ */
+export function faqStructuredData(items: FaqItem[], inLanguage: string): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'inLanguage': inLanguage,
+    'mainEntity': items.map(item => ({
+      '@type': 'Question',
+      'name': item.q,
+      'acceptedAnswer': { '@type': 'Answer', 'text': item.a }
+    }))
+  }
+}

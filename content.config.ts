@@ -43,6 +43,34 @@ export default defineContentConfig({
         // index pages that are the parent group's clickable header.
         navHidden: z.boolean().optional()
       })
+    }),
+    // Public marketing pages of the hosted site (use cases, cheat sheet,
+    // later comparisons). One file per language:
+    // content/marketing/<locale>/<slug>.md → `/<slug>` (en) or
+    // `/<locale>/<slug>` (de, fr). Rendered by app/pages/[...marketing].vue,
+    // route + language rules in shared/seo/marketing.ts.
+    marketing: defineCollection({
+      type: 'page',
+      source: { include: 'marketing/**/*.md' },
+      schema: z.object({
+        // Search-result title WITHOUT the " · markoto" suffix (≤ 60 with it).
+        title: z.string(),
+        // Meta description, ≤ 160 characters.
+        description: z.string(),
+        // Site-relative 1200×630 PNG/JPEG for link previews; default card otherwise.
+        ogImage: z.string().optional(),
+        // Search terms the page is written for (editorial; not emitted as a meta tag).
+        keywords: z.array(z.string()).optional(),
+        // Last substantive edit, YYYY-MM-DD (shown on the page).
+        updated: z.string().optional(),
+        // false = translation not yet read by a native speaker: noindex,
+        // no hreflang, not in the sitemap. Absent = reviewed.
+        reviewed: z.boolean().default(true),
+        // Header/footer menu the page is listed in, with its short label.
+        navGroup: z.enum(['use-cases', 'compare']).optional(),
+        navLabel: z.string().optional(),
+        navOrder: z.number().optional()
+      })
     })
   }
 })
