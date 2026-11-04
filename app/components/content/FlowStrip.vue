@@ -20,7 +20,15 @@ const props = withDefaults(defineProps<{
   frames?: string
   /** How many shots without `frames`. */
   limit?: number
-}>(), { frames: undefined, limit: 3 })
+  /** Caption (and alt text) for a single-shot strip, replacing the flow step's own text. */
+  caption?: string
+}>(), { frames: undefined, limit: 3, caption: undefined })
+
+// The page's own caption wins only for a single shot; several shots keep
+// their step captions (one string can't describe them all).
+function captionFor(frame: { caption: string }, count: number): string {
+  return props.caption && count === 1 ? props.caption : frame.caption
+}
 
 const LOCALE = 'en'
 const base = (variant: string) => `/flows/${props.id}/${LOCALE}/${variant}`
@@ -61,7 +69,7 @@ const { data } = await useAsyncData(`flow-strip:${props.id}:${props.frames ?? pr
           loading="lazy"
           class="mk-flow-strip__img mk-flow-strip__img--light"
           :src="`${base('light-desktop')}/${frame.file}`"
-          :alt="frame.caption"
+          :alt="captionFor(frame, data.frames.length)"
           :width="data.width"
           :height="data.height"
           decoding="async"
@@ -79,7 +87,7 @@ const { data } = await useAsyncData(`flow-strip:${props.id}:${props.frames ?? pr
         >
       </span>
       <figcaption class="mk-flow-strip__caption">
-        {{ frame.caption }}
+        {{ captionFor(frame, data.frames.length) }}
       </figcaption>
     </figure>
   </div>

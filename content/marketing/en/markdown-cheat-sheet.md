@@ -19,7 +19,7 @@ The Markdown you will actually use, from the basics to tables, footnotes, math a
 
 The label on each example says where the syntax comes from:
 
-- **CommonMark** is the Markdown standard. Every serious editor understands it.
+- **CommonMark** is the Markdown standard. Almost every Markdown editor supports it.
 - **GitHub Markdown** is what GitHub renders: GitHub Flavored Markdown (tables, task lists, strikethrough) plus footnotes, alerts, math and Mermaid diagrams. Many editors support most of it.
 - **markoto extension** is extra syntax that markoto renders. Other editors may show it as plain text.
 
@@ -244,7 +244,7 @@ pie title Where the time goes
 
 In markoto the diagram appears in the preview and the PDF in the document's fonts and colours:
 
-::flow-strip{id="rich-content" frames="20"}
+::flow-strip{id="rich-content" frames="20" caption="A Mermaid pie chart in markoto: the source on the left, the rendered page on the right."}
 ::
 
 ## Definition lists and abbreviations

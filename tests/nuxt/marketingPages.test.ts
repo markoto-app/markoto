@@ -166,6 +166,19 @@ describe('::flow-strip', () => {
     clip.unmount()
   })
 
+  it('a page caption replaces the step text of a single shot, not of several', async () => {
+    const single = await mountSuspended(FlowStrip, { props: { id: 'rich-content', frames: '20', caption: 'A pie chart.' } })
+    expect(single.find('img.mk-flow-strip__img--light').attributes('alt')).toBe('A pie chart.')
+    expect(single.find('figcaption').text()).toBe('A pie chart.')
+    single.unmount()
+
+    const several = await mountSuspended(FlowStrip, { props: { id: 'rich-content', limit: 2, caption: 'A pie chart.' } })
+    const captions = several.findAll('figcaption').map(f => f.text())
+    expect(captions.length).toBe(2)
+    expect(captions).not.toContain('A pie chart.')
+    several.unmount()
+  })
+
   it('renders nothing for an unknown flow', async () => {
     const wrapper = await mountSuspended(FlowStrip, { props: { id: 'no-such-flow' } })
     expect(wrapper.find('img').exists()).toBe(false)
