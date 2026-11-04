@@ -33,7 +33,7 @@ what's about to happen:
 - **Workspaces:** a workspace where you're the only member is deleted
   with you. Where you're an admin and others remain, the longest-standing
   other admin takes over; if there is none, the longest-standing editor
-  (then viewer) becomes admin. Everywhere else you're simply removed as a
+  (then viewer) becomes admin. Everywhere else you're removed as a
   member.
 
 Confirming starts the 30-day countdown. A banner appears at the top of

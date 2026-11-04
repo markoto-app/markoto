@@ -63,10 +63,9 @@ search and URL reading share the same allowance as the in-app AI (30 per
 hour and 100 per day by default) and exist only if the instance has those
 providers set up.
 
-Image generation needs `documents:write`. Tokens created before this
-change with all four scopes keep working; a token you limited to
-`web:fetch` without `documents:write` no longer offers image generation,
-so create a new token if you need it.
+Image generation needs `documents:write`. A token limited to `web:fetch`
+without `documents:write` doesn't offer image generation; create a new
+token if you need it.
 
 ## Limits
 
@@ -76,7 +75,7 @@ so create a new token if you need it.
   be used with another token.
 - Calls are rate-limited per token and per account (120 tool calls a
   minute). An account keeps up to 20 connections at once; opening one more
-  closes the one used least recently, and the client simply reconnects.
+  closes the one used least recently, and the client reconnects.
 - Rendering (PDF export, page count, page images) shares the allowance of
   the PDF download in the editor, 10 renders a minute. Image generation is
   limited to 20 an hour.

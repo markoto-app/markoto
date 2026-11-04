@@ -8,11 +8,11 @@ featured: true
 
 # Export all your data
 
-GDPR Article 15 (right of access) + Article 20 (data portability) say
-the data we hold on you should be available to you in a structured,
-commonly-used, machine-readable format. The Profile page → "Your
-data" section requests exactly that — a ZIP with everything we know
-about you and everything you've authored.
+GDPR Article 15 (right of access) and Article 20 (data portability) give
+you the right to receive the data we hold on you in a structured,
+commonly used, machine-readable format. The "Your data" section of the
+Profile page requests exactly that: a ZIP with everything we know about
+you and everything you've written.
 
 ::flow{id="data-export" hide-title}
 ::

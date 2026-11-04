@@ -7,11 +7,11 @@ order: 2
 
 # Tune your typography and colors
 
-Pick-a-theme gets you 80% of the way; the Theme tab is where you go
-when you want the other 20%. Eleven sections — typography, colors,
-page geometry, headers, footers, code blocks, callouts, tables,
-lists, table of contents, mermaid diagram theme — every change drives
-both the live preview AND the PDF export.
+A preset sets the overall look; the Theme tab is where you adjust the
+details. It has eleven sections: typography, colors, page geometry,
+headers, footers, code blocks, callouts, tables, lists, table of
+contents and the mermaid diagram theme. Every change drives both the
+live preview and the PDF export.
 
 ::flow{id="tune-your-typography-and-colors" hide-title}
 ::

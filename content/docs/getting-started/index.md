@@ -10,8 +10,8 @@ icon: i-lucide-rocket
 # Get started
 
 markoto is a collaborative markdown editor with optional accounts. You
-can write a document anonymously, share it by URL, customize how it
-looks, and export to PDF — all without signing up.
+can write a document anonymously, share it by URL, change how it
+looks and export it to PDF, all without signing up.
 
 This section is three short walkthroughs. Each one starts at the
 homepage and ends with a tangible result you can hand to someone.

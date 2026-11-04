@@ -10,9 +10,9 @@ featured: true
 
 Every doc carries four context fields beyond the title: a description,
 a target audience, a language, and the template it was created from.
-The AI sees them on every prompt — so a one-time minute setting them
-up saves you re-typing context on every "rewrite this" / "extend
-this" / "draft a section" prompt.
+The AI sees them on every prompt, so a minute spent setting them up
+saves you re-typing context in every "rewrite this", "extend this" or
+"draft a section" prompt.
 
 This walkthrough sets the audience to **Marketing**, the language to
 **Deutsch**, and a one-line description, then asks the AI to write a
@@ -25,7 +25,7 @@ prompt mentioning audience or language.
 ## What just happened
 
 The Document tab in the right sidebar exposes three editable fields
-that the AI's system prompt picks up on every turn:
+that the AI reads on every turn:
 
 - **Description** — one line that tells the AI what this document IS.
   Free text, ≤500 chars.
