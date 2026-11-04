@@ -159,6 +159,18 @@
     mode: "0600"
   register: markoto_env_render
 
+# LiteLLM loads its config only at boot, and its single-file bind mounts
+# keep the old file after the copy above replaced it. The hash feeds a
+# label on the litellm service, so a changed config recreates it on
+# `compose up` (docker-compose.base.yml).
+- name: Hash the LiteLLM config files
+  ansible.builtin.shell:
+    cmd: set -o pipefail && cat infra/litellm/config.yaml infra/litellm/custom_handlers.py | sha256sum | cut -c1-16
+    chdir: "{{ markoto_root }}"
+    executable: /bin/bash
+  register: markoto_litellm_config_hash
+  changed_when: false
+
 - name: Compose pull (refresh images per IMAGE_TAG)
   community.docker.docker_compose_v2_pull:
     project_src: "{{ markoto_root }}"
@@ -175,6 +187,8 @@
     state: present
     pull: missing
     remove_orphans: true
+  environment:
+    LITELLM_CONFIG_HASH: "{{ markoto_litellm_config_hash.stdout }}"
 
 - name: Wait for /api/health to return 200
   ansible.builtin.uri:

@@ -32,6 +32,7 @@ import { AiSessionChannel } from '../../utils/agentic/sessionChannel'
 import { buildSessionGuard } from '../../utils/agentic/sessionGuard'
 import type { CrossBoundaryGuard } from '../../utils/agentic/crossBoundary'
 import { finalizeSessionProvenance, recordSessionProvenance } from '../../utils/agentic/sessionProvenance'
+import { loopErrorMessage } from '../../utils/agentic/loopErrorMessage'
 
 // Hard deadline for a full agentic loop. A grounded `web_search` sub-call can
 // take several seconds; combined with model thinking and multi-edit sequences
@@ -398,8 +399,9 @@ function handlePromptLoopError(
       || /abort/i.test(String(err?.message ?? ''))
   // The message reaches the initiator only (session channel); other
   // participants just see the phase. BYOK errors are key-redacted where
-  // they are raised (`withProviderErrors` / `redactProviderStream`).
-  setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
+  // they are raised; upstream text never reaches the user at all
+  // (`loopErrorMessage`), the raw error is logged below.
+  setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${loopErrorMessage(e)}`)
   if (isAbort) {
     console.log(`[ai/prompt ${args.sessionId}] aborted by user`)
   } else {

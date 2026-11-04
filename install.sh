@@ -185,6 +185,11 @@ check_prereqs() {
 }
 
 compose() {
+  # LiteLLM reads its config only at boot: a changed hash changes the
+  # litellm container's label, so `up -d` recreates it after an upgrade
+  # that changed infra/litellm/ (docker-compose.base.yml).
+  LITELLM_CONFIG_HASH="$(cat "$ROOT/infra/litellm/config.yaml" "$ROOT/infra/litellm/custom_handlers.py" | sha256sum | cut -c1-16)"
+  export LITELLM_CONFIG_HASH
   docker compose --project-directory "$ROOT" --env-file "$ENV_FILE" "$@"
 }
 

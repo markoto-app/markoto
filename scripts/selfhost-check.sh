@@ -257,6 +257,27 @@ for cfg in salt-prod salt-selfhost local; do
 done
 echo "ok: the app receives LITELLM_SALT_KEY (prod, self-host, local)"
 
+# ─── LiteLLM is recreated when its config changes ─────────────────────
+# LiteLLM reads its config once at boot and the single-file bind mounts
+# keep the old file after a deploy replaced it (staging ran a week-old
+# model list). The deploy paths export LITELLM_CONFIG_HASH; the label must
+# carry it so `compose up -d` recreates the container.
+LITELLM_CONFIG_HASH=ci-hash-1 render_config "$tmp/hash-prod.json" "$tmp/prod.env" "docker-compose.prod.yml"
+LITELLM_CONFIG_HASH=ci-hash-1 render_config "$tmp/hash-selfhost.json" "$tmp/selfhost.env" "docker-compose.selfhost.yml"
+for cfg in hash-prod hash-selfhost; do
+  if ! jq -e '.services.litellm.labels["markoto.litellm-config"] == "ci-hash-1"' "$tmp/$cfg.json" > /dev/null; then
+    echo "FAIL: the litellm service must carry LITELLM_CONFIG_HASH as its markoto.litellm-config label ($cfg)" >&2
+    exit 1
+  fi
+done
+for f in .github/workflows/deploy.yml install.sh infra/roles/markoto/tasks/main.yml; do
+  if ! grep -q 'LITELLM_CONFIG_HASH' "$f"; then
+    echo "FAIL: $f must export LITELLM_CONFIG_HASH before compose up" >&2
+    exit 1
+  fi
+done
+echo "ok: litellm is recreated when its config changes (prod, self-host)"
+
 # The renderer code must never launch Chromium without its sandbox, and the
 # profile must keep the one rule the sandbox needs.
 if grep -rn -- '--no-sandbox' renderer/src; then

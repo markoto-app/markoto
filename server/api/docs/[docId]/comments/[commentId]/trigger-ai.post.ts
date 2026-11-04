@@ -28,6 +28,7 @@ import { openTrustedCommentClient } from '../../../../../utils/commentsServerCli
 import type { StreamStatusPhase } from '../../../../../utils/agentic/streamStatus'
 import { wrapPromptWithEditorState } from '../../../../../utils/agentic/editorStatePrompt'
 import { EDITOR_SELECTION_TEXT_MAX } from '~~/shared/types/editorSelection'
+import { loopErrorMessage } from '../../../../../utils/agentic/loopErrorMessage'
 
 // POST /api/docs/:docId/comments/:commentId/trigger-ai
 //
@@ -417,7 +418,7 @@ function handleTriggerLoopError(
       || err?.message === 'aborted'
       || /abort/i.test(String(err?.message ?? ''))
   // Message → initiator only (session channel); others see the phase.
-  setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${err?.message ?? 'unknown'}`)
+  setStatus(isAbort ? 'done' : 'error', isAbort ? 'Stopped' : `Error: ${loopErrorMessage(e)}`)
   if (isAbort) {
     console.log(`[ai/trigger ${args.sessionId}] aborted by user`)
   } else {
