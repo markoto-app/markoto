@@ -1768,7 +1768,12 @@
     "compare": {
       "yes": "あり",
       "no": "なし",
-      "partial": "一部"
+      "partial": "一部",
+      "checked": "{date} に確認した情報です。",
+      "caption": "{date} に確認。出典はページ末尾にあります。",
+      "sources": "出典",
+      "markotoSources": "markoto（ドキュメントとコード）",
+      "trademark": "{name} は各権利者の商標です。markoto は {name} と提携していません。価格や機能は変わることがあります。最新の情報は出典をご確認ください。"
     },
     "page": {
       "updated": "{date} 更新",
