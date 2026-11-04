@@ -3,6 +3,7 @@ title: Add your own CSS
 description: When the theme settings don't go far enough, write CSS rules for your document. Which selectors exist, what is allowed, and examples to copy.
 category: themes
 order: 5
+updated: '2026-11-03'
 ---
 
 # Add your own CSS

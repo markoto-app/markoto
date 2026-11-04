@@ -4,6 +4,7 @@ description: Every syntax markoto renders in the preview and PDF - formatting, a
 category: writing
 order: 3.5
 icon: i-lucide-file-text
+updated: '2026-11-04'
 ---
 
 # Markdown reference

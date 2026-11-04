@@ -4,6 +4,7 @@ description: Drop in a Word, PDF, or HTML file and markoto converts it to clean 
 category: import-export
 order: 2
 featured: true
+updated: '2026-11-04'
 ---
 
 # Bring an existing document into markoto

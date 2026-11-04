@@ -3,6 +3,7 @@ title: Invite a teammate to your workspace
 description: Type their email, pick a role, send. They accept the invitation and the workspace appears on their dashboard.
 category: workspaces
 order: 3
+updated: '2026-10-29'
 ---
 
 # Invite a teammate to your workspace

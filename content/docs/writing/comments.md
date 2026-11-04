@@ -3,6 +3,7 @@ title: Discuss in your document
 description: Threaded comments, anchored to the text — leave a thought, reply, resolve. Live across collaborators.
 category: writing
 order: 3
+updated: '2026-10-29'
 ---
 
 # Discuss in your document

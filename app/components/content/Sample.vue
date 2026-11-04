@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { renderTrustedMarkdown } from '~/utils/renderMarkdown'
+import { sampleHeadingsToDivs } from '~/utils/sampleHeadings'
 import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
 import { hljsTheme } from '~~/shared/utils/hljsAssets'
 
@@ -36,7 +37,8 @@ function hashOf(text: string): string {
 const source = computed(() => props.source.replace(/\n+$/, ''))
 const { data: html } = await useAsyncData(
   `sample:${hashOf(source.value)}`,
-  () => renderTrustedMarkdown(source.value),
+  // Headings become styled <div>s: the sample's "# Title" is not a heading of this page.
+  () => renderTrustedMarkdown(source.value).then(sampleHeadingsToDivs),
   { default: () => '' }
 )
 
@@ -162,16 +164,19 @@ useHead(() => ({
 .mk-sample__result :deep(> :first-child) { margin-top: 0; }
 .mk-sample__result :deep(> :last-child) { margin-bottom: 0; }
 .mk-sample__result :deep(:is(p, ul, ol, dl, blockquote, table, pre, figure, .markdown-alert, .katex-display)) { margin: 0.6em 0; }
-.mk-sample__result :deep(:is(h1, h2, h3, h4, h5, h6)) {
+.mk-sample__result :deep(:where(.mk-sample-h)) {
   font-family: var(--font-serif);
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.2;
   margin: 0.5em 0 0.3em;
+  /* Heading ink, as `.prose h1–h4` gave the <h*> these used to be. */
+  color: var(--color-sumi-950);
 }
-.mk-sample__result :deep(h1) { font-size: 1.7em; }
-.mk-sample__result :deep(h2) { font-size: 1.4em; }
-.mk-sample__result :deep(h3) { font-size: 1.15em; }
+html.dark .mk-sample__result :deep(:where(.mk-sample-h)) { color: var(--color-sumi-50); }
+.mk-sample__result :deep(:where(.mk-sample-h1)) { font-size: 1.7em; }
+.mk-sample__result :deep(:where(.mk-sample-h2)) { font-size: 1.4em; }
+.mk-sample__result :deep(:where(.mk-sample-h3)) { font-size: 1.15em; }
 .mk-sample__result :deep(strong) { font-weight: 600; }
 .mk-sample__result :deep(a) { text-decoration: underline; text-underline-offset: 2px; }
 .mk-sample__result :deep(:is(ul, ol)) { padding-left: 1.4em; }

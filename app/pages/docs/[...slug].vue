@@ -11,6 +11,8 @@
 // route path AND `<route>/index` so /docs/getting-started resolves
 // when the file is content/docs/getting-started/index.md.
 
+import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+
 definePageMeta({ layout: 'docs' })
 
 const route = useRoute()
@@ -34,10 +36,24 @@ const { data: surround } = await useAsyncData(`docs:surround:${route.path}`, () 
 )
 
 const docPage = page.value
-useMarketingSeo({
+const { imageUrl } = useMarketingSeo({
   title: docPage.title,
-  description: docPage.description ?? ''
+  description: docPage.description ?? '',
+  imageGroup: 'docs',
+  type: 'article',
+  modifiedTime: docPage.updated
 })
+// TechArticle + BreadcrumbList (marketing site only; elsewhere the
+// canonical points at markoto.app, which carries them).
+usePageStructuredData(() => ({
+  name: docPage.title,
+  description: docPage.description ?? '',
+  dateModified: docPage.updated,
+  image: imageUrl.value,
+  article: 'TechArticle',
+  breadcrumbs: docsBreadcrumbs(route.path, docPage.title),
+  about: [{ self: true }]
+}))
 
 // Breadcrumb items derived from the URL segments. Each segment maps
 // to its docs path so clicking a crumb navigates to that section's

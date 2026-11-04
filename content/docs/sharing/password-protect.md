@@ -4,6 +4,7 @@ description: Switch the access mode to password-protected, set a passphrase, and
 category: sharing
 order: 1
 featured: true
+updated: '2026-10-29'
 ---
 
 # Lock a document behind a password

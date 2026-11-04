@@ -4,6 +4,7 @@ description: Click any activity row — markoto opens a diff drawer with hunk-le
 category: history
 order: 1
 featured: true
+updated: '2026-10-29'
 ---
 
 # See what changed in past edits

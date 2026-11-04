@@ -100,6 +100,8 @@ export interface MarketingVersion {
   path: string
   /** `reviewed: false` in frontmatter = machine draft, not read by a native speaker yet. */
   reviewed?: boolean | null
+  /** Frontmatter `updated` (YYYY-MM-DD), for the sitemap's `<lastmod>`. */
+  updated?: string | null
 }
 
 /**
@@ -151,4 +153,20 @@ export function indexableMarketingPages(versions: MarketingVersion[]): Map<strin
     pages.set(target.slug, paths)
   }
   return pages
+}
+
+/** Slug of the comparison hub (`/compare`); comparison pages live under it. */
+export const COMPARE_HUB_SLUG = 'compare'
+/** Breadcrumb name of the hub (the header menu's label). */
+export const COMPARE_HUB_CRUMB = 'Compare'
+
+/**
+ * What kind of marketing page a slug is: the comparison hub, a
+ * comparison page, or anything else (use cases, the cheat sheet). Drives
+ * the social card, og:type and the JSON-LD shape.
+ */
+export function marketingPageKind(slug: string): 'hub' | 'page' | 'other' {
+  if (slug === COMPARE_HUB_SLUG) return 'hub'
+  if (slug.startsWith(`${COMPARE_HUB_SLUG}/`)) return 'page'
+  return 'other'
 }

@@ -204,6 +204,17 @@ prod-status: ## Curl /api/health on the deployed instance
 prod-logs: ## Tail compose logs from the deployed instance
 	$(MAKE) -C infra logs
 
+# === SEO + page speed (advisory, against a running production build) ===
+URL ?= http://127.0.0.1:3000
+
+.PHONY: seo-audit
+seo-audit: ## SEO audit of every sitemap URL of a running instance (URL=http://127.0.0.1:3000)
+	bun scripts/seo-audit.ts $(URL)
+
+.PHONY: lighthouse
+lighthouse: ## Lighthouse (mobile) on the marketing pages of a running instance (URL=…)
+	bun scripts/lighthouse-marketing.ts $(URL)
+
 # === Reference ===
 .PHONY: cheatsheet
 cheatsheet: ## Print docs/CHEATSHEET.md

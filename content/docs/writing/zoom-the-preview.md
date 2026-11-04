@@ -3,6 +3,7 @@ title: Zoom the preview and see all pages
 description: Read a page up close, step back to see the whole document at once, and jump to any page from there.
 category: writing
 order: 3.6
+updated: '2026-11-03'
 ---
 
 # Zoom the preview and see all pages

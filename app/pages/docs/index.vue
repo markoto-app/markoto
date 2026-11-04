@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { DOCS_LANDING_SEO } from '~~/shared/seo/meta'
+import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 
 // /docs landing page. Hand-written (not driven by a markdown file)
 // because it's mostly UI affordances — category cards + featured-flow
@@ -17,10 +18,19 @@ const { data: featured } = await useAsyncData('docs:featured', () =>
     .all()
 )
 
-useMarketingSeo({
+const { imageUrl } = useMarketingSeo({
   title: DOCS_LANDING_SEO.title,
-  description: DOCS_LANDING_SEO.description
+  description: DOCS_LANDING_SEO.description,
+  imageGroup: 'docs'
 })
+usePageStructuredData(() => ({
+  pageType: 'CollectionPage',
+  name: DOCS_LANDING_SEO.title,
+  description: DOCS_LANDING_SEO.description,
+  image: imageUrl.value,
+  breadcrumbs: docsBreadcrumbs('/docs', DOCS_LANDING_SEO.title),
+  about: [{ self: true }]
+}))
 
 definePageMeta({ layout: 'docs' })
 

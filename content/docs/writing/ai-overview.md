@@ -5,6 +5,7 @@ category: writing
 order: 3.8
 icon: i-lucide-sparkles
 featured: true
+updated: '2026-11-04'
 ---
 
 # What the AI can do, and what it needs

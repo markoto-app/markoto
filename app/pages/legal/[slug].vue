@@ -16,6 +16,9 @@
 // haven't translated yet), we surface that loudly with a link back
 // to the authoritative copy.
 
+import { LEGAL_PAGE_DESCRIPTIONS } from '~~/shared/seo/meta'
+import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+
 definePageMeta({ middleware: 'legal-surfaces' })
 
 const route = useRoute()
@@ -49,11 +52,22 @@ const { data, error, pending, refresh } = await useFetch<LegalDocResponse>(
   }
 )
 
-useHead(() => ({
-  title: data.value
-    ? data.value.title
-    : 'Legal'
-}))
+const pageTitle = computed(() => data.value?.title ?? 'Legal')
+const pageDescription = computed(() => LEGAL_PAGE_DESCRIPTIONS[slug.value] ?? '')
+const { imageUrl } = useMarketingSeo({
+  title: pageTitle,
+  description: pageDescription,
+  imageGroup: 'default'
+})
+usePageStructuredData(() => (data.value
+  ? {
+      name: pageTitle.value,
+      description: pageDescription.value,
+      dateModified: data.value.effectiveDate,
+      image: imageUrl.value,
+      breadcrumbs: pageBreadcrumbs(`/legal/${slug.value}`, pageTitle.value)
+    }
+  : null))
 
 function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
