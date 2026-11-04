@@ -625,7 +625,16 @@
     "creditsHint": "AI Points cover AI the instance pays for: 1000 points = 1 US dollar of model usage.",
     "upgradeToPlan": "Upgrade to {plan}",
     "topPlan": "You're on the top plan.",
-    "viewAllPlans": "View all plans"
+    "viewAllPlans": "View all plans",
+    "ownProviderSettings": "Manage your AI provider",
+    "limits": {
+      "title": "Storage & limits",
+      "images": "Images",
+      "knowledgeFiles": "Knowledge files",
+      "knowledgeStorage": "Knowledge storage",
+      "workspaces": "Workspaces you own",
+      "unlimited": "unlimited"
+    }
   },
   "theme": {
     "title": "Document theme",

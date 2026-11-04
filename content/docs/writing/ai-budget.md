@@ -19,7 +19,9 @@ operator set a default model with their own provider key.
 The points meter in the top bar only appears when something you can do is
 operator-paid. If you have both your own keys and an operator default, the
 meter says that calls on your own key don't use points. If everything runs on
-your own provider, the top bar shows **Your own AI provider** instead.
+your own provider, the top bar shows **Your own AI provider** instead; click
+it for a link to your provider settings. Either way, the panel that opens
+also lists your [storage and workspace limits](/docs/account/plans#what-limits-a-plan-sets).
 
 ## When the allowance is used up
 

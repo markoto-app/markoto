@@ -16,6 +16,11 @@
 // the plan name (everyone is on the same tier), the one-click upgrade
 // and the "top plan" line. On the hosted SaaS (`plansComingSoon`) the
 // footer links to the pricing page's "coming soon" + waitlist instead.
+//
+// Below the AI meter sits a "Storage & limits" section (`AuthUsageLimits`:
+// images, knowledge files + bytes, owned workspaces). Users whose AI runs
+// entirely on their own key get the same popover with only that section
+// plus the own-key note, so the limits stay reachable for them too.
 
 import type { PlanName } from '~~/shared/config/tiers'
 import { useAiCredits } from '~/composables/useAiCredits'
@@ -91,6 +96,12 @@ const canUpgrade = computed(() => billingEnabled.value && nextPlan.value !== nul
 const open = ref(false)
 const upgradeLoading = ref(false)
 
+// Counts change on uploads / workspace creation without anything else
+// invalidating the shared billing state — re-fetch on every open.
+watch(open, (isOpen) => {
+  if (isOpen) void refreshBilling()
+})
+
 // Upgrade → direct checkout for the next tier up. Faster than
 // bouncing through the pricing page when the user already knows what
 // they want. "View all plans" is the escape hatch for browsing tiers.
@@ -134,18 +145,50 @@ function onManage(): void {
 </script>
 
 <template>
-  <NuxtLink
+  <UPopover
     v-if="ownProviderOnly"
-    to="/settings/ai"
-    class="usage-badge hidden sm:flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full border border-default bg-default/60 backdrop-blur-sm transition-colors hover:bg-muted/40 text-xs text-muted"
-    data-testid="usage-badge-own-provider"
+    v-model:open="open"
+    :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
   >
-    <UIcon
-      name="i-lucide-key-round"
-      class="size-3.5 shrink-0"
-    />
-    <span>{{ t('aiProvider.ownProviderBadge') }}</span>
-  </NuxtLink>
+    <button
+      type="button"
+      class="usage-badge hidden sm:flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full border border-default bg-default/60 backdrop-blur-sm transition-colors hover:bg-muted/40 text-xs text-muted cursor-pointer"
+      data-testid="usage-badge-own-provider"
+    >
+      <UIcon
+        name="i-lucide-key-round"
+        class="size-3.5 shrink-0"
+      />
+      <span>{{ t('aiProvider.ownProviderBadge') }}</span>
+    </button>
+
+    <template #content>
+      <div
+        class="w-72 p-4 space-y-3"
+        data-testid="usage-badge-own-provider-popover"
+      >
+        <h3 class="text-sm font-medium">
+          {{ t('aiProvider.ownProviderBadge') }}
+        </h3>
+        <p class="text-xs text-muted leading-relaxed">
+          {{ t('aiProvider.pointsOwnKeyHint') }}
+          <NuxtLink
+            to="/settings/ai"
+            class="block mt-1 underline"
+            data-testid="usage-badge-own-provider-settings"
+            @click="open = false"
+          >
+            {{ t('topbar.ownProviderSettings') }}
+          </NuxtLink>
+        </p>
+        <AuthUsageLimits
+          v-if="billing"
+          :billing="billing"
+          class="border-t border-default pt-3"
+        />
+      </div>
+    </template>
+  </UPopover>
   <UPopover
     v-else-if="billing && anyPlatformBilled"
     v-model:open="open"
@@ -244,6 +287,12 @@ function onManage(): void {
             data-testid="usage-badge-own-key-hint"
           >{{ t('aiProvider.pointsOwnKeyHint') }}</span>
         </div>
+
+        <!-- Storage & limits -->
+        <AuthUsageLimits
+          :billing="billing"
+          class="border-t border-default pt-3"
+        />
 
         <!-- Actions -->
         <div class="flex flex-col gap-2 pt-1">

@@ -625,7 +625,16 @@
     "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung.",
     "upgradeToPlan": "Upgrade auf {plan}",
     "topPlan": "Sie nutzen den höchsten Tarif.",
-    "viewAllPlans": "Alle Tarife anzeigen"
+    "viewAllPlans": "Alle Tarife anzeigen",
+    "ownProviderSettings": "KI-Anbieter verwalten",
+    "limits": {
+      "title": "Speicher & Limits",
+      "images": "Bilder",
+      "knowledgeFiles": "Wissensdateien",
+      "knowledgeStorage": "Wissensspeicher",
+      "workspaces": "Eigene Workspaces",
+      "unlimited": "unbegrenzt"
+    }
   },
   "theme": {
     "title": "Dokumentdesign",

@@ -625,7 +625,16 @@
     "creditsHint": "AI ポイントはインスタンスが費用を負担する AI に使われます：1000 ポイント = モデル利用料 1 ドル。",
     "upgradeToPlan": "{plan}にアップグレード",
     "topPlan": "最上位プランをご利用中です。",
-    "viewAllPlans": "すべてのプランを見る"
+    "viewAllPlans": "すべてのプランを見る",
+    "ownProviderSettings": "AIプロバイダーを管理",
+    "limits": {
+      "title": "ストレージと上限",
+      "images": "画像",
+      "knowledgeFiles": "ナレッジファイル",
+      "knowledgeStorage": "ナレッジストレージ",
+      "workspaces": "所有するワークスペース",
+      "unlimited": "無制限"
+    }
   },
   "theme": {
     "title": "ドキュメントテーマ",

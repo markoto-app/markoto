@@ -2,7 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, computed } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
-import { AIPromptBar, AuthUsageBadge } from '#components'
+import { flushPromises } from '@vue/test-utils'
+import { AIPromptBar, AuthUsageBadge, AuthUsageLimits } from '#components'
+import type { UserBilling } from '~/composables/useBilling'
 import type { AiAvailability } from '~~/shared/ai/providers'
 import type { AiCredits } from '~/composables/useAiCredits'
 
@@ -21,7 +23,25 @@ mockNuxtImport('useUserSession', () => () => ({
 }))
 mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 
-registerEndpoint('/api/user/billing', () => ({ plan: 'free', periodEnd: new Date().toISOString() }))
+const MB = 1024 * 1024
+const BILLING: UserBilling = {
+  plan: 'free',
+  periodStart: new Date().toISOString(),
+  periodEnd: new Date().toISOString(),
+  ownedWorkspaces: 1,
+  workspacesOwnedLimit: 1,
+  knowledgeFilesUsed: 4,
+  knowledgeFilesLimit: 5,
+  knowledgeBytesUsed: 10 * MB,
+  knowledgeBytesPerUserLimit: 50 * MB,
+  imageBytesUsed: 20 * MB,
+  imageBytesPerUserLimit: 100 * MB
+}
+let billingHits = 0
+registerEndpoint('/api/user/billing', () => {
+  billingHits++
+  return BILLING
+})
 
 type AiProp = InstanceType<typeof AIPromptBar>['$props']['ai']
 
@@ -98,21 +118,64 @@ describe('AIPromptBar — free AI allowance', () => {
 })
 
 describe('UsageBadge — whose AI it is', () => {
-  it('only own keys → "Your own AI provider", linking the settings, no points meter', async () => {
+  it('only own keys → "Your own AI provider", opening the settings link + limits, no points meter', async () => {
     setAvailability('user')
     setCredits(false)
-    const wrapper = await mountSuspended(AuthUsageBadge)
+    useState<UserBilling | null>('billing').value = BILLING
+    const wrapper = await mountSuspended(AuthUsageBadge, { attachTo: document.body })
     const chip = wrapper.find('[data-testid="usage-badge-own-provider"]')
     expect(chip.exists()).toBe(true)
     expect(chip.text()).toContain('Your own AI provider')
-    expect(chip.attributes('href')).toBe('/settings/ai')
     expect(wrapper.find('[data-testid="usage-badge"]').exists()).toBe(false)
+
+    const before = billingHits
+    await chip.trigger('click')
+    await flushPromises()
+    const settings = document.body.querySelector('[data-testid="usage-badge-own-provider-settings"]')
+    expect(settings?.getAttribute('href')).toBe('/settings/ai')
+    expect(document.body.querySelector('[data-testid="usage-limits"]')).not.toBeNull()
+    expect(document.body.querySelector('[data-testid="usage-limit-workspaces"]')?.textContent).toContain('1 / 1')
+    // Opening the popover re-fetches the counts.
+    expect(billingHits).toBeGreaterThan(before)
+    wrapper.unmount()
   })
 
   it('platform-paid chat → the points meter, not the own-provider chip', async () => {
     setAvailability('instance')
     setCredits(false)
-    const wrapper = await mountSuspended(AuthUsageBadge)
+    useState<UserBilling | null>('billing').value = BILLING
+    const wrapper = await mountSuspended(AuthUsageBadge, { attachTo: document.body })
     expect(wrapper.find('[data-testid="usage-badge-own-provider"]').exists()).toBe(false)
+    // The points popover carries the storage & limits section below the meter.
+    await wrapper.find('[data-testid="usage-badge"]').trigger('click')
+    await flushPromises()
+    expect(document.body.querySelector('[data-testid="usage-limit-images"]')?.textContent).toContain('20.0 MB / 100.0 MB')
+    wrapper.unmount()
+  })
+})
+
+describe('UsageLimits — storage & limits rows', () => {
+  it('renders the four rows as used / limit, coloured by fill', async () => {
+    const wrapper = await mountSuspended(AuthUsageLimits, { props: { billing: BILLING } })
+    const rowOf = (key: string) => wrapper.find(`[data-testid="usage-limit-${key}"]`)
+    expect(rowOf('images').text()).toContain('20.0 MB / 100.0 MB')
+    expect(rowOf('images').attributes('data-level')).toBe('ok')
+    expect(rowOf('knowledgeFiles').text()).toContain('4 / 5')
+    expect(rowOf('knowledgeFiles').attributes('data-level')).toBe('warning')
+    expect(rowOf('knowledgeStorage').text()).toContain('10.0 MB / 50.0 MB')
+    expect(rowOf('workspaces').text()).toContain('1 / 1')
+    expect(rowOf('workspaces').attributes('data-level')).toBe('critical')
+    expect(rowOf('workspaces').find('[data-testid="usage-limit-bar"]').classes()).toContain('bg-red-500')
+    expect(rowOf('workspaces').find('[data-testid="usage-limit-bar"]').attributes('style')).toContain('width: 100%')
+  })
+
+  it('a missing (unlimited) limit shows "unlimited" and an empty bar', async () => {
+    // JSON turns an Infinity cap into null.
+    const unlimited = JSON.parse(JSON.stringify({ ...BILLING, knowledgeFilesLimit: Infinity }))
+    const wrapper = await mountSuspended(AuthUsageLimits, { props: { billing: unlimited } })
+    const r = wrapper.find('[data-testid="usage-limit-knowledgeFiles"]')
+    expect(r.attributes('data-unlimited')).toBe('true')
+    expect(r.text()).toContain('4 / unlimited')
+    expect(r.find('[data-testid="usage-limit-bar"]').attributes('style')).toContain('width: 0%')
   })
 })
