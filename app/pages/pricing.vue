@@ -638,7 +638,10 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
           </div>
         </div>
 
-        <PricingCompareTable
+        <!-- Below the columns: hydrates when scrolled to (the server
+             render is the whole table). -->
+        <LazyPricingCompareTable
+          hydrate-on-visible
           :tiers="TIERS"
           :prices="PRICES"
           :currency="CURRENCY"

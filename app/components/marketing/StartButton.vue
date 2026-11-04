@@ -2,7 +2,8 @@
 // "Start writing": opens the new-document dialog (the same one as the
 // home page — anonymous visitors pass the terms + bot-check gate there)
 // and opens the created document. Used by the marketing header and the
-// `::cta` content block.
+// `::cta` content block. The dialog mounts on the first click
+// (useNewDocDialog), so a marketing page doesn't ship its code.
 withDefaults(defineProps<{
   label?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
@@ -15,7 +16,7 @@ withDefaults(defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
-const open = ref(false)
+const { mounted, open, show, warm } = useNewDocDialog(() => import('~/components/document/NewDocumentDialog.vue'))
 
 function onCreated(docId: string): void {
   void router.push(`/d/${docId}`)
@@ -29,11 +30,14 @@ function onCreated(docId: string): void {
       color="neutral"
       :size="size"
       :data-testid="testid"
-      @click="open = true"
+      @click="show"
+      @pointerenter="warm"
+      @focus="warm"
     >
       {{ label ?? t('tour.cta.start') }}
     </UButton>
-    <DocumentNewDocumentDialog
+    <LazyDocumentNewDocumentDialog
+      v-if="mounted"
       v-model:open="open"
       :workspace-id="null"
       @created="onCreated"

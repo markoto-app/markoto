@@ -92,9 +92,18 @@ export default defineNuxtPlugin((nuxtApp) => {
     showPrompt: renderPrompt
   })
 
-  // Kick off the first probe immediately — interval-only would mean a
-  // 5-minute blind spot at startup.
-  void controller.poll()
+  // First probe once the page is idle — interval-only would mean a
+  // 5-minute blind spot at startup, but the probe doesn't need to compete
+  // with the page's own first requests either (a fresh page load is the
+  // current build anyway, unless the deploy lands in these seconds).
+  const firstPoll = (): void => {
+    void controller.poll()
+  }
+  if (typeof globalThis.requestIdleCallback === 'function') {
+    globalThis.requestIdleCallback(firstPoll, { timeout: 5000 })
+  } else {
+    setTimeout(firstPoll, 2000)
+  }
 
   // SW-driven path: watch $pwa.needRefresh. The controller doesn't know
   // about $pwa, so when the SW signals a new precache we drive the
