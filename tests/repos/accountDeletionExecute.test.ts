@@ -120,6 +120,11 @@ describe('executeAccountDeletion: full graph', () => {
     const carolDoc = await createDoc({ ownerId: carol.id })
     await insertComment({ docId: carolDoc.docId, entryId: 'c1', authorId: alice.id, authorName: alice.name, body: 'Alice was here' })
     await insertComment({ docId: carolDoc.docId, entryId: 'c2', authorId: carol.id, authorName: carol.name, body: 'Carol replied' })
+    // Activity rows on carol's doc: alice's name snapshot must go, carol's stays.
+    await testDb().query(
+      `INSERT INTO activity_log (doc_id, user_id, user_name, action) VALUES ($1, $2, $3, 'edit'), ($1, $4, $5, 'edit')`,
+      [carolDoc.docId, alice.id, alice.name, carol.id, carol.name]
+    )
 
     // (7) AI sessions + messages + usage period.
     const aiDoc = await createDoc({ ownerId: alice.id })
@@ -222,6 +227,17 @@ describe('executeAccountDeletion: full graph', () => {
       entry_id: 'c2', author_id: carol.id, author_name: carol.name, body: 'Carol replied'
     })
 
+    // Activity on carol's doc: alice's row is detached AND nameless (the
+    // feed shows "Anonymous"); carol's row is untouched.
+    const carolActivity = await testDb().query<{ user_id: number | null, user_name: string | null }>(
+      `SELECT user_id, user_name FROM activity_log WHERE doc_id = $1 ORDER BY id`,
+      [carolDoc.docId]
+    )
+    expect(carolActivity.rows).toEqual([
+      { user_id: null, user_name: null },
+      { user_id: carol.id, user_name: carol.name }
+    ])
+
     // AI sessions cleared. (Phase 6: ai_usage_period dropped — LiteLLM
     // owns spend state. Virtual-key revocation is exercised in the unit
     // tests for `executeAccountDeletion`.)
@@ -259,6 +275,7 @@ describe('executeAccountDeletion: full graph', () => {
     const summary = finalRow.rows[0].metadata?.summary
     expect(summary).toBeTruthy()
     expect(summary!.commentsAnonymised).toBe(1)
+    expect(summary!.activityAnonymised).toBe(1)
     expect(summary!.workspacesCascadeDeleted).toBe(1)
     expect(summary!.workspacesPromoted).toBe(2) // co-admin + admin-only
     expect(summary!.themesDeleted).toBe(1)

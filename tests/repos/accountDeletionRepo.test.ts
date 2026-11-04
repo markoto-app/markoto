@@ -330,7 +330,9 @@ describe('deleteUserRow', () => {
     const userRow = await testDb().query(`SELECT id FROM users WHERE id = $1`, [u.id])
     expect(userRow.rows.length).toBe(0)
 
-    // activity_log row survives — user_id NULL, user_name preserved.
+    // activity_log row survives — user_id NULL. The name snapshot is
+    // cleared earlier by the executor (`anonymiseActivityByUser`); this
+    // test pins only the FK behaviour of the bare row delete.
     const activityRow = await testDb().query<{ user_id: number | null, user_name: string }>(
       `SELECT user_id, user_name FROM activity_log WHERE doc_id = $1`,
       [doc.docId]

@@ -253,10 +253,14 @@ export interface AccountDeletionSummary {
   workspacesPromoted: number
   workspaceMembershipsRemoved: number
   commentsAnonymised: number
+  /** Activity Log rows whose name snapshot was cleared. */
+  activityAnonymised: number
   aiSessionsDeleted: number
   aiSessionMessagesDeleted: number
   dataExportJobsDeleted: number
   stripeCustomerDeleted: boolean
+  /** LiteLLM virtual key + LiteLLM user record removed (best effort). */
+  litellmKeyDeleted: boolean
   themesDeleted: number
   /** BYOK provider configs (incl. encrypted API keys) removed. */
   aiProvidersDeleted: number

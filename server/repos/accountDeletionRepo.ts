@@ -1,5 +1,6 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
+  activityLog,
   aiSessions,
   documentComments,
   documents,
@@ -44,6 +45,25 @@ export async function anonymiseCommentsByAuthor(userId: number): Promise<number>
     .set({ authorId: null, authorName: '[deleted user]' })
     .where(eq(documentComments.authorId, userId))
     .returning({ docId: documentComments.docId })
+  return updated.length
+}
+
+/**
+ * Anonymise the user's Activity Log rows on documents that survive the
+ * deletion (other people's docs, promoted workspaces). The FK
+ * `activity_log.user_id` is `ON DELETE SET NULL`, but the row also
+ * carries a `user_name` snapshot taken at write time, which would keep
+ * showing the deleted person's name. Nulling it makes the feed render
+ * the "Anonymous" fallback, as the privacy policy promises. Must run
+ * BEFORE the users row is deleted (afterwards the rows can't be found).
+ */
+export async function anonymiseActivityByUser(userId: number): Promise<number> {
+  const db = useDatabase()
+  const updated = await db
+    .update(activityLog)
+    .set({ userName: null })
+    .where(eq(activityLog.userId, userId))
+    .returning({ id: activityLog.id })
   return updated.length
 }
 

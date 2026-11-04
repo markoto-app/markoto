@@ -5,6 +5,7 @@ import { listKnowledge } from '../repos/knowledge'
 import { deleteWorkspaceRow } from '../repos/workspaces'
 import {
   anonymiseCommentsByAuthor,
+  anonymiseActivityByUser,
   deleteAiSessionsByUser,
   deleteThemesByUser,
   deleteUserRow,
@@ -18,6 +19,7 @@ import {
 import { listAllJobsForUser } from '../repos/dataExportJobs'
 import { findUserById } from '../repos/users'
 import { deleteAllAiProvidersForUser } from '../repos/aiProviders'
+import { deleteUserKey } from './litellm/userKeys'
 import { deleteInvitesForEmail } from '../repos/workspaceInvites'
 import { normaliseInviteEmail } from './workspaceInvites'
 import { deleteDocument } from './documentLifecycle'
@@ -45,6 +47,7 @@ import type { AccountDeletionSummary } from './accountDeletionPlan'
 //     the agreed policy).
 //   - AI usage (sessions + messages + period rows) hard-deleted.
 //   - Data-export jobs hard-deleted; their S3 blobs cleaned up.
+//   - LiteLLM virtual key + LiteLLM user record DELETED (best effort).
 //   - Stripe customer DELETED via stripe.customers.del — Stripe's
 //     own legal-retention policy then governs the underlying records.
 //   - consent_log / activity_log / audit_log / abuse_reports rows
@@ -83,6 +86,7 @@ export async function executeAccountDeletion(
   const summary = emptySummary()
 
   summary.commentsAnonymised = await anonymiseCommentsByAuthor(userId)
+  summary.activityAnonymised = await anonymiseActivityByUser(userId)
   const cascadeWorkspaceIds = await processWorkspaceMemberships(userId, summary)
   await cascadeDeleteWorkspaces(cascadeWorkspaceIds, summary)
   await deleteOwnedDocs(userId, summary)
@@ -104,6 +108,11 @@ export async function executeAccountDeletion(
   summary.workspaceInvitesDeleted = inviteEmail === null ? 0 : await deleteInvitesForEmail(inviteEmail)
 
   const exportS3KeysToDelete = await collectExportS3Keys(userId, summary)
+
+  // LiteLLM virtual key + user record. Before the row delete: the
+  // encrypted key token lives on the users row. Best effort, never
+  // throws (a proxy outage must not block the erasure).
+  summary.litellmKeyDeleted = await deleteUserKey(userId)
 
   // ── Drop the user row ────────────────────────────────────────────
   // `data_export_jobs`, `ai_session_messages`, `consent_log`,
@@ -307,10 +316,12 @@ function emptySummary(): AccountDeletionSummary {
     workspacesPromoted: 0,
     workspaceMembershipsRemoved: 0,
     commentsAnonymised: 0,
+    activityAnonymised: 0,
     aiSessionsDeleted: 0,
     aiSessionMessagesDeleted: 0,
     dataExportJobsDeleted: 0,
     stripeCustomerDeleted: false,
+    litellmKeyDeleted: false,
     themesDeleted: 0,
     aiProvidersDeleted: 0,
     workspaceInvitesDeleted: 0
