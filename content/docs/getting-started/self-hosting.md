@@ -3,6 +3,7 @@ title: Run markoto yourself
 description: Install markoto on your own Linux server with one script - what you get, what you need, and where the full guide lives.
 category: getting-started
 order: 5
+updated: '2026-11-03'
 ---
 
 # Run markoto yourself

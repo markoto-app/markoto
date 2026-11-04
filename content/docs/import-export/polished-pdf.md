@@ -4,6 +4,7 @@ description: What you see in the preview is what lands in the PDF. Export it fro
 category: import-export
 order: 1
 featured: true
+updated: '2026-11-02'
 ---
 
 # Polish your doc and download it as a PDF

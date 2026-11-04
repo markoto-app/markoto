@@ -3,6 +3,7 @@ title: Save your custom theme as a preset
 description: Once you've tuned a theme, save it — every new doc you create lists it next to the built-in presets.
 category: themes
 order: 3
+updated: '2026-11-03'
 ---
 
 # Save your custom theme as a preset

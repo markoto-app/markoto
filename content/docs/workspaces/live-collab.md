@@ -3,6 +3,7 @@ title: Two writers, one document
 description: Live co-editing — cursors, selections, and edits broadcast in real-time, no save button.
 category: workspaces
 order: 4
+updated: '2026-11-04'
 ---
 
 # Two writers, one document

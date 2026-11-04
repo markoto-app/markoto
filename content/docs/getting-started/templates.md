@@ -3,6 +3,7 @@ title: Start from a template
 description: Pick a template at create time — markoto seeds your doc with structure, styling, and AI-context defaults.
 category: getting-started
 order: 4
+updated: '2026-11-03'
 ---
 
 # Start from a template

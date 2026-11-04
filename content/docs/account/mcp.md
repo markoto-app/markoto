@@ -4,6 +4,7 @@ description: Create a personal access token and let any MCP client read and edit
 category: account
 order: 7
 icon: i-lucide-plug
+updated: '2026-11-04'
 ---
 
 # Connect Claude Desktop, Cursor or scripts (MCP)

@@ -7,7 +7,8 @@ import {
   type PaidPlanName,
   type PlanPricesResponse
 } from '~~/shared/config/pricing'
-import { pricingStructuredData, serializeJsonLd, type FaqItem, type PricingOffer } from '~~/shared/seo/structuredData'
+import { pricingStructuredData, type FaqItem, type PricingOffer } from '~~/shared/seo/structuredData'
+import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 
 // Pricing page.
 //
@@ -234,9 +235,10 @@ const faqItems = computed<FaqItem[]>(() => {
 // Meta description: the hosted free-only + self-hosted subtitles are short
 // enough; with billing on, a dedicated one (the subtitle runs long).
 const metaDescription = computed(() => (billingEnabled.value ? t('pricing.metaDescription') : pageSubtitle.value))
-useMarketingSeo({
+const { imageUrl } = useMarketingSeo({
   title: pageTitle,
-  description: () => metaDescription.value
+  description: () => metaDescription.value,
+  imageGroup: 'pricing'
 })
 
 // SoftwareApplication + Offer JSON-LD, marketing site only (like the
@@ -245,20 +247,28 @@ useMarketingSeo({
 // prices are on the page, labelled as planned, but an Offer states a
 // price someone can pay — publishing one for a plan nobody can buy
 // would put a wrong claim into search results.
-useHead(() => {
-  if (!optionsLayout.value || !marketingSite.value || !siteUrl.value) return {}
+// One graph with the page's WebPage + BreadcrumbList (usePageStructuredData
+// is marketing-site only too).
+usePageStructuredData(() => {
+  if (!optionsLayout.value) return null
   const offers: PricingOffer[] = [{ name: t('pricing.freeAccount.title'), price: 0 }]
   if (billingEnabled.value) {
     for (const plan of PAID_PLAN_NAMES) offers.push({ name: PAID_DISPLAY[plan], price: PRICES.value[plan] })
   }
-  const json = serializeJsonLd(pricingStructuredData({
-    siteUrl: siteUrl.value,
+  return {
+    name: pageTitle.value,
     description: metaDescription.value,
-    inLanguage: localeProperties.value.language ?? locale.value,
-    currency: CURRENCY.value,
-    offers
-  }))
-  return { script: [{ key: 'ld-pricing', type: 'application/ld+json', innerHTML: json }] }
+    image: imageUrl.value,
+    breadcrumbs: pageBreadcrumbs('/pricing', pageTitle.value),
+    about: [{ self: true }],
+    extraNodes: [pricingStructuredData({
+      siteUrl: siteUrl.value,
+      description: metaDescription.value,
+      inLanguage: localeProperties.value.language ?? locale.value,
+      currency: CURRENCY.value,
+      offers
+    })]
+  }
 })
 
 const cardClass = 'relative rounded-lg border bg-default p-5 flex flex-col'

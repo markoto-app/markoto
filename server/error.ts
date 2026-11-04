@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
 import type { NitroErrorHandler } from 'nitropack/types'
+import { dropUnusedSessionCookie } from './utils/sessionCookie'
 
 // Global server-side error handler. Wired via `nitro.errorHandler`
 // in nuxt.config.ts. EVERY uncaught error from any /api/* endpoint
@@ -102,6 +103,8 @@ const handler: NitroErrorHandler = async (error, event) => {
   const payload = buildSanitizedErrorPayload(error, url)
   setResponseStatus(event, payload.statusCode, payload.statusMessage)
   setResponseHeader(event, 'content-type', 'application/json')
+  // Error answers skip `beforeResponse`; same rule as plugins/session-cookie.ts.
+  dropUnusedSessionCookie(event)
   await send(event, JSON.stringify(payload))
 }
 

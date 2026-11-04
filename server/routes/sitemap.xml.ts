@@ -16,11 +16,14 @@ export default defineEventHandler(async (event) => {
   if (!base) throw createError({ statusCode: 404, statusMessage: 'Not Found' })
 
   const [docs, marketing] = await Promise.all([
-    queryCollection(event, 'docs').select('path').all(),
-    queryCollection(event, 'marketing').select('path', 'reviewed').all()
+    queryCollection(event, 'docs').select('path', 'updated').all(),
+    queryCollection(event, 'marketing').select('path', 'reviewed', 'updated').all()
   ])
+  const docsLastmod: Record<string, string> = {}
+  for (const d of docs) if (d.updated) docsLastmod[docsRoutePath(d.path)] = d.updated
   const xml = buildSitemapXml(sitemapEntries(base, {
     docsPaths: docs.map(d => docsRoutePath(d.path)),
+    docsLastmod,
     legalSurfaces: resolveLegalSurfacesEnabled(process.env),
     marketingPages: marketingSitemapPages(marketing)
   }))

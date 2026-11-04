@@ -4,6 +4,7 @@ description: Every edit is recorded — see what changed, replay comment context
 category: history
 order: 7
 icon: i-lucide-history
+updated: '2026-11-04'
 ---
 
 # History & restore

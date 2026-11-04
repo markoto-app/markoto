@@ -50,7 +50,15 @@ const props = withDefaults(defineProps<{
    * pages, so phones get the full frame, contained.
    */
   phoneCut?: boolean
+  /**
+   * The page's LCP image (the hero poster): `eager` loads the light
+   * poster without waiting for layout, `high` asks for it first. Only the
+   * light variant — the page starts light, and an eager hidden variant
+   * would download for nothing.
+   */
+  priority?: 'eager' | 'high' | 'none'
 }>(), {
+  priority: 'none',
   load: true,
   phoneCut: false,
   section: null,
@@ -203,7 +211,8 @@ onBeforeUnmount(() => {
             :srcset="srcsetFor(phonePoster[m])"
           >
           <img
-            loading="lazy"
+            :loading="priority === 'eager' && m === 'light' ? 'eager' : 'lazy'"
+            :fetchpriority="priority !== 'none' && m === 'light' ? 'high' : undefined"
             decoding="async"
             class="mk-visual__img"
             :sizes="sizes"

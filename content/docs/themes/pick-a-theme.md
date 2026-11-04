@@ -4,6 +4,7 @@ description: Switch between built-in presets, see the live preview update, and t
 category: themes
 order: 1
 featured: true
+updated: '2026-11-03'
 ---
 
 # Pick a theme that fits your document

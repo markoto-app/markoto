@@ -5,6 +5,9 @@
 // the registry in `server/legal/subProcessors.ts` is the source
 // of truth and this page renders whatever it contains — adding a
 // new sub-processor is one TypeScript edit, no template change.
+import { LEGAL_PAGE_DESCRIPTIONS } from '~~/shared/seo/meta'
+import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import { PRIVACY_EFFECTIVE_DATE } from '~~/shared/legal/versions'
 
 interface SubProcessor {
   id: string
@@ -26,7 +29,17 @@ const { data: subProcessors, pending } = await useFetch<SubProcessor[]>(
   '/api/_internal/sub-processors'
 )
 
-useHead({ title: 'Sub-processors' })
+const SEO_TITLE = 'Sub-processors'
+const SEO_DESCRIPTION = LEGAL_PAGE_DESCRIPTIONS['sub-processors'] ?? ''
+const { imageUrl } = useMarketingSeo({ title: SEO_TITLE, description: SEO_DESCRIPTION, imageGroup: 'default' })
+usePageStructuredData(() => ({
+  name: SEO_TITLE,
+  description: SEO_DESCRIPTION,
+  // The list is part of the privacy policy and changes with it.
+  dateModified: PRIVACY_EFFECTIVE_DATE,
+  image: imageUrl.value,
+  breadcrumbs: pageBreadcrumbs('/legal/sub-processors', SEO_TITLE)
+}))
 
 function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {
@@ -129,7 +142,7 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
             {{ sp.purpose }}
           </p>
 
-          <dl class="grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-xs">
+          <dl class="grid grid-cols-[minmax(0,1fr)] sm:grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-xs">
             <dt class="font-mono uppercase tracking-wider text-muted">
               Transfer
             </dt>
@@ -145,7 +158,7 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
                 :href="sp.privacyPolicyUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hover:underline"
+                class="hover:underline [overflow-wrap:anywhere]"
               >{{ sp.privacyPolicyUrl }}</a>
             </dd>
 
@@ -158,7 +171,7 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
                   :href="sp.dpaUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="hover:underline"
+                  class="hover:underline [overflow-wrap:anywhere]"
                 >{{ sp.dpaUrl }}</a>
               </dd>
             </template>

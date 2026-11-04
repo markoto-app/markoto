@@ -4,6 +4,7 @@ description: Settings -> AI provider. Connect your own Mistral, OpenAI or other 
 category: account
 order: 6
 featured: true
+updated: '2026-11-03'
 ---
 
 # Use your own AI provider

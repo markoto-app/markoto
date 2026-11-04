@@ -95,11 +95,14 @@ watch(() => route.path, () => {
            absorb whatever space remains between the left anchor and
            the right group; the inner button caps at `max-w-md` so
            it stays a comfortable column width even on wide screens. -->
-      <div class="flex-1 flex justify-center">
+      <!-- `min-w-0` on both: without it the button's label + shortcut
+           kbds set a min-content width and pushed the color-mode button
+           past the edge on phones (page 428px wide at 375/390). -->
+      <div class="flex-1 min-w-0 flex justify-center">
         <UContentSearchButton
           :collapsed="false"
           label="Search the docs..."
-          class="w-full max-w-md justify-start text-toned"
+          class="w-full min-w-0 max-w-md justify-start text-toned overflow-hidden"
         />
       </div>
       <!-- AuthUserMenu carries: usage badge (tier + remaining

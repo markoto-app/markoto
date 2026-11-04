@@ -4,6 +4,7 @@ description: Team-scoped collaboration — shared docs, three-role permissions, 
 category: workspaces
 order: 6
 icon: i-lucide-users
+updated: '2026-10-27'
 ---
 
 # Workspaces

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { tourManifest } from '~~/shared/tour/data'
 import { coverRange, restOffsetVh, SCENE_HEIGHT_VH, stageSideKeyframes, type TourScene } from '~~/shared/tour/manifest'
 import { TOUR_DARK_FROM } from '~~/shared/tour/config'
 
@@ -41,7 +40,7 @@ import { TOUR_DARK_FROM } from '~~/shared/tour/config'
 const emit = defineEmits<{ start: [] }>()
 const { t, locale } = useI18n()
 
-const manifest = tourManifest
+const manifest = await useTourManifest()
 const hero = manifest.scenes.find(s => s.id === 'hero')
 const scenes = manifest.scenes.filter(s => s.id !== 'hero' && s.id !== 'cta')
 const viewportRatio = `${manifest.viewport.w} / ${manifest.viewport.h}`
@@ -271,6 +270,7 @@ const chips = [
               :index="-1"
               mode="inline"
               :sizes="HERO_SIZES"
+              priority="eager"
             />
           </LandingTourFrame>
         </figure>
@@ -310,6 +310,7 @@ const chips = [
                   :index="-1"
                   mode="hero"
                   :sizes="STAGE_SIZES"
+                  priority="high"
                 />
               </div>
             </LandingTourFrame>

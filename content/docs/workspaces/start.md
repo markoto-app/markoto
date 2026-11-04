@@ -4,6 +4,7 @@ description: Create a workspace and give it a name — your shared home for team
 category: workspaces
 order: 1
 featured: true
+updated: '2026-10-29'
 ---
 
 # Start a workspace

@@ -19,13 +19,14 @@ import { test, expect } from '../fixtures/flow'
 //     downloads the server-rendered PDF;
 //   - "Open as a document" opens that same document, with the typed text.
 //
-// Needs a marketing-site server (`NUXT_MARKETING_SITE_ENABLED=true`); the
+// Tagged @marketing: runs in the marketing-site flow pass
+// (`NUXT_MARKETING_SITE_ENABLED=true`, scripts/flows-ephemeral.ts). The
 // marketing pages are 404 elsewhere, so the flow skips itself there.
 // Desktop and mobile: on phones the block shows Edit / Preview tabs.
 
 const ADDED = '\n## Your own section\n\nThis paragraph was typed on the cheat sheet.\n'
 
-test('Try markoto without a document', async ({ page, flow, editor }) => {
+test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flow, editor }) => {
   test.setTimeout(150_000)
 
   const probe = await page.request.get('/markdown-cheat-sheet')
