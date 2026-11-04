@@ -263,6 +263,71 @@ export async function resetUserKeySpend(userId: number): Promise<boolean> {
   return true
 }
 
+type AdminFetch = (path: string, init?: RequestInit) => Promise<Response>
+
+/**
+ * The HTTP half of `deleteUserKey`: `/key/delete` for the bearer token
+ * (when the user ever got a key) and `/user/delete` for LiteLLM's user
+ * record. A 404 counts as done. Never throws; returns false after
+ * logging. Takes the admin fetch as a parameter so the integration suite
+ * can run it against the real `litellm-test` proxy.
+ */
+export async function deleteLitellmIdentity(adminFetch: AdminFetch, token: string | null, userId: number): Promise<boolean> {
+  let ok = true
+  try {
+    if (token) {
+      const res = await adminFetch('/key/delete', {
+        method: 'POST',
+        body: JSON.stringify({ keys: [token] })
+      })
+      if (!res.ok && res.status !== 404) {
+        const text = await res.text().catch(() => '')
+        console.warn(`[litellmKeys] /key/delete failed: ${res.status} ${text.slice(0, 200)}`)
+        ok = false
+      }
+    }
+    const resUser = await adminFetch('/user/delete', {
+      method: 'POST',
+      body: JSON.stringify({ user_ids: [String(userId)] })
+    })
+    if (!resUser.ok && resUser.status !== 404) {
+      const text = await resUser.text().catch(() => '')
+      console.warn(`[litellmKeys] /user/delete failed: ${resUser.status} ${text.slice(0, 200)}`)
+      ok = false
+    }
+  } catch (e) {
+    console.warn(`[litellmKeys] key deletion failed: ${e instanceof Error ? e.message : String(e)}`)
+    ok = false
+  }
+  return ok
+}
+
+/**
+ * Account deletion: remove the user's LiteLLM virtual key and LiteLLM's
+ * user record (keyed by our internal user id, also a free-tier team
+ * member). Without this both outlive the account. LiteLLM's spend logs
+ * are pruned separately by the 90-day `spend-logs-sweep`.
+ *
+ * Best effort: a proxy refusal or network error is logged and reported
+ * as `false`; it never blocks the local deletion.
+ */
+export async function deleteUserKey(userId: number): Promise<boolean> {
+  if (isStubMode()) return true
+  const db = useDatabase()
+  const rows = await db.select({ keyToken: users.litellmKeyToken })
+    .from(users).where(eq(users.id, userId)).limit(1)
+  const encrypted = rows[0]?.keyToken
+  let token: string | null = null
+  if (encrypted) {
+    try {
+      token = decryptToken(encrypted)
+    } catch (e) {
+      console.warn(`[litellmKeys] could not decrypt the key token for deletion: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+  return deleteLitellmIdentity(litellmAdminFetch, token, userId)
+}
+
 interface KeyInfo {
   /** Cumulative dollars spent in the current period. */
   spend: number

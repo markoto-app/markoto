@@ -259,6 +259,8 @@ export interface AccountDeletionSummary {
   aiSessionMessagesDeleted: number
   dataExportJobsDeleted: number
   stripeCustomerDeleted: boolean
+  /** LiteLLM virtual key + LiteLLM user record removed (best effort). */
+  litellmKeyDeleted: boolean
   themesDeleted: number
   /** BYOK provider configs (incl. encrypted API keys) removed. */
   aiProvidersDeleted: number
