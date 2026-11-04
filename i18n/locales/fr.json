@@ -625,7 +625,16 @@
     "creditsHint": "Les points IA couvrent l'IA payée par l'instance : 1000 points = 1 $ d'utilisation du modèle.",
     "upgradeToPlan": "Passer au forfait {plan}",
     "topPlan": "Vous êtes au forfait le plus élevé.",
-    "viewAllPlans": "Voir tous les forfaits"
+    "viewAllPlans": "Voir tous les forfaits",
+    "ownProviderSettings": "Gérer votre fournisseur d'IA",
+    "limits": {
+      "title": "Stockage et limites",
+      "images": "Images",
+      "knowledgeFiles": "Fichiers de connaissances",
+      "knowledgeStorage": "Stockage des connaissances",
+      "workspaces": "Vos espaces de travail",
+      "unlimited": "illimité"
+    }
   },
   "theme": {
     "title": "Thème du document",

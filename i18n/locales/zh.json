@@ -625,7 +625,16 @@
     "creditsHint": "AI 点数用于由实例付费的 AI：1000 点 = 1 美元模型用量。",
     "upgradeToPlan": "升级到 {plan}",
     "topPlan": "你已使用最高级别套餐。",
-    "viewAllPlans": "查看所有套餐"
+    "viewAllPlans": "查看所有套餐",
+    "ownProviderSettings": "管理你的 AI 提供商",
+    "limits": {
+      "title": "存储与限额",
+      "images": "图片",
+      "knowledgeFiles": "知识文件",
+      "knowledgeStorage": "知识存储",
+      "workspaces": "你拥有的工作区",
+      "unlimited": "无限制"
+    }
   },
   "theme": {
     "title": "文档主题",

@@ -625,7 +625,16 @@
     "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo.",
     "upgradeToPlan": "Mejorar a {plan}",
     "topPlan": "Tienes el plan superior.",
-    "viewAllPlans": "Ver todos los planes"
+    "viewAllPlans": "Ver todos los planes",
+    "ownProviderSettings": "Gestionar tu proveedor de IA",
+    "limits": {
+      "title": "Almacenamiento y límites",
+      "images": "Imágenes",
+      "knowledgeFiles": "Archivos de conocimiento",
+      "knowledgeStorage": "Almacenamiento de conocimiento",
+      "workspaces": "Tus espacios de trabajo",
+      "unlimited": "ilimitado"
+    }
   },
   "theme": {
     "title": "Tema del documento",

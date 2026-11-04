@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatBytes, usageFill } from '~/utils/usageMeter'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
 // controls (export + delete) for managing it. Spending and usage
@@ -153,17 +154,11 @@ async function onRequestExport(): Promise<void> {
 const { billing } = useBilling()
 const imageStoragePercent = computed(() => {
   const b = billing.value
-  if (!b || b.imageBytesPerUserLimit <= 0) return 0
-  return Math.min(100, Math.round((b.imageBytesUsed / b.imageBytesPerUserLimit) * 100))
+  if (!b) return 0
+  return usageFill(b.imageBytesUsed, b.imageBytesPerUserLimit).pct
 })
 
-function fmtBytes(bytes: number | null): string {
-  if (bytes === null) return ''
-  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${bytes} B`
-}
+const fmtBytes = formatBytes
 
 function fmtDate(iso: string | null): string {
   if (!iso) return ''
