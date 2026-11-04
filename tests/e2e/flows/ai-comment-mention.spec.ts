@@ -1,14 +1,15 @@
 import { test, expect, requireLiveAi } from '../fixtures/flow'
 
-// One retry at spec level. The full flow runs FOUR times (en-light/dark
-// × desktop/mobile) in suite order; by the 4th sequential live-Mistral
-// comment-trigger call the model occasionally hits its agentic
-// MAX_TURNS without producing a `reply_to_comment` (the trigger DOES
-// fire and the AI session DOES start — verified by the trigger-response
-// probe — but the loop terminates without the closing reply). One
-// retry covers the model variance without hiding structural failures.
-// CI already runs with retries=2; this matches local behaviour for
-// just this live-AI spec.
+// One retry at spec level (CI already runs with retries=2; this matches
+// local behaviour for just this live-AI spec). The failures seen in
+// release runs of 2026-11-02/03 (chat on mistral-small-2603) were all the same
+// model behaviour, not a test race: after `view_document` the model
+// sometimes answered the question by `replace_text`-ing the anchored
+// passage with the answer, which orphans the comment anchor
+// (`data-anchored="false"`) even though a reply lands. That is the
+// product misbehaving (commentTriggerPrompt.ts says questions get an
+// answer, not an edit), so the anchored/unchanged-passage assertions
+// stay strict. Not seen since the flows moved to zai-glm-5-3-flash.
 test.describe.configure({ retries: 1 })
 
 // Tier 1, AI Flow: "Summon the AI inside a comment thread".
