@@ -5,7 +5,9 @@
 // workspace surfaces (they're chromeless work surfaces and a footer would
 // compete with the preview/editor layout).
 //
-// Two groups, each with dot separators so the links don't run together:
+// Up to three groups, each with dot separators so the links don't run together:
+//   0. the site: Pricing (where shown) and, on the hosted marketing site,
+//      Self-host + the use-case / comparison pages (useMarketingNav)
 //   1. what a visitor looks for: Docs · Privacy · Terms · Imprint · Report abuse
 //   2. the reference documents, quieter: DPA · Sub-processors · Cookies note
 // Every legal page stays one click away. Renders for anonymous +
@@ -17,7 +19,9 @@ const { t } = useI18n()
 // (hosted SaaS). The copyright line names the operator when one is
 // configured — never the hosted operator on a self-hosted instance
 // (shared/config/instance.ts).
-const { legalSurfaces, operatorName } = useInstanceConfig()
+const { legalSurfaces, operatorName, marketingSite } = useInstanceConfig()
+const { pricingVisible } = useBillingMode()
+const nav = useMarketingNav()
 
 interface FooterLink {
   to: string
@@ -26,6 +30,17 @@ interface FooterLink {
   fullName?: string
   testid?: string
 }
+
+const siteLinks = computed<FooterLink[]>(() => [
+  ...(pricingVisible.value ? [{ to: '/pricing', label: t('marketing.nav.pricing'), testid: 'footer-pricing-link' }] : []),
+  ...(marketingSite.value
+    ? [
+        { to: '/docs/getting-started/self-hosting', label: t('marketing.nav.selfHost'), testid: 'footer-self-host-link' },
+        ...nav.value.useCases,
+        ...nav.value.compare
+      ]
+    : [])
+])
 
 const primaryLinks = computed<FooterLink[]>(() => [
   { to: '/docs', label: t('common.docs'), testid: 'footer-docs-link' },
@@ -64,6 +79,24 @@ const referenceLinks = computed<FooterLink[]>(() => legalSurfaces.value
         class="legal-footer__nav"
         :aria-label="t('legal.footer.navLabel')"
       >
+        <ul
+          v-if="siteLinks.length > 0"
+          class="legal-footer__list"
+          data-testid="footer-site-links"
+        >
+          <li
+            v-for="link in siteLinks"
+            :key="link.to"
+          >
+            <NuxtLink
+              :to="link.to"
+              class="legal-footer__link"
+              :data-testid="link.testid"
+            >
+              {{ link.label }}
+            </NuxtLink>
+          </li>
+        </ul>
         <ul class="legal-footer__list">
           <li
             v-for="link in primaryLinks"

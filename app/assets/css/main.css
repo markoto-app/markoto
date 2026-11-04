@@ -233,6 +233,9 @@ select:focus-visible,
 .prose code,
 .prose kbd {
   font-family: var(--font-mono);
+  /* Show the characters as typed: JetBrains Mono would draw `<!--`,
+     `-->` or `==` as single arrow / bar glyphs. */
+  font-variant-ligatures: none;
   font-size: 0.85em;
   font-weight: 400;
   background: var(--color-sumi-100);

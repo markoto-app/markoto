@@ -291,32 +291,11 @@ function onRowLongPress(doc: DocumentListItem) {
     class="min-h-screen flex flex-col"
     :class="showTour ? ['mk-tour-page', `mk-tour-page--${tourTone}`, { 'is-dark': tourTone === 'auto' && tourDark }] : []"
   >
-    <!-- Header. The brand lockup is the wordmark + seal — the seal is
-         the in-product AI presence indicator AND the standalone brand
-         mark, so the dashboard shows the lockup rather than a generic
-         file icon. Sentence case throughout, no Title Case Headings. -->
-    <header class="border-b border-default px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
-      <NuxtLink
-        to="/"
-        class="flex items-center"
-        aria-label="markoto home"
-      >
-        <CommonWordmark :size="20" />
-      </NuxtLink>
-      <div class="flex items-center gap-1 sm:gap-2">
-        <!-- The user documentation, for everyone: visitors on the product
-             tour, the plain hero and the signed-in dashboard. -->
-        <UButton
-          to="/docs"
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-book-open"
-          :aria-label="t('common.documentation')"
-          data-testid="header-docs-link"
-        >
-          <span class="hidden sm:inline">{{ t('common.docs') }}</span>
-        </UButton>
-        <AuthUserMenu />
+    <!-- Header (MarketingHeader): wordmark + seal lockup, Pricing /
+         use cases / Self-host / Docs, login. The tour swaps in its
+         page-local colour toggle. -->
+    <MarketingHeader>
+      <template #mode>
         <UButton
           v-if="showTour"
           color="neutral"
@@ -328,8 +307,8 @@ function onRowLongPress(doc: DocumentListItem) {
           @click="toggleTourTone"
         />
         <UColorModeButton v-else />
-      </div>
-    </header>
+      </template>
+    </MarketingHeader>
 
     <!-- Hero. Editorial register from the homepage mockup —
          Fraunces weight 300 display, italic-400 emphasis on the

@@ -15,11 +15,14 @@ export default defineEventHandler(async (event) => {
   const base = sitemapBaseUrl(process.env)
   if (!base) throw createError({ statusCode: 404, statusMessage: 'Not Found' })
 
-  const docs = await queryCollection(event, 'docs').select('path').all()
+  const [docs, marketing] = await Promise.all([
+    queryCollection(event, 'docs').select('path').all(),
+    queryCollection(event, 'marketing').select('path', 'reviewed').all()
+  ])
   const xml = buildSitemapXml(sitemapEntries(base, {
     docsPaths: docs.map(d => docsRoutePath(d.path)),
     legalSurfaces: resolveLegalSurfacesEnabled(process.env),
-    marketingPages: marketingSitemapPages()
+    marketingPages: marketingSitemapPages(marketing)
   }))
 
   setResponseHeader(event, 'Content-Type', 'application/xml; charset=utf-8')

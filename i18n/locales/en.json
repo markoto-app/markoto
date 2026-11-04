@@ -1670,5 +1670,32 @@
         "body": "The documentation and this tour are in the menu."
       }
     }
+  },
+  "marketing": {
+    "nav": {
+      "label": "Site",
+      "pricing": "Pricing",
+      "useCases": "Use cases",
+      "compare": "Compare",
+      "selfHost": "Self-host"
+    },
+    "sample": {
+      "source": "Markdown",
+      "result": "Result",
+      "kind": {
+        "commonmark": "CommonMark",
+        "gfm": "GitHub Markdown",
+        "markoto": "markoto extension"
+      }
+    },
+    "compare": {
+      "yes": "Yes",
+      "no": "No",
+      "partial": "Partly"
+    },
+    "page": {
+      "updated": "Updated {date}",
+      "unreviewed": "This translation hasn't been reviewed yet. The English page is the reference."
+    }
   }
 }

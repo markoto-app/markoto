@@ -1670,5 +1670,32 @@
         "body": "Die Dokumentation und dieser Rundgang stehen im Menü."
       }
     }
+  },
+  "marketing": {
+    "nav": {
+      "label": "Website",
+      "pricing": "Preise",
+      "useCases": "Anwendungsfälle",
+      "compare": "Vergleiche",
+      "selfHost": "Selbst hosten"
+    },
+    "sample": {
+      "source": "Markdown",
+      "result": "Ergebnis",
+      "kind": {
+        "commonmark": "CommonMark",
+        "gfm": "GitHub Markdown",
+        "markoto": "markoto-Erweiterung"
+      }
+    },
+    "compare": {
+      "yes": "Ja",
+      "no": "Nein",
+      "partial": "Teilweise"
+    },
+    "page": {
+      "updated": "Aktualisiert am {date}",
+      "unreviewed": "Diese Übersetzung wurde noch nicht geprüft. Massgeblich ist die englische Seite."
+    }
   }
 }

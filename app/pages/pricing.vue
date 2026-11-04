@@ -21,6 +21,10 @@ import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 //   - billing OFF, self-hosted → only the limits every account on this
 //     instance gets; no tiers, no prices, no waitlist.
 
+// Shared site header + footer. Not hosted-only: self-hosted instances
+// show their limits here too (`pricingVisible` decides who links to it).
+definePageMeta({ layout: 'marketing' })
+
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
 // Login starts at the first configured OAuth provider ('/' when none).
@@ -217,20 +221,6 @@ async function openPortal(): Promise<void> {
 }
 
 const toast = useToast()
-const router = useRouter()
-
-// Close button — go back if there's a referrer in history, otherwise
-// fall back to home. Keeps the pricing page feeling modal-ish: users
-// don't lose the context they came from (doc / workspace).
-function onClose(): void {
-  // `history.state.back` is Nuxt's accessor for the prior route; if we
-  // got here via a direct navigation (no back stack), route to home.
-  if (globalThis.history.length > 1 && document.referrer) {
-    router.back()
-  } else {
-    router.push('/')
-  }
-}
 
 // Meta description: the hosted free-only + self-hosted subtitles are short
 // enough; with billing on, a dedicated one (the subtitle runs long).
@@ -241,22 +231,9 @@ useMarketingSeo({
 </script>
 
 <template>
-  <div class="min-h-[100dvh] bg-default text-default relative">
-    <CommonHomeLink />
-    <!-- Modal-style close. Returns to the prior page so the pricing
-         page feels like an overlay on the user's context rather than
-         a destination they've navigated away into. -->
-    <UButton
-      icon="i-lucide-x"
-      color="neutral"
-      variant="ghost"
-      size="md"
-      class="absolute top-4 right-4 z-10"
-      :aria-label="t('pricing.close')"
-      @click="onClose"
-    />
-
-    <main class="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
+  <div>
+    <!-- Header + footer come from the `marketing` layout. -->
+    <div class="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
       <div class="text-center mb-6 sm:mb-10">
         <h1 class="font-serif text-3xl sm:text-4xl font-normal tracking-tight">
           {{ pageTitle }}
@@ -524,8 +501,6 @@ useMarketingSeo({
       >
         <PricingWaitlistForm />
       </div>
-    </main>
-
-    <CommonLegalFooter />
+    </div>
   </div>
 </template>

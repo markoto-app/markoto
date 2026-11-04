@@ -1670,5 +1670,32 @@
         "body": "ドキュメンテーションとこのツアーはメニューにあります。"
       }
     }
+  },
+  "marketing": {
+    "nav": {
+      "label": "サイト",
+      "pricing": "料金",
+      "useCases": "用途",
+      "compare": "比較",
+      "selfHost": "セルフホスト"
+    },
+    "sample": {
+      "source": "Markdown",
+      "result": "表示結果",
+      "kind": {
+        "commonmark": "CommonMark",
+        "gfm": "GitHub Markdown",
+        "markoto": "markoto 拡張"
+      }
+    },
+    "compare": {
+      "yes": "あり",
+      "no": "なし",
+      "partial": "一部"
+    },
+    "page": {
+      "updated": "{date} 更新",
+      "unreviewed": "この翻訳はまだ確認されていません。英語のページが基準です。"
+    }
   }
 }
