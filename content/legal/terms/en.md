@@ -8,7 +8,7 @@ translationStatus: authoritative
 
 # Terms of Service
 
-> **In short:** markoto is a free service, provided as is. You must be 16 or older. Use it lawfully and follow the acceptable-use rules in §6. Documents you create without an account can be opened by anyone with the link, are deleted after 30 days without activity, and can only be deleted by the browser that created them. AI output is yours, but check it before you rely on it. If you connect your own AI provider, you pay its costs. We may remove content or suspend accounts that break these Terms, and we tell you why when we can reach you.
+> **In short:** markoto is a free service, provided as is. You must be 16 or older. Use it lawfully and follow the acceptable-use rules in §6. Documents you create without an account can be opened and edited by anyone with the link, are deleted after 30 days without being edited, and can only be deleted by the browser that created them. We claim no rights in AI output made for you; check it before you rely on it. If you connect your own AI provider, you pay its costs. We may remove content or suspend accounts that break these Terms, and we tell you why when we can reach you.
 
 **Contents**
 
@@ -22,7 +22,7 @@ markoto is a collaborative Markdown editor operated by **{{controllerName}}** ({
 
 - **Age.** You must be at least **16 years old** to use markoto, both with an account and for anonymous documents. This applies in every country, even where local law sets a lower age.
 - **Sanctions.** You may not use markoto if you are located in, or ordinarily resident in, a country or region subject to comprehensive Swiss, EU or UN sanctions, or if you are listed on a Swiss (SECO), EU, UN or US sanctions list, or act on behalf of a listed person.
-- **Organisations.** If you use markoto for an organisation, you confirm that you may bind it to these Terms. You then act as a **business user**. Everyone else is a **consumer**.
+- **Business users and consumers.** If you use markoto for an organisation or for your trade, business or profession (also as a self-employed person), you act as a **business user**. If you use it for an organisation, you confirm that you may bind it to these Terms. If you use markoto for private purposes, you are a **consumer**.
 - **One person per account.** An account belongs to one natural person. Don't share accounts or sign-in credentials, and don't create several accounts to get around limits or a suspension.
 - **Sign-in security.** You sign in through a provider such as GitHub or Google. Protect that account, for example with two-factor authentication, and tell us at **{{privacyContactEmail}}** if you think someone else has accessed your markoto account.
 
@@ -39,9 +39,9 @@ If we introduce paid plans, they will come with separate terms that you accept b
 You can create a document without an account ("anonymous document"). These rules apply to it:
 
 - **Before you create one.** You confirm that you are at least 16, accept these Terms, and your browser solves a short automated bot check. We store the version of the Terms you accepted and the time with the document. Your browser remembers the acceptance, so you are asked again only when these Terms change.
-- **Who can access it.** Anyone who has the link can open the document and, depending on the access mode, edit it. The document shows that it was created by a user without an account, with a link to report it. Search engines are asked not to index documents, but a link can still be passed on. **Do not put confidential or sensitive information into an anonymous document.**
+- **Who can access it.** Anyone who has the link can open and edit the document. You cannot make an anonymous document private or protect it with a password. The document shows that it was created by a user without an account, with a link to report it. Search engines are asked not to index documents, but a link can still be passed on. **Do not put confidential or sensitive information into an anonymous document.**
 - **Who can delete it.** Only the browser that created the document can delete it. It proves this with a random key stored in a cookie. If you clear your cookies, use another browser or device, or the cookie expires, you lose that ability. We cannot recover it, and we cannot accept claims of ownership of an anonymous document, because we have no way to check them.
-- **Automatic deletion.** An anonymous document that has not been opened or edited for **30 days** is deleted automatically and permanently, without notice. To keep a document, sign in and create it under your account.
+- **Automatic deletion.** An anonymous document that has not been edited for **30 days** is deleted automatically and permanently, without notice. Only edits count: opening or reading the document does not reset this period. To keep a document, sign in and create it under your account.
 - **Moderation.** We may remove or restrict an anonymous document at any time if it breaks these Terms or the law (see §8). We cannot send you a statement of reasons, because we have no way to contact you.
 - **Same rules.** The age rule (§2) and the acceptable-use rules (§6) apply to anonymous documents in full.
 
@@ -79,7 +79,7 @@ These rules apply to everything you do on markoto: documents, comments, uploads,
 
 **Sensitive and regulated data**
 
-- Store special categories of personal data (such as health data, data revealing ethnic origin, religious or political views, biometric or genetic data, or data on criminal convictions) about other people, or other regulated data such as payment card numbers, unless you have a lawful basis for it and protect it appropriately. markoto is not designed for such data, and anonymous documents must never contain it.
+- Store special categories of personal data about other people (for example health data, ethnic origin, religious or political views, biometric or genetic data, or criminal convictions) or other regulated data such as payment card numbers, unless you have a lawful basis for it and protect it appropriately. markoto is not designed for such data. Anonymous documents must never contain it.
 
 **AI misuse**
 
@@ -170,12 +170,6 @@ These Terms are governed by **{{governingLaw}}**, excluding its conflict-of-laws
 
 We may change these Terms, for example to reflect new features or legal requirements. We announce material changes in the service at least **30 days** before they take effect. From that date, you will be asked to accept the new version before you continue. If you don't agree, you can stop using markoto and delete your account before the changes take effect. Changes required by law, or needed urgently to address security or abuse, may take effect sooner. Changes never apply retroactively.
 
-This is **version {{currentVersion}}**, effective **{{effectiveDate}}**.
-
-- **v3 (2026-11-03).** Anonymous documents (bot check, accepting the Terms, 30-day clean-up, deletion only by the creating browser); a full acceptable-use section; content moderation and complaint handling under the Digital Services Act; age rule of 16 everywhere; sanctions and one person per account; AI output ownership, accuracy and transparency; beta features; new liability clause with a fixed cap, indemnity for business users, courts; 30-day notice of changes; general provisions. Free AI allowance for signed-in users within a monthly per-account limit and a shared monthly pool, without guarantee (§7).
-- **v2 (2026-10-26).** Aligned with the free-only service: no paid plans or payment terms in force, fair use and limits, anonymous-document clean-up, bring-your-own-key AI provider responsibilities, "as is" and discontinuation clauses.
-- **v1 (2026-05-04).** Initial publication.
-
 ## 16. General provisions
 
 - **Entire agreement.** These Terms, together with the documents they refer to, are the entire agreement between you and us about markoto.
@@ -184,3 +178,11 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**.
 - **Force majeure.** We are not responsible for failures caused by events beyond our reasonable control, such as natural disasters, war, large-scale outages of networks, cloud or energy providers, or orders by authorities.
 - **No waiver.** If we don't enforce a provision right away, we can still enforce it later.
 - **Language.** These Terms may be translated. If versions differ, the English version applies.
+
+---
+
+This is **version {{currentVersion}}**, effective **{{effectiveDate}}**.
+
+- **v3 (2026-11-03).** Anonymous documents (bot check, accepting the Terms, deletion 30 days after the last edit, deletion only by the creating browser); a full acceptable-use section; content moderation and complaint handling under the Digital Services Act; age rule of 16 everywhere; sanctions and one person per account; AI output ownership, accuracy and transparency; beta features; new liability clause with a fixed cap, indemnity for business users, courts; 30-day notice of changes; general provisions. Free AI allowance for signed-in users within a monthly per-account limit and a shared monthly pool, without guarantee (§7).
+- **v2 (2026-10-26).** Aligned with the free-only service: no paid plans or payment terms in force, fair use and limits, anonymous-document clean-up, bring-your-own-key AI provider responsibilities, "as is" and discontinuation clauses.
+- **v1 (2026-05-04).** Initial publication.

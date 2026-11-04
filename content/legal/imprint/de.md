@@ -36,4 +36,4 @@ Sitz: {{registeredOffice}}
 
 ## Haftung für Inhalte
 
-{{controllerName}} ist für die Inhalte dieser Website und des markoto-Dienstes verantwortlich. Wir bemühen uns, die Informationen aktuell und korrekt zu halten, übernehmen jedoch keine Haftung für die Inhalte externer, von hier aus verlinkter Websites — für deren Inhalt sind ausschliesslich die jeweiligen Betreiber verantwortlich.
+{{controllerName}} ist für die Inhalte dieser Website und des markoto-Dienstes verantwortlich. Wir bemühen uns, die Informationen aktuell und korrekt zu halten, übernehmen jedoch keine Haftung für die Inhalte externer, von hier aus verlinkter Websites. Für deren Inhalt sind ausschliesslich die jeweiligen Betreiber verantwortlich.

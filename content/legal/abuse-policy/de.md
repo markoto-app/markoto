@@ -18,14 +18,14 @@ Diese Richtlinie ist unser **Melde- und Abhilfeverfahren** nach Artikel 16 des *
 
 Sie können Inhalte auf zwei Wegen melden. Beide werden gleich behandelt:
 
-- **Das Meldeformular** unter [/legal/abuse](/legal/abuse). Es funktioniert ohne Konto; Ihr Browser löst dann eine kurze Bot-Prüfung, die auf unserem eigenen Server läuft, ohne Dritte und ohne Cookie. Dokumente, die ohne Konto erstellt wurden, zeigen eine Leiste «Inhalt von Nutzenden · Melden», die das Formular mit bereits eingetragener Adresse des Dokuments öffnet.
+- **Das Meldeformular** unter [/legal/abuse](/legal/abuse). Es funktioniert ohne Konto; Ihr Browser löst dann eine kurze Bot-Prüfung, die auf unserem eigenen Server läuft, ohne Dritte und ohne Cookie. Anonyme Dokumente (ohne Konto erstellte Dokumente) zeigen eine Leiste mit dem Hinweis «Erstellt von einer Person ohne markoto-Konto, nicht von markoto» und einem Link «Melden». Der Link öffnet das Formular mit bereits eingetragener Adresse des Dokuments.
 - **E-Mail** an **{{abuseContactEmail}}**.
 
 Eine vollständige Meldung enthält (Art. 16 Abs. 2 DSA):
 
 1. **Den genauen Ort** des Inhalts: die URL des Dokuments (zum Beispiel `https://markoto.app/d/…`) und, falls hilfreich, welchen Teil des Dokuments Sie meinen.
 2. **Eine Begründung**, weshalb Sie den Inhalt für rechtswidrig halten oder weshalb er gegen unsere Nutzungsbedingungen verstösst. Ist er rechtswidrig, geben Sie an, gegen welches Gesetz er verstösst, sofern Sie es wissen.
-3. **Ihren Namen und Ihre E-Mail-Adresse.** Sie können diese weglassen, wenn Sie Inhalte melden, die mit sexuellem Missbrauch oder sexueller Ausbeutung von Kindern zusammenhängen könnten.
+3. **Ihren Namen und Ihre E-Mail-Adresse.** Sie dürfen diese nur weglassen, wenn Sie Darstellungen sexuellen Kindesmissbrauchs melden.
 4. **Eine Erklärung**, dass Sie in gutem Glauben davon ausgehen, dass die Angaben und Behauptungen in Ihrer Meldung richtig und vollständig sind.
 
 Die Bearbeitung unvollständiger Meldungen kann länger dauern, da wir den Inhalt möglicherweise nicht auffinden oder nicht beurteilen können.
@@ -63,7 +63,7 @@ Wenn wir Ihre Inhalte entfernen oder einschränken oder Ihr Konto sperren, sende
 - dass der Entscheid von einer Person und nicht von einem automatisierten System getroffen wurde;
 - wie Sie Einspruch erheben können.
 
-**Anonyme Dokumente.** Ein ohne Konto erstelltes Dokument hat keine Kontaktangaben. Wir können der Person, die es erstellt hat, keine Begründung zustellen, und halten die Begründung als nicht zustellbar fest. Den Text jeder Mitteilung, die wir senden oder nicht zustellen konnten, bewahren wir bei der Meldung auf.
+**Anonyme Dokumente.** Ein anonymes Dokument hat keine Kontaktangaben. Wir können der Person, die es erstellt hat, keine Begründung zustellen, und halten die Begründung als nicht zustellbar fest. Den Text jeder Mitteilung, die wir senden oder nicht zustellen konnten, bewahren wir bei der Meldung auf.
 
 **So erheben Sie Einspruch.** Sie können sich innerhalb von **sechs Monaten** nach unserem Entscheid bei **{{abuseContactEmail}}** beschweren. Antworten Sie auf die Begründung oder geben Sie deren Referenz an und erläutern Sie, weshalb der Entscheid falsch war. Eine Person prüft Ihre Beschwerde, und wir stellen den Inhalt oder das Konto wieder her, wenn der Entscheid falsch war. Wir teilen Ihnen das Ergebnis mit. Sie können sich auch an eine zertifizierte aussergerichtliche Streitbeilegungsstelle wenden und haben jederzeit das Recht, ein Gericht anzurufen. Meldende können über denselben Kanal Einspruch dagegen erheben, dass wir aufgrund ihrer Meldung nichts unternommen haben.
 
@@ -77,11 +77,11 @@ Ordnet eine zuständige Behörde an, dass wir gegen rechtswidrige Inhalte vorgeh
 
 ## Missbrauch des Meldewegs
 
-Bei Personen, die häufig offensichtlich unbegründete Meldungen einreichen, können wir nach einer Verwarnung die Bearbeitung ihrer Meldungen für einen angemessenen Zeitraum aussetzen. Wissentlich falsche Meldungen können zudem gegen unsere Nutzungsbedingungen verstossen.
+Bei Personen, die häufig offensichtlich unbegründete Meldungen einreichen, können wir nach einer Verwarnung die Bearbeitung ihrer Meldungen für einen angemessenen Zeitraum aussetzen. Wissentlich falsche Meldungen können zudem gegen unsere Nutzungsbedingungen (§6) verstossen.
 
 ## Daten, die wir für Meldungen verarbeiten
 
-Zur Bearbeitung einer Meldung speichern wir die Adresse des gemeldeten Inhalts, Ihre Begründung, die Kategorie, Ihren Namen und Ihre E-Mail-Adresse, die von Ihnen verwendete Sprache, wann Sie die Erklärung zum guten Glauben bestätigt haben, und den Zeitpunkt sowie eine gekürzte IP-Adresse und einen Hash des User-Agents Ihres Browsers gegen massenhafte Meldungen. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Wir bewahren eine Meldung mit den Mitteilungen dazu auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Ihr Datenexport enthält die Meldungen, die Sie im angemeldeten Zustand eingereicht haben. Einzelheiten finden Sie in der Datenschutzerklärung ([/legal/privacy](/legal/privacy)).
+Zur Bearbeitung einer Meldung speichern wir die Adresse des gemeldeten Inhalts, Ihre Begründung, die Kategorie, Ihren Namen und Ihre E-Mail-Adresse (ausser Sie haben sie bei einer Meldung von Darstellungen sexuellen Kindesmissbrauchs weggelassen), die von Ihnen verwendete Sprache, wann Sie die Erklärung zum guten Glauben bestätigt haben, und den Zeitpunkt sowie eine gekürzte IP-Adresse und einen Hash des User-Agents Ihres Browsers gegen massenhafte Meldungen. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Wir bewahren eine Meldung mit den Mitteilungen dazu auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Ihr Datenexport enthält die Meldungen, die Sie im angemeldeten Zustand eingereicht haben. Einzelheiten finden Sie in der Datenschutzerklärung ([/legal/privacy](/legal/privacy)).
 
 ## Kontakt
 

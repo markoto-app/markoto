@@ -8,7 +8,7 @@ translationStatus: machine-translated
 
 # Accord de traitement des données
 
-Le présent accord de traitement des données (« **DPA** ») fait partie des conditions d'utilisation conclues entre **{{controllerName}}** (le « **Sous-traitant** » ou « **markoto** ») et vous, propriétaire de l'espace de travail (le « **Responsable du traitement** »). Il régit le traitement par markoto des données personnelles pour le compte du Responsable du traitement dans le cadre du Service.
+Le présent accord de traitement des données (« **DPA** ») fait partie des conditions d'utilisation conclues entre **{{controllerName}}** (le « **Sous-traitant** » ou « **markoto** ») et vous, propriétaire de l'espace de travail (le « **Responsable du traitement** »). Il régit le traitement par markoto des données personnelles pour le compte du Responsable du traitement dans le cadre de markoto.app et de ses fonctionnalités (le « **Service** »).
 
 Ce DPA n'est requis que pour les clients disposant d'un espace de travail. Si vous n'utilisez markoto que pour des documents personnels, ce DPA ne s'applique pas à vous.
 
@@ -23,7 +23,7 @@ Les termes en majuscules non définis ici ont le sens que leur donne le règleme
 
 ## 3. Objet, durée, nature et finalité du traitement
 
-Le Sous-traitant traite les données personnelles placées dans l'espace de travail du Responsable du traitement (contenu des documents, commentaires, fichiers de la base de connaissances, métadonnées des membres, requêtes et réponses de l'IA) pendant la durée du contrat de Service et aux fins de fournir le Service : stockage, collaboration en temps réel, rendu, export, recherche, assistance de l'IA et sauvegarde.
+Le Sous-traitant traite les données personnelles placées dans l'espace de travail du Responsable du traitement (contenu des documents, commentaires, fichiers de la base de connaissances, métadonnées des membres, requêtes et réponses de l'IA) tant que les conditions d'utilisation s'appliquent entre les parties et aux fins de fournir le Service : stockage, collaboration en temps réel, rendu, export, recherche, assistance de l'IA et sauvegarde.
 
 ## 4. Catégories de personnes concernées et de données personnelles
 
@@ -61,7 +61,7 @@ Le Sous-traitant est établi en **Suisse**. La Commission européenne a reconnu 
 
 Pour les transferts ultérieurs, le Sous-traitant respecte l'art. 16 LPD et le chapitre V du RGPD :
 
-- L'infrastructure principale du Sous-traitant (base de données, stockage de fichiers, sauvegardes) et ses fournisseurs d'IA se trouvent dans l'UE (France et Allemagne), dont la Suisse reconnaît le niveau de protection adéquat.
+- L'infrastructure principale du Sous-traitant (base de données, stockage de fichiers, sauvegardes) se trouve dans l'UE (France). Ses sous-traitants ultérieurs d'IA traitent les données dans l'UE et, pour Mistral AI, également dans des pays de l'AELE. La Suisse reconnaît le niveau de protection adéquat des États de l'UE et de l'EEE, et chaque pays de l'AELE est soit un État de l'EEE, soit la Suisse.
 - Lorsqu'un sous-traitant ultérieur se trouve dans un pays n'offrant pas un niveau de protection adéquat, ou peut accéder aux données depuis un tel pays, en particulier les États-Unis, le transfert repose, pour les destinataires certifiés, sur l'EU-U.S. et le Swiss-U.S. Data Privacy Framework, ou à défaut sur les clauses contractuelles types de la Commission européenne (2021/914), adaptées au droit suisse.
 
 La localisation et le mécanisme de transfert de chaque sous-traitant ultérieur sont publiés à l'adresse [/legal/sub-processors](/legal/sub-processors).
@@ -135,7 +135,7 @@ Une procédure documentée de réponse aux violations de données couvre la dét
 ### 9. Minimisation et suppression des données
 
 - Seules les données nécessaires au Service sont collectées ; les adresses IP sont tronquées avant stockage ; les originaux téléversés dans la base de connaissances sont supprimés après traitement.
-- Des tâches de suppression automatique appliquent les durées de conservation (par exemple les enregistrements d'IA après 90 jours, les documents anonymes inactifs après 30 jours, les téléversements non confirmés après 24 heures, les entrées du journal d'audit après 2 ans).
+- Des tâches de suppression automatique appliquent les durées de conservation (par exemple les enregistrements d'IA après 90 jours, les documents anonymes 30 jours après leur dernière modification, les téléversements non confirmés après 24 heures, les entrées du journal d'audit après 2 ans).
 - Les utilisateurs peuvent exporter et supprimer eux-mêmes leurs données.
 
 ### 10. Sous-traitants ultérieurs

@@ -18,14 +18,14 @@ This policy is our **notice-and-action mechanism** under Article 16 of the EU **
 
 You can report content in two ways. Both are handled the same way:
 
-- **The report form** at [/legal/abuse](/legal/abuse). It works without an account; your browser then solves a short bot check that runs on our own server, with no third party and no cookie. Documents created without an account show a "user content · Report" bar that opens the form with the document's address filled in.
+- **The report form** at [/legal/abuse](/legal/abuse). It works without an account; your browser then solves a short bot check that runs on our own server, with no third party and no cookie. Anonymous documents (documents created without an account) show a bar reading "Created by a markoto user without an account, not by markoto" with a "Report" link. The link opens the form with the document's address filled in.
 - **Email** to **{{abuseContactEmail}}**.
 
 A complete report contains (Art. 16(2) DSA):
 
 1. **The exact location** of the content: the document's URL (for example `https://markoto.app/d/…`) and, if useful, which part of the document you mean.
 2. **An explanation** of why you believe the content is illegal or breaks our Terms. If it is illegal, say which law it breaks, if you know.
-3. **Your name and email address.** You may leave these out if you are reporting content that may relate to the sexual abuse or sexual exploitation of children.
+3. **Your name and email address.** You may leave these out only when you report child sexual abuse material.
 4. **A statement** that you believe, in good faith, that the information and claims in your report are accurate and complete.
 
 Reports that are incomplete may take longer, because we may not be able to identify the content or judge it.
@@ -63,7 +63,7 @@ If we remove or restrict your content or suspend your account, we send you a **s
 - that the decision was taken by a person, not by an automated system;
 - how you can object.
 
-**Anonymous documents.** A document created without an account has no contact details. We cannot send a statement of reasons to its creator, and we record the statement as undeliverable. We keep the text of every notice we send, or could not deliver, with the report.
+**Anonymous documents.** An anonymous document has no contact details. We cannot send a statement of reasons to its creator, and we record the statement as undeliverable. We keep the text of every notice we send, or could not deliver, with the report.
 
 **How to object.** You can complain to **{{abuseContactEmail}}** within **six months** of our decision. Reply to the statement of reasons or quote its reference, and explain why the decision was wrong. A person reviews your complaint, and we restore the content or the account if the decision was wrong. We tell you the outcome. You can also turn to a certified out-of-court dispute settlement body, and you always have the right to go to court. Reporters can use the same channel to object to a decision not to act on their report.
 
@@ -77,11 +77,11 @@ If a competent authority orders us to act against illegal content or to provide 
 
 ## Misuse of the reporting channel
 
-We may stop processing reports from people who frequently submit manifestly unfounded reports, after a warning and for a reasonable period. Knowingly false reports may also break our Terms.
+We may stop processing reports from people who frequently submit manifestly unfounded reports, after a warning and for a reasonable period. Knowingly false reports may also break our Terms (§6).
 
 ## Data we process for reports
 
-To handle a report we store the address of the reported content, your explanation, the category, your name and email address, the language you used, when you confirmed the good-faith statement and the time, plus a shortened IP address and a hash of your browser's user agent against report flooding. For reports sent while signed in, we also link your account. We keep a report, with the notices about it, while the case is open and delete it 1 year after it is closed. Your data export contains the reports you filed while signed in. See the Privacy Policy ([/legal/privacy](/legal/privacy)) for details.
+To handle a report we store the address of the reported content, your explanation, the category, your name and email address (unless you left them out of a report of child sexual abuse material), the language you used, when you confirmed the good-faith statement and the time, plus a shortened IP address and a hash of your browser's user agent against report flooding. For reports sent while signed in, we also link your account. We keep a report, with the notices about it, while the case is open and delete it 1 year after it is closed. Your data export contains the reports you filed while signed in. See the Privacy Policy ([/legal/privacy](/legal/privacy)) for details.
 
 ## Contact
 

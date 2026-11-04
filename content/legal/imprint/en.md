@@ -36,4 +36,4 @@ Registered office: {{registeredOffice}}
 
 ## Responsibility for content
 
-{{controllerName}} is responsible for the content of this website and of the markoto service. While we take care to keep the information accurate and up to date, we accept no liability for the content of external websites linked from here — responsibility for linked content lies with its respective operators.
+{{controllerName}} is responsible for the content of this website and of the markoto service. While we take care to keep the information accurate and up to date, we accept no liability for the content of external websites linked from here. The operators of those websites are responsible for their content.
