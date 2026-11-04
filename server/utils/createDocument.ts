@@ -15,6 +15,8 @@ import { isTemplateId } from '~~/shared/templates'
 import type { DocTheme } from '~~/shared/types/theme'
 import { adaptCustomCssToDoc } from '~~/shared/utils/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
+import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
+import { seedDocContent } from './seedDocContent'
 
 // Document creation — single source of truth shared by:
 //   - `POST /api/docs` (the user-facing endpoint)
@@ -60,6 +62,10 @@ export interface CreateDocumentParams {
   /** Anonymous creation only (ignored when `ownerId` is set): the Terms
    *  acceptance the anonymous gate verified (server/utils/anonGate/). */
   anonTermsAcceptance?: { termsVersion: number, acceptedAt: Date }
+  /** Markdown body to start with (≤ `INITIAL_CONTENT_MAX_LENGTH`), written
+   *  as the doc's first Y.js update. Mutually exclusive with `templateId`
+   *  (a template seeds its body in the browser on first open). */
+  content?: string
 }
 
 export interface CreateDocumentResult {
@@ -122,6 +128,8 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
     create.templateId = input.templateId
   }
 
+  const content = parseContent(input.content, input.templateId)
+
   const theme = await resolveTheme(input, input.ownerId, workspaceId)
   if (theme !== null) create.theme = withCustomCssForNewDoc(theme, docId)
 
@@ -134,6 +142,7 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
   }
 
   await createDoc(create)
+  if (content !== null) await seedDocContent(docId, content)
   return { docId, url: `/d/${docId}` }
 }
 
@@ -180,6 +189,17 @@ function parseDescription(raw: string | undefined): string | null {
     throw createError({ statusCode: 400, message: `Description too long (max ${DESCRIPTION_MAX_LENGTH})` })
   }
   return raw.trim()
+}
+
+function parseContent(raw: string | undefined, templateId: string | undefined): string | null {
+  if (raw === undefined || raw.length === 0) return null
+  if (templateId !== undefined) {
+    throw createError({ statusCode: 400, message: 'Pass content OR templateId, not both' })
+  }
+  if (raw.length > INITIAL_CONTENT_MAX_LENGTH) {
+    throw createError({ statusCode: 400, message: `Content too long (max ${INITIAL_CONTENT_MAX_LENGTH} characters)`, data: { code: 'docs/content-too-long' } })
+  }
+  return raw
 }
 
 function parseLanguage(raw: string | undefined): string | null {

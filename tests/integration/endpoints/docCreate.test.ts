@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { resetDb, testDb } from '../setup/db'
+import * as Y from 'yjs'
+import { ensureYjsTable, resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import {
   createUser,
@@ -7,6 +8,7 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 import { createAnonDoc } from '../setup/anonGate'
+import { INITIAL_CONTENT_MAX_LENGTH } from '../../../shared/config/docCreate'
 
 // POST /api/docs — creates a document. Defaults matter:
 //   - Anonymous creator → ownerId=null, accessMode='open-edit'
@@ -251,6 +253,65 @@ describe('POST /api/docs', () => {
       expect(row.audience).toBe('creative')
       expect(row.language).toBe('fr')
       expect(row.owner_id).toBeNull()
+    })
+  })
+
+  // `content` (the marketing `::try-it` block): the text becomes the doc's
+  // first Y.js update, so the editor and the server PDF render see it
+  // without a browser ever having connected.
+  describe('initial content', () => {
+    async function storedText(docId: string): Promise<string> {
+      const r = await testDb().query<{ value: Buffer }>(
+        `SELECT value FROM yjs_documents WHERE docname = $1 AND version = 'v1' ORDER BY id`,
+        [docId]
+      )
+      const doc = new Y.Doc()
+      for (const row of r.rows) Y.applyUpdate(doc, new Uint8Array(row.value))
+      return doc.getText('content').toString()
+    }
+
+    beforeEach(async () => {
+      await ensureYjsTable()
+    })
+
+    it('anonymous creation with content stores it as Y.js state', async () => {
+      const res = await createAnonDoc(anonClient(), { title: 'Field notes', content: '# Field notes\n\nHello **there**.\n' })
+      expect(res.status).toBe(200)
+      const { docId } = await res.json() as { docId: string }
+      expect(await storedText(docId)).toBe('# Field notes\n\nHello **there**.\n')
+      const row = await readDoc(docId)
+      expect(row.title).toBe('Field notes')
+      expect(row.access_mode).toBe('open-edit')
+    })
+
+    it('logged-in creation with content stores it too', async () => {
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      const res = await client.post('/api/docs', { content: 'Just text' })
+      expect(res.status).toBe(200)
+      const { docId } = await res.json() as { docId: string }
+      expect(await storedText(docId)).toBe('Just text')
+    })
+
+    it('no content → no Y.js row (the browser seeds on first open)', async () => {
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      const res = await client.post('/api/docs', {})
+      const { docId } = await res.json() as { docId: string }
+      const r = await testDb().query('SELECT 1 FROM yjs_documents WHERE docname = $1', [docId])
+      expect(r.rowCount).toBe(0)
+    })
+
+    it('rejects non-string content, oversized content and content + templateId (400)', async () => {
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      expect((await client.post('/api/docs', { content: 42 })).status).toBe(400)
+      const tooLong = await client.post('/api/docs', { content: 'x'.repeat(INITIAL_CONTENT_MAX_LENGTH + 1) })
+      expect(tooLong.status).toBe(400)
+      expect((await tooLong.json() as { data?: { code?: string } }).data?.code).toBe('docs/content-too-long')
+      expect((await client.post('/api/docs', { content: 'x', templateId: 'demo' })).status).toBe(400)
+      const r = await testDb().query('SELECT 1 FROM documents')
+      expect(r.rowCount).toBe(0)
     })
   })
 })

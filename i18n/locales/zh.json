@@ -1778,6 +1778,28 @@
     "page": {
       "updated": "更新于 {date}",
       "unreviewed": "此译文尚未经过审校，以英文页面为准。"
+    },
+    "tryIt": {
+      "start": "编辑这个示例",
+      "editorLabel": "Markdown 编辑器",
+      "preview": "预览",
+      "pages": "{n} 页",
+      "tabEdit": "编辑",
+      "tabPreview": "预览",
+      "previewLoading": "正在加载预览…",
+      "previewFailed": "预览无法加载。请刷新页面后重试。",
+      "open": "作为文档打开",
+      "pdf": "下载 PDF",
+      "noticeAnon": "两个按钮都会用你的文字创建一个文档。任何拥有链接的人都可以编辑它，{n} 天无编辑后删除。",
+      "noticeAnonKept": "两个按钮都会用你的文字创建一个文档。任何拥有链接的人都可以编辑它。",
+      "noticeAccount": "两个按钮都会用你的文字在你的账户中创建一个文档。",
+      "openCreated": "打开文档",
+      "errors": {
+        "create": "无法创建文档。请重试。",
+        "tooLong": "这段文字太长，无法在这里转为文档。请新建一个文档，然后粘贴进去。",
+        "pdf": "文档已创建，但暂时无法生成 PDF。请稍后重试。",
+        "pdfRateLimited": "过去一分钟内来自你所在网络的 PDF 太多。请一分钟后重试。"
+      }
     }
   }
 }

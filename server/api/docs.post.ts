@@ -4,6 +4,7 @@ import { enforceAnonGate } from '../utils/anonGate/gate'
 import { ANON_DOC_CREATE_LIMITS } from '~~/shared/config/anonLimits'
 import { isAudienceKind, type AudienceKind } from '~~/shared/audiences'
 import { isTemplateId } from '~~/shared/templates'
+import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 
 // Document creation. Anonymous creation is allowed — falls back to
 // `open-edit` access mode with no workspace — but gated (hosted shape,
@@ -28,6 +29,7 @@ interface RawBody {
   templateId?: unknown
   themePreset?: unknown
   themeId?: unknown
+  content?: unknown
 }
 
 export default defineEventHandler(async (event) => {
@@ -76,6 +78,17 @@ export default defineEventHandler(async (event) => {
   if (body.themeId !== undefined && typeof body.themeId !== 'string') {
     throw createError({ statusCode: 400, message: 'themeId must be a string' })
   }
+  // Optional starting Markdown (the marketing `::try-it` block): stored as
+  // the doc's first Y.js update, like text typed into the editor. The
+  // length is checked here too, so an oversized body never burns the
+  // visitor's bot-check solution; `createDocument` re-checks it and the
+  // mutex with templateId.
+  if (body.content !== undefined && typeof body.content !== 'string') {
+    throw createError({ statusCode: 400, message: 'content must be a string' })
+  }
+  if (typeof body.content === 'string' && body.content.length > INITIAL_CONTENT_MAX_LENGTH) {
+    throw createError({ statusCode: 400, message: `Content too long (max ${INITIAL_CONTENT_MAX_LENGTH} characters)`, data: { code: 'docs/content-too-long' } })
+  }
 
   // Anonymous gate AFTER the cheap shape checks (a malformed body never
   // burns the visitor's solution) and BEFORE anything is written.
@@ -101,7 +114,8 @@ export default defineEventHandler(async (event) => {
     language: body.language as string | undefined,
     templateId,
     themePreset: body.themePreset as string | undefined,
-    themeId: body.themeId as string | undefined
+    themeId: body.themeId as string | undefined,
+    content: typeof body.content === 'string' ? body.content : undefined
   })
   return { docId: result.docId }
 })

@@ -20,7 +20,10 @@ import { consumeRenderAllowance } from '../../../utils/renderRateLimit'
 //   3. Mint a 120s presigned GET against the manifest's pdfKey, with the
 //      response Content-Disposition forced to attachment so browsers
 //      download instead of displaying inline.
-//   4. 302 redirect.
+//   4. 302 redirect — or, with `?response=json`, `{ url }` (same
+//      presigned URL, `no-store`). The marketing `::try-it` block uses it
+//      so a refusal (429 / 502 / 503) reaches its script as an error it
+//      can explain, instead of navigating the tab to a JSON error page.
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 10 renders per client per minute, shared with the MCP
@@ -100,5 +103,9 @@ export default defineEventHandler(async (event) => {
     { expiresIn: 120 }
   )
 
+  if (getQuery(event).response === 'json') {
+    setResponseHeader(event, 'Cache-Control', PRIVATE_NO_STORE)
+    return { url }
+  }
   return sendPrivateRedirect(event, url)
 })

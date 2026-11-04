@@ -1778,6 +1778,28 @@
     "page": {
       "updated": "Actualizado el {date}",
       "unreviewed": "Esta traducción aún no se ha revisado. La página en inglés es la referencia."
+    },
+    "tryIt": {
+      "start": "Editar este ejemplo",
+      "editorLabel": "Editor de Markdown",
+      "preview": "Vista previa",
+      "pages": "{n} página | {n} páginas",
+      "tabEdit": "Editar",
+      "tabPreview": "Vista previa",
+      "previewLoading": "Cargando la vista previa…",
+      "previewFailed": "No se pudo cargar la vista previa. Recarga la página para volver a intentarlo.",
+      "open": "Abrir como documento",
+      "pdf": "Descargar PDF",
+      "noticeAnon": "Ambos botones crean un documento con tu texto. Cualquiera con el enlace puede editarlo, y se borra tras {n} día sin cambios. | Ambos botones crean un documento con tu texto. Cualquiera con el enlace puede editarlo, y se borra tras {n} días sin cambios.",
+      "noticeAnonKept": "Ambos botones crean un documento con tu texto. Cualquiera con el enlace puede editarlo.",
+      "noticeAccount": "Ambos botones crean un documento con tu texto en tu cuenta.",
+      "openCreated": "Abrir el documento",
+      "errors": {
+        "create": "No se pudo crear el documento. Inténtalo de nuevo.",
+        "tooLong": "Este texto es demasiado largo para convertirlo aquí en un documento. Crea un documento nuevo y pégalo allí.",
+        "pdf": "El documento se ha creado, pero ahora mismo no se pudo generar el PDF. Inténtalo de nuevo en un momento.",
+        "pdfRateLimited": "Demasiados PDF desde tu red en el último minuto. Inténtalo de nuevo dentro de un minuto."
+      }
     }
   }
 }

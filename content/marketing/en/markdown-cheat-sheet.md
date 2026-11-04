@@ -307,6 +307,37 @@ source: |
 
 Every detail, including image captions and the full attribute rules, is in the [Markdown reference](/docs/writing/markdown-reference).
 
+## Try it yourself
+
+Edit the Markdown and the pages follow as you type, rendered the way markoto renders them. Nothing is saved while you type.
+
+::try-it{theme="modern"}
+---
+source: |
+  # Field notes
+
+  A short report with the syntax from this page.
+
+  ## Findings
+
+  - [x] Headings, **bold** and *italic*
+  - [x] Tables and footnotes[^1]
+  - [ ] Your own text
+
+  | Week | Visits | Change |
+  |:-----|-------:|-------:|
+  | 1    |  1,240 |      – |
+  | 2    |  1,610 |   +30% |
+
+  > [!TIP]
+  > Add `<!-- pagebreak -->` on its own line to start a new page.
+
+  The area of a circle is $A = \pi r^2$.
+
+  [^1]: Footnotes appear at the foot of the page.
+---
+::
+
 ::cta{title="Try it with your own Markdown." secondary-label="Read the docs" secondary-to="/docs/writing/markdown-reference"}
 markoto shows each page as you type and exports a PDF that matches it. Free on markoto.app, no sign-up needed.
 ::
