@@ -555,7 +555,7 @@ export const DuplicateDocumentArgs = z.object({
 export const ExportDocumentAsMarkdownArgs = z.object({
   doc_id: z.string().min(1)
     .describe('The doc id to export.')
-}).describe('Read a document\'s full markdown body. Use to deliver the doc to the user as text, archive a snapshot, or feed it into another tool. Same source as view_document but returns the raw markdown without line-number prefixes.')
+}).describe('Export a document as a markoto Markdown file: YAML frontmatter (title, description, audience, language, templateId, theme) followed by the body without line-number prefixes. Use to deliver the doc to the user as a file, archive a snapshot, or feed it into another tool.')
 
 const ViewOtherDocumentArgs = z.object({
   doc_id: z.string().trim().min(1).max(2048)
@@ -723,7 +723,7 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   ),
   decl(
     'export_document_as_markdown',
-    'Read a document\'s full markdown body — same source as view_document but without line-number prefixes. Use when the caller wants the raw doc text (deliver to user, archive, feed to another tool). Different from view_document, which is for AI inspection of the working text.',
+    'Export a document as a markoto Markdown file — the same file the editor\'s "Download Markdown" writes: YAML frontmatter (markoto version, title, description, audience, language, templateId, theme) followed by the full body without line-number prefixes. Importing the file restores the theme and properties. Use when the caller wants the doc as a file (deliver to user, archive, feed to another tool). Different from view_document, which is for AI inspection of the working text.',
     ExportDocumentAsMarkdownArgs
   ),
   decl(
