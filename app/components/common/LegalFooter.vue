@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { selfHostPath } from '~~/shared/seo/marketing'
+
 // Site footer: the user documentation and, on the hosted SaaS, the legal
 // documents. Mounted on /, /pricing, /settings/profile, the /legal/* and
 // /admin pages and the /docs layout; deliberately NOT in the editor or
@@ -35,7 +37,7 @@ const siteLinks = computed<FooterLink[]>(() => [
   ...(pricingVisible.value ? [{ to: '/pricing', label: t('marketing.nav.pricing'), testid: 'footer-pricing-link' }] : []),
   ...(marketingSite.value
     ? [
-        { to: '/docs/getting-started/self-hosting', label: t('marketing.nav.selfHost'), testid: 'footer-self-host-link' },
+        { to: selfHostPath(marketingSite.value), label: t('marketing.nav.selfHost'), testid: 'footer-self-host-link' },
         ...nav.value.useCases,
         ...nav.value.compare
       ]

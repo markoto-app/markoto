@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
+import { selfHostPath } from '~~/shared/seo/marketing'
 
 // Site header of the public pages: the home page (tour, plain hero and
 // dashboard), /pricing and the marketing pages (layouts/marketing.vue).
@@ -24,7 +25,6 @@ const { marketingSite } = useInstanceConfig()
 const { pricingVisible } = useBillingMode()
 const nav = useMarketingNav()
 
-const SELF_HOST_PATH = '/docs/getting-started/self-hosting'
 const marketingLinks = computed(() => marketingSite.value && !loggedIn.value)
 
 interface FlatLink { label: string, to: string, testid: string }
@@ -32,7 +32,7 @@ const leading = computed<FlatLink[]>(() => pricingVisible.value
   ? [{ label: t('marketing.nav.pricing'), to: '/pricing', testid: 'header-pricing-link' }]
   : [])
 const trailing = computed<FlatLink[]>(() => marketingLinks.value
-  ? [{ label: t('marketing.nav.selfHost'), to: SELF_HOST_PATH, testid: 'header-self-host-link' }]
+  ? [{ label: t('marketing.nav.selfHost'), to: selfHostPath(marketingSite.value), testid: 'header-self-host-link' }]
   : [])
 
 interface Menu { label: string, items: DropdownMenuItem[], testid: string }

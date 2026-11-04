@@ -74,6 +74,11 @@ A converter turns Markdown into one long HTML page and prints it. markoto lays t
 Every document has a theme: fonts, colours, margins, columns, tables, the header, the footer and the cover. Seven presets are built in: markoto, Modern, Academic Paper (two columns), Tech Report, Business Report, Novel and Newsletter. Pick one, then change any detail. The preview and the PDF use the same theme. When no setting does what you want, you can add your own [CSS](/docs/themes/custom-css) to a document.
 
 ::flow-strip{id="pick-a-theme" frames="05,14"}
+---
+captions:
+  - The Academic Paper preset sets the text in a serif, justified in two columns, and adds a cover page.
+  - The markoto preset with its cover page, which has the logo, the title and the date but no page number.
+---
 ::
 
 More in the docs: [pick a theme](/docs/themes/pick-a-theme), [edit the cover page](/docs/themes/cover-page), [fonts, colours and page layout](/docs/themes/customize).

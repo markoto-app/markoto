@@ -73,7 +73,7 @@ Besides CommonMark and GitHub Markdown (tables, task lists, footnotes, alerts), 
 
 Every document has its own link. Copy it from the share dialog and send it; whoever opens it sees your changes as you type. Owners can make the link read-only or put a password on it, and the dialog also shows the link as a QR code. Details in the [sharing docs](/docs/sharing).
 
-::flow-strip{id="quick-share" frames="13"}
+::flow-strip{id="quick-share" frames="13" caption="The share dialog, with the document's link at the top and the access mode below it."}
 ::
 
 ## Your text stays Markdown
