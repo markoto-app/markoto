@@ -58,6 +58,15 @@ describe('content ↔ route paths', () => {
     expect(parseMarketingContentPath('/marketing/es/x')).toBeNull()
     expect(parseMarketingContentPath('/docs/en/x')).toBeNull()
   })
+
+  it('handles nested slugs and section index pages (/compare, /compare/hackmd)', () => {
+    // content/marketing/en/compare/index.md → content path /marketing/en/compare
+    expect(parseMarketingContentPath('/marketing/en/compare')).toEqual({ locale: 'en', slug: 'compare' })
+    expect(parseMarketingContentPath('/marketing/en/compare/hackmd')).toEqual({ locale: 'en', slug: 'compare/hackmd' })
+    expect(parseMarketingRoute('/compare/google-docs')).toEqual({ locale: 'en', slug: 'compare/google-docs' })
+    expect(marketingRoutePath('en', 'compare/hackmd')).toBe('/compare/hackmd')
+    expect(marketingContentPath('en', 'compare/hackmd')).toBe('/marketing/en/compare/hackmd')
+  })
 })
 
 describe('indexing + hreflang', () => {

@@ -1,0 +1,133 @@
+# Claim data for /compare/hedgedoc (content/marketing/en/compare/hedgedoc.md).
+# Each value: what the table shows, where it comes from, when it was checked.
+# markoto's sources point at its docs (site paths) or the code (repo paths).
+# Re-check a competitor value at its source before changing `checked`.
+name: HedgeDoc
+rows:
+  - feature: Licence
+    markoto:
+      value: Source-available (FSL-1.1, becomes Apache-2.0 after two years)
+      source: LICENSE
+      checked: '2026-11-04'
+    competitor:
+      value: AGPL-3.0 (open source)
+      source: https://github.com/hedgedoc/hedgedoc
+      checked: '2026-11-04'
+  - feature: Price
+    markoto:
+      value: Free, hosted or self-hosted
+      source: /docs/account/plans
+      checked: '2026-11-04'
+    competitor:
+      value: Free
+      source: https://hedgedoc.org/
+      checked: '2026-11-04'
+  - feature: Self-hosting
+    markoto:
+      value: true
+      source: /docs/getting-started/self-hosting
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://hedgedoc.org/
+      checked: '2026-11-04'
+  - feature: Docker setup
+    markoto:
+      value: App, sync server, Postgres, Valkey, S3 storage, AI gateway, PDF renderer, converter; about 6 GB RAM
+      source: /docs/getting-started/self-hosting
+      checked: '2026-11-04'
+    competitor:
+      value: App and Postgres (example Compose file)
+      source: https://docs.hedgedoc.org/setup/docker/
+      checked: '2026-11-04'
+  - feature: Hosted service
+    markoto:
+      value: markoto.app, stored in the EU
+      source: /legal/privacy
+      checked: '2026-11-04'
+    competitor:
+      value: Demo instance only
+      source: https://hedgedoc.org/
+      checked: '2026-11-04'
+  - feature: Release status
+    markoto:
+      value: Version 0.x, a young project
+      source: CHANGELOG.md
+      checked: '2026-11-04'
+    competitor:
+      value: 1.12.0 is the latest release; 1.x is maintenance-only, 2.0 is a rewrite in development
+      source: https://github.com/hedgedoc/hedgedoc
+      checked: '2026-11-04'
+  - feature: Real-time co-editing
+    markoto:
+      value: true
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://hedgedoc.org/
+      checked: '2026-11-04'
+  - feature: Sharing permissions
+    markoto:
+      value: 4 access modes, incl. password; workspace roles
+      source: /docs/sharing
+      checked: '2026-11-04'
+    competitor:
+      value: 6 permission levels per note
+      source: https://github.com/hedgedoc/hedgedoc/blob/master/public/docs/features.md
+      checked: '2026-11-04'
+  - feature: Version history
+    markoto:
+      value: Every edit, with a diff and restore
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: Revisions you can compare, download or revert to
+      source: https://github.com/hedgedoc/hedgedoc/blob/master/public/docs/features.md
+      checked: '2026-11-04'
+  - feature: Slide mode
+    note: HedgeDoc uses reveal.js.
+    markoto:
+      value: false
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://hedgedoc.org/
+      checked: '2026-11-04'
+  - feature: Math and diagrams
+    markoto:
+      value: KaTeX math, Mermaid diagrams
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: MathJax math; Mermaid, Graphviz, flow charts, sequence diagrams, ABC notation
+      source: https://github.com/hedgedoc/hedgedoc/blob/master/public/docs/features.md
+      checked: '2026-11-04'
+  - feature: PDF export
+    markoto:
+      value: Paged PDF with print themes
+      source: /docs/import-export/polished-pdf
+      checked: '2026-11-04'
+    competitor:
+      value: Removed for security reasons; browser print instead
+      source: https://docs.hedgedoc.org/faq/
+      checked: '2026-11-04'
+  - feature: Other downloads
+    markoto:
+      value: Markdown
+      source: /docs/import-export/save-markdown
+      checked: '2026-11-04'
+    competitor:
+      value: Markdown, HTML, raw HTML
+      source: https://github.com/hedgedoc/hedgedoc/blob/master/public/docs/features.md
+      checked: '2026-11-04'
+  - feature: Import
+    markoto:
+      value: DOCX, PDF, PPTX, XLSX, HTML, EPUB, Markdown
+      source: /docs/import-export/import-existing
+      checked: '2026-11-04'
+    competitor:
+      value: Markdown from Dropbox, or pasted text
+      source: https://github.com/hedgedoc/hedgedoc/blob/master/public/docs/features.md
+      checked: '2026-11-04'

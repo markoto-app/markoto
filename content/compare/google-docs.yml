@@ -1,0 +1,119 @@
+# Claim data for /compare/google-docs (content/marketing/en/compare/google-docs.md).
+# Each value: what the table shows, where it comes from, when it was checked.
+# markoto's sources point at its docs (site paths) or the code (repo paths).
+# Re-check a competitor value at its source before changing `checked`.
+# Workspace prices: the pricing page only served CHF (also with hl/gl US
+# parameters), so no USD figure is claimed; the cell points at the page.
+name: Google Docs
+rows:
+  - feature: What you write
+    markoto:
+      value: Markdown, stored as plain text
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: Rich text; Markdown import, export and paste since July 2024
+      source: https://workspaceupdates.googleblog.com/2024/07/import-and-export-markdown-in-google-docs.html
+      checked: '2026-11-04'
+  - feature: Price
+    markoto:
+      value: Free on markoto.app; paid plans not launched yet
+      source: /docs/account/plans
+      checked: '2026-11-04'
+    competitor:
+      value: Free with a Google account; paid Workspace plans on its pricing page
+      source: https://workspace.google.com/pricing
+      checked: '2026-11-04'
+  - feature: Real-time co-editing
+    markoto:
+      value: true
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://workspace.google.com/products/docs/
+      checked: '2026-11-04'
+  - feature: Comments
+    markoto:
+      value: true
+      source: /docs/writing/comments
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://workspace.google.com/products/docs/
+      checked: '2026-11-04'
+  - feature: Suggesting mode
+    note: markoto keeps every version, with restore, instead.
+    markoto:
+      value: false
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://support.google.com/docs/answer/6033474
+      checked: '2026-11-04'
+  - feature: Version history
+    markoto:
+      value: Every edit, with a diff and restore
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: Restore earlier versions; up to 40 named versions
+      source: https://support.google.com/docs/answer/190843
+      checked: '2026-11-04'
+  - feature: Offline editing
+    note: markoto keeps edits made during a short connection drop.
+    markoto:
+      value: false
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: In Chrome or Edge, after turning it on
+      source: https://support.google.com/docs/answer/6388102
+      checked: '2026-11-04'
+  - feature: Citations and bibliography
+    note: markoto has footnotes.
+    markoto:
+      value: false
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: MLA, APA, Chicago author-date
+      source: https://support.google.com/docs/answer/10090962
+      checked: '2026-11-04'
+  - feature: PDF export
+    markoto:
+      value: Paged PDF from print themes, with cover page, headers and footers
+      source: /docs/import-export/polished-pdf
+      checked: '2026-11-04'
+    competitor:
+      value: Download as PDF
+      source: https://support.google.com/docs/answer/49114
+      checked: '2026-11-04'
+  - feature: AI assistance
+    markoto:
+      value: Built in; your own AI key or a small free monthly allowance
+      source: /docs/writing/ai-overview
+      checked: '2026-11-04'
+    competitor:
+      value: Gemini, on eligible Workspace or Google AI plans
+      source: https://support.google.com/docs/answer/13951448
+      checked: '2026-11-04'
+  - feature: Self-hosting
+    markoto:
+      value: Free, with Docker Compose
+      source: /docs/getting-started/self-hosting
+      checked: '2026-11-04'
+    competitor:
+      value: false
+      source: https://workspace.google.com/pricing
+      checked: '2026-11-04'
+  - feature: Where data is stored
+    markoto:
+      value: EU (OVHcloud, France) on markoto.app; your server when self-hosted
+      source: /legal/privacy
+      checked: '2026-11-04'
+    competitor:
+      value: US or Europe with Data Regions, on Business Standard and higher editions
+      source: https://knowledge.workspace.google.com/admin/compliance/compare-data-region-features-across-google-workspace-editions?hl=en
+      checked: '2026-11-04'

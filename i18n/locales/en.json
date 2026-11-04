@@ -1768,7 +1768,12 @@
     "compare": {
       "yes": "Yes",
       "no": "No",
-      "partial": "Partly"
+      "partial": "Partly",
+      "checked": "Facts checked on {date}.",
+      "caption": "Checked on {date}. Sources are listed at the end of the page.",
+      "sources": "Sources",
+      "markotoSources": "markoto (documentation and code)",
+      "trademark": "{name} is a trademark of its owner. markoto is not affiliated with {name}. Prices and features change; the sources show the current state."
     },
     "page": {
       "updated": "Updated {date}",

@@ -1,0 +1,145 @@
+# Claim data for /compare/overleaf (content/marketing/en/compare/overleaf.md).
+# Each value: what the table shows, where it comes from, when it was checked.
+# markoto's sources point at its docs (site paths) or the code (repo paths).
+# Re-check a competitor value at its source before changing `checked`.
+# Overleaf prices: in USD (overleaf.com/user/subscription/plans?currency=USD,
+# which says "All prices displayed are in USD"), billed monthly.
+name: Overleaf
+rows:
+  - feature: What you write
+    markoto:
+      value: Markdown
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: LaTeX; Markdown inside LaTeX via the markdown package
+      source: https://www.overleaf.com/learn/how-to/Writing_Markdown_in_LaTeX_Documents
+      checked: '2026-11-04'
+  - feature: Price
+    markoto:
+      value: Free on markoto.app; paid plans not launched yet
+      source: /docs/account/plans
+      checked: '2026-11-04'
+    competitor:
+      value: Free; Student $13, Standard $25, Pro $45 per month (billed monthly)
+      source: https://www.overleaf.com/user/subscription/plans?currency=USD
+      checked: '2026-11-04'
+  - feature: Collaborators per project
+    markoto:
+      value: No limit
+      source: /docs/sharing
+      checked: '2026-11-04'
+    competitor:
+      value: 1 on Free, 10 on Student and Standard, unlimited on Pro
+      source: https://www.overleaf.com/plans
+      checked: '2026-11-04'
+  - feature: Real-time co-editing
+    markoto:
+      value: true
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://docs.overleaf.com/collaborating/collaborating-in-overleaf.md
+      checked: '2026-11-04'
+  - feature: Comments
+    markoto:
+      value: true
+      source: /docs/writing/comments
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://docs.overleaf.com/collaborating/commenting.md
+      checked: '2026-11-04'
+  - feature: Track changes
+    note: markoto keeps every version, with restore, instead.
+    markoto:
+      value: false
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: Paid plans
+      source: https://www.overleaf.com/plans
+      checked: '2026-11-04'
+  - feature: Version history
+    markoto:
+      value: Every edit, with a diff and restore
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: Last 24 hours on Free; full history on paid plans
+      source: https://www.overleaf.com/plans
+      checked: '2026-11-04'
+  - feature: Citations and bibliography
+    note: markoto has footnotes, but no BibTeX.
+    markoto:
+      value: false
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: BibTeX, natbib, biblatex
+      source: https://docs.overleaf.com/citing-and-references/creating-a-bibliography.md
+      checked: '2026-11-04'
+  - feature: Reference managers
+    markoto:
+      value: false
+      source: /docs/import-export
+      checked: '2026-11-04'
+    competitor:
+      value: Zotero, Mendeley, ReadCube on paid plans
+      source: https://www.overleaf.com/plans
+      checked: '2026-11-04'
+  - feature: Git and GitHub
+    markoto:
+      value: false
+      source: /docs/import-export
+      checked: '2026-11-04'
+    competitor:
+      value: Paid plans
+      source: https://www.overleaf.com/plans
+      checked: '2026-11-04'
+  - feature: Math
+    markoto:
+      value: KaTeX (LaTeX math syntax)
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: Full LaTeX
+      source: https://docs.overleaf.com/
+      checked: '2026-11-04'
+  - feature: PDF output
+    markoto:
+      value: Paged preview and PDF from print themes (CSS)
+      source: /docs/import-export/polished-pdf
+      checked: '2026-11-04'
+    competitor:
+      value: Compiled with LaTeX; longer compile timeout on paid plans
+      source: https://www.overleaf.com/plans
+      checked: '2026-11-04'
+  - feature: AI assistance
+    markoto:
+      value: Built in; your own AI key or a small free monthly allowance
+      source: /docs/writing/ai-overview
+      checked: '2026-11-04'
+    competitor:
+      value: 5 uses per day on Free; more on paid plans
+      source: https://www.overleaf.com/plans
+      checked: '2026-11-04'
+  - feature: Self-hosting
+    markoto:
+      value: Free, with Docker Compose
+      source: /docs/getting-started/self-hosting
+      checked: '2026-11-04'
+    competitor:
+      value: Community Edition (AGPL-3.0); Server Pro for organisations
+      source: https://github.com/overleaf/overleaf
+      checked: '2026-11-04'
+  - feature: Hosting providers of the hosted service
+    markoto:
+      value: OVHcloud, EU (France)
+      source: /legal/privacy
+      checked: '2026-11-04'
+    competitor:
+      value: AWS, Google Cloud, Heroku, MongoDB Atlas, listed as US
+      source: https://docs.overleaf.com/accounts-and-security/overleaf-data-processors
+      checked: '2026-11-04'
