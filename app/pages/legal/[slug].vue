@@ -51,8 +51,8 @@ const { data, error, pending, refresh } = await useFetch<LegalDocResponse>(
 
 useHead(() => ({
   title: data.value
-    ? `${data.value.title} · markoto`
-    : `Legal · markoto`
+    ? data.value.title
+    : 'Legal'
 }))
 
 function onClose(): void {

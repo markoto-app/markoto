@@ -1,6 +1,6 @@
 ---
 title: Plans and limits
-description: What you get today - a free tier with every writing feature - and what paid plans will add. Self-hosted instances have no plans, only limits their operator sets.
+description: What you get today - a free tier with every writing feature - and what paid plans will add. Self-hosted instances have only the limits their operator sets.
 category: account
 order: 1
 featured: true

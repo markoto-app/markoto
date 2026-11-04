@@ -38,6 +38,12 @@ done
 # the same truthy spellings the app accepts (1/true/yes/on).
 NUXT_BILLING_ENABLED="${NUXT_BILLING_ENABLED:-false}"
 NUXT_PLANS_COMING_SOON="${NUXT_PLANS_COMING_SOON:-true}"
+
+# Search-engine indexing (shared/config/instance.ts#resolveSiteIndexable).
+# Default true; .github/workflows/deploy.yml passes false for every
+# environment but prod, so staging answers robots.txt `Disallow: /` and
+# `X-Robots-Tag: noindex` on every response.
+NUXT_SITE_INDEXABLE="${NUXT_SITE_INDEXABLE:-true}"
 case "$(echo "$NUXT_BILLING_ENABLED" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')" in
   1|true|yes|on)
     for v in \
@@ -106,6 +112,7 @@ OVH_PG_CA_REMOTE_PATH="${OVH_PG_CA_REMOTE_PATH:-/opt/markoto/secrets/ovh-pg-ca.p
 # Plain values are emitted unchanged (byte-identical to infra/templates/env.j2).
 VALKEY_TLS_ENABLED="$(echo "$VALKEY_TLS_ENABLED" | tr '[:upper:]' '[:lower:]')"
 NUXT_AI_BYOK_ALLOW_PRIVATE_URLS="$(echo "$NUXT_AI_BYOK_ALLOW_PRIVATE_URLS" | tr '[:upper:]' '[:lower:]')"
+NUXT_SITE_INDEXABLE="$(echo "$NUXT_SITE_INDEXABLE" | tr '[:upper:]' '[:lower:]')"
 
 # DOMAIN is spliced into URLs (wss://sync.${DOMAIN}), so it must be a plain
 # hostname rather than a quoted value.
@@ -134,7 +141,7 @@ for n in \
   NUXT_OAUTH_GITHUB_CLIENT_ID NUXT_OAUTH_GITHUB_CLIENT_SECRET NUXT_OAUTH_GOOGLE_CLIENT_ID \
   NUXT_OAUTH_GOOGLE_CLIENT_SECRET NUXT_PLANS_COMING_SOON NUXT_PUBLIC_SENTRY_DSN \
   NUXT_S3_ACCESS_KEY NUXT_S3_BUCKET NUXT_S3_ENDPOINT \
-  NUXT_S3_SECRET_KEY NUXT_SESSION_PASSWORD NUXT_STRIPE_AUTOMATIC_TAX \
+  NUXT_S3_SECRET_KEY NUXT_SESSION_PASSWORD NUXT_SITE_INDEXABLE NUXT_STRIPE_AUTOMATIC_TAX \
   NUXT_STRIPE_PRICE_MAX NUXT_STRIPE_PRICE_PRO NUXT_STRIPE_PRICE_ULTRA \
   NUXT_STRIPE_SECRET_KEY NUXT_STRIPE_WEBHOOK_SECRET NUXT_WEB_TOOLS_DAILY_LIMIT \
   NUXT_WEB_TOOLS_HOURLY_LIMIT OVH_PG_CA_REMOTE_PATH POSTGRES_APP_PASSWORD \
@@ -272,8 +279,11 @@ NUXT_LEGAL_SURFACES_ENABLED=true
 # the legal surfaces; pinned on for the hosted service.
 NUXT_ANON_GATE_ENABLED=true
 
-# ─── Product tour (hosted: scroll-driven product page at / for logged-out visitors) ───
-NUXT_PRODUCT_TOUR_ENABLED=true
+# ─── Marketing site (hosted: product tour at /, sitemap, JSON-LD, marketing pages) ───
+# Replaces NUXT_PRODUCT_TOUR_ENABLED (still read as an alias for one release).
+NUXT_MARKETING_SITE_ENABLED=true
+# Search-engine indexing: false on staging (robots.txt Disallow: / + noindex).
+NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE}
 
 # ─── Stripe billing (only read when NUXT_BILLING_ENABLED is true) ───
 NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:-}

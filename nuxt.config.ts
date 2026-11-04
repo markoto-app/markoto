@@ -59,10 +59,6 @@ export default defineNuxtConfig({
     enabled: true
   },
 
-  app: {
-    head: { title: 'markoto — Collaborative Markdown' }
-  },
-
   css: ['~/assets/css/main.css'],
 
   ui: {

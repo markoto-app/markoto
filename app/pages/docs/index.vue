@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DOCS_LANDING_SEO } from '~~/shared/seo/meta'
+
 // /docs landing page. Hand-written (not driven by a markdown file)
 // because it's mostly UI affordances — category cards + featured-flow
 // shortcuts — rather than prose. The catch-all [...slug].vue handles
@@ -15,9 +17,9 @@ const { data: featured } = await useAsyncData('docs:featured', () =>
     .all()
 )
 
-useSeoMeta({
-  title: 'Documentation — markoto',
-  description: 'Guides, walkthroughs, and reference for the markoto collaborative markdown editor.'
+useMarketingSeo({
+  title: DOCS_LANDING_SEO.title,
+  description: DOCS_LANDING_SEO.description
 })
 
 definePageMeta({ layout: 'docs' })

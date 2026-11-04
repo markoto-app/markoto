@@ -584,6 +584,7 @@
   "pricing": {
     "title": "Pricing",
     "subtitle": "Pick the plan that fits. Plans set your limits: AI Points, workspaces and storage. AI on your own provider key is never limited by a plan.",
+    "metaDescription": "Compare markoto plans: AI Points, workspaces and storage per plan. AI on your own provider key is never limited by a plan.",
     "aiCreditsPerMonth": "AI Points/month",
     "creditsHint": "AI Points cover AI the instance pays for: 1000 points = 1 US dollar of model usage. AI on your own provider key is billed by your provider and uses no points.",
     "workspaces": "workspaces",

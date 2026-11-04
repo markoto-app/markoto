@@ -33,7 +33,7 @@ const { loggedIn, user } = useUserSession()
 const { anonGate, primaryLoginPath } = useInstanceConfig()
 const toast = useToast()
 
-useHead({ title: () => `${t('legal.abuse.title')} · markoto` })
+useHead({ title: () => t('legal.abuse.title') })
 
 const categories = computed(() => REPORT_CATEGORIES.map(value => ({
   value,

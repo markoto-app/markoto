@@ -37,7 +37,7 @@ async function onAct(): Promise<void> {
 const copyKey = computed(() => `waitlist.${props.action}`)
 
 useHead({
-  title: () => `${t(`${copyKey.value}.title`)} · markoto`,
+  title: () => t(`${copyKey.value}.title`),
   // Single-use links: keep them out of search indexes.
   meta: [{ name: 'robots', content: 'noindex' }]
 })

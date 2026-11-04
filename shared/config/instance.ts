@@ -26,11 +26,20 @@
 //   | Self-hosted (default)         | false                       |
 //   | Hosted SaaS                   | true                        |
 //
-// 3. Product tour — the scroll-driven product page shown at `/` to
-//    logged-out visitors (WP11, `app/components/landing/ProductTour.vue`).
-//    It markets the hosted service, so it is OFF by default; markoto.app
-//    turns it on with NUXT_PRODUCT_TOUR_ENABLED=true. Self-hosted
-//    instances keep the plain hero + "new document" page.
+// 3. Marketing site — "this instance IS markoto.app". Turns on the
+//    scroll-driven product page at `/` for logged-out visitors (WP11,
+//    `app/components/landing/ProductTour.vue`), the sitemap
+//    (`server/routes/sitemap.xml.ts`), the `Sitemap:` line in robots.txt,
+//    the JSON-LD on `/` and the `marketing-pages` route middleware for
+//    hosted-only pages. OFF by default; markoto.app sets
+//    NUXT_MARKETING_SITE_ENABLED=true. Self-hosted instances keep the
+//    plain hero + "new document" page. The former name
+//    NUXT_PRODUCT_TOUR_ENABLED is still read as an alias (one release).
+//
+// 4. SEO facts — the public origin (`NUXT_SITE_URL`, for canonical /
+//    og:url), where `/docs/**` canonicals point (`NUXT_DOCS_CANONICAL_BASE`)
+//    and whether search engines may index the instance at all
+//    (`NUXT_SITE_INDEXABLE`, server-only — staging renders false).
 //
 // Pure — takes an env-shaped record so every test tier can drive it.
 
@@ -67,8 +76,23 @@ export interface InstanceConfig {
    * Empty = show nothing operator-specific.
    */
   operatorName: string
-  /** Scroll-driven product page at `/` for logged-out visitors (hosted only). */
-  productTour: boolean
+  /**
+   * This instance is the hosted marketing site (markoto.app): product
+   * tour at `/`, sitemap, JSON-LD, hosted-only marketing pages.
+   */
+  marketingSite: boolean
+  /**
+   * Public origin (`NUXT_SITE_URL`, e.g. `https://markoto.app`), no
+   * trailing slash. Empty when unset/invalid: no canonical / og:url is
+   * emitted then. Never derived from the request Host.
+   */
+  siteUrl: string
+  /**
+   * Origin that `/docs/**` canonicals point to. Empty = the instance's
+   * own `siteUrl`. Self-hosted instances default to markoto.app so their
+   * bundled copy of the docs does not compete with the original.
+   */
+  docsCanonicalBase: string
   /**
    * Anonymous visitors pass the bot check + accept the terms before their
    * first document and may report content without signing in
@@ -79,13 +103,18 @@ export interface InstanceConfig {
   anonDocTtlDays: number
 }
 
+/** Where self-hosted instances point their `/docs/**` canonicals. */
+export const DEFAULT_DOCS_CANONICAL_BASE = 'https://markoto.app'
+
 /** Client-side fallback before hydration: nothing optional is offered. */
 export const MINIMAL_INSTANCE_CONFIG: InstanceConfig = Object.freeze({
   loginProviders: [],
   oidcProviderName: '',
   legalSurfaces: false,
   operatorName: '',
-  productTour: false,
+  marketingSite: false,
+  siteUrl: '',
+  docsCanonicalBase: DEFAULT_DOCS_CANONICAL_BASE,
   anonGate: false,
   anonDocTtlDays: DEFAULT_ANON_DOC_TTL_DAYS
 })
@@ -112,8 +141,60 @@ export function resolveLegalSurfacesEnabled(env: Env): boolean {
   return parseBooleanFlag(env.NUXT_LEGAL_SURFACES_ENABLED)
 }
 
-export function resolveProductTourEnabled(env: Env): boolean {
-  return parseBooleanFlag(env.NUXT_PRODUCT_TOUR_ENABLED)
+/**
+ * `NUXT_MARKETING_SITE_ENABLED`; while it is unset, the former
+ * `NUXT_PRODUCT_TOUR_ENABLED` is honoured (alias, kept for one release).
+ */
+export function resolveMarketingSiteEnabled(env: Env): boolean {
+  const raw = env.NUXT_MARKETING_SITE_ENABLED
+  return parseBooleanFlag(isSet(raw) ? raw : env.NUXT_PRODUCT_TOUR_ENABLED)
+}
+
+/** http(s) origin of a URL string, or '' when empty / invalid. */
+function originOf(raw: string | undefined): string {
+  const value = raw?.trim() ?? ''
+  if (!value) return ''
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.origin : ''
+  } catch {
+    return ''
+  }
+}
+
+/** `NUXT_SITE_URL` as an origin, '' when unset or invalid. */
+export function resolveSiteUrl(env: Env): string {
+  return originOf(env.NUXT_SITE_URL)
+}
+
+/**
+ * Origin for `/docs/**` canonicals; '' = this instance's own site URL.
+ * The marketing site is the original, so it is always self-canonical.
+ * Elsewhere: `NUXT_DOCS_CANONICAL_BASE` when set (an empty value opts
+ * into self-canonical docs), otherwise markoto.app. An unparsable value
+ * falls back to markoto.app.
+ */
+export function resolveDocsCanonicalBase(env: Env): string {
+  if (resolveMarketingSiteEnabled(env)) return ''
+  const raw = env.NUXT_DOCS_CANONICAL_BASE
+  if (raw === undefined) return DEFAULT_DOCS_CANONICAL_BASE
+  if (raw.trim() === '') return ''
+  return originOf(raw) || DEFAULT_DOCS_CANONICAL_BASE
+}
+
+const FALSY = new Set(['0', 'false', 'no', 'off'])
+
+/**
+ * `NUXT_SITE_INDEXABLE` — may search engines index this instance?
+ * Default true; only an explicit `0` / `false` / `no` / `off` turns it
+ * off (robots.txt `Disallow: /` + `X-Robots-Tag: noindex` on every
+ * response). Staging renders false. A typo keeps the site indexable, so
+ * production can never drop out of search by accident.
+ */
+export function resolveSiteIndexable(env: Env): boolean {
+  const raw = env.NUXT_SITE_INDEXABLE
+  if (raw === undefined) return true
+  return !FALSY.has(raw.trim().toLowerCase())
 }
 
 export function resolveInstanceConfig(env: Env): InstanceConfig {
@@ -125,7 +206,9 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
     operatorName: legalSurfaces
       ? resolveLegalEntity(env).controllerName
       : (env.NUXT_LEGAL_CONTROLLER_NAME?.trim() ?? ''),
-    productTour: resolveProductTourEnabled(env),
+    marketingSite: resolveMarketingSiteEnabled(env),
+    siteUrl: resolveSiteUrl(env),
+    docsCanonicalBase: resolveDocsCanonicalBase(env),
     anonGate: resolveAnonGateEnabled(env),
     anonDocTtlDays: resolveAnonDocTtlDays(env)
   }

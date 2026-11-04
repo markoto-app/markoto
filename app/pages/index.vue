@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEFAULT_TITLE } from '~~/shared/seo/meta'
 import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue'
 import type { WorkspaceInviteItem } from '~/components/workspace/WorkspaceInviteList.vue'
 
@@ -10,10 +11,20 @@ const { billing, workspaceCapReached } = useBilling()
 const toast = useToast()
 
 // Hosted markoto.app shows the scroll-driven product page to logged-out
-// visitors (NUXT_PRODUCT_TOUR_ENABLED, WP11); everyone else gets the
+// visitors (NUXT_MARKETING_SITE_ENABLED, WP11); everyone else gets the
 // plain hero + dashboard below.
-const { productTour } = useInstanceConfig()
-const showTour = computed(() => productTour.value && !loggedIn.value)
+const { marketingSite } = useInstanceConfig()
+const showTour = computed(() => marketingSite.value && !loggedIn.value)
+
+// Home: the brand-led default title, untemplated. The tour's hero copy
+// doubles as the description (same sentence as landing.subtitle).
+useMarketingSeo({
+  title: DEFAULT_TITLE,
+  description: () => (showTour.value ? t('tour.hero.body') : t('landing.subtitle')),
+  bareTitle: true
+})
+// JSON-LD (Organization + WebSite + SoftwareApplication), hosted only.
+useHomeStructuredData()
 // The tour's colours (useTourTone): it starts light and turns dark while
 // scrolling (ProductTour.vue). Only a choice made with this page's toggle
 // during this visit switches the flip off — a colour mode stored earlier

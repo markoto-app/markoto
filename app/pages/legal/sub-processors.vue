@@ -26,7 +26,7 @@ const { data: subProcessors, pending } = await useFetch<SubProcessor[]>(
   '/api/_internal/sub-processors'
 )
 
-useHead({ title: 'Sub-processors · markoto' })
+useHead({ title: 'Sub-processors' })
 
 function onClose(): void {
   if (globalThis.history.length > 1 && document.referrer) {

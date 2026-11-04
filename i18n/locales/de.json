@@ -584,6 +584,7 @@
   "pricing": {
     "title": "Preise",
     "subtitle": "Wählen Sie den passenden Tarif. Tarife legen Ihre Limits fest: KI-Punkte, Workspaces und Speicher. KI über Ihren eigenen Anbieterschlüssel ist durch keinen Tarif begrenzt.",
+    "metaDescription": "markoto-Tarife im Vergleich: KI-Punkte, Workspaces und Speicher pro Tarif. KI über Ihren eigenen Anbieterschlüssel ist nie begrenzt.",
     "aiCreditsPerMonth": "KI-Punkte/Monat",
     "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung. KI über Ihren eigenen Anbieterschlüssel rechnet Ihr Anbieter ab; sie verbraucht keine Punkte.",
     "workspaces": "Workspaces",

@@ -49,7 +49,7 @@ const mobileSiblings = computed(() =>
 )
 
 useSeoMeta({
-  title: 'Flow gallery (internal) — markoto',
+  title: 'Flow gallery (internal)',
   description: 'Every published flow at a glance.',
   // No-index: this is a debugging surface, not a marketing page.
   robots: 'noindex, nofollow'

@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { applyTitleTemplate } from '~~/shared/seo/meta'
 
-const { t } = useI18n()
+const { t, locale, localeProperties } = useI18n()
 
 useHead({
+  // `%s · markoto`; pages set only their own title. Without one: the
+  // default "markoto — Collaborative Markdown".
+  titleTemplate: title => applyTitleTemplate(title),
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
     { name: 'theme-color', content: '#FAF8F4', media: '(prefers-color-scheme: light)' },
@@ -25,16 +29,20 @@ useHead({
     ...fontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet', href }))
   ],
   htmlAttrs: {
-    lang: 'en'
+    // The active UI language (cookie / Accept-Language, `no_prefix`).
+    lang: () => localeProperties.value.language ?? locale.value
   }
 })
 
+// Fallback description; indexable pages set their own (useMarketingSeo,
+// docs frontmatter). Open Graph tags come from useMarketingSeo only, so
+// a page never shares another page's og:title.
 useSeoMeta({
-  title: 'markoto — Collaborative Markdown',
-  description: t('landing.subtitle'),
-  ogTitle: 'markoto — Collaborative Markdown',
-  ogDescription: t('landing.subtitle')
+  description: () => t('landing.subtitle')
 })
+
+// <link rel="canonical"> for every page (shared/seo/paths.ts).
+useCanonical()
 </script>
 
 <template>

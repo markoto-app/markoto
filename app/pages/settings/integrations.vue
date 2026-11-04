@@ -28,7 +28,7 @@ const { loggedIn, user } = useUserSession()
 const { primaryLoginPath } = useInstanceConfig()
 const config = useRuntimeConfig()
 
-useHead({ title: 'Integrations · markoto' })
+useHead({ title: 'Integrations' })
 
 if (import.meta.client && !loggedIn.value) {
   globalThis.location.href = primaryLoginPath.value ?? '/'
