@@ -7,9 +7,8 @@ order: 3
 
 # Save as Markdown
 
-Markdown is the lingua franca of writing tools — git, static-site
-generators, every other editor reads it. markoto's Save as Markdown
-hands you the raw `.md` file, ready to commit, paste into Obsidian, or
+Git, static-site generators and nearly every other editor read
+Markdown. Save as Markdown gives you the raw `.md` file, ready to commit, paste into Obsidian, or
 open in any other markdown editor.
 
 ::flow{id="save-as-markdown" hide-title}

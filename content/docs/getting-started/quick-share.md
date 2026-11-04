@@ -10,7 +10,7 @@ featured: true
 
 You don't need an account to write something quickly in markoto. Open
 the homepage, start writing, copy the link, and you're ready to send
-it to anyone — they'll see whatever you typed, in real time.
+it to anyone. They see what you type, in real time.
 
 This walkthrough takes about three minutes. By the end you'll have a
 named document and a shareable URL on your clipboard.

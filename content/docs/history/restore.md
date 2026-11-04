@@ -8,9 +8,8 @@ featured: true
 
 # Restore an earlier version
 
-Restore is an honest "rewind". Click any past activity row, hit
-Restore, the doc rolls back to that exact state — title, content,
-theme, all of it. Your collaborators see the rollback live. The
+Click any past activity row and press Restore. The doc rolls back to
+that exact state: title, content and theme. Your collaborators see the rollback live. The
 restore is itself a tracked activity row, so you can restore back
 to "before the restore" if you change your mind.
 

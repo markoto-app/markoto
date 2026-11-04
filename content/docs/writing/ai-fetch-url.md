@@ -7,7 +7,7 @@ order: 9
 
 # Ask the AI to read a URL
 
-Models drift; the web doesn't. When you need an answer grounded in a
+When you need an answer grounded in a
 specific page (a release note, a docs page, a blog post), drop the URL into
 your prompt and the AI reads the page before it answers.
 

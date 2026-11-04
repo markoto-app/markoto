@@ -8,10 +8,9 @@ featured: true
 
 # Tables, alerts, math, and diagrams
 
-Plain markdown gets you headings, lists, and links. markoto extends
-that with the things people actually need to publish real documents —
+Plain markdown gives you headings, lists and links. markoto adds
 syntax-highlighted code, KaTeX math, GitHub-style alert callouts, and
-eight kinds of Mermaid diagram. Everything renders in the live preview
+ten kinds of Mermaid diagram. Everything renders in the live preview
 and survives PDF export.
 
 This walkthrough drops one of each into a fresh doc. About one minute.
@@ -25,9 +24,9 @@ mobile editors get a subset via the bottom Editor drawer instead.
 
 You used the Insert menu to add four non-trivial markdown extensions:
 
-- **A code block** with a Python language hint. Languages with
-  grammars baked in pick up keyword + string highlighting
-  automatically, in the code theme you picked.
+- **A code block** with a Python language hint. Common languages get
+  keyword and string highlighting automatically, in the code theme you
+  picked.
 - **A GitHub-style "Tip" alert.** Five flavours (Note, Tip, Important,
   Warning, Caution) each have their own coloured stripe + icon.
 - **A KaTeX block equation.** Inline math (`$...$`) and block math

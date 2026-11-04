@@ -10,7 +10,7 @@ order: 4
 When two people open the same doc, they see each other's cursors,
 each other's selections, and each other's edits land character by
 character. There's no save button, no merge dialog, no conflict
-resolution prompt. It just works.
+resolution prompt.
 
 ::flow{id="two-writers-one-document" hide-title}
 ::
