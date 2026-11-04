@@ -2,8 +2,8 @@
 # Each value: what the table shows, where it comes from, when it was checked.
 # markoto's sources point at its docs (site paths) or the code (repo paths).
 # Re-check a competitor value at its source before changing `checked`.
-# Workspace prices: in CHF, as workspace.google.com/pricing shows them from a
-# Swiss IP, regular price (not the time-limited promotion).
+# Workspace prices: the pricing page only served CHF (also with hl/gl US
+# parameters), so no USD figure is claimed; the cell points at the page.
 name: Google Docs
 rows:
   - feature: What you write
@@ -21,7 +21,7 @@ rows:
       source: /docs/account/plans
       checked: '2026-11-04'
     competitor:
-      value: Free with a Google account; Workspace plans from CHF 7 per user/month
+      value: Free with a Google account; paid Workspace plans on its pricing page
       source: https://workspace.google.com/pricing
       checked: '2026-11-04'
   - feature: Real-time co-editing

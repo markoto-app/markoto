@@ -2,7 +2,8 @@
 # Each value: what the table shows, where it comes from, when it was checked.
 # markoto's sources point at its docs (site paths) or the code (repo paths).
 # Re-check a competitor value at its source before changing `checked`.
-# Overleaf prices: in CHF, as overleaf.com/plans shows them from a Swiss IP.
+# Overleaf prices: in USD (overleaf.com/user/subscription/plans?currency=USD,
+# which says "All prices displayed are in USD"), billed monthly.
 name: Overleaf
 rows:
   - feature: What you write
@@ -20,8 +21,8 @@ rows:
       source: /docs/account/plans
       checked: '2026-11-04'
     competitor:
-      value: Free; Student CHF 13, Standard CHF 25, Pro CHF 45 per month (billed monthly)
-      source: https://www.overleaf.com/plans
+      value: Free; Student $13, Standard $25, Pro $45 per month (billed monthly)
+      source: https://www.overleaf.com/user/subscription/plans?currency=USD
       checked: '2026-11-04'
   - feature: Collaborators per project
     markoto:
