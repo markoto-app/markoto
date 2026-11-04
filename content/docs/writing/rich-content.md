@@ -10,7 +10,7 @@ featured: true
 
 Plain markdown gives you headings, lists and links. markoto adds
 syntax-highlighted code, KaTeX math, GitHub-style alert callouts, and
-eight kinds of Mermaid diagram. Everything renders in the live preview
+ten kinds of Mermaid diagram. Everything renders in the live preview
 and survives PDF export.
 
 This walkthrough drops one of each into a fresh doc. About one minute.
