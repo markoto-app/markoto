@@ -12,8 +12,15 @@
 //    JWT identity of that connection instead of trusting the
 //    client-chosen `user.name`. Read-only connections are not recorded —
 //    they can't have written anything.
+//
+// 3. For anonymous writers, remember the random avatar token
+//    (`user.avatarSeed`) their awareness carries, per awareness client
+//    AND per connection, so activity rows can show the same face as the
+//    presence bar. The token is random per browser tab and is already
+//    broadcast to every peer; it is only ever taken from an anonymous
+//    writer connection (a signed-in user's avatar is seeded by id).
 
-import { normalizeAwarenessStates, type AwarenessStatesLike } from '../../shared/utils/awarenessUser'
+import { normalizeAwarenessStates, normalizeAvatarSeed, type AwarenessStatesLike } from '../../shared/utils/awarenessUser'
 import type { VerifiedIdentity } from './activity-logger'
 
 interface AwarenessChange {
@@ -45,11 +52,32 @@ export interface TrackedIdentity extends VerifiedIdentity {
 }
 
 const identitiesByDoc = new WeakMap<object, Map<number, TrackedIdentity>>()
+const anonSeedsByDoc = new WeakMap<object, WeakMap<object, string>>()
 let awarenessSeq = 0
+
+/** JWT userId of an anonymous (signed-out) connection. */
+export const ANONYMOUS_USER_ID = 'anonymous'
 
 /** Verified identities of this document's awareness clients (writers only). */
 export function awarenessIdentities(doc: object): ReadonlyMap<number, TrackedIdentity> | undefined {
   return identitiesByDoc.get(doc)
+}
+
+/**
+ * The anonymous avatar token last announced over `webSocket` (the raw
+ * socket of a Hocuspocus connection), or null. Only recorded for
+ * anonymous writer connections.
+ */
+export function anonAvatarSeedForSocket(doc: object, webSocket: unknown): string | null {
+  if (typeof webSocket !== 'object' || webSocket === null) return null
+  return anonSeedsByDoc.get(doc)?.get(webSocket) ?? null
+}
+
+/** The anonymous avatar token in an awareness state, if any. */
+function avatarSeedOfState(state: Record<string, unknown> | undefined): string | null {
+  const user = state?.user
+  if (typeof user !== 'object' || user === null) return null
+  return normalizeAvatarSeed((user as Record<string, unknown>).avatarSeed)
 }
 
 /** The writer identity carried by a connection's auth context, if any. */
@@ -68,6 +96,8 @@ export function writerIdentityFromContext(context: unknown): VerifiedIdentity | 
 export function attachAwarenessGuard(doc: GuardedDocument): void {
   const identities = new Map<number, TrackedIdentity>()
   identitiesByDoc.set(doc, identities)
+  const anonSeeds = new WeakMap<object, string>()
+  anonSeedsByDoc.set(doc, anonSeeds)
 
   doc.awareness.on('change', ({ added, updated }) => {
     normalizeAwarenessStates(doc.awareness, [...added, ...updated])
@@ -80,9 +110,16 @@ export function attachAwarenessGuard(doc: GuardedDocument): void {
     const connection = origin ? doc.getConnections().find(c => c.webSocket === origin) : undefined
     const identity = connection ? writerIdentityFromContext(connection.context) : null
     const seq = ++awarenessSeq
+    const anonymous = identity?.userId === ANONYMOUS_USER_ID
+    const states = doc.awareness.getStates()
     for (const id of [...added, ...updated]) {
-      if (identity) identities.set(id, { ...identity, seq })
-      else identities.delete(id)
+      if (!identity) {
+        identities.delete(id)
+        continue
+      }
+      const seed = anonymous ? avatarSeedOfState(states.get(id)) : null
+      identities.set(id, seed ? { ...identity, avatarSeed: seed, seq } : { ...identity, seq })
+      if (seed && typeof origin === 'object' && origin !== null) anonSeeds.set(origin, seed)
     }
   })
 }

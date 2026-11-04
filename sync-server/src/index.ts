@@ -13,7 +13,8 @@ import { logActivity, mostRecentVerifiedEditor, countWords, lineDiff, type Verif
 import { parseSyncLimits } from './limits'
 import { createUpdateGuard, SyncRejection } from './update-guard'
 import { createPreAuthGuard, parsePreAuthLimits } from './pre-auth-guard'
-import { attachAwarenessGuard, awarenessIdentities } from './awareness-guard'
+import { attachAwarenessGuard, awarenessIdentities, anonAvatarSeedForSocket, ANONYMOUS_USER_ID } from './awareness-guard'
+import { normalizeAvatarSeed } from '../../shared/utils/awarenessUser'
 import { readMetaSnapshot } from './meta-snapshot'
 import { SYNC_CLOSE_REASONS } from '../../shared/contracts/syncClose'
 import { handleInternalRequest } from './internal-http'
@@ -124,9 +125,17 @@ const server = new Server({
     // what we returned from onAuthenticate (readOnly, userId, userName).
     const ctx = (data as { context?: { userId?: string, userName?: string | null } }).context
     if (ctx?.userId) {
+      // An anonymous editor's activity rows carry the avatar token its
+      // awareness announced over this same connection (the transaction
+      // origin is the Hocuspocus Connection), so the feed shows the
+      // face the presence bar shows.
+      const avatarSeed = ctx.userId === ANONYMOUS_USER_ID
+        ? anonAvatarSeedForSocket(data.document, connectionSocket(data.transactionOrigin))
+        : null
       await setLastEditor(data.documentName, {
         userName: ctx.userName ?? null,
         userId: ctx.userId,
+        avatarSeed,
         at: Date.now()
       })
     }
@@ -261,6 +270,18 @@ startCompactionSweeper()
 
 type StoreDocumentData = Parameters<NonNullable<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument']>>[0]
 
+/** The raw WebSocket of a Hocuspocus `Connection` transaction origin. */
+function connectionSocket(origin: unknown): unknown {
+  if (typeof origin !== 'object' || origin === null) return null
+  return (origin as Record<string, unknown>).webSocket ?? null
+}
+
+/** Avatar token for an anonymous editor's activity row, else null. */
+function anonActivitySeed(editor: { userId: string | null, avatarSeed?: string | null } | null): string | null {
+  if (editor?.userId !== ANONYMOUS_USER_ID) return null
+  return normalizeAvatarSeed(editor.avatarSeed)
+}
+
 /**
  * Resolve the user attribution for an activity row. Prefers the
  * onChange-tracked authenticated user (JWT payload). Falls back to the
@@ -276,7 +297,7 @@ type StoreDocumentData = Parameters<NonNullable<NonNullable<ConstructorParameter
 function resolveAttribution(
   data: StoreDocumentData,
   trackedFetch: Awaited<ReturnType<typeof getLastEditor>>
-): { userName: string | null, userId: number | null, actorPrincipal: string | null } {
+): { userName: string | null, userId: number | null, actorPrincipal: string | null, actorAvatarSeed: string | null } {
   const tracked = trackedFetch.value
   let fallback: VerifiedIdentity | null = null
   if (!tracked) {
@@ -299,7 +320,8 @@ function resolveAttribution(
   return {
     userName: editor?.userName ?? null,
     userId: parseTrackedUserId(editor?.userId),
-    actorPrincipal: parseActorPrincipal(editor?.userId)
+    actorPrincipal: parseActorPrincipal(editor?.userId),
+    actorAvatarSeed: anonActivitySeed(editor)
   }
 }
 
@@ -339,7 +361,7 @@ async function logEditActivity(
     const ytext = data.document.getText('content')
     const currentText = ytext.toJSON()
     const wordCount = countWords(currentText)
-    const { userName, userId, actorPrincipal } = resolveAttribution(data, trackedFetch)
+    const { userName, userId, actorPrincipal, actorAvatarSeed } = resolveAttribution(data, trackedFetch)
 
     const prevFetch = await getPrevText(data.documentName)
     await setPrevText(data.documentName, currentText)
@@ -358,6 +380,7 @@ async function logEditActivity(
       userId,
       userName,
       actorPrincipal,
+      actorAvatarSeed,
       action: 'edit',
       wordCount,
       linesAdded: added,
@@ -389,6 +412,7 @@ async function logMetaDiffActivity(
     const userName: string | null = tracked?.userName ?? null
     const userId = parseTrackedUserId(tracked?.userId)
     const actorPrincipal = parseActorPrincipal(tracked?.userId)
+    const actorAvatarSeed = anonActivitySeed(tracked)
     const prevMetaFetch = await getPrevMeta(data.documentName)
     const prevMeta = prevMetaFetch.value
     const currMeta = readMetaSnapshot(data.document)
@@ -401,6 +425,7 @@ async function logMetaDiffActivity(
         userId,
         userName,
         actorPrincipal,
+        actorAvatarSeed,
         action: 'title.changed',
         metadata: {
           kind: 'title.changed',
@@ -417,6 +442,7 @@ async function logMetaDiffActivity(
         userId,
         userName,
         actorPrincipal,
+        actorAvatarSeed,
         action: 'theme.changed',
         metadata: { kind: 'theme.changed' },
         yjsDocIdBefore,

@@ -4,6 +4,7 @@ import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protoc
 import {
   attachAwarenessGuard,
   awarenessIdentities,
+  anonAvatarSeedForSocket,
   writerIdentityFromContext
 } from '../../sync-server/src/awareness-guard'
 import { mostRecentVerifiedEditor } from '../../sync-server/src/activity-logger'
@@ -99,6 +100,55 @@ describe('attribution from awareness never trusts the client-chosen name', () =>
     expect(writerIdentityFromContext({ userId: '3' })).toBe(null)
     expect(writerIdentityFromContext({ readOnly: false, userId: '' })).toBe(null)
     expect(writerIdentityFromContext(null)).toBe(null)
+  })
+})
+
+describe('anonymous avatar token for activity rows', () => {
+  it('remembers an anonymous writer\'s awareness token per client and per connection', () => {
+    const anonSocket = {}
+    const doc = fakeDocument([
+      { webSocket: anonSocket, context: { readOnly: false, userId: 'anonymous', userName: null } }
+    ])
+    attachAwarenessGuard(doc)
+    sendAwareness(doc.awareness, { user: { name: 'Quiet Otter', avatarSeed: 'AnonToken1234567' } }, anonSocket)
+    expect(mostRecentVerifiedEditor(awarenessIdentities(doc)))
+      .toEqual({ userId: 'anonymous', userName: null, avatarSeed: 'AnonToken1234567' })
+    expect(anonAvatarSeedForSocket(doc, anonSocket)).toBe('AnonToken1234567')
+  })
+
+  it('keeps two anonymous connections apart', () => {
+    const a = {}
+    const b = {}
+    const doc = fakeDocument([
+      { webSocket: a, context: { readOnly: false, userId: 'anonymous', userName: null } },
+      { webSocket: b, context: { readOnly: false, userId: 'anonymous', userName: null } }
+    ])
+    attachAwarenessGuard(doc)
+    sendAwareness(doc.awareness, { user: { name: 'x', avatarSeed: 'TokenAAAAAAAAAAA' } }, a)
+    sendAwareness(doc.awareness, { user: { name: 'y', avatarSeed: 'TokenBBBBBBBBBBB' } }, b)
+    expect(anonAvatarSeedForSocket(doc, a)).toBe('TokenAAAAAAAAAAA')
+    expect(anonAvatarSeedForSocket(doc, b)).toBe('TokenBBBBBBBBBBB')
+  })
+
+  it('never takes a token from a signed-in, read-only or unknown connection, nor a malformed one', () => {
+    const alice = {}
+    const viewer = {}
+    const anon = {}
+    const doc = fakeDocument([
+      { webSocket: alice, context: { readOnly: false, userId: '7', userName: 'Alice' } },
+      { webSocket: viewer, context: { readOnly: true, userId: 'anonymous', userName: null } },
+      { webSocket: anon, context: { readOnly: false, userId: 'anonymous', userName: null } }
+    ])
+    attachAwarenessGuard(doc)
+    sendAwareness(doc.awareness, { user: { name: 'Alice', avatarSeed: 'AliceToken123456' } }, alice)
+    expect(mostRecentVerifiedEditor(awarenessIdentities(doc))).toEqual({ userId: '7', userName: 'Alice' })
+    sendAwareness(doc.awareness, { user: { name: 'v', avatarSeed: 'ViewerToken12345' } }, viewer)
+    sendAwareness(doc.awareness, { user: { name: 'g', avatarSeed: 'GhostToken123456' } }, {})
+    sendAwareness(doc.awareness, { user: { name: 'z', avatarSeed: 'not a token!' } }, anon)
+    expect(anonAvatarSeedForSocket(doc, alice)).toBe(null)
+    expect(anonAvatarSeedForSocket(doc, viewer)).toBe(null)
+    expect(anonAvatarSeedForSocket(doc, anon)).toBe(null)
+    expect(mostRecentVerifiedEditor(awarenessIdentities(doc))).toEqual({ userId: 'anonymous', userName: null })
   })
 })
 

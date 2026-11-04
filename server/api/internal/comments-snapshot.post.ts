@@ -6,6 +6,7 @@ import { documentComments } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { appendActivity, pruneActivity } from '../../repos/activity'
 import { diffCommentsSnapshot } from '../../utils/commentsSnapshotDiff'
+import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
 
 // Internal endpoint called by the sync-server on every persisted save
 // of a doc that has a non-empty `comments` Y.Array. The body carries
@@ -26,6 +27,7 @@ interface IncomingEntry {
   parentCommentId?: string | null
   authorId?: number | null
   authorName?: string
+  authorAvatarSeed?: string | null
   body?: string
   createdAt?: number
   updatedAt?: number
@@ -56,7 +58,7 @@ export default defineEventHandler(async (event) => {
     .filter((r): r is CommentSnapshotRow => r !== null)
 
   const events = await replaceSnapshotInTx(body.docId, rows)
-  await recordSnapshotEvents(body, events)
+  await recordSnapshotEvents(body, events, anonAvatarSeedsByEntry(body.entries))
 
   return { ok: true, mirrored: true, rowCount: rows.length, activityEvents: events.length }
 })
@@ -168,6 +170,22 @@ async function replaceSnapshotInTx(
   })
 }
 
+/**
+ * Anonymous authors' avatar tokens by comment id, for the activity rows
+ * only — the mirror table doesn't store them (they live on the comment
+ * in Y.js). A comment that is gone (`comment.deleted`) has none here,
+ * so its row falls back to the name-seeded avatar.
+ */
+function anonAvatarSeedsByEntry(entries: IncomingEntry[]): Map<string, string> {
+  const out = new Map<string, string>()
+  for (const e of entries) {
+    if (typeof e.entryId !== 'string' || typeof e.authorId === 'number') continue
+    const seed = normalizeAvatarSeed(e.authorAvatarSeed)
+    if (seed) out.set(e.entryId, seed)
+  }
+  return out
+}
+
 /** Build the activity-row metadata for a snapshot event by kind. */
 function metadataForEvent(e: ReturnType<typeof diffCommentsSnapshot>[number]) {
   if (e.kind === 'comment.replied') {
@@ -182,7 +200,8 @@ function metadataForEvent(e: ReturnType<typeof diffCommentsSnapshot>[number]) {
 /** Append one activity row per snapshot event, then prune. */
 async function recordSnapshotEvents(
   body: ParsedBody,
-  events: ReturnType<typeof diffCommentsSnapshot>
+  events: ReturnType<typeof diffCommentsSnapshot>,
+  anonSeeds: Map<string, string>
 ): Promise<void> {
   for (const e of events) {
     const metadata = metadataForEvent(e)
@@ -190,6 +209,7 @@ async function recordSnapshotEvents(
       docId: body.docId,
       userId: e.userId,
       userName: e.userName,
+      actorAvatarSeed: e.userId === null ? anonSeeds.get(e.commentId) ?? null : null,
       action: e.kind,
       metadata,
       yjsDocIdBefore: body.yjsDocIdBefore,
