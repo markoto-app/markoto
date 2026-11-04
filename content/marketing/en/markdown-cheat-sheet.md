@@ -309,7 +309,7 @@ Every detail, including image captions and the full attribute rules, is in the [
 
 ## Try it yourself
 
-Change the text on the left and the pages on the right follow, rendered the way markoto renders them. Nothing is saved while you type.
+Edit the Markdown and the pages follow as you type, rendered the way markoto renders them. Nothing is saved while you type.
 
 ::try-it{theme="modern"}
 ---
