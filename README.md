@@ -1,11 +1,11 @@
 <p align="center">
   <a href="./.github/media/markoto-demo.mp4">
-    <img src="./.github/media/markoto-demo-poster.webp" alt="markoto: beautifully rendered Markdown. Click to watch the one-minute product tour." width="100%">
+    <img src="./.github/media/markoto-demo-poster.webp" alt="markoto: beautifully rendered Markdown. Click to watch the two-minute product tour." width="100%">
   </a>
 </p>
 
 <p align="center">
-  <sub><b><a href="./.github/media/markoto-demo.mp4">Watch the one-minute tour</a></b> (MP4, 1080p) ·
+  <sub><b><a href="./.github/media/markoto-demo.mp4">Watch the two-minute tour</a></b> (MP4, 1080p, 1:59) ·
   Music by <a href="https://pixabay.com/users/poradovskyi-52868186/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=511963">Andrii Poradovskyi</a> from <a href="https://pixabay.com/music//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=511963">Pixabay</a></sub>
 </p>
 
