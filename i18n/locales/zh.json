@@ -1768,7 +1768,12 @@
     "compare": {
       "yes": "是",
       "no": "否",
-      "partial": "部分"
+      "partial": "部分",
+      "checked": "信息核实于 {date}。",
+      "caption": "核实于 {date}。来源列在页面末尾。",
+      "sources": "来源",
+      "markotoSources": "markoto（文档和代码）",
+      "trademark": "{name} 是其所有者的商标。markoto 与 {name} 无关联。价格和功能会变化，请以来源中的最新信息为准。"
     },
     "page": {
       "updated": "更新于 {date}",
