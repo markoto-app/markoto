@@ -10,6 +10,15 @@ import { defineContentConfig, defineCollection, z } from '@nuxt/content'
 // $fetch directly. Keeps the build fast: regenerating screenshots
 // doesn't trigger a content rebuild.
 
+// One cell of a comparison table: `true` / `false` / `partial` or a short
+// text, where it comes from (a URL for competitors; a docs page or repo
+// path for markoto) and when it was last checked (YYYY-MM-DD).
+const compareClaim = z.object({
+  value: z.union([z.boolean(), z.string()]),
+  source: z.string(),
+  checked: z.string()
+})
+
 export default defineContentConfig({
   collections: {
     docs: defineCollection({
@@ -70,6 +79,26 @@ export default defineContentConfig({
         navGroup: z.enum(['use-cases', 'compare']).optional(),
         navLabel: z.string().optional(),
         navOrder: z.number().optional()
+      })
+    }),
+    // Claim data of the comparison pages (/compare/<slug>), one file per
+    // competitor: content/compare/<slug>.yml. Every value carries its
+    // source and the day it was checked; tests/unit/compareClaims.test.ts
+    // fails once a check is older than nine months. Rendered by
+    // `::compare-facts{competitor}` + `::compare-sources{competitor}`
+    // (app/components/content/CompareFacts.vue, CompareSources.vue).
+    compare: defineCollection({
+      type: 'data',
+      source: 'compare/*.yml',
+      schema: z.object({
+        // Display name of the competitor, as it writes it.
+        name: z.string(),
+        rows: z.array(z.object({
+          feature: z.string(),
+          note: z.string().optional(),
+          markoto: compareClaim,
+          competitor: compareClaim
+        }))
       })
     })
   }

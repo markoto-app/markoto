@@ -97,6 +97,10 @@ const updatedLabel = computed(() => {
 }
 .mk-marketing__body :deep(> *) {
   grid-column: 2;
+  /* Grid items don't collapse margins: without this, prose paragraphs
+     got their bottom AND the next block's top margin (double gaps). The
+     next block's top margin alone is the gap a collapsed margin gives. */
+  margin-bottom: 0;
 }
 .mk-marketing__body :deep(> .mk-wide) {
   grid-column: 1 / -1;
