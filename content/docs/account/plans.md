@@ -18,7 +18,7 @@ What you see depends on where markoto runs:
 
 | Where | Plans |
 |---|---|
-| **markoto.app** | Everyone is on Free. Pro, Max and Ultra are shown on the [pricing page](/pricing) as **coming soon**, with no prices and no purchase button. You can join a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. |
+| **markoto.app** | Everyone is on Free. The [pricing page](/pricing) compares four ways to use markoto: self-hosted, without an account, with a free account, and paid. Pro, Max and Ultra are marked **coming soon**: they show the prices we plan to charge (US dollars per month, not final) and no purchase button. You can join a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. |
 | **A self-hosted instance** | No plans, no pricing page tiers, no waitlist, no purchase. Everyone is on the free tier, and the operator decides the limits (workspaces, knowledge storage, AI Points). |
 | **An instance with paid plans live** (later) | Free, Pro, Max and Ultra with Stripe checkout; see [Upgrade](/docs/account/upgrade). |
 
@@ -41,7 +41,7 @@ red when you are close to the limit. Your profile page shows your image
 storage too.
 
 The walkthrough above shows the pricing page on markoto.app, with paid plans
-coming soon. The current numbers always come from the instance you are on:
+coming soon. Under the cards, a table compares every limit for each option. The current numbers always come from the instance you are on:
 open its pricing page to see them.
 
 ## What's next

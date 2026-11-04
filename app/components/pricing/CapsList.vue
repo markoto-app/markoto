@@ -1,0 +1,77 @@
+<script setup lang="ts">
+import type { PlanName, TiersMap } from '~~/shared/config/tiers'
+import { planToPointsTotal } from '~~/shared/billing/aiPoints'
+
+// The limits of one plan, as a list: AI Points, workspaces, knowledge
+// files + storage, image storage, and workspace sponsoring where the
+// plan has it. Every number comes from the resolved tier map
+// (`GET /api/billing/tiers`); counts use vue-i18n pluralisation.
+const props = withDefaults(defineProps<{
+  plan: PlanName
+  tiers: TiersMap
+  /** Show the workspace-sponsoring line (Max + Ultra; billing on or coming soon). */
+  sponsoring?: boolean
+}>(), { sponsoring: false })
+
+const { t, locale } = useI18n()
+
+const caps = computed(() => props.tiers[props.plan])
+const points = computed(() => planToPointsTotal(props.plan, props.tiers))
+
+function count(key: string, n: number): string {
+  return t(key, { n: formatCount(n, locale.value) }, n)
+}
+</script>
+
+<template>
+  <ul
+    class="space-y-2 text-sm"
+    data-testid="pricing-caps"
+  >
+    <li class="flex items-baseline gap-2">
+      <CommonSeal
+        :size="9"
+        class="shrink-0 self-center"
+      />
+      <span>{{ count('pricing.count.aiPoints', points) }}</span>
+    </li>
+    <li class="flex gap-2">
+      <UIcon
+        name="i-lucide-folder"
+        class="size-4 text-muted shrink-0 mt-0.5"
+      />
+      <span data-testid="pricing-cap-workspaces">{{ count('pricing.count.workspaces', caps.workspacesOwned) }}</span>
+    </li>
+    <li class="flex gap-2">
+      <UIcon
+        name="i-lucide-file-text"
+        class="size-4 text-muted shrink-0 mt-0.5"
+      />
+      <span>{{ count('pricing.count.knowledgeFiles', caps.knowledgeFiles) }}</span>
+    </li>
+    <li class="flex gap-2">
+      <UIcon
+        name="i-lucide-hard-drive"
+        class="size-4 text-muted shrink-0 mt-0.5"
+      />
+      <span>{{ t('pricing.count.knowledgeStorage', { size: formatPlanBytes(caps.knowledgeBytesPerUser) }) }}</span>
+    </li>
+    <li class="flex gap-2">
+      <UIcon
+        name="i-lucide-image"
+        class="size-4 text-muted shrink-0 mt-0.5"
+      />
+      <span>{{ t('pricing.count.imageStorage', { size: formatPlanBytes(caps.imageBytesPerUser) }) }}</span>
+    </li>
+    <li
+      v-if="sponsoring"
+      class="flex gap-2"
+    >
+      <UIcon
+        name="i-lucide-circle-plus"
+        class="size-4 text-muted shrink-0 mt-0.5"
+      />
+      <span>{{ t('pricing.teamBilling') }}</span>
+    </li>
+  </ul>
+</template>

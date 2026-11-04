@@ -106,7 +106,7 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
   await page.locator('[data-testid="pricing-tier-free"]').waitFor({ state: 'visible', timeout: 10_000 })
 
   await flow.shot(
-    'You land on /pricing with the four tier columns side-by-side. '
+    'You land on /pricing with every plan side by side. '
     + 'Free is your current plan; Pro lifts the cap from 100 to '
     + '1,500 credits a month.',
     {

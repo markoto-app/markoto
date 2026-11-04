@@ -98,6 +98,17 @@ describe('auth middleware whitelist', () => {
         expect(body[plan]?.litellmBudgetUsd, `${plan} missing`).toBeGreaterThan(0)
       }
     })
+
+    it('GET /api/billing/prices is public and returns USD prices for every plan', async () => {
+      const res = await anonClient().get('/api/billing/prices')
+      expect(res.status).toBe(200)
+      const body = await res.json() as { currency?: string, monthly?: Record<string, number> }
+      expect(body.currency).toBe('USD')
+      expect(body.monthly?.free).toBe(0)
+      for (const plan of ['pro', 'max', 'ultra']) {
+        expect(body.monthly?.[plan], `${plan} missing`).toBeGreaterThan(0)
+      }
+    })
   })
 
   describe('protected routes (session required)', () => {

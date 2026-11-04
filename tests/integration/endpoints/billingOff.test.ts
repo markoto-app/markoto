@@ -116,13 +116,16 @@ describe('billing off — billing endpoints are absent', () => {
 })
 
 describe('billing off — SSR billing mode reaches the browser', () => {
-  it('pricing page renders the coming-soon tiers + waitlist, no prices', async () => {
+  it('pricing page renders the coming-soon tiers with PLANNED prices + waitlist, no checkout', async () => {
     const res = await anonClient(OFF).get('/pricing')
     expect(res.status).toBe(200)
     const html = await res.text()
     expect(html).toContain('data-testid="waitlist-section"')
     expect(html).toContain('data-testid="pricing-coming-soon-badge"')
-    expect(html).not.toContain('$10')
+    expect(html).toContain('data-testid="pricing-planned-note"')
+    expect(html).toContain('Planned price')
+    expect(html).toContain('data-testid="pricing-join-waitlist"')
+    expect(html).not.toMatch(/>\s*Upgrade\s*</)
   })
 
   it('billing on: same page shows prices and no waitlist', async () => {

@@ -158,6 +158,13 @@ JS, and why: lazy-mounting far-away stage scenes; playing the on-stage video (`T
 - **Comparison pages (SEO-6):** `/compare` (hub, `content/marketing/en/compare/index.md`) + `/compare/<slug>`. Competitor facts live in `content/compare/<slug>.yml` (data collection `compare`): per row a markoto and a competitor claim `{value, source, checked}` (competitor source = https URL, markoto source = docs/legal page or repo path). `::compare-facts{competitor}` renders the table (via `::compare-table`, which scrolls in its own box with a sticky feature column on phones), `::compare-sources{competitor}` the "Facts checked on …" footer + trademark note; helpers in `shared/seo/compare.ts`. `tests/unit/compareClaims.test.ts` fails when any `checked` is older than 9 months: re-verify at the source, then bump the date. Every page keeps a "Where <competitor> is better" section, and markoto's gaps (no slides, Git sync, citations, suggestions, offline, E2EE; not OSI open source) stay stated where relevant.
 - Licence wording on marketing pages: "source-available", never "open source".
 
+## Pricing (`pages/pricing.vue`, `components/pricing/`, SEO-3)
+
+- **Two layouts.** Billing on OR plans coming soon → four columns (Self-hosted / No account / Free account / Paid with `UTabs` Pro · Max · Ultra, `unmount-on-hide=false` so every tier is in the SSR HTML), then `PricingCompareTable` (six columns, scrolls inside its own box on phones) and an FAQ (`<Faq>`, FAQPage JSON-LD on the marketing site). Self-host (billing off, no coming soon) → one "Limits on this instance" card. The waitlist sits under the columns while coming soon (`#waitlist`, the paid tabs link to it).
+- **Numbers are live config only:** caps `GET /api/billing/tiers`, prices `GET /api/billing/prices` (`shared/config/pricing.ts`, `TIER_<PLAN>_PRICE_USD`), anonymous retention `useInstanceConfig().anonDocTtlDays`. The no-account column states what the server allows anonymously (no AI / workspaces / uploads, open-edit only, creator-browser delete) — keep it in step with `server/middleware/auth.ts`.
+- **Prices while coming soon** are shown as planned (USD) and kept OUT of the Offer JSON-LD (`pricingStructuredData`): an Offer is a price someone can pay today. With billing on every plan gets an Offer.
+- Counts go through vue-i18n plurals (`pricing.count.*`, `t(key, { n }, n)`). Current plan = `border-inverted` + inverted badge (sumi, not shu); the seal marks only the AI Points line.
+
 ## Mobile
 
 Breakpoint: `useMediaQuery('(max-width: 639px)')` — matches Tailwind `sm:`. Don't reintroduce 768px.
