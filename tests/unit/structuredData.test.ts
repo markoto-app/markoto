@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { homeStructuredData, serializeJsonLd } from '../../shared/seo/structuredData'
+import { homeStructuredData, pricingStructuredData, serializeJsonLd } from '../../shared/seo/structuredData'
 
 // JSON-LD on markoto.app's home page: Organization + WebSite +
 // SoftwareApplication (free). Nothing invented — no ratings, no reviews.
@@ -43,5 +43,38 @@ describe('serializeJsonLd', () => {
     const json = serializeJsonLd({ name: '</script><script>alert(1)</script>' })
     expect(json).not.toContain('<')
     expect(JSON.parse(json)).toEqual({ name: '</script><script>alert(1)</script>' })
+  })
+})
+
+describe('pricingStructuredData', () => {
+  const base = {
+    siteUrl: 'https://markoto.app',
+    description: 'Plans and limits.',
+    inLanguage: 'en-US',
+    currency: 'USD'
+  }
+
+  it('shares the home page app @id and lists each offer with its USD price', () => {
+    const data = pricingStructuredData({
+      ...base,
+      offers: [{ name: 'Free account', price: 0 }, { name: 'Pro', price: 10 }, { name: 'Max', price: 12.5 }]
+    })
+    expect(data['@type']).toBe('SoftwareApplication')
+    expect(data['@id']).toBe('https://markoto.app/#app')
+    const text = JSON.stringify(data)
+    expect(text).toContain('"name":"Free account","price":"0","priceCurrency":"USD","url":"https://markoto.app/pricing"')
+    expect(text).toContain('"name":"Pro","price":"10"')
+    expect(text).toContain('"price":"12.50"')
+    expect(text).toContain('"billingDuration":"P1M"')
+  })
+
+  it('gives the free offer no monthly price specification', () => {
+    const data = pricingStructuredData({ ...base, offers: [{ name: 'Free account', price: 0 }] })
+    expect(JSON.stringify(data)).not.toContain('UnitPriceSpecification')
+  })
+
+  it('never claims ratings or reviews', () => {
+    const text = JSON.stringify(pricingStructuredData({ ...base, offers: [{ name: 'Free account', price: 0 }] }))
+    expect(text).not.toMatch(/aggregateRating|review/i)
   })
 })
