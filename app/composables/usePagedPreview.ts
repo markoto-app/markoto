@@ -63,7 +63,8 @@ export function usePagedPreview(opts: {
    * title and chart number formats follow it (`documentTexts`).
    */
   language?: Ref<string>
-  /** Owning document — scopes which uploads custom CSS may reference. */
+  /** Owning document — scopes which uploads custom CSS may reference.
+   *  '' = no document (marketing `::try-it`): no file token is fetched. */
   docId: Ref<string>
   container: Ref<HTMLElement | null>
   /**
@@ -271,7 +272,9 @@ export function usePagedPreview(opts: {
       bodyHtml: opts.html.value
     })
     const rawCustomCss = theme.customCss ?? ''
-    const fileToken = fileTokenFor(mayReferenceOwnUploads({ html, theme, rawCustomCss, docId }))
+    // No document (the marketing `::try-it` block): there are no uploads to
+    // authorise, so never ask for a file token.
+    const fileToken = fileTokenFor(docId !== '' && mayReferenceOwnUploads({ html, theme, rawCustomCss, docId }))
     if (fileToken === null) return
     if (!customCssReady(rawCustomCss, fileToken)) return
     isPaginating.value = true

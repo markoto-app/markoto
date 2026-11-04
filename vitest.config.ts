@@ -156,6 +156,19 @@ export default defineConfig({
         // baked-output path that never sees `virtual:public?...`.
         server: {
           fs: { strict: false }
+        },
+        // nuxt-codemirror aliases @codemirror/{state,view} to their package
+        // DIRECTORIES (dedupe). Vite resolves a directory alias through
+        // `main` = the cjs build, while CodeMirror's other packages and the
+        // test files get the esm build — two copies, and CM's `instanceof`
+        // checks reject every extension ("multiple instances of
+        // @codemirror/state"). Point the aliases at the esm entries, the
+        // build the browser gets.
+        resolve: {
+          alias: {
+            '@codemirror/state': fileURLToPath(new URL('./node_modules/@codemirror/state/dist/index.js', import.meta.url)),
+            '@codemirror/view': fileURLToPath(new URL('./node_modules/@codemirror/view/dist/index.js', import.meta.url))
+          }
         }
       }),
       {

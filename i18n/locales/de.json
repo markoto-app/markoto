@@ -1773,6 +1773,28 @@
     "page": {
       "updated": "Aktualisiert am {date}",
       "unreviewed": "Diese Übersetzung wurde noch nicht geprüft. Massgeblich ist die englische Seite."
+    },
+    "tryIt": {
+      "start": "Dieses Beispiel bearbeiten",
+      "editorLabel": "Markdown-Editor",
+      "preview": "Vorschau",
+      "pages": "{n} Seite | {n} Seiten",
+      "tabEdit": "Bearbeiten",
+      "tabPreview": "Vorschau",
+      "previewLoading": "Vorschau wird geladen…",
+      "previewFailed": "Die Vorschau konnte nicht geladen werden. Laden Sie die Seite neu, um es noch einmal zu versuchen.",
+      "open": "Als Dokument öffnen",
+      "pdf": "PDF herunterladen",
+      "noticeAnon": "Beide Schaltflächen erstellen aus Ihrem Text ein Dokument. Alle mit dem Link können es bearbeiten, und es wird nach {n} Tag ohne Änderung gelöscht. | Beide Schaltflächen erstellen aus Ihrem Text ein Dokument. Alle mit dem Link können es bearbeiten, und es wird nach {n} Tagen ohne Änderungen gelöscht.",
+      "noticeAnonKept": "Beide Schaltflächen erstellen aus Ihrem Text ein Dokument. Alle mit dem Link können es bearbeiten.",
+      "noticeAccount": "Beide Schaltflächen erstellen aus Ihrem Text ein Dokument in Ihrem Konto.",
+      "openCreated": "Dokument öffnen",
+      "errors": {
+        "create": "Das Dokument konnte nicht erstellt werden. Bitte versuchen Sie es noch einmal.",
+        "tooLong": "Dieser Text ist zu lang, um hier ein Dokument daraus zu machen. Erstellen Sie ein neues Dokument und fügen Sie ihn dort ein.",
+        "pdf": "Das Dokument wurde erstellt, aber das PDF konnte gerade nicht erzeugt werden. Bitte versuchen Sie es gleich noch einmal.",
+        "pdfRateLimited": "Zu viele PDFs aus Ihrem Netzwerk in der letzten Minute. Bitte versuchen Sie es in einer Minute noch einmal."
+      }
     }
   }
 }

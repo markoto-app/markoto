@@ -147,6 +147,22 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 60_000)
 
+    it('?response=json answers the same presigned URL as JSON (no redirect, no-store)', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      await insertYjsRow(doc.docId, SHORT)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf?response=json`)
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get('cache-control')).toBe('private, no-store')
+      const { url } = await res.json() as { url: string }
+      expect(url).toContain(`renders/${doc.docId}/`)
+      expect(url).toMatch(/response-content-disposition=attachment/i)
+
+      await wipeRendersFor(doc.docId)
+    }, 60_000)
+
     it('anonymous is denied on private', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })

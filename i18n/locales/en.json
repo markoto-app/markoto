@@ -1773,6 +1773,28 @@
     "page": {
       "updated": "Updated {date}",
       "unreviewed": "This translation hasn't been reviewed yet. The English page is the reference."
+    },
+    "tryIt": {
+      "start": "Edit this example",
+      "editorLabel": "Markdown editor",
+      "preview": "Preview",
+      "pages": "{n} page | {n} pages",
+      "tabEdit": "Edit",
+      "tabPreview": "Preview",
+      "previewLoading": "Loading preview…",
+      "previewFailed": "The preview could not load. Reload the page to try again.",
+      "open": "Open as a document",
+      "pdf": "Download PDF",
+      "noticeAnon": "Both buttons create a document from your text. Anyone with its link can edit it, and it is deleted after {n} day without edits. | Both buttons create a document from your text. Anyone with its link can edit it, and it is deleted after {n} days without edits.",
+      "noticeAnonKept": "Both buttons create a document from your text. Anyone with its link can edit it.",
+      "noticeAccount": "Both buttons create a document from your text in your account.",
+      "openCreated": "Open the document",
+      "errors": {
+        "create": "The document could not be created. Please try again.",
+        "tooLong": "This text is too long to turn into a document here. Start a new document and paste it there.",
+        "pdf": "The document was created, but the PDF could not be made right now. Please try again in a moment.",
+        "pdfRateLimited": "Too many PDFs from your network in the last minute. Please try again in a minute."
+      }
     }
   }
 }

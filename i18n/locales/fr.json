@@ -1773,6 +1773,28 @@
     "page": {
       "updated": "Mis à jour le {date}",
       "unreviewed": "Cette traduction n'a pas encore été relue. La page anglaise fait foi."
+    },
+    "tryIt": {
+      "start": "Modifier cet exemple",
+      "editorLabel": "Éditeur Markdown",
+      "preview": "Aperçu",
+      "pages": "{n} page | {n} pages",
+      "tabEdit": "Modifier",
+      "tabPreview": "Aperçu",
+      "previewLoading": "Chargement de l’aperçu…",
+      "previewFailed": "L’aperçu n’a pas pu se charger. Rechargez la page pour réessayer.",
+      "open": "Ouvrir comme document",
+      "pdf": "Télécharger le PDF",
+      "noticeAnon": "Les deux boutons créent un document à partir de votre texte. Toute personne disposant du lien peut le modifier, et il est supprimé après {n} jour sans modification. | Les deux boutons créent un document à partir de votre texte. Toute personne disposant du lien peut le modifier, et il est supprimé après {n} jours sans modification.",
+      "noticeAnonKept": "Les deux boutons créent un document à partir de votre texte. Toute personne disposant du lien peut le modifier.",
+      "noticeAccount": "Les deux boutons créent un document à partir de votre texte dans votre compte.",
+      "openCreated": "Ouvrir le document",
+      "errors": {
+        "create": "Le document n’a pas pu être créé. Veuillez réessayer.",
+        "tooLong": "Ce texte est trop long pour en faire un document ici. Créez un nouveau document et collez-le dedans.",
+        "pdf": "Le document a été créé, mais le PDF n’a pas pu être généré pour le moment. Veuillez réessayer dans un instant.",
+        "pdfRateLimited": "Trop de PDF depuis votre réseau au cours de la dernière minute. Veuillez réessayer dans une minute."
+      }
     }
   }
 }
