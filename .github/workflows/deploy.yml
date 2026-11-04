@@ -273,6 +273,12 @@ jobs:
 
           # Pull + roll. IMAGE_TAG is consumed by .env via compose.
           export IMAGE_TAG="$TAG"
+          # LiteLLM loads its config only at boot, and its single-file
+          # bind mounts keep the old file after the tar sync replaced it.
+          # A changed hash changes the litellm container's label, so
+          # `up -d` recreates it (docker-compose.base.yml).
+          LITELLM_CONFIG_HASH="$(cat infra/litellm/config.yaml infra/litellm/custom_handlers.py | sha256sum | cut -c1-16)"
+          export LITELLM_CONFIG_HASH
           # Login is already established at provision time via the
           # ghcr_pat vault entry — no additional `docker login` here.
           docker compose -f docker-compose.prod.yml pull

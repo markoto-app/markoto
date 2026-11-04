@@ -62,7 +62,7 @@ export class AiProviderCallError extends Error {
   }
 }
 
-function errorStatus(e: unknown): number | null {
+export function errorStatus(e: unknown): number | null {
   if (typeof e === 'object' && e !== null && 'status' in e) {
     const status = (e as Record<string, unknown>).status
     if (typeof status === 'number') return status

@@ -169,6 +169,15 @@ services:
       - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
+    # LiteLLM reads its config once at boot, and the single-file bind
+    # mounts above keep pointing at the file the container started with
+    # when a deploy replaces it (new inode). A changed label makes
+    # `compose up -d` recreate the container, so the deploy paths export
+    # a hash of the two mounted files as LITELLM_CONFIG_HASH (deploy.yml,
+    # the Ansible markoto role, install.sh). Unset (dev, tests) = a
+    # constant, so nothing is recreated there.
+    labels:
+      markoto.litellm-config: ${LITELLM_CONFIG_HASH:-unset}
     # Unprivileged (`nobody`), read-only image; the Prisma engine and the
     # proxy only write temp files. Verified: cold-start migrations, key
     # generation and spend tracking all work under this shape.
