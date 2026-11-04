@@ -120,13 +120,15 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
   LITELLM_SALT_KEY: 'sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
   // (TEST_MODE is set above, near the top of this object.)
-  // Billing mode is NOT set here — main() runs the suite in two phases
-  // (see BILLING_PHASES below): every untagged flow against the hosted
-  // shape (billing off, paid plans "coming soon"), so the docs show what
-  // markoto.app users actually see; then only the `@billing`-tagged
-  // flows (upgrade-to-pro, pricing-tour, ai-sponsoring,
-  // ai-budget-exhausted) against a billing-ON server, because the
-  // checkout / plan / sponsorship UI they drive only exists there.
+  // Billing mode and the marketing site are NOT set here — main() runs
+  // the suite in three passes (see PHASES below): every untagged flow
+  // against the hosted shape (billing off, paid plans "coming soon",
+  // marketing site off), so the docs show what markoto.app users
+  // actually see; then only the `@billing`-tagged flows (upgrade-to-pro,
+  // pricing-tour, ai-sponsoring, ai-budget-exhausted) against a
+  // billing-ON server, because the checkout / plan / sponsorship UI they
+  // drive only exists there; then only the `@marketing`-tagged flows
+  // against a server with the marketing site on (its pages 404 elsewhere).
   // Legal surfaces ON (hosted shape): the onboarding gate, consent banner
   // and /legal/* flows document the hosted service.
   NUXT_LEGAL_SURFACES_ENABLED: 'true',
@@ -176,15 +178,47 @@ const FLOWS_ENV: Record<string, string> = {
   MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'flows-placeholder-mistral-key'
 }
 
-// The two passes of one run. Same database + infra; only the app server
-// restarts with the other billing mode. `grep` narrows Playwright to the
-// `@billing` flows for the billing-on pass; the billing-off pass relies
-// on playwright.config.ts's grepInvert (FLOWS_BILLING_ENABLED unset).
-type BillingPhase = { name: string, env: Record<string, string>, flowsBilling: string, grep: string[] }
-const BILLING_PHASES: readonly [BillingPhase, BillingPhase] = [
-  { name: 'billing off (hosted shape)', env: { NUXT_BILLING_ENABLED: 'false', NUXT_PLANS_COMING_SOON: 'true' }, flowsBilling: '', grep: [] },
-  { name: 'billing on (@billing flows)', env: { NUXT_BILLING_ENABLED: 'true', NUXT_PLANS_COMING_SOON: 'false' }, flowsBilling: '1', grep: ['--grep', '@billing'] }
-]
+// The passes of one run. Same database + infra; only the app server
+// restarts with another shape. `grep` narrows Playwright to one tag's
+// flows; `selectEnv` tells playwright.config.ts which tags its
+// grepInvert may let through (FLOWS_BILLING_ENABLED /
+// FLOWS_MARKETING_ENABLED, both unset = only untagged flows).
+//
+// Every pass sets NUXT_MARKETING_SITE_ENABLED explicitly, so a value
+// inherited from the shell can't turn the product tour on in the default
+// pass (silentSetup clicks the plain hero's button).
+//
+// The marketing pass is the hosted shape (billing off, paid plans
+// "coming soon", legal surfaces + anonymous gate as in FLOWS_ENV) with
+// the marketing site on and a loopback NUXT_SITE_URL, so the pages'
+// canonical / hreflang / JSON-LD links name the URL the browser loads.
+// `*.localhost` is loopback, so TEST_MODE stays active.
+type Phase = {
+  name: string
+  env: Record<string, string>
+  selectEnv: { FLOWS_BILLING_ENABLED: string, FLOWS_MARKETING_ENABLED: string }
+  grep: string[]
+}
+const HOSTED_BILLING = { NUXT_BILLING_ENABLED: 'false', NUXT_PLANS_COMING_SOON: 'true' }
+const DEFAULT_PHASE: Phase = {
+  name: 'default (hosted shape)',
+  env: { ...HOSTED_BILLING, NUXT_MARKETING_SITE_ENABLED: 'false' },
+  selectEnv: { FLOWS_BILLING_ENABLED: '', FLOWS_MARKETING_ENABLED: '' },
+  grep: []
+}
+const BILLING_PHASE: Phase = {
+  name: 'billing on (@billing flows)',
+  env: { NUXT_BILLING_ENABLED: 'true', NUXT_PLANS_COMING_SOON: 'false', NUXT_MARKETING_SITE_ENABLED: 'false' },
+  selectEnv: { FLOWS_BILLING_ENABLED: '1', FLOWS_MARKETING_ENABLED: '' },
+  grep: ['--grep', '@billing']
+}
+const MARKETING_PHASE: Phase = {
+  name: 'marketing site on (@marketing flows)',
+  env: { ...HOSTED_BILLING, NUXT_MARKETING_SITE_ENABLED: 'true', NUXT_SITE_URL: NUXT_URL },
+  selectEnv: { FLOWS_BILLING_ENABLED: '', FLOWS_MARKETING_ENABLED: '1' },
+  grep: ['--grep', '@marketing']
+}
+const PHASES: readonly Phase[] = [DEFAULT_PHASE, BILLING_PHASE, MARKETING_PHASE]
 
 let nuxtProc: Subprocess | null = null
 let cleaningUp = false
@@ -292,7 +326,7 @@ async function main() {
     }
   }
 
-  // Steps 3–5, once per billing phase: spawn the production Nitro
+  // Steps 3–5, once per pass that has flows to run: spawn the production Nitro
   // server (preset 'bun' → .output/server/index.mjs runs under Bun),
   // wait for it, run Playwright with the caller's argv (e.g.
   // `--project=en-light-desktop`), stop the server.
@@ -301,8 +335,12 @@ async function main() {
   // Playwright + teardown so you can iterate with `flows:test:against-running`
   // against http://markoto.localhost:3001. Ctrl-C to tear down. Not used by CI.
   if (process.env.FLOWS_SERVE_ONLY === '1') {
-    // FLOWS_BILLING=on serves the billing-on shape instead.
-    const phase = process.env.FLOWS_BILLING === 'on' ? BILLING_PHASES[1] : BILLING_PHASES[0]
+    // FLOWS_BILLING=on / FLOWS_MARKETING=on serve that pass's shape
+    // instead (run `flows:test:against-running` with the matching
+    // FLOWS_BILLING_ENABLED=1 / FLOWS_MARKETING_ENABLED=1 to select its flows).
+    let phase = DEFAULT_PHASE
+    if (process.env.FLOWS_BILLING === 'on') phase = BILLING_PHASE
+    else if (process.env.FLOWS_MARKETING === 'on') phase = MARKETING_PHASE
     await startNuxt(phase.env)
     console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1 — app up at ${NUXT_URL} (${phase.name}). Ctrl-C to tear down.`)
     await new Promise(() => {}) // wait forever; cleanup runs on SIGINT/SIGTERM
@@ -311,26 +349,32 @@ async function main() {
 
   let exitCode = 0
   let testsRan = 0
-  for (const phase of BILLING_PHASES) {
+  const args = process.argv.slice(2)
+  for (const phase of PHASES) {
+    // Tells playwright.config.ts which tagged flows may be selected.
+    Object.assign(process.env, phase.selectEnv)
+    // A run filtered to specs of one kind (flows:test:changed, a path
+    // argument) leaves the other passes empty: skip them without
+    // restarting the app. All passes empty is an error (checked below).
+    const listed = await countListedTests([...phase.grep, ...args])
+    if (listed === 0) {
+      console.log(`[flows-ephemeral] no flows for this pass — skipping ${phase.name}`)
+      continue
+    }
+    testsRan += listed
     await startNuxt(phase.env)
-    // Tells playwright.config.ts whether `@billing` flows may be selected.
-    process.env.FLOWS_BILLING_ENABLED = phase.flowsBilling
-    console.log(`[flows-ephemeral] running Playwright — ${phase.name}`)
-    // --pass-with-no-tests: a run filtered to specs of only one kind
-    // leaves the other phase empty, which is fine. Both empty is not
-    // (checked below).
+    console.log(`[flows-ephemeral] running Playwright — ${phase.name} (${listed} tests)`)
     const code = await shellOut([
       'bunx', 'playwright', 'test',
       ...phase.grep,
       '--pass-with-no-tests',
-      ...process.argv.slice(2)
+      ...args
     ])
     if (code !== 0) exitCode = code
-    testsRan += await countListedTests([...phase.grep, ...process.argv.slice(2)])
     await stopNuxt()
   }
   if (testsRan === 0) {
-    console.error('[flows-ephemeral] no flow matched the given filters in either billing phase')
+    console.error('[flows-ephemeral] no flow matched the given filters in any pass')
     exitCode = exitCode || 1
   }
   process.exitCode = exitCode
@@ -340,6 +384,9 @@ async function main() {
 async function countListedTests(args: string[]): Promise<number> {
   const proc = spawn({
     cmd: ['bunx', 'playwright', 'test', '--list', '--pass-with-no-tests', ...args],
+    // Explicit env, as in shellOut: the pass's FLOWS_*_ENABLED were set
+    // on process.env just before this call.
+    env: { ...process.env },
     stdout: 'pipe',
     stderr: 'ignore'
   })
