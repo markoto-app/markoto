@@ -8,7 +8,7 @@ translationStatus: machine-translated
 
 # Conditions d'utilisation
 
-> **En bref :** markoto est un service gratuit, fourni « en l'état ». Vous devez avoir au moins 16 ans. Utilisez-le de manière licite et respectez les règles d'utilisation acceptable de l'article 6. Les documents que vous créez sans compte peuvent être ouverts par toute personne disposant du lien, sont supprimés après 30 jours sans activité et ne peuvent être supprimés que par le navigateur qui les a créés. Les résultats de l'IA vous appartiennent, mais vérifiez-les avant de vous y fier. Si vous connectez votre propre fournisseur d'IA, vous en supportez les coûts. Nous pouvons retirer des contenus ou suspendre des comptes qui enfreignent les présentes conditions, et nous vous en indiquons les motifs lorsque nous pouvons vous joindre.
+> **En bref :** markoto est un service gratuit, fourni « en l'état ». Vous devez avoir au moins 16 ans. Utilisez-le de manière licite et respectez les règles d'utilisation acceptable de l'article 6. Les documents que vous créez sans compte peuvent être ouverts et modifiés par toute personne disposant du lien, sont supprimés après 30 jours sans modification et ne peuvent être supprimés que par le navigateur qui les a créés. Nous ne revendiquons aucun droit sur les résultats que l'IA produit pour vous ; vérifiez-les avant de vous y fier. Si vous connectez votre propre fournisseur d'IA, vous en supportez les coûts. Nous pouvons retirer des contenus ou suspendre des comptes qui enfreignent les présentes conditions, et nous vous en indiquons les motifs lorsque nous pouvons vous joindre.
 
 **Sommaire**
 
@@ -22,7 +22,7 @@ markoto est un éditeur Markdown collaboratif exploité par **{{controllerName}}
 
 - **Âge.** Vous devez avoir au moins **16 ans** pour utiliser markoto, que ce soit avec un compte ou pour des documents anonymes. Cette règle s'applique dans tous les pays, même lorsque le droit local fixe un âge inférieur.
 - **Sanctions.** Vous ne pouvez pas utiliser markoto si vous vous trouvez ou résidez habituellement dans un pays ou une région faisant l'objet de sanctions globales de la Suisse, de l'UE ou de l'ONU, si vous figurez sur une liste de sanctions suisse (SECO), de l'UE, de l'ONU ou des États-Unis, ou si vous agissez pour le compte d'une personne inscrite sur une telle liste.
-- **Organisations.** Si vous utilisez markoto pour le compte d'une organisation, vous confirmez être habilité à l'engager au titre des présentes conditions. Vous agissez alors en qualité d'**utilisateur professionnel**. Toute autre personne est un **consommateur**.
+- **Utilisateurs professionnels et consommateurs.** Si vous utilisez markoto pour une organisation ou pour votre activité commerciale, artisanale ou professionnelle (y compris en tant qu'indépendant), vous agissez en qualité d'**utilisateur professionnel**. Si vous l'utilisez pour une organisation, vous confirmez être habilité à l'engager au titre des présentes conditions. Si vous utilisez markoto à des fins privées, vous êtes un **consommateur**.
 - **Une personne par compte.** Un compte appartient à une seule personne physique. Ne partagez ni vos comptes ni vos identifiants de connexion, et ne créez pas plusieurs comptes pour contourner des limites ou une suspension.
 - **Sécurité de la connexion.** Vous vous connectez par l'intermédiaire d'un fournisseur tel que GitHub ou Google. Protégez ce compte, par exemple avec une authentification à deux facteurs, et prévenez-nous à l'adresse **{{privacyContactEmail}}** si vous pensez qu'un tiers a accédé à votre compte markoto.
 
@@ -39,9 +39,9 @@ Si nous introduisons des offres payantes, elles feront l'objet de conditions dis
 Vous pouvez créer un document sans compte (« document anonyme »). Les règles suivantes s'y appliquent :
 
 - **Avant la création.** Vous confirmez avoir au moins 16 ans et accepter les présentes conditions, et votre navigateur résout une brève vérification automatisée anti-robots. Nous enregistrons avec le document la version des conditions que vous avez acceptée et l'heure de l'acceptation. Votre navigateur mémorise cette acceptation, de sorte que la question ne vous est reposée que lorsque les présentes conditions changent.
-- **Qui peut y accéder.** Toute personne disposant du lien peut ouvrir le document et, selon le mode d'accès, le modifier. Le document indique qu'il a été créé par un utilisateur sans compte, avec un lien permettant de le signaler. Nous demandons aux moteurs de recherche de ne pas indexer les documents, mais un lien peut toujours être transmis. **Ne placez aucune information confidentielle ou sensible dans un document anonyme.**
+- **Qui peut y accéder.** Toute personne disposant du lien peut ouvrir et modifier le document. Vous ne pouvez pas rendre un document anonyme privé ni le protéger par un mot de passe. Le document indique qu'il a été créé par un utilisateur sans compte, avec un lien permettant de le signaler. Nous demandons aux moteurs de recherche de ne pas indexer les documents, mais un lien peut toujours être transmis. **Ne placez aucune information confidentielle ou sensible dans un document anonyme.**
 - **Qui peut le supprimer.** Seul le navigateur qui a créé le document peut le supprimer. Il le prouve au moyen d'une clé aléatoire stockée dans un cookie. Si vous effacez vos cookies, utilisez un autre navigateur ou appareil, ou si le cookie expire, vous perdez cette possibilité. Nous ne pouvons pas la rétablir, ni accepter de revendications de propriété sur un document anonyme, car nous n'avons aucun moyen de les vérifier.
-- **Suppression automatique.** Un document anonyme qui n'a été ni ouvert ni modifié pendant **30 jours** est supprimé automatiquement et définitivement, sans préavis. Pour conserver un document, connectez-vous et créez-le sous votre compte.
+- **Suppression automatique.** Un document anonyme qui n'a pas été modifié pendant **30 jours** est supprimé automatiquement et définitivement, sans préavis. Seules les modifications comptent : ouvrir ou lire le document ne remet pas ce délai à zéro. Pour conserver un document, connectez-vous et créez-le sous votre compte.
 - **Modération.** Nous pouvons à tout moment retirer ou restreindre un document anonyme s'il enfreint les présentes conditions ou la loi (voir l'article 8). Nous ne pouvons pas vous adresser d'exposé des motifs, faute de moyen de vous contacter.
 - **Mêmes règles.** La règle d'âge (article 2) et les règles d'utilisation acceptable (article 6) s'appliquent pleinement aux documents anonymes.
 
@@ -79,7 +79,7 @@ Ces règles s'appliquent à tout ce que vous faites sur markoto : documents, com
 
 **Données sensibles et réglementées**
 
-- Stocker des catégories particulières de données personnelles concernant d'autres personnes (telles que des données de santé, des données révélant l'origine ethnique, les convictions religieuses ou les opinions politiques, des données biométriques ou génétiques, ou des données relatives à des condamnations pénales), ou d'autres données réglementées comme des numéros de carte de paiement, sauf si vous disposez d'une base juridique pour ce faire et les protégez de manière appropriée. markoto n'est pas conçu pour de telles données, et les documents anonymes ne doivent jamais en contenir.
+- Stocker des catégories particulières de données personnelles concernant d'autres personnes (par exemple des données de santé, l'origine ethnique, les convictions religieuses ou les opinions politiques, des données biométriques ou génétiques, ou des condamnations pénales) ou d'autres données réglementées comme des numéros de carte de paiement, sauf si vous disposez d'une base juridique pour ce faire et les protégez de manière appropriée. markoto n'est pas conçu pour de telles données. Les documents anonymes ne doivent jamais en contenir.
 
 **Usage abusif de l'IA**
 
@@ -170,12 +170,6 @@ Les présentes conditions sont régies par **{{governingLaw}}**, à l'exclusion 
 
 Nous pouvons modifier les présentes conditions, par exemple pour tenir compte de nouvelles fonctionnalités ou d'exigences légales. Nous annonçons les modifications importantes dans le service au moins **30 jours** avant leur entrée en vigueur. À compter de cette date, il vous sera demandé d'accepter la nouvelle version avant de continuer. Si vous n'êtes pas d'accord, vous pouvez cesser d'utiliser markoto et supprimer votre compte avant l'entrée en vigueur des modifications. Les modifications imposées par la loi, ou nécessaires de toute urgence pour remédier à des problèmes de sécurité ou d'abus, peuvent prendre effet plus tôt. Les modifications ne s'appliquent jamais rétroactivement.
 
-Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}}**.
-
-- **v3 (2026-11-03).** Documents anonymes (vérification anti-robots, acceptation des conditions, nettoyage après 30 jours, suppression uniquement par le navigateur créateur) ; article complet sur l'utilisation acceptable ; modération des contenus et traitement des réclamations au titre du règlement sur les services numériques ; âge minimal de 16 ans partout ; sanctions et une personne par compte ; propriété, exactitude et transparence des résultats de l'IA ; fonctionnalités bêta ; nouvelle clause de responsabilité avec plafond fixe, garantie contre les réclamations de tiers pour les utilisateurs professionnels, for ; préavis de 30 jours pour les modifications ; dispositions générales. Allocation d'IA gratuite pour les utilisateurs connectés, dans le cadre d'une limite mensuelle par compte et d'une réserve mensuelle commune, sans garantie (point 7).
-- **v2 (2026-10-26).** Alignement sur le service exclusivement gratuit : aucune offre payante ni condition de paiement en vigueur, usage raisonnable et limites, nettoyage des documents anonymes, responsabilités liées à la connexion d'un fournisseur d'IA personnel, clauses « en l'état » et d'interruption du service.
-- **v1 (2026-05-04).** Publication initiale.
-
 ## 16. Dispositions générales
 
 - **Intégralité de l'accord.** Les présentes conditions, ainsi que les documents auxquels elles renvoient, constituent l'intégralité de l'accord entre vous et nous concernant markoto.
@@ -184,3 +178,11 @@ Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}
 - **Force majeure.** Nous ne sommes pas responsables des manquements causés par des événements échappant à notre contrôle raisonnable, tels que des catastrophes naturelles, une guerre, des pannes à grande échelle de réseaux, de fournisseurs cloud ou d'énergie, ou des injonctions des autorités.
 - **Absence de renonciation.** Si nous ne faisons pas immédiatement valoir une disposition, nous pouvons encore le faire ultérieurement.
 - **Langue.** Les présentes conditions peuvent être traduites. En cas de divergence entre les versions, la version anglaise prévaut.
+
+---
+
+Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}}**.
+
+- **v3 (2026-11-03).** Documents anonymes (vérification anti-robots, acceptation des conditions, suppression 30 jours après la dernière modification, suppression uniquement par le navigateur créateur) ; article complet sur l'utilisation acceptable ; modération des contenus et traitement des réclamations au titre du règlement sur les services numériques ; âge minimal de 16 ans partout ; sanctions et une personne par compte ; propriété, exactitude et transparence des résultats de l'IA ; fonctionnalités bêta ; nouvelle clause de responsabilité avec plafond fixe, garantie contre les réclamations de tiers pour les utilisateurs professionnels, for ; préavis de 30 jours pour les modifications ; dispositions générales. Allocation d'IA gratuite pour les utilisateurs connectés, dans le cadre d'une limite mensuelle par compte et d'une réserve mensuelle commune, sans garantie (point 7).
+- **v2 (2026-10-26).** Alignement sur le service exclusivement gratuit : aucune offre payante ni condition de paiement en vigueur, usage raisonnable et limites, nettoyage des documents anonymes, responsabilités liées à la connexion d'un fournisseur d'IA personnel, clauses « en l'état » et d'interruption du service.
+- **v1 (2026-05-04).** Publication initiale.

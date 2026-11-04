@@ -18,14 +18,14 @@ La présente politique constitue notre **mécanisme de notification et d'action*
 
 Vous pouvez signaler un contenu de deux manières, traitées de façon identique :
 
-- **Le formulaire de signalement** à l'adresse [/legal/abuse](/legal/abuse). Il fonctionne sans compte ; votre navigateur résout alors une brève vérification anti-robots exécutée sur notre propre serveur, sans tiers et sans cookie. Les documents créés sans compte affichent une barre « contenu d'utilisateur · Signaler » qui ouvre le formulaire avec l'adresse du document déjà renseignée.
+- **Le formulaire de signalement** à l'adresse [/legal/abuse](/legal/abuse). Il fonctionne sans compte ; votre navigateur résout alors une brève vérification anti-robots exécutée sur notre propre serveur, sans tiers et sans cookie. Les documents anonymes (documents créés sans compte) affichent une barre indiquant « Créé par un utilisateur de markoto sans compte, et non par markoto », avec un lien « Signaler ». Ce lien ouvre le formulaire avec l'adresse du document déjà renseignée.
 - **Par e-mail** à **{{abuseContactEmail}}**.
 
 Un signalement complet comprend (article 16, paragraphe 2, du DSA) :
 
 1. **L'emplacement exact** du contenu : l'URL du document (par exemple `https://markoto.app/d/…`) et, si cela est utile, la partie du document visée.
 2. **Une explication** des raisons pour lesquelles vous estimez que le contenu est illicite ou contraire à nos conditions d'utilisation. S'il est illicite, indiquez quelle loi il enfreint, si vous le savez.
-3. **Votre nom et votre adresse e-mail.** Vous pouvez les omettre si vous signalez un contenu susceptible de relever d'abus sexuels ou d'exploitation sexuelle d'enfants.
+3. **Votre nom et votre adresse e-mail.** Vous ne pouvez les omettre que si vous signalez des contenus pédopornographiques.
 4. **Une déclaration** confirmant que vous estimez de bonne foi que les informations et allégations contenues dans votre signalement sont exactes et complètes.
 
 Le traitement d'un signalement incomplet peut prendre plus de temps, car nous risquons de ne pas pouvoir identifier le contenu ou l'apprécier.
@@ -63,7 +63,7 @@ Si nous retirons ou restreignons votre contenu ou suspendons votre compte, nous 
 - que la décision a été prise par une personne et non par un système automatisé ;
 - la manière dont vous pouvez la contester.
 
-**Documents anonymes.** Un document créé sans compte ne comporte aucune coordonnée. Nous ne pouvons pas adresser d'exposé des motifs à son créateur et nous consignons l'exposé comme impossible à remettre. Nous conservons avec le signalement le texte de chaque notification que nous envoyons ou que nous n'avons pas pu remettre.
+**Documents anonymes.** Un document anonyme ne comporte aucune coordonnée. Nous ne pouvons pas adresser d'exposé des motifs à son créateur et nous consignons l'exposé comme impossible à remettre. Nous conservons avec le signalement le texte de chaque notification que nous envoyons ou que nous n'avons pas pu remettre.
 
 **Comment contester.** Vous pouvez adresser une réclamation à **{{abuseContactEmail}}** dans un délai de **six mois** à compter de notre décision. Répondez à l'exposé des motifs ou citez sa référence, et expliquez pourquoi la décision était erronée. Une personne examine votre réclamation, et nous rétablissons le contenu ou le compte si la décision était erronée. Nous vous informons du résultat. Vous pouvez également vous adresser à un organe certifié de règlement extrajudiciaire des litiges, et vous conservez en tout temps le droit de saisir les tribunaux. Les auteurs de signalements peuvent utiliser le même canal pour contester une décision de ne pas donner suite à leur signalement.
 
@@ -77,11 +77,11 @@ Si une autorité compétente nous enjoint d'agir contre un contenu illicite ou d
 
 ## Usage abusif du canal de signalement
 
-Nous pouvons, après un avertissement et pour une durée raisonnable, cesser de traiter les signalements de personnes qui soumettent fréquemment des signalements manifestement infondés. Les signalements sciemment faux peuvent également enfreindre nos conditions d'utilisation.
+Nous pouvons, après un avertissement et pour une durée raisonnable, cesser de traiter les signalements de personnes qui soumettent fréquemment des signalements manifestement infondés. Les signalements sciemment faux peuvent également enfreindre nos conditions d'utilisation (article 6).
 
 ## Données que nous traitons pour les signalements
 
-Pour traiter un signalement, nous enregistrons l'adresse du contenu signalé, votre explication, la catégorie, votre nom et votre adresse e-mail, la langue que vous avez utilisée, le moment où vous avez confirmé la déclaration de bonne foi et l'heure, ainsi qu'une adresse IP tronquée et une empreinte (hash) de l'agent utilisateur de votre navigateur contre les signalements en masse. Pour les signalements envoyés en étant connecté, nous associons également votre compte. Nous conservons un signalement, avec les notifications qui s'y rapportent, tant que le dossier est ouvert et le supprimons 1 an après sa clôture. Votre export de données comprend les signalements que vous avez déposés en étant connecté. Voir la politique de confidentialité ([/legal/privacy](/legal/privacy)) pour plus de détails.
+Pour traiter un signalement, nous enregistrons l'adresse du contenu signalé, votre explication, la catégorie, votre nom et votre adresse e-mail (sauf si vous les avez omis dans un signalement de contenus pédopornographiques), la langue que vous avez utilisée, le moment où vous avez confirmé la déclaration de bonne foi et l'heure, ainsi qu'une adresse IP tronquée et une empreinte (hash) de l'agent utilisateur de votre navigateur contre les signalements en masse. Pour les signalements envoyés en étant connecté, nous associons également votre compte. Nous conservons un signalement, avec les notifications qui s'y rapportent, tant que le dossier est ouvert et le supprimons 1 an après sa clôture. Votre export de données comprend les signalements que vous avez déposés en étant connecté. Voir la politique de confidentialité ([/legal/privacy](/legal/privacy)) pour plus de détails.
 
 ## Contact
 

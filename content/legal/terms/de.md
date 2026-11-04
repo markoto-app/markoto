@@ -8,7 +8,7 @@ translationStatus: machine-translated
 
 # Nutzungsbedingungen
 
-> **Kurz gesagt:** markoto ist ein kostenloser Dienst und wird so bereitgestellt, wie er ist. Sie müssen mindestens 16 Jahre alt sein. Nutzen Sie den Dienst rechtmässig und halten Sie die Regeln zur zulässigen Nutzung in §6 ein. Dokumente, die Sie ohne Konto erstellen, kann jede Person mit dem Link öffnen; sie werden nach 30 Tagen ohne Aktivität gelöscht und können nur von dem Browser gelöscht werden, mit dem sie erstellt wurden. KI-Ausgaben gehören Ihnen, prüfen Sie sie aber, bevor Sie sich darauf verlassen. Wenn Sie Ihren eigenen KI-Anbieter anbinden, tragen Sie dessen Kosten. Wir können Inhalte entfernen oder Konten sperren, die gegen diese Bedingungen verstossen, und nennen Ihnen die Gründe, wenn wir Sie erreichen können.
+> **Kurz gesagt:** markoto ist ein kostenloser Dienst und wird so bereitgestellt, wie er ist. Sie müssen mindestens 16 Jahre alt sein. Nutzen Sie den Dienst rechtmässig und halten Sie die Regeln zur zulässigen Nutzung in §6 ein. Dokumente, die Sie ohne Konto erstellen, kann jede Person mit dem Link öffnen und bearbeiten; sie werden nach 30 Tagen ohne Bearbeitung gelöscht und können nur von dem Browser gelöscht werden, mit dem sie erstellt wurden. An KI-Ausgaben, die für Sie erzeugt werden, beanspruchen wir keine Rechte; prüfen Sie sie, bevor Sie sich darauf verlassen. Wenn Sie Ihren eigenen KI-Anbieter anbinden, tragen Sie dessen Kosten. Wir können Inhalte entfernen oder Konten sperren, die gegen diese Bedingungen verstossen, und nennen Ihnen die Gründe, wenn wir Sie erreichen können.
 
 **Inhalt**
 
@@ -22,7 +22,7 @@ markoto ist ein kollaborativer Markdown-Editor, betrieben von **{{controllerName
 
 - **Alter.** Sie müssen mindestens **16 Jahre alt** sein, um markoto zu nutzen, sowohl mit Konto als auch für anonyme Dokumente. Dies gilt in jedem Land, auch dort, wo das örtliche Recht eine tiefere Altersgrenze vorsieht.
 - **Sanktionen.** Sie dürfen markoto nicht nutzen, wenn Sie sich in einem Land oder einer Region aufhalten oder dort Ihren gewöhnlichen Aufenthalt haben, das oder die umfassenden Sanktionen der Schweiz, der EU oder der UNO unterliegt, oder wenn Sie auf einer Sanktionsliste der Schweiz (SECO), der EU, der UNO oder der USA aufgeführt sind oder im Auftrag einer gelisteten Person handeln.
-- **Organisationen.** Wenn Sie markoto für eine Organisation nutzen, bestätigen Sie, dass Sie diese an diese Bedingungen binden dürfen. Sie handeln dann als **geschäftliche Nutzende**. Alle anderen sind **Konsumentinnen und Konsumenten**.
+- **Geschäftliche Nutzung und Konsumentinnen und Konsumenten.** Wenn Sie markoto für eine Organisation oder für Ihre gewerbliche oder berufliche Tätigkeit nutzen (auch als selbständig erwerbende Person), handeln Sie als **geschäftliche Nutzende**. Wenn Sie markoto für eine Organisation nutzen, bestätigen Sie, dass Sie diese an diese Bedingungen binden dürfen. Wenn Sie markoto für private Zwecke nutzen, sind Sie **Konsumentin oder Konsument**.
 - **Eine Person pro Konto.** Ein Konto gehört einer natürlichen Person. Teilen Sie keine Konten oder Anmeldedaten, und erstellen Sie nicht mehrere Konten, um Limiten oder eine Sperre zu umgehen.
 - **Sicherheit der Anmeldung.** Sie melden sich über einen Anbieter wie GitHub oder Google an. Schützen Sie dieses Konto, zum Beispiel mit einer Zwei-Faktor-Authentifizierung, und informieren Sie uns unter **{{privacyContactEmail}}**, wenn Sie vermuten, dass jemand anderes auf Ihr markoto-Konto zugegriffen hat.
 
@@ -39,9 +39,9 @@ Wenn wir kostenpflichtige Pläne einführen, gelten dafür gesonderte Bedingunge
 Sie können ein Dokument ohne Konto erstellen («anonymes Dokument»). Dafür gelten folgende Regeln:
 
 - **Vor dem Erstellen.** Sie bestätigen, dass Sie mindestens 16 Jahre alt sind, akzeptieren diese Bedingungen, und Ihr Browser löst eine kurze automatische Bot-Prüfung. Wir speichern die Version der Bedingungen, die Sie akzeptiert haben, und den Zeitpunkt zusammen mit dem Dokument. Ihr Browser merkt sich die Zustimmung, sodass Sie erst wieder gefragt werden, wenn sich diese Bedingungen ändern.
-- **Wer darauf zugreifen kann.** Jede Person, die den Link hat, kann das Dokument öffnen und, je nach Zugriffsmodus, bearbeiten. Das Dokument zeigt an, dass es von einer Person ohne Konto erstellt wurde, mit einem Link, um es zu melden. Suchmaschinen werden gebeten, Dokumente nicht zu indexieren, ein Link kann aber trotzdem weitergegeben werden. **Geben Sie keine vertraulichen oder sensiblen Informationen in ein anonymes Dokument ein.**
+- **Wer darauf zugreifen kann.** Jede Person, die den Link hat, kann das Dokument öffnen und bearbeiten. Sie können ein anonymes Dokument nicht privat machen oder mit einem Passwort schützen. Das Dokument zeigt an, dass es von einer Person ohne Konto erstellt wurde, mit einem Link, um es zu melden. Suchmaschinen werden gebeten, Dokumente nicht zu indexieren, ein Link kann aber trotzdem weitergegeben werden. **Geben Sie keine vertraulichen oder sensiblen Informationen in ein anonymes Dokument ein.**
 - **Wer es löschen kann.** Nur der Browser, mit dem das Dokument erstellt wurde, kann es löschen. Er weist dies mit einem zufälligen Schlüssel nach, der in einem Cookie gespeichert ist. Wenn Sie Ihre Cookies löschen, einen anderen Browser oder ein anderes Gerät verwenden oder das Cookie abläuft, verlieren Sie diese Möglichkeit. Wir können sie nicht wiederherstellen und können keine Ansprüche auf das Eigentum an einem anonymen Dokument anerkennen, da wir sie nicht überprüfen können.
-- **Automatische Löschung.** Ein anonymes Dokument, das **30 Tage** lang weder geöffnet noch bearbeitet wurde, wird automatisch, endgültig und ohne Vorankündigung gelöscht. Um ein Dokument zu behalten, melden Sie sich an und erstellen Sie es unter Ihrem Konto.
+- **Automatische Löschung.** Ein anonymes Dokument, das **30 Tage** lang nicht bearbeitet wurde, wird automatisch, endgültig und ohne Vorankündigung gelöscht. Nur Bearbeitungen zählen: Das Öffnen oder Lesen des Dokuments setzt diese Frist nicht zurück. Um ein Dokument zu behalten, melden Sie sich an und erstellen Sie es unter Ihrem Konto.
 - **Moderation.** Wir können ein anonymes Dokument jederzeit entfernen oder einschränken, wenn es gegen diese Bedingungen oder das Gesetz verstösst (siehe §8). Wir können Ihnen keine Begründung zustellen, da wir keine Möglichkeit haben, Sie zu kontaktieren.
 - **Gleiche Regeln.** Die Altersregel (§2) und die Regeln zur zulässigen Nutzung (§6) gelten für anonyme Dokumente uneingeschränkt.
 
@@ -79,7 +79,7 @@ Diese Regeln gelten für alles, was Sie auf markoto tun: Dokumente, Kommentare, 
 
 **Sensible und regulierte Daten**
 
-- besonders schützenswerte Personendaten (etwa Gesundheitsdaten, Daten über die ethnische Herkunft, religiöse oder politische Ansichten, biometrische oder genetische Daten oder Daten über strafrechtliche Verurteilungen) über andere Personen oder andere regulierte Daten wie Zahlungskartennummern zu speichern, es sei denn, Sie haben dafür eine Rechtsgrundlage und schützen sie angemessen. markoto ist nicht für solche Daten ausgelegt, und anonyme Dokumente dürfen sie niemals enthalten.
+- besonders schützenswerte Personendaten über andere Personen (zum Beispiel Gesundheitsdaten, ethnische Herkunft, religiöse oder politische Ansichten, biometrische oder genetische Daten oder strafrechtliche Verurteilungen) oder andere regulierte Daten wie Zahlungskartennummern zu speichern, es sei denn, Sie haben dafür eine Rechtsgrundlage und schützen sie angemessen. markoto ist nicht für solche Daten ausgelegt. Anonyme Dokumente dürfen sie niemals enthalten.
 
 **Missbrauch der KI**
 
@@ -170,12 +170,6 @@ Diese Bedingungen unterliegen **{{governingLaw}}**, unter Ausschluss seiner Koll
 
 Wir können diese Bedingungen ändern, zum Beispiel um neue Funktionen oder rechtliche Anforderungen zu berücksichtigen. Wesentliche Änderungen kündigen wir im Dienst mindestens **30 Tage** vor ihrem Inkrafttreten an. Ab diesem Datum werden Sie gebeten, die neue Version zu akzeptieren, bevor Sie fortfahren. Wenn Sie nicht einverstanden sind, können Sie die Nutzung von markoto beenden und Ihr Konto löschen, bevor die Änderungen wirksam werden. Gesetzlich vorgeschriebene Änderungen oder Änderungen, die zur Abwehr von Sicherheitsrisiken oder Missbrauch dringend nötig sind, können früher wirksam werden. Änderungen gelten nie rückwirkend.
 
-Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**.
-
-- **v3 (2026-11-03).** Anonyme Dokumente (Bot-Prüfung, Akzeptieren der Bedingungen, Bereinigung nach 30 Tagen, Löschung nur durch den erstellenden Browser); ein vollständiger Abschnitt zur zulässigen Nutzung; Moderation von Inhalten und Behandlung von Beschwerden nach dem Digital Services Act; Altersgrenze von 16 Jahren überall; Sanktionen und eine Person pro Konto; Eigentum, Genauigkeit und Transparenz von KI-Ausgaben; Beta-Funktionen; neue Haftungsklausel mit fester Obergrenze, Freistellung für geschäftliche Nutzende, Gerichtsstand; Ankündigung von Änderungen 30 Tage im Voraus; allgemeine Bestimmungen. Kostenloses KI-Kontingent für angemeldete Nutzerinnen und Nutzer im Rahmen eines monatlichen Limits pro Konto und eines gemeinsamen Monatstopfs, ohne Gewähr (§7).
-- **v2 (2026-10-26).** An den ausschliesslich kostenlosen Dienst angepasst: keine kostenpflichtigen Pläne oder Zahlungsbedingungen in Kraft, faire Nutzung und Limiten, Bereinigung anonymer Dokumente, Pflichten bei Anbindung eines eigenen KI-Anbieters, Klauseln zu «wie besehen» und zur Einstellung des Dienstes.
-- **v1 (2026-05-04).** Erstveröffentlichung.
-
 ## 16. Allgemeine Bestimmungen
 
 - **Gesamte Vereinbarung.** Diese Bedingungen bilden zusammen mit den Dokumenten, auf die sie verweisen, die gesamte Vereinbarung zwischen Ihnen und uns über markoto.
@@ -184,3 +178,11 @@ Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**.
 - **Höhere Gewalt.** Wir sind nicht verantwortlich für Ausfälle, die durch Ereignisse ausserhalb unserer zumutbaren Kontrolle verursacht werden, etwa Naturkatastrophen, Krieg, grossflächige Ausfälle von Netzen, Cloud- oder Energieanbietern oder behördliche Anordnungen.
 - **Kein Verzicht.** Wenn wir eine Bestimmung nicht sofort durchsetzen, können wir sie trotzdem später durchsetzen.
 - **Sprache.** Diese Bedingungen können übersetzt werden. Bei Abweichungen gilt die englische Fassung.
+
+---
+
+Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**.
+
+- **v3 (2026-11-03).** Anonyme Dokumente (Bot-Prüfung, Akzeptieren der Bedingungen, Löschung 30 Tage nach der letzten Bearbeitung, Löschung nur durch den erstellenden Browser); ein vollständiger Abschnitt zur zulässigen Nutzung; Moderation von Inhalten und Behandlung von Beschwerden nach dem Digital Services Act; Altersgrenze von 16 Jahren überall; Sanktionen und eine Person pro Konto; Eigentum, Genauigkeit und Transparenz von KI-Ausgaben; Beta-Funktionen; neue Haftungsklausel mit fester Obergrenze, Freistellung für geschäftliche Nutzende, Gerichtsstand; Ankündigung von Änderungen 30 Tage im Voraus; allgemeine Bestimmungen. Kostenloses KI-Kontingent für angemeldete Nutzerinnen und Nutzer im Rahmen eines monatlichen Limits pro Konto und eines gemeinsamen Monatstopfs, ohne Gewähr (§7).
+- **v2 (2026-10-26).** An den ausschliesslich kostenlosen Dienst angepasst: keine kostenpflichtigen Pläne oder Zahlungsbedingungen in Kraft, faire Nutzung und Limiten, Bereinigung anonymer Dokumente, Pflichten bei Anbindung eines eigenen KI-Anbieters, Klauseln zu «wie besehen» und zur Einstellung des Dienstes.
+- **v1 (2026-05-04).** Erstveröffentlichung.

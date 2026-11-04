@@ -8,7 +8,7 @@ translationStatus: machine-translated
 
 # Auftragsverarbeitungsvertrag
 
-Dieser Auftragsverarbeitungsvertrag («**AVV**») ist Bestandteil der Nutzungsbedingungen zwischen **{{controllerName}}** («**Auftragsverarbeiterin**» oder «**markoto**») und Ihnen, der Workspace-Eigentümerin bzw. dem Workspace-Eigentümer («**Verantwortlicher**»). Er regelt die Verarbeitung personenbezogener Daten durch markoto im Auftrag des Verantwortlichen im Zusammenhang mit dem Dienst.
+Dieser Auftragsverarbeitungsvertrag («**AVV**») ist Bestandteil der Nutzungsbedingungen zwischen **{{controllerName}}** («**Auftragsverarbeiterin**» oder «**markoto**») und Ihnen, der Workspace-Eigentümerin bzw. dem Workspace-Eigentümer («**Verantwortlicher**»). Er regelt die Verarbeitung personenbezogener Daten durch markoto im Auftrag des Verantwortlichen im Zusammenhang mit markoto.app und seinen Funktionen (der «**Dienst**»).
 
 Dieser AVV ist nur für Workspace-Kundinnen und -Kunden erforderlich. Wenn Sie markoto ausschliesslich für persönliche Dokumente nutzen, gilt dieser AVV nicht für Sie.
 
@@ -23,7 +23,7 @@ Grossgeschriebene Begriffe, die hier nicht definiert sind, haben die Bedeutung g
 
 ## 3. Gegenstand, Dauer, Art und Zweck der Verarbeitung
 
-Die Auftragsverarbeiterin verarbeitet die personenbezogenen Daten, die in den Workspace des Verantwortlichen eingebracht werden (Dokumentinhalte, Kommentare, Wissensdatenbank-Dateien, Mitgliedermetadaten, KI-Eingaben und -Ausgaben), für die Dauer des Dienstvertrags und zum Zweck der Erbringung des Dienstes: Speicherung, Zusammenarbeit in Echtzeit, Darstellung, Export, Suche, KI-Unterstützung und Sicherung.
+Die Auftragsverarbeiterin verarbeitet die personenbezogenen Daten, die in den Workspace des Verantwortlichen eingebracht werden (Dokumentinhalte, Kommentare, Wissensdatenbank-Dateien, Mitgliedermetadaten, KI-Eingaben und -Ausgaben), solange die Nutzungsbedingungen zwischen den Parteien gelten, und zum Zweck der Erbringung des Dienstes: Speicherung, Zusammenarbeit in Echtzeit, Darstellung, Export, Suche, KI-Unterstützung und Sicherung.
 
 ## 4. Kategorien betroffener Personen und personenbezogener Daten
 
@@ -61,7 +61,7 @@ Die Auftragsverarbeiterin ist in der **Schweiz** niedergelassen. Die Europäisch
 
 Bei Weiterübermittlungen hält die Auftragsverarbeiterin Art. 16 DSG und Kapitel V DSGVO ein:
 
-- Die zentrale Infrastruktur der Auftragsverarbeiterin (Datenbank, Dateispeicher, Sicherungskopien) und ihre KI-Anbieter befinden sich in der EU (Frankreich und Deutschland), deren Datenschutz die Schweiz als angemessen anerkennt.
+- Die zentrale Infrastruktur der Auftragsverarbeiterin (Datenbank, Dateispeicher, Sicherungskopien) befindet sich in der EU (Frankreich). Ihre KI-Unterauftragsverarbeiter verarbeiten Daten in der EU und, im Fall von Mistral AI, auch in EFTA-Staaten. Die Schweiz anerkennt den Datenschutz der Staaten der EU und des EWR als angemessen, und jeder EFTA-Staat ist entweder ein EWR-Staat oder die Schweiz.
 - Befindet sich ein Unterauftragsverarbeiter in einem Land ohne angemessenes Schutzniveau, insbesondere in den Vereinigten Staaten, oder kann er von dort auf Daten zugreifen, stützt sich die Übermittlung bei zertifizierten Empfängern auf das EU-U.S. bzw. Swiss-U.S. Data Privacy Framework, andernfalls auf die Standardvertragsklauseln der Europäischen Kommission (2021/914), angepasst an das Schweizer Recht.
 
 Standort und Übermittlungsmechanismus jedes Unterauftragsverarbeiters sind unter [/legal/sub-processors](/legal/sub-processors) veröffentlicht.
@@ -135,7 +135,7 @@ Ein dokumentiertes Verfahren zur Reaktion auf Datenschutzverletzungen umfasst Er
 ### 9. Datenminimierung und Löschung
 
 - Es werden nur Daten erhoben, die für den Dienst erforderlich sind; IP-Adressen werden vor der Speicherung gekürzt; hochgeladene Originaldateien der Wissensdatenbank werden nach der Verarbeitung gelöscht.
-- Automatische Löschjobs setzen Aufbewahrungsfristen durch (zum Beispiel KI-Protokolle nach 90 Tagen, inaktive anonyme Dokumente nach 30 Tagen, unbestätigte Uploads nach 24 Stunden, Audit-Protokolleinträge nach 2 Jahren).
+- Automatische Löschjobs setzen Aufbewahrungsfristen durch (zum Beispiel KI-Protokolle nach 90 Tagen, anonyme Dokumente 30 Tage nach ihrer letzten Bearbeitung, unbestätigte Uploads nach 24 Stunden, Audit-Protokolleinträge nach 2 Jahren).
 - Nutzende können ihre Daten selbst exportieren und löschen.
 
 ### 10. Unterauftragsverarbeiter
