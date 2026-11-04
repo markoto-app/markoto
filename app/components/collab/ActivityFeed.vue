@@ -79,6 +79,10 @@ interface ActivityEntry {
   // ai_sessions / mcp_sessions → users. Null for human rows and for
   // legacy AI rows that pre-date the actor_principal column.
   actorPrincipal: string | null
+  // Anonymous rows: the editor's random per-tab avatar token (the one
+  // their presence broadcast), so the row shows the same face. Absent
+  // or null for everyone else and for older rows.
+  actorAvatarSeed?: string | null
   agentKind: 'ai' | 'mcp' | null
   agentInitiatorUserId: number | null
   agentInitiatorName: string | null
@@ -557,7 +561,7 @@ function onRestored() {
         </div>
         <CommonUserAvatar
           v-else
-          :seed="avatarSeedFor({ id: entry.userId, fallback: entry.userName })"
+          :seed="avatarSeedFor({ id: entry.userId, avatarSeed: entry.actorAvatarSeed, fallback: entry.userName })"
           :size="28"
           class="mt-0.5"
         />

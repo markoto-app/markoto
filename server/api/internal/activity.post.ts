@@ -1,5 +1,6 @@
 import { matchesCurrentOrPrevious } from '../../../shared/utils/secrets'
 import { docExists, bumpLastActive } from '../../repos/documents'
+import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
 import { appendActivity, pruneActivity, ACTIVITY_ACTIONS, type ActivityAction, type ActivityMetadata } from '../../repos/activity'
 
 // Internal endpoint called by the sync-server to log user activity.
@@ -26,6 +27,7 @@ export default defineEventHandler(async (event) => {
     userId?: number | null
     userName?: string | null
     actorPrincipal?: string | null
+    actorAvatarSeed?: string | null
     action?: ActivityAction
     wordCount?: number | null
     linesAdded?: number | null
@@ -48,12 +50,19 @@ export default defineEventHandler(async (event) => {
     return { success: true, logged: false }
   }
 
+  const userId = typeof body.userId === 'number' ? body.userId : null
+  const actorPrincipal = typeof body.actorPrincipal === 'string' && body.actorPrincipal.length > 0
+    ? body.actorPrincipal
+    : null
   const { inserted } = await appendActivity({
     docId: body.docId,
-    userId: typeof body.userId === 'number' ? body.userId : null,
+    userId,
     userName: body.userName || null,
-    actorPrincipal: typeof body.actorPrincipal === 'string' && body.actorPrincipal.length > 0
-      ? body.actorPrincipal
+    actorPrincipal,
+    // Only an anonymous editor's row carries an avatar token (signed-in
+    // users are seeded by id, agents use the seal).
+    actorAvatarSeed: userId === null && (actorPrincipal === null || actorPrincipal === 'anonymous')
+      ? normalizeAvatarSeed(body.actorAvatarSeed)
       : null,
     action: body.action,
     wordCount: body.wordCount ?? null,

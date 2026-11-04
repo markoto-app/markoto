@@ -26,6 +26,9 @@ const TTL_SECONDS = 24 * 60 * 60
 export interface LastEditor {
   userName: string | null
   userId: string | null
+  /** Anonymous editors only: their awareness avatar token. Absent on
+   *  values written before this field existed. */
+  avatarSeed?: string | null
   at: number
 }
 

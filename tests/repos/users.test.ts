@@ -148,8 +148,8 @@ describe('upsertOAuthUser — basic outcomes', () => {
     expect(row!.login).toBe('alice-new')
     expect(row!.email).toBe('new@test.local')
     // Provider profile pictures are never stored (avatars are generated
-    // locally from the id).
-    expect(row!.avatarUrl).toBeNull()
+    // locally from the id); the column itself is gone since 0027.
+    expect(row).not.toHaveProperty('avatarUrl')
   })
 
   it('update path does not flip googleId on a github user', async () => {
@@ -237,7 +237,7 @@ describe('upsertOAuthUser — email-based merge', () => {
     // Email normalises to the latest login's value. Login stays
     // (GitHub-only field); Google doesn't set it. No provider avatar
     // is stored on either path.
-    expect(row!.avatarUrl).toBeNull()
+    expect(row).not.toHaveProperty('avatarUrl')
   })
 
   it('case-insensitive email matching still merges', async () => {

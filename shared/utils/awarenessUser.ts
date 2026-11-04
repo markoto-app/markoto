@@ -55,6 +55,13 @@ export interface NormalizedAwarenessUser {
 
 const AVATAR_SEED_RE = /^[A-Za-z0-9]{1,32}$/
 
+/** An anonymous visitor's avatar token if it has the accepted shape
+ *  (`[A-Za-z0-9]{1,32}`), else null. Also used for the token stored on
+ *  anonymous activity-log rows. */
+export function normalizeAvatarSeed(raw: unknown): string | null {
+  return typeof raw === 'string' && AVATAR_SEED_RE.test(raw) ? raw : null
+}
+
 function normalizeName(raw: unknown): string {
   if (typeof raw !== 'string') return AWARENESS_FALLBACK_NAME
   const cleaned = raw.replace(CONTROL_OR_FORMAT_RE, '').trim()
@@ -86,9 +93,8 @@ export function normalizeAwarenessUser(raw: unknown): NormalizedAwarenessUser | 
   if (typeof user.colorLight === 'string' && HEX_COLOR_WITH_ALPHA_RE.test(user.colorLight)) {
     out.colorLight = user.colorLight
   }
-  if (typeof user.avatarSeed === 'string' && AVATAR_SEED_RE.test(user.avatarSeed)) {
-    out.avatarSeed = user.avatarSeed
-  }
+  const avatarSeed = normalizeAvatarSeed(user.avatarSeed)
+  if (avatarSeed !== null) out.avatarSeed = avatarSeed
   const id = normalizeId(user.id)
   if (id !== undefined) out.id = id
   if (user.isAI === true) out.isAI = true

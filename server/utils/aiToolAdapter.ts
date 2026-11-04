@@ -44,6 +44,8 @@ import type {
   SearchActivityLogInput
 } from './agentic/functionTools'
 import { renderDocument } from './renderClient'
+import { resolveDocProperties } from './docProperties'
+import { buildMarkdownExport } from '~~/shared/utils/markdownFrontmatter'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
@@ -875,14 +877,23 @@ export async function handleExportDocumentAsMarkdown(
   session: DocToolContext,
   _input: ExportDocumentAsMarkdownInput
 ): Promise<ToolResult> {
-  // Pure read of ytext. The wrapper has already authz-checked +
-  // checked out the YDocPool entry, so session.ytext is the live
-  // synced body.
-  const markdown = session.ytext.toJSON()
-  // Match the tool description's contract: NO line-number prefixes.
-  // view_document is for inspection (with line numbers); this is for
-  // delivery / archival / pipe-to-another-tool.
-  return ok(markdown)
+  // The wrapper has already authz-checked + checked out the YDocPool
+  // entry, so session.ytext / ymeta are the live synced doc.
+  const doc = await getDoc(session.docId)
+  if (!doc) return err('Error: document not found.')
+  // Same file the editor's "Download Markdown" writes: markoto YAML
+  // frontmatter (theme + properties, live ymeta first, row as fallback)
+  // on top of the raw body. NO line-number prefixes — view_document is
+  // for inspection; this is for delivery / archival / re-import.
+  const props = resolveDocProperties(session.ymeta, doc)
+  return ok(buildMarkdownExport(session.ytext.toJSON(), {
+    title: props.title,
+    description: props.description,
+    audience: props.audience,
+    language: props.language,
+    templateId: props.templateId,
+    theme: props.theme ?? defaultTheme
+  }))
 }
 
 const VIEW_OTHER_DOC_CHAR_CAP = 50_000

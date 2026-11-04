@@ -81,6 +81,7 @@ const { loggedIn } = useUserSession()
 interface SavedTheme {
   themeId: string
   name: string
+  description?: string
   theme: DocTheme
   createdAt: string
   updatedAt: string
@@ -411,9 +412,10 @@ async function submit(blank: boolean) {
             </button>
 
             <!-- User-saved themes. Rendered only when the user is logged
-                 in AND has at least one saved preset. Cards have the
-                 same shape as built-ins but no description (they're
-                 named by the user, not described). -->
+                 in AND has at least one saved preset. Same card shape as
+                 the built-ins: the user's own description, or the font
+                 pairing when they left it empty (the same line the
+                 Theme panel shows). -->
             <button
               v-for="saved in savedThemes"
               :key="saved.themeId"
@@ -423,6 +425,7 @@ async function submit(blank: boolean) {
               :class="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId
                 ? 'border-primary bg-elevated/40'
                 : 'border-default'"
+              :aria-pressed="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId"
               @click="themeChoice = { kind: 'saved', themeId: saved.themeId }"
             >
               <div class="flex items-center gap-2 mb-1">
@@ -437,6 +440,12 @@ async function submit(blank: boolean) {
                   {{ saved.name }}
                 </span>
               </div>
+              <p
+                class="text-xs text-muted leading-snug line-clamp-2 break-words"
+                :data-testid="`newdoc-theme-card-saved-description-${saved.themeId}`"
+              >
+                {{ saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font }) }}
+              </p>
             </button>
 
             <button

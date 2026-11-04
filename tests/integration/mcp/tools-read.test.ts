@@ -3,6 +3,7 @@ import * as Y from 'yjs'
 import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser, createWorkspace } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
+import { splitMarkotoFrontmatter } from '~~/shared/utils/markdownFrontmatter'
 
 // Documents:read tools — happy paths against real DB + real Y.js
 // state. Authz failures (cross-user, cross-workspace) are pinned in
@@ -213,6 +214,22 @@ describe('MCP read tools — export_document_as_markdown', () => {
     expect(text).toContain('Paragraph one.')
     // Unlike view_document, export does NOT prepend line numbers.
     expect(text).not.toMatch(/^1:\s/m)
+  })
+
+  it('starts with the markoto frontmatter the editor download writes', async () => {
+    const user = await createUser()
+    const doc = await createDoc({ ownerId: user.id, title: 'Quarterly', language: 'fr' })
+    await seedYjs(doc.docId, '# Body\n')
+
+    const { plaintext } = await mintPat({ userId: user.id, scopes: READ_SCOPES })
+    const text = await mcp(plaintext).callText('export_document_as_markdown', { doc_id: doc.docId })
+
+    const split = splitMarkotoFrontmatter(text)
+    expect(split.kind).toBe('markoto')
+    if (split.kind !== 'markoto') return
+    expect(split.body).toBe('# Body\n')
+    expect(split.data).toMatchObject({ markoto: 1, title: 'Quarterly', language: 'fr' })
+    expect(split.data.theme).toBeTypeOf('object')
   })
 })
 

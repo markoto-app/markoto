@@ -21,7 +21,7 @@ ones.
 
 ## Create a token
 
-1. Open the Integrations page at `/settings/integrations` on your instance (for example `https://markoto.app/settings/integrations`) while signed in.
+1. While signed in, open your profile menu (your avatar, top right) and choose **Integrations (MCP)**. The page lives at `/settings/integrations` on your instance (for example `https://markoto.app/settings/integrations`).
 2. Type a name that tells you where it will live ("Claude Desktop on laptop") and press **Generate**.
 3. **Copy the token now.** It starts with `mkt_` and is shown exactly once; markoto only stores a hash and can't recover it. If you lose it, revoke it and create a new one.
 

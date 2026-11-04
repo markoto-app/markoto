@@ -32,6 +32,7 @@ const toast = useToast()
 interface SavedTheme {
   themeId: string
   name: string
+  description?: string
   theme: DocTheme
   createdAt: string
   updatedAt: string
@@ -197,6 +198,12 @@ async function persist(theme: DocTheme | null) {
                 class="size-3.5 text-primary ml-auto"
               />
             </div>
+            <p
+              class="text-xs text-muted leading-snug line-clamp-2 break-words"
+              :data-testid="`workspace-default-theme-saved-description-${saved.themeId}`"
+            >
+              {{ saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font }) }}
+            </p>
           </button>
         </div>
       </div>

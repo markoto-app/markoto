@@ -29,6 +29,12 @@ type ActivityEvent = {
    * column comment.
    */
   actorPrincipal?: string | null
+  /**
+   * Anonymous editors only: the random per-tab avatar token their
+   * awareness broadcasts (`user.avatarSeed`), so the Activity Log shows
+   * the same face as the presence bar. Null for everyone else.
+   */
+  actorAvatarSeed?: string | null
   action: ActivityAction
   wordCount?: number | null
   linesAdded?: number | null
@@ -84,6 +90,8 @@ export async function logActivity(event: ActivityEvent): Promise<void> {
 export interface VerifiedIdentity {
   userId: string
   userName: string | null
+  /** Anonymous writers only: the avatar token their awareness carries. */
+  avatarSeed?: string
 }
 
 /**
@@ -108,7 +116,10 @@ export function mostRecentVerifiedEditor(
   for (const identity of identities.values()) {
     if (!latest || identity.seq > latest.seq) latest = identity
   }
-  return latest ? { userId: latest.userId, userName: latest.userName } : null
+  if (!latest) return null
+  return latest.avatarSeed
+    ? { userId: latest.userId, userName: latest.userName, avatarSeed: latest.avatarSeed }
+    : { userId: latest.userId, userName: latest.userName }
 }
 
 /**

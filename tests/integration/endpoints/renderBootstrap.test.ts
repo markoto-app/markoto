@@ -17,7 +17,9 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import jwt from 'jsonwebtoken'
-import { resetDb, testDb } from '../setup/db'
+import * as Y from 'yjs'
+import { resetDb, testDb, ensureYjsTable } from '../setup/db'
+import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { anonClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
@@ -193,5 +195,39 @@ describe('GET /api/_internal/render-bootstrap', () => {
     )
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ fileIds: ['AbCdEfGhIjKl.png'] })
+  })
+
+  // Regression: an anonymous doc's theme (and any property change made by
+  // someone other than the owner) lives only in Y.js `meta` — the row's
+  // theme stays NULL because only the owner's editor persists it via
+  // PUT /meta. The bootstrap used to read the row, so the server PDF of an
+  // anonymous doc came out in the default theme.
+  it('takes theme + properties from the replayed Y.js meta (anonymous doc, row theme NULL)', async () => {
+    await ensureYjsTable()
+    const academic = THEME_PRESETS.find(p => p.id === 'academic')?.theme
+    expect(academic).toBeDefined()
+    const doc = await createDoc({ ownerId: null, title: 'Row title' })
+    const ydoc = new Y.Doc()
+    ydoc.getText('content').insert(0, '# Hello\n')
+    const ymeta = ydoc.getMap('meta')
+    ymeta.set('theme', academic)
+    ymeta.set('title', 'Live title')
+    ymeta.set('language', 'de')
+    const inserted = await testDb().query<{ id: number }>(
+      `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
+      [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))]
+    )
+    const snapshotId = Number(inserted.rows[0]?.id)
+
+    const res = await anonClient().get(
+      `/api/_internal/render-bootstrap?docId=${doc.docId}&t=${mintRenderToken(doc.docId, snapshotId)}`
+    )
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      markdown: '# Hello\n',
+      theme: academic,
+      title: 'Live title',
+      language: 'de'
+    })
   })
 })

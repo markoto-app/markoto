@@ -94,6 +94,12 @@ export interface ActivityEntry {
    */
   actorPrincipal: string | null
   /**
+   * Anonymous rows only: the random per-tab avatar token the editor's
+   * presence broadcast, so the feed shows the same face. Null for
+   * signed-in users (seeded by id), agents and older rows.
+   */
+  actorAvatarSeed: string | null
+  /**
    * Agent kind, derived from `actorPrincipal` prefix. `null` for
    * human edits + legacy AI rows that pre-date the actor_principal
    * column (those still render as "AI Assistant" via the legacy
@@ -139,6 +145,8 @@ export interface AppendInput {
    * comment for the join chain.
    */
   actorPrincipal?: string | null
+  /** Anonymous rows only: the editor's awareness avatar token. */
+  actorAvatarSeed?: string | null
   action: ActivityAction
   wordCount?: number | null
   linesAdded?: number | null
@@ -174,6 +182,7 @@ export async function appendActivity(input: AppendInput): Promise<AppendActivity
     userId: input.userId ?? null,
     userName: input.userName,
     actorPrincipal: input.actorPrincipal ?? null,
+    actorAvatarSeed: input.actorAvatarSeed ?? null,
     action: input.action,
     wordCount: typeof input.wordCount === 'number' ? Math.round(input.wordCount) : null,
     linesAdded: typeof input.linesAdded === 'number' ? Math.max(0, Math.round(input.linesAdded)) : null,
@@ -245,6 +254,7 @@ export async function listRecentActivity(docId: string, limit = 50): Promise<Act
       yjsDocIdBefore: activityLog.yjsDocIdBefore,
       yjsDocIdAfter: activityLog.yjsDocIdAfter,
       actorPrincipal: activityLog.actorPrincipal,
+      actorAvatarSeed: activityLog.actorAvatarSeed,
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
@@ -406,6 +416,7 @@ export async function getActivityById(activityId: number, docId: string): Promis
       yjsDocIdBefore: activityLog.yjsDocIdBefore,
       yjsDocIdAfter: activityLog.yjsDocIdAfter,
       actorPrincipal: activityLog.actorPrincipal,
+      actorAvatarSeed: activityLog.actorAvatarSeed,
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
@@ -487,6 +498,7 @@ export async function searchActivity(
       yjsDocIdBefore: activityLog.yjsDocIdBefore,
       yjsDocIdAfter: activityLog.yjsDocIdAfter,
       actorPrincipal: activityLog.actorPrincipal,
+      actorAvatarSeed: activityLog.actorAvatarSeed,
       createdAt: activityLog.createdAt
     })
     .from(activityLog)

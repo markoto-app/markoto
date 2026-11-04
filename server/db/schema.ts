@@ -22,12 +22,6 @@ export const users = pgTable('users', {
   login: text('login'),
   name: text('name').notNull(),
   email: text('email'),
-  // Retired: provider profile pictures are no longer stored (avatars are
-  // generated locally from the user id — app/utils/userAvatar.ts).
-  // Nothing reads or writes it; migration 0025 nulled existing values.
-  // Kept so a code rollback to an older image doesn't break on a
-  // missing column; drop it in a later release.
-  avatarUrl: text('avatar_url'),
   // Subscription tier. Defaults to `free`; paid tiers are set by
   // the Stripe webhook when `invoice.paid` / `subscription.updated`
   // lands. See AGENTS.md §7 "Billing (Stripe + LiteLLM)" +
@@ -578,6 +572,13 @@ export const activityLog = pgTable('activity_log', {
   // identification to a structured field so MCP can join through
   // the same render layer without polluting `user_name`.
   actorPrincipal: text('actor_principal'),
+  // Anonymous rows only: the random per-browser-tab avatar token the
+  // editor's presence broadcast (awareness `user.avatarSeed`,
+  // sessionStorage `markoto-anon-avatar`), so the Activity Log shows
+  // the same generated face as the presence bar. Not derived from
+  // anything about the visitor. NULL for signed-in users (avatar
+  // seeded by `user_id`), agents and rows written before 0027.
+  actorAvatarSeed: text('actor_avatar_seed'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   index('idx_activity_doc').on(table.docId, table.createdAt),

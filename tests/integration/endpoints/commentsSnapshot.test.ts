@@ -318,4 +318,37 @@ describe('POST /api/internal/comments-snapshot', () => {
       expect(rows.every(r => r.parent_comment_id === null)).toBe(true)
     })
   })
+
+  describe('anonymous avatar token on activity rows', () => {
+    it('stamps an anonymous author\'s token on the comment.added row, never a signed-in author\'s', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id })
+      const ts = Date.now()
+      const res = await anonClient().post(
+        '/api/internal/comments-snapshot',
+        {
+          docId: doc.docId,
+          entries: [
+            { entryId: 'anon1', authorId: null, authorName: 'Anonymous', authorAvatarSeed: 'AnonToken1234567', body: 'hi', createdAt: ts, updatedAt: ts, resolved: false },
+            { entryId: 'signed', authorId: owner.id, authorName: 'Owner', authorAvatarSeed: 'ShouldBeIgnored1', body: 'yo', createdAt: ts + 1, updatedAt: ts + 1, resolved: false },
+            { entryId: 'anon2', authorId: null, authorName: 'Anonymous', authorAvatarSeed: '<script>', body: 'bad token', createdAt: ts + 2, updatedAt: ts + 2, resolved: false }
+          ]
+        },
+        { headers: secretHeaders }
+      )
+      expect(res.status).toBe(200)
+      const r = await testDb().query<{ commentId: string, seed: string | null }>(
+        `SELECT metadata->>'commentId' AS "commentId", actor_avatar_seed AS seed
+           FROM activity_log WHERE doc_id = $1 AND action = 'comment.added'`,
+        [doc.docId]
+      )
+      const seeds = Object.fromEntries(r.rows.map(row => [row.commentId, row.seed]))
+      expect(seeds).toEqual({ anon1: 'AnonToken1234567', signed: null, anon2: null })
+      // The mirror table itself never stores the token.
+      const cols = await testDb().query<{ column_name: string }>(
+        `SELECT column_name FROM information_schema.columns WHERE table_name = 'document_comments'`
+      )
+      expect(cols.rows.map(c => c.column_name)).not.toContain('author_avatar_seed')
+    })
+  })
 })

@@ -5,6 +5,7 @@
 
 import * as Y from 'yjs'
 import { injectTraceHeaders } from './sentry'
+import { normalizeAvatarSeed } from '../../shared/utils/awarenessUser'
 
 const APP_URL = process.env.APP_URL
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
@@ -14,6 +15,9 @@ interface SnapshotEntry {
   parentCommentId: string | null
   authorId: number | null
   authorName: string
+  /** Anonymous authors only: the random avatar token stored on the
+   *  comment, so its activity row shows the same face. */
+  authorAvatarSeed: string | null
   body: string
   createdAt: number
   updatedAt: number
@@ -41,11 +45,13 @@ function numField<F extends number | null>(map: Y.Map<unknown>, key: string, fal
 function entryFromMap(map: Y.Map<unknown>, parentCommentId: string | null): SnapshotEntry | null {
   const id = map.get('id')
   if (typeof id !== 'string') return null
+  const authorId = numField(map, 'authorId', null)
   return {
     entryId: id,
     parentCommentId,
-    authorId: numField(map, 'authorId', null),
+    authorId,
     authorName: strField(map, 'authorName', 'Anonymous'),
+    authorAvatarSeed: authorId === null ? normalizeAvatarSeed(map.get('authorAvatarSeed')) : null,
     body: strField(map, 'body', ''),
     createdAt: numField(map, 'createdAt', 0),
     updatedAt: numField(map, 'updatedAt', 0),
