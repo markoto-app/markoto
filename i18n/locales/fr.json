@@ -1768,7 +1768,12 @@
     "compare": {
       "yes": "Oui",
       "no": "Non",
-      "partial": "En partie"
+      "partial": "En partie",
+      "checked": "Faits vérifiés le {date}.",
+      "caption": "Vérifié le {date}. Les sources sont en fin de page.",
+      "sources": "Sources",
+      "markotoSources": "markoto (documentation et code)",
+      "trademark": "{name} est une marque de son propriétaire. markoto n'est pas affilié à {name}. Les prix et fonctions changent ; les sources indiquent l'état actuel."
     },
     "page": {
       "updated": "Mis à jour le {date}",

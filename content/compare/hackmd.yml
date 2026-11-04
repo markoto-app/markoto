@@ -1,0 +1,141 @@
+# Claim data for /compare/hackmd (content/marketing/en/compare/hackmd.md).
+# Each value: what the table shows, where it comes from, when it was checked.
+# markoto's sources point at its docs (site paths) or the code (repo paths).
+# Re-check a competitor value at its source before changing `checked`.
+name: HackMD
+rows:
+  - feature: Price
+    markoto:
+      value: Free on markoto.app; paid plans not launched yet
+      source: /docs/account/plans
+      checked: '2026-11-04'
+    competitor:
+      value: Free; Prime $5 per seat/month, billed annually
+      source: https://hackmd.io/pricing
+      checked: '2026-11-04'
+  - feature: People on the free plan
+    markoto:
+      value: No collaborator limit; anyone with the link can join
+      source: /docs/sharing
+      checked: '2026-11-04'
+    competitor:
+      value: Up to 3 teammates and 3 invitees
+      source: https://hackmd.io/pricing
+      checked: '2026-11-04'
+  - feature: Real-time co-editing
+    markoto:
+      value: true
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://hackmd.io/
+      checked: '2026-11-04'
+  - feature: Comments
+    markoto:
+      value: true
+      source: /docs/writing/comments
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://hackmd.io/features
+      checked: '2026-11-04'
+  - feature: Suggested edits
+    markoto:
+      value: false
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: Suggest edit (beta)
+      source: https://hackmd.io/features
+      checked: '2026-11-04'
+  - feature: Version history
+    markoto:
+      value: Every edit, with a diff and restore
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: Last 10 versions on Free; unlimited on Prime
+      source: https://hackmd.io/pricing
+      checked: '2026-11-04'
+  - feature: Math and diagrams
+    markoto:
+      value: KaTeX math, Mermaid diagrams
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: MathJax math; Mermaid, Graphviz, PlantUML, Vega-Lite and more
+      source: https://hackmd.io/features
+      checked: '2026-11-04'
+  - feature: Slide mode
+    markoto:
+      value: false
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://hackmd.io/features
+      checked: '2026-11-04'
+  - feature: GitHub sync
+    markoto:
+      value: false
+      source: /docs/import-export
+      checked: '2026-11-04'
+    competitor:
+      value: 20 pushes/month on Free; unlimited on Prime
+      source: https://hackmd.io/pricing
+      checked: '2026-11-04'
+  - feature: PDF export
+    markoto:
+      value: Paged PDF with print themes, on every plan
+      source: /docs/import-export/polished-pdf
+      checked: '2026-11-04'
+    competitor:
+      value: Prime plan
+      source: https://hackmd.io/pricing
+      checked: '2026-11-04'
+  - feature: Other downloads
+    markoto:
+      value: Markdown
+      source: /docs/import-export/save-markdown
+      checked: '2026-11-04'
+    competitor:
+      value: Markdown, HTML
+      source: https://hackmd.io/features
+      checked: '2026-11-04'
+  - feature: Image size
+    markoto:
+      value: 10 MB per image, 100 MB in total on the free plan
+      source: shared/config/tiers.ts
+      checked: '2026-11-04'
+    competitor:
+      value: 1 MB per image on Free, 20 MB on Prime
+      source: https://hackmd.io/pricing
+      checked: '2026-11-04'
+  - feature: API for scripts and agents
+    markoto:
+      value: MCP server with personal access tokens
+      source: /docs/account/mcp
+      checked: '2026-11-04'
+    competitor:
+      value: REST API and CLI
+      source: https://hackmd.io/
+      checked: '2026-11-04'
+  - feature: Self-hosting
+    markoto:
+      value: Free, with Docker Compose
+      source: /docs/getting-started/self-hosting
+      checked: '2026-11-04'
+    competitor:
+      value: Enterprise plan (on-premises)
+      source: https://hackmd.io/enterprise
+      checked: '2026-11-04'
+  - feature: Where the hosted service stores data
+    markoto:
+      value: EU (OVHcloud, France)
+      source: /legal/privacy
+      checked: '2026-11-04'
+    competitor:
+      value: Not stated on its pricing or Enterprise pages
+      source: https://hackmd.io/enterprise
+      checked: '2026-11-04'
