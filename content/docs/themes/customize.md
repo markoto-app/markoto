@@ -8,9 +8,10 @@ order: 2
 # Tune your typography and colors
 
 A preset sets the overall look; the Theme tab is where you adjust the
-details. It has eleven sections: typography, colors, page geometry,
-headers, footers, code blocks, callouts, tables, lists, table of
-contents and the mermaid diagram theme. Every change drives both the
+details. It has sixteen sections: cover page, page, body text, headings, meta
+voice, colors, layout, page header, page footer, code blocks, tables,
+images and quotes, table of contents, diagrams, admonitions and custom
+CSS. Every change drives both the
 live preview and the PDF export.
 
 ::flow{id="tune-your-typography-and-colors" hide-title}
