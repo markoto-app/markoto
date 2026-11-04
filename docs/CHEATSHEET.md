@@ -33,7 +33,9 @@ See `docs/LOCAL.md` for the pre-push full-stack verification flow (`make local-u
 | Nuxt-env composable/component tests | `make test-nuxt` | ~30s |
 | Repos tests (DB-backed) | `make test-repos` | ~30s |
 | Integration tests (REST + sync, full stack) | `make test-integration` | ~5m |
-| Playwright e2e flow tests | `make test-flows` | ~10m |
+| Playwright e2e flow tests (default + `@billing` + `@marketing` passes) | `make test-flows` | ~10m |
+| Only the flows you changed (only the passes they belong to start a server) | `bun run flows:test:changed` | ~2m |
+| Only the marketing-site flows | `bun run flows:test --grep @marketing` | ~2m |
 | Everything | `make test-all` | ~15m |
 
 Product-page videos (WP11, `public/tour/`): with a flow-stack app running in the hosted shape (see `tests/e2e/AGENTS.md`, AI keys exported, ffmpeg installed), `TOUR_OUTPUT_DIR=/tmp/tour bun run tour:capture` re-records + encodes every scene; `--encode` only re-encodes what was recorded. Afterwards `scripts/build-og-image.sh` rebuilds the 1200×630 social card `public/og/markoto.jpg` from a poster (ffmpeg).
