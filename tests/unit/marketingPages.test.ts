@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import {
   hreflangLinks,
@@ -6,9 +8,10 @@ import {
   marketingRoutePath,
   parseMarketingContentPath,
   parseMarketingRoute,
-  prefixedMarketingLocale
+  prefixedMarketingLocale,
+  selfHostPath
 } from '../../shared/seo/marketing'
-import { flowStripData } from '../../shared/docs/flowStrip'
+import { flowStripData, stripCaption } from '../../shared/docs/flowStrip'
 import { faqStructuredData, serializeJsonLd } from '../../shared/seo/structuredData'
 
 // Marketing pages (shared/seo/marketing.ts): English at the root, de/fr
@@ -146,6 +149,26 @@ describe('flowStripData (::flow-strip)', () => {
   })
 })
 
+describe('stripCaption (::flow-strip captions)', () => {
+  it('the page\'s own captions win, one per shot in order', () => {
+    const captions = ['Two writers.', 'A comment arrives.']
+    expect(stripCaption('On YOUR screen: …', 0, 2, { captions })).toBe('Two writers.')
+    expect(stripCaption('On YOUR screen: …', 1, 2, { captions })).toBe('A comment arrives.')
+  })
+
+  it('falls back to the step text for missing, blank or non-string entries', () => {
+    expect(stripCaption('Step text.', 2, 3, { captions: ['a', 'b'] })).toBe('Step text.')
+    expect(stripCaption('Step text.', 0, 2, { captions: ['  '] })).toBe('Step text.')
+    expect(stripCaption('Step text.', 0, 2, { captions: [42] })).toBe('Step text.')
+  })
+
+  it('a single `caption` covers only a one-shot strip, and `captions` beats it', () => {
+    expect(stripCaption('Step text.', 0, 1, { caption: 'Mine.' })).toBe('Mine.')
+    expect(stripCaption('Step text.', 0, 2, { caption: 'Mine.' })).toBe('Step text.')
+    expect(stripCaption('Step text.', 0, 1, { caption: 'Mine.', captions: ['Listed.'] })).toBe('Listed.')
+  })
+})
+
 describe('faqStructuredData (::faq json-ld)', () => {
   it('builds a FAQPage and escapes <', () => {
     const json = serializeJsonLd(faqStructuredData([{ q: 'Is it free?', a: 'Yes. </script>' }], 'en-US'))
@@ -156,5 +179,18 @@ describe('faqStructuredData (::faq json-ld)', () => {
       'inLanguage': 'en-US',
       'mainEntity': [{ '@type': 'Question', 'name': 'Is it free?', 'acceptedAnswer': { '@type': 'Answer', 'text': 'Yes. </script>' } }]
     })
+  })
+})
+
+describe('selfHostPath (header + footer "Self-host")', () => {
+  it('is the marketing page on the marketing site and the install guide everywhere else', () => {
+    expect(selfHostPath(true)).toBe('/self-hosted-markdown-editor')
+    expect(selfHostPath(false)).toBe('/docs/getting-started/self-hosting')
+  })
+
+  it('both targets exist, and the page stays out of the Use cases menu (it would be listed twice)', () => {
+    const page = readFileSync(resolve(__dirname, '../../content/marketing/en/self-hosted-markdown-editor.md'), 'utf8')
+    expect(page).not.toMatch(/^navGroup:/m)
+    expect(existsSync(resolve(__dirname, '../../content/docs/getting-started/self-hosting.md'))).toBe(true)
   })
 })

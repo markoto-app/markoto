@@ -18,6 +18,16 @@ export const DEFAULT_MARKETING_LOCALE: MarketingLocale = 'en'
 export const PREFIXED_MARKETING_LOCALES = ['de', 'fr'] as const
 export type PrefixedMarketingLocale = typeof PREFIXED_MARKETING_LOCALES[number]
 
+/** The install guide in the docs: where "Self-host" points off the marketing site. */
+export const SELF_HOST_DOCS_PATH = '/docs/getting-started/self-hosting'
+/** The self-hosting page of the marketing site (content/marketing/en/self-hosted-markdown-editor.md, not in the Use cases menu). */
+export const SELF_HOST_MARKETING_PATH = '/self-hosted-markdown-editor'
+
+/** Target of the header + footer "Self-host" link. */
+export function selfHostPath(marketingSite: boolean): string {
+  return marketingSite ? SELF_HOST_MARKETING_PATH : SELF_HOST_DOCS_PATH
+}
+
 const CONTENT_ROOT = '/marketing'
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/
 
