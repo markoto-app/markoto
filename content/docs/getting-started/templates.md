@@ -17,13 +17,15 @@ the bones of what you're writing.
 
 ## What just happened
 
-markoto ships seven starting shapes. **Demo** is picked for you: a short
+markoto ships nine starting shapes. **Demo** is picked for you: a short
 tour of markdown and of markoto (sharing, themes, comments, the AI, PDF
 export), handy for your first document. **Blank** is an empty page, and so
-is "Just give me a blank doc". The other five are skeletons: meeting notes,
-project README, academic paper, business plan and recipe. Each is written
-in the language you pick, with short private comments telling you (or the
-AI) what belongs in each section.
+is "Just give me a blank doc". **Resume** is a filled-in one-page CV for a
+made-up person that you rewrite line by line. The other six are skeletons:
+report, meeting notes, project README, academic paper, business plan and
+recipe. Each is written in the language you pick (English or German; Demo,
+Resume and Report also in French, Spanish, Japanese and Chinese), with
+short private comments telling you (or the AI) what belongs in each section.
 
 You can change any of it after the fact — the template is a starting
 point, not a constraint.

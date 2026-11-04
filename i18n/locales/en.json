@@ -326,6 +326,14 @@
       "label": "Project README",
       "description": "Tagline, why, quick start, features, docs, contributing, license."
     },
+    "resume": {
+      "label": "Resume",
+      "description": "A one-page CV: profile, experience, education, skills, languages."
+    },
+    "report": {
+      "label": "Report",
+      "description": "Cover, contents, summary, key figures, results, outlook, appendix."
+    },
     "demo": {
       "label": "Demo",
       "description": "Markdown basics and a short tour of markoto."
@@ -981,6 +989,10 @@
       "newsletter": {
         "name": "Newsletter",
         "description": "Karla body under PT Serif headings, green accent, brand-colored table headers — weekly-digest feel."
+      },
+      "resume": {
+        "name": "Resume",
+        "description": "One dense A4 page: Inter at 10 pt, small headings with a rule, no header, footer or cover."
       }
     },
     "customCss": {
@@ -1596,7 +1608,7 @@
       "themes": {
         "label": "Themes",
         "title": "Change the look, not the Markdown.",
-        "body": "Pick one of seven themes, then adjust colours, fonts and the cover page. Your text stays untouched."
+        "body": "Pick one of eight themes, then adjust colours, fonts and the cover page. Your text stays untouched."
       },
       "collab": {
         "label": "Collaboration",
@@ -1753,6 +1765,7 @@
       "label": "Site",
       "pricing": "Pricing",
       "useCases": "Use cases",
+      "templates": "Templates",
       "compare": "Compare",
       "selfHost": "Self-host"
     },

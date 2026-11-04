@@ -2,15 +2,20 @@
 // "Start writing": opens the new-document dialog (the same one as the
 // home page — anonymous visitors pass the terms + bot-check gate there)
 // and opens the created document. Used by the marketing header and the
-// `::cta` content block.
+// `::cta` content block; `templateId` / `themePreset` pre-select a
+// template and a theme in the dialog ("Use this template").
 withDefaults(defineProps<{
   label?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
   testid?: string
+  templateId?: string
+  themePreset?: string
 }>(), {
   label: undefined,
   size: 'md',
-  testid: 'marketing-start-writing'
+  testid: 'marketing-start-writing',
+  templateId: undefined,
+  themePreset: undefined
 })
 
 const { t } = useI18n()
@@ -36,6 +41,8 @@ function onCreated(docId: string): void {
     <DocumentNewDocumentDialog
       v-model:open="open"
       :workspace-id="null"
+      :initial-template-id="templateId"
+      :initial-theme-preset="themePreset"
       @created="onCreated"
     />
   </span>

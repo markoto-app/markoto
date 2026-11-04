@@ -24,4 +24,4 @@
 <!-- 1-2 paragraphs. The takeaway in plain language for someone who only read the abstract and conclusion. -->
 
 ## References
-<!-- Use whatever citation style the venue requires. Tools like BibTeX or markdown-it-bibliography render real reference lists from a `.bib` file — see the docs. -->
+<!-- Use whatever citation style the venue requires. markoto has no BibTeX or citation manager: type the list by hand, as a numbered list, and cite with [1] in the text or with footnotes ([^1]), which print at the foot of their page. -->

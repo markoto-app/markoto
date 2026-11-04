@@ -13,7 +13,7 @@ import { fetchMarketingPage } from '~/utils/marketingPage'
 // collection is faked — the route's queries are under test, not Nuxt
 // Content.
 
-interface Item { path: string, title: string, description: string, reviewed: boolean, body: { type: 'minimark', value: unknown[] } }
+interface Item { path: string, title: string, description: string, reviewed: boolean, body: { type: 'minimark', value: unknown[] }, navGroup?: string, navLabel?: string, navOrder?: number }
 
 const content = vi.hoisted(() => ({ items: [] as Item[] }))
 
@@ -202,5 +202,29 @@ describe('Self-host link', () => {
     const footer = await mountSuspended(CommonLegalFooter)
     expect(footer.find('[data-testid="footer-self-host-link"]').attributes('href')).toBe('/self-hosted-markdown-editor')
     footer.unmount()
+  })
+})
+
+describe('Templates link', () => {
+  it('the header links to the templates hub only; the footer lists every template page', async () => {
+    setConfig({ marketingSite: true })
+    content.items = [
+      { ...item('/marketing/en/templates/resume'), navGroup: 'templates', navLabel: 'Resume template', navOrder: 20 },
+      { ...item('/marketing/en/templates'), navGroup: 'templates', navLabel: 'All templates', navOrder: 0 },
+      { ...item('/marketing/en/templates/report'), navGroup: 'templates', navLabel: 'Report template', navOrder: 10 }
+    ]
+    clearNuxtData('marketing:nav')
+    const header = await mountSuspended(MarketingHeader)
+    await vi.waitFor(() => expect(header.find('[data-testid="header-templates-link"]').exists()).toBe(true))
+    expect(header.find('[data-testid="header-templates-link"]').attributes('href')).toBe('/templates')
+    expect(header.html()).not.toContain('Resume template')
+    header.unmount()
+    const footer = await mountSuspended(CommonLegalFooter)
+    const hrefs = footer.findAll('a').map(a => a.attributes('href'))
+    expect(hrefs).toEqual(expect.arrayContaining(['/templates', '/templates/report', '/templates/resume']))
+    expect(hrefs.indexOf('/templates')).toBeLessThan(hrefs.indexOf('/templates/report'))
+    expect(hrefs.indexOf('/templates/report')).toBeLessThan(hrefs.indexOf('/templates/resume'))
+    footer.unmount()
+    clearNuxtData('marketing:nav')
   })
 })

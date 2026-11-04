@@ -82,7 +82,7 @@ Chromium sidecar from the same print page. What you see is what you ship.
 
 ### Themes and custom CSS
 
-Change the look without touching the Markdown. Pick one of seven built-in
+Change the look without touching the Markdown. Pick one of eight built-in
 themes, then adjust colours, fonts (a curated Google Fonts set, served by the
 instance itself), heading scale, page size, headers and footers,
 the table of contents and the cover page. Save a look as your own preset, or

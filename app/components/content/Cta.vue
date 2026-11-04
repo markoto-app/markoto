@@ -7,17 +7,26 @@
 //
 // The main button opens the new-document dialog (MarketingStartButton,
 // same gate as the home page); `label` replaces its text, `to` turns it
-// into a plain link instead. The slot is the line under the title.
+// into a plain link instead. `template` + `theme` pre-select a template
+// id and a theme preset in the dialog (the template pages):
+//
+//   ::cta{title="Start your resume." label="Use this template" template="resume" theme="modern"}
+//
+// The slot is the line under the title.
 withDefaults(defineProps<{
   title?: string
   label?: string
   to?: string
+  template?: string
+  theme?: string
   secondaryLabel?: string
   secondaryTo?: string
 }>(), {
   title: undefined,
   label: undefined,
   to: undefined,
+  template: undefined,
+  theme: undefined,
   secondaryLabel: undefined,
   secondaryTo: undefined
 })
@@ -50,7 +59,9 @@ withDefaults(defineProps<{
         v-else
         :label="label"
         size="lg"
-        testid="cta-start-writing"
+        :template-id="template"
+        :theme-preset="theme"
+        :testid="template ? 'cta-use-template' : 'cta-start-writing'"
       />
       <UButton
         v-if="secondaryLabel && secondaryTo"

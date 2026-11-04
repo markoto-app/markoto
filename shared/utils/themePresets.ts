@@ -254,5 +254,37 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 3, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
       cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
+  },
+
+  // — Resume: one dense page. Inter at 10pt, a flat heading scale (the
+  // other presets' h2 is ~2.5× the body, which eats a third of a CV),
+  // tight heading spacing, no running header, footer or cover, slate
+  // accent. Made for the `resume` template (one A4 page).
+  {
+    id: 'resume',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 16 },
+      meta: { font: 'Inter' },
+      body: { font: 'Inter', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#1f2933', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.45, hyphenate: false },
+      headings: { font: 'Inter', scale: 1.12, weight: 600, underline: true, color: '#1e3a52', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.6 },
+      color: { brand: '#2f5b7c', secondary: '#94a3b8' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      code: { theme: 'github-light', fontSize: 8.5 },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3 },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
+      mermaid: { theme: 'document' },
+      alerts: {
+        note: '#2f5b7c',
+        tip: '#3e6b48',
+        important: '#5c4a7a',
+        warning: '#8a6a1f',
+        caution: '#9a2f2a'
+      },
+      toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], showLogo: false, align: 'left', titleSize: 2.4, subtitleSize: 1.15 }
+    }
   }
 ]

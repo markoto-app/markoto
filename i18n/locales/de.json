@@ -326,6 +326,14 @@
       "label": "Projekt-README",
       "description": "Slogan, Warum, Schnellstart, Funktionen, Doku, Mitwirken, Lizenz."
     },
+    "resume": {
+      "label": "Lebenslauf",
+      "description": "Ein einseitiger Lebenslauf: Profil, Erfahrung, Ausbildung, Kenntnisse, Sprachen."
+    },
+    "report": {
+      "label": "Bericht",
+      "description": "Titelseite, Inhalt, Zusammenfassung, Kennzahlen, Ergebnisse, Ausblick, Anhang."
+    },
     "demo": {
       "label": "Demo",
       "description": "Markdown-Grundlagen und ein kurzer Rundgang durch markoto."
@@ -981,6 +989,10 @@
       "newsletter": {
         "name": "Newsletter",
         "description": "Karla-Fließtext unter PT-Serif-Überschriften, grüner Akzent, markengefärbte Tabellenköpfe — Wochenrückblick-Gefühl."
+      },
+      "resume": {
+        "name": "Lebenslauf",
+        "description": "Eine dichte A4-Seite: Inter in 10 pt, kleine Überschriften mit Linie, ohne Kopf, Fuss und Titelseite."
       }
     },
     "customCss": {
@@ -1596,7 +1608,7 @@
       "themes": {
         "label": "Themes",
         "title": "Neues Aussehen, gleiches Markdown.",
-        "body": "Wähle eines von sieben Themes und passe Farben, Schriften und Titelseite an. Dein Text bleibt unverändert."
+        "body": "Wähle eines von acht Themes und passe Farben, Schriften und Titelseite an. Dein Text bleibt unverändert."
       },
       "collab": {
         "label": "Zusammenarbeit",
@@ -1753,6 +1765,7 @@
       "label": "Website",
       "pricing": "Preise",
       "useCases": "Anwendungsfälle",
+      "templates": "Vorlagen",
       "compare": "Vergleiche",
       "selfHost": "Selbst hosten"
     },

@@ -326,6 +326,14 @@
       "label": "README de projet",
       "description": "Slogan, pourquoi, démarrage rapide, fonctionnalités, docs, contribution, licence."
     },
+    "resume": {
+      "label": "CV",
+      "description": "Un CV d'une page : profil, expérience, formation, compétences, langues."
+    },
+    "report": {
+      "label": "Rapport",
+      "description": "Couverture, sommaire, synthèse, chiffres clés, résultats, perspectives, annexe."
+    },
     "demo": {
       "label": "Démo",
       "description": "Les bases du markdown et une courte visite de markoto."
@@ -981,6 +989,10 @@
       "newsletter": {
         "name": "Newsletter",
         "description": "Corps Karla sous titres PT Serif, accent vert, en-têtes de tableau colorés — style digest hebdomadaire."
+      },
+      "resume": {
+        "name": "CV",
+        "description": "Une page A4 dense : Inter en 10 pt, petits titres soulignés, sans en-tête, pied de page ni couverture."
       }
     },
     "customCss": {
@@ -1596,7 +1608,7 @@
       "themes": {
         "label": "Thèmes",
         "title": "Changez l’apparence, pas le Markdown.",
-        "body": "Choisissez l’un des sept thèmes, puis ajustez couleurs, polices et page de couverture. Votre texte reste intact."
+        "body": "Choisissez l’un des huit thèmes, puis ajustez couleurs, polices et page de couverture. Votre texte reste intact."
       },
       "collab": {
         "label": "Collaboration",
@@ -1753,6 +1765,7 @@
       "label": "Site",
       "pricing": "Tarifs",
       "useCases": "Cas d'usage",
+      "templates": "Modèles",
       "compare": "Comparer",
       "selfHost": "Auto-héberger"
     },

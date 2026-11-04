@@ -51,7 +51,15 @@ export const TEMPLATES: TemplateMeta[] = [
   { id: 'academic-paper', icon: 'i-lucide-graduation-cap', labelKey: 'templates.academic-paper.label', descriptionKey: 'templates.academic-paper.description', hasContent: true },
   { id: 'recipe', icon: 'i-lucide-utensils', labelKey: 'templates.recipe.label', descriptionKey: 'templates.recipe.description', hasContent: true },
   { id: 'meeting-notes', icon: 'i-lucide-users', labelKey: 'templates.meeting-notes.label', descriptionKey: 'templates.meeting-notes.description', hasContent: true },
-  { id: 'project-readme', icon: 'i-lucide-book-open', labelKey: 'templates.project-readme.label', descriptionKey: 'templates.project-readme.description', hasContent: true }
+  { id: 'project-readme', icon: 'i-lucide-book-open', labelKey: 'templates.project-readme.label', descriptionKey: 'templates.project-readme.description', hasContent: true },
+  // A filled-in one-page sample (a made-up person) rather than a
+  // skeleton: a CV is easier to adapt than to write from briefs. Sized
+  // to fit one A4 page with the `modern` preset.
+  { id: 'resume', icon: 'i-lucide-id-card', labelKey: 'templates.resume.label', descriptionKey: 'templates.resume.description', hasContent: true },
+  // Periodic report (quarterly, project, annual): cover + TOC, summary,
+  // key figures, results, outlook, appendix. Modelled on the Quaybridge
+  // demo report (tests/e2e/fixtures/content/q3-report).
+  { id: 'report', icon: 'i-lucide-chart-column', labelKey: 'templates.report.label', descriptionKey: 'templates.report.description', hasContent: true }
 ]
 
 export const TEMPLATE_IDS = TEMPLATES.map(t => t.id)
