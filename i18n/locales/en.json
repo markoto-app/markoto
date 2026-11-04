@@ -1800,6 +1800,21 @@
         "pdf": "The document was created, but the PDF could not be made right now. Please try again in a moment.",
         "pdfRateLimited": "Too many PDFs from your network in the last minute. Please try again in a minute."
       }
+    },
+    "subProcessors": {
+      "location": {
+        "eu": "EU",
+        "us": "United States",
+        "global": "Global"
+      },
+      "transfer": {
+        "intra_eu": "no transfer outside the EU",
+        "dpf": "Data Privacy Framework",
+        "sccs": "standard contractual clauses",
+        "dpf_with_sccs_fallback": "Data Privacy Framework, SCCs as fallback"
+      },
+      "caption": "The live list for markoto.app, read from the same registry as the legal page.",
+      "link": "Sub-processors, with privacy policies and DPAs"
     }
   }
 }

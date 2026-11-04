@@ -1800,6 +1800,21 @@
         "pdf": "Das Dokument wurde erstellt, aber das PDF konnte gerade nicht erzeugt werden. Bitte versuchen Sie es gleich noch einmal.",
         "pdfRateLimited": "Zu viele PDFs aus Ihrem Netzwerk in der letzten Minute. Bitte versuchen Sie es in einer Minute noch einmal."
       }
+    },
+    "subProcessors": {
+      "location": {
+        "eu": "EU",
+        "us": "USA",
+        "global": "Global"
+      },
+      "transfer": {
+        "intra_eu": "keine Übermittlung aus der EU",
+        "dpf": "Data Privacy Framework",
+        "sccs": "Standardvertragsklauseln",
+        "dpf_with_sccs_fallback": "Data Privacy Framework, ersatzweise Standardvertragsklauseln"
+      },
+      "caption": "Die aktuelle Liste für markoto.app, aus demselben Verzeichnis wie die rechtliche Seite.",
+      "link": "Auftragsverarbeiter, mit Datenschutzerklärungen und AVV"
     }
   }
 }
