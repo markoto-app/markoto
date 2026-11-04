@@ -33,7 +33,9 @@ See `docs/LOCAL.md` for the pre-push full-stack verification flow (`make local-u
 | Nuxt-env composable/component tests | `make test-nuxt` | ~30s |
 | Repos tests (DB-backed) | `make test-repos` | ~30s |
 | Integration tests (REST + sync, full stack) | `make test-integration` | ~5m |
-| Playwright e2e flow tests | `make test-flows` | ~10m |
+| Playwright e2e flow tests (default + `@billing` + `@marketing` passes) | `make test-flows` | ~10m |
+| Only the flows you changed (only the passes they belong to start a server) | `bun run flows:test:changed` | ~2m |
+| Only the marketing-site flows | `bun run flows:test --grep @marketing` | ~2m |
 | Everything | `make test-all` | ~15m |
 
 Product-page videos (WP11, `public/tour/`): with a flow-stack app running in the hosted shape (see `tests/e2e/AGENTS.md`, AI keys exported, ffmpeg installed), `TOUR_OUTPUT_DIR=/tmp/tour bun run tour:capture` re-records + encodes every scene; `--encode` only re-encodes what was recorded. Afterwards `bun scripts/build-og-images.ts` (or `make og-images`) rebuilds the 1200×630 social cards in `public/og/` (default, pricing, use cases, compare, docs; pass names to build only some): each card is an HTML page in the brand fonts from `node_modules` over a poster, screenshotted by headless Chromium (Playwright; `bunx playwright install chromium` once) and saved as JPEG with ffmpeg. Card text lives in the script, the alt texts in `shared/seo/ogImages.ts` — change both together.

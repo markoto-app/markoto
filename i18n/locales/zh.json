@@ -1800,6 +1800,21 @@
         "pdf": "文档已创建，但暂时无法生成 PDF。请稍后重试。",
         "pdfRateLimited": "过去一分钟内来自你所在网络的 PDF 太多。请一分钟后重试。"
       }
+    },
+    "subProcessors": {
+      "location": {
+        "eu": "欧盟",
+        "us": "美国",
+        "global": "全球"
+      },
+      "transfer": {
+        "intra_eu": "不向第三国传输",
+        "dpf": "数据隐私框架",
+        "sccs": "标准合同条款",
+        "dpf_with_sccs_fallback": "数据隐私框架，标准合同条款作为后备"
+      },
+      "caption": "markoto.app 的当前列表，读取自与法律页面相同的登记表。",
+      "link": "次级处理者，附隐私政策和 DPA"
     }
   }
 }

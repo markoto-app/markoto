@@ -1,0 +1,144 @@
+# Claim data for /compare/typst (content/marketing/en/compare/typst.md).
+# Each value: what the table shows, where it comes from, when it was checked.
+# markoto's sources point at its docs (site paths) or the code (repo paths).
+# Re-check a competitor value at its source before changing `checked`.
+# Typst prices: USD on typst.app/pricing. The annual Pro price is shown only
+# as "Save 14%", so the table gives the monthly price.
+name: Typst
+rows:
+  - feature: What you write
+    markoto:
+      value: Markdown
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: Typst markup, its own language with scripting
+      source: https://typst.app/docs/guides/guide-for-latex-users/
+      checked: '2026-11-04'
+  - feature: Markdown
+    markoto:
+      value: true
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: Via packages such as cmarker
+      source: https://typst.app/universe/package/cmarker
+      checked: '2026-11-04'
+  - feature: Price
+    markoto:
+      value: Free on markoto.app; paid plans not launched yet
+      source: /docs/account/plans
+      checked: '2026-11-04'
+    competitor:
+      value: Free; Pro $7.99 per month (less with annual billing)
+      source: https://typst.app/pricing/
+      checked: '2026-11-04'
+  - feature: Storage on the free plan
+    markoto:
+      value: 100 MB of images; 5 knowledge files
+      source: shared/config/tiers.ts
+      checked: '2026-11-04'
+    competitor:
+      value: 200 MB, up to 100 files per project
+      source: https://typst.app/pricing/
+      checked: '2026-11-04'
+  - feature: Real-time co-editing
+    markoto:
+      value: true
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://typst.app/docs/web-app/
+      checked: '2026-11-04'
+  - feature: Comments
+    markoto:
+      value: On every plan
+      source: /docs/writing/comments
+      checked: '2026-11-04'
+    competitor:
+      value: Pro plan
+      source: https://typst.app/pricing/
+      checked: '2026-11-04'
+  - feature: Bibliography and citations
+    markoto:
+      value: false
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: BibLaTeX .bib or Hayagriva files, CSL styles
+      source: https://typst.app/docs/reference/model/bibliography/
+      checked: '2026-11-04'
+  - feature: Math
+    markoto:
+      value: LaTeX math syntax (KaTeX)
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: Own math syntax, not LaTeX
+      source: https://typst.app/docs/reference/math/
+      checked: '2026-11-04'
+  - feature: Layout control
+    markoto:
+      value: Themes and custom CSS
+      source: /docs/themes/custom-css
+      checked: '2026-11-04'
+    competitor:
+      value: Full typesetting language with functions, loops and conditionals
+      source: https://typst.app/
+      checked: '2026-11-04'
+  - feature: Output
+    markoto:
+      value: PDF and Markdown
+      source: /docs/import-export
+      checked: '2026-11-04'
+    competitor:
+      value: PDF, PNG, SVG; HTML (experimental)
+      source: https://typst.app/docs/web-app/export-and-preview/
+      checked: '2026-11-04'
+  - feature: Git sync
+    markoto:
+      value: false
+      source: /docs/import-export
+      checked: '2026-11-04'
+    competitor:
+      value: GitHub and GitLab on Pro (experimental)
+      source: https://typst.app/pricing/
+      checked: '2026-11-04'
+  - feature: Offline
+    note: markoto keeps edits made during a short connection drop.
+    markoto:
+      value: false
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: Open-source compiler and CLI run locally
+      source: https://github.com/typst/typst
+      checked: '2026-11-04'
+  - feature: Self-hosting
+    markoto:
+      value: Free, with Docker Compose
+      source: /docs/getting-started/self-hosting
+      checked: '2026-11-04'
+    competitor:
+      value: On-premises web app from 5 members (custom price)
+      source: https://typst.app/pricing/
+      checked: '2026-11-04'
+  - feature: Where the hosted service stores data
+    markoto:
+      value: EU (OVHcloud, France)
+      source: /legal/privacy
+      checked: '2026-11-04'
+    competitor:
+      value: Germany
+      source: https://typst.app/pricing/
+      checked: '2026-11-04'
+  - feature: Licence
+    markoto:
+      value: Source-available (FSL-1.1, Apache-2.0 after two years)
+      source: LICENSE
+      checked: '2026-11-04'
+    competitor:
+      value: Compiler Apache-2.0; web app proprietary
+      source: https://typst.app/open-source/
+      checked: '2026-11-04'
