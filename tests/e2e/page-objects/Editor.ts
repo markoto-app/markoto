@@ -342,11 +342,26 @@ export class EditorPage {
    * of the long Demo document, so the flow's outcome fits on the
    * first preview page. Waits until the editor shows the new text.
    */
+  /** Does the open document seed a template body on its first sync? */
+  private async hasTemplateSeed(): Promise<boolean> {
+    const docId = /\/d\/([^/?#]+)/.exec(this.page.url())?.[1]
+    if (!docId) throw new Error(`[setDocText] not on a document page: ${this.page.url()}`)
+    const res = await this.page.request.get(`/api/docs/${docId}/meta`)
+    if (!res.ok()) throw new Error(`[setDocText] meta request failed: ${res.status()}`)
+    const meta: unknown = await res.json()
+    if (typeof meta !== 'object' || meta === null) return false
+    const body: unknown = Reflect.get(meta, 'initialBody')
+    return typeof body === 'string' && body.length > 0
+  }
+
   async setDocText(markdown: string): Promise<void> {
     // A new doc seeds its template body (Demo, by default) on the first
     // sync — wait for it, so the seed can't land after (and next to) our
-    // text. Not for a Blank document: that one never gets a body.
-    await expect.poll(() => this.docText(), { message: 'document never synced its initial body' }).not.toBe('')
+    // text. A Blank document (incl. one made by a bare POST /api/docs)
+    // never gets a body: its meta has `initialBody: null`, nothing to wait for.
+    if (await this.hasTemplateSeed()) {
+      await expect.poll(() => this.docText(), { message: 'document never synced its initial body' }).not.toBe('')
+    }
     const applied = await this.page.evaluate((text: string) => {
       const ytext: unknown = Reflect.get(globalThis, '__DEBUG_ytext')
       if (typeof ytext !== 'object' || ytext === null) return false
