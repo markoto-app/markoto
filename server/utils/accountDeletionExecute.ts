@@ -5,6 +5,7 @@ import { listKnowledge } from '../repos/knowledge'
 import { deleteWorkspaceRow } from '../repos/workspaces'
 import {
   anonymiseCommentsByAuthor,
+  anonymiseActivityByUser,
   deleteAiSessionsByUser,
   deleteThemesByUser,
   deleteUserRow,
@@ -83,6 +84,7 @@ export async function executeAccountDeletion(
   const summary = emptySummary()
 
   summary.commentsAnonymised = await anonymiseCommentsByAuthor(userId)
+  summary.activityAnonymised = await anonymiseActivityByUser(userId)
   const cascadeWorkspaceIds = await processWorkspaceMemberships(userId, summary)
   await cascadeDeleteWorkspaces(cascadeWorkspaceIds, summary)
   await deleteOwnedDocs(userId, summary)
@@ -307,6 +309,7 @@ function emptySummary(): AccountDeletionSummary {
     workspacesPromoted: 0,
     workspaceMembershipsRemoved: 0,
     commentsAnonymised: 0,
+    activityAnonymised: 0,
     aiSessionsDeleted: 0,
     aiSessionMessagesDeleted: 0,
     dataExportJobsDeleted: 0,
