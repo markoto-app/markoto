@@ -7,10 +7,10 @@ order: 7
 
 # Rewrite a selection with the AI
 
-The AI prompt bar is the front door for "draft this from scratch", but
-when you already have prose you like-but-not-quite, the rewrite path
-is faster: select the text, hit the prompt bar, type what you want
-changed. The AI rewrites in place, the original is undoable.
+The AI prompt bar suits "draft this from scratch". When you already have
+prose you almost like, rewriting a selection is faster: select the text,
+open the prompt bar and type what you want changed. The AI rewrites in
+place, and you can undo it.
 
 ::flow{id="rewrite-a-selection-with-the-ai" hide-title}
 ::
@@ -18,13 +18,12 @@ changed. The AI rewrites in place, the original is undoable.
 ## What just happened
 
 Selecting before opening the prompt bar switches it into **selection
-mode** — a small badge appears next to the input, and the system prompt
-gets a `<selection>...</selection>` block prepended so the AI knows
-*which* prose to rewrite. The reply replaces the selection rather than
-inserting at the caret.
+mode**: a small badge appears next to the input, and the AI knows which
+prose to rewrite. The reply replaces the selection instead of being
+inserted at the caret.
 
-The same model + tools as a regular prompt; same per-tool caps; the
-same `audience` / `language` / `description` from your Document tab.
+It uses the same model, tools and limits as a regular prompt, and the
+same audience, language and description from your Document tab.
 
 ## What's next
 

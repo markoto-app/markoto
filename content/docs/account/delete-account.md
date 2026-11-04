@@ -28,12 +28,14 @@ what's about to happen:
   access tokens, queued data exports, and (where billing is on) your
   Stripe customer record.
 - **Anonymised, not deleted:** your comments on other people's docs
-  and your entries in activity and audit logs stay, shown as "Deleted
-  user", so other people's history still makes sense.
+  stay, shown as "[deleted user]". Entries in the activity log and the
+  internal audit log stay too, but are detached from your account; the
+  activity feed keeps the name that was recorded when the edit happened.
+  That way other people's history still makes sense.
 - **Workspaces:** a workspace where you're the only member is deleted
   with you. Where you're an admin and others remain, the longest-standing
   other admin takes over; if there is none, the longest-standing editor
-  (then viewer) becomes admin. Everywhere else you're simply removed as a
+  (then viewer) becomes admin. Everywhere else you're removed as a
   member.
 
 Confirming starts the 30-day countdown. A banner appears at the top of

@@ -24,7 +24,7 @@ When in doubt, ask it to cite.
 
 ## Good to know
 
-- **It needs to be set up.** Web search only appears when the instance has a search key. On a self-hosted instance the operator adds `STAAN_API_KEY` ([self-hosting guide](https://github.com/joelbarmettlerUZH/markoto.app/blob/main/docs/SELF-HOSTING.md#ai)); without it the AI simply doesn't offer search.
+- **It needs to be set up.** Web search only appears when the instance has a search key. On a self-hosted instance the operator adds `STAAN_API_KEY` ([self-hosting guide](https://github.com/joelbarmettlerUZH/markoto.app/blob/main/docs/SELF-HOSTING.md#ai)); without it the AI doesn't offer search.
 - **You still need a writing assistant provider.** The search itself is paid for by the instance, but the AI that reads the results and writes the answer runs on your own provider or the instance default ([what the AI needs](/docs/writing/ai-overview)). Without a provider, the raw results come back unsummarised.
 - **There is an allowance.** Search and page reading share a limit per person: by default 30 calls an hour and 100 a day. When it is used up the AI tells you and carries on without the web. An instance operator can change the numbers.
 - **Per session** the AI searches at most 10 times, so one prompt can't run away.

@@ -1,6 +1,6 @@
 # Local Full-Stack Runbook
 
-For reproducing the production stack on your dev machine — all containers, Traefik TLS, locally-trusted certs. Daily dev usually uses `docker-compose.dev.yml` + `bun run dev` on the host instead; use this when you need to verify Traefik labels, TLS behaviour, or anything that only manifests in containers.
+Reproduces the production stack on your dev machine: all containers, Traefik TLS, locally trusted certs. Daily dev usually uses `docker-compose.dev.yml` + `bun run dev` on the host instead; use this when you need to verify Traefik labels, TLS behaviour, or anything that only manifests in containers.
 
 ## 1. Install mkcert
 
@@ -35,7 +35,7 @@ The two `.pem` files are gitignored. The wildcard covers `sync.ypad.127.0.0.1.ni
 
 ### Why nip.io
 
-`*.127.0.0.1.nip.io` resolves to `127.0.0.1` without editing `/etc/hosts`. No DNS changes, no `sudoers` fiddling — just works from any browser on the machine.
+`*.127.0.0.1.nip.io` resolves to `127.0.0.1` without editing `/etc/hosts`. No DNS changes and no `sudoers` edits are needed, and it works from any browser on the machine.
 
 ## 3. Start the stack
 
@@ -78,4 +78,4 @@ Add `-v` to wipe the Postgres and SeaweedFS volumes.
 - **Traefik says "no certificate found"** — check `docker compose -f docker-compose.local.yml logs traefik`. Likely the `.pem` filenames in `traefik/local/tls.yml` don't match what mkcert produced. mkcert's default output names are `./<first-name>.pem` and `./<first-name>-key.pem` when using `-cert-file`/`-key-file`.
 - **Port 443 already in use** — another Docker stack or a local reverse proxy is holding it. `sudo lsof -i :443`.
 - **`host.docker.internal` not needed** — unlike `dev.yml`, in `local.yml` the app is itself in a container, so sync reaches it at `http://app:3000` directly.
-- **Source change to `renderer/` or `sync-server/` doesn't take effect after `docker compose restart`** — `restart` only kicks the EXISTING container; it does NOT rebuild the image. Use `docker compose -f docker-compose.dev.yml up -d --build renderer` (or `sync`) instead. Same applies to `docker-compose.local.yml`. Symptoms: edits don't show up, console.log changes invisible, fixes appear to do nothing.
+- **Source change to `renderer/` or `sync-server/` doesn't take effect after `docker compose restart`** — `restart` only kicks the EXISTING container; it does NOT rebuild the image. Use `docker compose -f docker-compose.dev.yml up -d --build renderer` (or `sync`) instead. Same applies to `docker-compose.local.yml`. Symptoms: edits don't show up, `console.log` changes are invisible, fixes appear to do nothing.
