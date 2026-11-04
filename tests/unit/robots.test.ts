@@ -35,3 +35,24 @@ describe('robotsTxt', () => {
     }
   })
 })
+
+describe('non-indexable instance (NUXT_SITE_INDEXABLE=false, staging)', () => {
+  it('noindexes every path', () => {
+    for (const path of ['/', '/docs', '/pricing', '/legal/terms']) {
+      expect(robotsTagFor(path, false), path).toBe(NOINDEX_VALUE)
+    }
+  })
+  it('robots.txt disallows everything and names no sitemap', () => {
+    expect(robotsTxt({ indexable: false, sitemapUrl: 'https://staging.markoto.app/sitemap.xml' }))
+      .toBe('User-agent: *\nDisallow: /\n')
+  })
+})
+
+describe('robots.txt sitemap line', () => {
+  it('is added only when a sitemap URL is given (marketing site)', () => {
+    expect(robotsTxt()).not.toContain('Sitemap:')
+    expect(robotsTxt({ sitemapUrl: null })).not.toContain('Sitemap:')
+    expect(robotsTxt({ sitemapUrl: 'https://markoto.app/sitemap.xml' }).split('\n'))
+      .toContain('Sitemap: https://markoto.app/sitemap.xml')
+  })
+})

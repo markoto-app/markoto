@@ -584,6 +584,7 @@
   "pricing": {
     "title": "Precios",
     "subtitle": "Elige el plan que mejor se adapte. Los planes fijan tus límites: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave de proveedor nunca está limitada por un plan.",
+    "metaDescription": "Compara los planes de markoto: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave nunca está limitada.",
     "aiCreditsPerMonth": "puntos de IA/mes",
     "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo. La IA con tu propia clave la factura tu proveedor y no consume puntos.",
     "workspaces": "espacios de trabajo",

@@ -1,6 +1,6 @@
 ---
 title: What the AI can do, and what it needs
-description: A map of markoto's AI features, which of them need a provider you connect, what leaves your document and what it costs, on markoto.app and on a self-hosted instance.
+description: A map of markoto's AI features - which need a provider you connect, what leaves your document and what it costs, on markoto.app and self-hosted.
 category: writing
 order: 3.8
 icon: i-lucide-sparkles

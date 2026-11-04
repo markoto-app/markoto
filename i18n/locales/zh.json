@@ -584,6 +584,7 @@
   "pricing": {
     "title": "定价",
     "subtitle": "选择合适的套餐。套餐决定你的上限：AI 点数、工作区和存储空间。使用你自己服务商密钥的 AI 不受任何套餐限制。",
+    "metaDescription": "比较 markoto 套餐：AI 点数、工作区和存储空间的上限。使用你自己服务商密钥的 AI 不受任何套餐限制。",
     "aiCreditsPerMonth": "AI 点数/月",
     "creditsHint": "AI 点数用于由实例付费的 AI：1000 点 = 1 美元模型用量。使用你自己服务商密钥的 AI 由服务商计费，不消耗点数。",
     "workspaces": "工作区",

@@ -6,7 +6,7 @@ import { NuxtPage } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 
 // The product tour (WP11) replaces the home page's hero only for
-// LOGGED-OUT visitors on an instance with NUXT_PRODUCT_TOUR_ENABLED
+// LOGGED-OUT visitors on an instance with NUXT_MARKETING_SITE_ENABLED
 // (hosted markoto.app). Self-hosted instances and signed-in users keep
 // the plain hero + dashboard.
 
@@ -37,7 +37,7 @@ beforeEach(() => {
 
 describe('home page — product tour gate', () => {
   it('shows the tour to logged-out visitors when the flag is on', async () => {
-    setConfig({ productTour: true })
+    setConfig({ marketingSite: true })
     const wrapper = await mountSuspended(HomeRoute, { route: '/' })
     const tour = wrapper.find('[data-testid="product-tour"]')
     expect(tour.exists()).toBe(true)
@@ -52,7 +52,7 @@ describe('home page — product tour gate', () => {
   })
 
   it('keeps the plain hero when the flag is off (self-hosted)', async () => {
-    setConfig({ productTour: false })
+    setConfig({ marketingSite: false })
     const wrapper = await mountSuspended(HomeRoute, { route: '/' })
     expect(wrapper.find('[data-testid="product-tour"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="landing-new-document"]').exists()).toBe(true)
@@ -60,7 +60,7 @@ describe('home page — product tour gate', () => {
 
   it('keeps the dashboard for signed-in users even with the flag on', async () => {
     session.loggedIn = true
-    setConfig({ productTour: true })
+    setConfig({ marketingSite: true })
     const wrapper = await mountSuspended(HomeRoute, { route: '/' })
     expect(wrapper.find('[data-testid="product-tour"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="landing-new-document"]').exists()).toBe(true)

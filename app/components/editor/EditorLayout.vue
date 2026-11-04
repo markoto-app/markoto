@@ -883,7 +883,7 @@ async function saveTitle() {
 // the tab updates as soon as it lands. Falls back to "Untitled" while
 // the doc is still loading or the user clears the title.
 useHead({
-  title: () => `${title.value || t('editor.untitled')} — ${t('app.name')}`
+  title: () => title.value || t('editor.untitled')
 })
 
 const _statusColor = computed(() => {

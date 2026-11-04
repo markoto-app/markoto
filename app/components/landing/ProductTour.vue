@@ -5,7 +5,7 @@ import { TOUR_DARK_FROM } from '~~/shared/tour/config'
 
 /**
  * markoto.app's product page (WP11): shown at `/` to logged-out visitors
- * when the instance enables it (`NUXT_PRODUCT_TOUR_ENABLED`, see
+ * when the instance enables it (`NUXT_MARKETING_SITE_ENABLED`, see
  * `shared/config/instance.ts`). Hero → nine scenes → closing CTA. Each
  * scene's picture is a short looping video recorded from the real app.
  *
@@ -205,8 +205,6 @@ const chips = [
   { key: 'eu', icon: 'i-lucide-map-pin' },
   { key: 'oss', icon: 'i-lucide-code-xml' }
 ] as const
-
-useSeoMeta({ description: () => t('tour.hero.body') })
 </script>
 
 <template>

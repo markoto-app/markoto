@@ -436,6 +436,15 @@ services:
       # Empty = follows NUXT_LEGAL_SURFACES_ENABLED. Set true to gate
       # anonymous use without the legal pages (needs NUXT_ALTCHA_HMAC_KEY).
       - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-}
+      # ─── Search engines (shared/config/instance.ts) ───
+      # The bundled /docs pages point their canonical link at markoto.app,
+      # the original, so search engines don't rank copies against each
+      # other. Set NUXT_DOCS_CANONICAL_BASE= (empty) to make your copy
+      # self-canonical, or another https origin. Unset = markoto.app.
+      - NUXT_DOCS_CANONICAL_BASE=${NUXT_DOCS_CANONICAL_BASE-https://markoto.app}
+      # false = keep the whole instance out of search engines (robots.txt
+      # Disallow: / + X-Robots-Tag: noindex). Empty = indexable.
+      - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-}
       - NUXT_LEGAL_CONTROLLER_NAME=${NUXT_LEGAL_CONTROLLER_NAME:-}
       - NUXT_LEGAL_CONTROLLER_ADDRESS=${NUXT_LEGAL_CONTROLLER_ADDRESS:-}
       - NUXT_LEGAL_PRIVACY_CONTACT_EMAIL=${NUXT_LEGAL_PRIVACY_CONTACT_EMAIL:-}

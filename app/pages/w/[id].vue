@@ -71,9 +71,7 @@ tryOnMounted(() => {
 // Tab title tracks the workspace name once it loads. Function getter
 // keeps it reactive without polling.
 useHead({
-  title: () => data.value
-    ? `${data.value.workspace.name} — ${t('app.name')}`
-    : t('app.name')
+  title: () => data.value?.workspace.name
 })
 
 const myRole = computed(() => data.value?.workspace.myRole ?? null)

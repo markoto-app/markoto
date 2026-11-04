@@ -33,9 +33,10 @@ const { data: surround } = await useAsyncData(`docs:surround:${route.path}`, () 
   })
 )
 
-useSeoMeta({
-  title: page.value.title,
-  description: page.value.description
+const docPage = page.value
+useMarketingSeo({
+  title: docPage.title,
+  description: docPage.description ?? ''
 })
 
 // Breadcrumb items derived from the URL segments. Each segment maps

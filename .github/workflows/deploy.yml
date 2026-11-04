@@ -193,6 +193,9 @@ jobs:
           # $500 total per month — committed free-tier + web-tool limits).
           NUXT_BILLING_ENABLED: ${{ vars.NUXT_BILLING_ENABLED }}
           NUXT_PLANS_COMING_SOON: ${{ vars.NUXT_PLANS_COMING_SOON }}
+          # Only prod may be indexed; staging (and anything else) renders
+          # NUXT_SITE_INDEXABLE=false → robots.txt Disallow: / + noindex.
+          NUXT_SITE_INDEXABLE: ${{ inputs.environment == 'prod' && 'true' || 'false' }}
           NUXT_WEB_TOOLS_HOURLY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_HOURLY_LIMIT }}
           NUXT_WEB_TOOLS_DAILY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_DAILY_LIMIT }}
           NUXT_AI_DEFAULT_CHAT_MODEL: ${{ vars.NUXT_AI_DEFAULT_CHAT_MODEL }}

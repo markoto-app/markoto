@@ -60,6 +60,16 @@ check() {
     echo "FAIL: the anonymous gate must not default to on for self-hosting ($label)" >&2
     exit 1
   fi
+  # The marketing site (product tour, sitemap, JSON-LD) is markoto.app's own.
+  if grep -Eq 'NUXT_(MARKETING_SITE|PRODUCT_TOUR)_ENABLED: "?true' "$out"; then
+    echo "FAIL: the marketing site must not be on for self-hosting ($label)" >&2
+    exit 1
+  fi
+  # Bundled /docs pages point their canonical at markoto.app by default.
+  if ! grep -q 'NUXT_DOCS_CANONICAL_BASE: https://markoto.app' "$out"; then
+    echo "FAIL: NUXT_DOCS_CANONICAL_BASE must default to https://markoto.app ($label)" >&2
+    exit 1
+  fi
   echo "ok: $label"
 }
 

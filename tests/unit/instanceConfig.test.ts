@@ -5,7 +5,11 @@ import {
   resolveInstanceConfig,
   resolveLegalSurfacesEnabled,
   resolveLoginProviders,
-  resolveProductTourEnabled
+  resolveMarketingSiteEnabled,
+  resolveSiteUrl,
+  resolveDocsCanonicalBase,
+  resolveSiteIndexable,
+  DEFAULT_DOCS_CANONICAL_BASE
 } from '../../shared/config/instance'
 import {
   abuseNotificationRecipient,
@@ -94,11 +98,48 @@ describe('resolveInstanceConfig', () => {
       .toBe('Acme AG')
   })
 
-  it('product tour is off unless NUXT_PRODUCT_TOUR_ENABLED is truthy (hosted only)', () => {
-    expect(resolveInstanceConfig({}).productTour).toBe(false)
-    expect(resolveProductTourEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'nope' })).toBe(false)
-    expect(resolveProductTourEnabled({ NUXT_PRODUCT_TOUR_ENABLED: ' TRUE ' })).toBe(true)
-    expect(resolveInstanceConfig({ NUXT_PRODUCT_TOUR_ENABLED: '1' }).productTour).toBe(true)
+  it('marketing site is off unless NUXT_MARKETING_SITE_ENABLED is truthy (hosted only)', () => {
+    expect(resolveInstanceConfig({}).marketingSite).toBe(false)
+    expect(resolveMarketingSiteEnabled({ NUXT_MARKETING_SITE_ENABLED: 'nope' })).toBe(false)
+    expect(resolveMarketingSiteEnabled({ NUXT_MARKETING_SITE_ENABLED: ' TRUE ' })).toBe(true)
+    expect(resolveInstanceConfig({ NUXT_MARKETING_SITE_ENABLED: '1' }).marketingSite).toBe(true)
+  })
+
+  it('still honours the former NUXT_PRODUCT_TOUR_ENABLED while the new flag is unset (alias)', () => {
+    expect(resolveMarketingSiteEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'true' })).toBe(true)
+    expect(resolveMarketingSiteEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'true', NUXT_MARKETING_SITE_ENABLED: '' })).toBe(true)
+    // The new name wins when both are set.
+    expect(resolveMarketingSiteEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'true', NUXT_MARKETING_SITE_ENABLED: 'false' })).toBe(false)
+    expect(resolveMarketingSiteEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'false', NUXT_MARKETING_SITE_ENABLED: 'true' })).toBe(true)
+  })
+
+  it('site URL is the origin of NUXT_SITE_URL, empty when unset or invalid', () => {
+    expect(resolveSiteUrl({})).toBe('')
+    expect(resolveSiteUrl({ NUXT_SITE_URL: 'https://markoto.app/' })).toBe('https://markoto.app')
+    expect(resolveSiteUrl({ NUXT_SITE_URL: ' http://10.0.0.5:8080/x ' })).toBe('http://10.0.0.5:8080')
+    expect(resolveSiteUrl({ NUXT_SITE_URL: 'not a url' })).toBe('')
+    expect(resolveSiteUrl({ NUXT_SITE_URL: 'ftp://example.com' })).toBe('')
+    expect(resolveInstanceConfig({ NUXT_SITE_URL: 'https://docs.example.com' }).siteUrl).toBe('https://docs.example.com')
+  })
+
+  it('docs canonical base: markoto.app off-hosted, self on the marketing site, empty env = self', () => {
+    expect(DEFAULT_DOCS_CANONICAL_BASE).toBe('https://markoto.app')
+    expect(resolveDocsCanonicalBase({})).toBe('https://markoto.app')
+    expect(resolveDocsCanonicalBase({ NUXT_MARKETING_SITE_ENABLED: 'true' })).toBe('')
+    expect(resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: '' })).toBe('')
+    expect(resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: 'https://docs.example.com/' })).toBe('https://docs.example.com')
+    expect(resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: 'garbage' })).toBe('https://markoto.app')
+    expect(resolveInstanceConfig({}).docsCanonicalBase).toBe('https://markoto.app')
+  })
+
+  it('site is indexable unless NUXT_SITE_INDEXABLE is an explicit false', () => {
+    expect(resolveSiteIndexable({})).toBe(true)
+    expect(resolveSiteIndexable({ NUXT_SITE_INDEXABLE: '' })).toBe(true)
+    expect(resolveSiteIndexable({ NUXT_SITE_INDEXABLE: 'true' })).toBe(true)
+    expect(resolveSiteIndexable({ NUXT_SITE_INDEXABLE: 'flase' })).toBe(true)
+    for (const v of ['false', ' FALSE ', '0', 'no', 'off']) {
+      expect(resolveSiteIndexable({ NUXT_SITE_INDEXABLE: v }), v).toBe(false)
+    }
   })
 })
 

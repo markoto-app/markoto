@@ -36,7 +36,7 @@ const { status, refresh: refreshAccountStatus } = useAccountStatus()
 // exist (hosted SaaS); see shared/config/instance.ts.
 const { legalSurfaces, primaryLoginPath } = useInstanceConfig()
 
-useHead({ title: `${t('settings.profile.title')} · markoto` })
+useHead({ title: () => t('settings.profile.title') })
 
 if (import.meta.client && !loggedIn.value) {
   globalThis.location.href = primaryLoginPath.value ?? '/'

@@ -58,6 +58,7 @@ nuxt_ai_byok_allowed_base_urls=https://a.example.test/v1,https://b.example.test/
 nuxt_ai_byok_allow_private_urls=True
 nuxt_billing_enabled=false
 nuxt_plans_coming_soon=true
+nuxt_site_indexable=false
 tier_free_litellm_budget_usd=7
 nuxt_free_tier_total_budget_usd=250
 tier_free_workspaces_owned=3

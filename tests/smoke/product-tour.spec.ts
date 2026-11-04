@@ -1,14 +1,14 @@
 import { test, expect, type Page } from '@playwright/test'
 
-// The hosted product page (WP11): with NUXT_PRODUCT_TOUR_ENABLED on, `/`
+// The hosted product page (WP11): with NUXT_MARKETING_SITE_ENABLED on, `/`
 // shows logged-out visitors the scroll-driven tour instead of the plain
 // hero. The flag is read from the instance config the server ships in the
 // Nuxt payload (`useState('instance-config')`), NOT inferred from the tour
 // markup — so an environment with the flag off skips, while one with the
 // flag on but a broken tour fails.
 
-/** `productTour` from the SSR payload; null when it can't be found. */
-async function productTourFlag(page: Page): Promise<boolean | null> {
+/** `marketingSite` from the SSR payload; null when it can't be found. */
+async function marketingSiteFlag(page: Page): Promise<boolean | null> {
   return page.evaluate(() => {
     const el = document.getElementById('__NUXT_DATA__')
     if (!el?.textContent) return null
@@ -23,7 +23,7 @@ async function productTourFlag(page: Page): Promise<boolean | null> {
     for (const entry of data) {
       if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
         const record = entry as Record<string, unknown>
-        const ref = record.productTour
+        const ref = record.marketingSite
         if ('loginProviders' in record && typeof ref === 'number') {
           const value: unknown = data[ref]
           return typeof value === 'boolean' ? value : null
@@ -36,8 +36,8 @@ async function productTourFlag(page: Page): Promise<boolean | null> {
 
 test('logged-out home page shows the product tour when the instance enables it', async ({ page }) => {
   await page.goto('/')
-  const flag = await productTourFlag(page)
-  test.skip(flag !== true, `product tour not enabled on this instance (flag: ${String(flag)})`)
+  const flag = await marketingSiteFlag(page)
+  test.skip(flag !== true, `marketing site not enabled on this instance (flag: ${String(flag)})`)
 
   const tour = page.getByTestId('product-tour')
   await expect(tour).toBeVisible()

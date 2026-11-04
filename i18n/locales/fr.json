@@ -584,6 +584,7 @@
   "pricing": {
     "title": "Tarifs",
     "subtitle": "Choisissez le forfait qui vous convient. Les forfaits fixent vos limites : points IA, espaces de travail et stockage. L'IA utilisée avec votre propre clé de fournisseur n'est jamais limitée par un forfait.",
+    "metaDescription": "Comparez les forfaits markoto : points IA, espaces de travail et stockage. L'IA avec votre propre clé n'est jamais limitée.",
     "aiCreditsPerMonth": "points IA/mois",
     "creditsHint": "Les points IA couvrent l'IA payée par l'instance : 1000 points = 1 $ d'utilisation du modèle. L'IA utilisée avec votre propre clé est facturée par votre fournisseur et ne consomme aucun point.",
     "workspaces": "espaces de travail",

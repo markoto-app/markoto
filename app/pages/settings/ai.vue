@@ -31,7 +31,7 @@ const { loggedIn } = useUserSession()
 const { primaryLoginPath } = useInstanceConfig()
 const { refresh: refreshAvailability } = useAiAvailability()
 
-useHead({ title: `${t('aiProvider.title')} · markoto` })
+useHead({ title: () => t('aiProvider.title') })
 
 if (import.meta.client && !loggedIn.value) {
   globalThis.location.href = primaryLoginPath.value ?? '/'

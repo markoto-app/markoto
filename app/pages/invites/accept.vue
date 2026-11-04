@@ -51,7 +51,7 @@ async function onAct(action: 'accept' | 'decline'): Promise<void> {
 }
 
 useHead({
-  title: () => `${t('workspace.invites.page.title')} · markoto`,
+  title: () => t('workspace.invites.page.title'),
   // Single-use links: keep them out of search indexes.
   meta: [{ name: 'robots', content: 'noindex' }]
 })

@@ -57,7 +57,7 @@ const { primaryLoginPath } = useInstanceConfig()
 const { status: accountStatus } = useAccountStatus()
 const toast = useToast()
 
-useHead({ title: 'Abuse reports · Admin · markoto' })
+useHead({ title: 'Abuse reports · Admin' })
 
 // Anonymous → home. Non-admin → home. The endpoint guards
 // regardless, but the redirect saves a wasted page-mount.

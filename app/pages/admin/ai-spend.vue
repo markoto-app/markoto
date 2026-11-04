@@ -33,7 +33,7 @@ const { primaryLoginPath } = useInstanceConfig()
 const { status: accountStatus } = useAccountStatus()
 const toast = useToast()
 
-useHead({ title: 'AI spend · Admin · markoto' })
+useHead({ title: 'AI spend · Admin' })
 
 if (import.meta.client) {
   watchEffect(() => {

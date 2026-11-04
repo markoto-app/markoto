@@ -236,10 +236,15 @@ services:
       # Terms + bot check before anonymous documents / reports
       # (shared/config/anonGate.ts). ON for the hosted service.
       - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-true}
-      # Product tour (shared/config/instance.ts): the scroll-driven product
-      # page at / for logged-out visitors. Hosted marketing surface, so ON
-      # here; the code default (self-host) is off.
-      - NUXT_PRODUCT_TOUR_ENABLED=${NUXT_PRODUCT_TOUR_ENABLED:-true}
+      # Marketing site (shared/config/instance.ts): the product tour at /
+      # for logged-out visitors, sitemap.xml, the JSON-LD on / and the
+      # hosted-only marketing pages. ON here; the code default (self-host)
+      # is off. The former NUXT_PRODUCT_TOUR_ENABLED is still honoured as
+      # the fallback for one release.
+      - NUXT_MARKETING_SITE_ENABLED=${NUXT_MARKETING_SITE_ENABLED:-${NUXT_PRODUCT_TOUR_ENABLED:-true}}
+      # Search-engine indexing. Staging renders false (robots.txt
+      # Disallow: / + X-Robots-Tag: noindex on every response).
+      - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-true}
       # Number of trusted reverse proxies in front of the app (Traefik = 1).
       # See shared/utils/clientIp.ts.
       - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}

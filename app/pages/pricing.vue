@@ -232,8 +232,11 @@ function onClose(): void {
   }
 }
 
-useHead({
-  title: () => pageTitle.value + ' · markoto'
+// Meta description: the hosted free-only + self-hosted subtitles are short
+// enough; with billing on, a dedicated one (the subtitle runs long).
+useMarketingSeo({
+  title: pageTitle,
+  description: () => (billingEnabled.value ? t('pricing.metaDescription') : pageSubtitle.value)
 })
 </script>
 
