@@ -30,6 +30,12 @@ const menuItems = computed<MenuItem[]>(() => {
     icon: 'i-lucide-key-round',
     to: AI_SETTINGS_ROUTE
   })
+  // Personal access tokens for MCP clients (Claude, Cursor, scripts).
+  items.push({
+    label: t('settings.integrations.menu'),
+    icon: 'i-lucide-plug',
+    to: '/settings/integrations'
+  })
   items.push({
     label: t('common.documentation'),
     icon: 'i-lucide-book-open',

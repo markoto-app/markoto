@@ -1349,6 +1349,9 @@
         "images": "Imágenes de documentos",
         "description": "Imágenes que subes o generas en tus documentos, incluidas las copias creadas al duplicar un documento. Las imágenes que ya no usa ningún documento se eliminan automáticamente al cabo de un tiempo."
       }
+    },
+    "integrations": {
+      "menu": "Integraciones (MCP)"
     }
   },
   "billing": {

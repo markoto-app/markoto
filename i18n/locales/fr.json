@@ -1349,6 +1349,9 @@
         "images": "Images des documents",
         "description": "Les images que vous téléversez ou générez dans vos documents, y compris les copies créées en dupliquant un document. Les images qu'aucun document n'utilise plus sont supprimées automatiquement après un certain temps."
       }
+    },
+    "integrations": {
+      "menu": "Intégrations (MCP)"
     }
   },
   "billing": {

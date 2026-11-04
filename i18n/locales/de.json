@@ -1349,6 +1349,9 @@
         "images": "Bilder in Dokumenten",
         "description": "Bilder, die du in deinen Dokumenten hochlädst oder erzeugst, einschließlich Kopien beim Duplizieren eines Dokuments. Bilder, die kein Dokument mehr verwendet, werden nach einiger Zeit automatisch bereinigt."
       }
+    },
+    "integrations": {
+      "menu": "Integrationen (MCP)"
     }
   },
   "billing": {
