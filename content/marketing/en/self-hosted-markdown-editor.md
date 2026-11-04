@@ -7,9 +7,6 @@ keywords:
   - hackmd self hosted alternative
   - docker markdown editor
 updated: '2026-11-04'
-navGroup: use-cases
-navLabel: Self-hosted editor
-navOrder: 40
 ---
 
 # A self-hosted Markdown editor

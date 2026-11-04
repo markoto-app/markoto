@@ -63,3 +63,21 @@ export function flowStripData(raw: unknown, pick: string | undefined, limit = 3)
   }
   return { width: w, height: h, frames }
 }
+
+/**
+ * The caption (and alt text) for shot `index` of `count`. The page's own
+ * text wins over the flow's step text, which is written for the docs
+ * walkthrough ("On YOUR screen: …"): `captions` gives one per shot, in
+ * order; `caption` covers a single-shot strip. Blank entries fall back.
+ */
+export function stripCaption(
+  stepText: string,
+  index: number,
+  count: number,
+  page: { caption?: string, captions?: readonly unknown[] }
+): string {
+  const own = page.captions?.[index]
+  if (typeof own === 'string' && own.trim()) return own.trim()
+  if (count === 1 && page.caption?.trim()) return page.caption.trim()
+  return stepText
+}

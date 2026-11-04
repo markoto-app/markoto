@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { defineComponent, h, nextTick } from 'vue'
-import { CompareTable, Faq, FlowStrip, NuxtPage, TourClip } from '#components'
+import { CommonLegalFooter, CompareTable, Faq, FlowStrip, MarketingHeader, NuxtPage, TourClip } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 import { fetchMarketingPage } from '~/utils/marketingPage'
 
@@ -179,9 +179,28 @@ describe('::flow-strip', () => {
     several.unmount()
   })
 
+  it('`captions` gives every shot its own caption and alt text, in order', async () => {
+    const wrapper = await mountSuspended(FlowStrip, { props: { id: 'rich-content', frames: '10,20', captions: ['A tip alert.', 'Code, math and a chart.'] } })
+    expect(wrapper.findAll('figcaption').map(f => f.text())).toEqual(['A tip alert.', 'Code, math and a chart.'])
+    expect(wrapper.findAll('img.mk-flow-strip__img--light').map(i => i.attributes('alt'))).toEqual(['A tip alert.', 'Code, math and a chart.'])
+    wrapper.unmount()
+  })
+
   it('renders nothing for an unknown flow', async () => {
     const wrapper = await mountSuspended(FlowStrip, { props: { id: 'no-such-flow' } })
     expect(wrapper.find('img').exists()).toBe(false)
     wrapper.unmount()
+  })
+})
+
+describe('Self-host link', () => {
+  it('points at the self-hosting page on the marketing site, in the header and the footer', async () => {
+    setConfig({ marketingSite: true })
+    const header = await mountSuspended(MarketingHeader)
+    expect(header.find('[data-testid="header-self-host-link"]').attributes('href')).toBe('/self-hosted-markdown-editor')
+    header.unmount()
+    const footer = await mountSuspended(CommonLegalFooter)
+    expect(footer.find('[data-testid="footer-self-host-link"]').attributes('href')).toBe('/self-hosted-markdown-editor')
+    footer.unmount()
   })
 })

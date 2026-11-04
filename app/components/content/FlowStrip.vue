@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { flowStripData } from '~~/shared/docs/flowStrip'
+import { flowStripData, stripCaption } from '~~/shared/docs/flowStrip'
 
 // A row of screenshots from a flow (the Playwright flows that double as
 // docs, public/flows/<id>/…) for marketing content:
 //
-//   ::flow-strip{id="rich-content" frames="10,15,20"}
+//   ::flow-strip{id="rich-content" frames="10,20"}
+//   ---
+//   captions:
+//     - A tip alert in the preview.
+//     - Code, math and a chart on one page.
+//   ---
 //   ::
 //
 // Rendered on the server: the default variant (en, light, desktop) as
@@ -22,12 +27,15 @@ const props = withDefaults(defineProps<{
   limit?: number
   /** Caption (and alt text) for a single-shot strip, replacing the flow step's own text. */
   caption?: string
-}>(), { frames: undefined, limit: 3, caption: undefined })
+  /** One caption (and alt text) per shown shot, in order — a YAML list in the block. Wins over `caption` and the step text. */
+  captions?: string[]
+}>(), { frames: undefined, limit: 3, caption: undefined, captions: undefined })
 
-// The page's own caption wins only for a single shot; several shots keep
-// their step captions (one string can't describe them all).
-function captionFor(frame: { caption: string }, count: number): string {
-  return props.caption && count === 1 ? props.caption : frame.caption
+// The page's own text wins over the flow's step text, which is written
+// for the docs walkthrough ("On YOUR screen: …"). `caption` alone covers
+// only a single shot (one string can't describe several).
+function captionFor(frame: { caption: string }, index: number, count: number): string {
+  return stripCaption(frame.caption, index, count, { caption: props.caption, captions: props.captions })
 }
 
 const LOCALE = 'en'
@@ -60,7 +68,7 @@ const { data } = await useAsyncData(`flow-strip:${props.id}:${props.frames ?? pr
     data-testid="marketing-flow-strip"
   >
     <figure
-      v-for="frame in data.frames"
+      v-for="(frame, index) in data.frames"
       :key="frame.file"
       class="mk-flow-strip__item"
     >
@@ -69,7 +77,7 @@ const { data } = await useAsyncData(`flow-strip:${props.id}:${props.frames ?? pr
           loading="lazy"
           class="mk-flow-strip__img mk-flow-strip__img--light"
           :src="`${base('light-desktop')}/${frame.file}`"
-          :alt="captionFor(frame, data.frames.length)"
+          :alt="captionFor(frame, index, data.frames.length)"
           :width="data.width"
           :height="data.height"
           decoding="async"
@@ -87,7 +95,7 @@ const { data } = await useAsyncData(`flow-strip:${props.id}:${props.frames ?? pr
         >
       </span>
       <figcaption class="mk-flow-strip__caption">
-        {{ captionFor(frame, data.frames.length) }}
+        {{ captionFor(frame, index, data.frames.length) }}
       </figcaption>
     </figure>
   </div>

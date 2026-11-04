@@ -24,6 +24,11 @@ Send the link to a document and everyone who opens it edits the same text at the
 Two people can type in the same paragraph without overwriting each other: markoto merges the edits as they happen. The bar at the top shows who is in the document, and each person has a cursor in their own colour. This works without an account, too: an anonymous document can be edited by anyone with its link.
 
 ::flow-strip{id="two-writers-one-document" frames="07,10"}
+---
+captions:
+  - A paragraph typed by a second writer appears in the first writer's editor. The avatars at the top show who is in the document.
+  - A comment from the second writer arrives in the sidebar, anchored to the line it is about.
+---
 ::
 
 ## Discuss in comments
@@ -31,16 +36,21 @@ Two people can type in the same paragraph without overwriting each other: markot
 Select a passage and add a comment. The thread is anchored to those words and follows them when the text around them changes. Others reply under it, in a workspace you can mention members with `@`, and a resolved thread moves out of the way but stays readable. If the AI assistant is set up, `@markoto` in a comment asks it to answer or make the change.
 
 ::flow-strip{id="have-a-discussion" frames="11,15"}
+---
+captions:
+  - A reply appears under the comment as soon as it is sent.
+  - Resolved threads move into their own section, where they can still be read.
+---
 ::
 
 ## Every change, with a diff
 
 The Activity tab lists every edit with who made it, when, and how many lines changed. Open an entry to see the diff. Comments, title and theme changes and the AI's edits are in the same list. **Restore** puts the document back to how it was just before a change, for everyone, and the restore is itself listed, so it can be undone too.
 
-::flow-strip{id="see-what-changed-in-past-edits" frames="05"}
+::flow-strip{id="see-what-changed-in-past-edits" frames="05" caption="An entry in the Activity tab, opened to show its diff: added lines in green, removed lines in red."}
 ::
 
-::flow-strip{id="restore-an-earlier-version" frames="09"}
+::flow-strip{id="restore-an-earlier-version" frames="09" caption="After a restore: the text is back, and the restore is listed in the Activity tab like any other change."}
 ::
 
 More in the docs: [see what changed](/docs/history/see-changes) and [restore an earlier version](/docs/history/restore).
