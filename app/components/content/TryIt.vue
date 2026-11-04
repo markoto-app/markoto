@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
 import { hljsTheme } from '~~/shared/utils/hljsAssets'
+import { DEFAULT_MARKETING_LOCALE, parseMarketingRoute } from '~~/shared/seo/marketing'
 
 // A small Markdown editor next to the live paged preview, for marketing
 // content (`::try-it` in content/marketing/**):
@@ -37,6 +38,12 @@ const props = withDefaults(defineProps<{
 }>(), { theme: undefined, height: 540 })
 
 const { t } = useI18n()
+
+// Document language of the example = the page's language (`/de/…` → de),
+// not the visitor's UI language: TOC title, cover date and the created
+// document follow it (`shared/utils/documentLocale.ts`).
+const route = useRoute()
+const language = computed(() => parseMarketingRoute(route.path)?.locale ?? DEFAULT_MARKETING_LOCALE)
 
 function hashOf(text: string): string {
   let h = 0
@@ -122,6 +129,7 @@ useHead(() => ({
       :class="{ 'mk-try-it__pending': !ready }"
       :initial="initial"
       :theme-preset="theme"
+      :language="language"
       :autofocus="wantsFocus"
       @ready="ready = true"
     />

@@ -47,6 +47,7 @@ This file holds project-wide context. Domain-specific detail lives next to the c
 | `content/docs/` | User documentation rendered at `/docs` (Nuxt Content). Pages embed Playwright flows; write in the user's voice, no internals. Operator-only files in `docs/` carry an "Operator docs for the hosted markoto.app deployment" header |
 | `docs/SECURITY-HARDENING.md` | Tier-1 hardening rationale + verification |
 | `docs/GITHUB-CONFIG.md` | Branch protection, secrets, environments |
+| `docs/TRANSLATION-REVIEW.md` | de/fr marketing pages awaiting native review (`reviewed: false`) and how to flip them |
 
 ---
 

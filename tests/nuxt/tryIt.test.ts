@@ -1,5 +1,5 @@
 // @vitest-environment nuxt
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
 import { mountSuspended, mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { ref, type Ref } from 'vue'
@@ -28,7 +28,7 @@ vi.mock('../../app/utils/renderMarkdown', () => ({
   renderMarkdown: md.sanitised
 }))
 
-interface PreviewOpts { html: Ref<string>, title: Ref<string>, docId: Ref<string> }
+interface PreviewOpts { html: Ref<string>, title: Ref<string>, docId: Ref<string>, language?: Ref<string> }
 const preview = vi.hoisted(() => ({ opts: null as PreviewOpts | null }))
 mockNuxtImport('usePagedPreview', () => (opts: PreviewOpts) => {
   preview.opts = opts
@@ -73,8 +73,8 @@ function enterViewport(): void {
   for (const cb of io.callbacks) cb([{ isIntersecting: true }])
 }
 
-async function mountLive() {
-  const wrapper = await mountSuspended(TryIt, { props: { source: SOURCE } })
+async function mountLive(route?: string) {
+  const wrapper = await mountSuspended(TryIt, route ? { props: { source: SOURCE }, route } : { props: { source: SOURCE } })
   enterViewport()
   await flushPromises()
   await vi.waitFor(() => expect(wrapper.find('[data-testid="try-it-live"]').exists()).toBe(true))
@@ -88,6 +88,14 @@ function editorView(wrapper: Awaited<ReturnType<typeof mountLive>>): EditorView 
   if (!view) throw new Error('no view')
   return view
 }
+
+// The workbench is a lazy chunk (CodeMirror + the preview). Its first
+// import compiles it in the test runner, which under a full parallel run
+// can take longer than `vi.waitFor`'s second — load it once up front so
+// the tests time the mount, not the compile.
+beforeAll(async () => {
+  await import('~/components/marketing/TryItWorkbench.vue')
+}, 30_000)
 
 beforeEach(() => {
   io.callbacks = []
@@ -170,7 +178,19 @@ describe('::try-it actions', () => {
     const wrapper = await mountLive()
     await wrapper.find('[data-testid="try-it-open"]').trigger('click')
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/d/doc123'))
-    expect(created.bodies).toEqual([{ content: SOURCE, title: 'Field notes' }])
+    expect(created.bodies).toEqual([{ content: SOURCE, title: 'Field notes', language: 'en' }])
+    wrapper.unmount()
+  })
+
+  it('on a translated page the preview and the created document take the page\'s language', async () => {
+    vi.spyOn(useRouter(), 'push').mockResolvedValue(undefined)
+    // The marketing-pages middleware lets /de/… through on the marketing site only.
+    setConfig({ anonGate: false, anonDocTtlDays: 30, marketingSite: true })
+    const wrapper = await mountLive('/de/markdown-to-pdf')
+    expect(preview.opts?.language?.value).toBe('de')
+    await wrapper.find('[data-testid="try-it-open"]').trigger('click')
+    await vi.waitFor(() => expect(created.bodies).toHaveLength(1))
+    expect(created.bodies[0]).toMatchObject({ language: 'de' })
     wrapper.unmount()
   })
 
