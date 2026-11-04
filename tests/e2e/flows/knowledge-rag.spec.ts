@@ -340,7 +340,10 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   const docText = await editor.page.docText()
   expect(docText).toMatch(/5\s?%/)
   expect(docText).toMatch(/24[\s-]?(h\b|hours?)/i)
-  expect(docText).toMatch(/12[\s-]?(h\b|hours?)/i)
+  // "12 hours" / "12h", or the unit carried over from the 24 ("from 24
+  // hours to 12"), which the model writes about as often. Still the
+  // file's real figure; an invented interval fails.
+  expect(docText).toMatch(/12[\s-]?(h\b|hours?)|\bto\s+12\b/i)
   await editor.page.scrollEditorTo(/5\s?%/)
 
   await flow.shot(
