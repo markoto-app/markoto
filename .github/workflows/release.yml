@@ -426,6 +426,12 @@ jobs:
           STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
         run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
 
+      # flows:test (scripts/flows-ephemeral.ts) runs three Playwright passes
+      # on this one stack, restarting only the app server between them:
+      # untagged flows (hosted shape, marketing site off), `@billing`
+      # (billing on) and `@marketing` (NUXT_MARKETING_SITE_ENABLED=true).
+      # All three write to tests/e2e/output/flows, so the upload below
+      # carries every pass's manifests + screenshots.
       - name: Run flow tests
         env:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
