@@ -1808,7 +1808,7 @@
         "global": "Global"
       },
       "transfer": {
-        "intra_eu": "sin transferencia fuera de la UE",
+        "intra_eu": "sin transferencia",
         "dpf": "Data Privacy Framework",
         "sccs": "cláusulas contractuales tipo",
         "dpf_with_sccs_fallback": "Data Privacy Framework, CCT como respaldo"

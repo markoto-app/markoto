@@ -94,6 +94,7 @@ useHead(() => ({
 <template>
   <figure
     class="mk-sample not-prose"
+    :class="{ 'mk-sample--stacked': hasDiagram }"
     data-testid="marketing-sample"
   >
     <div class="mk-sample__pane mk-sample__pane--source">
@@ -133,6 +134,9 @@ useHead(() => ({
 @media (min-width: 640px) {
   .mk-sample { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .mk-sample__pane--result { border-top: 0; border-left: 1px solid var(--ui-border); }
+  /* Diagrams get the full width, under their source. */
+  .mk-sample--stacked { grid-template-columns: minmax(0, 1fr); }
+  .mk-sample--stacked .mk-sample__pane--result { border-left: 0; border-top: 1px solid var(--ui-border); }
 }
 .mk-sample__pane { min-width: 0; display: flex; flex-direction: column; }
 .mk-sample__pane--source { background: var(--ui-bg-elevated); }

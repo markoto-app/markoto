@@ -87,19 +87,18 @@ source: |
 ---
 ::
 
-A Gantt chart:
+A state diagram:
 
 ::sample{kind="gfm"}
 ---
 source: |
   ```mermaid
-  gantt
-    dateFormat YYYY-MM-DD
-    section Research
-      Interviews :a1, 2026-01-05, 10d
-      Synthesis  :after a1, 5d
-    section Writing
-      Draft      :2026-01-20, 12d
+  stateDiagram-v2
+    [*] --> Draft
+    Draft --> InReview : submit
+    InReview --> Draft : changes requested
+    InReview --> Published : approve
+    Published --> [*]
   ```
 ---
 ::
@@ -112,7 +111,7 @@ A diagram in markoto is part of a printed document, so it follows the document's
 - **The document's colours.** The default diagram style takes its colours from the theme (accent, headings, text, paper). You can switch to one of Mermaid's own styles in the theme panel.
 - **Kept on one page.** A diagram is never split across a page break. Large diagrams are scaled to the text width and to under half the page height; pie charts are drawn smaller.
 
-::flow-strip{id="rich-content" frames="20" caption="A Mermaid pie chart: the source in the editor on the left, the diagram on the page on the right."}
+::flow-strip{id="rich-content" frames="20" caption="A code block, an alert, a formula and a Mermaid pie chart: the Markdown on the left, the page on the right."}
 ::
 
 ## Math with KaTeX
@@ -143,16 +142,15 @@ source: |
   $$
 
   $$
-  M = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}
+  M = \begin{pmatrix}
+    1 & 0 \\
+    0 & 1
+  \end{pmatrix}
   $$
 ---
 ::
 
 Write `\$` when you mean a literal dollar sign. A formula with a mistake is shown in red instead of breaking the rest of the page.
-
-::flow-strip{id="rich-content" frames="15" caption="A block equation in the editor and on the page."}
-::
-
 ## Around the diagrams
 
 The same documents usually need more than a diagram. markoto also renders:
@@ -160,7 +158,8 @@ The same documents usually need more than a diagram. markoto also renders:
 - **Alerts**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` and `[!CAUTION]` callouts, as on GitHub.
 - **Footnotes**, placed at the foot of the page they belong to.
 - **Highlighted code blocks** for most languages.
-- **A table of contents** with page numbers (`[[toc]]`) and manual page breaks (`<!-- pagebreak -->`).
+- **A table of contents** with page numbers, written as `[[toc]]`.
+- **Page breaks** where you put `<!-- pagebreak -->`.
 
 The [Markdown cheat sheet](/markdown-cheat-sheet) lists every syntax with examples.
 

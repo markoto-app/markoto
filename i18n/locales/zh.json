@@ -1808,7 +1808,7 @@
         "global": "全球"
       },
       "transfer": {
-        "intra_eu": "不向欧盟以外传输",
+        "intra_eu": "不向第三国传输",
         "dpf": "数据隐私框架",
         "sccs": "标准合同条款",
         "dpf_with_sccs_fallback": "数据隐私框架，标准合同条款作为后备"

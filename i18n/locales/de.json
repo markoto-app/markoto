@@ -1808,7 +1808,7 @@
         "global": "Global"
       },
       "transfer": {
-        "intra_eu": "keine Übermittlung aus der EU",
+        "intra_eu": "keine Übermittlung",
         "dpf": "Data Privacy Framework",
         "sccs": "Standardvertragsklauseln",
         "dpf_with_sccs_fallback": "Data Privacy Framework, ersatzweise Standardvertragsklauseln"
