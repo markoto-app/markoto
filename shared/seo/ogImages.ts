@@ -1,6 +1,6 @@
 // Social preview cards (Open Graph / Twitter), one per page group. All are
 // 1200×630 JPEGs committed under public/og/, built by
-// scripts/build-og-image.sh from the product-tour posters — nothing is
+// scripts/build-og-images.ts from the product-tour posters — nothing is
 // generated at runtime. A marketing page can override its group's card
 // with frontmatter `ogImage` (+ `ogImageAlt`); it must be 1200×630 too.
 
@@ -24,7 +24,7 @@ function card(path: string, alt: string): OgImage {
 }
 
 export const OG_IMAGES: Readonly<Record<OgImageGroup, OgImage>> = Object.freeze({
-  default: card('/og/markoto.jpg', 'The markoto editor: Markdown on the left, the paged document preview on the right'),
+  default: card('/og/markoto.jpg', 'markoto, collaborative Markdown: the editor with Markdown on the left and the paged document preview on the right'),
   pricing: card('/og/pricing.jpg', 'markoto pricing: self-hosted, no account, free account or a paid plan'),
   useCases: card('/og/use-cases.jpg', 'markoto: Markdown documents laid out as printed pages, exported as PDF'),
   compare: card('/og/compare.jpg', 'markoto compared with other editors, with sources for every fact'),

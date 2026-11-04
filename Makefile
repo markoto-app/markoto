@@ -211,6 +211,14 @@ URL ?= http://127.0.0.1:3000
 seo-audit: ## SEO audit of every sitemap URL of a running instance (URL=http://127.0.0.1:3000)
 	bun scripts/seo-audit.ts $(URL)
 
+.PHONY: check-overflow
+check-overflow: ## No horizontal scroll at 375/390 px on any sitemap URL of a running instance (URL=…)
+	bun scripts/check-overflow.ts $(URL)
+
+.PHONY: og-images
+og-images: ## Rebuild the 1200×630 social cards in public/og/ (Playwright + ffmpeg)
+	bun scripts/build-og-images.ts
+
 .PHONY: lighthouse
 lighthouse: ## Lighthouse (mobile) on the marketing pages of a running instance (URL=…)
 	bun scripts/lighthouse-marketing.ts $(URL)

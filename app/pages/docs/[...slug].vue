@@ -201,4 +201,10 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
   justify-self: center;
   width: 100%;
 }
+/* Inline code is `inline-block` (Nuxt UI prose): a long token (a URL,
+   a config key) can't wrap and pushed the page wider than a phone. */
+.docs-content :deep(:not(pre) > code) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 </style>

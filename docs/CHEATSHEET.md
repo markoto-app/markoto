@@ -36,13 +36,14 @@ See `docs/LOCAL.md` for the pre-push full-stack verification flow (`make local-u
 | Playwright e2e flow tests | `make test-flows` | ~10m |
 | Everything | `make test-all` | ~15m |
 
-Product-page videos (WP11, `public/tour/`): with a flow-stack app running in the hosted shape (see `tests/e2e/AGENTS.md`, AI keys exported, ffmpeg installed), `TOUR_OUTPUT_DIR=/tmp/tour bun run tour:capture` re-records + encodes every scene; `--encode` only re-encodes what was recorded. Afterwards `scripts/build-og-image.sh` rebuilds the 1200×630 social cards in `public/og/` (default, pricing, use cases, compare, docs) from the posters (ffmpeg + the Fontsource fonts in `node_modules`).
+Product-page videos (WP11, `public/tour/`): with a flow-stack app running in the hosted shape (see `tests/e2e/AGENTS.md`, AI keys exported, ffmpeg installed), `TOUR_OUTPUT_DIR=/tmp/tour bun run tour:capture` re-records + encodes every scene; `--encode` only re-encodes what was recorded. Afterwards `bun scripts/build-og-images.ts` (or `make og-images`) rebuilds the 1200×630 social cards in `public/og/` (default, pricing, use cases, compare, docs; pass names to build only some): each card is an HTML page in the brand fonts from `node_modules` over a poster, screenshotted by headless Chromium (Playwright; `bunx playwright install chromium` once) and saved as JPEG with ffmpeg. Card text lives in the script, the alt texts in `shared/seo/ogImages.ts` — change both together.
 
 **SEO + page speed (marketing pages, advisory, no CI job).** Run a production build in the hosted shape (`bun run build`, then `.output/server/index.mjs` with `NUXT_MARKETING_SITE_ENABLED=true`, a loopback `NUXT_SITE_URL`, `TEST_MODE=1`, throwaway Postgres/Valkey), then:
 
 | Goal | Command |
 |---|---|
 | Audit every sitemap URL: title/description, canonical, OG/Twitter, lang, hreflang, robots, one h1, heading order, img alt/size, JSON-LD, broken internal links | `make seo-audit URL=http://127.0.0.1:3000` (`bun scripts/seo-audit.ts`) |
+| No horizontal page scroll on phones: every sitemap URL at 375 + 390 px, prints the elements that stick out | `make check-overflow URL=http://127.0.0.1:3000` (`bun scripts/check-overflow.ts`, Playwright) |
 | Lighthouse, mobile profile, on `/`, `/pricing`, `/markdown-to-pdf`, `/compare/hackmd` (LCP, CLS, TBT, JS transferred) | `make lighthouse URL=http://127.0.0.1:3000` (`bun scripts/lighthouse-marketing.ts`; Lighthouse via `bunx`, not a repo dependency; needs Chrome — `CHROME_PATH`) |
 
 Measured without Traefik, "Enable text compression" is an artefact: production compresses SSR HTML + JSON at Traefik (`app-compress`). Put a gzip proxy in front for prod-like numbers.

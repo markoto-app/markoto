@@ -142,7 +142,7 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
             {{ sp.purpose }}
           </p>
 
-          <dl class="grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-xs">
+          <dl class="grid grid-cols-[minmax(0,1fr)] sm:grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-xs">
             <dt class="font-mono uppercase tracking-wider text-muted">
               Transfer
             </dt>
@@ -158,7 +158,7 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
                 :href="sp.privacyPolicyUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hover:underline"
+                class="hover:underline [overflow-wrap:anywhere]"
               >{{ sp.privacyPolicyUrl }}</a>
             </dd>
 
@@ -171,7 +171,7 @@ const TRANSFER_LABEL: Record<SubProcessor['transferMechanism'], string> = {
                   :href="sp.dpaUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="hover:underline"
+                  class="hover:underline [overflow-wrap:anywhere]"
                 >{{ sp.dpaUrl }}</a>
               </dd>
             </template>

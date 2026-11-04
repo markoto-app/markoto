@@ -22,7 +22,7 @@ export const MAX_DESCRIPTION_LENGTH = 160
 
 /**
  * Default Open Graph / Twitter card image (built by
- * scripts/build-og-image.sh from a tour poster; JPEG because some
+ * scripts/build-og-images.ts from a tour poster; JPEG because some
  * unfurlers ignore WebP). Per-group cards: `shared/seo/ogImages.ts`.
  */
 export const DEFAULT_OG_IMAGE = OG_IMAGES.default

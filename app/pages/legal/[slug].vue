@@ -201,6 +201,13 @@ function fmtDate(iso: string): string {
 </template>
 
 <style scoped>
+/* Wide tables (the cookie table) scroll in their own box instead of
+   widening the page on phones. */
+.legal-doc-prose :deep(table) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
 .legal-doc-prose {
   --doc-line-height: 1.65;
   font-size: 15px;
