@@ -1,0 +1,125 @@
+# Claim data for /compare/typora (content/marketing/en/compare/typora.md).
+# Each value: what the table shows, where it comes from, when it was checked.
+# markoto's sources point at its docs (site paths) or the code (repo paths).
+# Re-check a competitor value at its source before changing `checked`.
+# Typora price: as shown on store.typora.io ("$ 14.99 (without tax)"); the
+# store says the currency can change by region.
+name: Typora
+rows:
+  - feature: Where you write
+    markoto:
+      value: In the browser, on any device; no install
+      source: /docs/getting-started
+      checked: '2026-11-04'
+    competitor:
+      value: Desktop app for macOS, Windows and Linux
+      source: https://typora.io/
+      checked: '2026-11-04'
+  - feature: Price
+    markoto:
+      value: Free on markoto.app; paid plans not launched yet
+      source: /docs/account/plans
+      checked: '2026-11-04'
+    competitor:
+      value: $14.99 one-time, up to 3 devices; 15-day free trial
+      source: https://store.typora.io/
+      checked: '2026-11-04'
+  - feature: Where files live
+    markoto:
+      value: On the server (markoto.app or your own)
+      source: /legal/privacy
+      checked: '2026-11-04'
+    competitor:
+      value: Markdown files on your computer; works with sync folders such as Dropbox or iCloud
+      source: https://typora.io/
+      checked: '2026-11-04'
+  - feature: Real-time co-editing
+    markoto:
+      value: true
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: Not among its listed features
+      source: https://typora.io/
+      checked: '2026-11-04'
+  - feature: Comments and version history
+    markoto:
+      value: Comment threads; every edit with a diff and restore
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: Not among its listed features
+      source: https://typora.io/
+      checked: '2026-11-04'
+  - feature: Editing style
+    markoto:
+      value: Markdown source next to a live paged preview
+      source: /docs/writing
+      checked: '2026-11-04'
+    competitor:
+      value: Single pane; Markdown turns into formatted text as you type
+      source: https://typora.io/
+      checked: '2026-11-04'
+  - feature: Math and diagrams
+    markoto:
+      value: KaTeX math; Mermaid diagrams
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: MathJax math; Mermaid, flowchart.js and sequence diagrams
+      source: https://support.typora.io/Draw-Diagrams-With-Markdown/
+      checked: '2026-11-04'
+  - feature: PDF export
+    markoto:
+      value: Paged preview; page size, margins, headers, footers, page numbers, cover page, table of contents with page numbers
+      source: /docs/import-export/polished-pdf
+      checked: '2026-11-04'
+    competitor:
+      value: Page size and margins, headers and footers with page numbers
+      source: https://support.typora.io/Export/
+      checked: '2026-11-04'
+  - feature: Other exports
+    markoto:
+      value: Markdown
+      source: /docs/import-export/save-markdown
+      checked: '2026-11-04'
+    competitor:
+      value: HTML and images built in; Word, LaTeX, ePub and more via Pandoc
+      source: https://support.typora.io/Export/
+      checked: '2026-11-04'
+  - feature: Import
+    markoto:
+      value: Word, PDF, PowerPoint, Excel, HTML, EPUB converted to Markdown
+      source: /docs/import-export/import-existing
+      checked: '2026-11-04'
+    competitor:
+      value: Word, OpenOffice, LaTeX, MediaWiki, ePub and more
+      source: https://typora.io/
+      checked: '2026-11-04'
+  - feature: Themes
+    markoto:
+      value: Seven print presets, theme editor, custom CSS per document
+      source: /docs/themes
+      checked: '2026-11-04'
+    competitor:
+      value: CSS themes, with a community theme gallery
+      source: https://theme.typora.io/
+      checked: '2026-11-04'
+  - feature: AI assistant
+    markoto:
+      value: Built in; edits the document, answers in comments
+      source: /docs/writing/ai-overview
+      checked: '2026-11-04'
+    competitor:
+      value: Not among its listed features
+      source: https://typora.io/
+      checked: '2026-11-04'
+  - feature: Licence
+    markoto:
+      value: Source-available (FSL-1.1, Apache-2.0 after two years)
+      source: LICENSE
+      checked: '2026-11-04'
+    competitor:
+      value: Proprietary
+      source: https://support.typora.io/License-Agreement/
+      checked: '2026-11-04'

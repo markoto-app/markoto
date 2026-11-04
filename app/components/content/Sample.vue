@@ -2,6 +2,8 @@
 import { renderTrustedMarkdown } from '~/utils/renderMarkdown'
 import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
 import { hljsTheme } from '~~/shared/utils/hljsAssets'
+import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
+import { defaultTheme } from '~~/shared/utils/defaultTheme'
 
 // Markdown source next to what markoto makes of it — for marketing
 // content (`::sample` in content/marketing/**):
@@ -40,6 +42,41 @@ const { data: html } = await useAsyncData(
   { default: () => '' }
 )
 
+// Mermaid diagrams can't be drawn on the server (Mermaid needs a DOM
+// with layout), so the SSR result shows their source as a code block.
+// In the browser, once the block comes near the viewport, they are drawn
+// with the document pipeline's loader and config (default theme) and
+// inlined as sanitised SVG. Only committed content reaches this path,
+// like the rest of `::sample`; Mermaid is loaded only on pages with a
+// diagram sample.
+const resultEl = ref<HTMLElement | null>(null)
+const diagramHtml = ref<string | null>(null)
+const hasDiagram = computed(() => html.value.includes('language-mermaid'))
+
+async function drawDiagrams(): Promise<void> {
+  const { transformMermaid, inlineMermaidSvgs } = await import('~/utils/mermaidLoader')
+  try {
+    diagramHtml.value = await transformMermaid(html.value, { config: buildMermaidConfig(defaultTheme), locale: 'en' })
+  } catch {
+    return // keep the source as a code block
+  }
+  await nextTick()
+  if (resultEl.value) inlineMermaidSvgs(resultEl.value)
+}
+
+let observer: IntersectionObserver | null = null
+onMounted(() => {
+  const el = resultEl.value
+  if (!hasDiagram.value || !el) return
+  observer = new IntersectionObserver((entries) => {
+    if (!entries.some(e => e.isIntersecting)) return
+    observer?.disconnect()
+    void drawDiagrams()
+  }, { rootMargin: '400px 0px' })
+  observer.observe(el)
+})
+onBeforeUnmount(() => observer?.disconnect())
+
 // Stylesheets the result needs, self-hosted + SRI-locked like the preview's.
 const CODE_THEME = hljsTheme('github-dark')
 useHead(() => ({
@@ -57,6 +94,7 @@ useHead(() => ({
 <template>
   <figure
     class="mk-sample not-prose"
+    :class="{ 'mk-sample--stacked': hasDiagram }"
     data-testid="marketing-sample"
   >
     <div class="mk-sample__pane mk-sample__pane--source">
@@ -75,8 +113,9 @@ useHead(() => ({
       </div>
       <!-- Rendered from committed content only (see renderTrustedMarkdown). -->
       <div
+        ref="resultEl"
         class="mk-sample__result"
-        v-html="html"
+        v-html="diagramHtml ?? html"
       />
     </div>
   </figure>
@@ -95,6 +134,9 @@ useHead(() => ({
 @media (min-width: 640px) {
   .mk-sample { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .mk-sample__pane--result { border-top: 0; border-left: 1px solid var(--ui-border); }
+  /* Diagrams get the full width, under their source. */
+  .mk-sample--stacked { grid-template-columns: minmax(0, 1fr); }
+  .mk-sample--stacked .mk-sample__pane--result { border-left: 0; border-top: 1px solid var(--ui-border); }
 }
 .mk-sample__pane { min-width: 0; display: flex; flex-direction: column; }
 .mk-sample__pane--source { background: var(--ui-bg-elevated); }
@@ -225,6 +267,19 @@ useHead(() => ({
 .mk-sample__result :deep(.table-of-contents ul) { list-style: none; padding-left: 1em; }
 .mk-sample__result :deep(.table-of-contents > ul) { padding-left: 0; }
 .mk-sample__result :deep(.katex-display) { overflow-x: auto; overflow-y: hidden; }
+
+/* Diagrams sit on a white sheet, in the default theme's colours, also in
+   dark mode — the way they print. */
+.mk-sample__result :deep(.mermaid) {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 6px;
+  background: #fff;
+}
+.mk-sample__result :deep(.mermaid > :is(img, svg)) { max-width: 100%; height: auto; }
+.mk-sample__result :deep(.mermaid-pie > :is(img, svg)) { max-width: min(100%, 320px); }
+.mk-sample__result :deep(.mermaid-error) { font-family: var(--font-mono); font-size: 12px; color: var(--ui-error); }
 
 /* GitHub-style alerts in the markoto preset's muted colours. */
 .mk-sample__result :deep(.markdown-alert) {

@@ -1,11 +1,13 @@
 ---
 title: Compare markoto with other editors
-description: How markoto compares with HackMD, HedgeDoc, Overleaf and Google Docs - a one-line verdict for each, and a full comparison with sources.
+description: How markoto compares with HackMD, HedgeDoc, Overleaf, Google Docs, Obsidian, Typora and Typst - a verdict for each and a full comparison with sources.
 keywords:
   - markoto alternatives
   - markdown editor comparison
   - hackmd alternative
   - overleaf alternative markdown
+  - obsidian alternative
+  - typora alternative
 updated: '2026-11-04'
 navGroup: compare
 navLabel: All comparisons
@@ -39,6 +41,24 @@ Overleaf is the right tool for LaTeX, BibTeX and journal templates; markoto suit
 Google Docs wins on familiarity, suggesting mode, offline use and citations; markoto keeps the text as Markdown, lays it out with print themes, and can be self-hosted or used on EU infrastructure.
 
 [markoto vs Google Docs: the full comparison](/compare/google-docs)
+
+## Obsidian
+
+Obsidian is a local-first notes app with linked notes, offline use and thousands of plugins; markoto is for documents several people edit live in the browser and print as PDF.
+
+[markoto vs Obsidian: the full comparison](/compare/obsidian)
+
+## Typora
+
+Typora is a polished desktop editor that formats as you type, for a one-time price; markoto runs in the browser, shows printed pages as you write and lets others edit with you.
+
+[markoto vs Typora: the full comparison](/compare/typora)
+
+## Typst
+
+Typst is a typesetting language with far more layout control and real bibliographies; markoto asks you to learn nothing beyond Markdown and has comments and history on the free plan.
+
+[markoto vs Typst: the full comparison](/compare/typst)
 
 ## What markoto doesn't do
 

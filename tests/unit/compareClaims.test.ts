@@ -130,8 +130,8 @@ describe('table + sources helpers', () => {
 })
 
 describe('claim data (content/compare/*.yml)', () => {
-  it('finds the four first comparisons', () => {
-    expect(slugs).toEqual(expect.arrayContaining(['hackmd', 'hedgedoc', 'overleaf', 'google-docs']))
+  it('finds every comparison', () => {
+    expect(slugs).toEqual(expect.arrayContaining(['hackmd', 'hedgedoc', 'overleaf', 'google-docs', 'obsidian', 'typora', 'typst']))
   })
 
   for (const slug of slugs) {
