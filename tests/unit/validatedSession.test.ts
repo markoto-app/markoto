@@ -100,7 +100,7 @@ describe('getValidatedUserSession', () => {
     expect(r).toEqual({ user: { id: 42, name: 'Alice' } })
   })
 
-  it('only surfaces id + name from the DB row, not email/avatar/etc', async () => {
+  it('only surfaces id + name from the DB row, not email/login/etc', async () => {
     // The public contract is {id, name}. Surfacing more fields here
     // would leak whatever happens to live on UserRow today — brittle
     // and unnecessary. Pin the shape.
@@ -112,7 +112,7 @@ describe('getValidatedUserSession', () => {
       email: 'a@b.c',
       githubId: 'abc',
       googleId: null,
-      avatarUrl: 'http://...'
+      login: 'alice'
     })
     const r = await getValidatedUserSession(fakeEvent())
     expect(Object.keys(r!.user).sort()).toEqual(['id', 'name'])

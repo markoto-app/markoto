@@ -152,4 +152,48 @@ describe('POST /api/internal/activity', () => {
       expect(new Date(after).getTime()).toBe(new Date(before).getTime())
     })
   })
+
+  describe('anonymous avatar token', () => {
+    async function seedOf(docId: string): Promise<Array<string | null>> {
+      const r = await testDb().query<{ seed: string | null }>(
+        'SELECT actor_avatar_seed AS seed FROM activity_log WHERE doc_id = $1 ORDER BY id',
+        [docId]
+      )
+      return r.rows.map(row => row.seed)
+    }
+
+    it('stores the token on an anonymous row', async () => {
+      const doc = await createDoc({ accessMode: 'open-edit' })
+      const res = await anonClient().post('/api/internal/activity',
+        { docId: doc.docId, action: 'edit', userId: null, userName: null, actorPrincipal: 'anonymous', actorAvatarSeed: 'AnonToken1234567' },
+        { headers: { 'x-internal-secret': TEST_INTERNAL_SECRET } }
+      )
+      expect(res.status).toBe(200)
+      expect(await seedOf(doc.docId)).toEqual(['AnonToken1234567'])
+    })
+
+    it('drops it for signed-in and agent rows, and drops malformed tokens', async () => {
+      const user = await createUser()
+      const doc = await createDoc({ accessMode: 'open-edit' })
+      const headers = { 'x-internal-secret': TEST_INTERNAL_SECRET }
+      await anonClient().post('/api/internal/activity',
+        { docId: doc.docId, action: 'edit', userId: user.id, userName: user.name, actorAvatarSeed: 'AnonToken1234567' }, { headers })
+      await anonClient().post('/api/internal/activity',
+        { docId: doc.docId, action: 'edit', userName: 'markoto', actorPrincipal: 'ai:assistant:s1', actorAvatarSeed: 'AnonToken1234567' }, { headers })
+      await anonClient().post('/api/internal/activity',
+        { docId: doc.docId, action: 'edit', actorPrincipal: 'anonymous', actorAvatarSeed: 'x"><img src=1>' }, { headers })
+      expect(await seedOf(doc.docId)).toEqual([null, null, null])
+    })
+
+    it('is returned by the activity feed endpoint', async () => {
+      const doc = await createDoc({ accessMode: 'open-edit' })
+      await anonClient().post('/api/internal/activity',
+        { docId: doc.docId, action: 'edit', actorPrincipal: 'anonymous', actorAvatarSeed: 'AnonToken1234567' },
+        { headers: { 'x-internal-secret': TEST_INTERNAL_SECRET } })
+      const res = await anonClient().get(`/api/docs/${doc.docId}/activity`)
+      expect(res.status).toBe(200)
+      const rows = await res.json() as Array<{ actorAvatarSeed: string | null }>
+      expect(rows.map(r => r.actorAvatarSeed)).toEqual(['AnonToken1234567'])
+    })
+  })
 })

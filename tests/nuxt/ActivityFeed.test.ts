@@ -45,6 +45,7 @@ interface ActivityEntry {
   yjsDocIdAfter: number | null
   // Server-enriched agent fields; null on human rows.
   actorPrincipal?: string | null
+  actorAvatarSeed?: string | null
   agentKind?: 'ai' | 'mcp' | null
   createdAt: string
 }
@@ -132,6 +133,25 @@ describe('ActivityFeed — avatars', () => {
     for (const img of wrapper.findAll('[data-activity-id="50"] img')) {
       expect(img.attributes('src') ?? '').toMatch(/^data:image\/svg\+xml/)
     }
+  })
+
+  it('seeds an anonymous row by the editor\'s presence token, so two anonymous editors look different', async () => {
+    entriesResponse.current = [
+      makeRestoreEntry({ id: 52, userId: null, userName: null, action: 'edit', actorPrincipal: 'anonymous', agentKind: null, actorAvatarSeed: 'TokenAAAAAAAAAAA' }),
+      makeRestoreEntry({ id: 53, userId: null, userName: null, action: 'edit', actorPrincipal: 'anonymous', agentKind: null, actorAvatarSeed: 'TokenBBBBBBBBBBB' })
+    ]
+    const wrapper = await mountSuspended(ActivityFeed, { props: { docId: 'doc-x' } })
+    await flushAsyncState()
+    // Same seed the PresenceBar derives from awareness `user.avatarSeed`.
+    expect(wrapper.find('[data-activity-id="52"] [data-testid="user-avatar"]').attributes('data-avatar-seed')).toBe('a-TokenAAAAAAAAAAA')
+    expect(wrapper.find('[data-activity-id="53"] [data-testid="user-avatar"]').attributes('data-avatar-seed')).toBe('a-TokenBBBBBBBBBBB')
+  })
+
+  it('falls back to the name seed for an anonymous row without a token (older rows)', async () => {
+    entriesResponse.current = [makeRestoreEntry({ id: 54, userId: null, userName: null, action: 'edit', actorPrincipal: 'anonymous', agentKind: null, actorAvatarSeed: null })]
+    const wrapper = await mountSuspended(ActivityFeed, { props: { docId: 'doc-x' } })
+    await flushAsyncState()
+    expect(wrapper.find('[data-activity-id="54"] [data-testid="user-avatar"]').attributes('data-avatar-seed')).toMatch(/^x-/)
   })
 
   it('keeps the seal disc for an AI row', async () => {
