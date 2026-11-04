@@ -1,0 +1,134 @@
+# Claim data for /compare/obsidian (content/marketing/en/compare/obsidian.md).
+# Each value: what the table shows, where it comes from, when it was checked.
+# markoto's sources point at its docs (site paths) or the code (repo paths).
+# Re-check a competitor value at its source before changing `checked`.
+# Obsidian prices: USD as shown on obsidian.md (Sync, Publish, commercial licence).
+name: Obsidian
+rows:
+  - feature: Where you write
+    markoto:
+      value: In the browser, on any device; no install
+      source: /docs/getting-started
+      checked: '2026-11-04'
+    competitor:
+      value: Desktop and mobile apps (Windows, macOS, Linux, iOS, Android)
+      source: https://obsidian.md/download
+      checked: '2026-11-04'
+  - feature: Where your notes live
+    markoto:
+      value: On the server (markoto.app or your own)
+      source: /legal/privacy
+      checked: '2026-11-04'
+    competitor:
+      value: Plain Markdown files on your device
+      source: https://obsidian.md/
+      checked: '2026-11-04'
+  - feature: Offline editing
+    note: markoto keeps edits made during a short connection drop.
+    markoto:
+      value: false
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: true
+      source: https://obsidian.md/
+      checked: '2026-11-04'
+  - feature: Price
+    markoto:
+      value: Free on markoto.app; paid plans not launched yet
+      source: /docs/account/plans
+      checked: '2026-11-04'
+    competitor:
+      value: App free, also for work; optional commercial licence $50 per user/year
+      source: https://obsidian.md/pricing
+      checked: '2026-11-04'
+  - feature: Sync between devices
+    markoto:
+      value: Included; documents are online
+      source: /docs/getting-started
+      checked: '2026-11-04'
+    competitor:
+      value: Obsidian Sync from $4 per user/month (billed annually) or $5 monthly
+      source: https://obsidian.md/sync
+      checked: '2026-11-04'
+  - feature: Working with others
+    markoto:
+      value: Live co-editing with cursors, by link or in a workspace
+      source: /docs/workspaces/live-collab
+      checked: '2026-11-04'
+    competitor:
+      value: Shared vaults in Sync (up to 20 people); edits merge on sync, no live co-editing of a note
+      source: https://obsidian.md/help/sync/collaborate
+      checked: '2026-11-04'
+  - feature: Version history
+    markoto:
+      value: Every edit, with a diff and restore
+      source: /docs/history
+      checked: '2026-11-04'
+    competitor:
+      value: With Sync, 1 month (Standard) or 12 months (Plus)
+      source: https://obsidian.md/help/sync/plans
+      checked: '2026-11-04'
+  - feature: Encryption
+    markoto:
+      value: In transit and at rest; not end-to-end
+      source: /legal/privacy
+      checked: '2026-11-04'
+    competitor:
+      value: Sync is end-to-end encrypted
+      source: https://obsidian.md/help/sync/security
+      checked: '2026-11-04'
+  - feature: Math and diagrams
+    markoto:
+      value: KaTeX math, Mermaid diagrams
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: MathJax math, Mermaid diagrams
+      source: https://obsidian.md/help/advanced-syntax
+      checked: '2026-11-04'
+  - feature: PDF export
+    markoto:
+      value: Paged preview; headers, footers, page numbers, cover page, table of contents with page numbers
+      source: /docs/import-export/polished-pdf
+      checked: '2026-11-04'
+    competitor:
+      value: Built in (page size, margins, landscape); headers, footers and page numbers via plugins; not on mobile
+      source: https://obsidian.md/help/pdf
+      checked: '2026-11-04'
+  - feature: Extending it
+    markoto:
+      value: Themes and custom CSS per document; no plugins
+      source: /docs/themes/custom-css
+      checked: '2026-11-04'
+    competitor:
+      value: Thousands of community plugins and themes
+      source: https://obsidian.md/
+      checked: '2026-11-04'
+  - feature: Linked notes and graph
+    markoto:
+      value: false
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-04'
+    competitor:
+      value: Links between notes, graph view, Canvas
+      source: https://obsidian.md/
+      checked: '2026-11-04'
+  - feature: Publish to the web
+    markoto:
+      value: Share a document by link (edit, view or password)
+      source: /docs/sharing
+      checked: '2026-11-04'
+    competitor:
+      value: Obsidian Publish, $8 per site/month (billed annually), custom domain
+      source: https://obsidian.md/publish
+      checked: '2026-11-04'
+  - feature: Licence
+    markoto:
+      value: Source-available (FSL-1.1, Apache-2.0 after two years)
+      source: LICENSE
+      checked: '2026-11-04'
+    competitor:
+      value: Proprietary; not open source
+      source: https://github.com/obsidianmd/obsidian-releases
+      checked: '2026-11-04'

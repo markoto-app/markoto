@@ -1800,6 +1800,21 @@
         "pdf": "Le document a été créé, mais le PDF n’a pas pu être généré pour le moment. Veuillez réessayer dans un instant.",
         "pdfRateLimited": "Trop de PDF depuis votre réseau au cours de la dernière minute. Veuillez réessayer dans une minute."
       }
+    },
+    "subProcessors": {
+      "location": {
+        "eu": "UE",
+        "us": "États-Unis",
+        "global": "Mondial"
+      },
+      "transfer": {
+        "intra_eu": "aucun transfert",
+        "dpf": "Data Privacy Framework",
+        "sccs": "clauses contractuelles types",
+        "dpf_with_sccs_fallback": "Data Privacy Framework, CCT en secours"
+      },
+      "caption": "La liste actuelle pour markoto.app, lue dans le même registre que la page juridique.",
+      "link": "Sous-traitants, avec politiques de confidentialité et DPA"
     }
   }
 }
