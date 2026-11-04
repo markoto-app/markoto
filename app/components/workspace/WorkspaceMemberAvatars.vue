@@ -16,7 +16,6 @@ export interface WorkspaceMember {
   name: string
   email: string | null
   login: string | null
-  avatarUrl: string | null
   role: 'admin' | 'editor' | 'viewer'
 }
 
@@ -40,22 +39,6 @@ const expanded = computed(() => props.members.length <= ROW_THRESHOLD)
 const max = computed(() => props.max ?? 5)
 const visible = computed(() => props.members.slice(0, max.value))
 const overflow = computed(() => Math.max(0, props.members.length - max.value))
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(w => w.charAt(0).toUpperCase())
-    .join('')
-}
-
-// Paper-aesthetic pastel palette — same family as `app/utils/colors.ts`.
-// Keeps initials backgrounds calm against the bone chrome.
-const colors = ['#7A8C7E', '#8C7E6B', '#9A7C7C', '#7E8B9A', '#8C8AA0', '#A0967E', '#7C928D', '#9C8E76']
-function colorFor(userId: number) {
-  return colors[Math.abs(userId) % colors.length]
-}
 
 function roleLabel(role: WorkspaceMember['role']): string {
   // Localized via the existing workspace.roles namespace; admin
@@ -85,21 +68,10 @@ function roleLabel(role: WorkspaceMember['role']): string {
           :key="m.userId"
           class="flex items-center gap-2.5 min-w-0"
         >
-          <UAvatar
-            v-if="m.avatarUrl"
-            :src="m.avatarUrl"
-            :alt="m.name"
-            size="2xs"
-            class="shrink-0"
-            referrerpolicy="no-referrer"
+          <CommonUserAvatar
+            :seed="avatarSeedFor({ id: m.userId })"
+            :size="20"
           />
-          <div
-            v-else
-            class="size-5 rounded-full flex items-center justify-center text-[9px] font-medium text-white shrink-0"
-            :style="{ backgroundColor: colorFor(m.userId) }"
-          >
-            {{ initials(m.name) }}
-          </div>
           <span class="text-sm text-default truncate">{{ m.name }}</span>
           <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted lowercase shrink-0">{{ roleLabel(m.role) }}</span>
         </div>
@@ -135,20 +107,11 @@ function roleLabel(role: WorkspaceMember['role']): string {
           :text="`${m.name} · ${roleLabel(m.role)}`"
         >
           <div class="relative rounded-full ring-2 ring-default shrink-0">
-            <UAvatar
-              v-if="m.avatarUrl"
-              :src="m.avatarUrl"
-              :alt="m.name"
-              size="xs"
-              referrerpolicy="no-referrer"
+            <CommonUserAvatar
+              :seed="avatarSeedFor({ id: m.userId })"
+              :name="m.name"
+              :size="24"
             />
-            <div
-              v-else
-              class="size-6 rounded-full flex items-center justify-center text-[10px] font-medium text-white"
-              :style="{ backgroundColor: colorFor(m.userId) }"
-            >
-              {{ initials(m.name) }}
-            </div>
           </div>
         </UTooltip>
       </div>

@@ -187,6 +187,7 @@ const diagramItems = computed(() => [[
   <div
     v-if="!readOnly"
     class="flex flex-wrap items-center gap-0.5 px-2 py-1 min-w-0"
+    data-testid="editor-toolbar"
   >
     <template
       v-for="(item, i) in actions"

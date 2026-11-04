@@ -67,7 +67,7 @@ test('Ask the AI about another doc', async ({ page, flow, editor }) => {
   await page.goto(`/d/${primary.docId}`)
   await editor.page.waitForReady()
   await expect(editor.page.titleButton).toContainText('Onboarding playbook')
-  // A short real draft instead of the welcome text, cover off, so the
+  // A short real draft instead of the Demo text, cover off, so the
   // AI's paragraph lands on the preview's first page.
   const draft = '# Onboarding playbook\n\n## First week\n\nEvery new hire pairs with a buddy for their first five days.\n'
   await editor.page.setDocText(draft)

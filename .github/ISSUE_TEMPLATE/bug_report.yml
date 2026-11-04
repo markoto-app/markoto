@@ -7,9 +7,9 @@ body:
       value: |
         Thanks for taking the time to report a bug.
 
-        **Security vulnerabilities:** do NOT file them here. Use [private vulnerability reporting](https://github.com/joelbarmettlerUZH/md-online/security/advisories/new) (see SECURITY.md).
+        **Security vulnerabilities:** do NOT file them here. Use [private vulnerability reporting](https://github.com/joelbarmettlerUZH/markoto.app/security/advisories/new) (see SECURITY.md).
 
-        **Self-hosting question?** Check the [troubleshooting section](https://github.com/joelbarmettlerUZH/md-online/blob/main/docs/SELF-HOSTING.md#troubleshooting) first, and ask in Discussions if you are not sure it is a bug.
+        **Self-hosting question?** Check the [troubleshooting section](https://github.com/joelbarmettlerUZH/markoto.app/blob/main/docs/SELF-HOSTING.md#troubleshooting) first, and ask in Discussions if you are not sure it is a bug.
   - type: checkboxes
     id: checks
     attributes:

@@ -264,13 +264,17 @@
     "description": "Convierte un archivo a markdown y cárgalo en el editor.",
     "selectFile": "Haz clic para seleccionar un archivo",
     "changeFile": "Elegir un archivo diferente",
-    "formats": "Compatibles: DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
+    "formats": "Compatibles: Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Importar",
     "error": "Error al importar. Prueba con otro archivo.",
     "conflictTitle": "El documento tiene contenido existente",
     "conflictDesc": "¿Cómo te gustaría gestionar el contenido importado?",
     "replace": "Reemplazar todo",
-    "append": "Añadir al final"
+    "append": "Añadir al final",
+    "applyProperties": "Aplicar también el tema y la configuración del documento del archivo",
+    "applyPropertiesHelp": "El archivo se guardó desde markoto: título, descripción, público, idioma y tema (con CSS propio).",
+    "propertiesApplied": "Tema y configuración del documento aplicados",
+    "propertiesPartlyApplied": "Algunos ajustes del archivo no eran válidos y se omitieron."
   },
   "export": {
     "title": "Exportar",
@@ -300,7 +304,7 @@
   "templates": {
     "blank": {
       "label": "En blanco",
-      "description": "Solo un título. Tú aportas la estructura."
+      "description": "Una página vacía. Tú pones todo lo demás."
     },
     "business-plan": {
       "label": "Plan de negocio",
@@ -321,6 +325,10 @@
     "project-readme": {
       "label": "README del proyecto",
       "description": "Eslogan, por qué, inicio rápido, funciones, documentación, contribuir, licencia."
+    },
+    "demo": {
+      "label": "Demo",
+      "description": "Lo básico de markdown y un breve recorrido por markoto."
     }
   },
   "documentPanel": {
@@ -386,7 +394,9 @@
     "confirm": "Confirmar",
     "close": "Cerrar",
     "loading": "Cargando...",
-    "menu": "Menú"
+    "menu": "Menú",
+    "docs": "Docs",
+    "documentation": "Documentación"
   },
   "menu": {
     "lightMode": "Modo claro",
@@ -452,7 +462,9 @@
       "title": "Ayuda",
       "shortcuts": "Atajos de teclado",
       "feedback": "Informar de un problema",
-      "github": "Ver en GitHub"
+      "github": "Ver en GitHub",
+      "docs": "Documentación",
+      "tour": "Hacer el recorrido"
     }
   },
   "ai": {
@@ -825,22 +837,39 @@
     "saved": {
       "title": "Tus temas",
       "saveCurrent": "Guardar actual",
-      "namePrompt": "Nombra este tema",
       "savedToast": "Guardado como preajuste personal",
       "saveFailedTitle": "No se pudo guardar el tema",
-      "rename": "Renombrar",
-      "renamePrompt": "Nuevo nombre",
-      "renameFailedTitle": "No se pudo renombrar",
       "delete": "Eliminar",
-      "deleteConfirm": "¿Eliminar «{name}»? Los documentos que ya lo usan conservan su copia.",
-      "deleteFailedTitle": "No se pudo eliminar"
+      "deleteFailedTitle": "No se pudo eliminar",
+      "saveDialogTitle": "Guardar tema",
+      "editDialogTitle": "Editar tema",
+      "saveDialogIntro": "Guarda la configuración actual, incluido el CSS propio, como uno de tus temas. Puedes aplicarlo a cualquiera de tus documentos.",
+      "editDialogIntro": "Cambia el nombre o la descripción. La configuración del tema no cambia.",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "p. ej. Informe trimestral",
+      "nameRequired": "Escribe un nombre.",
+      "nameTooLong": "El nombre puede tener como máximo {max} caracteres.",
+      "descriptionLabel": "Descripción",
+      "descriptionOptional": "opcional",
+      "descriptionPlaceholder": "¿Para qué es este tema?",
+      "save": "Guardar tema",
+      "saveChanges": "Guardar cambios",
+      "updateFailedTitle": "No se pudieron guardar los cambios",
+      "edit": "Editar nombre y descripción",
+      "editAria": "Editar {name}",
+      "deleteAria": "Eliminar {name}",
+      "deleteTitle": "Eliminar tema",
+      "deleteWarning": "Los documentos que ya lo usan conservan su aspecto. No se puede deshacer.",
+      "deleteConfirmButton": "Eliminar tema",
+      "deleted": "Tema eliminado",
+      "fallbackDescription": "Títulos en {heading}, texto en {body}"
     },
     "presets": {
       "title": "Plantillas",
       "applied": "Plantilla aplicada a tu documento",
       "markoto": {
         "name": "markoto",
-        "description": "El aspecto característico. Encabezados editoriales Fraunces, cuerpo Inter sobre papel crema cálido, acento bermellón — una guía de campo serena, no un panel de control."
+        "description": "El aspecto característico. Encabezados editoriales Fraunces, cuerpo Inter sobre papel blanco sencillo, acento bermellón — una guía de campo serena, no un panel de control."
       },
       "modern": {
         "name": "Moderno",
@@ -895,7 +924,8 @@
         "other-doc-file": "Esta imagen pertenece a otro documento. Súbela a este documento y usa su dirección.",
         "script-url": "No se permiten URL javascript: ni vbscript:.",
         "value": "Este valor no se pudo leer de forma segura."
-      }
+      },
+      "docsLink": "Cómo escribir CSS propio"
     }
   },
   "table": {
@@ -1252,7 +1282,9 @@
       "subProcessors": "Subencargados",
       "abuse": "Denunciar abuso",
       "imprint": "Aviso legal",
-      "cookieNote": "Cookies: solo esenciales"
+      "cookieNote": "Cookies: solo esenciales",
+      "dpaShort": "DPA",
+      "navLabel": "Documentación y avisos legales"
     },
     "documentPage": {
       "translationNoticeTitle": "Traducción proporcionada por comodidad",
@@ -1458,7 +1490,7 @@
       "markdown": "Markdown",
       "body": "Un editor de Markdown colaborativo con vista previa paginada en directo. Escribe texto plano y exporta un PDF idéntico a la vista previa, página a página.",
       "cta": "Empezar a escribir — sin registro",
-      "scroll": "Desplázate para ver cómo funciona"
+      "next": "Ver cómo funciona"
     },
     "scenes": {
       "write": {
@@ -1534,7 +1566,8 @@
     "tone": {
       "toDark": "Cambiar a modo oscuro",
       "toLight": "Cambiar a modo claro"
-    }
+    },
+    "nextScene": "Siguiente: {scene}"
   },
   "anonGate": {
     "eyebrow": "Antes de tu primer documento",
@@ -1561,5 +1594,68 @@
   "userContent": {
     "notice": "Creado por un usuario de markoto sin cuenta, no por markoto",
     "report": "Denunciar"
+  },
+  "shortcuts": {
+    "title": "Atajos de teclado",
+    "subtitle": "Lo que hacen las teclas en el editor de markoto.",
+    "groups": {
+      "format": "Formato",
+      "edit": "Edición",
+      "document": "Documento",
+      "preview": "Vista previa (puntero sobre las páginas)"
+    },
+    "continueList": "Continuar una lista o una cita",
+    "indent": "Sangrar / quitar sangría de un elemento",
+    "blankLine": "Línea nueva debajo",
+    "moveLine": "Mover la línea arriba / abajo",
+    "copyLine": "Copiar la línea arriba / abajo",
+    "deleteLine": "Eliminar la línea",
+    "selectLine": "Seleccionar la línea",
+    "addCursor": "Añadir un cursor arriba / abajo",
+    "postComment": "Publicar un comentario"
+  },
+  "editorTour": {
+    "stepOf": "{n} de {total}",
+    "skip": "Omitir",
+    "next": "Siguiente",
+    "done": "Listo",
+    "steps": {
+      "write": {
+        "title": "Markdown a la izquierda, páginas a la derecha",
+        "body": "Escribe en el editor; la vista previa muestra las páginas tal como se imprimen y exportan. Estos botones cambian entre editor, ambos y vista previa."
+      },
+      "format": {
+        "title": "Dar formato sin la sintaxis",
+        "body": "Encabezados, listas, tablas, avisos, fórmulas y diagramas. Selecciona primero el texto que quieras formatear."
+      },
+      "theme": {
+        "title": "Que se vea bien",
+        "body": "Fuentes, colores, tamaño de página, encabezado, pie y portada se ajustan en el tema del documento."
+      },
+      "share": {
+        "title": "Comparte el enlace",
+        "body": "El candado decide quién puede abrir el enlace: solo tú, cualquiera para ver, cualquiera para editar o con contraseña."
+      },
+      "ai": {
+        "title": "Pregúntale a markoto",
+        "body": "Describe lo que quieres. La IA edita el documento como una colaboradora más, y la ves escribir."
+      },
+      "help": {
+        "title": "Aquí está la ayuda",
+        "body": "La documentación, los atajos de teclado y este recorrido están en el menú Ayuda."
+      },
+      "writeMobile": {
+        "title": "Escribe y mira las páginas",
+        "body": "Escribe markdown aquí. El ojo muestra las páginas tal como se imprimen y exportan."
+      },
+      "formatMobile": {
+        "title": "Formato e inserción",
+        "body": "La pestaña Editor tiene encabezados, listas, tablas, avisos, fórmulas y diagramas."
+      },
+      "helpMobile": {
+        "title": "La ayuda está en el menú",
+        "body": "La documentación y este recorrido están en el menú."
+      }
+    }
   }
 }

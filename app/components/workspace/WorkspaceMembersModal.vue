@@ -103,10 +103,6 @@ function roleLabel(role: WorkspaceMember['role']) {
   return t('workspace.roles.viewer')
 }
 
-function initials(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('')
-}
-
 async function addMember() {
   const email = newEmail.value.trim()
   if (!email) return
@@ -214,19 +210,10 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
             class="flex items-center gap-3 p-3"
             :data-testid="`workspace-member-row-${m.userId}`"
           >
-            <UAvatar
-              v-if="m.avatarUrl"
-              :src="m.avatarUrl"
-              :alt="m.name"
-              size="sm"
-              referrerpolicy="no-referrer"
+            <CommonUserAvatar
+              :seed="avatarSeedFor({ id: m.userId })"
+              :size="32"
             />
-            <div
-              v-else
-              class="size-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white bg-primary/70"
-            >
-              {{ initials(m.name) }}
-            </div>
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium truncate">
                 {{ m.name }}

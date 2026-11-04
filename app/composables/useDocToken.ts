@@ -110,7 +110,7 @@ export function useDocToken(docId: string) {
   // Sponsor profile (billing owner) for the AI-workspace indicator.
   // Null when `workspaceAiEnabled` is false. Carries just the display
   // bits — no plan / no email / no stripe ids leak through here.
-  interface BillingOwner { id: number, name: string, avatarUrl: string | null }
+  interface BillingOwner { id: number, name: string }
   const workspaceBillingOwner = ref<BillingOwner | null>(null)
   // DB-stored theme (or null = use defaultTheme). Initial value comes back
   // on the same /token round-trip so the preview can paint immediately,
@@ -128,10 +128,13 @@ export function useDocToken(docId: string) {
   const initialTitle = ref<string>('')
   const initialAudience = ref<string>('casual')
   const initialLanguage = ref<string>('en')
+  // Which template the doc started from (exported in the Markdown
+  // frontmatter; a Markdown import can restore it).
+  const templateId = ref<string>('blank')
   // Pre-rendered template body (with title/description placeholders
   // already substituted server-side, locale-matched). Null when the
-  // doc was created with the `blank` template — the editor falls back
-  // to welcomeDoc in that case. Only seeded when ytext is empty.
+  // doc was created with the `blank` template — the document then stays
+  // empty. Only seeded when ytext is empty.
   const initialBody = ref<string | null>(null)
 
   const { user: sessionUser } = useUserSession()
@@ -179,6 +182,7 @@ export function useDocToken(docId: string) {
       if (typeof data.description === 'string') initialDescription.value = data.description
       if (typeof data.audience === 'string') initialAudience.value = data.audience
       if (typeof data.language === 'string') initialLanguage.value = data.language
+      if (typeof data.templateId === 'string') templateId.value = data.templateId
       initialBody.value = typeof data.initialBody === 'string' ? data.initialBody : null
 
       const userId = sessionUser.value?.id
@@ -328,6 +332,7 @@ export function useDocToken(docId: string) {
     initialAudience,
     initialLanguage,
     initialBody,
+    templateId,
     // Actions
     fetchToken,
     hydrateAfterUnlock,

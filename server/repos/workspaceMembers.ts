@@ -14,7 +14,6 @@ export interface MemberRow {
   name: string
   email: string | null
   login: string | null
-  avatarUrl: string | null
   role: WorkspaceRole
   joinedAt: Date
 }
@@ -50,7 +49,6 @@ export async function listMembers(workspaceId: string): Promise<MemberRow[]> {
       name: users.name,
       email: users.email,
       login: users.login,
-      avatarUrl: users.avatarUrl,
       role: workspaceMembers.role,
       joinedAt: workspaceMembers.joinedAt
     })
@@ -70,7 +68,6 @@ export async function listMembersForDoc(
 ): Promise<Array<{
   userId: number
   name: string
-  avatarUrl: string | null
   login: string | null
   role: WorkspaceRole
   isDocOwner: boolean
@@ -80,7 +77,6 @@ export async function listMembersForDoc(
     .select({
       userId: users.id,
       name: users.name,
-      avatarUrl: users.avatarUrl,
       login: users.login,
       role: workspaceMembers.role,
       isDocOwner: sql<boolean>`${users.id} = ${docOwnerId}`

@@ -19,7 +19,6 @@ export interface UserRow {
   login: string | null
   name: string
   email: string | null
-  avatarUrl: string | null
   stripeCustomerId: string | null
   isAdmin: boolean
   createdAt: Date
@@ -37,7 +36,6 @@ interface OAuthProfileFields {
   login?: string | null
   name: string
   email: string | null
-  avatarUrl: string | null
   /**
    * Whether the email returned by the OAuth provider is verified.
    * Gates the email-based account merge path: we only merge a new
@@ -128,15 +126,14 @@ export async function findUserNameById(id: number): Promise<string | null> {
  * Users sign up via GitHub/Google and the provider's casing may differ
  * from what the inviter types.
  */
-export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id' | 'name' | 'email' | 'login' | 'avatarUrl'> | null> {
+export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id' | 'name' | 'email' | 'login'> | null> {
   const db = useDatabase()
   const row = (await db
     .select({
       id: users.id,
       name: users.name,
       email: users.email,
-      login: users.login,
-      avatarUrl: users.avatarUrl
+      login: users.login
     })
     .from(users)
     .where(sql`lower(${users.email}) = lower(${email})`)
@@ -150,7 +147,7 @@ export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id'
  * Three outcomes:
  *
  *   1. **updated** — the provider id matches an existing row. Refresh
- *      the profile fields (name, email, avatarUrl, login-for-github)
+ *      the profile fields (name, email, login-for-github)
  *      in case the user changed them on the provider.
  *
  *   2. **merged** — the provider id is new, BUT the verified email
@@ -211,7 +208,8 @@ type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0
 
 /**
  * Branch 1: provider id is already on file. Update the mutable fields
- * (name, email, avatar, plus login on GitHub) and return.
+ * (name, email, plus login on GitHub) and return. Provider avatars are
+ * never stored — avatars are generated locally from the user id.
  */
 async function tryUpdateExistingByProvider(
   tx: Tx,
@@ -228,7 +226,6 @@ async function tryUpdateExistingByProvider(
     .set({
       name: input.name,
       email: input.email,
-      avatarUrl: input.avatarUrl,
       ...(input.provider === 'github' ? { login: input.login } : {})
     })
     .where(whereByProviderId)
@@ -270,8 +267,7 @@ async function tryMergeByVerifiedEmail(
   // GitHub (the other providers have no equivalent).
   const setClause: Partial<typeof users.$inferInsert> = {
     ...providerIdentityColumns(input),
-    email: input.email,
-    avatarUrl: input.avatarUrl
+    email: input.email
   }
   if (input.provider === 'github') setClause.login = input.login ?? null
   await tx.update(users)
@@ -297,8 +293,7 @@ async function insertNewUser(tx: Tx, input: OAuthUpsertInput): Promise<OAuthUpse
     ...providerIdentityColumns(input),
     login: input.login ?? null,
     name: input.name,
-    email: input.email,
-    avatarUrl: input.avatarUrl
+    email: input.email
   }).returning({ id: users.id })
   return { userId: inserted[0]!.id, outcome: 'inserted' }
 }

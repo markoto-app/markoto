@@ -67,7 +67,7 @@ describe('editor highlight tokens', () => {
   })
 
   test('dark overrides live on :root.dark (outranks :root regardless of order) and cover every token', () => {
-    expect([...dark.keys()].sort()).toEqual([...mdTokens].sort())
+    expect([...dark.keys()].filter(k => k.startsWith('--mk-md-')).sort()).toEqual([...mdTokens].sort())
   })
 
   test('no plain `.dark` rule declares --mk-md-* (it would lose to :root)', () => {
@@ -75,6 +75,17 @@ describe('editor highlight tokens', () => {
   })
 
   test.each(CONTENT_TOKENS)('%s meets WCAG AA (4.5:1) in light and dark mode', (token) => {
+    expect(contrast(hex(light.get(token) ?? ''), LIGHT_EDITOR_BG)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(hex(dark.get(token) ?? ''), DARK_EDITOR_BG)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  // Custom CSS editor (ThemeCustomCssSection.vue) syntax colours.
+  const cssTokens = [...light.keys()].filter(k => k.startsWith('--mk-css-'))
+  test('custom CSS syntax tokens have a dark override each', () => {
+    expect(cssTokens.length).toBeGreaterThanOrEqual(5)
+    expect([...dark.keys()].filter(k => k.startsWith('--mk-css-')).sort()).toEqual([...cssTokens].sort())
+  })
+  test.each(['--mk-css-selector', '--mk-css-property', '--mk-css-at', '--mk-css-number', '--mk-css-string'])('%s meets WCAG AA (4.5:1) in light and dark mode', (token) => {
     expect(contrast(hex(light.get(token) ?? ''), LIGHT_EDITOR_BG)).toBeGreaterThanOrEqual(4.5)
     expect(contrast(hex(dark.get(token) ?? ''), DARK_EDITOR_BG)).toBeGreaterThanOrEqual(4.5)
   })

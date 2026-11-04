@@ -2,6 +2,7 @@ import { test as base, expect as baseExpect, type Locator, type Page } from '@pl
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../../app/utils/editorTour'
 import sharp from 'sharp'
 import { EditorPage } from '../page-objects/Editor'
 
@@ -329,7 +330,7 @@ export type SetupOpts = {
   title?: string
   /** `false` turns the cover page off once the editor is ready. */
   cover?: boolean
-  /** Replaces the seeded welcome text with this markdown (a short,
+  /** Replaces the seeded Demo text with this markdown (a short,
    *  realistic draft the flow's outcome fits next to). */
   body?: string
 }
@@ -404,6 +405,17 @@ async function wireActorPage(page: Page, theme: 'light' | 'dark'): Promise<void>
       // ignore storage failures
     }
   }, theme)
+
+  // The editor's first-run tour (EditorTour.vue) counts as seen: its
+  // popover would otherwise sit in every flow's screenshots and over the
+  // controls the flows click. A flow about the tour clears the key.
+  await page.addInitScript(([key, value]: [string, string]) => {
+    try {
+      localStorage.setItem(key, value)
+    } catch {
+      // ignore storage failures
+    }
+  }, [EDITOR_TOUR_STORAGE_KEY, EDITOR_TOUR_DONE] as [string, string])
 
   await page.addInitScript(() => {
     const css = `
@@ -1002,7 +1014,10 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
         }
         // Anonymous visitors (most flows) pass the accept-terms step +
         // the real ALTCHA bot check here; signed-in flows go straight on.
-        await editor.clickCreateAndPassGate(opts.title ? editor.newDocDialog.submitCreate : editor.newDocDialog.submitBlank)
+        // Always the form's Create button: the dialog's defaults give the
+        // Demo template, the document every flow starts from
+        // ("Just give me a blank doc" would leave it empty).
+        await editor.clickCreateAndPassGate(editor.newDocDialog.submitCreate)
         await editor.waitForReady()
         if (opts.title) {
           await baseExpect(editor.titleButton).toContainText(opts.title)

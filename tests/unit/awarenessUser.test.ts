@@ -11,12 +11,12 @@ import {
 
 // Awareness `user` fields are chosen by each peer and relayed verbatim;
 // they end up in raw style attributes (y-codemirror carets), inline
-// styles and <img src> (PresenceBar). The normaliser is the single
+// styles (PresenceBar) and seed the generated avatar. The normaliser is the single
 // definition of what is allowed through.
 
 describe('normalizeAwarenessUser', () => {
   it('keeps a well-formed user unchanged', () => {
-    const user = { name: 'Alice', color: '#7A8C7E', avatar: 'https://avatars.example.com/u/1', id: 42 }
+    const user = { name: 'Alice', color: '#7A8C7E', avatarSeed: 'Ab3dEf6hIj9kLm2n', id: 42 }
     expect(normalizeAwarenessUser(user)).toEqual(user)
   })
 
@@ -46,16 +46,17 @@ describe('normalizeAwarenessUser', () => {
     expect(normalizeAwarenessUser({ name: 'Al‮ice\u0000' })?.name).toBe('Alice')
   })
 
-  it('keeps https and same-origin avatars only', () => {
-    expect(normalizeAwarenessUser({ name: 'x', avatar: 'javascript:alert(1)' })).not.toHaveProperty('avatar')
-    expect(normalizeAwarenessUser({ name: 'x', avatar: 'http://evil.example/a.png' })).not.toHaveProperty('avatar')
-    expect(normalizeAwarenessUser({ name: 'x', avatar: '//evil.example/a.png' })).not.toHaveProperty('avatar')
-    expect(normalizeAwarenessUser({ name: 'x', avatar: 'data:image/svg+xml,<svg/>' })).not.toHaveProperty('avatar')
-    expect(normalizeAwarenessUser({ name: 'x', avatar: '/api/files/a/b.png' })?.avatar).toBe('/api/files/a/b.png')
-    expect(normalizeAwarenessUser(
-      { name: 'x', avatar: 'http://localhost:3000/a.png' },
-      { ownOrigin: 'http://localhost:3000' }
-    )?.avatar).toBe('http://localhost:3000/a.png')
+  it('drops avatar URLs of every kind — avatars are generated locally', () => {
+    for (const avatar of ['https://avatars.githubusercontent.com/u/1', '/api/files/a/b.png', 'javascript:alert(1)', 'data:image/svg+xml,<svg/>']) {
+      expect(normalizeAwarenessUser({ name: 'x', avatar })).not.toHaveProperty('avatar')
+    }
+  })
+
+  it('keeps a short alphanumeric avatarSeed and drops anything else', () => {
+    expect(normalizeAwarenessUser({ name: 'x', avatarSeed: 'Ab3dEf6hIj9kLm2n' })?.avatarSeed).toBe('Ab3dEf6hIj9kLm2n')
+    for (const avatarSeed of ['', 'a'.repeat(33), 'u-1', 'a b', '<svg>', 42, null]) {
+      expect(normalizeAwarenessUser({ name: 'x', avatarSeed })).not.toHaveProperty('avatarSeed')
+    }
   })
 
   it('keeps positive integer ids, converts numeric strings, drops the rest', () => {

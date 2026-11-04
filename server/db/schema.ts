@@ -22,6 +22,11 @@ export const users = pgTable('users', {
   login: text('login'),
   name: text('name').notNull(),
   email: text('email'),
+  // Retired: provider profile pictures are no longer stored (avatars are
+  // generated locally from the user id — app/utils/userAvatar.ts).
+  // Nothing reads or writes it; migration 0025 nulled existing values.
+  // Kept so a code rollback to an older image doesn't break on a
+  // missing column; drop it in a later release.
   avatarUrl: text('avatar_url'),
   // Subscription tier. Defaults to `free`; paid tiers are set by
   // the Stripe webhook when `invoice.paid` / `subscription.updated`
@@ -250,6 +255,10 @@ export const themes = pgTable('themes', {
   themeId: text('theme_id').notNull().unique(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  // Optional one-liner shown under the name in the theme lists (built-in
+  // presets carry one too). '' = none. Length capped at the API layer
+  // (`SAVED_THEME_DESCRIPTION_MAX`, shared/config/savedThemes.ts).
+  description: text('description').notNull().default(''),
   theme: jsonb('theme').$type<DocTheme>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()

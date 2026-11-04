@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures/flow'
 // Tier 1: "Skip the blank page — start from a template."
 //
 // User-job: a writer opens markoto staring at an empty editor and
-// freezes. Job done when they've seen the six built-in templates,
+// freezes. Job done when they've seen the seven built-in templates,
 // picked one (Meeting notes), and watched markoto seed the doc with
 // a real structural skeleton (headings, hint comments, action-items
 // table) instead of dumping them at line 1 with a blinking caret.
@@ -17,22 +17,25 @@ test('Start from a template', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
   // Opens the homepage and clicks "+ New Document" — the dialog
-  // appears with all six templates visible. Capture the dialog so
+  // appears with all seven templates visible. Capture the dialog so
   // the reader sees the template grid before we make a choice.
   await editor.recordPreamble()
+  // Demo is the pre-selected template.
+  await expect(editor.page.newDocDialog.templateCard('demo')).toHaveAttribute('aria-pressed', 'true')
 
   await flow.heading('Start from a template instead of a blank page', 3)
   await flow.narrate(
-    'Every new doc starts from a template — six built-in skeletons '
-    + 'cover the common cases (meeting notes, business plan, '
-    + 'academic paper, recipe, project readme, plus a deliberately '
-    + 'blank one). Each is a real markdown file with hint comments '
+    'Every new doc starts from a template. Demo, picked for you, is a '
+    + 'short tour of markdown and of markoto itself; Blank is an empty '
+    + 'page; five skeletons cover the common cases (business plan, '
+    + 'academic paper, recipe, meeting notes, project readme). Each '
+    + 'skeleton is a real markdown file with hint comments '
     + 'where you fill in the gaps; the structure survives editing, '
     + 'and the preview is publishable on day one.'
   )
 
   // ─── Tour the template cards ────────────────────────────────────
-  await flow.heading('Six skeletons in the new-doc dialog', 3)
+  await flow.heading('Seven templates in the new-doc dialog', 3)
   await flow.narrate(
     'Each card shows an icon + name + one-line description. Hover '
     + 'or tap to read the description; the selection lights up so '
@@ -42,8 +45,9 @@ test('Start from a template', async ({ page, flow, editor }) => {
   // Hover each template card so the slideshow tours all six. Hovers
   // are silent on flow.hover — they capture an approach shot but
   // no outcome. Use the testid pattern from NewDocumentDialog.vue.
-  const templates = ['blank', 'business-plan', 'academic-paper', 'recipe', 'meeting-notes', 'project-readme']
+  const templates = ['demo', 'blank', 'business-plan', 'academic-paper', 'recipe', 'meeting-notes', 'project-readme']
   const labels: Record<string, string> = {
+    'demo': 'Demo',
     'blank': 'Blank',
     'business-plan': 'Business plan',
     'academic-paper': 'Academic paper',

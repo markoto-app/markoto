@@ -361,6 +361,7 @@ function applyPreset(preset: typeof THEME_PRESETS[number]) {
 interface SavedTheme {
   themeId: string
   name: string
+  description?: string
   theme: DocTheme
   createdAt: string
   updatedAt: string
@@ -394,34 +395,37 @@ onMounted(() => {
   refreshSavedThemes().catch(() => { /* swallowed inside refreshSavedThemes */ })
 })
 
-// Save the CURRENT draft as a new preset. Prompts for a name; the API
-// caps name + total count and revalidates the theme via DocThemeSchema.
-async function saveCurrentAsPreset() {
+// Save the CURRENT draft as a new preset, or edit a saved one's name +
+// description: both through SavedThemeDialog (the API caps name,
+// description and total count, and revalidates the theme).
+const themeDialogOpen = ref(false)
+const themeDialogMode = ref<'create' | 'edit'>('create')
+const themeDialogTarget = ref<SavedTheme | undefined>(undefined)
+const themeDialogTheme = shallowRef<DocTheme | undefined>(undefined)
+
+function saveCurrentAsPreset() {
   if (!props.canEdit || !loggedIn.value) return
-  const name = (globalThis.window === undefined
-    ? null
-    : globalThis.prompt(t('theme.saved.namePrompt'), '')
-  )?.trim()
-  if (!name) return
-  try {
-    await $fetch('/api/themes', {
-      method: 'POST',
-      body: { name, theme: toRaw(draft.value) }
-    })
-    await refreshSavedThemes()
+  themeDialogMode.value = 'create'
+  themeDialogTarget.value = undefined
+  themeDialogTheme.value = structuredClone(toRaw(draft.value))
+  themeDialogOpen.value = true
+}
+
+function editSaved(saved: SavedTheme) {
+  themeDialogMode.value = 'edit'
+  themeDialogTarget.value = saved
+  themeDialogTheme.value = undefined
+  themeDialogOpen.value = true
+}
+
+async function onThemeDialogSaved(name: string) {
+  await refreshSavedThemes()
+  if (themeDialogMode.value === 'create') {
     toast.add({
       title: name,
       description: t('theme.saved.savedToast'),
       icon: 'i-lucide-bookmark-check',
       color: 'success'
-    })
-  } catch (e) {
-    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
-    toast.add({
-      title: t('theme.saved.saveFailedTitle'),
-      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
     })
   }
 }
@@ -460,42 +464,13 @@ async function adaptThemeToThisDoc(saved: DocTheme): Promise<DocTheme> {
   return { ...theme, customCss: adapted.css }
 }
 
-async function renameSaved(saved: SavedTheme) {
-  if (globalThis.window === undefined) return
-  const next = globalThis.prompt(t('theme.saved.renamePrompt'), saved.name)?.trim()
-  if (!next || next === saved.name) return
-  try {
-    await $fetch(`/api/themes/${saved.themeId}`, {
-      method: 'PATCH',
-      body: { name: next }
-    })
-    await refreshSavedThemes()
-  } catch (e) {
-    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
-    toast.add({
-      title: t('theme.saved.renameFailedTitle'),
-      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
-  }
-}
+// Kept after close so the modal doesn't go blank during its exit animation.
+const deleteTarget = ref<SavedTheme | null>(null)
+const deleteOpen = ref(false)
 
-async function deleteSaved(saved: SavedTheme) {
-  if (globalThis.window === undefined) return
-  if (!globalThis.confirm(t('theme.saved.deleteConfirm', { name: saved.name }))) return
-  try {
-    await $fetch(`/api/themes/${saved.themeId}`, { method: 'DELETE' })
-    await refreshSavedThemes()
-  } catch (e) {
-    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
-    toast.add({
-      title: t('theme.saved.deleteFailedTitle'),
-      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
-  }
+function deleteSaved(saved: SavedTheme) {
+  deleteTarget.value = saved
+  deleteOpen.value = true
 }
 </script>
 
@@ -518,6 +493,9 @@ async function deleteSaved(saved: SavedTheme) {
         color="neutral"
         variant="ghost"
         size="xs"
+        class="mk-panel-close"
+        data-testid="panel-close"
+        :aria-label="t('common.close')"
         @click="emit('close')"
       />
     </div>
@@ -545,15 +523,20 @@ async function deleteSaved(saved: SavedTheme) {
             </h4>
           </div>
           <div class="grid grid-cols-1 gap-2">
+            <!-- Same card as the built-in presets below (name in the
+                 theme's heading face, one description line) plus two
+                 neutral icon actions. The trash stays sumi; the error
+                 colour only appears in the confirmation dialog. -->
             <div
               v-for="saved in savedThemes"
               :key="saved.themeId"
               :data-testid="`theme-saved-${saved.themeId}`"
-              class="group relative flex items-stretch gap-1 rounded-md border border-default bg-default hover:border-default/80 transition-colors"
+              class="relative rounded-md border border-default bg-default hover:border-default/80 hover:bg-default/80 transition-colors"
             >
               <button
                 type="button"
-                class="flex-1 text-left p-3 rounded-md focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                class="block w-full text-left p-3 pr-18 rounded-md focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                :data-testid="`saved-theme-apply-${saved.themeId}`"
                 @click="applySaved(saved)"
               >
                 <div class="flex items-center gap-2 mb-1">
@@ -562,30 +545,44 @@ async function deleteSaved(saved: SavedTheme) {
                     :style="{ backgroundColor: saved.theme.color.brand }"
                   />
                   <span
-                    class="text-sm font-semibold truncate"
+                    class="text-sm font-medium truncate"
                     :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
                   >
                     {{ saved.name }}
                   </span>
                 </div>
+                <p
+                  class="text-xs text-muted leading-snug line-clamp-2"
+                  :data-testid="`saved-theme-description-${saved.themeId}`"
+                >
+                  {{ saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font }) }}
+                </p>
               </button>
-              <div class="flex flex-col justify-center pr-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                <UButton
-                  :aria-label="t('theme.saved.rename')"
-                  icon="i-lucide-pencil"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  @click.stop="renameSaved(saved)"
-                />
-                <UButton
-                  :aria-label="t('theme.saved.delete')"
-                  icon="i-lucide-trash-2"
-                  color="error"
-                  variant="ghost"
-                  size="xs"
-                  @click.stop="deleteSaved(saved)"
-                />
+              <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5">
+                <UTooltip :text="t('theme.saved.edit')">
+                  <UButton
+                    :aria-label="t('theme.saved.editAria', { name: saved.name })"
+                    icon="i-lucide-pencil"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    class="text-muted hover:text-default"
+                    :data-testid="`saved-theme-edit-${saved.themeId}`"
+                    @click.stop="editSaved(saved)"
+                  />
+                </UTooltip>
+                <UTooltip :text="t('theme.saved.delete')">
+                  <UButton
+                    :aria-label="t('theme.saved.deleteAria', { name: saved.name })"
+                    icon="i-lucide-trash-2"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    class="text-muted hover:text-default"
+                    :data-testid="`saved-theme-delete-${saved.themeId}`"
+                    @click.stop="deleteSaved(saved)"
+                  />
+                </UTooltip>
               </div>
             </div>
           </div>
@@ -633,7 +630,7 @@ async function deleteSaved(saved: SavedTheme) {
                   :style="{ backgroundColor: preset.theme.color.brand }"
                 />
                 <span
-                  class="text-sm font-semibold truncate"
+                  class="text-sm font-medium truncate"
                   :style="{ fontFamily: `'${preset.theme.headings.font}', system-ui, sans-serif` }"
                 >
                   {{ t(`theme.presets.${preset.id}.name`) }}
@@ -1620,5 +1617,20 @@ async function deleteSaved(saved: SavedTheme) {
         {{ t('theme.reset') }}
       </UButton>
     </div>
+
+    <DocumentSavedThemeDialog
+      v-model:open="themeDialogOpen"
+      :mode="themeDialogMode"
+      :theme="themeDialogTheme"
+      :saved-theme="themeDialogTarget"
+      @saved="onThemeDialogSaved"
+    />
+    <DocumentSavedThemeDeleteModal
+      v-if="deleteTarget"
+      v-model:open="deleteOpen"
+      :theme-id="deleteTarget.themeId"
+      :name="deleteTarget.name"
+      @deleted="refreshSavedThemes"
+    />
   </div>
 </template>

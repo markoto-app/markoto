@@ -28,7 +28,7 @@ header and footer on page 1.
 The seven presets cover most use cases:
 
 - **markoto** — the default. Fraunces editorial headings on Inter
-  body, warm cream paper, vermillion accents, asterism scene breaks.
+  body, plain white paper, vermillion accents, asterism scene breaks.
   The "calm field guide" voice.
 - **Modern** — clean Inter sans, blue accent, justified body. The
   neutral starting point.

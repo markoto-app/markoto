@@ -41,7 +41,7 @@ function makeYDoc() {
   const ydoc = new Y.Doc()
   const ytext = ydoc.getText('content')
   const awareness = new Awareness(ydoc)
-  awareness.setLocalStateField('user', { id: 1, name: 'Alice', avatar: null })
+  awareness.setLocalStateField('user', { id: 1, name: 'Alice' })
   return { ydoc, ytext, awareness }
 }
 
@@ -86,6 +86,41 @@ describe('useComments', () => {
     expect(comments.value[0]!.anchor).toEqual({ from: 4, to: 7 })
     expect(comments.value[0]!.resolved).toBe(false)
     expect(comments.value[0]!.replies).toEqual([])
+  })
+
+  it('stores no avatar for a signed-in author (seeded by authorId) and ignores a legacy authorAvatar URL', async () => {
+    const { ydoc, ytext, awareness } = makeYDoc()
+    ytext.insert(0, 'the dog ate the bone')
+    const { comments, createComment } = useComments(ydoc, awareness)
+    createComment(anchorRange(ytext, ydoc, 4, 7), 'about dogs')
+    await nextTick()
+    const raw = ydoc.getArray<Y.Map<unknown>>('comments').get(0)
+    expect(raw.get('authorAvatarSeed')).toBeNull()
+    expect(raw.has('authorAvatar')).toBe(false)
+    expect(comments.value[0]!.authorAvatarSeed).toBeNull()
+
+    // An older comment carrying a provider image URL renders without it.
+    ydoc.transact(() => raw.set('authorAvatar', 'https://avatars.githubusercontent.com/u/1'))
+    await nextTick()
+    expect(comments.value[0]).not.toHaveProperty('authorAvatar')
+  })
+
+  it('keeps an anonymous author\'s session avatar token on the comment and rejects malformed ones', async () => {
+    const ydoc = new Y.Doc()
+    const ytext = ydoc.getText('content')
+    const awareness = new Awareness(ydoc)
+    awareness.setLocalStateField('user', { name: 'Quiet Fox', avatarSeed: 'Ab3dEf6hIj9kLm2n' })
+    ytext.insert(0, 'the dog ate the bone')
+    const { comments, createComment } = useComments(ydoc, awareness)
+    createComment(anchorRange(ytext, ydoc, 4, 7), 'hello')
+    await nextTick()
+    expect(comments.value[0]!.authorId).toBeNull()
+    expect(comments.value[0]!.authorAvatarSeed).toBe('Ab3dEf6hIj9kLm2n')
+
+    const raw = ydoc.getArray<Y.Map<unknown>>('comments').get(0)
+    ydoc.transact(() => raw.set('authorAvatarSeed', 'javascript:alert(1)'))
+    await nextTick()
+    expect(comments.value[0]!.authorAvatarSeed).toBeNull()
   })
 
   it('sorts active by anchor.from and appends orphans last', async () => {

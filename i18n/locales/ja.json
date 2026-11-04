@@ -264,13 +264,17 @@
     "description": "ファイルをMarkdownに変換してエディターに読み込みます。",
     "selectFile": "クリックしてファイルを選択",
     "changeFile": "別のファイルを選択",
-    "formats": "対応形式：DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
+    "formats": "対応形式：Markdown、DOCX、PDF、PPTX、XLSX、XLS、HTML、EPUB",
     "import": "インポート",
     "error": "インポートに失敗しました。別のファイルをお試しください。",
     "conflictTitle": "ドキュメントに既存の内容があります",
     "conflictDesc": "インポートした内容をどのように扱いますか？",
     "replace": "すべて置き換える",
-    "append": "追記する"
+    "append": "追記する",
+    "applyProperties": "ファイルのテーマとドキュメント設定も適用する",
+    "applyPropertiesHelp": "このファイルは markoto から保存されました：タイトル、説明、対象読者、言語、テーマ（カスタム CSS を含む）。",
+    "propertiesApplied": "テーマとドキュメント設定を適用しました",
+    "propertiesPartlyApplied": "ファイル内の一部の設定は無効だったため、適用されませんでした。"
   },
   "export": {
     "title": "エクスポート",
@@ -300,7 +304,7 @@
   "templates": {
     "blank": {
       "label": "空白",
-      "description": "タイトルだけ。構成はあなたが作ります。"
+      "description": "まっさらなページ。中身はすべてあなた次第。"
     },
     "business-plan": {
       "label": "事業計画",
@@ -321,6 +325,10 @@
     "project-readme": {
       "label": "プロジェクトREADME",
       "description": "キャッチコピー、目的、クイックスタート、機能、ドキュメント、コントリビュート、ライセンス。"
+    },
+    "demo": {
+      "label": "デモ",
+      "description": "Markdown の基本と markoto の短いツアー。"
     }
   },
   "documentPanel": {
@@ -386,7 +394,9 @@
     "confirm": "確認",
     "close": "閉じる",
     "loading": "読み込み中...",
-    "menu": "メニュー"
+    "menu": "メニュー",
+    "docs": "ドキュメント",
+    "documentation": "ドキュメンテーション"
   },
   "menu": {
     "lightMode": "ライトモード",
@@ -452,7 +462,9 @@
       "title": "ヘルプ",
       "shortcuts": "キーボードショートカット",
       "feedback": "問題を報告",
-      "github": "GitHubで見る"
+      "github": "GitHubで見る",
+      "docs": "ドキュメンテーション",
+      "tour": "ツアーを見る"
     }
   },
   "ai": {
@@ -825,22 +837,39 @@
     "saved": {
       "title": "マイテーマ",
       "saveCurrent": "現在の設定を保存",
-      "namePrompt": "このテーマに名前を付ける",
       "savedToast": "個人プリセットとして保存しました",
       "saveFailedTitle": "テーマを保存できませんでした",
-      "rename": "名前を変更",
-      "renamePrompt": "新しい名前",
-      "renameFailedTitle": "名前を変更できませんでした",
       "delete": "削除",
-      "deleteConfirm": "「{name}」を削除しますか？すでに使用中のドキュメントはそのコピーを保持します。",
-      "deleteFailedTitle": "削除できませんでした"
+      "deleteFailedTitle": "削除できませんでした",
+      "saveDialogTitle": "テーマを保存",
+      "editDialogTitle": "テーマを編集",
+      "saveDialogIntro": "現在の設定（カスタム CSS を含む）をあなたのテーマとして保存します。どのドキュメントにも適用できます。",
+      "editDialogIntro": "名前または説明を変更します。テーマの設定はそのままです。",
+      "nameLabel": "名前",
+      "namePlaceholder": "例：四半期レポート",
+      "nameRequired": "名前を入力してください。",
+      "nameTooLong": "名前は {max} 文字以内にしてください。",
+      "descriptionLabel": "説明",
+      "descriptionOptional": "任意",
+      "descriptionPlaceholder": "このテーマの用途は？",
+      "save": "テーマを保存",
+      "saveChanges": "変更を保存",
+      "updateFailedTitle": "変更を保存できませんでした",
+      "edit": "名前と説明を編集",
+      "editAria": "{name} を編集",
+      "deleteAria": "{name} を削除",
+      "deleteTitle": "テーマを削除",
+      "deleteWarning": "すでに使用しているドキュメントの見た目は変わりません。この操作は元に戻せません。",
+      "deleteConfirmButton": "テーマを削除",
+      "deleted": "テーマを削除しました",
+      "fallbackDescription": "見出し {heading}・本文 {body}"
     },
     "presets": {
       "title": "テンプレート",
       "applied": "テンプレートをドキュメントに適用しました",
       "markoto": {
         "name": "markoto",
-        "description": "シグネチャーの見た目。Fraunchesの編集向け見出し、温かみのあるクリーム色の紙にInter本文、朱色のアクセント — ダッシュボードではなく、落ち着いたフィールドガイド。"
+        "description": "シグネチャーの見た目。Fraunces の編集向け見出し、シンプルな白い紙に Inter 本文、朱色のアクセント — ダッシュボードではなく、落ち着いたフィールドガイド。"
       },
       "modern": {
         "name": "モダン",
@@ -895,7 +924,8 @@
         "other-doc-file": "この画像は別のドキュメントのものです。このドキュメントにアップロードして、そのアドレスを使ってください。",
         "script-url": "javascript: と vbscript: の URL は使えません。",
         "value": "この値を安全に読み取れませんでした。"
-      }
+      },
+      "docsLink": "カスタム CSS の書き方"
     }
   },
   "table": {
@@ -1252,7 +1282,9 @@
       "subProcessors": "サブプロセッサー",
       "abuse": "不正利用を報告",
       "imprint": "運営者情報",
-      "cookieNote": "Cookie：必須のもののみ"
+      "cookieNote": "Cookie：必須のもののみ",
+      "dpaShort": "DPA",
+      "navLabel": "ドキュメントと法的情報"
     },
     "documentPage": {
       "translationNoticeTitle": "便宜のために翻訳を提供しています",
@@ -1458,7 +1490,7 @@
       "markdown": "Markdown",
       "body": "ライブでページ組版されるプレビューを備えた、共同編集できるMarkdownエディター。プレーンテキストで書けば、プレビューとページ単位で同じPDFを書き出せます。",
       "cta": "書きはじめる — 登録不要",
-      "scroll": "スクロールして使い方を見る"
+      "next": "使い方を見る"
     },
     "scenes": {
       "write": {
@@ -1534,7 +1566,8 @@
     "tone": {
       "toDark": "ダークモードに切り替える",
       "toLight": "ライトモードに切り替える"
-    }
+    },
+    "nextScene": "次へ：{scene}"
   },
   "anonGate": {
     "eyebrow": "最初のドキュメントの前に",
@@ -1561,5 +1594,68 @@
   "userContent": {
     "notice": "アカウントのない markoto ユーザーが作成（markoto による作成ではありません）",
     "report": "通報"
+  },
+  "shortcuts": {
+    "title": "キーボードショートカット",
+    "subtitle": "markoto のエディタでのキー操作です。",
+    "groups": {
+      "format": "書式",
+      "edit": "編集",
+      "document": "ドキュメント",
+      "preview": "プレビュー（ポインターをページ上に置いたとき）"
+    },
+    "continueList": "リストや引用を続ける",
+    "indent": "リスト項目を字下げ / 字上げ",
+    "blankLine": "下に新しい行",
+    "moveLine": "行を上 / 下へ移動",
+    "copyLine": "行を上 / 下へコピー",
+    "deleteLine": "行を削除",
+    "selectLine": "行を選択",
+    "addCursor": "上 / 下にカーソルを追加",
+    "postComment": "コメントを投稿"
+  },
+  "editorTour": {
+    "stepOf": "{n} / {total}",
+    "skip": "スキップ",
+    "next": "次へ",
+    "done": "完了",
+    "steps": {
+      "write": {
+        "title": "左に Markdown、右にページ",
+        "body": "エディタに入力すると、プレビューに印刷・書き出しと同じページが表示されます。これらのボタンで、エディタ・両方・プレビューを切り替えます。"
+      },
+      "format": {
+        "title": "記法を覚えずに書式設定",
+        "body": "見出し、リスト、表、アラート、数式、図。書式を付けるには先にテキストを選択します。"
+      },
+      "theme": {
+        "title": "見た目を整える",
+        "body": "フォント、色、ページサイズ、ヘッダー、フッター、表紙はドキュメントテーマで設定します。"
+      },
+      "share": {
+        "title": "リンクを共有",
+        "body": "鍵アイコンで、リンクを開ける人を決めます：自分のみ、誰でも閲覧、誰でも編集、またはパスワード付き。"
+      },
+      "ai": {
+        "title": "markoto に頼む",
+        "body": "やりたいことを書くと、AI が共同編集者のようにドキュメントを書き換え、入力する様子が見えます。"
+      },
+      "help": {
+        "title": "ヘルプはここ",
+        "body": "ドキュメンテーション、キーボードショートカット、このツアーは「ヘルプ」メニューにあります。"
+      },
+      "writeMobile": {
+        "title": "書いて、ページを見る",
+        "body": "ここに Markdown を入力します。目のアイコンで、印刷・書き出しと同じページが表示されます。"
+      },
+      "formatMobile": {
+        "title": "書式と挿入",
+        "body": "「エディター」タブに、見出し、リスト、表、アラート、数式、図があります。"
+      },
+      "helpMobile": {
+        "title": "ヘルプはメニューに",
+        "body": "ドキュメンテーションとこのツアーはメニューにあります。"
+      }
+    }
   }
 }

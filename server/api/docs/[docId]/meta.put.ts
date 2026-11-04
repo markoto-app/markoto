@@ -2,6 +2,7 @@ import { getDoc, updateDocMeta, type MetaUpdate } from '../../../repos/documents
 import { appendAuditEvent } from '../../../repos/audit'
 import { isAudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
+import { isTemplateId } from '~~/shared/templates'
 
 const DESCRIPTION_MAX_LENGTH = 500
 const TITLE_MAX_LENGTH = 255
@@ -88,6 +89,8 @@ function buildMetaUpdates(body: Record<string, unknown>): MetaUpdate {
   if (audience !== null) updates.audience = audience
   const language = parseLanguage(body.language)
   if (language !== null) updates.language = language
+  const templateId = parseTemplateId(body.templateId)
+  if (templateId !== null) updates.templateId = templateId
   return updates
 }
 
@@ -167,4 +170,12 @@ function parseLanguage(raw: unknown): string | null {
     throw createError({ statusCode: 400, message: `Language too long (max ${LANGUAGE_MAX_LENGTH})` })
   }
   return trimmed
+}
+
+function parseTemplateId(raw: unknown): string | null {
+  if (raw === undefined) return null
+  if (!isTemplateId(raw)) {
+    throw createError({ statusCode: 400, message: 'Invalid template id' })
+  }
+  return raw
 }

@@ -8,6 +8,7 @@ import EditorCommandsPanel from './EditorCommandsPanel.vue'
 import type { TabName } from './tabBarTypes'
 import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
+import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
 
 const props = defineProps<{
   docId: string
@@ -45,6 +46,8 @@ const {
   description,
   audience,
   language,
+  templateId,
+  setTemplateId,
   canEditTheme,
   setTheme,
   resetTheme,
@@ -349,8 +352,43 @@ async function exportPdf() {
   }
 }
 
-function exportMarkdown() {
-  downloadMarkdown(textContent.value, title.value)
+// The file carries the theme + document properties as YAML frontmatter
+// (shared/utils/markdownFrontmatter.ts) so importing it restores them.
+async function exportMarkdown() {
+  const { buildMarkdownExport } = await import('~~/shared/utils/markdownFrontmatter')
+  const content = buildMarkdownExport(textContent.value, {
+    title: title.value,
+    description: description.value,
+    audience: audience.value,
+    language: language.value,
+    templateId: templateId.value,
+    // Plain copy: the theme ref is a readonly proxy.
+    theme: structuredClone(toRaw(theme.value))
+  })
+  downloadMarkdown(content, title.value)
+}
+
+// Theme + properties from an imported markoto Markdown file. The server
+// already validated every field (server/utils/markdownImport.ts); the
+// setters below check again (setTheme: schema; ymeta: the sync server).
+function applyImportedProperties(
+  properties: ImportedDocProperties,
+  notes: { ignored: string[], droppedCustomCssRules: number }
+) {
+  if (isReadOnly.value) return
+  if (properties.title !== undefined) title.value = properties.title
+  if (properties.description !== undefined) description.value = properties.description
+  if (properties.audience !== undefined) audience.value = properties.audience
+  if (properties.language !== undefined) language.value = properties.language
+  if (properties.templateId !== undefined) setTemplateId(properties.templateId)
+  if (properties.theme && canEditTheme.value) setTheme(properties.theme)
+  const skipped = notes.ignored.length > 0 || notes.droppedCustomCssRules > 0
+  toast.add({
+    title: t('import.propertiesApplied'),
+    description: skipped ? t('import.propertiesPartlyApplied') : undefined,
+    icon: 'i-lucide-file-check-2',
+    color: skipped ? 'neutral' : 'success'
+  })
 }
 
 // Server-rendered PDF — bytes produced by the Playwright renderer container,
@@ -730,8 +768,36 @@ const mobileMenuItems = computed(() => {
       : [])
   ]
 
-  return [fileGroup, viewModeGroup, themeGroup, authGroup]
+  // Help — the phone's stand-in for the desktop Help menu (shortcuts
+  // need a keyboard, so they stay on the desktop menu).
+  const helpGroup = [
+    {
+      label: t('menubar.help.docs'),
+      icon: 'i-lucide-book-open',
+      onSelect: () => openDocs()
+    },
+    {
+      label: t('menubar.help.tour'),
+      icon: 'i-lucide-map',
+      onSelect: () => editorTour.value?.start()
+    }
+  ]
+
+  return [fileGroup, viewModeGroup, themeGroup, helpGroup, authGroup]
 })
+
+// Help → Documentation: the user docs in a new tab, so the document stays open.
+function openDocs(): void {
+  window.open('/docs', '_blank', 'noopener')
+}
+
+// Help → Keyboard shortcuts.
+const showShortcuts = ref(false)
+
+// First-run tour (EditorTour.vue): shown once per browser when the editor
+// is ready to write in; Help → "Take the tour" re-opens it.
+const editorTour = useTemplateRef<{ start: () => void }>('editorTour')
+const tourReady = computed(() => synced.value && !isReadOnly.value && !requiresPassword.value && editorView.value !== null)
 
 // Track Y.js text content as a reactive string for preview.
 // We observe on the Y.Doc 'update' event rather than ytext.observe because
@@ -989,12 +1055,10 @@ const _statusIcon = computed(() => {
           class="hidden sm:inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full border border-default bg-default/60 text-xs text-muted hover:text-default hover:bg-muted/40 transition-colors"
           :title="docWorkspaceSponsor ? t('editor.aiWorkspaceSponsoredBy', { name: docWorkspaceSponsor.name }) : t('editor.aiWorkspaceBadgeTooltip')"
         >
-          <UAvatar
+          <CommonUserAvatar
             v-if="docWorkspaceSponsor"
-            :src="docWorkspaceSponsor.avatarUrl ?? undefined"
-            :alt="docWorkspaceSponsor.name"
-            size="3xs"
-            referrerpolicy="no-referrer"
+            :seed="avatarSeedFor({ id: docWorkspaceSponsor.id })"
+            :size="16"
           />
           <CommonSeal
             v-else
@@ -1179,6 +1243,9 @@ const _statusIcon = computed(() => {
           @open-table-picker="tableModalOpen = true"
           @toggle-dictation="dictation.toggle()"
           @create-comment="triggerCreateComment"
+          @open-docs="openDocs"
+          @open-shortcuts="showShortcuts = true"
+          @start-tour="editorTour?.start()"
         />
       </div>
 
@@ -1507,6 +1574,8 @@ const _statusIcon = computed(() => {
                 color="neutral"
                 variant="ghost"
                 size="xs"
+                class="mk-panel-close"
+                data-testid="panel-close"
                 :aria-label="t('common.close')"
                 @click="closeSidebar"
               />
@@ -1553,6 +1622,8 @@ const _statusIcon = computed(() => {
                 color="neutral"
                 variant="ghost"
                 size="xs"
+                class="mk-panel-close"
+                data-testid="panel-close"
                 :aria-label="t('common.close')"
                 @click="closeSidebar"
               />
@@ -1739,6 +1810,15 @@ const _statusIcon = computed(() => {
       v-model:open="showImportModal"
       :ytext="ytext"
       :read-only="isReadOnly"
+      :doc-id="docId"
+      @apply-properties="applyImportedProperties"
+    />
+
+    <EditorKeyboardShortcutsModal v-model:open="showShortcuts" />
+    <EditorTour
+      ref="editorTour"
+      :ready="tourReady"
+      :is-mobile="isMobile"
     />
 
     <!-- Share modal -->

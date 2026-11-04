@@ -4,7 +4,7 @@
 //    y-protocols emits `change` before `update`, and Hocuspocus
 //    broadcasts on `update` by re-encoding the CURRENT states — so
 //    rewriting the states in a `change` listener means peers only ever
-//    receive the normalised shape (hex colour, capped name, https avatar,
+//    receive the normalised shape (hex colour, capped name, avatar seed token,
 //    numeric id). See `shared/utils/awarenessUser.ts`.
 //
 // 2. Remember which authenticated connection each awareness client id

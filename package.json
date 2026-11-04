@@ -5,10 +5,10 @@
   "homepage": "https://markoto.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joelbarmettlerUZH/markoto.git"
+    "url": "git+https://github.com/joelbarmettlerUZH/markoto.app.git"
   },
   "bugs": {
-    "url": "https://github.com/joelbarmettlerUZH/markoto/issues"
+    "url": "https://github.com/joelbarmettlerUZH/markoto.app/issues"
   },
   "keywords": [
     "markdown",
@@ -69,6 +69,8 @@
     "@codemirror/language-data": "^6.5.2",
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.15",
+    "@dicebear/core": "10.6.0",
+    "@dicebear/styles": "10.6.0",
     "@hocuspocus/provider": "^3.4.4",
     "@iconify-json/lucide": "^1.2.147",
     "@iconify-json/simple-icons": "^1.2.101",
@@ -129,6 +131,7 @@
     "stripe": "^23.0.1",
     "tailwindcss": "^4.3.3",
     "y-codemirror.next": "^0.3.6",
+    "yaml": "2.9.1",
     "yjs": "^13.6.33",
     "zod": "^4.6.7"
   },

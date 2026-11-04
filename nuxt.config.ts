@@ -415,8 +415,9 @@ export default defineNuxtConfig({
       name: 'markoto',
       short_name: 'markoto',
       description: 'Collaborative Markdown Editor',
-      theme_color: '#0f172a',
-      background_color: '#0f172a',
+      // Bone (sumi-50): the app icon's own frame colour.
+      theme_color: '#FAF8F4',
+      background_color: '#FAF8F4',
       display: 'standalone',
       start_url: '/',
       icons: [

@@ -47,9 +47,9 @@ The Processor will:
 
 ## 6. Sub-processors
 
-The Controller gives the Processor general authorisation to engage the sub-processors listed at `/legal/sub-processors`. The Processor will notify the Controller at least 30 days in advance of any new sub-processor. If the Controller objects on reasonable data-protection grounds, the parties will work in good faith to resolve the objection; if no resolution is reached, the Controller may terminate the Service. The Processor imposes data-protection obligations on each sub-processor that are no less protective than this DPA and remains responsible for their performance.
+The Controller gives the Processor general authorisation to engage the sub-processors listed at [/legal/sub-processors](/legal/sub-processors). The Processor will notify the Controller at least 30 days in advance of any new sub-processor. If the Controller objects on reasonable data-protection grounds, the parties will work in good faith to resolve the objection; if no resolution is reached, the Controller may terminate the Service. The Processor imposes data-protection obligations on each sub-processor that are no less protective than this DPA and remains responsible for their performance.
 
-**Providers connected by members (bring your own key).** A workspace member may connect their own AI provider account in their personal settings. When that member uses the AI features, content they send (including workspace content in the document they are working on) is transmitted to that provider on the member's instruction. Such a provider is not engaged by the Processor, is not a sub-processor under this DPA, and is not listed at `/legal/sub-processors`. The Controller is responsible for deciding whether, and with what content, its members may use their own AI providers, and for instructing its members accordingly.
+**Providers connected by members (bring your own key).** A workspace member may connect their own AI provider account in their personal settings. When that member uses the AI features, content they send (including workspace content in the document they are working on) is transmitted to that provider on the member's instruction. Such a provider is not engaged by the Processor, is not a sub-processor under this DPA, and is not listed at [/legal/sub-processors](/legal/sub-processors). The Controller is responsible for deciding whether, and with what content, its members may use their own AI providers, and for instructing its members accordingly.
 
 ## 7. Deletion and backups
 
@@ -64,7 +64,7 @@ For onward transfers, the Processor complies with Art. 16 FADP and Chapter V GDP
 - The Processor's main infrastructure (database, file storage, backups) and AI providers are located in the EU (France and Germany), which Switzerland recognises as adequate.
 - Where a sub-processor is located in, or may access data from, a country without an adequate level of protection, in particular the United States, the transfer relies on the EU-U.S. and Swiss-U.S. Data Privacy Framework for certified recipients, or otherwise on the European Commission's standard contractual clauses (2021/914), adapted for Swiss law.
 
-The location and transfer mechanism of each sub-processor is published at `/legal/sub-processors`.
+The location and transfer mechanism of each sub-processor is published at [/legal/sub-processors](/legal/sub-processors).
 
 ## 9. Audit
 
@@ -144,7 +144,7 @@ Sub-processors are selected for their data-protection and security practices and
 
 ## Annex II: Sub-processors
 
-See `/legal/sub-processors` for the current list, including the location and transfer mechanism of each sub-processor.
+See [/legal/sub-processors](/legal/sub-processors) for the current list, including the location and transfer mechanism of each sub-processor.
 
 ---
 

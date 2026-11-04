@@ -145,5 +145,10 @@ export function useTourPager(opts: TourPagerOptions) {
     if (gliding) snapping(true)
     gliding = false
   }
-  return { start, stop }
+  /** Glide to rest `index` (the scenes' "next" buttons); no-op while a glide runs. */
+  function goTo(index: number): void {
+    if (gliding) return
+    glideTo(index)
+  }
+  return { start, stop, goTo }
 }

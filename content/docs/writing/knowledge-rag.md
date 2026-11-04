@@ -35,7 +35,7 @@ name, so it can't invent one that isn't there.
 ## What it needs
 
 - **A writing assistant provider** to write the answer ([what the AI needs](/docs/writing/ai-overview)).
-- **Embeddings, which the instance provides.** On markoto.app they are provided for you. On a self-hosted instance the operator sets them up (a Jina key by default, or any other embeddings provider); without them uploads fail with an error ([self-hosting guide](https://github.com/joelbarmettlerUZH/md-online/blob/main/docs/SELF-HOSTING.md#ai)).
+- **Embeddings, which the instance provides.** On markoto.app they are provided for you. On a self-hosted instance the operator sets them up (a Jina key by default, or any other embeddings provider); without them uploads fail with an error ([self-hosting guide](https://github.com/joelbarmettlerUZH/markoto.app/blob/main/docs/SELF-HOSTING.md#ai)).
 - **Editor or admin role** in the workspace to upload files. The AI works for people who can edit a document, so workspace viewers can read documents but not use the AI.
 - **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/writing/ai-prompt-bar#when-the-ai-asks-first).
 

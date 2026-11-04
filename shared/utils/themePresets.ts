@@ -18,19 +18,18 @@ export interface ThemePreset {
 
 export const THEME_PRESETS: ThemePreset[] = [
   // — Markoto: the flagship preset and the in-app default. Brand
-  // identity expressed through restraint — sumi-50 cream paper, sumi-950
+  // identity expressed through restraint — plain white paper, sumi-950
   // body text, Fraunces editorial headings at the major-third scale,
   // shu (vermillion) reserved for links and the blockquote rule. Left-
   // ragged body (calm field guide, not institutional academic), minimal
   // table borders, sharp image corners (print, not iOS), document-
-  // matched mermaid, github-light code (closest to cream
-  // we get without a custom hljs theme).
+  // matched mermaid, github-light code.
   {
     id: 'markoto',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 24 },
       meta: { font: 'JetBrains Mono' },
-      body: { font: 'Inter', size: 10.5, lineHeight: 1.55, textAlign: 'left', color: '#14110D', background: '#FAF8F4', dropCap: true, firstLineIndent: false, paragraphSpacing: 0.6, hyphenate: false },
+      body: { font: 'Inter', size: 10.5, lineHeight: 1.55, textAlign: 'left', color: '#14110D', background: '#FFFFFF', dropCap: true, firstLineIndent: false, paragraphSpacing: 0.6, hyphenate: false },
       headings: { font: 'Fraunces', scale: 1.333, weight: 500, underline: false, color: '#1F1B14', letterSpacing: -0.01, lineHeight: 1.25, spacingScale: 1.2 },
       color: { brand: '#B5371F', secondary: '#A39A8A' },
       brand: { logoUrl: '/markoto-logos/primary-lockup-light.svg', logoHeight: 56 },

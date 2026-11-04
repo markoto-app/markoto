@@ -210,22 +210,18 @@ describe('searchActivity', () => {
     expect(await searchActivity(doc.docId, { query: '' })).toHaveLength(2)
   })
 
-  it('joins to users for avatarUrl when user_id is set', async () => {
-    // The repo LEFT JOINs users so the model can attribute rows to
-    // human authors. Pre-feature rows / AI rows / deleted-user rows
-    // legitimately have null user_id and null avatarUrl. We only
-    // pin the JOIN here implicitly by exercising the read shape;
-    // the column populates via `appendActivity({ userId })` which
-    // the test fixtures don't currently call. Pinning the SHAPE is
-    // enough — no avatar means the formatter falls back gracefully.
+  it('returns the attribution shape without any avatar field', async () => {
+    // Avatars are generated client-side from `userId`; the row carries
+    // no avatar URL. Pre-feature rows / AI rows / deleted-user rows
+    // legitimately have a null user_id.
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
     await append(doc.docId, 'edit', { userName: 'Alice' })
     const rows = await searchActivity(doc.docId)
     expect(rows[0]).toMatchObject({
       userName: 'Alice',
-      avatarUrl: null,
       userId: null
     })
+    expect(rows[0]).not.toHaveProperty('avatarUrl')
   })
 })

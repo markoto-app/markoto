@@ -58,12 +58,13 @@ describe('listMembers', () => {
     expect(members.map(m => m.role)).toEqual(['admin', 'editor', 'viewer'])
   })
 
-  it('joins against users so name/email/avatar are populated', async () => {
+  it('joins against users so name/email are populated (no avatar URL)', async () => {
     const admin = await createUser({ name: 'Admin', email: 'admin@test.local' })
     const ws = await seedWorkspace(admin.id)
     const members = await listMembers(ws.workspaceId)
     expect(members[0].name).toBe('Admin')
     expect(members[0].email).toBe('admin@test.local')
+    expect(members[0]).not.toHaveProperty('avatarUrl')
   })
 })
 

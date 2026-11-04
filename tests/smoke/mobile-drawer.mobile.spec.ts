@@ -9,7 +9,7 @@ import { smokeDoc } from './_helpers'
 // would have failed with the 0×0 dialog.
 test('mobile bottom-sheet drawer opens with real size on tab tap', async ({ page }) => {
   // Shared run document (globalSetup.ts) — never a new one per attempt.
-  const docId = smokeDoc('blank')
+  const docId = smokeDoc('demo')
   await page.goto(`/d/${docId}`)
   await expect(page.locator('.cm-editor')).toBeVisible({ timeout: 30_000 })
 

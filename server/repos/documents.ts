@@ -60,14 +60,13 @@ export interface DocAuthzRow {
   workspaceAiEnabled: boolean | null
   /**
    * Display info for the `(+)` sponsor when AI-workspace billing is
-   * on. Lets the editor render the sponsor's avatar + name without a
+   * on. Lets the editor render the sponsor's avatar (seeded by id) + name without a
    * second round-trip. NULL when AI is off, the workspace has no
    * billing owner, or the sponsor row is missing.
    */
   workspaceBillingOwner: {
     id: number
     name: string
-    avatarUrl: string | null
   } | null
   /**
    * Document context fields. Surfaced through the token endpoint so the
@@ -115,6 +114,8 @@ export interface MetaUpdate {
   description?: string
   audience?: AudienceKind
   language?: string
+  /** Which template the document started from (Markdown import restores it). */
+  templateId?: string
 }
 
 /**
@@ -196,8 +197,7 @@ export async function getDocWithActorRole(
       role: workspaceMembers.role,
       workspaceAiEnabled: workspaces.aiEnabled,
       sponsorId: sponsor.id,
-      sponsorName: sponsor.name,
-      sponsorAvatar: sponsor.avatarUrl
+      sponsorName: sponsor.name
     })
     .from(documents)
     .leftJoin(
@@ -227,7 +227,7 @@ export async function getDocWithActorRole(
   // client would render an "AI workspace by X" badge for a disabled
   // state, which reads as a bug.
   const billingOwner = row.workspaceAiEnabled && row.sponsorId !== null && row.sponsorName !== null
-    ? { id: row.sponsorId, name: row.sponsorName, avatarUrl: row.sponsorAvatar }
+    ? { id: row.sponsorId, name: row.sponsorName }
     : null
 
   return {

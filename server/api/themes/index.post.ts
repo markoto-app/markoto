@@ -1,27 +1,23 @@
 import { nanoid } from 'nanoid'
 import { DocThemeSchema } from '~~/shared/types/theme'
+import { SAVED_THEMES_PER_USER_MAX } from '~~/shared/config/savedThemes'
 import { countThemesByUser, createTheme } from '../../repos/themes'
+import { readSavedThemeDescription, readSavedThemeName } from '../../utils/savedThemeFields'
 
-// Save a theme as a personal preset. Body: `{ name: string, theme: DocTheme }`.
+// Save a theme as a personal preset. Body: `{ name: string, description?: string, theme: DocTheme }`.
 // Per-user cap is 20 (parity with the workspaces-owned cap on Free/Pro/Max).
 // Validation reuses `DocThemeSchema` — the same Zod schema that gates
 // `documents.theme` writes — so any theme that's valid in a doc is
-// valid as a preset.
-
-const MAX_THEMES_PER_USER = 20
-const MAX_NAME_LENGTH = 80
+// valid as a preset. Name / description limits: shared/config/savedThemes.ts.
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  const body = await readBody<{ name?: unknown, theme?: unknown }>(event)
+  const body = await readBody<{ name?: unknown, description?: unknown, theme?: unknown }>(event)
 
-  const rawName = typeof body?.name === 'string' ? body.name.trim() : ''
-  if (!rawName) throw createError({ statusCode: 400, message: 'Name is required' })
-  if (rawName.length > MAX_NAME_LENGTH) {
-    throw createError({ statusCode: 400, message: `Name too long (max ${MAX_NAME_LENGTH})` })
-  }
+  const name = readSavedThemeName(body?.name ?? '')
+  const description = readSavedThemeDescription(body?.description)
 
   const parsed = DocThemeSchema.safeParse(body?.theme)
   if (!parsed.success) {
@@ -37,11 +33,11 @@ export default defineEventHandler(async (event) => {
   assertValidThemeCustomCss(parsed.data, null, event)
 
   const owned = await countThemesByUser(userId)
-  if (owned >= MAX_THEMES_PER_USER) {
+  if (owned >= SAVED_THEMES_PER_USER_MAX) {
     throw createError({
       statusCode: 409,
-      message: `You've reached the saved-theme limit (${MAX_THEMES_PER_USER}). Delete one to save a new theme.`,
-      data: { cap: MAX_THEMES_PER_USER }
+      message: `You've reached the saved-theme limit (${SAVED_THEMES_PER_USER_MAX}). Delete one to save a new theme.`,
+      data: { cap: SAVED_THEMES_PER_USER_MAX }
     })
   }
 
@@ -49,13 +45,15 @@ export default defineEventHandler(async (event) => {
   const row = await createTheme({
     themeId,
     userId,
-    name: rawName,
+    name,
+    description,
     theme: parsed.data
   })
 
   return {
     themeId: row.themeId,
     name: row.name,
+    description: row.description,
     theme: row.theme,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt

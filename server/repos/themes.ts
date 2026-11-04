@@ -13,6 +13,7 @@ export interface ThemeRow {
   themeId: string
   userId: number
   name: string
+  description: string
   theme: DocTheme
   createdAt: Date
   updatedAt: Date
@@ -25,6 +26,7 @@ export async function listThemesByUser(userId: number): Promise<ThemeRow[]> {
       themeId: themes.themeId,
       userId: themes.userId,
       name: themes.name,
+      description: themes.description,
       theme: themes.theme,
       createdAt: themes.createdAt,
       updatedAt: themes.updatedAt
@@ -45,6 +47,7 @@ export async function getThemeById(themeId: string, userId: number): Promise<The
       themeId: themes.themeId,
       userId: themes.userId,
       name: themes.name,
+      description: themes.description,
       theme: themes.theme,
       createdAt: themes.createdAt,
       updatedAt: themes.updatedAt
@@ -68,6 +71,7 @@ export async function createTheme(input: {
   themeId: string
   userId: number
   name: string
+  description?: string
   theme: DocTheme
 }): Promise<ThemeRow> {
   const db = useDatabase()
@@ -77,12 +81,14 @@ export async function createTheme(input: {
       themeId: input.themeId,
       userId: input.userId,
       name: input.name,
+      description: input.description ?? '',
       theme: input.theme
     })
     .returning({
       themeId: themes.themeId,
       userId: themes.userId,
       name: themes.name,
+      description: themes.description,
       theme: themes.theme,
       createdAt: themes.createdAt,
       updatedAt: themes.updatedAt
@@ -93,7 +99,7 @@ export async function createTheme(input: {
 export async function updateTheme(
   themeId: string,
   userId: number,
-  update: { name?: string, theme?: DocTheme }
+  update: { name?: string, description?: string, theme?: DocTheme }
 ): Promise<void> {
   if (Object.keys(update).length === 0) return
   const db = useDatabase()

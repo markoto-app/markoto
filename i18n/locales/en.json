@@ -264,13 +264,17 @@
     "description": "Convert a file to markdown and load it into the editor.",
     "selectFile": "Click to select a file",
     "changeFile": "Choose a different file",
-    "formats": "Supported: DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
+    "formats": "Supported: Markdown, DOCX, PDF, PPTX, XLSX, XLS, HTML, EPUB",
     "import": "Import",
     "error": "Import failed. Please try a different file.",
     "conflictTitle": "Document has existing content",
     "conflictDesc": "How would you like to handle the imported content?",
     "replace": "Replace all",
-    "append": "Append"
+    "append": "Append",
+    "applyProperties": "Also apply the theme and document settings from the file",
+    "applyPropertiesHelp": "The file was saved from markoto: title, description, audience, language and theme (with custom CSS).",
+    "propertiesApplied": "Theme and document settings applied",
+    "propertiesPartlyApplied": "Some settings in the file were not valid and were left out."
   },
   "export": {
     "title": "Export",
@@ -300,7 +304,7 @@
   "templates": {
     "blank": {
       "label": "Blank",
-      "description": "Just a title. You bring the structure."
+      "description": "An empty page. You bring everything."
     },
     "business-plan": {
       "label": "Business plan",
@@ -321,6 +325,10 @@
     "project-readme": {
       "label": "Project README",
       "description": "Tagline, why, quick start, features, docs, contributing, license."
+    },
+    "demo": {
+      "label": "Demo",
+      "description": "Markdown basics and a short tour of markoto."
     }
   },
   "documentPanel": {
@@ -386,7 +394,9 @@
     "confirm": "Confirm",
     "close": "Close",
     "loading": "Loading...",
-    "menu": "Menu"
+    "menu": "Menu",
+    "docs": "Docs",
+    "documentation": "Documentation"
   },
   "menu": {
     "lightMode": "Light mode",
@@ -452,7 +462,9 @@
       "title": "Help",
       "shortcuts": "Keyboard shortcuts",
       "feedback": "Report an issue",
-      "github": "View on GitHub"
+      "github": "View on GitHub",
+      "docs": "Documentation",
+      "tour": "Take the tour"
     }
   },
   "ai": {
@@ -825,22 +837,39 @@
     "saved": {
       "title": "Your themes",
       "saveCurrent": "Save current",
-      "namePrompt": "Name this theme",
       "savedToast": "Saved as a personal preset",
       "saveFailedTitle": "Could not save theme",
-      "rename": "Rename",
-      "renamePrompt": "New name",
-      "renameFailedTitle": "Could not rename",
       "delete": "Delete",
-      "deleteConfirm": "Delete \"{name}\"? Documents already using it keep their copy.",
-      "deleteFailedTitle": "Could not delete"
+      "deleteFailedTitle": "Could not delete",
+      "saveDialogTitle": "Save theme",
+      "editDialogTitle": "Edit theme",
+      "saveDialogIntro": "Saves the current settings, custom CSS included, as one of your themes. You can apply it to any of your documents.",
+      "editDialogIntro": "Change the name or the description. The theme settings stay as they are.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Quarterly report",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name can be at most {max} characters.",
+      "descriptionLabel": "Description",
+      "descriptionOptional": "optional",
+      "descriptionPlaceholder": "What is this theme for?",
+      "save": "Save theme",
+      "saveChanges": "Save changes",
+      "updateFailedTitle": "Could not save changes",
+      "edit": "Edit name and description",
+      "editAria": "Edit {name}",
+      "deleteAria": "Delete {name}",
+      "deleteTitle": "Delete theme",
+      "deleteWarning": "Documents that already use it keep their look. This can’t be undone.",
+      "deleteConfirmButton": "Delete theme",
+      "deleted": "Theme deleted",
+      "fallbackDescription": "{heading} headings, {body} body text"
     },
     "presets": {
       "title": "Templates",
       "applied": "Template applied to your document",
       "markoto": {
         "name": "markoto",
-        "description": "The signature look. Fraunces editorial headings, Inter body on warm cream paper, vermillion accent — calm field guide, not dashboard."
+        "description": "The signature look. Fraunces editorial headings, Inter body on plain white paper, vermillion accent — calm field guide, not dashboard."
       },
       "modern": {
         "name": "Modern",
@@ -895,7 +924,8 @@
         "other-doc-file": "This image belongs to another document. Upload it to this document and use its address.",
         "script-url": "javascript: and vbscript: URLs are not allowed.",
         "value": "This value could not be read safely."
-      }
+      },
+      "docsLink": "How to write custom CSS"
     }
   },
   "table": {
@@ -1252,7 +1282,9 @@
       "subProcessors": "Sub-processors",
       "abuse": "Report abuse",
       "imprint": "Imprint",
-      "cookieNote": "Cookies: essential only"
+      "cookieNote": "Cookies: essential only",
+      "dpaShort": "DPA",
+      "navLabel": "Documentation and legal"
     },
     "documentPage": {
       "translationNoticeTitle": "Translation provided for convenience",
@@ -1458,7 +1490,7 @@
       "markdown": "Markdown",
       "body": "A collaborative Markdown editor with a live, paginated preview. Write plain text; export a PDF that matches the preview page for page.",
       "cta": "Start writing — no sign-up",
-      "scroll": "Scroll to see how it works"
+      "next": "See how it works"
     },
     "scenes": {
       "write": {
@@ -1534,7 +1566,8 @@
     "tone": {
       "toDark": "Switch to dark mode",
       "toLight": "Switch to light mode"
-    }
+    },
+    "nextScene": "Next: {scene}"
   },
   "anonGate": {
     "eyebrow": "Before your first document",
@@ -1561,5 +1594,68 @@
   "userContent": {
     "notice": "Created by a markoto user without an account, not by markoto",
     "report": "Report"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "subtitle": "What the keys do in markoto's editor.",
+    "groups": {
+      "format": "Format",
+      "edit": "Editing",
+      "document": "Document",
+      "preview": "Preview (pointer over the pages)"
+    },
+    "continueList": "Continue a list or quote",
+    "indent": "Indent / outdent a list item",
+    "blankLine": "New line below",
+    "moveLine": "Move line up / down",
+    "copyLine": "Copy line up / down",
+    "deleteLine": "Delete line",
+    "selectLine": "Select line",
+    "addCursor": "Add a cursor above / below",
+    "postComment": "Post a comment"
+  },
+  "editorTour": {
+    "stepOf": "{n} of {total}",
+    "skip": "Skip",
+    "next": "Next",
+    "done": "Done",
+    "steps": {
+      "write": {
+        "title": "Markdown left, pages right",
+        "body": "Type in the editor; the preview shows the pages exactly as they print and export. These buttons switch between editor, both, and preview."
+      },
+      "format": {
+        "title": "Format without the syntax",
+        "body": "Headings, lists, tables, alerts, math and diagrams. Select text first to format it."
+      },
+      "theme": {
+        "title": "Make it look right",
+        "body": "Fonts, colours, page size, header, footer and the cover page live in the document theme."
+      },
+      "share": {
+        "title": "Share the link",
+        "body": "The lock decides who can open the link: only you, anyone to view, anyone to edit, or with a password."
+      },
+      "ai": {
+        "title": "Ask markoto",
+        "body": "Describe what you want. The AI edits the document like a collaborator, and you watch it type."
+      },
+      "help": {
+        "title": "Help is here",
+        "body": "The documentation, the keyboard shortcuts and this tour are in the Help menu."
+      },
+      "writeMobile": {
+        "title": "Write, then look at the pages",
+        "body": "Type markdown here. The eye shows the pages as they print and export."
+      },
+      "formatMobile": {
+        "title": "Format and insert",
+        "body": "The Editor tab has headings, lists, tables, alerts, math and diagrams."
+      },
+      "helpMobile": {
+        "title": "Help is in the menu",
+        "body": "The documentation and this tour are in the menu."
+      }
+    }
   }
 }

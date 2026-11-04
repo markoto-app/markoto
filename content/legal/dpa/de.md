@@ -47,9 +47,9 @@ Die Auftragsverarbeiterin wird:
 
 ## 6. Unterauftragsverarbeiter
 
-Der Verantwortliche erteilt der Auftragsverarbeiterin die allgemeine Genehmigung, die unter `/legal/sub-processors` aufgeführten Unterauftragsverarbeiter einzusetzen. Die Auftragsverarbeiterin informiert den Verantwortlichen mindestens 30 Tage im Voraus über jeden neuen Unterauftragsverarbeiter. Erhebt der Verantwortliche aus nachvollziehbaren datenschutzrechtlichen Gründen Einspruch, bemühen sich die Parteien nach Treu und Glauben um eine Lösung; kommt keine Lösung zustande, kann der Verantwortliche den Dienst kündigen. Die Auftragsverarbeiterin erlegt jedem Unterauftragsverarbeiter Datenschutzpflichten auf, die nicht weniger schützend sind als dieser AVV, und bleibt für deren Erfüllung verantwortlich.
+Der Verantwortliche erteilt der Auftragsverarbeiterin die allgemeine Genehmigung, die unter [/legal/sub-processors](/legal/sub-processors) aufgeführten Unterauftragsverarbeiter einzusetzen. Die Auftragsverarbeiterin informiert den Verantwortlichen mindestens 30 Tage im Voraus über jeden neuen Unterauftragsverarbeiter. Erhebt der Verantwortliche aus nachvollziehbaren datenschutzrechtlichen Gründen Einspruch, bemühen sich die Parteien nach Treu und Glauben um eine Lösung; kommt keine Lösung zustande, kann der Verantwortliche den Dienst kündigen. Die Auftragsverarbeiterin erlegt jedem Unterauftragsverarbeiter Datenschutzpflichten auf, die nicht weniger schützend sind als dieser AVV, und bleibt für deren Erfüllung verantwortlich.
 
-**Von Mitgliedern angebundene Anbieter (Bring your own key).** Ein Workspace-Mitglied kann in seinen persönlichen Einstellungen sein eigenes KI-Anbieterkonto anbinden. Nutzt dieses Mitglied die KI-Funktionen, werden die von ihm gesendeten Inhalte (einschliesslich Workspace-Inhalten im Dokument, an dem es arbeitet) auf Weisung des Mitglieds an diesen Anbieter übermittelt. Ein solcher Anbieter wird nicht von der Auftragsverarbeiterin eingesetzt, ist kein Unterauftragsverarbeiter im Sinne dieses AVV und ist nicht unter `/legal/sub-processors` aufgeführt. Der Verantwortliche ist dafür verantwortlich, zu entscheiden, ob und mit welchen Inhalten seine Mitglieder ihre eigenen KI-Anbieter nutzen dürfen, und seine Mitglieder entsprechend anzuweisen.
+**Von Mitgliedern angebundene Anbieter (Bring your own key).** Ein Workspace-Mitglied kann in seinen persönlichen Einstellungen sein eigenes KI-Anbieterkonto anbinden. Nutzt dieses Mitglied die KI-Funktionen, werden die von ihm gesendeten Inhalte (einschliesslich Workspace-Inhalten im Dokument, an dem es arbeitet) auf Weisung des Mitglieds an diesen Anbieter übermittelt. Ein solcher Anbieter wird nicht von der Auftragsverarbeiterin eingesetzt, ist kein Unterauftragsverarbeiter im Sinne dieses AVV und ist nicht unter [/legal/sub-processors](/legal/sub-processors) aufgeführt. Der Verantwortliche ist dafür verantwortlich, zu entscheiden, ob und mit welchen Inhalten seine Mitglieder ihre eigenen KI-Anbieter nutzen dürfen, und seine Mitglieder entsprechend anzuweisen.
 
 ## 7. Löschung und Sicherungskopien
 
@@ -64,7 +64,7 @@ Bei Weiterübermittlungen hält die Auftragsverarbeiterin Art. 16 DSG und Kapite
 - Die zentrale Infrastruktur der Auftragsverarbeiterin (Datenbank, Dateispeicher, Sicherungskopien) und ihre KI-Anbieter befinden sich in der EU (Frankreich und Deutschland), deren Datenschutz die Schweiz als angemessen anerkennt.
 - Befindet sich ein Unterauftragsverarbeiter in einem Land ohne angemessenes Schutzniveau, insbesondere in den Vereinigten Staaten, oder kann er von dort auf Daten zugreifen, stützt sich die Übermittlung bei zertifizierten Empfängern auf das EU-U.S. bzw. Swiss-U.S. Data Privacy Framework, andernfalls auf die Standardvertragsklauseln der Europäischen Kommission (2021/914), angepasst an das Schweizer Recht.
 
-Standort und Übermittlungsmechanismus jedes Unterauftragsverarbeiters sind unter `/legal/sub-processors` veröffentlicht.
+Standort und Übermittlungsmechanismus jedes Unterauftragsverarbeiters sind unter [/legal/sub-processors](/legal/sub-processors) veröffentlicht.
 
 ## 9. Überprüfung
 
@@ -144,7 +144,7 @@ Unterauftragsverarbeiter werden nach ihren Datenschutz- und Sicherheitspraktiken
 
 ## Anhang II: Unterauftragsverarbeiter
 
-Die aktuelle Liste, einschliesslich Standort und Übermittlungsmechanismus jedes Unterauftragsverarbeiters, finden Sie unter `/legal/sub-processors`.
+Die aktuelle Liste, einschliesslich Standort und Übermittlungsmechanismus jedes Unterauftragsverarbeiters, finden Sie unter [/legal/sub-processors](/legal/sub-processors).
 
 ---
 

@@ -58,7 +58,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   const wsName = 'Q3 launch — engineering retro'
   const docTitle = 'Q4 rollout plan'
   // A short starting draft so the AI's paragraph lands on the first
-  // preview page instead of after four pages of welcome text.
+  // preview page instead of after several pages of Demo text.
   const docBody = '# Q4 rollout plan\n\nWhat we carry over from the Q3 launch.\n'
   const wsRes = await page.request.post('/api/workspaces', {
     data: { name: wsName }

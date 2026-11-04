@@ -17,7 +17,7 @@ import { clampMetaString } from '~~/shared/utils/ymetaValidation'
  *   - `useDocToken`       — /token fetch, access-mode, password-unlock flow
  *   - `useHocuspocusSync` — provider lifecycle, status/synced/userCount
  *   - (owned here)        — Y.Doc itself, title bridge, deletion observer,
- *                           awareness bootstrap, welcome-doc seeding
+ *                           awareness bootstrap, template seeding
  *
  * External API must stay bit-for-bit stable — `EditorLayout.vue` destructures
  * 17 fields from this return.
@@ -52,15 +52,14 @@ export function useDocument(docId: string) {
   // yCollab) bind to this once at mount and never need to re-subscribe.
   const awareness = new Awareness(ydoc)
 
-  // Normalise every remote peer's `user` field (name / colour / avatar /
-  // id) the moment it arrives, before anything renders it. Registered
+  // Normalise every remote peer's `user` field (name / colour / avatar
+  // seed / id) the moment it arrives, before anything renders it. Registered
   // here — before yCollab and PresenceBar subscribe — so the y-codemirror
   // caret widget (which interpolates `color` into a raw style attribute)
   // and the presence bar only ever see the normalised shape. The sync
   // server normalises too; this is the client-side half of that guard.
-  const awarenessOrigin = import.meta.client ? globalThis.location?.origin : undefined
   awareness.on('change', ({ added, updated }: { added: number[], updated: number[] }) => {
-    normalizeAwarenessStates(awareness, [...added, ...updated], { ownOrigin: awarenessOrigin })
+    normalizeAwarenessStates(awareness, [...added, ...updated])
   })
 
   // Expose awareness alongside the ydoc test handle (gated on the
@@ -117,18 +116,18 @@ export function useDocument(docId: string) {
       // Authoritative empty-doc seed. `onSynced` means we've received the
       // server's current state for this doc, so `ytext.length === 0` here
       // definitively means the server has NO content — safe to seed the
-      // welcome/template body. This is the ONLY seed path (F9): we
+      // template body. This is the ONLY seed path (F9): we
       // deliberately do NOT seed on a never-synced disconnect. The
       // genuinely-serverless dev path (no syncUrl) still seeds because
       // `connect()` routes it through `onSynced`.
-      insertWelcomeIfEmpty()
+      insertTemplateIfEmpty()
       // If this sync came after password verification, now it's safe to show
       // the editor content — flipping `requiresPassword` false causes the
       // template's `v-if` gate to mount the editor.
       tokenState.clearPendingUnlock()
     },
     // No `onDisconnect` seed (F9 fix). A disconnect BEFORE any sync means we
-    // never learned the server's content, so seeding welcome would write a
+    // never learned the server's content, so seeding a template would write a
     // local update that merges with the server's real content once the
     // provider auto-reconnects and finally syncs — silently corrupting the
     // document. An unreachable server shows an empty editor + a
@@ -139,15 +138,13 @@ export function useDocument(docId: string) {
     }
   })
 
-  function insertWelcomeIfEmpty() {
-    if (ytext.length === 0 && !tokenState.isReadOnly.value) {
-      // Template body wins when present (server pre-rendered with the
-      // doc's title/description, locale-matched on doc.language). The
-      // `blank` template renders to null and we fall through to the
-      // generic welcome doc — same behaviour as docs created before
-      // templates shipped, so legacy + blank-template docs stay
-      // consistent.
-      const seed = tokenState.initialBody.value ?? welcomeMarkdown
+  function insertTemplateIfEmpty() {
+    // Template body (server pre-rendered with the doc's title/description,
+    // locale-matched on doc.language). `blank` renders to null: a blank
+    // document stays empty — no generic welcome text any more (the Demo
+    // template carries the onboarding content instead).
+    const seed = tokenState.initialBody.value
+    if (seed && ytext.length === 0 && !tokenState.isReadOnly.value) {
       ytext.insert(0, seed)
     }
   }
@@ -163,7 +160,10 @@ export function useDocument(docId: string) {
   function applySessionAwareness() {
     // Normalised before broadcast so the shape we send is exactly what
     // peers (and the sync server) accept: a long OAuth display name is
-    // capped, a non-https avatar is dropped.
+    // capped. Avatars are generated locally — signed-in users from their
+    // `id`, anonymous visitors from a random per-tab `avatarSeed`
+    // (sessionStorage, `utils/userAvatar.ts`), so collaborators can tell
+    // them apart. No image URL is ever broadcast.
     awareness.setLocalStateField('user', normalizeAwarenessUser({
       // Seed `id` from the session so remote clients can match this awareness
       // state to a workspace-member row (role tooltips, "is this person live"
@@ -172,8 +172,8 @@ export function useDocument(docId: string) {
       id: loggedIn.value ? sessionUser.value?.id : undefined,
       name: loggedIn.value ? sessionUser.value?.name : generateRandomName(),
       color: pickColor(),
-      avatar: sessionUser.value?.avatar
-    }, { ownOrigin: awarenessOrigin }))
+      avatarSeed: loggedIn.value ? undefined : getAnonAvatarToken()
+    }))
   }
 
   // Bridge Y.js Map reactivity to Vue: `ymeta.get()` isn't tracked by Vue,
@@ -275,7 +275,7 @@ export function useDocument(docId: string) {
   // runs the last call's arguments, so setting the audience and then the
   // language within 800 ms used to persist only the language — the AI
   // (which reads these fields from the row) never saw the audience.
-  type DocContextPatch = { description?: string, audience?: string, language?: string }
+  type DocContextPatch = { description?: string, audience?: string, language?: string, templateId?: string }
   let pendingDocContext: DocContextPatch = {}
   const flushDocContext = useDebounceFn(() => {
     const body = pendingDocContext
@@ -345,6 +345,17 @@ export function useDocument(docId: string) {
       if (tokenState.isOwner.value) persistDocContext({ language: next })
     }
   })
+
+  /**
+   * Template the doc started from. Not in ymeta (it only seeds the first
+   * body); the Markdown import restores it from the file's frontmatter,
+   * persisted for owners like the other context fields.
+   */
+  function setTemplateId(next: string) {
+    if (tokenState.isReadOnly.value) return
+    tokenState.templateId.value = next
+    if (tokenState.isOwner.value) persistDocContext({ templateId: next })
+  }
 
   const docSizeWarning = computed(() => computeDocSizeWarning(sync.docSizeBytes.value))
 
@@ -433,6 +444,8 @@ export function useDocument(docId: string) {
     description,
     audience,
     language,
+    templateId: readonly(tokenState.templateId),
+    setTemplateId,
     canEditTheme: readonly(canEditTheme),
     setTheme,
     resetTheme,

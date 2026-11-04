@@ -18,7 +18,9 @@ declare module '#auth-utils' {
     // return null (e.g. user with no public email). The test shim
     // omits them entirely.
     email?: string | null
-    avatar?: string | null
+    // No `avatar`: provider profile pictures are not stored or shown
+    // (avatars are generated from `id`). Cookies sealed before this
+    // change may still carry one; nothing reads it.
     provider: 'github' | 'google' | 'oidc'
   }
 

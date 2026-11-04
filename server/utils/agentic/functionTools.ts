@@ -12,6 +12,8 @@ import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { TEMPLATE_IDS } from '~~/shared/templates'
 import { AUDIENCE_KINDS } from '~~/shared/audiences'
 import { CUSTOM_CSS_MAX_BYTES } from '~~/shared/types/customCss'
+import { CUSTOM_CSS_AI_REFERENCE } from '~~/shared/utils/customCssReference'
+import { SAVED_THEME_DESCRIPTION_MAX, SAVED_THEME_NAME_MAX } from '~~/shared/config/savedThemes'
 import {
   HexColorSchema,
   PageSizeSchema,
@@ -459,7 +461,7 @@ export const UpdateThemeArgs = z.object({
       .describe('Logo height in px (8–80). Width scales proportionally.')
   }).optional(),
   customCss: z.string().max(CUSTOM_CSS_MAX_BYTES).optional()
-    .describe('Custom CSS for the document (preview, print and PDF only — never the app UI), appended after the generated theme CSS so its rules win. REPLACES the whole existing custom CSS: call get_theme first and send the full edited text. Empty string clears it. Use it only for what the structured fields above cannot express. The document body is `.paged-doc`; paged.js @page rules and margin boxes work (e.g. `@page { @bottom-center { content: counter(page) } }`, `@page :first { … }`). Allowed: style rules, @media, @supports, @page + margin boxes, @keyframes, @container, @layer, @font-feature-values. Rejected (the whole call fails with line/column errors): @import, @font-face (use the font fields), @namespace, other at-rules, expression(), behavior/-moz-binding, javascript:/vbscript:, and url() to anything except images uploaded to THIS document (`/api/files/<this doc id>/<file id>`) or base64 data:image/png|jpeg|gif|webp URLs (no SVG data URLs, no external hosts). Max 64 KB.')
+    .describe(`Custom CSS for the document (preview, print and PDF only — never the app UI), appended after the generated theme CSS so its rules win. LAST RESORT: first use the structured fields above (fonts, sizes, colours, spacing, tables.zebra, blocks.*, alerts.*, header/footer, cover, layout.columns); write CSS only for what no field expresses (a coloured h2 underline, a custom alert look, a two-column section, page-number formats). REPLACES the whole existing custom CSS: call get_theme first and send the full text with your rules added — keep the user's existing rules. Empty string clears it. ${CUSTOM_CSS_AI_REFERENCE}`)
 }).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
 
 // --- Theme inspection / preset management --------------------------------
@@ -481,8 +483,10 @@ export const GetThemeArgs = z.object({}).describe('Read the document\'s current 
 const ListThemesArgs = z.object({}).describe('List the user\'s saved theme presets AND the workspace default theme (if the document is in a workspace and a default is set). Each saved theme returns its theme_id, name, and full theme JSON; pass the theme_id to `update_theme` to apply one as the base. Use when the user mentions a theme by name ("apply my Brand red", "use the workspace default"). Pure read; no edits.')
 
 export const SaveThemeAsPresetArgs = z.object({
-  name: z.string().trim().min(1).max(80)
-    .describe('User-visible name for the preset (1–80 chars). Should describe what the theme is for ("Brand red", "Quarterly report", "Academic mix"). Becomes the label in the user\'s saved-themes list.')
+  name: z.string().trim().min(1).max(SAVED_THEME_NAME_MAX)
+    .describe(`User-visible name for the preset (1–${SAVED_THEME_NAME_MAX} chars). Should describe what the theme is for ("Brand red", "Quarterly report", "Academic mix"). Becomes the label in the user's saved-themes list.`),
+  description: z.string().trim().max(SAVED_THEME_DESCRIPTION_MAX).optional()
+    .describe(`Optional one-line description shown under the name (≤${SAVED_THEME_DESCRIPTION_MAX} chars), e.g. "Two columns, serif body, for papers".`)
 }).describe('Save the document\'s CURRENT theme as a personal preset for the initiator. Available across all their documents from the theme picker afterwards. Capped at 20 saved themes per user — call returns an error if the cap is reached. Only call when the user explicitly asks to save / bookmark / remember a theme. Does NOT change the current document\'s theme; pair with `update_theme` if they also want it applied somewhere.')
 
 // --- Cross-document reads -------------------------------------------------

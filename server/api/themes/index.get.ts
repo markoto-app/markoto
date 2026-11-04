@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
     themes: rows.map(r => ({
       themeId: r.themeId,
       name: r.name,
+      description: r.description,
       theme: r.theme,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt

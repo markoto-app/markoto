@@ -25,7 +25,7 @@ on mobile.
 You opened the import dialog from File → Import, picked a file, and
 clicked Import. markoto converted it to Markdown on its servers (with
 Microsoft's open-source markitdown library) and put the result in the
-editor. Because the doc already had the welcome content
+editor. Because the doc already had the Demo content
 seeded, markoto offered to either replace or append; you chose
 replace.
 
@@ -33,6 +33,22 @@ The accepted formats: `.docx`, `.pdf`, `.pptx`, `.xlsx`, `.html`,
 `.htm`, `.epub`. Up to 50 MB. The conversion preserves structure;
 custom fonts and page chrome are dropped (you're going to re-style
 with a markoto theme anyway).
+
+## Markdown files
+
+A `.md` file (up to 10 MB) needs no conversion: its text goes into the
+editor as it is.
+
+If the file was [saved from markoto](/docs/import-export/save-markdown),
+it starts with a block of settings between two `---` lines. markoto
+reads that block instead of pasting it into your text, and offers to
+apply the title, description, audience, language and theme (with its
+custom CSS) to the document. Uncheck "Also apply the theme and document
+settings" to keep only the text. Settings that aren't valid are left out,
+and custom CSS rules that use another document's images are removed.
+
+A block written by another tool (Jekyll, Hugo, Obsidian and similar) is
+not markoto's, so it stays in your text, unchanged.
 
 ## What's next
 

@@ -35,7 +35,7 @@ export interface TemplateMeta {
   labelKey: string
   descriptionKey: string
   /**
-   * False for `blank` (empty body), true for everything else.
+   * False for `blank` (an empty document), true for everything else.
    * Lets the dialog branch on whether the template adds content
    * vs. just sets metadata.
    */
@@ -43,6 +43,9 @@ export interface TemplateMeta {
 }
 
 export const TEMPLATES: TemplateMeta[] = [
+  // The guided tour of markdown + markoto's features; the new-document
+  // dialog's default (DEFAULT_TEMPLATE_ID). `blank` is truly empty.
+  { id: 'demo', icon: 'i-lucide-compass', labelKey: 'templates.demo.label', descriptionKey: 'templates.demo.description', hasContent: true },
   { id: 'blank', icon: 'i-lucide-file', labelKey: 'templates.blank.label', descriptionKey: 'templates.blank.description', hasContent: false },
   { id: 'business-plan', icon: 'i-lucide-briefcase', labelKey: 'templates.business-plan.label', descriptionKey: 'templates.business-plan.description', hasContent: true },
   { id: 'academic-paper', icon: 'i-lucide-graduation-cap', labelKey: 'templates.academic-paper.label', descriptionKey: 'templates.academic-paper.description', hasContent: true },
@@ -52,6 +55,10 @@ export const TEMPLATES: TemplateMeta[] = [
 ]
 
 export const TEMPLATE_IDS = TEMPLATES.map(t => t.id)
+
+/** What the new-document dialog pre-selects. The API's own default (an
+ *  empty POST /api/docs) stays `blank`: an empty document. */
+export const DEFAULT_TEMPLATE_ID = 'demo'
 
 export function isTemplateId(value: unknown): value is string {
   return typeof value === 'string' && TEMPLATE_IDS.includes(value)
@@ -65,5 +72,5 @@ export function getTemplate(id: string): TemplateMeta | null {
  *  a new locale's .md files across multiple templates. The renderer
  *  also accepts arbitrary strings — non-listed values fall back to en.
  */
-export const TEMPLATE_LOCALES = ['en', 'de'] as const
+export const TEMPLATE_LOCALES = ['en', 'de', 'fr', 'es', 'ja', 'zh'] as const
 export type TemplateLocale = typeof TEMPLATE_LOCALES[number]

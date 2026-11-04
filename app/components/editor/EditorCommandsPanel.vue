@@ -184,6 +184,8 @@ function applyDiagram(kind: MermaidKind) {
         color="neutral"
         variant="ghost"
         size="xs"
+        class="mk-panel-close"
+        data-testid="panel-close"
         :aria-label="t('common.close')"
         @click="emit('close')"
       />
@@ -345,7 +347,7 @@ function applyDiagram(kind: MermaidKind) {
                 name="i-lucide-image"
                 class="size-5"
               />
-              <span>{{ t('image.title') }}</span>
+              <span>{{ t('editor.image') }}</span>
             </button>
             <button
               class="ecp__btn"
@@ -406,10 +408,10 @@ function applyDiagram(kind: MermaidKind) {
               @click="withDone(pageBreak)()"
             >
               <UIcon
-                name="i-lucide-corner-down-left"
+                name="i-lucide-scissors-line-dashed"
                 class="size-5"
               />
-              <span>{{ t('menubar.insert.pageBreak') }}</span>
+              <span>{{ t('editor.pageBreak') }}</span>
             </button>
             <button
               class="ecp__btn"
@@ -577,11 +579,14 @@ function applyDiagram(kind: MermaidKind) {
 
 .ecp__grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* minmax(0, 1fr): a long label must not widen its column (a 1fr
+     track's minimum is its content, which pushed the grid past the
+     sheet's edge). */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 .ecp__grid--2col {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .ecp__btn {
@@ -614,10 +619,15 @@ function applyDiagram(kind: MermaidKind) {
 }
 .ecp__btn span:last-child {
   font-size: 11px;
+  line-height: 1.25;
   color: var(--ui-text-muted);
-  white-space: nowrap;
+  /* Up to two lines ("Table of contents", German labels), then an ellipsis. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
   max-width: 100%;
 }
 

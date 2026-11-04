@@ -10,11 +10,13 @@ translationStatus: machine-translated
 
 > **Kurz gesagt:** markoto ist ein kostenloser Dienst und wird so bereitgestellt, wie er ist. Sie müssen mindestens 16 Jahre alt sein. Nutzen Sie den Dienst rechtmässig und halten Sie die Regeln zur zulässigen Nutzung in §6 ein. Dokumente, die Sie ohne Konto erstellen, kann jede Person mit dem Link öffnen; sie werden nach 30 Tagen ohne Aktivität gelöscht und können nur von dem Browser gelöscht werden, mit dem sie erstellt wurden. KI-Ausgaben gehören Ihnen, prüfen Sie sie aber, bevor Sie sich darauf verlassen. Wenn Sie Ihren eigenen KI-Anbieter anbinden, tragen Sie dessen Kosten. Wir können Inhalte entfernen oder Konten sperren, die gegen diese Bedingungen verstossen, und nennen Ihnen die Gründe, wenn wir Sie erreichen können.
 
-**Inhalt:** 1. Der Dienst · 2. Teilnahmevoraussetzungen und Konten · 3. Kostenloser Dienst, faire Nutzung und Limiten · 4. Anonyme Dokumente · 5. Ihre Inhalte · 6. Zulässige Nutzung · 7. KI-Funktionen · 8. Moderation von Inhalten und Meldungen · 9. Verfügbarkeit, Änderungen und Beta-Funktionen · 10. Gewährleistung · 11. Haftung · 12. Freistellung (geschäftliche Nutzende) · 13. Beendigung · 14. Anwendbares Recht und Gerichtsstand · 15. Änderungen dieser Bedingungen · 16. Allgemeine Bestimmungen
+**Inhalt**
+
+[[toc]]
 
 ## 1. Der Dienst
 
-markoto ist ein kollaborativer Markdown-Editor, betrieben von **{{controllerName}}** ({{controllerAddress}}), nachfolgend «wir» oder «uns». Diese Bedingungen gelten für alle, die markoto.app nutzen, mit oder ohne Konto. Unsere Datenschutzerklärung (`/legal/privacy`) erläutert, wie wir mit Personendaten umgehen. Workspace-Eigentümerinnen und -Eigentümer akzeptieren zusätzlich unseren Auftragsverarbeitungsvertrag (`/legal/dpa`). Unsere Richtlinie zu Missbrauch und rechtswidrigen Inhalten (`/legal/abuse-policy`) erläutert, wie Sie Inhalte melden können.
+markoto ist ein kollaborativer Markdown-Editor, betrieben von **{{controllerName}}** ({{controllerAddress}}), nachfolgend «wir» oder «uns». Diese Bedingungen gelten für alle, die markoto.app nutzen, mit oder ohne Konto. Unsere Datenschutzerklärung ([/legal/privacy](/legal/privacy)) erläutert, wie wir mit Personendaten umgehen. Workspace-Eigentümerinnen und -Eigentümer akzeptieren zusätzlich unseren Auftragsverarbeitungsvertrag ([/legal/dpa](/legal/dpa)). Unsere Richtlinie zu Missbrauch und rechtswidrigen Inhalten ([/legal/abuse-policy](/legal/abuse-policy)) erläutert, wie Sie Inhalte melden können.
 
 ## 2. Teilnahmevoraussetzungen und Konten
 
@@ -122,7 +124,7 @@ Dieser Abschnitt beschreibt, wie wir mit Inhalten umgehen, die rechtswidrig sein
 - **Keine allgemeine Überwachung.** Wir lesen Dokumente nicht proaktiv und setzen keine automatisierten Werkzeuge zur Inhaltserkennung wie Filter oder Hash-Abgleich ein, um rechtswidrige Inhalte aufzuspüren. Wir handeln aufgrund von Meldungen, die wir erhalten, und aufgrund dessen, was wir beim Betrieb des Dienstes selbst bemerken.
 - **Automatisierte Werkzeuge, die wir einsetzen.** Ratenbegrenzungen, Grössenlimiten und die Bot-Prüfung begrenzen Missbrauch automatisch, ohne die Bedeutung Ihrer Inhalte zu betrachten. Die KI-Anbieter können Anfragen über ihre eigenen automatisierten Sicherheitsfilter ablehnen.
 - **Menschliche Prüfung.** Eine Person aus unserem Team prüft jede Meldung und trifft jede Moderationsentscheidung. Wir treffen keine Moderationsentscheidungen automatisiert.
-- **So melden Sie Inhalte.** Jede Person kann Inhalte melden, mit oder ohne Konto, wie in unserer Richtlinie zu Missbrauch und rechtswidrigen Inhalten (`/legal/abuse-policy`) beschrieben oder per E-Mail an **{{abuseContactEmail}}**.
+- **So melden Sie Inhalte.** Jede Person kann Inhalte melden, mit oder ohne Konto, wie in unserer Richtlinie zu Missbrauch und rechtswidrigen Inhalten ([/legal/abuse-policy](/legal/abuse-policy)) beschrieben oder per E-Mail an **{{abuseContactEmail}}**.
 - **Massnahmen.** Je nachdem, wie schwerwiegend und wie eindeutig ein Fall ist, können wir: ein Dokument oder einen Kommentar entfernen oder den Zugang dazu sperren; den Zugang dazu einschränken (zum Beispiel das Dokument privat machen, sodass es über den Link nicht mehr erreichbar ist); ein Konto vorübergehend sperren; oder ein Konto kündigen. Wir wählen die mildeste wirksame Massnahme und berücksichtigen dabei, wie schwer der Verstoss wiegt, ob er vorsätzlich war und ob er bereits früher vorgekommen ist. Wir können Inhalte auch den Behörden melden, wie in der Missbrauchsrichtlinie beschrieben.
 - **Wiederholter Missbrauch.** Wenn jemand wiederholt offensichtlich rechtswidrige Inhalte teilt oder wiederholt offensichtlich unbegründete Meldungen oder Beschwerden einreicht, verwarnen wir die Person zunächst, wo möglich, und sperren dann das Konto oder bearbeiten ihre Meldungen für einen angemessenen Zeitraum nicht. Schwere Fälle, etwa Darstellungen sexuellen Kindesmissbrauchs, führen zur sofortigen Kündigung.
 - **Begründung und Beschwerden.** Wenn wir Ihre Inhalte entfernen oder einschränken oder Ihr Konto sperren, teilen wir Ihnen die Gründe per E-Mail mit (sofern für Ihr Konto eine E-Mail-Adresse hinterlegt ist), einschliesslich der Möglichkeiten, sich zu beschweren. Sie können sich innerhalb von sechs Monaten bei **{{abuseContactEmail}}** beschweren. Eine Person prüft Ihre Beschwerde, und wir heben unsere Entscheidung auf, wenn sie falsch war. Sie können sich auch an ein Gericht wenden. Anonyme Dokumente haben keine Kontaktangaben, daher können wir die Personen, die sie erstellt haben, nicht benachrichtigen.
@@ -153,7 +155,7 @@ Wenn Sie markoto als geschäftliche Nutzende verwenden, stellen Sie uns von Ansp
 
 ## 13. Beendigung
 
-Sie können die Nutzung von markoto jederzeit beenden und Ihr Konto unter `/settings/profile` löschen. Die Löschung wird nach einer Karenzfrist von 30 Tagen wirksam, wie in der Datenschutzerklärung beschrieben.
+Sie können die Nutzung von markoto jederzeit beenden und Ihr Konto unter [/settings/profile](/settings/profile) löschen. Die Löschung wird nach einer Karenzfrist von 30 Tagen wirksam, wie in der Datenschutzerklärung beschrieben.
 
 Wir können Ihr Konto nach §8 sperren oder kündigen oder wenn wir gesetzlich dazu verpflichtet sind. Wo angemessen, warnen wir Sie zuerst und geben Ihnen Gelegenheit, Ihre Daten zu exportieren. Nach der Beendigung werden Ihre Daten gemäss der Datenschutzerklärung behandelt. Bestimmungen, die ihrer Natur nach über die Beendigung hinaus gelten sollen (etwa §§10–12, 14 und 16), gelten weiter.
 

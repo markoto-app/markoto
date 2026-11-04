@@ -51,6 +51,13 @@ import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { adaptCustomCssToDoc, formatCustomCssIssues } from '~~/shared/utils/customCss'
 import { customCssAppOrigins, themeCustomCssIssues } from './themeCustomCss'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import {
+  SAVED_THEMES_PER_USER_MAX,
+  SAVED_THEME_DESCRIPTION_MAX,
+  SAVED_THEME_NAME_MAX,
+  checkSavedThemeDescription,
+  checkSavedThemeName
+} from '~~/shared/config/savedThemes'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
 import { decideTokenAccess } from '~~/shared/utils/docPermissions'
 import { openTrustedCommentClient } from './commentsServerClient'
@@ -552,6 +559,7 @@ export async function handleListThemes(
     savedThemes: saved.map(s => ({
       theme_id: s.themeId,
       name: s.name,
+      description: s.description,
       theme: s.theme
     })),
     workspaceDefault: workspaceDefault
@@ -566,17 +574,20 @@ export async function handleListThemes(
   return ok(JSON.stringify(payload, null, 2))
 }
 
-const MAX_THEMES_PER_USER = 20
-const MAX_THEME_NAME_LENGTH = 80
-
 export async function handleSaveThemeAsPreset(
   session: DocToolContext,
   input: SaveThemeAsPresetInput
 ): Promise<ToolResult> {
-  const name = input.name.trim()
-  if (!name) return err('Error: name is required (1–80 chars).')
-  if (name.length > MAX_THEME_NAME_LENGTH) {
-    return err(`Error: name too long (max ${MAX_THEME_NAME_LENGTH}).`)
+  const nameCheck = checkSavedThemeName(input.name)
+  if (!nameCheck.ok) {
+    return err(nameCheck.issue === 'too-long'
+      ? `Error: name too long (max ${SAVED_THEME_NAME_MAX}).`
+      : `Error: name is required (1–${SAVED_THEME_NAME_MAX} chars).`)
+  }
+  const name = nameCheck.value
+  const descriptionCheck = checkSavedThemeDescription(input.description)
+  if (!descriptionCheck.ok) {
+    return err(`Error: description too long (max ${SAVED_THEME_DESCRIPTION_MAX}).`)
   }
 
   // Saved themes are personal — anonymous AI sessions (no logged-in
@@ -590,8 +601,8 @@ export async function handleSaveThemeAsPreset(
   // enforces. The cap is correctness-critical (storage growth), not a
   // rate limit, so we re-check rather than relying on a Valkey hint.
   const owned = await countThemesByUser(session.initiatorUserId)
-  if (owned >= MAX_THEMES_PER_USER) {
-    return err(`Error: you've reached the saved-theme limit (${MAX_THEMES_PER_USER}). Ask the user to delete an unused saved theme first.`)
+  if (owned >= SAVED_THEMES_PER_USER_MAX) {
+    return err(`Error: you've reached the saved-theme limit (${SAVED_THEMES_PER_USER_MAX}). Ask the user to delete an unused saved theme first.`)
   }
 
   const theme = await resolveCurrentTheme(session)
@@ -603,6 +614,7 @@ export async function handleSaveThemeAsPreset(
     themeId,
     userId: session.initiatorUserId,
     name,
+    description: descriptionCheck.value,
     theme
   })
 
@@ -1921,7 +1933,8 @@ export async function handleGetKnowledgeFile(session: MetaToolContext, input: Ge
 //
 // Comments live in a top-level `Y.Array<Y.Map>` named "comments" in the Y.Doc.
 // Each comment map has: id, anchorStart, anchorEnd (base64 Y.RelativePositions),
-// body, authorId (null for AI), authorName, authorAvatar, createdAt, updatedAt,
+// body, authorId (null for AI), authorName, authorAvatarSeed (anonymous authors
+// only), createdAt, updatedAt,
 // resolved, replies (nested Y.Array<Y.Map>).
 //
 // Anchors are encoded as base64 strings via Buffer (not btoa — server context).
@@ -2087,7 +2100,7 @@ export async function handleCreateComment(
     map.set('body', safeBody)
     map.set('authorId', null)
     map.set('authorName', AI_COMMENT_AUTHOR_NAME)
-    map.set('authorAvatar', null)
+    map.set('authorAvatarSeed', null)
     map.set('createdAt', now)
     map.set('updatedAt', now)
     map.set('resolved', false)
@@ -2137,7 +2150,7 @@ export function handleReplyToComment(
     reply.set('body', safeBody)
     reply.set('authorId', null)
     reply.set('authorName', AI_COMMENT_AUTHOR_NAME)
-    reply.set('authorAvatar', null)
+    reply.set('authorAvatarSeed', null)
     reply.set('createdAt', now)
     reply.set('updatedAt', now)
     repliesArr.push([reply])

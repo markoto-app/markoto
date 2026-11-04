@@ -12,13 +12,13 @@ translationStatus: machine-translated
 
 ## Was diese Richtlinie abdeckt
 
-Diese Richtlinie ist unser **Melde- und Abhilfeverfahren** nach Artikel 16 des **Digital Services Act** der EU (Verordnung (EU) 2022/2065, «DSA»). Sie beschreibt zudem unsere Begründungen (Art. 17), wie betroffene Nutzende Einspruch erheben können und wann wir Behörden informieren (Art. 18). Die Regeln dazu, was erlaubt ist, stehen in §6 unserer Nutzungsbedingungen (`/legal/terms`), und wie wir moderieren, in §8.
+Diese Richtlinie ist unser **Melde- und Abhilfeverfahren** nach Artikel 16 des **Digital Services Act** der EU (Verordnung (EU) 2022/2065, «DSA»). Sie beschreibt zudem unsere Begründungen (Art. 17), wie betroffene Nutzende Einspruch erheben können und wann wir Behörden informieren (Art. 18). Die Regeln dazu, was erlaubt ist, stehen in §6 unserer Nutzungsbedingungen ([/legal/terms](/legal/terms)), und wie wir moderieren, in §8.
 
 ## So melden Sie
 
 Sie können Inhalte auf zwei Wegen melden. Beide werden gleich behandelt:
 
-- **Das Meldeformular** unter `/legal/abuse`. Es funktioniert ohne Konto; Ihr Browser löst dann eine kurze Bot-Prüfung, die auf unserem eigenen Server läuft, ohne Dritte und ohne Cookie. Dokumente, die ohne Konto erstellt wurden, zeigen eine Leiste «Inhalt von Nutzenden · Melden», die das Formular mit bereits eingetragener Adresse des Dokuments öffnet.
+- **Das Meldeformular** unter [/legal/abuse](/legal/abuse). Es funktioniert ohne Konto; Ihr Browser löst dann eine kurze Bot-Prüfung, die auf unserem eigenen Server läuft, ohne Dritte und ohne Cookie. Dokumente, die ohne Konto erstellt wurden, zeigen eine Leiste «Inhalt von Nutzenden · Melden», die das Formular mit bereits eingetragener Adresse des Dokuments öffnet.
 - **E-Mail** an **{{abuseContactEmail}}**.
 
 Eine vollständige Meldung enthält (Art. 16 Abs. 2 DSA):
@@ -81,7 +81,7 @@ Bei Personen, die häufig offensichtlich unbegründete Meldungen einreichen, kö
 
 ## Daten, die wir für Meldungen verarbeiten
 
-Zur Bearbeitung einer Meldung speichern wir die Adresse des gemeldeten Inhalts, Ihre Begründung, die Kategorie, Ihren Namen und Ihre E-Mail-Adresse, die von Ihnen verwendete Sprache, wann Sie die Erklärung zum guten Glauben bestätigt haben, und den Zeitpunkt sowie eine gekürzte IP-Adresse und einen Hash des User-Agents Ihres Browsers gegen massenhafte Meldungen. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Wir bewahren eine Meldung mit den Mitteilungen dazu auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Ihr Datenexport enthält die Meldungen, die Sie im angemeldeten Zustand eingereicht haben. Einzelheiten finden Sie in der Datenschutzerklärung (`/legal/privacy`).
+Zur Bearbeitung einer Meldung speichern wir die Adresse des gemeldeten Inhalts, Ihre Begründung, die Kategorie, Ihren Namen und Ihre E-Mail-Adresse, die von Ihnen verwendete Sprache, wann Sie die Erklärung zum guten Glauben bestätigt haben, und den Zeitpunkt sowie eine gekürzte IP-Adresse und einen Hash des User-Agents Ihres Browsers gegen massenhafte Meldungen. Bei Meldungen, die im angemeldeten Zustand gesendet werden, verknüpfen wir zudem Ihr Konto. Wir bewahren eine Meldung mit den Mitteilungen dazu auf, solange der Fall offen ist, und löschen sie 1 Jahr nach seinem Abschluss. Ihr Datenexport enthält die Meldungen, die Sie im angemeldeten Zustand eingereicht haben. Einzelheiten finden Sie in der Datenschutzerklärung ([/legal/privacy](/legal/privacy)).
 
 ## Kontakt
 

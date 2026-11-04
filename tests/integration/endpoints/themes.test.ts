@@ -145,6 +145,59 @@ describe('PATCH /api/themes/:themeId — rename / replace', () => {
   })
 })
 
+describe('saved theme descriptions', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  type Listed = { themes: Array<{ themeId: string, name: string, description: string }> }
+
+  it('stores an optional description on create (trimmed) and lists it', async () => {
+    const user = await createUser()
+    const client = await loggedInClient(user.id)
+    const res = await client.post('/api/themes', { name: '  Paper  ', description: '  Two columns, serif.  ', theme: TINY_THEME })
+    expect(res.status).toBe(200)
+    const created = await res.json() as { name: string, description: string }
+    expect(created).toMatchObject({ name: 'Paper', description: 'Two columns, serif.' })
+    const plain = await client.post('/api/themes', { name: 'Plain', theme: TINY_THEME })
+    expect((await plain.json() as { description: string }).description).toBe('')
+    const list = await (await client.get('/api/themes')).json() as Listed
+    expect(list.themes.map(t => t.description).sort()).toEqual(['', 'Two columns, serif.'])
+  })
+
+  it('edits name and description without touching the theme', async () => {
+    const user = await createUser()
+    const client = await loggedInClient(user.id)
+    const created = await (await client.post('/api/themes', { name: 'A', theme: TINY_THEME })).json() as { themeId: string }
+    const res = await client.patch(`/api/themes/${created.themeId}`, { name: 'B', description: 'For reports' })
+    expect(res.status).toBe(200)
+    const list = await (await client.get('/api/themes')).json() as Listed & { themes: Array<{ theme: unknown }> }
+    expect(list.themes[0]).toMatchObject({ name: 'B', description: 'For reports' })
+    expect(list.themes[0]!.theme).toEqual(TINY_THEME)
+    // Clearing the description is allowed.
+    expect((await client.patch(`/api/themes/${created.themeId}`, { description: '' })).status).toBe(200)
+    const cleared = await (await client.get('/api/themes')).json() as Listed
+    expect(cleared.themes[0]!.description).toBe('')
+  })
+
+  it('enforces the shared limits (name 80, description 200) on create and edit', async () => {
+    const user = await createUser()
+    const client = await loggedInClient(user.id)
+    const longName = await client.post('/api/themes', { name: 'n'.repeat(81), theme: TINY_THEME })
+    expect(longName.status).toBe(400)
+    expect((await longName.json() as { data: { code: string } }).data.code).toBe('theme/name-too-long')
+    const longDescription = await client.post('/api/themes', { name: 'ok', description: 'd'.repeat(201), theme: TINY_THEME })
+    expect(longDescription.status).toBe(400)
+    expect((await longDescription.json() as { data: { code: string } }).data.code).toBe('theme/description-too-long')
+    expect((await client.post('/api/themes', { name: 'ok', description: 42, theme: TINY_THEME })).status).toBe(400)
+    const okAtLimit = await client.post('/api/themes', { name: 'n'.repeat(80), description: 'd'.repeat(200), theme: TINY_THEME })
+    expect(okAtLimit.status).toBe(200)
+    const { themeId } = await okAtLimit.json() as { themeId: string }
+    expect((await client.patch(`/api/themes/${themeId}`, { description: 'd'.repeat(201) })).status).toBe(400)
+    expect((await client.patch(`/api/themes/${themeId}`, { name: '   ' })).status).toBe(400)
+  })
+})
+
 describe('DELETE /api/themes/:themeId', () => {
   beforeEach(async () => {
     await resetDb()

@@ -47,9 +47,9 @@ El Encargado:
 
 ## 6. Subencargados
 
-El Responsable otorga al Encargado una autorización general para recurrir a los subencargados enumerados en `/legal/sub-processors`. El Encargado notificará al Responsable con al menos 30 días de antelación cualquier nuevo subencargado. Si el Responsable se opone por motivos razonables de protección de datos, las partes procurarán de buena fe resolver la objeción; si no se alcanza una solución, el Responsable podrá resolver el Servicio. El Encargado impone a cada subencargado obligaciones de protección de datos que no ofrezcan una protección inferior a la de este DPA y sigue siendo responsable de su cumplimiento.
+El Responsable otorga al Encargado una autorización general para recurrir a los subencargados enumerados en [/legal/sub-processors](/legal/sub-processors). El Encargado notificará al Responsable con al menos 30 días de antelación cualquier nuevo subencargado. Si el Responsable se opone por motivos razonables de protección de datos, las partes procurarán de buena fe resolver la objeción; si no se alcanza una solución, el Responsable podrá resolver el Servicio. El Encargado impone a cada subencargado obligaciones de protección de datos que no ofrezcan una protección inferior a la de este DPA y sigue siendo responsable de su cumplimiento.
 
-**Proveedores conectados por miembros (traiga su propia clave).** Un miembro del espacio de trabajo puede conectar su propia cuenta de proveedor de IA en sus ajustes personales. Cuando ese miembro usa las funciones de IA, el contenido que envía (incluido el contenido del espacio de trabajo del documento en el que trabaja) se transmite a ese proveedor por instrucción del miembro. Dicho proveedor no es contratado por el Encargado, no es un subencargado en el sentido de este DPA y no figura en `/legal/sub-processors`. Corresponde al Responsable decidir si sus miembros pueden usar sus propios proveedores de IA y con qué contenido, e instruir a sus miembros en consecuencia.
+**Proveedores conectados por miembros (traiga su propia clave).** Un miembro del espacio de trabajo puede conectar su propia cuenta de proveedor de IA en sus ajustes personales. Cuando ese miembro usa las funciones de IA, el contenido que envía (incluido el contenido del espacio de trabajo del documento en el que trabaja) se transmite a ese proveedor por instrucción del miembro. Dicho proveedor no es contratado por el Encargado, no es un subencargado en el sentido de este DPA y no figura en [/legal/sub-processors](/legal/sub-processors). Corresponde al Responsable decidir si sus miembros pueden usar sus propios proveedores de IA y con qué contenido, e instruir a sus miembros en consecuencia.
 
 ## 7. Supresión y copias de seguridad
 
@@ -64,7 +64,7 @@ Para las transferencias ulteriores, el Encargado cumple el art. 16 de la LPD y e
 - La infraestructura principal del Encargado (base de datos, almacenamiento de archivos, copias de seguridad) y los proveedores de IA se encuentran en la UE (Francia y Alemania), que Suiza reconoce como adecuada.
 - Cuando un subencargado esté situado en un país sin un nivel adecuado de protección, o pueda acceder a datos desde él, en particular Estados Unidos, la transferencia se basa en el Marco de Privacidad de Datos UE-EE. UU. y Suiza-EE. UU. para los destinatarios certificados o, en los demás casos, en las cláusulas contractuales tipo de la Comisión Europea (2021/914), adaptadas al Derecho suizo.
 
-La ubicación y el mecanismo de transferencia de cada subencargado se publican en `/legal/sub-processors`.
+La ubicación y el mecanismo de transferencia de cada subencargado se publican en [/legal/sub-processors](/legal/sub-processors).
 
 ## 9. Auditoría
 
@@ -144,7 +144,7 @@ Los subencargados se seleccionan por sus prácticas de protección de datos y de
 
 ## Anexo II: Subencargados
 
-Consulte `/legal/sub-processors` para la lista vigente, incluida la ubicación y el mecanismo de transferencia de cada subencargado.
+Consulte [/legal/sub-processors](/legal/sub-processors) para la lista vigente, incluida la ubicación y el mecanismo de transferencia de cada subencargado.
 
 ---
 

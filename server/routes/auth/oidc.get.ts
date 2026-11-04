@@ -116,7 +116,6 @@ export default defineEventHandler(async (event) => {
     name: profile.name,
     // Null unless the IdP asserted email_verified=true (profile.ts).
     email: profile.email,
-    avatarUrl: profile.avatarUrl,
     emailVerified: profile.emailVerified
   })
 
@@ -129,7 +128,6 @@ export default defineEventHandler(async (event) => {
       id: userId,
       name: profile.name,
       email: profile.email,
-      avatar: profile.avatarUrl,
       provider: 'oidc'
     },
     loggedInAt: Date.now(),

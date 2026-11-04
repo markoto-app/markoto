@@ -13,7 +13,7 @@
  * since shu is reserved for AI presence; human collaborators must
  * never wear the seal red.
  */
-const palette = [
+export const AWARENESS_PALETTE: readonly string[] = [
   '#7A8C7E', // sage
   '#8C7E6B', // ochre / khaki
   '#9A7C7C', // dusty rose
@@ -34,5 +34,5 @@ const palette = [
 export function pickColor(): string {
   // Non-null assertion is safe: the random index is always a valid palette
   // position. Typescript can't prove that from `array[number]`, hence `!`.
-  return palette[Math.floor(Math.random() * palette.length)]!
+  return AWARENESS_PALETTE[Math.floor(Math.random() * AWARENESS_PALETTE.length)]!
 }

@@ -2,20 +2,24 @@
  * Normalisation of the `user` field of a Y.js awareness state.
  *
  * Awareness states are set by each client and relayed verbatim to every
- * other client in the room, so `user.name` / `user.color` / `user.avatar`
+ * other client in the room, so `user.name` / `user.color` / `user.avatarSeed`
  * are attacker-controlled for any peer. They end up in places that are
  * not escaped like text: y-codemirror.next interpolates `color` /
  * `colorLight` into a raw `style="background-color: …"` attribute for
  * remote carets and selections, PresenceBar binds `color` into inline
- * styles and `avatar` into `<img src>`, and a non-string name crashes the
- * initials helper.
+ * styles, `avatarSeed` seeds the locally generated avatar, and a
+ * non-string name crashes the initials helper.
  *
  * `normalizeAwarenessUser` maps any input to a safe shape:
  *   - `name`     string, control/format characters stripped, trimmed,
  *                capped at AWARENESS_NAME_MAX_LENGTH; fallback "Anonymous"
  *   - `color`    `#rgb` / `#rrggbb` only; fallback AWARENESS_FALLBACK_COLOR
  *   - `colorLight` `#rgb[a]` / `#rrggbb[aa]` only; dropped otherwise
- *   - `avatar`   https URL, or a same-origin path / URL; dropped otherwise
+ *   - `avatarSeed` an anonymous visitor's random avatar token,
+ *                `[A-Za-z0-9]{1,32}`; dropped otherwise. (There is no
+ *                avatar URL any more: avatars are generated locally, so a
+ *                peer can't make every viewer load an image from a host
+ *                of its choosing.)
  *   - `id`       positive safe integer (numeric strings are converted);
  *                dropped otherwise
  *   - `isAI`     kept only when it is literally `true`
@@ -30,7 +34,6 @@
  */
 
 export const AWARENESS_NAME_MAX_LENGTH = 64
-export const AWARENESS_AVATAR_MAX_LENGTH = 2048
 export const AWARENESS_FALLBACK_NAME = 'Anonymous'
 /** Slate blue from the app's awareness palette (`app/utils/colors.ts`). */
 export const AWARENESS_FALLBACK_COLOR = '#7E8B9A'
@@ -45,17 +48,12 @@ export interface NormalizedAwarenessUser {
   name: string
   color: string
   colorLight?: string
-  avatar?: string
+  avatarSeed?: string
   id?: number
   isAI?: true
 }
 
-export interface NormalizeAwarenessUserOptions {
-  /** The origin the client runs on (e.g. `window.location.origin`).
-   *  Absolute avatar URLs on that origin are accepted even over http
-   *  (self-hosted instances on plain HTTP). */
-  ownOrigin?: string
-}
+const AVATAR_SEED_RE = /^[A-Za-z0-9]{1,32}$/
 
 function normalizeName(raw: unknown): string {
   if (typeof raw !== 'string') return AWARENESS_FALLBACK_NAME
@@ -63,26 +61,6 @@ function normalizeName(raw: unknown): string {
   if (cleaned.length === 0) return AWARENESS_FALLBACK_NAME
   // Slice on code points so a surrogate pair is never cut in half.
   return Array.from(cleaned).slice(0, AWARENESS_NAME_MAX_LENGTH).join('')
-}
-
-function normalizeAvatar(raw: unknown, ownOrigin: string | undefined): string | undefined {
-  if (typeof raw !== 'string' || raw.length === 0 || raw.length > AWARENESS_AVATAR_MAX_LENGTH) return undefined
-  // Same-origin absolute path (`/api/files/...`). `//host` is protocol-
-  // relative — a different origin — and a backslash is normalised to a
-  // slash by browsers, so both are refused.
-  if (raw.startsWith('/')) {
-    return raw.startsWith('//') || raw.includes('\\') ? undefined : raw
-  }
-  let url: URL
-  try {
-    url = new URL(raw)
-  } catch {
-    return undefined
-  }
-  if (url.username || url.password) return undefined
-  if (url.protocol === 'https:') return url.href
-  if (ownOrigin && url.origin === ownOrigin) return url.href
-  return undefined
 }
 
 function normalizeId(raw: unknown): number | undefined {
@@ -96,10 +74,7 @@ function normalizeId(raw: unknown): number | undefined {
   return undefined
 }
 
-export function normalizeAwarenessUser(
-  raw: unknown,
-  opts: NormalizeAwarenessUserOptions = {}
-): NormalizedAwarenessUser | null {
+export function normalizeAwarenessUser(raw: unknown): NormalizedAwarenessUser | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null
   const user = raw as Record<string, unknown>
   const out: NormalizedAwarenessUser = {
@@ -111,8 +86,9 @@ export function normalizeAwarenessUser(
   if (typeof user.colorLight === 'string' && HEX_COLOR_WITH_ALPHA_RE.test(user.colorLight)) {
     out.colorLight = user.colorLight
   }
-  const avatar = normalizeAvatar(user.avatar, opts.ownOrigin)
-  if (avatar !== undefined) out.avatar = avatar
+  if (typeof user.avatarSeed === 'string' && AVATAR_SEED_RE.test(user.avatarSeed)) {
+    out.avatarSeed = user.avatarSeed
+  }
   const id = normalizeId(user.id)
   if (id !== undefined) out.id = id
   if (user.isAI === true) out.isAI = true
@@ -146,15 +122,14 @@ export interface AwarenessStatesLike {
  */
 export function normalizeAwarenessStates(
   awareness: AwarenessStatesLike,
-  clientIds: Iterable<number>,
-  opts: NormalizeAwarenessUserOptions = {}
+  clientIds: Iterable<number>
 ): void {
   const states = awareness.getStates()
   for (const clientId of clientIds) {
     if (clientId === awareness.clientID) continue
     const state = states.get(clientId)
     if (!state || !('user' in state)) continue
-    const normalized = normalizeAwarenessUser(state.user, opts)
+    const normalized = normalizeAwarenessUser(state.user)
     if (normalized === null) {
       delete state.user
     } else if (!isNormalizedAwarenessUser(state.user, normalized)) {

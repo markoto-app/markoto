@@ -214,7 +214,6 @@ function buildProfileEntry(userRow: typeof users.$inferSelect) {
     name: userRow.name,
     email: userRow.email,
     login: userRow.login,
-    avatarUrl: userRow.avatarUrl,
     githubLinked: userRow.githubId !== null,
     googleLinked: userRow.googleId !== null,
     // Generic OIDC (WP7b): the issuer is the instance operator's own IdP;
@@ -353,6 +352,7 @@ async function addThemesEntry(entries: Entries, db: Db, userId: number): Promise
     themesRows.map(t => ({
       themeId: t.themeId,
       name: t.name,
+      description: t.description,
       theme: t.theme,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString()

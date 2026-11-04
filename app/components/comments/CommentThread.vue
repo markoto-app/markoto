@@ -8,7 +8,6 @@ interface MentionableUser {
   id: number
   name: string
   email: string | null
-  avatarUrl: string | null
 }
 
 const props = withDefaults(defineProps<{
@@ -112,7 +111,8 @@ function onClickThread(e: MouseEvent) {
     <CommentItem
       :body="comment.body"
       :author-name="comment.authorName"
-      :author-avatar="comment.authorAvatar"
+      :author-id="comment.authorId"
+      :author-avatar-seed="comment.authorAvatarSeed"
       :created-at="comment.createdAt"
       :is-thread-root="true"
       :resolved="comment.resolved"
@@ -132,7 +132,8 @@ function onClickThread(e: MouseEvent) {
         :key="reply.id"
         :body="reply.body"
         :author-name="reply.authorName"
-        :author-avatar="reply.authorAvatar"
+        :author-id="reply.authorId"
+        :author-avatar-seed="reply.authorAvatarSeed"
         :created-at="reply.createdAt"
         :read-only="readOnly"
         :can-delete="canDelete(reply.authorId, reply.authorName)"
@@ -199,7 +200,7 @@ function onClickThread(e: MouseEvent) {
     0 calc(8px + var(--_p) * 8px) calc(20px + var(--_p) * 14px) -8px color-mix(in srgb, var(--color-shu-500) calc(28% + var(--_p) * 22%), transparent);
 }
 
-:global(.dark) .comment-thread-card.is-ai-active {
+html.dark .comment-thread-card.is-ai-active {
   box-shadow:
     0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-400) calc(65% + var(--_p) * 25%), transparent),
     0 calc(8px + var(--_p) * 8px) calc(20px + var(--_p) * 14px) -8px color-mix(in srgb, var(--color-shu-400) calc(32% + var(--_p) * 24%), transparent);

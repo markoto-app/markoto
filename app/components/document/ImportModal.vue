@@ -1,16 +1,41 @@
 <script setup lang="ts">
 import type { Text as YText } from 'yjs'
+import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
 
 const props = defineProps<{
   ytext: YText
   readOnly: boolean
+  /** Sent with the file so a Markdown import can check the theme's images and custom CSS against this document. */
+  docId: string
 }>()
 
 const open = defineModel<boolean>('open', { required: true })
 
+const emit = defineEmits<{
+  /** Validated theme + document properties from a markoto Markdown file's frontmatter. */
+  'apply-properties': [properties: ImportedDocProperties, notes: { ignored: string[], droppedCustomCssRules: number }]
+}>()
+
+interface ImportResponse {
+  markdown: string
+  source: string
+  filename?: string
+  properties?: ImportedDocProperties
+  ignored?: string[]
+  droppedCustomCssRules?: number
+}
+
 const { t } = useI18n()
 
 const selectedFile = ref<File | null>(null)
+// Last import response (for the properties of a markoto Markdown file).
+const importedResult = shallowRef<ImportResponse | null>(null)
+const applyProperties = ref(true)
+const docHasContent = ref(false)
+const importedProperties = computed(() => {
+  const p = importedResult.value?.properties
+  return p && Object.keys(p).length > 0 ? p : null
+})
 const error = ref('')
 const showConflict = ref(false)
 
@@ -20,12 +45,17 @@ const {
   execute: runImport
 } = useAsyncState<string>(
   async () => {
+    const file = selectedFile.value
+    if (!file) return ''
     const formData = new FormData()
-    formData.append('file', selectedFile.value!)
-    const result = await $fetch<{ markdown: string, source: string, filename?: string }>(
+    formData.append('file', file)
+    formData.append('docId', props.docId)
+    const result = await $fetch<ImportResponse>(
       '/api/import',
       { method: 'POST', body: formData }
     )
+    importedResult.value = result
+    applyProperties.value = true
     return result.markdown
   },
   '',
@@ -33,10 +63,12 @@ const {
     immediate: false,
     resetOnExecute: false,
     onSuccess: (markdown) => {
-      // If document already has content, show conflict dialog;
-      // otherwise replace immediately.
-      if (!markdown) return
-      if (props.ytext.length > 0) showConflict.value = true
+      // If the document already has content, or the file brings a theme
+      // + settings (the user decides whether to apply them), show the
+      // second step; otherwise replace immediately.
+      if (!markdown && !importedProperties.value) return
+      docHasContent.value = props.ytext.length > 0
+      if (docHasContent.value || importedProperties.value) showConflict.value = true
       else applyImport('replace')
     },
     onError: (e) => {
@@ -46,7 +78,7 @@ const {
   }
 )
 
-const ACCEPTED = '.docx,.pdf,.pptx,.xlsx,.xls,.html,.htm,.epub'
+const ACCEPTED = '.md,.markdown,.docx,.pdf,.pptx,.xlsx,.xls,.html,.htm,.epub'
 
 // `reset: true` per `open()` so re-selecting the same file fires
 // onChange again (native input dedupes identical paths otherwise).
@@ -79,6 +111,7 @@ watch(open, (isOpen) => {
     selectedFile.value = null
     error.value = ''
     importedMarkdown.value = ''
+    importedResult.value = null
     showConflict.value = false
     resetFileDialog()
   }
@@ -97,14 +130,25 @@ async function doImport() {
 }
 
 function applyImport(mode: 'replace' | 'append') {
-  if (!importedMarkdown.value) return
+  if (!importedMarkdown.value && !importedProperties.value) return
 
-  if (mode === 'replace') {
+  if (!importedMarkdown.value) {
+    // Settings only (a markoto file with an empty body): keep the text.
+  } else if (mode === 'replace') {
     props.ytext.delete(0, props.ytext.length)
     props.ytext.insert(0, importedMarkdown.value)
   } else {
     props.ytext.insert(props.ytext.length, '\n\n' + importedMarkdown.value)
   }
+
+  const properties = importedProperties.value
+  if (properties && applyProperties.value) {
+    emit('apply-properties', properties, {
+      ignored: importedResult.value?.ignored ?? [],
+      droppedCustomCssRules: importedResult.value?.droppedCustomCssRules ?? 0
+    })
+  }
+  importedResult.value = null
 
   showConflict.value = false
   importedMarkdown.value = ''
@@ -115,6 +159,7 @@ function applyImport(mode: 'replace' | 'append') {
 function cancelImport() {
   showConflict.value = false
   importedMarkdown.value = ''
+  importedResult.value = null
 }
 </script>
 
@@ -134,7 +179,10 @@ function cancelImport() {
           v-if="showConflict"
           class="space-y-4"
         >
-          <div class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <div
+            v-if="docHasContent"
+            class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30"
+          >
             <div class="flex items-start gap-2">
               <UIcon
                 name="i-lucide-alert-triangle"
@@ -150,7 +198,36 @@ function cancelImport() {
               </div>
             </div>
           </div>
-          <div class="flex gap-2">
+          <UCheckbox
+            v-if="importedProperties"
+            v-model="applyProperties"
+            :label="t('import.applyProperties')"
+            :description="t('import.applyPropertiesHelp')"
+            data-testid="import-apply-properties"
+          />
+          <div
+            v-if="!docHasContent"
+            class="flex gap-2 justify-end"
+          >
+            <UButton
+              variant="ghost"
+              data-testid="import-conflict-cancel"
+              @click="cancelImport"
+            >
+              {{ t('common.cancel') }}
+            </UButton>
+            <UButton
+              color="neutral"
+              data-testid="import-apply"
+              @click="applyImport('replace')"
+            >
+              {{ t('import.import') }}
+            </UButton>
+          </div>
+          <div
+            v-else
+            class="flex gap-2"
+          >
             <UButton
               class="flex-1"
               variant="solid"

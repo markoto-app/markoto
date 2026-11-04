@@ -32,7 +32,7 @@
   margin-left: 1px;
   animation: mk-ai-cursor-blink 1s steps(2) infinite;
 }
-:global(.dark) .mk-ai-cursor {
+html.dark .mk-ai-cursor {
   background: var(--color-shu-400);
 }
 </style>

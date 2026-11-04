@@ -20,7 +20,9 @@ export interface DerivedReply {
   body: string
   authorId: number | null
   authorName: string
-  authorAvatar: string | null
+  /** Anonymous author's random avatar token (null for signed-in authors,
+   *  whose avatar is seeded by `authorId`, and for the AI). */
+  authorAvatarSeed: string | null
   createdAt: number
   updatedAt: number
 }
@@ -32,7 +34,9 @@ export interface DerivedComment {
   body: string
   authorId: number | null
   authorName: string
-  authorAvatar: string | null
+  /** Anonymous author's random avatar token (null for signed-in authors,
+   *  whose avatar is seeded by `authorId`, and for the AI). */
+  authorAvatarSeed: string | null
   createdAt: number
   updatedAt: number
   resolved: boolean
@@ -42,16 +46,17 @@ export interface DerivedComment {
 interface AuthorIdentity {
   id: number | null
   name: string
-  avatar: string | null
+  avatarSeed: string | null
 }
 
 function readAuthor(awareness: Awareness): AuthorIdentity {
   const local = awareness.getLocalState()
-  const u = (local?.user ?? {}) as { id?: number, name?: string, avatar?: string }
+  const u = (local?.user ?? {}) as { id?: number, name?: string, avatarSeed?: string }
+  const id = typeof u.id === 'number' ? u.id : null
   return {
-    id: typeof u.id === 'number' ? u.id : null,
+    id,
     name: typeof u.name === 'string' && u.name.length > 0 ? u.name : 'Anonymous',
-    avatar: typeof u.avatar === 'string' && u.avatar.length > 0 ? u.avatar : null
+    avatarSeed: id === null && typeof u.avatarSeed === 'string' && u.avatarSeed.length > 0 ? u.avatarSeed : null
   }
 }
 
@@ -67,10 +72,12 @@ function numField(map: Y.Map<unknown>, key: string, fallback = 0): number {
   return typeof v === 'number' ? v : fallback
 }
 
-/** Read a string field as `string | null` — null when missing or non-string. */
-function strOrNullField(map: Y.Map<unknown>, key: string): string | null {
-  const v = map.get(key)
-  return typeof v === 'string' ? v : null
+/** The anonymous author's avatar token — same shape the awareness
+ *  normaliser accepts, anything else is dropped (comment maps are
+ *  writable by any peer). */
+function avatarSeedField(map: Y.Map<unknown>): string | null {
+  const v = map.get('authorAvatarSeed')
+  return typeof v === 'string' && /^[A-Za-z0-9]{1,32}$/.test(v) ? v : null
 }
 
 /** Read a number field as `number | null` — null when missing or non-number. */
@@ -85,7 +92,9 @@ function deriveAuthorAndTimestamps(map: Y.Map<unknown>) {
     body: strField(map, 'body'),
     authorId: numOrNullField(map, 'authorId'),
     authorName: strField(map, 'authorName', 'Anonymous'),
-    authorAvatar: strOrNullField(map, 'authorAvatar'),
+    // `authorAvatar` (a provider image URL) on older comments is ignored:
+    // avatars are generated locally now.
+    authorAvatarSeed: avatarSeedField(map),
     createdAt: numField(map, 'createdAt'),
     updatedAt: numField(map, 'updatedAt')
   }
@@ -213,7 +222,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
       map.set('body', safeBody)
       map.set('authorId', author.id)
       map.set('authorName', author.name)
-      map.set('authorAvatar', author.avatar)
+      map.set('authorAvatarSeed', author.avatarSeed)
       map.set('createdAt', now)
       map.set('updatedAt', now)
       map.set('resolved', false)
@@ -267,7 +276,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
       map.set('body', safeBody)
       map.set('authorId', author.id)
       map.set('authorName', author.name)
-      map.set('authorAvatar', author.avatar)
+      map.set('authorAvatarSeed', author.avatarSeed)
       map.set('createdAt', now)
       map.set('updatedAt', now)
       ;(repliesArr as Y.Array<Y.Map<unknown>>).push([map])
