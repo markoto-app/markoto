@@ -75,6 +75,9 @@ function enterViewport(): void {
 
 async function mountLive() {
   const wrapper = await mountSuspended(TryIt, { props: { source: SOURCE } })
+  // The block only starts watching the viewport once the page has loaded
+  // and the main thread is idle.
+  await vi.waitFor(() => expect(io.callbacks.length).toBeGreaterThan(0))
   enterViewport()
   await flushPromises()
   await vi.waitFor(() => expect(wrapper.find('[data-testid="try-it-live"]').exists()).toBe(true))
@@ -122,6 +125,24 @@ describe('::try-it before it is used', () => {
 })
 
 describe('::try-it lazy mount', () => {
+  it('does not watch the viewport before the page is idle', async () => {
+    const idle: { fn: (() => void) | null } = { fn: null }
+    vi.stubGlobal('requestIdleCallback', (fn: () => void) => {
+      idle.fn = fn
+      return 1
+    })
+    vi.stubGlobal('cancelIdleCallback', () => {})
+    const wrapper = await mountSuspended(TryIt, { props: { source: SOURCE } })
+    // Page load (if still pending) → the idle callback is requested, but
+    // nothing watches the viewport until it runs.
+    globalThis.dispatchEvent(new Event('load'))
+    await vi.waitFor(() => expect(idle.fn).not.toBeNull())
+    expect(io.callbacks).toHaveLength(0)
+    idle.fn?.()
+    expect(io.callbacks).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('mounts the editor + preview once the block nears the viewport', async () => {
     const wrapper = await mountLive()
     expect(wrapper.find('[data-testid="try-it-static"]').exists()).toBe(false)

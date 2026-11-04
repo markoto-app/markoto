@@ -3,6 +3,7 @@ title: Upgrade your plan
 description: How upgrading works on an instance with paid plans live. Not available on markoto.app yet (plans are coming soon) or on self-hosted instances.
 category: account
 order: 2
+updated: '2026-10-26'
 ---
 
 # Upgrade your plan

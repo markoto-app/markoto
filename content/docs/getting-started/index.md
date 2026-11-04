@@ -5,6 +5,7 @@ category: getting-started
 order: 1
 featured: true
 icon: i-lucide-rocket
+updated: '2026-11-04'
 ---
 
 # Get started

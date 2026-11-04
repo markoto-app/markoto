@@ -4,6 +4,7 @@ description: Set audience, language, and a one-line description once — every A
 category: writing
 order: 5
 featured: true
+updated: '2026-11-04'
 ---
 
 # Tell the AI who you're writing for

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { tourManifest } from '~~/shared/tour/data'
 import { srcsetFor, VIDEO_TYPES, type TourSceneId } from '~~/shared/tour/manifest'
 
 // One product-tour scene (public/tour/, the clips recorded from the real
@@ -15,7 +14,7 @@ import { srcsetFor, VIDEO_TYPES, type TourSceneId } from '~~/shared/tour/manifes
 const props = defineProps<{ scene: TourSceneId }>()
 
 const { t } = useI18n()
-const scene = tourManifest.scenes.find(s => s.id === props.scene)
+const scene = (await useTourManifest()).scenes.find(s => s.id === props.scene)
 const modes = ['light', 'dark'] as const
 
 const root = ref<HTMLElement | null>(null)

@@ -30,7 +30,6 @@ import { spawn } from 'bun'
 import {
   TOUR_SCENE_IDS,
   TOUR_BEAT_IDS,
-  parseTourManifest,
   type TourBeat,
   type TourBeatId,
   type TourImage,
@@ -39,6 +38,7 @@ import {
   type TourSceneId,
   type TourVideo
 } from '../shared/tour/manifest'
+import { parseTourManifest } from '../shared/tour/schema'
 
 const OUTPUT = process.env.TOUR_OUTPUT_DIR ?? 'tests/e2e/output/tour'
 const PUBLIC = 'public/tour'

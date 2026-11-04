@@ -4,6 +4,7 @@ description: Plans and limits, connecting your AI provider, MCP access tokens, d
 category: account
 order: 8
 icon: i-lucide-user
+updated: '2026-10-27'
 ---
 
 # Account, AI setup and privacy

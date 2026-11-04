@@ -3,6 +3,7 @@ title: AI Points and what happens when you run out
 description: AI Points are a monthly allowance that only applies when the instance pays for the AI. Calls on your own provider never use them.
 category: writing
 order: 12
+updated: '2026-11-04'
 ---
 
 # AI Points and what happens when you run out

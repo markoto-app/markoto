@@ -4,6 +4,7 @@ description: What you get today - a free tier with every writing feature - and w
 category: account
 order: 1
 featured: true
+updated: '2026-11-04'
 ---
 
 # Plans and limits

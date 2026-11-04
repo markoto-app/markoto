@@ -21,12 +21,14 @@
  * to hide whichever doesn't match the current `.dark` class on
  * `<html>`. Same DOM on server and client, no swap-on-hydrate.
  */
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   /** Wordmark height in px. Width follows the 333×90 aspect ratio. */
   size?: number
 }>(), {
   size: 18
 })
+// Intrinsic box for the <img> attributes (no layout shift while the SVG loads).
+const width = computed(() => Math.round(props.size * 333 / 90))
 </script>
 
 <template>
@@ -38,6 +40,8 @@ withDefaults(defineProps<{
       src="/markoto-logos/primary-lockup-light.svg"
       alt="markoto"
       class="mk-wordmark__img mk-wordmark__img--light"
+      :width="width"
+      :height="size"
       :style="{ height: `${size}px` }"
     >
     <img
@@ -45,6 +49,8 @@ withDefaults(defineProps<{
       alt=""
       aria-hidden="true"
       class="mk-wordmark__img mk-wordmark__img--dark"
+      :width="width"
+      :height="size"
       :style="{ height: `${size}px` }"
     >
   </span>

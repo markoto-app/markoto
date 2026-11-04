@@ -11,6 +11,15 @@ updated: '2026-11-04'
 navGroup: use-cases
 navLabel: Markdown to PDF
 navOrder: 10
+howTo:
+  name: Convert Markdown to PDF with markoto
+  steps:
+    - name: Paste your Markdown
+      text: Paste your Markdown into the box on this page. For a .md file, create a document and choose File › Import.
+    - name: Check the pages
+      text: The preview lays the text out as printed pages while you type, with a running header and page numbers.
+    - name: Download the PDF
+      text: Press Download PDF. Your text is saved as a document first, and the PDF has the same pages as the preview.
 ---
 
 # Markdown to PDF, with real pages

@@ -3,6 +3,7 @@ title: Duplicate a document
 description: One click clones the doc — content, theme, image uploads, metadata — into a new URL you own.
 category: writing
 order: 14
+updated: '2026-11-02'
 ---
 
 # Duplicate a document

@@ -3,6 +3,7 @@ title: Replay a comment in its original context
 description: Click any old comment in the activity log — markoto opens the doc at that exact passage as it was when the comment landed.
 category: writing
 order: 13
+updated: '2026-10-29'
 ---
 
 # Replay a comment in its original context

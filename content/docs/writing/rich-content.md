@@ -4,6 +4,7 @@ description: Markdown that's not just headings and lists — code with syntax hi
 category: writing
 order: 3
 featured: true
+updated: '2026-11-04'
 ---
 
 # Tables, alerts, math, and diagrams

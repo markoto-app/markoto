@@ -4,6 +4,7 @@ description: Per-document themes that drive both the live preview and the PDF ex
 category: themes
 order: 4
 icon: i-lucide-palette
+updated: '2026-11-02'
 ---
 
 # Style

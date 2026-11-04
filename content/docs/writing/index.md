@@ -4,6 +4,7 @@ description: Markdown extensions, formatting, and editor features that make mark
 category: writing
 order: 2
 icon: i-lucide-pen-line
+updated: '2026-11-04'
 ---
 
 # Write

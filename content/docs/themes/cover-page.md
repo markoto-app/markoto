@@ -3,6 +3,7 @@ title: Edit your cover page
 description: Four cover-page layouts, an optional header image, size knobs — the front-page treatment is its own little design surface.
 category: themes
 order: 4
+updated: '2026-10-29'
 ---
 
 # Edit your cover page

@@ -4,6 +4,7 @@ description: 30-day grace period — you can cancel anytime in those 30 days. Af
 category: account
 order: 5
 featured: true
+updated: '2026-11-04'
 ---
 
 # Delete your account
