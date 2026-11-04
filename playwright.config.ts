@@ -18,6 +18,15 @@ import { defineConfig, devices } from '@playwright/test'
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
 
+// Tags whose flows need a server shape this run doesn't have (see
+// `grepInvert` below). undefined = nothing excluded.
+function excludedTags(): RegExp | undefined {
+  const tags: string[] = []
+  if (process.env.FLOWS_BILLING_ENABLED !== '1') tags.push('@billing')
+  if (process.env.FLOWS_MARKETING_ENABLED !== '1') tags.push('@marketing')
+  return tags.length ? new RegExp(tags.join('|')) : undefined
+}
+
 // Desktop viewport. The docs site caps embedded flows at ~1100px
 // wide; capturing at 1280 keeps the downscaled UI legible (16px text
 // → ~14px displayed) and sits well above the 640px mobile breakpoint.
@@ -42,14 +51,19 @@ export default defineConfig({
   // specs (e.g. `_inspect-mermaid.spec.ts` — diagnostics that are
   // useful to keep around but shouldn't run on every flow build).
   testIgnore: '**/_*.spec.ts',
-  // Flows tagged `@billing` drive Stripe checkout / plan / sponsorship UI
-  // that only exists when the target server runs with
-  // NUXT_BILLING_ENABLED=true. `scripts/flows-ephemeral.ts` runs two
-  // passes: everything else against a billing-off server (the hosted
-  // free-only shape the docs describe), then `--grep @billing` against
-  // a billing-on server with FLOWS_BILLING_ENABLED=1. Against any other
-  // server (billing off is the default) they're not selected at all.
-  grepInvert: process.env.FLOWS_BILLING_ENABLED === '1' ? undefined : /@billing/,
+  // Tagged flows need a server shape the default pass doesn't have.
+  // `scripts/flows-ephemeral.ts` runs three passes against one stack:
+  //   • untagged flows against a billing-off, marketing-site-off server
+  //     (the hosted free-only shape the docs describe);
+  //   • `--grep @billing` with FLOWS_BILLING_ENABLED=1 against a
+  //     billing-on server (Stripe checkout / plan / sponsorship UI);
+  //   • `--grep @marketing` with FLOWS_MARKETING_ENABLED=1 against a
+  //     server with NUXT_MARKETING_SITE_ENABLED=true (the marketing
+  //     pages and header). The default pass keeps the marketing site off
+  //     on purpose: silentSetup clicks the plain hero's button.
+  // A tag stays excluded unless its pass is selected, so against any
+  // other server those flows aren't selected at all.
+  grepInvert: excludedTags(),
   timeout: 120_000,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
