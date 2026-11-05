@@ -26,7 +26,7 @@ You picked a built-in preset, watched the entire document re-skin
 in place, then turned on a cover sheet that suppresses the running
 header and footer on page 1.
 
-The seven presets cover most use cases:
+The eight presets cover most use cases:
 
 - **markoto** — the default. Fraunces editorial headings on Inter
   body, plain white paper, vermillion accents, asterism scene breaks.
@@ -43,6 +43,8 @@ The seven presets cover most use cases:
   line-height, drop cap on page 1.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
   weekly-digest density.
+- **Resume** — one dense page: Inter at 10 pt, small headings with
+  a rule, no running header, page number or cover.
 
 ## Tweaking a preset
 

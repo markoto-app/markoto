@@ -9,7 +9,7 @@ import { selfHostPath } from '~~/shared/seo/marketing'
 //
 // Up to three groups, each with dot separators so the links don't run together:
 //   0. the site: Pricing (where shown) and, on the hosted marketing site,
-//      Self-host + the use-case / comparison pages (useMarketingNav)
+//      Self-host + the use-case / comparison / template pages (useMarketingNav)
 //   1. what a visitor looks for: Docs · Privacy · Terms · Imprint · Report abuse
 //   2. the reference documents, quieter: DPA · Sub-processors · Cookies note
 // Every legal page stays one click away. Renders for anonymous +
@@ -39,7 +39,8 @@ const siteLinks = computed<FooterLink[]>(() => [
     ? [
         { to: selfHostPath(marketingSite.value), label: t('marketing.nav.selfHost'), testid: 'footer-self-host-link' },
         ...nav.value.useCases,
-        ...nav.value.compare
+        ...nav.value.compare,
+        ...nav.value.templates
       ]
     : [])
 ])

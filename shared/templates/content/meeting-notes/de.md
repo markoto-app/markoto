@@ -2,8 +2,8 @@
 
 <!-- Datum, Teilnehmende und der Sitzungszweck in einem Satz gehören in die nächsten drei Zeilen. -->
 
-**Datum:** <!-- z. B. 2026-04-26 -->
-**Teilnehmende:** <!-- kommagetrennt -->
+**Datum:** <!-- z. B. 2026-04-26 -->\
+**Teilnehmende:** <!-- kommagetrennt -->\
 **Zweck:** <!-- ein Satz: "Entscheiden, ob X bis Y ausgeliefert wird" -->
 
 ## Agenda

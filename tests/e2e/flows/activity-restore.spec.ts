@@ -30,7 +30,7 @@ const LAUNCH_DRAFT = [
   '## What is new',
   '',
   '- Live cursors and comments for every collaborator',
-  '- Seven built-in themes, plus your own saved presets',
+  '- Eight built-in themes, plus your own saved presets',
   '- Grounded answers from your workspace knowledge base',
   '',
   '## Availability'

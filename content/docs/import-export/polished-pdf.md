@@ -35,6 +35,6 @@ prints the same paged view.
 
 ## What's next
 
-- [Pick a theme](/docs/themes/pick-a-theme): seven presets, each one exactly what the PDF will look like.
+- [Pick a theme](/docs/themes/pick-a-theme): eight presets, each one exactly what the PDF will look like.
 - [Edit your cover page](/docs/themes/cover-page): title, subtitle, logo and layout.
 - [Lock the doc with a password](/docs/sharing/password-protect): gate the link (and the PDF) behind a passphrase.

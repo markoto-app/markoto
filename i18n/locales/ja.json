@@ -326,6 +326,14 @@
       "label": "プロジェクトREADME",
       "description": "キャッチコピー、目的、クイックスタート、機能、ドキュメント、コントリビュート、ライセンス。"
     },
+    "resume": {
+      "label": "職務経歴書",
+      "description": "1 ページの履歴書：プロフィール、職歴、学歴、スキル、語学。"
+    },
+    "report": {
+      "label": "報告書",
+      "description": "表紙、目次、サマリー、主要指標、結果、見通し、付録。"
+    },
     "demo": {
       "label": "デモ",
       "description": "Markdown の基本と markoto の短いツアー。"
@@ -981,6 +989,10 @@
       "newsletter": {
         "name": "ニュースレター",
         "description": "PT Serif見出しの下にKarla本文、緑のアクセント、ブランドカラーの表ヘッダー — 週刊ダイジェストの雰囲気。"
+      },
+      "resume": {
+        "name": "履歴書",
+        "description": "詰まった A4 1 ページ：Inter 10 pt、罫線付きの小さな見出し、ヘッダー・フッター・表紙なし。"
       }
     },
     "customCss": {
@@ -1596,7 +1608,7 @@
       "themes": {
         "label": "テーマ",
         "title": "見た目だけを変え、Markdownはそのまま。",
-        "body": "7種類のテーマから選び、色、フォント、表紙を調整できます。本文には手を加えません。"
+        "body": "8種類のテーマから選び、色、フォント、表紙を調整できます。本文には手を加えません。"
       },
       "collab": {
         "label": "共同編集",
@@ -1753,6 +1765,7 @@
       "label": "サイト",
       "pricing": "料金",
       "useCases": "用途",
+      "templates": "テンプレート",
       "compare": "比較",
       "selfHost": "セルフホスト"
     },

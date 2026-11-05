@@ -24,4 +24,4 @@
 <!-- 1-2 Absätze. Die Kernaussage in einfacher Sprache für jemanden, der nur Abstract und Schlussfolgerung gelesen hat. -->
 
 ## Literaturverzeichnis
-<!-- Verwende den vom Veröffentlichungsort verlangten Zitationsstil. Tools wie BibTeX oder markdown-it-bibliography rendern echte Literaturlisten aus einer `.bib`-Datei — siehe Dokumentation. -->
+<!-- Verwende den vom Veröffentlichungsort verlangten Zitationsstil. markoto hat weder BibTeX noch eine Literaturverwaltung: Schreib die Liste von Hand als nummerierte Liste und zitiere im Text mit [1] oder mit Fussnoten ([^1]), die am Fuss ihrer Seite stehen. -->

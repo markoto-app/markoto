@@ -41,7 +41,7 @@ If you write alone, on your own computer, Typora is hard to beat. If others need
 - **Collaboration.** Several people type in the same document at once and see each other's cursors. Comment threads stay anchored to the text, and every edit is kept with a diff and a restore button. Typora has no collaboration features of its own; you share files through a sync folder.
 - **Nothing to install.** markoto opens in any browser, on any device, including a borrowed one. Anyone with the link can edit, without an account, if the owner allows it.
 - **Pages as you write.** The preview shows A4 or Letter pages with page breaks where they will fall, a cover page and a table of contents with page numbers. In Typora you write in one continuous page and see the page layout in the exported PDF.
-- **Print themes.** Seven presets (including a two-column academic layout) and a theme editor for fonts, colours, margins, columns, headers, footers and cover, without writing CSS.
+- **Print themes.** Eight presets (including a two-column academic layout) and a theme editor for fonts, colours, margins, columns, headers, footers and cover, without writing CSS.
 - **Import from Office files.** markoto converts Word, PDF, PowerPoint, Excel, HTML and EPUB into Markdown without extra software.
 - **AI assistant.** markoto's assistant edits the document, answers in comments and can use files uploaded to a workspace.
 - **Free, or on your own server.** markoto.app costs nothing today, and markoto is source-available and can be self-hosted.

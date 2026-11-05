@@ -90,7 +90,7 @@ export default defineContentConfig({
         // no hreflang, not in the sitemap. Absent = reviewed.
         reviewed: z.boolean().default(true),
         // Header/footer menu the page is listed in, with its short label.
-        navGroup: z.enum(['use-cases', 'compare']).optional(),
+        navGroup: z.enum(['use-cases', 'compare', 'templates']).optional(),
         navLabel: z.string().optional(),
         navOrder: z.number().optional()
       })

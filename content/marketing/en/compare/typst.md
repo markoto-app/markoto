@@ -30,7 +30,7 @@ Both turn plain text into well-set PDF pages, and both have a web app where seve
 
 - **Layout control.** Typst is a programming language for documents: you can define functions, loop over data, compute values and build any layout a template author can imagine. markoto gives you themes, a theme editor and custom CSS, but you can't script the document.
 - **Bibliographies and citations.** Typst reads BibLaTeX `.bib` and Hayagriva files and formats citations in CSL styles. markoto has no citations yet.
-- **Templates.** Typst Universe, its package collection, has templates for journal and conference papers, theses, reports, CVs and posters. markoto has a handful of templates and seven print themes.
+- **Templates.** Typst Universe, its package collection, has templates for journal and conference papers, theses, reports, CVs and posters. markoto has a handful of templates and eight print themes.
 - **Slides.** Typst has presentation templates, and Pro adds a presentation mode in the web app. markoto makes documents, not slide decks.
 - **Offline and local.** The Typst compiler runs on your own computer from the command line, and its source is open. markoto runs only in the browser and needs a connection.
 - **More output formats.** PDF, PNG and SVG, and HTML as an experiment. markoto exports PDF and Markdown.
