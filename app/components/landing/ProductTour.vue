@@ -37,7 +37,9 @@ import { TOUR_DARK_FROM } from '~~/shared/tour/config'
  * transition in CSS), and, in `TourVisual`, plays the video of the scene
  * on stage and fans the share scene's PDF pages out once it has settled.
  */
-const emit = defineEmits<{ start: [] }>()
+// `warm`: the pointer is over / focus is on a "Start writing" button —
+// the page may fetch the new-document dialog's code (useNewDocDialog).
+const emit = defineEmits<{ start: [], warm: [] }>()
 const { t, locale } = useI18n()
 
 const manifest = await useTourManifest()
@@ -240,6 +242,8 @@ const chips = [
               class="mk-cta"
               data-testid="tour-start-writing"
               @click="emit('start')"
+              @pointerenter="emit('warm')"
+              @focus="emit('warm')"
             >
               {{ t('tour.hero.cta') }}
             </UButton>
@@ -403,7 +407,12 @@ const chips = [
             :style="{ viewTimelineName: `--mk-f-${i}` }"
           >
             <LandingTourFrame :ratio="viewportRatio">
-              <LandingTourVisual
+              <!-- Hydrates when it comes into view (its job — playing the
+                   video while on screen — starts there anyway); the
+                   server render is the poster. Keeps the scenes out of
+                   the page's first hydration task. -->
+              <LazyLandingTourVisual
+                hydrate-on-visible
                 :scene="scene"
                 :index="i"
                 :tone="toneFor(i)"
@@ -451,6 +460,8 @@ const chips = [
           class="mk-cta"
           data-testid="tour-final-start"
           @click="emit('start')"
+          @pointerenter="emit('warm')"
+          @focus="emit('warm')"
         >
           {{ t('tour.cta.start') }}
         </UButton>
@@ -970,8 +981,12 @@ html .mk-tour-page--auto .mk-visual[data-tone="flip"] .mk-visual__tone--dark { o
 @keyframes mk-rise {
   from { opacity: 0; translate: 0 14px; }
 }
+/* The window rises without fading in: it holds the page's LCP image (the
+   hero poster), and a browser counts an element as painted only once it
+   is no longer transparent — a fade from opacity 0 made the picture
+   "appear" at the end of a busy main thread. */
 @keyframes mk-rise-window {
-  from { opacity: 0; translate: 0 40px; scale: 0.97; }
+  from { translate: 0 40px; scale: 0.97; }
 }
 
 /* ─── Scroll snapping (the tour page only) ──────────────────────────

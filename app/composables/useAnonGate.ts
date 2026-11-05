@@ -11,6 +11,7 @@ import {
   type AltchaChallenge,
   type WorkerLike
 } from '~/utils/altchaSolver'
+import { useAnonTermsPrompt } from '~/composables/useAnonTermsPrompt'
 
 // Client side of the anonymous gate (shared/config/anonGate.ts):
 //   - `useAnonBotCheck(purpose)` fetches an ALTCHA challenge and solves it
@@ -20,8 +21,10 @@ import {
 //     signed in / gate off → plain POST; anonymous → terms dialog (only
 //     when this browser hasn't accepted the current terms yet) + a fresh
 //     bot-check payload, with one automatic retry on an expired/used one.
-// The terms dialog itself is `DocumentAnonGateDialog` (mounted once in
-// CommonAppOverlays), driven by `useAnonTermsPrompt()` state.
+// The terms dialog itself is `DocumentAnonGateDialog` (mounted by
+// CommonAppOverlays on first use), driven by `useAnonTermsPrompt()` state
+// (its own file, so the overlays don't pull this module and its solver
+// into every page's entry chunk).
 
 function createSolverWorker(): WorkerLike {
   return new Worker(new URL('../workers/altchaPbkdf2.worker.ts', import.meta.url), { type: 'module' })
@@ -107,35 +110,6 @@ export function useAnonBotCheck(purpose: AnonGatePurpose) {
   }
 
   return { termsAccepted, solving, failed, prepare, take }
-}
-
-interface TermsPromptState {
-  open: boolean
-}
-
-let resolveTermsPrompt: ((accepted: boolean) => void) | null = null
-
-/** State of the global accept-terms dialog (one instance, in CommonAppOverlays). */
-export function useAnonTermsPrompt() {
-  const state = useState<TermsPromptState>('anon-terms-prompt', () => ({ open: false }))
-
-  /** Open the dialog; resolves true once the visitor accepted, false when dismissed. */
-  function ask(): Promise<boolean> {
-    resolveTermsPrompt?.(false)
-    state.value.open = true
-    return new Promise<boolean>((resolve) => {
-      resolveTermsPrompt = resolve
-    })
-  }
-
-  function answer(accepted: boolean): void {
-    state.value.open = false
-    const resolve = resolveTermsPrompt
-    resolveTermsPrompt = null
-    resolve?.(accepted)
-  }
-
-  return { state, ask, answer }
 }
 
 /** Thrown when the visitor closes the terms dialog — not an error to toast. */

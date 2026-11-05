@@ -167,6 +167,9 @@ function onCreateLanguage(text: string): LanguageItem {
   return { label: trimmed, value: trimmed, custom: !isPresetLanguage(trimmed) }
 }
 
+// `immediate`: the home page and MarketingStartButton mount this dialog
+// on first use with `open` already true (useNewDocDialog), so the reset +
+// pre-selection must also run for the initial value.
 watch(() => props.open, async (next) => {
   if (!next) return
   anonDoc.prepare()
@@ -186,7 +189,7 @@ watch(() => props.open, async (next) => {
     const preset = THEME_PRESETS.find(p => p.id === props.initialThemePreset)
     themeChoice.value = { kind: 'preset', id: preset?.id ?? 'markoto' }
   }
-})
+}, { immediate: true })
 
 const audienceItems = computed(() => AUDIENCE_KINDS.map(kind => ({
   label: t(`audiences.${kind}.label`),

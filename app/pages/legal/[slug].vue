@@ -20,6 +20,8 @@ import { LEGAL_PAGE_DESCRIPTIONS } from '~~/shared/seo/meta'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 
 definePageMeta({ middleware: 'legal-surfaces' })
+// Public page: no modulepreload / prefetch hints (useLeanResourceHints).
+useLeanResourceHints()
 
 const route = useRoute()
 const router = useRouter()

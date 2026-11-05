@@ -21,6 +21,8 @@ interface SubProcessor {
 }
 
 definePageMeta({ middleware: 'legal-surfaces' })
+// Public page: no modulepreload / prefetch hints (useLeanResourceHints).
+useLeanResourceHints()
 
 const router = useRouter()
 const { t } = useI18n()

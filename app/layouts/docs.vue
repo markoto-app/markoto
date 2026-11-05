@@ -20,16 +20,33 @@
 // /docs/[...slug] don't each re-query (it's the same data on both,
 // and the search index lives at the layout level).
 
+// Public reading pages: no modulepreload / prefetch hints in the HTML,
+// the server render paints first and the code follows
+// (useLeanResourceHints).
+useLeanResourceHints()
+
 const { data: navigation } = await useAsyncData('docs:nav', () =>
   queryCollectionNavigation('docs', ['order', 'navHidden', 'icon'])
 )
 
 // Search index — every page split into per-heading sections. Used
-// only by UContentSearch (Cmd-K modal). One fetch at layout init,
-// reused across all docs pages.
-const { data: searchSections } = await useAsyncData('docs:search', () =>
-  queryCollectionSearchSections('docs')
-)
+// only by UContentSearch (Cmd-K modal, client-only), so it is NOT part of
+// the server render (it was ~50 KB gzip of every docs page's HTML): the
+// browser fetches it once when search is about to open — pointer over /
+// focus on the search button, or the modal opening (Cmd-K) — and keeps
+// it across docs pages (same key).
+const { open: searchOpen } = useContentSearch()
+const { data: searchSections, status: searchStatus, execute: loadSearch } = useFetch('/api/_internal/docs-search', {
+  key: 'docs:search',
+  server: false,
+  immediate: false
+})
+function warmSearch(): void {
+  if (searchStatus.value === 'idle' || searchStatus.value === 'error') void loadSearch()
+}
+watch(searchOpen, (open) => {
+  if (open) warmSearch()
+})
 
 // queryCollectionNavigation returns a single root "Docs" node whose
 // children are our actual sections.
@@ -103,6 +120,8 @@ watch(() => route.path, () => {
           :collapsed="false"
           label="Search the docs..."
           class="w-full min-w-0 max-w-md justify-start text-toned overflow-hidden"
+          @pointerenter="warmSearch"
+          @focus="warmSearch"
         />
       </div>
       <!-- AuthUserMenu carries: usage badge (tier + remaining
