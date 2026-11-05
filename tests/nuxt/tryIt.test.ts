@@ -4,7 +4,7 @@ import { mountSuspended, mockNuxtImport, registerEndpoint } from '@nuxt/test-uti
 import { flushPromises } from '@vue/test-utils'
 import { ref, type Ref } from 'vue'
 import { EditorView } from '@codemirror/view'
-import { TryIt } from '#components'
+import { MarketingTryItWorkbench, TryIt } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 
 // The marketing `::try-it` block (components/content/TryIt.vue +
@@ -94,11 +94,11 @@ function editorView(wrapper: Awaited<ReturnType<typeof mountLive>>): EditorView 
 
 // The workbench is a lazy chunk (CodeMirror + the preview). Its first
 // import compiles it in the test runner, which under a full parallel run
-// can take longer than `vi.waitFor`'s second — load it once up front so
-// the tests time the mount, not the compile.
-beforeAll(async () => {
-  await import('~/components/marketing/TryItWorkbench.vue')
-}, 30_000)
+// can take longer than `vi.waitFor`'s second — the static import above
+// loads it with the test file, so the tests time the mount, not the compile.
+beforeAll(() => {
+  expect(MarketingTryItWorkbench).toBeTruthy()
+})
 
 beforeEach(() => {
   io.callbacks = []
