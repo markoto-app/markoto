@@ -19,8 +19,14 @@ async function expectMarketingHeader(page: Page, isMobile: boolean): Promise<voi
   const header = page.locator('header.mk-site-header')
   await expect(header).toBeVisible()
   if (isMobile) {
-    await header.getByTestId('header-menu').click()
-    await expect(page.getByRole('menuitem', { name: 'Self-host' })).toBeVisible()
+    // The page paints from the server render before it hydrates (the
+    // marketing pages ship without modulepreload hints), so a click right
+    // after `load` can land before the menu's handler is attached: retry
+    // until the menu is open (same pattern as silentSetup).
+    await expect(async () => {
+      await header.getByTestId('header-menu').click()
+      await expect(page.getByRole('menuitem', { name: 'Self-host' })).toBeVisible({ timeout: 1500 })
+    }).toPass({ timeout: 15_000 })
     await expect(page.getByRole('menuitem', { name: 'Markdown cheat sheet' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('menuitem', { name: 'Self-host' })).toHaveCount(0)
