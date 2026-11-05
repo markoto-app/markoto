@@ -1,5 +1,5 @@
-// Public marketing pages (the product page at `/` for logged-out
-// visitors, /pricing and the marketing content pages) ship their HTML
+// Public reading pages (the product page at `/` for logged-out visitors,
+// /pricing, the marketing content pages, /docs/** and /legal/**) ship their HTML
 // without Nuxt's chunk hints: `<link rel="modulepreload">` and
 // `<link rel="prefetch">`. See `app/composables/useLeanResourceHints.ts`
 // for which pages opt in and `server/plugins/lean-resource-hints.ts` for

@@ -6,8 +6,9 @@ import { LEAN_RESOURCE_HINTS_FLAG } from '~~/shared/utils/leanResourceHints'
 // fully server-rendered pages a visitor reads before touching anything,
 // where the stylesheet, fonts and hero picture should get the connection
 // first. Called by layouts/marketing.vue (/pricing + the marketing content
-// pages) and by pages/index.vue while it shows the product tour. Never for
-// app pages (editor, dashboard, settings): they need their code at once.
+// pages), layouts/docs.vue (/docs/**), the /legal/** pages and
+// pages/index.vue while it shows the product tour. Never for app pages
+// (editor, dashboard, settings): they need their code at once.
 export function useLeanResourceHints(enabled: () => boolean = () => true): void {
   if (!import.meta.server) return
   const event = useRequestEvent()

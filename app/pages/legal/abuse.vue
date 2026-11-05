@@ -25,6 +25,8 @@ import {
 } from '~~/shared/config/moderation'
 
 definePageMeta({ middleware: 'legal-surfaces' })
+// Public page: no modulepreload / prefetch hints (useLeanResourceHints).
+useLeanResourceHints()
 
 const route = useRoute()
 const router = useRouter()

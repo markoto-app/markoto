@@ -77,6 +77,9 @@ export default defineEventHandler(async (event) => {
     // contents are derived from already-public assets, no session
     // needed; the docs site fetches it during SSR.
     { path: /^\/api\/_internal\/flows-index$/, methods: ['GET'] },
+    // Docs search index (Cmd-K modal on /docs/**): derived from the
+    // public docs content, fetched by the browser when search opens.
+    { path: /^\/api\/_internal\/docs-search$/, methods: ['GET'] },
     // Legal-document renderer. Anonymous + logged-in users alike
     // need to read the privacy policy / terms / DPA / abuse policy.
     // Slug allowlist + locale guard live in the handler.
