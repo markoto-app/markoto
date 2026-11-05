@@ -4,6 +4,7 @@ description: Upload PDFs, Word documents and more to a workspace, then let the A
 category: writing
 order: 6
 featured: true
+updated: '2026-11-03'
 ---
 
 # Ask the AI about a file you uploaded

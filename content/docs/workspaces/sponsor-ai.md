@@ -3,6 +3,7 @@ title: Sponsor AI for your team
 description: A paid-plan feature - let one workspace owner's plan cover every member's AI usage. Not available while paid plans are coming soon, or on self-hosted instances.
 category: workspaces
 order: 5
+updated: '2026-11-02'
 ---
 
 # Sponsor AI for your team

@@ -3,6 +3,7 @@ title: Rewrite a selection with the AI
 description: Highlight a paragraph, ask the AI to rewrite it — your prose tone, your audience, in place.
 category: writing
 order: 7
+updated: '2026-11-04'
 ---
 
 # Rewrite a selection with the AI

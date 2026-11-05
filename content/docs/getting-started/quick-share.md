@@ -4,6 +4,7 @@ description: Create a document, give it a title, and send the link — three min
 category: getting-started
 order: 1
 featured: true
+updated: '2026-11-04'
 ---
 
 # Write & share your first document

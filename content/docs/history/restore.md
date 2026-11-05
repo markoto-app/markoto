@@ -4,6 +4,7 @@ description: One click rolls the doc back to that version — the restore is its
 category: history
 order: 2
 featured: true
+updated: '2026-11-04'
 ---
 
 # Restore an earlier version

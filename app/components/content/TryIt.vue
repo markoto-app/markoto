@@ -62,7 +62,10 @@ const heightPx = computed(() => {
 // client chunk — on the client the result comes from the payload.
 const { data: staticHtml } = await useAsyncData(
   `try-it:${hashOf(initial.value)}`,
-  () => import('~/utils/renderMarkdown').then(m => m.renderTrustedMarkdown(initial.value)),
+  // Headings become styled <div>s (`utils/sampleHeadings.ts`): the
+  // sample's "# Title" is not a heading of this page.
+  () => Promise.all([import('~/utils/renderMarkdown'), import('~/utils/sampleHeadings')])
+    .then(([m, h]) => m.renderTrustedMarkdown(initial.value).then(h.sampleHeadingsToDivs)),
   { default: () => '' }
 )
 
@@ -79,24 +82,48 @@ function activate(focus: boolean): void {
 }
 
 // Near the viewport → load. 400px ahead so the editor is usually ready
-// when it scrolls in; never before the page has hydrated.
+// when it scrolls in; never before the page has hydrated, and never
+// before the page has finished loading and the main thread is idle: the
+// workbench is ~300 KB gzip of JS, and on a page that opens with the
+// block (/markdown-to-pdf) it competed with the first paint. A click or
+// focus (activate(true)) loads it at once.
 let observer: IntersectionObserver | null = null
+let idleHandle: number | null = null
+let timeoutHandle: ReturnType<typeof setTimeout> | null = null
+let cancelled = false
+function whenIdle(fn: () => void): void {
+  const run = (): void => {
+    if (cancelled) return
+    if (typeof globalThis.requestIdleCallback === 'function') idleHandle = globalThis.requestIdleCallback(fn, { timeout: 2000 })
+    else timeoutHandle = setTimeout(fn, 200)
+  }
+  if (document.readyState === 'complete') run()
+  else globalThis.addEventListener('load', run, { once: true })
+}
 onMounted(() => {
   const el = root.value
   if (!el) return
-  if (typeof IntersectionObserver === 'undefined') {
-    activate(false)
-    return
-  }
-  observer = new IntersectionObserver((entries) => {
-    if (entries.some(e => e.isIntersecting)) {
-      observer?.disconnect()
+  whenIdle(() => {
+    if (cancelled || active.value) return
+    if (typeof IntersectionObserver === 'undefined') {
       activate(false)
+      return
     }
-  }, { rootMargin: '400px 0px' })
-  observer.observe(el)
+    observer = new IntersectionObserver((entries) => {
+      if (entries.some(e => e.isIntersecting)) {
+        observer?.disconnect()
+        activate(false)
+      }
+    }, { rootMargin: '400px 0px' })
+    observer.observe(el)
+  })
 })
-onBeforeUnmount(() => observer?.disconnect())
+onBeforeUnmount(() => {
+  cancelled = true
+  observer?.disconnect()
+  if (idleHandle !== null && typeof globalThis.cancelIdleCallback === 'function') globalThis.cancelIdleCallback(idleHandle)
+  if (timeoutHandle !== null) clearTimeout(timeoutHandle)
+})
 
 // Stylesheets the static result needs (same as `::sample`).
 const CODE_THEME = hljsTheme('github-dark')
@@ -271,16 +298,19 @@ useHead(() => ({
 }
 .mk-try-it__result :deep(> :first-child) { margin-top: 0; }
 .mk-try-it__result :deep(:is(p, ul, ol, blockquote, table, pre)) { margin: 0.6em 0; }
-.mk-try-it__result :deep(:is(h1, h2, h3, h4)) {
+.mk-try-it__result :deep(:where(.mk-sample-h)) {
   font-family: var(--font-serif);
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.2;
   margin: 0.6em 0 0.3em;
+  /* Heading ink, as `.prose h1–h4` gave the <h*> these used to be. */
+  color: var(--color-sumi-950);
 }
-.mk-try-it__result :deep(h1) { font-size: 1.7em; }
-.mk-try-it__result :deep(h2) { font-size: 1.35em; }
-.mk-try-it__result :deep(h3) { font-size: 1.15em; }
+html.dark .mk-try-it__result :deep(:where(.mk-sample-h)) { color: var(--color-sumi-50); }
+.mk-try-it__result :deep(:where(.mk-sample-h1)) { font-size: 1.7em; }
+.mk-try-it__result :deep(:where(.mk-sample-h2)) { font-size: 1.35em; }
+.mk-try-it__result :deep(:where(.mk-sample-h3)) { font-size: 1.15em; }
 .mk-try-it__result :deep(strong) { font-weight: 500; }
 .mk-try-it__result :deep(:is(ul, ol)) { padding-left: 1.4em; }
 .mk-try-it__result :deep(ul) { list-style: disc; }

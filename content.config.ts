@@ -50,7 +50,11 @@ export default defineContentConfig({
         // out section indexes. `navHidden: true` keeps a page reachable
         // by URL but skips it in the sidebar — useful for landing /
         // index pages that are the parent group's clickable header.
-        navHidden: z.boolean().optional()
+        navHidden: z.boolean().optional(),
+        // Last substantive edit, YYYY-MM-DD: TechArticle dateModified,
+        // article:modified_time and the sitemap's <lastmod>. Bump it when
+        // the page's content changes (not for typo fixes).
+        updated: z.string().optional()
       })
     }),
     // Public marketing pages of the hosted site (use cases, cheat sheet,
@@ -66,11 +70,21 @@ export default defineContentConfig({
         title: z.string(),
         // Meta description, ≤ 160 characters.
         description: z.string(),
-        // Site-relative 1200×630 PNG/JPEG for link previews; default card otherwise.
+        // Site-relative 1200×630 PNG/JPEG for link previews; the group's card
+        // otherwise (shared/seo/ogImages.ts: use cases / compare).
         ogImage: z.string().optional(),
+        // Alt text of `ogImage` (required in practice when ogImage is set).
+        ogImageAlt: z.string().optional(),
+        // Step-by-step instructions on the page → HowTo JSON-LD. Only for
+        // pages that really are a how-to; the steps must match the page text.
+        howTo: z.object({
+          name: z.string(),
+          steps: z.array(z.object({ name: z.string(), text: z.string() }))
+        }).optional(),
         // Search terms the page is written for (editorial; not emitted as a meta tag).
         keywords: z.array(z.string()).optional(),
-        // Last substantive edit, YYYY-MM-DD (shown on the page).
+        // Last substantive edit, YYYY-MM-DD (shown on the page; also
+        // dateModified, article:modified_time and the sitemap's <lastmod>).
         updated: z.string().optional(),
         // false = translation not yet read by a native speaker: noindex,
         // no hreflang, not in the sitemap. Absent = reviewed.

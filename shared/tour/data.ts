@@ -5,6 +5,6 @@
 // page renders its first still with no extra request.
 
 import raw from '../../public/tour/manifest.json'
-import { parseTourManifest, type TourManifest } from './manifest'
+import { parseTourManifest, type TourManifest } from './schema'
 
 export const tourManifest: TourManifest = parseTourManifest(raw)

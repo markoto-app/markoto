@@ -3,6 +3,7 @@ title: Set a default theme for your workspace
 description: Pick a theme as the workspace default — every new doc your team creates starts already styled.
 category: workspaces
 order: 6
+updated: '2026-10-29'
 ---
 
 # Set a default theme for your workspace

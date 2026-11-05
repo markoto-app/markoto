@@ -71,12 +71,17 @@ async function settleHead(): Promise<void> {
 }
 
 function pricingJsonLd(): Record<string, unknown> | null {
-  for (const node of document.head.querySelectorAll('script[type="application/ld+json"]')) {
-    const raw = node.textContent
+  for (const script of document.head.querySelectorAll('script[type="application/ld+json"]')) {
+    const raw = script.textContent
     if (!raw) continue
     const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed === 'object' && parsed !== null && (parsed as Record<string, unknown>)['@type'] === 'SoftwareApplication') {
-      return parsed as Record<string, unknown>
+    if (typeof parsed !== 'object' || parsed === null) continue
+    // The page's one @graph (usePageStructuredData) holds the SoftwareApplication.
+    const graph = (parsed as Record<string, unknown>)['@graph']
+    for (const node of Array.isArray(graph) ? graph : [parsed]) {
+      if (typeof node === 'object' && node !== null && (node as Record<string, unknown>)['@type'] === 'SoftwareApplication') {
+        return node as Record<string, unknown>
+      }
     }
   }
   return null

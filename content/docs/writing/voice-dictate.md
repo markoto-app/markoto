@@ -4,6 +4,7 @@ description: Live dictation streams what you say into the editor as you say it, 
 category: writing
 order: 4
 featured: true
+updated: '2026-11-02'
 ---
 
 # Speak instead of typing

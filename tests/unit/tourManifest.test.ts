@@ -6,13 +6,13 @@ import {
   TOUR_SCENE_IDS,
   coverRange,
   loopFrameAt,
-  parseTourManifest,
   restOffsetVh,
   srcsetFor,
   stageSideKeyframes,
   windowToCover,
   type TourManifest
 } from '../../shared/tour/manifest'
+import { parseTourManifest } from '../../shared/tour/schema'
 
 // Product tour (WP11): the asset contract (posters + looping videos per
 // scene, light/dark, desktop/phone) and the scroll math behind the CSS.

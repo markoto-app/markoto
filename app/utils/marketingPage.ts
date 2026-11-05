@@ -1,10 +1,16 @@
 import {
+  isIndexableVersion,
   MARKETING_LOCALES,
   marketingContentPath,
+  marketingPageKind,
+  marketingRoutePath,
+  parseMarketingContentPath,
   parseMarketingRoute,
+  type MarketingLocale,
   type MarketingTarget
 } from '~~/shared/seo/marketing'
 import type { CompareData } from '~~/shared/seo/compare'
+import type { Crumb } from '~~/shared/seo/structuredData'
 
 /**
  * The marketing content item for a route path plus the language versions
@@ -32,4 +38,24 @@ export async function fetchMarketingPage(path: string) {
 export async function fetchCompareData(slug: string): Promise<CompareData | null> {
   const item = await queryCollection('compare').where('stem', '=', `compare/${slug}`).first()
   return item ? { name: item.name, rows: item.rows } : null
+}
+
+/**
+ * The comparison pages a hub lists (ItemList JSON-LD): indexable pages
+ * of the `compare` menu in one language, in menu order, hub excluded.
+ */
+export async function fetchCompareHubItems(locale: MarketingLocale): Promise<Crumb[]> {
+  const items = await queryCollection('marketing')
+    .where('navGroup', '=', 'compare')
+    .select('path', 'title', 'navLabel', 'navOrder', 'reviewed')
+    .order('navOrder', 'ASC')
+    .all()
+  const out: Crumb[] = []
+  for (const item of items) {
+    const target = parseMarketingContentPath(item.path)
+    if (!target || target.locale !== locale || marketingPageKind(target.slug) !== 'page') continue
+    if (!isIndexableVersion(item)) continue
+    out.push({ name: item.navLabel || item.title, path: marketingRoutePath(target.locale, target.slug) })
+  }
+  return out
 }

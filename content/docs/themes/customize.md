@@ -3,6 +3,7 @@ title: Tune your typography and colors
 description: Open the Theme tab and tweak fonts, colors, page geometry, header/footer tokens — see the preview repaginate live.
 category: themes
 order: 2
+updated: '2026-11-04'
 ---
 
 # Tune your typography and colors

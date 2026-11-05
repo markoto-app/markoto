@@ -113,7 +113,12 @@ describe('marketing catch-all route', () => {
       'fr https://markoto.app/fr/markdown-cheat-sheet',
       'x-default https://markoto.app/markdown-cheat-sheet'
     ])
-    expect(document.head.querySelector('meta[name="robots"]')).toBeNull()
+    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('index, follow, max-image-preview:large')
+    expect(document.head.querySelector('meta[property="og:type"]')?.getAttribute('content')).toBe('article')
+    expect(document.head.querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe('https://markoto.app/og/use-cases.jpg')
+    const ld = document.head.querySelector('script[data-hid="ld-page"]')?.textContent ?? ''
+    expect(ld).toContain('"@type":"BreadcrumbList"')
+    expect(ld).toContain('"about":[{"@id":"https://markoto.app/#app"}]')
     wrapper.unmount()
   })
 
@@ -148,7 +153,7 @@ describe('::flow-strip', () => {
     const faq = await mountSuspended(Faq, { props: { items: [{ q: 'Is it free?', a: 'Yes.' }], jsonLd: true } })
     await settleHead()
     expect(faq.find('summary').text()).toBe('Is it free?')
-    expect(document.head.querySelector('script[type="application/ld+json"]')?.textContent).toContain('"FAQPage"')
+    expect(document.head.querySelector('script[data-hid="ld-faq"]')?.textContent).toContain('"FAQPage"')
     faq.unmount()
 
     const table = await mountSuspended(CompareTable, {

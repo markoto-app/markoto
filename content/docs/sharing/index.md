@@ -4,6 +4,7 @@ description: Access modes, password protection, and how anonymous links work
 category: sharing
 order: 3
 icon: i-lucide-share-2
+updated: '2026-11-03'
 ---
 
 # Share

@@ -4,6 +4,7 @@ description: Profile page → "Your data" → request export. ZIP arrives in min
 category: account
 order: 3
 featured: true
+updated: '2026-11-04'
 ---
 
 # Export all your data

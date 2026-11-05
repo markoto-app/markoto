@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { hreflangLinks, isIndexableVersion } from '~~/shared/seo/marketing'
-import { fetchMarketingPage } from '~/utils/marketingPage'
+import {
+  COMPARE_HUB_CRUMB,
+  COMPARE_HUB_SLUG,
+  hreflangLinks,
+  isIndexableVersion,
+  marketingPageKind,
+  marketingRoutePath
+} from '~~/shared/seo/marketing'
+import { hubBreadcrumbs, pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import { fetchCompareData, fetchCompareHubItems, fetchMarketingPage } from '~/utils/marketingPage'
 
 // Marketing content pages of the hosted site (content/marketing/<locale>/<slug>.md):
 // `/<slug>` in English, `/de/<slug>`, `/fr/<slug>` for translations.
@@ -25,17 +33,25 @@ if (!data.value) {
 const { target, page, versions } = data.value
 
 const indexable = isIndexableVersion(page)
-useMarketingSeo({
+// Comparison hub (`/compare`), comparison pages (`/compare/<slug>`) and
+// everything else (use cases, the cheat sheet): card group, og:type and
+// the JSON-LD shape differ.
+const kind = marketingPageKind(target.slug)
+const { imageUrl } = useMarketingSeo({
   title: page.title,
   description: page.description,
-  image: page.ogImage
+  imageGroup: kind === 'other' ? 'useCases' : 'compare',
+  image: page.ogImage,
+  imageAlt: page.ogImageAlt,
+  type: kind === 'hub' ? 'website' : 'article',
+  modifiedTime: page.updated,
+  noindex: !indexable
 })
 
 // hreflang alternates for the reviewed language versions that exist;
 // an unreviewed translation is noindex and lists none.
 const alternates = indexable ? hreflangLinks(target.slug, versions) : []
 useHead({
-  meta: indexable ? [] : [{ key: 'robots', name: 'robots', content: 'noindex, follow' }],
   link: siteUrl.value
     ? alternates.map(a => ({
         key: `hreflang-${a.hreflang}`,
@@ -44,6 +60,55 @@ useHead({
         href: `${siteUrl.value}${a.path}`
       }))
     : []
+})
+
+// JSON-LD (marketing site only): WebPage + BreadcrumbList, plus
+//  - hub: CollectionPage + ItemList of the comparisons;
+//  - comparison: Article `about` markoto and the other tool (no ratings);
+//  - other pages: `about` markoto's SoftwareApplication, and HowTo when
+//    the frontmatter lists steps.
+const hubPath = marketingRoutePath(target.locale, COMPARE_HUB_SLUG)
+const competitor = kind === 'page' ? target.slug.slice(COMPARE_HUB_SLUG.length + 1) : ''
+// Same key as `::compare-facts`, so the page queries the claims once.
+const { data: compareData } = await useAsyncData(
+  `compare:${competitor || '-'}`,
+  () => (competitor ? fetchCompareData(competitor) : Promise.resolve(null))
+)
+const { data: hubItems } = await useAsyncData(
+  `marketing:hub:${target.locale}:${kind}`,
+  () => (kind === 'hub' ? fetchCompareHubItems(target.locale) : Promise.resolve([]))
+)
+usePageStructuredData(() => {
+  if (!indexable) return null
+  const base = {
+    name: page.title,
+    description: page.description,
+    dateModified: page.updated,
+    image: imageUrl.value
+  }
+  if (kind === 'hub') {
+    return {
+      ...base,
+      pageType: 'CollectionPage',
+      breadcrumbs: pageBreadcrumbs(route.path, page.title),
+      itemList: hubItems.value ?? []
+    }
+  }
+  if (kind === 'page') {
+    const other = compareData.value?.name
+    return {
+      ...base,
+      article: 'Article',
+      breadcrumbs: hubBreadcrumbs({ name: COMPARE_HUB_CRUMB, path: hubPath }, route.path, page.title),
+      about: other ? [{ self: true }, { name: other }] : [{ self: true }]
+    }
+  }
+  return {
+    ...base,
+    breadcrumbs: pageBreadcrumbs(route.path, page.title),
+    about: [{ self: true }],
+    howTo: page.howTo ?? undefined
+  }
 })
 
 const updatedLabel = computed(() => {

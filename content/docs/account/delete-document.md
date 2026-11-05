@@ -3,6 +3,7 @@ title: Delete a document
 description: Owner-only. Immediate. Irreversible. The doc, its history, its uploads, all of it.
 category: account
 order: 4
+updated: '2026-11-03'
 ---
 
 # Delete a document

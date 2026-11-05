@@ -15,6 +15,14 @@ import {
   MARKETING_LOCALES,
   type MarketingVersion
 } from '../../shared/seo/marketing'
+import { isoDate } from '../../shared/seo/structuredData'
+import {
+  ABUSE_POLICY_EFFECTIVE_DATE,
+  DPA_EFFECTIVE_DATE,
+  IMPRINT_EFFECTIVE_DATE,
+  PRIVACY_EFFECTIVE_DATE,
+  TOS_EFFECTIVE_DATE
+} from '../../shared/legal/versions'
 
 type Env = Record<string, string | undefined>
 
@@ -29,6 +37,8 @@ export interface SitemapEntry {
   loc: string
   /** Language versions of the same page (`xhtml:link rel="alternate"`). */
   alternates?: SitemapAlternate[]
+  /** Last substantive change, YYYY-MM-DD (frontmatter `updated`, legal effective date). */
+  lastmod?: string
 }
 
 /** Legal pages that exist while the legal surfaces are on (hosted). */
@@ -40,6 +50,20 @@ export const LEGAL_SITEMAP_PATHS = [
   '/legal/imprint',
   '/legal/sub-processors'
 ] as const
+
+/**
+ * `<lastmod>` of the legal pages: the effective date of the document's
+ * current version (`shared/legal/versions.ts`). The sub-processor list
+ * belongs to the privacy policy and changes with it.
+ */
+export const LEGAL_LASTMOD: Readonly<Record<string, string>> = Object.freeze({
+  '/legal/privacy': PRIVACY_EFFECTIVE_DATE,
+  '/legal/terms': TOS_EFFECTIVE_DATE,
+  '/legal/dpa': DPA_EFFECTIVE_DATE,
+  '/legal/abuse-policy': ABUSE_POLICY_EFFECTIVE_DATE,
+  '/legal/imprint': IMPRINT_EFFECTIVE_DATE,
+  '/legal/sub-processors': PRIVACY_EFFECTIVE_DATE
+})
 
 /** Fixed top-level pages of the marketing site. */
 export const STATIC_SITEMAP_PATHS = ['/', '/pricing', '/docs'] as const
@@ -55,6 +79,8 @@ export interface LocalisedPage {
   paths: Record<string, string>
   /** Language whose path is `x-default`. */
   defaultLanguage: string
+  /** `<lastmod>` per language tag (frontmatter `updated`). */
+  lastmod?: Record<string, string>
 }
 
 /**
@@ -65,14 +91,25 @@ export interface LocalisedPage {
 export function marketingSitemapPages(versions: MarketingVersion[]): LocalisedPage[] {
   return [...indexableMarketingPages(versions).entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, paths]) => {
+    .map(([slug, paths]) => {
       const clean: Record<string, string> = {}
+      const lastmod: Record<string, string> = {}
       for (const locale of MARKETING_LOCALES) {
         const path = paths[locale]
-        if (path) clean[locale] = path
+        if (!path) continue
+        clean[locale] = path
+        const updated = isoDate(updatedOf(versions, locale, slug))
+        if (updated) lastmod[locale] = updated
       }
-      return { paths: clean, defaultLanguage: DEFAULT_MARKETING_LOCALE }
+      return Object.keys(lastmod).length
+        ? { paths: clean, defaultLanguage: DEFAULT_MARKETING_LOCALE, lastmod }
+        : { paths: clean, defaultLanguage: DEFAULT_MARKETING_LOCALE }
     })
+}
+
+function updatedOf(versions: MarketingVersion[], locale: string, slug: string): string | undefined {
+  const path = `/marketing/${locale}/${slug}`
+  return versions.find(v => v.path === path)?.updated ?? undefined
 }
 
 /**
@@ -99,16 +136,26 @@ export function localisedEntries(base: string, page: LocalisedPage): SitemapEntr
     .map(([hreflang, path]) => ({ hreflang, href: `${base}${path}` }))
   const defaultPath = page.paths[page.defaultLanguage]
   if (defaultPath) alternates.push({ hreflang: 'x-default', href: `${base}${defaultPath}` })
-  return Object.values(page.paths).map(path => ({ loc: `${base}${path}`, alternates }))
+  return Object.entries(page.paths).map(([lang, path]) => {
+    const lastmod = page.lastmod?.[lang]
+    return lastmod ? { loc: `${base}${path}`, alternates, lastmod } : { loc: `${base}${path}`, alternates }
+  })
 }
 
 export interface SitemapSources {
   /** Route paths of the docs pages (`/docs/...`). */
   docsPaths: string[]
+  /** `<lastmod>` per docs route path (frontmatter `updated`). */
+  docsLastmod?: Record<string, string>
   /** Legal pages exist (legal surfaces on). */
   legalSurfaces: boolean
   /** Localised marketing pages (`marketingSitemapPages`). */
   marketingPages?: LocalisedPage[]
+}
+
+function withLastmod(loc: string, lastmod: string | undefined): SitemapEntry {
+  const date = isoDate(lastmod)
+  return date ? { loc, lastmod: date } : { loc }
 }
 
 /** Every sitemap entry, deduplicated, in a stable order. */
@@ -122,8 +169,8 @@ export function sitemapEntries(base: string, sources: SitemapSources): SitemapEn
   }
   for (const path of STATIC_SITEMAP_PATHS) add({ loc: path === '/' ? `${base}/` : `${base}${path}` })
   for (const page of sources.marketingPages ?? []) localisedEntries(base, page).forEach(add)
-  for (const path of [...sources.docsPaths].sort()) add({ loc: `${base}${path}` })
-  if (sources.legalSurfaces) for (const path of LEGAL_SITEMAP_PATHS) add({ loc: `${base}${path}` })
+  for (const path of [...sources.docsPaths].sort()) add(withLastmod(`${base}${path}`, sources.docsLastmod?.[path]))
+  if (sources.legalSurfaces) for (const path of LEGAL_SITEMAP_PATHS) add(withLastmod(`${base}${path}`, LEGAL_LASTMOD[path]))
   return out
 }
 
@@ -144,6 +191,7 @@ export function buildSitemapXml(entries: SitemapEntry[]): string {
   ]
   for (const entry of entries) {
     lines.push('  <url>', `    <loc>${escapeXml(entry.loc)}</loc>`)
+    if (entry.lastmod) lines.push(`    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`)
     for (const alt of entry.alternates ?? []) {
       lines.push(`    <xhtml:link rel="alternate" hreflang="${escapeXml(alt.hreflang)}" href="${escapeXml(alt.href)}"/>`)
     }

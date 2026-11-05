@@ -4,6 +4,7 @@ description: Ask the AI to draft, rewrite, or restructure - it joins your docume
 category: writing
 order: 4
 icon: i-lucide-sparkles
+updated: '2026-10-29'
 ---
 
 # Write with the AI prompt bar
