@@ -2,8 +2,8 @@
 
 <!-- Date, attendees, and the meeting's one-line purpose go in the next three lines. -->
 
-**Date:** <!-- e.g. 2026-04-26 -->
-**Attendees:** <!-- comma-separated -->
+**Date:** <!-- e.g. 2026-04-26 -->\
+**Attendees:** <!-- comma-separated -->\
 **Purpose:** <!-- one sentence: "Decide whether to ship X by Y" -->
 
 ## Agenda

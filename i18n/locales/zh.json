@@ -326,6 +326,14 @@
       "label": "项目 README",
       "description": "标语、缘由、快速上手、功能、文档、贡献、许可。"
     },
+    "resume": {
+      "label": "简历",
+      "description": "一页简历：个人简介、工作经历、教育背景、技能、语言。"
+    },
+    "report": {
+      "label": "报告",
+      "description": "封面、目录、摘要、关键数据、结果、展望、附录。"
+    },
     "demo": {
       "label": "演示",
       "description": "Markdown 基础与 markoto 简短导览。"
@@ -981,6 +989,10 @@
       "newsletter": {
         "name": "简报",
         "description": "Karla 正文置于 PT Serif 标题之下、绿色点缀、品牌色表头 — 周报式质感。"
+      },
+      "resume": {
+        "name": "简历",
+        "description": "紧凑的一页 A4：Inter 10 pt，带横线的小标题，无页眉、页脚和封面。"
       }
     },
     "customCss": {
@@ -1596,7 +1608,7 @@
       "themes": {
         "label": "主题",
         "title": "改变外观，不动 Markdown。",
-        "body": "从七款主题中任选其一，再调整颜色、字体和封面。正文内容保持不变。"
+        "body": "从八款主题中任选其一，再调整颜色、字体和封面。正文内容保持不变。"
       },
       "collab": {
         "label": "协作",
@@ -1753,6 +1765,7 @@
       "label": "网站",
       "pricing": "价格",
       "useCases": "使用场景",
+      "templates": "模板",
       "compare": "对比",
       "selfHost": "自托管"
     },

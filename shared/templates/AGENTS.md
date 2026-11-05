@@ -1,6 +1,6 @@
 # Templates
 
-Bodies keyed off `templateId`. Seven ship: demo (the new-document dialog's default, `DEFAULT_TEMPLATE_ID`: a markdown cheat sheet that also says where sharing, themes, cover page, comments + `@markoto`, the AI bar, dictation, activity/restore, PDF export and workspace knowledge live; all six UI locales), blank (truly empty — no body at all), business-plan, academic-paper, recipe, meeting-notes, project-readme. Each skeleton template has heading hierarchy + section-level `<!-- ... -->` instruction comments — invisible in preview/PDF (comment plugin in `app/utils/AGENTS.md`) but visible in the markdown source AND in the AI's `view_document` calls, so the model has section-level briefs to follow.
+Bodies keyed off `templateId`. Nine ship: demo (the new-document dialog's default, `DEFAULT_TEMPLATE_ID`: a markdown cheat sheet that also says where sharing, themes, cover page, comments + `@markoto`, the AI bar, dictation, activity/restore, PDF export and workspace knowledge live; all six UI locales), blank (truly empty — no body at all), business-plan, academic-paper, recipe, meeting-notes, project-readme, report (outline modelled on the Quaybridge demo report; all six locales) and resume (NOT a skeleton: a filled-in one-page CV for a made-up person, sized to fit one A4 page with the `modern` preset; all six locales; `/templates/resume` previews it verbatim, pinned by `tests/unit/templates.test.ts`). Each template has a page at `/templates/<id>` on the marketing site (`content/marketing/en/templates/`, "Use this template" = `::cta{template theme}` → the new-document dialog with that template + preset selected). Each skeleton template has heading hierarchy + section-level `<!-- ... -->` instruction comments — invisible in preview/PDF (comment plugin in `app/utils/AGENTS.md`) but visible in the markdown source AND in the AI's `view_document` calls, so the model has section-level briefs to follow.
 
 ## Split between client-safe registry and server-only renderer
 
@@ -11,7 +11,7 @@ Bodies keyed off `templateId`. Seven ship: demo (the new-document dialog's defau
 
 ## Multilingual
 
-Each template ships per-locale files (`demo` in all six UI locales, the skeletons `en.md` + `de.md`; `TEMPLATE_LOCALES` lists all six, a missing file falls back to English). Locale resolution in `renderTemplate`: exact match → BCP-47 base (`de-CH` → `de`) → English fallback. Free-text languages drop to English without throwing; the AI handles output language via the doc-context block regardless. Adding a locale = drop new `.md` files + extend `TEMPLATE_LOCALES` once. Adding a template = drop the `<id>/en.md` file (mandatory) + register in `TEMPLATES` + add i18n keys for label/description.
+Each template ships per-locale files (`demo`, `report` and `resume` in all six UI locales, the older skeletons `en.md` + `de.md`; `TEMPLATE_LOCALES` lists all six, a missing file falls back to English). Locale resolution in `renderTemplate`: exact match → BCP-47 base (`de-CH` → `de`) → English fallback. Free-text languages drop to English without throwing; the AI handles output language via the doc-context block regardless. Adding a locale = drop new `.md` files + extend `TEMPLATE_LOCALES` once. Adding a template = drop the `<id>/en.md` file (mandatory) + register in `TEMPLATES` + add i18n keys for label/description.
 
 ## Seeding flow
 

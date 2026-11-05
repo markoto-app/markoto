@@ -44,7 +44,7 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
 
   await flow.heading('Tune your typography and colors', 3)
   await flow.narrate(
-    'Seven built-in presets get you to a polished starting point in one '
+    'Eight built-in presets get you to a polished starting point in one '
     + 'click. Below the preset cards, the theme panel has a section for '
     + 'every detail: page, body text, headings, colours, tables, code, '
     + 'table of contents, diagrams, header and footer. Every change shows '

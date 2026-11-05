@@ -5,7 +5,7 @@ import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
-import { DEFAULT_TEMPLATE_ID, TEMPLATES } from '~~/shared/templates'
+import { DEFAULT_TEMPLATE_ID, TEMPLATES, isTemplateId } from '~~/shared/templates'
 
 // Same trick as ThemeEditorPanel — link every picker font's (same-origin)
 // stylesheet so each preset card can render its heading in its actual
@@ -34,13 +34,20 @@ if (import.meta.client) {
  *     optional workspaceId), schema defaults take over: the `blank`
  *     template, i.e. an empty document
  *
- * The template picker pre-selects `demo` (DEFAULT_TEMPLATE_ID).
+ * The template picker pre-selects `demo` (DEFAULT_TEMPLATE_ID), or
+ * `initialTemplateId` when the caller passes one (the "Use this template"
+ * button on /templates/<slug>); `initialThemePreset` does the same for
+ * the theme when no workspace default applies.
  */
 
 const props = defineProps<{
   open: boolean
   /** When set, the new doc files into this workspace. */
   workspaceId?: string | null
+  /** Template card selected on open (a registered id); `demo` otherwise. */
+  initialTemplateId?: string | null
+  /** Built-in theme preset selected on open, unless the workspace sets a default. */
+  initialThemePreset?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -166,17 +173,18 @@ watch(() => props.open, async (next) => {
   title.value = ''
   description.value = ''
   audience.value = 'casual'
-  templateId.value = DEFAULT_TEMPLATE_ID
+  templateId.value = isTemplateId(props.initialTemplateId) ? props.initialTemplateId : DEFAULT_TEMPLATE_ID
   languageModel.value = defaultLanguageItem()
   // Pull saved themes + workspace default fresh on every open so a
   // theme just-saved in the editor is immediately pickable here.
   await loadThemeContext()
-  // Pre-select the workspace default if one is set. Otherwise default
-  // to the markoto preset (the brand default).
+  // Pre-select the workspace default if one is set. Otherwise the
+  // caller's preset, else the markoto preset (the brand default).
   if (workspaceDefaultTheme.value) {
     themeChoice.value = matchThemeChoice(workspaceDefaultTheme.value)
   } else {
-    themeChoice.value = { kind: 'preset', id: 'markoto' }
+    const preset = THEME_PRESETS.find(p => p.id === props.initialThemePreset)
+    themeChoice.value = { kind: 'preset', id: preset?.id ?? 'markoto' }
   }
 })
 

@@ -7,7 +7,8 @@ import { selfHostPath } from '~~/shared/seo/marketing'
 //
 // Links: Pricing (where a pricing page is worth showing,
 // `useBillingMode().pricingVisible`), Use cases + Compare (menus from the
-// marketing content collection, hidden while empty), Self-host and Docs.
+// marketing content collection, hidden while empty), Templates (a link to
+// the hub), Self-host and Docs.
 // The marketing links exist only on the hosted marketing site and only
 // for visitors who aren't signed in — the dashboard is a work surface.
 // From `lg` the links sit inline; below, one "Menu" dropdown holds them.
@@ -31,9 +32,16 @@ interface FlatLink { label: string, to: string, testid: string }
 const leading = computed<FlatLink[]>(() => pricingVisible.value
   ? [{ label: t('marketing.nav.pricing'), to: '/pricing', testid: 'header-pricing-link' }]
   : [])
-const trailing = computed<FlatLink[]>(() => marketingLinks.value
-  ? [{ label: t('marketing.nav.selfHost'), to: selfHostPath(marketingSite.value), testid: 'header-self-host-link' }]
-  : [])
+// Templates is one plain link to its hub (the first templates entry), not
+// a third menu: the hub lists and describes every template.
+const trailing = computed<FlatLink[]>(() => {
+  if (!marketingLinks.value) return []
+  const hub = nav.value.templates[0]
+  return [
+    ...(hub ? [{ label: t('marketing.nav.templates'), to: hub.to, testid: 'header-templates-link' }] : []),
+    { label: t('marketing.nav.selfHost'), to: selfHostPath(marketingSite.value), testid: 'header-self-host-link' }
+  ]
+})
 
 interface Menu { label: string, items: DropdownMenuItem[], testid: string }
 const menus = computed<Menu[]>(() => {
