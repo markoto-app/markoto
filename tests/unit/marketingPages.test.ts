@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import {
   hreflangLinks,
@@ -9,6 +9,7 @@ import {
   parseMarketingContentPath,
   parseMarketingRoute,
   prefixedMarketingLocale,
+  PREFIXED_MARKETING_LOCALES,
   selfHostPath
 } from '../../shared/seo/marketing'
 import { flowStripData, stripCaption } from '../../shared/docs/flowStrip'
@@ -192,5 +193,77 @@ describe('selfHostPath (header + footer "Self-host")', () => {
     const page = readFileSync(resolve(__dirname, '../../content/marketing/en/self-hosted-markdown-editor.md'), 'utf8')
     expect(page).not.toMatch(/^navGroup:/m)
     expect(existsSync(resolve(__dirname, '../../content/docs/getting-started/self-hosting.md'))).toBe(true)
+  })
+})
+
+// Translations (content/marketing/de|fr): every page translates an
+// English one block for block, links to the localised versions that
+// exist, and German writes Swiss "ss" (never "ß").
+describe('translated marketing pages', () => {
+  const root = resolve(__dirname, '../../content/marketing')
+
+  function pages(dir: string, prefix = ''): string[] {
+    return readdirSync(dir).flatMap((name) => {
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) return pages(full, `${prefix}${name}/`)
+      return name.endsWith('.md') ? [`${prefix}${name}`] : []
+    })
+  }
+
+  /** MDC block names in document order (`::try-it{…}` → `try-it`; closing `::` lines skipped). */
+  function blocks(text: string): string[] {
+    return [...text.matchAll(/^::([a-z][a-z-]*)/gm)].map(m => m[1] ?? '')
+  }
+
+  function frontmatterText(text: string): string {
+    return /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? ''
+  }
+
+  const translated = PREFIXED_MARKETING_LOCALES.flatMap(locale =>
+    existsSync(join(root, locale)) ? pages(join(root, locale)).map(file => ({ locale, file })) : []
+  )
+
+  it('finds the de and fr pages', () => {
+    for (const locale of PREFIXED_MARKETING_LOCALES) {
+      expect(translated.filter(t => t.locale === locale).length, locale).toBeGreaterThan(0)
+    }
+  })
+
+  for (const { locale, file } of translated) {
+    const rel = `${locale}/${file}`
+    const text = readFileSync(join(root, locale, file), 'utf8')
+
+    it(`${rel}: has an English original with the same blocks in the same order`, () => {
+      const enFile = join(root, 'en', file)
+      expect(existsSync(enFile), `content/marketing/en/${file}`).toBe(true)
+      const en = blocks(readFileSync(enFile, 'utf8'))
+      expect(blocks(text)).toEqual(en)
+      for (const name of ['try-it', 'faq', 'cta']) {
+        expect(blocks(text).filter(b => b === name).length, `::${name}`).toBe(en.filter(b => b === name).length)
+      }
+    })
+
+    it(`${rel}: says whether a native speaker has reviewed it`, () => {
+      expect(frontmatterText(text)).toMatch(/^reviewed: (true|false)$/m)
+    })
+
+    it(`${rel}: links to the ${locale} version of pages that have one`, () => {
+      for (const match of text.matchAll(/\]\((\/[a-z0-9/-]+)\)/g)) {
+        const target = parseMarketingRoute(match[1] ?? '')
+        if (!target || target.locale !== 'en') continue
+        const localised = join(root, locale, `${target.slug}.md`)
+        expect(existsSync(localised), `${match[1]} → /${locale}/${target.slug}`).toBe(false)
+      }
+    })
+
+    if (locale === 'de') {
+      it(`${rel}: writes "ss", never "ß"`, () => {
+        expect(text).not.toContain('ß')
+      })
+    }
+  }
+
+  it('the German UI strings write "ss", never "ß"', () => {
+    expect(readFileSync(resolve(__dirname, '../../i18n/locales/de.json'), 'utf8')).not.toContain('ß')
   })
 })

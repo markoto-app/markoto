@@ -30,6 +30,8 @@ import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 const props = defineProps<{
   initial: string
   themePreset?: string
+  /** Document language (ISO code): preview TOC title + cover date, and the created document's language. */
+  language?: string
   autofocus?: boolean
 }>()
 const emit = defineEmits<{ ready: [] }>()
@@ -106,7 +108,8 @@ const { pageCount, isReady, error: previewError } = usePagedPreview({
   theme,
   title,
   docId: ref(''),
-  container: previewHost
+  container: previewHost,
+  language: computed(() => props.language ?? '')
 })
 
 // ── Phones: Edit / Preview tabs (both panes stay mounted) ────────────
@@ -131,6 +134,7 @@ async function ensureDocument(): Promise<string> {
   if (created && created.text === current) return created.docId
   const body: Record<string, unknown> = { content: current }
   if (title.value) body.title = title.value
+  if (props.language) body.language = props.language
   if (props.themePreset && THEME_PRESETS.some(p => p.id === props.themePreset)) body.themePreset = props.themePreset
   const docId = await anonDoc.createDocument(body)
   created = { text: current, docId }

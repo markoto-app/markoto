@@ -36,7 +36,8 @@ function asMarketingLocale(code: string): MarketingLocale {
  * Header + footer menus of the marketing site, built from the `marketing`
  * content collection (`navGroup` / `navLabel` / `navOrder` frontmatter of
  * the English pages). A page links to its version in the current UI
- * language when one exists and is reviewed. Empty off the marketing site
+ * language when one exists and is reviewed, under that version's own
+ * `navLabel` (or title). Empty off the marketing site
  * (the pages 404 there) — no query is made.
  */
 export function useMarketingNav() {
@@ -54,10 +55,12 @@ export function useMarketingNav() {
     const items = data.value
     if (!marketingSite.value || items.length === 0) return EMPTY
     const current = asMarketingLocale(locale.value)
-    const translated = new Set<string>()
+    // Reviewed versions, with the label their own page gives them: a
+    // link to the German page reads in German.
+    const translated = new Map<string, string>()
     for (const item of items) {
       const target = parseMarketingContentPath(item.path)
-      if (target && item.reviewed !== false) translated.add(`${target.locale}:${target.slug}`)
+      if (target && item.reviewed !== false) translated.set(`${target.locale}:${target.slug}`, item.navLabel ?? item.title)
     }
     type Ordered = MarketingNavLink & { order: number }
     const nav: Record<NavGroup, Ordered[]> = { useCases: [], compare: [], templates: [] }
@@ -65,9 +68,10 @@ export function useMarketingNav() {
       const target = parseMarketingContentPath(item.path)
       const group = item.navGroup ? GROUP_OF[item.navGroup] : undefined
       if (!target || target.locale !== DEFAULT_MARKETING_LOCALE || !group) continue
-      const locale = translated.has(`${current}:${target.slug}`) ? current : DEFAULT_MARKETING_LOCALE
+      const localisedLabel = translated.get(`${current}:${target.slug}`)
+      const locale = localisedLabel === undefined ? DEFAULT_MARKETING_LOCALE : current
       const link = {
-        label: item.navLabel ?? item.title,
+        label: localisedLabel ?? item.navLabel ?? item.title,
         to: marketingRoutePath(locale, target.slug),
         order: item.navOrder ?? Number.MAX_SAFE_INTEGER
       }

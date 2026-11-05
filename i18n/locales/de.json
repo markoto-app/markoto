@@ -7,7 +7,7 @@
   "landing": {
     "hero": "Schön gesetztes {markdown}.",
     "heroMarkdown": "Markdown",
-    "subtitle": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
+    "subtitle": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Sie schreiben reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
     "newDocument": "Neues Dokument",
     "openDocument": "Dokument öffnen",
     "recentDocuments": "Zuletzt verwendete Dokumente",
@@ -20,7 +20,7 @@
     "loginGoogle": "Mit Google fortfahren",
     "loginOidc": "Mit {provider} fortfahren",
     "oidcDefaultName": "Single Sign-on",
-    "loginUnavailable": "Die Anmeldung ist auf dieser Instanz nicht eingerichtet. Du kannst Dokumente trotzdem anonym erstellen und bearbeiten.",
+    "loginUnavailable": "Die Anmeldung ist auf dieser Instanz nicht eingerichtet. Sie können Dokumente trotzdem anonym erstellen und bearbeiten.",
     "loginRequired": "Anmeldung erforderlich",
     "linkedTitle": "Konten verknüpft",
     "linkedDescription": "Ihre {provider}-Anmeldung ist jetzt mit Ihrem bestehenden Konto verbunden. Ab sofort können Sie sich mit beiden Anbietern anmelden.",
@@ -37,8 +37,8 @@
     "syncAuthFailedReload": "Neu laden",
     "syncRejected": {
       "title": "Ihre letzten Änderungen wurden nicht gespeichert",
-      "updateTooLarge": "Diese Änderung ist zu groß, um sie auf einmal zu synchronisieren. Laden Sie neu und fügen Sie den Inhalt in kleineren Teilen ein.",
-      "documentTooLarge": "Dieses Dokument hat seine maximale Größe erreicht. Laden Sie neu und entfernen Sie Inhalt oder teilen Sie ihn auf mehrere Dokumente auf.",
+      "updateTooLarge": "Diese Änderung ist zu gross, um sie auf einmal zu synchronisieren. Laden Sie neu und fügen Sie den Inhalt in kleineren Teilen ein.",
+      "documentTooLarge": "Dieses Dokument hat seine maximale Grösse erreicht. Laden Sie neu und entfernen Sie Inhalt oder teilen Sie ihn auf mehrere Dokumente auf.",
       "invalidMeta": "Eine Dokumenteinstellung (Titel, Theme oder Angaben) hatte einen Wert, den der Server nicht annehmen konnte. Laden Sie neu, um weiterzuarbeiten.",
       "invalidUpdate": "Der Server konnte eine Änderung aus diesem Tab nicht verarbeiten. Laden Sie neu, um weiterzuarbeiten."
     },
@@ -70,7 +70,7 @@
   },
   "previewZoom": {
     "menu": "Zoom",
-    "zoomIn": "Vergrößern",
+    "zoomIn": "Vergrössern",
     "zoomOut": "Verkleinern",
     "fitWidth": "An Breite anpassen",
     "allPages": "Alle Seiten",
@@ -297,7 +297,7 @@
     "themeWorkspaceDefault": "Workspace-Standard",
     "themeWorkspaceDefaultHelp": "Verwenden Sie das als Standard für diesen Workspace festgelegte Design.",
     "templateLabel": "Vorlage",
-    "templateHelp": "Füllt das Dokument mit einem strukturellen Grundgerüst vor, das Sie bearbeiten können. Jeder Abschnitt enthält einen Kommentarhinweis, damit markoto weiß, was wohin gehört.",
+    "templateHelp": "Füllt das Dokument mit einem strukturellen Grundgerüst vor, das Sie bearbeiten können. Jeder Abschnitt enthält einen Kommentarhinweis, damit markoto weiss, was wohin gehört.",
     "create": "Dokument erstellen",
     "skip": "Nur ein leeres Dokument"
   },
@@ -343,7 +343,7 @@
     "title": "Dokument",
     "description": {
       "label": "Beschreibung",
-      "help": "Eine Zeile darüber, was dieses Dokument ist. Die KI sieht dies bei jedem Zug — so weiß das Modell, woran Sie arbeiten, ohne dass Sie es erneut eintippen müssen.",
+      "help": "Eine Zeile darüber, was dieses Dokument ist. Die KI sieht dies bei jedem Zug — so weiss das Modell, woran Sie arbeiten, ohne dass Sie es erneut eintippen müssen.",
       "placeholder": "z. B. Q3-Launch-Plan für die neue mobile App"
     },
     "language": {
@@ -400,7 +400,7 @@
     "duplicate": "Duplizieren",
     "move": "In Workspace verschieben…",
     "confirm": "Bestätigen",
-    "close": "Schließen",
+    "close": "Schliessen",
     "loading": "Wird geladen...",
     "menu": "Menü",
     "docs": "Doku",
@@ -434,7 +434,7 @@
     "insert": {
       "title": "Einfügen",
       "codeBlock": "Codeblock",
-      "footnote": "Fußnote",
+      "footnote": "Fussnote",
       "alert": "Hinweis",
       "alertNote": "Anmerkung",
       "alertTip": "Tipp",
@@ -580,12 +580,12 @@
     "heading1": "Überschrift 1",
     "heading2": "Überschrift 2",
     "heading3": "Überschrift 3",
-    "body": "Fließtext",
+    "body": "Fliesstext",
     "bulletList": "Aufzählung",
     "numberedList": "Nummerierte Liste",
     "taskList": "Aufgabenliste",
     "link": "Link",
-    "footnote": "Fußnote",
+    "footnote": "Fussnote",
     "toc": "Inhaltsverzeichnis",
     "hiddenComment": "Versteckte Notiz"
   },
@@ -733,12 +733,12 @@
     "columns": "Spalten",
     "section": {
       "page": "Seite",
-      "body": "Fließtext",
+      "body": "Fliesstext",
       "headings": "Überschriften",
       "color": "Farben",
       "layout": "Layout",
       "header": "Seitenkopf",
-      "footer": "Seitenfuß",
+      "footer": "Seitenfuss",
       "code": "Codeblöcke",
       "tables": "Tabellen",
       "blocks": "Bilder & Zitate",
@@ -750,25 +750,25 @@
       "customCss": "Eigenes CSS"
     },
     "page": {
-      "size": "Seitengröße",
+      "size": "Seitengrösse",
       "orientation": "Ausrichtung",
       "margin": "Rand (mm)",
       "marginHelp": "Einheitlicher Rand auf allen vier Seiten."
     },
     "body": {
       "font": "Schriftart",
-      "size": "Größe (pt)",
+      "size": "Grösse (pt)",
       "lineHeight": "Zeilenhöhe",
       "textAlign": "Absatzausrichtung",
       "textAlignHelp": "Blocksatz füllt die Zeile von Rand zu Rand mit Silbentrennung.",
       "color": "Textfarbe",
       "background": "Seitenhintergrund",
       "dropCap": "Initiale im ersten Absatz",
-      "dropCapHelp": "Stellt den ersten Buchstaben in ~3,4-facher Textgröße in der Überschriftenschrift dar.",
+      "dropCapHelp": "Stellt den ersten Buchstaben in ~3,4-facher Textgrösse in der Überschriftenschrift dar.",
       "firstLineIndent": "Erstzeileneinzug im Absatz",
-      "firstLineIndentHelp": "Zieht die erste Zeile jedes Absatzes ein, außer dem ersten in einer Folge (Roman-Typografie).",
+      "firstLineIndentHelp": "Zieht die erste Zeile jedes Absatzes ein, ausser dem ersten in einer Folge (Roman-Typografie).",
       "paragraphSpacing": "Absatzabstand (em)",
-      "hyphenate": "Fließtext automatisch trennen",
+      "hyphenate": "Fliesstext automatisch trennen",
       "hyphenateHelp": "Trennt lange Wörter an Zeilenumbrüchen. Empfohlen für Blocksatz."
     },
     "headings": {
@@ -817,7 +817,7 @@
     },
     "code": {
       "theme": "Farbschema",
-      "fontSize": "Schriftgröße (pt)",
+      "fontSize": "Schriftgrösse (pt)",
       "none": "Einfach (keine Syntaxhervorhebung)"
     },
     "tables": {
@@ -826,7 +826,7 @@
       "headerBgMuted": "Dezente Tönung",
       "headerBgNone": "Keiner",
       "headerTextColor": "Kopf-Textfarbe",
-      "headerTextColorHelp": "Wählt automatisch Weiß, wenn der Kopf in Markenfarbe ist.",
+      "headerTextColorHelp": "Wählt automatisch Weiss, wenn der Kopf in Markenfarbe ist.",
       "headerColorAuto": "Automatisch",
       "headerColorInherit": "Erben (Textfarbe)",
       "borders": "Randstil",
@@ -860,7 +860,7 @@
     },
     "mermaid": {
       "theme": "Diagrammdesign",
-      "themeHelp": "Farben aller Mermaid-Diagramme in diesem Dokument. „Wie Dokument“ übernimmt die Farben deines Themes; Diagramme verwenden immer die Schrift des Fließtexts.",
+      "themeHelp": "Farben aller Mermaid-Diagramme in diesem Dokument. „Wie Dokument“ übernimmt die Farben deines Themes; Diagramme verwenden immer die Schrift des Fliesstexts.",
       "themeDocument": "Wie Dokument",
       "themeDefault": "Standard",
       "themeDark": "Dunkel",
@@ -878,7 +878,7 @@
     },
     "meta": {
       "font": "Meta-Schriftart",
-      "fontHelp": "Wird für Kopf-/Fußzeilentext, Bildunterschriften und Fußnoten verwendet — die \"Über das Dokument\"-Stimme."
+      "fontHelp": "Wird für Kopf-/Fusszeilentext, Bildunterschriften und Fussnoten verwendet — die \"Über das Dokument\"-Stimme."
     },
     "cover": {
       "enabled": "Titelseite anzeigen",
@@ -889,14 +889,14 @@
       "layoutBanner": "Banner — Logo + Titel in einem markengetönten oberen Band",
       "layoutMinimal": "Minimal — nur Titel, zentriert (Logo & Meta ausgeblendet)",
       "align": "Textausrichtung",
-      "titleSize": "Titelgröße",
-      "subtitleSize": "Untertitelgröße",
+      "titleSize": "Titelgrösse",
+      "subtitleSize": "Untertitelgrösse",
       "showTitle": "Dokumenttitel anzeigen",
       "showSubtitle": "Untertitel anzeigen",
       "subtitle": "Untertitel",
       "showDate": "Datum anzeigen",
       "date": "Veröffentlichungsdatum",
-      "dateHelp": "Erscheint auf dem Deckblatt und überall, wo Kopf- oder Fußzeile das Datum zeigen – ausgeschrieben in der Dokumentsprache. Leer lassen für das heutige Datum.",
+      "dateHelp": "Erscheint auf dem Deckblatt und überall, wo Kopf- oder Fusszeile das Datum zeigen – ausgeschrieben in der Dokumentsprache. Leer lassen für das heutige Datum.",
       "dateClear": "Heutiges Datum verwenden",
       "showAuthors": "Autoren anzeigen",
       "showLogo": "Logo anzeigen",
@@ -964,7 +964,7 @@
       "applied": "Vorlage auf Ihr Dokument angewendet",
       "markoto": {
         "name": "markoto",
-        "description": "Der markante Look. Redaktionelle Fraunces-Überschriften, Inter-Fließtext auf schlichtem weissem Papier, Zinnoberrot-Akzent — ruhiger Feldführer, kein Dashboard."
+        "description": "Der markante Look. Redaktionelle Fraunces-Überschriften, Inter-Fliesstext auf schlichtem weissem Papier, Zinnoberrot-Akzent — ruhiger Feldführer, kein Dashboard."
       },
       "modern": {
         "name": "Modern",
@@ -972,7 +972,7 @@
       },
       "academic": {
         "name": "Wissenschaftliche Arbeit",
-        "description": "Zweispaltiger Source-Serif-Fließtext, Seitenzahlen im laufenden Kopf, minimale Tabellenränder — im Journal-Stil."
+        "description": "Zweispaltiger Source-Serif-Fliesstext, Seitenzahlen im laufenden Kopf, minimale Tabellenränder — im Journal-Stil."
       },
       "tech": {
         "name": "Technischer Bericht",
@@ -980,15 +980,15 @@
       },
       "business": {
         "name": "Geschäftsbericht",
-        "description": "Playfair-Überschriften über Source-Sans-Fließtext, warmer Bernstein-Akzent, markengefärbte Tabellenköpfe, zentrierter Titel."
+        "description": "Playfair-Überschriften über Source-Sans-Fliesstext, warmer Bernstein-Akzent, markengefärbte Tabellenköpfe, zentrierter Titel."
       },
       "novel": {
         "name": "Roman",
-        "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fußzeile."
+        "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
       },
       "newsletter": {
         "name": "Newsletter",
-        "description": "Karla-Fließtext unter PT-Serif-Überschriften, grüner Akzent, markengefärbte Tabellenköpfe — Wochenrückblick-Gefühl."
+        "description": "Karla-Fliesstext unter PT-Serif-Überschriften, grüner Akzent, markengefärbte Tabellenköpfe — Wochenrückblick-Gefühl."
       },
       "resume": {
         "name": "Lebenslauf",
@@ -996,13 +996,13 @@
       }
     },
     "customCss": {
-      "help": "Füge eigene CSS-Regeln hinzu. Sie gelten nach den Theme-Einstellungen oben und haben daher Vorrang. Eigenes CSS gestaltet nur das Dokument: Vorschau, Drucken und PDF-Export. Der Text liegt in .paged-doc; Seitengröße, Ränder, Kopf- und Fußzeilen setzt du mit {'@'}page-Regeln.",
+      "help": "Füge eigene CSS-Regeln hinzu. Sie gelten nach den Theme-Einstellungen oben und haben daher Vorrang. Eigenes CSS gestaltet nur das Dokument: Vorschau, Drucken und PDF-Export. Der Text liegt in .paged-doc; Seitengrösse, Ränder, Kopf- und Fusszeilen setzt du mit {'@'}page-Regeln.",
       "editorLabel": "Eigenes CSS",
       "imagesHint": "Bilder: url() kann Bilder verwenden, die in dieses Dokument hochgeladen wurden (kopiere die /api/files/…-Adresse aus dem Editor), oder data:image-URLs. Andere Websites und {'@'}import sind nicht erlaubt.",
       "examplesTitle": "Beispiele",
       "example": {
-        "pageNumber": "Seitenzahlen in der Fußzeile",
-        "h1": "Größere Hauptüberschriften",
+        "pageNumber": "Seitenzahlen in der Fusszeile",
+        "h1": "Grössere Hauptüberschriften",
         "blockquote": "Hinterlegte Zitate"
       },
       "insert": "Einfügen",
@@ -1013,7 +1013,7 @@
       "position": "Zeile {line}, Spalte {column}",
       "droppedOnApply": "Einige CSS-Regeln dieses Themes verwenden Bilder aus einem anderen Dokument. Sie wurden entfernt.",
       "issue": {
-        "too-large": "Das eigene CSS ist größer als 64 KB.",
+        "too-large": "Das eigene CSS ist grösser als 64 KB.",
         "syntax": "Syntaxfehler. Prüfe auf eine fehlende Klammer, einen Doppelpunkt oder ein Semikolon.",
         "at-rule": "{detail} ist in eigenem CSS nicht erlaubt.",
         "property": "Die Eigenschaft {detail} ist nicht erlaubt.",
@@ -1029,7 +1029,7 @@
   },
   "table": {
     "title": "Tabelle einfügen",
-    "description": "Zeigen Sie darauf, um die Größe zu wählen, und klicken Sie dann zum Einfügen.",
+    "description": "Zeigen Sie darauf, um die Grösse zu wählen, und klicken Sie dann zum Einfügen.",
     "tocTitle": "Inhaltsverzeichnis"
   },
   "duplicate": {
@@ -1310,7 +1310,7 @@
           "exportFirst": "Nutzen Sie die Datenexportfunktion, um alles, was wir über Sie speichern, als ZIP herunterzuladen — bewahren Sie diese Datei auf, unabhängig davon, was hier geschieht.",
           "transferDocs": "Für jedes Dokument, das ein Mitarbeiter behalten soll, verschieben Sie es entweder in einen Workspace, der ihm gehört, oder lassen Sie es ihn duplizieren.",
           "inviteWorkspaceMember": "Für jeden Workspace, den Sie bewahren möchten, laden Sie vor dem Löschen mindestens einen Mitarbeiter mit Administratorrolle ein.",
-          "downloadKnowledge": "Für Wissensdatenbankdateien, die Sie bewahren möchten, laden Sie diese zuerst außerhalb von markoto herunter."
+          "downloadKnowledge": "Für Wissensdatenbankdateien, die Sie bewahren möchten, laden Sie diese zuerst ausserhalb von markoto herunter."
         },
         "timing": "Die eigentliche Kaskade läuft einmal pro Stunde als Hintergrundjob. Nach Ablauf der Kulanzfrist werden Ihre Daten innerhalb von etwa einer Stunde vollständig gelöscht.",
         "noRecovery": "Sobald die Kaskade läuft, sind Ihr Konto und Ihre Inhalte dauerhaft verschwunden — es gibt keinen Wiederherstellungsweg."
@@ -1387,11 +1387,11 @@
     },
     "documentPage": {
       "translationNoticeTitle": "Übersetzung zur Bequemlichkeit bereitgestellt",
-      "translationNoticeBody": "Diese Seite ist eine Übersetzung der maßgeblichen englischen Version. Bei Abweichungen der Texte gilt die englische Version.",
-      "viewAuthoritative": "Englisch anzeigen (maßgeblich)",
+      "translationNoticeBody": "Diese Seite ist eine Übersetzung der massgeblichen englischen Version. Bei Abweichungen der Texte gilt die englische Version.",
+      "viewAuthoritative": "Englisch anzeigen (massgeblich)",
       "lastUpdated": "Zuletzt aktualisiert am {date}",
       "version": "Version {version}",
-      "missingLocale": "Wir haben diese Seite noch nicht in Ihre Sprache übersetzt. Es wird die maßgebliche englische Version angezeigt."
+      "missingLocale": "Wir haben diese Seite noch nicht in Ihre Sprache übersetzt. Es wird die massgebliche englische Version angezeigt."
     }
   },
   "settings": {
@@ -1414,7 +1414,7 @@
       "data": {
         "heading": "Ihre Daten",
         "exportTitle": "Eine Kopie Ihrer Daten herunterladen",
-        "exportDescription": "Wir bereiten ein ZIP mit allem vor, was wir über Sie speichern — Ihr Kontoprofil, jedes Ihnen gehörende Dokument als Markdown, von Ihnen verfasste Kommentare, Abrechnungsverlauf, KI-Nutzungsprotokolle, Audit- und Einwilligungsdatensätze. Die Erstellung läuft im Hintergrund, normalerweise unter einer Minute. Diese Seite wird aktualisiert, wenn es bereit ist, und wir senden Ihnen außerdem einen Download-Link per E-Mail. Der Link ist 7 Tage gültig.",
+        "exportDescription": "Wir bereiten ein ZIP mit allem vor, was wir über Sie speichern — Ihr Kontoprofil, jedes Ihnen gehörende Dokument als Markdown, von Ihnen verfasste Kommentare, Abrechnungsverlauf, KI-Nutzungsprotokolle, Audit- und Einwilligungsdatensätze. Die Erstellung läuft im Hintergrund, normalerweise unter einer Minute. Diese Seite wird aktualisiert, wenn es bereit ist, und wir senden Ihnen ausserdem einen Download-Link per E-Mail. Der Link ist 7 Tage gültig.",
         "exportButton": "Export anfordern",
         "exportInProgress": "Export läuft — diese Seite wird aktualisiert, wenn es bereit ist.",
         "exportHistoryHeading": "Letzte Exporte",
@@ -1446,7 +1446,7 @@
       "storage": {
         "heading": "Speicher",
         "images": "Bilder in Dokumenten",
-        "description": "Bilder, die du in deinen Dokumenten hochlädst oder erzeugst, einschließlich Kopien beim Duplizieren eines Dokuments. Bilder, die kein Dokument mehr verwendet, werden nach einiger Zeit automatisch bereinigt."
+        "description": "Bilder, die du in deinen Dokumenten hochlädst oder erzeugst, einschliesslich Kopien beim Duplizieren eines Dokuments. Bilder, die kein Dokument mehr verwendet, werden nach einiger Zeit automatisch bereinigt."
       }
     },
     "integrations": {
@@ -1590,7 +1590,7 @@
     "hero": {
       "title": "Schön gesetztes {markdown}.",
       "markdown": "Markdown",
-      "body": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Du schreibst reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
+      "body": "Ein kollaborativer Markdown-Editor mit einer Live-Vorschau in echten Seiten. Sie schreiben reinen Text; das PDF entspricht der Vorschau Seite für Seite.",
       "cta": "Jetzt schreiben — ohne Anmeldung",
       "next": "So funktioniert's"
     },
@@ -1598,17 +1598,17 @@
       "write": {
         "label": "Editor",
         "title": "Markdown schreiben, fertige Seiten erhalten.",
-        "body": "Links tippst du, rechts entstehen beim Schreiben echte A4- oder Letter-Seiten."
+        "body": "Links tippen Sie, rechts entstehen beim Schreiben echte A4- oder Letter-Seiten."
       },
       "rich": {
         "label": "Layout",
-        "title": "Kopfzeilen, Fußzeilen und Seitenzahlen.",
-        "body": "Einmal im Theme festlegen, fertig. Auch Tabellen, Diagramme, Mermaid-Grafiken, Formeln und Fußnoten stehen auf der Seite."
+        "title": "Kopfzeilen, Fusszeilen und Seitenzahlen.",
+        "body": "Einmal im Theme festlegen, fertig. Auch Tabellen, Diagramme, Mermaid-Grafiken, Formeln und Fussnoten stehen auf der Seite."
       },
       "themes": {
         "label": "Themes",
         "title": "Neues Aussehen, gleiches Markdown.",
-        "body": "Wähle eines von acht Themes und passe Farben, Schriften und Titelseite an. Dein Text bleibt unverändert."
+        "body": "Wählen Sie eines von acht Themes und passen Sie Farben, Schriften und Titelseite an. Ihr Text bleibt unverändert."
       },
       "collab": {
         "label": "Zusammenarbeit",
@@ -1617,18 +1617,18 @@
       },
       "ai": {
         "label": "KI",
-        "title": "Ein KI-Assistent, der dein Markdown bearbeitet.",
-        "body": "Lass ihn einen Abschnitt entwerfen oder eine Tabelle korrigieren. Er schreibt direkt ins Dokument, während du zusiehst, und jede Änderung steht im Verlauf."
+        "title": "Ein KI-Assistent, der Ihr Markdown bearbeitet.",
+        "body": "Lassen Sie ihn einen Abschnitt entwerfen oder eine Tabelle korrigieren. Er schreibt direkt ins Dokument, während Sie zusehen, und jede Änderung steht im Verlauf."
       },
       "knowledge": {
         "label": "Wissen",
-        "title": "Antworten aus deinen eigenen Dateien.",
-        "body": "Lade PDF-, Word- oder Excel-Dateien in einen Arbeitsbereich. Die KI antwortet auf ihrer Grundlage, statt zu raten."
+        "title": "Antworten aus Ihren eigenen Dateien.",
+        "body": "Laden Sie PDF-, Word- oder Excel-Dateien in einen Workspace. Die KI antwortet auf ihrer Grundlage, statt zu raten."
       },
       "history": {
         "label": "Verlauf",
         "title": "Jede Änderung, mit Diff.",
-        "body": "Sieh, wer was geändert hat, Menschen wie KI, und stelle mit einem Klick eine frühere Version wieder her."
+        "body": "Sehen Sie, wer was geändert hat, Menschen wie KI, und stellen Sie mit einem Klick eine frühere Version wieder her."
       },
       "share": {
         "label": "Teilen & Export",
@@ -1638,7 +1638,7 @@
       "yours": {
         "label": "Selbst hosten",
         "title": "Quellcode einsehbar, selbst hostbar.",
-        "body": "Betreibe es mit einem Skript auf deinem eigenen Server oder nutze markoto.app, gehostet in der EU. Mit deinem eigenen KI-Schlüssel."
+        "body": "Betreiben Sie es mit einem Skript auf Ihrem eigenen Server oder nutzen Sie markoto.app, gehostet in der EU. Mit Ihrem eigenen KI-Schlüssel."
       }
     },
     "chips": {
@@ -1647,7 +1647,7 @@
       "oss": "Quellcode einsehbar · Self-Hosting mit einem Skript"
     },
     "cta": {
-      "title": "Probier es mit deinem eigenen Markdown.",
+      "title": "Probieren Sie es mit Ihrem eigenen Markdown.",
       "body": "Kostenlos auf markoto.app, ohne Anmeldung — oder hoste es selbst.",
       "start": "Jetzt schreiben",
       "selfHost": "Selbst hosten"
@@ -1655,10 +1655,10 @@
     "alt": {
       "hero": "Der markoto-Editor mit einem Quartalsbericht: links Markdown, rechts alle gesetzten Seiten nebeneinander.",
       "write": "Die Zusammenfassung eines Quartalsberichts wird in Markdown getippt, während ihre Seite live entsteht; dann zeigt die Vorschau den ganzen Bericht.",
-      "rich": "Im Design-Panel kommen eine Kopfzeile und eine Fußzeile mit Datum und Seitenzahlen hinzu und erscheinen auf jeder Seite.",
+      "rich": "Im Design-Panel kommen eine Kopfzeile und eine Fusszeile mit Datum und Seitenzahlen hinzu und erscheinen auf jeder Seite.",
       "themes": "Eine andere Vorlage gestaltet den Bericht neu, dann eine neue Akzentfarbe, eine neue Überschriftenschrift und ein gestaltetes Deckblatt.",
       "collab": "Drei Personen in einem Bericht: Zwei Kolleginnen schreiben in verschiedenen Abschnitten, der Autor kommentiert und erwähnt eine von ihnen, die antwortet.",
-      "ai": "Aus einem bloßen Titel schreibt die KI eine Zusammenfassung mit einer Tabelle der Kennzahlen in den Bericht.",
+      "ai": "Aus einem blossen Titel schreibt die KI eine Zusammenfassung mit einer Tabelle der Kennzahlen in den Bericht.",
       "knowledge": "Ein Memo wird ins Wissens-Panel hochgeladen und verarbeitet, dann antwortet die KI daraus und zitiert seine Zahlen.",
       "history": "Das Aktivitätsprotokoll mit Änderungen mehrerer Personen und der KI; eine Änderung als Vergleich geöffnet und wiederhergestellt.",
       "share": "Der Teilen-Dialog mit dem Link zum Dokument, seinem QR-Code und wer es öffnen darf.",

@@ -233,3 +233,31 @@ describe('Templates link', () => {
     clearNuxtData('marketing:nav')
   })
 })
+
+describe('Use cases menu in another UI language', () => {
+  it('links a reviewed translation under its own label, an unreviewed one not at all', async () => {
+    setConfig({ marketingSite: true })
+    content.items = [
+      { ...item('/marketing/en/markdown-to-pdf'), navGroup: 'use-cases', navLabel: 'Markdown to PDF', navOrder: 10 },
+      { ...item('/marketing/de/markdown-to-pdf'), navLabel: 'Markdown in PDF' },
+      { ...item('/marketing/en/markdown-cheat-sheet'), navGroup: 'use-cases', navLabel: 'Markdown cheat sheet', navOrder: 90 },
+      { ...item('/marketing/de/markdown-cheat-sheet', false), navLabel: 'Markdown-Spickzettel' }
+    ]
+    clearNuxtData('marketing:nav')
+    const i18n = useNuxtApp().$i18n
+    const before = i18n.locale.value
+    await i18n.loadLocaleMessages('de')
+    i18n.locale.value = 'de'
+    try {
+      const footer = await mountSuspended(CommonLegalFooter)
+      await vi.waitFor(() => expect(footer.find('a[href="/de/markdown-to-pdf"]').exists()).toBe(true))
+      expect(footer.find('a[href="/de/markdown-to-pdf"]').text()).toBe('Markdown in PDF')
+      expect(footer.find('a[href="/markdown-cheat-sheet"]').text()).toBe('Markdown cheat sheet')
+      expect(footer.find('a[href="/de/markdown-cheat-sheet"]').exists()).toBe(false)
+      footer.unmount()
+    } finally {
+      i18n.locale.value = before
+      clearNuxtData('marketing:nav')
+    }
+  })
+})
