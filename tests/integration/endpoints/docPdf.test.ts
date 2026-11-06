@@ -523,6 +523,47 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
+    // The proposal preset end to end: cover panel, invoice tables, Mermaid
+    // gantt, the signature block from the template CSS, and Lora + Work Sans
+    // embedded as real fonts, never Type 3.
+    it('renders the proposal fixture as an A4 proposal of 6–8 pages with Lora and Work Sans embedded', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const preset = THEME_PRESETS.find(p => p.id === 'proposal')?.theme
+      if (!preset) throw new Error('proposal preset missing')
+      expect(preset.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/proposal-patch.json', import.meta.url))), 'utf8'))
+      const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
+      const theme = { ...preset, cover: { ...preset.cover, ...cover } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/proposal.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(typeof pageCount).toBe('number')
+      // Preview: 7 pages (cover, five of proposal, the signature page).
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(6)
+      expect(Number(pageCount)).toBeLessThanOrEqual(8)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      // A4 (210 × 297 mm ≈ 595 × 842 pt; Chromium rounds to its own grid).
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      await wipeRendersFor(doc.docId)
+      for (const family of [/Lora/i, /WorkSans/i]) {
+        expect(fonts.some(f => family.test(f.name)), summary).toBe(true)
+      }
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      // A Type 3 font has no /BaseFont, so the list above can't show it.
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
+    }, 90_000)
+
     // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path
     // (the renderer allows no CDN host any more). Chromium embeds the font
     // files it actually used, by name: had a web font failed to load, the

@@ -1058,6 +1058,10 @@
         "name": "Rapport d'entreprise",
         "description": "Rapports trimestriels et annuels, points au conseil, livrables clients : titres Source Serif sur Inter, un accent bleu pétrole profond, tableaux financiers à chiffres tabulaires et totaux soulignés, citations mises en exergue, pied de page discret sur un filet fin."
       },
+      "proposal": {
+        "name": "Proposition commerciale",
+        "description": "Propositions et devis d'agences, de consultants et d'indépendants : titres Lora sur Work Sans, un accent rouille chaleureux, un grand panneau de couverture, des tableaux de prix comme sur une facture avec un total doublement souligné, des sections numérotées et un bloc de signature (une ligne de tableau aux cellules vides devient une ligne où vous signez)."
+      },
       "novel": {
         "name": "Roman",
         "description": "Serif Crimson Text pour la lecture longue. Pas de blocs de code, citations simples, juste un numéro de page en pied de page."

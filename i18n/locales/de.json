@@ -1058,6 +1058,10 @@
         "name": "Unternehmensbericht",
         "description": "Für Quartals- und Jahresberichte, Board-Updates und Kundendokumente: Source-Serif-Überschriften über Inter, ein tiefer Petrol-Akzent, Finanztabellen mit Tabellenziffern und abgesetzten Summenzeilen, Zitate als Pull-Quotes, eine ruhige Fusszeile über einer feinen Linie."
       },
+      "proposal": {
+        "name": "Kundenofferte",
+        "description": "Für Offerten und Angebote von Agenturen, Beratungen und Freelancern: Lora-Überschriften über Work Sans, ein warmer Rostton als Akzent, ein hohes Titelfeld, Preistabellen wie auf einer Rechnung mit doppelt unterstrichenem Total, nummerierte Abschnitte und ein Unterschriftenblock (eine Tabellenzeile mit leeren Zellen wird zur Linie für Ihre Unterschrift)."
+      },
       "novel": {
         "name": "Roman",
         "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
