@@ -266,6 +266,10 @@ describe('first section + cover title', () => {
     }))
     expect(out).toContain('.paged-doc > h1.markoto-first-section {\n  column-span: all;')
     expect(out).not.toContain('first-of-type')
+    // Single-column: no spanner (it only changed the margins there).
+    expect(css(theme((t) => {
+      t.cover.enabled = false
+    }))).not.toContain('markoto-first-section')
   })
 
   test('the cover and title-block titles are balanced', () => {

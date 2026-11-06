@@ -1213,18 +1213,19 @@ function pageBreakBlock(): string {
  * spanned element interrupts the column flow, sits across the full
  * content area, and columns resume below it.
  *
- * Rules are unconditional: \`column-span\` is a no-op outside a
- * multi-column container, so single-column docs aren't affected.
- *
  * Only the document's first h1 spans (\`markoto-first-section\`, set by
  * \`composeFinalHtml\`): paged.js clones \`.paged-doc\` onto every page,
- * so \`h1:first-of-type\` matched the first h1 of EVERY page.
+ * so \`h1:first-of-type\` matched the first h1 of EVERY page. And only in
+ * multi-column themes: in a single-column document the nearest multicol
+ * ancestor is paged.js's own page box, where a spanner's margins stop
+ * collapsing with the text after it (the first h1 of every page got a
+ * larger gap below it than every other h1).
  */
 function columnSpanBlock(theme: DocTheme): string {
   return [
     // With a cover (or title block) the title is there; the first h1 is
     // then just the first section and stays in its column.
-    theme.cover.enabled
+    theme.cover.enabled || theme.layout.columns === 1
       ? ''
       : `.paged-doc > h1.markoto-first-section {
   column-span: all;
