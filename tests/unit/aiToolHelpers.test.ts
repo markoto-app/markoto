@@ -10,6 +10,7 @@ import {
   resolveThemeCustomCss
 } from '../../server/utils/aiToolAdapter'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
+import type { HeadingLevels } from '../../shared/types/theme'
 import { UpdateThemeArgs, type UpdateThemeInput } from '../../server/utils/agentic/functionTools'
 
 // Pure helpers that power the AI theme + image tools. Integration with
@@ -98,6 +99,20 @@ describe('mergeTheme', () => {
     // center/right come from base (1-level merge)
     expect(merged.header.center).toBe(base.header.center)
     expect(merged.header.right).toBe(base.header.right)
+  })
+
+  it('merges headings.levels per level: a patch for h1 keeps h2; the entry itself is replaced', () => {
+    const levels: HeadingLevels = { h1: { size: 1.2, weight: 700 }, h2: { style: 'italic' } }
+    const base = { ...defaultTheme, headings: { ...defaultTheme.headings, levels } }
+    const merged = mergeTheme(base, { headings: { levels: { h1: { smallCaps: true } } } })
+    expect(merged.headings.levels).toEqual({ h1: { smallCaps: true }, h2: { style: 'italic' } })
+    expect(merged.headings.font).toBe(defaultTheme.headings.font)
+    expect(mergeTheme(base, { headings: { levels: { h2: {} } } }).headings.levels?.h1).toEqual({ size: 1.2, weight: 700 })
+  })
+
+  it('replaces arrays instead of merging them', () => {
+    const base = { ...defaultTheme, cover: { ...defaultTheme.cover, authors: ['A', 'B'] } }
+    expect(mergeTheme(base, { cover: { authors: ['C'] } }).cover.authors).toEqual(['C'])
   })
 
   it('returns a valid DocTheme shape when patch is empty', () => {

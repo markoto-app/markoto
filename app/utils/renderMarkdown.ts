@@ -23,6 +23,7 @@ import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 import { createGlobalState } from '@vueuse/core'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
 import { tableAttrsRowPlugin } from './markdownTableAttrs'
+import { unnumberedShorthandPlugin } from './markdownUnnumbered'
 
 // markdown-it exports Options as a nested type under the default class; we
 // pluck it from the instance shape so the type resolution doesn't depend on
@@ -318,6 +319,8 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     .use(footnote)
   // Batch 1 — typography & semantic markup
     .use(attrs)
+  // `# References {-}` → class `unnumbered` (Pandoc shorthand for `{.unnumbered}`).
+    .use(unnumberedShorthandPlugin)
     .use(mark)
     .use(ins)
     .use(sub)

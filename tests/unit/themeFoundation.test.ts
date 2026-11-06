@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
-import { HEADING_SCALE_EXPONENTS, headingSizePt, themeFontsImport, themeToCss, type ThemeRuntime } from '../../shared/utils/themeToCss'
+import { HEADING_SCALE_EXPONENTS, headingScaleSizePt, headingSizePt, themeFontsImport, themeToCss, type ThemeRuntime } from '../../shared/utils/themeToCss'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import { isValidTheme } from '../../shared/utils/themeValidation'
@@ -30,6 +30,9 @@ function legacy(): DocTheme {
   delete t.cover.affiliations
   delete t.cover.rules
   delete t.cover.smallCaps
+  delete t.headings.levels
+  delete t.header.rule
+  delete t.footer.rule
   return t
 }
 
@@ -47,9 +50,11 @@ describe('heading scale', () => {
     expect(themeToCss(t, runtime)).toMatch(/\.paged-doc h1 \{[^}]*font-size: 19\.53pt/)
   })
 
-  test('every preset keeps h1 between 1.6× and 2.2× its body size', () => {
+  // The scale's h1; a format preset may set its own h1 size per level
+  // (arXiv: 1.2× body) — see the per-level tests in themeVariables.test.ts.
+  test('every preset scale puts h1 between 1.6× and 2.2× its body size', () => {
     for (const p of THEME_PRESETS) {
-      const ratio = headingSizePt(p.theme, 1) / p.theme.body.size
+      const ratio = headingScaleSizePt(p.theme, 1) / p.theme.body.size
       expect(ratio, p.id).toBeGreaterThanOrEqual(1.6)
       expect(ratio, p.id).toBeLessThanOrEqual(2.2)
     }
@@ -187,9 +192,9 @@ describe('heading numbers', () => {
     const t = clone(defaultTheme)
     t.headings.numbering = 'decimal'
     const css = themeToCss(t, runtime)
-    expect(css).toMatch(/\.paged-doc h1:not\(\.markoto-cover-title\):not\(\.markoto-abstract-heading\) \{\s*counter-increment: mk-h1;\s*counter-reset: mk-h2 mk-h3 mk-h4;/)
+    expect(css).toMatch(/\.paged-doc h1:not\(\.markoto-cover-title\):not\(\.markoto-abstract-heading\):not\(\.unnumbered\) \{\s*counter-increment: mk-h1;\s*counter-reset: mk-h2 mk-h3 mk-h4;/)
     expect(css).toContain('content: counter(mk-h1) "." counter(mk-h2) "." counter(mk-h3);')
-    expect(css).toContain('.paged-doc .table-of-contents > ul > li > ul > li:not(.markoto-abstract-entry)::before')
+    expect(css).toContain('.paged-doc .table-of-contents > ul > li > ul > li:not(.markoto-abstract-entry):not(.markoto-unnumbered-entry)::before')
     t.headings.numbering = 'none'
     expect(themeToCss(t, runtime)).not.toContain('mk-h1')
   })

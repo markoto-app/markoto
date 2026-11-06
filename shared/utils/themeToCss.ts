@@ -3,7 +3,7 @@ import { pageHeightMm } from './pageDimensions'
 import type { CustomCssResult } from '../types/customCss'
 import { isThemeImageUrl } from './themeImages'
 import { fontStylesheetUrls } from './themeFonts'
-import { headingNumbering, resolveCodeOptions, resolveTitleBlock } from './themeOptions'
+import { coverTitleWeight, headingNumbering, resolveCodeOptions, resolveHeadingLevel, resolveTitleBlock, runningRule } from './themeOptions'
 import { HLJS_THEME_COLORS } from './hljsAssets'
 
 /**
@@ -57,6 +57,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     mermaidBlock(theme),
     tocBlock(theme, runtime),
     numberingBlock(theme),
+    runningRuleBlock(theme),
     pageBreakBlock(),
     columnSpanBlock(theme),
     coverBlock(theme),
@@ -87,8 +88,8 @@ function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const { size, orientation, margin } = theme.page
   const textColor = theme.body.color
   const metaFont = theme.meta.font
-  const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor, metaFont)
-  const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor, metaFont)
+  const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor, metaFont, margin)
+  const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor, metaFont, margin)
   const secondaryColor = theme.color.secondary
   // The footnote area is a page-level box outside `.paged-doc`, so it does
   // not inherit the body font: without an explicit family the notes fall
@@ -116,7 +117,7 @@ ${footerSlots}
 
 type RunningSlotPosition = 'left' | 'center' | 'right'
 
-function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string, metaFont: string): string {
+function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string, metaFont: string, marginMm: number): string {
   // The optional image (if `imageUrl` is set) wins over text in the slot
   // it lands in — same slot can't show both. Users typically pick one
   // mental model per slot anyway. paged.js margin boxes accept
@@ -132,6 +133,18 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
   }
   const positions = ['left', 'center', 'right'] as const
   const out: string[] = []
+  // With a rule the running text sits next to the text block, the rule
+  // between them (see runningRuleBlock): bottom of the header box / top
+  // of the footer box, padded past the rule.
+  const ruleAlign = runningRule(slots)
+    ? edge === 'top'
+      ? `
+    vertical-align: bottom;
+    padding-bottom: ${(runningRuleGapPt(marginMm) + RUNNING_RULE_TEXT_GAP_PT).toFixed(2)}pt;`
+      : `
+    vertical-align: top;
+    padding-top: ${(runningRuleGapPt(marginMm) + RUNNING_RULE_TEXT_GAP_PT).toFixed(2)}pt;`
+    : ''
   for (const pos of positions) {
     const boxName = `${edge}-${pos}`
     if (imgSlot === pos) {
@@ -142,7 +155,7 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
       out.push(`  @${boxName} {
     content: url(${cssString(src)});
     height: ${slots.imageHeight}pt;
-    width: auto;
+    width: auto;${ruleAlign}
   }`)
       continue
     }
@@ -153,10 +166,55 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
     font-family: ${cssFontStack(metaFont)};
     font-size: 9pt;
     color: ${textColor};
-    opacity: 0.7;
+    opacity: 0.7;${ruleAlign}
   }`)
   }
   return out.join('\n')
+}
+
+/**
+ * `header.rule` / `footer.rule`: the distance between the rule and the
+ * text block — 0.35 × the page margin (25 pt at a 1in margin, LaTeX's
+ * `headsep` in the arXiv style). The running text sits on the far side
+ * of the rule, RUNNING_RULE_TEXT_GAP_PT past it (descenders just clear
+ * the rule, as fancyhdr draws it).
+ */
+export function runningRuleGapPt(marginMm: number): number {
+  return marginMm * MM_TO_PT * 0.35
+}
+const MM_TO_PT = 72 / 25.4
+const RUNNING_RULE_TEXT_GAP_PT = 2
+const RUNNING_RULE_WIDTH_PT = 0.4
+
+/**
+ * The running rule spans the whole text width (all three slots), so it
+ * is painted on paged.js's margin ROW (`.pagedjs_margin-top` /
+ * `-bottom`, exactly as wide as the text block) — not on a slot box,
+ * which would underline only that slot, and not as a border at the row's
+ * edge, which sits a whole margin away from the text. Only for an edge
+ * that has running text; never on the first page when the theme has a
+ * cover page or title block (both clear the running text there). Works
+ * the same in the preview, browser print and the server PDF: they all
+ * run paged.js.
+ */
+function runningRuleBlock(theme: DocTheme): string {
+  const color = theme.body.color
+  const gap = runningRuleGapPt(theme.page.margin).toFixed(2)
+  const page = theme.cover.enabled ? '.pagedjs_page:not(.pagedjs_first_page)' : '.pagedjs_page'
+  const rules: string[] = []
+  const edges = [['top', theme.header, 'bottom'], ['bottom', theme.footer, 'top']] as const
+  for (const [edge, slots, side] of edges) {
+    if (!runningRule(slots) || !hasRunningContent(slots)) continue
+    rules.push(`${page} .pagedjs_margin-${edge} {
+  background: linear-gradient(${color}, ${color}) left 0 ${side} ${gap}pt / 100% ${RUNNING_RULE_WIDTH_PT}pt no-repeat;
+}`)
+  }
+  return rules.join('\n')
+}
+
+function hasRunningContent(slots: RunningSlots): boolean {
+  const image = slots.imageUrl !== '' && isThemeImageUrl(slots.imageUrl)
+  return image || [slots.left, slots.center, slots.right].some(t => t.trim() !== '')
 }
 
 function compileTemplate(template: string, runtime: ThemeRuntime): string {
@@ -247,6 +305,13 @@ const HEADING_SPACE_ABOVE = [2, 1.6, 1.3, 1.1, 1, 1] as const
 const HEADING_SPACE_BELOW = [0.6, 0.5, 0.4, 0.3, 0.3, 0.3] as const
 
 export function headingSizePt(theme: DocTheme, level: number): number {
+  const override = resolveHeadingLevel(theme, level).size
+  if (override !== null) return theme.body.size * override
+  return headingScaleSizePt(theme, level)
+}
+
+/** The modular-scale size of a level, ignoring `headings.levels`. */
+export function headingScaleSizePt(theme: DocTheme, level: number): number {
   const exp = HEADING_SCALE_EXPONENTS[level - 1] ?? 0
   const factor = level === 6 ? 0.9 : Math.pow(theme.headings.scale, exp)
   return theme.body.size * factor
@@ -254,7 +319,7 @@ export function headingSizePt(theme: DocTheme, level: number): number {
 
 function typographyBlock(theme: DocTheme): string {
   const bodySize = theme.body.size
-  const { font: headingFont, weight, underline, letterSpacing, lineHeight: hLineHeight, spacingScale } = theme.headings
+  const { font: headingFont, underline, letterSpacing, lineHeight: hLineHeight, spacingScale } = theme.headings
   const headingFamily = cssFontStack(headingFont)
   const linePt = bodySize * theme.body.lineHeight
   const headingRules: string[] = []
@@ -262,10 +327,13 @@ function typographyBlock(theme: DocTheme): string {
     const sizePt = headingSizePt(theme, level).toFixed(2)
     const above = ((HEADING_SPACE_ABOVE[level - 1] ?? 1) * linePt * spacingScale).toFixed(2)
     const below = ((HEADING_SPACE_BELOW[level - 1] ?? 0.3) * linePt).toFixed(2)
+    // `headings.levels.hN` (h1–h4): size, weight, italic, small caps.
+    const look = resolveHeadingLevel(theme, level)
+    const lookCss = `${look.style === 'italic' ? '\n  font-style: italic;' : ''}${look.smallCaps ? '\n  font-variant-caps: small-caps;' : ''}`
     headingRules.push(`.paged-doc h${level} {
   font-family: ${headingFamily};
   font-size: ${sizePt}pt;
-  font-weight: ${weight};
+  font-weight: ${look.weight};${lookCss}
   line-height: ${hLineHeight};
   letter-spacing: ${letterSpacing}em;
   color: var(--doc-heading-color);
@@ -880,8 +948,14 @@ function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
 
 // — heading numbers ————————————————————————————————————————————————————
 
-/** Headings that never get a number: the cover / title-block title and the abstract. */
-const UNNUMBERED = ':not(.markoto-cover-title):not(.markoto-abstract-heading)'
+/**
+ * Headings that never get a number (nor advance the counters): the cover /
+ * title-block title, the abstract, and headings the author marked
+ * `{.unnumbered}` / `{-}` (Pandoc convention — References, Acknowledgements).
+ */
+const UNNUMBERED = ':not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)'
+/** TOC entries of those headings (marked by `app/utils/titleBlock.ts`). */
+const UNNUMBERED_TOC = ':not(.markoto-abstract-entry):not(.markoto-unnumbered-entry)'
 
 /**
  * `headings.numbering: 'decimal'` → `1`, `1.1`, `1.1.1`, `1.1.1.1` before
@@ -889,7 +963,8 @@ const UNNUMBERED = ':not(.markoto-cover-title):not(.markoto-abstract-heading)'
  * turns `counter-increment` / `counter-reset` into per-element values, so
  * numbers continue across pages. h1 resets the levels below it and
  * nothing above. The TOC lists the same headings in the same order (the
- * abstract's entry is marked by `markAbstract` and skipped), so its
+ * abstract's and `{.unnumbered}` headings' entries are marked by
+ * `markAbstract` / `markUnnumbered` and skipped), so its
  * counters match the headings'.
  */
 function numberingBlock(theme: DocTheme): string {
@@ -912,7 +987,7 @@ function numberingBlock(theme: DocTheme): string {
   font-variant-numeric: lining-nums tabular-nums;
 }`)
     const tocReset = below.length ? `\n  counter-reset: ${below.map(tocName).join(' ')};` : ''
-    const li = `.paged-doc .table-of-contents > ${'ul > li > '.repeat(l - 1)}ul > li:not(.markoto-abstract-entry)`
+    const li = `.paged-doc .table-of-contents > ${'ul > li > '.repeat(l - 1)}ul > li${UNNUMBERED_TOC}`
     rules.push(`${li} {
   counter-increment: ${tocName(l)};${tocReset}
 }
@@ -1039,14 +1114,17 @@ function coverBlock(theme: DocTheme): string {
   width: auto;
   ${layout === 'editorial' || layout === 'banner' ? '' : 'margin: 0 auto 1.2em auto;'}
 }`,
+    // The title is an h1: pin style + caps so a per-level h1 look
+    // (headings.levels.h1) never leaks onto the cover.
     `.paged-doc .markoto-cover-title {
   font-family: ${cssFontStack(theme.headings.font)};
   font-size: ${titleSize}em;
-  font-weight: ${theme.headings.weight};
+  font-weight: ${coverTitleWeight(theme)};
+  font-style: normal;
   line-height: 1.2;
   letter-spacing: ${theme.headings.letterSpacing}em;
   color: var(--doc-heading-color);
-  margin: 0 0 0.4em 0;${caps}
+  margin: 0 0 0.4em 0;${caps || '\n  font-variant-caps: normal;'}
 }`,
     `.paged-doc .markoto-cover-subtitle {
   font-family: ${cssFontStack(theme.body.font)};
@@ -1128,12 +1206,13 @@ function titleBlockCss(theme: DocTheme, align: 'left' | 'center' | 'right'): str
     `.paged-doc .markoto-title-block .markoto-cover-title {
   font-family: ${cssFontStack(theme.headings.font)};
   font-size: ${theme.cover.titleSize}em;
-  font-weight: ${theme.headings.weight};
+  font-weight: ${coverTitleWeight(theme)};
+  font-style: normal;
   line-height: 1.2;
   letter-spacing: ${theme.headings.letterSpacing}em;
   color: var(--doc-heading-color);
   margin: 0 0 0.6em 0;
-  border: none;${ruleCss}${caps}
+  border: none;${ruleCss}${caps || '\n  font-variant-caps: normal;'}
 }`,
     `.paged-doc .markoto-title-block .markoto-cover-subtitle {
   font-family: ${cssFontStack(theme.body.font)};

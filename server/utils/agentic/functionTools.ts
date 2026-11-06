@@ -30,7 +30,9 @@ import {
   CoverLayoutSchema,
   CodeBackgroundSchema,
   CodeFrameSchema,
-  HeadingNumberingSchema
+  HeadingNumberingSchema,
+  FontWeightSchema,
+  HeadingStyleSchema
 } from '~~/shared/types/theme'
 
 /**
@@ -329,8 +331,18 @@ const RunningSlotsPatch = z.object({
   left: z.string().max(200).optional()
     .describe('Header/footer left slot template. Tokens: {title}, {page}, {pages}, {date}. Empty string disables the slot.'),
   center: z.string().max(200).optional().describe('Center slot template; same tokens as left.'),
-  right: z.string().max(200).optional().describe('Right slot template; same tokens as left.')
+  right: z.string().max(200).optional().describe('Right slot template; same tokens as left.'),
+  rule: z.boolean().optional()
+    .describe('Thin rule (0.4pt, text colour) across the full text width: under the header / above the footer, with the running text moved next to it (journal / LaTeX look). Not drawn on the cover or title-block page. Default false.')
 })
+
+const HeadingLevelPatch = z.object({
+  size: z.number().min(0.5).max(4).optional()
+    .describe('Size as a multiple of the body size (0.5–4), replacing the scale for this level. arXiv: h1 1.2, h2 1, h3 1.'),
+  weight: FontWeightSchema.optional().describe('Font weight 100–900 in steps of 100 for this level (default: headings.weight).'),
+  style: HeadingStyleSchema.optional().describe('`italic` or `normal` (default).'),
+  smallCaps: z.boolean().optional().describe('Small capitals for this level (default false).')
+}).describe('Look of one heading level. Omitted fields follow the theme-wide heading values; `{}` removes every override of the level.')
 
 // Function-call compatibility quirk (carried over from pre-Phase-5
 // Gemini era): numeric theme fields (`headings.weight`,
@@ -345,7 +357,7 @@ const RunningSlotsPatch = z.object({
 // value without updating both lists.
 export const UpdateThemeArgs = z.object({
   preset: z.enum(PRESET_IDS).optional()
-    .describe(`Apply a built-in preset as the base, replacing ALL current theme values except customCss (kept). Other fields passed alongside are applied on top of the preset. Available presets: ${PRESET_IDS.join(', ')}. Mutually exclusive with theme_id and from_workspace_default — pass only one base source.`),
+    .describe(`Apply a built-in preset as the base, replacing ALL current theme values; the document's own customCss is kept (a preset with template CSS, e.g. arxiv, puts its CSS in front of it). Other fields passed alongside are applied on top of the preset. Available presets: ${PRESET_IDS.join(', ')}. Mutually exclusive with theme_id and from_workspace_default — pass only one base source.`),
   theme_id: z.string().min(1).max(64).optional()
     .describe('Apply one of the user\'s SAVED themes as the base, replacing ALL current theme values. The id comes from `list_themes` — never fabricate it. Other fields in the same call are merged on top. Mutually exclusive with `preset` and `from_workspace_default`.'),
   from_workspace_default: z.boolean().optional()
@@ -387,7 +399,14 @@ export const UpdateThemeArgs = z.object({
     spacingScale: z.number().min(0.5).max(2).optional()
       .describe('Multiplier on the space above headings (0.5–2). 1.0 default; 1.2 editorial breathing; 0.7 tight reports.'),
     numbering: HeadingNumberingSchema.optional()
-      .describe('Section numbers: `decimal` puts 1, 1.1, 1.1.1, 1.1.1.1 before h1–h4 and their TOC entries (reports, papers, specs); `none` (default) shows none. The cover title and a leading "Abstract" section are never numbered.')
+      .describe('Section numbers: `decimal` puts 1, 1.1, 1.1.1, 1.1.1.1 before h1–h4 and their TOC entries (reports, papers, specs); `none` (default) shows none. The cover title, a leading "Abstract" section and headings marked `{.unnumbered}` in the Markdown (`# References {.unnumbered}`) are never numbered and don\'t advance the counters.'),
+    levels: z.object({
+      h1: HeadingLevelPatch.optional(),
+      h2: HeadingLevelPatch.optional(),
+      h3: HeadingLevelPatch.optional(),
+      h4: HeadingLevelPatch.optional()
+    }).optional()
+      .describe('Per-level overrides for h1–h4 (size × body, weight, italic, small caps) — for academic formats (arXiv: 12/10/10pt bold; IEEE: small-caps h1, italic h2). Each level you send replaces that level\'s overrides; levels you omit keep theirs.')
   }).optional(),
   color: z.object({
     brand: HexColorSchema.optional().describe('Brand color used for links, accents, optional heading underline.'),
@@ -468,6 +487,8 @@ export const UpdateThemeArgs = z.object({
       .describe('Affiliation per author, same order as `authors` (department, institution, address, e-mail — separate lines with \\n). Shown by the `title-block` layout.'),
     rules: z.boolean().optional().describe('`title-block`: heavy rules above and below the title (arXiv look).'),
     smallCaps: z.boolean().optional().describe('Title and subtitle in small capitals.'),
+    titleWeight: FontWeightSchema.optional()
+      .describe('Weight of the cover / title-block title, 100–900 in steps of 100 (all layouts). Omit to follow headings.weight. arXiv: 400.'),
     titleSize: z.number().min(0.6).max(4).optional().describe('Cover / title-block title size as a multiple of the body size (0.6–4). 2.4 for cover pages, ~1.7 for a paper title block.'),
     subtitleSize: z.number().min(0.5).max(2.5).optional().describe('Subtitle size as a multiple of the body size (0.5–2.5).'),
     showLogo: z.boolean().optional()
@@ -481,7 +502,7 @@ export const UpdateThemeArgs = z.object({
   }).optional(),
   customCss: z.string().max(CUSTOM_CSS_MAX_BYTES).optional()
     .describe(`Custom CSS for the document (preview, print and PDF only — never the app UI), appended after the generated theme CSS so its rules win. LAST RESORT: first use the structured fields above (fonts, sizes, colours, spacing, tables.zebra, blocks.*, alerts.*, header/footer, cover, layout.columns); write CSS only for what no field expresses (a coloured h2 underline, a custom alert look, a two-column section, page-number formats). REPLACES the whole existing custom CSS: call get_theme first and send the full text with your rules added — keep the user's existing rules. Empty string clears it. ${CUSTOM_CSS_AI_REFERENCE}`)
-}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: section numbering (`headings.numbering`), code block look (`code.font/background/frame/wrap/lineNumbers`), paper title block (`cover.layout: "title-block"` + `cover.affiliations`), A5 pages, bundled TeX fonts (TeX Gyre Termes / Heros, Latin Modern Roman / Mono), cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
+}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: header/footer rule (`header.rule`, `footer.rule`), per-level heading look (`headings.levels`), cover title weight (`cover.titleWeight`), `{.unnumbered}` headings, the `arxiv` preset, section numbering (`headings.numbering`), code block look (`code.font/background/frame/wrap/lineNumbers`), paper title block (`cover.layout: "title-block"` + `cover.affiliations`), A5 pages, bundled TeX fonts (TeX Gyre Termes / Heros, Latin Modern Roman / Mono), cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
 
 // --- Theme inspection / preset management --------------------------------
 //

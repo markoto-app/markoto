@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import type { DocTheme, CodeTheme, CodeBackground, CodeFrame, HeadingNumbering, MermaidTheme, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
+import type { DocTheme, CodeTheme, CodeBackground, CodeFrame, HeadingLevelKey, HeadingLevels, HeadingLevelStyle, HeadingNumbering, HeadingStyle, MermaidTheme, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
+import { HEADING_LEVEL_KEYS } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
-import { CODE_OPTION_DEFAULTS, headingNumbering, resolveTitleBlock } from '~~/shared/utils/themeOptions'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { CODE_OPTION_DEFAULTS, headingNumbering, resolveHeadingLevel, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
+import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/themeToCss'
+import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { isIsoDate } from '~~/shared/utils/documentLocale'
@@ -204,20 +206,123 @@ const headingNumberingModel = computed({
   get: () => headingNumbering(draft.value),
   set: (v: HeadingNumbering) => { draft.value.headings.numbering = v }
 })
+const headerRuleModel = computed({
+  get: () => runningRule(draft.value.header),
+  set: (v: boolean) => { draft.value.header.rule = v }
+})
+const footerRuleModel = computed({
+  get: () => runningRule(draft.value.footer),
+  set: (v: boolean) => { draft.value.footer.rule = v }
+})
+const FONT_WEIGHT_ITEMS = [
+  { label: 'Thin (100)', value: 100 },
+  { label: 'Extra Light (200)', value: 200 },
+  { label: 'Light (300)', value: 300 },
+  { label: 'Regular (400)', value: 400 },
+  { label: 'Medium (500)', value: 500 },
+  { label: 'Semibold (600)', value: 600 },
+  { label: 'Bold (700)', value: 700 },
+  { label: 'Extra Bold (800)', value: 800 },
+  { label: 'Black (900)', value: 900 }
+]
+/** 0 = "same as the headings" (the field is then absent). */
+const coverTitleWeightModel = computed({
+  get: () => draft.value.cover.titleWeight ?? 0,
+  set: (v: number) => {
+    if (v) draft.value.cover.titleWeight = v
+    else delete draft.value.cover.titleWeight
+  }
+})
+const coverTitleWeightItems = computed(() => [
+  { label: t('theme.cover.titleWeightInherit', { weight: draft.value.headings.weight }), value: 0 },
+  ...FONT_WEIGHT_ITEMS
+])
+
+// Per-level heading look (headings.levels.h1–h4). Each control shows the
+// value in effect (scale / theme-wide weight) and writes only what the
+// user changes; "Use defaults" removes the level's overrides again.
+const headingLevelsOpen = ref(Boolean(draft.value.headings.levels && Object.keys(draft.value.headings.levels).length))
+function onHeadingLevelsToggle(e: Event) {
+  if (e.target instanceof HTMLDetailsElement) headingLevelsOpen.value = e.target.open
+}
+function levelEntry(key: HeadingLevelKey): HeadingLevelStyle | undefined {
+  return draft.value.headings.levels?.[key]
+}
+/** `headings.levels` with level `key` replaced by `entry` (empty levels left out). */
+function levelsWith(key: HeadingLevelKey, entry: HeadingLevelStyle | undefined): HeadingLevels {
+  const next: HeadingLevels = {}
+  for (const k of HEADING_LEVEL_KEYS) {
+    const e = k === key ? entry : levelEntry(k)
+    if (e && Object.keys(e).length) next[k] = e
+  }
+  return next
+}
+function setLevelField<K extends keyof HeadingLevelStyle>(key: HeadingLevelKey, field: K, value: HeadingLevelStyle[K] | undefined) {
+  const merged: HeadingLevelStyle = { ...levelEntry(key), [field]: value }
+  const entry: HeadingLevelStyle = {}
+  if (merged.size !== undefined) entry.size = merged.size
+  if (merged.weight !== undefined) entry.weight = merged.weight
+  if (merged.style !== undefined) entry.style = merged.style
+  if (merged.smallCaps !== undefined) entry.smallCaps = merged.smallCaps
+  draft.value.headings.levels = levelsWith(key, entry)
+}
+function levelNumber(key: HeadingLevelKey): number {
+  return HEADING_LEVEL_KEYS.indexOf(key) + 1
+}
+/** Size × body in effect: the override, else the scale's value for this level. */
+function levelSize(key: HeadingLevelKey): number {
+  const override = levelEntry(key)?.size
+  if (override !== undefined) return override
+  const exp = HEADING_SCALE_EXPONENTS[levelNumber(key) - 1] ?? 0
+  return Math.round(Math.pow(draft.value.headings.scale, exp) * 100) / 100
+}
+function setLevelSize(key: HeadingLevelKey, v: number | null | undefined) {
+  setLevelField(key, 'size', typeof v === 'number' ? v : undefined)
+}
+function levelWeight(key: HeadingLevelKey): number {
+  return resolveHeadingLevel(draft.value, levelNumber(key)).weight
+}
+function setLevelWeight(key: HeadingLevelKey, v: number) {
+  setLevelField(key, 'weight', v)
+}
+function levelItalic(key: HeadingLevelKey): boolean {
+  return resolveHeadingLevel(draft.value, levelNumber(key)).style === 'italic'
+}
+function setLevelItalic(key: HeadingLevelKey, v: boolean) {
+  const style: HeadingStyle = v ? 'italic' : 'normal'
+  setLevelField(key, 'style', style)
+}
+function levelSmallCaps(key: HeadingLevelKey): boolean {
+  return resolveHeadingLevel(draft.value, levelNumber(key)).smallCaps
+}
+function setLevelSmallCaps(key: HeadingLevelKey, v: boolean) {
+  setLevelField(key, 'smallCaps', v)
+}
+function levelHasOverrides(key: HeadingLevelKey): boolean {
+  return Object.keys(levelEntry(key) ?? {}).length > 0
+}
+function resetLevel(key: HeadingLevelKey) {
+  draft.value.headings.levels = levelsWith(key, undefined)
+}
+
 const headingNumberingItems = computed<Array<{ label: string, value: HeadingNumbering }>>(() => [
   { label: t('theme.headings.numberingNone'), value: 'none' },
   { label: t('theme.headings.numberingDecimal'), value: 'decimal' }
 ])
-/** '' stands for "system monospace" in the picker (the field is then absent). */
+/**
+ * SYSTEM_CODE_FONT stands for "system monospace" in the picker (the field
+ * is then absent). Not '': Reka's SelectItem refuses an empty value.
+ */
+const SYSTEM_CODE_FONT = 'system-monospace'
 const codeFontModel = computed({
-  get: () => draft.value.code.font ?? '',
+  get: () => draft.value.code.font ?? SYSTEM_CODE_FONT,
   set: (v: string) => {
-    if (v) draft.value.code.font = v
+    if (v && v !== SYSTEM_CODE_FONT) draft.value.code.font = v
     else delete draft.value.code.font
   }
 })
 const codeFontItems = computed(() => [
-  { label: t('theme.code.fontSystem'), value: '' },
+  { label: t('theme.code.fontSystem'), value: SYSTEM_CODE_FONT },
   ...CODE_FONT_NAMES.map(name => ({ label: name, value: name }))
 ])
 const codeBackgroundModel = computed({
@@ -413,10 +518,9 @@ function doReset() {
 
 function applyPreset(preset: typeof THEME_PRESETS[number]) {
   if (!props.canEdit) return
-  // Built-in presets have no custom CSS of their own, so they leave the
-  // document's custom CSS in place instead of wiping it.
-  const customCss = draft.value.customCss
-  const next: DocTheme = customCss ? { ...structuredClone(preset.theme), customCss } : structuredClone(preset.theme)
+  // The document's own custom CSS stays; a preset's template CSS (arXiv)
+  // goes in front of it, replacing a previous preset's (themeFromPreset).
+  const next = themeFromPreset(preset, draft.value.customCss)
   draft.value = structuredClone(next)
   emit('update:theme', next)
   toast.add({
@@ -787,6 +891,14 @@ function deleteSaved(saved: SavedTheme) {
                 <UFormField :label="t('theme.cover.smallCaps')">
                   <USwitch v-model="coverSmallCaps" />
                 </UFormField>
+                <UFormField :label="t('theme.cover.titleWeight')">
+                  <USelect
+                    v-model="coverTitleWeightModel"
+                    :items="coverTitleWeightItems"
+                    class="w-full"
+                    data-testid="theme-cover-title-weight"
+                  />
+                </UFormField>
                 <p
                   v-if="draft.cover.layout === 'title-block'"
                   class="text-xs text-muted"
@@ -1142,7 +1254,7 @@ function deleteSaved(saved: SavedTheme) {
               </UFormField>
               <UFormField
                 :label="t('theme.headings.numbering')"
-                :help="t('theme.headings.numberingHelp')"
+                :help="t('theme.headings.numberingHelp', { code: '{.unnumbered}' })"
               >
                 <USelect
                   v-model="headingNumberingModel"
@@ -1215,6 +1327,76 @@ function deleteSaved(saved: SavedTheme) {
                   class="w-full"
                 />
               </UFormField>
+              <!-- Per-level look (headings.levels): collapsed unless the
+                   theme already overrides a level. -->
+              <details
+                class="rounded-md border border-default"
+                data-testid="theme-heading-levels"
+                :open="headingLevelsOpen"
+                @toggle="onHeadingLevelsToggle"
+              >
+                <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium">
+                  {{ t('theme.headings.levels') }}
+                </summary>
+                <div class="space-y-4 px-3 pb-3">
+                  <p class="text-xs text-muted">
+                    {{ t('theme.headings.levelsHelp') }}
+                  </p>
+                  <div
+                    v-for="key in HEADING_LEVEL_KEYS"
+                    :key="key"
+                    class="space-y-2"
+                    :data-testid="`theme-heading-level-${key}`"
+                  >
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm font-medium">{{ t('theme.headings.levelTitle', { level: levelNumber(key) }) }}</span>
+                      <UButton
+                        v-if="levelHasOverrides(key)"
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        :data-testid="`theme-heading-level-${key}-reset`"
+                        @click="resetLevel(key)"
+                      >
+                        {{ t('theme.headings.levelReset') }}
+                      </UButton>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <UFormField :label="t('theme.headings.levelSize')">
+                        <UInputNumber
+                          :model-value="levelSize(key)"
+                          :min="0.5"
+                          :max="4"
+                          :step="0.05"
+                          class="w-full"
+                          :data-testid="`theme-heading-level-${key}-size`"
+                          @update:model-value="(v: number | null | undefined) => setLevelSize(key, v)"
+                        />
+                      </UFormField>
+                      <UFormField :label="t('theme.headings.weight')">
+                        <USelect
+                          :model-value="levelWeight(key)"
+                          :items="FONT_WEIGHT_ITEMS"
+                          class="w-full"
+                          @update:model-value="(v: number) => setLevelWeight(key, v)"
+                        />
+                      </UFormField>
+                    </div>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2">
+                      <USwitch
+                        :model-value="levelItalic(key)"
+                        :label="t('theme.headings.levelItalic')"
+                        @update:model-value="(v: boolean) => setLevelItalic(key, v)"
+                      />
+                      <USwitch
+                        :model-value="levelSmallCaps(key)"
+                        :label="t('theme.headings.levelSmallCaps')"
+                        @update:model-value="(v: boolean) => setLevelSmallCaps(key, v)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </details>
             </div>
           </template>
 
@@ -1366,6 +1548,15 @@ function deleteSaved(saved: SavedTheme) {
                   {{ chip.token }}
                 </UButton>
               </div>
+              <UFormField
+                :label="t('theme.runningSlots.ruleHeader')"
+                :help="t('theme.runningSlots.ruleHelp')"
+              >
+                <USwitch
+                  v-model="headerRuleModel"
+                  data-testid="theme-header-rule"
+                />
+              </UFormField>
 
               <!-- Header image — companies typically want their logo in
                    the running header on every body page. The cover page's
@@ -1495,6 +1686,15 @@ function deleteSaved(saved: SavedTheme) {
                   {{ chip.token }}
                 </UButton>
               </div>
+              <UFormField
+                :label="t('theme.runningSlots.ruleFooter')"
+                :help="t('theme.runningSlots.ruleHelp')"
+              >
+                <USwitch
+                  v-model="footerRuleModel"
+                  data-testid="theme-footer-rule"
+                />
+              </UFormField>
             </div>
           </template>
 

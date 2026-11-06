@@ -43,6 +43,7 @@ Typography (auto — don't fight it):
   A single newline inside a paragraph becomes a <br>. Use a blank line for a real paragraph break.
 
 Headings: #, ##, …, ######. Every heading auto-gets a slug \`id\`.
+  Unnumbered heading (when the theme numbers sections): \`# References {.unnumbered}\` (Pandoc's \`{-}\` works too) — no number, the counters don't advance, its TOC entry has no number either. Use it for References, Acknowledgements, Appendix intros.
 
 Attribute syntax \`{…}\` (CRITICAL — unlocks classes / custom IDs / inline style on most elements):
   After the element, in curly braces:

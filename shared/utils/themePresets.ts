@@ -16,6 +16,79 @@ export interface ThemePreset {
   theme: DocTheme
 }
 
+/**
+ * ARXIV_TEMPLATE_CSS — the part of the arXiv preprint look no theme
+ * field expresses (kourgeorge/arxiv-style, MIT; values from arxiv.sty).
+ * Everything else (Letter page, Termes 10/11, numbered bold sections at
+ * 12/10/10pt via `headings.levels`, title block with rules + small caps
+ * at regular weight, running head with its rule) is plain theme values.
+ * A preset's template CSS is ordinary `customCss`: it goes through the
+ * same sanitizer as the author's own CSS at write and render time
+ * (pinned by tests/unit/themePresetCss.test.ts) and the author can edit it.
+ */
+const ARXIV_TEMPLATE_CSS = `/* arXiv preprint template (kourgeorge/arxiv-style, MIT). Values from arxiv.sty. */
+/* \\rhead{\\scshape\\footnotesize A Preprint}; fancyhdr sets the head in full black. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-right { font-variant-caps: small-caps; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin { opacity: 1; }
+/* \\@maketitle: \\vskip 0.1in, 2pt bars 0.25in / 0.29in around the title, author/date \\vskips. */
+.paged-doc .markoto-title-block { padding-top: 7pt; }
+.paged-doc .markoto-title-block .markoto-cover-title { padding: 16pt 0 11pt; margin: 0; }
+.paged-doc .markoto-title-block .markoto-cover-subtitle { margin-top: 9pt; }
+.paged-doc .markoto-title-block .markoto-cover-authors { margin-top: 20pt; }
+.paged-doc .markoto-title-block .markoto-cover-affiliation { line-height: 1.05; }
+.paged-doc .markoto-title-block .markoto-cover-date { margin-top: 28pt; }
+/* abstract: \\centerline{\\large\\bfseries\\scshape Abstract} over a normal-size quote. */
+.paged-doc .markoto-abstract { margin-top: 14pt; font-size: 1em; }
+.paged-doc .markoto-abstract-title { font-size: 12pt; letter-spacing: 0; margin-bottom: 9pt; }
+/* \\@startsection: the number, then a quad. */
+.paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { margin-right: 1em; }
+/* \\texttt: typewriter, no box. */
+.paged-doc :not(pre) > code { background: none; padding: 0; border: 0; font-size: 1em; }
+/* figure: \\abovecaptionskip 7pt, "Figure N:" caption in roman. */
+.paged-doc figure { counter-increment: mk-fig; margin: 12pt 0; }
+.paged-doc figure img { display: block; margin: 0 auto; }
+.paged-doc figcaption { font: inherit; color: inherit; margin-top: 7pt; }
+.paged-doc figcaption::before { content: "Figure " counter(mk-fig) ": "; }
+/* booktabs: centred at natural width, \\toprule + \\bottomrule heavier than \\midrule. */
+.paged-doc table { width: auto; margin: 10pt auto; }
+.paged-doc table thead th { border-top: 0.08em solid; border-bottom: 0.05em solid; font-weight: 400; }
+.paged-doc table tbody tr:last-child td { border-bottom: 0.08em solid; }
+.paged-doc th, .paged-doc td { padding: 1pt 6pt; }
+/* lists: \\leftmargini 3pc, \\topsep 4pt, \\itemsep + \\parsep 2pt each. */
+.paged-doc ul, .paged-doc ol { padding-left: 36pt; margin: 4pt 0; }
+.paged-doc li { margin: 4pt 0; }
+/* natbib bibliography: hanging indent. */
+.paged-doc #references ~ p { padding-left: 1.2em; text-indent: -1.2em; margin: 0 0 5pt; }
+/* hyperref links print as plain text. */
+.paged-doc a { text-decoration: none; }
+`
+
+/**
+ * The theme a document gets when a preset is applied over `currentCss`
+ * (its custom CSS so far). A built-in preset replaces every theme value;
+ * the author's own custom CSS is kept. A preset may carry template CSS
+ * (arXiv): it is placed first and the author's CSS after it, so the
+ * author's rules still win. Template CSS of a previously applied preset
+ * (an unchanged copy at the start of `currentCss`) is replaced, not
+ * stacked — switching templates never accumulates their CSS.
+ */
+export function themeFromPreset(preset: ThemePreset, currentCss: string | undefined): DocTheme {
+  const own = stripPresetCss(currentCss ?? '')
+  const css = [preset.theme.customCss ?? '', own].map(c => c.trim()).filter(Boolean).join('\n\n')
+  const theme: DocTheme = structuredClone(preset.theme)
+  if (css) theme.customCss = css
+  else delete theme.customCss
+  return theme
+}
+
+function stripPresetCss(css: string): string {
+  for (const p of THEME_PRESETS) {
+    const template = p.theme.customCss?.trim()
+    if (template && css.trimStart().startsWith(template)) return css.trimStart().slice(template.length)
+  }
+  return css
+}
+
 export const THEME_PRESETS: ThemePreset[] = [
   // — Markoto: the flagship preset and the in-app default. Brand
   // identity expressed through restraint — plain white paper, sumi-950
@@ -30,12 +103,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       page: { size: 'A4', orientation: 'portrait', margin: 24 },
       meta: { font: 'JetBrains Mono' },
       body: { font: 'Inter', size: 10.5, lineHeight: 1.55, textAlign: 'left', color: '#14110D', background: '#FFFFFF', dropCap: true, firstLineIndent: false, paragraphSpacing: 0.6, hyphenate: false },
-      headings: { font: 'Fraunces', scale: 1.28, weight: 500, underline: false, color: '#1F1B14', letterSpacing: -0.01, lineHeight: 1.25, spacingScale: 1.2, numbering: 'none' },
+      headings: { font: 'Fraunces', scale: 1.28, weight: 500, underline: false, color: '#1F1B14', letterSpacing: -0.01, lineHeight: 1.25, spacingScale: 1.2, numbering: 'none', levels: {} },
       color: { brand: '#B5371F', secondary: '#A39A8A' },
       brand: { logoUrl: '/markoto-logos/primary-lockup-light.svg', logoHeight: 56 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
-      footer: { left: '', center: '{page} · {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '{page} · {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 9, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 92, blockquoteStyle: 'border', hrStyle: 'asterism', hrThickness: 1 },
@@ -66,12 +139,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       page: { size: 'A4', orientation: 'portrait', margin: 20 },
       meta: { font: 'Inter' },
       body: { font: 'Inter', size: 11, lineHeight: 1.3, textAlign: 'justify', color: '#111827', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.6, hyphenate: true },
-      headings: { font: 'Inter', scale: 1.25, weight: 600, underline: false, color: '#111827', letterSpacing: -0.01, lineHeight: 1.2, spacingScale: 1, numbering: 'none' },
+      headings: { font: 'Inter', scale: 1.25, weight: 600, underline: false, color: '#111827', letterSpacing: -0.01, lineHeight: 1.2, spacingScale: 1, numbering: 'none', levels: {} },
       color: { brand: '#3B82F6', secondary: '#9ca3af' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
-      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-dark', fontSize: 9, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'all', zebra: false, cellPadding: 6 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
@@ -101,12 +174,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'Source Serif 4' },
       body: { font: 'Source Serif 4', size: 10, lineHeight: 1.4, textAlign: 'justify', color: '#0f172a', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0.4, hyphenate: true },
-      headings: { font: 'Source Serif 4', scale: 1.2, weight: 600, underline: false, color: '#0f172a', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'decimal' },
+      headings: { font: 'Source Serif 4', scale: 1.2, weight: 600, underline: false, color: '#0f172a', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'decimal', levels: {} },
       color: { brand: '#1e3a8a', secondary: '#94a3b8' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 2, columnGap: 7 },
-      header: { left: '{title}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
-      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      header: { left: '{title}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 90, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
@@ -125,6 +198,56 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
+  // — arXiv preprint: the kourgeorge/arxiv-style LaTeX template (MIT),
+  // rebuilt from arxiv.sty — US Letter with 1in margins, Times
+  // (TeX Gyre Termes) 10/11 justified, \parskip 5.5pt, numbered bold
+  // sections at 12/10/10pt, a title block between 2pt rules in small
+  // capitals at regular weight, "A Preprint" running head over a 0.4pt
+  // rule, page number centred in the footer. The rest is template CSS
+  // (ARXIV_TEMPLATE_CSS). Fixture: tests/fixtures/theme-shots/arxiv.md.
+  {
+    id: 'arxiv',
+    theme: {
+      page: { size: 'Letter', orientation: 'portrait', margin: 25.4 },
+      meta: { font: 'TeX Gyre Termes' },
+      body: { font: 'TeX Gyre Termes', size: 10, lineHeight: 1.1, textAlign: 'justify', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: true },
+      headings: {
+        font: 'TeX Gyre Termes',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#000000',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 0.7,
+        numbering: 'decimal',
+        // \section \large (12pt), \subsection + \subsubsection \normalsize (10pt).
+        levels: { h1: { size: 1.2 }, h2: { size: 1 }, h3: { size: 1 } }
+      },
+      color: { brand: '#000000', secondary: '#000000' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '', center: '{title}', right: 'A Preprint', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 10, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4 },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1 },
+      mermaid: { theme: 'document' },
+      // Ink-on-paper: admonitions are not part of the LaTeX look; keep
+      // them dark and muted so they read as print.
+      alerts: {
+        note: '#1f3a6e',
+        tip: '#175c2e',
+        important: '#5d3d99',
+        warning: '#7a5200',
+        caution: '#9b1a25'
+      },
+      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: 'A Preprint', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: true, smallCaps: true, titleWeight: 400, showLogo: false, align: 'center', titleSize: 1.7, subtitleSize: 1 },
+      customCss: ARXIV_TEMPLATE_CSS
+    }
+  },
+
   // — Tech Report: tight IBM Plex Sans, cyan accent, dark code,
   // underlined headings, brand-color table headers with white text +
   // zebra rows.
@@ -134,12 +257,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       page: { size: 'A4', orientation: 'portrait', margin: 20 },
       meta: { font: 'IBM Plex Mono' },
       body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#0f172a', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
-      headings: { font: 'IBM Plex Sans', scale: 1.25, weight: 600, underline: true, color: '#0f172a', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.9, numbering: 'decimal' },
+      headings: { font: 'IBM Plex Sans', scale: 1.25, weight: 600, underline: true, color: '#0f172a', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.9, numbering: 'decimal', levels: {} },
       color: { brand: '#0891b2', secondary: '#94a3b8' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
-      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-dark', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 2 },
@@ -167,12 +290,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       page: { size: 'A4', orientation: 'portrait', margin: 25 },
       meta: { font: 'Source Sans 3' },
       body: { font: 'Source Sans 3', size: 11, lineHeight: 1.45, textAlign: 'justify', color: '#1c1917', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.8, hyphenate: true },
-      headings: { font: 'Playfair Display', scale: 1.25, weight: 700, underline: true, color: '#b45309', letterSpacing: 0, lineHeight: 1.15, spacingScale: 1.1, numbering: 'none' },
+      headings: { font: 'Playfair Display', scale: 1.25, weight: 700, underline: true, color: '#b45309', letterSpacing: 0, lineHeight: 1.15, spacingScale: 1.1, numbering: 'none', levels: {} },
       color: { brand: '#b45309', secondary: '#a8a29e' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '{title}', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
-      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      header: { left: '', center: '{title}', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 9, font: 'IBM Plex Mono', background: 'auto', frame: 'rule', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8 },
       blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 1 },
@@ -200,12 +323,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       page: { size: 'A4', orientation: 'portrait', margin: 25 },
       meta: { font: 'Crimson Text' },
       body: { font: 'Crimson Text', size: 12, lineHeight: 1.5, textAlign: 'justify', color: '#1c1917', background: '#FFFFFF', dropCap: true, firstLineIndent: true, paragraphSpacing: 0.2, hyphenate: true },
-      headings: { font: 'Crimson Text', scale: 1.22, weight: 600, underline: false, color: '#1c1917', letterSpacing: 0.01, lineHeight: 1.2, spacingScale: 1.4, numbering: 'none' },
+      headings: { font: 'Crimson Text', scale: 1.22, weight: 600, underline: false, color: '#1c1917', letterSpacing: 0.01, lineHeight: 1.2, spacingScale: 1.4, numbering: 'none', levels: {} },
       color: { brand: '#4c1d95', secondary: '#a8a29e' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
-      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 10, font: 'IBM Plex Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
       blocks: { imageRadius: 0, imageMaxWidth: 80, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1 },
@@ -234,12 +357,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'PT Serif' },
       body: { font: 'Karla', size: 10, lineHeight: 1.45, textAlign: 'justify', color: '#18181b', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: true },
-      headings: { font: 'PT Serif', scale: 1.22, weight: 700, underline: false, color: '#047857', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'none' },
+      headings: { font: 'PT Serif', scale: 1.22, weight: 700, underline: false, color: '#047857', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'none', levels: {} },
       color: { brand: '#047857', secondary: '#a1a1aa' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
-      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4 },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1 },
@@ -268,12 +391,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       page: { size: 'A4', orientation: 'portrait', margin: 16 },
       meta: { font: 'Inter' },
       body: { font: 'Inter', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#1f2933', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.45, hyphenate: false },
-      headings: { font: 'Inter', scale: 1.18, weight: 600, underline: true, color: '#1e3a52', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.6, numbering: 'none' },
+      headings: { font: 'Inter', scale: 1.18, weight: 600, underline: true, color: '#1e3a52', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.6, numbering: 'none', levels: {} },
       color: { brand: '#2f5b7c', secondary: '#94a3b8' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12 },
-      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3 },
       blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },

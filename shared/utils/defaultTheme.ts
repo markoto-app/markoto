@@ -51,7 +51,8 @@ export const defaultTheme: DocTheme = {
     letterSpacing: -0.01, // Fraunces wants slight negative tracking
     lineHeight: 1.25, // generous breathing for big serif headings
     spacingScale: 1.2, // editorial top-margin breathing
-    numbering: 'none'
+    numbering: 'none',
+    levels: {} // every level follows the scale + weight above
   },
   color: {
     brand: '#B5371F', // shu-500 — the seal lives here
@@ -77,7 +78,8 @@ export const defaultTheme: DocTheme = {
     right: '',
     imageUrl: '',
     imagePosition: 'left',
-    imageHeight: 12 // pt — proportionate to typical 9-11pt header text
+    imageHeight: 12, // pt — proportionate to typical 9-11pt header text
+    rule: false
   },
   footer: {
     left: '',
@@ -85,7 +87,8 @@ export const defaultTheme: DocTheme = {
     right: '',
     imageUrl: '',
     imagePosition: 'center',
-    imageHeight: 10
+    imageHeight: 10,
+    rule: false
   },
   code: {
     theme: 'github-light',

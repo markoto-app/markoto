@@ -2,7 +2,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { buildCoverHtml } from './coverHtml'
 import { wrapFirstLetterAsDropCap } from './dropcapWrap'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
-import { extractAbstract, markAbstract } from './titleBlock'
+import { extractAbstract, markAbstract, markUnnumbered } from './titleBlock'
 import { pruneTocDepth } from './tocDepth'
 import { headingNumbering } from '~~/shared/utils/themeOptions'
 
@@ -49,11 +49,15 @@ export function composeFinalHtml(opts: {
   // Papers: the document's leading "Abstract" section moves into the
   // title block on page 1 (app/utils/titleBlock.ts); elsewhere it stays
   // and is only marked so heading numbers skip it.
+  const numbered = headingNumbering(theme) === 'decimal'
   if (theme.cover.enabled && theme.cover.layout === 'title-block') {
     ({ abstractHtml, bodyHtml } = extractAbstract(bodyHtml))
-  } else if (headingNumbering(theme) === 'decimal') {
+  } else if (numbered) {
     bodyHtml = markAbstract(bodyHtml)
   }
+  // `{.unnumbered}` headings: their TOC entries are skipped by the TOC
+  // numbers too (the headings themselves carry the class).
+  if (numbered) bodyHtml = markUnnumbered(bodyHtml)
   const coverHtml = buildCoverHtml(theme, title || '', date, abstractHtml)
   let html = coverHtml + bodyHtml
   if (theme.body.dropCap) {

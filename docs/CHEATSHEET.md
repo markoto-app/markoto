@@ -50,6 +50,8 @@ Product-page videos (WP11, `public/tour/`): with a flow-stack app running in the
 
 **Theme review (presets, pagination, fonts).** `make theme-shots URL=http://127.0.0.1:3000 [SHOTS_OUT=/tmp/theme-shots] [SHOTS_MD=tests/fixtures/theme-shots/paper.md] [PRESETS="markoto academic"]` (`bun scripts/render-theme-shots.ts`, Playwright) renders a Markdown file in each preset through the real preview iframe and writes `<preset>-p<N>.png` per page, `sheet-<preset>.png` contact sheets and the paginated HTML. The app must allow anonymous documents without the terms step: start it with `NUXT_ANON_GATE_ENABLED=false`. Fixtures: `kitchen-sink.md` (every block type), `paper.md` + `--patch tests/fixtures/theme-shots/paper-patch.json` (title block with authors, affiliations and abstract; call the script directly to pass `--patch`/`--title`).
 
+**Building a design template (preset).** Follow `docs/TEMPLATE-WORKFLOW.md`: reference (compiled LaTeX at 144 dpi or a design brief) → Markdown fixture → theme-shots → `scripts/compare-template-reference.sh <ref-dir> <shots-dir> <preset> <pages>` (side-by-side + overlay) → classify every difference → bake into a preset → real-renderer PDF check.
+
 Measured without Traefik, "Enable text compression" is an artefact: production compresses SSR HTML + JSON at Traefik (`app-compress`). Put a gzip proxy in front for prod-like numbers.
 
 For repos / integration / flows: bring up the test stack first if it is not already: `make test-stack-up` (and `make test-stack-down` to tear down).

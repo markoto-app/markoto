@@ -26,7 +26,7 @@ You picked a built-in preset, watched the entire document re-skin
 in place, then turned on a cover sheet that suppresses the running
 header and footer on page 1.
 
-The eight presets cover most use cases:
+The nine presets cover most use cases:
 
 - **markoto** — the default. Fraunces editorial headings on Inter
   body, plain white paper, vermillion accents, asterism scene breaks.
@@ -36,6 +36,11 @@ The eight presets cover most use cases:
 - **Academic Paper** — two-column Source Serif body, a title block
   with authors and abstract on page 1 instead of a cover page,
   numbered sections, minimal table borders.
+- **arXiv preprint** — the look of an arXiv LaTeX preprint: US Letter,
+  Times at 10 pt, a title block between heavy rules in small capitals,
+  numbered bold sections and an "A Preprint" running head over a thin
+  rule. Start the document with an *Abstract* section and mark the
+  references `# References {.unnumbered}`.
 - **Tech Report** — IBM Plex Sans, cyan brand color, dark code
   blocks, numbered sections, brand-colored table headers.
 - **Business Report** — Playfair headings over Source Sans body,
