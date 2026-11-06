@@ -35,11 +35,13 @@ const count = computed(() => props.pages.length)
 
 <template>
   <figure
-    class="mk-page-shots mk-wide not-prose"
+    class="mk-wide not-prose my-8"
     data-testid="page-shots"
   >
+    <!-- Phones: one sheet at 70% of the width, the row scrolls sideways
+         in its own box. From `sm`: one grid column per page. -->
     <div
-      class="mk-page-shots__row"
+      class="grid grid-flow-col auto-cols-[70%] gap-3 overflow-x-auto snap-x snap-mandatory rounded-[10px] bg-elevated p-3 sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-[repeat(var(--mk-shots,3),minmax(0,1fr))] sm:gap-4 sm:overflow-x-visible sm:snap-none sm:p-5"
       :style="{ '--mk-shots': count }"
     >
       <img
@@ -52,56 +54,14 @@ const count = computed(() => props.pages.length)
         :alt="shot.alt"
         width="720"
         height="1019"
-        class="mk-page-shots__page"
+        class="block h-auto w-full aspect-[720/1019] snap-start border border-default bg-white"
       >
     </div>
     <figcaption
       v-if="caption"
-      class="mk-page-shots__caption"
+      class="mt-2.5 text-sm leading-normal text-muted"
     >
       {{ caption }}
     </figcaption>
   </figure>
 </template>
-
-<style scoped>
-.mk-page-shots {
-  margin: 32px 0;
-}
-.mk-page-shots__row {
-  display: grid;
-  grid-template-columns: repeat(var(--mk-shots, 3), minmax(0, 1fr));
-  gap: 16px;
-  padding: 20px;
-  border-radius: 10px;
-  background: var(--ui-bg-elevated);
-}
-.mk-page-shots__page {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 720 / 1019;
-  background: #fff;
-  border: 1px solid var(--ui-border);
-}
-.mk-page-shots__caption {
-  margin-top: 10px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--ui-text-muted);
-}
-@media (max-width: 639px) {
-  .mk-page-shots__row {
-    grid-template-columns: none;
-    grid-auto-flow: column;
-    grid-auto-columns: 70%;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding: 12px;
-    gap: 12px;
-  }
-  .mk-page-shots__page {
-    scroll-snap-align: start;
-  }
-}
-</style>

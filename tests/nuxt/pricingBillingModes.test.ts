@@ -1,13 +1,22 @@
 // @vitest-environment nuxt
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
-import { NuxtPage, PricingWaitlistForm } from '#components'
+import { CommonLegalFooter, NuxtPage, PricingWaitlistForm } from '#components'
 import { DEFAULT_TIERS, type TiersMap } from '~~/shared/config/tiers'
 import { PRICE_CURRENCY, type PlanPricesResponse } from '~~/shared/config/pricing'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 import type { BillingMode } from '~~/shared/config/billingMode'
+
+// The site footer is a lazy, hydrate-on-visible component on `/` and the
+// marketing layout. Its first import compiles Nuxt UI's footer theme
+// modules; under a full parallel run that can finish after this file's
+// environment is torn down (EnvironmentTeardownError). The static import
+// above loads it with the test file instead.
+beforeAll(() => {
+  expect(CommonLegalFooter).toBeTruthy()
+})
 
 // Pins the pricing page in the three instance shapes:
 //

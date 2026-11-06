@@ -44,6 +44,20 @@ export default defineAppConfig({
       }
     },
 
+    // Nuxt UI's page blocks (marketing pages) set their titles in bold
+    // sans; the brand's titles are Fraunces at 300 (display) / 400
+    // (named objects) and never go above 500.
+    pageCTA: {
+      slots: {
+        title: 'font-serif font-light tracking-[-0.02em] text-default'
+      }
+    },
+    pageCard: {
+      slots: {
+        title: 'font-serif font-normal tracking-[-0.01em] text-default'
+      }
+    },
+
     // Modals and dialogs share `Modal`. The backdrop is a warm sumi-950
     // tint at 45% rather than a cold black. The radius is one step up
     // from cards (rounded-xl = 12px) so they read as a layer above.
