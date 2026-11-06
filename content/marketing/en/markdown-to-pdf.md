@@ -7,7 +7,7 @@ keywords:
   - md to pdf
   - markdown pdf export with page numbers
   - markdown to pdf with table of contents
-updated: '2026-11-04'
+updated: '2026-11-06'
 navGroup: use-cases
 navLabel: Markdown to PDF
 navOrder: 10
@@ -80,7 +80,7 @@ A converter turns Markdown into one long HTML page and prints it. markoto lays t
 
 ## Change the look without touching the text
 
-Every document has a theme: fonts, colours, margins, columns, tables, the header, the footer and the cover. Eight presets are built in: markoto, Modern, Academic Paper (two columns), Tech Report, Business Report, Novel, Newsletter and Resume. Pick one, then change any detail. The preview and the PDF use the same theme. When no setting does what you want, you can add your own [CSS](/docs/themes/custom-css) to a document.
+Every document has a theme: fonts, colours, margins, columns, tables, the header, the footer and the cover. Ten presets are built in: markoto, Modern, Academic Paper (two columns), arXiv preprint, IEEE conference paper, Technical documentation, Corporate report, Novel, Newsletter and Resume. Pick one, then change any detail. The preview and the PDF use the same theme. When no setting does what you want, you can add your own [CSS](/docs/themes/custom-css) to a document.
 
 ::flow-strip{id="pick-a-theme" frames="05,14"}
 ---

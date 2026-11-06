@@ -6,7 +6,7 @@ keywords:
   - markdown business plan
   - startup business plan template
   - business plan pdf template
-updated: '2026-11-04'
+updated: '2026-11-06'
 navGroup: templates
 navLabel: Business plan template
 navOrder: 50
@@ -16,9 +16,9 @@ navOrder: 50
 
 A business plan is read by people deciding whether to give you money, time or a loan. They look for the same things in the same order: what you sell, to whom, why now, how you make money, and what could go wrong. This template has a section for each, with a short brief under every heading.
 
-Below is the start of a plan for a made-up company, in the **Business Report** theme. The first page is the cover; scroll the preview for the text.
+Below is the start of a plan for a made-up company, in the **Corporate report** theme. The first page is the cover; scroll the preview for the text.
 
-::try-it{theme="business" height="760"}
+::try-it{theme="business-report" height="760"}
 ---
 source: |
   # Lindenhof Bakery Co-op
@@ -52,8 +52,8 @@ source: |
 ---
 ::
 
-::cta{title="Write your plan from this template." label="Use this template" template="business-plan" theme="business" secondary-label="All templates" secondary-to="/templates"}
-Opens the new-document dialog with the business plan template and the Business Report theme selected. It starts with the same headings and a short brief in each section.
+::cta{title="Write your plan from this template." label="Use this template" template="business-plan" theme="business-report" secondary-label="All templates" secondary-to="/templates"}
+Opens the new-document dialog with the business plan template and the Corporate report theme selected. It starts with the same headings and a short brief in each section.
 ::
 
 ## What's in it
@@ -74,7 +74,7 @@ Founders writing a plan for a bank, an investor, a grant or a co-op meeting, and
 
 ## Making it read well
 
-- **Cover page.** The Business Report theme starts with a cover: title, subtitle, date and authors. Fill them in under **Cover page** in the document theme.
+- **Cover page.** The Corporate report theme starts with a cover: title, subtitle, date and authors. Fill them in under **Cover page** in the document theme.
 - **Tables for numbers.** Right-align number columns with `--:` in the table's second line, as in the example.
 - **Charts.** A Mermaid `xychart-beta` block draws a bar or line chart from numbers you type into the source.
 - **Call out one risk.** An alert block (`> [!WARNING]`) stands out on the page without extra formatting.
@@ -97,6 +97,6 @@ items:
 ---
 ::
 
-::cta{title="Your plan, as a document people can read." label="Use this template" template="business-plan" theme="business"}
+::cta{title="Your plan, as a document people can read." label="Use this template" template="business-plan" theme="business-report"}
 Free on markoto.app, no sign-up needed.
 ::
