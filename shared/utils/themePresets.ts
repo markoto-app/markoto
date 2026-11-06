@@ -82,7 +82,8 @@ const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8
 .paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; font-size: 1.1em; line-height: 11.5pt; white-space: pre-line; }
 .paged-doc .markoto-title-block .markoto-cover-affiliation { line-height: 12.5pt; }
 /* Two-column \\abstract + IEEEkeywords open the first column: only title and authors span the page. */
-.paged-doc .markoto-cover { column-span: none; }
+/* Only with an abstract: it opens column 1, so the title block itself must not span (title + authors span instead). Without an abstract the block keeps the engine's span — otherwise a page-1 footnote leaves page 1 blank (paged.js). */
+.paged-doc .markoto-cover:has(.markoto-abstract) { column-span: none; }
 .paged-doc .markoto-title-block .markoto-cover-title, .paged-doc .markoto-title-block .markoto-cover-authors { column-span: all; }
 /* \\abstract: \\small (9/10pt) bold, run-in \\textit{Abstract}---, \\parindent 1em. */
 .paged-doc .markoto-abstract { max-width: none; margin: 0; font-size: 9pt; line-height: 10pt; font-weight: 700; text-align: justify; }
