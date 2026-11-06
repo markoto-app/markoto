@@ -65,6 +65,78 @@ const ARXIV_TEMPLATE_CSS = `/* arXiv preprint template (kourgeorge/arxiv-style, 
 `
 
 /**
+ * IEEE_CONFERENCE_TEMPLATE_CSS — the part of the IEEE conference look no
+ * theme field expresses (IEEEtran.cls 1.8b, LPPL; bare_conf.tex; values
+ * from IEEEtran.cls in 10pt conference mode). Letter page, Termes 10/12,
+ * two 21pc columns 1pc apart, small-caps / italic sections at body size
+ * and the regular-weight 24pt title are theme values.
+ */
+const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8b, LPPL). Values from IEEEtran.cls, 10pt conference mode. */
+/* \\textheight 9.25in quantised to 56 lines (672pt), top margin 0.75in less half the rounding; \\textwidth 43pc centred. */
+/* (paged.js margin variables, not an @page rule: a second @page replaces the theme's @footnote.) */
+.pagedjs_pages .pagedjs_page { --pagedjs-margin-top: 51pt; --pagedjs-margin-bottom: 69pt; }
+/* \\@maketitle: \\Huge 24/28pt title, 0.5\\baselineskip + 0.2em above, 1em - 0.25em to the author blocks. */
+.paged-doc .markoto-title-block { margin: 0 0 6pt; }
+.paged-doc .markoto-title-block .markoto-cover-title { line-height: 28pt; margin: -4pt 0 18pt; }
+/* \\and = \\hfill: author blocks share the width; \\IEEEauthorblockN \\sublargesize (11pt) regular, \\IEEEauthorblockA \\normalsize, 2.6ex / 2.75ex lines. */
+.paged-doc .markoto-title-block .markoto-cover-authors { justify-content: space-evenly; gap: 0; margin: 0 0 40pt; }
+.paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; font-size: 1.1em; line-height: 11.5pt; white-space: pre-line; }
+.paged-doc .markoto-title-block .markoto-cover-affiliation { line-height: 12.5pt; }
+/* Two-column \\abstract + IEEEkeywords open the first column: only title and authors span the page. */
+/* Only with an abstract: it opens column 1, so the title block itself must not span (title + authors span instead). Without an abstract the block keeps the engine's span — otherwise a page-1 footnote leaves page 1 blank (paged.js). */
+.paged-doc .markoto-cover:has(.markoto-abstract) { column-span: none; }
+.paged-doc .markoto-title-block .markoto-cover-title, .paged-doc .markoto-title-block .markoto-cover-authors { column-span: all; }
+/* \\abstract: \\small (9/10pt) bold, run-in \\textit{Abstract}---, \\parindent 1em. */
+.paged-doc .markoto-abstract { max-width: none; margin: 0; font-size: 9pt; line-height: 10pt; font-weight: 700; text-align: justify; }
+.paged-doc .markoto-abstract p { margin: 0; text-indent: 1em; }
+.paged-doc .markoto-abstract-title { display: inline; font: inherit; font-style: italic; font-variant-caps: normal; letter-spacing: 0; margin: 0; padding-left: 1em; }
+.paged-doc .markoto-abstract-title::after { content: "\\2014"; font-style: normal; }
+.paged-doc .markoto-abstract-title + p { display: inline; text-indent: 0; }
+/* Every paragraph indented \\parindent 1em, also the first after a heading; text after a list continues the paragraph. */
+.paged-doc > p, .paged-doc > p + p { text-indent: 1em; }
+.paged-doc > ul + p, .paged-doc > ol + p { text-indent: 0; }
+/* \\section: centred, "I." (\\Roman) + 0.5em; \\subsection "A." (\\Alph); 1.5ex above, 0.7ex below. */
+.paged-doc h1, .paged-doc h2 { margin: 6.75pt 0 3.15pt; break-after: avoid; }
+.paged-doc h1 { text-align: center; }
+.paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h1, upper-roman) "."; margin-right: 0.5em; }
+.paged-doc h2:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h2, upper-alpha) "."; margin-right: 0.5em; }
+/* \\subsubsection: run-in at \\parindent, "1)" and ":" after the heading (inline with its paragraph, so the two never part at a column break). */
+.paged-doc h3 { display: inline; margin: 0 0.35em 0 1em; }
+.paged-doc h3:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h3) ")"; margin-right: 0.5em; }
+.paged-doc h3::after { content: ":"; }
+.paged-doc h3 + p { display: inline; text-indent: 0; }
+/* itemize / enumerate: \\leftmargini 2em, bullet and "1)" labels \\labelsep 0.5em before the text, \\topsep 2pt, no \\itemsep. */
+.paged-doc ul, .paged-doc ol { padding-left: 2em; margin: 2pt 0; }
+.paged-doc li { margin: 0; }
+.paged-doc ul > li:not(.task-list-item) { list-style: none; }
+.paged-doc ul > li:not(.task-list-item)::before { content: "\\2022"; display: inline-block; box-sizing: border-box; width: 2em; margin-left: -2em; padding-right: 0.5em; text-align: right; }
+.paged-doc ol > li::marker { content: counter(list-item) ")\\a0\\a0"; }
+/* \\footnoterule is empty; \\@makefntext: superscript mark, first line indented 1em. */
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_content { background: none; }
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_area .footnote { text-indent: 1em; line-height: 9pt; }
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_area [data-footnote-marker]::marker { content: none; }
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_area [data-footnote-marker]::before { content: counter(footnote-marker); vertical-align: super; font-size: 0.75em; line-height: 0; }
+/* table: \\footnotesize body, caption above: "TABLE I" (\\Roman), then the caption in small caps, centred. */
+.paged-doc p.table-caption { counter-increment: mk-tab; text-align: center; text-indent: 0; font-size: 8pt; line-height: 9pt; font-variant-caps: small-caps; text-align-last: center; margin: 12pt 0 9.5pt; }
+.paged-doc p.table-caption::before { content: "TABLE " counter(mk-tab, upper-roman); display: block; font-variant-caps: normal; }
+.paged-doc table { width: auto; margin: 0 auto 12pt; font-size: 8pt; line-height: 9pt; border-top: 0.4pt solid; border-bottom: 0.4pt solid; }
+.paged-doc th, .paged-doc td { padding: 0 6pt; font-weight: 400; }
+/* \\hline: 0.4pt above the table (on the table rule), below the header and at the end. */
+.paged-doc thead { border-bottom: 0.4pt solid; }
+/* figure: centred, "Fig. 1." + two spaces, \\footnotesize caption below, centred when it fits one line, else justified. */
+.paged-doc figure { counter-increment: mk-fig; margin: 12pt 0; text-align: center; }
+.paged-doc figure img { display: block; margin: 0 auto; }
+.paged-doc figcaption { font: inherit; font-size: 8pt; line-height: 9pt; font-style: normal; color: inherit; margin-top: 9pt; text-align: justify; text-align-last: center; }
+.paged-doc figcaption::before { content: "Fig. " counter(mk-fig) ".\\a0\\a0"; }
+/* thebibliography: \\footnotesize, "[1]" labels in a hanging list. The list after "References"; mark it {.references} so a part continued on the next page keeps the look. */
+.paged-doc #references ~ ol, .paged-doc ol.references { padding-left: 1.75em; font-size: 8pt; line-height: 9pt; }
+.paged-doc #references ~ ol > li::marker, .paged-doc ol.references > li::marker { content: "[" counter(list-item) "]\\2002"; }
+/* \\texttt: typewriter, no box. hyperref is not loaded: links print as text. */
+.paged-doc :not(pre) > code { background: none; padding: 0; border: 0; font-size: 1em; }
+.paged-doc a { text-decoration: none; color: inherit; }
+`
+
+/**
  * TECH_DOCS_TEMPLATE_CSS — what the "Technical documentation" look needs
  * beyond theme fields: sans "furniture" (tables, admonition and code
  * titles, TOC chapters) around a serif reading text, accent heading
@@ -341,6 +413,64 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: 'A Preprint', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: true, smallCaps: true, titleWeight: 400, showLogo: false, align: 'center', titleSize: 1.7, subtitleSize: 1 },
       customCss: ARXIV_TEMPLATE_CSS
+    }
+  },
+
+  // — IEEE conference paper: the IEEEtran.cls conference template
+  // (bare_conf.tex, LPPL), rebuilt from IEEEtran.cls in 10pt conference
+  // mode — US Letter, two 21pc columns 1pc apart, Times (TeX Gyre
+  // Termes) 10/12 justified and hyphenated with 1em indents, centred
+  // small-caps sections "I. Introduction" and italic subsections
+  // "A. …" at body size, a 24pt regular title over side-by-side author
+  // blocks, the run-in "Abstract—" in 9pt bold opening the first
+  // column, no running head or page number. The rest is template CSS
+  // (IEEE_CONFERENCE_TEMPLATE_CSS). Fixture:
+  // tests/fixtures/theme-shots/ieee-conference.md.
+  {
+    id: 'ieee-conference',
+    theme: {
+      // \textwidth 43pc on Letter → 48pt (16.93mm) side margins; top and
+      // bottom come from the template CSS (51pt / 69pt).
+      page: { size: 'Letter', orientation: 'portrait', margin: 16.93 },
+      meta: { font: 'TeX Gyre Termes' },
+      // \normalsize 10/12pt, \parskip 0, \parindent 1em.
+      body: { font: 'TeX Gyre Termes', size: 10, lineHeight: 1.2, textAlign: 'justify', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
+      headings: {
+        font: 'TeX Gyre Termes',
+        scale: 1.2,
+        weight: 400,
+        underline: false,
+        color: '#000000',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 0.5,
+        numbering: 'decimal',
+        // \section \normalsize\scshape, \subsection + \subsubsection \normalsize\itshape.
+        levels: { h1: { size: 1, smallCaps: true }, h2: { size: 1, style: 'italic' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } }
+      },
+      color: { brand: '#000000', secondary: '#000000' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      // \columnsep 1pc = 4.23mm.
+      layout: { columns: 2, columnGap: 4.23 },
+      // Conference mode: no running head, no page numbers (the publisher adds them).
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 8, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 2 },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1 },
+      mermaid: { theme: 'document' },
+      // Ink-on-paper: IEEE has no admonitions; keep them dark and muted.
+      alerts: {
+        note: '#1f3a6e',
+        tip: '#175c2e',
+        important: '#5d3d99',
+        warning: '#7a5200',
+        caution: '#9b1a25'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      // \Huge (24pt) regular title, centred; no date.
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1 },
+      customCss: IEEE_CONFERENCE_TEMPLATE_CSS
     }
   },
 

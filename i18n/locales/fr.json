@@ -1038,6 +1038,10 @@
         "name": "Prépublication arXiv",
         "description": "L’apparence de la prépublication LaTeX arXiv : format US Letter, Times 10 pt justifié, sections numérotées en gras, bloc de titre entre deux filets épais en petites capitales, titre courant « A Preprint » au-dessus d’un filet fin."
       },
+      "ieee-conference": {
+        "name": "Article de conférence IEEE",
+        "description": "Le modèle de conférence IEEE (IEEEtran) : format US Letter, deux colonnes en Times 10 pt, sections centrées en petites capitales avec chiffres romains, sous-sections en italique, titre en 24 pt au-dessus des blocs d’auteurs côte à côte, résumé en gras au début de la première colonne."
+      },
       "tech": {
         "name": "Rapport technique",
         "description": "IBM Plex Sans compact, couleur de marque cyan, blocs de code sombres, en-têtes de tableau colorés avec lignes zébrées."

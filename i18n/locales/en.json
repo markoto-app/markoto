@@ -1038,6 +1038,10 @@
         "name": "arXiv preprint",
         "description": "The arXiv LaTeX preprint look: US Letter, Times 10 pt justified, numbered bold sections, a title block between heavy rules in small capitals, “A Preprint” running head over a thin rule."
       },
+      "ieee-conference": {
+        "name": "IEEE conference paper",
+        "description": "The IEEE conference template (IEEEtran): US Letter, two columns of Times 10 pt, centred small-caps sections with Roman numerals, italic subsections, a 24 pt title over side-by-side author blocks, the bold run-in abstract in the first column."
+      },
       "tech": {
         "name": "Tech Report",
         "description": "Compact IBM Plex Sans, cyan brand color, dark code blocks, brand-colored table headers with zebra rows."
