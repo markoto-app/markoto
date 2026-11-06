@@ -37,8 +37,8 @@ describe('glide duration', () => {
   it('grows with the distance, within bounds', () => {
     const vh = 900
     const oneScene = glideDuration(1440, vh)
-    expect(oneScene).toBeGreaterThanOrEqual(1500)
-    expect(oneScene).toBeLessThanOrEqual(1700)
+    expect(oneScene).toBeGreaterThanOrEqual(1250)
+    expect(oneScene).toBeLessThanOrEqual(1400)
     expect(glideDuration(-1440, vh)).toBe(oneScene)
     expect(glideDuration(100, vh)).toBe(GLIDE_MIN_MS)
     expect(glideDuration(20 * vh, vh)).toBe(GLIDE_MAX_MS)
@@ -70,9 +70,16 @@ describe('rest targets', () => {
 
 describe('wheel gestures', () => {
   /** Feeds [time, delta] events; returns how many steps they produced. */
-  function steps(events: Array<[number, number]>, gliding: (t: number) => boolean = () => false): number {
+  function steps(events: Array<[number, number]>): number {
     const g = newWheelGesture()
-    return events.filter(([t, d]) => wheelSteps(g, t, d, gliding(t))).length
+    return events.filter(([t, d]) => wheelSteps(g, t, d)).length
+  }
+  /** A trackpad swipe: deltas ramp up, then a long exponential momentum tail. */
+  function swipe(start: number, frames = 140, peak = 40): Array<[number, number]> {
+    const out: Array<[number, number]> = []
+    for (let i = 0; i < 4; i++) out.push([start + i * 16, Math.round(peak * (i + 1) / 5)])
+    for (let i = 0; i < frames; i++) out.push([start + (i + 4) * 16, Math.max(1, Math.round(peak * Math.exp(-i / 35)))])
+    return out
   }
 
   it('one mouse-wheel notch = one step; a fast run of notches = one step', () => {
@@ -87,7 +94,8 @@ describe('wheel gestures', () => {
   it('a trackpad flick with a long momentum tail (longer than the glide) is one step', () => {
     const events: Array<[number, number]> = []
     for (let i = 0; i < 140; i++) events.push([1000 + i * 16, Math.max(1, Math.round(40 * Math.exp(-i / 35)))])
-    expect(steps(events, t => t > 1000 && t < 2050)).toBe(1)
+    expect(steps(events)).toBe(1)
+    expect(steps(swipe(1000))).toBe(1)
   })
 
   it('a stall inside a decaying tail does not start a new step', () => {
@@ -106,7 +114,19 @@ describe('wheel gestures', () => {
     expect(steps([[1000, 1], [1016, 2], [1032, GESTURE_MIN_DELTA], [1048, 8]])).toBe(1)
   })
 
-  it('a gesture that begins during a glide is swallowed whole', () => {
-    expect(steps([[1000, 40], [1016, 60], [1300, 50]], t => t < 1400)).toBe(0)
+  it('a second swipe inside the first one\'s momentum tail is a new gesture', () => {
+    // The first swipe's tail is still at ~6px/frame when the second starts.
+    const first = swipe(1000, 60)
+    const lastAt = first.at(-1)?.[0] ?? 1000
+    expect(steps([...first, ...swipe(lastAt + 16)])).toBe(2)
+  })
+
+  it('jitter inside a tail is not a new swipe', () => {
+    expect(steps([[1000, 40], [1016, 30], [1032, 18], [1048, 12], [1064, 15], [1080, 10], [1096, 13], [1112, 8]])).toBe(1)
+    expect(steps([[1000, 40], [1016, 18], [1032, 2], [1048, 4], [1064, 3], [1080, 6], [1096, 5]])).toBe(1)
+  })
+
+  it('the ramp-up of one swipe is one gesture', () => {
+    expect(steps([[1000, 2], [1016, 6], [1032, 14], [1048, 30], [1064, 45], [1080, 40], [1096, 30]])).toBe(1)
   })
 })

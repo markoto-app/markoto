@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { coverRange, restOffsetVh, SCENE_HEIGHT_VH, stageSideKeyframes, type TourScene } from '~~/shared/tour/manifest'
+import { coverRange, restOffsetVh, stageSideKeyframes, type TourScene } from '~~/shared/tour/manifest'
 import { TOUR_DARK_FROM } from '~~/shared/tour/config'
 
 /**
@@ -67,30 +67,36 @@ const sceneTitle = (scene: TourScene) => t(`tour.scenes.${scene.id}.title`)
 const sceneBody = (scene: TourScene) => t(`tour.scenes.${scene.id}.body`)
 const ordinal = (i: number) => String(i + 1).padStart(2, '0')
 
-// The stage crosses the copy column while it changes sides (t = ±GLIDE_T
-// around each boundary), so the copy is out of the way by then: the
-// outgoing scene's lines are gone at t = 1 − GLIDE_T, the incoming ones
-// start at t = GLIDE_T.
-const GLIDE_VH = 8
-const GLIDE_T = GLIDE_VH / SCENE_HEIGHT_VH
-const LINE_IN = GLIDE_T
-const LINE_OUT = 1 - GLIDE_T
+// One crossing = the pager's glide from one scene's rest (t = 0.5) to the
+// next one's (t = 0.5 of the next scene, 160vh further). Its motion is
+// spread over nearly the whole crossing, so a glide shows movement from
+// its first frames instead of scrolling under pinned content and then
+// changing everything at the boundary in a fraction of a second:
+//   t 0.53 → 0.85   the outgoing copy fades and lifts out
+//   ±SIDE_GLIDE_VH  the stage slides to the other side (around t = 1 / 0)
+//   t ±0.125        the stage layers cross-fade (around the boundary)
+//   t 0.15 → 0.47   the incoming copy fades in, line after line
+// The copy is gone (t 0.85 … 1.15) while the stage passes the middle.
+const SIDE_GLIDE_VH = 36
+const LINE_IN = 0.15
+const LINE_OUT = 0.85
+const LINE_STAGGER = 0.015
+const LAYER_FADE_T = 0.125
 // Scroll-snap rest point of every scene: the middle of its window — copy
-// fully in (GLIDE_T + its fade … LINE_OUT), stage settled, and between
-// the colour flip's ends (the flip runs at t ≈ ±0.31 of its scene).
+// fully in, stage settled, and between the colour flip's ends.
 const SNAP_REST_T = 0.5
 
-/** Stage layer i: cross-fade across the scene's window (t = -0.04 … 1.04, see `mk-fade-window`). */
+/** Stage layer i: cross-fade around the scene's window edges (t = ±LAYER_FADE_T, see `mk-fade-window`). */
 function layerStyle(i: number): Record<string, string> {
-  return { animationTimeline: `--mk-s-${i}`, animationRange: coverRange(-0.04, 1.04) }
+  return { animationTimeline: `--mk-s-${i}`, animationRange: coverRange(-LAYER_FADE_T, 1 + LAYER_FADE_T) }
 }
 /**
- * Copy line k of scene i on the pinned layout: in once the stage has
- * settled, out before it moves on. Custom properties because the
- * stacked layout drives the same lines with `view()` instead.
+ * Copy line k of scene i on the pinned layout: in before the rest, out
+ * right after it (see `mk-line`). Custom properties because the stacked
+ * layout drives the same lines with `view()` instead.
  */
 function lineVars(i: number, k: number): Record<string, string> {
-  return { '--mk-tl': `--mk-s-${i}`, '--mk-range': coverRange(LINE_IN + 0.02 * k, LINE_OUT) }
+  return { '--mk-tl': `--mk-s-${i}`, '--mk-range': coverRange(LINE_IN + LINE_STAGGER * k, LINE_OUT) }
 }
 
 // timeline-scope lifts every scene's named view timeline to the track,
@@ -102,7 +108,7 @@ const trackStyle = {
   '--mk-rest': `${restOffsetVh(SNAP_REST_T)}vh`
 }
 useHead({
-  style: [{ key: 'mk-tour-sides', textContent: stageSideKeyframes('mk-sides', scenes.length, 'var(--mk-flip)', { glideVh: GLIDE_VH }) }]
+  style: [{ key: 'mk-tour-sides', textContent: stageSideKeyframes('mk-sides', scenes.length, 'var(--mk-flip)', { glideVh: SIDE_GLIDE_VH }) }]
 })
 
 // ─── Lazy stage scenes ────────────────────────────────────────────────
@@ -1036,24 +1042,26 @@ html:has(.mk-tour-page) {
 
 /* ─── Scroll-driven choreography ───────────────────────────────────── */
 @keyframes mk-fade-window {
-  /* Spans window t = -0.04 … 1.04: fade in over the first 0.08, out over the last 0.08. */
+  /* Spans window t = -0.125 … 1.125 (LAYER_FADE_T): fade in over the first
+     0.25, out over the last 0.25 — centred on the scene boundaries. */
   0% { opacity: 0; }
-  7.4%, 92.6% { opacity: 1; }
+  20%, 80% { opacity: 1; }
   100% { opacity: 0; }
 }
 @keyframes mk-fade-out-only {
-  0%, 92.6% { opacity: 1; }
+  0%, 80% { opacity: 1; }
   100% { opacity: 0; }
 }
 @keyframes mk-fade-in-only {
   0% { opacity: 0; }
-  7.4%, 100% { opacity: 1; }
+  20%, 100% { opacity: 1; }
 }
 @keyframes mk-line {
-  /* Range t = GLIDE_T … 1 − GLIDE_T of the scene window (see lineVars):
-     in once the stage has settled on its side, out before it moves on. */
+  /* Range t = LINE_IN (+ stagger) … LINE_OUT of the scene window (see
+     lineVars): fully in just before the rest (t = 0.5), leaving right
+     after it, so the copy moves through most of every crossing. */
   0% { opacity: 0; translate: 0 22px; }
-  10%, 93% { opacity: 1; translate: 0 0; }
+  42%, 55% { opacity: 1; translate: 0 0; }
   100% { opacity: 0; translate: 0 -18px; }
 }
 @keyframes mk-reveal {
