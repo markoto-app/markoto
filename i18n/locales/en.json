@@ -1042,6 +1042,10 @@
         "name": "IEEE conference paper",
         "description": "The IEEE conference template (IEEEtran): US Letter, two columns of Times 10 pt, centred small-caps sections with Roman numerals, italic subsections, a 24 pt title over side-by-side author blocks, the bold run-in abstract in the first column."
       },
+      "thesis": {
+        "name": "Thesis",
+        "description": "Long-form academic writing in the LaTeX report tradition: A4, Latin Modern 11 pt justified with paragraph indents, generous margins, every chapter on a new page under a large number, sections numbered 1.1 / 1.1.1, a classic title page, chapter title and page number in the running head, booktabs tables, hanging-indent references."
+      },
       "tech": {
         "name": "Tech Report",
         "description": "Compact IBM Plex Sans, cyan brand color, dark code blocks, brand-colored table headers with zebra rows."

@@ -1042,6 +1042,10 @@
         "name": "Article de conférence IEEE",
         "description": "Le modèle de conférence IEEE (IEEEtran) : format US Letter, deux colonnes en Times 10 pt, sections centrées en petites capitales avec chiffres romains, sous-sections en italique, titre en 24 pt au-dessus des blocs d’auteurs côte à côte, résumé en gras au début de la première colonne."
       },
+      "thesis": {
+        "name": "Thèse",
+        "description": "Les longs travaux universitaires dans la tradition de la classe LaTeX report : A4, Latin Modern 11 pt justifié avec alinéas, marges généreuses, chaque chapitre sur une nouvelle page sous un grand numéro, sections numérotées 1.1 / 1.1.1, page de titre classique, titre du chapitre et numéro de page en en-tête, tableaux de style booktabs, bibliographie avec retrait suspendu."
+      },
       "tech": {
         "name": "Rapport technique",
         "description": "IBM Plex Sans compact, couleur de marque cyan, blocs de code sombres, en-têtes de tableau colorés avec lignes zébrées."
