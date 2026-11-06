@@ -1,0 +1,9 @@
+{
+  "cover": {
+    "showSubtitle": true,
+    "subtitle": "Durable background jobs on PostgreSQL — version 3.4",
+    "showAuthors": true,
+    "authors": ["The Ferrule maintainers"],
+    "date": "2026-11-04"
+  }
+}
