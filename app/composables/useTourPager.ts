@@ -1,4 +1,4 @@
-import { easeInOutCubic, GLIDE_MS, nearestRest, newWheelGesture, stepTarget, wheelSteps } from '~~/shared/tour/paging'
+import { easeInOutSine, glideDuration, nearestRest, newWheelGesture, stepTarget, wheelSteps } from '~~/shared/tour/paging'
 
 /** Fired on `window` when the page comes to rest on a scene (detail: rest index). */
 export const TOUR_REST_EVENT = 'mk-tour:rest'
@@ -28,19 +28,24 @@ export interface TourPagerOptions {
  * CSS snaps the page (`mandatory`, one rest per scene), but the native
  * snap is a quick jump — and in Chromium a short wheel gesture springs
  * back. So every wheel/trackpad gesture and every paging key becomes ONE
- * step to the next (or previous) rest, glided over `GLIDE_MS` with an
- * ease-in-out curve: long enough for the scroll-tied copy fade, stage
- * slide and colour flip to play. While gliding, snapping is switched off
- * (it would catch every intermediate frame) and further input is
- * swallowed; the rest of a gesture (more notches, a trackpad's momentum
- * tail) is swallowed too, so nothing skips or double-steps. Scrollbar
- * drags and touch keep the native snapping.
+ * step to the next (or previous) rest, glided over `glideDuration` (≈1.3 s
+ * per scene, scaled by distance) on a sine ease-in-out; ProductTour spreads
+ * the copy fade, stage slide and cross-fade over the whole crossing, so the
+ * glide shows motion from its first frames. While gliding, snapping is
+ * switched off (it would catch every intermediate frame). The rest of a
+ * gesture (more notches, a trackpad's momentum tail) never steps again; a
+ * NEW gesture during a glide — even one that starts inside the previous
+ * swipe's momentum tail (`wheelSteps`) — queues one step for when the glide
+ * ends, so a second swipe is never lost. Scrollbar drags and touch keep the
+ * native snapping.
  *
  * `TOUR_REST_EVENT` / `TOUR_DEPART_EVENT` tell the scenes when one has
  * settled (the share scene fans its PDF pages out then).
  */
 export function useTourPager(opts: TourPagerOptions) {
   let gliding = false
+  /** A step asked for while a glide ran: taken as soon as it ends. */
+  let queued: 1 | -1 | 0 = 0
   let raf = 0
   const gesture = newWheelGesture()
   let lastRest = -1
@@ -72,10 +77,11 @@ export function useTourPager(opts: TourPagerOptions) {
     lastRest = -1
     emit(TOUR_DEPART_EVENT, index)
     snapping(false)
+    const duration = glideDuration(to - from, window.innerHeight)
     const start = performance.now()
     const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / GLIDE_MS)
-      window.scrollTo(0, from + (to - from) * easeInOutCubic(p))
+      const p = Math.min(1, (now - start) / duration)
+      window.scrollTo(0, from + (to - from) * easeInOutSine(p))
       if (p < 1) {
         raf = requestAnimationFrame(tick)
         return
@@ -83,6 +89,9 @@ export function useTourPager(opts: TourPagerOptions) {
       snapping(true)
       gliding = false
       settle(index)
+      const next = queued
+      queued = 0
+      if (next) step(next)
     }
     raf = requestAnimationFrame(tick)
   }
@@ -100,7 +109,11 @@ export function useTourPager(opts: TourPagerOptions) {
     if (e.ctrlKey || e.defaultPrevented || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
     if (!opts.active() || pageLocked(e.target)) return
     e.preventDefault()
-    if (wheelSteps(gesture, performance.now(), e.deltaY, gliding)) step(e.deltaY > 0 ? 1 : -1)
+    if (!wheelSteps(gesture, performance.now(), e.deltaY)) return
+    const dir = e.deltaY > 0 ? 1 : -1
+    // A new swipe during a glide is not lost: one step waits for it to end.
+    if (gliding) queued = dir
+    else step(dir)
   }
 
   const FORWARD = new Set(['PageDown', 'ArrowDown', ' '])
@@ -144,6 +157,7 @@ export function useTourPager(opts: TourPagerOptions) {
     clearTimeout(settleTimer)
     if (gliding) snapping(true)
     gliding = false
+    queued = 0
   }
   /** Glide to rest `index` (the scenes' "next" buttons); no-op while a glide runs. */
   function goTo(index: number): void {
