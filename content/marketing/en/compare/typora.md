@@ -1,6 +1,6 @@
 ---
 title: 'markoto vs Typora: desktop or browser Markdown?'
-description: markoto and Typora side by side - desktop app or browser, one-time price, live preview, PDF export with headers and page numbers, collaboration. With sources.
+description: markoto and Typora side by side - desktop app or browser, one-time price, live preview, PDF export with headers and page numbers, collaboration. Checked facts.
 keywords:
   - markoto vs typora
   - typora alternative
@@ -78,5 +78,10 @@ items:
 Paste the Markdown into a new document and send the link. No sign-up needed.
 ::
 
+<!-- Sources for our own periodic fact checks (content/compare/typora.yml), not shown on the page:
 ::compare-sources{competitor="typora"}
+::
+-->
+
+::compare-note{competitor="typora"}
 ::

@@ -1383,7 +1383,10 @@
       "imprint": "版本信息",
       "cookieNote": "Cookie：仅限必要",
       "dpaShort": "DPA",
-      "navLabel": "文档与法律信息"
+      "navLabel": "文档与法律信息",
+      "product": "产品",
+      "legal": "法律信息",
+      "tagline": "协作编写 Markdown，排版成页面。"
     },
     "documentPage": {
       "translationNoticeTitle": "此翻译仅供参考",
@@ -1767,7 +1770,8 @@
       "useCases": "使用场景",
       "templates": "模板",
       "compare": "对比",
-      "selfHost": "自托管"
+      "selfHost": "自托管",
+      "github": "GitHub 上的 markoto"
     },
     "sample": {
       "source": "Markdown",
@@ -1786,7 +1790,8 @@
       "caption": "核实于 {date}。来源列在页面末尾。",
       "sources": "来源",
       "markotoSources": "markoto（文档和代码）",
-      "trademark": "{name} 是其所有者的商标。markoto 与 {name} 无关联。价格和功能会变化，请以来源中的最新信息为准。"
+      "trademark": "{name} 是其所有者的商标。markoto 与 {name} 无关联。价格和功能会变化，请以来源中的最新信息为准。",
+      "trademarkNote": "{name} 是其所有者的商标。markoto 与 {name} 无关联。价格和功能会变化。"
     },
     "page": {
       "updated": "更新于 {date}",

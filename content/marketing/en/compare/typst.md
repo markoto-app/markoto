@@ -1,6 +1,6 @@
 ---
 title: 'markoto vs Typst: Markdown or typesetting?'
-description: markoto and Typst side by side - Markdown or Typst markup, citations, layout control, comments, collaboration, prices and data location. Facts with sources.
+description: markoto and Typst side by side - Markdown or Typst markup, citations, layout control, comments, collaboration, prices and data location. Checked facts.
 keywords:
   - markoto vs typst
   - typst alternative
@@ -85,5 +85,10 @@ items:
 Start a document, pick a print theme and download the PDF. No sign-up needed.
 ::
 
+<!-- Sources for our own periodic fact checks (content/compare/typst.yml), not shown on the page:
 ::compare-sources{competitor="typst"}
+::
+-->
+
+::compare-note{competitor="typst"}
 ::

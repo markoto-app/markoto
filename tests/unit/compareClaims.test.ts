@@ -164,10 +164,13 @@ describe('claim data (content/compare/*.yml)', () => {
         }
       })
 
-      it('has a page that renders its table and sources', () => {
+      it('has a page that renders its table and keeps its sources in a comment', () => {
         const page = readFileSync(join(PAGES_DIR, `${slug}.md`), 'utf8')
         expect(page).toContain(`::compare-facts{competitor="${slug}"}`)
-        expect(page).toContain(`::compare-sources{competitor="${slug}"}`)
+        // The source list is for our own fact checks, not for readers: it
+        // stays in the page source, inside an HTML comment.
+        expect(page).toContain(`::compare-note{competitor="${slug}"}`)
+        expect(page).toMatch(new RegExp(`<!--[^]*?::compare-sources\\{competitor="${slug}"\\}[^]*?-->`))
         expect(page).toContain(`## Where ${data.name} is better`)
         expect(page).toMatch(/^navGroup: compare$/m)
       })

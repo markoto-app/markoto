@@ -1383,7 +1383,10 @@
       "imprint": "Imprint",
       "cookieNote": "Cookies: essential only",
       "dpaShort": "DPA",
-      "navLabel": "Documentation and legal"
+      "navLabel": "Documentation and legal",
+      "product": "Product",
+      "legal": "Legal",
+      "tagline": "Collaborative Markdown, rendered as pages."
     },
     "documentPage": {
       "translationNoticeTitle": "Translation provided for convenience",
@@ -1767,7 +1770,8 @@
       "useCases": "Use cases",
       "templates": "Templates",
       "compare": "Compare",
-      "selfHost": "Self-host"
+      "selfHost": "Self-host",
+      "github": "markoto on GitHub"
     },
     "sample": {
       "source": "Markdown",
@@ -1786,7 +1790,8 @@
       "caption": "Checked on {date}. Sources are listed at the end of the page.",
       "sources": "Sources",
       "markotoSources": "markoto (documentation and code)",
-      "trademark": "{name} is a trademark of its owner. markoto is not affiliated with {name}. Prices and features change; the sources show the current state."
+      "trademark": "{name} is a trademark of its owner. markoto is not affiliated with {name}. Prices and features change; the sources show the current state.",
+      "trademarkNote": "{name} is a trademark of its owner. markoto is not affiliated with {name}. Prices and features change."
     },
     "page": {
       "updated": "Updated {date}",

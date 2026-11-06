@@ -1,6 +1,6 @@
 ---
 title: 'markoto vs HackMD: a HackMD alternative compared'
-description: markoto and HackMD side by side - collaboration limits, slide mode, GitHub sync, PDF export, self-hosting and where your data is stored. Facts with sources.
+description: markoto and HackMD side by side - collaboration limits, slide mode, GitHub sync, PDF export, self-hosting and where your data is stored. Checked facts.
 keywords:
   - markoto vs hackmd
   - hackmd alternative
@@ -76,5 +76,10 @@ items:
 Paste the Markdown into a new document and see it as pages. Free on markoto.app, no sign-up needed.
 ::
 
+<!-- Sources for our own periodic fact checks (content/compare/hackmd.yml), not shown on the page:
 ::compare-sources{competitor="hackmd"}
+::
+-->
+
+::compare-note{competitor="hackmd"}
 ::

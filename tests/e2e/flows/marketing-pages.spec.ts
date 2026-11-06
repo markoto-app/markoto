@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures/flow'
 
 // Smoke flow for the hosted marketing site (`@marketing`): the pages a
 // visitor reaches before opening the editor render, with the site header
-// that only the marketing site shows (Use cases menu, Self-host link).
+// that only the marketing site shows (Self-host link) and its footer columns.
 //
 // `@marketing` = runs only in the marketing pass of
 // scripts/flows-ephemeral.ts, against a server with
@@ -12,28 +12,24 @@ import { test, expect } from '../fixtures/flow'
 //
 // No docs page embeds this flow, so scripts/build-flows.ts never
 // publishes it: it is regression coverage for the marketing pass.
-// Desktop and mobile: on phones the header links move into one menu.
+// Desktop and mobile: on phones Self-host leaves the header for the footer.
 
-/** The marketing site's header: Self-host link + Use cases menu (inline from `lg`, in the menu below). */
+/**
+ * The marketing site's header stays short (Pricing, Self-host from `sm`,
+ * Docs — no menus); the use-case, comparison and template pages are in
+ * the footer's columns.
+ */
 async function expectMarketingHeader(page: Page, isMobile: boolean): Promise<void> {
   const header = page.locator('header.mk-site-header')
   await expect(header).toBeVisible()
-  if (isMobile) {
-    // The page paints from the server render before it hydrates (the
-    // marketing pages ship without modulepreload hints), so a click right
-    // after `load` can land before the menu's handler is attached: retry
-    // until the menu is open (same pattern as silentSetup).
-    await expect(async () => {
-      await header.getByTestId('header-menu').click()
-      await expect(page.getByRole('menuitem', { name: 'Self-host' })).toBeVisible({ timeout: 1500 })
-    }).toPass({ timeout: 15_000 })
-    await expect(page.getByRole('menuitem', { name: 'Markdown cheat sheet' })).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(page.getByRole('menuitem', { name: 'Self-host' })).toHaveCount(0)
-  } else {
-    await expect(header.getByTestId('header-self-host-link')).toBeVisible()
-    await expect(header.getByTestId('header-use-cases')).toBeVisible()
-  }
+  await expect(header.getByTestId('header-pricing-link')).toBeVisible()
+  await expect(header.getByTestId('header-docs-link')).toBeVisible()
+  if (isMobile) await expect(header.getByTestId('header-self-host-link')).toBeHidden()
+  else await expect(header.getByTestId('header-self-host-link')).toBeVisible()
+  await expect(header.getByRole('link', { name: 'Markdown cheat sheet' })).toHaveCount(0)
+  const footer = page.getByTestId('legal-footer')
+  await expect(footer.getByTestId('footer-col-use-cases').getByRole('link', { name: 'Markdown cheat sheet' })).toBeAttached()
+  await expect(footer.getByTestId('footer-col-compare')).toBeAttached()
 }
 
 test('Marketing pages', { tag: '@marketing' }, async ({ page, flow, editor }) => {

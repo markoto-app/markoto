@@ -211,7 +211,7 @@ describe('Self-host link', () => {
 })
 
 describe('Templates link', () => {
-  it('the header links to the templates hub only; the footer lists every template page', async () => {
+  it('the header links no template page; the footer lists every one in its own column', async () => {
     setConfig({ marketingSite: true })
     content.items = [
       { ...item('/marketing/en/templates/resume'), navGroup: 'templates', navLabel: 'Resume template', navOrder: 20 },
@@ -219,17 +219,19 @@ describe('Templates link', () => {
       { ...item('/marketing/en/templates/report'), navGroup: 'templates', navLabel: 'Report template', navOrder: 10 }
     ]
     clearNuxtData('marketing:nav')
-    const header = await mountSuspended(MarketingHeader)
-    await vi.waitFor(() => expect(header.find('[data-testid="header-templates-link"]').exists()).toBe(true))
-    expect(header.find('[data-testid="header-templates-link"]').attributes('href')).toBe('/templates')
-    expect(header.html()).not.toContain('Resume template')
-    header.unmount()
     const footer = await mountSuspended(CommonLegalFooter)
-    const hrefs = footer.findAll('a').map(a => a.attributes('href'))
+    await vi.waitFor(() => expect(footer.find('[data-testid="footer-col-templates"]').exists()).toBe(true))
+    const hrefs = footer.find('[data-testid="footer-col-templates"]').findAll('a').map(a => a.attributes('href'))
     expect(hrefs).toEqual(expect.arrayContaining(['/templates', '/templates/report', '/templates/resume']))
     expect(hrefs.indexOf('/templates')).toBeLessThan(hrefs.indexOf('/templates/report'))
     expect(hrefs.indexOf('/templates/report')).toBeLessThan(hrefs.indexOf('/templates/resume'))
     footer.unmount()
+    // The header stays short: Pricing, Self-host, Docs — no content pages.
+    const header = await mountSuspended(MarketingHeader)
+    const headerHrefs = header.findAll('a').map(a => a.attributes('href'))
+    expect(headerHrefs.filter(h => h?.startsWith('/templates'))).toEqual([])
+    expect(header.find('[data-testid="header-docs-link"]').attributes('href')).toBe('/docs')
+    header.unmount()
     clearNuxtData('marketing:nav')
   })
 })

@@ -1383,7 +1383,10 @@
       "imprint": "運営者情報",
       "cookieNote": "Cookie：必須のもののみ",
       "dpaShort": "DPA",
-      "navLabel": "ドキュメントと法的情報"
+      "navLabel": "ドキュメントと法的情報",
+      "product": "製品",
+      "legal": "法的情報",
+      "tagline": "共同編集できる Markdown を、ページとして。"
     },
     "documentPage": {
       "translationNoticeTitle": "便宜のために翻訳を提供しています",
@@ -1767,7 +1770,8 @@
       "useCases": "用途",
       "templates": "テンプレート",
       "compare": "比較",
-      "selfHost": "セルフホスト"
+      "selfHost": "セルフホスト",
+      "github": "GitHub の markoto"
     },
     "sample": {
       "source": "Markdown",
@@ -1786,7 +1790,8 @@
       "caption": "{date} に確認。出典はページ末尾にあります。",
       "sources": "出典",
       "markotoSources": "markoto（ドキュメントとコード）",
-      "trademark": "{name} は各権利者の商標です。markoto は {name} と提携していません。価格や機能は変わることがあります。最新の情報は出典をご確認ください。"
+      "trademark": "{name} は各権利者の商標です。markoto は {name} と提携していません。価格や機能は変わることがあります。最新の情報は出典をご確認ください。",
+      "trademarkNote": "{name} は各権利者の商標です。markoto は {name} と提携していません。価格や機能は変わることがあります。"
     },
     "page": {
       "updated": "{date} 更新",

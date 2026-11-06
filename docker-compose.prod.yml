@@ -245,6 +245,9 @@ services:
       # Search-engine indexing. Staging renders false (robots.txt
       # Disallow: / + X-Robots-Tag: noindex on every response).
       - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-true}
+      # Origin for canonical / og:url / JSON-LD / sitemap; empty = the
+      # site URL. Staging renders https://markoto.app.
+      - NUXT_CANONICAL_SITE_URL=${NUXT_CANONICAL_SITE_URL:-}
       # Number of trusted reverse proxies in front of the app (Traefik = 1).
       # See shared/utils/clientIp.ts.
       - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
